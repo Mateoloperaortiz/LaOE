@@ -10,7 +10,7 @@ Resend gratis permite 3.000 correos al mes y 100 al día. La OE tiene unas 700 p
 
 ## Decisión
 
-Cartelera + push web (PWA instalada, VAPID) es el canal principal para integrantes. El correo queda para lo transaccional (OTP, puntos acreditados, recordatorios) y para campañas segmentadas enviadas en lotes por cron dentro del límite del proveedor, con enlace de baja en lo no transaccional. WhatsApp solo como enlaces click-to-chat desde la ficha. Sin webhook de Teams. Todo envío se registra en `Message` y respeta `NotificationPreference`.
+Cartelera + push web (PWA instalada, VAPID) es el canal principal para integrantes. El correo queda para lo transaccional (OTP, puntos acreditados, recordatorios) y para campañas segmentadas enviadas en lotes programados dentro del límite del proveedor, con enlace de baja en lo no transaccional. WhatsApp solo como enlaces click-to-chat desde la ficha. Sin webhook de Teams. Todo envío se registra en `Message` y respeta `NotificationPreference`.
 
 ## Consecuencias
 

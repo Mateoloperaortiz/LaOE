@@ -9,27 +9,27 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 Cuentas y accesos:
 
 - [ ] Repositorio en GitHub (remoto de este repo) con protección de `main`
-- [ ] Vercel Pro (1 asiento), proyecto en `iad1`
-- [ ] Neon: proyecto en `us-east-1`, integración con Vercel para ramas por preview, alerta de uso
-- [ ] Cloudflare R2: buckets público y privado, CORS, dominio `media.oeeafit.com` reservado
+- [ ] Proyecto `casa-digital` en el workspace Pro de Railway: servicios `web`, `Postgres` y bucket `media`; variables por referencia; misma región que GHPOINTS
+- [ ] Respaldos del volumen de Postgres (diario, semanal, mensual) y PITR activados
+- [ ] Límite duro de uso del workspace revisado para dos apps en convivencia
 - [ ] Resend: dominio `oeeafit.com` verificado (ya existe en GHPOINTS; confirmar acceso)
 - [ ] Claves VAPID para push
 
 Código base (empieza cuando se autorice escribir código):
 
-- [ ] Scaffold Next.js 16 + TypeScript + Tailwind 4 + shadcn base; `vercel.json` con región y crons
-- [ ] Tokens de marca, texturas, componente `Cartel`, tema claro/oscuro, fuentes locales
-- [ ] Esquema Prisma por módulos, migraciones, uniques parciales, cliente pooled + `DIRECT_URL`
+- [ ] Scaffold Next.js 16 + TypeScript + Tailwind 4 + shadcn base; `railway.json` con build, start, healthcheck y pre-deploy
+- [ ] Tokens de marca, texturas, componente `Cartel`, elementos gráficos SVG, tema claro/oscuro, fuentes locales
+- [ ] Esquema Prisma por módulos, migraciones, uniques parciales
 - [ ] Acceso: OTP, sesiones, guards, step-up, `/ingresar`
 - [ ] Admin kit (`defineResource`) y paleta ⌘K
-- [ ] Outbox + `after()` + cron `drain`, vista de jobs y dead letter
-- [ ] Adaptadores: Mailer (consola/Resend), Storage (R2/emulador), Pusher
+- [ ] Outbox + poller + scheduler en `instrumentation.ts`; vista de jobs y dead letter
+- [ ] Adaptadores: Mailer (consola/Resend), Storage (bucket de Railway/emulador), Pusher
 - [ ] Auditoría en transacción y `AppConfig`
 - [ ] CI: lint, typecheck, unit, integration con Postgres, build
-- [ ] Respaldo: `pg_dump` nocturno cifrado a R2 desde GitHub Actions y cron `backup-check`
+- [ ] Copia mensual cifrada de la base fuera de Railway (`backup.ts`) y job `backup-check`
 - [ ] Seed sintético sin datos reales
 
-Listo cuando: login por OTP con roster semilla sintético, shell del admin, claro/oscuro en 3 anchos, preview por PR con su rama de Neon, cron `drain` corriendo en producción.
+Listo cuando: login por OTP con roster semilla sintético, shell del admin, claro/oscuro en 3 anchos, entorno de PR o staging bajo demanda funcionando, poller del outbox visible en los logs de producción, health en verde.
 
 ## Fase 1 · Portal público y contenido · `pendiente`
 
@@ -40,10 +40,11 @@ Listo cuando: login por OTP con roster semilla sintético, shell del admin, clar
 - [ ] Inicio con cartelera, próximo encuentro y macroeventos
 - [ ] ICS público
 - [ ] OG images con cartel tipográfico
-- [ ] Admin de Contenido con subida directa a R2 y variantes
+- [ ] Admin de Contenido con subida al bucket por la app y variantes
 - [ ] SEO básico, sitemap, robots
+- [ ] Lista de revisión de marca aplicada a cada pantalla pública ([07-marca.md](07-marca.md))
 
-Listo cuando: contenido real de la OE publicable sin tocar código; nada personal en público; una portada de 5 MB sube y se sirve desde `media.oeeafit.com`.
+Listo cuando: contenido real de la OE publicable sin tocar código; nada personal en público; una portada de 5 MB sube y se sirve desde el bucket a través de la app con caché.
 
 ## Fase 2 · Personas y Mi OE · `pendiente`
 
@@ -53,7 +54,7 @@ Listo cuando: contenido real de la OE publicable sin tocar código; nada persona
 - [ ] Persona 360 con todas las pestañas
 - [ ] Interacciones automáticas, notas, tareas, etiquetas, segmentos
 - [ ] Mi OE: inicio, directorio, comités internos, ajustes (sesiones, datos, consentimientos)
-- [ ] Normativa: documentos en R2 privado con lector y búsqueda
+- [ ] Normativa: documentos en el bucket privado con lector y búsqueda
 - [ ] Carnet digital con QR firmado
 - [ ] Exportar mis datos y solicitud de eliminación
 
@@ -94,7 +95,7 @@ Listo cuando: una convocatoria completa (formulario → entrevista → alta) se 
 - [ ] Manifest, service worker, instalación en iOS y Android
 - [ ] Push web: suscripción, preferencias, envío por outbox
 - [ ] Anuncios con push
-- [ ] Plantillas de correo y campañas por segmento en lotes por cron, con baja
+- [ ] Plantillas de correo y campañas por segmento en lotes programados, con baja
 - [ ] Registro de mensajes por persona
 - [ ] Recordatorios (ocasiones de hoy, asambleas pendientes, términos)
 - [ ] ICS personal
@@ -103,15 +104,15 @@ Listo cuando: un anuncio llega al celular de un integrante en menos de un minuto
 
 ## Fase 6 · Cutover · `pendiente`
 
-- [ ] Ensayo completo de migración sobre dump reciente
-- [ ] Congelación de GHPOINTS y migración delta
-- [ ] DNS de `oeeafit.com` a Vercel y `media.oeeafit.com` a R2
+- [ ] Ensayo completo de migración sobre un dump reciente
+- [ ] Congelación de GHPOINTS y migración delta; copia de medios nuevos
+- [ ] Mover `oeeafit.com` del servicio GHPOINTS al servicio `web` nuevo
 - [ ] Verificación en producción: OTP real, check-in real, portada, push
-- [ ] Semana de monitoreo
-- [ ] Apagado de GHPOINTS, dump final cifrado, cancelación de Railway
+- [ ] Semana de monitoreo con GHPOINTS detenido
+- [ ] Dump final cifrado fuera de Railway; eliminar el proyecto GHPOINTS
 - [ ] README, ADR y runbook actualizados
 
-Listo cuando: oeeafit.com sirve la app nueva y GHPOINTS está apagado con respaldo.
+Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está eliminado con respaldo.
 
 ## Backlog (fuera de v1)
 
@@ -121,9 +122,11 @@ Listo cuando: oeeafit.com sirve la app nueva y GHPOINTS está apagado con respal
 - Fórmulas alternativas de score de comité (ponderadas)
 - WhatsApp Business API
 - Galería de fotos por edición con consentimiento
+- Servicio `worker` separado y Cloudflare como CDN, solo con uso medido
 
 ## Registro de avances
 
 | Fecha | Fase | Qué cambió |
 | --- | --- | --- |
 | 2026-09-02 | — | Documentación inicial: visión, arquitectura, CRM, modelo de datos, 20 ADR, acceso, mapa del sitio, marca, migración, roadmap |
+| 2026-09-02 | — | Carpeta renombrada de `Untitled` a `casa-digital`. Hosting vuelve a Railway en el workspace Pro existente: ADR-021 reemplaza a ADR-019 y enmienda ADR-001, ADR-012 y ADR-016. Marca reescrita a partir del manual de 19 páginas (logo, color, tipografía, elementos, texturas, composición, orden del feed) |

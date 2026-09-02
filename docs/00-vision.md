@@ -22,7 +22,7 @@ GHPOINTS ya sirve [oeeafit.com](https://oeeafit.com) con portal, Mi OE, GH Point
 
 ## Principio rector: un solo lugar
 
-Una app, una base de datos, un bucket, un admin, un proveedor de correo. La infraestructura son tres paneles (Vercel, Neon, R2), pero el producto es uno.
+Una app, una base de datos, un bucket, un admin, un proveedor de correo. Toda la infraestructura vive en un solo proyecto de Railway (app, Postgres y bucket), en el workspace que ya se paga.
 
 | Hoy | En la casa digital |
 | --- | --- |
@@ -47,15 +47,16 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | Todo el código y las reglas son nuevos; las ADR de GHPOINTS son referencia, no contrato |
 | 2026-09-02 | Proyecto personal: sin Azure/Entra de EAFIT; identidad por correo del roster con OTP; presupuesto ~US$20/mes |
 | 2026-09-02 | CRM v1 cubre postulantes y admisión, egresados y retirados, aliados y patrocinadores, contactos institucionales |
-| 2026-09-02 | Hosting: Vercel Pro + Neon + Cloudflare R2 (elegido sobre Railway) |
+| 2026-09-02 | Hosting: Railway, en el workspace Pro que ya se paga por GHPOINTS. Se evaluó Vercel + Neon + R2 y se descartó el mismo día ([ADR-021](adr/ADR-021-infraestructura-railway.md)) |
 | 2026-09-02 | Esta iteración solo documenta; el código empieza después, fase por fase |
+| 2026-09-02 | La carpeta del repositorio pasa de `Untitled` a `casa-digital`; el nombre del remoto sigue abierto |
 
 Hechos que sustentan varias de estas decisiones:
 
 - `eafit.edu.co` corre en Microsoft 365 (MX en `outlook.com`); Google OAuth no verifica ese dominio para la mayoría de las personas.
-- En Vercel, los crons por minuto existen solo en Pro (Hobby: una vez al día, precisión de una hora); el cuerpo de request y de respuesta de una función tope en 4,5 MB; no hay procesos permanentes.
-- Neon gratis: 0,5 GB por proyecto, 100 CU-horas al mes, suspensión del compute tras 5 minutos sin uso (no se puede desactivar), ventana de restauración de 6 horas.
-- Cloudflare R2 gratis: 10 GB, 1 millón de operaciones de escritura y 10 millones de lectura al mes, egreso gratis.
+- Railway Pro cuesta US$20 al mes con US$20 de uso incluidos; el workspace ya se paga por GHPOINTS y consume unos US$3 a 5, así que la app nueva cabe sin gasto adicional. RAM US$10 por GB-mes, CPU US$20 por vCPU-mes, volumen US$0,15 por GB-mes, buckets US$0,015 por GB-mes con operaciones y egreso gratis.
+- Los respaldos programados de volúmenes (diario, semanal, mensual) existen en todos los planes de Railway; el PITR ya está configurado en el Postgres de GHPOINTS.
+- Vercel + Neon + R2 se evaluó y descartó el mismo día: costaba lo mismo, repartía la infraestructura en tres paneles y obligaba a diseñar sin worker permanente (crons por minuto solo en Pro, cuerpo de 4,5 MB por función, Neon gratis con 100 CU-horas y suspensión a los 5 minutos).
 
 ## Alcance v1 (fases 0 a 6)
 

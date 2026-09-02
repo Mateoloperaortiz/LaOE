@@ -8,7 +8,7 @@ Solo entran las personas del roster: integrantes vigentes y honorarios. No hay r
 sequenceDiagram
   participant P as Persona
   participant W as /ingresar
-  participant DB as Neon
+  participant DB as Postgres
   participant M as Mailer
   P->>W: correo
   W->>DB: ¿Person con Membership ACTIVE u HONORARY?

@@ -4,7 +4,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 
 ## Local
 
-- PostgreSQL en Docker (`docker compose up -d`), emulador S3 local para R2 y mailer de consola.
+- PostgreSQL en Docker (`docker compose up -d`), emulador S3 local para el bucket y mailer de consola.
 - `npm run db:reset && npm run db:seed`: esquema desde cero, uniques parciales y datos sintéticos sin información real.
 - `npm run dev` y revisión en navegador a 360, 768 y 1280 px, claro y oscuro, navegación por teclado, `axe` sin violaciones serias o críticas, Lighthouse con PWA instalable.
 
@@ -22,7 +22,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 
 - Check-in único con 200 registros concurrentes sobre la misma ocasión.
 - Reversión idempotente y cancelación de ocasión con créditos vivos.
-- Outbox drenado exactamente una vez con `after()` y cron compitiendo; `dedupeKey` colapsando recomputes.
+- Outbox drenado exactamente una vez con dos pollers compitiendo (y `after()` si se usa); `dedupeKey` colapsando recomputes.
 - OTP: rate limit por correo e IP, vencimiento, intentos, no enumeración.
 - Step-up de admin y destrucción de sesiones al retirar o cambiar correo.
 - Auditoría en la misma transacción: si falla la auditoría, no hay mutación.
@@ -33,7 +33,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 
 - Ingreso por OTP con código fijo de test y redirección a `next`.
 - QR de check-in: sin sesión → ingreso → vuelve al QR → puntos acreditados y visibles en Mi OE.
-- Admin publica una edición con portada subida directa a R2 (emulador) y la ve el visitante.
+- Admin publica una edición con portada subida por la app al bucket (emulador) y la ve el visitante.
 - Kanban de admisión hasta "Dar de alta" y primer ingreso del nuevo integrante.
 - Campaña enviada al mailer de consola respetando preferencias y baja.
 - Modo anfitrión: el líder marca a una persona sin sesión.
@@ -45,9 +45,9 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 
 ## Despliegue
 
-- Preview de Vercel con rama de Neon por PR; producción solo desde `main`.
-- Tras cada release: `/api/health`, cron `drain` visible en logs cada minuto, un OTP real recibido en un buzón `@eafit.edu.co`, una portada servida desde `media.oeeafit.com`, un push recibido en un iPhone con la PWA instalada.
-- Una vez al mes: restaurar el `pg_dump` nocturno en local y abrir la app contra esa copia.
+- Entorno de PR de Railway o staging bajo demanda; producción solo desde `main`, con el pre-deploy de migraciones en verde.
+- Tras cada release: `/api/health`, poller del outbox visible en los logs, un OTP real recibido en un buzón `@eafit.edu.co`, una portada servida desde `/api/media/[id]` y un push recibido en un iPhone con la PWA instalada.
+- Una vez al mes: restaurar en local un respaldo nativo de Railway o la copia mensual cifrada y abrir la app contra esa copia.
 
 ## Cierre de fase
 

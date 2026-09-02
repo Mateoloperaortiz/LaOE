@@ -54,4 +54,4 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Carnet | `/app/carnet` | QR personal firmado para acreditación en ocasiones |
 | Cartelera | `/cartelera`, `/app` | Anuncios de la OE |
 | Documento | `Document` | Estatutos, reglamento, actas: PDFs privados con lector |
-| Medio | `MediaAsset` | Referencia a un archivo en R2 (portada, foto, PDF) |
+| Medio | `MediaAsset` | Referencia a un archivo en el bucket (portada, foto, PDF) |

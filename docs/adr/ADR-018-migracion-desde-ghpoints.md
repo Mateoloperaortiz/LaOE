@@ -10,7 +10,7 @@ GHPOINTS tiene roster, ledger, asistencias, asambleas, ediciones y QR impresos e
 
 ## Decisión
 
-`scripts/migrate-ghpoints.ts` lee con `pg` una restauración local del dump de Railway y escribe con Prisma contra `DIRECT_URL` de Neon, de forma idempotente por id de origen. `scripts/verify-migration.ts` compara conteos por tabla y `SUM(points)` por persona y término; cero diferencias es condición de cutover. `LegacyAlias` conserva `/a/{publicId}` y `/asamblea/{publicId}` apuntando a la ocasión nueva. Nunca se corre contra la base viva de producción. El mapeo completo está en [../08-migracion-ghpoints.md](../08-migracion-ghpoints.md).
+`scripts/migrate-ghpoints.ts` lee con `pg` una restauración local del dump de Railway y escribe con Prisma contra la base nueva en Railway, de forma idempotente por id de origen. `scripts/verify-migration.ts` compara conteos por tabla y `SUM(points)` por persona y término; cero diferencias es condición de cutover. `LegacyAlias` conserva `/a/{publicId}` y `/asamblea/{publicId}` apuntando a la ocasión nueva. Nunca se corre contra la base viva de producción. El mapeo completo está en [../08-migracion-ghpoints.md](../08-migracion-ghpoints.md).
 
 ## Consecuencias
 

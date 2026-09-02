@@ -1,19 +1,24 @@
 # ADR-012: Outbox transaccional; efectos fuera del commit
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-021)
 - Fecha: 2026-09-02
-- Relacionadas: ADR-001, ADR-009, ADR-019
+- Relacionadas: ADR-001, ADR-009, ADR-021
 
 ## Contexto
 
-Vercel no tiene procesos permanentes y sus crons corren como mucho cada minuto. Los efectos de una mutación (correo, push, línea de tiempo, recomputes, revalidación) no pueden bloquear al usuario ni perderse si la función termina.
+Los efectos de una mutación (correo, push, línea de tiempo, recomputes, revalidación) no pueden bloquear a la persona ni perderse si el proceso muere. En la redacción original el hosting era Vercel, sin procesos permanentes y con crons de un minuto; ver la enmienda.
 
 ## Decisión
 
-Un comando es una transacción con la mutación, su `AuditLog` y sus filas de `Outbox`. El drenaje tiene dos caminos: (1) `after()` de `next/server` intenta procesar el outbox apenas se envía la respuesta; (2) el cron `/api/cron/drain` cada minuto recoge lo pendiente. Los handlers son idempotentes, cortos (menos de 60 s) y procesan por lotes; reintentos con backoff (1 min, 5 min, 30 min, 2 h, 12 h) y `deadLetterAt` tras cinco fallos, visibles en `/admin/sistema/jobs` con opción de reintentar. Un fallo de efecto nunca revierte ni falsea la mutación. El OTP se envía inline, no por outbox, porque la persona lo está esperando.
+Un comando es una transacción con la mutación, su `AuditLog` y sus filas de `Outbox`. Los handlers son idempotentes, cortos (menos de 60 s) y procesan por lotes; reintentos con backoff (1 min, 5 min, 30 min, 2 h, 12 h) y `deadLetterAt` tras cinco fallos, visibles en `/admin/sistema/jobs` con opción de reintentar. Un fallo de efecto nunca revierte ni falsea la mutación. El OTP se envía inline, no por outbox, porque la persona lo está esperando. `dedupeKey` con unique parcial evita duplicar trabajos pendientes para la misma ocasión.
+
+Redacción original del drenaje: (1) `after()` de `next/server` intentaba procesar el outbox apenas se enviaba la respuesta; (2) un cron `/api/cron/drain` cada minuto recogía lo pendiente.
 
 ## Consecuencias
 
 - Correos, push, línea de tiempo, recomputes y revalidaciones son eventualmente consistentes.
-- `dedupeKey` con unique parcial evita duplicar trabajos pendientes para la misma ocasión.
-- Sin Vercel Pro, el cron solo correría una vez al día y el drenaje dependería de `after()`.
+- El estado de la cola vive en Postgres: se inspecciona con SQL y se reintenta desde el admin.
+
+## Enmienda (2026-09-02, ADR-021)
+
+El drenaje lo hace un **poller en el mismo proceso** cada 3 segundos (`SELECT … FOR UPDATE SKIP LOCKED`, lotes de 50), arrancado desde `instrumentation.ts` cuando `JOBS_ENABLED=true`. Los programados (`campaigns`, `reminders`, `prune`, `retention`, `backup-check`) los dispara un **scheduler en proceso** (`croner`) que encola filas de outbox; un lock transaccional por nombre de job evita duplicados si hay más de una réplica. `after()` queda como optimización opcional para bajar la latencia de un check-in a menos de un segundo; ya no hay rutas `/api/cron/*` ni dependencia de crons externos.

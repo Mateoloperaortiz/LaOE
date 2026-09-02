@@ -1,6 +1,6 @@
 # Arquitectura
 
-Monolito modular en **Next.js (App Router) + TypeScript + Prisma** desplegado como funciones serverless en **Vercel**, con un único **PostgreSQL en Neon** y almacenamiento de archivos en **Cloudflare R2**. No hay procesos permanentes, Redis ni colas de terceros: el trabajo de fondo sale por un outbox transaccional drenado por `after()` y por crons de Vercel.
+Monolito modular en **Next.js (App Router) + TypeScript + Prisma** desplegado como **un servicio en Railway**, con **PostgreSQL** y un **bucket privado** en el mismo proyecto. El trabajo de fondo sale por un outbox transaccional drenado por un poller que corre en el mismo proceso que la app. No hay Redis, colas de terceros ni servicios sueltos: todo vive en un panel. Hosting decidido en [ADR-021](adr/ADR-021-infraestructura-railway.md).
 
 ## Vista general
 
@@ -11,22 +11,18 @@ flowchart LR
     I[Integrante PWA]
     A[Admin]
   end
-  subgraph vercel [Vercel: Next.js, region iad1]
-    Pub["(public) portal"]
-    Mi["/app Mi OE"]
-    Adm["/admin"]
-    Chk["/a/publicId check-in"]
-    Mod["modules/* dominio + acciones"]
-    After["after(): drenaje inmediato del outbox"]
-    Cron["Vercel Cron cada minuto: barrido + programados"]
+  subgraph railway [Railway: proyecto casa-digital]
+    subgraph web [Servicio web: Next.js + worker en proceso]
+      Pub["(public) portal"]
+      Mi["/app Mi OE"]
+      Adm["/admin"]
+      Chk["/a/publicId check-in"]
+      Mod["modules/* dominio + acciones"]
+      Poll["poller del outbox cada 3 s + scheduler"]
+    end
+    PG[(Postgres: datos, auditoria, outbox, sesiones, busqueda)]
+    Bucket[(Bucket privado: portadas, PDFs, fotos)]
   end
-  subgraph neon [Neon Postgres us-east-1]
-    DB[(datos + auditoria)]
-    Out[(outbox con dedupeKey)]
-    Ses[(sesiones + OTP + rate limit + busqueda)]
-  end
-  R2pub[(R2 publico: portadas publicadas)]
-  R2priv[(R2 privado: PDFs, fotos, originales)]
   Mail[Resend]
   Push[Web Push VAPID]
   V --> Pub
@@ -37,19 +33,11 @@ flowchart LR
   Mi --> Mod
   Adm --> Mod
   Chk --> Mod
-  Mod --> DB
-  Mod --> Out
-  Mod --> Ses
-  Mod --> After
-  After --> Out
-  Cron --> Out
-  After --> Mail
-  After --> Push
-  Cron --> Mail
-  Cron --> Push
-  Adm -. PUT prefirmado .-> R2priv
-  Mod --> R2pub
-  Mod --> R2priv
+  Mod --> PG
+  Mod --> Bucket
+  Poll --> PG
+  Poll --> Mail
+  Poll --> Push
 ```
 
 ## Módulos
@@ -82,40 +70,52 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.prisma` (Prisma en mod
 
 ## Piezas transversales
 
-- **Outbox transaccional sin worker permanente.** Cada comando escribe mutación, auditoría y eventos de dominio en la misma transacción (`src/db/tx.ts`). Los efectos salen por dos caminos: (1) `after()` de `next/server` drena el outbox apenas responde el request, así un check-in dispara push y línea de tiempo en segundos; (2) el cron `/api/cron/drain` cada minuto recoge lo que quedó por una función terminada o un error, con reintentos y `deadLetterAt` visible en `/admin/sistema/jobs`. Cada handler es idempotente, corto (menos de 60 s) y procesa por lotes. Los recomputes usan `dedupeKey` (por ocasión) y `pg_advisory_xact_lock`, así N funciones concurrentes colapsan en un solo cálculo. Detalle en [ADR-012](adr/ADR-012-outbox-transaccional.md).
-- **Programados** (`vercel.json` → `/api/cron/*`, protegidos por `CRON_SECRET`): `drain` cada minuto, `campaigns` cada minuto (lotes dentro del límite del proveedor), `reminders` cada hora, `prune` diario (sesiones, OTP, outbox procesado), `retention` mensual (anonimización de egresados), `backup-check` diario (verifica que el último `pg_dump` en R2 tenga menos de 36 horas).
+- **Outbox transaccional con poller en proceso.** Cada comando escribe mutación, auditoría y eventos de dominio en la misma transacción (`src/db/tx.ts`). Un poller arrancado desde `instrumentation.ts` (cuando `JOBS_ENABLED=true`) toma cada 3 segundos hasta 50 filas pendientes con `FOR UPDATE SKIP LOCKED` y ejecuta sus handlers: push, correo, línea de tiempo, recomputes, revalidación. Reintentos con backoff y `deadLetterAt` visibles en `/admin/sistema/jobs`. Los recomputes usan `dedupeKey` (por ocasión) y `pg_advisory_xact_lock`, así una ráfaga de check-ins colapsa en un solo cálculo. `after()` de Next queda como optimización opcional para bajar la latencia de un check-in a menos de un segundo. Detalle en [ADR-012](adr/ADR-012-outbox-transaccional.md).
+- **Programados.** Un scheduler en el mismo proceso (`croner`) encola filas de outbox según `src/jobs/schedule.ts`: `campaigns` cada minuto (lotes dentro del límite del proveedor), `reminders` cada hora, `prune` diario (sesiones, OTP, outbox procesado), `retention` mensual (anonimización de egresados), `backup-check` diario (verifica la última copia externa). Un lock transaccional por nombre evita duplicados si hay más de una réplica.
 - **Eventos de dominio → línea de tiempo.** `checkin.approved`, `points.credited`, `membership.changed`, `stage.changed`, `submission.received`, `message.sent` y `card.moved` producen `Interaction` en la persona. El CRM se alimenta solo.
 - **Admin kit declarativo** (`src/shared/admin-kit/`): `defineResource({ modelo, columnas, filtros, formulario Zod, permisos })` genera listado paginado con búsqueda, ficha, crear/editar en panel lateral y export CSV. Cubre Comité, Término, Etiqueta, Organización, Formulario, Plantilla, Página, Documento, Anuncio y Pipeline. UI a medida solo para Persona 360, kanban, consola de ocasión, ledger, campañas e importaciones. Paleta de comandos (⌘K) con búsqueda `pg_trgm` sobre personas, organizaciones y ocasiones.
-- **Marca** (`src/shared/brand/`): tokens CSS, texturas ligeras (ruido SVG + mezcla), componente `Cartel` para portadas tipográficas, tema claro/oscuro, movimiento reducido. Ver [07-marca.md](07-marca.md).
-- **Adaptadores:** `Mailer` (`console` en desarrollo y previews, `resend` en producción; `ses` como alternativa del mismo contrato), `Storage` (R2 vía S3 SigV4 con URLs prefirmadas; emulador local en desarrollo), `Pusher` (web-push con VAPID).
+- **Marca** (`src/shared/brand/`): tokens, texturas, `Cartel`, elementos gráficos como SVG, tema claro/oscuro, movimiento reducido. Ver [07-marca.md](07-marca.md).
+- **Adaptadores:** `Mailer` (`console` en desarrollo y staging, `resend` en producción; `ses` como alternativa del mismo contrato), `Storage` (bucket de Railway vía S3; emulador local en desarrollo), `Pusher` (web-push con VAPID).
 
-## Límites de Vercel que moldean el diseño
+## Cómo corre en Railway
 
-- **Cuerpo de 4,5 MB por función.** Las subidas van directas del navegador a R2 con `PUT` prefirmado (CORS en el bucket); la función solo registra el `MediaAsset`, valida el objeto con `HEAD`, genera variantes con `sharp` y las escribe en R2. Ningún archivo se transmite a través de la función: los medios publicados se sirven desde el bucket público (`media.oeeafit.com`, egreso gratis) y los privados por redirect a un `GET` prefirmado de 10 minutos tras validar sesión y audiencia.
-- **Sin proceso permanente.** Nada depende de un worker vivo: outbox + `after()` + cron. Importaciones y migraciones grandes corren como scripts locales contra `DIRECT_URL`, no en funciones.
-- **Una región.** Funciones en `iad1` y Neon en `us-east-1`: de 1 a 3 ms a la base. Runtime Node (Prisma), nunca Edge. Desde Medellín la latencia a `iad1` ronda los 80 ms; suficiente para este uso.
-- **Conexiones.** `DATABASE_URL` pooled (PgBouncer, `?pgbouncer=true`) para la app y `DIRECT_URL` para `prisma migrate`; locks solo transaccionales (`pg_advisory_xact_lock`), nunca de sesión.
-- **Neon gratis.** 0,5 GB (el dato completo de la OE cabe de sobra) y 100 CU-horas al mes, que equivalen a unas 13 horas despierta al día. Se configura alerta de uso; si se supera, Neon Launch cobra por uso (≈ US$8 a 12 al mes a este ritmo) y suma 7 días de restauración.
-- **Previews.** Integración oficial Vercel↔Neon: rama de base por preview, correo en consola, bucket de preview. Cada PR se prueba con datos propios sin tocar producción.
-- **Duración.** Las funciones tienen 300 s por defecto (800 s en Pro con configuración); ningún handler debe acercarse: exportes e importaciones grandes se parten en lotes o corren en local.
+| Pieza | Configuración |
+| --- | --- |
+| Proyecto | `casa-digital`, nuevo, dentro del workspace Pro que ya paga GHPOINTS; misma región |
+| Servicio `web` | Node 24, `npm run build`, `next start` en `0.0.0.0:$PORT`; healthcheck `GET /api/health` (timeout 300 s); pre-deploy `npm run db:release` (migraciones + uniques parciales + verificación, nunca seed); reinicio por fallo con hasta cinco reintentos; techos de 1 vCPU y 1 GB |
+| Servicio `Postgres` | PostgreSQL 18 solo en red privada; volumen de 2 GB con alertas al 80 %, 95 % y 100 %; respaldos diario (6 días), semanal (1 mes) y mensual (3 meses); PITR |
+| Bucket `media` | Privado, S3-compatible; variables enlazadas por referencia al servicio `web`; nunca `NEXT_PUBLIC_*` |
+| Variables | `DATABASE_URL` por referencia a Postgres, `SESSION_SECRET`, `APP_URL`, `APP_TIMEZONE=America/Bogota`, `TZ=UTC`, `INSTITUTIONAL_EMAIL_DOMAINS`, `RESEND_API_KEY`, `EMAIL_FROM`, `VAPID_*`, `JOBS_ENABLED=true`, credenciales del bucket |
+| Worker | En el mismo proceso del servicio `web`; un servicio `worker` aparte (misma imagen, `WORKER_ONLY=1`) solo con uso medido |
+| Entornos | Producción desde `main`; entornos de PR de Railway o un staging bajo demanda (decisión abierta); desarrollo local con Postgres en Docker y emulador S3, sin credenciales de producción |
+| Dominio | `oeeafit.com` se mueve del servicio GHPOINTS al servicio `web` en el cutover |
+| Límite de gasto | Límite duro del workspace revisado para dos apps en convivencia; alerta antes del tope |
+
+Lo que este despliegue permite y que el diseño aprovecha:
+
+- **Proceso permanente:** poller y scheduler en la app; sin crons externos ni funciones con tiempo máximo.
+- **Sin límite de cuerpo:** las subidas pasan por la app en streaming (tope de 20 MB); los medios se sirven por `/api/media/[id]` con validación y caché ([ADR-016](adr/ADR-016-medios-en-r2.md)).
+- **Una sola región:** latencia desde Medellín de 60 a 90 ms, suficiente para este uso; Cloudflare gratis delante como CDN del portal es opcional.
+- **Una sola instancia:** el healthcheck y los reinicios cubren fallos del proceso; la alta disponibilidad no es objetivo. Si algún día hace falta escalar, los locks transaccionales ya evitan trabajo duplicado.
 
 ## Layout del repositorio (cuando exista código)
 
 ```
-web/                            (hoy la carpeta se llama Untitled)
-  vercel.json                   crons y región
+casa-digital/
+  railway.json                  build, start, healthcheck y pre-deploy
   prisma/schema/*.prisma        un archivo por módulo + migrations/ (incluye uniques parciales idempotentes)
+  instrumentation.ts            arranca poller y scheduler cuando JOBS_ENABLED=true
   src/app/
     (public)/                   /  /la-oe  /cartelera  /eventos/[slug]/[edicion]  /comites/[slug]  /unirse  /f/[slug]  /privacidad
     app/                        inicio, eventos, comites, personas, gh-points, normativa, carnet, ajustes
     admin/                      personas, organizaciones, pipelines, formularios, comunidad, contenido, participacion, comunicaciones, sistema
     a/[publicId]/               check-in (sin sesión → /ingresar y vuelve)
     ingresar/                   OTP
-    api/                        health, media/[id], ics, push, export, cron/*
+    api/                        health, media/[id], media/upload, ics, push, export
   src/modules/<módulo>/         schema, domain, actions, jobs, events, components
   src/shared/                   brand, ui (shadcn base), admin-kit, lib
-  src/db/                       cliente Prisma (pooled), tx + outbox, errores unique
-  src/jobs/                     registro de handlers de outbox y programados
+  src/db/                       cliente Prisma, tx + outbox, errores unique
+  src/jobs/                     poller, scheduler, registro de handlers
   public/logos/                 oe.svg + 27 comités (hoy en ../public/logos)
   scripts/                      import-roster.ts, migrate-ghpoints.ts, verify-migration.ts, backup.ts
   tests/                        unit, integration (Postgres), e2e (Playwright)
@@ -125,24 +125,21 @@ web/                            (hoy la carpeta se llama Untitled)
 
 | Concepto | Costo |
 | --- | --- |
-| Vercel Pro, 1 asiento (crons por minuto, 800 s por función, previews protegidas) | US$20/mes |
-| Neon Free (0,5 GB, 100 CU-horas, restauración 6 h, 10 ramas) | US$0; si el tope molesta, Launch por uso ≈ US$8 a 12 |
-| Cloudflare R2 (10 GB, egreso gratis, 1 M escrituras y 10 M lecturas al mes) | US$0 |
+| Railway Pro (workspace ya pagado por GHPOINTS; incluye US$20 de uso) | US$20/mes, ya en curso |
+| Uso estimado de la app nueva: web 0,3 a 0,5 GB de RAM (US$3 a 5) + Postgres 0,1 a 0,2 GB (US$1 a 2) + volumen 1 GB (US$0,15) + bucket (US$0,015 por GB) | ≈ US$5 a 7, dentro de los US$20 incluidos |
+| Uso de GHPOINTS durante la convivencia | ≈ US$4, también incluido |
 | Resend gratis (3.000 correos/mes, 100/día) | US$0; SES (US$0,10 por 1.000) si un día de evento supera 100 OTP |
-| GitHub Actions: `pg_dump` nocturno cifrado a R2 (`backup.ts`) | US$0 |
 | Web push, dominio existente, fuentes sustitutas | US$0 |
-| **Total esperado** | **US$20/mes** (hasta ≈ US$30 si Neon pasa a Launch) |
-| Durante la convivencia | + Railway de GHPOINTS hasta el cutover; después se cancela |
-
-Vercel Hobby (US$0) queda como plan B con dos costos: los crons solo corren una vez al día (el drenaje dependería solo de `after()`) y su licencia es para uso personal no comercial, zona gris para el sitio oficial de una organización.
+| **Total esperado** | **US$20/mes, sin cambio** |
+| Después del cutover | Los mismos US$20 con PITR y entornos de PR; bajar a Hobby (US$5) es posible si se acepta perder ambos |
 
 ## Alternativas evaluadas (2026-09-02)
 
 | Opción | Costo real | Jobs de fondo | Postgres + bucket | Operación | Veredicto |
 | --- | --- | --- | --- | --- | --- |
-| Railway, workspace Pro actual de GHPOINTS | US$0 extra durante la convivencia; US$20 después | Worker en el mismo proceso | Incluidos, mismo panel, PITR ya configurado | Mínima | Recomendada por simplicidad; descartada por preferencia de DX y CDN de Vercel |
-| Railway Hobby | ≈ US$5 a 7 | Igual | Incluidos, respaldos diarios | Mínima | Válida; misma razón |
-| **Vercel + Neon + R2** | US$20 (Pro) o US$0 (Hobby con límites) | Sin proceso permanente: outbox + cron por minuto | Tres proveedores; Neon gratis se suspende al estar inactivo | Baja, más piezas | **Elegida** |
+| **Railway, workspace Pro actual de GHPOINTS** | US$0 extra durante la convivencia; US$20 después | Worker en el mismo proceso | Incluidos, mismo panel, PITR ya configurado | Mínima, ya conocida | **Elegida** |
+| Railway Hobby | ≈ US$5 a 7 | Igual | Incluidos, respaldos diarios | Mínima | Opción para después del cutover |
+| Vercel + Neon + R2 | US$20 (Pro) o US$0 (Hobby con límites) | Sin proceso permanente: outbox + cron por minuto | Tres proveedores; Neon gratis se suspende al estar inactivo | Baja, más piezas | Elegida y descartada el mismo día: se prefirió lo que ya se paga ([ADR-019](adr/ADR-019-infraestructura-vercel-neon-r2.md), [ADR-021](adr/ADR-021-infraestructura-railway.md)) |
 | Render | ≈ US$13 (web + Postgres) | Worker aparte cuesta otro servicio | Sin bucket propio | Baja | Descartada |
 | Hetzner + Coolify | ≈ US$5 | Todo en una máquina | Vos instalás Postgres y MinIO | Alta: sos el sysadmin | Descartada |
 | Fly.io (región Bogotá) | Variable | Máquinas permanentes | Postgres poco gestionado | Media-alta | Descartada: latencia mejor, más operación |
@@ -151,5 +148,5 @@ Vercel Hobby (US$0) queda como plan B con dos costos: los crons solo corren una 
 
 - Cabeceras: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`; CSP en modo enforce con nonce por request desde el proxy.
 - Redirecciones validadas (solo rutas same-origin), celdas de CSV/XLSX neutralizadas contra fórmulas, HTML de correos escapado.
-- Secretos solo en variables de servidor; nunca `NEXT_PUBLIC_*` para claves.
+- Secretos solo en variables de servidor; nunca `NEXT_PUBLIC_*` para claves; Postgres y bucket sin exposición pública.
 - Auditoría en la misma transacción de cada mutación administrativa; exportes con datos personales exigen step-up (ver [05-acceso.md](05-acceso.md)).

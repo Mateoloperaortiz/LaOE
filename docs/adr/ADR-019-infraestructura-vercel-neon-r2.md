@@ -1,8 +1,10 @@
 # ADR-019: Infraestructura: Vercel Pro + Neon + R2 + Resend
 
-- Estado: Aceptada
+- Estado: Reemplazada por ADR-021 (2026-09-02)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-001, ADR-012, ADR-016
+
+> Esta decisión estuvo vigente unas horas. Se conserva el texto original porque explica qué se evaluó y por qué el diseño sin worker permanente existió. La decisión vigente es [ADR-021](ADR-021-infraestructura-railway.md).
 
 ## Contexto
 

@@ -14,6 +14,6 @@ La OE opera por semestres: cambian comités, cargos, cohortes y rankings. GHPOIN
 
 ## Consecuencias
 
-- No se puede "olvidar abrir la temporada"; sí hay que crear los términos con antelación: el cron `reminders` avisa 30 días antes de que termine el vigente si no existe el siguiente.
+- No se puede "olvidar abrir la temporada"; sí hay que crear los términos con antelación: el job programado `reminders` avisa 30 días antes de que termine el vigente si no existe el siguiente.
 - Un check-in fuera de todo término se rechaza con un mensaje claro.
 - Los rankings del término cerrado quedan congelados en `TermStanding`.

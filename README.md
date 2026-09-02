@@ -17,7 +17,7 @@ Una app, una base de datos, un bucket, un admin y un proveedor de correo. Todo l
 | Archivo | Para qué |
 | --- | --- |
 | [00-vision.md](docs/00-vision.md) | Contexto, decisiones cerradas, alcance y lo que queda fuera |
-| [01-arquitectura.md](docs/01-arquitectura.md) | Monolito modular en Vercel + Neon + R2, módulos, jobs, límites, costo |
+| [01-arquitectura.md](docs/01-arquitectura.md) | Monolito modular en Railway (web con worker en proceso, Postgres, bucket), módulos, jobs, costo |
 | [02-crm.md](docs/02-crm.md) | El CRM de comunidad: persona, etapas, Persona 360, pipelines, privacidad |
 | [03-modelo-de-datos.md](docs/03-modelo-de-datos.md) | Modelos, relaciones y restricciones |
 | [04-decisiones.md](docs/04-decisiones.md) y [adr/](docs/adr/README.md) | Las 20 reglas del sistema, una por archivo |

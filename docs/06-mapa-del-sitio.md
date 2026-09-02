@@ -49,14 +49,14 @@
 
 Vista de **líder de comité**: `/admin/comites/[slug]` con roster sin correos y score, proponer ocasiones `DRAFT`, consola y modo anfitrión de sus ocasiones. No aprueba puntos ni publica contenido.
 
-## API y crons
+## API y jobs
 
 | Ruta | Uso |
 | --- | --- |
 | `GET /api/health` | Prueba Postgres y devuelve versión |
-| `GET /api/media/[id]` | Redirige a URL prefirmada tras validar audiencia (privado) |
-| `POST /api/media/presign` | URL prefirmada de subida para ADMIN |
+| `GET /api/media/[id]` | Sirve el archivo desde el bucket tras validar audiencia; caché larga para lo publicado; URL prefirmada para archivos grandes |
+| `POST /api/media/upload` | Subida en streaming al bucket para ADMIN (tope 20 MB), registra el `MediaAsset` y genera variantes |
 | `POST /api/push/subscribe` | Registra suscripción push del actor |
 | `GET /api/export/[tipo]` | CSV/XLSX con step-up cuando hay datos personales |
-| `GET /api/cron/drain`, `campaigns`, `reminders`, `prune`, `retention`, `backup-check` | Crons de Vercel con `CRON_SECRET` |
+| Jobs programados: `campaigns`, `reminders`, `prune`, `retention`, `backup-check` | Corren en el mismo proceso del servicio `web` mediante el scheduler y el outbox; no tienen rutas HTTP |
 | `/a/[publicId]`, `/asamblea/[publicId]` | Alias legados de GHPOINTS resueltos por `LegacyAlias` |

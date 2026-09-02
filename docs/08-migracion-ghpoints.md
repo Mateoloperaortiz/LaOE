@@ -1,18 +1,18 @@
 # Migración desde GHPOINTS
 
-GHPOINTS (Railway, PostgreSQL 18, Prisma) sigue en producción hasta el cutover. Sus datos se traen por script sobre un dump, nunca contra la base viva. Regla en [ADR-018](adr/ADR-018-migracion-desde-ghpoints.md).
+GHPOINTS (Railway, PostgreSQL 18, Prisma) sigue en producción hasta el cutover. Sus datos se traen por script sobre un dump, nunca contra la base viva. Regla en [ADR-018](adr/ADR-018-migracion-desde-ghpoints.md). Como los dos proyectos viven en el mismo workspace de Railway, el dump, la copia de medios y el cambio de dominio se hacen desde un solo panel.
 
 ## Origen
 
-`pg_dump` de la base de Railway (`railway run pg_dump` o restauración de un backup nativo) restaurado en un PostgreSQL local. Los objetos del bucket `oe-media` se listan y copian a R2 con un script aparte.
+`pg_dump` de la base de GHPOINTS tomado con `railway run pg_dump` desde el proyecto viejo, o un respaldo nativo restaurado en un servicio Postgres temporal. Se restaura en un PostgreSQL local para trabajar sin tocar producción. Los objetos del bucket `oe-media` se listan y copian al bucket `media` del proyecto nuevo.
 
 ## Herramientas
 
 | Script | Qué hace |
 | --- | --- |
-| `scripts/migrate-ghpoints.ts` | Lee con `pg` desde el dump local, escribe con Prisma contra `DIRECT_URL` de Neon; idempotente por id de origen (tabla `ImportJob` + columna `legacyId` en cada modelo migrado) |
+| `scripts/migrate-ghpoints.ts` | Lee con `pg` desde el dump local, escribe con Prisma contra la base nueva; idempotente por id de origen (tabla `ImportJob` + columna `legacyId` en cada modelo migrado) |
 | `scripts/verify-migration.ts` | Conteos por tabla origen/destino y `SUM(points)` por persona y término; imprime diferencias y sale con error si hay alguna |
-| `scripts/copy-media.ts` | Copia objetos de S3 (Railway) a R2 conservando `objectKey`; marca `MediaAsset` como `READY` |
+| `scripts/copy-media.ts` | Copia objetos de bucket a bucket conservando `objectKey`; marca `MediaAsset` como `READY` |
 
 ## Mapeo
 
@@ -29,9 +29,9 @@ GHPOINTS (Railway, PostgreSQL 18, Prisma) sigue en producción hasta el cutover.
 | `Assembly`, `AssemblyAttendance` | `Occasion` `kind=ASSEMBLY` (0 puntos) + `CheckIn` | Conserva `publicId`; `CONFIRMED` → `APPROVED` |
 | `AssemblyRequirement` | `AssemblyRequirement` | Igual, con motivo de ajuste |
 | `CommitteeActivityScore` | `CommitteeParticipation` | Se recalcula desde los check-ins migrados; los snapshots viejos sirven solo para verificar |
-| `Event`, `EventEdition`, `EventEditionCommittee`, `MediaAsset` | Mismos modelos | Portadas copiadas a R2 privado; las publicadas también al público |
+| `Event`, `EventEdition`, `EventEditionCommittee`, `MediaAsset` | Mismos modelos | Portadas copiadas al bucket nuevo con su visibilidad según publicación |
 | `HallOfFameSeason` | `TermStanding` | Snapshot copiado tal cual |
-| `MemberBadge` | No se migra | Los niveles se derivan del ledger; se documenta la pérdida |
+| `MemberBadge` | No se migra | Los niveles se derivan del ledger; se documenta la pérdida (decisión abierta) |
 | `AuditLog` | `AuditLog` con `legacy=true` | Solo lectura |
 | `IdentityAccount`, `Session`, `AuthChallenge`, `ClerkOperation`, `EmailAuthorization` | No se migran | La identidad nueva es el correo; todos vuelven a entrar por OTP |
 | `/a/{publicId}`, `/asamblea/{publicId}` | `LegacyAlias` | Los QR impresos siguen funcionando |
@@ -48,11 +48,11 @@ GHPOINTS (Railway, PostgreSQL 18, Prisma) sigue en producción hasta el cutover.
 
 1. Ensayo completo sobre un dump reciente; `verify-migration` en cero diferencias.
 2. Aviso a la OE con una semana de antelación; banner de congelación en GHPOINTS.
-3. Dump final, migración delta (solo filas nuevas por `legacyId`), verificación de nuevo.
-4. DNS: `oeeafit.com` a Vercel, `media.oeeafit.com` a R2. Comprobar OTP real, check-in real y una portada.
+3. Dump final, migración delta (solo filas nuevas por `legacyId`), verificación de nuevo; copia de los medios nuevos.
+4. Dominio: quitar `oeeafit.com` del servicio GHPOINTS y agregarlo al servicio `web` del proyecto nuevo; actualizar el CNAME si el destino cambia. Comprobar OTP real, check-in real y una portada.
 5. Una semana de monitoreo con GHPOINTS detenido pero no borrado.
-6. Conservar el último dump cifrado 90 días; cancelar Railway; registrar el cierre en [09-roadmap.md](09-roadmap.md).
+6. Dump final cifrado fuera de Railway, conservado 90 días; eliminar el proyecto GHPOINTS; registrar el cierre en [09-roadmap.md](09-roadmap.md).
 
 ## Vuelta atrás
 
-Si algo falla en las primeras 48 horas: DNS de vuelta a Railway (GHPOINTS conserva su base intacta porque nunca se escribió sobre ella), anotar qué falló y repetir el ensayo. Los check-ins hechos en la app nueva durante ese lapso se exportan a CSV para no perderlos.
+Si algo falla en las primeras 48 horas: devolver el dominio al servicio GHPOINTS y encenderlo (su base sigue intacta porque nunca se escribió sobre ella), anotar qué falló y repetir el ensayo. Los check-ins hechos en la app nueva durante ese lapso se exportan a CSV para no perderlos.
