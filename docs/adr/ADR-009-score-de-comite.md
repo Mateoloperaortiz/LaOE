@@ -1,0 +1,19 @@
+# ADR-009: Score de comité por participación relativa
+
+- Estado: Aceptada
+- Fecha: 2026-09-02
+- Relacionadas: ADR-005, ADR-006, ADR-012
+
+## Contexto
+
+Un comité grande no debe ganar por volumen bruto. El cálculo toca filas compartidas y recibe ráfagas de cientos de check-ins en segundos.
+
+## Decisión
+
+Por ocasión: `rate = presentes / elegibles`, donde elegibles son los vigentes con pertenencia al comité en el término de la ocasión y presentes son sus check-ins `APPROVED`. Una persona multicomité cuenta 1,0 en cada comité. El score del término es el promedio simple de las tasas de las ocasiones `CLOSED` con puntos. Se guarda un snapshot `CommitteeParticipation` con numerador, denominador y tasa; el denominador se congela al cerrar la ocasión. El recálculo lo hace un handler de outbox con `dedupeKey = occasionId` y `pg_advisory_xact_lock`, nunca dentro de la transacción del check-in.
+
+## Consecuencias
+
+- Eventualmente consistente respecto al check-in (segundos).
+- La fórmula puede cambiar sin tocar el ledger individual porque el snapshot guarda los insumos.
+- N funciones concurrentes colapsan en un solo cálculo por ocasión.
