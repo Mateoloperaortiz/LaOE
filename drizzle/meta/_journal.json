@@ -22,6 +22,13 @@
       "when": 1788432540978,
       "tag": "0002_mensajes",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788444480634,
+      "tag": "0003_contenido_y_eventos",
+      "breakpoints": true
     }
   ]
 }

@@ -7,6 +7,7 @@ export async function truncateAll(): Promise<void> {
     truncate table
       audit_log, outbox, app_config, message,
       session, otp_challenge, permission,
+      edition_committee, event_edition, event, media_asset, announcement, page,
       committee_membership, membership_event, membership, person, committee, term
     restart identity cascade
   `);

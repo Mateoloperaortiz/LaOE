@@ -39,9 +39,9 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-007 | Inicio, título de la cartelera | Qué está pasando | COM | Propuesta |
 | T-008 | Inicio, título del próximo encuentro | Próximo encuentro | COM | Propuesta |
 | T-009 | Inicio, cuando no hay anuncios ni encuentros | Por ahora no hay nada programado. Volvé pronto. | MATEO | Propuesta |
-| T-010 | La OE, historia | Texto del manual, sección "Nuestra historia": comienza en 1987… (transcrito en [07-marca.md](07-marca.md)) | COM | Aprobado por el manual |
-| T-011 | La OE, misión | Texto del manual, sección "Identidad" | JUNTA | Aprobado por el manual |
-| T-012 | La OE, visión | Texto del manual, sección "Identidad" | JUNTA | Aprobado por el manual |
+| T-010 | La OE, historia | Texto del manual, sección "Nuestra historia": comienza en 1987… (transcrito en la migración `0003`, cuerpo de la página `la-oe`; se edita desde el admin) | COM | Aprobado por el manual |
+| T-011 | La OE, misión | Texto del manual, sección "Identidad" (transcrito en la migración `0003`, cuerpo de la página `la-oe`) | JUNTA | Aprobado por el manual |
+| T-012 | La OE, visión | Texto del manual, sección "Identidad" (transcrito en la migración `0003`, cuerpo de la página `la-oe`) | JUNTA | Aprobado por el manual |
 | T-013 | La OE, contacto | Bloque 29, oficina 525 · oe@eafit.edu.co · redes | COM | Propuesta; confirmar redes |
 | T-014 | Eventos, intro | Cuatro macroeventos que mueven a toda la universidad. Cada uno tiene su historia y su próxima edición. | COM | Propuesta |
 | T-015 | Eventos, descripción de Días EAFIT | Por escribir | COM | Pendiente |

@@ -5,6 +5,7 @@ import { t, tList } from "@/shared/copy";
 // Secciones del admin (T-160). Se enlazan las que ya existen; el resto llega por fases.
 const RUTAS: Record<string, string> = {
   Comunidad: "/admin/comites",
+  Contenido: "/admin/paginas",
   Sistema: "/admin/sistema/jobs",
 };
 

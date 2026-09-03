@@ -43,7 +43,14 @@ function Field({
   let control: React.ReactNode;
   switch (field.type) {
     case "textarea":
-      control = <textarea {...common} defaultValue={value} rows={5} className={inputClass} />;
+      control = (
+        <textarea
+          {...common}
+          defaultValue={value}
+          rows={field.rows ?? 5}
+          className={`${inputClass} font-mono text-sm`}
+        />
+      );
       break;
     case "select":
       control = (

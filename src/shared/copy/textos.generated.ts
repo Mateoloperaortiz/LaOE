@@ -56,19 +56,19 @@ export const textos = {
   },
   "T-010": {
     where: "La OE, historia",
-    text: 'Texto del manual, sección "Nuestra historia": comienza en 1987… (transcrito en [07-marca.md](07-marca.md))',
+    text: 'Texto del manual, sección "Nuestra historia": comienza en 1987… (transcrito en la migración `0003`, cuerpo de la página `la-oe`; se edita desde el admin)',
     owner: "COM",
     status: "Aprobado por el manual",
   },
   "T-011": {
     where: "La OE, misión",
-    text: 'Texto del manual, sección "Identidad"',
+    text: 'Texto del manual, sección "Identidad" (transcrito en la migración `0003`, cuerpo de la página `la-oe`)',
     owner: "JUNTA",
     status: "Aprobado por el manual",
   },
   "T-012": {
     where: "La OE, visión",
-    text: 'Texto del manual, sección "Identidad"',
+    text: 'Texto del manual, sección "Identidad" (transcrito en la migración `0003`, cuerpo de la página `la-oe`)',
     owner: "JUNTA",
     status: "Aprobado por el manual",
   },

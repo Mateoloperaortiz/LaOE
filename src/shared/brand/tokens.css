@@ -303,6 +303,89 @@
   }
 }
 
+/* Prosa: cuerpos escritos en Markdown desde el admin (páginas, anuncios, eventos, comités). */
+.prosa {
+  max-width: 68ch;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+.prosa > * + * {
+  margin-top: 1em;
+}
+.prosa h2 {
+  margin-top: 1.8em;
+  font-size: var(--text-display-md);
+  line-height: var(--text-display-md--line-height);
+}
+.prosa h3 {
+  margin-top: 1.5em;
+  font-size: var(--text-titulo-md);
+  line-height: var(--text-titulo-md--line-height);
+}
+.prosa h4 {
+  font-size: var(--text-titulo-sm);
+  line-height: var(--text-titulo-sm--line-height);
+}
+.prosa ul,
+.prosa ol {
+  padding-left: 1.5em;
+}
+.prosa ul {
+  list-style: disc;
+}
+.prosa ol {
+  list-style: decimal;
+}
+.prosa li + li {
+  margin-top: 0.35em;
+}
+.prosa strong {
+  font-weight: 700;
+  color: var(--titulo);
+}
+.prosa a {
+  font-weight: 600;
+  text-decoration: underline;
+}
+.prosa blockquote {
+  border-left: 0.35rem solid var(--color-oe-blue);
+  padding-left: 1rem;
+  color: var(--tinta-suave);
+}
+.prosa hr {
+  border: 0;
+  border-top: 2px solid var(--borde);
+}
+.prosa code {
+  padding: 0.1em 0.35em;
+  border-radius: 0.35rem;
+  background: var(--fondo-suave);
+  font-size: 0.9em;
+}
+.prosa table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+.prosa th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  text-align: left;
+  background: var(--fondo-suave);
+}
+.prosa th,
+.prosa td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--borde);
+  vertical-align: top;
+}
+.prosa img {
+  max-width: 100%;
+  border-radius: var(--radius-cartel);
+}
+
 /* Logos como máscara monocroma: se pintan con currentColor. */
 .logo-mascara {
   display: inline-block;

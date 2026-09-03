@@ -66,6 +66,8 @@ export interface FieldDefinition {
   /** No se puede cambiar al editar (por ejemplo, una sigla). */
   lockedOnEdit?: boolean;
   placeholder?: string;
+  /** Alto de un textarea en líneas (por defecto 5; los cuerpos en Markdown piden más). */
+  rows?: number;
 }
 
 /** Quién ejecuta: el kit solo necesita saber su id y si es ADMIN; los comandos reciben el actor completo. */

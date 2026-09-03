@@ -1,18 +1,11 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
+import { sinViolaciones } from "./axe";
 import { E2E_EMAIL } from "./global-setup";
 
 const CODE = process.env.OTP_FIXED_CODE ?? "123456";
 
 // Next inyecta un anunciador de rutas con role="alert": el error del código se busca por su id.
 const codeError = (page: Page) => page.locator("#code-error");
-
-async function sinViolaciones(page: Page) {
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-    .analyze();
-  expect(results.violations).toEqual([]);
-}
 
 test("una ruta protegida manda a ingresar y vuelve tras el OTP", async ({ page }) => {
   await page.goto("/app/ajustes");

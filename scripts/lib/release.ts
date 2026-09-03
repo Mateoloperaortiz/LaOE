@@ -13,6 +13,11 @@ const REQUIRED_INDEXES = [
   "session_token_hash_unique",
   "outbox_dedupe_key_pending_unique",
   "person_full_name_trgm_idx",
+  "page_slug_unique",
+  "media_asset_object_key_unique",
+  "event_slug_unique",
+  "event_edition_event_slug_unique",
+  "edition_committee_unique",
 ];
 
 const REQUIRED_EXTENSIONS = ["pg_trgm"];
