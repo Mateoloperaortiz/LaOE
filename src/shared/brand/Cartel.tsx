@@ -55,7 +55,7 @@ export function Cartel({
       ) : null}
       <div className="relative z-10 flex flex-1 flex-col gap-4">
         {comite ? (
-          <LogoComite slug={comite.slug} name={comite.name} size={esHero ? 96 : 56} />
+          <LogoComite slug={comite.slug} name={comite.name} size={esHero ? 140 : 72} />
         ) : null}
         {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
         <Titulo

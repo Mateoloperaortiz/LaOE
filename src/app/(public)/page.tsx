@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { listPublicAnnouncements } from "@/modules/content";
 import {
   BarraTitulo,
   Cartel,
@@ -8,10 +9,12 @@ import {
   TituloAcentuado,
 } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { AnuncioCartel } from "./_ui/AnuncioCartel";
 
-// Inicio provisional: hero, macroeventos y cartelera vacía. El contenido editable llega en la fase 1.
-export default function HomePage() {
+// Inicio: hero, macroeventos y cartelera. Los macroeventos salen de la base desde F1-T4.
+export default async function HomePage() {
   const macroeventos = tList("T-039");
+  const anuncios = await listPublicAnnouncements(3);
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-16 px-4 py-8 sm:px-6 sm:py-12">
       <Cartel
@@ -31,6 +34,9 @@ export default function HomePage() {
         <div className="mt-2 flex flex-wrap gap-3">
           <Link href="/ingresar" className="boton-calido">
             {t("T-004")}
+          </Link>
+          <Link href="/comites" className="boton-secundario">
+            {t("T-005")}
           </Link>
         </div>
       </Cartel>
@@ -58,13 +64,28 @@ export default function HomePage() {
         <BarraTitulo color="amarillo" className="self-start">
           <span id="cartelera">{t("T-007")}</span>
         </BarraTitulo>
-        <div className="flex flex-col items-start gap-6 rounded-[var(--radius-cartel)] border border-borde bg-fondo-suave p-8 textura-granito sm:flex-row sm:items-center sm:gap-10">
-          <Elemento tipo="asterisco" className="size-24 shrink-0 text-oe-navy" />
-          <div className="flex flex-col gap-4">
-            <p className="text-lg">{t("T-009")}</p>
-            <SelloOE tamano="sm" />
+        {anuncios.length === 0 ? (
+          <div className="flex flex-col items-start gap-6 rounded-[var(--radius-cartel)] border border-borde bg-fondo-suave p-8 textura-granito sm:flex-row sm:items-center sm:gap-10">
+            <Elemento tipo="asterisco" className="size-24 shrink-0 text-oe-navy" />
+            <div className="flex flex-col gap-4">
+              <p className="text-lg">{t("T-009")}</p>
+              <SelloOE tamano="sm" />
+            </div>
           </div>
-        </div>
+        ) : (
+          <>
+            <ul className="grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
+              {anuncios.map((anuncio, index) => (
+                <li key={anuncio.id}>
+                  <AnuncioCartel anuncio={anuncio} variante={feedVariant(index + 1)} />
+                </li>
+              ))}
+            </ul>
+            <Link href="/cartelera" className="boton-secundario self-start">
+              {t("T-316")}
+            </Link>
+          </>
+        )}
       </section>
     </div>
   );

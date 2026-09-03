@@ -1,8 +1,17 @@
-import { count } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import {
+  createAnnouncement,
+  getPublicAnnouncement,
+  listAnnouncements,
+  listPublicAnnouncements,
+  publishAnnouncement,
+  unpublishAnnouncement,
+} from "@/modules/content/domain/announcements";
 import { createPage, findPublicPage, listPages, updatePage } from "@/modules/content/domain/pages";
+import { announcement } from "@/modules/content/schema";
 import { auditLog } from "@/modules/system/schema";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { truncateAll } from "./db";
@@ -82,5 +91,61 @@ describe("páginas", () => {
     expect(publicadas.total).toBe(1);
     const buscadas = await listPages({ q: "datos", page: 1, pageSize: 10 });
     expect(buscadas.rows.map((row) => row.slug)).toEqual(["privacidad"]);
+  });
+});
+
+describe("cartelera", () => {
+  beforeEach(truncateAll);
+
+  it("publica y despublica con auditoría, y al público salen los publicados con los fijados primero", async () => {
+    const crear = (title: string, audience: "PUBLIC" | "MEMBERS" = "PUBLIC", pinned = false) =>
+      runCommand(SYSTEM_ACTOR, (ctx) =>
+        createAnnouncement(ctx, { title, body: `## ${title}\n\nCuerpo.`, audience, pinned }),
+      );
+    const viejo = await crear("Viejo");
+    const fijado = await crear("Fijado", "PUBLIC", true);
+    const nuevo = await crear("Nuevo");
+    const interno = await crear("Interno", "MEMBERS");
+    const borrador = await crear("Borrador");
+
+    const hace2h = new Date(Date.now() - 2 * 60 * 60_000);
+    const hace1h = new Date(Date.now() - 60 * 60_000);
+    await runCommand(SYSTEM_ACTOR, (ctx) => publishAnnouncement(ctx, viejo.id, hace2h));
+    await runCommand(SYSTEM_ACTOR, (ctx) => publishAnnouncement(ctx, fijado.id, hace2h));
+    await runCommand(SYSTEM_ACTOR, (ctx) => publishAnnouncement(ctx, nuevo.id, hace1h));
+    await runCommand(SYSTEM_ACTOR, (ctx) => publishAnnouncement(ctx, interno.id, hace1h));
+    // Publicar de nuevo no cambia la fecha ni audita otra vez.
+    await runCommand(SYSTEM_ACTOR, (ctx) => publishAnnouncement(ctx, nuevo.id));
+    const [row] = await getDb().select().from(announcement).where(eq(announcement.id, nuevo.id));
+    expect(row?.publishedAt?.getTime()).toBe(hace1h.getTime());
+
+    const publicos = await listPublicAnnouncements();
+    expect(publicos.map((item) => item.title)).toEqual(["Fijado", "Nuevo", "Viejo"]);
+    expect(await getPublicAnnouncement(interno.id)).toBeNull();
+    expect(await getPublicAnnouncement(borrador.id)).toBeNull();
+    expect((await getPublicAnnouncement(fijado.id))?.pinned).toBe(true);
+
+    // Un anuncio programado hacia el futuro todavía no sale.
+    const futuro = await crear("Futuro");
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      publishAnnouncement(ctx, futuro.id, new Date(Date.now() + 60 * 60_000)),
+    );
+    expect((await listPublicAnnouncements()).map((item) => item.title)).not.toContain("Futuro");
+
+    await runCommand(SYSTEM_ACTOR, (ctx) => unpublishAnnouncement(ctx, nuevo.id));
+    expect((await listPublicAnnouncements()).map((item) => item.title)).toEqual([
+      "Fijado",
+      "Viejo",
+    ]);
+
+    const listado = await listAnnouncements({ q: "", publication: "DRAFT", page: 1, pageSize: 10 });
+    expect(listado.rows.map((item) => item.title).sort()).toEqual(["Borrador", "Nuevo"]);
+
+    const [audits] = await getDb()
+      .select({ n: count() })
+      .from(auditLog)
+      .where(eq(auditLog.entityType, "announcement"));
+    // 6 creados + 5 publicaciones efectivas + 1 despublicación
+    expect(audits?.n).toBe(12);
   });
 });

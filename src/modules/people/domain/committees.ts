@@ -1,4 +1,5 @@
 import { and, asc, count, eq, ilike, or, sql } from "drizzle-orm";
+import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
@@ -111,6 +112,42 @@ export async function searchCommittees(
     )
     .limit(limit);
 }
+
+/** Ficha editorial pública: logo, presentación y contacto; el roster nunca sale (ADR-014). */
+export interface PublicCommittee {
+  id: string;
+  slug: string;
+  name: string;
+  logoKey: string | null;
+  presentation: string | null;
+  contactUrl: string | null;
+}
+
+const publicColumns = {
+  id: committee.id,
+  slug: committee.slug,
+  name: committee.name,
+  logoKey: committee.logoKey,
+  presentation: committee.presentation,
+  contactUrl: committee.contactUrl,
+};
+
+const isPublic = and(eq(committee.status, "ACTIVE"), eq(committee.publicationStatus, "PUBLISHED"));
+
+export const listPublishedCommittees = cache(async (): Promise<PublicCommittee[]> => {
+  return getDb().select(publicColumns).from(committee).where(isPublic).orderBy(asc(committee.name));
+});
+
+export const getPublishedCommittee = cache(
+  async (slug: string): Promise<PublicCommittee | null> => {
+    const [row] = await getDb()
+      .select(publicColumns)
+      .from(committee)
+      .where(and(isPublic, eq(committee.slug, slug)))
+      .limit(1);
+    return row ?? null;
+  },
+);
 
 function toValues(input: CommitteeInput) {
   return {

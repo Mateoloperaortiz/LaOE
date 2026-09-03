@@ -8,8 +8,8 @@ import { committee, committeeMembership, membership, person } from "@/modules/pe
 import { logger } from "@/shared/log";
 
 // Datos sintéticos para desarrollo y staging: nombres inventados, correos oe.demo.NN@eafit.edu.co,
-// los 27 comités por su sigla (el nombre oficial y la presentación los aporta la OE). Idempotente.
-// Nunca corre en producción.
+// los 27 comités por su sigla, publicados para ver el portal (el nombre oficial y la presentación
+// los aporta la OE y en producción se publican desde el admin). Idempotente. Nunca corre en producción.
 
 const env = getEnv();
 if (env.NODE_ENV === "production") {
@@ -108,7 +108,7 @@ async function seedCommittees(): Promise<Array<{ id: string; slug: string }>> {
         name: slug.toUpperCase(),
         logoKey: slug,
         status: "ACTIVE",
-        publicationStatus: "DRAFT",
+        publicationStatus: "PUBLISHED",
       })
       .onConflictDoUpdate({ target: committee.slug, set: { logoKey: slug } })
       .returning({ id: committee.id, slug: committee.slug });

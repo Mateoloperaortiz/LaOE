@@ -4,10 +4,12 @@ import { t, tList } from "@/shared/copy";
 import { NavLink } from "@/shared/ui/NavLink";
 
 // Cabecera y pie del portal público. La navegación es T-038; cada destino se habilita en el tramo
-// que lo construye (Cartelera y Comités en F1-T2, Eventos en F1-T4).
+// que lo construye (Eventos llega en F1-T4).
 const RUTAS: Record<string, string> = {
   Inicio: "/",
   "La OE": "/la-oe",
+  Cartelera: "/cartelera",
+  Comités: "/comites",
   Unirse: "/unirse",
 };
 

@@ -12,7 +12,9 @@ import { createTerm, findTermContaining, updateTerm } from "@/modules/participat
 import { term } from "@/modules/participation/schema";
 import {
   createCommittee,
+  getPublishedCommittee,
   listCommittees,
+  listPublishedCommittees,
   searchCommittees,
   updateCommittee,
 } from "@/modules/people/domain/committees";
@@ -83,6 +85,22 @@ describe("comités", () => {
     const [audits] = await db().select({ n: count() }).from(auditLog);
     expect(audits?.n).toBe(2);
     expect(await searchCommittees("pixl")).toHaveLength(1);
+
+    // Ficha pública: solo activos y publicados, sin nada del roster.
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      createCommittee(ctx, {
+        slug: "borrador",
+        name: "En borrador",
+        status: "ACTIVE",
+        publicationStatus: "DRAFT",
+      }),
+    );
+    expect((await listPublishedCommittees()).map((item) => item.slug)).toEqual(["pixel"]);
+    expect(await getPublishedCommittee("pixel")).toMatchObject({
+      name: "Pixel Lab",
+      slug: "pixel",
+    });
+    expect(await getPublishedCommittee("borrador")).toBeNull();
   });
 });
 

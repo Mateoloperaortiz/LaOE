@@ -1,6 +1,18 @@
 import { runCommand } from "@/db/tx";
 import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
+import { formatDateTime } from "@/shared/lib/dates";
+import {
+  type AnnouncementInput,
+  type AnnouncementRow,
+  announcementInputSchema,
+  createAnnouncement,
+  getAnnouncement,
+  listAnnouncements,
+  publishAnnouncement,
+  unpublishAnnouncement,
+  updateAnnouncement,
+} from "./domain/announcements";
 import {
   createPage,
   getPage,
@@ -24,6 +36,14 @@ const audienceOptions = [
   { value: "PUBLIC", label: publico },
   { value: "MEMBERS", label: soloMiembros },
 ];
+
+function audienceCell(audience: "PUBLIC" | "MEMBERS") {
+  return audience === "PUBLIC"
+    ? { text: publico, badge: "amarillo" as const }
+    : { text: soloMiembros, badge: "navy" as const };
+}
+
+// Páginas fijas (La OE, Unirse, Privacidad y las que se creen).
 
 const [pagesPlural, pagesSingular] = tList("T-330") as [string, string];
 
@@ -63,14 +83,7 @@ export const pagesResource: ResourceDefinition<PageRow, PageInput> = {
           ? { text: publicado, badge: "azul" }
           : { text: borrador, badge: "sky" },
     },
-    {
-      key: "audience",
-      label: t("T-338"),
-      render: (row) =>
-        row.audience === "PUBLIC"
-          ? { text: publico, badge: "amarillo" }
-          : { text: soloMiembros, badge: "navy" },
-    },
+    { key: "audience", label: t("T-338"), render: (row) => audienceCell(row.audience) },
   ],
   filters: [
     { key: "status", label: t("T-279"), options: statusOptions },
@@ -104,5 +117,88 @@ export const pagesResource: ResourceDefinition<PageRow, PageInput> = {
     estado: row.status,
     audiencia: row.audience,
     actualizado: row.updatedAt.toISOString(),
+  }),
+};
+
+// Cartelera: se publica y despublica con acciones de fila; el push llega en la fase 6.
+
+const [carteleraPlural, carteleraSingular] = tList("T-331") as [string, string];
+
+const announcementFields: FieldDefinition[] = [
+  { name: "title", label: t("T-335"), type: "text", required: true },
+  { name: "body", label: t("T-336"), type: "textarea", rows: 12, help: t("T-337") },
+  {
+    name: "audience",
+    label: t("T-338"),
+    type: "select",
+    required: true,
+    options: audienceOptions,
+  },
+  { name: "pinned", label: t("T-340"), type: "checkbox" },
+];
+
+export const announcementsResource: ResourceDefinition<AnnouncementRow, AnnouncementInput> = {
+  key: "cartelera",
+  names: { plural: carteleraPlural, singular: carteleraSingular },
+  basePath: "/admin/cartelera",
+  columns: [
+    { key: "title", label: t("T-335"), render: (row) => row.title },
+    { key: "audience", label: t("T-338"), render: (row) => audienceCell(row.audience) },
+    {
+      key: "publishedAt",
+      label: t("T-341"),
+      render: (row) =>
+        row.publishedAt
+          ? { text: formatDateTime(row.publishedAt), badge: "azul" }
+          : { text: borrador, badge: "sky" },
+    },
+    {
+      key: "pinned",
+      label: t("T-303"),
+      render: (row) => (row.pinned ? { text: t("T-303"), badge: "naranja" } : null),
+    },
+  ],
+  filters: [
+    { key: "publication", label: t("T-279"), options: statusOptions },
+    { key: "audience", label: t("T-338"), options: audienceOptions },
+  ],
+  schema: announcementInputSchema,
+  fields: announcementFields,
+  list: (params) =>
+    listAnnouncements({
+      q: params.q,
+      audience: params.filters.audience,
+      publication: params.filters.publication,
+      page: params.page,
+      pageSize: params.pageSize,
+    }),
+  get: getAnnouncement,
+  toFormValues: (row) => ({
+    title: row.title,
+    body: row.body,
+    audience: row.audience,
+    pinned: String(row.pinned),
+  }),
+  create: (actor, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => createAnnouncement(ctx, input)),
+  update: (actor, id, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => updateAnnouncement(ctx, id, input)),
+  rowActions: [
+    { key: "publish", label: t("T-342"), applies: (row) => row.publishedAt === null },
+    { key: "unpublish", label: t("T-343"), applies: (row) => row.publishedAt !== null },
+  ],
+  runRowAction: async (actor, actionKey, id) => {
+    if (actionKey === "publish") {
+      await runCommand({ personId: actor.personId }, (ctx) => publishAnnouncement(ctx, id));
+    } else if (actionKey === "unpublish") {
+      await runCommand({ personId: actor.personId }, (ctx) => unpublishAnnouncement(ctx, id));
+    }
+  },
+  exportRow: (row) => ({
+    titulo: row.title,
+    audiencia: row.audience,
+    publicado_el: row.publishedAt ? row.publishedAt.toISOString() : null,
+    fijado: row.pinned ? "sí" : "no",
+    creado: row.createdAt.toISOString(),
   }),
 };

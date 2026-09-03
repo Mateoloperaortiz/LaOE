@@ -10,6 +10,14 @@ export function formatDateTime(date: Date): string {
   }).format(date);
 }
 
+/** Solo la fecha, larga ("3 de septiembre de 2026"), en la zona de la app. */
+export function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: getEnv().APP_TIMEZONE,
+    dateStyle: "long",
+  }).format(date);
+}
+
 /** Medianoche de hoy en la zona dada, como instante UTC. Colombia no tiene horario de verano. */
 export function startOfTodayIn(timeZone: string, now = new Date()): Date {
   const parts = new Intl.DateTimeFormat("en-CA", {

@@ -1,5 +1,6 @@
 import { eq, like } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
+import { announcement } from "@/modules/content/schema";
 import { otpChallenge, permission } from "@/modules/identity/schema";
 import { term } from "@/modules/participation/schema";
 import { committee, membership, person } from "@/modules/people/schema";
@@ -44,7 +45,8 @@ export default async function globalSetup(): Promise<void> {
   await db.insert(permission).values({ personId: who.id, code: "ADMIN" });
   // Los límites de OTP por correo (5 cada 15 minutos) no deben depender de corridas anteriores.
   await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_EMAIL));
-  // Comités creados por corridas anteriores de la suite.
+  // Comités y anuncios creados por corridas anteriores de la suite.
   await db.delete(committee).where(like(committee.slug, "e2e-%"));
+  await db.delete(announcement).where(like(announcement.title, "e2e-%"));
   await closeDb();
 }

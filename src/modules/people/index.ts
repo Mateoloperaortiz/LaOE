@@ -2,8 +2,11 @@
 export {
   createCommittee,
   getCommittee,
+  getPublishedCommittee,
   listAllCommittees,
   listCommittees,
+  listPublishedCommittees,
+  type PublicCommittee,
   searchCommittees,
   updateCommittee,
 } from "./domain/committees";
