@@ -27,7 +27,7 @@ sequenceDiagram
 
 | Tema | Regla |
 | --- | --- |
-| Quién entra | `Membership.status` `ACTIVE` u `HONORARY`; licencia y retiro destruyen sesiones en la misma transacción |
+| Quién entra | `Membership.status` `ACTIVE` u `HONORARY`; licencia y retiro destruyen sesiones en la misma transacción. Los egresados no entran: su correo institucional suele caducar al graduarse ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
 | Dominio | `INSTITUTIONAL_EMAIL_DOMAINS` (`eafit.edu.co`); los contactos externos nunca inician sesión |
 | OTP | 6 dígitos, `SHA-256(secreto:correo:código)`, 10 minutos, 5 intentos; máximo 5 solicitudes por correo y 12 por IP cada 15 minutos, contadas en Postgres |
 | Respuesta | Siempre "si tu correo está en el roster, te llega un código": no se enumera el roster |

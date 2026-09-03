@@ -9,10 +9,10 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | [003](adr/ADR-003-etapas-por-comando.md) | Etapas por comando | Prospecto → Postulante → Integrante → Egresado cambia solo por comandos que auditan y escriben la línea de tiempo | Aceptada |
 | [004](adr/ADR-004-termino-como-reloj.md) | El término es el reloj | Comités, puntos, asambleas y rankings se agrupan por término; el actual se deriva de la fecha; el cierre de puntos es explícito | Aceptada |
 | [005](adr/ADR-005-comites-por-termino.md) | Comités por término | Pertenencia (persona, comité, término), 1 a 3 para vigentes; el crédito usa el término de la ocasión | Aceptada |
-| [006](adr/ADR-006-una-sola-asistencia.md) | Una sola asistencia | Ocasión + check-in para actividades, asambleas y sesiones; los puntos son una consecuencia configurada | Aceptada |
+| [006](adr/ADR-006-una-sola-asistencia.md) | Una sola asistencia | Ocasión + check-in para actividades, asambleas y sesiones; los puntos son una consecuencia configurada | Enmendada por 024 |
 | [007](adr/ADR-007-ledger-append-only.md) | Ledger append-only | Aprobado ⇔ una entrada viva; corregir es revertir; totales por suma | Aceptada |
 | [008](adr/ADR-008-tableros-derivados.md) | Tableros derivados | Nuevo = primer término igual al actual; sin bandera manual | Aceptada |
-| [009](adr/ADR-009-score-de-comite.md) | Score de comité | Participación relativa por ocasión, recalculada por outbox con clave por ocasión | Aceptada |
+| [009](adr/ADR-009-score-de-comite.md) | Score de comité | Participación relativa por ocasión, recalculada por outbox con clave por ocasión | Enmendada por 024 |
 | [010](adr/ADR-010-identidad-por-correo-y-otp.md) | Identidad por correo y OTP | El correo del roster es la identidad; OTP verifica el buzón; sesión larga en servidor; step-up para admin | Aceptada |
 | [011](adr/ADR-011-autorizacion-en-servidor.md) | Autorización en servidor | El proxy solo redirige; `getActor()` decide; permisos técnicos separados de cargos visibles | Aceptada |
 | [012](adr/ADR-012-outbox-transaccional.md) | Outbox transaccional | Mutación + auditoría + eventos en una transacción; un poller en proceso drena; los efectos nunca revierten | Enmendada por 021 |
@@ -27,3 +27,4 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | [021](adr/ADR-021-infraestructura-railway.md) | Infraestructura (Railway) | Proyecto nuevo en el workspace Pro ya pagado: web con worker en proceso, Postgres con respaldos y PITR, bucket privado; US$0 extra | Enmendada por 022 y 023 |
 | [022](adr/ADR-022-medios-prefirmados.md) | Medios prefirmados | Subida directa del navegador al bucket con `POST` prefirmado y CORS; entrega por redirección a URL prefirmada; la copia mensual incluye el bucket | Aceptada |
 | [023](adr/ADR-023-operacion-entornos-respaldo-correo.md) | Operación | `staging` persistente y `production` en la fase 6; copia mensual cifrada a Cloudflare R2 por un servicio cron; Resend con desbordamiento automático a SES; seguir en Pro sin CDN | Aceptada |
+| [024](adr/ADR-024-reglas-de-participacion.md) | Reglas de participación | 1 a 3 comités; 2 asambleas ordinarias más elección de junta y segunda vuelta obligatorias en el segundo semestre; código rotativo opcional; score con suavizado `k = 5`; sin medallas migradas; egresados sin acceso | Aceptada |

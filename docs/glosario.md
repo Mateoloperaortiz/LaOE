@@ -5,6 +5,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | En la interfaz | En el código | Qué es |
 | --- | --- | --- |
 | Persona | `Person` | Cualquier ser humano del que la OE guarda datos: estudiante o contacto externo. Eje del CRM |
+| Correo personal | `Person.personalEmail` | Contacto opcional de egresados y externos; nunca sirve para iniciar sesión |
 | Prospecto | `stage=PROSPECT` | Persona que llenó un formulario público sin convocatoria abierta |
 | Postulante | `stage=APPLICANT` | Persona con tarjeta en un pipeline de admisión |
 | Integrante | `stage=MEMBER` + `Membership` | Persona con membresía: vigente, en licencia u honorario |
@@ -27,7 +28,10 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Score de comité | `CommitteeParticipation` | Participación relativa de un comité en una ocasión y su promedio por término |
 | Tablero | ranking | Clasificación del término: nuevos, veteranos y comités |
 | Asamblea | `Occasion.kind=ASSEMBLY` | Ocasión sin puntos que cuenta para el requisito del término |
-| Requisito de asambleas | `AssemblyRequirement` | Cuántas asambleas debe firmar una persona en un término |
+| Requisito de asambleas | `AssemblyRequirement` | Cuántas asambleas ordinarias debe firmar una persona en un término (2), y si le aplican la elección de junta y la segunda vuelta |
+| Elección de junta | `assemblyKind=BOARD_ELECTION` | Asamblea especial del segundo semestre donde se vota la junta del año siguiente; obligatoria para toda la OE |
+| Segunda vuelta | `assemblyKind=RUNOFF` | Repetición de la votación cuando no hay ganador; también obligatoria |
+| Tasa suavizada | `CommitteeParticipation.smoothedRate` | Participación relativa corregida hacia la media de la ocasión para no premiar el azar de los comités pequeños |
 | Evento | `Event` | Identidad permanente (Días EAFIT, Inventiva) |
 | Edición | `EventEdition` | Ocurrencia fechada de un evento, con lugar y organizadores |
 | Sesión de edición | `Occasion.kind=EDITION_SESSION` | Momento de una edición con check-in |

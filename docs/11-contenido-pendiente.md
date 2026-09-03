@@ -38,7 +38,8 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 ## Operación
 
-- [ ] Reglas de GH para el término: puntos por tipo de ocasión, requisito de asambleas, tope de comités
+- [ ] Puntos por tipo de ocasión para el término (tope de comités y asambleas ya están decididos)
+- [ ] Fechas de las dos asambleas ordinarias y, en el segundo semestre, de la elección de junta
 - [ ] Texto de "Unirse": requisitos y fechas de convocatoria
 - [ ] Acceso al dominio `oeeafit.com` (DNS) y a la cuenta de Resend
 - [ ] Subdominio `pruebas.oeeafit.com` para `staging` (opcional; el dominio de Railway sirve mientras tanto)

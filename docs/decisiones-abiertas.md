@@ -6,13 +6,7 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 
 | # | Pregunta | Opciones | Quién decide | Cómo se cierra |
 | --- | --- | --- | --- | --- |
-| 1 | ¿Egresados con acceso de solo lectura a Mi OE? | Sí en v1.5 · No | OE (GH) | Decidir en la fase 2 según demanda |
-| 2 | Código rotativo en QR | Siempre · Solo en ocasiones grandes · Opcional por ocasión (propuesta) | GH | Probar en la primera ocasión grande de la fase 3 |
-| 3 | Tope y mínimo de comités por persona | 1 a 3 (propuesta) · otro | GH | Confirmación de GH; valor en `AppConfig` |
-| 4 | Requisito de asambleas por término | 2 (propuesta) · otro; quién puede ajustarlo | GH | Confirmación de GH; valor en `AppConfig` |
-| 5 | Fórmula de score de comité | Participación relativa simple (ADR-009) · Ponderada (60/20/10/10) | GH | Decidir con datos de un término completo |
-| 6 | Anonimización de egresados: plazo | Lo que diga la política aprobada · 5 años si no lo dice | OE (junta) | Al recibir el texto de la política |
-| 7 | ¿Se migran los badges de GHPOINTS? | No (derivar niveles del ledger) · Sí como `LEGACY` | GH | Antes del ensayo de migración |
+| 1 | Anonimización de egresados: plazo para borrar teléfono, notas y respuestas (nombre, comités y ledger se conservan) | Lo que diga la política aprobada · 5 años si no lo dice · otro | OE (junta) | Al recibir el texto de la política; mientras tanto el job `retention` queda apagado |
 
 ## Cerradas
 
@@ -33,3 +27,10 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | 2026-09-02 | Umbral para pasar de Resend a SES | Desbordamiento automático a SES desde 95 correos diarios o ante error de cuota; campañas siempre por SES ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
 | 2026-09-02 | ¿Bajar a Railway Hobby después del cutover? | No: se sigue en Pro |
 | 2026-09-02 | ¿CDN (Cloudflare) delante de Railway? | No por ahora; se revisaría ante spam, lentitud medida o cargos de egreso |
+| 2026-09-02 | ¿Toda la infraestructura en Cloudflare? | No: sin Postgres gestionado (D1 es SQLite) ni proceso permanente, y Next.js vía OpenNext sin módulos nativos; se sigue en Railway ([01-arquitectura.md](01-arquitectura.md)) |
+| 2026-09-02 | ¿Egresados con acceso de solo lectura? | No en v1: el correo institucional suele caducar al graduarse; se guarda correo personal opcional con consentimiento ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
+| 2026-09-02 | Código rotativo en QR | Opcional por ocasión, apagado por defecto ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
+| 2026-09-02 | Tope y mínimo de comités por persona | Mínimo 1, máximo 3 ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
+| 2026-09-02 | Requisito de asambleas por término | Dos ordinarias, más la elección de junta (y su segunda vuelta si la hay) obligatorias en el segundo semestre; ajustes solo ADMIN con motivo ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
+| 2026-09-02 | Fórmula de score de comité | Participación relativa con suavizado hacia la media (`k = 5`); cruda y suavizada guardadas ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
+| 2026-09-02 | ¿Se migran los badges de GHPOINTS? | No; niveles derivados del ledger ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |

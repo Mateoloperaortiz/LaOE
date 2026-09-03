@@ -18,10 +18,10 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-003](ADR-003-etapas-por-comando.md) | Etapas explícitas por comando | Aceptada |
 | [ADR-004](ADR-004-termino-como-reloj.md) | El término académico es el reloj universal | Aceptada |
 | [ADR-005](ADR-005-comites-por-termino.md) | Pertenencia a comité por término | Aceptada |
-| [ADR-006](ADR-006-una-sola-asistencia.md) | Una sola mecánica de asistencia | Aceptada |
+| [ADR-006](ADR-006-una-sola-asistencia.md) | Una sola mecánica de asistencia | Aceptada (enmendada por ADR-024) |
 | [ADR-007](ADR-007-ledger-append-only.md) | Ledger append-only por término | Aceptada |
 | [ADR-008](ADR-008-tableros-derivados.md) | Tableros nuevos/veteranos derivados | Aceptada |
-| [ADR-009](ADR-009-score-de-comite.md) | Score de comité por participación relativa | Aceptada |
+| [ADR-009](ADR-009-score-de-comite.md) | Score de comité por participación relativa | Aceptada (enmendada por ADR-024) |
 | [ADR-010](ADR-010-identidad-por-correo-y-otp.md) | Identidad por correo del roster con OTP | Aceptada |
 | [ADR-011](ADR-011-autorizacion-en-servidor.md) | Autorización en servidor | Aceptada |
 | [ADR-012](ADR-012-outbox-transaccional.md) | Outbox transaccional; efectos fuera del commit | Aceptada (enmendada por ADR-021) |
@@ -36,6 +36,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-021](ADR-021-infraestructura-railway.md) | Infraestructura: Railway en el workspace Pro existente | Aceptada (enmendada por ADR-022 y ADR-023) |
 | [ADR-022](ADR-022-medios-prefirmados.md) | Medios: subida directa y entrega por URL prefirmada | Aceptada |
 | [ADR-023](ADR-023-operacion-entornos-respaldo-correo.md) | Operación: entorno de pruebas, copia externa y correo con desbordamiento | Aceptada |
+| [ADR-024](ADR-024-reglas-de-participacion.md) | Reglas de participación confirmadas por la OE | Aceptada |
 
 ## Plantilla
 

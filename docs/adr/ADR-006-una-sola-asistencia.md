@@ -1,8 +1,8 @@
 # ADR-006: Una sola mecánica de asistencia
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-024)
 - Fecha: 2026-09-02
-- Relacionadas: ADR-007, ADR-009, ADR-010
+- Relacionadas: ADR-007, ADR-009, ADR-010, ADR-024
 
 ## Contexto
 
@@ -19,3 +19,7 @@ Ciclo de la ocasión: `DRAFT → OPEN → CLOSED`; `CANCELLED` desde cualquier e
 - Una sola consola, un solo QR (`/a/[publicId]`), una sola entrada "asistió a" en la línea de tiempo.
 - El modo anfitrión (organizador marca por la persona) sirve para cualquier tipo de ocasión.
 - Reto relámpago y boosters quedan fuera; su historia se conserva como `LEGACY` en el ledger.
+
+## Enmienda (2026-09-02, ADR-024)
+
+Las asambleas llevan `assemblyKind`: `ORDINARY` (dos obligatorias por término), `BOARD_ELECTION` (una en cada término de segundo semestre, obligatoria para toda la OE) y `RUNOFF` (segunda vuelta, obligatoria si existe). El código rotativo es opcional por ocasión y viene apagado por defecto. Ver [ADR-024](ADR-024-reglas-de-participacion.md).

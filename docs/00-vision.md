@@ -58,6 +58,8 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | La política de tratamiento de datos ya está aprobada por la OE; falta subir su texto al repositorio |
 | 2026-09-02 | Correo: Resend para transaccional con desbordamiento automático a SES; campañas por SES |
 | 2026-09-02 | Tras el cutover se sigue en Railway Pro; sin Cloudflare delante por ahora |
+| 2026-09-02 | Se evaluó mover toda la infraestructura a Cloudflare y se descartó: no tiene Postgres gestionado ni proceso permanente |
+| 2026-09-02 | Reglas de GH confirmadas ([ADR-024](adr/ADR-024-reglas-de-participacion.md)): 1 a 3 comités; 2 asambleas ordinarias por término más la elección de junta y su segunda vuelta, obligatorias en el segundo semestre; código rotativo opcional por ocasión; score de comité por participación relativa con suavizado; las medallas de GHPOINTS no se migran; los egresados no entran en v1 |
 
 Hechos que sustentan varias de estas decisiones:
 

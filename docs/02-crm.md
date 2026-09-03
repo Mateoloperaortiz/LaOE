@@ -28,7 +28,7 @@ stateDiagram-v2
 | Prospecto | Formulario público, alta manual | Nada en la app | Datos del formulario, consentimiento |
 | Postulante | Convocatoria abierta, tarjeta en pipeline `ADMISSION` | Nada en la app | Respuestas, entrevistas, notas del equipo |
 | Integrante | "Dar de alta" o importación | Mi OE, check-in, GH Points | Membresía, comités por término, cargos, participación |
-| Egresado | Baja o graduación | Nada en la app (acceso de lectura fuera de v1) | Historia completa; datos de contacto según consentimiento |
+| Egresado | Baja o graduación | Nada en la app: el correo institucional suele caducar al graduarse, así que un acceso futuro sería con correo personal verificado (fuera de v1) | Historia completa; correo personal opcional y consentimiento de contacto capturados al salir |
 
 Los contactos externos (`kind=EXTERNAL`) no tienen etapa de integrante ni acceso: son personas vinculadas a organizaciones.
 

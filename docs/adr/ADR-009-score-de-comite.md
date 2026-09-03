@@ -1,8 +1,8 @@
 # ADR-009: Score de comité por participación relativa
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-024)
 - Fecha: 2026-09-02
-- Relacionadas: ADR-005, ADR-006, ADR-012
+- Relacionadas: ADR-005, ADR-006, ADR-012, ADR-024
 
 ## Contexto
 
@@ -17,3 +17,7 @@ Por ocasión: `rate = presentes / elegibles`, donde elegibles son los vigentes c
 - Eventualmente consistente respecto al check-in (segundos).
 - La fórmula puede cambiar sin tocar el ledger individual porque el snapshot guarda los insumos.
 - N funciones concurrentes colapsan en un solo cálculo por ocasión.
+
+## Enmienda (2026-09-02, ADR-024)
+
+El ranking usa la tasa **suavizada** `(presentes + k·μ) / (elegibles + k)`, con `k = 5` y `μ` la tasa media de la ocasión entre todos los comités, para que un comité de tres personas no salte a 100 % con un solo evento. La tasa cruda se guarda y se muestra al lado. Ver [ADR-024](ADR-024-reglas-de-participacion.md).

@@ -60,6 +60,7 @@ Listo cuando: contenido real de la OE publicable sin tocar código; nada persona
 - [ ] Normativa: documentos en el bucket privado con lector y búsqueda
 - [ ] Carnet digital con QR firmado
 - [ ] Exportar mis datos y solicitud de eliminación
+- [ ] Correo personal opcional con consentimiento, capturado al dar de baja
 
 Listo cuando: un admin encuentra a cualquier persona en 2 segundos y ve toda su historia; un integrante importado entra por OTP y ve su ficha.
 
@@ -70,8 +71,8 @@ Listo cuando: un admin encuentra a cualquier persona en 2 segundos y ve toda su 
 - [ ] Check-in propio en `/a/[publicId]` y modo anfitrión
 - [ ] Ledger con crédito automático, ajustes y reversiones
 - [ ] Rankings nuevos, veteranos y comités
-- [ ] Score de comité por outbox con `dedupeKey`
-- [ ] Asambleas y requisitos por término
+- [ ] Score de comité por outbox con `dedupeKey`, tasa cruda y suavizada
+- [ ] Asambleas ordinarias, elección de junta y segunda vuelta con requisitos por término y cumplimiento por persona
 - [ ] Cierre de término y `TermStanding`
 - [ ] Vista de líder: roster sin correos, score, proponer ocasiones
 - [ ] Exportes CSV/XLSX con step-up
@@ -136,3 +137,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-02 | — | Carpeta renombrada de `Untitled` a `casa-digital`. Hosting vuelve a Railway en el workspace Pro existente: ADR-021 reemplaza a ADR-019 y enmienda ADR-001, ADR-012 y ADR-016. Marca reescrita a partir del manual de 19 páginas (logo, color, tipografía, elementos, texturas, composición, orden del feed) |
 | 2026-09-02 | — | Cerradas cuatro decisiones: sustitutos libres de fuentes por comparación visual (Sofia Sans Extra Condensed y Plus Jakarta Sans), isotipo aprobado como favicon, elementos gráficos redibujados en SVG, subida directa prefirmada al bucket (ADR-022 reemplaza a ADR-016). Láminas de comparación en `docs/assets/` |
 | 2026-09-02 | — | Cerradas siete decisiones de operación (ADR-023): entorno `staging` persistente, copia mensual a Cloudflare R2 con servicio cron, repositorio `LaOE`, política de datos ya aprobada, correo con desbordamiento automático a SES, seguir en Pro, sin CDN por ahora |
+| 2026-09-02 | — | Reglas de GH confirmadas (ADR-024): comités 1 a 3, asambleas ordinarias más elección de junta y segunda vuelta, código rotativo opcional, score con suavizado, sin medallas migradas, egresados sin acceso. Cloudflare completo evaluado y descartado. Queda una sola decisión abierta |
