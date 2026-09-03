@@ -19,6 +19,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Validación de formularios y de acciones declaradas.
 - Mapeo de tipos legados de GHPOINTS.
 - Backoff y dead letter del outbox; derivación del código rotativo.
+- Medios: tipos y tamaños permitidos, clave de subida, variante elegida para un ancho pedido, `srcset`, errores permanentes frente a transitorios. Fechas: `datetime-local` de Bogotá a UTC y vuelta. ICS: plegado a 75 octetos, escape y `UID` por edición.
 - Cálculo de permanencia: con las tablas de ejemplo de 2026-2 (general y A3), un nuevo, un veterano, uno en prueba y una transferencia reproducen las hojas de GH criterio por criterio, con el ejemplo de Pixel 75 % y Cigma 95 %; "no alcanza" cuando lo que queda posible no cubre el umbral; GT por cantidad; margen de prueba de 10 puntos; propuesta de cierre con salida del comité o de la OE según la regla de GH; expulsión por asamblea obligatoria; obligatorias de primer y segundo semestre.
 
 ## Integration (con Postgres)
@@ -28,6 +29,8 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Outbox drenado exactamente una vez con dos pollers compitiendo (y `after()` si se usa); `dedupeKey` colapsando recomputes.
 - Correo transaccional: sale por Resend hasta el límite diario y por SES desde ahí o ante error de cuota; cada envío queda en `message` con su proveedor.
 - Storage: subida con `POST` prefirmado y condiciones de tamaño contra Garage en local, `HEAD` y lectura por URL prefirmada; un archivo fuera de rango se rechaza.
+- Medios: confirmar una subida registra el `MediaAsset` en `PENDING` y encola `media.process`; el handler genera las tres variantes WebP de un PNG creado con `sharp` y marca `READY`; un objeto que no es imagen queda `FAILED` sin reintento; la redirección elige la variante por ancho y respeta visibilidad y estado.
+- Contenido y eventos: páginas, anuncios, eventos y ediciones se crean y editan con auditoría; identificadores repetidos y fin anterior al inicio fallan con el texto del inventario; solo lo publicado con audiencia pública sale en las lecturas del portal; el próximo encuentro es la edición pública más cercana en el futuro.
 - OTP: rate limit por correo e IP, vencimiento, intentos, no enumeración.
 - Step-up de admin y destrucción de sesiones al retirar o cambiar correo.
 - Auditoría en la misma transacción: si falla la auditoría, no hay mutación.
@@ -42,7 +45,8 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Ingreso por OTP con código fijo de test y redirección a `next`.
 - Admin kit: crear y editar un comité desde el panel lateral, exportar el CSV; la paleta ⌘K encuentra personas y comités; otorgar un permiso exige step-up y el export de permisos queda auditado.
 - QR de check-in: sin sesión → ingreso → vuelve al QR → puntos acreditados y visibles en Mi OE.
-- Admin publica una edición con portada subida directo al bucket por `POST` prefirmado (emulador con CORS) y la ve el visitante.
+- Admin publica una edición con portada subida directo al bucket por `POST` prefirmado (emulador con CORS) y la ve el visitante: la subida de 5 MB va del navegador a Garage, la prueba drena el outbox con `drain()` (en CI el poller está apagado), y `GET /api/media/[id]` responde 302 hacia el bucket.
+- Portal público: cada ruta pública pasa `axe`; un ADMIN edita y publica La OE y publica y fija un anuncio, y el visitante los ve en `/`, `/la-oe` y `/cartelera`; `og:image`, `canonical` y `robots` están en el HTML; `/opengraph-image` y el de una edición devuelven PNG; `/sitemap.xml` lista lo publicado y `/robots.txt` prohíbe todo mientras `PUBLIC_INDEXING` sea `false`.
 - Kanban de admisión hasta "Dar de alta" y primer ingreso del nuevo miembro.
 - Una licencia pedida desde Mi OE aparece como tarea, GH la aprueba y la membresía cambia con auditoría; una convocatoria interna inscribe a la persona en el grupo y su permanencia lo refleja.
 - Campaña enviada al mailer de consola respetando preferencias y baja.

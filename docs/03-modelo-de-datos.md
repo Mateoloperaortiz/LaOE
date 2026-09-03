@@ -95,9 +95,9 @@ erDiagram
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `Event` | `slug` único, `name`, `summary`, `description`, `audience`, `publicationStatus`, `coverAssetId?` | Identidad permanente |
-| `EventEdition` | `eventId`, `slug`, `name`, `startsAt`, `endsAt?`, `location`, `registrationUrl?`, `registrationFormId?`, `publicationStatus`, `coverAssetId?` | Unique por (evento, slug) |
-| `EditionCommittee` | `editionId`, `committeeId` | Organizadores |
+| `Event` | `slug` único, `name`, `summary`, `description` Markdown, `audience`, `publicationStatus`, `coverAssetId?`, `sortOrder` | Identidad permanente; los cuatro macroeventos nacen publicados y sin ediciones en la migración `0003` ([ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md)); `sortOrder` fija su orden en el inicio |
+| `EventEdition` | `eventId`, `slug`, `name`, `description` Markdown, `startsAt`, `endsAt?`, `location`, `registrationUrl?`, `publicationStatus`, `coverAssetId?` | Unique por (evento, slug); `endsAt` posterior a `startsAt`; `registrationFormId` llega con los formularios (fase 5) |
+| `EditionCommittee` | `editionId`, `committeeId` | Organizadores; unique por par |
 
 ### participation
 
@@ -128,9 +128,9 @@ erDiagram
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `Page` | `slug` único, `title`, `body` Markdown, `status`, `audience` | La OE, Unirse, Privacidad |
-| `Announcement` | `title`, `body` Markdown, `audience`, `publishedAt?`, `pinned`, `pushSentAt?` | Cartelera |
-| `MediaAsset` | `visibility` (`PUBLIC`, `PRIVATE`), `objectKey` único, `contentType`, `byteSize`, `width?`, `height?`, `variants` JSON, `uploadedById`, `status` (`PENDING`, `READY`) | Sin bytes en la base; un solo bucket privado, la visibilidad decide la caché al servir |
+| `Page` | `slug` único, `title`, `body` Markdown, `status`, `audience` | La OE, Unirse y Privacidad nacen en borrador en la migración `0003`; una página en borrador muestra su título y "en preparación" |
+| `Announcement` | `title`, `body` Markdown, `audience`, `publishedAt?`, `pinned`, `pushSentAt?`, `createdById?` | Cartelera; es público cuando `audience = PUBLIC` y `publishedAt` ya pasó; fijados primero |
+| `MediaAsset` | `visibility` (`PUBLIC`, `PRIVATE`), `objectKey` único, `originalFilename`, `contentType`, `byteSize`, `width?`, `height?`, `variants` JSON, `uploadedById?`, `status` (`PENDING`, `READY`, `FAILED`), `error?` | Sin bytes en la base; un solo bucket privado, la visibilidad decide la caché al servir; `variants` guarda las WebP de 480, 960 y 1600 px (`variants/<id>/w<ancho>.webp`); `FAILED` cuando el objeto no es una imagen decodificable ([ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md)) |
 | `Document` | `title`, `kind` (`ESTATUTOS`, `REGLAMENTO`, `ACTA`, `OTRO`), `assetId`, `version`, `audience`, `articles` JSON opcional | Lector privado con búsqueda |
 
 ### comms
@@ -169,6 +169,9 @@ Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().
 | `Outbox(dedupeKey) WHERE processedAt IS NULL AND deadLetterAt IS NULL` | Un pendiente por clave |
 | `LegacyAlias(path)` único | Un destino por ruta antigua |
 | `Occasion(termId) WHERE assemblyKind = 'BOARD_ELECTION' AND status <> 'CANCELLED'` | Una elección de junta por término |
+| `Page(slug)`, `Event(slug)` únicos; `EventEdition(eventId, slug)` único | Una URL por página, evento y edición |
+| `MediaAsset(objectKey)` único | Un registro por objeto del bucket |
+| `EditionCommittee(editionId, committeeId)` único | Un comité organiza una edición una sola vez |
 | `Card`: check `(personId IS NULL) <> (organizationId IS NULL)` | Un solo sujeto por tarjeta |
 
 Reglas que viven en el dominio y se prueban en integración: tope de 3 comités por término para activos, `APPROVED ⇔ una entrada CHECKIN viva`, término derivado de la fecha, ledger cerrado tras `pointsClosedAt`, transiciones de etapa y de ocasión.

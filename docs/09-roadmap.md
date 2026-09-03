@@ -38,7 +38,21 @@ Listo cuando (en local): login por OTP con el roster semilla sintético, cascar�
 
 Listo cuando: lo mismo de A pasando en `staging`, más la primera copia en R2 restaurada en local.
 
-## Fase 1 · Portal público y contenido · `pendiente`
+## Fase 1 · Portal público y contenido · `en curso`
+
+Plan aprobado el 2026-09-03 ([ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md)): siete tramos en cortes verticales (esquema → dominio → admin → portal); cada uno cierra con `npm run check` y `npm run test:e2e` en verde, un commit convencional y push a `main`. Railway sigue pendiente (fase 0 B).
+
+### Tramos
+
+- [x] F1-T0 · Docs: ADR-033, modelo (`content`, `events`), mapa del sitio, textos T-300 a T-322 y T-330 a T-369, verificación, fuentes para OG en marca, `PUBLIC_INDEXING`
+- [ ] F1-T1 · Esquema completo de `content` y `events` con la migración `0003` (páginas y macroeventos sembrados) y páginas editables de punta a punta: `/admin/paginas`, `/la-oe`, `/unirse`, `/privacidad`, navegación T-038, Markdown sin HTML crudo
+- [ ] F1-T2 · Cartelera (`/admin/cartelera` con Publicar y Despublicar, `/cartelera`, `/cartelera/[id]`, bloque real en el inicio) y fichas públicas de comités (`/comites`, `/comites/[slug]`)
+- [ ] F1-T3 · Medios: presign, subida directa, confirm, `media.process` con variantes WebP, `GET /api/media/[id]`, `/admin/medios` con subidor, bucket en la CSP
+- [ ] F1-T4 · Eventos y ediciones: admin anidado con las extensiones del kit, `/eventos`, `/eventos/[slug]`, `/eventos/[slug]/[edicion]`, inicio con próximo encuentro y macroeventos, ICS público, seed sintético de anuncios y ediciones
+- [ ] F1-T5 · OG images con cartel tipográfico e instancias TTF, `generateMetadata`, `metadataBase`, sitemap, robots, `PUBLIC_INDEXING`
+- [ ] F1-T6 · Cierre: lista de revisión de marca por pantalla, tres anchos y dos temas, registro
+
+### Entregables
 
 - [ ] Páginas editables: La OE, Unirse, Privacidad
 - [ ] Cartelera pública y anuncios
@@ -199,3 +213,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-03 | 0 | T6 listo: admin kit en `src/shared/admin-kit` (definición de recurso por módulo con columnas, filtros, esquema Zod, campos y comandos; listado paginado con búsqueda por URL, panel lateral de crear y editar, export CSV con celdas neutralizadas, acción genérica que exige ADMIN y step-up) con Comités, Términos y Permisos; step-up en `/ingresar/paso`; paleta ⌘K con `pg_trgm` sobre personas y comités; 24 unitarias, 31 de integración y 7 e2e (sesión de admin guardada por Playwright) |
 | 2026-09-03 | 0 | T7 listo: `scripts/seed.ts` idempotente (27 comités por sigla, 41 personas sintéticas con membresías en los cuatro estados, 1 a 3 comités con un General por comité, ADMIN de demo y dos líderes), `db:reset` lo aplica tras migrar; `.github/workflows/ci.yml` con calidad e integración/e2e sobre Postgres 18 y Garage; los recursos sin comando de actualización no muestran Editar. **Fase 0 A completa**; queda B (GitHub y Railway) |
 | 2026-09-03 | 0 | Parte B, primer ítem: repositorio privado `github.com/Mateoloperaortiz/LaOE` creado con `gh`, `main` empujada por HTTPS (el agente SSH de la Mac no firma desde el harness), ruleset activo sin borrado ni force push, primera corrida de `ci.yml` en verde (calidad e integración/e2e sobre Postgres 18 y Garage). Railway sigue pendiente por decisión de Mateo |
+| 2026-09-03 | 1 | Arranca la fase 1 con su plan aprobado: ADR-033 (módulos `content` y `events`, catálogo por migración, Markdown sin HTML crudo, variantes WebP por outbox, 302 con caché menor que la firma, bucket en la CSP, render dinámico, OG con instancias TTF, `PUBLIC_INDEXING`, ICS a mano, kit con extensiones aditivas), modelo y mapa actualizados (`/cartelera/[id]`, `/admin/cartelera` única), textos T-300 a T-322 y T-330 a T-369 inventariados, verificación ampliada. F1-T0 listo |

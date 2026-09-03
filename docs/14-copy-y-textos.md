@@ -70,6 +70,34 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-038 | Navegación del portal público | Inicio · La OE · Cartelera · Eventos · Comités · Unirse | COM | Propuesta |
 | T-039 | Nombres de los cuatro macroeventos (identidades permanentes) | Días EAFIT · Inventiva · EnFemenino · Subsidios-OE | COM | Aprobado por el manual |
 
+### Portal público · fase 1 (cartelera, eventos, comités, imágenes para compartir)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-300 | La OE, Unirse o Privacidad sin publicar todavía | Este contenido está en preparación. Volvé pronto. | MATEO | Propuesta |
+| T-301 | Cartelera, título de la página | Cartelera | COM | Propuesta |
+| T-302 | Cartelera sin anuncios | Todavía no hay anuncios. Volvé pronto. | MATEO | Propuesta |
+| T-303 | Cartelera, insignia de un anuncio fijado | Fijado | MATEO | Propuesta |
+| T-304 | Eventos, título de la página | Eventos | COM | Propuesta |
+| T-305 | Evento, título de la lista de ediciones | Ediciones | COM | Propuesta |
+| T-306 | Evento sin ediciones publicadas | Todavía no hay ediciones publicadas. | MATEO | Propuesta |
+| T-307 | Edición, etiquetas de la ficha | Cuándo · Dónde · Organizan | MATEO | Propuesta |
+| T-308 | Eventos y ediciones, enlace al calendario público (ICS) | Agregá los eventos de la OE a tu calendario | MATEO | Propuesta |
+| T-309 | Comités, título de la página | Comités | COM | Propuesta |
+| T-310 | Comité sin presentación | Este comité todavía no publicó su presentación. | MATEO | Propuesta |
+| T-311 | Evento e inicio, insignia de la edición que viene | Próxima edición | MATEO | Propuesta |
+| T-312 | Edición que ya ocurrió, insignia | Ya pasó | MATEO | Propuesta |
+| T-313 | Anuncio, fecha de publicación | Publicado el {fecha} | MATEO | Propuesta |
+| T-314 | Imagen para compartir (OG), texto alternativo | {título} · Organización Estudiantil EAFIT | MATEO | Propuesta |
+| T-315 | Portada de un evento o edición, texto alternativo | Portada de {título} | MATEO | Propuesta |
+| T-316 | Inicio y anuncio, enlace a la cartelera completa | Ver toda la cartelera | COM | Propuesta |
+| T-317 | Inicio, enlace a todos los eventos | Ver todos los eventos | COM | Propuesta |
+| T-318 | Edición, enlace de vuelta al evento | Volver a {evento} | MATEO | Propuesta |
+| T-319 | Pie de página, enlace a la política de datos | Privacidad | MATEO | Propuesta |
+| T-320 | Pie de página, enlace al calendario público | Calendario | MATEO | Propuesta |
+| T-321 | La OE, título del bloque de contacto | Contacto | COM | Propuesta |
+| T-322 | Calendario público (ICS), nombre del calendario | Eventos de la Organización Estudiantil EAFIT | COM | Propuesta |
+
 ## 3. Acceso
 
 | Código | Dónde | Propuesta | Dueño | Estado |
@@ -273,6 +301,51 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-297 | Términos: columna semestre | Semestre | MATEO | Propuesta |
 | T-298 | Términos: fechas invertidas | El fin debe ser posterior al inicio. | MATEO | Propuesta |
 | T-299 | Paleta ⌘K: botón que la abre | Buscar (⌘K) | MATEO | Propuesta |
+
+### Admin de Contenido (páginas, cartelera, eventos, ediciones y medios)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-330 | Recurso páginas (plural · singular) | Páginas · Página | MATEO | Propuesta |
+| T-331 | Recurso cartelera (plural · singular) | Cartelera · Anuncio | MATEO | Propuesta |
+| T-332 | Recurso eventos (plural · singular) | Eventos · Evento | MATEO | Propuesta |
+| T-333 | Recurso ediciones (plural · singular) | Ediciones · Edición | MATEO | Propuesta |
+| T-334 | Recurso medios (plural · singular) | Medios · Medio | MATEO | Propuesta |
+| T-335 | Contenido: campo título | Título | MATEO | Propuesta |
+| T-336 | Contenido: campo cuerpo | Cuerpo (Markdown) | MATEO | Propuesta |
+| T-337 | Contenido: ayuda del campo cuerpo | Podés usar títulos, listas, negritas y enlaces. Las imágenes se suben en Medios. | MATEO | Propuesta |
+| T-338 | Contenido: campo audiencia | Audiencia | MATEO | Propuesta |
+| T-339 | Contenido: opciones de audiencia | Público · Solo miembros | MATEO | Propuesta |
+| T-340 | Cartelera: campo fijado | Fijado arriba de la cartelera | MATEO | Propuesta |
+| T-341 | Cartelera: columna y campo de la fecha de publicación | Publicado el | MATEO | Propuesta |
+| T-342 | Cartelera: acción de publicar | Publicar | MATEO | Propuesta |
+| T-343 | Cartelera: acción de despublicar | Despublicar | MATEO | Propuesta |
+| T-344 | Eventos: campo resumen | Resumen (una o dos líneas) | MATEO | Propuesta |
+| T-345 | Eventos y ediciones: campo descripción | Descripción (Markdown) | MATEO | Propuesta |
+| T-346 | Eventos y ediciones: campo portada | Portada | MATEO | Propuesta |
+| T-347 | Ediciones: campo evento | Evento | MATEO | Propuesta |
+| T-348 | Ediciones: campo nombre | Nombre de la edición (por ejemplo 2026-2) | MATEO | Propuesta |
+| T-349 | Páginas, eventos y ediciones: campo identificador en la URL | Identificador en la URL (minúsculas y guiones) | MATEO | Propuesta |
+| T-350 | Ediciones: campo inicio | Empieza | MATEO | Propuesta |
+| T-351 | Ediciones: campo fin | Termina | MATEO | Propuesta |
+| T-352 | Ediciones: campo lugar | Lugar | MATEO | Propuesta |
+| T-353 | Ediciones: campo enlace de inscripción externa | Enlace de inscripción (otro sitio) | MATEO | Propuesta |
+| T-354 | Ediciones: campo comités organizadores | Comités organizadores | MATEO | Propuesta |
+| T-355 | Eventos: campo orden en el inicio | Orden en el inicio | MATEO | Propuesta |
+| T-356 | Medios: botón y campo para subir | Subir imagen | MATEO | Propuesta |
+| T-357 | Medios: ayuda del subidor | JPG, PNG o WebP de 5 KB a 20 MB. Solo imágenes con permiso de uso; nada de fotos de personas sin consentimiento. | MATEO | Propuesta |
+| T-358 | Medios: estados de un medio | Procesando · Lista · Falló | MATEO | Propuesta |
+| T-359 | Medios: subida en curso | Subiendo {nombre}… | MATEO | Propuesta |
+| T-360 | Medios: subida confirmada | Listo: la imagen queda disponible en unos segundos. | MATEO | Propuesta |
+| T-361 | Medios: archivo de otro tipo | Ese archivo no es una imagen JPG, PNG o WebP. | MATEO | Propuesta |
+| T-362 | Medios: archivo fuera de tamaño | La imagen debe pesar entre 5 KB y 20 MB. | MATEO | Propuesta |
+| T-363 | Medios: error de subida | No se pudo subir la imagen. Intentá de nuevo. | MATEO | Propuesta |
+| T-364 | Medios: columnas del listado | Archivo · Tamaño · Dimensiones · Estado · Subido el | MATEO | Propuesta |
+| T-365 | Medios: campo visibilidad | Visibilidad | MATEO | Propuesta |
+| T-366 | Medios: opciones de visibilidad | Pública · Privada | MATEO | Propuesta |
+| T-367 | Páginas, eventos y ediciones: identificador repetido | Ya existe otro con ese identificador. | MATEO | Propuesta |
+| T-368 | Eventos y ediciones: opción sin portada | Sin portada (cartel tipográfico) | MATEO | Propuesta |
+| T-369 | Eventos: enlace a las ediciones desde la fila | Ediciones ({n}) | MATEO | Propuesta |
 
 ## 6. Notificaciones
 

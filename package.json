@@ -23,7 +23,7 @@
     "db:reset": "node --env-file-if-exists=.env --import tsx scripts/db-reset.ts",
     "db:seed": "node --env-file-if-exists=.env --import tsx scripts/seed.ts",
     "storage:init": "node --env-file-if-exists=.env --import tsx scripts/storage-init.ts",
-    "copy:sync": "node --import tsx scripts/copy-sync.ts",
+    "copy:sync": "node --import tsx scripts/copy-sync.ts && biome check --write src/shared/copy/textos.generated.ts",
     "prepare": "lefthook install",
     "test:e2e": "playwright test"
   },

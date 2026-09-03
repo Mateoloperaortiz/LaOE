@@ -45,6 +45,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-030](ADR-030-perfil-de-egresado.md) | Perfil de egresado (memorial) en lugar de anonimización por plazo | Aceptada |
 | [ADR-031](ADR-031-autogestion-del-miembro.md) | Autogestión del miembro: solicitudes, convocatorias, datos propios, onboarding, reconocimientos, encuestas y panel de la junta | Aceptada |
 | [ADR-032](ADR-032-drizzle-y-esquema-por-modulo.md) | Drizzle como capa de datos y esquema por módulo en TypeScript | Aceptada |
+| [ADR-033](ADR-033-contenido-y-medios-fase-1.md) | Contenido editable y medios del portal público (fase 1) | Aceptada |
 
 ## Plantilla
 

@@ -6,7 +6,8 @@
 | --- | --- |
 | `/` | Cartelera, próximo encuentro, acceso a macroeventos, "Entrá a Mi OE" |
 | `/la-oe` | Historia desde 1987, misión, visión, "lo hacemos por vos", contacto (Bloque 29 of. 525, oe@eafit.edu.co) |
-| `/cartelera` | Anuncios con audiencia pública |
+| `/cartelera` | Anuncios con audiencia pública, fijados primero |
+| `/cartelera/[id]` | Un anuncio con su imagen para compartir; es la URL que usará el push de la fase 6 |
 | `/eventos` | Catálogo de eventos permanentes: Días EAFIT, Inventiva, EnFemenino, Subsidios-OE |
 | `/eventos/[slug]` | Identidad del evento y sus ediciones publicadas |
 | `/eventos/[slug]/[edicion]` | Micrositio de la edición: fechas, lugar, organizadores, inscripción propia (`/f/[slug]`) o enlace externo, galería opcional |
@@ -50,10 +51,10 @@
 | Junta | `/admin/junta` | Panel de indicadores sin datos personales: retención por semestre, nuevos por comité, distribución de permanencia, "no alcanza", asistencia a reuniones por comité; permiso `BOARD` |
 | Formularios | `/admin/formularios`, `/admin/formularios/[id]`, `/admin/formularios/[id]/respuestas` | Constructor y bandeja de respuestas |
 | Comunidad | `/admin/comites`, `/admin/cargos`, `/admin/permisos` | Comités, catálogo de cargos de comité y cargos de junta por término, permisos técnicos |
-| Contenido | `/admin/paginas`, `/admin/cartelera`, `/admin/eventos`, `/admin/eventos/[id]/ediciones`, `/admin/medios`, `/admin/documentos` | Publicación editorial |
+| Contenido | `/admin/paginas`, `/admin/cartelera`, `/admin/eventos`, `/admin/eventos/[id]/ediciones`, `/admin/medios`, `/admin/documentos` | Publicación editorial: páginas, cartelera (con Publicar y Despublicar; el push llega en la fase 6 a la misma pantalla), eventos con sus ediciones anidadas, medios con subida directa al bucket ([ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md)); documentos en la fase 2 |
 | Participación | `/admin/terminos`, `/admin/ocasiones`, `/admin/ocasiones/[id]` (consola), `/admin/ocasiones/[id]/anfitrion`, `/admin/ledger`, `/admin/rankings`, `/admin/asambleas`, `/admin/cierre` | Términos, ocasiones con QR y aprobaciones, ledger, rankings, requisitos de asambleas, cierre |
 | Permanencia | `/admin/permanencia/reglas`, `/admin/permanencia/grupos`, `/admin/permanencia/grupos/[id]`, `/admin/permanencia/evaluaciones`, `/admin/permanencia/cumplimiento`, `/admin/permanencia/cierre` | Tabla general y las 27 tablas de comité, grupos de trabajo con líder, evaluador e miembros, bandeja de evaluaciones, cumplimiento por comité con filtros y export, cierre con propuesta automática y confirmación |
-| Comunicaciones | `/admin/anuncios`, `/admin/plantillas`, `/admin/campanas`, `/admin/mensajes` | Anuncios con push, plantillas, campañas por segmento, registro |
+| Comunicaciones | `/admin/plantillas`, `/admin/campanas`, `/admin/mensajes` | Plantillas, campañas por segmento, registro; los anuncios con push se operan en `/admin/cartelera` |
 | Sistema | `/admin/sistema/auditoria`, `/admin/sistema/jobs`, `/admin/sistema/importaciones`, `/admin/sistema/exportes`, `/admin/sistema/config`, `/admin/sistema/alias` | Auditoría, outbox y dead letter, importaciones, exportes, configuración, alias legados |
 
 Vista de **líder de comité**: `/admin/comites/[slug]` con roster sin correos y score, proponer ocasiones `DRAFT`, consola y modo anfitrión de sus ocasiones; en `/admin/comites/[slug]/permanencia` edita la tabla de permanencia de su comité dentro del presupuesto, crea las reuniones semanales, pasa asistencia y asigna los puntajes de subcomité, liderazgo, destacado del mes y convivencia. No aprueba puntos ni publica contenido.
@@ -67,8 +68,10 @@ Vista de **director de GH**: evalúa el desempeño de los miembros de los grupos
 | Ruta | Uso |
 | --- | --- |
 | `GET /api/health` | Prueba Postgres y devuelve versión |
-| `GET /api/media/[id]` | Valida publicación y audiencia y redirige (302) a una URL prefirmada del bucket: 7 días para lo publicado, 10 minutos para lo privado |
-| `POST /api/media/presign` y `POST /api/media/confirm` | ADMIN pide un `POST` prefirmado (tipo y tamaño acotados, 10 minutos), sube directo al bucket y confirma; la confirmación registra el `MediaAsset` y encola las variantes |
+| `GET /api/media/[id]?w=<ancho>` | Elige la variante más grande que no supere `w` (o el original), valida visibilidad y estado y redirige (302) a una URL prefirmada del bucket: 7 días para lo público con `Cache-Control` de 6 días, 10 minutos para lo privado con sesión |
+| `POST /api/media/presign` y `POST /api/media/confirm` | ADMIN pide un `POST` prefirmado (JPG, PNG o WebP; 5 KB a 20 MB; 10 minutos), sube directo al bucket y confirma; la confirmación registra el `MediaAsset` en `PENDING` y encola `media.process`, que genera las variantes |
+| `GET /sitemap.xml`, `GET /robots.txt` | Solo lo publicado con audiencia pública; con `PUBLIC_INDEXING=false` (staging) robots prohíbe todo y las páginas llevan `noindex` |
+| `opengraph-image` de cada segmento público | Cartel tipográfico generado con `next/og` para inicio, páginas, cartelera y cada anuncio, eventos y cada edición, comités y cada comité |
 | `POST /api/push/subscribe` | Registra suscripción push del actor |
 | `GET /api/export/[tipo]` | CSV/XLSX con step-up cuando hay datos personales |
 | Jobs programados: `campaigns`, `reminders`, `prune`, `backup-check` | Corren en el mismo proceso del servicio `web` mediante el scheduler y el outbox; no tienen rutas HTTP |

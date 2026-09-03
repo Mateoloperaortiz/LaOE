@@ -76,6 +76,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-03 | Capa de datos: Drizzle 0.45 sobre `pg` reemplaza a Prisma; esquema TypeScript por módulo ([ADR-032](adr/ADR-032-drizzle-y-esquema-por-modulo.md)) |
 | 2026-09-03 | Todo corre primero en local (OrbStack: Postgres 18 y Garage como emulador S3); el repositorio `LaOE` en GitHub y el entorno `staging` en Railway se montan al cerrar la fase 0 |
 | 2026-09-03 | Repositorio remoto creado: `github.com/Mateoloperaortiz/LaOE`, privado, con `main` protegida contra borrado y force push; Railway espera una autorización aparte |
+| 2026-09-03 | Arranca la fase 1 con [ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md): módulos `content` y `events`, páginas y macroeventos sembrados por migración, Markdown sin HTML crudo, variantes WebP por outbox y entrega por 302, bucket en la CSP, imágenes para compartir con instancias TTF, `PUBLIC_INDEXING`, ICS a mano; siete tramos con push a `main` en cada uno |
 
 Hechos que sustentan varias de estas decisiones:
 
