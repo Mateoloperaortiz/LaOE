@@ -52,7 +52,7 @@ Listo cuando: contenido real de la OE publicable sin tocar código; nada persona
 ## Fase 2 · Personas y Mi OE · `pendiente`
 
 - [ ] Modelo de personas, membresías, comités por término, cargos, consentimientos
-- [ ] Asistente de importación del roster (CSV o Excel) con el formato de `13-importacion-del-roster.md`: mapeo de columnas, validación por fila, vista previa con diff, consentimiento, auditoría, archivo original en el bucket
+- [ ] Asistente de importación del roster (CSV o Excel) con el formato de `13-importacion-del-roster.md`: mapeo de columnas, validación por fila, vista previa con diff, modo actualización por correo con subconjunto de columnas, consentimiento, auditoría, archivo original en el bucket
 - [ ] Catálogo de cargos de comité (General, Financiero, Publicidad, Relaciones Públicas, Logística, Gestión Humana, Integrante) y propuesta de permiso de líder para cada General
 - [ ] Migración en seco de roster, comités y permisos desde un dump de GHPOINTS
 - [ ] Persona 360 con todas las pestañas
@@ -165,3 +165,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-02 | — | GH (Miguel Gaviria) respondió: dos tablas (general ≈ 50, comité ≈ 60) con resultado por comité, umbrales fijos 60 / 80 / 70, periodo de prueba con margen de 10, GT por cantidad, asambleas obligatorias dos y tres para el 10 %, evaluadores directores de GH, comités de trabajo con sus líderes, puntos definidos por actividad. ADR-027; 12-permanencia reescrito; siete preguntas abiertas |
 | 2026-09-02 | — | GH cerró las siete: salida del comité o de la OE según la regla, expulsión por asamblea obligatoria, obligatorias por semestre, evaluación al cerrar el semestre, Athletic con capitán y DT (ADR-028). Solo queda abierta la anonimización de egresados, de la junta |
 | 2026-09-02 | — | Formato del roster definido con las columnas de GH más `CARGO` (ADR-029): cargo dentro del comité como catálogo en la pertenencia, nombre y apellido separados, validaciones e idempotencia. Doc `13-importacion-del-roster.md` |
+| 2026-09-02 | — | GH confirmó los cinco estados y los seis cargos; `CARGO` llegará en una segunda entrega, así que la importación admite actualizaciones parciales por correo |

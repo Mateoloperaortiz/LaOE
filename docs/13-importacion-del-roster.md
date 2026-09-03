@@ -15,10 +15,12 @@ Las cabeceras se reconocen sin importar mayúsculas ni tildes. Un archivo por t�
 | `PREGRADO` | No | Nombre del programa | `Person.program`; se sugiere el nombre del catálogo de programas EAFIT si coincide |
 | `COMITES` | Sí | Siglas separadas por coma o punto y coma, por ejemplo `A3, PIXEL` | Una `CommitteeMembership` por sigla en el término del archivo; entre 1 y 3 |
 | `ENTRADA A LA OE` | Sí | Término de ingreso `2024-2` (una fecha se convierte al término que la contiene) | `Membership.firstTermId`: define nuevo o veterano y su umbral de permanencia |
-| `ESTADO` | Sí | `Activo`, `Licencia`, `Honorario`, `Retirado`, `Prueba` (vocabulario por confirmar con GH) | `Membership.status`; `Prueba` además marca `MembershipTerm.probation` en el término del archivo |
-| `CARGO` | No (columna nueva) | Cargo dentro del comité: `General`, `Financiero`, `Publicidad`, `Relaciones Públicas`, `Logística`, `Gestión Humana`. Si la persona tiene varios comités, se indica en cuál: `General de A3; Logística de PIXEL` | `CommitteeMembership.role`; sin valor es `Integrante` |
+| `ESTADO` | Sí | `Activo`, `Licencia`, `Honorario`, `Retirado`, `Prueba` (vocabulario confirmado por GH) | `Membership.status`; `Prueba` además marca `MembershipTerm.probation` en el término del archivo |
+| `CARGO` | No (columna nueva; la base actual de GH no la tiene, llegará en una entrega posterior) | Cargo dentro del comité, exactamente uno de estos seis: `General`, `Financiero`, `Publicidad`, `Relaciones Públicas`, `Logística`, `Gestión Humana`. Si la persona tiene varios comités, se indica en cuál: `General de A3; Logística de PIXEL` | `CommitteeMembership.role`; sin valor es `Integrante` |
 
 Columnas opcionales que el asistente también reconoce si aparecen: `TRANSFERENCIA` (sigla del comité al que la persona se transfirió este término: umbral 70 %), `CORREO PERSONAL` (contacto, nunca acceso) y `OBSERVACIONES` (queda como nota en la línea de tiempo).
+
+**Modo actualización.** Un archivo que trae `CORREO` y solo algunas columnas actualiza únicamente esas columnas en las personas que ya existen y no toca el resto. Así GH puede mandar primero el roster sin `CARGO` y después un archivo con `CORREO` y `CARGO` para completar los cargos. Las personas nuevas sí necesitan todas las obligatorias.
 
 ## Ejemplo
 
@@ -57,6 +59,6 @@ Advertencias (se importa, pero se marca):
 
 Cada semestre se sube el archivo nuevo con el mismo formato: así se actualizan comités, cargos y estados del término sin tocar el pasado.
 
-## Lo que falta confirmar con GH
+## Confirmado con GH (2026-09-02)
 
-Está en [decisiones-abiertas.md](decisiones-abiertas.md): el vocabulario exacto de `ESTADO`, la lista completa de cargos ("y así" en palabras de Mateo) y si `General` debe otorgar el permiso de líder sin confirmación.
+Los cinco valores de `ESTADO` son los que usa GH y los cargos son exactamente esos seis (más `Integrante` por defecto). `CARGO` no está en la base actual: llegará en una segunda entrega con el modo actualización. Queda una sola pregunta, de Mateo: si `General` otorga el permiso de líder sin confirmación ([decisiones-abiertas.md](decisiones-abiertas.md)).

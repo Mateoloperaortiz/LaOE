@@ -22,3 +22,7 @@ GH va a enviar el roster con las columnas `NOMBRE`, `APELLIDO`, `CORREO`, `CELUL
 - El directorio interno muestra "General de A3" o "Logística de PIXEL" junto a cada persona.
 - El catálogo de cargos alimenta segmentos y campañas ("todos los financieros de los comités").
 - Falta confirmar con GH el vocabulario de `ESTADO`, la lista completa de cargos y si General otorga el permiso sin confirmación.
+
+## Precisiones (2026-09-02, respuesta de GH)
+
+El vocabulario de `ESTADO` es `Activo`, `Licencia`, `Honorario`, `Retirado` y `Prueba`. Los cargos son exactamente los seis del punto 1. La base actual no tiene `CARGO`: llegará en una segunda entrega, por lo que la importación admite un **modo actualización** (archivo con `CORREO` y un subconjunto de columnas que solo toca esas columnas en personas existentes). Sigue pendiente, de Mateo, si General otorga el permiso de líder sin confirmación.

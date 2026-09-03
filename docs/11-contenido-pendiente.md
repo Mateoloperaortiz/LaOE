@@ -5,7 +5,8 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 ## Personas
 
 - [ ] Roster del término con las columnas acordadas: `NOMBRE`, `APELLIDO`, `CORREO`, `CELULAR`, `PREGRADO`, `COMITES`, `ENTRADA A LA OE`, `ESTADO` y la nueva `CARGO` ([13-importacion-del-roster.md](13-importacion-del-roster.md)); GH lo envía cuando termine de limpiar su base
-- [ ] Vocabulario exacto de `ESTADO` y lista completa de cargos de comité
+- [x] Vocabulario de `ESTADO` (Activo, Licencia, Honorario, Retirado, Prueba) y lista de cargos (seis), confirmados por GH
+- [ ] Segunda entrega con `CORREO` y `CARGO` para completar los cargos (la base actual no los tiene)
 - [ ] Lista de líderes de comité y cargos de junta del término actual
 - [ ] Quién tendrá permiso ADMIN además de Mateo
 
