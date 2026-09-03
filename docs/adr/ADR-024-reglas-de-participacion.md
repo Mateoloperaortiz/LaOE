@@ -7,7 +7,7 @@
 
 ## Contexto
 
-Mateo respondió el 2026-09-02, en nombre de Gestión Humana, las reglas que seguían abiertas. También aportó un dato que cambia el trato a los egresados: el correo institucional suele caducar al graduarse, así que un egresado no podría entrar por OTP aunque se le diera acceso. Para el score de comité pidió "la mejor forma" con un criterio explícito: fair play entre comités que varían mucho en cantidad de integrantes.
+Mateo respondió el 2026-09-02, en nombre de Gestión Humana, las reglas que seguían abiertas. También aportó un dato que cambia el trato a los egresados: el correo institucional suele caducar al graduarse, así que un egresado no podría entrar por OTP aunque se le diera acceso. Para el score de comité pidió "la mejor forma" con un criterio explícito: fair play entre comités que varían mucho en cantidad de miembros.
 
 ## Decisión
 

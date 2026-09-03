@@ -10,7 +10,7 @@ GHPOINTS separa los tableros con una bandera manual `memberType` (`NEW`/`ACTIVE`
 
 ## Decisión
 
-"Nuevo" es quien tiene `Membership.firstTermId` igual al término actual; "veterano", quien entró antes. Sin bandera manual. Solo participan integrantes con `status = ACTIVE`. Los empates comparten puesto (1, 2, 2, 4) y se ordenan visualmente por nombre; el tablero de comités usa la misma regla ordenando por slug.
+"Nuevo" es quien tiene `Membership.firstTermId` igual al término actual; "veterano", quien entró antes. Sin bandera manual. Solo participan miembros con `status = ACTIVE`. Los empates comparten puesto (1, 2, 2, 4) y se ordenan visualmente por nombre; el tablero de comités usa la misma regla ordenando por slug.
 
 ## Consecuencias
 

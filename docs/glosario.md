@@ -8,18 +8,18 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Correo personal | `Person.personalEmail` | Contacto opcional de egresados y externos; nunca sirve para iniciar sesión |
 | Prospecto | `stage=PROSPECT` | Persona que llenó un formulario público sin convocatoria abierta |
 | Postulante | `stage=APPLICANT` | Persona con tarjeta en un pipeline de admisión |
-| Integrante | `stage=MEMBER` + `Membership` | Persona con membresía: vigente, en licencia u honorario |
+| Miembro | `stage=MEMBER` + `Membership` | Persona con membresía: vigente, en licencia u honorario |
 | Egresado | `stage=ALUMNI` | Persona que dejó la OE (retiro o graduación); no puede entrar (pierde el correo institucional) y conserva su historia como perfil de egresado |
 | Perfil de egresado (memorial) | `stage=ALUMNI` + `Consent MEMORIAL` | Historia institucional de quien salió: comités, cargos, años, puntos; visible en la galería de egresados si hay consentimiento |
 | Galería de egresados | `/app/egresados` | Lista por año de salida con cartel por año; "memorial" es el nombre interno |
-| Membresía | `Membership` | Estado de integrante con primer término, fin y motivo; una por persona |
+| Membresía | `Membership` | Estado de miembro con primer término, fin y motivo; una por persona |
 | Vigente / En licencia / Honorario / Retirado | `ACTIVE` / `ON_LEAVE` / `HONORARY` / `INACTIVE` | Estados de la membresía. Entran a Mi OE vigentes y honorarios |
 | Comité | `Committee` | Grupo de trabajo con ficha editorial y logo |
 | Pertenencia a comité | `CommitteeMembership` | Persona en un comité durante un término; de 1 a 3 activas para vigentes |
 | Cargo de junta o de GH | `Appointment` | Rol visible con historia fuera del comité: presidencia, vicepresidencias, GH principal, directores de GH |
-| Cargo en el comité | `CommitteeMembership.roleCode` | Lo que la persona desempeña dentro de su comité en el término: General (líder), Financiero, Publicidad, Relaciones Públicas, Logística, Gestión Humana o Integrante |
+| Cargo en el comité | `CommitteeMembership.roleCode` | Lo que la persona desempeña dentro de su comité en el término: General (líder), Financiero, Publicidad, Relaciones Públicas, Logística, Gestión Humana o Miembro |
 | General | `roleCode=GENERAL` | Líder del comité; uno por comité y término; el permiso técnico de líder se otorga aparte |
-| Roster | `ImportJob` de tipo roster | Archivo por término con el que GH carga o actualiza integrantes, comités, cargos y estados |
+| Roster | `ImportJob` de tipo roster | Archivo por término con el que GH carga o actualiza miembros, comités, cargos y estados |
 | Permiso | `Permission` | Derecho técnico: `ADMIN` o `COMMITTEE_LEADER` de un comité. No es un título |
 | Término | `Term` | Semestre académico (`2026-2`) con fechas; reloj universal del sistema |
 | Cierre de puntos | `Term.pointsClosedAt` | Momento desde el que el ledger del término no acepta más entradas |
@@ -61,7 +61,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Evento | `Event` | Identidad permanente (Días EAFIT, Inventiva) |
 | Edición | `EventEdition` | Ocurrencia fechada de un evento, con lugar y organizadores |
 | Sesión de edición | `Occasion.kind=EDITION_SESSION` | Momento de una edición con check-in |
-| Formulario | `Form` | Formulario propio, público o de integrantes, con campos tipados |
+| Formulario | `Form` | Formulario propio, público o de miembros, con campos tipados |
 | Respuesta | `Submission` | Envío de un formulario, vinculado a una persona por correo |
 | Inscripción | `EditionRegistration` | Persona inscrita a una edición mediante un formulario |
 | Organización | `Organization` | Empresa, unidad de EAFIT, grupo estudiantil u otra entidad |
@@ -72,14 +72,14 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Interacción | `Interaction` | Entrada de la línea de tiempo de una persona: automática o nota manual |
 | Nota | `Interaction.kind=NOTE` | Interacción escrita por alguien del equipo |
 | Tarea | `Task` | Pendiente con responsable y vencimiento sobre persona, organización o tarjeta |
-| Solicitud | `Request` | Pedido del integrante desde Mi OE (licencia, retiro, cambio de comité, transferencia) que GH aprueba; aprobar ejecuta el comando |
+| Solicitud | `Request` | Pedido del miembro desde Mi OE (licencia, retiro, cambio de comité, transferencia) que GH aprueba; aprobar ejecuta el comando |
 | Convocatoria interna | `InternalCall` | Llamado a inscribirse en un grupo de trabajo con cupo y cierre; la inscripción aceptada crea la pertenencia al grupo |
 | Onboarding | `OnboardingProgress` | Pasos de la primera semana de un nuevo, ligados a sus criterios de permanencia |
 | Reconocimiento | `Recognition` | Destacado del mes u otro mérito, publicado en la cartelera y en el perfil |
 | Panel de la junta | `/admin/junta` | Indicadores agregados para los cargos de junta: retención, nuevos, permanencia, asistencia a reuniones |
 | Etiqueta | `Tag` | Marca libre sobre personas u organizaciones |
 | Segmento | `Segment` | Filtro guardado que alimenta campañas, exportes y listas |
-| Anuncio | `Announcement` | Publicación de la cartelera, pública o de integrantes, con push opcional |
+| Anuncio | `Announcement` | Publicación de la cartelera, pública o de miembros, con push opcional |
 | Campaña | `Campaign` | Envío de una plantilla de correo a un segmento |
 | Mensaje | `Message` | Registro de cada correo o push enviado a una persona |
 | Consentimiento | `Consent` | Aceptación versionada de la política de datos para un propósito |

@@ -6,7 +6,7 @@ Fuente: **Manual de marca de la Organización Estudiantil, versión Canva** (`L�
 
 - Historia desde **1987**; el grupo estudiantil más grande de EAFIT; áreas de mercadeo, gestión humana, finanzas, logística y publicidad; macroeventos **Días EAFIT, Inventiva, EnFemenino y Subsidios-OE**.
 - Misión: impulsar el liderazgo y la formación integral de la comunidad estudiantil a través de la organización y ejecución de eventos. Visión: ser el grupo estudiantil más destacado por formar líderes íntegros y transformar la experiencia universitaria.
-- **Tono:** "en la OE lo hacemos por vos". Cercano y "parchado", lenguaje cotidiano y relajado. En la interfaz: voseo siempre ("Entrá a Mi OE", "Registrá tu asistencia", "¿Querés unirte?"), frases cortas, cero jerga administrativa en lo que ve un integrante.
+- **Tono:** "en la OE lo hacemos por vos". Cercano y "parchado", lenguaje cotidiano y relajado. En la interfaz: voseo siempre ("Entrá a Mi OE", "Registrá tu asistencia", "¿Querés unirte?"), frases cortas, cero jerga administrativa en lo que ve un miembro.
 - **Personalidad:** serviciales, fraternales, versátiles. El manual las muestra como barras de color escalonadas; en la web ese recurso se usa para listas destacadas.
 - **Expresión de marca: ¡OE OE OE!** El manual la escribe en amarillo pálido, gigante, con efecto de volumen. En la web cierra confirmaciones, pantallas de éxito (puntos acreditados, alta completada) y estados vacíos; nunca en mensajes de error.
 - Recurso del manual: **palabras clave resaltadas en color** dentro de un párrafo (naranja para fechas y nombres, amarillo para verbos, azul para áreas). Se usa en textos institucionales (La OE, cartelera), no en texto funcional ni en formularios.
@@ -122,7 +122,7 @@ El manual ordena **no usar fondos planos** y muestra dos texturas: **granito** (
 Lo que muestran los ejemplos del manual (Tote Bag, Assessment) y su panel de inspiración:
 
 - **La misma pieza en cuatro fondos:** paper, azul, naranja y navy. Los textos cambian de color para mantener legibilidad. En la web, el `Cartel` implementa exactamente esas cuatro variantes.
-- **Fotografías recortadas en blanco y negro** con un **contorno de color** (amarillo o naranja) y un elemento (estrella o bucle) detrás. Solo con fotos autorizadas; nunca fotos de integrantes sin consentimiento.
+- **Fotografías recortadas en blanco y negro** con un **contorno de color** (amarillo o naranja) y un elemento (estrella o bucle) detrás. Solo con fotos autorizadas; nunca fotos de miembros sin consentimiento.
 - **Título gigante en la familia de títulos**, a veces con letras alternando dos colores de la paleta dentro de la misma palabra ("TO" en un color, "TE" en otro). Es un recurso de cartel, no de interfaz: se permite en portadas y OG images, no en encabezados de página.
 - **Frase corta de apoyo** ("¡Aquí te explicamos!") y **logo horizontal pequeño** en una esquina.
 - **Barras de color detrás de los títulos** que salen del borde de la página, **numerales de sección** enormes y **diseños partidos** (mitad navy, mitad color).
@@ -192,5 +192,5 @@ Antes de dar por lista una pantalla:
 - [ ] Títulos en la familia de títulos, en mayúsculas; cuerpo en la familia de contenido.
 - [ ] Como mucho dos elementos gráficos; ninguno sobre el logo ni sobre texto funcional.
 - [ ] Los colores vienen de los once tokens o de sus tintes por opacidad.
-- [ ] Voseo y tono cercano en todo texto visible para integrantes.
+- [ ] Voseo y tono cercano en todo texto visible para miembros.
 - [ ] Contraste AA y revisión en claro y oscuro.

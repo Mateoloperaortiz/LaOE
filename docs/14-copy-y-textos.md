@@ -6,22 +6,22 @@ Dueños: **GH** (Gestión Humana), **COM** (comunicaciones y relaciones pública
 
 ## 1. Voz y reglas
 
-Según el manual de marca ([07-marca.md](07-marca.md)): cercana y "parchada", con **voseo**, lenguaje cotidiano; personalidad servicial, fraternal y versátil; cierre **¡OE OE OE!** en éxitos y celebraciones, nunca en errores ni en mensajes sensibles (permanencia, salida, expulsión). Frases cortas. Sin jerga administrativa donde lo lee un integrante.
+Según el manual de marca ([07-marca.md](07-marca.md)): cercana y "parchada", con **voseo**, lenguaje cotidiano; personalidad servicial, fraternal y versátil; cierre **¡OE OE OE!** en éxitos y celebraciones, nunca en errores ni en mensajes sensibles (permanencia, salida, expulsión). Frases cortas. Sin jerga administrativa donde lo lee un miembro.
 
 Términos fijos en la interfaz (los usa el código tal cual):
 
 | Término | Uso | Alternativa que hay que descartar o confirmar |
 | --- | --- | --- |
-| Integrante | Persona del roster | GH dice "miembro" en la tabla de permanencia. **COM decide** cuál usa la app en todas partes |
+| Miembro | Persona del roster | Decidido por Mateo el 2026-09-03, alineado con GH: la app dice "miembro" en todas partes; "integrante" no se usa |
 | Mi OE | El espacio con sesión | |
 | Cartelera | Anuncios | |
 | GH Points | Puntos y rankings | |
 | Permanencia | La tabla de GH y la del comité | GH la llama "tabla"; propuesta: "Permanencia" como título y "tu tabla" en el texto |
-| Ocasión | Solo en el admin; para el integrante se dice actividad, asamblea, reunión o partido | |
-| Check-in | Registrar asistencia | Propuesta para el integrante: "Registrá tu asistencia" |
+| Ocasión | Solo en el admin; para el miembro se dice actividad, asamblea, reunión o partido | |
+| Check-in | Registrar asistencia | Propuesta para el miembro: "Registrá tu asistencia" |
 | Egresados | Galería de quienes salieron | Mateo lo llama "memorial"; en la interfaz va "Egresados" |
 | Comité | Los 27 comités | Comité de trabajo se escribe completo para no confundir |
-| Término | Solo en el admin; para el integrante se dice semestre | |
+| Término | Solo en el admin; para el miembro se dice semestre | |
 
 Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de correo hasta 60; botones de una a tres palabras; mensajes de error que digan qué pasó y qué hacer.
 
@@ -106,7 +106,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | --- | --- | --- | --- | --- |
 | T-070 | Directorio, título | Personas | COM | Propuesta |
 | T-071 | Directorio, buscador | Buscá por nombre o comité | MATEO | Propuesta |
-| T-072 | Ficha, cargo en el comité | General de {comité} · Logística de {comité} · Integrante | GH | Propuesta |
+| T-072 | Ficha, cargo en el comité | General de {comité} · Logística de {comité} · Miembro | GH | Propuesta |
 | T-073 | Comités internos, intro | Tus comités y los demás. Acá está lo que no se publica afuera. | COM | Propuesta |
 | T-074 | Egresados, título | Egresados | COM | Propuesta |
 | T-075 | Egresados, intro | Quienes pasaron por la OE y dejaron huella, año por año. | COM | Propuesta |
@@ -257,7 +257,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 
 ## 8. Lo que debe entregar cada dueño
 
-- **COM:** nombre del sitio, textos del inicio, descripciones de los cuatro macroeventos, redes y contacto, decisión "integrante" o "miembro", plantilla de campaña, campaña de lanzamiento.
+- **COM:** nombre del sitio, textos del inicio, descripciones de los cuatro macroeventos, redes y contacto, plantilla de campaña, campaña de lanzamiento.
 - **GH:** texto de Unirse y del proceso de admisión, pasos del onboarding, descripción de una línea de cada criterio de permanencia, tono de los mensajes sensibles (asamblea obligatoria, prueba, salida), nombres y cortes de los niveles de GH Points, preguntas de la encuesta corta.
 - **JUNTA:** política de datos y su versión, textos de consentimiento, plazo de respuesta a la eliminación, misión y visión (ya en el manual), pie legal.
 - **Cada comité:** presentación, contacto, y los textos de su tabla de permanencia (nombres de los criterios y de los dos eventos).

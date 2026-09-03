@@ -6,7 +6,7 @@
 
 ## Contexto
 
-Gestión Humana decide cada semestre quién permanece en la OE con una tabla de criterios ponderados (integraciones, asambleas, grupos de trabajo de macroeventos, GAP, GAP OE, comités de trabajo, barra brava, tareas de nuevos) y un umbral del 60 %. Hoy es una hoja de cálculo: la persona no ve su avance hasta el final, la tabla cambia por término (por ejemplo, criterios propios para quienes ingresan en 2026-2) y mezcla hechos automáticos con juicios de desempeño. Mateo pidió que cada integrante vea su progreso y que el 60 % sea el criterio de permanencia.
+Gestión Humana decide cada semestre quién permanece en la OE con una tabla de criterios ponderados (integraciones, asambleas, grupos de trabajo de macroeventos, GAP, GAP OE, comités de trabajo, barra brava, tareas de nuevos) y un umbral del 60 %. Hoy es una hoja de cálculo: la persona no ve su avance hasta el final, la tabla cambia por término (por ejemplo, criterios propios para quienes ingresan en 2026-2) y mezcla hechos automáticos con juicios de desempeño. Mateo pidió que cada miembro vea su progreso y que el 60 % sea el criterio de permanencia.
 
 ## Decisión
 
@@ -21,7 +21,7 @@ Gestión Humana decide cada semestre quién permanece en la OE con una tabla de 
 ## Consecuencias
 
 - Las ocasiones necesitan categoría al crearse (`INTEGRATION`, `ATHLETIC_MATCH`, …) y la marca "solo nuevos" cuando aplique.
-- Los líderes de grupo adquieren un deber: evaluar a sus integrantes; la app les recuerda y GH ve lo pendiente.
+- Los líderes de grupo adquieren un deber: evaluar a sus miembros; la app les recuerda y GH ve lo pendiente.
 - La tabla completa del término, con su total y quién evalúa cada grupo, es contenido que GH debe entregar; las capturas recibidas suman 50 % para veteranos y 45 % para nuevos, así que faltan criterios.
 - Los seis comités de trabajo y el Athletic se modelan como grupos de trabajo, distintos de los 27 comités de pertenencia (por confirmar).
 

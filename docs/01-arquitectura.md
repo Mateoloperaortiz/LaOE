@@ -8,7 +8,7 @@ Monolito modular en **Next.js (App Router) + TypeScript + Prisma** desplegado co
 flowchart LR
   subgraph clientes [Clientes]
     V[Visitante]
-    I[Integrante PWA]
+    I[Miembro PWA]
     A[Admin]
   end
   subgraph railway [Railway: proyecto casa-digital]
@@ -49,7 +49,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.prisma` (Prisma en mod
 | `identity` | Acceso por OTP, sesiones, permisos técnicos, actor | `Session`, `OtpChallenge`, `Permission` |
 | `people` | La persona como eje del CRM, ciclo de vida, comités por término, cargos, consentimiento | `Person`, `Membership`, `CommitteeMembership`, `Appointment`, `Consent`, `Committee` |
 | `crm` | Organizaciones, contactos, pipelines, tarjetas, línea de tiempo, notas, tareas, etiquetas, segmentos | `Organization`, `OrganizationContact`, `Pipeline`, `PipelineStage`, `Card`, `Interaction`, `Task`, `Tag`, `Segment` |
-| `forms` | Formularios propios (públicos y de integrantes), respuestas, inscripciones a ediciones | `Form`, `Submission`, `EditionRegistration` |
+| `forms` | Formularios propios (públicos y de miembros), respuestas, inscripciones a ediciones | `Form`, `Submission`, `EditionRegistration` |
 | `events` | Eventos permanentes, ediciones, comités organizadores, calendario ICS | `Event`, `EventEdition`, `EditionCommittee` |
 | `participation` | Términos, ocasiones (actividad, asamblea, sesión de edición), check-ins, ledger, rankings, score de comité | `Term`, `Occasion`, `CheckIn`, `PointEntry`, `CommitteeParticipation`, `TermStanding`, `AssemblyRequirement` |
 | `permanence` | La tabla de permanencia de GH y las de cada comité: reglas por término y ámbito, presupuestos, grupos de trabajo, evaluaciones y puntajes del líder, snapshot por persona, decisiones de cierre | `PermanenceRule`, `WorkGroup`, `WorkGroupMembership`, `PermanenceSnapshot`, `PermanenceDecision`, `ManualCredit` |

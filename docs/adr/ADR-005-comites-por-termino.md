@@ -10,7 +10,7 @@ GHPOINTS guarda `joinedAt` y `leftAt` por pertenencia y compara timestamps al ac
 
 ## Decisión
 
-`CommitteeMembership` es única por (persona, comité, término), con `joinedAt` y `leftAt` opcionales para cambios a mitad de semestre. Un integrante vigente tiene entre 1 y 3 pertenencias activas en el término actual (tope en `AppConfig`). El crédito de una ocasión usa las pertenencias del término de la ocasión, respetando `leftAt` cuando existe.
+`CommitteeMembership` es única por (persona, comité, término), con `joinedAt` y `leftAt` opcionales para cambios a mitad de semestre. Un miembro vigente tiene entre 1 y 3 pertenencias activas en el término actual (tope en `AppConfig`). El crédito de una ocasión usa las pertenencias del término de la ocasión, respetando `leftAt` cuando existe.
 
 ## Consecuencias
 

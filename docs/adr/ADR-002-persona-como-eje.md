@@ -6,11 +6,11 @@
 
 ## Contexto
 
-GHPOINTS modela `Member` como raíz: una persona existe solo si es integrante. Postulantes, egresados y contactos externos no tienen lugar, y por eso el roster vive en Excel y las postulaciones en Forms. Un CRM necesita a la persona antes y después de ser integrante.
+GHPOINTS modela `Member` como raíz: una persona existe solo si es miembro. Postulantes, egresados y contactos externos no tienen lugar, y por eso el roster vive en Excel y las postulaciones en Forms. Un CRM necesita a la persona antes y después de ser miembro.
 
 ## Decisión
 
-`Person` es la entidad raíz, con `kind` (`STUDENT` o `EXTERNAL`) y `stage`. `Membership` (cero o una por persona) guarda el estado de integrante (`ACTIVE`, `ON_LEAVE`, `HONORARY`, `INACTIVE`), `firstTermId`, `endedAt` y `endReason`; su historial vive en `MembershipEvent`. Nadie se crea al iniciar sesión ni desde un formulario sin una acción declarada: el roster entra por importación o por "Dar de alta". Los contactos externos nunca tienen membresía ni acceso.
+`Person` es la entidad raíz, con `kind` (`STUDENT` o `EXTERNAL`) y `stage`. `Membership` (cero o una por persona) guarda el estado de miembro (`ACTIVE`, `ON_LEAVE`, `HONORARY`, `INACTIVE`), `firstTermId`, `endedAt` y `endReason`; su historial vive en `MembershipEvent`. Nadie se crea al iniciar sesión ni desde un formulario sin una acción declarada: el roster entra por importación o por "Dar de alta". Los contactos externos nunca tienen membresía ni acceso.
 
 ## Consecuencias
 

@@ -1,4 +1,4 @@
-# ADR-031: Autogestión del integrante: solicitudes, convocatorias, datos propios, onboarding, reconocimientos, encuestas y panel de la junta
+# ADR-031: Autogestión del miembro: solicitudes, convocatorias, datos propios, onboarding, reconocimientos, encuestas y panel de la junta
 
 - Estado: Aceptada
 - Fecha: 2026-09-03
@@ -6,7 +6,7 @@
 
 ## Contexto
 
-Con más de 500 integrantes, lo que hoy pasa por hojas de cálculo, Forms y WhatsApp (licencias, retiros, cambios de comité, inscripciones a grupos de trabajo, datos desactualizados, reconocimientos, retroalimentación) es donde GH pierde el tiempo y donde la gente se pierde. Mateo aceptó el 2026-09-03 siete mejoras que cierran esos ciclos con piezas que el sistema ya tiene: formularios, tareas, comandos, grupos de trabajo, cartelera y outbox.
+Con más de 500 miembros, lo que hoy pasa por hojas de cálculo, Forms y WhatsApp (licencias, retiros, cambios de comité, inscripciones a grupos de trabajo, datos desactualizados, reconocimientos, retroalimentación) es donde GH pierde el tiempo y donde la gente se pierde. Mateo aceptó el 2026-09-03 siete mejoras que cierran esos ciclos con piezas que el sistema ya tiene: formularios, tareas, comandos, grupos de trabajo, cartelera y outbox.
 
 ## Decisión
 

@@ -4,8 +4,8 @@ La casa digital se piensa como un **CRM de comunidad**: la columna vertebral del
 
 ## Qué aporta
 
-- **La persona es el eje.** Integrante, postulante, egresado, contacto de empresa o de Bienestar son la misma entidad `Person`, con `kind` (`STUDENT` o `EXTERNAL`) y una etapa. Nada personal se guarda dos veces. El roster entra por un archivo por término con un formato fijo ([13-importacion-del-roster.md](13-importacion-del-roster.md)).
-- **Ciclo de vida explícito:** `PROSPECTO` (llenó un formulario) → `POSTULANTE` (en pipeline de admisión) → `INTEGRANTE` (vigente, en licencia u honorario) → `EGRESADO` (retirado o graduado). Cada cambio es un comando que audita y escribe la línea de tiempo ([ADR-003](adr/ADR-003-etapas-por-comando.md)).
+- **La persona es el eje.** Miembro, postulante, egresado, contacto de empresa o de Bienestar son la misma entidad `Person`, con `kind` (`STUDENT` o `EXTERNAL`) y una etapa. Nada personal se guarda dos veces. El roster entra por un archivo por término con un formato fijo ([13-importacion-del-roster.md](13-importacion-del-roster.md)).
+- **Ciclo de vida explícito:** `PROSPECTO` (llenó un formulario) → `POSTULANTE` (en pipeline de admisión) → `MIEMBRO` (vigente, en licencia u honorario) → `EGRESADO` (retirado o graduado). Cada cambio es un comando que audita y escribe la línea de tiempo ([ADR-003](adr/ADR-003-etapas-por-comando.md)).
 - **La línea de tiempo se alimenta sola.** Asistencias, puntos, cambios de comité, cargos, formularios, correos y movimientos de pipeline producen interacciones automáticas; el equipo agrega notas y tareas encima.
 - **Todo lo que hoy es un Excel o un Forms** (roster, postulaciones, inscripciones, patrocinios, contactos de Bienestar) vive en el mismo lugar y se relaciona.
 
@@ -16,21 +16,21 @@ stateDiagram-v2
   [*] --> Prospecto: formulario publico sin convocatoria
   [*] --> Postulante: formulario de postulacion con convocatoria abierta
   Prospecto --> Postulante: entra a pipeline de admision
-  Postulante --> Integrante: Dar de alta (membresia + comites)
+  Postulante --> Miembro: Dar de alta (membresia + comites)
   Postulante --> Egresado: no admitido, se archiva como historia
-  Integrante --> Egresado: retiro o graduacion
-  Egresado --> Integrante: reactivacion
-  [*] --> Integrante: importacion del roster
+  Miembro --> Egresado: retiro o graduacion
+  Egresado --> Miembro: reactivacion
+  [*] --> Miembro: importacion del roster
 ```
 
 | Etapa | Cómo se entra | Qué puede hacer | Qué guarda |
 | --- | --- | --- | --- |
 | Prospecto | Formulario público, alta manual | Nada en la app | Datos del formulario, consentimiento |
 | Postulante | Convocatoria abierta, tarjeta en pipeline `ADMISSION` | Nada en la app | Respuestas, entrevistas, notas del equipo |
-| Integrante | "Dar de alta" o importación | Mi OE, check-in, GH Points | Membresía, comités por término, cargos, participación |
-| Egresado | Baja o graduación | Nada en la app: el correo institucional caduca al graduarse. Su perfil queda como **egresado** (memorial): historia institucional visible para integrantes en la galería por año si dio consentimiento | Nombre, foto con consentimiento, comités y cargos por término, años en la OE, puntos y reconocimientos; correo personal solo con consentimiento de contacto; sin celular, formularios ni tareas |
+| Miembro | "Dar de alta" o importación | Mi OE, check-in, GH Points | Membresía, comités por término, cargos, participación |
+| Egresado | Baja o graduación | Nada en la app: el correo institucional caduca al graduarse. Su perfil queda como **egresado** (memorial): historia institucional visible para miembros en la galería por año si dio consentimiento | Nombre, foto con consentimiento, comités y cargos por término, años en la OE, puntos y reconocimientos; correo personal solo con consentimiento de contacto; sin celular, formularios ni tareas |
 
-Los contactos externos (`kind=EXTERNAL`) no tienen etapa de integrante ni acceso: son personas vinculadas a organizaciones.
+Los contactos externos (`kind=EXTERNAL`) no tienen etapa de miembro ni acceso: son personas vinculadas a organizaciones.
 
 ## Persona 360
 
@@ -76,11 +76,11 @@ Un `Segment` es un filtro guardado: etapa, estado, término, comité, etiqueta, 
 ## Reglas del CRM
 
 1. Una persona se identifica por su correo en minúsculas; los formularios vinculan por ese correo antes de crear.
-2. Ningún formulario ni login crea integrantes: solo la importación o "Dar de alta".
+2. Ningún formulario ni login crea miembros: solo la importación o "Dar de alta".
 3. Las interacciones automáticas son inmutables; las notas pueden editarse por su autor y quedan con `editedAt`.
 4. Las etiquetas y segmentos no cambian el estado de nadie: describen, no deciden.
 5. El correo y el teléfono se ven solo con permiso `ADMIN`; los líderes ven nombre, comités y cargos.
-6. Las solicitudes del integrante no cambian nada hasta que GH las aprueba; aprobar ejecuta el mismo comando que haría un admin a mano ([ADR-031](adr/ADR-031-autogestion-del-integrante.md)).
+6. Las solicitudes del miembro no cambian nada hasta que GH las aprueba; aprobar ejecuta el mismo comando que haría un admin a mano ([ADR-031](adr/ADR-031-autogestion-del-miembro.md)).
 7. La persona mantiene sus propios datos (foto, celular, correo personal) desde Ajustes, con consentimiento por propósito; el correo institucional no se edita.
 
 ## Privacidad por diseño (Ley 1581 de 2012)

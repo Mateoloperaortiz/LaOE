@@ -2,7 +2,7 @@
 
 ## La OE
 
-La Organización Estudiantil es el grupo estudiantil más grande de la Universidad EAFIT: fundada en **1987**, alrededor de **700 integrantes** y **25 comités**, con áreas de mercadeo, gestión humana, finanzas, logística y publicidad. Sus macroeventos de marca son **Días EAFIT**, **Inventiva**, **EnFemenino** y **Subsidios-OE**. Contacto institucional: Bloque 29, oficina 525, oe@eafit.edu.co.
+La Organización Estudiantil es el grupo estudiantil más grande de la Universidad EAFIT: fundada en **1987**, alrededor de **700 miembros** y **25 comités**, con áreas de mercadeo, gestión humana, finanzas, logística y publicidad. Sus macroeventos de marca son **Días EAFIT**, **Inventiva**, **EnFemenino** y **Subsidios-OE**. Contacto institucional: Bloque 29, oficina 525, oe@eafit.edu.co.
 
 ## Qué se construye
 
@@ -11,10 +11,10 @@ Una sola aplicación web con tres capas y una columna vertebral.
 | Capa | Quién | Qué ve |
 | --- | --- | --- |
 | Portal público | Visitantes | La OE, cartelera, eventos y ediciones, comités, cómo unirse |
-| Mi OE | Integrantes vigentes y honorarios del roster | Agenda, directorio, GH Points, progreso de permanencia, normativa, carnet, check-in por QR |
+| Mi OE | Miembros vigentes y honorarios del roster | Agenda, directorio, GH Points, progreso de permanencia, normativa, carnet, check-in por QR |
 | Administración | Personas con permiso ADMIN y líderes de comité | Personas (CRM), contenido, participación, comunicaciones, sistema |
 
-La columna vertebral es el **CRM de comunidad**: la persona como eje, con su ciclo de vida completo (prospecto, postulante, integrante, egresado), sus comités por semestre, sus cargos, su participación, sus formularios y sus comunicaciones en un solo lugar. Ver [02-crm.md](02-crm.md).
+La columna vertebral es el **CRM de comunidad**: la persona como eje, con su ciclo de vida completo (prospecto, postulante, miembro, egresado), sus comités por semestre, sus cargos, su participación, sus formularios y sus comunicaciones en un solo lugar. Ver [02-crm.md](02-crm.md).
 
 ## Por qué ahora
 
@@ -40,7 +40,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 
 | Fecha | Decisión |
 | --- | --- |
-| 2026-09-01 | Público + integrantes; sin registro abierto: solo entra quien está en el roster |
+| 2026-09-01 | Público + miembros; sin registro abierto: solo entra quien está en el roster |
 | 2026-09-01 | GH Points automáticos al marcar asistencia a una actividad publicada |
 | 2026-09-01 | Next.js (App Router) + TypeScript + PostgreSQL + Prisma; línea gráfica como primera clase |
 | 2026-09-02 | La app nueva reemplaza y absorbe a GHPOINTS; migra sus datos y hereda oeeafit.com |
@@ -60,7 +60,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | Tras el cutover se sigue en Railway Pro; sin Cloudflare delante por ahora |
 | 2026-09-02 | Se evaluó mover toda la infraestructura a Cloudflare y se descartó: no tiene Postgres gestionado ni proceso permanente |
 | 2026-09-02 | Reglas de GH confirmadas ([ADR-024](adr/ADR-024-reglas-de-participacion.md)): 1 a 3 comités; 2 asambleas ordinarias por término más la elección de junta y su segunda vuelta, obligatorias en el segundo semestre; código rotativo opcional por ocasión; score de comité por participación relativa con suavizado; las medallas de GHPOINTS no se migran; los egresados no entran en v1 |
-| 2026-09-02 | Permanencia: la tabla de GH se vuelve criterios configurables por término, con umbral de 60 % y progreso visible para cada integrante ([ADR-025](adr/ADR-025-permanencia-scorecard.md)) |
+| 2026-09-02 | Permanencia: la tabla de GH se vuelve criterios configurables por término, con umbral de 60 % y progreso visible para cada miembro ([ADR-025](adr/ADR-025-permanencia-scorecard.md)) |
 | 2026-09-02 | Cada comité tiene su propia tabla de permanencia dentro de un presupuesto fijado por GH; el total de la persona suma la parte de la OE y la de su comité principal ([ADR-026](adr/ADR-026-permanencia-por-comite.md)) |
 | 2026-09-02 | GH confirmó las reglas de permanencia ([ADR-027](adr/ADR-027-permanencia-reglas-de-gh.md)): resultado por cada comité (general ≈ 50 más la tabla de ese comité ≈ 60), umbrales fijos 60 % vigente, 80 % nuevo o en prueba, 70 % transferencia interna; periodo de prueba con margen de 10 puntos; GT por cantidad; asambleas obligatorias dos y tres para el 10 %; evalúan los directores de GH |
 | 2026-09-02 | Consecuencias confirmadas por GH ([ADR-028](adr/ADR-028-permanencia-consecuencias.md)): más de 10 puntos por debajo sale del comité, y de la OE si no le queda otro donde cumpla; faltar a una asamblea obligatoria es expulsión; obligatorias una ordinaria en primer semestre y ordinaria más elección en segundo; evaluación al cerrar el semestre; Athletic con capitán y DT |
@@ -68,8 +68,9 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | GH confirmó los estados (`Activo`, `Licencia`, `Honorario`, `Retirado`, `Prueba`) y los seis cargos; `CARGO` llega en una segunda entrega y la importación admite actualizaciones parciales por correo |
 | 2026-09-03 | Egresados: al graduarse pierden el correo institucional y no vuelven a entrar; su perfil queda como egresado (memorial) con su historia, visible en una galería por año según consentimiento; no hay anonimización por plazo ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
 | 2026-09-03 | El permiso de líder para un `General` del roster se otorga con confirmación del ADMIN |
-| 2026-09-03 | Siete mejoras aceptadas ([ADR-031](adr/ADR-031-autogestion-del-integrante.md)): solicitudes con flujo, convocatorias internas, onboarding de nuevos, reconocimientos, panel de la junta, encuesta tras ocasión y autogestión de datos. Al backlog: votación electrónica, actas, subcomités, inventario, álbum, modo sin señal |
+| 2026-09-03 | Siete mejoras aceptadas ([ADR-031](adr/ADR-031-autogestion-del-miembro.md)): solicitudes con flujo, convocatorias internas, onboarding de nuevos, reconocimientos, panel de la junta, encuesta tras ocasión y autogestión de datos. Al backlog: votación electrónica, actas, subcomités, inventario, álbum, modo sin señal |
 | 2026-09-03 | Todo el copy de la app se inventaría en [14-copy-y-textos.md](14-copy-y-textos.md) con dueño y estado; el código no inventa textos |
+| 2026-09-03 | La app dice "miembro", no "integrante", como GH; toda la documentación se alineó a ese término |
 
 Hechos que sustentan varias de estas decisiones:
 
@@ -80,8 +81,8 @@ Hechos que sustentan varias de estas decisiones:
 
 ## Alcance v1 (fases 0 a 7)
 
-Portal público y contenido editable · Personas y Mi OE · Participación y GH Points con asambleas · Permanencia (la tabla de GH visible para cada integrante) · Formularios, admisión y aliados · Comunicaciones y PWA · Migración y cutover. Detalle y seguimiento en [09-roadmap.md](09-roadmap.md).
+Portal público y contenido editable · Personas y Mi OE · Participación y GH Points con asambleas · Permanencia (la tabla de GH visible para cada miembro) · Formularios, admisión y aliados · Comunicaciones y PWA · Migración y cutover. Detalle y seguimiento en [09-roadmap.md](09-roadmap.md).
 
 ## Fuera de v1
 
-Pagos y boletería, chat, feed social, Graph o sincronización con el directorio EAFIT, galería masiva de fotos de personas, WhatsApp Business API, passkeys (mejora posterior), LLM sobre normativa, marca "En memoria" para integrantes fallecidos, votación electrónica de la junta (después, con reglas de los estatutos), reto relámpago, boosters, palabra del día y badges persistidos (su historia se conserva en el ledger como entradas `LEGACY`). El backlog completo está en [09-roadmap.md](09-roadmap.md).
+Pagos y boletería, chat, feed social, Graph o sincronización con el directorio EAFIT, galería masiva de fotos de personas, WhatsApp Business API, passkeys (mejora posterior), LLM sobre normativa, marca "En memoria" para miembros fallecidos, votación electrónica de la junta (después, con reglas de los estatutos), reto relámpago, boosters, palabra del día y badges persistidos (su historia se conserva en el ledger como entradas `LEGACY`). El backlog completo está en [09-roadmap.md](09-roadmap.md).

@@ -1,6 +1,6 @@
 # Importación del roster
 
-El roster entra a la casa digital por un archivo que GH exporta de su base (CSV o Excel). Es la única puerta de entrada masiva de integrantes: el login no crea personas ([ADR-002](adr/ADR-002-persona-como-eje.md)). El asistente de importación (fase 2) lee este formato, valida fila por fila, muestra qué va a cambiar y aplica todo en una transacción con auditoría. Reglas del cargo en [ADR-029](adr/ADR-029-cargos-de-comite-y-roster.md).
+El roster entra a la casa digital por un archivo que GH exporta de su base (CSV o Excel). Es la única puerta de entrada masiva de miembros: el login no crea personas ([ADR-002](adr/ADR-002-persona-como-eje.md)). El asistente de importación (fase 2) lee este formato, valida fila por fila, muestra qué va a cambiar y aplica todo en una transacción con auditoría. Reglas del cargo en [ADR-029](adr/ADR-029-cargos-de-comite-y-roster.md).
 
 ## Columnas
 
@@ -16,7 +16,7 @@ Las cabeceras se reconocen sin importar mayúsculas ni tildes. Un archivo por t�
 | `COMITES` | Sí | Siglas separadas por coma o punto y coma, por ejemplo `A3, PIXEL` | Una `CommitteeMembership` por sigla en el término del archivo; entre 1 y 3 |
 | `ENTRADA A LA OE` | Sí | Término de ingreso `2024-2` (una fecha se convierte al término que la contiene) | `Membership.firstTermId`: define nuevo o veterano y su umbral de permanencia |
 | `ESTADO` | Sí | `Activo`, `Licencia`, `Honorario`, `Retirado`, `Prueba` (vocabulario confirmado por GH) | `Membership.status`; `Prueba` además marca `MembershipTerm.probation` en el término del archivo |
-| `CARGO` | No (columna nueva; la base actual de GH no la tiene, llegará en una entrega posterior) | Cargo dentro del comité, exactamente uno de estos seis: `General`, `Financiero`, `Publicidad`, `Relaciones Públicas`, `Logística`, `Gestión Humana`. Si la persona tiene varios comités, se indica en cuál: `General de A3; Logística de PIXEL` | `CommitteeMembership.role`; sin valor es `Integrante` |
+| `CARGO` | No (columna nueva; la base actual de GH no la tiene, llegará en una entrega posterior) | Cargo dentro del comité, exactamente uno de estos seis: `General`, `Financiero`, `Publicidad`, `Relaciones Públicas`, `Logística`, `Gestión Humana`. Si la persona tiene varios comités, se indica en cuál: `General de A3; Logística de PIXEL` | `CommitteeMembership.role`; sin valor es `Miembro` |
 
 Columnas opcionales que el asistente también reconoce si aparecen: `TRANSFERENCIA` (sigla del comité al que la persona se transfirió este término: umbral 70 %), `CORREO PERSONAL` (contacto, nunca acceso) y `OBSERVACIONES` (queda como nota en la línea de tiempo).
 
@@ -61,4 +61,4 @@ Cada semestre se sube el archivo nuevo con el mismo formato: así se actualizan 
 
 ## Confirmado con GH (2026-09-02)
 
-Los cinco valores de `ESTADO` son los que usa GH y los cargos son exactamente esos seis (más `Integrante` por defecto). `CARGO` no está en la base actual: llegará en una segunda entrega con el modo actualización. Queda una sola pregunta, de Mateo: si `General` otorga el permiso de líder sin confirmación ([decisiones-abiertas.md](decisiones-abiertas.md)).
+Los cinco valores de `ESTADO` son los que usa GH y los cargos son exactamente esos seis (más `Miembro` por defecto). `CARGO` no está en la base actual: llegará en una segunda entrega con el modo actualización. Queda una sola pregunta, de Mateo: si `General` otorga el permiso de líder sin confirmación ([decisiones-abiertas.md](decisiones-abiertas.md)).

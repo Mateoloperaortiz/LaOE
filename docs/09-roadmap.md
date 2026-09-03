@@ -55,7 +55,7 @@ Listo cuando: contenido real de la OE publicable sin tocar código; nada persona
 
 - [ ] Modelo de personas, membresías, comités por término, cargos, consentimientos
 - [ ] Asistente de importación del roster (CSV o Excel) con el formato de `13-importacion-del-roster.md`: mapeo de columnas, validación por fila, vista previa con diff, modo actualización por correo con subconjunto de columnas, consentimiento, auditoría, archivo original en el bucket
-- [ ] Catálogo de cargos de comité (General, Financiero, Publicidad, Relaciones Públicas, Logística, Gestión Humana, Integrante) y propuesta de permiso de líder para cada General
+- [ ] Catálogo de cargos de comité (General, Financiero, Publicidad, Relaciones Públicas, Logística, Gestión Humana, Miembro) y propuesta de permiso de líder para cada General
 - [ ] Migración en seco de roster, comités y permisos desde un dump de GHPOINTS
 - [ ] Persona 360 con todas las pestañas
 - [ ] Interacciones automáticas, notas, tareas, etiquetas, segmentos
@@ -69,7 +69,7 @@ Listo cuando: contenido real de la OE publicable sin tocar código; nada persona
 - [ ] Galería de egresados por año en Mi OE (`/app/egresados`), con cartel por año
 - [ ] Correo personal opcional con consentimiento, capturado al dar de baja
 
-Listo cuando: un admin encuentra a cualquier persona en 2 segundos y ve toda su historia; un integrante importado entra por OTP y ve su ficha.
+Listo cuando: un admin encuentra a cualquier persona en 2 segundos y ve toda su historia; un miembro importado entra por OTP y ve su ficha.
 
 ## Fase 3 · Participación y GH Points · `pendiente`
 
@@ -96,7 +96,7 @@ Listo cuando: 500 escaneos concurrentes sin duplicados ni recomputes repetidos; 
 - [ ] Reuniones de comité como ocasiones en serie semanal sin puntos, con asistencia por modo anfitrión
 - [ ] Comités de trabajo sembrados (CAP, CGH, CCM, CAE, CML, CAF, Athletic) con sus cargos de junta
 - [ ] Categoría de ocasión (integración, partido del Athletic, charla, taller, social) y marca "solo nuevos"
-- [ ] Grupos de trabajo por término (comités de trabajo, GT de macroevento, GAP, GAP OE, barra brava, tareas de nuevos) con líder e integrantes; importación CSV
+- [ ] Grupos de trabajo por término (comités de trabajo, GT de macroevento, GAP, GAP OE, barra brava, tareas de nuevos) con líder e miembros; importación CSV
 - [ ] Evaluaciones de desempeño por el director de GH de cada frente (y el GH principal para nuevos), con bandeja de pendientes y recordatorios
 - [ ] Puntajes del líder (subcomité, liderazgo, destacado del mes, convivencia) con observación obligatoria cuando no es completo
 - [ ] Créditos manuales auditados
@@ -109,7 +109,7 @@ Listo cuando: 500 escaneos concurrentes sin duplicados ni recomputes repetidos; 
 - [ ] Reconocimientos: el destacado del mes de cada comité se publica en la cartelera del comité y como insignia en el perfil
 - [ ] Panel de la junta: retención por semestre, nuevos por comité, distribución de permanencia, cuántos van a "no alcanza", asistencia a reuniones por comité; permiso `BOARD`
 
-Listo cuando: un integrante ve en su celular el mismo porcentaje que GH calcula en su hoja para el término de prueba, criterio por criterio, y GH cierra un término con decisiones registradas.
+Listo cuando: un miembro ve en su celular el mismo porcentaje que GH calcula en su hoja para el término de prueba, criterio por criterio, y GH cierra un término con decisiones registradas.
 
 ## Fase 5 · Admisión, aliados y contactos · `pendiente`
 
@@ -137,7 +137,7 @@ Listo cuando: una convocatoria de admisión completa (formulario → entrevista 
 - [ ] ICS personal
 - [ ] Encuesta tras la ocasión: formulario corto enviado por push a quienes hicieron check-in al cerrar la ocasión; respuestas anónimas agregadas por ocasión y comité
 
-Listo cuando: un anuncio llega al celular de un integrante en menos de un minuto y la encuesta de una ocasión cerrada llega a sus asistentes.
+Listo cuando: un anuncio llega al celular de un miembro en menos de un minuto y la encuesta de una ocasión cerrada llega a sus asistentes.
 
 ## Fase 7 · Cutover · `pendiente`
 
@@ -185,3 +185,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-03 | — | ADR-030: el perfil de egresado (memorial) reemplaza la anonimización por plazo; galería de egresados por año en la fase 2; el permiso del General se otorga con confirmación. Sin decisiones abiertas |
 | 2026-09-03 | — | Siete mejoras aceptadas por Mateo (ADR-031): solicitudes con flujo, convocatorias internas, onboarding de nuevos, reconocimientos, panel de la junta, encuesta tras ocasión y autogestión de datos, repartidas en las fases 2, 4, 5 y 6. Backlog ampliado: votación electrónica, actas, subcomités, inventario, álbum, modo sin señal, certificados |
 | 2026-09-03 | — | Inventario completo de copy y textos (`14-copy-y-textos.md`): portal, acceso, Mi OE, permanencia, consentimientos, admin, push, correos y documentos, con propuesta, dueño y estado; los textos sensibles quedan marcados para revisar con GH |
+| 2026-09-03 | — | Término oficial: "miembro" (decisión de Mateo, alineada con GH). Renombrado en toda la documentación; el cargo por defecto del comité pasa a `MIEMBRO` |
