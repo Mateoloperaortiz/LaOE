@@ -20,6 +20,14 @@ export const CONFIG = {
   "permanence.threshold.transfer": z.number().min(0).max(100),
   "permanence.probationMargin": z.number().min(0),
   "privacy.policyVersion": z.string().min(1),
+  "privacy.deletionDays": z.number().int().min(1),
+  "onboarding.steps": z.array(
+    z.object({
+      key: z.string().min(1),
+      label: z.string().min(1),
+      auto: z.enum(["NORMATIVA_READ", "FIRST_INTEGRATION", "PUSH_ENABLED"]).nullable(),
+    }),
+  ),
   "backup.lastRunAt": z.string().datetime({ offset: true }).nullable(),
   "backup.status": z
     .object({

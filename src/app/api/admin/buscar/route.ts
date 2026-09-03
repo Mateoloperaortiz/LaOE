@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       id: item.id,
       title: item.fullName,
       subtitle: actor.isAdmin ? item.email : null,
-      href: `/admin/permisos?q=${encodeURIComponent(item.email)}`,
+      href: `/admin/personas/${item.id}`,
     })),
     ...committees.map((item) => ({
       type: "committee",

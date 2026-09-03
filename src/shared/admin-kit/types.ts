@@ -97,7 +97,8 @@ export interface ResourceDefinition<Row extends { id: string }, Input> {
   names: { singular: string; plural: string };
   basePath: string;
   columns: Column<Row>[];
-  filters?: FilterDefinition[];
+  /** Filtros de la barra; una función cuando las opciones salen de la base (comités, segmentos). */
+  filters?: FilterDefinition[] | (() => Promise<FilterDefinition[]>);
   schema: z.ZodType<Input, unknown>;
   fields: FieldDefinition[] | (() => Promise<FieldDefinition[]>);
   list(params: ListParams): Promise<ListResult<Row>>;
@@ -116,6 +117,10 @@ export interface ResourceDefinition<Row extends { id: string }, Input> {
 
 // Solo las claves que existen en el inventario de textos.
 export type AnyResource = ResourceDefinition<{ id: string }, unknown>;
+
+export async function resolveFilters(resource: AnyResource): Promise<FilterDefinition[]> {
+  return typeof resource.filters === "function" ? resource.filters() : (resource.filters ?? []);
+}
 
 export interface FormState {
   ok: boolean;

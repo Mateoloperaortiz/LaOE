@@ -1,0 +1,41 @@
+import { APPOINTMENT_KINDS, type AppointmentKind } from "@/modules/people";
+import { tList } from "@/shared/copy";
+
+// Etiquetas compartidas por la cabecera, las pestañas y los paneles de la Persona 360.
+
+export const TABS = [
+  "resumen",
+  "linea",
+  "membresia",
+  "participacion",
+  "permanencia",
+  "formularios",
+  "comunicaciones",
+  "tareas",
+  "solicitudes",
+  "datos",
+] as const;
+
+export type Tab = (typeof TABS)[number];
+
+export function isTab(value: string): value is Tab {
+  return (TABS as readonly string[]).includes(value);
+}
+
+export function tabLabels(): Record<Tab, string> {
+  const names = tList("T-432");
+  return Object.fromEntries(TABS.map((tab, index) => [tab, names[index] ?? tab])) as Record<
+    Tab,
+    string
+  >;
+}
+
+export function appointmentLabel(kind: AppointmentKind, title: string | null): string {
+  const names = tList("T-444");
+  const label = names[APPOINTMENT_KINDS.indexOf(kind)] ?? kind;
+  return kind === "OTHER" && title ? title : label;
+}
+
+export const END_REASONS = ["GRADUATION", "RESIGNATION", "PERMANENCE", "OTHER"] as const;
+
+export const CONSENT_TEXTS = ["T-150", "T-151", "T-152", "T-153"] as const;

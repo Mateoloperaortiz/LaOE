@@ -1,7 +1,8 @@
 import { Client } from "pg";
 import { testDatabaseUrl } from "./test-database";
 
-// Crea la base de pruebas si falta y la deja migrada. Corre una vez antes de la suite de integración.
+// Crea la base de pruebas si falta, la vacía y la deja migrada desde cero, con los catálogos de las
+// migraciones intactos. Corre una vez antes de la suite de integración.
 export default async function globalSetup(): Promise<void> {
   try {
     process.loadEnvFile(".env");
@@ -24,6 +25,14 @@ export default async function globalSetup(): Promise<void> {
     await admin.query(`create database "${name}"`);
   }
   await admin.end();
+
+  // Esquema desde cero en cada corrida: las pruebas truncan tablas pero no los catálogos.
+  const test = new Client({ connectionString: testUrl });
+  await test.connect();
+  await test.query("drop schema if exists public cascade");
+  await test.query("drop schema if exists drizzle cascade");
+  await test.query("create schema public");
+  await test.end();
 
   process.env.DATABASE_URL = testUrl;
   const { applyMigrationsAndVerify } = await import("../../scripts/lib/release");

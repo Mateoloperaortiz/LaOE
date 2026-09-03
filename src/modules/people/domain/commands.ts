@@ -1,0 +1,87 @@
+import { type Actor, runCommand } from "@/db/tx";
+import { type AppointmentInput, addAppointment, removeAppointment } from "./appointments";
+import { type CommitteeMembershipInput, setCommitteeMemberships } from "./committee-memberships";
+import { type ConsentPurpose, type ConsentSource, recordConsent, revokeConsent } from "./consents";
+import {
+  anonymizePerson,
+  type ChangeStatusInput,
+  changeMembershipStatus,
+  type EndMembershipInput,
+  endMembership,
+  type ReactivateInput,
+  reactivateMembership,
+} from "./membership";
+import { type PersonInput, updatePerson } from "./persons";
+
+// Los comandos abren su transacción aquí, para que las acciones de página (src/app) los usen sin
+// tocar src/db: cada uno es `runCommand` con auditoría y eventos en la misma transacción (ADR-012).
+
+export function updatePersonAs(actor: Actor, id: string, input: PersonInput): Promise<void> {
+  return runCommand(actor, (ctx) => updatePerson(ctx, id, input));
+}
+
+export function changeMembershipStatusAs(
+  actor: Actor,
+  personId: string,
+  input: ChangeStatusInput,
+): Promise<void> {
+  return runCommand(actor, (ctx) => changeMembershipStatus(ctx, personId, input));
+}
+
+export function endMembershipAs(
+  actor: Actor,
+  personId: string,
+  input: EndMembershipInput,
+): Promise<boolean> {
+  return runCommand(actor, (ctx) => endMembership(ctx, personId, input));
+}
+
+export function reactivateMembershipAs(
+  actor: Actor,
+  personId: string,
+  input: ReactivateInput,
+): Promise<void> {
+  return runCommand(actor, (ctx) => reactivateMembership(ctx, personId, input));
+}
+
+export function anonymizePersonAs(actor: Actor, personId: string): Promise<void> {
+  return runCommand(actor, (ctx) => anonymizePerson(ctx, personId));
+}
+
+export function setCommitteeMembershipsAs(
+  actor: Actor,
+  personId: string,
+  termId: string,
+  rows: CommitteeMembershipInput[],
+): Promise<void> {
+  return runCommand(actor, (ctx) => setCommitteeMemberships(ctx, personId, termId, rows));
+}
+
+export function addAppointmentAs(
+  actor: Actor,
+  personId: string,
+  input: AppointmentInput,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => addAppointment(ctx, personId, input));
+}
+
+export function removeAppointmentAs(actor: Actor, id: string): Promise<void> {
+  return runCommand(actor, (ctx) => removeAppointment(ctx, id));
+}
+
+export function recordConsentAs(
+  actor: Actor,
+  personId: string,
+  purpose: ConsentPurpose,
+  source: ConsentSource,
+): Promise<{ id: string; created: boolean }> {
+  return runCommand(actor, (ctx) => recordConsent(ctx, personId, { purpose, source }));
+}
+
+export function revokeConsentAs(
+  actor: Actor,
+  personId: string,
+  purpose: ConsentPurpose,
+): Promise<boolean> {
+  return runCommand(actor, (ctx) => revokeConsent(ctx, personId, purpose));
+}

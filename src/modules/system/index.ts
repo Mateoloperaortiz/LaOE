@@ -1,4 +1,5 @@
 // API pública del módulo system: lo que otros módulos y src/app pueden usar.
+export { redactAuditEntries } from "./domain/audit";
 export {
   type ConfigKey,
   type ConfigValue,

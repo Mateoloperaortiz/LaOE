@@ -6,6 +6,7 @@ import {
   ResourcePanel,
   ResourceTable,
   ResourceToolbar,
+  resolveFilters,
 } from "@/shared/admin-kit";
 import { t, tList } from "@/shared/copy";
 import { rowActionAction, saveResourceAction } from "./actions";
@@ -51,8 +52,9 @@ export async function ResourcePage({
   const actor = await requireAdminActor(basePath);
   const q = single(searchParams.q).trim();
   const page = Math.max(1, Number.parseInt(single(searchParams.pagina) || "1", 10) || 1);
+  const filterDefinitions = await resolveFilters(resource);
   const filters: Record<string, string> = {};
-  for (const filter of resource.filters ?? []) {
+  for (const filter of filterDefinitions) {
     const value = single(searchParams[filter.key]);
     if (value) {
       filters[filter.key] = value;
@@ -123,7 +125,7 @@ export async function ResourcePage({
       <ResourceToolbar
         basePath={basePath}
         q={q}
-        filters={resource.filters ?? []}
+        filters={filterDefinitions}
         filterValues={filters}
         labels={{ search: t("T-250"), create: t("T-251"), exportCsv: t("T-255"), all: "—" }}
         createHref={buildHref(basePath, { ...listParams, nuevo: "1" })}

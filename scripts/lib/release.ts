@@ -18,6 +18,17 @@ const REQUIRED_INDEXES = [
   "event_slug_unique",
   "event_edition_event_slug_unique",
   "edition_committee_unique",
+  "person_legacy_id_unique",
+  "committee_legacy_id_unique",
+  "consent_live_unique",
+  "membership_term_person_term_unique",
+  "interaction_ref_unique",
+  "tag_name_unique",
+  "person_tag_unique",
+  "onboarding_progress_unique",
+  "document_file_key_unique",
+  "document_article_key_unique",
+  "document_article_search_idx",
 ];
 
 const REQUIRED_EXTENSIONS = ["pg_trgm"];

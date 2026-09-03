@@ -37,8 +37,27 @@ export function formatDateRange(start: Date, end: Date | null): string {
   return `${formatDateTime(start)} a ${formatDateTime(end)}`;
 }
 
+/** Suma días hábiles (lunes a viernes, sin festivos) a partir de un instante: el plazo de la eliminación. */
+export function addBusinessDays(from: Date, days: number): Date {
+  const result = new Date(from.getTime());
+  let remaining = days;
+  while (remaining > 0) {
+    result.setUTCDate(result.getUTCDate() + 1);
+    const weekday = result.getUTCDay();
+    if (weekday !== 0 && weekday !== 6) {
+      remaining -= 1;
+    }
+  }
+  return result;
+}
+
+/** "AAAA-MM-DD" de hoy en la zona de la app: la fecha con la que se deriva el término actual (ADR-004). */
+export function todayKey(now = new Date()): string {
+  return dateKeyIn(getEnv().APP_TIMEZONE, now);
+}
+
 /** "AAAA-MM-DD" de un instante en la zona dada. */
-function dateKeyIn(timeZone: string, at: Date): string {
+export function dateKeyIn(timeZone: string, at: Date): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",

@@ -5,6 +5,7 @@ import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { todayKey } from "@/shared/lib/dates";
 import { term } from "../schema";
 
 // El término es el reloj universal (ADR-004): el actual se deriva de la fecha; el cierre de puntos es explícito.
@@ -68,6 +69,29 @@ export async function findTermContaining(date: string): Promise<TermRow | null> 
     .orderBy(asc(term.startsOn))
     .limit(1);
   return row ?? null;
+}
+
+/** El término de hoy en Bogotá (ADR-004), o null si ninguno lo contiene. */
+export async function getCurrentTerm(now = new Date()): Promise<TermRow | null> {
+  return findTermContaining(todayKey(now));
+}
+
+export async function findTermByCode(code: string): Promise<TermRow | null> {
+  const [row] = await getDb().select().from(term).where(eq(term.code, code)).limit(1);
+  return row ?? null;
+}
+
+/** Todos los términos, del más reciente al más viejo (para selectores). */
+export async function listAllTerms(): Promise<TermRow[]> {
+  return getDb().select().from(term).orderBy(desc(term.startsOn));
+}
+
+/** Fechas convencionales de un término que no existe: semestre 1 de enero a junio, 2 de julio a diciembre (ADR-034). */
+export function conventionalTermDates(code: string): { startsOn: string; endsOn: string } {
+  const year = code.slice(0, 4);
+  return semesterFromCode(code) === 1
+    ? { startsOn: `${year}-01-01`, endsOn: `${year}-06-30` }
+    : { startsOn: `${year}-07-01`, endsOn: `${year}-12-31` };
 }
 
 function toValues(input: TermInput) {

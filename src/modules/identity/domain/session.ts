@@ -139,6 +139,13 @@ export async function resolveActor(token: string, now = new Date()): Promise<Act
   if (!member || !member.canSignIn) {
     return null;
   }
+  // Cambiar estado o correo estampa la marca en la misma transacción; las sesiones anteriores no valen (ADR-034).
+  if (
+    member.sessionsRevokedAt &&
+    record.createdAt.getTime() <= member.sessionsRevokedAt.getTime()
+  ) {
+    return null;
+  }
   const permissions = await listPermissionsFor(record.personId);
   return {
     personId: member.personId,

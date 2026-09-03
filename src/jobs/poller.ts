@@ -3,7 +3,7 @@ import { getDb } from "@/db/client";
 import { outbox } from "@/modules/system/schema";
 import { logger } from "@/shared/log";
 import { backoffFor, isDeadAfter } from "./backoff";
-import { getHandler } from "./registry";
+import { getHandlers } from "./registry";
 
 // Poller del outbox (ADR-012, ADR-021): toma una fila pendiente con FOR UPDATE SKIP LOCKED,
 // corre su handler dentro de la misma transacción y la marca. Dos pollers nunca procesan la misma fila.
@@ -30,12 +30,15 @@ export async function processOne(now = new Date()): Promise<ProcessOutcome> {
     }
     const attempt = row.attempts + 1;
     const log = logger.child({ job: row.eventType, outboxId: row.id, attempt });
-    const handler = getHandler(row.eventType);
+    const handlers = getHandlers(row.eventType);
     try {
-      if (!handler) {
-        throw new Error(`Sin handler para ${row.eventType}`);
+      if (handlers.length === 0) {
+        // Un evento de dominio sin suscriptores todavía (ADR-034) se da por procesado: no es un error.
+        log.warn("sin handler: evento descartado");
       }
-      await handler(row.payload, { id: row.id, attempt, log });
+      for (const handler of handlers) {
+        await handler(row.payload, { id: row.id, attempt, log });
+      }
       await tx
         .update(outbox)
         .set({ processedAt: now, attempts: attempt, lastError: null })

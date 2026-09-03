@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { drain, processOne } from "@/jobs/poller";
-import { getHandler, registerHandler, resetHandlersForTests } from "@/jobs/registry";
+import { getHandlers, registerHandler, resetHandlersForTests } from "@/jobs/registry";
 import { enqueueScheduled } from "@/jobs/scheduler";
 import { retryDeadLetter } from "@/modules/system/domain/outbox";
 import { auditLog, outbox } from "@/modules/system/schema";
@@ -73,11 +73,25 @@ describe("poller del outbox", () => {
     expect(audits?.n).toBe(1);
   });
 
-  it("un evento sin handler falla en lugar de perderse", async () => {
+  it("un evento de dominio sin suscriptores se da por procesado (ADR-034)", async () => {
     await enqueueEvent(db(), { type: "nadie.lo.atiende", payload: {} });
-    expect(await processOne()).toBe("failed");
+    expect(await processOne()).toBe("processed");
     const [row] = await db().select().from(outbox);
-    expect(row?.lastError).toContain("Sin handler");
+    expect(row?.processedAt).not.toBeNull();
+    expect(row?.lastError).toBeNull();
+  });
+
+  it("varios handlers del mismo evento corren en orden y en la misma transacción", async () => {
+    const order: string[] = [];
+    registerHandler("dos.oyen", async () => {
+      order.push("primero");
+    });
+    registerHandler("dos.oyen", async () => {
+      order.push("segundo");
+    });
+    await enqueueEvent(db(), { type: "dos.oyen", payload: {} });
+    expect(await processOne()).toBe("processed");
+    expect(order).toEqual(["primero", "segundo"]);
   });
 
   it("el scheduler encola una sola vez por minuto aunque se dispare dos veces", async () => {
@@ -96,7 +110,7 @@ describe("poller del outbox", () => {
     resetHandlersForTests();
     await import("@/jobs/handlers");
     for (const type of ["identity.prune", "system.prune", "system.backup-check", "media.process"]) {
-      expect(getHandler(type), type).toBeTypeOf("function");
+      expect(getHandlers(type).length, type).toBeGreaterThan(0);
     }
   });
 });

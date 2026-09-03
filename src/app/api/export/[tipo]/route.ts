@@ -1,6 +1,6 @@
 import { getActor, hasRecentStepUp } from "@/modules/identity";
 import { recordExport } from "@/modules/system";
-import { toCsv } from "@/shared/admin-kit";
+import { resolveFilters, toCsv } from "@/shared/admin-kit";
 import { getResource } from "../../../admin/_kit/registry";
 
 // Exportes CSV de los recursos del admin (06-mapa-del-sitio.md). Con datos personales: step-up y auditoría.
@@ -26,7 +26,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/expor
     return Response.redirect(new URL(`/ingresar/paso?next=${here}`, url), 302);
   }
   const filters: Record<string, string> = {};
-  for (const filter of resource.filters ?? []) {
+  for (const filter of await resolveFilters(resource)) {
     const value = url.searchParams.get(filter.key);
     if (value) {
       filters[filter.key] = value;

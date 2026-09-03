@@ -1,0 +1,56 @@
+import { expect, test } from "@playwright/test";
+import { sinViolaciones } from "./axe";
+
+// Personas (fase 2): alta manual desde el kit, Persona 360 con edición y cambio de estado.
+test.use({ storageState: "tests/e2e/.auth/admin.json" });
+
+test("un ADMIN da de alta a un prospecto y edita sus datos en la Persona 360", async ({ page }) => {
+  const stamp = Date.now().toString(36);
+  const email = `e2e-${stamp}@eafit.edu.co`;
+  await page.goto("/admin/personas");
+  await page.getByRole("link", { name: "Nuevo" }).click();
+  const panel = page.getByRole("complementary");
+  await panel.getByLabel("Nombre", { exact: true }).fill("Prospecto");
+  await panel.getByLabel("Apellido").fill(`E2E ${stamp}`);
+  await panel.getByLabel("Correo institucional").fill(email);
+  await panel.getByLabel("Tipo").selectOption("STUDENT");
+  await panel.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Guardado.")).toBeVisible();
+
+  await page.goto(`/admin/personas?q=${encodeURIComponent(email)}`);
+  await page.getByRole("link", { name: `Prospecto E2E ${stamp}` }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(`Prospecto E2E ${stamp}`);
+  await expect(page.getByText("Prospecto", { exact: true }).first()).toBeVisible();
+  await sinViolaciones(page);
+
+  await page.getByRole("link", { name: "Editar datos" }).click();
+  const editar = page.getByRole("complementary");
+  await editar.getByLabel("Celular").fill("300 123 4567");
+  await editar.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Guardado.")).toBeVisible();
+  await expect(page.getByText("+573001234567").first()).toBeVisible();
+});
+
+test("la Persona 360 cambia el estado de la membresía con motivo y lo muestra en el historial", async ({
+  page,
+}) => {
+  await page.goto("/admin/personas?q=prueba.e2e");
+  await page.getByRole("link", { name: "Prueba E2E" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Prueba E2E");
+
+  await page.getByRole("link", { name: "Cambiar estado" }).click();
+  const panel = page.getByRole("complementary");
+  await panel.getByLabel("Estado nuevo").selectOption("HONORARY");
+  await panel.getByLabel("Motivo").fill("Prueba e2e: honorario por un momento");
+  await panel.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Guardado.")).toBeVisible();
+  await expect(page.getByText("Activo → Honorario").last()).toBeVisible();
+  await sinViolaciones(page);
+
+  await page.getByRole("link", { name: "Cambiar estado" }).click();
+  const back = page.getByRole("complementary");
+  await back.getByLabel("Estado nuevo").selectOption("ACTIVE");
+  await back.getByLabel("Motivo").fill("Prueba e2e: vuelve a activo");
+  await back.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Honorario → Activo").last()).toBeVisible();
+});

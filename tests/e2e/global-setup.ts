@@ -4,7 +4,7 @@ import { announcement, mediaAsset } from "@/modules/content/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { otpChallenge, permission } from "@/modules/identity/schema";
 import { term } from "@/modules/participation/schema";
-import { committee, membership, person } from "@/modules/people/schema";
+import { committee, membership, membershipEvent, person } from "@/modules/people/schema";
 
 // Persona sintética para las pruebas e2e; se recrea en cada corrida, nunca es una persona real.
 export const E2E_EMAIL = "prueba.e2e@eafit.edu.co";
@@ -41,6 +41,21 @@ export default async function globalSetup(): Promise<void> {
     .insert(membership)
     .values({ personId: who.id, status: "ACTIVE", firstTermId: current.id })
     .onConflictDoNothing({ target: membership.personId });
+  // La suite cambia su estado desde la Persona 360: vuelve a activo en cada corrida.
+  await db
+    .update(membership)
+    .set({ status: "ACTIVE", endedAt: null, endReason: null })
+    .where(eq(membership.personId, who.id));
+  await db.update(person).set({ stage: "MEMBER" }).where(eq(person.id, who.id));
+  const [own] = await db
+    .select({ id: membership.id })
+    .from(membership)
+    .where(eq(membership.personId, who.id));
+  if (own) {
+    await db.delete(membershipEvent).where(eq(membershipEvent.membershipId, own.id));
+  }
+  // Personas creadas por la suite (alta manual desde el admin).
+  await db.delete(person).where(like(person.email, "e2e-%"));
   // La persona de e2e es ADMIN para probar el admin; BOARD lo prueba la suite y se limpia aquí.
   await db.delete(permission).where(eq(permission.personId, who.id));
   await db.insert(permission).values({ personId: who.id, code: "ADMIN" });

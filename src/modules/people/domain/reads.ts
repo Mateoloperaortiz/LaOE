@@ -16,6 +16,8 @@ export interface MemberSummary {
   lastName: string;
   preferredName: string | null;
   membershipStatus: MembershipStatus;
+  /** Las sesiones creadas antes de esta marca no valen (ADR-034). */
+  sessionsRevokedAt: Date | null;
   canSignIn: boolean;
 }
 
@@ -26,6 +28,7 @@ const summaryColumns = {
   lastName: person.lastName,
   preferredName: person.preferredName,
   membershipStatus: membership.status,
+  sessionsRevokedAt: person.sessionsRevokedAt,
 };
 
 function withSignIn(row: Omit<MemberSummary, "canSignIn">): MemberSummary {

@@ -30,6 +30,23 @@ export const membershipEndReason = pgEnum("membership_end_reason", [
   "OTHER",
 ]);
 export const committeeStatus = pgEnum("committee_status", ["ACTIVE", "INACTIVE"]);
+export const consentPurpose = pgEnum("consent_purpose", [
+  "MEMBERSHIP",
+  "COMMUNICATIONS",
+  "DIRECTORY_PHOTO",
+  "MEMORIAL",
+]);
+export const consentSource = pgEnum("consent_source", ["FORM", "IMPORT", "ADMIN", "SELF"]);
+export const appointmentKind = pgEnum("appointment_kind", [
+  "PRESIDENT",
+  "VP_GH",
+  "VP_PUBLIC_RELATIONS",
+  "VP_ADMIN",
+  "VP_FINANCE",
+  "GH_HEAD",
+  "GH_DIRECTOR",
+  "OTHER",
+]);
 
 export const person = pgTable(
   "person",
@@ -45,15 +62,82 @@ export const person = pgTable(
     phone: text(),
     personalEmail: text(), // contacto, nunca identidad
     program: text(),
+    // Referencia a media_asset validada en el dominio: una clave foránea aquí haría un ciclo content ↔ people.
+    photoAssetId: text(),
     source: text().notNull().default("ADMIN"),
+    // Las sesiones creadas antes de esta marca no valen: cambiar estado o correo la estampa (ADR-034).
+    sessionsRevokedAt: timestampTz(),
+    deletionRequestedAt: timestampTz(),
+    anonymizedAt: timestampTz(),
+    legacyId: text(), // id de Member en GHPOINTS
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     uniqueIndex("person_email_unique").on(t.email),
+    uniqueIndex("person_legacy_id_unique").on(t.legacyId).where(sql`${t.legacyId} is not null`),
     check("person_email_lowercase", sql`${t.email} = lower(${t.email})`),
     index("person_stage_idx").on(t.stage),
   ],
+);
+
+// Consentimiento versionado por propósito (ADR-014): una fila por aceptación; revocar estampa revokedAt.
+export const consent = pgTable(
+  "consent",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    purpose: consentPurpose().notNull(),
+    source: consentSource().notNull(),
+    policyVersion: text().notNull(),
+    acceptedAt: createdAt(),
+    ip: text(),
+    revokedAt: timestampTz(),
+  },
+  (t) => [
+    uniqueIndex("consent_live_unique").on(t.personId, t.purpose).where(sql`${t.revokedAt} is null`),
+    index("consent_person_idx").on(t.personId, t.purpose),
+  ],
+);
+
+// Cargo de junta o de GH, visible y con historia; el líder de comité es roleCode = GENERAL (ADR-034).
+export const appointment = pgTable(
+  "appointment",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    kind: appointmentKind().notNull(),
+    committeeId: text().references(() => committee.id),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    title: text(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("appointment_person_idx").on(t.personId, t.termId)],
+);
+
+// Condición de la persona en un término: periodo de prueba (umbral 80 %), decidido en el cierre anterior o por el roster.
+export const membershipTerm = pgTable(
+  "membership_term",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    probation: boolean().notNull().default(false),
+    reason: text(),
+    decidedById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("membership_term_person_term_unique").on(t.personId, t.termId)],
 );
 
 export const membership = pgTable(
@@ -108,11 +192,13 @@ export const committee = pgTable(
     presentation: text(),
     contactUrl: text(),
     publicationStatus: publicationStatus().notNull().default("DRAFT"),
+    legacyId: text(), // id de Committee en GHPOINTS
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     uniqueIndex("committee_slug_unique").on(t.slug),
+    uniqueIndex("committee_legacy_id_unique").on(t.legacyId).where(sql`${t.legacyId} is not null`),
     check("committee_slug_format", sql`${t.slug} ~ '^[a-z0-9-]+$'`),
   ],
 );

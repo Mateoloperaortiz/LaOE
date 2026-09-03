@@ -6,7 +6,14 @@ import { announcement } from "@/modules/content/schema";
 import { editionCommittee, event, eventEdition } from "@/modules/events/schema";
 import { permission } from "@/modules/identity/schema";
 import { term } from "@/modules/participation/schema";
-import { committee, committeeMembership, membership, person } from "@/modules/people/schema";
+import {
+  appointment,
+  committee,
+  committeeMembership,
+  consent,
+  membership,
+  person,
+} from "@/modules/people/schema";
 import { logger } from "@/shared/log";
 
 // Datos sintéticos para desarrollo y staging: nombres inventados, correos oe.demo.NN@eafit.edu.co,
@@ -164,7 +171,11 @@ async function seedPeople(
         status,
         firstTermId: isNew ? current : previous,
         ...(status === "INACTIVE"
-          ? { endedAt: new Date("2026-06-10T05:00:00Z"), endReason: "RESIGNATION" as const }
+          ? {
+              endedAt: new Date(`${2023 + (index % 4)}-06-10T05:00:00Z`),
+              endReason: "RESIGNATION" as const,
+              lastTermId: previous,
+            }
           : {}),
       })
       .onConflictDoUpdate({ target: membership.personId, set: { status } });
@@ -188,6 +199,120 @@ async function seedPeople(
         })
         .onConflictDoNothing();
     }
+  }
+}
+
+// Egresados sintéticos de varios años, con comités en el término anterior, para la galería (ADR-030).
+async function seedAlumni(
+  terms: Map<string, string>,
+  committees: Array<{ id: string; slug: string }>,
+): Promise<void> {
+  const previous = terms.get("2026-1");
+  if (!previous) throw new Error("falta término");
+  for (let index = 41; index <= 48; index += 1) {
+    const firstName = FIRST_NAMES[(index * 3) % FIRST_NAMES.length] ?? "Persona";
+    const lastName = LAST_NAMES[(index * 5) % LAST_NAMES.length] ?? "Sintética";
+    const email = `oe.demo.${index}@eafit.edu.co`;
+    const [who] = await db
+      .insert(person)
+      .values({
+        email,
+        firstName,
+        lastName,
+        stage: "ALUMNI",
+        program: PROGRAMS[index % PROGRAMS.length] ?? null,
+        source: "SEED",
+      })
+      .onConflictDoUpdate({ target: person.email, set: { stage: "ALUMNI" } })
+      .returning({ id: person.id });
+    if (!who) continue;
+    await db
+      .insert(membership)
+      .values({
+        personId: who.id,
+        status: "INACTIVE",
+        firstTermId: previous,
+        lastTermId: previous,
+        endedAt: new Date(`${2022 + (index % 4)}-06-15T05:00:00Z`),
+        endReason: index % 2 === 0 ? "GRADUATION" : "RESIGNATION",
+      })
+      .onConflictDoNothing();
+    for (let n = 0; n < 1 + (index % 2); n += 1) {
+      const target = committees[(index * 7 + n * 11) % committees.length];
+      if (!target) continue;
+      await db
+        .insert(committeeMembership)
+        .values({
+          personId: who.id,
+          committeeId: target.id,
+          termId: previous,
+          roleCode: n === 0 && index % 4 === 0 ? "GENERAL" : "MIEMBRO",
+          joinedAt: new Date("2026-01-19T05:00:00Z"),
+          leftAt: new Date("2026-06-06T05:00:00Z"),
+        })
+        .onConflictDoNothing();
+    }
+  }
+}
+
+// Consentimientos sintéticos: membresía para todos (como haría el roster), foto y galería para algunos.
+async function seedConsents(): Promise<void> {
+  const people = await db
+    .select({ id: person.id, email: person.email, stage: person.stage })
+    .from(person)
+    .where(eq(person.source, "SEED"));
+  for (const who of people) {
+    const index = Number.parseInt(who.email.replace(/\D/g, ""), 10) || 0;
+    const purposes: Array<{
+      purpose: "MEMBERSHIP" | "COMMUNICATIONS" | "DIRECTORY_PHOTO" | "MEMORIAL";
+      source: "IMPORT" | "SELF" | "ADMIN";
+    }> = [{ purpose: "MEMBERSHIP", source: "IMPORT" }];
+    if (index % 2 === 0) purposes.push({ purpose: "DIRECTORY_PHOTO", source: "SELF" });
+    if (index % 3 === 0) purposes.push({ purpose: "COMMUNICATIONS", source: "SELF" });
+    if (who.stage === "ALUMNI" && index % 2 === 0) {
+      purposes.push({ purpose: "MEMORIAL", source: "ADMIN" });
+    }
+    for (const item of purposes) {
+      await db
+        .insert(consent)
+        .values({
+          personId: who.id,
+          purpose: item.purpose,
+          source: item.source,
+          policyVersion: "pendiente",
+        })
+        .onConflictDoNothing();
+    }
+  }
+}
+
+// Cargos de junta y de GH sintéticos en el término actual (ADR-034).
+async function seedAppointments(terms: Map<string, string>): Promise<void> {
+  const current = terms.get("2026-2");
+  if (!current) throw new Error("falta término");
+  const cargos: Array<{ email: string; kind: "PRESIDENT" | "VP_GH" | "GH_HEAD" | "GH_DIRECTOR" }> =
+    [
+      { email: "oe.demo.01@eafit.edu.co", kind: "PRESIDENT" },
+      { email: "oe.demo.02@eafit.edu.co", kind: "VP_GH" },
+      { email: "oe.demo.03@eafit.edu.co", kind: "GH_HEAD" },
+      { email: "oe.demo.05@eafit.edu.co", kind: "GH_DIRECTOR" },
+    ];
+  for (const cargo of cargos) {
+    const [who] = await db
+      .select({ id: person.id })
+      .from(person)
+      .where(eq(person.email, cargo.email))
+      .limit(1);
+    if (!who) continue;
+    const [existing] = await db
+      .select({ id: appointment.id })
+      .from(appointment)
+      .where(
+        sql`${appointment.personId} = ${who.id} and ${appointment.kind} = ${cargo.kind} and ${appointment.termId} = ${current}`,
+      )
+      .limit(1);
+    if (existing) continue;
+    await db.insert(appointment).values({ personId: who.id, kind: cargo.kind, termId: current });
   }
 }
 
@@ -313,7 +438,10 @@ try {
   const terms = await seedTerms();
   const committees = await seedCommittees();
   await seedPeople(terms, committees);
+  await seedAlumni(terms, committees);
   await seedAdmin(terms, committees);
+  await seedConsents();
+  await seedAppointments(terms);
   await seedContent(committees);
   const [people] = await db.select({ n: count() }).from(person).where(eq(person.source, "SEED"));
   const [admins] = await db

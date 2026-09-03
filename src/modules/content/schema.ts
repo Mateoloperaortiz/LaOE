@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  customType,
   index,
   integer,
   jsonb,
@@ -14,10 +15,17 @@ import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { audience, publicationStatus } from "@/db/enums";
 import { person } from "@/modules/people/schema";
 
-// Contenido editable del portal: páginas, cartelera y medios (03-modelo-de-datos.md, ADR-033).
+// Contenido editable del portal: páginas, cartelera, medios y normativa (03-modelo-de-datos.md, ADR-033, ADR-034).
 
 export const mediaVisibility = pgEnum("media_visibility", ["PUBLIC", "PRIVATE"]);
 export const mediaStatus = pgEnum("media_status", ["PENDING", "READY", "FAILED"]);
+export const documentKind = pgEnum("document_kind", ["ESTATUTOS", "REGLAMENTO", "ACTA", "OTRO"]);
+
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return "tsvector";
+  },
+});
 
 /** Una variante generada por `media.process`; la clave del mapa es `w<ancho>`. */
 export interface MediaVariant {
@@ -89,5 +97,52 @@ export const mediaAsset = pgTable(
   (t) => [
     uniqueIndex("media_asset_object_key_unique").on(t.objectKey),
     index("media_asset_status_idx").on(t.status, t.createdAt),
+  ],
+);
+
+// Normativa (ADR-034): el PDF es un objeto propio del bucket privado; se abre por enlace prefirmado.
+export const document = pgTable(
+  "document",
+  {
+    id: id(),
+    title: text().notNull(),
+    kind: documentKind().notNull().default("OTRO"),
+    fileKey: text().notNull(), // documents/<id>.pdf
+    originalFilename: text().notNull(),
+    byteSize: integer().notNull(),
+    sha256: text(),
+    version: text().notNull(), // fecha de la reforma u otra marca de versión
+    audience: audience().notNull().default("MEMBERS"),
+    status: publicationStatus().notNull().default("DRAFT"),
+    uploadedById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("document_file_key_unique").on(t.fileKey)],
+);
+
+// Un artículo citable, cargado desde el JSON del extractor; la búsqueda usa el tsvector en español.
+export const documentArticle = pgTable(
+  "document_article",
+  {
+    id: id(),
+    documentId: text()
+      .notNull()
+      .references(() => document.id, { onDelete: "cascade" }),
+    articleKey: text().notNull(),
+    chapterKey: text().notNull(),
+    chapterTitle: text().notNull(),
+    number: text().notNull(),
+    title: text().notNull().default(""),
+    body: text().notNull(),
+    pages: jsonb().$type<number[]>().notNull().default(sql`'[]'::jsonb`),
+    sortOrder: integer().notNull().default(0),
+    search: tsvector("search").generatedAlwaysAs(
+      sql`to_tsvector('spanish', coalesce(title, '') || ' ' || body)`,
+    ),
+  },
+  (t) => [
+    uniqueIndex("document_article_key_unique").on(t.documentId, t.articleKey),
+    index("document_article_search_idx").using("gin", t.search),
   ],
 );

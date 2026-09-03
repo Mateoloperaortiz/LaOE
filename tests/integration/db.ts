@@ -1,14 +1,27 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import { appConfig } from "@/modules/system/schema";
 
-// Deja las tablas vacías entre pruebas (los catálogos de las migraciones se conservan).
+// Deja las tablas vacías entre pruebas. `cascade` arrastra a app_config (referencia a person), así que
+// los catálogos de las migraciones (cargos y configuración) se restauran después.
 export async function truncateAll(): Promise<void> {
-  await getDb().execute(sql`
+  const db = getDb();
+  const config = await db.select().from(appConfig);
+  await db.execute(sql`
     truncate table
-      audit_log, outbox, app_config, message,
+      audit_log, outbox, message, import_job,
       session, otp_challenge, permission,
+      document_article, document,
+      interaction, task, person_tag, tag, segment, onboarding_progress,
       edition_committee, event_edition, event, media_asset, announcement, page,
+      consent, appointment, membership_term,
       committee_membership, membership_event, membership, person, committee, term
     restart identity cascade
   `);
+  if (config.length > 0) {
+    await db
+      .insert(appConfig)
+      .values(config.map((row) => ({ key: row.key, value: row.value })))
+      .onConflictDoNothing();
+  }
 }

@@ -1,9 +1,26 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, integer, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
+import { term } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 
-// Auditoría en la misma transacción, configuración y outbox transaccional (ADR-012).
+// Auditoría en la misma transacción, configuración, outbox transaccional (ADR-012) e importaciones (ADR-034).
+
+export const importJobStatus = pgEnum("import_job_status", [
+  "PREVIEW",
+  "APPLIED",
+  "DISCARDED",
+  "FAILED",
+]);
 
 export const auditLog = pgTable(
   "audit_log",
@@ -55,4 +72,25 @@ export const outbox = pgTable(
       .on(t.nextAttemptAt)
       .where(sql`${t.processedAt} is null and ${t.deadLetterAt} is null`),
   ],
+);
+
+// Un archivo del roster (o un ensayo de migración) con su vista previa, su estado y su resumen.
+export const importJob = pgTable(
+  "import_job",
+  {
+    id: id(),
+    type: text().notNull(), // ROSTER, GHPOINTS
+    status: importJobStatus().notNull().default("PREVIEW"),
+    filename: text().notNull(),
+    fileKey: text(), // imports/AAAA/MM/<id>.<ext> en el bucket privado
+    termId: text().references(() => term.id),
+    mapping: jsonb().$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    payload: jsonb().$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    summary: jsonb().$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    createdById: text().references(() => person.id, { onDelete: "set null" }),
+    appliedAt: timestampTz(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("import_job_created_idx").on(t.createdAt)],
 );

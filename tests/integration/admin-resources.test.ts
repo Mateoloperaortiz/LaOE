@@ -19,29 +19,12 @@ import {
   updateCommittee,
 } from "@/modules/people/domain/committees";
 import { searchPeople } from "@/modules/people/domain/people-reads";
-import { membership, person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { truncateAll } from "./db";
+import { seedMember } from "./factories";
 
 const db = () => getDb();
-
-async function seedMember(email: string, firstName = "Persona", lastName = "Sintética") {
-  let [current] = await db().select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
-  if (!current) {
-    [current] = await db()
-      .insert(term)
-      .values({ code: "2026-2", semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" })
-      .returning({ id: term.id });
-  }
-  const [who] = await db()
-    .insert(person)
-    .values({ email, firstName, lastName, stage: "MEMBER" })
-    .returning({ id: person.id });
-  if (!who || !current) throw new Error("seed");
-  await db().insert(membership).values({ personId: who.id, firstTermId: current.id });
-  return who.id;
-}
 
 describe("comités", () => {
   beforeEach(truncateAll);
@@ -151,8 +134,11 @@ describe("permisos", () => {
   beforeEach(truncateAll);
 
   it("otorga por correo del roster, rechaza duplicados y correos ajenos, y protege al último ADMIN", async () => {
-    const adminId = await seedMember("admin@eafit.edu.co", "Ada", "Admin");
-    const otherId = await seedMember("otra@eafit.edu.co", "Otra", "Persona");
+    const adminId = await seedMember("admin@eafit.edu.co", { firstName: "Ada", lastName: "Admin" });
+    const otherId = await seedMember("otra@eafit.edu.co", {
+      firstName: "Otra",
+      lastName: "Persona",
+    });
     const actor = { personId: adminId };
     const first = await runCommand(actor, (ctx) =>
       grantPermission(ctx, { email: "Admin@eafit.edu.co", code: "ADMIN" }),

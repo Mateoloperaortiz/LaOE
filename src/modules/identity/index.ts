@@ -11,6 +11,16 @@ export {
   hasRecentStepUp,
 } from "./domain/guards";
 export { requestOtp, verifyOtp, verifyStepUp } from "./domain/otp";
-export { grantPermission, listPermissions, revokePermission } from "./domain/permissions";
+export {
+  grantPermission,
+  grantPermissionAs,
+  listPermissions,
+  revokePermission,
+} from "./domain/permissions";
 export { describeUserAgent, safeNextPath } from "./domain/pure";
-export { destroySessionsFor, listSessionsFor, resolveActor } from "./domain/session";
+export {
+  destroySessionsFor,
+  listPermissionsFor,
+  listSessionsFor,
+  resolveActor,
+} from "./domain/session";

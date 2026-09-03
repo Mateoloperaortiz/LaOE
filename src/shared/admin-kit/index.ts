@@ -12,4 +12,5 @@ export {
   formDataToInput,
   formDataToValues,
   MULTI_SEPARATOR,
+  resolveFilters,
 } from "./types";

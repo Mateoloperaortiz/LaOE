@@ -271,6 +271,10 @@
     background: color-mix(in oklab, var(--cartel-tinta) 12%, transparent);
   }
 }
+/* El botón de acción cálida siempre es navy sobre naranja (07-marca §3), también dentro de un cartel navy. */
+.cartel .boton-calido {
+  color: var(--color-oe-navy);
+}
 
 /* Barra de color detrás de un título, que sale del borde izquierdo de la pantalla. */
 .barra-titulo {

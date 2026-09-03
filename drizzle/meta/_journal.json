@@ -29,6 +29,13 @@
       "when": 1788444480634,
       "tag": "0003_contenido_y_eventos",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788461542899,
+      "tag": "0004_personas_y_mi_oe",
+      "breakpoints": true
     }
   ]
 }

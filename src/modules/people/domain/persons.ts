@@ -1,0 +1,296 @@
+import { and, asc, count, eq, exists, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { z } from "zod";
+import { getDb } from "@/db/client";
+import { isUniqueViolation } from "@/db/errors";
+import type { CommandContext } from "@/db/tx";
+import { getCurrentTerm, listAllTerms } from "@/modules/participation";
+import { DomainError } from "@/shared/admin-kit/DomainError";
+import { t } from "@/shared/copy";
+import { committee, committeeMembership, committeeRole, membership, person } from "../schema";
+import { normalizePhone } from "./person-pure";
+
+// La persona como eje del CRM (ADR-002): alta manual, edición por ADMIN y listado del admin.
+
+export type PersonRecord = typeof person.$inferSelect;
+
+const emailSchema = z.string().trim().toLowerCase().pipe(z.email()).pipe(z.string().max(254));
+
+export const personInputSchema = z.object({
+  firstName: z.string().trim().min(1).max(80),
+  lastName: z.string().trim().min(1).max(80),
+  email: emailSchema,
+  kind: z.enum(["STUDENT", "EXTERNAL"]).default("STUDENT"),
+  preferredName: z.string().trim().max(80).optional(),
+  phone: z.string().trim().max(30).optional(),
+  personalEmail: emailSchema.optional(),
+  program: z.string().trim().max(120).optional(),
+});
+
+export type PersonInput = z.infer<typeof personInputSchema>;
+
+function toValues(input: PersonInput) {
+  return {
+    firstName: input.firstName,
+    lastName: input.lastName,
+    email: input.email,
+    kind: input.kind,
+    preferredName: input.preferredName ?? null,
+    phone: input.phone ? normalizePhone(input.phone).value : null,
+    personalEmail: input.personalEmail ?? null,
+    program: input.program ?? null,
+  };
+}
+
+/** Alta manual de un prospecto o contacto externo; los miembros entran por el roster o por "dar de alta". */
+export async function createPerson(
+  ctx: CommandContext,
+  input: PersonInput,
+): Promise<{ id: string }> {
+  const values = toValues(input);
+  try {
+    const [row] = await ctx.tx
+      .insert(person)
+      .values({ ...values, stage: "PROSPECT", source: "ADMIN" })
+      .returning({ id: person.id });
+    if (!row) {
+      throw new Error("No se pudo crear la persona");
+    }
+    await ctx.audit({
+      action: "person.created",
+      entityType: "person",
+      entityId: row.id,
+      after: values,
+    });
+    return row;
+  } catch (error) {
+    if (isUniqueViolation(error, "person_email_unique")) {
+      throw new DomainError(t("T-430"), "email");
+    }
+    throw error;
+  }
+}
+
+const EDITABLE = [
+  "firstName",
+  "lastName",
+  "email",
+  "kind",
+  "preferredName",
+  "phone",
+  "personalEmail",
+  "program",
+] as const;
+
+/** Edición por ADMIN; cambiar el correo invalida las sesiones anteriores (ADR-034). */
+export async function updatePerson(
+  ctx: CommandContext,
+  id: string,
+  input: PersonInput,
+): Promise<void> {
+  const [before] = await ctx.tx.select().from(person).where(eq(person.id, id));
+  if (!before) {
+    throw new DomainError(t("T-032"));
+  }
+  const values = toValues(input);
+  const changed = EDITABLE.filter((field) => before[field] !== values[field]);
+  if (changed.length === 0) {
+    return;
+  }
+  const emailChanged = changed.includes("email");
+  try {
+    await ctx.tx
+      .update(person)
+      .set({ ...values, ...(emailChanged ? { sessionsRevokedAt: sql`now()` } : {}) })
+      .where(eq(person.id, id));
+  } catch (error) {
+    if (isUniqueViolation(error, "person_email_unique")) {
+      throw new DomainError(t("T-430"), "email");
+    }
+    throw error;
+  }
+  await ctx.audit({
+    action: "person.updated",
+    entityType: "person",
+    entityId: id,
+    before: Object.fromEntries(changed.map((field) => [field, before[field]])),
+    after: Object.fromEntries(changed.map((field) => [field, values[field]])),
+  });
+  await ctx.emit({ type: "person.updated", payload: { personId: id, fields: changed } });
+  if (emailChanged) {
+    await ctx.emit({ type: "person.email-changed", payload: { personId: id } });
+  }
+}
+
+export interface PersonRow {
+  id: string;
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  kind: PersonRecord["kind"];
+  stage: PersonRecord["stage"];
+  membershipStatus: (typeof membership.$inferSelect)["status"] | null;
+  firstTermCode: string | null;
+  /** "A3 · General", en el término actual. */
+  committees: string[];
+  anonymized: boolean;
+}
+
+export interface PersonListParams {
+  q: string;
+  stage?: string | undefined;
+  status?: string | undefined;
+  committeeId?: string | undefined;
+  /** Ids de personas a las que se acota el listado (un segmento); vacío devuelve nada. */
+  personIds?: string[] | undefined;
+  page: number;
+  pageSize: number;
+}
+
+const STAGES = ["PROSPECT", "APPLICANT", "MEMBER", "ALUMNI"] as const;
+const STATUSES = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"] as const;
+
+function isOneOf<T extends string>(value: string | undefined, options: readonly T[]): value is T {
+  return value !== undefined && (options as readonly string[]).includes(value);
+}
+
+/** Códigos de término por id: los términos son pocos y viven en otro módulo (sin join entre esquemas). */
+export async function termCodesById(): Promise<Map<string, string>> {
+  return new Map((await listAllTerms()).map((row) => [row.id, row.code]));
+}
+
+export async function listPeople(
+  params: PersonListParams,
+): Promise<{ rows: PersonRow[]; total: number }> {
+  const db = getDb();
+  const current = await getCurrentTerm();
+  const conditions = [];
+  if (params.q) {
+    const pattern = `%${params.q}%`;
+    conditions.push(
+      or(
+        sql`similarity(${person.fullName}, ${params.q}) > 0.2`,
+        ilike(person.fullName, pattern),
+        ilike(person.email, pattern),
+      ),
+    );
+  }
+  if (isOneOf(params.stage, STAGES)) {
+    conditions.push(eq(person.stage, params.stage));
+  }
+  if (isOneOf(params.status, STATUSES)) {
+    conditions.push(eq(membership.status, params.status));
+  }
+  if (params.committeeId && current) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(committeeMembership)
+          .where(
+            and(
+              eq(committeeMembership.personId, person.id),
+              eq(committeeMembership.committeeId, params.committeeId),
+              eq(committeeMembership.termId, current.id),
+              isNull(committeeMembership.leftAt),
+            ),
+          ),
+      ),
+    );
+  }
+  if (params.personIds !== undefined) {
+    if (params.personIds.length === 0) {
+      return { rows: [], total: 0 };
+    }
+    conditions.push(inArray(person.id, params.personIds));
+  }
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const [rows, [total], termCodes] = await Promise.all([
+    db
+      .select({
+        id: person.id,
+        fullName: person.fullName,
+        firstName: person.firstName,
+        lastName: person.lastName,
+        email: person.email,
+        kind: person.kind,
+        stage: person.stage,
+        anonymizedAt: person.anonymizedAt,
+        membershipStatus: membership.status,
+        firstTermId: membership.firstTermId,
+      })
+      .from(person)
+      .leftJoin(membership, eq(membership.personId, person.id))
+      .where(where)
+      .orderBy(asc(person.fullName))
+      .limit(params.pageSize)
+      .offset((params.page - 1) * params.pageSize),
+    db
+      .select({ n: count() })
+      .from(person)
+      .leftJoin(membership, eq(membership.personId, person.id))
+      .where(where),
+    termCodesById(),
+  ]);
+  const committeesByPerson = current
+    ? await currentCommitteesFor(
+        rows.map((row) => row.id),
+        current.id,
+      )
+    : new Map<string, string[]>();
+  return {
+    total: total?.n ?? 0,
+    rows: rows.map((row) => ({
+      id: row.id,
+      fullName: row.fullName ?? "",
+      firstName: row.firstName,
+      lastName: row.lastName,
+      email: row.email,
+      kind: row.kind,
+      stage: row.stage,
+      membershipStatus: row.membershipStatus,
+      firstTermCode: row.firstTermId ? (termCodes.get(row.firstTermId) ?? null) : null,
+      committees: committeesByPerson.get(row.id) ?? [],
+      anonymized: row.anonymizedAt !== null,
+    })),
+  };
+}
+
+/** "A3 · General" por persona en un término (pertenencias vivas). */
+export async function currentCommitteesFor(
+  personIds: string[],
+  termId: string,
+): Promise<Map<string, string[]>> {
+  const map = new Map<string, string[]>();
+  if (personIds.length === 0) {
+    return map;
+  }
+  const rows = await getDb()
+    .select({
+      personId: committeeMembership.personId,
+      name: committee.name,
+      role: committeeRole.label,
+    })
+    .from(committeeMembership)
+    .innerJoin(committee, eq(committee.id, committeeMembership.committeeId))
+    .innerJoin(committeeRole, eq(committeeRole.code, committeeMembership.roleCode))
+    .where(
+      and(
+        inArray(committeeMembership.personId, personIds),
+        eq(committeeMembership.termId, termId),
+        isNull(committeeMembership.leftAt),
+      ),
+    )
+    .orderBy(asc(committee.name));
+  for (const row of rows) {
+    const list = map.get(row.personId) ?? [];
+    list.push(`${row.name} · ${row.role}`);
+    map.set(row.personId, list);
+  }
+  return map;
+}
+
+export async function getPersonRecord(id: string): Promise<PersonRecord | null> {
+  const [row] = await getDb().select().from(person).where(eq(person.id, id)).limit(1);
+  return row ?? null;
+}

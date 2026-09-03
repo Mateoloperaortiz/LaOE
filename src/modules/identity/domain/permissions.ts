@@ -2,7 +2,7 @@ import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import type { CommandContext } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import {
   findMemberByEmail,
   getPeopleByIds,
@@ -156,6 +156,10 @@ export async function grantPermission(
       entityId: row.id,
       after: { personId: member.id, code: input.code, committeeId: input.committeeId ?? null },
     });
+    await ctx.emit({
+      type: "permission.granted",
+      payload: { personId: member.id, code: input.code, committeeId: input.committeeId ?? null },
+    });
     return row;
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -163,6 +167,11 @@ export async function grantPermission(
     }
     throw error;
   }
+}
+
+/** Para las acciones de página (src/app) que otorgan un permiso fuera del kit: abre su transacción. */
+export function grantPermissionAs(actor: Actor, input: PermissionInput): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => grantPermission(ctx, input));
 }
 
 /** No se puede retirar el último ADMIN (05-acceso.md). */
@@ -187,4 +196,46 @@ export async function revokePermission(ctx: CommandContext, id: string): Promise
     entityId: id,
     before: row,
   });
+  await ctx.emit({
+    type: "permission.revoked",
+    payload: { personId: row.personId, code: row.code, committeeId: row.committeeId },
+  });
+}
+
+/**
+ * Revoca todos los permisos de una persona que sale de la OE (ADR-034). Si es el último ADMIN, ese
+ * permiso se conserva y se avisa: la regla de 05-acceso.md pesa más que la salida.
+ */
+export async function revokeAllPermissionsFor(
+  ctx: CommandContext,
+  personId: string,
+): Promise<{ revoked: number; keptLastAdmin: boolean }> {
+  const rows = await ctx.tx.select().from(permission).where(eq(permission.personId, personId));
+  let keptLastAdmin = false;
+  let revoked = 0;
+  for (const row of rows) {
+    if (row.code === "ADMIN") {
+      const [admins] = await ctx.tx
+        .select({ n: count() })
+        .from(permission)
+        .where(eq(permission.code, "ADMIN"));
+      if ((admins?.n ?? 0) <= 1) {
+        keptLastAdmin = true;
+        continue;
+      }
+    }
+    await ctx.tx.delete(permission).where(eq(permission.id, row.id));
+    await ctx.audit({
+      action: "permission.revoked",
+      entityType: "permission",
+      entityId: row.id,
+      before: row,
+    });
+    await ctx.emit({
+      type: "permission.revoked",
+      payload: { personId, code: row.code, committeeId: row.committeeId },
+    });
+    revoked += 1;
+  }
+  return { revoked, keptLastAdmin };
 }
