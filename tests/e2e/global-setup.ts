@@ -1,6 +1,7 @@
 import { eq, like } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { announcement, mediaAsset } from "@/modules/content/schema";
+import { eventEdition } from "@/modules/events/schema";
 import { otpChallenge, permission } from "@/modules/identity/schema";
 import { term } from "@/modules/participation/schema";
 import { committee, membership, person } from "@/modules/people/schema";
@@ -48,6 +49,7 @@ export default async function globalSetup(): Promise<void> {
   // Comités y anuncios creados por corridas anteriores de la suite.
   await db.delete(committee).where(like(committee.slug, "e2e-%"));
   await db.delete(announcement).where(like(announcement.title, "e2e-%"));
+  await db.delete(eventEdition).where(like(eventEdition.slug, "e2e-%"));
   await db.delete(mediaAsset).where(like(mediaAsset.originalFilename, "e2e-%"));
   await closeDb();
 }

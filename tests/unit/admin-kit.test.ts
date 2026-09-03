@@ -22,18 +22,30 @@ describe("csv", () => {
 });
 
 describe("formDataToInput", () => {
-  it("vacíos a undefined, checkbox a booleano, recorta espacios", () => {
+  it("vacíos a undefined, checkbox a booleano, multiselect a lista, recorta espacios", () => {
     const form = new FormData();
     form.set("name", "  Pixel ");
     form.set("color", "");
     form.set("flag", "on");
+    form.append("committees", "a");
+    form.append("committees", "b");
+    form.append("committees", "");
     const input = formDataToInput(form, [
       { name: "name", label: "n", type: "text" },
       { name: "color", label: "c", type: "color" },
       { name: "flag", label: "f", type: "checkbox" },
       { name: "missing", label: "m", type: "checkbox" },
+      { name: "committees", label: "k", type: "multiselect" },
+      { name: "nobody", label: "x", type: "multiselect" },
     ]);
-    expect(input).toEqual({ name: "Pixel", color: undefined, flag: true, missing: false });
+    expect(input).toEqual({
+      name: "Pixel",
+      color: undefined,
+      flag: true,
+      missing: false,
+      committees: ["a", "b"],
+      nobody: [],
+    });
   });
 });
 

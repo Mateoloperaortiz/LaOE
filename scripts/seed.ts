@@ -2,6 +2,8 @@ import { readdirSync } from "node:fs";
 import { count, eq, sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { getEnv } from "@/env";
+import { announcement } from "@/modules/content/schema";
+import { editionCommittee, event, eventEdition } from "@/modules/events/schema";
 import { permission } from "@/modules/identity/schema";
 import { term } from "@/modules/participation/schema";
 import { committee, committeeMembership, membership, person } from "@/modules/people/schema";
@@ -235,11 +237,84 @@ async function seedAdmin(
   }
 }
 
+// Contenido sintético para ver el portal en local y staging: anuncios "de prueba" y una edición "de
+// prueba" por macroevento con fechas relativas a hoy. No son fechas ni textos de la OE (11-contenido-pendiente.md).
+async function seedContent(committees: Array<{ id: string; slug: string }>): Promise<void> {
+  const day = 24 * 60 * 60_000;
+  const anuncios = [
+    {
+      title: "Anuncio de prueba: así se ve la cartelera",
+      body: "Este anuncio es **sintético**: existe para revisar la cartelera en local. Los anuncios reales los publica comunicaciones desde el admin.\n\n- Se puede fijar arriba\n- Se puede despublicar",
+      pinned: true,
+      daysAgo: 1,
+    },
+    {
+      title: "Anuncio de prueba: segundo anuncio",
+      body: "Otro anuncio sintético, sin fijar, para ver la rotación de colores del feed.",
+      pinned: false,
+      daysAgo: 3,
+    },
+  ];
+  for (const item of anuncios) {
+    const [existing] = await db
+      .select({ id: announcement.id })
+      .from(announcement)
+      .where(eq(announcement.title, item.title))
+      .limit(1);
+    if (existing) continue;
+    await db.insert(announcement).values({
+      title: item.title,
+      body: item.body,
+      audience: "PUBLIC",
+      pinned: item.pinned,
+      publishedAt: new Date(Date.now() - item.daysAgo * day),
+    });
+  }
+
+  const events = await db.select({ id: event.id, slug: event.slug }).from(event);
+  const offsets: Record<string, number> = {
+    "dias-eafit": 10,
+    inventiva: 24,
+    enfemenino: 40,
+    "subsidios-oe": -20,
+  };
+  for (const item of events) {
+    const offset = offsets[item.slug];
+    if (offset === undefined) continue;
+    const startsAt = new Date(Date.now() + offset * day);
+    startsAt.setUTCHours(23, 0, 0, 0); // 18:00 en Bogotá
+    const [edition] = await db
+      .insert(eventEdition)
+      .values({
+        eventId: item.id,
+        slug: "prueba",
+        name: "Edición de prueba",
+        description:
+          "Edición **sintética** para revisar el portal en local: la fecha, el lugar y los organizadores no son datos reales de la OE.",
+        startsAt,
+        endsAt: new Date(startsAt.getTime() + 3 * 60 * 60_000),
+        location: "Lugar de prueba (dato sintético)",
+        publicationStatus: "PUBLISHED",
+      })
+      .onConflictDoNothing()
+      .returning({ id: eventEdition.id });
+    if (!edition) continue;
+    const organizers = committees.slice(0, 2);
+    if (organizers.length > 0) {
+      await db
+        .insert(editionCommittee)
+        .values(organizers.map((target) => ({ editionId: edition.id, committeeId: target.id })))
+        .onConflictDoNothing();
+    }
+  }
+}
+
 try {
   const terms = await seedTerms();
   const committees = await seedCommittees();
   await seedPeople(terms, committees);
   await seedAdmin(terms, committees);
+  await seedContent(committees);
   const [people] = await db.select({ n: count() }).from(person).where(eq(person.source, "SEED"));
   const [admins] = await db
     .select({ n: count() })

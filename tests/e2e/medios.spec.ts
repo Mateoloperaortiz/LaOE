@@ -36,15 +36,19 @@ test("un ADMIN sube una portada de 5 MB directo al bucket y se sirve con 302 al 
   await expect(page.getByText("Listo: la imagen queda disponible en unos segundos.")).toBeVisible();
 
   // Genera las variantes aquí mismo (en local el poller también puede haberlo hecho ya).
-  await import("@/jobs/handlers");
-  const { drain } = await import("@/jobs/poller");
-  await drain(10);
-  const [asset] = await getDb()
-    .select()
-    .from(mediaAsset)
-    .where(eq(mediaAsset.originalFilename, nombre))
-    .orderBy(desc(mediaAsset.createdAt))
-    .limit(1);
+  const buscar = () =>
+    getDb()
+      .select()
+      .from(mediaAsset)
+      .where(eq(mediaAsset.originalFilename, nombre))
+      .orderBy(desc(mediaAsset.createdAt))
+      .limit(1);
+  const [pendiente] = await buscar();
+  expect(pendiente).toBeTruthy();
+  // Idempotente: si el poller del dev server ya la procesó, no repite el trabajo.
+  const { processMedia } = await import("@/modules/content/domain/media-process");
+  await processMedia(pendiente?.id ?? "");
+  const [asset] = await buscar();
   await closeDb();
   expect(asset?.status).toBe("READY");
   expect(Object.keys(asset?.variants ?? {}).sort()).toEqual(["w480", "w960"]);

@@ -32,11 +32,23 @@ function buildHref(basePath: string, params: Record<string, string>): string {
 type Props = {
   resource: AnyResource;
   searchParams: Search;
+  /** Ruta donde se monta el recurso cuando no es su `basePath` (ediciones bajo un evento). */
+  basePath?: string;
+  /** Filtros que fija la ruta, no la barra: acotan el listado y prellenan el formulario de creación. */
+  fixedFilters?: Record<string, string>;
+  /** Título de la página cuando el contexto lo pide ("Ediciones · Días EAFIT"). */
+  title?: string;
 };
 
 // Página genérica de un recurso: listado, filtros, paginación y panel lateral por URL (ADR-017).
-export async function ResourcePage({ resource, searchParams }: Props) {
-  const actor = await requireAdminActor(resource.basePath);
+export async function ResourcePage({
+  resource,
+  searchParams,
+  basePath = resource.basePath,
+  fixedFilters = {},
+  title,
+}: Props) {
+  const actor = await requireAdminActor(basePath);
   const q = single(searchParams.q).trim();
   const page = Math.max(1, Number.parseInt(single(searchParams.pagina) || "1", 10) || 1);
   const filters: Record<string, string> = {};
@@ -51,10 +63,15 @@ export async function ResourcePage({ resource, searchParams }: Props) {
   const saved = single(searchParams.guardado) === "1";
   const rowError = single(searchParams.error);
 
-  const { rows, total } = await resource.list({ q, page, pageSize: PAGE_SIZE, filters });
+  const { rows, total } = await resource.list({
+    q,
+    page,
+    pageSize: PAGE_SIZE,
+    filters: { ...filters, ...fixedFilters },
+  });
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const listParams = { q, pagina: page > 1 ? String(page) : "", ...filters };
-  const listHref = buildHref(resource.basePath, listParams);
+  const listHref = buildHref(basePath, listParams);
   const [previous, next] = tList("T-258") as [string, string];
 
   let panel: React.ReactNode = null;
@@ -62,7 +79,7 @@ export async function ResourcePage({ resource, searchParams }: Props) {
     const fields =
       typeof resource.fields === "function" ? await resource.fields() : resource.fields;
     const row = editId ? await resource.get(editId) : null;
-    const initialValues = row ? resource.toFormValues(row) : {};
+    const initialValues = row ? resource.toFormValues(row) : { ...fixedFilters };
     panel = (
       <ResourcePanel
         title={
@@ -89,7 +106,7 @@ export async function ResourcePage({ resource, searchParams }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-display-lg">{resource.names.plural}</h1>
+      <h1 className="text-display-lg">{title ?? resource.names.plural}</h1>
       {saved ? (
         <output className="block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-2 text-sm font-semibold text-oe-navy">
           {t("T-259")}
@@ -104,13 +121,13 @@ export async function ResourcePage({ resource, searchParams }: Props) {
         </p>
       ) : null}
       <ResourceToolbar
-        basePath={resource.basePath}
+        basePath={basePath}
         q={q}
         filters={resource.filters ?? []}
         filterValues={filters}
         labels={{ search: t("T-250"), create: t("T-251"), exportCsv: t("T-255"), all: "—" }}
-        createHref={buildHref(resource.basePath, { ...listParams, nuevo: "1" })}
-        exportHref={buildHref(`/api/export/${resource.key}`, { q, ...filters })}
+        createHref={buildHref(basePath, { ...listParams, nuevo: "1" })}
+        exportHref={buildHref(`/api/export/${resource.key}`, { q, ...filters, ...fixedFilters })}
         canCreate={resource.create !== undefined && actor.isAdmin}
       />
       <ResourceTable
@@ -118,7 +135,7 @@ export async function ResourcePage({ resource, searchParams }: Props) {
         rows={rows}
         editHref={
           resource.update
-            ? (row) => buildHref(resource.basePath, { ...listParams, editar: row.id })
+            ? (row) => buildHref(basePath, { ...listParams, editar: row.id })
             : undefined
         }
         labels={{ edit: t("T-252"), empty: t("T-256") }}
@@ -138,9 +155,7 @@ export async function ResourcePage({ resource, searchParams }: Props) {
       <Pagination
         page={page}
         totalPages={totalPages}
-        hrefFor={(target) =>
-          buildHref(resource.basePath, { ...listParams, pagina: String(target) })
-        }
+        hrefFor={(target) => buildHref(basePath, { ...listParams, pagina: String(target) })}
         labels={{ summary: t("T-257", { n: page, total: totalPages }), previous, next }}
       />
       {panel}

@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, count, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -136,6 +136,40 @@ const isPublic = and(eq(committee.status, "ACTIVE"), eq(committee.publicationSta
 
 export const listPublishedCommittees = cache(async (): Promise<PublicCommittee[]> => {
   return getDb().select(publicColumns).from(committee).where(isPublic).orderBy(asc(committee.name));
+});
+
+/** Organizadores de una edición: nombre y logo; solo los publicados enlazan a su ficha. */
+export interface CommitteeRef {
+  id: string;
+  slug: string;
+  name: string;
+  logoKey: string | null;
+  isPublished: boolean;
+}
+
+export const listCommitteesByIds = cache(async (ids: string[]): Promise<CommitteeRef[]> => {
+  if (ids.length === 0) {
+    return [];
+  }
+  const rows = await getDb()
+    .select({
+      id: committee.id,
+      slug: committee.slug,
+      name: committee.name,
+      logoKey: committee.logoKey,
+      status: committee.status,
+      publicationStatus: committee.publicationStatus,
+    })
+    .from(committee)
+    .where(inArray(committee.id, ids))
+    .orderBy(asc(committee.name));
+  return rows.map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    logoKey: row.logoKey,
+    isPublished: row.status === "ACTIVE" && row.publicationStatus === "PUBLISHED",
+  }));
 });
 
 export const getPublishedCommittee = cache(

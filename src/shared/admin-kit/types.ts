@@ -55,7 +55,9 @@ export type FieldType =
   | "textarea"
   | "number"
   | "date"
+  | "datetime"
   | "select"
+  | "multiselect"
   | "checkbox"
   | "url"
   | "email"
@@ -66,6 +68,8 @@ export interface FieldDefinition {
   label: string;
   type: FieldType;
   options?: FilterOption[];
+  /** Etiqueta de la opción vacía de un select (por defecto "—"). */
+  emptyOption?: string;
   required?: boolean;
   help?: string;
   /** No se puede cambiar al editar (por ejemplo, una sigla). */
@@ -120,18 +124,28 @@ export interface FormState {
   values: Record<string, string>;
 }
 
-/** Convierte un FormData en un objeto plano según los campos: vacíos a undefined, checkbox a booleano. */
+/** Separador de los valores de un multiselect dentro de `FormState.values`. */
+export const MULTI_SEPARATOR = "";
+
+/** Convierte un FormData en un objeto plano según los campos: vacíos a undefined, checkbox a booleano, multiselect a lista. */
 export function formDataToInput(
   formData: FormData,
   fields: FieldDefinition[],
 ): Record<string, unknown> {
   const input: Record<string, unknown> = {};
   for (const field of fields) {
-    const raw = formData.get(field.name);
     if (field.type === "checkbox") {
+      const raw = formData.get(field.name);
       input[field.name] = raw === "on" || raw === "true";
       continue;
     }
+    if (field.type === "multiselect") {
+      input[field.name] = formData
+        .getAll(field.name)
+        .filter((item): item is string => typeof item === "string" && item.trim() !== "");
+      continue;
+    }
+    const raw = formData.get(field.name);
     const value = typeof raw === "string" ? raw.trim() : "";
     input[field.name] = value === "" ? undefined : value;
   }
@@ -144,6 +158,13 @@ export function formDataToValues(
 ): Record<string, string> {
   const values: Record<string, string> = {};
   for (const field of fields) {
+    if (field.type === "multiselect") {
+      values[field.name] = formData
+        .getAll(field.name)
+        .filter((item): item is string => typeof item === "string")
+        .join(MULTI_SEPARATOR);
+      continue;
+    }
     const raw = formData.get(field.name);
     values[field.name] = typeof raw === "string" ? raw : "";
   }

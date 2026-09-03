@@ -6,4 +6,10 @@ export { ResourceForm } from "./ResourceForm";
 export { ResourcePanel } from "./ResourcePanel";
 export { ResourceTable } from "./ResourceTable";
 export { ResourceToolbar } from "./ResourceToolbar";
-export { type AnyResource, type FormState, formDataToInput, formDataToValues } from "./types";
+export {
+  type AnyResource,
+  type FormState,
+  formDataToInput,
+  formDataToValues,
+  MULTI_SEPARATOR,
+} from "./types";

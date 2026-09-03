@@ -3,12 +3,12 @@ import { LogoOE, ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { NavLink } from "@/shared/ui/NavLink";
 
-// Cabecera y pie del portal público. La navegación es T-038; cada destino se habilita en el tramo
-// que lo construye (Eventos llega en F1-T4).
+// Cabecera y pie del portal público. La navegación es T-038.
 const RUTAS: Record<string, string> = {
   Inicio: "/",
   "La OE": "/la-oe",
   Cartelera: "/cartelera",
+  Eventos: "/eventos",
   Comités: "/comites",
   Unirse: "/unirse",
 };
@@ -74,6 +74,8 @@ export default function PublicLayout({ children }: LayoutProps<"/">) {
             </p>
             <p>
               <Link href="/privacidad">{t("T-319")}</Link>
+              {" · "}
+              <a href="/api/ics/publico.ics">{t("T-320")}</a>
             </p>
           </div>
         </div>

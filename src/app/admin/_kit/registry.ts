@@ -1,4 +1,5 @@
 import { announcementsResource, pagesResource } from "@/modules/content/admin";
+import { editionsResource, eventsResource } from "@/modules/events/admin";
 import { permissionsResource } from "@/modules/identity/admin";
 import { termsResource } from "@/modules/participation/admin";
 import { committeesResource } from "@/modules/people/admin";
@@ -11,6 +12,8 @@ const resources: Record<string, AnyResource> = {
   [permissionsResource.key]: permissionsResource as unknown as AnyResource,
   [pagesResource.key]: pagesResource as unknown as AnyResource,
   [announcementsResource.key]: announcementsResource as unknown as AnyResource,
+  [eventsResource.key]: eventsResource as unknown as AnyResource,
+  [editionsResource.key]: editionsResource as unknown as AnyResource,
 };
 
 export function getResource(key: string): AnyResource | null {

@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { listPublicAnnouncements } from "@/modules/content";
+import { getPublicMediaRef, Imagen, listPublicAnnouncements } from "@/modules/content";
+import {
+  findNextPublicEdition,
+  findNextPublicEditions,
+  listPublishedEvents,
+} from "@/modules/events";
 import {
   BarraTitulo,
   Cartel,
@@ -9,12 +14,27 @@ import {
   TituloAcentuado,
 } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { formatDateRange } from "@/shared/lib/dates";
 import { AnuncioCartel } from "./_ui/AnuncioCartel";
+import { EventoTarjeta } from "./_ui/EventoTarjeta";
 
-// Inicio: hero, macroeventos y cartelera. Los macroeventos salen de la base desde F1-T4.
+// Inicio: hero, próximo encuentro, macroeventos y cartelera (06-mapa-del-sitio.md).
 export default async function HomePage() {
-  const macroeventos = tList("T-039");
-  const anuncios = await listPublicAnnouncements(3);
+  const [anuncios, eventos, proximas, proximo] = await Promise.all([
+    listPublicAnnouncements(3),
+    listPublishedEvents(),
+    findNextPublicEditions(),
+    findNextPublicEdition(),
+  ]);
+  const [portadas, portadaProximo] = await Promise.all([
+    Promise.all(
+      eventos.map((evento) =>
+        evento.coverAssetId ? getPublicMediaRef(evento.coverAssetId) : Promise.resolve(null),
+      ),
+    ),
+    proximo?.coverAssetId ? getPublicMediaRef(proximo.coverAssetId) : Promise.resolve(null),
+  ]);
+  const [cuando, donde] = tList("T-307") as [string, string];
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-16 px-4 py-8 sm:px-6 sm:py-12">
       <Cartel
@@ -41,23 +61,86 @@ export default async function HomePage() {
         </div>
       </Cartel>
 
+      {proximo ? (
+        <section aria-labelledby="proximo" className="flex flex-col gap-8">
+          <BarraTitulo color="naranja" className="self-start">
+            <span id="proximo">{t("T-008")}</span>
+          </BarraTitulo>
+          {/* El título es el enlace; el pseudoelemento estira el área clicable a toda la tarjeta. */}
+          {portadaProximo ? (
+            <article className="relative grid gap-6 rounded-[var(--radius-cartel)] border border-borde bg-fondo-suave p-4 textura-granito sm:grid-cols-2 sm:p-6">
+              <Imagen
+                asset={portadaProximo}
+                alt={t("T-315", { título: proximo.name })}
+                sizes="(min-width: 640px) 50vw, 100vw"
+                className="aspect-video w-full rounded-[var(--radius-cartel)] object-cover"
+              />
+              <div className="flex flex-col gap-3">
+                <p className="eyebrow text-tinta-suave">{proximo.event.name}</p>
+                <h3 className="text-display-md">
+                  <Link
+                    href={`/eventos/${proximo.event.slug}/${proximo.slug}`}
+                    className="text-current no-underline after:absolute after:inset-0 after:content-[''] hover:underline"
+                  >
+                    {proximo.name}
+                  </Link>
+                </h3>
+                <p className="font-semibold">{formatDateRange(proximo.startsAt, proximo.endsAt)}</p>
+                {proximo.location ? <p>{proximo.location}</p> : null}
+              </div>
+            </article>
+          ) : (
+            <Cartel
+              variante="amarillo"
+              nivel="h3"
+              eyebrow={proximo.event.name}
+              titulo={
+                <Link
+                  href={`/eventos/${proximo.event.slug}/${proximo.slug}`}
+                  className="text-current no-underline after:absolute after:inset-0 after:content-[''] hover:underline"
+                >
+                  {proximo.name}
+                </Link>
+              }
+              isotipo={false}
+            >
+              <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-[auto_1fr]">
+                <dt className="eyebrow text-xs">{cuando}</dt>
+                <dd className="font-semibold">
+                  {formatDateRange(proximo.startsAt, proximo.endsAt)}
+                </dd>
+                {proximo.location ? (
+                  <>
+                    <dt className="eyebrow text-xs">{donde}</dt>
+                    <dd>{proximo.location}</dd>
+                  </>
+                ) : null}
+              </dl>
+            </Cartel>
+          )}
+        </section>
+      ) : null}
+
       <section aria-labelledby="macroeventos" className="flex flex-col gap-8">
         <BarraTitulo color="azul" className="self-start">
           <span id="macroeventos">{t("T-006")}</span>
         </BarraTitulo>
         <p className="max-w-prose text-lg">{t("T-014")}</p>
         <ul className="grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
-          {macroeventos.map((nombre, index) => (
-            <li key={nombre}>
-              <Cartel
+          {eventos.map((evento, index) => (
+            <li key={evento.id}>
+              <EventoTarjeta
+                evento={evento}
+                proxima={proximas.get(evento.id) ?? null}
+                cover={portadas[index] ?? null}
                 variante={feedVariant(index)}
-                nivel="h3"
-                titulo={nombre}
-                subtitulo={t("T-021")}
               />
             </li>
           ))}
         </ul>
+        <Link href="/eventos" className="boton-secundario self-start">
+          {t("T-317")}
+        </Link>
       </section>
 
       <section aria-labelledby="cartelera" className="flex flex-col gap-8">

@@ -1,10 +1,12 @@
 // API pública del módulo people.
 export {
+  type CommitteeRef,
   createCommittee,
   getCommittee,
   getPublishedCommittee,
   listAllCommittees,
   listCommittees,
+  listCommitteesByIds,
   listPublishedCommittees,
   type PublicCommittee,
   searchCommittees,

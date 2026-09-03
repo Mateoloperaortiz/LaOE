@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import type { FieldDefinition, FormState } from "./types";
+import { type FieldDefinition, type FormState, MULTI_SEPARATOR } from "./types";
 
 export type SaveAction = (previous: FormState, formData: FormData) => Promise<FormState>;
 
@@ -32,13 +32,14 @@ function Field({
   editing: boolean;
 }) {
   const id = `campo-${field.name}`;
+  const locked = editing && (field.lockedOnEdit ?? false);
   const common = {
     id,
     name: field.name,
     required: field.required ?? false,
     "aria-invalid": error ? true : undefined,
     "aria-describedby": error ? `${id}-error` : field.help ? `${id}-help` : undefined,
-    readOnly: editing && (field.lockedOnEdit ?? false),
+    readOnly: locked,
   };
   let control: React.ReactNode;
   switch (field.type) {
@@ -54,13 +55,26 @@ function Field({
       break;
     case "select":
       control = (
+        <select {...common} defaultValue={value} disabled={locked} className={inputClass}>
+          <option value="">{field.emptyOption ?? "—"}</option>
+          {(field.options ?? []).map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      );
+      break;
+    case "multiselect":
+      control = (
         <select
           {...common}
-          defaultValue={value}
-          disabled={editing && (field.lockedOnEdit ?? false)}
+          multiple
+          defaultValue={value ? value.split(MULTI_SEPARATOR) : []}
+          disabled={locked}
+          size={Math.min(8, Math.max(3, (field.options ?? []).length))}
           className={inputClass}
         >
-          <option value="">—</option>
           {(field.options ?? []).map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -84,6 +98,11 @@ function Field({
       break;
     case "date":
       control = <input {...common} type="date" defaultValue={value} className={inputClass} />;
+      break;
+    case "datetime":
+      control = (
+        <input {...common} type="datetime-local" defaultValue={value} className={inputClass} />
+      );
       break;
     case "color":
       control = (

@@ -34,6 +34,11 @@ async function requireAdminForAction(returnTo: string) {
   return actor;
 }
 
+/** La ruta de retorno, no `resource.basePath`: un recurso puede montarse anidado bajo otro. */
+function revalidateReturn(returnTo: string): void {
+  revalidatePath(returnTo.split("?")[0] ?? returnTo);
+}
+
 export async function saveResourceAction(
   _previous: FormState,
   formData: FormData,
@@ -85,7 +90,7 @@ export async function saveResourceAction(
     }
     throw error;
   }
-  revalidatePath(resource.basePath);
+  revalidateReturn(returnTo);
   const separator = returnTo.includes("?") ? "&" : "?";
   redirect(`${returnTo}${separator}guardado=1`);
 }
@@ -111,12 +116,12 @@ export async function rowActionAction(formData: FormData): Promise<void> {
     );
   } catch (error) {
     if (error instanceof DomainError) {
-      revalidatePath(resource.basePath);
+      revalidateReturn(returnTo);
       const separator = returnTo.includes("?") ? "&" : "?";
       redirect(`${returnTo}${separator}error=${encodeURIComponent(error.message)}`);
     }
     throw error;
   }
-  revalidatePath(resource.basePath);
+  revalidateReturn(returnTo);
   redirect(returnTo);
 }
