@@ -1,0 +1,20 @@
+# Garage en modo desarrollo (un solo nodo). Los secretos de este archivo son de juguete:
+# solo sirven para el contenedor local y nunca se usan en Railway.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "5f1d5a8f0c1e4ba6b1a3b1a4c9e2d7f0a6e3c4b5d6f7a8b9c0d1e2f3a4b5c6d7"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+root_domain = ".s3.garage.localhost"
+
+[admin]
+api_bind_addr = "[::]:3903"
+admin_token = "casa-digital-dev-admin-token"
+metrics_token = "casa-digital-dev-metrics-token"

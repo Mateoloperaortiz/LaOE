@@ -12,6 +12,21 @@ Versión de la documentación: 3 de septiembre de 2026.
 
 Una app, una base de datos, un bucket, un admin y un proveedor de correo. Todo lo que hoy vive disperso (Excel del roster, Microsoft Forms, la app de GH Points, tres formas de iniciar sesión, enlaces sueltos) entra en un mismo producto. El detalle está en [docs/00-vision.md](docs/00-vision.md).
 
+## Cómo correr en local
+
+Requisitos: Node 24 (`.node-version`), npm 11 y [OrbStack](https://orbstack.dev) (provee `docker` y `docker compose`).
+
+```bash
+cp .env.example .env        # valores locales; SESSION_SECRET real con: openssl rand -hex 32
+npm install                 # instala dependencias y los hooks de git (lefthook)
+npm run db:up               # Postgres 18 en 127.0.0.1:5433 y Garage (bucket S3) en 127.0.0.1:3900
+npm run storage:init        # crea el bucket `media` si falta y aplica su CORS
+npm run db:reset            # esquema desde cero + datos sintéticos
+npm run dev                 # http://localhost:3000 · salud en /api/health
+```
+
+`npm run check` corre todo lo que corre el CI: Biome, dependency-cruiser, knip, `tsc`, pruebas unitarias, pruebas de integración contra la base local y `next build`. Cómo se prueba cada capa: [docs/10-verificacion.md](docs/10-verificacion.md).
+
 ## Cómo leer la documentación
 
 | Archivo | Para qué |

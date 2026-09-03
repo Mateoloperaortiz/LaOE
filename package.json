@@ -1,0 +1,62 @@
+{
+  "name": "casa-digital",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0",
+    "check": "npm run lint && npm run typecheck && npm run deps:check && npm run deadcode && npm run test && npm run test:integration && npm run build",
+    "lint": "biome check",
+    "format": "biome check --write",
+    "typecheck": "next typegen && tsc --noEmit",
+    "deps:check": "depcruise src scripts tests --config .dependency-cruiser.cjs",
+    "deadcode": "knip",
+    "test": "vitest run --project unit",
+    "test:watch": "vitest --project unit",
+    "test:integration": "vitest run --project integration",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file-if-exists=.env --import tsx scripts/db-release.ts",
+    "db:release": "node --env-file-if-exists=.env --import tsx scripts/db-release.ts",
+    "db:reset": "node --env-file-if-exists=.env --import tsx scripts/db-reset.ts",
+    "db:seed": "node --env-file-if-exists=.env --import tsx scripts/seed.ts",
+    "storage:init": "node --env-file-if-exists=.env --import tsx scripts/storage-init.ts",
+    "copy:sync": "node --import tsx scripts/copy-sync.ts",
+    "prepare": "lefthook install"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1125.0",
+    "drizzle-orm": "^0.45.2",
+    "next": "16.3.4",
+    "pg": "^8.23.0",
+    "pino": "^10.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.2",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^24.13.3",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "dependency-cruiser": "^18.2.0",
+    "drizzle-kit": "^0.31.10",
+    "knip": "^6.34.0",
+    "lefthook": "^2.1.12",
+    "pino-pretty": "^13.1.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.13",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  },
+  "description": "Casa digital de la Organización Estudiantil de la Universidad EAFIT: portal, Mi OE, Participación y GH Points, CRM de comunidad.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  }
+}

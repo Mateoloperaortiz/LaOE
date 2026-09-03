@@ -11,7 +11,7 @@ Orden decidido el 2026-09-03: primero el código base corriendo en local (A), de
 ### A. Código base en local (OrbStack: Postgres 18 en 5433 y Garage como bucket)
 
 - [x] T0 · Docs: ADR-032 (Drizzle y esquema por módulo), ajustes en 01, 03, 08 y 10, esta fase reordenada
-- [ ] T1 · Scaffold con `create-next-app`: Next.js 16 + TypeScript 5.9 + Tailwind 4 + shadcn base, Biome y React Compiler; `compose.yaml`; `src/env.ts` con Zod; logs con `pino`; `GET /api/health`; `npm run check` (Biome, dependency-cruiser, knip, tsc, unit, integración, build); `railway.json` con build, start, healthcheck y pre-deploy
+- [x] T1 · Scaffold con `create-next-app`: Next.js 16 + TypeScript 5.9 + Tailwind 4 + shadcn base, Biome y React Compiler; `compose.yaml`; `src/env.ts` con Zod; logs con `pino`; `GET /api/health`; `npm run check` (Biome, dependency-cruiser, knip, tsc, unit, integración, build); `railway.json` con build, start, healthcheck y pre-deploy
 - [ ] T2 · Esquema Drizzle por módulo (identity, people, term, system), migraciones SQL, uniques parciales y `pg_trgm`; `src/db/tx.ts` con auditoría y outbox en la misma transacción; `db:release` con verificación; `db:reset`
 - [ ] T3 · Tokens de marca, texturas, componente `Cartel`, elementos gráficos SVG, tema claro/oscuro, Sofia Sans Extra Condensed y Plus Jakarta Sans servidas en local, favicon con el isotipo
 - [ ] T4 · Acceso: OTP, sesiones, guards, step-up, `/ingresar` con los textos T-040 a T-055; diccionario de textos que carga `14-copy-y-textos.md` por código (`T-…`) para que cambiar un texto no sea cambiar lógica
@@ -189,3 +189,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-03 | — | Término oficial: "miembro" (decisión de Mateo, alineada con GH). Renombrado en toda la documentación; el cargo por defecto del comité pasa a `MIEMBRO` |
 | 2026-09-03 | — | El estado de membresía `ACTIVE` se dice "activo", como GH; renombrado donde la documentación decía "vigente" en ese sentido |
 | 2026-09-03 | 0 | Arranca el código, escrito desde cero (de GHPOINTS solo versiones de referencia y lecciones ya documentadas). Drizzle 0.45 reemplaza a Prisma (ADR-032). Local primero con OrbStack (Postgres 18 en 5433, Garage como emulador S3); GitHub y Railway al cerrar la fase. Fase 0 reordenada en A (código en local) y B (cuentas y Railway); T0 listo |
+| 2026-09-03 | 0 | T1 listo: scaffold Next.js 16.3 con Biome y React Compiler, `compose.yaml` para OrbStack (Postgres 18 en 5433, Garage v2.3 como bucket `media` con CORS por `storage:init`), `src/env.ts` con Zod, logs con pino, cliente Drizzle, `GET /api/health`, `npm run check` (Biome, dependency-cruiser, knip, tsc, unit, integración, build) en verde, hooks con lefthook, `railway.json` |

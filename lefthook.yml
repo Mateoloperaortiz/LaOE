@@ -1,0 +1,7 @@
+# Hooks de git. Se instalan con `npm install` (script prepare).
+pre-commit:
+  jobs:
+    - name: biome
+      glob: "*.{ts,tsx,js,mjs,cjs,json,css}"
+      run: npx biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true

@@ -1,0 +1,43 @@
+# Entorno local para OrbStack (docker compose). Nada de aquí toca Railway.
+name: casa-digital
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: casa
+      POSTGRES_PASSWORD: casa
+      POSTGRES_DB: casa_digital
+    ports:
+      # 5432 lo ocupa la base local de GHPOINTS; la casa digital usa 5433.
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - casa_pg18:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U casa -d casa_digital"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  storage:
+    # Emulador S3: Garage en un solo nodo con el bucket `media` creado al arrancar.
+    image: dxflrs/garage:v2.3.0
+    restart: unless-stopped
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    environment:
+      GARAGE_DEFAULT_ACCESS_KEY: GK0c1a5ad191ta1de5a2r0110000dev0
+      GARAGE_DEFAULT_SECRET_KEY: 9b3f0e6d2c1a4f8e7d6c5b4a3928170f6e5d4c3b2a190807f6e5d4c3b2a19080
+      GARAGE_DEFAULT_BUCKET: media
+    ports:
+      - "127.0.0.1:3900:3900"
+      - "127.0.0.1:3903:3903"
+    volumes:
+      - ./docker/garage/garage.toml:/etc/garage.toml:ro
+      - casa_garage_meta:/var/lib/garage/meta
+      - casa_garage_data:/var/lib/garage/data
+
+volumes:
+  casa_pg18:
+  casa_garage_meta:
+  casa_garage_data:

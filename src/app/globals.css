@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+/* Base provisional hasta el tramo de marca (T3): sin fondos planos ni tipografías ajenas a la línea gráfica. */
+:root {
+  --background: #f6f6f6;
+  --foreground: #212121;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #001f3e;
+    --foreground: #f6f6f6;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
