@@ -14,10 +14,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [permisos] = tList("T-263");
   const [paginas] = tList("T-330");
   const [cartelera] = tList("T-331");
+  const [medios] = tList("T-334");
   const [persona, comite] = tList("T-290") as [string, string];
   const enlaces = [
     { href: "/admin/paginas", label: paginas ?? "" },
     { href: "/admin/cartelera", label: cartelera ?? "" },
+    { href: "/admin/medios", label: medios ?? "" },
     { href: "/admin/comites", label: comites ?? "" },
     { href: "/admin/terminos", label: terminos ?? "" },
     { href: "/admin/permisos", label: permisos ?? "" },

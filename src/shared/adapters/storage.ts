@@ -79,6 +79,15 @@ export async function headObject(key: string): Promise<ObjectInfo | null> {
   }
 }
 
+/** Bytes de un objeto (para generar variantes en el servidor); lanza si no existe. */
+export async function getObject(key: string): Promise<Uint8Array> {
+  const result = await s3().send(new GetObjectCommand({ Bucket: getEnv().S3_BUCKET, Key: key }));
+  if (!result.Body) {
+    throw new Error(`Objeto sin cuerpo: ${key}`);
+  }
+  return result.Body.transformToByteArray();
+}
+
 export async function presignRead(key: string, expiresInSeconds: number): Promise<string> {
   return getSignedUrl(s3(), new GetObjectCommand({ Bucket: getEnv().S3_BUCKET, Key: key }), {
     expiresIn: expiresInSeconds,

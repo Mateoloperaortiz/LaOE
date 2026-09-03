@@ -40,12 +40,21 @@ export interface CommandContext {
   emit(event: DomainEvent): Promise<void>;
 }
 
-/** Encola un evento de dominio; con dedupeKey no duplica un pendiente igual. */
-export async function enqueueEvent(exec: Executor, event: DomainEvent): Promise<void> {
+/**
+ * Encola un evento de dominio; con dedupeKey no duplica un pendiente igual. `nextAttemptAt` se
+ * estampa con el reloj de la app, el mismo que usa el poller: si el reloj de Postgres va unos
+ * milisegundos adelante (pasa en OrbStack), la fila no queda "todavía no vencida" al encolarla.
+ */
+export async function enqueueEvent(
+  exec: Executor,
+  event: DomainEvent,
+  now = new Date(),
+): Promise<void> {
   const insert = exec.insert(outbox).values({
     eventType: event.type,
     payload: event.payload,
     dedupeKey: event.dedupeKey ?? null,
+    nextAttemptAt: now,
   });
   if (event.dedupeKey === undefined) {
     await insert;

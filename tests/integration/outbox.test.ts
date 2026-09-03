@@ -95,7 +95,7 @@ describe("poller del outbox", () => {
   it("los handlers de los módulos quedan registrados al cargar handlers.ts", async () => {
     resetHandlersForTests();
     await import("@/jobs/handlers");
-    for (const type of ["identity.prune", "system.prune", "system.backup-check"]) {
+    for (const type of ["identity.prune", "system.prune", "system.backup-check", "media.process"]) {
       expect(getHandler(type), type).toBeTypeOf("function");
     }
   });

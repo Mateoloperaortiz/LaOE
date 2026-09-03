@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { getEnv } from "@/env";
 import { SESSION_COOKIE } from "@/modules/identity/cookie";
 
 // El proxy solo redirige rutas protegidas sin cookie y emite la CSP con nonce (ADR-011).
@@ -6,14 +7,23 @@ import { SESSION_COOKIE } from "@/modules/identity/cookie";
 
 const PROTECTED = [/^\/app(\/|$)/, /^\/admin(\/|$)/, /^\/a\//];
 
+let bucketOrigin: string | undefined;
+
+/** Origen del bucket (ADR-033): el navegador sigue el 302 de /api/media y sube directo con fetch. */
+function getBucketOrigin(): string {
+  bucketOrigin ??= new URL(getEnv().S3_ENDPOINT).origin;
+  return bucketOrigin;
+}
+
 function buildCsp(nonce: string, dev: boolean): string {
+  const bucket = getBucketOrigin();
   const directives = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
+    `img-src 'self' data: blob: ${bucket}`,
     "font-src 'self'",
-    `connect-src 'self'${dev ? " ws: wss:" : ""}`,
+    `connect-src 'self' ${bucket}${dev ? " ws: wss:" : ""}`,
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

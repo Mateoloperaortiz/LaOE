@@ -25,7 +25,12 @@ export type Badge =
   | "cream"
   | "yellow-soft";
 
-export type CellValue = string | number | null | { text: string; badge: Badge };
+export type CellValue =
+  | string
+  | number
+  | null
+  | { text: string; badge: Badge }
+  | { text: string; href: string };
 
 export interface Column<Row> {
   key: string;

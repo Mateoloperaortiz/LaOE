@@ -17,6 +17,18 @@ function Cell({ value }: { value: CellValue }) {
     return null;
   }
   if (typeof value === "object") {
+    if ("href" in value) {
+      // Dentro del admin navega con Link; hacia afuera (un medio en el bucket) abre otra pestaña.
+      return value.href.startsWith("/admin") ? (
+        <Link href={value.href} className="font-semibold">
+          {value.text}
+        </Link>
+      ) : (
+        <a href={value.href} target="_blank" rel="noopener noreferrer" className="font-semibold">
+          {value.text}
+        </a>
+      );
+    }
     return <Insignia fondo={value.badge}>{value.text}</Insignia>;
   }
   return <>{value}</>;
