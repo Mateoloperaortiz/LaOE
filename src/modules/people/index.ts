@@ -1,4 +1,6 @@
 // API pública del módulo people.
+
+export { type AlumniEntry, type AlumniYear, listAlumniByYear } from "./domain/alumni";
 export {
   APPOINTMENT_KINDS,
   type AppointmentKind,
@@ -61,7 +63,7 @@ export {
   searchPeople,
 } from "./domain/people-reads";
 export { getPerson360, type Person360 } from "./domain/person-360";
-export { normalizePhone } from "./domain/person-pure";
+export { normalizePhone, splitFullName } from "./domain/person-pure";
 export {
   getPersonRecord,
   listPeople,

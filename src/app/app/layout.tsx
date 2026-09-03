@@ -5,7 +5,11 @@ import { LogoOE, ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 
 // Mi OE: solo con sesión válida (activos y honorarios). Las pestañas de T-061 se habilitan por fase.
-const RUTAS: Record<string, string> = { Inicio: "/app", Ajustes: "/app/ajustes" };
+const RUTAS: Record<string, string> = {
+  Inicio: "/app",
+  Egresados: "/app/egresados",
+  Ajustes: "/app/ajustes",
+};
 
 export default async function AppLayout({ children }: LayoutProps<"/app">) {
   await requireActor("/app");
