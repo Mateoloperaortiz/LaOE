@@ -42,7 +42,12 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Barra brava | `WorkGroup.kind=BARRA_BRAVA` | Apoyo al Athletic OE en al menos tres encuentros con trabajo demostrable |
 | Evaluación de desempeño | `WorkGroupMembership.evaluation` | Juicio del líder o de GH sobre si la persona cumplió con buen desempeño |
 | Decisión de permanencia | `PermanenceDecision` | Resultado del cierre del término: continúa, continúa con compromiso o retiro |
-| Categoría de ocasión | `Occasion.category` | Integración, partido del Athletic, charla, taller, social u otra; la usan los criterios |
+| Categoría de ocasión | `Occasion.category` | Integración, partido del Athletic, reunión de comité, charla, taller, social u otra; la usan los criterios |
+| Tabla del comité | `PermanenceRule.scope=COMMITTEE` | Criterios de permanencia propios de un comité, definidos por su líder dentro del presupuesto |
+| Presupuesto de permanencia | `Term.permanenceOeBudget`, `Term.permanenceCommitteeBudget` | Cuánto pesa cada ámbito en el total del término (propuesta 50 y 50) |
+| Comité principal | `CommitteeMembership.isPrimary` | El comité cuya tabla cuenta en el total de una persona con varios comités |
+| Reunión de comité | `Occasion.category=COMMITTEE_MEETING` | Reunión semanal del comité con asistencia por modo anfitrión; alimenta el criterio de asistencia |
+| Puntaje del líder | `LeaderScore` | Valor que asigna el líder a un criterio como subcomité, liderazgo, destacado o convivencia, con observación si no es completo |
 | Evento | `Event` | Identidad permanente (Días EAFIT, Inventiva) |
 | Edición | `EventEdition` | Ocurrencia fechada de un evento, con lugar y organizadores |
 | Sesión de edición | `Occasion.kind=EDITION_SESSION` | Momento de una edición con check-in |

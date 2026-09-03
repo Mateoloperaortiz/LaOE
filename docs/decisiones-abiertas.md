@@ -14,6 +14,10 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | 6 | ¿Qué pasa por debajo del 60 %? | Retiro · continúa con compromiso · lo decide GH caso por caso (propuesta: decisión explícita por persona, sin sanción automática) | GH y junta | Antes de la fase 4 |
 | 7 | ¿El umbral del 60 % y los pesos cambian por término? | Fijos · configurables por término (propuesta) | GH | Antes de la fase 4 |
 | 8 | ¿Los seis comités de trabajo (CAP, CGH, CML, CCM, CAE, CAF) y el Athletic son distintos de los 27 comités con logo? | Sí: grupos de trabajo transversales (propuesta) · son los mismos | GH | Antes de la fase 2 |
+| 9 | Presupuesto de cada ámbito de permanencia | 50 % OE y 50 % comité (propuesta) · otro reparto | GH | Con la hoja completa |
+| 10 | Quien está en dos o tres comités: ¿qué tabla cuenta en su total? | Comité principal (propuesta) · promedio · la mejor · debe cumplir en cada uno | GH | Antes de la fase 4 |
+| 11 | Eventos 1 y 2 de la tabla del comité: ¿peso fijo para todos los comités o lo define cada líder? | Fijo por GH · lo define cada comité dentro del presupuesto (propuesta) | GH | Antes de la fase 4 |
+| 12 | ¿El resultado de la tabla del comité decide también la permanencia dentro del comité? | Solo informa · el comité decide con registro · lo decide GH | GH y líderes | Antes de la fase 4 |
 
 ## Cerradas
 

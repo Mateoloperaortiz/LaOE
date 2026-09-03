@@ -1,8 +1,8 @@
 # ADR-025: Permanencia como tablero de criterios configurable por término
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-026)
 - Fecha: 2026-09-02
-- Relacionadas: ADR-003, ADR-004, ADR-006, ADR-008, ADR-012, ADR-024
+- Relacionadas: ADR-003, ADR-004, ADR-006, ADR-008, ADR-012, ADR-024, ADR-026
 
 ## Contexto
 
@@ -24,3 +24,7 @@ Gestión Humana decide cada semestre quién permanece en la OE con una tabla de 
 - Los líderes de grupo adquieren un deber: evaluar a sus integrantes; la app les recuerda y GH ve lo pendiente.
 - La tabla completa del término, con su total y quién evalúa cada grupo, es contenido que GH debe entregar; las capturas recibidas suman 50 % para veteranos y 45 % para nuevos, así que faltan criterios.
 - Los seis comités de trabajo y el Athletic se modelan como grupos de trabajo, distintos de los 27 comités de pertenencia (por confirmar).
+
+## Enmienda (2026-09-02, ADR-026)
+
+Las reglas tienen dos ámbitos: las de la OE (GH) y las de cada comité, cada uno con un presupuesto por término; el total de la persona suma ambas partes y usa el comité principal. Las capturas de GH que sumaban 50 % no estaban incompletas: el resto lo pone el comité. Ver [ADR-026](ADR-026-permanencia-por-comite.md).

@@ -84,9 +84,13 @@ Listo cuando: 500 escaneos concurrentes sin duplicados ni recomputes repetidos; 
 ## Fase 4 · Permanencia · `pendiente`
 
 - [ ] Reglas por término: editor, copia del término anterior, vista previa del impacto sobre el roster
+- [ ] Presupuestos OE y comité por término; tablas por comité editadas por su líder dentro del presupuesto, con bloqueo de GH
+- [ ] Comité principal por persona y término
+- [ ] Reuniones de comité como ocasiones en serie semanal con asistencia por modo anfitrión
 - [ ] Categoría de ocasión (integración, partido del Athletic, charla, taller, social) y marca "solo nuevos"
 - [ ] Grupos de trabajo por término (comités de trabajo, GT de macroevento, GAP, GAP OE, barra brava, tareas de nuevos) con líder e integrantes; importación CSV
 - [ ] Evaluaciones de desempeño por líder con bandeja de pendientes y recordatorios
+- [ ] Puntajes del líder (subcomité, liderazgo, destacado del mes, convivencia) con observación obligatoria cuando no es completo
 - [ ] Créditos manuales auditados
 - [ ] Cálculo por outbox con snapshot por persona y término; estados incluido "no alcanza"
 - [ ] Mi OE: `/app/permanencia` con progreso, cómo sumar más y evaluaciones pendientes; barra en el inicio
@@ -154,3 +158,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-02 | — | Cerradas siete decisiones de operación (ADR-023): entorno `staging` persistente, copia mensual a Cloudflare R2 con servicio cron, repositorio `LaOE`, política de datos ya aprobada, correo con desbordamiento automático a SES, seguir en Pro, sin CDN por ahora |
 | 2026-09-02 | — | Reglas de GH confirmadas (ADR-024): comités 1 a 3, asambleas ordinarias más elección de junta y segunda vuelta, código rotativo opcional, score con suavizado, sin medallas migradas, egresados sin acceso. Cloudflare completo evaluado y descartado. Queda una sola decisión abierta |
 | 2026-09-02 | — | Permanencia (ADR-025): la tabla de GH pasa a ser una fase propia (nueva fase 4; admisión, comunicaciones y cutover pasan a 5, 6 y 7). Doc `12-permanencia.md` con la transcripción de las capturas, el modelo y las vistas. Siete preguntas nuevas para GH |
+| 2026-09-02 | — | Permanencia en dos niveles (ADR-026): cada comité tiene su tabla dentro de un presupuesto; tabla de A3 transcrita; reuniones de comité como ocasiones; comité principal; puntajes del líder con observación. Cuatro preguntas más para GH |

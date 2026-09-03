@@ -49,7 +49,7 @@
 | Comunicaciones | `/admin/anuncios`, `/admin/plantillas`, `/admin/campanas`, `/admin/mensajes` | Anuncios con push, plantillas, campañas por segmento, registro |
 | Sistema | `/admin/sistema/auditoria`, `/admin/sistema/jobs`, `/admin/sistema/importaciones`, `/admin/sistema/exportes`, `/admin/sistema/config`, `/admin/sistema/alias` | Auditoría, outbox y dead letter, importaciones, exportes, configuración, alias legados |
 
-Vista de **líder de comité**: `/admin/comites/[slug]` con roster sin correos y score, proponer ocasiones `DRAFT`, consola y modo anfitrión de sus ocasiones. No aprueba puntos ni publica contenido.
+Vista de **líder de comité**: `/admin/comites/[slug]` con roster sin correos y score, proponer ocasiones `DRAFT`, consola y modo anfitrión de sus ocasiones; en `/admin/comites/[slug]/permanencia` edita la tabla de permanencia de su comité dentro del presupuesto, crea las reuniones semanales, pasa asistencia y asigna los puntajes de subcomité, liderazgo, destacado del mes y convivencia. No aprueba puntos ni publica contenido.
 
 Vista de **líder de grupo de trabajo**: evalúa el desempeño de los integrantes de sus grupos en `/admin/permanencia/grupos/[id]`; no ve el resto del roster ni el porcentaje de otras personas.
 

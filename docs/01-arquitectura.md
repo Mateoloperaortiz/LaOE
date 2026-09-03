@@ -52,7 +52,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.prisma` (Prisma en mod
 | `forms` | Formularios propios (públicos y de integrantes), respuestas, inscripciones a ediciones | `Form`, `Submission`, `EditionRegistration` |
 | `events` | Eventos permanentes, ediciones, comités organizadores, calendario ICS | `Event`, `EventEdition`, `EditionCommittee` |
 | `participation` | Términos, ocasiones (actividad, asamblea, sesión de edición), check-ins, ledger, rankings, score de comité | `Term`, `Occasion`, `CheckIn`, `PointEntry`, `CommitteeParticipation`, `TermStanding`, `AssemblyRequirement` |
-| `permanence` | La tabla de permanencia de GH: reglas por término, grupos de trabajo, evaluaciones de desempeño, snapshot por persona, decisiones de cierre | `PermanenceRule`, `WorkGroup`, `WorkGroupMembership`, `PermanenceSnapshot`, `PermanenceDecision`, `ManualCredit` |
+| `permanence` | La tabla de permanencia de GH y las de cada comité: reglas por término y ámbito, presupuestos, grupos de trabajo, evaluaciones y puntajes del líder, snapshot por persona, decisiones de cierre | `PermanenceRule`, `WorkGroup`, `WorkGroupMembership`, `PermanenceSnapshot`, `PermanenceDecision`, `ManualCredit` |
 | `content` | Páginas editables, cartelera, medios, documentos de normativa, ficha editorial de comité | `Page`, `Announcement`, `MediaAsset`, `Document` |
 | `comms` | Plantillas, campañas, mensajes, suscripciones push, preferencias | `EmailTemplate`, `Campaign`, `Message`, `PushSubscription`, `NotificationPreference` |
 | `system` | Auditoría, configuración, outbox, importaciones, exportes, alias legados, salud | `AuditLog`, `AppConfig`, `Outbox`, `ImportJob`, `LegacyAlias` |
