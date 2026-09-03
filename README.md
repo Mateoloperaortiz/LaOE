@@ -25,7 +25,7 @@ npm run db:reset            # esquema desde cero + datos sintéticos
 npm run dev                 # http://localhost:3000 · salud en /api/health
 ```
 
-`npm run check` corre todo lo que corre el CI: Biome, dependency-cruiser, knip, `tsc`, pruebas unitarias, pruebas de integración contra la base local y `next build`. Cómo se prueba cada capa: [docs/10-verificacion.md](docs/10-verificacion.md).
+Las pruebas de integración y las e2e (`npm run test:e2e`) vacían la base local; `npm run db:reset` la deja como nueva. `npm run check` corre todo lo que corre el CI: Biome, dependency-cruiser, knip, `tsc`, pruebas unitarias, pruebas de integración contra la base local y `next build`. Cómo se prueba cada capa: [docs/10-verificacion.md](docs/10-verificacion.md).
 
 ## Cómo leer la documentación
 

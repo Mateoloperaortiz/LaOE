@@ -10,7 +10,7 @@ export default function NotFound() {
       <Elemento tipo="destello" className="size-16 text-oe-orange" />
       <h1 className="text-display-lg">{mensaje}.</h1>
       <Link href="/" className="boton-primario">
-        {(accion ?? inicio).replace(/\.$/, "")}
+        {(accion ?? inicio ?? "").replace(/\.$/, "")}
       </Link>
     </main>
   );

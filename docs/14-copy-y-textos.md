@@ -269,6 +269,16 @@ Textos de controles genéricos que no cambian el sentido institucional.
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-230 | Botón para reintentar tras un error | Intentar de nuevo | MATEO | Propuesta |
+| T-231 | Botón para salir de Mi OE y del admin | Cerrar sesión | MATEO | Propuesta |
+| T-232 | Sesiones: marca de la sesión actual | Este dispositivo | MATEO | Propuesta |
+| T-233 | Sesiones: columna de última actividad | Última actividad | MATEO | Propuesta |
+| T-234 | Sesiones: dispositivo sin identificar | Dispositivo | MATEO | Propuesta |
+| T-235 | Sesiones: confirmación al cerrar las demás | Listo: cerramos tus otras sesiones. | MATEO | Propuesta |
+| T-236 | Título del área de administración | Administración | MATEO | Propuesta |
+| T-237 | Ingresar: volver al primer paso | Pedir otro código | MATEO | Propuesta |
+| T-238 | Ingresar: etiqueta del campo del código | Código de seis dígitos | MATEO | Propuesta |
+| T-239 | Ingresar: correo con formato inválido | Ese correo no tiene un formato válido. Revisalo. | MATEO | Propuesta |
+| T-240 | Admin: aviso de sección aún sin construir | Esta sección llega en una fase siguiente. | MATEO | Propuesta |
 
 ## 9. Lo que debe entregar cada dueño
 

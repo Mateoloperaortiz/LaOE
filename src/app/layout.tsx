@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { fontContenido, fontTitulos } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import "./globals.css";
@@ -18,12 +19,17 @@ export const viewport: Viewport = {
 // Aplica el tema guardado antes del primer pintado para evitar el destello.
 const temaGuardado = `(()=>{try{const t=localStorage.getItem("oe-tema");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch{}})();`;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
-    <html lang="es-CO" className={`${fontTitulos.variable} ${fontContenido.variable} h-full`}>
+    <html
+      lang="es-CO"
+      data-scroll-behavior="smooth"
+      className={`${fontTitulos.variable} ${fontContenido.variable} h-full`}
+    >
       <head>
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: script estático sin datos externos */}
-        <script dangerouslySetInnerHTML={{ __html: temaGuardado }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: temaGuardado }} />
       </head>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>

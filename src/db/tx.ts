@@ -7,6 +7,9 @@ import { type Db, getDb } from "./client";
 
 export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
+/** Base o transacción: lo que reciben los comandos del dominio. */
+export type Executor = Db | Tx;
+
 /** Quién ejecuta el comando. `personId` nulo es el sistema (jobs, scripts). */
 export interface Actor {
   personId: string | null;
