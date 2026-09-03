@@ -259,6 +259,18 @@
 .cartel h3 {
   color: var(--cartel-tinta);
 }
+/* El cartel no cambia con el tema, así que lo que va dentro usa su tinta y no la del tema
+   (en oscuro, un botón secundario o un enlace serían paper sobre paper). */
+.cartel a {
+  color: var(--cartel-tinta);
+}
+.cartel .boton-secundario {
+  color: var(--cartel-tinta);
+  border-color: var(--cartel-tinta);
+  &:hover {
+    background: color-mix(in oklab, var(--cartel-tinta) 12%, transparent);
+  }
+}
 
 /* Barra de color detrás de un título, que sale del borde izquierdo de la pantalla. */
 .barra-titulo {

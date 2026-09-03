@@ -38,7 +38,7 @@ Listo cuando (en local): login por OTP con el roster semilla sintético, cascar�
 
 Listo cuando: lo mismo de A pasando en `staging`, más la primera copia en R2 restaurada en local.
 
-## Fase 1 · Portal público y contenido · `en curso`
+## Fase 1 · Portal público y contenido · `lista`
 
 Plan aprobado el 2026-09-03 ([ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md)): siete tramos en cortes verticales (esquema → dominio → admin → portal); cada uno cierra con `npm run check` y `npm run test:e2e` en verde, un commit convencional y push a `main`. Railway sigue pendiente (fase 0 B).
 
@@ -50,23 +50,25 @@ Plan aprobado el 2026-09-03 ([ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md)
 - [x] F1-T3 · Medios: presign, subida directa, confirm, `media.process` con variantes WebP, `GET /api/media/[id]`, `/admin/medios` con subidor, bucket en la CSP
 - [x] F1-T4 · Eventos y ediciones: admin anidado con las extensiones del kit, `/eventos`, `/eventos/[slug]`, `/eventos/[slug]/[edicion]`, inicio con próximo encuentro y macroeventos, ICS público, seed sintético de anuncios y ediciones
 - [x] F1-T5 · OG images con cartel tipográfico e instancias TTF, `generateMetadata`, `metadataBase`, sitemap, robots, `PUBLIC_INDEXING`
-- [ ] F1-T6 · Cierre: lista de revisión de marca por pantalla, tres anchos y dos temas, registro
+- [x] F1-T6 · Cierre: lista de revisión de marca por pantalla, tres anchos y dos temas, registro
 
 ### Entregables
 
-- [ ] Páginas editables: La OE, Unirse, Privacidad
-- [ ] Cartelera pública y anuncios
-- [ ] Eventos y ediciones: los 4 macroeventos como identidades sin fechas inventadas
-- [ ] Comités con 27 logos y fichas editoriales
-- [ ] Inicio con cartelera, próximo encuentro y macroeventos
-- [ ] ICS público
-- [ ] OG images con cartel tipográfico
-- [ ] Admin de Contenido con subida directa prefirmada, confirmación y variantes
-- [ ] SEO básico, sitemap, robots
-- [ ] Lista de revisión de marca aplicada a cada pantalla pública ([07-marca.md](07-marca.md))
-- [ ] Textos del portal tomados de `14-copy-y-textos.md` (T-001 a T-033), sin copy inventado en el código
+- [x] Páginas editables: La OE, Unirse, Privacidad
+- [x] Cartelera pública y anuncios
+- [x] Eventos y ediciones: los 4 macroeventos como identidades sin fechas inventadas
+- [x] Comités con 27 logos y fichas editoriales
+- [x] Inicio con cartelera, próximo encuentro y macroeventos
+- [x] ICS público
+- [x] OG images con cartel tipográfico
+- [x] Admin de Contenido con subida directa prefirmada, confirmación y variantes
+- [x] SEO básico, sitemap, robots
+- [x] Lista de revisión de marca aplicada a cada pantalla pública ([07-marca.md](07-marca.md))
+- [x] Textos del portal tomados de `14-copy-y-textos.md` (T-001 a T-033), sin copy inventado en el código
 
 Listo cuando: contenido real de la OE publicable sin tocar código; nada personal en público; una portada de 5 MB sube directo al bucket y se sirve por redirección prefirmada.
+
+**Cumplido el 2026-09-03 (en local)**: un ADMIN publica páginas, anuncios, eventos, ediciones y fichas de comité desde el admin sin tocar código; el portal no muestra ningún dato personal (las fichas de comité no tienen roster y los organizadores son comités); una portada de 5,9 MB sube del navegador a Garage con `POST` prefirmado y se sirve con 302 a una URL prefirmada (prueba e2e `medios.spec.ts`); `npm run check` y las 15 pruebas e2e con `axe` en verde; revisado en 375, 768 y escritorio, claro y oscuro. Lo que falta para publicar contenido real está en [11-contenido-pendiente.md](11-contenido-pendiente.md) (textos de La OE completos, Unirse, política de privacidad, presentaciones y contactos de los 27 comités, descripciones y fechas de los macroeventos).
 
 ## Fase 2 · Personas y Mi OE · `pendiente`
 
@@ -219,3 +221,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-03 | 1 | F1-T3 listo: medios según ADR-022 y ADR-033: `POST /api/media/presign` (ADMIN; JPG, PNG o WebP de 5 KB a 20 MB; clave `uploads/AAAA/MM/<id>.<ext>`), subida directa del navegador con `MediaUploader`, `POST /api/media/confirm` (HEAD, `media_asset` en PENDING, evento `media.process` con clave de deduplicación), handler con `sharp` (variantes WebP 480/960/1600 sin agrandar en `variants/<id>/`, READY, o FAILED sin reintento si no decodifica; los fallos del bucket relanzan), `GET /api/media/[id]?w=` con 302 y caché menor que la firma (público 6 días, privado 5 minutos con sesión), `Imagen` con `srcset`, `/admin/medios` a medida (subidor y listado con estado), `sharp` declarado y externo, origen del bucket en `img-src` y `connect-src`, celdas con enlace en el kit. Corrección de fondo: el outbox estampa `next_attempt_at` con el reloj de la app (el de Postgres en OrbStack iba 10 ms adelantado y las filas recién encoladas no "vencían"). 6 unitarias, 3 de integración y 1 e2e nuevas (portada de 5,9 MB subida directo a Garage y servida con 302); `check` y e2e (12) en verde |
 | 2026-09-03 | 1 | F1-T4 listo: dominio de eventos (resumen, descripción, portada, orden, publicación) y ediciones (fechas en Bogotá convertidas a UTC, lugar, inscripción externa, portada, organizadores en la misma transacción, unique por evento y slug, fin posterior al inicio) con lecturas públicas (`listPublishedEvents`, `getPublishedEvent`, `listPublishedEditionsOf`, `getPublishedEdition`, `findNextPublicEdition(s)`, `listPublicEditionsForIcs`); kit con `multiselect`, `datetime`, `emptyOption`, celdas con enlace, `ResourcePage` con `basePath`, `fixedFilters` y `title`, y acciones que revalidan la ruta de retorno; recursos `eventos` (enlace "Ediciones (n)") y `ediciones` montado en `/admin/eventos/[id]/ediciones` con el evento fijado; portal con `/eventos`, `/eventos/[slug]` y `/eventos/[slug]/[edicion]` (ficha Cuándo · Dónde · Organizan con logos, botón de inscripción externa, JSON-LD `Event` con nonce, "Próxima edición" o "Ya pasó"); inicio con "Próximo encuentro" y macroeventos desde la base; `GET /api/ics/publico.ics` a mano; enlaces al calendario en el pie y en eventos; tarjetas con enlace estirado (el título es el enlace, con nombre accesible); seed con dos anuncios y una edición "de prueba" por macroevento; `formatDateRange` y conversión `datetime-local` ↔ UTC. Corrección: en una plantilla `sql` de Drizzle las columnas no se califican, la subconsulta de conteo usa identificadores completos. 8 unitarias, 2 de integración y 1 e2e nuevas (edición con portada y organizadores creada desde el admin anidado; la imagen carga en el navegador a través del 302, lo que prueba la CSP); `check` y e2e (13) en verde |
 | 2026-09-03 | 1 | F1-T5 listo: `scripts/og-fonts.py` (fonttools desde los WOFF2 del repo) genera Sofia Sans Extra Condensed 900 y Plus Jakarta Sans 600 en TTF subseteadas a latín (38 y 24 KB); `CartelOG` con estilos en línea, paleta por variante, rotación determinista por identificador e isotipo como silueta tenue; `opengraph-image` en inicio, cartelera y cada anuncio, eventos y cada evento y edición, comités y cada comité, y `/[slug]` para las páginas fijas (los que leen la base con `force-dynamic`; Next 16 les agrega un hash al nombre); layout raíz con `generateMetadata` (`metadataBase` desde `APP_URL`, Open Graph del sitio, `noindex` salvo `PUBLIC_INDEXING`); `paginaMetadata` con canonical y Open Graph completo en cada página pública; `robots.txt` cerrado salvo indexación y `sitemap.xml` con lo publicado, ambos dinámicos; `x-robots-tag` en el proxy; `PUBLIC_INDEXING` en `env`. 2 e2e nuevas (canonical, `og:image` que responde PNG en ocho rutas, JSON-LD, robots, sitemap); `check` y e2e (15) en verde |
+| 2026-09-03 | 1 | F1-T6 listo y **fase 1 lista en local**: lista de revisión de marca (07-marca §11) aplicada a las nueve pantallas públicas en 375, 768 y escritorio, claro y oscuro; corrección hallada en la revisión: dentro de un `Cartel` (que no cambia con el tema) los enlaces y el botón secundario usan la tinta del cartel, no la del tema (en oscuro quedaban paper sobre paper). Entregables de la fase marcados, "listo cuando" cumplido en local, README actualizado. Queda Railway (fase 0 B) y el contenido real de la OE (11-contenido-pendiente) |
