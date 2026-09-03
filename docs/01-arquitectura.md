@@ -42,7 +42,7 @@ flowchart LR
 
 ## Módulos
 
-Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzle; `drizzle.config.ts` las recoge), `domain/` (comandos, lecturas y `*-pure.ts` sin I/O), `actions.ts` (server actions), `jobs.ts` (handlers de outbox y programados), `events.ts`, `components/` e `index.ts` (su API pública). Los módulos no se importan entre sí por dentro: se hablan por lecturas explícitas exportadas desde `index.ts` y por eventos de dominio; `dependency-cruiser` lo verifica en `npm run check`.
+Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzle; `drizzle.config.ts` las recoge), `domain/` (comandos, lecturas y `*-pure.ts` sin I/O), `actions.ts` (server actions), `jobs.ts` (handlers de outbox y programados), `events.ts`, `components/` e `index.ts` (su API pública). Los módulos no se importan entre sí por dentro: se hablan por lecturas explícitas exportadas desde `index.ts` y por eventos de dominio; `dependency-cruiser` lo verifica en `npm run check`. La única excepción es `schema.ts`: puede importar el `schema.ts` de otro módulo para declarar claves foráneas (referencias perezosas que Drizzle resuelve); los enums que comparten varios módulos viven en `src/db/enums.ts`.
 
 | Módulo | Responsabilidad | Modelos principales |
 | --- | --- | --- |

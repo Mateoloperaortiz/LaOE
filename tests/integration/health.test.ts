@@ -7,7 +7,7 @@ describe("checkDatabase", () => {
     expect(status.ok).toBe(true);
     if (status.ok) {
       expect(status.version).toMatch(/^PostgreSQL 18/);
-      expect(status.latenciaMs).toBeGreaterThanOrEqual(0);
+      expect(status.latencyMs).toBeGreaterThanOrEqual(0);
     }
   });
 });

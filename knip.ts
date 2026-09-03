@@ -8,6 +8,7 @@ const config: KnipConfig = {
     css: (texto: string) => [...texto.matchAll(/(?<=@)import[^;]+/g)].join("\n"),
   },
   ignoreDependencies: ["pino-pretty"],
+  ignoreExportsUsedInFile: { interface: true, type: true },
 };
 
 export default config;

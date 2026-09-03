@@ -3,20 +3,41 @@ module.exports = {
   forbidden: [
     {
       name: "sin-ciclos",
+      comment:
+        "Sin ciclos, salvo entre archivos schema.ts: las claves foráneas entre módulos son referencias perezosas y Drizzle las resuelve.",
       severity: "error",
       from: {},
-      to: { circular: true },
+      to: { circular: true, viaOnly: { pathNot: "/schema\\.ts$" } },
     },
     {
       name: "modulos-solo-por-su-api-publica",
       comment:
         "Un módulo solo importa de otro módulo por su index.ts (ADR-001): lecturas explícitas y eventos, nunca su dominio, esquema o acciones.",
       severity: "error",
-      from: { path: "^src/modules/([^/]+)/" },
+      from: { path: "^src/modules/([^/]+)/", pathNot: "/schema\\.ts$" },
       to: {
         path: "^src/modules/([^/]+)/",
         pathNot: ["^src/modules/$1/", "^src/modules/[^/]+/index\\.ts$"],
       },
+    },
+    {
+      name: "schema-solo-importa-schema",
+      comment:
+        "Un schema.ts solo importa de otro módulo su schema.ts (claves foráneas), nunca dominio ni acciones.",
+      severity: "error",
+      from: { path: "^src/modules/([^/]+)/schema\\.ts$" },
+      to: {
+        path: "^src/modules/([^/]+)/",
+        pathNot: ["^src/modules/$1/", "^src/modules/[^/]+/schema\\.ts$"],
+      },
+    },
+    {
+      name: "db-solo-conoce-esquemas",
+      comment:
+        "src/db (transacción, auditoría, outbox) conoce las tablas de los módulos, no su dominio.",
+      severity: "error",
+      from: { path: "^src/db/" },
+      to: { path: "^src/modules/", pathNot: "^src/modules/[^/]+/schema\\.ts$" },
     },
     {
       name: "app-no-consulta-la-base",
