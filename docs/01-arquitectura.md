@@ -75,7 +75,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.prisma` (Prisma en mod
 - **Eventos de dominio → línea de tiempo.** `checkin.approved`, `points.credited`, `membership.changed`, `stage.changed`, `submission.received`, `message.sent` y `card.moved` producen `Interaction` en la persona. El CRM se alimenta solo.
 - **Admin kit declarativo** (`src/shared/admin-kit/`): `defineResource({ modelo, columnas, filtros, formulario Zod, permisos })` genera listado paginado con búsqueda, ficha, crear/editar en panel lateral y export CSV. Cubre Comité, Término, Etiqueta, Organización, Formulario, Plantilla, Página, Documento, Anuncio y Pipeline. UI a medida solo para Persona 360, kanban, consola de ocasión, ledger, campañas e importaciones. Paleta de comandos (⌘K) con búsqueda `pg_trgm` sobre personas, organizaciones y ocasiones.
 - **Marca** (`src/shared/brand/`): tokens, texturas, `Cartel`, elementos gráficos como SVG, tema claro/oscuro, movimiento reducido. Ver [07-marca.md](07-marca.md).
-- **Adaptadores:** `Mailer` (`console` en desarrollo y staging, `resend` en producción; `ses` como alternativa del mismo contrato), `Storage` (bucket de Railway vía S3; emulador local en desarrollo), `Pusher` (web-push con VAPID).
+- **Adaptadores:** `Mailer` (`console` en desarrollo y `staging`; en producción Resend para transaccional con desbordamiento automático a SES desde 95 correos diarios, y SES para campañas), `Storage` (bucket de Railway vía S3; emulador local en desarrollo), `Pusher` (web-push con VAPID).
 
 ## Cómo corre en Railway
 
@@ -87,7 +87,8 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.prisma` (Prisma en mod
 | Bucket `media` | Privado, S3-compatible; variables enlazadas por referencia al servicio `web`; nunca `NEXT_PUBLIC_*`; CORS para el dominio de producción y los de PR o staging (`aws s3api put-bucket-cors`); sin snapshots nativos, por eso la copia mensual incluye sus objetos |
 | Variables | `DATABASE_URL` por referencia a Postgres, `SESSION_SECRET`, `APP_URL`, `APP_TIMEZONE=America/Bogota`, `TZ=UTC`, `INSTITUTIONAL_EMAIL_DOMAINS`, `RESEND_API_KEY`, `EMAIL_FROM`, `VAPID_*`, `JOBS_ENABLED=true`, credenciales del bucket |
 | Worker | En el mismo proceso del servicio `web`; un servicio `worker` aparte (misma imagen, `WORKER_ONLY=1`) solo con uso medido |
-| Entornos | Producción desde `main`; entornos de PR de Railway o un staging bajo demanda (decisión abierta); desarrollo local con Postgres en Docker y emulador S3, sin credenciales de producción |
+| Entornos | `staging` persistente desde la fase 0 (rama `main`, datos sintéticos, dominio de Railway o `pruebas.oeeafit.com` con `noindex`, correo a consola) y `production` desde la fase 6 (rama `production`, adelantada a mano desde `main`); entornos de PR apagados; desarrollo local con Postgres en Docker y emulador S3, sin credenciales de producción ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
+| Servicio `backup` | Cron de Railway el día 1 de cada mes (`0 8 1 * *`, 03:00 de Bogotá); `pg_dump` por la red privada más los objetos del bucket, cifrados con `age`, a un bucket privado de Cloudflare R2 (gratis); conserva 12 copias y termina |
 | Dominio | `oeeafit.com` se mueve del servicio GHPOINTS al servicio `web` en el cutover |
 | Límite de gasto | Límite duro del workspace revisado para dos apps en convivencia; alerta antes del tope |
 
@@ -95,7 +96,7 @@ Lo que este despliegue permite y que el diseño aprovecha:
 
 - **Proceso permanente:** poller y scheduler en la app; sin crons externos ni funciones con tiempo máximo.
 - **Medios sin pasar por la app:** subida directa del navegador al bucket con `POST` prefirmado y CORS; entrega por `/api/media/[id]`, que valida y redirige a una URL prefirmada, con egreso gratis desde el bucket ([ADR-022](adr/ADR-022-medios-prefirmados.md)).
-- **Una sola región:** latencia desde Medellín de 60 a 90 ms, suficiente para este uso; Cloudflare gratis delante como CDN del portal es opcional.
+- **Una sola región:** latencia desde Medellín de 60 a 90 ms, suficiente para este uso. Sin CDN delante por ahora: se revisaría solo ante spam en formularios públicos, lentitud medida o cargos de egreso.
 - **Una sola instancia:** el healthcheck y los reinicios cubren fallos del proceso; la alta disponibilidad no es objetivo. Si algún día hace falta escalar, los locks transaccionales ya evitan trabajo duplicado.
 
 ## Layout del repositorio (cuando exista código)
@@ -128,17 +129,19 @@ casa-digital/
 | Railway Pro (workspace ya pagado por GHPOINTS; incluye US$20 de uso) | US$20/mes, ya en curso |
 | Uso estimado de la app nueva: web 0,3 a 0,5 GB de RAM (US$3 a 5) + Postgres 0,1 a 0,2 GB (US$1 a 2) + volumen 1 GB (US$0,15) + bucket (US$0,015 por GB) | ≈ US$5 a 7, dentro de los US$20 incluidos |
 | Uso de GHPOINTS durante la convivencia | ≈ US$4, también incluido |
-| Resend gratis (3.000 correos/mes, 100/día) | US$0; SES (US$0,10 por 1.000) si un día de evento supera 100 OTP |
+| Entorno `staging` (web + Postgres + bucket con datos sintéticos) | ≈ US$3 a 4, también incluido |
+| Servicio `backup` (corre minutos al mes) y Cloudflare R2 gratis (10 GB) | ≈ US$0 |
+| Resend gratis (3.000 correos/mes, 100/día) para transaccional; SES (US$0,10 por 1.000) para desbordamiento y campañas | Centavos |
 | Web push, dominio existente, fuentes sustitutas | US$0 |
 | **Total esperado** | **US$20/mes, sin cambio** |
-| Después del cutover | Los mismos US$20 con PITR y entornos de PR; bajar a Hobby (US$5) es posible si se acepta perder ambos |
+| Después del cutover | Se sigue en Pro (decidido el 2026-09-02): PITR y margen de uso para dos entornos |
 
 ## Alternativas evaluadas (2026-09-02)
 
 | Opción | Costo real | Jobs de fondo | Postgres + bucket | Operación | Veredicto |
 | --- | --- | --- | --- | --- | --- |
 | **Railway, workspace Pro actual de GHPOINTS** | US$0 extra durante la convivencia; US$20 después | Worker en el mismo proceso | Incluidos, mismo panel, PITR ya configurado | Mínima, ya conocida | **Elegida** |
-| Railway Hobby | ≈ US$5 a 7 | Igual | Incluidos, respaldos diarios | Mínima | Opción para después del cutover |
+| Railway Hobby | ≈ US$5 a 7 | Igual | Incluidos, respaldos diarios | Mínima | Descartada: se sigue en Pro |
 | Vercel + Neon + R2 | US$20 (Pro) o US$0 (Hobby con límites) | Sin proceso permanente: outbox + cron por minuto | Tres proveedores; Neon gratis se suspende al estar inactivo | Baja, más piezas | Elegida y descartada el mismo día: se prefirió lo que ya se paga ([ADR-019](adr/ADR-019-infraestructura-vercel-neon-r2.md), [ADR-021](adr/ADR-021-infraestructura-railway.md)) |
 | Render | ≈ US$13 (web + Postgres) | Worker aparte cuesta otro servicio | Sin bucket propio | Baja | Descartada |
 | Hetzner + Coolify | ≈ US$5 | Todo en una máquina | Vos instalás Postgres y MinIO | Alta: sos el sysadmin | Descartada |

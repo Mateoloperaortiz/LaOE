@@ -8,12 +8,14 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 
 Cuentas y accesos:
 
-- [ ] Repositorio en GitHub (remoto de este repo) con protección de `main`
-- [ ] Proyecto `casa-digital` en el workspace Pro de Railway: servicios `web`, `Postgres` y bucket `media`; variables por referencia; misma región que GHPOINTS
+- [ ] Repositorio `LaOE` en GitHub (remoto de este repo) con protección de `main`
+- [ ] Proyecto `casa-digital` en el workspace Pro de Railway con el entorno `staging`: servicios `web`, `Postgres` y bucket `media`; variables por referencia; misma región que GHPOINTS; dominio de Railway o `pruebas.oeeafit.com` con `noindex`
 - [ ] Respaldos del volumen de Postgres (diario, semanal, mensual) y PITR activados
 - [ ] CORS del bucket configurado para el dominio de producción y los de PR o staging
 - [ ] Límite duro de uso del workspace revisado para dos apps en convivencia
 - [ ] Resend: dominio `oeeafit.com` verificado (ya existe en GHPOINTS; confirmar acceso)
+- [ ] AWS SES: cuenta, dominio `oeeafit.com` verificado, salida del sandbox
+- [ ] Cloudflare R2: bucket privado para copias; par de claves `age` (la privada solo con Mateo)
 - [ ] Claves VAPID para push
 
 Código base (empieza cuando se autorice escribir código):
@@ -24,13 +26,13 @@ Código base (empieza cuando se autorice escribir código):
 - [ ] Acceso: OTP, sesiones, guards, step-up, `/ingresar`
 - [ ] Admin kit (`defineResource`) y paleta ⌘K
 - [ ] Outbox + poller + scheduler en `instrumentation.ts`; vista de jobs y dead letter
-- [ ] Adaptadores: Mailer (consola/Resend), Storage (bucket de Railway/emulador), Pusher
+- [ ] Adaptadores: Mailer (consola; Resend con desbordamiento a SES), Storage (bucket de Railway/emulador), Pusher
 - [ ] Auditoría en transacción y `AppConfig`
 - [ ] CI: lint, typecheck, unit, integration con Postgres, build
-- [ ] Copia mensual cifrada de la base fuera de Railway (`backup.ts`) y job `backup-check`
+- [ ] Servicio `backup` con cron mensual de Railway (`pg_dump` + objetos del bucket, cifrado con `age`, subida a R2) y job `backup-check` en el web
 - [ ] Seed sintético sin datos reales
 
-Listo cuando: login por OTP con roster semilla sintético, shell del admin, claro/oscuro en 3 anchos, entorno de PR o staging bajo demanda funcionando, poller del outbox visible en los logs de producción, health en verde.
+Listo cuando: login por OTP con roster semilla sintético en `staging`, shell del admin, claro/oscuro en 3 anchos, poller del outbox visible en los logs, health en verde, primera copia en R2 restaurada en local.
 
 ## Fase 1 · Portal público y contenido · `pendiente`
 
@@ -105,6 +107,7 @@ Listo cuando: un anuncio llega al celular de un integrante en menos de un minuto
 
 ## Fase 6 · Cutover · `pendiente`
 
+- [ ] Crear el entorno `production` (web, Postgres, bucket) y la rama `production`; CORS y variables de producción
 - [ ] Ensayo completo de migración sobre un dump reciente
 - [ ] Congelación de GHPOINTS y migración delta; copia de medios nuevos
 - [ ] Mover `oeeafit.com` del servicio GHPOINTS al servicio `web` nuevo
@@ -132,3 +135,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-02 | — | Documentación inicial: visión, arquitectura, CRM, modelo de datos, 20 ADR, acceso, mapa del sitio, marca, migración, roadmap |
 | 2026-09-02 | — | Carpeta renombrada de `Untitled` a `casa-digital`. Hosting vuelve a Railway en el workspace Pro existente: ADR-021 reemplaza a ADR-019 y enmienda ADR-001, ADR-012 y ADR-016. Marca reescrita a partir del manual de 19 páginas (logo, color, tipografía, elementos, texturas, composición, orden del feed) |
 | 2026-09-02 | — | Cerradas cuatro decisiones: sustitutos libres de fuentes por comparación visual (Sofia Sans Extra Condensed y Plus Jakarta Sans), isotipo aprobado como favicon, elementos gráficos redibujados en SVG, subida directa prefirmada al bucket (ADR-022 reemplaza a ADR-016). Láminas de comparación en `docs/assets/` |
+| 2026-09-02 | — | Cerradas siete decisiones de operación (ADR-023): entorno `staging` persistente, copia mensual a Cloudflare R2 con servicio cron, repositorio `LaOE`, política de datos ya aprobada, correo con desbordamiento automático a SES, seguir en Pro, sin CDN por ahora |

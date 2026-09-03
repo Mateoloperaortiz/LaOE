@@ -45,9 +45,9 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 
 ## Despliegue
 
-- Entorno de PR de Railway o staging bajo demanda; producción solo desde `main`, con el pre-deploy de migraciones en verde.
+- `staging` sigue `main` y recibe cada cambio; `production` solo avanza cuando la rama `production` se adelanta a mano, con el pre-deploy de migraciones en verde.
 - Tras cada release: `/api/health`, poller del outbox visible en los logs, un OTP real recibido en un buzón `@eafit.edu.co`, una portada servida desde `/api/media/[id]` y un push recibido en un iPhone con la PWA instalada.
-- Una vez al mes: restaurar en local un respaldo nativo de Railway o la copia mensual cifrada y abrir la app contra esa copia.
+- Una vez al mes: descargar la copia cifrada de R2, descifrarla con la clave privada de `age`, restaurarla en local y abrir la app contra esa copia.
 
 ## Cierre de fase
 

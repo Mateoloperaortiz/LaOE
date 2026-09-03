@@ -52,6 +52,12 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | La carpeta del repositorio pasa de `Untitled` a `casa-digital`; el nombre del remoto sigue abierto |
 | 2026-09-02 | Sin licencias de fuentes: Sofia Sans Extra Condensed y Plus Jakarta Sans (OFL) sustituyen a TT Bluescreens y NouvelR; el isotipo se usa como favicon con aval |
 | 2026-09-02 | Medios: subida directa al bucket con `POST` prefirmado y CORS, entrega por redirección prefirmada ([ADR-022](adr/ADR-022-medios-prefirmados.md)) |
+| 2026-09-02 | Entorno `staging` persistente desde la fase 0; `production` se crea en la fase 6; entornos de PR apagados ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
+| 2026-09-02 | Copia mensual cifrada (base + bucket) a Cloudflare R2 desde un servicio cron de Railway |
+| 2026-09-02 | Repositorio remoto en GitHub: `LaOE`; la carpeta local sigue siendo `casa-digital` |
+| 2026-09-02 | La política de tratamiento de datos ya está aprobada por la OE; falta subir su texto al repositorio |
+| 2026-09-02 | Correo: Resend para transaccional con desbordamiento automático a SES; campañas por SES |
+| 2026-09-02 | Tras el cutover se sigue en Railway Pro; sin Cloudflare delante por ahora |
 
 Hechos que sustentan varias de estas decisiones:
 

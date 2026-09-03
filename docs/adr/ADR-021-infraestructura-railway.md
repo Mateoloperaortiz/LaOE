@@ -1,6 +1,6 @@
 # ADR-021: Infraestructura: Railway en el workspace Pro existente
 
-- Estado: Aceptada (enmendada por ADR-022 en el punto "Medios")
+- Estado: Aceptada (enmendada por ADR-022 en "Medios" y por ADR-023 en "Entornos", "Respaldos" y "Presupuesto")
 - Fecha: 2026-09-02
 - Reemplaza: ADR-019
 - Enmienda: ADR-001, ADR-012, ADR-016
@@ -31,6 +31,10 @@ Hechos verificados en la documentación de Railway el 2026-09-02: Pro US$20/mes 
 ## Enmienda (2026-09-02, ADR-022)
 
 El punto "Medios" queda como lo define [ADR-022](ADR-022-medios-prefirmados.md): subida directa desde el navegador con `POST` prefirmado y CORS, entrega por redirección a URL prefirmada; la app no transmite archivos. El resto de esta ADR no cambia.
+
+## Enmienda (2026-09-02, ADR-023)
+
+Entornos: `staging` persistente desde la fase 0 y `production` desde la fase 6; entornos de PR apagados. Respaldos: la copia externa la hace un servicio `backup` con cron de Railway hacia Cloudflare R2. Presupuesto: se sigue en Pro después del cutover. Ver [ADR-023](ADR-023-operacion-entornos-respaldo-correo.md).
 
 ## Frente a ADR-019
 

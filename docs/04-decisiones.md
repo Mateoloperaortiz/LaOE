@@ -18,11 +18,12 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | [012](adr/ADR-012-outbox-transaccional.md) | Outbox transaccional | Mutación + auditoría + eventos en una transacción; un poller en proceso drena; los efectos nunca revierten | Enmendada por 021 |
 | [013](adr/ADR-013-formularios-en-la-app.md) | Formularios en la app | Toda respuesta vincula persona por correo y registra consentimiento; nunca crea puntos | Aceptada |
 | [014](adr/ADR-014-privacidad-por-diseno.md) | Privacidad por diseño | Consentimiento versionado, mínimo en público, exportación y eliminación, retención de egresados | Aceptada |
-| [015](adr/ADR-015-canales.md) | Canales | Cartelera + push web primero; correo transaccional y campañas segmentadas; WhatsApp solo enlaces | Aceptada |
+| [015](adr/ADR-015-canales.md) | Canales | Cartelera + push web primero; correo transaccional y campañas segmentadas; WhatsApp solo enlaces | Enmendada por 023 |
 | [016](adr/ADR-016-medios-en-r2.md) | Medios en bucket privado | Subida por la app; entrega por la app con caché | Reemplazada por 022 |
 | [017](adr/ADR-017-admin-kit.md) | Admin kit | Recursos declarativos para lo simple; UI a medida solo donde hay flujo | Aceptada |
 | [018](adr/ADR-018-migracion-desde-ghpoints.md) | Migración desde GHPOINTS | Script idempotente sobre dump, verificación de sumas, alias para QR impresos | Aceptada |
 | [019](adr/ADR-019-infraestructura-vercel-neon-r2.md) | Infraestructura (Vercel) | Vercel Pro + Neon + R2 + Resend | Reemplazada por 021 |
 | [020](adr/ADR-020-zona-horaria.md) | Zona horaria | UTC en base, America/Bogota en presentación | Aceptada |
-| [021](adr/ADR-021-infraestructura-railway.md) | Infraestructura (Railway) | Proyecto nuevo en el workspace Pro ya pagado: web con worker en proceso, Postgres con respaldos y PITR, bucket privado; US$0 extra | Enmendada por 022 |
+| [021](adr/ADR-021-infraestructura-railway.md) | Infraestructura (Railway) | Proyecto nuevo en el workspace Pro ya pagado: web con worker en proceso, Postgres con respaldos y PITR, bucket privado; US$0 extra | Enmendada por 022 y 023 |
 | [022](adr/ADR-022-medios-prefirmados.md) | Medios prefirmados | Subida directa del navegador al bucket con `POST` prefirmado y CORS; entrega por redirección a URL prefirmada; la copia mensual incluye el bucket | Aceptada |
+| [023](adr/ADR-023-operacion-entornos-respaldo-correo.md) | Operación | `staging` persistente y `production` en la fase 6; copia mensual cifrada a Cloudflare R2 por un servicio cron; Resend con desbordamiento automático a SES; seguir en Pro sin CDN | Aceptada |

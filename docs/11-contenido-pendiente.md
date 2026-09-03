@@ -24,7 +24,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 - [ ] Estatutos vigentes en PDF
 - [ ] Reglamento vigente en PDF
-- [ ] Política de tratamiento de datos personales oficial, o aval para la plantilla propuesta; nombre del responsable del tratamiento
+- [ ] Texto de la política de tratamiento de datos personales ya aprobada (documento o PDF) y nombre del responsable del tratamiento
 
 ## Marca
 
@@ -41,3 +41,4 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Reglas de GH para el término: puntos por tipo de ocasión, requisito de asambleas, tope de comités
 - [ ] Texto de "Unirse": requisitos y fechas de convocatoria
 - [ ] Acceso al dominio `oeeafit.com` (DNS) y a la cuenta de Resend
+- [ ] Subdominio `pruebas.oeeafit.com` para `staging` (opcional; el dominio de Railway sirve mientras tanto)
