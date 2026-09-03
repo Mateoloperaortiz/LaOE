@@ -279,6 +279,13 @@ Textos de controles genéricos que no cambian el sentido institucional.
 | T-238 | Ingresar: etiqueta del campo del código | Código de seis dígitos | MATEO | Propuesta |
 | T-239 | Ingresar: correo con formato inválido | Ese correo no tiene un formato válido. Revisalo. | MATEO | Propuesta |
 | T-240 | Admin: aviso de sección aún sin construir | Esta sección llega en una fase siguiente. | MATEO | Propuesta |
+| T-241 | Admin, sistema: título de la vista del outbox | Trabajos de fondo | MATEO | Propuesta |
+| T-242 | Admin, sistema: lista de pendientes | Pendientes | MATEO | Propuesta |
+| T-243 | Admin, sistema: lista de procesados | Procesados | MATEO | Propuesta |
+| T-244 | Admin, sistema: lista de fallidos (dead letter) | Con error | MATEO | Propuesta |
+| T-245 | Admin, sistema: botón para reencolar un fallido | Reintentar | MATEO | Propuesta |
+| T-246 | Admin, sistema: columnas de la tabla del outbox | Evento · Intentos · Próximo intento · Último error · Procesado · Creado | MATEO | Propuesta |
+| T-247 | Admin, sistema: lista vacía | No hay trabajos en esta lista. | MATEO | Propuesta |
 
 ## 9. Lo que debe entregar cada dueño
 

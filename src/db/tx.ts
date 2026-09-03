@@ -40,6 +40,23 @@ export interface CommandContext {
   emit(event: DomainEvent): Promise<void>;
 }
 
+/** Encola un evento de dominio; con dedupeKey no duplica un pendiente igual. */
+export async function enqueueEvent(exec: Executor, event: DomainEvent): Promise<void> {
+  const insert = exec.insert(outbox).values({
+    eventType: event.type,
+    payload: event.payload,
+    dedupeKey: event.dedupeKey ?? null,
+  });
+  if (event.dedupeKey === undefined) {
+    await insert;
+    return;
+  }
+  await insert.onConflictDoNothing({
+    target: outbox.dedupeKey,
+    where: sql`${outbox.processedAt} is null and ${outbox.deadLetterAt} is null`,
+  });
+}
+
 export async function runCommand<T>(
   actor: Actor,
   command: (ctx: CommandContext) => Promise<T>,
@@ -60,19 +77,7 @@ export async function runCommand<T>(
         });
       },
       async emit(event) {
-        const insert = tx.insert(outbox).values({
-          eventType: event.type,
-          payload: event.payload,
-          dedupeKey: event.dedupeKey ?? null,
-        });
-        if (event.dedupeKey === undefined) {
-          await insert;
-          return;
-        }
-        await insert.onConflictDoNothing({
-          target: outbox.dedupeKey,
-          where: sql`${outbox.processedAt} is null and ${outbox.deadLetterAt} is null`,
-        });
+        await enqueueEvent(tx, event);
       },
     };
     return command(ctx);

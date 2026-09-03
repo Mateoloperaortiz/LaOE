@@ -10,4 +10,8 @@ export async function register() {
     { env: env.NODE_ENV, timezone: env.APP_TIMEZONE, jobs: env.JOBS_ENABLED },
     "Casa digital de la OE: arranque",
   );
+  if (env.JOBS_ENABLED) {
+    const { startJobs } = await import("@/jobs/start");
+    startJobs();
+  }
 }

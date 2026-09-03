@@ -5,7 +5,7 @@ import { getDb } from "@/db/client";
 export async function truncateAll(): Promise<void> {
   await getDb().execute(sql`
     truncate table
-      audit_log, outbox, app_config,
+      audit_log, outbox, app_config, message,
       session, otp_challenge, permission,
       committee_membership, membership_event, membership, person, committee, term
     restart identity cascade

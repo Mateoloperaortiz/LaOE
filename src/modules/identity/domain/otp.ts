@@ -2,8 +2,8 @@ import { and, count, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { Tx } from "@/db/tx";
 import { getEnv } from "@/env";
+import { sendTransactionalEmail } from "@/modules/comms";
 import { findEligibleMemberByEmail } from "@/modules/people";
-import { getMailer } from "@/shared/adapters/mailer";
 import { t } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
 import { logger } from "@/shared/log";
@@ -80,16 +80,14 @@ export async function requestOtp(input: RequestOtpInput): Promise<void> {
   const nombre = member.preferredName ?? member.firstName;
   const cuerpo = t("T-054", { nombre, código: code });
   const pie = t("T-208").replace("{enlace de baja si aplica}", "").trim();
-  try {
-    await getMailer().send({
-      to: email,
-      subject: t("T-053", { código: code }),
-      text: `${renderPlain(cuerpo)}\n\n${pie}`,
-      html: `<p>${renderHtml(cuerpo)}</p><p style="color:#666;font-size:12px">${renderHtml(pie)}</p>`,
-    });
-  } catch (error) {
-    logger.error({ err: error, email }, "otp: no se pudo enviar el correo");
-  }
+  // Inline, no por outbox: la persona está esperando el código (ADR-012).
+  await sendTransactionalEmail({
+    personId: member.personId,
+    to: email,
+    subject: t("T-053", { código: code }),
+    text: `${renderPlain(cuerpo)}\n\n${pie}`,
+    html: `<p>${renderHtml(cuerpo)}</p><p style="color:#666;font-size:12px">${renderHtml(pie)}</p>`,
+  });
 }
 
 export type VerifyOtpResult =

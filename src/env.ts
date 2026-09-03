@@ -35,6 +35,11 @@ const envSchema = z
     MAILER: z.enum(["console", "resend"]).default("console"),
     EMAIL_FROM: z.string().min(3),
     RESEND_API_KEY: z.string().optional(),
+    // Resend gratis permite 100 correos al día: desde 95 el mismo mensaje sale por SES (ADR-023).
+    RESEND_DAILY_LIMIT: z.coerce.number().int().min(1).default(95),
+    AWS_REGION: z.string().optional(),
+    AWS_ACCESS_KEY_ID: z.string().optional(),
+    AWS_SECRET_ACCESS_KEY: z.string().optional(),
 
     S3_ENDPOINT: z.url(),
     S3_REGION: z.string().min(1).default("garage"),
@@ -45,6 +50,8 @@ const envSchema = z
     MEDIA_CORS_ORIGINS: commaSeparatedList.default([]),
 
     JOBS_ENABLED: booleanString.default(false),
+    JOBS_POLL_INTERVAL_MS: z.coerce.number().int().min(250).default(3000),
+    JOBS_BATCH_SIZE: z.coerce.number().int().min(1).max(500).default(50),
 
     VAPID_PUBLIC_KEY: z.string().optional(),
     VAPID_PRIVATE_KEY: z.string().optional(),

@@ -1,4 +1,6 @@
-// Carga .env si existe (en CI las variables vienen del entorno) y exige una base de datos.
+import { testDatabaseUrl } from "./test-database";
+
+// Cada worker apunta a la base de pruebas (creada y migrada por global-setup.ts).
 try {
   process.loadEnvFile(".env");
 } catch {
@@ -10,3 +12,4 @@ if (!process.env.DATABASE_URL) {
     "Las pruebas de integración necesitan DATABASE_URL (copiá .env.example a .env y corré npm run db:up)",
   );
 }
+process.env.DATABASE_URL = testDatabaseUrl(process.env.DATABASE_URL);

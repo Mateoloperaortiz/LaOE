@@ -15,6 +15,13 @@
       "when": 1788417712229,
       "tag": "0001_catalogos_y_trgm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788432540978,
+      "tag": "0002_mensajes",
+      "breakpoints": true
     }
   ]
 }

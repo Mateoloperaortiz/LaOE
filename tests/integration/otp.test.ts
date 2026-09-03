@@ -1,6 +1,7 @@
 import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { setMailTransportsForTests } from "@/modules/comms";
 import { requestOtp, verifyOtp } from "@/modules/identity/domain/otp";
 import { hashCode, OTP_MAX_PER_EMAIL, OTP_MAX_PER_IP } from "@/modules/identity/domain/pure";
 import {
@@ -11,7 +12,7 @@ import {
 import { otpChallenge, permission, session } from "@/modules/identity/schema";
 import { term } from "@/modules/participation/schema";
 import { membership, person } from "@/modules/people/schema";
-import { type MailMessage, setMailerForTests } from "@/shared/adapters/mailer";
+import type { MailMessage } from "@/shared/adapters/mail";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
@@ -50,15 +51,19 @@ describe("requestOtp", () => {
   beforeEach(async () => {
     await truncateAll();
     sent.length = 0;
-    setMailerForTests({
-      async send(message) {
-        sent.push(message);
-        return { provider: "console", id: null };
+    setMailTransportsForTests({
+      primary: {
+        name: "console",
+        async send(message) {
+          sent.push(message);
+          return { id: null };
+        },
       },
+      overflow: null,
     });
   });
   afterAll(async () => {
-    setMailerForTests(undefined);
+    setMailTransportsForTests(undefined);
     await closeDb();
   });
 
@@ -114,10 +119,14 @@ describe("requestOtp", () => {
 describe("verifyOtp y sesiones", () => {
   beforeEach(async () => {
     await truncateAll();
-    setMailerForTests({
-      async send() {
-        return { provider: "console", id: null };
+    setMailTransportsForTests({
+      primary: {
+        name: "console",
+        async send() {
+          return { id: null };
+        },
       },
+      overflow: null,
     });
   });
 

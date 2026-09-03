@@ -1056,4 +1056,46 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-241": {
+    where: "Admin, sistema: título de la vista del outbox",
+    text: "Trabajos de fondo",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-242": {
+    where: "Admin, sistema: lista de pendientes",
+    text: "Pendientes",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-243": {
+    where: "Admin, sistema: lista de procesados",
+    text: "Procesados",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-244": {
+    where: "Admin, sistema: lista de fallidos (dead letter)",
+    text: "Con error",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-245": {
+    where: "Admin, sistema: botón para reencolar un fallido",
+    text: "Reintentar",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-246": {
+    where: "Admin, sistema: columnas de la tabla del outbox",
+    text: "Evento · Intentos · Próximo intento · Último error · Procesado · Creado",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-247": {
+    where: "Admin, sistema: lista vacía",
+    text: "No hay trabajos en esta lista.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
 } as const;

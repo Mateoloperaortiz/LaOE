@@ -7,7 +7,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - OrbStack como runtime de contenedores: `docker compose up -d` levanta Postgres 18 en `127.0.0.1:5433` (el 5432 lo usa GHPOINTS) y Garage como bucket S3 en `127.0.0.1:3900`; `npm run storage:init` aplica el CORS del bucket con el mismo comando que se usa contra Railway. Mailer de consola.
 - `npm run db:reset`: esquema desde cero con las migraciones SQL de Drizzle, verificación de índices parciales y extensiones, y datos sintéticos sin información real.
 - `npm run check`: Biome, dependency-cruiser, knip, `tsc --noEmit`, unit, integración contra la base local y `next build`.
-- `npm run test:e2e`: Playwright (Chromium) contra el dev server, con `axe` en cada pantalla; `OTP_FIXED_CODE` del `.env` como código. Las pruebas de integración y e2e usan la misma base local y la vacían: en local no se guarda nada que importe.
+- `npm run test:e2e`: Playwright (Chromium) contra el dev server, con `axe` en cada pantalla; `OTP_FIXED_CODE` del `.env` como código. Las pruebas de integración corren contra `casa_digital_test` (la crea y migra `tests/integration/global-setup.ts`) para no chocar con el poller del dev server; las e2e usan la base de desarrollo.
 - `npm run dev` y revisión en navegador a 360, 768 y 1280 px, claro y oscuro, navegación por teclado, `axe` sin violaciones serias o críticas, Lighthouse con PWA instalable.
 
 ## Unit (módulos puros, sin base)
@@ -26,6 +26,8 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Check-in único con 200 registros concurrentes sobre la misma ocasión.
 - Reversión idempotente y cancelación de ocasión con créditos vivos.
 - Outbox drenado exactamente una vez con dos pollers compitiendo (y `after()` si se usa); `dedupeKey` colapsando recomputes.
+- Correo transaccional: sale por Resend hasta el límite diario y por SES desde ahí o ante error de cuota; cada envío queda en `message` con su proveedor.
+- Storage: subida con `POST` prefirmado y condiciones de tamaño contra Garage en local, `HEAD` y lectura por URL prefirmada; un archivo fuera de rango se rechaza.
 - OTP: rate limit por correo e IP, vencimiento, intentos, no enumeración.
 - Step-up de admin y destrucción de sesiones al retirar o cambiar correo.
 - Auditoría en la misma transacción: si falla la auditoría, no hay mutación.
