@@ -1,6 +1,6 @@
 # Contenido que la OE debe aportar
 
-Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en manos de Mateo y con permiso de uso.
+Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en manos de Mateo y con permiso de uso. Los textos de la interfaz, correos y notificaciones están inventariados uno por uno en [14-copy-y-textos.md](14-copy-y-textos.md), con quién debe escribir cada uno.
 
 ## Personas
 

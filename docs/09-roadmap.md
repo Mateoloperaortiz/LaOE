@@ -23,7 +23,8 @@ Código base (empieza cuando se autorice escribir código):
 - [ ] Scaffold Next.js 16 + TypeScript + Tailwind 4 + shadcn base; `railway.json` con build, start, healthcheck y pre-deploy
 - [ ] Tokens de marca, texturas, componente `Cartel`, elementos gráficos SVG, tema claro/oscuro, Sofia Sans Extra Condensed y Plus Jakarta Sans servidas en local, favicon con el isotipo
 - [ ] Esquema Prisma por módulos, migraciones, uniques parciales
-- [ ] Acceso: OTP, sesiones, guards, step-up, `/ingresar`
+- [ ] Acceso: OTP, sesiones, guards, step-up, `/ingresar` con los textos T-040 a T-055
+- [ ] Diccionario de textos en el código que carga `14-copy-y-textos.md` por código (`T-…`) para que cambiar un texto no sea cambiar lógica
 - [ ] Admin kit (`defineResource`) y paleta ⌘K
 - [ ] Outbox + poller + scheduler en `instrumentation.ts`; vista de jobs y dead letter
 - [ ] Adaptadores: Mailer (consola; Resend con desbordamiento a SES), Storage (bucket de Railway/emulador), Pusher
@@ -46,6 +47,7 @@ Listo cuando: login por OTP con roster semilla sintético en `staging`, shell de
 - [ ] Admin de Contenido con subida directa prefirmada, confirmación y variantes
 - [ ] SEO básico, sitemap, robots
 - [ ] Lista de revisión de marca aplicada a cada pantalla pública ([07-marca.md](07-marca.md))
+- [ ] Textos del portal tomados de `14-copy-y-textos.md` (T-001 a T-033), sin copy inventado en el código
 
 Listo cuando: contenido real de la OE publicable sin tocar código; nada personal en público; una portada de 5 MB sube directo al bucket y se sirve por redirección prefirmada.
 
@@ -182,3 +184,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-02 | — | GH confirmó los cinco estados y los seis cargos; `CARGO` llegará en una segunda entrega, así que la importación admite actualizaciones parciales por correo |
 | 2026-09-03 | — | ADR-030: el perfil de egresado (memorial) reemplaza la anonimización por plazo; galería de egresados por año en la fase 2; el permiso del General se otorga con confirmación. Sin decisiones abiertas |
 | 2026-09-03 | — | Siete mejoras aceptadas por Mateo (ADR-031): solicitudes con flujo, convocatorias internas, onboarding de nuevos, reconocimientos, panel de la junta, encuesta tras ocasión y autogestión de datos, repartidas en las fases 2, 4, 5 y 6. Backlog ampliado: votación electrónica, actas, subcomités, inventario, álbum, modo sin señal, certificados |
+| 2026-09-03 | — | Inventario completo de copy y textos (`14-copy-y-textos.md`): portal, acceso, Mi OE, permanencia, consentimientos, admin, push, correos y documentos, con propuesta, dueño y estado; los textos sensibles quedan marcados para revisar con GH |

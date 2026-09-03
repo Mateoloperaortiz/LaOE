@@ -69,6 +69,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-03 | Egresados: al graduarse pierden el correo institucional y no vuelven a entrar; su perfil queda como egresado (memorial) con su historia, visible en una galería por año según consentimiento; no hay anonimización por plazo ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
 | 2026-09-03 | El permiso de líder para un `General` del roster se otorga con confirmación del ADMIN |
 | 2026-09-03 | Siete mejoras aceptadas ([ADR-031](adr/ADR-031-autogestion-del-integrante.md)): solicitudes con flujo, convocatorias internas, onboarding de nuevos, reconocimientos, panel de la junta, encuesta tras ocasión y autogestión de datos. Al backlog: votación electrónica, actas, subcomités, inventario, álbum, modo sin señal |
+| 2026-09-03 | Todo el copy de la app se inventaría en [14-copy-y-textos.md](14-copy-y-textos.md) con dueño y estado; el código no inventa textos |
 
 Hechos que sustentan varias de estas decisiones:
 
