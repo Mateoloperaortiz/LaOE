@@ -1,6 +1,6 @@
 # Permanencia
 
-Cada semestre, Gestión Humana evalúa a cada miembro con **dos tablas de criterios ponderados**: la **general** (de la junta, la aplica GH a toda la OE) y la **de su comité** (la define cada comité). La persona obtiene un **resultado por cada comité** al que pertenece: lo que cumplió en la tabla general más lo que cumplió en la tabla de ese comité. Con ese resultado se decide su permanencia según su condición: vigente **60 %**, nuevo o en periodo de prueba **80 %**, transferencia interna a un comité **70 %** en ese comité. Hoy todo vive en hojas de cálculo y la persona se entera al final; en la casa digital es un tablero que cada miembro ve en tiempo real. Reglas en [ADR-025](adr/ADR-025-permanencia-scorecard.md), [ADR-026](adr/ADR-026-permanencia-por-comite.md) y [ADR-027](adr/ADR-027-permanencia-reglas-de-gh.md).
+Cada semestre, Gestión Humana evalúa a cada miembro con **dos tablas de criterios ponderados**: la **general** (de la junta, la aplica GH a toda la OE) y la **de su comité** (la define cada comité). La persona obtiene un **resultado por cada comité** al que pertenece: lo que cumplió en la tabla general más lo que cumplió en la tabla de ese comité. Con ese resultado se decide su permanencia según su condición: activo **60 %**, nuevo o en periodo de prueba **80 %**, transferencia interna a un comité **70 %** en ese comité. Hoy todo vive en hojas de cálculo y la persona se entera al final; en la casa digital es un tablero que cada miembro ve en tiempo real. Reglas en [ADR-025](adr/ADR-025-permanencia-scorecard.md), [ADR-026](adr/ADR-026-permanencia-por-comite.md) y [ADR-027](adr/ADR-027-permanencia-reglas-de-gh.md).
 
 ## Cómo funciona en la OE (respuestas de GH, 2026-09-02)
 
@@ -8,7 +8,7 @@ Cada semestre, Gestión Humana evalúa a cada miembro con **dos tablas de criter
 | --- | --- |
 | Dos tablas | La general vale unos **50 puntos** y la del comité unos **60**; la suma no es 100 exacto (ronda 110 a 115). Los umbrales son puntos sobre esa suma, no una fracción del máximo |
 | Resultado por comité | Para cada comité de la persona: total = general + tabla de ese comité. Ejemplo de GH: general 45 %; en Pixel cumplió 30 % de la tabla de Pixel, total en Pixel 75 %; en Cigma cumplió 50 %, total en Cigma 95 % |
-| Umbrales fijos | Vigente: 60 %. Nuevo o en periodo de prueba: 80 %. Transferencia interna a un comité: 70 % en el comité al que se transfirió |
+| Umbrales fijos | Activo: 60 %. Nuevo o en periodo de prueba: 80 %. Transferencia interna a un comité: 70 % en el comité al que se transfirió |
 | Por debajo del umbral | Hasta 10 puntos por debajo de lo que debía cumplir: **periodo de prueba** (el término siguiente debe cumplir 80 %). Más de 10 puntos por debajo: **sale de ese comité**; si era su único comité, o no le queda otro donde cumpla o esté en prueba, **sale de la OE** |
 | GT de macroeventos | Por cantidad de grupos de trabajo con buen desempeño: uno 4 %, dos 6 %, tres o más 8 % |
 | Asambleas | Obligatorias: en primer semestre una ordinaria; en segundo semestre una ordinaria más la elección de junta (y la segunda vuelta si la hay). **Faltar a una obligatoria implica expulsión de la OE.** El 10 % de permanencia exige tres asistencias en el término (obligatorias más extras) |
@@ -101,7 +101,7 @@ Al cerrar, la app **propone** para cada persona y comité el estado según los u
 
 ## Lo que ve el miembro (`/app/permanencia`)
 
-- Encabezado por comité: "En Pixel vas en 75 %: cumplís (necesitás 60 %). En Cigma vas en 52 %: te faltan 8 %." Con el umbral que le aplica (60, 80 o 70) y su condición (vigente, nuevo, en prueba, transferencia).
+- Encabezado por comité: "En Pixel vas en 75 %: cumplís (necesitás 60 %). En Cigma vas en 52 %: te faltan 8 %." Con el umbral que le aplica (60, 80 o 70) y su condición (activo, nuevo, en prueba, transferencia).
 - Bloque **general**: cada criterio con logrado / máximo, qué cuenta y cómo sumar más ("asististe a 2 de 5 integraciones; quedan 6 este semestre, la próxima es el jueves"). Asambleas obligatorias aparte.
 - Bloque por **comité**: reuniones (asistencia y próximas), eventos, puntajes del líder y sus observaciones.
 - Evaluaciones pendientes con quién debe evaluarlas.

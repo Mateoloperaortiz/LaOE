@@ -38,7 +38,7 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | 2026-09-02 | GT Macroeventos 4/6/8 % | Por cantidad de GT con buen desempeño: uno 4, dos 6, tres o más 8 |
 | 2026-09-02 | Quién evalúa el buen desempeño y cuándo | El director de GH de cada frente, al cerrar el semestre; las tareas de nuevos, el GH principal (Miguel Gaviria); el Athletic, su capitán y su DT; la barra brava, el GH de turno con las asistencias a partidos ([ADR-028](adr/ADR-028-permanencia-consecuencias.md)) |
 | 2026-09-02 | Qué pasa por debajo del umbral | Hasta 10 puntos por debajo: periodo de prueba con umbral 80 % el término siguiente. Más de 10: sale de ese comité; si no le queda otro donde cumpla o esté en prueba, sale de la OE ([ADR-028](adr/ADR-028-permanencia-consecuencias.md)) |
-| 2026-09-02 | ¿Umbral y pesos cambian por término? | Umbrales fijos: vigente 60 %, nuevo o en prueba 80 %, transferencia interna 70 % en ese comité |
+| 2026-09-02 | ¿Umbral y pesos cambian por término? | Umbrales fijos: activo 60 %, nuevo o en prueba 80 %, transferencia interna 70 % en ese comité |
 | 2026-09-02 | Comités de trabajo vs 27 comités | Distintos: CAP, CGH, CCM, CAE, CML, CAF y Athletic, liderados por cargos de junta ([12-permanencia.md](12-permanencia.md)) |
 | 2026-09-02 | Presupuesto de cada ámbito | Nominal: general 50, comité 60; los umbrales son puntos sobre la suma |
 | 2026-09-02 | Quien está en varios comités | Un resultado por comité: general más la tabla de ese comité; sin comité principal. Cumplir en uno y no en otro: sale solo del comité donde no cumplió |

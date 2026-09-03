@@ -31,4 +31,4 @@ Las reglas tienen dos ámbitos: las de la OE (GH) y las de cada comité, cada un
 
 ## Enmienda (2026-09-02, ADR-027)
 
-El umbral deja de ser configurable por término: es fijo por condición (60 % vigente, 80 % nuevo o en prueba, 70 % transferencia interna). Los estados incorporan `PRUEBA` (hasta 10 puntos por debajo) y el cierre propone automáticamente y ADMIN confirma. Ver [ADR-027](ADR-027-permanencia-reglas-de-gh.md).
+El umbral deja de ser configurable por término: es fijo por condición (60 % activo, 80 % nuevo o en prueba, 70 % transferencia interna). Los estados incorporan `PRUEBA` (hasta 10 puntos por debajo) y el cierre propone automáticamente y ADMIN confirma. Ver [ADR-027](ADR-027-permanencia-reglas-de-gh.md).

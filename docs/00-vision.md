@@ -11,7 +11,7 @@ Una sola aplicación web con tres capas y una columna vertebral.
 | Capa | Quién | Qué ve |
 | --- | --- | --- |
 | Portal público | Visitantes | La OE, cartelera, eventos y ediciones, comités, cómo unirse |
-| Mi OE | Miembros vigentes y honorarios del roster | Agenda, directorio, GH Points, progreso de permanencia, normativa, carnet, check-in por QR |
+| Mi OE | Miembros activos y honorarios del roster | Agenda, directorio, GH Points, progreso de permanencia, normativa, carnet, check-in por QR |
 | Administración | Personas con permiso ADMIN y líderes de comité | Personas (CRM), contenido, participación, comunicaciones, sistema |
 
 La columna vertebral es el **CRM de comunidad**: la persona como eje, con su ciclo de vida completo (prospecto, postulante, miembro, egresado), sus comités por semestre, sus cargos, su participación, sus formularios y sus comunicaciones en un solo lugar. Ver [02-crm.md](02-crm.md).
@@ -62,7 +62,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | Reglas de GH confirmadas ([ADR-024](adr/ADR-024-reglas-de-participacion.md)): 1 a 3 comités; 2 asambleas ordinarias por término más la elección de junta y su segunda vuelta, obligatorias en el segundo semestre; código rotativo opcional por ocasión; score de comité por participación relativa con suavizado; las medallas de GHPOINTS no se migran; los egresados no entran en v1 |
 | 2026-09-02 | Permanencia: la tabla de GH se vuelve criterios configurables por término, con umbral de 60 % y progreso visible para cada miembro ([ADR-025](adr/ADR-025-permanencia-scorecard.md)) |
 | 2026-09-02 | Cada comité tiene su propia tabla de permanencia dentro de un presupuesto fijado por GH; el total de la persona suma la parte de la OE y la de su comité principal ([ADR-026](adr/ADR-026-permanencia-por-comite.md)) |
-| 2026-09-02 | GH confirmó las reglas de permanencia ([ADR-027](adr/ADR-027-permanencia-reglas-de-gh.md)): resultado por cada comité (general ≈ 50 más la tabla de ese comité ≈ 60), umbrales fijos 60 % vigente, 80 % nuevo o en prueba, 70 % transferencia interna; periodo de prueba con margen de 10 puntos; GT por cantidad; asambleas obligatorias dos y tres para el 10 %; evalúan los directores de GH |
+| 2026-09-02 | GH confirmó las reglas de permanencia ([ADR-027](adr/ADR-027-permanencia-reglas-de-gh.md)): resultado por cada comité (general ≈ 50 más la tabla de ese comité ≈ 60), umbrales fijos 60 % activo, 80 % nuevo o en prueba, 70 % transferencia interna; periodo de prueba con margen de 10 puntos; GT por cantidad; asambleas obligatorias dos y tres para el 10 %; evalúan los directores de GH |
 | 2026-09-02 | Consecuencias confirmadas por GH ([ADR-028](adr/ADR-028-permanencia-consecuencias.md)): más de 10 puntos por debajo sale del comité, y de la OE si no le queda otro donde cumpla; faltar a una asamblea obligatoria es expulsión; obligatorias una ordinaria en primer semestre y ordinaria más elección en segundo; evaluación al cerrar el semestre; Athletic con capitán y DT |
 | 2026-09-02 | Roster: GH lo envía con `NOMBRE`, `APELLIDO`, `CORREO`, `CELULAR`, `PREGRADO`, `COMITES`, `ENTRADA A LA OE`, `ESTADO`, y se agrega `CARGO` con el cargo dentro del comité; el cargo vive en la pertenencia al comité y General es el líder ([ADR-029](adr/ADR-029-cargos-de-comite-y-roster.md)) |
 | 2026-09-02 | GH confirmó los estados (`Activo`, `Licencia`, `Honorario`, `Retirado`, `Prueba`) y los seis cargos; `CARGO` llega en una segunda entrega y la importación admite actualizaciones parciales por correo |
@@ -71,6 +71,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-03 | Siete mejoras aceptadas ([ADR-031](adr/ADR-031-autogestion-del-miembro.md)): solicitudes con flujo, convocatorias internas, onboarding de nuevos, reconocimientos, panel de la junta, encuesta tras ocasión y autogestión de datos. Al backlog: votación electrónica, actas, subcomités, inventario, álbum, modo sin señal |
 | 2026-09-03 | Todo el copy de la app se inventaría en [14-copy-y-textos.md](14-copy-y-textos.md) con dueño y estado; el código no inventa textos |
 | 2026-09-03 | La app dice "miembro", no "integrante", como GH; toda la documentación se alineó a ese término |
+| 2026-09-03 | El estado `ACTIVE` se dice "activo", como GH, no "vigente" |
 
 Hechos que sustentan varias de estas decisiones:
 

@@ -13,7 +13,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Invariantes del ledger: aprobado ⇔ una entrada viva; reversión; término cerrado.
 - Ranking: empates (1, 2, 2, 4), orden visual, tableros derivados por `firstTermId`.
 - Término actual por fecha y bordes a medianoche de Bogotá.
-- Tope de 3 comités y mínimo de 1 para vigentes.
+- Tope de 3 comités y mínimo de 1 para activos.
 - Validación de formularios y de acciones declaradas.
 - Mapeo de tipos legados de GHPOINTS.
 - Backoff y dead letter del outbox; derivación del código rotativo.

@@ -12,7 +12,7 @@ Miguel Gaviria, GH principal, respondió el 2026-09-02 las preguntas sobre las t
 
 1. **Dos tablas con valor nominal, no presupuesto exacto.** La general vale unos 50 puntos y la de cada comité unos 60; la suma ronda 110 a 115. `Term.permanenceGeneralNominal = 50` y `Term.permanenceCommitteeNominal = 60` sirven para avisar en el editor cuando una tabla se aleja, sin bloquear. Los umbrales son puntos sobre la suma.
 2. **Resultado por comité.** Para cada comité de la persona, total = parte general + parte de ese comité. Desaparecen `CommitteeMembership.isPrimary` y `permanence.committeeAggregation`. La permanencia se evalúa por comité con ese total.
-3. **Umbrales fijos por condición:** vigente 60; nuevo o en periodo de prueba 80; transferencia interna a un comité 70 en ese comité. Se guardan como `permanence.threshold.*` para no repetir números en el código, pero GH los declaró fijos.
+3. **Umbrales fijos por condición:** activo 60; nuevo o en periodo de prueba 80; transferencia interna a un comité 70 en ese comité. Se guardan como `permanence.threshold.*` para no repetir números en el código, pero GH los declaró fijos.
 4. **Periodo de prueba.** Quien cierra hasta 10 puntos por debajo de su umbral (`permanence.probationMargin = 10`) pasa a prueba el término siguiente (`MembershipTerm.probation`), con umbral 80. Qué pasa más abajo queda por confirmar; mientras tanto la app lo marca `NO_CUMPLE` y GH decide.
 5. **Cierre asistido.** La app propone el estado por persona y comité; ADMIN confirma o corrige con motivo (`PermanenceDecision`: `CONTINUES`, `PROBATION`, `EXIT_COMMITTEE`, `EXIT_OE`). Nada se aplica sin confirmación.
 6. **GT por cantidad:** uno 4 %, dos 6 %, tres o más 8 % (`GROUP_EVALUATED` con tramos por cantidad).

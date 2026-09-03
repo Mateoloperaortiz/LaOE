@@ -13,6 +13,7 @@ Términos fijos en la interfaz (los usa el código tal cual):
 | Término | Uso | Alternativa que hay que descartar o confirmar |
 | --- | --- | --- |
 | Miembro | Persona del roster | Decidido por Mateo el 2026-09-03, alineado con GH: la app dice "miembro" en todas partes; "integrante" no se usa |
+| Activo | Estado de la membresía (`ACTIVE`) | Decidido el 2026-09-03: "activo" como GH, no "vigente". Los otros estados: en licencia, honorario, retirado |
 | Mi OE | El espacio con sesión | |
 | Cartelera | Anuncios | |
 | GH Points | Puntos y rankings | |
@@ -145,7 +146,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | --- | --- | --- | --- | --- |
 | T-110 | Título | Permanencia | GH | Propuesta |
 | T-111 | Intro | Así va tu semestre. Para seguir en la OE necesitás {umbral} % en cada comité: lo que sumás en la tabla general más lo que sumás en el comité. | GH | Propuesta |
-| T-112 | Condición | Vigente · Nuevo (necesitás 80 %) · En periodo de prueba (necesitás 80 %) · Transferencia a {comité} (necesitás 70 % ahí) | GH | Propuesta |
+| T-112 | Condición | Activo · Nuevo (necesitás 80 %) · En periodo de prueba (necesitás 80 %) · Transferencia a {comité} (necesitás 70 % ahí) | GH | Propuesta |
 | T-113 | Resultado por comité | En {comité} vas en {n} % | GH | Propuesta |
 | T-114 | Estado: en camino | Vas bien. Todavía podés sumar {n} %. | GH | Propuesta |
 | T-115 | Estado: en riesgo | Ojo: te queda poco margen. Todavía podés sumar {n} %; no te pierdas lo que viene. | GH | Propuesta |

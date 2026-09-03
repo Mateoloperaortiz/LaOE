@@ -59,7 +59,7 @@ erDiagram
 | `Membership` | `personId` único, `status` (`ACTIVE`, `ON_LEAVE`, `HONORARY`, `INACTIVE`), `firstTermId`, `lastTermId?`, `endedAt?`, `endReason?` (`GRADUATION`, `RESIGNATION`, `PERMANENCE`, `OTHER`) | Una por persona; al terminar, el perfil pasa a egresado y se depura lo que no es historia ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
 | `MembershipEvent` | `membershipId`, `from`, `to`, `reason`, `actorId`, `at` | Historial de estados |
 | `Committee` | `slug` único, `name`, `status`, `color`, `logoKey`, `presentation`, `contactUrl`, `publicationStatus` | Los 27 logos viven en `public/logos/committees` |
-| `CommitteeMembership` | `personId`, `committeeId`, `termId`, `roleCode` (`MIEMBRO` por defecto), `transferredIn`, `joinedAt?`, `leftAt?` | Unique por (persona, comité, término); 1 a 3 activas para vigentes; `transferredIn` marca una transferencia interna (umbral 70 % en ese comité); un solo `GENERAL` por comité y término |
+| `CommitteeMembership` | `personId`, `committeeId`, `termId`, `roleCode` (`MIEMBRO` por defecto), `transferredIn`, `joinedAt?`, `leftAt?` | Unique por (persona, comité, término); 1 a 3 activas para activos; `transferredIn` marca una transferencia interna (umbral 70 % en ese comité); un solo `GENERAL` por comité y término |
 | `CommitteeRole` | `code` único, `label`, `isLeadership`, `order` | Catálogo: `GENERAL` (líder), `FINANCIERO`, `PUBLICIDAD`, `RELACIONES_PUBLICAS`, `LOGISTICA`, `GESTION_HUMANA` (GH confirmó que son esos seis) más `MIEMBRO` por defecto; sigue siendo editable por si aparece otro |
 | `MembershipTerm` | `personId`, `termId`, `probation`, `reason?`, `decidedById?` | Condición de la persona en el término: periodo de prueba (umbral 80 %) decidido en el cierre anterior |
 | `Appointment` | `personId`, `kind` (`COMMITTEE_LEADER`, `PRESIDENT`, `VP_GH`, `VP_PUBLIC_RELATIONS`, `VP_ADMIN`, `VP_FINANCE`, `GH_HEAD`, `GH_DIRECTOR`, `BOARD`, …), `committeeId?`, `termId`, `title?` | Cargo visible con historia; los cargos de junta lideran los comités de trabajo y los de GH evalúan grupos |
@@ -171,4 +171,4 @@ Uniques parciales como migraciones SQL idempotentes (`CREATE UNIQUE INDEX IF NOT
 | `Occasion(termId) WHERE assemblyKind = 'BOARD_ELECTION' AND status <> 'CANCELLED'` | Una elección de junta por término |
 | `Card`: check `(personId IS NULL) <> (organizationId IS NULL)` | Un solo sujeto por tarjeta |
 
-Reglas que viven en el dominio y se prueban en integración: tope de 3 comités por término para vigentes, `APPROVED ⇔ una entrada CHECKIN viva`, término derivado de la fecha, ledger cerrado tras `pointsClosedAt`, transiciones de etapa y de ocasión.
+Reglas que viven en el dominio y se prueban en integración: tope de 3 comités por término para activos, `APPROVED ⇔ una entrada CHECKIN viva`, término derivado de la fecha, ledger cerrado tras `pointsClosedAt`, transiciones de etapa y de ocasión.

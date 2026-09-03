@@ -8,7 +8,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | [002](adr/ADR-002-persona-como-eje.md) | La persona es el eje | `Person` es la raíz; la membresía es un ciclo de vida con historia; nadie se crea al hacer login | Aceptada |
 | [003](adr/ADR-003-etapas-por-comando.md) | Etapas por comando | Prospecto → Postulante → Miembro → Egresado cambia solo por comandos que auditan y escriben la línea de tiempo | Aceptada |
 | [004](adr/ADR-004-termino-como-reloj.md) | El término es el reloj | Comités, puntos, asambleas y rankings se agrupan por término; el actual se deriva de la fecha; el cierre de puntos es explícito | Aceptada |
-| [005](adr/ADR-005-comites-por-termino.md) | Comités por término | Pertenencia (persona, comité, término), 1 a 3 para vigentes; el crédito usa el término de la ocasión | Aceptada |
+| [005](adr/ADR-005-comites-por-termino.md) | Comités por término | Pertenencia (persona, comité, término), 1 a 3 para activos; el crédito usa el término de la ocasión | Aceptada |
 | [006](adr/ADR-006-una-sola-asistencia.md) | Una sola asistencia | Ocasión + check-in para actividades, asambleas y sesiones; los puntos son una consecuencia configurada | Enmendada por 024 |
 | [007](adr/ADR-007-ledger-append-only.md) | Ledger append-only | Aprobado ⇔ una entrada viva; corregir es revertir; totales por suma | Aceptada |
 | [008](adr/ADR-008-tableros-derivados.md) | Tableros derivados | Nuevo = primer término igual al actual; sin bandera manual | Aceptada |

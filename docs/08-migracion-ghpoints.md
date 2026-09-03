@@ -18,7 +18,7 @@ GHPOINTS (Railway, PostgreSQL 18, Prisma) sigue en producción hasta el cutover.
 
 | GHPOINTS | Casa digital | Notas |
 | --- | --- | --- |
-| `Member` | `Person` (`kind=STUDENT`) + `Membership` | `status` se conserva; `stage` = `MEMBER` para vigentes, licencia y honorarios, `ALUMNI` para retirados. `firstTermId` desde el CSV de la OE (semestre de ingreso) o, si falta, la evidencia más antigua (`MemberCommittee.joinedAt`, `createdAt`) |
+| `Member` | `Person` (`kind=STUDENT`) + `Membership` | `status` se conserva; `stage` = `MEMBER` para activos, licencia y honorarios, `ALUMNI` para retirados. `firstTermId` desde el CSV de la OE (semestre de ingreso) o, si falta, la evidencia más antigua (`MemberCommittee.joinedAt`, `createdAt`) |
 | `MemberCommittee` (`joinedAt`, `leftAt`) | `CommitteeMembership` por término | Una fila por cada término que solapa el rango; `joinedAt`/`leftAt` se copian cuando caen dentro del término |
 | `MemberRole` | `Permission` + `Appointment` | `ADMIN` → permiso; `COMMITTEE_LEADER` → permiso con comité y cargo visible en el término actual |
 | `Committee` | `Committee` | Presentación, contacto, color y publicación se conservan; `logoKey` desde el slug |
