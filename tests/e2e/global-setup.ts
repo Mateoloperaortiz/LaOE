@@ -4,7 +4,7 @@ import { announcement, mediaAsset } from "@/modules/content/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { otpChallenge, permission } from "@/modules/identity/schema";
 import { term } from "@/modules/participation/schema";
-import { committee, membership, membershipEvent, person } from "@/modules/people/schema";
+import { committee, membership, membershipEvent, person, segment } from "@/modules/people/schema";
 
 // Persona sintética para las pruebas e2e; se recrea en cada corrida, nunca es una persona real.
 export const E2E_EMAIL = "prueba.e2e@eafit.edu.co";
@@ -56,6 +56,7 @@ export default async function globalSetup(): Promise<void> {
   }
   // Personas creadas por la suite (alta manual desde el admin).
   await db.delete(person).where(like(person.email, "e2e-%"));
+  await db.delete(segment).where(like(segment.name, "e2e-%"));
   // La persona de e2e es ADMIN para probar el admin; BOARD lo prueba la suite y se limpia aquí.
   await db.delete(permission).where(eq(permission.personId, who.id));
   await db.insert(permission).values({ personId: who.id, code: "ADMIN" });

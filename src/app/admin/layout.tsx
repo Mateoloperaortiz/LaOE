@@ -17,9 +17,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [medios] = tList("T-334");
   const [eventos] = tList("T-332");
   const [persona, comite] = tList("T-290") as [string, string];
-  const [personas, , cargos, etiquetas, tareas, segmentos] = tList("T-509");
+  const [personas, importar, cargos, etiquetas, tareas, segmentos, , importaciones] =
+    tList("T-509");
   const enlaces = [
     { href: "/admin/personas", label: personas ?? "" },
+    { href: "/admin/personas/importar", label: importar ?? "" },
     { href: "/admin/tareas", label: tareas ?? "" },
     { href: "/admin/segmentos", label: segmentos ?? "" },
     { href: "/admin/etiquetas", label: etiquetas ?? "" },
@@ -31,6 +33,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     { href: "/admin/cargos", label: cargos ?? "" },
     { href: "/admin/terminos", label: terminos ?? "" },
     { href: "/admin/permisos", label: permisos ?? "" },
+    { href: "/admin/sistema/importaciones", label: importaciones ?? "" },
     { href: "/admin/sistema/jobs", label: t("T-241") },
   ];
   return (

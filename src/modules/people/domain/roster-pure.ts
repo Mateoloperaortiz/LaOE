@@ -1,0 +1,623 @@
+import { tList } from "@/shared/copy";
+import { normalizePhone } from "./person-pure";
+
+// Reglas puras del roster (13-importacion-del-roster.md, ADR-029, ADR-034): lectura del CSV, mapeo de
+// columnas, validación fila por fila y diff contra lo existente. Sin I/O.
+
+export const ROSTER_COLUMNS = [
+  "firstName",
+  "lastName",
+  "email",
+  "phone",
+  "program",
+  "committees",
+  "entry",
+  "status",
+  "role",
+  "transfer",
+  "personalEmail",
+  "notes",
+] as const;
+
+export type RosterColumn = (typeof ROSTER_COLUMNS)[number];
+
+/** Cabeceras que se reconocen (ya normalizadas: mayúsculas, sin tildes); la primera es el nombre oficial. */
+export const HEADER_ALIASES: Record<RosterColumn, string[]> = {
+  firstName: ["NOMBRE", "NOMBRES"],
+  lastName: ["APELLIDO", "APELLIDOS"],
+  email: ["CORREO", "CORREO INSTITUCIONAL", "EMAIL", "E-MAIL"],
+  phone: ["CELULAR", "TELEFONO", "CEL"],
+  program: ["PREGRADO", "PROGRAMA", "CARRERA"],
+  committees: ["COMITES", "COMITE"],
+  entry: ["ENTRADA A LA OE", "ENTRADA", "SEMESTRE DE INGRESO", "INGRESO", "INGRESO A LA OE"],
+  status: ["ESTADO"],
+  role: ["CARGO", "CARGOS"],
+  transfer: ["TRANSFERENCIA"],
+  personalEmail: ["CORREO PERSONAL", "EMAIL PERSONAL"],
+  notes: ["OBSERVACIONES", "OBSERVACION", "NOTAS"],
+};
+
+/** Columnas sin las cuales una persona nueva no se puede crear (el correo siempre es obligatoria). */
+export const REQUIRED_FOR_NEW: readonly RosterColumn[] = [
+  "firstName",
+  "lastName",
+  "email",
+  "committees",
+  "entry",
+  "status",
+];
+
+export function normalizeHeader(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^A-Za-z0-9 -]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+export function normalizeText(raw: string): string {
+  return raw.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+export function detectMapping(headers: string[]): Array<RosterColumn | null> {
+  const used = new Set<RosterColumn>();
+  return headers.map((header) => {
+    const normalized = normalizeHeader(header);
+    for (const column of ROSTER_COLUMNS) {
+      if (!used.has(column) && HEADER_ALIASES[column].includes(normalized)) {
+        used.add(column);
+        return column;
+      }
+    }
+    return null;
+  });
+}
+
+/** CSV (RFC 4180): comillas dobles con `""` escapadas, saltos dentro de comillas, BOM y `;` o `,`. */
+export function parseCsv(text: string): string[][] {
+  const source = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const firstLine = source.split(/\r?\n/, 1)[0] ?? "";
+  const delimiter =
+    (firstLine.match(/;/g)?.length ?? 0) >= (firstLine.match(/,/g)?.length ?? 0) ? ";" : ",";
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index] as string;
+    if (quoted) {
+      if (char === '"') {
+        if (source[index + 1] === '"') {
+          cell += '"';
+          index += 1;
+        } else {
+          quoted = false;
+        }
+      } else {
+        cell += char;
+      }
+      continue;
+    }
+    if (char === '"') {
+      quoted = true;
+    } else if (char === delimiter) {
+      row.push(cell);
+      cell = "";
+    } else if (char === "\n" || char === "\r") {
+      if (char === "\r" && source[index + 1] === "\n") {
+        index += 1;
+      }
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+  if (cell !== "" || row.length > 0) {
+    row.push(cell);
+    rows.push(row);
+  }
+  return rows.filter((cells) => cells.some((value) => value.trim() !== ""));
+}
+
+export interface RosterRowInput {
+  row: number;
+  values: Partial<Record<RosterColumn, string>>;
+}
+
+/** Filas de datos (sin la cabecera) como valores por columna mapeada; las filas vacías se saltan. */
+export function rowsFromCells(
+  cells: string[][],
+  mapping: Array<RosterColumn | null>,
+): RosterRowInput[] {
+  const inputs: RosterRowInput[] = [];
+  cells.slice(1).forEach((line, index) => {
+    const values: Partial<Record<RosterColumn, string>> = {};
+    mapping.forEach((column, position) => {
+      if (column) {
+        values[column] = (line[position] ?? "").trim();
+      }
+    });
+    if (Object.values(values).some((value) => value !== "")) {
+      inputs.push({ row: index + 2, values });
+    }
+  });
+  return inputs;
+}
+
+const TERM_CODE = /^(\d{4})\s*-\s*([12])$/;
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const LATIN_DATE = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+
+/** `2024-2`, `2024 - 2`, `2024-08-15` o `15/08/2024` → `2024-2`; null si no se entiende. */
+export function parseEntryTerm(raw: string): string | null {
+  const value = raw.trim().toUpperCase().replace("II", "2").replace("I", "1");
+  const code = value.match(TERM_CODE);
+  if (code) {
+    return `${code[1]}-${code[2]}`;
+  }
+  const iso = value.match(ISO_DATE);
+  if (iso) {
+    return `${iso[1]}-${Number(iso[2]) <= 6 ? 1 : 2}`;
+  }
+  const latin = value.match(LATIN_DATE);
+  if (latin) {
+    return `${latin[3]}-${Number(latin[2]) <= 6 ? 1 : 2}`;
+  }
+  return null;
+}
+
+export type RosterStatus = "ACTIVE" | "ON_LEAVE" | "HONORARY" | "INACTIVE";
+
+const STATUS_WORDS: Record<string, { status: RosterStatus; probation: boolean }> = {
+  activo: { status: "ACTIVE", probation: false },
+  activa: { status: "ACTIVE", probation: false },
+  licencia: { status: "ON_LEAVE", probation: false },
+  "en licencia": { status: "ON_LEAVE", probation: false },
+  honorario: { status: "HONORARY", probation: false },
+  honoraria: { status: "HONORARY", probation: false },
+  retirado: { status: "INACTIVE", probation: false },
+  retirada: { status: "INACTIVE", probation: false },
+  prueba: { status: "ACTIVE", probation: true },
+  "en prueba": { status: "ACTIVE", probation: true },
+};
+
+export function parseStatus(raw: string): { status: RosterStatus; probation: boolean } | null {
+  return STATUS_WORDS[normalizeText(raw)] ?? null;
+}
+
+export function splitList(raw: string): string[] {
+  return raw
+    .split(/[,;]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+/** Coeficiente de Dice sobre bigramas: sugerencia de sigla parecida. */
+export function similarity(a: string, b: string): number {
+  const x = normalizeText(a);
+  const y = normalizeText(b);
+  if (x === y) {
+    return 1;
+  }
+  if (x.length < 2 || y.length < 2) {
+    return 0;
+  }
+  const bigrams = (value: string) => {
+    const set = new Map<string, number>();
+    for (let i = 0; i < value.length - 1; i += 1) {
+      const key = value.slice(i, i + 2);
+      set.set(key, (set.get(key) ?? 0) + 1);
+    }
+    return set;
+  };
+  const left = bigrams(x);
+  const right = bigrams(y);
+  let shared = 0;
+  for (const [key, n] of left) {
+    shared += Math.min(n, right.get(key) ?? 0);
+  }
+  return (2 * shared) / (x.length - 1 + (y.length - 1));
+}
+
+export function suggestCommittee(sigla: string, candidates: string[]): string | null {
+  let best: { value: string; score: number } | null = null;
+  for (const candidate of candidates) {
+    const score = similarity(sigla, candidate);
+    if (score > 0.4 && (best === null || score > best.score)) {
+      best = { value: candidate, score };
+    }
+  }
+  return best?.value ?? null;
+}
+
+export interface RosterCommittee {
+  id: string;
+  slug: string;
+  name: string;
+}
+
+export interface RosterRole {
+  code: string;
+  label: string;
+}
+
+export interface RosterCatalog {
+  committees: RosterCommittee[];
+  roles: RosterRole[];
+  termCodes: string[];
+  domains: string[];
+  /** Personas que ya existen, por correo: para el modo actualización y para conservar cargos y transferencias. */
+  existing: Map<string, ExistingPerson>;
+}
+
+export interface ParsedCommittee {
+  committeeId: string;
+  slug: string;
+  name: string;
+  roleCode: string;
+  /** Cargo que no está en el catálogo: se crea al aplicar (T-486). */
+  newRoleLabel?: string;
+}
+
+export interface ValidatedRow {
+  row: number;
+  email: string | null;
+  values: Partial<Record<RosterColumn, string>>;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  program?: string;
+  personalEmail?: string;
+  notes?: string;
+  committees?: ParsedCommittee[];
+  entryTerm?: string;
+  status?: RosterStatus;
+  probation?: boolean;
+  transferSlug?: string | null;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface RosterValidation {
+  rows: ValidatedRow[];
+  updateMode: boolean;
+  missingRequired: RosterColumn[];
+  missingTerms: string[];
+  unknownRoles: string[];
+}
+
+function fill(text: string, values: Record<string, string>): string {
+  return text.replace(
+    /\{([a-zA-Zñáéíóú ]+)\}/g,
+    (match, key: string) => values[key.trim()] ?? match,
+  );
+}
+
+export function roleCodeFromLabel(label: string): string {
+  return (
+    normalizeHeader(label)
+      .replace(/[^A-Z0-9]+/g, "_")
+      .replace(/^_|_$/g, "") || "OTRO"
+  );
+}
+
+function findRole(label: string, roles: RosterRole[]): RosterRole | null {
+  const wanted = normalizeText(label);
+  return (
+    roles.find(
+      (role) => normalizeText(role.label) === wanted || role.code === roleCodeFromLabel(label),
+    ) ?? null
+  );
+}
+
+function findCommittee(sigla: string, committees: RosterCommittee[]): RosterCommittee | null {
+  const wanted = normalizeText(sigla);
+  return (
+    committees.find(
+      (item) => normalizeText(item.slug) === wanted || normalizeText(item.name) === wanted,
+    ) ?? null
+  );
+}
+
+/**
+ * `General de A3; Logística de PIXEL` o `General` (un solo comité) → cargo por sigla.
+ * Devuelve el cargo por sigla normalizada y los errores de forma (índices de T-165).
+ */
+export function parseRoleAssignments(
+  raw: string,
+  committees: RosterCommittee[],
+  parsed: RosterCommittee[],
+): { bySlug: Map<string, string>; error: number | null } {
+  const bySlug = new Map<string, string>();
+  const parts = splitList(raw);
+  for (const part of parts) {
+    const match = part.match(/^(.+?)\s+(?:de|del|en)\s+(.+)$/i);
+    if (match) {
+      const target = findCommittee((match[2] ?? "").trim(), committees);
+      if (!target) {
+        return { bySlug, error: 2 };
+      }
+      bySlug.set(target.slug, (match[1] ?? "").trim());
+      continue;
+    }
+    if (parsed.length > 1) {
+      return { bySlug, error: 7 };
+    }
+    const only = parsed[0];
+    if (only) {
+      bySlug.set(only.slug, part);
+    }
+  }
+  return { bySlug, error: null };
+}
+
+function isInstitutional(email: string, domains: string[]): boolean {
+  const domain = email.split("@")[1] ?? "";
+  return domains.some((allowed) => domain === allowed || domain.endsWith(`.${allowed}`));
+}
+
+function shouted(name: string): boolean {
+  const letters = name.replace(/[^\p{L}]/gu, "");
+  return letters.length >= 4 && letters === letters.toUpperCase();
+}
+
+export function validateRoster(
+  inputs: RosterRowInput[],
+  mapping: Array<RosterColumn | null>,
+  catalog: RosterCatalog,
+): RosterValidation {
+  const errorTexts = tList("T-165");
+  const warningTexts = tList("T-483");
+  const text = (index: number, values: Record<string, string> = {}) =>
+    fill(errorTexts[index] ?? "", values);
+  const present = new Set(mapping.filter((column): column is RosterColumn => column !== null));
+  const missingRequired = REQUIRED_FOR_NEW.filter((column) => !present.has(column));
+  const updateMode = missingRequired.length > 0;
+  const emailCounts = new Map<string, number>();
+  for (const input of inputs) {
+    const email = (input.values.email ?? "").trim().toLowerCase();
+    if (email) {
+      emailCounts.set(email, (emailCounts.get(email) ?? 0) + 1);
+    }
+  }
+  const generals = new Map<string, number>();
+  const missingTerms = new Set<string>();
+  const unknownRoles = new Set<string>();
+  const siglas = catalog.committees.map((item) => item.slug);
+
+  const rows: ValidatedRow[] = inputs.map((input) => {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const values = input.values;
+    const email = (values.email ?? "").trim().toLowerCase() || null;
+    const result: ValidatedRow = { row: input.row, email, values, errors, warnings };
+    if (!email || !isInstitutional(email, catalog.domains)) {
+      errors.push(text(1));
+    } else if ((emailCounts.get(email) ?? 0) > 1) {
+      errors.push(text(0));
+    }
+    const current = email ? catalog.existing.get(email) : undefined;
+    if (updateMode && !current) {
+      errors.push(text(9));
+    }
+    if (present.has("firstName")) {
+      result.firstName = (values.firstName ?? "").trim();
+      if (result.firstName && shouted(result.firstName)) {
+        warnings.push(warningTexts[2] ?? "");
+      }
+    }
+    if (present.has("lastName")) {
+      result.lastName = (values.lastName ?? "").trim();
+    }
+    if (!updateMode && (!result.firstName || !result.lastName)) {
+      errors.push(text(9));
+    }
+    if (present.has("phone") && values.phone) {
+      const phone = normalizePhone(values.phone);
+      result.phone = phone.value;
+      if (!phone.normalized) {
+        warnings.push(warningTexts[1] ?? "");
+      }
+    } else if (present.has("phone")) {
+      result.phone = "";
+    }
+    if (present.has("program")) {
+      result.program = values.program?.trim() ?? "";
+    }
+    if (present.has("personalEmail")) {
+      result.personalEmail = values.personalEmail?.trim().toLowerCase() ?? "";
+    }
+    if (present.has("notes")) {
+      result.notes = values.notes?.trim() ?? "";
+    }
+    if (present.has("status")) {
+      const status = parseStatus(values.status ?? "");
+      if (!status) {
+        errors.push(text(5));
+      } else {
+        result.status = status.status;
+        result.probation = status.probation;
+      }
+    }
+    if (present.has("entry")) {
+      const term = parseEntryTerm(values.entry ?? "");
+      if (!term) {
+        errors.push(text(4));
+      } else {
+        result.entryTerm = term;
+        if (!catalog.termCodes.includes(term)) {
+          missingTerms.add(term);
+        }
+      }
+    }
+    const committeesPresent = present.has("committees");
+    if (committeesPresent || (present.has("role") && current)) {
+      const parsed: RosterCommittee[] = [];
+      if (committeesPresent) {
+        for (const sigla of splitList(values.committees ?? "")) {
+          const target = findCommittee(sigla, catalog.committees);
+          if (!target) {
+            errors.push(text(2, { sigla, sugerencia: suggestCommittee(sigla, siglas) ?? "—" }));
+          } else if (!parsed.some((item) => item.id === target.id)) {
+            parsed.push(target);
+          }
+        }
+        if (parsed.length > 3) {
+          errors.push(text(3));
+        }
+        if (parsed.length === 0 && result.status !== "INACTIVE" && !updateMode) {
+          errors.push(text(9));
+        }
+      } else {
+        for (const item of current?.committees ?? []) {
+          const target = findCommittee(item.slug, catalog.committees);
+          if (target) {
+            parsed.push(target);
+          }
+        }
+      }
+      const roles = new Map<string, string>();
+      if (present.has("role") && values.role) {
+        const assignments = parseRoleAssignments(values.role, catalog.committees, parsed);
+        if (assignments.error !== null) {
+          errors.push(text(assignments.error, { sigla: values.role, sugerencia: "—" }));
+        }
+        for (const [slug, label] of assignments.bySlug) {
+          roles.set(slug, label);
+        }
+      }
+      // Sin columna CARGO se conserva el cargo que la persona ya tiene; con la columna, vacío es Miembro.
+      const keptRole = (slug: string) =>
+        present.has("role")
+          ? "MIEMBRO"
+          : (current?.committees.find((item) => item.slug === slug)?.roleCode ?? "MIEMBRO");
+      result.committees = parsed.map((target) => {
+        const label = roles.get(target.slug);
+        if (!label) {
+          const roleCode = keptRole(target.slug);
+          if (roleCode === "GENERAL") {
+            generals.set(target.id, (generals.get(target.id) ?? 0) + 1);
+          }
+          return { committeeId: target.id, slug: target.slug, name: target.name, roleCode };
+        }
+        const role = findRole(label, catalog.roles);
+        if (role) {
+          if (role.code === "GENERAL") {
+            generals.set(target.id, (generals.get(target.id) ?? 0) + 1);
+          }
+          return {
+            committeeId: target.id,
+            slug: target.slug,
+            name: target.name,
+            roleCode: role.code,
+          };
+        }
+        unknownRoles.add(label);
+        return {
+          committeeId: target.id,
+          slug: target.slug,
+          name: target.name,
+          roleCode: roleCodeFromLabel(label),
+          newRoleLabel: label,
+        };
+      });
+    }
+    if (!present.has("transfer")) {
+      result.transferSlug = current?.committees.find((item) => item.transferredIn)?.slug ?? null;
+    } else {
+      const raw = values.transfer?.trim() ?? "";
+      if (raw) {
+        const target = findCommittee(raw, catalog.committees);
+        if (!target) {
+          errors.push(text(2, { sigla: raw, sugerencia: suggestCommittee(raw, siglas) ?? "—" }));
+        } else {
+          result.transferSlug = target.slug;
+        }
+      } else {
+        result.transferSlug = null;
+      }
+    }
+    return result;
+  });
+
+  for (const row of rows) {
+    for (const item of row.committees ?? []) {
+      if (item.roleCode === "GENERAL" && (generals.get(item.committeeId) ?? 0) > 1) {
+        row.errors.push(text(8, { comité: item.name }));
+      }
+    }
+  }
+  return {
+    rows,
+    updateMode,
+    missingRequired,
+    missingTerms: [...missingTerms].sort(),
+    unknownRoles: [...unknownRoles].sort(),
+  };
+}
+
+export interface ExistingPerson {
+  personId: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  program: string | null;
+  personalEmail: string | null;
+  status: RosterStatus | null;
+  probation: boolean;
+  committees: Array<{ slug: string; roleCode: string; transferredIn: boolean }>;
+}
+
+export type DiffGroup = "NEW" | "CHANGED" | "UNCHANGED" | "ERROR";
+
+export interface DiffRow {
+  row: ValidatedRow;
+  group: DiffGroup;
+  changes: RosterColumn[];
+}
+
+/** Qué cambiaría en cada persona; las columnas ausentes no cuentan (modo actualización). */
+export function diffRoster(rows: ValidatedRow[], existing: Map<string, ExistingPerson>): DiffRow[] {
+  return rows.map((row) => {
+    if (row.errors.length > 0) {
+      return { row, group: "ERROR", changes: [] };
+    }
+    const current = row.email ? existing.get(row.email) : undefined;
+    if (!current) {
+      return { row, group: "NEW", changes: [] };
+    }
+    const changes: RosterColumn[] = [];
+    if (row.firstName !== undefined && row.firstName !== current.firstName)
+      changes.push("firstName");
+    if (row.lastName !== undefined && row.lastName !== current.lastName) changes.push("lastName");
+    if (row.phone !== undefined && row.phone !== (current.phone ?? "")) changes.push("phone");
+    if (row.program !== undefined && row.program !== (current.program ?? ""))
+      changes.push("program");
+    if (row.personalEmail !== undefined && row.personalEmail !== (current.personalEmail ?? "")) {
+      changes.push("personalEmail");
+    }
+    if (row.status !== undefined && row.status !== current.status) changes.push("status");
+    if (row.probation !== undefined && row.probation !== current.probation) changes.push("status");
+    if (row.committees !== undefined && row.status !== "INACTIVE") {
+      const wanted = row.committees
+        .map((item) => `${item.slug}:${item.roleCode}:${row.transferSlug === item.slug}`)
+        .sort()
+        .join("|");
+      const have = current.committees
+        .map((item) => `${item.slug}:${item.roleCode}:${item.transferredIn}`)
+        .sort()
+        .join("|");
+      if (wanted !== have) changes.push("committees");
+    }
+    return {
+      row,
+      group: changes.length > 0 ? "CHANGED" : "UNCHANGED",
+      changes: [...new Set(changes)],
+    };
+  });
+}

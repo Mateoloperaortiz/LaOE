@@ -9,5 +9,13 @@ export {
 } from "./domain/config";
 export { recordExport } from "./domain/exports";
 export { checkDatabase } from "./domain/health";
+export {
+  createImportJob,
+  getImportJob,
+  type ImportJobRow,
+  type ImportJobStatus,
+  listImportJobs,
+  updateImportJob,
+} from "./domain/imports";
 export { type BackupStatus, checkBackup, pruneOutbox } from "./domain/maintenance";
 export { listOutbox, type OutboxRow, type OutboxState, retryDeadLetter } from "./domain/outbox";

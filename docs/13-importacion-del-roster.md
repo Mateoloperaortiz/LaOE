@@ -67,7 +67,8 @@ Cada semestre se sube el archivo nuevo con el mismo formato: así se actualizan 
 - **`Retirado`.** Una persona nueva con ese estado se crea como egresada (`INACTIVE`, motivo `OTHER`); una existente se da de baja con el comando de salida, motivo "roster {término}" y sin consentimientos (se capturan después). `Prueba` deja la membresía `ACTIVE` y marca `MembershipTerm.probation` en el término del archivo.
 - **Celular.** Diez dígitos que empiezan en 3 se guardan como `+57…`; cualquier otro formato se conserva tal cual con advertencia.
 - **Permisos de líder.** Se otorgan después de confirmar, uno por uno, con el mismo comando que usa `/admin/permisos`; si uno falla el resto sigue y queda en el resumen.
-- **Modo actualización.** Una persona nueva en un archivo sin las columnas obligatorias es un error de fila; un archivo sin `CORREO` es un error del archivo.
+- **Modo actualización.** Una persona nueva en un archivo sin las columnas obligatorias es un error de fila; un archivo sin `CORREO` es un error del archivo. Un archivo con `CORREO` y `CARGO` aplica los cargos sobre los comités que la persona ya tiene en el término. Sin la columna `CARGO`, los cargos que ya existen se conservan (con la columna, un valor vacío es `Miembro`); sin la columna `TRANSFERENCIA`, se conserva la transferencia registrada.
+- **Aplicar relee el archivo.** Al confirmar se vuelve a leer el original del bucket y a validar contra la base de ese momento; las filas con error se saltan y quedan contadas en el resumen, las demás se aplican en una sola transacción.
 - **Cargos nuevos.** Un cargo desconocido se puede agregar al catálogo desde la vista previa; se crea al confirmar.
 
 ## Confirmado con GH (2026-09-02)

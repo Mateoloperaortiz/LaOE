@@ -78,6 +78,19 @@ export {
   SIGN_IN_STATUSES,
 } from "./domain/reads";
 export {
+  applyRosterImportAs,
+  createRosterPreviewAs,
+  discardRosterImportAs,
+  getRosterPreview,
+  type LeaderProposal,
+  type PreviewRow,
+  type RosterPreview,
+  recordLeaderGrantsAs,
+  remapRosterPreviewAs,
+} from "./domain/roster";
+export { ROSTER_MAX_BYTES } from "./domain/roster-file";
+export { HEADER_ALIASES, ROSTER_COLUMNS, type RosterColumn } from "./domain/roster-pure";
+export {
   findPeopleByFilter,
   type SegmentFilter,
   type SegmentRow,

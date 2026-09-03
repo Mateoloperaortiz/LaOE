@@ -1,0 +1,641 @@
+import { createId } from "@paralleldrive/cuid2";
+import { and, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
+import { getDb } from "@/db/client";
+import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { getEnv } from "@/env";
+import { conventionalTermDates, createTerm, listAllTerms } from "@/modules/participation";
+import {
+  createImportJob,
+  getImportJob,
+  type ImportJobRow,
+  updateImportJob,
+} from "@/modules/system";
+import { getObject, putObject } from "@/shared/adapters/storage";
+import { DomainError } from "@/shared/admin-kit/DomainError";
+import { t } from "@/shared/copy";
+import {
+  committee,
+  committeeMembership,
+  committeeRole,
+  membership,
+  membershipTerm,
+  person,
+} from "../schema";
+import { listCommitteeRoles, setCommitteeMemberships } from "./committee-memberships";
+import { listAllCommittees } from "./committees";
+import { recordConsent } from "./consents";
+import { changeMembershipStatus, endMembership, reactivateMembership } from "./membership";
+import { createCommitteeRole } from "./roles";
+import { ROSTER_MAX_BYTES, readRosterCells, rosterFormat } from "./roster-file";
+import {
+  type DiffGroup,
+  detectMapping,
+  diffRoster,
+  type ExistingPerson,
+  ROSTER_COLUMNS,
+  type RosterColumn,
+  type RosterStatus,
+  rowsFromCells,
+  validateRoster,
+} from "./roster-pure";
+
+// El asistente del roster (13-importacion-del-roster.md, ADR-034): el archivo se guarda en el bucket, la
+// vista previa vive en un ImportJob y confirmar aplica todo en una transacción, idempotente por correo.
+
+const columnSchema = z.enum(ROSTER_COLUMNS).nullable();
+const mappingSchema = z.array(columnSchema);
+
+const previewRowSchema = z.object({
+  row: z.number(),
+  email: z.string().nullable(),
+  values: z.record(z.string(), z.string()),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  phone: z.string().optional(),
+  program: z.string().optional(),
+  personalEmail: z.string().optional(),
+  notes: z.string().optional(),
+  committees: z
+    .array(
+      z.object({
+        committeeId: z.string(),
+        slug: z.string(),
+        name: z.string(),
+        roleCode: z.string(),
+        newRoleLabel: z.string().optional(),
+      }),
+    )
+    .optional(),
+  entryTerm: z.string().optional(),
+  status: z.enum(["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"]).optional(),
+  probation: z.boolean().optional(),
+  transferSlug: z.string().nullable().optional(),
+  errors: z.array(z.string()),
+  warnings: z.array(z.string()),
+  group: z.enum(["NEW", "CHANGED", "UNCHANGED", "ERROR"]),
+  changes: z.array(z.enum(ROSTER_COLUMNS)),
+});
+
+export const leaderProposalSchema = z.object({
+  email: z.string(),
+  personName: z.string(),
+  committeeId: z.string(),
+  committeeName: z.string(),
+});
+
+const previewPayloadSchema = z.object({
+  headers: z.array(z.string()),
+  mapping: mappingSchema,
+  format: z.enum(["csv", "xlsx"]),
+  updateMode: z.boolean(),
+  missingRequired: z.array(z.enum(ROSTER_COLUMNS)),
+  missingTerms: z.array(z.string()),
+  unknownRoles: z.array(z.string()),
+  rows: z.array(previewRowSchema),
+  proposals: z.array(leaderProposalSchema),
+});
+
+export type PreviewRow = z.infer<typeof previewRowSchema>;
+export type LeaderProposal = z.infer<typeof leaderProposalSchema>;
+
+export interface RosterPreview extends z.infer<typeof previewPayloadSchema> {
+  jobId: string;
+  filename: string;
+  termId: string;
+  termCode: string;
+  status: ImportJobRow["status"];
+  summary: Record<string, unknown>;
+  counts: Record<DiffGroup, number>;
+}
+
+async function existingByEmail(
+  emails: string[],
+  termId: string,
+): Promise<Map<string, ExistingPerson>> {
+  const map = new Map<string, ExistingPerson>();
+  if (emails.length === 0) {
+    return map;
+  }
+  const db = getDb();
+  const people = await db
+    .select({
+      id: person.id,
+      email: person.email,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      phone: person.phone,
+      program: person.program,
+      personalEmail: person.personalEmail,
+      status: membership.status,
+    })
+    .from(person)
+    .leftJoin(membership, eq(membership.personId, person.id))
+    .where(inArray(person.email, emails));
+  const ids = people.map((row) => row.id);
+  if (ids.length === 0) {
+    return map;
+  }
+  const [committees, probations] = await Promise.all([
+    db
+      .select({
+        personId: committeeMembership.personId,
+        slug: committee.slug,
+        roleCode: committeeMembership.roleCode,
+        transferredIn: committeeMembership.transferredIn,
+        leftAt: committeeMembership.leftAt,
+      })
+      .from(committeeMembership)
+      .innerJoin(committee, eq(committee.id, committeeMembership.committeeId))
+      .where(
+        and(inArray(committeeMembership.personId, ids), eq(committeeMembership.termId, termId)),
+      ),
+    db
+      .select({ personId: membershipTerm.personId, probation: membershipTerm.probation })
+      .from(membershipTerm)
+      .where(and(inArray(membershipTerm.personId, ids), eq(membershipTerm.termId, termId))),
+  ]);
+  for (const row of people) {
+    map.set(row.email, {
+      personId: row.id,
+      firstName: row.firstName,
+      lastName: row.lastName,
+      phone: row.phone,
+      program: row.program,
+      personalEmail: row.personalEmail,
+      status: row.status,
+      probation: probations.some((item) => item.personId === row.id && item.probation),
+      committees: committees
+        .filter((item) => item.personId === row.id && item.leftAt === null)
+        .map((item) => ({
+          slug: item.slug,
+          roleCode: item.roleCode,
+          transferredIn: item.transferredIn,
+        })),
+    });
+  }
+  return map;
+}
+
+interface BuiltPreview {
+  headers: string[];
+  mapping: Array<RosterColumn | null>;
+  validation: ReturnType<typeof validateRoster>;
+  rows: PreviewRow[];
+  proposals: LeaderProposal[];
+  existing: Map<string, ExistingPerson>;
+}
+
+async function buildPreview(
+  cells: string[][],
+  mapping: Array<RosterColumn | null> | null,
+  termId: string,
+): Promise<BuiltPreview> {
+  const headers = cells[0] ?? [];
+  const resolvedMapping = mapping ?? detectMapping(headers);
+  const inputs = rowsFromCells(cells, resolvedMapping);
+  const emails = inputs
+    .map((input) => (input.values.email ?? "").trim().toLowerCase())
+    .filter(Boolean);
+  const [committees, roles, terms, existing] = await Promise.all([
+    listAllCommittees(),
+    listCommitteeRoles(),
+    listAllTerms(),
+    existingByEmail(emails, termId),
+  ]);
+  const validation = validateRoster(inputs, resolvedMapping, {
+    committees,
+    roles: roles.map((role) => ({ code: role.code, label: role.label })),
+    termCodes: terms.map((term) => term.code),
+    domains: getEnv().INSTITUTIONAL_EMAIL_DOMAINS,
+    existing,
+  });
+  const diff = diffRoster(validation.rows, existing);
+  const rows: PreviewRow[] = diff.map((item) => ({
+    ...item.row,
+    values: Object.fromEntries(
+      Object.entries(item.row.values).map(([key, value]) => [key, value ?? ""]),
+    ),
+    group: item.group,
+    changes: item.changes,
+  }));
+  const proposals: LeaderProposal[] = [];
+  for (const row of rows) {
+    if (row.group === "ERROR" || !row.email) {
+      continue;
+    }
+    for (const item of row.committees ?? []) {
+      if (item.roleCode === "GENERAL") {
+        proposals.push({
+          email: row.email,
+          personName:
+            `${row.firstName ?? existing.get(row.email)?.firstName ?? ""} ${row.lastName ?? existing.get(row.email)?.lastName ?? ""}`.trim(),
+          committeeId: item.committeeId,
+          committeeName: item.name,
+        });
+      }
+    }
+  }
+  return { headers, mapping: resolvedMapping, validation, rows, proposals, existing };
+}
+
+function payloadOf(built: BuiltPreview, format: "csv" | "xlsx") {
+  return {
+    headers: built.headers,
+    mapping: built.mapping,
+    format,
+    updateMode: built.validation.updateMode,
+    missingRequired: built.validation.missingRequired,
+    missingTerms: built.validation.missingTerms,
+    unknownRoles: built.validation.unknownRoles,
+    rows: built.rows,
+    proposals: built.proposals,
+  };
+}
+
+function countGroups(rows: PreviewRow[]): Record<DiffGroup, number> {
+  const counts: Record<DiffGroup, number> = { NEW: 0, CHANGED: 0, UNCHANGED: 0, ERROR: 0 };
+  for (const row of rows) {
+    counts[row.group] += 1;
+  }
+  return counts;
+}
+
+export interface CreatePreviewInput {
+  filename: string;
+  contentType: string;
+  bytes: Uint8Array;
+  termId: string;
+}
+
+function fileKeyFor(jobId: string, format: "csv" | "xlsx", now = new Date()): string {
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  return `imports/${year}/${month}/${jobId}.${format}`;
+}
+
+/** Paso 1: guarda el original en el bucket, lo lee, valida y deja la vista previa en un ImportJob. */
+export async function createRosterPreviewAs(
+  actor: Actor,
+  input: CreatePreviewInput,
+): Promise<{ jobId: string }> {
+  const format = rosterFormat(input.filename, input.contentType);
+  if (!format || input.bytes.byteLength === 0 || input.bytes.byteLength > ROSTER_MAX_BYTES) {
+    throw new DomainError(t("T-488"), "file");
+  }
+  const terms = await listAllTerms();
+  const term = terms.find((item) => item.id === input.termId);
+  if (!term) {
+    throw new DomainError(t("T-260"), "termId");
+  }
+  let cells: string[][];
+  try {
+    cells = await readRosterCells(input.bytes, format);
+  } catch {
+    throw new DomainError(t("T-488"), "file");
+  }
+  if (cells.length < 2) {
+    throw new DomainError(t("T-488"), "file");
+  }
+  const built = await buildPreview(cells, null, term.id);
+  const fileKey = fileKeyFor(createId(), format);
+  await putObject(
+    fileKey,
+    input.bytes,
+    format === "csv"
+      ? "text/csv"
+      : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  );
+  const job = await runCommand(actor, (ctx) =>
+    createImportJob(ctx, {
+      type: "ROSTER",
+      filename: input.filename,
+      fileKey,
+      termId: term.id,
+      mapping: { columns: built.mapping },
+      payload: payloadOf(built, format),
+      summary: countGroups(built.rows),
+    }),
+  );
+  return { jobId: job.id };
+}
+
+export async function getRosterPreview(jobId: string): Promise<RosterPreview | null> {
+  const job = await getImportJob(jobId);
+  if (!job || job.type !== "ROSTER" || !job.termId) {
+    return null;
+  }
+  const parsed = previewPayloadSchema.safeParse(job.payload);
+  if (!parsed.success) {
+    return null;
+  }
+  const terms = await listAllTerms();
+  return {
+    ...parsed.data,
+    jobId: job.id,
+    filename: job.filename,
+    termId: job.termId,
+    termCode: terms.find((term) => term.id === job.termId)?.code ?? "",
+    status: job.status,
+    summary: job.summary,
+    counts: countGroups(parsed.data.rows),
+  };
+}
+
+/** Paso 2: el admin corrige el mapeo de columnas; se relee el archivo del bucket y se vuelve a validar. */
+export async function remapRosterPreviewAs(
+  actor: Actor,
+  jobId: string,
+  mapping: Array<RosterColumn | null>,
+): Promise<void> {
+  const job = await getImportJob(jobId);
+  if (!job || job.status !== "PREVIEW" || !job.fileKey || !job.termId) {
+    throw new DomainError(t("T-032"));
+  }
+  const current = previewPayloadSchema.safeParse(job.payload);
+  if (!current.success) {
+    throw new DomainError(t("T-032"));
+  }
+  const bytes = await getObject(job.fileKey);
+  const cells = await readRosterCells(bytes, current.data.format);
+  const built = await buildPreview(cells, mapping, job.termId);
+  await runCommand(actor, (ctx) =>
+    updateImportJob(ctx, jobId, {
+      mapping: { columns: built.mapping },
+      payload: payloadOf(built, current.data.format),
+      summary: countGroups(built.rows),
+    }),
+  );
+}
+
+export interface ApplySummary {
+  created: number;
+  updated: number;
+  unchanged: number;
+  skipped: number;
+  termsCreated: string[];
+  rolesCreated: string[];
+  proposals: LeaderProposal[];
+}
+
+async function ensureTerms(ctx: CommandContext, codes: string[]): Promise<Map<string, string>> {
+  const terms = await listAllTerms();
+  const byCode = new Map(terms.map((term) => [term.code, term.id]));
+  for (const code of codes) {
+    if (byCode.has(code)) {
+      continue;
+    }
+    const created = await createTerm(ctx, {
+      code,
+      ...conventionalTermDates(code),
+      requiredOrdinaryAssemblies: 1,
+      permanenceGeneralNominal: 50,
+      permanenceCommitteeNominal: 60,
+    });
+    byCode.set(code, created.id);
+  }
+  return byCode;
+}
+
+async function ensureRoles(ctx: CommandContext, rows: PreviewRow[]): Promise<string[]> {
+  const known = new Set(
+    (await ctx.tx.select({ code: committeeRole.code }).from(committeeRole)).map((r) => r.code),
+  );
+  const created: string[] = [];
+  for (const row of rows) {
+    for (const item of row.committees ?? []) {
+      if (item.newRoleLabel && !known.has(item.roleCode)) {
+        await createCommitteeRole(ctx, {
+          code: item.roleCode,
+          label: item.newRoleLabel,
+          isLeadership: false,
+          sortOrder: 50,
+        });
+        known.add(item.roleCode);
+        created.push(item.newRoleLabel);
+      }
+    }
+  }
+  return created;
+}
+
+async function applyRow(
+  ctx: CommandContext,
+  row: PreviewRow,
+  termId: string,
+  termCode: string,
+  termsByCode: Map<string, string>,
+  jobId: string,
+): Promise<"created" | "updated" | "unchanged"> {
+  const email = row.email;
+  if (!email) {
+    return "unchanged";
+  }
+  const reason = `roster ${termCode}`;
+  const [existing] = await ctx.tx
+    .select({ id: person.id, stage: person.stage })
+    .from(person)
+    .where(eq(person.email, email))
+    .for("update");
+  let personId: string;
+  let outcome: "created" | "updated" | "unchanged" =
+    row.group === "UNCHANGED" ? "unchanged" : "updated";
+  const status: RosterStatus = row.status ?? "ACTIVE";
+  if (!existing) {
+    const entryTermId = row.entryTerm ? termsByCode.get(row.entryTerm) : undefined;
+    if (!entryTermId) {
+      return "unchanged";
+    }
+    const [created] = await ctx.tx
+      .insert(person)
+      .values({
+        email,
+        firstName: row.firstName ?? "",
+        lastName: row.lastName ?? "",
+        phone: row.phone || null,
+        program: row.program || null,
+        personalEmail: row.personalEmail || null,
+        stage: status === "INACTIVE" ? "ALUMNI" : "MEMBER",
+        source: "ROSTER",
+      })
+      .returning({ id: person.id });
+    if (!created) {
+      throw new Error("No se pudo crear la persona");
+    }
+    personId = created.id;
+    await ctx.tx.insert(membership).values({
+      personId,
+      status,
+      firstTermId: entryTermId,
+      ...(status === "INACTIVE"
+        ? { endedAt: new Date(), endReason: "OTHER" as const, lastTermId: termId }
+        : {}),
+    });
+    outcome = "created";
+  } else {
+    personId = existing.id;
+    const patch: Partial<typeof person.$inferInsert> = {};
+    if (row.firstName !== undefined && row.firstName) patch.firstName = row.firstName;
+    if (row.lastName !== undefined && row.lastName) patch.lastName = row.lastName;
+    if (row.phone !== undefined) patch.phone = row.phone || null;
+    if (row.program !== undefined) patch.program = row.program || null;
+    if (row.personalEmail !== undefined) patch.personalEmail = row.personalEmail || null;
+    if (Object.keys(patch).length > 0) {
+      await ctx.tx.update(person).set(patch).where(eq(person.id, personId));
+    }
+    const [current] = await ctx.tx
+      .select({ status: membership.status })
+      .from(membership)
+      .where(eq(membership.personId, personId));
+    if (!current) {
+      const entryTermId = (row.entryTerm ? termsByCode.get(row.entryTerm) : undefined) ?? termId;
+      await ctx.tx.insert(membership).values({
+        personId,
+        status,
+        firstTermId: entryTermId,
+        ...(status === "INACTIVE"
+          ? { endedAt: new Date(), endReason: "OTHER" as const, lastTermId: termId }
+          : {}),
+      });
+      await ctx.tx
+        .update(person)
+        .set({ stage: status === "INACTIVE" ? "ALUMNI" : "MEMBER" })
+        .where(eq(person.id, personId));
+    } else if (row.status !== undefined && current.status !== status) {
+      if (status === "INACTIVE") {
+        await endMembership(ctx, personId, {
+          endReason: "OTHER",
+          note: reason,
+          memorialConsent: false,
+          contactConsent: false,
+        });
+      } else if (current.status === "INACTIVE") {
+        await reactivateMembership(ctx, personId, { reason });
+        if (status !== "ACTIVE") {
+          await changeMembershipStatus(ctx, personId, { to: status, reason });
+        }
+      } else {
+        await changeMembershipStatus(ctx, personId, { to: status, reason });
+      }
+    }
+  }
+  if (row.probation !== undefined) {
+    await ctx.tx
+      .insert(membershipTerm)
+      .values({
+        personId,
+        termId,
+        probation: row.probation,
+        reason,
+        decidedById: ctx.actor.personId,
+      })
+      .onConflictDoUpdate({
+        target: [membershipTerm.personId, membershipTerm.termId],
+        set: { probation: row.probation, reason },
+      });
+  }
+  if (row.committees !== undefined && status !== "INACTIVE") {
+    await setCommitteeMemberships(
+      ctx,
+      personId,
+      termId,
+      row.committees.map((item) => ({
+        committeeId: item.committeeId,
+        roleCode: item.roleCode,
+        transferredIn: row.transferSlug === item.slug,
+      })),
+    );
+  }
+  await recordConsent(ctx, personId, { purpose: "MEMBERSHIP", source: "IMPORT" });
+  await ctx.audit({
+    action: "person.imported",
+    entityType: "person",
+    entityId: personId,
+    after: { jobId, termCode, outcome, changes: row.changes },
+  });
+  await ctx.emit({
+    type: "person.imported",
+    payload: {
+      actorId: ctx.actor.personId,
+      personId,
+      termCode,
+      jobId,
+      outcome,
+      changes: row.changes,
+      notes: row.notes ?? null,
+    },
+  });
+  return outcome;
+}
+
+/** Paso 3: relee el archivo, vuelve a validar contra la base de hoy y aplica todo en una transacción. */
+export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<ApplySummary> {
+  const job = await getImportJob(jobId);
+  if (!job || job.status !== "PREVIEW" || !job.fileKey || !job.termId) {
+    throw new DomainError(t("T-032"));
+  }
+  const current = previewPayloadSchema.safeParse(job.payload);
+  if (!current.success) {
+    throw new DomainError(t("T-032"));
+  }
+  const terms = await listAllTerms();
+  const termCode = terms.find((term) => term.id === job.termId)?.code ?? "";
+  const bytes = await getObject(job.fileKey);
+  const cells = await readRosterCells(bytes, current.data.format);
+  const built = await buildPreview(cells, current.data.mapping, job.termId);
+  const termId = job.termId;
+  return runCommand(actor, async (ctx) => {
+    const termsByCode = await ensureTerms(ctx, built.validation.missingTerms);
+    for (const term of terms) {
+      termsByCode.set(term.code, term.id);
+    }
+    const rolesCreated = await ensureRoles(ctx, built.rows);
+    const summary: ApplySummary = {
+      created: 0,
+      updated: 0,
+      unchanged: 0,
+      skipped: 0,
+      termsCreated: built.validation.missingTerms,
+      rolesCreated,
+      proposals: built.proposals,
+    };
+    for (const row of built.rows) {
+      if (row.group === "ERROR") {
+        summary.skipped += 1;
+        continue;
+      }
+      const outcome = await applyRow(ctx, row, termId, termCode, termsByCode, jobId);
+      summary[outcome] += 1;
+    }
+    await updateImportJob(ctx, jobId, {
+      status: "APPLIED",
+      appliedAt: new Date(),
+      payload: payloadOf(built, current.data.format),
+      summary: { ...summary, leaders: { granted: [], failed: [] } },
+    });
+    return summary;
+  });
+}
+
+export async function discardRosterImportAs(actor: Actor, jobId: string): Promise<void> {
+  const job = await getImportJob(jobId);
+  if (!job || job.status !== "PREVIEW") {
+    throw new DomainError(t("T-032"));
+  }
+  await runCommand(actor, (ctx) => updateImportJob(ctx, jobId, { status: "DISCARDED" }));
+}
+
+/** Los permisos de líder se otorgan después del commit, uno por uno; el resultado queda en el resumen. */
+export async function recordLeaderGrantsAs(
+  actor: Actor,
+  jobId: string,
+  result: { granted: string[]; failed: string[] },
+): Promise<void> {
+  const job = await getImportJob(jobId);
+  if (!job) {
+    return;
+  }
+  await runCommand(actor, (ctx) =>
+    updateImportJob(ctx, jobId, { summary: { ...job.summary, leaders: result } }),
+  );
+}
