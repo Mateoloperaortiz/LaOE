@@ -28,7 +28,7 @@ stateDiagram-v2
 | Prospecto | Formulario público, alta manual | Nada en la app | Datos del formulario, consentimiento |
 | Postulante | Convocatoria abierta, tarjeta en pipeline `ADMISSION` | Nada en la app | Respuestas, entrevistas, notas del equipo |
 | Integrante | "Dar de alta" o importación | Mi OE, check-in, GH Points | Membresía, comités por término, cargos, participación |
-| Egresado | Baja o graduación | Nada en la app: el correo institucional suele caducar al graduarse, así que un acceso futuro sería con correo personal verificado (fuera de v1) | Historia completa; correo personal opcional y consentimiento de contacto capturados al salir |
+| Egresado | Baja o graduación | Nada en la app: el correo institucional caduca al graduarse. Su perfil queda como **egresado** (memorial): historia institucional visible para integrantes en la galería por año si dio consentimiento | Nombre, foto con consentimiento, comités y cargos por término, años en la OE, puntos y reconocimientos; correo personal solo con consentimiento de contacto; sin celular, formularios ni tareas |
 
 Los contactos externos (`kind=EXTERNAL`) no tienen etapa de integrante ni acceso: son personas vinculadas a organizaciones.
 
@@ -87,5 +87,5 @@ Un CRM es un archivo de datos personales; esto no es opcional.
 - `Consent` versionado por propósito (`MEMBERSHIP`, `COMMUNICATIONS`, `DIRECTORY_PHOTO`) y por fuente (`FORM`, `IMPORT`, `ADMIN`), con fecha, versión de la política e IP cuando aplica.
 - Público: cero datos personales. Directorio interno: nombre, foto opcional con consentimiento, comités y cargos.
 - "Descargar mis datos" (JSON) y "Solicitar eliminación" desde Ajustes; la solicitud crea una tarea para un ADMIN con plazo de 15 días hábiles.
-- Retención: egresados sin consentimiento vigente se anonimizan a los 5 años (teléfono, notas, respuestas de formularios); nombre, comités, cargos y ledger se conservan como historia institucional.
+- Salida: no hay anonimización por plazo. Al salir, el perfil pasa a egresado y se depura lo que no es historia (celular salvo consentimiento de contacto, respuestas de formularios, tareas); notas y evaluaciones quedan solo para ADMIN; nombre, comités, cargos, años y ledger se conservan como historia institucional, visibles en la galería de egresados si hay consentimiento `MEMORIAL`. La eliminación a pedido anonimiza de inmediato ([ADR-030](adr/ADR-030-perfil-de-egresado.md)).
 - La política de tratamiento se publica en `/privacidad`; su versión vigente es la que registran los consentimientos nuevos. Detalle en [ADR-014](adr/ADR-014-privacidad-por-diseno.md).

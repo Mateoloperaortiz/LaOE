@@ -9,7 +9,9 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Prospecto | `stage=PROSPECT` | Persona que llenó un formulario público sin convocatoria abierta |
 | Postulante | `stage=APPLICANT` | Persona con tarjeta en un pipeline de admisión |
 | Integrante | `stage=MEMBER` + `Membership` | Persona con membresía: vigente, en licencia u honorario |
-| Egresado | `stage=ALUMNI` | Persona que dejó la OE (retiro o graduación); conserva su historia |
+| Egresado | `stage=ALUMNI` | Persona que dejó la OE (retiro o graduación); no puede entrar (pierde el correo institucional) y conserva su historia como perfil de egresado |
+| Perfil de egresado (memorial) | `stage=ALUMNI` + `Consent MEMORIAL` | Historia institucional de quien salió: comités, cargos, años, puntos; visible en la galería de egresados si hay consentimiento |
+| Galería de egresados | `/app/egresados` | Lista por año de salida con cartel por año; "memorial" es el nombre interno |
 | Membresía | `Membership` | Estado de integrante con primer término, fin y motivo; una por persona |
 | Vigente / En licencia / Honorario / Retirado | `ACTIVE` / `ON_LEAVE` / `HONORARY` / `INACTIVE` | Estados de la membresía. Entran a Mi OE vigentes y honorarios |
 | Comité | `Committee` | Grupo de trabajo con ficha editorial y logo |

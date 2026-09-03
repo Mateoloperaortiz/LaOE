@@ -6,8 +6,7 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 
 | # | Pregunta | Opciones | Quién decide | Cómo se cierra |
 | --- | --- | --- | --- | --- |
-| 1 | Anonimización de egresados: plazo para borrar teléfono, notas y respuestas (nombre, comités y ledger se conservan) | Lo que diga la política aprobada · 5 años si no lo dice · otro | OE (junta) | Al recibir el texto de la política; mientras tanto el job `retention` queda apagado |
-| 2 | ¿`General` otorga el permiso de líder de comité sin confirmación? | Propuesta marcada por defecto y ADMIN confirma (propuesta) · automático | Mateo | En la fase 2 |
+| — | Ninguna por ahora. Lo pendiente es contenido, no decisiones: ver [11-contenido-pendiente.md](11-contenido-pendiente.md) | | | |
 
 ## Cerradas
 
@@ -29,7 +28,7 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | 2026-09-02 | ¿Bajar a Railway Hobby después del cutover? | No: se sigue en Pro |
 | 2026-09-02 | ¿CDN (Cloudflare) delante de Railway? | No por ahora; se revisaría ante spam, lentitud medida o cargos de egreso |
 | 2026-09-02 | ¿Toda la infraestructura en Cloudflare? | No: sin Postgres gestionado (D1 es SQLite) ni proceso permanente, y Next.js vía OpenNext sin módulos nativos; se sigue en Railway ([01-arquitectura.md](01-arquitectura.md)) |
-| 2026-09-02 | ¿Egresados con acceso de solo lectura? | No en v1: el correo institucional suele caducar al graduarse; se guarda correo personal opcional con consentimiento ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
+| 2026-09-02 | ¿Egresados con acceso de solo lectura? | No: el correo institucional caduca al graduarse; el perfil queda como egresado con su historia ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
 | 2026-09-02 | Código rotativo en QR | Opcional por ocasión, apagado por defecto ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
 | 2026-09-02 | Tope y mínimo de comités por persona | Mínimo 1, máximo 3 ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
 | 2026-09-02 | Requisito de asambleas por término | Obligatorias: una ordinaria en primer semestre; una ordinaria más la elección de junta (y su segunda vuelta) en segundo semestre. Faltar a una obligatoria implica expulsión. El 10 % exige tres asistencias ([ADR-028](adr/ADR-028-permanencia-consecuencias.md)) |
@@ -49,3 +48,5 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | 2026-09-02 | Consecuencia de faltar a una asamblea obligatoria | Expulsión de la OE; la app avisa antes de cada obligatoria y propone la salida en el cierre |
 | 2026-09-02 | Vocabulario de `ESTADO` en el roster | GH confirmó: `Activo`, `Licencia`, `Honorario`, `Retirado`, `Prueba` |
 | 2026-09-02 | Lista de cargos dentro del comité | GH confirmó que son seis: General, Financiero, Publicidad, Relaciones Públicas, Logística, Gestión Humana; `CARGO` llega en una segunda entrega ([13-importacion-del-roster.md](13-importacion-del-roster.md)) |
+| 2026-09-03 | ¿`General` otorga el permiso de líder sin confirmación? | No: la importación lo propone marcado y el ADMIN confirma ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
+| 2026-09-03 | Anonimización de egresados: plazo | No hay plazo: al salir, el perfil queda como egresado (memorial) con su historia institucional según consentimiento; se depura lo que no es historia; la eliminación a pedido anonimiza de inmediato ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |

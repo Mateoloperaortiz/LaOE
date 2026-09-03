@@ -25,4 +25,4 @@ GH va a enviar el roster con las columnas `NOMBRE`, `APELLIDO`, `CORREO`, `CELUL
 
 ## Precisiones (2026-09-02, respuesta de GH)
 
-El vocabulario de `ESTADO` es `Activo`, `Licencia`, `Honorario`, `Retirado` y `Prueba`. Los cargos son exactamente los seis del punto 1. La base actual no tiene `CARGO`: llegará en una segunda entrega, por lo que la importación admite un **modo actualización** (archivo con `CORREO` y un subconjunto de columnas que solo toca esas columnas en personas existentes). Sigue pendiente, de Mateo, si General otorga el permiso de líder sin confirmación.
+El vocabulario de `ESTADO` es `Activo`, `Licencia`, `Honorario`, `Retirado` y `Prueba`. Los cargos son exactamente los seis del punto 1. La base actual no tiene `CARGO`: llegará en una segunda entrega, por lo que la importación admite un **modo actualización** (archivo con `CORREO` y un subconjunto de columnas que solo toca esas columnas en personas existentes). Mateo decidió el 2026-09-03 que el permiso se otorga con confirmación, como proponía el punto 2 ([ADR-030](ADR-030-perfil-de-egresado.md)).

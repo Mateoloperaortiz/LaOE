@@ -66,6 +66,8 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | Consecuencias confirmadas por GH ([ADR-028](adr/ADR-028-permanencia-consecuencias.md)): más de 10 puntos por debajo sale del comité, y de la OE si no le queda otro donde cumpla; faltar a una asamblea obligatoria es expulsión; obligatorias una ordinaria en primer semestre y ordinaria más elección en segundo; evaluación al cerrar el semestre; Athletic con capitán y DT |
 | 2026-09-02 | Roster: GH lo envía con `NOMBRE`, `APELLIDO`, `CORREO`, `CELULAR`, `PREGRADO`, `COMITES`, `ENTRADA A LA OE`, `ESTADO`, y se agrega `CARGO` con el cargo dentro del comité; el cargo vive en la pertenencia al comité y General es el líder ([ADR-029](adr/ADR-029-cargos-de-comite-y-roster.md)) |
 | 2026-09-02 | GH confirmó los estados (`Activo`, `Licencia`, `Honorario`, `Retirado`, `Prueba`) y los seis cargos; `CARGO` llega en una segunda entrega y la importación admite actualizaciones parciales por correo |
+| 2026-09-03 | Egresados: al graduarse pierden el correo institucional y no vuelven a entrar; su perfil queda como egresado (memorial) con su historia, visible en una galería por año según consentimiento; no hay anonimización por plazo ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
+| 2026-09-03 | El permiso de líder para un `General` del roster se otorga con confirmación del ADMIN |
 
 Hechos que sustentan varias de estas decisiones:
 
@@ -80,4 +82,4 @@ Portal público y contenido editable · Personas y Mi OE · Participación y GH 
 
 ## Fuera de v1
 
-Pagos y boletería, chat, feed social, Graph o sincronización con el directorio EAFIT, galería masiva de fotos de personas, sanciones automáticas por asambleas, WhatsApp Business API, passkeys (mejora posterior), LLM sobre normativa, reto relámpago, boosters, palabra del día y badges persistidos (su historia se conserva en el ledger como entradas `LEGACY`).
+Pagos y boletería, chat, feed social, Graph o sincronización con el directorio EAFIT, galería masiva de fotos de personas, WhatsApp Business API, passkeys (mejora posterior), LLM sobre normativa, marca "En memoria" para integrantes fallecidos, reto relámpago, boosters, palabra del día y badges persistidos (su historia se conserva en el ledger como entradas `LEGACY`).

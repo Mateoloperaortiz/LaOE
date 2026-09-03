@@ -1,6 +1,6 @@
 # ADR-024: Reglas de participación confirmadas por la OE
 
-- Estado: Aceptada (enmendada por ADR-027 y ADR-028 en el punto 2, asambleas)
+- Estado: Aceptada (enmendada por ADR-027 y ADR-028 en el punto 2, asambleas; por ADR-030 en el punto 6, egresados)
 - Fecha: 2026-09-02
 - Enmienda: ADR-006 (tipos de asamblea y código rotativo) y ADR-009 (suavizado del score)
 - Relacionadas: ADR-002, ADR-004, ADR-005, ADR-010, ADR-014
@@ -31,3 +31,7 @@ GH precisó las asambleas: obligatorias son dos (una ordinaria más la elección
 ## Enmienda (2026-09-02, ADR-028)
 
 Primer semestre: una sola ordinaria obligatoria. Segundo semestre: una ordinaria más la elección de junta y su segunda vuelta. Faltar a una obligatoria implica expulsión de la OE. El 10 % exige tres asistencias en ambos semestres. Ver [ADR-028](ADR-028-permanencia-consecuencias.md).
+
+## Enmienda (2026-09-03, ADR-030)
+
+Los egresados no vuelven a entrar (pierden el correo institucional) y su perfil queda como egresado con su historia; el acceso futuro con correo personal deja de contemplarse. Ver [ADR-030](ADR-030-perfil-de-egresado.md).

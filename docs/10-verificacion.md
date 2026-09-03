@@ -30,6 +30,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Formulario público: vincula por correo normalizado, registra consentimiento, no crea puntos.
 - Importación del roster: el archivo de ejemplo de `13-importacion-del-roster.md` crea personas, pertenencias con cargo y consentimientos; subirlo dos veces no duplica; una fila con sigla inexistente o dos Generales en el mismo comité bloquea el lote con el error señalado.
 - "Dar de alta" en una transacción: membresía, comités, `firstTermId`, interacción.
+- "Dar de baja": motivo y consentimientos registrados; celular borrado sin consentimiento de contacto; formularios y tareas borrados; historia intacta; aparece en la galería solo con consentimiento `MEMORIAL`; la eliminación a pedido anonimiza y conserva comités y ledger anónimos.
 - Recalculo de permanencia al aprobar un check-in, registrar una evaluación o cambiar una regla; snapshot congelado al cerrar el término.
 
 ## E2E (Playwright)

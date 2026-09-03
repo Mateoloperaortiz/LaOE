@@ -25,6 +25,7 @@
 | `/app/eventos` | Eventos y ediciones incluyendo audiencia de integrantes |
 | `/app/comites` y `/app/comites/[slug]` | Comités con piezas internas y contactos |
 | `/app/personas` | Directorio: nombre, foto opcional, comités del término con el cargo en cada uno ("General de A3"), cargos de junta. Sin correos |
+| `/app/egresados` | Galería de egresados por año de salida: nombre, foto con consentimiento, comités, cargos y años en la OE; solo quienes dieron consentimiento `MEMORIAL` |
 | `/app/gh-points` | Saldo, nivel, movimientos, rankings (nuevos, veteranos, comités), asambleas firmadas/requeridas |
 | `/app/permanencia` | Resultado por cada comité frente a su umbral (60, 80 o 70 %), bloque general y bloque del comité criterio por criterio, cómo sumar más, asambleas obligatorias, evaluaciones pendientes, historial |
 | `/app/normativa` | Estatutos, reglamento y actas con lector y búsqueda |
@@ -64,5 +65,5 @@ Vista de **director de GH**: evalúa el desempeño de los integrantes de los gru
 | `POST /api/media/presign` y `POST /api/media/confirm` | ADMIN pide un `POST` prefirmado (tipo y tamaño acotados, 10 minutos), sube directo al bucket y confirma; la confirmación registra el `MediaAsset` y encola las variantes |
 | `POST /api/push/subscribe` | Registra suscripción push del actor |
 | `GET /api/export/[tipo]` | CSV/XLSX con step-up cuando hay datos personales |
-| Jobs programados: `campaigns`, `reminders`, `prune`, `retention`, `backup-check` | Corren en el mismo proceso del servicio `web` mediante el scheduler y el outbox; no tienen rutas HTTP |
+| Jobs programados: `campaigns`, `reminders`, `prune`, `backup-check` | Corren en el mismo proceso del servicio `web` mediante el scheduler y el outbox; no tienen rutas HTTP |
 | `/a/[publicId]`, `/asamblea/[publicId]` | Alias legados de GHPOINTS resueltos por `LegacyAlias` |

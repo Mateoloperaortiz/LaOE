@@ -61,6 +61,8 @@ Listo cuando: contenido real de la OE publicable sin tocar código; nada persona
 - [ ] Normativa: documentos en el bucket privado con lector y búsqueda
 - [ ] Carnet digital con QR firmado
 - [ ] Exportar mis datos y solicitud de eliminación
+- [ ] Comando de salida con motivo (graduación, retiro, permanencia) y consentimientos de galería y de contacto; depuración de lo que no es historia
+- [ ] Galería de egresados por año en Mi OE (`/app/egresados`), con cartel por año
 - [ ] Correo personal opcional con consentimiento, capturado al dar de baja
 
 Listo cuando: un admin encuentra a cualquier persona en 2 segundos y ve toda su historia; un integrante importado entra por OTP y ve su ficha.
@@ -166,3 +168,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-02 | — | GH cerró las siete: salida del comité o de la OE según la regla, expulsión por asamblea obligatoria, obligatorias por semestre, evaluación al cerrar el semestre, Athletic con capitán y DT (ADR-028). Solo queda abierta la anonimización de egresados, de la junta |
 | 2026-09-02 | — | Formato del roster definido con las columnas de GH más `CARGO` (ADR-029): cargo dentro del comité como catálogo en la pertenencia, nombre y apellido separados, validaciones e idempotencia. Doc `13-importacion-del-roster.md` |
 | 2026-09-02 | — | GH confirmó los cinco estados y los seis cargos; `CARGO` llegará en una segunda entrega, así que la importación admite actualizaciones parciales por correo |
+| 2026-09-03 | — | ADR-030: el perfil de egresado (memorial) reemplaza la anonimización por plazo; galería de egresados por año en la fase 2; el permiso del General se otorga con confirmación. Sin decisiones abiertas |

@@ -26,7 +26,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 - [ ] Estatutos vigentes en PDF
 - [ ] Reglamento vigente en PDF
-- [ ] Texto de la política de tratamiento de datos personales ya aprobada (documento o PDF) y nombre del responsable del tratamiento
+- [ ] Texto de la política de tratamiento de datos personales ya aprobada (documento o PDF) y nombre del responsable del tratamiento; confirmar que cubre la galería de egresados y el contacto posterior a la salida
 
 ## Marca
 
