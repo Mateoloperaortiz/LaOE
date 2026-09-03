@@ -19,11 +19,20 @@ const STATUS_INDEX: Record<ImportJobRow["status"], number> = {
   FAILED: 3,
 };
 
+function numero(summary: Record<string, unknown>, key: string): number {
+  const value = summary[key];
+  return typeof value === "number" ? value : 0;
+}
+
+/** El resumen con las palabras de la vista previa (T-482) o del cierre (T-487). */
 function resumen(job: ImportJobRow): string {
   const summary = job.summary as Record<string, unknown>;
-  return Object.entries(summary)
-    .filter(([, value]) => typeof value === "number")
-    .map(([key, value]) => `${key} ${value}`)
+  if (job.status === "APPLIED") {
+    return t("T-487", { n: numero(summary, "created"), m: numero(summary, "updated") });
+  }
+  const grupos = tList("T-482");
+  return (["NEW", "CHANGED", "UNCHANGED", "ERROR"] as const)
+    .map((key, index) => `${numero(summary, key)} ${(grupos[index] ?? key).toLowerCase()}`)
     .join(" · ");
 }
 
