@@ -63,6 +63,12 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-031 | Pie de página | Organización Estudiantil · Universidad EAFIT · desde 1987 | COM | Propuesta |
 | T-032 | Página no encontrada | Esta página no existe. Volvé al inicio. | MATEO | Propuesta |
 | T-033 | Error del servidor | Algo falló de nuestro lado. Ya nos enteramos; intentá de nuevo en un rato. | MATEO | Propuesta |
+| T-034 | Botón de tema (etiqueta accesible), según el tema al que cambia | Cambiar a tema oscuro · Cambiar a tema claro | MATEO | Propuesta |
+| T-035 | Enlace para saltar la navegación (lectores de pantalla y teclado) | Saltar al contenido | MATEO | Propuesta |
+| T-036 | Nombre accesible del logotipo en cabecera y pie | Organización Estudiantil, Universidad EAFIT | COM | Propuesta |
+| T-037 | Expresión de marca del manual, cierre de éxitos y estados vacíos | ¡OE OE OE! | COM | Aprobado por el manual |
+| T-038 | Navegación del portal público | Inicio · La OE · Cartelera · Eventos · Comités · Unirse | COM | Propuesta |
+| T-039 | Nombres de los cuatro macroeventos (identidades permanentes) | Días EAFIT · Inventiva · EnFemenino · Subsidios-OE | COM | Aprobado por el manual |
 
 ## 3. Acceso
 
@@ -256,7 +262,15 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-221 | Exportes, cabeceras | En español, sin abreviaturas: Nombre, Apellido, Correo, Comités, Estado, Semestre de ingreso, Puntos, Permanencia | MATEO | Propuesta |
 | T-222 | Cartel de egresados por año | Egresados {año} · {nombres} | COM | Propuesta |
 
-## 8. Lo que debe entregar cada dueño
+## 8. Sistema
+
+Textos de controles genéricos que no cambian el sentido institucional.
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-230 | Botón para reintentar tras un error | Intentar de nuevo | MATEO | Propuesta |
+
+## 9. Lo que debe entregar cada dueño
 
 - **COM:** nombre del sitio, textos del inicio, descripciones de los cuatro macroeventos, redes y contacto, plantilla de campaña, campaña de lanzamiento.
 - **GH:** texto de Unirse y del proceso de admisión, pasos del onboarding, descripción de una línea de cada criterio de permanencia, tono de los mensajes sensibles (asamblea obligatoria, prueba, salida), nombres y cortes de los niveles de GH Points, preguntas de la encuesta corta.

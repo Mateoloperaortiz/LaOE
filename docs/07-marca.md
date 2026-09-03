@@ -130,7 +130,7 @@ Lo que muestran los ejemplos del manual (Tote Bag, Assessment) y su panel de ins
 
 ## 8. Orden del feed
 
-El manual propone cuatro patrones para distribuir los colores entre publicaciones vecinas. La cartelera, las tarjetas de eventos y las portadas generadas siguen el patrón 1 por defecto (tablero de amarillo y azul con acentos navy, paper y naranja), calculado de forma determinista por posición, y dos tarjetas contiguas nunca repiten color.
+El manual propone cuatro patrones para distribuir los colores entre publicaciones vecinas, pensados para una cuadrícula fija de tres columnas. En la web la cuadrícula cambia de columnas según el ancho (una, dos o tres), así que la cartelera, las tarjetas de eventos y las portadas generadas usan una rotación determinista de cuatro colores por posición (azul, amarillo, naranja, navy; `feedVariant` en `src/shared/brand/feed.ts`): con ella dos tarjetas contiguas nunca repiten color en ninguno de los tres anchos. El patrón 1 queda como referencia para piezas de tres columnas fijas.
 
 ```text
 Patrón 1          Patrón 2          Patrón 3          Patrón 4

@@ -1,0 +1,325 @@
+/* Línea gráfica de la OE en la web (docs/07-marca.md). Once colores y sus tintes por opacidad. */
+
+@theme {
+  --color-oe-navy: #001f3e;
+  --color-oe-blue: #94b6f0;
+  --color-oe-sky: #d4dff0;
+  --color-oe-yellow: #ffd84b;
+  --color-oe-orange: #ff881b;
+  --color-oe-paper: #f6f6f6;
+  --color-oe-yellow-soft: #ffe279;
+  --color-oe-orange-soft: #eba15e;
+  --color-oe-blue-soft: #b2c6e8;
+  --color-oe-cream: #f6f8ed;
+  --color-oe-ink: #212121;
+
+  --font-display: var(--font-titulos), "Arial Narrow", Impact, sans-serif;
+  --font-sans: var(--font-contenido), system-ui, sans-serif;
+
+  /* Escala: display 64/56/40, títulos 32/24/20, cuerpo 16, notas 14, mínimo 12 en tablas. */
+  --text-display-xl: 4rem;
+  --text-display-xl--line-height: 0.92;
+  --text-display-lg: 3.5rem;
+  --text-display-lg--line-height: 0.94;
+  --text-display-md: 2.5rem;
+  --text-display-md--line-height: 0.96;
+  --text-titulo-lg: 2rem;
+  --text-titulo-lg--line-height: 1.05;
+  --text-titulo-md: 1.5rem;
+  --text-titulo-md--line-height: 1.15;
+  --text-titulo-sm: 1.25rem;
+  --text-titulo-sm--line-height: 1.25;
+
+  --tracking-eyebrow: 0.12em;
+  --radius-cartel: 1.25rem;
+}
+
+/* Tokens semánticos: cambian con el tema; los carteles no. */
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-fondo-alterno: var(--fondo-alterno);
+  --color-fondo-suave: var(--fondo-suave);
+  --color-tinta: var(--tinta);
+  --color-tinta-suave: var(--tinta-suave);
+  --color-titulo: var(--titulo);
+  --color-enlace: var(--enlace);
+  --color-borde: var(--borde);
+}
+
+:root {
+  color-scheme: light;
+  --fondo: var(--color-oe-paper);
+  --fondo-alterno: var(--color-oe-cream);
+  --fondo-suave: var(--color-oe-sky);
+  --tinta: var(--color-oe-ink);
+  --tinta-suave: color-mix(in oklab, var(--color-oe-ink) 70%, var(--color-oe-paper));
+  --titulo: var(--color-oe-navy);
+  --enlace: var(--color-oe-navy);
+  --borde: var(--color-oe-blue-soft);
+  --grano: var(--grano-oscuro);
+  /* Granito: ruido SVG, sin imágenes. Dos versiones: grano oscuro para fondos claros y claro para navy. */
+  --grano-oscuro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.09'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --grano-claro: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.08'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='white' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --fondo: var(--color-oe-navy);
+    --fondo-alterno: color-mix(in oklab, var(--color-oe-navy) 88%, var(--color-oe-blue));
+    --fondo-suave: color-mix(in oklab, var(--color-oe-navy) 78%, var(--color-oe-blue));
+    --tinta: var(--color-oe-paper);
+    --tinta-suave: color-mix(in oklab, var(--color-oe-paper) 72%, var(--color-oe-navy));
+    --titulo: var(--color-oe-paper);
+    --enlace: var(--color-oe-blue);
+    --borde: color-mix(in oklab, var(--color-oe-blue-soft) 35%, var(--color-oe-navy));
+    --grano: var(--grano-claro);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --fondo: var(--color-oe-navy);
+  --fondo-alterno: color-mix(in oklab, var(--color-oe-navy) 88%, var(--color-oe-blue));
+  --fondo-suave: color-mix(in oklab, var(--color-oe-navy) 78%, var(--color-oe-blue));
+  --tinta: var(--color-oe-paper);
+  --tinta-suave: color-mix(in oklab, var(--color-oe-paper) 72%, var(--color-oe-navy));
+  --titulo: var(--color-oe-paper);
+  --enlace: var(--color-oe-blue);
+  --borde: color-mix(in oklab, var(--color-oe-blue-soft) 35%, var(--color-oe-navy));
+  --grano: var(--grano-claro);
+}
+
+@layer base {
+  html {
+    overflow-x: clip;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--fondo);
+    background-image: var(--grano);
+    color: var(--tinta);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Títulos: familia de títulos, mayúsculas, interlineado apretado. h3 en adelante, contenido semibold. */
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 0.94;
+    color: var(--titulo);
+    text-wrap: balance;
+  }
+
+  h3,
+  h4 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    color: var(--titulo);
+    text-wrap: balance;
+  }
+
+  a {
+    color: var(--enlace);
+    text-underline-offset: 0.2em;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-oe-orange);
+    outline-offset: 3px;
+    border-radius: 0.25rem;
+  }
+
+  ::selection {
+    background: var(--color-oe-yellow);
+    color: var(--color-oe-navy);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+/* Etiquetas pequeñas en mayúsculas con espaciado amplio (chips, eyebrows, cabeceras de tabla). */
+@utility eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+
+/* Textura de granito sobre cualquier superficie grande. */
+@utility textura-granito {
+  background-image: var(--grano);
+}
+
+/* Botón primario: navy con texto paper; hover con tinte del 85 %. */
+@utility boton-primario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  background: var(--color-oe-navy);
+  color: var(--color-oe-paper);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+  &:hover {
+    background: color-mix(in oklab, var(--color-oe-navy) 85%, var(--color-oe-paper));
+  }
+}
+
+/* Botón de acción cálida: naranja con texto navy; una sola por pantalla. */
+@utility boton-calido {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  background: var(--color-oe-orange);
+  color: var(--color-oe-navy);
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+  &:hover {
+    background: var(--color-oe-orange-soft);
+  }
+}
+
+/* Botón secundario: borde navy, texto navy, fondo transparente. En tema oscuro, paper. */
+@utility boton-secundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  border: 2px solid var(--titulo);
+  color: var(--titulo);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+  &:hover {
+    background: color-mix(in oklab, var(--titulo) 10%, transparent);
+  }
+}
+
+/* Cartel: portada tipográfica en cinco fondos. No cambia con el tema. */
+.cartel {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--radius-cartel);
+  background-color: var(--cartel-fondo);
+  background-image: var(--cartel-grano);
+  color: var(--cartel-tinta);
+}
+.cartel[data-variante="paper"] {
+  --cartel-fondo: var(--color-oe-paper);
+  --cartel-tinta: var(--color-oe-navy);
+  --cartel-grano: var(--grano-oscuro);
+}
+.cartel[data-variante="azul"] {
+  --cartel-fondo: var(--color-oe-blue);
+  --cartel-tinta: var(--color-oe-navy);
+  --cartel-grano: var(--grano-oscuro);
+}
+.cartel[data-variante="amarillo"] {
+  --cartel-fondo: var(--color-oe-yellow);
+  --cartel-tinta: var(--color-oe-navy);
+  --cartel-grano: var(--grano-oscuro);
+}
+.cartel[data-variante="naranja"] {
+  --cartel-fondo: var(--color-oe-orange);
+  --cartel-tinta: var(--color-oe-navy);
+  --cartel-grano: var(--grano-oscuro);
+}
+.cartel[data-variante="navy"] {
+  --cartel-fondo: var(--color-oe-navy);
+  --cartel-tinta: var(--color-oe-paper);
+  --cartel-grano: var(--grano-claro);
+}
+.cartel h1,
+.cartel h2,
+.cartel h3 {
+  color: var(--cartel-tinta);
+}
+
+/* Barra de color detrás de un título, que sale del borde izquierdo de la pantalla. */
+.barra-titulo {
+  position: relative;
+  display: inline-block;
+  z-index: 0;
+  padding-right: 0.35em;
+}
+.barra-titulo::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: -100vw;
+  right: 0;
+  top: 0.42em;
+  bottom: 0.06em;
+  background: var(--barra, var(--color-oe-blue));
+}
+
+/* "¡OE OE OE!" con volumen: capas de sombra en naranja y navy. */
+.sello-oe {
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 0.9;
+  color: var(--color-oe-yellow-soft);
+  text-shadow:
+    0.02em 0.02em 0 var(--color-oe-orange),
+    0.04em 0.04em 0 var(--color-oe-orange),
+    0.06em 0.06em 0 var(--color-oe-navy),
+    0.08em 0.08em 0 var(--color-oe-navy);
+  animation: sello-entra 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes sello-entra {
+  from {
+    transform: scale(0.94) rotate(-1.5deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(-1.5deg);
+    opacity: 1;
+  }
+}
+
+/* Logos como máscara monocroma: se pintan con currentColor. */
+.logo-mascara {
+  display: inline-block;
+  background-color: currentColor;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+
+/* Movimiento reducido: sin animaciones de carteles ni del sello (07-marca.md §10). */
+@media (prefers-reduced-motion: reduce) {
+  .sello-oe,
+  .cartel {
+    animation: none;
+    transition: none;
+  }
+}
