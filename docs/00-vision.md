@@ -75,6 +75,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-03 | Arranca el código de la fase 0, escrito desde cero: de GHPOINTS solo se toman versiones de referencia y las lecciones ya documentadas |
 | 2026-09-03 | Capa de datos: Drizzle 0.45 sobre `pg` reemplaza a Prisma; esquema TypeScript por módulo ([ADR-032](adr/ADR-032-drizzle-y-esquema-por-modulo.md)) |
 | 2026-09-03 | Todo corre primero en local (OrbStack: Postgres 18 y Garage como emulador S3); el repositorio `LaOE` en GitHub y el entorno `staging` en Railway se montan al cerrar la fase 0 |
+| 2026-09-03 | Repositorio remoto creado: `github.com/Mateoloperaortiz/LaOE`, privado, con `main` protegida contra borrado y force push; Railway espera una autorización aparte |
 
 Hechos que sustentan varias de estas decisiones:
 

@@ -4,7 +4,7 @@ Documentación de la nueva casa digital de la **Organización Estudiantil de la 
 
 ## Estado
 
-**Fase 0 en curso** desde el 3 de septiembre de 2026: el código base ya corre completo en local (scaffold, datos, marca, acceso por OTP, outbox, admin kit y seed sintético; ver el [roadmap](docs/09-roadmap.md), que es el archivo de seguimiento). Falta la parte B de la fase: repositorio en GitHub, entorno `staging` en Railway y cuentas de correo y respaldo.
+**Fase 0 en curso** desde el 3 de septiembre de 2026: el código base ya corre completo en local (scaffold, datos, marca, acceso por OTP, outbox, admin kit y seed sintético; ver el [roadmap](docs/09-roadmap.md), que es el archivo de seguimiento). El repositorio vive en [github.com/Mateoloperaortiz/LaOE](https://github.com/Mateoloperaortiz/LaOE) (privado) con CI en cada push. Falta el resto de la parte B de la fase: entorno `staging` en Railway y cuentas de correo y respaldo.
 
 Versión de la documentación: 3 de septiembre de 2026.
 
