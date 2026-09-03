@@ -1,6 +1,6 @@
 # ADR-024: Reglas de participación confirmadas por la OE
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-027 en el punto 2, asambleas)
 - Fecha: 2026-09-02
 - Enmienda: ADR-006 (tipos de asamblea y código rotativo) y ADR-009 (suavizado del score)
 - Relacionadas: ADR-002, ADR-004, ADR-005, ADR-010, ADR-014
@@ -23,3 +23,7 @@ Mateo respondió el 2026-09-02, en nombre de Gestión Humana, las reglas que seg
 - Ejemplos del suavizado con `μ = 40 %`: comité de 3 con 3 presentes pasa de 100 % a 62,5 %; comité de 3 con 1 presente, de 33 % a 37,5 %; comité de 30 con 30 presentes, de 100 % a 91 %; comité de 30 con 12 presentes se queda en 40 %. Los grandes conservan su tasa real; los pequeños se acercan a la media hasta que acumulan evidencia.
 - El calendario de cada término necesita las fechas de las dos asambleas ordinarias y, en el segundo semestre, la de la elección de junta ([11-contenido-pendiente.md](../11-contenido-pendiente.md)).
 - Queda abierta solo la anonimización de egresados (plazo), ligada a la política aprobada.
+
+## Enmienda (2026-09-02, ADR-027)
+
+GH precisó las asambleas: obligatorias son dos (una ordinaria más la elección de junta) y el criterio de permanencia del 10 % exige tres. El primer semestre, sin elección, está por confirmar. Ver [ADR-027](ADR-027-permanencia-reglas-de-gh.md).

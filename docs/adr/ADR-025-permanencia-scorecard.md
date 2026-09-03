@@ -1,6 +1,6 @@
 # ADR-025: Permanencia como tablero de criterios configurable por término
 
-- Estado: Aceptada (enmendada por ADR-026)
+- Estado: Aceptada (enmendada por ADR-026 y ADR-027)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-003, ADR-004, ADR-006, ADR-008, ADR-012, ADR-024, ADR-026
 
@@ -28,3 +28,7 @@ Gestión Humana decide cada semestre quién permanece en la OE con una tabla de 
 ## Enmienda (2026-09-02, ADR-026)
 
 Las reglas tienen dos ámbitos: las de la OE (GH) y las de cada comité, cada uno con un presupuesto por término; el total de la persona suma ambas partes y usa el comité principal. Las capturas de GH que sumaban 50 % no estaban incompletas: el resto lo pone el comité. Ver [ADR-026](ADR-026-permanencia-por-comite.md).
+
+## Enmienda (2026-09-02, ADR-027)
+
+El umbral deja de ser configurable por término: es fijo por condición (60 % vigente, 80 % nuevo o en prueba, 70 % transferencia interna). Los estados incorporan `PRUEBA` (hasta 10 puntos por debajo) y el cierre propone automáticamente y ADMIN confirma. Ver [ADR-027](ADR-027-permanencia-reglas-de-gh.md).

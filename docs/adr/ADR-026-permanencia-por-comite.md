@@ -1,6 +1,6 @@
 # ADR-026: Permanencia en dos niveles: la OE y el comité
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-027)
 - Fecha: 2026-09-02
 - Enmienda: ADR-025
 - Relacionadas: ADR-005, ADR-006, ADR-011, ADR-014
@@ -23,3 +23,7 @@ Además de la tabla de Gestión Humana, cada uno de los 27 comités tiene su pro
 - El líder de comité suma tres deberes: editar la tabla de su comité dentro del presupuesto, pasar asistencia en las reuniones y evaluar a sus integrantes; la app le muestra lo pendiente.
 - GH supervisa 27 tablas en vez de una: vista de conjunto, comentarios y bloqueo.
 - Preguntas abiertas: si el presupuesto es 50/50, cómo se combina para quien está en varios comités, si los eventos 1 y 2 tienen peso fijo o lo define cada comité, y si el resultado del comité decide también la permanencia en el comité.
+
+## Enmienda (2026-09-02, ADR-027)
+
+GH respondió: los valores son nominales (general ≈ 50, comité ≈ 60, sin sumar 100 exacto); no hay comité principal sino un **resultado por cada comité** (general más la tabla de ese comité), así que `isPrimary` y `committeeAggregation` desaparecen; los eventos del comité los define cada comité; y quien evalúa es el director de GH del frente, no el líder del grupo. Ver [ADR-027](ADR-027-permanencia-reglas-de-gh.md).

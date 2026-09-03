@@ -35,7 +35,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Permanencia | `PermanenceSnapshot` | Porcentaje del término según la tabla de GH; con 60 % la persona permanece en la OE |
 | Criterio de permanencia | `PermanenceRule` | Fila de la tabla de GH: peso, a quién aplica y cómo se calcula |
 | Grupo de trabajo | `WorkGroup` | Equipo por término: comité de trabajo, GT de macroevento, GAP, GAP OE, barra brava o tarea de nuevos |
-| Comité de trabajo | `WorkGroup.kind=WORK_COMMITTEE` | CAP, CGH, CML, CCM, CAE, CAF o Athletic; distinto de los 27 comités de pertenencia |
+| Comité de trabajo | `WorkGroup.kind=WORK_COMMITTEE` | CAP (Acompañamiento Presidencial), CGH (Gestión Humana), CCM (Creatividad y Mercadeo), CAE (Alianzas Estratégicas), CML (Mejoramiento Logístico), CAF (Acompañamiento Financiero) o Athletic; distintos de los 27 comités de pertenencia |
 | GT de macroevento | `WorkGroup.kind=GT_MACROEVENT` | Grupo de trabajo de una edición de Inventiva, Días EAFIT o EnFemenino |
 | GAP | `WorkGroup.kind=GAP` | Grupo de apoyo a un evento de un comité distinto al propio o a un macroevento |
 | GAP OE | `WorkGroup.kind=GAP_OE` | Grupo de apoyo a eventos de la Junta Directiva (VTG, Assessment) |
@@ -43,9 +43,13 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Evaluación de desempeño | `WorkGroupMembership.evaluation` | Juicio del líder o de GH sobre si la persona cumplió con buen desempeño |
 | Decisión de permanencia | `PermanenceDecision` | Resultado del cierre del término: continúa, continúa con compromiso o retiro |
 | Categoría de ocasión | `Occasion.category` | Integración, partido del Athletic, reunión de comité, charla, taller, social u otra; la usan los criterios |
-| Tabla del comité | `PermanenceRule.scope=COMMITTEE` | Criterios de permanencia propios de un comité, definidos por su líder dentro del presupuesto |
-| Presupuesto de permanencia | `Term.permanenceOeBudget`, `Term.permanenceCommitteeBudget` | Cuánto pesa cada ámbito en el total del término (propuesta 50 y 50) |
-| Comité principal | `CommitteeMembership.isPrimary` | El comité cuya tabla cuenta en el total de una persona con varios comités |
+| Tabla general | `PermanenceRule.scope=GENERAL` | Criterios de permanencia de la junta, aplicados por GH a toda la OE; vale unos 50 puntos |
+| Tabla del comité | `PermanenceRule.scope=COMMITTEE` | Criterios de permanencia propios de un comité, definidos por su líder; vale unos 60 puntos |
+| Resultado por comité | `PermanenceSnapshot.results` | Parte general más la tabla de ese comité; una persona con varios comités tiene un resultado en cada uno |
+| Periodo de prueba | `MembershipTerm.probation` | Condición de quien cerró hasta 10 puntos por debajo de su umbral; el término siguiente debe cumplir 80 % |
+| Transferencia interna | `CommitteeMembership.transferredIn` | Cambio de comité dentro de la OE; ese término debe cumplir 70 % en el comité nuevo |
+| Director de GH | `Appointment.kind=GH_DIRECTOR`, `WorkGroup.evaluatorPersonId` | Quien evalúa el buen desempeño de los grupos de su frente |
+| GH principal | `Appointment.kind=GH_HEAD` | Cabeza de Gestión Humana; evalúa las tareas de nuevos y confirma el cierre |
 | Reunión de comité | `Occasion.category=COMMITTEE_MEETING` | Reunión semanal del comité con asistencia por modo anfitrión; alimenta el criterio de asistencia |
 | Puntaje del líder | `LeaderScore` | Valor que asigna el líder a un criterio como subcomité, liderazgo, destacado o convivencia, con observación si no es completo |
 | Evento | `Event` | Identidad permanente (Días EAFIT, Inventiva) |

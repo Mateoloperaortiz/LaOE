@@ -38,11 +38,12 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 ## Permanencia
 
-- [ ] Tabla de permanencia de GH completa del término (las capturas suman 50 % para veteranos y 45 % para nuevos)
-- [ ] Presupuesto de cada parte (¿50 % OE y 50 % comité?) y regla para quien está en varios comités
-- [ ] Tablas de permanencia de los 27 comités del término (ejemplo recibido: A3)
-- [ ] Lista de comités de trabajo (CAP, CGH, CML, CCM, CAE, CAF, Athletic) con su significado y sus líderes
-- [ ] Quién evalúa cada tipo de grupo (GT, GAP, GAP OE, barra brava, tareas de nuevos) y cuándo
+- [x] Tabla general de permanencia del término (recibida en capturas; GH confirmó que vale unos 50 puntos)
+- [x] Reparto entre tablas y regla para varios comités (general ≈ 50, comité ≈ 60, resultado por comité)
+- [x] Lista de comités de trabajo con su significado y sus líderes (falta el Athletic)
+- [x] Quién evalúa cada grupo (directores de GH; nuevos, el GH principal)
+- [ ] Tablas de permanencia de los 27 comités del término (ejemplo recibido: A3, con los eventos 1 y 2 aún sin peso)
+- [ ] Lista de directores de GH por frente y quién lidera y evalúa el Athletic
 - [ ] Calendario de integraciones y de partidos del Athletic del término
 
 ## Operación

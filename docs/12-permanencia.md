@@ -1,116 +1,139 @@
 # Permanencia
 
-Cada semestre, la Vicepresidencia de Gestión Humana evalúa a cada integrante con una **tabla de criterios ponderados en porcentajes**. Quien alcanza al menos **60 %** permanece en la OE. Hoy la tabla vive en una hoja de cálculo y la persona se entera al final; en la casa digital se convierte en un tablero que cada integrante ve en tiempo real y que GH configura por término. Regla en [ADR-025](adr/ADR-025-permanencia-scorecard.md).
+Cada semestre, Gestión Humana evalúa a cada integrante con **dos tablas de criterios ponderados**: la **general** (de la junta, la aplica GH a toda la OE) y la **de su comité** (la define cada comité). La persona obtiene un **resultado por cada comité** al que pertenece: lo que cumplió en la tabla general más lo que cumplió en la tabla de ese comité. Con ese resultado se decide su permanencia según su condición: vigente **60 %**, nuevo o en periodo de prueba **80 %**, transferencia interna a un comité **70 %** en ese comité. Hoy todo vive en hojas de cálculo y la persona se entera al final; en la casa digital es un tablero que cada integrante ve en tiempo real. Reglas en [ADR-025](adr/ADR-025-permanencia-scorecard.md), [ADR-026](adr/ADR-026-permanencia-por-comite.md) y [ADR-027](adr/ADR-027-permanencia-reglas-de-gh.md).
 
-## La tabla de 2026-2 según las capturas de GH
+## Cómo funciona en la OE (respuestas de GH, 2026-09-02)
 
-Transcripción de las cuatro capturas recibidas el 2026-09-02. Los textos entre paréntesis "(no solo hacer parte, sino tener un buen desempeño en las actividades y responsabilidades asignadas antes, durante y después)" aplican a todos los criterios de grupo.
+| Tema | Regla |
+| --- | --- |
+| Dos tablas | La general vale unos **50 puntos** y la del comité unos **60**; la suma no es 100 exacto (ronda 110 a 115). Los umbrales son puntos sobre esa suma, no una fracción del máximo |
+| Resultado por comité | Para cada comité de la persona: total = general + tabla de ese comité. Ejemplo de GH: general 45 %; en Pixel cumplió 30 % de la tabla de Pixel, total en Pixel 75 %; en Cigma cumplió 50 %, total en Cigma 95 % |
+| Umbrales fijos | Vigente: 60 %. Nuevo o en periodo de prueba: 80 %. Transferencia interna a un comité: 70 % en el comité al que se transfirió |
+| Por debajo del umbral | Si queda hasta 10 puntos por debajo de lo que debía cumplir, pasa a **periodo de prueba** (el término siguiente debe cumplir 80 %). Qué pasa más abajo está por confirmar |
+| GT de macroeventos | Por cantidad de grupos de trabajo con buen desempeño: uno 4 %, dos 6 %, tres o más 8 % |
+| Asambleas | Obligatorias: dos (una ordinaria más la elección de junta). El 10 % de permanencia exige una asamblea más: tres en total. El primer semestre, sin elección, está por confirmar |
+| Quién evalúa | El director de Gestión Humana de cada frente (macroevento, comité de trabajo, evento, Athletic). Las tareas de nuevos las evalúa el GH principal (hoy Miguel Gaviria) |
+| Eventos del comité | Cada comité define el peso de sus eventos 1 y 2; A3 aún no lo definió |
+| GH Points | Los puntos de cada actividad los define GH al crearla. Las reuniones de comité no dan puntos: solo cuentan en la tabla |
+
+## Tabla general de 2026-2 (transcripción de las capturas de GH)
 
 | Criterio | Cómo se cumple según GH | Peso | Aplica a | Evidencia en la app |
 | --- | --- | --- | --- | --- |
 | Integraciones | Asistir a las actividades de integración de la Vicepresidencia de GH: 2 % por actividad, máximo 10 % (5 de las 10 del semestre) | 10 % | Todos | Check-ins en ocasiones con categoría `INTEGRATION` |
-| Asambleas generales | Asistir a dos o más asambleas del grupo (la captura dice "3 o más" en amarillo: por confirmar) | 10 % | Todos | Check-ins en asambleas del término |
-| GT Macroeventos | Hacer parte de un grupo de trabajo de Inventiva, Días EAFIT o EnFemenino, con buen desempeño | 4 % / 6 % / 8 % (por confirmar a qué corresponde cada cifra) | Veteranos | Pertenencia a un grupo `GT_MACROEVENT` de la edición + evaluación del líder |
-| GAP | Participar como Grupo de Apoyo de un macroevento o de un evento de otro comité distinto a los propios, con buen desempeño | 5 % | Todos | Grupo `GAP` + evaluación |
-| GAP OE | Grupo de Apoyo en eventos de la Junta Directiva: VTG y Assessment | 3 % + 3 % | Veteranos | Un grupo `GAP_OE` por evento + evaluación |
-| Comité de trabajo | Pertenecer a uno de los seis comités de trabajo (CAP, CGH, CML, CCM, CAE, CAF) o al Athletic, con buen desempeño | 6 % | Veteranos | Grupo `WORK_COMMITTEE` + evaluación |
-| Barra brava / Apoyo Athletic OE | Apoyar al Athletic OE en al menos 3 encuentros deportivos, con involucramiento demostrable (carteleras, porras, implementos), no solo asistencia | 5 % | Todos | Al menos 3 check-ins en ocasiones `ATHLETIC_MATCH` y evaluación del grupo `BARRA_BRAVA` |
-| Decoración de oficina | Solo nuevos | 10 % | Nuevos | Grupo `NEW_MEMBER_TASK` + evaluación |
-| Integración solo nuevos | Solo nuevos | 5 % | Nuevos | Check-in en la ocasión de integración marcada `newMembersOnly` |
+| Asambleas generales | Tres asambleas: las dos obligatorias (una ordinaria y la elección de junta) más una | 10 % | Todos | Check-ins en asambleas del término |
+| GT Macroeventos | Grupos de trabajo de Inventiva, Días EAFIT o EnFemenino con buen desempeño: uno 4 %, dos 6 %, tres 8 % | 4 / 6 / 8 % | Veteranos | Grupos `GT_MACROEVENT` evaluados `GOOD`, por cantidad |
+| GAP | Grupo de apoyo de un macroevento o de un evento de otro comité, con buen desempeño | 5 % | Todos | Grupo `GAP` + evaluación |
+| GAP OE | Grupo de apoyo en eventos de la Junta Directiva: VTG y Assessment | 3 % + 3 % | Veteranos | Un grupo `GAP_OE` por evento + evaluación |
+| Comité de trabajo | Pertenecer a uno de los seis comités de trabajo o al Athletic, con buen desempeño | 6 % | Veteranos | Grupo `WORK_COMMITTEE` + evaluación |
+| Barra brava / Apoyo Athletic OE | Apoyar al Athletic OE en al menos 3 encuentros con involucramiento demostrable (carteleras, porras, implementos) | 5 % | Todos | Al menos 3 check-ins en ocasiones `ATHLETIC_MATCH` y evaluación del grupo `BARRA_BRAVA` |
+| Decoración de oficina | Solo nuevos | 10 % | Nuevos | Grupo `NEW_MEMBER_TASK` evaluado por el GH principal |
+| Integración solo nuevos | Solo nuevos | 5 % | Nuevos | Check-in en la integración marcada `newMembersOnly` |
 
-GH aclara que los criterios de nuevos (quienes ingresan en 2026-2) **reemplazan** los de Grupos de Trabajo, Comités de Trabajo y GAP OE.
+Los criterios de nuevos reemplazan a GT, comités de trabajo y GAP OE. Máximos: veteranos 50 % (con tres GT) y nuevos 45 %, coherentes con los "unos 50 puntos" de GH. La frase "no solo hacer parte, sino tener un buen desempeño antes, durante y después" aplica a todos los criterios de grupo.
 
-Sumas de lo capturado: veteranos hasta 50 % (con un solo GT) y nuevos hasta 45 %. El resto lo aporta la **tabla del comité** de cada persona (siguiente sección). El presupuesto de cada parte y la suma total están por confirmar con GH ([11-contenido-pendiente.md](11-contenido-pendiente.md)).
-
-## La tabla del comité (ejemplo: A3)
-
-Cada uno de los 27 comités tiene su propia tabla, que define su líder. Transcripción de la captura del comité A3 recibida el 2026-09-02:
+## Tabla del comité (ejemplo: A3)
 
 | Criterio del comité | Detalle | Fechas | Peso | Evidencia en la app |
 | --- | --- | --- | --- | --- |
 | Asistencia a reuniones | Reuniones, eventos, equipos de planeación, subcomités | Cada 8 días | 15 % | Tasa de check-ins en las reuniones semanales del comité (`COMMITTEE_MEETING`) |
-| Evento 1 | Por definir por el comité | N/A | En blanco | Check-in o grupo del evento del comité |
-| Evento 2 | Por definir por el comité | N/A | En blanco | Igual |
+| Evento 1 | Lo define el comité | N/A | Pendiente | Check-in o grupo del evento del comité |
+| Evento 2 | Lo define el comité | N/A | Pendiente | Igual |
 | Subcomité, liderazgo o destacado | Pertenecer y trabajar en un subcomité, haber sido líder de un evento o ser miembro destacado del mes | N/A | 10 % | Puntaje del líder (`LEADER_SCORE`) |
 | Obligatorio: convivencia | Convivencia, respeto, actitud, escucha y comunicación; si no se cumple el 5 %, especificar el porqué en observaciones | N/A | 5 % | Puntaje del líder con valor completo por defecto y observación obligatoria si baja |
 
-Lo visible suma 30 % más los dos eventos. Con un presupuesto de 50 % para el comité, los eventos valdrían 10 % cada uno; por confirmar. Regla en [ADR-026](adr/ADR-026-permanencia-por-comite.md): las reglas tienen ámbito `OE` o `COMMITTEE`, GH fija un presupuesto para cada ámbito por término, la parte de comité del total usa el **comité principal** de la persona, y el 60 % aplica a la suma de ambas partes.
+La tabla de cada comité vale unos 60 puntos; A3 tiene 30 definidos y dos eventos pendientes.
+
+## Comités de trabajo
+
+Son distintos de los 27 comités de pertenencia. Se cargan como grupos de trabajo `WORK_COMMITTEE` con su líder de junta:
+
+| Sigla | Nombre | Lo lidera |
+| --- | --- | --- |
+| CAP | Comité de Acompañamiento Presidencial | Presidente |
+| CGH | Comité de Gestión Humana | Vicepresidente de Gestión Humana |
+| CCM | Comité de Creatividad y Mercadeo | Vicepresidencia de Relaciones Públicas |
+| CAE | Comité de Alianzas Estratégicas | Vicepresidencia de Relaciones Públicas |
+| CML | Comité de Mejoramiento Logístico | Vicepresidencia Administrativa |
+| CAF | Comité de Acompañamiento Financiero | Vicepresidencia Financiera |
+| Athletic | Equipo deportivo Athletic OE | Por confirmar |
 
 ## Cómo se modela
 
-Tres ideas:
-
-1. **Las reglas son datos, no código.** `PermanenceRule` guarda, por término, cada criterio con su ámbito (`OE` o `COMMITTEE` con su comité), su peso, a quién aplica (todos, nuevos, veteranos), cómo se calcula y sus parámetros. GH copia la tabla del término anterior y ajusta pesos; cada líder hace lo mismo con la tabla de su comité dentro del presupuesto; el umbral (60 %) también es configuración por término.
-2. **Todo criterio sale de hechos registrados.** Asistencias (check-ins con categoría de ocasión), pertenencia a **grupos de trabajo** con una **evaluación de desempeño** explícita, y créditos manuales auditados para lo que no encaje. "Buen desempeño" nunca se calcula: lo registra el líder del grupo o GH.
-3. **La persona siempre ve dónde va.** Un snapshot por persona y término se recalcula solo (outbox) cada vez que cambia un hecho, con el desglose y lo que todavía puede sumar.
+1. **Las reglas son datos, no código.** `PermanenceRule` guarda, por término, cada criterio con su ámbito (`GENERAL` o `COMMITTEE` con su comité), su peso, a quién aplica (todos, nuevos, veteranos), cómo se calcula y sus parámetros. GH copia la tabla general del término anterior; cada líder hace lo mismo con la de su comité. El editor muestra la suma de cada tabla frente a su valor nominal (50 y 60) y avisa si se aleja, sin bloquear, porque la suma no es exacta.
+2. **Todo criterio sale de hechos registrados.** Check-ins con categoría de ocasión, pertenencia a grupos de trabajo con evaluación explícita del director de GH del frente, puntajes del líder de comité y créditos manuales auditados. "Buen desempeño" nunca se calcula: lo registra una persona.
+3. **Un resultado por comité.** El snapshot por persona y término guarda la parte general y, por cada comité de la persona, la parte del comité, el total, el umbral que le aplica (60, 80 o 70) y el estado. No hay comité principal ni promedios.
+4. **Umbral por condición.** `permanence.threshold.active = 60`, `permanence.threshold.new = 80`, `permanence.threshold.probation = 80`, `permanence.threshold.transfer = 70`, `permanence.probationMargin = 10`. Nuevo = primer término (ADR-008); en prueba = `MembershipTerm.probation`; transferencia = `CommitteeMembership.transferredIn`.
+5. **La persona siempre ve dónde va**, con el desglose y lo que aún puede sumar.
 
 ### Tipos de cálculo
 
 | Tipo | Parámetros | Ejemplo |
 | --- | --- | --- |
 | `CHECKIN_COUNT` | categoría de ocasión, porcentaje por unidad, tope, filtro `newMembersOnly` | Integraciones: `INTEGRATION`, 2 % cada una, tope 10 % |
-| `CHECKIN_THRESHOLD` | categoría o tipo, mínimo de check-ins, peso | Asambleas: al menos 2 (o 3), 10 % |
-| `GROUP_EVALUATED` | tipo de grupo, pesos por grupo o por evento, ¿acumula? | Comité de trabajo 6 %; GT por macroevento 4/6/8 %; GAP OE 3 % por evento |
+| `CHECKIN_THRESHOLD` | tipo de ocasión, mínimo de check-ins, peso | Asambleas: al menos 3 (ordinarias, elección y segunda vuelta cuentan), 10 % |
+| `CHECKIN_RATE` | categoría de ocasión, comité | Reuniones de comité: 15 % multiplicado por la tasa de asistencia |
+| `GROUP_EVALUATED` | tipo de grupo, peso fijo o por evento, o tramos por cantidad | Comité de trabajo 6 %; GAP OE 3 % por evento; GT por cantidad 1 → 4 %, 2 → 6 %, 3 o más → 8 % |
 | `COMPOSITE` | umbral de check-ins más evaluación de grupo | Barra brava: 3 partidos `ATHLETIC_MATCH` y evaluación `GOOD` |
-| `MANUAL` | peso, requiere motivo | Criterios que GH reconoce a mano |
-| `CHECKIN_RATE` | categoría de ocasión, comité | Reuniones de comité: 15 % multiplicado por la tasa de asistencia del término |
 | `LEADER_SCORE` | peso, obligatorio o no | Subcomité, liderazgo o destacado (0 a 10 %); convivencia (5 % por defecto, observación obligatoria si baja) |
+| `MANUAL` | peso, requiere motivo | Criterios que GH reconoce a mano |
 
 ### Grupos de trabajo y evaluaciones
 
-`WorkGroup` por término con `kind` (`WORK_COMMITTEE`, `GT_MACROEVENT`, `GAP`, `GAP_OE`, `BARRA_BRAVA`, `NEW_MEMBER_TASK`), nombre, código (CAP, CGH, CML, CCM, CAE, CAF, ATHLETIC), evento o edición asociada y líder. `WorkGroupMembership` une persona y grupo, con `evaluation` (`PENDING`, `GOOD`, `INSUFFICIENT`), quién evaluó, cuándo y una nota. El líder evalúa al cerrar el evento o el término; GH puede corregir con motivo. Una evaluación pendiente se muestra como "pendiente" y, al cerrar el término, cuenta como no lograda salvo que GH la resuelva. Cada evaluación queda en la línea de tiempo de la persona.
+`WorkGroup` por término con `kind` (`WORK_COMMITTEE`, `GT_MACROEVENT`, `GAP`, `GAP_OE`, `BARRA_BRAVA`, `NEW_MEMBER_TASK`), nombre, código, evento o edición asociada, quién lo lidera y quién lo **evalúa** (`evaluatorPersonId`: el director de GH de ese frente; en tareas de nuevos, el GH principal). `WorkGroupMembership` une persona y grupo, con `evaluation` (`PENDING`, `GOOD`, `INSUFFICIENT`), quién evaluó, cuándo y una nota. Una evaluación pendiente se muestra como "pendiente" y al cerrar el término cuenta como no lograda salvo que GH la resuelva. Cada evaluación queda en la línea de tiempo de la persona.
 
-Los seis comités de trabajo y el Athletic son distintos de los 27 comités con logo a los que pertenece cada integrante (1 a 3): se modelan como grupos de trabajo, no como `Committee` (por confirmar con GH).
-
-### Estados del snapshot
+### Estados del resultado en un comité
 
 | Estado | Significado |
 | --- | --- |
 | `EN_CAMINO` | Término abierto; lo logrado más lo que aún es posible alcanza el umbral |
-| `EN_RIESGO` | Término abierto; lo que queda posible apenas cubre el umbral (margen menor a 10 %) |
+| `EN_RIESGO` | Término abierto; lo que queda posible apenas cubre el umbral (margen menor a 10 puntos) |
 | `NO_ALCANZA` | Término abierto; ni sumando todo lo que falta se llega al umbral. GH lo ve de inmediato |
 | `CUMPLE` | Término cerrado con total ≥ umbral |
-| `NO_CUMPLE` | Término cerrado con total < umbral |
+| `PRUEBA` | Término cerrado con total entre el umbral y 10 puntos por debajo: periodo de prueba el término siguiente |
+| `NO_CUMPLE` | Término cerrado con total más de 10 puntos por debajo del umbral (consecuencia por confirmar) |
 
-"Lo que aún es posible" se calcula con las ocasiones futuras del término (integraciones y partidos programados) y los grupos abiertos.
+"Lo que aún es posible" usa las ocasiones futuras del término (integraciones, partidos, reuniones) y los grupos abiertos. Las asambleas obligatorias se muestran aparte como "obligatorias: 1 de 2".
 
 ### Cierre del término
 
-El cierre produce `PermanenceDecision` por persona (`CONTINUES`, `CONTINUES_WITH_COMMITMENT`, `EXIT`) tomada por ADMIN con motivo; `EXIT` ejecuta "dar de baja" ([ADR-003](adr/ADR-003-etapas-por-comando.md)). No hay sanciones automáticas: la app muestra y registra, GH decide.
+Al cerrar, la app **propone** para cada persona y comité el estado según los umbrales y el margen de prueba; GH confirma o corrige con motivo y queda `PermanenceDecision` (`CONTINUES`, `PROBATION`, `EXIT_COMMITTEE`, `EXIT_OE`). `EXIT_OE` ejecuta "dar de baja" ([ADR-003](adr/ADR-003-etapas-por-comando.md)); `PROBATION` marca el término siguiente. Nada se aplica sin la confirmación de GH.
 
 ## Lo que ve el integrante (`/app/permanencia`)
 
-- Encabezado: "Vas en 38 %. Necesitás 60 % para permanecer. Todavía podés sumar 34 %." Barra de progreso con el umbral marcado y el estado.
-- Dos bloques: **OE (GH)** y **tu comité** (el principal), cada uno con su suma y su presupuesto; el total es la suma de ambos. Si la persona está en más comités, ve también esas tablas, marcadas como informativas.
-- Una tarjeta por criterio: logrado / máximo, qué cuenta, cómo sumar más ("asististe a 2 de 5 integraciones; quedan 6 este semestre, la próxima es el jueves"), evaluaciones pendientes ("tu GAP en Inventiva espera la evaluación del líder").
-- Historial: qué sumó y cuándo, desde la línea de tiempo.
-- En el inicio de Mi OE, una barra compacta con el porcentaje.
-- Avisos por push o correo: a mitad de término, tres semanas antes del cierre si está por debajo, y el resumen al cerrar.
+- Encabezado por comité: "En Pixel vas en 75 %: cumplís (necesitás 60 %). En Cigma vas en 52 %: te faltan 8 %." Con el umbral que le aplica (60, 80 o 70) y su condición (vigente, nuevo, en prueba, transferencia).
+- Bloque **general**: cada criterio con logrado / máximo, qué cuenta y cómo sumar más ("asististe a 2 de 5 integraciones; quedan 6 este semestre, la próxima es el jueves"). Asambleas obligatorias aparte.
+- Bloque por **comité**: reuniones (asistencia y próximas), eventos, puntajes del líder y sus observaciones.
+- Evaluaciones pendientes con quién debe evaluarlas.
+- Historial desde la línea de tiempo. Barra compacta en el inicio de Mi OE.
+- Avisos por push o correo a mitad de término, tres semanas antes del cierre si está por debajo, y el resumen al cerrar.
 
 ## Lo que ve GH (`/admin/permanencia`)
 
-- **Reglas** del término: copiar del anterior, editar pesos y parámetros, vista previa del impacto sobre el roster.
-- **Presupuestos** de cada ámbito (OE y comité) y supervisión de las 27 tablas de comité: ver, comentar, bloquear al iniciar el término.
-- **Grupos**: crear grupos de trabajo del término, asignar líder e integrantes; importar desde CSV.
-- **Evaluaciones**: bandeja de pendientes por grupo y líder; recordatorios automáticos.
-- **Cumplimiento**: roster con porcentaje, estado, nuevo o veterano; filtros "por debajo de 60 %" y "no alcanza"; export.
-- **Cierre**: decisiones por persona, con motivo, y registro.
+- **Tabla general** del término: copiar del anterior, editar, vista previa del impacto sobre el roster.
+- **Tablas de comité**: las 27 en una vista, con su suma frente a los 60 nominales, comentarios y bloqueo al iniciar el término.
+- **Grupos**: crear grupos de trabajo del término con líder, evaluador e integrantes; importar desde CSV; los seis comités de trabajo y el Athletic vienen sembrados.
+- **Evaluaciones**: bandeja de pendientes por evaluador; recordatorios.
+- **Cumplimiento**: roster con resultado por comité, condición, umbral y estado; filtros "por debajo", "no alcanza", "en prueba", "nuevos"; export.
+- **Cierre**: propuesta automática por persona y comité, confirmación con motivo, registro.
 - **Persona 360**: pestaña Permanencia con el mismo desglose que ve la persona.
-
-Los líderes de grupo evalúan a los integrantes de sus grupos desde `/admin/permanencia/grupos/[id]`; no ven el resto del roster.
 
 ## Lo que ve el líder de comité (`/admin/comites/[slug]/permanencia`)
 
-- **Tabla del comité**: editar criterios y pesos dentro del presupuesto; la app no deja guardar si no suma; copiar del término anterior.
-- **Reuniones**: crear la serie semanal ("cada 8 días") como ocasiones de categoría `COMMITTEE_MEETING`; pasar asistencia con el modo anfitrión desde el celular.
-- **Eventos del comité**: ocasiones con `committeeId` ligadas a los criterios "Evento 1" y "Evento 2".
-- **Puntajes**: por integrante, subcomité, liderazgo o destacado del mes (0 a 10 %) y convivencia (5 % por defecto); si baja el valor, la observación es obligatoria y la persona la ve.
-- **Progreso de sus integrantes**: la parte de comité de cada uno, quién no ha ido a reuniones, quién está en riesgo; sin ver el porcentaje de la parte OE salvo que GH lo comparta.
+- **Tabla del comité**: criterios y pesos; suma frente a los 60 nominales; copiar del término anterior.
+- **Reuniones**: crear la serie semanal como ocasiones `COMMITTEE_MEETING` sin puntos; pasar asistencia con el modo anfitrión.
+- **Eventos del comité**: ocasiones con `committeeId` ligadas a los criterios de eventos.
+- **Puntajes**: subcomité, liderazgo o destacado del mes (0 a 10 %) y convivencia (5 % por defecto); si baja el valor, la observación es obligatoria y la persona la ve.
+- **Progreso de sus integrantes** en su comité: resultado, quién no ha ido a reuniones, quién está en riesgo o en prueba.
+
+## Lo que ve el director de GH de un frente
+
+Bandeja con los grupos que evalúa (`evaluatorPersonId`), sus integrantes y el botón de evaluación con nota; sin acceso al resto del roster.
 
 ## Relación con GH Points
 
-Comparten los hechos (check-ins, asambleas) pero no se mezclan: los puntos son reconocimiento y ranking; la permanencia es el requisito. Un check-in de integración suma puntos y suma 2 % al mismo tiempo. Los puntos no afectan la permanencia ni al revés.
+Comparten los hechos pero no se mezclan: una integración suma puntos (los que GH puso al crearla) y 2 % de permanencia; una reunión de comité suma 0 puntos y solo cuenta en la tabla. Los puntos no afectan la permanencia ni al revés.
 
-## Preguntas para GH
+## Preguntas pendientes
 
-Están en [decisiones-abiertas.md](decisiones-abiertas.md): la tabla completa de GH, qué significan 4/6/8 % en GT y si acumulan, si asambleas exige 2 o 3, quién evalúa cada grupo y cuándo, qué pasa por debajo de 60 %, si el umbral cambia por término, si los comités de trabajo son distintos de los 27 comités, si el presupuesto es 50 % OE y 50 % comité, cómo se combina para quien está en varios comités, si los eventos del comité tienen peso fijo, y si el resultado del comité decide también la permanencia dentro del comité.
+En [decisiones-abiertas.md](decisiones-abiertas.md): qué pasa más de 10 puntos por debajo del umbral, qué pasa cuando alguien cumple en un comité y no en otro, qué consecuencia tiene faltar a una asamblea obligatoria, cómo son las obligatorias en el primer semestre, en qué momento evalúan los directores, quién lidera y evalúa el Athletic, y los pesos de los eventos de cada comité.

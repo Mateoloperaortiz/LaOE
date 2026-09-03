@@ -62,6 +62,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | Reglas de GH confirmadas ([ADR-024](adr/ADR-024-reglas-de-participacion.md)): 1 a 3 comités; 2 asambleas ordinarias por término más la elección de junta y su segunda vuelta, obligatorias en el segundo semestre; código rotativo opcional por ocasión; score de comité por participación relativa con suavizado; las medallas de GHPOINTS no se migran; los egresados no entran en v1 |
 | 2026-09-02 | Permanencia: la tabla de GH se vuelve criterios configurables por término, con umbral de 60 % y progreso visible para cada integrante ([ADR-025](adr/ADR-025-permanencia-scorecard.md)) |
 | 2026-09-02 | Cada comité tiene su propia tabla de permanencia dentro de un presupuesto fijado por GH; el total de la persona suma la parte de la OE y la de su comité principal ([ADR-026](adr/ADR-026-permanencia-por-comite.md)) |
+| 2026-09-02 | GH confirmó las reglas de permanencia ([ADR-027](adr/ADR-027-permanencia-reglas-de-gh.md)): resultado por cada comité (general ≈ 50 más la tabla de ese comité ≈ 60), umbrales fijos 60 % vigente, 80 % nuevo o en prueba, 70 % transferencia interna; periodo de prueba con margen de 10 puntos; GT por cantidad; asambleas obligatorias dos y tres para el 10 %; evalúan los directores de GH |
 
 Hechos que sustentan varias de estas decisiones:
 
