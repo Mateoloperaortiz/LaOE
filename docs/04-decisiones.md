@@ -4,7 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
-| [001](adr/ADR-001-monolito-modular-serverless.md) | Monolito modular | Una app Next.js con módulos internos y un solo Postgres; sin Redis ni colas de terceros; el worker vive en el mismo proceso | Enmendada por 021 |
+| [001](adr/ADR-001-monolito-modular-serverless.md) | Monolito modular | Una app Next.js con módulos internos y un solo Postgres; sin Redis ni colas de terceros; el worker vive en el mismo proceso | Enmendada por 021 y 032 |
 | [002](adr/ADR-002-persona-como-eje.md) | La persona es el eje | `Person` es la raíz; la membresía es un ciclo de vida con historia; nadie se crea al hacer login | Aceptada |
 | [003](adr/ADR-003-etapas-por-comando.md) | Etapas por comando | Prospecto → Postulante → Miembro → Egresado cambia solo por comandos que auditan y escriben la línea de tiempo | Aceptada |
 | [004](adr/ADR-004-termino-como-reloj.md) | El término es el reloj | Comités, puntos, asambleas y rankings se agrupan por término; el actual se deriva de la fecha; el cierre de puntos es explícito | Aceptada |
@@ -24,7 +24,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | [018](adr/ADR-018-migracion-desde-ghpoints.md) | Migración desde GHPOINTS | Script idempotente sobre dump, verificación de sumas, alias para QR impresos | Aceptada |
 | [019](adr/ADR-019-infraestructura-vercel-neon-r2.md) | Infraestructura (Vercel) | Vercel Pro + Neon + R2 + Resend | Reemplazada por 021 |
 | [020](adr/ADR-020-zona-horaria.md) | Zona horaria | UTC en base, America/Bogota en presentación | Aceptada |
-| [021](adr/ADR-021-infraestructura-railway.md) | Infraestructura (Railway) | Proyecto nuevo en el workspace Pro ya pagado: web con worker en proceso, Postgres con respaldos y PITR, bucket privado; US$0 extra | Enmendada por 022 y 023 |
+| [021](adr/ADR-021-infraestructura-railway.md) | Infraestructura (Railway) | Proyecto nuevo en el workspace Pro ya pagado: web con worker en proceso, Postgres con respaldos y PITR, bucket privado; US$0 extra | Enmendada por 022, 023 y 032 |
 | [022](adr/ADR-022-medios-prefirmados.md) | Medios prefirmados | Subida directa del navegador al bucket con `POST` prefirmado y CORS; entrega por redirección a URL prefirmada; la copia mensual incluye el bucket | Aceptada |
 | [023](adr/ADR-023-operacion-entornos-respaldo-correo.md) | Operación | `staging` persistente y `production` en la fase 7; copia mensual cifrada a Cloudflare R2 por un servicio cron; Resend con desbordamiento automático a SES; seguir en Pro sin CDN | Aceptada |
 | [024](adr/ADR-024-reglas-de-participacion.md) | Reglas de participación | 1 a 3 comités; 2 asambleas ordinarias más elección de junta y segunda vuelta obligatorias en el segundo semestre; código rotativo opcional; score con suavizado `k = 5`; sin medallas migradas; egresados sin acceso | Enmendada por 027, 028 y 030 |
@@ -35,3 +35,4 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | [029](adr/ADR-029-cargos-de-comite-y-roster.md) | Cargos de comité y roster | El cargo dentro del comité vive en la pertenencia con un catálogo editable; General es el líder y su permiso se propone al importar; nombre y apellido separados; formato del roster por término, idempotente por correo, sin dar de baja | Enmendada por 030 |
 | [030](adr/ADR-030-perfil-de-egresado.md) | Perfil de egresado | Al salir, el perfil queda como egresado con su historia y se depura lo que no es historia; galería por año con consentimiento; sin anonimización por plazo; eliminación a pedido inmediata; General con confirmación | Aceptada |
 | [031](adr/ADR-031-autogestion-del-miembro.md) | Autogestión del miembro | Solicitudes que ejecutan comandos al aprobarse; convocatorias internas que inscriben a grupos; datos propios editables con consentimiento; onboarding de nuevos; reconocimientos publicados; encuesta tras ocasión; panel de la junta con permiso `BOARD` | Aceptada |
+| [032](adr/ADR-032-drizzle-y-esquema-por-modulo.md) | Capa de datos | Drizzle 0.45 sobre `pg`; esquema TypeScript por módulo; uniques parciales y checks declarados en el esquema; migraciones SQL versionadas; `db:release` migra y verifica; query builder y `sql`, sin consultas relacionales v1 | Aceptada |

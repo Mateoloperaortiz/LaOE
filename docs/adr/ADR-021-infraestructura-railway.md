@@ -1,6 +1,6 @@
 # ADR-021: Infraestructura: Railway en el workspace Pro existente
 
-- Estado: Aceptada (enmendada por ADR-022 en "Medios" y por ADR-023 en "Entornos", "Respaldos" y "Presupuesto")
+- Estado: Aceptada (enmendada por ADR-022 en "Medios", por ADR-023 en "Entornos", "Respaldos" y "Presupuesto", y por ADR-032 en el pre-deploy)
 - Fecha: 2026-09-02
 - Reemplaza: ADR-019
 - Enmienda: ADR-001, ADR-012, ADR-016
@@ -39,3 +39,7 @@ Entornos: `staging` persistente desde la fase 0 y `production` desde la fase 7; 
 ## Frente a ADR-019
 
 Vercel + Neon + R2 costaba lo mismo (US$20) pero repartía la infraestructura en tres paneles, obligaba a diseñar sin worker y dependía del tope de 100 CU-horas de Neon Free. Se descartó por preferencia explícita de usar lo que ya se paga.
+
+## Enmienda (2026-09-03, ADR-032)
+
+El pre-deploy `npm run db:release` aplica las migraciones SQL de Drizzle y verifica índices parciales y extensiones ([ADR-032](ADR-032-drizzle-y-esquema-por-modulo.md)): "migraciones + uniques parciales + verificación" sigue siendo la secuencia, ahora en un solo script. El desarrollo local usa OrbStack con Postgres 18 y Garage como emulador S3.

@@ -1,6 +1,6 @@
 # Arquitectura
 
-Monolito modular en **Next.js (App Router) + TypeScript + Prisma** desplegado como **un servicio en Railway**, con **PostgreSQL** y un **bucket privado** en el mismo proyecto. El trabajo de fondo sale por un outbox transaccional drenado por un poller que corre en el mismo proceso que la app. No hay Redis, colas de terceros ni servicios sueltos: todo vive en un panel. Hosting decidido en [ADR-021](adr/ADR-021-infraestructura-railway.md).
+Monolito modular en **Next.js (App Router) + TypeScript + Drizzle** desplegado como **un servicio en Railway**, con **PostgreSQL** y un **bucket privado** en el mismo proyecto. El trabajo de fondo sale por un outbox transaccional drenado por un poller que corre en el mismo proceso que la app. No hay Redis, colas de terceros ni servicios sueltos: todo vive en un panel. Hosting decidido en [ADR-021](adr/ADR-021-infraestructura-railway.md); capa de datos en [ADR-032](adr/ADR-032-drizzle-y-esquema-por-modulo.md).
 
 ## Vista general
 
@@ -42,7 +42,7 @@ flowchart LR
 
 ## Módulos
 
-Cada módulo vive en `src/modules/<módulo>/` con `schema.prisma` (Prisma en modo carpeta `prisma/schema/`), `domain/` (comandos, lecturas y `*-pure.ts` sin I/O), `actions.ts` (server actions), `jobs.ts` (handlers de outbox y programados), `events.ts` y `components/`. Los módulos no se importan entre sí por dentro: se hablan por lecturas explícitas exportadas y por eventos de dominio.
+Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzle; `drizzle.config.ts` las recoge), `domain/` (comandos, lecturas y `*-pure.ts` sin I/O), `actions.ts` (server actions), `jobs.ts` (handlers de outbox y programados), `events.ts`, `components/` e `index.ts` (su API pública). Los módulos no se importan entre sí por dentro: se hablan por lecturas explícitas exportadas desde `index.ts` y por eventos de dominio; `dependency-cruiser` lo verifica en `npm run check`.
 
 | Módulo | Responsabilidad | Modelos principales |
 | --- | --- | --- |
@@ -61,13 +61,13 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.prisma` (Prisma en mod
 
 | Capa | Dónde | Puede | No debe |
 | --- | --- | --- | --- |
-| Páginas RSC | `src/app/**` | Leer por las lecturas exportadas de cada módulo y renderizar | Consultar Prisma directamente |
+| Páginas RSC | `src/app/**` | Leer por las lecturas exportadas de cada módulo y renderizar | Consultar la base directamente |
 | Componentes client | `src/modules/*/components`, `src/shared/ui` | Enviar `FormData` a server actions, transiciones de UI | Autorizar o calcular puntos |
 | Proxy | `src/proxy.ts` | Redirigir rutas protegidas sin cookie, emitir CSP con nonce | Decidir roles o estados |
 | Server actions | `src/modules/*/actions.ts` | Parsear con Zod, resolver el actor, llamar al dominio, revalidar | Reimplementar reglas |
 | Dominio | `src/modules/*/domain` | Invariantes, transacciones, auditoría, outbox | Conocer cookies o Tailwind |
 | Jobs | `src/modules/*/jobs.ts`, `src/jobs/` | Handlers idempotentes de outbox y programados | Tocar la base sin transacción o sin lock |
-| Compartido | `src/shared/**`, `src/db/**` | Marca, UI base, admin kit, cliente Prisma, helpers puros | Lógica de negocio |
+| Compartido | `src/shared/**`, `src/db/**` | Marca, UI base, admin kit, cliente de base de datos, helpers puros | Lógica de negocio |
 
 ## Piezas transversales
 
@@ -76,19 +76,19 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.prisma` (Prisma en mod
 - **Eventos de dominio → línea de tiempo.** `checkin.approved`, `points.credited`, `membership.changed`, `stage.changed`, `submission.received`, `message.sent`, `card.moved` y `evaluation.recorded` producen `Interaction` en la persona; `permanence.recompute` recalcula el snapshot de permanencia. El CRM se alimenta solo.
 - **Admin kit declarativo** (`src/shared/admin-kit/`): `defineResource({ modelo, columnas, filtros, formulario Zod, permisos })` genera listado paginado con búsqueda, ficha, crear/editar en panel lateral y export CSV. Cubre Comité, Término, Etiqueta, Organización, Formulario, Plantilla, Página, Documento, Anuncio y Pipeline. UI a medida solo para Persona 360, kanban, consola de ocasión, ledger, campañas e importaciones. Paleta de comandos (⌘K) con búsqueda `pg_trgm` sobre personas, organizaciones y ocasiones.
 - **Marca** (`src/shared/brand/`): tokens, texturas, `Cartel`, elementos gráficos como SVG, tema claro/oscuro, movimiento reducido. Ver [07-marca.md](07-marca.md).
-- **Adaptadores:** `Mailer` (`console` en desarrollo y `staging`; en producción Resend para transaccional con desbordamiento automático a SES desde 95 correos diarios, y SES para campañas), `Storage` (bucket de Railway vía S3; emulador local en desarrollo), `Pusher` (web-push con VAPID).
+- **Adaptadores:** `Mailer` (`console` en desarrollo y `staging`; en producción Resend para transaccional con desbordamiento automático a SES desde 95 correos diarios, y SES para campañas), `Storage` (bucket de Railway vía S3; Garage como emulador local), `Pusher` (web-push con VAPID).
 
 ## Cómo corre en Railway
 
 | Pieza | Configuración |
 | --- | --- |
 | Proyecto | `casa-digital`, nuevo, dentro del workspace Pro que ya paga GHPOINTS; misma región |
-| Servicio `web` | Node 24, `npm run build`, `next start` en `0.0.0.0:$PORT`; healthcheck `GET /api/health` (timeout 300 s); pre-deploy `npm run db:release` (migraciones + uniques parciales + verificación, nunca seed); reinicio por fallo con hasta cinco reintentos; techos de 1 vCPU y 1 GB |
+| Servicio `web` | Node 24, `npm run build`, `next start` en `0.0.0.0:$PORT`; healthcheck `GET /api/health` (timeout 300 s); pre-deploy `npm run db:release` (migraciones SQL de Drizzle y verificación de índices parciales y extensiones, nunca seed; [ADR-032](adr/ADR-032-drizzle-y-esquema-por-modulo.md)); reinicio por fallo con hasta cinco reintentos; techos de 1 vCPU y 1 GB |
 | Servicio `Postgres` | PostgreSQL 18 solo en red privada; volumen de 2 GB con alertas al 80 %, 95 % y 100 %; respaldos diario (6 días), semanal (1 mes) y mensual (3 meses); PITR |
 | Bucket `media` | Privado, S3-compatible; variables enlazadas por referencia al servicio `web`; nunca `NEXT_PUBLIC_*`; CORS para el dominio de producción y los de PR o staging (`aws s3api put-bucket-cors`); sin snapshots nativos, por eso la copia mensual incluye sus objetos |
 | Variables | `DATABASE_URL` por referencia a Postgres, `SESSION_SECRET`, `APP_URL`, `APP_TIMEZONE=America/Bogota`, `TZ=UTC`, `INSTITUTIONAL_EMAIL_DOMAINS`, `RESEND_API_KEY`, `EMAIL_FROM`, `VAPID_*`, `JOBS_ENABLED=true`, credenciales del bucket |
 | Worker | En el mismo proceso del servicio `web`; un servicio `worker` aparte (misma imagen, `WORKER_ONLY=1`) solo con uso medido |
-| Entornos | `staging` persistente desde la fase 0 (rama `main`, datos sintéticos, dominio de Railway o `pruebas.oeeafit.com` con `noindex`, correo a consola) y `production` desde la fase 7 (rama `production`, adelantada a mano desde `main`); entornos de PR apagados; desarrollo local con Postgres en Docker y emulador S3, sin credenciales de producción ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
+| Entornos | `staging` persistente desde la fase 0 (rama `main`, datos sintéticos, dominio de Railway o `pruebas.oeeafit.com` con `noindex`, correo a consola) y `production` desde la fase 7 (rama `production`, adelantada a mano desde `main`); entornos de PR apagados; desarrollo local con OrbStack: Postgres 18 y Garage como emulador S3, sin credenciales de producción ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
 | Servicio `backup` | Cron de Railway el día 1 de cada mes (`0 8 1 * *`, 03:00 de Bogotá); `pg_dump` por la red privada más los objetos del bucket, cifrados con `age`, a un bucket privado de Cloudflare R2 (gratis); conserva 12 copias y termina |
 | Dominio | `oeeafit.com` se mueve del servicio GHPOINTS al servicio `web` en el cutover |
 | Límite de gasto | Límite duro del workspace revisado para dos apps en convivencia; alerta antes del tope |
@@ -100,13 +100,17 @@ Lo que este despliegue permite y que el diseño aprovecha:
 - **Una sola región:** latencia desde Medellín de 60 a 90 ms, suficiente para este uso. Sin CDN delante por ahora: se revisaría solo ante spam en formularios públicos, lentitud medida o cargos de egreso.
 - **Una sola instancia:** el healthcheck y los reinicios cubren fallos del proceso; la alta disponibilidad no es objetivo. Si algún día hace falta escalar, los locks transaccionales ya evitan trabajo duplicado.
 
-## Layout del repositorio (cuando exista código)
+## Layout del repositorio
 
 ```
 casa-digital/
   railway.json                  build, start, healthcheck y pre-deploy
-  prisma/schema/*.prisma        un archivo por módulo + migrations/ (incluye uniques parciales idempotentes)
+  compose.yaml                  Postgres 18 (127.0.0.1:5433) y Garage (127.0.0.1:3900) para OrbStack
+  drizzle.config.ts             recoge src/modules/*/schema.ts; migraciones SQL en drizzle/
+  drizzle/                      migraciones generadas y custom (pg_trgm)
+  biome.json                    lint y formato; .dependency-cruiser.cjs vigila las fronteras entre módulos
   instrumentation.ts            arranca poller y scheduler cuando JOBS_ENABLED=true
+  src/env.ts                    variables de entorno validadas con Zod al arrancar
   src/app/
     (public)/                   /  /la-oe  /cartelera  /eventos/[slug]/[edicion]  /comites/[slug]  /unirse  /f/[slug]  /privacidad
     app/                        inicio, eventos, comites, personas, gh-points, normativa, carnet, ajustes
@@ -114,12 +118,12 @@ casa-digital/
     a/[publicId]/               check-in (sin sesión → /ingresar y vuelve)
     ingresar/                   OTP
     api/                        health, media/[id], media/presign, media/confirm, ics, push, export
-  src/modules/<módulo>/         schema, domain, actions, jobs, events, components
-  src/shared/                   brand, ui (shadcn base), admin-kit, lib
-  src/db/                       cliente Prisma, tx + outbox, errores unique
+  src/modules/<módulo>/         schema.ts, domain, actions, jobs, events, components, index.ts (API pública)
+  src/shared/                   brand, ui (shadcn base), admin-kit, adapters, copy, log, lib
+  src/db/                       cliente Drizzle sobre pg, tx + auditoría + outbox, errores unique
   src/jobs/                     poller, scheduler, registro de handlers
-  public/logos/                 oe.svg + 27 comités (hoy en ../public/logos)
-  scripts/                      import-roster.ts, migrate-ghpoints.ts, verify-migration.ts, backup.ts
+  public/logos/                 oe.svg + 27 comités
+  scripts/                      db-release.ts, db-reset.ts, seed.ts, copy-sync.ts, storage-init.ts, grant-admin.ts, import-roster.ts, migrate-ghpoints.ts, verify-migration.ts, backup.ts
   tests/                        unit, integration (Postgres), e2e (Playwright)
 ```
 

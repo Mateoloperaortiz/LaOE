@@ -1,6 +1,6 @@
 # Modelo de datos
 
-PostgreSQL en Railway, Prisma con esquema por módulos (`prisma/schema/*.prisma`). Convenciones: ids `cuid2`; identificadores públicos `nanoid` solo donde se exponen en URL o QR; timestamps `timestamptz` en UTC; fechas de término como `date`; JSON parseado con Zod en la frontera de lectura; sin borrado físico de personas (anonimización).
+PostgreSQL en Railway, Drizzle con el esquema de cada módulo en `src/modules/<módulo>/schema.ts` ([ADR-032](adr/ADR-032-drizzle-y-esquema-por-modulo.md)). En SQL las tablas y columnas van en `snake_case` (`point_entry.check_in_id`) y en el código en `camelCase`; esta página usa los nombres del código. Convenciones: ids `cuid2`; identificadores públicos `nanoid` solo donde se exponen en URL o QR; timestamps `timestamptz` en UTC; fechas de término como `date`; JSON parseado con Zod en la frontera de lectura; sin borrado físico de personas (anonimización).
 
 ## Diagrama
 
@@ -155,7 +155,7 @@ erDiagram
 
 ## Restricciones que no negocia el esquema
 
-Uniques parciales como migraciones SQL idempotentes (`CREATE UNIQUE INDEX IF NOT EXISTS`):
+Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().where(sql)`), de modo que salen en la migración SQL y `db:release` verifica que existan:
 
 | Índice | Regla |
 | --- | --- |

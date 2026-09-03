@@ -1,6 +1,6 @@
 # ADR-001: Monolito modular con un solo Postgres
 
-- Estado: Aceptada (enmendada por ADR-021)
+- Estado: Aceptada (enmendada por ADR-021 y ADR-032)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-012, ADR-017, ADR-021
 
@@ -25,3 +25,7 @@ GHPOINTS también es un monolito, pero organizado por capas (`actions`, `domain`
 ## Enmienda (2026-09-02, ADR-021)
 
 El servicio web corre en Railway y sí tiene un proceso permanente: el poller del outbox y el scheduler de programados viven en el mismo proceso que la app (`instrumentation.ts`). Sigue sin haber Redis ni colas de terceros; las opciones "Vercel Queues o Workflows" dejan de existir. El título original ("sobre serverless") ya no aplica; el archivo conserva su nombre por estabilidad de enlaces.
+
+## Enmienda (2026-09-03, ADR-032)
+
+El esquema de cada módulo es un archivo TypeScript (`src/modules/<módulo>/schema.ts`) con Drizzle; el módulo sigue siendo la unidad de orden y de revisión. Ver [ADR-032](ADR-032-drizzle-y-esquema-por-modulo.md).

@@ -4,8 +4,9 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 
 ## Local
 
-- PostgreSQL en Docker (`docker compose up -d`), emulador S3 local para el bucket y mailer de consola.
-- `npm run db:reset && npm run db:seed`: esquema desde cero, uniques parciales y datos sintéticos sin información real.
+- OrbStack como runtime de contenedores: `docker compose up -d` levanta Postgres 18 en `127.0.0.1:5433` (el 5432 lo usa GHPOINTS) y Garage como bucket S3 en `127.0.0.1:3900`; `npm run storage:init` aplica el CORS del bucket con el mismo comando que se usa contra Railway. Mailer de consola.
+- `npm run db:reset`: esquema desde cero con las migraciones SQL de Drizzle, verificación de índices parciales y extensiones, y datos sintéticos sin información real.
+- `npm run check`: Biome, dependency-cruiser, knip, `tsc --noEmit`, unit, integración contra la base local y `next build`.
 - `npm run dev` y revisión en navegador a 360, 768 y 1280 px, claro y oscuro, navegación por teclado, `axe` sin violaciones serias o críticas, Lighthouse con PWA instalable.
 
 ## Unit (módulos puros, sin base)

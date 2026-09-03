@@ -4,36 +4,37 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## Fase 0 · Cimientos · `pendiente`
+## Fase 0 · Cimientos · `en curso`
 
-Cuentas y accesos:
+Orden decidido el 2026-09-03: primero el código base corriendo en local (A), después las cuentas, GitHub y Railway (B). Cada tramo de A cierra con su verificación y un commit.
 
-- [ ] Repositorio `LaOE` en GitHub (remoto de este repo) con protección de `main`
+### A. Código base en local (OrbStack: Postgres 18 en 5433 y Garage como bucket)
+
+- [x] T0 · Docs: ADR-032 (Drizzle y esquema por módulo), ajustes en 01, 03, 08 y 10, esta fase reordenada
+- [ ] T1 · Scaffold con `create-next-app`: Next.js 16 + TypeScript 5.9 + Tailwind 4 + shadcn base, Biome y React Compiler; `compose.yaml`; `src/env.ts` con Zod; logs con `pino`; `GET /api/health`; `npm run check` (Biome, dependency-cruiser, knip, tsc, unit, integración, build); `railway.json` con build, start, healthcheck y pre-deploy
+- [ ] T2 · Esquema Drizzle por módulo (identity, people, term, system), migraciones SQL, uniques parciales y `pg_trgm`; `src/db/tx.ts` con auditoría y outbox en la misma transacción; `db:release` con verificación; `db:reset`
+- [ ] T3 · Tokens de marca, texturas, componente `Cartel`, elementos gráficos SVG, tema claro/oscuro, Sofia Sans Extra Condensed y Plus Jakarta Sans servidas en local, favicon con el isotipo
+- [ ] T4 · Acceso: OTP, sesiones, guards, step-up, `/ingresar` con los textos T-040 a T-055; diccionario de textos que carga `14-copy-y-textos.md` por código (`T-…`) para que cambiar un texto no sea cambiar lógica
+- [ ] T5 · Outbox + poller + scheduler en `instrumentation.ts`; vista de jobs y dead letter; adaptadores Mailer (consola; Resend con desbordamiento a SES), Storage (bucket S3 de Railway; Garage en local), Pusher; `AppConfig`
+- [ ] T6 · Admin kit (`defineResource`) con Comité, Término y Permisos; paleta ⌘K
+- [ ] T7 · Seed sintético sin datos reales; suite completa (unit, integración, e2e con `axe`); CI en `.github/workflows/ci.yml` listo para el remoto
+
+Listo cuando (en local): login por OTP con el roster semilla sintético, cascarón del admin, claro/oscuro en 3 anchos, poller del outbox visible en los logs, health en verde, `npm run check` en verde.
+
+### B. Cuentas, GitHub y Railway (después de A)
+
+- [ ] Repositorio `LaOE` en GitHub (remoto de este repo, privado) con protección de `main` y CI en verde
 - [ ] Proyecto `casa-digital` en el workspace Pro de Railway con el entorno `staging`: servicios `web`, `Postgres` y bucket `media`; variables por referencia; misma región que GHPOINTS; dominio de Railway o `pruebas.oeeafit.com` con `noindex`
 - [ ] Respaldos del volumen de Postgres (diario, semanal, mensual) y PITR activados
-- [ ] CORS del bucket configurado para el dominio de producción y los de PR o staging
+- [ ] CORS del bucket configurado con `storage:init` para el dominio de producción y los de staging
 - [ ] Límite duro de uso del workspace revisado para dos apps en convivencia
 - [ ] Resend: dominio `oeeafit.com` verificado (ya existe en GHPOINTS; confirmar acceso)
 - [ ] AWS SES: cuenta, dominio `oeeafit.com` verificado, salida del sandbox
 - [ ] Cloudflare R2: bucket privado para copias; par de claves `age` (la privada solo con Mateo)
 - [ ] Claves VAPID para push
-
-Código base (empieza cuando se autorice escribir código):
-
-- [ ] Scaffold Next.js 16 + TypeScript + Tailwind 4 + shadcn base; `railway.json` con build, start, healthcheck y pre-deploy
-- [ ] Tokens de marca, texturas, componente `Cartel`, elementos gráficos SVG, tema claro/oscuro, Sofia Sans Extra Condensed y Plus Jakarta Sans servidas en local, favicon con el isotipo
-- [ ] Esquema Prisma por módulos, migraciones, uniques parciales
-- [ ] Acceso: OTP, sesiones, guards, step-up, `/ingresar` con los textos T-040 a T-055
-- [ ] Diccionario de textos en el código que carga `14-copy-y-textos.md` por código (`T-…`) para que cambiar un texto no sea cambiar lógica
-- [ ] Admin kit (`defineResource`) y paleta ⌘K
-- [ ] Outbox + poller + scheduler en `instrumentation.ts`; vista de jobs y dead letter
-- [ ] Adaptadores: Mailer (consola; Resend con desbordamiento a SES), Storage (bucket de Railway/emulador), Pusher
-- [ ] Auditoría en transacción y `AppConfig`
-- [ ] CI: lint, typecheck, unit, integration con Postgres, build
 - [ ] Servicio `backup` con cron mensual de Railway (`pg_dump` + objetos del bucket, cifrado con `age`, subida a R2) y job `backup-check` en el web
-- [ ] Seed sintético sin datos reales
 
-Listo cuando: login por OTP con roster semilla sintético en `staging`, shell del admin, claro/oscuro en 3 anchos, poller del outbox visible en los logs, health en verde, primera copia en R2 restaurada en local.
+Listo cuando: lo mismo de A pasando en `staging`, más la primera copia en R2 restaurada en local.
 
 ## Fase 1 · Portal público y contenido · `pendiente`
 
@@ -187,3 +188,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-03 | — | Inventario completo de copy y textos (`14-copy-y-textos.md`): portal, acceso, Mi OE, permanencia, consentimientos, admin, push, correos y documentos, con propuesta, dueño y estado; los textos sensibles quedan marcados para revisar con GH |
 | 2026-09-03 | — | Término oficial: "miembro" (decisión de Mateo, alineada con GH). Renombrado en toda la documentación; el cargo por defecto del comité pasa a `MIEMBRO` |
 | 2026-09-03 | — | El estado de membresía `ACTIVE` se dice "activo", como GH; renombrado donde la documentación decía "vigente" en ese sentido |
+| 2026-09-03 | 0 | Arranca el código, escrito desde cero (de GHPOINTS solo versiones de referencia y lecciones ya documentadas). Drizzle 0.45 reemplaza a Prisma (ADR-032). Local primero con OrbStack (Postgres 18 en 5433, Garage como emulador S3); GitHub y Railway al cerrar la fase. Fase 0 reordenada en A (código en local) y B (cuentas y Railway); T0 listo |

@@ -72,6 +72,9 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-03 | Todo el copy de la app se inventaría en [14-copy-y-textos.md](14-copy-y-textos.md) con dueño y estado; el código no inventa textos |
 | 2026-09-03 | La app dice "miembro", no "integrante", como GH; toda la documentación se alineó a ese término |
 | 2026-09-03 | El estado `ACTIVE` se dice "activo", como GH, no "vigente" |
+| 2026-09-03 | Arranca el código de la fase 0, escrito desde cero: de GHPOINTS solo se toman versiones de referencia y las lecciones ya documentadas |
+| 2026-09-03 | Capa de datos: Drizzle 0.45 sobre `pg` reemplaza a Prisma; esquema TypeScript por módulo ([ADR-032](adr/ADR-032-drizzle-y-esquema-por-modulo.md)) |
+| 2026-09-03 | Todo corre primero en local (OrbStack: Postgres 18 y Garage como emulador S3); el repositorio `LaOE` en GitHub y el entorno `staging` en Railway se montan al cerrar la fase 0 |
 
 Hechos que sustentan varias de estas decisiones:
 

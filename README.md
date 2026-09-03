@@ -4,9 +4,9 @@ Documentación de la nueva casa digital de la **Organización Estudiantil de la 
 
 ## Estado
 
-**Solo documentación.** Este repositorio no tiene código todavía. Primero se fija qué se construye, con qué reglas y en qué orden; el código llega fase por fase según el [roadmap](docs/09-roadmap.md), que es el archivo de seguimiento.
+**Fase 0 en curso** desde el 3 de septiembre de 2026. Primero se fijó qué se construye, con qué reglas y en qué orden; ahora el código llega tramo por tramo según el [roadmap](docs/09-roadmap.md), que es el archivo de seguimiento. Todo corre primero en local (OrbStack); el repositorio en GitHub y el entorno `staging` en Railway se montan al cerrar la fase 0.
 
-Versión de la documentación: 2 de septiembre de 2026.
+Versión de la documentación: 3 de septiembre de 2026.
 
 ## Un solo lugar
 
@@ -17,10 +17,10 @@ Una app, una base de datos, un bucket, un admin y un proveedor de correo. Todo l
 | Archivo | Para qué |
 | --- | --- |
 | [00-vision.md](docs/00-vision.md) | Contexto, decisiones cerradas, alcance y lo que queda fuera |
-| [01-arquitectura.md](docs/01-arquitectura.md) | Monolito modular en Railway (web con worker en proceso, Postgres, bucket), módulos, jobs, costo |
+| [01-arquitectura.md](docs/01-arquitectura.md) | Monolito modular en Railway (web con worker en proceso, Postgres, bucket), módulos, jobs, layout del código, costo |
 | [02-crm.md](docs/02-crm.md) | El CRM de comunidad: persona, etapas, Persona 360, pipelines, privacidad |
 | [03-modelo-de-datos.md](docs/03-modelo-de-datos.md) | Modelos, relaciones y restricciones |
-| [04-decisiones.md](docs/04-decisiones.md) y [adr/](docs/adr/README.md) | Las 20 reglas del sistema, una por archivo |
+| [04-decisiones.md](docs/04-decisiones.md) y [adr/](docs/adr/README.md) | Las reglas del sistema, una ADR por archivo |
 | [05-acceso.md](docs/05-acceso.md) | Quién entra y cómo |
 | [06-mapa-del-sitio.md](docs/06-mapa-del-sitio.md) | Rutas del portal, Mi OE y administración |
 | [07-marca.md](docs/07-marca.md) | Tokens de la línea gráfica y reglas de uso |

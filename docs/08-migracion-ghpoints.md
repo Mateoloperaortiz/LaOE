@@ -10,7 +10,7 @@ GHPOINTS (Railway, PostgreSQL 18, Prisma) sigue en producción hasta el cutover.
 
 | Script | Qué hace |
 | --- | --- |
-| `scripts/migrate-ghpoints.ts` | Lee con `pg` desde el dump local, escribe con Prisma contra la base nueva; idempotente por id de origen (tabla `ImportJob` + columna `legacyId` en cada modelo migrado) |
+| `scripts/migrate-ghpoints.ts` | Lee con `pg` desde el dump local, escribe con Drizzle contra la base nueva; idempotente por id de origen (tabla `ImportJob` + columna `legacyId` en cada modelo migrado) |
 | `scripts/verify-migration.ts` | Conteos por tabla origen/destino y `SUM(points)` por persona y término; imprime diferencias y sale con error si hay alguna |
 | `scripts/copy-media.ts` | Copia objetos de bucket a bucket conservando `objectKey`; marca `MediaAsset` como `READY` |
 
