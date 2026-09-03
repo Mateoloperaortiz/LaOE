@@ -116,7 +116,11 @@ export async function ResourcePage({ resource, searchParams }: Props) {
       <ResourceTable
         columns={resource.columns}
         rows={rows}
-        editHref={(row) => buildHref(resource.basePath, { ...listParams, editar: row.id })}
+        editHref={
+          resource.update
+            ? (row) => buildHref(resource.basePath, { ...listParams, editar: row.id })
+            : undefined
+        }
         labels={{ edit: t("T-252"), empty: t("T-256") }}
         rowActions={resource.rowActions ?? []}
         rowActionForm={(row, action) => (

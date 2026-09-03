@@ -5,7 +5,8 @@ import type { CellValue, Column, RowAction } from "./types";
 type Props<Row extends { id: string }> = {
   columns: Column<Row>[];
   rows: Row[];
-  editHref(row: Row): string;
+  /** Sin editHref no hay botón de editar (recursos que solo crean o revocan). */
+  editHref?: ((row: Row) => string) | undefined;
   labels: { edit: string; empty: string };
   rowActions?: RowAction<Row>[];
   rowActionForm?: (row: Row, action: RowAction<Row>) => React.ReactNode;
@@ -62,9 +63,14 @@ export function ResourceTable<Row extends { id: string }>({
                     .map((action) => (
                       <span key={action.key}>{rowActionForm?.(row, action)}</span>
                     ))}
-                  <Link href={editHref(row)} className="boton-secundario min-h-9 px-4 py-1 text-sm">
-                    {labels.edit}
-                  </Link>
+                  {editHref ? (
+                    <Link
+                      href={editHref(row)}
+                      className="boton-secundario min-h-9 px-4 py-1 text-sm"
+                    >
+                      {labels.edit}
+                    </Link>
+                  ) : null}
                 </div>
               </td>
             </tr>

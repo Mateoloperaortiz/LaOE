@@ -15,6 +15,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Texto de presentación de cada uno de los 27 comités (2 a 4 párrafos)
 - [ ] Contacto o enlace de cada comité (Instagram, correo, WhatsApp)
 - [ ] Confirmar que la lista de 27 comités con logo sigue vigente (comités nuevos o cerrados)
+- [ ] Nombre oficial de cada comité: el seed sintético y la primera carga usan la sigla del logo en mayúsculas como nombre provisional
 
 ## Eventos
 

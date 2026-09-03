@@ -20,3 +20,6 @@ try {
 } finally {
   await closeDb();
 }
+
+// Datos sintéticos después de migrar (nunca en producción; el seed también lo comprueba).
+await import("./seed");

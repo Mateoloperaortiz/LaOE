@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main, production]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_ENV: test
+  APP_URL: http://localhost:3000
+  APP_TIMEZONE: America/Bogota
+  TZ: UTC
+  SESSION_SECRET: ci-secreto-de-sesion-que-no-es-real-0000000000000000
+  INSTITUTIONAL_EMAIL_DOMAINS: eafit.edu.co
+  OTP_FIXED_CODE: "123456"
+  EMAIL_FROM: "OE EAFIT <noreply@localhost>"
+  MAILER: console
+  S3_ENDPOINT: http://127.0.0.1:3900
+  S3_REGION: garage
+  S3_BUCKET: media
+  S3_ACCESS_KEY_ID: GK0c1a5ad191ta1de5a2r0110000dev0
+  S3_SECRET_ACCESS_KEY: 9b3f0e6d2c1a4f8e7d6c5b4a3928170f6e5d4c3b2a190807f6e5d4c3b2a19080
+  S3_FORCE_PATH_STYLE: "true"
+  JOBS_ENABLED: "false"
+
+jobs:
+  calidad:
+    name: Biome · dependency-cruiser · knip · tsc · unit · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run deps:check
+      - run: npm run deadcode
+      - run: npm test
+      - run: npm run build
+
+  integracion:
+    name: integración · e2e (Postgres 18 + Garage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: casa
+          POSTGRES_PASSWORD: casa
+          POSTGRES_DB: casa_digital
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U casa -d casa_digital"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://casa:casa@127.0.0.1:5433/casa_digital
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Garage (bucket S3 local)
+        run: |
+          docker run -d --name garage -p 3900:3900 -p 3903:3903 \
+            -v "$PWD/docker/garage/garage.toml:/etc/garage.toml:ro" \
+            -e GARAGE_DEFAULT_ACCESS_KEY="$S3_ACCESS_KEY_ID" \
+            -e GARAGE_DEFAULT_SECRET_KEY="$S3_SECRET_ACCESS_KEY" \
+            -e GARAGE_DEFAULT_BUCKET="$S3_BUCKET" \
+            dxflrs/garage:v2.3.0 /garage server --single-node --default-bucket
+      - run: npm ci
+      - run: npm run storage:init
+      - run: npm run db:release
+      - run: npm run db:seed
+      - run: npm run test:integration
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

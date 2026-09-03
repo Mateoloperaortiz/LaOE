@@ -4,7 +4,7 @@ Documentación de la nueva casa digital de la **Organización Estudiantil de la 
 
 ## Estado
 
-**Fase 0 en curso** desde el 3 de septiembre de 2026. Primero se fijó qué se construye, con qué reglas y en qué orden; ahora el código llega tramo por tramo según el [roadmap](docs/09-roadmap.md), que es el archivo de seguimiento. Todo corre primero en local (OrbStack); el repositorio en GitHub y el entorno `staging` en Railway se montan al cerrar la fase 0.
+**Fase 0 en curso** desde el 3 de septiembre de 2026: el código base ya corre completo en local (scaffold, datos, marca, acceso por OTP, outbox, admin kit y seed sintético; ver el [roadmap](docs/09-roadmap.md), que es el archivo de seguimiento). Falta la parte B de la fase: repositorio en GitHub, entorno `staging` en Railway y cuentas de correo y respaldo.
 
 Versión de la documentación: 3 de septiembre de 2026.
 
