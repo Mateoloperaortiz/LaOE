@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { parsearEntorno } from "@/env";
+import { parseEnv } from "@/env";
 
-const base: Record<string, string> = {
+const baseEnv: Record<string, string> = {
   APP_URL: "http://localhost:3000",
   DATABASE_URL: "postgresql://casa:casa@127.0.0.1:5433/casa_digital",
   SESSION_SECRET: "x".repeat(32),
@@ -13,9 +13,9 @@ const base: Record<string, string> = {
   S3_SECRET_ACCESS_KEY: "secreto",
 };
 
-describe("parsearEntorno", () => {
+describe("parseEnv", () => {
   it("acepta la configuración mínima y aplica los valores por defecto", () => {
-    const env = parsearEntorno(base);
+    const env = parseEnv(baseEnv);
     expect(env.NODE_ENV).toBe("development");
     expect(env.TZ).toBe("UTC");
     expect(env.APP_TIMEZONE).toBe("America/Bogota");
@@ -26,34 +26,31 @@ describe("parsearEntorno", () => {
   });
 
   it("normaliza los dominios institucionales en minúsculas y sin vacíos", () => {
-    expect(parsearEntorno(base).INSTITUTIONAL_EMAIL_DOMAINS).toEqual([
-      "eafit.edu.co",
-      "ejemplo.test",
-    ]);
+    expect(parseEnv(baseEnv).INSTITUTIONAL_EMAIL_DOMAINS).toEqual(["eafit.edu.co", "ejemplo.test"]);
   });
 
   it("trata una variable vacía como no definida", () => {
-    const env = parsearEntorno({ ...base, OTP_FIXED_CODE: "", RESEND_API_KEY: "" });
+    const env = parseEnv({ ...baseEnv, OTP_FIXED_CODE: "", RESEND_API_KEY: "" });
     expect(env.OTP_FIXED_CODE).toBeUndefined();
     expect(env.RESEND_API_KEY).toBeUndefined();
   });
 
   it("rechaza un secreto de sesión corto", () => {
-    expect(() => parsearEntorno({ ...base, SESSION_SECRET: "corto" })).toThrow(/SESSION_SECRET/);
+    expect(() => parseEnv({ ...baseEnv, SESSION_SECRET: "corto" })).toThrow(/SESSION_SECRET/);
   });
 
   it("rechaza una zona horaria del proceso distinta de UTC", () => {
-    expect(() => parsearEntorno({ ...base, TZ: "America/Bogota" })).toThrow(/TZ/);
+    expect(() => parseEnv({ ...baseEnv, TZ: "America/Bogota" })).toThrow(/TZ/);
   });
 
   it("rechaza el código fijo de OTP en producción", () => {
     expect(() =>
-      parsearEntorno({ ...base, NODE_ENV: "production", OTP_FIXED_CODE: "123456" }),
+      parseEnv({ ...baseEnv, NODE_ENV: "production", OTP_FIXED_CODE: "123456" }),
     ).toThrow(/OTP_FIXED_CODE/);
-    expect(parsearEntorno({ ...base, OTP_FIXED_CODE: "123456" }).OTP_FIXED_CODE).toBe("123456");
+    expect(parseEnv({ ...baseEnv, OTP_FIXED_CODE: "123456" }).OTP_FIXED_CODE).toBe("123456");
   });
 
   it("exige la clave de Resend cuando el mailer es resend", () => {
-    expect(() => parsearEntorno({ ...base, MAILER: "resend" })).toThrow(/RESEND_API_KEY/);
+    expect(() => parseEnv({ ...baseEnv, MAILER: "resend" })).toThrow(/RESEND_API_KEY/);
   });
 });

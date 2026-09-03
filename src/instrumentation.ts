@@ -7,7 +7,7 @@ export async function register() {
   const { logger } = await import("@/shared/log");
   const env = getEnv();
   logger.info(
-    { entorno: env.NODE_ENV, zonaHoraria: env.APP_TIMEZONE, jobs: env.JOBS_ENABLED },
+    { env: env.NODE_ENV, timezone: env.APP_TIMEZONE, jobs: env.JOBS_ENABLED },
     "Casa digital de la OE: arranque",
   );
 }

@@ -3,16 +3,16 @@ import { z } from "zod";
 // Variables de entorno validadas una sola vez. Si falta algo, el proceso falla al arrancar
 // (lo llama src/instrumentation.ts) o al primer uso desde un script.
 
-const booleano = z.enum(["true", "false"]).transform((valor) => valor === "true");
+const booleanString = z.enum(["true", "false"]).transform((value) => value === "true");
 
-const listaSeparadaPorComas = z.string().transform((valor) =>
-  valor
+const commaSeparatedList = z.string().transform((value) =>
+  value
     .split(",")
     .map((item) => item.trim().toLowerCase())
     .filter((item) => item.length > 0),
 );
 
-const esquemaEntorno = z
+const envSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     APP_URL: z.url(),
@@ -26,7 +26,7 @@ const esquemaEntorno = z
     }),
 
     SESSION_SECRET: z.string().min(32, "SESSION_SECRET necesita al menos 32 caracteres"),
-    INSTITUTIONAL_EMAIL_DOMAINS: listaSeparadaPorComas.pipe(z.array(z.string().min(3)).min(1)),
+    INSTITUTIONAL_EMAIL_DOMAINS: commaSeparatedList.pipe(z.array(z.string().min(3)).min(1)),
     OTP_FIXED_CODE: z
       .string()
       .regex(/^\d{6}$/, "OTP_FIXED_CODE debe tener 6 dígitos")
@@ -41,24 +41,24 @@ const esquemaEntorno = z
     S3_BUCKET: z.string().min(3),
     S3_ACCESS_KEY_ID: z.string().min(1),
     S3_SECRET_ACCESS_KEY: z.string().min(1),
-    S3_FORCE_PATH_STYLE: booleano.default(true),
-    MEDIA_CORS_ORIGINS: listaSeparadaPorComas.default([]),
+    S3_FORCE_PATH_STYLE: booleanString.default(true),
+    MEDIA_CORS_ORIGINS: commaSeparatedList.default([]),
 
-    JOBS_ENABLED: booleano.default(false),
+    JOBS_ENABLED: booleanString.default(false),
 
     VAPID_PUBLIC_KEY: z.string().optional(),
     VAPID_PRIVATE_KEY: z.string().optional(),
     VAPID_SUBJECT: z.string().optional(),
   })
-  .superRefine((entorno, ctx) => {
-    if (entorno.NODE_ENV === "production" && entorno.OTP_FIXED_CODE !== undefined) {
+  .superRefine((env, ctx) => {
+    if (env.NODE_ENV === "production" && env.OTP_FIXED_CODE !== undefined) {
       ctx.addIssue({
         code: "custom",
         path: ["OTP_FIXED_CODE"],
         message: "OTP_FIXED_CODE no puede existir en producción (05-acceso.md)",
       });
     }
-    if (entorno.MAILER === "resend" && !entorno.RESEND_API_KEY) {
+    if (env.MAILER === "resend" && !env.RESEND_API_KEY) {
       ctx.addIssue({
         code: "custom",
         path: ["RESEND_API_KEY"],
@@ -67,31 +67,31 @@ const esquemaEntorno = z
     }
   });
 
-export type Entorno = z.infer<typeof esquemaEntorno>;
+export type Env = z.infer<typeof envSchema>;
 
 /** Limpia valores vacíos: en Railway y en .env una variable vacía equivale a no definida. */
-function sinVacios(fuente: Record<string, string | undefined>): Record<string, string> {
-  const limpio: Record<string, string> = {};
-  for (const [clave, valor] of Object.entries(fuente)) {
-    if (valor !== undefined && valor !== "") {
-      limpio[clave] = valor;
+function withoutEmptyValues(source: Record<string, string | undefined>): Record<string, string> {
+  const cleaned: Record<string, string> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (value !== undefined && value !== "") {
+      cleaned[key] = value;
     }
   }
-  return limpio;
+  return cleaned;
 }
 
-export function parsearEntorno(fuente: Record<string, string | undefined> = process.env): Entorno {
-  const resultado = esquemaEntorno.safeParse(sinVacios(fuente));
-  if (!resultado.success) {
-    throw new Error(`Configuración inválida:\n${z.prettifyError(resultado.error)}`);
+export function parseEnv(source: Record<string, string | undefined> = process.env): Env {
+  const result = envSchema.safeParse(withoutEmptyValues(source));
+  if (!result.success) {
+    throw new Error(`Configuración inválida:\n${z.prettifyError(result.error)}`);
   }
-  return resultado.data;
+  return result.data;
 }
 
-let cache: Entorno | undefined;
+let cache: Env | undefined;
 
-/** Entorno validado y cacheado por proceso. */
-export function getEnv(): Entorno {
-  cache ??= parsearEntorno();
+/** Env validado y cacheado por proceso. */
+export function getEnv(): Env {
+  cache ??= parseEnv();
   return cache;
 }

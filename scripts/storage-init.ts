@@ -19,7 +19,7 @@ const s3 = new S3Client({
   credentials: { accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_SECRET_ACCESS_KEY },
 });
 
-async function asegurarBucket(): Promise<void> {
+async function ensureBucket(): Promise<void> {
   try {
     await s3.send(new HeadBucketCommand({ Bucket: env.S3_BUCKET }));
     logger.info({ bucket: env.S3_BUCKET }, "el bucket ya existe");
@@ -29,15 +29,15 @@ async function asegurarBucket(): Promise<void> {
   }
 }
 
-async function aplicarCors(): Promise<void> {
-  const origenes = [new URL(env.APP_URL).origin, ...env.MEDIA_CORS_ORIGINS];
+async function applyCors(): Promise<void> {
+  const origins = [new URL(env.APP_URL).origin, ...env.MEDIA_CORS_ORIGINS];
   await s3.send(
     new PutBucketCorsCommand({
       Bucket: env.S3_BUCKET,
       CORSConfiguration: {
         CORSRules: [
           {
-            AllowedOrigins: origenes,
+            AllowedOrigins: origins,
             AllowedMethods: ["GET", "HEAD", "PUT", "POST"],
             AllowedHeaders: ["*"],
             ExposeHeaders: ["ETag"],
@@ -47,13 +47,13 @@ async function aplicarCors(): Promise<void> {
       },
     }),
   );
-  const actual = await s3.send(new GetBucketCorsCommand({ Bucket: env.S3_BUCKET }));
+  const current = await s3.send(new GetBucketCorsCommand({ Bucket: env.S3_BUCKET }));
   logger.info(
-    { origenes: actual.CORSRules?.flatMap((regla) => regla.AllowedOrigins ?? []) },
+    { origins: current.CORSRules?.flatMap((rule) => rule.AllowedOrigins ?? []) },
     "CORS aplicado",
   );
 }
 
-await asegurarBucket();
-await aplicarCors();
+await ensureBucket();
+await applyCors();
 s3.destroy();

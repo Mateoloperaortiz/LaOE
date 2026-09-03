@@ -1,10 +1,10 @@
 import pino from "pino";
 
-const enProduccion = process.env.NODE_ENV === "production";
+const isProduction = process.env.NODE_ENV === "production";
 
 // Logs estructurados: JSON en producción (Railway los indexa), legibles en desarrollo.
 export const logger = pino({
-  level: process.env.LOG_LEVEL ?? (enProduccion ? "info" : "debug"),
+  level: process.env.LOG_LEVEL ?? (isProduction ? "info" : "debug"),
   base: null,
   redact: {
     paths: [
@@ -17,7 +17,7 @@ export const logger = pino({
     ],
     censor: "[oculto]",
   },
-  ...(enProduccion
+  ...(isProduction
     ? {}
     : {
         transport: {
