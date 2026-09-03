@@ -19,7 +19,10 @@ export default defineConfig({
     locale: "es-CO",
     timezoneId: "America/Bogota",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, dependencies: ["setup"] },
+  ],
   webServer: {
     command: "npm run dev",
     url: "http://localhost:3000/api/health",

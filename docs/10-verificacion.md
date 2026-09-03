@@ -40,6 +40,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 ## E2E (Playwright)
 
 - Ingreso por OTP con código fijo de test y redirección a `next`.
+- Admin kit: crear y editar un comité desde el panel lateral, exportar el CSV; la paleta ⌘K encuentra personas y comités; otorgar un permiso exige step-up y el export de permisos queda auditado.
 - QR de check-in: sin sesión → ingreso → vuelve al QR → puntos acreditados y visibles en Mi OE.
 - Admin publica una edición con portada subida directo al bucket por `POST` prefirmado (emulador con CORS) y la ve el visitante.
 - Kanban de admisión hasta "Dar de alta" y primer ingreso del nuevo miembro.

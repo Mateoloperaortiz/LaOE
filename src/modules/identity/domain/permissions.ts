@@ -1,0 +1,190 @@
+import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
+import { getDb } from "@/db/client";
+import { isUniqueViolation } from "@/db/errors";
+import type { CommandContext } from "@/db/tx";
+import {
+  findMemberByEmail,
+  getPeopleByIds,
+  listAllCommittees,
+  searchPeople,
+} from "@/modules/people";
+import { DomainError } from "@/shared/admin-kit/DomainError";
+import { t } from "@/shared/copy";
+import { permission } from "../schema";
+import { normalizeEmail } from "./pure";
+
+// Permisos técnicos (ADR-011): ADMIN, líder de comité y junta. Se conceden con step-up y quedan auditados.
+
+export const permissionInputSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().pipe(z.email()),
+    code: z.enum(["ADMIN", "COMMITTEE_LEADER", "BOARD"]),
+    committeeId: z.string().trim().min(1).optional(),
+  })
+  .refine((input) => (input.code === "COMMITTEE_LEADER") === (input.committeeId !== undefined), {
+    path: ["committeeId"],
+    message: t("T-294"),
+  });
+
+export type PermissionInput = z.infer<typeof permissionInputSchema>;
+
+export interface PermissionRow {
+  id: string;
+  personId: string;
+  personName: string;
+  personEmail: string;
+  code: "ADMIN" | "COMMITTEE_LEADER" | "BOARD";
+  committeeId: string | null;
+  committeeName: string | null;
+  grantedById: string | null;
+  grantedByName: string | null;
+  grantedAt: Date;
+}
+
+export interface PermissionListParams {
+  q: string;
+  code?: string | undefined;
+  page: number;
+  pageSize: number;
+}
+
+export async function listPermissions(
+  params: PermissionListParams,
+): Promise<{ rows: PermissionRow[]; total: number }> {
+  const conditions = [];
+  if (params.q) {
+    const people = await searchPeople(params.q, 50);
+    if (people.length === 0) {
+      return { rows: [], total: 0 };
+    }
+    conditions.push(
+      inArray(
+        permission.personId,
+        people.map((item) => item.id),
+      ),
+    );
+  }
+  if (params.code === "ADMIN" || params.code === "COMMITTEE_LEADER" || params.code === "BOARD") {
+    conditions.push(eq(permission.code, params.code));
+  }
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const db = getDb();
+  const [rows, [total], committees] = await Promise.all([
+    db
+      .select()
+      .from(permission)
+      .where(where)
+      .orderBy(desc(permission.grantedAt))
+      .limit(params.pageSize)
+      .offset((params.page - 1) * params.pageSize),
+    db.select({ n: count() }).from(permission).where(where),
+    listAllCommittees(),
+  ]);
+  const people = await getPeopleByIds([
+    ...rows.map((row) => row.personId),
+    ...rows.flatMap((row) => (row.grantedById ? [row.grantedById] : [])),
+  ]);
+  const committeeNames = new Map(committees.map((item) => [item.id, item.name]));
+  return {
+    total: total?.n ?? 0,
+    rows: rows.map((row) => ({
+      id: row.id,
+      personId: row.personId,
+      personName: people.get(row.personId)?.fullName ?? "",
+      personEmail: people.get(row.personId)?.email ?? "",
+      code: row.code,
+      committeeId: row.committeeId,
+      committeeName: row.committeeId ? (committeeNames.get(row.committeeId) ?? null) : null,
+      grantedById: row.grantedById,
+      grantedByName: row.grantedById ? (people.get(row.grantedById)?.fullName ?? null) : null,
+      grantedAt: row.grantedAt,
+    })),
+  };
+}
+
+export async function getPermission(id: string): Promise<PermissionRow | null> {
+  const [row] = await getDb().select().from(permission).where(eq(permission.id, id)).limit(1);
+  if (!row) {
+    return null;
+  }
+  const people = await getPeopleByIds([
+    row.personId,
+    ...(row.grantedById ? [row.grantedById] : []),
+  ]);
+  const committees = await listAllCommittees();
+  return {
+    id: row.id,
+    personId: row.personId,
+    personName: people.get(row.personId)?.fullName ?? "",
+    personEmail: people.get(row.personId)?.email ?? "",
+    code: row.code,
+    committeeId: row.committeeId,
+    committeeName: row.committeeId
+      ? (committees.find((item) => item.id === row.committeeId)?.name ?? null)
+      : null,
+    grantedById: row.grantedById,
+    grantedByName: row.grantedById ? (people.get(row.grantedById)?.fullName ?? null) : null,
+    grantedAt: row.grantedAt,
+  };
+}
+
+export async function grantPermission(
+  ctx: CommandContext,
+  input: PermissionInput,
+): Promise<{ id: string }> {
+  const member = await findMemberByEmail(normalizeEmail(input.email));
+  if (!member) {
+    throw new DomainError(t("T-267"), "email");
+  }
+  try {
+    const [row] = await ctx.tx
+      .insert(permission)
+      .values({
+        personId: member.id,
+        code: input.code,
+        committeeId: input.committeeId ?? null,
+        grantedById: ctx.actor.personId,
+      })
+      .returning({ id: permission.id });
+    if (!row) {
+      throw new Error("No se pudo otorgar el permiso");
+    }
+    await ctx.audit({
+      action: "permission.granted",
+      entityType: "permission",
+      entityId: row.id,
+      after: { personId: member.id, code: input.code, committeeId: input.committeeId ?? null },
+    });
+    return row;
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      throw new DomainError(t("T-268"), "email");
+    }
+    throw error;
+  }
+}
+
+/** No se puede retirar el último ADMIN (05-acceso.md). */
+export async function revokePermission(ctx: CommandContext, id: string): Promise<void> {
+  const [row] = await ctx.tx.select().from(permission).where(eq(permission.id, id));
+  if (!row) {
+    return;
+  }
+  if (row.code === "ADMIN") {
+    const [admins] = await ctx.tx
+      .select({ n: count() })
+      .from(permission)
+      .where(eq(permission.code, "ADMIN"));
+    if ((admins?.n ?? 0) <= 1) {
+      throw new DomainError(t("T-266"));
+    }
+  }
+  await ctx.tx.delete(permission).where(eq(permission.id, id));
+  await ctx.audit({
+    action: "permission.revoked",
+    entityType: "permission",
+    entityId: id,
+    before: row,
+  });
+}

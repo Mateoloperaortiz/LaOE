@@ -219,6 +219,61 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-168 | Evaluación, ventana abierta (aviso a evaluadores) | Se abrió la ventana de evaluación de {término}. Tenés {n} personas pendientes hasta el {fecha}. | GH | Propuesta |
 | T-169 | Step-up en exportes | Este exporte tiene datos personales: pedimos un código nuevo y queda registrado. | MATEO | Propuesta |
 
+### Admin kit (listados, paneles, exportes y paleta)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-250 | Listados: buscador y botón | Buscar | MATEO | Propuesta |
+| T-251 | Listados: crear un registro | Nuevo | MATEO | Propuesta |
+| T-252 | Listados: abrir un registro | Editar | MATEO | Propuesta |
+| T-253 | Panel: guardar | Guardar | MATEO | Propuesta |
+| T-254 | Panel: cerrar sin guardar | Cancelar | MATEO | Propuesta |
+| T-255 | Listados: descargar el listado | Exportar CSV | MATEO | Propuesta |
+| T-256 | Listados y paleta: sin resultados | Sin resultados para esta búsqueda. | MATEO | Propuesta |
+| T-257 | Listados: paginación | Página {n} de {total} | MATEO | Propuesta |
+| T-258 | Listados: navegación entre páginas | Anterior · Siguiente | MATEO | Propuesta |
+| T-259 | Panel: confirmación tras guardar | Guardado. | MATEO | Propuesta |
+| T-260 | Panel: hay errores de validación | Revisá los campos marcados. | MATEO | Propuesta |
+| T-261 | Recurso comités (plural · singular) | Comités · Comité | MATEO | Propuesta |
+| T-262 | Recurso términos (plural · singular) | Términos · Término | MATEO | Propuesta |
+| T-263 | Recurso permisos (plural · singular) | Permisos · Permiso | MATEO | Propuesta |
+| T-264 | Paleta ⌘K: campo de búsqueda | Buscá personas o comités | MATEO | Propuesta |
+| T-265 | Permisos: quitar un permiso | Revocar | MATEO | Propuesta |
+| T-266 | Permisos: regla del último ADMIN | No se puede retirar el último ADMIN. | MATEO | Propuesta |
+| T-267 | Permisos: correo sin persona en el roster | Ese correo no está en el roster. | MATEO | Propuesta |
+| T-268 | Permisos: duplicado | Ya tiene ese permiso. | MATEO | Propuesta |
+| T-269 | Permisos: campo del correo | Correo de la persona | MATEO | Propuesta |
+| T-270 | Permisos: campo del permiso | Permiso | MATEO | Propuesta |
+| T-271 | Permisos: campo del comité | Comité (solo para líderes) | MATEO | Propuesta |
+| T-272 | Comités: campo sigla | Sigla | MATEO | Propuesta |
+| T-273 | Comités y términos: campo nombre | Nombre | MATEO | Propuesta |
+| T-274 | Comités: campo estado | Estado | MATEO | Propuesta |
+| T-275 | Comités: campo color | Color | MATEO | Propuesta |
+| T-276 | Comités: campo logo | Logo | MATEO | Propuesta |
+| T-277 | Comités: campo presentación | Presentación | MATEO | Propuesta |
+| T-278 | Comités: campo enlace de contacto | Enlace de contacto | MATEO | Propuesta |
+| T-279 | Comités: campo publicación | Publicación | MATEO | Propuesta |
+| T-280 | Términos: campo código | Código del término (por ejemplo 2026-2) | MATEO | Propuesta |
+| T-281 | Términos: campo inicio | Inicio | MATEO | Propuesta |
+| T-282 | Términos: campo fin | Fin | MATEO | Propuesta |
+| T-283 | Términos: asambleas ordinarias obligatorias | Asambleas ordinarias obligatorias | MATEO | Propuesta |
+| T-284 | Términos: nominal de la tabla general | Puntos nominales de la tabla general | MATEO | Propuesta |
+| T-285 | Términos: nominal de la tabla de comité | Puntos nominales de la tabla de comité | MATEO | Propuesta |
+| T-286 | Términos: cierre de puntos | Puntos cerrados el | MATEO | Propuesta |
+| T-287 | Comités: opciones de estado | Activo · Inactivo | MATEO | Propuesta |
+| T-288 | Contenido: opciones de publicación | Borrador · Publicado | MATEO | Propuesta |
+| T-289 | Permisos: opciones (ADMIN, líder, junta) | ADMIN · Líder de comité · Junta | MATEO | Propuesta |
+| T-290 | Paleta ⌘K: tipos de resultado | Persona · Comité | MATEO | Propuesta |
+| T-291 | Paleta y paneles: cerrar | Cerrar | MATEO | Propuesta |
+| T-292 | Comités: sigla repetida | Ya existe un comité con esa sigla. | MATEO | Propuesta |
+| T-293 | Términos: código repetido | Ya existe ese término. | MATEO | Propuesta |
+| T-294 | Permisos: comité obligatorio solo para líderes | El líder necesita un comité; ADMIN y Junta no llevan comité. | MATEO | Propuesta |
+| T-295 | Permisos: columnas de otorgamiento | Otorgado el · Otorgado por | MATEO | Propuesta |
+| T-296 | Permisos: columna de la persona | Persona | MATEO | Propuesta |
+| T-297 | Términos: columna semestre | Semestre | MATEO | Propuesta |
+| T-298 | Términos: fechas invertidas | El fin debe ser posterior al inicio. | MATEO | Propuesta |
+| T-299 | Paleta ⌘K: botón que la abre | Buscar (⌘K) | MATEO | Propuesta |
+
 ## 6. Notificaciones
 
 ### Push (título · cuerpo)

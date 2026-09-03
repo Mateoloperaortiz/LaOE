@@ -1,0 +1,127 @@
+import { and, asc, count, desc, eq, gte, ilike, lte } from "drizzle-orm";
+import { z } from "zod";
+import { getDb } from "@/db/client";
+import { isUniqueViolation } from "@/db/errors";
+import type { CommandContext } from "@/db/tx";
+import { DomainError } from "@/shared/admin-kit/DomainError";
+import { t } from "@/shared/copy";
+import { term } from "../schema";
+
+// El término es el reloj universal (ADR-004): el actual se deriva de la fecha; el cierre de puntos es explícito.
+
+export type TermRow = typeof term.$inferSelect;
+
+export const TERM_CODE = /^\d{4}-[12]$/;
+
+export function semesterFromCode(code: string): 1 | 2 {
+  return code.endsWith("-2") ? 2 : 1;
+}
+
+export const termInputSchema = z
+  .object({
+    code: z.string().trim().regex(TERM_CODE),
+    startsOn: z.iso.date(),
+    endsOn: z.iso.date(),
+    requiredOrdinaryAssemblies: z.coerce.number().int().min(0).max(10).default(1),
+    permanenceGeneralNominal: z.coerce.number().int().min(0).max(1000).default(50),
+    permanenceCommitteeNominal: z.coerce.number().int().min(0).max(1000).default(60),
+  })
+  .refine((input) => input.startsOn < input.endsOn, { path: ["endsOn"], message: t("T-298") });
+
+export type TermInput = z.infer<typeof termInputSchema>;
+
+export interface TermListParams {
+  q: string;
+  page: number;
+  pageSize: number;
+}
+
+export async function listTerms(
+  params: TermListParams,
+): Promise<{ rows: TermRow[]; total: number }> {
+  const where = params.q ? ilike(term.code, `%${params.q}%`) : undefined;
+  const db = getDb();
+  const [rows, [total]] = await Promise.all([
+    db
+      .select()
+      .from(term)
+      .where(where)
+      .orderBy(desc(term.startsOn))
+      .limit(params.pageSize)
+      .offset((params.page - 1) * params.pageSize),
+    db.select({ n: count() }).from(term).where(where),
+  ]);
+  return { rows, total: total?.n ?? 0 };
+}
+
+export async function getTerm(id: string): Promise<TermRow | null> {
+  const [row] = await getDb().select().from(term).where(eq(term.id, id)).limit(1);
+  return row ?? null;
+}
+
+/** El término que contiene una fecha (YYYY-MM-DD en Bogotá), o null si no hay. */
+export async function findTermContaining(date: string): Promise<TermRow | null> {
+  const [row] = await getDb()
+    .select()
+    .from(term)
+    .where(and(lte(term.startsOn, date), gte(term.endsOn, date)))
+    .orderBy(asc(term.startsOn))
+    .limit(1);
+  return row ?? null;
+}
+
+function toValues(input: TermInput) {
+  return {
+    code: input.code,
+    semester: semesterFromCode(input.code),
+    startsOn: input.startsOn,
+    endsOn: input.endsOn,
+    requiredOrdinaryAssemblies: input.requiredOrdinaryAssemblies,
+    permanenceGeneralNominal: input.permanenceGeneralNominal,
+    permanenceCommitteeNominal: input.permanenceCommitteeNominal,
+  };
+}
+
+export async function createTerm(ctx: CommandContext, input: TermInput): Promise<{ id: string }> {
+  try {
+    const [row] = await ctx.tx.insert(term).values(toValues(input)).returning({ id: term.id });
+    if (!row) {
+      throw new Error("No se pudo crear el término");
+    }
+    await ctx.audit({
+      action: "term.created",
+      entityType: "term",
+      entityId: row.id,
+      after: toValues(input),
+    });
+    return row;
+  } catch (error) {
+    if (isUniqueViolation(error, "term_code_unique")) {
+      throw new DomainError(t("T-293"), "code");
+    }
+    throw error;
+  }
+}
+
+export async function updateTerm(ctx: CommandContext, id: string, input: TermInput): Promise<void> {
+  const [before] = await ctx.tx.select().from(term).where(eq(term.id, id));
+  if (!before) {
+    throw new DomainError(t("T-032"));
+  }
+  const values = toValues(input);
+  try {
+    await ctx.tx.update(term).set(values).where(eq(term.id, id));
+  } catch (error) {
+    if (isUniqueViolation(error, "term_code_unique")) {
+      throw new DomainError(t("T-293"), "code");
+    }
+    throw error;
+  }
+  await ctx.audit({
+    action: "term.updated",
+    entityType: "term",
+    entityId: id,
+    before,
+    after: values,
+  });
+}

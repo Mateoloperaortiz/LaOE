@@ -16,6 +16,7 @@
 | `/privacidad` | Política de tratamiento de datos vigente |
 | `/api/ics/publico.ics` | Calendario de ediciones públicas |
 | `/ingresar` | OTP |
+| `/ingresar/paso` | Step-up: un código nuevo antes de una acción sensible del admin (conceder permisos, exportes con datos personales); vuelve a `next` |
 
 ## Mi OE (sesión de miembro)
 

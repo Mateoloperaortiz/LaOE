@@ -3,7 +3,10 @@ import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 
 // Secciones del admin (T-160). Se enlazan las que ya existen; el resto llega por fases.
-const RUTAS: Record<string, string> = { Sistema: "/admin/sistema/jobs" };
+const RUTAS: Record<string, string> = {
+  Comunidad: "/admin/comites",
+  Sistema: "/admin/sistema/jobs",
+};
 
 export default function AdminHome() {
   const secciones = tList("T-160");

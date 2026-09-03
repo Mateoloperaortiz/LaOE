@@ -11,7 +11,7 @@ import { t } from "@/shared/copy";
 import { clientIp, userAgent } from "@/shared/lib/request";
 import { SESSION_COOKIE } from "./cookie";
 import { getActor } from "./current";
-import { requestOtp, verifyOtp } from "./domain/otp";
+import { requestOtp, verifyOtp, verifyStepUp } from "./domain/otp";
 import { normalizeEmail, safeNextPath } from "./domain/pure";
 import { destroySessionByToken, destroySessionsFor } from "./domain/session";
 
@@ -129,4 +129,50 @@ export async function closeOtherSessionsAction(): Promise<CloseOthersState> {
   const closed = await destroySessionsFor(getDb(), actor.personId, actor.sessionId);
   revalidatePath("/app/ajustes");
   return { done: true, closed };
+}
+
+export interface StepUpState {
+  step: "request" | "code";
+  next: string;
+  error: string | null;
+}
+
+export async function initialStepUpState(next: string): Promise<StepUpState> {
+  return { step: "request", next: safeNextPath(next, "/admin"), error: null };
+}
+
+/** Step-up: pide un OTP nuevo al correo del actor y lo verifica sobre su sesión. */
+export async function stepUpAction(
+  previous: StepUpState,
+  formData: FormData,
+): Promise<StepUpState> {
+  const actor = await getActor();
+  const next = safeNextPath(formData.get("next"), previous.next);
+  if (!actor) {
+    redirect(`/ingresar?next=${encodeURIComponent(next)}`);
+  }
+  const intent = formData.get("intent");
+  if (intent === "request") {
+    await requestOtp({ email: actor.email, ip: await clientIp(), purpose: "STEP_UP" });
+    return { step: "code", next, error: null };
+  }
+  const code = codeSchema.safeParse(formData.get("code"));
+  if (!code.success) {
+    return { step: "code", next, error: t("T-048") };
+  }
+  const result = await verifyStepUp({
+    email: actor.email,
+    code: code.data,
+    sessionId: actor.sessionId,
+  });
+  if (!result.ok) {
+    const error =
+      result.reason === "EXPIRED"
+        ? t("T-048")
+        : result.reason === "LOCKED"
+          ? t("T-050")
+          : t("T-049", { n: result.attemptsLeft });
+    return { step: "code", next, error };
+  }
+  redirect(next);
 }

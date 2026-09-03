@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdminActor } from "@/modules/identity";
 import { signOutAction } from "@/modules/identity/actions";
+import { CommandPalette } from "@/shared/admin-kit";
 import { LogoOE, ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 
@@ -8,6 +9,16 @@ import { t, tList } from "@/shared/copy";
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   await requireAdminActor("/admin");
   const [temaOscuro, temaClaro] = tList("T-034") as [string, string];
+  const [comites] = tList("T-261");
+  const [terminos] = tList("T-262");
+  const [permisos] = tList("T-263");
+  const [persona, comite] = tList("T-290") as [string, string];
+  const enlaces = [
+    { href: "/admin/comites", label: comites ?? "" },
+    { href: "/admin/terminos", label: terminos ?? "" },
+    { href: "/admin/permisos", label: permisos ?? "" },
+    { href: "/admin/sistema/jobs", label: t("T-241") },
+  ];
   return (
     <>
       <header className="border-b border-borde bg-fondo-alterno textura-granito">
@@ -20,12 +31,33 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             <LogoOE height={56} />
             <span className="eyebrow">{t("T-236")}</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/app" className="boton-secundario text-sm">
+          <nav aria-label={t("T-236")} className="flex flex-wrap items-center gap-1">
+            {enlaces.map((enlace) => (
+              <Link
+                key={enlace.href}
+                href={enlace.href}
+                className="rounded-full px-3 py-2 text-sm font-semibold text-titulo hover:bg-fondo-suave"
+              >
+                {enlace.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2">
+            <CommandPalette
+              endpoint="/api/admin/buscar"
+              labels={{
+                open: t("T-299"),
+                placeholder: t("T-264"),
+                empty: t("T-256"),
+                close: t("T-291"),
+                types: { person: persona, committee: comite },
+              }}
+            />
+            <Link href="/app" className="boton-secundario min-h-10 px-4 py-2 text-sm">
               {t("T-004")}
             </Link>
             <form action={signOutAction}>
-              <button type="submit" className="boton-secundario text-sm">
+              <button type="submit" className="boton-secundario min-h-10 px-4 py-2 text-sm">
                 {t("T-231")}
               </button>
             </form>
