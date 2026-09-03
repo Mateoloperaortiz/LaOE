@@ -21,11 +21,12 @@
 
 | Ruta | Contenido |
 | --- | --- |
-| `/app` | Saludo, agenda del término, mis comités, saldo del término, anuncios para integrantes |
+| `/app` | Saludo, agenda del término, mis comités, saldo del término, barra de permanencia, anuncios para integrantes |
 | `/app/eventos` | Eventos y ediciones incluyendo audiencia de integrantes |
 | `/app/comites` y `/app/comites/[slug]` | Comités con piezas internas y contactos |
 | `/app/personas` | Directorio: nombre, foto opcional, comités del término, cargos. Sin correos |
 | `/app/gh-points` | Saldo, nivel, movimientos, rankings (nuevos, veteranos, comités), asambleas firmadas/requeridas |
+| `/app/permanencia` | Porcentaje del término frente al 60 %, criterio por criterio, cómo sumar más, evaluaciones pendientes, historial |
 | `/app/normativa` | Estatutos, reglamento y actas con lector y búsqueda |
 | `/app/carnet` | QR personal firmado para acreditación |
 | `/app/ajustes` | Sesiones, notificaciones push, preferencias, mis datos, consentimientos, solicitud de eliminación |
@@ -44,10 +45,13 @@
 | Comunidad | `/admin/comites`, `/admin/cargos`, `/admin/permisos` | Comités, cargos por término, permisos técnicos |
 | Contenido | `/admin/paginas`, `/admin/cartelera`, `/admin/eventos`, `/admin/eventos/[id]/ediciones`, `/admin/medios`, `/admin/documentos` | Publicación editorial |
 | Participación | `/admin/terminos`, `/admin/ocasiones`, `/admin/ocasiones/[id]` (consola), `/admin/ocasiones/[id]/anfitrion`, `/admin/ledger`, `/admin/rankings`, `/admin/asambleas`, `/admin/cierre` | Términos, ocasiones con QR y aprobaciones, ledger, rankings, requisitos de asambleas, cierre |
+| Permanencia | `/admin/permanencia/reglas`, `/admin/permanencia/grupos`, `/admin/permanencia/grupos/[id]`, `/admin/permanencia/evaluaciones`, `/admin/permanencia/cumplimiento`, `/admin/permanencia/cierre` | Reglas del término, grupos de trabajo con líder e integrantes, bandeja de evaluaciones, lista de cumplimiento con filtros y export, decisiones de cierre |
 | Comunicaciones | `/admin/anuncios`, `/admin/plantillas`, `/admin/campanas`, `/admin/mensajes` | Anuncios con push, plantillas, campañas por segmento, registro |
 | Sistema | `/admin/sistema/auditoria`, `/admin/sistema/jobs`, `/admin/sistema/importaciones`, `/admin/sistema/exportes`, `/admin/sistema/config`, `/admin/sistema/alias` | Auditoría, outbox y dead letter, importaciones, exportes, configuración, alias legados |
 
 Vista de **líder de comité**: `/admin/comites/[slug]` con roster sin correos y score, proponer ocasiones `DRAFT`, consola y modo anfitrión de sus ocasiones. No aprueba puntos ni publica contenido.
+
+Vista de **líder de grupo de trabajo**: evalúa el desempeño de los integrantes de sus grupos en `/admin/permanencia/grupos/[id]`; no ve el resto del roster ni el porcentaje de otras personas.
 
 ## API y jobs
 

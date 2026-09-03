@@ -81,7 +81,22 @@ Listo cuando: un admin encuentra a cualquier persona en 2 segundos y ve toda su 
 
 Listo cuando: 500 escaneos concurrentes sin duplicados ni recomputes repetidos; sumas migradas idénticas.
 
-## Fase 4 · Admisión, aliados y contactos · `pendiente`
+## Fase 4 · Permanencia · `pendiente`
+
+- [ ] Reglas por término: editor, copia del término anterior, vista previa del impacto sobre el roster
+- [ ] Categoría de ocasión (integración, partido del Athletic, charla, taller, social) y marca "solo nuevos"
+- [ ] Grupos de trabajo por término (comités de trabajo, GT de macroevento, GAP, GAP OE, barra brava, tareas de nuevos) con líder e integrantes; importación CSV
+- [ ] Evaluaciones de desempeño por líder con bandeja de pendientes y recordatorios
+- [ ] Créditos manuales auditados
+- [ ] Cálculo por outbox con snapshot por persona y término; estados incluido "no alcanza"
+- [ ] Mi OE: `/app/permanencia` con progreso, cómo sumar más y evaluaciones pendientes; barra en el inicio
+- [ ] Admin: lista de cumplimiento con filtros y export; cierre con decisiones por persona
+- [ ] Persona 360: pestaña Permanencia
+- [ ] Avisos a mitad de término y tres semanas antes del cierre
+
+Listo cuando: un integrante ve en su celular el mismo porcentaje que GH calcula en su hoja para el término de prueba, criterio por criterio, y GH cierra un término con decisiones registradas.
+
+## Fase 5 · Admisión, aliados y contactos · `pendiente`
 
 - [ ] Constructor de formularios con campos tipados y acciones
 - [ ] Formularios públicos con honeypot, rate limit y consentimiento
@@ -94,7 +109,7 @@ Listo cuando: 500 escaneos concurrentes sin duplicados ni recomputes repetidos; 
 
 Listo cuando: una convocatoria completa (formulario → entrevista → alta) se hace sin Excel.
 
-## Fase 5 · Comunicaciones y PWA · `pendiente`
+## Fase 6 · Comunicaciones y PWA · `pendiente`
 
 - [ ] Manifest, service worker, instalación en iOS y Android
 - [ ] Push web: suscripción, preferencias, envío por outbox
@@ -106,7 +121,7 @@ Listo cuando: una convocatoria completa (formulario → entrevista → alta) se 
 
 Listo cuando: un anuncio llega al celular de un integrante en menos de un minuto.
 
-## Fase 6 · Cutover · `pendiente`
+## Fase 7 · Cutover · `pendiente`
 
 - [ ] Crear el entorno `production` (web, Postgres, bucket) y la rama `production`; CORS y variables de producción
 - [ ] Ensayo completo de migración sobre un dump reciente
@@ -138,3 +153,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-02 | — | Cerradas cuatro decisiones: sustitutos libres de fuentes por comparación visual (Sofia Sans Extra Condensed y Plus Jakarta Sans), isotipo aprobado como favicon, elementos gráficos redibujados en SVG, subida directa prefirmada al bucket (ADR-022 reemplaza a ADR-016). Láminas de comparación en `docs/assets/` |
 | 2026-09-02 | — | Cerradas siete decisiones de operación (ADR-023): entorno `staging` persistente, copia mensual a Cloudflare R2 con servicio cron, repositorio `LaOE`, política de datos ya aprobada, correo con desbordamiento automático a SES, seguir en Pro, sin CDN por ahora |
 | 2026-09-02 | — | Reglas de GH confirmadas (ADR-024): comités 1 a 3, asambleas ordinarias más elección de junta y segunda vuelta, código rotativo opcional, score con suavizado, sin medallas migradas, egresados sin acceso. Cloudflare completo evaluado y descartado. Queda una sola decisión abierta |
+| 2026-09-02 | — | Permanencia (ADR-025): la tabla de GH pasa a ser una fase propia (nueva fase 4; admisión, comunicaciones y cutover pasan a 5, 6 y 7). Doc `12-permanencia.md` con la transcripción de las capturas, el modelo y las vistas. Siete preguntas nuevas para GH |

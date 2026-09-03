@@ -11,7 +11,7 @@ Una sola aplicación web con tres capas y una columna vertebral.
 | Capa | Quién | Qué ve |
 | --- | --- | --- |
 | Portal público | Visitantes | La OE, cartelera, eventos y ediciones, comités, cómo unirse |
-| Mi OE | Integrantes vigentes y honorarios del roster | Agenda, directorio, GH Points, normativa, carnet, check-in por QR |
+| Mi OE | Integrantes vigentes y honorarios del roster | Agenda, directorio, GH Points, progreso de permanencia, normativa, carnet, check-in por QR |
 | Administración | Personas con permiso ADMIN y líderes de comité | Personas (CRM), contenido, participación, comunicaciones, sistema |
 
 La columna vertebral es el **CRM de comunidad**: la persona como eje, con su ciclo de vida completo (prospecto, postulante, integrante, egresado), sus comités por semestre, sus cargos, su participación, sus formularios y sus comunicaciones en un solo lugar. Ver [02-crm.md](02-crm.md).
@@ -52,7 +52,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | La carpeta del repositorio pasa de `Untitled` a `casa-digital`; el nombre del remoto sigue abierto |
 | 2026-09-02 | Sin licencias de fuentes: Sofia Sans Extra Condensed y Plus Jakarta Sans (OFL) sustituyen a TT Bluescreens y NouvelR; el isotipo se usa como favicon con aval |
 | 2026-09-02 | Medios: subida directa al bucket con `POST` prefirmado y CORS, entrega por redirección prefirmada ([ADR-022](adr/ADR-022-medios-prefirmados.md)) |
-| 2026-09-02 | Entorno `staging` persistente desde la fase 0; `production` se crea en la fase 6; entornos de PR apagados ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
+| 2026-09-02 | Entorno `staging` persistente desde la fase 0; `production` se crea en la fase 7; entornos de PR apagados ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
 | 2026-09-02 | Copia mensual cifrada (base + bucket) a Cloudflare R2 desde un servicio cron de Railway |
 | 2026-09-02 | Repositorio remoto en GitHub: `LaOE`; la carpeta local sigue siendo `casa-digital` |
 | 2026-09-02 | La política de tratamiento de datos ya está aprobada por la OE; falta subir su texto al repositorio |
@@ -60,6 +60,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | Tras el cutover se sigue en Railway Pro; sin Cloudflare delante por ahora |
 | 2026-09-02 | Se evaluó mover toda la infraestructura a Cloudflare y se descartó: no tiene Postgres gestionado ni proceso permanente |
 | 2026-09-02 | Reglas de GH confirmadas ([ADR-024](adr/ADR-024-reglas-de-participacion.md)): 1 a 3 comités; 2 asambleas ordinarias por término más la elección de junta y su segunda vuelta, obligatorias en el segundo semestre; código rotativo opcional por ocasión; score de comité por participación relativa con suavizado; las medallas de GHPOINTS no se migran; los egresados no entran en v1 |
+| 2026-09-02 | Permanencia: la tabla de GH se vuelve criterios configurables por término, con umbral de 60 % y progreso visible para cada integrante ([ADR-025](adr/ADR-025-permanencia-scorecard.md)) |
 
 Hechos que sustentan varias de estas decisiones:
 
@@ -68,9 +69,9 @@ Hechos que sustentan varias de estas decisiones:
 - Los respaldos programados de volúmenes (diario, semanal, mensual) existen en todos los planes de Railway; el PITR ya está configurado en el Postgres de GHPOINTS.
 - Vercel + Neon + R2 se evaluó y descartó el mismo día: costaba lo mismo, repartía la infraestructura en tres paneles y obligaba a diseñar sin worker permanente (crons por minuto solo en Pro, cuerpo de 4,5 MB por función, Neon gratis con 100 CU-horas y suspensión a los 5 minutos).
 
-## Alcance v1 (fases 0 a 6)
+## Alcance v1 (fases 0 a 7)
 
-Portal público y contenido editable · Personas y Mi OE · Participación y GH Points con asambleas · Formularios, admisión y aliados · Comunicaciones y PWA · Migración y cutover. Detalle y seguimiento en [09-roadmap.md](09-roadmap.md).
+Portal público y contenido editable · Personas y Mi OE · Participación y GH Points con asambleas · Permanencia (la tabla de GH visible para cada integrante) · Formularios, admisión y aliados · Comunicaciones y PWA · Migración y cutover. Detalle y seguimiento en [09-roadmap.md](09-roadmap.md).
 
 ## Fuera de v1
 

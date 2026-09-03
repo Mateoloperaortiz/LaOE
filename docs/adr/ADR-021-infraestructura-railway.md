@@ -34,7 +34,7 @@ El punto "Medios" queda como lo define [ADR-022](ADR-022-medios-prefirmados.md):
 
 ## Enmienda (2026-09-02, ADR-023)
 
-Entornos: `staging` persistente desde la fase 0 y `production` desde la fase 6; entornos de PR apagados. Respaldos: la copia externa la hace un servicio `backup` con cron de Railway hacia Cloudflare R2. Presupuesto: se sigue en Pro después del cutover. Ver [ADR-023](ADR-023-operacion-entornos-respaldo-correo.md).
+Entornos: `staging` persistente desde la fase 0 y `production` desde la fase 7; entornos de PR apagados. Respaldos: la copia externa la hace un servicio `backup` con cron de Railway hacia Cloudflare R2. Presupuesto: se sigue en Pro después del cutover. Ver [ADR-023](ADR-023-operacion-entornos-respaldo-correo.md).
 
 ## Frente a ADR-019
 

@@ -36,6 +36,13 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Logo principal a color en SVG (con sus azules propios) para pie de página y carnet; hoy solo existe la máscara monocroma
 - [ ] Texturas oficiales (papel, granito) en alta resolución si existen; si no, se usan las generadas en la web
 
+## Permanencia
+
+- [ ] Tabla de permanencia completa del término (todas las categorías, pesos y total; las capturas suman 50 % para veteranos y 45 % para nuevos)
+- [ ] Lista de comités de trabajo (CAP, CGH, CML, CCM, CAE, CAF, Athletic) con su significado y sus líderes
+- [ ] Quién evalúa cada tipo de grupo (GT, GAP, GAP OE, barra brava, tareas de nuevos) y cuándo
+- [ ] Calendario de integraciones y de partidos del Athletic del término
+
 ## Operación
 
 - [ ] Puntos por tipo de ocasión para el término (tope de comités y asambleas ya están decididos)

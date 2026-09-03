@@ -42,6 +42,7 @@ Los contactos externos (`kind=EXTERNAL`) no tienen etapa de integrante ni acceso
 | Línea de tiempo | Interacciones automáticas y notas, con filtro por tipo y compositor de nota |
 | Membresía | Términos, comités por término, cargos, historial de estados con motivos |
 | Participación | Check-ins con ocasión y fuente; ledger con ajustes y reversiones |
+| Permanencia | Porcentaje del término frente al umbral, criterio por criterio, grupos y evaluaciones, decisión de cierre |
 | Formularios | Respuestas enviadas, con enlace a la tarjeta de pipeline si existe |
 | Comunicaciones | Mensajes enviados (correo y push), preferencias, suscripciones push |
 | Tareas | Pendientes y cerradas sobre la persona |

@@ -17,6 +17,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Validación de formularios y de acciones declaradas.
 - Mapeo de tipos legados de GHPOINTS.
 - Backoff y dead letter del outbox; derivación del código rotativo.
+- Cálculo de permanencia: con las reglas de ejemplo de 2026-2, un nuevo y un veterano reproducen la hoja de GH criterio por criterio; "no alcanza" cuando lo que queda posible no cubre el umbral.
 
 ## Integration (con Postgres)
 
@@ -28,6 +29,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Auditoría en la misma transacción: si falla la auditoría, no hay mutación.
 - Formulario público: vincula por correo normalizado, registra consentimiento, no crea puntos.
 - "Dar de alta" en una transacción: membresía, comités, `firstTermId`, interacción.
+- Recalculo de permanencia al aprobar un check-in, registrar una evaluación o cambiar una regla; snapshot congelado al cerrar el término.
 
 ## E2E (Playwright)
 
@@ -37,6 +39,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Kanban de admisión hasta "Dar de alta" y primer ingreso del nuevo integrante.
 - Campaña enviada al mailer de consola respetando preferencias y baja.
 - Modo anfitrión: el líder marca a una persona sin sesión.
+- Un integrante ve subir su porcentaje de permanencia tras un check-in de integración; el líder evalúa un GAP y el porcentaje cambia; GH cierra el término y la decisión aparece en la persona.
 
 ## Migración
 

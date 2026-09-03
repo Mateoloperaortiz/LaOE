@@ -32,6 +32,17 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Elección de junta | `assemblyKind=BOARD_ELECTION` | Asamblea especial del segundo semestre donde se vota la junta del año siguiente; obligatoria para toda la OE |
 | Segunda vuelta | `assemblyKind=RUNOFF` | Repetición de la votación cuando no hay ganador; también obligatoria |
 | Tasa suavizada | `CommitteeParticipation.smoothedRate` | Participación relativa corregida hacia la media de la ocasión para no premiar el azar de los comités pequeños |
+| Permanencia | `PermanenceSnapshot` | Porcentaje del término según la tabla de GH; con 60 % la persona permanece en la OE |
+| Criterio de permanencia | `PermanenceRule` | Fila de la tabla de GH: peso, a quién aplica y cómo se calcula |
+| Grupo de trabajo | `WorkGroup` | Equipo por término: comité de trabajo, GT de macroevento, GAP, GAP OE, barra brava o tarea de nuevos |
+| Comité de trabajo | `WorkGroup.kind=WORK_COMMITTEE` | CAP, CGH, CML, CCM, CAE, CAF o Athletic; distinto de los 27 comités de pertenencia |
+| GT de macroevento | `WorkGroup.kind=GT_MACROEVENT` | Grupo de trabajo de una edición de Inventiva, Días EAFIT o EnFemenino |
+| GAP | `WorkGroup.kind=GAP` | Grupo de apoyo a un evento de un comité distinto al propio o a un macroevento |
+| GAP OE | `WorkGroup.kind=GAP_OE` | Grupo de apoyo a eventos de la Junta Directiva (VTG, Assessment) |
+| Barra brava | `WorkGroup.kind=BARRA_BRAVA` | Apoyo al Athletic OE en al menos tres encuentros con trabajo demostrable |
+| Evaluación de desempeño | `WorkGroupMembership.evaluation` | Juicio del líder o de GH sobre si la persona cumplió con buen desempeño |
+| Decisión de permanencia | `PermanenceDecision` | Resultado del cierre del término: continúa, continúa con compromiso o retiro |
+| Categoría de ocasión | `Occasion.category` | Integración, partido del Athletic, charla, taller, social u otra; la usan los criterios |
 | Evento | `Event` | Identidad permanente (Días EAFIT, Inventiva) |
 | Edición | `EventEdition` | Ocurrencia fechada de un evento, con lugar y organizadores |
 | Sesión de edición | `Occasion.kind=EDITION_SESSION` | Momento de una edición con check-in |

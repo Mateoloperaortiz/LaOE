@@ -7,6 +7,13 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | # | Pregunta | Opciones | Quién decide | Cómo se cierra |
 | --- | --- | --- | --- | --- |
 | 1 | Anonimización de egresados: plazo para borrar teléfono, notas y respuestas (nombre, comités y ledger se conservan) | Lo que diga la política aprobada · 5 años si no lo dice · otro | OE (junta) | Al recibir el texto de la política; mientras tanto el job `retention` queda apagado |
+| 2 | Tabla de permanencia completa: las capturas suman 50 % para veteranos y 45 % para nuevos, y el umbral es 60 % | Enviar la tabla completa con todos los criterios y su total | GH | Al recibir la hoja del término |
+| 3 | GT Macroeventos: ¿4 % Inventiva, 6 % Días, 8 % EnFemenino, o son niveles de desempeño? ¿Acumulan si la persona está en dos GT? | Por macroevento · por nivel · acumulable o no | GH | Con la hoja completa |
+| 4 | Asambleas para permanencia: ¿2 o 3? (la captura dice "dos o más" y en amarillo "3 o más") ¿Cuenta la elección de junta? | 2 · 3 · 2 más la elección | GH | Con la hoja completa |
+| 5 | ¿Quién evalúa el "buen desempeño" en cada grupo y cuándo? | Líder del GT o del comité de trabajo · Junta para GAP OE · capitán del Athletic para barra brava · GH en todos; al cerrar el evento o el término | GH | Antes de la fase 4 |
+| 6 | ¿Qué pasa por debajo del 60 %? | Retiro · continúa con compromiso · lo decide GH caso por caso (propuesta: decisión explícita por persona, sin sanción automática) | GH y junta | Antes de la fase 4 |
+| 7 | ¿El umbral del 60 % y los pesos cambian por término? | Fijos · configurables por término (propuesta) | GH | Antes de la fase 4 |
+| 8 | ¿Los seis comités de trabajo (CAP, CGH, CML, CCM, CAE, CAF) y el Athletic son distintos de los 27 comités con logo? | Sí: grupos de trabajo transversales (propuesta) · son los mismos | GH | Antes de la fase 2 |
 
 ## Cerradas
 
@@ -20,7 +27,7 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | 2026-09-02 | Isotipo solo como favicon e ícono de PWA | Aprobado por Mateo dentro del uso condicionado del manual |
 | 2026-09-02 | Vectores de los elementos gráficos | Se redibujan como componentes SVG en el repositorio; los 27 logos de comités ya están en SVG monocromo en `LaOE/public/logos` |
 | 2026-09-02 | Subida de medios | Directa al bucket con `POST` prefirmado y CORS, entrega por redirección prefirmada: Railway lo documenta ([ADR-022](adr/ADR-022-medios-prefirmados.md)) |
-| 2026-09-02 | Entornos de prueba en Railway | `staging` persistente desde la fase 0 siguiendo `main`; `production` desde la fase 6 con rama `production`; entornos de PR apagados ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
+| 2026-09-02 | Entornos de prueba en Railway | `staging` persistente desde la fase 0 siguiendo `main`; `production` desde la fase 7 con rama `production`; entornos de PR apagados ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
 | 2026-09-02 | Destino de la copia mensual cifrada | Bucket privado de Cloudflare R2, alimentado por un servicio cron de Railway ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
 | 2026-09-02 | Nombre del repositorio remoto en GitHub | `LaOE`; la carpeta local sigue siendo `casa-digital` |
 | 2026-09-02 | Política de tratamiento de datos | Ya aprobada por la OE; falta subir el texto al repositorio ([11-contenido-pendiente.md](11-contenido-pendiente.md)) |
