@@ -14,6 +14,9 @@ erDiagram
   Person ||--o{ Permission : "permisos"
   Person ||--o{ Interaction : "linea de tiempo"
   Person ||--o{ Consent : ""
+  Person ||--o{ Task : ""
+  Person ||--o{ OnboardingProgress : ""
+  Document ||--o{ DocumentArticle : ""
   Organization ||--o{ OrganizationContact : ""
   Person ||--o{ OrganizationContact : ""
   Pipeline ||--o{ PipelineStage : ""
@@ -55,15 +58,15 @@ erDiagram
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `Person` | `email` único en minúsculas, `kind` (`STUDENT`, `EXTERNAL`), `stage`, `firstName`, `lastName`, `fullName` (compuesto), `preferredName?`, `phone?`, `personalEmail?`, `program?`, `photoAssetId?`, `source` | Búsqueda con `pg_trgm` sobre nombre y correo; `personalEmail` es contacto (egresados y externos), nunca identidad de acceso |
+| `Person` | `email` único en minúsculas, `kind` (`STUDENT`, `EXTERNAL`), `stage`, `firstName`, `lastName`, `fullName` (compuesto), `preferredName?`, `phone?`, `personalEmail?`, `program?`, `photoAssetId?`, `source`, `sessionsRevokedAt?`, `deletionRequestedAt?`, `anonymizedAt?`, `legacyId?` | Búsqueda con `pg_trgm` sobre nombre y correo; `personalEmail` es contacto (egresados y externos), nunca identidad de acceso; `sessionsRevokedAt` invalida las sesiones anteriores al cambiar estado o correo ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)); `deletionRequestedAt` y `anonymizedAt` registran la eliminación a pedido; `legacyId` es el id de `Member` en GHPOINTS |
 | `Membership` | `personId` único, `status` (`ACTIVE`, `ON_LEAVE`, `HONORARY`, `INACTIVE`), `firstTermId`, `lastTermId?`, `endedAt?`, `endReason?` (`GRADUATION`, `RESIGNATION`, `PERMANENCE`, `OTHER`) | Una por persona; al terminar, el perfil pasa a egresado y se depura lo que no es historia ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
 | `MembershipEvent` | `membershipId`, `from`, `to`, `reason`, `actorId`, `at` | Historial de estados |
-| `Committee` | `slug` único, `name`, `status`, `color`, `logoKey`, `presentation`, `contactUrl`, `publicationStatus` | Los 27 logos viven en `public/logos/committees` |
+| `Committee` | `slug` único, `name`, `status`, `color`, `logoKey`, `presentation`, `contactUrl`, `publicationStatus`, `legacyId?` | Los 27 logos viven en `public/logos/committees`; `legacyId` es el id en GHPOINTS |
 | `CommitteeMembership` | `personId`, `committeeId`, `termId`, `roleCode` (`MIEMBRO` por defecto), `transferredIn`, `joinedAt?`, `leftAt?` | Unique por (persona, comité, término); 1 a 3 activas para activos; `transferredIn` marca una transferencia interna (umbral 70 % en ese comité); un solo `GENERAL` por comité y término |
 | `CommitteeRole` | `code` único, `label`, `isLeadership`, `order` | Catálogo: `GENERAL` (líder), `FINANCIERO`, `PUBLICIDAD`, `RELACIONES_PUBLICAS`, `LOGISTICA`, `GESTION_HUMANA` (GH confirmó que son esos seis) más `MIEMBRO` por defecto; sigue siendo editable por si aparece otro |
 | `MembershipTerm` | `personId`, `termId`, `probation`, `reason?`, `decidedById?` | Condición de la persona en el término: periodo de prueba (umbral 80 %) decidido en el cierre anterior |
-| `Appointment` | `personId`, `kind` (`COMMITTEE_LEADER`, `PRESIDENT`, `VP_GH`, `VP_PUBLIC_RELATIONS`, `VP_ADMIN`, `VP_FINANCE`, `GH_HEAD`, `GH_DIRECTOR`, `BOARD`, …), `committeeId?`, `termId`, `title?` | Cargo visible con historia; los cargos de junta lideran los comités de trabajo y los de GH evalúan grupos |
-| `Consent` | `personId`, `purpose` (`MEMBERSHIP`, `COMMUNICATIONS`, `DIRECTORY_PHOTO`, `MEMORIAL`), `policyVersion`, `acceptedAt`, `source`, `ip?`, `revokedAt?` | Versionado; `MEMORIAL` habilita la galería de egresados |
+| `Appointment` | `personId`, `kind` (`PRESIDENT`, `VP_GH`, `VP_PUBLIC_RELATIONS`, `VP_ADMIN`, `VP_FINANCE`, `GH_HEAD`, `GH_DIRECTOR`, `OTHER`), `committeeId?`, `termId`, `title?` | Cargo de junta o de GH, visible y con historia; el líder de comité no es un `Appointment` sino `CommitteeMembership.roleCode = GENERAL` ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)); los cargos de junta lideran los comités de trabajo y los de GH evalúan grupos |
+| `Consent` | `personId`, `purpose` (`MEMBERSHIP`, `COMMUNICATIONS`, `DIRECTORY_PHOTO`, `MEMORIAL`), `policyVersion`, `acceptedAt`, `source` (`FORM`, `IMPORT`, `ADMIN`, `SELF`), `ip?`, `revokedAt?` | Una fila por aceptación; revocar estampa `revokedAt`; un solo consentimiento vivo por persona y propósito; `MEMORIAL` habilita la galería de egresados |
 
 ### crm
 
@@ -74,13 +77,13 @@ erDiagram
 | `Pipeline` | `name`, `kind` (`ADMISSION`, `SPONSORSHIP`, `CUSTOM`), `isArchived` | |
 | `PipelineStage` | `pipelineId`, `name`, `order`, `isWon`, `isLost` | |
 | `Card` | `pipelineId`, `stageId`, `personId?`, `organizationId?`, `editionId?`, `ownerId?`, `title`, `fields` JSON, `amount?`, `dueAt?`, `enteredStageAt`, `closedAt?` | Exactamente uno de `personId` u `organizationId` |
-| `Interaction` | `personId?`, `organizationId?`, `kind`, `occurredAt`, `actorId?`, `refType?`, `refId?`, `summary`, `body?`, `metadata` JSON, `editedAt?` | Automáticas inmutables; notas editables por su autor |
-| `Task` | `title`, `assigneeId`, `dueAt?`, `status`, `personId?`, `organizationId?`, `cardId?`, `createdById` | |
+| `Interaction` | `personId`, `organizationId?` (fase 5), `kind`, `occurredAt`, `actorId?`, `refType?`, `refId?`, `summary`, `body?`, `metadata` JSON, `editedAt?` | Automáticas inmutables, escritas por el handler `crm.timeline` a partir de los eventos del outbox con `refType = 'outbox'` y `refId` único (idempotencia); notas (`kind = NOTE`) editables por su autor |
+| `Task` | `title`, `kind` (`GENERAL`, `DELETION_REQUEST`), `assigneeId?`, `dueAt?`, `status` (`OPEN`, `DONE`), `personId?`, `organizationId?` y `cardId?` (fase 5), `createdById`, `completedAt?`, `completedById?` | Una tarea sin responsable la ven todos los ADMIN; la solicitud de eliminación es una tarea con vencimiento a `privacy.deletionDays` días hábiles |
 | `Tag` / `PersonTag` / `OrganizationTag` | `name` único | |
 | `Segment` | `name`, `filter` JSON, `createdById` | El filtro se valida con Zod al leer |
 | `Request` | `personId`, `kind` (`LEAVE`, `RESIGNATION`, `COMMITTEE_CHANGE`, `TRANSFER`), `payload` JSON, `status` (`PENDING`, `APPROVED`, `REJECTED`, `WITHDRAWN`), `taskId`, `decidedById?`, `decidedAt?`, `reason?` | Aprobar ejecuta el comando de dominio correspondiente; nada cambia antes |
 | `InternalCall` | `termId`, `groupId`, `formId`, `opensAt`, `closesAt`, `capacity?`, `selection` (`FIRST_COME`, `MANUAL`), `status` | La inscripción aceptada crea `WorkGroupMembership` |
-| `OnboardingProgress` | `personId`, `termId`, `stepKey`, `doneAt?`, `source` (`AUTO`, `MANUAL`) | Pasos configurables por término en `AppConfig`; visible mientras la persona sea nueva |
+| `OnboardingProgress` | `personId`, `termId`, `stepKey`, `doneAt?`, `source` (`AUTO`, `MANUAL`) | Unique por (persona, término, paso); los pasos viven en `AppConfig` (`onboarding.steps`, con la evidencia automática de cada uno); visible mientras la persona sea nueva |
 | `Recognition` | `personId`, `kind` (`MEMBER_OF_MONTH`, `OTHER`), `committeeId?`, `termId`, `month?`, `title`, `announcementId?`, `grantedById` | Se publica solo con consentimiento de directorio |
 
 ### forms
@@ -131,7 +134,8 @@ erDiagram
 | `Page` | `slug` único, `title`, `body` Markdown, `status`, `audience` | La OE, Unirse y Privacidad nacen en borrador en la migración `0003`; una página en borrador muestra su título y "en preparación" |
 | `Announcement` | `title`, `body` Markdown, `audience`, `publishedAt?`, `pinned`, `pushSentAt?`, `createdById?` | Cartelera; es público cuando `audience = PUBLIC` y `publishedAt` ya pasó; fijados primero |
 | `MediaAsset` | `visibility` (`PUBLIC`, `PRIVATE`), `objectKey` único, `originalFilename`, `contentType`, `byteSize`, `width?`, `height?`, `variants` JSON, `uploadedById?`, `status` (`PENDING`, `READY`, `FAILED`), `error?` | Sin bytes en la base; un solo bucket privado, la visibilidad decide la caché al servir; `variants` guarda las WebP de 480, 960 y 1600 px (`variants/<id>/w<ancho>.webp`); `FAILED` cuando el objeto no es una imagen decodificable ([ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md)) |
-| `Document` | `title`, `kind` (`ESTATUTOS`, `REGLAMENTO`, `ACTA`, `OTRO`), `assetId`, `version`, `audience`, `articles` JSON opcional | Lector privado con búsqueda |
+| `Document` | `title`, `kind` (`ESTATUTOS`, `REGLAMENTO`, `ACTA`, `OTRO`), `fileKey` único (`documents/<id>.pdf`), `originalFilename`, `byteSize`, `sha256?`, `version`, `audience`, `status`, `uploadedById?` | El PDF es un objeto propio del bucket privado (no un `MediaAsset`); se abre por enlace a una URL prefirmada de 10 minutos ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)) |
+| `DocumentArticle` | `documentId`, `articleKey`, `chapterKey`, `chapterTitle`, `number`, `title`, `body`, `pages` JSON, `sortOrder`, `search` (`tsvector` generado en español) | Unique por (documento, clave); cargado desde el JSON del extractor; la búsqueda usa `websearch_to_tsquery` y `ts_headline` sobre el índice GIN |
 
 ### comms
 
@@ -150,7 +154,7 @@ erDiagram
 | `AuditLog` | `actorId?`, `action`, `entityType`, `entityId`, `before` JSON, `after` JSON, `ip?`, `legacy` | Misma transacción que la mutación |
 | `AppConfig` | `key` único, `value`, `updatedById?` | `committees.min = 1`, `committees.max = 3`, `assemblies.requiredOrdinary = 1`, `permanence.assembliesForCredit = 3`, `score.shrinkK = 5`, `checkin.rotatingCodeDefault = false`, `permanence.threshold.active = 60`, `permanence.threshold.new = 80`, `permanence.threshold.probation = 80`, `permanence.threshold.transfer = 70`, `permanence.probationMargin = 10`, versión de la política |
 | `Outbox` | `eventType`, `payload` JSON, `dedupeKey?`, `attempts`, `nextAttemptAt`, `processedAt?`, `deadLetterAt?`, `lastError?` | Un pendiente por `dedupeKey` |
-| `ImportJob` | `type`, `status`, `filename`, `fileAssetId?`, `termId?`, `summary` JSON, `createdById` | Roster por término (formato en [13-importacion-del-roster.md](13-importacion-del-roster.md)), migración; el archivo original queda en el bucket privado |
+| `ImportJob` | `type` (`ROSTER`, `GHPOINTS`), `status` (`PREVIEW`, `APPLIED`, `DISCARDED`, `FAILED`), `filename`, `fileKey?` (`imports/AAAA/MM/<id>.<ext>`), `termId?`, `mapping` JSON, `payload` JSON (filas validadas y diff de la vista previa), `summary` JSON, `createdById?`, `appliedAt?` | Roster por término (formato en [13-importacion-del-roster.md](13-importacion-del-roster.md)) y migración; el archivo original queda en el bucket privado como objeto propio, no como `MediaAsset` |
 | `LegacyAlias` | `path` único, `targetType`, `targetId` | `/a/{publicId}` y `/asamblea/{publicId}` de GHPOINTS |
 
 ## Restricciones que no negocia el esquema
@@ -173,5 +177,12 @@ Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().
 | `MediaAsset(objectKey)` único | Un registro por objeto del bucket |
 | `EditionCommittee(editionId, committeeId)` único | Un comité organiza una edición una sola vez |
 | `Card`: check `(personId IS NULL) <> (organizationId IS NULL)` | Un solo sujeto por tarjeta |
+| `Consent(personId, purpose) WHERE revokedAt IS NULL` | Un consentimiento vivo por persona y propósito |
+| `Person(legacyId)` y `Committee(legacyId)` únicos `WHERE legacyId IS NOT NULL` | Una fila por registro migrado de GHPOINTS |
+| `MembershipTerm(personId, termId)` único | Una condición por persona y término |
+| `Interaction(refType, refId) WHERE refId IS NOT NULL` | Una interacción automática por evento del outbox |
+| `Tag(lower(name))` único; `PersonTag(personId, tagId)` único | Sin etiquetas repetidas |
+| `OnboardingProgress(personId, termId, stepKey)` único | Un avance por paso |
+| `Document(fileKey)` único; `DocumentArticle(documentId, articleKey)` único | Un registro por PDF y un artículo por clave |
 
 Reglas que viven en el dominio y se prueban en integración: tope de 3 comités por término para activos, `APPROVED ⇔ una entrada CHECKIN viva`, término derivado de la fecha, ledger cerrado tras `pointsClosedAt`, transiciones de etapa y de ocasión.

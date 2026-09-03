@@ -50,3 +50,7 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | 2026-09-02 | Lista de cargos dentro del comité | GH confirmó que son seis: General, Financiero, Publicidad, Relaciones Públicas, Logística, Gestión Humana; `CARGO` llega en una segunda entrega ([13-importacion-del-roster.md](13-importacion-del-roster.md)) |
 | 2026-09-03 | ¿`General` otorga el permiso de líder sin confirmación? | No: la importación lo propone marcado y el ADMIN confirma ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
 | 2026-09-03 | Anonimización de egresados: plazo | No hay plazo: al salir, el perfil queda como egresado (memorial) con su historia institucional según consentimiento; se depura lo que no es historia; la eliminación a pedido anonimiza de inmediato ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
+| 2026-09-03 | ¿Cómo se lee un PDF de normativa en Mi OE? | Artículos guardados en Postgres con búsqueda; el PDF firmado se abre por enlace a una URL prefirmada. Sin cambios en la CSP ni en ADR-022 ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)) |
+| 2026-09-03 | ¿Se reutiliza el corpus de normativa de GHPOINTS? | No: los artículos se extraen de los PDF firmados con `scripts/normativa-extract.py`, escrito desde cero |
+| 2026-09-03 | Semestres viejos en `ENTRADA A LA OE` que no existen | La vista previa los lista y al confirmar se crean con fechas por semestre calendario, editables en Términos |
+| 2026-09-03 | ¿El roster también en Excel? | Sí: CSV y `.xlsx` (primera hoja) con `exceljs` |

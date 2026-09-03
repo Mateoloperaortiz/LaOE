@@ -10,19 +10,19 @@ GHPOINTS (Railway, PostgreSQL 18, Prisma) sigue en producción hasta el cutover.
 
 | Script | Qué hace |
 | --- | --- |
-| `scripts/migrate-ghpoints.ts` | Lee con `pg` desde el dump local, escribe con Drizzle contra la base nueva; idempotente por id de origen (tabla `ImportJob` + columna `legacyId` en cada modelo migrado) |
-| `scripts/verify-migration.ts` | Conteos por tabla origen/destino y `SUM(points)` por persona y término; imprime diferencias y sale con error si hay alguna |
+| `scripts/migrate-ghpoints.ts` | Lee con `pg` desde `GHPOINTS_DATABASE_URL` (la restauración local del dump; la sesión se abre de solo lectura), escribe con Drizzle contra `DATABASE_URL`; idempotente por id de origen (tabla `ImportJob` tipo `GHPOINTS` + columna `legacyId` en cada modelo migrado). La fase 2 migra términos, comités, personas, membresías, pertenencias y permisos; la fase 3 agrega el resto ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)) |
+| `scripts/verify-migration.ts` | Conteos por tabla origen/destino y, desde la fase 3, `SUM(points)` por persona y término; imprime diferencias y sale con error si hay alguna |
 | `scripts/copy-media.ts` | Copia objetos de bucket a bucket conservando `objectKey`; marca `MediaAsset` como `READY` |
 
 ## Mapeo
 
 | GHPOINTS | Casa digital | Notas |
 | --- | --- | --- |
-| `Member` | `Person` (`kind=STUDENT`) + `Membership` | `status` se conserva; `stage` = `MEMBER` para activos, licencia y honorarios, `ALUMNI` para retirados. `firstTermId` desde el CSV de la OE (semestre de ingreso) o, si falta, la evidencia más antigua (`MemberCommittee.joinedAt`, `createdAt`) |
+| `Member` | `Person` (`kind=STUDENT`) + `Membership` | `status` se conserva; `stage` = `MEMBER` para activos, licencia y honorarios, `ALUMNI` para retirados (con `endedAt` = `updatedAt` y motivo `OTHER`). `fullName` se parte con una heurística (dos palabras: nombre y apellido; tres: un nombre y dos apellidos; cuatro: dos y dos; otra cantidad: todo en el nombre) que el roster de GH corrige después. `firstTermId` desde el CSV de la OE (semestre de ingreso) o, si falta, la evidencia más antigua (`MemberCommittee.joinedAt`, `createdAt`) |
 | `MemberCommittee` (`joinedAt`, `leftAt`) | `CommitteeMembership` por término | Una fila por cada término que solapa el rango; `joinedAt`/`leftAt` se copian cuando caen dentro del término |
-| `MemberRole` | `Permission` + `Appointment` | `ADMIN` → permiso; `COMMITTEE_LEADER` → permiso con comité y cargo visible en el término actual |
-| `Committee` | `Committee` | Presentación, contacto, color y publicación se conservan; `logoKey` desde el slug |
-| `Season` | `Term` | `2026-1`, `2026-2` con sus fechas; `CLOSED` → `pointsClosedAt = endDate` |
+| `MemberRole` | `Permission` (+ `roleCode = GENERAL`) | `ADMIN` → permiso; `COMMITTEE_LEADER` → permiso con comité más `GENERAL` en la pertenencia del término actual (un segundo líder del mismo comité queda `MIEMBRO` con aviso). El cargo visible de líder no es un `Appointment` ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)) |
+| `Committee` | `Committee` | Se empareja por `slug` con los 27 ya sembrados y se guarda `legacyId`; presentación, contacto, color y publicación se conservan si en la base nueva están vacíos; `logoKey` desde el slug |
+| `Season` | `Term` | Código derivado de `startDate` y `academicTerm` (`2026-1`, `2026-2`) con sus fechas; `CLOSED` → `pointsClosedAt = endDate` |
 | `Activity` | `Occasion` `kind=ACTIVITY` | Conserva `publicId`; `PROCESSED` y `CLOSED` → `CLOSED`; `attendanceTokenHash` no se migra (el código rotativo es nuevo) |
 | `Attendance` | `CheckIn` | `QR`/`LINK` → `SELF_QR`, `ADMIN` → `ADMIN`, `IMPORT`/`MICROSOFT_FORMS` → `IMPORT`; estado y fechas se conservan |
 | `PointTransaction` | `PointEntry` | `ACTIVITY→CHECKIN`, `MANUAL_ADJUSTMENT`/`BONUS`/`PENALTY→ADJUSTMENT`, `REVERSAL→REVERSAL` (conservando `reversalOfId`), `FLASH`/`BOOST`/`WORDLE→LEGACY` con `legacyType` y el motivo original |
@@ -35,6 +35,10 @@ GHPOINTS (Railway, PostgreSQL 18, Prisma) sigue en producción hasta el cutover.
 | `AuditLog` | `AuditLog` con `legacy=true` | Solo lectura |
 | `IdentityAccount`, `Session`, `AuthChallenge`, `ClerkOperation`, `EmailAuthorization` | No se migran | La identidad nueva es el correo; todos vuelven a entrar por OTP |
 | `/a/{publicId}`, `/asamblea/{publicId}` | `LegacyAlias` | Los QR impresos siguen funcionando |
+
+## Ensayo de la fase 2
+
+Contra la copia local de GHPOINTS (contenedor `ghpoints-db-1` en `127.0.0.1:5432`) y la base local reseteada: `GHPOINTS_DATABASE_URL=… npm run migrate:ghpoints && npm run migrate:verify`. El script no escribe en la base de origen y nada del resultado entra al repositorio; los conteos se anotan en el registro del roadmap.
 
 ## Verificación obligatoria
 

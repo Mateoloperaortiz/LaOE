@@ -25,9 +25,10 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 ## Normativa y privacidad
 
-- [ ] Estatutos vigentes en PDF
-- [ ] Reglamento vigente en PDF
-- [ ] Texto de la política de tratamiento de datos personales ya aprobada (documento o PDF) y nombre del responsable del tratamiento; confirmar que cubre la galería de egresados y el contacto posterior a la salida
+- [x] Estatutos vigentes en PDF: el firmado con la reforma del 2026-05-08 (28 páginas) está en manos de Mateo; se sube desde `/admin/documentos` y sus artículos se extraen con `scripts/normativa-extract.py` en la fase 2
+- [x] Reglamento vigente en PDF: el firmado con la reforma del 2026-05-08 (43 páginas, con el Anexo 1) está en manos de Mateo; mismo camino
+- [ ] Texto de la política de tratamiento de datos personales ya aprobada (documento o PDF) y nombre del responsable del tratamiento; confirmar que cubre la galería de egresados y el contacto posterior a la salida; su versión es la que se guarda en `privacy.policyVersion` (hoy "pendiente") y la que registran los consentimientos
+- [ ] Correo de salida voluntaria (T-206) y correo a los importados (T-201): sin texto final la app no los envía
 
 ## Marca
 

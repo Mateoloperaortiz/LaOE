@@ -88,5 +88,10 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Actor | `Actor` | La persona autenticada con sus permisos, validada en servidor |
 | Carnet | `/app/carnet` | QR personal firmado para acreditación en ocasiones |
 | Cartelera | `/cartelera`, `/app` | Anuncios de la OE |
-| Documento | `Document` | Estatutos, reglamento, actas: PDFs privados con lector |
+| Documento | `Document` | Estatutos, reglamento, actas: PDFs privados en el bucket con lector por artículos |
+| Artículo | `DocumentArticle` | Unidad citable de un documento de normativa (capítulo, número, título, cuerpo, páginas), buscable en español |
+| Token del carnet | `signCarnet` / `verifyCarnet` | Firma HMAC de 24 horas dentro del QR del carnet; solo la consola anfitrión lo lee |
+| Importación | `ImportJob` | Un archivo del roster (o un ensayo de migración) con su vista previa, su estado y su resumen |
+| Solicitud de eliminación | `Person.deletionRequestedAt` + `Task.kind = DELETION_REQUEST` | Pedido del miembro para borrar sus datos; GH lo atiende anonimizando el perfil |
+| Segmento guardado | `Segment.filter` | Etapa, estado, ingreso, comités, cargos, etiquetas, consentimiento y programa; alimenta exportes y, después, campañas |
 | Medio | `MediaAsset` | Referencia a un archivo en el bucket (portada, foto, PDF) |

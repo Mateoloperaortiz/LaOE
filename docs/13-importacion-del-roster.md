@@ -59,6 +59,17 @@ Advertencias (se importa, pero se marca):
 
 Cada semestre se sube el archivo nuevo con el mismo formato: así se actualizan comités, cargos y estados del término sin tocar el pasado.
 
+## Precisiones de la fase 2 (2026-09-03, [ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md))
+
+- **Archivo.** CSV (UTF-8 con o sin BOM, separado por `;` o `,`, con comillas RFC 4180) o Excel `.xlsx` (se lee la primera hoja), de menos de 5 MB. Se sube desde `/admin/personas/importar`; el servidor lo guarda original en el bucket privado (`imports/AAAA/MM/<id>.<ext>`) y lo lee.
+- **Tres pasos.** Archivo y semestre → columnas (las cabeceras se reconocen solas; el admin puede corregir el mapeo o ignorar una columna) → revisión y confirmación. La vista previa vive en un `ImportJob` en estado `PREVIEW`; confirmar aplica todo en una transacción y exige un código nuevo (step-up), porque escribe datos personales y puede otorgar permisos.
+- **Semestres que no existen.** `ENTRADA A LA OE` puede traer semestres viejos: la vista previa los lista y al confirmar se crean con fechas por semestre calendario (1: 1 de enero a 30 de junio; 2: 1 de julio a 31 de diciembre). Son una convención, no una fecha real: se corrigen en `/admin/terminos`.
+- **`Retirado`.** Una persona nueva con ese estado se crea como egresada (`INACTIVE`, motivo `OTHER`); una existente se da de baja con el comando de salida, motivo "roster {término}" y sin consentimientos (se capturan después). `Prueba` deja la membresía `ACTIVE` y marca `MembershipTerm.probation` en el término del archivo.
+- **Celular.** Diez dígitos que empiezan en 3 se guardan como `+57…`; cualquier otro formato se conserva tal cual con advertencia.
+- **Permisos de líder.** Se otorgan después de confirmar, uno por uno, con el mismo comando que usa `/admin/permisos`; si uno falla el resto sigue y queda en el resumen.
+- **Modo actualización.** Una persona nueva en un archivo sin las columnas obligatorias es un error de fila; un archivo sin `CORREO` es un error del archivo.
+- **Cargos nuevos.** Un cargo desconocido se puede agregar al catálogo desde la vista previa; se crea al confirmar.
+
 ## Confirmado con GH (2026-09-02)
 
 Los cinco valores de `ESTADO` son los que usa GH y los cargos son exactamente esos seis (más `Miembro` por defecto). `CARGO` no está en la base actual: llegará en una segunda entrega con el modo actualización. Queda una sola pregunta, de Mateo: si `General` otorga el permiso de líder sin confirmación ([decisiones-abiertas.md](decisiones-abiertas.md)).

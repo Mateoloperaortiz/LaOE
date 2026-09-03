@@ -34,7 +34,7 @@ Los contactos externos (`kind=EXTERNAL`) no tienen etapa de miembro ni acceso: s
 
 ## Persona 360
 
-`/admin/personas/[id]` es la pantalla más importante del admin. Cabecera con nombre, etapa, estado de membresía, comités del término, cargos y etiquetas; acciones de etapa según el estado. Pestañas:
+`/admin/personas/[id]` es la pantalla más importante del admin. Cabecera con nombre, etapa, estado de membresía, comités del término, cargos y etiquetas; acciones de etapa según el estado (editar datos, cambiar estado, dar de baja, reactivar, anonimizar, nota, tarea, etiquetas, permisos), cada una en un panel lateral. Es UI a medida desde la fase 2 ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)); las pestañas de fases posteriores existen desde el principio y muestran "llega en una fase siguiente" hasta que su fase las llene. Pestañas:
 
 | Pestaña | Contenido |
 | --- | --- |
@@ -89,6 +89,6 @@ Un CRM es un archivo de datos personales; esto no es opcional.
 
 - `Consent` versionado por propósito (`MEMBERSHIP`, `COMMUNICATIONS`, `DIRECTORY_PHOTO`) y por fuente (`FORM`, `IMPORT`, `ADMIN`), con fecha, versión de la política e IP cuando aplica.
 - Público: cero datos personales. Directorio interno: nombre, foto opcional con consentimiento, comités y cargos.
-- "Descargar mis datos" (JSON) y "Solicitar eliminación" desde Ajustes; la solicitud crea una tarea para un ADMIN con plazo de 15 días hábiles.
+- "Descargar mis datos" (JSON con todo, notas incluidas) y "Solicitar eliminación" desde Ajustes; la solicitud estampa `deletionRequestedAt`, crea una tarea de tipo `DELETION_REQUEST` sin responsable (la ven todos los ADMIN) con vencimiento a 15 días hábiles (`privacy.deletionDays`) y se atiende con "Anonimizar" desde la Persona 360, con step-up.
 - Salida: no hay anonimización por plazo. Al salir, el perfil pasa a egresado y se depura lo que no es historia (celular salvo consentimiento de contacto, respuestas de formularios, tareas); notas y evaluaciones quedan solo para ADMIN; nombre, comités, cargos, años y ledger se conservan como historia institucional, visibles en la galería de egresados si hay consentimiento `MEMORIAL`. La eliminación a pedido anonimiza de inmediato ([ADR-030](adr/ADR-030-perfil-de-egresado.md)).
 - La política de tratamiento se publica en `/privacidad`; su versión vigente es la que registran los consentimientos nuevos. Detalle en [ADR-014](adr/ADR-014-privacidad-por-diseno.md).

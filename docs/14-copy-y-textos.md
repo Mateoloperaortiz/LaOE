@@ -126,7 +126,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-060 | Saludo | Hola, {nombre preferido} | MATEO | Propuesta |
-| T-061 | Pestañas de navegación | Inicio · Eventos · Comités · Personas · GH Points · Permanencia · Normativa · Carnet · Ajustes | COM | Propuesta |
+| T-061 | Pestañas de navegación | Inicio · Eventos · Comités · Personas · Egresados · GH Points · Permanencia · Normativa · Carnet · Ajustes | COM | Propuesta |
 | T-062 | Agenda, título | Tu semana | MATEO | Propuesta |
 | T-063 | Agenda vacía | No tenés nada esta semana. Mirá los eventos o pasá por tu comité. | MATEO | Propuesta |
 | T-064 | Barra de permanencia en el inicio | Permanencia en {comité}: {n} % de {umbral} % | GH | Propuesta |
@@ -230,6 +230,60 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-153 | Galería de egresados (`MEMORIAL`) | Cuando salga de la OE, quiero aparecer en la galería de egresados con mi nombre, mis comités y mis cargos. | JUNTA | Propuesta |
 | T-154 | Formularios públicos, casilla | Acepto la política de tratamiento de datos de la OE. | JUNTA | Propuesta |
 
+### Mi OE · fase 2 (inicio, directorio, comités internos, egresados, normativa, carnet, ajustes)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-370 | Directorio y comités internos, cargo dentro de un comité | {cargo} de {comité} | MATEO | Propuesta |
+| T-371 | Directorio sin resultados | No encontramos a nadie con ese nombre. Probá con otro o filtrá por comité. | MATEO | Propuesta |
+| T-372 | Directorio, etiqueta del filtro por comité | Comité | MATEO | Propuesta |
+| T-373 | Directorio, opción sin filtro de comité | Todos los comités | MATEO | Propuesta |
+| T-374 | Directorio, ficha y egresados: eyebrow de los cargos de junta y de GH | Junta y GH | GH | Propuesta |
+| T-375 | Inicio y comités internos, título de los comités propios | Tus comités | COM | Propuesta |
+| T-376 | Inicio, sin comité en el semestre | Todavía no tenés comité este semestre. GH te ubica en uno. | GH | Propuesta |
+| T-377 | Onboarding, botón para marcar un paso | Marcar como hecho | MATEO | Propuesta |
+| T-378 | Onboarding, paso pendiente | Pendiente | MATEO | Propuesta |
+| T-379 | Onboarding, paso hecho | Hecho | MATEO | Propuesta |
+| T-380 | Inicio, agenda: insignia de una edición solo para miembros | Solo miembros | MATEO | Propuesta |
+| T-381 | Estados de la membresía (directorio, admin, egresados) | Activo · En licencia · Honorario · Retirado | GH | Propuesta |
+| T-382 | Comités internos, título de los demás comités | Los demás comités | COM | Propuesta |
+| T-383 | Comité interno, título del roster del semestre | Quiénes están este semestre | COM | Propuesta |
+| T-384 | Comité interno sin roster en el semestre | Este semestre todavía no hay nadie registrado en este comité. | MATEO | Propuesta |
+| T-385 | Comité interno, enlace de vuelta | Volver a los comités | MATEO | Propuesta |
+| T-386 | Egresados sin nadie en la galería | Todavía no hay egresados en la galería. Cuando alguien salga de la OE y lo autorice, aparece acá. | COM | Propuesta |
+| T-387 | Egresados, años en la OE | En la OE de {desde} a {hasta} | MATEO | Propuesta |
+| T-388 | Directorio y egresados, texto alternativo de la foto | Foto de {nombre} | MATEO | Propuesta |
+| T-389 | Normativa, título de la página | Normativa | JUNTA | Propuesta |
+| T-390 | Normativa, campo de búsqueda | Buscá en los estatutos y el reglamento | MATEO | Propuesta |
+| T-391 | Normativa, título de los resultados | Resultados para “{q}” | MATEO | Propuesta |
+| T-392 | Normativa sin resultados | No encontramos nada con esas palabras. Probá con otras. | MATEO | Propuesta |
+| T-393 | Normativa sin documentos publicados | Todavía no hay documentos publicados. | MATEO | Propuesta |
+| T-394 | Normativa y admin, tipos de documento | Estatutos · Reglamento · Acta · Otro | JUNTA | Propuesta |
+| T-395 | Normativa, versión de un documento | Versión {v} | MATEO | Propuesta |
+| T-396 | Normativa, enlace al PDF firmado | Abrir el PDF original | MATEO | Propuesta |
+| T-397 | Normativa, título de un artículo | Artículo {n} | MATEO | Propuesta |
+| T-398 | Normativa, título del índice | Índice | MATEO | Propuesta |
+| T-399 | Normativa, enlace de vuelta | Volver a la normativa | MATEO | Propuesta |
+| T-400 | Carnet, texto alternativo del QR | Código QR de tu carnet | MATEO | Propuesta |
+| T-401 | Carnet, vencimiento del código | Vence el {fecha} | MATEO | Propuesta |
+| T-402 | Carnet y directorio, sin comité en el semestre | Sin comité este semestre | MATEO | Propuesta |
+| T-403 | Ajustes, campo de la foto | Foto | MATEO | Propuesta |
+| T-404 | Ajustes y admin, campo del celular | Celular | MATEO | Propuesta |
+| T-405 | Ajustes y admin, campo del correo personal | Correo personal | MATEO | Propuesta |
+| T-406 | Ajustes y admin, campo del correo institucional | Correo institucional | MATEO | Propuesta |
+| T-407 | Ajustes, botón para subir la foto | Subir foto | MATEO | Propuesta |
+| T-408 | Ajustes, ayuda de la foto | JPG, PNG o WebP de hasta 5 MB. Solo se muestra si autorizás la foto en el directorio. | MATEO | Propuesta |
+| T-409 | Ajustes, quitar la foto | Quitar foto | MATEO | Propuesta |
+| T-410 | Ajustes y admin, celular inválido | Ese celular no tiene un formato válido. Escribí 10 dígitos. | MATEO | Propuesta |
+| T-411 | Consentimientos, estado autorizado | Autorizado el {fecha} (política versión {v}) | JUNTA | Propuesta |
+| T-412 | Consentimientos, estado no autorizado | No autorizado | JUNTA | Propuesta |
+| T-413 | Consentimientos, botones | Autorizar · Retirar la autorización | JUNTA | Propuesta |
+| T-414 | Consentimientos, nota sobre el de membresía | El consentimiento de membresía lo registró la OE al importar el roster. Para retirarlo, pedí la eliminación de tus datos. | JUNTA | Propuesta |
+| T-415 | Eliminación, confirmación | ¿Seguro? GH revisa tu solicitud y te contacta antes de borrar nada. Tu historia en la OE se conserva sin tu nombre. | JUNTA | Propuesta; texto sensible |
+| T-416 | Eliminación, solicitud registrada | Tu solicitud quedó registrada el {fecha}. GH responde en {n} días hábiles. | JUNTA | Propuesta |
+| T-417 | Eliminación, botón de confirmación | Sí, pedir la eliminación | JUNTA | Propuesta |
+| T-418 | Ajustes, título de la página | Ajustes | MATEO | Propuesta |
+
 ## 5. Administración
 
 Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las confirmaciones de acciones sensibles y los mensajes de importación.
@@ -241,7 +295,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-162 | Confirmar dar de baja | Vas a dar de baja a {nombre}. Su historia se conserva y su perfil pasa a egresado. Escribí el motivo y confirmá los consentimientos. | GH | Propuesta |
 | T-163 | Confirmar cerrar el semestre | Vas a cerrar {término}. Los puntos quedan congelados y se generan las propuestas de permanencia. Revisalas antes de aplicar. | GH | Propuesta |
 | T-164 | Cierre, propuesta por persona | Propuesta: {estado}. Motivo automático: {detalle}. Podés cambiarla con motivo. | GH | Propuesta |
-| T-165 | Importación, errores (uno por regla) | Correo repetido en el archivo · Correo fuera del dominio institucional · Comité "{sigla}" no existe, ¿quisiste decir "{sugerencia}"? · Más de 3 comités · Semestre de ingreso vacío o inexistente · Estado fuera de la lista · Cargo desconocido · Cargo sin comité (la persona tiene varios) · Dos Generales en {comité} | MATEO | Propuesta |
+| T-165 | Importación, errores (uno por regla) | Correo repetido en el archivo · Correo fuera del dominio institucional · Comité "{sigla}" no existe, ¿quisiste decir "{sugerencia}"? · Más de 3 comités · Semestre de ingreso vacío o inexistente · Estado fuera de la lista · Cargo desconocido · Cargo sin comité (la persona tiene varios) · Dos Generales en {comité} · Faltan columnas obligatorias para una persona nueva | MATEO | Propuesta |
 | T-166 | Importación, resumen | {n} personas nuevas, {m} con cambios, {k} sin cambios. Nada se aplica hasta que confirmes. | MATEO | Propuesta |
 | T-167 | Evaluación, botones | Buen desempeño · Insuficiente (pide observación) | GH | Propuesta |
 | T-168 | Evaluación, ventana abierta (aviso a evaluadores) | Se abrió la ventana de evaluación de {término}. Tenés {n} personas pendientes hasta el {fecha}. | GH | Propuesta |
@@ -347,6 +401,107 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-368 | Eventos y ediciones: opción sin portada | Sin portada (cartel tipográfico) | MATEO | Propuesta |
 | T-369 | Eventos: enlace a las ediciones desde la fila | Ediciones ({n}) | MATEO | Propuesta |
 
+### Admin de Personas y CRM (fase 2: personas, Persona 360, importación, cargos, etiquetas, tareas, segmentos, documentos)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-420 | Recurso personas (plural · singular) | Personas · Persona | MATEO | Propuesta |
+| T-421 | Recurso cargos de comité (plural · singular) | Cargos de comité · Cargo de comité | MATEO | Propuesta |
+| T-422 | Recurso etiquetas (plural · singular) | Etiquetas · Etiqueta | MATEO | Propuesta |
+| T-423 | Recurso tareas (plural · singular) | Tareas · Tarea | MATEO | Propuesta |
+| T-424 | Recurso segmentos (plural · singular) | Segmentos · Segmento | MATEO | Propuesta |
+| T-425 | Recurso documentos (plural · singular) | Documentos · Documento | MATEO | Propuesta |
+| T-426 | Importaciones, título de la lista | Importaciones | MATEO | Propuesta |
+| T-427 | Personas: campos y columnas | Nombre · Apellido · Correo institucional · Nombre preferido · Celular · Correo personal · Programa · Tipo · Etapa · Estado · Semestre de ingreso | MATEO | Propuesta |
+| T-428 | Personas: opciones de tipo | Estudiante · Contacto externo | MATEO | Propuesta |
+| T-429 | Personas: opciones de etapa | Prospecto · Postulante · Miembro · Egresado | MATEO | Propuesta |
+| T-430 | Personas: correo repetido | Ya existe una persona con ese correo. | MATEO | Propuesta |
+| T-431 | Personas: columna de comités del semestre | Comités del semestre | MATEO | Propuesta |
+| T-432 | Persona 360: pestañas | Resumen · Línea de tiempo · Membresía · Participación · Permanencia · Formularios · Comunicaciones · Tareas · Solicitudes · Datos y consentimiento | MATEO | Propuesta |
+| T-433 | Persona 360: acciones | Editar datos · Cambiar estado · Dar de baja · Reactivar · Anonimizar · Nueva nota · Nueva tarea · Etiquetas · Permisos | MATEO | Propuesta |
+| T-434 | Cambiar estado, baja y notas: campo motivo | Motivo | MATEO | Propuesta |
+| T-435 | Cambiar estado: campo del estado nuevo | Estado nuevo | MATEO | Propuesta |
+| T-436 | Dar de baja: motivos | Graduación · Retiro voluntario · Permanencia · Otro | GH | Propuesta |
+| T-437 | Dar de baja: casillas de consentimiento | Autoriza aparecer en la galería de egresados · Autoriza que la OE lo contacte después de salir | JUNTA | Propuesta |
+| T-438 | Dar de baja: botón | Dar de baja | GH | Propuesta |
+| T-439 | Reactivar: texto | Vas a reactivar a {nombre}: vuelve a ser miembro activo con su historia. Si tiene un correo institucional nuevo, escribilo. | GH | Propuesta |
+| T-440 | Anonimizar: texto | Vas a anonimizar a {nombre} por su solicitud del {fecha}. Se borran nombre, contacto, foto, notas y tareas; comités y puntos quedan sin nombre. Esto no se deshace. | JUNTA | Propuesta; texto sensible |
+| T-441 | Anonimizar: botón | Anonimizar | MATEO | Propuesta |
+| T-442 | Anonimizar sin solicitud previa | Solo se anonimiza a quien lo pidió desde Mi OE. | MATEO | Propuesta |
+| T-443 | Membresía: títulos de los bloques | Historial de estados · Comités por semestre · Cargos de junta y de GH · Condición del semestre | MATEO | Propuesta |
+| T-444 | Membresía: cargos de junta y de GH (opciones) | Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · GH principal · Director de GH · Otro | JUNTA | Propuesta |
+| T-445 | Membresía: campo del título cuando el cargo es Otro | Título del cargo | MATEO | Propuesta |
+| T-446 | Membresía: casilla del permiso de junta | Otorgar también el permiso Junta (pide un código nuevo) | MATEO | Propuesta |
+| T-447 | Membresía: botones de cargos | Agregar cargo · Quitar | MATEO | Propuesta |
+| T-448 | Membresía: título del editor de comités | Comités de {término} | MATEO | Propuesta |
+| T-449 | Membresía: condición de prueba | En periodo de prueba | GH | Propuesta |
+| T-450 | Membresía: campos de una pertenencia | Comité · Cargo · Transferencia interna | MATEO | Propuesta |
+| T-451 | Membresía: regla de cantidad de comités | Un activo necesita entre {min} y {max} comités. | MATEO | Propuesta |
+| T-452 | Membresía: ya hay un General | {comité} ya tiene un General este semestre. | MATEO | Propuesta |
+| T-453 | Resumen: etiquetas | Último contacto · Tareas abiertas · Consentimientos · Permisos · Puntos del semestre · Asambleas | MATEO | Propuesta |
+| T-454 | Línea de tiempo: filtro por tipo | Todo · Notas · Membresía · Comités · Consentimientos · Datos · Importaciones · Otros | MATEO | Propuesta |
+| T-455 | Línea de tiempo: ayuda del compositor de notas | Escribí una nota para el equipo. La persona puede pedir verla. | MATEO | Propuesta |
+| T-456 | Línea de tiempo: botones y marca de nota | Guardar nota · Editar · Editada el {fecha} | MATEO | Propuesta |
+| T-457 | Línea de tiempo vacía | Todavía no hay nada en la línea de tiempo. | MATEO | Propuesta |
+| T-458 | Línea de tiempo: textos de las interacciones automáticas | Importado desde el roster {término} · Estado cambió de {de} a {a}: {motivo} · Dado de baja: {motivo} · Reactivado · Comités de {término}: {comités} · Cargo {cargo} desde {término} · Cargo {cargo} retirado · Consentimiento de {propósito} autorizado · Consentimiento de {propósito} retirado · Datos actualizados: {campos} · Correo institucional cambiado · Pidió la eliminación de sus datos · Descargó sus datos · Datos anonimizados · Permiso {permiso} otorgado · Permiso {permiso} revocado | MATEO | Propuesta |
+| T-459 | Tareas: campos y columnas | Título · Responsable · Vence · Estado · Persona · Tipo | MATEO | Propuesta |
+| T-460 | Tareas: opciones de estado | Abierta · Hecha | MATEO | Propuesta |
+| T-461 | Tareas: tipos | General · Solicitud de eliminación | MATEO | Propuesta |
+| T-462 | Tareas: acción de cerrar | Marcar hecha | MATEO | Propuesta |
+| T-463 | Tareas: filtro por responsable | Mías · Sin asignar · Todas | MATEO | Propuesta |
+| T-464 | Tarea de eliminación: título | Eliminación de datos pedida por {nombre} | MATEO | Propuesta |
+| T-465 | Etiquetas: campos | Nombre · Color | MATEO | Propuesta |
+| T-466 | Etiquetas: nombre repetido | Ya existe una etiqueta con ese nombre. | MATEO | Propuesta |
+| T-467 | Persona 360: sin etiquetas | Sin etiquetas | MATEO | Propuesta |
+| T-468 | Segmentos: campos | Nombre · Etapa · Estado de membresía · Ingreso · Comités · Cargos · Etiquetas · Consentimiento · Programa | MATEO | Propuesta |
+| T-469 | Segmentos: opciones de ingreso | Cualquiera · Nuevos este semestre · Veteranos | MATEO | Propuesta |
+| T-470 | Segmentos: opciones de consentimiento | Cualquiera · Con consentimiento de comunicaciones · Sin consentimiento de comunicaciones · Con foto autorizada · Con galería de egresados autorizada | MATEO | Propuesta |
+| T-471 | Segmentos: columna de personas | Personas | MATEO | Propuesta |
+| T-472 | Segmentos: acción de exportar | Exportar personas | MATEO | Propuesta |
+| T-473 | Cargos de comité: campos | Código · Nombre · Es liderazgo · Orden | MATEO | Propuesta |
+| T-474 | Cargos de comité: código repetido | Ya existe un cargo con ese código. | MATEO | Propuesta |
+| T-475 | Importación: pasos | 1. Archivo y semestre · 2. Columnas · 3. Revisión y confirmación | MATEO | Propuesta |
+| T-476 | Importación: campo del archivo | Archivo del roster (CSV o Excel) | MATEO | Propuesta |
+| T-477 | Importación: campo del semestre | Semestre del archivo | MATEO | Propuesta |
+| T-478 | Importación: ayuda del archivo | Un archivo por semestre con las columnas de GH: NOMBRE, APELLIDO, CORREO, CELULAR, PREGRADO, COMITES, ENTRADA A LA OE, ESTADO y CARGO. Si trae CORREO y solo algunas columnas, actualiza solo esas. | MATEO | Propuesta |
+| T-479 | Importación: botones | Subir y revisar · Continuar · Aplicar la importación · Descartar | MATEO | Propuesta |
+| T-480 | Importación: etiqueta del mapeo de una columna | La columna "{cabecera}" va a | MATEO | Propuesta |
+| T-481 | Importación: opción de ignorar una columna | Ignorar esta columna | MATEO | Propuesta |
+| T-482 | Importación: grupos de la vista previa | Personas nuevas · Con cambios · Sin cambios · Con errores | MATEO | Propuesta |
+| T-483 | Importación: advertencias (una por regla) | Programa que no está en el catálogo · Celular con formato raro · Nombre en mayúsculas sostenidas | MATEO | Propuesta |
+| T-484 | Importación: propuesta de líderes | Otorgar el permiso de líder a cada General (marcado por defecto) | MATEO | Propuesta |
+| T-485 | Importación: semestres por crear | Estos semestres no existen y se crean al confirmar con fechas por semestre calendario: {lista}. Podés corregir las fechas después en Términos. | MATEO | Propuesta |
+| T-486 | Importación: cargos por crear | Cargos nuevos que se agregan al catálogo: {lista} | MATEO | Propuesta |
+| T-487 | Importación aplicada | Listo: {n} personas nuevas y {m} actualizadas. El archivo original quedó guardado. | MATEO | Propuesta |
+| T-488 | Importación: archivo ilegible | No pudimos leer el archivo. Tiene que ser CSV o Excel (.xlsx) de menos de 5 MB. | MATEO | Propuesta |
+| T-489 | Importación: aviso del modo actualización | El archivo trae solo algunas columnas: se actualizan esas columnas en las personas que ya existen. | MATEO | Propuesta |
+| T-490 | Importación: columnas obligatorias que faltan en el archivo | Faltan columnas obligatorias: {lista} | MATEO | Propuesta |
+| T-491 | Importación: prefijo de una fila | Fila {n} | MATEO | Propuesta |
+| T-492 | Importaciones: columnas del listado | Archivo · Tipo · Semestre · Estado · Resumen · Creada · Por | MATEO | Propuesta |
+| T-493 | Importaciones: estados | En revisión · Aplicada · Descartada · Falló | MATEO | Propuesta |
+| T-494 | Documentos: campos | Título · Tipo · Versión (fecha de la reforma) · Audiencia · Archivo PDF | MATEO | Propuesta |
+| T-495 | Documentos: botón de subida | Subir PDF | MATEO | Propuesta |
+| T-496 | Documentos: ayuda | PDF de hasta 20 MB. Después cargá los artículos desde el JSON del extractor para que se puedan buscar. | MATEO | Propuesta |
+| T-497 | Documentos: cargar artículos | Cargar artículos (JSON) | MATEO | Propuesta |
+| T-498 | Documentos: artículos cargados | {n} artículos cargados | MATEO | Propuesta |
+| T-499 | Documentos: JSON inválido | Ese JSON no tiene el formato del extractor: {detalle} | MATEO | Propuesta |
+| T-500 | Documentos: columnas | Título · Tipo · Versión · Artículos · Publicación · Subido el | MATEO | Propuesta |
+| T-501 | Documentos: archivo que no es PDF | Ese archivo no es un PDF. | MATEO | Propuesta |
+| T-502 | Datos y consentimiento: títulos | Datos personales · Consentimientos · Eliminación · Exportar | MATEO | Propuesta |
+| T-503 | Datos y consentimiento: botones de consentimiento por admin | Registrar autorización dada en persona · Retirar | JUNTA | Propuesta |
+| T-504 | Datos y consentimiento: solicitud de eliminación | Pidió la eliminación el {fecha}. Vence el {vence}. | MATEO | Propuesta |
+| T-505 | Datos y consentimiento: exportar | Descargar los datos de esta persona (JSON) | MATEO | Propuesta |
+| T-506 | Comunicaciones: columnas | Asunto · Canal · Estado · Enviado | MATEO | Propuesta |
+| T-507 | Comunicaciones vacía | Todavía no le hemos enviado nada. | MATEO | Propuesta |
+| T-508 | Personas: filtros | Etapa · Estado · Comité · Segmento | MATEO | Propuesta |
+| T-509 | Navegación del admin: enlaces de la fase 2 | Personas · Importar roster · Cargos · Etiquetas · Tareas · Segmentos · Documentos · Importaciones | MATEO | Propuesta |
+| T-510 | Cambiar estado: aviso de sesiones | Al salir de activo u honorario se cierran sus sesiones. | MATEO | Propuesta |
+| T-511 | Persona 360: cabecera | Correo · Celular · Programa · Ingresó en {término} | MATEO | Propuesta |
+| T-512 | Editar datos: aviso al cambiar el correo | Cambiar el correo cierra sus sesiones: vuelve a entrar con el nuevo. | MATEO | Propuesta |
+| T-513 | Tarea creada | Tarea creada. | MATEO | Propuesta |
+| T-514 | Membresía: sin cargos | Sin cargos de junta ni de GH. | MATEO | Propuesta |
+| T-515 | Línea de tiempo: autor del sistema | Sistema | MATEO | Propuesta |
+
 ## 6. Notificaciones
 
 ### Push (título · cuerpo)
@@ -389,6 +544,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-220 | Carnet, textos | Organización Estudiantil · {nombre} · {comités} · {semestre} · QR | COM | Propuesta |
 | T-221 | Exportes, cabeceras | En español, sin abreviaturas: Nombre, Apellido, Correo, Comités, Estado, Semestre de ingreso, Puntos, Permanencia | MATEO | Propuesta |
 | T-222 | Cartel de egresados por año | Egresados {año} · {nombres} | COM | Propuesta |
+| T-223 | Nombre que queda al anonimizar una persona (eliminación a pedido) | Egresado | JUNTA | Propuesta |
 
 ## 8. Sistema
 

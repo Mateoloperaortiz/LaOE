@@ -27,13 +27,14 @@ sequenceDiagram
 
 | Tema | Regla |
 | --- | --- |
-| Quién entra | `Membership.status` `ACTIVE` u `HONORARY`; licencia y retiro destruyen sesiones en la misma transacción. Los egresados no entran: su correo institucional suele caducar al graduarse ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
+| Quién entra | `Membership.status` `ACTIVE` u `HONORARY`; licencia, retiro y cambio de correo estampan `Person.sessionsRevokedAt` en la misma transacción y ninguna sesión anterior vuelve a resolver un actor; el outbox borra esas sesiones y revoca los permisos segundos después ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)). Los egresados no entran: su correo institucional suele caducar al graduarse ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
 | Dominio | `INSTITUTIONAL_EMAIL_DOMAINS` (`eafit.edu.co`); los contactos externos nunca inician sesión |
 | OTP | 6 dígitos, `SHA-256(secreto:correo:código)`, 10 minutos, 5 intentos; máximo 5 solicitudes por correo y 12 por IP cada 15 minutos, contadas en Postgres |
 | Respuesta | Siempre "si tu correo está en el roster, te llega un código": no se enumera el roster |
 | Sesión | Token de 32 bytes, hash en base, cookie `HttpOnly` `SameSite=Lax` `Secure`; 90 días con "recordar este dispositivo", 24 horas sin marcarlo; se renueva al usarse |
 | Destino | `next` solo acepta rutas same-origin y excluye `/ingresar` y `/api`; un ADMIN que entra a `/` va a `/admin` |
-| Step-up | Conceder permisos, exportar datos personales y atender solicitudes de eliminación exigen un OTP verificado hace menos de 15 minutos |
+| Step-up | Conceder permisos, exportar datos personales, confirmar una importación del roster y anonimizar a una persona exigen un OTP verificado hace menos de 15 minutos |
+| Foto propia | Un miembro sin ADMIN puede pedir un `POST` prefirmado solo para su foto (`purpose = "photo"`, privada, hasta 5 MB); la foto se muestra solo con consentimiento `DIRECTORY_PHOTO` y se sirve con sesión |
 | Sesiones | `/app/ajustes` lista dispositivos y permite cerrar los demás |
 | Desarrollo | Sin `RESEND_API_KEY` el código se imprime en consola; `OTP_FIXED_CODE` solo fuera de producción |
 
@@ -47,7 +48,7 @@ sequenceDiagram
 
 ## Modo anfitrión
 
-Para días de evento con red mala o personas sin sesión: el organizador (líder o admin autenticado) abre la consola de la ocasión, busca a la persona por nombre o escanea el QR de su carnet y marca el check-in con `source=HOST`. El carnet (`/app/carnet`) es un QR con un token firmado (`personId`, vencimiento de 24 horas) que solo la consola sabe leer. Nadie queda bloqueado por no tener sesión en el celular.
+Para días de evento con red mala o personas sin sesión: el organizador (líder o admin autenticado) abre la consola de la ocasión, busca a la persona por nombre o escanea el QR de su carnet y marca el check-in con `source=HOST`. El carnet (`/app/carnet`) es un QR con un token firmado que solo la consola sabe leer: `oe1.<personId>.<vencimiento en minutos unix>.<HMAC-SHA256 en base64url con SESSION_SECRET>`, vigente 24 horas, generado en el servidor como SVG (`signCarnet` y `verifyCarnet` en `identity`). Nadie queda bloqueado por no tener sesión en el celular.
 
 ## Código rotativo
 

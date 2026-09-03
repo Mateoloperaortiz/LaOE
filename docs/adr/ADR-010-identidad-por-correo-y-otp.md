@@ -1,6 +1,6 @@
 # ADR-010: Identidad por correo del roster con OTP
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-034)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-002, ADR-011, ADR-015
 
@@ -17,3 +17,7 @@ La identidad es el **correo institucional del roster**. Acceso por OTP de 6 díg
 - El buzón, protegido por Microsoft 365 y su MFA, es la credencial; no se guardan contraseñas.
 - Volumen de correo bajo: unos dos OTP por persona y semestre; el día de evento se cubre con sesiones largas y modo anfitrión.
 - Cambiar correo o estado destruye las sesiones en la misma transacción.
+
+## Enmienda (2026-09-03, ADR-034)
+
+`people` no puede llamar a `identity` (habría un ciclo), así que cambiar correo o estado estampa `person.sessionsRevokedAt` en la misma transacción y `resolveActor` rechaza toda sesión creada antes de esa marca; el borrado físico de sesiones y permisos lo hace un handler del outbox segundos después. El efecto es el mismo: ninguna request posterior al commit resuelve un actor. Además, el carnet (`/app/carnet`) es un token `oe1.<personId>.<vencimiento>.<HMAC-SHA256>` firmado con `SESSION_SECRET` y vigente 24 horas. Ver [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md).
