@@ -4,7 +4,8 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 ## Personas
 
-- [ ] CSV inicial del roster: nombre completo, correo institucional, comités actuales, estado (vigente, licencia, honorario), semestre de ingreso
+- [ ] Roster del término con las columnas acordadas: `NOMBRE`, `APELLIDO`, `CORREO`, `CELULAR`, `PREGRADO`, `COMITES`, `ENTRADA A LA OE`, `ESTADO` y la nueva `CARGO` ([13-importacion-del-roster.md](13-importacion-del-roster.md)); GH lo envía cuando termine de limpiar su base
+- [ ] Vocabulario exacto de `ESTADO` y lista completa de cargos de comité
 - [ ] Lista de líderes de comité y cargos de junta del término actual
 - [ ] Quién tendrá permiso ADMIN además de Mateo
 

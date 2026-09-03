@@ -24,7 +24,7 @@
 | `/app` | Saludo, agenda del término, mis comités, saldo del término, barra de permanencia, anuncios para integrantes |
 | `/app/eventos` | Eventos y ediciones incluyendo audiencia de integrantes |
 | `/app/comites` y `/app/comites/[slug]` | Comités con piezas internas y contactos |
-| `/app/personas` | Directorio: nombre, foto opcional, comités del término, cargos. Sin correos |
+| `/app/personas` | Directorio: nombre, foto opcional, comités del término con el cargo en cada uno ("General de A3"), cargos de junta. Sin correos |
 | `/app/gh-points` | Saldo, nivel, movimientos, rankings (nuevos, veteranos, comités), asambleas firmadas/requeridas |
 | `/app/permanencia` | Resultado por cada comité frente a su umbral (60, 80 o 70 %), bloque general y bloque del comité criterio por criterio, cómo sumar más, asambleas obligatorias, evaluaciones pendientes, historial |
 | `/app/normativa` | Estatutos, reglamento y actas con lector y búsqueda |
@@ -38,11 +38,11 @@
 | Sección | Rutas | Contenido |
 | --- | --- | --- |
 | Inicio | `/admin` | Pendientes del actor, tareas vencidas, ocasiones abiertas, alertas de jobs y respaldo |
-| Personas | `/admin/personas`, `/admin/personas/[id]`, `/admin/personas/importar`, `/admin/segmentos`, `/admin/etiquetas`, `/admin/tareas` | CRM: Persona 360, importación del roster, segmentos, etiquetas, tareas |
+| Personas | `/admin/personas`, `/admin/personas/[id]`, `/admin/personas/importar`, `/admin/segmentos`, `/admin/etiquetas`, `/admin/tareas` | CRM: Persona 360, importación del roster por término con vista previa y diff ([13-importacion-del-roster.md](13-importacion-del-roster.md)), segmentos, etiquetas, tareas |
 | Organizaciones | `/admin/organizaciones`, `/admin/organizaciones/[id]` | Empresas, unidades de EAFIT, grupos; contactos y patrocinios |
 | Pipelines | `/admin/pipelines`, `/admin/pipelines/[id]` | Kanban de admisión, patrocinio y personalizados |
 | Formularios | `/admin/formularios`, `/admin/formularios/[id]`, `/admin/formularios/[id]/respuestas` | Constructor y bandeja de respuestas |
-| Comunidad | `/admin/comites`, `/admin/cargos`, `/admin/permisos` | Comités, cargos por término, permisos técnicos |
+| Comunidad | `/admin/comites`, `/admin/cargos`, `/admin/permisos` | Comités, catálogo de cargos de comité y cargos de junta por término, permisos técnicos |
 | Contenido | `/admin/paginas`, `/admin/cartelera`, `/admin/eventos`, `/admin/eventos/[id]/ediciones`, `/admin/medios`, `/admin/documentos` | Publicación editorial |
 | Participación | `/admin/terminos`, `/admin/ocasiones`, `/admin/ocasiones/[id]` (consola), `/admin/ocasiones/[id]/anfitrion`, `/admin/ledger`, `/admin/rankings`, `/admin/asambleas`, `/admin/cierre` | Términos, ocasiones con QR y aprobaciones, ledger, rankings, requisitos de asambleas, cierre |
 | Permanencia | `/admin/permanencia/reglas`, `/admin/permanencia/grupos`, `/admin/permanencia/grupos/[id]`, `/admin/permanencia/evaluaciones`, `/admin/permanencia/cumplimiento`, `/admin/permanencia/cierre` | Tabla general y las 27 tablas de comité, grupos de trabajo con líder, evaluador e integrantes, bandeja de evaluaciones, cumplimiento por comité con filtros y export, cierre con propuesta automática y confirmación |

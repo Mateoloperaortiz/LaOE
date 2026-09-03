@@ -28,6 +28,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Step-up de admin y destrucción de sesiones al retirar o cambiar correo.
 - Auditoría en la misma transacción: si falla la auditoría, no hay mutación.
 - Formulario público: vincula por correo normalizado, registra consentimiento, no crea puntos.
+- Importación del roster: el archivo de ejemplo de `13-importacion-del-roster.md` crea personas, pertenencias con cargo y consentimientos; subirlo dos veces no duplica; una fila con sigla inexistente o dos Generales en el mismo comité bloquea el lote con el error señalado.
 - "Dar de alta" en una transacción: membresía, comités, `firstTermId`, interacción.
 - Recalculo de permanencia al aprobar un check-in, registrar una evaluación o cambiar una regla; snapshot congelado al cerrar el término.
 

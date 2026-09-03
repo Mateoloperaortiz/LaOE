@@ -29,6 +29,7 @@ Una app, una base de datos, un bucket, un admin y un proveedor de correo. Todo l
 | [10-verificacion.md](docs/10-verificacion.md) | Cómo se prueba cada capa |
 | [11-contenido-pendiente.md](docs/11-contenido-pendiente.md) | Lo que la OE debe aportar |
 | [12-permanencia.md](docs/12-permanencia.md) | La tabla de permanencia de GH como tablero: reglas por término, grupos de trabajo, evaluaciones y progreso del integrante |
+| [13-importacion-del-roster.md](docs/13-importacion-del-roster.md) | Formato del archivo del roster, validaciones y qué hace la importación |
 | [decisiones-abiertas.md](docs/decisiones-abiertas.md) | Preguntas sin cerrar |
 | [glosario.md](docs/glosario.md) | Términos de la interfaz y del código |
 

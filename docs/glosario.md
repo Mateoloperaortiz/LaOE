@@ -14,7 +14,10 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Vigente / En licencia / Honorario / Retirado | `ACTIVE` / `ON_LEAVE` / `HONORARY` / `INACTIVE` | Estados de la membresía. Entran a Mi OE vigentes y honorarios |
 | Comité | `Committee` | Grupo de trabajo con ficha editorial y logo |
 | Pertenencia a comité | `CommitteeMembership` | Persona en un comité durante un término; de 1 a 3 activas para vigentes |
-| Cargo | `Appointment` | Rol visible con historia: líder de comité, junta, coordinación GH |
+| Cargo de junta o de GH | `Appointment` | Rol visible con historia fuera del comité: presidencia, vicepresidencias, GH principal, directores de GH |
+| Cargo en el comité | `CommitteeMembership.roleCode` | Lo que la persona desempeña dentro de su comité en el término: General (líder), Financiero, Publicidad, Relaciones Públicas, Logística, Gestión Humana o Integrante |
+| General | `roleCode=GENERAL` | Líder del comité; uno por comité y término; el permiso técnico de líder se otorga aparte |
+| Roster | `ImportJob` de tipo roster | Archivo por término con el que GH carga o actualiza integrantes, comités, cargos y estados |
 | Permiso | `Permission` | Derecho técnico: `ADMIN` o `COMMITTEE_LEADER` de un comité. No es un título |
 | Término | `Term` | Semestre académico (`2026-2`) con fechas; reloj universal del sistema |
 | Cierre de puntos | `Term.pointsClosedAt` | Momento desde el que el ledger del término no acepta más entradas |

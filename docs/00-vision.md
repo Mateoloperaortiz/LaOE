@@ -64,6 +64,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | Cada comité tiene su propia tabla de permanencia dentro de un presupuesto fijado por GH; el total de la persona suma la parte de la OE y la de su comité principal ([ADR-026](adr/ADR-026-permanencia-por-comite.md)) |
 | 2026-09-02 | GH confirmó las reglas de permanencia ([ADR-027](adr/ADR-027-permanencia-reglas-de-gh.md)): resultado por cada comité (general ≈ 50 más la tabla de ese comité ≈ 60), umbrales fijos 60 % vigente, 80 % nuevo o en prueba, 70 % transferencia interna; periodo de prueba con margen de 10 puntos; GT por cantidad; asambleas obligatorias dos y tres para el 10 %; evalúan los directores de GH |
 | 2026-09-02 | Consecuencias confirmadas por GH ([ADR-028](adr/ADR-028-permanencia-consecuencias.md)): más de 10 puntos por debajo sale del comité, y de la OE si no le queda otro donde cumpla; faltar a una asamblea obligatoria es expulsión; obligatorias una ordinaria en primer semestre y ordinaria más elección en segundo; evaluación al cerrar el semestre; Athletic con capitán y DT |
+| 2026-09-02 | Roster: GH lo envía con `NOMBRE`, `APELLIDO`, `CORREO`, `CELULAR`, `PREGRADO`, `COMITES`, `ENTRADA A LA OE`, `ESTADO`, y se agrega `CARGO` con el cargo dentro del comité; el cargo vive en la pertenencia al comité y General es el líder ([ADR-029](adr/ADR-029-cargos-de-comite-y-roster.md)) |
 
 Hechos que sustentan varias de estas decisiones:
 

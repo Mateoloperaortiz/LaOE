@@ -7,6 +7,9 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | # | Pregunta | Opciones | Quién decide | Cómo se cierra |
 | --- | --- | --- | --- | --- |
 | 1 | Anonimización de egresados: plazo para borrar teléfono, notas y respuestas (nombre, comités y ledger se conservan) | Lo que diga la política aprobada · 5 años si no lo dice · otro | OE (junta) | Al recibir el texto de la política; mientras tanto el job `retention` queda apagado |
+| 2 | Vocabulario de `ESTADO` en el roster | `Activo`, `Licencia`, `Honorario`, `Retirado`, `Prueba` (propuesta) · el que use GH | GH | Con el primer archivo |
+| 3 | Lista completa de cargos dentro del comité | General, Financiero, Publicidad, Relaciones Públicas, Logística, Gestión Humana (los que dio Mateo) · más cargos | GH | Con el primer archivo; el catálogo es editable |
+| 4 | ¿`General` otorga el permiso de líder de comité sin confirmación? | Propuesta marcada por defecto y ADMIN confirma (propuesta) · automático | Mateo y GH | En la fase 2 |
 
 ## Cerradas
 

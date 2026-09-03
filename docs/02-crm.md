@@ -4,7 +4,7 @@ La casa digital se piensa como un **CRM de comunidad**: la columna vertebral del
 
 ## Qué aporta
 
-- **La persona es el eje.** Integrante, postulante, egresado, contacto de empresa o de Bienestar son la misma entidad `Person`, con `kind` (`STUDENT` o `EXTERNAL`) y una etapa. Nada personal se guarda dos veces.
+- **La persona es el eje.** Integrante, postulante, egresado, contacto de empresa o de Bienestar son la misma entidad `Person`, con `kind` (`STUDENT` o `EXTERNAL`) y una etapa. Nada personal se guarda dos veces. El roster entra por un archivo por término con un formato fijo ([13-importacion-del-roster.md](13-importacion-del-roster.md)).
 - **Ciclo de vida explícito:** `PROSPECTO` (llenó un formulario) → `POSTULANTE` (en pipeline de admisión) → `INTEGRANTE` (vigente, en licencia u honorario) → `EGRESADO` (retirado o graduado). Cada cambio es un comando que audita y escribe la línea de tiempo ([ADR-003](adr/ADR-003-etapas-por-comando.md)).
 - **La línea de tiempo se alimenta sola.** Asistencias, puntos, cambios de comité, cargos, formularios, correos y movimientos de pipeline producen interacciones automáticas; el equipo agrega notas y tareas encima.
 - **Todo lo que hoy es un Excel o un Forms** (roster, postulaciones, inscripciones, patrocinios, contactos de Bienestar) vive en el mismo lugar y se relaciona.
@@ -40,7 +40,7 @@ Los contactos externos (`kind=EXTERNAL`) no tienen etapa de integrante ni acceso
 | --- | --- |
 | Resumen | Puntos del término, asistencias, asambleas firmadas/requeridas, último contacto, tareas abiertas |
 | Línea de tiempo | Interacciones automáticas y notas, con filtro por tipo y compositor de nota |
-| Membresía | Términos, comités por término, cargos, historial de estados con motivos |
+| Membresía | Términos, comités por término con el cargo en cada uno (General, Financiero, Logística…), cargos de junta o de GH, transferencias, historial de estados con motivos |
 | Participación | Check-ins con ocasión y fuente; ledger con ajustes y reversiones |
 | Permanencia | Resultado por cada comité frente a su umbral, parte general y parte del comité criterio por criterio, condición (nuevo, prueba, transferencia), grupos y evaluaciones, puntajes y observaciones del líder, decisiones de cierre |
 | Formularios | Respuestas enviadas, con enlace a la tarjeta de pipeline si existe |
