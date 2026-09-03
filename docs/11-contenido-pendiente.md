@@ -54,5 +54,6 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Puntos por tipo de ocasión para el término (tope de comités y asambleas ya están decididos)
 - [ ] Fechas de las dos asambleas ordinarias y, en el segundo semestre, de la elección de junta
 - [ ] Texto de "Unirse": requisitos y fechas de convocatoria
+- [ ] Pasos del onboarding de nuevos (qué debe hacer un nuevo en su primera semana) y preguntas de la encuesta corta tras una ocasión
 - [ ] Acceso al dominio `oeeafit.com` (DNS) y a la cuenta de Resend
 - [ ] Subdominio `pruebas.oeeafit.com` para `staging` (opcional; el dominio de Railway sirve mientras tanto)

@@ -72,6 +72,11 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Interacción | `Interaction` | Entrada de la línea de tiempo de una persona: automática o nota manual |
 | Nota | `Interaction.kind=NOTE` | Interacción escrita por alguien del equipo |
 | Tarea | `Task` | Pendiente con responsable y vencimiento sobre persona, organización o tarjeta |
+| Solicitud | `Request` | Pedido del integrante desde Mi OE (licencia, retiro, cambio de comité, transferencia) que GH aprueba; aprobar ejecuta el comando |
+| Convocatoria interna | `InternalCall` | Llamado a inscribirse en un grupo de trabajo con cupo y cierre; la inscripción aceptada crea la pertenencia al grupo |
+| Onboarding | `OnboardingProgress` | Pasos de la primera semana de un nuevo, ligados a sus criterios de permanencia |
+| Reconocimiento | `Recognition` | Destacado del mes u otro mérito, publicado en la cartelera y en el perfil |
+| Panel de la junta | `/admin/junta` | Indicadores agregados para los cargos de junta: retención, nuevos, permanencia, asistencia a reuniones |
 | Etiqueta | `Tag` | Marca libre sobre personas u organizaciones |
 | Segmento | `Segment` | Filtro guardado que alimenta campañas, exportes y listas |
 | Anuncio | `Announcement` | Publicación de la cartelera, pública o de integrantes, con push opcional |

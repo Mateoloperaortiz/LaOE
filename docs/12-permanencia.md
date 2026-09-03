@@ -80,7 +80,7 @@ Son distintos de los 27 comités de pertenencia. Se cargan como grupos de trabaj
 
 ### Grupos de trabajo y evaluaciones
 
-`WorkGroup` por término con `kind` (`WORK_COMMITTEE`, `GT_MACROEVENT`, `GAP`, `GAP_OE`, `BARRA_BRAVA`, `NEW_MEMBER_TASK`), nombre, código, evento o edición asociada, quién lo lidera y quiénes lo **evalúan** (`WorkGroupEvaluator`: el director de GH de ese frente; en tareas de nuevos, el GH principal; en el Athletic, el capitán y el DT). Las evaluaciones se hacen al cerrar el semestre: la ventana se abre dos semanas antes del cierre. `WorkGroupMembership` une persona y grupo, con `evaluation` (`PENDING`, `GOOD`, `INSUFFICIENT`), quién evaluó, cuándo y una nota. Una evaluación pendiente se muestra como "pendiente" y al cerrar el término cuenta como no lograda salvo que GH la resuelva. Cada evaluación queda en la línea de tiempo de la persona.
+`WorkGroup` por término con `kind` (`WORK_COMMITTEE`, `GT_MACROEVENT`, `GAP`, `GAP_OE`, `BARRA_BRAVA`, `NEW_MEMBER_TASK`), nombre, código, evento o edición asociada, quién lo lidera y quiénes lo **evalúan** (`WorkGroupEvaluator`: el director de GH de ese frente; en tareas de nuevos, el GH principal; en el Athletic, el capitán y el DT). Las evaluaciones se hacen al cerrar el semestre: la ventana se abre dos semanas antes del cierre. Las personas entran a los grupos por **convocatorias internas** desde Mi OE (formulario con cupo, ventana y selección) o por carga de GH ([ADR-031](adr/ADR-031-autogestion-del-integrante.md)). `WorkGroupMembership` une persona y grupo, con `evaluation` (`PENDING`, `GOOD`, `INSUFFICIENT`), quién evaluó, cuándo y una nota. Una evaluación pendiente se muestra como "pendiente" y al cerrar el término cuenta como no lograda salvo que GH la resuelva. Cada evaluación queda en la línea de tiempo de la persona.
 
 ### Estados del resultado en un comité
 
@@ -105,6 +105,7 @@ Al cerrar, la app **propone** para cada persona y comité el estado según los u
 - Bloque **general**: cada criterio con logrado / máximo, qué cuenta y cómo sumar más ("asististe a 2 de 5 integraciones; quedan 6 este semestre, la próxima es el jueves"). Asambleas obligatorias aparte.
 - Bloque por **comité**: reuniones (asistencia y próximas), eventos, puntajes del líder y sus observaciones.
 - Evaluaciones pendientes con quién debe evaluarlas.
+- Si la persona es nueva, arriba aparece su lista de onboarding de la primera semana, ligada a sus criterios (integración de nuevos, decoración de oficina).
 - Historial desde la línea de tiempo. Barra compacta en el inicio de Mi OE.
 - Avisos por push o correo a mitad de término, tres semanas antes del cierre si está por debajo, y el resumen al cerrar.
 
@@ -124,6 +125,7 @@ Al cerrar, la app **propone** para cada persona y comité el estado según los u
 - **Reuniones**: crear la serie semanal como ocasiones `COMMITTEE_MEETING` sin puntos; pasar asistencia con el modo anfitrión.
 - **Eventos del comité**: ocasiones con `committeeId` ligadas a los criterios de eventos.
 - **Puntajes**: subcomité, liderazgo o destacado del mes (0 a 10 %) y convivencia (5 % por defecto); si baja el valor, la observación es obligatoria y la persona la ve.
+- **Destacado del mes**: al asignarlo se publica en la cartelera del comité y como insignia en el perfil de la persona, si dio consentimiento de directorio.
 - **Progreso de sus integrantes** en su comité: resultado, quién no ha ido a reuniones, quién está en riesgo o en prueba.
 
 ## Lo que ve el director de GH de un frente

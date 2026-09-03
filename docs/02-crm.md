@@ -46,6 +46,7 @@ Los contactos externos (`kind=EXTERNAL`) no tienen etapa de integrante ni acceso
 | Formularios | Respuestas enviadas, con enlace a la tarjeta de pipeline si existe |
 | Comunicaciones | Mensajes enviados (correo y push), preferencias, suscripciones push |
 | Tareas | Pendientes y cerradas sobre la persona |
+| Solicitudes | Licencias, retiros, cambios de comité y transferencias pedidos por la persona, con la decisión de GH |
 | Datos y consentimiento | Campos personales, consentimientos por propósito, exportar datos, solicitar eliminación |
 
 ## Pipelines
@@ -79,6 +80,8 @@ Un `Segment` es un filtro guardado: etapa, estado, término, comité, etiqueta, 
 3. Las interacciones automáticas son inmutables; las notas pueden editarse por su autor y quedan con `editedAt`.
 4. Las etiquetas y segmentos no cambian el estado de nadie: describen, no deciden.
 5. El correo y el teléfono se ven solo con permiso `ADMIN`; los líderes ven nombre, comités y cargos.
+6. Las solicitudes del integrante no cambian nada hasta que GH las aprueba; aprobar ejecuta el mismo comando que haría un admin a mano ([ADR-031](adr/ADR-031-autogestion-del-integrante.md)).
+7. La persona mantiene sus propios datos (foto, celular, correo personal) desde Ajustes, con consentimiento por propósito; el correo institucional no se edita.
 
 ## Privacidad por diseño (Ley 1581 de 2012)
 

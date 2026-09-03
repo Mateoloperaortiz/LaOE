@@ -49,7 +49,7 @@ erDiagram
 | --- | --- | --- |
 | `Session` | `personId`, `tokenHash` único, `expiresAt`, `userAgent`, `ip`, `lastSeenAt` | 90 días, renovable; se destruye al cambiar estado o correo |
 | `OtpChallenge` | `email`, `codeHash`, `expiresAt`, `attempts`, `maxAttempts`, `consumedAt`, `ip` | 10 minutos, 5 intentos; rate limit contando filas |
-| `Permission` | `personId`, `code` (`ADMIN`, `COMMITTEE_LEADER`), `committeeId?`, `grantedById` | Unique parcial por (persona, código, comité) |
+| `Permission` | `personId`, `code` (`ADMIN`, `COMMITTEE_LEADER`, `BOARD`), `committeeId?`, `grantedById` | Unique parcial por (persona, código, comité); `BOARD` se otorga con los cargos de junta y da acceso al panel de la junta |
 
 ### people
 
@@ -78,6 +78,10 @@ erDiagram
 | `Task` | `title`, `assigneeId`, `dueAt?`, `status`, `personId?`, `organizationId?`, `cardId?`, `createdById` | |
 | `Tag` / `PersonTag` / `OrganizationTag` | `name` único | |
 | `Segment` | `name`, `filter` JSON, `createdById` | El filtro se valida con Zod al leer |
+| `Request` | `personId`, `kind` (`LEAVE`, `RESIGNATION`, `COMMITTEE_CHANGE`, `TRANSFER`), `payload` JSON, `status` (`PENDING`, `APPROVED`, `REJECTED`, `WITHDRAWN`), `taskId`, `decidedById?`, `decidedAt?`, `reason?` | Aprobar ejecuta el comando de dominio correspondiente; nada cambia antes |
+| `InternalCall` | `termId`, `groupId`, `formId`, `opensAt`, `closesAt`, `capacity?`, `selection` (`FIRST_COME`, `MANUAL`), `status` | La inscripción aceptada crea `WorkGroupMembership` |
+| `OnboardingProgress` | `personId`, `termId`, `stepKey`, `doneAt?`, `source` (`AUTO`, `MANUAL`) | Pasos configurables por término en `AppConfig`; visible mientras la persona sea nueva |
+| `Recognition` | `personId`, `kind` (`MEMBER_OF_MONTH`, `OTHER`), `committeeId?`, `termId`, `month?`, `title`, `announcementId?`, `grantedById` | Se publica solo con consentimiento de directorio |
 
 ### forms
 
@@ -100,7 +104,7 @@ erDiagram
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
 | `Term` | `code` único (`2026-2`), `semester` (1 o 2, derivado del código), `startsOn`, `endsOn`, `pointsClosedAt?`, `requiredOrdinaryAssemblies`, `permanenceGeneralNominal` (50), `permanenceCommitteeNominal` (60) | El actual se deriva de la fecha; en los términos de segundo semestre la elección de junta es obligatoria; los nominales solo sirven para avisar en el editor |
-| `Occasion` | `publicId` único, `termId`, `kind` (`ACTIVITY`, `ASSEMBLY`, `EDITION_SESSION`), `assemblyKind?` (`ORDINARY`, `BOARD_ELECTION`, `RUNOFF`; solo en asambleas), `category` (`INTEGRATION`, `ATHLETIC_MATCH`, `COMMITTEE_MEETING`, `TALK`, `WORKSHOP`, `SOCIAL`, `OTHER`), `newMembersOnly`, `title`, `startsAt`, `checkInOpensAt`, `checkInClosesAt`, `points`, `approval` (`AUTO`, `MANUAL`), `requireRotatingCode` (opcional por ocasión, apagado por defecto), `rotatingSecretHash?`, `committeeId?`, `editionId?`, `status`, `cancelReason?`, `createdById` | `DRAFT → OPEN → CLOSED`; `CANCELLED` desde cualquiera con motivo |
+| `Occasion` | `publicId` único, `termId`, `kind` (`ACTIVITY`, `ASSEMBLY`, `EDITION_SESSION`), `assemblyKind?` (`ORDINARY`, `BOARD_ELECTION`, `RUNOFF`; solo en asambleas), `category` (`INTEGRATION`, `ATHLETIC_MATCH`, `COMMITTEE_MEETING`, `TALK`, `WORKSHOP`, `SOCIAL`, `OTHER`), `newMembersOnly`, `title`, `startsAt`, `checkInOpensAt`, `checkInClosesAt`, `points`, `approval` (`AUTO`, `MANUAL`), `requireRotatingCode` (opcional por ocasión, apagado por defecto), `rotatingSecretHash?`, `committeeId?`, `editionId?`, `surveyFormId?`, `status`, `cancelReason?`, `createdById` | `DRAFT → OPEN → CLOSED`; `CANCELLED` desde cualquiera con motivo; al cerrar, si hay `surveyFormId`, el outbox envía la encuesta a quienes hicieron check-in |
 | `CheckIn` | `occasionId`, `personId`, `status` (`PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`), `source` (`SELF_QR`, `HOST`, `ADMIN`, `IMPORT`), `at`, `decidedById?`, `decidedAt?`, `reason?` | Unique por (ocasión, persona) |
 | `PointEntry` | `personId`, `termId`, `checkInId?`, `kind` (`CHECKIN`, `ADJUSTMENT`, `REVERSAL`, `LEGACY`), `points`, `reason`, `reversalOfId?` único, `createdById?`, `legacyType?` | Append-only |
 | `CommitteeParticipation` | `occasionId`, `committeeId`, `termId`, `eligible`, `present`, `rate`, `smoothedRate`, `frozenAt?` | Unique por (ocasión, comité); cruda y suavizada con `k = 5` (ADR-024) |

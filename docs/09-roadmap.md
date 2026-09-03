@@ -58,6 +58,8 @@ Listo cuando: contenido real de la OE publicable sin tocar código; nada persona
 - [ ] Persona 360 con todas las pestañas
 - [ ] Interacciones automáticas, notas, tareas, etiquetas, segmentos
 - [ ] Mi OE: inicio, directorio, comités internos, ajustes (sesiones, datos, consentimientos)
+- [ ] Ajustes: la persona edita foto, celular y correo personal con consentimiento por propósito; cada cambio se audita y queda en la línea de tiempo
+- [ ] Onboarding de nuevos: lista de pasos de la primera semana (normativa, comité, primera integración, activar push) en el inicio de Mi OE; los pasos con hecho registrado se marcan solos; se liga a los criterios de nuevos en la fase 4
 - [ ] Normativa: documentos en el bucket privado con lector y búsqueda
 - [ ] Carnet digital con QR firmado
 - [ ] Exportar mis datos y solicitud de eliminación
@@ -102,6 +104,8 @@ Listo cuando: 500 escaneos concurrentes sin duplicados ni recomputes repetidos; 
 - [ ] Aviso antes de cada asamblea obligatoria y ventana de evaluación dos semanas antes del cierre
 - [ ] Persona 360: pestaña Permanencia
 - [ ] Avisos a mitad de término y tres semanas antes del cierre
+- [ ] Reconocimientos: el destacado del mes de cada comité se publica en la cartelera del comité y como insignia en el perfil
+- [ ] Panel de la junta: retención por semestre, nuevos por comité, distribución de permanencia, cuántos van a "no alcanza", asistencia a reuniones por comité; permiso `BOARD`
 
 Listo cuando: un integrante ve en su celular el mismo porcentaje que GH calcula en su hoja para el término de prueba, criterio por criterio, y GH cierra un término con decisiones registradas.
 
@@ -115,8 +119,10 @@ Listo cuando: un integrante ve en su celular el mismo porcentaje que GH calcula 
 - [ ] Organizaciones, contactos externos y patrocinios por edición
 - [ ] Inscripciones a ediciones mediante formularios
 - [ ] Tablero de tareas y pendientes en el inicio del admin
+- [ ] Solicitudes con flujo desde Mi OE: licencia, retiro voluntario, cambio de comité y transferencia interna; tarea para GH y comando al aprobar; rechazo con motivo
+- [ ] Convocatorias internas: formulario ligado a un grupo de trabajo con cupo, ventana y selección; la inscripción aceptada crea la pertenencia al grupo
 
-Listo cuando: una convocatoria completa (formulario → entrevista → alta) se hace sin Excel.
+Listo cuando: una convocatoria de admisión completa (formulario → entrevista → alta) y una convocatoria interna a un GT se hacen sin Excel, y una licencia pedida desde Mi OE termina aprobada y aplicada sin que GH toque la base.
 
 ## Fase 6 · Comunicaciones y PWA · `pendiente`
 
@@ -127,8 +133,9 @@ Listo cuando: una convocatoria completa (formulario → entrevista → alta) se 
 - [ ] Registro de mensajes por persona
 - [ ] Recordatorios (ocasiones de hoy, asambleas pendientes, términos)
 - [ ] ICS personal
+- [ ] Encuesta tras la ocasión: formulario corto enviado por push a quienes hicieron check-in al cerrar la ocasión; respuestas anónimas agregadas por ocasión y comité
 
-Listo cuando: un anuncio llega al celular de un integrante en menos de un minuto.
+Listo cuando: un anuncio llega al celular de un integrante en menos de un minuto y la encuesta de una ocasión cerrada llega a sus asistentes.
 
 ## Fase 7 · Cutover · `pendiente`
 
@@ -143,14 +150,19 @@ Listo cuando: un anuncio llega al celular de un integrante en menos de un minuto
 
 Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está eliminado con respaldo.
 
-## Backlog (fuera de v1)
+## Backlog (después de la v1)
 
+- Votación electrónica de la junta con segunda vuelta: cuando la asistencia funcione sin fallas y con las reglas de los estatutos (voto secreto, quórum)
+- Actas de reunión ligadas a la reunión semanal: decisiones y tareas
+- Subcomités como tipo de grupo de trabajo
+- Inventario y préstamos de logística (banners, sonido, tote bags)
+- Álbum de fotos por edición con consentimiento
+- Modo anfitrión sin señal: cola de check-ins en el celular que se sincroniza después
+- Certificados de participación con QR de verificación (no priorizado)
 - Passkeys como segundo factor o acceso rápido
-- Acceso de solo lectura para egresados
 - Reto relámpago, boosters, palabra del día, badges persistidos
 - Fórmulas alternativas de score de comité (ponderadas)
 - WhatsApp Business API
-- Galería de fotos por edición con consentimiento
 - Servicio `worker` separado y Cloudflare como CDN, solo con uso medido
 
 ## Registro de avances
@@ -169,3 +181,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-02 | — | Formato del roster definido con las columnas de GH más `CARGO` (ADR-029): cargo dentro del comité como catálogo en la pertenencia, nombre y apellido separados, validaciones e idempotencia. Doc `13-importacion-del-roster.md` |
 | 2026-09-02 | — | GH confirmó los cinco estados y los seis cargos; `CARGO` llegará en una segunda entrega, así que la importación admite actualizaciones parciales por correo |
 | 2026-09-03 | — | ADR-030: el perfil de egresado (memorial) reemplaza la anonimización por plazo; galería de egresados por año en la fase 2; el permiso del General se otorga con confirmación. Sin decisiones abiertas |
+| 2026-09-03 | — | Siete mejoras aceptadas por Mateo (ADR-031): solicitudes con flujo, convocatorias internas, onboarding de nuevos, reconocimientos, panel de la junta, encuesta tras ocasión y autogestión de datos, repartidas en las fases 2, 4, 5 y 6. Backlog ampliado: votación electrónica, actas, subcomités, inventario, álbum, modo sin señal, certificados |

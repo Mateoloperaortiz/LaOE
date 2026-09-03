@@ -68,6 +68,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | GH confirmó los estados (`Activo`, `Licencia`, `Honorario`, `Retirado`, `Prueba`) y los seis cargos; `CARGO` llega en una segunda entrega y la importación admite actualizaciones parciales por correo |
 | 2026-09-03 | Egresados: al graduarse pierden el correo institucional y no vuelven a entrar; su perfil queda como egresado (memorial) con su historia, visible en una galería por año según consentimiento; no hay anonimización por plazo ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
 | 2026-09-03 | El permiso de líder para un `General` del roster se otorga con confirmación del ADMIN |
+| 2026-09-03 | Siete mejoras aceptadas ([ADR-031](adr/ADR-031-autogestion-del-integrante.md)): solicitudes con flujo, convocatorias internas, onboarding de nuevos, reconocimientos, panel de la junta, encuesta tras ocasión y autogestión de datos. Al backlog: votación electrónica, actas, subcomités, inventario, álbum, modo sin señal |
 
 Hechos que sustentan varias de estas decisiones:
 
@@ -82,4 +83,4 @@ Portal público y contenido editable · Personas y Mi OE · Participación y GH 
 
 ## Fuera de v1
 
-Pagos y boletería, chat, feed social, Graph o sincronización con el directorio EAFIT, galería masiva de fotos de personas, WhatsApp Business API, passkeys (mejora posterior), LLM sobre normativa, marca "En memoria" para integrantes fallecidos, reto relámpago, boosters, palabra del día y badges persistidos (su historia se conserva en el ledger como entradas `LEGACY`).
+Pagos y boletería, chat, feed social, Graph o sincronización con el directorio EAFIT, galería masiva de fotos de personas, WhatsApp Business API, passkeys (mejora posterior), LLM sobre normativa, marca "En memoria" para integrantes fallecidos, votación electrónica de la junta (después, con reglas de los estatutos), reto relámpago, boosters, palabra del día y badges persistidos (su historia se conserva en el ledger como entradas `LEGACY`). El backlog completo está en [09-roadmap.md](09-roadmap.md).

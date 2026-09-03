@@ -39,6 +39,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - QR de check-in: sin sesión → ingreso → vuelve al QR → puntos acreditados y visibles en Mi OE.
 - Admin publica una edición con portada subida directo al bucket por `POST` prefirmado (emulador con CORS) y la ve el visitante.
 - Kanban de admisión hasta "Dar de alta" y primer ingreso del nuevo integrante.
+- Una licencia pedida desde Mi OE aparece como tarea, GH la aprueba y la membresía cambia con auditoría; una convocatoria interna inscribe a la persona en el grupo y su permanencia lo refleja.
 - Campaña enviada al mailer de consola respetando preferencias y baja.
 - Modo anfitrión: el líder marca a una persona sin sesión.
 - Un integrante ve subir su porcentaje de permanencia tras un check-in de integración; el líder evalúa un GAP y el porcentaje cambia; GH cierra el término y la decisión aparece en la persona.

@@ -21,16 +21,18 @@
 
 | Ruta | Contenido |
 | --- | --- |
-| `/app` | Saludo, agenda del término, mis comités, saldo del término, barra de permanencia, anuncios para integrantes |
+| `/app` | Saludo, agenda del término, mis comités, saldo del término, barra de permanencia, anuncios para integrantes; lista de onboarding mientras la persona sea nueva |
 | `/app/eventos` | Eventos y ediciones incluyendo audiencia de integrantes |
 | `/app/comites` y `/app/comites/[slug]` | Comités con piezas internas y contactos |
 | `/app/personas` | Directorio: nombre, foto opcional, comités del término con el cargo en cada uno ("General de A3"), cargos de junta. Sin correos |
 | `/app/egresados` | Galería de egresados por año de salida: nombre, foto con consentimiento, comités, cargos y años en la OE; solo quienes dieron consentimiento `MEMORIAL` |
+| `/app/solicitudes` | Mis solicitudes: licencia, retiro voluntario, cambio de comité, transferencia interna; estado y respuesta de GH |
+| `/app/convocatorias` | Convocatorias internas abiertas (GT, GAP, GAP OE, barra brava, tareas de nuevos): inscripción directa al grupo, cupo y cierre |
 | `/app/gh-points` | Saldo, nivel, movimientos, rankings (nuevos, veteranos, comités), asambleas firmadas/requeridas |
 | `/app/permanencia` | Resultado por cada comité frente a su umbral (60, 80 o 70 %), bloque general y bloque del comité criterio por criterio, cómo sumar más, asambleas obligatorias, evaluaciones pendientes, historial |
 | `/app/normativa` | Estatutos, reglamento y actas con lector y búsqueda |
 | `/app/carnet` | QR personal firmado para acreditación |
-| `/app/ajustes` | Sesiones, notificaciones push, preferencias, mis datos, consentimientos, solicitud de eliminación |
+| `/app/ajustes` | Sesiones, notificaciones push, preferencias, mis datos editables (foto, celular, correo personal) con consentimiento, solicitud de eliminación |
 | `/a/[publicId]` | Check-in de una ocasión; sin sesión redirige a `/ingresar` y vuelve |
 | `/api/ics/mi-agenda.ics` | Calendario personal con token |
 
@@ -42,6 +44,9 @@
 | Personas | `/admin/personas`, `/admin/personas/[id]`, `/admin/personas/importar`, `/admin/segmentos`, `/admin/etiquetas`, `/admin/tareas` | CRM: Persona 360, importación del roster por término con vista previa y diff ([13-importacion-del-roster.md](13-importacion-del-roster.md)), segmentos, etiquetas, tareas |
 | Organizaciones | `/admin/organizaciones`, `/admin/organizaciones/[id]` | Empresas, unidades de EAFIT, grupos; contactos y patrocinios |
 | Pipelines | `/admin/pipelines`, `/admin/pipelines/[id]` | Kanban de admisión, patrocinio y personalizados |
+| Solicitudes | `/admin/solicitudes` | Bandeja de solicitudes de integrantes; aprobar ejecuta el comando (licencia, baja, cambio de comité, transferencia); rechazar exige motivo |
+| Convocatorias | `/admin/convocatorias`, `/admin/convocatorias/[id]` | Convocatorias internas por grupo de trabajo con cupo, ventana y selección de inscritos |
+| Junta | `/admin/junta` | Panel de indicadores sin datos personales: retención por semestre, nuevos por comité, distribución de permanencia, "no alcanza", asistencia a reuniones por comité; permiso `BOARD` |
 | Formularios | `/admin/formularios`, `/admin/formularios/[id]`, `/admin/formularios/[id]/respuestas` | Constructor y bandeja de respuestas |
 | Comunidad | `/admin/comites`, `/admin/cargos`, `/admin/permisos` | Comités, catálogo de cargos de comité y cargos de junta por término, permisos técnicos |
 | Contenido | `/admin/paginas`, `/admin/cartelera`, `/admin/eventos`, `/admin/eventos/[id]/ediciones`, `/admin/medios`, `/admin/documentos` | Publicación editorial |
