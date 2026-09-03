@@ -54,8 +54,8 @@ Vista de **líder de comité**: `/admin/comites/[slug]` con roster sin correos y
 | Ruta | Uso |
 | --- | --- |
 | `GET /api/health` | Prueba Postgres y devuelve versión |
-| `GET /api/media/[id]` | Sirve el archivo desde el bucket tras validar audiencia; caché larga para lo publicado; URL prefirmada para archivos grandes |
-| `POST /api/media/upload` | Subida en streaming al bucket para ADMIN (tope 20 MB), registra el `MediaAsset` y genera variantes |
+| `GET /api/media/[id]` | Valida publicación y audiencia y redirige (302) a una URL prefirmada del bucket: 7 días para lo publicado, 10 minutos para lo privado |
+| `POST /api/media/presign` y `POST /api/media/confirm` | ADMIN pide un `POST` prefirmado (tipo y tamaño acotados, 10 minutos), sube directo al bucket y confirma; la confirmación registra el `MediaAsset` y encola las variantes |
 | `POST /api/push/subscribe` | Registra suscripción push del actor |
 | `GET /api/export/[tipo]` | CSV/XLSX con step-up cuando hay datos personales |
 | Jobs programados: `campaigns`, `reminders`, `prune`, `retention`, `backup-check` | Corren en el mismo proceso del servicio `web` mediante el scheduler y el outbox; no tienen rutas HTTP |

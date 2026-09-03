@@ -27,9 +27,9 @@ Reglas del manual:
 - Espacio libre alrededor del logo, a criterio del diseñador. En la web: mínimo la altura del isotipo por cada lado; nada lo toca ni lo cruza.
 - No usar colores brillantes fuera de la gama neutra e institucional; no aplicar texturas al logo; no combinar colores dentro del logo. El logo principal a color conserva sus azules propios: no se recolorea con la paleta.
 - No recomponer: el manual marca como incorrectos el isotipo con "Organización Estudiantil" sin "Universidad EAFIT", el nombre sin isotipo, el isotipo con solo "Universidad EAFIT" y cualquier apilado distinto.
-- **Isotipo solo: uso condicionado.** No representa a la OE en una pieza, pero puede usarse como **elemento decorativo**; el propio manual lo pone gigante y a baja opacidad de fondo en la portada y en "Nuestra historia". En la web: fondos de carteles y cabeceras al 10–15 % de opacidad, tono sobre tono. Favicon e ícono de PWA usan el isotipo por necesidad técnica; pendiente de confirmar con comunicaciones (ver [decisiones-abiertas.md](decisiones-abiertas.md)).
+- **Isotipo solo: uso condicionado.** No representa a la OE en una pieza, pero puede usarse como **elemento decorativo**; el propio manual lo pone gigante y a baja opacidad de fondo en la portada y en "Nuestra historia". En la web: fondos de carteles y cabeceras al 10–15 % de opacidad, tono sobre tono. Favicon e ícono de PWA usan el isotipo: aprobado el 2026-09-02 dentro del uso condicionado que permite el manual.
 
-Archivos: `public/logos/oe.svg` y los 27 logos de comités en `public/logos/committees/`. Un comité sin logo no inventa uno: usa el cartel tipográfico. Faltan las variantes vectoriales en blanco y navy con el conjunto completo (ver [11-contenido-pendiente.md](11-contenido-pendiente.md)).
+Archivos disponibles hoy en `LaOE/public/logos` (pasan al repositorio en la fase 0): `oe.svg` es el conjunto vertical completo como máscara monocroma (565 × 770), así que las variantes navy y blanca se obtienen pintándolo con el color del tema; los 27 logos de comités en `committees/` también son SVG monocromos (negro y blanco, sin texto ni imágenes incrustadas, 544 KB en total), listos para tintarse con la paleta. Un comité sin logo no inventa uno: usa el cartel tipográfico. Faltan el logo horizontal y el principal a color en SVG (ver [11-contenido-pendiente.md](11-contenido-pendiente.md)).
 
 ## 3. Color
 
@@ -78,8 +78,8 @@ Prohibido: paper sobre yellow; yellow sobre paper; texto de párrafo en paper so
 
 | Rol | Familia del manual | Pesos del manual | Sustituto libre si no hay licencia |
 | --- | --- | --- | --- |
-| Títulos | **TT Bluescreens** (condensada, mayúsculas) | Black, Extrabold, Bold, Demibold | Barlow Condensed 700 y 800 (alternativa: Oswald) |
-| Contenido | **NouvelR** (geométrica) | Bold, Semibold, Regular, Book, Light | Manrope 400 a 700 |
+| Títulos | **TT Bluescreens** (condensada, mayúsculas) | Black, Extrabold, Bold, Demibold | **Sofia Sans Extra Condensed** (OFL, variable de 100 a 900): pesos 700, 800 y 900 |
+| Contenido | **NouvelR** (geométrica) | Bold, Semibold, Regular, Book, Light | **Plus Jakarta Sans** (OFL, variable de 200 a 800): pesos 400, 500, 600 y 700 |
 
 Cómo las usa el manual y cómo se traslada:
 
@@ -88,7 +88,8 @@ Cómo las usa el manual y cómo se traslada:
 - Etiquetas pequeñas en mayúsculas con espaciado amplio ("ORGANIZACIÓN ESTUDIANTIL · VERSIÓN CANVA"). En la web: `letter-spacing` de 0,12 em para eyebrows, chips y cabeceras de tabla.
 - Cuerpo con interlineado amplio (1,5) y párrafos cortos; el manual no usa cursivas.
 - Escala propuesta (extensión): display 64/56/40, títulos 32/24/20, cuerpo 16, notas 14, mínimo 12 solo en tablas.
-- Las fuentes se sirven desde el mismo origen (`next/font` con archivos locales), nunca desde un CDN de terceros. La licencia está en decisiones abiertas.
+- La OE no tiene licencia de TT Bluescreens ni de NouvelR (confirmado el 2026-09-02), así que la web usa los sustitutos. Se eligieron comparando ocho candidatas libres por rol contra los especímenes del manual: [fuentes-titulos.png](assets/fuentes-titulos.png) y [fuentes-contenido.png](assets/fuentes-contenido.png). Sofia Sans Extra Condensed es la única tan estrecha como TT Bluescreens que además trae minúsculas y toda la gama de pesos (Antonio se queda corto en peso, Oswald y Barlow son más anchas, Bebas Neue y Anton tienen un solo peso). Plus Jakarta Sans reproduce el ancho generoso y las formas redondas de NouvelR mejor que Manrope, Figtree o Sora.
+- Las fuentes se sirven desde el mismo origen (`next/font` con archivos locales), nunca desde un CDN de terceros.
 
 ## 5. Elementos gráficos
 
@@ -105,7 +106,7 @@ Propósito según el manual: **generar impacto y llamar la atención**. Catálog
 | Bucle simple y bucle doble | Trazo curvo con lazo | Detrás de títulos y fotos (ejemplo "Assessment") |
 | Garabato en espiral | Trazo suelto | Portadas de sección |
 
-Reglas: máximo uno o dos elementos por composición; nunca encima del logo ni del texto funcional; siempre en un color de la paleta; en la web se implementan como componentes SVG en línea con relleno por token, no como imágenes. Para el equipo de diseño, el manual da los códigos de búsqueda en Canva: `set:nAE-JpRjyM4`, `set:nAFoCtwGVOs` y el creador `Agensia`. Los archivos vectoriales fuera de Canva están pendientes ([decisiones-abiertas.md](decisiones-abiertas.md)).
+Reglas: máximo uno o dos elementos por composición; nunca encima del logo ni del texto funcional; siempre en un color de la paleta; en la web se implementan como componentes SVG en línea con relleno por token, no como imágenes. Para el equipo de diseño, el manual da los códigos de búsqueda en Canva: `set:nAE-JpRjyM4`, `set:nAFoCtwGVOs` y el creador `Agensia`. Los elementos se redibujan en el repositorio como componentes SVG (son formas geométricas simples); no dependen de exportar nada desde Canva.
 
 ## 6. Texturas
 

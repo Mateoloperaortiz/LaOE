@@ -84,7 +84,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.prisma` (Prisma en mod
 | Proyecto | `casa-digital`, nuevo, dentro del workspace Pro que ya paga GHPOINTS; misma región |
 | Servicio `web` | Node 24, `npm run build`, `next start` en `0.0.0.0:$PORT`; healthcheck `GET /api/health` (timeout 300 s); pre-deploy `npm run db:release` (migraciones + uniques parciales + verificación, nunca seed); reinicio por fallo con hasta cinco reintentos; techos de 1 vCPU y 1 GB |
 | Servicio `Postgres` | PostgreSQL 18 solo en red privada; volumen de 2 GB con alertas al 80 %, 95 % y 100 %; respaldos diario (6 días), semanal (1 mes) y mensual (3 meses); PITR |
-| Bucket `media` | Privado, S3-compatible; variables enlazadas por referencia al servicio `web`; nunca `NEXT_PUBLIC_*` |
+| Bucket `media` | Privado, S3-compatible; variables enlazadas por referencia al servicio `web`; nunca `NEXT_PUBLIC_*`; CORS para el dominio de producción y los de PR o staging (`aws s3api put-bucket-cors`); sin snapshots nativos, por eso la copia mensual incluye sus objetos |
 | Variables | `DATABASE_URL` por referencia a Postgres, `SESSION_SECRET`, `APP_URL`, `APP_TIMEZONE=America/Bogota`, `TZ=UTC`, `INSTITUTIONAL_EMAIL_DOMAINS`, `RESEND_API_KEY`, `EMAIL_FROM`, `VAPID_*`, `JOBS_ENABLED=true`, credenciales del bucket |
 | Worker | En el mismo proceso del servicio `web`; un servicio `worker` aparte (misma imagen, `WORKER_ONLY=1`) solo con uso medido |
 | Entornos | Producción desde `main`; entornos de PR de Railway o un staging bajo demanda (decisión abierta); desarrollo local con Postgres en Docker y emulador S3, sin credenciales de producción |
@@ -94,7 +94,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.prisma` (Prisma en mod
 Lo que este despliegue permite y que el diseño aprovecha:
 
 - **Proceso permanente:** poller y scheduler en la app; sin crons externos ni funciones con tiempo máximo.
-- **Sin límite de cuerpo:** las subidas pasan por la app en streaming (tope de 20 MB); los medios se sirven por `/api/media/[id]` con validación y caché ([ADR-016](adr/ADR-016-medios-en-r2.md)).
+- **Medios sin pasar por la app:** subida directa del navegador al bucket con `POST` prefirmado y CORS; entrega por `/api/media/[id]`, que valida y redirige a una URL prefirmada, con egreso gratis desde el bucket ([ADR-022](adr/ADR-022-medios-prefirmados.md)).
 - **Una sola región:** latencia desde Medellín de 60 a 90 ms, suficiente para este uso; Cloudflare gratis delante como CDN del portal es opcional.
 - **Una sola instancia:** el healthcheck y los reinicios cubren fallos del proceso; la alta disponibilidad no es objetivo. Si algún día hace falta escalar, los locks transaccionales ya evitan trabajo duplicado.
 
@@ -111,7 +111,7 @@ casa-digital/
     admin/                      personas, organizaciones, pipelines, formularios, comunidad, contenido, participacion, comunicaciones, sistema
     a/[publicId]/               check-in (sin sesión → /ingresar y vuelve)
     ingresar/                   OTP
-    api/                        health, media/[id], media/upload, ics, push, export
+    api/                        health, media/[id], media/presign, media/confirm, ics, push, export
   src/modules/<módulo>/         schema, domain, actions, jobs, events, components
   src/shared/                   brand, ui (shadcn base), admin-kit, lib
   src/db/                       cliente Prisma, tx + outbox, errores unique

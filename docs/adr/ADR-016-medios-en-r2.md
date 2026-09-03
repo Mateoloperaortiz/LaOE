@@ -1,6 +1,6 @@
 # ADR-016: Medios en un bucket privado sin cargar la app
 
-- Estado: Aceptada (enmendada por ADR-021)
+- Estado: Reemplazada por ADR-022 (2026-09-02); antes enmendada por ADR-021
 - Fecha: 2026-09-02
 - Relacionadas: ADR-014, ADR-021
 

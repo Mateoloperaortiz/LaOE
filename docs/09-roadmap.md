@@ -11,6 +11,7 @@ Cuentas y accesos:
 - [ ] Repositorio en GitHub (remoto de este repo) con protección de `main`
 - [ ] Proyecto `casa-digital` en el workspace Pro de Railway: servicios `web`, `Postgres` y bucket `media`; variables por referencia; misma región que GHPOINTS
 - [ ] Respaldos del volumen de Postgres (diario, semanal, mensual) y PITR activados
+- [ ] CORS del bucket configurado para el dominio de producción y los de PR o staging
 - [ ] Límite duro de uso del workspace revisado para dos apps en convivencia
 - [ ] Resend: dominio `oeeafit.com` verificado (ya existe en GHPOINTS; confirmar acceso)
 - [ ] Claves VAPID para push
@@ -18,7 +19,7 @@ Cuentas y accesos:
 Código base (empieza cuando se autorice escribir código):
 
 - [ ] Scaffold Next.js 16 + TypeScript + Tailwind 4 + shadcn base; `railway.json` con build, start, healthcheck y pre-deploy
-- [ ] Tokens de marca, texturas, componente `Cartel`, elementos gráficos SVG, tema claro/oscuro, fuentes locales
+- [ ] Tokens de marca, texturas, componente `Cartel`, elementos gráficos SVG, tema claro/oscuro, Sofia Sans Extra Condensed y Plus Jakarta Sans servidas en local, favicon con el isotipo
 - [ ] Esquema Prisma por módulos, migraciones, uniques parciales
 - [ ] Acceso: OTP, sesiones, guards, step-up, `/ingresar`
 - [ ] Admin kit (`defineResource`) y paleta ⌘K
@@ -40,11 +41,11 @@ Listo cuando: login por OTP con roster semilla sintético, shell del admin, clar
 - [ ] Inicio con cartelera, próximo encuentro y macroeventos
 - [ ] ICS público
 - [ ] OG images con cartel tipográfico
-- [ ] Admin de Contenido con subida al bucket por la app y variantes
+- [ ] Admin de Contenido con subida directa prefirmada, confirmación y variantes
 - [ ] SEO básico, sitemap, robots
 - [ ] Lista de revisión de marca aplicada a cada pantalla pública ([07-marca.md](07-marca.md))
 
-Listo cuando: contenido real de la OE publicable sin tocar código; nada personal en público; una portada de 5 MB sube y se sirve desde el bucket a través de la app con caché.
+Listo cuando: contenido real de la OE publicable sin tocar código; nada personal en público; una portada de 5 MB sube directo al bucket y se sirve por redirección prefirmada.
 
 ## Fase 2 · Personas y Mi OE · `pendiente`
 
@@ -130,3 +131,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | --- | --- | --- |
 | 2026-09-02 | — | Documentación inicial: visión, arquitectura, CRM, modelo de datos, 20 ADR, acceso, mapa del sitio, marca, migración, roadmap |
 | 2026-09-02 | — | Carpeta renombrada de `Untitled` a `casa-digital`. Hosting vuelve a Railway en el workspace Pro existente: ADR-021 reemplaza a ADR-019 y enmienda ADR-001, ADR-012 y ADR-016. Marca reescrita a partir del manual de 19 páginas (logo, color, tipografía, elementos, texturas, composición, orden del feed) |
+| 2026-09-02 | — | Cerradas cuatro decisiones: sustitutos libres de fuentes por comparación visual (Sofia Sans Extra Condensed y Plus Jakarta Sans), isotipo aprobado como favicon, elementos gráficos redibujados en SVG, subida directa prefirmada al bucket (ADR-022 reemplaza a ADR-016). Láminas de comparación en `docs/assets/` |

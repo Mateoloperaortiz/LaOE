@@ -1,6 +1,6 @@
 # ADR-021: Infraestructura: Railway en el workspace Pro existente
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-022 en el punto "Medios")
 - Fecha: 2026-09-02
 - Reemplaza: ADR-019
 - Enmienda: ADR-001, ADR-012, ADR-016
@@ -27,6 +27,10 @@ Hechos verificados en la documentación de Railway el 2026-09-02: Pro US$20/mes 
 - Desaparece el límite de 4,5 MB: la subida pasa por la app; la subida directa prefirmada queda como optimización si el bucket soporta CORS (enmienda a ADR-016).
 - Una sola instancia y una región; latencia desde Medellín de 60 a 90 ms. El healthcheck y los reinicios cubren fallos del proceso; la alta disponibilidad no es objetivo.
 - Todo vive en un solo panel: app, base, bucket, variables, logs, respaldos.
+
+## Enmienda (2026-09-02, ADR-022)
+
+El punto "Medios" queda como lo define [ADR-022](ADR-022-medios-prefirmados.md): subida directa desde el navegador con `POST` prefirmado y CORS, entrega por redirección a URL prefirmada; la app no transmite archivos. El resto de esta ADR no cambia.
 
 ## Frente a ADR-019
 

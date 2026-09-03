@@ -50,6 +50,8 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-02 | Hosting: Railway, en el workspace Pro que ya se paga por GHPOINTS. Se evaluó Vercel + Neon + R2 y se descartó el mismo día ([ADR-021](adr/ADR-021-infraestructura-railway.md)) |
 | 2026-09-02 | Esta iteración solo documenta; el código empieza después, fase por fase |
 | 2026-09-02 | La carpeta del repositorio pasa de `Untitled` a `casa-digital`; el nombre del remoto sigue abierto |
+| 2026-09-02 | Sin licencias de fuentes: Sofia Sans Extra Condensed y Plus Jakarta Sans (OFL) sustituyen a TT Bluescreens y NouvelR; el isotipo se usa como favicon con aval |
+| 2026-09-02 | Medios: subida directa al bucket con `POST` prefirmado y CORS, entrega por redirección prefirmada ([ADR-022](adr/ADR-022-medios-prefirmados.md)) |
 
 Hechos que sustentan varias de estas decisiones:
 

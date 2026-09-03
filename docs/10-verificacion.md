@@ -33,7 +33,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 
 - Ingreso por OTP con código fijo de test y redirección a `next`.
 - QR de check-in: sin sesión → ingreso → vuelve al QR → puntos acreditados y visibles en Mi OE.
-- Admin publica una edición con portada subida por la app al bucket (emulador) y la ve el visitante.
+- Admin publica una edición con portada subida directo al bucket por `POST` prefirmado (emulador con CORS) y la ve el visitante.
 - Kanban de admisión hasta "Dar de alta" y primer ingreso del nuevo integrante.
 - Campaña enviada al mailer de consola respetando preferencias y baja.
 - Modo anfitrión: el líder marca a una persona sin sesión.

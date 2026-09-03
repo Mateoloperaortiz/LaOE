@@ -12,7 +12,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 - [ ] Texto de presentación de cada uno de los 27 comités (2 a 4 párrafos)
 - [ ] Contacto o enlace de cada comité (Instagram, correo, WhatsApp)
-- [ ] Confirmación de que los 27 logos en `public/logos/committees` están vigentes
+- [ ] Confirmar que la lista de 27 comités con logo sigue vigente (comités nuevos o cerrados)
 
 ## Eventos
 
@@ -28,9 +28,13 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 ## Marca
 
-- [ ] Archivos del logo en SVG (variantes blanco y navy)
-- [ ] Licencias de TT Bluescreens y NouvelR si la OE las tiene; si no, aval para usar Barlow Condensed y Manrope
-- [ ] Texturas oficiales (papel, granito) si existen en alta resolución
+- [x] Logos de los 27 comités en SVG monocromo: ya están en `LaOE/public/logos/committees` (pasan al repositorio en la fase 0)
+- [x] Logo vertical de la OE como máscara monocroma (`oe.svg`): sirve para las variantes navy y blanca
+- [x] Fuentes: la OE no tiene licencias; se usan Sofia Sans Extra Condensed y Plus Jakarta Sans (decisión cerrada el 2026-09-02)
+- [x] Isotipo como favicon e ícono de PWA: aprobado
+- [ ] Logo horizontal en SVG (el manual lo llama "menos utilizado"; sirve para la barra de navegación). Mientras no exista, se usa el vertical a tamaño pequeño
+- [ ] Logo principal a color en SVG (con sus azules propios) para pie de página y carnet; hoy solo existe la máscara monocroma
+- [ ] Texturas oficiales (papel, granito) en alta resolución si existen; si no, se usan las generadas en la web
 
 ## Operación
 
