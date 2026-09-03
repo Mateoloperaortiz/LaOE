@@ -13,7 +13,6 @@ permissions:
   contents: read
 
 env:
-  NODE_ENV: test
   APP_URL: http://localhost:3000
   APP_TIMEZONE: America/Bogota
   TZ: UTC
