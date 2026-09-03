@@ -2,9 +2,14 @@ import type { Metadata } from "next";
 import { listPublicAnnouncements } from "@/modules/content";
 import { BarraTitulo, Elemento, feedVariant, SelloOE } from "@/shared/brand";
 import { t } from "@/shared/copy";
+import { paginaMetadata } from "@/shared/lib/seo";
 import { AnuncioCartel } from "../_ui/AnuncioCartel";
 
-export const metadata: Metadata = { title: t("T-301") };
+export const metadata: Metadata = paginaMetadata({
+  title: t("T-301"),
+  description: t("T-007"),
+  path: "/cartelera",
+});
 
 // Cartelera pública: anuncios publicados con audiencia pública, fijados primero (ADR-015).
 export default async function CarteleraPage() {

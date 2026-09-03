@@ -4,6 +4,7 @@ import { excerpt } from "@/modules/content";
 import { getPublishedCommittee } from "@/modules/people";
 import { Cartel, Elemento } from "@/shared/brand";
 import { t } from "@/shared/copy";
+import { paginaMetadata } from "@/shared/lib/seo";
 import { Markdown } from "@/shared/ui/Markdown";
 
 // Ficha editorial de un comité: logo, presentación en Markdown y contacto. Sin roster (ADR-014).
@@ -22,8 +23,11 @@ export async function generateMetadata({
   if (!comite) {
     return {};
   }
-  const description = excerpt(comite.presentation ?? "", 160);
-  return { title: comite.name, ...(description ? { description } : {}) };
+  return paginaMetadata({
+    title: comite.name,
+    description: excerpt(comite.presentation ?? "", 160),
+    path: `/comites/${comite.slug}`,
+  });
 }
 
 export default async function ComitePage({ params }: PageProps<"/comites/[slug]">) {

@@ -63,6 +63,10 @@ export function proxy(request: NextRequest) {
   if (!dev) {
     response.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
   }
+  // Staging y local no se indexan (ADR-023, ADR-033); las páginas además llevan la meta robots.
+  if (!getEnv().PUBLIC_INDEXING) {
+    response.headers.set("x-robots-tag", "noindex, nofollow");
+  }
   return response;
 }
 

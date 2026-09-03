@@ -4,6 +4,7 @@ import { getPublicMediaRef, Imagen } from "@/modules/content";
 import { getPublishedEvent, listPublishedEditionsOf } from "@/modules/events";
 import { BarraTitulo, Cartel, Elemento } from "@/shared/brand";
 import { t } from "@/shared/copy";
+import { paginaMetadata } from "@/shared/lib/seo";
 import { Markdown } from "@/shared/ui/Markdown";
 import { EdicionTarjeta } from "../../_ui/EdicionTarjeta";
 
@@ -23,7 +24,11 @@ export async function generateMetadata({
   if (!evento) {
     return {};
   }
-  return { title: evento.name, ...(evento.summary ? { description: evento.summary } : {}) };
+  return paginaMetadata({
+    title: evento.name,
+    description: evento.summary,
+    path: `/eventos/${evento.slug}`,
+  });
 }
 
 export default async function EventoPage({ params }: PageProps<"/eventos/[slug]">) {

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { findPublicPage } from "@/modules/content";
+import { excerpt, findPublicPage } from "@/modules/content";
 import { BarraTitulo } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { paginaMetadata } from "@/shared/lib/seo";
 import { PaginaEditable } from "../_ui/PaginaEditable";
 
 // Páginas fijas y editables del portal (La OE, Unirse, Privacidad y las que el admin cree después).
@@ -20,7 +21,14 @@ async function cargar(slug: string) {
 export async function generateMetadata({ params }: PageProps<"/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const pagina = await cargar(slug);
-  return pagina ? { title: pagina.title } : {};
+  if (!pagina) {
+    return {};
+  }
+  return paginaMetadata({
+    title: pagina.title,
+    description: pagina.status === "PUBLISHED" ? excerpt(pagina.body, 160) : undefined,
+    path: `/${pagina.slug}`,
+  });
 }
 
 function ContactoOE() {

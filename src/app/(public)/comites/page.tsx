@@ -4,8 +4,13 @@ import { excerpt } from "@/modules/content";
 import { listPublishedCommittees } from "@/modules/people";
 import { BarraTitulo, Cartel, feedVariant } from "@/shared/brand";
 import { t } from "@/shared/copy";
+import { paginaMetadata } from "@/shared/lib/seo";
 
-export const metadata: Metadata = { title: t("T-309") };
+export const metadata: Metadata = paginaMetadata({
+  title: t("T-309"),
+  description: t("T-022"),
+  path: "/comites",
+});
 
 // Los comités publicados, cada uno como cartel con su logo tintado; el roster nunca se muestra.
 export default async function ComitesPage() {

@@ -5,6 +5,7 @@ import { excerpt, getPublicAnnouncement } from "@/modules/content";
 import { BarraTitulo } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
+import { paginaMetadata } from "@/shared/lib/seo";
 import { Markdown } from "@/shared/ui/Markdown";
 
 // Un anuncio de la cartelera: la URL que se comparte (y que usará el push de la fase 6).
@@ -20,7 +21,14 @@ export async function generateMetadata({
 }: PageProps<"/cartelera/[id]">): Promise<Metadata> {
   const { id } = await params;
   const anuncio = await cargar(id);
-  return anuncio ? { title: anuncio.title, description: excerpt(anuncio.body, 160) } : {};
+  if (!anuncio) {
+    return {};
+  }
+  return paginaMetadata({
+    title: anuncio.title,
+    description: excerpt(anuncio.body, 160),
+    path: `/cartelera/${anuncio.id}`,
+  });
 }
 
 export default async function AnuncioPage({ params }: PageProps<"/cartelera/[id]">) {

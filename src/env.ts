@@ -49,6 +49,9 @@ const envSchema = z
     S3_FORCE_PATH_STYLE: booleanString.default(true),
     MEDIA_CORS_ORIGINS: commaSeparatedList.default([]),
 
+    // Solo producción indexa (ADR-023, ADR-033): staging y local llevan noindex y robots cerrado.
+    PUBLIC_INDEXING: booleanString.default(false),
+
     JOBS_ENABLED: booleanString.default(false),
     JOBS_POLL_INTERVAL_MS: z.coerce.number().int().min(250).default(3000),
     JOBS_BATCH_SIZE: z.coerce.number().int().min(1).max(500).default(50),

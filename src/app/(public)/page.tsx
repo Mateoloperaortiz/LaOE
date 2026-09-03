@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublicMediaRef, Imagen, listPublicAnnouncements } from "@/modules/content";
 import {
@@ -15,8 +16,15 @@ import {
 } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateRange } from "@/shared/lib/dates";
+import { paginaMetadata } from "@/shared/lib/seo";
 import { AnuncioCartel } from "./_ui/AnuncioCartel";
 import { EventoTarjeta } from "./_ui/EventoTarjeta";
+
+export const metadata: Metadata = {
+  ...paginaMetadata({ title: t("T-002"), description: t("T-003"), path: "/" }),
+  // El inicio conserva el nombre del sitio como título de pestaña; el titular va a Open Graph.
+  title: { absolute: t("T-001") },
+};
 
 // Inicio: hero, próximo encuentro, macroeventos y cartelera (06-mapa-del-sitio.md).
 export default async function HomePage() {

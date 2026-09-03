@@ -10,6 +10,7 @@ import { Cartel, Insignia, LogoComite } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { formatDateRange } from "@/shared/lib/dates";
 import { mediaUrl } from "@/shared/lib/media";
+import { paginaMetadata } from "@/shared/lib/seo";
 import { Markdown } from "@/shared/ui/Markdown";
 import { edicionPasada } from "../../../_ui/EdicionTarjeta";
 
@@ -29,11 +30,11 @@ export async function generateMetadata({
   if (!edicion) {
     return {};
   }
-  const description = excerpt(edicion.description, 160) || edicion.location;
-  return {
+  return paginaMetadata({
     title: `${edicion.name} · ${edicion.event.name}`,
-    ...(description ? { description } : {}),
-  };
+    description: excerpt(edicion.description, 160) || edicion.location,
+    path: `/eventos/${edicion.event.slug}/${edicion.slug}`,
+  });
 }
 
 export default async function EdicionPage({ params }: PageProps<"/eventos/[slug]/[edicion]">) {

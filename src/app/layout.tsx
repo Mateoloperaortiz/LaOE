@@ -1,13 +1,21 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { getEnv } from "@/env";
 import { fontContenido, fontTitulos } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: { default: t("T-001"), template: `%s · ${t("T-001")}` },
-  description: t("T-003"),
-};
+// Metadata base del sitio (ADR-033): metadataBase desde APP_URL y noindex salvo PUBLIC_INDEXING.
+export async function generateMetadata(): Promise<Metadata> {
+  const env = getEnv();
+  return {
+    metadataBase: new URL(env.APP_URL),
+    title: { default: t("T-001"), template: `%s · ${t("T-001")}` },
+    description: t("T-003"),
+    openGraph: { siteName: t("T-001"), locale: "es_CO", type: "website" },
+    ...(env.PUBLIC_INDEXING ? {} : { robots: { index: false, follow: false } }),
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: [

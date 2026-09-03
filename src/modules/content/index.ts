@@ -33,6 +33,7 @@ export {
   findPublicPage,
   getPage,
   listPages,
+  listPublishedPublicPages,
   type PageRow,
   type PublicPage,
   updatePage,

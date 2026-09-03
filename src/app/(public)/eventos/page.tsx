@@ -3,9 +3,14 @@ import { getPublicMediaRef } from "@/modules/content";
 import { findNextPublicEditions, listPublishedEvents } from "@/modules/events";
 import { BarraTitulo, feedVariant } from "@/shared/brand";
 import { t } from "@/shared/copy";
+import { paginaMetadata } from "@/shared/lib/seo";
 import { EventoTarjeta } from "../_ui/EventoTarjeta";
 
-export const metadata: Metadata = { title: t("T-304"), description: t("T-014") };
+export const metadata: Metadata = paginaMetadata({
+  title: t("T-304"),
+  description: t("T-014"),
+  path: "/eventos",
+});
 
 // Catálogo de eventos permanentes con su próxima edición pública.
 export default async function EventosPage() {

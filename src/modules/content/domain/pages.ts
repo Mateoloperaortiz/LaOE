@@ -122,6 +122,17 @@ export interface PublicPage {
   updatedAt: Date;
 }
 
+/** Páginas públicas y publicadas, para el sitemap. */
+export const listPublishedPublicPages = cache(
+  async (): Promise<Array<{ slug: string; updatedAt: Date }>> => {
+    return getDb()
+      .select({ slug: page.slug, updatedAt: page.updatedAt })
+      .from(page)
+      .where(and(eq(page.audience, "PUBLIC"), eq(page.status, "PUBLISHED")))
+      .orderBy(asc(page.slug));
+  },
+);
+
 /** Página de audiencia pública por su slug, publicada o no; se comparte entre metadata y página. */
 export const findPublicPage = cache(async (slug: string): Promise<PublicPage | null> => {
   const [row] = await getDb()
