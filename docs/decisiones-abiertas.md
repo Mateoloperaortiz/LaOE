@@ -7,12 +7,6 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | # | Pregunta | Opciones | Quién decide | Cómo se cierra |
 | --- | --- | --- | --- | --- |
 | 1 | Anonimización de egresados: plazo para borrar teléfono, notas y respuestas (nombre, comités y ledger se conservan) | Lo que diga la política aprobada · 5 años si no lo dice · otro | OE (junta) | Al recibir el texto de la política; mientras tanto el job `retention` queda apagado |
-| 2 | ¿Qué pasa con quien cierra más de 10 puntos por debajo de su umbral (fuera del margen de prueba)? | Retiro de la OE · retiro del comité · GH decide caso por caso (propuesta: la app lo marca `NO_CUMPLE` y GH confirma) | GH | Antes de la fase 4 |
-| 3 | Quien cumple en un comité y no en otro: ¿sigue en la OE y sale del comité donde no cumplió? | Sí (propuesta) · debe cumplir en todos · GH decide | GH | Antes de la fase 4 |
-| 4 | ¿Qué consecuencia tiene faltar a una asamblea obligatoria (la ordinaria o la elección de junta)? | Solo se pierde el 10 % · prueba · retiro | GH y junta | Antes de la fase 4 |
-| 5 | Asambleas obligatorias en el primer semestre, sin elección de junta | Dos ordinarias y tres para el 10 % (propuesta) · otra regla | GH | Antes del término 2027-1 |
-| 6 | ¿En qué momento evalúan los directores de GH? | Al cerrar cada evento (propuesta) · al cerrar el término | GH | Antes de la fase 4 |
-| 7 | ¿Quién lidera y quién evalúa el Athletic OE? | Capitán · director de GH del Athletic | GH | Con la lista de grupos del término |
 
 ## Cerradas
 
@@ -37,17 +31,18 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | 2026-09-02 | ¿Egresados con acceso de solo lectura? | No en v1: el correo institucional suele caducar al graduarse; se guarda correo personal opcional con consentimiento ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
 | 2026-09-02 | Código rotativo en QR | Opcional por ocasión, apagado por defecto ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
 | 2026-09-02 | Tope y mínimo de comités por persona | Mínimo 1, máximo 3 ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
-| 2026-09-02 | Requisito de asambleas por término | GH precisó: obligatorias dos (una ordinaria y la elección de junta); el 10 % de permanencia exige tres ([ADR-027](adr/ADR-027-permanencia-reglas-de-gh.md)) |
+| 2026-09-02 | Requisito de asambleas por término | Obligatorias: una ordinaria en primer semestre; una ordinaria más la elección de junta (y su segunda vuelta) en segundo semestre. Faltar a una obligatoria implica expulsión. El 10 % exige tres asistencias ([ADR-028](adr/ADR-028-permanencia-consecuencias.md)) |
 | 2026-09-02 | Fórmula de score de comité | Participación relativa con suavizado hacia la media (`k = 5`); cruda y suavizada guardadas ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
 | 2026-09-02 | ¿Se migran los badges de GHPOINTS? | No; niveles derivados del ledger ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
 | 2026-09-02 | Tabla de permanencia completa de GH | Es la general (unos 50 puntos); el resto lo pone la tabla de cada comité (unos 60); la suma no es 100 exacto ([ADR-027](adr/ADR-027-permanencia-reglas-de-gh.md)) |
 | 2026-09-02 | GT Macroeventos 4/6/8 % | Por cantidad de GT con buen desempeño: uno 4, dos 6, tres o más 8 |
-| 2026-09-02 | Quién evalúa el buen desempeño | El director de GH de cada frente; las tareas de nuevos, el GH principal (Miguel Gaviria) |
-| 2026-09-02 | Qué pasa por debajo del umbral | Hasta 10 puntos por debajo: periodo de prueba con umbral 80 % el término siguiente |
+| 2026-09-02 | Quién evalúa el buen desempeño y cuándo | El director de GH de cada frente, al cerrar el semestre; las tareas de nuevos, el GH principal (Miguel Gaviria); el Athletic, su capitán y su DT; la barra brava, el GH de turno con las asistencias a partidos ([ADR-028](adr/ADR-028-permanencia-consecuencias.md)) |
+| 2026-09-02 | Qué pasa por debajo del umbral | Hasta 10 puntos por debajo: periodo de prueba con umbral 80 % el término siguiente. Más de 10: sale de ese comité; si no le queda otro donde cumpla o esté en prueba, sale de la OE ([ADR-028](adr/ADR-028-permanencia-consecuencias.md)) |
 | 2026-09-02 | ¿Umbral y pesos cambian por término? | Umbrales fijos: vigente 60 %, nuevo o en prueba 80 %, transferencia interna 70 % en ese comité |
 | 2026-09-02 | Comités de trabajo vs 27 comités | Distintos: CAP, CGH, CCM, CAE, CML, CAF y Athletic, liderados por cargos de junta ([12-permanencia.md](12-permanencia.md)) |
 | 2026-09-02 | Presupuesto de cada ámbito | Nominal: general 50, comité 60; los umbrales son puntos sobre la suma |
-| 2026-09-02 | Quien está en varios comités | Un resultado por comité: general más la tabla de ese comité; sin comité principal |
+| 2026-09-02 | Quien está en varios comités | Un resultado por comité: general más la tabla de ese comité; sin comité principal. Cumplir en uno y no en otro: sale solo del comité donde no cumplió |
 | 2026-09-02 | Eventos 1 y 2 de la tabla del comité | Cada comité define su peso; pendientes en A3 |
 | 2026-09-02 | ¿La tabla del comité decide la permanencia en el comité? | La permanencia se define con el total por comité |
 | 2026-09-02 | Puntos por tipo de actividad | Los define GH al crear cada actividad; las reuniones de comité no dan puntos |
+| 2026-09-02 | Consecuencia de faltar a una asamblea obligatoria | Expulsión de la OE; la app avisa antes de cada obligatoria y propone la salida en el cierre |

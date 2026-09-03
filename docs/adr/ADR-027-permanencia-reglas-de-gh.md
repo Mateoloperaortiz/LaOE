@@ -1,6 +1,6 @@
 # ADR-027: Permanencia: reglas confirmadas por Gestión Humana
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-028)
 - Fecha: 2026-09-02
 - Enmienda: ADR-024 (asambleas), ADR-025 (umbral y estados), ADR-026 (presupuestos, comité principal y evaluadores)
 
@@ -28,3 +28,7 @@ Miguel Gaviria, GH principal, respondió el 2026-09-02 las preguntas sobre las t
 - Aparecen `MembershipTerm` (condición por término: prueba) y `CommitteeMembership.transferredIn`.
 - Los directores de GH necesitan una vista propia de evaluación; los líderes de comité siguen con tabla, reuniones y puntajes.
 - Quedan abiertas: consecuencia más de 10 puntos por debajo, cumplir en un comité y no en otro, faltar a una obligatoria, obligatorias del primer semestre, momento de evaluar, líder y evaluador del Athletic.
+
+## Enmienda (2026-09-02, ADR-028)
+
+GH cerró esas seis preguntas: salida del comité con `NO_CUMPLE` y de la OE si no queda otro comité donde cumpla o esté en prueba; expulsión por faltar a una asamblea obligatoria; en primer semestre una sola ordinaria obligatoria; evaluación al cerrar el semestre; el Athletic lo evalúan su capitán y su DT, y la barra brava el GH de turno. `evaluatorPersonId` pasa a `WorkGroupEvaluator`. Ver [ADR-028](ADR-028-permanencia-consecuencias.md).

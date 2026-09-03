@@ -43,7 +43,8 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [x] Lista de comités de trabajo con su significado y sus líderes (falta el Athletic)
 - [x] Quién evalúa cada grupo (directores de GH; nuevos, el GH principal)
 - [ ] Tablas de permanencia de los 27 comités del término (ejemplo recibido: A3, con los eventos 1 y 2 aún sin peso)
-- [ ] Lista de directores de GH por frente y quién lidera y evalúa el Athletic
+- [ ] Lista de directores de GH por frente (GH la envía cuando termine de limpiar su base)
+- [ ] Nombres del capitán y el DT del Athletic
 - [ ] Calendario de integraciones y de partidos del Athletic del término
 
 ## Operación

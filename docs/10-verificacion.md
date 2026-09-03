@@ -17,7 +17,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Validación de formularios y de acciones declaradas.
 - Mapeo de tipos legados de GHPOINTS.
 - Backoff y dead letter del outbox; derivación del código rotativo.
-- Cálculo de permanencia: con las tablas de ejemplo de 2026-2 (general y A3), un nuevo, un veterano, uno en prueba y una transferencia reproducen las hojas de GH criterio por criterio, con el ejemplo de Pixel 75 % y Cigma 95 %; "no alcanza" cuando lo que queda posible no cubre el umbral; GT por cantidad; margen de prueba de 10 puntos.
+- Cálculo de permanencia: con las tablas de ejemplo de 2026-2 (general y A3), un nuevo, un veterano, uno en prueba y una transferencia reproducen las hojas de GH criterio por criterio, con el ejemplo de Pixel 75 % y Cigma 95 %; "no alcanza" cuando lo que queda posible no cubre el umbral; GT por cantidad; margen de prueba de 10 puntos; propuesta de cierre con salida del comité o de la OE según la regla de GH; expulsión por asamblea obligatoria; obligatorias de primer y segundo semestre.
 
 ## Integration (con Postgres)
 

@@ -95,7 +95,8 @@ Listo cuando: 500 escaneos concurrentes sin duplicados ni recomputes repetidos; 
 - [ ] Créditos manuales auditados
 - [ ] Cálculo por outbox con snapshot por persona y término; estados incluido "no alcanza"
 - [ ] Mi OE: `/app/permanencia` con progreso, cómo sumar más y evaluaciones pendientes; barra en el inicio
-- [ ] Admin: cumplimiento por comité con filtros y export; cierre con propuesta automática (cumple, prueba, no cumple) y confirmación por persona y comité
+- [ ] Admin: cumplimiento por comité con filtros y export; cierre con propuesta automática según la regla de GH (cumple, prueba, salida del comité, salida de la OE, expulsión por asamblea obligatoria) y confirmación por persona y comité
+- [ ] Aviso antes de cada asamblea obligatoria y ventana de evaluación dos semanas antes del cierre
 - [ ] Persona 360: pestaña Permanencia
 - [ ] Avisos a mitad de término y tres semanas antes del cierre
 
@@ -161,3 +162,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-02 | — | Permanencia (ADR-025): la tabla de GH pasa a ser una fase propia (nueva fase 4; admisión, comunicaciones y cutover pasan a 5, 6 y 7). Doc `12-permanencia.md` con la transcripción de las capturas, el modelo y las vistas. Siete preguntas nuevas para GH |
 | 2026-09-02 | — | Permanencia en dos niveles (ADR-026): cada comité tiene su tabla dentro de un presupuesto; tabla de A3 transcrita; reuniones de comité como ocasiones; comité principal; puntajes del líder con observación. Cuatro preguntas más para GH |
 | 2026-09-02 | — | GH (Miguel Gaviria) respondió: dos tablas (general ≈ 50, comité ≈ 60) con resultado por comité, umbrales fijos 60 / 80 / 70, periodo de prueba con margen de 10, GT por cantidad, asambleas obligatorias dos y tres para el 10 %, evaluadores directores de GH, comités de trabajo con sus líderes, puntos definidos por actividad. ADR-027; 12-permanencia reescrito; siete preguntas abiertas |
+| 2026-09-02 | — | GH cerró las siete: salida del comité o de la OE según la regla, expulsión por asamblea obligatoria, obligatorias por semestre, evaluación al cerrar el semestre, Athletic con capitán y DT (ADR-028). Solo queda abierta la anonimización de egresados, de la junta |

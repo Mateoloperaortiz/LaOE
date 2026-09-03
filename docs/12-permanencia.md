@@ -9,10 +9,10 @@ Cada semestre, Gestión Humana evalúa a cada integrante con **dos tablas de cri
 | Dos tablas | La general vale unos **50 puntos** y la del comité unos **60**; la suma no es 100 exacto (ronda 110 a 115). Los umbrales son puntos sobre esa suma, no una fracción del máximo |
 | Resultado por comité | Para cada comité de la persona: total = general + tabla de ese comité. Ejemplo de GH: general 45 %; en Pixel cumplió 30 % de la tabla de Pixel, total en Pixel 75 %; en Cigma cumplió 50 %, total en Cigma 95 % |
 | Umbrales fijos | Vigente: 60 %. Nuevo o en periodo de prueba: 80 %. Transferencia interna a un comité: 70 % en el comité al que se transfirió |
-| Por debajo del umbral | Si queda hasta 10 puntos por debajo de lo que debía cumplir, pasa a **periodo de prueba** (el término siguiente debe cumplir 80 %). Qué pasa más abajo está por confirmar |
+| Por debajo del umbral | Hasta 10 puntos por debajo de lo que debía cumplir: **periodo de prueba** (el término siguiente debe cumplir 80 %). Más de 10 puntos por debajo: **sale de ese comité**; si era su único comité, o no le queda otro donde cumpla o esté en prueba, **sale de la OE** |
 | GT de macroeventos | Por cantidad de grupos de trabajo con buen desempeño: uno 4 %, dos 6 %, tres o más 8 % |
-| Asambleas | Obligatorias: dos (una ordinaria más la elección de junta). El 10 % de permanencia exige una asamblea más: tres en total. El primer semestre, sin elección, está por confirmar |
-| Quién evalúa | El director de Gestión Humana de cada frente (macroevento, comité de trabajo, evento, Athletic). Las tareas de nuevos las evalúa el GH principal (hoy Miguel Gaviria) |
+| Asambleas | Obligatorias: en primer semestre una ordinaria; en segundo semestre una ordinaria más la elección de junta (y la segunda vuelta si la hay). **Faltar a una obligatoria implica expulsión de la OE.** El 10 % de permanencia exige tres asistencias en el término (obligatorias más extras) |
+| Quién evalúa y cuándo | El director de Gestión Humana de cada frente, **al cerrar el semestre**. Las tareas de nuevos las evalúa el GH principal (hoy Miguel Gaviria). En el Athletic, el capitán y el DT reportan quién jugó y quién no; la barra brava la evalúa el GH de turno con las asistencias a partidos como evidencia principal |
 | Eventos del comité | Cada comité define el peso de sus eventos 1 y 2; A3 aún no lo definió |
 | GH Points | Los puntos de cada actividad los define GH al crearla. Las reuniones de comité no dan puntos: solo cuentan en la tabla |
 
@@ -21,7 +21,7 @@ Cada semestre, Gestión Humana evalúa a cada integrante con **dos tablas de cri
 | Criterio | Cómo se cumple según GH | Peso | Aplica a | Evidencia en la app |
 | --- | --- | --- | --- | --- |
 | Integraciones | Asistir a las actividades de integración de la Vicepresidencia de GH: 2 % por actividad, máximo 10 % (5 de las 10 del semestre) | 10 % | Todos | Check-ins en ocasiones con categoría `INTEGRATION` |
-| Asambleas generales | Tres asambleas: las dos obligatorias (una ordinaria y la elección de junta) más una | 10 % | Todos | Check-ins en asambleas del término |
+| Asambleas generales | Tres asambleas en el término: las obligatorias más extras | 10 % | Todos | Check-ins en asambleas del término; las obligatorias se controlan aparte |
 | GT Macroeventos | Grupos de trabajo de Inventiva, Días EAFIT o EnFemenino con buen desempeño: uno 4 %, dos 6 %, tres 8 % | 4 / 6 / 8 % | Veteranos | Grupos `GT_MACROEVENT` evaluados `GOOD`, por cantidad |
 | GAP | Grupo de apoyo de un macroevento o de un evento de otro comité, con buen desempeño | 5 % | Todos | Grupo `GAP` + evaluación |
 | GAP OE | Grupo de apoyo en eventos de la Junta Directiva: VTG y Assessment | 3 % + 3 % | Veteranos | Un grupo `GAP_OE` por evento + evaluación |
@@ -56,7 +56,7 @@ Son distintos de los 27 comités de pertenencia. Se cargan como grupos de trabaj
 | CAE | Comité de Alianzas Estratégicas | Vicepresidencia de Relaciones Públicas |
 | CML | Comité de Mejoramiento Logístico | Vicepresidencia Administrativa |
 | CAF | Comité de Acompañamiento Financiero | Vicepresidencia Financiera |
-| Athletic | Equipo deportivo Athletic OE | Por confirmar |
+| Athletic | Equipo deportivo Athletic OE | Capitán y DT (director técnico), que reportan a GH y evalúan |
 
 ## Cómo se modela
 
@@ -80,7 +80,7 @@ Son distintos de los 27 comités de pertenencia. Se cargan como grupos de trabaj
 
 ### Grupos de trabajo y evaluaciones
 
-`WorkGroup` por término con `kind` (`WORK_COMMITTEE`, `GT_MACROEVENT`, `GAP`, `GAP_OE`, `BARRA_BRAVA`, `NEW_MEMBER_TASK`), nombre, código, evento o edición asociada, quién lo lidera y quién lo **evalúa** (`evaluatorPersonId`: el director de GH de ese frente; en tareas de nuevos, el GH principal). `WorkGroupMembership` une persona y grupo, con `evaluation` (`PENDING`, `GOOD`, `INSUFFICIENT`), quién evaluó, cuándo y una nota. Una evaluación pendiente se muestra como "pendiente" y al cerrar el término cuenta como no lograda salvo que GH la resuelva. Cada evaluación queda en la línea de tiempo de la persona.
+`WorkGroup` por término con `kind` (`WORK_COMMITTEE`, `GT_MACROEVENT`, `GAP`, `GAP_OE`, `BARRA_BRAVA`, `NEW_MEMBER_TASK`), nombre, código, evento o edición asociada, quién lo lidera y quiénes lo **evalúan** (`WorkGroupEvaluator`: el director de GH de ese frente; en tareas de nuevos, el GH principal; en el Athletic, el capitán y el DT). Las evaluaciones se hacen al cerrar el semestre: la ventana se abre dos semanas antes del cierre. `WorkGroupMembership` une persona y grupo, con `evaluation` (`PENDING`, `GOOD`, `INSUFFICIENT`), quién evaluó, cuándo y una nota. Una evaluación pendiente se muestra como "pendiente" y al cerrar el término cuenta como no lograda salvo que GH la resuelva. Cada evaluación queda en la línea de tiempo de la persona.
 
 ### Estados del resultado en un comité
 
@@ -91,13 +91,13 @@ Son distintos de los 27 comités de pertenencia. Se cargan como grupos de trabaj
 | `NO_ALCANZA` | Término abierto; ni sumando todo lo que falta se llega al umbral. GH lo ve de inmediato |
 | `CUMPLE` | Término cerrado con total ≥ umbral |
 | `PRUEBA` | Término cerrado con total entre el umbral y 10 puntos por debajo: periodo de prueba el término siguiente |
-| `NO_CUMPLE` | Término cerrado con total más de 10 puntos por debajo del umbral (consecuencia por confirmar) |
+| `NO_CUMPLE` | Término cerrado con total más de 10 puntos por debajo del umbral: sale de ese comité; si no le queda otro donde cumpla o esté en prueba, sale de la OE |
 
-"Lo que aún es posible" usa las ocasiones futuras del término (integraciones, partidos, reuniones) y los grupos abiertos. Las asambleas obligatorias se muestran aparte como "obligatorias: 1 de 2".
+"Lo que aún es posible" usa las ocasiones futuras del término (integraciones, partidos, reuniones) y los grupos abiertos. Las asambleas obligatorias se muestran aparte como "obligatorias: 1 de 2", con aviso antes de cada una: faltar implica retiro de la OE.
 
 ### Cierre del término
 
-Al cerrar, la app **propone** para cada persona y comité el estado según los umbrales y el margen de prueba; GH confirma o corrige con motivo y queda `PermanenceDecision` (`CONTINUES`, `PROBATION`, `EXIT_COMMITTEE`, `EXIT_OE`). `EXIT_OE` ejecuta "dar de baja" ([ADR-003](adr/ADR-003-etapas-por-comando.md)); `PROBATION` marca el término siguiente. Nada se aplica sin la confirmación de GH.
+Al cerrar, la app **propone** para cada persona y comité el estado según los umbrales y el margen de prueba, con la regla de GH: `NO_CUMPLE` en un comité es salida de ese comité; si a la persona no le queda ningún comité donde esté en `CUMPLE` o `PRUEBA`, salida de la OE; faltar a una asamblea obligatoria también propone salida de la OE. GH confirma o corrige con motivo y queda `PermanenceDecision` (`CONTINUES`, `PROBATION`, `EXIT_COMMITTEE`, `EXIT_OE`). `EXIT_OE` ejecuta "dar de baja" ([ADR-003](adr/ADR-003-etapas-por-comando.md)); `PROBATION` marca el término siguiente. Nada se aplica sin la confirmación de GH.
 
 ## Lo que ve el integrante (`/app/permanencia`)
 
@@ -113,7 +113,7 @@ Al cerrar, la app **propone** para cada persona y comité el estado según los u
 - **Tabla general** del término: copiar del anterior, editar, vista previa del impacto sobre el roster.
 - **Tablas de comité**: las 27 en una vista, con su suma frente a los 60 nominales, comentarios y bloqueo al iniciar el término.
 - **Grupos**: crear grupos de trabajo del término con líder, evaluador e integrantes; importar desde CSV; los seis comités de trabajo y el Athletic vienen sembrados.
-- **Evaluaciones**: bandeja de pendientes por evaluador; recordatorios.
+- **Evaluaciones**: ventana que se abre dos semanas antes del cierre del término; bandeja de pendientes por evaluador; recordatorios.
 - **Cumplimiento**: roster con resultado por comité, condición, umbral y estado; filtros "por debajo", "no alcanza", "en prueba", "nuevos"; export.
 - **Cierre**: propuesta automática por persona y comité, confirmación con motivo, registro.
 - **Persona 360**: pestaña Permanencia con el mismo desglose que ve la persona.
@@ -128,7 +128,7 @@ Al cerrar, la app **propone** para cada persona y comité el estado según los u
 
 ## Lo que ve el director de GH de un frente
 
-Bandeja con los grupos que evalúa (`evaluatorPersonId`), sus integrantes y el botón de evaluación con nota; sin acceso al resto del roster.
+Bandeja con los grupos que evalúa (`WorkGroupEvaluator`), sus integrantes y el botón de evaluación con nota, disponible desde dos semanas antes del cierre del término; sin acceso al resto del roster. El capitán y el DT del Athletic y el GH de turno para la barra brava usan la misma vista.
 
 ## Relación con GH Points
 
@@ -136,4 +136,4 @@ Comparten los hechos pero no se mezclan: una integración suma puntos (los que G
 
 ## Preguntas pendientes
 
-En [decisiones-abiertas.md](decisiones-abiertas.md): qué pasa más de 10 puntos por debajo del umbral, qué pasa cuando alguien cumple en un comité y no en otro, qué consecuencia tiene faltar a una asamblea obligatoria, cómo son las obligatorias en el primer semestre, en qué momento evalúan los directores, quién lidera y evalúa el Athletic, y los pesos de los eventos de cada comité.
+GH respondió todo lo que estaba abierto ([ADR-028](adr/ADR-028-permanencia-consecuencias.md)). Falta contenido, no decisiones: las tablas de los demás comités, los pesos de los eventos de cada comité, la lista de directores de GH por frente y los nombres del capitán y el DT del Athletic; GH los envía cuando termine de limpiar su base ([11-contenido-pendiente.md](11-contenido-pendiente.md)).

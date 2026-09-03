@@ -104,7 +104,7 @@ erDiagram
 | `PointEntry` | `personId`, `termId`, `checkInId?`, `kind` (`CHECKIN`, `ADJUSTMENT`, `REVERSAL`, `LEGACY`), `points`, `reason`, `reversalOfId?` único, `createdById?`, `legacyType?` | Append-only |
 | `CommitteeParticipation` | `occasionId`, `committeeId`, `termId`, `eligible`, `present`, `rate`, `smoothedRate`, `frozenAt?` | Unique por (ocasión, comité); cruda y suavizada con `k = 5` (ADR-024) |
 | `TermStanding` | `termId` único, `topNew` JSON, `topVeteran` JSON, `topCommittees` JSON, `stats` JSON | Snapshot al cerrar puntos |
-| `AssemblyRequirement` | `termId`, `personId`, `requiredOrdinary` (2), `requiresBoardElection`, `requiresRunoff`, `adjustedReason?`, `adjustedById?` | Unique por (término, persona); ajustes solo por ADMIN con motivo |
+| `AssemblyRequirement` | `termId`, `personId`, `requiredOrdinary` (1), `requiresBoardElection` (segundo semestre), `requiresRunoff`, `adjustedReason?`, `adjustedById?` | Unique por (término, persona); ajustes solo por ADMIN con motivo; faltar a una obligatoria propone salida de la OE en el cierre |
 
 ### permanence
 
@@ -112,7 +112,8 @@ erDiagram
 | --- | --- | --- |
 | `PermanenceRule` | `termId`, `scope` (`GENERAL`, `COMMITTEE`), `committeeId?`, `key`, `label`, `description`, `weight`, `appliesTo` (`ALL`, `NEW`, `VETERAN`), `computation` (`CHECKIN_COUNT`, `CHECKIN_THRESHOLD`, `CHECKIN_RATE`, `GROUP_EVALUATED`, `COMPOSITE`, `LEADER_SCORE`, `MANUAL`), `params` JSON (incluye tramos por cantidad para GT), `order`, `lockedAt?` | Unique por (término, ámbito, comité, clave); el editor avisa si la tabla se aleja del valor nominal (50 general, 60 comité) sin bloquear |
 | `LeaderScore` | `termId`, `personId`, `ruleId`, `value`, `note?`, `scoredById`, `scoredAt` | Para reglas `LEADER_SCORE`; nota obligatoria si el valor es menor al peso; escribe una interacción visible para la persona |
-| `WorkGroup` | `termId`, `kind` (`WORK_COMMITTEE`, `GT_MACROEVENT`, `GAP`, `GAP_OE`, `BARRA_BRAVA`, `NEW_MEMBER_TASK`), `name`, `code?` (CAP, CGH, CCM, CAE, CML, CAF, ATHLETIC), `editionId?`, `eventId?`, `leaderPersonId?`, `evaluatorPersonId?` | Los comités de trabajo son grupos, no `Committee`; el líder lo opera y el evaluador (director de GH del frente, o GH principal para tareas de nuevos) evalúa |
+| `WorkGroup` | `termId`, `kind` (`WORK_COMMITTEE`, `GT_MACROEVENT`, `GAP`, `GAP_OE`, `BARRA_BRAVA`, `NEW_MEMBER_TASK`), `name`, `code?` (CAP, CGH, CCM, CAE, CML, CAF, ATHLETIC), `editionId?`, `eventId?`, `leaderPersonId?` | Los comités de trabajo son grupos, no `Committee`; el líder lo opera y los evaluadores de `WorkGroupEvaluator` evalúan al cerrar el semestre |
+| `WorkGroupEvaluator` | `groupId`, `personId` | Director de GH del frente; GH principal para tareas de nuevos; capitán y DT para el Athletic; GH de turno para la barra brava |
 | `WorkGroupMembership` | `groupId`, `personId`, `joinedAt`, `leftAt?`, `evaluation` (`PENDING`, `GOOD`, `INSUFFICIENT`), `evaluatedById?`, `evaluatedAt?`, `note?` | Unique por (grupo, persona); la evaluación escribe una interacción |
 | `ManualCredit` | `termId`, `personId`, `ruleKey`, `value`, `reason`, `grantedById` | Para reglas `MANUAL`; auditado |
 | `PermanenceSnapshot` | `termId`, `personId`, `generalTotal`, `results` JSON (por comité: parte del comité, total, umbral aplicable, `remainingPossible`, estado `EN_CAMINO`, `EN_RIESGO`, `NO_ALCANZA`, `CUMPLE`, `PRUEBA`, `NO_CUMPLE`), `mandatoryAssembliesMet`, `computedAt`, `frozenAt?` | Unique por (término, persona); recalculado por outbox; un resultado por comité, sin comité principal |
@@ -142,7 +143,7 @@ erDiagram
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
 | `AuditLog` | `actorId?`, `action`, `entityType`, `entityId`, `before` JSON, `after` JSON, `ip?`, `legacy` | Misma transacción que la mutación |
-| `AppConfig` | `key` único, `value`, `updatedById?` | `committees.min = 1`, `committees.max = 3`, `assemblies.requiredOrdinary = 2`, `score.shrinkK = 5`, `checkin.rotatingCodeDefault = false`, `permanence.threshold.active = 60`, `permanence.threshold.new = 80`, `permanence.threshold.probation = 80`, `permanence.threshold.transfer = 70`, `permanence.probationMargin = 10`, versión de la política |
+| `AppConfig` | `key` único, `value`, `updatedById?` | `committees.min = 1`, `committees.max = 3`, `assemblies.requiredOrdinary = 1`, `permanence.assembliesForCredit = 3`, `score.shrinkK = 5`, `checkin.rotatingCodeDefault = false`, `permanence.threshold.active = 60`, `permanence.threshold.new = 80`, `permanence.threshold.probation = 80`, `permanence.threshold.transfer = 70`, `permanence.probationMargin = 10`, versión de la política |
 | `Outbox` | `eventType`, `payload` JSON, `dedupeKey?`, `attempts`, `nextAttemptAt`, `processedAt?`, `deadLetterAt?`, `lastError?` | Un pendiente por `dedupeKey` |
 | `ImportJob` | `type`, `status`, `filename`, `summary` JSON, `createdById` | Roster, migración |
 | `LegacyAlias` | `path` único, `targetType`, `targetId` | `/a/{publicId}` y `/asamblea/{publicId}` de GHPOINTS |

@@ -1,6 +1,6 @@
 # ADR-024: Reglas de participación confirmadas por la OE
 
-- Estado: Aceptada (enmendada por ADR-027 en el punto 2, asambleas)
+- Estado: Aceptada (enmendada por ADR-027 y ADR-028 en el punto 2, asambleas)
 - Fecha: 2026-09-02
 - Enmienda: ADR-006 (tipos de asamblea y código rotativo) y ADR-009 (suavizado del score)
 - Relacionadas: ADR-002, ADR-004, ADR-005, ADR-010, ADR-014
@@ -27,3 +27,7 @@ Mateo respondió el 2026-09-02, en nombre de Gestión Humana, las reglas que seg
 ## Enmienda (2026-09-02, ADR-027)
 
 GH precisó las asambleas: obligatorias son dos (una ordinaria más la elección de junta) y el criterio de permanencia del 10 % exige tres. El primer semestre, sin elección, está por confirmar. Ver [ADR-027](ADR-027-permanencia-reglas-de-gh.md).
+
+## Enmienda (2026-09-02, ADR-028)
+
+Primer semestre: una sola ordinaria obligatoria. Segundo semestre: una ordinaria más la elección de junta y su segunda vuelta. Faltar a una obligatoria implica expulsión de la OE. El 10 % exige tres asistencias en ambos semestres. Ver [ADR-028](ADR-028-permanencia-consecuencias.md).

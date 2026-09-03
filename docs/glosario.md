@@ -28,7 +28,8 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Score de comité | `CommitteeParticipation` | Participación relativa de un comité en una ocasión y su promedio por término |
 | Tablero | ranking | Clasificación del término: nuevos, veteranos y comités |
 | Asamblea | `Occasion.kind=ASSEMBLY` | Ocasión sin puntos que cuenta para el requisito del término |
-| Requisito de asambleas | `AssemblyRequirement` | Cuántas asambleas ordinarias debe firmar una persona en un término (2), y si le aplican la elección de junta y la segunda vuelta |
+| Requisito de asambleas | `AssemblyRequirement` | Las asambleas obligatorias de una persona en un término: una ordinaria y, en segundo semestre, la elección de junta y su segunda vuelta |
+| Asamblea obligatoria | `AssemblyRequirement` | Faltar a una implica expulsión de la OE; la app avisa antes y propone la salida en el cierre. Distinta del criterio del 10 %, que exige tres asistencias |
 | Elección de junta | `assemblyKind=BOARD_ELECTION` | Asamblea especial del segundo semestre donde se vota la junta del año siguiente; obligatoria para toda la OE |
 | Segunda vuelta | `assemblyKind=RUNOFF` | Repetición de la votación cuando no hay ganador; también obligatoria |
 | Tasa suavizada | `CommitteeParticipation.smoothedRate` | Participación relativa corregida hacia la media de la ocasión para no premiar el azar de los comités pequeños |
@@ -48,7 +49,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Resultado por comité | `PermanenceSnapshot.results` | Parte general más la tabla de ese comité; una persona con varios comités tiene un resultado en cada uno |
 | Periodo de prueba | `MembershipTerm.probation` | Condición de quien cerró hasta 10 puntos por debajo de su umbral; el término siguiente debe cumplir 80 % |
 | Transferencia interna | `CommitteeMembership.transferredIn` | Cambio de comité dentro de la OE; ese término debe cumplir 70 % en el comité nuevo |
-| Director de GH | `Appointment.kind=GH_DIRECTOR`, `WorkGroup.evaluatorPersonId` | Quien evalúa el buen desempeño de los grupos de su frente |
+| Director de GH | `Appointment.kind=GH_DIRECTOR`, `WorkGroupEvaluator` | Quien evalúa, al cerrar el semestre, el buen desempeño de los grupos de su frente |
 | GH principal | `Appointment.kind=GH_HEAD` | Cabeza de Gestión Humana; evalúa las tareas de nuevos y confirma el cierre |
 | Reunión de comité | `Occasion.category=COMMITTEE_MEETING` | Reunión semanal del comité con asistencia por modo anfitrión; alimenta el criterio de asistencia |
 | Puntaje del líder | `LeaderScore` | Valor que asigna el líder a un criterio como subcomité, liderazgo, destacado o convivencia, con observación si no es completo |
