@@ -8,6 +8,8 @@ export interface ListParams {
   page: number;
   pageSize: number;
   filters: Record<string, string>;
+  /** Quién lista: para filtros como "mis tareas". */
+  actor?: KitActor;
 }
 
 export interface ListResult<Row> {

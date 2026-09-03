@@ -12,6 +12,7 @@ import {
   reactivateMembership,
 } from "./membership";
 import { type PersonInput, updatePerson } from "./persons";
+import { setPersonTags } from "./tags";
 
 // Los comandos abren su transacción aquí, para que las acciones de página (src/app) los usen sin
 // tocar src/db: cada uno es `runCommand` con auditoría y eventos en la misma transacción (ADR-012).
@@ -84,4 +85,8 @@ export function revokeConsentAs(
   purpose: ConsentPurpose,
 ): Promise<boolean> {
   return runCommand(actor, (ctx) => revokeConsent(ctx, personId, purpose));
+}
+
+export function setPersonTagsAs(actor: Actor, personId: string, tagIds: string[]): Promise<void> {
+  return runCommand(actor, (ctx) => setPersonTags(ctx, personId, tagIds));
 }

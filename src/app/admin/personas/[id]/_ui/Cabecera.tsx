@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ActorPermission } from "@/modules/identity";
-import type { MyMembershipView, Person360 } from "@/modules/people";
+import type { MyMembershipView, Person360, TagRow } from "@/modules/people";
 import { stageCell, statusCell } from "@/modules/people/admin";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
@@ -12,20 +12,20 @@ type Props = {
   my: MyMembershipView;
   permissions: ActorPermission[];
   committeeNames: Map<string, string>;
+  tags: TagRow[];
 };
 
 // Cabecera de la Persona 360 (02-crm.md): quién es, en qué está y qué se puede hacer con ella.
-export function Cabecera({ data, my, permissions, committeeNames }: Props) {
+export function Cabecera({ data, my, permissions, committeeNames, tags }: Props) {
   const { person, membership, appointments } = data;
   const acciones = tList("T-433");
   const [correo, celular, programa, ingreso] = tList("T-511") as [string, string, string, string];
   const [admin, lider, junta] = tList("T-289") as [string, string, string];
   const anonymized = person.anonymizedAt !== null;
-  const canEdit = !anonymized;
   const active = membership !== null && membership.status !== "INACTIVE";
   const base = `/admin/personas/${person.id}`;
   const enlaces: Array<{ key: string; label: string; href: string; calido?: boolean }> = [];
-  if (canEdit) {
+  if (!anonymized) {
     enlaces.push({
       key: "editar",
       label: acciones[0] ?? "",
@@ -59,6 +59,23 @@ export function Cabecera({ data, my, permissions, committeeNames }: Props) {
       calido: true,
     });
   }
+  if (!anonymized) {
+    enlaces.push({
+      key: "nota",
+      label: acciones[5] ?? "",
+      href: `${base}?pestana=linea&accion=nota`,
+    });
+    enlaces.push({
+      key: "tarea",
+      label: acciones[6] ?? "",
+      href: `${base}?pestana=tareas&accion=tarea`,
+    });
+    enlaces.push({
+      key: "etiquetas",
+      label: acciones[7] ?? "",
+      href: `${base}?pestana=resumen&accion=etiquetas`,
+    });
+  }
   enlaces.push({
     key: "permisos",
     label: acciones[8] ?? "",
@@ -89,6 +106,15 @@ export function Cabecera({ data, my, permissions, committeeNames }: Props) {
                 {permisoLabel(item)}
               </Insignia>
             ))}
+            {tags.length === 0 ? (
+              <span className="text-xs text-tinta-suave">{t("T-467")}</span>
+            ) : (
+              tags.map((tag) => (
+                <Insignia key={tag.id} fondo="cream">
+                  {tag.name}
+                </Insignia>
+              ))
+            )}
           </div>
         </div>
         <nav aria-label={acciones.join(" · ")} className="flex flex-wrap gap-2">

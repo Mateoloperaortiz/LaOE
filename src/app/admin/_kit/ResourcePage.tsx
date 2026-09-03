@@ -70,6 +70,7 @@ export async function ResourcePage({
     page,
     pageSize: PAGE_SIZE,
     filters: { ...filters, ...fixedFilters },
+    actor: { personId: actor.personId, isAdmin: actor.isAdmin },
   });
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const listParams = { q, pagina: page > 1 ? String(page) : "", ...filters };

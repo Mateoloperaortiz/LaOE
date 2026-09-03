@@ -4,8 +4,9 @@ import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { term } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 
-// CRM de comunidad (02-crm.md, ADR-034): línea de tiempo, tareas, etiquetas, segmentos y onboarding.
-// Organizaciones, pipelines y tarjetas llegan en la fase 5.
+// CRM de comunidad (02-crm.md, ADR-034): línea de tiempo, tareas y onboarding. Etiquetas y segmentos
+// viven en el esquema de `people` (el listado de personas los usa y people no depende de crm);
+// organizaciones, pipelines y tarjetas llegan en la fase 5.
 
 export const taskStatus = pgEnum("task_status", ["OPEN", "DONE"]);
 
@@ -69,42 +70,6 @@ export const task = pgTable(
     index("task_status_due_idx").on(t.status, t.dueAt),
   ],
 );
-
-export const tag = pgTable(
-  "tag",
-  {
-    id: id(),
-    name: text().notNull(),
-    color: text(),
-    createdAt: createdAt(),
-  },
-  (t) => [uniqueIndex("tag_name_unique").on(sql`lower(${t.name})`)],
-);
-
-export const personTag = pgTable(
-  "person_tag",
-  {
-    id: id(),
-    personId: text()
-      .notNull()
-      .references(() => person.id, { onDelete: "cascade" }),
-    tagId: text()
-      .notNull()
-      .references(() => tag.id, { onDelete: "cascade" }),
-    createdAt: createdAt(),
-  },
-  (t) => [uniqueIndex("person_tag_unique").on(t.personId, t.tagId)],
-);
-
-// Filtro guardado; se valida con Zod al leer (segmentFilterSchema).
-export const segment = pgTable("segment", {
-  id: id(),
-  name: text().notNull(),
-  filter: jsonb().$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
-  createdById: text().references(() => person.id, { onDelete: "set null" }),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
 
 // Pasos de la primera semana (ADR-031): los pasos viven en AppConfig (onboarding.steps).
 export const onboardingProgress = pgTable(

@@ -102,7 +102,13 @@ export async function changeMembershipStatus(
   });
   await ctx.emit({
     type: "membership.changed",
-    payload: { personId, from: current.status, to: input.to, reason: input.reason },
+    payload: {
+      actorId: ctx.actor.personId,
+      personId,
+      from: current.status,
+      to: input.to,
+      reason: input.reason,
+    },
   });
 }
 
@@ -166,6 +172,7 @@ export async function endMembership(
   await ctx.emit({
     type: "membership.changed",
     payload: {
+      actorId: ctx.actor.personId,
       personId,
       from: current.status,
       to: "INACTIVE",
@@ -226,10 +233,19 @@ export async function reactivateMembership(
   });
   await ctx.emit({
     type: "membership.changed",
-    payload: { personId, from: "INACTIVE", to: "ACTIVE", reason: input.reason ?? null },
+    payload: {
+      actorId: ctx.actor.personId,
+      personId,
+      from: "INACTIVE",
+      to: "ACTIVE",
+      reason: input.reason ?? null,
+    },
   });
   if (emailChanged) {
-    await ctx.emit({ type: "person.email-changed", payload: { personId } });
+    await ctx.emit({
+      type: "person.email-changed",
+      payload: { actorId: ctx.actor.personId, personId },
+    });
   }
 }
 
@@ -302,7 +318,7 @@ export async function anonymizePerson(
     entityId: personId,
     after: { anonymizedAt: now.toISOString() },
   });
-  await ctx.emit({ type: "person.anonymized", payload: { personId } });
+  await ctx.emit({ type: "person.anonymized", payload: { actorId: ctx.actor.personId, personId } });
 }
 
 export interface MembershipEventView {

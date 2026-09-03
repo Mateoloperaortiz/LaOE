@@ -37,6 +37,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/expor
     page: 1,
     pageSize: 10_000,
     filters,
+    actor: { personId: actor.personId, isAdmin: actor.isAdmin },
   });
   const exported = rows.map((row) => resource.exportRow(row));
   const headers = exported[0] ? Object.keys(exported[0]) : [];

@@ -1,8 +1,10 @@
 import { readdirSync } from "node:fs";
 import { runCommand } from "@/db/tx";
 import type { Badge, FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
+import { MULTI_SEPARATOR } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
-import type { CommitteeRoleRow } from "./domain/committee-memberships";
+import { formatDateTime } from "@/shared/lib/dates";
+import { type CommitteeRoleRow, listCommitteeRoles } from "./domain/committee-memberships";
 import {
   type CommitteeInput,
   type CommitteeRow,
@@ -28,8 +30,30 @@ import {
   listRoles,
   updateCommitteeRole,
 } from "./domain/roles";
+import {
+  createSegment,
+  findPeopleByFilter,
+  getSegment,
+  listAllSegments,
+  listSegments,
+  type SegmentInput,
+  type SegmentRow,
+  segmentInputSchema,
+  updateSegment,
+} from "./domain/segments";
+import {
+  createTag,
+  getTag,
+  listAllTags,
+  listTags,
+  type TagInput,
+  type TagRow,
+  tagInputSchema,
+  updateTag,
+} from "./domain/tags";
 
-// Recursos del admin kit (ADR-017): Comités, Personas (el listado; la ficha es la Persona 360) y Cargos.
+// Recursos del admin kit (ADR-017): Comités, Personas (el listado; la ficha es la Persona 360), Cargos,
+// Etiquetas y Segmentos.
 
 const [plural, singular] = tList("T-261") as [string, string];
 const [activo, inactivo] = tList("T-287") as [string, string];
@@ -167,7 +191,7 @@ const campos = tList("T-427");
 const [estudiante, externo] = tList("T-428") as [string, string];
 const etapas = tList("T-429");
 const estados = tList("T-381");
-const [filtroEtapa, filtroEstado, filtroComite] = tList("T-508") as [
+const [filtroEtapa, filtroEstado, filtroComite, filtroSegmento] = tList("T-508") as [
   string,
   string,
   string,
@@ -263,18 +287,30 @@ export const peopleResource: ResourceDefinition<PersonRow, PersonInput> = {
       label: filtroComite,
       options: (await listAllCommittees()).map((item) => ({ value: item.id, label: item.name })),
     },
+    {
+      key: "segmento",
+      label: filtroSegmento,
+      options: (await listAllSegments()).map((item) => ({ value: item.id, label: item.name })),
+    },
   ],
   schema: personInputSchema,
   fields: personFields,
-  list: (params) =>
-    listPeople({
+  list: async (params) => {
+    let personIds: string[] | undefined;
+    if (params.filters.segmento) {
+      const segment = await getSegment(params.filters.segmento);
+      personIds = segment ? await findPeopleByFilter(segment.filter) : [];
+    }
+    return listPeople({
       q: params.q,
       stage: params.filters.stage,
       status: params.filters.status,
       committeeId: params.filters.committeeId,
+      personIds,
       page: params.page,
       pageSize: params.pageSize,
-    }),
+    });
+  },
   get: async (id) =>
     (await listPeople({ q: "", personIds: [id], page: 1, pageSize: 1 })).rows[0] ?? null,
   toFormValues: () => ({}),
@@ -342,5 +378,146 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
     nombre: row.label,
     liderazgo: row.isLeadership ? "sí" : "no",
     orden: row.sortOrder,
+  }),
+};
+
+// Etiquetas: marcas libres sobre personas (02-crm.md).
+
+const [etiquetasPlural, etiquetaSingular] = tList("T-422") as [string, string];
+const [nombreEtiqueta, colorEtiqueta] = tList("T-465") as [string, string];
+
+export const tagsResource: ResourceDefinition<TagRow, TagInput> = {
+  key: "etiquetas",
+  names: { plural: etiquetasPlural, singular: etiquetaSingular },
+  basePath: "/admin/etiquetas",
+  columns: [
+    { key: "name", label: nombreEtiqueta, render: (row) => row.name },
+    { key: "color", label: colorEtiqueta, render: (row) => row.color },
+  ],
+  schema: tagInputSchema,
+  fields: [
+    { name: "name", label: nombreEtiqueta, type: "text", required: true },
+    { name: "color", label: colorEtiqueta, type: "color" },
+  ],
+  list: (params) => listTags({ q: params.q, page: params.page, pageSize: params.pageSize }),
+  get: getTag,
+  toFormValues: (row) => ({ name: row.name, color: row.color ?? "" }),
+  create: (actor, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => createTag(ctx, input)),
+  update: (actor, id, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => updateTag(ctx, id, input)),
+  exportRow: (row) => ({ nombre: row.name, color: row.color }),
+};
+
+// Segmentos: filtros guardados con conteo y export de personas (con step-up, por /api/export/personas).
+
+const [segmentosPlural, segmentoSingular] = tList("T-424") as [string, string];
+const segmentoCampos = tList("T-468");
+const ingresoOpciones = tList("T-469");
+const consentimientoOpciones = tList("T-470");
+const ENTRY_CODES = ["ANY", "NEW", "VETERAN"] as const;
+const CONSENT_CODES = ["ANY", "COMMS_YES", "COMMS_NO", "PHOTO_YES", "MEMORIAL_YES"] as const;
+
+async function segmentFields(): Promise<FieldDefinition[]> {
+  const [committees, roles, tags] = await Promise.all([
+    listAllCommittees(),
+    listCommitteeRoles(),
+    listAllTags(),
+  ]);
+  return [
+    { name: "name", label: segmentoCampos[0] ?? "", type: "text", required: true },
+    {
+      name: "stages",
+      label: segmentoCampos[1] ?? "",
+      type: "multiselect",
+      options: STAGE_CODES.map((value) => ({ value, label: stageLabel(value) })),
+    },
+    {
+      name: "statuses",
+      label: segmentoCampos[2] ?? "",
+      type: "multiselect",
+      options: STATUS_CODES.map((value) => ({ value, label: statusLabel(value) })),
+    },
+    {
+      name: "entry",
+      label: segmentoCampos[3] ?? "",
+      type: "select",
+      options: ENTRY_CODES.map((value, index) => ({
+        value,
+        label: ingresoOpciones[index] ?? value,
+      })),
+    },
+    {
+      name: "committeeIds",
+      label: segmentoCampos[4] ?? "",
+      type: "multiselect",
+      options: committees.map((item) => ({ value: item.id, label: item.name })),
+    },
+    {
+      name: "roleCodes",
+      label: segmentoCampos[5] ?? "",
+      type: "multiselect",
+      options: roles.map((item) => ({ value: item.code, label: item.label })),
+    },
+    {
+      name: "tagIds",
+      label: segmentoCampos[6] ?? "",
+      type: "multiselect",
+      options: tags.map((item) => ({ value: item.id, label: item.name })),
+    },
+    {
+      name: "consent",
+      label: segmentoCampos[7] ?? "",
+      type: "select",
+      options: CONSENT_CODES.map((value, index) => ({
+        value,
+        label: consentimientoOpciones[index] ?? value,
+      })),
+    },
+    { name: "program", label: segmentoCampos[8] ?? "", type: "text" },
+  ];
+}
+
+export const segmentsResource: ResourceDefinition<SegmentRow, SegmentInput> = {
+  key: "segmentos",
+  names: { plural: segmentosPlural, singular: segmentoSingular },
+  basePath: "/admin/segmentos",
+  columns: [
+    { key: "name", label: segmentoCampos[0] ?? "", render: (row) => row.name },
+    { key: "count", label: t("T-471"), render: (row) => row.count },
+    {
+      key: "export",
+      label: t("T-472"),
+      render: (row) => ({ text: t("T-472"), href: `/api/export/personas?segmento=${row.id}` }),
+    },
+    {
+      key: "createdAt",
+      label: t("T-295").split("·")[0]?.trim() ?? "",
+      render: (row) => formatDateTime(row.createdAt),
+    },
+  ],
+  schema: segmentInputSchema,
+  fields: segmentFields,
+  list: (params) => listSegments({ q: params.q, page: params.page, pageSize: params.pageSize }),
+  get: getSegment,
+  toFormValues: (row) => ({
+    name: row.name,
+    stages: row.filter.stages.join(MULTI_SEPARATOR),
+    statuses: row.filter.statuses.join(MULTI_SEPARATOR),
+    entry: row.filter.entry,
+    committeeIds: row.filter.committeeIds.join(MULTI_SEPARATOR),
+    roleCodes: row.filter.roleCodes.join(MULTI_SEPARATOR),
+    tagIds: row.filter.tagIds.join(MULTI_SEPARATOR),
+    consent: row.filter.consent,
+    program: row.filter.program,
+  }),
+  create: (actor, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => createSegment(ctx, input)),
+  update: (actor, id, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => updateSegment(ctx, id, input)),
+  exportRow: (row) => ({
+    nombre: row.name,
+    personas: row.count,
+    filtro: JSON.stringify(row.filter),
   }),
 };

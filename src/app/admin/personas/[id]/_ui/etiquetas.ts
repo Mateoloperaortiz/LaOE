@@ -1,3 +1,4 @@
+import type { TimelineFilter } from "@/modules/crm";
 import { APPOINTMENT_KINDS, type AppointmentKind } from "@/modules/people";
 import { tList } from "@/shared/copy";
 
@@ -39,3 +40,21 @@ export function appointmentLabel(kind: AppointmentKind, title: string | null): s
 export const END_REASONS = ["GRADUATION", "RESIGNATION", "PERMANENCE", "OTHER"] as const;
 
 export const CONSENT_TEXTS = ["T-150", "T-151", "T-152", "T-153"] as const;
+
+/** Filtros de la línea de tiempo en el orden de T-454; "OTHER" agrupa cargos, permisos y otros. */
+export const TIMELINE_FILTERS = [
+  "ALL",
+  "NOTE",
+  "MEMBERSHIP",
+  "COMMITTEES",
+  "CONSENT",
+  "DATA",
+  "IMPORTED",
+  "OTHER",
+] as const satisfies readonly TimelineFilter[];
+
+export type TimelineFilterKey = (typeof TIMELINE_FILTERS)[number];
+
+export function isTimelineFilter(value: string): value is TimelineFilterKey {
+  return (TIMELINE_FILTERS as readonly string[]).includes(value);
+}

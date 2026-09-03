@@ -219,7 +219,7 @@ export async function setCommitteeMemberships(
   });
   await ctx.emit({
     type: "committee-membership.changed",
-    payload: { personId, termId, committees: after },
+    payload: { actorId: ctx.actor.personId, personId, termId, committees: after },
   });
 }
 

@@ -2652,4 +2652,16 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-516": {
+    where: "Propósitos de consentimiento (etiquetas cortas, en el orden del modelo)",
+    text: "Membresía · Comunicaciones · Foto en el directorio · Galería de egresados",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-517": {
+    where: "Línea de tiempo: nota de otra persona",
+    text: "Solo quien escribió la nota puede editarla.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
 } as const;

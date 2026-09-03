@@ -5,6 +5,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
+  addNoteAs,
+  completeTaskAs,
+  createTaskAs,
+  editNoteAs,
+  taskInputSchema,
+} from "@/modules/crm";
+import {
   assertAdmin,
   ForbiddenError,
   getActor,
@@ -29,6 +36,7 @@ import {
   removeAppointmentAs,
   revokeConsentAs,
   setCommitteeMembershipsAs,
+  setPersonTagsAs,
   updatePersonAs,
 } from "@/modules/people";
 import { DomainError } from "@/shared/admin-kit";
@@ -36,8 +44,8 @@ import { t } from "@/shared/copy";
 import { clientIp } from "@/shared/lib/request";
 
 // Acciones de la Persona 360 (ADR-034): viven en src/app porque componen identity (actor, step-up,
-// permisos) con people (comandos), y people no puede importar identity. Cada una exige ADMIN,
-// parsea con Zod y vuelve a la ficha con `guardado=1` o con el error del dominio.
+// permisos), people y crm, y people no puede importar identity. Cada una exige ADMIN, parsea con
+// Zod y vuelve a la ficha con `guardado=1` o con el error del dominio.
 
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 
@@ -293,4 +301,70 @@ export async function consentAction(formData: FormData): Promise<void> {
       await revokeConsentAs({ personId: actor.personId, ip }, id, parsed.data.purpose);
     }
   });
+}
+
+const bodySchema = z.string().trim().min(1).max(5_000);
+
+export async function addNoteAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("personId"));
+  const actor = await requireAdmin(await personUrl(id, "linea"));
+  const parsed = bodySchema.safeParse(text(formData, "body"));
+  if (!parsed.success) {
+    await fail(id, "linea", "nota", t("T-260"));
+    return;
+  }
+  await run(id, "linea", "nota", async () => {
+    await addNoteAs({ personId: actor.personId }, id, parsed.data);
+  });
+}
+
+export async function editNoteAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("personId"));
+  const noteId = idSchema.parse(formData.get("noteId"));
+  const actor = await requireAdmin(await personUrl(id, "linea"));
+  const parsed = bodySchema.safeParse(text(formData, "body"));
+  if (!parsed.success) {
+    await fail(id, "linea", "nota", t("T-260"));
+    return;
+  }
+  await run(id, "linea", "nota", () =>
+    editNoteAs({ personId: actor.personId }, noteId, parsed.data),
+  );
+}
+
+export async function createTaskAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("personId"));
+  const actor = await requireAdmin(await personUrl(id, "tareas"));
+  const parsed = taskInputSchema.safeParse({
+    title: text(formData, "title"),
+    assigneeId: optional(formData, "assigneeId"),
+    dueAt: optional(formData, "dueAt"),
+    kind: text(formData, "kind") || "GENERAL",
+    personId: id,
+  });
+  if (!parsed.success) {
+    await fail(id, "tareas", "tarea", t("T-260"));
+    return;
+  }
+  await run(id, "tareas", "tarea", async () => {
+    await createTaskAs({ personId: actor.personId }, parsed.data);
+  });
+}
+
+export async function completeTaskAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("personId"));
+  const taskId = idSchema.parse(formData.get("taskId"));
+  const actor = await requireAdmin(await personUrl(id, "tareas"));
+  await run(id, "tareas", "", () => completeTaskAs({ personId: actor.personId }, taskId));
+}
+
+export async function setTagsAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("personId"));
+  const actor = await requireAdmin(await personUrl(id, "resumen"));
+  const tagIds = formData
+    .getAll("tagIds")
+    .filter((item): item is string => typeof item === "string" && idSchema.safeParse(item).success);
+  await run(id, "resumen", "etiquetas", () =>
+    setPersonTagsAs({ personId: actor.personId }, id, tagIds),
+  );
 }

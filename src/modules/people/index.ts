@@ -15,6 +15,7 @@ export {
   removeAppointmentAs,
   revokeConsentAs,
   setCommitteeMembershipsAs,
+  setPersonTagsAs,
   updatePersonAs,
 } from "./domain/commands";
 export {
@@ -76,3 +77,10 @@ export {
   type MembershipStatus,
   SIGN_IN_STATUSES,
 } from "./domain/reads";
+export {
+  findPeopleByFilter,
+  type SegmentFilter,
+  type SegmentRow,
+  segmentFilterSchema,
+} from "./domain/segments";
+export { listAllTags, listPersonTags, type TagRow } from "./domain/tags";

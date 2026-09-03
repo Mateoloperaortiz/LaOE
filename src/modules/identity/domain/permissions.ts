@@ -158,7 +158,12 @@ export async function grantPermission(
     });
     await ctx.emit({
       type: "permission.granted",
-      payload: { personId: member.id, code: input.code, committeeId: input.committeeId ?? null },
+      payload: {
+        actorId: ctx.actor.personId,
+        personId: member.id,
+        code: input.code,
+        committeeId: input.committeeId ?? null,
+      },
     });
     return row;
   } catch (error) {
@@ -198,7 +203,12 @@ export async function revokePermission(ctx: CommandContext, id: string): Promise
   });
   await ctx.emit({
     type: "permission.revoked",
-    payload: { personId: row.personId, code: row.code, committeeId: row.committeeId },
+    payload: {
+      actorId: ctx.actor.personId,
+      personId: row.personId,
+      code: row.code,
+      committeeId: row.committeeId,
+    },
   });
 }
 
@@ -233,7 +243,12 @@ export async function revokeAllPermissionsFor(
     });
     await ctx.emit({
       type: "permission.revoked",
-      payload: { personId, code: row.code, committeeId: row.committeeId },
+      payload: {
+        actorId: ctx.actor.personId,
+        personId,
+        code: row.code,
+        committeeId: row.committeeId,
+      },
     });
     revoked += 1;
   }

@@ -112,7 +112,13 @@ export async function addAppointment(
   });
   await ctx.emit({
     type: "appointment.changed",
-    payload: { personId, action: "ADDED", kind: input.kind, termId: input.termId },
+    payload: {
+      actorId: ctx.actor.personId,
+      personId,
+      action: "ADDED",
+      kind: input.kind,
+      termId: input.termId,
+    },
   });
   return row;
 }
@@ -131,6 +137,12 @@ export async function removeAppointment(ctx: CommandContext, id: string): Promis
   });
   await ctx.emit({
     type: "appointment.changed",
-    payload: { personId: row.personId, action: "REMOVED", kind: row.kind, termId: row.termId },
+    payload: {
+      actorId: ctx.actor.personId,
+      personId: row.personId,
+      action: "REMOVED",
+      kind: row.kind,
+      termId: row.termId,
+    },
   });
 }

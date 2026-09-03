@@ -115,9 +115,15 @@ export async function updatePerson(
     before: Object.fromEntries(changed.map((field) => [field, before[field]])),
     after: Object.fromEntries(changed.map((field) => [field, values[field]])),
   });
-  await ctx.emit({ type: "person.updated", payload: { personId: id, fields: changed } });
+  await ctx.emit({
+    type: "person.updated",
+    payload: { actorId: ctx.actor.personId, personId: id, fields: changed },
+  });
   if (emailChanged) {
-    await ctx.emit({ type: "person.email-changed", payload: { personId: id } });
+    await ctx.emit({
+      type: "person.email-changed",
+      payload: { actorId: ctx.actor.personId, personId: id },
+    });
   }
 }
 

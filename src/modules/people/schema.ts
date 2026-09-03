@@ -4,6 +4,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -246,3 +247,41 @@ export const committeeMembership = pgTable(
     index("committee_membership_term_idx").on(t.termId, t.committeeId),
   ],
 );
+
+// Etiquetas y segmentos describen personas, no las deciden (02-crm.md). Viven aquí y no en `crm`
+// porque el listado y los exportes de personas los necesitan y `people` no depende de `crm` (ADR-034).
+export const tag = pgTable(
+  "tag",
+  {
+    id: id(),
+    name: text().notNull(),
+    color: text(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("tag_name_unique").on(sql`lower(${t.name})`)],
+);
+
+export const personTag = pgTable(
+  "person_tag",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    tagId: text()
+      .notNull()
+      .references(() => tag.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("person_tag_unique").on(t.personId, t.tagId)],
+);
+
+// Filtro guardado; se valida con Zod al leer (segmentFilterSchema).
+export const segment = pgTable("segment", {
+  id: id(),
+  name: text().notNull(),
+  filter: jsonb().$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  createdById: text().references(() => person.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});

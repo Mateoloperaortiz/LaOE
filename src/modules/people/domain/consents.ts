@@ -96,7 +96,13 @@ export async function recordConsent(
   });
   await ctx.emit({
     type: "consent.changed",
-    payload: { personId, purpose: input.purpose, action: "GRANTED", source: input.source },
+    payload: {
+      actorId: ctx.actor.personId,
+      personId,
+      purpose: input.purpose,
+      action: "GRANTED",
+      source: input.source,
+    },
   });
   return { id: row.id, created: true };
 }
@@ -127,7 +133,7 @@ export async function revokeConsent(
   });
   await ctx.emit({
     type: "consent.changed",
-    payload: { personId, purpose, action: "REVOKED" },
+    payload: { actorId: ctx.actor.personId, personId, purpose, action: "REVOKED" },
   });
   return true;
 }

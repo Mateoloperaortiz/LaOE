@@ -1,10 +1,12 @@
 import Link from "next/link";
+import type { InteractionView } from "@/modules/crm";
 import type { TermRow } from "@/modules/participation";
 import {
   APPOINTMENT_KINDS,
   type CommitteeRoleRow,
   type MyMembershipView,
   type Person360,
+  type TagRow,
 } from "@/modules/people";
 import { STATUS_CODES, statusLabel } from "@/modules/people/admin";
 import { ResourcePanel } from "@/shared/admin-kit";
@@ -12,11 +14,15 @@ import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import {
   addAppointmentAction,
+  addNoteAction,
   anonymizeAction,
   changeStatusAction,
+  createTaskAction,
+  editNoteAction,
   endMembershipAction,
   reactivateAction,
   setCommitteesAction,
+  setTagsAction,
   updatePersonAction,
 } from "../actions";
 import { Campo, Casilla, inputClass } from "./campos";
@@ -29,6 +35,10 @@ type Props = {
   committees: Array<{ id: string; name: string }>;
   roles: CommitteeRoleRow[];
   terms: TermRow[];
+  tags: TagRow[];
+  personTagIds: string[];
+  assignees: Array<{ value: string; label: string }>;
+  note: InteractionView | null;
   closeHref: string;
   error: string;
 };
@@ -57,7 +67,20 @@ function Botones({
 }
 
 // Paneles laterales de la Persona 360: formularios planos que postean a las acciones de la página.
-export function Paneles({ accion, data, my, committees, roles, terms, closeHref, error }: Props) {
+export function Paneles({
+  accion,
+  data,
+  my,
+  committees,
+  roles,
+  terms,
+  tags,
+  personTagIds,
+  assignees,
+  note,
+  closeHref,
+  error,
+}: Props) {
   const { person, membership } = data;
   const acciones = tList("T-433");
   const campos = tList("T-427");
@@ -328,7 +351,7 @@ export function Paneles({ accion, data, my, committees, roles, terms, closeHref,
   if (accion === "cargo") {
     const kinds = tList("T-444");
     const [agregar] = tList("T-447") as [string, string];
-    const [, , , cargosTitulo] = tList("T-443") as [string, string, string, string];
+    const [, , cargosTitulo] = tList("T-443") as [string, string, string, string];
     return (
       <ResourcePanel title={cargosTitulo} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
@@ -386,6 +409,101 @@ export function Paneles({ accion, data, my, committees, roles, terms, closeHref,
           </Campo>
           <Casilla id="campo-grantBoard" name="grantBoard" label={t("T-446")} />
           <Botones enviar={agregar} cancelHref={closeHref} />
+        </form>
+      </ResourcePanel>
+    );
+  }
+
+  if (accion === "nota") {
+    const [guardarNota] = tList("T-456") as [string, string, string];
+    return (
+      <ResourcePanel title={acciones[5] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
+        {alerta}
+        <form action={note ? editNoteAction : addNoteAction} className="flex flex-col gap-4">
+          {hidden}
+          {note ? <input type="hidden" name="noteId" value={note.id} /> : null}
+          <Campo id="campo-body" label={acciones[5] ?? ""} help={t("T-455")}>
+            <textarea
+              id="campo-body"
+              name="body"
+              required
+              rows={6}
+              defaultValue={note?.body ?? ""}
+              className={inputClass}
+            />
+          </Campo>
+          <Botones enviar={guardarNota} cancelHref={closeHref} />
+        </form>
+      </ResourcePanel>
+    );
+  }
+
+  if (accion === "tarea") {
+    const [titulo, responsable, vence, , , tipo] = tList("T-459") as [
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ];
+    const [general, eliminacion] = tList("T-461") as [string, string];
+    return (
+      <ResourcePanel title={acciones[6] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
+        {alerta}
+        <form action={createTaskAction} className="flex flex-col gap-4">
+          {hidden}
+          <Campo id="campo-title" label={titulo}>
+            <input id="campo-title" name="title" required className={inputClass} />
+          </Campo>
+          <Campo id="campo-assigneeId" label={responsable}>
+            <select id="campo-assigneeId" name="assigneeId" className={inputClass} defaultValue="">
+              <option value="">—</option>
+              {assignees.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </Campo>
+          <Campo id="campo-dueAt" label={vence}>
+            <input id="campo-dueAt" name="dueAt" type="datetime-local" className={inputClass} />
+          </Campo>
+          <Campo id="campo-kind-tarea" label={tipo}>
+            <select id="campo-kind-tarea" name="kind" className={inputClass} defaultValue="GENERAL">
+              <option value="GENERAL">{general}</option>
+              <option value="DELETION_REQUEST">{eliminacion}</option>
+            </select>
+          </Campo>
+          <Botones enviar={t("T-253")} cancelHref={closeHref} />
+        </form>
+      </ResourcePanel>
+    );
+  }
+
+  if (accion === "etiquetas") {
+    return (
+      <ResourcePanel title={acciones[7] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
+        {alerta}
+        <form action={setTagsAction} className="flex flex-col gap-4">
+          {hidden}
+          <Campo id="campo-tagIds" label={acciones[7] ?? ""}>
+            <select
+              id="campo-tagIds"
+              name="tagIds"
+              multiple
+              defaultValue={personTagIds}
+              size={Math.min(8, Math.max(3, tags.length))}
+              className={inputClass}
+            >
+              {tags.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </Campo>
+          <Botones enviar={t("T-253")} cancelHref={closeHref} />
         </form>
       </ResourcePanel>
     );
