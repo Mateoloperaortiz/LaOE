@@ -98,6 +98,7 @@ function occ(overrides: Partial<OccasionFact> & { startsAt: Date }): OccasionFac
   return {
     id: overrides.id ?? `occ-${occasionCounter}`,
     title: overrides.title ?? `Ocasión ${occasionCounter}`,
+    location: overrides.location ?? "",
     kind: overrides.kind ?? "ACTIVITY",
     assemblyKind: overrides.assemblyKind ?? null,
     category: overrides.category ?? "OTHER",
@@ -761,6 +762,15 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
       lost: ["BOARD_ELECTION"],
     });
     expect(result.mandatory.upcoming.map((item) => item.occasionId)).toEqual(["ord-2"]);
+  });
+
+  it("una obligatoria sin programar todavía no se da por perdida", () => {
+    const result = computePerson(
+      facts({ rules: [eventos], occasions: [ordinary] }),
+      person({ committees: [committee("a3")], attended: new Set(["ord"]) }),
+      NOW,
+    );
+    expect(result.mandatory).toMatchObject({ met: false, missing: ["BOARD_ELECTION"], lost: [] });
   });
 
   it("primer semestre: solo la ordinaria, y una futura la mantiene pendiente sin perderla", () => {

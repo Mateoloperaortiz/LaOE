@@ -3,4 +3,5 @@ import "@/modules/content/jobs";
 import "@/modules/crm/jobs";
 import "@/modules/identity/jobs";
 import "@/modules/participation/jobs";
+import "@/modules/permanence/jobs";
 import "@/modules/system/jobs";

@@ -37,6 +37,7 @@ export interface TermLike {
 export interface OccasionFact {
   id: string;
   title: string;
+  location: string;
   kind: "ACTIVITY" | "ASSEMBLY" | "EDITION_SESSION";
   assemblyKind: AssemblyKindName | null;
   category: string;
@@ -102,6 +103,7 @@ export interface PersonFacts {
 export interface UpcomingOccasion {
   occasionId: string;
   title: string;
+  location: string;
   startsAt: string;
 }
 
@@ -327,6 +329,7 @@ function toUpcoming(occasions: OccasionFact[]): UpcomingOccasion[] {
   return occasions.slice(0, 3).map((item) => ({
     occasionId: item.id,
     title: item.title,
+    location: item.location,
     startsAt: item.startsAt.toISOString(),
   }));
 }
@@ -671,6 +674,8 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
     assemblies.filter((item) => item.assemblyKind === kind && person.attended.has(item.id)).length;
   const upcomingOf = (kind: AssemblyKindName) =>
     assemblies.filter((item) => item.assemblyKind === kind && item.startsAt > now).length;
+  const heldOf = (kind: AssemblyKindName) =>
+    assemblies.filter((item) => item.assemblyKind === kind && item.startsAt <= now).length;
   const required = {
     ordinary: person.assemblyRequirement.requiredOrdinary,
     boardElection: person.assemblyRequirement.requiresBoardElection,
@@ -683,21 +688,24 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
   };
   const missing: AssemblyKindName[] = [];
   const lost: AssemblyKindName[] = [];
+  // Perdida: ya se celebró alguna de ese tipo sin registro y no queda otra programada que la reemplace.
+  const isLost = (kind: AssemblyKindName, attendedCount: number, requiredCount: number) =>
+    heldOf(kind) > attendedCount && attendedCount + upcomingOf(kind) < requiredCount;
   if (attended.ordinary < required.ordinary) {
     missing.push("ORDINARY");
-    if (attended.ordinary + upcomingOf("ORDINARY") < required.ordinary) {
+    if (isLost("ORDINARY", attended.ordinary, required.ordinary)) {
       lost.push("ORDINARY");
     }
   }
   if (required.boardElection && !attended.boardElection) {
     missing.push("BOARD_ELECTION");
-    if (upcomingOf("BOARD_ELECTION") === 0) {
+    if (isLost("BOARD_ELECTION", 0, 1)) {
       lost.push("BOARD_ELECTION");
     }
   }
   if (required.runoff && !attended.runoff) {
     missing.push("RUNOFF");
-    if (upcomingOf("RUNOFF") === 0) {
+    if (isLost("RUNOFF", 0, 1)) {
       lost.push("RUNOFF");
     }
   }
@@ -708,6 +716,7 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
     .map((item) => ({
       occasionId: item.id,
       title: item.title,
+      location: item.location,
       startsAt: item.startsAt.toISOString(),
       assemblyKind: item.assemblyKind as AssemblyKindName,
     }));
@@ -937,7 +946,7 @@ export function noticesFor(
         notices.push({
           kind: "MANDATORY_ASSEMBLY",
           occasionId: assembly.occasionId,
-          values: { asamblea: assembly.title, fecha: assembly.startsAt },
+          values: { asamblea: assembly.title, fecha: assembly.startsAt, lugar: assembly.location },
         });
       }
     }

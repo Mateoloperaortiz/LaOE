@@ -7,6 +7,7 @@ export { Insignia } from "./Insignia";
 export { LogoComite } from "./LogoComite";
 export { IsotipoDecorativo, LogoOE } from "./LogoOE";
 export { Numeral } from "./Numeral";
+export { Progreso } from "./Progreso";
 export { SelloOE } from "./SelloOE";
 export { ThemeToggle } from "./ThemeToggle";
 export { TituloAcentuado } from "./TituloAcentuado";

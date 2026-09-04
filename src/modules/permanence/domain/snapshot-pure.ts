@@ -7,7 +7,12 @@ import type { CommitteeResult, CriterionResult, MandatoryView } from "./permanen
 
 const evaluation = z.enum(["PENDING", "GOOD", "INSUFFICIENT"]);
 const assemblyKind = z.enum(["ORDINARY", "BOARD_ELECTION", "RUNOFF"]);
-const upcoming = z.object({ occasionId: z.string(), title: z.string(), startsAt: z.string() });
+const upcoming = z.object({
+  occasionId: z.string(),
+  title: z.string(),
+  location: z.string().catch(""),
+  startsAt: z.string(),
+});
 const groupRef = z.object({
   groupId: z.string(),
   name: z.string(),

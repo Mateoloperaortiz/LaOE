@@ -27,6 +27,7 @@ import { isTab, isTimelineFilter, type Tab, tabLabels } from "./_ui/etiquetas";
 import { Paneles } from "./_ui/Paneles";
 import { Pestanas } from "./_ui/Pestanas";
 import { TabParticipacion } from "./_ui/TabParticipacion";
+import { TabPermanencia } from "./_ui/TabPermanencia";
 import {
   TabComunicaciones,
   TabDatos,
@@ -176,6 +177,9 @@ export default async function PersonaPage({
           termCodes={termCodes}
         />
       );
+      break;
+    case "permanencia":
+      content = <TabPermanencia personId={id} termId={my.term?.id ?? null} />;
       break;
     case "linea":
       content = (

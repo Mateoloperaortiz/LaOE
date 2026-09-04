@@ -14,6 +14,8 @@ export const SCHEDULE: ScheduleEntry[] = [
     cron: "0 * * * *",
     events: ["participation.auto-close", "participation.term-check"],
   },
+  // Permanencia (ADR-036 regla 5): recalcula el término actual cada día para que "lo posible" envejezca.
+  { name: "permanence", cron: "0 6 * * *", events: ["permanence.daily"] },
   { name: "prune", cron: "0 3 * * *", events: ["identity.prune", "system.prune"] },
   { name: "backup-check", cron: "30 3 * * *", events: ["system.backup-check"] },
 ];

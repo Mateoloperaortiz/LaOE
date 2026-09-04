@@ -13,6 +13,7 @@ import {
   committeeMembership,
   consent,
   membership,
+  membershipTerm,
   person,
 } from "@/modules/people/schema";
 import {
@@ -411,6 +412,52 @@ async function seedPermanenceRules(
   }
 }
 
+// Condiciones de permanencia sintéticas (ADR-027): una persona en periodo de prueba y una transferencia
+// interna, para ver los umbrales 80 y 70 en Mi OE y en cumplimiento; y el recompute del término.
+async function seedPermanenceConditions(terms: Map<string, string>): Promise<void> {
+  const current = terms.get("2026-2");
+  if (!current) throw new Error("falta término");
+  const [probation] = await db
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.email, "oe.demo.17@eafit.edu.co"))
+    .limit(1);
+  if (probation) {
+    await db
+      .insert(membershipTerm)
+      .values({ personId: probation.id, termId: current, probation: true, reason: "Semilla" })
+      .onConflictDoNothing();
+  }
+  const [transferred] = await db
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.email, "oe.demo.18@eafit.edu.co"))
+    .limit(1);
+  if (transferred) {
+    const [row] = await db
+      .select({ id: committeeMembership.id })
+      .from(committeeMembership)
+      .where(
+        and(
+          eq(committeeMembership.personId, transferred.id),
+          eq(committeeMembership.termId, current),
+        ),
+      )
+      .limit(1);
+    if (row) {
+      await db
+        .update(committeeMembership)
+        .set({ transferredIn: true })
+        .where(eq(committeeMembership.id, row.id));
+    }
+  }
+  await enqueueEvent(db, {
+    type: "permanence.recompute",
+    payload: { termId: current },
+    dedupeKey: `permanence:${current}:*`,
+  });
+}
+
 async function seedContent(committees: Array<{ id: string; slug: string }>): Promise<void> {
   const day = 24 * 60 * 60_000;
   const anuncios = [
@@ -615,6 +662,7 @@ try {
   await seedConsents();
   await seedAppointments(terms);
   await seedPermanenceRules(terms, committees);
+  await seedPermanenceConditions(terms);
   await seedContent(committees);
   await seedOccasions(terms, committees);
   const [people] = await db.select({ n: count() }).from(person).where(eq(person.source, "SEED"));

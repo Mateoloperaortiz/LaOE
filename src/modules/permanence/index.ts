@@ -1,6 +1,15 @@
 // API pública del módulo permanence (ADR-036): lecturas, cálculo y, tramo a tramo, comandos.
+
+export {
+  COMPLIANCE_FILTERS,
+  type ComplianceFilter,
+  type ComplianceRow,
+  complianceSummary,
+  listCompliance,
+} from "./domain/compliance";
 export { loadPeopleFacts, loadPermanenceConfig, loadRules, loadTermFacts } from "./domain/facts";
 export { type GroupRef, listMyGroupRoles, type MyGroupRoles } from "./domain/groups";
+export { getPersonPermanence, type PersonPermanenceView } from "./domain/my-permanence";
 export {
   APPLIES_TO,
   type AppliesTo,
@@ -52,5 +61,13 @@ export {
   updateRuleAs,
 } from "./domain/rules";
 export { parseGeneral, parseMandatory, parseResults } from "./domain/snapshot-pure";
-export { getSnapshot, type SnapshotView } from "./domain/snapshots";
+export {
+  freezeSnapshots,
+  getSnapshot,
+  listSnapshots,
+  recomputeSnapshots,
+  requestRecomputeAs,
+  type SnapshotView,
+  snapshotToResult,
+} from "./domain/snapshots";
 export { referenceCommitteeRules, referenceGeneralRules } from "./domain/templates";

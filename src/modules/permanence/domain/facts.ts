@@ -95,6 +95,7 @@ export async function loadTermFacts(termId: string): Promise<TermFacts | null> {
   const occasions: OccasionFact[] = (await listOccasionsForTerm(termId)).map((row) => ({
     id: row.id,
     title: row.title,
+    location: row.location,
     kind: row.kind,
     assemblyKind: row.assemblyKind,
     category: row.category,

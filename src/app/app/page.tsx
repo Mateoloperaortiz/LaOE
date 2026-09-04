@@ -5,9 +5,11 @@ import { findUpcomingEditionsForMembers } from "@/modules/events";
 import { requireActor } from "@/modules/identity";
 import { balanceFor, listMemberAgenda, windowState } from "@/modules/participation";
 import { getMyMembership } from "@/modules/people";
-import { BarraTitulo, Insignia, LogoComite } from "@/shared/brand";
+import { getPersonPermanence } from "@/modules/permanence";
+import { BarraTitulo, Insignia, LogoComite, Progreso } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateRange } from "@/shared/lib/dates";
+import { noticeText } from "./_ui/avisos";
 import { cargoEnComite } from "./_ui/PersonaTarjeta";
 import { Vacio } from "./_ui/Vacio";
 import { markStepAction } from "./actions";
@@ -23,11 +25,15 @@ export default async function AppHome() {
     listMemberAnnouncements(6),
   ]);
   const onboardingTermId = mine.term && mine.isNew ? mine.term.id : null;
-  const [steps, saldo, ocasiones] = await Promise.all([
+  const [steps, saldo, ocasiones, permanence] = await Promise.all([
     onboardingTermId ? getOnboarding(actor.personId, onboardingTermId) : Promise.resolve([]),
     mine.term ? balanceFor(actor.personId, mine.term.id) : Promise.resolve(0),
     mine.term ? listMemberAgenda(mine.term.id) : Promise.resolve([]),
+    mine.term ? getPersonPermanence(actor.personId, mine.term.id) : Promise.resolve(null),
   ]);
+  const committeeNames = new Map(
+    mine.committees.map((item) => [item.committeeId, item.committeeName]),
+  );
   const allDone = steps.length > 0 && steps.every((step) => step.doneAt);
   const now = new Date();
   const [catInte, catPartido, catReunion, catCharla, catTaller, catSocial, catActividad] =
@@ -52,6 +58,53 @@ export default async function AppHome() {
           </Link>
         ) : null}
       </div>
+
+      {permanence?.result.evaluated ? (
+        <section aria-labelledby="permanencia" className="flex flex-col gap-4">
+          <BarraTitulo color="amarillo" className="self-start">
+            <span id="permanencia">{t("T-110")}</span>
+          </BarraTitulo>
+          {permanence.notices.map((notice) => (
+            <p
+              key={`${notice.kind}-${notice.committeeId ?? notice.occasionId ?? ""}`}
+              className={`rounded-xl px-4 py-3 font-semibold ${notice.kind === "NO_ALCANZA" || notice.kind === "MANDATORY_ASSEMBLY" ? "bg-oe-orange text-oe-navy" : "bg-oe-yellow-soft text-oe-navy"}`}
+            >
+              {noticeText(notice, committeeNames)}{" "}
+              {notice.kind === "EVALUATIONS_PENDING" ? (
+                <Link href="/admin/permanencia/evaluaciones" className="underline">
+                  {t("T-700")}
+                </Link>
+              ) : null}
+            </p>
+          ))}
+          <ul className="flex list-none flex-col gap-3 p-0">
+            {permanence.result.results.map((item) => {
+              const comité = committeeNames.get(item.committeeId) ?? "";
+              return (
+                <li key={item.committeeId} className="flex flex-col gap-2">
+                  <span className="font-semibold">
+                    {t("T-064", { comité, n: Math.round(item.total), umbral: item.threshold })}
+                  </span>
+                  <Progreso
+                    valor={item.total}
+                    maximo={Math.max(
+                      item.threshold,
+                      permanence.result.generalMax + item.committeeMax,
+                      1,
+                    )}
+                    umbral={item.threshold}
+                    nombre={comité}
+                    etiqueta={t("T-706", { n: Math.round(item.total), umbral: item.threshold })}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+          <Link href="/app/permanencia" className="self-start underline">
+            {t("T-699")}
+          </Link>
+        </section>
+      ) : null}
 
       {steps.length > 0 && onboardingTermId ? (
         <section aria-labelledby="onboarding" className="flex flex-col gap-6">

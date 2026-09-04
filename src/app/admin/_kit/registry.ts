@@ -17,6 +17,7 @@ import {
   segmentsResource,
   tagsResource,
 } from "@/modules/people/admin";
+import { complianceResource } from "@/modules/permanence/admin";
 import { termsResource } from "@/modules/terms/admin";
 import type { AnyResource } from "@/shared/admin-kit";
 
@@ -29,6 +30,7 @@ const resources: Record<string, AnyResource> = {
   [segmentsResource.key]: segmentsResource as unknown as AnyResource,
   [tasksResource.key]: tasksResource as unknown as AnyResource,
   [termsResource.key]: termsResource as unknown as AnyResource,
+  [complianceResource.key]: complianceResource as unknown as AnyResource,
   [permissionsResource.key]: permissionsResource as unknown as AnyResource,
   [pagesResource.key]: pagesResource as unknown as AnyResource,
   [announcementsResource.key]: announcementsResource as unknown as AnyResource,
