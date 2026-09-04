@@ -5,7 +5,6 @@ import { getEnv } from "@/env";
 import { announcement } from "@/modules/content/schema";
 import { editionCommittee, event, eventEdition } from "@/modules/events/schema";
 import { permission } from "@/modules/identity/schema";
-import { term } from "@/modules/participation/schema";
 import {
   appointment,
   committee,
@@ -14,6 +13,7 @@ import {
   membership,
   person,
 } from "@/modules/people/schema";
+import { term } from "@/modules/terms/schema";
 import { logger } from "@/shared/log";
 
 // Datos sintéticos para desarrollo y staging: nombres inventados, correos oe.demo.NN@eafit.edu.co,

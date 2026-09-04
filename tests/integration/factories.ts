@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { conventionalTermDates } from "@/modules/participation";
-import { term } from "@/modules/participation/schema";
 import { committee, committeeMembership, membership, person } from "@/modules/people/schema";
+import { conventionalTermDates } from "@/modules/terms";
+import { term } from "@/modules/terms/schema";
 import { todayKey } from "@/shared/lib/dates";
 
 // Fábricas de datos sintéticos para las pruebas de integración: nunca datos reales.

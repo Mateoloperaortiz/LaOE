@@ -10,8 +10,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
-import { term } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
+import { term } from "@/modules/terms/schema";
 
 // Auditoría en la misma transacción, configuración, outbox transaccional (ADR-012) e importaciones (ADR-034).
 

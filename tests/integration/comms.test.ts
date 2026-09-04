@@ -3,8 +3,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { sendTransactionalEmail, setMailTransportsForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
-import { term } from "@/modules/participation/schema";
 import { membership, person } from "@/modules/people/schema";
+import { term } from "@/modules/terms/schema";
 import { type MailTransport, QuotaExceededError } from "@/shared/adapters/mail";
 import { truncateAll } from "./db";
 

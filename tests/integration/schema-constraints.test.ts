@@ -4,9 +4,9 @@ import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { permission } from "@/modules/identity/schema";
-import { term } from "@/modules/participation/schema";
 import { committee, committeeMembership, membership, person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
+import { term } from "@/modules/terms/schema";
 import { truncateAll } from "./db";
 
 const db = () => getDb();

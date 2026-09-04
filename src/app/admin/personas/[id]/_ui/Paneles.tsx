@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { InteractionView } from "@/modules/crm";
-import type { TermRow } from "@/modules/participation";
 import {
   APPOINTMENT_KINDS,
   type CommitteeRoleRow,
@@ -9,6 +8,7 @@ import {
   type TagRow,
 } from "@/modules/people";
 import { STATUS_CODES, statusLabel } from "@/modules/people/admin";
+import type { TermRow } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
 import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";

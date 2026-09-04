@@ -1,6 +1,6 @@
 import { and, asc, count, eq, exists, ilike, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { getCurrentTerm, type TermRow } from "@/modules/participation";
+import { getCurrentTerm, type TermRow } from "@/modules/terms";
 import {
   appointment,
   committee,

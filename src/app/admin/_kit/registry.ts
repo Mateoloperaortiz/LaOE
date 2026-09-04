@@ -2,7 +2,6 @@ import { announcementsResource, pagesResource } from "@/modules/content/admin";
 import { tasksResource } from "@/modules/crm/admin";
 import { editionsResource, eventsResource } from "@/modules/events/admin";
 import { permissionsResource } from "@/modules/identity/admin";
-import { termsResource } from "@/modules/participation/admin";
 import {
   committeesResource,
   peopleResource,
@@ -10,6 +9,7 @@ import {
   segmentsResource,
   tagsResource,
 } from "@/modules/people/admin";
+import { termsResource } from "@/modules/terms/admin";
 import type { AnyResource } from "@/shared/admin-kit";
 
 // Recursos administrables por clave (ADR-017). Cada módulo declara los suyos en su admin.ts.

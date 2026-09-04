@@ -4,7 +4,6 @@ import { announcement, document, mediaAsset } from "@/modules/content/schema";
 import { task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { otpChallenge, permission } from "@/modules/identity/schema";
-import { term } from "@/modules/participation/schema";
 import {
   committee,
   committeeMembership,
@@ -15,6 +14,7 @@ import {
   segment,
 } from "@/modules/people/schema";
 import { importJob } from "@/modules/system/schema";
+import { term } from "@/modules/terms/schema";
 
 // Persona sintética para las pruebas e2e; se recrea en cada corrida, nunca es una persona real.
 export const E2E_EMAIL = "prueba.e2e@eafit.edu.co";

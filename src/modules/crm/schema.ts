@@ -1,8 +1,8 @@
 import { sql } from "drizzle-orm";
 import { index, jsonb, pgEnum, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
-import { term } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
+import { term } from "@/modules/terms/schema";
 
 // CRM de comunidad (02-crm.md, ADR-034): línea de tiempo, tareas y onboarding. Etiquetas y segmentos
 // viven en el esquema de `people` (el listado de personas los usa y people no depende de crm);

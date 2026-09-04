@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { termsResource } from "@/modules/participation/admin";
+import { termsResource } from "@/modules/terms/admin";
 import { ResourcePage } from "../_kit/ResourcePage";
 
 export const metadata: Metadata = { title: termsResource.names.plural };

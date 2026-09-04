@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { getEnv } from "@/env";
-import { listAllTerms } from "@/modules/participation";
+import { listAllTerms } from "@/modules/terms";
 import { dateKeyIn } from "@/shared/lib/dates";
 import {
   appointment,

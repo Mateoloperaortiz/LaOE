@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
-import { getCurrentTerm, listAllTerms } from "@/modules/participation";
+import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { committee, committeeMembership, committeeRole, membership, person } from "../schema";

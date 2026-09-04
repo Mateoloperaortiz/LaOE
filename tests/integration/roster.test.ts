@@ -1,7 +1,6 @@
 import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { term } from "@/modules/participation/schema";
 import { getPerson360 } from "@/modules/people/domain/person-360";
 import { listPeople } from "@/modules/people/domain/persons";
 import {
@@ -13,6 +12,7 @@ import {
 } from "@/modules/people/domain/roster";
 import { committeeRole, consent, person } from "@/modules/people/schema";
 import { auditLog, importJob } from "@/modules/system/schema";
+import { term } from "@/modules/terms/schema";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { truncateAll } from "./db";
 import { currentTermCode, seedCommittee, seedMember, seedTerm } from "./factories";

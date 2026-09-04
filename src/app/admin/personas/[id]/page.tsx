@@ -4,7 +4,6 @@ import { listMessagesFor } from "@/modules/comms";
 import { countOpenTasksFor, latestContact, listInteractions, listTasks } from "@/modules/crm";
 import { assigneeOptions } from "@/modules/crm/admin";
 import { listPermissionsFor, requireAdminActor } from "@/modules/identity";
-import { listAllTerms } from "@/modules/participation";
 import {
   getMyMembership,
   getPerson360,
@@ -14,6 +13,7 @@ import {
   listPersonTags,
 } from "@/modules/people";
 import { getConfig } from "@/modules/system";
+import { listAllTerms } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { Cabecera } from "./_ui/Cabecera";
 import { isTab, isTimelineFilter, type Tab, tabLabels } from "./_ui/etiquetas";

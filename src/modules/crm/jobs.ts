@@ -2,7 +2,6 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { registerHandler } from "@/jobs/registry";
-import { listAllTerms } from "@/modules/participation";
 import {
   APPOINTMENT_KINDS,
   CONSENT_PURPOSES,
@@ -11,6 +10,7 @@ import {
   listCommitteeRoles,
 } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
+import { listAllTerms } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { addBusinessDays } from "@/shared/lib/dates";
 import { deleteNotesFor, recordAutomaticInteraction } from "./domain/interactions";

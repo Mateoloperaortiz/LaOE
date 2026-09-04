@@ -12,7 +12,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { publicationStatus } from "@/db/enums";
-import { term } from "@/modules/participation/schema";
+import { term } from "@/modules/terms/schema";
 
 // La persona es el eje del CRM (ADR-002); la membresía es su ciclo de vida (ADR-003).
 

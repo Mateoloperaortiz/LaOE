@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdminActor } from "@/modules/identity";
-import { listAllTerms } from "@/modules/participation";
 import { getPeopleByIds } from "@/modules/people";
 import { type ImportJobRow, listImportJobs } from "@/modules/system";
+import { listAllTerms } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";

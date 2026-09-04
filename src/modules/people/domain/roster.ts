@@ -4,13 +4,13 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { getEnv } from "@/env";
-import { conventionalTermDates, createTerm, listAllTerms } from "@/modules/participation";
 import {
   createImportJob,
   getImportJob,
   type ImportJobRow,
   updateImportJob,
 } from "@/modules/system";
+import { conventionalTermDates, createTerm, listAllTerms } from "@/modules/terms";
 import { getObject, putObject } from "@/shared/adapters/storage";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";

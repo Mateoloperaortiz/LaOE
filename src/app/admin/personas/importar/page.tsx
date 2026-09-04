@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdminActor } from "@/modules/identity";
-import { getCurrentTerm, listAllTerms } from "@/modules/participation";
 import {
   getRosterPreview,
   HEADER_ALIASES,
@@ -12,6 +11,7 @@ import {
 } from "@/modules/people";
 import { statusLabel } from "@/modules/people/admin";
 import { RosterUploader } from "@/modules/people/components/RosterUploader";
+import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { BarraTitulo, Insignia, Numeral } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { applyAction, discardAction, remapAction } from "./actions";

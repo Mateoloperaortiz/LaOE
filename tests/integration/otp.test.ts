@@ -10,8 +10,8 @@ import {
   resolveActor,
 } from "@/modules/identity/domain/session";
 import { otpChallenge, permission, session } from "@/modules/identity/schema";
-import { term } from "@/modules/participation/schema";
 import { membership, person } from "@/modules/people/schema";
+import { term } from "@/modules/terms/schema";
 import type { MailMessage } from "@/shared/adapters/mail";
 import { truncateAll } from "./db";
 

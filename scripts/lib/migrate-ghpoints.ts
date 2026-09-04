@@ -2,10 +2,10 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import type { Client } from "pg";
 import { getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
-import { term } from "@/modules/participation/schema";
 import { splitFullName } from "@/modules/people";
 import { committee, committeeMembership, membership, person } from "@/modules/people/schema";
 import { importJob } from "@/modules/system/schema";
+import { term } from "@/modules/terms/schema";
 import { dateKeyIn } from "@/shared/lib/dates";
 
 // Migración en seco desde GHPOINTS (ADR-018, ADR-034, 08-migracion-ghpoints.md), subconjunto de la

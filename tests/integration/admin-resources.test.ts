@@ -8,8 +8,6 @@ import {
   revokePermission,
 } from "@/modules/identity/domain/permissions";
 import { permission } from "@/modules/identity/schema";
-import { createTerm, findTermContaining, updateTerm } from "@/modules/participation/domain/terms";
-import { term } from "@/modules/participation/schema";
 import {
   createCommittee,
   getPublishedCommittee,
@@ -20,6 +18,8 @@ import {
 } from "@/modules/people/domain/committees";
 import { searchPeople } from "@/modules/people/domain/people-reads";
 import { auditLog } from "@/modules/system/schema";
+import { createTerm, findTermContaining, updateTerm } from "@/modules/terms/domain/terms";
+import { term } from "@/modules/terms/schema";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";

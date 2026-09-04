@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { listAllTerms } from "@/modules/participation";
+import { listAllTerms } from "@/modules/terms";
 import { membership, membershipTerm, person } from "../schema";
 import { type AppointmentView, listAppointments } from "./appointments";
 import { listCommitteeMembershipsByTerm, type TermCommittees } from "./committee-memberships";

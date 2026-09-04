@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { semesterFromCode, termInputSchema } from "@/modules/participation/domain/terms";
+import { semesterFromCode, termInputSchema } from "@/modules/terms/domain/terms";
 import { neutralizeCell, toCsv } from "@/shared/admin-kit/csv";
 import { formDataToInput } from "@/shared/admin-kit/types";
 

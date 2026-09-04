@@ -1,9 +1,9 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type CommandContext, runCommand } from "@/db/tx";
-import { getCurrentTerm } from "@/modules/participation";
 import { getMyMembership } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
+import { getCurrentTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { onboardingProgress } from "../schema";
