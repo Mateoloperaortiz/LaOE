@@ -6,6 +6,7 @@ import { SESSION_COOKIE } from "@/modules/identity/cookie";
 // Nunca decide roles ni estados: eso lo hace getActor() en servidor.
 
 const PROTECTED = [/^\/app(\/|$)/, /^\/admin(\/|$)/, /^\/a\//];
+const HOST_MODE = /^\/admin\/ocasiones\/[a-z0-9-]+\/anfitrion$/;
 
 let bucketOrigin: string | undefined;
 
@@ -56,9 +57,11 @@ export function proxy(request: NextRequest) {
   response.headers.set("x-content-type-options", "nosniff");
   response.headers.set("x-frame-options", "DENY");
   response.headers.set("referrer-policy", "strict-origin-when-cross-origin");
+  // La cámara solo en el modo anfitrión (ADR-035 regla 8): lee el QR del carnet.
+  const camera = HOST_MODE.test(pathname) ? "camera=(self)" : "camera=()";
   response.headers.set(
     "permissions-policy",
-    "camera=(), microphone=(), geolocation=(), payment=()",
+    `${camera}, microphone=(), geolocation=(), payment=()`,
   );
   if (!dev) {
     response.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");

@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { requireAdminActor } from "@/modules/identity";
+import { requireAdminOrLeaderActor } from "@/modules/identity";
 import { signOutAction } from "@/modules/identity/actions";
 import { CommandPalette } from "@/shared/admin-kit";
 import { LogoOE, ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 
-// Administración: solo permiso ADMIN (las vistas parciales de líderes llegan en fases siguientes).
+// Administración: ADMIN completo; un líder de comité entra con la navegación recortada (ADR-035 regla 15)
+// y cada página que no es suya vuelve a exigir ADMIN.
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
-  await requireAdminActor("/admin");
+  const actor = await requireAdminOrLeaderActor("/admin");
   const [temaOscuro, temaClaro] = tList("T-034") as [string, string];
   const [comites] = tList("T-261");
   const [terminos] = tList("T-262");
@@ -20,25 +21,27 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [personas, importar, cargos, etiquetas, tareas, segmentos, documentos, importaciones] =
     tList("T-509");
   const [ocasiones] = tList("T-561");
-  const enlaces = [
-    { href: "/admin/personas", label: personas ?? "" },
-    { href: "/admin/personas/importar", label: importar ?? "" },
-    { href: "/admin/tareas", label: tareas ?? "" },
-    { href: "/admin/segmentos", label: segmentos ?? "" },
-    { href: "/admin/etiquetas", label: etiquetas ?? "" },
-    { href: "/admin/paginas", label: paginas ?? "" },
-    { href: "/admin/cartelera", label: cartelera ?? "" },
-    { href: "/admin/eventos", label: eventos ?? "" },
-    { href: "/admin/medios", label: medios ?? "" },
-    { href: "/admin/documentos", label: documentos ?? "" },
-    { href: "/admin/comites", label: comites ?? "" },
-    { href: "/admin/cargos", label: cargos ?? "" },
-    { href: "/admin/terminos", label: terminos ?? "" },
-    { href: "/admin/ocasiones", label: ocasiones ?? "" },
-    { href: "/admin/permisos", label: permisos ?? "" },
-    { href: "/admin/sistema/importaciones", label: importaciones ?? "" },
-    { href: "/admin/sistema/jobs", label: t("T-241") },
-  ];
+  const enlaces = !actor.isAdmin
+    ? []
+    : [
+        { href: "/admin/personas", label: personas ?? "" },
+        { href: "/admin/personas/importar", label: importar ?? "" },
+        { href: "/admin/tareas", label: tareas ?? "" },
+        { href: "/admin/segmentos", label: segmentos ?? "" },
+        { href: "/admin/etiquetas", label: etiquetas ?? "" },
+        { href: "/admin/paginas", label: paginas ?? "" },
+        { href: "/admin/cartelera", label: cartelera ?? "" },
+        { href: "/admin/eventos", label: eventos ?? "" },
+        { href: "/admin/medios", label: medios ?? "" },
+        { href: "/admin/documentos", label: documentos ?? "" },
+        { href: "/admin/comites", label: comites ?? "" },
+        { href: "/admin/cargos", label: cargos ?? "" },
+        { href: "/admin/terminos", label: terminos ?? "" },
+        { href: "/admin/ocasiones", label: ocasiones ?? "" },
+        { href: "/admin/permisos", label: permisos ?? "" },
+        { href: "/admin/sistema/importaciones", label: importaciones ?? "" },
+        { href: "/admin/sistema/jobs", label: t("T-241") },
+      ];
   return (
     <>
       <header className="border-b border-borde bg-fondo-alterno textura-granito">
@@ -63,16 +66,18 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <CommandPalette
-              endpoint="/api/admin/buscar"
-              labels={{
-                open: t("T-299"),
-                placeholder: t("T-264"),
-                empty: t("T-256"),
-                close: t("T-291"),
-                types: { person: persona, committee: comite },
-              }}
-            />
+            {actor.isAdmin ? (
+              <CommandPalette
+                endpoint="/api/admin/buscar"
+                labels={{
+                  open: t("T-299"),
+                  placeholder: t("T-264"),
+                  empty: t("T-256"),
+                  close: t("T-291"),
+                  types: { person: persona, committee: comite },
+                }}
+              />
+            ) : null}
             <Link href="/app" className="boton-secundario min-h-10 px-4 py-2 text-sm">
               {t("T-004")}
             </Link>

@@ -80,8 +80,10 @@ export {
   getMembershipRef,
   getPeopleByIds,
   listTermCommitteeMembers,
+  type MemberRef,
   type MembershipRef,
   type PersonRef,
+  searchMembersByName,
   searchPeople,
   type TermCommitteeMember,
 } from "./domain/people-reads";

@@ -40,7 +40,7 @@ const assemblyLabels = tList("T-565");
 const categoryLabels = tList("T-566");
 const approvalLabels = tList("T-567");
 const statusLabels = tList("T-568");
-const [abrir, cerrar] = tList("T-569") as [string, string];
+const [abrir, cerrar, consola] = tList("T-569") as [string, string, string];
 const filterLabels = tList("T-570");
 const columnLabels = tList("T-571");
 const shortCategoryLabels = tList("T-521");
@@ -182,6 +182,11 @@ export const occasionsResource: ResourceDefinition<OccasionListRow, OccasionInpu
       render: (row) => occasionStatusCell(row.status),
     },
     { key: "approvedCount", label: columnLabels[6] ?? "", render: (row) => row.approvedCount },
+    {
+      key: "console",
+      label: consola,
+      render: (row) => ({ text: consola, href: `/admin/ocasiones/${row.id}` }),
+    },
   ],
   filters,
   schema: occasionInputSchema,

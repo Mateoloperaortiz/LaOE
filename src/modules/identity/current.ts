@@ -43,3 +43,12 @@ export async function requireAdminActor(nextPath = "/admin"): Promise<Actor> {
   }
   return actor;
 }
+
+/** Para el área de administración con vistas de líder (ADR-035 regla 15): ADMIN o líder de algún comité. */
+export async function requireAdminOrLeaderActor(nextPath = "/admin"): Promise<Actor> {
+  const actor = await requireActor(nextPath);
+  if (!actor.isAdmin && !actor.permissions.some((item) => item.code === "COMMITTEE_LEADER")) {
+    redirect("/app");
+  }
+  return actor;
+}

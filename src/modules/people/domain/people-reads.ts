@@ -93,3 +93,28 @@ export async function listTermCommitteeMembers(termId: string): Promise<TermComm
     .innerJoin(membership, eq(membership.personId, committeeMembership.personId))
     .where(eq(committeeMembership.termId, termId));
 }
+
+export interface MemberRef {
+  id: string;
+  fullName: string;
+  preferredName: string | null;
+  status: (typeof membership.$inferSelect)["status"];
+}
+
+/** Búsqueda por nombre sin correo, para el anfitrión y la alta manual (los líderes no ven correos). */
+export async function searchMembersByName(q: string, limit = 8): Promise<MemberRef[]> {
+  const pattern = `%${q}%`;
+  const rows = await getDb()
+    .select({
+      id: person.id,
+      fullName: person.fullName,
+      preferredName: person.preferredName,
+      status: membership.status,
+    })
+    .from(person)
+    .innerJoin(membership, eq(membership.personId, person.id))
+    .where(or(sql`similarity(${person.fullName}, ${q}) > 0.2`, ilike(person.fullName, pattern)))
+    .orderBy(sql`similarity(${person.fullName}, ${q}) desc`)
+    .limit(limit);
+  return rows.map((row) => ({ ...row, fullName: row.fullName ?? "" }));
+}

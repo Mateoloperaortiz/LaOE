@@ -44,6 +44,7 @@ export {
   levelFor,
   POINT_ENTRY_KINDS,
 } from "./domain/ledger-pure";
+export { buildLiveSnapshot, checkInLink, type LiveCheckIn, type LiveSnapshot } from "./domain/live";
 export {
   ASSEMBLY_KINDS,
   type AssemblyKind,

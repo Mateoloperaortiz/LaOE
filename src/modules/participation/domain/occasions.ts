@@ -384,9 +384,11 @@ export interface OccasionListRow extends OccasionRow {
   approvedCount: number;
 }
 
+// SQL crudo con la tabla exterior calificada: dentro de una plantilla `sql` las columnas salen sin
+// calificar y `"id"` resolvería al id de `ci` (lección de la fase 1).
 const approvedCount = sql<number>`(
   select count(*)::int from check_in ci
-  where ci.occasion_id = ${occasion.id} and ci.status = 'APPROVED'
+  where ci.occasion_id = occasion.id and ci.status = 'APPROVED'
 )`;
 
 function listConditions(params: OccasionListParams) {

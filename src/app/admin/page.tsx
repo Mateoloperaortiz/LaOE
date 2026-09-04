@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdminActor } from "@/modules/identity";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 
@@ -11,7 +12,8 @@ const RUTAS: Record<string, string> = {
   Sistema: "/admin/sistema/jobs",
 };
 
-export default function AdminHome() {
+export default async function AdminHome() {
+  await requireAdminActor("/admin");
   const secciones = tList("T-160");
   return (
     <div className="flex flex-col gap-8">

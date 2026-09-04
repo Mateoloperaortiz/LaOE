@@ -1,8 +1,8 @@
 // API pública del módulo identity.
 export { SESSION_COOKIE } from "./cookie";
-export { getActor, requireActor, requireAdminActor } from "./current";
+export { getActor, requireActor, requireAdminActor, requireAdminOrLeaderActor } from "./current";
 export type { Actor, ActorPermission } from "./domain/actor";
-export { issueCarnet } from "./domain/carnet";
+export { issueCarnet, readCarnet } from "./domain/carnet";
 export { type CarnetVerification, verifyCarnet } from "./domain/carnet-pure";
 export { ForbiddenError, NotAuthenticatedError, StepUpRequiredError } from "./domain/errors";
 export {

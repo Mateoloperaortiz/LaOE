@@ -1,0 +1,162 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+// Contador en vivo (ADR-035 regla 16): pide el JSON de la ocasión cada pocos segundos, se pausa con
+// la pestaña oculta y redibuja el QR con el código rotativo vigente. Sin websockets.
+
+export interface LiveData {
+  status: string;
+  counts: Record<string, number>;
+  recent: Array<{ id: string; name: string; at: string; source: string; status: string }>;
+  code: { value: string; secondsLeft: number } | null;
+  link: string;
+  qrSvg: string;
+  generatedAt: string;
+}
+
+type Labels = {
+  qrTitle: string;
+  qrAlt: string;
+  link: string; // con {url}
+  code: string; // con {codigo} y {s}
+  counters: string[]; // Registrados · Pendientes · Rechazados · Anulados
+  recentTitle: string;
+  recentEmpty: string;
+  sources: string[];
+  statuses: string[];
+};
+
+type Props = {
+  occasionId: string;
+  initial: LiveData;
+  labels: Labels;
+  intervalMs?: number;
+  locale: string;
+  timeZone: string;
+};
+
+// Orden de los contadores (T-585) y orden del modelo para etiquetas de estado y fuente (T-597, T-596).
+const COUNTER_ORDER = ["APPROVED", "PENDING", "REJECTED", "CANCELLED"];
+const STATUS_ORDER = ["PENDING", "APPROVED", "REJECTED", "CANCELLED"];
+const SOURCE_ORDER = ["SELF_QR", "HOST", "ADMIN", "IMPORT"];
+
+function fill(text: string, values: Record<string, string>): string {
+  return text.replace(/\{([a-z]+)\}/g, (match, key: string) => values[key] ?? match);
+}
+
+export function ConsolaEnVivo({
+  occasionId,
+  initial,
+  labels,
+  intervalMs = 4000,
+  locale,
+  timeZone,
+}: Props) {
+  const [data, setData] = useState<LiveData>(initial);
+  const [secondsLeft, setSecondsLeft] = useState(initial.code?.secondsLeft ?? 0);
+
+  useEffect(() => {
+    let cancelled = false;
+    let controller: AbortController | null = null;
+    async function refresh() {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+      controller?.abort();
+      controller = new AbortController();
+      try {
+        const response = await fetch(`/api/ocasiones/${occasionId}/live`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          return;
+        }
+        const next = (await response.json()) as LiveData;
+        if (!cancelled) {
+          setData(next);
+          setSecondsLeft(next.code?.secondsLeft ?? 0);
+        }
+      } catch {
+        // Sin red o abortado: el próximo tick lo intenta de nuevo.
+      }
+    }
+    const poll = setInterval(refresh, intervalMs);
+    const tick = setInterval(() => setSecondsLeft((value) => Math.max(0, value - 1)), 1000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      cancelled = true;
+      controller?.abort();
+      clearInterval(poll);
+      clearInterval(tick);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [occasionId, intervalMs]);
+
+  const time = new Intl.DateTimeFormat(locale, { timeZone, timeStyle: "short" });
+
+  return (
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <section
+        aria-label={labels.qrTitle}
+        className="flex flex-col items-center gap-4 rounded-[var(--radius-cartel)] border border-borde bg-white p-6 text-oe-navy"
+      >
+        <h2 className="text-display-md text-center">{labels.qrTitle}</h2>
+        <div
+          role="img"
+          aria-label={labels.qrAlt}
+          className="w-full max-w-md [&_svg]:size-full"
+          data-link={data.link}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG generado en servidor por `qrcode`, sin datos externos
+          dangerouslySetInnerHTML={{ __html: data.qrSvg }}
+        />
+        {data.code ? (
+          <p className="font-display text-display-md tabular-nums" aria-live="polite">
+            {fill(labels.code, { codigo: data.code.value, s: String(secondsLeft) })}
+          </p>
+        ) : null}
+        <p className="break-all text-center text-sm text-oe-navy/70">
+          {fill(labels.link, { url: data.link })}
+        </p>
+      </section>
+      <div className="flex flex-col gap-6">
+        <dl className="grid grid-cols-2 gap-4" aria-live="polite">
+          {COUNTER_ORDER.map((status, index) => (
+            <div
+              key={status}
+              className="flex flex-col gap-1 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
+            >
+              <dt className="eyebrow text-xs">{labels.counters[index] ?? status}</dt>
+              <dd className="font-display text-display-lg leading-none" data-contador={status}>
+                {data.counts[status] ?? 0}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <section aria-label={labels.recentTitle} className="flex flex-col gap-2">
+          <h2 className="eyebrow text-xs">{labels.recentTitle}</h2>
+          {data.recent.length === 0 ? (
+            <p className="text-tinta-suave">{labels.recentEmpty}</p>
+          ) : (
+            <ul className="flex list-none flex-col gap-1 p-0">
+              {data.recent.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex flex-wrap justify-between gap-2 border-borde border-b py-1 text-sm"
+                >
+                  <span className="font-semibold">{item.name}</span>
+                  <span className="text-tinta-suave">
+                    {time.format(new Date(item.at))} ·{" "}
+                    {labels.sources[SOURCE_ORDER.indexOf(item.source)] ?? item.source} ·{" "}
+                    {labels.statuses[STATUS_ORDER.indexOf(item.status)] ?? item.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
