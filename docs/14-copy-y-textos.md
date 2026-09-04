@@ -285,6 +285,51 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-418 | Ajustes, título de la página | Ajustes | MATEO | Propuesta |
 | T-419 | Ajustes, foto fuera de tipo o tamaño | La foto debe ser JPG, PNG o WebP de hasta 5 MB. | MATEO | Propuesta |
 
+### Mi OE · fase 3 (GH Points, registro de asistencia, agenda)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-521 | Check-in, agenda y admin: nombre de la categoría de una ocasión (en el orden del modelo) | Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Actividad | GH | Propuesta |
+| T-522 | Check-in, agenda y admin: nombre del tipo de ocasión (en el orden del modelo) | Actividad · Asamblea · Sesión de edición | GH | Propuesta |
+| T-523 | Check-in: la actividad es solo para nuevos | Esta actividad es solo para quienes entraron a la OE este semestre. | GH | Propuesta |
+| T-524 | Check-in: actividad cancelada | Esta actividad fue cancelada. | MATEO | Propuesta |
+| T-525 | Check-in: semestre con los puntos cerrados | Este semestre ya cerró sus puntos: el registro no está disponible. | MATEO | Propuesta |
+| T-526 | Check-in: actividad todavía en borrador | Esta actividad todavía no está publicada. | MATEO | Propuesta |
+| T-527 | Check-in: enlace que no corresponde a ninguna actividad | Este enlace no corresponde a ninguna actividad. Pedile el QR vigente a quien organiza. | MATEO | Propuesta |
+| T-528 | Check-in: etiquetas de la ficha | Cuándo · Dónde · GH Points | MATEO | Propuesta |
+| T-529 | Check-in: puntos que da la actividad | Da {n} GH Points | GH | Propuesta |
+| T-530 | Check-in: actividad sin puntos | Sin puntos: cuenta como asistencia | GH | Propuesta |
+| T-531 | Check-in: enlace tras el éxito | Ver mis GH Points | COM | Propuesta |
+| T-532 | Check-in: registro rechazado (al volver a abrir el enlace) | GH no aprobó tu registro en esta actividad. Si creés que es un error, hablá con quien la organizó. | GH | Propuesta; texto sensible |
+| T-533 | Check-in: registro anulado (al volver a abrir el enlace) | Tu registro en esta actividad fue anulado: {motivo}. | GH | Propuesta |
+| T-534 | Check-in: eyebrow sobre el título | Registrá tu asistencia | GH | Propuesta |
+| T-535 | GH Points: nivel actual | Nivel: {nivel} | GH | Propuesta |
+| T-536 | GH Points: puntos para el siguiente nivel | Te faltan {n} para {nivel} | GH | Propuesta |
+| T-537 | GH Points: nivel máximo alcanzado | Llegaste al nivel más alto. ¡OE OE OE! | COM | Propuesta |
+| T-538 | GH Points: título de los movimientos | Tus movimientos | MATEO | Propuesta |
+| T-539 | GH Points: título de los rankings | Rankings del semestre | GH | Propuesta |
+| T-540 | GH Points: tu puesto | Vas de {puesto} entre {total} | GH | Propuesta |
+| T-541 | GH Points: sin puesto todavía | Todavía no tenés puesto: sumá tu primera asistencia. | COM | Propuesta |
+| T-542 | GH Points: ranking vacío | Todavía nadie suma puntos este semestre. | MATEO | Propuesta |
+| T-543 | GH Points: columnas del ranking de comités | Comité · Participación · Sin ajustar | MATEO | Propuesta |
+| T-544 | GH Points: título de las asambleas | Asambleas del semestre | GH | Propuesta |
+| T-545 | GH Points: asambleas obligatorias firmadas | Firmaste {n} de {total} asambleas obligatorias | GH | Propuesta; texto sensible |
+| T-546 | GH Points y admin: etiquetas de las asambleas obligatorias | Ordinaria · Elección de junta · Segunda vuelta | GH | Propuesta |
+| T-547 | GH Points: estado de cada asamblea en tu lista | Firmada · Pendiente · No fuiste | GH | Propuesta |
+| T-548 | GH Points: sin semestre activo | No hay un semestre activo. Cuando GH lo abra, acá ves tus puntos. | MATEO | Propuesta |
+| T-549 | GH Points: semestre con los puntos cerrados | Semestre cerrado el {fecha}: los puntos quedaron congelados. | MATEO | Propuesta |
+| T-550 | GH Points: selector de semestre | Semestre | MATEO | Propuesta |
+| T-551 | GH Points: descripción de los tableros de personas | Nuevos: quienes entraron este semestre. Veteranos: todos los demás. Solo miembros activos. | GH | Propuesta |
+| T-552 | GH Points: columnas de los movimientos | Fecha · Movimiento · Puntos | MATEO | Propuesta |
+| T-553 | Inicio: insignia de una actividad con registro abierto | Registro abierto | GH | Propuesta |
+| T-554 | Inicio: insignia de una actividad próxima | Próximamente | MATEO | Propuesta |
+| T-555 | Inicio: enlace a GH Points desde el saldo | Ver GH Points | COM | Propuesta |
+| T-556 | Inicio y agenda: insignia de asamblea obligatoria | Asamblea obligatoria | GH | Propuesta |
+| T-557 | GH Points: leyenda de los niveles | {nivel} desde {n} puntos | GH | Propuesta |
+| T-558 | Check-in: título de la pestaña del navegador | Registro de asistencia | MATEO | Propuesta |
+| T-559 | GH Points: etiqueta del puesto propio | Tu puesto | GH | Propuesta |
+| T-560 | GH Points: columnas de los tableros de personas | Puesto · Nombre · GH Points | MATEO | Propuesta |
+
 ## 5. Administración
 
 Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las confirmaciones de acciones sensibles y los mensajes de importación.
@@ -346,7 +391,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-287 | Comités: opciones de estado | Activo · Inactivo | MATEO | Propuesta |
 | T-288 | Contenido: opciones de publicación | Borrador · Publicado | MATEO | Propuesta |
 | T-289 | Permisos: opciones (ADMIN, líder, junta) | ADMIN · Líder de comité · Junta | MATEO | Propuesta |
-| T-290 | Paleta ⌘K: tipos de resultado | Persona · Comité | MATEO | Propuesta |
+| T-290 | Paleta ⌘K: tipos de resultado | Persona · Comité · Ocasión | MATEO | Propuesta |
 | T-291 | Paleta y paneles: cerrar | Cerrar | MATEO | Propuesta |
 | T-292 | Comités: sigla repetida | Ya existe un comité con esa sigla. | MATEO | Propuesta |
 | T-293 | Términos: código repetido | Ya existe ese término. | MATEO | Propuesta |
@@ -440,7 +485,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-451 | Membresía: regla de cantidad de comités | Un activo necesita entre {min} y {max} comités. | MATEO | Propuesta |
 | T-452 | Membresía: ya hay un General | {comité} ya tiene un General este semestre. | MATEO | Propuesta |
 | T-453 | Resumen: etiquetas | Último contacto · Tareas abiertas · Consentimientos · Permisos · Puntos del semestre · Asambleas | MATEO | Propuesta |
-| T-454 | Línea de tiempo: filtro por tipo | Todo · Notas · Membresía · Comités · Consentimientos · Datos · Importaciones · Otros | MATEO | Propuesta |
+| T-454 | Línea de tiempo: filtro por tipo | Todo · Notas · Membresía · Comités · Consentimientos · Datos · Importaciones · Otros · Participación | MATEO | Propuesta |
 | T-455 | Línea de tiempo: ayuda del compositor de notas | Escribí una nota para el equipo. La persona puede pedir verla. | MATEO | Propuesta |
 | T-456 | Línea de tiempo: botones y marca de nota | Guardar nota · Editar · Editada el {fecha} | MATEO | Propuesta |
 | T-457 | Línea de tiempo vacía | Todavía no hay nada en la línea de tiempo. | MATEO | Propuesta |
@@ -507,6 +552,125 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-518 | Documentos: error de subida | No se pudo subir el PDF. Intentá de nuevo. | MATEO | Propuesta |
 | T-519 | Documentos: archivo fuera de tamaño | El PDF debe pesar entre 1 KB y 20 MB. | MATEO | Propuesta |
 | T-520 | Documentos: subida confirmada | Listo: el PDF quedó guardado. Ahora cargá los artículos. | MATEO | Propuesta |
+
+### Admin de Participación (fase 3: ocasiones, consola, anfitrión, ledger, rankings, asambleas, cierre, vista de líder, alias)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-561 | Navegación del admin: enlaces de la fase 3 | Ocasiones · Ledger · Rankings · Asambleas · Cierre · Alias | MATEO | Propuesta |
+| T-562 | Recurso ocasiones (plural · singular) | Ocasiones · Ocasión | MATEO | Propuesta |
+| T-563 | Ocasiones: campos | Título · Tipo · Tipo de asamblea · Categoría · Solo nuevos · Descripción (Markdown) · Lugar · Empieza · Termina · Abre el registro · Cierra el registro · GH Points · Aprobación · Código rotativo · Comité · Edición · Semestre | MATEO | Propuesta |
+| T-564 | Ocasiones: opciones de tipo | Actividad · Asamblea · Sesión de edición | MATEO | Propuesta |
+| T-565 | Ocasiones: opciones de tipo de asamblea | Ordinaria · Elección de junta · Segunda vuelta | GH | Propuesta |
+| T-566 | Ocasiones: opciones de categoría | Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Otra | GH | Propuesta |
+| T-567 | Ocasiones: opciones de aprobación | Automática · Manual (GH revisa cada registro) | GH | Propuesta |
+| T-568 | Ocasiones: estados | Borrador · Abierta · Cerrada · Cancelada | MATEO | Propuesta |
+| T-569 | Ocasiones: acciones de fila | Abrir · Cerrar · Consola | MATEO | Propuesta |
+| T-570 | Ocasiones: filtros | Semestre · Tipo · Estado · Comité | MATEO | Propuesta |
+| T-571 | Ocasiones: columnas | Título · Tipo · Empieza · Registro · GH Points · Estado · Registrados | MATEO | Propuesta |
+| T-572 | Ocasiones: una asamblea no da puntos | Una asamblea no da GH Points: dejá los puntos en 0. | MATEO | Propuesta |
+| T-573 | Ocasiones: la asamblea necesita su tipo | Elegí el tipo de asamblea. | MATEO | Propuesta |
+| T-574 | Ocasiones: la sesión necesita edición | Una sesión de edición necesita la edición. | MATEO | Propuesta |
+| T-575 | Ocasiones: ventana invertida | El registro debe cerrar después de abrir. | MATEO | Propuesta |
+| T-576 | Ocasiones: ya hay una elección de junta o una segunda vuelta en el semestre | Este semestre ya tiene una {tipo}. | MATEO | Propuesta |
+| T-577 | Ocasiones: fuera de borrador solo cambian algunos campos | Una ocasión abierta o cerrada solo cambia título, descripción y lugar. | MATEO | Propuesta |
+| T-578 | Ocasiones: transición inválida | Esa acción no aplica: la ocasión está {estado}. | MATEO | Propuesta |
+| T-579 | Ocasiones: no se abre con el semestre cerrado | El semestre ya cerró sus puntos: no se pueden abrir ocasiones. | MATEO | Propuesta |
+| T-580 | Ocasiones: ayuda de la ventana por defecto | Si dejás la ventana vacía, el registro abre 30 minutos antes y cierra 3 horas después del inicio. | MATEO | Propuesta |
+| T-581 | Ocasiones: ayuda del código rotativo | Recomendado en ocasiones grandes: el QR cambia cada minuto y un pantallazo reenviado no sirve. | GH | Propuesta |
+| T-582 | Ocasiones: opción sin comité | Toda la OE (sin comité) | MATEO | Propuesta |
+| T-583 | Ocasiones: opción sin edición | Sin edición | MATEO | Propuesta |
+| T-584 | Consola: título | Consola · {título} | MATEO | Propuesta |
+| T-585 | Consola: contadores | Registrados · Pendientes · Rechazados · Anulados | MATEO | Propuesta |
+| T-586 | Consola: título sobre el QR (pantalla proyectada) | Escaneá para registrar tu asistencia | GH | Propuesta |
+| T-587 | Consola: código vigente y cuenta regresiva | Código {codigo} · cambia en {s} s | MATEO | Propuesta |
+| T-588 | Consola: botones del código rotativo | Activar código rotativo · Rotar secreto · Desactivar | MATEO | Propuesta |
+| T-589 | Consola: botones del ciclo de vida | Abrir registro · Cerrar registro · Cancelar ocasión | MATEO | Propuesta |
+| T-590 | Consola: cancelar, botón de confirmación | Sí, cancelar | MATEO | Propuesta |
+| T-591 | Consola: sección de pendientes | Pendientes de aprobación | GH | Propuesta |
+| T-592 | Consola: botones de decisión sobre un registro | Aprobar · Rechazar · Anular | GH | Propuesta |
+| T-593 | Consola: aprobar todos | Aprobar todos los pendientes | GH | Propuesta |
+| T-594 | Consola: lista de asistentes, título | Asistentes | MATEO | Propuesta |
+| T-595 | Consola: columnas de asistentes | Persona · Comités · Hora · Fuente · Estado | MATEO | Propuesta |
+| T-596 | Consola y Persona 360: fuentes del check-in (en el orden del modelo) | QR · Anfitrión · Admin · Importado | MATEO | Propuesta |
+| T-597 | Consola y Persona 360: estados del check-in (en el orden del modelo) | Pendiente · Aprobado · Rechazado · Anulado | MATEO | Propuesta |
+| T-598 | Consola: alta manual, título y botón | Registrar a alguien · Registrar | GH | Propuesta |
+| T-599 | Consola y anfitrión: campo de búsqueda | Buscá por nombre | MATEO | Propuesta |
+| T-600 | Consola y anfitrión: sin resultados | No encontramos a nadie con ese nombre. | MATEO | Propuesta |
+| T-601 | Consola y anfitrión: ya estaba registrado | {nombre} ya estaba registrado. | MATEO | Propuesta |
+| T-602 | Consola y anfitrión: registro hecho | Listo: {nombre} quedó registrado. | MATEO | Propuesta |
+| T-603 | Consola: últimos registros | Últimos registros | MATEO | Propuesta |
+| T-604 | Consola: participación por comité, título | Participación por comité | GH | Propuesta |
+| T-605 | Consola y vista de líder: columnas de participación | Comité · Presentes · Elegibles · Tasa · Ajustada | MATEO | Propuesta |
+| T-606 | Consola: score todavía no calculado | La participación se calcula unos segundos después de cada registro. | MATEO | Propuesta |
+| T-607 | Consola: enlace al modo anfitrión | Modo anfitrión | GH | Propuesta |
+| T-608 | Consola: exporte de asistentes | Exportar asistentes (CSV) | MATEO | Propuesta |
+| T-609 | Consola: anular sin motivo | Escribí el motivo para anular. | MATEO | Propuesta |
+| T-610 | Consola: acreditar por ajuste tras una anulación | Acreditar por ajuste | GH | Propuesta |
+| T-611 | Consola: enlace público del QR | Enlace: {url} | MATEO | Propuesta |
+| T-612 | Consola: aviso de registro cerrado | Registro cerrado el {fecha}. Podés seguir registrando a mano. | MATEO | Propuesta |
+| T-613 | Consola: aviso de ocasión cancelada | Cancelada el {fecha}: {motivo} | MATEO | Propuesta |
+| T-614 | Anfitrión: título | Modo anfitrión · {título} | GH | Propuesta |
+| T-615 | Anfitrión: intro | Buscá a la persona por nombre o escaneá el QR de su carnet. | GH | Propuesta |
+| T-616 | Anfitrión: botones del lector | Escanear carnet · Detener · Subir una foto del carnet | MATEO | Propuesta |
+| T-617 | Anfitrión: cámara no disponible o permiso negado | No pudimos usar la cámara. Buscá a la persona por nombre o subí una foto del QR. | MATEO | Propuesta |
+| T-618 | Anfitrión: el QR no es un carnet | Ese QR no es un carnet de la OE. | MATEO | Propuesta |
+| T-619 | Anfitrión: carnet vencido | Ese carnet venció. Pedile que abra Mi OE y muestre el carnet de nuevo. | MATEO | Propuesta |
+| T-620 | Anfitrión: la ocasión no está abierta | El registro por anfitrión solo funciona con la ocasión abierta. | MATEO | Propuesta |
+| T-621 | Anfitrión: último marcado | {nombre} · registrado a las {hora} | MATEO | Propuesta |
+| T-622 | Ledger: título | Ledger de GH Points | GH | Propuesta |
+| T-623 | Ledger: columnas | Fecha · Persona · Semestre · Movimiento · Puntos · Motivo · Por | MATEO | Propuesta |
+| T-624 | Ledger: filtros | Persona · Semestre · Movimiento | MATEO | Propuesta |
+| T-625 | Ledger y Persona 360: botón de ajuste | Ajustar puntos | GH | Propuesta |
+| T-626 | Ledger: campos del ajuste | Persona · Semestre · Puntos (positivos o negativos) · Motivo | MATEO | Propuesta |
+| T-627 | Ledger: puntos en cero | Los puntos no pueden ser 0. | MATEO | Propuesta |
+| T-628 | Ledger: motivo obligatorio | El motivo es obligatorio: queda en el historial de la persona. | GH | Propuesta |
+| T-629 | Ledger: semestre cerrado | El semestre ya cerró sus puntos: no acepta movimientos. | MATEO | Propuesta |
+| T-630 | Ledger: revertir, botón | Revertir | MATEO | Propuesta |
+| T-631 | Ledger: revertir, confirmación | Vas a revertir {puntos} puntos de {nombre} ({motivo}). Escribí el motivo. | GH | Propuesta |
+| T-632 | Ledger: no se revierte una asistencia ni una reversión | Solo se revierten ajustes e históricos; una asistencia se anula desde su ocasión. | MATEO | Propuesta |
+| T-633 | Ledger: ya revertida | Ese movimiento ya fue revertido. | MATEO | Propuesta |
+| T-634 | Ledger: ajuste guardado | Listo: {puntos} puntos para {nombre}. | MATEO | Propuesta |
+| T-635 | Rankings admin: título | Rankings de {término} | GH | Propuesta |
+| T-636 | Rankings admin: columnas | Puesto · Persona · Semestre de ingreso · GH Points | MATEO | Propuesta |
+| T-637 | Asambleas admin: título | Asambleas de {término} | GH | Propuesta |
+| T-638 | Asambleas admin: columnas de cumplimiento | Persona · Requeridas · Firmadas · Elección · Segunda vuelta · Cumple | MATEO | Propuesta |
+| T-639 | Asambleas admin: filtros de cumplimiento | Todos · Cumplen · No cumplen · Con ajuste | MATEO | Propuesta |
+| T-640 | Asambleas admin: ajustar requisito, título y campos | Ajustar requisito · Ordinarias requeridas · Debe firmar la elección · Debe firmar la segunda vuelta · Motivo | GH | Propuesta |
+| T-641 | Asambleas admin: ajuste guardado | Requisito ajustado para {nombre}. | MATEO | Propuesta |
+| T-642 | Asambleas admin: valores | Sí · No · Cumple · No cumple · Ajustado | MATEO | Propuesta |
+| T-643 | Asambleas admin: sin asambleas en el semestre | Este semestre todavía no tiene asambleas. Creá una desde Ocasiones. | MATEO | Propuesta |
+| T-644 | Cierre: título | Cierre de {término} | GH | Propuesta |
+| T-645 | Cierre: resumen | Ocasiones abiertas · Registros pendientes · Miembros con puntos · Puntos otorgados | MATEO | Propuesta |
+| T-646 | Cierre: bloqueo por ocasiones abiertas | Cerrá o cancelá las {n} ocasiones abiertas antes de cerrar los puntos. | MATEO | Propuesta |
+| T-647 | Cierre: botón | Cerrar puntos del semestre | GH | Propuesta |
+| T-648 | Cierre: cerrado | Puntos cerrados el {fecha}. Los rankings quedaron congelados. | MATEO | Propuesta |
+| T-649 | Cierre: títulos del standing | Top nuevos · Top veteranos · Comités | GH | Propuesta |
+| T-650 | Cierre: sin semestre abierto | No hay un semestre abierto para cerrar. | MATEO | Propuesta |
+| T-651 | Vista de líder: títulos | Tu comité · Roster del semestre · Participación del comité · Ocasiones del comité | GH | Propuesta |
+| T-652 | Vista de líder: botones | Nueva ocasión · Crear serie semanal | GH | Propuesta |
+| T-653 | Vista de líder: aviso de apertura | Las ocasiones con GH Points las abre GH. Las reuniones (0 puntos) las abrís vos. | GH | Propuesta |
+| T-654 | Serie semanal: campos | Título · Día de la semana · Hora · Duración (minutos) · Lugar · Primera reunión | MATEO | Propuesta |
+| T-655 | Serie semanal: creada | Listo: {n} reuniones creadas hasta el {fecha}. | MATEO | Propuesta |
+| T-656 | Vista de líder: sin permiso sobre este comité | No sos líder de este comité. | MATEO | Propuesta |
+| T-657 | Vista de líder: columnas de la participación por ocasión | Ocasión · Fecha · Presentes · Elegibles · Tasa | MATEO | Propuesta |
+| T-658 | Recurso alias legados (plural · singular) | Alias legados · Alias legado | MATEO | Propuesta |
+| T-659 | Alias: campos y columnas | Ruta antigua · Ocasión · Creado el | MATEO | Propuesta |
+| T-660 | Alias: ruta repetida | Ya existe un alias con esa ruta. | MATEO | Propuesta |
+| T-661 | Alias: ruta inválida | La ruta debe empezar por /a/ o /asamblea/. | MATEO | Propuesta |
+| T-662 | Recurso check-ins (plural · singular) | Check-ins · Check-in | MATEO | Propuesta |
+| T-663 | Recurso ledger (plural · singular) | Movimientos · Movimiento | MATEO | Propuesta |
+| T-664 | Recurso rankings (plural · singular) | Rankings · Puesto | MATEO | Propuesta |
+| T-665 | Recurso cumplimiento de asambleas (plural · singular) | Cumplimiento de asambleas · Persona | MATEO | Propuesta |
+| T-666 | Tarea: falta crear el semestre siguiente | Crear el semestre {codigo}: el actual termina el {fecha} | MATEO | Propuesta |
+| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} | MATEO | Propuesta |
+| T-668 | Persona 360, Participación: títulos | Check-ins · Movimientos de GH Points | MATEO | Propuesta |
+| T-669 | Persona 360, Participación: sin check-ins | Todavía no tiene check-ins. | MATEO | Propuesta |
+| T-670 | Persona 360, Resumen: asambleas obligatorias | {n} de {total} obligatorias | MATEO | Propuesta |
+| T-671 | Consola: sin registros todavía | Todavía nadie se registró. | MATEO | Propuesta |
+| T-672 | Inicio del admin: ocasiones abiertas | Ocasiones abiertas | MATEO | Propuesta |
+| T-673 | Consola y anfitrión: la persona no está activa | {nombre} no está activo este semestre. | GH | Propuesta |
+| T-674 | Consola y anfitrión: la ocasión es solo para nuevos | Esta ocasión es solo para nuevos: {nombre} no aplica. | GH | Propuesta |
 
 ## 6. Notificaciones
 

@@ -1,6 +1,6 @@
 # ADR-024: Reglas de participación confirmadas por la OE
 
-- Estado: Aceptada (enmendada por ADR-027 y ADR-028 en el punto 2, asambleas; por ADR-030 en el punto 6, egresados)
+- Estado: Aceptada (enmendada por ADR-027 y ADR-028 en el punto 2, asambleas; por ADR-030 en el punto 6, egresados; por ADR-035 en la redacción del punto 2)
 - Fecha: 2026-09-02
 - Enmienda: ADR-006 (tipos de asamblea y código rotativo) y ADR-009 (suavizado del score)
 - Relacionadas: ADR-002, ADR-004, ADR-005, ADR-010, ADR-014
@@ -35,3 +35,7 @@ Primer semestre: una sola ordinaria obligatoria. Segundo semestre: una ordinaria
 ## Enmienda (2026-09-03, ADR-030)
 
 Los egresados no vuelven a entrar (pierden el correo institucional) y su perfil queda como egresado con su historia; el acceso futuro con correo personal deja de contemplarse. Ver [ADR-030](ADR-030-perfil-de-egresado.md).
+
+## Enmienda (2026-09-03, ADR-035)
+
+Redacción vigente del punto 2: se programan dos asambleas ordinarias por término, pero **una sola es obligatoria** (`assemblies.requiredOrdinary = 1`, ADR-028); en el segundo semestre se suman la elección de junta y su segunda vuelta si existe; tres asistencias dan el criterio del 10 % de permanencia. El requisito por persona se deriva del término y `AssemblyRequirement` guarda solo los ajustes. Ver [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md).

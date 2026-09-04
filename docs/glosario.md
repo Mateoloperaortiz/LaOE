@@ -26,12 +26,18 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Ocasión | `Occasion` | Momento con check-in: actividad GH, asamblea o sesión de una edición |
 | Check-in | `CheckIn` | Registro de una persona en una ocasión; único por par |
 | Modo anfitrión | `CheckIn.source=HOST` | El organizador marca el check-in por la persona |
-| Código rotativo | `Occasion.requireRotatingCode` | Código en pantalla que cambia cada minuto para evitar QR reenviados |
+| Código rotativo | `Occasion.requireRotatingCode`, `Occasion.rotatingSecret` | Código de 6 dígitos derivado del secreto de la ocasión que cambia cada minuto; el QR de la consola lo embebe para evitar QR reenviados |
+| Consola de la ocasión | `/admin/ocasiones/[id]` | Pantalla del organizador: QR, contador en vivo, pendientes, asistentes, alta manual y ciclo de vida |
+| Cierre automático | `participation.auto-close` | Job horario que cierra una ocasión abierta 24 horas después de vencida su ventana de check-in |
+| Serie semanal | `createOccasionSeries` | Reuniones de comité creadas de una vez, mismo día y hora hasta el fin del término, cada una una ocasión independiente |
+| Vista de líder | `/admin/comites/[slug]` | Lo que ve un `COMMITTEE_LEADER` en el admin: roster sin correos, score, sus ocasiones y la serie semanal |
 | Entrada de puntos | `PointEntry` | Fila del ledger: crédito por check-in, ajuste, reversión o legado |
 | Ledger | `PointEntry[]` | Historial inmutable de puntos; el saldo es la suma |
 | Reversión | `PointEntry.kind=REVERSAL` | Entrada que anula otra; nunca se edita la original |
 | Score de comité | `CommitteeParticipation` | Participación relativa de un comité en una ocasión y su promedio por término |
-| Tablero | ranking | Clasificación del término: nuevos, veteranos y comités |
+| Tablero | ranking | Clasificación del término: nuevos, veteranos y comités; el miembro ve el top 10 y su propio puesto |
+| Nivel | `points.levels` | Tramo del saldo del semestre según cortes configurables (0, 100, 250, 500, 1000) con las etiquetas de T-082 |
+| Standing del término | `TermStanding` | Snapshot de los tableros al cerrar los puntos, con ids y nombres congelados |
 | Asamblea | `Occasion.kind=ASSEMBLY` | Ocasión sin puntos que cuenta para el requisito del término |
 | Requisito de asambleas | `AssemblyRequirement` | Las asambleas obligatorias de una persona en un término: una ordinaria y, en segundo semestre, la elección de junta y su segunda vuelta |
 | Asamblea obligatoria | `AssemblyRequirement` | Faltar a una implica expulsión de la OE; la app avisa antes y propone la salida en el cierre. Distinta del criterio del 10 %, que exige tres asistencias |
@@ -84,7 +90,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Mensaje | `Message` | Registro de cada correo o push enviado a una persona |
 | Consentimiento | `Consent` | Aceptación versionada de la política de datos para un propósito |
 | Outbox | `Outbox` | Cola de eventos de dominio escrita en la misma transacción que la mutación |
-| Alias legado | `LegacyAlias` | Ruta antigua de GHPOINTS que sigue resolviendo a la ocasión nueva |
+| Alias legado | `LegacyAlias` | Ruta antigua de GHPOINTS (`/asamblea/…` y los `publicId` retirados) que sigue resolviendo a la ocasión nueva |
 | Actor | `Actor` | La persona autenticada con sus permisos, validada en servidor |
 | Carnet | `/app/carnet` | QR personal firmado para acreditación en ocasiones |
 | Cartelera | `/cartelera`, `/app` | Anuncios de la OE |

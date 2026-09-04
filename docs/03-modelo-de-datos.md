@@ -34,6 +34,9 @@ erDiagram
   CheckIn ||--o| PointEntry : "credito"
   Term ||--o{ PointEntry : "ledger"
   Occasion ||--o{ CommitteeParticipation : "score"
+  Term ||--o| TermStanding : "cierre"
+  Term ||--o{ AssemblyRequirement : "ajustes"
+  Person ||--o{ AssemblyRequirement : ""
   Campaign ||--o{ Message : ""
   Person ||--o{ Message : ""
   Person ||--o{ Session : ""
@@ -102,17 +105,22 @@ erDiagram
 | `EventEdition` | `eventId`, `slug`, `name`, `description` Markdown, `startsAt`, `endsAt?`, `location`, `registrationUrl?`, `publicationStatus`, `coverAssetId?` | Unique por (evento, slug); `endsAt` posterior a `startsAt`; `registrationFormId` llega con los formularios (fase 5) |
 | `EditionCommittee` | `editionId`, `committeeId` | Organizadores; unique por par |
 
+### terms
+
+| Modelo | Campos clave | Notas |
+| --- | --- | --- |
+| `Term` | `code` único (`2026-2`), `semester` (1 o 2, derivado del código), `startsOn`, `endsOn`, `pointsClosedAt?`, `requiredOrdinaryAssemblies`, `permanenceGeneralNominal` (50), `permanenceCommitteeNominal` (60) | Módulo propio sin dependencias, para que `people`, `crm` y `participation` lo importen sin ciclos ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)). El actual se deriva de la fecha; en los términos de segundo semestre la elección de junta es obligatoria; los nominales solo sirven para avisar en el editor |
+
 ### participation
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `Term` | `code` único (`2026-2`), `semester` (1 o 2, derivado del código), `startsOn`, `endsOn`, `pointsClosedAt?`, `requiredOrdinaryAssemblies`, `permanenceGeneralNominal` (50), `permanenceCommitteeNominal` (60) | El actual se deriva de la fecha; en los términos de segundo semestre la elección de junta es obligatoria; los nominales solo sirven para avisar en el editor |
-| `Occasion` | `publicId` único, `termId`, `kind` (`ACTIVITY`, `ASSEMBLY`, `EDITION_SESSION`), `assemblyKind?` (`ORDINARY`, `BOARD_ELECTION`, `RUNOFF`; solo en asambleas), `category` (`INTEGRATION`, `ATHLETIC_MATCH`, `COMMITTEE_MEETING`, `TALK`, `WORKSHOP`, `SOCIAL`, `OTHER`), `newMembersOnly`, `title`, `startsAt`, `checkInOpensAt`, `checkInClosesAt`, `points`, `approval` (`AUTO`, `MANUAL`), `requireRotatingCode` (opcional por ocasión, apagado por defecto), `rotatingSecretHash?`, `committeeId?`, `editionId?`, `surveyFormId?`, `status`, `cancelReason?`, `createdById` | `DRAFT → OPEN → CLOSED`; `CANCELLED` desde cualquiera con motivo; al cerrar, si hay `surveyFormId`, el outbox envía la encuesta a quienes hicieron check-in |
-| `CheckIn` | `occasionId`, `personId`, `status` (`PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`), `source` (`SELF_QR`, `HOST`, `ADMIN`, `IMPORT`), `at`, `decidedById?`, `decidedAt?`, `reason?` | Unique por (ocasión, persona) |
-| `PointEntry` | `personId`, `termId`, `checkInId?`, `kind` (`CHECKIN`, `ADJUSTMENT`, `REVERSAL`, `LEGACY`), `points`, `reason`, `reversalOfId?` único, `createdById?`, `legacyType?` | Append-only |
-| `CommitteeParticipation` | `occasionId`, `committeeId`, `termId`, `eligible`, `present`, `rate`, `smoothedRate`, `frozenAt?` | Unique por (ocasión, comité); cruda y suavizada con `k = 5` (ADR-024) |
-| `TermStanding` | `termId` único, `topNew` JSON, `topVeteran` JSON, `topCommittees` JSON, `stats` JSON | Snapshot al cerrar puntos |
-| `AssemblyRequirement` | `termId`, `personId`, `requiredOrdinary` (1), `requiresBoardElection` (segundo semestre), `requiresRunoff`, `adjustedReason?`, `adjustedById?` | Unique por (término, persona); ajustes solo por ADMIN con motivo; faltar a una obligatoria propone salida de la OE en el cierre |
+| `Occasion` | `publicId` único (10 caracteres `[0-9a-z]`), `termId`, `kind` (`ACTIVITY`, `ASSEMBLY`, `EDITION_SESSION`), `assemblyKind?` (`ORDINARY`, `BOARD_ELECTION`, `RUNOFF`; solo en asambleas), `category` (`INTEGRATION`, `ATHLETIC_MATCH`, `COMMITTEE_MEETING`, `TALK`, `WORKSHOP`, `SOCIAL`, `OTHER`), `newMembersOnly`, `title`, `description` Markdown, `location`, `startsAt`, `endsAt?`, `checkInOpensAt`, `checkInClosesAt`, `points` (0 en asambleas), `approval` (`AUTO`, `MANUAL`), `requireRotatingCode` (apagado por defecto), `rotatingSecret?` (secreto por ocasión del que se deriva el código de 6 dígitos), `committeeId?`, `editionId?`, `status`, `cancelReason?`, `closedAt?`, `createdById`, `legacyId?` | `DRAFT → OPEN → CLOSED`; `CANCELLED` desde cualquiera con motivo revirtiendo los créditos vivos; fuera de `DRAFT` solo cambian título, descripción y lugar; un job cierra las abiertas 24 h después de vencida la ventana; `surveyFormId` llega con `forms` (fase 5) ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
+| `CheckIn` | `occasionId`, `personId`, `status` (`PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`), `source` (`SELF_QR`, `HOST`, `ADMIN`, `IMPORT`), `at`, `decidedById?`, `decidedAt?`, `reason?`, `legacyId?` | Unique por (ocasión, persona); `PENDING → APPROVED \| REJECTED`, `REJECTED → APPROVED`, `APPROVED → CANCELLED`; la IP queda en la auditoría, no aquí |
+| `PointEntry` | `personId`, `termId`, `checkInId?`, `kind` (`CHECKIN`, `ADJUSTMENT`, `REVERSAL`, `LEGACY`), `points` (≠ 0), `reason`, `reversalOfId?` único, `createdById?`, `legacyType?`, `legacyId?` | Append-only; el `CHECKIN` nace en la misma transacción del check-in aprobado |
+| `CommitteeParticipation` | `occasionId`, `committeeId`, `termId`, `eligible`, `present`, `rate`, `smoothedRate`, `frozenAt?`, `computedAt` | Unique por (ocasión, comité); cruda y suavizada con `k = 5` (ADR-024); solo comités con elegibles; `eligible` se congela al cerrar la ocasión |
+| `TermStanding` | `termId` único, `topNew` JSON, `topVeteran` JSON, `topCommittees` JSON, `stats` JSON | Snapshot al cerrar puntos, con ids y nombre congelado (anonimizar lo reemplaza por T-223) |
+| `AssemblyRequirement` | `termId`, `personId`, `requiredOrdinary`, `requiresBoardElection`, `requiresRunoff`, `adjustedReason`, `adjustedById?` | Unique por (término, persona); **solo se materializa para ajustes** (ADMIN con motivo): el requisito por defecto se deriva del término (una ordinaria; elección y segunda vuelta en segundo semestre); faltar a una obligatoria propone salida de la OE en el cierre |
 
 ### permanence
 
@@ -155,7 +163,7 @@ erDiagram
 | `AppConfig` | `key` único, `value`, `updatedById?` | `committees.min = 1`, `committees.max = 3`, `assemblies.requiredOrdinary = 1`, `permanence.assembliesForCredit = 3`, `score.shrinkK = 5`, `checkin.rotatingCodeDefault = false`, `permanence.threshold.active = 60`, `permanence.threshold.new = 80`, `permanence.threshold.probation = 80`, `permanence.threshold.transfer = 70`, `permanence.probationMargin = 10`, versión de la política |
 | `Outbox` | `eventType`, `payload` JSON, `dedupeKey?`, `attempts`, `nextAttemptAt`, `processedAt?`, `deadLetterAt?`, `lastError?` | Un pendiente por `dedupeKey` |
 | `ImportJob` | `type` (`ROSTER`, `GHPOINTS`), `status` (`PREVIEW`, `APPLIED`, `DISCARDED`, `FAILED`), `filename`, `fileKey?` (`imports/AAAA/MM/<id>.<ext>`), `termId?`, `mapping` JSON, `payload` JSON (filas validadas y diff de la vista previa), `summary` JSON, `createdById?`, `appliedAt?` | Roster por término (formato en [13-importacion-del-roster.md](13-importacion-del-roster.md)) y migración; el archivo original queda en el bucket privado como objeto propio, no como `MediaAsset` |
-| `LegacyAlias` | `path` único, `targetType`, `targetId` | `/a/{publicId}` y `/asamblea/{publicId}` de GHPOINTS |
+| `LegacyAlias` | `path` único, `targetType` (`OCCASION`), `targetId` | `/asamblea/{publicId}` de GHPOINTS y los `publicId` retirados de sus historiales (`/a/…` y `/asamblea/…`); los `publicId` vigentes no necesitan alias porque `/a/{publicId}` es la misma URL |
 
 ## Restricciones que no negocia el esquema
 
@@ -172,7 +180,12 @@ Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().
 | `CheckIn(occasionId, personId)` único | Un check-in por persona y ocasión |
 | `Outbox(dedupeKey) WHERE processedAt IS NULL AND deadLetterAt IS NULL` | Un pendiente por clave |
 | `LegacyAlias(path)` único | Un destino por ruta antigua |
-| `Occasion(termId) WHERE assemblyKind = 'BOARD_ELECTION' AND status <> 'CANCELLED'` | Una elección de junta por término |
+| `Occasion(termId) WHERE assemblyKind = 'BOARD_ELECTION' AND status <> 'CANCELLED'` y lo mismo para `RUNOFF` | Una elección de junta y una segunda vuelta por término |
+| `Occasion(publicId)` único | Una URL de check-in por ocasión |
+| `CommitteeParticipation(occasionId, committeeId)` único | Un score por comité y ocasión |
+| `TermStanding(termId)` único | Un cierre por término |
+| `AssemblyRequirement(termId, personId)` único | Un ajuste por persona y término |
+| `Occasion(legacyId)`, `CheckIn(legacyId)` y `PointEntry(legacyId)` únicos `WHERE legacyId IS NOT NULL` | Una fila por registro migrado de participación |
 | `Page(slug)`, `Event(slug)` únicos; `EventEdition(eventId, slug)` único | Una URL por página, evento y edición |
 | `MediaAsset(objectKey)` único | Un registro por objeto del bucket |
 | `EditionCommittee(editionId, committeeId)` único | Un comité organiza una edición una sola vez |

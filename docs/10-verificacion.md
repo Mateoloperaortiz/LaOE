@@ -19,6 +19,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Validación de formularios y de acciones declaradas.
 - Mapeo de tipos legados de GHPOINTS.
 - Backoff y dead letter del outbox; derivación del código rotativo.
+- Participación (fase 3): `publicId` de 10 caracteres sin ambiguos que acepta los heredados; código rotativo determinista que cambia al minuto, acepta la ventana anterior, rechaza dos atrás y otro secreto, con comparación en tiempo constante; transiciones de ocasión y de check-in (`REJECTED → APPROVED` permitido, `CANCELLED` terminal); ventana por defecto desde el inicio; saldo, niveles por cortes y puestos 1, 2, 2, 4 con desempate por nombre o slug; tasa suavizada con los ejemplos de ADR-024 (μ = 40 %: 3 de 3 → 62,5 %, 1 de 3 → 37,5 %, 30 de 30 → 91 %, 12 de 30 → 40 %); requisito de asambleas por semestre y cumplimiento; código del término siguiente.
 - Medios: tipos y tamaños permitidos, clave de subida, variante elegida para un ancho pedido, `srcset`, errores permanentes frente a transitorios. Fechas: `datetime-local` de Bogotá a UTC y vuelta. ICS: plegado a 75 octetos, escape y `UID` por edición.
 - Roster (fase 2): parser CSV con BOM, comillas y `;` o `,`; cabeceras sin tildes ni mayúsculas; `COMITES` y `CARGO` "General de A3; Logística de PIXEL"; `ENTRADA A LA OE` como término o fecha; cada error y advertencia de 13-importacion con su texto de T-165 y T-483; sugerencia de sigla por similitud; diff por campo contra lo existente; fechas convencionales de un término faltante; celular normalizado.
 - Personas y CRM (fase 2): partición del nombre completo de GHPOINTS; filtro de segmento a condiciones; token del carnet (firma, vencimiento, manipulación, comparación en tiempo constante); esquema del JSON de artículos de normativa.
@@ -26,7 +27,8 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 
 ## Integration (con Postgres)
 
-- Check-in único con 200 registros concurrentes sobre la misma ocasión.
+- Check-in único con **500 registros concurrentes** de personas distintas sobre la misma ocasión (el "listo cuando" de la fase 3): exactamente 500 check-ins y 500 entradas del ledger, un solo `score.recompute` pendiente, y la misma ráfaga repetida rechaza los 500 con T-095 sin cambiar nada; `drain` deja una fila de score por comité con elegibles igual a la función pura.
+- Participación (fase 3): aprobación manual deja `PENDING` sin entrada y aprobar acredita una sola vez; anular revierte con `reversalOfId`; cancelar la ocasión revierte todos los créditos vivos en una transacción; ventana, solo nuevos, código rotativo inválido y término cerrado rechazan con el texto señalado; el check-in de anfitrión con carnet válido, vencido y manipulado; el líder solo opera ocasiones de su comité y abre solo las de 0 puntos; la serie semanal crea las reuniones hasta el fin del término e ignora las que ya existen; rankings por `firstTermId` solo con activos y puesto propio fuera del top; el cierre de puntos falla con ocasiones abiertas, estampa `pointsClosedAt`, escribe `term_standing` y bloquea los ajustes; `auto-close` cierra solo las vencidas y congela el denominador; `term-check` emite una sola vez y crea una sola tarea; los exportes personales exigen step-up.
 - Reversión idempotente y cancelación de ocasión con créditos vivos.
 - Outbox drenado exactamente una vez con dos pollers compitiendo (y `after()` si se usa); `dedupeKey` colapsando recomputes.
 - Correo transaccional: sale por Resend hasta el límite diario y por SES desde ahí o ante error de cuota; cada envío queda en `message` con su proveedor.
@@ -60,6 +62,7 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - Una licencia pedida desde Mi OE aparece como tarea, GH la aprueba y la membresía cambia con auditoría; una convocatoria interna inscribe a la persona en el grupo y su permanencia lo refleja.
 - Campaña enviada al mailer de consola respetando preferencias y baja.
 - Modo anfitrión: el líder marca a una persona sin sesión.
+- Participación (fase 3): la consola muestra el QR y el contador sube tras un check-in; `/app/gh-points` muestra saldo, nivel, movimientos y puesto; el admin cierra un término de pruebas con step-up y ve el standing; el líder entra al admin recortado, crea la serie semanal y `/admin/personas` lo devuelve a `/app`; `axe` en cada pantalla nueva.
 - Un miembro ve subir su porcentaje de permanencia tras un check-in de integración; el líder evalúa un GAP y el porcentaje cambia; GH cierra el término y la decisión aparece en la persona.
 
 ## Normativa
@@ -69,7 +72,8 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 ## Migración
 
 - Correr `migrate-ghpoints` sobre una restauración local del dump (`GHPOINTS_DATABASE_URL`); `verify-migration` debe reportar cero diferencias en conteos y sumas.
-- Muestreo manual de 20 personas y comprobación de todos los `publicId` en `/a/[publicId]`.
+- Muestreo manual de 20 personas y comprobación de todos los `publicId` en `/a/[publicId]` y de las asambleas en `/asamblea/[publicId]`.
+- Fase 3: la prueba de integración sobre el esquema mínimo de GHPOINTS cubre asistencias aprobadas con puntos, anuladas con reversión, asambleas confirmadas, `publicId` retirados, requisitos ajustados y el hall of fame; la segunda corrida no cambia nada y las sumas por (persona, término) coinciden.
 
 ## Despliegue
 

@@ -54,3 +54,7 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | 2026-09-03 | ¿Se reutiliza el corpus de normativa de GHPOINTS? | No: los artículos se extraen de los PDF firmados con `scripts/normativa-extract.py`, escrito desde cero |
 | 2026-09-03 | Semestres viejos en `ENTRADA A LA OE` que no existen | La vista previa los lista y al confirmar se crean con fechas por semestre calendario, editables en Términos |
 | 2026-09-03 | ¿El roster también en Excel? | Sí: CSV y `.xlsx` (primera hoja) con `exceljs` |
+| 2026-09-03 | ¿Qué puede hacer un líder de comité con las ocasiones de su comité? | Crea ocasiones de su comité y abre solo las de 0 puntos (reuniones); las que dan GH Points esperan a un ADMIN; no aprueba pendientes ni ajusta puntos ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
+| 2026-09-03 | ¿Qué ve un miembro en los rankings de GH Points? | Top 10 con nombres (foto solo con consentimiento de directorio) más el puesto y total propios; nadie ve el fondo de la tabla ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
+| 2026-09-03 | ¿Qué mejoras extra entran en la fase 3? | Escaneo del carnet con la cámara en modo anfitrión, ocasiones en serie semanal (adelantadas de la fase 4) y cierre automático de ocasiones ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
+| 2026-09-03 | ¿Exportes también en XLSX? | No en la fase 3: los exportes son CSV con step-up |

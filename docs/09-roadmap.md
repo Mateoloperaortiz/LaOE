@@ -105,18 +105,35 @@ Plan aprobado el 2026-09-03 ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)):
 
 Listo cuando: un admin encuentra a cualquier persona en 2 segundos y ve toda su historia; un miembro importado entra por OTP y ve su ficha. **Cumplido en local el 2026-09-03**: la paleta ⌘K abre la Persona 360 con importación, comités, consentimientos y línea de tiempo (`personas.spec.ts`), y el miembro que entra por el roster ve sus comités en `/app` tras el OTP (`roster.spec.ts`). Las pestañas Participación, Permanencia, Formularios y Solicitudes de la 360 muestran el aviso T-240 hasta su fase.
 
-## Fase 3 · Participación y GH Points · `pendiente`
+## Fase 3 · Participación y GH Points · `en curso`
 
-- [ ] Términos con derivación por fecha y recordatorio de creación
-- [ ] Ocasiones: ciclo de vida, consola con QR, código rotativo, contador en vivo, aprobaciones
-- [ ] Check-in propio en `/a/[publicId]` y modo anfitrión
+Plan aprobado el 2026-09-03 ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)): diez tramos en cortes verticales; cada uno cierra con `npm run check` y `npm run test:e2e` en verde, un commit convencional y push a `main`. Railway sigue pendiente (fase 0 B). Decisiones de Mateo: el líder abre solo las ocasiones sin puntos, el ranking muestra el top 10 con nombres más el puesto propio, entran la cámara en el modo anfitrión, la serie semanal de reuniones y el cierre automático de ocasiones; el exporte XLSX queda fuera.
+
+### Tramos
+
+- [x] F3-T0 · Docs: ADR-035 y enmiendas (ADR-006, 009, 024, 034), modelo (`terms`, `participation`, `system`), arquitectura, acceso, mapa del sitio, migración, verificación, textos T-521 a T-560 (Mi OE) y T-561 a T-674 (admin), glosario, contenido pendiente, roadmap
+- [ ] F3-T1 · Módulo `terms`: el término sale de `participation` sin cambio de SQL; imports de `people`, `crm`, `system`, admin, scripts y pruebas; `deps:check` en verde
+- [ ] F3-T2 · Esquema y dominio base: migración `0005` con ocasiones, check-ins, ledger, score, standing, requisito de asambleas y alias legados; funciones puras (`publicId`, código rotativo, transiciones, ventana, saldo, niveles, puestos, tasa suavizada, requisito); comandos de ocasión; recurso `/admin/ocasiones`; lecturas nuevas de `people` y `events`; seed con ocasiones; fábricas y limpieza e2e
+- [ ] F3-T3 · Check-in propio en `/a/[publicId]` con crédito en la misma transacción, decisiones, cancelación con reversiones, `/asamblea/[publicId]`, T-100 en `/ingresar`, handler `score.recompute`, línea de tiempo y onboarding por outbox, prueba de 500 check-ins concurrentes, e2e del QR
+- [ ] F3-T4 · Consola con QR, contador en vivo (`GET /api/ocasiones/[id]/live`), pendientes, alta manual, ciclo de vida con step-up, código rotativo; modo anfitrión con cámara y búsqueda por nombre; `camera=(self)` en el proxy; el layout del admin admite líderes
+- [ ] F3-T5 · Mi OE: `/app/gh-points` (saldo, nivel, movimientos, rankings, asambleas), saldo y ocasiones en el inicio; `/admin/rankings`, `/admin/ledger`; Persona 360 con Participación y Resumen reales; paleta con ocasiones
+- [ ] F3-T6 · Asambleas (requisito derivado, ajustes, cumplimiento, `/admin/asambleas`), cierre de puntos con `TermStanding` (`/admin/cierre`), programados `auto-close` y `term-check` con tarea al faltar el término siguiente
+- [ ] F3-T7 · Vista de líder (`/admin/comites/[slug]`) con roster sin correos, score, ocasiones propias y serie semanal; exportes CSV con step-up (`ocasiones`, `check-ins`, `ledger`, `rankings`, `asambleas`); `/admin/sistema/alias`
+- [ ] F3-T8 · Migración de ocasiones, check-ins, ledger, asambleas, requisitos, standing y alias desde GHPOINTS; `verify-migration` con sumas; ensayo contra la copia local
+- [ ] F3-T9 · Cierre: lista de revisión de marca en las pantallas nuevas, tres anchos y dos temas, registro
+
+### Entregables
+
+- [ ] Términos con derivación por fecha y recordatorio de creación (tarea al faltar el siguiente)
+- [ ] Ocasiones: ciclo de vida, consola con QR, código rotativo, contador en vivo, aprobaciones, cierre automático
+- [ ] Check-in propio en `/a/[publicId]` y modo anfitrión con cámara
 - [ ] Ledger con crédito automático, ajustes y reversiones
-- [ ] Rankings nuevos, veteranos y comités
+- [ ] Rankings nuevos, veteranos y comités (top 10 más puesto propio)
 - [ ] Score de comité por outbox con `dedupeKey`, tasa cruda y suavizada
-- [ ] Asambleas ordinarias, elección de junta y segunda vuelta con requisitos por término y cumplimiento por persona
+- [ ] Asambleas ordinarias, elección de junta y segunda vuelta con requisito derivado del término, ajustes y cumplimiento por persona
 - [ ] Cierre de término y `TermStanding`
-- [ ] Vista de líder: roster sin correos, score, proponer ocasiones
-- [ ] Exportes CSV/XLSX con step-up
+- [ ] Vista de líder: roster sin correos, score, ocasiones propias, serie semanal de reuniones
+- [ ] Exportes CSV con step-up
 - [ ] Migración de asistencias, ledger y asambleas con `verify-migration` en cero
 - [ ] Alias legados para QR impresos
 
@@ -127,9 +144,9 @@ Listo cuando: 500 escaneos concurrentes sin duplicados ni recomputes repetidos; 
 - [ ] Reglas por término: editor, copia del término anterior, vista previa del impacto sobre el roster
 - [ ] Tabla general y tablas por comité (editadas por su líder) con aviso frente al valor nominal y bloqueo de GH
 - [ ] Resultado por comité con umbral por condición (60 / 80 / 70), periodo de prueba y transferencias internas
-- [ ] Reuniones de comité como ocasiones en serie semanal sin puntos, con asistencia por modo anfitrión
+- [ ] Reuniones de comité en el criterio de asistencia (la serie semanal sin puntos y el modo anfitrión llegan en la fase 3)
 - [ ] Comités de trabajo sembrados (CAP, CGH, CCM, CAE, CML, CAF, Athletic) con sus cargos de junta
-- [ ] Categoría de ocasión (integración, partido del Athletic, charla, taller, social) y marca "solo nuevos"
+- [ ] Uso de la categoría de ocasión (integración, partido del Athletic, charla, taller, social) y de la marca "solo nuevos" en los criterios (las columnas nacen en la fase 3)
 - [ ] Grupos de trabajo por término (comités de trabajo, GT de macroevento, GAP, GAP OE, barra brava, tareas de nuevos) con líder e miembros; importación CSV
 - [ ] Evaluaciones de desempeño por el director de GH de cada frente (y el GH principal para nuevos), con bandeja de pendientes y recordatorios
 - [ ] Puntajes del líder (subcomité, liderazgo, destacado del mes, convivencia) con observación obligatoria cuando no es completo
@@ -245,3 +262,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-03 | 2 | F2-T5 listo: Mi OE. Inicio con saludo, onboarding para quien entró este término (pasos de `onboarding.steps`, marcar hecho a mano), tus comités con el cargo, agenda con las ediciones publicadas para el público o solo para miembros y cartelera con audiencia de miembros. Directorio (`/app/personas`) con búsqueda por nombre, filtro por comité y paginación: nombre, foto solo con consentimiento de directorio (o iniciales), estado, comités del término con el cargo ("General de A3") y cargos de junta; nunca correos. Comités internos (`/app/comites` y `[slug]`): los propios y los demás, presentación, contacto y el roster del semestre con la dirección primero. Ajustes (`/app/ajustes`) en una sola página con las secciones de T-133: foto propia por presign con `purpose: "photo"` (privada, hasta 5 MB, bajo `photos/<personId>/`, solo la fija quien la subió), celular y correo personal (el institucional no se toca), notificaciones (fase 6), sesiones, consentimientos por propósito con la versión de la política, y "mis datos y privacidad": descarga en JSON por `GET /api/mis-datos` (auditada como `export.self` y en la línea de tiempo) y solicitud de eliminación con confirmación, que estampa `deletionRequestedAt` y abre por outbox una tarea `DELETION_REQUEST` sin asignar con vencimiento a `privacy.deletionDays` días hábiles. Segunda identidad e2e (`prueba.miembro@eafit.edu.co`, sin permisos) con su propio `storageState`. 1 de integración (4 casos) y 1 e2e (4 casos) nuevas; `check` y e2e (25) en verde |
 | 2026-09-03 | 2 | F2-T6 listo: normativa y carnet. Documentos (`/admin/documentos`): el PDF firmado sube directo al bucket privado con un POST prefirmado propio (`/api/documentos/presign` y `/confirm`: HEAD, cabecera `%PDF-`, 1 KB a 20 MB, sha256) como `documents/<id>.pdf`, sin pasar por `media_asset`; los artículos entran por el JSON del extractor (`scripts/normativa-extract.py` con pdfplumber vía `uv run`, formato `oe-normativa/1`, revisable a mano) y se reemplazan en una sola transacción; publicar y despublicar. Lector en Mi OE (`/app/normativa` y `[id]`): documentos publicados, buscador en español sobre los artículos (`websearch_to_tsquery` + `ts_headline` con resaltado sin HTML crudo), índice por capítulo, artículos con ancla y "Abrir el PDF original" por `GET /api/documentos/[id]/pdf` (302 a una URL prefirmada de 10 minutos, solo con sesión y publicado, o en borrador para ADMIN); abrir un documento marca la evidencia `NORMATIVA_READ` del onboarding con `after()`. Carnet (`/app/carnet`): token `oe1.<personId>.<vence>.<HMAC-SHA256>` firmado con `SESSION_SECRET`, 24 horas, `signCarnet`/`verifyCarnet` puros con comparación en tiempo constante; QR como SVG en servidor (`qrcode`) dentro de un cartel con nombre completo, comités con cargo y semestre. Pestañas Normativa y Carnet en Mi OE; Documentos en el admin; T-518 a T-520 en el copy. 2 unitarias, 1 de integración y 2 e2e nuevas; `check` y e2e (28) en verde |
 | 2026-09-03 | 2 | F2-T7 listo y **fase 2 lista en local**: lista de revisión de marca (07-marca §11) aplicada a las pantallas de Mi OE (inicio, directorio, comités y comité, egresados, normativa y documento, carnet, ajustes) y a las del admin (Persona 360, importación del roster, documentos) en 375, 768 y escritorio, claro y oscuro; dos correcciones: la navegación de Mi OE envuelve en 375 (Normativa, Carnet y Ajustes quedaban fuera de pantalla) y el destello del cartel de egresados pisaba el título. Entregables de la fase marcados, "listo cuando" cumplido en local, README actualizado; `check` (53 unitarias, 60 de integración) y e2e (28) en verde. Queda Railway (fase 0 B), el contenido real de la OE (11-contenido-pendiente: los PDF firmados de estatutos y reglamento con su JSON revisado, y la política de datos) y el resto de la migración en la fase 3 |
+| 2026-09-03 | 3 | Arranca la fase 3 con su plan aprobado: ADR-035 (módulo `terms` propio para que `participation` importe `people` sin ciclo; check-in sin locks compartidos con el crédito en la misma transacción y el score por outbox con clave por ocasión; transiciones del check-in con reaprobación y anulación terminal; código rotativo TOTP de 6 dígitos; modo anfitrión con cámara; el líder abre solo ocasiones sin puntos y crea series semanales; rankings top 10 con puesto propio; requisito de asambleas derivado del término; cierre con `TermStanding`; cierre automático de ocasiones; alias legados; exportes CSV; migración de participación), con enmiendas a ADR-006, 009, 024 y 034. Modelo, arquitectura, acceso, mapa, migración, verificación, glosario y contenido pendiente actualizados; textos T-521 a T-674 inventariados. F3-T0 listo |

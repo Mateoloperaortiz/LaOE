@@ -1,6 +1,6 @@
 # ADR-034: Personas, CRM mínimo y Mi OE (fase 2)
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-035)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-022, ADR-029, ADR-030, ADR-031, ADR-032, ADR-033
 - Enmienda: ADR-010 (destrucción de sesiones), ADR-018 y 08-migracion (mapeo del líder de comité), ADR-022 (el archivo del roster sí pasa por la app)
@@ -43,3 +43,7 @@ Decisiones que Mateo cerró el 2026-09-03 para esta fase: el lector de normativa
 ## Frente a GHPOINTS
 
 GHPOINTS tenía `Member` como raíz, sin consentimientos, sin línea de tiempo y con una normativa embebida en el código con chat por LLM. Aquí la persona es la raíz (ADR-002), la normativa vive en la base con búsqueda en Postgres y los datos se rigen por consentimientos versionados. La migración de la fase 2 trae roster, comités y permisos; el resto de la historia llega en la fase 3.
+
+## Enmienda (2026-09-03, ADR-035)
+
+El término deja `participation` y pasa al módulo `terms` (sin cambio de SQL) para que `participation` pueda importar `people` sin ciclo. La dirección queda `people → terms`, `crm → terms`, `participation → terms`, `participation → people`; `crm` deja de importar `participation` y los efectos de participación llegan por outbox. Ver [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md).

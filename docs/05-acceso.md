@@ -33,7 +33,8 @@ sequenceDiagram
 | Respuesta | Siempre "si tu correo está en el roster, te llega un código": no se enumera el roster |
 | Sesión | Token de 32 bytes, hash en base, cookie `HttpOnly` `SameSite=Lax` `Secure`; 90 días con "recordar este dispositivo", 24 horas sin marcarlo; se renueva al usarse |
 | Destino | `next` solo acepta rutas same-origin y excluye `/ingresar` y `/api`; un ADMIN que entra a `/` va a `/admin` |
-| Step-up | Conceder permisos, exportar datos personales, confirmar una importación del roster y anonimizar a una persona exigen un OTP verificado hace menos de 15 minutos |
+| Step-up | Conceder permisos, exportar datos personales, confirmar una importación del roster, anonimizar a una persona, cancelar una ocasión con créditos vivos y cerrar los puntos de un término exigen un OTP verificado hace menos de 15 minutos ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
+| Check-in | `/a/[publicId]` exige sesión: sin cookie el proxy redirige a `/ingresar?next=…` (el código rotativo viaja en `?c=` dentro de `next`) y `/ingresar` muestra T-100; no hay check-in anónimo, la salida para quien no tiene sesión es el modo anfitrión |
 | Foto propia | Un miembro sin ADMIN puede pedir un `POST` prefirmado solo para su foto (`purpose = "photo"`, privada, hasta 5 MB); la foto se muestra solo con consentimiento `DIRECTORY_PHOTO` y se sirve con sesión |
 | Sesiones | `/app/ajustes` lista dispositivos y permite cerrar los demás |
 | Desarrollo | Sin `RESEND_API_KEY` el código se imprime en consola; `OTP_FIXED_CODE` solo fuera de producción |
@@ -42,17 +43,17 @@ sequenceDiagram
 
 - El proxy solo redirige `/app`, `/admin` y `/a/*` sin cookie hacia `/ingresar?next=…` y emite la CSP; nunca decide roles.
 - `getActor()` (cacheado por request) devuelve `{ personId, nombre, membresía, permisos[] }` tras validar la sesión y el estado.
-- Cada comando sensible empieza con `requireAdmin()` o `requireLeader(committeeId)`; los layouts hacen lo mismo para la UI.
-- Permisos técnicos: `ADMIN` (todo), `COMMITTEE_LEADER` de uno o más comités (roster sin correo, score, proponer ocasiones en borrador, modo anfitrión en sus ocasiones). Los cargos visibles (`Appointment`) no otorgan permisos.
+- Cada acción sensible empieza con `assertAdmin(actor)` o `assertLeader(actor, committeeId)` en `src/app/**/actions.ts` o en la ruta API; los layouts hacen lo mismo para la UI. El layout del admin admite ADMIN y `COMMITTEE_LEADER` (con navegación recortada); cada página que no es de líder vuelve a exigir ADMIN.
+- Permisos técnicos: `ADMIN` (todo), `COMMITTEE_LEADER` de uno o más comités (roster sin correo, score, crear ocasiones de su comité y abrir solo las de 0 puntos, serie semanal de reuniones, consola y modo anfitrión de sus ocasiones; no aprueba pendientes ni ajusta puntos) y `BOARD` (panel de la junta, fase 4). Los cargos visibles (`Appointment`, `GENERAL`) no otorgan permisos.
 - No se puede retirar ni deshabilitar el último `ADMIN`.
 
 ## Modo anfitrión
 
-Para días de evento con red mala o personas sin sesión: el organizador (líder o admin autenticado) abre la consola de la ocasión, busca a la persona por nombre o escanea el QR de su carnet y marca el check-in con `source=HOST`. El carnet (`/app/carnet`) es un QR con un token firmado que solo la consola sabe leer: `oe1.<personId>.<vencimiento en minutos unix>.<HMAC-SHA256 en base64url con SESSION_SECRET>`, vigente 24 horas, generado en el servidor como SVG (`signCarnet` y `verifyCarnet` en `identity`). Nadie queda bloqueado por no tener sesión en el celular.
+Para días de evento con red mala o personas sin sesión: el organizador (líder o admin autenticado) abre el modo anfitrión de la ocasión (`/admin/ocasiones/[id]/anfitrion`), busca a la persona por nombre (sin ver correos) o escanea el QR de su carnet con la cámara del celular (`BarcodeDetector` nativo o `jsqr` como respaldo; el proxy emite `camera=(self)` solo en esa ruta) y marca el check-in con `source=HOST`, que nace aprobado aunque la ocasión sea de aprobación manual. El carnet (`/app/carnet`) es un QR con un token firmado que solo la consola sabe leer: `oe1.<personId>.<vencimiento en minutos unix>.<HMAC-SHA256 en base64url con SESSION_SECRET>`, vigente 24 horas, generado en el servidor como SVG (`signCarnet` y `verifyCarnet` en `identity`). Nadie queda bloqueado por no tener sesión en el celular.
 
 ## Código rotativo
 
-Cuando una ocasión tiene `requireRotatingCode`, la consola muestra el QR con un código de 6 caracteres que cambia cada 60 segundos (derivado de un secreto por ocasión); el enlace estático `/a/[publicId]` sigue existiendo pero exige el código vigente. Evita que un QR reenviado por WhatsApp acredite a quien no está.
+Cuando una ocasión tiene `requireRotatingCode`, la consola muestra el QR con un código de **6 dígitos** que cambia cada 60 segundos: `HMAC-SHA256(secreto de la ocasión, "<occasionId>:<minuto unix>")` con truncamiento dinámico, como un TOTP; se aceptan la ventana actual y la anterior. El QR embebe el código (`/a/[publicId]?c=…`) y se redibuja cada minuto; el enlace estático sin código sigue existiendo pero exige el vigente. Evita que un QR reenviado por WhatsApp acredite a quien no está.
 
 ## Amenazas consideradas
 

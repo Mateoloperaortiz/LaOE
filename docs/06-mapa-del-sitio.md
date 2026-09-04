@@ -30,13 +30,13 @@
 | `/app/egresados` | Galería de egresados por año de salida: nombre, foto con consentimiento, comités, cargos y años en la OE; solo quienes dieron consentimiento `MEMORIAL` |
 | `/app/solicitudes` | Mis solicitudes: licencia, retiro voluntario, cambio de comité, transferencia interna; estado y respuesta de GH |
 | `/app/convocatorias` | Convocatorias internas abiertas (GT, GAP, GAP OE, barra brava, tareas de nuevos): inscripción directa al grupo, cupo y cierre |
-| `/app/gh-points` | Saldo, nivel, movimientos, rankings (nuevos, veteranos, comités), asambleas firmadas/requeridas |
+| `/app/gh-points` | Saldo, nivel y puntos para el siguiente, movimientos, rankings (nuevos, veteranos, comités: top 10 con nombres más el puesto propio), asambleas del semestre firmadas y requeridas |
 | `/app/permanencia` | Resultado por cada comité frente a su umbral (60, 80 o 70 %), bloque general y bloque del comité criterio por criterio, cómo sumar más, asambleas obligatorias, evaluaciones pendientes, historial |
 | `/app/normativa` y `/app/normativa/[id]` | Estatutos, reglamento y actas: lista con buscador sobre los artículos y lector con índice por capítulo; el PDF firmado se abre por enlace prefirmado |
 | `/app/carnet` | QR personal firmado para acreditación (token de 24 horas) |
 | `/app/ajustes` | Una sola página con las secciones de T-133: mis datos (foto, celular y correo personal con consentimiento), notificaciones (fase 6), sesiones, consentimientos, mis datos y privacidad (descargar mis datos, solicitar eliminación) |
 | `/api/mis-datos` | JSON con todo lo que la OE guarda sobre la persona con sesión; auditado |
-| `/a/[publicId]` | Check-in de una ocasión; sin sesión redirige a `/ingresar` y vuelve |
+| `/a/[publicId]` | Check-in de una ocasión: título, ventana, botón único de registro, campo del código rotativo si aplica (prellenado desde `?c=`); sin sesión redirige a `/ingresar` (que muestra T-100) y vuelve; si el `publicId` no existe consulta `LegacyAlias` |
 | `/api/ics/mi-agenda.ics` | Calendario personal con token |
 
 ## Administración (permiso ADMIN; vistas parciales para líderes)
@@ -53,12 +53,12 @@
 | Formularios | `/admin/formularios`, `/admin/formularios/[id]`, `/admin/formularios/[id]/respuestas` | Constructor y bandeja de respuestas |
 | Comunidad | `/admin/comites`, `/admin/cargos`, `/admin/permisos` | Comités, catálogo de cargos de comité y cargos de junta por término, permisos técnicos |
 | Contenido | `/admin/paginas`, `/admin/cartelera`, `/admin/eventos`, `/admin/eventos/[id]/ediciones`, `/admin/medios`, `/admin/documentos` | Publicación editorial: páginas, cartelera (con Publicar y Despublicar; el push llega en la fase 6 a la misma pantalla), eventos con sus ediciones anidadas, medios con subida directa al bucket ([ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md)); documentos de normativa a medida: subir el PDF con `POST` prefirmado, cargar los artículos desde el JSON del extractor, publicar y despublicar ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)) |
-| Participación | `/admin/terminos`, `/admin/ocasiones`, `/admin/ocasiones/[id]` (consola), `/admin/ocasiones/[id]/anfitrion`, `/admin/ledger`, `/admin/rankings`, `/admin/asambleas`, `/admin/cierre` | Términos, ocasiones con QR y aprobaciones, ledger, rankings, requisitos de asambleas, cierre |
+| Participación | `/admin/terminos`, `/admin/ocasiones`, `/admin/ocasiones/[id]` (consola), `/admin/ocasiones/[id]/anfitrion`, `/admin/ledger`, `/admin/rankings`, `/admin/asambleas`, `/admin/cierre` | Términos (kit); ocasiones por el kit con filtros y acciones Abrir y Cerrar; consola a medida con QR (código rotativo embebido), contador en vivo por polling, pendientes con Aprobar y Rechazar, alta manual, ciclo de vida y score por comité; modo anfitrión móvil con cámara y búsqueda por nombre; ledger con ajustes y reversiones; rankings por término; cumplimiento de asambleas y ajuste del requisito; cierre de puntos con step-up y `TermStanding` ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
 | Permanencia | `/admin/permanencia/reglas`, `/admin/permanencia/grupos`, `/admin/permanencia/grupos/[id]`, `/admin/permanencia/evaluaciones`, `/admin/permanencia/cumplimiento`, `/admin/permanencia/cierre` | Tabla general y las 27 tablas de comité, grupos de trabajo con líder, evaluador e miembros, bandeja de evaluaciones, cumplimiento por comité con filtros y export, cierre con propuesta automática y confirmación |
 | Comunicaciones | `/admin/plantillas`, `/admin/campanas`, `/admin/mensajes` | Plantillas, campañas por segmento, registro; los anuncios con push se operan en `/admin/cartelera` |
 | Sistema | `/admin/sistema/auditoria`, `/admin/sistema/jobs`, `/admin/sistema/importaciones`, `/admin/sistema/exportes`, `/admin/sistema/config`, `/admin/sistema/alias` | Auditoría, outbox y dead letter, importaciones, exportes, configuración, alias legados |
 
-Vista de **líder de comité**: `/admin/comites/[slug]` con roster sin correos y score, proponer ocasiones `DRAFT`, consola y modo anfitrión de sus ocasiones; en `/admin/comites/[slug]/permanencia` edita la tabla de permanencia de su comité dentro del presupuesto, crea las reuniones semanales, pasa asistencia y asigna los puntajes de subcomité, liderazgo, destacado del mes y convivencia. No aprueba puntos ni publica contenido.
+Vista de **líder de comité**: `/admin/comites/[slug]` con roster sin correos y score, crear ocasiones de su comité (abre por sí mismo solo las de 0 puntos; las que dan GH Points esperan a un ADMIN), crear la serie semanal de reuniones, consola y modo anfitrión de sus ocasiones; en `/admin/comites/[slug]/permanencia` edita la tabla de permanencia de su comité dentro del presupuesto, crea las reuniones semanales, pasa asistencia y asigna los puntajes de subcomité, liderazgo, destacado del mes y convivencia. No aprueba puntos ni publica contenido.
 
 Vista de **líder de grupo de trabajo**: opera sus grupos en `/admin/permanencia/grupos/[id]` (miembros, asistencia); no ve el resto del roster.
 
@@ -77,6 +77,7 @@ Vista de **director de GH**: evalúa el desempeño de los miembros de los grupos
 | `GET /sitemap.xml`, `GET /robots.txt` | Solo lo publicado con audiencia pública; con `PUBLIC_INDEXING=false` (staging) robots prohíbe todo y las páginas llevan `noindex` |
 | `opengraph-image` de cada segmento público | Cartel tipográfico generado con `next/og` para inicio, páginas, cartelera y cada anuncio, eventos y cada edición, comités y cada comité |
 | `POST /api/push/subscribe` | Registra suscripción push del actor |
-| `GET /api/export/[tipo]` | CSV/XLSX con step-up cuando hay datos personales |
+| `GET /api/export/[tipo]` | CSV con step-up cuando hay datos personales; desde la fase 3 también `ocasiones`, `check-ins`, `ledger`, `rankings` y `asambleas` |
+| `GET /api/ocasiones/[id]/live` | Contador en vivo de la consola (aprobados, pendientes, por comité, últimos check-ins, código rotativo vigente y QR regenerado); ADMIN o líder del comité de la ocasión; sin caché |
 | Jobs programados: `campaigns`, `reminders`, `prune`, `backup-check` | Corren en el mismo proceso del servicio `web` mediante el scheduler y el outbox; no tienen rutas HTTP |
-| `/a/[publicId]`, `/asamblea/[publicId]` | Alias legados de GHPOINTS resueltos por `LegacyAlias` |
+| `/asamblea/[publicId]` | Alias legado de GHPOINTS: resuelve `LegacyAlias` y redirige a `/a/[publicId]`; `/a/[publicId]` es la misma URL en los dos sistemas y solo consulta el alias para los `publicId` retirados |
