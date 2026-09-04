@@ -20,7 +20,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [persona, comite, ocasion] = tList("T-290") as [string, string, string];
   const [personas, importar, cargos, etiquetas, tareas, segmentos, documentos, importaciones] =
     tList("T-509");
-  const [ocasiones, ledger, rankings] = tList("T-561");
+  const [ocasiones, ledger, rankings, asambleas, cierre] = tList("T-561");
   const enlaces = !actor.isAdmin
     ? []
     : [
@@ -40,6 +40,8 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         { href: "/admin/ocasiones", label: ocasiones ?? "" },
         { href: "/admin/ledger", label: ledger ?? "" },
         { href: "/admin/rankings", label: rankings ?? "" },
+        { href: "/admin/asambleas", label: asambleas ?? "" },
+        { href: "/admin/cierre", label: cierre ?? "" },
         { href: "/admin/permisos", label: permisos ?? "" },
         { href: "/admin/sistema/importaciones", label: importaciones ?? "" },
         { href: "/admin/sistema/jobs", label: t("T-241") },

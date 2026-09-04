@@ -1,5 +1,13 @@
 // API pública del módulo participation (ADR-035).
 export {
+  type AdjustRequirementInput,
+  type AssemblyOverviewRow,
+  assemblyOverview,
+  assemblyStatusFor,
+  listTermAssemblies,
+  type PersonAssemblyStatus,
+} from "./domain/assemblies";
+export {
   type AssemblyCompliance,
   type AssemblyRequirementView,
   assemblyCompliance,
@@ -23,10 +31,19 @@ export {
   type SelfCheckInResult,
 } from "./domain/check-ins";
 export {
+  closingSummary,
+  getTermStanding,
+  type StandingCommittee,
+  type StandingPerson,
+  type TermStandingView,
+} from "./domain/closing";
+export {
   adjustPointsAs,
+  adjustRequirementAs,
   cancelOccasionAs,
   checkInSelfAs,
   closeOccasionAs,
+  closeTermPointsAs,
   createOccasionAs,
   decideCheckInAs,
   decideManyAs,

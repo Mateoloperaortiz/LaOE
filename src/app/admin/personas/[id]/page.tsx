@@ -5,6 +5,7 @@ import { countOpenTasksFor, latestContact, listInteractions, listTasks } from "@
 import { assigneeOptions } from "@/modules/crm/admin";
 import { listPermissionsFor, requireAdminActor } from "@/modules/identity";
 import {
+  assemblyStatusFor,
   balanceFor,
   getOccasionsByIds,
   listCheckInsForPerson,
@@ -113,10 +114,11 @@ export default async function PersonaPage({
   const tasks =
     tab === "tareas" ? (await listTasks({ q: "", personId: id, page: 1, pageSize: 100 })).rows : [];
   const assignees = accion === "tarea" ? await assigneeOptions() : [];
-  const [checkIns, entries, balance] = await Promise.all([
+  const [checkIns, entries, balance, assemblies] = await Promise.all([
     tab === "participacion" ? listCheckInsForPerson(id) : Promise.resolve([]),
     tab === "participacion" ? listEntriesForPerson(id) : Promise.resolve([]),
     my.term ? balanceFor(id, my.term.id) : Promise.resolve(null),
+    my.term && tab === "resumen" ? assemblyStatusFor(id, my.term) : Promise.resolve(null),
   ]);
   const occasions = await getOccasionsByIds(checkIns.map((item) => item.occasionId));
   const termCodes = new Map(terms.map((item) => [item.id, item.code]));
@@ -139,6 +141,28 @@ export default async function PersonaPage({
           lastContact={lastContact}
           openTasks={openTasks}
           balance={balance}
+          assemblies={
+            assemblies
+              ? t("T-670", {
+                  n:
+                    Math.min(
+                      assemblies.compliance.ordinaryAttended,
+                      assemblies.requirement.requiredOrdinary,
+                    ) +
+                    (assemblies.requirement.requiresBoardElection &&
+                    assemblies.compliance.boardElectionAttended
+                      ? 1
+                      : 0) +
+                    (assemblies.requirement.requiresRunoff && assemblies.compliance.runoffAttended
+                      ? 1
+                      : 0),
+                  total:
+                    assemblies.requirement.requiredOrdinary +
+                    (assemblies.requirement.requiresBoardElection ? 1 : 0) +
+                    (assemblies.requirement.requiresRunoff ? 1 : 0),
+                })
+              : null
+          }
         />
       );
       break;

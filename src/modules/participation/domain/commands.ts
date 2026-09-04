@@ -1,10 +1,11 @@
 import { type Actor, runCommand } from "@/db/tx";
 import { getMembershipRef } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
-import { findTermContaining, getTerm, listAllTerms } from "@/modules/terms";
+import { closeTermPoints, findTermContaining, getTerm, listAllTerms } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import { type AdjustRequirementInput, adjustRequirement } from "./assemblies";
 import type { CheckInDecision } from "./check-in-pure";
 import {
   AlreadyCheckedIn,
@@ -16,10 +17,12 @@ import {
   hostCheckIn,
   type SelfCheckInResult,
 } from "./check-ins";
+import { buildStanding, writeTermStanding } from "./closing";
 import { adjustPoints, reverseEntry } from "./ledger";
 import {
   cancelOccasion,
   closeOccasion,
+  countOpenOccasions,
   createOccasion,
   getOccasion,
   getOccasionByPublicId,
@@ -186,4 +189,29 @@ export async function reverseEntryAs(
   return runCommand(actor, (ctx) =>
     reverseEntry(ctx, entryId, reason, { termPointsClosed: (termId) => closedTerms.has(termId) }),
   );
+}
+
+export function adjustRequirementAs(
+  actor: Actor & { personId: string },
+  input: AdjustRequirementInput,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => adjustRequirement(ctx, input));
+}
+
+/**
+ * Cierra los puntos del término (ADR-035 regla 13): los tableros se calculan afuera; adentro se estampa
+ * el término (comando de `terms`) y se escribe el standing en la misma transacción.
+ */
+export async function closeTermPointsAs(
+  actor: Actor & { personId: string },
+  termId: string,
+): Promise<{ id: string }> {
+  const [openOccasions, standing] = await Promise.all([
+    countOpenOccasions(termId),
+    buildStanding(termId),
+  ]);
+  return runCommand(actor, async (ctx) => {
+    await closeTermPoints(ctx, termId);
+    return writeTermStanding(ctx, termId, standing, { openOccasions });
+  });
 }

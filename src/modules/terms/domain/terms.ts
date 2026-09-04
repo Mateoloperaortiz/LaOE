@@ -149,3 +149,33 @@ export async function updateTerm(ctx: CommandContext, id: string, input: TermInp
     after: values,
   });
 }
+
+/** El código del término siguiente: 2026-1 → 2026-2, 2026-2 → 2027-1. */
+export function nextTermCode(code: string): string {
+  const year = Number.parseInt(code.slice(0, 4), 10);
+  return semesterFromCode(code) === 1 ? `${year}-2` : `${year + 1}-1`;
+}
+
+/** Estampa el cierre de puntos (ADR-004): desde ahí el ledger del término no acepta entradas. Sin reapertura. */
+export async function closeTermPoints(
+  ctx: CommandContext,
+  id: string,
+  at = new Date(),
+): Promise<TermRow> {
+  const [before] = await ctx.tx.select().from(term).where(eq(term.id, id));
+  if (!before) {
+    throw new DomainError(t("T-032"));
+  }
+  if (before.pointsClosedAt) {
+    throw new DomainError(t("T-629"));
+  }
+  await ctx.tx.update(term).set({ pointsClosedAt: at }).where(eq(term.id, id));
+  await ctx.audit({
+    action: "term.points-closed",
+    entityType: "term",
+    entityId: id,
+    before: { pointsClosedAt: null },
+    after: { pointsClosedAt: at.toISOString() },
+  });
+  return { ...before, pointsClosedAt: at };
+}

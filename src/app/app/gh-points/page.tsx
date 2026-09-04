@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireActor } from "@/modules/identity";
 import {
+  ASSEMBLY_KINDS,
+  assemblyStatusFor,
   balanceFor,
   levelFor,
   listEntriesFor,
@@ -61,13 +63,26 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
     );
   }
 
-  const [total, entries, position] = await Promise.all([
+  const [total, entries, position, assemblies] = await Promise.all([
     balanceFor(actor.personId, term.id),
     listEntriesFor(actor.personId, term.id),
     membership
       ? myPosition(actor.personId, term.id, membership.firstTermId)
       : Promise.resolve(null),
+    assemblyStatusFor(actor.personId, term),
   ]);
+  const assemblyKindLabels = tList("T-546");
+  const [firmada, pendienteAsamblea, noFuiste] = tList("T-547");
+  const requiredTotalCount =
+    assemblies.requirement.requiredOrdinary +
+    (assemblies.requirement.requiresBoardElection ? 1 : 0) +
+    (assemblies.requirement.requiresRunoff ? 1 : 0);
+  const attendedRequired =
+    Math.min(assemblies.compliance.ordinaryAttended, assemblies.requirement.requiredOrdinary) +
+    (assemblies.requirement.requiresBoardElection && assemblies.compliance.boardElectionAttended
+      ? 1
+      : 0) +
+    (assemblies.requirement.requiresRunoff && assemblies.compliance.runoffAttended ? 1 : 0);
   const level = levelFor(total, cutoffs);
   const nextLabel = level.next === null ? null : (levelLabels[level.index + 1] ?? "");
   let board: Array<{ rank: number; name: string; total: string; mine: boolean }> = [];
@@ -196,6 +211,48 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
               </tbody>
             </table>
           </div>
+        )}
+      </section>
+
+      <section aria-labelledby="asambleas" className="flex flex-col gap-4">
+        <h2 id="asambleas" className="text-display-md">
+          {t("T-544")}
+        </h2>
+        <p className="font-semibold">
+          {t("T-545", { n: attendedRequired, total: requiredTotalCount })}
+        </p>
+        {assemblies.assemblies.length === 0 ? (
+          <p className="text-tinta-suave">{t("T-643")}</p>
+        ) : (
+          <ul className="flex list-none flex-col gap-2 p-0">
+            {assemblies.assemblies.map((item) => {
+              const past = item.occasion.checkInClosesAt < new Date();
+              const label =
+                item.status === "APPROVED" ? firmada : past ? noFuiste : pendienteAsamblea;
+              return (
+                <li
+                  key={item.occasion.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-3"
+                >
+                  <span className="flex flex-col">
+                    <span className="font-semibold">{item.occasion.title}</span>
+                    <span className="text-sm text-tinta-suave">
+                      {assemblyKindLabels[
+                        ASSEMBLY_KINDS.indexOf(item.occasion.assemblyKind ?? "ORDINARY")
+                      ] ?? ""}
+                      {" · "}
+                      {formatDateTime(item.occasion.startsAt)}
+                    </span>
+                  </span>
+                  <span
+                    className={`text-sm font-semibold ${item.status === "APPROVED" ? "" : past ? "text-oe-orange" : "text-tinta-suave"}`}
+                  >
+                    {label}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
 

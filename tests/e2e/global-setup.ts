@@ -4,7 +4,7 @@ import { announcement, document, mediaAsset } from "@/modules/content/schema";
 import { task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { otpChallenge, permission } from "@/modules/identity/schema";
-import { checkIn, occasion, pointEntry } from "@/modules/participation/schema";
+import { checkIn, occasion, pointEntry, termStanding } from "@/modules/participation/schema";
 import {
   committee,
   committeeMembership,
@@ -21,6 +21,8 @@ import { term } from "@/modules/terms/schema";
 export const E2E_EMAIL = "prueba.e2e@eafit.edu.co";
 /** Segunda identidad: un miembro activo sin permisos, para Mi OE (ADR-034). */
 export const E2E_MEMBER_EMAIL = "prueba.miembro@eafit.edu.co";
+/** Término viejo de pruebas para el cierre de puntos (ADR-035): se reabre y vacía en cada corrida. */
+export const E2E_CLOSING_TERM = "2019-2";
 
 export default async function globalSetup(): Promise<void> {
   const db = getDb();
@@ -95,6 +97,33 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(pointEntry).where(inArray(pointEntry.checkInId, e2eCheckIns));
   await db.delete(pointEntry).where(like(pointEntry.reason, "e2e-%"));
   await db.delete(occasion).where(like(occasion.title, "e2e-%"));
+  // Término de pruebas del cierre: existe, abierto, sin standing ni ocasiones.
+  let [closing] = await db
+    .select({ id: term.id })
+    .from(term)
+    .where(eq(term.code, E2E_CLOSING_TERM));
+  if (!closing) {
+    [closing] = await db
+      .insert(term)
+      .values({ code: E2E_CLOSING_TERM, semester: 2, startsOn: "2019-07-01", endsOn: "2019-12-31" })
+      .returning({ id: term.id });
+  }
+  if (closing) {
+    await db.update(term).set({ pointsClosedAt: null }).where(eq(term.id, closing.id));
+    await db.delete(termStanding).where(eq(termStanding.termId, closing.id));
+    const closingCheckIns = db
+      .select({ id: checkIn.id })
+      .from(checkIn)
+      .where(
+        inArray(
+          checkIn.occasionId,
+          db.select({ id: occasion.id }).from(occasion).where(eq(occasion.termId, closing.id)),
+        ),
+      );
+    await db.delete(pointEntry).where(inArray(pointEntry.checkInId, closingCheckIns));
+    await db.delete(pointEntry).where(eq(pointEntry.termId, closing.id));
+    await db.delete(occasion).where(eq(occasion.termId, closing.id));
+  }
   // Miembro sin permisos: activo, en un comité del término, sin datos de contacto ni consentimientos.
   let [member] = await db
     .select({ id: person.id })

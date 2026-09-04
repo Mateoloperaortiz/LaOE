@@ -139,3 +139,26 @@ registerHandler("checkin.approved", async (payload, ctx) => {
   const changed = await recordOnboardingEvidence(personId, "FIRST_INTEGRATION");
   ctx.log.debug({ personId, changed }, "evidencia de la primera integración");
 });
+
+// Falta crear el término siguiente (ADR-004, ADR-035 regla 14): una tarea sin asignar que ven todos los
+// ADMIN; no se duplica mientras siga abierta una con el mismo título.
+const successorMissing = z.object({ next: z.string().min(1), endsOn: z.string().min(1) });
+
+registerHandler("term.successor-missing", async (payload, ctx) => {
+  const { next, endsOn } = successorMissing.parse(payload);
+  const title = t("T-666", { codigo: next, fecha: endsOn });
+  const [open] = await getDb()
+    .select({ id: task.id })
+    .from(task)
+    .where(and(eq(task.title, title), eq(task.status, "OPEN")))
+    .limit(1);
+  if (open) {
+    ctx.log.debug({ next, taskId: open.id }, "la tarea del término siguiente ya existe");
+    return;
+  }
+  const [created] = await getDb()
+    .insert(task)
+    .values({ title, kind: "GENERAL", dueAt: new Date(`${endsOn}T12:00:00Z`) })
+    .returning({ id: task.id });
+  ctx.log.info({ next, taskId: created?.id }, "tarea del término siguiente creada");
+});
