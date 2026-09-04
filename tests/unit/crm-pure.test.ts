@@ -6,6 +6,7 @@ import { tList } from "@/shared/copy";
 
 const labels: TimelineLabels = {
   texts: tList("T-458"),
+  participationTexts: tList("T-667"),
   statuses: { ACTIVE: "Activo", ON_LEAVE: "En licencia", INACTIVE: "Retirado" },
   appointmentKinds: { VP_GH: "Vicepresidencia de GH" },
   permissions: { ADMIN: "ADMIN" },

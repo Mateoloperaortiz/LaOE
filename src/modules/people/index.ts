@@ -77,9 +77,13 @@ export {
 } from "./domain/own-data";
 export {
   findMemberByEmail,
+  getMembershipRef,
   getPeopleByIds,
+  listTermCommitteeMembers,
+  type MembershipRef,
   type PersonRef,
   searchPeople,
+  type TermCommitteeMember,
 } from "./domain/people-reads";
 export { getPerson360, type Person360 } from "./domain/person-360";
 export { normalizePhone, splitFullName } from "./domain/person-pure";

@@ -3619,4 +3619,10 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-676": {
+    where: "Consola: decisión que no aplica al estado del registro",
+    text: "Esa decisión no aplica: el registro está {estado}.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
 } as const;

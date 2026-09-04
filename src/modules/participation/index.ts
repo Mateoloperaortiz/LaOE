@@ -9,19 +9,34 @@ export {
 export {
   CHECK_IN_SOURCES,
   CHECK_IN_STATUSES,
+  type CheckInDecision,
+  type CheckInOutcome,
   type CheckInSource,
   type CheckInStatus,
 } from "./domain/check-in-pure";
 export {
+  type CheckInRow,
+  findCheckIn,
+  listCheckIns,
+  listCheckInsForPerson,
+  type SelfCheckInDenial,
+  type SelfCheckInResult,
+} from "./domain/check-ins";
+export {
   cancelOccasionAs,
+  checkInSelfAs,
   closeOccasionAs,
   createOccasionAs,
+  decideCheckInAs,
+  decideManyAs,
+  hostCheckInAs,
   openOccasionAs,
   resolveOccasionContext,
   rotateSecretAs,
   setRotatingCodeAs,
   updateOccasionAs,
 } from "./domain/commands";
+export { balanceFor, listEntriesFor, type PointEntryRow } from "./domain/ledger";
 export {
   balance,
   competitionRanks,
@@ -58,3 +73,4 @@ export {
 } from "./domain/occasions";
 export { isPublicId, PUBLIC_ID } from "./domain/public-id-pure";
 export { rotatingCodeAt, secondsUntilRotation } from "./domain/rotating-code-pure";
+export { type CommitteeParticipationRow, listOccasionScores } from "./domain/scores";

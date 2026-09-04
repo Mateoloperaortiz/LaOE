@@ -36,7 +36,15 @@ function single(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
-const MAIN_KINDS = ["NOTE", "MEMBERSHIP", "COMMITTEES", "CONSENT", "DATA", "IMPORTED"];
+const MAIN_KINDS = [
+  "NOTE",
+  "MEMBERSHIP",
+  "COMMITTEES",
+  "CONSENT",
+  "DATA",
+  "IMPORTED",
+  "PARTICIPATION",
+];
 
 export async function generateMetadata({
   params,

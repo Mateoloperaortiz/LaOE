@@ -18,7 +18,8 @@ export function formatDate(date: Date): string {
   }).format(date);
 }
 
-function formatTime(date: Date): string {
+/** Solo la hora ("6:00 p. m."), en la zona de la app. */
+export function formatTime(date: Date): string {
   return new Intl.DateTimeFormat("es-CO", {
     timeZone: getEnv().APP_TIMEZONE,
     timeStyle: "short",

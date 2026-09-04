@@ -14,6 +14,7 @@ import { listAllTerms } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { addBusinessDays } from "@/shared/lib/dates";
 import { deleteNotesFor, recordAutomaticInteraction } from "./domain/interactions";
+import { recordOnboardingEvidence } from "./domain/onboarding";
 import { deleteTasksFor } from "./domain/tasks";
 import { summarizeEvent, TIMELINE_EVENTS, type TimelineLabels } from "./domain/timeline-pure";
 import { task } from "./schema";
@@ -41,6 +42,7 @@ function zip(keys: readonly string[], values: string[]): Record<string, string> 
 function labels(): TimelineLabels {
   return {
     texts: tList("T-458"),
+    participationTexts: tList("T-667"),
     statuses: zip(STATUS_CODES, tList("T-381")),
     appointmentKinds: zip(APPOINTMENT_KINDS, tList("T-444")),
     permissions: zip(PERMISSION_CODES, tList("T-289")),
@@ -124,4 +126,16 @@ registerHandler("person.deletion-requested", async (payload, ctx) => {
     })
     .returning({ id: task.id });
   ctx.log.info({ personId, taskId: created?.id }, "tarea de eliminación creada");
+});
+
+// La primera integración marca sola el paso del onboarding (ADR-031, ADR-034 regla 15).
+const checkInApproved = personEvent.extend({ category: z.string() });
+
+registerHandler("checkin.approved", async (payload, ctx) => {
+  const { personId, category } = checkInApproved.parse(payload);
+  if (category !== "INTEGRATION") {
+    return;
+  }
+  const changed = await recordOnboardingEvidence(personId, "FIRST_INTEGRATION");
+  ctx.log.debug({ personId, changed }, "evidencia de la primera integración");
 });

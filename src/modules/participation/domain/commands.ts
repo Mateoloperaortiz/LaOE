@@ -1,14 +1,27 @@
 import { type Actor, runCommand } from "@/db/tx";
+import { getMembershipRef } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { findTermContaining, getTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import type { CheckInDecision } from "./check-in-pure";
+import {
+  AlreadyCheckedIn,
+  cancelOccasionCheckIns,
+  checkInSelf,
+  decideCheckIn,
+  decideMany,
+  findCheckIn,
+  hostCheckIn,
+  type SelfCheckInResult,
+} from "./check-ins";
 import {
   cancelOccasion,
   closeOccasion,
   createOccasion,
   getOccasion,
+  getOccasionByPublicId,
   type OccasionContext,
   type OccasionInput,
   openOccasion,
@@ -62,8 +75,86 @@ export function closeOccasionAs(actor: Actor, id: string): Promise<void> {
   return runCommand(actor, (ctx) => closeOccasion(ctx, id));
 }
 
-export async function cancelOccasionAs(actor: Actor, id: string, reason: string): Promise<void> {
-  await runCommand(actor, (ctx) => cancelOccasion(ctx, id, reason));
+/** Cancela la ocasión y, en la misma transacción, anula sus check-ins y revierte los créditos vivos. */
+export async function cancelOccasionAs(
+  actor: Actor,
+  id: string,
+  reason: string,
+): Promise<{ cancelledCheckIns: number }> {
+  return runCommand(actor, async (ctx) => {
+    const before = await cancelOccasion(ctx, id, reason);
+    const cancelledCheckIns = await cancelOccasionCheckIns(ctx, before, reason.trim());
+    return { cancelledCheckIns };
+  });
+}
+
+async function termPointsClosed(termId: string): Promise<boolean> {
+  const term = await getTerm(termId);
+  return term?.pointsClosedAt !== null && term?.pointsClosedAt !== undefined;
+}
+
+/** Check-in propio: resuelve ocasión, membresía y término afuera; adentro solo tablas propias. */
+export async function checkInSelfAs(
+  actor: Actor & { personId: string },
+  input: { publicId: string; code?: string | null; now?: Date },
+): Promise<SelfCheckInResult> {
+  const row = await getOccasionByPublicId(input.publicId);
+  if (!row) {
+    return { ok: false, reason: "NOT_FOUND" };
+  }
+  const [membership, closed] = await Promise.all([
+    getMembershipRef(actor.personId),
+    termPointsClosed(row.termId),
+  ]);
+  try {
+    return await runCommand(actor, (ctx) =>
+      checkInSelf(
+        ctx,
+        { occasionId: row.id, personId: actor.personId, code: input.code, now: input.now },
+        { membership, termPointsClosed: closed },
+      ),
+    );
+  } catch (error) {
+    if (error instanceof AlreadyCheckedIn) {
+      const existing = await findCheckIn(error.occasionId, error.personId);
+      if (existing) {
+        return { ok: false, reason: "ALREADY", existing };
+      }
+    }
+    throw error;
+  }
+}
+
+/** Alta por el organizador (anfitrión o admin): la autorización la decide la acción de la página. */
+export async function hostCheckInAs(
+  actor: Actor & { personId: string },
+  input: { occasionId: string; personId: string; personName: string; source: "HOST" | "ADMIN" },
+): Promise<{ checkInId: string; points: number }> {
+  const membership = await getMembershipRef(input.personId);
+  try {
+    return await runCommand(actor, (ctx) => hostCheckIn(ctx, input, { membership }));
+  } catch (error) {
+    if (error instanceof AlreadyCheckedIn) {
+      throw new DomainError(t("T-601", { nombre: input.personName }));
+    }
+    throw error;
+  }
+}
+
+export function decideCheckInAs(
+  actor: Actor & { personId: string },
+  input: { checkInId: string; decision: CheckInDecision; reason?: string | null },
+): Promise<void> {
+  return runCommand(actor, (ctx) => decideCheckIn(ctx, input));
+}
+
+export function decideManyAs(
+  actor: Actor & { personId: string },
+  checkInIds: string[],
+  decision: CheckInDecision,
+  reason?: string | null,
+): Promise<number> {
+  return runCommand(actor, (ctx) => decideMany(ctx, checkInIds, decision, reason));
 }
 
 export function setRotatingCodeAs(actor: Actor, id: string, enabled: boolean): Promise<void> {

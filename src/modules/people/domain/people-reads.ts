@@ -1,6 +1,6 @@
 import { eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { membership, person } from "../schema";
+import { committeeMembership, membership, person } from "../schema";
 
 // Lecturas de personas para otros módulos y para la paleta.
 
@@ -52,4 +52,44 @@ export async function searchPeople(q: string, limit = 8): Promise<PersonRef[]> {
     )
     .limit(limit);
   return rows.map((row) => ({ id: row.id, fullName: row.fullName ?? "", email: row.email }));
+}
+
+// Lecturas para participación (ADR-035): se resuelven fuera de la transacción del check-in.
+
+export interface MembershipRef {
+  status: (typeof membership.$inferSelect)["status"];
+  firstTermId: string;
+}
+
+/** Estado y primer término de la membresía; null si la persona no tiene membresía. */
+export async function getMembershipRef(personId: string): Promise<MembershipRef | null> {
+  const [row] = await getDb()
+    .select({ status: membership.status, firstTermId: membership.firstTermId })
+    .from(membership)
+    .where(eq(membership.personId, personId))
+    .limit(1);
+  return row ?? null;
+}
+
+export interface TermCommitteeMember {
+  personId: string;
+  committeeId: string;
+  status: (typeof membership.$inferSelect)["status"];
+  joinedAt: Date | null;
+  leftAt: Date | null;
+}
+
+/** Pertenencias de un término con el estado de la membresía: los elegibles del score de comité (ADR-005, ADR-009). */
+export async function listTermCommitteeMembers(termId: string): Promise<TermCommitteeMember[]> {
+  return getDb()
+    .select({
+      personId: committeeMembership.personId,
+      committeeId: committeeMembership.committeeId,
+      status: membership.status,
+      joinedAt: committeeMembership.joinedAt,
+      leftAt: committeeMembership.leftAt,
+    })
+    .from(committeeMembership)
+    .innerJoin(membership, eq(membership.personId, committeeMembership.personId))
+    .where(eq(committeeMembership.termId, termId));
 }

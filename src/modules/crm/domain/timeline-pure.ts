@@ -17,11 +17,16 @@ export const TIMELINE_EVENTS = [
   "person.anonymized",
   "permission.granted",
   "permission.revoked",
+  "checkin.approved",
+  "checkin.pending",
+  "checkin.cancelled",
 ] as const;
 
 export interface TimelineLabels {
   /** Los dieciséis textos de T-458, en orden. */
   texts: string[];
+  /** Los textos de participación de T-667, en orden (fase 3). */
+  participationTexts: string[];
   statuses: Record<string, string>;
   appointmentKinds: Record<string, string>;
   permissions: Record<string, string>;
@@ -159,6 +164,33 @@ export function summarizeEvent(
       return entry("DATA", text(12));
     case "person.anonymized":
       return entry("DATA", text(13));
+    case "checkin.approved": {
+      const points = typeof payload.points === "number" ? payload.points : 0;
+      const ocasion = str(payload, "occasionTitle");
+      const participation = (index: number) => labels.participationTexts[index] ?? "";
+      return entry(
+        "PARTICIPATION",
+        points > 0
+          ? fill(participation(1), { n: String(points), ocasion })
+          : fill(participation(0), { ocasion }),
+        { occasionId: str(payload, "occasionId"), points, category: str(payload, "category") },
+      );
+    }
+    case "checkin.pending":
+      return entry(
+        "PARTICIPATION",
+        fill(labels.participationTexts[2] ?? "", { ocasion: str(payload, "occasionTitle") }),
+        { occasionId: str(payload, "occasionId") },
+      );
+    case "checkin.cancelled":
+      return entry(
+        "PARTICIPATION",
+        fill(labels.participationTexts[3] ?? "", {
+          ocasion: str(payload, "occasionTitle"),
+          motivo: str(payload, "reason") || "—",
+        }),
+        { occasionId: str(payload, "occasionId") },
+      );
     case "permission.granted":
     case "permission.revoked": {
       const permiso = label(labels.permissions, str(payload, "code"));

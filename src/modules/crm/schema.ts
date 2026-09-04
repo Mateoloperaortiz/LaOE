@@ -10,7 +10,7 @@ import { term } from "@/modules/terms/schema";
 
 export const taskStatus = pgEnum("task_status", ["OPEN", "DONE"]);
 
-/** Tipos de interacción de la fase 2; los de fases siguientes se agregan al escribirlos. */
+/** Tipos de interacción: fase 2 más PARTICIPATION (fase 3); los de fases siguientes se agregan al escribirlos. */
 export type InteractionKind =
   | "NOTE"
   | "IMPORTED"
@@ -20,6 +20,7 @@ export type InteractionKind =
   | "CONSENT"
   | "DATA"
   | "PERMISSION"
+  | "PARTICIPATION"
   | "OTHER";
 
 // Automáticas inmutables (escritas por el handler crm.timeline con refType = 'outbox'); notas editables por su autor.
