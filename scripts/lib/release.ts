@@ -29,6 +29,20 @@ const REQUIRED_INDEXES = [
   "document_file_key_unique",
   "document_article_key_unique",
   "document_article_search_idx",
+  "occasion_public_id_unique",
+  "occasion_legacy_id_unique",
+  "occasion_board_election_unique",
+  "occasion_runoff_unique",
+  "occasion_title_trgm_idx",
+  "check_in_occasion_person_unique",
+  "check_in_legacy_id_unique",
+  "point_entry_checkin_unique",
+  "point_entry_reversal_of_unique",
+  "point_entry_legacy_id_unique",
+  "committee_participation_unique",
+  "term_standing_term_unique",
+  "assembly_requirement_unique",
+  "legacy_alias_path_unique",
 ];
 
 const REQUIRED_EXTENSIONS = ["pg_trgm"];

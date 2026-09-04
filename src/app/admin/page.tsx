@@ -7,6 +7,7 @@ const RUTAS: Record<string, string> = {
   Personas: "/admin/personas",
   Comunidad: "/admin/comites",
   Contenido: "/admin/paginas",
+  Participación: "/admin/ocasiones",
   Sistema: "/admin/sistema/jobs",
 };
 

@@ -1,9 +1,10 @@
-import { and, asc, eq, like, notLike } from "drizzle-orm";
+import { and, asc, eq, inArray, like, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { announcement, document, mediaAsset } from "@/modules/content/schema";
 import { task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { otpChallenge, permission } from "@/modules/identity/schema";
+import { checkIn, occasion, pointEntry } from "@/modules/participation/schema";
 import {
   committee,
   committeeMembership,
@@ -81,6 +82,18 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(eventEdition).where(like(eventEdition.slug, "e2e-%"));
   await db.delete(mediaAsset).where(like(mediaAsset.originalFilename, "e2e-%"));
   await db.delete(document).where(like(document.title, "e2e-%"));
+  // Ocasiones de la suite: primero el ledger de sus check-ins (no se borra en cascada), luego la ocasión
+  // (que arrastra check-ins y score).
+  const e2eOccasions = db
+    .select({ id: occasion.id })
+    .from(occasion)
+    .where(like(occasion.title, "e2e-%"));
+  const e2eCheckIns = db
+    .select({ id: checkIn.id })
+    .from(checkIn)
+    .where(inArray(checkIn.occasionId, e2eOccasions));
+  await db.delete(pointEntry).where(inArray(pointEntry.checkInId, e2eCheckIns));
+  await db.delete(occasion).where(like(occasion.title, "e2e-%"));
   // Miembro sin permisos: activo, en un comité del término, sin datos de contacto ni consentimientos.
   let [member] = await db
     .select({ id: person.id })

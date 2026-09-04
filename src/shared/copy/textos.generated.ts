@@ -3613,4 +3613,10 @@ export const textos = {
     owner: "GH",
     status: "Propuesta",
   },
+  "T-675": {
+    where: "Ocasiones: la fecha de inicio no cae en ningún semestre",
+    text: "No hay un semestre que contenga esa fecha. Crealo primero en Términos.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
 } as const;

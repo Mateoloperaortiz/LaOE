@@ -1,0 +1,504 @@
+import { and, asc, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { z } from "zod";
+import { getDb } from "@/db/client";
+import { isUniqueViolation } from "@/db/errors";
+import type { CommandContext } from "@/db/tx";
+import { DomainError } from "@/shared/admin-kit/DomainError";
+import { t, tList } from "@/shared/copy";
+import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
+import { checkIn, occasion } from "../schema";
+import {
+  canTransitionOccasion,
+  defaultWindow,
+  OCCASION_STATUSES,
+  type OccasionStatus,
+  type WindowConfig,
+} from "./occasion-pure";
+import { newPublicId } from "./public-id-pure";
+import { newRotatingSecret } from "./rotating-code-pure";
+
+// Ocasiones (ADR-006, ADR-035): ciclo DRAFT → OPEN → CLOSED, CANCELLED con motivo; fuera de borrador
+// solo cambian título, descripción y lugar. Las lecturas cruzadas (término, comités, ediciones) se
+// resuelven fuera de la transacción: aquí solo se tocan tablas propias.
+
+export type OccasionRow = typeof occasion.$inferSelect;
+
+const localDateTime = z
+  .string()
+  .trim()
+  .regex(LOCAL_INPUT, { message: t("T-298") });
+
+export const occasionInputSchema = z
+  .object({
+    title: z.string().trim().min(2).max(120),
+    kind: z.enum(["ACTIVITY", "ASSEMBLY", "EDITION_SESSION"]).default("ACTIVITY"),
+    assemblyKind: z.enum(["ORDINARY", "BOARD_ELECTION", "RUNOFF"]).optional(),
+    category: z
+      .enum([
+        "INTEGRATION",
+        "ATHLETIC_MATCH",
+        "COMMITTEE_MEETING",
+        "TALK",
+        "WORKSHOP",
+        "SOCIAL",
+        "OTHER",
+      ])
+      .default("OTHER"),
+    newMembersOnly: z.boolean().default(false),
+    description: z.string().max(20_000).default(""),
+    location: z.string().trim().max(200).default(""),
+    startsAt: localDateTime.transform(bogotaInputToUtc),
+    endsAt: localDateTime.transform(bogotaInputToUtc).optional(),
+    checkInOpensAt: localDateTime.transform(bogotaInputToUtc).optional(),
+    checkInClosesAt: localDateTime.transform(bogotaInputToUtc).optional(),
+    points: z.coerce.number().int().min(0).max(1000).default(0),
+    approval: z.enum(["AUTO", "MANUAL"]).default("AUTO"),
+    requireRotatingCode: z.boolean().default(false),
+    committeeId: z.string().trim().min(1).optional(),
+    editionId: z.string().trim().min(1).optional(),
+  })
+  .superRefine((input, ctx) => {
+    if (input.kind === "ASSEMBLY" && input.assemblyKind === undefined) {
+      ctx.addIssue({ code: "custom", path: ["assemblyKind"], message: t("T-573") });
+    }
+    if (input.kind === "ASSEMBLY" && input.points !== 0) {
+      ctx.addIssue({ code: "custom", path: ["points"], message: t("T-572") });
+    }
+    if (input.kind === "EDITION_SESSION" && input.editionId === undefined) {
+      ctx.addIssue({ code: "custom", path: ["editionId"], message: t("T-574") });
+    }
+    if (input.endsAt !== undefined && input.endsAt <= input.startsAt) {
+      ctx.addIssue({ code: "custom", path: ["endsAt"], message: t("T-298") });
+    }
+    if (
+      input.checkInOpensAt !== undefined &&
+      input.checkInClosesAt !== undefined &&
+      input.checkInClosesAt <= input.checkInOpensAt
+    ) {
+      ctx.addIssue({ code: "custom", path: ["checkInClosesAt"], message: t("T-575") });
+    }
+  });
+
+export type OccasionInput = z.infer<typeof occasionInputSchema>;
+
+/** Lo que el wrapper resuelve antes de la transacción: término de la fecha y ventana por defecto. */
+export interface OccasionContext {
+  termId: string;
+  window: WindowConfig;
+}
+
+function statusLabel(status: OccasionStatus): string {
+  return tList("T-568")[OCCASION_STATUSES.indexOf(status)] ?? status;
+}
+
+function toValues(input: OccasionInput, context: OccasionContext) {
+  const window = defaultWindow(input.startsAt, context.window);
+  return {
+    termId: context.termId,
+    title: input.title,
+    kind: input.kind,
+    assemblyKind: input.kind === "ASSEMBLY" ? (input.assemblyKind ?? null) : null,
+    category: input.category,
+    newMembersOnly: input.newMembersOnly,
+    description: input.description,
+    location: input.location,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt ?? null,
+    checkInOpensAt: input.checkInOpensAt ?? window.checkInOpensAt,
+    checkInClosesAt: input.checkInClosesAt ?? window.checkInClosesAt,
+    points: input.kind === "ASSEMBLY" ? 0 : input.points,
+    approval: input.approval,
+    requireRotatingCode: input.requireRotatingCode,
+    committeeId: input.committeeId ?? null,
+    editionId: input.kind === "EDITION_SESSION" ? (input.editionId ?? null) : null,
+  };
+}
+
+type Values = ReturnType<typeof toValues>;
+
+/** Campos que se congelan al abrir (ADR-035 regla 4). */
+const FROZEN_FIELDS = [
+  "termId",
+  "kind",
+  "assemblyKind",
+  "category",
+  "newMembersOnly",
+  "startsAt",
+  "endsAt",
+  "checkInOpensAt",
+  "checkInClosesAt",
+  "points",
+  "approval",
+  "requireRotatingCode",
+  "committeeId",
+  "editionId",
+] as const;
+
+function sameValue(a: unknown, b: unknown): boolean {
+  if (a instanceof Date || b instanceof Date) {
+    return a instanceof Date && b instanceof Date && a.getTime() === b.getTime();
+  }
+  return a === b;
+}
+
+function boardElectionError(error: unknown): DomainError | null {
+  if (isUniqueViolation(error, "occasion_board_election_unique")) {
+    return new DomainError(t("T-576", { tipo: tList("T-565")[1] ?? "" }), "assemblyKind");
+  }
+  if (isUniqueViolation(error, "occasion_runoff_unique")) {
+    return new DomainError(t("T-576", { tipo: tList("T-565")[2] ?? "" }), "assemblyKind");
+  }
+  return null;
+}
+
+export async function createOccasion(
+  ctx: CommandContext,
+  input: OccasionInput,
+  context: OccasionContext,
+): Promise<{ id: string; publicId: string }> {
+  const values = toValues(input, context);
+  // El alfabeto sin ambiguos da 50 bits: una colisión es improbable, pero se reintenta por si acaso.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const publicId = newPublicId();
+    try {
+      const [row] = await ctx.tx
+        .insert(occasion)
+        .values({
+          ...values,
+          publicId,
+          rotatingSecret: input.requireRotatingCode ? newRotatingSecret() : null,
+          createdById: ctx.actor.personId,
+        })
+        .returning({ id: occasion.id, publicId: occasion.publicId });
+      if (!row) {
+        throw new Error("No se pudo crear la ocasión");
+      }
+      await ctx.audit({
+        action: "occasion.created",
+        entityType: "occasion",
+        entityId: row.id,
+        after: { ...values, publicId },
+      });
+      return row;
+    } catch (error) {
+      const domain = boardElectionError(error);
+      if (domain) {
+        throw domain;
+      }
+      if (isUniqueViolation(error, "occasion_public_id_unique") && attempt < 2) {
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error("No se pudo asignar un publicId");
+}
+
+export async function updateOccasion(
+  ctx: CommandContext,
+  id: string,
+  input: OccasionInput,
+  context: OccasionContext,
+): Promise<void> {
+  const [before] = await ctx.tx.select().from(occasion).where(eq(occasion.id, id));
+  if (!before) {
+    throw new DomainError(t("T-032"));
+  }
+  const values = toValues(input, context);
+  if (before.status !== "DRAFT") {
+    const changed = FROZEN_FIELDS.filter(
+      (field) => !sameValue(before[field], (values as Record<string, unknown>)[field]),
+    );
+    if (changed.length > 0) {
+      throw new DomainError(t("T-577"), changed[0]);
+    }
+  }
+  const set: Partial<Values> & { rotatingSecret?: string | null } =
+    before.status === "DRAFT"
+      ? values
+      : { title: values.title, description: values.description, location: values.location };
+  if (before.status === "DRAFT" && values.requireRotatingCode && !before.rotatingSecret) {
+    set.rotatingSecret = newRotatingSecret();
+  }
+  try {
+    await ctx.tx.update(occasion).set(set).where(eq(occasion.id, id));
+  } catch (error) {
+    throw boardElectionError(error) ?? error;
+  }
+  await ctx.audit({
+    action: "occasion.updated",
+    entityType: "occasion",
+    entityId: id,
+    before,
+    after: set,
+  });
+}
+
+async function transition(
+  ctx: CommandContext,
+  id: string,
+  to: OccasionStatus,
+): Promise<OccasionRow> {
+  const [before] = await ctx.tx.select().from(occasion).where(eq(occasion.id, id));
+  if (!before) {
+    throw new DomainError(t("T-032"));
+  }
+  if (!canTransitionOccasion(before.status, to)) {
+    throw new DomainError(t("T-578", { estado: statusLabel(before.status).toLowerCase() }));
+  }
+  return before;
+}
+
+export async function openOccasion(
+  ctx: CommandContext,
+  id: string,
+  options: { termPointsClosed: boolean },
+): Promise<void> {
+  const before = await transition(ctx, id, "OPEN");
+  if (options.termPointsClosed) {
+    throw new DomainError(t("T-579"));
+  }
+  const rotatingSecret =
+    before.requireRotatingCode && !before.rotatingSecret
+      ? newRotatingSecret()
+      : before.rotatingSecret;
+  await ctx.tx.update(occasion).set({ status: "OPEN", rotatingSecret }).where(eq(occasion.id, id));
+  await ctx.audit({
+    action: "occasion.opened",
+    entityType: "occasion",
+    entityId: id,
+    before: { status: before.status },
+    after: { status: "OPEN" },
+  });
+}
+
+/** Cierra el registro; el score congela su denominador en el recompute que sigue (ADR-035 regla 11). */
+export async function closeOccasion(
+  ctx: CommandContext,
+  id: string,
+  now = new Date(),
+): Promise<void> {
+  const before = await transition(ctx, id, "CLOSED");
+  await ctx.tx.update(occasion).set({ status: "CLOSED", closedAt: now }).where(eq(occasion.id, id));
+  await ctx.audit({
+    action: "occasion.closed",
+    entityType: "occasion",
+    entityId: id,
+    before: { status: before.status },
+    after: { status: "CLOSED", closedAt: now.toISOString() },
+  });
+  await ctx.emit({
+    type: "occasion.closed",
+    payload: { occasionId: id, termId: before.termId, points: before.points },
+  });
+  if (before.points > 0) {
+    await ctx.emit({
+      type: "score.recompute",
+      payload: { occasionId: id },
+      dedupeKey: `score:${id}`,
+    });
+  }
+}
+
+/** Cancela con motivo. Los créditos vivos se revierten en la misma transacción (ver check-ins). */
+export async function cancelOccasion(
+  ctx: CommandContext,
+  id: string,
+  reason: string,
+  now = new Date(),
+): Promise<OccasionRow> {
+  const before = await transition(ctx, id, "CANCELLED");
+  const cancelReason = reason.trim();
+  if (!cancelReason) {
+    throw new DomainError(t("T-609"), "reason");
+  }
+  await ctx.tx
+    .update(occasion)
+    .set({ status: "CANCELLED", cancelReason })
+    .where(eq(occasion.id, id));
+  await ctx.audit({
+    action: "occasion.cancelled",
+    entityType: "occasion",
+    entityId: id,
+    before: { status: before.status },
+    after: { status: "CANCELLED", cancelReason, at: now.toISOString() },
+  });
+  return before;
+}
+
+export async function setRotatingCode(
+  ctx: CommandContext,
+  id: string,
+  enabled: boolean,
+): Promise<void> {
+  const [before] = await ctx.tx.select().from(occasion).where(eq(occasion.id, id));
+  if (!before) {
+    throw new DomainError(t("T-032"));
+  }
+  const rotatingSecret = enabled
+    ? (before.rotatingSecret ?? newRotatingSecret())
+    : before.rotatingSecret;
+  await ctx.tx
+    .update(occasion)
+    .set({ requireRotatingCode: enabled, rotatingSecret })
+    .where(eq(occasion.id, id));
+  await ctx.audit({
+    action: enabled ? "occasion.rotating-code.enabled" : "occasion.rotating-code.disabled",
+    entityType: "occasion",
+    entityId: id,
+    before: { requireRotatingCode: before.requireRotatingCode },
+    after: { requireRotatingCode: enabled },
+  });
+}
+
+/** Un secreto nuevo invalida los códigos anteriores (por ejemplo, si el QR se filtró). */
+export async function rotateSecret(ctx: CommandContext, id: string): Promise<void> {
+  const [before] = await ctx.tx.select().from(occasion).where(eq(occasion.id, id));
+  if (!before) {
+    throw new DomainError(t("T-032"));
+  }
+  await ctx.tx
+    .update(occasion)
+    .set({ rotatingSecret: newRotatingSecret() })
+    .where(eq(occasion.id, id));
+  await ctx.audit({
+    action: "occasion.rotating-code.rotated",
+    entityType: "occasion",
+    entityId: id,
+  });
+}
+
+// Lecturas.
+
+export interface OccasionListParams {
+  q: string;
+  termId?: string | undefined;
+  kind?: string | undefined;
+  status?: string | undefined;
+  committeeId?: string | undefined;
+  page: number;
+  pageSize: number;
+}
+
+export interface OccasionListRow extends OccasionRow {
+  approvedCount: number;
+}
+
+const approvedCount = sql<number>`(
+  select count(*)::int from check_in ci
+  where ci.occasion_id = ${occasion.id} and ci.status = 'APPROVED'
+)`;
+
+function listConditions(params: OccasionListParams) {
+  const conditions = [];
+  if (params.q) {
+    conditions.push(ilike(occasion.title, `%${params.q}%`));
+  }
+  if (params.termId) {
+    conditions.push(eq(occasion.termId, params.termId));
+  }
+  if (
+    params.kind === "ACTIVITY" ||
+    params.kind === "ASSEMBLY" ||
+    params.kind === "EDITION_SESSION"
+  ) {
+    conditions.push(eq(occasion.kind, params.kind));
+  }
+  if (OCCASION_STATUSES.includes(params.status as OccasionStatus)) {
+    conditions.push(eq(occasion.status, params.status as OccasionStatus));
+  }
+  if (params.committeeId) {
+    conditions.push(eq(occasion.committeeId, params.committeeId));
+  }
+  return conditions.length > 0 ? and(...conditions) : undefined;
+}
+
+export async function listOccasions(
+  params: OccasionListParams,
+): Promise<{ rows: OccasionListRow[]; total: number }> {
+  const where = listConditions(params);
+  const db = getDb();
+  const [rows, [total]] = await Promise.all([
+    db
+      .select({ row: occasion, approvedCount })
+      .from(occasion)
+      .where(where)
+      .orderBy(desc(occasion.startsAt))
+      .limit(params.pageSize)
+      .offset((params.page - 1) * params.pageSize),
+    db.select({ n: count() }).from(occasion).where(where),
+  ]);
+  return {
+    rows: rows.map((item) => ({ ...item.row, approvedCount: item.approvedCount })),
+    total: total?.n ?? 0,
+  };
+}
+
+export async function getOccasion(id: string): Promise<OccasionListRow | null> {
+  const [item] = await getDb()
+    .select({ row: occasion, approvedCount })
+    .from(occasion)
+    .where(eq(occasion.id, id))
+    .limit(1);
+  return item ? { ...item.row, approvedCount: item.approvedCount } : null;
+}
+
+export async function getOccasionByPublicId(publicId: string): Promise<OccasionRow | null> {
+  const [row] = await getDb()
+    .select()
+    .from(occasion)
+    .where(eq(occasion.publicId, publicId))
+    .limit(1);
+  return row ?? null;
+}
+
+/** Ocasiones de un término en ciertos estados, de la más reciente a la más vieja. */
+export async function listOccasionsForTerm(
+  termId: string,
+  statuses: readonly OccasionStatus[] = OCCASION_STATUSES,
+): Promise<OccasionRow[]> {
+  return getDb()
+    .select()
+    .from(occasion)
+    .where(and(eq(occasion.termId, termId), inArray(occasion.status, [...statuses])))
+    .orderBy(desc(occasion.startsAt));
+}
+
+export async function countOpenOccasions(termId: string): Promise<number> {
+  const [row] = await getDb()
+    .select({ n: count() })
+    .from(occasion)
+    .where(and(eq(occasion.termId, termId), eq(occasion.status, "OPEN")));
+  return row?.n ?? 0;
+}
+
+export interface OccasionRef {
+  id: string;
+  title: string;
+  startsAt: Date;
+  status: OccasionStatus;
+}
+
+/** Búsqueda por similitud sobre el título, para la paleta ⌘K. */
+export async function searchOccasions(q: string, limit = 8): Promise<OccasionRef[]> {
+  return getDb()
+    .select({
+      id: occasion.id,
+      title: occasion.title,
+      startsAt: occasion.startsAt,
+      status: occasion.status,
+    })
+    .from(occasion)
+    .where(or(sql`similarity(${occasion.title}, ${q}) > 0.2`, ilike(occasion.title, `%${q}%`)))
+    .orderBy(sql`similarity(${occasion.title}, ${q}) desc`, asc(occasion.startsAt))
+    .limit(limit);
+}
+
+/** Cuántos check-ins aprobados tiene una ocasión (para pruebas y listados). */
+export async function countApproved(occasionId: string): Promise<number> {
+  const [row] = await getDb()
+    .select({ n: count() })
+    .from(checkIn)
+    .where(and(eq(checkIn.occasionId, occasionId), eq(checkIn.status, "APPROVED")));
+  return row?.n ?? 0;
+}

@@ -2,6 +2,7 @@ import { announcementsResource, pagesResource } from "@/modules/content/admin";
 import { tasksResource } from "@/modules/crm/admin";
 import { editionsResource, eventsResource } from "@/modules/events/admin";
 import { permissionsResource } from "@/modules/identity/admin";
+import { occasionsResource } from "@/modules/participation/admin";
 import {
   committeesResource,
   peopleResource,
@@ -26,6 +27,7 @@ const resources: Record<string, AnyResource> = {
   [announcementsResource.key]: announcementsResource as unknown as AnyResource,
   [eventsResource.key]: eventsResource as unknown as AnyResource,
   [editionsResource.key]: editionsResource as unknown as AnyResource,
+  [occasionsResource.key]: occasionsResource as unknown as AnyResource,
 };
 
 export function getResource(key: string): AnyResource | null {

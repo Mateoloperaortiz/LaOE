@@ -9,7 +9,8 @@ export async function truncateAll(): Promise<void> {
   const config = await db.select().from(appConfig);
   await db.execute(sql`
     truncate table
-      audit_log, outbox, message, import_job,
+      audit_log, outbox, message, import_job, legacy_alias,
+      point_entry, check_in, committee_participation, term_standing, assembly_requirement, occasion,
       session, otp_challenge, permission,
       document_article, document,
       interaction, task, person_tag, tag, segment, onboarding_progress,

@@ -28,6 +28,13 @@ export const CONFIG = {
       auto: z.enum(["NORMATIVA_READ", "FIRST_INTEGRATION", "PUSH_ENABLED"]).nullable(),
     }),
   ),
+  // Fase 3 (ADR-035): cortes de nivel de GH Points, ventana de check-in por defecto y cierre automático.
+  "points.levels": z.array(z.number().int().min(0)).min(1),
+  "checkin.defaultWindow": z.object({
+    opensMinutesBefore: z.number().int().min(0),
+    closesMinutesAfter: z.number().int().min(0),
+  }),
+  "occasions.autoCloseHours": z.number().int().min(1),
   "backup.lastRunAt": z.string().datetime({ offset: true }).nullable(),
   "backup.status": z
     .object({

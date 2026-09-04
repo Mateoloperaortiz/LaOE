@@ -74,6 +74,20 @@ export const outbox = pgTable(
   ],
 );
 
+// Ruta antigua de GHPOINTS (/asamblea/{publicId} y los publicId retirados) que sigue resolviendo a
+// la ocasión nueva (ADR-018, ADR-035).
+export const legacyAlias = pgTable(
+  "legacy_alias",
+  {
+    id: id(),
+    path: text().notNull(),
+    targetType: text().notNull().default("OCCASION"),
+    targetId: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("legacy_alias_path_unique").on(t.path)],
+);
+
 // Un archivo del roster (o un ensayo de migración) con su vista previa, su estado y su resumen.
 export const importJob = pgTable(
   "import_job",

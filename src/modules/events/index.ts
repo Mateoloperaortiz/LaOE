@@ -7,6 +7,7 @@ export {
   findUpcomingEditionsForMembers,
   getEdition,
   getPublishedEdition,
+  listEditionOptions,
   listEditions,
   listPublicEditionsForIcs,
   listPublishedEditionsOf,

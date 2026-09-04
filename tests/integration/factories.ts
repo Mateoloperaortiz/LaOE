@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import { occasion } from "@/modules/participation/schema";
 import { committee, committeeMembership, membership, person } from "@/modules/people/schema";
 import { conventionalTermDates } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
@@ -107,4 +108,65 @@ export async function seedCommitteeMembership(
     .returning({ id: committeeMembership.id });
   if (!row) throw new Error("seed committee membership");
   return row.id;
+}
+
+type OccasionOverrides = Partial<{
+  title: string;
+  kind: "ACTIVITY" | "ASSEMBLY" | "EDITION_SESSION";
+  assemblyKind: "ORDINARY" | "BOARD_ELECTION" | "RUNOFF" | null;
+  category:
+    | "INTEGRATION"
+    | "ATHLETIC_MATCH"
+    | "COMMITTEE_MEETING"
+    | "TALK"
+    | "WORKSHOP"
+    | "SOCIAL"
+    | "OTHER";
+  newMembersOnly: boolean;
+  points: number;
+  approval: "AUTO" | "MANUAL";
+  status: "DRAFT" | "OPEN" | "CLOSED" | "CANCELLED";
+  requireRotatingCode: boolean;
+  rotatingSecret: string | null;
+  committeeId: string | null;
+  startsAt: Date;
+  checkInOpensAt: Date;
+  checkInClosesAt: Date;
+  publicId: string;
+}>;
+
+let occasionCounter = 0;
+
+/** Ocasión abierta ahora mismo, con 10 puntos y aprobación automática salvo que se diga otra cosa. */
+export async function seedOccasion(
+  termId: string,
+  overrides: OccasionOverrides = {},
+): Promise<{ id: string; publicId: string }> {
+  occasionCounter += 1;
+  const now = Date.now();
+  const [row] = await db()
+    .insert(occasion)
+    .values({
+      termId,
+      publicId:
+        overrides.publicId ??
+        `t${String(occasionCounter).padStart(4, "0")}${String(now % 100_000).padStart(5, "0")}`,
+      title: overrides.title ?? `Ocasión de prueba ${occasionCounter}`,
+      kind: overrides.kind ?? "ACTIVITY",
+      assemblyKind: overrides.assemblyKind ?? null,
+      category: overrides.category ?? "OTHER",
+      newMembersOnly: overrides.newMembersOnly ?? false,
+      points: overrides.points ?? 10,
+      approval: overrides.approval ?? "AUTO",
+      status: overrides.status ?? "OPEN",
+      requireRotatingCode: overrides.requireRotatingCode ?? false,
+      rotatingSecret: overrides.rotatingSecret ?? null,
+      committeeId: overrides.committeeId ?? null,
+      startsAt: overrides.startsAt ?? new Date(now),
+      checkInOpensAt: overrides.checkInOpensAt ?? new Date(now - 3_600_000),
+      checkInClosesAt: overrides.checkInClosesAt ?? new Date(now + 3_600_000),
+    })
+    .returning({ id: occasion.id, publicId: occasion.publicId });
+  if (!row) throw new Error("seed occasion");
+  return row;
 }

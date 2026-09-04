@@ -5,6 +5,7 @@ import { getEnv } from "@/env";
 import { announcement } from "@/modules/content/schema";
 import { editionCommittee, event, eventEdition } from "@/modules/events/schema";
 import { permission } from "@/modules/identity/schema";
+import { occasion } from "@/modules/participation/schema";
 import {
   appointment,
   committee,
@@ -434,6 +435,87 @@ async function seedContent(committees: Array<{ id: string; slug: string }>): Pro
   }
 }
 
+// Ocasiones "de prueba" del término actual en los cuatro estados (ADR-035): con publicId fijo para
+// que db:reset las deje siempre igual. Las fechas van relativas a hoy para que una quede abierta.
+async function seedOccasions(
+  terms: Map<string, string>,
+  committees: Array<{ id: string; slug: string }>,
+): Promise<void> {
+  const current = terms.get("2026-2");
+  if (!current) throw new Error("faltan términos");
+  const now = Date.now();
+  const hours = (n: number) => new Date(now + n * 3_600_000);
+  const rows = [
+    {
+      publicId: "demo000001",
+      title: "Integración de prueba",
+      category: "INTEGRATION" as const,
+      points: 20,
+      status: "OPEN" as const,
+      startsAt: hours(1),
+      checkInOpensAt: hours(-1),
+      checkInClosesAt: hours(4),
+      location: "Bloque 38",
+    },
+    {
+      publicId: "demo000002",
+      title: "Asamblea ordinaria de prueba",
+      kind: "ASSEMBLY" as const,
+      assemblyKind: "ORDINARY" as const,
+      points: 0,
+      status: "OPEN" as const,
+      startsAt: hours(2),
+      checkInOpensAt: hours(-1),
+      checkInClosesAt: hours(5),
+      location: "Auditorio",
+    },
+    {
+      publicId: "demo000003",
+      title: "Charla de prueba (cerrada)",
+      category: "TALK" as const,
+      points: 10,
+      status: "CLOSED" as const,
+      startsAt: hours(-24 * 7),
+      checkInOpensAt: hours(-24 * 7 - 1),
+      checkInClosesAt: hours(-24 * 7 + 3),
+      closedAt: hours(-24 * 6),
+      location: "Bloque 29",
+    },
+    {
+      publicId: "demo000004",
+      title: "Reunión de prueba con código",
+      category: "COMMITTEE_MEETING" as const,
+      points: 0,
+      status: "OPEN" as const,
+      requireRotatingCode: true,
+      rotatingSecret: "secreto-de-prueba-solo-para-desarrollo",
+      committeeId: committees[0]?.id ?? null,
+      startsAt: hours(0),
+      checkInOpensAt: hours(-1),
+      checkInClosesAt: hours(2),
+      location: "Oficina de la OE",
+    },
+    {
+      publicId: "demo000005",
+      title: "Taller de prueba (borrador)",
+      category: "WORKSHOP" as const,
+      points: 15,
+      status: "DRAFT" as const,
+      startsAt: hours(24 * 7),
+      checkInOpensAt: hours(24 * 7 - 1),
+      checkInClosesAt: hours(24 * 7 + 3),
+      location: "Por definir",
+    },
+  ];
+  for (const row of rows) {
+    const values = { termId: current, approval: "AUTO" as const, ...row };
+    await db
+      .insert(occasion)
+      .values(values)
+      .onConflictDoUpdate({ target: occasion.publicId, set: values });
+  }
+}
+
 try {
   const terms = await seedTerms();
   const committees = await seedCommittees();
@@ -443,6 +525,7 @@ try {
   await seedConsents();
   await seedAppointments(terms);
   await seedContent(committees);
+  await seedOccasions(terms, committees);
   const [people] = await db.select({ n: count() }).from(person).where(eq(person.source, "SEED"));
   const [admins] = await db
     .select({ n: count() })

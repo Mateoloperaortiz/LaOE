@@ -124,6 +124,32 @@ export async function listEditions(
   };
 }
 
+export interface EditionOption {
+  id: string;
+  label: string;
+  startsAt: Date;
+}
+
+/** Ediciones como opciones de un select ("Evento · Edición"), de la más reciente a la más vieja. */
+export async function listEditionOptions(limit = 200): Promise<EditionOption[]> {
+  const rows = await getDb()
+    .select({
+      id: eventEdition.id,
+      name: eventEdition.name,
+      eventName: event.name,
+      startsAt: eventEdition.startsAt,
+    })
+    .from(eventEdition)
+    .innerJoin(event, eq(event.id, eventEdition.eventId))
+    .orderBy(desc(eventEdition.startsAt))
+    .limit(limit);
+  return rows.map((row) => ({
+    id: row.id,
+    label: `${row.eventName} · ${row.name}`,
+    startsAt: row.startsAt,
+  }));
+}
+
 export async function getEdition(id: string): Promise<EditionListRow | null> {
   const [row] = await getDb()
     .select(listColumns)
