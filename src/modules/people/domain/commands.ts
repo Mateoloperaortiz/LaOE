@@ -11,6 +11,7 @@ import {
   type ReactivateInput,
   reactivateMembership,
 } from "./membership";
+import { type OwnContactInput, requestDeletion, setOwnPhoto, updateOwnContact } from "./own-data";
 import { type PersonInput, updatePerson } from "./persons";
 import { setPersonTags } from "./tags";
 
@@ -85,6 +86,26 @@ export function revokeConsentAs(
   purpose: ConsentPurpose,
 ): Promise<boolean> {
   return runCommand(actor, (ctx) => revokeConsent(ctx, personId, purpose));
+}
+
+export function updateOwnContactAs(
+  actor: Actor & { personId: string },
+  input: OwnContactInput,
+): Promise<void> {
+  return runCommand(actor, (ctx) => updateOwnContact(ctx, actor.personId, input));
+}
+
+export function setOwnPhotoAs(
+  actor: Actor & { personId: string },
+  assetId: string | null,
+): Promise<void> {
+  return runCommand(actor, (ctx) => setOwnPhoto(ctx, actor.personId, assetId));
+}
+
+export function requestDeletionAs(
+  actor: Actor & { personId: string },
+): Promise<{ created: boolean; requestedAt: Date }> {
+  return runCommand(actor, (ctx) => requestDeletion(ctx, actor.personId));
 }
 
 export function setPersonTagsAs(actor: Actor, personId: string, tagIds: string[]): Promise<void> {

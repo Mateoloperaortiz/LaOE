@@ -12,12 +12,12 @@ export async function POST(request: Request) {
   if (!actor) {
     return Response.json({ error: "Sin sesión" }, { status: 401 });
   }
-  if (!actor.isAdmin) {
-    return Response.json({ error: "Solo ADMIN" }, { status: 403 });
-  }
   const parsed = confirmUploadSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return Response.json({ error: "Petición inválida" }, { status: 400 });
+  }
+  if (!actor.isAdmin && parsed.data.purpose !== "photo") {
+    return Response.json({ error: "Solo ADMIN" }, { status: 403 });
   }
   try {
     const result = await confirmUploadAs(

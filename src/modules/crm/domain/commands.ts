@@ -1,5 +1,6 @@
 import { type Actor, runCommand } from "@/db/tx";
 import { addNote, editNote } from "./interactions";
+import { markOnboardingStep } from "./onboarding";
 import { completeTask, createTask, type TaskInput } from "./tasks";
 
 // Comandos con su propia transacción para las acciones de página (src/app no importa src/db).
@@ -14,6 +15,14 @@ export function editNoteAs(actor: Actor, id: string, body: string): Promise<void
 
 export function createTaskAs(actor: Actor, input: TaskInput): Promise<{ id: string }> {
   return runCommand(actor, (ctx) => createTask(ctx, input));
+}
+
+export function markOnboardingStepAs(
+  actor: Actor & { personId: string },
+  termId: string,
+  stepKey: string,
+): Promise<boolean> {
+  return runCommand(actor, (ctx) => markOnboardingStep(ctx, actor.personId, termId, stepKey));
 }
 
 export function completeTaskAs(actor: Actor, id: string): Promise<void> {

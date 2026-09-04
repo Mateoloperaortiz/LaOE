@@ -1,14 +1,25 @@
-import { eq, like } from "drizzle-orm";
+import { and, asc, eq, like, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { announcement, mediaAsset } from "@/modules/content/schema";
+import { task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { otpChallenge, permission } from "@/modules/identity/schema";
 import { term } from "@/modules/participation/schema";
-import { committee, membership, membershipEvent, person, segment } from "@/modules/people/schema";
+import {
+  committee,
+  committeeMembership,
+  consent,
+  membership,
+  membershipEvent,
+  person,
+  segment,
+} from "@/modules/people/schema";
 import { importJob } from "@/modules/system/schema";
 
 // Persona sintética para las pruebas e2e; se recrea en cada corrida, nunca es una persona real.
 export const E2E_EMAIL = "prueba.e2e@eafit.edu.co";
+/** Segunda identidad: un miembro activo sin permisos, para Mi OE (ADR-034). */
+export const E2E_MEMBER_EMAIL = "prueba.miembro@eafit.edu.co";
 
 export default async function globalSetup(): Promise<void> {
   const db = getDb();
@@ -69,5 +80,80 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(announcement).where(like(announcement.title, "e2e-%"));
   await db.delete(eventEdition).where(like(eventEdition.slug, "e2e-%"));
   await db.delete(mediaAsset).where(like(mediaAsset.originalFilename, "e2e-%"));
+  // Miembro sin permisos: activo, en un comité del término, sin datos de contacto ni consentimientos.
+  let [member] = await db
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.email, E2E_MEMBER_EMAIL));
+  if (!member) {
+    [member] = await db
+      .insert(person)
+      .values({
+        email: E2E_MEMBER_EMAIL,
+        firstName: "Miembro",
+        lastName: "E2E",
+        stage: "MEMBER",
+        source: "E2E",
+      })
+      .returning({ id: person.id });
+  }
+  if (!member) {
+    throw new Error("sin miembro");
+  }
+  await db
+    .insert(membership)
+    .values({ personId: member.id, status: "ACTIVE", firstTermId: current.id })
+    .onConflictDoNothing({ target: membership.personId });
+  await db
+    .update(membership)
+    .set({ status: "ACTIVE", endedAt: null, endReason: null })
+    .where(eq(membership.personId, member.id));
+  await db
+    .update(person)
+    .set({
+      stage: "MEMBER",
+      phone: null,
+      personalEmail: null,
+      photoAssetId: null,
+      deletionRequestedAt: null,
+      anonymizedAt: null,
+    })
+    .where(eq(person.id, member.id));
+  await db.delete(permission).where(eq(permission.personId, member.id));
+  await db.delete(consent).where(eq(consent.personId, member.id));
+  await db.delete(task).where(eq(task.personId, member.id));
+  await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_MEMBER_EMAIL));
+  const [home] = await db
+    .select({ id: committee.id })
+    .from(committee)
+    .where(and(eq(committee.status, "ACTIVE"), notLike(committee.slug, "e2e-%")))
+    .orderBy(asc(committee.name))
+    .limit(1);
+  if (home) {
+    const [existing] = await db
+      .select({ id: committeeMembership.id })
+      .from(committeeMembership)
+      .where(
+        and(
+          eq(committeeMembership.personId, member.id),
+          eq(committeeMembership.termId, current.id),
+          eq(committeeMembership.committeeId, home.id),
+        ),
+      );
+    if (existing) {
+      await db
+        .update(committeeMembership)
+        .set({ leftAt: null })
+        .where(eq(committeeMembership.id, existing.id));
+    } else {
+      await db.insert(committeeMembership).values({
+        personId: member.id,
+        committeeId: home.id,
+        termId: current.id,
+        roleCode: "MIEMBRO",
+        joinedAt: new Date(),
+      });
+    }
+  }
   await closeDb();
 }

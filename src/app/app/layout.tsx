@@ -7,6 +7,8 @@ import { t, tList } from "@/shared/copy";
 // Mi OE: solo con sesión válida (activos y honorarios). Las pestañas de T-061 se habilitan por fase.
 const RUTAS: Record<string, string> = {
   Inicio: "/app",
+  Comités: "/app/comites",
+  Personas: "/app/personas",
   Egresados: "/app/egresados",
   Ajustes: "/app/ajustes",
 };

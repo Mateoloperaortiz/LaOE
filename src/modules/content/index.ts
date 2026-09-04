@@ -6,7 +6,9 @@ export {
   getAnnouncement,
   getPublicAnnouncement,
   listAnnouncements,
+  listMemberAnnouncements,
   listPublicAnnouncements,
+  type MemberAnnouncement,
   type PublicAnnouncement,
   publishAnnouncement,
   unpublishAnnouncement,
@@ -27,7 +29,7 @@ export {
   prepareUploadSchema,
   resolveMediaRedirect,
 } from "./domain/media";
-export { MEDIA_LIMITS } from "./domain/media-pure";
+export { MEDIA_LIMITS, PHOTO_MAX_BYTES } from "./domain/media-pure";
 export {
   createPage,
   findPublicPage,

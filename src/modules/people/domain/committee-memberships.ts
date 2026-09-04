@@ -83,14 +83,20 @@ export async function listCommitteeMembershipsByTerm(personId: string): Promise<
 export interface MyMembership {
   term: TermRow | null;
   committees: CommitteeMembershipView[];
+  /** Entró en el término actual: el inicio le muestra el onboarding. */
+  isNew: boolean;
 }
 
 /** Los comités vivos de la persona en el término actual (inicio de Mi OE, directorio, carnet). */
 export async function getMyMembership(personId: string): Promise<MyMembership> {
   const current = await getCurrentTerm();
   if (!current) {
-    return { term: null, committees: [] };
+    return { term: null, committees: [], isNew: false };
   }
+  const [own] = await getDb()
+    .select({ firstTermId: membership.firstTermId })
+    .from(membership)
+    .where(eq(membership.personId, personId));
   const rows = await getDb()
     .select(viewColumns)
     .from(committeeMembership)
@@ -104,7 +110,7 @@ export async function getMyMembership(personId: string): Promise<MyMembership> {
       ),
     )
     .orderBy(asc(committee.name));
-  return { term: current, committees: rows };
+  return { term: current, committees: rows, isNew: own?.firstTermId === current.id };
 }
 
 /**

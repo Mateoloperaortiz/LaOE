@@ -1,5 +1,5 @@
 import { expect, test as setup } from "@playwright/test";
-import { E2E_EMAIL } from "./global-setup";
+import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
 
 const CODE = process.env.OTP_FIXED_CODE ?? "123456";
 
@@ -13,4 +13,15 @@ setup("entra como admin de pruebas", async ({ page }) => {
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page).toHaveURL(/\/admin$/);
   await page.context().storageState({ path: "tests/e2e/.auth/admin.json" });
+});
+
+// La segunda identidad: un miembro sin permisos, para la suite de Mi OE.
+setup("entra como miembro de pruebas", async ({ page }) => {
+  await page.goto("/ingresar?next=%2Fapp");
+  await page.getByLabel("Correo @eafit.edu.co").fill(E2E_MEMBER_EMAIL);
+  await page.getByRole("button", { name: "Enviame el código" }).click();
+  await page.getByLabel("Código de seis dígitos").fill(CODE);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page).toHaveURL(/\/app$/);
+  await page.context().storageState({ path: "tests/e2e/.auth/member.json" });
 });

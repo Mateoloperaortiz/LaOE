@@ -1,4 +1,4 @@
-import { and, asc, eq, exists, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { getEnv } from "@/env";
 import { listAllTerms } from "@/modules/participation";
@@ -8,11 +8,11 @@ import {
   committee,
   committeeMembership,
   committeeRole,
-  consent,
   membership,
   person,
 } from "../schema";
 import type { AppointmentKind } from "./appointments";
+import { liveConsentExists } from "./consents";
 
 // Galería de egresados (ADR-030): quienes salieron, con consentimiento MEMORIAL vivo y sin anonimizar,
 // agrupados por el año de salida; la foto solo con consentimiento de directorio.
@@ -33,21 +33,6 @@ export interface AlumniYear {
   entries: AlumniEntry[];
 }
 
-function liveConsent(purpose: "MEMORIAL" | "DIRECTORY_PHOTO") {
-  return exists(
-    getDb()
-      .select({ one: sql`1` })
-      .from(consent)
-      .where(
-        and(
-          eq(consent.personId, person.id),
-          eq(consent.purpose, purpose),
-          isNull(consent.revokedAt),
-        ),
-      ),
-  );
-}
-
 export async function listAlumniByYear(): Promise<AlumniYear[]> {
   const db = getDb();
   const timeZone = getEnv().APP_TIMEZONE;
@@ -60,11 +45,13 @@ export async function listAlumniByYear(): Promise<AlumniYear[]> {
         endedAt: membership.endedAt,
         firstTermId: membership.firstTermId,
         lastTermId: membership.lastTermId,
-        photoAllowed: liveConsent("DIRECTORY_PHOTO"),
+        photoAllowed: liveConsentExists("DIRECTORY_PHOTO"),
       })
       .from(person)
       .innerJoin(membership, eq(membership.personId, person.id))
-      .where(and(eq(person.stage, "ALUMNI"), isNull(person.anonymizedAt), liveConsent("MEMORIAL")))
+      .where(
+        and(eq(person.stage, "ALUMNI"), isNull(person.anonymizedAt), liveConsentExists("MEMORIAL")),
+      )
       .orderBy(asc(person.fullName)),
     listAllTerms(),
   ]);

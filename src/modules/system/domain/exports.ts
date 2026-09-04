@@ -15,3 +15,19 @@ export async function recordExport(
     }),
   );
 }
+
+/** "Mis datos" (ADR-034 regla 12): la propia persona se lleva su paquete; queda auditado y en la línea de tiempo. */
+export async function recordSelfExport(personId: string): Promise<void> {
+  await runCommand({ personId }, async (ctx) => {
+    await ctx.audit({
+      action: "export.self",
+      entityType: "person",
+      entityId: personId,
+      after: { format: "json" },
+    });
+    await ctx.emit({
+      type: "person.data-exported",
+      payload: { actorId: personId, personId },
+    });
+  });
+}

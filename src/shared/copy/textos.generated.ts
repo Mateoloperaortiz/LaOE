@@ -2076,6 +2076,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-419": {
+    where: "Ajustes, foto fuera de tipo o tamaño",
+    text: "La foto debe ser JPG, PNG o WebP de hasta 5 MB.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-420": {
     where: "Recurso personas (plural · singular)",
     text: "Personas · Persona",

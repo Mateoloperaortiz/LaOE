@@ -1,16 +1,22 @@
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { getDb } from "@/db/client";
 import { registerHandler } from "@/jobs/registry";
 import { listAllTerms } from "@/modules/participation";
 import {
   APPOINTMENT_KINDS,
   CONSENT_PURPOSES,
+  getPeopleByIds,
   listAllCommittees,
   listCommitteeRoles,
 } from "@/modules/people";
-import { tList } from "@/shared/copy";
+import { requireConfig } from "@/modules/system";
+import { t, tList } from "@/shared/copy";
+import { addBusinessDays } from "@/shared/lib/dates";
 import { deleteNotesFor, recordAutomaticInteraction } from "./domain/interactions";
 import { deleteTasksFor } from "./domain/tasks";
 import { summarizeEvent, TIMELINE_EVENTS, type TimelineLabels } from "./domain/timeline-pure";
+import { task } from "./schema";
 
 // La línea de tiempo se alimenta sola (01-arquitectura.md): cada evento de dominio produce una
 // interacción, idempotente por la fila del outbox. Salir o anonimizarse borra tareas y notas (ADR-030).
@@ -86,4 +92,36 @@ registerHandler("person.anonymized", async (payload, ctx) => {
   const tasks = await deleteTasksFor(personId);
   const notes = await deleteNotesFor(personId);
   ctx.log.info({ personId, tasks, notes }, "tareas y notas borradas por anonimización");
+});
+
+// La solicitud de eliminación (ADR-030, ADR-034 regla 12) abre una tarea sin asignar que ven todos
+// los ADMIN, con vencimiento a `privacy.deletionDays` días hábiles; no se duplica mientras siga abierta.
+registerHandler("person.deletion-requested", async (payload, ctx) => {
+  const { personId } = personEvent.parse(payload);
+  const [open] = await getDb()
+    .select({ id: task.id })
+    .from(task)
+    .where(
+      and(eq(task.personId, personId), eq(task.kind, "DELETION_REQUEST"), eq(task.status, "OPEN")),
+    )
+    .limit(1);
+  if (open) {
+    ctx.log.debug({ personId, taskId: open.id }, "la solicitud de eliminación ya tiene tarea");
+    return;
+  }
+  const [people, days] = await Promise.all([
+    getPeopleByIds([personId]),
+    requireConfig("privacy.deletionDays"),
+  ]);
+  const [created] = await getDb()
+    .insert(task)
+    .values({
+      title: t("T-464", { nombre: people.get(personId)?.fullName?.trim() ?? "" }),
+      kind: "DELETION_REQUEST",
+      personId,
+      createdById: personId,
+      dueAt: addBusinessDays(new Date(), days),
+    })
+    .returning({ id: task.id });
+  ctx.log.info({ personId, taskId: created?.id }, "tarea de eliminación creada");
 });

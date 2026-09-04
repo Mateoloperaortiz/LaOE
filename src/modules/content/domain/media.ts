@@ -15,6 +15,9 @@ import {
   isAllowedType,
   MEDIA_MAX_BYTES,
   MEDIA_MIN_BYTES,
+  PHOTO_KEY_PREFIX,
+  PHOTO_MAX_BYTES,
+  photoKey,
   pickVariant,
   UPLOAD_EXPIRY_SECONDS,
   UPLOAD_KEY_PATTERN,
@@ -26,15 +29,21 @@ import {
 export type MediaRow = typeof mediaAsset.$inferSelect;
 
 const visibilitySchema = z.enum(["PUBLIC", "PRIVATE"]).default("PUBLIC");
+// "media" es la subida del admin; "photo" la foto propia de un miembro (ADR-034 regla 8).
+const purposeSchema = z.enum(["media", "photo"]).default("media");
 
 export const prepareUploadSchema = z.object({
   filename: z.string().trim().min(1).max(200),
   contentType: z.string().trim().min(3).max(100),
   byteSize: z.number().int().positive(),
   visibility: visibilitySchema,
+  purpose: purposeSchema,
 });
 
-export type PrepareUploadInput = z.infer<typeof prepareUploadSchema>;
+// `purpose` es opcional al llamar (los subidores viejos no lo mandan): sin él es una subida del admin.
+export type PrepareUploadInput = Omit<z.infer<typeof prepareUploadSchema>, "purpose"> & {
+  purpose?: "media" | "photo";
+};
 
 export interface PreparedUpload {
   key: string;
@@ -43,20 +52,34 @@ export interface PreparedUpload {
   expiresAt: string;
 }
 
-/** ADMIN pide un POST prefirmado de 10 minutos con tipo y tamaño acotados. */
-export async function prepareUpload(input: PrepareUploadInput): Promise<PreparedUpload> {
+/**
+ * Un POST prefirmado de 10 minutos con tipo y tamaño acotados: ADMIN para medios; cualquier
+ * persona con sesión para su propia foto (privada, hasta 5 MB, bajo `photos/<personId>/`).
+ */
+export async function prepareUpload(
+  input: PrepareUploadInput,
+  owner?: { personId: string },
+): Promise<PreparedUpload> {
+  const photo = input.purpose === "photo";
+  if (photo && !owner) {
+    throw new DomainError(t("T-363"), "file");
+  }
   if (!isAllowedType(input.contentType)) {
-    throw new DomainError(t("T-361"), "file");
+    throw new DomainError(t(photo ? "T-419" : "T-361"), "file");
   }
-  if (!isAllowedSize(input.byteSize)) {
-    throw new DomainError(t("T-362"), "file");
+  const maxBytes = photo ? PHOTO_MAX_BYTES : MEDIA_MAX_BYTES;
+  if (!isAllowedSize(input.byteSize, maxBytes)) {
+    throw new DomainError(t(photo ? "T-419" : "T-362"), "file");
   }
-  const key = uploadKey(input.contentType, createId());
+  const key =
+    photo && owner
+      ? photoKey(owner.personId, input.contentType, createId())
+      : uploadKey(input.contentType, createId());
   const upload = await presignUpload({
     key,
     contentType: input.contentType,
     minBytes: MEDIA_MIN_BYTES,
-    maxBytes: MEDIA_MAX_BYTES,
+    maxBytes,
     expiresInSeconds: UPLOAD_EXPIRY_SECONDS,
   });
   return { key, url: upload.url, fields: upload.fields, expiresAt: upload.expiresAt.toISOString() };
@@ -66,15 +89,23 @@ export const confirmUploadSchema = z.object({
   key: z.string().regex(UPLOAD_KEY_PATTERN),
   filename: z.string().trim().min(1).max(200),
   visibility: visibilitySchema,
+  purpose: purposeSchema,
 });
 
-export type ConfirmUploadInput = z.infer<typeof confirmUploadSchema>;
+export type ConfirmUploadInput = Omit<z.infer<typeof confirmUploadSchema>, "purpose"> & {
+  purpose?: "media" | "photo";
+};
 
 /** Comprueba el objeto con HEAD, registra el medio en PENDING y encola media.process. */
 export async function confirmUpload(
   ctx: CommandContext,
   input: ConfirmUploadInput,
 ): Promise<{ id: string }> {
+  const photo = input.key.startsWith(PHOTO_KEY_PREFIX);
+  if (photo && !input.key.startsWith(`${PHOTO_KEY_PREFIX}${ctx.actor.personId}/`)) {
+    throw new DomainError(t("T-363"), "file");
+  }
+  const visibility = photo ? "PRIVATE" : input.visibility;
   const info = await headObject(input.key);
   if (!info || info.byteSize === null) {
     throw new DomainError(t("T-363"), "file");
@@ -82,17 +113,17 @@ export async function confirmUpload(
   const contentType = info.contentType ?? "";
   if (!isAllowedType(contentType)) {
     await deleteObject(input.key);
-    throw new DomainError(t("T-361"), "file");
+    throw new DomainError(t(photo ? "T-419" : "T-361"), "file");
   }
-  if (!isAllowedSize(info.byteSize)) {
+  if (!isAllowedSize(info.byteSize, photo ? PHOTO_MAX_BYTES : MEDIA_MAX_BYTES)) {
     await deleteObject(input.key);
-    throw new DomainError(t("T-362"), "file");
+    throw new DomainError(t(photo ? "T-419" : "T-362"), "file");
   }
   try {
     const [row] = await ctx.tx
       .insert(mediaAsset)
       .values({
-        visibility: input.visibility,
+        visibility,
         objectKey: input.key,
         originalFilename: input.filename,
         contentType,
@@ -112,7 +143,7 @@ export async function confirmUpload(
         objectKey: input.key,
         contentType,
         byteSize: info.byteSize,
-        visibility: input.visibility,
+        visibility,
       },
     });
     await ctx.emit({

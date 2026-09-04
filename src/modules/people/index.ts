@@ -15,9 +15,12 @@ export {
   reactivateMembershipAs,
   recordConsentAs,
   removeAppointmentAs,
+  requestDeletionAs,
   revokeConsentAs,
   setCommitteeMembershipsAs,
+  setOwnPhotoAs,
   setPersonTagsAs,
+  updateOwnContactAs,
   updatePersonAs,
 } from "./domain/commands";
 export {
@@ -51,11 +54,27 @@ export {
   listConsents,
 } from "./domain/consents";
 export {
+  type DirectoryEntry,
+  type DirectoryPage,
+  type InternalCommittee,
+  type InternalRoster,
+  listDirectory,
+  listInternalCommittees,
+  listInternalRoster,
+  type RosterMember,
+} from "./domain/directory";
+export {
   changeStatusSchema,
   endMembershipSchema,
   type MembershipEventView,
   reactivateSchema,
 } from "./domain/membership";
+export {
+  collectPersonalData,
+  type OwnContactInput,
+  ownContactSchema,
+  type PersonalData,
+} from "./domain/own-data";
 export {
   findMemberByEmail,
   getPeopleByIds,

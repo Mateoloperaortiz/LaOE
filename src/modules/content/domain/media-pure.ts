@@ -10,6 +10,9 @@ export const MEDIA_TYPES: Record<string, string> = {
 
 export const MEDIA_MIN_BYTES = 5 * 1024;
 export const MEDIA_MAX_BYTES = 20 * 1024 * 1024;
+/** La foto propia de Mi OE (ADR-034 regla 8). */
+export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+export const PHOTO_KEY_PREFIX = "photos/";
 export const UPLOAD_EXPIRY_SECONDS = 600;
 
 /** Lo que el subidor del navegador necesita saber para validar antes de pedir la firma. */
@@ -22,14 +25,15 @@ export const MEDIA_LIMITS = {
 /** Anchos de las variantes WebP; nunca se agranda el original. */
 export const VARIANT_WIDTHS = [480, 960, 1600] as const;
 
-export const UPLOAD_KEY_PATTERN = /^uploads\/\d{4}\/\d{2}\/[a-z0-9]{10,40}\.(jpg|png|webp)$/;
+export const UPLOAD_KEY_PATTERN =
+  /^(uploads\/\d{4}\/\d{2}\/[a-z0-9]{10,40}|photos\/[a-z0-9]{10,40}\/[a-z0-9]{10,40})\.(jpg|png|webp)$/;
 
 export function isAllowedType(contentType: string): boolean {
   return contentType in MEDIA_TYPES;
 }
 
-export function isAllowedSize(byteSize: number): boolean {
-  return Number.isInteger(byteSize) && byteSize >= MEDIA_MIN_BYTES && byteSize <= MEDIA_MAX_BYTES;
+export function isAllowedSize(byteSize: number, maxBytes = MEDIA_MAX_BYTES): boolean {
+  return Number.isInteger(byteSize) && byteSize >= MEDIA_MIN_BYTES && byteSize <= maxBytes;
 }
 
 /** `uploads/AAAA/MM/<id>.<ext>`, con el mes de la subida en UTC. */
@@ -41,6 +45,15 @@ export function uploadKey(contentType: string, id: string, now = new Date()): st
   const year = now.getUTCFullYear();
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
   return `uploads/${year}/${month}/${id}.${ext}`;
+}
+
+/** `photos/<personId>/<id>.<ext>`: la foto propia, siempre privada. */
+export function photoKey(personId: string, contentType: string, id: string): string {
+  const ext = MEDIA_TYPES[contentType];
+  if (!ext) {
+    throw new Error(`Tipo no permitido: ${contentType}`);
+  }
+  return `${PHOTO_KEY_PREFIX}${personId}/${id}.${ext}`;
 }
 
 /** Clave determinista: un reintento sobrescribe la variante en vez de dejar huérfanos. */

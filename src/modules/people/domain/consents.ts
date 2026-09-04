@@ -1,8 +1,8 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, exists, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { requireConfig } from "@/modules/system";
-import { consent } from "../schema";
+import { consent, person } from "../schema";
 
 // Consentimiento versionado por propósito (ADR-014, ADR-034): una fila por aceptación; revocar estampa
 // revokedAt; la versión de la política es la vigente al aceptar.
@@ -35,6 +35,22 @@ export async function listConsents(personId: string): Promise<ConsentState[]> {
     const history = rows.filter((row) => row.purpose === purpose);
     return { purpose, live: history.find((row) => row.revokedAt === null) ?? null, history };
   });
+}
+
+/** Subconsulta `exists` sobre `person` para filtrar por consentimiento vivo (galería, directorio). */
+export function liveConsentExists(purpose: ConsentPurpose) {
+  return exists(
+    getDb()
+      .select({ one: sql`1` })
+      .from(consent)
+      .where(
+        and(
+          eq(consent.personId, person.id),
+          eq(consent.purpose, purpose),
+          isNull(consent.revokedAt),
+        ),
+      ),
+  ).mapWith(Boolean);
 }
 
 export async function hasLiveConsent(personId: string, purpose: ConsentPurpose): Promise<boolean> {

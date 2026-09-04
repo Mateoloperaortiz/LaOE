@@ -283,6 +283,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-416 | Eliminación, solicitud registrada | Tu solicitud quedó registrada el {fecha}. GH responde en {n} días hábiles. | JUNTA | Propuesta |
 | T-417 | Eliminación, botón de confirmación | Sí, pedir la eliminación | JUNTA | Propuesta |
 | T-418 | Ajustes, título de la página | Ajustes | MATEO | Propuesta |
+| T-419 | Ajustes, foto fuera de tipo o tamaño | La foto debe ser JPG, PNG o WebP de hasta 5 MB. | MATEO | Propuesta |
 
 ## 5. Administración
 

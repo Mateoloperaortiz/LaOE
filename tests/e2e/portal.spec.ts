@@ -83,6 +83,8 @@ test("un ADMIN publica y fija un anuncio y el visitante lo ve en el inicio, la c
   await expect(page).toHaveURL(/\/cartelera\/[a-z0-9]+$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(titulo);
   await expect(page.getByText(`Cuerpo ${marca} del anuncio.`)).toBeVisible();
+  // Tras la navegación en cliente el título llega con los metadatos: axe lo exige antes de auditar.
+  await expect(page).toHaveTitle(new RegExp(titulo));
   await sinViolaciones(page);
 
   await page.goto(`/admin/cartelera?q=${titulo}`);

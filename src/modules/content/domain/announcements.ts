@@ -1,4 +1,4 @@
-import { and, count, desc, eq, ilike, isNotNull, isNull, lte } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, isNotNull, isNull, lte } from "drizzle-orm";
 import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -208,3 +208,26 @@ export const getPublicAnnouncement = cache(
     return row ? asPublic(row) : null;
   },
 );
+
+export interface MemberAnnouncement extends PublicAnnouncement {
+  audience: "PUBLIC" | "MEMBERS";
+}
+
+/** La cartelera de Mi OE: anuncios publicados para el público o solo para miembros. */
+export const listMemberAnnouncements = cache(async (limit = 12): Promise<MemberAnnouncement[]> => {
+  const rows = await getDb()
+    .select({ ...publicColumns, audience: announcement.audience })
+    .from(announcement)
+    .where(
+      and(
+        inArray(announcement.audience, ["PUBLIC", "MEMBERS"]),
+        lte(announcement.publishedAt, new Date()),
+      ),
+    )
+    .orderBy(desc(announcement.pinned), desc(announcement.publishedAt))
+    .limit(limit);
+  return rows.map((row) => ({
+    ...asPublic(row),
+    audience: row.audience === "MEMBERS" ? "MEMBERS" : "PUBLIC",
+  }));
+});

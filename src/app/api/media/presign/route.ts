@@ -11,15 +11,16 @@ export async function POST(request: Request) {
   if (!actor) {
     return Response.json({ error: "Sin sesión" }, { status: 401 });
   }
-  if (!actor.isAdmin) {
-    return Response.json({ error: "Solo ADMIN" }, { status: 403 });
-  }
   const parsed = prepareUploadSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return Response.json({ error: "Petición inválida" }, { status: 400 });
   }
+  // La foto propia la sube cualquier persona con sesión (ADR-034 regla 8); el resto, ADMIN.
+  if (!actor.isAdmin && parsed.data.purpose !== "photo") {
+    return Response.json({ error: "Solo ADMIN" }, { status: 403 });
+  }
   try {
-    const upload = await prepareUpload(parsed.data);
+    const upload = await prepareUpload(parsed.data, { personId: actor.personId });
     return Response.json(upload, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     if (error instanceof DomainError) {

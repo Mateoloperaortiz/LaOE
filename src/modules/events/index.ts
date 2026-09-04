@@ -4,11 +4,13 @@ export {
   type EditionRow,
   findNextPublicEdition,
   findNextPublicEditions,
+  findUpcomingEditionsForMembers,
   getEdition,
   getPublishedEdition,
   listEditions,
   listPublicEditionsForIcs,
   listPublishedEditionsOf,
+  type MemberEdition,
   type PublicEdition,
   updateEdition,
 } from "./domain/editions";

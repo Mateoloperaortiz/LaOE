@@ -59,6 +59,7 @@ export default async function EgresadosPage() {
                 >
                   <div className="flex items-center gap-4">
                     {entry.photoAssetId ? (
+                      // biome-ignore lint/performance/noImgElement: ADR-022, los bytes no atraviesan la app
                       <img
                         src={mediaUrl(entry.photoAssetId, 480)}
                         alt={t("T-388", { nombre: entry.fullName })}

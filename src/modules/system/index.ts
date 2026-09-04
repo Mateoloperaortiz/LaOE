@@ -7,7 +7,7 @@ export {
   requireConfig,
   setConfig,
 } from "./domain/config";
-export { recordExport } from "./domain/exports";
+export { recordExport, recordSelfExport } from "./domain/exports";
 export { checkDatabase } from "./domain/health";
 export {
   createImportJob,
