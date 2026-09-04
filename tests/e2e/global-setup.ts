@@ -17,7 +17,9 @@ import {
 import {
   leaderScore,
   manualCredit,
+  permanenceDecision,
   permanenceRule,
+  permanenceSnapshot,
   permanenceTable,
   workGroup,
 } from "@/modules/permanence/schema";
@@ -30,6 +32,10 @@ export const E2E_EMAIL = "prueba.e2e@eafit.edu.co";
 export const E2E_MEMBER_EMAIL = "prueba.miembro@eafit.edu.co";
 /** Término viejo de pruebas para el cierre de puntos (ADR-035): se reabre y vacía en cada corrida. */
 export const E2E_CLOSING_TERM = "2019-2";
+/** Término viejo para el cierre de permanencia (ADR-036): puntos cerrados, permanencia abierta y vacía. */
+export const E2E_PERMANENCE_TERM = "2019-1";
+/** Persona desechable que sale de la OE en el cierre de permanencia; se recrea en cada corrida. */
+export const E2E_CLOSING_EMAIL = "e2e-cierre@eafit.edu.co";
 
 export default async function globalSetup(): Promise<void> {
   const db = getDb();
@@ -135,6 +141,33 @@ export default async function globalSetup(): Promise<void> {
     await db.delete(permanenceTable).where(eq(permanenceTable.termId, closing.id));
     await db.delete(permanenceRule).where(eq(permanenceRule.termId, closing.id));
   }
+  // Término del cierre de permanencia: puntos cerrados, permanencia reabierta, sin decisiones,
+  // snapshots, reglas ni tablas (la persona desechable ya salió por el prefijo e2e-).
+  let [permanenceTerm] = await db
+    .select({ id: term.id })
+    .from(term)
+    .where(eq(term.code, E2E_PERMANENCE_TERM));
+  if (!permanenceTerm) {
+    [permanenceTerm] = await db
+      .insert(term)
+      .values({
+        code: E2E_PERMANENCE_TERM,
+        semester: 1,
+        startsOn: "2019-01-01",
+        endsOn: "2019-06-30",
+      })
+      .returning({ id: term.id });
+  }
+  if (permanenceTerm) {
+    await db
+      .update(term)
+      .set({ pointsClosedAt: new Date(), permanenceClosedAt: null })
+      .where(eq(term.id, permanenceTerm.id));
+    await db.delete(permanenceDecision).where(eq(permanenceDecision.termId, permanenceTerm.id));
+    await db.delete(permanenceSnapshot).where(eq(permanenceSnapshot.termId, permanenceTerm.id));
+    await db.delete(permanenceTable).where(eq(permanenceTable.termId, permanenceTerm.id));
+    await db.delete(permanenceRule).where(eq(permanenceRule.termId, permanenceTerm.id));
+  }
   // Criterios y bloqueos que crean las suites de permanencia sobre el término actual (los puntajes y
   // créditos de esos criterios salen antes: la clave foránea es restrict).
   const e2eRules = db
@@ -200,6 +233,31 @@ export default async function globalSetup(): Promise<void> {
     .where(and(eq(committee.status, "ACTIVE"), notLike(committee.slug, "e2e-%")))
     .orderBy(asc(committee.name))
     .limit(1);
+  if (home && permanenceTerm) {
+    // La persona desechable del cierre de permanencia: nueva en 2019-1, en el mismo comité.
+    const [disposable] = await db
+      .insert(person)
+      .values({
+        email: E2E_CLOSING_EMAIL,
+        firstName: "Cierre",
+        lastName: "E2E",
+        stage: "MEMBER",
+        source: "E2E",
+      })
+      .returning({ id: person.id });
+    if (disposable) {
+      await db
+        .insert(membership)
+        .values({ personId: disposable.id, status: "ACTIVE", firstTermId: permanenceTerm.id });
+      await db.insert(committeeMembership).values({
+        personId: disposable.id,
+        committeeId: home.id,
+        termId: permanenceTerm.id,
+        roleCode: "MIEMBRO",
+        joinedAt: new Date("2019-01-20T12:00:00Z"),
+      });
+    }
+  }
   if (home) {
     const [existing] = await db
       .select({ id: committeeMembership.id })

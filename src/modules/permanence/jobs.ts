@@ -3,6 +3,7 @@ import { getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import { registerHandler } from "@/jobs/registry";
 import { findTermByCode, getCurrentTerm } from "@/modules/terms";
+import { applyDecisions } from "./domain/closing";
 import { recomputeSnapshots } from "./domain/snapshots";
 
 // Handlers del outbox de permanencia (ADR-012, ADR-036 regla 5): el recompute corre fuera del
@@ -80,4 +81,13 @@ registerHandler("permanence.daily", async (_payload, ctx) => {
   }
   const rows = await recomputeSnapshots(term.id);
   ctx.log.info({ termId: term.id, rows }, "permanencia diaria recalculada");
+});
+
+// Cierre aplicado (ADR-036 regla 9): el job ejecuta las decisiones confirmadas que falten, con el
+// actor que confirmó cada una; si falla a mitad, el reintento retoma por `appliedAt`.
+const closedEvent = z.object({ termId: z.string().min(1), nextTermId: z.string().min(1) });
+registerHandler("permanence.closed", async (payload, ctx) => {
+  const { termId, nextTermId } = closedEvent.parse(payload);
+  const applied = await applyDecisions(termId, nextTermId);
+  ctx.log.info({ termId, nextTermId, applied }, "decisiones de permanencia aplicadas");
 });

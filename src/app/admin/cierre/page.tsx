@@ -103,9 +103,14 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
       </dl>
 
       {term.pointsClosedAt ? (
-        <p className="rounded-xl bg-oe-yellow-soft px-4 py-3 font-semibold text-oe-navy">
-          {t("T-648", { fecha: formatDateTime(term.pointsClosedAt) })}
-        </p>
+        <div className="flex flex-col gap-2 rounded-xl bg-oe-yellow-soft px-4 py-3 text-oe-navy">
+          <p className="font-semibold">
+            {t("T-648", { fecha: formatDateTime(term.pointsClosedAt) })}
+          </p>
+          <Link href={`/admin/permanencia/cierre?termId=${term.id}`} className="underline">
+            {t("T-815")}
+          </Link>
+        </div>
       ) : summary.openOccasions > 0 ? (
         <p className="rounded-xl border border-borde bg-fondo px-4 py-3">
           {t("T-646", { n: summary.openOccasions })}{" "}

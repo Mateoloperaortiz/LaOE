@@ -14,6 +14,7 @@ import {
 import { type OwnContactInput, requestDeletion, setOwnPhoto, updateOwnContact } from "./own-data";
 import { type PersonInput, updatePerson } from "./persons";
 import { setPersonTags } from "./tags";
+import { leaveCommittee, type ProbationInput, setProbation } from "./term-outcomes";
 
 // Los comandos abren su transacción aquí, para que las acciones de página (src/app) los usen sin
 // tocar src/db: cada uno es `runCommand` con auditoría y eventos en la misma transacción (ADR-012).
@@ -110,4 +111,23 @@ export function requestDeletionAs(
 
 export function setPersonTagsAs(actor: Actor, personId: string, tagIds: string[]): Promise<void> {
   return runCommand(actor, (ctx) => setPersonTags(ctx, personId, tagIds));
+}
+
+export function setProbationAs(
+  actor: Actor,
+  personId: string,
+  termId: string,
+  input: ProbationInput,
+): Promise<void> {
+  return runCommand(actor, (ctx) => setProbation(ctx, personId, termId, input));
+}
+
+export function leaveCommitteeAs(
+  actor: Actor,
+  personId: string,
+  committeeId: string,
+  termId: string,
+  reason: string,
+): Promise<void> {
+  return runCommand(actor, (ctx) => leaveCommittee(ctx, personId, committeeId, termId, reason));
 }

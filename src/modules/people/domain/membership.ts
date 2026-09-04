@@ -30,6 +30,8 @@ export const endMembershipSchema = z.object({
   memorialConsent: z.boolean().default(false),
   contactConsent: z.boolean().default(false),
   personalEmail: emailSchema.optional(),
+  /** El cierre de permanencia fija el término cerrado como último; si falta, el vigente (ADR-036 regla 9). */
+  lastTermId: z.string().optional(),
 });
 
 export const reactivateSchema = z.object({
@@ -127,14 +129,14 @@ export async function endMembership(
   if (current.status === "INACTIVE") {
     return false;
   }
-  const term = await getCurrentTerm(now);
+  const term = input.lastTermId ? null : await getCurrentTerm(now);
   await ctx.tx
     .update(membership)
     .set({
       status: "INACTIVE",
       endedAt: now,
       endReason: input.endReason,
-      lastTermId: term?.id ?? current.lastTermId,
+      lastTermId: input.lastTermId ?? term?.id ?? current.lastTermId,
     })
     .where(eq(membership.id, current.id));
   await ctx.tx.insert(membershipEvent).values({

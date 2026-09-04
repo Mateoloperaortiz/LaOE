@@ -12,6 +12,7 @@ export {
   anonymizePersonAs,
   changeMembershipStatusAs,
   endMembershipAs,
+  leaveCommitteeAs,
   reactivateMembershipAs,
   recordConsentAs,
   removeAppointmentAs,
@@ -20,6 +21,7 @@ export {
   setCommitteeMembershipsAs,
   setOwnPhotoAs,
   setPersonTagsAs,
+  setProbationAs,
   updateOwnContactAs,
   updatePersonAs,
 } from "./domain/commands";

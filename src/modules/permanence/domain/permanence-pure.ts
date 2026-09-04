@@ -808,8 +808,10 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
 /** Motivo automático de una propuesta, en el orden de T-801. */
 export type ProposalReason = 0 | 1 | 2 | 3 | 4;
 
+export type CommitteeDecision = Exclude<DecisionKind, "EXIT_OE">;
+
 export interface Proposal {
-  committees: Array<{ committeeId: string; proposed: DecisionKind; reason: ProposalReason }>;
+  committees: Array<{ committeeId: string; proposed: CommitteeDecision; reason: ProposalReason }>;
   person: { proposed: "CONTINUES" | "EXIT_OE"; reason: ProposalReason };
 }
 
@@ -828,7 +830,9 @@ export function proposeDecisions(result: PersonPermanence): Proposal {
       reason: 2 as const,
     };
   });
-  if (!result.mandatory.met) {
+  // Faltar es no tener registro en una obligatoria que sí se celebró y no tiene reemplazo programado;
+  // una obligatoria que nunca se registró en el sistema no expulsa a nadie.
+  if (result.mandatory.lost.length > 0) {
     return { committees, person: { proposed: "EXIT_OE", reason: 4 } };
   }
   const stays = committees.some((item) => item.proposed !== "EXIT_COMMITTEE");

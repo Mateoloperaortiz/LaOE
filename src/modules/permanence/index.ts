@@ -1,6 +1,26 @@
 // API pública del módulo permanence (ADR-036): lecturas, cálculo y, tramo a tramo, comandos.
 
 export {
+  applyDecisions,
+  CLOSING_FILTERS,
+  type ClosingCommitteeRow,
+  type ClosingFilter,
+  type ClosingPersonRow,
+  type ClosingSummary,
+  type ClosingView,
+  closeTermPermanenceAs,
+  confirmAllProposedAs,
+  confirmDecisionsAs,
+  type DecisionInput,
+  type DecisionRow,
+  decisionInputSchema,
+  filterClosingRows,
+  listClosingRows,
+  listDecisions,
+  listPersonDecisions,
+  type PersonDecisionView,
+} from "./domain/closing";
+export {
   COMPLIANCE_FILTERS,
   type ComplianceFilter,
   type ComplianceRow,
