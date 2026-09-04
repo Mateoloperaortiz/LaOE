@@ -76,9 +76,11 @@ export {
   type PersonalData,
 } from "./domain/own-data";
 export {
+  type ActiveMemberRef,
   findMemberByEmail,
   getMembershipRef,
   getPeopleByIds,
+  listActiveMemberRefs,
   listTermCommitteeMembers,
   type MemberRef,
   type MembershipRef,

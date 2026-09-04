@@ -1,8 +1,10 @@
 import { getActor } from "@/modules/identity";
+import { searchOccasions } from "@/modules/participation";
 import { searchCommittees, searchPeople } from "@/modules/people";
 import type { PaletteResult } from "@/shared/admin-kit";
+import { formatDateTime } from "@/shared/lib/dates";
 
-// Paleta ⌘K: personas y comités por similitud (pg_trgm). Los correos solo los ve ADMIN (02-crm.md).
+// Paleta ⌘K: personas, comités y ocasiones por similitud (pg_trgm). Los correos solo los ve ADMIN (02-crm.md).
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,11 @@ export async function GET(request: Request) {
   if (q.length < 2) {
     return Response.json({ results: [] });
   }
-  const [people, committees] = await Promise.all([searchPeople(q), searchCommittees(q)]);
+  const [people, committees, occasions] = await Promise.all([
+    searchPeople(q),
+    searchCommittees(q),
+    searchOccasions(q),
+  ]);
   const results: PaletteResult[] = [
     ...people.map((item) => ({
       type: "person",
@@ -35,6 +41,13 @@ export async function GET(request: Request) {
       title: item.name,
       subtitle: item.slug,
       href: `/admin/comites?editar=${item.id}`,
+    })),
+    ...occasions.map((item) => ({
+      type: "occasion",
+      id: item.id,
+      title: item.title,
+      subtitle: formatDateTime(item.startsAt),
+      href: `/admin/ocasiones/${item.id}`,
     })),
   ];
   return Response.json({ results }, { headers: { "cache-control": "no-store" } });

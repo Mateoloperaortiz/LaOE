@@ -20,6 +20,8 @@ export const TIMELINE_EVENTS = [
   "checkin.approved",
   "checkin.pending",
   "checkin.cancelled",
+  "points.adjusted",
+  "points.reversed",
 ] as const;
 
 export interface TimelineLabels {
@@ -191,6 +193,18 @@ export function summarizeEvent(
         }),
         { occasionId: str(payload, "occasionId") },
       );
+    case "points.adjusted":
+    case "points.reversed": {
+      const points = typeof payload.points === "number" ? payload.points : 0;
+      return entry(
+        "PARTICIPATION",
+        fill(labels.participationTexts[type === "points.adjusted" ? 4 : 5] ?? "", {
+          n: String(points),
+          motivo: str(payload, "reason") || "—",
+        }),
+        { termId: str(payload, "termId"), points },
+      );
+    }
     case "permission.granted":
     case "permission.revoked": {
       const permiso = label(labels.permissions, str(payload, "code"));

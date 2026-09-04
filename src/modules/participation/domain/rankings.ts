@@ -1,0 +1,123 @@
+import { and, eq, inArray, sql } from "drizzle-orm";
+import { getDb } from "@/db/client";
+import { type ActiveMemberRef, listActiveMemberRefs } from "@/modules/people";
+import { committeeParticipation, occasion, pointEntry } from "../schema";
+import { competitionRanks, type Ranked, termCommitteeScore } from "./ledger-pure";
+
+// Tableros (ADR-008, ADR-024, ADR-035 regla 10): nuevos y veteranos por `firstTermId`, solo activos,
+// puestos de competición; comités por el promedio de la tasa suavizada de las ocasiones cerradas con puntos.
+
+export type Board = "NEW" | "VETERAN";
+
+export interface RankedPerson {
+  personId: string;
+  name: string;
+  anonymized: boolean;
+  firstTermId: string;
+}
+
+async function totalsFor(termId: string, personIds: string[]): Promise<Map<string, number>> {
+  if (personIds.length === 0) {
+    return new Map();
+  }
+  const rows = await getDb()
+    .select({ personId: pointEntry.personId, total: sql<number>`sum(${pointEntry.points})::int` })
+    .from(pointEntry)
+    .where(and(eq(pointEntry.termId, termId), inArray(pointEntry.personId, personIds)))
+    .groupBy(pointEntry.personId);
+  return new Map(rows.map((row) => [row.personId, row.total]));
+}
+
+function onBoard(member: ActiveMemberRef, termId: string, board: Board): boolean {
+  return board === "NEW" ? member.firstTermId === termId : member.firstTermId !== termId;
+}
+
+/** Tablero completo de un término: quienes suman puntos primero; sin puntos quedan al final con 0. */
+export async function rankPeople(termId: string, board: Board): Promise<Ranked<RankedPerson>[]> {
+  const members = (await listActiveMemberRefs()).filter((member) => onBoard(member, termId, board));
+  const totals = await totalsFor(
+    termId,
+    members.map((member) => member.personId),
+  );
+  const rows: Array<RankedPerson & { total: number }> = members.map((member) => ({
+    personId: member.personId,
+    name: member.fullName.trim(),
+    anonymized: member.anonymized,
+    firstTermId: member.firstTermId,
+    total: totals.get(member.personId) ?? 0,
+  }));
+  return competitionRanks(
+    rows,
+    (row) => row.total,
+    (a, b) => a.name.localeCompare(b.name, "es"),
+  );
+}
+
+export interface MyPosition {
+  board: Board;
+  rank: number | null;
+  total: number;
+  of: number;
+}
+
+export async function myPosition(
+  personId: string,
+  termId: string,
+  firstTermId: string,
+): Promise<MyPosition> {
+  const board: Board = firstTermId === termId ? "NEW" : "VETERAN";
+  const ranking = await rankPeople(termId, board);
+  const mine = ranking.find((item) => item.row.personId === personId);
+  return {
+    board,
+    rank: mine && mine.total > 0 ? mine.rank : null,
+    total: mine?.total ?? 0,
+    of: ranking.filter((item) => item.total > 0).length,
+  };
+}
+
+export interface CommitteeScore {
+  committeeId: string;
+  /** Promedio de la tasa suavizada (0 a 1). */
+  score: number;
+  /** Promedio de la tasa cruda (0 a 1). */
+  rawScore: number;
+  occasions: number;
+}
+
+/** Score del término por comité: promedio simple sobre las ocasiones cerradas con puntos. */
+export async function rankCommittees(termId: string): Promise<Ranked<CommitteeScore>[]> {
+  const rows = await getDb()
+    .select({
+      committeeId: committeeParticipation.committeeId,
+      rate: committeeParticipation.rate,
+      smoothedRate: committeeParticipation.smoothedRate,
+    })
+    .from(committeeParticipation)
+    .innerJoin(occasion, eq(occasion.id, committeeParticipation.occasionId))
+    .where(
+      and(
+        eq(committeeParticipation.termId, termId),
+        eq(occasion.status, "CLOSED"),
+        sql`${occasion.points} > 0`,
+      ),
+    );
+  const byCommittee = new Map<string, { smoothed: number[]; raw: number[] }>();
+  for (const row of rows) {
+    const bucket = byCommittee.get(row.committeeId) ?? { smoothed: [], raw: [] };
+    bucket.smoothed.push(row.smoothedRate);
+    bucket.raw.push(row.rate);
+    byCommittee.set(row.committeeId, bucket);
+  }
+  const scores: CommitteeScore[] = [...byCommittee.entries()].map(([committeeId, bucket]) => ({
+    committeeId,
+    score: termCommitteeScore(bucket.smoothed) ?? 0,
+    rawScore: termCommitteeScore(bucket.raw) ?? 0,
+    occasions: bucket.smoothed.length,
+  }));
+  return competitionRanks(
+    scores,
+    (row) => Math.round(row.score * 10_000),
+    (a, b) => a.committeeId.localeCompare(b.committeeId),
+  );
+}

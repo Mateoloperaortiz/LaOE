@@ -23,6 +23,7 @@ export {
   type SelfCheckInResult,
 } from "./domain/check-ins";
 export {
+  adjustPointsAs,
   cancelOccasionAs,
   checkInSelfAs,
   closeOccasionAs,
@@ -32,17 +33,27 @@ export {
   hostCheckInAs,
   openOccasionAs,
   resolveOccasionContext,
+  reverseEntryAs,
   rotateSecretAs,
   setRotatingCodeAs,
   updateOccasionAs,
 } from "./domain/commands";
-export { balanceFor, listEntriesFor, type PointEntryRow } from "./domain/ledger";
+export {
+  balanceFor,
+  type LedgerListRow,
+  listEntriesFor,
+  listEntriesForPerson,
+  listLedger,
+  type PointEntryRow,
+} from "./domain/ledger";
 export {
   balance,
   competitionRanks,
   type Level,
   levelFor,
   POINT_ENTRY_KINDS,
+  type PointEntryKind,
+  type Ranked,
 } from "./domain/ledger-pure";
 export { buildLiveSnapshot, checkInLink, type LiveCheckIn, type LiveSnapshot } from "./domain/live";
 export {
@@ -63,6 +74,8 @@ export {
   countOpenOccasions,
   getOccasion,
   getOccasionByPublicId,
+  getOccasionsByIds,
+  listMemberAgenda,
   listOccasions,
   listOccasionsForTerm,
   type OccasionInput,
@@ -73,5 +86,14 @@ export {
   searchOccasions,
 } from "./domain/occasions";
 export { isPublicId, PUBLIC_ID } from "./domain/public-id-pure";
+export {
+  type Board,
+  type CommitteeScore,
+  type MyPosition,
+  myPosition,
+  type RankedPerson,
+  rankCommittees,
+  rankPeople,
+} from "./domain/rankings";
 export { rotatingCodeAt, secondsUntilRotation } from "./domain/rotating-code-pure";
 export { type CommitteeParticipationRow, listOccasionScores } from "./domain/scores";

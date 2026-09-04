@@ -504,3 +504,32 @@ export async function countApproved(occasionId: string): Promise<number> {
     .where(and(eq(checkIn.occasionId, occasionId), eq(checkIn.status, "APPROVED")));
   return row?.n ?? 0;
 }
+
+/** Ocasiones abiertas del término cuya ventana no venció, de la más próxima a la más lejana (agenda de Mi OE). */
+export async function listMemberAgenda(
+  termId: string,
+  now = new Date(),
+  limit = 6,
+): Promise<OccasionRow[]> {
+  return getDb()
+    .select()
+    .from(occasion)
+    .where(
+      and(
+        eq(occasion.termId, termId),
+        eq(occasion.status, "OPEN"),
+        sql`${occasion.checkInClosesAt} > ${now}`,
+      ),
+    )
+    .orderBy(asc(occasion.startsAt))
+    .limit(limit);
+}
+
+/** Ocasiones por id, para mostrar títulos junto a check-ins y entradas. */
+export async function getOccasionsByIds(ids: string[]): Promise<Map<string, OccasionRow>> {
+  if (ids.length === 0) {
+    return new Map();
+  }
+  const rows = await getDb().select().from(occasion).where(inArray(occasion.id, ids));
+  return new Map(rows.map((row) => [row.id, row]));
+}

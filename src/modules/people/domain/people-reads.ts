@@ -118,3 +118,33 @@ export async function searchMembersByName(q: string, limit = 8): Promise<MemberR
     .limit(limit);
   return rows.map((row) => ({ ...row, fullName: row.fullName ?? "" }));
 }
+
+export interface ActiveMemberRef {
+  personId: string;
+  fullName: string;
+  preferredName: string | null;
+  firstTermId: string;
+  anonymized: boolean;
+}
+
+/** Miembros activos con su primer término: nuevos y veteranos de los tableros (ADR-008). */
+export async function listActiveMemberRefs(): Promise<ActiveMemberRef[]> {
+  const rows = await getDb()
+    .select({
+      personId: person.id,
+      fullName: person.fullName,
+      preferredName: person.preferredName,
+      firstTermId: membership.firstTermId,
+      anonymizedAt: person.anonymizedAt,
+    })
+    .from(membership)
+    .innerJoin(person, eq(person.id, membership.personId))
+    .where(eq(membership.status, "ACTIVE"));
+  return rows.map((row) => ({
+    personId: row.personId,
+    fullName: row.fullName ?? "",
+    preferredName: row.preferredName,
+    firstTermId: row.firstTermId,
+    anonymized: row.anonymizedAt !== null,
+  }));
+}

@@ -3,9 +3,10 @@ import { excerpt, listMemberAnnouncements } from "@/modules/content";
 import { getOnboarding } from "@/modules/crm";
 import { findUpcomingEditionsForMembers } from "@/modules/events";
 import { requireActor } from "@/modules/identity";
+import { balanceFor, listMemberAgenda, windowState } from "@/modules/participation";
 import { getMyMembership } from "@/modules/people";
 import { BarraTitulo, Insignia, LogoComite } from "@/shared/brand";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateRange } from "@/shared/lib/dates";
 import { cargoEnComite } from "./_ui/PersonaTarjeta";
 import { Vacio } from "./_ui/Vacio";
@@ -22,11 +23,35 @@ export default async function AppHome() {
     listMemberAnnouncements(6),
   ]);
   const onboardingTermId = mine.term && mine.isNew ? mine.term.id : null;
-  const steps = onboardingTermId ? await getOnboarding(actor.personId, onboardingTermId) : [];
+  const [steps, saldo, ocasiones] = await Promise.all([
+    onboardingTermId ? getOnboarding(actor.personId, onboardingTermId) : Promise.resolve([]),
+    mine.term ? balanceFor(actor.personId, mine.term.id) : Promise.resolve(0),
+    mine.term ? listMemberAgenda(mine.term.id) : Promise.resolve([]),
+  ]);
   const allDone = steps.length > 0 && steps.every((step) => step.doneAt);
+  const now = new Date();
+  const [catInte, catPartido, catReunion, catCharla, catTaller, catSocial, catActividad] =
+    tList("T-521");
+  const categoria: Record<string, string | undefined> = {
+    INTEGRATION: catInte,
+    ATHLETIC_MATCH: catPartido,
+    COMMITTEE_MEETING: catReunion,
+    TALK: catCharla,
+    WORKSHOP: catTaller,
+    SOCIAL: catSocial,
+    OTHER: catActividad,
+  };
   return (
     <div className="flex flex-col gap-10">
-      <h1 className="text-display-lg">{t("T-060", { "nombre preferido": actor.name })}</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h1 className="text-display-lg">{t("T-060", { "nombre preferido": actor.name })}</h1>
+        {mine.term ? (
+          <Link href="/app/gh-points" className="flex flex-col items-end no-underline">
+            <span className="text-display-md">{t("T-065", { n: saldo })}</span>
+            <span className="text-sm underline">{t("T-555")}</span>
+          </Link>
+        ) : null}
+      </div>
 
       {steps.length > 0 && onboardingTermId ? (
         <section aria-labelledby="onboarding" className="flex flex-col gap-6">
@@ -98,10 +123,38 @@ export default async function AppHome() {
         <BarraTitulo color="amarillo" className="self-start">
           <span id="agenda">{t("T-062")}</span>
         </BarraTitulo>
-        {editions.length === 0 ? (
+        {editions.length === 0 && ocasiones.length === 0 ? (
           <Vacio texto={t("T-063")} />
         ) : (
           <ul className="flex list-none flex-col gap-3 p-0">
+            {ocasiones.map((ocasion) => (
+              <li
+                key={ocasion.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
+              >
+                <span className="flex flex-col">
+                  <span className="text-display-md">{ocasion.title}</span>
+                  <span className="text-sm text-tinta-suave">
+                    {ocasion.kind === "ASSEMBLY" ? tList("T-522")[1] : categoria[ocasion.category]}
+                    {" · "}
+                    {formatDateRange(ocasion.startsAt, ocasion.endsAt)}
+                    {ocasion.location ? ` · ${ocasion.location}` : ""}
+                  </span>
+                </span>
+                <span className="flex items-center gap-2">
+                  {ocasion.kind === "ASSEMBLY" ? (
+                    <Insignia fondo="naranja">{t("T-556")}</Insignia>
+                  ) : null}
+                  {windowState(ocasion, now) === "OPEN" ? (
+                    <Link href={`/a/${ocasion.publicId}`} className="no-underline">
+                      <Insignia fondo="amarillo">{t("T-553")}</Insignia>
+                    </Link>
+                  ) : (
+                    <Insignia fondo="sky">{t("T-554")}</Insignia>
+                  )}
+                </span>
+              </li>
+            ))}
             {editions.map((edition) => (
               <li
                 key={edition.id}

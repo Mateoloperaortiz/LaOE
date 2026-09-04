@@ -17,10 +17,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [cartelera] = tList("T-331");
   const [medios] = tList("T-334");
   const [eventos] = tList("T-332");
-  const [persona, comite] = tList("T-290") as [string, string];
+  const [persona, comite, ocasion] = tList("T-290") as [string, string, string];
   const [personas, importar, cargos, etiquetas, tareas, segmentos, documentos, importaciones] =
     tList("T-509");
-  const [ocasiones] = tList("T-561");
+  const [ocasiones, ledger, rankings] = tList("T-561");
   const enlaces = !actor.isAdmin
     ? []
     : [
@@ -38,6 +38,8 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         { href: "/admin/cargos", label: cargos ?? "" },
         { href: "/admin/terminos", label: terminos ?? "" },
         { href: "/admin/ocasiones", label: ocasiones ?? "" },
+        { href: "/admin/ledger", label: ledger ?? "" },
+        { href: "/admin/rankings", label: rankings ?? "" },
         { href: "/admin/permisos", label: permisos ?? "" },
         { href: "/admin/sistema/importaciones", label: importaciones ?? "" },
         { href: "/admin/sistema/jobs", label: t("T-241") },
@@ -74,7 +76,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
                   placeholder: t("T-264"),
                   empty: t("T-256"),
                   close: t("T-291"),
-                  types: { person: persona, committee: comite },
+                  types: { person: persona, committee: comite, occasion: ocasion },
                 }}
               />
             ) : null}

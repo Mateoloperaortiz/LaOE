@@ -93,6 +93,7 @@ export default async function globalSetup(): Promise<void> {
     .from(checkIn)
     .where(inArray(checkIn.occasionId, e2eOccasions));
   await db.delete(pointEntry).where(inArray(pointEntry.checkInId, e2eCheckIns));
+  await db.delete(pointEntry).where(like(pointEntry.reason, "e2e-%"));
   await db.delete(occasion).where(like(occasion.title, "e2e-%"));
   // Miembro sin permisos: activo, en un comité del término, sin datos de contacto ni consentimientos.
   let [member] = await db

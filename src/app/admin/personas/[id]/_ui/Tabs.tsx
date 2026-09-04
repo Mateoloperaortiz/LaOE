@@ -25,12 +25,15 @@ export function TabResumen({
   committeeNames,
   lastContact,
   openTasks,
+  balance,
 }: {
   data: Person360;
   permissions: ActorPermission[];
   committeeNames: Map<string, string>;
   lastContact: Date | null;
   openTasks: number;
+  /** Saldo del término actual, o null sin término. */
+  balance: number | null;
 }) {
   const [contacto, tareas, consentimientos, permisos, puntos, asambleas] = tList("T-453") as [
     string,
@@ -63,7 +66,7 @@ export function TabResumen({
                 .join(", ")
         }
       />
-      <Dato etiqueta={puntos} valor={t("T-240")} />
+      <Dato etiqueta={puntos} valor={balance} />
       <Dato etiqueta={asambleas} valor={t("T-240")} />
     </dl>
   );

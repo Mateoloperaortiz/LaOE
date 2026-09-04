@@ -5,6 +5,12 @@ import { countOpenTasksFor, latestContact, listInteractions, listTasks } from "@
 import { assigneeOptions } from "@/modules/crm/admin";
 import { listPermissionsFor, requireAdminActor } from "@/modules/identity";
 import {
+  balanceFor,
+  getOccasionsByIds,
+  listCheckInsForPerson,
+  listEntriesForPerson,
+} from "@/modules/participation";
+import {
   getMyMembership,
   getPerson360,
   listAllCommittees,
@@ -19,6 +25,7 @@ import { Cabecera } from "./_ui/Cabecera";
 import { isTab, isTimelineFilter, type Tab, tabLabels } from "./_ui/etiquetas";
 import { Paneles } from "./_ui/Paneles";
 import { Pestanas } from "./_ui/Pestanas";
+import { TabParticipacion } from "./_ui/TabParticipacion";
 import {
   TabComunicaciones,
   TabDatos,
@@ -106,6 +113,13 @@ export default async function PersonaPage({
   const tasks =
     tab === "tareas" ? (await listTasks({ q: "", personId: id, page: 1, pageSize: 100 })).rows : [];
   const assignees = accion === "tarea" ? await assigneeOptions() : [];
+  const [checkIns, entries, balance] = await Promise.all([
+    tab === "participacion" ? listCheckInsForPerson(id) : Promise.resolve([]),
+    tab === "participacion" ? listEntriesForPerson(id) : Promise.resolve([]),
+    my.term ? balanceFor(id, my.term.id) : Promise.resolve(null),
+  ]);
+  const occasions = await getOccasionsByIds(checkIns.map((item) => item.occasionId));
+  const termCodes = new Map(terms.map((item) => [item.id, item.code]));
   const note =
     accion === "nota" && single(search.nota)
       ? ((await listInteractions(id, "NOTE")).find((item) => item.id === single(search.nota)) ??
@@ -124,6 +138,18 @@ export default async function PersonaPage({
           committeeNames={committeeNames}
           lastContact={lastContact}
           openTasks={openTasks}
+          balance={balance}
+        />
+      );
+      break;
+    case "participacion":
+      content = (
+        <TabParticipacion
+          personId={id}
+          checkIns={checkIns}
+          occasions={occasions}
+          entries={entries}
+          termCodes={termCodes}
         />
       );
       break;

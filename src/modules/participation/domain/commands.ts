@@ -1,7 +1,7 @@
 import { type Actor, runCommand } from "@/db/tx";
 import { getMembershipRef } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
-import { findTermContaining, getTerm } from "@/modules/terms";
+import { findTermContaining, getTerm, listAllTerms } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
@@ -16,6 +16,7 @@ import {
   hostCheckIn,
   type SelfCheckInResult,
 } from "./check-ins";
+import { adjustPoints, reverseEntry } from "./ledger";
 import {
   cancelOccasion,
   closeOccasion,
@@ -163,4 +164,26 @@ export function setRotatingCodeAs(actor: Actor, id: string, enabled: boolean): P
 
 export function rotateSecretAs(actor: Actor, id: string): Promise<void> {
   return runCommand(actor, (ctx) => rotateSecret(ctx, id));
+}
+
+export async function adjustPointsAs(
+  actor: Actor & { personId: string },
+  input: { personId: string; termId: string; points: number; reason: string },
+): Promise<{ id: string }> {
+  const closed = await termPointsClosed(input.termId);
+  return runCommand(actor, (ctx) => adjustPoints(ctx, input, { termPointsClosed: closed }));
+}
+
+export async function reverseEntryAs(
+  actor: Actor & { personId: string },
+  entryId: string,
+  reason: string,
+): Promise<{ id: string }> {
+  const terms = await listAllTerms();
+  const closedTerms = new Set(
+    terms.filter((term) => term.pointsClosedAt !== null).map((term) => term.id),
+  );
+  return runCommand(actor, (ctx) =>
+    reverseEntry(ctx, entryId, reason, { termPointsClosed: (termId) => closedTerms.has(termId) }),
+  );
 }
