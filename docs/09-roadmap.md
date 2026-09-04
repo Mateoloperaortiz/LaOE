@@ -105,7 +105,7 @@ Plan aprobado el 2026-09-03 ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)):
 
 Listo cuando: un admin encuentra a cualquier persona en 2 segundos y ve toda su historia; un miembro importado entra por OTP y ve su ficha. **Cumplido en local el 2026-09-03**: la paleta ⌘K abre la Persona 360 con importación, comités, consentimientos y línea de tiempo (`personas.spec.ts`), y el miembro que entra por el roster ve sus comités en `/app` tras el OTP (`roster.spec.ts`). Las pestañas Participación, Permanencia, Formularios y Solicitudes de la 360 muestran el aviso T-240 hasta su fase.
 
-## Fase 3 · Participación y GH Points · `en curso`
+## Fase 3 · Participación y GH Points · `lista`
 
 Plan aprobado el 2026-09-03 ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)): diez tramos en cortes verticales; cada uno cierra con `npm run check` y `npm run test:e2e` en verde, un commit convencional y push a `main`. Railway sigue pendiente (fase 0 B). Decisiones de Mateo: el líder abre solo las ocasiones sin puntos, el ranking muestra el top 10 con nombres más el puesto propio, entran la cámara en el modo anfitrión, la serie semanal de reuniones y el cierre automático de ocasiones; el exporte XLSX queda fuera.
 
@@ -120,24 +120,24 @@ Plan aprobado el 2026-09-03 ([ADR-035](adr/ADR-035-participacion-y-gh-points-fas
 - [x] F3-T6 · Asambleas (requisito derivado, ajustes, cumplimiento, `/admin/asambleas`), cierre de puntos con `TermStanding` (`/admin/cierre`), programados `auto-close` y `term-check` con tarea al faltar el término siguiente
 - [x] F3-T7 · Vista de líder (`/admin/comites/[slug]`) con roster sin correos, score, ocasiones propias y serie semanal; exportes CSV con step-up (`ocasiones`, `check-ins`, `ledger`, `rankings`, `asambleas`); `/admin/sistema/alias`
 - [x] F3-T8 · Migración de ocasiones, check-ins, ledger, asambleas, requisitos, standing y alias desde GHPOINTS; `verify-migration` con sumas; ensayo contra la copia local
-- [ ] F3-T9 · Cierre: lista de revisión de marca en las pantallas nuevas, tres anchos y dos temas, registro
+- [x] F3-T9 · Cierre: lista de revisión de marca en las pantallas nuevas, tres anchos y dos temas, registro
 
 ### Entregables
 
-- [ ] Términos con derivación por fecha y recordatorio de creación (tarea al faltar el siguiente)
-- [ ] Ocasiones: ciclo de vida, consola con QR, código rotativo, contador en vivo, aprobaciones, cierre automático
-- [ ] Check-in propio en `/a/[publicId]` y modo anfitrión con cámara
-- [ ] Ledger con crédito automático, ajustes y reversiones
-- [ ] Rankings nuevos, veteranos y comités (top 10 más puesto propio)
-- [ ] Score de comité por outbox con `dedupeKey`, tasa cruda y suavizada
-- [ ] Asambleas ordinarias, elección de junta y segunda vuelta con requisito derivado del término, ajustes y cumplimiento por persona
-- [ ] Cierre de término y `TermStanding`
-- [ ] Vista de líder: roster sin correos, score, ocasiones propias, serie semanal de reuniones
-- [ ] Exportes CSV con step-up
-- [ ] Migración de asistencias, ledger y asambleas con `verify-migration` en cero
-- [ ] Alias legados para QR impresos
+- [x] Términos con derivación por fecha y recordatorio de creación (tarea al faltar el siguiente)
+- [x] Ocasiones: ciclo de vida, consola con QR, código rotativo, contador en vivo, aprobaciones, cierre automático
+- [x] Check-in propio en `/a/[publicId]` y modo anfitrión con cámara
+- [x] Ledger con crédito automático, ajustes y reversiones
+- [x] Rankings nuevos, veteranos y comités (top 10 más puesto propio)
+- [x] Score de comité por outbox con `dedupeKey`, tasa cruda y suavizada
+- [x] Asambleas ordinarias, elección de junta y segunda vuelta con requisito derivado del término, ajustes y cumplimiento por persona
+- [x] Cierre de término y `TermStanding`
+- [x] Vista de líder: roster sin correos, score, ocasiones propias, serie semanal de reuniones
+- [x] Exportes CSV con step-up
+- [x] Migración de asistencias, ledger y asambleas con `verify-migration` en cero
+- [x] Alias legados para QR impresos
 
-Listo cuando: 500 escaneos concurrentes sin duplicados ni recomputes repetidos; sumas migradas idénticas.
+Listo cuando: 500 escaneos concurrentes sin duplicados ni recomputes repetidos; sumas migradas idénticas. **Cumplido en local el 2026-09-04**: `participation-checkin.test.ts` lanza 500 check-ins concurrentes de personas distintas y la misma ráfaga otra vez (exactamente 500 `check_in`, 500 entradas, un solo `score.recompute` pendiente, 500 rechazos con T-095 sin cambios) y `migrate:verify` deja en cero las 14 filas de conteos y sumas contra la copia local de GHPOINTS (F3-T8).
 
 ## Fase 4 · Permanencia · `pendiente`
 
@@ -271,3 +271,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-04 | 3 | F3-T6 listo: asambleas (requisito derivado del término con `defaultRequirement`, ajuste individual de ADMIN con motivo en `assembly_requirement`, cumplimiento calculado por persona y panorama del término; `/admin/asambleas` con las asambleas, filtros de cumplimiento y ajuste en panel; sección de asambleas en `/app/gh-points` con firmadas, pendientes y "no fuiste"; asambleas en el Resumen de la 360); cierre de puntos (`closeTermPoints` en `terms` y `term_standing` en la misma transacción, con top 10 de cada tablero con ids y nombres congelados, comités y cifras; bloqueo con ocasiones abiertas; `term.points-closed`; `/admin/cierre` con resumen, step-up y standing); programados en `reminders` cada hora (`participation.auto-close` cierra las ocasiones vencidas hace más de `occasions.autoCloseHours`; `participation.term-check` emite `term.successor-missing` con clave por código y `crm` abre una sola tarea); el nombre congelado pasa a T-223 al anonimizar; término de pruebas `2019-2` para el e2e del cierre. 3 de integración y 1 e2e nuevas; `check` (67 y 82) y e2e (33) en verde |
 | 2026-09-04 | 3 | F3-T7 listo: vista de líder (`/admin/comites/[slug]` con guard `assertLeader`: roster del semestre sin correos, participación del comité por ocasión y del término, sus ocasiones con estado y enlace a la consola, "Nueva ocasión" en borrador con el comité fijo y "Crear serie semanal"); serie semanal en el dominio (`createOccasionSeries`: reuniones `COMMITTEE_MEETING` abiertas, sin puntos, cada siete días hasta el fin del término, idempotente por comité y fecha, tope de 30); el admin recibe a los líderes con su comité en la navegación y `/admin` los lleva a él; exportes CSV con step-up como recursos de solo lectura del kit (`check-ins`, `ledger`, `rankings`, `asambleas`; `ocasiones` sin datos personales); alias legados como recurso del kit en `/admin/sistema/alias` (`listAliases`, `getAlias`); `listCommitteeScores` y `listCheckInsForExport`; corrección: la acción de líder buscaba el comité por id en vez de sigla. 4 de integración y 1 e2e nuevas; `check` (67 y 86) y e2e (34) en verde |
 | 2026-09-04 | 3 | F3-T8 listo: `scripts/lib/migrate-participation.ts` con los pasos 6 a 11 (actividades y asambleas → ocasiones conservando `publicId`, alias `/asamblea/…` y `publicId` retirados, asistencias → check-ins, ledger en dos pasadas con reversiones enlazadas, requisitos de términos cerrados o ajustados, hall of fame → standing bajo `stats.legacy`, `score.recompute` encolado y drenado por el script); una temporada cerrada cierra los puntos del término existente; `verify-migration` con 14 filas (conteos, pares con `SUM(points)` idéntica, aprobadas con una `CHECKIN` viva, alias) y advertencias aparte; elegibles del score precisados (quien entró después de `startsAt` no cuenta); T-677. Ensayo sobre la copia local sin seed: 2 términos, 17 comités, 63 personas, 85 pertenencias, 8 permisos, 53 actividades, 8 asambleas, 8 alias, 120 check-ins, 124 entradas, 1 standing, 43 recomputes; segunda corrida en cero; `migrate:verify` en cero con una advertencia (4 de 68 scores congelados difieren porque GHPOINTS contaba como presente a alguien en licencia); muestreo en el navegador de `/app/gh-points`, `/asamblea/<publicId>` y `/a/<publicId>` de una persona sintética migrada. Prueba de integración ampliada (2 casos); `check` (68 y 87) y e2e (34) en verde |
+| 2026-09-04 | 3 | F3-T9 listo y **fase 3 lista en local**: lista de revisión de marca (07-marca §11) aplicada a las pantallas nuevas (check-in, GH Points, inicio de Mi OE; consola, anfitrión, ocasiones, ledger, rankings, asambleas, cierre, vista de líder y alias) en 375, 768 y escritorio, claro y oscuro; tres correcciones: el cartel navy lleva borde en oscuro, la navegación del admin es una fila desplazable en un celular (el modo anfitrión quedaba debajo de ocho filas de enlaces) y las etiquetas de la ficha del check-in no se parten en 375. El seed deja la ocasión cerrada con doce asistentes acreditados y su score para que consola, ledger y rankings muestren datos. Entregables de la fase marcados, "listo cuando" cumplido en local, README actualizado; `check` (68 unitarias, 87 de integración) y e2e (34) en verde. Queda Railway (fase 0 B) y el contenido real de la OE (puntos por tipo de ocasión, fechas de asambleas y niveles) |

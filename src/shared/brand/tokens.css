@@ -253,6 +253,16 @@
   --cartel-fondo: var(--color-oe-navy);
   --cartel-tinta: var(--color-oe-paper);
   --cartel-grano: var(--grano-claro);
+  /* En oscuro el fondo también es navy: el borde del tema recorta el cartel (revisión de la fase 3). */
+  border: 1px solid transparent;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cartel[data-variante="navy"] {
+    border-color: var(--borde);
+  }
+}
+:root[data-theme="dark"] .cartel[data-variante="navy"] {
+  border-color: var(--borde);
 }
 .cartel h1,
 .cartel h2,

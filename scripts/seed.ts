@@ -1,11 +1,12 @@
 import { readdirSync } from "node:fs";
-import { count, eq, sql } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
+import { enqueueEvent } from "@/db/tx";
 import { getEnv } from "@/env";
 import { announcement } from "@/modules/content/schema";
 import { editionCommittee, event, eventEdition } from "@/modules/events/schema";
 import { permission } from "@/modules/identity/schema";
-import { occasion } from "@/modules/participation/schema";
+import { checkIn, occasion, pointEntry } from "@/modules/participation/schema";
 import {
   appointment,
   committee,
@@ -514,6 +515,50 @@ async function seedOccasions(
       .values(values)
       .onConflictDoUpdate({ target: occasion.publicId, set: values });
   }
+
+  // La cerrada tiene asistentes con crédito, para que consola, ledger y rankings muestren datos.
+  const [closed] = await db
+    .select({ id: occasion.id, title: occasion.title, points: occasion.points })
+    .from(occasion)
+    .where(eq(occasion.publicId, "demo000003"));
+  if (!closed) return;
+  const attendees = await db
+    .select({ personId: membership.personId })
+    .from(membership)
+    .innerJoin(person, eq(person.id, membership.personId))
+    .where(and(eq(person.source, "SEED"), eq(membership.status, "ACTIVE")))
+    .orderBy(person.email)
+    .limit(12);
+  for (const [index, who] of attendees.entries()) {
+    const at = hours(-24 * 7 + index / 12);
+    const [row] = await db
+      .insert(checkIn)
+      .values({
+        occasionId: closed.id,
+        personId: who.personId,
+        status: "APPROVED",
+        source: index % 3 === 0 ? "HOST" : "SELF_QR",
+        at,
+        createdAt: at,
+      })
+      .onConflictDoNothing({ target: [checkIn.occasionId, checkIn.personId] })
+      .returning({ id: checkIn.id });
+    if (!row) continue;
+    await db.insert(pointEntry).values({
+      personId: who.personId,
+      termId: current,
+      checkInId: row.id,
+      kind: "CHECKIN",
+      points: closed.points,
+      reason: closed.title,
+      createdAt: at,
+    });
+  }
+  await enqueueEvent(db, {
+    type: "score.recompute",
+    payload: { occasionId: closed.id },
+    dedupeKey: `score:${closed.id}`,
+  });
 }
 
 try {

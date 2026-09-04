@@ -56,6 +56,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Puntos por tipo de ocasión para el término (tope de comités y asambleas ya están decididos)
 - [ ] Fechas de las dos asambleas ordinarias (una sola es obligatoria) y, en el segundo semestre, de la elección de junta
 - [ ] Nombres y cortes de los niveles de GH Points (T-082); mientras tanto rigen los propuestos (0, 100, 250, 500, 1000)
+- [ ] Al migrar desde GHPOINTS: las actividades que quedaron abiertas allá (31 en la copia local) llegan abiertas y el cierre automático las cierra en la primera hora; confirmar con GH si alguna debe seguir recibiendo registros a mano antes del cutover
 - [ ] Texto de "Unirse": requisitos y fechas de convocatoria
 - [ ] Pasos del onboarding de nuevos (qué debe hacer un nuevo en su primera semana) y preguntas de la encuesta corta tras una ocasión
 - [ ] Acceso al dominio `oeeafit.com` (DNS) y a la cuenta de Resend

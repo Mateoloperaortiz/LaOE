@@ -177,17 +177,17 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
       >
         <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-base">
           <div className="flex gap-2">
-            <dt className="font-semibold">{cuando}</dt>
+            <dt className="shrink-0 font-semibold">{cuando}</dt>
             <dd>{formatDateRange(row.startsAt, row.endsAt)}</dd>
           </div>
           {row.location ? (
             <div className="flex gap-2">
-              <dt className="font-semibold">{donde}</dt>
+              <dt className="shrink-0 font-semibold">{donde}</dt>
               <dd>{row.location}</dd>
             </div>
           ) : null}
           <div className="flex gap-2">
-            <dt className="font-semibold">{puntosLabel}</dt>
+            <dt className="shrink-0 font-semibold">{puntosLabel}</dt>
             <dd>{row.points > 0 ? t("T-529", { n: row.points }) : t("T-530")}</dd>
           </div>
         </dl>

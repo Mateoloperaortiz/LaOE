@@ -67,12 +67,16 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             <LogoOE height={56} />
             <span className="eyebrow">{t("T-236")}</span>
           </Link>
-          <nav aria-label={t("T-236")} className="flex flex-wrap items-center gap-1">
+          {/* En un celular (modo anfitrión) la navegación es una sola fila que se desplaza; desde sm envuelve. */}
+          <nav
+            aria-label={t("T-236")}
+            className="flex w-full items-center gap-1 overflow-x-auto sm:w-auto sm:flex-wrap sm:overflow-visible"
+          >
             {enlaces.map((enlace) => (
               <Link
                 key={enlace.href}
                 href={enlace.href}
-                className="rounded-full px-3 py-2 text-sm font-semibold text-titulo hover:bg-fondo-suave"
+                className="shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold text-titulo hover:bg-fondo-suave"
               >
                 {enlace.label}
               </Link>
