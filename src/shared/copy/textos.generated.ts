@@ -2670,4 +2670,22 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-518": {
+    where: "Documentos: error de subida",
+    text: "No se pudo subir el PDF. Intentá de nuevo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-519": {
+    where: "Documentos: archivo fuera de tamaño",
+    text: "El PDF debe pesar entre 1 KB y 20 MB.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-520": {
+    where: "Documentos: subida confirmada",
+    text: "Listo: el PDF quedó guardado. Ahora cargá los artículos.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
 } as const;

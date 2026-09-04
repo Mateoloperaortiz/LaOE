@@ -10,6 +10,8 @@ const RUTAS: Record<string, string> = {
   Comités: "/app/comites",
   Personas: "/app/personas",
   Egresados: "/app/egresados",
+  Normativa: "/app/normativa",
+  Carnet: "/app/carnet",
   Ajustes: "/app/ajustes",
 };
 

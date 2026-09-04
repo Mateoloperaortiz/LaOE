@@ -12,7 +12,12 @@ export {
   listInteractions,
   type TimelineFilter,
 } from "./domain/interactions";
-export { getOnboarding, type OnboardingStep } from "./domain/onboarding";
+export {
+  getOnboarding,
+  type OnboardingEvidence,
+  type OnboardingStep,
+  recordOnboardingEvidence,
+} from "./domain/onboarding";
 export {
   countOpenTasksFor,
   listTasks,

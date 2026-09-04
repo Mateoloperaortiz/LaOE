@@ -1,6 +1,8 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import type { CommandContext } from "@/db/tx";
+import { type CommandContext, runCommand } from "@/db/tx";
+import { getCurrentTerm } from "@/modules/participation";
+import { getMyMembership } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
@@ -74,4 +76,34 @@ export async function markOnboardingStep(
     after: { stepKey, source },
   });
   return true;
+}
+
+export type OnboardingEvidence = "NORMATIVA_READ" | "FIRST_INTEGRATION" | "PUSH_ENABLED";
+
+/**
+ * Evidencia automática (leer la normativa, la primera integración, activar push): marca como hechos
+ * los pasos con ese `auto` para quien entró este término. Devuelve cuántos pasos cambiaron.
+ */
+export async function recordOnboardingEvidence(
+  personId: string,
+  auto: OnboardingEvidence,
+): Promise<number> {
+  const [term, mine, steps] = await Promise.all([
+    getCurrentTerm(),
+    getMyMembership(personId),
+    requireConfig("onboarding.steps"),
+  ]);
+  const matching = steps.filter((step) => step.auto === auto);
+  if (!term || !mine.isNew || matching.length === 0) {
+    return 0;
+  }
+  let changed = 0;
+  await runCommand({ personId }, async (ctx) => {
+    for (const step of matching) {
+      if (await markOnboardingStep(ctx, personId, term.id, step.key, "AUTO")) {
+        changed += 1;
+      }
+    }
+  });
+  return changed;
 }

@@ -504,6 +504,9 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-515 | Línea de tiempo: autor del sistema | Sistema | MATEO | Propuesta |
 | T-516 | Propósitos de consentimiento (etiquetas cortas, en el orden del modelo) | Membresía · Comunicaciones · Foto en el directorio · Galería de egresados | JUNTA | Propuesta |
 | T-517 | Línea de tiempo: nota de otra persona | Solo quien escribió la nota puede editarla. | MATEO | Propuesta |
+| T-518 | Documentos: error de subida | No se pudo subir el PDF. Intentá de nuevo. | MATEO | Propuesta |
+| T-519 | Documentos: archivo fuera de tamaño | El PDF debe pesar entre 1 KB y 20 MB. | MATEO | Propuesta |
+| T-520 | Documentos: subida confirmada | Listo: el PDF quedó guardado. Ahora cargá los artículos. | MATEO | Propuesta |
 
 ## 6. Notificaciones
 

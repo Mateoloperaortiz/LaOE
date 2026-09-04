@@ -14,6 +14,34 @@ export {
   unpublishAnnouncement,
   updateAnnouncement,
 } from "./domain/announcements";
+export {
+  type ArticleHit,
+  type ArticleRow,
+  confirmDocumentAs,
+  confirmDocumentSchema,
+  type DocumentListRow,
+  type DocumentRow,
+  getPublishedDocumentWithArticles,
+  HIGHLIGHT,
+  listDocuments,
+  listPublishedDocuments,
+  type PublishedDocument,
+  prepareDocumentSchema,
+  prepareDocumentUpload,
+  publishDocumentAs,
+  replaceArticlesAs,
+  resolveDocumentRedirect,
+  searchArticles,
+  unpublishDocumentAs,
+} from "./domain/documents";
+export {
+  chaptersOf,
+  DOCUMENT_KINDS,
+  DOCUMENT_MAX_BYTES,
+  DOCUMENT_MIN_BYTES,
+  type DocumentKind,
+  parseArticlesJson,
+} from "./domain/documents-pure";
 export { excerpt } from "./domain/markdown-pure";
 export {
   confirmUploadAs,

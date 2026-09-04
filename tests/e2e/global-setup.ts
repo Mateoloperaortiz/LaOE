@@ -1,6 +1,6 @@
 import { and, asc, eq, like, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { announcement, mediaAsset } from "@/modules/content/schema";
+import { announcement, document, mediaAsset } from "@/modules/content/schema";
 import { task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { otpChallenge, permission } from "@/modules/identity/schema";
@@ -80,6 +80,7 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(announcement).where(like(announcement.title, "e2e-%"));
   await db.delete(eventEdition).where(like(eventEdition.slug, "e2e-%"));
   await db.delete(mediaAsset).where(like(mediaAsset.originalFilename, "e2e-%"));
+  await db.delete(document).where(like(document.title, "e2e-%"));
   // Miembro sin permisos: activo, en un comité del término, sin datos de contacto ni consentimientos.
   let [member] = await db
     .select({ id: person.id })
