@@ -45,6 +45,7 @@ export {
   closeOccasionAs,
   closeTermPointsAs,
   createOccasionAs,
+  createOccasionSeriesAs,
   decideCheckInAs,
   decideManyAs,
   hostCheckInAs,
@@ -55,6 +56,7 @@ export {
   setRotatingCodeAs,
   updateOccasionAs,
 } from "./domain/commands";
+export { type CheckInExportRow, listCheckInsForExport } from "./domain/exports";
 export {
   balanceFor,
   type LedgerListRow,
@@ -100,7 +102,9 @@ export {
   type OccasionRef,
   type OccasionRow,
   occasionInputSchema,
+  type SeriesInput,
   searchOccasions,
+  weeklyDates,
 } from "./domain/occasions";
 export { isPublicId, PUBLIC_ID } from "./domain/public-id-pure";
 export {
@@ -113,4 +117,9 @@ export {
   rankPeople,
 } from "./domain/rankings";
 export { rotatingCodeAt, secondsUntilRotation } from "./domain/rotating-code-pure";
-export { type CommitteeParticipationRow, listOccasionScores } from "./domain/scores";
+export {
+  type CommitteeOccasionScore,
+  type CommitteeParticipationRow,
+  listCommitteeScores,
+  listOccasionScores,
+} from "./domain/scores";

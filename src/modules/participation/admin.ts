@@ -1,6 +1,9 @@
+import { z } from "zod";
+import { runCommand } from "@/db/tx";
 import { listEditionOptions } from "@/modules/events";
-import { listAllCommittees } from "@/modules/people";
-import { listAllTerms } from "@/modules/terms";
+import { getPeopleByIds, listAllCommittees } from "@/modules/people";
+import { createAlias, getAlias, type LegacyAliasRow, listAliases } from "@/modules/system";
+import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import type {
   Badge,
   FieldDefinition,
@@ -9,12 +12,16 @@ import type {
 } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
+import { type AssemblyOverviewRow, assemblyOverview } from "./domain/assemblies";
 import {
   closeOccasionAs,
   createOccasionAs,
   openOccasionAs,
   updateOccasionAs,
 } from "./domain/commands";
+import { type CheckInExportRow, listCheckInsForExport } from "./domain/exports";
+import { type LedgerListRow, listLedger } from "./domain/ledger";
+import { POINT_ENTRY_KINDS } from "./domain/ledger-pure";
 import {
   ASSEMBLY_KINDS,
   OCCASION_CATEGORIES,
@@ -24,11 +31,13 @@ import {
 } from "./domain/occasion-pure";
 import {
   getOccasion,
+  getOccasionsByIds,
   listOccasions,
   type OccasionInput,
   type OccasionListRow,
   occasionInputSchema,
 } from "./domain/occasions";
+import { type Board, rankPeople } from "./domain/rankings";
 
 // Recurso del admin para las ocasiones (ADR-017, ADR-035): listado con filtros y acciones Abrir y
 // Cerrar; la consola y el modo anfitrión son pantallas a medida.
@@ -247,5 +256,308 @@ export const occasionsResource: ResourceDefinition<OccasionListRow, OccasionInpu
     solo_nuevos: row.newMembersOnly ? "si" : "no",
     registrados: row.approvedCount,
     enlace: `/a/${row.publicId}`,
+  }),
+};
+
+// Recursos de solo lectura para los exportes CSV (ADR-035 regla 17): check-ins, ledger, rankings y
+// asambleas llevan datos personales (step-up y auditoría); las ocasiones no.
+
+const emptySchema = z.object({});
+type Empty = z.infer<typeof emptySchema>;
+
+async function termFilter(label: string): Promise<FilterDefinition> {
+  const terms = await listAllTerms();
+  return {
+    key: "termId",
+    label,
+    options: terms.map((term) => ({ value: term.id, label: term.code })),
+  };
+}
+
+const [checkInsPlural, checkInsSingular] = tList("T-662") as [string, string];
+
+export const checkInsResource: ResourceDefinition<CheckInExportRow, Empty> = {
+  key: "check-ins",
+  names: { plural: checkInsPlural, singular: checkInsSingular },
+  basePath: "/admin/ocasiones",
+  columns: [{ key: "personName", label: tList("T-595")[0] ?? "", render: (row) => row.personName }],
+  filters: async () => [
+    await termFilter(filterLabels[0] ?? ""),
+    { key: "occasionId", label: singular, options: [] },
+  ],
+  schema: emptySchema,
+  fields: [],
+  list: (params) =>
+    listCheckInsForExport({
+      q: params.q,
+      termId: params.filters.termId,
+      occasionId: params.filters.occasionId,
+      page: params.page,
+      pageSize: params.pageSize,
+    }),
+  get: () => Promise.resolve(null),
+  toFormValues: () => ({}),
+  personalData: true,
+  exportRow: (row) => ({
+    nombre: row.personName,
+    correo: row.email,
+    ocasion: row.occasionTitle,
+    fecha: row.at.toISOString(),
+    fuente: row.source,
+    estado: row.status,
+    motivo: row.reason,
+  }),
+};
+
+const [ledgerPlural, ledgerSingular] = tList("T-663") as [string, string];
+const kindLabelsForLedger = tList("T-085");
+
+interface LedgerExportRow extends LedgerListRow {
+  personName: string;
+  email: string;
+  termCode: string;
+}
+
+export const ledgerResource: ResourceDefinition<LedgerExportRow, Empty> = {
+  key: "ledger",
+  names: { plural: ledgerPlural, singular: ledgerSingular },
+  basePath: "/admin/ledger",
+  columns: [{ key: "reason", label: tList("T-623")[5] ?? "", render: (row) => row.reason }],
+  filters: async () => [
+    await termFilter(filterLabels[0] ?? ""),
+    { key: "personId", label: tList("T-624")[0] ?? "", options: [] },
+    {
+      key: "kind",
+      label: tList("T-624")[2] ?? "",
+      options: POINT_ENTRY_KINDS.map((value, index) => ({
+        value,
+        label: kindLabelsForLedger[index] ?? value,
+      })),
+    },
+  ],
+  schema: emptySchema,
+  fields: [],
+  list: async (params) => {
+    const [result, terms] = await Promise.all([
+      listLedger({
+        personId: params.filters.personId,
+        termId: params.filters.termId,
+        kind: params.filters.kind,
+        page: params.page,
+        pageSize: params.pageSize,
+      }),
+      listAllTerms(),
+    ]);
+    const people = await getPeopleByIds(result.rows.map((row) => row.personId));
+    const termCode = new Map(terms.map((term) => [term.id, term.code]));
+    return {
+      total: result.total,
+      rows: result.rows.map((row) => ({
+        ...row,
+        personName: people.get(row.personId)?.fullName?.trim() ?? "",
+        email: people.get(row.personId)?.email ?? "",
+        termCode: termCode.get(row.termId) ?? "",
+      })),
+    };
+  },
+  get: () => Promise.resolve(null),
+  toFormValues: () => ({}),
+  personalData: true,
+  exportRow: (row) => ({
+    fecha: row.createdAt.toISOString(),
+    nombre: row.personName,
+    correo: row.email,
+    semestre: row.termCode,
+    movimiento: kindLabelsForLedger[POINT_ENTRY_KINDS.indexOf(row.kind)] ?? row.kind,
+    puntos: row.points,
+    motivo: row.reason,
+    revertida: row.reversedById ? "si" : "no",
+  }),
+};
+
+const [rankingsPlural, rankingsSingular] = tList("T-664") as [string, string];
+const [tabNuevos, tabVeteranos] = tList("T-083");
+
+interface RankingExportRow {
+  id: string;
+  rank: number;
+  board: Board;
+  name: string;
+  firstTermCode: string;
+  total: number;
+}
+
+export const rankingsResource: ResourceDefinition<RankingExportRow, Empty> = {
+  key: "rankings",
+  names: { plural: rankingsPlural, singular: rankingsSingular },
+  basePath: "/admin/rankings",
+  columns: [{ key: "name", label: tList("T-636")[1] ?? "", render: (row) => row.name }],
+  filters: async () => [
+    await termFilter(filterLabels[0] ?? ""),
+    {
+      key: "board",
+      label: tList("T-083").join(" · "),
+      options: [
+        { value: "NEW", label: tabNuevos ?? "NEW" },
+        { value: "VETERAN", label: tabVeteranos ?? "VETERAN" },
+      ],
+    },
+  ],
+  schema: emptySchema,
+  fields: [],
+  list: async (params) => {
+    const terms = await listAllTerms();
+    const term =
+      terms.find((item) => item.id === params.filters.termId) ??
+      (await getCurrentTerm()) ??
+      terms[0];
+    if (!term) {
+      return { rows: [], total: 0 };
+    }
+    const termCode = new Map(terms.map((item) => [item.id, item.code]));
+    const boards: Board[] =
+      params.filters.board === "NEW" || params.filters.board === "VETERAN"
+        ? [params.filters.board]
+        : ["NEW", "VETERAN"];
+    const rows: RankingExportRow[] = [];
+    for (const board of boards) {
+      for (const item of await rankPeople(term.id, board)) {
+        rows.push({
+          id: `${board}-${item.row.personId}`,
+          rank: item.rank,
+          board,
+          name: item.row.anonymized ? t("T-223") : item.row.name,
+          firstTermCode: termCode.get(item.row.firstTermId) ?? "",
+          total: item.total,
+        });
+      }
+    }
+    return { rows, total: rows.length };
+  },
+  get: () => Promise.resolve(null),
+  toFormValues: () => ({}),
+  personalData: true,
+  exportRow: (row) => ({
+    puesto: row.rank,
+    tablero: row.board === "NEW" ? (tabNuevos ?? "") : (tabVeteranos ?? ""),
+    nombre: row.name,
+    semestre_de_ingreso: row.firstTermCode,
+    puntos: row.total,
+  }),
+};
+
+const [assembliesPlural, assembliesSingular] = tList("T-665") as [string, string];
+
+type AssemblyExportRow = AssemblyOverviewRow & { id: string };
+
+export const assembliesResource: ResourceDefinition<AssemblyExportRow, Empty> = {
+  key: "asambleas",
+  names: { plural: assembliesPlural, singular: assembliesSingular },
+  basePath: "/admin/asambleas",
+  columns: [{ key: "name", label: tList("T-638")[0] ?? "", render: (row) => row.name }],
+  filters: async () => [await termFilter(filterLabels[0] ?? "")],
+  schema: emptySchema,
+  fields: [],
+  list: async (params) => {
+    const terms = await listAllTerms();
+    const term =
+      terms.find((item) => item.id === params.filters.termId) ??
+      (await getCurrentTerm()) ??
+      terms[0];
+    if (!term) {
+      return { rows: [], total: 0 };
+    }
+    const rows = (await assemblyOverview(term)).map((row) => ({ ...row, id: row.personId }));
+    return { rows, total: rows.length };
+  },
+  get: () => Promise.resolve(null),
+  toFormValues: () => ({}),
+  personalData: true,
+  exportRow: (row) => ({
+    nombre: row.anonymized ? t("T-223") : row.name,
+    ordinarias_requeridas: row.requirement.requiredOrdinary,
+    ordinarias_firmadas: row.compliance.ordinaryAttended,
+    eleccion_requerida: row.requirement.requiresBoardElection ? "si" : "no",
+    eleccion_firmada: row.compliance.boardElectionAttended ? "si" : "no",
+    segunda_vuelta_requerida: row.requirement.requiresRunoff ? "si" : "no",
+    segunda_vuelta_firmada: row.compliance.runoffAttended ? "si" : "no",
+    cumple: row.compliance.compliant ? "si" : "no",
+    ajustado: row.requirement.adjusted ? "si" : "no",
+  }),
+};
+
+// Alias legados (ADR-018, ADR-035 regla 3): vive aquí porque el destino es una ocasión.
+
+const [aliasesPlural, aliasesSingular] = tList("T-658") as [string, string];
+const aliasColumns = tList("T-659");
+
+export const aliasInputSchema = z.object({
+  path: z.string().trim().min(3).max(60),
+  targetId: z.string().trim().min(1),
+});
+
+type AliasInput = z.infer<typeof aliasInputSchema>;
+
+interface AliasRow extends LegacyAliasRow {
+  occasionTitle: string;
+}
+
+async function aliasRows(rows: LegacyAliasRow[]): Promise<AliasRow[]> {
+  const occasions = await getOccasionsByIds(rows.map((row) => row.targetId));
+  return rows.map((row) => ({ ...row, occasionTitle: occasions.get(row.targetId)?.title ?? "" }));
+}
+
+export const aliasesResource: ResourceDefinition<AliasRow, AliasInput> = {
+  key: "alias",
+  names: { plural: aliasesPlural, singular: aliasesSingular },
+  basePath: "/admin/sistema/alias",
+  columns: [
+    { key: "path", label: aliasColumns[0] ?? "", render: (row) => row.path },
+    {
+      key: "occasion",
+      label: aliasColumns[1] ?? "",
+      render: (row) => ({ text: row.occasionTitle, href: `/admin/ocasiones/${row.targetId}` }),
+    },
+    {
+      key: "createdAt",
+      label: aliasColumns[2] ?? "",
+      render: (row) => formatDateTime(row.createdAt),
+    },
+  ],
+  schema: aliasInputSchema,
+  fields: async () => {
+    const occasions = await listOccasions({ q: "", page: 1, pageSize: 200 });
+    return [
+      {
+        name: "path",
+        label: aliasColumns[0] ?? "",
+        type: "text",
+        required: true,
+        placeholder: "/asamblea/abcdefghjk",
+      },
+      {
+        name: "targetId",
+        label: aliasColumns[1] ?? "",
+        type: "select",
+        required: true,
+        options: occasions.rows.map((row) => ({ value: row.id, label: row.title })),
+      },
+    ];
+  },
+  list: async (params) => {
+    const result = await listAliases({ q: params.q, page: params.page, pageSize: params.pageSize });
+    return { total: result.total, rows: await aliasRows(result.rows) };
+  },
+  get: async (id) => {
+    const row = await getAlias(id);
+    return row ? ((await aliasRows([row]))[0] ?? null) : null;
+  },
+  toFormValues: (row) => ({ path: row.path, targetId: row.targetId }),
+  create: (actor, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => createAlias(ctx, input)),
+  exportRow: (row) => ({
+    ruta: row.path,
+    ocasion: row.occasionTitle,
+    creado: row.createdAt.toISOString(),
   }),
 };

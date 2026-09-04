@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { requireAdminActor } from "@/modules/identity";
+import { redirect } from "next/navigation";
+import { requireAdminOrLeaderActor } from "@/modules/identity";
+import { listCommitteesByIds } from "@/modules/people";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 
@@ -13,7 +15,15 @@ const RUTAS: Record<string, string> = {
 };
 
 export default async function AdminHome() {
-  await requireAdminActor("/admin");
+  const actor = await requireAdminOrLeaderActor("/admin");
+  if (!actor.isAdmin) {
+    // Un líder entra derecho a su comité (ADR-035 regla 15).
+    const led = actor.permissions.filter(
+      (item) => item.code === "COMMITTEE_LEADER" && item.committeeId,
+    );
+    const committees = await listCommitteesByIds(led.map((item) => item.committeeId as string));
+    redirect(committees[0] ? `/admin/comites/${committees[0].slug}` : "/app");
+  }
   const secciones = tList("T-160");
   return (
     <div className="flex flex-col gap-8">

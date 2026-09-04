@@ -533,3 +533,90 @@ export async function getOccasionsByIds(ids: string[]): Promise<Map<string, Occa
   const rows = await getDb().select().from(occasion).where(inArray(occasion.id, ids));
   return new Map(rows.map((row) => [row.id, row]));
 }
+
+// Serie semanal de reuniones de comité (ADR-035 regla 15): una ocasión independiente por semana,
+// COMMITTEE_MEETING sin puntos, hasta el fin del término; idempotente por comité y fecha.
+
+export interface SeriesInput {
+  committeeId: string;
+  title: string;
+  /** Instante de la primera reunión (ya en UTC). */
+  firstStartsAt: Date;
+  durationMinutes: number;
+  location: string;
+}
+
+export const MAX_SERIES = 30;
+
+/** Fechas semanales desde la primera hasta el fin del término (inclusive), como instantes UTC. */
+export function weeklyDates(firstStartsAt: Date, termEndsOn: string): Date[] {
+  const end = new Date(`${termEndsOn}T23:59:59.999-05:00`);
+  const dates: Date[] = [];
+  for (
+    let at = firstStartsAt;
+    at <= end && dates.length < MAX_SERIES;
+    at = new Date(at.getTime() + 7 * 86_400_000)
+  ) {
+    dates.push(at);
+  }
+  return dates;
+}
+
+export async function createOccasionSeries(
+  ctx: CommandContext,
+  input: SeriesInput,
+  context: OccasionContext & { termEndsOn: string },
+): Promise<{ created: number; skipped: number; lastStartsAt: Date | null }> {
+  const dates = weeklyDates(input.firstStartsAt, context.termEndsOn);
+  if (dates.length === 0) {
+    throw new DomainError(t("T-675"), "firstStartsAt");
+  }
+  const existing = await ctx.tx
+    .select({ startsAt: occasion.startsAt })
+    .from(occasion)
+    .where(
+      and(
+        eq(occasion.committeeId, input.committeeId),
+        eq(occasion.category, "COMMITTEE_MEETING"),
+        inArray(occasion.startsAt, dates),
+      ),
+    );
+  const taken = new Set(existing.map((row) => row.startsAt.getTime()));
+  let created = 0;
+  for (const startsAt of dates) {
+    if (taken.has(startsAt.getTime())) {
+      continue;
+    }
+    const window = defaultWindow(startsAt, context.window);
+    const [row] = await ctx.tx
+      .insert(occasion)
+      .values({
+        publicId: newPublicId(),
+        termId: context.termId,
+        kind: "ACTIVITY",
+        category: "COMMITTEE_MEETING",
+        title: input.title,
+        location: input.location,
+        startsAt,
+        endsAt: new Date(startsAt.getTime() + input.durationMinutes * 60_000),
+        checkInOpensAt: window.checkInOpensAt,
+        checkInClosesAt: window.checkInClosesAt,
+        points: 0,
+        approval: "AUTO",
+        committeeId: input.committeeId,
+        status: "OPEN",
+        createdById: ctx.actor.personId,
+      })
+      .returning({ id: occasion.id });
+    if (row) {
+      created += 1;
+      await ctx.audit({
+        action: "occasion.created",
+        entityType: "occasion",
+        entityId: row.id,
+        after: { series: true, committeeId: input.committeeId, startsAt: startsAt.toISOString() },
+      });
+    }
+  }
+  return { created, skipped: dates.length - created, lastStartsAt: dates.at(-1) ?? null };
+}

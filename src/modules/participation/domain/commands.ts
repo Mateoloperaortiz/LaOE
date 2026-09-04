@@ -24,12 +24,14 @@ import {
   closeOccasion,
   countOpenOccasions,
   createOccasion,
+  createOccasionSeries,
   getOccasion,
   getOccasionByPublicId,
   type OccasionContext,
   type OccasionInput,
   openOccasion,
   rotateSecret,
+  type SeriesInput,
   setRotatingCode,
   updateOccasion,
 } from "./occasions";
@@ -214,4 +216,22 @@ export async function closeTermPointsAs(
     await closeTermPoints(ctx, termId);
     return writeTermStanding(ctx, termId, standing, { openOccasions });
   });
+}
+
+/** Serie semanal de reuniones: el término sale de la primera fecha; cada reunión nace abierta y sin puntos. */
+export async function createOccasionSeriesAs(
+  actor: Actor & { personId: string },
+  input: SeriesInput,
+): Promise<{ created: number; skipped: number; lastStartsAt: Date | null }> {
+  const context = await resolveOccasionContext(input.firstStartsAt);
+  const term = await getTerm(context.termId);
+  if (!term) {
+    throw new DomainError(t("T-675"), "firstStartsAt");
+  }
+  if (term.pointsClosedAt) {
+    throw new DomainError(t("T-579"));
+  }
+  return runCommand(actor, (ctx) =>
+    createOccasionSeries(ctx, input, { ...context, termEndsOn: term.endsOn }),
+  );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdminOrLeaderActor } from "@/modules/identity";
 import { signOutAction } from "@/modules/identity/actions";
+import { listCommitteesByIds } from "@/modules/people";
 import { CommandPalette } from "@/shared/admin-kit";
 import { LogoOE, ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
@@ -20,9 +21,16 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [persona, comite, ocasion] = tList("T-290") as [string, string, string];
   const [personas, importar, cargos, etiquetas, tareas, segmentos, documentos, importaciones] =
     tList("T-509");
-  const [ocasiones, ledger, rankings, asambleas, cierre] = tList("T-561");
-  const enlaces = !actor.isAdmin
+  const [ocasiones, ledger, rankings, asambleas, cierre, alias] = tList("T-561");
+  const ledCommittees = actor.isAdmin
     ? []
+    : await listCommitteesByIds(
+        actor.permissions
+          .filter((item) => item.code === "COMMITTEE_LEADER" && item.committeeId)
+          .map((item) => item.committeeId as string),
+      );
+  const enlaces = !actor.isAdmin
+    ? ledCommittees.map((item) => ({ href: `/admin/comites/${item.slug}`, label: item.name }))
     : [
         { href: "/admin/personas", label: personas ?? "" },
         { href: "/admin/personas/importar", label: importar ?? "" },
@@ -45,6 +53,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         { href: "/admin/permisos", label: permisos ?? "" },
         { href: "/admin/sistema/importaciones", label: importaciones ?? "" },
         { href: "/admin/sistema/jobs", label: t("T-241") },
+        { href: "/admin/sistema/alias", label: alias ?? "" },
       ];
   return (
     <>

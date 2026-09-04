@@ -123,3 +123,38 @@ export async function listOccasionScores(occasionId: string): Promise<CommitteeP
     .from(committeeParticipation)
     .where(eq(committeeParticipation.occasionId, occasionId));
 }
+
+export interface CommitteeOccasionScore extends CommitteeParticipationRow {
+  occasionTitle: string;
+  occasionStartsAt: Date;
+  occasionStatus: "DRAFT" | "OPEN" | "CLOSED" | "CANCELLED";
+}
+
+/** Las ocasiones con puntos del término vistas desde un comité (vista de líder). */
+export async function listCommitteeScores(
+  committeeId: string,
+  termId: string,
+): Promise<CommitteeOccasionScore[]> {
+  const rows = await getDb()
+    .select({
+      row: committeeParticipation,
+      occasionTitle: occasion.title,
+      occasionStartsAt: occasion.startsAt,
+      occasionStatus: occasion.status,
+    })
+    .from(committeeParticipation)
+    .innerJoin(occasion, eq(occasion.id, committeeParticipation.occasionId))
+    .where(
+      and(
+        eq(committeeParticipation.committeeId, committeeId),
+        eq(committeeParticipation.termId, termId),
+      ),
+    )
+    .orderBy(occasion.startsAt);
+  return rows.map((item) => ({
+    ...item.row,
+    occasionTitle: item.occasionTitle,
+    occasionStartsAt: item.occasionStartsAt,
+    occasionStatus: item.occasionStatus,
+  }));
+}

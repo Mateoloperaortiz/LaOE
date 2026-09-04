@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { count, desc, eq, ilike } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
@@ -47,4 +47,29 @@ export async function createAlias(
     }
     throw error;
   }
+}
+
+export async function listAliases(params: {
+  q: string;
+  page: number;
+  pageSize: number;
+}): Promise<{ rows: LegacyAliasRow[]; total: number }> {
+  const where = params.q ? ilike(legacyAlias.path, `%${params.q}%`) : undefined;
+  const db = getDb();
+  const [rows, [total]] = await Promise.all([
+    db
+      .select()
+      .from(legacyAlias)
+      .where(where)
+      .orderBy(desc(legacyAlias.createdAt))
+      .limit(params.pageSize)
+      .offset((params.page - 1) * params.pageSize),
+    db.select({ n: count() }).from(legacyAlias).where(where),
+  ]);
+  return { rows, total: total?.n ?? 0 };
+}
+
+export async function getAlias(id: string): Promise<LegacyAliasRow | null> {
+  const [row] = await getDb().select().from(legacyAlias).where(eq(legacyAlias.id, id)).limit(1);
+  return row ?? null;
 }

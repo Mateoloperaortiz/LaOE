@@ -1,5 +1,12 @@
 // API pública del módulo system: lo que otros módulos y src/app pueden usar.
-export { ALIAS_PATH, createAlias, type LegacyAliasRow, resolveAlias } from "./domain/aliases";
+export {
+  ALIAS_PATH,
+  createAlias,
+  getAlias,
+  type LegacyAliasRow,
+  listAliases,
+  resolveAlias,
+} from "./domain/aliases";
 export { redactAuditEntries } from "./domain/audit";
 export {
   type ConfigKey,

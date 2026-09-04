@@ -37,4 +37,17 @@ test("GH ve las asambleas del término y cierra los puntos con el standing conge
   await expect(page.getByText(/Puntos cerrados el/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Top nuevos" })).toBeVisible();
   await sinViolaciones(page);
+
+  // Los exportes de participación salen en CSV; los personales quedan auditados con el step-up del ingreso.
+  const ocasiones = await page.request.get("/api/export/ocasiones");
+  expect(ocasiones.status()).toBe(200);
+  expect(ocasiones.headers()["content-type"]).toContain("text/csv");
+  expect(await ocasiones.text()).toContain("titulo");
+  for (const tipo of ["check-ins", "ledger", "rankings", "asambleas"]) {
+    const csv = await page.request.get(`/api/export/${tipo}`);
+    expect(csv.status()).toBe(200);
+    expect(csv.headers()["content-disposition"]).toContain(`${tipo}-`);
+  }
+  await page.goto("/admin/sistema/alias");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Alias legados");
 });
