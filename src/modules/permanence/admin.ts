@@ -1,12 +1,26 @@
 import { z } from "zod";
+import { listEditionOptions } from "@/modules/events";
+import { findMembersByEmails } from "@/modules/people";
 import { listAllTerms } from "@/modules/terms";
-import type { ResourceDefinition } from "@/shared/admin-kit/types";
-import { tList } from "@/shared/copy";
+import { DomainError } from "@/shared/admin-kit/DomainError";
+import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
+import { t, tList } from "@/shared/copy";
 import {
   COMPLIANCE_FILTERS,
   type ComplianceRow,
   listComplianceForExport,
 } from "./domain/compliance";
+import {
+  createGroupAs,
+  type GroupInput,
+  type GroupListRow,
+  getGroup,
+  getGroupDetail,
+  groupInputSchema,
+  listGroups,
+  updateGroupAs,
+} from "./domain/groups";
+import { WORK_GROUP_KINDS } from "./domain/params";
 
 // Recursos del kit de permanencia (ADR-017, ADR-036): el exporte de cumplimiento con datos
 // personales (step-up) y, en F4-T4, los grupos de trabajo.
@@ -89,4 +103,179 @@ export const complianceResource: ResourceDefinition<ComplianceRow, Empty> = {
       [obligatorias ?? "obligatorias"]: `${row.mandatoryAttended} de ${row.mandatoryTotal}`,
     };
   },
+};
+
+// ── Grupos de trabajo (F4-T4) ───────────────────────────────────────────────────────────────
+
+const [groupsPlural, groupsSingular] = tList("T-742") as [string, string];
+const groupFieldLabels = tList("T-743");
+const groupColumnLabels = tList("T-744");
+const groupFilterLabels = tList("T-745");
+const groupKindLabels = tList("T-725");
+const GROUP_KINDS = [
+  "WORK_COMMITTEE",
+  "GT_MACROEVENT",
+  "GAP",
+  "GAP_OE",
+  "BARRA_BRAVA",
+  "NEW_MEMBER_TASK",
+];
+
+const kindOptions = GROUP_KINDS.map((value, index) => ({
+  value,
+  label: groupKindLabels[index] ?? value,
+}));
+
+/** Lo que llega del formulario del kit: el líder viene por correo y se resuelve al guardar. */
+const groupFormSchema = z.object({
+  termId: z.string().min(1),
+  kind: z.enum(WORK_GROUP_KINDS),
+  name: z.string().trim().min(2).max(120),
+  code: z.string().trim().toUpperCase().max(20).default(""),
+  editionId: z.string().default(""),
+  leaderEmail: z.string().trim().toLowerCase().default(""),
+});
+type GroupForm = z.infer<typeof groupFormSchema>;
+
+async function toGroupInput(form: GroupForm): Promise<GroupInput> {
+  let leaderPersonId: string | undefined;
+  if (form.leaderEmail) {
+    const found = await findMembersByEmails([form.leaderEmail]);
+    const leader = found.get(form.leaderEmail);
+    if (!leader) {
+      throw new DomainError(t("T-032"), "leaderEmail");
+    }
+    leaderPersonId = leader.id;
+  }
+  return groupInputSchema.parse({
+    termId: form.termId,
+    kind: form.kind,
+    name: form.name,
+    code: form.code,
+    editionId: form.editionId,
+    leaderPersonId,
+  });
+}
+
+async function groupFields(): Promise<FieldDefinition[]> {
+  const [terms, editions] = await Promise.all([listAllTerms(), listEditionOptions()]);
+  const label = (index: number) => groupFieldLabels[index] ?? "";
+  return [
+    {
+      name: "termId",
+      label: label(0),
+      type: "select",
+      required: true,
+      lockedOnEdit: true,
+      options: terms.map((term) => ({ value: term.id, label: term.code })),
+    },
+    { name: "kind", label: label(1), type: "select", required: true, options: kindOptions },
+    { name: "name", label: label(2), type: "text", required: true },
+    { name: "code", label: label(3), type: "text" },
+    {
+      name: "editionId",
+      label: label(4),
+      type: "select",
+      emptyOption: t("T-583"),
+      options: editions.map((item) => ({ value: item.id, label: item.label })),
+    },
+    { name: "leaderEmail", label: label(6), type: "email", emptyOption: t("T-840") },
+  ];
+}
+
+export const workGroupsResource: ResourceDefinition<GroupListRow, GroupForm> = {
+  key: "grupos",
+  names: { plural: groupsPlural, singular: groupsSingular },
+  basePath: "/admin/permanencia/grupos",
+  columns: [
+    {
+      key: "name",
+      label: groupColumnLabels[0] ?? "",
+      render: (row) => ({ text: row.name, href: `/admin/permanencia/grupos/${row.id}` }),
+    },
+    {
+      key: "kind",
+      label: groupColumnLabels[1] ?? "",
+      render: (row) => groupKindLabels[GROUP_KINDS.indexOf(row.kind)] ?? row.kind,
+    },
+    { key: "code", label: groupColumnLabels[2] ?? "", render: (row) => row.code },
+    {
+      key: "leader",
+      label: groupColumnLabels[3] ?? "",
+      render: (row) => row.leaderName || t("T-757"),
+    },
+    { key: "members", label: groupColumnLabels[4] ?? "", render: (row) => row.members },
+    { key: "evaluators", label: groupColumnLabels[5] ?? "", render: (row) => row.evaluators },
+    { key: "pending", label: groupColumnLabels[6] ?? "", render: (row) => row.pending },
+  ],
+  filters: async () => [
+    {
+      key: "termId",
+      label: groupFilterLabels[0] ?? "",
+      options: (await listAllTerms()).map((term) => ({ value: term.id, label: term.code })),
+    },
+    { key: "kind", label: groupFilterLabels[1] ?? "", options: kindOptions },
+  ],
+  schema: groupFormSchema,
+  fields: groupFields,
+  list: (params) =>
+    listGroups({
+      q: params.q,
+      termId: params.filters.termId,
+      kind: params.filters.kind,
+      page: params.page,
+      pageSize: params.pageSize,
+    }),
+  get: async (id) => {
+    const rows = await listGroups({
+      q: "",
+      termId: undefined,
+      kind: undefined,
+      page: 1,
+      pageSize: 1,
+    });
+    void rows;
+    const group = await getGroup(id);
+    if (!group) {
+      return null;
+    }
+    const detail = await getGroupDetail(id);
+    return {
+      ...group,
+      leaderName: detail?.leaderName ?? "",
+      members: detail?.members.filter((member) => member.leftAt === null).length ?? 0,
+      evaluators: detail?.evaluators.length ?? 0,
+      pending:
+        detail?.members.filter(
+          (member) => member.leftAt === null && member.evaluation === "PENDING",
+        ).length ?? 0,
+    };
+  },
+  toFormValues: (row) => ({
+    termId: row.termId,
+    kind: row.kind,
+    name: row.name,
+    code: row.code ?? "",
+    editionId: row.editionId ?? "",
+    leaderEmail: "",
+  }),
+  create: async (actor, input) =>
+    createGroupAs({ personId: actor.personId }, await toGroupInput(input)),
+  update: async (actor, id, input) => {
+    const parsed = await toGroupInput(input);
+    const current = await getGroup(id);
+    await updateGroupAs({ personId: actor.personId }, id, {
+      ...parsed,
+      leaderPersonId: parsed.leaderPersonId ?? current?.leaderPersonId ?? undefined,
+    });
+  },
+  exportRow: (row) => ({
+    nombre: row.name,
+    tipo: groupKindLabels[GROUP_KINDS.indexOf(row.kind)] ?? row.kind,
+    codigo: row.code ?? "",
+    lider: row.leaderName,
+    miembros: row.members,
+    evaluadores: row.evaluators,
+    pendientes: row.pending,
+  }),
 };

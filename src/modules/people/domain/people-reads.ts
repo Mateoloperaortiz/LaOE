@@ -251,3 +251,24 @@ export async function listAppointmentsForTerm(termId: string): Promise<TermAppoi
     .from(appointment)
     .where(eq(appointment.termId, termId));
 }
+
+export interface MembershipStatusRef {
+  fullName: string;
+  status: (typeof membership.$inferSelect)["status"];
+}
+
+/** Nombre y estado de membresía de varias personas (para las altas en grupos de trabajo). */
+export async function listMembershipStatuses(
+  personIds: string[],
+): Promise<Map<string, MembershipStatusRef>> {
+  const ids = [...new Set(personIds)];
+  if (ids.length === 0) {
+    return new Map();
+  }
+  const rows = await getDb()
+    .select({ id: person.id, fullName: person.fullName, status: membership.status })
+    .from(person)
+    .innerJoin(membership, eq(membership.personId, person.id))
+    .where(inArray(person.id, ids));
+  return new Map(rows.map((row) => [row.id, { fullName: row.fullName ?? "", status: row.status }]));
+}

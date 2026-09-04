@@ -4628,4 +4628,29 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-844": {
+    where: "Grupo: sin miembros",
+    text: "Todavía nadie entró a este grupo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-845": {
+    where: "Grupo: importación aplicada",
+    text: "{n} personas agregadas al grupo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-846": {
+    where:
+      "Grupo: resultado de cada fila de la importación (agregar, ya estaba, sin membresía activa, desconocido)",
+    text: "Para agregar · Ya estaba · Sin membresía activa · Correo desconocido",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-847": {
+    where: "Grupo: campo de correos de los evaluadores",
+    text: "Correos de los evaluadores (uno por línea)",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
 } as const;

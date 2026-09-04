@@ -170,7 +170,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
           <h1 className="text-display-lg">{t("T-710")}</h1>
           <p className="max-w-prose text-tinta-suave">{t("T-711")}</p>
           {guardado ? (
-            <output className="block font-semibold text-oe-blue">
+            <output className="block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-2 text-sm font-semibold text-oe-navy">
               {referenciaCargada
                 ? t("T-735", { n: referenciaCargada })
                 : bloqueadas

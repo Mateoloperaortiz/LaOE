@@ -85,7 +85,7 @@ export default async function PermanenciaComitePage({
             {t("T-739", { nominal: term.permanenceCommitteeNominal })}
           </p>
           {guardado ? (
-            <output className="block font-semibold text-oe-blue">
+            <output className="block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-2 text-sm font-semibold text-oe-navy">
               {referencia ? t("T-735", { n: referencia }) : t("T-259")}
             </output>
           ) : null}

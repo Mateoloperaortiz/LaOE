@@ -14,7 +14,7 @@ import {
   person,
   segment,
 } from "@/modules/people/schema";
-import { permanenceRule, permanenceTable } from "@/modules/permanence/schema";
+import { permanenceRule, permanenceTable, workGroup } from "@/modules/permanence/schema";
 import { importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 
@@ -132,6 +132,7 @@ export default async function globalSetup(): Promise<void> {
   // Criterios y bloqueos que crean las suites de permanencia sobre el término actual.
   await db.delete(permanenceRule).where(like(permanenceRule.key, "e2e-%"));
   await db.delete(permanenceTable).where(like(permanenceTable.comment, "e2e-%"));
+  await db.delete(workGroup).where(like(workGroup.name, "e2e-%"));
   // Miembro sin permisos: activo, en un comité del término, sin datos de contacto ni consentimientos.
   let [member] = await db
     .select({ id: person.id })

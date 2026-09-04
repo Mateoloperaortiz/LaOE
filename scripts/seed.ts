@@ -21,7 +21,12 @@ import {
   referenceGeneralRules,
   ruleInputSchema,
 } from "@/modules/permanence";
-import { permanenceRule } from "@/modules/permanence/schema";
+import {
+  permanenceRule,
+  workGroup,
+  workGroupEvaluator,
+  workGroupMembership,
+} from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { logger } from "@/shared/log";
 
@@ -458,6 +463,197 @@ async function seedPermanenceConditions(terms: Map<string, string>): Promise<voi
   });
 }
 
+// Grupos de trabajo sintéticos (ADR-036 regla 6): los siete comités de trabajo con el líder de su
+// cargo, un GT, un GAP, un GAP OE, la barra brava y la tarea de nuevos, con miembros y evaluaciones.
+async function seedWorkGroups(terms: Map<string, string>): Promise<void> {
+  const current = terms.get("2026-2");
+  if (!current) throw new Error("falta término");
+  const byEmail = async (email: string) => {
+    const [who] = await db
+      .select({ id: person.id })
+      .from(person)
+      .where(eq(person.email, email))
+      .limit(1);
+    return who?.id ?? null;
+  };
+  const leaderOf = async (kind: string) => {
+    const [row] = await db
+      .select({ personId: appointment.personId })
+      .from(appointment)
+      .where(sql`${appointment.termId} = ${current} and ${appointment.kind} = ${kind}`)
+      .limit(1);
+    return row?.personId ?? null;
+  };
+  const director = await byEmail("oe.demo.05@eafit.edu.co");
+  const head = await byEmail("oe.demo.03@eafit.edu.co");
+  const groups: Array<{
+    code: string | null;
+    name: string;
+    kind: "WORK_COMMITTEE" | "GT_MACROEVENT" | "GAP" | "GAP_OE" | "BARRA_BRAVA" | "NEW_MEMBER_TASK";
+    leaderKind: string | null;
+    evaluators: Array<string | null>;
+    members: Array<[string, "PENDING" | "GOOD" | "INSUFFICIENT"]>;
+  }> = [
+    {
+      code: "CAP",
+      name: "Comité de Acompañamiento Presidencial",
+      kind: "WORK_COMMITTEE",
+      leaderKind: "PRESIDENT",
+      evaluators: [director],
+      members: [["oe.demo.13@eafit.edu.co", "PENDING"]],
+    },
+    {
+      code: "CGH",
+      name: "Comité de Gestión Humana",
+      kind: "WORK_COMMITTEE",
+      leaderKind: "VP_GH",
+      evaluators: [director],
+      members: [
+        ["oe.demo.02@eafit.edu.co", "GOOD"],
+        ["oe.demo.15@eafit.edu.co", "PENDING"],
+      ],
+    },
+    {
+      code: "CCM",
+      name: "Comité de Creatividad y Mercadeo",
+      kind: "WORK_COMMITTEE",
+      leaderKind: "VP_PUBLIC_RELATIONS",
+      evaluators: [director],
+      members: [],
+    },
+    {
+      code: "CAE",
+      name: "Comité de Alianzas Estratégicas",
+      kind: "WORK_COMMITTEE",
+      leaderKind: "VP_PUBLIC_RELATIONS",
+      evaluators: [director],
+      members: [],
+    },
+    {
+      code: "CML",
+      name: "Comité de Mejoramiento Logístico",
+      kind: "WORK_COMMITTEE",
+      leaderKind: "VP_ADMIN",
+      evaluators: [director],
+      members: [["oe.demo.18@eafit.edu.co", "GOOD"]],
+    },
+    {
+      code: "CAF",
+      name: "Comité de Acompañamiento Financiero",
+      kind: "WORK_COMMITTEE",
+      leaderKind: "VP_FINANCE",
+      evaluators: [director],
+      members: [],
+    },
+    {
+      code: "ATHLETIC",
+      name: "Equipo deportivo Athletic OE",
+      kind: "WORK_COMMITTEE",
+      leaderKind: null,
+      evaluators: [],
+      members: [["oe.demo.10@eafit.edu.co", "PENDING"]],
+    },
+    {
+      code: null,
+      name: "GT Inventiva 2026-2",
+      kind: "GT_MACROEVENT",
+      leaderKind: "VP_PUBLIC_RELATIONS",
+      evaluators: [director],
+      members: [
+        ["oe.demo.01@eafit.edu.co", "GOOD"],
+        ["oe.demo.02@eafit.edu.co", "GOOD"],
+        ["oe.demo.17@eafit.edu.co", "PENDING"],
+      ],
+    },
+    {
+      code: null,
+      name: "GAP Días EAFIT",
+      kind: "GAP",
+      leaderKind: "VP_ADMIN",
+      evaluators: [director],
+      members: [
+        ["oe.demo.04@eafit.edu.co", "PENDING"],
+        ["oe.demo.06@eafit.edu.co", "GOOD"],
+        ["oe.demo.17@eafit.edu.co", "GOOD"],
+      ],
+    },
+    {
+      code: null,
+      name: "GAP OE VTG",
+      kind: "GAP_OE",
+      leaderKind: "PRESIDENT",
+      evaluators: [director],
+      members: [["oe.demo.09@eafit.edu.co", "GOOD"]],
+    },
+    {
+      code: null,
+      name: "Barra brava 2026-2",
+      kind: "BARRA_BRAVA",
+      leaderKind: null,
+      evaluators: [director],
+      members: [
+        ["oe.demo.10@eafit.edu.co", "GOOD"],
+        ["oe.demo.12@eafit.edu.co", "INSUFFICIENT"],
+      ],
+    },
+    {
+      code: null,
+      name: "Decoración de oficina 2026-2",
+      kind: "NEW_MEMBER_TASK",
+      leaderKind: "GH_HEAD",
+      evaluators: [head],
+      members: [
+        ["oe.demo.04@eafit.edu.co", "GOOD"],
+        ["oe.demo.08@eafit.edu.co", "PENDING"],
+      ],
+    },
+  ];
+  for (const item of groups) {
+    const [existing] = await db
+      .select({ id: workGroup.id })
+      .from(workGroup)
+      .where(sql`${workGroup.termId} = ${current} and ${workGroup.name} = ${item.name}`)
+      .limit(1);
+    let groupId = existing?.id;
+    if (!groupId) {
+      const [row] = await db
+        .insert(workGroup)
+        .values({
+          termId: current,
+          kind: item.kind,
+          name: item.name,
+          code: item.code,
+          leaderPersonId: item.leaderKind ? await leaderOf(item.leaderKind) : null,
+        })
+        .returning({ id: workGroup.id });
+      groupId = row?.id;
+    }
+    if (!groupId) continue;
+    for (const evaluator of item.evaluators) {
+      if (!evaluator) continue;
+      await db
+        .insert(workGroupEvaluator)
+        .values({ groupId, personId: evaluator })
+        .onConflictDoNothing();
+    }
+    for (const [email, evaluation] of item.members) {
+      const personId = await byEmail(email);
+      if (!personId) continue;
+      await db
+        .insert(workGroupMembership)
+        .values({
+          groupId,
+          personId,
+          evaluation,
+          evaluatedById: evaluation === "PENDING" ? null : (item.evaluators[0] ?? null),
+          evaluatedAt: evaluation === "PENDING" ? null : new Date(),
+          note: evaluation === "INSUFFICIENT" ? "No fue a los partidos" : null,
+        })
+        .onConflictDoNothing();
+    }
+  }
+}
+
 async function seedContent(committees: Array<{ id: string; slug: string }>): Promise<void> {
   const day = 24 * 60 * 60_000;
   const anuncios = [
@@ -662,6 +858,7 @@ try {
   await seedConsents();
   await seedAppointments(terms);
   await seedPermanenceRules(terms, committees);
+  await seedWorkGroups(terms);
   await seedPermanenceConditions(terms);
   await seedContent(committees);
   await seedOccasions(terms, committees);

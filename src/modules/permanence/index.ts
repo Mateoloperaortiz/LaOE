@@ -8,7 +8,27 @@ export {
   listCompliance,
 } from "./domain/compliance";
 export { loadPeopleFacts, loadPermanenceConfig, loadRules, loadTermFacts } from "./domain/facts";
-export { type GroupRef, listMyGroupRoles, type MyGroupRoles } from "./domain/groups";
+export {
+  addMembersAs,
+  applyMemberImportAs,
+  createGroupAs,
+  type GroupDetail,
+  type GroupInput,
+  type GroupListRow,
+  type GroupRef,
+  getGroup,
+  getGroupDetail,
+  groupInputSchema,
+  listGroups,
+  listMyGroupRoles,
+  type MyGroupRoles,
+  previewMemberImport,
+  removeMemberAs,
+  seedWorkCommitteesAs,
+  setEvaluatorsAs,
+  updateGroupAs,
+  type WorkGroupRow,
+} from "./domain/groups";
 export { getPersonPermanence, type PersonPermanenceView } from "./domain/my-permanence";
 export {
   APPLIES_TO,
