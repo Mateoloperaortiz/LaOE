@@ -4,13 +4,25 @@ import { getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
 import { splitFullName } from "@/modules/people";
 import { committee, committeeMembership, membership, person } from "@/modules/people/schema";
+import { requireConfig } from "@/modules/system";
 import { importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { dateKeyIn } from "@/shared/lib/dates";
+import {
+  migrateParticipation,
+  migrateStandings,
+  type ParticipationSummary,
+  readLegacyParticipation,
+  type TermTarget,
+  type VerificationRow,
+  verifyParticipation,
+} from "./migrate-participation";
 
-// Migración en seco desde GHPOINTS (ADR-018, ADR-034, 08-migracion-ghpoints.md), subconjunto de la
-// fase 2: términos, comités, personas, membresías, pertenencias por término y permisos. Lee del dump
-// restaurado con `pg` (sesión de solo lectura) y escribe con Drizzle; idempotente por `legacyId`.
+// Migración en seco desde GHPOINTS (ADR-018, ADR-034, ADR-035, 08-migracion-ghpoints.md). Pasos 1 a 5
+// (fase 2): términos, comités, personas, membresías, pertenencias por término y permisos; pasos 6 a 11
+// (fase 3, en `migrate-participation.ts`): ocasiones, alias, check-ins, ledger, requisitos y standing.
+// Lee del dump restaurado con `pg` (sesión de solo lectura) y escribe con Drizzle; idempotente por
+// `legacyId`.
 
 const TIME_ZONE = "America/Bogota";
 
@@ -56,7 +68,7 @@ interface LegacyRole {
   committeeId: string | null;
 }
 
-export interface MigrationSummary {
+export interface MigrationSummary extends ParticipationSummary {
   terms: number;
   committees: number;
   people: number;
@@ -64,12 +76,9 @@ export interface MigrationSummary {
   committeeMemberships: number;
   permissions: number;
   leaders: number;
-  warnings: string[];
 }
 
-interface TermRef {
-  id: string;
-  code: string;
+interface TermRef extends TermTarget {
   startsOn: string;
   endsOn: string;
 }
@@ -114,6 +123,7 @@ export async function readLegacy(source: Client) {
     members: members.rows,
     memberCommittees: memberCommittees.rows,
     roles: roles.rows,
+    ...(await readLegacyParticipation(source)),
   };
 }
 
@@ -123,6 +133,7 @@ export async function migrateGhpoints(
 ): Promise<MigrationSummary> {
   const legacy = await readLegacy(source);
   const now = options.now ?? new Date();
+  const window = await requireConfig("checkin.defaultWindow");
   const summary: MigrationSummary = {
     terms: 0,
     committees: 0,
@@ -131,24 +142,41 @@ export async function migrateGhpoints(
     committeeMemberships: 0,
     permissions: 0,
     leaders: 0,
+    activities: 0,
+    assemblies: 0,
+    aliases: 0,
+    checkIns: 0,
+    entries: 0,
+    requirements: 0,
+    standings: 0,
+    recomputes: 0,
     warnings: [],
   };
   const db = getDb();
-  await db.transaction(async (tx) => {
-    // 1. Términos: código derivado de la fecha de inicio y el semestre académico.
+  const termBySeason = await db.transaction(async (tx) => {
+    // 1. Términos: código derivado de la fecha de inicio y el semestre académico. Una temporada
+    // cerrada cierra los puntos del término, también si el término ya existía sin cerrar.
     for (const season of legacy.seasons) {
       const code = seasonCode(season);
-      const [existing] = await tx.select({ id: term.id }).from(term).where(eq(term.code, code));
+      const closedAt = season.status === "CLOSED" ? new Date(`${season.endDate}T23:59:59Z`) : null;
+      const [existing] = await tx
+        .select({ id: term.id, pointsClosedAt: term.pointsClosedAt })
+        .from(term)
+        .where(eq(term.code, code));
       if (!existing) {
         await tx.insert(term).values({
           code,
           semester: code.endsWith("-2") ? 2 : 1,
           startsOn: season.startDate,
           endsOn: season.endDate,
-          pointsClosedAt:
-            season.status === "CLOSED" ? new Date(`${season.endDate}T23:59:59Z`) : null,
+          pointsClosedAt: closedAt,
         });
         summary.terms += 1;
+      } else if (closedAt && !existing.pointsClosedAt) {
+        await tx.update(term).set({ pointsClosedAt: closedAt }).where(eq(term.id, existing.id));
+        summary.warnings.push(
+          `El término ${code} quedó con los puntos cerrados (temporada cerrada)`,
+        );
       }
     }
     const terms: TermRef[] = (await tx.select().from(term)).map((row) => ({
@@ -156,6 +184,7 @@ export async function migrateGhpoints(
       code: row.code,
       startsOn: row.startsOn,
       endsOn: row.endsOn,
+      pointsClosedAt: row.pointsClosedAt,
     }));
     const today = dayOf(now);
     const currentTerm = termContaining(terms, today);
@@ -363,29 +392,59 @@ export async function migrateGhpoints(
       }
     }
 
-    await tx.insert(importJob).values({
-      type: "GHPOINTS",
-      status: "APPLIED",
-      filename: "ghpoints",
-      createdById: options.actorId,
-      appliedAt: now,
-      summary: {
-        ...summary,
-        source: { members: legacy.members.length, committees: legacy.committees.length },
+    // 6 a 10. Participación (ocasiones, alias, check-ins, ledger y requisitos) en la misma transacción.
+    const termByCode = new Map(terms.map((item) => [item.code, item]));
+    const bySeason = new Map<string, TermRef>();
+    const seasonClosed = new Map<string, boolean>();
+    for (const season of legacy.seasons) {
+      const target = termByCode.get(seasonCode(season));
+      if (target) {
+        bySeason.set(season.id, target);
+      }
+      seasonClosed.set(season.id, season.status === "CLOSED");
+    }
+    await migrateParticipation(
+      tx,
+      legacy,
+      { termBySeason: bySeason, seasonClosed, committeeByLegacy, personByLegacy, window },
+      summary,
+    );
+    return bySeason;
+  });
+
+  // 11. Hall of fame → standing, con el ledger ya confirmado.
+  await migrateStandings(legacy, termBySeason, summary);
+
+  await db.insert(importJob).values({
+    type: "GHPOINTS",
+    status: "APPLIED",
+    filename: "ghpoints",
+    createdById: options.actorId,
+    appliedAt: now,
+    summary: {
+      ...summary,
+      source: {
+        members: legacy.members.length,
+        committees: legacy.committees.length,
+        activities: legacy.activities.length,
+        assemblies: legacy.assemblies.length,
+        attendances: legacy.attendances.length + legacy.assemblyAttendances.length,
+        pointTransactions: legacy.pointTransactions.length,
       },
-    });
+    },
   });
   return summary;
 }
 
-export interface VerificationRow {
-  name: string;
-  source: number;
-  target: number;
-}
+export type { VerificationRow };
 
-/** Conteos origen/destino de la fase 2; una diferencia es una fila con `source !== target`. */
-export async function verifyMigration(source: Client): Promise<VerificationRow[]> {
+/**
+ * Conteos origen/destino (fases 2 y 3); una diferencia es una fila con `source !== target`. Las
+ * advertencias informan sin bloquear.
+ */
+export async function verifyMigration(
+  source: Client,
+): Promise<{ rows: VerificationRow[]; warnings: string[] }> {
   const legacy = await readLegacy(source);
   const db = getDb();
   const count = async (query: ReturnType<typeof sql>) => {
@@ -396,7 +455,8 @@ export async function verifyMigration(source: Client): Promise<VerificationRow[]
   const pairs = new Set(
     legacy.memberCommittees.map((item) => `${item.memberId}:${item.committeeId}`),
   );
-  return [
+  const codeBySeason = new Map(legacy.seasons.map((season) => [season.id, seasonCode(season)]));
+  const phase2: VerificationRow[] = [
     {
       name: "Season → term",
       source: seasonCodes.size,
@@ -441,4 +501,6 @@ export async function verifyMigration(source: Client): Promise<VerificationRow[]
       ),
     },
   ];
+  const phase3 = await verifyParticipation(legacy, (seasonId) => codeBySeason.get(seasonId));
+  return { rows: [...phase2, ...phase3.rows], warnings: phase3.warnings };
 }

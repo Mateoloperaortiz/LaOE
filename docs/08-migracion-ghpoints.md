@@ -10,7 +10,7 @@ GHPOINTS (Railway, PostgreSQL 18, Prisma) sigue en producción hasta el cutover.
 
 | Script | Qué hace |
 | --- | --- |
-| `scripts/migrate-ghpoints.ts` | Lee con `pg` desde `GHPOINTS_DATABASE_URL` (la restauración local del dump; la sesión se abre de solo lectura), escribe con Drizzle contra `DATABASE_URL`; idempotente por id de origen (tabla `ImportJob` tipo `GHPOINTS` + columna `legacyId` en cada modelo migrado). La fase 2 migra términos, comités, personas, membresías, pertenencias y permisos; la fase 3 agrega el resto ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)) |
+| `scripts/migrate-ghpoints.ts` | Lee con `pg` desde `GHPOINTS_DATABASE_URL` (la restauración local del dump; la sesión se abre de solo lectura), escribe con Drizzle contra `DATABASE_URL`; idempotente por id de origen (tabla `ImportJob` tipo `GHPOINTS` + columna `legacyId` en cada modelo migrado). Pasos 1 a 5 (fase 2): términos, comités, personas, membresías, pertenencias y permisos; pasos 6 a 11 (fase 3, en `scripts/lib/migrate-participation.ts`): ocasiones, alias, check-ins, ledger en dos pasadas, requisitos y standing. Una temporada `CLOSED` cierra los puntos del término aunque ya existiera. Al terminar drena el outbox para que `score.recompute` deje calculado el score de cada ocasión migrada ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md), [ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
 | `scripts/verify-migration.ts` | Conteos por tabla origen/destino y, desde la fase 3, pares (miembro, temporada) con `SUM(points)` idéntica, asistencias aprobadas con puntos con exactamente una entrada `CHECKIN` viva y alias; imprime diferencias (error) y advertencias (tasa cruda del score frente a las filas `frozen` viejas, reversiones sin original, ediciones sin mapa) |
 | `scripts/copy-media.ts` | Copia objetos de bucket a bucket conservando `objectKey`; marca `MediaAsset` como `READY` |
 
@@ -25,29 +25,31 @@ GHPOINTS (Railway, PostgreSQL 18, Prisma) sigue en producción hasta el cutover.
 | `Season` | `Term` | Código derivado de `startDate` y `academicTerm` (`2026-1`, `2026-2`) con sus fechas; `CLOSED` → `pointsClosedAt = endDate` |
 | `Activity` | `Occasion` `kind=ACTIVITY` | Conserva `publicId`; `PROCESSED` → `CLOSED`, y una `OPEN` de una `Season` `CLOSED` → `CLOSED`; `activityType` → `category` (SPORTS → ATHLETIC_MATCH, TALK, WORKSHOP, SOCIAL, el resto OTHER); ventana desde `registrationStart/End`; `individualPoints` → `points`; `approvalMode` → `approval`; el término por `seasonCode`; `eventEditionId` no se mapea (las ediciones no tienen `legacyId`) y deja advertencia; `attendanceTokenHash` no se migra (el código rotativo es nuevo) |
 | `ActivityPublicIdHistory`, `AssemblyPublicIdHistory` | `LegacyAlias` | Los `publicId` retirados siguen resolviendo (`/a/<retirado>`, `/asamblea/<retirado>`) |
-| `Attendance` | `CheckIn` | `QR`/`LINK` → `SELF_QR`, `ADMIN` → `ADMIN`, `IMPORT`/`MICROSOFT_FORMS` → `IMPORT`; estado conservado; `at = registeredAt`, `decidedAt = approvedAt ?? cancelledAt`, `decidedById = approvedById`, `reason = cancelReason` |
-| `PointTransaction` | `PointEntry` | Dos pasadas: primero las que no son `REVERSAL` por `createdAt`, después las `REVERSAL` con `reversalOfId` mapeado (si el original no existe: advertencia y `LEGACY` sin `reversalOfId`). `ACTIVITY→CHECKIN` con `checkInId` del `Attendance` (sin asistencia mapeable → `LEGACY`), `MANUAL_ADJUSTMENT`/`BONUS`/`PENALTY→ADJUSTMENT`, `FLASH`/`BOOST`/`WORDLE→LEGACY`, todos con `legacyType` y el motivo original; `createdAt` conservado; el término por `seasonId` |
-| `Assembly`, `AssemblyAttendance` | `Occasion` `kind=ASSEMBLY` (0 puntos) + `CheckIn` | Conserva `publicId` y crea el alias `/asamblea/{publicId}`; `kind` → `assemblyKind`; ventana desde `registrationStart/End` o, si faltan, desde `startsAt` con la ventana por defecto; `CONFIRMED` → `APPROVED`, `CANCELLED` → `CANCELLED` con `decidedById = cancelledById` |
-| `AssemblyRequirement` | `AssemblyRequirement` | Todas las filas de los términos ya cerrados (historia fiel a la regla vieja de dos ordinarias) y solo las ajustadas del término abierto, donde rige el requisito derivado del término ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
-| `CommitteeActivityScore` | `CommitteeParticipation` | No se migra: la migración encola `score.recompute` por cada ocasión con puntos y el handler recalcula con las pertenencias migradas; las filas `frozen` viejas se comparan solo en la tasa cruda como advertencia |
+| `Attendance` | `CheckIn` | `QR`/`LINK` → `SELF_QR`, `ADMIN` → `ADMIN`, `IMPORT`/`MICROSOFT_FORMS` → `IMPORT`; estado conservado; `at = registeredAt`; `decidedAt` = `cancelledAt` en las anuladas, `approvedAt` en las aprobadas y `updatedAt` en las rechazadas; `decidedById = approvedById`, `reason = cancelReason`; una segunda asistencia de la misma persona en la misma actividad (dos miembros viejos con un mismo correo) deja advertencia y no se migra |
+| `PointTransaction` | `PointEntry` | Dos pasadas: primero las que no son `REVERSAL` por `createdAt`, después las `REVERSAL` con `reversalOfId` mapeado (si el original no existe o ya fue revertido: advertencia y `LEGACY` sin `reversalOfId`). `ACTIVITY→CHECKIN` con `checkInId` del `Attendance` (sin asistencia mapeable o segundo crédito de la misma asistencia → `LEGACY`), `MANUAL_ADJUSTMENT`/`BONUS`/`PENALTY→ADJUSTMENT`, `FLASH`/`BOOST`/`WORDLE→LEGACY`, todos con `legacyType` y el motivo original; una transacción de 0 puntos no se migra (advertencia); `createdAt` conservado; el término por `seasonId` |
+| `Assembly`, `AssemblyAttendance` | `Occasion` `kind=ASSEMBLY` (0 puntos) + `CheckIn` | Conserva `publicId` y crea el alias `/asamblea/{publicId}`; `kind` → `assemblyKind`; `startsAt` o, si falta, `registrationStart` o `createdAt`; ventana desde `registrationStart/End` o, si faltan, desde `startsAt` con la ventana por defecto; una segunda elección de junta no cancelada en el mismo término no se migra (advertencia); `CONFIRMED` → `APPROVED`, `CANCELLED` → `CANCELLED` con `decidedById = cancelledById` |
+| `AssemblyRequirement` | `AssemblyRequirement` | Todas las filas de los términos ya cerrados (historia fiel a la regla vieja de dos ordinarias; las no ajustadas llevan el motivo T-677) y solo las ajustadas del término abierto, donde rige el requisito derivado del término ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
+| `CommitteeActivityScore` | `CommitteeParticipation` | No se migra: la migración encola `score.recompute` por cada ocasión abierta o cerrada con puntos y el handler recalcula con las pertenencias migradas (elegibles: activos con pertenencia viva al empezar la ocasión); las filas `frozen` viejas se comparan solo en la tasa cruda como advertencia. GHPOINTS contaba como presente a quien estaba en licencia sin contarlo como elegible; aquí presentes ⊆ elegibles, y esa es la diferencia esperada |
 | `Event`, `EventEdition`, `EventEditionCommittee`, `MediaAsset` | Mismos modelos | Portadas copiadas al bucket nuevo con su visibilidad según publicación |
-| `HallOfFameSeason` | `TermStanding` | Del término con `pointsClosedAt`: el JSON viejo queda bajo `stats.legacy` y las listas se recalculan del ledger migrado (con ids de persona) |
+| `HallOfFameSeason` | `TermStanding` | Del término con `pointsClosedAt` (si el término sigue abierto: advertencia): el JSON viejo queda bajo `stats.legacy` y las listas se recalculan del ledger migrado (con ids de persona), fuera de la transacción principal porque leen el ledger ya confirmado |
 | `MemberBadge` | No se migra | Los niveles se derivan del ledger; se documenta la pérdida (decisión abierta) |
 | `AuditLog` | `AuditLog` con `legacy=true` | Solo lectura |
 | `IdentityAccount`, `Session`, `AuthChallenge`, `ClerkOperation`, `EmailAuthorization` | No se migran | La identidad nueva es el correo; todos vuelven a entrar por OTP |
 | `/asamblea/{publicId}` y los `publicId` retirados | `LegacyAlias` | Los QR impresos siguen funcionando; `/a/{publicId}` vigente es la misma URL y no necesita alias |
 
-## Ensayo de la fase 2
+## Ensayo
 
-Contra la copia local de GHPOINTS (contenedor `ghpoints-db-1` en `127.0.0.1:5432`) y la base local reseteada: `GHPOINTS_DATABASE_URL=… npm run migrate:ghpoints && npm run migrate:verify`. El script no escribe en la base de origen y nada del resultado entra al repositorio; los conteos se anotan en el registro del roadmap.
+Contra la copia local de GHPOINTS (contenedor `ghpoints-db-1` en `127.0.0.1:5432`) y la base local reseteada: `GHPOINTS_DATABASE_URL=… npm run migrate:ghpoints && npm run migrate:verify`. El script no escribe en la base de origen y nada del resultado entra al repositorio; los conteos se anotan en el registro del roadmap. Sobre la base con `db:seed` los denominadores del score incluyen a las personas sintéticas y casi todos los scores congelados difieren; para comparar el score con GHPOINTS el ensayo se hace sobre el esquema recién migrado sin seed (`drop schema public cascade` + `npm run db:migrate`). Después del ensayo, `npm run db:reset` devuelve la base de desarrollo a su estado.
 
 ## Verificación obligatoria
 
-1. Conteos por tabla origen y destino (con las equivalencias de la tabla anterior).
-2. `SUM(points)` por persona y término idéntico entre `PointTransaction` y `PointEntry`.
-3. Toda `Attendance` `APPROVED` con exactamente una `PointEntry` `CHECKIN` viva.
-4. Muestreo manual de 20 personas: nombre, comités por término, saldo, asambleas.
-5. Todos los `publicId` de actividades resuelven en `/a/[publicId]` y los de asambleas en `/asamblea/[publicId]` (que redirige a `/a/…`).
+1. Conteos por tabla origen y destino (con las equivalencias de la tabla anterior): `migrate:verify` compara 14 filas y sale con error si alguna difiere.
+2. `SUM(points)` por persona y término idéntico entre `PointTransaction` y `PointEntry` (fila "Pares (miembro, temporada) con SUM(points) idéntica").
+3. Toda `Attendance` `APPROVED` de una actividad con puntos con exactamente una `PointEntry` `CHECKIN` viva.
+4. Alias: `/asamblea/{publicId}` de cada asamblea y los `publicId` retirados de ambos historiales.
+5. Advertencias aparte, sin bloquear: actividades que tenían edición, reversiones que quedaron como `LEGACY` y scores congelados cuya tasa cruda difiere (o que aún no tienen recompute).
+6. Muestreo manual de 20 personas: nombre, comités por término, saldo, asambleas.
+7. Todos los `publicId` de actividades resuelven en `/a/[publicId]` y los de asambleas en `/asamblea/[publicId]` (que redirige a `/a/…`).
 
 ## Cutover
 

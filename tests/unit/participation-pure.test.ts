@@ -38,6 +38,7 @@ import {
   secondsUntilRotation,
   verifyRotatingCode,
 } from "@/modules/participation/domain/rotating-code-pure";
+import { eligibleByCommittee } from "@/modules/participation/domain/scores";
 
 describe("publicId", () => {
   it("genera diez caracteres del alfabeto sin ambiguos y valida el formato", () => {
@@ -199,6 +200,68 @@ describe("ledger y tableros", () => {
     expect(meanRate([1, 0.5, 0])).toBe(0.5);
     expect(termCommitteeScore([])).toBeNull();
     expect(termCommitteeScore([0.5, 1])).toBe(0.75);
+  });
+});
+
+describe("elegibles del score", () => {
+  it("cuenta solo activos con pertenencia viva al empezar la ocasión", () => {
+    const startsAt = new Date("2026-08-20T18:00:00Z");
+    const before = new Date("2026-08-01T05:00:00Z");
+    const after = new Date("2026-09-01T05:00:00Z");
+    const roster = [
+      {
+        personId: "p1",
+        committeeId: "c1",
+        status: "ACTIVE" as const,
+        joinedAt: null,
+        leftAt: null,
+      },
+      {
+        personId: "p2",
+        committeeId: "c1",
+        status: "ACTIVE" as const,
+        joinedAt: before,
+        leftAt: null,
+      },
+      {
+        personId: "p3",
+        committeeId: "c1",
+        status: "ACTIVE" as const,
+        joinedAt: after,
+        leftAt: null,
+      },
+      {
+        personId: "p4",
+        committeeId: "c1",
+        status: "ACTIVE" as const,
+        joinedAt: before,
+        leftAt: before,
+      },
+      {
+        personId: "p5",
+        committeeId: "c1",
+        status: "ACTIVE" as const,
+        joinedAt: before,
+        leftAt: after,
+      },
+      {
+        personId: "p6",
+        committeeId: "c1",
+        status: "ON_LEAVE" as const,
+        joinedAt: before,
+        leftAt: null,
+      },
+      {
+        personId: "p7",
+        committeeId: "c2",
+        status: "ACTIVE" as const,
+        joinedAt: after,
+        leftAt: null,
+      },
+    ];
+    const eligible = eligibleByCommittee(roster, startsAt);
+    expect([...(eligible.get("c1") ?? [])].sort()).toEqual(["p1", "p2", "p5"]);
+    expect(eligible.has("c2")).toBe(false);
   });
 });
 

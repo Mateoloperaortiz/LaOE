@@ -3625,4 +3625,10 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-677": {
+    where: "Migración: motivo del requisito de asambleas heredado de un semestre ya cerrado",
+    text: "Requisito heredado de GHPOINTS (regla anterior).",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
 } as const;

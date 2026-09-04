@@ -16,7 +16,10 @@ export interface TermCommitteeMember {
 
 export type CommitteeParticipationRow = typeof committeeParticipation.$inferSelect;
 
-/** Elegibles por comité: activos con pertenencia viva al empezar la ocasión (ADR-005). */
+/**
+ * Elegibles por comité: activos con pertenencia viva al empezar la ocasión (ADR-005): quien entró
+ * después o salió antes de `startsAt` no cuenta en el denominador.
+ */
 export function eligibleByCommittee(
   roster: ReadonlyArray<TermCommitteeMember>,
   startsAt: Date,
@@ -24,6 +27,9 @@ export function eligibleByCommittee(
   const map = new Map<string, Set<string>>();
   for (const member of roster) {
     if (member.status !== "ACTIVE") {
+      continue;
+    }
+    if (member.joinedAt && member.joinedAt > startsAt) {
       continue;
     }
     if (member.leftAt && member.leftAt <= startsAt) {
