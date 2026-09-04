@@ -19,13 +19,18 @@ export const CONFIG = {
   "permanence.threshold.probation": z.number().min(0).max(100),
   "permanence.threshold.transfer": z.number().min(0).max(100),
   "permanence.probationMargin": z.number().min(0),
+  // Fase 4 (ADR-036): ventana de evaluación antes del fin del término y días del aviso de cierre.
+  "permanence.evaluationWindowDays": z.number().int().min(0),
+  "permanence.warningDays": z.number().int().min(0),
   "privacy.policyVersion": z.string().min(1),
   "privacy.deletionDays": z.number().int().min(1),
   "onboarding.steps": z.array(
     z.object({
       key: z.string().min(1),
       label: z.string().min(1),
-      auto: z.enum(["NORMATIVA_READ", "FIRST_INTEGRATION", "PUSH_ENABLED"]).nullable(),
+      auto: z
+        .enum(["NORMATIVA_READ", "FIRST_INTEGRATION", "PUSH_ENABLED", "NEW_MEMBER_TASK"])
+        .nullable(),
     }),
   ),
   // Fase 3 (ADR-035): cortes de nivel de GH Points, ventana de check-in por defecto y cierre automático.

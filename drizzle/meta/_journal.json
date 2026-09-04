@@ -43,6 +43,13 @@
       "when": 1788528973416,
       "tag": "0005_participacion_y_gh_points",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788552996371,
+      "tag": "0006_permanencia",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,17 @@
 import { sql } from "drizzle-orm";
-import { index, jsonb, pgEnum, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  check,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
-import { person } from "@/modules/people/schema";
+import { announcement } from "@/modules/content/schema";
+import { committee, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 
 // CRM de comunidad (02-crm.md, ADR-034): línea de tiempo, tareas y onboarding. Etiquetas y segmentos
@@ -10,7 +20,7 @@ import { term } from "@/modules/terms/schema";
 
 export const taskStatus = pgEnum("task_status", ["OPEN", "DONE"]);
 
-/** Tipos de interacción: fase 2 más PARTICIPATION (fase 3); los de fases siguientes se agregan al escribirlos. */
+/** Tipos de interacción: fase 2, PARTICIPATION (fase 3) y PERMANENCE (fase 4); los de fases siguientes se agregan al escribirlos. */
 export type InteractionKind =
   | "NOTE"
   | "IMPORTED"
@@ -21,6 +31,7 @@ export type InteractionKind =
   | "DATA"
   | "PERMISSION"
   | "PARTICIPATION"
+  | "PERMANENCE"
   | "OTHER";
 
 // Automáticas inmutables (escritas por el handler crm.timeline con refType = 'outbox'); notas editables por su autor.
@@ -89,4 +100,39 @@ export const onboardingProgress = pgTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("onboarding_progress_unique").on(t.personId, t.termId, t.stepKey)],
+);
+
+export const recognitionKind = pgEnum("recognition_kind", ["MEMBER_OF_MONTH", "OTHER"]);
+
+// Reconocimiento (ADR-031, ADR-036): el destacado del mes que nombra el líder desde su tabla de permanencia
+// u otro mérito de ADMIN; con consentimiento de directorio se publica como anuncio del comité.
+export const recognition = pgTable(
+  "recognition",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    kind: recognitionKind().notNull().default("MEMBER_OF_MONTH"),
+    committeeId: text().references(() => committee.id),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    month: integer(),
+    title: text().notNull(),
+    announcementId: text().references(() => announcement.id, { onDelete: "set null" }),
+    grantedById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("recognition_month_unique")
+      .on(t.termId, t.committeeId, t.month)
+      .where(sql`${t.kind} = 'MEMBER_OF_MONTH'`),
+    index("recognition_person_idx").on(t.personId, t.termId),
+    check("recognition_month_valid", sql`${t.month} is null or (${t.month} between 1 and 12)`),
+    check(
+      "recognition_member_of_month_complete",
+      sql`${t.kind} <> 'MEMBER_OF_MONTH' or (${t.committeeId} is not null and ${t.month} is not null)`,
+    ),
+  ],
 );

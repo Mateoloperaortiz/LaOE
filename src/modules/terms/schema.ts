@@ -12,6 +12,7 @@ export const term = pgTable(
     startsOn: date({ mode: "string" }).notNull(),
     endsOn: date({ mode: "string" }).notNull(),
     pointsClosedAt: timestampTz(),
+    permanenceClosedAt: timestampTz(), // se estampa al aplicar el cierre de permanencia (ADR-036)
     requiredOrdinaryAssemblies: integer().notNull().default(1),
     permanenceGeneralNominal: integer().notNull().default(50),
     permanenceCommitteeNominal: integer().notNull().default(60),

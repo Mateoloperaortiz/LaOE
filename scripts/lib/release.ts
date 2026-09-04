@@ -43,6 +43,20 @@ const REQUIRED_INDEXES = [
   "term_standing_term_unique",
   "assembly_requirement_unique",
   "legacy_alias_path_unique",
+  // Fase 4 (ADR-036)
+  "permanence_rule_general_unique",
+  "permanence_rule_committee_unique",
+  "permanence_table_general_unique",
+  "permanence_table_committee_unique",
+  "work_group_code_unique",
+  "work_group_evaluator_unique",
+  "work_group_membership_unique",
+  "leader_score_unique",
+  "manual_credit_unique",
+  "permanence_snapshot_unique",
+  "permanence_decision_committee_unique",
+  "permanence_decision_person_unique",
+  "recognition_month_unique",
 ];
 
 const REQUIRED_EXTENSIONS = ["pg_trgm"];

@@ -23,8 +23,11 @@ export {
   type CheckInStatus,
 } from "./domain/check-in-pure";
 export {
+  type ApprovedCheckIn,
   type CheckInRow,
   findCheckIn,
+  listApprovedCheckInsForPersonInTerm,
+  listApprovedCheckInsForTerm,
   listCheckIns,
   listCheckInsForPerson,
   type SelfCheckInDenial,

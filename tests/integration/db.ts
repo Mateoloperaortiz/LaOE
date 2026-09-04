@@ -10,6 +10,8 @@ export async function truncateAll(): Promise<void> {
   await db.execute(sql`
     truncate table
       audit_log, outbox, message, import_job, legacy_alias,
+      permanence_decision, permanence_snapshot, manual_credit, leader_score,
+      work_group_membership, work_group_evaluator, work_group, permanence_table, permanence_rule, recognition,
       point_entry, check_in, committee_participation, term_standing, assembly_requirement, occasion,
       session, otp_challenge, permission,
       document_article, document,

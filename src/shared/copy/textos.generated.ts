@@ -4610,4 +4610,16 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-841": {
+    where: "Reglas: criterios de la tabla de referencia de A3 (en el orden de 12-permanencia)",
+    text: "Asistencia a reuniones · Subcomité, liderazgo o destacado · Convivencia",
+    owner: "COMITÉ",
+    status: "Propuesta; transcritos de la tabla que envió A3",
+  },
+  "T-842": {
+    where: "Reglas: claves de la tabla de referencia general (mismo orden que T-125)",
+    text: "integraciones · asambleas · gt-macroeventos · gap · gap-oe · comite-de-trabajo · barra-brava · decoracion-de-oficina · integracion-de-nuevos",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
 } as const;

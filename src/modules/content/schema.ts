@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { audience, publicationStatus } from "@/db/enums";
-import { person } from "@/modules/people/schema";
+import { committee, person } from "@/modules/people/schema";
 
 // Contenido editable del portal: páginas, cartelera, medios y normativa (03-modelo-de-datos.md, ADR-033, ADR-034).
 
@@ -65,6 +65,7 @@ export const announcement = pgTable(
     title: text().notNull(),
     body: text().notNull().default(""), // Markdown
     audience: audience().notNull().default("PUBLIC"),
+    committeeId: text().references(() => committee.id), // cartelera interna de un comité (ADR-036)
     publishedAt: timestampTz(),
     pinned: boolean().notNull().default(false),
     pushSentAt: timestampTz(), // fase 6
@@ -72,7 +73,10 @@ export const announcement = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index("announcement_public_idx").on(t.audience, t.publishedAt)],
+  (t) => [
+    index("announcement_public_idx").on(t.audience, t.publishedAt),
+    index("announcement_committee_idx").on(t.committeeId, t.publishedAt),
+  ],
 );
 
 // Referencia a un objeto del bucket (ADR-022): sin bytes en la base; las variantes las genera el outbox.

@@ -1,7 +1,21 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { occasion } from "@/modules/participation/schema";
-import { committee, committeeMembership, membership, person } from "@/modules/people/schema";
+import { checkIn, occasion } from "@/modules/participation/schema";
+import {
+  appointment,
+  committee,
+  committeeMembership,
+  membership,
+  membershipTerm,
+  person,
+} from "@/modules/people/schema";
+import {
+  permanenceRule,
+  permanenceTable,
+  workGroup,
+  workGroupEvaluator,
+  workGroupMembership,
+} from "@/modules/permanence/schema";
 import { conventionalTermDates } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { todayKey } from "@/shared/lib/dates";
@@ -169,4 +183,172 @@ export async function seedOccasion(
     .returning({ id: occasion.id, publicId: occasion.publicId });
   if (!row) throw new Error("seed occasion");
   return row;
+}
+
+/** Check-in aprobado de una persona en una ocasión (sin crédito en el ledger: para permanencia). */
+export async function seedCheckIn(
+  occasionId: string,
+  personId: string,
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" = "APPROVED",
+): Promise<string> {
+  const [row] = await db()
+    .insert(checkIn)
+    .values({ occasionId, personId, status, source: "ADMIN" })
+    .returning({ id: checkIn.id });
+  if (!row) throw new Error("seed check-in");
+  return row.id;
+}
+
+export async function seedAppointment(
+  personId: string,
+  termId: string,
+  kind:
+    | "PRESIDENT"
+    | "VP_GH"
+    | "VP_PUBLIC_RELATIONS"
+    | "VP_ADMIN"
+    | "VP_FINANCE"
+    | "GH_HEAD"
+    | "GH_DIRECTOR"
+    | "OTHER",
+  committeeId: string | null = null,
+): Promise<string> {
+  const [row] = await db()
+    .insert(appointment)
+    .values({ personId, termId, kind, committeeId })
+    .returning({ id: appointment.id });
+  if (!row) throw new Error("seed appointment");
+  return row.id;
+}
+
+/** Condición de prueba en un término (ADR-027). */
+export async function seedMembershipTerm(
+  personId: string,
+  termId: string,
+  probation = true,
+): Promise<void> {
+  await db()
+    .insert(membershipTerm)
+    .values({ personId, termId, probation, reason: "prueba de integración" })
+    .onConflictDoUpdate({
+      target: [membershipTerm.personId, membershipTerm.termId],
+      set: { probation },
+    });
+}
+
+type RuleOverrides = Partial<{
+  scope: "GENERAL" | "COMMITTEE";
+  committeeId: string | null;
+  label: string;
+  description: string;
+  weight: number;
+  appliesTo: "ALL" | "NEW" | "VETERAN";
+  computation:
+    | "CHECKIN_COUNT"
+    | "CHECKIN_THRESHOLD"
+    | "CHECKIN_RATE"
+    | "GROUP_EVALUATED"
+    | "COMPOSITE"
+    | "LEADER_SCORE"
+    | "MANUAL";
+  params: Record<string, unknown>;
+  sortOrder: number;
+}>;
+
+/** Un criterio de permanencia; por defecto general, manual y de peso 10. */
+export async function seedRule(
+  termId: string,
+  key: string,
+  overrides: RuleOverrides = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(permanenceRule)
+    .values({
+      termId,
+      key,
+      scope: overrides.scope ?? (overrides.committeeId ? "COMMITTEE" : "GENERAL"),
+      committeeId: overrides.committeeId ?? null,
+      label: overrides.label ?? key,
+      description: overrides.description ?? "",
+      weight: overrides.weight ?? 10,
+      appliesTo: overrides.appliesTo ?? "ALL",
+      computation: overrides.computation ?? "MANUAL",
+      params: overrides.params ?? {},
+      sortOrder: overrides.sortOrder ?? 0,
+    })
+    .returning({ id: permanenceRule.id });
+  if (!row) throw new Error("seed rule");
+  return row.id;
+}
+
+/** Bloqueo o comentario de una tabla (general con committeeId nulo). */
+export async function seedTable(
+  termId: string,
+  committeeId: string | null,
+  overrides: Partial<{ lockedAt: Date | null; comment: string | null }> = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(permanenceTable)
+    .values({
+      termId,
+      scope: committeeId ? "COMMITTEE" : "GENERAL",
+      committeeId,
+      lockedAt: overrides.lockedAt ?? null,
+      comment: overrides.comment ?? null,
+    })
+    .returning({ id: permanenceTable.id });
+  if (!row) throw new Error("seed table");
+  return row.id;
+}
+
+type GroupOverrides = Partial<{
+  kind: "WORK_COMMITTEE" | "GT_MACROEVENT" | "GAP" | "GAP_OE" | "BARRA_BRAVA" | "NEW_MEMBER_TASK";
+  code: string | null;
+  leaderPersonId: string | null;
+  evaluatorIds: string[];
+}>;
+
+export async function seedWorkGroup(
+  termId: string,
+  name: string,
+  overrides: GroupOverrides = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(workGroup)
+    .values({
+      termId,
+      name,
+      kind: overrides.kind ?? "GAP",
+      code: overrides.code ?? null,
+      leaderPersonId: overrides.leaderPersonId ?? null,
+    })
+    .returning({ id: workGroup.id });
+  if (!row) throw new Error("seed work group");
+  if (overrides.evaluatorIds && overrides.evaluatorIds.length > 0) {
+    await db()
+      .insert(workGroupEvaluator)
+      .values(overrides.evaluatorIds.map((personId) => ({ groupId: row.id, personId })));
+  }
+  return row.id;
+}
+
+export async function seedWorkGroupMembership(
+  groupId: string,
+  personId: string,
+  evaluation: "PENDING" | "GOOD" | "INSUFFICIENT" = "PENDING",
+  evaluatedById: string | null = null,
+): Promise<string> {
+  const [row] = await db()
+    .insert(workGroupMembership)
+    .values({
+      groupId,
+      personId,
+      evaluation,
+      evaluatedById,
+      evaluatedAt: evaluation === "PENDING" ? null : new Date(),
+      note: evaluation === "INSUFFICIENT" ? "Nota de prueba" : null,
+    })
+    .returning({ id: workGroupMembership.id });
+  if (!row) throw new Error("seed work group membership");
+  return row.id;
 }

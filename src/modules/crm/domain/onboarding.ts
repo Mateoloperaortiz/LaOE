@@ -78,7 +78,11 @@ export async function markOnboardingStep(
   return true;
 }
 
-export type OnboardingEvidence = "NORMATIVA_READ" | "FIRST_INTEGRATION" | "PUSH_ENABLED";
+export type OnboardingEvidence =
+  | "NORMATIVA_READ"
+  | "FIRST_INTEGRATION"
+  | "PUSH_ENABLED"
+  | "NEW_MEMBER_TASK";
 
 /**
  * Evidencia automática (leer la normativa, la primera integración, activar push): marca como hechos

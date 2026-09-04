@@ -1,6 +1,6 @@
-import { eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { committeeMembership, membership, person } from "../schema";
+import { appointment, committeeMembership, membership, membershipTerm, person } from "../schema";
 
 // Lecturas de personas para otros módulos y para la paleta.
 
@@ -147,4 +147,107 @@ export async function listActiveMemberRefs(): Promise<ActiveMemberRef[]> {
     firstTermId: row.firstTermId,
     anonymized: row.anonymizedAt !== null,
   }));
+}
+
+// Lecturas para permanencia (ADR-036): el roster del término con la condición de cada persona.
+
+export interface TermRosterRow {
+  personId: string;
+  status: (typeof membership.$inferSelect)["status"];
+  firstTermId: string;
+  probation: boolean;
+  committeeId: string;
+  roleCode: string;
+  transferredIn: boolean;
+  joinedAt: Date | null;
+  leftAt: Date | null;
+}
+
+async function rosterRows(termId: string, personIds?: string[]): Promise<TermRosterRow[]> {
+  if (personIds && personIds.length === 0) {
+    return [];
+  }
+  const rows = await getDb()
+    .select({
+      personId: committeeMembership.personId,
+      status: membership.status,
+      firstTermId: membership.firstTermId,
+      probation: membershipTerm.probation,
+      committeeId: committeeMembership.committeeId,
+      roleCode: committeeMembership.roleCode,
+      transferredIn: committeeMembership.transferredIn,
+      joinedAt: committeeMembership.joinedAt,
+      leftAt: committeeMembership.leftAt,
+    })
+    .from(committeeMembership)
+    .innerJoin(membership, eq(membership.personId, committeeMembership.personId))
+    .leftJoin(
+      membershipTerm,
+      and(
+        eq(membershipTerm.personId, committeeMembership.personId),
+        eq(membershipTerm.termId, committeeMembership.termId),
+      ),
+    )
+    .where(
+      and(
+        eq(committeeMembership.termId, termId),
+        personIds ? inArray(committeeMembership.personId, personIds) : undefined,
+      ),
+    );
+  return rows.map((row) => ({ ...row, probation: row.probation ?? false }));
+}
+
+/** Una fila por pertenencia del término, con estado, primer término y condición de prueba; opcionalmente solo algunas personas. */
+export function listTermRoster(termId: string, personIds?: string[]): Promise<TermRosterRow[]> {
+  return rosterRows(termId, personIds);
+}
+
+export interface MemberByEmail {
+  id: string;
+  fullName: string;
+  status: (typeof membership.$inferSelect)["status"];
+}
+
+/** Miembros por correo institucional (en minúsculas), para importar grupos desde un CSV. */
+export async function findMembersByEmails(emails: string[]): Promise<Map<string, MemberByEmail>> {
+  const wanted = [...new Set(emails.map((email) => email.trim().toLowerCase()))].filter(Boolean);
+  if (wanted.length === 0) {
+    return new Map();
+  }
+  const rows = await getDb()
+    .select({
+      id: person.id,
+      email: person.email,
+      fullName: person.fullName,
+      status: membership.status,
+    })
+    .from(person)
+    .innerJoin(membership, eq(membership.personId, person.id))
+    .where(inArray(person.email, wanted));
+  return new Map(
+    rows.map((row) => [
+      row.email,
+      { id: row.id, fullName: row.fullName ?? "", status: row.status },
+    ]),
+  );
+}
+
+export interface TermAppointment {
+  personId: string;
+  kind: (typeof appointment.$inferSelect)["kind"];
+  committeeId: string | null;
+  title: string | null;
+}
+
+/** Cargos de junta y de GH del término: lideran los comités de trabajo y evalúan grupos. */
+export async function listAppointmentsForTerm(termId: string): Promise<TermAppointment[]> {
+  return getDb()
+    .select({
+      personId: appointment.personId,
+      kind: appointment.kind,
+      committeeId: appointment.committeeId,
+      title: appointment.title,
+    })
+    .from(appointment)
+    .where(eq(appointment.termId, termId));
 }

@@ -474,3 +474,36 @@ export async function listCheckInsForPerson(personId: string): Promise<CheckInRo
     .where(eq(checkIn.personId, personId))
     .orderBy(desc(checkIn.at));
 }
+
+// Lecturas para permanencia (ADR-036): check-ins aprobados del término, sin más columnas.
+
+export interface ApprovedCheckIn {
+  personId: string;
+  occasionId: string;
+}
+
+export async function listApprovedCheckInsForTerm(termId: string): Promise<ApprovedCheckIn[]> {
+  return getDb()
+    .select({ personId: checkIn.personId, occasionId: checkIn.occasionId })
+    .from(checkIn)
+    .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
+    .where(and(eq(occasion.termId, termId), eq(checkIn.status, "APPROVED")));
+}
+
+export async function listApprovedCheckInsForPersonInTerm(
+  personId: string,
+  termId: string,
+): Promise<string[]> {
+  const rows = await getDb()
+    .select({ occasionId: checkIn.occasionId })
+    .from(checkIn)
+    .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
+    .where(
+      and(
+        eq(occasion.termId, termId),
+        eq(checkIn.personId, personId),
+        eq(checkIn.status, "APPROVED"),
+      ),
+    );
+  return rows.map((row) => row.occasionId);
+}

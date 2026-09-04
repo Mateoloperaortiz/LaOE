@@ -15,7 +15,7 @@ import {
 import { getMembershipRef, listCommitteesByIds } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
-import { Cartel, Numeral, SelloOE } from "@/shared/brand";
+import { Cartel, Insignia, Numeral, SelloOE } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { Vacio } from "../_ui/Vacio";
@@ -201,10 +201,12 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
                       </span>
                       <span className="text-tinta-suave"> · {entry.reason}</span>
                     </td>
-                    <td
-                      className={`py-2 text-right font-semibold tabular-nums ${entry.points < 0 ? "text-oe-orange" : ""}`}
-                    >
-                      {entry.points > 0 ? `+${entry.points}` : entry.points}
+                    <td className="py-2 text-right font-semibold tabular-nums">
+                      {entry.points < 0 ? (
+                        <Insignia fondo="naranja">{entry.points}</Insignia>
+                      ) : (
+                        `+${entry.points}`
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -244,11 +246,16 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
                       {formatDateTime(item.occasion.startsAt)}
                     </span>
                   </span>
-                  <span
-                    className={`text-sm font-semibold ${item.status === "APPROVED" ? "" : past ? "text-oe-orange" : "text-tinta-suave"}`}
-                  >
-                    {label}
-                  </span>
+                  {item.status !== "APPROVED" && past ? (
+                    // Naranja sobre fondo claro no da contraste AA en texto pequeño: va como insignia.
+                    <Insignia fondo="naranja">{label}</Insignia>
+                  ) : (
+                    <span
+                      className={`text-sm font-semibold ${item.status === "APPROVED" ? "" : "text-tinta-suave"}`}
+                    >
+                      {label}
+                    </span>
+                  )}
                 </li>
               );
             })}

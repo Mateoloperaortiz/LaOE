@@ -78,16 +78,22 @@ export {
 export {
   type ActiveMemberRef,
   findMemberByEmail,
+  findMembersByEmails,
   getMembershipRef,
   getPeopleByIds,
   listActiveMemberRefs,
+  listAppointmentsForTerm,
   listTermCommitteeMembers,
+  listTermRoster,
+  type MemberByEmail,
   type MemberRef,
   type MembershipRef,
   type PersonRef,
   searchMembersByName,
   searchPeople,
+  type TermAppointment,
   type TermCommitteeMember,
+  type TermRosterRow,
 } from "./domain/people-reads";
 export { getPerson360, type Person360 } from "./domain/person-360";
 export { normalizePhone, splitFullName } from "./domain/person-pure";

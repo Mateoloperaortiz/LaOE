@@ -179,3 +179,32 @@ export async function closeTermPoints(
   });
   return { ...before, pointsClosedAt: at };
 }
+
+/** Estampa el cierre de permanencia (ADR-036 regla 9): exige los puntos cerrados; sin reapertura. */
+export async function closeTermPermanence(
+  ctx: CommandContext,
+  id: string,
+  at = new Date(),
+): Promise<TermRow> {
+  const [before] = await ctx.tx.select().from(term).where(eq(term.id, id));
+  if (!before) {
+    throw new DomainError(t("T-032"));
+  }
+  if (!before.pointsClosedAt) {
+    throw new DomainError(t("T-799", { término: before.code }));
+  }
+  if (before.permanenceClosedAt) {
+    throw new DomainError(
+      t("T-808", { término: before.code, fecha: before.permanenceClosedAt.toISOString() }),
+    );
+  }
+  await ctx.tx.update(term).set({ permanenceClosedAt: at }).where(eq(term.id, id));
+  await ctx.audit({
+    action: "term.permanence-closed",
+    entityType: "term",
+    entityId: id,
+    before: { permanenceClosedAt: null },
+    after: { permanenceClosedAt: at.toISOString() },
+  });
+  return { ...before, permanenceClosedAt: at };
+}
