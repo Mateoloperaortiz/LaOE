@@ -26,7 +26,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
           <Link href="/app" className="text-titulo" aria-label={t("T-017") ? "Mi OE" : "Mi OE"}>
             <LogoOE height={56} />
           </Link>
-          <nav aria-label="Mi OE" className="flex items-center gap-1">
+          <nav aria-label="Mi OE" className="flex flex-wrap items-center gap-1">
             {pestañas.map((nombre) => (
               <Link
                 key={nombre}

@@ -49,7 +49,6 @@ export default async function EgresadosPage() {
                 "{nombres}",
                 group.entries.map((entry) => entry.fullName).join(" · "),
               )}
-              elemento={<Elemento tipo="destello" className="size-16" />}
             />
             <ul className="grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
               {group.entries.map((entry) => (

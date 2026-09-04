@@ -185,7 +185,8 @@ Componentes de marca en `src/shared/brand/`:
 
 ## 11. Lista de revisión de marca
 
-Antes de dar por lista una pantalla (aplicada el 2026-09-03 a las pantallas públicas de la fase 1: inicio, páginas fijas, cartelera y anuncio, eventos, evento y edición, comités y comité, en 375, 768 y escritorio, claro y oscuro; de ahí salió la regla de `tokens.css` de que lo que va dentro de un `Cartel` usa la tinta del cartel y no la del tema):
+Antes de dar por lista una pantalla (aplicada el 2026-09-03 a las pantallas públicas de la fase 1: inicio, páginas fijas, cartelera y anuncio, eventos, evento y edición, comités y comité, en 375, 768 y escritorio, claro y oscuro; de ahí salió la regla de `tokens.css` de que lo que va dentro de un `Cartel` usa la tinta del cartel y no la del tema. Aplicada el mismo día a las pantallas de la fase 2 (Mi OE: inicio, directorio, comités y comité, egresados, normativa y documento, carnet, ajustes; admin: Persona 360, importación del roster, documentos) en los mismos anchos y temas; de ahí salieron dos correcciones: la navegación de Mi OE envuelve en 375 para que ninguna pestaña quede fuera de pantalla, y un elemento gráfico nunca va sobre el título de un `Cartel` (el destello de la galería de egresados pisaba la primera letra)):
+
 
 - [ ] Ningún fondo grande es plano.
 - [ ] Ningún texto paper sobre amarillo ni amarillo sobre paper.

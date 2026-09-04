@@ -70,7 +70,7 @@ Listo cuando: contenido real de la OE publicable sin tocar código; nada persona
 
 **Cumplido el 2026-09-03 (en local)**: un ADMIN publica páginas, anuncios, eventos, ediciones y fichas de comité desde el admin sin tocar código; el portal no muestra ningún dato personal (las fichas de comité no tienen roster y los organizadores son comités); una portada de 5,9 MB sube del navegador a Garage con `POST` prefirmado y se sirve con 302 a una URL prefirmada (prueba e2e `medios.spec.ts`); `npm run check` y las 15 pruebas e2e con `axe` en verde; revisado en 375, 768 y escritorio, claro y oscuro. Lo que falta para publicar contenido real está en [11-contenido-pendiente.md](11-contenido-pendiente.md) (textos de La OE completos, Unirse, política de privacidad, presentaciones y contactos de los 27 comités, descripciones y fechas de los macroeventos).
 
-## Fase 2 · Personas y Mi OE · `en curso`
+## Fase 2 · Personas y Mi OE · `lista`
 
 Plan aprobado el 2026-09-03 ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)): ocho tramos en cortes verticales; cada uno cierra con `npm run check` y `npm run test:e2e` en verde, un commit convencional y push a `main`. Railway sigue pendiente (fase 0 B).
 
@@ -83,27 +83,27 @@ Plan aprobado el 2026-09-03 ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)):
 - [x] F2-T4 · Galería de egresados y migración en seco de roster, comités y permisos desde la copia local de GHPOINTS
 - [x] F2-T5 · Mi OE: inicio con agenda, cartelera de miembros, tus comités y onboarding; directorio; comités internos; ajustes con datos propios, foto, consentimientos, mis datos y eliminación; segunda identidad e2e sin permisos
 - [x] F2-T6 · Normativa (PDF en el bucket, artículos desde el extractor, lector y búsqueda) y carnet con QR firmado
-- [ ] F2-T7 · Cierre: lista de revisión de marca en las pantallas nuevas, tres anchos y dos temas, registro
+- [x] F2-T7 · Cierre: lista de revisión de marca en las pantallas nuevas, tres anchos y dos temas, registro
 
 ### Entregables
 
-- [ ] Modelo de personas, membresías, comités por término, cargos, consentimientos
-- [ ] Asistente de importación del roster (CSV o Excel) con el formato de `13-importacion-del-roster.md`: mapeo de columnas, validación por fila, vista previa con diff, modo actualización por correo con subconjunto de columnas, consentimiento, auditoría, archivo original en el bucket
-- [ ] Catálogo de cargos de comité (General, Financiero, Publicidad, Relaciones Públicas, Logística, Gestión Humana, Miembro) y propuesta de permiso de líder para cada General
-- [ ] Migración en seco de roster, comités y permisos desde un dump de GHPOINTS
-- [ ] Persona 360 con todas las pestañas
-- [ ] Interacciones automáticas, notas, tareas, etiquetas, segmentos
-- [ ] Mi OE: inicio, directorio, comités internos, ajustes (sesiones, datos, consentimientos)
-- [ ] Ajustes: la persona edita foto, celular y correo personal con consentimiento por propósito; cada cambio se audita y queda en la línea de tiempo
-- [ ] Onboarding de nuevos: lista de pasos de la primera semana (normativa, comité, primera integración, activar push) en el inicio de Mi OE; los pasos con hecho registrado se marcan solos; se liga a los criterios de nuevos en la fase 4
-- [ ] Normativa: documentos en el bucket privado con lector y búsqueda
-- [ ] Carnet digital con QR firmado
-- [ ] Exportar mis datos y solicitud de eliminación
-- [ ] Comando de salida con motivo (graduación, retiro, permanencia) y consentimientos de galería y de contacto; depuración de lo que no es historia
-- [ ] Galería de egresados por año en Mi OE (`/app/egresados`), con cartel por año
-- [ ] Correo personal opcional con consentimiento, capturado al dar de baja
+- [x] Modelo de personas, membresías, comités por término, cargos, consentimientos
+- [x] Asistente de importación del roster (CSV o Excel) con el formato de `13-importacion-del-roster.md`: mapeo de columnas, validación por fila, vista previa con diff, modo actualización por correo con subconjunto de columnas, consentimiento, auditoría, archivo original en el bucket
+- [x] Catálogo de cargos de comité (General, Financiero, Publicidad, Relaciones Públicas, Logística, Gestión Humana, Miembro) y propuesta de permiso de líder para cada General
+- [x] Migración en seco de roster, comités y permisos desde un dump de GHPOINTS
+- [x] Persona 360 con todas las pestañas
+- [x] Interacciones automáticas, notas, tareas, etiquetas, segmentos
+- [x] Mi OE: inicio, directorio, comités internos, ajustes (sesiones, datos, consentimientos)
+- [x] Ajustes: la persona edita foto, celular y correo personal con consentimiento por propósito; cada cambio se audita y queda en la línea de tiempo
+- [x] Onboarding de nuevos: lista de pasos de la primera semana (normativa, comité, primera integración, activar push) en el inicio de Mi OE; los pasos con hecho registrado se marcan solos; se liga a los criterios de nuevos en la fase 4
+- [x] Normativa: documentos en el bucket privado con lector y búsqueda
+- [x] Carnet digital con QR firmado
+- [x] Exportar mis datos y solicitud de eliminación
+- [x] Comando de salida con motivo (graduación, retiro, permanencia) y consentimientos de galería y de contacto; depuración de lo que no es historia
+- [x] Galería de egresados por año en Mi OE (`/app/egresados`), con cartel por año
+- [x] Correo personal opcional con consentimiento, capturado al dar de baja
 
-Listo cuando: un admin encuentra a cualquier persona en 2 segundos y ve toda su historia; un miembro importado entra por OTP y ve su ficha.
+Listo cuando: un admin encuentra a cualquier persona en 2 segundos y ve toda su historia; un miembro importado entra por OTP y ve su ficha. **Cumplido en local el 2026-09-03**: la paleta ⌘K abre la Persona 360 con importación, comités, consentimientos y línea de tiempo (`personas.spec.ts`), y el miembro que entra por el roster ve sus comités en `/app` tras el OTP (`roster.spec.ts`). Las pestañas Participación, Permanencia, Formularios y Solicitudes de la 360 muestran el aviso T-240 hasta su fase.
 
 ## Fase 3 · Participación y GH Points · `pendiente`
 
@@ -244,3 +244,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-03 | 2 | F2-T4 listo: galería de egresados (`/app/egresados`): un cartel por año de salida (rotación `feedVariant`) con los nombres, y tarjetas con foto (solo con consentimiento de directorio), comités con el cargo más alto, cargos de junta y años en la OE; entran solo egresados con consentimiento MEMORIAL vivo y sin anonimizar. Migración en seco desde GHPOINTS (`npm run migrate:ghpoints` y `npm run migrate:verify`; `GHPOINTS_DATABASE_URL` solo para scripts, sesión de solo lectura): `Season → term` por código, `Committee → committee` por sigla con `legacyId`, `Member → person + membership` (nombre partido por heurística, primer término por el `joinedAt` más viejo), `MemberCommittee → committee_membership` por cada término que solapa, `MemberRole → permission` (más General en el término actual si el comité no tiene otro) e `ImportJob` tipo GHPOINTS; idempotente por `legacyId`. Ensayo contra `ghpoints-db-1` sobre la base local reseteada (con seed): 63 personas, 63 membresías, 85 pertenencias y 8 permisos; 0 términos y 0 comités nuevos porque el seed ya los tenía; 5 líderes quedaron como Miembro con aviso porque el seed sintético ya tenía General en esos comités; `verify` en cero diferencias, segunda corrida sin cambios y base local reseteada después. 2 de integración y 1 e2e nuevas; `check` y e2e (20) en verde |
 | 2026-09-03 | 2 | F2-T5 listo: Mi OE. Inicio con saludo, onboarding para quien entró este término (pasos de `onboarding.steps`, marcar hecho a mano), tus comités con el cargo, agenda con las ediciones publicadas para el público o solo para miembros y cartelera con audiencia de miembros. Directorio (`/app/personas`) con búsqueda por nombre, filtro por comité y paginación: nombre, foto solo con consentimiento de directorio (o iniciales), estado, comités del término con el cargo ("General de A3") y cargos de junta; nunca correos. Comités internos (`/app/comites` y `[slug]`): los propios y los demás, presentación, contacto y el roster del semestre con la dirección primero. Ajustes (`/app/ajustes`) en una sola página con las secciones de T-133: foto propia por presign con `purpose: "photo"` (privada, hasta 5 MB, bajo `photos/<personId>/`, solo la fija quien la subió), celular y correo personal (el institucional no se toca), notificaciones (fase 6), sesiones, consentimientos por propósito con la versión de la política, y "mis datos y privacidad": descarga en JSON por `GET /api/mis-datos` (auditada como `export.self` y en la línea de tiempo) y solicitud de eliminación con confirmación, que estampa `deletionRequestedAt` y abre por outbox una tarea `DELETION_REQUEST` sin asignar con vencimiento a `privacy.deletionDays` días hábiles. Segunda identidad e2e (`prueba.miembro@eafit.edu.co`, sin permisos) con su propio `storageState`. 1 de integración (4 casos) y 1 e2e (4 casos) nuevas; `check` y e2e (25) en verde |
 | 2026-09-03 | 2 | F2-T6 listo: normativa y carnet. Documentos (`/admin/documentos`): el PDF firmado sube directo al bucket privado con un POST prefirmado propio (`/api/documentos/presign` y `/confirm`: HEAD, cabecera `%PDF-`, 1 KB a 20 MB, sha256) como `documents/<id>.pdf`, sin pasar por `media_asset`; los artículos entran por el JSON del extractor (`scripts/normativa-extract.py` con pdfplumber vía `uv run`, formato `oe-normativa/1`, revisable a mano) y se reemplazan en una sola transacción; publicar y despublicar. Lector en Mi OE (`/app/normativa` y `[id]`): documentos publicados, buscador en español sobre los artículos (`websearch_to_tsquery` + `ts_headline` con resaltado sin HTML crudo), índice por capítulo, artículos con ancla y "Abrir el PDF original" por `GET /api/documentos/[id]/pdf` (302 a una URL prefirmada de 10 minutos, solo con sesión y publicado, o en borrador para ADMIN); abrir un documento marca la evidencia `NORMATIVA_READ` del onboarding con `after()`. Carnet (`/app/carnet`): token `oe1.<personId>.<vence>.<HMAC-SHA256>` firmado con `SESSION_SECRET`, 24 horas, `signCarnet`/`verifyCarnet` puros con comparación en tiempo constante; QR como SVG en servidor (`qrcode`) dentro de un cartel con nombre completo, comités con cargo y semestre. Pestañas Normativa y Carnet en Mi OE; Documentos en el admin; T-518 a T-520 en el copy. 2 unitarias, 1 de integración y 2 e2e nuevas; `check` y e2e (28) en verde |
+| 2026-09-03 | 2 | F2-T7 listo y **fase 2 lista en local**: lista de revisión de marca (07-marca §11) aplicada a las pantallas de Mi OE (inicio, directorio, comités y comité, egresados, normativa y documento, carnet, ajustes) y a las del admin (Persona 360, importación del roster, documentos) en 375, 768 y escritorio, claro y oscuro; dos correcciones: la navegación de Mi OE envuelve en 375 (Normativa, Carnet y Ajustes quedaban fuera de pantalla) y el destello del cartel de egresados pisaba el título. Entregables de la fase marcados, "listo cuando" cumplido en local, README actualizado; `check` (53 unitarias, 60 de integración) y e2e (28) en verde. Queda Railway (fase 0 B), el contenido real de la OE (11-contenido-pendiente: los PDF firmados de estatutos y reglamento con su JSON revisado, y la política de datos) y el resto de la migración en la fase 3 |
