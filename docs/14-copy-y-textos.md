@@ -330,6 +330,41 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-559 | GH Points: etiqueta del puesto propio | Tu puesto | GH | Propuesta |
 | T-560 | GH Points: columnas de los tableros de personas | Puesto · Nombre · GH Points | MATEO | Propuesta |
 
+### Mi OE · fase 4 (permanencia, avisos, cartelera del comité, insignias)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-678 | Permanencia: GH no cargó la tabla general del semestre | GH todavía no cargó la tabla de este semestre. | MATEO | Propuesta |
+| T-679 | Permanencia: el comité no definió su tabla | {comité} todavía no definió su tabla. | MATEO | Propuesta |
+| T-680 | Permanencia: la persona está exenta (licencia, honorario) | Este semestre no te evaluamos ({estado}). | GH | Propuesta |
+| T-681 | Permanencia: ya llegó al umbral en un comité | Ya llegaste al {umbral} % en {comité}. Seguí sumando. | GH | Propuesta |
+| T-682 | Permanencia: criterio, logrado sobre el peso | {logrado} de {peso} | MATEO | Propuesta |
+| T-683 | Permanencia: criterio, lo que aún es posible | Podés sumar {n} más. | GH | Propuesta |
+| T-684 | Permanencia: criterio de asistencia con ocasiones programadas | Fuiste a {n}. Quedan {m} programadas; la próxima es el {fecha}. | GH | Propuesta |
+| T-685 | Permanencia: criterio de asistencia sin ocasiones programadas | Fuiste a {n}. No hay más programadas por ahora. | GH | Propuesta |
+| T-686 | Permanencia: mínimo de asistencias | Vas {n} de {minimo}. | GH | Propuesta |
+| T-687 | Permanencia: tasa de reuniones del comité | Fuiste a {n} de {m} reuniones ({tasa} %). Quedan {k} programadas. | GH | Propuesta |
+| T-688 | Permanencia: sin grupo de ese tipo | No estás en un grupo de este tipo todavía. | GH | Propuesta |
+| T-689 | Permanencia: grupo con su evaluación | {grupo}: {evaluacion} | MATEO | Propuesta |
+| T-690 | Permanencia: puntaje del líder asignado | Tu líder te puso {valor} de {peso}. | GH | Propuesta |
+| T-691 | Permanencia: puntaje del líder pendiente | Tu líder todavía no lo asigna. | GH | Propuesta |
+| T-692 | Permanencia: crédito manual reconocido | GH te reconoció {valor} de {peso}. | GH | Propuesta |
+| T-693 | Permanencia: crédito manual pendiente | GH lo reconoce a mano al cierre. | GH | Propuesta |
+| T-694 | Permanencia: asamblea obligatoria perdida | Faltaste a {asamblea}. Hablá con GH. | GH | Propuesta; texto sensible |
+| T-695 | Permanencia: próxima asamblea obligatoria | Próxima obligatoria: {asamblea}, {fecha}. | GH | Propuesta |
+| T-696 | Permanencia: evaluaciones pendientes, título | Evaluaciones pendientes | GH | Propuesta |
+| T-697 | Permanencia: historial, título | Historial | MATEO | Propuesta |
+| T-698 | Permanencia: resultado de un semestre cerrado, título | Resultado de {término} | GH | Propuesta |
+| T-699 | Inicio: enlace a permanencia | Ver tu permanencia | MATEO | Propuesta |
+| T-700 | Inicio: enlace del aviso para evaluadores | Ir a evaluar | MATEO | Propuesta |
+| T-701 | Comité interno: cartelera del comité, título | Cartelera de {comité} | COM | Propuesta |
+| T-702 | Comité interno: cartelera vacía | {comité} no tiene anuncios todavía. | COM | Propuesta |
+| T-703 | Directorio y comité: insignia de destacado del mes | Destacado de {mes} | COM | Propuesta |
+| T-704 | Permanencia: umbral que aplica en el comité | Necesitás {umbral} % | GH | Propuesta |
+| T-705 | Permanencia: parte general más parte del comité | General {g} + {comité} {c} | MATEO | Propuesta |
+| T-706 | Permanencia: texto accesible de la barra | {n} de {umbral} por ciento | MATEO | Propuesta |
+| T-707 | Inicio: ventana de evaluación cerrada para un evaluador | La ventana de evaluación abre el {fecha}. | MATEO | Propuesta |
+
 ## 5. Administración
 
 Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las confirmaciones de acciones sensibles y los mensajes de importación.
@@ -675,6 +710,144 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-676 | Consola: decisión que no aplica al estado del registro | Esa decisión no aplica: el registro está {estado}. | MATEO | Propuesta |
 | T-677 | Migración: motivo del requisito de asambleas heredado de un semestre ya cerrado | Requisito heredado de GHPOINTS (regla anterior). | MATEO | Propuesta |
 
+### Admin de Permanencia (fase 4: reglas, grupos, evaluaciones, puntajes, créditos, cumplimiento, cierre, vista de líder, junta)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-708 | Navegación del admin: enlaces de la fase 4 | Reglas · Grupos · Evaluaciones · Cumplimiento · Cierre de permanencia · Junta | MATEO | Propuesta |
+| T-709 | Navegación del líder de comité, líder de grupo y evaluador | Permanencia de {comité} · Mis grupos · Evaluaciones | MATEO | Propuesta |
+| T-710 | Reglas: título | Tablas de permanencia | GH | Propuesta |
+| T-711 | Reglas: intro | La tabla general la define GH; cada comité define la suya. Los pesos son puntos: la suma de cada tabla se compara con su valor nominal. | GH | Propuesta |
+| T-712 | Reglas: bloques | Tabla general · Tablas de comité | MATEO | Propuesta |
+| T-713 | Reglas: suma frente al nominal | Veteranos {v} · Nuevos {n} · nominal {nominal} | MATEO | Propuesta |
+| T-714 | Reglas: aviso de desviación del nominal | Esta tabla se aleja del valor nominal ({nominal}). No bloquea, pero revisá los pesos. | GH | Propuesta |
+| T-715 | Reglas: botones | Nuevo criterio · Copiar del semestre anterior · Cargar tabla de referencia · Vista previa del impacto · Bloquear · Desbloquear · Comentar · Bloquear todas | MATEO | Propuesta |
+| T-716 | Reglas: campos del criterio | Clave · Nombre · Descripción · Peso · Aplica a · Cómo se calcula · Orden | MATEO | Propuesta |
+| T-717 | Reglas: opciones de "aplica a" (en el orden del modelo) | Todos · Solo nuevos · Solo veteranos | GH | Propuesta |
+| T-718 | Reglas: nombres de los cálculos (en el orden del modelo) | Conteo de asistencias · Mínimo de asistencias · Tasa de asistencia · Grupo evaluado · Asistencias más grupo · Puntaje del líder · Manual | MATEO | Propuesta |
+| T-719 | Reglas: qué hace cada cálculo (mismo orden) | Suma un porcentaje por cada asistencia hasta el peso · Da el peso completo al llegar al mínimo · Reparte el peso según la tasa de asistencia a las reuniones del comité · Da el peso si el grupo evalúa buen desempeño · Exige el mínimo de asistencias y un grupo con buen desempeño · Lo asigna el líder del comité, con observación si baja · Lo reconoce GH a mano con motivo | MATEO | Propuesta |
+| T-720 | Reglas: parámetros de asistencia | Categoría · Tipo · Comité · Solo nuevos · Ocasiones · Por asistencia · Mínimo · Esperadas en el semestre | MATEO | Propuesta |
+| T-721 | Reglas: opciones del filtro de solo nuevos (en el orden del modelo) | Todas · Solo las de nuevos · Sin las de nuevos | MATEO | Propuesta |
+| T-722 | Reglas: opciones del filtro de comité (en el orden del modelo) | Cualquier comité · Solo este comité | MATEO | Propuesta |
+| T-723 | Reglas: parámetros de grupo | Tipo de grupo · Código · Modo · Por grupo · Tramos | MATEO | Propuesta |
+| T-724 | Reglas: opciones del modo de grupo (en el orden del modelo) | Fijo · Por grupo · Por cantidad | MATEO | Propuesta |
+| T-725 | Grupos y reglas: tipos de grupo (en el orden del modelo) | Comité de trabajo · GT de macroevento · GAP · GAP OE · Barra brava · Tarea de nuevos | GH | Propuesta |
+| T-726 | Reglas: parámetro obligatorio del puntaje del líder | Obligatorio: vale el peso completo salvo que el líder lo baje | GH | Propuesta |
+| T-727 | Reglas: ayuda de los tramos | Cantidad de grupos con buen desempeño y peso de cada tramo, uno por línea: 1 4, 2 6, 3 8. | MATEO | Propuesta |
+| T-728 | Reglas: ayuda de esperadas en el semestre | Cuántas ocasiones de este tipo habrá en el semestre. Sirve para calcular lo que aún es posible mientras el calendario no esté cargado. | MATEO | Propuesta |
+| T-729 | Reglas: clave repetida | Ya hay un criterio con esa clave en esta tabla. | MATEO | Propuesta |
+| T-730 | Reglas: parámetros inválidos | Revisá los parámetros del cálculo: {detalle}. | MATEO | Propuesta |
+| T-731 | Reglas: tabla bloqueada (para el líder) | GH bloqueó la tabla de {comité} este semestre. Si necesitás un cambio, escribiles. | GH | Propuesta |
+| T-732 | Reglas: no se borra un criterio con puntajes o créditos | Este criterio ya tiene puntajes o créditos: editalo en vez de borrarlo. | MATEO | Propuesta |
+| T-733 | Reglas: copiar exige tabla vacía | Solo se copia sobre una tabla vacía. | MATEO | Propuesta |
+| T-734 | Reglas: no hay semestre anterior con tabla | El semestre anterior no tiene tabla para copiar. | MATEO | Propuesta |
+| T-735 | Reglas: referencia cargada | Tabla de referencia cargada: {n} criterios. | MATEO | Propuesta |
+| T-736 | Reglas: comentario de GH, campo | Comentario para el comité | GH | Propuesta |
+| T-737 | Reglas: vista previa, título y columnas | Impacto sobre el roster · Personas · En camino · En riesgo · No alcanza · Promedio | MATEO | Propuesta |
+| T-738 | Reglas: estado de la tabla | Sin criterios · Abierta · Bloqueada el {fecha} | MATEO | Propuesta |
+| T-739 | Reglas: intro para el líder | Tu tabla vale unos {nominal} puntos. Definí los criterios de tu comité: reuniones, eventos, puntajes. | GH | Propuesta |
+| T-740 | Reglas: opción "cualquiera" para categoría o tipo | Cualquiera | MATEO | Propuesta |
+| T-741 | Reglas: todas las tablas bloqueadas | {n} tablas bloqueadas. | MATEO | Propuesta |
+| T-742 | Recurso grupos de trabajo (plural · singular) | Grupos de trabajo · Grupo de trabajo | MATEO | Propuesta |
+| T-743 | Grupos: campos | Semestre · Tipo · Nombre · Código · Edición · Evento · Líder | MATEO | Propuesta |
+| T-744 | Grupos: columnas | Nombre · Tipo · Código · Líder · Miembros · Evaluadores · Pendientes | MATEO | Propuesta |
+| T-745 | Grupos: filtros | Semestre · Tipo | MATEO | Propuesta |
+| T-746 | Grupos: acciones | Abrir · Sembrar comités de trabajo | MATEO | Propuesta |
+| T-747 | Grupo: secciones | Miembros · Evaluadores · Importar desde CSV | MATEO | Propuesta |
+| T-748 | Grupo: botones | Agregar miembro · Quitar · Guardar evaluadores · Cargar archivo · Confirmar importación | MATEO | Propuesta |
+| T-749 | Grupo: columnas de miembros | Persona · Comités · Entró · Evaluación · Evaluó · Observación | MATEO | Propuesta |
+| T-750 | Grupo y Mi OE: evaluaciones (en el orden del modelo) | Pendiente · Buen desempeño · Insuficiente | GH | Propuesta |
+| T-751 | Grupo: ya es miembro | {nombre} ya está en este grupo. | MATEO | Propuesta |
+| T-752 | Grupo: la persona no está activa | {nombre} no está activo este semestre: no puede entrar al grupo. | GH | Propuesta |
+| T-753 | Grupo: importación, ayuda | Un CSV con la columna CORREO (correo institucional). Solo entran miembros activos; el resto queda listado para que lo revises. | MATEO | Propuesta |
+| T-754 | Grupo: importación, resumen | {n} para agregar · {m} ya estaban · {k} sin membresía activa · {j} correos desconocidos | MATEO | Propuesta |
+| T-755 | Grupo: importación, archivo inválido | No pude leer el archivo: necesita la columna CORREO y menos de 1 MB. | MATEO | Propuesta |
+| T-756 | Grupos: comités de trabajo sembrados | Listo: {n} comités de trabajo creados para {término}. Faltan los evaluadores. | MATEO | Propuesta |
+| T-757 | Grupos: sin líder | Sin líder | MATEO | Propuesta |
+| T-758 | Grupo: código repetido en el semestre | Ya hay un grupo con ese código este semestre. | MATEO | Propuesta |
+| T-759 | Grupo: sin evaluador | Sin evaluador: GH debe asignar al director del frente. | GH | Propuesta |
+| T-760 | Grupo: opción sin evento | Sin evento | MATEO | Propuesta |
+| T-761 | Evaluaciones: título | Evaluaciones de desempeño | GH | Propuesta |
+| T-762 | Evaluaciones: intro | Marcá si cada persona tuvo buen desempeño antes, durante y después. Insuficiente pide una observación que la persona va a leer. | GH | Propuesta |
+| T-763 | Evaluaciones: ventana cerrada | La ventana de evaluación de {término} abre el {fecha}. Hasta entonces solo GH puede evaluar. | GH | Propuesta |
+| T-764 | Evaluaciones: ventana abierta | Ventana abierta hasta el cierre del semestre · {n} pendientes | MATEO | Propuesta |
+| T-765 | Evaluaciones: sin grupos | No tenés grupos para evaluar este semestre. | MATEO | Propuesta |
+| T-766 | Evaluaciones: la observación es obligatoria | Insuficiente necesita una observación para la persona. | GH | Propuesta |
+| T-767 | Evaluaciones: fuera de ventana | Todavía no abre la ventana de evaluación. | MATEO | Propuesta |
+| T-768 | Evaluaciones: no evalúa ese grupo | No evaluás este grupo. | MATEO | Propuesta |
+| T-769 | Evaluaciones: campo de observación | Observación (la lee la persona) | GH | Propuesta |
+| T-770 | Evaluaciones: evaluada | Evaluada por {evaluador} el {fecha} | MATEO | Propuesta |
+| T-771 | Puntajes del líder: título | Puntajes de {comité} | GH | Propuesta |
+| T-772 | Puntajes del líder: intro | Cada criterio del líder va de 0 al peso. Si bajás el valor, la observación es obligatoria y la persona la ve. | GH | Propuesta |
+| T-773 | Puntajes del líder: campos | Valor · Observación | MATEO | Propuesta |
+| T-774 | Puntajes y créditos: valor fuera de rango | El valor va de 0 a {peso}. | MATEO | Propuesta |
+| T-775 | Puntajes del líder: falta la observación | Si el puntaje es menor al peso, escribí la observación. | GH | Propuesta |
+| T-776 | Puntajes del líder: la persona no está en el comité | {nombre} no está en {comité} este semestre. | MATEO | Propuesta |
+| T-777 | Puntajes del líder: sin criterios de puntaje | Tu tabla no tiene criterios de puntaje del líder todavía. | MATEO | Propuesta |
+| T-778 | Destacado del mes: título y botón | Destacado del mes · Nombrar destacado | COM | Propuesta |
+| T-779 | Destacado del mes: campos | Mes · Persona | MATEO | Propuesta |
+| T-780 | Destacado del mes: ya hay uno ese mes | {comité} ya tiene destacado de {mes}. | MATEO | Propuesta |
+| T-781 | Destacado del mes: publicado | {nombre} quedó como destacado de {mes}. Se publicó en la cartelera del comité. | COM | Propuesta |
+| T-782 | Destacado del mes: sin consentimiento de directorio | {nombre} quedó registrado como destacado de {mes}, pero no autorizó aparecer en el directorio: no se publica. | JUNTA | Propuesta |
+| T-783 | Destacado del mes: título del anuncio | Destacado de {mes}: {nombre} | COM | Propuesta |
+| T-784 | Destacado del mes: cuerpo del anuncio | {comité} reconoce a {nombre} como destacado del mes de {mes}. ¡OE OE OE! | COM | Propuesta |
+| T-785 | Créditos manuales: título y botón | Crédito manual · Reconocer | GH | Propuesta |
+| T-786 | Créditos manuales: campos | Criterio · Valor · Motivo | MATEO | Propuesta |
+| T-787 | Créditos manuales: solo criterios manuales | Solo se reconocen a mano los criterios de tipo manual. | MATEO | Propuesta |
+| T-788 | Cumplimiento: título | Cumplimiento de permanencia | GH | Propuesta |
+| T-789 | Cumplimiento: filtros | Todos · Por debajo · No alcanza · En prueba · Nuevos · Exentos | MATEO | Propuesta |
+| T-790 | Cumplimiento: columnas | Persona · Condición · Comité · General · Del comité · Total · Umbral · Estado · Obligatorias | MATEO | Propuesta |
+| T-791 | Cumplimiento y Mi OE: estados (en el orden del modelo) | En camino · En riesgo · No alcanza · Cumple · Prueba · No cumple | GH | Propuesta |
+| T-792 | Cumplimiento y Mi OE: condiciones (en el orden del modelo) | Activo · Nuevo · En prueba · Transferencia | GH | Propuesta |
+| T-793 | Cumplimiento: exento | Exento ({estado}) | MATEO | Propuesta |
+| T-794 | Cumplimiento: recalcular | Recalcular ahora | MATEO | Propuesta |
+| T-795 | Cumplimiento: recálculo encolado | Recalculando: refrescá en unos segundos. | MATEO | Propuesta |
+| T-796 | Cumplimiento: fecha del cálculo | Calculado el {fecha} | MATEO | Propuesta |
+| T-797 | Cumplimiento: sin cálculo | Sin cálculo todavía | MATEO | Propuesta |
+| T-798 | Cierre de permanencia: título | Cierre de permanencia | GH | Propuesta |
+| T-799 | Cierre: puntos sin cerrar | Primero cerrá los puntos de {término}. Las propuestas se ven, pero no se confirman hasta entonces. | MATEO | Propuesta |
+| T-800 | Cierre: resumen | Personas · Continúan · En prueba · Salen de un comité · Salen de la OE · Sin decisión · Evaluaciones pendientes | MATEO | Propuesta |
+| T-801 | Cierre: motivos automáticos (cumple, prueba, no cumple, sin comité, obligatoria) | Cumplió el umbral · Hasta 10 puntos por debajo del umbral · Más de 10 puntos por debajo del umbral · No le queda un comité donde cumpla o esté en prueba · Faltó a una asamblea obligatoria | GH | Propuesta |
+| T-802 | Cierre y Persona 360: decisiones (en el orden del modelo) | Continúa · Periodo de prueba · Sale del comité · Sale de la OE | GH | Propuesta |
+| T-803 | Cierre: botones | Confirmar propuesta · Cambiar · Confirmar todas las propuestas · Aplicar cierre | MATEO | Propuesta |
+| T-804 | Cierre: campos al cambiar | Decisión · Motivo | MATEO | Propuesta |
+| T-805 | Cierre: motivo obligatorio al cambiar | Cambiar la propuesta exige un motivo. | MATEO | Propuesta |
+| T-806 | Cierre: la propuesta cambió desde la confirmación | La propuesta actual ({propuesta}) difiere de la confirmada; rige la confirmada. | MATEO | Propuesta |
+| T-807 | Cierre: faltan decisiones | Faltan decisiones para {n} personas. | MATEO | Propuesta |
+| T-808 | Cierre: ya cerró | {término} ya cerró su permanencia el {fecha}. | MATEO | Propuesta |
+| T-809 | Cierre: confirmación para aplicar | Vas a aplicar el cierre de {término}: {salen} personas salen de la OE, {comites} salen de un comité y {prueba} quedan en prueba. Esto no se deshace. | GH | Propuesta; texto sensible |
+| T-810 | Cierre: avance de la aplicación | {n} de {m} decisiones aplicadas | MATEO | Propuesta |
+| T-811 | Cierre: aplicado | Cierre aplicado. Las decisiones quedaron en cada persona. | MATEO | Propuesta |
+| T-812 | Cierre: confirmadas en bloque | {n} propuestas confirmadas. | MATEO | Propuesta |
+| T-813 | Cierre: evaluaciones pendientes (aviso) | Hay {n} evaluaciones pendientes: cuentan como no logradas. | GH | Propuesta |
+| T-814 | Cierre: sin personas evaluadas | Nadie tiene resultado en {término}. | MATEO | Propuesta |
+| T-815 | Cierre de puntos: enlace al cierre de permanencia | Seguí con el cierre de permanencia | MATEO | Propuesta |
+| T-816 | Cierre: filtros | Todas · Sin decisión · Con cambios · Salen | MATEO | Propuesta |
+| T-817 | Cierre: confirmada | Confirmada por {quien} el {fecha} | MATEO | Propuesta |
+| T-818 | Vista de líder: título de permanencia | Permanencia de {comité} | MATEO | Propuesta |
+| T-819 | Vista de líder: secciones de permanencia | Tabla del comité · Puntajes · Destacado del mes · Progreso de los miembros | MATEO | Propuesta |
+| T-820 | Vista de líder: columnas del progreso | Persona · Condición · Reuniones · Resultado · Estado | MATEO | Propuesta |
+| T-821 | Junta: título | Panel de la junta | JUNTA | Propuesta |
+| T-822 | Junta: intro | Indicadores agregados del semestre, sin nombres. Para decidir con datos. | JUNTA | Propuesta |
+| T-823 | Junta: tarjetas | Activos · Nuevos · Retención · En camino · En riesgo · No alcanza · Reuniones · Integraciones · Asambleas | MATEO | Propuesta |
+| T-824 | Junta: secciones | Retención por semestre · Nuevos por comité · Permanencia por comité · Reuniones por comité · Integraciones y asambleas | MATEO | Propuesta |
+| T-825 | Junta: columnas de retención | Semestre · Con comité · Siguen el siguiente · Retención · Nuevos | MATEO | Propuesta |
+| T-826 | Junta: nota de la retención | Retención: de quienes tenían comité en un semestre, cuántos lo tienen en el siguiente. | MATEO | Propuesta |
+| T-827 | Junta: sin datos | Todavía no hay datos de este semestre. | MATEO | Propuesta |
+| T-828 | Junta: columnas por comité | Comité · Miembros · En camino · En riesgo · No alcanza · Reuniones · Asistencia | MATEO | Propuesta |
+| T-829 | Persona 360, Permanencia: bloques | Resultado por comité · Tabla general · Decisiones del cierre · Créditos manuales | MATEO | Propuesta |
+| T-830 | Persona 360, Permanencia: exento | Sin evaluación de permanencia este semestre ({estado}). | MATEO | Propuesta |
+| T-831 | Persona 360, Permanencia: decisión confirmada | {decisión}: {motivo} (por {quien}, {fecha}) | MATEO | Propuesta |
+| T-832 | Línea de tiempo: eventos de permanencia (buen desempeño, insuficiente, puntaje del líder, crédito manual, entró al grupo, salió del grupo, decisión del cierre) | Buen desempeño en {grupo}, evaluado por {evaluador} · Desempeño insuficiente en {grupo}, evaluado por {evaluador}: {nota} · {criterio} en {comité}: {valor} de {peso} · Crédito manual en {criterio}: {valor} ({motivo}) · Entró al grupo {grupo} · Salió del grupo {grupo} · Cierre de {término}: {decisión} | MATEO | Propuesta |
+| T-833 | Línea de tiempo: reconocimiento | Destacado de {mes} en {comité} | MATEO | Propuesta |
+| T-834 | Permanencia: el semestre ya cerró su permanencia (comandos) | El semestre ya cerró su permanencia: no se puede cambiar. | MATEO | Propuesta |
+| T-835 | Permanencia: sin permiso sobre el grupo | No operás este grupo. | MATEO | Propuesta |
+| T-836 | Exporte de cumplimiento: cabeceras | Nombre · Apellido · Correo · Condición · Comité · General · Del comité · Total · Umbral · Estado · Obligatorias | MATEO | Propuesta |
+| T-837 | Exporte de la junta: cabeceras | Indicador · Comité · Semestre · Valor | MATEO | Propuesta |
+| T-838 | Cartelera (admin): campo de comité | Comité (solo en su cartelera interna) | MATEO | Propuesta |
+| T-839 | Cartelera (admin): opción sin comité | Toda la OE | MATEO | Propuesta |
+| T-840 | Grupos: opción sin líder en el formulario | Sin líder por ahora | MATEO | Propuesta |
+
 ## 6. Notificaciones
 
 ### Push (título · cuerpo)
@@ -747,7 +920,7 @@ Textos de controles genéricos que no cambian el sentido institucional.
 ## 9. Lo que debe entregar cada dueño
 
 - **COM:** nombre del sitio, textos del inicio, descripciones de los cuatro macroeventos, redes y contacto, plantilla de campaña, campaña de lanzamiento.
-- **GH:** texto de Unirse y del proceso de admisión, pasos del onboarding, descripción de una línea de cada criterio de permanencia, tono de los mensajes sensibles (asamblea obligatoria, prueba, salida), nombres y cortes de los niveles de GH Points, preguntas de la encuesta corta.
+- **GH:** texto de Unirse y del proceso de admisión, pasos del onboarding, descripción de una línea de cada criterio de permanencia, nombres de los criterios y de los cálculos de la fase 4 (T-717 a T-726, T-791, T-792, T-801, T-802), tono de los mensajes sensibles (asamblea obligatoria, prueba, salida, aplicar el cierre), nombres y cortes de los niveles de GH Points, preguntas de la encuesta corta.
 - **JUNTA:** política de datos y su versión, textos de consentimiento, plazo de respuesta a la eliminación, misión y visión (ya en el manual), pie legal.
 - **Cada comité:** presentación, contacto, y los textos de su tabla de permanencia (nombres de los criterios y de los dos eventos).
 - **Mateo:** todo lo marcado MATEO, que no cambia el sentido institucional.

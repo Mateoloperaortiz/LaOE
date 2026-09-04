@@ -44,16 +44,22 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Elección de junta | `assemblyKind=BOARD_ELECTION` | Asamblea especial del segundo semestre donde se vota la junta del año siguiente; obligatoria para toda la OE |
 | Segunda vuelta | `assemblyKind=RUNOFF` | Repetición de la votación cuando no hay ganador; también obligatoria |
 | Tasa suavizada | `CommitteeParticipation.smoothedRate` | Participación relativa corregida hacia la media de la ocasión para no premiar el azar de los comités pequeños |
-| Permanencia | `PermanenceSnapshot` | Porcentaje del término según la tabla de GH; con 60 % la persona permanece en la OE |
-| Criterio de permanencia | `PermanenceRule` | Fila de la tabla de GH: peso, a quién aplica y cómo se calcula |
+| Permanencia | `PermanenceSnapshot` | Resultado del término por cada comité: tabla general más tabla del comité frente al umbral de su condición (60, 80 o 70); se recalcula por outbox y el miembro lo ve en vivo |
+| Criterio de permanencia | `PermanenceRule` | Fila de una tabla: peso (el máximo que da), a quién aplica, cómo se calcula y sus parámetros |
+| Tabla de permanencia | `PermanenceTable` | La general de GH o la de un comité en un término; GH la comenta y la bloquea |
+| Lo que aún es posible | `remaining` | Cuánto puede sumar todavía la persona en un criterio con las ocasiones que faltan, los grupos abiertos, los puntajes y los créditos pendientes |
 | Grupo de trabajo | `WorkGroup` | Equipo por término: comité de trabajo, GT de macroevento, GAP, GAP OE, barra brava o tarea de nuevos |
 | Comité de trabajo | `WorkGroup.kind=WORK_COMMITTEE` | CAP (Acompañamiento Presidencial), CGH (Gestión Humana), CCM (Creatividad y Mercadeo), CAE (Alianzas Estratégicas), CML (Mejoramiento Logístico), CAF (Acompañamiento Financiero) o Athletic; distintos de los 27 comités de pertenencia |
 | GT de macroevento | `WorkGroup.kind=GT_MACROEVENT` | Grupo de trabajo de una edición de Inventiva, Días EAFIT o EnFemenino |
 | GAP | `WorkGroup.kind=GAP` | Grupo de apoyo a un evento de un comité distinto al propio o a un macroevento |
 | GAP OE | `WorkGroup.kind=GAP_OE` | Grupo de apoyo a eventos de la Junta Directiva (VTG, Assessment) |
 | Barra brava | `WorkGroup.kind=BARRA_BRAVA` | Apoyo al Athletic OE en al menos tres encuentros con trabajo demostrable |
-| Evaluación de desempeño | `WorkGroupMembership.evaluation` | Juicio del líder o de GH sobre si la persona cumplió con buen desempeño |
-| Decisión de permanencia | `PermanenceDecision` | Resultado del cierre del término: continúa, continúa con compromiso o retiro |
+| Evaluación de desempeño | `WorkGroupMembership.evaluation` | Juicio del evaluador del grupo (director de GH del frente) sobre si la persona cumplió con buen desempeño; insuficiente lleva observación |
+| Evaluador | `WorkGroupEvaluator` | Quien evalúa un grupo; entra al admin por esa fila, sin permiso técnico, dentro de la ventana de evaluación |
+| Ventana de evaluación | `permanence.evaluationWindowDays` | Las dos semanas antes del fin del término en que los evaluadores registran el desempeño |
+| Puntaje del líder | `LeaderScore` | Valor que el líder del comité asigna en un criterio de su tabla, con observación obligatoria si baja del peso |
+| Crédito manual | `ManualCredit` | Reconocimiento a mano de GH en un criterio manual, con motivo |
+| Decisión de permanencia | `PermanenceDecision` | Lo que GH confirma en el cierre por comité (continúa, prueba, sale del comité) y por persona (continúa, sale de la OE); la app la propone y un job la aplica |
 | Categoría de ocasión | `Occasion.category` | Integración, partido del Athletic, reunión de comité, charla, taller, social u otra; la usan los criterios |
 | Tabla general | `PermanenceRule.scope=GENERAL` | Criterios de permanencia de la junta, aplicados por GH a toda la OE; vale unos 50 puntos |
 | Tabla del comité | `PermanenceRule.scope=COMMITTEE` | Criterios de permanencia propios de un comité, definidos por su líder; vale unos 60 puntos |
@@ -81,8 +87,9 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Solicitud | `Request` | Pedido del miembro desde Mi OE (licencia, retiro, cambio de comité, transferencia) que GH aprueba; aprobar ejecuta el comando |
 | Convocatoria interna | `InternalCall` | Llamado a inscribirse en un grupo de trabajo con cupo y cierre; la inscripción aceptada crea la pertenencia al grupo |
 | Onboarding | `OnboardingProgress` | Pasos de la primera semana de un nuevo, ligados a sus criterios de permanencia |
-| Reconocimiento | `Recognition` | Destacado del mes u otro mérito, publicado en la cartelera y en el perfil |
-| Panel de la junta | `/admin/junta` | Indicadores agregados para los cargos de junta: retención, nuevos, permanencia, asistencia a reuniones |
+| Reconocimiento | `Recognition` | Destacado del mes u otro mérito; con consentimiento de directorio se publica en la cartelera del comité y como insignia en las tarjetas |
+| Cartelera del comité | `Announcement.committeeId` | Anuncios de miembros que solo aparecen en la página interna de ese comité |
+| Panel de la junta | `/admin/junta` | Indicadores agregados sin nombres para ADMIN y el permiso `BOARD`: retención, nuevos, permanencia, reuniones, integraciones y asambleas |
 | Etiqueta | `Tag` | Marca libre sobre personas u organizaciones |
 | Segmento | `Segment` | Filtro guardado que alimenta campañas, exportes y listas |
 | Anuncio | `Announcement` | Publicación de la cartelera, pública o de miembros, con push opcional |

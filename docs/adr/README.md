@@ -37,17 +37,18 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-022](ADR-022-medios-prefirmados.md) | Medios: subida directa y entrega por URL prefirmada | Aceptada (enmendada por ADR-034) |
 | [ADR-023](ADR-023-operacion-entornos-respaldo-correo.md) | Operación: entorno de pruebas, copia externa y correo con desbordamiento | Aceptada |
 | [ADR-024](ADR-024-reglas-de-participacion.md) | Reglas de participación confirmadas por la OE | Aceptada (enmendada por ADR-027, ADR-028, ADR-030 y ADR-035) |
-| [ADR-025](ADR-025-permanencia-scorecard.md) | Permanencia como tablero de criterios configurable por término | Aceptada (enmendada por ADR-026 y ADR-027) |
-| [ADR-026](ADR-026-permanencia-por-comite.md) | Permanencia en dos niveles: la OE y el comité | Aceptada (enmendada por ADR-027) |
+| [ADR-025](ADR-025-permanencia-scorecard.md) | Permanencia como tablero de criterios configurable por término | Aceptada (enmendada por ADR-026, ADR-027 y ADR-036) |
+| [ADR-026](ADR-026-permanencia-por-comite.md) | Permanencia en dos niveles: la OE y el comité | Aceptada (enmendada por ADR-027 y ADR-036) |
 | [ADR-027](ADR-027-permanencia-reglas-de-gh.md) | Permanencia: reglas confirmadas por Gestión Humana | Aceptada (enmendada por ADR-028) |
-| [ADR-028](ADR-028-permanencia-consecuencias.md) | Permanencia: consecuencias, asambleas obligatorias y evaluación al cierre | Aceptada |
+| [ADR-028](ADR-028-permanencia-consecuencias.md) | Permanencia: consecuencias, asambleas obligatorias y evaluación al cierre | Aceptada (enmendada por ADR-036) |
 | [ADR-029](ADR-029-cargos-de-comite-y-roster.md) | Cargos dentro del comité y formato del roster | Aceptada (enmendada por ADR-030) |
 | [ADR-030](ADR-030-perfil-de-egresado.md) | Perfil de egresado (memorial) en lugar de anonimización por plazo | Aceptada |
-| [ADR-031](ADR-031-autogestion-del-miembro.md) | Autogestión del miembro: solicitudes, convocatorias, datos propios, onboarding, reconocimientos, encuestas y panel de la junta | Aceptada |
+| [ADR-031](ADR-031-autogestion-del-miembro.md) | Autogestión del miembro: solicitudes, convocatorias, datos propios, onboarding, reconocimientos, encuestas y panel de la junta | Aceptada (enmendada por ADR-036) |
 | [ADR-032](ADR-032-drizzle-y-esquema-por-modulo.md) | Drizzle como capa de datos y esquema por módulo en TypeScript | Aceptada |
-| [ADR-033](ADR-033-contenido-y-medios-fase-1.md) | Contenido editable y medios del portal público (fase 1) | Aceptada |
+| [ADR-033](ADR-033-contenido-y-medios-fase-1.md) | Contenido editable y medios del portal público (fase 1) | Aceptada (enmendada por ADR-036) |
 | [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) | Personas, CRM mínimo y Mi OE (fase 2) | Aceptada (enmendada por ADR-035) |
-| [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) | Participación y GH Points (fase 3) | Aceptada |
+| [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) | Participación y GH Points (fase 3) | Aceptada (enmendada por ADR-036) |
+| [ADR-036](ADR-036-permanencia-fase-4.md) | Permanencia (fase 4) | Aceptada |
 
 ## Plantilla
 

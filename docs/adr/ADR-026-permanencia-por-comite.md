@@ -1,6 +1,6 @@
 # ADR-026: Permanencia en dos niveles: la OE y el comité
 
-- Estado: Aceptada (enmendada por ADR-027)
+- Estado: Aceptada (enmendada por ADR-027 y ADR-036)
 - Fecha: 2026-09-02
 - Enmienda: ADR-025
 - Relacionadas: ADR-005, ADR-006, ADR-011, ADR-014
@@ -27,3 +27,7 @@ Además de la tabla de Gestión Humana, cada uno de los 27 comités tiene su pro
 ## Enmienda (2026-09-02, ADR-027)
 
 GH respondió: los valores son nominales (general ≈ 50, comité ≈ 60, sin sumar 100 exacto); no hay comité principal sino un **resultado por cada comité** (general más la tabla de ese comité), así que `isPrimary` y `committeeAggregation` desaparecen; los eventos del comité los define cada comité; y quien evalúa es el director de GH del frente, no el líder del grupo. Ver [ADR-027](ADR-027-permanencia-reglas-de-gh.md).
+
+## Enmienda (2026-09-04, ADR-036)
+
+El bloqueo de las tablas de comité es por tabla (`permanence_table`, con comentario de GH), no por regla: un bloqueo por fila no impide agregar filas. Los presupuestos ya eran nominales por ADR-027; el editor avisa desde 5 puntos de diferencia. Ver [ADR-036](ADR-036-permanencia-fase-4.md).

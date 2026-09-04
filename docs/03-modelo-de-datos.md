@@ -45,6 +45,9 @@ erDiagram
   WorkGroup ||--o{ WorkGroupMembership : ""
   Person ||--o{ WorkGroupMembership : "evaluacion"
   Person ||--o{ PermanenceSnapshot : "permanencia"
+  Person ||--o{ PermanenceDecision : "cierre"
+  Person ||--o{ LeaderScore : ""
+  Person ||--o{ Recognition : ""
 ```
 
 ## Modelos por módulo
@@ -87,7 +90,7 @@ erDiagram
 | `Request` | `personId`, `kind` (`LEAVE`, `RESIGNATION`, `COMMITTEE_CHANGE`, `TRANSFER`), `payload` JSON, `status` (`PENDING`, `APPROVED`, `REJECTED`, `WITHDRAWN`), `taskId`, `decidedById?`, `decidedAt?`, `reason?` | Aprobar ejecuta el comando de dominio correspondiente; nada cambia antes |
 | `InternalCall` | `termId`, `groupId`, `formId`, `opensAt`, `closesAt`, `capacity?`, `selection` (`FIRST_COME`, `MANUAL`), `status` | La inscripción aceptada crea `WorkGroupMembership` |
 | `OnboardingProgress` | `personId`, `termId`, `stepKey`, `doneAt?`, `source` (`AUTO`, `MANUAL`) | Unique por (persona, término, paso); los pasos viven en `AppConfig` (`onboarding.steps`, con la evidencia automática de cada uno); visible mientras la persona sea nueva |
-| `Recognition` | `personId`, `kind` (`MEMBER_OF_MONTH`, `OTHER`), `committeeId?`, `termId`, `month?`, `title`, `announcementId?`, `grantedById` | Se publica solo con consentimiento de directorio |
+| `Recognition` | `personId`, `kind` (`MEMBER_OF_MONTH`, `OTHER`), `committeeId?`, `termId`, `month?`, `title`, `announcementId?`, `grantedById` | Lo otorga el líder desde su tabla de permanencia o ADMIN; con consentimiento de directorio crea y publica en la misma transacción un anuncio de miembros con `committeeId` (cartelera del comité) e insignia en las tarjetas; sin consentimiento queda registrado sin publicarse; unique parcial por (término, comité, mes) para el destacado del mes ([ADR-036](adr/ADR-036-permanencia-fase-4.md)) |
 
 ### forms
 
@@ -109,7 +112,7 @@ erDiagram
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `Term` | `code` único (`2026-2`), `semester` (1 o 2, derivado del código), `startsOn`, `endsOn`, `pointsClosedAt?`, `requiredOrdinaryAssemblies`, `permanenceGeneralNominal` (50), `permanenceCommitteeNominal` (60) | Módulo propio sin dependencias, para que `people`, `crm` y `participation` lo importen sin ciclos ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)). El actual se deriva de la fecha; en los términos de segundo semestre la elección de junta es obligatoria; los nominales solo sirven para avisar en el editor |
+| `Term` | `code` único (`2026-2`), `semester` (1 o 2, derivado del código), `startsOn`, `endsOn`, `pointsClosedAt?`, `permanenceClosedAt?`, `requiredOrdinaryAssemblies`, `permanenceGeneralNominal` (50), `permanenceCommitteeNominal` (60) | Módulo propio sin dependencias, para que `people`, `crm` y `participation` lo importen sin ciclos ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)). El actual se deriva de la fecha; en los términos de segundo semestre la elección de junta es obligatoria; los nominales solo sirven para avisar en el editor; `permanenceClosedAt` se estampa al aplicar el cierre de permanencia, después del de puntos ([ADR-036](adr/ADR-036-permanencia-fase-4.md)) |
 
 ### participation
 
@@ -124,23 +127,26 @@ erDiagram
 
 ### permanence
 
+Módulo propio desde la fase 4 ([ADR-036](adr/ADR-036-permanencia-fase-4.md)): importa `terms`, `people`, `participation`, `system` y `events`; nadie lo importa (los efectos salen por outbox). Los pesos y valores son `numeric(6,2)`.
+
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `PermanenceRule` | `termId`, `scope` (`GENERAL`, `COMMITTEE`), `committeeId?`, `key`, `label`, `description`, `weight`, `appliesTo` (`ALL`, `NEW`, `VETERAN`), `computation` (`CHECKIN_COUNT`, `CHECKIN_THRESHOLD`, `CHECKIN_RATE`, `GROUP_EVALUATED`, `COMPOSITE`, `LEADER_SCORE`, `MANUAL`), `params` JSON (incluye tramos por cantidad para GT), `order`, `lockedAt?` | Unique por (término, ámbito, comité, clave); el editor avisa si la tabla se aleja del valor nominal (50 general, 60 comité) sin bloquear |
-| `LeaderScore` | `termId`, `personId`, `ruleId`, `value`, `note?`, `scoredById`, `scoredAt` | Para reglas `LEADER_SCORE`; nota obligatoria si el valor es menor al peso; escribe una interacción visible para la persona |
-| `WorkGroup` | `termId`, `kind` (`WORK_COMMITTEE`, `GT_MACROEVENT`, `GAP`, `GAP_OE`, `BARRA_BRAVA`, `NEW_MEMBER_TASK`), `name`, `code?` (CAP, CGH, CCM, CAE, CML, CAF, ATHLETIC), `editionId?`, `eventId?`, `leaderPersonId?` | Los comités de trabajo son grupos, no `Committee`; el líder lo opera y los evaluadores de `WorkGroupEvaluator` evalúan al cerrar el semestre |
-| `WorkGroupEvaluator` | `groupId`, `personId` | Director de GH del frente; GH principal para tareas de nuevos; capitán y DT para el Athletic; GH de turno para la barra brava |
-| `WorkGroupMembership` | `groupId`, `personId`, `joinedAt`, `leftAt?`, `evaluation` (`PENDING`, `GOOD`, `INSUFFICIENT`), `evaluatedById?`, `evaluatedAt?`, `note?` | Unique por (grupo, persona); la evaluación escribe una interacción |
-| `ManualCredit` | `termId`, `personId`, `ruleKey`, `value`, `reason`, `grantedById` | Para reglas `MANUAL`; auditado |
-| `PermanenceSnapshot` | `termId`, `personId`, `generalTotal`, `results` JSON (por comité: parte del comité, total, umbral aplicable, `remainingPossible`, estado `EN_CAMINO`, `EN_RIESGO`, `NO_ALCANZA`, `CUMPLE`, `PRUEBA`, `NO_CUMPLE`), `mandatoryAssembliesMet`, `computedAt`, `frozenAt?` | Unique por (término, persona); recalculado por outbox; un resultado por comité, sin comité principal |
-| `PermanenceDecision` | `termId`, `personId`, `committeeId?`, `proposed`, `decision` (`CONTINUES`, `PROBATION`, `EXIT_COMMITTEE`, `EXIT_OE`), `reason`, `decidedById`, `decidedAt` | Unique por (término, persona, comité); la app propone y ADMIN confirma; `EXIT_OE` ejecuta "dar de baja", `PROBATION` crea el `MembershipTerm` siguiente |
+| `PermanenceRule` | `termId`, `scope` (`GENERAL`, `COMMITTEE`), `committeeId?`, `key`, `label`, `description`, `weight`, `appliesTo` (`ALL`, `NEW`, `VETERAN`), `computation` (`CHECKIN_COUNT`, `CHECKIN_THRESHOLD`, `CHECKIN_RATE`, `GROUP_EVALUATED`, `COMPOSITE`, `LEADER_SCORE`, `MANUAL`), `params` JSON, `sortOrder` | Unique por (término, clave) en la general y por (término, comité, clave) en las de comité; `params` se valida con un esquema Zod por `computation` (filtro de ocasiones con categoría, tipo, comité, solo nuevos, ocasiones y esperadas; por asistencia; mínimo; tipo de grupo y modo fijo, por grupo o por tramos; obligatorio); `weight` es el máximo del criterio; no se borra con puntajes o créditos |
+| `PermanenceTable` | `termId`, `scope`, `committeeId?`, `lockedAt?`, `lockedById?`, `comment?`, `commentedById?`, `commentedAt?` | Bloqueo y comentario de GH por tabla; el líder no edita una tabla bloqueada, ADMIN sí; el editor avisa si la suma se aleja del nominal (50 general, 60 comité) sin bloquear |
+| `LeaderScore` | `termId`, `personId`, `ruleId`, `value`, `note?`, `scoredById`, `scoredAt` | Para reglas `LEADER_SCORE`; `0 ≤ value ≤ weight`; nota obligatoria si el valor es menor al peso; escribe una interacción visible para la persona; unique por (regla, persona) |
+| `WorkGroup` | `termId`, `kind` (`WORK_COMMITTEE`, `GT_MACROEVENT`, `GAP`, `GAP_OE`, `BARRA_BRAVA`, `NEW_MEMBER_TASK`), `name`, `code?` (CAP, CGH, CCM, CAE, CML, CAF, ATHLETIC), `editionId?`, `eventId?`, `leaderPersonId?`, `createdById?` | Los comités de trabajo son grupos, no `Committee`, y se siembran por término con líder por cargo de junta; el líder lo opera y los evaluadores evalúan al cerrar el semestre; unique parcial por (término, código) |
+| `WorkGroupEvaluator` | `groupId`, `personId` | Director de GH del frente; GH principal para tareas de nuevos; capitán y DT para el Athletic; GH de turno para la barra brava; unique por par; da acceso a la bandeja de evaluaciones sin permiso técnico |
+| `WorkGroupMembership` | `groupId`, `personId`, `joinedAt`, `leftAt?`, `evaluation` (`PENDING`, `GOOD`, `INSUFFICIENT`), `evaluatedById?`, `evaluatedAt?`, `note?` | Unique por (grupo, persona); `INSUFFICIENT` exige nota; la evaluación escribe una interacción |
+| `ManualCredit` | `termId`, `personId`, `ruleId`, `value`, `reason`, `grantedById` | Solo para reglas `MANUAL`; `value ≤ weight`; upsert auditado por (regla, persona) |
+| `PermanenceSnapshot` | `termId`, `personId`, `status`, `isNew`, `probation`, `generalTotal`, `generalMax`, `general` JSON (criterios generales con logrado, posible y detalle), `results` JSON (por comité: condición, umbral, parte del comité, total, posible, margen, estado abierto, estado final y criterios), `mandatory` JSON (requeridas, firmadas, cumplidas, perdidas, próximas), `computedAt`, `frozenAt?` | Unique por (término, persona); recalculado por outbox con clave por término o por persona y lock por término; un resultado por comité, sin comité principal; ids sin nombres; se congela al aplicar el cierre. La vista propia del miembro se calcula en vivo con la misma función mientras el término está abierto |
+| `PermanenceDecision` | `termId`, `personId`, `committeeId?`, `proposed`, `decision` (`CONTINUES`, `PROBATION`, `EXIT_COMMITTEE`, `EXIT_OE`), `reason?`, `decidedById`, `decidedAt`, `appliedAt?` | Solo decisiones confirmadas por GH (las propuestas se derivan del snapshot); una fila por comité y una por persona con `committeeId` nulo; `reason` obligatorio si difiere de la propuesta; `EXIT_OE` ejecuta "dar de baja", `PROBATION` escribe el `MembershipTerm` siguiente y `EXIT_COMMITTEE` estampa `leftAt`; las aplica un job reanudable |
 
 ### content
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
 | `Page` | `slug` único, `title`, `body` Markdown, `status`, `audience` | La OE, Unirse y Privacidad nacen en borrador en la migración `0003`; una página en borrador muestra su título y "en preparación" |
-| `Announcement` | `title`, `body` Markdown, `audience`, `publishedAt?`, `pinned`, `pushSentAt?`, `createdById?` | Cartelera; es público cuando `audience = PUBLIC` y `publishedAt` ya pasó; fijados primero |
+| `Announcement` | `title`, `body` Markdown, `audience`, `committeeId?`, `publishedAt?`, `pinned`, `pushSentAt?`, `createdById?` | Cartelera; es público cuando `audience = PUBLIC` y `publishedAt` ya pasó; fijados primero; con `committeeId` vive solo en la cartelera interna de ese comité ([ADR-036](adr/ADR-036-permanencia-fase-4.md)) |
 | `MediaAsset` | `visibility` (`PUBLIC`, `PRIVATE`), `objectKey` único, `originalFilename`, `contentType`, `byteSize`, `width?`, `height?`, `variants` JSON, `uploadedById?`, `status` (`PENDING`, `READY`, `FAILED`), `error?` | Sin bytes en la base; un solo bucket privado, la visibilidad decide la caché al servir; `variants` guarda las WebP de 480, 960 y 1600 px (`variants/<id>/w<ancho>.webp`); `FAILED` cuando el objeto no es una imagen decodificable ([ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md)) |
 | `Document` | `title`, `kind` (`ESTATUTOS`, `REGLAMENTO`, `ACTA`, `OTRO`), `fileKey` único (`documents/<id>.pdf`), `originalFilename`, `byteSize`, `sha256?`, `version`, `audience`, `status`, `uploadedById?` | El PDF es un objeto propio del bucket privado (no un `MediaAsset`); se abre por enlace a una URL prefirmada de 10 minutos ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)) |
 | `DocumentArticle` | `documentId`, `articleKey`, `chapterKey`, `chapterTitle`, `number`, `title`, `body`, `pages` JSON, `sortOrder`, `search` (`tsvector` generado en español) | Unique por (documento, clave); cargado desde el JSON del extractor; la búsqueda usa `websearch_to_tsquery` y `ts_headline` sobre el índice GIN |
@@ -160,7 +166,7 @@ erDiagram
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
 | `AuditLog` | `actorId?`, `action`, `entityType`, `entityId`, `before` JSON, `after` JSON, `ip?`, `legacy` | Misma transacción que la mutación |
-| `AppConfig` | `key` único, `value`, `updatedById?` | `committees.min = 1`, `committees.max = 3`, `assemblies.requiredOrdinary = 1`, `permanence.assembliesForCredit = 3`, `score.shrinkK = 5`, `checkin.rotatingCodeDefault = false`, `permanence.threshold.active = 60`, `permanence.threshold.new = 80`, `permanence.threshold.probation = 80`, `permanence.threshold.transfer = 70`, `permanence.probationMargin = 10`, versión de la política |
+| `AppConfig` | `key` único, `value`, `updatedById?` | `committees.min = 1`, `committees.max = 3`, `assemblies.requiredOrdinary = 1`, `permanence.assembliesForCredit = 3`, `score.shrinkK = 5`, `checkin.rotatingCodeDefault = false`, `permanence.threshold.active = 60`, `permanence.threshold.new = 80`, `permanence.threshold.probation = 80`, `permanence.threshold.transfer = 70`, `permanence.probationMargin = 10`, `permanence.evaluationWindowDays = 14`, `permanence.warningDays = 21`, versión de la política |
 | `Outbox` | `eventType`, `payload` JSON, `dedupeKey?`, `attempts`, `nextAttemptAt`, `processedAt?`, `deadLetterAt?`, `lastError?` | Un pendiente por `dedupeKey` |
 | `ImportJob` | `type` (`ROSTER`, `GHPOINTS`), `status` (`PREVIEW`, `APPLIED`, `DISCARDED`, `FAILED`), `filename`, `fileKey?` (`imports/AAAA/MM/<id>.<ext>`), `termId?`, `mapping` JSON, `payload` JSON (filas validadas y diff de la vista previa), `summary` JSON, `createdById?`, `appliedAt?` | Roster por término (formato en [13-importacion-del-roster.md](13-importacion-del-roster.md)) y migración; el archivo original queda en el bucket privado como objeto propio, no como `MediaAsset` |
 | `LegacyAlias` | `path` único, `targetType` (`OCCASION`), `targetId` | `/asamblea/{publicId}` de GHPOINTS y los `publicId` retirados de sus historiales (`/a/…` y `/asamblea/…`); los `publicId` vigentes no necesitan alias porque `/a/{publicId}` es la misma URL |
@@ -197,5 +203,13 @@ Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().
 | `Tag(lower(name))` único; `PersonTag(personId, tagId)` único | Sin etiquetas repetidas |
 | `OnboardingProgress(personId, termId, stepKey)` único | Un avance por paso |
 | `Document(fileKey)` único; `DocumentArticle(documentId, articleKey)` único | Un registro por PDF y un artículo por clave |
+| `PermanenceRule(termId, key) WHERE scope = 'GENERAL'` y `(termId, committeeId, key) WHERE scope = 'COMMITTEE'` | Una clave por tabla |
+| `PermanenceTable(termId) WHERE scope = 'GENERAL'` y `(termId, committeeId) WHERE scope = 'COMMITTEE'` | Un bloqueo y comentario por tabla |
+| `WorkGroup(termId, code) WHERE code IS NOT NULL` | Un comité de trabajo por código y término |
+| `WorkGroupEvaluator(groupId, personId)` y `WorkGroupMembership(groupId, personId)` únicos | Sin evaluadores ni miembros repetidos |
+| `LeaderScore(ruleId, personId)` y `ManualCredit(ruleId, personId)` únicos | Un puntaje y un crédito por criterio y persona |
+| `PermanenceSnapshot(termId, personId)` único | Un snapshot por persona y término |
+| `PermanenceDecision(termId, personId, committeeId) WHERE committeeId IS NOT NULL` y `(termId, personId) WHERE committeeId IS NULL` | Una decisión por comité y una por persona |
+| `Recognition(termId, committeeId, month) WHERE kind = 'MEMBER_OF_MONTH'` | Un destacado por comité y mes |
 
-Reglas que viven en el dominio y se prueban en integración: tope de 3 comités por término para activos, `APPROVED ⇔ una entrada CHECKIN viva`, término derivado de la fecha, ledger cerrado tras `pointsClosedAt`, transiciones de etapa y de ocasión.
+Reglas que viven en el dominio y se prueban en integración: tope de 3 comités por término para activos, `APPROVED ⇔ una entrada CHECKIN viva`, término derivado de la fecha, ledger cerrado tras `pointsClosedAt`, transiciones de etapa y de ocasión, `params` válidos por tipo de cálculo, nota obligatoria en evaluaciones insuficientes y puntajes por debajo del peso, motivo obligatorio al cambiar una propuesta, permanencia cerrada tras `permanenceClosedAt`.

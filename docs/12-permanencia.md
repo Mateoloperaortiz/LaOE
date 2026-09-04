@@ -1,6 +1,6 @@
 # Permanencia
 
-Cada semestre, Gestión Humana evalúa a cada miembro con **dos tablas de criterios ponderados**: la **general** (de la junta, la aplica GH a toda la OE) y la **de su comité** (la define cada comité). La persona obtiene un **resultado por cada comité** al que pertenece: lo que cumplió en la tabla general más lo que cumplió en la tabla de ese comité. Con ese resultado se decide su permanencia según su condición: activo **60 %**, nuevo o en periodo de prueba **80 %**, transferencia interna a un comité **70 %** en ese comité. Hoy todo vive en hojas de cálculo y la persona se entera al final; en la casa digital es un tablero que cada miembro ve en tiempo real. Reglas en [ADR-025](adr/ADR-025-permanencia-scorecard.md), [ADR-026](adr/ADR-026-permanencia-por-comite.md) y [ADR-027](adr/ADR-027-permanencia-reglas-de-gh.md).
+Cada semestre, Gestión Humana evalúa a cada miembro con **dos tablas de criterios ponderados**: la **general** (de la junta, la aplica GH a toda la OE) y la **de su comité** (la define cada comité). La persona obtiene un **resultado por cada comité** al que pertenece: lo que cumplió en la tabla general más lo que cumplió en la tabla de ese comité. Con ese resultado se decide su permanencia según su condición: activo **60 %**, nuevo o en periodo de prueba **80 %**, transferencia interna a un comité **70 %** en ese comité. Hoy todo vive en hojas de cálculo y la persona se entera al final; en la casa digital es un tablero que cada miembro ve en tiempo real. Reglas en [ADR-025](adr/ADR-025-permanencia-scorecard.md), [ADR-026](adr/ADR-026-permanencia-por-comite.md), [ADR-027](adr/ADR-027-permanencia-reglas-de-gh.md), [ADR-028](adr/ADR-028-permanencia-consecuencias.md) y, para la implementación de la fase 4, [ADR-036](adr/ADR-036-permanencia-fase-4.md).
 
 ## Cómo funciona en la OE (respuestas de GH, 2026-09-02)
 
@@ -60,9 +60,9 @@ Son distintos de los 27 comités de pertenencia. Se cargan como grupos de trabaj
 
 ## Cómo se modela
 
-1. **Las reglas son datos, no código.** `PermanenceRule` guarda, por término, cada criterio con su ámbito (`GENERAL` o `COMMITTEE` con su comité), su peso, a quién aplica (todos, nuevos, veteranos), cómo se calcula y sus parámetros. GH copia la tabla general del término anterior; cada líder hace lo mismo con la de su comité. El editor muestra la suma de cada tabla frente a su valor nominal (50 y 60) y avisa si se aleja, sin bloquear, porque la suma no es exacta.
+1. **Las reglas son datos, no código.** `PermanenceRule` guarda, por término, cada criterio con su ámbito (`GENERAL` o `COMMITTEE` con su comité), su peso (el máximo que da), a quién aplica (todos, nuevos, veteranos), cómo se calcula y sus parámetros validados por tipo. GH copia la tabla general del término anterior o carga la de referencia (la de 2026-2 transcrita abajo); cada líder hace lo mismo con la de su comité. El editor muestra la suma de veteranos y la de nuevos de cada tabla frente a su valor nominal (50 y 60) y avisa a partir de 5 puntos de diferencia, sin bloquear, porque la suma no es exacta. GH puede comentar y bloquear cada tabla de comité (`PermanenceTable`): el líder deja de editarla; ADMIN siempre puede.
 2. **Todo criterio sale de hechos registrados.** Check-ins con categoría de ocasión, pertenencia a grupos de trabajo con evaluación explícita del director de GH del frente, puntajes del líder de comité y créditos manuales auditados. "Buen desempeño" nunca se calcula: lo registra una persona.
-3. **Un resultado por comité.** El snapshot por persona y término guarda la parte general y, por cada comité de la persona, la parte del comité, el total, el umbral que le aplica (60, 80 o 70) y el estado. No hay comité principal ni promedios.
+3. **Un resultado por comité.** El snapshot por persona y término guarda la parte general y, por cada comité de la persona, la parte del comité, el total, el umbral que le aplica (60, 80 o 70), lo que aún es posible y el estado. No hay comité principal ni promedios. Se recalcula por outbox (por persona tras un check-in, evaluación, puntaje o crédito; por término tras cambiar una regla, cerrar una ocasión o cada día) y la vista propia del miembro se calcula en vivo con la misma función mientras el semestre está abierto.
 4. **Umbral por condición.** `permanence.threshold.active = 60`, `permanence.threshold.new = 80`, `permanence.threshold.probation = 80`, `permanence.threshold.transfer = 70`, `permanence.probationMargin = 10`. Nuevo = primer término (ADR-008); en prueba = `MembershipTerm.probation`; transferencia = `CommitteeMembership.transferredIn`.
 5. **La persona siempre ve dónde va**, con el desglose y lo que aún puede sumar.
 
@@ -70,17 +70,17 @@ Son distintos de los 27 comités de pertenencia. Se cargan como grupos de trabaj
 
 | Tipo | Parámetros | Ejemplo |
 | --- | --- | --- |
-| `CHECKIN_COUNT` | categoría de ocasión, porcentaje por unidad, tope, filtro `newMembersOnly` | Integraciones: `INTEGRATION`, 2 % cada una, tope 10 % |
-| `CHECKIN_THRESHOLD` | tipo de ocasión, mínimo de check-ins, peso | Asambleas: al menos 3 (ordinarias, elección y segunda vuelta cuentan), 10 % |
-| `CHECKIN_RATE` | categoría de ocasión, comité | Reuniones de comité: 15 % multiplicado por la tasa de asistencia |
-| `GROUP_EVALUATED` | tipo de grupo, peso fijo o por evento, o tramos por cantidad | Comité de trabajo 6 %; GAP OE 3 % por evento; GT por cantidad 1 → 4 %, 2 → 6 %, 3 o más → 8 % |
-| `COMPOSITE` | umbral de check-ins más evaluación de grupo | Barra brava: 3 partidos `ATHLETIC_MATCH` y evaluación `GOOD` |
-| `LEADER_SCORE` | peso, obligatorio o no | Subcomité, liderazgo o destacado (0 a 10 %); convivencia (5 % por defecto, observación obligatoria si baja) |
-| `MANUAL` | peso, requiere motivo | Criterios que GH reconoce a mano |
+| `CHECKIN_COUNT` | filtro de ocasiones (categoría, tipo, comité, solo nuevos: todas, solo o sin las de nuevos, ocasiones concretas, esperadas en el semestre), porcentaje por asistencia; el peso es el tope | Integraciones: `INTEGRATION` sin las de solo nuevos, 2 % cada una, peso 10 %, 10 esperadas |
+| `CHECKIN_THRESHOLD` | filtro de ocasiones, mínimo de check-ins; el peso se da completo al llegar | Asambleas: tipo `ASSEMBLY`, al menos 3 (ordinarias, elección y segunda vuelta cuentan), 10 % |
+| `CHECKIN_RATE` | categoría (reuniones de comité) sobre las ocasiones del propio comité | Reuniones de comité: 15 % multiplicado por asistidas sobre celebradas (las reuniones pasadas y no canceladas en las que la persona ya estaba en el comité) |
+| `GROUP_EVALUATED` | tipo de grupo (y código opcional), modo fijo, por grupo o por tramos | Comité de trabajo fijo 6 %; GAP OE 3 % por grupo con peso 6 %; GT por tramos 1 → 4 %, 2 → 6 %, 3 o más → 8 % |
+| `COMPOSITE` | filtro y mínimo de check-ins más tipo de grupo | Barra brava: 3 partidos `ATHLETIC_MATCH` (3 esperados) y un grupo `BARRA_BRAVA` con `GOOD` |
+| `LEADER_SCORE` | obligatorio o no | Subcomité, liderazgo o destacado (0 a 10 %, sin puntaje vale 0); convivencia obligatoria (sin puntaje vale el 5 % completo; observación obligatoria si baja) |
+| `MANUAL` | ninguno; el crédito lleva motivo | Criterios que GH reconoce a mano, hasta el peso |
 
 ### Grupos de trabajo y evaluaciones
 
-`WorkGroup` por término con `kind` (`WORK_COMMITTEE`, `GT_MACROEVENT`, `GAP`, `GAP_OE`, `BARRA_BRAVA`, `NEW_MEMBER_TASK`), nombre, código, evento o edición asociada, quién lo lidera y quiénes lo **evalúan** (`WorkGroupEvaluator`: el director de GH de ese frente; en tareas de nuevos, el GH principal; en el Athletic, el capitán y el DT). Las evaluaciones se hacen al cerrar el semestre: la ventana se abre dos semanas antes del cierre. Las personas entran a los grupos por **convocatorias internas** desde Mi OE (formulario con cupo, ventana y selección) o por carga de GH ([ADR-031](adr/ADR-031-autogestion-del-miembro.md)). `WorkGroupMembership` une persona y grupo, con `evaluation` (`PENDING`, `GOOD`, `INSUFFICIENT`), quién evaluó, cuándo y una nota. Una evaluación pendiente se muestra como "pendiente" y al cerrar el término cuenta como no lograda salvo que GH la resuelva. Cada evaluación queda en la línea de tiempo de la persona.
+`WorkGroup` por término con `kind` (`WORK_COMMITTEE`, `GT_MACROEVENT`, `GAP`, `GAP_OE`, `BARRA_BRAVA`, `NEW_MEMBER_TASK`), nombre, código, evento o edición asociada, quién lo lidera y quiénes lo **evalúan** (`WorkGroupEvaluator`: el director de GH de ese frente; en tareas de nuevos, el GH principal; en el Athletic, el capitán y el DT). Las evaluaciones se hacen al cerrar el semestre: la ventana se abre dos semanas antes del cierre. Las personas entran a los grupos por **convocatorias internas** desde Mi OE (formulario con cupo, ventana y selección) o por carga de GH ([ADR-031](adr/ADR-031-autogestion-del-miembro.md)). `WorkGroupMembership` une persona y grupo, con `evaluation` (`PENDING`, `GOOD`, `INSUFFICIENT`), quién evaluó, cuándo y una nota (obligatoria si es insuficiente). Una evaluación pendiente se muestra como "pendiente" y al cerrar el término cuenta como no lograda salvo que GH la resuelva (ADMIN evalúa en cualquier momento; los evaluadores solo dentro de la ventana). Cada evaluación queda en la línea de tiempo de la persona. Los seis comités de trabajo y el Athletic se siembran por término con el líder que da su cargo de junta; los evaluadores los asigna GH. Los líderes de grupo y los evaluadores entran al admin por esas filas, sin permiso técnico, y solo ven sus grupos.
 
 ### Estados del resultado en un comité
 
@@ -93,11 +93,11 @@ Son distintos de los 27 comités de pertenencia. Se cargan como grupos de trabaj
 | `PRUEBA` | Término cerrado con total entre el umbral y 10 puntos por debajo: periodo de prueba el término siguiente |
 | `NO_CUMPLE` | Término cerrado con total más de 10 puntos por debajo del umbral: sale de ese comité; si no le queda otro donde cumpla o esté en prueba, sale de la OE |
 
-"Lo que aún es posible" usa las ocasiones futuras del término (integraciones, partidos, reuniones) y los grupos abiertos. Las asambleas obligatorias se muestran aparte como "obligatorias: 1 de 2", con aviso antes de cada una: faltar implica retiro de la OE.
+"Lo que aún es posible" usa las ocasiones futuras del término (integraciones, partidos, reuniones) o, si el calendario no está cargado, las esperadas que declara la regla; en grupos cuenta el peso completo hasta que abre la ventana de evaluación (todavía se puede entrar a uno) y dentro de la ventana solo lo pendiente; en puntajes del líder y créditos, lo que falta hasta el cierre. Con margen `total + posible − umbral`: 10 o más es en camino, entre 0 y 10 en riesgo, negativo no alcanza. El snapshot guarda además el estado final "como si cerrara hoy", que usa el cierre. Las asambleas obligatorias se muestran aparte como "obligatorias: 1 de 2", con aviso antes de cada una: faltar implica retiro de la OE.
 
 ### Cierre del término
 
-Al cerrar, la app **propone** para cada persona y comité el estado según los umbrales y el margen de prueba, con la regla de GH: `NO_CUMPLE` en un comité es salida de ese comité; si a la persona no le queda ningún comité donde esté en `CUMPLE` o `PRUEBA`, salida de la OE; faltar a una asamblea obligatoria también propone salida de la OE. GH confirma o corrige con motivo y queda `PermanenceDecision` (`CONTINUES`, `PROBATION`, `EXIT_COMMITTEE`, `EXIT_OE`). `EXIT_OE` ejecuta "dar de baja" ([ADR-003](adr/ADR-003-etapas-por-comando.md)); `PROBATION` marca el término siguiente. Nada se aplica sin la confirmación de GH.
+Con los puntos del término ya cerrados, la app **propone** para cada persona y comité el estado según los umbrales y el margen de prueba, con la regla de GH: `NO_CUMPLE` en un comité es salida de ese comité; si a la persona no le queda ningún comité donde esté en `CUMPLE` o `PRUEBA`, salida de la OE; faltar a una asamblea obligatoria también propone salida de la OE. Las propuestas se derivan del snapshot; GH confirma por persona (cambiar exige motivo) o todas en bloque, y queda `PermanenceDecision` (`CONTINUES`, `PROBATION`, `EXIT_COMMITTEE`, `EXIT_OE`). "Aplicar cierre" (con step-up) congela los snapshots, estampa `permanenceClosedAt`, crea el término siguiente si falta y encola un job reanudable que ejecuta cada decisión con el actor que la confirmó: `EXIT_OE` ejecuta "dar de baja" con motivo permanencia ([ADR-003](adr/ADR-003-etapas-por-comando.md)); `PROBATION` marca el término siguiente; `EXIT_COMMITTEE` cierra la pertenencia (el roster del término siguiente lo refleja al importarse). Nada se aplica sin la confirmación de GH. Las evaluaciones pendientes cuentan como no logradas y el cierre lo advierte.
 
 ## Lo que ve el miembro (`/app/permanencia`)
 
@@ -107,30 +107,30 @@ Al cerrar, la app **propone** para cada persona y comité el estado según los u
 - Evaluaciones pendientes con quién debe evaluarlas.
 - Si la persona es nueva, arriba aparece su lista de onboarding de la primera semana, ligada a sus criterios (integración de nuevos, decoración de oficina).
 - Historial desde la línea de tiempo. Barra compacta en el inicio de Mi OE.
-- Avisos por push o correo a mitad de término, tres semanas antes del cierre si está por debajo, y el resumen al cerrar.
+- Avisos en Mi OE a mitad de término, tres semanas antes del cierre si está por debajo, cuando ya no alcanza y antes de cada asamblea obligatoria; el resumen al cerrar en la misma página. Push y correo llegan en la fase 6 sobre los mismos avisos.
 
 ## Lo que ve GH (`/admin/permanencia`)
 
 - **Tabla general** del término: copiar del anterior, editar, vista previa del impacto sobre el roster.
-- **Tablas de comité**: las 27 en una vista, con su suma frente a los 60 nominales, comentarios y bloqueo al iniciar el término.
+- **Tablas de comité**: las 27 en una vista, con su suma frente a los 60 nominales, comentario y bloqueo por tabla (o todas) al iniciar el término.
 - **Grupos**: crear grupos de trabajo del término con líder, evaluador e miembros; importar desde CSV; los seis comités de trabajo y el Athletic vienen sembrados.
 - **Evaluaciones**: ventana que se abre dos semanas antes del cierre del término; bandeja de pendientes por evaluador; recordatorios.
-- **Cumplimiento**: roster con resultado por comité, condición, umbral y estado; filtros "por debajo", "no alcanza", "en prueba", "nuevos"; export.
-- **Cierre**: propuesta automática por persona y comité, confirmación con motivo, registro.
+- **Cumplimiento**: roster con resultado por comité, condición, umbral y estado; filtros "por debajo", "no alcanza", "en prueba", "nuevos", "exentos"; recálculo a pedido; export con step-up.
+- **Cierre**: propuesta automática por persona y comité, confirmación por persona o en bloque, aplicación con step-up y avance del job; solo con los puntos cerrados.
 - **Persona 360**: pestaña Permanencia con el mismo desglose que ve la persona.
 
 ## Lo que ve el líder de comité (`/admin/comites/[slug]/permanencia`)
 
-- **Tabla del comité**: criterios y pesos; suma frente a los 60 nominales; copiar del término anterior.
+- **Tabla del comité**: criterios y pesos; suma frente a los 60 nominales; copiar del término anterior; bloqueada cuando GH lo decide.
 - **Reuniones**: crear la serie semanal como ocasiones `COMMITTEE_MEETING` sin puntos; pasar asistencia con el modo anfitrión.
 - **Eventos del comité**: ocasiones con `committeeId` ligadas a los criterios de eventos.
 - **Puntajes**: subcomité, liderazgo o destacado del mes (0 a 10 %) y convivencia (5 % por defecto); si baja el valor, la observación es obligatoria y la persona la ve.
-- **Destacado del mes**: al asignarlo se publica en la cartelera del comité y como insignia en el perfil de la persona, si dio consentimiento de directorio.
+- **Destacado del mes**: al asignarlo se publica en la cartelera interna del comité y como insignia en las tarjetas de la persona, si dio consentimiento de directorio; sin consentimiento queda registrado sin publicarse.
 - **Progreso de sus miembros** en su comité: resultado, quién no ha ido a reuniones, quién está en riesgo o en prueba.
 
 ## Lo que ve el director de GH de un frente
 
-Bandeja con los grupos que evalúa (`WorkGroupEvaluator`), sus miembros y el botón de evaluación con nota, disponible desde dos semanas antes del cierre del término; sin acceso al resto del roster. El capitán y el DT del Athletic y el GH de turno para la barra brava usan la misma vista.
+Bandeja con los grupos que evalúa (`WorkGroupEvaluator`), sus miembros y el botón de evaluación con nota, disponible desde dos semanas antes del cierre del término (`permanence.evaluationWindowDays`); sin acceso al resto del roster. El capitán y el DT del Athletic y el GH de turno para la barra brava usan la misma vista. Mientras la ventana está cerrada, Mi OE le muestra la fecha; al abrirse, cuántas tiene pendientes.
 
 ## Relación con GH Points
 

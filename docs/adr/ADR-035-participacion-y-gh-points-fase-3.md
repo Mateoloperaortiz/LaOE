@@ -1,6 +1,6 @@
 # ADR-035: Participación y GH Points (fase 3)
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-036)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-020, ADR-024, ADR-028, ADR-030, ADR-031, ADR-032, ADR-034
 - Enmienda: ADR-006 (transiciones del check-in), ADR-009 (filas del score solo con elegibles, congelado y transacción propia), ADR-024 (una sola ordinaria obligatoria, aclaración de redacción), ADR-034 (punto 1: el término pasa a un módulo `terms`), 03-modelo (`rotatingSecret`, columnas nuevas de la ocasión, `assembly_requirement` solo para ajustes) y 05-acceso (step-up para cancelar con créditos y para cerrar puntos; líderes en el admin)
@@ -48,3 +48,7 @@ Decisiones que Mateo cerró el 2026-09-03 para esta fase: el líder de comité c
 ## Frente a GHPOINTS
 
 GHPOINTS bloqueaba la fila de la temporada en cada check-in (un solo punto de contención para toda la OE), recalculaba el score de todos los comités dentro del request, tenía un token dinámico sin vencimiento que nunca se activó, infería el origen por `referer`, no tenía contador en vivo en actividades, dejaba `REJECTED` como estado terminal, escribía un score por cada comité aunque no tuviera elegibles, guardaba el Hall of Fame con nombres sin ids y acumuló 31 actividades abiertas para siempre. Aquí el unique decide los duplicados, el score corre por outbox con clave por ocasión, el código rota cada minuto sin estado, el origen es explícito, la consola se actualiza sola, un rechazo se puede reaprobar, el score solo guarda comités con elegibles, el standing guarda ids y las ocasiones se cierran solas.
+
+## Enmienda (2026-09-04, ADR-036)
+
+El layout del admin admite además `BOARD` y a quien lidere o evalúe un grupo de trabajo del término actual (roles derivados de los datos, compuestos en `src/app`). `term.points-closed` y `occasion.closed` ganan handlers en `permanence` que encolan el recompute. Ver [ADR-036](ADR-036-permanencia-fase-4.md).

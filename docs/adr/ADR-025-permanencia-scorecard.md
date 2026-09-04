@@ -1,6 +1,6 @@
 # ADR-025: Permanencia como tablero de criterios configurable por término
 
-- Estado: Aceptada (enmendada por ADR-026 y ADR-027)
+- Estado: Aceptada (enmendada por ADR-026, ADR-027 y ADR-036)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-003, ADR-004, ADR-006, ADR-008, ADR-012, ADR-024, ADR-026
 
@@ -32,3 +32,7 @@ Las reglas tienen dos ámbitos: las de la OE (GH) y las de cada comité, cada un
 ## Enmienda (2026-09-02, ADR-027)
 
 El umbral deja de ser configurable por término: es fijo por condición (60 % activo, 80 % nuevo o en prueba, 70 % transferencia interna). Los estados incorporan `PRUEBA` (hasta 10 puntos por debajo) y el cierre propone automáticamente y ADMIN confirma. Ver [ADR-027](ADR-027-permanencia-reglas-de-gh.md).
+
+## Enmienda (2026-09-04, ADR-036)
+
+El snapshot se recalcula por outbox con clave por término o por persona (no por cada evento suelto) y un lock por término; la vista propia del miembro se calcula en vivo mientras el término está abierto y lee el snapshot congelado después del cierre. Los estados con término abierto salen del margen `total + posible − umbral` y el snapshot guarda además el estado final como si cerrara hoy. Las decisiones del cierre solo se materializan cuando GH las confirma; las propuestas se derivan. Ver [ADR-036](ADR-036-permanencia-fase-4.md).

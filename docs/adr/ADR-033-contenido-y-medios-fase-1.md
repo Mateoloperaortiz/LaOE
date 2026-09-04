@@ -1,6 +1,6 @@
 # ADR-033: Contenido editable y medios del portal público (fase 1)
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-036)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-014, ADR-017, ADR-020, ADR-022, ADR-023, ADR-032
 
@@ -38,3 +38,7 @@ Hechos verificados el 2026-09-03 en la documentación de Next 16.3 incluida en `
 ## Frente a GHPOINTS
 
 GHPOINTS guarda `MediaAsset` sin variantes y sirve las portadas por su propia ruta; aquí las variantes las genera el outbox y la entrega es una redirección prefirmada. Los modelos de evento y edición se conservan casi iguales (más `description` en la edición y `sortOrder` en el evento), así la migración de la fase 7 los copia sin transformar.
+
+## Enmienda (2026-09-04, ADR-036)
+
+`announcement` gana `committeeId?`: un anuncio de comité vive en la cartelera interna de ese comité (`/app/comites/[slug]`) y no en la cartelera general ni en el portal. Ver [ADR-036](ADR-036-permanencia-fase-4.md).

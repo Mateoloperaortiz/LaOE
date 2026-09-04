@@ -49,7 +49,10 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Tablas de permanencia de los 27 comités del término (ejemplo recibido: A3, con los eventos 1 y 2 aún sin peso)
 - [ ] Lista de directores de GH por frente (GH la envía cuando termine de limpiar su base)
 - [ ] Nombres del capitán y el DT del Athletic
-- [ ] Calendario de integraciones y de partidos del Athletic del término
+- [ ] Calendario de integraciones y de partidos del Athletic del término (mientras no esté, las reglas usan 10 integraciones y 3 partidos esperados, como dijo GH)
+- [ ] Confirmar con GH los supuestos de la fase 4: prueba con transferencia usa 80 %; en licencia y honorarios no se evalúan; las evaluaciones pendientes al cerrar cuentan como no logradas; el aviso del nominal salta a 5 puntos
+- [ ] Descripción de una línea de cada criterio de la tabla general (T-126) y de los criterios de cada comité
+- [ ] Textos sensibles del cierre: periodo de prueba (T-203) y salida (T-204), que hoy GH comunica en persona porque la app no manda correos hasta la fase 6
 
 ## Operación
 

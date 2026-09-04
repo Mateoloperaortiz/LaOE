@@ -1,6 +1,6 @@
 # ADR-028: Permanencia: consecuencias, asambleas obligatorias y evaluación al cierre
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-036)
 - Fecha: 2026-09-02
 - Enmienda: ADR-024 (asambleas) y ADR-027 (puntos 4, 7 y 8)
 
@@ -22,3 +22,7 @@ Miguel Gaviria, GH principal, respondió el 2026-09-02 las siete preguntas que q
 - El cierre calcula la propuesta con la regla del punto 1 y con `mandatoryAssembliesMet`; nada se aplica sin la confirmación de GH.
 - Las obligatorias se muestran aparte del criterio del 10 %, con aviso previo y consecuencia explícita.
 - No queda ninguna decisión de permanencia abierta; sigue pendiente solo el plazo de anonimización de egresados, que es de la junta.
+
+## Enmienda (2026-09-04, ADR-036)
+
+La ventana de evaluación se configura (`permanence.evaluationWindowDays = 14`) y rige a los evaluadores; ADMIN evalúa en cualquier momento. Las evaluaciones pendientes al aplicar el cierre cuentan como no logradas y la app lo advierte sin bloquear. Las consecuencias se ejecutan con comandos de `people` desde un job reanudable, con el actor que confirmó cada decisión. Ver [ADR-036](ADR-036-permanencia-fase-4.md).

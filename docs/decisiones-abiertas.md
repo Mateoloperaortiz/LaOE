@@ -58,3 +58,6 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | 2026-09-03 | ¿Qué ve un miembro en los rankings de GH Points? | Top 10 con nombres (foto solo con consentimiento de directorio) más el puesto y total propios; nadie ve el fondo de la tabla ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
 | 2026-09-03 | ¿Qué mejoras extra entran en la fase 3? | Escaneo del carnet con la cámara en modo anfitrión, ocasiones en serie semanal (adelantadas de la fase 4) y cierre automático de ocasiones ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
 | 2026-09-03 | ¿Exportes también en XLSX? | No en la fase 3: los exportes son CSV con step-up |
+| 2026-09-04 | ¿Qué entra en la fase 4 además del núcleo de permanencia? | Todo lo del roadmap: panel de la junta con `BOARD`, reconocimientos (destacado del mes) e importación CSV de miembros a grupos ([ADR-036](adr/ADR-036-permanencia-fase-4.md)) |
+| 2026-09-04 | ¿Por qué canal van los avisos de permanencia en la fase 4? | Solo en Mi OE; push y correo llegan en la fase 6 sobre los mismos avisos ([ADR-036](adr/ADR-036-permanencia-fase-4.md)) |
+| 2026-09-04 | ¿El cierre de permanencia exige cerrar antes los puntos? | Sí: las propuestas se ven siempre, pero confirmar y aplicar exige `pointsClosedAt` ([ADR-036](adr/ADR-036-permanencia-fase-4.md)) |

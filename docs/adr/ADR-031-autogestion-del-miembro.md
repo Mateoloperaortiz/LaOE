@@ -1,6 +1,6 @@
 # ADR-031: Autogestión del miembro: solicitudes, convocatorias, datos propios, onboarding, reconocimientos, encuestas y panel de la junta
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-036)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-003, ADR-011, ADR-013, ADR-014, ADR-025, ADR-027, ADR-030
 
@@ -24,3 +24,7 @@ Con más de 500 miembros, lo que hoy pasa por hojas de cálculo, Forms y WhatsAp
 - Las solicitudes y las convocatorias reutilizan el módulo de formularios; no hay un segundo constructor.
 - Reparto en el roadmap: datos propios y onboarding en la fase 2; reconocimientos y panel de la junta en la fase 4; solicitudes y convocatorias en la fase 5; encuesta tras ocasión en la fase 6.
 - Al backlog, por decisión de Mateo: votación electrónica de la junta (cuando la asistencia funcione sin fallas y con reglas de los estatutos), actas de reunión, subcomités como tipo de grupo, inventario y préstamos, álbum por edición, modo anfitrión sin señal. Los certificados de participación no se priorizaron.
+
+## Enmienda (2026-09-04, ADR-036)
+
+Los avisos de permanencia de la fase 4 (mitad de término, tres semanas antes, "no alcanza", asamblea obligatoria, evaluaciones pendientes) se muestran solo en Mi OE; push y correo llegan en la fase 6 sobre la misma función. El reconocimiento se publica como anuncio de la cartelera del comité (`announcement.committeeId`), que no aparece en la cartelera general, y como insignia en las tarjetas; sin consentimiento de directorio queda registrado sin publicarse. Ver [ADR-036](ADR-036-permanencia-fase-4.md).
