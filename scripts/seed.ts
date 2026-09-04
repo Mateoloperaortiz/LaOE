@@ -15,6 +15,12 @@ import {
   membership,
   person,
 } from "@/modules/people/schema";
+import {
+  referenceCommitteeRules,
+  referenceGeneralRules,
+  ruleInputSchema,
+} from "@/modules/permanence";
+import { permanenceRule } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { logger } from "@/shared/log";
 
@@ -292,13 +298,26 @@ async function seedConsents(): Promise<void> {
 async function seedAppointments(terms: Map<string, string>): Promise<void> {
   const current = terms.get("2026-2");
   if (!current) throw new Error("falta término");
-  const cargos: Array<{ email: string; kind: "PRESIDENT" | "VP_GH" | "GH_HEAD" | "GH_DIRECTOR" }> =
-    [
-      { email: "oe.demo.01@eafit.edu.co", kind: "PRESIDENT" },
-      { email: "oe.demo.02@eafit.edu.co", kind: "VP_GH" },
-      { email: "oe.demo.03@eafit.edu.co", kind: "GH_HEAD" },
-      { email: "oe.demo.05@eafit.edu.co", kind: "GH_DIRECTOR" },
-    ];
+  const cargos: Array<{
+    email: string;
+    kind:
+      | "PRESIDENT"
+      | "VP_GH"
+      | "VP_PUBLIC_RELATIONS"
+      | "VP_ADMIN"
+      | "VP_FINANCE"
+      | "GH_HEAD"
+      | "GH_DIRECTOR";
+  }> = [
+    { email: "oe.demo.01@eafit.edu.co", kind: "PRESIDENT" },
+    { email: "oe.demo.02@eafit.edu.co", kind: "VP_GH" },
+    { email: "oe.demo.03@eafit.edu.co", kind: "GH_HEAD" },
+    { email: "oe.demo.05@eafit.edu.co", kind: "GH_DIRECTOR" },
+    // Fase 4 (ADR-036): las vicepresidencias lideran los comités de trabajo.
+    { email: "oe.demo.06@eafit.edu.co", kind: "VP_PUBLIC_RELATIONS" },
+    { email: "oe.demo.10@eafit.edu.co", kind: "VP_ADMIN" },
+    { email: "oe.demo.09@eafit.edu.co", kind: "VP_FINANCE" },
+  ];
   for (const cargo of cargos) {
     const [who] = await db
       .select({ id: person.id })
@@ -366,6 +385,32 @@ async function seedAdmin(
 
 // Contenido sintético para ver el portal en local y staging: anuncios "de prueba" y una edición "de
 // prueba" por macroevento con fechas relativas a hoy. No son fechas ni textos de la OE (11-contenido-pendiente.md).
+// Tablas de permanencia de referencia (ADR-036 regla 3): la general de 2026-2 y la de A3 en el
+// primer comité, idempotentes por clave; GH las ajusta desde /admin/permanencia/reglas.
+async function seedPermanenceRules(
+  terms: Map<string, string>,
+  committees: Array<{ id: string; slug: string }>,
+): Promise<void> {
+  const current = terms.get("2026-2");
+  if (!current) throw new Error("falta término");
+  const general = referenceGeneralRules(3).map((input) => ruleInputSchema.parse(input));
+  for (const input of general) {
+    await db
+      .insert(permanenceRule)
+      .values({ termId: current, scope: "GENERAL", committeeId: null, ...input })
+      .onConflictDoNothing();
+  }
+  const a3 = committees.find((item) => item.slug === "a3") ?? committees[0];
+  if (a3) {
+    for (const input of referenceCommitteeRules().map((item) => ruleInputSchema.parse(item))) {
+      await db
+        .insert(permanenceRule)
+        .values({ termId: current, scope: "COMMITTEE", committeeId: a3.id, ...input })
+        .onConflictDoNothing();
+    }
+  }
+}
+
 async function seedContent(committees: Array<{ id: string; slug: string }>): Promise<void> {
   const day = 24 * 60 * 60_000;
   const anuncios = [
@@ -569,6 +614,7 @@ try {
   await seedAdmin(terms, committees);
   await seedConsents();
   await seedAppointments(terms);
+  await seedPermanenceRules(terms, committees);
   await seedContent(committees);
   await seedOccasions(terms, committees);
   const [people] = await db.select({ n: count() }).from(person).where(eq(person.source, "SEED"));

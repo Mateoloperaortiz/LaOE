@@ -112,6 +112,8 @@ export async function loadTermFacts(termId: string): Promise<TermFacts | null> {
       startsOn: term.startsOn,
       endsOn: term.endsOn,
       requiredOrdinaryAssemblies: term.requiredOrdinaryAssemblies,
+      generalNominal: term.permanenceGeneralNominal,
+      committeeNominal: term.permanenceCommitteeNominal,
       pointsClosedAt: term.pointsClosedAt,
       permanenceClosedAt: term.permanenceClosedAt,
     },

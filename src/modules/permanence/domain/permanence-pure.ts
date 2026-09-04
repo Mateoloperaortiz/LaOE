@@ -27,6 +27,9 @@ export interface TermLike {
   startsOn: string;
   endsOn: string;
   requiredOrdinaryAssemblies: number;
+  /** Valores nominales de cada tabla (ADR-027): una tabla sin criterios vale su nominal como posible. */
+  generalNominal: number;
+  committeeNominal: number;
   pointsClosedAt: Date | null;
   permanenceClosedAt: Date | null;
 }
@@ -726,8 +729,17 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
     ? generalRules.map((rule) => computeCriterion(rule, facts, person, options))
     : [];
   const generalTotal = sum(general.map((item) => item.achieved));
-  const generalRemaining = sum(general.map((item) => item.remaining));
-  const generalMax = sum(generalRules.map((rule) => rule.weight));
+  // Sin tabla cargada, todo el nominal sigue siendo posible: nadie arranca en "no alcanza".
+  const generalRemaining =
+    generalRules.length === 0
+      ? closed
+        ? 0
+        : facts.term.generalNominal
+      : sum(general.map((item) => item.remaining));
+  const generalMax =
+    generalRules.length === 0
+      ? facts.term.generalNominal
+      : sum(generalRules.map((rule) => rule.weight));
   const results: CommitteeResult[] = evaluated
     ? liveCommittees.map((membership) => {
         const rules = applicable
@@ -737,7 +749,12 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
           .sort((a, b) => a.sortOrder - b.sortOrder);
         const criteria = rules.map((rule) => computeCriterion(rule, facts, person, options));
         const committeeTotal = sum(criteria.map((item) => item.achieved));
-        const committeeRemaining = sum(criteria.map((item) => item.remaining));
+        const committeeRemaining =
+          rules.length === 0
+            ? closed
+              ? 0
+              : facts.term.committeeNominal
+            : sum(criteria.map((item) => item.remaining));
         const total = round2(generalTotal + committeeTotal);
         const remaining = round2(generalRemaining + committeeRemaining);
         const shape = {
@@ -752,7 +769,10 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
           condition: conditionFor(shape),
           threshold,
           committeeTotal,
-          committeeMax: sum(rules.map((rule) => rule.weight)),
+          committeeMax:
+            rules.length === 0
+              ? facts.term.committeeNominal
+              : sum(rules.map((rule) => rule.weight)),
           total,
           remaining,
           margin: round2(total + remaining - threshold),

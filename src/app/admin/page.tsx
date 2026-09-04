@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireAdminOrLeaderActor } from "@/modules/identity";
-import { listCommitteesByIds } from "@/modules/people";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { requireAdminAreaRoles } from "./_kit/acceso";
 
 // Secciones del admin (T-160). Se enlazan las que ya existen; el resto llega por fases.
 const RUTAS: Record<string, string> = {
@@ -11,18 +10,28 @@ const RUTAS: Record<string, string> = {
   Comunidad: "/admin/comites",
   Contenido: "/admin/paginas",
   Participación: "/admin/ocasiones",
+  Permanencia: "/admin/permanencia/reglas",
+  Junta: "/admin/junta",
   Sistema: "/admin/sistema/jobs",
 };
 
 export default async function AdminHome() {
-  const actor = await requireAdminOrLeaderActor("/admin");
-  if (!actor.isAdmin) {
-    // Un líder entra derecho a su comité (ADR-035 regla 15).
-    const led = actor.permissions.filter(
-      (item) => item.code === "COMMITTEE_LEADER" && item.committeeId,
+  const roles = await requireAdminAreaRoles("/admin");
+  if (!roles.isAdmin) {
+    // Quien no es ADMIN entra derecho a lo suyo (ADR-035 regla 15, ADR-036 regla 10).
+    const committee = roles.ledCommittees[0];
+    const group = roles.ledGroups[0];
+    redirect(
+      committee
+        ? `/admin/comites/${committee.slug}`
+        : group
+          ? `/admin/permanencia/grupos/${group.id}`
+          : roles.evaluatedGroups.length > 0
+            ? "/admin/permanencia/evaluaciones"
+            : roles.isBoard
+              ? "/admin/junta"
+              : "/app",
     );
-    const committees = await listCommitteesByIds(led.map((item) => item.committeeId as string));
-    redirect(committees[0] ? `/admin/comites/${committees[0].slug}` : "/app");
   }
   const secciones = tList("T-160");
   return (

@@ -849,6 +849,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-840 | Grupos: opción sin líder en el formulario | Sin líder por ahora | MATEO | Propuesta |
 | T-841 | Reglas: criterios de la tabla de referencia de A3 (en el orden de 12-permanencia) | Asistencia a reuniones · Subcomité, liderazgo o destacado · Convivencia | COMITÉ | Propuesta; transcritos de la tabla que envió A3 |
 | T-842 | Reglas: claves de la tabla de referencia general (mismo orden que T-125) | integraciones · asambleas · gt-macroeventos · gap · gap-oe · comite-de-trabajo · barra-brava · decoracion-de-oficina · integracion-de-nuevos | MATEO | Propuesta |
+| T-843 | Reglas: borrar un criterio | Borrar criterio | MATEO | Propuesta |
 
 ## 6. Notificaciones
 

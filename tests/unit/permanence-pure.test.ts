@@ -20,6 +20,7 @@ import {
   type PermanenceConfig,
   type PersonFacts,
   proposeDecisions,
+  round2,
   ruleApplies,
   stateFor,
   type TermFacts,
@@ -50,6 +51,8 @@ const TERM = {
   startsOn: "2026-07-13",
   endsOn: "2026-12-05",
   requiredOrdinaryAssemblies: 1,
+  generalNominal: 50,
+  committeeNominal: 60,
   pointsClosedAt: null,
   permanenceClosedAt: null,
 };
@@ -832,6 +835,21 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
     });
   });
 
+  it("un comité sin tabla vale su nominal como posible: nadie arranca en no alcanza", () => {
+    const result = computePerson(
+      facts({ rules: generalRules() }),
+      person({ committees: [committee("pixel")] }),
+      NOW,
+    );
+    const pixel = result.results[0];
+    expect(pixel).toMatchObject({ committeeMax: 60, committeeTotal: 0, state: "EN_CAMINO" });
+    const generalRemaining = result.general.reduce((acc, item) => acc + item.remaining, 0);
+    expect(pixel?.remaining).toBe(round2(60 + generalRemaining));
+    const noTables = computePerson(facts({ rules: [] }), person(), NOW);
+    expect(noTables.generalMax).toBe(50);
+    expect(noTables.results[0]).toMatchObject({ remaining: 110, state: "EN_CAMINO" });
+  });
+
   it("quien está en licencia o sin comité no se evalúa", () => {
     const onLeave = computePerson(facts(), person({ status: "ON_LEAVE" }), NOW);
     expect(onLeave.evaluated).toBe(false);
@@ -912,8 +930,8 @@ describe("ventana, avisos y distribución", () => {
       }),
       late,
     );
-    // El manual sigue pudiendo subir hasta el cierre: margen 0, en riesgo. No alcanza exige una tasa sin reuniones futuras.
-    expect(hopeless.results[0]?.state).toBe("EN_RIESGO");
+    // Sin tabla general y con el manual abierto todo sigue posible: en camino. No alcanza exige una tasa sin reuniones futuras.
+    expect(hopeless.results[0]?.state).toBe("EN_CAMINO");
     const reuniones = rule(
       { key: "reuniones", label: "Reuniones", weight: 60, computation: "CHECKIN_RATE", params: {} },
       "COMMITTEE",

@@ -115,10 +115,18 @@ export async function seedCommitteeMembership(
   committeeId: string,
   termId: string,
   roleCode = "MIEMBRO",
+  overrides: Partial<{ joinedAt: Date | null; transferredIn: boolean }> = {},
 ): Promise<string> {
   const [row] = await db()
     .insert(committeeMembership)
-    .values({ personId, committeeId, termId, roleCode, joinedAt: new Date() })
+    .values({
+      personId,
+      committeeId,
+      termId,
+      roleCode,
+      joinedAt: overrides.joinedAt === undefined ? new Date() : overrides.joinedAt,
+      transferredIn: overrides.transferredIn ?? false,
+    })
     .returning({ id: committeeMembership.id });
   if (!row) throw new Error("seed committee membership");
   return row.id;

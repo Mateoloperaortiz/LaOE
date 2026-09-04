@@ -4622,4 +4622,10 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-843": {
+    where: "Reglas: borrar un criterio",
+    text: "Borrar criterio",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
 } as const;

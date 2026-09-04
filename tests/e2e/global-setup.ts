@@ -14,6 +14,7 @@ import {
   person,
   segment,
 } from "@/modules/people/schema";
+import { permanenceRule, permanenceTable } from "@/modules/permanence/schema";
 import { importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 
@@ -123,7 +124,14 @@ export default async function globalSetup(): Promise<void> {
     await db.delete(pointEntry).where(inArray(pointEntry.checkInId, closingCheckIns));
     await db.delete(pointEntry).where(eq(pointEntry.termId, closing.id));
     await db.delete(occasion).where(eq(occasion.termId, closing.id));
+    // Permanencia (fase 4): el término de pruebas arranca sin tablas ni bloqueos.
+    await db.update(term).set({ permanenceClosedAt: null }).where(eq(term.id, closing.id));
+    await db.delete(permanenceTable).where(eq(permanenceTable.termId, closing.id));
+    await db.delete(permanenceRule).where(eq(permanenceRule.termId, closing.id));
   }
+  // Criterios y bloqueos que crean las suites de permanencia sobre el término actual.
+  await db.delete(permanenceRule).where(like(permanenceRule.key, "e2e-%"));
+  await db.delete(permanenceTable).where(like(permanenceTable.comment, "e2e-%"));
   // Miembro sin permisos: activo, en un comité del término, sin datos de contacto ni consentimientos.
   let [member] = await db
     .select({ id: person.id })

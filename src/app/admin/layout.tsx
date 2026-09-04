@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { requireAdminOrLeaderActor } from "@/modules/identity";
 import { signOutAction } from "@/modules/identity/actions";
-import { listCommitteesByIds } from "@/modules/people";
 import { CommandPalette } from "@/shared/admin-kit";
 import { LogoOE, ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { requireAdminAreaRoles } from "./_kit/acceso";
 
-// Administración: ADMIN completo; un líder de comité entra con la navegación recortada (ADR-035 regla 15)
-// y cada página que no es suya vuelve a exigir ADMIN.
+// Administración: ADMIN completo; un líder de comité, un líder o evaluador de grupo y la junta entran
+// con la navegación recortada a lo suyo (ADR-035 regla 15, ADR-036 regla 10) y cada página que no es
+// de su rol vuelve a exigir ADMIN.
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
-  const actor = await requireAdminOrLeaderActor("/admin");
+  const roles = await requireAdminAreaRoles("/admin");
+  const actor = roles.actor;
   const [temaOscuro, temaClaro] = tList("T-034") as [string, string];
   const [comites] = tList("T-261");
   const [terminos] = tList("T-262");
@@ -22,15 +23,26 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [personas, importar, cargos, etiquetas, tareas, segmentos, documentos, importaciones] =
     tList("T-509");
   const [ocasiones, ledger, rankings, asambleas, cierre, alias] = tList("T-561");
-  const ledCommittees = actor.isAdmin
-    ? []
-    : await listCommitteesByIds(
-        actor.permissions
-          .filter((item) => item.code === "COMMITTEE_LEADER" && item.committeeId)
-          .map((item) => item.committeeId as string),
-      );
+  const [reglas, grupos, evaluaciones, cumplimiento, cierrePermanencia, junta] = tList("T-708");
+  const [permanenciaDe, misGrupos, misEvaluaciones] = tList("T-709");
   const enlaces = !actor.isAdmin
-    ? ledCommittees.map((item) => ({ href: `/admin/comites/${item.slug}`, label: item.name }))
+    ? [
+        ...roles.ledCommittees.flatMap((item) => [
+          { href: `/admin/comites/${item.slug}`, label: item.name },
+          {
+            href: `/admin/comites/${item.slug}/permanencia`,
+            label: t("T-709", { comité: item.name }).split(" · ")[0] ?? permanenciaDe ?? "",
+          },
+        ]),
+        ...roles.ledGroups.map((item) => ({
+          href: `/admin/permanencia/grupos/${item.id}`,
+          label: `${misGrupos ?? ""}: ${item.name}`,
+        })),
+        ...(roles.evaluatedGroups.length > 0
+          ? [{ href: "/admin/permanencia/evaluaciones", label: misEvaluaciones ?? "" }]
+          : []),
+        ...(roles.isBoard ? [{ href: "/admin/junta", label: junta ?? "" }] : []),
+      ]
     : [
         { href: "/admin/personas", label: personas ?? "" },
         { href: "/admin/personas/importar", label: importar ?? "" },
@@ -50,6 +62,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         { href: "/admin/rankings", label: rankings ?? "" },
         { href: "/admin/asambleas", label: asambleas ?? "" },
         { href: "/admin/cierre", label: cierre ?? "" },
+        { href: "/admin/permanencia/reglas", label: reglas ?? "" },
+        { href: "/admin/permanencia/grupos", label: grupos ?? "" },
+        { href: "/admin/permanencia/evaluaciones", label: evaluaciones ?? "" },
+        { href: "/admin/permanencia/cumplimiento", label: cumplimiento ?? "" },
+        { href: "/admin/permanencia/cierre", label: cierrePermanencia ?? "" },
+        { href: "/admin/junta", label: junta ?? "" },
         { href: "/admin/permisos", label: permisos ?? "" },
         { href: "/admin/sistema/importaciones", label: importaciones ?? "" },
         { href: "/admin/sistema/jobs", label: t("T-241") },
