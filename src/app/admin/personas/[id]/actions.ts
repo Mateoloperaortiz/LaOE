@@ -39,6 +39,7 @@ import {
   setPersonTagsAs,
   updatePersonAs,
 } from "@/modules/people";
+import { grantManualCreditAs, manualCreditInputSchema } from "@/modules/permanence";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 import { clientIp } from "@/shared/lib/request";
@@ -366,5 +367,25 @@ export async function setTagsAction(formData: FormData): Promise<void> {
     .filter((item): item is string => typeof item === "string" && idSchema.safeParse(item).success);
   await run(id, "resumen", "etiquetas", () =>
     setPersonTagsAs({ personId: actor.personId }, id, tagIds),
+  );
+}
+
+// Crédito manual de permanencia (ADR-036 regla 8): ADMIN, solo criterios manuales, con motivo.
+export async function grantCreditAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("personId"));
+  const actor = await requireAdmin(await personUrl(id, "permanencia", { accion: "credito" }));
+  const parsed = manualCreditInputSchema.safeParse({
+    ruleId: text(formData, "ruleId"),
+    personId: id,
+    value: Number(text(formData, "value")),
+    reason: text(formData, "reason"),
+  });
+  if (!parsed.success) {
+    return fail(id, "permanencia", "credito", t("T-260"));
+  }
+  const input = parsed.data;
+  const ip = await clientIp();
+  await run(id, "permanencia", "credito", () =>
+    grantManualCreditAs({ personId: actor.personId, ip }, input),
   );
 }

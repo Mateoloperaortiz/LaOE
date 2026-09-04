@@ -179,7 +179,15 @@ export default async function PersonaPage({
       );
       break;
     case "permanencia":
-      content = <TabPermanencia personId={id} termId={my.term?.id ?? null} />;
+      content = (
+        <TabPermanencia
+          personId={id}
+          termId={my.term?.id ?? null}
+          accion={accion}
+          error={error}
+          closeHref={closeHref}
+        />
+      );
       break;
     case "linea":
       content = (

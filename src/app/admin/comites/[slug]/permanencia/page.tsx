@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { listCommitteeRecognitions, MONTHS, monthName } from "@/modules/crm";
 import { hasPermission } from "@/modules/identity";
 import { listInternalRoster } from "@/modules/people";
-import { deviatesFromNominal, getRule, getTableView } from "@/modules/permanence";
+import {
+  deviatesFromNominal,
+  getRule,
+  getTableView,
+  listLeaderScores,
+  listSnapshots,
+} from "@/modules/permanence";
 import { ReglaForm } from "@/modules/permanence/components/ReglaForm";
 import { TablaReglas } from "@/modules/permanence/components/TablaReglas";
 import { getCurrentTerm } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
-import { LogoComite } from "@/shared/brand";
+import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { requireAdminAreaRoles } from "../../../_kit/acceso";
 import { reglaFormLabels, reglaFormValues } from "../../../permanencia/_ui/reglas";
@@ -16,11 +23,13 @@ import {
   applyCommitteeTemplateAction,
   copyCommitteeRulesAction,
   deleteCommitteeRuleAction,
+  recognizeAction,
   saveCommitteeRuleAction,
+  scoreAction,
 } from "./actions";
 
-// Permanencia del comité para su líder (ADR-026, ADR-036): su tabla dentro del nominal, copiar del
-// semestre anterior o cargar la referencia; los puntajes, el destacado y el progreso llegan en F4-T5.
+// Permanencia del comité para su líder (ADR-026, ADR-036): su tabla dentro del nominal, los puntajes
+// de sus criterios con observación, el destacado del mes y el progreso de sus miembros.
 
 export async function generateMetadata({
   params,
@@ -31,6 +40,9 @@ export async function generateMetadata({
 }
 
 type Search = Record<string, string | string[] | undefined>;
+
+const inputClass =
+  "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";
 
 function single(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
@@ -74,6 +86,34 @@ export default async function PermanenciaComitePage({
   const locked = view.lockedAt !== null && !roles.isAdmin;
   const editing = accion === "editar" ? await getRule(single(search.regla)) : null;
   const hidden = { slug };
+  const [scores, snapshots, recognitions] = await Promise.all([
+    listLeaderScores(term.id, committee.id),
+    listSnapshots(term.id),
+    listCommitteeRecognitions(committee.id, term.id),
+  ]);
+  const scoreRules = view.rules.filter((rule) => rule.computation === "LEADER_SCORE");
+  const scoreOf = (ruleId: string, personId: string) =>
+    scores.find((item) => item.ruleId === ruleId && item.personId === personId) ?? null;
+  const members = roster.members.filter((member) => member.status === "ACTIVE");
+  const scoring =
+    accion === "puntaje"
+      ? {
+          person: members.find((member) => member.personId === single(search.persona)) ?? null,
+          rule: scoreRules.find((rule) => rule.id === single(search.regla)) ?? null,
+        }
+      : null;
+  const [seccionTabla, seccionPuntajes, seccionDestacado, seccionProgreso] = tList("T-819");
+  const [destacadoTitulo, nombrarDestacado] = tList("T-778");
+  const [campoMes, campoPersona] = tList("T-779");
+  const [campoValor, campoObservacion] = tList("T-773");
+  const progressColumns = tList("T-820");
+  const stateLabels = tList("T-791");
+  const conditionLabels = tList("T-792");
+  const destacado = single(search.destacado);
+  const destacadoNombre =
+    members.find((member) => member.personId === single(search.persona))?.fullName ?? "";
+  const destacadoMes = monthName(Number(single(search.mes)) || null);
+  const closed = term.permanenceClosedAt !== null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -86,7 +126,13 @@ export default async function PermanenciaComitePage({
           </p>
           {guardado ? (
             <output className="block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-2 text-sm font-semibold text-oe-navy">
-              {referencia ? t("T-735", { n: referencia }) : t("T-259")}
+              {referencia
+                ? t("T-735", { n: referencia })
+                : destacado === "publicado"
+                  ? t("T-781", { nombre: destacadoNombre, mes: destacadoMes })
+                  : destacado === "registrado"
+                    ? t("T-782", { nombre: destacadoNombre, mes: destacadoMes })
+                    : t("T-259")}
             </output>
           ) : null}
           {error ? (
@@ -107,7 +153,7 @@ export default async function PermanenciaComitePage({
       ) : null}
 
       <TablaReglas
-        titulo={t("T-121", { comité: committee.name })}
+        titulo={seccionTabla ?? t("T-121", { comité: committee.name })}
         nominal={term.permanenceCommitteeNominal}
         sums={view.sums}
         deviates={deviatesFromNominal(view.sums.veterans, term.permanenceCommitteeNominal)}
@@ -146,6 +192,251 @@ export default async function PermanenciaComitePage({
           )
         }
       />
+
+      <section aria-labelledby="puntajes" className="flex flex-col gap-3">
+        <h2 id="puntajes" className="text-display-md">
+          {seccionPuntajes ?? t("T-771", { comité: committee.name })}
+        </h2>
+        <p className="max-w-prose text-sm text-tinta-suave">{t("T-772")}</p>
+        {scoreRules.length === 0 ? (
+          <p className="text-tinta-suave">{t("T-777")}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left">
+                  <th className="eyebrow py-2 pr-3 text-xs">{progressColumns[0]}</th>
+                  {scoreRules.map((rule) => (
+                    <th key={rule.id} className="eyebrow py-2 pr-3 text-xs">
+                      {rule.label} · {rule.weight}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((member) => (
+                  <tr key={member.personId} className="border-borde border-t">
+                    <td className="py-2 pr-3 font-semibold">{member.fullName}</td>
+                    {scoreRules.map((rule) => {
+                      const score = scoreOf(rule.id, member.personId);
+                      return (
+                        <td key={rule.id} className="py-2 pr-3">
+                          <span className="tabular-nums">
+                            {score ? `${score.value} / ${rule.weight}` : "—"}
+                          </span>
+                          {!closed ? (
+                            <Link
+                              href={`${base}?accion=puntaje&persona=${member.personId}&regla=${rule.id}`}
+                              className="ml-2 underline"
+                            >
+                              {t("T-252")}
+                            </Link>
+                          ) : null}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section aria-labelledby="destacado" className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="destacado" className="text-display-md">
+            {seccionDestacado ?? destacadoTitulo}
+          </h2>
+          {!closed ? (
+            <Link
+              href={`${base}?accion=destacado`}
+              className="boton-calido min-h-9 px-3 py-1 text-sm"
+            >
+              {nombrarDestacado}
+            </Link>
+          ) : null}
+        </div>
+        {recognitions.length === 0 ? (
+          <p className="text-tinta-suave">{t("T-702", { comité: committee.name })}</p>
+        ) : (
+          <ul className="flex list-none flex-wrap gap-2 p-0">
+            {recognitions.map((item) => (
+              <li key={item.id}>
+                <Insignia fondo={item.announcementId ? "amarillo" : "paper"}>
+                  {monthName(item.month)} ·{" "}
+                  {members.find((member) => member.personId === item.personId)?.fullName ??
+                    item.title}
+                </Insignia>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="progreso" className="flex flex-col gap-3">
+        <h2 id="progreso" className="text-display-md">
+          {seccionProgreso}
+        </h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left">
+                {progressColumns.map((column) => (
+                  <th key={column} className="eyebrow py-2 pr-3 text-xs">
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((member) => {
+                const snapshot = snapshots.find((item) => item.personId === member.personId);
+                const result = snapshot?.results.find((item) => item.committeeId === committee.id);
+                const rate = result?.criteria.find((item) => item.detail.type === "CHECKIN_RATE");
+                const meetings =
+                  rate && rate.detail.type === "CHECKIN_RATE"
+                    ? `${rate.detail.attended} / ${rate.detail.held}`
+                    : "—";
+                return (
+                  <tr key={member.personId} className="border-borde border-t">
+                    <td className="py-2 pr-3 font-semibold">{member.fullName}</td>
+                    <td className="py-2 pr-3">
+                      {result
+                        ? (conditionLabels[
+                            ["ACTIVE", "NEW", "PROBATION", "TRANSFER"].indexOf(result.condition)
+                          ] ?? "")
+                        : ""}
+                    </td>
+                    <td className="py-2 pr-3 tabular-nums">{meetings}</td>
+                    <td className="py-2 pr-3 tabular-nums">
+                      {result ? `${Math.round(result.total)} / ${result.threshold}` : t("T-797")}
+                    </td>
+                    <td className="py-2 pr-3">
+                      {result ? (
+                        <Insignia
+                          fondo={
+                            result.state === "NO_ALCANZA" || result.state === "NO_CUMPLE"
+                              ? "naranja"
+                              : result.state === "EN_RIESGO" || result.state === "PRUEBA"
+                                ? "amarillo"
+                                : "sky"
+                          }
+                        >
+                          {stateLabels[
+                            [
+                              "EN_CAMINO",
+                              "EN_RIESGO",
+                              "NO_ALCANZA",
+                              "CUMPLE",
+                              "PRUEBA",
+                              "NO_CUMPLE",
+                            ].indexOf(result.state)
+                          ] ?? ""}
+                        </Insignia>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {scoring?.person && scoring.rule ? (
+        <ResourcePanel title={scoring.rule.label} closeHref={base} closeLabel={t("T-291")}>
+          <form action={scoreAction} className="flex flex-col gap-4">
+            <input type="hidden" name="slug" value={slug} />
+            <input type="hidden" name="personId" value={scoring.person.personId} />
+            <input type="hidden" name="ruleId" value={scoring.rule.id} />
+            <p className="font-semibold">{scoring.person.fullName}</p>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="value" className="eyebrow text-xs">
+                {campoValor} · 0 – {scoring.rule.weight}
+              </label>
+              <input
+                id="value"
+                name="value"
+                type="number"
+                step="0.5"
+                min="0"
+                max={scoring.rule.weight}
+                defaultValue={
+                  scoreOf(scoring.rule.id, scoring.person.personId)?.value ?? scoring.rule.weight
+                }
+                required
+                className={inputClass}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="note" className="eyebrow text-xs">
+                {campoObservacion}
+              </label>
+              <textarea
+                id="note"
+                name="note"
+                rows={3}
+                defaultValue={scoreOf(scoring.rule.id, scoring.person.personId)?.note ?? ""}
+                className={inputClass}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <button type="submit" className="boton-calido">
+                {t("T-253")}
+              </button>
+              <Link href={base} className="boton-secundario">
+                {t("T-254")}
+              </Link>
+            </div>
+          </form>
+        </ResourcePanel>
+      ) : null}
+
+      {accion === "destacado" && !closed ? (
+        <ResourcePanel title={destacadoTitulo ?? ""} closeHref={base} closeLabel={t("T-291")}>
+          <form action={recognizeAction} className="flex flex-col gap-4">
+            <input type="hidden" name="slug" value={slug} />
+            <div className="flex flex-col gap-1">
+              <label htmlFor="month" className="eyebrow text-xs">
+                {campoMes}
+              </label>
+              <select
+                id="month"
+                name="month"
+                defaultValue={String(new Date().getMonth() + 1)}
+                className={inputClass}
+              >
+                {MONTHS.map((name, index) => (
+                  <option key={name} value={index + 1}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="personId" className="eyebrow text-xs">
+                {campoPersona}
+              </label>
+              <select id="personId" name="personId" required className={inputClass}>
+                {members.map((member) => (
+                  <option key={member.personId} value={member.personId}>
+                    {member.fullName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-3">
+              <button type="submit" className="boton-calido">
+                {nombrarDestacado}
+              </button>
+              <Link href={base} className="boton-secundario">
+                {t("T-254")}
+              </Link>
+            </div>
+          </form>
+        </ResourcePanel>
+      ) : null}
 
       {!locked && (accion === "nueva" || (accion === "editar" && editing)) ? (
         <ResourcePanel

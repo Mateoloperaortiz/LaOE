@@ -17,6 +17,11 @@ export const announcementInputSchema = z.object({
   body: z.string().max(20_000).default(""),
   audience: z.enum(["PUBLIC", "MEMBERS"]).default("PUBLIC"),
   pinned: z.boolean().default(false),
+  /** Cartelera interna de un comité (ADR-036): solo con audiencia de miembros. */
+  committeeId: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional(),
+  ),
 });
 
 export type AnnouncementInput = z.infer<typeof announcementInputSchema>;
@@ -69,8 +74,9 @@ function toValues(input: AnnouncementInput) {
   return {
     title: input.title,
     body: input.body,
-    audience: input.audience,
+    audience: input.committeeId ? ("MEMBERS" as const) : input.audience,
     pinned: input.pinned,
+    committeeId: input.committeeId ?? null,
   };
 }
 
@@ -222,6 +228,8 @@ export const listMemberAnnouncements = cache(async (limit = 12): Promise<MemberA
       and(
         inArray(announcement.audience, ["PUBLIC", "MEMBERS"]),
         lte(announcement.publishedAt, new Date()),
+        // Los anuncios de un comité viven solo en su cartelera interna (ADR-036).
+        isNull(announcement.committeeId),
       ),
     )
     .orderBy(desc(announcement.pinned), desc(announcement.publishedAt))
@@ -231,3 +239,21 @@ export const listMemberAnnouncements = cache(async (limit = 12): Promise<MemberA
     audience: row.audience === "MEMBERS" ? "MEMBERS" : "PUBLIC",
   }));
 });
+
+/** La cartelera interna de un comité: anuncios publicados con su `committeeId`, los fijados primero. */
+export const listCommitteeAnnouncements = cache(
+  async (committeeId: string, limit = 12): Promise<MemberAnnouncement[]> => {
+    const rows = await getDb()
+      .select({ ...publicColumns, audience: announcement.audience })
+      .from(announcement)
+      .where(
+        and(eq(announcement.committeeId, committeeId), lte(announcement.publishedAt, new Date())),
+      )
+      .orderBy(desc(announcement.pinned), desc(announcement.publishedAt))
+      .limit(limit);
+    return rows.map((row) => ({
+      ...asPublic(row),
+      audience: row.audience === "MEMBERS" ? "MEMBERS" : "PUBLIC",
+    }));
+  },
+);

@@ -38,9 +38,11 @@ type Props = {
   /** Líneas ya formateadas, por ejemplo "General de A3". */
   comites: string[];
   cargos: string[];
+  /** Reconocimientos publicados ("Destacado de agosto"), solo con consentimiento de directorio. */
+  insignias?: string[] | undefined;
 };
 
-export function PersonaTarjeta({ nombre, fotoId, estado, comites, cargos }: Props) {
+export function PersonaTarjeta({ nombre, fotoId, estado, comites, cargos, insignias = [] }: Props) {
   return (
     <article className="flex flex-col gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5">
       <div className="flex items-center gap-4">
@@ -76,6 +78,15 @@ export function PersonaTarjeta({ nombre, fotoId, estado, comites, cargos }: Prop
           {comites.map((linea) => (
             <li key={linea}>
               <Insignia fondo="sky">{linea}</Insignia>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {insignias.length > 0 ? (
+        <ul className="flex list-none flex-wrap gap-2 p-0">
+          {insignias.map((insignia) => (
+            <li key={insignia}>
+              <Insignia fondo="naranja">{insignia}</Insignia>
             </li>
           ))}
         </ul>

@@ -24,6 +24,7 @@ import { task } from "./schema";
 
 const STATUS_CODES = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"] as const;
 const PERMISSION_CODES = ["ADMIN", "COMMITTEE_LEADER", "BOARD"] as const;
+const DECISION_KINDS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"] as const;
 const FIELD_KEYS = [
   "firstName",
   "lastName",
@@ -43,6 +44,8 @@ function labels(): TimelineLabels {
   return {
     texts: tList("T-458"),
     participationTexts: tList("T-667"),
+    permanenceTexts: tList("T-832"),
+    decisions: zip(DECISION_KINDS, tList("T-802")),
     statuses: zip(STATUS_CODES, tList("T-381")),
     appointmentKinds: zip(APPOINTMENT_KINDS, tList("T-444")),
     permissions: zip(PERMISSION_CODES, tList("T-289")),
@@ -130,6 +133,18 @@ registerHandler("person.deletion-requested", async (payload, ctx) => {
 
 // La primera integración marca sola el paso del onboarding (ADR-031, ADR-034 regla 15).
 const checkInApproved = personEvent.extend({ category: z.string() });
+
+// Una tarea de nuevos con buen desempeño marca el paso de decoración del onboarding (ADR-036).
+const evaluationRecorded = personEvent.extend({ kind: z.string(), evaluation: z.string() });
+
+registerHandler("evaluation.recorded", async (payload, ctx) => {
+  const { personId, kind, evaluation } = evaluationRecorded.parse(payload);
+  if (kind !== "NEW_MEMBER_TASK" || evaluation !== "GOOD") {
+    return;
+  }
+  const changed = await recordOnboardingEvidence(personId, "NEW_MEMBER_TASK");
+  ctx.log.debug({ personId, changed }, "evidencia de la tarea de nuevos");
+});
 
 registerHandler("checkin.approved", async (payload, ctx) => {
   const { personId, category } = checkInApproved.parse(payload);

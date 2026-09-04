@@ -4,6 +4,7 @@ import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import { getEnv } from "@/env";
 import { announcement } from "@/modules/content/schema";
+import { recognition } from "@/modules/crm/schema";
 import { editionCommittee, event, eventEdition } from "@/modules/events/schema";
 import { permission } from "@/modules/identity/schema";
 import { checkIn, occasion, pointEntry } from "@/modules/participation/schema";
@@ -654,6 +655,57 @@ async function seedWorkGroups(terms: Map<string, string>): Promise<void> {
   }
 }
 
+// Un destacado del mes sintético en A3 (ADR-036 regla 7) con su anuncio en la cartelera del comité.
+async function seedRecognition(
+  terms: Map<string, string>,
+  committees: Array<{ id: string; slug: string }>,
+): Promise<void> {
+  const current = terms.get("2026-2");
+  const a3 = committees.find((item) => item.slug === "a3");
+  if (!current || !a3) return;
+  const [existing] = await db
+    .select({ id: recognition.id })
+    .from(recognition)
+    .where(and(eq(recognition.termId, current), eq(recognition.committeeId, a3.id)))
+    .limit(1);
+  if (existing) return;
+  // Cualquier miembro sintético de A3 este semestre (el seed reparte los comités por índice).
+  const [who] = await db
+    .select({ id: person.id, firstName: person.firstName, lastName: person.lastName })
+    .from(person)
+    .innerJoin(committeeMembership, eq(committeeMembership.personId, person.id))
+    .where(
+      and(
+        eq(committeeMembership.committeeId, a3.id),
+        eq(committeeMembership.termId, current),
+        eq(person.source, "SEED"),
+      ),
+    )
+    .orderBy(person.email)
+    .limit(1);
+  if (!who) return;
+  const nombre = `${who.firstName} ${who.lastName}`;
+  const [ann] = await db
+    .insert(announcement)
+    .values({
+      title: `Destacado de agosto: ${nombre}`,
+      body: `A3 reconoce a ${nombre} como destacado del mes de agosto. ¡OE OE OE!`,
+      audience: "MEMBERS",
+      committeeId: a3.id,
+      publishedAt: new Date(),
+    })
+    .returning({ id: announcement.id });
+  await db.insert(recognition).values({
+    personId: who.id,
+    kind: "MEMBER_OF_MONTH",
+    committeeId: a3.id,
+    termId: current,
+    month: 8,
+    title: `Destacado de agosto: ${nombre}`,
+    announcementId: ann?.id ?? null,
+  });
+}
+
 async function seedContent(committees: Array<{ id: string; slug: string }>): Promise<void> {
   const day = 24 * 60 * 60_000;
   const anuncios = [
@@ -859,6 +911,7 @@ try {
   await seedAppointments(terms);
   await seedPermanenceRules(terms, committees);
   await seedWorkGroups(terms);
+  await seedRecognition(terms, committees);
   await seedPermanenceConditions(terms);
   await seedContent(committees);
   await seedOccasions(terms, committees);

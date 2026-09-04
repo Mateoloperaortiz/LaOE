@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { listRecognitionsByPeople, monthName, type RecognitionView } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
 import { listDirectory, listInternalCommittees } from "@/modules/people";
 import { t, tList } from "@/shared/copy";
@@ -23,6 +24,17 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
     listDirectory({ q, committeeId: comite || null, page: pagina, pageSize: PAGE_SIZE }),
     listInternalCommittees(),
   ]);
+  const term = directory.term;
+  const recognitions = term
+    ? await listRecognitionsByPeople(
+        directory.rows.map((entry) => entry.personId),
+        term.id,
+      )
+    : new Map<string, RecognitionView[]>();
+  const insigniasDe = (personId: string) =>
+    (recognitions.get(personId) ?? [])
+      .filter((item) => item.announcementId !== null && item.kind === "MEMBER_OF_MONTH")
+      .map((item) => t("T-703", { mes: monthName(item.month) }));
   const pages = Math.max(1, Math.ceil(directory.total / PAGE_SIZE));
   const [anterior, siguiente] = tList("T-258") as [string, string];
   const link = (page: number) => {
@@ -83,6 +95,7 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
                 estado={entry.status}
                 comites={entry.committees.map((item) => cargoEnComite(item.roleLabel, item.name))}
                 cargos={entry.appointments.map(cargoEtiqueta)}
+                insignias={insigniasDe(entry.personId)}
               />
             </li>
           ))}

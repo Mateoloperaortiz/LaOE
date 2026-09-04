@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { listCommitteeAnnouncements } from "@/modules/content";
+import { listRecognitionsByPeople, monthName, type RecognitionView } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
 import { listInternalRoster } from "@/modules/people";
 import { BarraTitulo, Cartel } from "@/shared/brand";
 import { t } from "@/shared/copy";
+import { formatDate } from "@/shared/lib/dates";
 import { Markdown } from "@/shared/ui/Markdown";
 import { cargoEnComite, PersonaTarjeta } from "../../_ui/PersonaTarjeta";
 import { Vacio } from "../../_ui/Vacio";
@@ -28,6 +31,19 @@ export default async function ComiteInternoPage({ params }: PageProps<"/app/comi
     notFound();
   }
   const { committee, term, members } = roster;
+  const [announcements, recognitions] = await Promise.all([
+    listCommitteeAnnouncements(committee.id, 6),
+    term
+      ? listRecognitionsByPeople(
+          members.map((member) => member.personId),
+          term.id,
+        )
+      : Promise.resolve(new Map<string, RecognitionView[]>()),
+  ]);
+  const insigniasDe = (personId: string) =>
+    (recognitions.get(personId) ?? [])
+      .filter((item) => item.announcementId !== null && item.kind === "MEMBER_OF_MONTH")
+      .map((item) => t("T-703", { mes: monthName(item.month) }));
   return (
     <div className="flex flex-col gap-10">
       <Cartel
@@ -58,6 +74,28 @@ export default async function ComiteInternoPage({ params }: PageProps<"/app/comi
           </a>
         ) : null}
       </section>
+      <section aria-labelledby="cartelera-comite" className="flex flex-col gap-6">
+        <BarraTitulo color="naranja" className="self-start">
+          <span id="cartelera-comite">{t("T-701", { comité: committee.name })}</span>
+        </BarraTitulo>
+        {announcements.length === 0 ? (
+          <p className="text-tinta-suave">{t("T-702", { comité: committee.name })}</p>
+        ) : (
+          <ul className="flex list-none flex-col gap-3 p-0">
+            {announcements.map((item) => (
+              <li
+                key={item.id}
+                className="flex flex-col gap-1 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
+              >
+                <span className="font-semibold">{item.title}</span>
+                {item.publishedAt ? (
+                  <span className="text-sm text-tinta-suave">{formatDate(item.publishedAt)}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       <section aria-labelledby="roster" className="flex flex-col gap-6">
         <BarraTitulo color="amarillo" className="self-start">
           <span id="roster">{t("T-383")}</span>
@@ -74,6 +112,7 @@ export default async function ComiteInternoPage({ params }: PageProps<"/app/comi
                   estado={member.status}
                   comites={[cargoEnComite(member.roleLabel, committee.name)]}
                   cargos={[]}
+                  insignias={insigniasDe(member.personId)}
                 />
               </li>
             ))}

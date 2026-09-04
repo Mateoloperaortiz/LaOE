@@ -7,6 +7,8 @@ import { tList } from "@/shared/copy";
 const labels: TimelineLabels = {
   texts: tList("T-458"),
   participationTexts: tList("T-667"),
+  permanenceTexts: tList("T-832"),
+  decisions: { CONTINUES: "Continúa", PROBATION: "Periodo de prueba", EXIT_OE: "Sale de la OE" },
   statuses: { ACTIVE: "Activo", ON_LEAVE: "En licencia", INACTIVE: "Retirado" },
   appointmentKinds: { VP_GH: "Vicepresidencia de GH" },
   permissions: { ADMIN: "ADMIN" },
@@ -114,5 +116,74 @@ describe("celular", () => {
     });
     expect(normalizePhone("573001234567")).toEqual({ value: "+573001234567", normalized: true });
     expect(normalizePhone("604 2619500")).toEqual({ value: "604 2619500", normalized: false });
+  });
+});
+
+describe("línea de tiempo de permanencia (fase 4)", () => {
+  it("traduce evaluaciones, puntajes, créditos, grupos y decisiones con los textos de T-832", () => {
+    expect(
+      summarizeEvent(
+        "evaluation.recorded",
+        {
+          personId: "p",
+          groupName: "GAP Días EAFIT",
+          evaluation: "GOOD",
+          evaluatorName: "Miguel",
+          note: "",
+        },
+        labels,
+        lookup,
+      ),
+    ).toMatchObject({
+      kind: "PERMANENCE",
+      summary: "Buen desempeño en GAP Días EAFIT, evaluado por Miguel",
+    });
+    expect(
+      summarizeEvent(
+        "evaluation.recorded",
+        { personId: "p", groupName: "GT", evaluation: "INSUFFICIENT", note: "No fue" },
+        labels,
+        lookup,
+      )?.summary,
+    ).toBe("Desempeño insuficiente en GT, evaluado por GH: No fue");
+    expect(
+      summarizeEvent(
+        "leader-score.recorded",
+        {
+          personId: "p",
+          committeeId: "c1",
+          criterion: "Convivencia",
+          value: 3,
+          weight: 5,
+          note: "Llegó tarde",
+        },
+        labels,
+        lookup,
+      )?.summary,
+    ).toBe("Convivencia en A3: 3 de 5: Llegó tarde");
+    expect(
+      summarizeEvent(
+        "manual-credit.granted",
+        { personId: "p", criterion: "Extra", value: 4, reason: "Apoyo" },
+        labels,
+        lookup,
+      )?.summary,
+    ).toBe("Crédito manual en Extra: 4 (Apoyo)");
+    expect(
+      summarizeEvent(
+        "work-group-membership.changed",
+        { personId: "p", groupName: "CGH", change: "LEFT" },
+        labels,
+        lookup,
+      )?.summary,
+    ).toBe("Salió del grupo CGH");
+    expect(
+      summarizeEvent(
+        "permanence.decided",
+        { personId: "p", termId: "t1", committeeId: "c1", decision: "PROBATION", reason: "" },
+        labels,
+        lookup,
+      )?.summary,
+    ).toBe("Cierre de 2026-2: Periodo de prueba (A3)");
   });
 });

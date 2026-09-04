@@ -6,6 +6,7 @@ export {
   getAnnouncement,
   getPublicAnnouncement,
   listAnnouncements,
+  listCommitteeAnnouncements,
   listMemberAnnouncements,
   listPublicAnnouncements,
   type MemberAnnouncement,

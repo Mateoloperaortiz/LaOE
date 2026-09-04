@@ -1,7 +1,7 @@
-import { and, asc, eq, inArray, like, notLike } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, like, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { announcement, document, mediaAsset } from "@/modules/content/schema";
-import { task } from "@/modules/crm/schema";
+import { recognition, task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { otpChallenge, permission } from "@/modules/identity/schema";
 import { checkIn, occasion, pointEntry, termStanding } from "@/modules/participation/schema";
@@ -14,7 +14,13 @@ import {
   person,
   segment,
 } from "@/modules/people/schema";
-import { permanenceRule, permanenceTable, workGroup } from "@/modules/permanence/schema";
+import {
+  leaderScore,
+  manualCredit,
+  permanenceRule,
+  permanenceTable,
+  workGroup,
+} from "@/modules/permanence/schema";
 import { importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 
@@ -129,7 +135,14 @@ export default async function globalSetup(): Promise<void> {
     await db.delete(permanenceTable).where(eq(permanenceTable.termId, closing.id));
     await db.delete(permanenceRule).where(eq(permanenceRule.termId, closing.id));
   }
-  // Criterios y bloqueos que crean las suites de permanencia sobre el término actual.
+  // Criterios y bloqueos que crean las suites de permanencia sobre el término actual (los puntajes y
+  // créditos de esos criterios salen antes: la clave foránea es restrict).
+  const e2eRules = db
+    .select({ id: permanenceRule.id })
+    .from(permanenceRule)
+    .where(like(permanenceRule.key, "e2e-%"));
+  await db.delete(manualCredit).where(inArray(manualCredit.ruleId, e2eRules));
+  await db.delete(leaderScore).where(inArray(leaderScore.ruleId, e2eRules));
   await db.delete(permanenceRule).where(like(permanenceRule.key, "e2e-%"));
   await db.delete(permanenceTable).where(like(permanenceTable.comment, "e2e-%"));
   await db.delete(workGroup).where(like(workGroup.name, "e2e-%"));
@@ -176,6 +189,11 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(consent).where(eq(consent.personId, member.id));
   await db.delete(task).where(eq(task.personId, member.id));
   await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_MEMBER_EMAIL));
+  // Reconocimientos que el miembro (como líder de pruebas) nombró y sus anuncios de comité.
+  await db.delete(recognition).where(eq(recognition.grantedById, member.id));
+  await db
+    .delete(announcement)
+    .where(and(eq(announcement.createdById, member.id), isNotNull(announcement.committeeId)));
   const [home] = await db
     .select({ id: committee.id })
     .from(committee)

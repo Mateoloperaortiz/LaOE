@@ -10,6 +10,7 @@ import {
   occasionsResource,
   rankingsResource,
 } from "@/modules/participation/admin";
+import { listAllCommittees } from "@/modules/people";
 import {
   committeesResource,
   peopleResource,
@@ -20,6 +21,29 @@ import {
 import { complianceResource, workGroupsResource } from "@/modules/permanence/admin";
 import { termsResource } from "@/modules/terms/admin";
 import type { AnyResource } from "@/shared/admin-kit";
+import { t } from "@/shared/copy";
+
+// La cartelera gana el comité de su cartelera interna (ADR-036): `content` no importa `people`, así que
+// el selector de comités se compone aquí, en la capa de la app.
+const carteleraResource = {
+  ...announcementsResource,
+  fields: async () => [
+    ...(typeof announcementsResource.fields === "function"
+      ? await announcementsResource.fields()
+      : announcementsResource.fields),
+    {
+      name: "committeeId",
+      label: t("T-838"),
+      type: "select" as const,
+      emptyOption: t("T-839"),
+      options: (await listAllCommittees()).map((item) => ({ value: item.id, label: item.name })),
+    },
+  ],
+  toFormValues: (row: Parameters<typeof announcementsResource.toFormValues>[0]) => ({
+    ...announcementsResource.toFormValues(row),
+    committeeId: row.committeeId ?? "",
+  }),
+};
 
 // Recursos administrables por clave (ADR-017). Cada módulo declara los suyos en su admin.ts.
 const resources: Record<string, AnyResource> = {
@@ -34,7 +58,7 @@ const resources: Record<string, AnyResource> = {
   [workGroupsResource.key]: workGroupsResource as unknown as AnyResource,
   [permissionsResource.key]: permissionsResource as unknown as AnyResource,
   [pagesResource.key]: pagesResource as unknown as AnyResource,
-  [announcementsResource.key]: announcementsResource as unknown as AnyResource,
+  [announcementsResource.key]: carteleraResource as unknown as AnyResource,
   [eventsResource.key]: eventsResource as unknown as AnyResource,
   [editionsResource.key]: editionsResource as unknown as AnyResource,
   [occasionsResource.key]: occasionsResource as unknown as AnyResource,

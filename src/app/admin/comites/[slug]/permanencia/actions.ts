@@ -4,6 +4,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { grantRecognitionAs, recognitionInputSchema } from "@/modules/crm";
 import { assertLeader, ForbiddenError, getActor } from "@/modules/identity";
 import { listInternalRoster } from "@/modules/people";
 import {
@@ -11,7 +12,9 @@ import {
   copyFromPreviousTermAs,
   createRuleAs,
   deleteRuleAs,
+  leaderScoreInputSchema,
   ruleInputSchema,
+  scoreCriterionAs,
   type TableRef,
   updateRuleAs,
 } from "@/modules/permanence";
@@ -130,4 +133,68 @@ export async function applyCommitteeTemplateAction(formData: FormData): Promise<
   }
   revalidatePath(`/admin/comites/${slug}/permanencia`);
   redirect(back(slug, { guardado: "1", referencia: String(n) }));
+}
+
+// ── Puntajes del líder y destacado del mes (F4-T5) ───────────────────────────────────────────
+
+export async function scoreAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const personId = idSchema.parse(formData.get("personId"));
+  const ruleId = idSchema.parse(formData.get("ruleId"));
+  const returnTo = back(slug, { accion: "puntaje", persona: personId, regla: ruleId });
+  const { actor, ref } = await leaderOf(slug, returnTo);
+  const roster = await listInternalRoster(slug);
+  const member = roster?.members.find((item) => item.personId === personId);
+  const parsed = leaderScoreInputSchema.safeParse({
+    ruleId,
+    personId,
+    value: Number(text(formData, "value")),
+    note: text(formData, "note"),
+  });
+  if (!parsed.success) {
+    redirect(`${returnTo}&error=${encodeURIComponent(t("T-260"))}`);
+  }
+  try {
+    await scoreCriterionAs(actor, parsed.data, {
+      inCommittee: member !== undefined && ref.committeeId !== null,
+      personName: member?.fullName ?? personId,
+      committeeName: roster?.committee.name ?? slug,
+    });
+  } catch (error) {
+    failed(returnTo, error);
+  }
+  revalidatePath(`/admin/comites/${slug}/permanencia`);
+  redirect(back(slug, { guardado: "1" }));
+}
+
+export async function recognizeAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const returnTo = back(slug, { accion: "destacado" });
+  const { actor, ref } = await leaderOf(slug, returnTo);
+  const roster = await listInternalRoster(slug);
+  const parsed = recognitionInputSchema.safeParse({
+    personId: text(formData, "personId"),
+    kind: "MEMBER_OF_MONTH",
+    committeeId: ref.committeeId ?? undefined,
+    termId: ref.termId,
+    month: text(formData, "month"),
+  });
+  if (!parsed.success || !roster?.members.some((item) => item.personId === parsed.data.personId)) {
+    redirect(`${returnTo}&error=${encodeURIComponent(t("T-260"))}`);
+  }
+  let published = false;
+  try {
+    published = (await grantRecognitionAs(actor, parsed.data)).published;
+  } catch (error) {
+    failed(returnTo, error);
+  }
+  revalidatePath(`/admin/comites/${slug}/permanencia`);
+  redirect(
+    back(slug, {
+      guardado: "1",
+      destacado: published ? "publicado" : "registrado",
+      persona: parsed.data.personId,
+      mes: String(parsed.data.month ?? ""),
+    }),
+  );
 }

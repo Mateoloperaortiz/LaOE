@@ -19,6 +19,16 @@ export {
   recordOnboardingEvidence,
 } from "./domain/onboarding";
 export {
+  grantRecognitionAs,
+  listCommitteeRecognitions,
+  listRecognitionsByPeople,
+  MONTHS,
+  monthName,
+  type RecognitionInput,
+  type RecognitionView,
+  recognitionInputSchema,
+} from "./domain/recognitions";
+export {
   countOpenTasksFor,
   listTasks,
   type TaskInput,

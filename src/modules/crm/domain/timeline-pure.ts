@@ -22,6 +22,11 @@ export const TIMELINE_EVENTS = [
   "checkin.cancelled",
   "points.adjusted",
   "points.reversed",
+  "evaluation.recorded",
+  "leader-score.recorded",
+  "manual-credit.granted",
+  "work-group-membership.changed",
+  "permanence.decided",
 ] as const;
 
 export interface TimelineLabels {
@@ -29,6 +34,10 @@ export interface TimelineLabels {
   texts: string[];
   /** Los textos de participación de T-667, en orden (fase 3). */
   participationTexts: string[];
+  /** Los textos de permanencia de T-832, en orden (fase 4). */
+  permanenceTexts: string[];
+  /** Las decisiones del cierre de T-802, en el orden del modelo. */
+  decisions: Record<string, string>;
   statuses: Record<string, string>;
   appointmentKinds: Record<string, string>;
   permissions: Record<string, string>;
@@ -203,6 +212,67 @@ export function summarizeEvent(
           motivo: str(payload, "reason") || "—",
         }),
         { termId: str(payload, "termId"), points },
+      );
+    }
+    case "evaluation.recorded": {
+      const permanence = (index: number) => labels.permanenceTexts[index] ?? "";
+      const good = str(payload, "evaluation") === "GOOD";
+      return entry(
+        "PERMANENCE",
+        fill(permanence(good ? 0 : 1), {
+          grupo: str(payload, "groupName"),
+          evaluador: str(payload, "evaluatorName") || "GH",
+          nota: str(payload, "note"),
+        }),
+        { groupId: str(payload, "groupId"), evaluation: str(payload, "evaluation") },
+      );
+    }
+    case "leader-score.recorded": {
+      const value = typeof payload.value === "number" ? payload.value : 0;
+      const weight = typeof payload.weight === "number" ? payload.weight : 0;
+      const note = str(payload, "note");
+      return entry(
+        "PERMANENCE",
+        `${fill(labels.permanenceTexts[2] ?? "", {
+          criterio: str(payload, "criterion"),
+          comité: lookup.committeeName(str(payload, "committeeId")),
+          valor: String(value),
+          peso: String(weight),
+        })}${note ? `: ${note}` : ""}`,
+        { ruleId: str(payload, "ruleId"), value, weight },
+      );
+    }
+    case "manual-credit.granted": {
+      const value = typeof payload.value === "number" ? payload.value : 0;
+      return entry(
+        "PERMANENCE",
+        fill(labels.permanenceTexts[3] ?? "", {
+          criterio: str(payload, "criterion"),
+          valor: String(value),
+          motivo: str(payload, "reason"),
+        }),
+        { ruleId: str(payload, "ruleId"), value },
+      );
+    }
+    case "work-group-membership.changed": {
+      const joined = str(payload, "change") === "JOINED";
+      return entry(
+        "PERMANENCE",
+        fill(labels.permanenceTexts[joined ? 4 : 5] ?? "", { grupo: str(payload, "groupName") }),
+        { groupId: str(payload, "groupId"), change: str(payload, "change") },
+      );
+    }
+    case "permanence.decided": {
+      const decision = str(payload, "decision");
+      const committee = str(payload, "committeeId");
+      const reason = str(payload, "reason");
+      return entry(
+        "PERMANENCE",
+        `${fill(labels.permanenceTexts[6] ?? "", {
+          término: lookup.termCode(str(payload, "termId")),
+          decisión: `${label(labels.decisions, decision)}${committee ? ` (${lookup.committeeName(committee)})` : ""}`,
+        })}${reason ? `: ${reason}` : ""}`,
+        { termId: str(payload, "termId"), committeeId: committee || null, decision },
       );
     }
     case "permission.granted":

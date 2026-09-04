@@ -7,6 +7,14 @@ export {
   complianceSummary,
   listCompliance,
 } from "./domain/compliance";
+export {
+  countPendingFor,
+  type EvaluationInput,
+  evaluateAs,
+  evaluationInputSchema,
+  listEvaluationTray,
+  type TrayGroup,
+} from "./domain/evaluations";
 export { loadPeopleFacts, loadPermanenceConfig, loadRules, loadTermFacts } from "./domain/facts";
 export {
   addMembersAs,
@@ -29,6 +37,18 @@ export {
   updateGroupAs,
   type WorkGroupRow,
 } from "./domain/groups";
+export {
+  grantManualCreditAs,
+  type LeaderScoreInput,
+  type LeaderScoreView,
+  leaderScoreInputSchema,
+  listLeaderScores,
+  listManualCredits,
+  type ManualCreditInput,
+  type ManualCreditView,
+  manualCreditInputSchema,
+  scoreCriterionAs,
+} from "./domain/leader-scores";
 export { getPersonPermanence, type PersonPermanenceView } from "./domain/my-permanence";
 export {
   APPLIES_TO,

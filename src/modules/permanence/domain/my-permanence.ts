@@ -1,3 +1,4 @@
+import { countPendingFor } from "./evaluations";
 import { loadPeopleFacts, loadTermFacts } from "./facts";
 import { listMyGroupRoles } from "./groups";
 import {
@@ -71,7 +72,7 @@ export async function getPersonPermanence(
     live = true;
   }
   const roles = await listMyGroupRoles(personId, termId);
-  const pending = roles.evaluates.length; // el conteo real de pendientes llega con las evaluaciones (F4-T5)
+  const pending = roles.evaluates.length > 0 ? await countPendingFor(personId, termId) : 0;
   const notices = noticesFor(facts.term, result, facts.config, now, {
     pendingEvaluations: pending,
     isEvaluator: roles.evaluates.length > 0,

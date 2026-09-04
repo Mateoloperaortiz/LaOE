@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getOnboarding } from "@/modules/crm";
+import { getOnboarding, listInteractions } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
 import { getPeopleByIds, listCommitteesByIds } from "@/modules/people";
 import { getPersonPermanence } from "@/modules/permanence";
@@ -52,12 +52,13 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
       for (const id of detail.group.evaluatorIds) evaluatorIds.add(id);
     }
   }
-  const [committees, people, onboarding] = await Promise.all([
+  const [committees, people, onboarding, history] = await Promise.all([
     listCommitteesByIds(committeeIds),
     getPeopleByIds([...evaluatorIds]),
     result?.isNew && term.id === current?.id
       ? getOnboarding(actor.personId, term.id)
       : Promise.resolve(null),
+    listInteractions(actor.personId, "PERMANENCE", 30),
   ]);
   const committeeNames = new Map(committees.map((item) => [item.id, item.name]));
   const personNames = new Map([...people.values()].map((item) => [item.id, item.fullName]));
@@ -154,6 +155,24 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
       ) : (
         <Vacio texto={t("T-548")} />
       )}
+      {history.length > 0 ? (
+        <section aria-labelledby="historial" className="flex flex-col gap-3">
+          <h2 id="historial" className="text-display-md">
+            {t("T-697")}
+          </h2>
+          <ul className="flex list-none flex-col gap-2 p-0">
+            {history.map((item) => (
+              <li
+                key={item.id}
+                className="flex flex-wrap justify-between gap-2 border-borde border-t py-2 text-sm"
+              >
+                <span>{item.summary}</span>
+                <span className="text-tinta-suave">{formatDateTime(item.occurredAt)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       <p className="text-sm text-tinta-suave">
         {t("T-796", { fecha: formatDateTime(view?.computedAt ?? new Date()) })}
       </p>
