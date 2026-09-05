@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { outbox } from "../schema";
@@ -20,6 +20,15 @@ export async function listOutbox(state: OutboxState, limit = 50): Promise<Outbox
     .where(condition)
     .orderBy(desc(outbox.createdAt))
     .limit(limit);
+}
+
+/** Trabajos que agotaron sus intentos (tablero del admin, ADR-037 regla 11). */
+export async function countDeadLetters(): Promise<number> {
+  const [row] = await getDb()
+    .select({ n: count() })
+    .from(outbox)
+    .where(isNotNull(outbox.deadLetterAt));
+  return row?.n ?? 0;
 }
 
 /** Vuelve a poner en cola una fila en dead letter; auditado. */

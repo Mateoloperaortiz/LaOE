@@ -376,6 +376,8 @@ export interface OccasionListParams {
   kind?: string | undefined;
   status?: string | undefined;
   committeeId?: string | undefined;
+  /** Por defecto de la más reciente a la más vieja; "asc" para agendas (tablero del admin). */
+  order?: "asc" | "desc" | undefined;
   page: number;
   pageSize: number;
 }
@@ -425,7 +427,7 @@ export async function listOccasions(
       .select({ row: occasion, approvedCount })
       .from(occasion)
       .where(where)
-      .orderBy(desc(occasion.startsAt))
+      .orderBy(params.order === "asc" ? asc(occasion.startsAt) : desc(occasion.startsAt))
       .limit(params.pageSize)
       .offset((params.page - 1) * params.pageSize),
     db.select({ n: count() }).from(occasion).where(where),

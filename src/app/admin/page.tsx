@@ -1,12 +1,29 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
+import { dashboardForAdmin, type TaskRow } from "@/modules/crm";
+import { recentSubmissionCounts } from "@/modules/forms";
+import { listOccasions } from "@/modules/participation";
+import { listGroupRefs } from "@/modules/permanence";
+import { countDeadLetters, getConfig } from "@/modules/system";
+import { getCurrentTerm } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { requireAdminAreaRoles } from "./_kit/acceso";
 
-// Secciones del admin (T-160). Se enlazan las que ya existen; el resto llega por fases.
+// Inicio del admin (ADR-037 regla 11): las secciones de T-160 y el tablero de pendientes de ADMIN
+// (tareas propias, vencidas del equipo, solicitudes, respuestas de la semana, pipelines, convocatorias,
+// ocasiones abiertas y alertas de sistema). Quien no es ADMIN entra derecho a lo suyo.
+
+// Secciones del admin (T-160). Comunicaciones sigue en T-240 hasta la fase 6.
 const RUTAS: Record<string, string> = {
   Personas: "/admin/personas",
+  Organizaciones: "/admin/organizaciones",
+  Pipelines: "/admin/pipelines",
+  Solicitudes: "/admin/solicitudes",
+  Convocatorias: "/admin/convocatorias",
+  Formularios: "/admin/formularios",
   Comunidad: "/admin/comites",
   Contenido: "/admin/paginas",
   Participación: "/admin/ocasiones",
@@ -14,6 +31,76 @@ const RUTAS: Record<string, string> = {
   Junta: "/admin/junta",
   Sistema: "/admin/sistema/jobs",
 };
+
+const OCCASION_ROWS = 6;
+
+function taskHref(row: TaskRow): string {
+  if (row.kind === "REQUEST") {
+    return `/admin/solicitudes?tarea=${row.id}`;
+  }
+  if (row.personId) {
+    return `/admin/personas/${row.personId}`;
+  }
+  if (row.organizationId) {
+    return `/admin/organizaciones/${row.organizationId}`;
+  }
+  return "/admin/tareas";
+}
+
+function Bloque({
+  id,
+  titulo,
+  href,
+  children,
+}: {
+  id: string;
+  titulo: string;
+  href: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      aria-labelledby={id}
+      className="flex flex-col gap-4 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 id={id} className="text-titulo-md">
+          {titulo}
+        </h2>
+        <Link href={href} className="text-sm underline">
+          {t("T-1041")}
+        </Link>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Vacio({ texto }: { texto: string }) {
+  return <p className="text-tinta-suave">{texto}</p>;
+}
+
+function Tareas({ rows, conResponsable }: { rows: TaskRow[]; conResponsable: boolean }) {
+  return (
+    <ul className="flex list-none flex-col gap-2 p-0">
+      {rows.map((row) => (
+        <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <Link href={taskHref(row)} className="font-semibold">
+            {row.title}
+          </Link>
+          <span className="text-sm text-tinta-suave">
+            {[
+              conResponsable ? row.assigneeName : (row.personName ?? row.organizationName),
+              row.dueAt ? formatDate(row.dueAt) : null,
+            ]
+              .filter((item) => item)
+              .join(" · ")}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default async function AdminHome() {
   const roles = await requireAdminAreaRoles("/admin");
@@ -33,7 +120,29 @@ export default async function AdminHome() {
               : "/app",
     );
   }
+  const term = await getCurrentTerm();
+  const [tablero, respuestas, ocasiones, deadLetters, backup] = await Promise.all([
+    dashboardForAdmin(roles.actor.personId, term?.id ?? null),
+    recentSubmissionCounts(7),
+    term
+      ? listOccasions({
+          q: "",
+          termId: term.id,
+          status: "OPEN",
+          order: "asc",
+          page: 1,
+          pageSize: OCCASION_ROWS,
+        })
+      : Promise.resolve({ rows: [], total: 0 }),
+    countDeadLetters(),
+    getConfig("backup.status"),
+  ]);
+  const grupos = await listGroupRefs(tablero.openCalls.map((call) => call.groupId));
   const secciones = tList("T-160");
+  const [bPendientes, bVencidas, bSolicitudes, bRespuestas, bPipelines, bConvocatorias, bSistema] =
+    tList("T-1033") as [string, string, string, string, string, string, string];
+  const [conCopia, sinCopias] = tList("T-1040") as [string, string];
+
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-display-lg">{t("T-236")}</h1>
@@ -53,7 +162,143 @@ export default async function AdminHome() {
           );
         })}
       </ul>
-      <p className="text-tinta-suave">{t("T-240")}</p>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Bloque id="pendientes" titulo={bPendientes} href="/admin/tareas?status=OPEN&assignee=mine">
+          {tablero.myTasks.rows.length === 0 ? (
+            <Vacio texto={t("T-1034")} />
+          ) : (
+            <Tareas rows={tablero.myTasks.rows} conResponsable={false} />
+          )}
+        </Bloque>
+
+        <Bloque id="vencidas" titulo={bVencidas} href="/admin/tareas?status=OPEN">
+          {tablero.overdueTasks.rows.length === 0 ? (
+            <Vacio texto={t("T-1035")} />
+          ) : (
+            <Tareas rows={tablero.overdueTasks.rows} conResponsable />
+          )}
+        </Bloque>
+
+        <Bloque id="solicitudes" titulo={bSolicitudes} href="/admin/solicitudes">
+          <p className="text-display-md">{t("T-1043", { n: tablero.pendingRequests })}</p>
+        </Bloque>
+
+        <Bloque id="respuestas" titulo={bRespuestas} href="/admin/formularios">
+          {respuestas.length === 0 ? (
+            <Vacio texto={t("T-1036")} />
+          ) : (
+            <ul className="flex list-none flex-col gap-2 p-0">
+              {respuestas.map((row) => (
+                <li
+                  key={row.formId}
+                  className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
+                >
+                  <Link
+                    href={`/admin/formularios/${row.formId}/respuestas`}
+                    className="font-semibold"
+                  >
+                    {row.title}
+                  </Link>
+                  <span className="text-sm text-tinta-suave">{t("T-1042", { n: row.count })}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Bloque>
+
+        <Bloque id="pipelines" titulo={bPipelines} href="/admin/pipelines">
+          {tablero.boards.length === 0 ? (
+            <Vacio texto={t("T-1037")} />
+          ) : (
+            <ul className="flex list-none flex-col gap-3 p-0">
+              {tablero.boards.map((board) => (
+                <li key={board.pipelineId} className="flex flex-col gap-1">
+                  <Link href={`/admin/pipelines/${board.pipelineId}`} className="font-semibold">
+                    {board.name}
+                  </Link>
+                  <ul className="flex list-none flex-wrap gap-2 p-0">
+                    {board.stages.map((stage) => (
+                      <li key={stage.name}>
+                        <Insignia fondo={stage.open > 0 ? "amarillo" : "sky"}>
+                          {stage.name} · {stage.open}
+                        </Insignia>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Bloque>
+
+        <Bloque id="convocatorias" titulo={bConvocatorias} href="/admin/convocatorias">
+          {tablero.openCalls.length === 0 ? (
+            <Vacio texto={t("T-1038")} />
+          ) : (
+            <ul className="flex list-none flex-col gap-2 p-0">
+              {tablero.openCalls.map((call) => (
+                <li
+                  key={call.id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
+                >
+                  <Link href={`/admin/convocatorias/${call.id}`} className="font-semibold">
+                    {call.title}
+                  </Link>
+                  <span className="text-sm text-tinta-suave">
+                    {[
+                      grupos.get(call.groupId)?.name,
+                      call.capacity
+                        ? t("T-1027", { aceptados: call.accepted, cupo: call.capacity })
+                        : null,
+                      formatDate(call.closesAt),
+                    ]
+                      .filter((item) => item)
+                      .join(" · ")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Bloque>
+
+        <Bloque id="ocasiones" titulo={t("T-672")} href="/admin/ocasiones?status=OPEN">
+          {ocasiones.rows.length === 0 ? (
+            <Vacio texto={t("T-1044")} />
+          ) : (
+            <ul className="flex list-none flex-col gap-2 p-0">
+              {ocasiones.rows.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
+                >
+                  <Link href={`/admin/ocasiones/${row.id}`} className="font-semibold">
+                    {row.title}
+                  </Link>
+                  <span className="text-sm text-tinta-suave">{formatDateTime(row.startsAt)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Bloque>
+
+        <Bloque id="sistema" titulo={bSistema} href="/admin/sistema/jobs">
+          <ul className="flex list-none flex-col gap-2 p-0">
+            <li>
+              <Insignia fondo={deadLetters > 0 ? "naranja" : "sky"}>
+                {deadLetters > 0 ? t("T-1039", { n: deadLetters }) : t("T-1045")}
+              </Insignia>
+            </li>
+            <li>
+              <Insignia fondo={backup?.ok ? "sky" : "naranja"}>
+                {backup?.lastRunAt
+                  ? conCopia.replace("{fecha}", formatDate(new Date(backup.lastRunAt)))
+                  : sinCopias}
+              </Insignia>
+            </li>
+          </ul>
+        </Bloque>
+      </div>
     </div>
   );
 }

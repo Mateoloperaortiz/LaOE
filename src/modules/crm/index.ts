@@ -54,6 +54,12 @@ export {
   markOnboardingStepAs,
 } from "./domain/commands";
 export {
+  type AdminDashboard,
+  type BoardSummary,
+  DASHBOARD_ROWS,
+  dashboardForAdmin,
+} from "./domain/dashboard";
+export {
   type InteractionView,
   latestContact,
   listInteractions,

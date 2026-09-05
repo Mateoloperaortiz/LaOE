@@ -26,4 +26,10 @@ export {
   updateImportJob,
 } from "./domain/imports";
 export { type BackupStatus, checkBackup, pruneOutbox } from "./domain/maintenance";
-export { listOutbox, type OutboxRow, type OutboxState, retryDeadLetter } from "./domain/outbox";
+export {
+  countDeadLetters,
+  listOutbox,
+  type OutboxRow,
+  type OutboxState,
+  retryDeadLetter,
+} from "./domain/outbox";

@@ -43,8 +43,10 @@ test.describe("GH la aprueba", () => {
     page,
   }) => {
     await page.goto("/admin/tareas");
-    await expect(page.getByRole("cell", { name: "Licencia E2E pide licencia" })).toBeVisible();
-    await page.getByRole("link", { name: "Ver solicitud" }).first().click();
+    // Con el seed local hay otras tareas de solicitud: el enlace se toma de la fila de la persona.
+    const fila = page.getByRole("row", { name: /Licencia E2E pide licencia/ });
+    await expect(fila).toBeVisible();
+    await fila.getByRole("link", { name: "Ver solicitud" }).click();
     await expect(page).toHaveURL(/\/admin\/solicitudes\?tarea=/);
     const panel = page.getByRole("complementary");
     await expect(panel.getByRole("heading", { level: 2 })).toHaveText("licencia · Licencia E2E");
