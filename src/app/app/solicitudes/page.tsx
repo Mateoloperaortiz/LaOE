@@ -126,7 +126,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
       {!isActive ? (
         <Vacio texto={t("T-892")} />
       ) : (
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="flex max-w-3xl flex-col gap-12">
           <section id="leave" aria-labelledby="pedir-licencia" className="flex flex-col gap-4">
             <BarraTitulo color="amarillo" className="self-start">
               <span id="pedir-licencia">{kinds[0]}</span>

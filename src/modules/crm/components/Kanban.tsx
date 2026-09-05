@@ -12,6 +12,8 @@ export interface KanbanCard {
   title: string;
   subject: string;
   edition: string | null;
+  /** Monto ya formateado (patrocinios). */
+  amount: string | null;
   owner: string | null;
   days: number;
   closedAt: string | null;
@@ -118,10 +120,13 @@ export function Kanban({ columns, returnTo, moveAction }: KanbanProps) {
                 >
                   {card.title}
                 </a>
-                <p className="text-sm text-tinta-suave">
-                  {card.subject}
-                  {card.edition ? ` · ${card.edition}` : ""}
-                </p>
+                {card.subject !== card.title || card.edition || card.amount ? (
+                  <p className="text-sm text-tinta-suave">
+                    {[card.subject !== card.title ? card.subject : null, card.edition, card.amount]
+                      .filter((item) => item)
+                      .join(" · ")}
+                  </p>
+                ) : null}
                 <p className="text-xs text-tinta-suave">
                   {card.closedAt
                     ? cerrada.replace("{fecha}", card.closedAt)

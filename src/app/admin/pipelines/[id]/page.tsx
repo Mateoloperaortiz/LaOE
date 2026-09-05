@@ -27,6 +27,7 @@ import { ResourcePanel } from "@/shared/admin-kit";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
+import { formatMoney } from "@/shared/lib/money";
 import { Campo, Casilla, Dato, inputClass } from "../../personas/[id]/_ui/campos";
 import {
   addCardNoteAction,
@@ -103,6 +104,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
       title: item.title,
       subject: item.subjectName,
       edition: item.editionName,
+      amount: item.amount !== null ? formatMoney(item.amount) : null,
       owner: item.ownerName,
       days: daysSince(item.enteredStageAt, now),
       closedAt: item.closedAt ? formatDate(item.closedAt) : null,
@@ -137,8 +139,10 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
       alta === "1" ? getCurrentTerm(now) : Promise.resolve(null),
     ]);
   const formView = submission ? await getFormView(submission.formId) : null;
+  // Solo desde una tarjeta abierta: una perdida se vuelve a mover antes de dar de alta.
   const canAdmit =
     card !== null &&
+    card.closedAt === null &&
     card.pipelineKind === "ADMISSION" &&
     person?.kind === "STUDENT" &&
     membership === null;

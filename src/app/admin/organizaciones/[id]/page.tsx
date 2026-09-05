@@ -17,6 +17,7 @@ import { ResourcePanel } from "@/shared/admin-kit";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { formatMoney } from "@/shared/lib/money";
 import { Markdown } from "@/shared/ui/Markdown";
 import { Campo, Casilla, inputClass } from "../../personas/[id]/_ui/campos";
 import {
@@ -310,7 +311,7 @@ export default async function Page({
                   </Link>
                   <span className="text-tinta-suave">
                     {card.pipelineName} · {card.stageName}
-                    {card.amount !== null ? ` · ${card.amount}` : ""}
+                    {card.amount !== null ? ` · ${formatMoney(card.amount)}` : ""}
                   </span>
                 </li>
               ))}
