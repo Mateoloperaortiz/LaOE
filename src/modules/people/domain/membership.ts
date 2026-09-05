@@ -32,6 +32,8 @@ export const endMembershipSchema = z.object({
   personalEmail: emailSchema.optional(),
   /** El cierre de permanencia fija el término cerrado como último; si falta, el vigente (ADR-036 regla 9). */
   lastTermId: z.string().optional(),
+  /** Quién dio los consentimientos de galería y contacto: ADMIN desde la 360, SELF en un retiro pedido por la persona (ADR-037). */
+  consentSource: z.enum(["ADMIN", "SELF"]).optional(),
 });
 
 export const reactivateSchema = z.object({
@@ -156,8 +158,9 @@ export async function endMembership(
     })
     .where(eq(person.id, personId));
   await closeOpenCommitteeMemberships(ctx, personId, now);
-  await syncConsent(ctx, personId, "MEMORIAL", input.memorialConsent, "ADMIN");
-  await syncConsent(ctx, personId, "COMMUNICATIONS", input.contactConsent, "ADMIN");
+  const consentSource = input.consentSource ?? "ADMIN";
+  await syncConsent(ctx, personId, "MEMORIAL", input.memorialConsent, consentSource);
+  await syncConsent(ctx, personId, "COMMUNICATIONS", input.contactConsent, consentSource);
   await ctx.audit({
     action: "membership.ended",
     entityType: "membership",

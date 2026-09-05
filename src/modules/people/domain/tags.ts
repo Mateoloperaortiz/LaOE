@@ -98,6 +98,32 @@ export async function updateTag(ctx: CommandContext, id: string, input: TagInput
   await ctx.audit({ action: "tag.updated", entityType: "tag", entityId: id, before, after: input });
 }
 
+/** Suma etiquetas sin quitar las que ya tiene (acción de un formulario, ADR-037). */
+export async function addPersonTags(
+  ctx: CommandContext,
+  personId: string,
+  tagIds: string[],
+): Promise<number> {
+  const wanted = [...new Set(tagIds)];
+  if (wanted.length === 0) {
+    return 0;
+  }
+  const inserted = await ctx.tx
+    .insert(personTag)
+    .values(wanted.map((tagId) => ({ personId, tagId })))
+    .onConflictDoNothing()
+    .returning({ tagId: personTag.tagId });
+  if (inserted.length > 0) {
+    await ctx.audit({
+      action: "person.tags-added",
+      entityType: "person",
+      entityId: personId,
+      after: inserted.map((row) => row.tagId),
+    });
+  }
+  return inserted.length;
+}
+
 /** Deja las etiquetas de la persona exactamente como dice la lista. */
 export async function setPersonTags(
   ctx: CommandContext,

@@ -24,6 +24,7 @@ export const CONFIG = {
   "permanence.warningDays": z.number().int().min(0),
   "privacy.policyVersion": z.string().min(1),
   "privacy.deletionDays": z.number().int().min(1),
+  "requests.taskDays": z.number().int().min(1),
   "onboarding.steps": z.array(
     z.object({
       key: z.string().min(1),

@@ -1,4 +1,5 @@
 import { type Actor, runCommand } from "@/db/tx";
+import { type AdmitInput, admitPerson } from "./admission";
 import { type AppointmentInput, addAppointment, removeAppointment } from "./appointments";
 import { type CommitteeMembershipInput, setCommitteeMemberships } from "./committee-memberships";
 import { type ConsentPurpose, type ConsentSource, recordConsent, revokeConsent } from "./consents";
@@ -12,15 +13,27 @@ import {
   reactivateMembership,
 } from "./membership";
 import { type OwnContactInput, requestDeletion, setOwnPhoto, updateOwnContact } from "./own-data";
-import { type PersonInput, updatePerson } from "./persons";
+import { createPerson, type PersonInput, updatePerson } from "./persons";
 import { setPersonTags } from "./tags";
 import { leaveCommittee, type ProbationInput, setProbation } from "./term-outcomes";
 
 // Los comandos abren su transacción aquí, para que las acciones de página (src/app) los usen sin
 // tocar src/db: cada uno es `runCommand` con auditoría y eventos en la misma transacción (ADR-012).
 
+export function createPersonAs(actor: Actor, input: PersonInput): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => createPerson(ctx, input));
+}
+
 export function updatePersonAs(actor: Actor, id: string, input: PersonInput): Promise<void> {
   return runCommand(actor, (ctx) => updatePerson(ctx, id, input));
+}
+
+export function admitPersonAs(
+  actor: Actor,
+  personId: string,
+  input: AdmitInput,
+): Promise<{ membershipId: string }> {
+  return runCommand(actor, (ctx) => admitPerson(ctx, personId, input));
 }
 
 export function changeMembershipStatusAs(

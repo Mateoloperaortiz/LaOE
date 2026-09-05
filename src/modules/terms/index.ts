@@ -4,6 +4,7 @@ export {
   closeTermPoints,
   conventionalTermDates,
   createTerm,
+  ensureNextTerm,
   findTermByCode,
   findTermContaining,
   getCurrentTerm,

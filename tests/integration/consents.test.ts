@@ -47,7 +47,7 @@ describe("consentimientos", () => {
     const photo = states.find((item) => item.purpose === "DIRECTORY_PHOTO");
     expect(photo?.live?.policyVersion).toBe("pendiente");
     expect(photo?.history).toHaveLength(2);
-    expect(states).toHaveLength(4);
+    expect(states).toHaveLength(5);
 
     const [audits] = await getDb().select({ n: count() }).from(auditLog);
     expect(audits?.n).toBe(3);

@@ -1,5 +1,11 @@
 // API pública del módulo people.
 
+export {
+  type AdmitInput,
+  admitInputSchema,
+  admitPerson,
+  isInstitutionalEmail,
+} from "./domain/admission";
 export { type AlumniEntry, type AlumniYear, listAlumniByYear } from "./domain/alumni";
 export {
   APPOINTMENT_KINDS,
@@ -9,8 +15,10 @@ export {
 } from "./domain/appointments";
 export {
   addAppointmentAs,
+  admitPersonAs,
   anonymizePersonAs,
   changeMembershipStatusAs,
+  createPersonAs,
   endMembershipAs,
   leaveCommitteeAs,
   reactivateMembershipAs,
@@ -33,6 +41,7 @@ export {
   getMyMembership,
   listCommitteeRoles,
   type MyMembership as MyMembershipView,
+  setCommitteeMemberships,
   type TermCommittees,
 } from "./domain/committee-memberships";
 export {
@@ -54,6 +63,8 @@ export {
   type ConsentState,
   hasLiveConsent,
   listConsents,
+  recordConsent,
+  SELF_MANAGED_PURPOSES,
 } from "./domain/consents";
 export {
   type DirectoryEntry,
@@ -66,7 +77,11 @@ export {
   type RosterMember,
 } from "./domain/directory";
 export {
+  type ChangeStatusInput,
+  changeMembershipStatus,
   changeStatusSchema,
+  type EndMembershipInput,
+  endMembership,
   endMembershipSchema,
   type MembershipEventView,
   reactivateSchema,
@@ -102,6 +117,9 @@ export {
 export { getPerson360, type Person360 } from "./domain/person-360";
 export { normalizePhone, splitFullName } from "./domain/person-pure";
 export {
+  type FormPersonInput,
+  findOrCreatePersonFromForm,
+  formPersonSchema,
   getPersonRecord,
   listPeople,
   type PersonInput,
@@ -135,4 +153,4 @@ export {
   type SegmentRow,
   segmentFilterSchema,
 } from "./domain/segments";
-export { listAllTags, listPersonTags, type TagRow } from "./domain/tags";
+export { addPersonTags, listAllTags, listPersonTags, type TagRow } from "./domain/tags";

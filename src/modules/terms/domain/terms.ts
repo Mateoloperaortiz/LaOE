@@ -156,6 +156,33 @@ export function nextTermCode(code: string): string {
   return semesterFromCode(code) === 1 ? `${year}-2` : `${year + 1}-1`;
 }
 
+/**
+ * Devuelve el término siguiente al dado y lo crea con fechas convencionales si falta (cierre de
+ * permanencia, ADR-036; transferencias aprobadas, ADR-037). Hereda asambleas y nominales del actual.
+ */
+export async function ensureNextTerm(
+  ctx: CommandContext,
+  current: TermRow,
+): Promise<{ id: string; code: string; created: boolean }> {
+  const code = nextTermCode(current.code);
+  const [existing] = await ctx.tx
+    .select({ id: term.id })
+    .from(term)
+    .where(eq(term.code, code))
+    .limit(1);
+  if (existing) {
+    return { id: existing.id, code, created: false };
+  }
+  const created = await createTerm(ctx, {
+    code,
+    ...conventionalTermDates(code),
+    requiredOrdinaryAssemblies: current.requiredOrdinaryAssemblies,
+    permanenceGeneralNominal: current.permanenceGeneralNominal,
+    permanenceCommitteeNominal: current.permanenceCommitteeNominal,
+  });
+  return { id: created.id, code, created: true };
+}
+
 /** Estampa el cierre de puntos (ADR-004): desde ahí el ledger del término no acepta entradas. Sin reapertura. */
 export async function closeTermPoints(
   ctx: CommandContext,

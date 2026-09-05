@@ -1,5 +1,15 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import {
+  card,
+  internalCall,
+  internalCallEntry,
+  organization,
+  pipeline,
+  pipelineStage,
+  request,
+} from "@/modules/crm/schema";
+import { form, formSubmission } from "@/modules/forms/schema";
 import { checkIn, occasion } from "@/modules/participation/schema";
 import {
   appointment,
@@ -358,5 +368,196 @@ export async function seedWorkGroupMembership(
     })
     .returning({ id: workGroupMembership.id });
   if (!row) throw new Error("seed work group membership");
+  return row.id;
+}
+
+// Fase 5 (ADR-037): formularios, organizaciones, pipelines, solicitudes y convocatorias.
+
+type FormOverrides = Partial<{
+  title: string;
+  audience: "PUBLIC" | "MEMBERS";
+  status: "DRAFT" | "OPEN" | "CLOSED";
+  fields: unknown[];
+  actions: Record<string, unknown>;
+  allowMultiple: boolean;
+  consentRequired: boolean;
+  maxSubmissions: number | null;
+  opensAt: Date | null;
+  closesAt: Date | null;
+}>;
+
+export async function seedForm(slug: string, overrides: FormOverrides = {}): Promise<string> {
+  const [row] = await db()
+    .insert(form)
+    .values({
+      slug,
+      title: overrides.title ?? slug,
+      audience: overrides.audience ?? "PUBLIC",
+      status: overrides.status ?? "OPEN",
+      fields: overrides.fields ?? [],
+      actions: overrides.actions ?? { createPerson: true },
+      allowMultiple: overrides.allowMultiple ?? false,
+      consentRequired: overrides.consentRequired ?? true,
+      maxSubmissions: overrides.maxSubmissions ?? null,
+      opensAt: overrides.opensAt ?? null,
+      closesAt: overrides.closesAt ?? null,
+    })
+    .returning({ id: form.id });
+  if (!row) throw new Error("seed form");
+  return row.id;
+}
+
+export async function seedSubmission(
+  formId: string,
+  email: string,
+  overrides: Partial<{
+    personId: string | null;
+    answers: Record<string, unknown>;
+    ip: string;
+  }> = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(formSubmission)
+    .values({
+      formId,
+      email,
+      personId: overrides.personId ?? null,
+      answers: overrides.answers ?? {},
+      ip: overrides.ip ?? null,
+    })
+    .returning({ id: formSubmission.id });
+  if (!row) throw new Error("seed submission");
+  return row.id;
+}
+
+export async function seedOrganization(
+  name: string,
+  kind: "COMPANY" | "EAFIT_UNIT" | "STUDENT_GROUP" | "OTHER" = "COMPANY",
+): Promise<string> {
+  const [row] = await db()
+    .insert(organization)
+    .values({ name, kind })
+    .returning({ id: organization.id });
+  if (!row) throw new Error("seed organization");
+  return row.id;
+}
+
+/** Pipeline con sus etapas; devuelve el id y las etapas en orden. */
+export async function seedPipeline(
+  name: string,
+  kind: "ADMISSION" | "SPONSORSHIP" | "CUSTOM" = "ADMISSION",
+  stages: Array<{ name: string; isWon?: boolean; isLost?: boolean }> = [
+    { name: "Recibida" },
+    { name: "Entrevista" },
+    { name: "Alta", isWon: true },
+    { name: "No admitida", isLost: true },
+  ],
+): Promise<{ id: string; stages: Array<{ id: string; name: string }> }> {
+  const [row] = await db().insert(pipeline).values({ name, kind }).returning({ id: pipeline.id });
+  if (!row) throw new Error("seed pipeline");
+  const created = await db()
+    .insert(pipelineStage)
+    .values(
+      stages.map((stage, index) => ({
+        pipelineId: row.id,
+        name: stage.name,
+        sortOrder: index,
+        isWon: stage.isWon ?? false,
+        isLost: stage.isLost ?? false,
+      })),
+    )
+    .returning({ id: pipelineStage.id, name: pipelineStage.name });
+  return { id: row.id, stages: created };
+}
+
+export async function seedCard(
+  pipelineId: string,
+  stageId: string,
+  subject: { personId?: string; organizationId?: string },
+  overrides: Partial<{ title: string; submissionId: string | null; editionId: string | null }> = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(card)
+    .values({
+      pipelineId,
+      stageId,
+      personId: subject.personId ?? null,
+      organizationId: subject.organizationId ?? null,
+      title: overrides.title ?? "Tarjeta",
+      submissionId: overrides.submissionId ?? null,
+      editionId: overrides.editionId ?? null,
+    })
+    .returning({ id: card.id });
+  if (!row) throw new Error("seed card");
+  return row.id;
+}
+
+export async function seedRequest(
+  personId: string,
+  termId: string,
+  kind: "LEAVE" | "RESIGNATION" | "TRANSFER" = "LEAVE",
+  overrides: Partial<{
+    payload: Record<string, unknown>;
+    status: "PENDING" | "APPROVED" | "REJECTED" | "WITHDRAWN";
+    reason: string | null;
+  }> = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(request)
+    .values({
+      personId,
+      termId,
+      kind,
+      payload: overrides.payload ?? { reason: "Motivo de prueba" },
+      status: overrides.status ?? "PENDING",
+      reason: overrides.reason ?? null,
+    })
+    .returning({ id: request.id });
+  if (!row) throw new Error("seed request");
+  return row.id;
+}
+
+export async function seedCall(
+  termId: string,
+  groupId: string,
+  overrides: Partial<{
+    title: string;
+    formId: string | null;
+    opensAt: Date;
+    closesAt: Date;
+    capacity: number | null;
+    selection: "FIRST_COME" | "MANUAL";
+    status: "DRAFT" | "OPEN" | "CLOSED";
+  }> = {},
+): Promise<string> {
+  const now = Date.now();
+  const [row] = await db()
+    .insert(internalCall)
+    .values({
+      termId,
+      groupId,
+      title: overrides.title ?? "Convocatoria de prueba",
+      formId: overrides.formId ?? null,
+      opensAt: overrides.opensAt ?? new Date(now - 86_400_000),
+      closesAt: overrides.closesAt ?? new Date(now + 7 * 86_400_000),
+      capacity: overrides.capacity ?? null,
+      selection: overrides.selection ?? "FIRST_COME",
+      status: overrides.status ?? "OPEN",
+    })
+    .returning({ id: internalCall.id });
+  if (!row) throw new Error("seed call");
+  return row.id;
+}
+
+export async function seedCallEntry(
+  callId: string,
+  personId: string,
+  status: "APPLIED" | "ACCEPTED" | "WAITLISTED" | "REJECTED" = "ACCEPTED",
+): Promise<string> {
+  const [row] = await db()
+    .insert(internalCallEntry)
+    .values({ callId, personId, status })
+    .returning({ id: internalCallEntry.id });
+  if (!row) throw new Error("seed call entry");
   return row.id;
 }

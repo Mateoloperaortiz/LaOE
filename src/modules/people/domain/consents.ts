@@ -16,6 +16,15 @@ export const CONSENT_PURPOSES: readonly ConsentPurpose[] = [
   "COMMUNICATIONS",
   "DIRECTORY_PHOTO",
   "MEMORIAL",
+  "DATA_PROCESSING",
+];
+
+/** Los que la persona gestiona desde Ajustes; el tratamiento de datos de un formulario público no se revoca desde ahí (ADR-037). */
+export const SELF_MANAGED_PURPOSES: readonly ConsentPurpose[] = [
+  "MEMBERSHIP",
+  "COMMUNICATIONS",
+  "DIRECTORY_PHOTO",
+  "MEMORIAL",
 ];
 
 export interface ConsentState {

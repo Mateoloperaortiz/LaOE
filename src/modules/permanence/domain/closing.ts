@@ -9,14 +9,7 @@ import {
   listCommitteesByIds,
   setProbationAs,
 } from "@/modules/people";
-import {
-  closeTermPermanence,
-  conventionalTermDates,
-  createTerm,
-  findTermByCode,
-  getTerm,
-  nextTermCode,
-} from "@/modules/terms";
+import { closeTermPermanence, ensureNextTerm, getTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
 import { permanenceDecision } from "../schema";
@@ -440,20 +433,8 @@ export async function closeTermPermanenceAs(
   if (summary.undecided > 0) {
     throw new DomainError(t("T-807", { n: summary.undecided }));
   }
-  const nextCode = nextTermCode(term.code);
-  const existingNext = await findTermByCode(nextCode);
   return runCommand(actor, async (ctx) => {
-    let nextTermId = existingNext?.id;
-    if (!nextTermId) {
-      const created = await createTerm(ctx, {
-        code: nextCode,
-        ...conventionalTermDates(nextCode),
-        requiredOrdinaryAssemblies: term.requiredOrdinaryAssemblies,
-        permanenceGeneralNominal: term.permanenceGeneralNominal,
-        permanenceCommitteeNominal: term.permanenceCommitteeNominal,
-      });
-      nextTermId = created.id;
-    }
+    const nextTermId = (await ensureNextTerm(ctx, term)).id;
     await closeTermPermanence(ctx, termId);
     await freezeSnapshots(ctx, termId);
     await ctx.emit({

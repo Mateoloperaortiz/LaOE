@@ -3,7 +3,12 @@ import Link from "next/link";
 import { MEDIA_LIMITS, PHOTO_MAX_BYTES } from "@/modules/content";
 import { describeUserAgent, listSessionsFor, requireActor } from "@/modules/identity";
 import { SessionsPanel } from "@/modules/identity/components/SessionsPanel";
-import { CONSENT_PURPOSES, getPersonRecord, listConsents } from "@/modules/people";
+import {
+  CONSENT_PURPOSES,
+  getPersonRecord,
+  listConsents,
+  SELF_MANAGED_PURPOSES,
+} from "@/modules/people";
 import { PhotoUploader } from "@/modules/people/components/PhotoUploader";
 import { requireConfig } from "@/modules/system";
 import { BarraTitulo, Insignia } from "@/shared/brand";
@@ -200,43 +205,47 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
           <span id="consentimientos-titulo">{secciones[3]}</span>
         </BarraTitulo>
         <ul className="flex list-none flex-col gap-4 p-0">
-          {consents.map((state) => {
-            const index = CONSENT_PURPOSES.indexOf(state.purpose);
-            const texto = CONSENT_TEXTS[index] ?? "T-150";
-            return (
-              <li
-                key={state.purpose}
-                className="flex flex-col gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5"
-              >
-                <h3 className="text-display-md">{purposeLabels[index] ?? state.purpose}</h3>
-                <p className="max-w-prose text-sm">
-                  {t(texto, { v: policyVersion, versión: policyVersion })}
-                </p>
-                <p className="text-sm font-semibold">
-                  {state.live
-                    ? t("T-411", {
-                        fecha: formatDate(state.live.acceptedAt),
-                        v: state.live.policyVersion,
-                      })
-                    : t("T-412")}
-                </p>
-                {state.purpose === "MEMBERSHIP" ? (
-                  <p className="max-w-prose text-sm text-tinta-suave">{t("T-414")}</p>
-                ) : (
-                  <form action={consentAction}>
-                    <input type="hidden" name="purpose" value={state.purpose} />
-                    <input type="hidden" name="intent" value={state.live ? "revoke" : "grant"} />
-                    <button
-                      type="submit"
-                      className={state.live ? "boton-secundario text-sm" : "boton-primario text-sm"}
-                    >
-                      {state.live ? retirar : autorizar}
-                    </button>
-                  </form>
-                )}
-              </li>
-            );
-          })}
+          {consents
+            .filter((state) => SELF_MANAGED_PURPOSES.includes(state.purpose))
+            .map((state) => {
+              const index = CONSENT_PURPOSES.indexOf(state.purpose);
+              const texto = CONSENT_TEXTS[index] ?? "T-150";
+              return (
+                <li
+                  key={state.purpose}
+                  className="flex flex-col gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5"
+                >
+                  <h3 className="text-display-md">{purposeLabels[index] ?? state.purpose}</h3>
+                  <p className="max-w-prose text-sm">
+                    {t(texto, { v: policyVersion, versión: policyVersion })}
+                  </p>
+                  <p className="text-sm font-semibold">
+                    {state.live
+                      ? t("T-411", {
+                          fecha: formatDate(state.live.acceptedAt),
+                          v: state.live.policyVersion,
+                        })
+                      : t("T-412")}
+                  </p>
+                  {state.purpose === "MEMBERSHIP" ? (
+                    <p className="max-w-prose text-sm text-tinta-suave">{t("T-414")}</p>
+                  ) : (
+                    <form action={consentAction}>
+                      <input type="hidden" name="purpose" value={state.purpose} />
+                      <input type="hidden" name="intent" value={state.live ? "revoke" : "grant"} />
+                      <button
+                        type="submit"
+                        className={
+                          state.live ? "boton-secundario text-sm" : "boton-primario text-sm"
+                        }
+                      >
+                        {state.live ? retirar : autorizar}
+                      </button>
+                    </form>
+                  )}
+                </li>
+              );
+            })}
         </ul>
         {aviso("consentimientos")}
       </section>

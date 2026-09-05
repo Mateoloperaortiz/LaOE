@@ -36,6 +36,7 @@ export const consentPurpose = pgEnum("consent_purpose", [
   "COMMUNICATIONS",
   "DIRECTORY_PHOTO",
   "MEMORIAL",
+  "DATA_PROCESSING",
 ]);
 export const consentSource = pgEnum("consent_source", ["FORM", "IMPORT", "ADMIN", "SELF"]);
 export const appointmentKind = pgEnum("appointment_kind", [

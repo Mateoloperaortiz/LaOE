@@ -123,7 +123,7 @@ describe("datos propios desde Ajustes", () => {
     const data = await collectPersonalData(me);
     expect(data?.person).toMatchObject({ email: "borrar@eafit.edu.co" });
     expect(data?.person).not.toHaveProperty("sessionsRevokedAt");
-    expect(data?.consents).toHaveLength(4);
+    expect(data?.consents).toHaveLength(5);
   });
 });
 

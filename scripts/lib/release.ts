@@ -57,6 +57,17 @@ const REQUIRED_INDEXES = [
   "permanence_decision_committee_unique",
   "permanence_decision_person_unique",
   "recognition_month_unique",
+  // Fase 5 (ADR-037)
+  "form_slug_unique",
+  "edition_registration_unique",
+  "organization_name_unique",
+  "organization_name_trgm_idx",
+  "organization_contact_unique",
+  "organization_contact_primary_unique",
+  "organization_tag_unique",
+  "card_submission_unique",
+  "request_pending_unique",
+  "internal_call_entry_unique",
 ];
 
 const REQUIRED_EXTENSIONS = ["pg_trgm"];

@@ -39,7 +39,7 @@ export function appointmentLabel(kind: AppointmentKind, title: string | null): s
 
 export const END_REASONS = ["GRADUATION", "RESIGNATION", "PERMANENCE", "OTHER"] as const;
 
-export const CONSENT_TEXTS = ["T-150", "T-151", "T-152", "T-153"] as const;
+export const CONSENT_TEXTS = ["T-150", "T-151", "T-152", "T-153", "T-154"] as const;
 
 /** Filtros de la línea de tiempo en el orden de T-454; "OTHER" agrupa cargos, permisos y otros; "PARTICIPATION" llega al final (fase 3). */
 export const TIMELINE_FILTERS = [

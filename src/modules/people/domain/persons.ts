@@ -70,6 +70,60 @@ export async function createPerson(
   }
 }
 
+export const formPersonSchema = z.object({
+  email: emailSchema,
+  firstName: z.string().trim().min(1).max(80),
+  lastName: z.string().trim().min(1).max(80),
+  phone: z.string().trim().max(30).optional(),
+  program: z.string().trim().max(120).optional(),
+});
+
+export type FormPersonInput = z.infer<typeof formPersonSchema>;
+
+/**
+ * Vincula o crea la persona de una respuesta de formulario por correo normalizado (ADR-013, ADR-037):
+ * si existe, no toca sus datos; si no, nace como prospecto con `source = FORM`. Nunca crea miembros.
+ */
+export async function findOrCreatePersonFromForm(
+  ctx: CommandContext,
+  input: FormPersonInput,
+): Promise<{
+  id: string;
+  created: boolean;
+  stage: PersonRecord["stage"];
+  kind: PersonRecord["kind"];
+}> {
+  const [existing] = await ctx.tx
+    .select({ id: person.id, stage: person.stage, kind: person.kind })
+    .from(person)
+    .where(eq(person.email, input.email))
+    .for("update");
+  if (existing) {
+    return { ...existing, created: false };
+  }
+  const values = {
+    firstName: input.firstName,
+    lastName: input.lastName,
+    email: input.email,
+    phone: input.phone ? normalizePhone(input.phone).value : null,
+    program: input.program ?? null,
+  };
+  const [row] = await ctx.tx
+    .insert(person)
+    .values({ ...values, kind: "STUDENT", stage: "PROSPECT", source: "FORM" })
+    .returning({ id: person.id });
+  if (!row) {
+    throw new Error("No se pudo crear la persona");
+  }
+  await ctx.audit({
+    action: "person.created",
+    entityType: "person",
+    entityId: row.id,
+    after: { ...values, source: "FORM" },
+  });
+  return { id: row.id, created: true, stage: "PROSPECT", kind: "STUDENT" };
+}
+
 const EDITABLE = [
   "firstName",
   "lastName",
