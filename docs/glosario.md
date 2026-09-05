@@ -6,8 +6,8 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | --- | --- | --- |
 | Persona | `Person` | Cualquier ser humano del que la OE guarda datos: estudiante o contacto externo. Eje del CRM |
 | Correo personal | `Person.personalEmail` | Contacto opcional de egresados y externos; nunca sirve para iniciar sesión |
-| Prospecto | `stage=PROSPECT` | Persona que llenó un formulario público sin convocatoria abierta |
-| Postulante | `stage=APPLICANT` | Persona con tarjeta en un pipeline de admisión |
+| Prospecto | `stage=PROSPECT` | Persona que llenó un formulario público o fue creada a mano sin membresía |
+| Postulante | `stage=APPLICANT` | Persona con tarjeta en un pipeline de admisión; si no es admitida, sigue postulante con su tarjeta perdida como historia |
 | Miembro | `stage=MEMBER` + `Membership` | Persona con membresía: activo, en licencia u honorario |
 | Egresado | `stage=ALUMNI` | Persona que dejó la OE (retiro o graduación); no puede entrar (pierde el correo institucional) y conserva su historia como perfil de egresado |
 | Perfil de egresado (memorial) | `stage=ALUMNI` + `Consent MEMORIAL` | Historia institucional de quien salió: comités, cargos, años, puntos; visible en la galería de egresados si hay consentimiento |
@@ -65,7 +65,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Tabla del comité | `PermanenceRule.scope=COMMITTEE` | Criterios de permanencia propios de un comité, definidos por su líder; vale unos 60 puntos |
 | Resultado por comité | `PermanenceSnapshot.results` | Parte general más la tabla de ese comité; una persona con varios comités tiene un resultado en cada uno |
 | Periodo de prueba | `MembershipTerm.probation` | Condición de quien cerró hasta 10 puntos por debajo de su umbral; el término siguiente debe cumplir 80 % |
-| Transferencia interna | `CommitteeMembership.transferredIn` | Cambio de comité dentro de la OE; ese término debe cumplir 70 % en el comité nuevo |
+| Transferencia interna | `CommitteeMembership.transferredIn` | Cambio de comité dentro de la OE, pedido desde Mi OE para el semestre siguiente o hecho por GH; ese término debe cumplir 70 % en el comité nuevo |
 | Director de GH | `Appointment.kind=GH_DIRECTOR`, `WorkGroupEvaluator` | Quien evalúa, al cerrar el semestre, el buen desempeño de los grupos de su frente |
 | GH principal | `Appointment.kind=GH_HEAD` | Cabeza de Gestión Humana; evalúa las tareas de nuevos y confirma el cierre |
 | Reunión de comité | `Occasion.category=COMMITTEE_MEETING` | Reunión semanal del comité con asistencia por modo anfitrión; alimenta el criterio de asistencia |
@@ -73,19 +73,27 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Evento | `Event` | Identidad permanente (Días EAFIT, Inventiva) |
 | Edición | `EventEdition` | Ocurrencia fechada de un evento, con lugar y organizadores |
 | Sesión de edición | `Occasion.kind=EDITION_SESSION` | Momento de una edición con check-in |
-| Formulario | `Form` | Formulario propio, público o de miembros, con campos tipados |
-| Respuesta | `Submission` | Envío de un formulario, vinculado a una persona por correo |
+| Formulario | `Form` | Formulario propio, público o de miembros, con campos tipados y acciones (crear persona, pipeline, edición, etiquetas) |
+| Campo | `Form.fields[]` | Pregunta tipada de un formulario: texto, área, correo, teléfono, selección, multiselección, casilla o fecha |
+| Acción del formulario | `Form.actions` | Lo que hace una respuesta además de guardarse: crear la persona como prospecto, entrar a un pipeline, inscribir a una edición, etiquetar |
+| Respuesta | `Submission` (tabla `form_submission`) | Envío de un formulario, vinculado a una persona por correo |
+| Honeypot | campo oculto de `/f/[slug]` | Trampa para bots: si viene llena, la app responde "gracias" sin guardar |
 | Inscripción | `EditionRegistration` | Persona inscrita a una edición mediante un formulario |
-| Organización | `Organization` | Empresa, unidad de EAFIT, grupo estudiantil u otra entidad |
-| Contacto | `OrganizationContact` | Persona externa con rol en una organización |
+| Organización (aliado) | `Organization` | Empresa, unidad de EAFIT, grupo estudiantil u otra entidad con la que la OE se relaciona |
+| Contacto | `OrganizationContact` | Persona externa (`kind = EXTERNAL`) con rol en una organización; una es la principal |
 | Pipeline | `Pipeline` | Proceso por etapas: admisión, patrocinio o personalizado |
 | Etapa | `PipelineStage` | Columna del kanban, ordenada, con marca de ganada o perdida |
 | Tarjeta | `Card` | Persona u organización avanzando por un pipeline |
+| Patrocinio | `Card` en un pipeline `SPONSORSHIP` | Tarjeta de una organización para una edición, con monto, contraprestación y responsable |
+| Dar de alta | `people.admitPerson` | Único camino a la membresía junto con el roster: crea la membresía, los comités y el consentimiento y manda la bienvenida |
+| Kanban | `/admin/pipelines/[id]` | Tablero de columnas por etapa; las tarjetas se mueven con el selector o arrastrando |
 | Interacción | `Interaction` | Entrada de la línea de tiempo de una persona: automática o nota manual |
 | Nota | `Interaction.kind=NOTE` | Interacción escrita por alguien del equipo |
-| Tarea | `Task` | Pendiente con responsable y vencimiento sobre persona, organización o tarjeta |
-| Solicitud | `Request` | Pedido del miembro desde Mi OE (licencia, retiro, cambio de comité, transferencia) que GH aprueba; aprobar ejecuta el comando |
-| Convocatoria interna | `InternalCall` | Llamado a inscribirse en un grupo de trabajo con cupo y cierre; la inscripción aceptada crea la pertenencia al grupo |
+| Tarea | `Task` | Pendiente con responsable y vencimiento sobre persona, organización o tarjeta; de tipo general, solicitud de eliminación o solicitud de miembro |
+| Solicitud | `Request` | Pedido del miembro desde Mi OE (licencia, retiro voluntario o cambio de comité para el semestre siguiente) que GH aprueba; aprobar ejecuta el comando en la misma transacción |
+| Convocatoria interna | `InternalCall` | Llamado a inscribirse en un grupo de trabajo con formulario opcional, cupo, ventana y selección por orden de llegada o manual |
+| Inscripción a convocatoria | `InternalCallEntry` | Persona apuntada a una convocatoria: aplicada, aceptada, en lista de espera o rechazada; la aceptada crea la pertenencia al grupo por outbox |
+| Tablero del admin | `/admin` | Inicio del admin con pendientes, vencidas, solicitudes, respuestas, tarjetas, convocatorias, ocasiones y alertas |
 | Onboarding | `OnboardingProgress` | Pasos de la primera semana de un nuevo, ligados a sus criterios de permanencia |
 | Reconocimiento | `Recognition` | Destacado del mes u otro mérito; con consentimiento de directorio se publica en la cartelera del comité y como insignia en las tarjetas |
 | Cartelera del comité | `Announcement.committeeId` | Anuncios de miembros que solo aparecen en la página interna de ese comité |

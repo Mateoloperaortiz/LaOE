@@ -1,6 +1,6 @@
 # ADR-033: Contenido editable y medios del portal público (fase 1)
 
-- Estado: Aceptada (enmendada por ADR-036)
+- Estado: Aceptada (enmendada por ADR-036 y ADR-037)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-014, ADR-017, ADR-020, ADR-022, ADR-023, ADR-032
 
@@ -42,3 +42,7 @@ GHPOINTS guarda `MediaAsset` sin variantes y sirve las portadas por su propia ru
 ## Enmienda (2026-09-04, ADR-036)
 
 `announcement` gana `committeeId?`: un anuncio de comité vive en la cartelera interna de ese comité (`/app/comites/[slug]`) y no en la cartelera general ni en el portal. Ver [ADR-036](ADR-036-permanencia-fase-4.md).
+
+## Enmienda (2026-09-05, ADR-037)
+
+`event_edition` no gana `registrationFormId`: la inscripción propia de una edición se resuelve por la acción `editionId` del formulario (`forms.findOpenRegistrationForm`), y la página pública muestra T-019 hacia `/f/[slug]` cuando ese formulario está abierto, además del enlace externo de `registrationUrl`. Ver [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md).

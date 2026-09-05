@@ -61,6 +61,11 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Nombres y cortes de los niveles de GH Points (T-082); mientras tanto rigen los propuestos (0, 100, 250, 500, 1000)
 - [ ] Al migrar desde GHPOINTS: las actividades que quedaron abiertas allá (31 en la copia local) llegan abiertas y el cierre automático las cierra en la primera hora; confirmar con GH si alguna debe seguir recibiendo registros a mano antes del cutover
 - [ ] Texto de "Unirse": requisitos y fechas de convocatoria
+- [ ] Preguntas reales del formulario de admisión (el seed trae unas sintéticas) y el texto de gracias que ve quien postula
+- [ ] Etapas reales del proceso de admisión si difieren de la plantilla (Recibida, Entrevista, Admitida, Alta, No admitida) y de la de patrocinio (Contacto, Propuesta, Negociación, Cerrado, Sin acuerdo)
+- [ ] Aliados y contactos institucionales reales (empresas, unidades de EAFIT, grupos estudiantiles) con permiso para cargarlos; montos y contraprestaciones de los patrocinios vigentes
+- [ ] Cupos y ventanas de las convocatorias internas del término (GT, GAP, GAP OE, barra brava, tareas de nuevos)
+- [ ] Confirmar con GH los supuestos de la fase 5: cinco días hábiles para responder una solicitud; el cambio de comité aprobado rige desde el semestre siguiente como transferencia; la casilla de un formulario público es consentimiento de tratamiento de datos y el de membresía se registra al dar de alta; el retiro voluntario aprobado avisa con T-205 mientras T-206 no tenga texto final
 - [ ] Pasos del onboarding de nuevos (qué debe hacer un nuevo en su primera semana) y preguntas de la encuesta corta tras una ocasión
 - [ ] Acceso al dominio `oeeafit.com` (DNS) y a la cuenta de Resend
 - [ ] Subdominio `pruebas.oeeafit.com` para `staging` (opcional; el dominio de Railway sirve mientras tanto)

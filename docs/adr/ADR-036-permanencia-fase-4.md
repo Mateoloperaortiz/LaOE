@@ -1,6 +1,6 @@
 # ADR-036: Permanencia (fase 4)
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-037)
 - Fecha: 2026-09-04
 - Relacionadas: ADR-003, ADR-004, ADR-005, ADR-011, ADR-012, ADR-014, ADR-017, ADR-025, ADR-026, ADR-027, ADR-028, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035
 - Enmienda: ADR-025 (recompute, estados, decisiones y vista en vivo), ADR-026 (bloqueo y comentario por tabla), ADR-028 (ventana por configuración y pendientes al cierre), ADR-031 (avisos en la app hasta la fase 6; anuncios de comité), ADR-033 (`announcement.committeeId`), ADR-035 (layout del admin con más roles; handlers de `term.points-closed` y `occasion.closed`), 03-modelo (tablas definitivas de `permanence`, `permanence_table`, `ruleId`, columnas del snapshot, `term.permanenceClosedAt`) y 05-acceso (roles derivados de los grupos, `BOARD`, step-up del cierre)
@@ -42,3 +42,7 @@ Decisiones que Mateo cerró el 2026-09-04 para esta fase: entra todo lo del road
 ## Frente a las hojas de GH
 
 En la hoja la persona se entera al final, el "buen desempeño" no deja rastro de quién lo dijo, las tablas de los 27 comités viven en 27 archivos y el cierre es una decisión sin registro. Aquí cada criterio muestra logrado, posible y cómo sumar más en el celular del miembro; cada evaluación, puntaje y crédito lleva autor, fecha y nota en su línea de tiempo; las 27 tablas se ven en una pantalla con su suma frente al nominal; y el cierre queda como decisiones confirmadas por GH que ejecutan los mismos comandos que haría a mano.
+
+## Enmienda (2026-09-05, ADR-037)
+
+`permanence/jobs.ts` gana el handler de `call-entry.changed`: cuando una inscripción a una convocatoria interna queda aceptada, ejecuta `addMembersAs` sobre el grupo (idempotente, solo activos), que ya encola el recompute de la persona. Es la tercera puerta de entrada a un grupo, anunciada en la regla 6. Ver [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md).

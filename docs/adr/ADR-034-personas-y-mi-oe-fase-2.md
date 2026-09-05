@@ -1,6 +1,6 @@
 # ADR-034: Personas, CRM mínimo y Mi OE (fase 2)
 
-- Estado: Aceptada (enmendada por ADR-035)
+- Estado: Aceptada (enmendada por ADR-035 y ADR-037)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-022, ADR-029, ADR-030, ADR-031, ADR-032, ADR-033
 - Enmienda: ADR-010 (destrucción de sesiones), ADR-018 y 08-migracion (mapeo del líder de comité), ADR-022 (el archivo del roster sí pasa por la app)
@@ -47,3 +47,7 @@ GHPOINTS tenía `Member` como raíz, sin consentimientos, sin línea de tiempo y
 ## Enmienda (2026-09-03, ADR-035)
 
 El término deja `participation` y pasa al módulo `terms` (sin cambio de SQL) para que `participation` pueda importar `people` sin ciclo. La dirección queda `people → terms`, `crm → terms`, `participation → terms`, `participation → people`; `crm` deja de importar `participation` y los efectos de participación llegan por outbox. Ver [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md).
+
+## Enmienda (2026-09-05, ADR-037)
+
+`crm` importa además `forms` (validación pura de respuestas, `createSubmission(ctx)` y lecturas), y `forms` importa `people`, `events`, `system` y `terms`; `people` sigue sin importar a nadie de ellos y exporta funciones con `CommandContext` (`admitPerson`, `changeMembershipStatus`, `endMembership`, `setCommitteeMemberships`, `findOrCreatePersonFromForm`, `addPersonTags`) para que `crm` y `forms` compongan en la misma transacción. `interaction.personId` admite nulo y gana `organizationId` para las notas sobre organizaciones. `person.stage` pasa a `APPLICANT` cuando una tarjeta entra a un pipeline de admisión y a `MEMBER` con `admitPerson`, el único camino a la membresía junto con el roster. Ver [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md).

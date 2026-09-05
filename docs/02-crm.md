@@ -17,7 +17,7 @@ stateDiagram-v2
   [*] --> Postulante: formulario de postulacion con convocatoria abierta
   Prospecto --> Postulante: entra a pipeline de admision
   Postulante --> Miembro: Dar de alta (membresia + comites)
-  Postulante --> Egresado: no admitido, se archiva como historia
+  Postulante --> Postulante: no admitido, la tarjeta queda perdida como historia
   Miembro --> Egresado: retiro o graduacion
   Egresado --> Miembro: reactivacion
   [*] --> Miembro: importacion del roster
@@ -25,8 +25,8 @@ stateDiagram-v2
 
 | Etapa | Cómo se entra | Qué puede hacer | Qué guarda |
 | --- | --- | --- | --- |
-| Prospecto | Formulario público, alta manual | Nada en la app | Datos del formulario, consentimiento |
-| Postulante | Convocatoria abierta, tarjeta en pipeline `ADMISSION` | Nada en la app | Respuestas, entrevistas, notas del equipo |
+| Prospecto | Formulario público (`source = FORM`), alta manual | Nada en la app | Datos del formulario, consentimiento de tratamiento de datos |
+| Postulante | Tarjeta en un pipeline `ADMISSION` (desde una respuesta o creada a mano) | Nada en la app | Respuestas, entrevistas, notas del equipo; si no es admitido, la tarjeta queda perdida y la persona sigue postulante con su historia ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) |
 | Miembro | "Dar de alta" o importación | Mi OE, check-in, GH Points | Membresía, comités por término, cargos, participación |
 | Egresado | Baja o graduación | Nada en la app: el correo institucional caduca al graduarse. Su perfil queda como **egresado** (memorial): historia institucional visible para miembros en la galería por año si dio consentimiento | Nombre, foto con consentimiento, comités y cargos por término, años en la OE, puntos y reconocimientos; correo personal solo con consentimiento de contacto; sin celular, formularios ni tareas |
 
@@ -43,10 +43,10 @@ Los contactos externos (`kind=EXTERNAL`) no tienen etapa de miembro ni acceso: s
 | Membresía | Términos, comités por término con el cargo en cada uno (General, Financiero, Logística…), cargos de junta o de GH, transferencias, historial de estados con motivos |
 | Participación | Check-ins con ocasión y fuente; ledger con ajustes y reversiones |
 | Permanencia | Resultado por cada comité frente a su umbral, parte general y parte del comité criterio por criterio, condición (nuevo, prueba, transferencia), grupos y evaluaciones, puntajes y observaciones del líder, decisiones de cierre |
-| Formularios | Respuestas enviadas, con enlace a la tarjeta de pipeline si existe |
+| Formularios | Respuestas enviadas, inscripciones a ediciones y tarjetas de pipeline, con enlace al kanban |
 | Comunicaciones | Mensajes enviados (correo y push), preferencias, suscripciones push |
 | Tareas | Pendientes y cerradas sobre la persona |
-| Solicitudes | Licencias, retiros, cambios de comité y transferencias pedidos por la persona, con la decisión de GH |
+| Solicitudes | Licencias, retiros y cambios de comité pedidos por la persona, con la decisión de GH y la posibilidad de decidir desde la misma pestaña |
 | Datos y consentimiento | Campos personales, consentimientos por propósito, exportar datos, solicitar eliminación |
 
 ## Pipelines
@@ -55,15 +55,15 @@ Un `Pipeline` tiene etapas ordenadas con marcas `isWon` / `isLost`; una `Card` e
 
 | Tipo | Sujeto | Plantilla de etapas | Al ganar |
 | --- | --- | --- | --- |
-| `ADMISSION` | Persona | Recibida → Entrevista → Admitida → Alta | "Dar de alta": crea `Membership` con término actual, 1 a 3 comités, `firstTermId`, envía correo de bienvenida. Todo en una transacción |
-| `SPONSORSHIP` | Organización, con edición | Contacto → Propuesta → Negociación → Cerrado | Registra monto, contraprestación y responsable; crea tareas de seguimiento |
-| `CUSTOM` | Persona u organización | Definidas por el admin | Sin efecto automático |
+| `ADMISSION` | Persona | Recibida → Entrevista → Admitida → Alta (ganada) · No admitida (perdida) | "Dar de alta" (`people.admitPerson`): crea `Membership` con término actual, 1 a 3 comités, `firstTermId` y consentimiento de membresía, y mueve la tarjeta a Alta; todo en una transacción; el correo de bienvenida (T-200) sale por outbox. Mover a mano a Alta solo se permite si la persona ya tiene membresía |
+| `SPONSORSHIP` | Organización, con edición | Contacto → Propuesta → Negociación → Cerrado (ganada) · Sin acuerdo (perdida) | Registra monto, contraprestación (`fields.counterpart`) y responsable; al ganar crea una tarea de seguimiento al responsable |
+| `CUSTOM` | Persona u organización | Una etapa inicial; el admin agrega las demás | Sin efecto automático |
 
-Una convocatoria es un formulario de postulación con la acción "entrar al pipeline X"; cerrarla es cerrar el formulario. Las respuestas aparecen como tarjetas con sus datos.
+Una convocatoria de admisión es un formulario público con la acción "entrar al pipeline X"; cerrarla es cerrar el formulario. Las respuestas aparecen como tarjetas con sus datos (las crea el outbox al recibir la respuesta) y la persona pasa a postulante. Las etapas de cada pipeline se renombran, reordenan y marcan como ganada o perdida desde el kanban; mover una tarjeta se hace con el selector "Mover a…" o arrastrando ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)).
 
 ## Organizaciones y contactos
 
-`Organization` (`EMPRESA`, `UNIDAD_EAFIT`, `GRUPO_ESTUDIANTIL`, `OTRA`) con sitio web, notas y contactos: personas externas con rol e indicador de contacto principal. Bienestar, Desarrollo Estudiantil, docentes y otros grupos viven aquí, con su línea de tiempo (notas, reuniones, correos) y sus tarjetas de patrocinio por edición.
+`Organization` (`COMPANY`, `EAFIT_UNIT`, `STUDENT_GROUP`, `OTHER`: empresa, unidad de EAFIT, grupo estudiantil u otra) con sitio web, notas y contactos: personas externas (`kind = EXTERNAL`, creadas desde la ficha o vinculadas) con rol e indicador de contacto principal. Bienestar, Desarrollo Estudiantil, docentes y otros grupos viven aquí, con su línea de tiempo (notas y movimientos de sus tarjetas), sus tareas, sus etiquetas y sus tarjetas de patrocinio por edición ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)).
 
 ## Segmentos y listas
 
@@ -71,7 +71,11 @@ Un `Segment` es un filtro guardado: etapa, estado, término, comité, etiqueta, 
 
 ## Tareas
 
-`Task` con título, responsable, vencimiento, sujeto (persona, organización o tarjeta) y estado. El inicio del admin muestra "Pendientes" del actor y las vencidas del equipo.
+`Task` con título, tipo (general, solicitud de eliminación, solicitud de miembro), responsable, vencimiento, sujeto (persona, organización o tarjeta) y estado. El inicio del admin (`/admin`) es un tablero: pendientes del actor, tareas vencidas del equipo, solicitudes pendientes, respuestas recientes por formulario, tarjetas por etapa de cada pipeline, convocatorias y ocasiones abiertas, y alertas de sistema ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)).
+
+## Solicitudes y convocatorias
+
+Un miembro activo pide desde Mi OE una licencia, su retiro voluntario o un cambio de comité; el cambio se pide siempre para el semestre siguiente y es una transferencia interna (umbral 70 % en el comité nuevo). La solicitud abre una tarea para GH y no cambia nada hasta que GH aprueba: aprobar ejecuta el mismo comando de `people` que haría a mano, en la misma transacción; rechazar exige motivo; la respuesta llega por correo porque quien queda en licencia o se retira pierde el acceso. Una convocatoria interna llama a inscribirse en un grupo de trabajo con cupo, ventana y selección por orden de llegada (con lista de espera) o manual del líder; la inscripción aceptada entra al grupo por outbox ([ADR-031](adr/ADR-031-autogestion-del-miembro.md), [ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)).
 
 ## Reglas del CRM
 
@@ -87,7 +91,7 @@ Un `Segment` es un filtro guardado: etapa, estado, término, comité, etiqueta, 
 
 Un CRM es un archivo de datos personales; esto no es opcional.
 
-- `Consent` versionado por propósito (`MEMBERSHIP`, `COMMUNICATIONS`, `DIRECTORY_PHOTO`) y por fuente (`FORM`, `IMPORT`, `ADMIN`), con fecha, versión de la política e IP cuando aplica.
+- `Consent` versionado por propósito (`MEMBERSHIP`, `COMMUNICATIONS`, `DIRECTORY_PHOTO`, `MEMORIAL`, `DATA_PROCESSING` para quien responde un formulario público) y por fuente (`FORM`, `IMPORT`, `ADMIN`, `SELF`), con fecha, versión de la política e IP cuando aplica.
 - Público: cero datos personales. Directorio interno: nombre, foto opcional con consentimiento, comités y cargos.
 - "Descargar mis datos" (JSON con todo, notas incluidas) y "Solicitar eliminación" desde Ajustes; la solicitud estampa `deletionRequestedAt`, crea una tarea de tipo `DELETION_REQUEST` sin responsable (la ven todos los ADMIN) con vencimiento a 15 días hábiles (`privacy.deletionDays`) y se atiende con "Anonimizar" desde la Persona 360, con step-up.
 - Salida: no hay anonimización por plazo. Al salir, el perfil pasa a egresado y se depura lo que no es historia (celular salvo consentimiento de contacto, respuestas de formularios, tareas); notas y evaluaciones quedan solo para ADMIN; nombre, comités, cargos, años y ledger se conservan como historia institucional, visibles en la galería de egresados si hay consentimiento `MEMORIAL`. La eliminación a pedido anonimiza de inmediato ([ADR-030](adr/ADR-030-perfil-de-egresado.md)).

@@ -98,6 +98,34 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-321 | La OE, título del bloque de contacto | Contacto | COM | Propuesta |
 | T-322 | Calendario público (ICS), nombre del calendario | Eventos de la Organización Estudiantil EAFIT | COM | Propuesta |
 
+### Portal público · fase 5 (formularios propios, unirse, inscripción a ediciones)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-851 | Formulario público: campos implícitos | Nombre · Apellido · Correo | MATEO | Propuesta |
+| T-852 | Formulario: botón de enviar | Enviar | MATEO | Propuesta |
+| T-853 | Formulario: campo obligatorio vacío | Este campo es obligatorio. | MATEO | Propuesta |
+| T-854 | Formulario: correo con formato inválido | Ese correo no tiene un formato válido. Revisalo. | MATEO | Propuesta |
+| T-855 | Formulario: celular con formato inválido | Ese celular no se ve bien. Escribilo con indicativo si es de otro país. | MATEO | Propuesta |
+| T-856 | Formulario: opción fuera de la lista | Elegí una opción de la lista. | MATEO | Propuesta |
+| T-857 | Formulario: fecha inválida | Esa fecha no es válida. | MATEO | Propuesta |
+| T-858 | Formulario: consentimiento sin marcar | Para enviar tenés que aceptar la política de tratamiento de datos. | JUNTA | Propuesta |
+| T-859 | Formulario: gracias por defecto (si el formulario no trae el suyo) | ¡Listo! Recibimos tu respuesta. ¡OE OE OE! | COM | Propuesta |
+| T-860 | Formulario cerrado o todavía no abierto | Este formulario no está recibiendo respuestas ahora. | MATEO | Propuesta |
+| T-861 | Formulario con el tope de respuestas alcanzado | Este formulario ya alcanzó su tope de respuestas. | MATEO | Propuesta |
+| T-862 | Formulario: segunda respuesta con el mismo correo | Ya recibimos una respuesta con ese correo. | MATEO | Propuesta |
+| T-863 | Formulario: demasiados envíos desde la misma red | Recibimos muchos envíos desde tu red. Esperá unos minutos e intentá de nuevo. | MATEO | Propuesta |
+| T-864 | Ingresar: aviso cuando se llega desde un formulario de miembros | Entrá con tu correo institucional para responder el formulario. | MATEO | Propuesta |
+| T-865 | Formulario: enlace a la política junto a la casilla | Leé la política de datos | JUNTA | Propuesta |
+| T-866 | Formulario: aviso de campos obligatorios | Los campos con * son obligatorios. | MATEO | Propuesta |
+| T-867 | Formulario: inscripción registrada (dentro del gracias) | Quedaste inscrito a {edición}. | COM | Propuesta |
+| T-868 | Unirse: enlace al formulario de prospecto cuando no hay convocatoria | Dejanos tu correo | GH | Propuesta |
+| T-869 | Edición: el miembro ya está inscrito | Ya estás inscrito a esta edición. | COM | Propuesta |
+| T-870 | Formulario: ayuda de una selección múltiple | Podés marcar varias. | MATEO | Propuesta |
+| T-871 | Formulario: ayuda de un campo de fecha | Día, mes y año. | MATEO | Propuesta |
+| T-872 | Formulario de miembros: respondiendo como | Respondés como {nombre} ({correo}). | MATEO | Propuesta |
+| T-873 | Formulario: título accesible del campo trampa (nadie debería verlo) | No llenes este campo | MATEO | Propuesta |
+
 ## 3. Acceso
 
 | Código | Dónde | Propuesta | Dueño | Estado |
@@ -126,7 +154,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-060 | Saludo | Hola, {nombre preferido} | MATEO | Propuesta |
-| T-061 | Pestañas de navegación | Inicio · Eventos · Comités · Personas · Egresados · GH Points · Permanencia · Normativa · Carnet · Ajustes | COM | Propuesta |
+| T-061 | Pestañas de navegación | Inicio · Eventos · Comités · Personas · Egresados · GH Points · Permanencia · Solicitudes · Convocatorias · Normativa · Carnet · Ajustes | COM | Propuesta |
 | T-062 | Agenda, título | Tu semana | MATEO | Propuesta |
 | T-063 | Agenda vacía | No tenés nada esta semana. Mirá los eventos o pasá por tu comité. | MATEO | Propuesta |
 | T-064 | Barra de permanencia en el inicio | Permanencia en {comité}: {n} % de {umbral} % | GH | Propuesta |
@@ -209,7 +237,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-136 | Solicitar eliminación | Pedir que borren mis datos (GH responde en 15 días hábiles) | JUNTA | Propuesta; el plazo sale de la política |
 | T-137 | Cerrar otras sesiones | Cerrar sesión en los demás dispositivos | MATEO | Propuesta |
 | T-138 | Solicitudes, título | Solicitudes | GH | Propuesta |
-| T-139 | Solicitudes, tipos | Pedir licencia · Cambiarme de comité · Transferirme a otro comité · Retirarme de la OE | GH | Propuesta |
+| T-139 | Solicitudes, tipos (en el orden del modelo: licencia, retiro, cambio de comité) | Pedir licencia · Retirarme de la OE · Cambiarme de comité el próximo semestre | GH | Propuesta |
 | T-140 | Solicitud enviada | Tu solicitud llegó a GH. Te avisamos cuando la respondan. | GH | Propuesta |
 | T-141 | Solicitud aprobada | GH aprobó tu solicitud de {tipo}. Ya está aplicada. | GH | Propuesta |
 | T-142 | Solicitud rechazada | GH no aprobó tu solicitud de {tipo}: {motivo}. Si querés hablarlo, escribiles. | GH | Propuesta |
@@ -365,6 +393,45 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-706 | Permanencia: texto accesible de la barra | {n} de {umbral} por ciento | MATEO | Propuesta |
 | T-707 | Inicio: ventana de evaluación cerrada para un evaluador | La ventana de evaluación abre el {fecha}. | MATEO | Propuesta |
 
+### Mi OE · fase 5 (solicitudes y convocatorias)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-874 | Solicitudes: intro | Pedí una licencia, un cambio de comité para el próximo semestre o tu retiro. GH revisa cada solicitud y te responde acá y por correo. | GH | Propuesta |
+| T-875 | Solicitudes: sin solicitudes | Todavía no has hecho solicitudes. | MATEO | Propuesta |
+| T-876 | Solicitudes: estados | Pendiente · Aprobada · Rechazada · Retirada | MATEO | Propuesta |
+| T-877 | Solicitudes: título de la lista | Tus solicitudes | MATEO | Propuesta |
+| T-878 | Solicitud: botón para retirar una pendiente | Retirar solicitud | MATEO | Propuesta |
+| T-879 | Solicitud retirada | Retiraste tu solicitud. | MATEO | Propuesta |
+| T-880 | Solicitud: campo del motivo | Contanos por qué | GH | Propuesta |
+| T-881 | Licencia: campo hasta cuándo (opcional) | Hasta cuándo (opcional) | GH | Propuesta |
+| T-882 | Licencia: explicación | Mientras estés en licencia no podés entrar a Mi OE ni se te evalúa la permanencia. Para volver, escribile a GH. | GH | Propuesta |
+| T-883 | Cambio de comité: explicación | El cambio aplica desde el próximo semestre y cuenta como transferencia: ese semestre tenés que cumplir el 70 % en el comité nuevo. | GH | Propuesta |
+| T-884 | Cambio de comité: comités que dejás | Comités que dejás | GH | Propuesta |
+| T-885 | Cambio de comité: comités a los que entrás | Comités a los que entrás | GH | Propuesta |
+| T-886 | Cambio de comité: resultado fuera del rango | Tenés que quedar entre {min} y {max} comités. | GH | Propuesta |
+| T-887 | Cambio de comité: sin cambios elegidos | Elegí al menos un comité para dejar o para entrar. | MATEO | Propuesta |
+| T-888 | Retiro: casillas de consentimiento | Quiero aparecer en la galería de egresados · Quiero que la OE me contacte después de salir | JUNTA | Propuesta |
+| T-889 | Retiro: correo personal (opcional) | Correo personal para contactarte (opcional) | GH | Propuesta |
+| T-890 | Retiro: casilla de confirmación | Entiendo que al aprobarse mi retiro pierdo el acceso a Mi OE. | GH | Propuesta; texto sensible |
+| T-891 | Solicitud: ya hay una pendiente de ese tipo | Ya tenés una solicitud de {tipo} pendiente. | MATEO | Propuesta |
+| T-892 | Solicitud: solo miembros activos | Solo un miembro activo puede hacer solicitudes. | GH | Propuesta |
+| T-893 | Solicitud: botón de enviar | Enviar solicitud | MATEO | Propuesta |
+| T-894 | Solicitud: tipos en singular para los mensajes (en el orden del modelo: licencia, retiro, cambio de comité) | licencia · retiro · cambio de comité | MATEO | Propuesta |
+| T-895 | Solicitud: respuesta de GH, título | Respuesta de GH | GH | Propuesta |
+| T-896 | Convocatorias: sin convocatorias abiertas | No hay convocatorias abiertas ahora. Cuando se abra una, la vas a ver acá. | GH | Propuesta |
+| T-897 | Convocatoria: cupo y cierre | {cupo} cupos · cierra el {fecha} | MATEO | Propuesta |
+| T-898 | Convocatoria: sin cupo fijo | Sin cupo fijo · cierra el {fecha} | MATEO | Propuesta |
+| T-899 | Convocatoria: estados de mi inscripción (en el orden del modelo) | Pendiente · Aceptada · En lista de espera · No aceptada | MATEO | Propuesta |
+| T-900 | Convocatoria: ya estás en el grupo | Ya estás en {grupo}. | MATEO | Propuesta |
+| T-901 | Convocatoria: inscripción pendiente (selección manual) | Te anotaste en {grupo}. El líder revisa las inscripciones y te avisamos. | GH | Propuesta |
+| T-902 | Convocatoria: título de mis inscripciones | Tus inscripciones | MATEO | Propuesta |
+| T-903 | Convocatoria: ya te anotaste | Ya te anotaste a esta convocatoria. | MATEO | Propuesta |
+| T-904 | Convocatoria cerrada | Esta convocatoria ya cerró. | MATEO | Propuesta |
+| T-905 | Convocatoria: explicación de la selección (orden de llegada · manual) | Los cupos se asignan por orden de llegada. · El líder del grupo elige entre quienes se anoten. | GH | Propuesta |
+| T-906 | Convocatoria: no aceptada | Esta vez no quedaste en {grupo}. | GH | Propuesta; texto sensible |
+| T-907 | Convocatoria: solo miembros activos | Solo un miembro activo puede anotarse. | GH | Propuesta |
+
 ## 5. Administración
 
 Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las confirmaciones de acciones sensibles y los mensajes de importación.
@@ -426,7 +493,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-287 | Comités: opciones de estado | Activo · Inactivo | MATEO | Propuesta |
 | T-288 | Contenido: opciones de publicación | Borrador · Publicado | MATEO | Propuesta |
 | T-289 | Permisos: opciones (ADMIN, líder, junta) | ADMIN · Líder de comité · Junta | MATEO | Propuesta |
-| T-290 | Paleta ⌘K: tipos de resultado | Persona · Comité · Ocasión | MATEO | Propuesta |
+| T-290 | Paleta ⌘K: tipos de resultado | Persona · Comité · Ocasión · Organización | MATEO | Propuesta |
 | T-291 | Paleta y paneles: cerrar | Cerrar | MATEO | Propuesta |
 | T-292 | Comités: sigla repetida | Ya existe un comité con esa sigla. | MATEO | Propuesta |
 | T-293 | Términos: código repetido | Ya existe ese término. | MATEO | Propuesta |
@@ -520,14 +587,14 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-451 | Membresía: regla de cantidad de comités | Un activo necesita entre {min} y {max} comités. | MATEO | Propuesta |
 | T-452 | Membresía: ya hay un General | {comité} ya tiene un General este semestre. | MATEO | Propuesta |
 | T-453 | Resumen: etiquetas | Último contacto · Tareas abiertas · Consentimientos · Permisos · Puntos del semestre · Asambleas | MATEO | Propuesta |
-| T-454 | Línea de tiempo: filtro por tipo | Todo · Notas · Membresía · Comités · Consentimientos · Datos · Importaciones · Otros · Participación | MATEO | Propuesta |
+| T-454 | Línea de tiempo: filtro por tipo | Todo · Notas · Membresía · Comités · Consentimientos · Datos · Importaciones · Otros · Participación · Formularios · Pipelines · Solicitudes · Convocatorias | MATEO | Propuesta |
 | T-455 | Línea de tiempo: ayuda del compositor de notas | Escribí una nota para el equipo. La persona puede pedir verla. | MATEO | Propuesta |
 | T-456 | Línea de tiempo: botones y marca de nota | Guardar nota · Editar · Editada el {fecha} | MATEO | Propuesta |
 | T-457 | Línea de tiempo vacía | Todavía no hay nada en la línea de tiempo. | MATEO | Propuesta |
 | T-458 | Línea de tiempo: textos de las interacciones automáticas | Importado desde el roster {término} · Estado cambió de {de} a {a}: {motivo} · Dado de baja: {motivo} · Reactivado · Comités de {término}: {comités} · Cargo {cargo} desde {término} · Cargo {cargo} retirado · Consentimiento de {propósito} autorizado · Consentimiento de {propósito} retirado · Datos actualizados: {campos} · Correo institucional cambiado · Pidió la eliminación de sus datos · Descargó sus datos · Datos anonimizados · Permiso {permiso} otorgado · Permiso {permiso} revocado | MATEO | Propuesta |
 | T-459 | Tareas: campos y columnas | Título · Responsable · Vence · Estado · Persona · Tipo | MATEO | Propuesta |
 | T-460 | Tareas: opciones de estado | Abierta · Hecha | MATEO | Propuesta |
-| T-461 | Tareas: tipos | General · Solicitud de eliminación | MATEO | Propuesta |
+| T-461 | Tareas: tipos | General · Solicitud de eliminación · Solicitud de miembro | MATEO | Propuesta |
 | T-462 | Tareas: acción de cerrar | Marcar hecha | MATEO | Propuesta |
 | T-463 | Tareas: filtro por responsable | Mías · Sin asignar · Todas | MATEO | Propuesta |
 | T-464 | Tarea de eliminación: título | Eliminación de datos pedida por {nombre} | MATEO | Propuesta |
@@ -858,6 +925,164 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-849 | Junta: check-ins aprobados (unidad) | check-ins | MATEO | Propuesta |
 | T-850 | Junta: promedio por ocasión (unidad) | por ocasión | MATEO | Propuesta |
 
+### Admin de admisión, aliados y contactos (fase 5: formularios, organizaciones, pipelines, solicitudes, convocatorias, tablero)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-908 | Navegación del admin: enlaces de la fase 5 | Formularios · Pipelines · Organizaciones · Solicitudes · Convocatorias | MATEO | Propuesta |
+| T-909 | Formularios: nombres del recurso | Formulario · Formularios | MATEO | Propuesta |
+| T-910 | Formularios: campos y columnas | Identificador · Título · Descripción · Audiencia · Estado · Abre · Cierra · Tope de respuestas · Admite varias respuestas por correo · Consentimiento obligatorio · Texto de gracias · Respuestas | MATEO | Propuesta |
+| T-911 | Formularios: opciones de audiencia | Público · Miembros | MATEO | Propuesta |
+| T-912 | Formularios: opciones de estado | Borrador · Abierto · Cerrado | MATEO | Propuesta |
+| T-913 | Formularios: acciones de fila | Abrir · Cerrar | MATEO | Propuesta |
+| T-914 | Formularios: identificador inválido | El identificador lleva solo minúsculas, números y guiones (de 2 a 60). | MATEO | Propuesta |
+| T-915 | Formularios: identificador repetido | Ya existe un formulario con ese identificador. | MATEO | Propuesta |
+| T-916 | Formularios: ayuda del identificador | Es la URL pública: /f/{identificador} | MATEO | Propuesta |
+| T-917 | Formularios: cierre anterior a la apertura | El cierre tiene que ser posterior a la apertura. | MATEO | Propuesta |
+| T-918 | Constructor: título de la sección de campos | Campos | MATEO | Propuesta |
+| T-919 | Constructor: título de la sección de acciones | Qué pasa con cada respuesta | MATEO | Propuesta |
+| T-920 | Constructor: enlace público y vista previa | Enlace público · Ver como lo ve la gente | MATEO | Propuesta |
+| T-921 | Constructor: sin campos | Este formulario todavía no tiene campos. En los públicos, nombre, apellido y correo van siempre. | MATEO | Propuesta |
+| T-922 | Constructor: botón para agregar un campo | Agregar campo | MATEO | Propuesta |
+| T-923 | Constructor: campos del panel de un campo | Clave · Etiqueta · Tipo · Obligatorio · Ayuda · Opciones (una por línea) | MATEO | Propuesta |
+| T-924 | Constructor: tipos de campo (en el orden del modelo) | Texto corto · Texto largo · Correo · Celular · Selección · Selección múltiple · Casilla · Fecha | MATEO | Propuesta |
+| T-925 | Constructor: clave inválida | La clave lleva solo minúsculas, números y guiones bajos (de 1 a 40). | MATEO | Propuesta |
+| T-926 | Constructor: clave repetida | Ya hay un campo con esa clave. | MATEO | Propuesta |
+| T-927 | Constructor: selección sin opciones | Una selección necesita al menos una opción. | MATEO | Propuesta |
+| T-928 | Constructor: ayuda de las claves reservadas | Las claves phone y program se copian al celular y al programa de la persona nueva. | MATEO | Propuesta |
+| T-929 | Constructor: botones de orden y borrado de un campo | Subir · Bajar · Borrar | MATEO | Propuesta |
+| T-930 | Constructor: acciones (casilla y selectores) | Crear la persona como prospecto si no existe · Entrar al pipeline · Inscribir a la edición · Etiquetar con | MATEO | Propuesta |
+| T-931 | Constructor: ayuda de las acciones | Entrar a un pipeline o inscribirse a una edición crea la persona si no existe. | MATEO | Propuesta |
+| T-932 | Constructor: opciones vacías de pipeline y edición | Ninguno · Ninguna | MATEO | Propuesta |
+| T-933 | Constructor: guardado | Campos guardados. · Acciones guardadas. | MATEO | Propuesta |
+| T-934 | Constructor: aviso de consentimiento en públicos | Un formulario público siempre pide el consentimiento. | MATEO | Propuesta |
+| T-935 | Respuestas: nombres del recurso | Respuesta · Respuestas | MATEO | Propuesta |
+| T-936 | Respuestas: columnas | Fecha · Nombre · Correo · Persona · Tarjeta · Consentimiento · IP | MATEO | Propuesta |
+| T-937 | Respuestas: sin respuestas | Todavía no hay respuestas. | MATEO | Propuesta |
+| T-938 | Respuestas: cabeceras fijas del exporte (más una columna por campo) | Fecha · Nombre · Apellido · Correo · Consentimiento · IP | MATEO | Propuesta |
+| T-939 | Respuestas: enlace a la tarjeta | Ver tarjeta | MATEO | Propuesta |
+| T-940 | Inscritos: nombres del recurso | Inscrito · Inscritos | MATEO | Propuesta |
+| T-941 | Inscritos: columnas | Nombre · Correo · Estado · Inscrito el | MATEO | Propuesta |
+| T-942 | Inscritos: estados (en el orden del modelo) | Inscrito · Cancelada | MATEO | Propuesta |
+| T-943 | Ediciones: columna y enlace de inscritos | Inscritos | MATEO | Propuesta |
+| T-944 | Persona 360, Formularios: títulos de los bloques | Respuestas · Inscripciones · Tarjetas | MATEO | Propuesta |
+| T-945 | Persona 360, Formularios: bloques vacíos | No ha respondido formularios. · Sin inscripciones. · Sin tarjetas. | MATEO | Propuesta |
+| T-946 | Respuesta: título del detalle | Respuesta a {formulario} | MATEO | Propuesta |
+| T-947 | Organizaciones: nombres del recurso | Organización · Organizaciones | MATEO | Propuesta |
+| T-948 | Organizaciones: campos y columnas | Nombre · Tipo · Sitio web · Notas · Contactos · Etiquetas | MATEO | Propuesta |
+| T-949 | Organizaciones: tipos (en el orden del modelo) | Empresa · Unidad de EAFIT · Grupo estudiantil · Otra | MATEO | Propuesta |
+| T-950 | Organizaciones: nombre repetido | Ya existe una organización con ese nombre. | MATEO | Propuesta |
+| T-951 | Organización: títulos de los bloques del detalle | Contactos · Línea de tiempo · Tareas · Patrocinios y tarjetas · Etiquetas | MATEO | Propuesta |
+| T-952 | Organización: campos de un contacto | Persona · Rol · Contacto principal | MATEO | Propuesta |
+| T-953 | Organización: campos del alta de un contacto externo | Nombre · Apellido · Correo · Celular · Rol · Contacto principal | MATEO | Propuesta |
+| T-954 | Organización: botones de contactos | Agregar contacto · Vincular persona · Quitar | MATEO | Propuesta |
+| T-955 | Organización: sin contactos | Todavía no hay contactos. | MATEO | Propuesta |
+| T-956 | Organización: contacto que no es externo | Un contacto de organización tiene que ser una persona externa. | MATEO | Propuesta |
+| T-957 | Organización: contacto repetido | Esa persona ya es contacto de esta organización. | MATEO | Propuesta |
+| T-958 | Organización: insignia del contacto principal | Principal | MATEO | Propuesta |
+| T-959 | Organización: sin tarjetas | Sin patrocinios ni tarjetas. | MATEO | Propuesta |
+| T-960 | Organización: sin notas | Sin notas todavía. | MATEO | Propuesta |
+| T-961 | Paleta ⌘K: subtítulo de una organización | {tipo} · {n} contactos | MATEO | Propuesta |
+| T-962 | Pipelines: nombres del recurso | Pipeline · Pipelines | MATEO | Propuesta |
+| T-963 | Pipelines: campos y columnas | Nombre · Tipo · Archivado · Tarjetas abiertas · Tablero | MATEO | Propuesta |
+| T-964 | Pipelines: tipos (en el orden del modelo) | Admisión · Patrocinio · Personalizado | MATEO | Propuesta |
+| T-965 | Pipelines: plantilla de admisión (etapas en orden; las dos últimas son ganada y perdida) | Recibida · Entrevista · Admitida · Alta · No admitida | GH | Propuesta |
+| T-966 | Pipelines: plantilla de patrocinio (etapas en orden; las dos últimas son ganada y perdida) | Contacto · Propuesta · Negociación · Cerrado · Sin acuerdo | COM | Propuesta |
+| T-967 | Pipelines: etapa inicial de un pipeline personalizado | Nueva | MATEO | Propuesta |
+| T-968 | Pipelines: enlace al tablero | Abrir tablero | MATEO | Propuesta |
+| T-969 | Pipelines: acciones de fila | Archivar · Desarchivar | MATEO | Propuesta |
+| T-970 | Kanban: columna vacía | Sin tarjetas | MATEO | Propuesta |
+| T-971 | Kanban: mover, etiqueta del selector y botón | Mover a… · Mover | MATEO | Propuesta |
+| T-972 | Kanban: nueva tarjeta, botón y título del panel | Nueva tarjeta | MATEO | Propuesta |
+| T-973 | Kanban: nueva tarjeta, campos | Persona · Organización · Edición · Título · Responsable · Vence | MATEO | Propuesta |
+| T-974 | Kanban: tarjeta sin sujeto o con dos | Una tarjeta es de una persona o de una organización, no de las dos. | MATEO | Propuesta |
+| T-975 | Kanban: títulos del panel de la tarjeta | Respuesta del formulario · Notas · Tareas · Datos de la tarjeta | MATEO | Propuesta |
+| T-976 | Kanban: campos de un patrocinio | Monto · Contraprestación | MATEO | Propuesta |
+| T-977 | Kanban: etapas, botón y título del panel | Etapas | MATEO | Propuesta |
+| T-978 | Kanban: etapas, campos | Nombre · Ganada · Perdida | MATEO | Propuesta |
+| T-979 | Kanban: etapa ganada y perdida a la vez | Una etapa no puede ser ganada y perdida a la vez. | MATEO | Propuesta |
+| T-980 | Kanban: etapa con tarjetas no se borra | Esa etapa tiene tarjetas: movelas antes de borrarla. | MATEO | Propuesta |
+| T-981 | Kanban: insignias de etapa ganada, perdida y tarjeta cerrada | Ganada · Perdida · Cerrada el {fecha} | MATEO | Propuesta |
+| T-982 | Kanban: días en la etapa | {n} días en esta etapa | MATEO | Propuesta |
+| T-983 | Kanban y Persona 360: botón de dar de alta | Dar de alta | GH | Propuesta |
+| T-984 | Dar de alta: texto | Vas a dar de alta a {nombre} en {término}. Elegí de {min} a {max} comités; entra como Miembro y le llega el correo de bienvenida. | GH | Propuesta |
+| T-985 | Dar de alta: campo de comités | Comités | MATEO | Propuesta |
+| T-986 | Dar de alta: la persona ya tiene membresía | {nombre} ya tiene membresía: si está retirada, reactivala. | MATEO | Propuesta |
+| T-987 | Dar de alta: correo fuera del dominio institucional | Para dar de alta necesita un correo institucional. Editá la persona primero. | MATEO | Propuesta |
+| T-988 | Dar de alta: contacto externo | Un contacto externo no se da de alta. | MATEO | Propuesta |
+| T-989 | Dar de alta: sin semestre vigente | No hay un semestre vigente: crealo en Términos. | MATEO | Propuesta |
+| T-990 | Dar de alta: listo | {nombre} ya es miembro. Le enviamos la bienvenida. | GH | Propuesta |
+| T-991 | Kanban: mover a la etapa ganada de admisión sin membresía | Para pasar a {etapa} primero da de alta a la persona. | MATEO | Propuesta |
+| T-992 | Kanban: tarjeta movida | Tarjeta movida a {etapa}. | MATEO | Propuesta |
+| T-993 | Kanban: ayuda accesible para arrastrar | Arrastrá la tarjeta a otra columna o usá "Mover a…". | MATEO | Propuesta |
+| T-994 | Tarea de seguimiento de un patrocinio ganado: título | Seguimiento del patrocinio de {organización} | COM | Propuesta |
+| T-995 | Kanban: pipeline archivado | Este pipeline está archivado. | MATEO | Propuesta |
+| T-996 | Kanban: tarjeta perdida en admisión (aviso) | La persona sigue como postulante con esta tarjeta como historia. | MATEO | Propuesta |
+| T-997 | Solicitudes (admin): título | Solicitudes | MATEO | Propuesta |
+| T-998 | Solicitudes (admin): columnas | Persona · Tipo · Detalle · Pedida el · Estado · Decidida por | MATEO | Propuesta |
+| T-999 | Solicitudes (admin): filtros por estado | Pendientes · Aprobadas · Rechazadas · Retiradas · Todas | MATEO | Propuesta |
+| T-1000 | Solicitudes (admin): sin solicitudes | No hay solicitudes en esta lista. | MATEO | Propuesta |
+| T-1001 | Solicitudes (admin): botones | Aprobar · Rechazar | MATEO | Propuesta |
+| T-1002 | Solicitudes (admin): rechazo, campo del motivo | Motivo del rechazo (la persona lo va a leer) | GH | Propuesta |
+| T-1003 | Solicitudes (admin): rechazo sin motivo | Para rechazar tenés que escribir el motivo. | MATEO | Propuesta |
+| T-1004 | Solicitudes (admin): aprobar una licencia, texto | Vas a aprobar la licencia de {nombre}: pasa a "En licencia", pierde el acceso a Mi OE y le llega el correo. | GH | Propuesta |
+| T-1005 | Solicitudes (admin): aprobar un retiro, texto | Vas a aprobar el retiro de {nombre}: se da de baja con motivo retiro voluntario, con los consentimientos que eligió, y le llega el correo. | GH | Propuesta; texto sensible |
+| T-1006 | Solicitudes (admin): aprobar un cambio de comité, texto | Vas a aprobar el cambio de comité de {nombre} para {término}: deja {deja} y entra a {entra} como transferencia (70 %). | GH | Propuesta |
+| T-1007 | Solicitudes (admin): ya decidida | Esta solicitud ya fue decidida. | MATEO | Propuesta |
+| T-1008 | Solicitudes (admin): decidida | Solicitud {estado}. | MATEO | Propuesta |
+| T-1009 | Tarea de solicitud: título | {nombre} pide {tipo} | MATEO | Propuesta |
+| T-1010 | Solicitud: detalle de una licencia (con o sin fecha) | Licencia hasta el {fecha} · Licencia sin fecha de vuelta | MATEO | Propuesta |
+| T-1011 | Solicitud: detalle de un cambio de comité | Deja {deja} · Entra a {entra} | MATEO | Propuesta |
+| T-1012 | Solicitud: detalle de un retiro | Retiro voluntario | MATEO | Propuesta |
+| T-1013 | Solicitudes (admin): enlace desde la tarea | Ver solicitud | MATEO | Propuesta |
+| T-1014 | Solicitudes (admin): término en el que aplica el cambio | Aplica en {término} | MATEO | Propuesta |
+| T-1015 | Solicitud: sin comités a dejar o a entrar (en el detalle) | ninguno | MATEO | Propuesta |
+| T-1016 | Convocatorias: nombres del recurso | Convocatoria · Convocatorias | MATEO | Propuesta |
+| T-1017 | Convocatorias: campos y columnas | Título · Grupo · Formulario · Abre · Cierra · Cupo · Selección · Estado · Inscritos · Descripción | MATEO | Propuesta |
+| T-1018 | Convocatorias: tipos de selección (en el orden del modelo) | Por orden de llegada · Manual | MATEO | Propuesta |
+| T-1019 | Convocatorias: estados (en el orden del modelo) | Borrador · Abierta · Cerrada | MATEO | Propuesta |
+| T-1020 | Convocatorias: acciones de fila | Abrir · Cerrar | MATEO | Propuesta |
+| T-1021 | Convocatorias: opción sin formulario | Sin formulario | MATEO | Propuesta |
+| T-1022 | Convocatoria: títulos del detalle | Inscritos · Aceptados · En lista de espera · Pendientes · No aceptados | MATEO | Propuesta |
+| T-1023 | Convocatoria: botones sobre una inscripción | Aceptar · Rechazar · Pasar a aceptado | MATEO | Propuesta |
+| T-1024 | Convocatoria: cupo lleno al aceptar | El cupo ya está lleno. | MATEO | Propuesta |
+| T-1025 | Convocatoria: inscripción decidida | Inscripción {estado}. | MATEO | Propuesta |
+| T-1026 | Convocatoria: sin inscritos | Todavía nadie se anotó. | MATEO | Propuesta |
+| T-1027 | Convocatoria: aceptados sobre el cupo | {aceptados} de {cupo} cupos | MATEO | Propuesta |
+| T-1028 | Convocatoria: cierre anterior a la apertura | El cierre tiene que ser posterior a la apertura. | MATEO | Propuesta |
+| T-1029 | Convocatoria: sin permiso | No operás esta convocatoria. | MATEO | Propuesta |
+| T-1030 | Grupo: enlace a sus convocatorias | Convocatorias de este grupo | MATEO | Propuesta |
+| T-1031 | Convocatoria: nota de la decisión | Nota (opcional) | MATEO | Propuesta |
+| T-1032 | Convocatoria: el grupo no es del término | El grupo tiene que ser del mismo semestre que la convocatoria. | MATEO | Propuesta |
+| T-1033 | Tablero: títulos de los bloques | Tus pendientes · Vencidas del equipo · Solicitudes pendientes · Respuestas de la última semana · Pipelines · Convocatorias abiertas · Sistema | MATEO | Propuesta |
+| T-1034 | Tablero: sin pendientes | No tenés tareas pendientes. | MATEO | Propuesta |
+| T-1035 | Tablero: sin vencidas | Nada vencido. | MATEO | Propuesta |
+| T-1036 | Tablero: sin respuestas recientes | Sin respuestas nuevas esta semana. | MATEO | Propuesta |
+| T-1037 | Tablero: sin pipelines abiertos | No hay pipelines abiertos. | MATEO | Propuesta |
+| T-1038 | Tablero: sin convocatorias abiertas | No hay convocatorias abiertas. | MATEO | Propuesta |
+| T-1039 | Tablero: trabajos con error | {n} trabajos con error | MATEO | Propuesta |
+| T-1040 | Tablero: estado del respaldo (con copia · sin copias) | Última copia: {fecha} · Sin copias registradas | MATEO | Propuesta |
+| T-1041 | Tablero: enlace a la sección completa | Ver todas | MATEO | Propuesta |
+| T-1042 | Tablero: conteo de respuestas por formulario | {n} respuestas | MATEO | Propuesta |
+| T-1043 | Tablero: conteo de solicitudes pendientes | {n} pendientes | MATEO | Propuesta |
+| T-1044 | Tablero: sin ocasiones abiertas | No hay ocasiones abiertas. | MATEO | Propuesta |
+| T-1045 | Tablero: sin trabajos con error | Sin trabajos con error | MATEO | Propuesta |
+| T-1046 | Línea de tiempo: eventos de la fase 5 (respuesta recibida, inscripción a edición, tarjeta creada, tarjeta movida, etapa cambiada, dado de alta, solicitud enviada, solicitud decidida, inscripción a convocatoria) | Respondió {formulario} · Se inscribió a {edición} · Entró al pipeline {pipeline} en {etapa} · Pasó a {etapa} en {pipeline} · Ahora es {etapa} · Dado de alta en {término} con {comités} · Pidió {tipo} · Solicitud de {tipo} {estado}: {motivo} · Convocatoria {convocatoria}: {estado} | MATEO | Propuesta |
+| T-1047 | Línea de tiempo: etapas de la persona para el texto "Ahora es" (en el orden del modelo) | prospecto · postulante · miembro · egresado | MATEO | Propuesta |
+| T-1048 | Exporte de organizaciones: cabeceras | Nombre · Tipo · Sitio web · Contactos · Etiquetas | MATEO | Propuesta |
+| T-1049 | Exporte de pipelines (tarjetas): cabeceras | Pipeline · Etapa · Título · Persona · Correo · Organización · Edición · Monto · Responsable · Vence · Entró a la etapa · Cerrada | MATEO | Propuesta |
+| T-1050 | Exporte de convocatorias: cabeceras | Título · Grupo · Abre · Cierra · Cupo · Selección · Estado · Inscritos · Aceptados | MATEO | Propuesta |
+| T-1051 | Exporte de inscritos: cabeceras | Nombre · Apellido · Correo · Estado · Inscrito el | MATEO | Propuesta |
+| T-1052 | Persona 360, Solicitudes: sin solicitudes | Esta persona no ha hecho solicitudes. | MATEO | Propuesta |
+| T-1053 | Persona 360, Membresía: aviso para prospectos y postulantes | Sin membresía: podés darla de alta. | MATEO | Propuesta |
+| T-1054 | Kanban: buscador de persona u organización, texto | Buscá por nombre o correo | MATEO | Propuesta |
+| T-1055 | Kanban: sujeto elegido | Sujeto | MATEO | Propuesta |
+| T-1056 | Correos: destinatario sin nombre preferido | Hola | MATEO | Propuesta |
+| T-1057 | Solicitud (admin): tipos en plural para los filtros | Licencias · Retiros · Cambios de comité | MATEO | Propuesta |
+| T-1058 | Formulario: valor "sí" y "no" de una casilla en respuestas y exportes | Sí · No | MATEO | Propuesta |
+| T-1059 | Organización: sin tareas | Sin tareas. | MATEO | Propuesta |
+| T-1060 | Kanban: sin responsable | Sin responsable | MATEO | Propuesta |
+
 ## 6. Notificaciones
 
 ### Push (título · cuerpo)
@@ -883,12 +1108,12 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 
 | Código | Cuándo | Asunto · cuerpo | Dueño | Estado |
 | --- | --- | --- | --- | --- |
-| T-200 | Bienvenida al dar de alta | Bienvenido a la OE, {nombre} · Ya podés entrar a Mi OE con tu correo institucional: te llega un código cada vez que entrás. Tus comités: {comités}. Lo hacemos por vos. ¡OE OE OE! | GH | Propuesta |
+| T-200 | Bienvenida al dar de alta | Bienvenido a la OE, {nombre} · Ya podés entrar a Mi OE con tu correo institucional en {url}: te llega un código cada vez que entrás. Tus comités: {comités}. Lo hacemos por vos. ¡OE OE OE! | GH | Propuesta |
 | T-201 | Roster importado (primer semestre de la app) | Ya tenés tu Mi OE · Explica qué es Mi OE, cómo entrar y qué va a encontrar | COM | Propuesta; se escribe con la campaña de lanzamiento |
 | T-202 | Resultado de permanencia (cumple) | Cerró {término} · Tu resultado en cada comité y tus puntos del semestre | GH | Propuesta |
 | T-203 | Resultado de permanencia (prueba) | Sobre tu permanencia en la OE · Texto por escribir: qué significa el periodo de prueba, qué se espera y con quién hablar | GH | Pendiente; texto sensible |
 | T-204 | Resultado de permanencia (salida) | Sobre tu permanencia en la OE · Texto por escribir: comunicación de salida, agradecimiento, cómo queda su historia | GH y JUNTA | Pendiente; texto sensible |
-| T-205 | Solicitud respondida | Respuesta a tu solicitud de {tipo} · Aprobada o rechazada, con motivo | GH | Propuesta |
+| T-205 | Solicitud respondida | Respuesta a tu solicitud de {tipo} · Hola, {nombre}. GH {decisión} tu solicitud de {tipo}.{motivo} Si querés hablarlo, escribiles. Lo hacemos por vos. | GH | Propuesta; {decisión} es "aprobó" o "no aprobó" y {motivo} lleva el motivo del rechazo |
 | T-206 | Salida voluntaria | Gracias por tu tiempo en la OE · Confirmación, qué pasa con sus datos, cómo aparece en egresados si lo autorizó | GH | Propuesta |
 | T-207 | Campaña (plantilla base) | {asunto} · Encabezado con logo, cuerpo, cierre "Lo hacemos por vos", enlace para dejar de recibir campañas | COM | Propuesta |
 | T-208 | Pie legal de todos los correos | Organización Estudiantil · Universidad EAFIT · Bloque 29 of. 525 · Recibís este correo porque estás en el roster de la OE. {enlace de baja si aplica} | JUNTA | Propuesta |
@@ -929,8 +1154,8 @@ Textos de controles genéricos que no cambian el sentido institucional.
 
 ## 9. Lo que debe entregar cada dueño
 
-- **COM:** nombre del sitio, textos del inicio, descripciones de los cuatro macroeventos, redes y contacto, plantilla de campaña, campaña de lanzamiento.
-- **GH:** texto de Unirse y del proceso de admisión, pasos del onboarding, descripción de una línea de cada criterio de permanencia, nombres de los criterios y de los cálculos de la fase 4 (T-717 a T-726, T-791, T-792, T-801, T-802), tono de los mensajes sensibles (asamblea obligatoria, prueba, salida, aplicar el cierre), nombres y cortes de los niveles de GH Points, preguntas de la encuesta corta.
+- **COM:** nombre del sitio, textos del inicio, descripciones de los cuatro macroeventos, redes y contacto, plantilla de campaña, campaña de lanzamiento; en la fase 5, la plantilla de etapas del patrocinio (T-966) y los aliados que se cargan.
+- **GH:** texto de Unirse y del proceso de admisión, pasos del onboarding, descripción de una línea de cada criterio de permanencia, nombres de los criterios y de los cálculos de la fase 4 (T-717 a T-726, T-791, T-792, T-801, T-802), tono de los mensajes sensibles (asamblea obligatoria, prueba, salida, aplicar el cierre), nombres y cortes de los niveles de GH Points, preguntas de la encuesta corta; en la fase 5, las preguntas del formulario de admisión, las etapas reales del proceso, los textos de las solicitudes (T-874 a T-895, T-1002 a T-1006) y de las convocatorias (T-896 a T-907), y los correos de bienvenida (T-200) y de respuesta a una solicitud (T-205).
 - **JUNTA:** política de datos y su versión, textos de consentimiento, plazo de respuesta a la eliminación, misión y visión (ya en el manual), pie legal.
 - **Cada comité:** presentación, contacto, y los textos de su tabla de permanencia (nombres de los criterios y de los dos eventos).
 - **Mateo:** todo lo marcado MATEO, que no cambia el sentido institucional.

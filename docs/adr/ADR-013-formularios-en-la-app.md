@@ -1,6 +1,6 @@
 # ADR-013: Todo formulario vive en la app
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-037)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-002, ADR-014
 
@@ -16,3 +16,7 @@ Hoy las postulaciones, inscripciones y encuestas viven en Microsoft Forms y lleg
 
 - El pipeline de admisión se alimenta solo; las inscripciones aparecen en la persona.
 - Los archivos adjuntos quedan fuera de los formularios públicos en v1.
+
+## Enmienda (2026-09-05, ADR-037)
+
+Los números quedan fijos: el rate limit de los formularios públicos es de 10 envíos por IP cada 15 minutos entre todos los formularios, contados en `form_submission` como el OTP; el honeypot responde el mismo "gracias" sin guardar; cada formulario admite una respuesta por correo salvo `allowMultiple`; el consentimiento de un formulario público se registra con el propósito nuevo `DATA_PROCESSING` (texto T-154) y fuente `FORM`. Las acciones son `createPerson`, `pipelineId`, `editionId` y `tagIds`; entrar a un pipeline o inscribirse a una edición exige crear la persona. La tarjeta del pipeline la crea `crm` por outbox. Ver [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md).

@@ -26,6 +26,11 @@ erDiagram
   Form ||--o{ Submission : ""
   Person ||--o{ Submission : ""
   EventEdition ||--o{ EditionRegistration : ""
+  Person ||--o{ Request : "solicitudes"
+  WorkGroup ||--o{ InternalCall : "convocatorias"
+  InternalCall ||--o{ InternalCallEntry : ""
+  Person ||--o{ InternalCallEntry : ""
+  Organization ||--o{ Interaction : "notas"
   Event ||--o{ EventEdition : ""
   EventEdition ||--o{ Occasion : "sesiones"
   Term ||--o{ Occasion : ""
@@ -64,7 +69,7 @@ erDiagram
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `Person` | `email` único en minúsculas, `kind` (`STUDENT`, `EXTERNAL`), `stage`, `firstName`, `lastName`, `fullName` (compuesto), `preferredName?`, `phone?`, `personalEmail?`, `program?`, `photoAssetId?`, `source`, `sessionsRevokedAt?`, `deletionRequestedAt?`, `anonymizedAt?`, `legacyId?` | Búsqueda con `pg_trgm` sobre nombre y correo; `personalEmail` es contacto (egresados y externos), nunca identidad de acceso; `photoAssetId` apunta a un `MediaAsset` y lo valida el dominio (sin clave foránea: la habría entre `people` y `content` en ciclo); `sessionsRevokedAt` invalida las sesiones anteriores al cambiar estado o correo ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)); `deletionRequestedAt` y `anonymizedAt` registran la eliminación a pedido; `legacyId` es el id de `Member` en GHPOINTS |
+| `Person` | `email` único en minúsculas, `kind` (`STUDENT`, `EXTERNAL`), `stage`, `firstName`, `lastName`, `fullName` (compuesto), `preferredName?`, `phone?`, `personalEmail?`, `program?`, `photoAssetId?`, `source` (`ADMIN`, `ROSTER`, `FORM`, `GHPOINTS`), `sessionsRevokedAt?`, `deletionRequestedAt?`, `anonymizedAt?`, `legacyId?` | Búsqueda con `pg_trgm` sobre nombre y correo; `personalEmail` es contacto (egresados y externos), nunca identidad de acceso; `photoAssetId` apunta a un `MediaAsset` y lo valida el dominio (sin clave foránea: la habría entre `people` y `content` en ciclo); `sessionsRevokedAt` invalida las sesiones anteriores al cambiar estado o correo ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)); `deletionRequestedAt` y `anonymizedAt` registran la eliminación a pedido; `legacyId` es el id de `Member` en GHPOINTS |
 | `Membership` | `personId` único, `status` (`ACTIVE`, `ON_LEAVE`, `HONORARY`, `INACTIVE`), `firstTermId`, `lastTermId?`, `endedAt?`, `endReason?` (`GRADUATION`, `RESIGNATION`, `PERMANENCE`, `OTHER`) | Una por persona; al terminar, el perfil pasa a egresado y se depura lo que no es historia ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
 | `MembershipEvent` | `membershipId`, `from`, `to`, `reason`, `actorId`, `at` | Historial de estados |
 | `Committee` | `slug` único, `name`, `status`, `color`, `logoKey`, `presentation`, `contactUrl`, `publicationStatus`, `legacyId?` | Los 27 logos viven en `public/logos/committees`; `legacyId` es el id en GHPOINTS |
@@ -72,40 +77,45 @@ erDiagram
 | `CommitteeRole` | `code` único, `label`, `isLeadership`, `order` | Catálogo: `GENERAL` (líder), `FINANCIERO`, `PUBLICIDAD`, `RELACIONES_PUBLICAS`, `LOGISTICA`, `GESTION_HUMANA` (GH confirmó que son esos seis) más `MIEMBRO` por defecto; sigue siendo editable por si aparece otro |
 | `MembershipTerm` | `personId`, `termId`, `probation`, `reason?`, `decidedById?` | Condición de la persona en el término: periodo de prueba (umbral 80 %) decidido en el cierre anterior |
 | `Appointment` | `personId`, `kind` (`PRESIDENT`, `VP_GH`, `VP_PUBLIC_RELATIONS`, `VP_ADMIN`, `VP_FINANCE`, `GH_HEAD`, `GH_DIRECTOR`, `OTHER`), `committeeId?`, `termId`, `title?` | Cargo de junta o de GH, visible y con historia; el líder de comité no es un `Appointment` sino `CommitteeMembership.roleCode = GENERAL` ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)); los cargos de junta lideran los comités de trabajo y los de GH evalúan grupos |
-| `Consent` | `personId`, `purpose` (`MEMBERSHIP`, `COMMUNICATIONS`, `DIRECTORY_PHOTO`, `MEMORIAL`), `policyVersion`, `acceptedAt`, `source` (`FORM`, `IMPORT`, `ADMIN`, `SELF`), `ip?`, `revokedAt?` | Una fila por aceptación; revocar estampa `revokedAt`; un solo consentimiento vivo por persona y propósito; `MEMORIAL` habilita la galería de egresados |
+| `Consent` | `personId`, `purpose` (`MEMBERSHIP`, `COMMUNICATIONS`, `DIRECTORY_PHOTO`, `MEMORIAL`, `DATA_PROCESSING`), `policyVersion`, `acceptedAt`, `source` (`FORM`, `IMPORT`, `ADMIN`, `SELF`), `ip?`, `revokedAt?` | Una fila por aceptación; revocar estampa `revokedAt`; un solo consentimiento vivo por persona y propósito; `MEMORIAL` habilita la galería de egresados; `DATA_PROCESSING` es la casilla T-154 de un formulario público, con fuente `FORM` e IP ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) |
 
 ### crm
 
+Importa `people`, `terms`, `content`, `system` y, desde la fase 5, `forms` ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)); `permanence` no lo importa ni él a `permanence`: las convocatorias entran al grupo por outbox.
+
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `Organization` | `name`, `kind`, `website?`, `notes?` | |
-| `OrganizationContact` | `organizationId`, `personId`, `role`, `isPrimary` | Unique por (organización, persona) |
-| `Pipeline` | `name`, `kind` (`ADMISSION`, `SPONSORSHIP`, `CUSTOM`), `isArchived` | |
-| `PipelineStage` | `pipelineId`, `name`, `order`, `isWon`, `isLost` | |
-| `Card` | `pipelineId`, `stageId`, `personId?`, `organizationId?`, `editionId?`, `ownerId?`, `title`, `fields` JSON, `amount?`, `dueAt?`, `enteredStageAt`, `closedAt?` | Exactamente uno de `personId` u `organizationId` |
-| `Interaction` | `personId`, `organizationId?` (fase 5), `kind`, `occurredAt`, `actorId?`, `refType?`, `refId?`, `summary`, `body?`, `metadata` JSON, `editedAt?` | Automáticas inmutables, escritas por el handler `crm.timeline` a partir de los eventos del outbox con `refType = 'outbox'` y `refId` único (idempotencia); notas (`kind = NOTE`) editables por su autor |
-| `Task` | `title`, `kind` (`GENERAL`, `DELETION_REQUEST`), `assigneeId?`, `dueAt?`, `status` (`OPEN`, `DONE`), `personId?`, `organizationId?` y `cardId?` (fase 5), `createdById`, `completedAt?`, `completedById?` | Una tarea sin responsable la ven todos los ADMIN; la solicitud de eliminación es una tarea con vencimiento a `privacy.deletionDays` días hábiles |
-| `Tag` / `PersonTag` / `OrganizationTag` | `name` único (sin distinguir mayúsculas) | Las tablas `tag`, `person_tag` y `segment` viven en el esquema de `people`, porque el listado y los exportes de personas las necesitan y `people` no depende de `crm` ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)); `OrganizationTag` llega en la fase 5 |
+| `Organization` | `name`, `kind` (`COMPANY`, `EAFIT_UNIT`, `STUDENT_GROUP`, `OTHER`), `website?`, `notes?` Markdown, `createdById?` | Nombre único sin distinguir mayúsculas; búsqueda con `pg_trgm`; línea de tiempo por `Interaction.organizationId` ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) |
+| `OrganizationContact` | `organizationId`, `personId`, `role?`, `isPrimary` | Unique por (organización, persona); un principal por organización; la persona es `kind = EXTERNAL` y nunca inicia sesión |
+| `Pipeline` | `name`, `kind` (`ADMISSION`, `SPONSORSHIP`, `CUSTOM`), `isArchived`, `createdById?` | Crearlo siembra la plantilla de etapas de su tipo |
+| `PipelineStage` | `pipelineId`, `name`, `sortOrder`, `isWon`, `isLost` | Nunca ganada y perdida a la vez; se renombran y reordenan desde el kanban |
+| `Card` | `pipelineId`, `stageId`, `personId?`, `organizationId?`, `editionId?`, `submissionId?`, `ownerId?`, `title`, `fields` JSON, `amount?`, `dueAt?`, `enteredStageAt`, `closedAt?`, `createdById?` | Exactamente uno de `personId` u `organizationId`; una tarjeta por respuesta (`submissionId` único parcial); `closedAt` se estampa al llegar a una etapa ganada o perdida y se limpia al volver; en admisión la persona pasa a `APPLICANT` al entrar y a `MEMBER` con "dar de alta", que mueve la tarjeta a la etapa ganada en la misma transacción |
+| `Interaction` | `personId?`, `organizationId?`, `kind`, `occurredAt`, `actorId?`, `refType?`, `refId?`, `summary`, `body?`, `metadata` JSON, `editedAt?` | Al menos un sujeto; automáticas inmutables, escritas por el handler `crm.timeline` a partir de los eventos del outbox con `refType = 'outbox'` y `refId` único (idempotencia); notas (`kind = NOTE`) editables por su autor |
+| `Task` | `title`, `kind` (`GENERAL`, `DELETION_REQUEST`, `REQUEST`), `assigneeId?`, `dueAt?`, `status` (`OPEN`, `DONE`), `personId?`, `organizationId?`, `cardId?`, `createdById`, `completedAt?`, `completedById?` | Una tarea sin responsable la ven todos los ADMIN; la solicitud de eliminación vence a `privacy.deletionDays` días hábiles y la solicitud de miembro a `requests.taskDays` |
+| `Tag` / `PersonTag` / `OrganizationTag` | `name` único (sin distinguir mayúsculas) | Las tablas `tag`, `person_tag` y `segment` viven en el esquema de `people`, porque el listado y los exportes de personas las necesitan y `people` no depende de `crm` ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)); `organization_tag` vive en `crm` y apunta a `tag` |
 | `Segment` | `name`, `filter` JSON (etapas, estados, ingreso, comités, cargos, etiquetas, consentimiento, programa), `createdById` | El filtro se valida con Zod al leer y se evalúa en SQL sobre el término actual; el export de sus personas pasa por `/api/export/personas?segmento=` con step-up |
-| `Request` | `personId`, `kind` (`LEAVE`, `RESIGNATION`, `COMMITTEE_CHANGE`, `TRANSFER`), `payload` JSON, `status` (`PENDING`, `APPROVED`, `REJECTED`, `WITHDRAWN`), `taskId`, `decidedById?`, `decidedAt?`, `reason?` | Aprobar ejecuta el comando de dominio correspondiente; nada cambia antes |
-| `InternalCall` | `termId`, `groupId`, `formId`, `opensAt`, `closesAt`, `capacity?`, `selection` (`FIRST_COME`, `MANUAL`), `status` | La inscripción aceptada crea `WorkGroupMembership` |
+| `Request` | `personId`, `kind` (`LEAVE`, `RESIGNATION`, `TRANSFER`), `termId`, `payload` JSON (licencia: motivo y hasta cuándo; retiro: motivo, consentimientos de galería y contacto y correo personal; cambio de comité: comités que deja, comités a los que entra y motivo), `status` (`PENDING`, `APPROVED`, `REJECTED`, `WITHDRAWN`), `taskId?`, `decidedById?`, `decidedAt?`, `reason?` | Una pendiente por persona y tipo; rechazar exige motivo; aprobar ejecuta en la misma transacción el comando de `people` (licencia, baja con motivo retiro, o comités del término siguiente con `transferredIn`); nada cambia antes ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) |
+| `InternalCall` | `termId`, `groupId`, `formId?`, `title`, `description?`, `opensAt`, `closesAt`, `capacity?`, `selection` (`FIRST_COME`, `MANUAL`), `status` (`DRAFT`, `OPEN`, `CLOSED`), `createdById?` | Ligada a un `WorkGroup`; `closesAt` posterior a `opensAt`; la crea ADMIN o el líder del grupo ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) |
+| `InternalCallEntry` | `callId`, `personId`, `submissionId?`, `status` (`APPLIED`, `ACCEPTED`, `WAITLISTED`, `REJECTED`), `decidedById?`, `decidedAt?`, `note?` | Unique por (convocatoria, persona); por orden de llegada queda aceptada hasta el cupo y en lista de espera después; la aceptación crea `WorkGroupMembership` por outbox |
 | `OnboardingProgress` | `personId`, `termId`, `stepKey`, `doneAt?`, `source` (`AUTO`, `MANUAL`) | Unique por (persona, término, paso); los pasos viven en `AppConfig` (`onboarding.steps`, con la evidencia automática de cada uno); visible mientras la persona sea nueva |
 | `Recognition` | `personId`, `kind` (`MEMBER_OF_MONTH`, `OTHER`), `committeeId?`, `termId`, `month?`, `title`, `announcementId?`, `grantedById` | Lo otorga el líder desde su tabla de permanencia o ADMIN; con consentimiento de directorio crea y publica en la misma transacción un anuncio de miembros con `committeeId` (cartelera del comité) e insignia en las tarjetas; sin consentimiento queda registrado sin publicarse; unique parcial por (término, comité, mes) para el destacado del mes ([ADR-036](adr/ADR-036-permanencia-fase-4.md)) |
 
 ### forms
 
+Módulo propio desde la fase 5 ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)): importa `people`, `events`, `system` y `terms`; lo importa `crm` (validación de respuestas y `createSubmission` para las convocatorias). La tabla SQL de `Submission` es `form_submission`.
+
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `Form` | `slug` único, `title`, `description`, `fields` JSON, `audience` (`PUBLIC`, `MEMBERS`), `opensAt?`, `closesAt?`, `maxSubmissions?`, `consentRequired`, `actions` JSON | Acciones: `createProspect`, `pipelineId`, `editionId`, `tags` |
-| `Submission` | `formId`, `personId?`, `email`, `answers` JSON, `consentAcceptedAt?`, `ip`, `userAgent` | Vincula persona por correo normalizado |
-| `EditionRegistration` | `editionId`, `personId`, `status`, `submissionId?` | Unique por (edición, persona) |
+| `Form` | `slug` único, `title`, `description` Markdown, `audience` (`PUBLIC`, `MEMBERS`), `status` (`DRAFT`, `OPEN`, `CLOSED`), `opensAt?`, `closesAt?`, `maxSubmissions?`, `allowMultiple`, `consentRequired`, `thanks?` Markdown, `fields` JSON, `actions` JSON, `createdById?` | Campos tipados (`TEXT`, `TEXTAREA`, `EMAIL`, `PHONE`, `SELECT`, `MULTISELECT`, `CHECKBOX`, `DATE`) con clave única por formulario; nombre, apellido y correo son implícitos en los públicos; acciones `createPerson`, `pipelineId`, `editionId` y `tagIds` (pipeline y edición exigen crear la persona); abierto cuando está `OPEN`, dentro de la ventana y bajo el tope; consentimiento obligatorio en públicos |
+| `Submission` | `formId`, `personId?`, `email`, `firstName?`, `lastName?`, `answers` JSON, `consentAcceptedAt?`, `policyVersion?`, `ip?`, `userAgent?` | Vincula o crea la persona por correo normalizado en la misma transacción; una por correo y formulario salvo `allowMultiple`; índice por IP y fecha para el rate limit; se borra al salir de la OE o al anonimizar |
+| `EditionRegistration` | `editionId`, `personId`, `submissionId?`, `status` (`REGISTERED`, `CANCELLED`) | Unique por (edición, persona); nace de la acción `editionId` de un formulario abierto |
 
 ### events
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
 | `Event` | `slug` único, `name`, `summary`, `description` Markdown, `audience`, `publicationStatus`, `coverAssetId?`, `sortOrder` | Identidad permanente; los cuatro macroeventos nacen publicados y sin ediciones en la migración `0003` ([ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md)); `sortOrder` fija su orden en el inicio |
-| `EventEdition` | `eventId`, `slug`, `name`, `description` Markdown, `startsAt`, `endsAt?`, `location`, `registrationUrl?`, `publicationStatus`, `coverAssetId?` | Unique por (evento, slug); `endsAt` posterior a `startsAt`; `registrationFormId` llega con los formularios (fase 5) |
+| `EventEdition` | `eventId`, `slug`, `name`, `description` Markdown, `startsAt`, `endsAt?`, `location`, `registrationUrl?`, `publicationStatus`, `coverAssetId?` | Unique por (evento, slug); `endsAt` posterior a `startsAt`; la inscripción propia no lleva columna: la resuelve la acción `editionId` del formulario abierto ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) |
 | `EditionCommittee` | `editionId`, `committeeId` | Organizadores; unique por par |
 
 ### terms
@@ -118,7 +128,7 @@ erDiagram
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `Occasion` | `publicId` único (10 caracteres `[0-9a-z]`), `termId`, `kind` (`ACTIVITY`, `ASSEMBLY`, `EDITION_SESSION`), `assemblyKind?` (`ORDINARY`, `BOARD_ELECTION`, `RUNOFF`; solo en asambleas), `category` (`INTEGRATION`, `ATHLETIC_MATCH`, `COMMITTEE_MEETING`, `TALK`, `WORKSHOP`, `SOCIAL`, `OTHER`), `newMembersOnly`, `title`, `description` Markdown, `location`, `startsAt`, `endsAt?`, `checkInOpensAt`, `checkInClosesAt`, `points` (0 en asambleas), `approval` (`AUTO`, `MANUAL`), `requireRotatingCode` (apagado por defecto), `rotatingSecret?` (secreto por ocasión del que se deriva el código de 6 dígitos), `committeeId?`, `editionId?`, `status`, `cancelReason?`, `closedAt?`, `createdById`, `legacyId?` | `DRAFT → OPEN → CLOSED`; `CANCELLED` desde cualquiera con motivo revirtiendo los créditos vivos; fuera de `DRAFT` solo cambian título, descripción y lugar; un job cierra las abiertas 24 h después de vencida la ventana; `surveyFormId` llega con `forms` (fase 5) ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
+| `Occasion` | `publicId` único (10 caracteres `[0-9a-z]`), `termId`, `kind` (`ACTIVITY`, `ASSEMBLY`, `EDITION_SESSION`), `assemblyKind?` (`ORDINARY`, `BOARD_ELECTION`, `RUNOFF`; solo en asambleas), `category` (`INTEGRATION`, `ATHLETIC_MATCH`, `COMMITTEE_MEETING`, `TALK`, `WORKSHOP`, `SOCIAL`, `OTHER`), `newMembersOnly`, `title`, `description` Markdown, `location`, `startsAt`, `endsAt?`, `checkInOpensAt`, `checkInClosesAt`, `points` (0 en asambleas), `approval` (`AUTO`, `MANUAL`), `requireRotatingCode` (apagado por defecto), `rotatingSecret?` (secreto por ocasión del que se deriva el código de 6 dígitos), `committeeId?`, `editionId?`, `status`, `cancelReason?`, `closedAt?`, `createdById`, `legacyId?` | `DRAFT → OPEN → CLOSED`; `CANCELLED` desde cualquiera con motivo revirtiendo los créditos vivos; fuera de `DRAFT` solo cambian título, descripción y lugar; un job cierra las abiertas 24 h después de vencida la ventana; `surveyFormId` llega con la encuesta tras la ocasión (fase 6) ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
 | `CheckIn` | `occasionId`, `personId`, `status` (`PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`), `source` (`SELF_QR`, `HOST`, `ADMIN`, `IMPORT`), `at`, `decidedById?`, `decidedAt?`, `reason?`, `legacyId?` | Unique por (ocasión, persona); `PENDING → APPROVED \| REJECTED`, `REJECTED → APPROVED`, `APPROVED → CANCELLED`; la IP queda en la auditoría, no aquí |
 | `PointEntry` | `personId`, `termId`, `checkInId?`, `kind` (`CHECKIN`, `ADJUSTMENT`, `REVERSAL`, `LEGACY`), `points` (≠ 0), `reason`, `reversalOfId?` único, `createdById?`, `legacyType?`, `legacyId?` | Append-only; el `CHECKIN` nace en la misma transacción del check-in aprobado |
 | `CommitteeParticipation` | `occasionId`, `committeeId`, `termId`, `eligible`, `present`, `rate`, `smoothedRate`, `frozenAt?`, `computedAt` | Unique por (ocasión, comité); cruda y suavizada con `k = 5` (ADR-024); solo comités con elegibles; `eligible` se congela al cerrar la ocasión |
@@ -166,7 +176,7 @@ Módulo propio desde la fase 4 ([ADR-036](adr/ADR-036-permanencia-fase-4.md)): i
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
 | `AuditLog` | `actorId?`, `action`, `entityType`, `entityId`, `before` JSON, `after` JSON, `ip?`, `legacy` | Misma transacción que la mutación |
-| `AppConfig` | `key` único, `value`, `updatedById?` | `committees.min = 1`, `committees.max = 3`, `assemblies.requiredOrdinary = 1`, `permanence.assembliesForCredit = 3`, `score.shrinkK = 5`, `checkin.rotatingCodeDefault = false`, `permanence.threshold.active = 60`, `permanence.threshold.new = 80`, `permanence.threshold.probation = 80`, `permanence.threshold.transfer = 70`, `permanence.probationMargin = 10`, `permanence.evaluationWindowDays = 14`, `permanence.warningDays = 21`, versión de la política |
+| `AppConfig` | `key` único, `value`, `updatedById?` | `committees.min = 1`, `committees.max = 3`, `assemblies.requiredOrdinary = 1`, `permanence.assembliesForCredit = 3`, `score.shrinkK = 5`, `checkin.rotatingCodeDefault = false`, `permanence.threshold.active = 60`, `permanence.threshold.new = 80`, `permanence.threshold.probation = 80`, `permanence.threshold.transfer = 70`, `permanence.probationMargin = 10`, `permanence.evaluationWindowDays = 14`, `permanence.warningDays = 21`, `requests.taskDays = 5`, versión de la política |
 | `Outbox` | `eventType`, `payload` JSON, `dedupeKey?`, `attempts`, `nextAttemptAt`, `processedAt?`, `deadLetterAt?`, `lastError?` | Un pendiente por `dedupeKey` |
 | `ImportJob` | `type` (`ROSTER`, `GHPOINTS`), `status` (`PREVIEW`, `APPLIED`, `DISCARDED`, `FAILED`), `filename`, `fileKey?` (`imports/AAAA/MM/<id>.<ext>`), `termId?`, `mapping` JSON, `payload` JSON (filas validadas y diff de la vista previa), `summary` JSON, `createdById?`, `appliedAt?` | Roster por término (formato en [13-importacion-del-roster.md](13-importacion-del-roster.md)) y migración; el archivo original queda en el bucket privado como objeto propio, no como `MediaAsset` |
 | `LegacyAlias` | `path` único, `targetType` (`OCCASION`), `targetId` | `/asamblea/{publicId}` de GHPOINTS y los `publicId` retirados de sus historiales (`/a/…` y `/asamblea/…`); los `publicId` vigentes no necesitan alias porque `/a/{publicId}` es la misma URL |
@@ -195,7 +205,7 @@ Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().
 | `Page(slug)`, `Event(slug)` únicos; `EventEdition(eventId, slug)` único | Una URL por página, evento y edición |
 | `MediaAsset(objectKey)` único | Un registro por objeto del bucket |
 | `EditionCommittee(editionId, committeeId)` único | Un comité organiza una edición una sola vez |
-| `Card`: check `(personId IS NULL) <> (organizationId IS NULL)` | Un solo sujeto por tarjeta |
+| `Card`: check `(personId IS NULL) <> (organizationId IS NULL)`; `Card(submissionId)` único `WHERE submissionId IS NOT NULL` | Un solo sujeto por tarjeta; una tarjeta por respuesta |
 | `Consent(personId, purpose) WHERE revokedAt IS NULL` | Un consentimiento vivo por persona y propósito |
 | `Person(legacyId)` y `Committee(legacyId)` únicos `WHERE legacyId IS NOT NULL` | Una fila por registro migrado de GHPOINTS |
 | `MembershipTerm(personId, termId)` único | Una condición por persona y término |
@@ -211,5 +221,12 @@ Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().
 | `PermanenceSnapshot(termId, personId)` único | Un snapshot por persona y término |
 | `PermanenceDecision(termId, personId, committeeId) WHERE committeeId IS NOT NULL` y `(termId, personId) WHERE committeeId IS NULL` | Una decisión por comité y una por persona |
 | `Recognition(termId, committeeId, month) WHERE kind = 'MEMBER_OF_MONTH'` | Un destacado por comité y mes |
+| `Form(slug)` único | Una URL por formulario |
+| `EditionRegistration(editionId, personId)` único | Una inscripción por persona y edición |
+| `Organization(lower(name))` único; `OrganizationContact(organizationId, personId)` único; `OrganizationContact(organizationId) WHERE isPrimary`; `OrganizationTag(organizationId, tagId)` único | Sin organizaciones ni contactos repetidos; un contacto principal |
+| `PipelineStage`: check `NOT (isWon AND isLost)` | Una etapa no es ganada y perdida a la vez |
+| `Interaction`: check `personId IS NOT NULL OR organizationId IS NOT NULL` | Toda interacción tiene sujeto |
+| `Request(personId, kind) WHERE status = 'PENDING'`; check `status <> 'REJECTED' OR reason IS NOT NULL` | Una solicitud pendiente por tipo; rechazar exige motivo |
+| `InternalCall`: check `closesAt > opensAt`; `InternalCallEntry(callId, personId)` único | Ventana válida; una inscripción por persona y convocatoria |
 
-Reglas que viven en el dominio y se prueban en integración: tope de 3 comités por término para activos, `APPROVED ⇔ una entrada CHECKIN viva`, término derivado de la fecha, ledger cerrado tras `pointsClosedAt`, transiciones de etapa y de ocasión, `params` válidos por tipo de cálculo, nota obligatoria en evaluaciones insuficientes y puntajes por debajo del peso, motivo obligatorio al cambiar una propuesta, permanencia cerrada tras `permanenceClosedAt`.
+Reglas que viven en el dominio y se prueban en integración: tope de 3 comités por término para activos, `APPROVED ⇔ una entrada CHECKIN viva`, término derivado de la fecha, ledger cerrado tras `pointsClosedAt`, transiciones de etapa y de ocasión, `params` válidos por tipo de cálculo, nota obligatoria en evaluaciones insuficientes y puntajes por debajo del peso, motivo obligatorio al cambiar una propuesta, permanencia cerrada tras `permanenceClosedAt`, una respuesta por correo y formulario salvo `allowMultiple`, tope y ventana del formulario, cupo de la convocatoria con `FOR UPDATE`, alta solo de estudiantes con correo institucional y sin membresía.
