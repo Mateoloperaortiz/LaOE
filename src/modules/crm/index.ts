@@ -109,6 +109,20 @@ export {
   recognitionInputSchema,
 } from "./domain/recognitions";
 export {
+  countPendingRequests,
+  createRequestAs,
+  type DecisionInput,
+  decideRequestAs,
+  getRequest,
+  getRequestByTask,
+  listRequests,
+  listRequestsByPerson,
+  type RequestView,
+  requestKindLabel,
+  requestStatusLabel,
+  withdrawRequestAs,
+} from "./domain/requests";
+export {
   type CommitteeChange,
   type LeavePayload,
   leavePayloadSchema,

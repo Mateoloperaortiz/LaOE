@@ -37,6 +37,8 @@ export const E2E_CLOSING_TERM = "2019-2";
 export const E2E_PERMANENCE_TERM = "2019-1";
 /** Persona desechable que sale de la OE en el cierre de permanencia; se recrea en cada corrida. */
 export const E2E_CLOSING_EMAIL = "e2e-cierre@eafit.edu.co";
+/** Miembro desechable que pide una licencia desde Mi OE (fase 5); activo en el término actual. */
+export const E2E_LEAVE_EMAIL = "e2e-licencia@eafit.edu.co";
 
 export default async function globalSetup(): Promise<void> {
   const db = getDb();
@@ -266,6 +268,30 @@ export default async function globalSetup(): Promise<void> {
     }
   }
   if (home) {
+    // Miembro desechable de la fase 5: pide licencia y GH la aprueba (pierde el acceso al aprobarse).
+    const [leaver] = await db
+      .insert(person)
+      .values({
+        email: E2E_LEAVE_EMAIL,
+        firstName: "Licencia",
+        lastName: "E2E",
+        stage: "MEMBER",
+        source: "E2E",
+      })
+      .returning({ id: person.id });
+    if (leaver) {
+      await db
+        .insert(membership)
+        .values({ personId: leaver.id, status: "ACTIVE", firstTermId: current.id });
+      await db.insert(committeeMembership).values({
+        personId: leaver.id,
+        committeeId: home.id,
+        termId: current.id,
+        roleCode: "MIEMBRO",
+        joinedAt: new Date(),
+      });
+    }
+    await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_LEAVE_EMAIL));
     const [existing] = await db
       .select({ id: committeeMembership.id })
       .from(committeeMembership)

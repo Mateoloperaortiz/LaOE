@@ -12,6 +12,7 @@ const RUTAS: Record<string, string> = {
   Egresados: "/app/egresados",
   "GH Points": "/app/gh-points",
   Permanencia: "/app/permanencia",
+  Solicitudes: "/app/solicitudes",
   Normativa: "/app/normativa",
   Carnet: "/app/carnet",
   Ajustes: "/app/ajustes",

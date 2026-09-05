@@ -110,10 +110,10 @@ export const tasksResource: ResourceDefinition<TaskRow, TaskInput> = {
       key: "kind",
       label: tipo,
       render: (row) =>
-        row.kind === "DELETION_REQUEST"
-          ? eliminacion
-          : row.kind === "REQUEST"
-            ? solicitud
+        row.kind === "REQUEST"
+          ? { text: t("T-1013"), href: `/admin/solicitudes?tarea=${row.id}` }
+          : row.kind === "DELETION_REQUEST"
+            ? eliminacion
             : general,
     },
   ],

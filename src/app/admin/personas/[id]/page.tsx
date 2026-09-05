@@ -6,6 +6,7 @@ import {
   latestContact,
   listCardsByPerson,
   listInteractions,
+  listRequestsByPerson,
   listTasks,
 } from "@/modules/crm";
 import { assigneeOptions } from "@/modules/crm/admin";
@@ -36,6 +37,7 @@ import { Pestanas } from "./_ui/Pestanas";
 import { TabFormularios } from "./_ui/TabFormularios";
 import { TabParticipacion } from "./_ui/TabParticipacion";
 import { TabPermanencia } from "./_ui/TabPermanencia";
+import { TabSolicitudes } from "./_ui/TabSolicitudes";
 import {
   TabComunicaciones,
   TabDatos,
@@ -134,6 +136,7 @@ export default async function PersonaPage({
     my.term && tab === "resumen" ? assemblyStatusFor(id, my.term) : Promise.resolve(null),
   ]);
   const occasions = await getOccasionsByIds(checkIns.map((item) => item.occasionId));
+  const requests = tab === "solicitudes" ? await listRequestsByPerson(id) : [];
   const [submissions, registrations, cards] = await Promise.all([
     tab === "formularios" ? listSubmissionsByPerson(id) : Promise.resolve([]),
     tab === "formularios" ? listRegistrationsByPerson(id) : Promise.resolve([]),
@@ -224,6 +227,9 @@ export default async function PersonaPage({
           }))}
         />
       );
+      break;
+    case "solicitudes":
+      content = <TabSolicitudes requests={requests} />;
       break;
     case "linea":
       content = (

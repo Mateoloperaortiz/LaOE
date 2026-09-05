@@ -33,6 +33,9 @@ export const TIMELINE_EVENTS = [
   "card.moved",
   "stage.changed",
   "person.admitted",
+  "request.created",
+  "request.decided",
+  "request.withdrawn",
 ] as const;
 
 export interface TimelineLabels {
@@ -46,6 +49,8 @@ export interface TimelineLabels {
   crmTexts: string[];
   /** Las etapas de la persona de T-1047, en el orden del modelo. */
   stages: Record<string, string>;
+  /** Los estados de una solicitud de T-876, en el orden del modelo. */
+  requestStatuses: Record<string, string>;
   /** Las decisiones del cierre de T-802, en el orden del modelo. */
   decisions: Record<string, string>;
   statuses: Record<string, string>;
@@ -352,6 +357,26 @@ export function summarizeEvent(
         }),
         { termId: str(payload, "termId") },
       );
+    }
+    case "request.created":
+      return entry("REQUEST", fill(labels.crmTexts[6] ?? "", { tipo: str(payload, "kindLabel") }), {
+        requestId: str(payload, "requestId"),
+        kind: str(payload, "kind"),
+      });
+    case "request.decided":
+    case "request.withdrawn": {
+      const status = type === "request.withdrawn" ? "WITHDRAWN" : str(payload, "status");
+      const reason = str(payload, "reason");
+      const base = fill(labels.crmTexts[7] ?? "", {
+        tipo: str(payload, "kindLabel"),
+        estado: label(labels.requestStatuses, status).toLowerCase(),
+        motivo: reason,
+      });
+      return entry("REQUEST", reason ? base : base.replace(/:\s*$/, ""), {
+        requestId: str(payload, "requestId"),
+        kind: str(payload, "kind"),
+        status,
+      });
     }
     case "permission.granted":
     case "permission.revoked": {
