@@ -1,6 +1,8 @@
 import { announcementsResource, pagesResource } from "@/modules/content/admin";
 import { tasksResource } from "@/modules/crm/admin";
 import { editionsResource, eventsResource } from "@/modules/events/admin";
+import { countRegistrationsByEdition } from "@/modules/forms";
+import { formsResource, registrationsResource, submissionsResource } from "@/modules/forms/admin";
 import { permissionsResource } from "@/modules/identity/admin";
 import {
   aliasesResource,
@@ -45,6 +47,34 @@ const carteleraResource = {
   }),
 };
 
+// Las ediciones ganan la columna de inscritos (ADR-037): `events` no importa `forms`, así que el conteo
+// se compone aquí sobre el listado.
+type EditionRowWithRegistrations = Parameters<typeof editionsResource.exportRow>[0] & {
+  registrations: number;
+};
+export const edicionesResource = {
+  ...editionsResource,
+  columns: [
+    ...editionsResource.columns,
+    {
+      key: "registrations",
+      label: t("T-943"),
+      render: (row: EditionRowWithRegistrations) => ({
+        text: String(row.registrations),
+        href: `/admin/eventos/${row.eventId}/ediciones/${row.id}/inscritos`,
+      }),
+    },
+  ],
+  list: async (params: Parameters<typeof editionsResource.list>[0]) => {
+    const result = await editionsResource.list(params);
+    const counts = await countRegistrationsByEdition(result.rows.map((row) => row.id));
+    return {
+      ...result,
+      rows: result.rows.map((row) => ({ ...row, registrations: counts.get(row.id) ?? 0 })),
+    };
+  },
+};
+
 // Recursos administrables por clave (ADR-017). Cada módulo declara los suyos en su admin.ts.
 const resources: Record<string, AnyResource> = {
   [committeesResource.key]: committeesResource as unknown as AnyResource,
@@ -61,7 +91,10 @@ const resources: Record<string, AnyResource> = {
   [pagesResource.key]: pagesResource as unknown as AnyResource,
   [announcementsResource.key]: carteleraResource as unknown as AnyResource,
   [eventsResource.key]: eventsResource as unknown as AnyResource,
-  [editionsResource.key]: editionsResource as unknown as AnyResource,
+  [editionsResource.key]: edicionesResource as unknown as AnyResource,
+  [formsResource.key]: formsResource as unknown as AnyResource,
+  [submissionsResource.key]: submissionsResource as unknown as AnyResource,
+  [registrationsResource.key]: registrationsResource as unknown as AnyResource,
   [occasionsResource.key]: occasionsResource as unknown as AnyResource,
   [checkInsResource.key]: checkInsResource as unknown as AnyResource,
   [ledgerResource.key]: ledgerResource as unknown as AnyResource,

@@ -27,6 +27,8 @@ export const TIMELINE_EVENTS = [
   "manual-credit.granted",
   "work-group-membership.changed",
   "permanence.decided",
+  "submission.received",
+  "registration.created",
 ] as const;
 
 export interface TimelineLabels {
@@ -36,6 +38,8 @@ export interface TimelineLabels {
   participationTexts: string[];
   /** Los textos de permanencia de T-832, en orden (fase 4). */
   permanenceTexts: string[];
+  /** Los textos de admisión, aliados y contactos de T-1046, en orden (fase 5). */
+  crmTexts: string[];
   /** Las decisiones del cierre de T-802, en el orden del modelo. */
   decisions: Record<string, string>;
   statuses: Record<string, string>;
@@ -52,7 +56,9 @@ export interface TimelineLookup {
 }
 
 export interface TimelineEntry {
-  personId: string;
+  personId: string | null;
+  /** Sujeto alternativo desde la fase 5: una organización (notas y tarjetas de patrocinio). */
+  organizationId: string | null;
   actorId: string | null;
   kind: InteractionKind;
   summary: string;
@@ -81,8 +87,9 @@ export function summarizeEvent(
   labels: TimelineLabels,
   lookup: TimelineLookup,
 ): TimelineEntry | null {
-  const personId = str(payload, "personId");
-  if (!personId) {
+  const personId = str(payload, "personId") || null;
+  const organizationId = str(payload, "organizationId") || null;
+  if (!personId && !organizationId) {
     return null;
   }
   const actorId = str(payload, "actorId") || null;
@@ -93,6 +100,7 @@ export function summarizeEvent(
     metadata: Record<string, unknown> = {},
   ): TimelineEntry => ({
     personId,
+    organizationId,
     actorId,
     kind,
     summary,
@@ -275,6 +283,24 @@ export function summarizeEvent(
         { termId: str(payload, "termId"), committeeId: committee || null, decision },
       );
     }
+    case "submission.received":
+      return entry(
+        "FORM",
+        fill(labels.crmTexts[0] ?? "", { formulario: str(payload, "formTitle") }),
+        {
+          submissionId: str(payload, "submissionId"),
+          formId: str(payload, "formId"),
+        },
+      );
+    case "registration.created":
+      return entry(
+        "FORM",
+        fill(labels.crmTexts[1] ?? "", { edición: str(payload, "editionName") }),
+        {
+          editionId: str(payload, "editionId"),
+          submissionId: str(payload, "submissionId"),
+        },
+      );
     case "permission.granted":
     case "permission.revoked": {
       const permiso = label(labels.permissions, str(payload, "code"));

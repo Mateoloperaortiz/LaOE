@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { listMessagesFor } from "@/modules/comms";
 import { countOpenTasksFor, latestContact, listInteractions, listTasks } from "@/modules/crm";
 import { assigneeOptions } from "@/modules/crm/admin";
+import { listRegistrationsByPerson, listSubmissionsByPerson } from "@/modules/forms";
 import { listPermissionsFor, requireAdminActor } from "@/modules/identity";
 import {
   assemblyStatusFor,
@@ -26,6 +27,7 @@ import { Cabecera } from "./_ui/Cabecera";
 import { isTab, isTimelineFilter, type Tab, tabLabels } from "./_ui/etiquetas";
 import { Paneles } from "./_ui/Paneles";
 import { Pestanas } from "./_ui/Pestanas";
+import { TabFormularios } from "./_ui/TabFormularios";
 import { TabParticipacion } from "./_ui/TabParticipacion";
 import { TabPermanencia } from "./_ui/TabPermanencia";
 import {
@@ -53,6 +55,10 @@ const MAIN_KINDS = [
   "DATA",
   "IMPORTED",
   "PARTICIPATION",
+  "FORM",
+  "PIPELINE",
+  "REQUEST",
+  "CALL",
 ];
 
 export async function generateMetadata({
@@ -122,6 +128,10 @@ export default async function PersonaPage({
     my.term && tab === "resumen" ? assemblyStatusFor(id, my.term) : Promise.resolve(null),
   ]);
   const occasions = await getOccasionsByIds(checkIns.map((item) => item.occasionId));
+  const [submissions, registrations] = await Promise.all([
+    tab === "formularios" ? listSubmissionsByPerson(id) : Promise.resolve([]),
+    tab === "formularios" ? listRegistrationsByPerson(id) : Promise.resolve([]),
+  ]);
   const termCodes = new Map(terms.map((item) => [item.id, item.code]));
   const note =
     accion === "nota" && single(search.nota)
@@ -190,6 +200,11 @@ export default async function PersonaPage({
           error={error}
           closeHref={closeHref}
         />
+      );
+      break;
+    case "formularios":
+      content = (
+        <TabFormularios submissions={submissions} registrations={registrations} cards={[]} />
       );
       break;
     case "linea":

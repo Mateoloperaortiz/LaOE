@@ -23,9 +23,9 @@ export default async function IngresarPage({ searchParams }: PageProps<"/ingresa
       </Link>
       <div className="flex flex-col gap-3">
         <h1 className="text-display-lg">{t("T-040")}</h1>
-        {next.startsWith("/a/") ? (
+        {next.startsWith("/a/") || next.startsWith("/f/") ? (
           <p className="rounded-xl bg-oe-yellow-soft px-4 py-3 text-lg font-semibold text-oe-navy">
-            {t("T-100")}
+            {next.startsWith("/a/") ? t("T-100") : t("T-864")}
           </p>
         ) : null}
         <p className="text-lg">{t("T-041")}</p>

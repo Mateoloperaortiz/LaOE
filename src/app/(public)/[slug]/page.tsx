@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { excerpt, findPublicPage } from "@/modules/content";
-import { BarraTitulo } from "@/shared/brand";
+import { listAdmissionPipelineIds } from "@/modules/crm";
+import { findOpenProspectForm, findOpenPublicFormForPipelines } from "@/modules/forms";
+import { BarraTitulo, Elemento } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { paginaMetadata } from "@/shared/lib/seo";
 import { PaginaEditable } from "../_ui/PaginaEditable";
@@ -47,6 +50,35 @@ function ContactoOE() {
   );
 }
 
+// Unirse (ADR-037 regla 5): "Postulate" hacia el formulario público abierto ligado a un pipeline de
+// admisión; sin convocatoria, T-028 y el formulario de prospecto si existe.
+async function Unirse() {
+  const admision = await findOpenPublicFormForPipelines(await listAdmissionPipelineIds());
+  const prospecto = admision ? null : await findOpenProspectForm();
+  return (
+    <section aria-labelledby="postulate" className="flex flex-col gap-5">
+      <h2 id="postulate" className="sr-only">
+        {t("T-025")}
+      </h2>
+      {admision ? (
+        <Link href={`/f/${admision.slug}`} className="boton-calido self-start">
+          {t("T-027")}
+        </Link>
+      ) : (
+        <div className="flex max-w-2xl flex-col gap-4 rounded-[var(--radius-cartel)] border border-borde bg-fondo-suave p-6 textura-granito sm:flex-row sm:items-center sm:gap-6">
+          <Elemento tipo="destello" className="size-12 shrink-0 text-oe-orange" />
+          <p className="text-lg">{t("T-028")}</p>
+          {prospecto ? (
+            <Link href={`/f/${prospecto.slug}`} className="boton-secundario shrink-0 self-start">
+              {t("T-868")}
+            </Link>
+          ) : null}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default async function PaginaPublica({ params }: PageProps<"/[slug]">) {
   const { slug } = await params;
   const pagina = await cargar(slug);
@@ -54,6 +86,9 @@ export default async function PaginaPublica({ params }: PageProps<"/[slug]">) {
     notFound();
   }
   return (
-    <PaginaEditable pagina={pagina}>{slug === "la-oe" ? <ContactoOE /> : null}</PaginaEditable>
+    <PaginaEditable pagina={pagina}>
+      {slug === "la-oe" ? <ContactoOE /> : null}
+      {slug === "unirse" ? <Unirse /> : null}
+    </PaginaEditable>
   );
 }

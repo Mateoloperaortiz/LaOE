@@ -30,6 +30,7 @@ export {
   type OnboardingStep,
   recordOnboardingEvidence,
 } from "./domain/onboarding";
+export { listAdmissionPipelineIds, listPipelineOptions } from "./domain/pipelines";
 export {
   closedAtAfterMove,
   daysInStage,

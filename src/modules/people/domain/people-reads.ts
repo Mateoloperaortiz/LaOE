@@ -34,6 +34,24 @@ export async function findMemberByEmail(email: string): Promise<PersonRef | null
   return row ? { id: row.id, fullName: row.fullName ?? "", email: row.email } : null;
 }
 
+/** Cualquier persona por correo normalizado (prospectos incluidos); para vincular respuestas de formularios. */
+export async function findPersonByEmail(
+  email: string,
+): Promise<(PersonRef & { stage: string; kind: string }) | null> {
+  const [row] = await getDb()
+    .select({
+      id: person.id,
+      fullName: person.fullName,
+      email: person.email,
+      stage: person.stage,
+      kind: person.kind,
+    })
+    .from(person)
+    .where(eq(person.email, email))
+    .limit(1);
+  return row ? { ...row, fullName: row.fullName ?? "" } : null;
+}
+
 /** Búsqueda por similitud (pg_trgm) sobre nombre y correo, para la paleta ⌘K y los listados. */
 export async function searchPeople(q: string, limit = 8): Promise<PersonRef[]> {
   const pattern = `%${q}%`;

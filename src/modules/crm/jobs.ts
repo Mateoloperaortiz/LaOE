@@ -45,6 +45,7 @@ function labels(): TimelineLabels {
     texts: tList("T-458"),
     participationTexts: tList("T-667"),
     permanenceTexts: tList("T-832"),
+    crmTexts: tList("T-1046"),
     decisions: zip(DECISION_KINDS, tList("T-802")),
     statuses: zip(STATUS_CODES, tList("T-381")),
     appointmentKinds: zip(APPOINTMENT_KINDS, tList("T-444")),

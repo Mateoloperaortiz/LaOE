@@ -61,6 +61,7 @@ export async function recordAutomaticInteraction(
     .insert(interaction)
     .values({
       personId: entry.personId,
+      organizationId: entry.organizationId,
       kind: entry.kind,
       actorId: entry.actorId,
       refType: ref.refType,

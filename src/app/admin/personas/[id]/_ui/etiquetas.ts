@@ -41,7 +41,7 @@ export const END_REASONS = ["GRADUATION", "RESIGNATION", "PERMANENCE", "OTHER"] 
 
 export const CONSENT_TEXTS = ["T-150", "T-151", "T-152", "T-153", "T-154"] as const;
 
-/** Filtros de la línea de tiempo en el orden de T-454; "OTHER" agrupa cargos, permisos y otros; "PARTICIPATION" llega al final (fase 3). */
+/** Filtros de la línea de tiempo en el orden de T-454; "OTHER" agrupa cargos, permisos y otros; "PARTICIPATION" llega en la fase 3 y los cuatro últimos en la fase 5. */
 export const TIMELINE_FILTERS = [
   "ALL",
   "NOTE",
@@ -52,6 +52,10 @@ export const TIMELINE_FILTERS = [
   "IMPORTED",
   "OTHER",
   "PARTICIPATION",
+  "FORM",
+  "PIPELINE",
+  "REQUEST",
+  "CALL",
 ] as const satisfies readonly TimelineFilter[];
 
 export type TimelineFilterKey = (typeof TIMELINE_FILTERS)[number];

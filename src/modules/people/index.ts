@@ -96,6 +96,7 @@ export {
   type ActiveMemberRef,
   findMemberByEmail,
   findMembersByEmails,
+  findPersonByEmail,
   getMembershipRef,
   getPeopleByIds,
   listActiveMemberRefs,

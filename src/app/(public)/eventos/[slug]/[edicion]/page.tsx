@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { getEnv } from "@/env";
 import { excerpt, getPublicMediaRef, Imagen } from "@/modules/content";
 import { getPublishedEdition } from "@/modules/events";
+import { findOpenRegistrationForm, isRegistered } from "@/modules/forms";
+import { getActor } from "@/modules/identity";
 import { listCommitteesByIds } from "@/modules/people";
 import { Cartel, Insignia, LogoComite } from "@/shared/brand";
 import { t } from "@/shared/copy";
@@ -50,6 +52,10 @@ export default async function EdicionPage({ params }: PageProps<"/eventos/[slug]
   ]);
   const now = new Date();
   const pasada = edicionPasada(edicion, now);
+  // Inscripción propia (ADR-037 regla 5): el formulario abierto con la acción de esta edición.
+  const formularioInscripcion = pasada ? null : await findOpenRegistrationForm(edicion.id, now);
+  const actor = formularioInscripcion ? await getActor() : null;
+  const yaInscrito = actor ? await isRegistered(edicion.id, actor.personId) : false;
   const [cuando, donde, organizan] = t("T-307")
     .split("·")
     .map((item) => item.trim());
@@ -152,6 +158,17 @@ export default async function EdicionPage({ params }: PageProps<"/eventos/[slug]
           {edicion.description.trim() ? <Markdown source={edicion.description} /> : null}
         </div>
         <aside className="flex flex-col items-start gap-4">
+          {formularioInscripcion ? (
+            yaInscrito ? (
+              <p className="rounded-xl bg-oe-yellow-soft px-4 py-3 font-semibold text-oe-navy">
+                {t("T-869")}
+              </p>
+            ) : (
+              <Link href={`/f/${formularioInscripcion.slug}`} className="boton-calido">
+                {t("T-019")}
+              </Link>
+            )
+          ) : null}
           {edicion.registrationUrl && !pasada ? (
             <a
               href={edicion.registrationUrl}

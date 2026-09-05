@@ -3,6 +3,7 @@ import { closeDb, getDb } from "@/db/client";
 import { announcement, document, mediaAsset } from "@/modules/content/schema";
 import { recognition, task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
+import { editionRegistration, form } from "@/modules/forms/schema";
 import { otpChallenge, permission } from "@/modules/identity/schema";
 import { checkIn, occasion, pointEntry, termStanding } from "@/modules/participation/schema";
 import {
@@ -91,6 +92,7 @@ export default async function globalSetup(): Promise<void> {
   await db.insert(permission).values({ personId: who.id, code: "ADMIN" });
   // Los límites de OTP por correo (5 cada 15 minutos) no deben depender de corridas anteriores.
   await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_EMAIL));
+  await db.delete(editionRegistration).where(eq(editionRegistration.personId, who.id));
   // Comités y anuncios creados por corridas anteriores de la suite.
   await db.delete(committee).where(like(committee.slug, "e2e-%"));
   await db.delete(announcement).where(like(announcement.title, "e2e-%"));
@@ -179,6 +181,8 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(permanenceRule).where(like(permanenceRule.key, "e2e-%"));
   await db.delete(permanenceTable).where(like(permanenceTable.comment, "e2e-%"));
   await db.delete(workGroup).where(like(workGroup.name, "e2e-%"));
+  // Fase 5: formularios de prueba (sus respuestas caen en cascada; las de personas e2e- ya cayeron).
+  await db.delete(form).where(like(form.slug, "e2e-%"));
   // Miembro sin permisos: activo, en un comité del término, sin datos de contacto ni consentimientos.
   let [member] = await db
     .select({ id: person.id })
@@ -222,6 +226,7 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(consent).where(eq(consent.personId, member.id));
   await db.delete(task).where(eq(task.personId, member.id));
   await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_MEMBER_EMAIL));
+  await db.delete(editionRegistration).where(eq(editionRegistration.personId, member.id));
   // Reconocimientos que el miembro (como líder de pruebas) nombró y sus anuncios de comité.
   await db.delete(recognition).where(eq(recognition.grantedById, member.id));
   await db

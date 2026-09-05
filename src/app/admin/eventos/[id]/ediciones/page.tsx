@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getEvent } from "@/modules/events";
-import { editionsResource } from "@/modules/events/admin";
 import { ResourcePage } from "../../../_kit/ResourcePage";
+import { edicionesResource as editionsResource } from "../../../_kit/registry";
 
 // Ediciones de un evento: el recurso plano "ediciones" montado bajo su evento (ADR-033, punto 12).
 

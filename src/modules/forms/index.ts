@@ -1,8 +1,33 @@
 // API pública del módulo forms (ADR-013, ADR-037).
 export {
+  createForm,
+  type FormInput,
+  type FormListRow,
+  type FormView,
+  findOpenProspectForm,
+  findOpenPublicFormForPipelines,
+  findOpenRegistrationForm,
+  formInputSchema,
+  getForm,
+  getFormsByIds,
+  getFormView,
+  getPublicForm,
+  listFormOptions,
+  listForms,
+  type PublicForm,
+  recentSubmissionCounts,
+  setFormActions,
+  setFormActionsAs,
+  setFormFields,
+  setFormFieldsAs,
+  setFormStatus,
+  updateForm,
+} from "./domain/forms";
+export {
   type AnswersResult,
   type AnswerValue,
   actionsSchema,
+  answersFromFormData,
   FIELD_KEY,
   FIELD_TYPES,
   type FieldType,
@@ -24,3 +49,22 @@ export {
   RESERVED_KEYS,
   validateAnswers,
 } from "./domain/pure";
+export {
+  countRegistrationsByEdition,
+  getRegistration,
+  isRegistered,
+  listRegistrations,
+  listRegistrationsByPerson,
+  type RegistrationRow,
+} from "./domain/registrations";
+export {
+  type CreateSubmissionInput,
+  createSubmission,
+  getSubmission,
+  listSubmissions,
+  listSubmissionsByPerson,
+  type SubmissionListRow,
+  type SubmitInput,
+  type SubmitResult,
+  submitFormAs,
+} from "./domain/submissions";

@@ -25,6 +25,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [ocasiones, ledger, rankings, asambleas, cierre, alias] = tList("T-561");
   const [reglas, grupos, evaluaciones, cumplimiento, cierrePermanencia, junta] = tList("T-708");
   const [permanenciaDe, misGrupos, misEvaluaciones] = tList("T-709");
+  const [formularios, pipelines, organizaciones, solicitudes, convocatorias] = tList("T-908");
   const enlaces = !actor.isAdmin
     ? [
         ...roles.ledCommittees.flatMap((item) => [
@@ -47,6 +48,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         { href: "/admin/personas", label: personas ?? "" },
         { href: "/admin/personas/importar", label: importar ?? "" },
         { href: "/admin/tareas", label: tareas ?? "" },
+        { href: "/admin/formularios", label: formularios ?? "" },
+        { href: "/admin/pipelines", label: pipelines ?? "" },
+        { href: "/admin/organizaciones", label: organizaciones ?? "" },
+        { href: "/admin/solicitudes", label: solicitudes ?? "" },
+        { href: "/admin/convocatorias", label: convocatorias ?? "" },
         { href: "/admin/segmentos", label: segmentos ?? "" },
         { href: "/admin/etiquetas", label: etiquetas ?? "" },
         { href: "/admin/paginas", label: paginas ?? "" },

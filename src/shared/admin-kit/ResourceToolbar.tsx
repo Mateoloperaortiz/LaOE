@@ -38,26 +38,29 @@ export function ResourceToolbar({
             className="min-w-64 rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none"
           />
         </div>
-        {filters.map((filter) => (
-          <div key={filter.key} className="flex flex-col gap-1">
-            <label htmlFor={`filtro-${filter.key}`} className="eyebrow text-xs">
-              {filter.label}
-            </label>
-            <select
-              id={`filtro-${filter.key}`}
-              name={filter.key}
-              defaultValue={filterValues[filter.key] ?? ""}
-              className="rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none"
-            >
-              <option value="">{labels.all}</option>
-              {filter.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
+        {/* Un filtro sin opciones es fijo (lo pone la ruta) y no se muestra en la barra. */}
+        {filters
+          .filter((filter) => filter.options.length > 0)
+          .map((filter) => (
+            <div key={filter.key} className="flex flex-col gap-1">
+              <label htmlFor={`filtro-${filter.key}`} className="eyebrow text-xs">
+                {filter.label}
+              </label>
+              <select
+                id={`filtro-${filter.key}`}
+                name={filter.key}
+                defaultValue={filterValues[filter.key] ?? ""}
+                className="rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none"
+              >
+                <option value="">{labels.all}</option>
+                {filter.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
         <button type="submit" className="boton-secundario min-h-10 px-4 py-2 text-sm">
           {labels.search}
         </button>
