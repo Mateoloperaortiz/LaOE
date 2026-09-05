@@ -61,6 +61,7 @@ export {
   type CreateSubmissionInput,
   createSubmission,
   getSubmission,
+  getSubmissionsByIds,
   listSubmissions,
   listSubmissionsByPerson,
   type SubmissionListRow,

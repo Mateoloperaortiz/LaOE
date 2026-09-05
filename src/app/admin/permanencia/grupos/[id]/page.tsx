@@ -85,11 +85,16 @@ export default async function GrupoPage({
             {error}
           </p>
         ) : null}
-        {isAdmin ? (
-          <Link href="/admin/permanencia/grupos" className="self-start underline">
-            {tList("T-742")[0]}
+        <div className="flex flex-wrap gap-4">
+          {isAdmin ? (
+            <Link href="/admin/permanencia/grupos" className="underline">
+              {tList("T-742")[0]}
+            </Link>
+          ) : null}
+          <Link href={`/admin/convocatorias?groupId=${id}`} className="underline">
+            {t("T-1030")}
           </Link>
-        ) : null}
+        </div>
       </header>
 
       <section aria-labelledby="miembros" className="flex flex-col gap-4">

@@ -590,3 +590,47 @@ export async function seedWorkCommitteesAs(actor: Actor, termId: string): Promis
   const appointments = await listAppointmentsForTerm(termId);
   return runCommand(actor, (ctx) => seedWorkCommittees(ctx, termId, appointments));
 }
+
+// Lecturas para las convocatorias internas (ADR-037 regla 10): crm no importa permanence, así que la
+// capa de la app compone con estas referencias.
+
+export async function listGroupRefs(ids: string[]): Promise<Map<string, GroupRef>> {
+  const map = new Map<string, GroupRef>();
+  if (ids.length === 0) {
+    return map;
+  }
+  const rows = await getDb()
+    .select({ id: workGroup.id, name: workGroup.name, kind: workGroup.kind, code: workGroup.code })
+    .from(workGroup)
+    .where(inArray(workGroup.id, ids));
+  for (const row of rows) {
+    map.set(row.id, row);
+  }
+  return map;
+}
+
+/** Grupos de un término (o de todos) como opciones "código o nombre" para el kit de convocatorias. */
+export async function listGroupOptions(
+  termId?: string,
+): Promise<Array<GroupRef & { termId: string }>> {
+  return getDb()
+    .select({
+      id: workGroup.id,
+      name: workGroup.name,
+      kind: workGroup.kind,
+      code: workGroup.code,
+      termId: workGroup.termId,
+    })
+    .from(workGroup)
+    .where(termId ? eq(workGroup.termId, termId) : undefined)
+    .orderBy(asc(workGroup.name));
+}
+
+/** Ids de los grupos en los que la persona está viva (para no ofrecerle su propia convocatoria). */
+export async function listGroupIdsOf(personId: string): Promise<string[]> {
+  const rows = await getDb()
+    .select({ groupId: workGroupMembership.groupId })
+    .from(workGroupMembership)
+    .where(and(eq(workGroupMembership.personId, personId), isNull(workGroupMembership.leftAt)));
+  return rows.map((row) => row.groupId);
+}

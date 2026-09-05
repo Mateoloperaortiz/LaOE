@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gt, ilike, or } from "drizzle-orm";
+import { and, count, desc, eq, gt, ilike, inArray, or } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { getEdition } from "@/modules/events";
@@ -374,4 +374,17 @@ export async function deleteSubmissionsFor(personId: string): Promise<number> {
     .where(eq(formSubmission.personId, personId))
     .returning({ id: formSubmission.id });
   return rows.length;
+}
+
+/** Respuestas por id (las inscripciones a convocatorias muestran lo que respondió cada persona). */
+export async function getSubmissionsByIds(ids: string[]): Promise<Map<string, SubmissionRecord>> {
+  const map = new Map<string, SubmissionRecord>();
+  if (ids.length === 0) {
+    return map;
+  }
+  const rows = await getDb().select().from(formSubmission).where(inArray(formSubmission.id, ids));
+  for (const row of rows) {
+    map.set(row.id, row);
+  }
+  return map;
 }

@@ -28,6 +28,7 @@ import { task } from "./schema";
 const STATUS_CODES = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"] as const;
 const STAGE_CODES = ["PROSPECT", "APPLICANT", "MEMBER", "ALUMNI"] as const;
 const REQUEST_STATUS_CODES = ["PENDING", "APPROVED", "REJECTED", "WITHDRAWN"] as const;
+const CALL_ENTRY_CODES = ["APPLIED", "ACCEPTED", "WAITLISTED", "REJECTED"] as const;
 const PERMISSION_CODES = ["ADMIN", "COMMITTEE_LEADER", "BOARD"] as const;
 const DECISION_KINDS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"] as const;
 const FIELD_KEYS = [
@@ -53,6 +54,7 @@ function labels(): TimelineLabels {
     crmTexts: tList("T-1046"),
     stages: zip(STAGE_CODES, tList("T-1047")),
     requestStatuses: zip(REQUEST_STATUS_CODES, tList("T-876")),
+    callEntryStatuses: zip(CALL_ENTRY_CODES, tList("T-899")),
     decisions: zip(DECISION_KINDS, tList("T-802")),
     statuses: zip(STATUS_CODES, tList("T-381")),
     appointmentKinds: zip(APPOINTMENT_KINDS, tList("T-444")),

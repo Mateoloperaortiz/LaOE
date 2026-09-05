@@ -1,5 +1,10 @@
 import { announcementsResource, pagesResource } from "@/modules/content/admin";
-import { organizationsResource, pipelinesResource, tasksResource } from "@/modules/crm/admin";
+import {
+  callsResource,
+  organizationsResource,
+  pipelinesResource,
+  tasksResource,
+} from "@/modules/crm/admin";
 import { editionsResource, eventsResource } from "@/modules/events/admin";
 import { countRegistrationsByEdition } from "@/modules/forms";
 import { formsResource, registrationsResource, submissionsResource } from "@/modules/forms/admin";
@@ -20,10 +25,12 @@ import {
   segmentsResource,
   tagsResource,
 } from "@/modules/people/admin";
+import { listGroupOptions, listGroupRefs } from "@/modules/permanence";
 import { boardResource, complianceResource, workGroupsResource } from "@/modules/permanence/admin";
+import { listAllTerms } from "@/modules/terms";
 import { termsResource } from "@/modules/terms/admin";
 import type { AnyResource } from "@/shared/admin-kit";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 
 // La cartelera gana el comité de su cartelera interna (ADR-036): `content` no importa `people`, así que
 // el selector de comités se compone aquí, en la capa de la app.
@@ -75,6 +82,55 @@ export const edicionesResource = {
   },
 };
 
+// Las convocatorias ganan el selector y la columna del grupo (ADR-037): `crm` no importa `permanence`,
+// así que se componen aquí. La opción lleva el código del semestre para distinguir grupos homónimos.
+type CallRowWithGroup = Parameters<typeof callsResource.exportRow>[0] & { groupName: string };
+export const convocatoriasResource = {
+  ...callsResource,
+  fields: async () => {
+    const [fields, groups, terms] = await Promise.all([
+      typeof callsResource.fields === "function" ? callsResource.fields() : callsResource.fields,
+      listGroupOptions(),
+      listAllTerms(),
+    ]);
+    const termCode = new Map(terms.map((term) => [term.id, term.code]));
+    const groupField = {
+      name: "groupId",
+      label: tList("T-1017")[1] ?? "",
+      type: "select" as const,
+      required: true,
+      options: groups.map((group) => ({
+        value: group.id,
+        label: `${termCode.get(group.termId) ?? ""} · ${group.name}`,
+      })),
+    };
+    return [fields[0], groupField, ...fields.slice(1)].filter(
+      (field): field is NonNullable<typeof field> => field !== undefined,
+    );
+  },
+  columns: [
+    callsResource.columns[0],
+    {
+      key: "group",
+      label: tList("T-1017")[1] ?? "",
+      render: (row: CallRowWithGroup) => ({
+        text: row.groupName,
+        href: `/admin/permanencia/grupos/${row.groupId}`,
+      }),
+    },
+    ...callsResource.columns.slice(1),
+  ].filter((column): column is NonNullable<typeof column> => column !== undefined),
+  list: async (params: Parameters<typeof callsResource.list>[0]) => {
+    const result = await callsResource.list(params);
+    const groups = await listGroupRefs(result.rows.map((row) => row.groupId));
+    return {
+      ...result,
+      rows: result.rows.map((row) => ({ ...row, groupName: groups.get(row.groupId)?.name ?? "" })),
+    };
+  },
+  exportRow: (row: CallRowWithGroup) => ({ ...callsResource.exportRow(row), grupo: row.groupName }),
+};
+
 // Recursos administrables por clave (ADR-017). Cada módulo declara los suyos en su admin.ts.
 const resources: Record<string, AnyResource> = {
   [committeesResource.key]: committeesResource as unknown as AnyResource,
@@ -85,6 +141,7 @@ const resources: Record<string, AnyResource> = {
   [tasksResource.key]: tasksResource as unknown as AnyResource,
   [organizationsResource.key]: organizationsResource as unknown as AnyResource,
   [pipelinesResource.key]: pipelinesResource as unknown as AnyResource,
+  [callsResource.key]: convocatoriasResource as unknown as AnyResource,
   [termsResource.key]: termsResource as unknown as AnyResource,
   [complianceResource.key]: complianceResource as unknown as AnyResource,
   [workGroupsResource.key]: workGroupsResource as unknown as AnyResource,

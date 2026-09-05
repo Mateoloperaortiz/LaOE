@@ -1,8 +1,21 @@
 import { runCommand } from "@/db/tx";
+import { listFormOptions } from "@/modules/forms";
 import { listPermissions } from "@/modules/identity";
+import { listAllTerms } from "@/modules/terms";
 import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
+import {
+  type CallInput,
+  type CallListRow,
+  callInputSchema,
+  createCall,
+  getCall,
+  listCalls,
+  setCallStatus,
+  updateCall,
+} from "./domain/calls";
+import { CALL_SELECTIONS, CALL_STATUSES } from "./domain/calls-pure";
 import {
   createOrganization,
   getOrganization,
@@ -337,5 +350,172 @@ export const pipelinesResource: ResourceDefinition<PipelineListRow, PipelineInpu
     tipo: row.kind,
     archivado: row.isArchived ? si : no,
     tarjetas_abiertas: row.openCards,
+  }),
+};
+
+// Convocatorias internas (ADR-037 regla 10): el kit lista, crea, edita, abre y cierra; el selector de
+// grupos lo compone el registro de la app (crm no importa permanence); el detalle es a medida.
+
+const [callSingular, callPlural] = tList("T-1016") as [string, string];
+const [
+  cTitulo,
+  cGrupo,
+  cFormulario,
+  cAbre,
+  cCierra,
+  cCupo,
+  cSeleccion,
+  cEstado,
+  cInscritos,
+  cDescripcion,
+] = tList("T-1017");
+const selectionLabels = tList("T-1018");
+const callStatusLabels = tList("T-1019");
+const [cAbrir, cCerrar] = tList("T-1020") as [string, string];
+
+function callStatusCell(status: CallListRow["status"]) {
+  const label = callStatusLabels[CALL_STATUSES.indexOf(status)] ?? status;
+  return status === "OPEN"
+    ? { text: label, badge: "amarillo" as const }
+    : status === "CLOSED"
+      ? { text: label, badge: "paper" as const }
+      : { text: label, badge: "sky" as const };
+}
+
+async function callFields(): Promise<FieldDefinition[]> {
+  const [terms, forms] = await Promise.all([listAllTerms(), listFormOptions()]);
+  return [
+    {
+      name: "termId",
+      label: tList("T-262")[1] ?? "",
+      type: "select",
+      required: true,
+      options: terms.map((term) => ({ value: term.id, label: term.code })),
+    },
+    // El grupo lo agrega el registro de la app con las opciones de permanence.
+    { name: "title", label: cTitulo ?? "", type: "text", required: true },
+    {
+      name: "formId",
+      label: cFormulario ?? "",
+      type: "select",
+      emptyOption: t("T-1021"),
+      options: forms
+        .filter((form) => form.audience === "MEMBERS")
+        .map((form) => ({ value: form.id, label: form.label })),
+    },
+    { name: "description", label: cDescripcion ?? "", type: "textarea", rows: 6, help: t("T-337") },
+    { name: "opensAt", label: cAbre ?? "", type: "datetime", required: true },
+    { name: "closesAt", label: cCierra ?? "", type: "datetime", required: true },
+    { name: "capacity", label: cCupo ?? "", type: "number" },
+    {
+      name: "selection",
+      label: cSeleccion ?? "",
+      type: "select",
+      required: true,
+      options: CALL_SELECTIONS.map((value, index) => ({
+        value,
+        label: selectionLabels[index] ?? value,
+      })),
+    },
+    {
+      name: "status",
+      label: cEstado ?? "",
+      type: "select",
+      required: true,
+      options: CALL_STATUSES.map((value, index) => ({
+        value,
+        label: callStatusLabels[index] ?? value,
+      })),
+    },
+  ];
+}
+
+export const callsResource: ResourceDefinition<CallListRow, CallInput> = {
+  key: "convocatorias",
+  names: { singular: callSingular, plural: callPlural },
+  basePath: "/admin/convocatorias",
+  columns: [
+    {
+      key: "title",
+      label: cTitulo ?? "",
+      render: (row) => ({ text: row.title, href: `/admin/convocatorias/${row.id}` }),
+    },
+    // La columna del grupo la agrega el registro de la app.
+    { key: "form", label: cFormulario ?? "", render: (row) => row.formTitle },
+    { key: "opensAt", label: cAbre ?? "", render: (row) => formatDateTime(row.opensAt) },
+    { key: "closesAt", label: cCierra ?? "", render: (row) => formatDateTime(row.closesAt) },
+    {
+      key: "capacity",
+      label: cCupo ?? "",
+      render: (row) =>
+        row.capacity === null ? null : t("T-1027", { aceptados: row.accepted, cupo: row.capacity }),
+    },
+    {
+      key: "selection",
+      label: cSeleccion ?? "",
+      render: (row) => selectionLabels[CALL_SELECTIONS.indexOf(row.selection)] ?? row.selection,
+    },
+    { key: "status", label: cEstado ?? "", render: (row) => callStatusCell(row.status) },
+    { key: "entries", label: cInscritos ?? "", render: (row) => row.entries },
+  ],
+  filters: [
+    {
+      key: "status",
+      label: cEstado ?? "",
+      options: CALL_STATUSES.map((value, index) => ({
+        value,
+        label: callStatusLabels[index] ?? value,
+      })),
+    },
+    { key: "groupId", label: cGrupo ?? "", options: [] },
+  ],
+  schema: callInputSchema,
+  fields: callFields,
+  list: (params) =>
+    listCalls({
+      q: params.q,
+      status: params.filters.status,
+      groupId: params.filters.groupId,
+      page: params.page,
+      pageSize: params.pageSize,
+    }),
+  get: getCall,
+  toFormValues: (row) => ({
+    termId: row.termId,
+    groupId: row.groupId,
+    formId: row.formId ?? "",
+    title: row.title,
+    description: row.description,
+    opensAt: utcToBogotaInput(row.opensAt),
+    closesAt: utcToBogotaInput(row.closesAt),
+    capacity: row.capacity === null ? "" : String(row.capacity),
+    selection: row.selection,
+    status: row.status,
+  }),
+  create: (actor, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => createCall(ctx, input)),
+  update: (actor, id, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => updateCall(ctx, id, input)),
+  rowActions: [
+    { key: "open", label: cAbrir, applies: (row) => row.status !== "OPEN" },
+    { key: "close", label: cCerrar, applies: (row) => row.status === "OPEN" },
+  ],
+  runRowAction: async (actor, actionKey, id) => {
+    if (actionKey === "open" || actionKey === "close") {
+      await runCommand({ personId: actor.personId }, (ctx) =>
+        setCallStatus(ctx, id, actionKey === "open" ? "OPEN" : "CLOSED"),
+      );
+    }
+  },
+  exportRow: (row) => ({
+    titulo: row.title,
+    grupo: row.groupId,
+    abre: row.opensAt.toISOString(),
+    cierra: row.closesAt.toISOString(),
+    cupo: row.capacity,
+    seleccion: row.selection,
+    estado: row.status,
+    inscritos: row.entries,
+    aceptados: row.accepted,
   }),
 };

@@ -4,6 +4,7 @@ import { enqueueEvent } from "@/db/tx";
 import { registerHandler } from "@/jobs/registry";
 import { findTermByCode, getCurrentTerm } from "@/modules/terms";
 import { applyDecisions } from "./domain/closing";
+import { addMembersAs } from "./domain/groups";
 import { recomputeSnapshots } from "./domain/snapshots";
 
 // Handlers del outbox de permanencia (ADR-012, ADR-036 regla 5): el recompute corre fuera del
@@ -90,4 +91,22 @@ registerHandler("permanence.closed", async (payload, ctx) => {
   const { termId, nextTermId } = closedEvent.parse(payload);
   const applied = await applyDecisions(termId, nextTermId);
   ctx.log.info({ termId, nextTermId, applied }, "decisiones de permanencia aplicadas");
+});
+
+// Una inscripción aceptada a una convocatoria interna entra al grupo (ADR-037 regla 10): idempotente
+// ("quien ya está, se queda") y solo activos; `addMembers` encola el recompute de la persona.
+const callEntryChanged = z.object({
+  groupId: z.string().min(1),
+  personId: z.string().min(1),
+  status: z.string(),
+  actorId: z.string().nullable().optional(),
+});
+
+registerHandler("call-entry.changed", async (payload, ctx) => {
+  const { groupId, personId, status, actorId } = callEntryChanged.parse(payload);
+  if (status !== "ACCEPTED") {
+    return;
+  }
+  const added = await addMembersAs({ personId: actorId ?? null }, groupId, [personId]);
+  ctx.log.info({ groupId, personId, added }, "inscripción aceptada al grupo");
 });

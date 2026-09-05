@@ -36,6 +36,7 @@ export const TIMELINE_EVENTS = [
   "request.created",
   "request.decided",
   "request.withdrawn",
+  "call-entry.changed",
 ] as const;
 
 export interface TimelineLabels {
@@ -51,6 +52,8 @@ export interface TimelineLabels {
   stages: Record<string, string>;
   /** Los estados de una solicitud de T-876, en el orden del modelo. */
   requestStatuses: Record<string, string>;
+  /** Los estados de una inscripción a convocatoria de T-899, en el orden del modelo. */
+  callEntryStatuses: Record<string, string>;
   /** Las decisiones del cierre de T-802, en el orden del modelo. */
   decisions: Record<string, string>;
   statuses: Record<string, string>;
@@ -378,6 +381,19 @@ export function summarizeEvent(
         status,
       });
     }
+    case "call-entry.changed":
+      return entry(
+        "CALL",
+        fill(labels.crmTexts[8] ?? "", {
+          convocatoria: str(payload, "callTitle"),
+          estado: label(labels.callEntryStatuses, str(payload, "status")).toLowerCase(),
+        }),
+        {
+          callId: str(payload, "callId"),
+          groupId: str(payload, "groupId"),
+          status: str(payload, "status"),
+        },
+      );
     case "permission.granted":
     case "permission.revoked": {
       const permiso = label(labels.permissions, str(payload, "code"));

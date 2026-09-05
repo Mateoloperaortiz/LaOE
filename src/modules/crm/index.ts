@@ -1,6 +1,23 @@
 // API pública del módulo crm.
 
 export {
+  type ApplyContext,
+  type ApplyResult,
+  applyToCallAs,
+  type CallEntryView,
+  type CallInput,
+  type CallListRow,
+  callInputSchema,
+  countCallsByGroup,
+  decideEntryAs,
+  getCall,
+  listCallEntries,
+  listCalls,
+  listMyEntries,
+  listOpenCalls,
+  setCallStatusAs,
+} from "./domain/calls";
+export {
   CALL_ENTRY_STATUSES,
   CALL_SELECTIONS,
   CALL_STATUSES,
