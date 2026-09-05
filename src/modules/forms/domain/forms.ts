@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, or, type SQL, sql } from "drizzle-orm";
 import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -172,7 +172,7 @@ export const getPublicForm = cache(
   },
 );
 
-async function openFormsWhere(extra: ReturnType<typeof sql> | undefined, now: Date) {
+async function openFormsWhere(extra: SQL | undefined, now: Date) {
   const rows = await getDb()
     .select({ row: form, submissionCount })
     .from(form)
@@ -194,8 +194,9 @@ export async function findOpenPublicFormForPipelines(
   if (pipelineIds.length === 0) {
     return null;
   }
+  // Drizzle expande un arreglo dentro de `sql` como una lista: `inArray` arma el `in (...)` correcto.
   const open = await openFormsWhere(
-    sql`${form.audience} = 'PUBLIC' and ${form.actions}->>'pipelineId' = any(${pipelineIds}::text[])`,
+    and(eq(form.audience, "PUBLIC"), inArray(sql`${form.actions}->>'pipelineId'`, pipelineIds)),
     now,
   );
   return open[0] ?? null;

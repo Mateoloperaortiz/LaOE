@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { listMessagesFor } from "@/modules/comms";
-import { countOpenTasksFor, latestContact, listInteractions, listTasks } from "@/modules/crm";
+import {
+  countOpenTasksFor,
+  latestContact,
+  listCardsByPerson,
+  listInteractions,
+  listTasks,
+} from "@/modules/crm";
 import { assigneeOptions } from "@/modules/crm/admin";
 import { listRegistrationsByPerson, listSubmissionsByPerson } from "@/modules/forms";
 import { listPermissionsFor, requireAdminActor } from "@/modules/identity";
@@ -128,9 +134,10 @@ export default async function PersonaPage({
     my.term && tab === "resumen" ? assemblyStatusFor(id, my.term) : Promise.resolve(null),
   ]);
   const occasions = await getOccasionsByIds(checkIns.map((item) => item.occasionId));
-  const [submissions, registrations] = await Promise.all([
+  const [submissions, registrations, cards] = await Promise.all([
     tab === "formularios" ? listSubmissionsByPerson(id) : Promise.resolve([]),
     tab === "formularios" ? listRegistrationsByPerson(id) : Promise.resolve([]),
+    tab === "formularios" ? listCardsByPerson(id) : Promise.resolve([]),
   ]);
   const termCodes = new Map(terms.map((item) => [item.id, item.code]));
   const note =
@@ -204,7 +211,18 @@ export default async function PersonaPage({
       break;
     case "formularios":
       content = (
-        <TabFormularios submissions={submissions} registrations={registrations} cards={[]} />
+        <TabFormularios
+          submissions={submissions}
+          registrations={registrations}
+          cards={cards.map((item) => ({
+            id: item.id,
+            pipelineId: item.pipelineId,
+            pipelineName: item.pipelineName,
+            stageName: item.stageName,
+            closedAt: item.closedAt,
+            enteredStageAt: item.enteredStageAt,
+          }))}
+        />
       );
       break;
     case "linea":

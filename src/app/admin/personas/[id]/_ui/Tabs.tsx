@@ -171,7 +171,18 @@ export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipVi
         )}
       </Bloque>
       <Bloque titulo={comitesPorSemestre}>
-        {my.term ? (
+        {!data.membership && data.person.kind === "STUDENT" ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-tinta-suave">{t("T-1053")}</p>
+            <Link
+              href={`${base}?pestana=membresia&accion=alta`}
+              className="boton-calido min-h-9 px-4 py-1 text-sm"
+            >
+              {t("T-983")}
+            </Link>
+          </div>
+        ) : null}
+        {my.term && data.membership ? (
           <Link
             href={`${base}?pestana=membresia&accion=comites`}
             className="boton-secundario min-h-9 self-start px-4 py-1 text-sm"

@@ -29,6 +29,10 @@ export const TIMELINE_EVENTS = [
   "permanence.decided",
   "submission.received",
   "registration.created",
+  "card.created",
+  "card.moved",
+  "stage.changed",
+  "person.admitted",
 ] as const;
 
 export interface TimelineLabels {
@@ -40,6 +44,8 @@ export interface TimelineLabels {
   permanenceTexts: string[];
   /** Los textos de admisión, aliados y contactos de T-1046, en orden (fase 5). */
   crmTexts: string[];
+  /** Las etapas de la persona de T-1047, en el orden del modelo. */
+  stages: Record<string, string>;
   /** Las decisiones del cierre de T-802, en el orden del modelo. */
   decisions: Record<string, string>;
   statuses: Record<string, string>;
@@ -114,6 +120,10 @@ export function summarizeEvent(
       const from = str(payload, "from");
       const to = str(payload, "to");
       const reason = str(payload, "reason") || str(payload, "endReason");
+      if (!from) {
+        // La membresía nace con "dar de alta": lo anota person.admitted.
+        return null;
+      }
       if (to === "INACTIVE") {
         return entry("MEMBERSHIP", fill(text(2), { motivo: reason || "—" }), { from, to });
       }
@@ -301,6 +311,48 @@ export function summarizeEvent(
           submissionId: str(payload, "submissionId"),
         },
       );
+    case "card.created":
+      return entry(
+        "PIPELINE",
+        fill(labels.crmTexts[2] ?? "", {
+          pipeline: str(payload, "pipelineName"),
+          etapa: str(payload, "stageName"),
+        }),
+        { cardId: str(payload, "cardId"), pipelineId: str(payload, "pipelineId") },
+      );
+    case "card.moved":
+      return entry(
+        "PIPELINE",
+        fill(labels.crmTexts[3] ?? "", {
+          etapa: str(payload, "stageName"),
+          pipeline: str(payload, "pipelineName"),
+        }),
+        {
+          cardId: str(payload, "cardId"),
+          pipelineId: str(payload, "pipelineId"),
+          won: payload.won === true,
+          lost: payload.lost === true,
+        },
+      );
+    case "stage.changed":
+      return entry(
+        "MEMBERSHIP",
+        fill(labels.crmTexts[4] ?? "", { etapa: label(labels.stages, str(payload, "to")) }),
+        { from: str(payload, "from"), to: str(payload, "to") },
+      );
+    case "person.admitted": {
+      const committees = Array.isArray(payload.committees)
+        ? payload.committees.filter((item): item is string => typeof item === "string")
+        : [];
+      return entry(
+        "MEMBERSHIP",
+        fill(labels.crmTexts[5] ?? "", {
+          término: str(payload, "termCode") || lookup.termCode(str(payload, "termId")),
+          comités: committees.join(", "),
+        }),
+        { termId: str(payload, "termId") },
+      );
+    }
     case "permission.granted":
     case "permission.revoked": {
       const permiso = label(labels.permissions, str(payload, "code"));

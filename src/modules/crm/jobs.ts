@@ -1,11 +1,13 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
+import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { registerHandler } from "@/jobs/registry";
 import {
   APPOINTMENT_KINDS,
   CONSENT_PURPOSES,
   getPeopleByIds,
+  getPersonRecord,
   listAllCommittees,
   listCommitteeRoles,
 } from "@/modules/people";
@@ -13,6 +15,7 @@ import { requireConfig } from "@/modules/system";
 import { listAllTerms } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { addBusinessDays } from "@/shared/lib/dates";
+import { createCardFromSubmission } from "./domain/cards";
 import { deleteNotesFor, recordAutomaticInteraction } from "./domain/interactions";
 import { recordOnboardingEvidence } from "./domain/onboarding";
 import { deleteTasksFor } from "./domain/tasks";
@@ -23,6 +26,7 @@ import { task } from "./schema";
 // interacción, idempotente por la fila del outbox. Salir o anonimizarse borra tareas y notas (ADR-030).
 
 const STATUS_CODES = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"] as const;
+const STAGE_CODES = ["PROSPECT", "APPLICANT", "MEMBER", "ALUMNI"] as const;
 const PERMISSION_CODES = ["ADMIN", "COMMITTEE_LEADER", "BOARD"] as const;
 const DECISION_KINDS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"] as const;
 const FIELD_KEYS = [
@@ -46,6 +50,7 @@ function labels(): TimelineLabels {
     participationTexts: tList("T-667"),
     permanenceTexts: tList("T-832"),
     crmTexts: tList("T-1046"),
+    stages: zip(STAGE_CODES, tList("T-1047")),
     decisions: zip(DECISION_KINDS, tList("T-802")),
     statuses: zip(STATUS_CODES, tList("T-381")),
     appointmentKinds: zip(APPOINTMENT_KINDS, tList("T-444")),
@@ -177,4 +182,33 @@ registerHandler("term.successor-missing", async (payload, ctx) => {
     .values({ title, kind: "GENERAL", dueAt: new Date(`${endsOn}T12:00:00Z`) })
     .returning({ id: task.id });
   ctx.log.info({ next, taskId: created?.id }, "tarea del término siguiente creada");
+});
+
+// Una respuesta con la acción "entrar al pipeline" crea su tarjeta (ADR-037 regla 7); idempotente por
+// `card_submission_unique`, así que procesar dos veces el mismo evento no duplica.
+const submissionReceived = z.object({
+  submissionId: z.string().min(1),
+  personId: z.string().min(1).nullable(),
+  actorId: z.string().nullable().optional(),
+  actions: z.object({ pipelineId: z.string().min(1).optional() }).loose(),
+});
+
+registerHandler("submission.received", async (payload, ctx) => {
+  const { submissionId, personId, actorId, actions } = submissionReceived.parse(payload);
+  if (!actions.pipelineId || !personId) {
+    return;
+  }
+  const who = await getPersonRecord(personId);
+  const result = await runCommand(actorId ? { personId: actorId } : SYSTEM_ACTOR, (tx) =>
+    createCardFromSubmission(tx, {
+      pipelineId: actions.pipelineId ?? "",
+      submissionId,
+      personId,
+      personStage: who?.stage ?? null,
+    }),
+  );
+  ctx.log.info(
+    { submissionId, cardId: result?.id ?? null, created: result?.created ?? false },
+    "tarjeta desde la respuesta",
+  );
 });

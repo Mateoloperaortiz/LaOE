@@ -15,6 +15,7 @@ import { formatDate } from "@/shared/lib/dates";
 import {
   addAppointmentAction,
   addNoteAction,
+  admitAction,
   anonymizeAction,
   changeStatusAction,
   createTaskAction,
@@ -281,6 +282,47 @@ export function Paneles({
         <form action={anonymizeAction} className="flex flex-col gap-4">
           {hidden}
           <Botones enviar={t("T-441")} cancelHref={closeHref} calido />
+        </form>
+      </ResourcePanel>
+    );
+  }
+
+  // "Dar de alta" (ADR-037 regla 8): solo estudiantes sin membresía; de 1 a 3 comités como Miembro.
+  if (accion === "alta" && !membership && person.kind === "STUDENT") {
+    const term = my.term;
+    return (
+      <ResourcePanel title={t("T-983")} closeHref={closeHref} closeLabel={t("T-291")}>
+        {alerta}
+        <form action={admitAction} className="flex flex-col gap-4">
+          {hidden}
+          <input type="hidden" name="termId" value={term?.id ?? ""} />
+          <p className="text-sm">
+            {term
+              ? t("T-984", {
+                  nombre: `${person.firstName} ${person.lastName}`.trim(),
+                  término: term.code,
+                  min: 1,
+                  max: MAX_ROWS,
+                })
+              : t("T-989")}
+          </p>
+          <Campo id="campo-alta-comites" label={t("T-985")}>
+            <select
+              id="campo-alta-comites"
+              name="committeeIds"
+              multiple
+              required
+              size={Math.min(8, Math.max(3, committees.length))}
+              className={inputClass}
+            >
+              {committees.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </Campo>
+          <Botones enviar={t("T-983")} cancelHref={closeHref} calido />
         </form>
       </ResourcePanel>
     );

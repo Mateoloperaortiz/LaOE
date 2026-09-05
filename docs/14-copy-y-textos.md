@@ -1082,6 +1082,8 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1058 | Formulario: valor "sí" y "no" de una casilla en respuestas y exportes | Sí · No | MATEO | Propuesta |
 | T-1059 | Organización: sin tareas | Sin tareas. | MATEO | Propuesta |
 | T-1060 | Kanban: sin responsable | Sin responsable | MATEO | Propuesta |
+| T-1061 | Correo de solicitud: la decisión dentro de T-205 (aprobada · rechazada) | aprobó · no aprobó | GH | Propuesta |
+| T-1062 | Correo de solicitud: el motivo dentro de T-205 (solo al rechazar) | Motivo: {motivo}. | GH | Propuesta |
 
 ## 6. Notificaciones
 

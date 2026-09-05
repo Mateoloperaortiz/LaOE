@@ -155,4 +155,5 @@ export {
   type SegmentRow,
   segmentFilterSchema,
 } from "./domain/segments";
+export { markApplicant } from "./domain/stage";
 export { addPersonTags, listAllTags, listPersonTags, type TagRow } from "./domain/tags";

@@ -896,6 +896,18 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-1061": {
+    where: "Correo de solicitud: la decisión dentro de T-205 (aprobada · rechazada)",
+    text: "aprobó · no aprobó",
+    owner: "GH",
+    status: "Propuesta",
+  },
+  "T-1062": {
+    where: "Correo de solicitud: el motivo dentro de T-205 (solo al rechazar)",
+    text: "Motivo: {motivo}.",
+    owner: "GH",
+    status: "Propuesta",
+  },
   "T-110": {
     where: "Título",
     text: "Permanencia",
@@ -3029,7 +3041,7 @@ export const textos = {
   },
   "T-516": {
     where: "Propósitos de consentimiento (etiquetas cortas, en el orden del modelo)",
-    text: "Membresía · Comunicaciones · Foto en el directorio · Galería de egresados",
+    text: "Membresía · Comunicaciones · Foto en el directorio · Galería de egresados · Tratamiento de datos",
     owner: "JUNTA",
     status: "Propuesta",
   },

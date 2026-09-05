@@ -12,6 +12,23 @@ export {
   isCallOpen,
 } from "./domain/calls-pure";
 export {
+  admitFromCardAs,
+  type BoardColumn,
+  type CardInput,
+  type CardUpdateInput,
+  type CardView,
+  cardInputSchema,
+  cardUpdateSchema,
+  createCardAs,
+  getBoard,
+  getCard,
+  listBoardSummaries,
+  listCardsByOrganization,
+  listCardsByPerson,
+  moveCardAs,
+  updateCardAs,
+} from "./domain/cards";
+export {
   addNoteAs,
   addOrganizationNoteAs,
   completeTaskAs,
@@ -59,7 +76,20 @@ export {
   setPrimaryContactAs,
   updateOrganizationAs,
 } from "./domain/organizations";
-export { listAdmissionPipelineIds, listPipelineOptions } from "./domain/pipelines";
+export {
+  deleteStageAs,
+  getPipeline,
+  getPipelinesByIds,
+  listAdmissionPipelineIds,
+  listPipelineOptions,
+  listStages,
+  moveStageAs,
+  type PipelineListRow,
+  type StageInput,
+  type StageRecord,
+  saveStageAs,
+  stageInputSchema,
+} from "./domain/pipelines";
 export {
   closedAtAfterMove,
   daysInStage,

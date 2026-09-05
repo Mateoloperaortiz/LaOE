@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   getOrganization,
+  listCardsByOrganization,
   listContacts,
   listOrganizationInteractions,
   listOrganizationTagIds,
@@ -63,15 +64,17 @@ export default async function Page({
   const guardado = single(search.guardado) === "1";
   const error = single(search.error);
   const q = single(search.q).trim();
-  const [contacts, interactions, tasks, tagIds, tags, assignees, candidates] = await Promise.all([
-    listContacts(id),
-    listOrganizationInteractions(id),
-    listTasks({ q: "", organizationId: id, page: 1, pageSize: 50 }),
-    listOrganizationTagIds(id),
-    listAllTags(),
-    accion === "tarea" ? assigneeOptions() : Promise.resolve([]),
-    accion === "vincular" && q ? searchPeople(q) : Promise.resolve([]),
-  ]);
+  const [contacts, interactions, tasks, tagIds, tags, assignees, candidates, cards] =
+    await Promise.all([
+      listContacts(id),
+      listOrganizationInteractions(id),
+      listTasks({ q: "", organizationId: id, page: 1, pageSize: 50 }),
+      listOrganizationTagIds(id),
+      listAllTags(),
+      accion === "tarea" ? assigneeOptions() : Promise.resolve([]),
+      accion === "vincular" && q ? searchPeople(q) : Promise.resolve([]),
+      listCardsByOrganization(id),
+    ]);
   const kindLabels = tList("T-949");
   const [bContactos, bLinea, bTareas, bTarjetas, bEtiquetas] = tList("T-951");
   const [cPersona, cRol, cPrincipal] = tList("T-952");
@@ -293,7 +296,26 @@ export default async function Page({
           <h2 id="tarjetas" className="text-display-md">
             {bTarjetas}
           </h2>
-          <p className="text-tinta-suave">{t("T-959")}</p>
+          {cards.length === 0 ? (
+            <p className="text-tinta-suave">{t("T-959")}</p>
+          ) : (
+            <ul className="flex list-none flex-col gap-2 p-0 text-sm">
+              {cards.map((card) => (
+                <li key={card.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <Link
+                    href={`/admin/pipelines/${card.pipelineId}?tarjeta=${card.id}`}
+                    className="font-semibold underline"
+                  >
+                    {card.title}
+                  </Link>
+                  <span className="text-tinta-suave">
+                    {card.pipelineName} · {card.stageName}
+                    {card.amount !== null ? ` · ${card.amount}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
 

@@ -20,6 +20,8 @@ import {
 } from "@/modules/identity";
 import {
   addAppointmentAs,
+  admitInputSchema,
+  admitPersonAs,
   anonymizePersonAs,
   appointmentInputSchema,
   type CommitteeMembershipInput,
@@ -49,6 +51,7 @@ import { clientIp } from "@/shared/lib/request";
 // Zod y vuelve a la ficha con `guardado=1` o con el error del dominio.
 
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
+const MAX_ROWS = 3;
 
 async function personUrl(
   id: string,
@@ -134,6 +137,24 @@ export async function updatePersonAction(formData: FormData): Promise<void> {
   );
 }
 
+export async function admitAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("personId"));
+  const actor = await requireAdmin(await personUrl(id, "membresia"));
+  const parsed = admitInputSchema.safeParse({
+    termId: text(formData, "termId"),
+    committeeIds: formData
+      .getAll("committeeIds")
+      .filter((item): item is string => typeof item === "string" && item !== ""),
+  });
+  if (!parsed.success) {
+    await fail(id, "membresia", "alta", t("T-451", { min: 1, max: MAX_ROWS }));
+    return;
+  }
+  await run(id, "membresia", "alta", async () => {
+    await admitPersonAs(actor, id, parsed.data);
+  });
+}
+
 export async function changeStatusAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const actor = await requireAdmin(await personUrl(id, "membresia"));
@@ -196,8 +217,6 @@ export async function anonymizeAction(formData: FormData): Promise<void> {
   }
   await run(id, "datos", "anonimizar", () => anonymizePersonAs({ personId: actor.personId }, id));
 }
-
-const MAX_ROWS = 3;
 
 export async function setCommitteesAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));

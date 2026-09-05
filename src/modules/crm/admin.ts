@@ -14,6 +14,17 @@ import {
   updateOrganization,
 } from "./domain/organizations";
 import {
+  createPipeline,
+  getPipeline,
+  listPipelines,
+  type PipelineInput,
+  type PipelineListRow,
+  pipelineInputSchema,
+  setPipelineArchived,
+  updatePipeline,
+} from "./domain/pipelines";
+import { PIPELINE_KINDS } from "./domain/pipelines-pure";
+import {
   completeTask,
   createTask,
   getTask,
@@ -228,5 +239,103 @@ export const organizationsResource: ResourceDefinition<OrganizationListRow, Orga
     sitio_web: row.website,
     contactos: row.contactCount,
     etiquetas: row.tagNames.join("; "),
+  }),
+};
+
+// Pipelines (ADR-037 regla 7): crear siembra la plantilla de su tipo; el kanban es a medida.
+
+const [pipeSingular, pipePlural] = tList("T-962") as [string, string];
+const [pipeNombre, pipeTipo, pipeArchivado, pipeAbiertas, pipeTablero] = tList("T-963");
+const pipeKindLabels = tList("T-964");
+const [archivar, desarchivar] = tList("T-969") as [string, string];
+const [si, no] = tList("T-1058") as [string, string];
+const pipeKindOptions = PIPELINE_KINDS.map((value, index) => ({
+  value,
+  label: pipeKindLabels[index] ?? value,
+}));
+
+export const pipelinesResource: ResourceDefinition<PipelineListRow, PipelineInput> = {
+  key: "pipelines",
+  names: { singular: pipeSingular, plural: pipePlural },
+  basePath: "/admin/pipelines",
+  columns: [
+    {
+      key: "name",
+      label: pipeNombre ?? "",
+      render: (row) => ({ text: row.name, href: `/admin/pipelines/${row.id}` }),
+    },
+    {
+      key: "kind",
+      label: pipeTipo ?? "",
+      render: (row) => pipeKindLabels[PIPELINE_KINDS.indexOf(row.kind)] ?? row.kind,
+    },
+    {
+      key: "archived",
+      label: pipeArchivado ?? "",
+      render: (row) =>
+        row.isArchived
+          ? { text: si, badge: "paper" as const }
+          : { text: no, badge: "sky" as const },
+    },
+    { key: "open", label: pipeAbiertas ?? "", render: (row) => row.openCards },
+    {
+      key: "board",
+      label: pipeTablero ?? "",
+      render: (row) => ({ text: t("T-968"), href: `/admin/pipelines/${row.id}` }),
+    },
+  ],
+  filters: [
+    { key: "kind", label: pipeTipo ?? "", options: pipeKindOptions },
+    {
+      key: "archived",
+      label: pipeArchivado ?? "",
+      options: [
+        { value: "no", label: no },
+        { value: "yes", label: si },
+      ],
+    },
+  ],
+  schema: pipelineInputSchema,
+  fields: [
+    { name: "name", label: pipeNombre ?? "", type: "text", required: true },
+    {
+      name: "kind",
+      label: pipeTipo ?? "",
+      type: "select",
+      required: true,
+      lockedOnEdit: true,
+      options: pipeKindOptions,
+    },
+  ],
+  list: (params) =>
+    listPipelines({
+      q: params.q,
+      kind: params.filters.kind,
+      archived: params.filters.archived,
+      page: params.page,
+      pageSize: params.pageSize,
+    }),
+  get: getPipeline,
+  toFormValues: (row) => ({ name: row.name, kind: row.kind }),
+  create: (actor, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => createPipeline(ctx, input)),
+  update: (actor, id, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => updatePipeline(ctx, id, input)),
+  rowActions: [
+    { key: "archive", label: archivar, applies: (row) => !row.isArchived },
+    { key: "unarchive", label: desarchivar, applies: (row) => row.isArchived },
+  ],
+  runRowAction: async (actor, actionKey, id) => {
+    if (actionKey === "archive" || actionKey === "unarchive") {
+      await runCommand({ personId: actor.personId }, (ctx) =>
+        setPipelineArchived(ctx, id, actionKey === "archive"),
+      );
+    }
+  },
+  exportRow: (row) => ({
+    nombre: row.name,
+    tipo: row.kind,
+    archivado: row.isArchived ? si : no,
+    tarjetas_abiertas: row.openCards,
   }),
 };

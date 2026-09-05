@@ -9,6 +9,7 @@ const labels: TimelineLabels = {
   participationTexts: tList("T-667"),
   permanenceTexts: tList("T-832"),
   crmTexts: tList("T-1046"),
+  stages: { PROSPECT: "prospecto", APPLICANT: "postulante", MEMBER: "miembro", ALUMNI: "egresado" },
   decisions: { CONTINUES: "Continúa", PROBATION: "Periodo de prueba", EXIT_OE: "Sale de la OE" },
   statuses: { ACTIVE: "Activo", ON_LEAVE: "En licencia", INACTIVE: "Retirado" },
   appointmentKinds: { VP_GH: "Vicepresidencia de GH" },
