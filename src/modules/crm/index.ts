@@ -13,6 +13,7 @@ export {
 } from "./domain/calls-pure";
 export {
   addNoteAs,
+  addOrganizationNoteAs,
   completeTaskAs,
   createTaskAs,
   editNoteAs,
@@ -22,6 +23,7 @@ export {
   type InteractionView,
   latestContact,
   listInteractions,
+  listOrganizationInteractions,
   type TimelineFilter,
 } from "./domain/interactions";
 export {
@@ -30,6 +32,33 @@ export {
   type OnboardingStep,
   recordOnboardingEvidence,
 } from "./domain/onboarding";
+export {
+  addContactAs,
+  type ContactInput,
+  type ContactView,
+  contactInputSchema,
+  createExternalContactAs,
+  createOrganizationAs,
+  type ExternalContactInput,
+  externalContactSchema,
+  getOrganization,
+  getOrganizationsByIds,
+  listContacts,
+  listOrganizationOptions,
+  listOrganizationsOfPerson,
+  listOrganizationTagIds,
+  ORGANIZATION_KINDS,
+  type OrganizationInput,
+  type OrganizationKind,
+  type OrganizationListRow,
+  type OrganizationRef,
+  organizationInputSchema,
+  removeContactAs,
+  searchOrganizations,
+  setOrganizationTagsAs,
+  setPrimaryContactAs,
+  updateOrganizationAs,
+} from "./domain/organizations";
 export { listAdmissionPipelineIds, listPipelineOptions } from "./domain/pipelines";
 export {
   closedAtAfterMove,

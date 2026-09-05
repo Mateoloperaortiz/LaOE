@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, isNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
@@ -6,17 +6,21 @@ import { getPeopleByIds } from "@/modules/people";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
-import { task } from "../schema";
+import { organization, task } from "../schema";
 
 // Tareas (02-crm.md): pendiente con responsable y vencimiento sobre una persona; sin responsable la ven
 // todos los ADMIN.
 
+export const TASK_KINDS = ["GENERAL", "DELETION_REQUEST", "REQUEST"] as const;
+
 export const taskInputSchema = z.object({
   title: z.string().trim().min(2).max(160),
-  kind: z.enum(["GENERAL", "DELETION_REQUEST"]).default("GENERAL"),
+  kind: z.enum(TASK_KINDS).default("GENERAL"),
   assigneeId: z.string().trim().min(1).optional(),
   dueAt: z.string().regex(LOCAL_INPUT).optional(),
   personId: z.string().trim().min(1).optional(),
+  organizationId: z.string().trim().min(1).optional(),
+  cardId: z.string().trim().min(1).optional(),
 });
 
 export type TaskInput = z.infer<typeof taskInputSchema>;
@@ -31,6 +35,9 @@ export interface TaskRow {
   dueAt: Date | null;
   personId: string | null;
   personName: string | null;
+  organizationId: string | null;
+  organizationName: string | null;
+  cardId: string | null;
   createdAt: Date;
   completedAt: Date | null;
 }
@@ -42,8 +49,22 @@ export interface TaskListParams {
   actorId?: string | undefined;
   status?: string | undefined;
   personId?: string | undefined;
+  organizationId?: string | undefined;
+  /** Solo vencidas y abiertas (tablero del admin). */
+  overdue?: boolean | undefined;
   page: number;
   pageSize: number;
+}
+
+async function organizationNames(ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) {
+    return new Map();
+  }
+  const rows = await getDb()
+    .select({ id: organization.id, name: organization.name })
+    .from(organization)
+    .where(inArray(organization.id, ids));
+  return new Map(rows.map((row) => [row.id, row.name]));
 }
 
 async function withNames(rows: Array<typeof task.$inferSelect>): Promise<TaskRow[]> {
@@ -51,6 +72,9 @@ async function withNames(rows: Array<typeof task.$inferSelect>): Promise<TaskRow
     ...rows.flatMap((row) => (row.assigneeId ? [row.assigneeId] : [])),
     ...rows.flatMap((row) => (row.personId ? [row.personId] : [])),
   ]);
+  const organizations = await organizationNames(
+    rows.flatMap((row) => (row.organizationId ? [row.organizationId] : [])),
+  );
   const name = (id: string | null) => (id ? (people.get(id)?.fullName?.trim() ?? null) : null);
   return rows.map((row) => ({
     id: row.id,
@@ -62,6 +86,9 @@ async function withNames(rows: Array<typeof task.$inferSelect>): Promise<TaskRow
     dueAt: row.dueAt,
     personId: row.personId,
     personName: name(row.personId),
+    organizationId: row.organizationId,
+    organizationName: row.organizationId ? (organizations.get(row.organizationId) ?? null) : null,
+    cardId: row.cardId,
     createdAt: row.createdAt,
     completedAt: row.completedAt,
   }));
@@ -79,6 +106,12 @@ export async function listTasks(
   }
   if (params.personId) {
     conditions.push(eq(task.personId, params.personId));
+  }
+  if (params.organizationId) {
+    conditions.push(eq(task.organizationId, params.organizationId));
+  }
+  if (params.overdue) {
+    conditions.push(eq(task.status, "OPEN"), lt(task.dueAt, new Date()));
   }
   if (params.assignee === "mine") {
     conditions.push(params.actorId ? eq(task.assigneeId, params.actorId) : sql`false`);
@@ -112,6 +145,8 @@ export async function createTask(ctx: CommandContext, input: TaskInput): Promise
     assigneeId: input.assigneeId ?? null,
     dueAt: input.dueAt ? bogotaInputToUtc(input.dueAt) : null,
     personId: input.personId ?? null,
+    organizationId: input.organizationId ?? null,
+    cardId: input.cardId ?? null,
     createdById: ctx.actor.personId,
   };
   const [row] = await ctx.tx.insert(task).values(values).returning({ id: task.id });

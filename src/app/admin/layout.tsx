@@ -19,7 +19,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [cartelera] = tList("T-331");
   const [medios] = tList("T-334");
   const [eventos] = tList("T-332");
-  const [persona, comite, ocasion] = tList("T-290") as [string, string, string];
+  const [persona, comite, ocasion, organizacion] = tList("T-290") as [
+    string,
+    string,
+    string,
+    string,
+  ];
   const [personas, importar, cargos, etiquetas, tareas, segmentos, documentos, importaciones] =
     tList("T-509");
   const [ocasiones, ledger, rankings, asambleas, cierre, alias] = tList("T-561");
@@ -115,7 +120,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
                   placeholder: t("T-264"),
                   empty: t("T-256"),
                   close: t("T-291"),
-                  types: { person: persona, committee: comite, occasion: ocasion },
+                  types: {
+                    person: persona,
+                    committee: comite,
+                    occasion: ocasion,
+                    organization: organizacion,
+                  },
                 }}
               />
             ) : null}

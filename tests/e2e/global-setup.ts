@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNotNull, like, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { announcement, document, mediaAsset } from "@/modules/content/schema";
-import { recognition, task } from "@/modules/crm/schema";
+import { organization, recognition, task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { editionRegistration, form } from "@/modules/forms/schema";
 import { otpChallenge, permission } from "@/modules/identity/schema";
@@ -181,8 +181,9 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(permanenceRule).where(like(permanenceRule.key, "e2e-%"));
   await db.delete(permanenceTable).where(like(permanenceTable.comment, "e2e-%"));
   await db.delete(workGroup).where(like(workGroup.name, "e2e-%"));
-  // Fase 5: formularios de prueba (sus respuestas caen en cascada; las de personas e2e- ya cayeron).
+  // Fase 5: formularios y organizaciones de prueba (respuestas, contactos y tarjetas caen en cascada).
   await db.delete(form).where(like(form.slug, "e2e-%"));
+  await db.delete(organization).where(like(organization.name, "e2e-%"));
   // Miembro sin permisos: activo, en un comité del término, sin datos de contacto ni consentimientos.
   let [member] = await db
     .select({ id: person.id })

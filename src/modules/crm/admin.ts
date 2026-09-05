@@ -4,6 +4,16 @@ import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/typ
 import { t, tList } from "@/shared/copy";
 import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import {
+  createOrganization,
+  getOrganization,
+  listOrganizations,
+  ORGANIZATION_KINDS,
+  type OrganizationInput,
+  type OrganizationListRow,
+  organizationInputSchema,
+  updateOrganization,
+} from "./domain/organizations";
+import {
   completeTask,
   createTask,
   getTask,
@@ -25,7 +35,7 @@ const [titulo, responsable, vence, estado, persona, tipo] = tList("T-459") as [
   string,
 ];
 const [abierta, hecha] = tList("T-460") as [string, string];
-const [general, eliminacion] = tList("T-461") as [string, string];
+const [general, eliminacion, solicitud] = tList("T-461") as [string, string, string];
 const [mias, sinAsignar, todas] = tList("T-463") as [string, string, string];
 
 /** Las tareas se asignan a quien tiene permiso ADMIN. */
@@ -47,6 +57,7 @@ async function fields(): Promise<FieldDefinition[]> {
       options: [
         { value: "GENERAL", label: general },
         { value: "DELETION_REQUEST", label: eliminacion },
+        { value: "REQUEST", label: solicitud },
       ],
     },
   ];
@@ -77,9 +88,22 @@ export const tasksResource: ResourceDefinition<TaskRow, TaskInput> = {
           : null,
     },
     {
+      key: "organization",
+      label: tList("T-948")[0] ?? "",
+      render: (row) =>
+        row.organizationId && row.organizationName
+          ? { text: row.organizationName, href: `/admin/organizaciones/${row.organizationId}` }
+          : null,
+    },
+    {
       key: "kind",
       label: tipo,
-      render: (row) => (row.kind === "DELETION_REQUEST" ? eliminacion : general),
+      render: (row) =>
+        row.kind === "DELETION_REQUEST"
+          ? eliminacion
+          : row.kind === "REQUEST"
+            ? solicitud
+            : general,
     },
   ],
   filters: [
@@ -133,6 +157,76 @@ export const tasksResource: ResourceDefinition<TaskRow, TaskInput> = {
     vence: row.dueAt ? row.dueAt.toISOString() : null,
     estado: row.status,
     persona: row.personName,
+    organizacion: row.organizationName,
     tipo: row.kind,
+  }),
+};
+
+// Organizaciones (ADR-037 regla 6): el kit lista, crea y edita; el detalle a medida lleva contactos,
+// notas, tareas, etiquetas y tarjetas.
+
+const [orgSingular, orgPlural] = tList("T-947") as [string, string];
+const [orgNombre, orgTipo, orgSitio, orgNotas, orgContactos, orgEtiquetas] = tList("T-948");
+const orgKindLabels = tList("T-949");
+const kindOptions = ORGANIZATION_KINDS.map((value, index) => ({
+  value,
+  label: orgKindLabels[index] ?? value,
+}));
+
+export const organizationsResource: ResourceDefinition<OrganizationListRow, OrganizationInput> = {
+  key: "organizaciones",
+  names: { singular: orgSingular, plural: orgPlural },
+  basePath: "/admin/organizaciones",
+  columns: [
+    {
+      key: "name",
+      label: orgNombre ?? "",
+      render: (row) => ({ text: row.name, href: `/admin/organizaciones/${row.id}` }),
+    },
+    {
+      key: "kind",
+      label: orgTipo ?? "",
+      render: (row) => orgKindLabels[ORGANIZATION_KINDS.indexOf(row.kind)] ?? row.kind,
+    },
+    {
+      key: "website",
+      label: orgSitio ?? "",
+      render: (row) => (row.website ? { text: row.website, href: row.website } : null),
+    },
+    { key: "contacts", label: orgContactos ?? "", render: (row) => row.contactCount },
+    { key: "tags", label: orgEtiquetas ?? "", render: (row) => row.tagNames.join(", ") || null },
+  ],
+  filters: [{ key: "kind", label: orgTipo ?? "", options: kindOptions }],
+  schema: organizationInputSchema,
+  fields: [
+    { name: "name", label: orgNombre ?? "", type: "text", required: true },
+    { name: "kind", label: orgTipo ?? "", type: "select", required: true, options: kindOptions },
+    { name: "website", label: orgSitio ?? "", type: "url" },
+    { name: "notes", label: orgNotas ?? "", type: "textarea", rows: 8, help: t("T-337") },
+  ],
+  list: (params) =>
+    listOrganizations({
+      q: params.q,
+      kind: params.filters.kind,
+      page: params.page,
+      pageSize: params.pageSize,
+    }),
+  get: getOrganization,
+  toFormValues: (row) => ({
+    name: row.name,
+    kind: row.kind,
+    website: row.website ?? "",
+    notes: row.notes,
+  }),
+  create: (actor, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => createOrganization(ctx, input)),
+  update: (actor, id, input) =>
+    runCommand({ personId: actor.personId }, (ctx) => updateOrganization(ctx, id, input)),
+  exportRow: (row) => ({
+    nombre: row.name,
+    tipo: row.kind,
+    sitio_web: row.website,
+    contactos: row.contactCount,
+    etiquetas: row.tagNames.join("; "),
   }),
 };

@@ -118,6 +118,7 @@ export {
 export { getPerson360, type Person360 } from "./domain/person-360";
 export { normalizePhone, splitFullName } from "./domain/person-pure";
 export {
+  createPerson,
   type FormPersonInput,
   findOrCreatePersonFromForm,
   formPersonSchema,

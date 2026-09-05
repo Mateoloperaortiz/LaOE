@@ -1,4 +1,4 @@
-import { and, desc, eq, max } from "drizzle-orm";
+import { and, desc, eq, max, type SQL } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { getPeopleByIds } from "@/modules/people";
@@ -32,6 +32,18 @@ export async function listInteractions(
     kind === "ALL"
       ? eq(interaction.personId, personId)
       : and(eq(interaction.personId, personId), eq(interaction.kind, kind));
+  return listWhere(where, limit);
+}
+
+/** Línea de tiempo de una organización (ADR-037): notas y movimientos de sus tarjetas. */
+export async function listOrganizationInteractions(
+  organizationId: string,
+  limit = 200,
+): Promise<InteractionView[]> {
+  return listWhere(eq(interaction.organizationId, organizationId), limit);
+}
+
+async function listWhere(where: SQL | undefined, limit: number): Promise<InteractionView[]> {
   const rows = await getDb()
     .select()
     .from(interaction)
@@ -84,10 +96,28 @@ export async function addNote(
   personId: string,
   body: string,
 ): Promise<{ id: string }> {
+  return insertNote(ctx, { personId, organizationId: null }, body);
+}
+
+/** Nota sobre una organización (ADR-037 regla 6): mismo ciclo que la de una persona. */
+export async function addOrganizationNote(
+  ctx: CommandContext,
+  organizationId: string,
+  body: string,
+): Promise<{ id: string }> {
+  return insertNote(ctx, { personId: null, organizationId }, body);
+}
+
+async function insertNote(
+  ctx: CommandContext,
+  subject: { personId: string | null; organizationId: string | null },
+  body: string,
+): Promise<{ id: string }> {
   const [row] = await ctx.tx
     .insert(interaction)
     .values({
-      personId,
+      personId: subject.personId,
+      organizationId: subject.organizationId,
       kind: "NOTE",
       actorId: ctx.actor.personId,
       summary: excerpt(body),
@@ -101,7 +131,7 @@ export async function addNote(
     action: "note.created",
     entityType: "interaction",
     entityId: row.id,
-    after: { personId },
+    after: subject,
   });
   return row;
 }

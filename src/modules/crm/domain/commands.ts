@@ -1,5 +1,5 @@
 import { type Actor, runCommand } from "@/db/tx";
-import { addNote, editNote } from "./interactions";
+import { addNote, addOrganizationNote, editNote } from "./interactions";
 import { markOnboardingStep } from "./onboarding";
 import { completeTask, createTask, type TaskInput } from "./tasks";
 
@@ -7,6 +7,14 @@ import { completeTask, createTask, type TaskInput } from "./tasks";
 
 export function addNoteAs(actor: Actor, personId: string, body: string): Promise<{ id: string }> {
   return runCommand(actor, (ctx) => addNote(ctx, personId, body));
+}
+
+export function addOrganizationNoteAs(
+  actor: Actor,
+  organizationId: string,
+  body: string,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => addOrganizationNote(ctx, organizationId, body));
 }
 
 export function editNoteAs(actor: Actor, id: string, body: string): Promise<void> {
