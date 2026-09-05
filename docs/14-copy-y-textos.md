@@ -854,6 +854,9 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-845 | Grupo: importación aplicada | {n} personas agregadas al grupo. | MATEO | Propuesta |
 | T-846 | Grupo: resultado de cada fila de la importación (agregar, ya estaba, sin membresía activa, desconocido) | Para agregar · Ya estaba · Sin membresía activa · Correo desconocido | MATEO | Propuesta |
 | T-847 | Grupo: campo de correos de los evaluadores | Correos de los evaluadores (uno por línea) | MATEO | Propuesta |
+| T-848 | Junta: ocasiones celebradas (unidad) | celebradas | MATEO | Propuesta |
+| T-849 | Junta: check-ins aprobados (unidad) | check-ins | MATEO | Propuesta |
+| T-850 | Junta: promedio por ocasión (unidad) | por ocasión | MATEO | Propuesta |
 
 ## 6. Notificaciones
 

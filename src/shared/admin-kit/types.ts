@@ -114,6 +114,8 @@ export interface ResourceDefinition<Row extends { id: string }, Input> {
   stepUp?: boolean;
   /** El export tiene datos personales: step-up y auditoría. */
   personalData?: boolean;
+  /** Quién puede listar y exportar: solo ADMIN (por defecto) o también la junta (ADR-036 regla 12). */
+  access?: "ADMIN" | "ADMIN_OR_BOARD";
   exportRow(row: Row): Record<string, string | number | null>;
 }
 

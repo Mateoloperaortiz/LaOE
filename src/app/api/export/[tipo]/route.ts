@@ -1,4 +1,4 @@
-import { getActor, hasRecentStepUp } from "@/modules/identity";
+import { getActor, hasPermission, hasRecentStepUp } from "@/modules/identity";
 import { recordExport } from "@/modules/system";
 import { resolveFilters, toCsv } from "@/shared/admin-kit";
 import { getResource } from "../../../admin/_kit/registry";
@@ -19,7 +19,8 @@ export async function GET(request: Request, { params }: RouteContext<"/api/expor
   if (!actor) {
     return Response.redirect(new URL(`/ingresar?next=${here}`, url), 302);
   }
-  if (!actor.isAdmin) {
+  const boardAllowed = resource.access === "ADMIN_OR_BOARD" && hasPermission(actor, "BOARD");
+  if (!actor.isAdmin && !boardAllowed) {
     return new Response("Solo ADMIN", { status: 403 });
   }
   if (resource.personalData && !hasRecentStepUp(actor)) {

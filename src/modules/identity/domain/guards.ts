@@ -29,6 +29,13 @@ export function assertLeader(actor: Actor, committeeId: string): void {
   }
 }
 
+/** Junta o ADMIN (ADR-036 regla 12): agregados sin nombres. */
+export function assertBoard(actor: Actor): void {
+  if (!actor.isAdmin && !hasPermission(actor, "BOARD")) {
+    throw new ForbiddenError("Solo la junta");
+  }
+}
+
 export function hasRecentStepUp(actor: Actor, now = new Date()): boolean {
   return now.getTime() - actor.otpVerifiedAt.getTime() < STEP_UP_WINDOW_MS;
 }

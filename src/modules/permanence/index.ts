@@ -1,6 +1,14 @@
 // API pública del módulo permanence (ADR-036): lecturas, cálculo y, tramo a tramo, comandos.
 
 export {
+  type BoardExportRow,
+  type BoardIndicators,
+  boardExportRows,
+  boardIndicators,
+  type CommitteeIndicators,
+  type RetentionRow,
+} from "./domain/board";
+export {
   applyDecisions,
   CLOSING_FILTERS,
   type ClosingCommitteeRow,

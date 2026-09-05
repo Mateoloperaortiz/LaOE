@@ -18,7 +18,7 @@ import {
   segmentsResource,
   tagsResource,
 } from "@/modules/people/admin";
-import { complianceResource, workGroupsResource } from "@/modules/permanence/admin";
+import { boardResource, complianceResource, workGroupsResource } from "@/modules/permanence/admin";
 import { termsResource } from "@/modules/terms/admin";
 import type { AnyResource } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
@@ -56,6 +56,7 @@ const resources: Record<string, AnyResource> = {
   [termsResource.key]: termsResource as unknown as AnyResource,
   [complianceResource.key]: complianceResource as unknown as AnyResource,
   [workGroupsResource.key]: workGroupsResource as unknown as AnyResource,
+  [boardResource.key]: boardResource as unknown as AnyResource,
   [permissionsResource.key]: permissionsResource as unknown as AnyResource,
   [pagesResource.key]: pagesResource as unknown as AnyResource,
   [announcementsResource.key]: carteleraResource as unknown as AnyResource,

@@ -4653,4 +4653,22 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-848": {
+    where: "Junta: ocasiones celebradas (unidad)",
+    text: "celebradas",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-849": {
+    where: "Junta: check-ins aprobados (unidad)",
+    text: "check-ins",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-850": {
+    where: "Junta: promedio por ocasión (unidad)",
+    text: "por ocasión",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
 } as const;

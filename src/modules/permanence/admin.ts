@@ -5,6 +5,7 @@ import { listAllTerms } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
+import { type BoardExportRow, boardExportRows, boardIndicators } from "./domain/board";
 import {
   COMPLIANCE_FILTERS,
   type ComplianceRow,
@@ -23,7 +24,7 @@ import {
 import { WORK_GROUP_KINDS } from "./domain/params";
 
 // Recursos del kit de permanencia (ADR-017, ADR-036): el exporte de cumplimiento con datos
-// personales (step-up) y, en F4-T4, los grupos de trabajo.
+// personales (step-up), los grupos de trabajo y el exporte agregado de la junta (ADMIN o BOARD).
 
 type Empty = Record<string, never>;
 const emptySchema = z.object({}) as unknown as z.ZodType<Empty, unknown>;
@@ -277,5 +278,52 @@ export const workGroupsResource: ResourceDefinition<GroupListRow, GroupForm> = {
     miembros: row.members,
     evaluadores: row.evaluators,
     pendientes: row.pending,
+  }),
+};
+
+// ── Junta (F4-T8) ───────────────────────────────────────────────────────────────────────────
+
+const [boardTitle] = tList("T-821");
+const boardHeaders = tList("T-837");
+
+/** Solo sirve al exporte `/api/export/junta`: formato largo, sin personas, sin step-up. */
+export const boardResource: ResourceDefinition<BoardExportRow, Empty> = {
+  key: "junta",
+  names: { plural: boardTitle ?? "", singular: boardTitle ?? "" },
+  basePath: "/admin/junta",
+  columns: [
+    { key: "indicator", label: boardHeaders[0] ?? "", render: (row) => row.indicator },
+    { key: "value", label: boardHeaders[3] ?? "", render: (row) => String(row.value) },
+  ],
+  filters: async () => [
+    {
+      key: "termId",
+      label: tList("T-570")[0] ?? "",
+      options: (await listAllTerms()).map((term) => ({ value: term.id, label: term.code })),
+    },
+  ],
+  schema: emptySchema,
+  fields: [],
+  list: async (params) => {
+    const termId = params.filters.termId ?? (await listAllTerms())[0]?.id;
+    const data = termId ? await boardIndicators(termId) : null;
+    const rows = data
+      ? boardExportRows(data, {
+          cards: tList("T-823"),
+          retention: tList("T-825"),
+          committees: tList("T-828"),
+        })
+      : [];
+    return { rows, total: rows.length };
+  },
+  get: () => Promise.resolve(null),
+  toFormValues: () => ({}),
+  access: "ADMIN_OR_BOARD",
+  personalData: false,
+  exportRow: (row) => ({
+    [boardHeaders[0] ?? "indicador"]: row.indicator,
+    [boardHeaders[1] ?? "comite"]: row.committee,
+    [boardHeaders[2] ?? "semestre"]: row.term,
+    [boardHeaders[3] ?? "valor"]: row.value,
   }),
 };

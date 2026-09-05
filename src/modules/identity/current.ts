@@ -44,6 +44,15 @@ export async function requireAdminActor(nextPath = "/admin"): Promise<Actor> {
   return actor;
 }
 
+/** Para el panel de la junta (ADR-036 regla 12): ADMIN o BOARD. */
+export async function requireBoardActor(nextPath = "/admin/junta"): Promise<Actor> {
+  const actor = await requireActor(nextPath);
+  if (!actor.isAdmin && !actor.permissions.some((item) => item.code === "BOARD")) {
+    redirect("/app");
+  }
+  return actor;
+}
+
 /** Para el área de administración con vistas de líder (ADR-035 regla 15): ADMIN o líder de algún comité. */
 export async function requireAdminOrLeaderActor(nextPath = "/admin"): Promise<Actor> {
   const actor = await requireActor(nextPath);
