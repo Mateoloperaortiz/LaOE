@@ -975,6 +975,27 @@ describe("ventana, avisos y distribución", () => {
       { pendingEvaluations: 2, isEvaluator: true },
     );
     expect(pendingNotice.map((item) => item.kind)).toContain("EVALUATIONS_PENDING");
+    // Recién abierta la ventana el aviso es "se abrió" (T-168); después, "pendientes" (T-188).
+    const justOpened = new Date("2026-11-22T15:00:00Z");
+    expect(
+      noticesFor(TERM, computePerson(termFacts, person(), justOpened), CONFIG, justOpened, {
+        pendingEvaluations: 2,
+        isEvaluator: true,
+      }).map((item) => item.kind),
+    ).toContain("EVALUATION_WINDOW_OPENED");
+  });
+
+  it("tras aplicar el cierre avisa el resultado durante un mes y nada más", () => {
+    const closedAt = new Date("2026-12-10T15:00:00Z");
+    const closedTerm = { ...TERM, pointsClosedAt: closedAt, permanenceClosedAt: closedAt };
+    const closedFacts = facts({ rules: generalRules(), term: closedTerm });
+    const result = computePerson(closedFacts, person(), closedAt);
+    const soon = new Date("2026-12-20T15:00:00Z");
+    expect(
+      noticesFor(closedTerm, result, CONFIG, soon, { pendingEvaluations: 3, isEvaluator: true }),
+    ).toEqual([{ kind: "TERM_CLOSED", values: { término: "2026-2" } }]);
+    const later = new Date("2027-02-01T15:00:00Z");
+    expect(noticesFor(closedTerm, result, CONFIG, later)).toEqual([]);
   });
 
   it("resume la distribución de estados", () => {

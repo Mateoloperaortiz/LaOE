@@ -889,7 +889,14 @@ export type NoticeKind =
   | "NO_ALCANZA"
   | "MANDATORY_ASSEMBLY"
   | "EVALUATIONS_PENDING"
-  | "EVALUATION_WINDOW_CLOSED";
+  | "EVALUATION_WINDOW_OPENED"
+  | "EVALUATION_WINDOW_CLOSED"
+  | "TERM_CLOSED";
+
+/** Días desde la apertura de la ventana en los que el aviso es "se abrió" (T-168) y no "pendientes" (T-188). */
+const WINDOW_OPENED_DAYS = 3;
+/** Días tras aplicar el cierre en los que Mi OE recuerda entrar a ver el resultado (T-187). */
+const CLOSED_NOTICE_DAYS = 30;
 
 export interface Notice {
   kind: NoticeKind;
@@ -915,6 +922,12 @@ export function noticesFor(
   const notices: Notice[] = [];
   const today = dayKey(now);
   const closed = term.permanenceClosedAt !== null;
+  if (term.permanenceClosedAt) {
+    const daysSince = (now.getTime() - term.permanenceClosedAt.getTime()) / 86_400_000;
+    if (result.evaluated && daysSince >= 0 && daysSince <= CLOSED_NOTICE_DAYS) {
+      notices.push({ kind: "TERM_CLOSED", values: { término: term.code } });
+    }
+  }
   if (!closed) {
     const midpoint = addDays(
       term.startsOn,
@@ -959,7 +972,10 @@ export function noticesFor(
     const window = evaluationWindow(term, config, now);
     if (window.open && context.pendingEvaluations > 0) {
       notices.push({
-        kind: "EVALUATIONS_PENDING",
+        kind:
+          today <= addDays(window.opensOn, WINDOW_OPENED_DAYS)
+            ? "EVALUATION_WINDOW_OPENED"
+            : "EVALUATIONS_PENDING",
         values: { n: context.pendingEvaluations, fecha: term.endsOn, término: term.code },
       });
     } else if (!window.open && !closed) {

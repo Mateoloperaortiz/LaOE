@@ -1,7 +1,7 @@
 import { and, count, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { drain } from "@/jobs/poller";
 import "@/jobs/handlers";
 import { checkInSelfAs } from "@/modules/participation";
@@ -130,6 +130,15 @@ describe("snapshot de permanencia", () => {
     const rows = await listCompliance(termId, "prueba");
     expect(rows.map((row) => row.personId)).toEqual([other]);
     expect((await listCompliance(termId)).length).toBe(2);
+  });
+
+  it("el programado diario recalcula el término actual para que lo posible envejezca", async () => {
+    const { termId, personId } = await setup();
+    expect(await getSnapshot(personId, termId)).toBeNull();
+    await enqueueEvent(getDb(), { type: "permanence.daily", payload: {} });
+    await drain(50);
+    expect(await pending("permanence.daily")).toBe(0);
+    expect(await getSnapshot(personId, termId)).not.toBeNull();
   });
 
   it("un término con la permanencia cerrada no recalcula y las filas congeladas no cambian", async () => {

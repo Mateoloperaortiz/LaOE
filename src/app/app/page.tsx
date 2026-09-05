@@ -70,9 +70,14 @@ export default async function AppHome() {
               className={`rounded-xl px-4 py-3 font-semibold ${notice.kind === "NO_ALCANZA" || notice.kind === "MANDATORY_ASSEMBLY" ? "bg-oe-orange text-oe-navy" : "bg-oe-yellow-soft text-oe-navy"}`}
             >
               {noticeText(notice, committeeNames)}{" "}
-              {notice.kind === "EVALUATIONS_PENDING" ? (
+              {notice.kind === "EVALUATIONS_PENDING" ||
+              notice.kind === "EVALUATION_WINDOW_OPENED" ? (
                 <Link href="/admin/permanencia/evaluaciones" className="underline">
                   {t("T-700")}
+                </Link>
+              ) : notice.kind === "TERM_CLOSED" ? (
+                <Link href="/app/permanencia" className="underline">
+                  {t("T-699")}
                 </Link>
               ) : null}
             </p>

@@ -2,8 +2,8 @@ import type { Notice } from "@/modules/permanence";
 import { t } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 
-// Avisos de permanencia en Mi OE (ADR-036 regla 11): los textos de push T-183 a T-188 se muestran
-// en la app con título y cuerpo unidos; la fase 6 los manda tal cual por push y correo.
+// Avisos de permanencia en Mi OE (ADR-036 regla 11): los textos de push T-183 a T-188 (y T-168 para
+// evaluadores) se muestran en la app con título y cuerpo unidos; la fase 6 los manda por push y correo.
 
 /** Texto de un aviso (ADR-036 regla 11): título y cuerpo de T-183 a T-188 unidos con un punto. */
 export function noticeText(notice: Notice, committeeNames: ReadonlyMap<string, string>): string {
@@ -35,6 +35,10 @@ export function noticeText(notice: Notice, committeeNames: ReadonlyMap<string, s
           ? "T-186"
           : notice.kind === "EVALUATIONS_PENDING"
             ? "T-188"
-            : "T-707";
+            : notice.kind === "EVALUATION_WINDOW_OPENED"
+              ? "T-168"
+              : notice.kind === "TERM_CLOSED"
+                ? "T-187"
+                : "T-707";
   return t(code, values).replace(" · ", ". ");
 }

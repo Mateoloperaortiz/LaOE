@@ -104,24 +104,27 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
         </form>
       </Cartel>
 
-      {view && view.notices.length > 0 ? (
+      {view && view.notices.some((notice) => notice.kind !== "TERM_CLOSED") ? (
         <ul className="flex list-none flex-col gap-2 p-0" aria-label={t("T-110")}>
-          {view.notices.map((notice) => (
-            <li
-              key={`${notice.kind}-${notice.committeeId ?? notice.occasionId ?? ""}`}
-              className={`rounded-xl px-4 py-3 font-semibold ${notice.kind === "NO_ALCANZA" || notice.kind === "MANDATORY_ASSEMBLY" ? "bg-oe-orange text-oe-navy" : "bg-oe-yellow-soft text-oe-navy"}`}
-            >
-              {noticeText(notice, committeeNames)}
-              {notice.kind === "EVALUATIONS_PENDING" ? (
-                <>
-                  {" "}
-                  <Link href="/admin/permanencia/evaluaciones" className="underline">
-                    {t("T-700")}
-                  </Link>
-                </>
-              ) : null}
-            </li>
-          ))}
+          {view.notices
+            .filter((notice) => notice.kind !== "TERM_CLOSED")
+            .map((notice) => (
+              <li
+                key={`${notice.kind}-${notice.committeeId ?? notice.occasionId ?? ""}`}
+                className={`rounded-xl px-4 py-3 font-semibold ${notice.kind === "NO_ALCANZA" || notice.kind === "MANDATORY_ASSEMBLY" ? "bg-oe-orange text-oe-navy" : "bg-oe-yellow-soft text-oe-navy"}`}
+              >
+                {noticeText(notice, committeeNames)}
+                {notice.kind === "EVALUATIONS_PENDING" ||
+                notice.kind === "EVALUATION_WINDOW_OPENED" ? (
+                  <>
+                    {" "}
+                    <Link href="/admin/permanencia/evaluaciones" className="underline">
+                      {t("T-700")}
+                    </Link>
+                  </>
+                ) : null}
+              </li>
+            ))}
         </ul>
       ) : null}
 
