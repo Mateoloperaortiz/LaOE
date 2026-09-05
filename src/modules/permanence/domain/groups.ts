@@ -7,7 +7,9 @@ import {
   findMembersByEmails,
   getPeopleByIds,
   listAppointmentsForTerm,
+  listCommitteesByIds,
   listMembershipStatuses,
+  listTermRoster,
 } from "@/modules/people";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
@@ -108,6 +110,8 @@ export interface GroupMemberView {
   evaluatedByName: string;
   evaluatedAt: Date | null;
   note: string | null;
+  /** Comités vivos de la persona en el término del grupo (T-749). */
+  committees: string[];
 }
 
 export interface GroupDetail {
@@ -456,6 +460,20 @@ export async function getGroupDetail(id: string): Promise<GroupDetail | null> {
   const people = await getPeopleByIds([...ids]);
   const name = (personId: string | null) =>
     personId ? (people.get(personId)?.fullName ?? "") : "";
+  const memberIds = memberRows.map((row) => row.personId);
+  const roster = memberIds.length > 0 ? await listTermRoster(group.termId, memberIds) : [];
+  const committeeNames = new Map(
+    (await listCommitteesByIds([...new Set(roster.map((row) => row.committeeId))])).map((c) => [
+      c.id,
+      c.name,
+    ]),
+  );
+  const committeesOf = (personId: string) =>
+    roster
+      .filter((row) => row.personId === personId && row.leftAt === null)
+      .map((row) => committeeNames.get(row.committeeId) ?? "")
+      .filter((value) => value !== "")
+      .sort((a, b) => a.localeCompare(b, "es"));
   return {
     group,
     leaderName: name(group.leaderPersonId),
@@ -470,6 +488,7 @@ export async function getGroupDetail(id: string): Promise<GroupDetail | null> {
       evaluatedByName: name(row.evaluatedById),
       evaluatedAt: row.evaluatedAt,
       note: row.note,
+      committees: committeesOf(row.personId),
     })),
   };
 }

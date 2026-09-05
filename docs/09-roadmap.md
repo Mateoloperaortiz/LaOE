@@ -139,7 +139,7 @@ Plan aprobado el 2026-09-03 ([ADR-035](adr/ADR-035-participacion-y-gh-points-fas
 
 Listo cuando: 500 escaneos concurrentes sin duplicados ni recomputes repetidos; sumas migradas idénticas. **Cumplido en local el 2026-09-04**: `participation-checkin.test.ts` lanza 500 check-ins concurrentes de personas distintas y la misma ráfaga otra vez (exactamente 500 `check_in`, 500 entradas, un solo `score.recompute` pendiente, 500 rechazos con T-095 sin cambios) y `migrate:verify` deja en cero las 14 filas de conteos y sumas contra la copia local de GHPOINTS (F3-T8).
 
-## Fase 4 · Permanencia · `en curso`
+## Fase 4 · Permanencia · `lista en local`
 
 Plan aprobado el 2026-09-04 ([ADR-036](adr/ADR-036-permanencia-fase-4.md)): diez tramos en cortes verticales; cada uno cierra con `npm run check` y `npm run test:e2e` en verde, un commit convencional y push a `main`. Railway sigue pendiente (fase 0 B). Decisiones de Mateo: entra todo lo de esta lista (panel de la junta, reconocimientos e importación CSV a grupos); los avisos de permanencia se muestran solo en Mi OE (push y correo en la fase 6); confirmar y aplicar el cierre exige los puntos del término cerrados.
 
@@ -154,7 +154,7 @@ Plan aprobado el 2026-09-04 ([ADR-036](adr/ADR-036-permanencia-fase-4.md)): diez
 - [x] F4-T6 · Cierre: propuestas derivadas, confirmación por persona y en bloque, aplicación con step-up por job reanudable (baja, prueba, salida del comité), `term.permanenceClosedAt`, `/admin/permanencia/cierre`, término de pruebas `2019-1` en el e2e
 - [x] F4-T7 · Avisos en Mi OE (mitad, tres semanas, no alcanza, asamblea obligatoria, evaluaciones) y ventana de evaluación en el inicio
 - [x] F4-T8 · Panel de la junta `/admin/junta` con `BOARD` y export agregado
-- [ ] F4-T9 · Cierre: lista de revisión de marca en las pantallas nuevas, tres anchos y dos temas, registro
+- [x] F4-T9 · Cierre: lista de revisión de marca en las pantallas nuevas, tres anchos y dos temas, registro
 
 ### Entregables
 
@@ -170,14 +170,14 @@ Plan aprobado el 2026-09-04 ([ADR-036](adr/ADR-036-permanencia-fase-4.md)): diez
 - [x] Créditos manuales auditados
 - [x] Cálculo por outbox con snapshot por persona y término; estados incluido "no alcanza"
 - [x] Mi OE: `/app/permanencia` con progreso, cómo sumar más y evaluaciones pendientes; barra en el inicio
-- [ ] Admin: cumplimiento por comité con filtros y export; cierre con propuesta automática según la regla de GH (cumple, prueba, salida del comité, salida de la OE, expulsión por asamblea obligatoria) y confirmación por persona y comité
-- [ ] Aviso antes de cada asamblea obligatoria y ventana de evaluación dos semanas antes del cierre
+- [x] Admin: cumplimiento por comité con filtros y export; cierre con propuesta automática según la regla de GH (cumple, prueba, salida del comité, salida de la OE, expulsión por asamblea obligatoria) y confirmación por persona y comité
+- [x] Aviso antes de cada asamblea obligatoria y ventana de evaluación dos semanas antes del cierre (avisos solo en Mi OE hasta la fase 6)
 - [x] Persona 360: pestaña Permanencia
-- [ ] Avisos a mitad de término y tres semanas antes del cierre
+- [x] Avisos a mitad de término y tres semanas antes del cierre (solo en Mi OE hasta la fase 6)
 - [x] Reconocimientos: el destacado del mes de cada comité se publica en la cartelera del comité y como insignia en el perfil
-- [ ] Panel de la junta: retención por semestre, nuevos por comité, distribución de permanencia, cuántos van a "no alcanza", asistencia a reuniones por comité; permiso `BOARD`
+- [x] Panel de la junta: retención por semestre, nuevos por comité, distribución de permanencia, cuántos van a "no alcanza", asistencia a reuniones por comité; permiso `BOARD`
 
-Listo cuando: un miembro ve en su celular el mismo porcentaje que GH calcula en su hoja para el término de prueba, criterio por criterio, y GH cierra un término con decisiones registradas.
+Listo cuando: un miembro ve en su celular el mismo porcentaje que GH calcula en su hoja para el término de prueba, criterio por criterio, y GH cierra un término con decisiones registradas. **Cumplido en local el 2026-09-05**: `permanence-pure.test.ts` reproduce criterio por criterio la tabla general de 2026-2 y la de A3 transcritas de la hoja de GH (Pixel 75 % y Cigma 95 %, nuevo, veterano, prueba y transferencia) y el e2e `permanencia.spec.ts` muestra en el celular el porcentaje vivo tras un check-in; `permanence-closing.test.ts` y `permanencia-cierre.spec.ts` cierran un término con decisiones confirmadas, aplicadas por el job y visibles en la Persona 360. Queda para cuando haya roster real: contrastar con Miguel Gaviria un término completo (11-contenido-pendiente).
 
 ## Fase 5 · Admisión, aliados y contactos · `pendiente`
 
@@ -298,3 +298,4 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-04 | 4 | F4-T6 listo: cierre de permanencia (`domain/closing.ts`: `listClosingRows` deriva las propuestas del snapshot con `proposeDecisions` y las cruza con las decisiones confirmadas, marcando cambios de GH y propuestas que se movieron desde la confirmación; `confirmDecisionsAs` con motivo obligatorio al cambiar; `confirmAllProposedAs` para las pendientes; `closeTermPermanenceAs` exige puntos cerrados y todas las decisiones, recalcula afuera y en una transacción estampa el término, congela los snapshots, asegura el término siguiente y emite `permanence.closed`; `applyDecisions` reanudable por `appliedAt` que ejecuta `endMembershipAs` con `lastTermId`, `setProbationAs` y `leaveCommitteeAs` nuevos en `people` con el actor que confirmó y emite `permanence.decided`), handler `permanence.closed`, página `/admin/permanencia/cierre` (precondición con enlace a `/admin/cierre`, resumen, aviso de evaluaciones pendientes, filtros, panel de cambio, bloque y aplicación con step-up, "n de m aplicadas"), enlace desde el cierre de puntos, bloque "Decisiones del cierre" y selector de semestre en la 360, faltar a una obligatoria solo cuenta si se celebró sin registro. Término `2019-1` y persona desechable `e2e-cierre@` en el global-setup. 3 de integración y 1 e2e nuevas; `check` y e2e en verde |
 | 2026-09-05 | 4 | F4-T7 listo: `noticesFor` completa (T-183 a T-188 más T-168 en los tres primeros días de la ventana para evaluadores con pendientes, T-707 con la ventana cerrada y T-187 durante un mes tras aplicar el cierre, con enlace a `/app/permanencia` desde el inicio), avisos cableados en `/app` y `/app/permanencia` (allí sin el de cierre), `permanence.daily` probado por outbox. 2 unitarias, 1 de integración y 1 e2e nuevas (asamblea obligatoria `e2e-` en las próximas 24 h vista sin jobs); `check` y e2e en verde |
 | 2026-09-05 | 4 | F4-T8 listo: panel de la junta (`domain/board.ts`: `boardIndicators` arma con `listTermRoster`, los snapshots, `listOccasionsForTerm` y `listApprovedCheckInsForTerm` la retención término a término, nuevos, estados por comité, asistencia a reuniones sobre elegibles × reuniones celebradas, integraciones y asambleas, sin ids ni nombres de personas; `boardExportRows` en formato largo T-837), `identity.assertBoard`/`requireBoardActor`, `/admin/junta?termId=` para ADMIN o `BOARD`, recurso `junta` del kit con `access: "ADMIN_OR_BOARD"` y el exporte que lo respeta sin step-up (T-848 a T-850 nuevas). Las lecturas agregadas se quedaron en `permanence` en vez de sumar exports a `people` y `participation`. 1 de integración y 1 e2e nuevas; `check` y e2e en verde |
+| 2026-09-05 | 4 | F4-T9 listo: lista de revisión de marca (07-marca §11) aplicada a las pantallas de la fase 4 en 375, 768 y escritorio, claro y oscuro (Mi OE: inicio y permanencia de un demo en prueba; admin: reglas y su editor, grupos y detalle, evaluaciones, cumplimiento, cierre, vista de líder y junta): una corrección, la columna "Comités" del detalle del grupo estaba vacía y ahora lista los comités vivos de cada persona en el término. Fase 4 `lista en local`; entregables y "listo cuando" marcados; README y memoria al día. Cifras al cierre: 101 unitarias, 112 de integración, 47 e2e |

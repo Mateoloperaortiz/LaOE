@@ -115,7 +115,7 @@ export default async function GrupoPage({
                 {live.map((member) => (
                   <tr key={member.personId} className="border-borde border-t">
                     <td className="py-2 pr-3 font-semibold">{member.name}</td>
-                    <td className="py-2 pr-3" />
+                    <td className="py-2 pr-3">{member.committees.join(" · ")}</td>
                     <td className="py-2 pr-3">{formatDate(member.joinedAt)}</td>
                     <td className="py-2 pr-3">
                       <Insignia
