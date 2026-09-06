@@ -1,4 +1,4 @@
-import { listMessagesFor } from "@/modules/comms";
+import { getPreferences, listMessagesFor, listSubscriptionsFor } from "@/modules/comms";
 import { listInteractions, listTasks } from "@/modules/crm";
 import { getActor, listPermissionsFor, listSessionsFor } from "@/modules/identity";
 import { collectPersonalData } from "@/modules/people";
@@ -22,13 +22,16 @@ export async function GET(request: Request) {
   if (!data) {
     return new Response("No existe", { status: 404 });
   }
-  const [timeline, tasks, messages, sessions, permissions] = await Promise.all([
-    listInteractions(actor.personId, "ALL", 1000),
-    listTasks({ q: "", personId: actor.personId, page: 1, pageSize: 500 }),
-    listMessagesFor(actor.personId),
-    listSessionsFor(actor.personId),
-    listPermissionsFor(actor.personId),
-  ]);
+  const [timeline, tasks, messages, sessions, permissions, preferences, subscriptions] =
+    await Promise.all([
+      listInteractions(actor.personId, "ALL", 1000),
+      listTasks({ q: "", personId: actor.personId, page: 1, pageSize: 500 }),
+      listMessagesFor(actor.personId),
+      listSessionsFor(actor.personId),
+      listPermissionsFor(actor.personId),
+      getPreferences(actor.personId),
+      listSubscriptionsFor(actor.personId),
+    ]);
   await recordSelfExport(actor.personId);
   const body = {
     exportedAt: new Date().toISOString(),
@@ -46,6 +49,20 @@ export async function GET(request: Request) {
       ip: session.ip,
     })),
     permissions,
+    // Comunicaciones (ADR-038 regla 11): preferencias y dispositivos, sin las claves del navegador.
+    notificationPreferences: {
+      emailCampaigns: preferences.emailCampaigns,
+      pushAnnouncements: preferences.pushAnnouncements,
+      pushPoints: preferences.pushPoints,
+      pushReminders: preferences.pushReminders,
+    },
+    pushSubscriptions: subscriptions.map((item) => ({
+      id: item.id,
+      service: new URL(item.endpoint).host,
+      userAgent: item.userAgent,
+      createdAt: item.createdAt,
+      lastSeenAt: item.lastSeenAt,
+    })),
   };
   const date = new Date().toISOString().slice(0, 10);
   return new Response(JSON.stringify(body, null, 2), {

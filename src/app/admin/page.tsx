@@ -16,7 +16,7 @@ import { requireAdminAreaRoles } from "./_kit/acceso";
 // (tareas propias, vencidas del equipo, solicitudes, respuestas de la semana, pipelines, convocatorias,
 // ocasiones abiertas y alertas de sistema). Quien no es ADMIN entra derecho a lo suyo.
 
-// Secciones del admin (T-160). Comunicaciones sigue en T-240 hasta la fase 6.
+// Secciones del admin (T-160).
 const RUTAS: Record<string, string> = {
   Personas: "/admin/personas",
   Organizaciones: "/admin/organizaciones",
@@ -28,6 +28,7 @@ const RUTAS: Record<string, string> = {
   Contenido: "/admin/paginas",
   Participación: "/admin/ocasiones",
   Permanencia: "/admin/permanencia/reglas",
+  Comunicaciones: "/admin/mensajes",
   Junta: "/admin/junta",
   Sistema: "/admin/sistema/jobs",
 };

@@ -3,6 +3,13 @@ import { getEnv } from "@/env";
 import { registerHandler } from "@/jobs/registry";
 import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
+import {
+  pushAnnouncement,
+  pushCallOpened,
+  pushPointsCredited,
+  pushRecognition,
+  pushRequestDecided,
+} from "./domain/events";
 import { deleteMessagesFor } from "./domain/messages";
 import { deliverNotification } from "./domain/notify";
 import { deletePreferencesFor } from "./domain/preferences";
@@ -17,6 +24,29 @@ import { deleteSubscriptionsFor } from "./domain/subscriptions";
 registerHandler("notification.requested", async (payload, ctx) => {
   const stats = await deliverNotification(payload);
   ctx.log.info(stats, "notificación entregada");
+});
+
+// Push por evento (ADR-038 reglas 6 y 7).
+registerHandler("announcement.push-requested", async (payload, ctx) => {
+  const stats = await pushAnnouncement(payload);
+  ctx.log.info(stats, "push del anuncio entregado");
+});
+
+registerHandler("checkin.approved", async (payload, ctx) => {
+  const stats = await pushPointsCredited(payload);
+  if (stats) {
+    ctx.log.info(stats, "push de puntos entregado");
+  }
+});
+
+registerHandler("call.opened", async (payload, ctx) => {
+  const stats = await pushCallOpened(payload);
+  ctx.log.info(stats, "push de convocatoria entregado");
+});
+
+registerHandler("recognition.granted", async (payload, ctx) => {
+  const stats = await pushRecognition(payload);
+  ctx.log.info(stats, "push de reconocimiento entregado");
 });
 
 const membershipChanged = z.object({
@@ -117,4 +147,7 @@ registerHandler("request.decided", async (payload, ctx) => {
     { personId, status: receipt.status, provider: receipt.provider },
     "respuesta a la solicitud enviada",
   );
+  // Y el push T-189 (ADR-038 regla 7): transaccional, no depende de la preferencia.
+  const stats = await pushRequestDecided(payload);
+  ctx.log.info(stats, "push de la solicitud entregado");
 });

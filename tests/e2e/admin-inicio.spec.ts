@@ -18,6 +18,7 @@ test("el inicio del admin muestra el tablero con sus bloques y enlaces", async (
     ["Solicitudes", "/admin/solicitudes"],
     ["Convocatorias", "/admin/convocatorias"],
     ["Formularios", "/admin/formularios"],
+    ["Comunicaciones", "/admin/mensajes"],
   ];
   for (const [nombre, ruta] of enlaces) {
     await expect(secciones.getByRole("link", { name: nombre, exact: true })).toHaveAttribute(
@@ -25,9 +26,6 @@ test("el inicio del admin muestra el tablero con sus bloques y enlaces", async (
       ruta,
     );
   }
-  // Comunicaciones sigue sin ruta hasta la fase 6.
-  await expect(secciones.getByRole("link", { name: "Comunicaciones" })).toHaveCount(0);
-
   const bloques: Array<[string, string]> = [
     ["Tus pendientes", "/admin/tareas?status=OPEN&assignee=mine"],
     ["Vencidas del equipo", "/admin/tareas?status=OPEN"],

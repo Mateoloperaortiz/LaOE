@@ -45,6 +45,7 @@ export function monthName(month: number | null): string {
 export interface RecognitionContext {
   personName: string;
   committeeName: string;
+  committeeSlug: string;
   /** Consentimiento de directorio vivo: sin él no se publica (T-782). */
   publish: boolean;
 }
@@ -126,6 +127,24 @@ export async function grantRecognition(
       input.kind === "MEMBER_OF_MONTH" ? t("T-833", { mes, comité: context.committeeName }) : title,
     metadata: { event: "recognition.granted", recognitionId: row.id, announcementId },
   });
+  // Publicado: comms manda T-192 a los miembros del comité (ADR-038 regla 7).
+  if (announcementId && input.committeeId) {
+    await ctx.emit({
+      type: "recognition.granted",
+      payload: {
+        recognitionId: row.id,
+        personId: input.personId,
+        personName: context.personName,
+        committeeId: input.committeeId,
+        committeeName: context.committeeName,
+        committeeSlug: context.committeeSlug,
+        termId: input.termId,
+        announcementId,
+        actorId: ctx.actor.personId,
+      },
+      dedupeKey: `recognition:${row.id}`,
+    });
+  }
   return { id: row.id, announcementId };
 }
 
@@ -141,6 +160,7 @@ export async function grantRecognitionAs(
   const context: RecognitionContext = {
     personName: people.get(input.personId)?.fullName ?? "",
     committeeName: committees[0]?.name ?? "",
+    committeeSlug: committees[0]?.slug ?? "",
     publish: consent,
   };
   const result = await runCommand(actor, (ctx) => grantRecognition(ctx, input, context));

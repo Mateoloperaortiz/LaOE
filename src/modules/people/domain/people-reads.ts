@@ -145,8 +145,11 @@ export interface ActiveMemberRef {
   anonymized: boolean;
 }
 
-/** Miembros activos con su primer término: nuevos y veteranos de los tableros (ADR-008). */
-export async function listActiveMemberRefs(): Promise<ActiveMemberRef[]> {
+/**
+ * Miembros activos con su primer término: nuevos y veteranos de los tableros (ADR-008). Con
+ * `includeHonorary`, también los honorarios: la audiencia de los push (ADR-038 regla 6).
+ */
+export async function listActiveMemberRefs(includeHonorary = false): Promise<ActiveMemberRef[]> {
   const rows = await getDb()
     .select({
       personId: person.id,
@@ -157,7 +160,11 @@ export async function listActiveMemberRefs(): Promise<ActiveMemberRef[]> {
     })
     .from(membership)
     .innerJoin(person, eq(person.id, membership.personId))
-    .where(eq(membership.status, "ACTIVE"));
+    .where(
+      includeHonorary
+        ? inArray(membership.status, ["ACTIVE", "HONORARY"])
+        : eq(membership.status, "ACTIVE"),
+    );
   return rows.map((row) => ({
     personId: row.personId,
     fullName: row.fullName ?? "",

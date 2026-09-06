@@ -1,5 +1,6 @@
 import Link from "next/link";
-import type { MessageView } from "@/modules/comms";
+import type { MessageView, PreferencesView } from "@/modules/comms";
+import { channelLabel, kindLabel, statusLabel as messageStatusLabel } from "@/modules/comms/admin";
 import type { InteractionView, TaskRow } from "@/modules/crm";
 import type { ActorPermission } from "@/modules/identity";
 import type { MyMembershipView, Person360 } from "@/modules/people";
@@ -259,45 +260,96 @@ export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipVi
   );
 }
 
-export function TabComunicaciones({ messages }: { messages: MessageView[] }) {
-  const [asunto, canal, estado, enviado] = tList("T-506") as [string, string, string, string];
-  if (messages.length === 0) {
-    return <p className="text-tinta-suave">{t("T-507")}</p>;
-  }
+export function TabComunicaciones({
+  messages,
+  preferences,
+  devices,
+}: {
+  messages: MessageView[];
+  preferences: PreferencesView;
+  devices: { devices: number; lastSeenAt: Date | null };
+}) {
+  const [fecha, canal, tipo, asunto, estado] = tList("T-1155") as [
+    string,
+    string,
+    string,
+    string,
+    string,
+  ];
+  const prefLabels = tList("T-1080");
+  const [sí, no] = tList("T-1058") as [string, string];
+  const flags: Array<[string, boolean]> = [
+    [prefLabels[0] ?? "", preferences.pushAnnouncements],
+    [prefLabels[1] ?? "", preferences.pushPoints],
+    [prefLabels[2] ?? "", preferences.pushReminders],
+    [prefLabels[3] ?? "", preferences.emailCampaigns],
+  ];
   return (
-    <div className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde">
-      <table className="w-full text-left text-sm">
-        <thead className="eyebrow bg-fondo-suave text-xs">
-          <tr>
-            <th scope="col" className="px-3 py-2">
-              {asunto}
-            </th>
-            <th scope="col" className="px-3 py-2">
-              {canal}
-            </th>
-            <th scope="col" className="px-3 py-2">
-              {estado}
-            </th>
-            <th scope="col" className="px-3 py-2">
-              {enviado}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {messages.map((item) => (
-            <tr key={item.id} className="border-t border-borde">
-              <td className="px-3 py-2 font-semibold">{item.subject}</td>
-              <td className="px-3 py-2">{item.channel}</td>
-              <td className="px-3 py-2">
-                <Insignia fondo={item.status === "SENT" ? "azul" : "naranja"}>
-                  {item.status}
-                </Insignia>
-              </td>
-              <td className="px-3 py-2">{formatDateTime(item.sentAt ?? item.createdAt)}</td>
-            </tr>
+    <div className="flex flex-col gap-6">
+      <section className="flex flex-col gap-3" aria-labelledby="comunicaciones-preferencias">
+        <h3 id="comunicaciones-preferencias" className="text-display-md">
+          {t("T-1151")}
+        </h3>
+        <ul className="flex list-none flex-wrap gap-2 p-0">
+          {flags.map(([label, on]) => (
+            <li key={label}>
+              <Insignia fondo={on ? "azul" : "sky"}>
+                {label}: {on ? sí : no}
+              </Insignia>
+            </li>
           ))}
-        </tbody>
-      </table>
+        </ul>
+        <p className="text-sm text-tinta-suave">
+          {devices.devices > 0
+            ? t("T-1152", {
+                n: devices.devices,
+                fecha: devices.lastSeenAt ? formatDateTime(devices.lastSeenAt) : "",
+              })
+            : t("T-1153")}
+        </p>
+      </section>
+      {messages.length === 0 ? (
+        <p className="text-tinta-suave">{t("T-1154")}</p>
+      ) : (
+        <div className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde">
+          <table className="w-full text-left text-sm">
+            <thead className="eyebrow bg-fondo-suave text-xs">
+              <tr>
+                <th scope="col" className="px-3 py-2">
+                  {fecha}
+                </th>
+                <th scope="col" className="px-3 py-2">
+                  {canal}
+                </th>
+                <th scope="col" className="px-3 py-2">
+                  {tipo}
+                </th>
+                <th scope="col" className="px-3 py-2">
+                  {asunto}
+                </th>
+                <th scope="col" className="px-3 py-2">
+                  {estado}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {messages.map((item) => (
+                <tr key={item.id} className="border-t border-borde">
+                  <td className="px-3 py-2">{formatDateTime(item.sentAt ?? item.createdAt)}</td>
+                  <td className="px-3 py-2">{channelLabel(item.channel)}</td>
+                  <td className="px-3 py-2">{kindLabel(item.kind)}</td>
+                  <td className="px-3 py-2 font-semibold">{item.subject}</td>
+                  <td className="px-3 py-2">
+                    <Insignia fondo={item.status === "SENT" ? "azul" : "naranja"}>
+                      {messageStatusLabel(item.status)}
+                    </Insignia>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

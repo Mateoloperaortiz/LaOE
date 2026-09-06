@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { listMessagesFor } from "@/modules/comms";
+import { getPreferences, listMessagesFor, subscriptionSummaryFor } from "@/modules/comms";
 import {
   countOpenTasksFor,
   latestContact,
@@ -102,6 +102,8 @@ export default async function PersonaPage({
     roles,
     terms,
     messages,
+    preferences,
+    devices,
     deletionDays,
     personTags,
     allTags,
@@ -114,6 +116,10 @@ export default async function PersonaPage({
     listCommitteeRoles(),
     listAllTerms(),
     tab === "comunicaciones" ? listMessagesFor(id) : Promise.resolve([]),
+    tab === "comunicaciones" ? getPreferences(id) : Promise.resolve(null),
+    tab === "comunicaciones"
+      ? subscriptionSummaryFor(id)
+      : Promise.resolve({ devices: 0, lastSeenAt: null }),
     getConfig("privacy.deletionDays"),
     listPersonTags(id),
     listAllTags(),
@@ -245,7 +251,23 @@ export default async function PersonaPage({
       content = <TabMembresia data={data} my={my} />;
       break;
     case "comunicaciones":
-      content = <TabComunicaciones messages={messages} />;
+      content = (
+        <TabComunicaciones
+          messages={messages}
+          preferences={
+            preferences ?? {
+              personId: id,
+              emailCampaigns: true,
+              pushAnnouncements: true,
+              pushPoints: true,
+              pushReminders: true,
+              unsubscribeToken: null,
+              updatedAt: null,
+            }
+          }
+          devices={devices}
+        />
+      );
       break;
     case "tareas":
       content = <TabTareas personId={id} tasks={tasks} />;

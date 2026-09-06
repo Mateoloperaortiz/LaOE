@@ -221,7 +221,37 @@ export async function createCall(ctx: CommandContext, input: CallInput): Promise
     entityId: row.id,
     after: toValues(input),
   });
+  if (input.status === "OPEN") {
+    await emitCallOpened(ctx, row.id, input);
+  }
   return row;
+}
+
+/** Convocatoria abierta (ADR-038 regla 7): comms manda T-190 a los activos. */
+async function emitCallOpened(
+  ctx: CommandContext,
+  id: string,
+  values: {
+    termId: string;
+    groupId: string;
+    title: string;
+    closesAt: Date;
+    capacity?: number | undefined;
+  },
+): Promise<void> {
+  await ctx.emit({
+    type: "call.opened",
+    payload: {
+      callId: id,
+      termId: values.termId,
+      groupId: values.groupId,
+      title: values.title,
+      closesAt: values.closesAt.toISOString(),
+      capacity: values.capacity ?? null,
+      actorId: ctx.actor.personId,
+    },
+    dedupeKey: `call-opened:${id}`,
+  });
 }
 
 export async function updateCall(ctx: CommandContext, id: string, input: CallInput): Promise<void> {
@@ -263,6 +293,18 @@ export async function setCallStatus(
     before,
     after: { status },
   });
+  if (status === "OPEN") {
+    const [row] = await ctx.tx.select().from(internalCall).where(eq(internalCall.id, id));
+    if (row) {
+      await emitCallOpened(ctx, id, {
+        termId: row.termId,
+        groupId: row.groupId,
+        title: row.title,
+        closesAt: row.closesAt,
+        capacity: row.capacity ?? undefined,
+      });
+    }
+  }
 }
 
 export interface ApplyContext {

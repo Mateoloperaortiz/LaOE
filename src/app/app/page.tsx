@@ -273,7 +273,11 @@ export default async function AppHome() {
                     <Insignia fondo="sky">{t("T-380")}</Insignia>
                   ) : null}
                 </span>
-                <h3 className="text-display-md">{anuncio.title}</h3>
+                <h3 className="text-display-md">
+                  <Link href={`/app/cartelera/${anuncio.id}`} className="no-underline">
+                    {anuncio.title}
+                  </Link>
+                </h3>
                 <p className="text-sm">{excerpt(anuncio.body, 160)}</p>
                 <p className="text-xs text-tinta-suave">
                   {t("T-313", { fecha: formatDate(anuncio.publishedAt) })}

@@ -9,7 +9,9 @@ import {
   createAnnouncement,
   getAnnouncement,
   listAnnouncements,
+  publishAndPushAnnouncement,
   publishAnnouncement,
+  requestAnnouncementPush,
   unpublishAnnouncement,
   updateAnnouncement,
 } from "./domain/announcements";
@@ -120,9 +122,10 @@ export const pagesResource: ResourceDefinition<PageRow, PageInput> = {
   }),
 };
 
-// Cartelera: se publica y despublica con acciones de fila; el push llega en la fase 6.
+// Cartelera: se publica, se avisa por push y se despublica con acciones de fila (ADR-038 regla 6).
 
 const [carteleraPlural, carteleraSingular] = tList("T-331") as [string, string];
+const [pushNone, pushSending, pushSent] = tList("T-1114") as [string, string, string];
 
 const announcementFields: FieldDefinition[] = [
   { name: "title", label: t("T-335"), type: "text", required: true },
@@ -157,6 +160,16 @@ export const announcementsResource: ResourceDefinition<AnnouncementRow, Announce
       label: t("T-303"),
       render: (row) => (row.pinned ? { text: t("T-303"), badge: "naranja" } : null),
     },
+    {
+      key: "push",
+      label: t("T-1113"),
+      render: (row) =>
+        row.pushSentAt
+          ? { text: pushSent.replace("{n}", String(row.pushCount)), badge: "azul" }
+          : row.pushRequestedAt
+            ? { text: pushSending, badge: "sky" }
+            : pushNone,
+    },
   ],
   filters: [
     { key: "publication", label: t("T-279"), options: statusOptions },
@@ -185,11 +198,21 @@ export const announcementsResource: ResourceDefinition<AnnouncementRow, Announce
     runCommand({ personId: actor.personId }, (ctx) => updateAnnouncement(ctx, id, input)),
   rowActions: [
     { key: "publish", label: t("T-342"), applies: (row) => row.publishedAt === null },
+    { key: "publish-push", label: t("T-1111"), applies: (row) => row.publishedAt === null },
+    {
+      key: "push",
+      label: t("T-1112"),
+      applies: (row) => row.publishedAt !== null && row.pushRequestedAt === null,
+    },
     { key: "unpublish", label: t("T-343"), applies: (row) => row.publishedAt !== null },
   ],
   runRowAction: async (actor, actionKey, id) => {
     if (actionKey === "publish") {
       await runCommand({ personId: actor.personId }, (ctx) => publishAnnouncement(ctx, id));
+    } else if (actionKey === "publish-push") {
+      await runCommand({ personId: actor.personId }, (ctx) => publishAndPushAnnouncement(ctx, id));
+    } else if (actionKey === "push") {
+      await runCommand({ personId: actor.personId }, (ctx) => requestAnnouncementPush(ctx, id));
     } else if (actionKey === "unpublish") {
       await runCommand({ personId: actor.personId }, (ctx) => unpublishAnnouncement(ctx, id));
     }
@@ -198,6 +221,8 @@ export const announcementsResource: ResourceDefinition<AnnouncementRow, Announce
     titulo: row.title,
     audiencia: row.audience,
     publicado_el: row.publishedAt ? row.publishedAt.toISOString() : null,
+    push_enviado_el: row.pushSentAt ? row.pushSentAt.toISOString() : null,
+    push_personas: row.pushCount,
     fijado: row.pinned ? "sí" : "no",
     creado: row.createdAt.toISOString(),
   }),
