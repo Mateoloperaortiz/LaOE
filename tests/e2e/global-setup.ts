@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray, isNotNull, like, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
+import { notificationPreference, pushSubscription } from "@/modules/comms/schema";
 import { announcement, document, mediaAsset } from "@/modules/content/schema";
 import { internalCall, organization, pipeline, recognition, task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
@@ -232,6 +233,11 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(task).where(eq(task.personId, member.id));
   await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_MEMBER_EMAIL));
   await db.delete(editionRegistration).where(eq(editionRegistration.personId, member.id));
+  // Fase 6: dispositivos ficticios y preferencias que deja la suite de la PWA.
+  await db
+    .delete(pushSubscription)
+    .where(like(pushSubscription.endpoint, "https://push.example.invalid/%"));
+  await db.delete(notificationPreference).where(eq(notificationPreference.personId, member.id));
   // Reconocimientos que el miembro (como líder de pruebas) nombró y sus anuncios de comité.
   await db.delete(recognition).where(eq(recognition.grantedById, member.id));
   await db

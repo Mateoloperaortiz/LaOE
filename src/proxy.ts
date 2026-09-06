@@ -25,6 +25,8 @@ function buildCsp(nonce: string, dev: boolean): string {
     `img-src 'self' data: blob: ${bucket}`,
     "font-src 'self'",
     `connect-src 'self' ${bucket}${dev ? " ws: wss:" : ""}`,
+    // El service worker de la PWA (ADR-038 regla 4) vive en /sw.js.
+    "worker-src 'self'",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -76,7 +78,7 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      source: "/((?!_next/static|_next/image|logos/|icon.svg).*)",
+      source: "/((?!_next/static|_next/image|logos/|icons/|icon.svg|sw.js).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

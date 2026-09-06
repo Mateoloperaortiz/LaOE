@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { countSubscriptionsFor } from "@/modules/comms";
+import { InstallBanner } from "@/modules/comms/components/InstallBanner";
 import { excerpt, listMemberAnnouncements } from "@/modules/content";
 import { getOnboarding } from "@/modules/crm";
 import { findUpcomingEditionsForMembers } from "@/modules/events";
@@ -19,11 +21,13 @@ import { markStepAction } from "./actions";
 
 export default async function AppHome() {
   const actor = await requireActor("/app");
-  const [mine, editions, announcements] = await Promise.all([
+  const [mine, editions, announcements, devices] = await Promise.all([
     getMyMembership(actor.personId),
     findUpcomingEditionsForMembers(6),
     listMemberAnnouncements(6),
+    countSubscriptionsFor(actor.personId),
   ]);
+  const [avisoTitulo, avisoTexto, avisoBoton] = tList("T-1092") as [string, string, string];
   const onboardingTermId = mine.term && mine.isNew ? mine.term.id : null;
   const [steps, saldo, ocasiones, permanence] = await Promise.all([
     onboardingTermId ? getOnboarding(actor.personId, onboardingTermId) : Promise.resolve([]),
@@ -58,6 +62,16 @@ export default async function AppHome() {
           </Link>
         ) : null}
       </div>
+
+      {devices === 0 ? (
+        <InstallBanner
+          title={avisoTitulo}
+          text={avisoTexto}
+          button={avisoBoton}
+          dismiss={t("T-1093")}
+          href="/app/ajustes#notificaciones"
+        />
+      ) : null}
 
       {permanence?.result.evaluated ? (
         <section aria-labelledby="permanencia" className="flex flex-col gap-4">

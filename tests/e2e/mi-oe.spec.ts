@@ -46,7 +46,7 @@ test("ajustes: edita el celular, autoriza la foto y descarga sus datos", async (
   await sinViolaciones(page);
 
   await page.getByLabel("Celular").fill("300 555 1234");
-  await page.getByRole("button", { name: "Guardar" }).click();
+  await page.getByRole("button", { name: "Guardar", exact: true }).click();
   await expect(page.getByText("Guardado.")).toBeVisible();
   await expect(page.getByLabel("Celular")).toHaveValue("+573005551234");
 

@@ -13,6 +13,10 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: t("T-001"), template: `%s · ${t("T-001")}` },
     description: t("T-003"),
     openGraph: { siteName: t("T-001"), locale: "es_CO", type: "website" },
+    // PWA (ADR-038 regla 4): manifest, ícono de iOS y título de la app instalada.
+    manifest: "/manifest.webmanifest",
+    appleWebApp: { capable: true, title: t("T-1173"), statusBarStyle: "default" },
+    icons: { apple: "/icons/apple-touch-icon.png" },
     ...(env.PUBLIC_INDEXING ? {} : { robots: { index: false, follow: false } }),
   };
 }

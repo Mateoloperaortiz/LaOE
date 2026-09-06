@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { listSubscriptionsFor } from "@/modules/comms";
+import { PwaRegistrar } from "@/modules/comms/components/PwaRegistrar";
 import { requireActor } from "@/modules/identity";
 import { signOutAction } from "@/modules/identity/actions";
 import { LogoOE, ThemeToggle } from "@/shared/brand";
@@ -20,11 +22,13 @@ const RUTAS: Record<string, string> = {
 };
 
 export default async function AppLayout({ children }: LayoutProps<"/app">) {
-  await requireActor("/app");
+  const actor = await requireActor("/app");
+  const devices = await listSubscriptionsFor(actor.personId);
   const [temaOscuro, temaClaro] = tList("T-034") as [string, string];
   const pestañas = tList("T-061").filter((nombre) => nombre in RUTAS);
   return (
     <>
+      <PwaRegistrar endpointsKey={devices.map((item) => item.endpoint).join("\n")} />
       <header className="border-b border-borde">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Link href="/app" className="text-titulo" aria-label={t("T-017") ? "Mi OE" : "Mi OE"}>

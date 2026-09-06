@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getEnv } from "@/env";
+import { getPreferences, listSubscriptionsFor } from "@/modules/comms";
+import { DeviceMark } from "@/modules/comms/components/DeviceMark";
+import { NotificationsPanel } from "@/modules/comms/components/NotificationsPanel";
 import { MEDIA_LIMITS, PHOTO_MAX_BYTES } from "@/modules/content";
 import { describeUserAgent, listSessionsFor, requireActor } from "@/modules/identity";
 import { SessionsPanel } from "@/modules/identity/components/SessionsPanel";
@@ -16,9 +20,11 @@ import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import {
   consentAction,
+  removeDeviceAction,
   requestDeletionAction,
   setPhotoAction,
   updateContactAction,
+  updatePreferencesAction,
 } from "./actions";
 
 // Ajustes (06-mapa-del-sitio.md): una sola página con las cinco secciones de T-133 como anclas.
@@ -42,13 +48,25 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
   const guardado = typeof params.guardado === "string" ? params.guardado : "";
   const error = typeof params.error === "string" ? params.error : "";
   const confirmar = params.confirmar === "1";
-  const [who, consents, sessions, deletionDays, policyVersion] = await Promise.all([
-    getPersonRecord(actor.personId),
-    listConsents(actor.personId),
-    listSessionsFor(actor.personId),
-    requireConfig("privacy.deletionDays"),
-    requireConfig("privacy.policyVersion"),
-  ]);
+  const [who, consents, sessions, deletionDays, policyVersion, devices, preferences] =
+    await Promise.all([
+      getPersonRecord(actor.personId),
+      listConsents(actor.personId),
+      listSessionsFor(actor.personId),
+      requireConfig("privacy.deletionDays"),
+      requireConfig("privacy.policyVersion"),
+      listSubscriptionsFor(actor.personId),
+      getPreferences(actor.personId),
+    ]);
+  const vapidPublicKey = getEnv().VAPID_PUBLIC_KEY ?? null;
+  const [colDispositivo, colDesde, colUltimoUso] = tList("T-1076");
+  const [prefAnuncios, prefPuntos, prefRecordatorios, prefCampañas] = tList("T-1080");
+  const preferencias = [
+    { name: "pushAnnouncements", label: prefAnuncios, checked: preferences.pushAnnouncements },
+    { name: "pushPoints", label: prefPuntos, checked: preferences.pushPoints },
+    { name: "pushReminders", label: prefRecordatorios, checked: preferences.pushReminders },
+    { name: "emailCampaigns", label: prefCampañas, checked: preferences.emailCampaigns },
+  ];
   const secciones = tList("T-133");
   const purposeLabels = tList("T-516");
   const [autorizar, retirar] = tList("T-413") as [string, string];
@@ -147,7 +165,105 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
         <BarraTitulo color="amarillo" className="self-start">
           <span id="notificaciones-titulo">{secciones[1]}</span>
         </BarraTitulo>
-        <p className="max-w-prose">{t("T-240")}</p>
+        <p className="max-w-prose">{t("T-1063")}</p>
+        <NotificationsPanel
+          vapidPublicKey={vapidPublicKey}
+          labels={{
+            enable: t("T-1064"),
+            disable: t("T-1066"),
+            enabled: t("T-1065"),
+            enabledNow: t("T-1108"),
+            blocked: t("T-1067"),
+            unsupported: t("T-1068"),
+            notConfigured: t("T-1069"),
+            iosInstall: t("T-1070"),
+            install: t("T-1071"),
+            installed: t("T-1072"),
+            installHint: t("T-1073"),
+            failed: t("T-1109"),
+          }}
+        />
+        <h3 className="text-display-md">{t("T-1074")}</h3>
+        {devices.length === 0 ? (
+          <p className="max-w-prose text-tinta-suave">{t("T-1075")}</p>
+        ) : (
+          <div className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde">
+            <table className="w-full text-left text-sm">
+              <thead className="eyebrow bg-fondo-suave text-xs">
+                <tr>
+                  <th scope="col" className="px-4 py-3">
+                    {colDispositivo}
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    {colDesde}
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    {colUltimoUso}
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    <span className="sr-only">{t("T-1077")}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {devices.map((device) => {
+                  const desc = describeUserAgent(device.userAgent);
+                  const nombre =
+                    [desc.browser, desc.os].filter(Boolean).join(" en ") || colDispositivo;
+                  return (
+                    <tr key={device.id} className="border-t border-borde">
+                      <td className="px-4 py-3 font-semibold">
+                        <span className="flex flex-wrap items-center gap-2">
+                          {nombre}
+                          <DeviceMark endpoint={device.endpoint} label={t("T-1078")} />
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">{formatDate(device.createdAt)}</td>
+                      <td className="px-4 py-3">{formatDateTime(device.lastSeenAt)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <form action={removeDeviceAction}>
+                          <input type="hidden" name="id" value={device.id} />
+                          <button type="submit" className="boton-secundario text-sm">
+                            {t("T-1077")}
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {guardado === "dispositivo" ? (
+          <output className="block text-sm font-semibold text-titulo">{t("T-1110")}</output>
+        ) : null}
+        <h3 className="text-display-md">{t("T-1079")}</h3>
+        <form action={updatePreferencesAction} className="flex max-w-md flex-col gap-4">
+          <ul className="flex list-none flex-col gap-3 p-0">
+            {preferencias.map((item) => (
+              <li key={item.name} className="flex items-start gap-3">
+                <input
+                  id={`pref-${item.name}`}
+                  name={item.name}
+                  type="checkbox"
+                  defaultChecked={item.checked}
+                  className="mt-1 size-5 accent-oe-navy"
+                />
+                <label htmlFor={`pref-${item.name}`} className="font-semibold">
+                  {item.label}
+                </label>
+              </li>
+            ))}
+          </ul>
+          <p className="max-w-prose text-sm text-tinta-suave">{t("T-1081")}</p>
+          <button type="submit" className="boton-primario self-start">
+            {t("T-1083")}
+          </button>
+          {guardado === "notificaciones" ? (
+            <output className="block text-sm font-semibold text-titulo">{t("T-1082")}</output>
+          ) : null}
+        </form>
       </section>
 
       <section id="sesiones" aria-labelledby="sesiones-titulo" className="flex flex-col gap-6">

@@ -4,6 +4,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { removeSubscriptionAs, updatePreferencesAs } from "@/modules/comms";
 import { getActor } from "@/modules/identity";
 import {
   ownContactSchema,
@@ -119,4 +120,32 @@ export async function requestDeletionAction(): Promise<void> {
   await requestDeletionAs(actor);
   revalidatePath("/app/ajustes");
   back("privacidad", { guardado: "privacidad" });
+}
+
+// Notificaciones (ADR-038 regla 5): las cuatro preferencias y quitar un dispositivo.
+
+export async function updatePreferencesAction(formData: FormData): Promise<void> {
+  const actor = await requireOwnActor();
+  await updatePreferencesAs(actor, {
+    pushAnnouncements: formData.get("pushAnnouncements") === "on",
+    pushPoints: formData.get("pushPoints") === "on",
+    pushReminders: formData.get("pushReminders") === "on",
+    emailCampaigns: formData.get("emailCampaigns") === "on",
+  });
+  revalidatePath("/app/ajustes");
+  back("notificaciones", { guardado: "notificaciones" });
+}
+
+export async function removeDeviceAction(formData: FormData): Promise<void> {
+  const actor = await requireOwnActor();
+  const parsed = z
+    .string()
+    .regex(/^[a-z0-9]+$/)
+    .safeParse(text(formData, "id"));
+  if (parsed.success) {
+    await removeSubscriptionAs(actor, { id: parsed.data });
+  }
+  revalidatePath("/app/ajustes");
+  revalidatePath("/app");
+  back("notificaciones", { guardado: "dispositivo" });
 }
