@@ -139,6 +139,18 @@ export async function getFormView(
 }
 
 /** Opciones para selectores (convocatorias, ediciones): título e identificador. */
+/** Formularios que sirven de encuesta tras una ocasión (ADR-038 regla 13): de miembros y sin crear personas. */
+export async function listSurveyFormOptions(): Promise<Array<{ id: string; label: string }>> {
+  const rows = await getDb()
+    .select({ id: form.id, title: form.title, slug: form.slug, actions: form.actions })
+    .from(form)
+    .where(eq(form.audience, "MEMBERS"))
+    .orderBy(asc(form.title));
+  return rows
+    .filter((row) => !parseActions(row.actions).createPerson)
+    .map((row) => ({ id: row.id, label: `${row.title} (${row.slug})` }));
+}
+
 export async function listFormOptions(): Promise<
   Array<{ id: string; label: string; audience: string }>
 > {

@@ -11,6 +11,8 @@ export interface FormFieldsProps {
     required: string;
     multiHelp: string;
     dateHelp: string;
+    /** Extremos de una calificación de 1 a 5 ("Muy mal · Excelente"). */
+    rating?: [string, string];
   };
   /** Prefijo de los nombres de los campos (`f.` por defecto) para no chocar con nombre, apellido y correo. */
   prefix?: string;
@@ -83,6 +85,45 @@ export function FormFields({
               {help}
               {errorText}
             </div>
+          );
+        }
+        if (field.type === "RATING") {
+          const chosen = readString(values[field.key]) || String(values[field.key] ?? "");
+          return (
+            <fieldset
+              key={field.key}
+              className="flex flex-col gap-2"
+              aria-describedby={describedBy || undefined}
+            >
+              <legend className="font-semibold">
+                {field.label}
+                {field.required ? <span aria-hidden="true"> *</span> : null}
+              </legend>
+              {help}
+              <div className="flex flex-wrap items-center gap-3">
+                {labels.rating ? (
+                  <span className="text-sm text-tinta-suave">{labels.rating[0]}</span>
+                ) : null}
+                {["1", "2", "3", "4", "5"].map((value) => (
+                  <label key={value} htmlFor={`${id}-${value}`} className="flex items-center gap-1">
+                    <input
+                      id={`${id}-${value}`}
+                      name={name}
+                      type="radio"
+                      value={value}
+                      defaultChecked={chosen === value}
+                      required={field.required}
+                      className="size-5"
+                    />
+                    <span>{value}</span>
+                  </label>
+                ))}
+                {labels.rating ? (
+                  <span className="text-sm text-tinta-suave">{labels.rating[1]}</span>
+                ) : null}
+              </div>
+              {errorText}
+            </fieldset>
           );
         }
         if (field.type === "MULTISELECT") {

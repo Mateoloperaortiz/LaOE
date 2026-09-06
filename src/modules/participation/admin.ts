@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { runCommand } from "@/db/tx";
 import { listEditionOptions } from "@/modules/events";
+import { listSurveyFormOptions } from "@/modules/forms";
 import { getPeopleByIds, listAllCommittees } from "@/modules/people";
 import { createAlias, getAlias, type LegacyAliasRow, listAliases } from "@/modules/system";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -127,7 +128,11 @@ async function filters(): Promise<FilterDefinition[]> {
 }
 
 async function fields(): Promise<FieldDefinition[]> {
-  const [committees, editions] = await Promise.all([listAllCommittees(), listEditionOptions()]);
+  const [committees, editions, surveys] = await Promise.all([
+    listAllCommittees(),
+    listEditionOptions(),
+    listSurveyFormOptions(),
+  ]);
   const label = (index: number) => fieldLabels[index] ?? "";
   return [
     { name: "title", label: label(0), type: "text", required: true },
@@ -163,6 +168,14 @@ async function fields(): Promise<FieldDefinition[]> {
       type: "select",
       emptyOption: t("T-583"),
       options: editions.map((item) => ({ value: item.id, label: item.label })),
+    },
+    {
+      name: "surveyFormId",
+      label: t("T-1158"),
+      type: "select",
+      emptyOption: t("T-1159"),
+      help: t("T-1160"),
+      options: surveys.map((item) => ({ value: item.id, label: item.label })),
     },
   ];
 }
@@ -228,6 +241,7 @@ export const occasionsResource: ResourceDefinition<OccasionListRow, OccasionInpu
     requireRotatingCode: row.requireRotatingCode ? "on" : "",
     committeeId: row.committeeId ?? "",
     editionId: row.editionId ?? "",
+    surveyFormId: row.surveyFormId ?? "",
   }),
   create: (actor, input) => createOccasionAs({ personId: actor.personId }, input),
   update: (actor, id, input) => updateOccasionAs({ personId: actor.personId }, id, input),

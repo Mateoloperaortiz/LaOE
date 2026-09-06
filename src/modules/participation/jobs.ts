@@ -9,6 +9,7 @@ import { isAutoCloseDue } from "./domain/occasion-pure";
 import { closeOccasion, getOccasion, listOccasionsForTerm } from "./domain/occasions";
 import { runReminders } from "./domain/reminders";
 import { recomputeOccasionScore } from "./domain/scores";
+import { createSurveyInvites, deleteSurveyInvitesFor } from "./domain/surveys";
 
 // Handlers del outbox de participación (ADR-012, ADR-035): el recompute del score corre fuera del
 // request, una vez por ráfaga (clave por ocasión) y bajo advisory lock.
@@ -89,12 +90,42 @@ registerHandler("participation.term-check", async (_payload, ctx) => {
   ctx.log.info({ next, daysLeft }, "falta crear el término siguiente");
 });
 
+// Encuesta tras la ocasión (ADR-038 regla 13): al cerrar, una invitación por asistente aprobado y el
+// push T-191 con la URL propia de cada uno.
+const occasionClosed = z.object({ occasionId: z.string().min(1) });
+
+registerHandler("occasion.closed", async (payload, ctx) => {
+  const { occasionId } = occasionClosed.parse(payload);
+  const result = await createSurveyInvites(occasionId);
+  if (result.invited > 0) {
+    ctx.log.info(
+      { occasionId, invited: result.invited, created: result.created.length },
+      "invitaciones de encuesta creadas",
+    );
+  }
+});
+
 // Al anonimizar, el nombre congelado en los standings pasa a T-223 (ADR-030): people no toca
-// tablas de participation.
+// tablas de participation. Las invitaciones de encuesta tampoco son historia.
 const personEvent = z.object({ personId: z.string().min(1) });
 
 registerHandler("person.anonymized", async (payload, ctx) => {
   const { personId } = personEvent.parse(payload);
   const changed = await scrubStandingName(personId);
-  ctx.log.info({ personId, changed }, "standings anonimizados");
+  const invites = await deleteSurveyInvitesFor(personId);
+  ctx.log.info({ personId, changed, invites }, "standings anonimizados");
+});
+
+const membershipChanged = z.object({
+  personId: z.string().min(1),
+  to: z.enum(["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"]),
+});
+
+registerHandler("membership.changed", async (payload, ctx) => {
+  const { personId, to } = membershipChanged.parse(payload);
+  if (to !== "INACTIVE") {
+    return;
+  }
+  const invites = await deleteSurveyInvitesFor(personId);
+  ctx.log.info({ personId, invites }, "invitaciones de encuesta borradas al salir");
 });

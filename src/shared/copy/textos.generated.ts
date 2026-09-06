@@ -6197,7 +6197,7 @@ export const textos = {
   },
   "T-924": {
     where: "Constructor: tipos de campo (en el orden del modelo)",
-    text: "Texto corto · Texto largo · Correo · Celular · Selección · Selección múltiple · Casilla · Fecha",
+    text: "Texto corto · Texto largo · Correo · Celular · Selección · Selección múltiple · Casilla · Fecha · Calificación de 1 a 5",
     owner: "MATEO",
     status: "Propuesta",
   },

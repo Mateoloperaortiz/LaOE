@@ -141,3 +141,21 @@ export {
   listCommitteeScores,
   listOccasionScores,
 } from "./domain/scores";
+export {
+  type AnswerSurveyResult,
+  answerSurveyAs,
+  type CommitteeSurveys,
+  type CreatedInvite,
+  createSurveyInvites,
+  getSurveyInviteForActor,
+  type OccasionSurveySummary,
+  type SurveyInviteState,
+  surveySummary,
+  surveySummaryForCommittee,
+} from "./domain/surveys";
+export {
+  type QuestionSummary,
+  SURVEY_TEXT_MIN,
+  type SurveySummary,
+  summarizeAnswers,
+} from "./domain/surveys-pure";

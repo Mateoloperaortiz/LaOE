@@ -56,6 +56,11 @@ export const occasionInputSchema = z
     requireRotatingCode: z.boolean().default(false),
     committeeId: z.string().trim().min(1).optional(),
     editionId: z.string().trim().min(1).optional(),
+    /** Encuesta al cerrar (ADR-038 regla 13): un formulario de miembros que no crea personas. */
+    surveyFormId: z.preprocess(
+      (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+      z.string().trim().min(1).optional(),
+    ),
   })
   .superRefine((input, ctx) => {
     if (input.kind === "ASSEMBLY" && input.assemblyKind === undefined) {
@@ -111,6 +116,7 @@ function toValues(input: OccasionInput, context: OccasionContext) {
     requireRotatingCode: input.requireRotatingCode,
     committeeId: input.committeeId ?? null,
     editionId: input.kind === "EDITION_SESSION" ? (input.editionId ?? null) : null,
+    surveyFormId: input.surveyFormId ?? null,
   };
 }
 

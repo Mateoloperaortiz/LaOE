@@ -7,6 +7,7 @@ import {
   listOccasions,
   OCCASION_CATEGORIES,
   rankCommittees,
+  surveySummaryForCommittee,
 } from "@/modules/participation";
 import { occasionKindLabel, occasionStatusCell } from "@/modules/participation/admin";
 import { listInternalRoster } from "@/modules/people";
@@ -58,6 +59,10 @@ export default async function ComiteLiderPage({
   const serie = single(search.serie);
   const hasta = single(search.hasta);
   const term = roster.term ?? (await getCurrentTerm());
+  const encuestas = term
+    ? await surveySummaryForCommittee(term.id, roster.committee.id)
+    : { rows: [], answered: 0, average: null };
+  const [encActividad, encRespondieron, encPromedio] = tList("T-1168");
   const [occasions, scores, ranking] = await Promise.all([
     term
       ? listOccasions({
@@ -182,6 +187,57 @@ export default async function ComiteLiderPage({
               );
             })}
           </ul>
+        )}
+      </section>
+
+      <section aria-label={t("T-1167")} className="flex flex-col gap-3">
+        <h2 className="text-display-md">{t("T-1167")}</h2>
+        {encuestas.rows.length === 0 ? (
+          <p className="text-tinta-suave">{t("T-1170")}</p>
+        ) : (
+          <>
+            <p className="font-semibold">
+              {t("T-1169", {
+                promedio: encuestas.average === null ? "—" : encuestas.average.toFixed(1),
+                n: encuestas.answered,
+              })}
+            </p>
+            <div className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde">
+              <table className="w-full text-left text-sm">
+                <thead className="eyebrow bg-fondo-suave text-xs">
+                  <tr>
+                    <th scope="col" className="px-3 py-2">
+                      {encActividad}
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      {encRespondieron}
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      {encPromedio}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {encuestas.rows.map((row) => (
+                    <tr key={row.occasionId} className="border-t border-borde">
+                      <td className="px-3 py-2 font-semibold">
+                        <Link href={`/admin/ocasiones/${row.occasionId}`}>{row.title}</Link>
+                        <span className="block text-xs text-tinta-suave">
+                          {formatDate(row.startsAt)}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        {row.answered} / {row.invited}
+                      </td>
+                      <td className="px-3 py-2">
+                        {row.average === null ? "—" : row.average.toFixed(1)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
 

@@ -14,6 +14,7 @@ export const FIELD_TYPES = [
   "MULTISELECT",
   "CHECKBOX",
   "DATE",
+  "RATING",
 ] as const;
 
 export type FieldType = (typeof FIELD_TYPES)[number];
@@ -117,7 +118,7 @@ export function formOpenState(
   return "OPEN";
 }
 
-export type AnswerValue = string | string[] | boolean;
+export type AnswerValue = string | string[] | boolean | number;
 
 export type AnswersResult =
   | { ok: true; answers: Record<string, AnswerValue> }
@@ -239,6 +240,21 @@ export function validateAnswers(fields: FormField[], raw: Record<string, unknown
           errors[field.key] = "T-857";
         } else {
           answers[field.key] = text;
+        }
+        break;
+      }
+      // Calificación de 1 a 5 (ADR-038 regla 13): un entero, para promediar en la encuesta.
+      case "RATING": {
+        const text = readText(value);
+        if (!text) {
+          if (field.required) errors[field.key] = "T-853";
+          break;
+        }
+        const rating = Number.parseInt(text, 10);
+        if (!/^[1-5]$/.test(text) || rating < 1 || rating > 5) {
+          errors[field.key] = "T-1171";
+        } else {
+          answers[field.key] = rating;
         }
         break;
       }

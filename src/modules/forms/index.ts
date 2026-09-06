@@ -14,6 +14,7 @@ export {
   getPublicForm,
   listFormOptions,
   listForms,
+  listSurveyFormOptions,
   type PublicForm,
   recentSubmissionCounts,
   setFormActions,

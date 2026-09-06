@@ -12,6 +12,8 @@ import {
   getOccasion,
   listCheckIns,
   listOccasionScores,
+  SURVEY_TEXT_MIN,
+  surveySummary,
 } from "@/modules/participation";
 import { occasionKindLabel, occasionStatusCell } from "@/modules/participation/admin";
 import { ConsolaEnVivo } from "@/modules/participation/components/ConsolaEnVivo";
@@ -74,6 +76,9 @@ export default async function ConsolaPage({
     notFound();
   }
   const { actor, occasion } = found;
+  const survey = occasion.status === "CLOSED" ? await surveySummary(id) : null;
+  const [ratingLow, ratingHigh] = tList("T-1102") as [string, string];
+  const [siLabel, noLabel] = tList("T-1058") as [string, string];
   const liveCredits = occasion.points > 0 && occasion.approvedCount > 0;
   if (accion === "cancelar" && liveCredits && !hasRecentStepUp(actor)) {
     redirect(`/ingresar/paso?next=${encodeURIComponent(`${base}?accion=cancelar`)}`);
@@ -481,6 +486,85 @@ export default async function ConsolaPage({
             </div>
           </form>
         </ResourcePanel>
+      ) : null}
+      {occasion.status === "CLOSED" ? (
+        <section aria-labelledby="encuesta-titulo" className="flex flex-col gap-3">
+          <h2 id="encuesta-titulo" className="text-display-md">
+            {t("T-1161")}
+          </h2>
+          {!survey ? (
+            <p className="text-tinta-suave">{t("T-1166")}</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <p className="font-semibold">
+                {survey.formTitle} ·{" "}
+                {t("T-1162", { respondieron: survey.answered, invitados: survey.invited })}
+              </p>
+              {survey.answered === 0 ? (
+                <p className="text-tinta-suave">{t("T-1163")}</p>
+              ) : (
+                <ul className="flex list-none flex-col gap-4 p-0">
+                  {survey.questions.map((question) => (
+                    <li
+                      key={question.key}
+                      className="flex flex-col gap-2 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
+                    >
+                      <h3 className="font-semibold">{question.label}</h3>
+                      {question.type === "RATING" ? (
+                        <>
+                          <p className="text-display-md">
+                            {question.average === null
+                              ? "—"
+                              : t("T-1164", { promedio: question.average.toFixed(1) })}
+                          </p>
+                          <ul className="flex list-none flex-wrap gap-2 p-0 text-sm">
+                            {question.distribution.map((item) => (
+                              <li key={item.value}>
+                                <Insignia fondo="sky">
+                                  {item.value === "1"
+                                    ? ratingLow
+                                    : item.value === "5"
+                                      ? ratingHigh
+                                      : ""}{" "}
+                                  {item.value}: {item.count}
+                                </Insignia>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : question.distribution.length > 0 ? (
+                        <ul className="flex list-none flex-wrap gap-2 p-0 text-sm">
+                          {question.distribution.map((item) => (
+                            <li key={item.value}>
+                              <Insignia fondo="sky">
+                                {question.type === "CHECKBOX"
+                                  ? item.value === "true"
+                                    ? siLabel
+                                    : noLabel
+                                  : item.value}
+                                : {item.count}
+                              </Insignia>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : question.texts ? (
+                        <ul className="flex list-disc flex-col gap-1 pl-5 text-sm">
+                          {question.texts.map((text, index) => (
+                            <li key={`${question.key}-${index.toString()}`}>{text}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-sm text-tinta-suave">
+                          {t("T-1165", { n: SURVEY_TEXT_MIN })}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </section>
       ) : null}
     </div>
   );

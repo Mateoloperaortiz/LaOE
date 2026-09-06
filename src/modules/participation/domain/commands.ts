@@ -1,6 +1,6 @@
 import { type Actor, runCommand } from "@/db/tx";
 import { getMembershipRef } from "@/modules/people";
-import { requireConfig } from "@/modules/system";
+import { getConfig, requireConfig } from "@/modules/system";
 import { closeTermPoints, findTermContaining, getTerm, listAllTerms } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
@@ -55,7 +55,13 @@ export async function createOccasionAs(
   input: OccasionInput,
 ): Promise<{ id: string; publicId: string }> {
   const context = await resolveOccasionContext(input.startsAt);
-  return runCommand(actor, (ctx) => createOccasion(ctx, input, context));
+  // Sin encuesta explícita, una actividad toma la encuesta por defecto de GH (ADR-038 regla 13).
+  const surveyFormId =
+    input.surveyFormId ??
+    (input.kind === "ACTIVITY" ? await getConfig("survey.defaultFormId") : null);
+  return runCommand(actor, (ctx) =>
+    createOccasion(ctx, { ...input, surveyFormId: surveyFormId ?? undefined }, context),
+  );
 }
 
 export async function updateOccasionAs(

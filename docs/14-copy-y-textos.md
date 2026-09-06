@@ -998,7 +998,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-921 | Constructor: sin campos | Este formulario todavía no tiene campos. En los públicos, nombre, apellido y correo van siempre. | MATEO | Propuesta |
 | T-922 | Constructor: botón para agregar un campo | Agregar campo | MATEO | Propuesta |
 | T-923 | Constructor: campos del panel de un campo | Clave · Etiqueta · Tipo · Obligatorio · Ayuda · Opciones (una por línea) | MATEO | Propuesta |
-| T-924 | Constructor: tipos de campo (en el orden del modelo) | Texto corto · Texto largo · Correo · Celular · Selección · Selección múltiple · Casilla · Fecha | MATEO | Propuesta |
+| T-924 | Constructor: tipos de campo (en el orden del modelo) | Texto corto · Texto largo · Correo · Celular · Selección · Selección múltiple · Casilla · Fecha · Calificación de 1 a 5 | MATEO | Propuesta |
 | T-925 | Constructor: clave inválida | La clave lleva solo minúsculas, números y guiones bajos (de 1 a 40). | MATEO | Propuesta |
 | T-926 | Constructor: clave repetida | Ya hay un campo con esa clave. | MATEO | Propuesta |
 | T-927 | Constructor: selección sin opciones | Una selección necesita al menos una opción. | MATEO | Propuesta |
