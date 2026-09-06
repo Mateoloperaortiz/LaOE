@@ -4,6 +4,8 @@ import { excerpt } from "@/modules/content";
 import { getEdition } from "@/modules/events";
 import { getPublicForm, HONEYPOT_FIELD } from "@/modules/forms";
 import { getActor } from "@/modules/identity";
+import { getPrivacyPolicyState } from "@/modules/system";
+import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { BarraTitulo, Elemento, SelloOE } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { paginaMetadata } from "@/shared/lib/seo";
@@ -54,6 +56,7 @@ export default async function FormularioPage({ params, searchParams }: PageProps
     notFound();
   }
   const actor = await getActor();
+  const policy = await getPrivacyPolicyState();
   if (formulario.audience === "MEMBERS" && !actor) {
     redirect(`/ingresar?next=${encodeURIComponent(`/f/${slug}`)}`);
   }
@@ -89,6 +92,8 @@ export default async function FormularioPage({ params, searchParams }: PageProps
         <Aviso>{t("T-861")}</Aviso>
       ) : formulario.state === "CLOSED" ? (
         <Aviso>{t("T-860")}</Aviso>
+      ) : formulario.consentRequired && !policy.ready ? (
+        <PrivacyPolicyNotice />
       ) : (
         <FormularioPublico
           slug={formulario.slug}

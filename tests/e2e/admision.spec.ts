@@ -1,4 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { eq } from "drizzle-orm";
+import { closeDb, getDb } from "@/db/client";
+import { pipeline } from "@/modules/crm/schema";
+import { form } from "@/modules/forms/schema";
+import { otpChallenge } from "@/modules/identity/schema";
+import { person } from "@/modules/people/schema";
 import { sinViolaciones } from "./axe";
 import { drenarOutbox } from "./outbox";
 
@@ -12,6 +18,20 @@ const PIPELINE = "e2e-Admisión";
 const FORM = "e2e-admision";
 const EMAIL = "e2e-postulante@eafit.edu.co";
 
+// Los cuatro pasos forman un único recorrido: un retry debe comenzar con la misma convocatoria
+// limpia, no continuar con pipelines duplicados o una persona que el intento anterior ya admitió.
+test.describe.configure({ mode: "serial" });
+test.beforeAll(async () => {
+  await drenarOutbox();
+  await getDb().transaction(async (tx) => {
+    await tx.delete(form).where(eq(form.slug, FORM));
+    await tx.delete(pipeline).where(eq(pipeline.name, PIPELINE));
+    await tx.delete(person).where(eq(person.email, EMAIL));
+    await tx.delete(otpChallenge).where(eq(otpChallenge.email, EMAIL));
+  });
+  await closeDb();
+});
+
 test.describe("convocatoria de admisión", () => {
   test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
@@ -23,6 +43,7 @@ test.describe("convocatoria de admisión", () => {
     await panel.getByRole("button", { name: "Guardar" }).click();
     await expect(page.getByText("Guardado.")).toBeVisible();
     await page.getByRole("link", { name: PIPELINE }).click();
+    await page.waitForURL(/\/admin\/pipelines\/[^/?]+$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(PIPELINE);
     for (const etapa of ["Recibida", "Entrevista", "Admitida", "Alta", "No admitida"]) {
       await expect(page.getByRole("region", { name: etapa, exact: true })).toBeVisible();
@@ -37,6 +58,7 @@ test.describe("convocatoria de admisión", () => {
     await formulario.getByRole("button", { name: "Guardar" }).click();
     await expect(page.getByText("Guardado.")).toBeVisible();
     await page.getByRole("link", { name: "e2e Convocatoria de admisión" }).click();
+    await page.waitForURL(/\/admin\/formularios\/[^/?]+$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "e2e Convocatoria de admisión",
     );
@@ -54,7 +76,7 @@ test.describe("el visitante postula", () => {
   test("/unirse lleva al formulario y la respuesta queda recibida", async ({ page }) => {
     await page.goto("/unirse");
     await page.getByRole("link", { name: "Postulate" }).click();
-    await expect(page).toHaveURL(new RegExp(`/f/${FORM}$`));
+    await page.waitForURL(new RegExp(`/f/${FORM}$`));
     await page.getByLabel("Nombre").fill("Postulante");
     await page.getByLabel("Apellido").fill("E2E");
     await page.getByLabel("Correo").fill(EMAIL);
@@ -104,7 +126,11 @@ test.describe("GH lleva la tarjeta hasta el alta", () => {
     // La Persona 360 muestra la membresía activa y el comité.
     await page.goto(`/admin/personas?q=${encodeURIComponent(EMAIL)}`);
     await page.getByRole("link", { name: "Postulante E2E" }).first().click();
-    await expect(page.getByText("Miembro").first()).toBeVisible();
+    await page.waitForURL(/\/admin\/personas\/[^/?]+$/);
+    const cabecera = page.locator("header").filter({
+      has: page.getByRole("heading", { name: "Postulante E2E", level: 1 }),
+    });
+    await expect(cabecera.getByText("Miembro", { exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Membresía", exact: true }).last().click();
     await expect(page.getByText(new RegExp(`${primera} · Miembro`))).toBeVisible();
     await drenarOutbox();

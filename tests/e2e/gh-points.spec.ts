@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { pointEntry } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
@@ -18,6 +18,16 @@ test.beforeAll(async () => {
     .from(person)
     .where(eq(person.email, E2E_MEMBER_EMAIL));
   if (!current || !member) throw new Error("sin término o miembro");
+  // El worker puede reintentar la prueba; el ajuste sintético sigue siendo uno solo.
+  await db
+    .delete(pointEntry)
+    .where(
+      and(
+        eq(pointEntry.personId, member.id),
+        eq(pointEntry.termId, current.id),
+        eq(pointEntry.reason, "e2e-Ajuste de prueba"),
+      ),
+    );
   await db.insert(pointEntry).values({
     personId: member.id,
     termId: current.id,
@@ -32,7 +42,7 @@ test("el miembro ve su saldo, su nivel, sus movimientos y los rankings", async (
   await page.goto("/app");
   await expect(page.getByText(/[0-9]+ GH Points este semestre/)).toBeVisible();
   await page.getByRole("link", { name: "Ver GH Points" }).click();
-  await expect(page).toHaveURL(/\/app\/gh-points$/);
+  await page.waitForURL(/\/app\/gh-points$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("GH Points");
   await expect(
     page.getByRole("heading", { name: /Tenés [0-9]+ puntos este semestre/ }),

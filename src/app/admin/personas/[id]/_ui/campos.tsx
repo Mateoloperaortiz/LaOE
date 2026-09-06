@@ -32,11 +32,13 @@ export function Casilla({
   name,
   label,
   defaultChecked = false,
+  disabled = false,
 }: {
   id: string;
   name: string;
   label: string;
   defaultChecked?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <label htmlFor={id} className="flex items-start gap-3 text-sm">
@@ -45,6 +47,7 @@ export function Casilla({
         name={name}
         type="checkbox"
         defaultChecked={defaultChecked}
+        disabled={disabled}
         className="mt-1 size-5 shrink-0 accent-oe-navy"
       />
       <span>{label}</span>

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getEnv } from "@/env";
 import { SESSION_COOKIE } from "@/modules/identity/cookie";
+import { bucketOrigin } from "@/shared/lib/storage-origin";
 
 // El proxy solo redirige rutas protegidas sin cookie y emite la CSP con nonce (ADR-011).
 // Nunca decide roles ni estados: eso lo hace getActor() en servidor.
@@ -8,12 +9,14 @@ import { SESSION_COOKIE } from "@/modules/identity/cookie";
 const PROTECTED = [/^\/app(\/|$)/, /^\/admin(\/|$)/, /^\/a\//];
 const HOST_MODE = /^\/admin\/ocasiones\/[a-z0-9-]+\/anfitrion$/;
 
-let bucketOrigin: string | undefined;
-
 /** Origen del bucket (ADR-033): el navegador sigue el 302 de /api/media y sube directo con fetch. */
 function getBucketOrigin(): string {
-  bucketOrigin ??= new URL(getEnv().S3_ENDPOINT).origin;
-  return bucketOrigin;
+  const env = getEnv();
+  return bucketOrigin({
+    endpoint: env.S3_ENDPOINT,
+    bucket: env.S3_BUCKET,
+    forcePathStyle: env.S3_FORCE_PATH_STYLE,
+  });
 }
 
 function buildCsp(nonce: string, dev: boolean): string {
@@ -32,7 +35,9 @@ function buildCsp(nonce: string, dev: boolean): string {
     "form-action 'self'",
     "object-src 'none'",
   ];
-  if (!dev) {
+  // El build también se ensaya en loopback HTTP con Garage. Los entornos publicados tienen
+  // APP_URL HTTPS; allí se fuerza HTTPS para todos los recursos sin alterar el origen del bucket.
+  if (!dev && new URL(getEnv().APP_URL).protocol === "https:") {
     directives.push("upgrade-insecure-requests");
   }
   return directives.join("; ");

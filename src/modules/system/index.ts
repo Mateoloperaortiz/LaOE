@@ -33,3 +33,8 @@ export {
   type OutboxState,
   retryDeadLetter,
 } from "./domain/outbox";
+export {
+  getPrivacyPolicyState,
+  PrivacyPolicyPendingError,
+  requirePrivacyPolicyVersion,
+} from "./domain/privacy";

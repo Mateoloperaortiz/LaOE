@@ -22,6 +22,8 @@ import {
   listAllCommittees,
   searchPeople,
 } from "@/modules/people";
+import { getPrivacyPolicyState } from "@/modules/system";
+import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { getCurrentTerm } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
 import { Insignia } from "@/shared/brand";
@@ -82,6 +84,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
   const error = single(search.error);
   const q = single(search.q).trim();
   const now = new Date();
+  const policy = await getPrivacyPolicyState();
   const base = `/admin/pipelines/${id}`;
   const kindLabels = tList("T-964");
   const [moverA] = tList("T-971");
@@ -234,7 +237,9 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
             {card.editionName ? <Dato etiqueta={nEdicion ?? ""} valor={card.editionName} /> : null}
           </dl>
           {canAdmit ? (
-            alta === "1" ? (
+            !policy.ready ? (
+              <PrivacyPolicyNotice admin />
+            ) : alta === "1" ? (
               <form
                 action={admitFromCardAction}
                 className="flex flex-col gap-4 rounded-xl border border-borde p-4"

@@ -19,6 +19,7 @@
     "paths": { "@/*": ["./src/*"] }
   },
   "include": [
+    ".railway/**/*.ts",
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",

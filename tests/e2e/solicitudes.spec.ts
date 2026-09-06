@@ -20,6 +20,7 @@ test.describe("el miembro pide la licencia", () => {
     await page.getByRole("button", { name: "Entrar" }).click();
     await expect(page).toHaveURL(/\/app$/);
     await page.getByRole("link", { name: "Solicitudes", exact: true }).click();
+    await page.waitForURL(/\/app\/solicitudes$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Solicitudes");
     await expect(page.getByText("Todavía no has hecho solicitudes.")).toBeVisible();
     await sinViolaciones(page);

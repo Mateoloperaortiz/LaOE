@@ -30,7 +30,7 @@ import {
   permanenceTable,
   workGroup,
 } from "@/modules/permanence/schema";
-import { importJob } from "@/modules/system/schema";
+import { appConfig, importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 
 // Persona sintética para las pruebas e2e; se recrea en cada corrida, nunca es una persona real.
@@ -48,6 +48,13 @@ export const E2E_LEAVE_EMAIL = "e2e-licencia@eafit.edu.co";
 
 export default async function globalSetup(): Promise<void> {
   const db = getDb();
+  await db
+    .insert(appConfig)
+    .values({ key: "privacy.policyVersion", value: "prueba-v1" })
+    .onConflictDoUpdate({
+      target: appConfig.key,
+      set: { value: "prueba-v1", updatedAt: new Date() },
+    });
   let [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
   if (!current) {
     [current] = await db

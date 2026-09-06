@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { listRequestsByPerson } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
 import { getMembershipRef, getMyMembership, listAllCommittees } from "@/modules/people";
+import { getPrivacyPolicyState } from "@/modules/system";
+import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { BarraTitulo, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
@@ -28,11 +30,12 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
   const enviada = single(search.enviada) === "1";
   const retirada = single(search.retirada) === "1";
   const error = single(search.error);
-  const [requests, membership, mine, committees] = await Promise.all([
+  const [requests, membership, mine, committees, policy] = await Promise.all([
     listRequestsByPerson(actor.personId),
     getMembershipRef(actor.personId),
     getMyMembership(actor.personId),
     listAllCommittees(),
+    getPrivacyPolicyState(),
   ]);
   const kinds = tList("T-139");
   const kindLabels = tList("T-894");
@@ -250,13 +253,26 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
                 />
               </label>
               <label htmlFor="memorial" className="flex items-center gap-2 text-sm">
-                <input id="memorial" type="checkbox" name="memorialConsent" className="size-5" />
+                <input
+                  id="memorial"
+                  type="checkbox"
+                  name="memorialConsent"
+                  className="size-5"
+                  disabled={!policy.ready}
+                />
                 {galeria}
               </label>
               <label htmlFor="contact" className="flex items-center gap-2 text-sm">
-                <input id="contact" type="checkbox" name="contactConsent" className="size-5" />
+                <input
+                  id="contact"
+                  type="checkbox"
+                  name="contactConsent"
+                  className="size-5"
+                  disabled={!policy.ready}
+                />
                 {contacto}
               </label>
+              {!policy.ready ? <PrivacyPolicyNotice /> : null}
               <label htmlFor="personal-email" className="flex flex-col gap-1 text-sm font-semibold">
                 {t("T-889")}
                 <input

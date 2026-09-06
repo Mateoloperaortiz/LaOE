@@ -8,6 +8,7 @@ import {
   createImportJob,
   getImportJob,
   type ImportJobRow,
+  requirePrivacyPolicyVersion,
   updateImportJob,
 } from "@/modules/system";
 import { conventionalTermDates, createTerm, listAllTerms } from "@/modules/terms";
@@ -585,6 +586,7 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
   const built = await buildPreview(cells, current.data.mapping, job.termId);
   const termId = job.termId;
   return runCommand(actor, async (ctx) => {
+    await requirePrivacyPolicyVersion(ctx, "admin");
     const termsByCode = await ensureTerms(ctx, built.validation.missingTerms);
     for (const term of terms) {
       termsByCode.set(term.code, term.id);

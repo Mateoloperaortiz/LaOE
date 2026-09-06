@@ -28,7 +28,12 @@ export async function truncateAll(): Promise<void> {
   if (config.length > 0) {
     await db
       .insert(appConfig)
-      .values(config.map((row) => ({ key: row.key, value: row.value })))
+      .values(
+        config.map((row) => ({
+          key: row.key,
+          value: row.key === "privacy.policyVersion" ? "prueba-v1" : row.value,
+        })),
+      )
       .onConflictDoNothing();
   }
 }

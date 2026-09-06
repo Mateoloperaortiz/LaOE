@@ -12,6 +12,7 @@ import {
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
 import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
+import { drenarOutbox } from "./outbox";
 
 // Evaluaciones, puntajes del líder, destacado del mes y créditos (10-verificacion, e2e): el director
 // evalúa un GAP y el porcentaje del miembro cambia; el líder pone un puntaje con observación y nombra
@@ -44,13 +45,25 @@ test.describe("director de GH", () => {
   test.beforeAll(async () => {
     const { admin, member, current } = await ids();
     const db = getDb();
-    const [group] = await db
-      .insert(workGroup)
-      .values({ termId: current.id, kind: "GAP", name: "e2e-GAP evaluado" })
-      .returning({ id: workGroup.id });
+    let [group] = await db
+      .select({ id: workGroup.id })
+      .from(workGroup)
+      .where(and(eq(workGroup.termId, current.id), eq(workGroup.name, "e2e-GAP evaluado")));
+    if (!group) {
+      [group] = await db
+        .insert(workGroup)
+        .values({ termId: current.id, kind: "GAP", name: "e2e-GAP evaluado" })
+        .returning({ id: workGroup.id });
+    }
     if (!group) throw new Error("sin grupo");
-    await db.insert(workGroupEvaluator).values({ groupId: group.id, personId: admin.id });
-    await db.insert(workGroupMembership).values({ groupId: group.id, personId: member.id });
+    await db
+      .insert(workGroupEvaluator)
+      .values({ groupId: group.id, personId: admin.id })
+      .onConflictDoNothing();
+    await db
+      .insert(workGroupMembership)
+      .values({ groupId: group.id, personId: member.id })
+      .onConflictDoNothing();
     await closeDb();
   });
 
@@ -103,6 +116,8 @@ test.describe("miembro", () => {
   test.use({ storageState: "tests/e2e/.auth/member.json" });
 
   test("ve el GAP evaluado con buen desempeño y el crédito en su permanencia", async ({ page }) => {
+    // El historial lo materializa evaluation.recorded; CI no arranca jobs de fondo.
+    await drenarOutbox();
     await page.goto("/app/permanencia");
     const gap = page.getByRole("listitem").filter({ hasText: "e2e-GAP evaluado: Buen desempeño" });
     await expect(gap.first()).toContainText("5 de 5");

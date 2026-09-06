@@ -70,7 +70,7 @@ test.describe("como miembro", () => {
     await expect(resultado).toBeVisible();
     await expect(page.locator("mark").first()).toContainText(/asamblea/i);
     await resultado.click();
-    await expect(page).toHaveURL(/\/app\/normativa\/[a-z0-9]+#art-3$/);
+    await page.waitForURL(/\/app\/normativa\/[a-z0-9]+#art-3$/);
     await expect(page.getByRole("heading", { name: /Artículo 3/ })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Índice" })).toBeVisible();
     await expect(page).toHaveTitle(new RegExp(titulo));

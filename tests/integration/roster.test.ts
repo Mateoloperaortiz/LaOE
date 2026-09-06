@@ -11,7 +11,8 @@ import {
   remapRosterPreviewAs,
 } from "@/modules/people/domain/roster";
 import { committeeRole, consent, person } from "@/modules/people/schema";
-import { auditLog, importJob } from "@/modules/system/schema";
+import { PrivacyPolicyPendingError } from "@/modules/system";
+import { appConfig, auditLog, importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { truncateAll } from "./db";
@@ -42,6 +43,28 @@ async function preview(
 describe("importación del roster", () => {
   beforeEach(truncateAll);
   afterAll(() => closeDb());
+
+  it("permite preparar el roster, pero la política pendiente impide aplicarlo sin efectos parciales", async () => {
+    const termId = await seedTerm();
+    await seedCommittee("a3");
+    const adminId = await seedMember("admin.politica@eafit.edu.co");
+    const draft = await preview(
+      adminId,
+      termId,
+      csv(["Persona;Sintética;roster.politica@eafit.edu.co;;Derecho;A3;2024-2;Activo;"]),
+    );
+    await db()
+      .update(appConfig)
+      .set({ value: "pendiente" })
+      .where(eq(appConfig.key, "privacy.policyVersion"));
+    await expect(applyRosterImportAs({ personId: adminId }, draft.jobId)).rejects.toBeInstanceOf(
+      PrivacyPolicyPendingError,
+    );
+    expect(await db().select().from(person)).toHaveLength(1);
+    expect(await db().select().from(consent)).toHaveLength(0);
+    expect(await db().select().from(term).where(eq(term.code, "2024-2"))).toHaveLength(0);
+    expect((await getRosterPreview(draft.jobId))?.status).toBe("PREVIEW");
+  });
 
   it("crea personas, pertenencias con cargo y consentimientos; subirlo dos veces no duplica", async () => {
     const termId = await seedTerm();

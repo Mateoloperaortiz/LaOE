@@ -1,7 +1,7 @@
 import { and, desc, eq, exists, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
-import { requireConfig } from "@/modules/system";
+import { requirePrivacyPolicyVersion } from "@/modules/system";
 import { consent, person } from "../schema";
 
 // Consentimiento versionado por propósito (ADR-014, ADR-034): una fila por aceptación; revocar estampa
@@ -117,7 +117,10 @@ export async function recordConsent(
   if (live) {
     return { id: live.id, created: false };
   }
-  const policyVersion = await requireConfig("privacy.policyVersion");
+  const policyVersion = await requirePrivacyPolicyVersion(
+    ctx,
+    input.source === "ADMIN" || input.source === "IMPORT" ? "admin" : "public",
+  );
   const [row] = await ctx.tx
     .insert(consent)
     .values({

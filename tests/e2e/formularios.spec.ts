@@ -109,6 +109,7 @@ test.describe("bandeja y Persona 360", () => {
     await page.goto("/admin/formularios");
     await page.getByRole("link", { name: "e2e Postulación" }).click();
     await page.getByRole("link", { name: /Respuestas \(1\)/ }).click();
+    await page.waitForURL(/\/admin\/formularios\/[^/]+\/respuestas$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       /Respuestas · e2e Postulación/,
     );
@@ -122,7 +123,11 @@ test.describe("bandeja y Persona 360", () => {
 
     await page.goto("/admin/personas?q=e2e-formulario");
     await page.getByRole("link", { name: "Lu Prueba" }).first().click();
-    await expect(page.getByText("Prospecto").first()).toBeVisible();
+    await page.waitForURL(/\/admin\/personas\/[^/?]+$/);
+    const cabecera = page.locator("header").filter({
+      has: page.getByRole("heading", { name: "Lu Prueba", level: 1 }),
+    });
+    await expect(cabecera.getByText("Prospecto", { exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Formularios", exact: true }).last().click();
     await expect(page.getByRole("link", { name: "Respuesta a e2e Postulación" })).toBeVisible();
     await sinViolaciones(page);

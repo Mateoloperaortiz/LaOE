@@ -28,6 +28,7 @@ import {
   workGroupEvaluator,
   workGroupMembership,
 } from "@/modules/permanence/schema";
+import { appConfig } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { logger } from "@/shared/log";
 import { seedFase5 } from "./lib/seed-fase5";
@@ -296,7 +297,7 @@ async function seedConsents(): Promise<void> {
           personId: who.id,
           purpose: item.purpose,
           source: item.source,
-          policyVersion: "pendiente",
+          policyVersion: "prueba-v1",
         })
         .onConflictDoNothing();
     }
@@ -904,6 +905,14 @@ async function seedOccasions(
 }
 
 try {
+  // Solo datos sintéticos: la migración de producción conserva el marcador "pendiente".
+  await db
+    .insert(appConfig)
+    .values({ key: "privacy.policyVersion", value: "prueba-v1" })
+    .onConflictDoUpdate({
+      target: appConfig.key,
+      set: { value: "prueba-v1", updatedAt: new Date() },
+    });
   const terms = await seedTerms();
   const committees = await seedCommittees();
   await seedPeople(terms, committees);

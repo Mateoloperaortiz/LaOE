@@ -52,6 +52,8 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 
 ## E2E (Playwright)
 
+En modo CI se prueban el build y `next start`; `NODE_ENV=test` solo para el proceso de pruebas permite su OTP fijo. La app de producción mantiene el rechazo de OTP fijo. La suite final de F7-T1 pasó 78 casos en 58 segundos, sin reintentos; las pruebas de cierre esperan navegación/reinicio del formulario y usan fixtures aisladas.
+
 - Ingreso por OTP con código fijo de test y redirección a `next`.
 - Admin kit: crear y editar un comité desde el panel lateral, exportar el CSV; la paleta ⌘K encuentra personas y comités; otorgar un permiso exige step-up y el export de permisos queda auditado.
 - QR de check-in: sin sesión → ingreso → vuelve al QR → puntos acreditados y visibles en Mi OE.
@@ -79,7 +81,7 @@ Las pruebas existentes se conservan; no se corre una migración real ni un muest
 
 ## Despliegue (ADR-039)
 
-- `.railway/railway.ts`: solo staging/main y production/production, dominio personalizado omitido hasta T6; plan de IaC revisado, sin cambios inesperados de secretos o recursos. `db:release` nunca siembra personas.
+- `.railway/railway.ts`: solo staging/main y production/production, dominio personalizado omitido hasta T6; plan de IaC revisado, sin cambios inesperados de secretos o recursos. `db:release` no carga `.env` ni siembra personas; `db:migrate` conserva carga local. El IaC declara/adopta Postgres-PITR y el plan no debe proponer su borrado.
 - `npm run smoke -- --base <URL> --expected-sha <SHA> --indexing <true|false> --bucket-origin <origen del bucket>` tras cada release: salud y SHA, robots según entorno, sitemap, HSTS, CSP con bucket virtual-hosted, manifest e ICS. Producción vacía no exige alias ni contenido sintético. HTTPS obligatorio salvo loopback; para el dominio temporal de producción agregar `--canonical-base https://oeeafit.com`.
 - Staging sintético: acceso por OTP de consola, check-in, portada y CORS, guard de política, server actions y push real en iPhone; una noche de jobs con logs y outbox comprobados. Los datos reales no se usan en pruebas ni fixtures.
 - Producción nueva: bootstrap real sin consentimiento, OTP real, acceso ADMIN y restricciones de política; luego dominio oeeafit.com y www. El bootstrap no se corre mediante seed ni con NODE_ENV adulterado.

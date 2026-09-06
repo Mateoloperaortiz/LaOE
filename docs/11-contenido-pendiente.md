@@ -73,11 +73,12 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Confirmar con GH los supuestos de la fase 5: cinco días hábiles para responder una solicitud; el cambio de comité aprobado rige desde el semestre siguiente como transferencia; la casilla de un formulario público es consentimiento de tratamiento de datos y el de membresía se registra al dar de alta; el retiro voluntario aprobado avisa con T-205 mientras T-206 no tenga texto final
 - [ ] Pasos del onboarding de nuevos (qué debe hacer un nuevo en su primera semana)
 - [ ] Preguntas reales de la encuesta corta tras una ocasión: el seed trae una calificación de 1 a 5 y un comentario; GH elige el formulario por defecto en `survey.defaultFormId`
-- [ ] Claves VAPID para producción y `staging` (par generado con `npx web-push generate-vapid-keys`) y el correo de contacto de `VAPID_SUBJECT` (`mailto:…`), cargados como variables en Railway en la fase 7
+- [x] Claves VAPID propias para producción y staging generadas y cargadas el 2026-09-06; `VAPID_SUBJECT=https://oeeafit.com` como URL válida de contacto. La prueba de push en iPhone sigue pendiente
 - [ ] Confirmar con GH los supuestos de la fase 6: horas de los recordatorios (07:00 las actividades de hoy, 18:00 las reuniones y asambleas de mañana, 2 a 3 horas antes de cada asamblea) y de los avisos de permanencia (09:00); 50 correos por minuto en campañas; quien está en licencia no recibe push; los comentarios de la encuesta se muestran solo con 3 o más respuestas
 - [ ] Que la política de tratamiento de datos mencione las notificaciones push y las campañas por correo con su baja
 - [ ] Acceso al dominio `oeeafit.com` (DNS) y a la cuenta de Resend
 
 - [ ] Fecha y aviso de lanzamiento de la app nueva por los canales de la OE; indicar cómo entrar por OTP y recordar la sesión antes de una asamblea
 - [ ] SES: habilitación futura cuando exista cuenta; queda fuera del lanzamiento
+- [ ] Guardar en 1Password la privada age ya creada para Mateo; su ubicación operativa privada está registrada en el runbook
 - [ ] Completar método de pago y datos de facturación de Cloudflare R2 en la pantalla abierta: activación pendiente al 2026-09-06, bucket `oe-respaldos` aún no creado

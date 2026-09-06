@@ -229,7 +229,7 @@ describe("vínculo por correo y etiquetas aditivas", () => {
     ).toHaveLength(2);
     const [row] = await getDb()
       .insert(consent)
-      .values({ personId, purpose: "DATA_PROCESSING", source: "FORM", policyVersion: "pendiente" })
+      .values({ personId, purpose: "DATA_PROCESSING", source: "FORM", policyVersion: "prueba-v1" })
       .returning();
     expect(row?.purpose).toBe("DATA_PROCESSING");
     expect(await hasLiveConsent(personId, "DATA_PROCESSING")).toBe(true);

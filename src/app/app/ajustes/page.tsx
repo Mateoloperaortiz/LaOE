@@ -20,7 +20,8 @@ import {
   SELF_MANAGED_PURPOSES,
 } from "@/modules/people";
 import { PhotoUploader } from "@/modules/people/components/PhotoUploader";
-import { requireConfig } from "@/modules/system";
+import { getPrivacyPolicyState, requireConfig } from "@/modules/system";
+import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { BarraTitulo, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
@@ -56,16 +57,15 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
   const guardado = typeof params.guardado === "string" ? params.guardado : "";
   const error = typeof params.error === "string" ? params.error : "";
   const confirmar = params.confirmar === "1";
-  const [who, consents, sessions, deletionDays, policyVersion, devices, preferences] =
-    await Promise.all([
-      getPersonRecord(actor.personId),
-      listConsents(actor.personId),
-      listSessionsFor(actor.personId),
-      requireConfig("privacy.deletionDays"),
-      requireConfig("privacy.policyVersion"),
-      listSubscriptionsFor(actor.personId),
-      getPreferences(actor.personId),
-    ]);
+  const [who, consents, sessions, deletionDays, policy, devices, preferences] = await Promise.all([
+    getPersonRecord(actor.personId),
+    listConsents(actor.personId),
+    listSessionsFor(actor.personId),
+    requireConfig("privacy.deletionDays"),
+    getPrivacyPolicyState(),
+    listSubscriptionsFor(actor.personId),
+    getPreferences(actor.personId),
+  ]);
   const vapidPublicKey = getEnv().VAPID_PUBLIC_KEY ?? null;
   const calendarUrl = `${getEnv().APP_URL.replace(/\/$/, "")}/api/ics/mi-agenda.ics?t=${await getOrCreateCalendarToken(actor.personId)}`;
   const [colDispositivo, colDesde, colUltimoUso] = tList("T-1076");
@@ -151,7 +151,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
               className={inputClass}
             />
           </div>
-          {error && error !== "mis-datos" ? (
+          {error && error !== "mis-datos" && error !== "policy-pending" ? (
             <p
               role="alert"
               className="inline-block self-start rounded-lg bg-oe-orange px-2 py-1 text-sm text-oe-navy"
@@ -354,6 +354,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
         <BarraTitulo color="azul" className="self-start">
           <span id="consentimientos-titulo">{secciones[4]}</span>
         </BarraTitulo>
+        {!policy.ready || error === "policy-pending" ? <PrivacyPolicyNotice /> : null}
         <ul className="flex list-none flex-col gap-4 p-0">
           {consents
             .filter((state) => SELF_MANAGED_PURPOSES.includes(state.purpose))
@@ -367,7 +368,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
                 >
                   <h3 className="text-display-md">{purposeLabels[index] ?? state.purpose}</h3>
                   <p className="max-w-prose text-sm">
-                    {t(texto, { v: policyVersion, versión: policyVersion })}
+                    {t(texto, { v: policy.version ?? "—", versión: policy.version ?? "—" })}
                   </p>
                   <p className="text-sm font-semibold">
                     {state.live
@@ -385,6 +386,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
                       <input type="hidden" name="intent" value={state.live ? "revoke" : "grant"} />
                       <button
                         type="submit"
+                        disabled={!state.live && !policy.ready}
                         className={
                           state.live ? "boton-secundario text-sm" : "boton-primario text-sm"
                         }

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
+import { termStanding } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
 import { E2E_CLOSING_TERM } from "./global-setup";
@@ -16,6 +17,15 @@ test.beforeAll(async () => {
   const [row] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_CLOSING_TERM));
   if (!row) throw new Error("sin término de pruebas");
   termId = row.id;
+  await closeDb();
+});
+
+test.beforeEach(async () => {
+  // Un fallo posterior al cierre no puede dejar cerrado el término al reintentar.
+  await getDb().transaction(async (tx) => {
+    await tx.update(term).set({ pointsClosedAt: null }).where(eq(term.id, termId));
+    await tx.delete(termStanding).where(eq(termStanding.termId, termId));
+  });
   await closeDb();
 });
 

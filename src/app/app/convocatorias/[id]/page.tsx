@@ -6,6 +6,8 @@ import { getFormView } from "@/modules/forms";
 import { FormFields } from "@/modules/forms/components/FormFields";
 import { requireActor } from "@/modules/identity";
 import { listGroupRefs } from "@/modules/permanence";
+import { getPrivacyPolicyState } from "@/modules/system";
+import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { BarraTitulo } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
@@ -43,10 +45,12 @@ export default async function ConvocatoriaPage({
   }
   const search: Search = await searchParams;
   const error = single(search.error);
-  const [groups, form] = await Promise.all([
+  const [groups, form, policy] = await Promise.all([
     listGroupRefs([call.groupId]),
     call.formId ? getFormView(call.formId) : Promise.resolve(null),
+    getPrivacyPolicyState(),
   ]);
+  const policyBlocked = form?.consentRequired === true && !policy.ready;
   const [porOrden, manual] = tList("T-905") as [string, string];
   return (
     <div className="flex flex-col gap-8">
@@ -69,23 +73,27 @@ export default async function ConvocatoriaPage({
           </p>
         ) : null}
       </header>
-      <form action={applyAction} className="flex max-w-2xl flex-col gap-6">
-        <input type="hidden" name="callId" value={call.id} />
-        {form ? (
-          <FormFields
-            fields={form.parsedFields}
-            labels={{ required: t("T-853"), multiHelp: t("T-870"), dateHelp: t("T-871") }}
-          />
-        ) : null}
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="submit" className="boton-calido">
-            {t("T-146")}
-          </button>
-          <Link href="/app/convocatorias" className="boton-secundario">
-            {t("T-254")}
-          </Link>
-        </div>
-      </form>
+      {policyBlocked ? (
+        <PrivacyPolicyNotice />
+      ) : (
+        <form action={applyAction} className="flex max-w-2xl flex-col gap-6">
+          <input type="hidden" name="callId" value={call.id} />
+          {form ? (
+            <FormFields
+              fields={form.parsedFields}
+              labels={{ required: t("T-853"), multiHelp: t("T-870"), dateHelp: t("T-871") }}
+            />
+          ) : null}
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="submit" className="boton-calido">
+              {t("T-146")}
+            </button>
+            <Link href="/app/convocatorias" className="boton-secundario">
+              {t("T-254")}
+            </Link>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

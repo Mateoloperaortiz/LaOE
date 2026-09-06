@@ -164,7 +164,7 @@ async function seedSubmission(
       lastName: who.lastName,
       answers,
       consentAcceptedAt: at,
-      policyVersion: "pendiente",
+      policyVersion: "prueba-v1",
       ip: "127.0.0.1",
       createdAt: at,
     })

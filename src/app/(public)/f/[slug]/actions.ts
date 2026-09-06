@@ -18,6 +18,7 @@ const ERROR_CODES = {
   RATE_LIMITED: "T-863",
   CONSENT: "T-858",
   INVALID: "T-866",
+  POLICY_PENDING: "T-1178",
 } as const;
 
 function readString(formData: FormData, name: string): string {

@@ -226,7 +226,7 @@ describe("reconocimientos", () => {
       personId: withConsent,
       purpose: "DIRECTORY_PHOTO",
       source: "SELF",
-      policyVersion: "pendiente",
+      policyVersion: "prueba-v1",
     });
     const leader = { personId: null, ip: null };
     const published = await grantRecognitionAs(leader, {

@@ -1,5 +1,6 @@
+import { setTimeout as sleep } from "node:timers/promises";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
-import { Resend } from "resend";
+import { type CreateEmailOptions, type CreateEmailResponse, Resend } from "resend";
 import { logger } from "@/shared/log";
 
 // Transportes de correo (ADR-023). Sin reglas de negocio: quién elige el transporte es el módulo comms.
@@ -20,7 +21,7 @@ export interface MailTransport {
   send(message: MailMessage): Promise<{ id: string | null }>;
 }
 
-/** Resend agotó la cuota diaria o de tasa: el mensaje debe salir por otro transporte. */
+/** Resend agotó su cuota o los reintentos de ráfaga; comms decide si existe desbordamiento. */
 export class QuotaExceededError extends Error {
   constructor(message: string) {
     super(message);
@@ -50,32 +51,67 @@ export class ConsoleTransport implements MailTransport {
 
 export class ResendTransport implements MailTransport {
   readonly name = "resend" as const;
-  private readonly client: Resend;
+  private readonly sendEmail: (message: CreateEmailOptions) => Promise<CreateEmailResponse>;
+  private readonly wait: (milliseconds: number) => Promise<void>;
 
   constructor(
     apiKey: string,
     private readonly from: string,
+    dependencies: {
+      send?: (message: CreateEmailOptions) => Promise<CreateEmailResponse>;
+      wait?: (milliseconds: number) => Promise<void>;
+    } = {},
   ) {
-    this.client = new Resend(apiKey);
+    const client = new Resend(apiKey);
+    this.sendEmail = dependencies.send ?? ((message) => client.emails.send(message));
+    this.wait = dependencies.wait ?? sleep;
   }
 
   async send(message: MailMessage): Promise<{ id: string | null }> {
-    const { data, error } = await this.client.emails.send({
+    const payload: CreateEmailOptions = {
       from: this.from,
       to: message.to,
       subject: message.subject,
       text: message.text,
       ...(message.html ? { html: message.html } : {}),
       ...(message.headers ? { headers: message.headers } : {}),
-    });
-    if (error) {
-      const quota = /quota|rate_limit|limit/i.test(`${error.name} ${error.message}`);
-      if (quota) {
+    };
+    // ADR-039: cuatro llamadas y 30 s de espera total como máximo; no repetir entregas ambiguas.
+    let waited = 0;
+    for (let attempt = 0; ; attempt++) {
+      const { data, error, headers } = await this.sendEmail(payload);
+      if (!error) {
+        return { id: data?.id ?? null };
+      }
+      if (error.name === "rate_limit_exceeded" && attempt < 3) {
+        const retryAfter = new Headers(headers ?? {}).get("retry-after");
+        const seconds = retryAfter === null ? NaN : Number(retryAfter);
+        const requestedDelay = Number.isFinite(seconds)
+          ? seconds * 1000
+          : retryAfter === null
+            ? 0
+            : Date.parse(retryAfter) - Date.now();
+        const delay = Math.max(
+          1000 * 2 ** attempt,
+          Number.isFinite(requestedDelay) ? requestedDelay : 0,
+        );
+        // Nunca anticipar Retry-After: si no cabe en el presupuesto, informar cuota agotada.
+        if (waited + delay > 30_000) {
+          throw new QuotaExceededError(`${error.name}: ${error.message}`);
+        }
+        await this.wait(delay);
+        waited += delay;
+        continue;
+      }
+      if (
+        error.name === "rate_limit_exceeded" ||
+        error.name === "daily_quota_exceeded" ||
+        error.name === "monthly_quota_exceeded"
+      ) {
         throw new QuotaExceededError(`${error.name}: ${error.message}`);
       }
       throw new Error(`Resend: ${error.name}: ${error.message}`);
     }
-    return { id: data?.id ?? null };
   }
 }
 

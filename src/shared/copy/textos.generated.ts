@@ -1642,6 +1642,18 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-1178": {
+    where: "Política pendiente: aviso público en consentimientos y formularios",
+    text: "La política de tratamiento de datos está en preparación. Podés entrar a Mi OE y registrar tu asistencia; las nuevas autorizaciones estarán disponibles cuando se publique.",
+    owner: "JUNTA",
+    status: "Propuesta; texto sensible",
+  },
+  "T-1179": {
+    where: "Política pendiente: aviso administrativo en altas, roster y consentimientos",
+    text: "Publicá la política de tratamiento de datos y configurá su versión antes de registrar nuevas autorizaciones o dar de alta a personas.",
+    owner: "JUNTA",
+    status: "Propuesta; texto sensible",
+  },
   "T-118": {
     where: "Estado: prueba (cierre)",
     text: "Quedaste en periodo de prueba en {comité}: el próximo semestre necesitás 80 %. GH te va a escribir.",

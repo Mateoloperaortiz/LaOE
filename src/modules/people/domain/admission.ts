@@ -2,6 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
 import { getEnv } from "@/env";
+import { requirePrivacyPolicyVersion } from "@/modules/system";
 import { getTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
@@ -34,6 +35,7 @@ export async function admitPerson(
   personId: string,
   input: AdmitInput,
 ): Promise<{ membershipId: string }> {
+  await requirePrivacyPolicyVersion(ctx, "admin");
   const [who] = await ctx.tx.select().from(person).where(eq(person.id, personId)).for("update");
   if (!who) {
     throw new DomainError(t("T-032"));

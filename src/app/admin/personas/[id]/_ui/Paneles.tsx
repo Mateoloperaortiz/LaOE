@@ -8,6 +8,7 @@ import {
   type TagRow,
 } from "@/modules/people";
 import { STATUS_CODES, statusLabel } from "@/modules/people/admin";
+import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import type { TermRow } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
 import { t, tList } from "@/shared/copy";
@@ -42,6 +43,7 @@ type Props = {
   note: InteractionView | null;
   closeHref: string;
   error: string;
+  policyReady: boolean;
 };
 
 const MAX_ROWS = 3;
@@ -50,14 +52,20 @@ function Botones({
   enviar,
   cancelHref,
   calido = false,
+  disabled = false,
 }: {
   enviar: string;
   cancelHref: string;
   calido?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <div className="mt-2 flex items-center gap-3">
-      <button type="submit" className={calido ? "boton-calido" : "boton-primario"}>
+      <button
+        type="submit"
+        className={calido ? "boton-calido" : "boton-primario"}
+        disabled={disabled}
+      >
         {enviar}
       </button>
       <Link href={cancelHref} className="boton-secundario">
@@ -81,6 +89,7 @@ export function Paneles({
   note,
   closeHref,
   error,
+  policyReady,
 }: Props) {
   const { person, membership } = data;
   const acciones = tList("T-433");
@@ -227,8 +236,19 @@ export function Paneles({
               ))}
             </select>
           </Campo>
-          <Casilla id="campo-memorialConsent" name="memorialConsent" label={galeria} />
-          <Casilla id="campo-contactConsent" name="contactConsent" label={contacto} />
+          <Casilla
+            id="campo-memorialConsent"
+            name="memorialConsent"
+            label={galeria}
+            disabled={!policyReady}
+          />
+          <Casilla
+            id="campo-contactConsent"
+            name="contactConsent"
+            label={contacto}
+            disabled={!policyReady}
+          />
+          {!policyReady ? <PrivacyPolicyNotice admin /> : null}
           <Campo id="campo-personalEmail-baja" label={campos[5] ?? ""}>
             <input
               id="campo-personalEmail-baja"
@@ -293,6 +313,7 @@ export function Paneles({
     return (
       <ResourcePanel title={t("T-983")} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
+        {!policyReady ? <PrivacyPolicyNotice admin /> : null}
         <form action={admitAction} className="flex flex-col gap-4">
           {hidden}
           <input type="hidden" name="termId" value={term?.id ?? ""} />
@@ -322,7 +343,7 @@ export function Paneles({
               ))}
             </select>
           </Campo>
-          <Botones enviar={t("T-983")} cancelHref={closeHref} calido />
+          <Botones enviar={t("T-983")} cancelHref={closeHref} calido disabled={!policyReady} />
         </form>
       </ResourcePanel>
     );

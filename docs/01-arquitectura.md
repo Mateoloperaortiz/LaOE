@@ -85,8 +85,9 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzl
 | Pieza | Configuración |
 | --- | --- |
 | Proyecto | `casa-digital`, nuevo, en el workspace Pro existente; región `us-east4-eqdc4a`; IaC en `.railway/railway.ts` (ADR-039) |
-| Servicio `web` | Node 24, una réplica, `PORT=8080`, build/start y pre-deploy `npm run db:release`; `/api/health` con timeout 300 s; límite 1 vCPU/1 GB, sin sleep; CI antes del despliegue |
+| Servicio `web` | Node 24, una réplica, `PORT=8080`, build/start y pre-deploy `npm run db:release` sin `.env` local ni seed; `/api/health` con timeout 300 s; límite 1 vCPU/1 GB, sin sleep; CI antes del despliegue |
 | Servicio `Postgres` | PostgreSQL 18 en red privada, límite 1 vCPU/1 GB; volumen y respaldo diario/semanal/mensual más PITR verificados en F7-T2/T4 |
+| Bucket `Postgres-PITR` | Creado al habilitar PITR antes del primer apply completo y adoptado por nombre en IaC; nunca omitirlo ni aplicar un plan que lo borre |
 | Bucket `media` | Privado por entorno, virtual-hosted (`S3_FORCE_PATH_STYLE=false`); CSP con origen efectivo del bucket; CORS mediante `storage:init` |
 | Variables | `DATABASE_URL` y bucket por referencia; secretos por entorno; `TZ=UTC`, `APP_TIMEZONE=America/Bogota`, `JOBS_ENABLED=true`; `PUBLIC_INDEXING` false staging/true production; Resend solo producción, AWS ausente |
 | Worker | Poller y scheduler en el proceso web; worker separado solo con uso medido |

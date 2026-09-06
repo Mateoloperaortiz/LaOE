@@ -9,7 +9,7 @@ import {
   getPeopleByIds,
   recordConsent,
 } from "@/modules/people";
-import { requireConfig } from "@/modules/system";
+import { PrivacyPolicyPendingError, requirePrivacyPolicyVersion } from "@/modules/system";
 import { logger } from "@/shared/log";
 import { editionRegistration, form, formSubmission } from "../schema";
 import type { FormView, PublicForm } from "./forms";
@@ -50,9 +50,16 @@ export async function createSubmission(
   ctx: CommandContext,
   input: CreateSubmissionInput,
 ): Promise<{ id: string; registered: boolean }> {
-  const policyVersion = input.consentAcceptedAt
-    ? await requireConfig("privacy.policyVersion")
-    : null;
+  const [currentForm] = await ctx.tx
+    .select({ consentRequired: form.consentRequired })
+    .from(form)
+    .where(eq(form.id, input.form.id))
+    .for("share");
+  const approvedVersion =
+    currentForm?.consentRequired || input.consentAcceptedAt
+      ? await requirePrivacyPolicyVersion(ctx)
+      : null;
+  const policyVersion = input.consentAcceptedAt ? approvedVersion : null;
   const [row] = await ctx.tx
     .insert(formSubmission)
     .values({
@@ -143,7 +150,14 @@ export type SubmitResult =
   | { ok: true; submissionId: string | null; registered: boolean; honeypot: boolean }
   | {
       ok: false;
-      code: "CLOSED" | "FULL" | "DUPLICATE" | "RATE_LIMITED" | "CONSENT" | "INVALID";
+      code:
+        | "CLOSED"
+        | "FULL"
+        | "DUPLICATE"
+        | "RATE_LIMITED"
+        | "CONSENT"
+        | "INVALID"
+        | "POLICY_PENDING";
       errors: Record<string, string>;
     };
 
@@ -262,6 +276,12 @@ export async function submitFormAs(
       userAgent: input.userAgent ?? null,
     });
     return { ok: true, submissionId: created.id, registered: created.registered, honeypot: false };
+  }).catch((error: unknown): SubmitResult => {
+    // Fuera de runCommand: la persona y todos los efectos anteriores también se revierten.
+    if (error instanceof PrivacyPolicyPendingError) {
+      return { ok: false, code: "POLICY_PENDING", errors: {} };
+    }
+    throw error;
   });
 }
 

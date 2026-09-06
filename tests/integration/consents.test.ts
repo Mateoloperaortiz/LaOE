@@ -45,7 +45,7 @@ describe("consentimientos", () => {
     );
     const states = await listConsents(personId);
     const photo = states.find((item) => item.purpose === "DIRECTORY_PHOTO");
-    expect(photo?.live?.policyVersion).toBe("pendiente");
+    expect(photo?.live?.policyVersion).toBe("prueba-v1");
     expect(photo?.history).toHaveLength(2);
     expect(states).toHaveLength(5);
 

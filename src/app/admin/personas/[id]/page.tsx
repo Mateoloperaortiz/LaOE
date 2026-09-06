@@ -27,7 +27,7 @@ import {
   listCommitteeRoles,
   listPersonTags,
 } from "@/modules/people";
-import { getConfig } from "@/modules/system";
+import { getConfig, getPrivacyPolicyState } from "@/modules/system";
 import { listAllTerms } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { Cabecera } from "./_ui/Cabecera";
@@ -109,6 +109,7 @@ export default async function PersonaPage({
     allTags,
     openTasks,
     lastContact,
+    policy,
   ] = await Promise.all([
     getMyMembership(id),
     listPermissionsFor(id),
@@ -125,6 +126,7 @@ export default async function PersonaPage({
     listAllTags(),
     countOpenTasksFor(id),
     latestContact(id),
+    getPrivacyPolicyState(),
   ]);
   const interactions =
     tab === "linea"
@@ -273,7 +275,9 @@ export default async function PersonaPage({
       content = <TabTareas personId={id} tasks={tasks} />;
       break;
     case "datos":
-      content = <TabDatos data={data} deletionDays={deletionDays ?? 15} />;
+      content = (
+        <TabDatos data={data} deletionDays={deletionDays ?? 15} policyReady={policy.ready} />
+      );
       break;
     default:
       content = <p className="text-tinta-suave">{t("T-240")}</p>;
@@ -317,6 +321,7 @@ export default async function PersonaPage({
           note={note}
           closeHref={closeHref}
           error={error}
+          policyReady={policy.ready}
         />
       ) : null}
     </div>

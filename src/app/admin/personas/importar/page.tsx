@@ -11,6 +11,8 @@ import {
 } from "@/modules/people";
 import { statusLabel } from "@/modules/people/admin";
 import { RosterUploader } from "@/modules/people/components/RosterUploader";
+import { getPrivacyPolicyState } from "@/modules/system";
+import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { BarraTitulo, Insignia, Numeral } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
@@ -167,7 +169,15 @@ function Grupo({
   );
 }
 
-function Revision({ preview, error }: { preview: RosterPreview; error: string }) {
+function Revision({
+  preview,
+  error,
+  policyReady,
+}: {
+  preview: RosterPreview;
+  error: string;
+  policyReady: boolean;
+}) {
   const grupos = tList("T-482");
   const [, , aplicar, descartar] = tList("T-479") as [string, string, string, string];
   const byGroup = (group: PreviewRow["group"]) => preview.rows.filter((row) => row.group === group);
@@ -236,7 +246,7 @@ function Revision({ preview, error }: { preview: RosterPreview; error: string })
         ) : null}
         <div className="flex flex-wrap gap-3">
           {canApply ? (
-            <button type="submit" className="boton-calido">
+            <button type="submit" className="boton-calido" disabled={!policyReady}>
               {aplicar}
             </button>
           ) : null}
@@ -294,6 +304,7 @@ export default async function ImportarPage({
   const params: Search = await searchParams;
   const jobId = single(params.job);
   const error = single(params.error);
+  const policy = await getPrivacyPolicyState();
   const pasos = tList("T-475");
   const [subir] = tList("T-479") as [string, string, string, string];
   const [, , , estados] = [null, null, null, tList("T-493")];
@@ -327,7 +338,7 @@ export default async function ImportarPage({
       preview.status === "APPLIED" ? (
         <Aplicada preview={preview} />
       ) : preview.status === "PREVIEW" ? (
-        <Revision preview={preview} error={error} />
+        <Revision preview={preview} error={error} policyReady={policy.ready} />
       ) : (
         <p className="text-tinta-suave">{estados[2]}</p>
       );
@@ -336,6 +347,7 @@ export default async function ImportarPage({
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-display-lg">{importar}</h1>
+      {!policy.ready ? <PrivacyPolicyNotice admin /> : null}
       <ol className="flex list-none flex-wrap gap-2 p-0">
         {pasos.map((paso, index) => (
           <li key={paso}>

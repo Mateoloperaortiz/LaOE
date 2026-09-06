@@ -6,7 +6,7 @@ Regla vigente: [ADR-039](adr/ADR-039-arranque-limpio-fase-7.md). Preparado el 20
 
 Raíz del repo: `/Users/mateo/Documents/GitHub/LaOE/casa-digital`. Repo anterior: `/Users/mateo/Documents/GitHub/GHPOINTS`.
 
-Proyecto nuevo `casa-digital`, región `us-east4-eqdc4a`. Solo `staging` y `production`; `web` y `Postgres` con una réplica y límites de 1 vCPU/1 GB. Dominio personalizado omitido del IaC hasta T6. `db:release` aplica migraciones y verifica esquema; nunca usar seed o migradores GHPOINTS en producción.
+Proyecto nuevo `casa-digital`, región `us-east4-eqdc4a`. Solo `staging` y `production`; `web` y `Postgres` con una réplica y límites de 1 vCPU/1 GB. Dominio personalizado omitido del IaC hasta T6. `db:release` aplica migraciones y verifica esquema sin cargar `.env` local; `db:migrate` sí admite `.env` para uso local; nunca usar seed o migradores GHPOINTS en producción.
 
 | Variable / recurso | Staging | Producción |
 | --- | --- | --- |
@@ -21,16 +21,16 @@ Proyecto nuevo `casa-digital`, región `us-east4-eqdc4a`. Solo `staging` y `prod
 | `DATABASE_URL`, `S3_*` | Referencias a Postgres/bucket de staging | Referencias a Postgres/bucket de production |
 | `S3_FORCE_PATH_STYLE` | `false` | `false` |
 | `SESSION_SECRET`, `VAPID_*` | Propios de staging | Propios de production |
-| `VAPID_SUBJECT` | Correo real de contacto | Correo real de contacto |
+| `VAPID_SUBJECT` | `https://oeeafit.com` (URL de contacto Web Push) | `https://oeeafit.com` (URL de contacto Web Push) |
 | `backup` | No existe | Cron mensual, referencias DB/bucket y secretos R2/age |
 
-Antes de crear recursos, comprobar tope duro US$20 y alerta US$15. No aumentar automáticamente. Usar `.railway/railway.ts`, revisar `railway config plan` y aplicar solo el proyecto/entorno confirmado. Aprovisionar secretos y referencias en el orden que permita un primer arranque válido; `preserve()` conserva valores, no los inventa.
+Antes de crear recursos, comprobar tope duro US$20 y alerta US$15. No aumentar automáticamente. Usar `.railway/railway.ts`, revisar `railway config plan` y aplicar solo el proyecto/entorno confirmado. El IaC declara también `Postgres-PITR` en ambos entornos: omitirlo hace que un apply posterior proponga borrar el archivo de recuperación. Antes de cada apply, exigir cero borrados de recursos/archivos; si el plan elimina ese bucket, detenerse y corregir su adopción. El SDK 3.11 no ofrece una propiedad PITR ni una exclusión de recursos; no precrear el bucket vacío porque el comando de habilitación usa una plantilla y no garantiza reutilizarlo. Aprovisionar secretos y referencias en el orden que permita un primer arranque válido; `preserve()` conserva valores, no los inventa.
 
-Cada tramo de código cierra con `npm run check`, `npm run test:e2e` cuando corresponda, commit convencional y push. No ejecutar check/build con `next dev` usando el mismo `.next`. Promoción: verificar CI y staging antes de `git -c 'credential.helper=!gh auth git-credential' push origin main:production`. Registrar SHA promovido y SHA del healthcheck. La promoción no se ejecuta dentro de la ventana del dominio.
+Cada tramo de código cierra con `npm run check`, `npm run test:e2e` cuando corresponda, commit convencional y push. No ejecutar check/build con `next dev` usando el mismo `.next`. El e2e en modo CI corre contra build y `next start`; `NODE_ENV=test` se usa únicamente en ese entorno de pruebas para su OTP fijo. Producción sigue rechazando OTP fijo. La CSP activa `upgrade-insecure-requests` cuando `APP_URL` usa HTTPS; se conserva en los dominios publicados. Promoción: verificar CI y staging antes de `git -c 'credential.helper=!gh auth git-credential' push origin main:production`. Registrar SHA promovido y SHA del healthcheck. La promoción no se ejecuta dentro de la ventana del dominio.
 
 ## T2 y T3: staging y claves
 
-1. Confirmar acceso de Railway al repo privado, presupuesto y proyecto/entorno de destino. Aplicar el IaC de staging y generar su dominio de Railway; completar `APP_URL`.
+1. Confirmar acceso de Railway al repo privado, presupuesto y proyecto/entorno de destino. En un entorno nuevo, aprovisionar primero Postgres con su región/límites, habilitar PITR y comprobar el bucket `Postgres-PITR` que crea Railway. Solo después aplicar el IaC completo que adopta ese bucket por nombre, y generar el dominio web de Railway; completar `APP_URL`.
 2. Configurar secretos de staging y claves VAPID propias. `OTP_FIXED_CODE` debe estar ausente en el servicio; se lee el OTP real de consola en los logs para la cuenta sintética.
 3. Aplicar CORS con `railway run --no-local -p <project-id> -s web -e staging -- node --import tsx scripts/storage-init.ts`. No agregar `--env-file`; evitar que `.env` local sobreescriba el entorno remoto.
 4. Abrir túnel al Postgres correcto y sembrar únicamente staging con datos sintéticos. `railway run --no-local -p <project-id> -s web -e <entorno>` ejecuta un proceso **local** con variables remotas; las direcciones privadas no son accesibles desde la estación. Reemplazar `DATABASE_URL` por la URL local que imprime el túnel. `NODE_ENV=development` solo se usa en el proceso local del seed sintético, nunca para bootstrap ni para la app desplegada.
@@ -43,7 +43,7 @@ Túnel de referencia: `railway connect Postgres --tunnel-only -P 6544` después 
 
 ## T4: producción limpia y primer acceso
 
-1. Aplicar IaC para production: web, Postgres, bucket y backup. Confirmar rama candidata y variables finales. Inspeccionar que no se ejecutó seed y que `person` está vacía.
+1. En production todavía no está creado Postgres: aprovisionarlo primero, verificar región/límites y habilitar PITR antes de aplicar el IaC completo. El plan debe adoptar `Postgres-PITR` creado por Railway, junto con web, Postgres, media y backup. Confirmar rama candidata y variables finales. Inspeccionar que no se ejecutó seed y que `person` está vacía.
 2. Generar dominio temporal de Railway para comprobar health y smoke; no agregar aún oeeafit.com al IaC. Aplicar `storage:init` para `APP_URL=https://oeeafit.com` y verificar PITR/respaldos del Postgres nuevo.
 3. Mateo proporciona fuera del repo un JSON privado con esta estructura; los textos entre corchetes son campos a completar, no datos válidos:
 
@@ -68,7 +68,7 @@ La política y el roster se cargan desde la app: publicar primero `/privacidad`,
 
 ## Backup y restauración
 
-Servicio `backup` solo en producción, imagen `docker/backup/Dockerfile` con PostgreSQL 18, Bash, age, rclone y zstd. Cron UTC `0 8 1 * *` (03:00 de Bogotá del día 1). Variables: referencias `DATABASE_URL` y `S3_*`, más `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `AGE_RECIPIENT`, `TZ=UTC`. La privada age nunca se carga en Railway.
+Servicio `backup` solo en producción, imagen `docker/backup/Dockerfile` con PostgreSQL 18, Bash, age, rclone y zstd. Cron UTC `0 8 1 * *` (03:00 de Bogotá del día 1). Variables: referencias `DATABASE_URL` y `S3_*`, más `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `AGE_RECIPIENT`, `TZ=UTC`. La privada age nunca se carga en Railway. Estado al 2026-09-06: creada y guardada solo para Mateo en `/Users/mateo/.codex/private/casa-digital/backup.agekey`; falta guardarla también en 1Password. El destinatario público `AGE_RECIPIENT` ya está configurado para backup de producción, todavía sin despliegue. El archivo operativo `production.json` permanece privado porque contiene secretos; nunca copiar su contenido al repo o al runbook.
 
 Corrida manual desde el despliegue existente:
 
@@ -125,4 +125,21 @@ Durante 7 días desde T6: salud/smoke, logs del web, outbox y dead letters, mens
 | 2026-09-06 | T2 parcial | Proyecto `000919ed-7a92-44d3-9987-5d749b245bba` | Proyecto casa-digital creado; production `6020f730-c245-4f01-bc4e-66c0223a436c`, staging `41f59e9b-3988-4d5a-9e98-4c9ccf8285eb` | Proyecto vacío, sin servicios todavía al registrar esta fila; T2 no completado |
 | 2026-09-06 14:46 America/Bogota | T0 | Repositorio local | `npm run check` completo | Exit 0: 164 unitarias, integración y build en verde; T0 listo, T1 pendiente de e2e |
 | 2026-09-06 | T3 parcial | Cloudflare R2, sesión Chrome | Acceso a cuenta y pantalla de activación | Formulario obligatorio de facturación pendiente de Mateo; bucket no creado |
-| — | T2–T8 restantes | — | Pendiente de ejecución | Servicios, dominios, respaldo, OTP y push todavía no acreditados |
+| 2026-09-06 14:48 America/Bogota | T2 parcial | Staging `41f59e9b-3988-4d5a-9e98-4c9ccf8285eb` | IaC aplicado; secretos propios de staging cargados antes del despliegue | Web en `WAITING` por `checkSuites`; todavía no se acredita arranque o smoke |
+| 2026-09-06 14:48 America/Bogota | T2 parcial | Servicio Postgres `552a0ebc-7194-474f-8bea-6d32f72065f9`; bucket `9c34e29a-4df0-48c1-8ee6-3e4a6c51406f` | Recursos de staging creados mediante IaC | Postgres `SUCCESS`; bucket creado. CORS, seed, PITR/respaldos y prueba de medios siguen pendientes |
+| 2026-09-06 14:48 America/Bogota | T2 parcial | Railway GitHub App / repo LaOE | Conexión al repositorio confirmada por deployment creado mediante IaC | No hace falta otra instalación/configuración de la GitHub App; web espera los checks del repo |
+| 2026-09-06 14:48 America/Bogota | T3 parcial | [Resend, uso del equipo eafit](https://resend.com/settings/usage) | Plan y límites consultados en dashboard | Free: 100 diarios, 3000 mensuales, 10 solicitudes/s; uso 0 hoy y 43 en el mes. No se creó todavía la nueva API key |
+| 2026-09-06 14:55 America/Bogota | T1 local | Repositorio local | `npm run check` final completo | Exit 0: 164 unitarias, 181 de integración y build en verde; CI remoto pendiente |
+| 2026-09-06 | T1 local | E2E Playwright | Suite completa y corrección de selectores | 77 casos pasaron y 1 falló por selector; tras corregir 3 selectores, targeted con 4 casos en verde (2 setup + 2 privacidad). No se declara una segunda suite completa |
+| 2026-09-06 | T1 local | Harness Docker de backup | Dos corridas completas del harness | En verde con fallos simulados, retención, exclusión de concurrencia y restauración de DB+objeto sintético; no acredita todavía una copia en R2 |
+| 2026-09-06 | T3/T4 parcial | Web de producción, sin despliegue | SESSION_SECRET, VAPID y clave nueva Resend creados/cargados | Clave Resend limitada al dominio y solo envío; no se imprimen secretos. Bootstrap/OTP real siguen pendientes |
+| 2026-09-06 | T3 parcial | Archivo privado age y variables de backup production | Privada guardada fuera del repo y destinatario público configurado | Privada solo con Mateo; falta copia en 1Password. Backup production aún no desplegado |
+| 2026-09-06 | T2 parcial | [Origen staging](https://web-staging-53f6.up.railway.app), bucket `https://media-ugkzcqqc562pimqbxku.t3.storageapi.dev` | CORS staging aplicado y consultado | Origen de staging permitido; queda probar subida real del navegador y CSP del web desplegado |
+| 2026-09-06 19:55:11 UTC | T2 parcial | Postgres staging, deploy `6301c117-19d7-4060-b3af-d3d8e6a76a7b` | Corrección de región/límites y migración automática del volumen | `SUCCESS`: PG18, us-east4-eqdc4a, 1 CPU/1000000000 bytes y 1/1 running. Volumen `0a54b097-148c-4f87-934c-555b4fb47821`, instancia `95b0040c-09ce-413d-8a9f-26ed869e305f` READY; capacidad 50000 MB, uso 843.67 MB |
+| 2026-09-06 19:55:50–19:56:32 UTC | T2 parcial | Postgres staging, deploy PITR `e706ddf8-f581-4d1d-aa85-2542c88d99be` | PITR habilitado y comprobado mediante configuración/logs | Deploy `SUCCESS`, enabled/bucketWired true; full de 30 MB `20260906-195551F`, WAL 1/2 archivados y anchor emitido. CLI live no disponible sin claves SSH; restauración remota aún no probada |
+| 2026-09-06 19:56:06 UTC | T2 parcial | Respaldos de volumen Postgres staging | Schedule diario/semanal/mensual aplicado y releído | DAILY `52 1 * * *`, retención 518400 s; WEEKLY `0 9 * * 6`, 2332800 s; MONTHLY `21 4 1 * *`, 7689600 s. Lista de snapshots todavía vacía al comprobar |
+| 2026-09-06 | T1/T2 | IaC y `Postgres-PITR` | Bucket declarado/adoptado en ambos entornos; plan de staging revisado | Plan sin adds/deletes/destructive; solo dos campos seguros del web. Apply del coordinador a las 15:04 de Bogotá actualizó defaults del web sin cambiar Postgres. Persisten solo dos diferencias de normalización de defaults (restart ON_FAILURE/sleep false); no repetir apply por ellas. Production no tiene todavía Postgres ni PITR |
+| 2026-09-06 | T1 local | Suite e2e final contra build/start, `CI=true` | Ejecución completa definitiva | **78 passed en 58 segundos, sin reintentos**. Selectores y pruebas de cierre esperan navegación/reinicio del formulario; fixtures aisladas evitan carreras |
+| 2026-09-06 | T3 parcial | GitHub ruleset `22401532` | Protección de production activada | Reglas de borrado y non-fast-forward equivalentes a main; la rama production se fija al SHA validado en staging, todavía pendiente |
+| 2026-09-06 15:05 America/Bogota | T1 local | Repositorio local, validación final | `npm run check` completo tras todos los cambios | Exit 0 confirmado: 164 unitarias, 181 integración y build; e2e definitivo 78/78 en 58 s sin reintentos. CI remoto pendiente |
+| — | T2–T8 restantes | — | Pendiente de ejecución | Arranque web, seed, restauración remota/PITR, Postgres production, dominio final, R2, bootstrap real, OTP y push todavía pendientes |

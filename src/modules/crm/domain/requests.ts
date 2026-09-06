@@ -12,7 +12,7 @@ import {
   listCommitteesByIds,
   setCommitteeMemberships,
 } from "@/modules/people";
-import { requireConfig } from "@/modules/system";
+import { requireConfig, requirePrivacyPolicyVersion } from "@/modules/system";
 import { ensureNextTerm, getCurrentTerm, type TermRow } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
@@ -209,6 +209,12 @@ export async function createRequestAs(
   }
   const kindLabel = requestKindLabel(kind);
   return runCommand(actor, async (ctx) => {
+    if (kind === "RESIGNATION") {
+      const resignation = REQUEST_PAYLOAD_SCHEMAS.RESIGNATION.parse(payload);
+      if (resignation.memorialConsent || resignation.contactConsent) {
+        await requirePrivacyPolicyVersion(ctx);
+      }
+    }
     const [created] = await ctx.tx
       .insert(request)
       .values({ personId: actor.personId, kind, termId: term.id, payload })

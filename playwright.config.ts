@@ -24,9 +24,11 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] }, dependencies: ["setup"] },
   ],
   webServer: {
-    command: "npm run dev",
+    // CI prueba rutas ya compiladas; solo el proceso de pruebas admite el OTP fijo.
+    command: process.env.CI ? "npm run start" : "npm run dev",
+    ...(process.env.CI ? { env: { NODE_ENV: "test" } } : {}),
     url: "http://localhost:3000/api/health",
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 });

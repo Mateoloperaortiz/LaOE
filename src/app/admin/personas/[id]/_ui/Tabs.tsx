@@ -5,6 +5,7 @@ import type { InteractionView, TaskRow } from "@/modules/crm";
 import type { ActorPermission } from "@/modules/identity";
 import type { MyMembershipView, Person360 } from "@/modules/people";
 import { statusLabel } from "@/modules/people/admin";
+import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, formatDateTime } from "@/shared/lib/dates";
@@ -426,7 +427,15 @@ export function TabTareas({ personId, tasks }: { personId: string; tasks: TaskRo
   );
 }
 
-export function TabDatos({ data, deletionDays }: { data: Person360; deletionDays: number }) {
+export function TabDatos({
+  data,
+  deletionDays,
+  policyReady,
+}: {
+  data: Person360;
+  deletionDays: number;
+  policyReady: boolean;
+}) {
   const [datos, consentimientos, eliminacion] = tList("T-502") as [string, string, string, string];
   const campos = tList("T-427");
   const [estudiante, externo] = tList("T-428") as [string, string];
@@ -459,6 +468,7 @@ export function TabDatos({ data, deletionDays }: { data: Person360; deletionDays
         </dl>
       </Bloque>
       <Bloque titulo={consentimientos}>
+        {!policyReady ? <PrivacyPolicyNotice admin /> : null}
         <ul className="flex list-none flex-col gap-3 p-0">
           {data.consents.map((item, index) => {
             const code = CONSENT_TEXTS[index] ?? "T-150";
@@ -485,7 +495,11 @@ export function TabDatos({ data, deletionDays }: { data: Person360; deletionDays
                       <input type="hidden" name="personId" value={person.id} />
                       <input type="hidden" name="purpose" value={item.purpose} />
                       <input type="hidden" name="intent" value={item.live ? "revoke" : "grant"} />
-                      <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-xs">
+                      <button
+                        type="submit"
+                        className="boton-secundario min-h-8 px-3 py-1 text-xs"
+                        disabled={!item.live && !policyReady}
+                      >
                         {item.live ? retirar : registrar}
                       </button>
                     </form>

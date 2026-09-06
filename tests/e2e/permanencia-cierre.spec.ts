@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { person } from "@/modules/people/schema";
+import { committeeMembership, membership, person } from "@/modules/people/schema";
 import { applyDecisions, recomputeSnapshots } from "@/modules/permanence";
+import { permanenceDecision, permanenceSnapshot } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
 import { E2E_CLOSING_EMAIL, E2E_PERMANENCE_TERM } from "./global-setup";
@@ -31,6 +32,24 @@ test.beforeAll(async () => {
   termId = row.id;
   nextTermId = next.id;
   personId = disposable.id;
+  // Un retry empieza con el término y la persona sintéticos abiertos, aunque el intento previo
+  // haya alcanzado a aplicar la baja antes de fallar una aserción posterior.
+  await db.transaction(async (tx) => {
+    await tx.update(term).set({ permanenceClosedAt: null }).where(eq(term.id, termId));
+    await tx.delete(permanenceDecision).where(eq(permanenceDecision.termId, termId));
+    await tx.delete(permanenceSnapshot).where(eq(permanenceSnapshot.termId, termId));
+    await tx.update(person).set({ stage: "MEMBER" }).where(eq(person.id, personId));
+    await tx
+      .update(membership)
+      .set({ status: "ACTIVE", endedAt: null, endReason: null, lastTermId: null })
+      .where(eq(membership.personId, personId));
+    await tx
+      .update(committeeMembership)
+      .set({ leftAt: null })
+      .where(
+        and(eq(committeeMembership.personId, personId), eq(committeeMembership.termId, termId)),
+      );
+  });
   await recomputeSnapshots(termId);
   await closeDb();
 });
@@ -50,14 +69,32 @@ test("GH cambia una propuesta con motivo, aplica el cierre con step-up y la deci
   await panel.getByLabel(/^Decisión · (?!Cierre E2E)/).selectOption("PROBATION");
   await panel.getByRole("button", { name: "Confirmar propuesta" }).click();
   await expect(page.getByText("Cambiar la propuesta exige un motivo.").first()).toBeVisible();
-  await page.getByRole("complementary").getByLabel("Motivo").fill("e2e: se queda en prueba");
-  await page
-    .getByRole("complementary")
-    .getByRole("button", { name: "Confirmar propuesta" })
-    .click();
+  await page.waitForURL((url) => url.searchParams.has("error"));
+  // La validación redirige y reinicia los controles no gestionados por React. Abrimos el documento
+  // ya redirigido antes de editar: un mensaje visible aún puede preceder al reset del formulario.
+  await page.reload();
+  const correccion = page.getByRole("complementary");
+  const decision = correccion.getByLabel(/^Decisión · (?!Cierre E2E)/);
+  const motivo = correccion.getByLabel("Motivo");
+  await decision.selectOption("PROBATION");
+  await motivo.fill("e2e: se queda en prueba");
+  await expect(decision).toHaveValue("PROBATION");
+  await expect(motivo).toHaveValue("e2e: se queda en prueba");
+  await correccion.getByRole("button", { name: "Confirmar propuesta" }).click();
   await expect(page.getByText("Guardado.")).toBeVisible();
   await expect(page.getByText(/Confirmada por .* el /)).toBeVisible();
   await expect(page.getByRole("link", { name: "Confirmar todas las propuestas" })).toHaveCount(0);
+  const decisions = await getDb()
+    .select({ decision: permanenceDecision.decision, reason: permanenceDecision.reason })
+    .from(permanenceDecision)
+    .where(and(eq(permanenceDecision.termId, termId), eq(permanenceDecision.personId, personId)));
+  expect(decisions).toEqual(
+    expect.arrayContaining([
+      { decision: "PROBATION", reason: "e2e: se queda en prueba" },
+      { decision: "EXIT_OE", reason: "e2e: se queda en prueba" },
+    ]),
+  );
+  await closeDb();
 
   // Aplicar: el panel resume las salidas y el cierre queda estampado; el job aplica las decisiones.
   await page.getByRole("link", { name: "Aplicar cierre" }).click();

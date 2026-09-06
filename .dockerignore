@@ -1,0 +1,13 @@
+.git
+node_modules
+.next
+coverage
+test-results
+playwright-report
+.env
+.env.*
+**/*.dump
+**/*.age
+**/*.pem
+**/*.key
+**/age-key.txt

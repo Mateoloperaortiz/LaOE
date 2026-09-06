@@ -14,6 +14,7 @@ import {
   setOwnPhotoAs,
   updateOwnContactAs,
 } from "@/modules/people";
+import { PrivacyPolicyPendingError } from "@/modules/system";
 import { DomainError } from "@/shared/admin-kit";
 import { clientIp } from "@/shared/lib/request";
 
@@ -102,12 +103,19 @@ export async function consentAction(formData: FormData): Promise<void> {
     back("consentimientos");
   }
   if (parsed.data.intent === "grant") {
-    await recordConsentAs(
-      { personId: actor.personId, ip: await clientIp() },
-      actor.personId,
-      parsed.data.purpose,
-      "SELF",
-    );
+    try {
+      await recordConsentAs(
+        { personId: actor.personId, ip: await clientIp() },
+        actor.personId,
+        parsed.data.purpose,
+        "SELF",
+      );
+    } catch (error) {
+      if (error instanceof PrivacyPolicyPendingError) {
+        back("consentimientos", { error: "policy-pending" });
+      }
+      throw error;
+    }
   } else {
     await revokeConsentAs(actor, actor.personId, parsed.data.purpose);
   }
