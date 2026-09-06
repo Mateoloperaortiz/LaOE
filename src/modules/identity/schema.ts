@@ -86,3 +86,22 @@ export const permission = pgTable(
     ),
   ],
 );
+
+// Token del calendario personal (ADR-038 regla 12): capacidad de solo lectura sobre la agenda propia,
+// en claro para que Ajustes muestre siempre la URL; regenerarlo invalida el anterior.
+export const calendarToken = pgTable(
+  "calendar_token",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    token: text().notNull(),
+    createdAt: createdAt(),
+    lastUsedAt: timestampTz(),
+  },
+  (t) => [
+    uniqueIndex("calendar_token_person_unique").on(t.personId),
+    uniqueIndex("calendar_token_token_unique").on(t.token),
+  ],
+);

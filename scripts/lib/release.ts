@@ -68,6 +68,17 @@ const REQUIRED_INDEXES = [
   "card_submission_unique",
   "request_pending_unique",
   "internal_call_entry_unique",
+  // Fase 6 (ADR-038)
+  "message_person_dedupe_unique",
+  "push_subscription_endpoint_unique",
+  "notification_preference_person_unique",
+  "notification_preference_token_unique",
+  "email_template_slug_unique",
+  "campaign_recipient_unique",
+  "occasion_survey_invite_unique",
+  "occasion_survey_invite_token_unique",
+  "calendar_token_person_unique",
+  "calendar_token_token_unique",
 ];
 
 const REQUIRED_EXTENSIONS = ["pg_trgm"];

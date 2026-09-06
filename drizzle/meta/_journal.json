@@ -57,6 +57,13 @@
       "when": 1788590272829,
       "tag": "0007_admision_aliados_y_contactos",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788659854804,
+      "tag": "0008_comunicaciones_y_pwa",
+      "breakpoints": true
     }
   ]
 }

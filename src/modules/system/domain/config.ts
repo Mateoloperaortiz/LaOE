@@ -41,6 +41,14 @@ export const CONFIG = {
     closesMinutesAfter: z.number().int().min(0),
   }),
   "occasions.autoCloseHours": z.number().int().min(1),
+  // Fase 6 (ADR-038): lotes de campañas, horas de los recordatorios y encuesta tras la ocasión.
+  "campaigns.perMinute": z.number().int().min(1).max(200),
+  "reminders.hours": z.object({
+    today: z.number().int().min(0).max(23),
+    eve: z.number().int().min(0).max(23),
+  }),
+  "survey.defaultFormId": z.string().min(1).nullable(),
+  "survey.windowDays": z.number().int().min(1),
   "backup.lastRunAt": z.string().datetime({ offset: true }).nullable(),
   "backup.status": z
     .object({

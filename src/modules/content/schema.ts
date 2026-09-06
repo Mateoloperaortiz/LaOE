@@ -68,7 +68,10 @@ export const announcement = pgTable(
     committeeId: text().references(() => committee.id), // cartelera interna de un comité (ADR-036)
     publishedAt: timestampTz(),
     pinned: boolean().notNull().default(false),
-    pushSentAt: timestampTz(), // fase 6
+    // Push del anuncio (ADR-038 regla 6): se pide una vez desde el admin; comms estampa el envío.
+    pushRequestedAt: timestampTz(),
+    pushSentAt: timestampTz(),
+    pushCount: integer().notNull().default(0),
     createdById: text().references(() => person.id, { onDelete: "set null" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

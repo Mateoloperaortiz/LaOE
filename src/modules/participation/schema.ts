@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { eventEdition } from "@/modules/events/schema";
+import { form } from "@/modules/forms/schema";
 import { committee, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 
@@ -75,6 +76,8 @@ export const occasion = pgTable(
     rotatingSecret: text(),
     committeeId: text().references(() => committee.id),
     editionId: text().references(() => eventEdition.id, { onDelete: "set null" }),
+    // Encuesta al cerrar (ADR-038 regla 13): un formulario de miembros cuyas preguntas responden los asistentes.
+    surveyFormId: text().references(() => form.id, { onDelete: "set null" }),
     status: occasionStatus().notNull().default("DRAFT"),
     cancelReason: text(),
     closedAt: timestampTz(),
@@ -242,4 +245,41 @@ export const assemblyRequirement = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex("assembly_requirement_unique").on(t.termId, t.personId)],
+);
+
+// Encuesta anónima tras la ocasión (ADR-038 regla 13): la invitación sabe quién puede responder y si
+// respondió; la respuesta no referencia a nadie.
+export const occasionSurveyInvite = pgTable(
+  "occasion_survey_invite",
+  {
+    id: id(),
+    occasionId: text()
+      .notNull()
+      .references(() => occasion.id, { onDelete: "cascade" }),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    tokenHash: text().notNull(),
+    sentAt: timestampTz(),
+    answeredAt: timestampTz(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("occasion_survey_invite_unique").on(t.occasionId, t.personId),
+    uniqueIndex("occasion_survey_invite_token_unique").on(t.tokenHash),
+  ],
+);
+
+export const occasionSurveyResponse = pgTable(
+  "occasion_survey_response",
+  {
+    id: id(),
+    occasionId: text()
+      .notNull()
+      .references(() => occasion.id, { onDelete: "cascade" }),
+    committeeId: text().references(() => committee.id, { onDelete: "set null" }),
+    answers: jsonb().$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    createdAt: createdAt(),
+  },
+  (t) => [index("occasion_survey_response_occasion_idx").on(t.occasionId)],
 );
