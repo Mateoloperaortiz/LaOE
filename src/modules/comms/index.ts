@@ -1,5 +1,30 @@
 // API pública del módulo comms (ADR-015, ADR-023, ADR-038).
 export {
+  type AudienceEstimate,
+  CAMPAIGN_STATUSES,
+  type CampaignInput,
+  type CampaignListRow,
+  type CampaignStatus,
+  campaignInputSchema,
+  cancelCampaignAs,
+  createCampaignAs,
+  estimateAudience,
+  getCampaign,
+  hasPendingRecipients,
+  listActiveCampaigns,
+  listCampaignOptions,
+  listCampaigns,
+  listRecipients,
+  processCampaignBatch,
+  RECIPIENT_STATUSES,
+  type RecipientView,
+  runCampaignTick,
+  SKIP_REASONS,
+  scheduleCampaignAs,
+  startDueCampaigns,
+  updateCampaignAs,
+} from "./domain/campaigns";
+export {
   deleteMessagesFor,
   listMessagesFor,
   type MessageChannel,
@@ -16,6 +41,7 @@ export {
   type PreferencesView,
   preferencesInputSchema,
   unsubscribeByToken,
+  unsubscribeTokenExists,
   updatePreferencesAs,
 } from "./domain/preferences";
 export {
@@ -45,3 +71,25 @@ export {
   subscriptionInputSchema,
   subscriptionSummaryFor,
 } from "./domain/subscriptions";
+export {
+  createTemplate,
+  getTemplate,
+  listTemplateOptions,
+  listTemplates,
+  previewTemplateFor,
+  type RenderedEmail,
+  renderEmail,
+  sendTemplateTestAs,
+  type TemplateInput,
+  type TemplateRow,
+  templateInputSchema,
+  updateTemplate,
+} from "./domain/templates";
+export {
+  campaignEligibility,
+  markdownToMailHtml,
+  markdownToPlain,
+  renderTemplate,
+  TEMPLATE_VARIABLES,
+  type TemplateValues,
+} from "./domain/templates-pure";

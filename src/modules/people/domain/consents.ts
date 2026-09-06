@@ -1,4 +1,4 @@
-import { and, desc, eq, exists, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, exists, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { requireConfig } from "@/modules/system";
@@ -71,6 +71,24 @@ export async function hasLiveConsent(personId: string, purpose: ConsentPurpose):
     )
     .limit(1);
   return row !== undefined;
+}
+
+/** Quiénes, de una lista, tienen vivo el consentimiento del propósito (campañas, ADR-038 regla 8). */
+export async function listLiveConsentHolders(
+  personIds: string[],
+  purpose: ConsentPurpose,
+): Promise<Set<string>> {
+  const ids = [...new Set(personIds)];
+  if (ids.length === 0) {
+    return new Set();
+  }
+  const rows = await getDb()
+    .select({ personId: consent.personId })
+    .from(consent)
+    .where(
+      and(inArray(consent.personId, ids), eq(consent.purpose, purpose), isNull(consent.revokedAt)),
+    );
+  return new Set(rows.map((row) => row.personId));
 }
 
 export interface RecordConsentInput {

@@ -104,6 +104,44 @@ export async function ensurePreferences(
   return row?.token ?? token;
 }
 
+/** Tokens de baja de varias personas de una vez (fan-out de una campaña); crea las filas que faltan. */
+export async function ensurePreferencesFor(personIds: string[]): Promise<Map<string, string>> {
+  const ids = [...new Set(personIds)];
+  const result = new Map<string, string>();
+  if (ids.length === 0) {
+    return result;
+  }
+  const db = getDb();
+  const existing = await db
+    .select({
+      personId: notificationPreference.personId,
+      token: notificationPreference.unsubscribeToken,
+    })
+    .from(notificationPreference)
+    .where(inArray(notificationPreference.personId, ids));
+  for (const row of existing) {
+    result.set(row.personId, row.token);
+  }
+  const missing = ids.filter((id) => !result.has(id));
+  if (missing.length > 0) {
+    await db
+      .insert(notificationPreference)
+      .values(missing.map((personId) => ({ personId, unsubscribeToken: newToken() })))
+      .onConflictDoNothing({ target: notificationPreference.personId });
+    const created = await db
+      .select({
+        personId: notificationPreference.personId,
+        token: notificationPreference.unsubscribeToken,
+      })
+      .from(notificationPreference)
+      .where(inArray(notificationPreference.personId, missing));
+    for (const row of created) {
+      result.set(row.personId, row.token);
+    }
+  }
+  return result;
+}
+
 /** La persona cambia sus propias preferencias (Ajustes). */
 export async function updatePreferencesAs(actor: Actor, input: PreferencesInput): Promise<void> {
   const personId = actor.personId;
@@ -129,6 +167,19 @@ export async function updatePreferencesAs(actor: Actor, input: PreferencesInput)
       after: parsed,
     });
   });
+}
+
+/** ¿Existe el token de baja? Para que la página pública distinga un enlace roto antes de confirmar. */
+export async function unsubscribeTokenExists(token: string): Promise<boolean> {
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) {
+    return false;
+  }
+  const [row] = await getDb()
+    .select({ id: notificationPreference.id })
+    .from(notificationPreference)
+    .where(eq(notificationPreference.unsubscribeToken, token))
+    .limit(1);
+  return row !== undefined;
 }
 
 /** Baja de campañas por el token del pie del correo (sin sesión); devuelve false si no existe. */

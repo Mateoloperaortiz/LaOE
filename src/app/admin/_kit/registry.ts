@@ -1,4 +1,4 @@
-import { messagesResource } from "@/modules/comms/admin";
+import { campaignsResource, messagesResource, templatesResource } from "@/modules/comms/admin";
 import { announcementsResource, pagesResource } from "@/modules/content/admin";
 import {
   callsResource,
@@ -162,6 +162,8 @@ const resources: Record<string, AnyResource> = {
   [assembliesResource.key]: assembliesResource as unknown as AnyResource,
   [aliasesResource.key]: aliasesResource as unknown as AnyResource,
   [messagesResource.key]: messagesResource as unknown as AnyResource,
+  [templatesResource.key]: templatesResource as unknown as AnyResource,
+  [campaignsResource.key]: campaignsResource as unknown as AnyResource,
 };
 
 export function getResource(key: string): AnyResource | null {

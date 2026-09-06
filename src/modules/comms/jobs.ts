@@ -3,6 +3,7 @@ import { getEnv } from "@/env";
 import { registerHandler } from "@/jobs/registry";
 import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
+import { runCampaignTick } from "./domain/campaigns";
 import {
   pushAnnouncement,
   pushCallOpened,
@@ -48,6 +49,17 @@ registerHandler("recognition.granted", async (payload, ctx) => {
   const stats = await pushRecognition(payload);
   ctx.log.info(stats, "push de reconocimiento entregado");
 });
+
+// Campañas (ADR-038 regla 8): el programado `campaigns` encola un tick por minuto; "Enviar ahora"
+// emite `campaign.start` para no esperar al minuto. Los dos corren la misma rutina.
+for (const type of ["comms.campaign-tick", "campaign.start"]) {
+  registerHandler(type, async (_payload, ctx) => {
+    const result = await runCampaignTick();
+    if (result.started > 0 || result.sent > 0) {
+      ctx.log.info(result, "campañas procesadas");
+    }
+  });
+}
 
 const membershipChanged = z.object({
   personId: z.string().min(1),

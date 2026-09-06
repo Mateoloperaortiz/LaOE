@@ -297,3 +297,57 @@ export async function listMembershipStatuses(
     .where(inArray(person.id, ids));
   return new Map(rows.map((row) => [row.id, { fullName: row.fullName ?? "", status: row.status }]));
 }
+
+// Lecturas para comunicaciones (ADR-038 regla 8): a quién y a qué correo escribirle.
+
+export interface MailingRef {
+  id: string;
+  firstName: string;
+  lastName: string;
+  preferredName: string | null;
+  email: string;
+  personalEmail: string | null;
+  stage: (typeof person.$inferSelect)["stage"];
+  /** Nulo cuando la persona nunca tuvo membresía (prospectos, postulantes, contactos externos). */
+  membershipStatus: (typeof membership.$inferSelect)["status"] | null;
+  anonymized: boolean;
+}
+
+/** Datos de contacto y estado de varias personas, para renderizar y dirigir una campaña. */
+export async function listMailingRefs(personIds: string[]): Promise<Map<string, MailingRef>> {
+  const ids = [...new Set(personIds)];
+  if (ids.length === 0) {
+    return new Map();
+  }
+  const rows = await getDb()
+    .select({
+      id: person.id,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      preferredName: person.preferredName,
+      email: person.email,
+      personalEmail: person.personalEmail,
+      stage: person.stage,
+      membershipStatus: membership.status,
+      anonymizedAt: person.anonymizedAt,
+    })
+    .from(person)
+    .leftJoin(membership, eq(membership.personId, person.id))
+    .where(inArray(person.id, ids));
+  return new Map(
+    rows.map((row) => [
+      row.id,
+      {
+        id: row.id,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        preferredName: row.preferredName,
+        email: row.email,
+        personalEmail: row.personalEmail,
+        stage: row.stage,
+        membershipStatus: row.membershipStatus ?? null,
+        anonymized: row.anonymizedAt !== null,
+      },
+    ]),
+  );
+}

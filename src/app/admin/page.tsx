@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { listActiveCampaigns } from "@/modules/comms";
+import { campaignStatusLabel } from "@/modules/comms/admin";
 import { dashboardForAdmin, type TaskRow } from "@/modules/crm";
 import { recentSubmissionCounts } from "@/modules/forms";
 import { listOccasions } from "@/modules/participation";
@@ -122,7 +124,7 @@ export default async function AdminHome() {
     );
   }
   const term = await getCurrentTerm();
-  const [tablero, respuestas, ocasiones, deadLetters, backup] = await Promise.all([
+  const [tablero, respuestas, ocasiones, deadLetters, backup, campanas] = await Promise.all([
     dashboardForAdmin(roles.actor.personId, term?.id ?? null),
     recentSubmissionCounts(7),
     term
@@ -137,6 +139,7 @@ export default async function AdminHome() {
       : Promise.resolve({ rows: [], total: 0 }),
     countDeadLetters(),
     getConfig("backup.status"),
+    listActiveCampaigns(),
   ]);
   const grupos = await listGroupRefs(tablero.openCalls.map((call) => call.groupId));
   const secciones = tList("T-160");
@@ -277,6 +280,30 @@ export default async function AdminHome() {
                     {row.title}
                   </Link>
                   <span className="text-sm text-tinta-suave">{formatDateTime(row.startsAt)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Bloque>
+
+        <Bloque id="campanas" titulo={t("T-1156")} href="/admin/campanas">
+          {campanas.length === 0 ? (
+            <Vacio texto={t("T-1157")} />
+          ) : (
+            <ul className="flex list-none flex-col gap-2 p-0">
+              {campanas.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
+                >
+                  <Link href={`/admin/campanas/${row.id}`} className="font-semibold">
+                    {row.name}
+                  </Link>
+                  <span className="text-sm text-tinta-suave">
+                    {campaignStatusLabel(row.status)}
+                    {row.scheduledAt ? ` · ${formatDateTime(row.scheduledAt)}` : ""}
+                    {row.status === "SENDING" ? ` · ${row.sentCount} / ${row.totalCount}` : ""}
+                  </span>
                 </li>
               ))}
             </ul>

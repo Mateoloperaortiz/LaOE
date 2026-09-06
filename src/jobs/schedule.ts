@@ -1,6 +1,6 @@
-// Programados (ADR-012): el scheduler encola eventos del outbox; los handlers hacen el trabajo.
-// Horas en America/Bogota. `reminders` cierra ocasiones vencidas y avisa si falta el término
-// siguiente (fase 3); los recordatorios a personas y `campaigns` llegan con la fase 6.
+// Programados (ADR-012, ADR-038): el scheduler encola eventos del outbox; los handlers hacen el
+// trabajo. Horas en America/Bogota. `reminders` cierra ocasiones vencidas y avisa si falta el término
+// siguiente (fase 3); `campaigns` arranca las campañas vencidas y manda un lote por minuto (fase 6).
 
 export interface ScheduleEntry {
   name: string;
@@ -9,6 +9,7 @@ export interface ScheduleEntry {
 }
 
 export const SCHEDULE: ScheduleEntry[] = [
+  { name: "campaigns", cron: "* * * * *", events: ["comms.campaign-tick"] },
   {
     name: "reminders",
     cron: "0 * * * *",

@@ -9,6 +9,8 @@ export interface MailMessage {
   subject: string;
   text: string;
   html?: string;
+  /** Cabeceras extra (ADR-038 regla 8): `List-Unsubscribe` y `List-Unsubscribe-Post` en las campañas. */
+  headers?: Record<string, string>;
 }
 
 export type MailProvider = "console" | "resend" | "ses";
@@ -32,7 +34,14 @@ export class ConsoleTransport implements MailTransport {
   async send(message: MailMessage): Promise<{ id: string | null }> {
     // El código de un OTP se imprime aquí a propósito: es la forma de entrar en local (05-acceso.md).
     logger.info(
-      { correo: { to: message.to, subject: message.subject, text: message.text } },
+      {
+        correo: {
+          to: message.to,
+          subject: message.subject,
+          text: message.text,
+          ...(message.headers ? { headers: message.headers } : {}),
+        },
+      },
       "correo (consola)",
     );
     return { id: null };
@@ -57,6 +66,7 @@ export class ResendTransport implements MailTransport {
       subject: message.subject,
       text: message.text,
       ...(message.html ? { html: message.html } : {}),
+      ...(message.headers ? { headers: message.headers } : {}),
     });
     if (error) {
       const quota = /quota|rate_limit|limit/i.test(`${error.name} ${error.message}`);
@@ -92,6 +102,14 @@ export class SesTransport implements MailTransport {
               Text: { Data: message.text, Charset: "UTF-8" },
               ...(message.html ? { Html: { Data: message.html, Charset: "UTF-8" } } : {}),
             },
+            ...(message.headers
+              ? {
+                  Headers: Object.entries(message.headers).map(([Name, Value]) => ({
+                    Name,
+                    Value,
+                  })),
+                }
+              : {}),
           },
         },
       }),

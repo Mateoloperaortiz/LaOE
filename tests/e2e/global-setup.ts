@@ -1,6 +1,11 @@
 import { and, asc, eq, inArray, isNotNull, like, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { notificationPreference, pushSubscription } from "@/modules/comms/schema";
+import {
+  campaign,
+  emailTemplate,
+  notificationPreference,
+  pushSubscription,
+} from "@/modules/comms/schema";
 import { announcement, document, mediaAsset } from "@/modules/content/schema";
 import { internalCall, organization, pipeline, recognition, task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
@@ -88,6 +93,9 @@ export default async function globalSetup(): Promise<void> {
   }
   // Personas creadas por la suite (alta manual desde el admin).
   await db.delete(person).where(like(person.email, "e2e-%"));
+  // Fase 6: las campañas de la suite referencian segmentos y plantillas e2e- (restrict): primero ellas.
+  await db.delete(campaign).where(like(campaign.name, "e2e-%"));
+  await db.delete(emailTemplate).where(like(emailTemplate.slug, "e2e-%"));
   await db.delete(segment).where(like(segment.name, "e2e-%"));
   await db.delete(importJob).where(like(importJob.filename, "roster-e2e%"));
   // La persona de e2e es ADMIN para probar el admin; BOARD lo prueba la suite y se limpia aquí.
@@ -223,6 +231,8 @@ export default async function globalSetup(): Promise<void> {
       stage: "MEMBER",
       phone: null,
       personalEmail: null,
+      // El segmento de la suite de campañas lo encuentra por este programa.
+      program: "e2e-campana",
       photoAssetId: null,
       deletionRequestedAt: null,
       anonymizedAt: null,

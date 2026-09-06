@@ -11,6 +11,7 @@ import {
 import { startOfTodayIn } from "@/shared/lib/dates";
 import { logger } from "@/shared/log";
 import { message } from "../schema";
+import { recordMessage } from "./messages";
 import { chooseRoute } from "./pure";
 
 // Correo transaccional (OTP, puntos, recordatorios): Resend con desbordamiento automático a SES,
@@ -120,4 +121,45 @@ function failed(provider: string, error: unknown): SendReceipt {
     providerId: null,
     error: error instanceof Error ? error.message : String(error),
   };
+}
+
+// Campañas (ADR-023, ADR-038 regla 8): siempre por el transporte de desbordamiento (SES) cuando existe;
+// si no, por el primario (consola en local). Cada envío queda en `message` con su campaña.
+
+export interface CampaignEmail extends MailMessage {
+  personId: string;
+  campaignId: string;
+}
+
+export async function sendCampaignEmail(
+  email: CampaignEmail,
+  now = new Date(),
+): Promise<SendReceipt & { messageId: string | null }> {
+  const { primary, overflow } = getTransports();
+  const transport = overflow ?? primary;
+  let receipt: SendReceipt;
+  try {
+    receipt = await attempt(transport, email);
+  } catch (error) {
+    receipt = failed(transport.name, error);
+  }
+  const messageId = await recordMessage({
+    personId: email.personId,
+    channel: "EMAIL",
+    kind: "CAMPAIGN",
+    campaignId: email.campaignId,
+    subject: email.subject,
+    status: receipt.status,
+    provider: receipt.provider,
+    providerId: receipt.providerId,
+    error: receipt.error,
+    sentAt: receipt.status === "SENT" ? now : null,
+  });
+  if (receipt.status === "FAILED") {
+    logger.error(
+      { to: email.to, provider: receipt.provider, error: receipt.error },
+      "correo de campaña no enviado",
+    );
+  }
+  return { ...receipt, messageId };
 }

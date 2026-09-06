@@ -63,6 +63,7 @@ export {
   type ConsentState,
   hasLiveConsent,
   listConsents,
+  listLiveConsentHolders,
   recordConsent,
   SELF_MANAGED_PURPOSES,
 } from "./domain/consents";
@@ -101,9 +102,11 @@ export {
   getPeopleByIds,
   listActiveMemberRefs,
   listAppointmentsForTerm,
+  listMailingRefs,
   listMembershipStatuses,
   listTermCommitteeMembers,
   listTermRoster,
+  type MailingRef,
   type MemberByEmail,
   type MemberRef,
   type MembershipRef,
@@ -151,6 +154,8 @@ export { ROSTER_MAX_BYTES } from "./domain/roster-file";
 export { HEADER_ALIASES, ROSTER_COLUMNS, type RosterColumn } from "./domain/roster-pure";
 export {
   findPeopleByFilter,
+  getSegment,
+  listAllSegments,
   type SegmentFilter,
   type SegmentRow,
   segmentFilterSchema,
