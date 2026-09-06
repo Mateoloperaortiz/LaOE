@@ -1,8 +1,8 @@
-import { and, isNotNull, lt } from "drizzle-orm";
+import { and, eq, isNotNull, lt } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { outbox } from "../schema";
-import { getConfig, setConfig } from "./config";
+import { appConfig, outbox } from "../schema";
+import { CONFIG, setConfig } from "./config";
 
 // Depuración del outbox procesado y verificación de la copia externa (ADR-023).
 
@@ -29,12 +29,16 @@ export interface BackupStatus {
   message: string;
 }
 
-/** El servicio backup escribe backup.lastRunAt al terminar; aquí se avisa si la última copia es vieja. */
-export async function checkBackup(now = new Date()): Promise<BackupStatus> {
-  const lastRunAt = await getConfig("backup.lastRunAt");
+/** Lee la marca del servicio backup sin esperar la caché ni el control diario persistido. */
+export async function getBackupStatus(now = new Date()): Promise<BackupStatus> {
+  const [row] = await getDb()
+    .select({ value: appConfig.value })
+    .from(appConfig)
+    .where(eq(appConfig.key, "backup.lastRunAt"));
+  const lastRunAt = CONFIG["backup.lastRunAt"].parse(row?.value ?? null);
   const age = lastRunAt ? now.getTime() - new Date(lastRunAt).getTime() : Number.POSITIVE_INFINITY;
   const ok = age <= BACKUP_MAX_AGE_MS;
-  const status: BackupStatus = {
+  return {
     ok,
     checkedAt: now.toISOString(),
     lastRunAt: lastRunAt ?? null,
@@ -44,6 +48,11 @@ export async function checkBackup(now = new Date()): Promise<BackupStatus> {
         : "La última copia externa tiene más de 35 días"
       : "Todavía no hay ninguna copia externa registrada",
   };
+}
+
+/** Control diario auditado: conserva su snapshot sin condicionar la lectura del tablero. */
+export async function checkBackup(now = new Date()): Promise<BackupStatus> {
+  const status = await getBackupStatus(now);
   await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "backup.status", status));
   return status;
 }

@@ -25,7 +25,7 @@ export {
   listImportJobs,
   updateImportJob,
 } from "./domain/imports";
-export { type BackupStatus, checkBackup, pruneOutbox } from "./domain/maintenance";
+export { type BackupStatus, checkBackup, getBackupStatus, pruneOutbox } from "./domain/maintenance";
 export {
   countDeadLetters,
   listOutbox,

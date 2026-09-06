@@ -82,4 +82,4 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] SES: habilitación futura cuando exista cuenta; queda fuera del lanzamiento
 - [x] Privada age guardada en 1Password y comprobada por descarga/SHA el 2026-09-06; ubicación operativa y evidencia privadas registradas en el runbook
 - [x] Cloudflare R2 activado por Mateo y verificado el 2026-09-06: bucket privado `oe-respaldos` creado, token restringido al bucket y variables de backup configuradas. Restauración externa de staging comprobada con app y medios; primera copia de producción ejecutada y restaurada con app local verificada
-- [ ] Completar por vía privada las fechas exactas `startsOn` y `endsOn` del término de ingreso para bootstrap del ADMIN real; identidad y código del término ya recibidos, sin copiarlos al repo
+- [x] Inputs reales del bootstrap completados por vía privada y ejecutados el 2026-09-06; identidad, código y fechas exactas permanecen solo en bootstrap-admin.json privado. Primer acceso por OTP y ADMIN verificados

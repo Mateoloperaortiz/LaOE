@@ -7,7 +7,7 @@ import { dashboardForAdmin, type TaskRow } from "@/modules/crm";
 import { recentSubmissionCounts } from "@/modules/forms";
 import { listOccasions } from "@/modules/participation";
 import { listGroupRefs } from "@/modules/permanence";
-import { countDeadLetters, getConfig } from "@/modules/system";
+import { countDeadLetters, getBackupStatus } from "@/modules/system";
 import { getCurrentTerm } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
@@ -138,7 +138,7 @@ export default async function AdminHome() {
         })
       : Promise.resolve({ rows: [], total: 0 }),
     countDeadLetters(),
-    getConfig("backup.status"),
+    getBackupStatus(),
     listActiveCampaigns(),
   ]);
   const grupos = await listGroupRefs(tablero.openCalls.map((call) => call.groupId));
