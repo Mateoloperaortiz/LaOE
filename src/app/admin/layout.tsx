@@ -62,6 +62,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         { href: "/admin/segmentos", label: segmentos ?? "" },
         { href: "/admin/etiquetas", label: etiquetas ?? "" },
         { href: "/admin/paginas", label: paginas ?? "" },
+        { href: "/admin/sistema/politica", label: t("T-1180") },
         { href: "/admin/cartelera", label: cartelera ?? "" },
         { href: "/admin/eventos", label: eventos ?? "" },
         { href: "/admin/medios", label: medios ?? "" },

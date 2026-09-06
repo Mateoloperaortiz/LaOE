@@ -1,10 +1,17 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import type { CommandContext } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { appConfig } from "../schema";
-import { isPrivacyPolicyReady } from "./privacy-pure";
+import { setConfig } from "./config";
+import { isPrivacyPolicyReady, privacyPolicyVersionSchema } from "./privacy-pure";
+
+/** La acción administrativa resuelve ADMIN/step-up y publicación; system solo guarda y audita. */
+export async function setPrivacyPolicyVersionAs(actor: Actor, value: unknown): Promise<void> {
+  const version = privacyPolicyVersionSchema.parse(value);
+  await runCommand(actor, (ctx) => setConfig(ctx, "privacy.policyVersion", version));
+}
 
 export class PrivacyPolicyPendingError extends DomainError {
   constructor(audience: "public" | "admin" = "public") {

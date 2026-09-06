@@ -33,3 +33,9 @@ Mateo confirmó que GHPOINTS nunca estuvo en producción para la OE y decidió e
 ## Precisión operativa · 2026-09-06
 
 La ejecución comprobó que `railway redeploy` prepara el deployment de un servicio cron, pero no inicia su corrida. El backup manual se ejecuta desde Casa Digital → production → backup → Cron Runs → Run now, con un solo clic y seguimiento del deployment, archivo y `backup.lastRunAt`. Se mantiene el cron mensual y la retención total de 12 copias. La primera corrida de producción y los ensayos restaurados se registran en [15-runbook.md](../15-runbook.md); no sustituyen los pendientes de ADMIN, OTP, iPhone, noche de jobs y dominio.
+
+## Enmienda operativa: control de la versión de política · 2026-09-06
+
+El paso de habilitación se realiza en `/admin/sistema/politica`, entrada **Política de datos** de Administración. Un ADMIN publica primero la página `privacidad` desde Páginas con audiencia PUBLIC, estado PUBLISHED y cuerpo no vacío; revisa `/privacidad` y guarda una versión desde el nuevo control con step-up. La activación rechaza una página sin publicar o vacía y audita la escritura como `config.updated`. La Server Action orquesta las APIs públicas de `content` y `system`; el guard de nuevas aceptaciones sigue dependiendo solo de la versión y `system` no adquiere dependencia de `content`.
+
+Guardar `pendiente` vuelve a bloquear de inmediato nuevas aceptaciones, sin editar el texto publicado, borrar consentimientos previos ni alterar sus versiones. La página y la versión siguen siendo operaciones separadas. Esta enmienda concreta la habilitación prevista en el punto 4; el control está implementado y probado localmente. Su despliegue y la publicación del contenido real se acreditan por separado en el runbook.

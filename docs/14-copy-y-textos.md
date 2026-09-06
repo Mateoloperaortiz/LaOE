@@ -1267,6 +1267,15 @@ Avisos de arranque con política pendiente (ADR-039; excepción del primer ADMIN
 | --- | --- | --- | --- | --- |
 | T-1178 | Política pendiente: aviso público en consentimientos y formularios | La política de tratamiento de datos está en preparación. Podés entrar a Mi OE y registrar tu asistencia; las nuevas autorizaciones estarán disponibles cuando se publique. | JUNTA | Propuesta; texto sensible |
 | T-1179 | Política pendiente: aviso administrativo en altas, roster y consentimientos | Publicá la política de tratamiento de datos y configurá su versión antes de registrar nuevas autorizaciones o dar de alta a personas. | JUNTA | Propuesta; texto sensible |
+| T-1180 | Admin: navegación y título del control de política | Política de datos | MATEO | Propuesta |
+| T-1181 | Política de datos: orden de publicación y habilitación | Publicá primero el texto aprobado en Páginas, con audiencia Público, y revisá cómo se ve en Privacidad. Al final, guardá aquí su versión para habilitar nuevas autorizaciones y la importación del roster. | MATEO | Propuesta |
+| T-1182 | Política de datos: campo de versión | Versión de la política | MATEO | Propuesta |
+| T-1183 | Política de datos: ayuda de versión y bloqueo | Usá el identificador de la versión aprobada. Para bloquear nuevas autorizaciones, guardá pendiente. El acceso, la asistencia y las revocaciones siguen disponibles. | MATEO | Propuesta |
+| T-1184 | Política de datos: valor vigente | Versión actual: {version} | MATEO | Propuesta |
+| T-1185 | Política de datos: enlace al editor existente | Editar publicación | MATEO | Propuesta |
+| T-1186 | Política de datos: enlace al texto público | Ver política pública | MATEO | Propuesta |
+| T-1187 | Política de datos: falta publicar antes de habilitar | Publicá la página Privacidad con el texto aprobado y audiencia Público antes de habilitar su versión. | MATEO | Propuesta |
+| T-1188 | Política de datos: versión inválida | Escribí una versión de entre 1 y 120 caracteres. | MATEO | Propuesta |
 
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |

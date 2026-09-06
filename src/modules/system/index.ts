@@ -37,4 +37,6 @@ export {
   getPrivacyPolicyState,
   PrivacyPolicyPendingError,
   requirePrivacyPolicyVersion,
+  setPrivacyPolicyVersionAs,
 } from "./domain/privacy";
+export { isPrivacyPolicyReady, privacyPolicyVersionSchema } from "./domain/privacy-pure";

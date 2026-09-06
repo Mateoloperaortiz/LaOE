@@ -80,6 +80,8 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzl
 - **Adaptadores:** `Mailer` (`console` en desarrollo y `staging`; en producción Resend para transaccional y campañas, con reintento de ráfagas; SES queda apagado sin `AWS_REGION` hasta otra fase (ADR-039); cabeceras `List-Unsubscribe` en campañas), `Storage` (bucket de Railway vía S3; Garage como emulador local), `Pusher` (web-push con VAPID; sin claves configuradas el envío se imprime en consola y se registra igual).
 - **PWA:** `src/app/manifest.ts` sirve el manifest (`start_url` `/app`, iconos generados desde el isotipo por `scripts/pwa-icons.ts`), `public/sw.js` es un service worker propio que solo recibe el push, muestra la notificación y abre la URL (sin caché sin señal), y lo registra Mi OE; el portal público no lo registra ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)).
 
+El control administrativo de política se ubica en `/admin/sistema/politica`, con navegación **Política de datos**. Un ADMIN publica primero la página `privacidad` con audiencia PUBLIC, estado PUBLISHED y cuerpo no vacío desde Páginas, revisa `/privacidad` y guarda la versión mediante step-up. La Server Action consulta las APIs públicas de `content` y `system`: comprueba la página antes de activar y escribe la configuración con auditoría `config.updated`. `system` conserva su guard por versión y no depende de `content`. Volver a `pendiente` bloquea nuevas aceptaciones sin editar la página ni borrar consentimientos previos. El control está implementado y probado localmente; su despliegue sigue pendiente.
+
 ## Cómo corre en Railway
 
 | Pieza | Configuración |
@@ -93,7 +95,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzl
 | Worker | Poller y scheduler en el proceso web; worker separado solo con uso medido |
 | Entornos | Solo staging (main, datos sintéticos, dominio Railway, noindex) y production (rama production promovida a mano, datos nuevos). No hay ensayo ni entornos PR |
 | Primer ADMIN | Script privado `bootstrap-admin`: persona, membresía ACTIVE y ADMIN con auditoría y transacción; sin comités, consentimiento ni bienvenida. Política y roster se cargan después desde el admin |
-| Política pendiente | Nueva autorización rechazada mientras la versión siga pendiente; revocaciones, acceso y check-in continúan. Publicar texto y después activar versión (ADR-039) |
+| Política pendiente | Nueva autorización rechazada mientras la versión siga pendiente; revocaciones, acceso y check-in continúan. Publicar texto desde Páginas y activar la versión en Política de datos (ADR-039, control verificado localmente) |
 | Servicio `backup` | `docker/backup/Dockerfile` y `scripts/backup.sh`, cron `0 8 1 * *`; dump, objetos y manifiesto cifrados con age a R2; verificación de subida, retención de 12 totales manuales+cron y marca de éxito al final |
 | Dominio | oeeafit.com se mueve al final; Cloudflare mantiene proxy, SSL Full, DNSSEC y www. Sin despliegue dentro de la ventana; conciliación del IaC después |
 | Límite de gasto | Tope duro US$20 y alerta US$15, comprobados antes de crear recursos; no se aumenta automáticamente |
