@@ -43,7 +43,15 @@ erDiagram
   Term ||--o{ AssemblyRequirement : "ajustes"
   Person ||--o{ AssemblyRequirement : ""
   Campaign ||--o{ Message : ""
+  Campaign ||--o{ CampaignRecipient : ""
+  EmailTemplate ||--o{ Campaign : ""
+  Segment ||--o{ Campaign : ""
   Person ||--o{ Message : ""
+  Person ||--o{ PushSubscription : ""
+  Person ||--o| NotificationPreference : ""
+  Person ||--o| CalendarToken : ""
+  Occasion ||--o{ OccasionSurveyInvite : ""
+  Occasion ||--o{ OccasionSurveyResponse : "anonimas"
   Person ||--o{ Session : ""
   Term ||--o{ PermanenceRule : "criterios"
   Term ||--o{ WorkGroup : ""
@@ -64,6 +72,7 @@ erDiagram
 | `Session` | `personId`, `tokenHash` único, `expiresAt`, `userAgent`, `ip`, `lastSeenAt` | 90 días, renovable; se destruye al cambiar estado o correo |
 | `OtpChallenge` | `email`, `codeHash`, `expiresAt`, `attempts`, `maxAttempts`, `consumedAt`, `ip` | 10 minutos, 5 intentos; rate limit contando filas |
 | `Permission` | `personId`, `code` (`ADMIN`, `COMMITTEE_LEADER`, `BOARD`), `committeeId?`, `grantedById` | Unique parcial por (persona, código, comité); `BOARD` se otorga con los cargos de junta y da acceso al panel de la junta |
+| `CalendarToken` | `personId` único, `token` único (24 bytes aleatorios en base64url, en claro), `createdAt`, `lastUsedAt?` | Capacidad de solo lectura sobre la agenda propia para `GET /api/ics/mi-agenda.ics?t=…`; regenerarlo invalida el anterior ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
 
 ### people
 
@@ -106,7 +115,7 @@ Módulo propio desde la fase 5 ([ADR-037](adr/ADR-037-admision-aliados-y-contact
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `Form` | `slug` único, `title`, `description` Markdown, `audience` (`PUBLIC`, `MEMBERS`), `status` (`DRAFT`, `OPEN`, `CLOSED`), `opensAt?`, `closesAt?`, `maxSubmissions?`, `allowMultiple`, `consentRequired`, `thanks?` Markdown, `fields` JSON, `actions` JSON, `createdById?` | Campos tipados (`TEXT`, `TEXTAREA`, `EMAIL`, `PHONE`, `SELECT`, `MULTISELECT`, `CHECKBOX`, `DATE`) con clave única por formulario; nombre, apellido y correo son implícitos en los públicos; acciones `createPerson`, `pipelineId`, `editionId` y `tagIds` (pipeline y edición exigen crear la persona); abierto cuando está `OPEN`, dentro de la ventana y bajo el tope; consentimiento obligatorio en públicos |
+| `Form` | `slug` único, `title`, `description` Markdown, `audience` (`PUBLIC`, `MEMBERS`), `status` (`DRAFT`, `OPEN`, `CLOSED`), `opensAt?`, `closesAt?`, `maxSubmissions?`, `allowMultiple`, `consentRequired`, `thanks?` Markdown, `fields` JSON, `actions` JSON, `createdById?` | Campos tipados (`TEXT`, `TEXTAREA`, `EMAIL`, `PHONE`, `SELECT`, `MULTISELECT`, `CHECKBOX`, `DATE` y, desde la fase 6, `RATING` de 1 a 5) con clave única por formulario; nombre, apellido y correo son implícitos en los públicos; acciones `createPerson`, `pipelineId`, `editionId` y `tagIds` (pipeline y edición exigen crear la persona); abierto cuando está `OPEN`, dentro de la ventana y bajo el tope; consentimiento obligatorio en públicos |
 | `Submission` | `formId`, `personId?`, `email`, `firstName?`, `lastName?`, `answers` JSON, `consentAcceptedAt?`, `policyVersion?`, `ip?`, `userAgent?` | Vincula o crea la persona por correo normalizado en la misma transacción; una por correo y formulario salvo `allowMultiple`; índice por IP y fecha para el rate limit; se borra al salir de la OE o al anonimizar |
 | `EditionRegistration` | `editionId`, `personId`, `submissionId?`, `status` (`REGISTERED`, `CANCELLED`) | Unique por (edición, persona); nace de la acción `editionId` de un formulario abierto |
 
@@ -128,7 +137,9 @@ Módulo propio desde la fase 5 ([ADR-037](adr/ADR-037-admision-aliados-y-contact
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `Occasion` | `publicId` único (10 caracteres `[0-9a-z]`), `termId`, `kind` (`ACTIVITY`, `ASSEMBLY`, `EDITION_SESSION`), `assemblyKind?` (`ORDINARY`, `BOARD_ELECTION`, `RUNOFF`; solo en asambleas), `category` (`INTEGRATION`, `ATHLETIC_MATCH`, `COMMITTEE_MEETING`, `TALK`, `WORKSHOP`, `SOCIAL`, `OTHER`), `newMembersOnly`, `title`, `description` Markdown, `location`, `startsAt`, `endsAt?`, `checkInOpensAt`, `checkInClosesAt`, `points` (0 en asambleas), `approval` (`AUTO`, `MANUAL`), `requireRotatingCode` (apagado por defecto), `rotatingSecret?` (secreto por ocasión del que se deriva el código de 6 dígitos), `committeeId?`, `editionId?`, `status`, `cancelReason?`, `closedAt?`, `createdById`, `legacyId?` | `DRAFT → OPEN → CLOSED`; `CANCELLED` desde cualquiera con motivo revirtiendo los créditos vivos; fuera de `DRAFT` solo cambian título, descripción y lugar; un job cierra las abiertas 24 h después de vencida la ventana; `surveyFormId` llega con la encuesta tras la ocasión (fase 6) ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
+| `Occasion` | `publicId` único (10 caracteres `[0-9a-z]`), `termId`, `kind` (`ACTIVITY`, `ASSEMBLY`, `EDITION_SESSION`), `assemblyKind?` (`ORDINARY`, `BOARD_ELECTION`, `RUNOFF`; solo en asambleas), `category` (`INTEGRATION`, `ATHLETIC_MATCH`, `COMMITTEE_MEETING`, `TALK`, `WORKSHOP`, `SOCIAL`, `OTHER`), `newMembersOnly`, `title`, `description` Markdown, `location`, `startsAt`, `endsAt?`, `checkInOpensAt`, `checkInClosesAt`, `points` (0 en asambleas), `approval` (`AUTO`, `MANUAL`), `requireRotatingCode` (apagado por defecto), `rotatingSecret?` (secreto por ocasión del que se deriva el código de 6 dígitos), `committeeId?`, `editionId?`, `status`, `cancelReason?`, `closedAt?`, `createdById`, `legacyId?` | `DRAFT → OPEN → CLOSED`; `CANCELLED` desde cualquiera con motivo revirtiendo los créditos vivos; fuera de `DRAFT` solo cambian título, descripción y lugar; un job cierra las abiertas 24 h después de vencida la ventana; `surveyFormId?` → `Form` de miembros: al cerrar se crean las invitaciones de la encuesta ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md), [ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
+| `OccasionSurveyInvite` | `occasionId`, `personId`, `tokenHash` único, `sentAt?`, `answeredAt?` | Una por asistente aprobado al cerrar una ocasión con encuesta; única por (ocasión, persona); el token viaja solo en la URL del push; se borra al salir o anonimizarse ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
+| `OccasionSurveyResponse` | `occasionId`, `committeeId?` (copiado de la ocasión), `answers` JSON, `createdAt` | **Sin persona**: la respuesta anónima; los agregados por ocasión y comité muestran textos libres solo con 3 o más respuestas ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
 | `CheckIn` | `occasionId`, `personId`, `status` (`PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`), `source` (`SELF_QR`, `HOST`, `ADMIN`, `IMPORT`), `at`, `decidedById?`, `decidedAt?`, `reason?`, `legacyId?` | Unique por (ocasión, persona); `PENDING → APPROVED \| REJECTED`, `REJECTED → APPROVED`, `APPROVED → CANCELLED`; la IP queda en la auditoría, no aquí |
 | `PointEntry` | `personId`, `termId`, `checkInId?`, `kind` (`CHECKIN`, `ADJUSTMENT`, `REVERSAL`, `LEGACY`), `points` (≠ 0), `reason`, `reversalOfId?` único, `createdById?`, `legacyType?`, `legacyId?` | Append-only; el `CHECKIN` nace en la misma transacción del check-in aprobado |
 | `CommitteeParticipation` | `occasionId`, `committeeId`, `termId`, `eligible`, `present`, `rate`, `smoothedRate`, `frozenAt?`, `computedAt` | Unique por (ocasión, comité); cruda y suavizada con `k = 5` (ADR-024); solo comités con elegibles; `eligible` se congela al cerrar la ocasión |
@@ -156,20 +167,23 @@ Módulo propio desde la fase 4 ([ADR-036](adr/ADR-036-permanencia-fase-4.md)): i
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
 | `Page` | `slug` único, `title`, `body` Markdown, `status`, `audience` | La OE, Unirse y Privacidad nacen en borrador en la migración `0003`; una página en borrador muestra su título y "en preparación" |
-| `Announcement` | `title`, `body` Markdown, `audience`, `committeeId?`, `publishedAt?`, `pinned`, `pushSentAt?`, `createdById?` | Cartelera; es público cuando `audience = PUBLIC` y `publishedAt` ya pasó; fijados primero; con `committeeId` vive solo en la cartelera interna de ese comité ([ADR-036](adr/ADR-036-permanencia-fase-4.md)) |
+| `Announcement` | `title`, `body` Markdown, `audience`, `committeeId?`, `publishedAt?`, `pinned`, `pushRequestedAt?`, `pushSentAt?`, `pushCount`, `createdById?` | Cartelera; es público cuando `audience = PUBLIC` y `publishedAt` ya pasó; fijados primero; con `committeeId` vive solo en la cartelera interna de ese comité ([ADR-036](adr/ADR-036-permanencia-fase-4.md)); el push se pide una sola vez desde el admin y `comms` estampa el envío ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
 | `MediaAsset` | `visibility` (`PUBLIC`, `PRIVATE`), `objectKey` único, `originalFilename`, `contentType`, `byteSize`, `width?`, `height?`, `variants` JSON, `uploadedById?`, `status` (`PENDING`, `READY`, `FAILED`), `error?` | Sin bytes en la base; un solo bucket privado, la visibilidad decide la caché al servir; `variants` guarda las WebP de 480, 960 y 1600 px (`variants/<id>/w<ancho>.webp`); `FAILED` cuando el objeto no es una imagen decodificable ([ADR-033](adr/ADR-033-contenido-y-medios-fase-1.md)) |
 | `Document` | `title`, `kind` (`ESTATUTOS`, `REGLAMENTO`, `ACTA`, `OTRO`), `fileKey` único (`documents/<id>.pdf`), `originalFilename`, `byteSize`, `sha256?`, `version`, `audience`, `status`, `uploadedById?` | El PDF es un objeto propio del bucket privado (no un `MediaAsset`); se abre por enlace a una URL prefirmada de 10 minutos ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)) |
 | `DocumentArticle` | `documentId`, `articleKey`, `chapterKey`, `chapterTitle`, `number`, `title`, `body`, `pages` JSON, `sortOrder`, `search` (`tsvector` generado en español) | Unique por (documento, clave); cargado desde el JSON del extractor; la búsqueda usa `websearch_to_tsquery` y `ts_headline` sobre el índice GIN |
 
 ### comms
 
+Definitivo desde la fase 6 ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)): `comms` importa `people`, `terms`, `content`, `participation` y `system`; nadie lo importa.
+
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `EmailTemplate` | `slug` único, `subject`, `body` Markdown con variables | |
-| `Campaign` | `templateId`, `segmentId`, `status`, `scheduledAt?`, `sentCount`, `createdById` | Fan-out a `Message` por el scheduler |
-| `Message` | `personId`, `channel` (`EMAIL`, `PUSH`), `campaignId?`, `subject`, `status`, `providerId?`, `error?`, `sentAt?` | Registro de todo envío |
-| `PushSubscription` | `personId`, `endpoint` único, `keys` JSON, `userAgent`, `lastSeenAt` | |
-| `NotificationPreference` | `personId` único, `emailCampaigns`, `pushAnnouncements`, `pushPoints`, `pushReminders` | |
+| `EmailTemplate` | `slug` único (`^[a-z0-9-]{2,60}$`), `name`, `subject`, `body` Markdown con `{nombre}`, `{apellido}`, `{correo}`, `{comités}`, `{semestre}`, `{url}`, `createdById?` | Se renderiza con el mismo Markdown del portal dentro del envoltorio de T-207 |
+| `Campaign` | `name`, `templateId` (restrict), `segmentId` (restrict), `status` (`DRAFT`, `SCHEDULED`, `SENDING`, `SENT`, `CANCELLED`), `scheduledAt?`, `startedAt?`, `finishedAt?`, `totalCount`, `sentCount`, `failedCount`, `skippedCount`, `createdById?` | Solo se edita en `DRAFT`; al arrancar congela la audiencia en `CampaignRecipient`; el programado `campaigns` manda `campaigns.perMinute` correos por minuto por SES |
+| `CampaignRecipient` | `campaignId`, `personId`, `status` (`PENDING`, `SENT`, `FAILED`, `SKIPPED`), `skipReason?` (`NO_EMAIL`, `OPTED_OUT`, `NO_CONSENT`, `CANCELLED`), `messageId?`, `sentAt?` | Única por (campaña, persona); elegibilidad: correo, `emailCampaigns` y, fuera del roster, consentimiento `COMMUNICATIONS` |
+| `Message` | `personId`, `channel` (`EMAIL`, `PUSH`), `kind` (`TRANSACTIONAL`, `ANNOUNCEMENT`, `POINTS`, `REMINDER`, `SURVEY`, `CAMPAIGN`), `campaignId?`, `subject`, `status` (`SENT`, `FAILED`), `provider` (`console`, `resend`, `ses`, `webpush`), `providerId?`, `error?`, `dedupeKey?`, `sentAt?` | Registro de todo envío; una fila por persona y notificación; unique parcial `(personId, dedupeKey)` hace idempotente al bus |
+| `PushSubscription` | `personId`, `endpoint` único, `p256dh`, `auth`, `userAgent?`, `createdAt`, `lastSeenAt` | Un dispositivo; se borra al responder 404 o 410, al quitarlo desde Ajustes, al salir de la OE o al anonimizarse |
+| `NotificationPreference` | `personId` único, `emailCampaigns`, `pushAnnouncements`, `pushPoints`, `pushReminders` (todas `true`), `unsubscribeToken` único | Se crea perezosa; el token alimenta `/baja/[token]` y las cabeceras `List-Unsubscribe` |
 
 ### system
 

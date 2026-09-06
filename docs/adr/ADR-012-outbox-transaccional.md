@@ -1,6 +1,6 @@
 # ADR-012: Outbox transaccional; efectos fuera del commit
 
-- Estado: Aceptada (enmendada por ADR-021)
+- Estado: Aceptada (enmendada por ADR-021 y ADR-038)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-001, ADR-009, ADR-021
 
@@ -22,3 +22,7 @@ Redacción original del drenaje: (1) `after()` de `next/server` intentaba proces
 ## Enmienda (2026-09-02, ADR-021)
 
 El drenaje lo hace un **poller en el mismo proceso** cada 3 segundos (`SELECT … FOR UPDATE SKIP LOCKED`, lotes de 50), arrancado desde `instrumentation.ts` cuando `JOBS_ENABLED=true`. Los programados (`campaigns`, `reminders`, `prune`, `retention`, `backup-check`) los dispara un **scheduler en proceso** (`croner`) que encola filas de outbox; un lock transaccional por nombre de job evita duplicados si hay más de una réplica. `after()` queda como optimización opcional para bajar la latencia de un check-in a menos de un segundo; ya no hay rutas `/api/cron/*` ni dependencia de crons externos.
+
+## Enmienda (2026-09-05, ADR-038)
+
+Los programados ganan `campaigns` (cada minuto, encola `comms.campaign-tick`) y `notices` (diario a las 09:00, encola `permanence.notices`), y `reminders` suma `participation.reminders`. Los efectos hacia personas viajan por un único evento `notification.requested` con destinatarios, textos, URL y `dedupeKey`; el handler de `comms` es idempotente por persona gracias al unique parcial `(personId, dedupeKey)` de `message`. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).

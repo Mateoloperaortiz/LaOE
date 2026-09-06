@@ -52,7 +52,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Calendario de integraciones y de partidos del Athletic del término (mientras no esté, las reglas usan 10 integraciones y 3 partidos esperados, como dijo GH)
 - [ ] Confirmar con GH los supuestos de la fase 4: prueba con transferencia usa 80 %; en licencia y honorarios no se evalúan; las evaluaciones pendientes al cerrar cuentan como no logradas; el aviso del nominal salta a 5 puntos
 - [ ] Descripción de una línea de cada criterio de la tabla general (T-126) y de los criterios de cada comité
-- [ ] Textos sensibles del cierre: periodo de prueba (T-203) y salida (T-204), que hoy GH comunica en persona porque la app no manda correos hasta la fase 6
+- [ ] Textos sensibles del cierre: periodo de prueba (T-203) y salida (T-204); desde la fase 6 la app manda por correo el resultado de quien cumple (T-202) y estos dos siguen en persona hasta tener texto
 
 ## Operación
 
@@ -66,6 +66,10 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Aliados y contactos institucionales reales (empresas, unidades de EAFIT, grupos estudiantiles) con permiso para cargarlos; montos y contraprestaciones de los patrocinios vigentes
 - [ ] Cupos y ventanas de las convocatorias internas del término (GT, GAP, GAP OE, barra brava, tareas de nuevos)
 - [ ] Confirmar con GH los supuestos de la fase 5: cinco días hábiles para responder una solicitud; el cambio de comité aprobado rige desde el semestre siguiente como transferencia; la casilla de un formulario público es consentimiento de tratamiento de datos y el de membresía se registra al dar de alta; el retiro voluntario aprobado avisa con T-205 mientras T-206 no tenga texto final
-- [ ] Pasos del onboarding de nuevos (qué debe hacer un nuevo en su primera semana) y preguntas de la encuesta corta tras una ocasión
+- [ ] Pasos del onboarding de nuevos (qué debe hacer un nuevo en su primera semana)
+- [ ] Preguntas reales de la encuesta corta tras una ocasión: el seed trae una calificación de 1 a 5 y un comentario; GH elige el formulario por defecto en `survey.defaultFormId`
+- [ ] Claves VAPID para producción y `staging` (par generado con `npx web-push generate-vapid-keys`) y el correo de contacto de `VAPID_SUBJECT` (`mailto:…`), cargados como variables en Railway en la fase 7
+- [ ] Confirmar con GH los supuestos de la fase 6: horas de los recordatorios (07:00 las actividades de hoy, 18:00 las reuniones y asambleas de mañana, 2 a 3 horas antes de cada asamblea) y de los avisos de permanencia (09:00); 50 correos por minuto en campañas; quien está en licencia no recibe push; los comentarios de la encuesta se muestran solo con 3 o más respuestas
+- [ ] Que la política de tratamiento de datos mencione las notificaciones push y las campañas por correo con su baja
 - [ ] Acceso al dominio `oeeafit.com` (DNS) y a la cuenta de Resend
 - [ ] Subdominio `pruebas.oeeafit.com` para `staging` (opcional; el dominio de Railway sirve mientras tanto)

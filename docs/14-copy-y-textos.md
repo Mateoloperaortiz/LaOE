@@ -432,6 +432,59 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-906 | Convocatoria: no aceptada | Esta vez no quedaste en {grupo}. | GH | Propuesta; texto sensible |
 | T-907 | Convocatoria: solo miembros activos | Solo un miembro activo puede anotarse. | GH | Propuesta |
 
+### Mi OE · fase 6 (notificaciones, calendario, instalar, anuncio interno, encuesta, baja)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-1063 | Notificaciones: intro | Recibí en tu celular los anuncios, tus GH Points y los recordatorios de la OE. Activalas en cada dispositivo que uses. | MATEO | Propuesta |
+| T-1064 | Notificaciones: botón para activar en este dispositivo | Activar en este dispositivo | MATEO | Propuesta |
+| T-1065 | Notificaciones: este dispositivo ya recibe | Este dispositivo recibe notificaciones. | MATEO | Propuesta |
+| T-1066 | Notificaciones: botón para desactivar en este dispositivo | Desactivar en este dispositivo | MATEO | Propuesta |
+| T-1067 | Notificaciones: permiso bloqueado por el navegador | Tu navegador tiene las notificaciones bloqueadas para Mi OE. Permitilas en la configuración del sitio y volvé a intentar. | MATEO | Propuesta |
+| T-1068 | Notificaciones: navegador sin soporte | Este navegador no admite notificaciones. Probá con Chrome, Edge, Firefox o Safari actualizado. | MATEO | Propuesta |
+| T-1069 | Notificaciones: no configuradas en este entorno (sin claves VAPID) | Las notificaciones no están configuradas en este entorno. | MATEO | Propuesta |
+| T-1070 | Notificaciones: iPhone o iPad sin la app instalada | En iPhone o iPad primero instalá Mi OE: tocá Compartir y después "Agregar a pantalla de inicio". Desde la app instalada podés activar las notificaciones. | MATEO | Propuesta |
+| T-1071 | Instalar: botón | Instalar Mi OE | MATEO | Propuesta |
+| T-1072 | Instalar: ya instalada | Mi OE ya está instalada en este dispositivo. | MATEO | Propuesta |
+| T-1073 | Instalar: instrucciones cuando el navegador no ofrece el botón | Para instalar Mi OE, abrí el menú del navegador y elegí "Instalar" o "Agregar a pantalla de inicio". | MATEO | Propuesta |
+| T-1074 | Dispositivos: título | Tus dispositivos | MATEO | Propuesta |
+| T-1075 | Dispositivos: ninguno | Todavía no activaste las notificaciones en ningún dispositivo. | MATEO | Propuesta |
+| T-1076 | Dispositivos: columnas | Dispositivo · Desde · Último uso | MATEO | Propuesta |
+| T-1077 | Dispositivos: quitar | Quitar | MATEO | Propuesta |
+| T-1078 | Dispositivos: el actual | Este dispositivo | MATEO | Propuesta |
+| T-1079 | Preferencias: título | Qué querés recibir | MATEO | Propuesta |
+| T-1080 | Preferencias: opciones (en el orden del modelo: anuncios, puntos, recordatorios, campañas por correo) | Anuncios de la cartelera · GH Points acreditados · Recordatorios de actividades, asambleas y permanencia · Campañas por correo | MATEO | Propuesta |
+| T-1081 | Preferencias: ayuda | Los correos sobre tu ingreso, tus solicitudes y tu permanencia llegan siempre. | MATEO | Propuesta |
+| T-1082 | Preferencias: guardadas | Listo, guardamos tus preferencias. | MATEO | Propuesta |
+| T-1083 | Preferencias: botón guardar | Guardar preferencias | MATEO | Propuesta |
+| T-1084 | Calendario: intro | Suscribite a tu agenda de la OE desde el calendario de tu celular o computador: las ediciones de los eventos, las asambleas y las actividades de tus comités. | MATEO | Propuesta |
+| T-1085 | Calendario: nombre del calendario (dentro del ICS) | Mi agenda OE | COM | Propuesta |
+| T-1086 | Calendario: copiar enlace | Copiar enlace | MATEO | Propuesta |
+| T-1087 | Calendario: copiado | Enlace copiado. | MATEO | Propuesta |
+| T-1088 | Calendario: abrir en el calendario del dispositivo (webcal) | Abrir en mi calendario | MATEO | Propuesta |
+| T-1089 | Calendario: regenerar | Regenerar enlace | MATEO | Propuesta |
+| T-1090 | Calendario: regenerado | Listo. El enlace anterior dejó de funcionar. | MATEO | Propuesta |
+| T-1091 | Calendario: advertencia | Este enlace es personal: quien lo tenga ve tu agenda. Si lo compartiste por error, regeneralo. | MATEO | Propuesta |
+| T-1092 | Inicio: aviso de instalar y activar (título · texto · botón) | Llevá Mi OE en el celular · Instalá la app y activá las notificaciones para no perderte anuncios ni recordatorios. · Activar | COM | Propuesta |
+| T-1093 | Inicio: cerrar el aviso | Ahora no | MATEO | Propuesta |
+| T-1094 | Anuncio interno: volver | Volver a Mi OE | MATEO | Propuesta |
+| T-1095 | Encuesta: título | ¿Cómo estuvo {actividad}? | COM | Propuesta |
+| T-1096 | Encuesta: intro | Tus respuestas son anónimas: quedan agregadas con las de los demás asistentes y nadie ve quién dijo qué. Te toma un minuto. | COM | Propuesta |
+| T-1097 | Encuesta: enviar | Enviar respuestas | MATEO | Propuesta |
+| T-1098 | Encuesta: gracias | ¡Gracias! Tus respuestas ayudan a que la próxima salga mejor. ¡OE OE OE! | COM | Propuesta |
+| T-1099 | Encuesta: ya respondida | Ya respondiste esta encuesta. ¡Gracias! | MATEO | Propuesta |
+| T-1100 | Encuesta: vencida | Esta encuesta ya cerró. | MATEO | Propuesta |
+| T-1101 | Encuesta: no encontrada | No encontramos esta encuesta. Revisá el enlace de la notificación. | MATEO | Propuesta |
+| T-1102 | Encuesta y formularios: extremos de una calificación de 1 a 5 | Muy mal · Excelente | COM | Propuesta |
+| T-1103 | Baja: título | Dejar de recibir campañas | MATEO | Propuesta |
+| T-1104 | Baja: texto | Si confirmás, no te mandamos más campañas por correo. Los correos sobre tu ingreso, tus solicitudes y tu permanencia siguen llegando. Podés volver a activarlas en Ajustes de Mi OE. | JUNTA | Propuesta |
+| T-1105 | Baja: botón | Confirmar la baja | MATEO | Propuesta |
+| T-1106 | Baja: confirmada | Listo. No te mandamos más campañas por correo. | MATEO | Propuesta |
+| T-1107 | Baja: enlace inválido | Este enlace no es válido o ya venció. | MATEO | Propuesta |
+| T-1108 | Notificaciones: activadas ahora | Listo: este dispositivo ya recibe notificaciones. | MATEO | Propuesta |
+| T-1109 | Notificaciones: falló activar | No pudimos activar las notificaciones. Intentá de nuevo. | MATEO | Propuesta |
+| T-1110 | Dispositivos: quitado | Listo, ese dispositivo ya no recibe notificaciones. | MATEO | Propuesta |
+
 ## 5. Administración
 
 Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las confirmaciones de acciones sensibles y los mensajes de importación.
@@ -1085,6 +1138,76 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1061 | Correo de solicitud: la decisión dentro de T-205 (aprobada · rechazada) | aprobó · no aprobó | GH | Propuesta |
 | T-1062 | Correo de solicitud: el motivo dentro de T-205 (solo al rechazar) | Motivo: {motivo}. | GH | Propuesta |
 
+### Admin de Comunicaciones (fase 6: push en la cartelera, plantillas, campañas, mensajes, encuesta en ocasiones, PWA)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-1111 | Cartelera: acción de fila publicar y avisar por push | Publicar y avisar por push | MATEO | Propuesta |
+| T-1112 | Cartelera: acción de fila avisar por push (ya publicado) | Avisar por push | MATEO | Propuesta |
+| T-1113 | Cartelera: columna push | Push | MATEO | Propuesta |
+| T-1114 | Cartelera: estados de la columna push (sin push · enviando · enviado) | — · Enviando · Enviado a {n} | MATEO | Propuesta |
+| T-1115 | Plantillas: título | Plantillas de correo | MATEO | Propuesta |
+| T-1116 | Plantillas: columnas | Identificador · Nombre · Asunto · Actualizada | MATEO | Propuesta |
+| T-1117 | Plantillas: campos (identificador, nombre, asunto, cuerpo) | Identificador (solo minúsculas, números y guiones) · Nombre · Asunto · Cuerpo (Markdown) | MATEO | Propuesta |
+| T-1118 | Plantillas: ayuda de variables | Variables: {nombre}, {apellido}, {correo}, {comités}, {semestre} y {url}. Se reemplazan por los datos de cada persona. | MATEO | Propuesta |
+| T-1119 | Plantillas: acción vista previa | Vista previa | MATEO | Propuesta |
+| T-1120 | Plantillas: acción enviarme una prueba | Enviarme una prueba | MATEO | Propuesta |
+| T-1121 | Plantillas: prueba enviada | Te mandamos la prueba a {correo}. | MATEO | Propuesta |
+| T-1122 | Plantillas: identificador repetido | Ya existe una plantilla con ese identificador. | MATEO | Propuesta |
+| T-1123 | Campañas: título | Campañas | MATEO | Propuesta |
+| T-1124 | Campañas: intro | Una campaña manda una plantilla a un segmento, en lotes de {n} correos por minuto y siempre con enlace de baja. | MATEO | Propuesta |
+| T-1125 | Campañas: columnas | Nombre · Plantilla · Segmento · Estado · Programada · Enviados | MATEO | Propuesta |
+| T-1126 | Campañas: campos | Nombre · Plantilla · Segmento | MATEO | Propuesta |
+| T-1127 | Campañas: estados (borrador, programada, enviando, enviada, cancelada) | Borrador · Programada · Enviando · Enviada · Cancelada | MATEO | Propuesta |
+| T-1128 | Campaña: destinatarios estimados | {n} destinatarios ahora: {m} en el segmento, {a} sin correo, {b} dados de baja, {c} sin consentimiento. | MATEO | Propuesta |
+| T-1129 | Campaña: programar (campo · botón) | Enviar el · Programar | MATEO | Propuesta |
+| T-1130 | Campaña: enviar ahora | Enviar ahora | MATEO | Propuesta |
+| T-1131 | Campaña: confirmación de envío | Vas a mandar "{plantilla}" a {n} personas. Pedimos un código nuevo y el envío sale en lotes. | MATEO | Propuesta |
+| T-1132 | Campaña: cancelar | Cancelar campaña | MATEO | Propuesta |
+| T-1133 | Campaña: progreso | {enviados} de {total} enviados · {fallidos} fallidos · {omitidos} omitidos | MATEO | Propuesta |
+| T-1134 | Campaña: destinatarios, columnas | Persona · Estado · Motivo · Enviado | MATEO | Propuesta |
+| T-1135 | Campaña: estados de destinatario (pendiente, enviado, fallido, omitido) | Pendiente · Enviado · Fallido · Omitido | MATEO | Propuesta |
+| T-1136 | Campaña: motivos de omisión (sin correo, baja, sin consentimiento, cancelada) | Sin correo · Se dio de baja · Sin consentimiento de comunicaciones · Campaña cancelada | MATEO | Propuesta |
+| T-1137 | Campaña: solo se edita en borrador | Una campaña programada o enviada no se edita. Creá otra. | MATEO | Propuesta |
+| T-1138 | Campaña: sin destinatarios | El segmento no tiene destinatarios con correo. | MATEO | Propuesta |
+| T-1139 | Campaña: programada (aviso) | Programada para el {fecha}. Los lotes salen desde esa hora. | MATEO | Propuesta |
+| T-1140 | Campaña: en camino (aviso tras enviar ahora) | En camino. El primer lote sale en menos de un minuto. | MATEO | Propuesta |
+| T-1141 | Campaña: cancelada (aviso) | Campaña cancelada. Lo pendiente quedó omitido. | MATEO | Propuesta |
+| T-1142 | Mensajes: título | Mensajes | MATEO | Propuesta |
+| T-1143 | Mensajes: intro | Todo lo que la OE mandó por correo o push, persona por persona. | MATEO | Propuesta |
+| T-1144 | Mensajes: columnas | Fecha · Persona · Canal · Tipo · Asunto · Estado · Proveedor · Campaña | MATEO | Propuesta |
+| T-1145 | Mensajes: canales (correo, push) | Correo · Push | MATEO | Propuesta |
+| T-1146 | Mensajes: tipos (en el orden del modelo: transaccional, anuncio, puntos, recordatorio, encuesta, campaña) | Transaccional · Anuncio · GH Points · Recordatorio · Encuesta · Campaña | MATEO | Propuesta |
+| T-1147 | Mensajes: estados (enviado, fallido) | Enviado · Fallido | MATEO | Propuesta |
+| T-1148 | Mensajes: filtros | Canal · Tipo · Estado · Campaña | MATEO | Propuesta |
+| T-1149 | Mensajes: lista vacía | Todavía no se mandó ningún mensaje. | MATEO | Propuesta |
+| T-1150 | Mensajes: proveedores (consola, resend, ses, webpush) | Consola · Resend · SES · Push web | MATEO | Propuesta |
+| T-1151 | Persona 360, comunicaciones: preferencias (título) | Preferencias | MATEO | Propuesta |
+| T-1152 | Persona 360, comunicaciones: dispositivos con notificaciones | {n} dispositivos con notificaciones · Último uso: {fecha} | MATEO | Propuesta |
+| T-1153 | Persona 360, comunicaciones: sin dispositivos | Sin dispositivos con notificaciones | MATEO | Propuesta |
+| T-1154 | Persona 360, comunicaciones: sin mensajes | Todavía no se le mandó ningún mensaje. | MATEO | Propuesta |
+| T-1155 | Persona 360, comunicaciones: columnas de mensajes | Fecha · Canal · Tipo · Asunto · Estado | MATEO | Propuesta |
+| T-1156 | Tablero: campañas programadas o en curso (título) | Campañas | MATEO | Propuesta |
+| T-1157 | Tablero: sin campañas programadas ni en curso | Ninguna campaña programada ni en curso. | MATEO | Propuesta |
+| T-1158 | Ocasión: campo encuesta al cerrar | Encuesta al cerrar | MATEO | Propuesta |
+| T-1159 | Ocasión: sin encuesta (opción vacía) | Sin encuesta | MATEO | Propuesta |
+| T-1160 | Ocasión: ayuda del campo encuesta | Al cerrar la ocasión, quienes registraron asistencia reciben la encuesta por push. Solo sirven formularios de miembros que no crean personas. | MATEO | Propuesta |
+| T-1161 | Consola: encuesta (título) | Encuesta | MATEO | Propuesta |
+| T-1162 | Consola: encuesta, resumen | {respondieron} de {invitados} respondieron | MATEO | Propuesta |
+| T-1163 | Consola: encuesta, sin respuestas | Todavía nadie respondió. | MATEO | Propuesta |
+| T-1164 | Consola: encuesta, promedio de una calificación | Promedio {promedio} de 5 | MATEO | Propuesta |
+| T-1165 | Consola: encuesta, comentarios ocultos por pocas respuestas | Los comentarios se muestran cuando hay al menos {n} respuestas, para cuidar el anonimato. | MATEO | Propuesta |
+| T-1166 | Consola: ocasión sin encuesta | Esta ocasión no tiene encuesta. | MATEO | Propuesta |
+| T-1167 | Vista de líder: encuestas del semestre (título) | Encuestas del semestre | MATEO | Propuesta |
+| T-1168 | Vista de líder: encuestas, columnas | Actividad · Respondieron · Promedio | MATEO | Propuesta |
+| T-1169 | Vista de líder: encuestas, promedio global | Promedio del semestre: {promedio} de 5 con {n} respuestas | MATEO | Propuesta |
+| T-1170 | Vista de líder: sin encuestas | Ninguna actividad del semestre tuvo encuesta. | MATEO | Propuesta |
+| T-1171 | Formulario: calificación fuera de rango | Elegí una calificación de 1 a 5. | MATEO | Propuesta |
+| T-1172 | Navegación del admin: comunicaciones | Plantillas · Campañas · Mensajes | MATEO | Propuesta |
+| T-1173 | PWA: nombre corto (ícono en el celular) | Mi OE | COM | Propuesta |
+| T-1174 | PWA: nombre completo (manifest) | Mi OE · Organización Estudiantil EAFIT | COM | Propuesta |
+| T-1175 | Campaña: sección de destinatarios (título) | Destinatarios | MATEO | Propuesta |
+
 ## 6. Notificaciones
 
 ### Push (título · cuerpo)
@@ -1105,6 +1228,8 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-191 | Encuesta tras la actividad | ¿Cómo estuvo {actividad}? · Contanos en un minuto. | COM | Propuesta |
 | T-192 | Reconocimiento | ¡Destacado del mes! · {nombre} es el destacado de {comité}. | COM | Propuesta |
 | T-193 | Reunión de comité mañana | Mañana reunión de {comité} · {hora} en {lugar}. | COMITÉ | Propuesta |
+| T-194 | Convocatoria abierta sin cupo | Se abrió {convocatoria} · Cierra el {fecha}. | GH | Propuesta |
+| T-195 | Solicitud respondida: la decisión dentro de T-189 (aprobada · rechazada) | aprobada · rechazada | GH | Propuesta |
 
 ### Correos
 
@@ -1119,6 +1244,8 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-206 | Salida voluntaria | Gracias por tu tiempo en la OE · Confirmación, qué pasa con sus datos, cómo aparece en egresados si lo autorizó | GH | Propuesta |
 | T-207 | Campaña (plantilla base) | {asunto} · Encabezado con logo, cuerpo, cierre "Lo hacemos por vos", enlace para dejar de recibir campañas | COM | Propuesta |
 | T-208 | Pie legal de todos los correos | Organización Estudiantil · Universidad EAFIT · Bloque 29 of. 525 · Recibís este correo porque estás en el roster de la OE. {enlace de baja si aplica} | JUNTA | Propuesta |
+| T-209 | Correo de prueba de una plantilla: prefijo del asunto | [Prueba] | MATEO | Propuesta |
+| T-210 | Correo de campaña: texto del enlace de baja (va en el pie T-208) | Dejar de recibir estos correos | JUNTA | Propuesta |
 
 ## 7. Documentos generados
 
@@ -1156,9 +1283,9 @@ Textos de controles genéricos que no cambian el sentido institucional.
 
 ## 9. Lo que debe entregar cada dueño
 
-- **COM:** nombre del sitio, textos del inicio, descripciones de los cuatro macroeventos, redes y contacto, plantilla de campaña, campaña de lanzamiento; en la fase 5, la plantilla de etapas del patrocinio (T-966) y los aliados que se cargan.
-- **GH:** texto de Unirse y del proceso de admisión, pasos del onboarding, descripción de una línea de cada criterio de permanencia, nombres de los criterios y de los cálculos de la fase 4 (T-717 a T-726, T-791, T-792, T-801, T-802), tono de los mensajes sensibles (asamblea obligatoria, prueba, salida, aplicar el cierre), nombres y cortes de los niveles de GH Points, preguntas de la encuesta corta; en la fase 5, las preguntas del formulario de admisión, las etapas reales del proceso, los textos de las solicitudes (T-874 a T-895, T-1002 a T-1006) y de las convocatorias (T-896 a T-907), y los correos de bienvenida (T-200) y de respuesta a una solicitud (T-205).
-- **JUNTA:** política de datos y su versión, textos de consentimiento, plazo de respuesta a la eliminación, misión y visión (ya en el manual), pie legal.
+- **COM:** nombre del sitio, textos del inicio, descripciones de los cuatro macroeventos, redes y contacto, plantilla de campaña, campaña de lanzamiento; en la fase 5, la plantilla de etapas del patrocinio (T-966) y los aliados que se cargan; en la fase 6, el nombre de la PWA (T-1173, T-1174), el nombre del calendario (T-1085), el aviso de instalar (T-1092) y los textos de la encuesta (T-1095 a T-1102).
+- **GH:** texto de Unirse y del proceso de admisión, pasos del onboarding, descripción de una línea de cada criterio de permanencia, nombres de los criterios y de los cálculos de la fase 4 (T-717 a T-726, T-791, T-792, T-801, T-802), tono de los mensajes sensibles (asamblea obligatoria, prueba, salida, aplicar el cierre), nombres y cortes de los niveles de GH Points, preguntas de la encuesta corta; en la fase 5, las preguntas del formulario de admisión, las etapas reales del proceso, los textos de las solicitudes (T-874 a T-895, T-1002 a T-1006) y de las convocatorias (T-896 a T-907), y los correos de bienvenida (T-200) y de respuesta a una solicitud (T-205); en la fase 6, las variantes de push T-194 y T-195 y el tono de los recordatorios T-182 a T-193.
+- **JUNTA:** política de datos y su versión, textos de consentimiento, plazo de respuesta a la eliminación, misión y visión (ya en el manual), pie legal; en la fase 6, el texto de la baja de campañas (T-1104) y del enlace de baja (T-210).
 - **Cada comité:** presentación, contacto, y los textos de su tabla de permanencia (nombres de los criterios y de los dos eventos).
 - **Mateo:** todo lo marcado MATEO, que no cambia el sentido institucional.
 

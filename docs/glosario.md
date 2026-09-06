@@ -101,8 +101,16 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Etiqueta | `Tag` | Marca libre sobre personas u organizaciones |
 | Segmento | `Segment` | Filtro guardado que alimenta campañas, exportes y listas |
 | Anuncio | `Announcement` | Publicación de la cartelera, pública o de miembros, con push opcional |
-| Campaña | `Campaign` | Envío de una plantilla de correo a un segmento |
-| Mensaje | `Message` | Registro de cada correo o push enviado a una persona |
+| Campaña | `Campaign` | Envío de una plantilla de correo a un segmento, en lotes por minuto, con la audiencia congelada al arrancar |
+| Destinatario de campaña | `CampaignRecipient` | Cada persona de una campaña con su estado: pendiente, enviado, fallido u omitido (sin correo, baja, sin consentimiento, cancelada) |
+| Plantilla de correo | `EmailTemplate` | Asunto y cuerpo Markdown con variables por persona que alimenta las campañas |
+| Mensaje | `Message` | Registro de cada correo o push enviado a una persona, con su tipo (transaccional, anuncio, puntos, recordatorio, encuesta, campaña) |
+| Suscripción push | `PushSubscription` | Un dispositivo de una persona que recibe notificaciones web (endpoint y claves) |
+| Preferencia de notificación | `NotificationPreference` | Qué quiere recibir cada persona: anuncios, puntos, recordatorios por push y campañas por correo; con su token de baja |
+| Bus de notificaciones | `notification.requested` | Evento único con destinatarios, textos, URL y clave de deduplicación que `comms` entrega por push respetando la preferencia |
+| Invitación de encuesta | `OccasionSurveyInvite` | Token propio de un asistente para responder la encuesta de una ocasión cerrada; marca que respondió, no qué |
+| Respuesta de encuesta | `OccasionSurveyResponse` | Respuesta anónima (sin persona) agregada por ocasión y comité |
+| Token del calendario | `CalendarToken` | Capacidad de solo lectura sobre la agenda propia para suscribir el calendario del celular; se regenera desde Ajustes |
 | Consentimiento | `Consent` | Aceptación versionada de la política de datos para un propósito |
 | Outbox | `Outbox` | Cola de eventos de dominio escrita en la misma transacción que la mutación |
 | Alias legado | `LegacyAlias` | Ruta antigua de GHPOINTS (`/asamblea/…` y los `publicId` retirados) que sigue resolviendo a la ocasión nueva |

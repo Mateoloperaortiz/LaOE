@@ -1,6 +1,6 @@
 # ADR-037: Admisión, aliados y contactos (fase 5)
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-038)
 - Fecha: 2026-09-05
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, ADR-015, ADR-017, ADR-023, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035, ADR-036
 - Enmienda: ADR-013 (números del rate limit, honeypot, una respuesta por correo, consentimiento `DATA_PROCESSING`), ADR-031 (tipos de solicitud y transferencia al semestre siguiente; correos T-200 y T-205 en esta fase), ADR-033 (sin `registrationFormId`: la acción del formulario es la única fuente), ADR-034 (`crm → forms`; `interaction.personId` puede ser nulo; `stage APPLICANT` por tarjeta), ADR-036 (handler de `call-entry.changed` en `permanence`), 02-crm (un postulante no admitido sigue postulante; tres tipos de solicitud; tablero del inicio), 03-modelo (tablas definitivas de `forms` y `crm`), 05-acceso (formularios públicos, líder de grupo en convocatorias) y 14-copy (T-061, T-139, T-160, T-205, T-290, T-461)
@@ -43,3 +43,7 @@ Decisiones que Mateo cerró el 2026-09-05 para esta fase: entra todo lo del road
 ## Frente a Forms y Excel
 
 En Forms la postulación llega como fila de un archivo, alguien la copia a un Excel, la entrevista vive en WhatsApp y el alta se hace a mano en el roster del semestre siguiente; una licencia es un mensaje que GH tiene que recordar. Aquí la respuesta ya es una persona con su consentimiento, la tarjeta muestra en qué va cada postulación, dar de alta es un botón que deja la membresía lista y el correo de bienvenida enviado, y cada solicitud es una tarea con vencimiento que se cierra con la misma decisión que la aplica.
+
+## Enmienda (2026-09-05, ADR-038)
+
+Regla 3: los campos ganan el tipo `RATING` (calificación de 1 a 5) para las encuestas. Regla 10: crear o abrir una convocatoria emite `call.opened` y `comms` manda el push T-190 a los activos. Regla 12: `request.decided` produce además el push T-189; la dirección de dependencias suma `comms → people | terms | content | participation | system` y `participation → forms`. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).

@@ -1,6 +1,6 @@
 # ADR-031: Autogestión del miembro: solicitudes, convocatorias, datos propios, onboarding, reconocimientos, encuestas y panel de la junta
 
-- Estado: Aceptada (enmendada por ADR-036 y ADR-037)
+- Estado: Aceptada (enmendada por ADR-036, ADR-037 y ADR-038)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-003, ADR-011, ADR-013, ADR-014, ADR-025, ADR-027, ADR-030
 
@@ -32,3 +32,7 @@ Los avisos de permanencia de la fase 4 (mitad de término, tres semanas antes, "
 ## Enmienda (2026-09-05, ADR-037)
 
 Las solicitudes son tres: licencia, retiro voluntario y cambio de comité; el cambio de comité se pide siempre para el semestre siguiente y es una transferencia interna (`transferredIn`, umbral 70 %), así que `COMMITTEE_CHANGE` desaparece y queda `TRANSFER`. Aprobar ejecuta el comando de `people` en la misma transacción y la respuesta llega por correo (T-205), porque quien queda en licencia o se retira pierde el acceso a Mi OE; la bienvenida al dar de alta (T-200) también sale por correo en la fase 5. Las convocatorias llevan un formulario opcional y una inscripción propia (`InternalCallEntry`) con estados aplicada, aceptada, en lista de espera y rechazada; la pertenencia al grupo se crea por outbox. Ver [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md).
+
+## Enmienda (2026-09-05, ADR-038)
+
+La encuesta tras la ocasión no usa `form_submission`: el formulario de miembros aporta las preguntas (`Occasion.surveyFormId`), pero al cerrar la ocasión `participation` crea una invitación con token por asistente aprobado (`occasion_survey_invite`) y la respuesta se guarda sin persona (`occasion_survey_response`, solo ocasión y comité); los textos libres se muestran solo con 3 o más respuestas. El push T-191 sale por el bus de notificaciones. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).

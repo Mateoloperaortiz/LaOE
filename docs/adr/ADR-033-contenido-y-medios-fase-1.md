@@ -1,6 +1,6 @@
 # ADR-033: Contenido editable y medios del portal público (fase 1)
 
-- Estado: Aceptada (enmendada por ADR-036 y ADR-037)
+- Estado: Aceptada (enmendada por ADR-036, ADR-037 y ADR-038)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-014, ADR-017, ADR-020, ADR-022, ADR-023, ADR-032
 
@@ -46,3 +46,7 @@ GHPOINTS guarda `MediaAsset` sin variantes y sirve las portadas por su propia ru
 ## Enmienda (2026-09-05, ADR-037)
 
 `event_edition` no gana `registrationFormId`: la inscripción propia de una edición se resuelve por la acción `editionId` del formulario (`forms.findOpenRegistrationForm`), y la página pública muestra T-019 hacia `/f/[slug]` cuando ese formulario está abierto, además del enlace externo de `registrationUrl`. Ver [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md).
+
+## Enmienda (2026-09-05, ADR-038)
+
+`announcement` gana `pushRequestedAt`, `pushSentAt` y `pushCount`; `publishAndPushAnnouncement` y `requestAnnouncementPush` emiten `announcement.push-requested` y `comms` resuelve la audiencia y marca el envío con `markAnnouncementPushSent`. `/admin/cartelera` suma las acciones "Publicar y avisar por push" y "Avisar por push" y la columna Push. Los anuncios de miembros y de comité tienen página propia en `/app/cartelera/[id]`, que es la URL de su push. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).

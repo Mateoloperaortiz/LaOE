@@ -1,6 +1,6 @@
 # ADR-023: Operación: entorno de pruebas, copia externa y correo con desbordamiento
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-038)
 - Fecha: 2026-09-02
 - Enmienda: ADR-021 (puntos "Entornos", "Respaldos" y "Presupuesto") y ADR-015 (enrutamiento del correo)
 
@@ -21,3 +21,7 @@ Mateo decidió el 2026-09-02: construir desde cero con un entorno de pruebas per
 - Dos entornos duplican variables; el runbook lista cuáles difieren (dominio, remitente, `JOBS_ENABLED`, claves).
 - El desbordamiento a SES es invisible para la persona; el remitente es el mismo `oeeafit.com` en ambos.
 - Una copia fuera de Railway protege contra la pérdida de la cuenta o del proyecto, no solo contra errores de datos.
+
+## Enmienda (2026-09-05, ADR-038)
+
+`sendCampaignEmail` usa el transporte de desbordamiento (SES) si existe y el primario si no (consola en local), registra `message` con `kind CAMPAIGN` y `campaignId`, y todo correo de campaña lleva las cabeceras `List-Unsubscribe` y `List-Unsubscribe-Post: List-Unsubscribe=One-Click` hacia `/api/baja/[token]`; `MailMessage` gana `headers` y los dos transportes lo pasan. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).

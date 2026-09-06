@@ -1,6 +1,6 @@
 # ADR-036: Permanencia (fase 4)
 
-- Estado: Aceptada (enmendada por ADR-037)
+- Estado: Aceptada (enmendada por ADR-037 y ADR-038)
 - Fecha: 2026-09-04
 - Relacionadas: ADR-003, ADR-004, ADR-005, ADR-011, ADR-012, ADR-014, ADR-017, ADR-025, ADR-026, ADR-027, ADR-028, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035
 - Enmienda: ADR-025 (recompute, estados, decisiones y vista en vivo), ADR-026 (bloqueo y comentario por tabla), ADR-028 (ventana por configuración y pendientes al cierre), ADR-031 (avisos en la app hasta la fase 6; anuncios de comité), ADR-033 (`announcement.committeeId`), ADR-035 (layout del admin con más roles; handlers de `term.points-closed` y `occasion.closed`), 03-modelo (tablas definitivas de `permanence`, `permanence_table`, `ruleId`, columnas del snapshot, `term.permanenceClosedAt`) y 05-acceso (roles derivados de los grupos, `BOARD`, step-up del cierre)
@@ -46,3 +46,7 @@ En la hoja la persona se entera al final, el "buen desempeño" no deja rastro de
 ## Enmienda (2026-09-05, ADR-037)
 
 `permanence/jobs.ts` gana el handler de `call-entry.changed`: cuando una inscripción a una convocatoria interna queda aceptada, ejecuta `addMembersAs` sobre el grupo (idempotente, solo activos), que ya encola el recompute de la persona. Es la tercera puerta de entrada a un grupo, anunciada en la regla 6. Ver [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md).
+
+## Enmienda (2026-09-05, ADR-038)
+
+Regla 11: los avisos de `noticesFor` salen también por push desde el programado `permanence.notices` (09:00), una vez por persona, término y aviso; ninguno va por correo. Al aplicar el cierre, `permanence.decided` con `committeeId` nulo produce el correo T-202 cuando la decisión es `CONTINUES`; prueba y salida esperan los textos de GH. `grantRecognitionAs` emite `recognition.granted` cuando publica el anuncio y `comms` manda T-192 a los miembros del comité. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).
