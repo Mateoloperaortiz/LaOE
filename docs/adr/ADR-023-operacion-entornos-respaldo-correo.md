@@ -29,3 +29,7 @@ Mateo decidió el 2026-09-02: construir desde cero con un entorno de pruebas per
 ## Enmienda (2026-09-06, ADR-039)
 
 En la fase 7 solo se usan `staging` (sintético) y `production` (arranque limpio); no existe entorno de ensayo con datos reales. Correo transaccional y campañas por Resend; `AWS_REGION` ausente deja SES aplazado. El transporte reintenta ráfagas 429 hasta tres veces (cuatro llamadas en total), con esperas base de 1/2/4 segundos y respetando un Retry-After mayor, sin un tope adicional de 30 segundos; no reintenta cuotas diarias o mensuales. El servicio `backup` usa `docker/backup/Dockerfile` y `scripts/backup.sh`, cron `0 8 1 * *`, dump, objetos y manifiesto cifrados hacia R2. Retiene 12 copias completas en total, manuales y programadas; verifica subida antes de podar y actualiza `backup.lastRunAt` al final. Cloudflare ya está delante: se conservan proxy, SSL Full y DNSSEC. La fase 0 B no se considera completada hasta probar staging y restaurar una copia externa. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).
+
+### Precisión operativa de ADR-039 · 2026-09-06
+
+La corrida manual del servicio backup se inicia en Railway desde Casa Digital → production → backup → Cron Runs → Run now. `railway redeploy` prepara el deployment de cron y no inicia la copia. Cron mensual, cifrado, verificación de subida y retención de 12 copias totales conservan lo aprobado; resultado y restauración se acreditan por corrida en [15-runbook.md](../15-runbook.md).

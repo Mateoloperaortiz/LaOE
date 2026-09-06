@@ -29,3 +29,7 @@ Mateo confirmó que GHPOINTS nunca estuvo en producción para la OE y decidió e
 - El bootstrap es una excepción de operación al alta normal, documentada y auditada; no es un registro abierto ni una cuenta compartida.
 - El respaldo de GHPOINTS es un archivo de retiro, no el origen de producción ni un mecanismo para revertir nuevas operaciones.
 - El despliegue externo, el push en iPhone, la restauración y el cambio de dominio permanecen pendientes hasta contar con evidencia operativa.
+
+## Precisión operativa · 2026-09-06
+
+La ejecución comprobó que `railway redeploy` prepara el deployment de un servicio cron, pero no inicia su corrida. El backup manual se ejecuta desde Casa Digital → production → backup → Cron Runs → Run now, con un solo clic y seguimiento del deployment, archivo y `backup.lastRunAt`. Se mantiene el cron mensual y la retención total de 12 copias. La primera corrida de producción y los ensayos restaurados se registran en [15-runbook.md](../15-runbook.md); no sustituyen los pendientes de ADMIN, OTP, iPhone, noche de jobs y dominio.

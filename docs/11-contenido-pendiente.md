@@ -80,6 +80,6 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 - [ ] Fecha y aviso de lanzamiento de la app nueva por los canales de la OE; indicar cómo entrar por OTP y recordar la sesión antes de una asamblea
 - [ ] SES: habilitación futura cuando exista cuenta; queda fuera del lanzamiento
-- [ ] Guardar en 1Password la privada age ya creada para Mateo; su ubicación operativa privada está registrada en el runbook
-- [x] Cloudflare R2 activado por Mateo y verificado el 2026-09-06: bucket privado `oe-respaldos` creado, token restringido al bucket y variables de backup configuradas. Restauración externa de staging comprobada con app y medios; primera copia de producción pendiente
+- [x] Privada age guardada en 1Password y comprobada por descarga/SHA el 2026-09-06; ubicación operativa y evidencia privadas registradas en el runbook
+- [x] Cloudflare R2 activado por Mateo y verificado el 2026-09-06: bucket privado `oe-respaldos` creado, token restringido al bucket y variables de backup configuradas. Restauración externa de staging comprobada con app y medios; primera copia de producción ejecutada y restaurada con app local verificada
 - [ ] Completar por vía privada las fechas exactas `startsOn` y `endsOn` del término de ingreso para bootstrap del ADMIN real; identidad y código del término ya recibidos, sin copiarlos al repo

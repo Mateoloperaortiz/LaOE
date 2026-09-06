@@ -4,7 +4,7 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## Fase 0 · Cimientos · `en curso`
+## Fase 0 · Cimientos · `lista`
 
 Orden decidido el 2026-09-03: primero el código base corriendo en local (A), después las cuentas, GitHub y Railway (B). Cada tramo de A cierra con su verificación y un commit.
 
@@ -25,7 +25,7 @@ Listo cuando (en local): login por OTP con el roster semilla sintético, cascar�
 
 ### B. Cuentas, GitHub y Railway (absorbida por fase 7, ADR-039)
 
-Parcial al 2026-09-06: F7-T2 está completado, R2 está activo y la restauración externa de staging está comprobada; el respaldo de producción sigue pendiente en F7-T4. Sus casillas se completan con evidencia del runbook; SES queda aplazado y no bloquea el lanzamiento.
+Comprobada el 2026-09-06 mediante F7-T2/T3 y la parte de infraestructura de F7-T4: staging, cuentas/claves, R2 y copias externas de staging/producción restauradas. Evidencia en el runbook; SES queda aplazado y no bloquea el lanzamiento.
 
 - [x] Repositorio `LaOE` en GitHub (remoto de este repo, privado) con protección de `main` y CI en verde
 - [x] Proyecto `casa-digital` en el workspace Pro de Railway con el entorno `staging`: servicios `web`, `Postgres` y bucket `media`; variables por referencia; región us-east4-eqdc4a; dominio de Railway con `noindex` (F7-T2)
@@ -34,11 +34,11 @@ Parcial al 2026-09-06: F7-T2 está completado, R2 está activo y la restauració
 - [x] Límite duro del workspace US$20 y alerta US$15 verificados, sin aumento automático
 - [x] Resend: acceso y dominio `oeeafit.com` verificados; nueva clave restringida de envío para casa-digital
 - AWS SES aplazado por ADR-039; `AWS_REGION` ausente, correo solo Resend
-- [x] Cloudflare R2 activo: bucket privado `oe-respaldos`, credenciales restringidas y par de claves `age` creado; la privada está solo con Mateo, con copia en 1Password todavía pendiente
+- [x] Cloudflare R2 activo: bucket privado `oe-respaldos`, credenciales restringidas y par de claves `age` creado; la privada está solo con Mateo y guardada en 1Password, con descarga y SHA verificados
 - [x] Claves VAPID propias por entorno generadas y configuradas; push en iPhone pendiente de T5
-- [ ] Servicio `backup` con cron mensual de Railway (`pg_dump` + objetos del bucket, cifrado con `age`, subida a R2) y job `backup-check` en el web
+- [x] Servicio `backup` con cron mensual de Railway (`pg_dump` + objetos del bucket, cifrado con `age`, subida a R2) y job `backup-check` en el web; primera corrida manual mediante Cron Runs → Run now verificada
 
-Listo cuando: lo mismo de A pasando en `staging`, más la primera copia en R2 restaurada en local.
+Listo cuando: lo mismo de A pasando en `staging`, más la primera copia en R2 restaurada en local. **Cumplido el 2026-09-06**: staging y sus flujos verificados, copia de staging con objetos/app restaurada y primera copia de producción restaurada sin personas ni medios. Fase 0 completa; los pendientes de lanzamiento permanecen en fase 7.
 
 ## Fase 1 · Portal público y contenido · `lista`
 
@@ -246,10 +246,10 @@ Plan aprobado el 2026-09-06 ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)). 
 ### Tramos
 
 - [x] F7-T0 · Docs: ADR-039, enmiendas, arquitectura, referencia histórica de migración, copy de política pendiente y runbook. Listo el 2026-09-06; `npm run check` completo en verde a las 14:46 de Bogotá
-- [x] F7-T1 · Implementación y pruebas locales: IaC Railway, CSP virtual-hosted, Resend, smoke, backup, bootstrap y guard de política. Check final en verde (164 unitarias, 181 integración y build); e2e definitivo 78/78 en 58 s sin reintentos contra build/start con CI=true; harness backup en verde. CI remoto de bca5dded con sus tres jobs en verde (164 unitarias, 181 integración, 78 e2e); correcciones de hooks, PITR por entorno y Retry-After desplegadas en staging con smoke en verde
+- [x] F7-T1 · Implementación y pruebas locales: IaC Railway, CSP virtual-hosted, Resend, smoke, backup, bootstrap y guard de política. Check final en verde (164 unitarias, 181 integración y build); e2e definitivo 78/78 en 58 s sin reintentos contra build/start con CI=true; harness backup en verde. CI remoto de f8711a7 en main y production en verde; correcciones de hooks, PITR por entorno, Retry-After y R2 verificadas y desplegadas con smoke 6/6
 - [x] F7-T2 · Staging listo el 2026-09-06: acceso GitHub, presupuesto, servicios, dominio Railway, variables, CORS, seed sintético y PITR/respaldos; CI, despliegue y seis grupos de smoke en verde. QA remoto verificó OTP, ADMIN, medios, formularios/política, roster y QR nuevo. Check de cierre: 164 unitarias, 181 integración y build; e2e local compilado 78/78 sin reintentos
-- [ ] F7-T3 · Claves y cuentas: Resend y VAPID por entorno configurados; rama production protegida y promovida a bca5dded. R2 activo, bucket privado y credenciales restringidas configurados en backup; copia privada age en 1Password pendiente
-- [ ] F7-T4 · Producción: PostgreSQL con PITR/respaldos y migraciones sin seed; web/medios propios, variables, CORS y dominio temporal preparados. Pendientes despliegues web/backup, primer ADMIN real sin consentimiento, OTP, primera copia cifrada restaurada localmente y retiro del dominio temporal
+- [x] F7-T3 · Claves y cuentas listas el 2026-09-06: Resend y VAPID por entorno, rama production protegida y promovida a f8711a7, R2 privado con token restringido y variables de backup; privada age guardada en 1Password y descarga verificada por SHA
+- [ ] F7-T4 · Producción: web f8711a7 desplegado, smoke 6/6, PostgreSQL sin personas y primera copia cifrada ejecutada y restaurada con app local verificada. Pendientes fechas de ingreso para ADMIN real sin consentimiento, OTP y retiro del dominio temporal
 - [ ] F7-T5 · Ensayo en staging: smoke, medios, guard de política, roster y QR nuevo/check-in idempotente en verde; restauración completa desde R2 comprobada con app y medios locales; quedan PWA/push real en iPhone y noche de jobs sin errores ni envíos inesperados. Revisión nocturna programada para 2026-09-07 a las 07:00 de Bogotá, todavía no ejecutada
 - [ ] F7-T6 · Dominio: mover oeeafit.com, Cloudflare intacto salvo CNAME/TXT necesarios, verificar HTTPS/www/OTP; reconciliar IaC y promover después de la ventana sin desplegar dentro de ella
 - [ ] F7-T7 · Retiro inmediato tras verificar: respaldo GHPOINTS cifrado y descifrable (90 días desde la eliminación verificada del proyecto GHPOINTS), eliminar proyecto, revocar integraciones y archivar repo; sin esperar 48 horas
@@ -372,3 +372,9 @@ Listo cuando: `oeeafit.com` sirve la app nueva, el acceso real funciona, se comp
 | 2026-09-06 | 7 | Ensayo real R2: rclone intentó CreateBucket con token Object Read & Write y recibió 403; el fallo no creó copia completa ni actualizó backup.lastRunAt. Ajuste local RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true usa el bucket existente sin ampliar permisos; pruebas y nuevo intento en curso. El check previo a este ajuste pasó (164 unitarias, 181 integración, build), pero se repetirá antes del commit. T4/T5 abiertos. |
 | 2026-09-06 | 7 | CI de production bca5dded/run 34062365505 SUCCESS; no hubo despliegue de producción porque el ajuste R2 requiere un nuevo candidato y regenerar el plan. Validación final de NO_CHECK_BUCKET: check exit 0 (164 unitarias, 181 integración, build), e2e compilado 78/78 en 1,0 minuto sin reintentos y test:backup exit 0 con imagen nueva, fallos, retención 12, concurrencia y restauración. Copia real R2 recuperada: 69 tablas, 934 filas y 7 objetos/13041817 bytes; apertura de la app restaurada todavía pendiente, sin declarar restauración completa. T4/T5 abiertos. |
 | 2026-09-06 | 7 | Restauración externa de staging **PASS completo a las 22:06:04 UTC**: copia R2 iniciada 22:02:13Z, lastRunAt 22:02:36.845Z, imagen bca5dded con override explícito NO_CHECK_BUCKET=true. PG18.6 restaurado con 69 tablas/934 filas y 7 objetos/13041817 bytes, hashes iguales al origen. App aislada abrió portada y health200; medio 302 al bucket local→WebP200 de 480px con hash igual y sin errores CSP/CORS. MAILER console, JOBS false y VAPID vacío; recursos de prueba retirados. T5 conserva iPhone y noche de jobs pendientes; T4 conserva backup real de production y ADMIN/OTP real pendientes. |
+| 2026-09-06 | 7 | **F7-T3 listo**: privada age guardada en 1Password, cuenta Mateo Lopera/bóveda Personal, documento Casa Digital · clave de recuperación age, adjunto backup.agekey de 184 bytes; descarga comprobada con SHA idéntico. Resend/VAPID, R2/token restringido, variables y rama production protegida ya verificados. Evidencia privada age-vault.json; no se registra la clave. |
+| 2026-09-06 | 7 | Ensayo definitivo R2 con imagen f8711a753e7149ca999354e13664e1d36a8cf67b sin override externo: PASS 22:12:15 UTC. Copia 20260906T221133Z-1041df3c8a6e4417.tar.zst.age, lastRunAt staging 22:11:58.039Z; PG18.6 con 69 tablas/944 filas y 7 objetos/13041817 bytes, hashes iguales. App, health e imagen de 480px abiertos sin CORS/CSP. Dos copias completas conservadas; T5 sigue abierto por iPhone/noche. |
+| 2026-09-06 | 7 | CI main 34063154129 y production 34063632277 SUCCESS para f8711a7. Staging deployment 2107c77c-9b03-4e47-b16c-148f64193e38 SUCCESS a las 22:17:22.920Z y smoke 6/6. Producción IaC aplicado desde checkout privado completo, plan 13 seguros/0 destructivos; web deployment 27e5f596-2510-4153-9baa-df2d66ba2c49 SUCCESS a las 22:26:26.942Z, smoke 6/6 en dominio temporal. 69 tablas y cero personas/membresías/consentimientos/medios; política pendiente. |
+| 2026-09-06 | 7 | Primera copia de production ejecutada mediante Cron Runs → Run now a las 22:30:50.213Z, deployment eea7ece2-b538-4290-af09-870fefcdae27 SUCCESS; archivo 20260906T223051Z-583be9f99f7c10e2.tar.zst.age, 35239 bytes, lastRunAt 22:30:54.474Z. R2 conserva las dos copias de staging (3 totales); restauración de production en curso. Corrección operativa: railway redeploy prepara el deployment de cron, no inicia su corrida manual. T4 sigue abierto por restauración, ADMIN/OTP y retiro de dominio temporal; no hay corte DNS ni retiro GHPOINTS. |
+| 2026-09-06 | 0/7 | Primera copia de production restaurada **PASS 22:37:50.665 UTC**, revisión visual PASS 22:39:26.773Z: 69 tablas/41 filas, PG18.6, cero personas/membresías/consentimientos/medios/objetos y política pendiente. App aislada abrió portada/login y health200; archivo y filas originales comprobados, sin escrituras remotas. Las diferencias de origen fueron la marca posterior al dump y 7 ticks posteriores. Fase 0 B y cimientos completos; T4 sigue parcial por fechas de ingreso, ADMIN/OTP real y retiro del dominio temporal. T5 conserva iPhone/noche; dominio y GHPOINTS sin cambios. |
+| 2026-09-06 | 7 | Check de cierre documental T3/T4 parcial: exit 0, 164 unitarias, 181 integración y build; log privado evidence/2026-09-06/production-docs-check.log. Sin cambios nuevos de código; candidato f8711a7 conserva 78/78 e2e y CI en verde. El commit documental avanzará staging sin promover nuevamente producción; T4/T5 y fase 7 siguen con sus pendientes registrados. |
