@@ -15,3 +15,9 @@ export function renderPlain(markdown: string): string {
 export function renderHtml(markdown: string): string {
   return escapeHtml(markdown).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
+
+/** "Título · cuerpo" de los push y correos del inventario: la primera parte es el título. */
+export function splitTitleBody(text: string): { title: string; body: string } {
+  const [title = "", ...rest] = text.split(" · ");
+  return { title: title.trim(), body: rest.join(" · ").trim() };
+}

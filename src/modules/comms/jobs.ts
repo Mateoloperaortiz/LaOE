@@ -5,6 +5,7 @@ import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
 import { runCampaignTick } from "./domain/campaigns";
 import {
+  emailPermanenceOutcome,
   pushAnnouncement,
   pushCallOpened,
   pushPointsCredited,
@@ -48,6 +49,17 @@ registerHandler("call.opened", async (payload, ctx) => {
 registerHandler("recognition.granted", async (payload, ctx) => {
   const stats = await pushRecognition(payload);
   ctx.log.info(stats, "push de reconocimiento entregado");
+});
+
+// Resultado de permanencia (ADR-038 regla 10): correo T-202 a quien cumple; una vez por término.
+registerHandler("permanence.decided", async (payload, ctx) => {
+  const receipt = await emailPermanenceOutcome(payload);
+  if (receipt) {
+    ctx.log.info(
+      { status: receipt.status, provider: receipt.provider },
+      "resultado de permanencia enviado",
+    );
+  }
 });
 
 // Campañas (ADR-038 regla 8): el programado `campaigns` encola un tick por minuto; "Enviar ahora"

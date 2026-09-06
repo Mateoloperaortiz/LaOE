@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { splitTitleBody } from "@/shared/copy/render";
 
 // Reglas de comunicaciones sin I/O (ADR-023, ADR-038).
 
@@ -81,6 +82,5 @@ export function shouldDeliver(kind: NotificationKind, preferences: PreferenceFla
 
 /** "Título · cuerpo" del inventario de push (14-copy §6): la primera parte es el título. */
 export function splitPush(text: string): { title: string; body: string } {
-  const [title = "", ...rest] = text.split(" · ");
-  return { title: title.trim(), body: rest.join(" · ").trim() };
+  return splitTitleBody(text);
 }

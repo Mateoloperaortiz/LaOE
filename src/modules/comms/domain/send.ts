@@ -11,7 +11,7 @@ import {
 import { startOfTodayIn } from "@/shared/lib/dates";
 import { logger } from "@/shared/log";
 import { message } from "../schema";
-import { recordMessage } from "./messages";
+import { listAlreadyNotified, recordMessage } from "./messages";
 import { chooseRoute } from "./pure";
 
 // Correo transaccional (OTP, puntos, recordatorios): Resend con desbordamiento automático a SES,
@@ -68,10 +68,22 @@ async function attempt(transport: MailTransport, email: TransactionalEmail): Pro
   return { status: "SENT", provider: transport.name, providerId: id, error: null };
 }
 
+export interface TransactionalOptions {
+  /** Con clave, un segundo intento para la misma persona no vuelve a mandar (handlers reintentados). */
+  dedupeKey?: string;
+}
+
 export async function sendTransactionalEmail(
   email: TransactionalEmail,
   now = new Date(),
+  options: TransactionalOptions = {},
 ): Promise<SendReceipt> {
+  if (options.dedupeKey) {
+    const already = await listAlreadyNotified([email.personId], options.dedupeKey);
+    if (already.has(email.personId)) {
+      return { status: "SENT", provider: "skipped", providerId: null, error: null };
+    }
+  }
   const { primary, overflow } = getTransports();
   const route = chooseRoute(
     overflow ? await sentTodayVia(primary.name, now) : 0,
@@ -103,8 +115,10 @@ export async function sendTransactionalEmail(
       provider: receipt.provider,
       providerId: receipt.providerId,
       error: receipt.error,
+      dedupeKey: options.dedupeKey ?? null,
       sentAt: receipt.status === "SENT" ? now : null,
-    });
+    })
+    .onConflictDoNothing();
   if (receipt.status === "FAILED") {
     logger.error(
       { to: email.to, provider: receipt.provider, error: receipt.error },

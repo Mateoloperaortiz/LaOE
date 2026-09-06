@@ -7,6 +7,7 @@ import { findTermByCode, getCurrentTerm, nextTermCode } from "@/modules/terms";
 import { scrubStandingName } from "./domain/closing";
 import { isAutoCloseDue } from "./domain/occasion-pure";
 import { closeOccasion, getOccasion, listOccasionsForTerm } from "./domain/occasions";
+import { runReminders } from "./domain/reminders";
 import { recomputeOccasionScore } from "./domain/scores";
 
 // Handlers del outbox de participación (ADR-012, ADR-035): el recompute del score corre fuera del
@@ -47,6 +48,17 @@ registerHandler("participation.auto-close", async (_payload, ctx) => {
     await runCommand(SYSTEM_ACTOR, (tx) => closeOccasion(tx, row.id, now));
   }
   ctx.log.info({ closed: due.length }, "cierre automático de ocasiones");
+});
+
+// Recordatorios a personas (ADR-038 regla 9): actividades de hoy, reuniones y asambleas de mañana,
+// asamblea en dos horas. La hora del tick viaja en `at` (el scheduler la pone); así una prueba puede
+// fijarla.
+registerHandler("participation.reminders", async (payload, ctx) => {
+  const at = typeof payload.at === "string" ? new Date(payload.at) : new Date();
+  const result = await runReminders(Number.isNaN(at.getTime()) ? new Date() : at);
+  if (result.due > 0) {
+    ctx.log.info(result, "recordatorios encolados");
+  }
 });
 
 // Recordatorio de términos (ADR-004): si el actual termina en 30 días o menos y no existe el

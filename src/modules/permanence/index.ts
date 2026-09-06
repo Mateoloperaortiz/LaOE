@@ -81,6 +81,8 @@ export {
   scoreCriterionAs,
 } from "./domain/leader-scores";
 export { getPersonPermanence, type PersonPermanenceView } from "./domain/my-permanence";
+export { type NoticesResult, runNotices } from "./domain/notices";
+export { isoWeek, type NoticePush, noticePush } from "./domain/notices-push-pure";
 export {
   APPLIES_TO,
   type AppliesTo,

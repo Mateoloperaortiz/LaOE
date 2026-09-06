@@ -119,6 +119,14 @@ export {
   rankCommittees,
   rankPeople,
 } from "./domain/rankings";
+export { type RemindersResult, runReminders } from "./domain/reminders";
+export {
+  type DueReminder,
+  type ReminderHours,
+  type ReminderOccasion,
+  type ReminderSlot,
+  reminderSlots,
+} from "./domain/reminders-pure";
 export { rotatingCodeAt, secondsUntilRotation } from "./domain/rotating-code-pure";
 export {
   type CommitteeOccasionScore,

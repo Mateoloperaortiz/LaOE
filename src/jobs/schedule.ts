@@ -13,10 +13,12 @@ export const SCHEDULE: ScheduleEntry[] = [
   {
     name: "reminders",
     cron: "0 * * * *",
-    events: ["participation.auto-close", "participation.term-check"],
+    events: ["participation.auto-close", "participation.term-check", "participation.reminders"],
   },
   // Permanencia (ADR-036 regla 5): recalcula el término actual cada día para que "lo posible" envejezca.
   { name: "permanence", cron: "0 6 * * *", events: ["permanence.daily"] },
+  // Avisos de permanencia por push (ADR-038 regla 10), a una hora en la que alguien los lee.
+  { name: "notices", cron: "0 9 * * *", events: ["permanence.notices"] },
   { name: "prune", cron: "0 3 * * *", events: ["identity.prune", "system.prune"] },
   { name: "backup-check", cron: "30 3 * * *", events: ["system.backup-check"] },
 ];

@@ -5,6 +5,7 @@ import { registerHandler } from "@/jobs/registry";
 import { findTermByCode, getCurrentTerm } from "@/modules/terms";
 import { applyDecisions } from "./domain/closing";
 import { addMembersAs } from "./domain/groups";
+import { runNotices } from "./domain/notices";
 import { recomputeSnapshots } from "./domain/snapshots";
 
 // Handlers del outbox de permanencia (ADR-012, ADR-036 regla 5): el recompute corre fuera del
@@ -82,6 +83,13 @@ registerHandler("permanence.daily", async (_payload, ctx) => {
   }
   const rows = await recomputeSnapshots(term.id);
   ctx.log.info({ termId: term.id, rows }, "permanencia diaria recalculada");
+});
+
+// Avisos por push (ADR-038 regla 10): programado `notices` a las 09:00, una vez por persona y aviso.
+registerHandler("permanence.notices", async (payload, ctx) => {
+  const at = typeof payload.at === "string" ? new Date(payload.at) : new Date();
+  const result = await runNotices(Number.isNaN(at.getTime()) ? new Date() : at);
+  ctx.log.info(result, "avisos de permanencia encolados");
 });
 
 // Cierre aplicado (ADR-036 regla 9): el job ejecuta las decisiones confirmadas que falten, con el

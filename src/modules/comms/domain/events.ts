@@ -1,11 +1,16 @@
 import { z } from "zod";
+import { getEnv } from "@/env";
 import { markAnnouncementPushSent } from "@/modules/content";
 import { balanceFor } from "@/modules/participation";
+import { listMailingRefs } from "@/modules/people";
+import { getTerm } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
+import { renderHtml, renderPlain } from "@/shared/copy/render";
 import { formatDate } from "@/shared/lib/dates";
 import { committeeAudience, membersAudience } from "./audiences";
 import { type DeliveryStats, deliverNotification } from "./notify";
 import { type NotificationKind, splitPush } from "./pure";
+import { type SendReceipt, sendTransactionalEmail } from "./send";
 
 // Push por evento (ADR-038 reglas 6 y 7): cada evento de dominio se traduce a una notificación del bus
 // con su texto del inventario (14-copy §6), su URL, su tipo y su clave de deduplicación.
@@ -155,5 +160,44 @@ export async function pushRecognition(raw: unknown): Promise<DeliveryStats> {
     t("T-192", { nombre: payload.personName, comité: payload.committeeName }),
     payload.committeeSlug ? `/app/comites/${payload.committeeSlug}` : "/app/comites",
     `recognition:${payload.recognitionId}`,
+  );
+}
+
+export const permanenceDecidedSchema = z.object({
+  personId: z.string().min(1),
+  termId: z.string().min(1),
+  committeeId: z.string().nullable().optional(),
+  decision: z.enum(["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"]),
+});
+
+/**
+ * Resultado de permanencia por correo (ADR-038 regla 10): solo la fila por persona y solo cuando
+ * cumple (T-202). Prueba (T-203) y salida (T-204) esperan el texto de GH. Idempotente por clave.
+ */
+export async function emailPermanenceOutcome(raw: unknown): Promise<SendReceipt | null> {
+  const payload = permanenceDecidedSchema.parse(raw);
+  if (payload.committeeId || payload.decision !== "CONTINUES") {
+    return null;
+  }
+  const [ref, term] = await Promise.all([
+    listMailingRefs([payload.personId]).then((refs) => refs.get(payload.personId)),
+    getTerm(payload.termId),
+  ]);
+  if (!ref || !term || ref.anonymized) {
+    return null;
+  }
+  const { title, body } = splitPush(t("T-202", { término: term.code }));
+  const link = `${getEnv().APP_URL}/app/permanencia`;
+  const pie = t("T-208").replace("{enlace de baja si aplica}", "").trim();
+  return sendTransactionalEmail(
+    {
+      personId: payload.personId,
+      to: ref.email,
+      subject: title,
+      text: `${renderPlain(body)}\n\n${t("T-699")}: ${link}\n\n${pie}`,
+      html: `<p>${renderHtml(body)}</p><p><a href="${link}">${t("T-699")}</a></p><p style="color:#666;font-size:12px">${renderHtml(pie)}</p>`,
+    },
+    new Date(),
+    { dedupeKey: `permanence-outcome:${payload.termId}` },
   );
 }

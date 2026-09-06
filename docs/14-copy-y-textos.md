@@ -1216,7 +1216,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | --- | --- | --- | --- | --- |
 | T-180 | Anuncio nuevo | {título del anuncio} · {primera línea} | COM | Propuesta |
 | T-181 | Puntos acreditados | ¡Sumaste {n} GH Points! · Por {actividad}. Ya vas en {total}. | GH | Propuesta |
-| T-182 | Actividad hoy | Hoy: {actividad} · {hora} en {lugar}. El registro abre a las {hora}. | GH | Propuesta |
+| T-182 | Actividad hoy | Hoy: {actividad} · {hora} en {lugar}. El registro abre a las {apertura}. | GH | Propuesta |
 | T-183 | Asamblea obligatoria (día anterior y dos horas antes) | Asamblea obligatoria {día} · {hora} en {lugar}. Recordá que faltar implica salir de la OE. | GH | Propuesta; texto sensible, confirmar tono |
 | T-184 | Permanencia, mitad de semestre | Vas en {n} % en {comité} · Necesitás {umbral} %. Mirá qué podés sumar. | GH | Propuesta |
 | T-185 | Permanencia, tres semanas antes del cierre (solo por debajo) | Quedan 3 semanas · Vas en {n} % en {comité} y necesitás {umbral} %. Todavía podés sumar {m} %. | GH | Propuesta |

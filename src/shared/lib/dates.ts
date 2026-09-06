@@ -69,6 +69,14 @@ export function dateKeyIn(timeZone: string, at: Date): string {
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
+/** Hora (0 a 23) de un instante en la zona dada. */
+export function hourIn(timeZone: string, at: Date): number {
+  const value = new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", hour: "2-digit" })
+    .formatToParts(at)
+    .find((part) => part.type === "hour")?.value;
+  return Number(value ?? "0");
+}
+
 /** Medianoche de hoy en la zona dada, como instante UTC. Colombia no tiene horario de verano. */
 export function startOfTodayIn(timeZone: string, now = new Date()): Date {
   const local = new Date(`${dateKeyIn(timeZone, now)}T00:00:00Z`);

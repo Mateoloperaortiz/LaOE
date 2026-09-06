@@ -1908,7 +1908,7 @@ export const textos = {
   },
   "T-182": {
     where: "Actividad hoy",
-    text: "Hoy: {actividad} · {hora} en {lugar}. El registro abre a las {hora}.",
+    text: "Hoy: {actividad} · {hora} en {lugar}. El registro abre a las {apertura}.",
     owner: "GH",
     status: "Propuesta",
   },
