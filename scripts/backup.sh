@@ -39,6 +39,8 @@ export RCLONE_CONFIG_R2_ENDPOINT="$R2_ENDPOINT" RCLONE_CONFIG_R2_REGION="${R2_RE
 export RCLONE_CONFIG_R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
 export RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
 export RCLONE_CONFIG_R2_FORCE_PATH_STYLE=true
+# R2 ya está aprovisionado; la credencial solo permite operar sobre sus objetos.
+export RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true
 
 temporary=$(mktemp -d)
 pending_remote=

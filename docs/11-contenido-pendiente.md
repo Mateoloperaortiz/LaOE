@@ -76,9 +76,10 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [x] Claves VAPID propias para producción y staging generadas y cargadas el 2026-09-06; `VAPID_SUBJECT=https://oeeafit.com` como URL válida de contacto. La prueba de push en iPhone sigue pendiente
 - [ ] Confirmar con GH los supuestos de la fase 6: horas de los recordatorios (07:00 las actividades de hoy, 18:00 las reuniones y asambleas de mañana, 2 a 3 horas antes de cada asamblea) y de los avisos de permanencia (09:00); 50 correos por minuto en campañas; quien está en licencia no recibe push; los comentarios de la encuesta se muestran solo con 3 o más respuestas
 - [ ] Que la política de tratamiento de datos mencione las notificaciones push y las campañas por correo con su baja
-- [x] Acceso al dominio `oeeafit.com` (DNS) y a la cuenta de Resend comprobado el 2026-09-06; no implica que el dominio se haya movido ni que R2 esté activo
+- [x] Acceso al dominio `oeeafit.com` (DNS) y a la cuenta de Resend comprobado el 2026-09-06; el dominio todavía no se ha movido; activación R2 registrada abajo
 
 - [ ] Fecha y aviso de lanzamiento de la app nueva por los canales de la OE; indicar cómo entrar por OTP y recordar la sesión antes de una asamblea
 - [ ] SES: habilitación futura cuando exista cuenta; queda fuera del lanzamiento
 - [ ] Guardar en 1Password la privada age ya creada para Mateo; su ubicación operativa privada está registrada en el runbook
-- [ ] Completar método de pago y datos de facturación de Cloudflare R2 en la pantalla abierta: activación pendiente al 2026-09-06, bucket `oe-respaldos` aún no creado
+- [x] Cloudflare R2 activado por Mateo y verificado el 2026-09-06: bucket privado `oe-respaldos` creado, token restringido al bucket y variables de backup configuradas. Restauración externa de staging comprobada con app y medios; primera copia de producción pendiente
+- [ ] Completar por vía privada las fechas exactas `startsOn` y `endsOn` del término de ingreso para bootstrap del ADMIN real; identidad y código del término ya recibidos, sin copiarlos al repo
