@@ -406,6 +406,18 @@ const isForMembers = and(
   inArray(event.audience, ["PUBLIC", "MEMBERS"]),
 );
 
+/** El ICS personal (ADR-038 regla 12): ediciones publicadas públicas o de miembros. */
+export const listMemberEditionsForIcs = cache(async (): Promise<PublicEdition[]> => {
+  const rows = await getDb()
+    .select(publicColumns)
+    .from(eventEdition)
+    .innerJoin(event, eq(event.id, eventEdition.eventId))
+    .where(isForMembers)
+    .orderBy(asc(eventEdition.startsAt))
+    .limit(500);
+  return withOrganizers(rows);
+});
+
 /** La agenda de Mi OE: ediciones publicadas (públicas o de miembros) que no han terminado. */
 export const findUpcomingEditionsForMembers = cache(
   async (limit = 6, now = new Date()): Promise<MemberEdition[]> => {

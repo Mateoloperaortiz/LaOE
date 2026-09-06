@@ -231,7 +231,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-130 | Normativa, intro | Estatutos, reglamento y actas. Lo que rige la OE, buscable. | JUNTA | Propuesta |
 | T-131 | Carnet, título | Tu carnet OE | COM | Propuesta |
 | T-132 | Carnet, texto | Mostralo en la entrada de las actividades. Cambia solo cada 24 horas. | MATEO | Propuesta |
-| T-133 | Ajustes, secciones | Mis datos · Notificaciones · Sesiones · Consentimientos · Mis datos y privacidad | MATEO | Propuesta |
+| T-133 | Ajustes, secciones | Mis datos · Notificaciones · Calendario · Sesiones · Consentimientos · Mis datos y privacidad | MATEO | Propuesta |
 | T-134 | Ajustes, editar datos | Podés cambiar tu foto, tu celular y tu correo personal. Tu correo institucional no se cambia: es tu identidad en la OE. | MATEO | Propuesta |
 | T-135 | Descargar mis datos | Descargar todo lo que la OE guarda sobre mí | JUNTA | Propuesta |
 | T-136 | Solicitar eliminación | Pedir que borren mis datos (GH responde en 15 días hábiles) | JUNTA | Propuesta; el plazo sale de la política |

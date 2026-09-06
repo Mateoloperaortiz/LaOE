@@ -5,7 +5,13 @@ import { getPreferences, listSubscriptionsFor } from "@/modules/comms";
 import { DeviceMark } from "@/modules/comms/components/DeviceMark";
 import { NotificationsPanel } from "@/modules/comms/components/NotificationsPanel";
 import { MEDIA_LIMITS, PHOTO_MAX_BYTES } from "@/modules/content";
-import { describeUserAgent, listSessionsFor, requireActor } from "@/modules/identity";
+import {
+  describeUserAgent,
+  getOrCreateCalendarToken,
+  listSessionsFor,
+  requireActor,
+} from "@/modules/identity";
+import { CalendarLink } from "@/modules/identity/components/CalendarLink";
 import { SessionsPanel } from "@/modules/identity/components/SessionsPanel";
 import {
   CONSENT_PURPOSES,
@@ -22,16 +28,18 @@ import {
   consentAction,
   removeDeviceAction,
   requestDeletionAction,
+  rotateCalendarAction,
   setPhotoAction,
   updateContactAction,
   updatePreferencesAction,
 } from "./actions";
 
-// Ajustes (06-mapa-del-sitio.md): una sola página con las cinco secciones de T-133 como anclas.
+// Ajustes (06-mapa-del-sitio.md): una sola página con las seis secciones de T-133 como anclas.
 
 const SECCIONES = [
   "mis-datos",
   "notificaciones",
+  "calendario",
   "sesiones",
   "consentimientos",
   "privacidad",
@@ -59,6 +67,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
       getPreferences(actor.personId),
     ]);
   const vapidPublicKey = getEnv().VAPID_PUBLIC_KEY ?? null;
+  const calendarUrl = `${getEnv().APP_URL.replace(/\/$/, "")}/api/ics/mi-agenda.ics?t=${await getOrCreateCalendarToken(actor.personId)}`;
   const [colDispositivo, colDesde, colUltimoUso] = tList("T-1076");
   const [prefAnuncios, prefPuntos, prefRecordatorios, prefCampañas] = tList("T-1080");
   const preferencias = [
@@ -266,9 +275,34 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
         </form>
       </section>
 
+      <section id="calendario" aria-labelledby="calendario-titulo" className="flex flex-col gap-6">
+        <BarraTitulo color="sky" className="self-start">
+          <span id="calendario-titulo">{secciones[2]}</span>
+        </BarraTitulo>
+        <p className="max-w-prose">{t("T-1084")}</p>
+        <CalendarLink
+          url={calendarUrl}
+          labels={{
+            field: t("T-1085"),
+            copy: t("T-1086"),
+            copied: t("T-1087"),
+            open: t("T-1088"),
+          }}
+        />
+        <p className="max-w-prose text-sm text-tinta-suave">{t("T-1091")}</p>
+        <form action={rotateCalendarAction} className="flex flex-col items-start gap-3">
+          <button type="submit" className="boton-secundario text-sm">
+            {t("T-1089")}
+          </button>
+          {guardado === "calendario" ? (
+            <output className="block text-sm font-semibold text-titulo">{t("T-1090")}</output>
+          ) : null}
+        </form>
+      </section>
+
       <section id="sesiones" aria-labelledby="sesiones-titulo" className="flex flex-col gap-6">
         <BarraTitulo color="naranja" className="self-start">
-          <span id="sesiones-titulo">{secciones[2]}</span>
+          <span id="sesiones-titulo">{secciones[3]}</span>
         </BarraTitulo>
         <div className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde">
           <table className="w-full text-left text-sm">
@@ -318,7 +352,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
         className="flex flex-col gap-6"
       >
         <BarraTitulo color="azul" className="self-start">
-          <span id="consentimientos-titulo">{secciones[3]}</span>
+          <span id="consentimientos-titulo">{secciones[4]}</span>
         </BarraTitulo>
         <ul className="flex list-none flex-col gap-4 p-0">
           {consents
@@ -368,7 +402,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
 
       <section id="privacidad" aria-labelledby="privacidad-titulo" className="flex flex-col gap-6">
         <BarraTitulo color="sky" className="self-start">
-          <span id="privacidad-titulo">{secciones[4]}</span>
+          <span id="privacidad-titulo">{secciones[5]}</span>
         </BarraTitulo>
         <a href="/api/mis-datos" download className="boton-secundario self-start">
           {t("T-135")}

@@ -1,4 +1,11 @@
-// API pública del módulo participation (ADR-035).
+// API pública del módulo participation (ADR-035, ADR-038).
+export { listAgendaForPerson, type PersonAgendaContext } from "./domain/agenda";
+export {
+  type AgendaEdition,
+  type AgendaEntry,
+  type AgendaOccasion,
+  agendaEntries,
+} from "./domain/agenda-pure";
 export {
   type AdjustRequirementInput,
   type AssemblyOverviewRow,

@@ -8,6 +8,12 @@ export {
   requireBoardActor,
 } from "./current";
 export type { Actor, ActorPermission } from "./domain/actor";
+export {
+  CALENDAR_TOKEN,
+  getOrCreateCalendarToken,
+  resolveCalendarToken,
+  rotateCalendarTokenAs,
+} from "./domain/calendar-token";
 export { issueCarnet, readCarnet } from "./domain/carnet";
 export { type CarnetVerification, verifyCarnet } from "./domain/carnet-pure";
 export { ForbiddenError, NotAuthenticatedError, StepUpRequiredError } from "./domain/errors";

@@ -1710,7 +1710,7 @@ export const textos = {
   },
   "T-133": {
     where: "Ajustes, secciones",
-    text: "Mis datos · Notificaciones · Sesiones · Consentimientos · Mis datos y privacidad",
+    text: "Mis datos · Notificaciones · Calendario · Sesiones · Consentimientos · Mis datos y privacidad",
     owner: "MATEO",
     status: "Propuesta",
   },

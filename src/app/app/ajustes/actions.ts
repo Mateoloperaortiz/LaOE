@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { removeSubscriptionAs, updatePreferencesAs } from "@/modules/comms";
-import { getActor } from "@/modules/identity";
+import { getActor, rotateCalendarTokenAs } from "@/modules/identity";
 import {
   ownContactSchema,
   recordConsentAs,
@@ -148,4 +148,13 @@ export async function removeDeviceAction(formData: FormData): Promise<void> {
   revalidatePath("/app/ajustes");
   revalidatePath("/app");
   back("notificaciones", { guardado: "dispositivo" });
+}
+
+// Calendario personal (ADR-038 regla 12): regenerar el token invalida el enlace anterior.
+
+export async function rotateCalendarAction(): Promise<void> {
+  const actor = await requireOwnActor();
+  await rotateCalendarTokenAs(actor);
+  revalidatePath("/app/ajustes");
+  back("calendario", { guardado: "calendario" });
 }
