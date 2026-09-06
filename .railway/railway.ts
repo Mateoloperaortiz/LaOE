@@ -28,7 +28,7 @@ export default defineRailway((ctx) => {
   const media = bucket("media", { region: "iad" });
   // PITR se habilita en Postgres antes del primer apply completo. Declarar su bucket
   // adopta el archivo existente y evita que IaC proponga borrarlo por estar omitido.
-  const pitr = bucket("Postgres-PITR", { region: "iad" });
+  const pitr = bucket(production ? "Postgres-PITR-production" : "Postgres-PITR", { region: "iad" });
   const storage = {
     S3_ENDPOINT: ref(media, "ENDPOINT"),
     S3_REGION: ref(media, "REGION"),

@@ -15,12 +15,14 @@ describe("infraestructura por entorno (ADR-039)", () => {
     const web = resources.find((resource) => resource.name === "web");
     const db = resources.find((resource) => resource.name === "Postgres");
     // Un recurso omitido del grafo se elimina: el archivo WAL debe sobrevivir cada apply.
-    expect(resources.find((resource) => resource.address === "bucket.Postgres-PITR")).toMatchObject(
-      {
-        type: "bucket",
-        name: "Postgres-PITR",
-        config: { region: "iad" },
-      },
+    const pitrName = environment === "production" ? "Postgres-PITR-production" : "Postgres-PITR";
+    expect(resources.find((resource) => resource.address === `bucket.${pitrName}`)).toMatchObject({
+      type: "bucket",
+      name: pitrName,
+      config: { region: "iad" },
+    });
+    expect(resources.filter((resource) => resource.name.startsWith("Postgres-PITR"))).toHaveLength(
+      1,
     );
     if (!web || web.type !== "service" || !db || db.type !== "database") {
       throw new Error("Faltan web o Postgres");

@@ -73,4 +73,4 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | 2026-09-06 | ¿Cómo habilitar el primer ADMIN sin roster ni política? | Bootstrap privado y auditado del acceso real de Mateo, sin consentimiento ni bienvenida; política y roster se cargan después desde la app (ADR-039) |
 | 2026-09-06 | ¿Ensayo con datos reales en otro entorno? | No: solo staging con datos sintéticos y production con datos nuevos (ADR-039) |
 | 2026-09-06 | ¿SES y proxy Cloudflare? | SES aplazado; Resend para todo el correo. Cloudflare conserva proxy, SSL Full, DNSSEC y www (enmienda ADR-039) |
-| 2026-09-06 | ¿Retención de las copias mensuales y manuales? | 12 copias completas en total bajo casa-digital/; archivo de GHPOINTS separado por 90 días. Tope US$20/alerta US$15 sin aumento automático (ADR-039) |
+| 2026-09-06 | ¿Retención de las copias mensuales y manuales? | 12 copias completas en total bajo casa-digital/; archivo de GHPOINTS separado por 90 días desde la eliminación verificada del proyecto GHPOINTS. Tope US$20/alerta US$15 sin aumento automático (ADR-039) |

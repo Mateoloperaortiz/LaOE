@@ -81,7 +81,7 @@ Las pruebas existentes se conservan; no se corre una migración real ni un muest
 
 ## Despliegue (ADR-039)
 
-- `.railway/railway.ts`: solo staging/main y production/production, dominio personalizado omitido hasta T6; plan de IaC revisado, sin cambios inesperados de secretos o recursos. `db:release` no carga `.env` ni siembra personas; `db:migrate` conserva carga local. El IaC declara/adopta Postgres-PITR y el plan no debe proponer su borrado.
+- `.railway/railway.ts`: solo staging/main y production/production, dominio personalizado omitido hasta T6; plan de IaC revisado, sin cambios inesperados de secretos o recursos. `db:release` no carga `.env` ni siembra personas; `db:migrate` conserva carga local. El IaC declara/adopta `Postgres-PITR` en staging y `Postgres-PITR-production` en producción; los nombres son únicos a nivel proyecto y el plan no debe proponer borrar ninguno.
 - `npm run smoke -- --base <URL> --expected-sha <SHA> --indexing <true|false> --bucket-origin <origen del bucket>` tras cada release: salud y SHA, robots según entorno, sitemap, HSTS, CSP con bucket virtual-hosted, manifest e ICS. Producción vacía no exige alias ni contenido sintético. HTTPS obligatorio salvo loopback; para el dominio temporal de producción agregar `--canonical-base https://oeeafit.com`.
 - Staging sintético: acceso por OTP de consola, check-in, portada y CORS, guard de política, server actions y push real en iPhone; una noche de jobs con logs y outbox comprobados. Los datos reales no se usan en pruebas ni fixtures.
 - Producción nueva: bootstrap real sin consentimiento, OTP real, acceso ADMIN y restricciones de política; luego dominio oeeafit.com y www. El bootstrap no se corre mediante seed ni con NODE_ENV adulterado.

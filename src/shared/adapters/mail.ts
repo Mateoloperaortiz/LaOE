@@ -76,8 +76,7 @@ export class ResendTransport implements MailTransport {
       ...(message.html ? { html: message.html } : {}),
       ...(message.headers ? { headers: message.headers } : {}),
     };
-    // ADR-039: cuatro llamadas y 30 s de espera total como máximo; no repetir entregas ambiguas.
-    let waited = 0;
+    // ADR-039: cuatro llamadas como máximo; respetar Retry-After sin repetir entregas ambiguas.
     for (let attempt = 0; ; attempt++) {
       const { data, error, headers } = await this.sendEmail(payload);
       if (!error) {
@@ -95,12 +94,7 @@ export class ResendTransport implements MailTransport {
           1000 * 2 ** attempt,
           Number.isFinite(requestedDelay) ? requestedDelay : 0,
         );
-        // Nunca anticipar Retry-After: si no cabe en el presupuesto, informar cuota agotada.
-        if (waited + delay > 30_000) {
-          throw new QuotaExceededError(`${error.name}: ${error.message}`);
-        }
         await this.wait(delay);
-        waited += delay;
         continue;
       }
       if (

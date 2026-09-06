@@ -68,12 +68,12 @@ describe("Resend: reintentos de ráfaga", () => {
     }
   });
 
-  it("falla sin anticipar Retry-After si agotaría el presupuesto de espera", async () => {
+  it("mantiene tres reintentos cuando Retry-After exige más de 30 segundos", async () => {
     const { mail, send, wait } = transport();
     send.mockResolvedValue(failure("rate_limit_exceeded", { "retry-after": "60" }));
     await expect(mail.send(message)).rejects.toBeInstanceOf(QuotaExceededError);
-    expect(send).toHaveBeenCalledOnce();
-    expect(wait).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledTimes(4);
+    expect(wait.mock.calls).toEqual([[60_000], [60_000], [60_000]]);
   });
 
   it.each([
