@@ -1,6 +1,6 @@
 # ADR-021: Infraestructura: Railway en el workspace Pro existente
 
-- Estado: Aceptada (enmendada por ADR-022 en "Medios", por ADR-023 en "Entornos", "Respaldos" y "Presupuesto", y por ADR-032 en el pre-deploy)
+- Estado: Aceptada (enmendada por ADR-022 en "Medios", por ADR-023 en "Entornos", "Respaldos" y "Presupuesto", y por ADR-032 en el pre-deploy, ADR-039)
 - Fecha: 2026-09-02
 - Reemplaza: ADR-019
 - Enmienda: ADR-001, ADR-012, ADR-016
@@ -43,3 +43,7 @@ Vercel + Neon + R2 costaba lo mismo (US$20) pero repartía la infraestructura en
 ## Enmienda (2026-09-03, ADR-032)
 
 El pre-deploy `npm run db:release` aplica las migraciones SQL de Drizzle y verifica índices parciales y extensiones ([ADR-032](ADR-032-drizzle-y-esquema-por-modulo.md)): "migraciones + uniques parciales + verificación" sigue siendo la secuencia, ahora en un solo script. El desarrollo local usa OrbStack con Postgres 18 y Garage como emulador S3.
+
+## Enmienda (2026-09-06, ADR-039)
+
+La configuración declarativa pasa de `railway.json` a `.railway/railway.ts` (paquete `railway`). Solo existen `staging` y `production`, con ramas `main` y `production`, CI previo, Node 24, `PORT=8080`, región `us-east4-eqdc4a`, una réplica y límites de 1 vCPU/1 GB. La fase 7 absorbe la fase 0 B pendiente. El dominio se agrega al final y su cambio se reconcilia en IaC después de verificar; producción arranca sin datos de GHPOINTS. Tope del workspace US$20 y alerta US$15, sin aumentos automáticos. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).

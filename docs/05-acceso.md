@@ -2,6 +2,8 @@
 
 Solo entran las personas del roster: miembros activos y honorarios. No hay registro abierto ni proveedor de identidad externo. La identidad es el correo institucional; el OTP verifica el buzón, que EAFIT ya protege con Microsoft 365. Reglas en [ADR-010](adr/ADR-010-identidad-por-correo-y-otp.md) y [ADR-011](adr/ADR-011-autorizacion-en-servidor.md).
 
+El primer ADMIN tiene una excepción puntual de arranque ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)): script privado con identidad real, membresía ACTIVE y permiso ADMIN, sin crear consentimiento ni permitir registro abierto. Después de entrar por OTP, publica la política, activa su versión y carga el roster desde el asistente.
+
 ## Flujo de ingreso
 
 ```mermaid

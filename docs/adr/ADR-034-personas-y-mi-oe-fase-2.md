@@ -1,6 +1,6 @@
 # ADR-034: Personas, CRM mínimo y Mi OE (fase 2)
 
-- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038)
+- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-022, ADR-029, ADR-030, ADR-031, ADR-032, ADR-033
 - Enmienda: ADR-010 (destrucción de sesiones), ADR-018 y 08-migracion (mapeo del líder de comité), ADR-022 (el archivo del roster sí pasa por la app)
@@ -55,3 +55,7 @@ El término deja `participation` y pasa al módulo `terms` (sin cambio de SQL) p
 ## Enmienda (2026-09-05, ADR-038)
 
 `comms` importa `people`, `terms`, `content`, `participation` y `system` por sus `index.ts` (nadie importa `comms` salvo `src/app` y `src/jobs/handlers.ts`); `listActiveMemberRefs` incluye a los honorarios. La pestaña Comunicaciones de la Persona 360 muestra mensajes, preferencias y dispositivos; `GET /api/mis-datos` suma preferencias y suscripciones push; `/app/ajustes` gana las secciones Notificaciones y Calendario (T-133 con seis secciones). `membership.changed` a `INACTIVE` y `person.anonymized` borran suscripciones, preferencias e invitaciones de encuesta; anonimizar borra además los mensajes. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).
+
+## Enmienda (2026-09-06, ADR-039)
+
+La fase 7 agrega una excepción puntual para habilitar al primer ADMIN real: un script privado crea persona, membresía y permiso con auditoría y transacción única, sin comités ni consentimiento ni importación del roster. No se toma ningún dato de GHPOINTS. El término de ingreso y las fechas son inputs reales. Después se publica la política y se habilita su versión; el roster real se importa desde el asistente habitual. Nuevos consentimientos y las operaciones que los crean se bloquean en servidor mientras la versión esté pendiente; las revocaciones siguen disponibles. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).

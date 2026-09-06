@@ -1,6 +1,6 @@
 # ADR-033: Contenido editable y medios del portal público (fase 1)
 
-- Estado: Aceptada (enmendada por ADR-036, ADR-037 y ADR-038)
+- Estado: Aceptada (enmendada por ADR-036, ADR-037 y ADR-038, ADR-039)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-014, ADR-017, ADR-020, ADR-022, ADR-023, ADR-032
 
@@ -50,3 +50,7 @@ GHPOINTS guarda `MediaAsset` sin variantes y sirve las portadas por su propia ru
 ## Enmienda (2026-09-05, ADR-038)
 
 `announcement` gana `pushRequestedAt`, `pushSentAt` y `pushCount`; `publishAndPushAnnouncement` y `requestAnnouncementPush` emiten `announcement.push-requested` y `comms` resuelve la audiencia y marca el envío con `markAnnouncementPushSent`. `/admin/cartelera` suma las acciones "Publicar y avisar por push" y "Avisar por push" y la columna Push. Los anuncios de miembros y de comité tienen página propia en `/app/cartelera/[id]`, que es la URL de su push. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).
+
+## Enmienda (2026-09-06, ADR-039)
+
+El arranque de producción mantiene páginas y catálogos base de las migraciones, sin contenidos sintéticos ni medios de GHPOINTS. No se agregan redirecciones ni datos de alias para compatibilidad con GHPOINTS. Cloudflare conserva su proxy; la CSP incorpora el origen virtual-hosted del bucket (ADR-039). Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).

@@ -1,6 +1,6 @@
 # ADR-014: Privacidad por diseño (Ley 1581 de 2012)
 
-- Estado: Aceptada (enmendada por ADR-030)
+- Estado: Aceptada (enmendada por ADR-030, ADR-039)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-002, ADR-013, ADR-015
 
@@ -24,3 +24,7 @@ Un CRM es un archivo de datos personales de estudiantes y contactos. En Colombia
 ## Enmienda (2026-09-03, ADR-030)
 
 La retención de cinco años queda reemplazada: al salir, el perfil pasa a egresado con su historia institucional y se depura en ese momento lo que no es historia; la galería de egresados exige consentimiento `MEMORIAL`; la eliminación a pedido anonimiza de inmediato. Ver [ADR-030](ADR-030-perfil-de-egresado.md).
+
+## Enmienda (2026-09-06, ADR-039)
+
+Mientras la versión de política esté pendiente, la app rechaza nuevas autorizaciones y los flujos que las registran, conservando revocaciones, login y check-in. Se publica primero la política y se establece su versión al final. El bootstrap autorizado de ADR-039 no registra consentimientos ni los supone concedidos; solo crea el acceso inicial real y auditado. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).

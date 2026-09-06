@@ -2,6 +2,8 @@
 
 El roster entra a la casa digital por un archivo que GH exporta de su base (CSV o Excel). Es la única puerta de entrada masiva de miembros: el login no crea personas ([ADR-002](adr/ADR-002-persona-como-eje.md)). El asistente de importación (fase 2) lee este formato, valida fila por fila, muestra qué va a cambiar y aplica todo en una transacción con auditoría. Reglas del cargo en [ADR-029](adr/ADR-029-cargos-de-comite-y-roster.md).
 
+En el arranque limpio ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)), el primer ADMIN se habilita mediante un bootstrap sin consentimiento. El roster real entra **desde este asistente**, después de publicar la política y activar `privacy.policyVersion`; una versión pendiente bloquea la aplicación antes de registrar personas o autorizaciones.
+
 ## Columnas
 
 Las cabeceras se reconocen sin importar mayúsculas ni tildes. Un archivo por término.

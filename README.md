@@ -1,8 +1,10 @@
 # Casa digital de la OE
 
-Documentación de la nueva casa digital de la **Organización Estudiantil de la Universidad EAFIT (OE)**: portal público con la línea gráfica oficial, **Mi OE** para el roster, **Participación y GH Points**, y un **CRM de comunidad** para personas, admisión, egresados, aliados y contactos institucionales. Una sola aplicación que reemplaza a GHPOINTS, el sistema que hoy sirve [oeeafit.com](https://oeeafit.com).
+Documentación de la nueva casa digital de la **Organización Estudiantil de la Universidad EAFIT (OE)**: portal público con la línea gráfica oficial, **Mi OE** para el roster, **Participación y GH Points**, y un **CRM de comunidad** para personas, admisión, egresados, aliados y contactos institucionales. Una sola aplicación destinada a [oeeafit.com](https://oeeafit.com), que empieza con datos nuevos y retira el despliegue experimental de GHPOINTS.
 
 ## Estado
+
+**Fase 7 en curso** (6 de septiembre de 2026): plan de arranque limpio aprobado en [ADR-039](docs/adr/ADR-039-arranque-limpio-fase-7.md). Se prepara Railway con staging y producción, bootstrap del acceso real de Mateo, bloqueo de nuevas autorizaciones hasta habilitar la política, respaldos y retiro de GHPOINTS. No se importa su historia. La infraestructura, el dominio y las pruebas externas permanecen pendientes hasta quedar comprobados en el [runbook](docs/15-runbook.md).
 
 **Fase 6 lista en local** (6 de septiembre de 2026): comunicaciones y PWA sobre las fases anteriores. Bus de notificaciones por outbox con preferencias por tipo y registro de mensajes por persona; Mi OE instalable con manifest, iconos y service worker propio solo para push; suscripciones, preferencias y calendario personal (ICS) en Ajustes; anuncios con push desde la cartelera; plantillas en Markdown y campañas por segmento en lotes por minuto con enlace de baja; recordatorios de participación y avisos de permanencia por push; encuesta anónima tras la ocasión con calificación de 1 a 5 y agregados por ocasión y comité. Verificado con push real en Chrome de escritorio con claves VAPID locales.
 
@@ -47,19 +49,20 @@ Las pruebas de integración usan una base aparte (`casa_digital_test`, creada y 
 | [05-acceso.md](docs/05-acceso.md) | Quién entra y cómo |
 | [06-mapa-del-sitio.md](docs/06-mapa-del-sitio.md) | Rutas del portal, Mi OE y administración |
 | [07-marca.md](docs/07-marca.md) | Tokens de la línea gráfica y reglas de uso |
-| [08-migracion-ghpoints.md](docs/08-migracion-ghpoints.md) | Cómo se traen los datos y se apaga GHPOINTS |
+| [08-migracion-ghpoints.md](docs/08-migracion-ghpoints.md) | Referencia histórica de los migradores; no se ejecutan para el lanzamiento |
 | [09-roadmap.md](docs/09-roadmap.md) | Fases con checklists: **aquí se hace el seguimiento** |
 | [10-verificacion.md](docs/10-verificacion.md) | Cómo se prueba cada capa |
 | [11-contenido-pendiente.md](docs/11-contenido-pendiente.md) | Lo que la OE debe aportar |
 | [12-permanencia.md](docs/12-permanencia.md) | La tabla de permanencia de GH como tablero: reglas por término, grupos de trabajo, evaluaciones y progreso del miembro |
 | [13-importacion-del-roster.md](docs/13-importacion-del-roster.md) | Formato del archivo del roster, validaciones y qué hace la importación |
 | [14-copy-y-textos.md](docs/14-copy-y-textos.md) | Todos los textos de la app con propuesta, dueño y estado, para que GH, comunicaciones y los comités pongan los suyos |
+| [15-runbook.md](docs/15-runbook.md) | Despliegue, bootstrap, respaldo, restauración, dominio y retiro con evidencia |
 | [decisiones-abiertas.md](docs/decisiones-abiertas.md) | Preguntas sin cerrar |
 | [glosario.md](docs/glosario.md) | Términos de la interfaz y del código |
 
 ## Relación con GHPOINTS
 
-GHPOINTS (repositorio hermano, `../GHPOINTS`) sigue en producción hasta el cutover. Esta casa digital lo reemplaza con código y reglas nuevas; sus datos (roster, ledger, asistencias, ediciones) se migran por script y los QR impresos siguen funcionando mediante alias. Ver [08-migracion-ghpoints.md](docs/08-migracion-ghpoints.md).
+GHPOINTS (repositorio hermano, `../GHPOINTS`) fue experimental y no se usó en producción para la OE. La decisión vigente es empezar de cero: sus datos y QR no se migran. Se conserva un archivo cifrado comprobado durante 90 días y se retiran proyecto, integraciones y repositorio después de verificar la app nueva. Ver [ADR-039](docs/adr/ADR-039-arranque-limpio-fase-7.md) y [15-runbook.md](docs/15-runbook.md).
 
 ## Cómo se hace seguimiento
 

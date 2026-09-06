@@ -4,6 +4,9 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 ## Personas
 
+- [ ] Input privado del primer ADMIN: nombre, apellidos, correo institucional y término de ingreso con fechas reales para `bootstrap-admin`; no se toman datos de ejemplos ni de GHPOINTS
+- [ ] Término actual con fechas reales, configurado desde el admin antes de cargar el roster
+
 - [ ] Roster del término con las columnas acordadas: `NOMBRE`, `APELLIDO`, `CORREO`, `CELULAR`, `PREGRADO`, `COMITES`, `ENTRADA A LA OE`, `ESTADO` y la nueva `CARGO` ([13-importacion-del-roster.md](13-importacion-del-roster.md)); GH lo envía cuando termine de limpiar su base
 - [x] Vocabulario de `ESTADO` (Activo, Licencia, Honorario, Retirado, Prueba) y lista de cargos (seis), confirmados por GH
 - [ ] Segunda entrega con `CORREO` y `CARGO` para completar los cargos (la base actual no los tiene)
@@ -24,6 +27,9 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Portadas o fotos con permiso de uso; sin fotos de personas sin consentimiento
 
 ## Normativa y privacidad
+
+- [ ] Publicar el texto de `/privacidad` desde el admin y establecer su versión al final; habilita nuevos consentimientos, altas e importación de roster. El bootstrap no registra consentimiento
+- [ ] Revisión de JUNTA de T-1178 y T-1179, avisos de política pendiente
 
 - [x] Estatutos vigentes en PDF: el firmado con la reforma del 2026-05-08 (28 páginas) está en manos de Mateo; se sube desde `/admin/documentos` y sus artículos se extraen con `scripts/normativa-extract.py` en la fase 2
 - [x] Reglamento vigente en PDF: el firmado con la reforma del 2026-05-08 (43 páginas, con el Anexo 1) está en manos de Mateo; mismo camino
@@ -59,7 +65,6 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Puntos por tipo de ocasión para el término (tope de comités y asambleas ya están decididos)
 - [ ] Fechas de las dos asambleas ordinarias (una sola es obligatoria) y, en el segundo semestre, de la elección de junta
 - [ ] Nombres y cortes de los niveles de GH Points (T-082); mientras tanto rigen los propuestos (0, 100, 250, 500, 1000)
-- [ ] Al migrar desde GHPOINTS: las actividades que quedaron abiertas allá (31 en la copia local) llegan abiertas y el cierre automático las cierra en la primera hora; confirmar con GH si alguna debe seguir recibiendo registros a mano antes del cutover
 - [ ] Texto de "Unirse": requisitos y fechas de convocatoria
 - [ ] Preguntas reales del formulario de admisión (el seed trae unas sintéticas) y el texto de gracias que ve quien postula
 - [ ] Etapas reales del proceso de admisión si difieren de la plantilla (Recibida, Entrevista, Admitida, Alta, No admitida) y de la de patrocinio (Contacto, Propuesta, Negociación, Cerrado, Sin acuerdo)
@@ -72,4 +77,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Confirmar con GH los supuestos de la fase 6: horas de los recordatorios (07:00 las actividades de hoy, 18:00 las reuniones y asambleas de mañana, 2 a 3 horas antes de cada asamblea) y de los avisos de permanencia (09:00); 50 correos por minuto en campañas; quien está en licencia no recibe push; los comentarios de la encuesta se muestran solo con 3 o más respuestas
 - [ ] Que la política de tratamiento de datos mencione las notificaciones push y las campañas por correo con su baja
 - [ ] Acceso al dominio `oeeafit.com` (DNS) y a la cuenta de Resend
-- [ ] Subdominio `pruebas.oeeafit.com` para `staging` (opcional; el dominio de Railway sirve mientras tanto)
+
+- [ ] Fecha y aviso de lanzamiento de la app nueva por los canales de la OE; indicar cómo entrar por OTP y recordar la sesión antes de una asamblea
+- [ ] SES: habilitación futura cuando exista cuenta; queda fuera del lanzamiento
+- [ ] Completar método de pago y datos de facturación de Cloudflare R2 en la pantalla abierta: activación pendiente al 2026-09-06, bucket `oe-respaldos` aún no creado

@@ -23,15 +23,17 @@ Listo cuando (en local): login por OTP con el roster semilla sintético, cascar�
 
 **Cumplido el 2026-09-03**: `npm run db:reset` deja 27 comités, 41 personas sintéticas y un ADMIN de demo; el ingreso por OTP con `oe.demo.admin@eafit.edu.co` llega al admin; claro/oscuro revisado en 360, 768 y 1280; el poller aparece en los logs y procesa lo encolado; `npm run check` y `npm run test:e2e` en verde.
 
-### B. Cuentas, GitHub y Railway (después de A)
+### B. Cuentas, GitHub y Railway (absorbida por fase 7, ADR-039)
+
+Pendiente al 2026-09-06. Sus casillas se completan con evidencia de F7-T2 a F7-T4; SES queda aplazado y no bloquea el lanzamiento.
 
 - [x] Repositorio `LaOE` en GitHub (remoto de este repo, privado) con protección de `main` y CI en verde
-- [ ] Proyecto `casa-digital` en el workspace Pro de Railway con el entorno `staging`: servicios `web`, `Postgres` y bucket `media`; variables por referencia; misma región que GHPOINTS; dominio de Railway o `pruebas.oeeafit.com` con `noindex`
+- [ ] Proyecto `casa-digital` en el workspace Pro de Railway con el entorno `staging`: servicios `web`, `Postgres` y bucket `media`; variables por referencia; misma región que GHPOINTS; dominio de Railway con `noindex`
 - [ ] Respaldos del volumen de Postgres (diario, semanal, mensual) y PITR activados
 - [ ] CORS del bucket configurado con `storage:init` para el dominio de producción y los de staging
-- [ ] Límite duro de uso del workspace revisado para dos apps en convivencia
+- [ ] Límite duro del workspace US$20 y alerta US$15 verificados, sin aumento automático
 - [ ] Resend: dominio `oeeafit.com` verificado (ya existe en GHPOINTS; confirmar acceso)
-- [ ] AWS SES: cuenta, dominio `oeeafit.com` verificado, salida del sandbox
+- AWS SES aplazado por ADR-039; `AWS_REGION` ausente, correo solo Resend
 - [ ] Cloudflare R2: bucket privado para copias; par de claves `age` (la privada solo con Mateo)
 - [ ] Claves VAPID para push
 - [ ] Servicio `backup` con cron mensual de Railway (`pg_dump` + objetos del bucket, cifrado con `age`, subida a R2) y job `backup-check` en el web
@@ -237,18 +239,23 @@ Entregables del roadmap cubiertos por los tramos:
 
 Listo cuando: un anuncio llega al celular de un miembro en menos de un minuto y la encuesta de una ocasión cerrada llega a sus asistentes. **Cumplido en local el 2026-09-06** con push real (`npm run push:check`, Google Chrome de escritorio con claves VAPID locales y `JOBS_ENABLED=true`): "Avisar por push" en `/admin/cartelera` llega al service worker de Chrome en 2,1 s y el cierre de una ocasión con encuesta lleva la T-191 a su asistente en 7,1 s con la URL que abre el formulario; `/admin/mensajes` registra ambas `webpush · SENT`. El celular queda para la fase 7 porque exige HTTPS público.
 
-## Fase 7 · Cutover · `pendiente`
+## Fase 7 · Arranque limpio y retiro de GHPOINTS · `en curso`
 
-- [ ] Crear el entorno `production` (web, Postgres, bucket) y la rama `production`; CORS y variables de producción
-- [ ] Ensayo completo de migración sobre un dump reciente
-- [ ] Congelación de GHPOINTS y migración delta; copia de medios nuevos
-- [ ] Mover `oeeafit.com` del servicio GHPOINTS al servicio `web` nuevo
-- [ ] Verificación en producción: OTP real, check-in real, portada, push
-- [ ] Semana de monitoreo con GHPOINTS detenido
-- [ ] Dump final cifrado fuera de Railway; eliminar el proyecto GHPOINTS
-- [ ] README, ADR y runbook actualizados
+Plan aprobado el 2026-09-06 ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)). GHPOINTS nunca tuvo uso en producción para la OE: no se migra su contenido ni se conserva una ventana de rollback. Solo `staging` y `production`; el ensayo se hace en staging con datos sintéticos. Se absorbe la fase 0 B pendiente. Código y documentación no prueban por sí solos que la infraestructura esté configurada.
 
-Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está eliminado con respaldo.
+### Tramos
+
+- [x] F7-T0 · Docs: ADR-039, enmiendas, arquitectura, referencia histórica de migración, copy de política pendiente y runbook. Listo el 2026-09-06; `npm run check` completo en verde a las 14:46 de Bogotá
+- [ ] F7-T1 · Código: IaC Railway, CSP virtual-hosted, reintento de Resend, smoke, backup con retención de 12 copias totales, bootstrap atómico y guard de política; check y e2e
+- [ ] F7-T2 · Staging: presupuesto, servicios, dominio de Railway, variables, CORS, seed sintético, PITR/respaldos y verificaciones de la fase 0 B
+- [ ] F7-T3 · Claves y cuentas: Resend, VAPID por entorno, R2 y age privado con Mateo, rama production protegida
+- [ ] F7-T4 · Producción: arranque limpio, variables finales, dominio temporal, primer ADMIN real sin consentimiento, OTP, primera copia cifrada restaurada localmente; retirar dominio temporal
+- [ ] F7-T5 · Ensayo en staging: smoke, check-in, medios, guard de política, PWA y push real en iPhone, noche de jobs sin errores ni envíos inesperados
+- [ ] F7-T6 · Dominio: mover oeeafit.com, Cloudflare intacto salvo CNAME/TXT necesarios, verificar HTTPS/www/OTP; reconciliar IaC y promover después de la ventana sin desplegar dentro de ella
+- [ ] F7-T7 · Retiro inmediato tras verificar: respaldo GHPOINTS cifrado y descifrable (90 días), eliminar proyecto, revocar integraciones y archivar repo; sin esperar 48 horas
+- [ ] F7-T8 · Monitoreo durante 7 días: salud, errores, correo, jobs, uso y respaldos; cierre con evidencia y contenido pendiente actualizado
+
+Listo cuando: `oeeafit.com` sirve la app nueva, el acceso real funciona, se comprobó recuperación del backup, GHPOINTS está eliminado con archivo cifrado y terminó la semana de monitoreo. La carga de política y roster ocurre desde la app: mientras la versión siga pendiente, no se crean nuevos consentimientos. No se marca infraestructura completada hasta ejecutarla y anotarla en [15-runbook.md](15-runbook.md).
 
 ## Backlog (después de la v1)
 
@@ -263,7 +270,8 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 - Reto relámpago, boosters, palabra del día, badges persistidos
 - Fórmulas alternativas de score de comité (ponderadas)
 - WhatsApp Business API
-- Servicio `worker` separado y Cloudflare como CDN, solo con uso medido
+- Servicio `worker` separado, solo con uso medido
+- SES cuando exista cuenta y el volumen justifique activar el desbordamiento; Cloudflare conserva el proxy existente
 
 ## Registro de avances
 
@@ -347,3 +355,5 @@ Listo cuando: oeeafit.com sirve la app nueva y el proyecto GHPOINTS está elimin
 | 2026-09-05 | 6 | F6-T6 listo: calendario personal. `identity/domain/calendar-token.ts` (`getOrCreateCalendarToken` crea el token de 24 bytes al primer uso, `rotateCalendarTokenAs` lo reemplaza con auditoría y `resolveCalendarToken` estampa el último uso); `GET /api/ics/mi-agenda.ics?t=…` sin sesión exige membresía activa u honoraria y compone con `buildIcs` las ediciones publicadas públicas y de miembros (`events.listMemberEditionsForIcs`) más las ocasiones abiertas o cerradas del término vigente que son generales, asambleas o de los comités vivos de la persona (`participation.listAgendaForPerson`; las de solo nuevos únicamente si es nueva), con `agendaEntries` (pura: UID por ocasión y edición, descripción en texto plano, orden por fecha) y `private, max-age=900`; Ajustes gana la sección Calendario (T-133 pasa a seis secciones) con `CalendarLink` (URL, copiar, `webcal://`) y Regenerar enlace. 1 unitaria, 1 de integración (2 casos) y 1 e2e (2 casos) nuevas; `check` (130 y 160) y e2e (75) en verde |
 | 2026-09-06 | 6 | F6-T7 listo: encuesta tras la ocasión. `forms` gana el tipo `RATING` (radios de 1 a 5 con los extremos de T-1102; `validateAnswers` exige un entero de 1 a 5 y devuelve T-1171; T-924 lo lista) y `listSurveyFormOptions` (formularios de miembros cuya acción no crea persona); `occasion.surveyFormId` entra al kit y a la vista del líder como "Encuesta al cerrar" (T-1158 a T-1160) y `createOccasionAs` lo preselecciona con `survey.defaultFormId` en las actividades. `participation/domain/surveys.ts`: `createSurveyInvites` al procesar `occasion.closed` (una invitación por check-in aprobado con token de 24 bytes guardado como sha256, idempotente por ocasión y persona; encola `notification.requested` `SURVEY` con T-191 y URL propia `/app/encuesta/<token>`, `dedupeKey survey:<ocasión>`), `getSurveyInviteForActor` (dueño, sin responder y dentro de `survey.windowDays` desde `closedAt`: OPEN, ANSWERED, EXPIRED o NOT_FOUND), `answerSurveyAs` (valida con `forms.validateAnswers`, inserta `occasion_survey_response` sin persona y estampa `answeredAt` en la misma transacción con `FOR UPDATE`; audita `survey.answered` sobre la invitación, nunca las respuestas), `surveySummary` y `surveySummaryForCommittee` sobre `surveys-pure.ts` (`summarizeAnswers`: promedio y distribución de las calificaciones, conteos de selecciones y casillas, textos libres ordenados por hash y solo con `SURVEY_TEXT_MIN` = 3 o más respuestas) y `deleteSurveyInvitesFor` al salir de la OE o anonimizarse. `/app/encuesta/[token]` con sesión (`FormularioEncuesta` con `useActionState` y `FormFields`; gracias T-1098, ya respondida T-1099, vencida T-1100, no encontrada T-1101). La consola de una ocasión cerrada muestra la sección Encuesta (T-1161 a T-1166) y `/admin/comites/[slug]` las encuestas del semestre (T-1167 a T-1170). Pruebas: unit `surveys-pure.test.ts`; integración `surveys.test.ts` (invitación por aprobado y ninguna por pendiente, push con URL propia, sin repetir, solo el dueño responde y una sola vez, respuesta sin persona, ventana vencida, agregados por ocasión y comité); e2e `encuesta.spec.ts` (ADMIN crea el formulario con `RATING` y la ocasión con encuesta, el miembro hace check-in, ADMIN cierra, la prueba crea la invitación y drena el outbox, el miembro responde y ve el gracias, la consola muestra 1 de 1, promedio 5.0 y los comentarios ocultos por pocas respuestas). Lección: `drain(n)` fija `now` al entrar, así que un evento encolado por un handler sale en la pasada siguiente. |
 | 2026-09-06 | 6 | F6-T8 listo: cierre de la fase. `scripts/lib/seed-fase6.ts` (dos plantillas en Markdown, el segmento "Activos del semestre", una campaña enviada hace dos días con un mensaje por consola por persona y una baja omitida, una campaña programada a tres días, preferencias variadas, tres push registrados, el formulario "Encuesta de la actividad" con calificación, selección y texto como `survey.defaultFormId`, y la ocasión cerrada `demo000006` del primer comité con ocho asistentes, sus invitaciones y seis respuestas anónimas), idempotente. Revisión de marca (07-marca §11) de 19 pantallas en 375, 768 y 1280, claro y oscuro, con capturas por Playwright y hojas de contacto; cinco correcciones: los extremos de la calificación van debajo de los radios, la vista previa de la plantilla inserta solo el fragmento del cuerpo del correo (`wrapEmail` devuelve `preview`; al insertar el documento completo el navegador aplicaba los estilos del `<body>` a la página y en oscuro desaparecían el título, el asunto y "Editar"), el detalle de la campaña llama "Envío" (T-1176) a la sección de la estimación y solo lista destinatarios cuando arrancó, el subtítulo de la 360 usa la etiqueta pequeña de las demás pestañas y el título largo de la encuesta va plano. "Listo cuando" cumplido con push real (`scripts/push-check.ts`, `npm run push:check`): Google Chrome con perfil persistente (en incógnito no hay Push API) se suscribe desde Ajustes con claves VAPID locales (endpoint de FCM), "Avisar por push" en la cartelera muestra la notificación en 2,1 s, el cierre de una ocasión con encuesta lleva la T-191 con su URL en 7,1 s y esa URL abre el formulario; `/admin/mensajes` registra ambas `webpush · SENT`. README con "Fase 6 lista en local". Suite al cierre de la fase: 133 unitarias, 162 de integración y 76 e2e (`check` y e2e en verde). Lecciones: OrbStack puede quedar colgado tras dormir la máquina (los puertos aceptan y nadie responde; `orb stop` y `orb start` lo devuelven); los e2e y los scripts locales gastan códigos OTP (5 por correo y 12 por IP por ventana), así que las pruebas reutilizan la sesión guardada del miembro; `drain(n)` fija `now` al entrar, y un evento encolado por un handler sale en la pasada siguiente. |
+| 2026-09-06 | 7 | Plan de arranque limpio aprobado (ADR-039): producción sin datos de GHPOINTS, dos entornos, bootstrap real sin consentimiento, guard de política, correo solo Resend, IaC Railway, copias cifradas con retención total 12 y retiro con archivo GHPOINTS separado. F7-T0 listo: documentación actualizada, `npm run check` completo terminó con exit 0 el 2026-09-06 a las 14:46 de Bogotá (164 unitarias, integración y build en verde). F7-T1 sigue pendiente de e2e; infraestructura y verificación operativa pendientes. |
+| 2026-09-06 | 7 | F7-T3 parcial: sesión de Cloudflare accedida desde Chrome; activación de R2 detenida en el formulario obligatorio de facturación. Mateo debe completar método de pago y datos en pantalla. El bucket de respaldos aún no está creado; no se acredita copia en R2. |

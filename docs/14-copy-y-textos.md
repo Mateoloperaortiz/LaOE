@@ -1261,6 +1261,13 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 
 Textos de controles genéricos que no cambian el sentido institucional.
 
+Avisos de arranque con política pendiente (ADR-039; excepción del primer ADMIN aprobada por Mateo el 2026-09-06):
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-1178 | Política pendiente: aviso público en consentimientos y formularios | La política de tratamiento de datos está en preparación. Podés entrar a Mi OE y registrar tu asistencia; las nuevas autorizaciones estarán disponibles cuando se publique. | JUNTA | Propuesta; texto sensible |
+| T-1179 | Política pendiente: aviso administrativo en altas, roster y consentimientos | Publicá la política de tratamiento de datos y configurá su versión antes de registrar nuevas autorizaciones o dar de alta a personas. | JUNTA | Propuesta; texto sensible |
+
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-230 | Botón para reintentar tras un error | Intentar de nuevo | MATEO | Propuesta |

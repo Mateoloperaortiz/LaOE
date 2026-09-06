@@ -1,6 +1,6 @@
 # ADR-005: Pertenencia a comité por término
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-039)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-004, ADR-009
 
@@ -17,3 +17,7 @@ GHPOINTS guarda `joinedAt` y `leftAt` por pertenencia y compara timestamps al ac
 - "Perteneció a" se lee directo de la tabla.
 - Al cambiar de término, un asistente propone copiar las pertenencias vigentes al nuevo término y GH confirma; no es automático.
 - Cambiar de comité el semestre siguiente no reescribe el pasado.
+
+## Enmienda (2026-09-06, ADR-039)
+
+La cuenta real del primer ADMIN puede arrancar temporalmente sin pertenencias a comités mediante el bootstrap de ADR-039. Es una excepción puntual para cargar política y roster; no cambia la regla de 1 a 3 comités de las altas e importaciones normales. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).

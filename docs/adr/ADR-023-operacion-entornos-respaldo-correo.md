@@ -1,6 +1,6 @@
 # ADR-023: Operación: entorno de pruebas, copia externa y correo con desbordamiento
 
-- Estado: Aceptada (enmendada por ADR-038)
+- Estado: Aceptada (enmendada por ADR-038, ADR-039)
 - Fecha: 2026-09-02
 - Enmienda: ADR-021 (puntos "Entornos", "Respaldos" y "Presupuesto") y ADR-015 (enrutamiento del correo)
 
@@ -25,3 +25,7 @@ Mateo decidió el 2026-09-02: construir desde cero con un entorno de pruebas per
 ## Enmienda (2026-09-05, ADR-038)
 
 `sendCampaignEmail` usa el transporte de desbordamiento (SES) si existe y el primario si no (consola en local), registra `message` con `kind CAMPAIGN` y `campaignId`, y todo correo de campaña lleva las cabeceras `List-Unsubscribe` y `List-Unsubscribe-Post: List-Unsubscribe=One-Click` hacia `/api/baja/[token]`; `MailMessage` gana `headers` y los dos transportes lo pasan. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).
+
+## Enmienda (2026-09-06, ADR-039)
+
+En la fase 7 solo se usan `staging` (sintético) y `production` (arranque limpio); no existe entorno de ensayo con datos reales. Correo transaccional y campañas por Resend; `AWS_REGION` ausente deja SES aplazado. El transporte reintenta ráfagas 429 con hasta cuatro llamadas, esperas 1/2/4 y Retry-After dentro de 30 segundos totales; no reintenta cuotas diarias o mensuales. El servicio `backup` usa `docker/backup/Dockerfile` y `scripts/backup.sh`, cron `0 8 1 * *`, dump, objetos y manifiesto cifrados hacia R2. Retiene 12 copias completas en total, manuales y programadas; verifica subida antes de podar y actualiza `backup.lastRunAt` al final. Cloudflare ya está delante: se conservan proxy, SSL Full y DNSSEC. La fase 0 B no se considera completada hasta probar staging y restaurar una copia externa. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).

@@ -1,6 +1,6 @@
 # ADR-010: Identidad por correo del roster con OTP
 
-- Estado: Aceptada (enmendada por ADR-034)
+- Estado: Aceptada (enmendada por ADR-034, ADR-039)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-002, ADR-011, ADR-015
 
@@ -21,3 +21,7 @@ La identidad es el **correo institucional del roster**. Acceso por OTP de 6 díg
 ## Enmienda (2026-09-03, ADR-034)
 
 `people` no puede llamar a `identity` (habría un ciclo), así que cambiar correo o estado estampa `person.sessionsRevokedAt` en la misma transacción y `resolveActor` rechaza toda sesión creada antes de esa marca; el borrado físico de sesiones y permisos lo hace un handler del outbox segundos después. El efecto es el mismo: ninguna request posterior al commit resuelve un actor. Además, el carnet (`/app/carnet`) es un token `oe1.<personId>.<vencimiento>.<HMAC-SHA256>` firmado con `SESSION_SECRET` y vigente 24 horas. Ver [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md).
+
+## Enmienda (2026-09-06, ADR-039)
+
+El primer acceso real se habilita con el bootstrap privado y auditado de ADR-039: persona con membresía ACTIVE y permiso ADMIN, sin registro abierto ni consentimiento ficticio. El OTP sigue validando el buzón real y exige membresía elegible; el roster de los demás miembros llega luego desde la app. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).

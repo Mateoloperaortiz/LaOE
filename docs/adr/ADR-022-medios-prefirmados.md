@@ -1,6 +1,6 @@
 # ADR-022: Medios: subida directa y entrega por URL prefirmada
 
-- Estado: Aceptada (enmendada por ADR-034)
+- Estado: Aceptada (enmendada por ADR-034, ADR-039)
 - Fecha: 2026-09-02
 - Reemplaza: ADR-016
 - Enmienda: ADR-021 (punto "Medios")
@@ -26,3 +26,7 @@ La documentación de Railway (verificada el 2026-09-02) fija cómo se trabaja co
 ## Enmienda (2026-09-03, ADR-034)
 
 Dos excepciones acotadas: el archivo del roster (CSV o XLSX de menos de 5 MB) sí atraviesa la app, porque el servidor lo tiene que leer, y después se guarda original en el bucket; y los PDF de normativa se suben con un `POST` prefirmado propio a `documents/` sin pasar por `media_asset` ni por `media.process`, y se abren por enlace a una URL prefirmada de 10 minutos (no se embeben: la CSP no lo permite y no hace falta). Los miembros pueden pedir un `POST` prefirmado solo para su foto (`purpose = "photo"`, privada, hasta 5 MB). Ver [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md).
+
+## Enmienda (2026-09-06, ADR-039)
+
+En Railway el bucket usa URLs virtual-hosted y `S3_FORCE_PATH_STYLE=false`. La CSP usa el origen efectivo `https://<bucket>.<host del endpoint>` y conserva el origen del endpoint para path-style local. CORS se aplica por entorno con `storage:init` mediante `railway run --no-local` con proyecto, servicio y entorno explícitos, sin cargar `.env` local. Los medios de producción se crean desde la app; no se copian de GHPOINTS. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).

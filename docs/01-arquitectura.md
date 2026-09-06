@@ -77,36 +77,43 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzl
 - **Eventos de dominio → línea de tiempo.** `person.imported`, `person.updated`, `person.email-changed`, `membership.changed`, `committee-membership.changed`, `appointment.changed`, `consent.changed`, `person.deletion-requested`, `person.anonymized`, `person.data-exported`, `permission.granted` y `permission.revoked` (fase 2, [ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)) y, desde la fase 3 ([ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)), `checkin.approved`, `checkin.cancelled` y `points.adjusted` producen `Interaction` en la persona (con payloads autosuficientes: `crm` no consulta `participation`), `score.recompute` recalcula el score de la ocasión con clave por ocasión, `occasion.closed` y `term.points-closed` quedan para quien los necesite y `term.successor-missing` abre una tarea; desde la fase 4 ([ADR-036](adr/ADR-036-permanencia-fase-4.md)) `evaluation.recorded`, `leader-score.recorded`, `manual-credit.granted`, `work-group-membership.changed` y `permanence.decided` producen `Interaction` (y una evaluación buena de una tarea de nuevos marca el paso del onboarding), `permanence.recompute` recalcula el snapshot con clave por término o por persona y lock por término (lo encolan los comandos de `permanence` y sus handlers de `checkin.approved`, `checkin.cancelled`, `committee-membership.changed`, `membership.changed`, `person.imported` y `occasion.closed`), y `permanence.closed` dispara `permanence.apply-decisions`, el job reanudable que ejecuta las decisiones del cierre con comandos de `people`; desde la fase 5 ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) `submission.received`, `registration.created`, `card.created`, `card.moved`, `stage.changed`, `person.admitted`, `request.created`, `request.decided` y `call-entry.changed` producen `Interaction` (en la persona o en la organización), `submission.received` crea además la tarjeta del pipeline declarado en el formulario, `call-entry.changed` con estado aceptado crea la pertenencia al grupo de trabajo en `permanence`, y `person.admitted` y `request.decided` envían los correos T-200 y T-205 desde `comms`; desde la fase 6 ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) todo aviso a personas viaja por `notification.requested` (destinatarios, textos, URL y `dedupeKey`) y lo entrega `comms` por push según la preferencia de cada quien: lo emiten `content` al pedir el push de un anuncio (`announcement.push-requested`, que `comms` traduce resolviendo la audiencia), `participation` en los recordatorios y al cerrar una ocasión con encuesta, `permanence` en los avisos diarios, y el propio `comms` al escuchar `checkin.approved` (T-181), `request.decided` (T-189), `call.opened` (T-190) y `recognition.granted` (T-192); `permanence.decided` produce el correo T-202 cuando la persona cumple. Un evento puede tener varios handlers (uno por módulo interesado) y cada handler es idempotente; así `identity` limpia sesiones y permisos del mismo `membership.changed` que `crm` anota. El CRM se alimenta solo y los módulos no se conocen.
 - **Admin kit declarativo** (`src/shared/admin-kit/`): `defineResource({ modelo, columnas, filtros, formulario Zod, permisos })` genera listado paginado con búsqueda, ficha, crear/editar en panel lateral y export CSV. Cubre Comité, Término, Etiqueta, Organización, Formulario, Plantilla, Página, Documento, Anuncio, Pipeline y Convocatoria. UI a medida solo para Persona 360, constructor de formularios, detalle de organización, kanban, bandeja de solicitudes, detalle de convocatoria, consola de ocasión, ledger, campañas e importaciones. Paleta de comandos (⌘K) con búsqueda `pg_trgm` sobre personas, comités, organizaciones y ocasiones.
 - **Marca** (`src/shared/brand/`): tokens, texturas, `Cartel`, elementos gráficos como SVG, tema claro/oscuro, movimiento reducido. Ver [07-marca.md](07-marca.md).
-- **Adaptadores:** `Mailer` (`console` en desarrollo y `staging`; en producción Resend para transaccional con desbordamiento automático a SES desde 95 correos diarios, y SES para campañas; cabeceras `List-Unsubscribe` en campañas), `Storage` (bucket de Railway vía S3; Garage como emulador local), `Pusher` (web-push con VAPID; sin claves configuradas el envío se imprime en consola y se registra igual).
+- **Adaptadores:** `Mailer` (`console` en desarrollo y `staging`; en producción Resend para transaccional y campañas, con reintento de ráfagas; SES queda apagado sin `AWS_REGION` hasta otra fase (ADR-039); cabeceras `List-Unsubscribe` en campañas), `Storage` (bucket de Railway vía S3; Garage como emulador local), `Pusher` (web-push con VAPID; sin claves configuradas el envío se imprime en consola y se registra igual).
 - **PWA:** `src/app/manifest.ts` sirve el manifest (`start_url` `/app`, iconos generados desde el isotipo por `scripts/pwa-icons.ts`), `public/sw.js` es un service worker propio que solo recibe el push, muestra la notificación y abre la URL (sin caché sin señal), y lo registra Mi OE; el portal público no lo registra ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)).
 
 ## Cómo corre en Railway
 
 | Pieza | Configuración |
 | --- | --- |
-| Proyecto | `casa-digital`, nuevo, dentro del workspace Pro que ya paga GHPOINTS; misma región |
-| Servicio `web` | Node 24, `npm run build`, `next start` en `0.0.0.0:$PORT`; healthcheck `GET /api/health` (timeout 300 s); pre-deploy `npm run db:release` (migraciones SQL de Drizzle y verificación de índices parciales y extensiones, nunca seed; [ADR-032](adr/ADR-032-drizzle-y-esquema-por-modulo.md)); reinicio por fallo con hasta cinco reintentos; techos de 1 vCPU y 1 GB |
-| Servicio `Postgres` | PostgreSQL 18 solo en red privada; volumen de 2 GB con alertas al 80 %, 95 % y 100 %; respaldos diario (6 días), semanal (1 mes) y mensual (3 meses); PITR |
-| Bucket `media` | Privado, S3-compatible; variables enlazadas por referencia al servicio `web`; nunca `NEXT_PUBLIC_*`; CORS para el dominio de producción y los de PR o staging (`aws s3api put-bucket-cors`); sin snapshots nativos, por eso la copia mensual incluye sus objetos |
-| Variables | `DATABASE_URL` por referencia a Postgres, `SESSION_SECRET`, `APP_URL`, `APP_TIMEZONE=America/Bogota`, `TZ=UTC`, `INSTITUTIONAL_EMAIL_DOMAINS`, `RESEND_API_KEY`, `EMAIL_FROM`, `VAPID_*`, `JOBS_ENABLED=true`, `PUBLIC_INDEXING` (solo `true` en producción), credenciales del bucket |
-| Worker | En el mismo proceso del servicio `web`; un servicio `worker` aparte (misma imagen, `WORKER_ONLY=1`) solo con uso medido |
-| Entornos | `staging` persistente desde la fase 0 (rama `main`, datos sintéticos, dominio de Railway o `pruebas.oeeafit.com` con `noindex`, correo a consola) y `production` desde la fase 7 (rama `production`, adelantada a mano desde `main`); entornos de PR apagados; desarrollo local con OrbStack: Postgres 18 y Garage como emulador S3, sin credenciales de producción ([ADR-023](adr/ADR-023-operacion-entornos-respaldo-correo.md)) |
-| Servicio `backup` | Cron de Railway el día 1 de cada mes (`0 8 1 * *`, 03:00 de Bogotá); `pg_dump` por la red privada más los objetos del bucket, cifrados con `age`, a un bucket privado de Cloudflare R2 (gratis); conserva 12 copias y termina |
-| Dominio | `oeeafit.com` se mueve del servicio GHPOINTS al servicio `web` en el cutover |
-| Límite de gasto | Límite duro del workspace revisado para dos apps en convivencia; alerta antes del tope |
+| Proyecto | `casa-digital`, nuevo, en el workspace Pro existente; región `us-east4-eqdc4a`; IaC en `.railway/railway.ts` (ADR-039) |
+| Servicio `web` | Node 24, una réplica, `PORT=8080`, build/start y pre-deploy `npm run db:release`; `/api/health` con timeout 300 s; límite 1 vCPU/1 GB, sin sleep; CI antes del despliegue |
+| Servicio `Postgres` | PostgreSQL 18 en red privada, límite 1 vCPU/1 GB; volumen y respaldo diario/semanal/mensual más PITR verificados en F7-T2/T4 |
+| Bucket `media` | Privado por entorno, virtual-hosted (`S3_FORCE_PATH_STYLE=false`); CSP con origen efectivo del bucket; CORS mediante `storage:init` |
+| Variables | `DATABASE_URL` y bucket por referencia; secretos por entorno; `TZ=UTC`, `APP_TIMEZONE=America/Bogota`, `JOBS_ENABLED=true`; `PUBLIC_INDEXING` false staging/true production; Resend solo producción, AWS ausente |
+| Worker | Poller y scheduler en el proceso web; worker separado solo con uso medido |
+| Entornos | Solo staging (main, datos sintéticos, dominio Railway, noindex) y production (rama production promovida a mano, datos nuevos). No hay ensayo ni entornos PR |
+| Primer ADMIN | Script privado `bootstrap-admin`: persona, membresía ACTIVE y ADMIN con auditoría y transacción; sin comités, consentimiento ni bienvenida. Política y roster se cargan después desde el admin |
+| Política pendiente | Nueva autorización rechazada mientras la versión siga pendiente; revocaciones, acceso y check-in continúan. Publicar texto y después activar versión (ADR-039) |
+| Servicio `backup` | `docker/backup/Dockerfile` y `scripts/backup.sh`, cron `0 8 1 * *`; dump, objetos y manifiesto cifrados con age a R2; verificación de subida, retención de 12 totales manuales+cron y marca de éxito al final |
+| Dominio | oeeafit.com se mueve al final; Cloudflare mantiene proxy, SSL Full, DNSSEC y www. Sin despliegue dentro de la ventana; conciliación del IaC después |
+| Límite de gasto | Tope duro US$20 y alerta US$15, comprobados antes de crear recursos; no se aumenta automáticamente |
+
 
 Lo que este despliegue permite y que el diseño aprovecha:
 
 - **Proceso permanente:** poller y scheduler en la app; sin crons externos ni funciones con tiempo máximo.
 - **Medios sin pasar por la app:** subida directa del navegador al bucket con `POST` prefirmado y CORS; entrega por `/api/media/[id]`, que valida y redirige a una URL prefirmada, con egreso gratis desde el bucket ([ADR-022](adr/ADR-022-medios-prefirmados.md)).
-- **Una sola región:** latencia desde Medellín de 60 a 90 ms, suficiente para este uso. Sin CDN delante por ahora: se revisaría solo ante spam en formularios públicos, lentitud medida o cargos de egreso.
+- **Una sola región:** latencia desde Medellín de 60 a 90 ms, suficiente para este uso. Cloudflare ya está delante del dominio: proxy activo, SSL Full, DNSSEC y regla www conservados (ADR-039).
 - **Una sola instancia:** el healthcheck y los reinicios cubren fallos del proceso; la alta disponibilidad no es objetivo. Si algún día hace falta escalar, los locks transaccionales ya evitan trabajo duplicado.
 
 ## Layout del repositorio
 
 ```
 casa-digital/
-  railway.json                  build, start, healthcheck y pre-deploy
+  .railway/railway.ts            IaC: entornos, servicios, referencias y despliegue
+  docker/backup/Dockerfile       imagen del cron de copia externa
+  scripts/backup.sh             dump, medios, cifrado, retención y marca de éxito
+  scripts/smoke.ts              comprobaciones HTTP tras cada release
+  scripts/bootstrap-admin.ts    primer acceso real y auditado, sin seed ni consentimiento
   compose.yaml                  Postgres 18 (127.0.0.1:5433) y Garage (127.0.0.1:3900) para OrbStack
   drizzle.config.ts             recoge src/modules/*/schema.ts; migraciones SQL en drizzle/
   drizzle/                      migraciones generadas y custom (pg_trgm)
@@ -143,9 +150,9 @@ casa-digital/
 | Uso de GHPOINTS durante la convivencia | ≈ US$4, también incluido |
 | Entorno `staging` (web + Postgres + bucket con datos sintéticos) | ≈ US$3 a 4, también incluido |
 | Servicio `backup` (corre minutos al mes) y Cloudflare R2 gratis (10 GB) | ≈ US$0 |
-| Resend gratis (3.000 correos/mes, 100/día) para transaccional; SES (US$0,10 por 1.000) para desbordamiento y campañas | Centavos |
+| Resend para todo el correo; SES aplazado (ADR-039) | Plan y cupos comprobados en la cuenta; no se presupone desbordamiento |
 | Web push, dominio existente, fuentes sustitutas | US$0 |
-| **Total esperado** | **US$20/mes, sin cambio** |
+| **Presupuesto operativo** | **Tope US$20 y alerta US$15; los importes anteriores son estimaciones que se contrastan con uso real** |
 | Después del cutover | Se sigue en Pro (decidido el 2026-09-02): PITR y margen de uso para dos entornos |
 
 ## Alternativas evaluadas (2026-09-02)

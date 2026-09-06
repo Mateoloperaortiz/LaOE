@@ -1,6 +1,8 @@
-# Migración desde GHPOINTS
+# Migración desde GHPOINTS: referencia histórica
 
-GHPOINTS (Railway, PostgreSQL 18, Prisma) sigue en producción hasta el cutover. Sus datos se traen por script sobre un dump, nunca contra la base viva. Regla en [ADR-018](adr/ADR-018-migracion-desde-ghpoints.md). Como los dos proyectos viven en el mismo workspace de Railway, el dump, la copia de medios y el cambio de dominio se hacen desde un solo panel.
+La fase 7 **no migra datos de GHPOINTS**. Mateo confirmó el 2026-09-06 que aquel sistema nunca estuvo en producción para la OE y aprobó empezar de cero ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)). Producción se inicializa con migraciones SQL y el bootstrap de su acceso real; el roster nuevo se carga después desde la app. El retiro con respaldo está en [15-runbook.md](15-runbook.md).
+
+Las secciones siguientes conservan el trabajo de migración ensayado en las fases 2 y 3. No son instrucciones de lanzamiento ni autorizan su ejecución sobre producción.
 
 ## Origen
 
@@ -12,7 +14,6 @@ GHPOINTS (Railway, PostgreSQL 18, Prisma) sigue en producción hasta el cutover.
 | --- | --- |
 | `scripts/migrate-ghpoints.ts` | Lee con `pg` desde `GHPOINTS_DATABASE_URL` (la restauración local del dump; la sesión se abre de solo lectura), escribe con Drizzle contra `DATABASE_URL`; idempotente por id de origen (tabla `ImportJob` tipo `GHPOINTS` + columna `legacyId` en cada modelo migrado). Pasos 1 a 5 (fase 2): términos, comités, personas, membresías, pertenencias y permisos; pasos 6 a 11 (fase 3, en `scripts/lib/migrate-participation.ts`): ocasiones, alias, check-ins, ledger en dos pasadas, requisitos y standing. Una temporada `CLOSED` cierra los puntos del término aunque ya existiera. Al terminar drena el outbox para que `score.recompute` deje calculado el score de cada ocasión migrada ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md), [ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md)) |
 | `scripts/verify-migration.ts` | Conteos por tabla origen/destino y, desde la fase 3, pares (miembro, temporada) con `SUM(points)` idéntica, asistencias aprobadas con puntos con exactamente una entrada `CHECKIN` viva y alias; imprime diferencias (error) y advertencias (tasa cruda del score frente a las filas `frozen` viejas, reversiones sin original, ediciones sin mapa) |
-| `scripts/copy-media.ts` | Copia objetos de bucket a bucket conservando `objectKey`; marca `MediaAsset` como `READY` |
 
 ## Mapeo
 
@@ -51,15 +52,6 @@ Contra la copia local de GHPOINTS (contenedor `ghpoints-db-1` en `127.0.0.1:5432
 6. Muestreo manual de 20 personas: nombre, comités por término, saldo, asambleas.
 7. Todos los `publicId` de actividades resuelven en `/a/[publicId]` y los de asambleas en `/asamblea/[publicId]` (que redirige a `/a/…`).
 
-## Cutover
+## Lanzamiento y retiro vigentes
 
-1. Ensayo completo sobre un dump reciente; `verify-migration` en cero diferencias.
-2. Aviso a la OE con una semana de antelación; banner de congelación en GHPOINTS.
-3. Dump final, migración delta (solo filas nuevas por `legacyId`), verificación de nuevo; copia de los medios nuevos.
-4. Dominio: quitar `oeeafit.com` del servicio GHPOINTS y agregarlo al servicio `web` del proyecto nuevo; actualizar el CNAME si el destino cambia. Comprobar OTP real, check-in real y una portada.
-5. Una semana de monitoreo con GHPOINTS detenido pero no borrado.
-6. Dump final cifrado fuera de Railway, conservado 90 días; eliminar el proyecto GHPOINTS; registrar el cierre en [09-roadmap.md](09-roadmap.md).
-
-## Vuelta atrás
-
-Si algo falla en las primeras 48 horas: devolver el dominio al servicio GHPOINTS y encenderlo (su base sigue intacta porque nunca se escribió sobre ella), anotar qué falló y repetir el ensayo. Los check-ins hechos en la app nueva durante ese lapso se exportan a CSV para no perderlos.
+La migración final, delta, copia de medios y rollback por dominio quedan retirados por [ADR-039](adr/ADR-039-arranque-limpio-fase-7.md). No se importan personas, ledger, asistencias, eventos, medios, auditoría o alias. GHPOINTS se archiva en un respaldo cifrado descifrable, separado del backup de la app nueva, conservado 90 días desde su retiro. Solo después de verificar la app nueva y ese archivo se elimina el proyecto, se revocan sus integraciones y se archiva el repositorio. Los comandos y la evidencia van en [15-runbook.md](15-runbook.md).

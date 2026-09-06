@@ -1,6 +1,6 @@
 # ADR-038: Comunicaciones y PWA (fase 6)
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-039)
 - Fecha: 2026-09-05
 - Relacionadas: ADR-001, ADR-010, ADR-011, ADR-012, ADR-014, ADR-015, ADR-017, ADR-021, ADR-023, ADR-030, ADR-031, ADR-033, ADR-034, ADR-035, ADR-036, ADR-037
 - Enmienda: ADR-012 (programados `campaigns` y `notices`; el bus de notificaciones), ADR-015 (reglas concretas de preferencias, roster por defecto y consentimiento para no miembros; campañas por SES), ADR-023 (cabeceras de baja y `sendCampaignEmail`), ADR-031 (la encuesta tras la ocasión no usa `form_submission`), ADR-033 (push desde la cartelera; `/app/cartelera/[id]`), ADR-034 (dependencias de `comms`; pestaña Comunicaciones de la 360; mis datos), ADR-035 (`surveyFormId`, `participation → forms`, recordatorios), ADR-036 (regla 11: avisos por push desde `permanence.notices`; `recognition.granted`; T-202 al aplicar el cierre), ADR-037 (tipo de campo `RATING`; `call.opened`), 03-modelo (tablas de `comms`, `Message.kind`, encuesta en `participation`, `calendar_token`), 05-acceso (tokens de baja y calendario, dueño de la invitación, step-up de campañas), 06-mapa (rutas nuevas) y 14-copy (T-133 con seis secciones, T-924 con la calificación, T-194, T-195, T-209 a T-211, T-1063 en adelante)
@@ -45,3 +45,7 @@ Decisiones que Mateo cerró el 2026-09-05 para esta fase: **la encuesta es anón
 ## Frente a GHPOINTS
 
 GHPOINTS avisaba por un webhook de Teams y correos masivos manuales que agotaban la cuota del día; nadie sabía quién había recibido qué. Aquí el canal principal es la app instalada en el celular, cada envío queda registrado por persona con su preferencia respetada, las campañas salen solas en lotes con baja, y la retroalimentación de una actividad llega a quienes de verdad estuvieron.
+
+## Enmienda (2026-09-06, ADR-039)
+
+Durante el arranque solo Resend envía correo transaccional y campañas; SES queda apagado por ausencia de `AWS_REGION`. Los 429 de ráfaga tienen reintento acotado; las cuotas diarias no. Nuevas autorizaciones quedan bloqueadas mientras la versión de política esté pendiente (T-1178 y T-1179); revocarlas sigue permitido. La PWA y el push de iPhone se ensayan en staging sintético sobre HTTPS. No se crea entorno de ensayo con datos reales. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).

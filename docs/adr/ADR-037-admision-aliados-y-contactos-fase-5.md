@@ -1,6 +1,6 @@
 # ADR-037: Admisión, aliados y contactos (fase 5)
 
-- Estado: Aceptada (enmendada por ADR-038)
+- Estado: Aceptada (enmendada por ADR-038, ADR-039)
 - Fecha: 2026-09-05
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, ADR-015, ADR-017, ADR-023, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035, ADR-036
 - Enmienda: ADR-013 (números del rate limit, honeypot, una respuesta por correo, consentimiento `DATA_PROCESSING`), ADR-031 (tipos de solicitud y transferencia al semestre siguiente; correos T-200 y T-205 en esta fase), ADR-033 (sin `registrationFormId`: la acción del formulario es la única fuente), ADR-034 (`crm → forms`; `interaction.personId` puede ser nulo; `stage APPLICANT` por tarjeta), ADR-036 (handler de `call-entry.changed` en `permanence`), 02-crm (un postulante no admitido sigue postulante; tres tipos de solicitud; tablero del inicio), 03-modelo (tablas definitivas de `forms` y `crm`), 05-acceso (formularios públicos, líder de grupo en convocatorias) y 14-copy (T-061, T-139, T-160, T-205, T-290, T-461)
@@ -47,3 +47,7 @@ En Forms la postulación llega como fila de un archivo, alguien la copia a un Ex
 ## Enmienda (2026-09-05, ADR-038)
 
 Regla 3: los campos ganan el tipo `RATING` (calificación de 1 a 5) para las encuestas. Regla 10: crear o abrir una convocatoria emite `call.opened` y `comms` manda el push T-190 a los activos. Regla 12: `request.decided` produce además el push T-189; la dirección de dependencias suma `comms → people | terms | content | participation | system` y `participation → forms`. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).
+
+## Enmienda (2026-09-06, ADR-039)
+
+Se permite el bootstrap puntual y auditado del primer ADMIN definido por ADR-039, sin ejecutar `admitPerson` ni registrar consentimiento o bienvenida. Altas, aplicación del roster y formularios que crean consentimiento se bloquean mientras `privacy.policyVersion` esté pendiente. La publicación de la política precede operativamente a establecer su versión válida. El login y el check-in siguen disponibles; los demás miembros se dan de alta por los flujos normales una vez habilitados. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).

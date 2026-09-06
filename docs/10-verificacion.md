@@ -69,16 +69,25 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 
 - `uv run --with pdfplumber scripts/normativa-extract.py estatutos <ruta del PDF firmado> > estatutos.json` genera el JSON revisable; antes de cargarlo se revisan a mano los artículos que cruzan páginas, las listas y los títulos de capítulo, y se compara la cantidad de artículos con el índice del PDF. El JSON no se commitea: se carga desde `/admin/documentos` junto con el PDF.
 
-## Migración
+## Migración histórica (fuera del lanzamiento, ADR-039)
+
+Las pruebas existentes se conservan; no se corre una migración real ni un muestreo de GHPOINTS para lanzar la fase 7.
 
 - Correr `migrate-ghpoints` sobre una restauración local del dump (`GHPOINTS_DATABASE_URL`); `verify-migration` debe reportar cero diferencias en conteos y sumas.
 - Muestreo manual de 20 personas y comprobación de todos los `publicId` en `/a/[publicId]` y de las asambleas en `/asamblea/[publicId]`.
 - Fase 3: la prueba de integración sobre el esquema mínimo de GHPOINTS cubre asistencias aprobadas con puntos, anuladas con reversión, asambleas confirmadas, `publicId` retirados, requisitos ajustados y el hall of fame; la segunda corrida no cambia nada y las sumas por (persona, término) coinciden.
 
-## Despliegue
+## Despliegue (ADR-039)
 
-- `staging` sigue `main` y recibe cada cambio; `production` solo avanza cuando la rama `production` se adelanta a mano, con el pre-deploy de migraciones en verde.
-- Tras cada release: `/api/health`, poller del outbox visible en los logs, un OTP real recibido en un buzón `@eafit.edu.co`, una portada servida desde `/api/media/[id]` y un push recibido en un iPhone con la PWA instalada.
+- `.railway/railway.ts`: solo staging/main y production/production, dominio personalizado omitido hasta T6; plan de IaC revisado, sin cambios inesperados de secretos o recursos. `db:release` nunca siembra personas.
+- `npm run smoke -- --base <URL> --expected-sha <SHA> --indexing <true|false> --bucket-origin <origen del bucket>` tras cada release: salud y SHA, robots según entorno, sitemap, HSTS, CSP con bucket virtual-hosted, manifest e ICS. Producción vacía no exige alias ni contenido sintético. HTTPS obligatorio salvo loopback; para el dominio temporal de producción agregar `--canonical-base https://oeeafit.com`.
+- Staging sintético: acceso por OTP de consola, check-in, portada y CORS, guard de política, server actions y push real en iPhone; una noche de jobs con logs y outbox comprobados. Los datos reales no se usan en pruebas ni fixtures.
+- Producción nueva: bootstrap real sin consentimiento, OTP real, acceso ADMIN y restricciones de política; luego dominio oeeafit.com y www. El bootstrap no se corre mediante seed ni con NODE_ENV adulterado.
+- Bootstrap: entrada válida, idempotencia, rechazo con otro ADMIN, concurrencia, atomicidad y ausencia de comités/consentimientos/importaciones/bienvenida; OTP reconoce la cuenta. Inputs reales solo en ejecución, privados.
+- Política: versión pendiente rechaza nuevos consentimientos en servidor, altas/roster/formularios dependientes; mantiene revocación, login y check-in; versión válida habilita. UI con T-1178/T-1179 y pruebas con datos sintéticos.
+- Backup: `bash -n scripts/backup.sh` y harness del backup; fallo de dump/copia/cifrado/subida no poda ni marca éxito. Restauración de DB y medios desde una copia cifrada descargada de R2, con jobs/correo apagados y sin owner/ACL del origen; retención total de 12, incluyendo corridas manuales.
+- Registrar resultados y comandos reales, sin secretos, en [15-runbook.md](15-runbook.md). La ventana del dominio no despliega código; reconciliación y promoción después de verificar.
+
 - En local (fase 6): con claves VAPID propias en `.env` (`npx web-push generate-vapid-keys`), `JOBS_ENABLED=true` y `next dev` arriba, `npm run push:check` (`scripts/push-check.ts`) abre Google Chrome de escritorio con un perfil temporal persistente (en incógnito Chrome no ofrece la Push API), entra como el miembro sintético, activa las notificaciones en `/app/ajustes` (la suscripción queda en FCM), avisa por push el anuncio de prueba desde `/admin/cartelera` y cierra una ocasión con encuesta a la que ese miembro asistió; mide cuánto tarda cada notificación en llegar al service worker, abre la URL del push de la encuesta y comprueba que `/admin/mensajes` registre ambas `webpush · SENT`. Comprobado el 2026-09-06: 2,1 s el anuncio y 7,1 s la encuesta. Instalar Mi OE desde el menú de Chrome y el clic en la notificación se prueban a mano; el iPhone se comprueba en la fase 7 porque exige HTTPS público.
 - Una vez al mes: descargar la copia cifrada de R2, descifrarla con la clave privada de `age`, restaurarla en local y abrir la app contra esa copia.
 
