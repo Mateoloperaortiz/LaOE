@@ -1207,6 +1207,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1173 | PWA: nombre corto (ícono en el celular) | Mi OE | COM | Propuesta |
 | T-1174 | PWA: nombre completo (manifest) | Mi OE · Organización Estudiantil EAFIT | COM | Propuesta |
 | T-1175 | Campaña: sección de destinatarios (título) | Destinatarios | MATEO | Propuesta |
+| T-1176 | Campaña: título de la sección con la estimación, la fecha y los botones de envío | Envío | MATEO | Propuesta |
 
 ## 6. Notificaciones
 

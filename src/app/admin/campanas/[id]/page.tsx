@@ -55,7 +55,9 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
   }
   const [estimate, recipients, perMinute] = await Promise.all([
     editable ? estimateAudience(campaign.segmentId) : Promise.resolve(null),
-    campaign.status === "DRAFT" ? Promise.resolve(null) : listRecipients(id),
+    campaign.status === "DRAFT" || campaign.status === "SCHEDULED"
+      ? Promise.resolve(null)
+      : listRecipients(id),
     requireConfig("campaigns.perMinute"),
   ]);
   const [campoProgramar, botonProgramar] = tList("T-1129") as [string, string];
@@ -145,7 +147,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
       {estimate ? (
         <section aria-labelledby="audiencia" className="flex flex-col gap-4">
           <BarraTitulo color="amarillo" className="self-start">
-            <span id="audiencia">{t("T-1175")}</span>
+            <span id="audiencia">{t("T-1176")}</span>
           </BarraTitulo>
           <p className="max-w-prose font-semibold">
             {t("T-1128", {

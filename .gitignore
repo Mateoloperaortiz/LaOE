@@ -47,3 +47,6 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /tests/e2e/.auth/
+
+# Configuración local del panel de vista previa de Claude Code
+.claude/

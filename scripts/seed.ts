@@ -31,6 +31,7 @@ import {
 import { term } from "@/modules/terms/schema";
 import { logger } from "@/shared/log";
 import { seedFase5 } from "./lib/seed-fase5";
+import { seedFase6 } from "./lib/seed-fase6";
 
 // Datos sintéticos para desarrollo y staging: nombres inventados, correos oe.demo.NN@eafit.edu.co,
 // los 27 comités por su sigla, publicados para ver el portal (el nombre oficial y la presentación
@@ -919,6 +920,7 @@ try {
   const current = terms.get("2026-2");
   if (!current) throw new Error("falta término");
   await seedFase5(db, current);
+  await seedFase6(db, current);
   const [people] = await db.select({ n: count() }).from(person).where(eq(person.source, "SEED"));
   const [admins] = await db
     .select({ n: count() })

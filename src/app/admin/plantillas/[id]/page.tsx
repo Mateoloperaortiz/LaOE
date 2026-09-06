@@ -8,7 +8,8 @@ import { t, tList } from "@/shared/copy";
 import { sendTestAction } from "./actions";
 
 // Vista previa de una plantilla con los datos del actor (ADR-038 regla 8) y "Enviarme una prueba".
-// El HTML es el que genera la app desde el Markdown (sin HTML crudo), así que se inserta tal cual.
+// Se inserta el fragmento del cuerpo (`preview`), nunca el documento completo: al insertar un `<body>`
+// con estilos el navegador se los aplica a la página (en oscuro desaparecían título, asunto y botones).
 
 const ID = /^[a-z0-9]{10,40}$/;
 
@@ -74,7 +75,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
           <div
             className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde bg-white text-black"
             // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML generado por la app desde Markdown escapado (ADR-038 regla 8)
-            dangerouslySetInnerHTML={{ __html: preview.html }}
+            dangerouslySetInnerHTML={{ __html: preview.preview }}
           />
         ) : null}
       </section>

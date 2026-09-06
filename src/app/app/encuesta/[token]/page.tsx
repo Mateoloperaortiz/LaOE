@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireActor } from "@/modules/identity";
 import { getSurveyInviteForActor } from "@/modules/participation";
-import { BarraTitulo } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { FormularioEncuesta } from "./FormularioEncuesta";
 
@@ -20,9 +19,7 @@ export default async function EncuestaPage({ params }: PageProps<"/app/encuesta/
     invite.state === "NOT_FOUND" ? t("T-1161") : t("T-1095", { actividad: invite.occasionTitle });
   return (
     <div className="flex flex-col gap-8">
-      <BarraTitulo nivel="h1" color="amarillo" className="self-start">
-        {title}
-      </BarraTitulo>
+      <h1 className="text-display-lg">{title}</h1>
       {invite.state === "OPEN" ? (
         <>
           <p className="max-w-prose">{t("T-1096")}</p>

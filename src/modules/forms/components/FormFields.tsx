@@ -100,26 +100,32 @@ export function FormFields({
                 {field.required ? <span aria-hidden="true"> *</span> : null}
               </legend>
               {help}
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-3">
+                  {["1", "2", "3", "4", "5"].map((value) => (
+                    <label
+                      key={value}
+                      htmlFor={`${id}-${value}`}
+                      className="flex items-center gap-1"
+                    >
+                      <input
+                        id={`${id}-${value}`}
+                        name={name}
+                        type="radio"
+                        value={value}
+                        defaultChecked={chosen === value}
+                        required={field.required}
+                        className="size-5"
+                      />
+                      <span>{value}</span>
+                    </label>
+                  ))}
+                </div>
                 {labels.rating ? (
-                  <span className="text-sm text-tinta-suave">{labels.rating[0]}</span>
-                ) : null}
-                {["1", "2", "3", "4", "5"].map((value) => (
-                  <label key={value} htmlFor={`${id}-${value}`} className="flex items-center gap-1">
-                    <input
-                      id={`${id}-${value}`}
-                      name={name}
-                      type="radio"
-                      value={value}
-                      defaultChecked={chosen === value}
-                      required={field.required}
-                      className="size-5"
-                    />
-                    <span>{value}</span>
-                  </label>
-                ))}
-                {labels.rating ? (
-                  <span className="text-sm text-tinta-suave">{labels.rating[1]}</span>
+                  <div className="flex max-w-[15rem] justify-between text-sm text-tinta-suave">
+                    <span>{labels.rating[0]}</span>
+                    <span>{labels.rating[1]}</span>
+                  </div>
                 ) : null}
               </div>
               {errorText}

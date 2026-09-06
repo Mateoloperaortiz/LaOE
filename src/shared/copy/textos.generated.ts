@@ -1636,6 +1636,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-1176": {
+    where: "Campaña: título de la sección con la estimación, la fecha y los botones de envío",
+    text: "Envío",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-118": {
     where: "Estado: prueba (cierre)",
     text: "Quedaste en periodo de prueba en {comité}: el próximo semestre necesitás 80 %. GH te va a escribir.",

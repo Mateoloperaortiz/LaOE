@@ -127,6 +127,8 @@ export interface RenderedEmail {
   subject: string;
   html: string;
   text: string;
+  /** El cuerpo sin `html` ni `body`, para la vista previa del admin. */
+  preview: string;
 }
 
 /** Asunto y cuerpo de una plantilla para una persona, envueltos según T-207 y T-208. */
@@ -137,7 +139,7 @@ export function renderEmail(
 ): RenderedEmail {
   const subject = renderTemplate(template.subject, values);
   const body = renderTemplate(template.body, values);
-  const { html, text } = wrapEmail({
+  const { html, text, preview } = wrapEmail({
     siteName: t("T-001"),
     bodyHtml: markdownToMailHtml(body),
     bodyText: markdownToPlain(body),
@@ -145,7 +147,7 @@ export function renderEmail(
     footer: t("T-208"),
     ...(unsubscribeUrl ? { unsubscribe: { label: t("T-210"), url: unsubscribeUrl } } : {}),
   });
-  return { subject, html, text };
+  return { subject, html, text, preview };
 }
 
 export interface CommitteeIndex {

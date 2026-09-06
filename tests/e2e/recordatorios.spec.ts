@@ -48,7 +48,9 @@ test.describe("ADMIN abre una actividad de hoy", () => {
     await drenarOutbox();
 
     await page.goto("/admin/mensajes?kind=REMINDER");
-    const mensaje = page.getByRole("row", { name: new RegExp(`Hoy: ${TITULO}`) }).first();
+    const mensaje = page
+      .getByRole("row", { name: new RegExp(`Miembro E2E.*Hoy: ${TITULO}`) })
+      .first();
     await expect(mensaje).toBeVisible();
     await expect(mensaje).toContainText("Miembro E2E");
     await expect(mensaje).toContainText("Recordatorio");

@@ -50,7 +50,7 @@ test.describe("ADMIN publica y avisa por push", () => {
 
     await page.goto("/admin/mensajes?kind=ANNOUNCEMENT");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mensajes");
-    const mensaje = page.getByRole("row", { name: new RegExp(TITULO) }).first();
+    const mensaje = page.getByRole("row", { name: new RegExp(`Miembro E2E.*${TITULO}`) }).first();
     await expect(mensaje).toContainText("Miembro E2E");
     await expect(mensaje).toContainText("Push");
     await expect(mensaje).toContainText(/Enviado|Fallido/);

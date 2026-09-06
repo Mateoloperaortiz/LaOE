@@ -156,7 +156,7 @@ export interface EmailWrap {
 }
 
 /** Envoltorio de T-207: cabecera textual, cuerpo, cierre y pie legal con el enlace de baja. */
-export function wrapEmail(wrap: EmailWrap): { html: string; text: string } {
+export function wrapEmail(wrap: EmailWrap): { html: string; text: string; preview: string } {
   const footerHtml = escapeHtml(wrap.footer).replace(
     "{enlace de baja si aplica}",
     wrap.unsubscribe
@@ -167,15 +167,18 @@ export function wrapEmail(wrap: EmailWrap): { html: string; text: string } {
     "{enlace de baja si aplica}",
     wrap.unsubscribe ? `${wrap.unsubscribe.label}: ${wrap.unsubscribe.url}` : "",
   );
-  const html = `<!doctype html><html lang="es"><body style="margin:0;padding:0;background:#f6f6f6;font-family:Helvetica,Arial,sans-serif;color:#1d1d1d">
-<div style="max-width:600px;margin:0 auto;padding:24px 16px">
+  // `preview` es el fragmento sin `html` ni `body`: la vista previa del admin lo inserta en la página
+  // y así los estilos del cuerpo del correo no pisan los del sitio.
+  const preview = `<div style="max-width:600px;margin:0 auto;padding:24px 16px;font-family:Helvetica,Arial,sans-serif;color:#1d1d1d">
 <div style="padding:16px 0;border-bottom:3px solid #001f3e;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#001f3e">${escapeHtml(wrap.siteName)}</div>
 <div style="padding:24px 0 8px;font-size:16px">${wrap.bodyHtml}</div>
 <p style="margin:16px 0 24px;font-size:16px;font-weight:bold;color:#001f3e">${escapeHtml(wrap.closing)}</p>
 <div style="padding-top:16px;border-top:1px solid #d9d9d9;font-size:12px;color:#666">${footerHtml}</div>
-</div></body></html>`;
+</div>`;
+  const html = `<!doctype html><html lang="es"><body style="margin:0;padding:0;background:#f6f6f6;font-family:Helvetica,Arial,sans-serif;color:#1d1d1d">
+${preview}</body></html>`;
   const text = `${wrap.bodyText}\n\n${wrap.closing}\n\n${footerText.trim()}`;
-  return { html, text };
+  return { html, text, preview };
 }
 
 // Elegibilidad de una campaña (decisión 2 de la fase 6): roster por defecto, resto con consentimiento.

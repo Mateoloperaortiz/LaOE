@@ -287,7 +287,7 @@ export function TabComunicaciones({
   return (
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-3" aria-labelledby="comunicaciones-preferencias">
-        <h3 id="comunicaciones-preferencias" className="text-display-md">
+        <h3 id="comunicaciones-preferencias" className="eyebrow text-xs">
           {t("T-1151")}
         </h3>
         <ul className="flex list-none flex-wrap gap-2 p-0">

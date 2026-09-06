@@ -24,6 +24,7 @@
     "db:seed": "node --env-file-if-exists=.env --import tsx scripts/seed.ts",
     "storage:init": "node --env-file-if-exists=.env --import tsx scripts/storage-init.ts",
     "pwa:icons": "node --import tsx scripts/pwa-icons.ts",
+    "push:check": "node --env-file-if-exists=.env --import tsx scripts/push-check.ts",
     "migrate:ghpoints": "node --env-file-if-exists=.env --import tsx scripts/migrate-ghpoints.ts",
     "migrate:verify": "node --env-file-if-exists=.env --import tsx scripts/verify-migration.ts",
     "copy:sync": "node --import tsx scripts/copy-sync.ts && biome check --write src/shared/copy/textos.generated.ts",
