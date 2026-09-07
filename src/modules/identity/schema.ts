@@ -105,3 +105,24 @@ export const calendarToken = pgTable(
     uniqueIndex("calendar_token_token_unique").on(t.token),
   ],
 );
+
+// Carnet persistente en billeteras: el token se conserva en claro para volver a emitir el pase.
+// El epoch corta el acceso al salir; la revisión distingue las rotaciones dentro de esa membresía.
+export const carnetToken = pgTable(
+  "carnet_token",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    token: text().notNull(),
+    walletEpoch: integer().notNull(),
+    revision: integer().notNull().default(1),
+    createdAt: createdAt(),
+    lastUsedAt: timestampTz(),
+  },
+  (t) => [
+    uniqueIndex("carnet_token_person_unique").on(t.personId),
+    uniqueIndex("carnet_token_token_unique").on(t.token),
+  ],
+);

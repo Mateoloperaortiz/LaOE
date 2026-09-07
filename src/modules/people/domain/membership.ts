@@ -11,6 +11,7 @@ import { t } from "@/shared/copy";
 import { committeeMembership, membership, membershipEvent, person } from "../schema";
 import { revokeAllConsents, syncConsent } from "./consents";
 import { SIGN_IN_STATUSES } from "./reads";
+import { lockWalletMember } from "./wallet-member";
 
 // El ciclo de vida de la membresía cambia solo por comandos (ADR-003): cada uno audita, escribe el
 // historial y emite `membership.changed`; salir y anonimizar siguen ADR-030 y ADR-034.
@@ -79,6 +80,7 @@ export async function changeMembershipStatus(
   personId: string,
   input: ChangeStatusInput,
 ): Promise<void> {
+  await lockWalletMember(ctx.tx, personId);
   const current = await lockMembership(ctx, personId);
   if (current.status === "INACTIVE") {
     throw new Error("Una membresía terminada se reactiva, no se cambia de estado");
@@ -127,6 +129,7 @@ export async function endMembership(
   input: EndMembershipInput,
   now = new Date(),
 ): Promise<boolean> {
+  await lockWalletMember(ctx.tx, personId);
   const current = await lockMembership(ctx, personId);
   if (current.status === "INACTIVE") {
     return false;
@@ -136,6 +139,7 @@ export async function endMembership(
     .update(membership)
     .set({
       status: "INACTIVE",
+      walletEpoch: current.walletEpoch + 1,
       endedAt: now,
       endReason: input.endReason,
       lastTermId: input.lastTermId ?? term?.id ?? current.lastTermId,
@@ -194,12 +198,16 @@ export async function reactivateMembership(
   personId: string,
   input: ReactivateInput,
 ): Promise<void> {
+  await lockWalletMember(ctx.tx, personId);
   const current = await lockMembership(ctx, personId);
   if (current.status !== "INACTIVE") {
     throw new Error("Solo se reactiva una membresía terminada");
   }
   const [who] = await ctx.tx.select().from(person).where(eq(person.id, personId));
   if (!who) {
+    throw new DomainError(t("T-032"));
+  }
+  if (who.anonymizedAt) {
     throw new DomainError(t("T-032"));
   }
   await ctx.tx
@@ -263,6 +271,7 @@ export async function anonymizePerson(
   personId: string,
   now = new Date(),
 ): Promise<void> {
+  await lockWalletMember(ctx.tx, personId);
   const [who] = await ctx.tx.select().from(person).where(eq(person.id, personId)).for("update");
   if (!who) {
     throw new DomainError(t("T-032"));
@@ -278,6 +287,12 @@ export async function anonymizePerson(
     .from(membership)
     .where(eq(membership.personId, personId))
     .for("update");
+  if (current) {
+    await ctx.tx
+      .update(membership)
+      .set({ walletEpoch: current.walletEpoch + 1 })
+      .where(eq(membership.id, current.id));
+  }
   if (current && current.status !== "INACTIVE") {
     const term = await getCurrentTerm(now);
     await ctx.tx

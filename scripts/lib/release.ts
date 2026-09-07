@@ -79,6 +79,10 @@ const REQUIRED_INDEXES = [
   "occasion_survey_invite_token_unique",
   "calendar_token_person_unique",
   "calendar_token_token_unique",
+  // Fase 8 (ADR-040)
+  "carnet_token_person_unique",
+  "carnet_token_token_unique",
+  "wallet_pass_person_platform_unique",
 ];
 
 const REQUIRED_EXTENSIONS = ["pg_trgm"];

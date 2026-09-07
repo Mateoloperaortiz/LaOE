@@ -64,6 +64,13 @@
       "when": 1788659854804,
       "tag": "0008_comunicaciones_y_pwa",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788743200439,
+      "tag": "0009_carnet_en_billeteras",
+      "breakpoints": true
     }
   ]
 }

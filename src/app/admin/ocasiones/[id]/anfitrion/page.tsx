@@ -10,7 +10,7 @@ import { registerAction, scanAction } from "../actions";
 import { requireOperator } from "../authz";
 
 // Modo anfitrión (ADR-035 regla 8): móvil primero, buscar por nombre o escanear el carnet; el token
-// lo valida el servidor con readCarnet. Nadie queda bloqueado por no tener sesión en su celular.
+// oe1 u oe2 lo valida el servidor con readCarnet. No hace falta abrir una sesión en el celular.
 
 type Search = Record<string, string | string[] | undefined>;
 

@@ -150,6 +150,8 @@ export const membership = pgTable(
       .notNull()
       .references(() => person.id, { onDelete: "cascade" }),
     status: membershipStatus().notNull().default("ACTIVE"),
+    // Una baja o anonimización invalida las credenciales anteriores aun antes de drenar el outbox.
+    walletEpoch: integer().notNull().default(0),
     firstTermId: text()
       .notNull()
       .references(() => term.id),

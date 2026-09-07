@@ -10,7 +10,7 @@ export async function truncateAll(): Promise<void> {
   await db.execute(sql`
     truncate table
       audit_log, outbox, campaign_recipient, message, campaign, email_template,
-      push_subscription, notification_preference, calendar_token,
+      push_subscription, notification_preference, calendar_token, carnet_token, wallet_pass,
       occasion_survey_response, occasion_survey_invite, import_job, legacy_alias,
       internal_call_entry, internal_call, request, card, pipeline_stage, pipeline,
       organization_tag, organization_contact, organization, edition_registration, form_submission, form,

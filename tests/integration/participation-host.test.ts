@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb } from "@/db/client";
 import { issueCarnet, readCarnet } from "@/modules/identity/domain/carnet";
+import { getOrCreateCarnetToken } from "@/modules/identity/domain/carnet-token";
 import { checkInSelfAs, hostCheckInAs } from "@/modules/participation/domain/commands";
 import { buildLiveSnapshot, checkInLink } from "@/modules/participation/domain/live";
 import { rotatingCodeAt } from "@/modules/participation/domain/rotating-code-pure";
@@ -15,15 +16,32 @@ describe("modo anfitrión y consola en vivo", () => {
   it("lee el carnet con el secreto de la app: válido, vencido y manipulado", async () => {
     const personId = await seedMember("carnet@eafit.edu.co");
     const carnet = issueCarnet(personId);
-    const read = readCarnet(carnet.token);
+    const read = await readCarnet(carnet.token);
     expect(read.ok && read.personId).toBe(personId);
-    const expired = readCarnet(carnet.token, new Date(carnet.expiresAt.getTime() + 1000));
+    const expired = await readCarnet(carnet.token, new Date(carnet.expiresAt.getTime() + 1000));
     expect(expired.ok).toBe(false);
     if (!expired.ok) expect(expired.reason).toBe("EXPIRED");
-    const tampered = readCarnet(`${carnet.token.slice(0, -4)}AAAA`);
+    const tampered = await readCarnet(`${carnet.token.slice(0, -4)}AAAA`);
     expect(tampered.ok).toBe(false);
     if (!tampered.ok) expect(tampered.reason).toBe("BAD_SIGNATURE");
-    expect(readCarnet("basura").ok).toBe(false);
+    expect((await readCarnet("basura")).ok).toBe(false);
+  });
+
+  it("el anfitrión registra un check-in al escanear el carnet persistente oe2", async () => {
+    const termId = await seedTerm(currentTermCode());
+    const personId = await seedMember("billetera@eafit.edu.co");
+    const hostId = await seedMember("anfitrion@eafit.edu.co");
+    const { id } = await seedOccasion(termId);
+    const read = await readCarnet(await getOrCreateCarnetToken(personId));
+    if (!read.ok) throw new Error("No se pudo leer el carnet de billetera");
+    expect(read.source).toBe("WALLET");
+    await hostCheckInAs(
+      { personId: hostId },
+      { occasionId: id, personId: read.personId, personName: "Persona Sintética", source: "HOST" },
+    );
+    const snapshot = await buildLiveSnapshot(id);
+    expect(snapshot?.counts.APPROVED).toBe(1);
+    expect(snapshot?.recent[0]?.source).toBe("HOST");
   });
 
   it("la búsqueda por nombre del anfitrión nunca devuelve correos", async () => {

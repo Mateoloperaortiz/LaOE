@@ -1,11 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { signCarnet, verifyCarnet } from "@/modules/identity/domain/carnet-pure";
+import {
+  CARNET_TOKEN,
+  createWalletCarnetToken,
+  signCarnet,
+  verifyCarnet,
+} from "@/modules/identity/domain/carnet-pure";
 
 const secret = "s".repeat(32);
 const personId = "abcdefghij1234567890";
 const now = new Date("2026-09-03T15:00:00Z");
 
 describe("token del carnet", () => {
+  it("genera capacidades opacas oe2 de 24 bytes y limita el formato antes de resolverlas", () => {
+    const tokens = Array.from({ length: 20 }, createWalletCarnetToken);
+    expect(new Set(tokens).size).toBe(tokens.length);
+    for (const token of tokens) {
+      expect(CARNET_TOKEN.test(token)).toBe(true);
+      expect(token).toHaveLength(36);
+      expect(Buffer.from(token.slice(4), "base64url")).toHaveLength(24);
+    }
+    for (const token of [
+      "",
+      "oe2",
+      `oe1.${"a".repeat(32)}`,
+      `oe2.${"a".repeat(31)}`,
+      `oe2.${"a".repeat(65)}`,
+      `oe2.${"a".repeat(32)}.firma`,
+      `oe2.${"a".repeat(32)}\n`,
+      `oe2.${"a".repeat(31)}+`,
+    ]) {
+      expect(CARNET_TOKEN.test(token)).toBe(false);
+    }
+  });
+
   it("firma y verifica un token de 24 horas", () => {
     const signed = signCarnet(personId, { secret, now });
     expect(signed.token.startsWith(`oe1.${personId}.`)).toBe(true);

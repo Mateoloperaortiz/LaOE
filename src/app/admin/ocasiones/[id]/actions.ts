@@ -191,9 +191,17 @@ export async function scanAction(
 ): Promise<{ ok: boolean; message: string }> {
   const id = idSchema.parse(occasionId);
   const { actor } = await operator(id, "anfitrion");
-  const carnet = readCarnet(token);
+  const carnet = await readCarnet(token);
   if (!carnet.ok) {
-    return { ok: false, message: carnet.reason === "EXPIRED" ? t("T-619") : t("T-618") };
+    return {
+      ok: false,
+      message:
+        carnet.reason === "REVOKED"
+          ? t("T-1207")
+          : carnet.reason === "EXPIRED"
+            ? t("T-619")
+            : t("T-618"),
+    };
   }
   const people = await getPeopleByIds([carnet.personId]);
   const personName = people.get(carnet.personId)?.fullName?.trim() ?? "";

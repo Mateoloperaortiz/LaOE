@@ -3,6 +3,7 @@ import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { registerHandler } from "@/jobs/registry";
 import { SIGN_IN_STATUSES } from "@/modules/people";
+import { deleteCarnetTokenFor } from "./domain/carnet-token";
 import { pruneIdentity } from "./domain/maintenance";
 import { revokeAllPermissionsFor } from "./domain/permissions";
 import { destroySessionsFor } from "./domain/session";
@@ -27,6 +28,7 @@ registerHandler("membership.changed", async (payload, ctx) => {
     ctx.log.info({ personId, sessions }, "sesiones cerradas por cambio de estado");
   }
   if (to === "INACTIVE") {
+    await deleteCarnetTokenFor(personId);
     const result = await runCommand(SYSTEM_ACTOR, (command) =>
       revokeAllPermissionsFor(command, personId),
     );
@@ -46,6 +48,7 @@ registerHandler("person.email-changed", async (payload, ctx) => {
 
 registerHandler("person.anonymized", async (payload, ctx) => {
   const { personId } = personEvent.parse(payload);
+  await deleteCarnetTokenFor(personId);
   await destroySessionsFor(getDb(), personId);
   const result = await runCommand(SYSTEM_ACTOR, (command) =>
     revokeAllPermissionsFor(command, personId),

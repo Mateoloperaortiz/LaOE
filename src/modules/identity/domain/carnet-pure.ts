@@ -1,10 +1,17 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 // Token del carnet (ADR-034 regla 10): `oe1.<personId>.<vence en minutos unix>.<HMAC-SHA256 base64url>`
 // firmado con SESSION_SECRET y vigente 24 horas. Puro: la consola anfitrión de la fase 3 lo verifica igual.
 
 export const CARNET_PREFIX = "oe1";
 export const CARNET_TTL_MINUTES = 24 * 60;
+export const WALLET_CARNET_PREFIX = "oe2";
+export const CARNET_TOKEN = /^oe2\.[A-Za-z0-9_-]{32,64}$/;
+
+/** Capacidad opaca de 192 bits para el pase persistente; nunca contiene datos de la persona. */
+export function createWalletCarnetToken(): string {
+  return `${WALLET_CARNET_PREFIX}.${randomBytes(24).toString("base64url")}`;
+}
 
 const PERSON_ID = /^[a-z0-9]{10,40}$/;
 const MINUTES = /^\d{1,12}$/;

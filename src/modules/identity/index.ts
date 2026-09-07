@@ -14,8 +14,20 @@ export {
   resolveCalendarToken,
   rotateCalendarTokenAs,
 } from "./domain/calendar-token";
-export { issueCarnet, readCarnet } from "./domain/carnet";
+export { type CarnetReading, issueCarnet, readCarnet } from "./domain/carnet";
 export { type CarnetVerification, verifyCarnet } from "./domain/carnet-pure";
+export {
+  CARNET_TOKEN,
+  type CarnetCredential,
+  type CarnetMetadata,
+  deleteCarnetTokenFor,
+  getCarnetCredential,
+  getCarnetMetadata,
+  getOrCreateCarnetCredential,
+  getOrCreateCarnetToken,
+  resolveCarnetToken,
+  rotateCarnetTokenAs,
+} from "./domain/carnet-token";
 export { ForbiddenError, NotAuthenticatedError, StepUpRequiredError } from "./domain/errors";
 export {
   assertAdmin,
