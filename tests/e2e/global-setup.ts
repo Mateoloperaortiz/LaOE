@@ -10,7 +10,7 @@ import { announcement, document, mediaAsset } from "@/modules/content/schema";
 import { internalCall, organization, pipeline, recognition, task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { editionRegistration, form } from "@/modules/forms/schema";
-import { otpChallenge, permission } from "@/modules/identity/schema";
+import { carnetToken, otpChallenge, permission } from "@/modules/identity/schema";
 import { checkIn, occasion, pointEntry, termStanding } from "@/modules/participation/schema";
 import {
   committee,
@@ -32,6 +32,7 @@ import {
 } from "@/modules/permanence/schema";
 import { appConfig, importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { walletPass } from "@/modules/wallet/schema";
 
 // Persona sintética para las pruebas e2e; se recrea en cada corrida, nunca es una persona real.
 export const E2E_EMAIL = "prueba.e2e@eafit.edu.co";
@@ -81,6 +82,8 @@ export default async function globalSetup(): Promise<void> {
   if (!who) {
     throw new Error("sin persona");
   }
+  await db.delete(walletPass).where(eq(walletPass.personId, who.id));
+  await db.delete(carnetToken).where(eq(carnetToken.personId, who.id));
   await db
     .insert(membership)
     .values({ personId: who.id, status: "ACTIVE", firstTermId: current.id })
@@ -224,6 +227,8 @@ export default async function globalSetup(): Promise<void> {
   if (!member) {
     throw new Error("sin miembro");
   }
+  await db.delete(walletPass).where(eq(walletPass.personId, member.id));
+  await db.delete(carnetToken).where(eq(carnetToken.personId, member.id));
   await db
     .insert(membership)
     .values({ personId: member.id, status: "ACTIVE", firstTermId: current.id })

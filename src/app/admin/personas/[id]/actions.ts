@@ -17,6 +17,7 @@ import {
   getActor,
   grantPermissionAs,
   hasRecentStepUp,
+  rotateCarnetTokenAs,
 } from "@/modules/identity";
 import {
   addAppointmentAs,
@@ -407,4 +408,28 @@ export async function grantCreditAction(formData: FormData): Promise<void> {
   await run(id, "permanencia", "credito", () =>
     grantManualCreditAs({ personId: actor.personId, ip }, input),
   );
+}
+
+/** Revocación individual del QR de billetera: ADMIN, confirmación y auditoría, sin step-up. */
+export async function revokeCarnetAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("personId"));
+  const returnTo = await personUrl(id, "comunicaciones");
+  const actor = await requireAdmin(returnTo);
+  if (formData.get("confirm") !== "1") {
+    redirect(returnTo);
+  }
+  try {
+    await rotateCarnetTokenAs(actor, id);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      redirect(await personUrl(id, "comunicaciones", { error: t("T-032") }));
+    }
+    if (error instanceof DomainError) {
+      redirect(await personUrl(id, "comunicaciones", { error: error.message }));
+    }
+    throw error;
+  }
+  revalidatePath(`/admin/personas/${id}`);
+  revalidatePath("/app/carnet");
+  redirect(await personUrl(id, "comunicaciones", { guardado: "carnet" }));
 }

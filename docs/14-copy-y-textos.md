@@ -1246,6 +1246,7 @@ Los badges conservan sus textos oficiales; el resto de la interfaz usa voseo. Re
 | T-1217 | Persona 360: pase reservado sin emisión completada | {plataforma}: emisión pendiente | MATEO | Propuesta |
 | T-1218 | Carnet: Google pendiente de actualización | La actualización de Google Wallet está pendiente. Mientras termina, mostrá el carnet de Mi OE. | MATEO | Propuesta |
 | T-1219 | Persona 360: pase revocado | {plataforma}: QR revocado el {fecha} | MATEO | Propuesta |
+| T-1220 | Persona 360: confirmación antes de revocar el carnet | El QR anterior de las billeteras de esta persona dejará de servir. Si usa Google Wallet, se actualizará; si usa Apple Wallet, tendrá que volver a agregarlo. | MATEO | Propuesta |
 
 ## 6. Notificaciones
 

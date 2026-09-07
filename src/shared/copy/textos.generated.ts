@@ -1924,6 +1924,12 @@ export const textos = {
     owner: "GH",
     status: "Propuesta",
   },
+  "T-1220": {
+    where: "Persona 360: confirmación antes de revocar el carnet",
+    text: "El QR anterior de las billeteras de esta persona dejará de servir. Si usa Google Wallet, se actualizará; si usa Apple Wallet, tendrá que volver a agregarlo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-123": {
     where: "Criterio, evaluación pendiente",
     text: "Pendiente de evaluación por {evaluador} al cierre del semestre.",

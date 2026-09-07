@@ -1,3 +1,4 @@
+export { buildApplePass } from "./domain/apple";
 export { loadCarnetData } from "./domain/carnet-data";
 export {
   buildApplePassJson,

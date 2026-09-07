@@ -6,11 +6,17 @@ import type { ActorPermission } from "@/modules/identity";
 import type { MyMembershipView, Person360 } from "@/modules/people";
 import { statusLabel } from "@/modules/people/admin";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
+import type { WalletPassRecord } from "@/modules/wallet";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, formatDateTime } from "@/shared/lib/dates";
 import { Markdown } from "@/shared/ui/Markdown";
-import { completeTaskAction, consentAction, removeAppointmentAction } from "../actions";
+import {
+  completeTaskAction,
+  consentAction,
+  removeAppointmentAction,
+  revokeCarnetAction,
+} from "../actions";
 import { Bloque, Dato } from "./campos";
 import {
   appointmentLabel,
@@ -262,10 +268,16 @@ export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipVi
 }
 
 export function TabComunicaciones({
+  personId,
+  passes,
+  canRevokeCarnet,
   messages,
   preferences,
   devices,
 }: {
+  personId: string;
+  passes: WalletPassRecord[];
+  canRevokeCarnet: boolean;
   messages: MessageView[];
   preferences: PreferencesView;
   devices: { devices: number; lastSeenAt: Date | null };
@@ -308,6 +320,45 @@ export function TabComunicaciones({
               })
             : t("T-1153")}
         </p>
+      </section>
+      <section className="flex flex-col gap-3" aria-labelledby="comunicaciones-carnet">
+        <h3 id="comunicaciones-carnet" className="eyebrow text-xs">
+          {t("T-1209")}
+        </h3>
+        {passes.length === 0 ? (
+          <p className="text-sm text-tinta-suave">{t("T-1211")}</p>
+        ) : (
+          <ul className="flex list-none flex-col gap-2 p-0 text-sm">
+            {passes.map((pass) => {
+              const platform = pass.platform === "APPLE" ? "Apple Wallet" : "Google Wallet";
+              const issuedAt = pass.lastIssuedAt ?? pass.issuedAt;
+              return (
+                <li key={pass.id}>
+                  {pass.revokedAt
+                    ? t("T-1219", { plataforma: platform, fecha: formatDateTime(pass.revokedAt) })
+                    : issuedAt
+                      ? t("T-1210", { plataforma: platform, fecha: formatDateTime(issuedAt) })
+                      : t("T-1217", { plataforma: platform })}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {canRevokeCarnet ? (
+          <details className="rounded-xl border border-borde p-4">
+            <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-titulo">
+              {t("T-1212")}
+            </summary>
+            <form action={revokeCarnetAction} className="mt-4 flex flex-col items-start gap-4">
+              <input type="hidden" name="personId" value={personId} />
+              <input type="hidden" name="confirm" value="1" />
+              <p className="max-w-prose text-sm">{t("T-1220")}</p>
+              <button type="submit" className="boton-secundario text-sm">
+                {t("T-1212")}
+              </button>
+            </form>
+          </details>
+        ) : null}
       </section>
       {messages.length === 0 ? (
         <p className="text-tinta-suave">{t("T-1154")}</p>

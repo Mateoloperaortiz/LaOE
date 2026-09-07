@@ -11,7 +11,7 @@ import {
 } from "@/modules/crm";
 import { assigneeOptions } from "@/modules/crm/admin";
 import { listRegistrationsByPerson, listSubmissionsByPerson } from "@/modules/forms";
-import { listPermissionsFor, requireAdminActor } from "@/modules/identity";
+import { getCarnetMetadata, listPermissionsFor, requireAdminActor } from "@/modules/identity";
 import {
   assemblyStatusFor,
   balanceFor,
@@ -29,6 +29,7 @@ import {
 } from "@/modules/people";
 import { getConfig, getPrivacyPolicyState } from "@/modules/system";
 import { listAllTerms } from "@/modules/terms";
+import { listPassesFor } from "@/modules/wallet";
 import { t } from "@/shared/copy";
 import { Cabecera } from "./_ui/Cabecera";
 import { isTab, isTimelineFilter, type Tab, tabLabels } from "./_ui/etiquetas";
@@ -92,6 +93,7 @@ export default async function PersonaPage({
   const tab: Tab = isTab(requested) ? requested : "resumen";
   const accion = single(search.accion);
   const saved = single(search.guardado) === "1";
+  const carnetSaved = single(search.guardado) === "carnet";
   const error = single(search.error);
   const requestedFilter = single(search.tipo);
   const filter = isTimelineFilter(requestedFilter) ? requestedFilter : "ALL";
@@ -110,6 +112,8 @@ export default async function PersonaPage({
     openTasks,
     lastContact,
     policy,
+    passes,
+    carnet,
   ] = await Promise.all([
     getMyMembership(id),
     listPermissionsFor(id),
@@ -127,6 +131,8 @@ export default async function PersonaPage({
     countOpenTasksFor(id),
     latestContact(id),
     getPrivacyPolicyState(),
+    tab === "comunicaciones" ? listPassesFor(id) : Promise.resolve([]),
+    tab === "comunicaciones" ? getCarnetMetadata(id) : Promise.resolve(null),
   ]);
   const interactions =
     tab === "linea"
@@ -255,6 +261,12 @@ export default async function PersonaPage({
     case "comunicaciones":
       content = (
         <TabComunicaciones
+          personId={id}
+          passes={passes}
+          canRevokeCarnet={
+            carnet !== null &&
+            (data.membership?.status === "ACTIVE" || data.membership?.status === "HONORARY")
+          }
           messages={messages}
           preferences={
             preferences ?? {
@@ -292,9 +304,9 @@ export default async function PersonaPage({
         committeeNames={committeeNames}
         tags={personTags}
       />
-      {saved ? (
+      {saved || carnetSaved ? (
         <output className="block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-2 text-sm font-semibold text-oe-navy">
-          {t("T-259")}
+          {t(carnetSaved ? "T-1213" : "T-259")}
         </output>
       ) : null}
       {error && !accion ? (
