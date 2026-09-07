@@ -1,6 +1,6 @@
 # ADR-014: Privacidad por diseño (Ley 1581 de 2012)
 
-- Estado: Aceptada (enmendada por ADR-030, ADR-039)
+- Estado: Aceptada (enmendada por ADR-030, ADR-039, ADR-040)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-002, ADR-013, ADR-015
 
@@ -28,3 +28,7 @@ La retención de cinco años queda reemplazada: al salir, el perfil pasa a egres
 ## Enmienda (2026-09-06, ADR-039)
 
 Mientras la versión de política esté pendiente, la app rechaza nuevas autorizaciones y los flujos que las registran, conservando revocaciones, login y check-in. Se publica primero la política y se establece su versión al final. El bootstrap autorizado de ADR-039 no registra consentimientos ni los supone concedidos; solo crea el acceso inicial real y auditado. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).
+
+## Enmienda (2026-09-06, ADR-040)
+
+Agregar el carnet a Google Wallet envía nombre, comités, semestre y semestre de ingreso a Google por acción propia, con aviso junto al botón. Apple se genera en la OE; el almacenamiento y la sincronización posteriores dependen de Apple y de la configuración de la persona. La política debe mencionar ambos antes de activar cuentas reales. La anonimización limpia el objeto remoto de Google con un reemplazo mínimo sin QR ni datos personales; se conserva la referencia local hasta éxito o 404, incluso si faltan credenciales. "Mis datos" incluye solo metadatos de pases y del token, nunca su secreto ni JWT. Ver [ADR-040](ADR-040-carnet-en-billeteras-fase-8.md).

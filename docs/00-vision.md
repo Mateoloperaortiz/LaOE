@@ -81,6 +81,7 @@ Fuera, a propósito: WhatsApp e Instagram (solo enlaces), pagos y boletería, Az
 | 2026-09-03 | Arranca la fase 3 con [ADR-035](adr/ADR-035-participacion-y-gh-points-fase-3.md): módulo `terms` propio, check-in sin locks compartidos con crédito en la misma transacción y score por outbox, código rotativo de 6 dígitos por minuto, modo anfitrión con cámara, líder que abre solo ocasiones sin puntos y crea series semanales, rankings top 10 con puesto propio, requisito de asambleas derivado del término, cierre con `TermStanding`, cierre automático de ocasiones, alias legados, exportes CSV, migración de participación; diez tramos con push a `main` en cada uno |
 | 2026-09-05 | Arranca la fase 6 con [ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md): bus de notificaciones por outbox con preferencias por tipo, PWA con manifest y service worker propio solo para push, suscripciones y preferencias en Ajustes, anuncios con push, plantillas y campañas por segmento en lotes por SES con baja, recordatorios y avisos de permanencia por push, ICS personal con token y encuesta anónima tras la ocasión; nueve tramos con push a `main` en cada uno |
 | 2026-09-06 | Fase 7: [ADR-039](adr/ADR-039-arranque-limpio-fase-7.md) reemplaza el plan de migración por arranque limpio, bootstrap del acceso real sin consentimiento, política y roster posteriores, dos entornos, Resend sin SES, Cloudflare con proxy conservado, backup con 12 copias totales y retiro de GHPOINTS con archivo cifrado por 90 días desde la eliminación verificada de su proyecto |
+| 2026-09-06 | Fase 8: [ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md); ambas billeteras opcionales, sin foto, QR persistente revocable sin cambiar `oe1`, Google por outbox y conciliación diaria, Apple al volver a agregar. Compra/cuenta de Apple y activación real por proveedor pendientes |
 
 Hechos que sustentan varias de estas decisiones:
 
@@ -89,9 +90,9 @@ Hechos que sustentan varias de estas decisiones:
 - Los respaldos programados de volúmenes (diario, semanal, mensual) existen en todos los planes de Railway; el PITR ya está configurado en el Postgres de GHPOINTS.
 - Vercel + Neon + R2 se evaluó y descartó el mismo día: costaba lo mismo, repartía la infraestructura en tres paneles y obligaba a diseñar sin worker permanente (crons por minuto solo en Pro, cuerpo de 4,5 MB por función, Neon gratis con 100 CU-horas y suspensión a los 5 minutos).
 
-## Alcance v1 (fases 0 a 7)
+## Alcance v1 (fases 0 a 8)
 
-Portal público y contenido editable · Personas y Mi OE · Participación y GH Points con asambleas · Permanencia (la tabla de GH visible para cada miembro) · Formularios, admisión y aliados · Comunicaciones y PWA · Arranque limpio y retiro de GHPOINTS. Detalle y seguimiento en [09-roadmap.md](09-roadmap.md).
+Portal público y contenido editable · Personas y Mi OE · Participación y GH Points con asambleas · Permanencia (la tabla de GH visible para cada miembro) · Formularios, admisión y aliados · Comunicaciones y PWA · Arranque limpio y retiro de GHPOINTS · Carnet opcional en Apple Wallet y Google Wallet. Detalle y seguimiento en [09-roadmap.md](09-roadmap.md).
 
 ## Fuera de v1
 

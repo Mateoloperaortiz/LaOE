@@ -46,7 +46,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzl
 
 | Módulo | Responsabilidad | Modelos principales |
 | --- | --- | --- |
-| `identity` | Acceso por OTP, sesiones, permisos técnicos, actor, token del calendario personal | `Session`, `OtpChallenge`, `Permission`, `CalendarToken` |
+| `identity` | Acceso por OTP, sesiones, permisos técnicos, actor, token del calendario personal | `Session`, `OtpChallenge`, `Permission`, `CalendarToken`, `CarnetToken` |
 | `people` | La persona como eje del CRM, ciclo de vida, comités por término, cargos, consentimiento | `Person`, `Membership`, `CommitteeMembership`, `Appointment`, `Consent`, `Committee` |
 | `crm` | Organizaciones, contactos, pipelines, tarjetas, solicitudes, convocatorias internas, línea de tiempo, notas, tareas, onboarding, reconocimientos; importa `people`, `terms`, `content`, `system` y, desde la fase 5, `forms` ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) | `Organization`, `OrganizationContact`, `Pipeline`, `PipelineStage`, `Card`, `Request`, `InternalCall`, `InternalCallEntry`, `Interaction`, `Task`, `OnboardingProgress`, `Recognition` |
 | `forms` | Formularios propios (públicos y de miembros), respuestas, inscripciones a ediciones; importa `people`, `events`, `system` y `terms`, nunca `crm` ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) | `Form`, `Submission`, `EditionRegistration` |
@@ -57,6 +57,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzl
 | `content` | Páginas editables, cartelera, medios, documentos de normativa, ficha editorial de comité | `Page`, `Announcement`, `MediaAsset`, `Document` |
 | `comms` | Bus de notificaciones (push por preferencia, un `Message` por persona), suscripciones push y preferencias, plantillas de correo y campañas por segmento en lotes, registro de mensajes; importa `people`, `terms`, `content`, `participation` y `system`, nadie lo importa ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) | `EmailTemplate`, `Campaign`, `CampaignRecipient`, `Message`, `PushSubscription`, `NotificationPreference` |
 | `system` | Auditoría, configuración, outbox, importaciones, exportes, alias legados, salud | `AuditLog`, `AppConfig`, `Outbox`, `ImportJob`, `LegacyAlias` |
+| `wallet` | Carnet opcional en Apple y Google Wallet, reservas y estados, sincronización/supresión de Google y conciliación diaria; importa `identity`, `people` y `terms` por API pública ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)) | `WalletPass` |
 
 ## Capas dentro de un request
 
@@ -78,6 +79,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzl
 - **Admin kit declarativo** (`src/shared/admin-kit/`): `defineResource({ modelo, columnas, filtros, formulario Zod, permisos })` genera listado paginado con búsqueda, ficha, crear/editar en panel lateral y export CSV. Cubre Comité, Término, Etiqueta, Organización, Formulario, Plantilla, Página, Documento, Anuncio, Pipeline y Convocatoria. UI a medida solo para Persona 360, constructor de formularios, detalle de organización, kanban, bandeja de solicitudes, detalle de convocatoria, consola de ocasión, ledger, campañas e importaciones. Paleta de comandos (⌘K) con búsqueda `pg_trgm` sobre personas, comités, organizaciones y ocasiones.
 - **Marca** (`src/shared/brand/`): tokens, texturas, `Cartel`, elementos gráficos como SVG, tema claro/oscuro, movimiento reducido. Ver [07-marca.md](07-marca.md).
 - **Adaptadores:** `Mailer` (`console` en desarrollo y `staging`; en producción Resend para transaccional y campañas, con reintento de ráfagas; SES queda apagado sin `AWS_REGION` hasta otra fase (ADR-039); cabeceras `List-Unsubscribe` en campañas), `Storage` (bucket de Railway vía S3; Garage como emulador local), `Pusher` (web-push con VAPID; sin claves configuradas el envío se imprime en consola y se registra igual).
+- **Billeteras (fase 8).** `wallet` compone nombre, comités y semestre de `people`/`terms` con el token `oe2` de `identity`; adaptadores `apple-pass` (firma `.pkpass`) y `google-wallet` (OAuth2/JWT/REST). El carnet `oe1` de Mi OE permanece. Las rutas requieren Node y sesión; secretos e imágenes privadas no llegan al navegador. Reserva local antes de crear Google, snapshots de generación/revisión/término y dos locks separan mutaciones breves de llamadas remotas. Los eventos fuente encolan `wallet.sync` por evento/persona; relee estado vigente y conserva las limpiezas sin credenciales. Un scheduler a las 00:05 de Bogotá recorre en lotes de 100 los pases Google y pendientes para el cambio de semestre. Apple se reemite a petición; no hay APNs. Ver [ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md).
 - **PWA:** `src/app/manifest.ts` sirve el manifest (`start_url` `/app`, iconos generados desde el isotipo por `scripts/pwa-icons.ts`), `public/sw.js` es un service worker propio que solo recibe el push, muestra la notificación y abre la URL (sin caché sin señal), y lo registra Mi OE; el portal público no lo registra ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)).
 
 El control administrativo de política se ubica en `/admin/sistema/politica`, con navegación **Política de datos**. Un ADMIN publica primero la página `privacidad` con audiencia PUBLIC, estado PUBLISHED y cuerpo no vacío desde Páginas, revisa `/privacidad` y guarda la versión mediante step-up. La Server Action consulta las APIs públicas de `content` y `system`: comprueba la página antes de activar y escribe la configuración con auditoría `config.updated`. `system` conserva su guard por versión y no depende de `content`. Volver a `pendiente` bloquea nuevas aceptaciones sin editar la página ni borrar consentimientos previos. El control está desplegado y verificado en producción con 853d622; el texto real de la política y su habilitación siguen pendientes.
@@ -92,7 +94,8 @@ El control administrativo de política se ubica en `/admin/sistema/politica`, co
 | Buckets PITR | `Postgres-PITR` en staging y `Postgres-PITR-production` en producción: nombres únicos a nivel del proyecto. Habilitar PITR antes del primer apply completo, asignar el nombre correspondiente conservando ID/contenido y adoptar en IaC; nunca aplicar un plan que borre el archivo |
 | Bucket `media` | Privado por entorno, virtual-hosted (`S3_FORCE_PATH_STYLE=false`); CSP con origen efectivo del bucket; CORS mediante `storage:init` |
 | Variables | `DATABASE_URL` y bucket por referencia; secretos por entorno; `TZ=UTC`, `APP_TIMEZONE=America/Bogota`, `JOBS_ENABLED=true`; `PUBLIC_INDEXING` false staging/true production; Resend solo producción, AWS ausente |
-| Worker | Poller y scheduler en el proceso web; worker separado solo con uso medido |
+| Worker | Poller y scheduler en el proceso web; incluye conciliación Wallet diaria a las 00:05 de Bogotá; worker separado solo con uso medido |
+| Wallet opcional | Apple: Pass Type ID, Team ID, certificado/clave base64 y contraseña opcional; Google: issuer, correo/clave base64 y sufijo por entorno. IaC preserva variables adoptadas; sin credenciales no emite y conserva limpiezas pendientes. Activación separada con política y prueba en dispositivo (ADR-040) |
 | Entornos | Solo staging (main, datos sintéticos, dominio Railway, noindex) y production (rama production promovida a mano, datos nuevos). No hay ensayo ni entornos PR |
 | Primer ADMIN | Script privado `bootstrap-admin`: persona, membresía ACTIVE y ADMIN con auditoría y transacción; sin comités, consentimiento ni bienvenida. Política y roster se cargan después desde el admin |
 | Política pendiente | Nueva autorización rechazada mientras la versión siga pendiente; revocaciones, acceso y check-in continúan. Publicar texto desde Páginas y activar la versión en Política de datos (ADR-039, control verificado en producción) |
@@ -115,6 +118,8 @@ casa-digital/
   .railway/railway.ts            IaC: entornos, servicios, referencias y despliegue
   docker/backup/Dockerfile       imagen del cron de copia externa
   scripts/backup.sh             dump, medios, cifrado, retención y marca de éxito
+  scripts/wallet-assets.ts      genera los PNG de Apple desde la marca versionada
+  scripts/wallet-check.ts       prueba manual de emisión con credenciales propias
   scripts/smoke.ts              comprobaciones HTTP tras cada release
   scripts/bootstrap-admin.ts    primer acceso real y auditado, sin seed ni consentimiento
   compose.yaml                  Postgres 18 (127.0.0.1:5433) y Garage (127.0.0.1:3900) para OrbStack

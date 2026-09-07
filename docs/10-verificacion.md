@@ -93,6 +93,51 @@ Las pruebas existentes se conservan; no se corre una migración real ni un muest
 - En local (fase 6): con claves VAPID propias en `.env` (`npx web-push generate-vapid-keys`), `JOBS_ENABLED=true` y `next dev` arriba, `npm run push:check` (`scripts/push-check.ts`) abre Google Chrome de escritorio con un perfil temporal persistente (en incógnito Chrome no ofrece la Push API), entra como el miembro sintético, activa las notificaciones en `/app/ajustes` (la suscripción queda en FCM), avisa por push el anuncio de prueba desde `/admin/cartelera` y cierra una ocasión con encuesta a la que ese miembro asistió; mide cuánto tarda cada notificación en llegar al service worker, abre la URL del push de la encuesta y comprueba que `/admin/mensajes` registre ambas `webpush · SENT`. Comprobado el 2026-09-06: 2,1 s el anuncio y 7,1 s la encuesta. Instalar Mi OE desde el menú de Chrome y el clic en la notificación se prueban a mano; el iPhone se comprueba en la fase 7 porque exige HTTPS público.
 - Una vez al mes: descargar la copia cifrada de R2, descifrarla con la clave privada de `age`, restaurarla en local y abrir la app contra esa copia.
 
+## Carnet en billeteras (fase 8, ADR-040)
+
+La suite automática no usa secretos reales ni entrega datos a Google. Integración inyecta certificados/clave RSA de juguete y transporte Google; E2E levanta su propio servidor con Apple de juguete y Google apagado, sin reutilizar un `next dev` con credenciales. En CI se prueba `next start` sobre el build. Un 404 inesperado de Apple hace fallar la prueba; no se oculta con `test.skip`. La habilitación real de un proveedor es otra comprobación y queda pendiente sin sus cuentas.
+
+### Pruebas automáticas
+
+- **Configuración:** ninguna plataforma, solo Apple, solo Google y ambas; los grupos parciales fallan, valores vacíos equivalen a ausentes. Sufijos e identificadores válidos, claves privadas confinadas al servidor e IaC que preserva las variables opcionales por entorno.
+- **Token y membresía:** creación única concurrente, QR opaco válido, rotación auditada, revisión creciente, `readCarnet` compatible con `oe1`, `REVOKED` para tokens viejos y `MALFORMED` para basura; rechazo por generación anterior aunque haya baja/reactivación antes de drenar. Anonimizar invalida localmente en la misma transacción. Resolver actualiza uso solo cuando el token corresponde al estado vigente.
+- **Apple:** JSON y campos accesibles sin correo/foto/puntos, sin término/comités, nombres largos, imágenes en sus escalas, serial estable. Descomprimir ZIP, comparar manifiesto con hashes de todos los archivos y verificar criptográficamente la firma CMS con CA/certificado de juguete. La ruta responde MIME, nombre de archivo y `no-store`; una firma fallida no estampa emisión. Verificar carga de imágenes/certificado desde el build, no solo desde TypeScript.
+- **Google:** firma RS256 comprobada con la clave pública, claims de guardado con `id` y `classId`, OAuth2 y timeout. Primera emisión reserva local antes de REST; un POST exitoso seguido de fallo local/reintento converge al mismo objeto. Emisiones concurrentes resuelven 409 sin duplicar; posteriores actualizan. Un 404 de sincronización marca revocado y no crea de nuevo; reemisión propia explícita sí puede recuperar. Ningún job crea el primer token/pase.
+- **Jobs y concurrencia:** cambio de nombre/comité, rotaciones repetidas antes de drenar, eventos duplicados, fallos transitorios, carrera emisión/revocación/baja y baja/reactivación/anonimización. El lock de red no retrasa revocación. Un resultado viejo no adelanta snapshots vigentes. Eventos de campos no visibles no llaman a Google. Sin variables las limpiezas permanecen pendientes y la fila no se pierde; con variables restauradas terminan.
+- **Semestre:** reloj de Bogotá antes/después de medianoche, roster cargado para término futuro, inicio sin nuevo evento y ausencia de término. El tick de las 00:05 pagina más de 100 pases y concilia todos sin publicar anticipadamente el futuro. El aviso Apple usa generación/revisión/término de su snapshot, no una comparación de timestamps.
+- **Supresión y exportación:** baja produce `EXPIRED`; anonimización reemplaza todo el objeto por mínimos sin nombre personal, QR, módulos ni enlaces anteriores. Solo éxito/404 permite borrar la referencia local. Mis datos incluye estados/fechas, sin tokens ni credenciales, JWT o contenido privado del pase.
+- **E2E y acceso:** miembro descarga Apple, `oe1` permanece en pantalla, revoca desde Mi OE y ADMIN desde 360; actor sin permiso no revoca otra persona. La 360 distingue reserva pendiente, emitido y revocado. Gestión/avisos siguen visibles con proveedores retirados; sin registros y sin proveedores no hay emisión. Sin sesión redirige al ingreso; proveedor apagado responde 404; errores devuelven el texto inventariado. Google nunca se llama desde E2E.
+
+### Credenciales de juguete y firma
+
+`tests/fixtures/wallet/toy-credentials.json` contiene claves deliberadamente públicas y desechables. Base64 facilita la carga; no es protección ni garantiza que un detector de secretos las ignore. La CA de juguete firma el certificado de pruebas y su clave privada no se versiona. Receta ejecutada en un directorio temporal:
+
+```sh
+openssl req -x509 -newkey rsa:2048 -nodes -days 36500 -subj '/CN=OE Test CA/OU=TEST ONLY' -keyout wwdr.key -out wwdr.crt
+openssl req -new -newkey rsa:2048 -nodes -subj '/CN=Pass Type ID: pass.test.oe/OU=TESTTEAM00/O=OE Test' -keyout signer.key -out signer.csr
+openssl x509 -req -in signer.csr -CA wwdr.crt -CAkey wwdr.key -set_serial 1 -days 36500 -out signer.crt
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out google.key
+openssl pkey -in google.key -pubout -out google.pub
+```
+
+Se codifica el PEM con `Buffer.from(pem).toString("base64")`: `wwdr.crt` → `wwdr`, `signer.crt` → `signerCert`, `signer.key` → `signerKey`, `google.key` → `googleKey`, `google.pub` → `googlePublicKey`. Para comprobar la cadena, la prueba pasa el certificado/CA toy mediante el override de certificados de `signPass`; el runtime normal usa el WWDR G4 público versionado y no un override de pruebas. E2E usa la clave/certificado toy para ensayar la descarga: no supone que esa cadena sea confiable para Apple.
+
+La prueba extrae las entradas del pase, recalcula sus SHA-1 y compara con `manifest.json`. La firma CMS y la cadena de juguete se verifican, sin `-noverify`, con:
+
+```sh
+openssl cms -verify -inform DER -binary -in signature -content manifest.json -CAfile wwdr.crt -purpose any
+```
+
+La receta y la huella del [WWDR G4 público](https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer) están en `tests/fixtures/wallet/README.md`. Su clave privada no forma parte del proyecto. El certificado de firma real y su clave solo se suministran mediante variables privadas del entorno.
+
+### Revisión visual y activación real
+
+Revisar `/app/carnet` y Comunicaciones de la 360 en 375, 768 y escritorio, claro/oscuro, con `axe` y teclado: badges oficiales proporcionados con `alt`, foco visible, texto completo, ausencia de desbordamiento y avisos persistentes tras volver a entrar. Los pases siguen las excepciones de [07-marca.md](07-marca.md), sin extenderlas a la web.
+
+Con cuentas propias configuradas, `npm run wallet:check -- --persona <correo>` prepara el `.pkpass` y el enlace/QR de guardado Google en un directorio temporal privado, y comprueba que el QR resuelva. El correo, archivos, tokens y enlace de guardado nunca se incorporan a evidencia pública ni al repositorio. Registrar solo fecha, entorno, plataforma y resultados. Apple se guarda con certificado real desde iPhone; Google con una cuenta de prueba autorizada por el emisor hasta tener publicación. Desde otro dispositivo, el anfitrión escanea, observa el nombre y registra el check-in; comprobar reemisión, cambio de comité, revocación del QR anterior y baja. Ensayar además Apple desde la PWA instalada sobre HTTPS y el cambio de semestre de Google con datos sintéticos en staging.
+
+Una firma de juguete prueba formato e integridad, no confianza de Apple ni distribución real. El cierre de F8-T6 puede acreditar software; las casillas de activación de cada plataforma permanecen pendientes hasta estas comprobaciones.
+
 ## Cierre de fase
 
 Cada fase se cierra con: CI en verde, revisión manual en los tres anchos y dos temas, checklist del roadmap marcado y fila en el registro de avances.

@@ -6,7 +6,7 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 
 | # | Pregunta | Opciones | Quién decide | Cómo se cierra |
 | --- | --- | --- | --- | --- |
-| — | Ninguna por ahora. Lo pendiente es contenido, no decisiones: ver [11-contenido-pendiente.md](11-contenido-pendiente.md) | | | |
+| 1 | ¿Se paga el Apple Developer Program y a nombre de quién? | Activar Apple con cuenta/certificado válidos o mantenerlo apagado; confirmar costo y titular al contratar | Mateo con la junta | Registrar titular, aprobación de gasto y cuenta operativa; no bloquea Google ni las pruebas sin secretos (ADR-040) |
 
 ## Cerradas
 
@@ -74,3 +74,9 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 | 2026-09-06 | ¿Ensayo con datos reales en otro entorno? | No: solo staging con datos sintéticos y production con datos nuevos (ADR-039) |
 | 2026-09-06 | ¿SES y proxy Cloudflare? | SES aplazado; Resend para todo el correo. Cloudflare conserva proxy, SSL Full, DNSSEC y www (enmienda ADR-039) |
 | 2026-09-06 | ¿Retención de las copias mensuales y manuales? | 12 copias completas en total bajo casa-digital/; archivo de GHPOINTS separado por 90 días desde la eliminación verificada del proyecto GHPOINTS. Tope US$20/alerta US$15 sin aumento automático (ADR-039) |
+| 2026-09-06 | ¿Qué billeteras entran y con qué contenido? | Apple Wallet y Google Wallet, cada una opcional por variables; nombre, comités, semestre e ingreso, sin foto, correo ni puntos (ADR-040) |
+| 2026-09-06 | ¿Revocar retira el pase de una cuenta o cierra sesiones? | No: rota el QR de billetera fotografiado e invalida el anterior. El mismo objeto Google recibe el nuevo; Apple se agrega de nuevo. `oe1` y sesiones permanecen (ADR-040) |
+| 2026-09-06 | ¿Cómo se actualiza el semestre sin otro evento del roster? | Conciliación diaria a las 00:05 de Bogotá en lotes de 100; Google por outbox, Apple por reemisión con aviso persistente (ADR-040) |
+| 2026-09-06 | ¿Apple usa APNs o un servicio web de pases? | Fuera de la fase 8; vuelve a agregarse el mismo serial. Servicio web/APNs quedan en backlog (ADR-040) |
+| 2026-09-06 | ¿Isotipo en el pase y token en claro? | Isotipo con nombre completo, badges oficiales; token opaco en base para reemitir, con generación/revisión. Mis datos y logs no exportan el secreto (ADR-040) |
+| 2026-09-06 | ¿Qué pasa si Google falla o faltan credenciales al anonimizar? | La limpieza conserva la referencia local y el trabajo pendiente hasta respuesta exitosa o 404; nunca se declara supresión remota completada antes (ADR-040) |

@@ -1209,6 +1209,44 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1175 | Campaña: sección de destinatarios (título) | Destinatarios | MATEO | Propuesta |
 | T-1176 | Campaña: título de la sección con la estimación, la fecha y los botones de envío | Envío | MATEO | Propuesta |
 
+### Mi OE · fase 8 (carnet en billeteras)
+
+Los badges conservan sus textos oficiales; el resto de la interfaz usa voseo. Revocar afecta al QR de las billeteras, no a los QR de Mi OE ya emitidos (ADR-040).
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-1189 | Carnet: sección billeteras, título | Llevalo en tu billetera | COM | Propuesta |
+| T-1190 | Carnet: texto de billeteras | Agregá tu carnet a Apple Wallet o Google Wallet y mostralo sin abrir Mi OE. Si cambian tus comités, en Google se actualiza solo; en Apple volvé a agregarlo. | MATEO | Propuesta |
+| T-1191 | Carnet: alt del badge de Apple | Agregar a Apple Wallet | MATEO | Propuesta |
+| T-1192 | Carnet: alt del badge de Google | Añadir a Google Wallet | MATEO | Propuesta |
+| T-1193 | Carnet: botón revocar | Revocar y volver a emitir | MATEO | Propuesta |
+| T-1194 | Carnet: explicación de revocar | Si perdiste el celular o alguien copió el QR de tu billetera, revocalo. Ese QR deja de servir y Google recibe uno nuevo cuando termina la actualización. En Apple, volvé a agregar el carnet. El carnet de Mi OE sigue funcionando. | MATEO | Propuesta |
+| T-1195 | Carnet: confirmación tras revocar | Listo: el QR anterior de tus billeteras ya no vale. Si usás Google Wallet, la actualización quedó pendiente; si usás Apple Wallet, agregá el carnet otra vez. | MATEO | Propuesta |
+| T-1196 | Carnet: pase de Apple con QR o datos desactualizados | Tu carnet de Apple Wallet es del {fecha}. Agregalo de nuevo para que muestre el QR y tus datos actuales. | MATEO | Propuesta |
+| T-1197 | Pase: nombre de la organización (`organizationName`, `logoText`, `cardTitle`) | Organización Estudiantil EAFIT | COM | Propuesta |
+| T-1198 | Pase: descripción accesible (`description`) | Carnet de miembro de la OE | MATEO | Propuesta |
+| T-1199 | Pase: etiqueta del semestre | Semestre | MATEO | Propuesta |
+| T-1200 | Pase: etiqueta del nombre | Miembro | MATEO | Propuesta |
+| T-1201 | Pase: etiqueta de los comités | Comités | MATEO | Propuesta |
+| T-1202 | Pase: etiqueta de "miembro desde" | En la OE desde | MATEO | Propuesta |
+| T-1203 | Pase: dorso, cómo funciona | Mostrá el QR en la entrada de las actividades. Vale mientras seas miembro; si lo revocás desde Mi OE, este pase deja de servir. | MATEO | Propuesta |
+| T-1204 | Pase: dorso, etiqueta del enlace a Mi OE | Mi OE | MATEO | Propuesta |
+| T-1205 | Pase: dorso, cómo actualizarlo | Si cambian tus comités o tu semestre, volvé a agregar el carnet desde Mi OE: reemplaza a este. | MATEO | Propuesta |
+| T-1206 | Pase de Google: texto bajo el QR | Carnet OE {semestre} | MATEO | Propuesta |
+| T-1207 | Anfitrión: carnet revocado o desconocido | Ese carnet ya no vale. Pedile que abra Mi OE y muestre el carnet, o que lo vuelva a agregar a su billetera. | MATEO | Propuesta |
+| T-1208 | Carnet: Google Wallet no respondió | Google Wallet no respondió. Probá de nuevo en un rato. | MATEO | Propuesta |
+| T-1209 | Persona 360: sección del carnet, título | Carnet en billeteras | MATEO | Propuesta |
+| T-1210 | Persona 360: pase emitido | {plataforma}: emitido el {fecha} | MATEO | Propuesta |
+| T-1211 | Persona 360: sin pases | Sin pases emitidos | MATEO | Propuesta |
+| T-1212 | Persona 360: botón revocar el carnet | Revocar el carnet | MATEO | Propuesta |
+| T-1213 | Persona 360: confirmación de revocar | El QR anterior de las billeteras ya no vale. La persona verá el aviso en Mi OE y Google se actualizará cuando termine el trabajo pendiente. | MATEO | Propuesta |
+| T-1214 | Carnet: nota de datos junto al botón de Google | Al agregarlo a Google Wallet, tu nombre, tus comités, el semestre y tu semestre de ingreso se envían a Google para guardar el carnet en tu cuenta. | MATEO | Propuesta |
+| T-1215 | Carnet: nota de datos junto al botón de Apple | El pase contiene tu nombre, tus comités, el semestre y tu semestre de ingreso. Al guardarlo en Apple Wallet, su almacenamiento y sincronización dependen de tu configuración de Apple. | JUNTA | Propuesta; texto sensible |
+| T-1216 | Carnet: no se pudo preparar el pase de Apple | No pudimos preparar tu carnet de Apple Wallet. Probá de nuevo en un rato. | MATEO | Propuesta |
+| T-1217 | Persona 360: pase reservado sin emisión completada | {plataforma}: emisión pendiente | MATEO | Propuesta |
+| T-1218 | Carnet: Google pendiente de actualización | La actualización de Google Wallet está pendiente. Mientras termina, mostrá el carnet de Mi OE. | MATEO | Propuesta |
+| T-1219 | Persona 360: pase revocado | {plataforma}: QR revocado el {fecha} | MATEO | Propuesta |
+
 ## 6. Notificaciones
 
 ### Push (título · cuerpo)

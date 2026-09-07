@@ -31,6 +31,8 @@ Reglas del manual:
 
 Archivos disponibles hoy en `LaOE/public/logos` (pasan al repositorio en la fase 0): `oe.svg` es el conjunto vertical completo como máscara monocroma (565 × 770), así que las variantes navy y blanca se obtienen pintándolo con el color del tema; los 27 logos de comités en `committees/` también son SVG monocromos (negro y blanco, sin texto ni imágenes incrustadas, 544 KB en total), listos para tintarse con la paleta. Un comité sin logo no inventa uno: usa el cartel tipográfico. Faltan el logo horizontal y el principal a color en SVG (ver [11-contenido-pendiente.md](11-contenido-pendiente.md)).
 
+**Extensión para billeteras (2026-09-06, [ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)).** El isotipo paper se permite como `icon` y `logo` de Apple y como ícono PWA público para Google, acompañado del nombre completo Organización Estudiantil EAFIT. Los fondos planos y las tipografías del sistema que impone cada billetera son excepciones de su formato; la web conserva sus reglas. Apple usa iconos 29/58/87 y logos 50/100/150 px desde el SVG versionado. Badges oficiales en español, sin redibujar, recolorear ni deformar; el `alt` coincide con el texto del arte.
+
 ## 3. Color
 
 Significado según el manual: **amarillo = diversidad** de voces y perspectivas; **naranja = fraternidad**, energía y vitalidad; **azul = servicio** y colaboración.
@@ -196,3 +198,7 @@ Antes de dar por lista una pantalla (aplicada el 2026-09-03 a las pantallas púb
 - [ ] Los colores vienen de los once tokens o de sus tintes por opacidad.
 - [ ] Voseo y tono cercano en todo texto visible para miembros.
 - [ ] Contraste AA y revisión en claro y oscuro.
+
+### Aplicación pendiente en fase 8
+
+F8-T6 revisa `/app/carnet` y Persona 360 en 375, 768 y escritorio, claro y oscuro: badges proporcionados, foco visible, lectura y contraste, textos largos, avisos persistentes, revocación y estado sin proveedores. Revisión separada del pase real en cada dispositivo. La excepción de fondo plano/isotipo descrita en §2 solo rige en el formato de billetera y no amplía la excepción a otras pantallas.

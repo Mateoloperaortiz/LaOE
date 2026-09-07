@@ -4,6 +4,8 @@ Documentación de la nueva casa digital de la **Organización Estudiantil de la 
 
 ## Estado
 
+**Fase 8 en implementación**: carnet opcional en Apple Wallet y Google Wallet, con QR propio revocable y actualización de Google por outbox y conciliación diaria. El carnet de Mi OE sigue usando `oe1`. Código/pruebas y activación real por plataforma se cierran por separado; todavía no se acredita emisión en dispositivos reales. Reglas en [ADR-040](docs/adr/ADR-040-carnet-en-billeteras-fase-8.md).
+
 **Fase 7 en curso** (6 de septiembre de 2026): F7-T0 a T4 listos. El candidato `853d622` fue validado en staging y está desplegado en producción; ADMIN, OTP, respaldos restaurados, indicador de respaldo y control de política están comprobados. El dominio temporal fue retirado y producción espera el dominio final. Quedan iPhone, noche de jobs y T6–T8: cutover, retiro de GHPOINTS y siete días de monitoreo. La política real sigue pendiente; DNS y GHPOINTS permanecen intactos. Evidencia en el [runbook](docs/15-runbook.md).
 
 **Fase 6 lista en local** (6 de septiembre de 2026): comunicaciones y PWA sobre las fases anteriores. Bus de notificaciones por outbox con preferencias por tipo y registro de mensajes por persona; Mi OE instalable con manifest, iconos y service worker propio solo para push; suscripciones, preferencias y calendario personal (ICS) en Ajustes; anuncios con push desde la cartelera; plantillas en Markdown y campañas por segmento en lotes por minuto con enlace de baja; recordatorios de participación y avisos de permanencia por push; encuesta anónima tras la ocasión con calificación de 1 a 5 y agregados por ocasión y comité. Verificado con push real en Chrome de escritorio con claves VAPID locales.
@@ -35,7 +37,9 @@ npm run db:reset            # esquema desde cero + datos sintéticos
 npm run dev                 # http://localhost:3000 · salud en /api/health
 ```
 
-Las pruebas de integración usan una base aparte (`casa_digital_test`, creada y migrada sola); las e2e (`npm run test:e2e`) corren contra el dev server y su base. `npm run check` corre todo lo que corre el CI: Biome, dependency-cruiser, knip, `tsc`, pruebas unitarias, pruebas de integración contra la base local y `next build`. Cómo se prueba cada capa: [docs/10-verificacion.md](docs/10-verificacion.md).
+Las pruebas de integración usan una base aparte (`casa_digital_test`, creada y migrada sola); las e2e (`npm run test:e2e`) levantan su servidor con credenciales Apple de juguete y Google apagado, sin reutilizar el servidor de uso manual; usan identidades sintéticas. `npm run check` corre todo lo que corre el CI: Biome, dependency-cruiser, knip, `tsc`, pruebas unitarias, pruebas de integración contra la base local y `next build`. Cómo se prueba cada capa: [docs/10-verificacion.md](docs/10-verificacion.md).
+
+Wallet se habilita por plataforma con las variables de `.env.example`; sin configuración no se ofrece emitir, pero se conserva la gestión de pases existentes. Los comandos `wallet:assets` y `wallet:check` preparan los recursos y la verificación manual descrita en [10-verificacion.md](docs/10-verificacion.md). Nunca se usan credenciales de juguete para activar Railway.
 
 ## Cómo leer la documentación
 

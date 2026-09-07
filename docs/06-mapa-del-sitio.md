@@ -37,9 +37,11 @@
 | `/app/gh-points` | Saldo, nivel y puntos para el siguiente, movimientos, rankings (nuevos, veteranos, comités: top 10 con nombres más el puesto propio), asambleas del semestre firmadas y requeridas |
 | `/app/permanencia` | Resultado por cada comité frente a su umbral (60, 80 o 70 %) calculado en vivo mientras el semestre está abierto y congelado al cerrar, bloque general y bloque del comité criterio por criterio con lo logrado y lo que aún es posible, cómo sumar más, asambleas obligatorias, evaluaciones pendientes, avisos (mitad de semestre, tres semanas antes, no alcanza, asamblea obligatoria), onboarding si es nuevo, historial; selector de semestre |
 | `/app/normativa` y `/app/normativa/[id]` | Estatutos, reglamento y actas: lista con buscador sobre los artículos y lector con índice por capítulo; el PDF firmado se abre por enlace prefirmado |
-| `/app/carnet` | QR personal firmado para acreditación (token de 24 horas) |
+| `/app/carnet` | Carnet `oe1` de 24 horas; badges oficiales de proveedores habilitados, avisos de datos/pendientes y revocación `oe2`. Gestionar pases previos sigue visible aunque falten credenciales ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)) |
 | `/app/ajustes` | Una sola página con las seis secciones de T-133: mis datos (foto, celular y correo personal con consentimiento), notificaciones (activar push en este dispositivo, dispositivos con "Quitar", las cuatro preferencias, instalar Mi OE), calendario (URL personal del ICS con copiar, `webcal://` y regenerar), sesiones, consentimientos, mis datos y privacidad (descargar mis datos, solicitar eliminación) ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
-| `/api/mis-datos` | JSON con todo lo que la OE guarda sobre la persona con sesión; auditado |
+| `/api/mis-datos` | JSON con todo lo que la OE guarda sobre la persona con sesión; auditado. Incluye metadatos de pases y token, sin token en claro, claves o JWT (ADR-040) |
+| `/api/wallet/apple` | GET con sesión y runtime Node: `.pkpass` firmado y `no-store`; proveedor apagado 404, error T-1216 (ADR-040) |
+| `/api/wallet/google` | GET con sesión y runtime Node: reserva, objeto y 302 al guardado Google con `no-store`; proveedor apagado 404, error T-1208 (ADR-040) |
 | `/a/[publicId]` | Check-in de una ocasión: título, ventana, botón único de registro, campo del código rotativo si aplica (prellenado desde `?c=`); sin sesión redirige a `/ingresar` (que muestra T-100) y vuelve; si el `publicId` no existe consulta `LegacyAlias` |
 | `/api/ics/mi-agenda.ics?t=…` | Calendario personal con token (sin sesión): ediciones publicadas públicas y de miembros más las ocasiones del término vigente que son generales, asambleas o de sus comités; `private, max-age=900` ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
 
@@ -86,3 +88,5 @@ Vista de **evaluador** (director de GH del frente, GH principal para las tareas 
 | `GET /api/ocasiones/[id]/live` | Contador en vivo de la consola (aprobados, pendientes, por comité, últimos check-ins, código rotativo vigente y QR regenerado); ADMIN o líder del comité de la ocasión; sin caché |
 | Jobs programados: `campaigns` (cada minuto), `reminders` (cada hora), `permanence` (06:00), `notices` (09:00), `prune`, `backup-check` | Corren en el mismo proceso del servicio `web` mediante el scheduler y el outbox; no tienen rutas HTTP |
 | `/asamblea/[publicId]` | Ruta histórica que resuelve `LegacyAlias` hacia `/a/[publicId]`; en el arranque limpio de ADR-039 no se importan alias ni QR de GHPOINTS y no se agregan redirecciones de compatibilidad |
+
+La pestaña Comunicaciones de `/admin/personas/[id]` añade Carnet en billeteras: reserva pendiente, emisión, revocación y acción ADMIN de revocar con confirmación. Nunca muestra el QR ni el token. Las actualizaciones y limpiezas de Google salen por `wallet.sync`; la conciliación diaria de las 00:05 de Bogotá recorre lotes de 100 ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)).

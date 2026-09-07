@@ -115,11 +115,15 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Outbox | `Outbox` | Cola de eventos de dominio escrita en la misma transacción que la mutación |
 | Alias legado | `LegacyAlias` | Ruta antigua de GHPOINTS (`/asamblea/…` y los `publicId` retirados) que sigue resolviendo a la ocasión nueva |
 | Actor | `Actor` | La persona autenticada con sus permisos, validada en servidor |
-| Carnet | `/app/carnet` | QR personal firmado para acreditación en ocasiones |
+| Carnet | `/app/carnet` | Acreditación personal: QR `oe1` de 24 horas en Mi OE y pases opcionales de billetera con QR `oe2` persistente |
 | Cartelera | `/cartelera`, `/app` | Anuncios de la OE |
 | Documento | `Document` | Estatutos, reglamento, actas: PDFs privados en el bucket con lector por artículos |
 | Artículo | `DocumentArticle` | Unidad citable de un documento de normativa (capítulo, número, título, cuerpo, páginas), buscable en español |
-| Token del carnet | `signCarnet` / `verifyCarnet` | Firma HMAC de 24 horas dentro del QR del carnet; solo la consola anfitrión lo lee |
+| Token del carnet de la app | `signCarnet` / `verifyCarnet` | Firma HMAC `oe1` de 24 horas; revocar la billetera no la cambia |
+| Token de billetera | `CarnetToken` / `readCarnet` | Capacidad opaca `oe2`, en claro para reemitir; generación y revisión verificadas en servidor, revocable sin cerrar sesiones |
+| Pase de billetera | `WalletPass` | Reserva o pase Apple/Google con fechas y snapshots; emisión pendiente si aún no tiene `issuedAt` |
+| Generación del carnet | `Membership.walletEpoch` | Contador que sube al salir o anonimizar; reactivar no restaura los pases de generaciones anteriores |
+| Revisión del carnet | `CarnetToken.revision` | Número que aumenta al rotar el QR y permite saber si el pase publicado representa el token actual |
 | Importación | `ImportJob` | Un archivo del roster (o un ensayo de migración) con su vista previa, su estado y su resumen |
 | Solicitud de eliminación | `Person.deletionRequestedAt` + `Task.kind = DELETION_REQUEST` | Pedido del miembro para borrar sus datos; GH lo atiende anonimizando el perfil |
 | Segmento guardado | `Segment.filter` | Etapa, estado, ingreso, comités, cargos, etiquetas, consentimiento y programa; alimenta exportes y, después, campañas |

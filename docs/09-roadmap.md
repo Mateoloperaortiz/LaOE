@@ -257,6 +257,29 @@ Plan aprobado el 2026-09-06 ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)). 
 
 Listo cuando: `oeeafit.com` sirve la app nueva, el acceso real funciona, se comprobó recuperación del backup, GHPOINTS está eliminado con archivo cifrado y terminó la semana de monitoreo. La carga de política y roster ocurre desde la app: mientras la versión siga pendiente, no se crean nuevos consentimientos. No se marca infraestructura completada hasta ejecutarla y anotarla en [15-runbook.md](15-runbook.md).
 
+## Fase 8 · Carnet en billeteras · `en curso`
+
+Plan aprobado el 2026-09-06 ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)). Apple Wallet y Google Wallet se habilitan por separado; sin foto, con nombre, comités, semestre e ingreso. El QR `oe2` es persistente y revocable; `oe1` de Mi OE conserva sus 24 horas. Revocar invalida el QR de billetera fotografiado, no cierra sesiones ni retira el objeto de una cuenta Google. Google se actualiza por outbox y conciliación diaria a las 00:05 de Bogotá; Apple se vuelve a agregar. Generaciones de membresía, revisiones y reservas evitan rehabilitar pases antiguos o perder limpiezas remotas.
+
+### Tramos
+
+- [x] F8-T0 · Docs: ADR-040 y enmiendas, arquitectura, datos, acceso, mapa, marca, verificación y operación; copy T-1189–T-1219 sincronizado. Listo: `check` (181 unitarias, 183 integración y build) y E2E compilado 81/81 en verde
+- [ ] F8-T1 · Identidad y migración: `membership.walletEpoch`, `carnet_token`, esquema de `wallet_pass`, migración 0009, verificación de índices y limpieza de fixtures; `readCarnet` asíncrono compatible con `oe1`; baja/anonimización atómicas, revocación auditada y check-in `oe2`
+- [ ] F8-T2 · Base Wallet y adaptadores: configuración opcional completa, API pública, datos del carnet, reservas/snapshots, locks separados, firma Apple y JWT/OAuth2/REST Google; fixtures de juguete y transporte inyectado
+- [ ] F8-T3 · Apple: recursos de marca versionados, `.pkpass`, ruta Node y badge oficial; registros de emisión, aviso persistente por generación/revisión/término y errores; ZIP/manifiesto/CMS verificados
+- [ ] F8-T4 · Google: clase y objeto por entorno, reserva durable previa a REST, creación concurrente idempotente, JWT de guardado, ruta y badge con aviso de datos; errores/reintentos sin emisión ficticia
+- [ ] F8-T5 · Ciclo completo: revocación propia/ADMIN, 360, mis datos sin secretos, `wallet.sync` y conciliación diaria de 100 en 100; baja/anonimización/reingreso, 404 sin recreación, pendientes sin credenciales y script de verificación manual
+- [ ] F8-T6 · Cierre de software: `check`, E2E compilado con Apple de juguete y Google apagado sin skips, revisión de marca/axe en 375/768/escritorio y claro/oscuro; evidencias y pendientes reales actualizados
+
+### Activación real por plataforma
+
+- [ ] Apple: cuenta/pago/titular, certificado vigente, política, variables privadas y pase guardado desde navegador y PWA en iPhone con QR escaneado, revocado y reemitido
+- [ ] Google: emisor/cuenta de servicio, clase y usuarios de prueba, publicación aprobada cuando corresponda, política, variables privadas y pase guardado/escaneado; cambio de comité, cambio de semestre, revocación y baja comprobados
+
+Cada tramo de software cierra con `npm run check`, `npm run test:e2e`, commit convencional y push a `main`, desde `casa-digital/`. No se acredita un pase real con la firma de juguete. La activación de producción sigue el SHA validado y el runbook; no cierra ni cambia por sí sola los pendientes de F7.
+
+Listo cuando (software): formatos, autorización, concurrencia, reintentos, lifecycle, estados y UI funcionan con fixtures y la suite completa queda en verde. **Listo cuando (uso real de cada plataforma):** un miembro guarda el pase en su billetera, el anfitrión lo escanea y queda el check-in; revocar deja el QR anterior sin efecto y el pase nuevo vuelve a acreditar. Sin credenciales reales se cierra solo el software y se conservan las casillas de activación pendientes.
+
 ## Backlog (después de la v1)
 
 - Votación electrónica de la junta con segunda vuelta: cuando la asistencia funcione sin fallas y con las reglas de los estatutos (voto secreto, quórum)
@@ -266,6 +289,7 @@ Listo cuando: `oeeafit.com` sirve la app nueva, el acceso real funciona, se comp
 - Álbum de fotos por edición con consentimiento
 - Modo anfitrión sin señal: cola de check-ins en el celular que se sincroniza después
 - Certificados de participación con QR de verificación (no priorizado)
+- Servicio web y APNs de Apple Wallet para actualizar pases sin volver a agregarlos
 - Passkeys como segundo factor o acceso rápido
 - Reto relámpago, boosters, palabra del día, badges persistidos
 - Fórmulas alternativas de score de comité (ponderadas)
@@ -388,3 +412,6 @@ Listo cuando: `oeeafit.com` sirve la app nueva, el acceso real funciona, se comp
 | 2026-09-06 | 7 | Runbook precisa alcance del CLI 5.46: connect lleva --project/--environment; config plan usa link explícito y status --json en checkout privado, sin flags inexistentes. Promoción por SHA_VALIDADO exacto, no por main mutable. Uso leído a las 23:45:36Z: US$1,511, proyección temprana US$2,888 para el período 28 de agosto–28 de septiembre, alerta 15/tope 20; web production 190 MB. Es medición puntual y estimación inicial, no promesa de costo. |
 | 2026-09-06 (Bogotá) | 7 | **F7-T4 listo**: CI production 34068111556 SUCCESS con 81/81 e2e; deployment 8112f80b-823a-4696-a0ed-43353dd21ab8 SUCCESS el 2026-09-07 a las 00:02:19 UTC, SHA 853d62283264aa4e8a31d8ef03c9b0d8abaf1512; smoke temporal 6/6 a las 00:03:10Z. UI real Chrome 00:04:43Z conserva sesión ADMIN, muestra fecha de última copia y cero trabajos con error, control Política de datos pendiente y aviso del roster; sin escrituras de contenido/versión. |
 | 2026-09-06 (Bogotá) | 7 | Dominio temporal retirado y T4 verificado a las 00:05:37 UTC del 2026-09-07: ID 4f768441-22b2-476b-b6ca-1692c8cd1e64 eliminado con CLI scoped; readback custom/service vacío, URL 404 y health por SSH a localhost:8080 status ok/commit 853d622 a las 00:05:12.977Z. Web/Postgres/backup SUCCESS, sin nuevas corridas de backup. Check de cierre exit 0: 181 unitarias, 183 integración y build; log privado t4-close-check.log. T5 conserva iPhone/noche; T6–T8 sin iniciar, DNS y GHPOINTS intactos y monitoreo de siete días no iniciado. |
+| 2026-09-06 | 8 | Inicia implementación autorizada: ADR-040, token `oe2` por generación/revisión, reservas durables, conciliación diaria y copy T-1189–T-1219. Tramos abiertos hasta verificaciones; activación real por proveedor pendiente, sin cambios al estado de fase 7 |
+
+| 2026-09-06 | 8 | **F8-T0 listo**: ADR-040, enmiendas y documentación transversal; 31 textos T-1189–T-1219 sincronizados. `npm run check` completo en verde (181 unitarias, 183 integración, build) y `CI=true npm run test:e2e` 81/81. Credenciales reales y activación por plataforma pendientes. |

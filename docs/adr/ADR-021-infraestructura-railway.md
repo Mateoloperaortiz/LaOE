@@ -1,6 +1,6 @@
 # ADR-021: Infraestructura: Railway en el workspace Pro existente
 
-- Estado: Aceptada (enmendada por ADR-022 en "Medios", por ADR-023 en "Entornos", "Respaldos" y "Presupuesto", y por ADR-032 en el pre-deploy, ADR-039)
+- Estado: Aceptada (enmendada por ADR-022 en "Medios", por ADR-023 en "Entornos", "Respaldos" y "Presupuesto", y por ADR-032 en el pre-deploy, ADR-039, ADR-040)
 - Fecha: 2026-09-02
 - Reemplaza: ADR-019
 - Enmienda: ADR-001, ADR-012, ADR-016
@@ -47,3 +47,7 @@ El pre-deploy `npm run db:release` aplica las migraciones SQL de Drizzle y verif
 ## Enmienda (2026-09-06, ADR-039)
 
 La configuración declarativa pasa de `railway.json` a `.railway/railway.ts` (paquete `railway`). Solo existen `staging` y `production`, con ramas `main` y `production`, CI previo, Node 24, `PORT=8080`, región `us-east4-eqdc4a`, una réplica y límites de 1 vCPU/1 GB. La fase 7 absorbe la fase 0 B pendiente. El dominio se agrega al final y su cambio se reconcilia en IaC después de verificar; producción arranca sin datos de GHPOINTS. Tope del workspace US$20 y alerta US$15, sin aumentos automáticos. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).
+
+## Enmienda (2026-09-06, ADR-040)
+
+Apple Wallet y Google Wallet son proveedores opcionales por entorno, sin otro servicio ni cambio al presupuesto de Railway. La inscripción eventual al Apple Developer Program y su renovación son un gasto aparte, pendiente de decisión sobre pago y titular. Los certificados y claves se cargan de forma privada en una línea base64; el IaC preserva las variables opcionales adoptadas y distingue el sufijo Google de staging. El código se entrega con proveedores apagados; activar exige credenciales, política y comprobación en dispositivo, como hitos propios de la fase 8. Ver [ADR-040](ADR-040-carnet-en-billeteras-fase-8.md).

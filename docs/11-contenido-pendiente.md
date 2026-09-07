@@ -36,6 +36,8 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Texto de la política de tratamiento de datos personales ya aprobada (documento o PDF) y nombre del responsable del tratamiento; confirmar que cubre la galería de egresados y el contacto posterior a la salida; su versión es la que se guarda en `privacy.policyVersion` (hoy "pendiente") y la que registran los consentimientos
 - [ ] Correo de salida voluntaria (T-206) y correo a los importados (T-201): sin texto final la app no los envía
 
+- [ ] Política y avisos de billeteras (ADR-040): nombre, comités, semestre y semestre de ingreso enviados a Google por acción propia; almacenamiento/sincronización de Apple según su configuración; revisión de T-1214 y T-1215 antes de activar cuentas reales
+
 ## Marca
 
 - [x] Logos de los 27 comités en SVG monocromo: ya están en `LaOE/public/logos/committees` (pasan al repositorio en la fase 0)
@@ -83,3 +85,13 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [x] Privada age guardada en 1Password y comprobada por descarga/SHA el 2026-09-06; ubicación operativa y evidencia privadas registradas en el runbook
 - [x] Cloudflare R2 activado por Mateo y verificado el 2026-09-06: bucket privado `oe-respaldos` creado, token restringido al bucket y variables de backup configuradas. Restauración externa de staging comprobada con app y medios; primera copia de producción ejecutada y restaurada con app local verificada
 - [x] Inputs reales del bootstrap completados por vía privada y ejecutados el 2026-09-06; identidad, código y fechas exactas permanecen solo en bootstrap-admin.json privado. Primer acceso por OTP y ADMIN verificados
+
+### Activación de billeteras (fase 8, ADR-040)
+
+- [ ] Decisión de pago y titular del Apple Developer Program; verificar tarifa vigente al contratar, separado del tope Railway
+- [ ] Apple: inscripción, Pass Type ID, Team ID, certificado/clave de firma válidos, responsable y fecha de renovación; custodia privada, nunca en el repositorio
+- [ ] Google: cuenta de emisor, proyecto Cloud con Wallet API, cuenta de servicio autorizada, usuarios de prueba y solicitud de acceso de publicación
+- [ ] Credenciales reales por entorno, sufijo Google propio de staging y variables adoptadas/preservadas en IaC; activar cada plataforma por separado
+- [ ] COM: validar textos de organización/billetera T-1189 y T-1197 y aplicar el uso aprobado del isotipo; badges oficiales en español sin rediseño
+- [ ] iPhone: guardar un pase firmado válido desde navegador y PWA sobre HTTPS; Android/Google: guardar con cuenta autorizada; escanear ambos en modo anfitrión, probar revocación y actualización
+- [ ] Registrar por separado implementación con fixtures y activación real de Apple/Google; no marcar el criterio real con claves de juguete ni cerrar pendientes de la fase 7

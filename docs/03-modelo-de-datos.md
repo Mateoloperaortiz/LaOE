@@ -50,6 +50,8 @@ erDiagram
   Person ||--o{ PushSubscription : ""
   Person ||--o| NotificationPreference : ""
   Person ||--o| CalendarToken : ""
+  Person ||--o| CarnetToken : "billeteras"
+  Person ||--o{ WalletPass : "pases"
   Occasion ||--o{ OccasionSurveyInvite : ""
   Occasion ||--o{ OccasionSurveyResponse : "anonimas"
   Person ||--o{ Session : ""
@@ -73,13 +75,14 @@ erDiagram
 | `OtpChallenge` | `email`, `codeHash`, `expiresAt`, `attempts`, `maxAttempts`, `consumedAt`, `ip` | 10 minutos, 5 intentos; rate limit contando filas |
 | `Permission` | `personId`, `code` (`ADMIN`, `COMMITTEE_LEADER`, `BOARD`), `committeeId?`, `grantedById` | Unique parcial por (persona, código, comité); `BOARD` se otorga con los cargos de junta y da acceso al panel de la junta |
 | `CalendarToken` | `personId` único, `token` único (24 bytes aleatorios en base64url, en claro), `createdAt`, `lastUsedAt?` | Capacidad de solo lectura sobre la agenda propia para `GET /api/ics/mi-agenda.ics?t=…`; regenerarlo invalida el anterior ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
+| `CarnetToken` | `personId` único (cascade), `token` único (`oe2.` + 24 bytes aleatorios base64url, en claro), `walletEpoch`, `revision` desde 1, `createdAt`, `lastUsedAt?` | QR persistente de billetera. La generación debe coincidir con `Membership.walletEpoch`; rotar cambia token/revisión y audita sin guardar el secreto en el evento. Lectura asíncrona por `readCarnet` ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)) |
 
 ### people
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
 | `Person` | `email` único en minúsculas, `kind` (`STUDENT`, `EXTERNAL`), `stage`, `firstName`, `lastName`, `fullName` (compuesto), `preferredName?`, `phone?`, `personalEmail?`, `program?`, `photoAssetId?`, `source` (`ADMIN`, `ROSTER`, `FORM`, `GHPOINTS`, `BOOTSTRAP`), `sessionsRevokedAt?`, `deletionRequestedAt?`, `anonymizedAt?`, `legacyId?` | Búsqueda con `pg_trgm` sobre nombre y correo; `personalEmail` es contacto (egresados y externos), nunca identidad de acceso; `photoAssetId` apunta a un `MediaAsset` y lo valida el dominio (sin clave foránea: la habría entre `people` y `content` en ciclo); `sessionsRevokedAt` invalida las sesiones anteriores al cambiar estado o correo ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)); `deletionRequestedAt` y `anonymizedAt` registran la eliminación a pedido; `legacyId` es el id de `Member` en GHPOINTS |
-| `Membership` | `personId` único, `status` (`ACTIVE`, `ON_LEAVE`, `HONORARY`, `INACTIVE`), `firstTermId`, `lastTermId?`, `endedAt?`, `endReason?` (`GRADUATION`, `RESIGNATION`, `PERMANENCE`, `OTHER`) | Una por persona; al terminar, el perfil pasa a egresado y se depura lo que no es historia ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
+| `Membership` | `personId` único, `status` (`ACTIVE`, `ON_LEAVE`, `HONORARY`, `INACTIVE`), `firstTermId`, `lastTermId?`, `endedAt?`, `walletEpoch` (0 por defecto), `endReason?` (`GRADUATION`, `RESIGNATION`, `PERMANENCE`, `OTHER`) | Una por persona; baja/anonimización incrementan `walletEpoch` en la misma transacción y reactivar no lo reduce (ADR-040); al terminar, el perfil pasa a egresado y se depura lo que no es historia ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
 | `MembershipEvent` | `membershipId`, `from`, `to`, `reason`, `actorId`, `at` | Historial de estados |
 | `Committee` | `slug` único, `name`, `status`, `color`, `logoKey`, `presentation`, `contactUrl`, `publicationStatus`, `legacyId?` | Los 27 logos viven en `public/logos/committees`; `legacyId` es el id en GHPOINTS |
 | `CommitteeMembership` | `personId`, `committeeId`, `termId`, `roleCode` (`MIEMBRO` por defecto), `transferredIn`, `joinedAt?`, `leftAt?` | Unique por (persona, comité, término); 1 a 3 activas para activos; `transferredIn` marca una transferencia interna (umbral 70 % en ese comité); un solo `GENERAL` por comité y término |
@@ -185,6 +188,16 @@ Definitivo desde la fase 6 ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md
 | `PushSubscription` | `personId`, `endpoint` único, `p256dh`, `auth`, `userAgent?`, `createdAt`, `lastSeenAt` | Un dispositivo; se borra al responder 404 o 410, al quitarlo desde Ajustes, al salir de la OE o al anonimizarse |
 | `NotificationPreference` | `personId` único, `emailCampaigns`, `pushAnnouncements`, `pushPoints`, `pushReminders` (todas `true`), `unsubscribeToken` único | Se crea perezosa; el token alimenta `/baja/[token]` y las cabeceras `List-Unsubscribe` |
 
+### wallet
+
+[ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md): importa `identity`, `people` y `terms` por sus APIs; la app y los jobs son sus consumidores.
+
+| Modelo | Campos clave | Notas |
+| --- | --- | --- |
+| `WalletPass` | `personId` (cascade), `platform` (`APPLE`, `GOOGLE`), `externalId`, `walletEpoch`, `tokenRevision`, `renderedTermId?`, `issuedAt?`, `lastIssuedAt?`, `lastRefreshedAt?`, `revokedAt?` | Unique por persona/plataforma. Google reserva antes de REST; emisión nula significa pendiente. Snapshots registran generación/revisión/término efectivamente publicados; Apple compara estos valores para el aviso persistente. La limpieza remota conserva la fila hasta éxito o 404 |
+
+Google usa objeto `<issuerId>.<suffix>.<personId>` y Apple `personId` como serial. La baja invalida la generación local de inmediato; el outbox expira Google sin recrear pases y la anonimización reemplaza por un objeto mínimo sin datos personales. Fallos y ausencia de credenciales conservan el trabajo pendiente. La conciliación diaria recorre Google en lotes de 100. Dos locks separan el estado local corto del envío remoto, para que revocar nunca espere a Google.
+
 ### system
 
 | Modelo | Campos clave | Notas |
@@ -204,6 +217,8 @@ Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().
 | `PointEntry(checkInId) WHERE kind = 'CHECKIN'` | Una entrada de crédito por check-in |
 | `PointEntry(reversalOfId)` único | Una reversión por entrada |
 | `Membership(personId)` único | Una membresía por persona |
+| `CarnetToken(personId)` y `CarnetToken(token)` únicos | Un token de billetera por persona, sin colisiones |
+| `WalletPass(personId, platform)` único | Una reserva o pase por persona y plataforma |
 | `Permission(personId, code) WHERE committeeId IS NULL` y `(personId, code, committeeId) WHERE committeeId IS NOT NULL` | Sin permisos duplicados |
 | `CommitteeMembership(personId, committeeId, termId)` único | Una pertenencia por término |
 | `CommitteeMembership(committeeId, termId) WHERE roleCode = 'GENERAL' AND leftAt IS NULL` | Un General por comité y término |

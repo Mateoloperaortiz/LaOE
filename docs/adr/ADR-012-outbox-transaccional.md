@@ -1,6 +1,6 @@
 # ADR-012: Outbox transaccional; efectos fuera del commit
 
-- Estado: Aceptada (enmendada por ADR-021 y ADR-038)
+- Estado: Aceptada (enmendada por ADR-021 y ADR-038, ADR-040)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-001, ADR-009, ADR-021
 
@@ -26,3 +26,7 @@ El drenaje lo hace un **poller en el mismo proceso** cada 3 segundos (`SELECT �
 ## Enmienda (2026-09-05, ADR-038)
 
 Los programados ganan `campaigns` (cada minuto, encola `comms.campaign-tick`) y `notices` (diario a las 09:00, encola `permanence.notices`), y `reminders` suma `participation.reminders`. Los efectos hacia personas viajan por un único evento `notification.requested` con destinatarios, textos, URL y `dedupeKey`; el handler de `comms` es idempotente por persona gracias al unique parcial `(personId, dedupeKey)` de `message`. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).
+
+## Enmienda (2026-09-06, ADR-040)
+
+Wallet traduce cada evento fuente de nombre, comités, membresía, rotación o anonimización a un `wallet.sync` con deduplicación por evento fuente y persona. El trabajo relee el estado vigente, conserva pendientes sin credenciales y separa el lock corto de membresía del lock que serializa la red de Google. Un programado a las 00:05 de Bogotá concilia por lotes de 100 el cambio de término y las limpiezas pendientes. No se crea el primer pase ni el primer token desde un job. Ver [ADR-040](ADR-040-carnet-en-billeteras-fase-8.md).
