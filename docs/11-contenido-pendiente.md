@@ -28,7 +28,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 ## Normativa y privacidad
 
-- [ ] Publicar la página `privacidad` desde Páginas con audiencia PUBLIC, estado PUBLISHED y cuerpo completo; revisar `/privacidad` y guardar la versión desde Política de datos (`/admin/sistema/politica`) con ADMIN y step-up. El control está implementado y probado localmente; verificar su despliegue antes de usarlo. Habilita nuevas aceptaciones, altas y roster; el bootstrap no registra consentimiento
+- [ ] Publicar la página `privacidad` desde Páginas con audiencia PUBLIC, estado PUBLISHED y cuerpo completo; revisar `/privacidad` y guardar la versión desde Política de datos (`/admin/sistema/politica`) con ADMIN y step-up. El control está desplegado y verificado en producción; el texto real y su habilitación siguen pendientes. Habilita nuevas aceptaciones, altas y roster; el bootstrap no registra consentimiento
 - [ ] Revisión de JUNTA de T-1178 y T-1179, avisos de política pendiente
 
 - [x] Estatutos vigentes en PDF: el firmado con la reforma del 2026-05-08 (28 páginas) está en manos de Mateo; se sube desde `/admin/documentos` y sus artículos se extraen con `scripts/normativa-extract.py` en la fase 2
