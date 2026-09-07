@@ -9,6 +9,7 @@ export interface ScheduleEntry {
 }
 
 export const SCHEDULE: ScheduleEntry[] = [
+  { name: "wallet", cron: "5 0 * * *", events: ["wallet.reconcile"] },
   { name: "campaigns", cron: "* * * * *", events: ["comms.campaign-tick"] },
   {
     name: "reminders",

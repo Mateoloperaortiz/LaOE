@@ -49,17 +49,21 @@ export async function getCarnetCredential(
   return row ?? null;
 }
 
-/** Metadata para avisos y exportación de datos, sin leer ni devolver la capacidad secreta. */
+/** Metadata vigente para avisos y exportación, sin leer ni devolver la capacidad secreta. */
 export async function getCarnetMetadata(
   personId: string,
   exec: Executor = getDb(),
 ): Promise<CarnetMetadata | null> {
+  const state = await getWalletMemberState(exec, personId);
+  if (!state || state.anonymizedAt || state.status === "INACTIVE") {
+    return null;
+  }
   const [row] = await exec
     .select(metadataColumns)
     .from(carnetToken)
     .where(eq(carnetToken.personId, personId))
     .limit(1);
-  return row ?? null;
+  return row?.walletEpoch === state.walletEpoch ? row : null;
 }
 
 function requireMember(state: WalletMemberState | null): WalletMemberState {
@@ -128,7 +132,11 @@ export async function rotateCarnetTokenAs(
   return runCommand(actor, async (ctx) => {
     const state = requireMember(await lockWalletMember(ctx.tx, personId));
     const previous = await getCarnetCredential(personId, ctx.tx);
-    const revision = previous?.walletEpoch === state.walletEpoch ? previous.revision + 1 : 1;
+    // Revocar solo renueva una credencial vigente; la primera emisión siempre exige agregar el pase.
+    if (!previous || previous.walletEpoch !== state.walletEpoch) {
+      throw new ForbiddenError();
+    }
+    const revision = previous.revision + 1;
     const credential = await replaceCredential(ctx.tx, personId, state.walletEpoch, revision);
     await ctx.audit({
       action: "carnet-token.rotated",

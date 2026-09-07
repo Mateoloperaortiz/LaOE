@@ -268,7 +268,7 @@ Plan aprobado el 2026-09-06 ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.m
 - [x] F8-T2 · Base Wallet y adaptadores: configuración opcional completa, API pública, datos del carnet, reservas/snapshots, locks separados, firma Apple y JWT/OAuth2/REST Google; fixtures de juguete y transporte inyectado
 - [x] F8-T3 · Apple: recursos de marca versionados, `.pkpass`, ruta Node y badge oficial; registros de emisión, aviso persistente por generación/revisión/término y errores; ZIP/manifiesto/CMS verificados
 - [x] F8-T4 · Google: clase y objeto por entorno, reserva durable previa a REST, creación concurrente idempotente, JWT de guardado, ruta y badge con aviso de datos; errores/reintentos sin emisión ficticia
-- [ ] F8-T5 · Ciclo completo: revocación propia/ADMIN, 360, mis datos sin secretos, `wallet.sync` y conciliación diaria de 100 en 100; baja/anonimización/reingreso, 404 sin recreación, pendientes sin credenciales y script de verificación manual
+- [x] F8-T5 · Ciclo completo: revocación propia/ADMIN, 360, mis datos sin secretos, `wallet.sync` y conciliación diaria de 100 en 100; baja/anonimización/reingreso, 404 sin recreación, pendientes sin credenciales y script de verificación manual
 - [ ] F8-T6 · Cierre de software: `check`, E2E compilado con Apple de juguete y Google apagado sin skips, revisión de marca/axe en 375/768/escritorio y claro/oscuro; evidencias y pendientes reales actualizados
 
 ### Activación real por plataforma
@@ -423,3 +423,5 @@ Listo cuando (software): formatos, autorización, concurrencia, reintentos, life
 | 2026-09-06 | 8 | **F8-T3 listo**: descarga Apple, assets, avisos persistentes, revocación propia/ADMIN y metadatos de la 360/exportación. Firma CMS y ZIP comprobados con certificados de juguete. `npm run check` en verde (216 unitarias, 200 integración y build); E2E compilado 84/84 con servidor aislado, Apple sintético y Google apagado. Activación real y validación del arte/licencia por el titular Apple pendientes. |
 
 | 2026-09-06 | 8 | **F8-T4 listo**: clase/objeto Google por entorno, reserva durable, conflictos 409, JWT mínimo, errores y rutas sin caché. Probados respuesta perdida, fallo local posterior al POST y baja/rotación durante REST. `npm run check` en verde (220 unitarias, 209 integración y build); E2E compilado 84/84. Google real no contactado. |
+
+| 2026-09-06 | 8 | **F8-T5 listo**: eventos cortos y trabajos Google separados, conciliación 00:05 Bogotá en lotes de 100, limpieza remota reintentable, generaciones/metadatos vigentes y diagnóstico local `wallet:check`. El API de identidad carga Next solo al atender un request, permitiendo jobs Node. `npm run check` final en verde (220 unitarias, 220 integración y build); E2E compilado 84/84. Diagnóstico con ambas plataformas apagadas y 37 pruebas unitarias de fixtures en verde. |

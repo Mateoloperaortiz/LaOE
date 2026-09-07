@@ -182,17 +182,29 @@ describe("credenciales del carnet de billetera", () => {
     expect((await getWalletMemberState(getDb(), personId))?.walletEpoch).toBe(1);
     expect(await readCarnet(original)).toEqual({ ok: false, reason: "REVOKED" });
     expect(await getCarnetCredential(personId)).not.toBeNull();
+    expect(await getCarnetMetadata(personId)).toBeNull();
     await expect(getOrCreateCarnetToken(personId)).rejects.toBeInstanceOf(ForbiddenError);
     await runCommand(SYSTEM_ACTOR, (ctx) => endMembership(ctx, personId, endInput));
     expect((await getWalletMemberState(getDb(), personId))?.walletEpoch).toBe(1);
     await runCommand(SYSTEM_ACTOR, (ctx) => reactivateMembership(ctx, personId, {}));
     expect(await resolveCarnetToken(original)).toBeNull();
+    expect(await getCarnetMetadata(personId)).toBeNull();
+    await expect(rotateCarnetTokenAs(actorFor(personId))).rejects.toBeInstanceOf(ForbiddenError);
+    expect((await getCarnetCredential(personId))?.token).toBe(original);
     const current = await getOrCreateCarnetToken(personId);
     expect(current).not.toBe(original);
     expect(await getCarnetMetadata(personId)).toMatchObject({ walletEpoch: 1, revision: 1 });
     expect((await drain(30)).failed).toBe(0);
     expect(await deleteCarnetTokenFor(personId)).toBe(0);
     expect(await resolveCarnetToken(current)).toBe(personId);
+  });
+
+  it("revocar sin una emisión previa no crea el primer token ni un evento", async () => {
+    const personId = await seedMember("wallet-no-emitido@eafit.edu.co");
+    await expect(rotateCarnetTokenAs(actorFor(personId))).rejects.toBeInstanceOf(ForbiddenError);
+    expect(await getCarnetCredential(personId)).toBeNull();
+    expect(await getCarnetMetadata(personId)).toBeNull();
+    expect(await getDb().select().from(outbox)).toEqual([]);
   });
 
   it("la anonimización avanza el epoch aunque ya estuviera de baja y no permite reactivar", async () => {
