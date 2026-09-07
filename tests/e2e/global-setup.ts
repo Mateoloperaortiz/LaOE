@@ -48,6 +48,13 @@ export const E2E_CLOSING_EMAIL = "e2e-cierre@eafit.edu.co";
 export const E2E_LEAVE_EMAIL = "e2e-licencia@eafit.edu.co";
 
 export default async function globalSetup(): Promise<void> {
+  // Las identidades y archivos sintéticos solo se limpian en servicios de loopback.
+  for (const key of ["DATABASE_URL", "S3_ENDPOINT"]) {
+    const hostname = new URL(process.env[key] ?? "http://sin-configurar.invalid").hostname;
+    if (!["localhost", "127.0.0.1", "[::1]"].includes(hostname)) {
+      throw new Error(`La suite E2E necesita ${key} local; no puede usar un servicio remoto`);
+    }
+  }
   const db = getDb();
   await db
     .insert(appConfig)

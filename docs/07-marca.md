@@ -31,7 +31,7 @@ Reglas del manual:
 
 Archivos disponibles hoy en `LaOE/public/logos` (pasan al repositorio en la fase 0): `oe.svg` es el conjunto vertical completo como máscara monocroma (565 × 770), así que las variantes navy y blanca se obtienen pintándolo con el color del tema; los 27 logos de comités en `committees/` también son SVG monocromos (negro y blanco, sin texto ni imágenes incrustadas, 544 KB en total), listos para tintarse con la paleta. Un comité sin logo no inventa uno: usa el cartel tipográfico. Faltan el logo horizontal y el principal a color en SVG (ver [11-contenido-pendiente.md](11-contenido-pendiente.md)).
 
-**Extensión para billeteras (2026-09-06, [ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)).** El isotipo paper se permite como `icon` y `logo` de Apple y como ícono PWA público para Google, acompañado del nombre completo Organización Estudiantil EAFIT. Los fondos planos y las tipografías del sistema que impone cada billetera son excepciones de su formato; la web conserva sus reglas. Apple usa iconos 29/58/87 y logos 50/100/150 px desde el SVG versionado. Badges oficiales en español, sin redibujar, recolorear ni deformar; el `alt` coincide con el texto del arte.
+**Extensión para billeteras (2026-09-06, [ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)).** El isotipo paper se permite como `icon` y `logo` de Apple y como logo público de Google en `/wallet/google-logo.png` (1024 × 1024, isotipo al 70 % sobre navy), acompañado del nombre completo Organización Estudiantil EAFIT. Los fondos planos y las tipografías del sistema que impone cada billetera son excepciones de su formato; la web conserva sus reglas. Apple usa iconos 29/58/87 y logos 50/100/150 px desde el SVG versionado. Badges oficiales en español, sin redibujar, recolorear ni deformar; el `alt` coincide con el texto del arte.
 
 ## 3. Color
 
@@ -199,6 +199,12 @@ Antes de dar por lista una pantalla (aplicada el 2026-09-03 a las pantallas púb
 - [ ] Voseo y tono cercano en todo texto visible para miembros.
 - [ ] Contraste AA y revisión en claro y oscuro.
 
-### Aplicación pendiente en fase 8
+### Aplicación en fase 8
 
-F8-T6 revisa `/app/carnet` y Persona 360 en 375, 768 y escritorio, claro y oscuro: badges proporcionados, foco visible, lectura y contraste, textos largos, avisos persistentes, revocación y estado sin proveedores. Revisión separada del pase real en cada dispositivo. La excepción de fondo plano/isotipo descrita en §2 solo rige en el formato de billetera y no amplía la excepción a otras pantallas.
+F8-T6 verificó `/app/carnet` y Persona 360 en 375, 768 y 1440 px, claro y oscuro: badges proporcionados, foco visible, lectura y contraste, textos largos y axe sin violaciones. Las pruebas cubren avisos persistentes, revocación y estado sin proveedores. La revisión del pase real en cada dispositivo sigue pendiente. La excepción de fondo plano/isotipo descrita en §2 solo rige en el formato de billetera y no amplía la excepción a otras pantallas.
+
+### Procedencia de los badges de billetera
+
+Los PNG de Apple y el logo Google se generan con `wallet:assets` desde el isotipo existente. Los badges «Agregar a Apple Wallet» y «Añadir a Google Wallet» son recursos distintos y no se generan ni rediseñan con ese script. La procedencia, los hashes y los límites de verificación están registrados en [16-billeteras.md](16-billeteras.md); que un SVG cargue en el navegador no comprueba su procedencia ni sus condiciones de uso.
+
+Recursos seleccionados: Google `es-ES` del ZIP oficial; Apple `es-MX` de `@neostore/cinto@1.0.98`, optimizado por el distribuidor y sin cambios propios. Para Apple no se acreditó identidad byte a byte con el ZIP original ni aceptación del acuerdo por la cuenta titular. Validar arte/condiciones con esa cuenta al activar; procedencia y hashes en [16-billeteras.md](16-billeteras.md).

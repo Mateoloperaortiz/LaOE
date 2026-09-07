@@ -89,9 +89,12 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 ### Activación de billeteras (fase 8, ADR-040)
 
 - [ ] Decisión de pago y titular del Apple Developer Program; verificar tarifa vigente al contratar, separado del tope Railway
-- [ ] Apple: inscripción, Pass Type ID, Team ID, certificado/clave de firma válidos, responsable y fecha de renovación; custodia privada, nunca en el repositorio
+- [ ] Apple: inscripción, Pass Type ID distinto por entorno, Team ID, certificado/clave de firma válidos, responsable y fecha de renovación; custodia privada, nunca en el repositorio
 - [ ] Google: cuenta de emisor, proyecto Cloud con Wallet API, cuenta de servicio autorizada, usuarios de prueba y solicitud de acceso de publicación
 - [ ] Credenciales reales por entorno, sufijo Google propio de staging y variables adoptadas/preservadas en IaC; activar cada plataforma por separado
 - [ ] COM: validar textos de organización/billetera T-1189 y T-1197 y aplicar el uso aprobado del isotipo; badges oficiales en español sin rediseño
 - [ ] iPhone: guardar un pase firmado válido desde navegador y PWA sobre HTTPS; Android/Google: guardar con cuenta autorizada; escanear ambos en modo anfitrión, probar revocación y actualización
 - [ ] Registrar por separado implementación con fixtures y activación real de Apple/Google; no marcar el criterio real con claves de juguete ni cerrar pendientes de la fase 7
+- [ ] Validación del badge Apple por la cuenta titular al activar: candidato `es-MX` de Cinto 1.0.98 sin modificaciones propias, optimizado por el distribuidor, sin comparación byte a byte con el ZIP Apple ni aceptación del acuerdo. Google `es-ES` proviene del ZIP oficial; conservar ambas procedencias con la revisión F8-T6, sin tratarlos como arte generado por `wallet:assets`
+
+Las pruebas reales y el diagnóstico de los proveedores se registran siguiendo [16-billeteras.md](16-billeteras.md).

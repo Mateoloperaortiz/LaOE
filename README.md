@@ -4,7 +4,7 @@ Documentación de la nueva casa digital de la **Organización Estudiantil de la 
 
 ## Estado
 
-**Fase 8 en implementación**: carnet opcional en Apple Wallet y Google Wallet, con QR propio revocable y actualización de Google por outbox y conciliación diaria. El carnet de Mi OE sigue usando `oe1`. Código/pruebas y activación real por plataforma se cierran por separado; todavía no se acredita emisión en dispositivos reales. Reglas en [ADR-040](docs/adr/ADR-040-carnet-en-billeteras-fase-8.md).
+**Fase 8: software verificado**: carnet opcional en Apple Wallet y Google Wallet, con QR propio revocable y actualización de Google por outbox y conciliación diaria. El carnet de Mi OE sigue usando `oe1`. La implementación y sus pruebas están verificadas sin credenciales reales; la activación por plataforma y el guardado en dispositivos siguen pendientes. Reglas en [ADR-040](docs/adr/ADR-040-carnet-en-billeteras-fase-8.md).
 
 **Fase 7 en curso** (6 de septiembre de 2026): F7-T0 a T4 listos. El candidato `853d622` fue validado en staging y está desplegado en producción; ADMIN, OTP, respaldos restaurados, indicador de respaldo y control de política están comprobados. El dominio temporal fue retirado y producción espera el dominio final. Quedan iPhone, noche de jobs y T6–T8: cutover, retiro de GHPOINTS y siete días de monitoreo. La política real sigue pendiente; DNS y GHPOINTS permanecen intactos. Evidencia en el [runbook](docs/15-runbook.md).
 
@@ -39,7 +39,7 @@ npm run dev                 # http://localhost:3000 · salud en /api/health
 
 Las pruebas de integración usan una base aparte (`casa_digital_test`, creada y migrada sola); las e2e (`npm run test:e2e`) levantan su servidor con credenciales Apple de juguete y Google apagado, sin reutilizar el servidor de uso manual; usan identidades sintéticas. `npm run check` corre todo lo que corre el CI: Biome, dependency-cruiser, knip, `tsc`, pruebas unitarias, pruebas de integración contra la base local y `next build`. Cómo se prueba cada capa: [docs/10-verificacion.md](docs/10-verificacion.md).
 
-Wallet se habilita por plataforma con las variables de `.env.example`; sin configuración no se ofrece emitir, pero se conserva la gestión de pases existentes. Los comandos `wallet:assets` y `wallet:check` preparan los recursos y la verificación manual descrita en [10-verificacion.md](docs/10-verificacion.md). Nunca se usan credenciales de juguete para activar Railway.
+Wallet se habilita por plataforma con las variables de `.env.example`; sin configuración no se ofrece emitir, pero se conserva la gestión de pases existentes. `wallet:assets` genera los recursos y `wallet:check` diagnostica configuración y fixtures sin emitir pases. Activación y pruebas reales en [16-billeteras.md](docs/16-billeteras.md). Nunca se usan credenciales de juguete para activar Railway.
 
 ## Cómo leer la documentación
 

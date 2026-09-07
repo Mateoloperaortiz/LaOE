@@ -257,7 +257,7 @@ Plan aprobado el 2026-09-06 ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)). 
 
 Listo cuando: `oeeafit.com` sirve la app nueva, el acceso real funciona, se comprobó recuperación del backup, GHPOINTS está eliminado con archivo cifrado y terminó la semana de monitoreo. La carga de política y roster ocurre desde la app: mientras la versión siga pendiente, no se crean nuevos consentimientos. No se marca infraestructura completada hasta ejecutarla y anotarla en [15-runbook.md](15-runbook.md).
 
-## Fase 8 · Carnet en billeteras · `en curso`
+## Fase 8 · Carnet en billeteras · `software verificado · activación pendiente`
 
 Plan aprobado el 2026-09-06 ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)). Apple Wallet y Google Wallet se habilitan por separado; sin foto, con nombre, comités, semestre e ingreso. El QR `oe2` es persistente y revocable; `oe1` de Mi OE conserva sus 24 horas. Revocar invalida el QR de billetera fotografiado, no cierra sesiones ni retira el objeto de una cuenta Google. Google se actualiza por outbox y conciliación diaria a las 00:05 de Bogotá; Apple se vuelve a agregar. Generaciones de membresía, revisiones y reservas evitan rehabilitar pases antiguos o perder limpiezas remotas.
 
@@ -269,7 +269,7 @@ Plan aprobado el 2026-09-06 ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.m
 - [x] F8-T3 · Apple: recursos de marca versionados, `.pkpass`, ruta Node y badge oficial; registros de emisión, aviso persistente por generación/revisión/término y errores; ZIP/manifiesto/CMS verificados
 - [x] F8-T4 · Google: clase y objeto por entorno, reserva durable previa a REST, creación concurrente idempotente, JWT de guardado, ruta y badge con aviso de datos; errores/reintentos sin emisión ficticia
 - [x] F8-T5 · Ciclo completo: revocación propia/ADMIN, 360, mis datos sin secretos, `wallet.sync` y conciliación diaria de 100 en 100; baja/anonimización/reingreso, 404 sin recreación, pendientes sin credenciales y script de verificación manual
-- [ ] F8-T6 · Cierre de software: `check`, E2E compilado con Apple de juguete y Google apagado sin skips, revisión de marca/axe en 375/768/escritorio y claro/oscuro; evidencias y pendientes reales actualizados
+- [x] F8-T6 · Cierre de software: `check`, E2E compilado con Apple de juguete y Google apagado sin skips, revisión de marca/axe en 375/768/escritorio y claro/oscuro; evidencias y pendientes reales actualizados
 
 ### Activación real por plataforma
 
@@ -425,3 +425,5 @@ Listo cuando (software): formatos, autorización, concurrencia, reintentos, life
 | 2026-09-06 | 8 | **F8-T4 listo**: clase/objeto Google por entorno, reserva durable, conflictos 409, JWT mínimo, errores y rutas sin caché. Probados respuesta perdida, fallo local posterior al POST y baja/rotación durante REST. `npm run check` en verde (220 unitarias, 209 integración y build); E2E compilado 84/84. Google real no contactado. |
 
 | 2026-09-06 | 8 | **F8-T5 listo**: eventos cortos y trabajos Google separados, conciliación 00:05 Bogotá en lotes de 100, limpieza remota reintentable, generaciones/metadatos vigentes y diagnóstico local `wallet:check`. El API de identidad carga Next solo al atender un request, permitiendo jobs Node. `npm run check` final en verde (220 unitarias, 220 integración y build); E2E compilado 84/84. Diagnóstico con ambas plataformas apagadas y 37 pruebas unitarias de fixtures en verde. |
+
+| 2026-09-06 | 8 | **F8-T6: software verificado**. Check completo (233 unitarias, 220 integración y build) y E2E compilado 91/91, sin reintentos ni skips. Matriz de carnet y Comunicaciones 360 en 375/768/1440, claro/oscuro, nombres largos, foco y axe; se corrigió el acceso por teclado a la tabla móvil de mensajes. Las rutas Wallet redirigen con rutas relativas; una E2E sin sesión comprueba el ingreso y `no-store` sobre HTTP real. Google conserva transporte simulado; Apple usa certificados de juguete. Runbook por proveedor, diagnóstico local y procedencia de recursos registrados. QA adicional con ambos badges visibles pasó 6/6 sin emisión ni llamadas externas. Activación Apple/Google, aceptación en dispositivos y promoción según fase 7 permanecen independientes. |

@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const noStore = { "cache-control": "no-store" };
 
-export async function GET(request: Request) {
+export async function GET() {
   if (!walletAvailability().google) return new Response(null, { status: 404, headers: noStore });
   const actor = await getActor();
   if (!actor)
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       status: 302,
       headers: {
         ...noStore,
-        location: new URL("/ingresar?next=%2Fapi%2Fwallet%2Fgoogle", request.url).href,
+        location: "/ingresar?next=%2Fapi%2Fwallet%2Fgoogle",
       },
     });
   try {
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     logger.warn({ platform: "GOOGLE" }, "no se pudo emitir el carnet");
     return new Response(null, {
       status: 302,
-      headers: { ...noStore, location: new URL("/app/carnet?error=google", request.url).href },
+      headers: { ...noStore, location: "/app/carnet?error=google" },
     });
   }
 }

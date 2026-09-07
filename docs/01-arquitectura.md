@@ -95,7 +95,7 @@ El control administrativo de política se ubica en `/admin/sistema/politica`, co
 | Bucket `media` | Privado por entorno, virtual-hosted (`S3_FORCE_PATH_STYLE=false`); CSP con origen efectivo del bucket; CORS mediante `storage:init` |
 | Variables | `DATABASE_URL` y bucket por referencia; secretos por entorno; `TZ=UTC`, `APP_TIMEZONE=America/Bogota`, `JOBS_ENABLED=true`; `PUBLIC_INDEXING` false staging/true production; Resend solo producción, AWS ausente |
 | Worker | Poller y scheduler en el proceso web; incluye conciliación Wallet diaria a las 00:05 de Bogotá; worker separado solo con uso medido |
-| Wallet opcional | Apple: Pass Type ID, Team ID, certificado/clave base64 y contraseña opcional; Google: issuer, correo/clave base64 y sufijo por entorno. IaC preserva variables adoptadas; sin credenciales no emite y conserva limpiezas pendientes. Activación separada con política y prueba en dispositivo (ADR-040) |
+| Wallet opcional | Apple: Pass Type ID, Team ID, certificado/clave base64 y contraseña opcional; Google: issuer, correo/clave base64 y sufijo por entorno. IaC preserva variables adoptadas; el sufijo Google por sí solo no habilita la plataforma; sin credenciales no emite y conserva limpiezas pendientes. Activación separada con política y prueba en dispositivo (ADR-040) |
 | Entornos | Solo staging (main, datos sintéticos, dominio Railway, noindex) y production (rama production promovida a mano, datos nuevos). No hay ensayo ni entornos PR |
 | Primer ADMIN | Script privado `bootstrap-admin`: persona, membresía ACTIVE y ADMIN con auditoría y transacción; sin comités, consentimiento ni bienvenida. Política y roster se cargan después desde el admin |
 | Política pendiente | Nueva autorización rechazada mientras la versión siga pendiente; revocaciones, acceso y check-in continúan. Publicar texto desde Páginas y activar la versión en Política de datos (ADR-039, control verificado en producción) |
@@ -118,8 +118,8 @@ casa-digital/
   .railway/railway.ts            IaC: entornos, servicios, referencias y despliegue
   docker/backup/Dockerfile       imagen del cron de copia externa
   scripts/backup.sh             dump, medios, cifrado, retención y marca de éxito
-  scripts/wallet-assets.ts      genera los PNG de Apple desde la marca versionada
-  scripts/wallet-check.ts       prueba manual de emisión con credenciales propias
+  scripts/wallet-assets.ts      genera PNG de Apple y logo Google 1024 desde la marca
+  scripts/wallet-check.ts       diagnóstico local de configuración y fixtures, sin emisión
   scripts/smoke.ts              comprobaciones HTTP tras cada release
   scripts/bootstrap-admin.ts    primer acceso real y auditado, sin seed ni consentimiento
   compose.yaml                  Postgres 18 (127.0.0.1:5433) y Garage (127.0.0.1:3900) para OrbStack
@@ -181,3 +181,5 @@ casa-digital/
 - Redirecciones validadas (solo rutas same-origin), celdas de CSV/XLSX neutralizadas contra fórmulas, HTML de correos escapado.
 - Secretos solo en variables de servidor; nunca `NEXT_PUBLIC_*` para claves; Postgres y bucket sin exposición pública.
 - Auditoría en la misma transacción de cada mutación administrativa; exportes con datos personales exigen step-up (ver [05-acceso.md](05-acceso.md)).
+
+Operación específica, estados pendientes y separación de Apple/Google por entorno: [16-billeteras.md](16-billeteras.md). El logo Google es público en `/wallet/google-logo.png` (1024 × 1024), generado junto a los PNG Apple desde el isotipo; no reutiliza el archivo del ícono PWA.

@@ -115,3 +115,24 @@ test("ADMIN revoca desde Comunicaciones de la 360 y el miembro ve el aviso", asy
   ).toBeVisible();
   await expect(page.locator("figure[data-token]")).toHaveAttribute("data-token", /^oe1\./);
 });
+
+test("las rutas Wallet usan redirecciones locales y no guardan respuestas sensibles en caché", async ({
+  browser,
+}) => {
+  const anonymous = await browser.newContext({
+    baseURL: "http://localhost:3000",
+    storageState: { cookies: [], origins: [] },
+  });
+  try {
+    const apple = await anonymous.request.get("/api/wallet/apple", { maxRedirects: 0 });
+    expect(apple.status()).toBe(302);
+    expect(apple.headers().location).toBe("/ingresar?next=%2Fapi%2Fwallet%2Fapple");
+    expect(apple.headers()["cache-control"]).toContain("no-store");
+    expect((await anonymous.request.get(apple.headers().location ?? "")).status()).toBe(200);
+    const google = await anonymous.request.get("/api/wallet/google", { maxRedirects: 0 });
+    expect(google.status()).toBe(404);
+    expect(google.headers()["cache-control"]).toContain("no-store");
+  } finally {
+    await anonymous.close();
+  }
+});

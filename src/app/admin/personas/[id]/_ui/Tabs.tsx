@@ -363,7 +363,12 @@ export function TabComunicaciones({
       {messages.length === 0 ? (
         <p className="text-tinta-suave">{t("T-1154")}</p>
       ) : (
-        <div className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde">
+        <section
+          aria-label={t("T-1142")}
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: región desplazable que debe poder recorrerse con teclado
+          tabIndex={0}
+          className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-titulo"
+        >
           <table className="w-full text-left text-sm">
             <thead className="eyebrow bg-fondo-suave text-xs">
               <tr>
@@ -400,7 +405,7 @@ export function TabComunicaciones({
               ))}
             </tbody>
           </table>
-        </div>
+        </section>
       )}
     </div>
   );
