@@ -2,7 +2,7 @@ import { and, asc, count, desc, eq, gte, ilike, lte } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
@@ -55,14 +55,17 @@ export async function listTerms(
   return { rows, total: total?.n ?? 0 };
 }
 
-export async function getTerm(id: string): Promise<TermRow | null> {
-  const [row] = await getDb().select().from(term).where(eq(term.id, id)).limit(1);
+export async function getTerm(id: string, exec: Executor = getDb()): Promise<TermRow | null> {
+  const [row] = await exec.select().from(term).where(eq(term.id, id)).limit(1);
   return row ?? null;
 }
 
 /** El término que contiene una fecha (YYYY-MM-DD en Bogotá), o null si no hay. */
-export async function findTermContaining(date: string): Promise<TermRow | null> {
-  const [row] = await getDb()
+export async function findTermContaining(
+  date: string,
+  exec: Executor = getDb(),
+): Promise<TermRow | null> {
+  const [row] = await exec
     .select()
     .from(term)
     .where(and(lte(term.startsOn, date), gte(term.endsOn, date)))
@@ -72,8 +75,11 @@ export async function findTermContaining(date: string): Promise<TermRow | null> 
 }
 
 /** El término de hoy en Bogotá (ADR-004), o null si ninguno lo contiene. */
-export async function getCurrentTerm(now = new Date()): Promise<TermRow | null> {
-  return findTermContaining(todayKey(now));
+export async function getCurrentTerm(
+  now = new Date(),
+  exec: Executor = getDb(),
+): Promise<TermRow | null> {
+  return findTermContaining(todayKey(now), exec);
 }
 
 export async function findTermByCode(code: string): Promise<TermRow | null> {

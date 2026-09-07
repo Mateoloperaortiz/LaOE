@@ -41,6 +41,21 @@ describe("infraestructura por entorno (ADR-039)", () => {
       output: "DATABASE_URL",
     });
     expect(web.variables?.OTP_FIXED_CODE).toBeUndefined();
+    expect(web.variables?.GOOGLE_WALLET_CLASS_SUFFIX).toEqual({
+      type: "literal",
+      value: environment === "production" ? "carnet-oe" : "carnet-oe-staging",
+    });
+    for (const key of [
+      "APPLE_PASS_TYPE_ID",
+      "APPLE_TEAM_ID",
+      "APPLE_PASS_CERT_BASE64",
+      "APPLE_PASS_KEY_BASE64",
+      "APPLE_PASS_KEY_PASSPHRASE",
+      "GOOGLE_WALLET_ISSUER_ID",
+      "GOOGLE_WALLET_SA_EMAIL",
+      "GOOGLE_WALLET_SA_KEY_BASE64",
+    ])
+      expect(web.variables?.[key]).toEqual({ type: "preserve" });
     expect(Object.keys(web.variables ?? {}).some((name) => name.startsWith("AWS_"))).toBe(false);
     expect(web.variables?.PUBLIC_INDEXING).toEqual({
       type: "literal",

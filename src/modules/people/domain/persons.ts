@@ -2,7 +2,7 @@ import { and, asc, count, eq, exists, ilike, inArray, isNull, or, sql } from "dr
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
@@ -350,7 +350,10 @@ export async function currentCommitteesFor(
   return map;
 }
 
-export async function getPersonRecord(id: string): Promise<PersonRecord | null> {
-  const [row] = await getDb().select().from(person).where(eq(person.id, id)).limit(1);
+export async function getPersonRecord(
+  id: string,
+  exec: Executor = getDb(),
+): Promise<PersonRecord | null> {
+  const [row] = await exec.select().from(person).where(eq(person.id, id)).limit(1);
   return row ?? null;
 }

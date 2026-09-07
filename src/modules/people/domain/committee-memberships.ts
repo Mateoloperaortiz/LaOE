@@ -2,7 +2,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm, listAllTerms, type TermRow } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
@@ -88,16 +88,20 @@ export interface MyMembership {
 }
 
 /** Los comités vivos de la persona en el término actual (inicio de Mi OE, directorio, carnet). */
-export async function getMyMembership(personId: string): Promise<MyMembership> {
-  const current = await getCurrentTerm();
+export async function getMyMembership(
+  personId: string,
+  exec: Executor = getDb(),
+  now = new Date(),
+): Promise<MyMembership> {
+  const current = await getCurrentTerm(now, exec);
   if (!current) {
     return { term: null, committees: [], isNew: false };
   }
-  const [own] = await getDb()
+  const [own] = await exec
     .select({ firstTermId: membership.firstTermId })
     .from(membership)
     .where(eq(membership.personId, personId));
-  const rows = await getDb()
+  const rows = await exec
     .select(viewColumns)
     .from(committeeMembership)
     .innerJoin(committee, eq(committee.id, committeeMembership.committeeId))

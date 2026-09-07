@@ -1,5 +1,6 @@
 import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import type { Executor } from "@/db/tx";
 import { appointment, committeeMembership, membership, membershipTerm, person } from "../schema";
 
 // Lecturas de personas para otros módulos y para la paleta.
@@ -80,8 +81,11 @@ export interface MembershipRef {
 }
 
 /** Estado y primer término de la membresía; null si la persona no tiene membresía. */
-export async function getMembershipRef(personId: string): Promise<MembershipRef | null> {
-  const [row] = await getDb()
+export async function getMembershipRef(
+  personId: string,
+  exec: Executor = getDb(),
+): Promise<MembershipRef | null> {
+  const [row] = await exec
     .select({ status: membership.status, firstTermId: membership.firstTermId })
     .from(membership)
     .where(eq(membership.personId, personId))

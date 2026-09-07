@@ -265,7 +265,7 @@ Plan aprobado el 2026-09-06 ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.m
 
 - [x] F8-T0 · Docs: ADR-040 y enmiendas, arquitectura, datos, acceso, mapa, marca, verificación y operación; copy T-1189–T-1219 sincronizado. Listo: `check` (181 unitarias, 183 integración y build) y E2E compilado 81/81 en verde
 - [x] F8-T1 · Identidad y migración: `membership.walletEpoch`, `carnet_token`, esquema de `wallet_pass`, migración 0009, verificación de índices y limpieza de fixtures; `readCarnet` asíncrono compatible con `oe1`; baja/anonimización atómicas, revocación auditada y check-in `oe2`
-- [ ] F8-T2 · Base Wallet y adaptadores: configuración opcional completa, API pública, datos del carnet, reservas/snapshots, locks separados, firma Apple y JWT/OAuth2/REST Google; fixtures de juguete y transporte inyectado
+- [x] F8-T2 · Base Wallet y adaptadores: configuración opcional completa, API pública, datos del carnet, reservas/snapshots, locks separados, firma Apple y JWT/OAuth2/REST Google; fixtures de juguete y transporte inyectado
 - [ ] F8-T3 · Apple: recursos de marca versionados, `.pkpass`, ruta Node y badge oficial; registros de emisión, aviso persistente por generación/revisión/término y errores; ZIP/manifiesto/CMS verificados
 - [ ] F8-T4 · Google: clase y objeto por entorno, reserva durable previa a REST, creación concurrente idempotente, JWT de guardado, ruta y badge con aviso de datos; errores/reintentos sin emisión ficticia
 - [ ] F8-T5 · Ciclo completo: revocación propia/ADMIN, 360, mis datos sin secretos, `wallet.sync` y conciliación diaria de 100 en 100; baja/anonimización/reingreso, 404 sin recreación, pendientes sin credenciales y script de verificación manual
@@ -417,3 +417,5 @@ Listo cuando (software): formatos, autorización, concurrencia, reintentos, life
 | 2026-09-06 | 8 | **F8-T0 listo**: ADR-040, enmiendas y documentación transversal; 31 textos T-1189–T-1219 sincronizados. `npm run check` completo en verde (181 unitarias, 183 integración, build) y `CI=true npm run test:e2e` 81/81. Credenciales reales y activación por plataforma pendientes. |
 
 | 2026-09-06 | 8 | **F8-T1 listo**: migración 0009, generaciones, tokens opacos y revocación auditada; consola anfitrión compatible con ambos QR. `npm run check` en verde (182 unitarias, 193 integración y build); E2E compilado 81/81. |
+
+| 2026-09-06 | 8 | **F8-T2 listo**: adaptadores Apple/Google, configuración independiente, composición pura y transaccional, fixtures, G4 y namespaces Railway. `npm run check` en verde (212 unitarias, 197 integración y build); E2E compilado 81/81. No se contactaron proveedores reales. |

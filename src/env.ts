@@ -1,9 +1,34 @@
+import { createPrivateKey, X509Certificate } from "node:crypto";
 import { z } from "zod";
 
 // Variables de entorno validadas una sola vez. Si falta algo, el proceso falla al arrancar
 // (lo llama src/instrumentation.ts) o al primer uso desde un script.
 
 const booleanString = z.enum(["true", "false"]).transform((value) => value === "true");
+
+/** Base64 canónico de un PEM: los errores nunca incluyen el contenido de la credencial. */
+function decodePem(value: string): string {
+  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) {
+    throw new Error("Base64 inválido");
+  }
+  const decoded = Buffer.from(value, "base64").toString("utf8");
+  if (!decoded.startsWith("-----BEGIN ")) {
+    throw new Error("PEM inválido");
+  }
+  return decoded;
+}
+
+const base64Pem = z
+  .string()
+  .min(1)
+  .refine((value) => {
+    try {
+      decodePem(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }, "Debe ser un PEM codificado en base64");
 
 const commaSeparatedList = z.string().transform((value) =>
   value
@@ -59,6 +84,25 @@ const envSchema = z
     VAPID_PUBLIC_KEY: z.string().optional(),
     VAPID_PRIVATE_KEY: z.string().optional(),
     VAPID_SUBJECT: z.string().optional(),
+
+    APPLE_PASS_TYPE_ID: z
+      .string()
+      .regex(/^pass\.[A-Za-z0-9.-]+$/)
+      .optional(),
+    APPLE_TEAM_ID: z
+      .string()
+      .regex(/^[A-Z0-9]{10}$/)
+      .optional(),
+    APPLE_PASS_CERT_BASE64: base64Pem.optional(),
+    APPLE_PASS_KEY_BASE64: base64Pem.optional(),
+    APPLE_PASS_KEY_PASSPHRASE: z.string().optional(),
+    GOOGLE_WALLET_ISSUER_ID: z.string().regex(/^\d+$/).optional(),
+    GOOGLE_WALLET_SA_EMAIL: z.email().optional(),
+    GOOGLE_WALLET_SA_KEY_BASE64: base64Pem.optional(),
+    GOOGLE_WALLET_CLASS_SUFFIX: z
+      .string()
+      .regex(/^[A-Za-z0-9._-]+$/)
+      .optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === "production" && env.OTP_FIXED_CODE !== undefined) {
@@ -75,7 +119,75 @@ const envSchema = z
         message: "MAILER=resend exige RESEND_API_KEY",
       });
     }
-  });
+
+    const appleRequired = [
+      "APPLE_PASS_TYPE_ID",
+      "APPLE_TEAM_ID",
+      "APPLE_PASS_CERT_BASE64",
+      "APPLE_PASS_KEY_BASE64",
+    ] as const;
+    const googleRequired = [
+      "GOOGLE_WALLET_ISSUER_ID",
+      "GOOGLE_WALLET_SA_EMAIL",
+      "GOOGLE_WALLET_SA_KEY_BASE64",
+    ] as const;
+    for (const [required, optional] of [
+      [appleRequired, ["APPLE_PASS_KEY_PASSPHRASE"]],
+      // El namespace del entorno puede declararse antes de cargar las credenciales.
+      [googleRequired, []],
+    ] as const) {
+      if ([...required, ...optional].some((key) => env[key] !== undefined)) {
+        for (const key of required) {
+          if (!env[key]) {
+            ctx.addIssue({
+              code: "custom",
+              path: [key],
+              message: "Configurá la plataforma completa",
+            });
+          }
+        }
+      }
+    }
+
+    if (env.APPLE_PASS_CERT_BASE64) {
+      try {
+        new X509Certificate(decodePem(env.APPLE_PASS_CERT_BASE64));
+      } catch {
+        ctx.addIssue({
+          code: "custom",
+          path: ["APPLE_PASS_CERT_BASE64"],
+          message: "Certificado PEM inválido",
+        });
+      }
+    }
+    for (const key of ["APPLE_PASS_KEY_BASE64", "GOOGLE_WALLET_SA_KEY_BASE64"] as const) {
+      const value = env[key];
+      if (!value) continue;
+      try {
+        const passphrase =
+          key === "APPLE_PASS_KEY_BASE64" ? env.APPLE_PASS_KEY_PASSPHRASE : undefined;
+        const privateKey = createPrivateKey({
+          key: decodePem(value),
+          ...(passphrase ? { passphrase } : {}),
+        });
+        if (privateKey.asymmetricKeyType !== "rsa") throw new Error("Se requiere RSA");
+        if (key === "APPLE_PASS_KEY_BASE64" && env.APPLE_PASS_CERT_BASE64) {
+          const certificate = new X509Certificate(decodePem(env.APPLE_PASS_CERT_BASE64));
+          if (!certificate.checkPrivateKey(privateKey)) throw new Error("La clave no corresponde");
+        }
+      } catch {
+        ctx.addIssue({
+          code: "custom",
+          path: [key],
+          message: "Clave RSA PEM inválida, contraseña incorrecta o certificado distinto",
+        });
+      }
+    }
+  })
+  .transform((env) => ({
+    ...env,
+    GOOGLE_WALLET_CLASS_SUFFIX: env.GOOGLE_WALLET_CLASS_SUFFIX ?? "carnet-oe",
+  }));
 
 export type Env = z.infer<typeof envSchema>;
 

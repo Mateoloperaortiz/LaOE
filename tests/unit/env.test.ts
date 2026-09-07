@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseEnv } from "@/env";
+import walletCredentials from "../fixtures/wallet/toy-credentials.json";
 
 const baseEnv: Record<string, string> = {
   APP_URL: "http://localhost:3000",
@@ -54,5 +55,80 @@ describe("parseEnv", () => {
 
   it("exige la clave de Resend cuando el mailer es resend", () => {
     expect(() => parseEnv({ ...baseEnv, MAILER: "resend" })).toThrow(/RESEND_API_KEY/);
+  });
+
+  const appleEnv = {
+    APPLE_PASS_TYPE_ID: "pass.test.oe",
+    APPLE_TEAM_ID: "TESTTEAM00",
+    APPLE_PASS_CERT_BASE64: walletCredentials.signerCert,
+    APPLE_PASS_KEY_BASE64: walletCredentials.signerKey,
+  };
+  const googleEnv = {
+    GOOGLE_WALLET_ISSUER_ID: "1234567890",
+    GOOGLE_WALLET_SA_EMAIL: "wallet@test-project.iam.gserviceaccount.com",
+    GOOGLE_WALLET_SA_KEY_BASE64: walletCredentials.googleKey,
+  };
+
+  it("acepta ambas plataformas completas y deja los sufijos opcionales", () => {
+    const env = parseEnv({ ...baseEnv, ...appleEnv, ...googleEnv });
+    expect(env.APPLE_PASS_TYPE_ID).toBe(appleEnv.APPLE_PASS_TYPE_ID);
+    expect(env.GOOGLE_WALLET_CLASS_SUFFIX).toBe("carnet-oe");
+    expect(
+      parseEnv({ ...baseEnv, ...googleEnv, GOOGLE_WALLET_CLASS_SUFFIX: "carnet-oe-staging" })
+        .GOOGLE_WALLET_CLASS_SUFFIX,
+    ).toBe("carnet-oe-staging");
+  });
+
+  it.each(Object.keys(appleEnv))("rechaza Apple parcial si falta %s", (key) => {
+    expect(() => parseEnv({ ...baseEnv, ...appleEnv, [key]: "" })).toThrow(key);
+  });
+
+  it.each(Object.keys(googleEnv))("rechaza Google parcial si falta %s", (key) => {
+    expect(() => parseEnv({ ...baseEnv, ...googleEnv, [key]: "" })).toThrow(key);
+  });
+
+  it("una contraseña exige Apple completo, pero un namespace no habilita Google", () => {
+    expect(() => parseEnv({ ...baseEnv, APPLE_PASS_KEY_PASSPHRASE: "juguete" })).toThrow(
+      "APPLE_PASS_TYPE_ID",
+    );
+    const env = parseEnv({ ...baseEnv, GOOGLE_WALLET_CLASS_SUFFIX: "carnet-oe-staging" });
+    expect(env.GOOGLE_WALLET_ISSUER_ID).toBeUndefined();
+    expect(env.GOOGLE_WALLET_CLASS_SUFFIX).toBe("carnet-oe-staging");
+  });
+
+  it.each([
+    ["APPLE_PASS_TYPE_ID", "com.test"],
+    ["APPLE_TEAM_ID", "short"],
+    ["GOOGLE_WALLET_ISSUER_ID", "issuer"],
+    ["GOOGLE_WALLET_SA_EMAIL", "sin-correo"],
+    ["GOOGLE_WALLET_CLASS_SUFFIX", "../otro"],
+  ])("valida el formato de %s", (key, value) => {
+    expect(() =>
+      parseEnv({ ...baseEnv, ...appleEnv, ...googleEnv, [key as string]: value }),
+    ).toThrow(key);
+  });
+
+  it("rechaza base64 que no contiene un PEM parseable sin revelar el valor", () => {
+    const secret = Buffer.from(
+      "-----BEGIN PRIVATE KEY-----\ncontenido-sensible\n-----END PRIVATE KEY-----",
+    ).toString("base64");
+    let message = "";
+    try {
+      parseEnv({ ...baseEnv, ...googleEnv, GOOGLE_WALLET_SA_KEY_BASE64: secret });
+    } catch (error) {
+      message = String(error);
+    }
+    expect(message).toContain("GOOGLE_WALLET_SA_KEY_BASE64");
+    expect(message).not.toContain(secret);
+    expect(message).not.toContain("contenido-sensible");
+    expect(() =>
+      parseEnv({ ...baseEnv, ...appleEnv, APPLE_PASS_CERT_BASE64: "no es base64" }),
+    ).toThrow("APPLE_PASS_CERT_BASE64");
+  });
+
+  it("rechaza claves Apple que no corresponden al certificado", () => {
+    expect(() =>
+      parseEnv({ ...baseEnv, ...appleEnv, APPLE_PASS_KEY_BASE64: walletCredentials.googleKey }),
+    ).toThrow("APPLE_PASS_KEY_BASE64");
   });
 });
