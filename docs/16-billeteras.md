@@ -87,7 +87,7 @@ La revisión visual adicional con ambos proveedores configurados con credenciale
 
 ## Estado de staging y ensayo físico · 2026-09-07 (Bogotá)
 
-Ambas plataformas tienen credenciales reales en staging. Apple usa una membresía existente, sin nueva compra; se verificaron certificado vigente hasta el 2027-10-07, clave coincidente, cadena G4/raíz y firma real. Google continúa en modo demo: cuenta de servicio Developer, OAuth/issuer y creación, actualización y lectura de la clase exclusiva de staging comprobados por REST. Hay cero objetos de pase reales Google; no se ejecutó Save ni se probó Android. Producción no fue activada ni promovida por esta operación.
+Ambas plataformas tienen credenciales reales en staging. Apple usa una membresía existente, sin nueva compra; se verificaron certificado vigente hasta el 2027-10-07, clave coincidente, cadena G4/raíz y firma real. Google continúa en modo demo: cuenta de servicio Developer, OAuth/issuer y creación, actualización y lectura de la clase exclusiva de staging comprobados por REST. Después de esa preparación se guardó un objeto real de prueba y se verificó el ciclo descrito en el ensayo Android de este documento. Producción no fue activada ni promovida por esta operación.
 
 En iPhone físico con identidad sintética, Safari guardó y abrió el pase. La lectura por foto desde la consola anfitrión comprobó check-in idempotente, rechazo tras revocación propia y ADMIN, reemisión válida, baja con cierre de sesión, no rehabilitación del QR al reactivar y reemisión V4 después de un ingreso nuevo. La baja cerró los comités; V4 muestra la ausencia de comités correspondiente.
 
@@ -95,6 +95,38 @@ La PWA instalada falló primero sobre `58835bd`: visor secundario blanco pese a 
 
 El control Safari posterior sobre `9414ed1` pasó entre 22:32 y 22:33 de Bogotá, con una sesión nueva y el mismo V4: diálogo nativo, revisión del contenido, agregado y retorno al carnet autenticado. El request Apple respondió 200 en 91 ms a las 03:32:13.456 UTC del 2026-09-08.
 
-Pendientes: captura por cámara entre dos celulares físicos, guardado/apertura Google en Android, pruebas reales del ciclo Google y publicación general cuando corresponda. La lectura por imagen y el guardado PWA observados no cierran esos criterios ni la revisión de política y titular/licencia aplicable. Las casillas de aceptación de ambas plataformas siguen abiertas en el roadmap.
+Pendientes actuales: cambio real de semestre y anonimización Google, publicación general cuando corresponda y revisión de política y titular/licencia aplicable. La lectura por imagen y las pruebas físicas descritas no cierran esos criterios. Las casillas de aceptación de ambas plataformas siguen abiertas en el roadmap.
 
-Evidencia privada: `WALLET-STAGING-HELPER.md`, `iphone-device-acceptance.json` e `iphone-acceptance-report.md`. El JSON tiene estado `completed_available_iphone_checks` y el bloque `pwaCandidate` registra tanto la importación PWA como el control Safari posterior en `PASS`; el fallo inicial conserva su resultado histórico. Ese estado cierra las comprobaciones disponibles en este iPhone, no las pruebas de cámara entre dos teléfonos ni Google. Se conservan únicamente resultados e ids operativos en estos documentos públicos.
+Evidencia privada de iPhone: `WALLET-STAGING-HELPER.md`, `iphone-device-acceptance.json` e `iphone-acceptance-report.md`. El JSON tiene estado `completed_available_iphone_checks` y el bloque `pwaCandidate` registra tanto la importación PWA como el control Safari posterior en `PASS`; el fallo inicial conserva su resultado histórico. El bloque `physicalCameraAcceptance` registra además el posterior escaneo del pase Apple por la cámara del Samsung; las pruebas independientes de Google se describen a continuación. Se conservan únicamente resultados e ids operativos en estos documentos públicos.
+
+### Google Wallet en Android · corte 2026-09-07 23:38:35 (Bogotá)
+
+Ensayo con una identidad sintética dedicada, distinta de la usada en iPhone, en Samsung SM-S938B con Android 16. La app correspondía a `4ed0285d5eb4393cdc28e1ee4fa3b169542fad83`, deployment staging `3c3269c1-c25c-483c-9430-116f2571278a` SUCCESS, con health del mismo SHA y [CI correcto](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34184033309). El emisor permaneció en demo y el diálogo mostró `TEST ONLY`; no se acredita publicación general.
+
+| Comprobación | Resultado observado |
+| --- | --- |
+| Guardado y detalles nativos | Desde Chrome con sesión propia, Google confirmó el agregado y abrió el pase guardado con QR, nombre, organización, semestre y lista completa de comités. La ruta respondió 302 a las 04:18:37.436 UTC del 2026-09-08 en 2159 ms; el guardado se acredita por la confirmación nativa, no solo por HTTP |
+| Asistencia por foto | El anfitrión aceptó la imagen del pase y registró asistencia; repetirla no duplicó el check-in |
+| Nombre y comités | El mismo pase guardado mostró ambos cambios sin volver a emitir; la lectura REST confirmó cambios de contenido y conservación del QR |
+| Revocación ADMIN | La foto anterior fue rechazada; Google recibió otro QR en el mismo objeto y Wallet lo mostró sin reemitir. Su foto fue aceptada sin duplicar asistencia |
+| Baja | El QR anterior fue rechazado, la sesión Android quedó cerrada y REST confirmó `EXPIRED`. La pantalla abierta aún mostraba el QR; no se observó una etiqueta nativa de vencimiento |
+| Reactivación sin emitir | El objeto permaneció `EXPIRED` y el QR anterior siguió rechazado; reactivar no restauró el pase ni la sesión |
+| Emisión propia tras reactivar | Con un ingreso nuevo, el mismo identificador de objeto volvió a `ACTIVE` con otro QR. Wallet terminó mostrando el nuevo pase y su foto fue aceptada. Los comités quedaron vacíos porque la baja había cerrado sus pertenencias |
+
+La vista nativa conservó temporalmente datos o QR anteriores tras cambios de perfil, rotación, baja y reemisión. Volver desde Recientes a Wallet y abrir el pase permitió observar la versión actualizada. Después de la reemisión, la primera vista todavía mostró el QR anterior y el anfitrión lo rechazó; al abrir de nuevo el pase desde el flujo de guardado ya existente apareció el nuevo QR y fue aceptado, sin otra emisión. No se midió un plazo garantizado ni se acredita refresco inmediato de una pantalla abierta. La revocación y la baja sí se comprobaron en el servidor aunque Wallet conservara contenido anterior.
+
+Para repetir la verificación, separar la publicación remota de la observación nativa: comparar estado y contenido del mismo objeto mediante lecturas privadas, y después revisar el pase guardado sin pulsar otra vez el badge. Volver a emitir durante una prueba de sincronización podría ocultar un fallo del outbox. `hasUsers: true` y un GET actualizado no demuestran por sí solos qué versión muestra el teléfono. La baja cambia el estado remoto y puede conservar el QR del objeto; su rechazo en el anfitrión es la comprobación de invalidez.
+
+Fuentes privadas: `android-device-acceptance.json`, `android-acceptance-report.md` y `google-object-readback.json`. Las lecturas del mismo objeto confirmaron HTTP 200 y `hasUsers: true`, cambios de nombre/comités con el mismo QR, rotación, `EXPIRED` tras baja y reactivación, y `ACTIVE` con QR nuevo tras emisión explícita. Los valores y hashes del QR permanecen privados. El registro Android acredita ambas direcciones de cámara mediante los ensayos posteriores y conserva la procedencia de cada resultado. Producción conserva `853d622`, sin activación Wallet ni promoción.
+
+### Cámara física Apple→Android · 2026-09-07 23:45 (Bogotá)
+
+El Samsung SM-S938B con Android 16 y Chrome, en modo anfitrión, leyó físicamente el pase Apple V4 mostrado en el iPhone. El lector detuvo la cámara automáticamente y presentó el resultado de asistencia ya registrada, sin duplicar el check-in. El intento usó la cámara en vivo, sin carga de archivo. La observación quedó registrada a las 04:45:18.121 UTC del 2026-09-08, con staging `4ed0285` y el mismo pase Apple del ensayo anterior.
+
+Fuentes privadas: `physicalCameraAcceptance` de `iphone-device-acceptance.json`, `physicalCamera` de `android-device-acceptance.json` y `apple-to-android-camera-result.png`, que conserva el resultado sin mostrar el QR. Esta comprobación acredita la dirección Apple→Android; la dirección inversa se registra a continuación. No cierra cambio real de semestre, anonimización Google, publicación general ni los criterios de política y titular aplicables.
+
+### Cámara física Google→iPhone · 2026-09-07 23:50–23:54 (Bogotá)
+
+Con el pase Google V3 guardado y visible en el Samsung y el lector anfitrión preparado en Safari del iPhone, el usuario realizó el escaneo en vivo y confirmó textualmente que la persona ya estaba registrada. El intento no usó carga de archivo. El registro HTTP lo correlaciona con POST del anfitrión desde iPhone Safari, 200 en 40 ms a las 04:50:22.305 UTC del 2026-09-08, y GET posterior 200 en 29 ms. La confirmación del usuario quedó registrada a las 04:52:53.376 UTC.
+
+A las 04:54:48.048 UTC, Mirroring reconectó y se abrió la pestaña existente de Safari. Se observó directamente el mismo resultado de asistencia ya registrada, sin recargar, cargar archivos ni realizar otro escaneo. La aceptación e idempotencia de esta dirección se sustentan en la confirmación del usuario, el HTTP correlacionado y la corroboración visual posterior. Fuentes privadas: `physicalCamera.googlePassResult` de `android-device-acceptance.json` y `reverseCameraAcceptance` de `iphone-device-acceptance.json`; ambos incluyen `laterDirectVisualVerification`. Ambas direcciones de cámara quedan aprobadas con esa evidencia; no se amplía el resultado a otras pruebas ni se cierran semestre/anonimización Google, publicación general, política/titular o pendientes de F7. Producción permanece sin promoción.
