@@ -53,7 +53,7 @@ test.describe("GH", () => {
     await sinViolaciones(page);
 
     await page.goto(`/admin/permanencia/reglas?termId=${termId}&comite=${slug}&accion=nueva`);
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await panel.getByLabel("Clave").fill("e2e-reuniones");
     await panel.getByLabel("Nombre").fill("e2e-Asistencia a reuniones");
     await panel.getByLabel("Peso").fill("15");
@@ -69,7 +69,7 @@ test.describe("GH", () => {
     await sinViolaciones(page);
 
     await page.getByRole("link", { name: "Vista previa del impacto" }).click();
-    await expect(page.getByRole("complementary")).toContainText("Impacto sobre el roster");
+    await expect(page.getByRole("dialog")).toContainText("Impacto sobre el roster");
     expect(name).not.toBe("");
   });
 });
@@ -127,7 +127,7 @@ test.describe("líder", () => {
     await sinViolaciones(page);
 
     await page.getByRole("link", { name: "Nuevo criterio" }).click();
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await panel.getByLabel("Clave").fill("e2e-evento");
     await panel.getByLabel("Nombre").fill("e2e-Evento del comité");
     await panel.getByLabel("Peso").fill("10");

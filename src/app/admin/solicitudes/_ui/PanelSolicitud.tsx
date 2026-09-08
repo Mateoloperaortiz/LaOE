@@ -1,10 +1,12 @@
 import Link from "next/link";
 import type { RequestView } from "@/modules/crm";
 import { ResourcePanel } from "@/shared/admin-kit";
+import { Campo, Dato, inputClass } from "@/shared/admin-kit/AdminFields";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
-import { Campo, Dato, inputClass } from "../../personas/[id]/_ui/campos";
 import { decideRequestAction } from "../actions";
 
 // Panel de una solicitud (bandeja y Persona 360): detalle, texto de lo que pasa al aprobar y los dos
@@ -87,23 +89,32 @@ export function PanelSolicitud({
             <p className="text-sm text-tinta-suave">{t("T-1014", { término: nextTermCode })}</p>
           ) : null}
           <form action={decideRequestAction} className="flex flex-col gap-3">
-            <input type="hidden" name="requestId" value={request.id} />
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <input type="hidden" name="decision" value="APPROVED" />
-            <button type="submit" className="boton-calido self-start">
-              {aprobar}
-            </button>
+            <AdminFormBody>
+              <input type="hidden" name="requestId" value={request.id} />
+              <input type="hidden" name="returnTo" value={returnTo} />
+              <input type="hidden" name="decision" value="APPROVED" />
+              <AdminSubmitButton type="submit" className="boton-calido self-start">
+                {aprobar}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
           <form action={decideRequestAction} className="flex flex-col gap-3">
-            <input type="hidden" name="requestId" value={request.id} />
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <input type="hidden" name="decision" value="REJECTED" />
-            <Campo id={`motivo-${request.id}`} label={t("T-1002")}>
-              <textarea id={`motivo-${request.id}`} name="reason" rows={3} className={inputClass} />
-            </Campo>
-            <button type="submit" className="boton-secundario self-start">
-              {rechazar}
-            </button>
+            <AdminFormBody>
+              <input type="hidden" name="requestId" value={request.id} />
+              <input type="hidden" name="returnTo" value={returnTo} />
+              <input type="hidden" name="decision" value="REJECTED" />
+              <Campo id={`motivo-${request.id}`} label={t("T-1002")}>
+                <textarea
+                  id={`motivo-${request.id}`}
+                  name="reason"
+                  rows={3}
+                  className={inputClass}
+                />
+              </Campo>
+              <AdminSubmitButton type="submit" className="boton-secundario self-start">
+                {rechazar}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
         </div>
       ) : (

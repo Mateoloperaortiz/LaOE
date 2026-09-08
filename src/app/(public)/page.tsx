@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublicMediaRef, Imagen, listPublicAnnouncements } from "@/modules/content";
+import { listAdmissionPipelineIds } from "@/modules/crm";
 import {
   findNextPublicEdition,
   findNextPublicEditions,
   listPublishedEvents,
 } from "@/modules/events";
+import { findOpenPublicFormForPipelines } from "@/modules/forms";
 import {
   BarraTitulo,
   Cartel,
@@ -28,11 +30,12 @@ export const metadata: Metadata = {
 
 // Inicio: hero, próximo encuentro, macroeventos y cartelera (06-mapa-del-sitio.md).
 export default async function HomePage() {
-  const [anuncios, eventos, proximas, proximo] = await Promise.all([
+  const [anuncios, eventos, proximas, proximo, admision] = await Promise.all([
     listPublicAnnouncements(3),
     listPublishedEvents(),
     findNextPublicEditions(),
     findNextPublicEdition(),
+    listAdmissionPipelineIds().then(findOpenPublicFormForPipelines),
   ]);
   const [portadas, portadaProximo] = await Promise.all([
     Promise.all(
@@ -44,8 +47,9 @@ export default async function HomePage() {
   ]);
   const [cuando, donde] = tList("T-307") as [string, string];
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-16 px-4 py-8 sm:px-6 sm:py-12">
+    <div className="portal-home mx-auto flex max-w-6xl flex-col px-4 sm:px-6">
       <Cartel
+        className="portal-hero"
         variante="paper"
         nivel="h1"
         tamano="hero"
@@ -59,9 +63,9 @@ export default async function HomePage() {
           />
         }
       >
-        <div className="mt-2 flex flex-wrap gap-3">
-          <Link href="/ingresar" className="boton-calido">
-            {t("T-004")}
+        <div className="portal-hero-actions">
+          <Link href={admision ? `/f/${admision.slug}` : "/unirse"} className="boton-calido">
+            {t(admision ? "T-027" : "T-1543")}
           </Link>
           <Link href="/comites" className="boton-secundario">
             {t("T-005")}

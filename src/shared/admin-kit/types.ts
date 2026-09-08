@@ -79,6 +79,8 @@ export interface FieldDefinition {
   placeholder?: string;
   /** Alto de un textarea en líneas (por defecto 5; los cuerpos en Markdown piden más). */
   rows?: number;
+  /** Tipografía de código solo para editores de Markdown, JSON u otros formatos. */
+  textVariant?: "prose" | "code";
 }
 
 /** Quién ejecuta: el kit solo necesita saber su id y si es ADMIN; los comandos reciben el actor completo. */
@@ -178,4 +180,27 @@ export function formDataToValues(
     values[field.name] = typeof raw === "string" ? raw : "";
   }
   return values;
+}
+
+/** Los campos inmutables conservan el valor del servidor, aunque el cliente los omita o cambie. */
+export function withLockedFormValues(
+  formData: FormData,
+  fields: FieldDefinition[],
+  storedValues: Record<string, string>,
+): FormData {
+  const result = new FormData();
+  for (const [key, value] of formData) result.append(key, value);
+  for (const field of fields) {
+    if (!field.lockedOnEdit) continue;
+    result.delete(field.name);
+    const value = storedValues[field.name] ?? "";
+    if (field.type === "multiselect") {
+      for (const selected of value ? value.split(MULTI_SEPARATOR) : []) {
+        result.append(field.name, selected);
+      }
+    } else {
+      result.set(field.name, value);
+    }
+  }
+  return result;
 }

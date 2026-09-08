@@ -3,6 +3,8 @@ import { expect, test } from "@playwright/test";
 // SEO e imágenes para compartir (F1-T5): metadata, OG, robots y sitemap. En local y CI
 // PUBLIC_INDEXING no está encendido, así que todo lleva noindex y robots cierra el sitio.
 
+const ORIGIN = process.env.APP_URL ?? "http://localhost:3000";
+
 const RUTAS = [
   "/",
   "/la-oe",
@@ -23,7 +25,7 @@ test("cada página lleva canonical, og:image que responde PNG y noindex mientras
     // metadataBase compone "/" sin barra final (documentación de Next, "URL composition").
     await expect(page.locator('link[rel="canonical"]'), ruta).toHaveAttribute(
       "href",
-      ruta === "/" ? "http://localhost:3000" : `http://localhost:3000${ruta}`,
+      ruta === "/" ? ORIGIN : `${ORIGIN}${ruta}`,
     );
     await expect(page.locator('meta[property="og:site_name"]'), ruta).toHaveAttribute(
       "content",
@@ -55,9 +57,9 @@ test("robots cierra el sitio y el sitemap lista solo lo publicado", async ({ req
   const sitemap = await request.get("/sitemap.xml");
   expect(sitemap.status()).toBe(200);
   const xml = await sitemap.text();
-  expect(xml).toContain("<loc>http://localhost:3000/eventos/dias-eafit/prueba</loc>");
-  expect(xml).toContain("<loc>http://localhost:3000/comites/a3</loc>");
+  expect(xml).toContain(`<loc>${ORIGIN}/eventos/dias-eafit/prueba</loc>`);
+  expect(xml).toContain(`<loc>${ORIGIN}/comites/a3</loc>`);
   expect(xml).not.toContain("/admin");
   // Las páginas fijas en borrador no salen en el sitemap.
-  expect(xml).not.toContain("<loc>http://localhost:3000/privacidad</loc>");
+  expect(xml).not.toContain(`<loc>${ORIGIN}/privacidad</loc>`);
 });

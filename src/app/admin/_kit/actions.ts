@@ -11,7 +11,13 @@ import {
   hasRecentStepUp,
   safeNextPath,
 } from "@/modules/identity";
-import { DomainError, type FormState, formDataToInput, formDataToValues } from "@/shared/admin-kit";
+import {
+  DomainError,
+  type FormState,
+  formDataToInput,
+  formDataToValues,
+  withLockedFormValues,
+} from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 import { getResource } from "./registry";
 
@@ -55,8 +61,21 @@ export async function saveResourceAction(
     redirect(`/ingresar/paso?next=${encodeURIComponent(returnTo)}`);
   }
   const fields = typeof resource.fields === "function" ? await resource.fields() : resource.fields;
-  const values = formDataToValues(formData, fields);
-  const parsed = resource.schema.safeParse(formDataToInput(formData, fields));
+  let submitted = formData;
+  if (id) {
+    const existing = await resource.get(id);
+    if (!existing) {
+      return {
+        ok: false,
+        message: t("T-032"),
+        errors: {},
+        values: formDataToValues(formData, fields),
+      };
+    }
+    submitted = withLockedFormValues(formData, fields, resource.toFormValues(existing));
+  }
+  const values = formDataToValues(submitted, fields);
+  const parsed = resource.schema.safeParse(formDataToInput(submitted, fields));
   if (!parsed.success) {
     const errors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {

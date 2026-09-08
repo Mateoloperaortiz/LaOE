@@ -1,0 +1,234 @@
+import { randomBytes } from "node:crypto";
+import { expect, test } from "@playwright/test";
+import { eq } from "drizzle-orm";
+import { closeDb, getDb } from "@/db/client";
+import { campaign, emailTemplate } from "@/modules/comms/schema";
+import { document as documentTable } from "@/modules/content/schema";
+import { card, internalCall, organization, pipeline, pipelineStage } from "@/modules/crm/schema";
+import { event, eventEdition } from "@/modules/events/schema";
+import { form } from "@/modules/forms/schema";
+import { occasion } from "@/modules/participation/schema";
+import { committee, person, segment } from "@/modules/people/schema";
+import { workGroup } from "@/modules/permanence/schema";
+import { term } from "@/modules/terms/schema";
+import { sinViolaciones } from "./axe";
+import { E2E_EMAIL } from "./global-setup";
+
+test.use({ storageState: "tests/e2e/.auth/admin.json" });
+
+// Los 16 detalles completan las 38 rutas estáticas de admin-responsive. Datos independientes de
+// otras suites; no se publican documentos, se envían campañas ni se alteran personas existentes.
+function first<T>(rows: T[]): T {
+  const row = rows[0];
+  if (!row) throw new Error("No se creó el dato sintético");
+  return row;
+}
+
+let routes: string[];
+let removeFixtures: () => Promise<void>;
+
+test.beforeAll(async () => {
+  const db = getDb();
+  const prefix = `e2e-ui-${randomBytes(4).toString("hex")}`;
+  const [current] = await db.select().from(term).where(eq(term.code, "2026-2"));
+  const [admin] = await db.select().from(person).where(eq(person.email, E2E_EMAIL));
+  const [pixel] = await db.select().from(committee).where(eq(committee.slug, "pixel"));
+  if (!current || !admin || !pixel) throw new Error("Faltan las referencias sintéticas del E2E");
+  const template = await db
+    .insert(emailTemplate)
+    .values({
+      slug: prefix,
+      name: prefix,
+      subject: "Prueba de diseño",
+      body: "Texto sintético de la plantilla.",
+    })
+    .returning()
+    .then(first);
+  const audience = await db.insert(segment).values({ name: prefix }).returning().then(first);
+  const mail = await db
+    .insert(campaign)
+    .values({ name: prefix, templateId: template.id, segmentId: audience.id })
+    .returning()
+    .then(first);
+  const org = await db.insert(organization).values({ name: prefix }).returning().then(first);
+  const flow = await db.insert(pipeline).values({ name: prefix }).returning().then(first);
+  const stages = await db
+    .insert(pipelineStage)
+    .values(
+      ["Pendiente de revisar", "En conversación", "Confirmación", "Finalizado"].map(
+        (name, sortOrder) => ({ name, sortOrder, pipelineId: flow.id }),
+      ),
+    )
+    .returning();
+  await db.insert(card).values({
+    pipelineId: flow.id,
+    stageId: first(stages).id,
+    organizationId: org.id,
+    title: "Tarjeta de prueba con un título largo para revisar el ajuste de líneas",
+  });
+  const group = await db
+    .insert(workGroup)
+    .values({ termId: current.id, kind: "GAP", name: prefix })
+    .returning()
+    .then(first);
+  const call = await db
+    .insert(internalCall)
+    .values({
+      termId: current.id,
+      groupId: group.id,
+      title: prefix,
+      opensAt: new Date("2026-09-01T12:00:00Z"),
+      closesAt: new Date("2026-10-01T12:00:00Z"),
+    })
+    .returning()
+    .then(first);
+  const questionnaire = await db
+    .insert(form)
+    .values({
+      slug: prefix,
+      title: prefix,
+      fields: [
+        {
+          key: "motivacion",
+          type: "TEXT",
+          label:
+            "Una pregunta con un texto extenso para revisar la disposición de sus acciones en celular",
+          required: true,
+        },
+        { key: "comentario", type: "TEXTAREA", label: "Comentario adicional", required: false },
+      ],
+    })
+    .returning()
+    .then(first);
+  const permanent = await db
+    .insert(event)
+    .values({ slug: prefix, name: prefix })
+    .returning()
+    .then(first);
+  const edition = await db
+    .insert(eventEdition)
+    .values({
+      eventId: permanent.id,
+      slug: prefix,
+      name: prefix,
+      startsAt: new Date("2026-09-12T12:00:00Z"),
+    })
+    .returning()
+    .then(first);
+  const activity = await db
+    .insert(occasion)
+    .values({
+      publicId: randomBytes(5).toString("hex"),
+      termId: current.id,
+      title: prefix,
+      startsAt: new Date(),
+      checkInOpensAt: new Date(Date.now() - 60_000),
+      checkInClosesAt: new Date(Date.now() + 3_600_000),
+      status: "OPEN",
+    })
+    .returning()
+    .then(first);
+  const pdf = await db
+    .insert(documentTable)
+    .values({
+      title: prefix,
+      version: "Versión de prueba, texto libre",
+      fileKey: `documents/${prefix}.pdf`,
+      originalFilename: `${prefix}.pdf`,
+      byteSize: 2048,
+    })
+    .returning()
+    .then(first);
+  routes = [
+    `/admin/campanas/${mail.id}`,
+    `/admin/comites/${pixel.slug}`,
+    `/admin/comites/${pixel.slug}/permanencia`,
+    `/admin/convocatorias/${call.id}`,
+    `/admin/documentos/${pdf.id}`,
+    `/admin/eventos/${permanent.id}/ediciones`,
+    `/admin/eventos/${permanent.id}/ediciones/${edition.id}/inscritos`,
+    `/admin/formularios/${questionnaire.id}`,
+    `/admin/formularios/${questionnaire.id}/respuestas`,
+    `/admin/ocasiones/${activity.id}`,
+    `/admin/ocasiones/${activity.id}/anfitrion`,
+    `/admin/organizaciones/${org.id}`,
+    `/admin/permanencia/grupos/${group.id}`,
+    `/admin/personas/${admin.id}`,
+    `/admin/pipelines/${flow.id}`,
+    `/admin/plantillas/${template.id}`,
+  ];
+  removeFixtures = async () => {
+    await db.delete(campaign).where(eq(campaign.id, mail.id));
+    await db.delete(emailTemplate).where(eq(emailTemplate.id, template.id));
+    await db.delete(segment).where(eq(segment.id, audience.id));
+    await db.delete(card).where(eq(card.pipelineId, flow.id));
+    await db.delete(pipeline).where(eq(pipeline.id, flow.id));
+    await db.delete(organization).where(eq(organization.id, org.id));
+    await db.delete(workGroup).where(eq(workGroup.id, group.id));
+    await db.delete(form).where(eq(form.id, questionnaire.id));
+    await db.delete(occasion).where(eq(occasion.id, activity.id));
+    await db.delete(event).where(eq(event.id, permanent.id));
+    await db.delete(documentTable).where(eq(documentTable.id, pdf.id));
+  };
+});
+
+test.afterAll(async () => {
+  await removeFixtures?.();
+  await closeDb();
+});
+
+test("la edición conserva el tipo bloqueado, los filtros y una página válida", async ({ page }) => {
+  const id = routes
+    .find((href) => href.startsWith("/admin/pipelines/"))
+    ?.split("/")
+    .at(-1);
+  if (!id) throw new Error("Falta el pipeline sintético");
+  const record = first(await getDb().select().from(pipeline).where(eq(pipeline.id, id)));
+  await page.goto(`/admin/pipelines?q=${record.name}&editar=${id}`);
+  const panel = page.getByRole("dialog");
+  await expect(panel.getByLabel("Tipo", { exact: true })).toBeDisabled();
+  await expect(panel.getByLabel("Tipo", { exact: true })).toHaveValue("CUSTOM");
+  await panel.getByLabel("Nombre", { exact: true }).fill(`${record.name} editado`);
+  await panel.getByRole("button", { name: "Guardar", exact: true }).click();
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get("q") === record.name && url.searchParams.get("guardado") === "1",
+  );
+  expect(first(await getDb().select().from(pipeline).where(eq(pipeline.id, id))).kind).toBe(
+    "CUSTOM",
+  );
+  await page.goto(`/admin/pipelines?q=${record.name}&pagina=999`);
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get("q") === record.name && !url.searchParams.has("pagina"),
+  );
+  await expect(
+    page.getByRole("link", { name: `${record.name} editado`, exact: true }),
+  ).toBeVisible();
+});
+
+for (const width of [360, 390, 768, 1440]) {
+  for (const colorScheme of ["light", "dark"] as const) {
+    test(`detalles administrativos ${width}px ${colorScheme}`, async ({ page }, testInfo) => {
+      test.setTimeout(120_000);
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme });
+      for (const href of routes) {
+        await test.step(href, async () => {
+          const response = await page.goto(href);
+          expect(response?.status()).toBeLessThan(400);
+          await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+          expect(
+            await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+            href,
+          ).toBe(true);
+          await sinViolaciones(page);
+          if (/\/(pipelines|formularios|ocasiones)\/[^/]+$/.test(href)) {
+            await page.screenshot({
+              path: testInfo.outputPath(`${href.split("/")[2]}-${width}-${colorScheme}.png`),
+              fullPage: true,
+            });
+          }
+        });
+      }
+    });
+  }
+}

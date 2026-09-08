@@ -26,7 +26,7 @@ test("un ADMIN edita y publica La OE desde el panel y el visitante la ve", async
   const marca = `e2e-${Date.now().toString(36)}`;
   await page.goto("/admin/paginas?q=la-oe");
   await page.getByRole("link", { name: "Editar" }).first().click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   const cuerpo = panel.getByLabel("Cuerpo (Markdown)");
   const estado = panel.getByLabel("Publicación");
   const cuerpoOriginal = await cuerpo.inputValue();
@@ -46,7 +46,7 @@ test("un ADMIN edita y publica La OE desde el panel y el visitante la ve", async
   // Deja la página como estaba para no pisar el contenido de quien corre la suite en local.
   await page.goto("/admin/paginas?q=la-oe");
   await page.getByRole("link", { name: "Editar" }).first().click();
-  const otra = page.getByRole("complementary");
+  const otra = page.getByRole("dialog");
   await otra.getByLabel("Cuerpo (Markdown)").fill(cuerpoOriginal);
   await otra.getByLabel("Publicación").selectOption(estadoOriginal);
   await otra.getByRole("button", { name: "Guardar" }).click();
@@ -60,7 +60,7 @@ test("un ADMIN publica y fija un anuncio y el visitante lo ve en el inicio, la c
   const titulo = `e2e-anuncio-${marca}`;
   await page.goto("/admin/cartelera");
   await page.getByRole("link", { name: "Nuevo" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await panel.getByLabel("Título").fill(titulo);
   await panel.getByLabel("Cuerpo (Markdown)").fill(`## Detalle\n\nCuerpo ${marca} del anuncio.`);
   await panel.getByLabel("Audiencia").selectOption("PUBLIC");
@@ -70,6 +70,7 @@ test("un ADMIN publica y fija un anuncio y el visitante lo ve en el inicio, la c
 
   // "Publicar" es subcadena de "Despublicar": los botones se buscan con nombre exacto.
   const fila = page.getByRole("row", { name: new RegExp(titulo) });
+  await fila.locator("summary", { hasText: "Acciones" }).click();
   await fila.getByRole("button", { name: "Publicar", exact: true }).click();
   await expect(fila.getByRole("button", { name: "Despublicar", exact: true })).toBeVisible();
 
@@ -89,6 +90,7 @@ test("un ADMIN publica y fija un anuncio y el visitante lo ve en el inicio, la c
 
   await page.goto(`/admin/cartelera?q=${titulo}`);
   const filaBuscada = page.getByRole("row", { name: new RegExp(titulo) });
+  await filaBuscada.locator("summary", { hasText: "Acciones" }).click();
   await filaBuscada.getByRole("button", { name: "Despublicar", exact: true }).click();
   // La acción del servidor termina con una redirección: esperar la fila evita abortarla al navegar.
   await expect(filaBuscada.getByRole("button", { name: "Publicar", exact: true })).toBeVisible();
@@ -101,7 +103,7 @@ test("un comité publicado tiene ficha pública sin roster", async ({ page }) =>
   const nombre = `Comité ${slug}`;
   await page.goto("/admin/comites");
   await page.getByRole("link", { name: "Nuevo" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await panel.getByLabel("Sigla").fill(slug);
   await panel.getByLabel("Nombre").fill(nombre);
   await panel.getByLabel("Estado").selectOption("ACTIVE");

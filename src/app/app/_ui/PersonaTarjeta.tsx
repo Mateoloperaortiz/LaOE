@@ -44,7 +44,7 @@ type Props = {
 
 export function PersonaTarjeta({ nombre, fotoId, estado, comites, cargos, insignias = [] }: Props) {
   return (
-    <article className="flex flex-col gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5">
+    <article className="member-directory-card flex flex-col gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5">
       <div className="flex items-center gap-4">
         {fotoId ? (
           // biome-ignore lint/performance/noImgElement: ADR-022, los bytes no atraviesan la app

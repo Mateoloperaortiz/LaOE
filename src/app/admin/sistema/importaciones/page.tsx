@@ -52,7 +52,7 @@ export default async function ImportacionesPage() {
         <p className="text-tinta-suave">{t("T-256")}</p>
       ) : (
         <div className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde">
-          <table className="w-full text-left text-sm">
+          <table className="admin-data-table w-full text-left text-sm">
             <thead className="eyebrow bg-fondo-suave text-xs">
               <tr>
                 {columnas.map((columna) => (
@@ -65,18 +65,20 @@ export default async function ImportacionesPage() {
             <tbody>
               {jobs.map((job) => (
                 <tr key={job.id} className="border-t border-borde align-top">
-                  <td className="px-3 py-2 font-semibold">
+                  <td data-label={columnas[0]} className="px-3 py-2 font-semibold">
                     {job.type === "ROSTER" ? (
                       <Link href={`/admin/personas/importar?job=${job.id}`}>{job.filename}</Link>
                     ) : (
                       job.filename
                     )}
                   </td>
-                  <td className="px-3 py-2">{job.type}</td>
-                  <td className="px-3 py-2">
+                  <td data-label={columnas[1]} className="px-3 py-2">
+                    {job.type}
+                  </td>
+                  <td data-label={columnas[2]} className="px-3 py-2">
                     {job.termId ? (termCode.get(job.termId) ?? "") : ""}
                   </td>
-                  <td className="px-3 py-2">
+                  <td data-label={columnas[3]} className="px-3 py-2">
                     <Insignia
                       fondo={
                         job.status === "APPLIED"
@@ -89,9 +91,13 @@ export default async function ImportacionesPage() {
                       {estados[STATUS_INDEX[job.status]] ?? job.status}
                     </Insignia>
                   </td>
-                  <td className="px-3 py-2 text-xs">{resumen(job)}</td>
-                  <td className="px-3 py-2">{formatDateTime(job.createdAt)}</td>
-                  <td className="px-3 py-2">
+                  <td data-label={columnas[4]} className="px-3 py-2 text-xs">
+                    {resumen(job)}
+                  </td>
+                  <td data-label={columnas[5]} className="px-3 py-2">
+                    {formatDateTime(job.createdAt)}
+                  </td>
+                  <td data-label={columnas[6]} className="px-3 py-2">
                     {job.createdById
                       ? (people.get(job.createdById)?.fullName?.trim() ?? "")
                       : t("T-515")}

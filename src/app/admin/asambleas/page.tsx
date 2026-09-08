@@ -6,6 +6,9 @@ import { occasionStatusCell } from "@/modules/participation/admin";
 import { getPeopleByIds } from "@/modules/people";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
+import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
@@ -104,9 +107,9 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
               </option>
             ))}
           </select>
-          <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
+          <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
-          </button>
+          </AdminSubmitButton>
         </form>
       </header>
 
@@ -154,16 +157,16 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
             </Link>
           ))}
         </nav>
-        <div className="overflow-x-auto">
+        <AdminTableRegion label={tList("T-665")[0] ?? ""} className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left">
                 {columns.map((label) => (
-                  <th key={label} className="eyebrow py-2 pr-4 text-xs">
+                  <th scope="col" key={label} className="eyebrow py-2 pr-4 text-xs">
                     {label}
                   </th>
                 ))}
-                <th className="py-2" />
+                <th scope="col" className="py-2" />
               </tr>
             </thead>
             <tbody>
@@ -214,68 +217,70 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
               ))}
             </tbody>
           </table>
-        </div>
+        </AdminTableRegion>
       </section>
 
       {accion === "ajustar" && target ? (
         <ResourcePanel title={tituloAjuste ?? ""} closeHref={base} closeLabel={t("T-291")}>
           <form action={adjustRequirementAction} className="flex flex-col gap-4">
-            <input type="hidden" name="termId" value={term.id} />
-            <input type="hidden" name="personId" value={target.personId} />
-            <p className="font-semibold">{target.name}</p>
-            {errorText ? (
-              <p role="alert" className="font-semibold text-oe-orange">
-                {errorText}
-              </p>
-            ) : null}
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{campoOrdinarias}</span>
-              <input
-                name="requiredOrdinary"
-                type="number"
-                min={0}
-                max={10}
-                defaultValue={target.requirement.requiredOrdinary}
-                required
-                className={inputClass}
-              />
-            </label>
-            <label className="flex items-center gap-3 text-sm">
-              <input
-                name="requiresBoardElection"
-                type="checkbox"
-                defaultChecked={target.requirement.requiresBoardElection}
-                className="size-5 accent-oe-navy"
-              />
-              <span>{campoEleccion}</span>
-            </label>
-            <label className="flex items-center gap-3 text-sm">
-              <input
-                name="requiresRunoff"
-                type="checkbox"
-                defaultChecked={target.requirement.requiresRunoff}
-                className="size-5 accent-oe-navy"
-              />
-              <span>{campoSegunda}</span>
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{campoMotivo}</span>
-              <textarea
-                name="reason"
-                required
-                rows={3}
-                defaultValue={target.requirement.reason ?? ""}
-                className={inputClass}
-              />
-            </label>
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-primario">
-                {t("T-253")}
-              </button>
-              <Link href={base} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="termId" value={term.id} />
+              <input type="hidden" name="personId" value={target.personId} />
+              <p className="font-semibold">{target.name}</p>
+              {errorText ? (
+                <p role="alert" className="font-semibold text-oe-orange">
+                  {errorText}
+                </p>
+              ) : null}
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{campoOrdinarias}</span>
+                <input
+                  name="requiredOrdinary"
+                  type="number"
+                  min={0}
+                  max={10}
+                  defaultValue={target.requirement.requiredOrdinary}
+                  required
+                  className={inputClass}
+                />
+              </label>
+              <label className="flex items-center gap-3 text-sm">
+                <input
+                  name="requiresBoardElection"
+                  type="checkbox"
+                  defaultChecked={target.requirement.requiresBoardElection}
+                  className="size-5 accent-oe-navy"
+                />
+                <span>{campoEleccion}</span>
+              </label>
+              <label className="flex items-center gap-3 text-sm">
+                <input
+                  name="requiresRunoff"
+                  type="checkbox"
+                  defaultChecked={target.requirement.requiresRunoff}
+                  className="size-5 accent-oe-navy"
+                />
+                <span>{campoSegunda}</span>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{campoMotivo}</span>
+                <textarea
+                  name="reason"
+                  required
+                  rows={3}
+                  defaultValue={target.requirement.reason ?? ""}
+                  className={inputClass}
+                />
+              </label>
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-primario">
+                  {t("T-253")}
+                </AdminSubmitButton>
+                <Link href={base} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}

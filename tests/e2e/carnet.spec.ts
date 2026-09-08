@@ -156,7 +156,7 @@ test("las rutas Wallet usan redirecciones locales y no guardan respuestas sensib
   browser,
 }) => {
   const anonymous = await browser.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: process.env.APP_URL ?? "http://localhost:3000",
     storageState: { cookies: [], origins: [] },
   });
   try {

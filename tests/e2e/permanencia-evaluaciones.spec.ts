@@ -99,7 +99,7 @@ test.describe("director de GH", () => {
       .onConflictDoNothing();
     await closeDb();
     await page.goto(`/admin/personas/${member.id}?pestana=permanencia&accion=credito`);
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await panel
       .getByLabel("Criterio")
       .selectOption({ label: `${home.name} · e2e-Apoyo especial · 6` });
@@ -154,7 +154,7 @@ test.describe("líder", () => {
     await expect(page.getByRole("heading", { name: "Puntajes" })).toBeVisible();
     const row = page.getByRole("row").filter({ hasText: "Miembro E2E" }).first();
     await row.getByRole("link", { name: "Editar" }).first().click();
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await panel.getByLabel(/Valor/).fill("3");
     await panel.getByLabel("Observación").fill("e2e-Faltó a dos reuniones");
     await panel.getByRole("button", { name: "Guardar" }).click();
@@ -164,7 +164,7 @@ test.describe("líder", () => {
     );
 
     await page.getByRole("link", { name: "Nombrar destacado" }).click();
-    const destacado = page.getByRole("complementary");
+    const destacado = page.getByRole("dialog");
     await destacado.getByLabel("Persona").selectOption({ label: "Miembro E2E" });
     await destacado.getByRole("button", { name: "Nombrar destacado" }).click();
     await expect(page.getByText(/quedó (como destacado|registrado como destacado)/)).toBeVisible();

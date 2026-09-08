@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 
 // Kanban de un pipeline (ADR-037 regla 7): columnas por etapa; cada tarjeta se mueve con "Mover a…"
@@ -133,28 +135,38 @@ export function Kanban({ columns, returnTo, moveAction }: KanbanProps) {
                     : t("T-982", { n: card.days })}
                   {card.owner ? ` · ${card.owner}` : ` · ${t("T-1060")}`}
                 </p>
-                <form action={moveAction} className="flex items-center gap-2">
-                  <input type="hidden" name="cardId" value={card.id} />
-                  <input type="hidden" name="returnTo" value={returnTo} />
-                  <label htmlFor={`mover-${card.id}`} className="sr-only">
+                <details className="mt-1">
+                  <summary className="cursor-pointer rounded-lg py-2 text-sm font-semibold text-titulo">
                     {moverA}
-                  </label>
-                  <select
-                    id={`mover-${card.id}`}
-                    name="stageId"
-                    defaultValue={column.id}
-                    className="min-w-0 flex-1 rounded-lg border border-borde bg-fondo px-2 py-1 text-sm"
-                  >
-                    {columns.map((target) => (
-                      <option key={target.id} value={target.id}>
-                        {target.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-xs">
-                    {mover}
-                  </button>
-                </form>
+                  </summary>
+                  <form action={moveAction} className="flex items-center gap-2 pt-2">
+                    <AdminFormBody>
+                      <input type="hidden" name="cardId" value={card.id} />
+                      <input type="hidden" name="returnTo" value={returnTo} />
+                      <label htmlFor={`mover-${card.id}`} className="sr-only">
+                        {moverA}
+                      </label>
+                      <select
+                        id={`mover-${card.id}`}
+                        name="stageId"
+                        defaultValue={column.id}
+                        className="min-w-0 flex-1 rounded-lg border border-borde bg-fondo px-2 py-1 text-sm"
+                      >
+                        {columns.map((target) => (
+                          <option key={target.id} value={target.id}>
+                            {target.name}
+                          </option>
+                        ))}
+                      </select>
+                      <AdminSubmitButton
+                        type="submit"
+                        className="boton-secundario min-h-8 px-3 py-1 text-xs"
+                      >
+                        {mover}
+                      </AdminSubmitButton>
+                    </AdminFormBody>
+                  </form>
+                </details>
               </li>
             ))}
           </ul>

@@ -14,7 +14,7 @@ test.describe("constructor y envío público", () => {
 
   test("ADMIN crea un formulario con campos y lo abre", async ({ page }) => {
     await page.goto("/admin/formularios?nuevo=1");
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await panel.getByLabel("Identificador").fill(SLUG);
     await panel.getByLabel("Título").fill("e2e Postulación");
     await panel.getByLabel("Descripción").fill("Contanos de vos.");
@@ -27,7 +27,7 @@ test.describe("constructor y envío público", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("e2e Postulación");
     await expect(page.getByText(/Este formulario todavía no tiene campos/)).toBeVisible();
     await page.getByRole("link", { name: "Agregar campo" }).click();
-    const campo = page.getByRole("complementary");
+    const campo = page.getByRole("dialog");
     await campo.getByLabel("Clave").fill("motivo");
     await campo.getByLabel("Etiqueta").fill("¿Por qué querés entrar?");
     await campo.getByLabel("Tipo").selectOption("TEXTAREA");
@@ -35,7 +35,7 @@ test.describe("constructor y envío público", () => {
     await campo.getByRole("button", { name: "Guardar" }).click();
     await expect(page.getByText("Campos guardados.")).toBeVisible();
     await page.getByRole("link", { name: "Agregar campo" }).click();
-    const segundo = page.getByRole("complementary");
+    const segundo = page.getByRole("dialog");
     await segundo.getByLabel("Clave").fill("comite");
     await segundo.getByLabel("Etiqueta").fill("Comité que te interesa");
     await segundo.getByLabel("Tipo").selectOption("SELECT");
@@ -116,7 +116,7 @@ test.describe("bandeja y Persona 360", () => {
     await expect(page.getByRole("cell", { name: EMAIL })).toBeVisible();
     await expect(page.getByRole("cell", { name: "e2e-bot@spam.test" })).toHaveCount(0);
     await page.getByRole("link", { name: "Lu Prueba" }).first().click();
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await expect(panel.getByText("Quiero aportar en logística.")).toBeVisible();
     await expect(panel.getByText("A3", { exact: true })).toBeVisible();
     await sinViolaciones(page);
@@ -140,7 +140,7 @@ test.describe("inscripción a una edición desde un formulario de miembros", () 
   test("el formulario de miembros exige sesión e inscribe a la edición", async ({ page }) => {
     // Un formulario de miembros ligado a la primera edición publicada.
     await page.goto("/admin/formularios?nuevo=1");
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await panel.getByLabel("Identificador").fill("e2e-inscripcion");
     await panel.getByLabel("Título").fill("e2e Inscripción");
     await panel.getByLabel("Audiencia").selectOption("MEMBERS");

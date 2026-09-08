@@ -4,23 +4,25 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createRequestAs, REQUEST_KINDS, withdrawRequestAs } from "@/modules/crm";
+import {
+  createRequestAs,
+  REQUEST_KINDS,
+  REQUEST_PAYLOAD_SCHEMAS,
+  type RequestKind,
+  withdrawRequestAs,
+} from "@/modules/crm";
 import { getActor } from "@/modules/identity";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 import { clientIp } from "@/shared/lib/request";
-
-// Solicitudes desde Mi OE (ADR-037 regla 9): licencia, retiro voluntario y cambio de comité para el
-// semestre siguiente; una pendiente se puede retirar.
+import type { RequestActionState } from "./form-state";
 
 const LOGIN = "/ingresar?next=%2Fapp%2Fsolicitudes";
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 
 async function requireOwnActor() {
   const actor = await getActor();
-  if (!actor) {
-    redirect(LOGIN);
-  }
+  if (!actor) redirect(LOGIN);
   return { personId: actor.personId, ip: await clientIp() };
 }
 
@@ -29,18 +31,15 @@ function text(formData: FormData, name: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function back(extra: Record<string, string> = {}, section = "solicitudes"): never {
-  const query = new URLSearchParams(extra).toString();
-  redirect(`/app/solicitudes${query ? `?${query}` : ""}#${section}`);
-}
-
-export async function createRequestAction(formData: FormData): Promise<void> {
+export async function createRequestAction(
+  _previous: RequestActionState,
+  formData: FormData,
+): Promise<RequestActionState> {
   const actor = await requireOwnActor();
   const kind = text(formData, "kind");
   if (!(REQUEST_KINDS as readonly string[]).includes(kind)) {
-    back();
+    return { error: t("T-1581") };
   }
-  const section = kind.toLowerCase();
   const payload =
     kind === "LEAVE"
       ? { reason: text(formData, "reason"), until: text(formData, "until") || undefined }
@@ -60,32 +59,55 @@ export async function createRequestAction(formData: FormData): Promise<void> {
               .getAll("joinCommitteeIds")
               .filter((item): item is string => typeof item === "string" && item !== ""),
           };
+  const parsed = REQUEST_PAYLOAD_SCHEMAS[kind as RequestKind].safeParse(payload);
+  const fieldErrors: Record<string, string> = {};
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      const field = String(issue.path[0] ?? "");
+      fieldErrors[field] =
+        field === "reason"
+          ? t("T-1585")
+          : field === "until"
+            ? t("T-1586")
+            : field === "personalEmail"
+              ? t("T-1587")
+              : t("T-887");
+    }
+  }
   if (kind === "RESIGNATION" && formData.get("confirm") !== "on") {
-    back({ error: t("T-890") }, section);
+    fieldErrors.confirm = t("T-890");
+  }
+  if (Object.keys(fieldErrors).length > 0) {
+    return { error: t("T-1584"), fieldErrors };
   }
   try {
-    await createRequestAs(actor, kind as "LEAVE" | "RESIGNATION" | "TRANSFER", payload);
+    await createRequestAs(actor, kind as RequestKind, payload);
   } catch (error) {
     if (error instanceof DomainError) {
-      back({ error: error.message }, section);
+      return {
+        error: error.message,
+        ...(error.field ? { fieldErrors: { [error.field]: error.message } } : {}),
+      };
     }
     throw error;
   }
   revalidatePath("/app/solicitudes");
-  back({ enviada: "1" });
+  return { success: true };
 }
 
-export async function withdrawRequestAction(formData: FormData): Promise<void> {
+export async function withdrawRequestAction(
+  _previous: RequestActionState,
+  formData: FormData,
+): Promise<RequestActionState> {
   const actor = await requireOwnActor();
-  const requestId = idSchema.parse(formData.get("requestId"));
+  const requestId = idSchema.safeParse(formData.get("requestId"));
+  if (!requestId.success) return { error: t("T-032") };
   try {
-    await withdrawRequestAs(actor, requestId);
+    await withdrawRequestAs(actor, requestId.data);
   } catch (error) {
-    if (error instanceof DomainError) {
-      back({ error: error.message });
-    }
+    if (error instanceof DomainError) return { error: error.message };
     throw error;
   }
   revalidatePath("/app/solicitudes");
-  back({ retirada: "1" });
+  return { success: true };
 }

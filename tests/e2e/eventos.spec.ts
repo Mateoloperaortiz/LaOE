@@ -25,7 +25,7 @@ test("un ADMIN crea una edición con portada y organizadores y el visitante la v
     .click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Ediciones · Días EAFIT");
   await page.getByRole("link", { name: "Nuevo" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   // El evento viene fijado por la ruta.
   await expect(panel.getByLabel("Evento")).toHaveValue(/.+/);
   await page.getByLabel("Nombre de la edición (por ejemplo 2026-2)").fill(nombre);
@@ -36,9 +36,8 @@ test("un ADMIN crea una edición con portada y organizadores y el visitante la v
   await panel.getByLabel("Lugar").fill("Auditorio de prueba");
   const opcionPortada = panel.getByLabel("Portada").locator("option", { hasText: portada });
   await panel.getByLabel("Portada").selectOption((await opcionPortada.getAttribute("value")) ?? "");
-  await panel
-    .getByLabel("Comités organizadores")
-    .selectOption([{ label: "A3" }, { label: "AGRO" }]);
+  await panel.getByRole("checkbox", { name: "A3", exact: true }).check();
+  await panel.getByRole("checkbox", { name: "AGRO", exact: true }).check();
   await panel.getByLabel("Publicación").selectOption("PUBLISHED");
   await panel.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Guardado.")).toBeVisible();

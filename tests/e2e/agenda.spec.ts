@@ -17,7 +17,7 @@ test.describe("ADMIN abre una actividad general", () => {
   test("queda abierta", async ({ page }) => {
     await page.goto("/admin/ocasiones");
     await page.getByRole("link", { name: "Nuevo" }).click();
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await panel.getByLabel("Título").fill(TITULO);
     await panel.getByLabel("Empieza").fill(manana());
     await panel.getByLabel("Lugar").fill("Bloque 29");

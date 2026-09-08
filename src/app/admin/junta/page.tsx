@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { requireBoardActor } from "@/modules/identity";
 import { boardIndicators } from "@/modules/permanence";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
+import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 
@@ -84,9 +86,9 @@ export default async function JuntaPage({ searchParams }: PageProps<"/admin/junt
                 </option>
               ))}
             </select>
-            <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
+            <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
               {t("T-250")}
-            </button>
+            </AdminSubmitButton>
           </form>
           <a
             href={`/api/export/junta?termId=${term.id}`}
@@ -116,12 +118,12 @@ export default async function JuntaPage({ searchParams }: PageProps<"/admin/junt
           {sectionLabels[0]}
         </h2>
         <p className="text-sm text-tinta-suave">{t("T-826")}</p>
-        <div className="overflow-x-auto">
+        <AdminTableRegion label={sectionLabels[0] ?? t("T-821")} className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left">
                 {retentionColumns.map((column) => (
-                  <th key={column} className="eyebrow py-2 pr-3 text-xs">
+                  <th scope="col" key={column} className="eyebrow py-2 pr-3 text-xs">
                     {column}
                   </th>
                 ))}
@@ -139,7 +141,7 @@ export default async function JuntaPage({ searchParams }: PageProps<"/admin/junt
               ))}
             </tbody>
           </table>
-        </div>
+        </AdminTableRegion>
       </section>
 
       <section aria-labelledby="nuevos" className="flex flex-col gap-3">
@@ -167,12 +169,12 @@ export default async function JuntaPage({ searchParams }: PageProps<"/admin/junt
         <h2 id="comites" className="text-display-md">
           {sectionLabels[2]} · {sectionLabels[3]}
         </h2>
-        <div className="overflow-x-auto">
+        <AdminTableRegion label={sectionLabels[2] ?? t("T-821")} className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left">
                 {committeeColumns.map((column) => (
-                  <th key={column} className="eyebrow py-2 pr-3 text-xs">
+                  <th scope="col" key={column} className="eyebrow py-2 pr-3 text-xs">
                     {column}
                   </th>
                 ))}
@@ -192,7 +194,7 @@ export default async function JuntaPage({ searchParams }: PageProps<"/admin/junt
               ))}
             </tbody>
           </table>
-        </div>
+        </AdminTableRegion>
       </section>
 
       <section aria-labelledby="ocasiones" className="flex flex-col gap-3">

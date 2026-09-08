@@ -172,7 +172,14 @@ const templateFields: FieldDefinition[] = [
   { name: "slug", label: fieldSlug ?? "", type: "text", required: true, placeholder: "bienvenida" },
   { name: "name", label: fieldName ?? "", type: "text", required: true },
   { name: "subject", label: fieldSubject ?? "", type: "text", required: true },
-  { name: "body", label: fieldBody ?? "", type: "textarea", rows: 14, help: t("T-1118") },
+  {
+    name: "body",
+    label: fieldBody ?? "",
+    type: "textarea",
+    textVariant: "code",
+    rows: 14,
+    help: t("T-1118"),
+  },
 ];
 
 export const templatesResource: ResourceDefinition<TemplateRow, TemplateInput> = {

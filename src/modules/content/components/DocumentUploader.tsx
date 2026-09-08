@@ -18,6 +18,12 @@ type Labels = {
   errorSize: string;
   errorUpload: string;
   errorTitle: string;
+  submit: string;
+  errorFile: string;
+  chooseFile: string;
+  noFile: string;
+  replaceFile: string;
+  removeFile: string;
 };
 
 type Props = {
@@ -54,7 +60,9 @@ const inputClass =
 export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Props) {
   const router = useRouter();
   const base = useId();
+  const uploading = useRef(false);
   const input = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState(kindCodes[0] ?? "OTRO");
   const [version, setVersion] = useState("");
@@ -63,6 +71,7 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
   const [tituloL, tipoL, versionL, audienciaL, archivoL] = labels.fields;
 
   async function upload(file: File) {
+    if (uploading.current) return;
     if (title.trim().length < 2 || version.trim().length === 0) {
       setState({ kind: "error", message: labels.errorTitle });
       return;
@@ -75,6 +84,7 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
       setState({ kind: "error", message: labels.errorSize });
       return;
     }
+    uploading.current = true;
     setState({ kind: "uploading", name: file.name });
     try {
       const presign = await fetch("/api/documentos/presign", {
@@ -110,25 +120,36 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
       if (!confirm.ok) {
         throw new Error(await readError(confirm, labels.errorUpload));
       }
+      const result = (await confirm.json()) as { id: string };
       setState({ kind: "done" });
-      setTitle("");
-      setVersion("");
-      router.refresh();
+      router.push(`/admin/documentos/${result.id}?subido=1`);
     } catch (error) {
       setState({
         kind: "error",
         message: error instanceof Error ? error.message : labels.errorUpload,
       });
     } finally {
-      if (input.current) {
-        input.current.value = "";
-      }
+      uploading.current = false;
     }
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-[var(--radius-cartel)] border border-borde bg-fondo-suave p-6 textura-granito">
-      <div className="flex flex-wrap items-end gap-4">
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (file) void upload(file);
+        else setState({ kind: "error", message: labels.errorFile });
+      }}
+      className="admin-upload flex min-w-0 flex-col gap-5"
+      aria-busy={state.kind === "uploading"}
+    >
+      <p id={`${base}-help`} className="text-sm text-tinta-suave">
+        {labels.help}
+      </p>
+      <fieldset
+        disabled={state.kind === "uploading" || state.kind === "done"}
+        className="grid min-w-0 gap-4 sm:grid-cols-2"
+      >
         <div className="flex flex-col gap-1">
           <label htmlFor={`${base}-title`} className="eyebrow text-xs">
             {tituloL}
@@ -136,8 +157,11 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
           <input
             id={`${base}-title`}
             value={title}
+            required
+            minLength={2}
+            maxLength={200}
             onChange={(event) => setTitle(event.target.value)}
-            className={`${inputClass} w-72 max-w-full`}
+            className={`${inputClass} w-full min-w-0`}
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -164,8 +188,10 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
           <input
             id={`${base}-version`}
             value={version}
+            required
+            maxLength={60}
             onChange={(event) => setVersion(event.target.value)}
-            className={`${inputClass} w-44`}
+            className={`${inputClass} w-full min-w-0`}
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -184,7 +210,7 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
             <option value="MEMBERS">{labels.audiences[1]}</option>
           </select>
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-2 sm:col-span-2">
           <label htmlFor={`${base}-file`} className="eyebrow text-xs">
             {archivoL}
           </label>
@@ -193,27 +219,56 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
             id={`${base}-file`}
             type="file"
             accept="application/pdf,.pdf"
-            disabled={state.kind === "uploading"}
+            aria-describedby={`${base}-help`}
             onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) {
-                void upload(file);
-              }
+              setFile(event.target.files?.[0] ?? null);
+              setState({ kind: "idle" });
             }}
-            className="block max-w-xs text-sm file:mr-3 file:rounded-full file:border-0 file:bg-oe-orange file:px-4 file:py-2 file:font-bold file:text-oe-navy"
+            className="peer sr-only"
           />
+          <label
+            htmlFor={`${base}-file`}
+            className="admin-file-picker flex min-w-0 cursor-pointer flex-wrap items-center gap-3 rounded-xl border border-dashed border-borde p-4 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-titulo"
+          >
+            <span className="font-semibold text-titulo">
+              {file ? labels.replaceFile : labels.chooseFile}
+            </span>
+            <span className="min-w-0 break-all text-sm text-tinta-suave">
+              {file
+                ? `${file.name} · ${new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 }).format(file.size / (file.size >= 1024 * 1024 ? 1024 * 1024 : 1024))} ${file.size >= 1024 * 1024 ? "MB" : "KB"}`
+                : labels.noFile}
+            </span>
+          </label>
+          {file ? (
+            <button
+              type="button"
+              className="self-start text-sm font-semibold underline"
+              onClick={() => {
+                setFile(null);
+                setState({ kind: "idle" });
+                if (input.current) input.current.value = "";
+              }}
+            >
+              {labels.removeFile}
+            </button>
+          ) : null}
         </div>
-      </div>
-      <p className="max-w-prose text-sm text-tinta-suave">{labels.help}</p>
+        <button type="submit" className="boton-calido justify-self-start sm:col-span-2">
+          {labels.submit}
+        </button>
+      </fieldset>
       <output className="block text-sm font-semibold" aria-live="polite">
         {state.kind === "uploading" ? labels.uploading.replace("{nombre}", state.name) : null}
         {state.kind === "done" ? labels.done : null}
         {state.kind === "error" ? (
-          <span className="inline-block rounded-lg bg-oe-orange px-2 py-1 text-oe-navy">
+          <span
+            role="alert"
+            className="inline-block rounded-lg bg-oe-orange px-2 py-1 text-oe-navy"
+          >
             {state.message}
           </span>
         ) : null}
       </output>
-    </div>
+    </form>
   );
 }

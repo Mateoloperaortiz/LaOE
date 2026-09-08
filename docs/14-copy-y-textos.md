@@ -300,7 +300,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-405 | Ajustes y admin, campo del correo personal | Correo personal | MATEO | Propuesta |
 | T-406 | Ajustes y admin, campo del correo institucional | Correo institucional | MATEO | Propuesta |
 | T-407 | Ajustes, botón para subir la foto | Subir foto | MATEO | Propuesta |
-| T-408 | Ajustes, ayuda de la foto | JPG, PNG o WebP de hasta 5 MB. Solo se muestra si autorizás la foto en el directorio. | MATEO | Propuesta |
+| T-408 | Ajustes, ayuda de la foto | JPG, PNG o WebP de entre 5 KB y 5 MB. Solo se muestra si autorizás la foto en el directorio. | MATEO | Propuesta |
 | T-409 | Ajustes, quitar la foto | Quitar foto | MATEO | Propuesta |
 | T-410 | Ajustes y admin, celular inválido | Ese celular no tiene un formato válido. Escribí 10 dígitos. | MATEO | Propuesta |
 | T-411 | Consentimientos, estado autorizado | Autorizado el {fecha} (política versión {v}) | JUNTA | Propuesta |
@@ -311,7 +311,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-416 | Eliminación, solicitud registrada | Tu solicitud quedó registrada el {fecha}. GH responde en {n} días hábiles. | JUNTA | Propuesta |
 | T-417 | Eliminación, botón de confirmación | Sí, pedir la eliminación | JUNTA | Propuesta |
 | T-418 | Ajustes, título de la página | Ajustes | MATEO | Propuesta |
-| T-419 | Ajustes, foto fuera de tipo o tamaño | La foto debe ser JPG, PNG o WebP de hasta 5 MB. | MATEO | Propuesta |
+| T-419 | Ajustes, foto fuera de tipo o tamaño | La foto debe ser JPG, PNG o WebP de entre 5 KB y 5 MB. | MATEO | Propuesta |
 
 ### Mi OE · fase 3 (GH Points, registro de asistencia, agenda)
 
@@ -1420,3 +1420,163 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-1302 | Normativa, edición de publicado | Despublicá el documento antes de reemplazar su contenido y revisalo antes de volver a publicarlo. | MATEO | Propuesta |
 | T-1303 | Normativa, imagen inválida | Las imágenes del documento deben estar disponibles y ser privadas. Revisá sus referencias. | MATEO | Propuesta |
 | T-1304 | Normativa, publicación concurrente | El contenido cambió desde tu revisión. Revisá la vista previa antes de publicarlo. | MATEO | Propuesta |
+
+## Administración · experiencia de trabajo (ADR-043)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-1400 | Navegación administrativa, grupos | Comunidad · Gestión · Contenido · Comunicaciones · Participación · Permanencia · Sistema | MATEO | Propuesta |
+| T-1401 | Navegación administrativa, inicio | Inicio | MATEO | Propuesta |
+| T-1402 | Navegación administrativa, abrir | Menú | MATEO | Propuesta |
+| T-1403 | Navegación administrativa, cuenta | Tu cuenta | MATEO | Propuesta |
+| T-1404 | Administración, salto de navegación | Saltar al contenido | MATEO | Propuesta |
+| T-1405 | Administración, búsqueda | Buscar | MATEO | Propuesta |
+| T-1406 | Administración, búsqueda pendiente | Buscando… | MATEO | Propuesta |
+| T-1407 | Administración, error de búsqueda | No pudimos buscar. Intentá de nuevo. | MATEO | Propuesta |
+| T-1408 | Administración, ayuda de búsqueda | Buscá personas, comités, ocasiones u organizaciones. | MATEO | Propuesta |
+| T-1409 | Administración, búsqueda reintento | Volver a buscar | MATEO | Propuesta |
+| T-1410 | Administración, contexto del tablero | Tu espacio de trabajo | MATEO | Propuesta |
+| T-1420 | Filtros del listado | Filtros | MATEO | Propuesta |
+| T-1421 | Aplicar filtros | Aplicar filtros | MATEO | Propuesta |
+| T-1422 | Restablecer listado | Limpiar filtros | MATEO | Propuesta |
+| T-1423 | Conteo listado | Registros: {n} | MATEO | Propuesta |
+| T-1424 | Colección vacía | Todavía no hay registros. | MATEO | Propuesta |
+| T-1425 | Ayuda colección vacía | Creá el primer registro para empezar. | MATEO | Propuesta |
+| T-1426 | Columna y menú acciones | Acciones | MATEO | Propuesta |
+| T-1427 | Guardado pendiente | Guardando… | MATEO | Propuesta |
+| T-1428 | Buscador multiselección | Buscá una opción | MATEO | Propuesta |
+| T-1429 | Conteo multiselección | Seleccionadas: {n} | MATEO | Propuesta |
+| T-1430 | Marca campo | Obligatorio | MATEO | Propuesta |
+| T-1431 | Acción fila pendiente | Procesando… | MATEO | Propuesta |
+| T-1432 | Caption por defecto | Listado de registros | MATEO | Propuesta |
+| T-1433 | Opciones sin coincidencias | No hay opciones para esa búsqueda. | MATEO | Propuesta |
+| T-1434 | Opción filtro sin restricción | Todos | MATEO | Propuesta |
+| T-1435 | Colección de opciones vacía | Todavía no hay opciones disponibles. | MATEO | Propuesta |
+| T-1460 | Administración: archivos e importación | Subir PDF | MATEO | Propuesta |
+| T-1461 | Administración: archivos e importación | Guardá los PDF, revisá su contenido y elegí cuándo publicarlos. | MATEO | Propuesta |
+| T-1462 | Administración: archivos e importación | Todavía no hay documentos. Subí el primer PDF para empezar. | MATEO | Propuesta |
+| T-1463 | Administración: archivos e importación | Buscá documentos por título | MATEO | Propuesta |
+| T-1464 | Administración: archivos e importación | Escribí un título de al menos 2 caracteres y una versión. | MATEO | Propuesta |
+| T-1465 | Administración: archivos e importación | PDF de 1 KB a 20 MB. Quedará en borrador hasta que revises el contenido y lo publiques. | MATEO | Propuesta |
+| T-1466 | Administración: archivos e importación | Seleccioná un archivo para continuar. | MATEO | Propuesta |
+| T-1467 | Administración: archivos e importación | Contenido y publicación | MATEO | Propuesta |
+| T-1468 | Administración: archivos e importación | Cargá el archivo JSON revisado del documento. Si está publicado, despublicalo antes de reemplazar el contenido; después revisalo y volvé a publicar. | MATEO | Propuesta |
+| T-1469 | Administración: archivos e importación | Documento publicado. | MATEO | Propuesta |
+| T-1470 | Administración: archivos e importación | Documento en borrador. | MATEO | Propuesta |
+| T-1471 | Administración: archivos e importación | Todavía no hay imágenes. Subí la primera para usarla en páginas y anuncios. | MATEO | Propuesta |
+| T-1472 | Administración: archivos e importación | Buscá imágenes por nombre | MATEO | Propuesta |
+| T-1473 | Administración: archivos e importación | Elegí la imagen y su visibilidad antes de subirla. | MATEO | Propuesta |
+| T-1474 | Administración: archivos e importación | Limpiar búsqueda | MATEO | Propuesta |
+| T-1475 | Administración: archivos e importación | Continuar a la revisión | MATEO | Propuesta |
+| T-1476 | Administración: archivos e importación | Continuar a la confirmación | MATEO | Propuesta |
+| T-1477 | Administración: archivos e importación | Volver al mapeo | MATEO | Propuesta |
+| T-1478 | Administración: archivos e importación | Volver a la revisión | MATEO | Propuesta |
+| T-1479 | Administración: archivos e importación | Revisá el resumen y los permisos de líder antes de aplicar. Las filas con errores se omitirán. | MATEO | Propuesta |
+| T-1480 | Administración: archivos e importación | Importá personas en cuatro pasos. Podés revisar los cambios antes de aplicarlos. | MATEO | Propuesta |
+| T-1481 | Administración: archivos e importación | Archivo seleccionado: {nombre} | MATEO | Propuesta |
+| T-1482 | Administración: archivos e importación | No hay personas nuevas ni cambios para aplicar. | MATEO | Propuesta |
+| T-1483 | Administración: archivos e importación | Resumen de la importación | MATEO | Propuesta |
+| T-1484 | Administración: archivos e importación | Filas con errores: {n} | MATEO | Propuesta |
+| T-1485 | Administración: archivos e importación | Elegir archivo | MATEO | Propuesta |
+| T-1486 | Administración: archivos e importación | Ningún archivo seleccionado. | MATEO | Propuesta |
+| T-1500 | Administración: acciones y navegación | Más acciones | MATEO | Propuesta |
+| T-1501 | Administración: acciones y navegación | Procesando… | MATEO | Propuesta |
+| T-1502 | Administración: acciones y navegación | Sección | MATEO | Propuesta |
+| T-1487 | Importación: pasos | Archivo y semestre · Columnas · Revisión · Confirmación | MATEO | Propuesta |
+| T-1488 | Archivos: reemplazo | Reemplazar archivo | MATEO | Propuesta |
+| T-1489 | Archivos: quitar selección | Quitar archivo | MATEO | Propuesta |
+| T-1490 | Importación: selección desactualizada | Las propuestas de permisos cambiaron. Revisalas y elegí de nuevo cuáles querés aplicar. | MATEO | Propuesta |
+
+## Mi OE · solicitudes guiadas
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-1580 | Solicitudes: comienzo | Nueva solicitud | MATEO | Propuesta |
+| T-1581 | Solicitudes: elección de trámite | Elegí qué querés solicitar para ver los datos que necesitás completar. | MATEO | Propuesta |
+| T-1582 | Solicitudes: volver a la selección | Cambiar de trámite | MATEO | Propuesta |
+| T-1583 | Solicitudes: envío pendiente | Enviando solicitud… | MATEO | Propuesta |
+| T-1584 | Solicitudes: resumen de errores | Revisá los campos señalados antes de enviar. | MATEO | Propuesta |
+| T-1585 | Solicitudes: motivo inválido y ayuda | Escribí entre 2 y 500 caracteres. | MATEO | Propuesta |
+| T-1586 | Solicitudes: fecha inválida | Ingresá una fecha válida. | MATEO | Propuesta |
+| T-1587 | Solicitudes: correo inválido | Revisá el correo: debe tener un formato válido y hasta 254 caracteres. | MATEO | Propuesta |
+| T-1588 | Solicitudes: fallo de envío | No pudimos confirmar el envío. Tus datos siguen acá; intentá de nuevo. | MATEO | Propuesta |
+| T-1589 | Solicitudes: buscar comités | Buscá un comité | MATEO | Propuesta |
+| T-1590 | Solicitudes: comités seleccionados | Seleccionados: {n} | MATEO | Propuesta |
+| T-1591 | Solicitudes: comités sin coincidencias | No hay comités para esa búsqueda. | MATEO | Propuesta |
+| T-1592 | Solicitudes: sin opciones de comités | No hay comités disponibles en esta lista. | MATEO | Propuesta |
+| T-1593 | Solicitudes: datos del formulario | Datos de la solicitud | MATEO | Propuesta |
+| T-1594 | Solicitudes: retiro pendiente | Retirando solicitud… | MATEO | Propuesta |
+| T-1595 | Solicitudes: fallo al retirar | No pudimos confirmar el retiro. Intentá de nuevo. | MATEO | Propuesta |
+| T-1596 | Solicitudes: fecha opcional, ayuda | Si todavía no sabés la fecha, dejá este campo vacío. | MATEO | Propuesta |
+| T-1597 | Solicitudes: recuento de historial | Solicitudes: {n} | MATEO | Propuesta |
+| T-1598 | Solicitudes: ver seguimiento | Ver mis solicitudes | MATEO | Propuesta |
+
+## Portal: navegación y descubrimiento (2026-09-08)
+
+| Código | Ubicación | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-1540 | Portal: nombre de la navegación | Navegación del portal | COM | Propuesta |
+| T-1541 | Portal: abrir menú móvil | Menú | COM | Propuesta |
+| T-1542 | Portal: cerrar menú móvil | Cerrar menú | COM | Propuesta |
+| T-1543 | Portal: acción para visitantes sin admisión abierta | Unite a la OE | COM | Propuesta |
+| T-1544 | Portal: buscar comité | Buscá un comité | COM | Propuesta |
+| T-1545 | Portal: aplicar búsqueda | Buscar | COM | Propuesta |
+| T-1546 | Portal: ayuda de búsqueda de comités | Escribí el nombre o la sigla del comité. | COM | Propuesta |
+| T-1547 | Portal: recuento de comités | Comités: {n} de {total} | COM | Propuesta |
+| T-1548 | Unirse: convocatoria cerrada sin lista de interés | Ahora no hay convocatoria abierta. Cuando haya una nueva, vas a encontrarla acá. Mientras tanto, conocé nuestros eventos. | GH | Propuesta |
+| T-1549 | Portal: acceso breve de miembros | Mi OE | COM | Propuesta |
+| T-1550 | Portal: búsqueda sin coincidencias | No encontramos comités con ese nombre o sigla. Probá otra búsqueda o limpiala para verlos todos. | COM | Propuesta |
+| T-1551 | Portal: colección de comités vacía | Todavía no hay comités publicados. | COM | Propuesta |
+
+## Experiencia cotidiana de Mi OE (ADR-044)
+
+| Código | Ubicación | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-1660 | Marca de la aplicación | Mi OE | MATEO | Propuesta |
+| T-1661 | Navegación y página | Agenda | MATEO | Propuesta |
+| T-1662 | Menú secundario | Más | MATEO | Propuesta |
+| T-1663 | Nombre accesible de navegación | Navegación de Mi OE | MATEO | Propuesta |
+| T-1664 | Grupo del menú | Comunidad | MATEO | Propuesta |
+| T-1665 | Grupo del menú | Tu participación | MATEO | Propuesta |
+| T-1666 | Grupo del menú | Tu cuenta | MATEO | Propuesta |
+| T-1667 | Agenda resumida | Ver agenda completa | MATEO | Propuesta |
+| T-1668 | Actividad plegable | Mostrar detalles | MATEO | Propuesta |
+| T-1669 | Detalle de actividad | Detalles de la actividad | MATEO | Propuesta |
+| T-1670 | Actividad con registro abierto | Registrar asistencia | MATEO | Propuesta |
+| T-1671 | Actividad próxima | El registro abre el {fecha}. | MATEO | Propuesta |
+| T-1672 | Introducción de Agenda | Consultá las próximas actividades y sus detalles. Cuando abra el registro, podés marcar tu asistencia desde acá. | MATEO | Propuesta |
+| T-1673 | Acceso al carnet | Abrir mi carnet | MATEO | Propuesta |
+| T-1674 | Ayuda de carnet en Inicio | Tené tu código a mano para registrar tu asistencia. | MATEO | Propuesta |
+| T-1675 | Avisos de permanencia plegables | Ver avisos de permanencia ({n}) | MATEO | Propuesta |
+| T-1676 | Onboarding resumido | Tus primeros pasos · {n} pendientes | MATEO | Propuesta |
+| T-1677 | Onboarding secundario | Pasos completados ({n}) | MATEO | Propuesta |
+| T-1678 | Recuento del directorio | {n} personas | MATEO | Propuesta |
+| T-1679 | Directorio sin personas | Todavía no hay personas disponibles en el directorio. | MATEO | Propuesta |
+| T-1680 | Directorio: retirar consulta | Limpiar filtros | MATEO | Propuesta |
+| T-1681 | Agenda sin actividades | Todavía no hay actividades programadas. Podés consultar la cartelera y volver más adelante. | MATEO | Propuesta |
+| T-1682 | Onboarding terminado | Ya completaste tus primeros pasos. | MATEO | Propuesta |
+| T-1683 | Nombre accesible de menú | Todas las secciones de Mi OE | MATEO | Propuesta |
+| T-1684 | Detalle: ventana de registro | Registro de asistencia | MATEO | Propuesta |
+| T-1685 | Enlace de agenda | Ver actividad | MATEO | Propuesta |
+| T-1686 | Retorno de detalle | Volver a la agenda | MATEO | Propuesta |
+| T-1687 | Estado de agenda seleccionada | Esa actividad ya no está en la agenda. Consultá las próximas actividades. | MATEO | Propuesta |
+| T-1688 | Directorio sin semestre | Todavía no hay un semestre activo para consultar el directorio. | MATEO | Propuesta |
+
+## Ajustes de Mi OE: selección de foto y categorías (2026-09-08)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-1620 | Foto propia, envío explícito | Guardar foto | MATEO | Propuesta |
+| T-1621 | Foto propia, selector | Seleccionar foto | MATEO | Propuesta |
+| T-1622 | Foto propia, reemplazar selección | Reemplazar selección | MATEO | Propuesta |
+| T-1623 | Foto propia, descartar selección | Quitar selección | MATEO | Propuesta |
+| T-1624 | Foto propia, antes de seleccionar | Seleccioná una imagen para revisarla antes de guardar. | MATEO | Propuesta |
+| T-1625 | Foto propia, alternativa de vista previa | Vista previa de la foto seleccionada | MATEO | Propuesta |
+| T-1626 | Foto propia, eliminación en curso | Quitando tu foto… | MATEO | Propuesta |
+| T-1627 | Foto propia, eliminación confirmada | Listo, quitamos tu foto. | MATEO | Propuesta |
+| T-1628 | Ajustes, envío en curso | Guardando… | MATEO | Propuesta |
+| T-1629 | Ajustes, error de envío | No pudimos guardar. Conservamos tus cambios para que lo intentés de nuevo. | MATEO | Propuesta |
+| T-1630 | Ajustes, grupo de datos de contacto | Datos de contacto | MATEO | Propuesta |
+| T-1631 | Ajustes, validación de campo | Revisá este campo. | MATEO | Propuesta |
+| T-1632 | Ajustes, validación general | Revisá los campos marcados antes de guardar. | MATEO | Propuesta |
+| T-1633 | Ajustes, contexto de categorías | Elegí qué querés ajustar. Tus datos, dispositivos y permisos están organizados por sección. | MATEO | Propuesta |

@@ -1,0 +1,177 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { LogoOE } from "@/shared/brand";
+import { t } from "@/shared/copy";
+
+type Destination = { href: string; label: string };
+type Group = { label: string; items: Destination[] };
+
+function Icon({ kind }: { kind: number }) {
+  const paths = [
+    "M3 10 12 3l9 7v11h-6v-7H9v7H3Z",
+    "M5 5h14v16H5ZM8 2v6m8-6v6M5 10h14",
+    "M3 5h18v14H3Zm4 4h4v4H7Zm8 0h3m-3 4h3M7 16h11",
+    "m12 3 3 6 6 1-4 5 1 6-6-3-6 3 1-6-4-5 6-1Z",
+    "M4 6h16M4 12h16M4 18h16",
+  ];
+  return (
+    <svg
+      aria-hidden="true"
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={paths[kind]} />
+    </svg>
+  );
+}
+
+export function MemberShell({
+  children,
+  primary,
+  groups,
+  theme,
+  account,
+}: {
+  children: ReactNode;
+  primary: Destination[];
+  groups: Group[];
+  theme: ReactNode;
+  account: ReactNode;
+}) {
+  const pathname = usePathname();
+  const drawer = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const active = (href: string) =>
+    href === "/app" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  useEffect(() => {
+    if (pathname) drawer.current?.close();
+  }, [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+  return (
+    <div className="member-shell">
+      <a className="member-skip-link" href="#member-content">
+        {t("T-035")}
+      </a>
+      <header className="member-topbar">
+        <div className="member-topbar-inner">
+          <Link href="/app" className="member-brand" aria-label={t("T-1660")}>
+            <LogoOE height={44} />
+            <span>{t("T-1660")}</span>
+          </Link>
+          <nav className="member-primary-nav" aria-label={t("T-1663")}>
+            {primary.map((item, index) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active(item.href) ? "page" : undefined}
+              >
+                <Icon kind={index} />
+                <span>{item.label}</span>
+              </Link>
+            ))}
+            <button
+              ref={trigger}
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded={open}
+              aria-controls="member-menu"
+              className={
+                groups.some((group) => group.items.some((item) => active(item.href)))
+                  ? "member-menu-current"
+                  : undefined
+              }
+              onClick={() => {
+                drawer.current?.showModal();
+                setOpen(true);
+              }}
+            >
+              <Icon kind={4} />
+              <span>{t("T-1662")}</span>
+            </button>
+          </nav>
+          <div className="member-theme">{theme}</div>
+        </div>
+      </header>
+      <main id="member-content" tabIndex={-1} className="member-content">
+        {children}
+      </main>
+      <dialog
+        id="member-menu"
+        ref={drawer}
+        className="member-menu"
+        aria-labelledby="member-menu-title"
+        onClose={() => {
+          setOpen(false);
+          trigger.current?.focus({ preventScroll: true });
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Tab") return;
+          const elements = Array.from(
+            event.currentTarget.querySelectorAll<HTMLElement>(
+              "a[href], button:not([disabled]), [tabindex='0']",
+            ),
+          ).filter((element) => element.getClientRects().length > 0);
+          const first = elements[0];
+          const last = elements.at(-1);
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last?.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first?.focus();
+          }
+        }}
+      >
+        <header className="member-menu-header">
+          <h2 id="member-menu-title">{t("T-1660")}</h2>
+          <button
+            type="button"
+            className="boton-secundario"
+            onClick={() => drawer.current?.close()}
+          >
+            {t("T-291")}
+          </button>
+        </header>
+        <nav aria-label={t("T-1683")}>
+          {groups.map((group) => (
+            <section key={group.label}>
+              <h3>{group.label}</h3>
+              <ul>
+                {group.items.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      aria-current={active(item.href) ? "page" : undefined}
+                      onClick={() => drawer.current?.close()}
+                    >
+                      {item.label}
+                      <span aria-hidden="true">↗</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </nav>
+        <footer className="member-menu-footer">{account}</footer>
+      </dialog>
+    </div>
+  );
+}

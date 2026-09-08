@@ -18,23 +18,6 @@ import { requireAdminAreaRoles } from "./_kit/acceso";
 // (tareas propias, vencidas del equipo, solicitudes, respuestas de la semana, pipelines, convocatorias,
 // ocasiones abiertas y alertas de sistema). Quien no es ADMIN entra derecho a lo suyo.
 
-// Secciones del admin (T-160).
-const RUTAS: Record<string, string> = {
-  Personas: "/admin/personas",
-  Organizaciones: "/admin/organizaciones",
-  Pipelines: "/admin/pipelines",
-  Solicitudes: "/admin/solicitudes",
-  Convocatorias: "/admin/convocatorias",
-  Formularios: "/admin/formularios",
-  Comunidad: "/admin/comites",
-  Contenido: "/admin/paginas",
-  Participación: "/admin/ocasiones",
-  Permanencia: "/admin/permanencia/reglas",
-  Comunicaciones: "/admin/mensajes",
-  Junta: "/admin/junta",
-  Sistema: "/admin/sistema/jobs",
-};
-
 const OCCASION_ROWS = 6;
 
 function taskHref(row: TaskRow): string {
@@ -142,31 +125,18 @@ export default async function AdminHome() {
     listActiveCampaigns(),
   ]);
   const grupos = await listGroupRefs(tablero.openCalls.map((call) => call.groupId));
-  const secciones = tList("T-160");
   const [bPendientes, bVencidas, bSolicitudes, bRespuestas, bPipelines, bConvocatorias, bSistema] =
     tList("T-1033") as [string, string, string, string, string, string, string];
   const [conCopia, sinCopias] = tList("T-1040") as [string, string];
 
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-display-lg">{t("T-236")}</h1>
-      <ul className="flex list-none flex-wrap gap-2 p-0">
-        {secciones.map((nombre) => {
-          const ruta = RUTAS[nombre];
-          return (
-            <li key={nombre}>
-              {ruta ? (
-                <Link href={ruta} className="no-underline">
-                  <Insignia fondo="azul">{nombre}</Insignia>
-                </Link>
-              ) : (
-                <Insignia fondo="sky">{nombre}</Insignia>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-
+    <div className="admin-dashboard flex flex-col gap-6">
+      <header className="admin-page-header">
+        <div>
+          <p className="text-sm text-tinta-suave">{t("T-1410")}</p>
+          <h1>{t("T-236")}</h1>
+        </div>
+      </header>
       <div className="grid gap-6 lg:grid-cols-2">
         <Bloque id="pendientes" titulo={bPendientes} href="/admin/tareas?status=OPEN&assignee=mine">
           {tablero.myTasks.rows.length === 0 ? (

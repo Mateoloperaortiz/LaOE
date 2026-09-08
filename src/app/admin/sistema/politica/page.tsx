@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireAdminActor } from "@/modules/identity";
+import { redirect } from "next/navigation";
+import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import { getPrivacyPolicyState } from "@/modules/system";
 import { ResourceForm } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
@@ -10,7 +11,8 @@ const PATH = "/admin/sistema/politica";
 export const metadata: Metadata = { title: t("T-1180") };
 
 export default async function Page({ searchParams }: PageProps<"/admin/sistema/politica">) {
-  await requireAdminActor(PATH);
+  const actor = await requireAdminActor(PATH);
+  if (!hasRecentStepUp(actor)) redirect(`/ingresar/paso?next=${encodeURIComponent(PATH)}`);
   const [policy, query] = await Promise.all([getPrivacyPolicyState(), searchParams]);
   const version = policy.version ?? "pendiente";
   return (

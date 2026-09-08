@@ -18,7 +18,7 @@ test.describe("ADMIN abre la convocatoria", () => {
 
   test("crea el grupo y la convocatoria de un cupo", async ({ page }) => {
     await page.goto("/admin/permanencia/grupos?nuevo=1");
-    const grupo = page.getByRole("complementary");
+    const grupo = page.getByRole("dialog");
     await grupo.getByLabel("Semestre").selectOption({ label: "2026-2" });
     await grupo.getByLabel("Nombre").fill(GROUP);
     await grupo.getByLabel("Tipo").selectOption("GT_MACROEVENT");
@@ -26,7 +26,7 @@ test.describe("ADMIN abre la convocatoria", () => {
     await expect(page.getByText("Guardado.")).toBeVisible();
 
     await page.goto("/admin/convocatorias?nuevo=1");
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await panel.getByLabel("Término").selectOption({ label: "2026-2" });
     await panel.getByLabel("Grupo").selectOption({ label: `2026-2 · ${GROUP}` });
     await panel.getByLabel("Título").fill(CALL);

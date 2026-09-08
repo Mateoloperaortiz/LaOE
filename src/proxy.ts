@@ -47,7 +47,18 @@ export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const dev = process.env.NODE_ENV !== "production";
 
-  if (PROTECTED.some((pattern) => pattern.test(pathname)) && !request.cookies.get(SESSION_COOKIE)) {
+  // La redirección HTTP del proxy no habla el protocolo de las Server Actions: fetch seguiría
+  // el 307 como POST a Ingresar. En Mi OE la acción autentica primero y devuelve su redirección
+  // compatible con Next. Esta cabecera identifica el protocolo; nunca autoriza a la persona.
+  const memberServerAction =
+    /^\/app(\/|$)/.test(pathname) &&
+    request.method === "POST" &&
+    request.headers.has("next-action");
+  if (
+    PROTECTED.some((pattern) => pattern.test(pathname)) &&
+    !request.cookies.get(SESSION_COOKIE) &&
+    !memberServerAction
+  ) {
     const login = new URL("/ingresar", request.url);
     login.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(login);

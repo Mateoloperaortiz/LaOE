@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { type FieldDefinition, type FormState, MULTI_SEPARATOR } from "./types";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { t } from "@/shared/copy";
+import { ResourceMultiSelect } from "./AdminMultiSelect";
+import type { FieldDefinition, FormState } from "./types";
 
 export type SaveAction = (previous: FormState, formData: FormData) => Promise<FormState>;
 
@@ -18,44 +20,53 @@ type Props = {
 };
 
 const inputClass =
-  "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none aria-[invalid=true]:border-oe-orange";
+  "admin-input w-full min-w-0 rounded-xl border border-borde bg-fondo px-3 py-2.5 text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-titulo aria-[invalid=true]:border-oe-orange disabled:opacity-60";
 
-function Field({
-  field,
-  value,
-  error,
-  editing,
-}: {
+type FieldProps = {
   field: FieldDefinition;
   value: string;
   error: string | undefined;
   editing: boolean;
-}) {
-  const id = `campo-${field.name}`;
+  onChange(value: string): void;
+};
+
+function Field(props: FieldProps) {
+  const { field, value, error, editing, onChange } = props;
+  const id = useId();
   const locked = editing && (field.lockedOnEdit ?? false);
   const common = {
     id,
     name: field.name,
     required: field.required ?? false,
     "aria-invalid": error ? true : undefined,
-    "aria-describedby": error ? `${id}-error` : field.help ? `${id}-help` : undefined,
-    readOnly: locked,
+    "aria-describedby":
+      [field.help ? `${id}-help` : "", error ? `${id}-error` : ""].filter(Boolean).join(" ") ||
+      undefined,
   };
+  if (field.type === "multiselect") return <ResourceMultiSelect {...props} />;
+
   let control: React.ReactNode;
-  switch (field.type) {
-    case "textarea":
-      control = (
-        <textarea
+  if (field.type === "textarea") {
+    control = (
+      <textarea
+        {...common}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        readOnly={locked}
+        rows={field.rows ?? 5}
+        className={`${inputClass} ${field.textVariant === "code" ? "font-mono text-sm" : "font-sans"}`}
+      />
+    );
+  } else if (field.type === "select") {
+    control = (
+      <>
+        <select
           {...common}
-          defaultValue={value}
-          rows={field.rows ?? 5}
-          className={`${inputClass} font-mono text-sm`}
-        />
-      );
-      break;
-    case "select":
-      control = (
-        <select {...common} defaultValue={value} disabled={locked} className={inputClass}>
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={locked}
+          className={inputClass}
+        >
           <option value="">{field.emptyOption ?? "—"}</option>
           {(field.options ?? []).map((option) => (
             <option key={option.value} value={option.value}>
@@ -63,77 +74,56 @@ function Field({
             </option>
           ))}
         </select>
-      );
-      break;
-    case "multiselect":
-      control = (
-        <select
-          {...common}
-          multiple
-          defaultValue={value ? value.split(MULTI_SEPARATOR) : []}
-          disabled={locked}
-          size={Math.min(8, Math.max(3, (field.options ?? []).length))}
-          className={inputClass}
-        >
-          {(field.options ?? []).map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      );
-      break;
-    case "checkbox":
-      control = (
-        <input
-          {...common}
-          type="checkbox"
-          defaultChecked={value === "true" || value === "on"}
-          className="size-5 accent-oe-navy"
-        />
-      );
-      break;
-    case "number":
-      control = <input {...common} type="number" defaultValue={value} className={inputClass} />;
-      break;
-    case "date":
-      control = <input {...common} type="date" defaultValue={value} className={inputClass} />;
-      break;
-    case "datetime":
-      control = (
-        <input {...common} type="datetime-local" defaultValue={value} className={inputClass} />
-      );
-      break;
-    case "color":
-      control = (
-        <input
-          {...common}
-          type="text"
-          defaultValue={value}
-          placeholder="#94B6F0"
-          pattern="#[0-9a-fA-F]{6}"
-          className={inputClass}
-        />
-      );
-      break;
-    default:
-      control = (
-        <input
-          {...common}
-          type={field.type === "url" ? "url" : field.type === "email" ? "email" : "text"}
-          defaultValue={value}
-          placeholder={field.placeholder}
-          className={inputClass}
-        />
-      );
+        {locked ? <input type="hidden" name={field.name} value={value} /> : null}
+      </>
+    );
+  } else if (field.type === "checkbox") {
+    control = (
+      <>
+        <label htmlFor={id} className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+          <input
+            {...common}
+            type="checkbox"
+            checked={value === "true" || value === "on"}
+            onChange={(event) => onChange(String(event.target.checked))}
+            disabled={locked}
+            className="size-5 shrink-0 accent-oe-navy"
+          />
+          <span>{field.label}</span>
+        </label>
+        {locked ? <input type="hidden" name={field.name} value={value} /> : null}
+      </>
+    );
+  } else {
+    const type =
+      field.type === "datetime" ? "datetime-local" : field.type === "color" ? "text" : field.type;
+    control = (
+      <input
+        {...common}
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        readOnly={locked}
+        placeholder={field.type === "color" ? "#94B6F0" : field.placeholder}
+        pattern={field.type === "color" ? "#[0-9a-fA-F]{6}" : undefined}
+        className={inputClass}
+      />
+    );
   }
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="eyebrow text-xs">
-        {field.label}
-      </label>
+    <div className="admin-field flex min-w-0 flex-col gap-2">
+      {field.type !== "checkbox" ? (
+        <div className="flex flex-wrap items-baseline gap-x-2 text-sm font-semibold">
+          <label htmlFor={id}>{field.label}</label>
+          {field.required ? (
+            <span aria-hidden="true" className="text-xs font-normal text-tinta-suave">
+              {t("T-1430")}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       {control}
-      {field.help && !error ? (
+      {field.help ? (
         <p id={`${id}-help`} className="text-xs text-tinta-suave">
           {field.help}
         </p>
@@ -141,8 +131,7 @@ function Field({
       {error ? (
         <p
           id={`${id}-error`}
-          role="alert"
-          className="rounded-lg bg-oe-orange px-2 py-1 text-xs font-semibold text-oe-navy"
+          className="rounded-lg border-l-2 border-oe-orange bg-fondo-suave px-3 py-2 text-sm font-semibold"
         >
           {error}
         </p>
@@ -161,38 +150,77 @@ export function ResourceForm({
   cancelHref,
   labels,
 }: Props) {
+  const form = useRef<HTMLFormElement>(null);
+  const feedback = useRef<HTMLDivElement>(null);
+  const [values, setValues] = useState(initialValues);
   const [state, formAction, pending] = useActionState(action, {
     ok: false,
     message: null,
     errors: {},
     values: initialValues,
   });
+  useEffect(() => {
+    if (!state.message) return;
+    const invalid = form.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    (invalid ?? feedback.current)?.focus();
+  }, [state]);
   return (
-    <form action={formAction} className="flex flex-col gap-4" noValidate>
+    <form
+      ref={form}
+      action={formAction}
+      aria-busy={pending}
+      className="admin-resource-form flex min-w-0 flex-col gap-5"
+      noValidate
+      onSubmit={(event) => {
+        if (pending) event.preventDefault();
+      }}
+    >
       <input type="hidden" name="__resource" value={resourceKey} />
       <input type="hidden" name="__id" value={id ?? ""} />
       <input type="hidden" name="__returnTo" value={returnTo} />
       {state.message ? (
-        <output className="block rounded-lg bg-oe-orange px-3 py-2 text-sm font-semibold text-oe-navy">
+        <div
+          ref={feedback}
+          tabIndex={-1}
+          role="alert"
+          className="admin-feedback rounded-xl border border-oe-orange bg-fondo-suave px-4 py-3 text-sm font-semibold"
+        >
           {state.message}
-        </output>
+        </div>
       ) : null}
-      {fields.map((field) => (
-        <Field
-          key={field.name}
-          field={field}
-          value={state.values[field.name] ?? ""}
-          error={state.errors[field.name]}
-          editing={id !== null}
-        />
-      ))}
-      <div className="mt-2 flex items-center gap-3">
-        <button type="submit" disabled={pending} className="boton-calido disabled:opacity-60">
-          {labels.save}
+      <fieldset disabled={pending} className="flex min-w-0 flex-col gap-5 disabled:opacity-70">
+        {fields.map((field) => (
+          <Field
+            key={field.name}
+            field={field}
+            value={values[field.name] ?? ""}
+            error={state.errors[field.name]}
+            editing={id !== null}
+            onChange={(value) => setValues((current) => ({ ...current, [field.name]: value }))}
+          />
+        ))}
+      </fieldset>
+      <div className="admin-form-actions sticky bottom-0 mt-auto flex flex-wrap items-center gap-3 border-t border-borde bg-fondo pt-4 pb-2">
+        <button
+          type="submit"
+          disabled={pending}
+          className="boton-calido min-h-11 disabled:cursor-wait disabled:opacity-60"
+        >
+          {pending ? t("T-1427") : labels.save}
         </button>
-        <Link href={cancelHref} className="boton-secundario">
+        <Link
+          href={cancelHref}
+          replace
+          scroll={false}
+          aria-disabled={pending}
+          onClick={(event) => {
+            if (pending) event.preventDefault();
+          }}
+          className="boton-secundario min-h-11 aria-disabled:opacity-60"
+        >
           {labels.cancel}
         </Link>
+        <output className="sr-only">{pending ? t("T-1427") : ""}</output>
       </div>
     </form>
   );

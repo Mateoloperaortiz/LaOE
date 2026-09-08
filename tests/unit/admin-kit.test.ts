@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { semesterFromCode, termInputSchema } from "@/modules/terms/domain/terms";
 import { neutralizeCell, toCsv } from "@/shared/admin-kit/csv";
-import { formDataToInput } from "@/shared/admin-kit/types";
+import {
+  type FieldDefinition,
+  formDataToInput,
+  MULTI_SEPARATOR,
+  withLockedFormValues,
+} from "@/shared/admin-kit/types";
 
 describe("csv", () => {
   it("neutraliza celdas que empiezan como fórmula", () => {
@@ -22,6 +27,32 @@ describe("csv", () => {
 });
 
 describe("formDataToInput", () => {
+  it("restaura los select inmutables omitidos y no acepta reemplazarlos al editar", () => {
+    const fields: FieldDefinition[] = [
+      { name: "eventId", label: "Evento", type: "select", lockedOnEdit: true },
+      { name: "kind", label: "Tipo", type: "select", lockedOnEdit: true },
+      { name: "name", label: "Nombre", type: "text" },
+      { name: "groups", label: "Grupos", type: "multiselect", lockedOnEdit: true },
+    ];
+    const form = new FormData();
+    form.set("kind", "TIPO_CAMBIADO");
+    form.set("name", "Nombre editado");
+    form.append("groups", "ajeno");
+    const restored = withLockedFormValues(form, fields, {
+      eventId: "evento-original",
+      kind: "TIPO_ORIGINAL",
+      name: "Nombre original",
+      groups: ["grupo-a", "grupo-b"].join(MULTI_SEPARATOR),
+    });
+    expect(formDataToInput(restored, fields)).toEqual({
+      eventId: "evento-original",
+      kind: "TIPO_ORIGINAL",
+      name: "Nombre editado",
+      groups: ["grupo-a", "grupo-b"],
+    });
+    expect(form.get("kind")).toBe("TIPO_CAMBIADO");
+  });
+
   it("vacíos a undefined, checkbox a booleano, multiselect a lista, recorta espacios", () => {
     const form = new FormData();
     form.set("name", "  Pixel ");

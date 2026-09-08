@@ -24,6 +24,9 @@ import {
   searchMembersByName,
 } from "@/modules/people";
 import { ResourcePanel } from "@/shared/admin-kit";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
+import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime, formatTime } from "@/shared/lib/dates";
@@ -163,11 +166,13 @@ export default async function ConsolaPage({
       <div className="flex flex-wrap items-center gap-3">
         {canOpen ? (
           <form action={lifecycleAction}>
-            <input type="hidden" name="occasionId" value={id} />
-            <input type="hidden" name="op" value="open" />
-            <button type="submit" className="boton-calido">
-              {abrir}
-            </button>
+            <AdminFormBody>
+              <input type="hidden" name="occasionId" value={id} />
+              <input type="hidden" name="op" value="open" />
+              <AdminSubmitButton type="submit" className="boton-calido">
+                {abrir}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
         ) : null}
         {occasion.status === "DRAFT" && !canOpen ? (
@@ -175,30 +180,49 @@ export default async function ConsolaPage({
         ) : null}
         {occasion.status === "OPEN" ? (
           <form action={lifecycleAction}>
-            <input type="hidden" name="occasionId" value={id} />
-            <input type="hidden" name="op" value="close" />
-            <button type="submit" className="boton-secundario">
-              {cerrar}
-            </button>
+            <AdminFormBody>
+              <input type="hidden" name="occasionId" value={id} />
+              <input type="hidden" name="op" value="close" />
+              <AdminSubmitButton type="submit" className="boton-secundario">
+                {cerrar}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
         ) : null}
         {occasion.status !== "CANCELLED" ? (
           <form action={rotatingAction} className="flex flex-wrap gap-2">
-            <input type="hidden" name="occasionId" value={id} />
-            {occasion.requireRotatingCode ? (
-              <>
-                <button type="submit" name="op" value="rotate" className="boton-secundario">
-                  {rotar}
-                </button>
-                <button type="submit" name="op" value="disable" className="boton-secundario">
-                  {desactivar}
-                </button>
-              </>
-            ) : (
-              <button type="submit" name="op" value="enable" className="boton-secundario">
-                {activar}
-              </button>
-            )}
+            <AdminFormBody>
+              <input type="hidden" name="occasionId" value={id} />
+              {occasion.requireRotatingCode ? (
+                <>
+                  <AdminSubmitButton
+                    type="submit"
+                    name="op"
+                    value="rotate"
+                    className="boton-secundario"
+                  >
+                    {rotar}
+                  </AdminSubmitButton>
+                  <AdminSubmitButton
+                    type="submit"
+                    name="op"
+                    value="disable"
+                    className="boton-secundario"
+                  >
+                    {desactivar}
+                  </AdminSubmitButton>
+                </>
+              ) : (
+                <AdminSubmitButton
+                  type="submit"
+                  name="op"
+                  value="enable"
+                  className="boton-secundario"
+                >
+                  {activar}
+                </AdminSubmitButton>
+              )}
+            </AdminFormBody>
           </form>
         ) : null}
         {occasion.status === "OPEN" || (actor.isAdmin && occasion.status === "CLOSED") ? (
@@ -212,6 +236,60 @@ export default async function ConsolaPage({
           </Link>
         ) : null}
       </div>
+
+      {canDecide && pending.length > 0 ? (
+        <section aria-label={t("T-591")} className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-display-md">{t("T-591")}</h2>
+            <form action={approveAllAction}>
+              <AdminFormBody>
+                <input type="hidden" name="occasionId" value={id} />
+                <AdminSubmitButton type="submit" className="boton-primario">
+                  {t("T-593")}
+                </AdminSubmitButton>
+              </AdminFormBody>
+            </form>
+          </div>
+          <ul className="flex list-none flex-col gap-2 p-0">
+            {pending.map((item) => (
+              <li
+                key={item.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-borde bg-fondo px-4 py-2"
+              >
+                <span className="font-semibold">{people.get(item.personId)?.fullName?.trim()}</span>
+                <div className="flex gap-2">
+                  <form action={decideAction}>
+                    <AdminFormBody>
+                      <input type="hidden" name="occasionId" value={id} />
+                      <input type="hidden" name="checkInId" value={item.id} />
+                      <input type="hidden" name="decision" value="APPROVE" />
+                      <AdminSubmitButton
+                        type="submit"
+                        className="boton-primario min-h-9 px-4 py-1 text-sm"
+                      >
+                        {aprobar}
+                      </AdminSubmitButton>
+                    </AdminFormBody>
+                  </form>
+                  <form action={decideAction}>
+                    <AdminFormBody>
+                      <input type="hidden" name="occasionId" value={id} />
+                      <input type="hidden" name="checkInId" value={item.id} />
+                      <input type="hidden" name="decision" value="REJECT" />
+                      <AdminSubmitButton
+                        type="submit"
+                        className="boton-secundario min-h-9 px-4 py-1 text-sm"
+                      >
+                        {rechazar}
+                      </AdminSubmitButton>
+                    </AdminFormBody>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <ConsolaEnVivo
         occasionId={id}
@@ -231,48 +309,6 @@ export default async function ConsolaPage({
         }}
       />
 
-      {canDecide && pending.length > 0 ? (
-        <section aria-label={t("T-591")} className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-display-md">{t("T-591")}</h2>
-            <form action={approveAllAction}>
-              <input type="hidden" name="occasionId" value={id} />
-              <button type="submit" className="boton-primario">
-                {t("T-593")}
-              </button>
-            </form>
-          </div>
-          <ul className="flex list-none flex-col gap-2 p-0">
-            {pending.map((item) => (
-              <li
-                key={item.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-borde bg-fondo px-4 py-2"
-              >
-                <span className="font-semibold">{people.get(item.personId)?.fullName?.trim()}</span>
-                <div className="flex gap-2">
-                  <form action={decideAction}>
-                    <input type="hidden" name="occasionId" value={id} />
-                    <input type="hidden" name="checkInId" value={item.id} />
-                    <input type="hidden" name="decision" value="APPROVE" />
-                    <button type="submit" className="boton-primario min-h-9 px-4 py-1 text-sm">
-                      {aprobar}
-                    </button>
-                  </form>
-                  <form action={decideAction}>
-                    <input type="hidden" name="occasionId" value={id} />
-                    <input type="hidden" name="checkInId" value={item.id} />
-                    <input type="hidden" name="decision" value="REJECT" />
-                    <button type="submit" className="boton-secundario min-h-9 px-4 py-1 text-sm">
-                      {rechazar}
-                    </button>
-                  </form>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
       {occasion.status === "OPEN" || (actor.isAdmin && occasion.status === "CLOSED") ? (
         <section aria-label={altaTitulo} className="flex flex-col gap-3">
           <h2 className="text-display-md">{altaTitulo}</h2>
@@ -281,9 +317,9 @@ export default async function ConsolaPage({
               <span className="eyebrow text-xs">{t("T-599")}</span>
               <input name="q" defaultValue={q} className={inputClass} />
             </label>
-            <button type="submit" className="boton-secundario">
+            <AdminSubmitButton type="submit" className="boton-secundario">
               {t("T-250")}
-            </button>
+            </AdminSubmitButton>
           </form>
           {q ? (
             results.length === 0 ? (
@@ -297,12 +333,17 @@ export default async function ConsolaPage({
                   >
                     <span className="font-semibold">{item.fullName.trim()}</span>
                     <form action={registerAction}>
-                      <input type="hidden" name="occasionId" value={id} />
-                      <input type="hidden" name="personId" value={item.id} />
-                      <input type="hidden" name="back" value="consola" />
-                      <button type="submit" className="boton-primario min-h-9 px-4 py-1 text-sm">
-                        {altaBoton}
-                      </button>
+                      <AdminFormBody>
+                        <input type="hidden" name="occasionId" value={id} />
+                        <input type="hidden" name="personId" value={item.id} />
+                        <input type="hidden" name="back" value="consola" />
+                        <AdminSubmitButton
+                          type="submit"
+                          className="boton-primario min-h-9 px-4 py-1 text-sm"
+                        >
+                          {altaBoton}
+                        </AdminSubmitButton>
+                      </AdminFormBody>
                     </form>
                   </li>
                 ))}
@@ -318,12 +359,12 @@ export default async function ConsolaPage({
           {scores.length === 0 ? (
             <p className="text-tinta-suave">{t("T-606")}</p>
           ) : (
-            <div className="overflow-x-auto">
+            <AdminTableRegion label={t("T-604")} className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left">
                     {scoreLabels.map((label) => (
-                      <th key={label} className="eyebrow py-2 pr-4 text-xs">
+                      <th scope="col" key={label} className="eyebrow py-2 pr-4 text-xs">
                         {label}
                       </th>
                     ))}
@@ -343,123 +384,137 @@ export default async function ConsolaPage({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </AdminTableRegion>
           )}
         </section>
       ) : null}
 
-      <section aria-label={t("T-594")} className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-display-md">{t("T-594")}</h2>
-          <nav aria-label={columnLabels[4] ?? ""} className="flex flex-wrap gap-2 text-sm">
-            <Link href={base} className={statusFilter ? "underline" : "font-semibold"}>
-              {todos}
-            </Link>
-            {CHECK_IN_STATUSES.map((status) => (
-              <Link
-                key={status}
-                href={`${base}?estado=${status}`}
-                className={statusFilter?.[0] === status ? "font-semibold" : "underline"}
-              >
-                {statusLabel(status)}
+      <section aria-label={t("T-594")} className="rounded-xl border border-borde bg-fondo p-4">
+        <details open={Boolean(statusFilter)}>
+          <summary className="cursor-pointer py-1 font-semibold">
+            {t("T-594")} · {checkIns.length}
+          </summary>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <nav aria-label={columnLabels[4] ?? ""} className="flex flex-wrap gap-2 text-sm">
+              <Link href={base} className={statusFilter ? "underline" : "font-semibold"}>
+                {todos}
               </Link>
-            ))}
-          </nav>
-        </div>
-        {checkIns.length === 0 ? (
-          <p className="text-tinta-suave">{t("T-671")}</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left">
-                  {columnLabels.map((label) => (
-                    <th key={label} className="eyebrow py-2 pr-4 text-xs">
-                      {label}
-                    </th>
-                  ))}
-                  {canDecide ? <th className="py-2" /> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {checkIns.map((item) => (
-                  <tr key={item.id} className="border-borde border-t">
-                    <td className="py-2 pr-4 font-semibold">
-                      {people.get(item.personId)?.fullName?.trim()}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {(committeesOf.get(item.personId) ?? []).join(", ") || "—"}
-                    </td>
-                    <td className="py-2 pr-4">{formatTime(item.at)}</td>
-                    <td className="py-2 pr-4">
-                      {sourceLabels[CHECK_IN_SOURCES.indexOf(item.source)] ?? item.source}
-                    </td>
-                    <td className="py-2 pr-4">{statusLabel(item.status)}</td>
-                    {canDecide ? (
-                      <td className="py-2">
-                        <div className="flex gap-2">
-                          {item.status === "PENDING" || item.status === "REJECTED" ? (
-                            <form action={decideAction}>
-                              <input type="hidden" name="occasionId" value={id} />
-                              <input type="hidden" name="checkInId" value={item.id} />
-                              <input type="hidden" name="decision" value="APPROVE" />
-                              <button
-                                type="submit"
-                                className="boton-secundario min-h-8 px-3 py-1 text-xs"
-                              >
-                                {aprobar}
-                              </button>
-                            </form>
-                          ) : null}
-                          {item.status === "PENDING" ? (
-                            <form action={decideAction}>
-                              <input type="hidden" name="occasionId" value={id} />
-                              <input type="hidden" name="checkInId" value={item.id} />
-                              <input type="hidden" name="decision" value="REJECT" />
-                              <button
-                                type="submit"
-                                className="boton-secundario min-h-8 px-3 py-1 text-xs"
-                              >
-                                {rechazar}
-                              </button>
-                            </form>
-                          ) : null}
-                          {item.status === "APPROVED" ? (
-                            <Link
-                              href={`${base}?accion=anular&checkIn=${item.id}`}
-                              className="boton-secundario min-h-8 px-3 py-1 text-xs"
-                            >
-                              {anularLabel}
-                            </Link>
-                          ) : null}
-                        </div>
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              {CHECK_IN_STATUSES.map((status) => (
+                <Link
+                  key={status}
+                  href={`${base}?estado=${status}`}
+                  className={statusFilter?.[0] === status ? "font-semibold" : "underline"}
+                >
+                  {statusLabel(status)}
+                </Link>
+              ))}
+            </nav>
           </div>
-        )}
+          {checkIns.length === 0 ? (
+            <p className="text-tinta-suave">{t("T-671")}</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="admin-data-table w-full text-sm">
+                <thead>
+                  <tr className="text-left">
+                    {columnLabels.map((label) => (
+                      <th scope="col" key={label} className="eyebrow py-2 pr-4 text-xs">
+                        {label}
+                      </th>
+                    ))}
+                    {canDecide ? <th scope="col" className="py-2" /> : null}
+                  </tr>
+                </thead>
+                <tbody>
+                  {checkIns.map((item) => (
+                    <tr key={item.id} className="border-borde border-t">
+                      <td data-label={columnLabels[0]} className="py-2 pr-4 font-semibold">
+                        {people.get(item.personId)?.fullName?.trim()}
+                      </td>
+                      <td data-label={columnLabels[1]} className="py-2 pr-4">
+                        {(committeesOf.get(item.personId) ?? []).join(", ") || "—"}
+                      </td>
+                      <td data-label={columnLabels[2]} className="py-2 pr-4">
+                        {formatTime(item.at)}
+                      </td>
+                      <td data-label={columnLabels[3]} className="py-2 pr-4">
+                        {sourceLabels[CHECK_IN_SOURCES.indexOf(item.source)] ?? item.source}
+                      </td>
+                      <td data-label={columnLabels[4]} className="py-2 pr-4">
+                        {statusLabel(item.status)}
+                      </td>
+                      {canDecide ? (
+                        <td data-label={t("T-1500")} className="py-2">
+                          <div className="flex gap-2">
+                            {item.status === "PENDING" || item.status === "REJECTED" ? (
+                              <form action={decideAction}>
+                                <AdminFormBody>
+                                  <input type="hidden" name="occasionId" value={id} />
+                                  <input type="hidden" name="checkInId" value={item.id} />
+                                  <input type="hidden" name="decision" value="APPROVE" />
+                                  <AdminSubmitButton
+                                    type="submit"
+                                    className="boton-secundario min-h-8 px-3 py-1 text-xs"
+                                  >
+                                    {aprobar}
+                                  </AdminSubmitButton>
+                                </AdminFormBody>
+                              </form>
+                            ) : null}
+                            {item.status === "PENDING" ? (
+                              <form action={decideAction}>
+                                <AdminFormBody>
+                                  <input type="hidden" name="occasionId" value={id} />
+                                  <input type="hidden" name="checkInId" value={item.id} />
+                                  <input type="hidden" name="decision" value="REJECT" />
+                                  <AdminSubmitButton
+                                    type="submit"
+                                    className="boton-secundario min-h-8 px-3 py-1 text-xs"
+                                  >
+                                    {rechazar}
+                                  </AdminSubmitButton>
+                                </AdminFormBody>
+                              </form>
+                            ) : null}
+                            {item.status === "APPROVED" ? (
+                              <Link
+                                href={`${base}?accion=anular&checkIn=${item.id}`}
+                                className="boton-secundario min-h-8 px-3 py-1 text-xs"
+                              >
+                                {anularLabel}
+                              </Link>
+                            ) : null}
+                          </div>
+                        </td>
+                      ) : null}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </details>
       </section>
 
       {accion === "cancelar" && actor.isAdmin ? (
         <ResourcePanel title={cancelar ?? ""} closeHref={base} closeLabel={t("T-291")}>
           <form action={cancelAction} className="flex flex-col gap-4">
-            <input type="hidden" name="occasionId" value={id} />
-            <p>{t("T-161", { actividad: occasion.title, n: occasion.approvedCount })}</p>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{t("T-434")}</span>
-              <textarea name="reason" required rows={3} className={inputClass} />
-            </label>
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-calido">
-                {t("T-590")}
-              </button>
-              <Link href={base} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="occasionId" value={id} />
+              <p>{t("T-161", { actividad: occasion.title, n: occasion.approvedCount })}</p>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{t("T-434")}</span>
+                <textarea name="reason" required rows={3} className={inputClass} />
+              </label>
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-calido">
+                  {t("T-590")}
+                </AdminSubmitButton>
+                <Link href={base} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}
@@ -467,103 +522,112 @@ export default async function ConsolaPage({
       {accion === "anular" && actor.isAdmin && toCancel ? (
         <ResourcePanel title={anularLabel ?? ""} closeHref={base} closeLabel={t("T-291")}>
           <form action={decideAction} className="flex flex-col gap-4">
-            <input type="hidden" name="occasionId" value={id} />
-            <input type="hidden" name="checkInId" value={toCancel.id} />
-            <input type="hidden" name="decision" value="CANCEL" />
-            <p className="font-semibold">{people.get(toCancel.personId)?.fullName?.trim()}</p>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{t("T-434")}</span>
-              <textarea name="reason" required rows={3} className={inputClass} />
-              <span className="text-xs text-tinta-suave">{t("T-609")}</span>
-            </label>
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-calido">
-                {anularLabel}
-              </button>
-              <Link href={base} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="occasionId" value={id} />
+              <input type="hidden" name="checkInId" value={toCancel.id} />
+              <input type="hidden" name="decision" value="CANCEL" />
+              <p className="font-semibold">{people.get(toCancel.personId)?.fullName?.trim()}</p>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{t("T-434")}</span>
+                <textarea name="reason" required rows={3} className={inputClass} />
+                <span className="text-xs text-tinta-suave">{t("T-609")}</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-calido">
+                  {anularLabel}
+                </AdminSubmitButton>
+                <Link href={base} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}
       {occasion.status === "CLOSED" ? (
-        <section aria-labelledby="encuesta-titulo" className="flex flex-col gap-3">
-          <h2 id="encuesta-titulo" className="text-display-md">
-            {t("T-1161")}
-          </h2>
-          {!survey ? (
-            <p className="text-tinta-suave">{t("T-1166")}</p>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <p className="font-semibold">
-                {survey.formTitle} ·{" "}
-                {t("T-1162", { respondieron: survey.answered, invitados: survey.invited })}
-              </p>
-              {survey.answered === 0 ? (
-                <p className="text-tinta-suave">{t("T-1163")}</p>
+        <section
+          aria-labelledby="encuesta-titulo"
+          className="rounded-xl border border-borde bg-fondo p-4"
+        >
+          <details>
+            <summary id="encuesta-titulo" className="cursor-pointer py-1 font-semibold">
+              {t("T-1161")}
+            </summary>
+            <div className="mt-4">
+              {!survey ? (
+                <p className="text-tinta-suave">{t("T-1166")}</p>
               ) : (
-                <ul className="flex list-none flex-col gap-4 p-0">
-                  {survey.questions.map((question) => (
-                    <li
-                      key={question.key}
-                      className="flex flex-col gap-2 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
-                    >
-                      <h3 className="font-semibold">{question.label}</h3>
-                      {question.type === "RATING" ? (
-                        <>
-                          <p className="text-display-md">
-                            {question.average === null
-                              ? "—"
-                              : t("T-1164", { promedio: question.average.toFixed(1) })}
-                          </p>
-                          <ul className="flex list-none flex-wrap gap-2 p-0 text-sm">
-                            {question.distribution.map((item) => (
-                              <li key={item.value}>
-                                <Insignia fondo="sky">
-                                  {item.value === "1"
-                                    ? ratingLow
-                                    : item.value === "5"
-                                      ? ratingHigh
-                                      : ""}{" "}
-                                  {item.value}: {item.count}
-                                </Insignia>
-                              </li>
-                            ))}
-                          </ul>
-                        </>
-                      ) : question.distribution.length > 0 ? (
-                        <ul className="flex list-none flex-wrap gap-2 p-0 text-sm">
-                          {question.distribution.map((item) => (
-                            <li key={item.value}>
-                              <Insignia fondo="sky">
-                                {question.type === "CHECKBOX"
-                                  ? item.value === "true"
-                                    ? siLabel
-                                    : noLabel
-                                  : item.value}
-                                : {item.count}
-                              </Insignia>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : question.texts ? (
-                        <ul className="flex list-disc flex-col gap-1 pl-5 text-sm">
-                          {question.texts.map((text, index) => (
-                            <li key={`${question.key}-${index.toString()}`}>{text}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-sm text-tinta-suave">
-                          {t("T-1165", { n: SURVEY_TEXT_MIN })}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                <div className="flex flex-col gap-4">
+                  <p className="font-semibold">
+                    {survey.formTitle} ·{" "}
+                    {t("T-1162", { respondieron: survey.answered, invitados: survey.invited })}
+                  </p>
+                  {survey.answered === 0 ? (
+                    <p className="text-tinta-suave">{t("T-1163")}</p>
+                  ) : (
+                    <ul className="flex list-none flex-col gap-4 p-0">
+                      {survey.questions.map((question) => (
+                        <li
+                          key={question.key}
+                          className="flex flex-col gap-2 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
+                        >
+                          <h3 className="font-semibold">{question.label}</h3>
+                          {question.type === "RATING" ? (
+                            <>
+                              <p className="text-display-md">
+                                {question.average === null
+                                  ? "—"
+                                  : t("T-1164", { promedio: question.average.toFixed(1) })}
+                              </p>
+                              <ul className="flex list-none flex-wrap gap-2 p-0 text-sm">
+                                {question.distribution.map((item) => (
+                                  <li key={item.value}>
+                                    <Insignia fondo="sky">
+                                      {item.value === "1"
+                                        ? ratingLow
+                                        : item.value === "5"
+                                          ? ratingHigh
+                                          : ""}{" "}
+                                      {item.value}: {item.count}
+                                    </Insignia>
+                                  </li>
+                                ))}
+                              </ul>
+                            </>
+                          ) : question.distribution.length > 0 ? (
+                            <ul className="flex list-none flex-wrap gap-2 p-0 text-sm">
+                              {question.distribution.map((item) => (
+                                <li key={item.value}>
+                                  <Insignia fondo="sky">
+                                    {question.type === "CHECKBOX"
+                                      ? item.value === "true"
+                                        ? siLabel
+                                        : noLabel
+                                      : item.value}
+                                    : {item.count}
+                                  </Insignia>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : question.texts ? (
+                            <ul className="flex list-disc flex-col gap-1 pl-5 text-sm">
+                              {question.texts.map((text, index) => (
+                                <li key={`${question.key}-${index.toString()}`}>{text}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-tinta-suave">
+                              {t("T-1165", { n: SURVEY_TEXT_MIN })}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               )}
             </div>
-          )}
+          </details>
         </section>
       ) : null}
     </div>

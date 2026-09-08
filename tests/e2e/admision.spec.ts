@@ -37,7 +37,7 @@ test.describe("convocatoria de admisión", () => {
 
   test("ADMIN crea el pipeline de admisión y el formulario ligado", async ({ page }) => {
     await page.goto("/admin/pipelines?nuevo=1");
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await panel.getByLabel("Nombre").fill(PIPELINE);
     await panel.getByLabel("Tipo").selectOption("ADMISSION");
     await panel.getByRole("button", { name: "Guardar" }).click();
@@ -51,7 +51,7 @@ test.describe("convocatoria de admisión", () => {
     await sinViolaciones(page);
 
     await page.goto("/admin/formularios?nuevo=1");
-    const formulario = page.getByRole("complementary");
+    const formulario = page.getByRole("dialog");
     await formulario.getByLabel("Identificador").fill(FORM);
     await formulario.getByLabel("Título").fill("e2e Convocatoria de admisión");
     await formulario.getByLabel("Estado").selectOption("OPEN");
@@ -98,21 +98,20 @@ test.describe("GH lleva la tarjeta hasta el alta", () => {
     const recibida = page.getByRole("region", { name: "Recibida", exact: true });
     await expect(recibida.getByRole("link", { name: "Postulante E2E" })).toBeVisible();
     // Mover con el selector y el botón.
+    await recibida.locator("summary").filter({ hasText: "Mover a…" }).click();
     await recibida.getByLabel("Mover a…").selectOption("Entrevista");
     await recibida.getByRole("button", { name: "Mover" }).click();
     await expect(page.getByText("Tarjeta movida a Entrevista.")).toBeVisible();
     const entrevista = page.getByRole("region", { name: "Entrevista", exact: true });
     await entrevista.getByRole("link", { name: "Postulante E2E" }).click();
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await expect(panel.getByRole("heading", { level: 2 })).toHaveText("Postulante E2E");
     await sinViolaciones(page);
     await panel.getByRole("link", { name: "Dar de alta" }).click();
-    const alta = page.getByRole("complementary");
+    const alta = page.getByRole("dialog");
     await expect(alta.getByText(/Vas a dar de alta a Postulante E2E/)).toBeVisible();
-    const comites = alta.getByLabel("Comités");
-    const primera = await comites.locator("option").first().textContent();
-    if (!primera) throw new Error("sin comités en el seed");
-    await comites.selectOption({ label: primera });
+    const primera = "A3";
+    await alta.getByRole("checkbox", { name: primera, exact: true }).check();
     await alta.getByRole("button", { name: "Dar de alta" }).click();
     await expect(
       page.getByText("Postulante E2E ya es miembro. Le enviamos la bienvenida."),

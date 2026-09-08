@@ -26,12 +26,18 @@ test("un ADMIN sube una portada de 5 MB directo al bucket y se sirve con 302 al 
 
   await page.goto("/admin/medios");
   await sinViolaciones(page);
+  await page.getByRole("link", { name: "Subir imagen", exact: true }).click();
   const subidas = page.waitForResponse(
     (response) => response.url().includes("/api/media/confirm") && response.status() === 201,
   );
   await page
+    .getByRole("dialog")
     .getByLabel("Subir imagen")
     .setInputFiles({ name: nombre, mimeType: "image/png", buffer });
+  await page
+    .getByRole("dialog")
+    .locator('button[type="submit"]', { hasText: "Subir imagen" })
+    .click();
   await subidas;
   await expect(page.getByText("Listo: la imagen queda disponible en unos segundos.")).toBeVisible();
 
@@ -68,4 +74,38 @@ test("un ADMIN sube una portada de 5 MB directo al bucket y se sirve con 302 al 
   const imagen = await page.request.get(location);
   expect(imagen.status()).toBe(200);
   expect(imagen.headers()["content-type"]).toBe("image/webp");
+});
+
+test("la imagen y su visibilidad se conservan después de un fallo", async ({ page }) => {
+  let attempts = 0;
+  await page.route("**/api/media/presign", async (route) => {
+    attempts += 1;
+    await route.fulfill({ status: 503, json: { error: "Subida de prueba interrumpida." } });
+  });
+  await page.goto("/admin/medios");
+  await page.getByRole("link", { name: "Subir imagen", exact: true }).click();
+  const panel = page.getByRole("dialog");
+  const image = await sharp({
+    create: { width: 800, height: 800, channels: 3, background: "#94b6f0" },
+  })
+    .png({ compressionLevel: 0 })
+    .toBuffer();
+  await panel
+    .getByLabel("Subir imagen")
+    .setInputFiles({ name: "conservar.png", mimeType: "image/png", buffer: image });
+  expect(attempts).toBe(0);
+  await panel.getByLabel("Visibilidad").selectOption("PRIVATE");
+  const submit = panel.locator('button[type="submit"]', { hasText: "Subir imagen" });
+  await submit.click();
+  await expect(panel.getByRole("alert")).toHaveText("Subida de prueba interrumpida.");
+  await expect(panel.getByLabel("Visibilidad")).toHaveValue("PRIVATE");
+  expect(
+    await panel
+      .getByLabel("Subir imagen")
+      .evaluate((input: HTMLInputElement) => input.files?.[0]?.name),
+  ).toBe("conservar.png");
+  await submit.click();
+  await expect.poll(() => attempts).toBe(2);
+  await expect(panel.getByRole("alert")).toBeVisible();
+  await sinViolaciones(page);
 });

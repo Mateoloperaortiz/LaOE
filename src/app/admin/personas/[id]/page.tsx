@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getPreferences, listMessagesFor, subscriptionSummaryFor } from "@/modules/comms";
 import {
   countOpenTasksFor,
@@ -11,7 +11,12 @@ import {
 } from "@/modules/crm";
 import { assigneeOptions } from "@/modules/crm/admin";
 import { listRegistrationsByPerson, listSubmissionsByPerson } from "@/modules/forms";
-import { getCarnetMetadata, listPermissionsFor, requireAdminActor } from "@/modules/identity";
+import {
+  getCarnetMetadata,
+  hasRecentStepUp,
+  listPermissionsFor,
+  requireAdminActor,
+} from "@/modules/identity";
 import {
   assemblyStatusFor,
   balanceFor,
@@ -92,6 +97,11 @@ export default async function PersonaPage({
   const requested = single(search.pestana);
   const tab: Tab = isTab(requested) ? requested : "resumen";
   const accion = single(search.accion);
+  if (accion === "anonimizar" && !hasRecentStepUp(actor)) {
+    redirect(
+      `/ingresar/paso?next=${encodeURIComponent(`/admin/personas/${id}?pestana=${tab}&accion=anonimizar`)}`,
+    );
+  }
   const saved = single(search.guardado) === "1";
   const carnetSaved = single(search.guardado) === "carnet";
   const error = single(search.error);

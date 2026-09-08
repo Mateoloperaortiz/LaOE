@@ -19,6 +19,7 @@ type Props = {
   };
   backHref: string;
   backLabel: string;
+  showHeader?: boolean;
 };
 
 function blocksOf(unit: ArticleRow): DocumentBlock[] {
@@ -32,7 +33,7 @@ function unitTitle(unit: ArticleRow): string {
 }
 
 /** Lector único de normativa: quien lo compone ya resolvió el acceso y el onboarding. */
-export async function DocumentReader({ detail, backHref, backLabel }: Props) {
+export async function DocumentReader({ detail, backHref, backLabel, showHeader = true }: Props) {
   const kinds = tList("T-394");
   const chapters = chaptersOf(detail.articles);
   const imageIds = [
@@ -48,14 +49,16 @@ export async function DocumentReader({ detail, backHref, backLabel }: Props) {
   const articleCount = detail.articles.filter((unit) => unit.unitType === "ARTICLE").length;
   return (
     <div className="flex min-w-0 flex-col gap-10" lang="es">
-      <Cartel
-        variante="navy"
-        nivel="h1"
-        tamano="hero"
-        eyebrow={kinds[DOCUMENT_KINDS.indexOf(detail.document.kind)] ?? detail.document.kind}
-        titulo={<span className="block hyphens-auto break-words">{detail.document.title}</span>}
-        subtitulo={t("T-395", { v: detail.document.version })}
-      />
+      {showHeader ? (
+        <Cartel
+          variante="navy"
+          nivel="h1"
+          tamano="hero"
+          eyebrow={kinds[DOCUMENT_KINDS.indexOf(detail.document.kind)] ?? detail.document.kind}
+          titulo={<span className="block hyphens-auto break-words">{detail.document.title}</span>}
+          subtitulo={t("T-395", { v: detail.document.version })}
+        />
+      ) : null}
       <div className="flex flex-wrap items-center gap-4">
         <a
           href={`/api/documentos/${detail.document.id}/pdf`}

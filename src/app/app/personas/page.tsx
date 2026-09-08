@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { listRecognitionsByPeople, monthName, type RecognitionView } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
 import { listDirectory, listInternalCommittees } from "@/modules/people";
@@ -19,12 +20,29 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim() : "";
   const comite = typeof params.comite === "string" ? params.comite : "";
-  const pagina = Math.max(1, Number.parseInt(String(params.pagina ?? "1"), 10) || 1);
+  const link = (page: number) => {
+    const query = new URLSearchParams();
+    if (q) query.set("q", q);
+    if (comite) query.set("comite", comite);
+    if (page > 1) query.set("pagina", String(page));
+    const qs = query.toString();
+    return `/app/personas${qs ? `?${qs}` : ""}`;
+  };
+  const requested = Number(params.pagina ?? "1");
+  if (
+    !Number.isSafeInteger(requested) ||
+    requested < 1 ||
+    requested > Math.floor(Number.MAX_SAFE_INTEGER / PAGE_SIZE)
+  )
+    redirect(link(1));
+  const pagina = requested;
   const [directory, committees] = await Promise.all([
     listDirectory({ q, committeeId: comite || null, page: pagina, pageSize: PAGE_SIZE }),
     listInternalCommittees(),
   ]);
   const term = directory.term;
+  const pages = Math.max(1, Math.ceil(directory.total / PAGE_SIZE));
+  if (pagina > pages) redirect(link(pages));
   const recognitions = term
     ? await listRecognitionsByPeople(
         directory.rows.map((entry) => entry.personId),
@@ -35,20 +53,11 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
     (recognitions.get(personId) ?? [])
       .filter((item) => item.announcementId !== null && item.kind === "MEMBER_OF_MONTH")
       .map((item) => t("T-703", { mes: monthName(item.month) }));
-  const pages = Math.max(1, Math.ceil(directory.total / PAGE_SIZE));
   const [anterior, siguiente] = tList("T-258") as [string, string];
-  const link = (page: number) => {
-    const query = new URLSearchParams();
-    if (q) query.set("q", q);
-    if (comite) query.set("comite", comite);
-    if (page > 1) query.set("pagina", String(page));
-    const qs = query.toString();
-    return `/app/personas${qs ? `?${qs}` : ""}`;
-  };
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-display-lg">{t("T-070")}</h1>
-      <form method="get" className="flex flex-wrap items-end gap-4">
+      <form method="get" className="member-filter">
         <div className="flex flex-col gap-1">
           <label htmlFor="q" className="eyebrow text-xs">
             {t("T-071")}
@@ -82,9 +91,15 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
         <button type="submit" className="boton-secundario">
           {t("T-250")}
         </button>
+        {q || comite ? <Link href="/app/personas">{t("T-1680")}</Link> : null}
       </form>
+      <output className="text-sm text-tinta-suave">{t("T-1678", { n: directory.total })}</output>
       {directory.rows.length === 0 ? (
-        <Vacio texto={t("T-371")} elemento="asterisco" color="text-oe-navy" />
+        <Vacio
+          texto={!term ? t("T-1688") : q || comite ? t("T-371") : t("T-1679")}
+          elemento="asterisco"
+          color="text-oe-navy"
+        />
       ) : (
         <ul className="grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
           {directory.rows.map((entry) => (

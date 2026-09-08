@@ -32,7 +32,7 @@ test.describe("ADMIN abre una actividad de hoy", () => {
   test("el tick de las 07:00 deja el recordatorio en el registro de mensajes", async ({ page }) => {
     await page.goto("/admin/ocasiones");
     await page.getByRole("link", { name: "Nuevo" }).click();
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await panel.getByLabel("Título").fill(TITULO);
     await panel.getByLabel("Empieza").fill(hoyBogota(23));
     await panel.getByLabel("Lugar").fill("Bloque 29");

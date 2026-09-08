@@ -1,0 +1,85 @@
+.member-settings .settings-layout {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+.member-settings .settings-navigation {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.375rem;
+}
+.member-settings .settings-navigation a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  text-decoration: none;
+}
+.member-settings .settings-navigation a[aria-current="location"] {
+  border-color: var(--titulo);
+  background: var(--fondo-suave);
+  color: var(--titulo);
+  font-weight: 700;
+}
+.member-settings section {
+  min-width: 0;
+  scroll-margin-top: 6rem;
+}
+.member-settings .settings-table-region {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+.member-settings .settings-records {
+  table-layout: fixed;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 768px) {
+  .member-settings .settings-layout {
+    grid-template-columns: 12rem minmax(0, 1fr);
+    gap: 2rem;
+  }
+  .member-settings .settings-navigation {
+    position: sticky;
+    top: 5.5rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 767px) {
+  .member-settings .settings-records thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+  }
+  .member-settings .settings-records,
+  .member-settings .settings-records tbody,
+  .member-settings .settings-records tr,
+  .member-settings .settings-records td {
+    display: block;
+    width: 100%;
+  }
+  .member-settings .settings-records tr {
+    padding: 0.75rem 1rem;
+  }
+  .member-settings .settings-records td {
+    padding: 0.375rem 0;
+    text-align: left;
+  }
+  .member-settings .settings-records td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.2rem;
+    color: var(--tinta-suave);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .member-settings .settings-records td:empty {
+    display: none;
+  }
+}

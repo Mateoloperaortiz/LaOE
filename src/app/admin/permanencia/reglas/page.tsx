@@ -13,6 +13,8 @@ import { ReglaForm } from "@/modules/permanence/components/ReglaForm";
 import { TablaReglas } from "@/modules/permanence/components/TablaReglas";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { reglaFormLabels, reglaFormValues } from "../_ui/reglas";
@@ -117,20 +119,30 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
       {view.rules.length === 0 ? (
         <>
           <form action={copyPreviousAction}>
-            {Object.entries(hidden).map(([name, value]) => (
-              <input key={name} type="hidden" name={name} value={value} />
-            ))}
-            <button type="submit" className="boton-secundario min-h-9 px-3 py-1 text-sm">
-              {copiar}
-            </button>
+            <AdminFormBody>
+              {Object.entries(hidden).map(([name, value]) => (
+                <input key={name} type="hidden" name={name} value={value} />
+              ))}
+              <AdminSubmitButton
+                type="submit"
+                className="boton-secundario min-h-9 px-3 py-1 text-sm"
+              >
+                {copiar}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
           <form action={applyTemplateAction}>
-            {Object.entries(hidden).map(([name, value]) => (
-              <input key={name} type="hidden" name={name} value={value} />
-            ))}
-            <button type="submit" className="boton-secundario min-h-9 px-3 py-1 text-sm">
-              {referencia}
-            </button>
+            <AdminFormBody>
+              {Object.entries(hidden).map(([name, value]) => (
+                <input key={name} type="hidden" name={name} value={value} />
+              ))}
+              <AdminSubmitButton
+                type="submit"
+                className="boton-secundario min-h-9 px-3 py-1 text-sm"
+              >
+                {referencia}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
         </>
       ) : (
@@ -144,13 +156,18 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
       {view.committeeId ? (
         <>
           <form action={lockTableAction}>
-            {Object.entries(hidden).map(([name, value]) => (
-              <input key={name} type="hidden" name={name} value={value} />
-            ))}
-            <input type="hidden" name="locked" value={view.lockedAt ? "0" : "1"} />
-            <button type="submit" className="boton-secundario min-h-9 px-3 py-1 text-sm">
-              {view.lockedAt ? desbloquear : bloquear}
-            </button>
+            <AdminFormBody>
+              {Object.entries(hidden).map(([name, value]) => (
+                <input key={name} type="hidden" name={name} value={value} />
+              ))}
+              <input type="hidden" name="locked" value={view.lockedAt ? "0" : "1"} />
+              <AdminSubmitButton
+                type="submit"
+                className="boton-secundario min-h-9 px-3 py-1 text-sm"
+              >
+                {view.lockedAt ? desbloquear : bloquear}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
           <Link
             href={`${base}&accion=comentar`}
@@ -204,9 +221,9 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
               </option>
             ))}
           </select>
-          <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
+          <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
-          </button>
+          </AdminSubmitButton>
         </form>
       </header>
 
@@ -258,10 +275,15 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
               </Link>
             ) : null}
             <form action={lockAllAction}>
-              <input type="hidden" name="termId" value={term.id} />
-              <button type="submit" className="boton-secundario min-h-9 px-3 py-1 text-sm">
-                {bloquearTodas}
-              </button>
+              <AdminFormBody>
+                <input type="hidden" name="termId" value={term.id} />
+                <AdminSubmitButton
+                  type="submit"
+                  className="boton-secundario min-h-9 px-3 py-1 text-sm"
+                >
+                  {bloquearTodas}
+                </AdminSubmitButton>
+              </AdminFormBody>
             </form>
           </div>
         </div>
@@ -321,27 +343,29 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
       {accion === "comentar" && committee ? (
         <ResourcePanel title={comentar ?? ""} closeHref={base} closeLabel={t("T-291")}>
           <form action={commentTableAction} className="flex flex-col gap-4">
-            {Object.entries(hidden).map(([name, value]) => (
-              <input key={name} type="hidden" name={name} value={value} />
-            ))}
-            <label htmlFor="comment" className="eyebrow text-xs">
-              {t("T-736")}
-            </label>
-            <textarea
-              id="comment"
-              name="comment"
-              defaultValue={selected?.comment ?? ""}
-              rows={4}
-              className={inputClass}
-            />
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-calido">
-                {t("T-253")}
-              </button>
-              <Link href={base} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              {Object.entries(hidden).map(([name, value]) => (
+                <input key={name} type="hidden" name={name} value={value} />
+              ))}
+              <label htmlFor="comment" className="eyebrow text-xs">
+                {t("T-736")}
+              </label>
+              <textarea
+                id="comment"
+                name="comment"
+                defaultValue={selected?.comment ?? ""}
+                rows={4}
+                className={inputClass}
+              />
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-calido">
+                  {t("T-253")}
+                </AdminSubmitButton>
+                <Link href={base} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}

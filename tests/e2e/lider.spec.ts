@@ -59,7 +59,7 @@ test("el líder entra a su comité, crea la serie semanal y no ve el resto del a
   await sinViolaciones(page);
 
   await page.getByRole("link", { name: "Crear serie semanal" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await panel.getByLabel("Título").fill("e2e-Reunión semanal");
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
   await panel.getByLabel("Primera reunión").fill(today);

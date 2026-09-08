@@ -5,6 +5,8 @@ import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import { closingSummary, getTermStanding } from "@/modules/participation";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Numeral } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
@@ -84,9 +86,9 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
               </option>
             ))}
           </select>
-          <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
+          <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
-          </button>
+          </AdminSubmitButton>
         </form>
       </header>
 
@@ -180,16 +182,18 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
       {accion === "cerrar" && !term.pointsClosedAt && summary.openOccasions === 0 ? (
         <ResourcePanel title={t("T-647")} closeHref={base} closeLabel={t("T-291")}>
           <form action={closeTermAction} className="flex flex-col gap-4">
-            <input type="hidden" name="termId" value={term.id} />
-            <p>{t("T-163", { término: term.code })}</p>
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-calido">
-                {t("T-647")}
-              </button>
-              <Link href={base} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="termId" value={term.id} />
+              <p>{t("T-163", { término: term.code })}</p>
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-calido">
+                  {t("T-647")}
+                </AdminSubmitButton>
+                <Link href={base} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}

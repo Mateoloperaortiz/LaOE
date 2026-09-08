@@ -72,7 +72,14 @@ async function eventFields(): Promise<FieldDefinition[]> {
     },
     { name: "name", label: t("T-273"), type: "text", required: true },
     { name: "summary", label: t("T-344"), type: "text" },
-    { name: "description", label: t("T-345"), type: "textarea", rows: 12, help: t("T-337") },
+    {
+      name: "description",
+      label: t("T-345"),
+      type: "textarea",
+      textVariant: "code",
+      rows: 12,
+      help: t("T-337"),
+    },
     await coverField(),
     {
       name: "audience",
@@ -181,7 +188,14 @@ async function editionFields(): Promise<FieldDefinition[]> {
     { name: "startsAt", label: t("T-350"), type: "datetime", required: true },
     { name: "endsAt", label: t("T-351"), type: "datetime" },
     { name: "location", label: t("T-352"), type: "text" },
-    { name: "description", label: t("T-345"), type: "textarea", rows: 10, help: t("T-337") },
+    {
+      name: "description",
+      label: t("T-345"),
+      type: "textarea",
+      textVariant: "code",
+      rows: 10,
+      help: t("T-337"),
+    },
     cover,
     {
       name: "committeeIds",

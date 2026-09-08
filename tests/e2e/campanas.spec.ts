@@ -29,7 +29,7 @@ async function stepUpSiHaceFalta(page: Page): Promise<void> {
 async function crearCampana(page: Page, nombre: string): Promise<void> {
   await page.goto("/admin/campanas");
   await page.getByRole("link", { name: "Nuevo" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await panel.getByLabel("Nombre", { exact: true }).fill(nombre);
   await panel.getByLabel("Plantilla").selectOption({ label: PLANTILLA });
   await panel.getByLabel("Segmento").selectOption({ label: SEGMENTO });
@@ -57,7 +57,7 @@ test("plantilla, segmento y campaña: el miembro recibe por consola, se da de ba
 }) => {
   await page.goto("/admin/plantillas");
   await page.getByRole("link", { name: "Nuevo" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await panel.getByLabel(/Identificador/).fill(`e2e-${marca}`);
   await panel.getByLabel("Nombre", { exact: true }).fill(PLANTILLA);
   await panel.getByLabel("Asunto", { exact: true }).fill("Hola {nombre}");
@@ -73,7 +73,7 @@ test("plantilla, segmento y campaña: el miembro recibe por consola, se da de ba
 
   await page.goto("/admin/segmentos");
   await page.getByRole("link", { name: "Nuevo" }).click();
-  const segmento = page.getByRole("complementary");
+  const segmento = page.getByRole("dialog");
   await segmento.getByLabel("Nombre", { exact: true }).fill(SEGMENTO);
   await segmento.getByLabel("Programa").fill("e2e-campana");
   await segmento.getByRole("button", { name: "Guardar" }).click();

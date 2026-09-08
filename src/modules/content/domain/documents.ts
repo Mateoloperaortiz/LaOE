@@ -191,7 +191,7 @@ async function setStatus(
   ctx: CommandContext,
   id: string,
   status: "DRAFT" | "PUBLISHED",
-  expectedContentSha256?: string,
+  expectedContentSha256?: string | null,
 ): Promise<void> {
   const [row] = await ctx.tx.select().from(document).where(eq(document.id, id)).for("update");
   if (!row) {
@@ -223,10 +223,11 @@ async function setStatus(
   });
 }
 
+/** null exige que todavía no haya contenido; undefined conserva llamadas sin revisión esperada. */
 export function publishDocument(
   ctx: CommandContext,
   id: string,
-  expectedContentSha256?: string,
+  expectedContentSha256?: string | null,
 ): Promise<void> {
   return setStatus(ctx, id, "PUBLISHED", expectedContentSha256);
 }
@@ -340,7 +341,7 @@ export async function replaceArticles(
 export function publishDocumentAs(
   actor: Actor,
   id: string,
-  expectedContentSha256?: string,
+  expectedContentSha256?: string | null,
 ): Promise<void> {
   return runCommand(actor, (ctx) => publishDocument(ctx, id, expectedContentSha256));
 }

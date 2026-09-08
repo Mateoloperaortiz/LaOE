@@ -4,6 +4,7 @@ export { DomainError } from "./DomainError";
 export { Pagination } from "./Pagination";
 export { ResourceForm } from "./ResourceForm";
 export { ResourcePanel } from "./ResourcePanel";
+export { ResourceSubmitButton } from "./ResourceSubmitButton";
 export { ResourceTable } from "./ResourceTable";
 export { ResourceToolbar } from "./ResourceToolbar";
 export {
@@ -13,4 +14,5 @@ export {
   formDataToValues,
   MULTI_SEPARATOR,
   resolveFilters,
+  withLockedFormValues,
 } from "./types";

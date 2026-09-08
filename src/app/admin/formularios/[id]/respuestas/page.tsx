@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import { getFormView, getSubmission } from "@/modules/forms";
 import { submissionsResource } from "@/modules/forms/admin";
 import { ResourcePanel } from "@/shared/admin-kit";
+import { Dato } from "@/shared/admin-kit/AdminFields";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { ResourcePage } from "../../../_kit/ResourcePage";
-import { Dato } from "../../../personas/[id]/_ui/campos";
 
 // Bandeja de respuestas de un formulario (ADR-037): el listado del kit con el formulario fijado y un
 // panel de solo lectura con las respuestas de cada envío (?ver=<id>).

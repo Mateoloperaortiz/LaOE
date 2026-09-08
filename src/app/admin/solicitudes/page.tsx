@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
 import {
   getRequest,
   getRequestByTask,
@@ -65,6 +66,18 @@ export default async function Page({ searchParams }: PageProps<"/admin/solicitud
     getCurrentTerm(),
   ]);
   const totalPages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
+  if ((solicitudId || tareaId) && !selected) notFound();
+  if (page > totalPages) {
+    redirect(
+      buildHref({
+        estado,
+        tipo,
+        pagina: totalPages > 1 ? String(totalPages) : "",
+        solicitud: solicitudId,
+        tarea: tareaId,
+      }),
+    );
+  }
   const listParams = { estado, tipo, pagina: page > 1 ? String(page) : "" };
   const listHref = buildHref(listParams);
   const columns = tList("T-998");
@@ -92,46 +105,48 @@ export default async function Page({ searchParams }: PageProps<"/admin/solicitud
           {error}
         </p>
       ) : null}
-      <nav aria-label={columns[4] ?? ""} className="flex flex-wrap gap-2">
-        {statusValues.map((value, index) => (
+      <div className="flex flex-col gap-4 rounded-xl border border-borde bg-fondo p-4">
+        <nav aria-label={columns[4] ?? ""} className="flex flex-wrap gap-2">
+          {statusValues.map((value, index) => (
+            <Link
+              key={value}
+              href={buildHref({ ...listParams, estado: value, pagina: "" })}
+              aria-current={estado === value ? "page" : undefined}
+              className={`rounded-full px-3 py-1 text-sm font-semibold ${estado === value ? "bg-oe-navy text-oe-paper" : "bg-fondo-suave"}`}
+            >
+              {statusFilters[index]}
+            </Link>
+          ))}
+        </nav>
+        <nav aria-label={columns[1] ?? ""} className="flex flex-wrap gap-2">
           <Link
-            key={value}
-            href={buildHref({ ...listParams, estado: value, pagina: "" })}
-            aria-current={estado === value ? "page" : undefined}
-            className={`rounded-full px-3 py-1 text-sm font-semibold ${estado === value ? "bg-oe-navy text-oe-paper" : "bg-fondo-suave"}`}
+            href={buildHref({ ...listParams, tipo: "", pagina: "" })}
+            aria-current={tipo === "" ? "page" : undefined}
+            className={`rounded-full px-3 py-1 text-sm ${tipo === "" ? "bg-fondo-suave font-semibold" : ""}`}
           >
-            {statusFilters[index]}
+            {statusFilters[4]}
           </Link>
-        ))}
-      </nav>
-      <nav aria-label={columns[1] ?? ""} className="flex flex-wrap gap-2">
-        <Link
-          href={buildHref({ ...listParams, tipo: "", pagina: "" })}
-          aria-current={tipo === "" ? "page" : undefined}
-          className={`rounded-full px-3 py-1 text-sm ${tipo === "" ? "bg-fondo-suave font-semibold" : ""}`}
-        >
-          {statusFilters[4]}
-        </Link>
-        {REQUEST_KINDS.map((value, index) => (
-          <Link
-            key={value}
-            href={buildHref({ ...listParams, tipo: value, pagina: "" })}
-            aria-current={tipo === value ? "page" : undefined}
-            className={`rounded-full px-3 py-1 text-sm ${tipo === value ? "bg-fondo-suave font-semibold" : ""}`}
-          >
-            {kindFilters[index]}
-          </Link>
-        ))}
-      </nav>
+          {REQUEST_KINDS.map((value, index) => (
+            <Link
+              key={value}
+              href={buildHref({ ...listParams, tipo: value, pagina: "" })}
+              aria-current={tipo === value ? "page" : undefined}
+              className={`rounded-full px-3 py-1 text-sm ${tipo === value ? "bg-fondo-suave font-semibold" : ""}`}
+            >
+              {kindFilters[index]}
+            </Link>
+          ))}
+        </nav>
+      </div>
       {result.rows.length === 0 ? (
         <p className="text-tinta-suave">{t("T-1000")}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[48rem] text-left text-sm">
+          <table className="admin-data-table w-full min-w-[48rem] text-left text-sm">
             <thead>
               <tr className="border-b border-borde">
                 {columns.map((column) => (
-                  <th key={column} className="eyebrow py-2 pr-4 text-xs">
+                  <th scope="col" key={column} className="eyebrow py-2 pr-4 text-xs">
                     {column}
                   </th>
                 ))}
@@ -140,7 +155,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/solicitud
             <tbody>
               {result.rows.map((row) => (
                 <tr key={row.id} className="border-b border-borde">
-                  <td className="py-2 pr-4 font-semibold">
+                  <td data-label={columns[0]} className="py-2 pr-4 font-semibold">
                     <Link
                       href={buildHref({ ...listParams, solicitud: row.id })}
                       className="underline"
@@ -148,10 +163,16 @@ export default async function Page({ searchParams }: PageProps<"/admin/solicitud
                       {row.personName}
                     </Link>
                   </td>
-                  <td className="py-2 pr-4">{row.kindLabel}</td>
-                  <td className="py-2 pr-4">{row.detail}</td>
-                  <td className="py-2 pr-4">{formatDateTime(row.createdAt)}</td>
-                  <td className="py-2 pr-4">
+                  <td data-label={columns[1]} className="py-2 pr-4">
+                    {row.kindLabel}
+                  </td>
+                  <td data-label={columns[2]} className="py-2 pr-4">
+                    {row.detail}
+                  </td>
+                  <td data-label={columns[3]} className="py-2 pr-4">
+                    {formatDateTime(row.createdAt)}
+                  </td>
+                  <td data-label={columns[4]} className="py-2 pr-4">
                     <Insignia
                       fondo={
                         row.status === "PENDING"
@@ -166,7 +187,9 @@ export default async function Page({ searchParams }: PageProps<"/admin/solicitud
                       {row.statusLabel}
                     </Insignia>
                   </td>
-                  <td className="py-2 pr-4">{row.decidedByName ?? "—"}</td>
+                  <td data-label={columns[5]} className="py-2 pr-4">
+                    {row.decidedByName ?? "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>

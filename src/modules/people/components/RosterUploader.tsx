@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 // Paso 1 del asistente del roster (ADR-034): el archivo va al servidor, que lo guarda en el bucket y
 // deja la vista previa en un ImportJob; después se navega a la revisión.
@@ -13,6 +13,10 @@ type Labels = {
   button: string;
   uploading: string; // con {nombre}
   error: string;
+  chooseFile: string;
+  noFile: string;
+  replaceFile: string;
+  removeFile: string;
 };
 
 type Props = {
@@ -32,9 +36,13 @@ export function RosterUploader({ endpoint, terms, defaultTermId, labels }: Props
   const fileId = useId();
   const termId = useId();
   const [state, setState] = useState<State>({ kind: "idle" });
+  const [file, setFile] = useState<File | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const uploading = useRef(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (uploading.current) return;
     const form = event.currentTarget;
     const data = new FormData(form);
     const file = data.get("file");
@@ -42,6 +50,7 @@ export function RosterUploader({ endpoint, terms, defaultTermId, labels }: Props
       setState({ kind: "error", message: labels.error });
       return;
     }
+    uploading.current = true;
     setState({ kind: "uploading", name: file.name });
     try {
       const response = await fetch(endpoint, { method: "POST", body: data });
@@ -49,18 +58,24 @@ export function RosterUploader({ endpoint, terms, defaultTermId, labels }: Props
       if (!response.ok || !body.jobId) {
         throw new Error(body.error ?? labels.error);
       }
-      router.push(`/admin/personas/importar?job=${body.jobId}`);
+      router.push(`/admin/personas/importar?job=${body.jobId}&paso=columnas`);
     } catch (error) {
       setState({ kind: "error", message: error instanceof Error ? error.message : labels.error });
+    } finally {
+      uploading.current = false;
     }
   }
 
   return (
     <form
       onSubmit={submit}
-      className="flex flex-col gap-4 rounded-[var(--radius-cartel)] border border-borde bg-fondo-suave p-6 textura-granito"
+      className="admin-upload flex min-w-0 flex-col gap-4 rounded-xl border border-borde bg-fondo p-5"
+      aria-busy={state.kind === "uploading"}
     >
-      <div className="flex flex-wrap items-end gap-4">
+      <fieldset
+        disabled={state.kind === "uploading"}
+        className="flex min-w-0 flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end"
+      >
         <div className="flex flex-col gap-1">
           <label htmlFor={termId} className="eyebrow text-xs">
             {labels.term}
@@ -78,24 +93,52 @@ export function RosterUploader({ endpoint, terms, defaultTermId, labels }: Props
             ))}
           </select>
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-1">
           <label htmlFor={fileId} className="eyebrow text-xs">
             {labels.file}
           </label>
           <input
+            ref={input}
             id={fileId}
             name="file"
             type="file"
             accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             required
             disabled={state.kind === "uploading"}
-            className="block max-w-xs text-sm file:mr-3 file:rounded-full file:border-0 file:bg-oe-sky file:px-4 file:py-2 file:font-bold file:text-oe-navy"
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            className="peer sr-only"
           />
+          <label
+            htmlFor={fileId}
+            className="admin-file-picker flex min-w-0 cursor-pointer flex-wrap items-center gap-3 rounded-xl border border-dashed border-borde p-4 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-titulo"
+          >
+            <span className="font-semibold text-titulo">
+              {file ? labels.replaceFile : labels.chooseFile}
+            </span>
+            <span className="min-w-0 break-all text-sm text-tinta-suave">
+              {file
+                ? `${file.name} · ${new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 }).format(file.size / (file.size >= 1024 * 1024 ? 1024 * 1024 : 1024))} ${file.size >= 1024 * 1024 ? "MB" : "KB"}`
+                : labels.noFile}
+            </span>
+          </label>
+          {file ? (
+            <button
+              type="button"
+              className="self-start text-sm font-semibold underline"
+              onClick={() => {
+                setFile(null);
+                setState({ kind: "idle" });
+                if (input.current) input.current.value = "";
+              }}
+            >
+              {labels.removeFile}
+            </button>
+          ) : null}
         </div>
         <button type="submit" disabled={state.kind === "uploading"} className="boton-calido">
           {labels.button}
         </button>
-      </div>
+      </fieldset>
       <p className="max-w-prose text-sm text-tinta-suave">{labels.help}</p>
       <output className="block text-sm font-semibold" aria-live="polite">
         {state.kind === "uploading" ? labels.uploading.replace("{nombre}", state.name) : null}

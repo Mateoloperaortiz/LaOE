@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   DOCUMENT_KINDS,
   DOCUMENT_MAX_BYTES,
@@ -8,64 +9,75 @@ import {
 } from "@/modules/content";
 import { DocumentUploader } from "@/modules/content/components/DocumentUploader";
 import { requireAdminActor } from "@/modules/identity";
+import { Pagination, ResourcePanel } from "@/shared/admin-kit";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
-import { loadArticlesAction, publicationAction } from "./actions";
-
-// Documentos de normativa (ADR-034 regla 9): UI a medida como Medios: subir el PDF, cargar los
-// artículos desde el JSON del extractor y publicar.
 
 const [plural] = tList("T-425") as [string, string];
+const PAGE_SIZE = 20;
+const BASE = "/admin/documentos";
 
 export const metadata: Metadata = { title: plural };
 
 export default async function DocumentosPage({ searchParams }: PageProps<"/admin/documentos">) {
-  await requireAdminActor("/admin/documentos");
+  await requireAdminActor(BASE);
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim() : "";
-  const cargado = typeof params.cargado === "string" ? params.cargado : "";
-  const error = typeof params.error === "string" ? params.error : "";
-  const { rows } = await listDocuments({ q, page: 1, pageSize: 100 });
+  const rawPage = typeof params.pagina === "string" ? Number(params.pagina) : 1;
+  const page = Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 1;
+  const { rows, total } = await listDocuments({ q, page, pageSize: PAGE_SIZE });
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hrefFor = (target: number, upload = false) => {
+    const query = new URLSearchParams();
+    if (q) query.set("q", q);
+    if (target > 1) query.set("pagina", String(target));
+    if (upload) query.set("nuevo", "1");
+    return `${BASE}${query.size ? `?${query}` : ""}`;
+  };
+  if (page > totalPages) redirect(hrefFor(totalPages, params.nuevo === "1"));
   const columnas = tList("T-500");
   const [borrador, publicado] = tList("T-288") as [string, string];
   const kinds = tList("T-394");
   const [publico, soloMiembros] = tList("T-339") as [string, string];
+  const [previous, next] = tList("T-258") as [string, string];
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-display-lg">{plural}</h1>
-      <DocumentUploader
-        kindCodes={DOCUMENT_KINDS}
-        minBytes={DOCUMENT_MIN_BYTES}
-        maxBytes={DOCUMENT_MAX_BYTES}
-        labels={{
-          fields: tList("T-494"),
-          kinds,
-          audiences: [publico, soloMiembros],
-          help: t("T-496"),
-          uploading: t("T-359"),
-          done: t("T-1292"),
-          errorType: t("T-501"),
-          errorSize: t("T-519"),
-          errorUpload: t("T-518"),
-          errorTitle: t("T-494"),
-        }}
-      />
-      {cargado ? (
-        <output className="block text-sm font-semibold text-titulo">
-          {t("T-1290", { n: cargado })}
-        </output>
-      ) : null}
-      {error ? (
-        <p
-          role="alert"
-          className="inline-block self-start rounded-lg bg-oe-orange px-2 py-1 text-sm text-oe-navy"
-        >
-          {error}
-        </p>
-      ) : null}
-      <div className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde">
-        <table className="w-full text-left text-sm">
+    <div className="admin-page flex min-w-0 flex-col gap-6">
+      <div className="admin-page-header flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-display-lg">{plural}</h1>
+          <p className="mt-2 max-w-prose text-sm text-tinta-suave">{t("T-1461")}</p>
+        </div>
+        <Link href={hrefFor(page, true)} className="boton-calido">
+          {t("T-1460")}
+        </Link>
+      </div>
+      <form action={BASE} method="get" className="admin-toolbar flex flex-wrap items-end gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <label htmlFor="document-search" className="text-sm font-semibold">
+            {t("T-1463")}
+          </label>
+          <input
+            id="document-search"
+            name="q"
+            type="search"
+            defaultValue={q}
+            className="w-full rounded-xl border border-borde bg-fondo px-3 py-2"
+          />
+        </div>
+        <button type="submit" className="boton-secundario">
+          {t("T-250")}
+        </button>
+        {q ? (
+          <Link href={BASE} className="text-sm underline">
+            {t("T-1474")}
+          </Link>
+        ) : null}
+      </form>
+      <p className="text-sm text-tinta-suave">{t("T-1423", { n: total })}</p>
+      <div className="admin-table-wrap overflow-x-auto rounded-xl border border-borde">
+        <table className="admin-data-table w-full text-left text-sm">
+          <caption className="sr-only">{plural}</caption>
           <thead className="eyebrow bg-fondo-suave text-xs">
             <tr>
               {columnas.map((columna) => (
@@ -74,26 +86,30 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
                 </th>
               ))}
               <th scope="col" className="px-4 py-3">
-                <span className="sr-only">{t("T-1291")}</span>
+                {t("T-1426")}
               </th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr className="border-t border-borde">
-                <td colSpan={columnas.length + 1} className="px-4 py-6 text-tinta-suave">
-                  {t("T-256")}
+                <td colSpan={columnas.length + 1} className="px-4 py-10 text-tinta-suave">
+                  {q ? t("T-256") : t("T-1462")}
                 </td>
               </tr>
             ) : null}
             {rows.map((row) => (
               <tr key={row.id} className="border-t border-borde align-top">
-                <td className="px-4 py-3 font-semibold">
-                  <Link href={`/admin/documentos/${row.id}`}>{row.title}</Link>
+                <td data-label={columnas[0]} className="px-4 py-3 font-semibold">
+                  <Link href={`${BASE}/${row.id}`}>{row.title}</Link>
                 </td>
-                <td className="px-4 py-3">{kinds[DOCUMENT_KINDS.indexOf(row.kind)] ?? row.kind}</td>
-                <td className="px-4 py-3">{row.version}</td>
-                <td className="px-4 py-3">
+                <td data-label={columnas[1]} className="px-4 py-3">
+                  {kinds[DOCUMENT_KINDS.indexOf(row.kind)] ?? row.kind}
+                </td>
+                <td data-label={columnas[2]} className="px-4 py-3">
+                  {row.version}
+                </td>
+                <td data-label={columnas[3]} className="px-4 py-3">
                   <p>{row.articleCount}</p>
                   {row.unitCount > row.articleCount ? (
                     <p className="mt-1 text-xs text-tinta-suave">
@@ -101,51 +117,57 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
                     </p>
                   ) : null}
                 </td>
-                <td className="px-4 py-3">
+                <td data-label={columnas[4]} className="px-4 py-3">
                   <Insignia fondo={row.status === "PUBLISHED" ? "azul" : "sky"}>
                     {row.status === "PUBLISHED" ? publicado : borrador}
                   </Insignia>
                 </td>
-                <td className="px-4 py-3">{formatDateTime(row.createdAt)}</td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-col gap-2">
-                    <Link href={`/admin/documentos/${row.id}`}>{t("T-1282")}</Link>
-                    <form action={publicationAction}>
-                      <input type="hidden" name="id" value={row.id} />
-                      <input type="hidden" name="contentSha256" value={row.contentSha256 ?? ""} />
-                      <input
-                        type="hidden"
-                        name="intent"
-                        value={row.status === "PUBLISHED" ? "unpublish" : "publish"}
-                      />
-                      <button type="submit" className="boton-secundario text-sm">
-                        {row.status === "PUBLISHED" ? t("T-343") : t("T-342")}
-                      </button>
-                    </form>
-                    <form action={loadArticlesAction} className="flex flex-wrap items-center gap-2">
-                      <input type="hidden" name="id" value={row.id} />
-                      <label htmlFor={`json-${row.id}`} className="sr-only">
-                        {t("T-1291")}
-                      </label>
-                      <input
-                        id={`json-${row.id}`}
-                        name="json"
-                        type="file"
-                        accept="application/json,.json"
-                        required
-                        className="block max-w-56 text-sm file:mr-2 file:rounded-full file:border-0 file:bg-fondo-suave file:px-3 file:py-1 file:text-xs file:font-bold file:text-titulo"
-                      />
-                      <button type="submit" className="boton-secundario text-sm">
-                        {t("T-1291")}
-                      </button>
-                    </form>
-                  </div>
+                <td data-label={columnas[5]} className="px-4 py-3">
+                  {formatDateTime(row.createdAt)}
+                </td>
+                <td data-label={t("T-1426")} className="px-4 py-3">
+                  <Link href={`${BASE}/${row.id}`} className="font-semibold underline">
+                    {t("T-1282")}
+                  </Link>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        hrefFor={hrefFor}
+        labels={{ summary: t("T-257", { n: page, total: totalPages }), previous, next }}
+      />
+      {params.nuevo === "1" ? (
+        <ResourcePanel title={t("T-1460")} closeHref={hrefFor(page)} closeLabel={t("T-291")}>
+          <DocumentUploader
+            kindCodes={DOCUMENT_KINDS}
+            minBytes={DOCUMENT_MIN_BYTES}
+            maxBytes={DOCUMENT_MAX_BYTES}
+            labels={{
+              fields: tList("T-494"),
+              kinds,
+              audiences: [publico, soloMiembros],
+              help: t("T-1465"),
+              uploading: t("T-359"),
+              done: t("T-1292"),
+              errorType: t("T-501"),
+              errorSize: t("T-519"),
+              errorUpload: t("T-518"),
+              errorTitle: t("T-1464"),
+              submit: t("T-1460"),
+              errorFile: t("T-1466"),
+              chooseFile: t("T-1485"),
+              noFile: t("T-1486"),
+              replaceFile: t("T-1488"),
+              removeFile: t("T-1489"),
+            }}
+          />
+        </ResourcePanel>
+      ) : null}
     </div>
   );
 }

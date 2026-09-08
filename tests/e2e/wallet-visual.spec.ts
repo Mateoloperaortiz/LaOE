@@ -130,10 +130,10 @@ for (const width of [375, 768, 1440]) {
         if (width === 375) {
           const messages = adminPage.getByRole("region", { name: "Mensajes", exact: true });
           await messages.focus();
-          await adminPage.keyboard.press("ArrowRight");
-          await expect
-            .poll(() => messages.evaluate((region) => region.scrollLeft))
-            .toBeGreaterThan(0);
+          await expect(messages).toBeFocused();
+          expect(
+            await messages.evaluate((region) => region.scrollWidth <= region.clientWidth),
+          ).toBe(true);
         }
         expect(
           await adminPage.evaluate(

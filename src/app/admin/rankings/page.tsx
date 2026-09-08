@@ -4,6 +4,8 @@ import { requireAdminActor } from "@/modules/identity";
 import { rankCommittees, rankPeople } from "@/modules/participation";
 import { listCommitteesByIds } from "@/modules/people";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
+import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Numeral } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 
@@ -67,9 +69,9 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
               </option>
             ))}
           </select>
-          <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
+          <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
-          </button>
+          </AdminSubmitButton>
         </form>
       </header>
 
@@ -79,12 +81,12 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
           {rows.length === 0 ? (
             <p className="text-tinta-suave">{t("T-542")}</p>
           ) : (
-            <div className="overflow-x-auto">
+            <AdminTableRegion label={title} className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left">
                     {columns.map((label) => (
-                      <th key={label} className="eyebrow py-2 pr-4 text-xs">
+                      <th scope="col" key={label} className="eyebrow py-2 pr-4 text-xs">
                         {label}
                       </th>
                     ))}
@@ -109,7 +111,7 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
                   ))}
                 </tbody>
               </table>
-            </div>
+            </AdminTableRegion>
           )}
         </section>
       ))}
@@ -120,13 +122,15 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
         {comites.length === 0 ? (
           <p className="text-tinta-suave">{t("T-542")}</p>
         ) : (
-          <div className="overflow-x-auto">
+          <AdminTableRegion label={tabComites ?? ""} className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left">
-                  <th className="eyebrow py-2 pr-4 text-xs">{columns[0]}</th>
+                  <th scope="col" className="eyebrow py-2 pr-4 text-xs">
+                    {columns[0]}
+                  </th>
                   {committeeColumns.map((label) => (
-                    <th key={label} className="eyebrow py-2 pr-4 text-xs">
+                    <th scope="col" key={label} className="eyebrow py-2 pr-4 text-xs">
                       {label}
                     </th>
                   ))}
@@ -149,7 +153,7 @@ export default async function RankingsPage({ searchParams }: PageProps<"/admin/r
                 ))}
               </tbody>
             </table>
-          </div>
+          </AdminTableRegion>
         )}
       </section>
     </div>

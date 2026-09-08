@@ -59,7 +59,14 @@ const pageFields: FieldDefinition[] = [
     placeholder: "la-oe",
   },
   { name: "title", label: t("T-335"), type: "text", required: true },
-  { name: "body", label: t("T-336"), type: "textarea", rows: 18, help: t("T-337") },
+  {
+    name: "body",
+    label: t("T-336"),
+    type: "textarea",
+    textVariant: "code",
+    rows: 18,
+    help: t("T-337"),
+  },
   { name: "status", label: t("T-279"), type: "select", required: true, options: statusOptions },
   {
     name: "audience",
@@ -129,7 +136,14 @@ const [pushNone, pushSending, pushSent] = tList("T-1114") as [string, string, st
 
 const announcementFields: FieldDefinition[] = [
   { name: "title", label: t("T-335"), type: "text", required: true },
-  { name: "body", label: t("T-336"), type: "textarea", rows: 12, help: t("T-337") },
+  {
+    name: "body",
+    label: t("T-336"),
+    type: "textarea",
+    textVariant: "code",
+    rows: 12,
+    help: t("T-337"),
+  },
   {
     name: "audience",
     label: t("T-338"),

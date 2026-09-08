@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { t } from "@/shared/copy";
 
 export interface PaletteResult {
   type: string;
@@ -24,6 +25,9 @@ type Props = {
 // Paleta ⌘K (ADR-017): busca en el servidor con pg_trgm y navega con el teclado.
 export function CommandPalette({ endpoint, labels }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const base = useId();
+  const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PaletteResult[]>([]);
   const [active, setActive] = useState(0);
@@ -40,32 +44,42 @@ export function CommandPalette({ endpoint, labels }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retry vuelve a ejecutar una búsqueda idéntica por pedido explícito.
   useEffect(() => {
     if (query.trim().length < 2) {
       setResults([]);
+      setSearching(false);
+      setFailed(false);
       return;
     }
     const controller = new AbortController();
+    setSearching(true);
+    setFailed(false);
+    setResults([]);
     const timer = setTimeout(async () => {
-      setSearching(true);
       try {
         const response = await fetch(`${endpoint}?q=${encodeURIComponent(query.trim())}`, {
           signal: controller.signal,
         });
+        if (!response.ok) throw new Error("search");
         const body = (await response.json()) as { results: PaletteResult[] };
+        if (controller.signal.aborted) return;
         setResults(body.results);
         setActive(0);
       } catch {
-        // Búsqueda cancelada o fallida: se conserva la lista anterior.
+        if (!controller.signal.aborted) {
+          setFailed(true);
+          setResults([]);
+        }
       } finally {
-        setSearching(false);
+        if (!controller.signal.aborted) setSearching(false);
       }
     }, 150);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query, endpoint]);
+  }, [query, endpoint, retry]);
 
   function onInputKey(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "ArrowDown") {
@@ -90,11 +104,15 @@ export function CommandPalette({ endpoint, labels }: Props) {
         type="button"
         onClick={() => dialog.current?.showModal()}
         className="boton-secundario min-h-10 px-4 py-2 text-sm"
+        aria-label={labels.open}
+        aria-haspopup="dialog"
       >
-        {labels.open}
+        {t("T-1405")}
+        <kbd className="hidden text-xs text-tinta-suave lg:inline">⌘K</kbd>
       </button>
       <dialog
         ref={dialog}
+        aria-label={labels.open}
         className="m-auto w-[min(40rem,92vw)] rounded-[var(--radius-cartel)] border border-borde bg-fondo p-0 text-tinta shadow-2xl backdrop:bg-oe-navy/60"
         onClose={() => setQuery("")}
       >
@@ -107,8 +125,9 @@ export function CommandPalette({ endpoint, labels }: Props) {
               onKeyDown={onInputKey}
               placeholder={labels.placeholder}
               aria-label={labels.placeholder}
+              aria-describedby={`${base}-status`}
               autoFocus
-              className="flex-1 rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-lg focus:border-titulo focus:outline-none"
+              className="min-w-0 flex-1 rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-lg focus:border-titulo focus:outline-none"
             />
             <button
               type="button"
@@ -118,6 +137,20 @@ export function CommandPalette({ endpoint, labels }: Props) {
               {labels.close}
             </button>
           </div>
+          <output id={`${base}-status`} className="text-sm text-tinta-suave">
+            {searching
+              ? t("T-1406")
+              : failed
+                ? t("T-1407")
+                : query.trim().length < 2
+                  ? t("T-1408")
+                  : (results[active]?.title ?? labels.empty)}
+          </output>
+          {failed ? (
+            <button type="button" className="boton-secundario" onClick={() => setRetry(retry + 1)}>
+              {t("T-1409")}
+            </button>
+          ) : null}
           <ul
             className="flex max-h-80 list-none flex-col gap-1 overflow-y-auto p-0"
             aria-busy={searching}
@@ -128,6 +161,7 @@ export function CommandPalette({ endpoint, labels }: Props) {
                   href={result.href}
                   className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2 no-underline ${index === active ? "bg-fondo-suave" : ""}`}
                   onMouseEnter={() => setActive(index)}
+                  aria-current={index === active ? "true" : undefined}
                 >
                   <span className="flex flex-col">
                     <span className="font-semibold text-titulo">{result.title}</span>
@@ -141,9 +175,6 @@ export function CommandPalette({ endpoint, labels }: Props) {
                 </a>
               </li>
             ))}
-            {query.trim().length >= 2 && !searching && results.length === 0 ? (
-              <li className="px-3 py-2 text-sm text-tinta-suave">{labels.empty}</li>
-            ) : null}
           </ul>
         </div>
       </dialog>

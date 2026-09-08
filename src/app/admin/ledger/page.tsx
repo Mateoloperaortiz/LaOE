@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireAdminActor } from "@/modules/identity";
 import { listLedger, POINT_ENTRY_KINDS, type PointEntryKind } from "@/modules/participation";
 import { getPeopleByIds, searchPeople } from "@/modules/people";
 import { listAllTerms } from "@/modules/terms";
 import { Pagination, ResourcePanel } from "@/shared/admin-kit";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { adjustAction, reverseAction } from "./actions";
@@ -64,6 +67,8 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
   if (personId) current.set("personId", personId);
   if (termId) current.set("termId", termId);
   if (kind) current.set("kind", kind);
+  if (page > 1) current.set("pagina", String(page));
+  if (q) current.set("q", q);
   const hrefFor = (extra: Record<string, string>) => {
     const params = new URLSearchParams(current);
     for (const [key, value] of Object.entries(extra)) params.set(key, value);
@@ -71,6 +76,7 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
     return query ? `${base}?${query}` : base;
   };
   const backHref = hrefFor({});
+  if (page > totalPages) redirect(hrefFor({ pagina: String(totalPages), accion, entrada }));
   const toReverse = entrada ? ledger.rows.find((row) => row.id === entrada) : undefined;
   const openTerms = terms.filter((item) => item.pointsClosedAt === null);
   const errorText = error === "T-260" ? t("T-260") : error;
@@ -117,9 +123,9 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
           </select>
         </label>
         {personId ? <input type="hidden" name="personId" value={personId} /> : null}
-        <button type="submit" className="boton-secundario">
+        <AdminSubmitButton type="submit" className="boton-secundario">
           {t("T-250")}
-        </button>
+        </AdminSubmitButton>
       </form>
 
       {q ? (
@@ -169,42 +175,49 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
         <p className="text-tinta-suave">{t("T-256")}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="admin-data-table w-full text-sm">
             <thead>
               <tr className="text-left">
                 {columns.map((label) => (
-                  <th key={label} className="eyebrow py-2 pr-4 text-xs">
+                  <th scope="col" key={label} className="eyebrow py-2 pr-4 text-xs">
                     {label}
                   </th>
                 ))}
-                <th className="py-2" />
+                <th scope="col" className="py-2" />
               </tr>
             </thead>
             <tbody>
               {ledger.rows.map((row) => (
                 <tr key={row.id} className="border-borde border-t">
-                  <td className="py-2 pr-4 whitespace-nowrap">{formatDateTime(row.createdAt)}</td>
-                  <td className="py-2 pr-4 font-semibold">
+                  <td data-label={columns[0]} className="py-2 pr-4 whitespace-nowrap">
+                    {formatDateTime(row.createdAt)}
+                  </td>
+                  <td data-label={columns[1]} className="py-2 pr-4 font-semibold">
                     <Link href={`/admin/personas/${row.personId}?pestana=participacion`}>
                       {people.get(row.personId)?.fullName?.trim() ?? ""}
                     </Link>
                   </td>
-                  <td className="py-2 pr-4">{termCode.get(row.termId) ?? ""}</td>
-                  <td className="py-2 pr-4">
+                  <td data-label={columns[2]} className="py-2 pr-4">
+                    {termCode.get(row.termId) ?? ""}
+                  </td>
+                  <td data-label={columns[3]} className="py-2 pr-4">
                     {kindLabels[POINT_ENTRY_KINDS.indexOf(row.kind as PointEntryKind)] ?? row.kind}
                   </td>
                   <td
+                    data-label={columns[4]}
                     className={`py-2 pr-4 tabular-nums ${row.points < 0 ? "text-oe-orange" : ""}`}
                   >
                     {row.points > 0 ? `+${row.points}` : row.points}
                   </td>
-                  <td className="py-2 pr-4">{row.reason}</td>
-                  <td className="py-2 pr-4">
+                  <td data-label={columns[5]} className="py-2 pr-4">
+                    {row.reason}
+                  </td>
+                  <td data-label={columns[6]} className="py-2 pr-4">
                     {row.createdById
                       ? (people.get(row.createdById)?.fullName?.trim() ?? "")
                       : t("T-515")}
                   </td>
-                  <td className="py-2">
+                  <td data-label={t("T-1500")} className="py-2">
                     {(row.kind === "ADJUSTMENT" || row.kind === "LEGACY") && !row.reversedById ? (
                       <Link
                         href={hrefFor({ accion: "revertir", entrada: row.id })}
@@ -236,44 +249,46 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
       {accion === "ajustar" && personId ? (
         <ResourcePanel title={t("T-625")} closeHref={backHref} closeLabel={t("T-291")}>
           <form action={adjustAction} className="flex flex-col gap-4">
-            <input type="hidden" name="personId" value={personId} />
-            <input type="hidden" name="back" value={backHref} />
-            <div className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{campoPersona}</span>
-              <p className="font-semibold">{people.get(personId)?.fullName?.trim()}</p>
-            </div>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{campoSemestre}</span>
-              <select
-                name="termId"
-                required
-                defaultValue={termId || openTerms[0]?.id}
-                className={inputClass}
-              >
-                {openTerms.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.code}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{campoPuntos}</span>
-              <input name="points" type="number" step={1} required className={inputClass} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{campoMotivo}</span>
-              <textarea name="reason" required rows={3} className={inputClass} />
-              <span className="text-xs text-tinta-suave">{t("T-628")}</span>
-            </label>
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-primario">
-                {t("T-253")}
-              </button>
-              <Link href={backHref} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="personId" value={personId} />
+              <input type="hidden" name="back" value={backHref} />
+              <div className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{campoPersona}</span>
+                <p className="font-semibold">{people.get(personId)?.fullName?.trim()}</p>
+              </div>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{campoSemestre}</span>
+                <select
+                  name="termId"
+                  required
+                  defaultValue={termId || openTerms[0]?.id}
+                  className={inputClass}
+                >
+                  {openTerms.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.code}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{campoPuntos}</span>
+                <input name="points" type="number" step={1} required className={inputClass} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{campoMotivo}</span>
+                <textarea name="reason" required rows={3} className={inputClass} />
+                <span className="text-xs text-tinta-suave">{t("T-628")}</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-primario">
+                  {t("T-253")}
+                </AdminSubmitButton>
+                <Link href={backHref} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}
@@ -281,27 +296,29 @@ export default async function LedgerPage({ searchParams }: PageProps<"/admin/led
       {accion === "revertir" && toReverse ? (
         <ResourcePanel title={t("T-630")} closeHref={backHref} closeLabel={t("T-291")}>
           <form action={reverseAction} className="flex flex-col gap-4">
-            <input type="hidden" name="entryId" value={toReverse.id} />
-            <input type="hidden" name="back" value={backHref} />
-            <p>
-              {t("T-631", {
-                puntos: toReverse.points,
-                nombre: people.get(toReverse.personId)?.fullName?.trim() ?? "",
-                motivo: toReverse.reason,
-              })}
-            </p>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{campoMotivo}</span>
-              <textarea name="reason" required rows={3} className={inputClass} />
-            </label>
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-calido">
-                {t("T-630")}
-              </button>
-              <Link href={backHref} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="entryId" value={toReverse.id} />
+              <input type="hidden" name="back" value={backHref} />
+              <p>
+                {t("T-631", {
+                  puntos: toReverse.points,
+                  nombre: people.get(toReverse.personId)?.fullName?.trim() ?? "",
+                  motivo: toReverse.reason,
+                })}
+              </p>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{campoMotivo}</span>
+                <textarea name="reason" required rows={3} className={inputClass} />
+              </label>
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-calido">
+                  {t("T-630")}
+                </AdminSubmitButton>
+                <Link href={backHref} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}

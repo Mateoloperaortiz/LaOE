@@ -19,11 +19,16 @@ test.describe("el miembro pide la licencia", () => {
     await page.getByLabel("Código de seis dígitos").fill(CODE);
     await page.getByRole("button", { name: "Entrar" }).click();
     await expect(page).toHaveURL(/\/app$/);
-    await page.getByRole("link", { name: "Solicitudes", exact: true }).click();
+    await page.getByRole("button", { name: "Más", exact: true }).click();
+    await page
+      .getByRole("dialog", { name: "Mi OE", exact: true })
+      .getByRole("link", { name: "Solicitudes", exact: true })
+      .click();
     await page.waitForURL(/\/app\/solicitudes$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Solicitudes");
     await expect(page.getByText("Todavía no has hecho solicitudes.")).toBeVisible();
     await sinViolaciones(page);
+    await page.getByRole("link", { name: "Pedir licencia", exact: true }).click();
     const licencia = page.getByRole("region", { name: "Pedir licencia" });
     await licencia.getByLabel("Contanos por qué").fill("Intercambio en Chile el próximo semestre.");
     await licencia.getByLabel("Hasta cuándo (opcional)").fill("2026-12-01");
@@ -49,7 +54,7 @@ test.describe("GH la aprueba", () => {
     await expect(fila).toBeVisible();
     await fila.getByRole("link", { name: "Ver solicitud" }).click();
     await expect(page).toHaveURL(/\/admin\/solicitudes\?tarea=/);
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await expect(panel.getByRole("heading", { level: 2 })).toHaveText("licencia · Licencia E2E");
     await expect(panel.getByText(/Vas a aprobar la licencia de Licencia E2E/)).toBeVisible();
     await sinViolaciones(page);

@@ -14,12 +14,15 @@ import {
 import {
   applyRosterImportAs,
   discardRosterImportAs,
+  getRosterPreview,
   ROSTER_COLUMNS,
   type RosterColumn,
   recordLeaderGrantsAs,
   remapRosterPreviewAs,
 } from "@/modules/people";
 import { DomainError } from "@/shared/admin-kit";
+import { t } from "@/shared/copy";
+import { parseProposalIndexes, proposalSelectionVersion } from "./selection";
 
 // Acciones del asistente del roster (ADR-034): corregir el mapeo, aplicar con step-up y descartar. Los
 // permisos de líder se otorgan después del commit, uno por uno, con el comando de identity.
@@ -64,12 +67,12 @@ export async function remapAction(formData: FormData): Promise<void> {
     await remapRosterPreviewAs({ personId: actor.personId }, jobId, mapping);
   } catch (error) {
     if (error instanceof DomainError) {
-      redirect(jobUrl(jobId, { error: error.message }));
+      redirect(jobUrl(jobId, { paso: "columnas", error: error.message }));
     }
     throw error;
   }
   revalidatePath("/admin/personas/importar");
-  redirect(jobUrl(jobId));
+  redirect(jobUrl(jobId, { paso: "revision" }));
 }
 
 export async function discardAction(formData: FormData): Promise<void> {
@@ -90,20 +93,34 @@ export async function discardAction(formData: FormData): Promise<void> {
 /** Aplicar exige un código nuevo (step-up): escribe datos personales y puede otorgar permisos. */
 export async function applyAction(formData: FormData): Promise<void> {
   const jobId = idSchema.parse(formData.get("jobId"));
-  const returnTo = jobUrl(jobId);
+  const selectedIndexes = parseProposalIndexes(formData.getAll("proposal").join(","));
+  const submittedVersion = String(formData.get("proposalVersion") ?? "");
+  const selectionParams = {
+    paso: "confirmacion",
+    seleccion: selectedIndexes.join(","),
+    revision: /^[a-f0-9]{64}$/.test(submittedVersion) ? submittedVersion : "",
+  };
+  const returnTo = jobUrl(jobId, selectionParams);
   const actor = await requireAdmin(returnTo);
   if (!hasRecentStepUp(actor)) {
     redirect(`/ingresar/paso?next=${encodeURIComponent(returnTo)}`);
   }
+  const preview = await getRosterPreview(jobId);
+  if (!preview || proposalSelectionVersion(preview.proposals) !== submittedVersion) {
+    redirect(jobUrl(jobId, { paso: "confirmacion", seleccion: "", error: t("T-1490") }));
+  }
   const accepted = new Set(
-    formData.getAll("proposal").filter((item): item is string => typeof item === "string"),
+    selectedIndexes.flatMap((index) => {
+      const proposal = preview.proposals[index];
+      return proposal ? [`${proposal.email}|${proposal.committeeId}`] : [];
+    }),
   );
   let summary: Awaited<ReturnType<typeof applyRosterImportAs>>;
   try {
     summary = await applyRosterImportAs({ personId: actor.personId }, jobId);
   } catch (error) {
     if (error instanceof DomainError) {
-      redirect(jobUrl(jobId, { error: error.message }));
+      redirect(jobUrl(jobId, { ...selectionParams, error: error.message }));
     }
     throw error;
   }

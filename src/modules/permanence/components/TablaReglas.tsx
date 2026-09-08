@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
+import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
@@ -89,17 +92,29 @@ export function TablaReglas({
         <div className="flex flex-wrap gap-2">{acciones}</div>
       </div>
       {rules.length > 0 ? (
-        <div className="overflow-x-auto">
+        <AdminTableRegion label={titulo} className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left">
-                <th className="eyebrow py-2 pr-3 text-xs">{orden}</th>
-                <th className="eyebrow py-2 pr-3 text-xs">{nombre}</th>
-                <th className="eyebrow py-2 pr-3 text-xs">{clave}</th>
-                <th className="eyebrow py-2 pr-3 text-xs">{peso}</th>
-                <th className="eyebrow py-2 pr-3 text-xs">{aplicaA}</th>
-                <th className="eyebrow py-2 pr-3 text-xs">{calculo}</th>
-                {editHref ? <th className="py-2" /> : null}
+                <th scope="col" className="eyebrow py-2 pr-3 text-xs">
+                  {orden}
+                </th>
+                <th scope="col" className="eyebrow py-2 pr-3 text-xs">
+                  {nombre}
+                </th>
+                <th scope="col" className="eyebrow py-2 pr-3 text-xs">
+                  {clave}
+                </th>
+                <th scope="col" className="eyebrow py-2 pr-3 text-xs">
+                  {peso}
+                </th>
+                <th scope="col" className="eyebrow py-2 pr-3 text-xs">
+                  {aplicaA}
+                </th>
+                <th scope="col" className="eyebrow py-2 pr-3 text-xs">
+                  {calculo}
+                </th>
+                {editHref ? <th scope="col" className="py-2" /> : null}
               </tr>
             </thead>
             <tbody>
@@ -123,13 +138,15 @@ export function TablaReglas({
                       </Link>
                       {deleteAction ? (
                         <form action={deleteAction} className="ml-3 inline">
-                          <input type="hidden" name="id" value={rule.id} />
-                          {Object.entries(deleteHidden).map(([name, value]) => (
-                            <input key={name} type="hidden" name={name} value={value} />
-                          ))}
-                          <button type="submit" className="underline">
-                            {t("T-843")}
-                          </button>
+                          <AdminFormBody>
+                            <input type="hidden" name="id" value={rule.id} />
+                            {Object.entries(deleteHidden).map(([name, value]) => (
+                              <input key={name} type="hidden" name={name} value={value} />
+                            ))}
+                            <AdminSubmitButton type="submit" className="underline">
+                              {t("T-843")}
+                            </AdminSubmitButton>
+                          </AdminFormBody>
                         </form>
                       ) : null}
                     </td>
@@ -138,7 +155,7 @@ export function TablaReglas({
               ))}
             </tbody>
           </table>
-        </div>
+        </AdminTableRegion>
       ) : null}
     </section>
   );

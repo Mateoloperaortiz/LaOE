@@ -26,11 +26,14 @@ import { getPrivacyPolicyState } from "@/modules/system";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { getCurrentTerm } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
+import { Campo, Casilla, Dato, inputClass } from "@/shared/admin-kit/AdminFields";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminMultiSelect } from "@/shared/admin-kit/AdminMultiSelect";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
-import { Campo, Casilla, Dato, inputClass } from "../../personas/[id]/_ui/campos";
 import {
   addCardNoteAction,
   admitFromCardAction,
@@ -244,38 +247,30 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
                 action={admitFromCardAction}
                 className="flex flex-col gap-4 rounded-xl border border-borde p-4"
               >
-                <input type="hidden" name="pipelineId" value={id} />
-                <input type="hidden" name="cardId" value={card.id} />
-                <input type="hidden" name="termId" value={term?.id ?? ""} />
-                <p className="text-sm">
-                  {term
-                    ? t("T-984", { nombre: card.subjectName, término: term.code, min: 1, max: 3 })
-                    : t("T-989")}
-                </p>
-                <Campo id="alta-comites" label={t("T-985")}>
-                  <select
-                    id="alta-comites"
+                <AdminFormBody>
+                  <input type="hidden" name="pipelineId" value={id} />
+                  <input type="hidden" name="cardId" value={card.id} />
+                  <input type="hidden" name="termId" value={term?.id ?? ""} />
+                  <p className="text-sm">
+                    {term
+                      ? t("T-984", { nombre: card.subjectName, término: term.code, min: 1, max: 3 })
+                      : t("T-989")}
+                  </p>
+                  <AdminMultiSelect
                     name="committeeIds"
-                    multiple
+                    label={t("T-985")}
+                    options={committees.map((item) => ({ value: item.id, label: item.name }))}
                     required
-                    size={Math.min(8, Math.max(3, committees.length))}
-                    className={inputClass}
-                  >
-                    {committees.map((committee) => (
-                      <option key={committee.id} value={committee.id}>
-                        {committee.name}
-                      </option>
-                    ))}
-                  </select>
-                </Campo>
-                <div className="flex gap-3">
-                  <button type="submit" className="boton-calido" disabled={!term}>
-                    {t("T-983")}
-                  </button>
-                  <Link href={`${base}?tarjeta=${card.id}`} className="boton-secundario">
-                    {t("T-254")}
-                  </Link>
-                </div>
+                  />
+                  <div className="flex gap-3">
+                    <AdminSubmitButton type="submit" className="boton-calido" disabled={!term}>
+                      {t("T-983")}
+                    </AdminSubmitButton>
+                    <Link href={`${base}?tarjeta=${card.id}`} className="boton-secundario">
+                      {t("T-254")}
+                    </Link>
+                  </div>
+                </AdminFormBody>
               </form>
             ) : (
               <Link href={`${base}?tarjeta=${card.id}&alta=1`} className="boton-calido self-start">
@@ -310,91 +305,95 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
           <section className="flex flex-col gap-3">
             <h3 className="eyebrow text-xs">{datosTitulo}</h3>
             <form action={updateCardAction} className="flex flex-col gap-3">
-              <input type="hidden" name="pipelineId" value={id} />
-              <input type="hidden" name="cardId" value={card.id} />
-              <Campo id="c-title" label={nTitulo ?? ""}>
-                <input
-                  id="c-title"
-                  name="title"
-                  required
-                  defaultValue={card.title}
-                  className={inputClass}
-                />
-              </Campo>
-              <Campo id="c-owner" label={nResponsable ?? ""}>
-                <select
-                  id="c-owner"
-                  name="ownerId"
-                  defaultValue={card.ownerId ?? ""}
-                  className={inputClass}
-                >
-                  <option value="">{t("T-1060")}</option>
-                  {assignees.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </Campo>
-              <Campo id="c-due" label={nVence ?? ""}>
-                <input
-                  id="c-due"
-                  name="dueAt"
-                  type="datetime-local"
-                  defaultValue={card.dueAt ? utcToBogotaInput(card.dueAt) : ""}
-                  className={inputClass}
-                />
-              </Campo>
-              {card.pipelineKind === "SPONSORSHIP" ? (
-                <>
-                  <Campo id="c-amount" label={monto ?? ""}>
-                    <input
-                      id="c-amount"
-                      name="amount"
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      defaultValue={card.amount ?? ""}
-                      className={inputClass}
-                    />
-                  </Campo>
-                  <Campo id="c-counterpart" label={contraprestacion ?? ""}>
-                    <textarea
-                      id="c-counterpart"
-                      name="counterpart"
-                      rows={3}
-                      defaultValue={
-                        typeof card.fields.counterpart === "string" ? card.fields.counterpart : ""
-                      }
-                      className={inputClass}
-                    />
-                  </Campo>
-                </>
-              ) : null}
-              <button type="submit" className="boton-secundario self-start">
-                {t("T-253")}
-              </button>
+              <AdminFormBody>
+                <input type="hidden" name="pipelineId" value={id} />
+                <input type="hidden" name="cardId" value={card.id} />
+                <Campo id="c-title" label={nTitulo ?? ""}>
+                  <input
+                    id="c-title"
+                    name="title"
+                    required
+                    defaultValue={card.title}
+                    className={inputClass}
+                  />
+                </Campo>
+                <Campo id="c-owner" label={nResponsable ?? ""}>
+                  <select
+                    id="c-owner"
+                    name="ownerId"
+                    defaultValue={card.ownerId ?? ""}
+                    className={inputClass}
+                  >
+                    <option value="">{t("T-1060")}</option>
+                    {assignees.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+                <Campo id="c-due" label={nVence ?? ""}>
+                  <input
+                    id="c-due"
+                    name="dueAt"
+                    type="datetime-local"
+                    defaultValue={card.dueAt ? utcToBogotaInput(card.dueAt) : ""}
+                    className={inputClass}
+                  />
+                </Campo>
+                {card.pipelineKind === "SPONSORSHIP" ? (
+                  <>
+                    <Campo id="c-amount" label={monto ?? ""}>
+                      <input
+                        id="c-amount"
+                        name="amount"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        defaultValue={card.amount ?? ""}
+                        className={inputClass}
+                      />
+                    </Campo>
+                    <Campo id="c-counterpart" label={contraprestacion ?? ""}>
+                      <textarea
+                        id="c-counterpart"
+                        name="counterpart"
+                        rows={3}
+                        defaultValue={
+                          typeof card.fields.counterpart === "string" ? card.fields.counterpart : ""
+                        }
+                        className={inputClass}
+                      />
+                    </Campo>
+                  </>
+                ) : null}
+                <AdminSubmitButton type="submit" className="boton-secundario self-start">
+                  {t("T-253")}
+                </AdminSubmitButton>
+              </AdminFormBody>
             </form>
           </section>
           <section className="flex flex-col gap-3">
             <h3 className="eyebrow text-xs">{notasTitulo}</h3>
             <form action={addCardNoteAction} className="flex flex-col gap-2">
-              <input type="hidden" name="pipelineId" value={id} />
-              <input type="hidden" name="cardId" value={card.id} />
-              <label htmlFor="c-note" className="sr-only">
-                {tList("T-456")[0]}
-              </label>
-              <textarea
-                id="c-note"
-                name="body"
-                rows={3}
-                required
-                className={inputClass}
-                placeholder={t("T-455")}
-              />
-              <button type="submit" className="boton-secundario self-start">
-                {tList("T-456")[0]}
-              </button>
+              <AdminFormBody>
+                <input type="hidden" name="pipelineId" value={id} />
+                <input type="hidden" name="cardId" value={card.id} />
+                <label htmlFor="c-note" className="sr-only">
+                  {tList("T-456")[0]}
+                </label>
+                <textarea
+                  id="c-note"
+                  name="body"
+                  rows={3}
+                  required
+                  className={inputClass}
+                  placeholder={t("T-455")}
+                />
+                <AdminSubmitButton type="submit" className="boton-secundario self-start">
+                  {tList("T-456")[0]}
+                </AdminSubmitButton>
+              </AdminFormBody>
             </form>
             {subjectTimeline.length === 0 ? (
               <p className="text-sm text-tinta-suave">{t("T-457")}</p>
@@ -430,27 +429,29 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
               </ul>
             )}
             <form action={createCardTaskAction} className="flex flex-col gap-2">
-              <input type="hidden" name="pipelineId" value={id} />
-              <input type="hidden" name="cardId" value={card.id} />
-              <Campo id="ct-title" label={tTitulo ?? ""}>
-                <input id="ct-title" name="title" required className={inputClass} />
-              </Campo>
-              <Campo id="ct-assignee" label={tResponsable ?? ""}>
-                <select id="ct-assignee" name="assigneeId" defaultValue="" className={inputClass}>
-                  <option value="">—</option>
-                  {assignees.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </Campo>
-              <Campo id="ct-due" label={tVence ?? ""}>
-                <input id="ct-due" name="dueAt" type="datetime-local" className={inputClass} />
-              </Campo>
-              <button type="submit" className="boton-secundario self-start">
-                {t("T-251")}
-              </button>
+              <AdminFormBody>
+                <input type="hidden" name="pipelineId" value={id} />
+                <input type="hidden" name="cardId" value={card.id} />
+                <Campo id="ct-title" label={tTitulo ?? ""}>
+                  <input id="ct-title" name="title" required className={inputClass} />
+                </Campo>
+                <Campo id="ct-assignee" label={tResponsable ?? ""}>
+                  <select id="ct-assignee" name="assigneeId" defaultValue="" className={inputClass}>
+                    <option value="">—</option>
+                    {assignees.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+                <Campo id="ct-due" label={tVence ?? ""}>
+                  <input id="ct-due" name="dueAt" type="datetime-local" className={inputClass} />
+                </Campo>
+                <AdminSubmitButton type="submit" className="boton-secundario self-start">
+                  {t("T-251")}
+                </AdminSubmitButton>
+              </AdminFormBody>
             </form>
           </section>
         </ResourcePanel>
@@ -471,76 +472,78 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
             <Campo id="n-q" label={nPersona ?? ""} help={t("T-1054")}>
               <input id="n-q" name="q" type="search" defaultValue={q} className={inputClass} />
             </Campo>
-            <button type="submit" className="boton-secundario self-start">
+            <AdminSubmitButton type="submit" className="boton-secundario self-start">
               {t("T-250")}
-            </button>
+            </AdminSubmitButton>
           </form>
           <form action={createCardAction} className="flex flex-col gap-4">
-            <input type="hidden" name="pipelineId" value={id} />
-            <fieldset className="flex flex-col gap-2">
-              <legend className="eyebrow text-xs">{t("T-1055")}</legend>
-              {q && people.length === 0 ? (
-                <p className="text-sm text-tinta-suave">{t("T-256")}</p>
-              ) : null}
-              {people.map((item) => (
-                <label
-                  key={item.id}
-                  htmlFor={`s-${item.id}`}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  <input
-                    id={`s-${item.id}`}
-                    type="radio"
-                    name="subject"
-                    value={`person:${item.id}`}
-                    required
-                  />
-                  <span>
-                    {item.fullName} <span className="text-tinta-suave">· {item.email}</span>
-                  </span>
+            <AdminFormBody>
+              <input type="hidden" name="pipelineId" value={id} />
+              <fieldset className="flex flex-col gap-2">
+                <legend className="eyebrow text-xs">{t("T-1055")}</legend>
+                {q && people.length === 0 ? (
+                  <p className="text-sm text-tinta-suave">{t("T-256")}</p>
+                ) : null}
+                {people.map((item) => (
+                  <label
+                    key={item.id}
+                    htmlFor={`s-${item.id}`}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <input
+                      id={`s-${item.id}`}
+                      type="radio"
+                      name="subject"
+                      value={`person:${item.id}`}
+                      required
+                    />
+                    <span>
+                      {item.fullName} <span className="text-tinta-suave">· {item.email}</span>
+                    </span>
+                  </label>
+                ))}
+                <label htmlFor="s-org" className="flex flex-col gap-1 text-sm">
+                  <span className="eyebrow text-xs">{nOrganizacion}</span>
+                  <select id="s-org" name="subject" defaultValue="" className={inputClass}>
+                    <option value="">—</option>
+                    {organizations.map((item) => (
+                      <option key={item.id} value={`organization:${item.id}`}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-              ))}
-              <label htmlFor="s-org" className="flex flex-col gap-1 text-sm">
-                <span className="eyebrow text-xs">{nOrganizacion}</span>
-                <select id="s-org" name="subject" defaultValue="" className={inputClass}>
+              </fieldset>
+              <Campo id="n-edition" label={nEdicion ?? ""}>
+                <select id="n-edition" name="editionId" defaultValue="" className={inputClass}>
                   <option value="">—</option>
-                  {organizations.map((item) => (
-                    <option key={item.id} value={`organization:${item.id}`}>
-                      {item.name}
+                  {editions.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.label}
                     </option>
                   ))}
                 </select>
-              </label>
-            </fieldset>
-            <Campo id="n-edition" label={nEdicion ?? ""}>
-              <select id="n-edition" name="editionId" defaultValue="" className={inputClass}>
-                <option value="">—</option>
-                {editions.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </Campo>
-            <Campo id="n-title" label={nTitulo ?? ""}>
-              <input id="n-title" name="title" className={inputClass} />
-            </Campo>
-            <Campo id="n-owner" label={nResponsable ?? ""}>
-              <select id="n-owner" name="ownerId" defaultValue="" className={inputClass}>
-                <option value="">—</option>
-                {assignees.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </Campo>
-            <Campo id="n-due" label={nVence ?? ""}>
-              <input id="n-due" name="dueAt" type="datetime-local" className={inputClass} />
-            </Campo>
-            <button type="submit" className="boton-calido self-start">
-              {t("T-253")}
-            </button>
+              </Campo>
+              <Campo id="n-title" label={nTitulo ?? ""}>
+                <input id="n-title" name="title" className={inputClass} />
+              </Campo>
+              <Campo id="n-owner" label={nResponsable ?? ""}>
+                <select id="n-owner" name="ownerId" defaultValue="" className={inputClass}>
+                  <option value="">—</option>
+                  {assignees.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo id="n-due" label={nVence ?? ""}>
+                <input id="n-due" name="dueAt" type="datetime-local" className={inputClass} />
+              </Campo>
+              <AdminSubmitButton type="submit" className="boton-calido self-start">
+                {t("T-253")}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}
@@ -559,62 +562,79 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
             {board.map((stage, index) => (
               <li key={stage.id} className="flex flex-col gap-2 rounded-xl border border-borde p-3">
                 <form action={saveStageAction} className="flex flex-col gap-2">
-                  <input type="hidden" name="pipelineId" value={id} />
-                  <input type="hidden" name="stageId" value={stage.id} />
-                  <Campo id={`e-name-${stage.id}`} label={nombreEtapa ?? ""}>
-                    <input
-                      id={`e-name-${stage.id}`}
-                      name="name"
-                      required
-                      defaultValue={stage.name}
-                      className={inputClass}
-                    />
-                  </Campo>
-                  <div className="flex gap-4">
-                    <Casilla
-                      id={`e-won-${stage.id}`}
-                      name="isWon"
-                      label={ganada ?? ""}
-                      defaultChecked={stage.isWon}
-                    />
-                    <Casilla
-                      id={`e-lost-${stage.id}`}
-                      name="isLost"
-                      label={perdida ?? ""}
-                      defaultChecked={stage.isLost}
-                    />
-                  </div>
-                  <button type="submit" className="boton-secundario self-start">
-                    {t("T-253")}
-                  </button>
+                  <AdminFormBody>
+                    <input type="hidden" name="pipelineId" value={id} />
+                    <input type="hidden" name="stageId" value={stage.id} />
+                    <Campo id={`e-name-${stage.id}`} label={nombreEtapa ?? ""}>
+                      <input
+                        id={`e-name-${stage.id}`}
+                        name="name"
+                        required
+                        defaultValue={stage.name}
+                        className={inputClass}
+                      />
+                    </Campo>
+                    <div className="flex gap-4">
+                      <Casilla
+                        id={`e-won-${stage.id}`}
+                        name="isWon"
+                        label={ganada ?? ""}
+                        defaultChecked={stage.isWon}
+                      />
+                      <Casilla
+                        id={`e-lost-${stage.id}`}
+                        name="isLost"
+                        label={perdida ?? ""}
+                        defaultChecked={stage.isLost}
+                      />
+                    </div>
+                    <AdminSubmitButton type="submit" className="boton-secundario self-start">
+                      {t("T-253")}
+                    </AdminSubmitButton>
+                  </AdminFormBody>
                 </form>
                 <div className="flex flex-wrap gap-2">
                   {index > 0 ? (
                     <form action={moveStageAction}>
-                      <input type="hidden" name="pipelineId" value={id} />
-                      <input type="hidden" name="stageId" value={stage.id} />
-                      <input type="hidden" name="direction" value="up" />
-                      <button type="submit" className="boton-secundario min-h-9 px-3 py-1 text-sm">
-                        {subir}
-                      </button>
+                      <AdminFormBody>
+                        <input type="hidden" name="pipelineId" value={id} />
+                        <input type="hidden" name="stageId" value={stage.id} />
+                        <input type="hidden" name="direction" value="up" />
+                        <AdminSubmitButton
+                          type="submit"
+                          className="boton-secundario min-h-9 px-3 py-1 text-sm"
+                        >
+                          {subir}
+                        </AdminSubmitButton>
+                      </AdminFormBody>
                     </form>
                   ) : null}
                   {index < board.length - 1 ? (
                     <form action={moveStageAction}>
-                      <input type="hidden" name="pipelineId" value={id} />
-                      <input type="hidden" name="stageId" value={stage.id} />
-                      <input type="hidden" name="direction" value="down" />
-                      <button type="submit" className="boton-secundario min-h-9 px-3 py-1 text-sm">
-                        {bajar}
-                      </button>
+                      <AdminFormBody>
+                        <input type="hidden" name="pipelineId" value={id} />
+                        <input type="hidden" name="stageId" value={stage.id} />
+                        <input type="hidden" name="direction" value="down" />
+                        <AdminSubmitButton
+                          type="submit"
+                          className="boton-secundario min-h-9 px-3 py-1 text-sm"
+                        >
+                          {bajar}
+                        </AdminSubmitButton>
+                      </AdminFormBody>
                     </form>
                   ) : null}
                   <form action={deleteStageAction}>
-                    <input type="hidden" name="pipelineId" value={id} />
-                    <input type="hidden" name="stageId" value={stage.id} />
-                    <button type="submit" className="boton-secundario min-h-9 px-3 py-1 text-sm">
-                      {borrar}
-                    </button>
+                    <AdminFormBody>
+                      <input type="hidden" name="pipelineId" value={id} />
+                      <input type="hidden" name="stageId" value={stage.id} />
+                      <AdminSubmitButton
+                        type="submit"
+                        className="boton-secundario min-h-9 px-3 py-1 text-sm"
+                      >
+                        {borrar}
+                      </AdminSubmitButton>
+                    </AdminFormBody>
                   </form>
                 </div>
               </li>
@@ -624,17 +644,19 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
             action={saveStageAction}
             className="flex flex-col gap-2 rounded-xl border border-borde border-dashed p-3"
           >
-            <input type="hidden" name="pipelineId" value={id} />
-            <Campo id="e-new" label={nombreEtapa ?? ""}>
-              <input id="e-new" name="name" required className={inputClass} />
-            </Campo>
-            <div className="flex gap-4">
-              <Casilla id="e-new-won" name="isWon" label={ganada ?? ""} />
-              <Casilla id="e-new-lost" name="isLost" label={perdida ?? ""} />
-            </div>
-            <button type="submit" className="boton-calido self-start">
-              {t("T-251")}
-            </button>
+            <AdminFormBody>
+              <input type="hidden" name="pipelineId" value={id} />
+              <Campo id="e-new" label={nombreEtapa ?? ""}>
+                <input id="e-new" name="name" required className={inputClass} />
+              </Campo>
+              <div className="flex gap-4">
+                <Casilla id="e-new-won" name="isWon" label={ganada ?? ""} />
+                <Casilla id="e-new-lost" name="isLost" label={perdida ?? ""} />
+              </div>
+              <AdminSubmitButton type="submit" className="boton-calido self-start">
+                {t("T-251")}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}

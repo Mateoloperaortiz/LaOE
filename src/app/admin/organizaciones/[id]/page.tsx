@@ -14,12 +14,16 @@ import { assigneeOptions } from "@/modules/crm/admin";
 import { requireAdminActor } from "@/modules/identity";
 import { listAllTags, searchPeople } from "@/modules/people";
 import { ResourcePanel } from "@/shared/admin-kit";
+import { AdminActionsMenu } from "@/shared/admin-kit/AdminActionsMenu";
+import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminMultiSelect } from "@/shared/admin-kit/AdminMultiSelect";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { formatMoney } from "@/shared/lib/money";
 import { Markdown } from "@/shared/ui/Markdown";
-import { Campo, Casilla, inputClass } from "../../personas/[id]/_ui/campos";
 import {
   addNoteAction,
   createContactAction,
@@ -125,9 +129,14 @@ export default async function Page({
           <Link href={`/admin/organizaciones?editar=${organization.id}`} className="underline">
             {t("T-252")}
           </Link>
-          <Link href={`${base}?accion=etiquetas`} className="underline">
-            {bEtiquetas}
-          </Link>
+          <AdminActionsMenu label={t("T-1500")}>
+            <Link
+              href={`${base}?accion=etiquetas`}
+              className="block rounded-lg px-3 py-2 hover:bg-fondo-suave"
+            >
+              {bEtiquetas}
+            </Link>
+          </AdminActionsMenu>
           <Link href="/admin/organizaciones" className="underline">
             {tList("T-947")[1]}
           </Link>
@@ -154,7 +163,7 @@ export default async function Page({
             <h2 id="contactos" className="text-display-md">
               {bContactos} · {contacts.length}
             </h2>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Link
                 href={`${base}?accion=contacto`}
                 className="boton-calido min-h-10 px-4 py-2 text-sm"
@@ -195,25 +204,32 @@ export default async function Page({
                       {contact.role ? ` · ${contact.role}` : ""}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {contact.isPrimary ? null : (
                       <form action={setPrimaryAction}>
-                        <input type="hidden" name="organizationId" value={id} />
-                        <input type="hidden" name="personId" value={contact.personId} />
-                        <button
-                          type="submit"
-                          className="boton-secundario min-h-9 px-3 py-1 text-sm"
-                        >
-                          {t("T-958")}
-                        </button>
+                        <AdminFormBody>
+                          <input type="hidden" name="organizationId" value={id} />
+                          <input type="hidden" name="personId" value={contact.personId} />
+                          <AdminSubmitButton
+                            type="submit"
+                            className="boton-secundario min-h-9 px-3 py-1 text-sm"
+                          >
+                            {t("T-958")}
+                          </AdminSubmitButton>
+                        </AdminFormBody>
                       </form>
                     )}
                     <form action={removeContactAction}>
-                      <input type="hidden" name="organizationId" value={id} />
-                      <input type="hidden" name="personId" value={contact.personId} />
-                      <button type="submit" className="boton-secundario min-h-9 px-3 py-1 text-sm">
-                        {quitar}
-                      </button>
+                      <AdminFormBody>
+                        <input type="hidden" name="organizationId" value={id} />
+                        <input type="hidden" name="personId" value={contact.personId} />
+                        <AdminSubmitButton
+                          type="submit"
+                          className="boton-secundario min-h-9 px-3 py-1 text-sm"
+                        >
+                          {quitar}
+                        </AdminSubmitButton>
+                      </AdminFormBody>
                     </form>
                   </div>
                 </li>
@@ -332,26 +348,28 @@ export default async function Page({
           ) : null}
           {accion === "contacto" ? (
             <form action={createContactAction} className="flex flex-col gap-4">
-              <input type="hidden" name="organizationId" value={id} />
-              <Campo id="c-firstName" label={aNombre ?? ""}>
-                <input id="c-firstName" name="firstName" required className={inputClass} />
-              </Campo>
-              <Campo id="c-lastName" label={aApellido ?? ""}>
-                <input id="c-lastName" name="lastName" required className={inputClass} />
-              </Campo>
-              <Campo id="c-email" label={aCorreo ?? ""}>
-                <input id="c-email" name="email" type="email" required className={inputClass} />
-              </Campo>
-              <Campo id="c-phone" label={aCelular ?? ""}>
-                <input id="c-phone" name="phone" type="tel" className={inputClass} />
-              </Campo>
-              <Campo id="c-role" label={aRol ?? ""}>
-                <input id="c-role" name="role" className={inputClass} />
-              </Campo>
-              <Casilla id="c-primary" name="isPrimary" label={aPrincipal ?? ""} />
-              <button type="submit" className="boton-calido self-start">
-                {t("T-253")}
-              </button>
+              <AdminFormBody>
+                <input type="hidden" name="organizationId" value={id} />
+                <Campo id="c-firstName" label={aNombre ?? ""}>
+                  <input id="c-firstName" name="firstName" required className={inputClass} />
+                </Campo>
+                <Campo id="c-lastName" label={aApellido ?? ""}>
+                  <input id="c-lastName" name="lastName" required className={inputClass} />
+                </Campo>
+                <Campo id="c-email" label={aCorreo ?? ""}>
+                  <input id="c-email" name="email" type="email" required className={inputClass} />
+                </Campo>
+                <Campo id="c-phone" label={aCelular ?? ""}>
+                  <input id="c-phone" name="phone" type="tel" className={inputClass} />
+                </Campo>
+                <Campo id="c-role" label={aRol ?? ""}>
+                  <input id="c-role" name="role" className={inputClass} />
+                </Campo>
+                <Casilla id="c-primary" name="isPrimary" label={aPrincipal ?? ""} />
+                <AdminSubmitButton type="submit" className="boton-calido self-start">
+                  {t("T-253")}
+                </AdminSubmitButton>
+              </AdminFormBody>
             </form>
           ) : null}
           {accion === "vincular" ? (
@@ -361,9 +379,9 @@ export default async function Page({
                 <Campo id="v-q" label={cPersona ?? ""}>
                   <input id="v-q" name="q" type="search" defaultValue={q} className={inputClass} />
                 </Campo>
-                <button type="submit" className="boton-secundario self-start">
+                <AdminSubmitButton type="submit" className="boton-secundario self-start">
                   {t("T-250")}
-                </button>
+                </AdminSubmitButton>
               </form>
               {q && candidates.length === 0 ? (
                 <p className="text-tinta-suave">{t("T-256")}</p>
@@ -375,21 +393,23 @@ export default async function Page({
                       action={linkContactAction}
                       className="flex flex-col gap-2 rounded-xl border border-borde p-3"
                     >
-                      <input type="hidden" name="organizationId" value={id} />
-                      <input type="hidden" name="personId" value={candidate.id} />
-                      <p className="font-semibold">{candidate.fullName}</p>
-                      <p className="text-xs text-tinta-suave">{candidate.email}</p>
-                      <Campo id={`v-role-${candidate.id}`} label={cRol ?? ""}>
-                        <input id={`v-role-${candidate.id}`} name="role" className={inputClass} />
-                      </Campo>
-                      <Casilla
-                        id={`v-primary-${candidate.id}`}
-                        name="isPrimary"
-                        label={cPrincipal ?? ""}
-                      />
-                      <button type="submit" className="boton-calido self-start">
-                        {vincularPersona}
-                      </button>
+                      <AdminFormBody>
+                        <input type="hidden" name="organizationId" value={id} />
+                        <input type="hidden" name="personId" value={candidate.id} />
+                        <p className="font-semibold">{candidate.fullName}</p>
+                        <p className="text-xs text-tinta-suave">{candidate.email}</p>
+                        <Campo id={`v-role-${candidate.id}`} label={cRol ?? ""}>
+                          <input id={`v-role-${candidate.id}`} name="role" className={inputClass} />
+                        </Campo>
+                        <Casilla
+                          id={`v-primary-${candidate.id}`}
+                          name="isPrimary"
+                          label={cPrincipal ?? ""}
+                        />
+                        <AdminSubmitButton type="submit" className="boton-calido self-start">
+                          {vincularPersona}
+                        </AdminSubmitButton>
+                      </AdminFormBody>
                     </form>
                   </li>
                 ))}
@@ -398,61 +418,57 @@ export default async function Page({
           ) : null}
           {accion === "nota" ? (
             <form action={addNoteAction} className="flex flex-col gap-4">
-              <input type="hidden" name="organizationId" value={id} />
-              <Campo id="n-body" label={tList("T-456")[0] ?? ""} help={t("T-455")}>
-                <textarea id="n-body" name="body" rows={6} required className={inputClass} />
-              </Campo>
-              <button type="submit" className="boton-calido self-start">
-                {tList("T-456")[0]}
-              </button>
+              <AdminFormBody>
+                <input type="hidden" name="organizationId" value={id} />
+                <Campo id="n-body" label={tList("T-456")[0] ?? ""} help={t("T-455")}>
+                  <textarea id="n-body" name="body" rows={6} required className={inputClass} />
+                </Campo>
+                <AdminSubmitButton type="submit" className="boton-calido self-start">
+                  {tList("T-456")[0]}
+                </AdminSubmitButton>
+              </AdminFormBody>
             </form>
           ) : null}
           {accion === "tarea" ? (
             <form action={createTaskAction} className="flex flex-col gap-4">
-              <input type="hidden" name="organizationId" value={id} />
-              <Campo id="t-title" label={tTitulo ?? ""}>
-                <input id="t-title" name="title" required className={inputClass} />
-              </Campo>
-              <Campo id="t-assignee" label={tResponsable ?? ""}>
-                <select id="t-assignee" name="assigneeId" className={inputClass} defaultValue="">
-                  <option value="">—</option>
-                  {assignees.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </Campo>
-              <Campo id="t-due" label={tVence ?? ""}>
-                <input id="t-due" name="dueAt" type="datetime-local" className={inputClass} />
-              </Campo>
-              <button type="submit" className="boton-calido self-start">
-                {t("T-253")}
-              </button>
+              <AdminFormBody>
+                <input type="hidden" name="organizationId" value={id} />
+                <Campo id="t-title" label={tTitulo ?? ""}>
+                  <input id="t-title" name="title" required className={inputClass} />
+                </Campo>
+                <Campo id="t-assignee" label={tResponsable ?? ""}>
+                  <select id="t-assignee" name="assigneeId" className={inputClass} defaultValue="">
+                    <option value="">—</option>
+                    {assignees.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
+                <Campo id="t-due" label={tVence ?? ""}>
+                  <input id="t-due" name="dueAt" type="datetime-local" className={inputClass} />
+                </Campo>
+                <AdminSubmitButton type="submit" className="boton-calido self-start">
+                  {t("T-253")}
+                </AdminSubmitButton>
+              </AdminFormBody>
             </form>
           ) : null}
           {accion === "etiquetas" ? (
             <form action={setTagsAction} className="flex flex-col gap-4">
-              <input type="hidden" name="organizationId" value={id} />
-              <Campo id="e-tags" label={bEtiquetas ?? ""}>
-                <select
-                  id="e-tags"
+              <AdminFormBody>
+                <input type="hidden" name="organizationId" value={id} />
+                <AdminMultiSelect
                   name="tagIds"
-                  multiple
+                  label={bEtiquetas ?? ""}
+                  options={tags.map((item) => ({ value: item.id, label: item.name }))}
                   defaultValue={tagIds}
-                  size={Math.min(8, Math.max(2, tags.length))}
-                  className={inputClass}
-                >
-                  {tags.map((tag) => (
-                    <option key={tag.id} value={tag.id}>
-                      {tag.name}
-                    </option>
-                  ))}
-                </select>
-              </Campo>
-              <button type="submit" className="boton-calido self-start">
-                {t("T-253")}
-              </button>
+                />
+                <AdminSubmitButton type="submit" className="boton-calido self-start">
+                  {t("T-253")}
+                </AdminSubmitButton>
+              </AdminFormBody>
             </form>
           ) : null}
         </ResourcePanel>

@@ -7,6 +7,9 @@ import type { MyMembershipView, Person360 } from "@/modules/people";
 import { statusLabel } from "@/modules/people/admin";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import type { WalletPassRecord } from "@/modules/wallet";
+import { Bloque, Dato } from "@/shared/admin-kit/AdminFields";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, formatDateTime } from "@/shared/lib/dates";
@@ -17,7 +20,6 @@ import {
   removeAppointmentAction,
   revokeCarnetAction,
 } from "../actions";
-import { Bloque, Dato } from "./campos";
 import {
   appointmentLabel,
   CONSENT_TEXTS,
@@ -238,11 +240,16 @@ export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipVi
                   {item.committeeName ? ` · ${item.committeeName}` : ""}
                 </span>
                 <form action={removeAppointmentAction}>
-                  <input type="hidden" name="personId" value={data.person.id} />
-                  <input type="hidden" name="appointmentId" value={item.id} />
-                  <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-xs">
-                    {quitar}
-                  </button>
+                  <AdminFormBody>
+                    <input type="hidden" name="personId" value={data.person.id} />
+                    <input type="hidden" name="appointmentId" value={item.id} />
+                    <AdminSubmitButton
+                      type="submit"
+                      className="boton-secundario min-h-8 px-3 py-1 text-xs"
+                    >
+                      {quitar}
+                    </AdminSubmitButton>
+                  </AdminFormBody>
                 </form>
               </li>
             ))}
@@ -350,12 +357,14 @@ export function TabComunicaciones({
               {t("T-1212")}
             </summary>
             <form action={revokeCarnetAction} className="mt-4 flex flex-col items-start gap-4">
-              <input type="hidden" name="personId" value={personId} />
-              <input type="hidden" name="confirm" value="1" />
-              <p className="max-w-prose text-sm">{t("T-1220")}</p>
-              <button type="submit" className="boton-secundario text-sm">
-                {t("T-1212")}
-              </button>
+              <AdminFormBody>
+                <input type="hidden" name="personId" value={personId} />
+                <input type="hidden" name="confirm" value="1" />
+                <p className="max-w-prose text-sm">{t("T-1220")}</p>
+                <AdminSubmitButton type="submit" className="boton-secundario text-sm">
+                  {t("T-1212")}
+                </AdminSubmitButton>
+              </AdminFormBody>
             </form>
           </details>
         ) : null}
@@ -369,7 +378,7 @@ export function TabComunicaciones({
           tabIndex={0}
           className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-titulo"
         >
-          <table className="w-full text-left text-sm">
+          <table className="admin-data-table w-full text-left text-sm">
             <thead className="eyebrow bg-fondo-suave text-xs">
               <tr>
                 <th scope="col" className="px-3 py-2">
@@ -392,11 +401,19 @@ export function TabComunicaciones({
             <tbody>
               {messages.map((item) => (
                 <tr key={item.id} className="border-t border-borde">
-                  <td className="px-3 py-2">{formatDateTime(item.sentAt ?? item.createdAt)}</td>
-                  <td className="px-3 py-2">{channelLabel(item.channel)}</td>
-                  <td className="px-3 py-2">{kindLabel(item.kind)}</td>
-                  <td className="px-3 py-2 font-semibold">{item.subject}</td>
-                  <td className="px-3 py-2">
+                  <td data-label={fecha} className="px-3 py-2">
+                    {formatDateTime(item.sentAt ?? item.createdAt)}
+                  </td>
+                  <td data-label={canal} className="px-3 py-2">
+                    {channelLabel(item.channel)}
+                  </td>
+                  <td data-label={tipo} className="px-3 py-2">
+                    {kindLabel(item.kind)}
+                  </td>
+                  <td data-label={asunto} className="px-3 py-2 font-semibold">
+                    {item.subject}
+                  </td>
+                  <td data-label={estado} className="px-3 py-2">
                     <Insignia fondo={item.status === "SENT" ? "azul" : "naranja"}>
                       {messageStatusLabel(item.status)}
                     </Insignia>
@@ -428,7 +445,7 @@ export function TabTareas({ personId, tasks }: { personId: string; tasks: TaskRo
         <p className="text-tinta-suave">{t("T-256")}</p>
       ) : (
         <div className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde">
-          <table className="w-full text-left text-sm">
+          <table className="admin-data-table w-full text-left text-sm">
             <thead className="eyebrow bg-fondo-suave text-xs">
               <tr>
                 <th scope="col" className="px-3 py-2">
@@ -451,25 +468,33 @@ export function TabTareas({ personId, tasks }: { personId: string; tasks: TaskRo
             <tbody>
               {tasks.map((item) => (
                 <tr key={item.id} className="border-t border-borde">
-                  <td className="px-3 py-2 font-semibold">{item.title}</td>
-                  <td className="px-3 py-2">{item.assigneeName ?? sinAsignar}</td>
-                  <td className="px-3 py-2">{item.dueAt ? formatDateTime(item.dueAt) : "—"}</td>
-                  <td className="px-3 py-2">
+                  <td data-label={titulo} className="px-3 py-2 font-semibold">
+                    {item.title}
+                  </td>
+                  <td data-label={responsable} className="px-3 py-2">
+                    {item.assigneeName ?? sinAsignar}
+                  </td>
+                  <td data-label={vence} className="px-3 py-2">
+                    {item.dueAt ? formatDateTime(item.dueAt) : "—"}
+                  </td>
+                  <td data-label={estado} className="px-3 py-2">
                     <Insignia fondo={item.status === "OPEN" ? "amarillo" : "paper"}>
                       {item.status === "OPEN" ? abierta : hecha}
                     </Insignia>
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td data-label={t("T-462")} className="px-3 py-2 text-right">
                     {item.status === "OPEN" ? (
                       <form action={completeTaskAction}>
-                        <input type="hidden" name="personId" value={personId} />
-                        <input type="hidden" name="taskId" value={item.id} />
-                        <button
-                          type="submit"
-                          className="boton-secundario min-h-8 px-3 py-1 text-xs"
-                        >
-                          {t("T-462")}
-                        </button>
+                        <AdminFormBody>
+                          <input type="hidden" name="personId" value={personId} />
+                          <input type="hidden" name="taskId" value={item.id} />
+                          <AdminSubmitButton
+                            type="submit"
+                            className="boton-secundario min-h-8 px-3 py-1 text-xs"
+                          >
+                            {t("T-462")}
+                          </AdminSubmitButton>
+                        </AdminFormBody>
                       </form>
                     ) : null}
                   </td>
@@ -548,16 +573,18 @@ export function TabDatos({
                   )}
                   {person.anonymizedAt ? null : (
                     <form action={consentAction}>
-                      <input type="hidden" name="personId" value={person.id} />
-                      <input type="hidden" name="purpose" value={item.purpose} />
-                      <input type="hidden" name="intent" value={item.live ? "revoke" : "grant"} />
-                      <button
-                        type="submit"
-                        className="boton-secundario min-h-8 px-3 py-1 text-xs"
-                        disabled={!item.live && !policyReady}
-                      >
-                        {item.live ? retirar : registrar}
-                      </button>
+                      <AdminFormBody>
+                        <input type="hidden" name="personId" value={person.id} />
+                        <input type="hidden" name="purpose" value={item.purpose} />
+                        <input type="hidden" name="intent" value={item.live ? "revoke" : "grant"} />
+                        <AdminSubmitButton
+                          type="submit"
+                          className="boton-secundario min-h-8 px-3 py-1 text-xs"
+                          disabled={!item.live && !policyReady}
+                        >
+                          {item.live ? retirar : registrar}
+                        </AdminSubmitButton>
+                      </AdminFormBody>
                     </form>
                   )}
                 </div>

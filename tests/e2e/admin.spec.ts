@@ -12,7 +12,7 @@ test("un ADMIN crea y edita un comité desde el panel y lo exporta", async ({ pa
   await page.goto("/admin/comites");
   const slug = `e2e-${Date.now().toString(36)}`;
   await page.getByRole("link", { name: "Nuevo" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await expect(panel.getByRole("heading", { name: /Nuevo · Comité/ })).toBeVisible();
   await panel.getByLabel("Sigla").fill(slug);
   await panel.getByLabel("Nombre").fill(`Comité ${slug}`);
@@ -24,7 +24,7 @@ test("un ADMIN crea y edita un comité desde el panel y lo exporta", async ({ pa
 
   await page.goto(`/admin/comites?q=${slug}`);
   await page.getByRole("link", { name: "Editar" }).first().click();
-  const editPanel = page.getByRole("complementary");
+  const editPanel = page.getByRole("dialog");
   await expect(editPanel.getByLabel("Sigla")).toHaveValue(slug);
   await editPanel.getByLabel("Nombre").fill(`Comité ${slug} editado`);
   await editPanel.getByRole("button", { name: "Guardar" }).click();
@@ -59,18 +59,13 @@ test("otorgar un permiso exige step-up y queda en la lista", async ({ page }) =>
 
   await page.goto("/admin/permisos");
   await page.getByRole("link", { name: "Nuevo" }).click();
-  const panel = page.getByRole("complementary");
-  await panel.getByLabel("Correo de la persona").fill(E2E_EMAIL);
-  await panel.getByLabel("Permiso", { exact: true }).selectOption("BOARD");
-  await panel.getByRole("button", { name: "Guardar" }).click();
   await expect(page).toHaveURL(/\/ingresar\/paso/);
   await page.getByRole("button", { name: "Enviame el código" }).click();
   await page.getByLabel("Código de seis dígitos").fill(CODE);
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page).toHaveURL(/\/admin\/permisos/);
 
-  await page.getByRole("link", { name: "Nuevo" }).click();
-  const again = page.getByRole("complementary");
+  const again = page.getByRole("dialog");
   await again.getByLabel("Correo de la persona").fill(E2E_EMAIL);
   await again.getByLabel("Permiso", { exact: true }).selectOption("BOARD");
   await again.getByRole("button", { name: "Guardar" }).click();

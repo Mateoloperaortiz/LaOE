@@ -149,6 +149,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
       </header>
 
       <Cartel
+        className="member-points-summary"
         variante="amarillo"
         nivel="h2"
         tamano="hero"

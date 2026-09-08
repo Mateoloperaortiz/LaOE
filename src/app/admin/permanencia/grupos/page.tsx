@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { requireAdminActor } from "@/modules/identity";
 import { workGroupsResource } from "@/modules/permanence/admin";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { ResourcePage } from "../../_kit/ResourcePage";
 import { seedWorkCommitteesAction } from "./actions";
@@ -35,10 +37,15 @@ export default async function Page({ searchParams }: PageProps<"/admin/permanenc
             </output>
           ) : null}
           <form action={seedWorkCommitteesAction} className="flex items-center gap-2">
-            <input type="hidden" name="termId" value={term.id} />
-            <button type="submit" className="boton-secundario min-h-9 px-3 py-1 text-sm">
-              {sembrar} · {term.code}
-            </button>
+            <AdminFormBody>
+              <input type="hidden" name="termId" value={term.id} />
+              <AdminSubmitButton
+                type="submit"
+                className="boton-secundario min-h-9 px-3 py-1 text-sm"
+              >
+                {sembrar} · {term.code}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
         </section>
       ) : null}

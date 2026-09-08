@@ -38,30 +38,84 @@ async function adminOnboarding() {
 test.describe("como admin", () => {
   test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
+  test("elegir un PDF no lo sube y un fallo conserva el archivo y los metadatos", async ({
+    page,
+  }) => {
+    let attempts = 0;
+    let finishFirst = () => {};
+    const firstResponse = new Promise<void>((resolve) => {
+      finishFirst = resolve;
+    });
+    await page.route("**/api/documentos/presign", async (route) => {
+      attempts += 1;
+      if (attempts === 1) await firstResponse;
+      await route.fulfill({ status: 503, json: { error: "Subida de prueba interrumpida." } });
+    });
+    await page.goto("/admin/documentos?q=conservar");
+    await page.getByRole("link", { name: "Subir PDF", exact: true }).click();
+    const panel = page.getByRole("dialog");
+    await panel.getByLabel("Archivo PDF").setInputFiles({
+      name: "conservar.pdf",
+      mimeType: "application/pdf",
+      buffer: sampleNormativaPdf(),
+    });
+    expect(attempts).toBe(0);
+    await panel.getByLabel("Título").fill("e2e-Conservar documento");
+    await panel.getByLabel("Versión (fecha de la reforma)").fill("2026-09-08");
+    await panel.getByLabel("Audiencia").selectOption("PUBLIC");
+    const submit = panel.getByRole("button", { name: "Subir PDF", exact: true });
+    try {
+      await submit.click();
+      await expect(panel.getByLabel("Título")).toBeDisabled();
+      await expect(panel.getByLabel("Audiencia")).toBeDisabled();
+      await expect(submit).toBeDisabled();
+    } finally {
+      finishFirst();
+    }
+    await expect(panel.getByRole("alert")).toHaveText("Subida de prueba interrumpida.");
+    await expect(panel.getByLabel("Título")).toHaveValue("e2e-Conservar documento");
+    await expect(panel.getByLabel("Versión (fecha de la reforma)")).toHaveValue("2026-09-08");
+    await expect(panel.getByLabel("Audiencia")).toHaveValue("PUBLIC");
+    expect(
+      await panel
+        .getByLabel("Archivo PDF")
+        .evaluate((input: HTMLInputElement) => input.files?.[0]?.name),
+    ).toBe("conservar.pdf");
+    await submit.click();
+    await expect.poll(() => attempts).toBe(2);
+    await expect(panel.getByRole("alert")).toBeVisible();
+    await sinViolaciones(page);
+    await panel.getByRole("button", { name: "Cerrar", exact: true }).click();
+    await expect(page).toHaveURL(/\/admin\/documentos\?q=conservar$/);
+  });
+
   test("sube un PDF, carga los artículos desde el JSON y lo publica", async ({ page }) => {
     await getDb().delete(documentTable).where(eq(documentTable.title, titulo));
     await page.goto("/admin/documentos");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Documentos");
     await sinViolaciones(page);
-    await page.getByLabel("Título").fill(titulo);
-    await page.getByLabel("Tipo").selectOption("ESTATUTOS");
-    await page.getByLabel("Versión (fecha de la reforma)").fill("2026-05-08");
-    await page.getByLabel("Audiencia").selectOption("MEMBERS");
+    await page.getByRole("link", { name: "Subir PDF", exact: true }).click();
+    await page.getByRole("dialog").getByLabel("Título").fill(titulo);
+    await page.getByRole("dialog").getByLabel("Tipo").selectOption("ESTATUTOS");
+    await page.getByRole("dialog").getByLabel("Versión (fecha de la reforma)").fill("2026-05-08");
+    await page.getByRole("dialog").getByLabel("Audiencia").selectOption("MEMBERS");
     const confirmado = page.waitForResponse(
       (response) => response.url().includes("/api/documentos/confirm") && response.status() === 201,
     );
-    await page.getByLabel("Archivo PDF").setInputFiles({
+    await page.getByRole("dialog").getByLabel("Archivo PDF").setInputFiles({
       name: "estatutos-prueba.pdf",
       mimeType: "application/pdf",
       buffer: sampleNormativaPdf(),
     });
+    await page.getByRole("dialog").getByRole("button", { name: "Subir PDF", exact: true }).click();
     await confirmado;
+    await expect(page).toHaveURL(/\/admin\/documentos\/[a-z0-9]+\?subido=1$/);
     await expect(
       page.getByText("Listo: el PDF quedó guardado. Ahora cargá el contenido revisado."),
     ).toBeVisible();
-    const fila = page.getByRole("row", { name: new RegExp(titulo) });
+    const fila = page.getByRole("region", { name: "Contenido y publicación" });
     await expect(fila).toBeVisible();
-    await expect(fila.getByText("Borrador")).toBeVisible();
+    await expect(page.getByRole("main").getByText("Borrador", { exact: true })).toBeVisible();
 
     await fila.getByRole("button", { name: "Publicar", exact: true }).click();
     await expect(page).toHaveURL(
@@ -72,9 +126,20 @@ test.describe("como admin", () => {
     await expect(page.getByRole("main").getByRole("alert")).toHaveText(
       "Cargá el contenido del documento antes de publicarlo.",
     );
-    await expect(
-      page.getByRole("row", { name: new RegExp(titulo) }).getByText("Borrador"),
-    ).toBeVisible();
+    await expect(page.getByRole("main").getByText("Borrador", { exact: true })).toBeVisible();
+
+    await fila.getByLabel("Cargar contenido (JSON)").setInputFiles({
+      name: "contenido-invalido.json",
+      mimeType: "application/json",
+      buffer: Buffer.from("{contenido incompleto"),
+    });
+    await fila.locator('button[type="submit"]', { hasText: "Cargar contenido (JSON)" }).click();
+    await expect(page).toHaveURL((url) => Boolean(url.searchParams.get("error")?.includes("JSON")));
+    expect(
+      await fila
+        .getByLabel("Cargar contenido (JSON)")
+        .evaluate((input: HTMLInputElement) => input.files?.[0]?.name),
+    ).toBe("contenido-invalido.json");
 
     await fila.getByLabel("Cargar contenido (JSON)").setInputFiles({
       name: "estatutos.json",
@@ -85,11 +150,11 @@ test.describe("como admin", () => {
     await fila.locator('button[type="submit"]', { hasText: "Cargar contenido (JSON)" }).click();
     await expect(page.getByText("3 unidades de contenido cargadas")).toBeVisible();
 
-    const filaCargada = page.getByRole("row", { name: new RegExp(titulo) });
+    const filaCargada = page.getByRole("region", { name: "Contenido y publicación" });
     await filaCargada.getByRole("button", { name: "Publicar", exact: true }).click();
     await expect(
       page
-        .getByRole("row", { name: new RegExp(titulo) })
+        .getByRole("region", { name: "Contenido y publicación" })
         .getByRole("button", { name: "Despublicar", exact: true }),
     ).toBeVisible();
   });
@@ -101,6 +166,7 @@ test.describe("como admin", () => {
     test.setTimeout(120_000);
     await getDb().delete(documentTable).where(eq(documentTable.title, tituloV2));
     await page.goto("/admin/medios");
+    await page.getByRole("link", { name: "Subir imagen", exact: true }).click();
     await page.getByLabel("Visibilidad").selectOption("PRIVATE");
     const image = await sharp(
       Buffer.from(
@@ -113,11 +179,15 @@ test.describe("como admin", () => {
       (response) => response.url().includes("/api/media/confirm") && response.status() === 201,
     );
     const imageFilename = `e2e-organigrama-normativa-${Date.now().toString(36)}.png`;
-    await page.getByLabel("Subir imagen").setInputFiles({
+    await page.getByRole("dialog").getByLabel("Subir imagen").setInputFiles({
       name: imageFilename,
       mimeType: "image/png",
       buffer: image,
     });
+    await page
+      .getByRole("dialog")
+      .locator('button[type="submit"]', { hasText: "Subir imagen" })
+      .click();
     await imageConfirmed;
     // router.refresh puede cerrar la respuesta del navegador; la confirmación ya persistió el medio.
     const [storedImage] = await getDb()
@@ -129,25 +199,24 @@ test.describe("como admin", () => {
     await processMedia(assetId);
 
     await page.goto("/admin/documentos");
-    await page.getByLabel("Título").fill(tituloV2);
-    await page.getByLabel("Tipo").selectOption("ESTATUTOS");
-    await page.getByLabel("Versión (fecha de la reforma)").fill("2026-05-08");
-    await page.getByLabel("Audiencia").selectOption("MEMBERS");
+    await page.getByRole("link", { name: "Subir PDF", exact: true }).click();
+    await page.getByRole("dialog").getByLabel("Título").fill(tituloV2);
+    await page.getByRole("dialog").getByLabel("Tipo").selectOption("ESTATUTOS");
+    await page.getByRole("dialog").getByLabel("Versión (fecha de la reforma)").fill("2026-05-08");
+    await page.getByRole("dialog").getByLabel("Audiencia").selectOption("MEMBERS");
     const confirmed = page.waitForResponse(
       (response) => response.url().includes("/api/documentos/confirm") && response.status() === 201,
     );
-    await page.getByLabel("Archivo PDF").setInputFiles({
+    await page.getByRole("dialog").getByLabel("Archivo PDF").setInputFiles({
       name: "estatutos-v2-prueba.pdf",
       mimeType: "application/pdf",
       buffer: sampleNormativaV2Pdf(),
     });
+    await page.getByRole("dialog").getByRole("button", { name: "Subir PDF", exact: true }).click();
     await confirmed;
-    const row = page.getByRole("row", { name: new RegExp(tituloV2) });
-    const preview = row.getByRole("link", { name: "Vista previa", exact: true });
-    await expect(preview).toBeVisible();
-    const href = await preview.getAttribute("href");
-    expect(href).toMatch(/^\/admin\/documentos\/[a-z0-9]+$/);
-    const id = href?.split("/").at(-1) ?? "";
+    await expect(page).toHaveURL(/\/admin\/documentos\/[a-z0-9]+\?subido=1$/);
+    const row = page.getByRole("region", { name: "Contenido y publicación" });
+    const id = new URL(page.url()).pathname.split("/").at(-1) ?? "";
     await row.getByLabel("Cargar contenido (JSON)").setInputFiles({
       name: "estatutos-v2.json",
       mimeType: "application/json",
@@ -156,7 +225,7 @@ test.describe("como admin", () => {
     await row.locator('button[type="submit"]', { hasText: "Cargar contenido (JSON)" }).click();
     await expect(page.getByText("5 unidades de contenido cargadas")).toBeVisible();
     const before = await adminOnboarding();
-    await row.getByRole("link", { name: "Vista previa", exact: true }).click();
+    await page.goto(`/admin/documentos/${id}`);
     await expect(page).toHaveURL(`/admin/documentos/${id}`);
     await expect(page.getByText("3 artículos · 2 secciones")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Presentación", exact: true })).toBeVisible();
@@ -196,9 +265,7 @@ test.describe("como admin", () => {
     }
     // Publica la misma versión que se acaba de revisar, con su checksum oculto.
     await page.getByRole("button", { name: "Publicar", exact: true }).click();
-    await expect(
-      page.getByRole("row", { name: new RegExp(tituloV2) }).getByText("Publicado", { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole("main").getByText("Publicado", { exact: true })).toBeVisible();
   });
 });
 

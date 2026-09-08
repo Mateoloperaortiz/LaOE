@@ -14,9 +14,9 @@ test("un segmento se crea con filtros, cuenta personas y su export exige step-up
   const stamp = Date.now().toString(36);
   await page.goto("/admin/segmentos");
   await page.getByRole("link", { name: "Nuevo" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await panel.getByLabel("Nombre", { exact: true }).fill(`e2e-${stamp}`);
-  await panel.getByLabel("Estado de membresía").selectOption(["ACTIVE"]);
+  await panel.getByRole("checkbox", { name: "Activo", exact: true }).check();
   await panel.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Guardado.")).toBeVisible();
   const row = page.getByRole("row", { name: new RegExp(`e2e-${stamp}`) });

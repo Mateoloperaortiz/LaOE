@@ -1,34 +1,28 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { listRequestsByPerson } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
 import { getMembershipRef, getMyMembership, listAllCommittees } from "@/modules/people";
 import { getPrivacyPolicyState } from "@/modules/system";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
-import { BarraTitulo, Insignia } from "@/shared/brand";
+import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { Vacio } from "../_ui/Vacio";
-import { createRequestAction, withdrawRequestAction } from "./actions";
-
-// Solicitudes en Mi OE (06-mapa-del-sitio.md, ADR-037 regla 9): mis solicitudes con estado y respuesta
-// de GH, y los tres pedidos: licencia, retiro voluntario y cambio de comité para el próximo semestre.
+import { requestTypes } from "./form-state";
+import { RequestForm, RequestResult, WithdrawRequest } from "./RequestForm";
 
 export const metadata: Metadata = { title: t("T-138") };
 
 type Search = Record<string, string | string[] | undefined>;
-
 function single(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
-const inputClass =
-  "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";
-
 export default async function SolicitudesPage({ searchParams }: PageProps<"/app/solicitudes">) {
   const actor = await requireActor("/app/solicitudes");
   const search: Search = await searchParams;
-  const enviada = single(search.enviada) === "1";
-  const retirada = single(search.retirada) === "1";
+  const selected = requestTypes[single(search.tipo)];
   const error = single(search.error);
   const [requests, membership, mine, committees, policy] = await Promise.all([
     listRequestsByPerson(actor.personId),
@@ -39,40 +33,124 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
   ]);
   const kinds = tList("T-139");
   const kindLabels = tList("T-894");
-  const [galeria, contacto] = tList("T-888") as [string, string];
-  const [dejas, entras] = [t("T-884"), t("T-885")];
   const isActive = membership?.status === "ACTIVE";
   const mineIds = new Set(mine.committees.map((row) => row.committeeId));
   const pending = new Set(
     requests.filter((row) => row.status === "PENDING").map((row) => row.kind),
   );
+  // Conservar el contexto del historial al abrir, cambiar y cerrar el trámite.
+  function href(extra: Record<string, string> = {}, section = ""): string {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(search)) {
+      if (!["tipo", "error", "enviada", "retirada"].includes(key) && value !== undefined) {
+        for (const item of Array.isArray(value) ? value : [value]) query.append(key, item);
+      }
+    }
+    for (const [key, value] of Object.entries(extra)) query.set(key, value);
+    return `/app/solicitudes${query.size ? `?${query}` : ""}${section ? `#${section}` : ""}`;
+  }
+  const options = [
+    {
+      type: "licencia",
+      kind: "LEAVE",
+      title: kinds[0] ?? "",
+      label: kindLabels[0] ?? "",
+      explanation: t("T-882"),
+    },
+    {
+      type: "cambio",
+      kind: "TRANSFER",
+      title: kinds[2] ?? "",
+      label: kindLabels[2] ?? "",
+      explanation: t("T-883"),
+    },
+    {
+      type: "retiro",
+      kind: "RESIGNATION",
+      title: kinds[1] ?? "",
+      label: kindLabels[1] ?? "",
+      explanation: t("T-143"),
+    },
+  ] as const;
+  const activeOption = options.find((option) => option.kind === selected);
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex min-w-0 flex-col gap-8">
       <header className="flex flex-col gap-3">
         <h1 className="text-display-lg">{t("T-138")}</h1>
-        <p className="max-w-prose text-lg">{t("T-874")}</p>
-        {enviada ? (
-          <output className="block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-3 font-semibold text-oe-navy">
-            {t("T-140")}
-          </output>
-        ) : null}
-        {retirada ? (
-          <output className="block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-3 font-semibold text-oe-navy">
-            {t("T-879")}
-          </output>
-        ) : null}
+        <p className="max-w-prose text-base">{t("T-874")}</p>
+        {single(search.enviada) === "1" ? <RequestResult message={t("T-140")} /> : null}
+        {single(search.retirada) === "1" ? <RequestResult message={t("T-879")} /> : null}
         {error ? (
-          <p role="alert" className="rounded-xl bg-oe-orange px-4 py-3 font-semibold text-oe-navy">
+          <p
+            role="alert"
+            className="rounded-xl border border-oe-orange bg-fondo-suave px-4 py-3 font-semibold"
+          >
             {error}
           </p>
         ) : null}
       </header>
 
+      {!isActive ? (
+        <Vacio texto={t("T-892")} />
+      ) : activeOption && selected ? (
+        <RequestForm
+          key={selected}
+          kind={selected}
+          title={activeOption.title}
+          explanation={activeOption.explanation}
+          currentCommittees={mine.committees.map((row) => ({
+            id: row.committeeId,
+            name: row.committeeName,
+          }))}
+          otherCommittees={committees
+            .filter((committee) => !mineIds.has(committee.id))
+            .map((committee) => ({ id: committee.id, name: committee.name }))}
+          policyReady={policy.ready}
+          policyNotice={!policy.ready ? <PrivacyPolicyNotice /> : null}
+          existingPending={pending.has(selected)}
+          pendingLabel={t("T-891", { tipo: activeOption.label })}
+          closeHref={href()}
+          successHref={href({ enviada: "1" }, "solicitudes")}
+        />
+      ) : (
+        <section aria-labelledby="new-request" className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <h2 id="new-request" className="text-2xl">
+              {t("T-1580")}
+            </h2>
+            <p className="text-sm text-tinta-suave">{t("T-1581")}</p>
+          </div>
+          <ul className="grid list-none gap-3 p-0 md:grid-cols-3">
+            {options.map((option) => (
+              <li key={option.type} className="min-w-0">
+                <Link
+                  href={href({ tipo: option.type })}
+                  className="flex h-full min-h-28 flex-col justify-between gap-4 rounded-2xl border border-borde bg-fondo p-4 transition-colors hover:border-titulo focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-titulo"
+                >
+                  <span className="flex items-start justify-between gap-3 text-base font-semibold">
+                    <span>{option.title}</span>
+                    <span aria-hidden="true">↗</span>
+                  </span>
+                  {pending.has(option.kind) ? (
+                    <span className="text-sm text-tinta-suave">
+                      {t("T-891", { tipo: option.label })}
+                    </span>
+                  ) : null}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section id="solicitudes" aria-labelledby="mis-solicitudes" className="flex flex-col gap-4">
-        <BarraTitulo color="azul" className="self-start">
-          <span id="mis-solicitudes">{t("T-877")}</span>
-        </BarraTitulo>
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-borde pt-6">
+          <h2 id="mis-solicitudes" className="text-2xl">
+            {t("T-877")}
+          </h2>
+          <p className="text-sm text-tinta-suave">{t("T-1597", { n: requests.length })}</p>
+        </div>
         {requests.length === 0 ? (
           <Vacio texto={t("T-875")} />
         ) : (
@@ -80,7 +158,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
             {requests.map((row) => (
               <li
                 key={row.id}
-                className="flex flex-col gap-2 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
+                className="flex flex-col gap-3 rounded-2xl border border-borde bg-fondo p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">{row.kindLabel}</span>
@@ -97,211 +175,40 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
                   >
                     {row.statusLabel}
                   </Insignia>
-                  <span className="text-sm text-tinta-suave">{formatDateTime(row.createdAt)}</span>
+                  <time dateTime={row.createdAt.toISOString()} className="text-sm text-tinta-suave">
+                    {formatDateTime(row.createdAt)}
+                  </time>
                 </div>
-                <p className="text-sm">{row.detail}</p>
+                <p className="whitespace-pre-wrap break-words text-sm">{row.detail}</p>
+                {typeof row.payload.reason === "string" ? (
+                  <p className="whitespace-pre-wrap break-words text-sm">
+                    <span className="font-semibold">{t("T-434")}: </span>
+                    {row.payload.reason}
+                  </p>
+                ) : null}
                 {row.status === "APPROVED" ? (
                   <p className="text-sm font-semibold">
-                    <span className="eyebrow text-xs text-tinta-suave">{t("T-895")}: </span>
+                    <span className="text-tinta-suave">{t("T-895")}: </span>
                     {t("T-141", { tipo: row.kindLabel })}
                   </p>
                 ) : null}
                 {row.status === "REJECTED" ? (
-                  <p className="text-sm font-semibold">
-                    <span className="eyebrow text-xs text-tinta-suave">{t("T-895")}: </span>
+                  <p className="break-words text-sm font-semibold">
+                    <span className="text-tinta-suave">{t("T-895")}: </span>
                     {t("T-142", { tipo: row.kindLabel, motivo: row.reason ?? "" })}
                   </p>
                 ) : null}
                 {row.status === "PENDING" ? (
-                  <form action={withdrawRequestAction}>
-                    <input type="hidden" name="requestId" value={row.id} />
-                    <button type="submit" className="boton-secundario min-h-9 px-4 py-1 text-sm">
-                      {t("T-878")}
-                    </button>
-                  </form>
+                  <WithdrawRequest
+                    requestId={row.id}
+                    successHref={href({ retirada: "1" }, "solicitudes")}
+                  />
                 ) : null}
               </li>
             ))}
           </ul>
         )}
       </section>
-
-      {!isActive ? (
-        <Vacio texto={t("T-892")} />
-      ) : (
-        <div className="flex max-w-3xl flex-col gap-12">
-          <section id="leave" aria-labelledby="pedir-licencia" className="flex flex-col gap-4">
-            <BarraTitulo color="amarillo" className="self-start">
-              <span id="pedir-licencia">{kinds[0]}</span>
-            </BarraTitulo>
-            <p className="text-sm">{t("T-882")}</p>
-            <form action={createRequestAction} className="flex flex-col gap-3">
-              <input type="hidden" name="kind" value="LEAVE" />
-              <label htmlFor="leave-reason" className="flex flex-col gap-1 text-sm font-semibold">
-                {t("T-880")}
-                <textarea
-                  id="leave-reason"
-                  name="reason"
-                  rows={3}
-                  required
-                  className={inputClass}
-                />
-              </label>
-              <label htmlFor="leave-until" className="flex flex-col gap-1 text-sm font-semibold">
-                {t("T-881")}
-                <input id="leave-until" name="until" type="date" className={inputClass} />
-              </label>
-              <button
-                type="submit"
-                className="boton-calido self-start"
-                disabled={pending.has("LEAVE")}
-              >
-                {t("T-893")}
-              </button>
-              {pending.has("LEAVE") ? (
-                <p className="text-sm text-tinta-suave">
-                  {t("T-891", { tipo: kindLabels[0] ?? "" })}
-                </p>
-              ) : null}
-            </form>
-          </section>
-
-          <section id="transfer" aria-labelledby="cambiar-comite" className="flex flex-col gap-4">
-            <BarraTitulo color="amarillo" className="self-start">
-              <span id="cambiar-comite">{kinds[2]}</span>
-            </BarraTitulo>
-            <p className="text-sm">{t("T-883")}</p>
-            <form action={createRequestAction} className="flex flex-col gap-3">
-              <input type="hidden" name="kind" value="TRANSFER" />
-              <fieldset className="flex flex-col gap-2">
-                <legend className="text-sm font-semibold">{dejas}</legend>
-                {mine.committees.map((row) => (
-                  <label
-                    key={row.committeeId}
-                    htmlFor={`leave-${row.committeeId}`}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <input
-                      id={`leave-${row.committeeId}`}
-                      type="checkbox"
-                      name="leaveCommitteeIds"
-                      value={row.committeeId}
-                      className="size-5"
-                    />
-                    {row.committeeName}
-                  </label>
-                ))}
-              </fieldset>
-              <label htmlFor="join" className="flex flex-col gap-1 text-sm font-semibold">
-                {entras}
-                <select id="join" name="joinCommitteeIds" multiple size={6} className={inputClass}>
-                  {committees
-                    .filter((committee) => !mineIds.has(committee.id))
-                    .map((committee) => (
-                      <option key={committee.id} value={committee.id}>
-                        {committee.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label
-                htmlFor="transfer-reason"
-                className="flex flex-col gap-1 text-sm font-semibold"
-              >
-                {t("T-880")}
-                <textarea
-                  id="transfer-reason"
-                  name="reason"
-                  rows={3}
-                  required
-                  className={inputClass}
-                />
-              </label>
-              <button
-                type="submit"
-                className="boton-calido self-start"
-                disabled={pending.has("TRANSFER")}
-              >
-                {t("T-893")}
-              </button>
-              {pending.has("TRANSFER") ? (
-                <p className="text-sm text-tinta-suave">
-                  {t("T-891", { tipo: kindLabels[2] ?? "" })}
-                </p>
-              ) : null}
-            </form>
-          </section>
-
-          <section id="resignation" aria-labelledby="retirarme" className="flex flex-col gap-4">
-            <BarraTitulo color="naranja" className="self-start">
-              <span id="retirarme">{kinds[1]}</span>
-            </BarraTitulo>
-            <p className="text-sm">{t("T-143")}</p>
-            <form action={createRequestAction} className="flex flex-col gap-3">
-              <input type="hidden" name="kind" value="RESIGNATION" />
-              <label
-                htmlFor="resignation-reason"
-                className="flex flex-col gap-1 text-sm font-semibold"
-              >
-                {t("T-880")}
-                <textarea
-                  id="resignation-reason"
-                  name="reason"
-                  rows={3}
-                  required
-                  className={inputClass}
-                />
-              </label>
-              <label htmlFor="memorial" className="flex items-center gap-2 text-sm">
-                <input
-                  id="memorial"
-                  type="checkbox"
-                  name="memorialConsent"
-                  className="size-5"
-                  disabled={!policy.ready}
-                />
-                {galeria}
-              </label>
-              <label htmlFor="contact" className="flex items-center gap-2 text-sm">
-                <input
-                  id="contact"
-                  type="checkbox"
-                  name="contactConsent"
-                  className="size-5"
-                  disabled={!policy.ready}
-                />
-                {contacto}
-              </label>
-              {!policy.ready ? <PrivacyPolicyNotice /> : null}
-              <label htmlFor="personal-email" className="flex flex-col gap-1 text-sm font-semibold">
-                {t("T-889")}
-                <input
-                  id="personal-email"
-                  name="personalEmail"
-                  type="email"
-                  className={inputClass}
-                />
-              </label>
-              <label htmlFor="confirm" className="flex items-center gap-2 text-sm">
-                <input id="confirm" type="checkbox" name="confirm" className="size-5" required />
-                {t("T-890")}
-              </label>
-              <button
-                type="submit"
-                className="boton-calido self-start"
-                disabled={pending.has("RESIGNATION")}
-              >
-                {t("T-893")}
-              </button>
-              {pending.has("RESIGNATION") ? (
-                <p className="text-sm text-tinta-suave">
-                  {t("T-891", { tipo: kindLabels[1] ?? "" })}
-                </p>
-              ) : null}
-            </form>
-          </section>
-        </div>
-      )}
     </div>
   );
 }

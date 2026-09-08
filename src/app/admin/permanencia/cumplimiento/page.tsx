@@ -8,6 +8,9 @@ import {
   listCompliance,
 } from "@/modules/permanence";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
+import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
@@ -92,15 +95,20 @@ export default async function CumplimientoPage({
                 </option>
               ))}
             </select>
-            <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
+            <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
               {t("T-250")}
-            </button>
+            </AdminSubmitButton>
           </form>
           <form action={recomputeAction}>
-            <input type="hidden" name="termId" value={term.id} />
-            <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
-              {t("T-794")}
-            </button>
+            <AdminFormBody>
+              <input type="hidden" name="termId" value={term.id} />
+              <AdminSubmitButton
+                type="submit"
+                className="boton-secundario min-h-8 px-3 py-1 text-sm"
+              >
+                {t("T-794")}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
           <a
             href={`/api/export/permanencia?termId=${term.id}&filtro=${filter}`}
@@ -127,12 +135,12 @@ export default async function CumplimientoPage({
       {rows.length === 0 ? (
         <p className="text-tinta-suave">{t("T-797")}</p>
       ) : (
-        <div className="overflow-x-auto">
+        <AdminTableRegion label={t("T-788")} className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left">
                 {columns.map((column) => (
-                  <th key={column} className="eyebrow py-2 pr-3 text-xs">
+                  <th scope="col" key={column} className="eyebrow py-2 pr-3 text-xs">
                     {column}
                   </th>
                 ))}
@@ -183,7 +191,7 @@ export default async function CumplimientoPage({
               ))}
             </tbody>
           </table>
-        </div>
+        </AdminTableRegion>
       )}
     </div>
   );

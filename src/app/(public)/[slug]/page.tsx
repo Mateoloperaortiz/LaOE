@@ -51,7 +51,7 @@ function ContactoOE() {
 }
 
 // Unirse (ADR-037 regla 5): "Postulate" hacia el formulario público abierto ligado a un pipeline de
-// admisión; sin convocatoria, T-028 y el formulario de prospecto si existe.
+// admisión; sin convocatoria, el texto solo invita a dejar el correo si hay formulario de prospecto.
 async function Unirse() {
   const admision = await findOpenPublicFormForPipelines(await listAdmissionPipelineIds());
   const prospecto = admision ? null : await findOpenProspectForm();
@@ -67,12 +67,18 @@ async function Unirse() {
       ) : (
         <div className="flex max-w-2xl flex-col gap-4 rounded-[var(--radius-cartel)] border border-borde bg-fondo-suave p-6 textura-granito sm:flex-row sm:items-center sm:gap-6">
           <Elemento tipo="destello" className="size-12 shrink-0 text-oe-orange" />
-          <p className="text-lg">{t("T-028")}</p>
-          {prospecto ? (
-            <Link href={`/f/${prospecto.slug}`} className="boton-secundario shrink-0 self-start">
-              {t("T-868")}
-            </Link>
-          ) : null}
+          <div className="flex flex-col items-start gap-4">
+            <p className="text-lg">{t(prospecto ? "T-028" : "T-1548")}</p>
+            {prospecto ? (
+              <Link href={`/f/${prospecto.slug}`} className="boton-secundario shrink-0 self-start">
+                {t("T-868")}
+              </Link>
+            ) : (
+              <Link href="/eventos" className="boton-secundario">
+                {t("T-317")}
+              </Link>
+            )}
+          </div>
         </div>
       )}
     </section>

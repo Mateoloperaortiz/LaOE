@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTemplate, previewTemplateFor } from "@/modules/comms";
 import { requireAdminActor } from "@/modules/identity";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { sendTestAction } from "./actions";
@@ -53,10 +55,12 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
             {t("T-252")}
           </Link>
           <form action={sendTestAction}>
-            <input type="hidden" name="templateId" value={template.id} />
-            <button type="submit" className="boton-primario text-sm">
-              {t("T-1120")}
-            </button>
+            <AdminFormBody>
+              <input type="hidden" name="templateId" value={template.id} />
+              <AdminSubmitButton type="submit" className="boton-primario text-sm">
+                {t("T-1120")}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
           {prueba ? (
             <output className="text-sm font-semibold text-titulo">

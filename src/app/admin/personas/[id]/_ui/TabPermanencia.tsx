@@ -8,10 +8,12 @@ import {
 } from "@/modules/permanence";
 import { Desglose } from "@/modules/permanence/components/Desglose";
 import { ResourcePanel } from "@/shared/admin-kit";
+import { Bloque, Campo, inputClass } from "@/shared/admin-kit/AdminFields";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { grantCreditAction } from "../actions";
-import { Bloque, Campo, inputClass } from "./campos";
 
 // Pestaña Permanencia de la Persona 360 (ADR-036): el mismo desglose que ve la persona, en vivo
 // mientras el término está abierto; créditos manuales de GH y las decisiones confirmadas del cierre.
@@ -89,9 +91,9 @@ export async function TabPermanencia({ personId, termId, terms, accion, error, c
             </option>
           ))}
         </select>
-        <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
+        <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
           {t("T-250")}
-        </button>
+        </AdminSubmitButton>
       </form>
       <Bloque titulo={resultado ?? ""}>
         <Desglose
@@ -164,39 +166,47 @@ export async function TabPermanencia({ personId, termId, terms, accion, error, c
             </p>
           ) : null}
           <form action={grantCreditAction} className="flex flex-col gap-4">
-            <input type="hidden" name="personId" value={personId} />
-            <Campo id="campo-ruleId" label={campoCriterio ?? ""}>
-              <select id="campo-ruleId" name="ruleId" required className={inputClass}>
-                {manualRules.map((rule) => (
-                  <option key={rule.id} value={rule.id}>
-                    {rule.committeeId ? `${committeeNames.get(rule.committeeId) ?? ""} · ` : ""}
-                    {rule.label} · {rule.weight}
-                  </option>
-                ))}
-              </select>
-            </Campo>
-            <Campo id="campo-value" label={campoValor ?? ""}>
-              <input
-                id="campo-value"
-                name="value"
-                type="number"
-                step="0.5"
-                min="0"
-                required
-                className={inputClass}
-              />
-            </Campo>
-            <Campo id="campo-reason" label={campoMotivo ?? ""}>
-              <textarea id="campo-reason" name="reason" rows={3} required className={inputClass} />
-            </Campo>
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-calido">
-                {reconocer}
-              </button>
-              <Link href={closeHref} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="personId" value={personId} />
+              <Campo id="campo-ruleId" label={campoCriterio ?? ""}>
+                <select id="campo-ruleId" name="ruleId" required className={inputClass}>
+                  {manualRules.map((rule) => (
+                    <option key={rule.id} value={rule.id}>
+                      {rule.committeeId ? `${committeeNames.get(rule.committeeId) ?? ""} · ` : ""}
+                      {rule.label} · {rule.weight}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo id="campo-value" label={campoValor ?? ""}>
+                <input
+                  id="campo-value"
+                  name="value"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  required
+                  className={inputClass}
+                />
+              </Campo>
+              <Campo id="campo-reason" label={campoMotivo ?? ""}>
+                <textarea
+                  id="campo-reason"
+                  name="reason"
+                  rows={3}
+                  required
+                  className={inputClass}
+                />
+              </Campo>
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-calido">
+                  {reconocer}
+                </AdminSubmitButton>
+                <Link href={closeHref} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}

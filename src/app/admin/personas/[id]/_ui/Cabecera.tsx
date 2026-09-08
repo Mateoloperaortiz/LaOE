@@ -2,9 +2,10 @@ import Link from "next/link";
 import type { ActorPermission } from "@/modules/identity";
 import type { MyMembershipView, Person360, TagRow } from "@/modules/people";
 import { stageCell, statusCell } from "@/modules/people/admin";
+import { AdminActionsMenu } from "@/shared/admin-kit/AdminActionsMenu";
+import { Dato } from "@/shared/admin-kit/AdminFields";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
-import { Dato } from "./campos";
 import { appointmentLabel } from "./etiquetas";
 
 type Props = {
@@ -87,6 +88,8 @@ export function Cabecera({ data, my, permissions, committeeNames, tags }: Props)
       : item.code === "BOARD"
         ? junta
         : `${lider}${item.committeeId ? ` · ${committeeNames.get(item.committeeId) ?? ""}` : ""}`;
+  const primaryActions = enlaces.filter((item) => ["editar", "nota", "tarea"].includes(item.key));
+  const secondaryActions = enlaces.filter((item) => !primaryActions.includes(item));
   return (
     <header className="flex flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -117,8 +120,8 @@ export function Cabecera({ data, my, permissions, committeeNames, tags }: Props)
             )}
           </div>
         </div>
-        <nav aria-label={acciones.join(" · ")} className="flex flex-wrap gap-2">
-          {enlaces.map((enlace) => (
+        <nav aria-label={t("T-1500")} className="flex flex-wrap items-start gap-2">
+          {primaryActions.map((enlace) => (
             <Link
               key={enlace.key}
               href={enlace.href}
@@ -127,9 +130,22 @@ export function Cabecera({ data, my, permissions, committeeNames, tags }: Props)
               {enlace.label}
             </Link>
           ))}
+          {secondaryActions.length > 0 ? (
+            <AdminActionsMenu label={t("T-1500")}>
+              {secondaryActions.map((enlace) => (
+                <Link
+                  key={enlace.key}
+                  href={enlace.href}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-fondo-suave focus-visible:bg-fondo-suave"
+                >
+                  {enlace.label}
+                </Link>
+              ))}
+            </AdminActionsMenu>
+          ) : null}
         </nav>
       </div>
-      <dl className="grid gap-4 rounded-[var(--radius-cartel)] border border-borde bg-fondo-suave p-5 textura-granito sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid gap-4 rounded-xl border border-borde bg-fondo p-4 sm:grid-cols-2 lg:grid-cols-4">
         <Dato etiqueta={correo} valor={person.email} />
         <Dato etiqueta={celular} valor={person.phone} />
         <Dato etiqueta={programa} valor={person.program} />

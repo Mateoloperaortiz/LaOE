@@ -11,21 +11,15 @@ test("el inicio del admin muestra el tablero con sus bloques y enlaces", async (
   await page.goto("/admin");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Administración");
 
-  const secciones = page.getByRole("list").first();
-  const enlaces: Array<[string, string]> = [
-    ["Organizaciones", "/admin/organizaciones"],
-    ["Pipelines", "/admin/pipelines"],
-    ["Solicitudes", "/admin/solicitudes"],
-    ["Convocatorias", "/admin/convocatorias"],
-    ["Formularios", "/admin/formularios"],
-    ["Comunicaciones", "/admin/mensajes"],
-  ];
-  for (const [nombre, ruta] of enlaces) {
-    await expect(secciones.getByRole("link", { name: nombre, exact: true })).toHaveAttribute(
-      "href",
-      ruta,
-    );
-  }
+  const navigation = page.locator(".admin-sidebar").getByRole("navigation");
+  await expect(navigation.getByRole("link", { name: "Inicio", exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await navigation.getByRole("button", { name: "Gestión" }).click();
+  await expect(
+    navigation.getByRole("link", { name: "Organizaciones", exact: true }),
+  ).toHaveAttribute("href", "/admin/organizaciones");
   const bloques: Array<[string, string]> = [
     ["Tus pendientes", "/admin/tareas?status=OPEN&assignee=mine"],
     ["Vencidas del equipo", "/admin/tareas?status=OPEN"],

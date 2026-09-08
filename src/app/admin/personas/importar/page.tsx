@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { requireAdminActor } from "@/modules/identity";
+import { notFound, redirect } from "next/navigation";
+import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import {
   getRosterPreview,
   HEADER_ALIASES,
@@ -14,9 +14,12 @@ import { RosterUploader } from "@/modules/people/components/RosterUploader";
 import { getPrivacyPolicyState } from "@/modules/system";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
-import { BarraTitulo, Insignia, Numeral } from "@/shared/brand";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
+import { Insignia, Numeral } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { applyAction, discardAction, remapAction } from "./actions";
+import { parseProposalIndexes, proposalSelectionVersion } from "./selection";
 
 // Asistente de importación del roster (13-importacion-del-roster.md, ADR-034): archivo y semestre,
 // columnas, revisión y confirmación con step-up.
@@ -32,46 +35,45 @@ function single(value: string | string[] | undefined): string {
 }
 
 const inputClass =
-  "rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";
+  "min-w-0 w-full rounded-xl border border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";
 
 function columnLabel(column: string): string {
   return HEADER_ALIASES[column as (typeof ROSTER_COLUMNS)[number]]?.[0] ?? column;
 }
 
 function Mapeo({ preview }: { preview: RosterPreview }) {
-  const [, continuar] = tList("T-479") as [string, string, string, string];
   return (
     <form action={remapAction} className="flex flex-col gap-4">
-      <input type="hidden" name="jobId" value={preview.jobId} />
-      <input type="hidden" name="columns" value={preview.headers.length} />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {preview.headers.map((header, index) => {
-          const id = `col_${index}`;
-          return (
-            <div key={id} className="flex flex-col gap-1">
-              <label htmlFor={id} className="eyebrow text-xs">
-                {t("T-480", { cabecera: header })}
-              </label>
-              <select
-                id={id}
-                name={id}
-                defaultValue={preview.mapping[index] ?? ""}
-                className={inputClass}
-              >
-                <option value="">{t("T-481")}</option>
-                {ROSTER_COLUMNS.map((column) => (
-                  <option key={column} value={column}>
-                    {columnLabel(column)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          );
-        })}
-      </div>
-      <button type="submit" className="boton-secundario self-start">
-        {continuar}
-      </button>
+      <AdminFormBody>
+        <input type="hidden" name="jobId" value={preview.jobId} />
+        <input type="hidden" name="columns" value={preview.headers.length} />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {preview.headers.map((header, index) => {
+            const id = `col_${index}`;
+            return (
+              <div key={id} className="flex flex-col gap-1">
+                <label htmlFor={id} className="eyebrow text-xs">
+                  {t("T-480", { cabecera: header })}
+                </label>
+                <select
+                  id={id}
+                  name={id}
+                  defaultValue={preview.mapping[index] ?? ""}
+                  className={inputClass}
+                >
+                  <option value="">{t("T-481")}</option>
+                  {ROSTER_COLUMNS.map((column) => (
+                    <option key={column} value={column}>
+                      {columnLabel(column)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
+        </div>
+        <AdminSubmitButton className="boton-primario self-start">{t("T-1475")}</AdminSubmitButton>
+      </AdminFormBody>
     </form>
   );
 }
@@ -102,7 +104,7 @@ function Grupo({
         {titulo}
       </h3>
       <div className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde">
-        <table className="w-full text-left text-sm">
+        <table className="admin-data-table w-full text-left text-sm">
           <thead className="eyebrow bg-fondo-suave text-xs">
             <tr>
               <th scope="col" className="px-3 py-2">
@@ -128,25 +130,31 @@ function Grupo({
           <tbody>
             {rows.map((row) => (
               <tr key={row.row} className="border-t border-borde align-top">
-                <td className="px-3 py-2 text-tinta-suave">{t("T-491", { n: row.row })}</td>
-                <td className="px-3 py-2 font-semibold">
+                <td data-label="#" className="px-3 py-2 text-tinta-suave">
+                  {t("T-491", { n: row.row })}
+                </td>
+                <td data-label={campos[0]} className="px-3 py-2 font-semibold">
                   {[row.firstName ?? row.values.firstName, row.lastName ?? row.values.lastName]
                     .filter(Boolean)
                     .join(" ")}
                 </td>
-                <td className="px-3 py-2">{row.email ?? row.values.email}</td>
-                <td className="px-3 py-2">{committeesText(row) || row.values.committees}</td>
-                <td className="px-3 py-2">
+                <td data-label={campos[2]} className="px-3 py-2">
+                  {row.email ?? row.values.email}
+                </td>
+                <td data-label={t("T-431")} className="px-3 py-2">
+                  {committeesText(row) || row.values.committees}
+                </td>
+                <td data-label={campos[9]} className="px-3 py-2">
                   {row.status ? statusLabel(row.status) : row.values.status}
                   {row.probation ? ` · ${t("T-449")}` : ""}
                 </td>
-                <td className="px-3 py-2">
+                <td data-label={showChanges ? tList("T-482")[1] : t("T-260")} className="px-3 py-2">
                   {showChanges ? (
                     row.changes.map(columnLabel).join(", ")
                   ) : (
                     <ul className="list-none p-0">
                       {row.errors.map((error) => (
-                        <li key={error} className="font-semibold text-oe-navy">
+                        <li key={error} className="font-semibold text-titulo">
                           {error}
                         </li>
                       ))}
@@ -169,34 +177,33 @@ function Grupo({
   );
 }
 
-function Revision({
-  preview,
-  error,
-  policyReady,
-}: {
-  preview: RosterPreview;
-  error: string;
-  policyReady: boolean;
-}) {
+function Resumen({ preview }: { preview: RosterPreview }) {
+  return (
+    <div className="admin-surface flex flex-col gap-2 rounded-xl border border-borde bg-fondo-suave p-4">
+      <h3 className="text-sm font-semibold">{t("T-1483")}</h3>
+      <p className="font-semibold">
+        {t("T-166", {
+          n: preview.counts.NEW,
+          m: preview.counts.CHANGED,
+          k: preview.counts.UNCHANGED,
+        })}
+      </p>
+      <p className="text-sm text-tinta-suave">{t("T-1484", { n: preview.counts.ERROR })}</p>
+    </div>
+  );
+}
+
+function Revision({ preview }: { preview: RosterPreview }) {
   const grupos = tList("T-482");
-  const [, , aplicar, descartar] = tList("T-479") as [string, string, string, string];
   const byGroup = (group: PreviewRow["group"]) => preview.rows.filter((row) => row.group === group);
   const canApply = preview.rows.some((row) => row.group === "NEW" || row.group === "CHANGED");
   return (
-    <div className="flex flex-col gap-8">
-      {error ? (
-        <p
-          role="alert"
-          className="rounded-xl bg-oe-orange px-4 py-2 text-sm font-semibold text-oe-navy"
-        >
-          {error}
-        </p>
-      ) : null}
-      <Mapeo preview={preview} />
+    <div className="flex min-w-0 flex-col gap-6">
+      <Resumen preview={preview} />
       <div className="flex flex-col gap-2 text-sm">
         {preview.updateMode ? <p>{t("T-489")}</p> : null}
         {preview.missingRequired.includes("email") ? (
-          <p role="alert" className="font-semibold">
+          <p role="alert">
             {t("T-490", { lista: preview.missingRequired.map(columnLabel).join(", ") })}
           </p>
         ) : null}
@@ -207,56 +214,99 @@ function Revision({
           <p>{t("T-486", { lista: preview.unknownRoles.join(", ") })}</p>
         ) : null}
       </div>
-      <p className="text-lg font-semibold">
-        {t("T-166", {
-          n: preview.counts.NEW,
-          m: preview.counts.CHANGED,
-          k: preview.counts.UNCHANGED,
-        })}
-      </p>
       <Grupo titulo={grupos[3] ?? ""} rows={byGroup("ERROR")} showChanges={false} />
       <Grupo titulo={grupos[0] ?? ""} rows={byGroup("NEW")} showChanges />
       <Grupo titulo={grupos[1] ?? ""} rows={byGroup("CHANGED")} showChanges />
       <Grupo titulo={grupos[2] ?? ""} rows={byGroup("UNCHANGED")} showChanges />
-      <form action={applyAction} className="flex flex-col gap-4">
-        <input type="hidden" name="jobId" value={preview.jobId} />
-        {preview.proposals.length > 0 ? (
-          <fieldset className="flex flex-col gap-2 rounded-[var(--radius-cartel)] border border-borde p-4">
-            <legend className="eyebrow px-1 text-xs">{t("T-484")}</legend>
-            {preview.proposals.map((proposal) => {
-              const id = `proposal-${proposal.email}-${proposal.committeeId}`;
-              return (
-                <label key={id} htmlFor={id} className="flex items-center gap-3 text-sm">
-                  <input
-                    id={id}
-                    type="checkbox"
-                    name="proposal"
-                    value={`${proposal.email}|${proposal.committeeId}`}
-                    defaultChecked
-                    className="size-5 accent-oe-navy"
-                  />
-                  <span>
-                    {proposal.personName} ·{" "}
-                    {t("T-370", { cargo: "General", comité: proposal.committeeName })}
-                  </span>
-                </label>
-              );
-            })}
-          </fieldset>
+      {!canApply ? <p className="text-sm text-tinta-suave">{t("T-1482")}</p> : null}
+      <div className="flex flex-wrap gap-3">
+        {canApply ? (
+          <Link href={jobHref(preview.jobId, "confirmacion")} className="boton-primario">
+            {t("T-1476")}
+          </Link>
         ) : null}
-        <div className="flex flex-wrap gap-3">
-          {canApply ? (
-            <button type="submit" className="boton-calido" disabled={!policyReady}>
-              {aplicar}
-            </button>
-          ) : null}
-          <button type="submit" formAction={discardAction} className="boton-secundario">
-            {descartar}
-          </button>
-        </div>
-      </form>
+        <Link href={jobHref(preview.jobId, "columnas")} className="boton-secundario">
+          {t("T-1477")}
+        </Link>
+        <form action={discardAction}>
+          <AdminFormBody>
+            <input type="hidden" name="jobId" value={preview.jobId} />
+            <AdminSubmitButton className="boton-secundario">{tList("T-479")[3]}</AdminSubmitButton>
+          </AdminFormBody>
+        </form>
+      </div>
     </div>
   );
+}
+
+function Confirmacion({
+  preview,
+  policyReady,
+  selectedIndexes,
+}: {
+  preview: RosterPreview;
+  policyReady: boolean;
+  selectedIndexes: number[];
+}) {
+  const [, , aplicar, descartar] = tList("T-479") as [string, string, string, string];
+  const canApply = preview.rows.some((row) => row.group === "NEW" || row.group === "CHANGED");
+  return (
+    <div className="flex flex-col gap-5">
+      <Resumen preview={preview} />
+      <p className="max-w-prose text-sm text-tinta-suave">{t("T-1479")}</p>
+      <form action={applyAction} className="flex flex-col gap-4">
+        <AdminFormBody>
+          <input
+            type="hidden"
+            name="proposalVersion"
+            value={proposalSelectionVersion(preview.proposals)}
+          />
+          <input type="hidden" name="jobId" value={preview.jobId} />
+          {preview.proposals.length > 0 ? (
+            <fieldset className="flex flex-col gap-2 rounded-[var(--radius-cartel)] border border-borde p-4">
+              <legend className="eyebrow px-1 text-xs">{t("T-484")}</legend>
+              {preview.proposals.map((proposal, index) => {
+                const id = `proposal-${proposal.email}-${proposal.committeeId}`;
+                return (
+                  <label key={id} htmlFor={id} className="flex items-center gap-3 text-sm">
+                    <input
+                      id={id}
+                      type="checkbox"
+                      name="proposal"
+                      value={String(index)}
+                      defaultChecked={selectedIndexes.includes(index)}
+                      className="size-5 accent-oe-navy"
+                    />
+                    <span>
+                      {proposal.personName} ·{" "}
+                      {t("T-370", { cargo: "General", comité: proposal.committeeName })}
+                    </span>
+                  </label>
+                );
+              })}
+            </fieldset>
+          ) : null}
+          <div className="flex flex-wrap gap-3">
+            {canApply ? (
+              <AdminSubmitButton className="boton-primario" disabled={!policyReady}>
+                {aplicar}
+              </AdminSubmitButton>
+            ) : null}
+            <AdminSubmitButton formAction={discardAction} className="boton-secundario">
+              {descartar}
+            </AdminSubmitButton>
+          </div>
+        </AdminFormBody>
+      </form>
+      <Link href={jobHref(preview.jobId, "revision")} className="self-start text-sm underline">
+        {t("T-1478")}
+      </Link>
+    </div>
+  );
+}
+
+function jobHref(jobId: string, step: string) {
+  return `/admin/personas/importar?${new URLSearchParams({ job: jobId, paso: step })}`;
 }
 
 function Aplicada({ preview }: { preview: RosterPreview }) {
@@ -300,12 +350,12 @@ function Aplicada({ preview }: { preview: RosterPreview }) {
 export default async function ImportarPage({
   searchParams,
 }: PageProps<"/admin/personas/importar">) {
-  await requireAdminActor("/admin/personas/importar");
+  const actor = await requireAdminActor("/admin/personas/importar");
   const params: Search = await searchParams;
   const jobId = single(params.job);
-  const error = single(params.error);
+  let error = single(params.error);
   const policy = await getPrivacyPolicyState();
-  const pasos = tList("T-475");
+  const pasos = tList("T-1487");
   const [subir] = tList("T-479") as [string, string, string, string];
   const [, , , estados] = [null, null, null, tList("T-493")];
 
@@ -325,6 +375,10 @@ export default async function ImportarPage({
           button: subir,
           uploading: t("T-359"),
           error: t("T-488"),
+          chooseFile: t("T-1485"),
+          noFile: t("T-1486"),
+          replaceFile: t("T-1488"),
+          removeFile: t("T-1489"),
         }}
       />
     );
@@ -333,31 +387,82 @@ export default async function ImportarPage({
     if (!preview) {
       notFound();
     }
-    step = preview.status === "PREVIEW" ? 2 : 3;
+    const requestedStep = single(params.paso);
+    step =
+      preview.status === "PREVIEW"
+        ? requestedStep === "confirmacion"
+          ? 3
+          : requestedStep === "revision"
+            ? 2
+            : 1
+        : 3;
+    const version = proposalSelectionVersion(preview.proposals);
+    const hasSelection = params.seleccion !== undefined;
+    const selectionMatches = single(params.revision) === version;
+    const selectedIndexes = hasSelection
+      ? selectionMatches
+        ? parseProposalIndexes(single(params.seleccion))
+        : []
+      : preview.proposals.map((_, index) => index);
+    if (hasSelection && !selectionMatches) error = t("T-1490");
+    if (preview.status === "PREVIEW" && step === 3 && !hasRecentStepUp(actor)) {
+      const returnParams = new URLSearchParams({ job: preview.jobId, paso: "confirmacion" });
+      if (hasSelection) {
+        returnParams.set("seleccion", selectedIndexes.join(","));
+        returnParams.set("revision", version);
+      }
+      redirect(
+        `/ingresar/paso?next=${encodeURIComponent(`/admin/personas/importar?${returnParams}`)}`,
+      );
+    }
     content =
       preview.status === "APPLIED" ? (
         <Aplicada preview={preview} />
       ) : preview.status === "PREVIEW" ? (
-        <Revision preview={preview} error={error} policyReady={policy.ready} />
+        step === 1 ? (
+          <Mapeo preview={preview} />
+        ) : step === 2 ? (
+          <Revision preview={preview} />
+        ) : (
+          <Confirmacion
+            preview={preview}
+            policyReady={policy.ready}
+            selectedIndexes={selectedIndexes}
+          />
+        )
       ) : (
         <p className="text-tinta-suave">{estados[2]}</p>
       );
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="text-display-lg">{importar}</h1>
+    <div className="admin-page flex min-w-0 flex-col gap-6">
+      <header className="admin-page-header">
+        <h1 className="text-display-lg">{importar}</h1>
+        <p className="mt-2 max-w-prose text-sm text-tinta-suave">{t("T-1480")}</p>
+      </header>
       {!policy.ready ? <PrivacyPolicyNotice admin /> : null}
-      <ol className="flex list-none flex-wrap gap-2 p-0">
+      {error ? (
+        <p
+          role="alert"
+          className="rounded-xl bg-oe-orange px-4 py-3 text-sm font-semibold text-oe-navy"
+        >
+          {error}
+        </p>
+      ) : null}
+      <ol className="admin-stepper grid list-none grid-cols-2 gap-2 p-0 lg:grid-cols-4">
         {pasos.map((paso, index) => (
-          <li key={paso}>
-            <Insignia fondo={index === step ? "amarillo" : "sky"}>{paso}</Insignia>
+          <li
+            key={paso}
+            aria-current={index === step ? "step" : undefined}
+            className={`flex items-center gap-2 rounded-xl border p-3 text-sm ${index === step ? "border-titulo bg-fondo-suave font-semibold text-titulo" : "border-borde text-tinta-suave"}`}
+          >
+            <span className="font-semibold tabular-nums">{index + 1}</span>
+            {paso}
           </li>
         ))}
       </ol>
-      <BarraTitulo color="azul" className="self-start">
-        {pasos[step] ?? ""}
-      </BarraTitulo>
+      <h2 className="text-titulo-md">{pasos[step] ?? ""}</h2>
       {content}
     </div>
   );

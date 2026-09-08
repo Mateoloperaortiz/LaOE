@@ -65,7 +65,7 @@ test("GH cambia una propuesta con motivo, aplica el cierre con step-up y la deci
 
   // Cambiar sin motivo se rechaza; con motivo queda confirmada y marcada por quién.
   await fila.getByRole("link", { name: "Cambiar" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await panel.getByLabel(/^Decisión · (?!Cierre E2E)/).selectOption("PROBATION");
   await panel.getByRole("button", { name: "Confirmar propuesta" }).click();
   await expect(page.getByText("Cambiar la propuesta exige un motivo.").first()).toBeVisible();
@@ -73,7 +73,7 @@ test("GH cambia una propuesta con motivo, aplica el cierre con step-up y la deci
   // La validación redirige y reinicia los controles no gestionados por React. Abrimos el documento
   // ya redirigido antes de editar: un mensaje visible aún puede preceder al reset del formulario.
   await page.reload();
-  const correccion = page.getByRole("complementary");
+  const correccion = page.getByRole("dialog");
   const decision = correccion.getByLabel(/^Decisión · (?!Cierre E2E)/);
   const motivo = correccion.getByLabel("Motivo");
   await decision.selectOption("PROBATION");
@@ -99,9 +99,9 @@ test("GH cambia una propuesta con motivo, aplica el cierre con step-up y la deci
   // Aplicar: el panel resume las salidas y el cierre queda estampado; el job aplica las decisiones.
   await page.getByRole("link", { name: "Aplicar cierre" }).click();
   await expect(
-    page.getByRole("complementary").getByText(/Vas a aplicar el cierre de 2019-1/),
+    page.getByRole("dialog").getByText(/Vas a aplicar el cierre de 2019-1/),
   ).toBeVisible();
-  await page.getByRole("complementary").getByRole("button", { name: "Aplicar cierre" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Aplicar cierre" }).click();
   await expect(page.getByText("Cierre aplicado.")).toBeVisible();
   await expect(page.getByText("0 de 2 decisiones aplicadas")).toBeVisible();
   expect(await applyDecisions(termId, nextTermId)).toBe(2);

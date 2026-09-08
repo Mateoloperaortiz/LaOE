@@ -35,15 +35,14 @@ async function applyCors(): Promise<void> {
     new PutBucketCorsCommand({
       Bucket: env.S3_BUCKET,
       CORSConfiguration: {
-        CORSRules: [
-          {
-            AllowedOrigins: origins,
-            AllowedMethods: ["GET", "HEAD", "PUT", "POST"],
-            AllowedHeaders: ["*"],
-            ExposeHeaders: ["ETag"],
-            MaxAgeSeconds: 3600,
-          },
-        ],
+        // Garage debe responder con un solo origen; una regla por origen evita cabeceras múltiples.
+        CORSRules: [...new Set(origins)].map((origin) => ({
+          AllowedOrigins: [origin],
+          AllowedMethods: ["GET", "HEAD", "PUT", "POST"],
+          AllowedHeaders: ["*"],
+          ExposeHeaders: ["ETag"],
+          MaxAgeSeconds: 3600,
+        })),
       },
     }),
   );

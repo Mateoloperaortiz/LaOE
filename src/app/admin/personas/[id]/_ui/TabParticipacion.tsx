@@ -7,9 +7,9 @@ import {
   type OccasionRow,
   POINT_ENTRY_KINDS,
 } from "@/modules/participation";
+import { Bloque } from "@/shared/admin-kit/AdminFields";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
-import { Bloque } from "./campos";
 
 // Pestaña Participación de la Persona 360 (02-crm.md, ADR-035): check-ins con ocasión, fuente y
 // estado; ledger con ajustes y reversiones; ajustar puntos abre el panel del ledger del admin.
@@ -51,13 +51,21 @@ export function TabParticipacion({
           <p className="text-tinta-suave">{t("T-669")}</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="admin-data-table w-full text-sm">
               <thead>
                 <tr className="text-left">
-                  <th className="eyebrow py-2 pr-4 text-xs">{tList("T-562")[1]}</th>
-                  <th className="eyebrow py-2 pr-4 text-xs">{columns[2]}</th>
-                  <th className="eyebrow py-2 pr-4 text-xs">{columns[3]}</th>
-                  <th className="eyebrow py-2 pr-4 text-xs">{columns[4]}</th>
+                  <th scope="col" className="eyebrow py-2 pr-4 text-xs">
+                    {tList("T-562")[1]}
+                  </th>
+                  <th scope="col" className="eyebrow py-2 pr-4 text-xs">
+                    {columns[2]}
+                  </th>
+                  <th scope="col" className="eyebrow py-2 pr-4 text-xs">
+                    {columns[3]}
+                  </th>
+                  <th scope="col" className="eyebrow py-2 pr-4 text-xs">
+                    {columns[4]}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -65,7 +73,7 @@ export function TabParticipacion({
                   const occasion = occasions.get(item.occasionId);
                   return (
                     <tr key={item.id} className="border-borde border-t">
-                      <td className="py-2 pr-4 font-semibold">
+                      <td data-label={tList("T-562")[1]} className="py-2 pr-4 font-semibold">
                         {occasion ? (
                           <Link href={`/admin/ocasiones/${occasion.id}`}>{occasion.title}</Link>
                         ) : (
@@ -78,11 +86,13 @@ export function TabParticipacion({
                           </span>
                         ) : null}
                       </td>
-                      <td className="py-2 pr-4 whitespace-nowrap">{formatDateTime(item.at)}</td>
-                      <td className="py-2 pr-4">
+                      <td data-label={columns[2]} className="py-2 pr-4 whitespace-nowrap">
+                        {formatDateTime(item.at)}
+                      </td>
+                      <td data-label={columns[3]} className="py-2 pr-4">
                         {sourceLabels[CHECK_IN_SOURCES.indexOf(item.source)] ?? item.source}
                       </td>
-                      <td className="py-2 pr-4">
+                      <td data-label={columns[4]} className="py-2 pr-4">
                         {statusLabels[CHECK_IN_STATUSES.indexOf(item.status)] ?? item.status}
                       </td>
                     </tr>
@@ -98,32 +108,47 @@ export function TabParticipacion({
           <p className="text-tinta-suave">{t("T-086")}</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="admin-data-table w-full text-sm">
               <thead>
                 <tr className="text-left">
-                  <th className="eyebrow py-2 pr-4 text-xs">{ledgerColumns[0]}</th>
-                  <th className="eyebrow py-2 pr-4 text-xs">{ledgerColumns[2]}</th>
-                  <th className="eyebrow py-2 pr-4 text-xs">{ledgerColumns[3]}</th>
-                  <th className="eyebrow py-2 pr-4 text-xs">{ledgerColumns[4]}</th>
-                  <th className="eyebrow py-2 pr-4 text-xs">{ledgerColumns[5]}</th>
+                  <th scope="col" className="eyebrow py-2 pr-4 text-xs">
+                    {ledgerColumns[0]}
+                  </th>
+                  <th scope="col" className="eyebrow py-2 pr-4 text-xs">
+                    {ledgerColumns[2]}
+                  </th>
+                  <th scope="col" className="eyebrow py-2 pr-4 text-xs">
+                    {ledgerColumns[3]}
+                  </th>
+                  <th scope="col" className="eyebrow py-2 pr-4 text-xs">
+                    {ledgerColumns[4]}
+                  </th>
+                  <th scope="col" className="eyebrow py-2 pr-4 text-xs">
+                    {ledgerColumns[5]}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {entries.map((entry) => (
                   <tr key={entry.id} className="border-borde border-t">
-                    <td className="py-2 pr-4 whitespace-nowrap">
+                    <td data-label={ledgerColumns[0]} className="py-2 pr-4 whitespace-nowrap">
                       {formatDateTime(entry.createdAt)}
                     </td>
-                    <td className="py-2 pr-4">{termCodes.get(entry.termId) ?? ""}</td>
-                    <td className="py-2 pr-4">
+                    <td data-label={ledgerColumns[2]} className="py-2 pr-4">
+                      {termCodes.get(entry.termId) ?? ""}
+                    </td>
+                    <td data-label={ledgerColumns[3]} className="py-2 pr-4">
                       {kindLabels[POINT_ENTRY_KINDS.indexOf(entry.kind)] ?? entry.kind}
                     </td>
                     <td
+                      data-label={ledgerColumns[4]}
                       className={`py-2 pr-4 tabular-nums ${entry.points < 0 ? "text-oe-orange" : ""}`}
                     >
                       {entry.points > 0 ? `+${entry.points}` : entry.points}
                     </td>
-                    <td className="py-2 pr-4">{entry.reason}</td>
+                    <td data-label={ledgerColumns[5]} className="py-2 pr-4">
+                      {entry.reason}
+                    </td>
                   </tr>
                 ))}
               </tbody>

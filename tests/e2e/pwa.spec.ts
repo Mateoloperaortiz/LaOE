@@ -50,7 +50,7 @@ test("un dispositivo se registra, se ve en Ajustes, las preferencias se guardan 
   await page.goto("/app");
   await expect(page.getByRole("heading", { name: "Llevá Mi OE en el celular" })).toHaveCount(0);
 
-  await page.goto("/app/ajustes");
+  await page.goto("/app/ajustes#notificaciones");
   const notificaciones = page.locator("#notificaciones");
   await expect(notificaciones.getByRole("heading", { name: "Tus dispositivos" })).toBeVisible();
   await expect(notificaciones.locator("tbody").getByRole("row")).toHaveCount(1);

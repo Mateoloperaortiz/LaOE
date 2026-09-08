@@ -8,9 +8,11 @@ try {
 }
 
 // La suite controla su servidor y nunca hereda credenciales reales de billeteras del .env.
+const port = Number(process.env.E2E_PORT ?? "3000");
+if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("E2E_PORT inválido");
 const walletTestEnv = {
   NODE_ENV: "test",
-  APP_URL: "http://localhost:3000",
+  APP_URL: `http://localhost:${port}`,
   APP_TIMEZONE: "America/Bogota",
   TZ: "UTC",
   SESSION_SECRET: "e2e-sesion-sintetica-local-que-no-es-real-0000000000",
@@ -51,9 +53,9 @@ export default defineConfig({
   ],
   webServer: {
     // CI prueba rutas ya compiladas; solo el proceso de pruebas admite el OTP fijo.
-    command: process.env.CI ? "npm run start" : "npm run dev",
+    command: process.env.CI ? `npm run start -- --port ${port}` : `npm run dev -- --port ${port}`,
     env: walletTestEnv,
-    url: "http://localhost:3000/api/health",
+    url: `${walletTestEnv.APP_URL}/api/health`,
     reuseExistingServer: false,
     timeout: 120_000,
   },

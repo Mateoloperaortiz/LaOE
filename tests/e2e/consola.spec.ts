@@ -46,7 +46,7 @@ test("la consola muestra el QR y el contador, y el modo anfitrión registra por 
     page.getByRole("img", { name: "Escaneá para registrar tu asistencia" }),
   ).toBeVisible();
   await expect(page.locator("[data-contador='APPROVED']")).toHaveText("0");
-  await expect(page.getByText("Enlace: http://localhost:3000/a/e2econsol1")).toBeVisible();
+  await expect(page.getByText(`Enlace: ${process.env.APP_URL}/a/e2econsol1`)).toBeVisible();
   await sinViolaciones(page);
 
   // Anfitrión: buscar por nombre y registrar a una persona sin sesión.

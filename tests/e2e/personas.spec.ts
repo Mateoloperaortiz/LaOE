@@ -9,7 +9,7 @@ test("un ADMIN da de alta a un prospecto y edita sus datos en la Persona 360", a
   const email = `e2e-${stamp}@eafit.edu.co`;
   await page.goto("/admin/personas");
   await page.getByRole("link", { name: "Nuevo" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await panel.getByLabel("Nombre", { exact: true }).fill("Prospecto");
   await panel.getByLabel("Apellido").fill(`E2E ${stamp}`);
   await panel.getByLabel("Correo institucional").fill(email);
@@ -24,7 +24,7 @@ test("un ADMIN da de alta a un prospecto y edita sus datos en la Persona 360", a
   await sinViolaciones(page);
 
   await page.getByRole("link", { name: "Editar datos" }).click();
-  const editar = page.getByRole("complementary");
+  const editar = page.getByRole("dialog");
   await editar.getByLabel("Celular").fill("300 123 4567");
   await editar.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Guardado.")).toBeVisible();
@@ -36,8 +36,9 @@ test("la Persona 360 cambia el estado, deja una nota y crea una tarea", async ({
   await page.getByRole("link", { name: "Prueba E2E" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Prueba E2E");
 
+  await page.locator("main summary").filter({ hasText: "Más acciones" }).click();
   await page.getByRole("link", { name: "Cambiar estado" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await panel.getByLabel("Estado nuevo").selectOption("HONORARY");
   await panel.getByLabel("Motivo").fill("Prueba e2e: honorario por un momento");
   await panel.getByRole("button", { name: "Guardar" }).click();
@@ -45,8 +46,9 @@ test("la Persona 360 cambia el estado, deja una nota y crea una tarea", async ({
   await expect(page.getByText("Activo → Honorario").last()).toBeVisible();
   await sinViolaciones(page);
 
+  await page.locator("main summary").filter({ hasText: "Más acciones" }).click();
   await page.getByRole("link", { name: "Cambiar estado" }).click();
-  const back = page.getByRole("complementary");
+  const back = page.getByRole("dialog");
   await back.getByLabel("Estado nuevo").selectOption("ACTIVE");
   await back.getByLabel("Motivo").fill("Prueba e2e: vuelve a activo");
   await back.getByRole("button", { name: "Guardar" }).click();
@@ -54,7 +56,7 @@ test("la Persona 360 cambia el estado, deja una nota y crea una tarea", async ({
 
   const stamp = Date.now().toString(36);
   await page.getByRole("link", { name: "Nueva nota" }).click();
-  const nota = page.getByRole("complementary");
+  const nota = page.getByRole("dialog");
   await nota.getByLabel("Nueva nota").fill(`Nota e2e ${stamp} con **énfasis**`);
   await nota.getByRole("button", { name: "Guardar nota" }).click();
   await expect(page.getByText("Guardado.")).toBeVisible();
@@ -63,7 +65,7 @@ test("la Persona 360 cambia el estado, deja una nota y crea una tarea", async ({
   await sinViolaciones(page);
 
   await page.getByRole("link", { name: "Nueva tarea" }).click();
-  const tarea = page.getByRole("complementary");
+  const tarea = page.getByRole("dialog");
   await tarea.getByLabel("Título").fill(`Tarea e2e ${stamp}`);
   await tarea.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Guardado.")).toBeVisible();

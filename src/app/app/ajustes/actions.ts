@@ -7,6 +7,7 @@ import { z } from "zod";
 import { removeSubscriptionAs, updatePreferencesAs } from "@/modules/comms";
 import { getActor, rotateCalendarTokenAs } from "@/modules/identity";
 import {
+  getPersonRecord,
   ownContactSchema,
   recordConsentAs,
   requestDeletionAs,
@@ -16,6 +17,7 @@ import {
 } from "@/modules/people";
 import { PrivacyPolicyPendingError } from "@/modules/system";
 import { DomainError } from "@/shared/admin-kit";
+import { t } from "@/shared/copy";
 import { clientIp } from "@/shared/lib/request";
 
 // Acciones de Ajustes (ADR-034 reglas 6, 8 y 12): la persona sobre sus propios datos. Cada una vuelve
@@ -42,25 +44,50 @@ function text(formData: FormData, name: string): string {
   return typeof value === "string" ? value : "";
 }
 
-export async function updateContactAction(formData: FormData): Promise<void> {
+export type ContactState = {
+  status: "idle" | "done" | "error";
+  message?: string;
+  errors: { phone?: string; personalEmail?: string };
+  values?: { phone: string; personalEmail: string };
+};
+
+export async function updateContactAction(
+  _previous: ContactState,
+  formData: FormData,
+): Promise<ContactState> {
   const actor = await requireOwnActor();
   const parsed = ownContactSchema.safeParse({
     phone: text(formData, "phone"),
     personalEmail: text(formData, "personalEmail"),
   });
   if (!parsed.success) {
-    back("mis-datos", { error: "mis-datos" });
+    return {
+      status: "error",
+      message: t("T-1632"),
+      errors: Object.fromEntries(
+        parsed.error.issues.map((issue) => [String(issue.path[0]), t("T-1631")]),
+      ),
+    };
   }
   try {
     await updateOwnContactAs(actor, parsed.data);
   } catch (error) {
     if (error instanceof DomainError) {
-      back("mis-datos", { error: error.message });
+      return {
+        status: "error",
+        message: error.message,
+        errors: error.field ? { [error.field]: error.message } : {},
+      };
     }
     throw error;
   }
   revalidatePath("/app/ajustes");
-  back("mis-datos", { guardado: "mis-datos" });
+  const who = await getPersonRecord(actor.personId);
+  return {
+    status: "done",
+    errors: {},
+    values: { phone: who?.phone ?? "", personalEmail: who?.personalEmail ?? "" },
+  };
 }
 
 /** La llama el subidor de la foto tras confirmar el medio (o con null para quitarla). */
@@ -132,7 +159,12 @@ export async function requestDeletionAction(): Promise<void> {
 
 // Notificaciones (ADR-038 regla 5): las cuatro preferencias y quitar un dispositivo.
 
-export async function updatePreferencesAction(formData: FormData): Promise<void> {
+export type PreferencesState = { status: "idle" | "done" | "error"; message?: string };
+
+export async function updatePreferencesAction(
+  _previous: PreferencesState,
+  formData: FormData,
+): Promise<PreferencesState> {
   const actor = await requireOwnActor();
   await updatePreferencesAs(actor, {
     pushAnnouncements: formData.get("pushAnnouncements") === "on",
@@ -141,7 +173,7 @@ export async function updatePreferencesAction(formData: FormData): Promise<void>
     emailCampaigns: formData.get("emailCampaigns") === "on",
   });
   revalidatePath("/app/ajustes");
-  back("notificaciones", { guardado: "notificaciones" });
+  return { status: "done" };
 }
 
 export async function removeDeviceAction(formData: FormData): Promise<void> {

@@ -15,6 +15,9 @@ import { ReglaForm } from "@/modules/permanence/components/ReglaForm";
 import { TablaReglas } from "@/modules/permanence/components/TablaReglas";
 import { getCurrentTerm } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
+import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { requireAdminAreaRoles } from "../../../_kit/acceso";
@@ -175,16 +178,26 @@ export default async function PermanenciaComitePage({
               {view.rules.length === 0 ? (
                 <>
                   <form action={copyCommitteeRulesAction}>
-                    <input type="hidden" name="slug" value={slug} />
-                    <button type="submit" className="boton-secundario min-h-9 px-3 py-1 text-sm">
-                      {copiar}
-                    </button>
+                    <AdminFormBody>
+                      <input type="hidden" name="slug" value={slug} />
+                      <AdminSubmitButton
+                        type="submit"
+                        className="boton-secundario min-h-9 px-3 py-1 text-sm"
+                      >
+                        {copiar}
+                      </AdminSubmitButton>
+                    </AdminFormBody>
                   </form>
                   <form action={applyCommitteeTemplateAction}>
-                    <input type="hidden" name="slug" value={slug} />
-                    <button type="submit" className="boton-secundario min-h-9 px-3 py-1 text-sm">
-                      {referenciaBtn}
-                    </button>
+                    <AdminFormBody>
+                      <input type="hidden" name="slug" value={slug} />
+                      <AdminSubmitButton
+                        type="submit"
+                        className="boton-secundario min-h-9 px-3 py-1 text-sm"
+                      >
+                        {referenciaBtn}
+                      </AdminSubmitButton>
+                    </AdminFormBody>
                   </form>
                 </>
               ) : null}
@@ -201,13 +214,15 @@ export default async function PermanenciaComitePage({
         {scoreRules.length === 0 ? (
           <p className="text-tinta-suave">{t("T-777")}</p>
         ) : (
-          <div className="overflow-x-auto">
+          <AdminTableRegion label={seccionPuntajes ?? committee.name} className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left">
-                  <th className="eyebrow py-2 pr-3 text-xs">{progressColumns[0]}</th>
+                  <th scope="col" className="eyebrow py-2 pr-3 text-xs">
+                    {progressColumns[0]}
+                  </th>
                   {scoreRules.map((rule) => (
-                    <th key={rule.id} className="eyebrow py-2 pr-3 text-xs">
+                    <th scope="col" key={rule.id} className="eyebrow py-2 pr-3 text-xs">
                       {rule.label} · {rule.weight}
                     </th>
                   ))}
@@ -239,7 +254,7 @@ export default async function PermanenciaComitePage({
                 ))}
               </tbody>
             </table>
-          </div>
+          </AdminTableRegion>
         )}
       </section>
 
@@ -278,12 +293,12 @@ export default async function PermanenciaComitePage({
         <h2 id="progreso" className="text-display-md">
           {seccionProgreso}
         </h2>
-        <div className="overflow-x-auto">
+        <AdminTableRegion label={seccionProgreso ?? committee.name} className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left">
                 {progressColumns.map((column) => (
-                  <th key={column} className="eyebrow py-2 pr-3 text-xs">
+                  <th scope="col" key={column} className="eyebrow py-2 pr-3 text-xs">
                     {column}
                   </th>
                 ))}
@@ -341,54 +356,56 @@ export default async function PermanenciaComitePage({
               })}
             </tbody>
           </table>
-        </div>
+        </AdminTableRegion>
       </section>
 
       {scoring?.person && scoring.rule ? (
         <ResourcePanel title={scoring.rule.label} closeHref={base} closeLabel={t("T-291")}>
           <form action={scoreAction} className="flex flex-col gap-4">
-            <input type="hidden" name="slug" value={slug} />
-            <input type="hidden" name="personId" value={scoring.person.personId} />
-            <input type="hidden" name="ruleId" value={scoring.rule.id} />
-            <p className="font-semibold">{scoring.person.fullName}</p>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="value" className="eyebrow text-xs">
-                {campoValor} · 0 – {scoring.rule.weight}
-              </label>
-              <input
-                id="value"
-                name="value"
-                type="number"
-                step="0.5"
-                min="0"
-                max={scoring.rule.weight}
-                defaultValue={
-                  scoreOf(scoring.rule.id, scoring.person.personId)?.value ?? scoring.rule.weight
-                }
-                required
-                className={inputClass}
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="note" className="eyebrow text-xs">
-                {campoObservacion}
-              </label>
-              <textarea
-                id="note"
-                name="note"
-                rows={3}
-                defaultValue={scoreOf(scoring.rule.id, scoring.person.personId)?.note ?? ""}
-                className={inputClass}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-calido">
-                {t("T-253")}
-              </button>
-              <Link href={base} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="slug" value={slug} />
+              <input type="hidden" name="personId" value={scoring.person.personId} />
+              <input type="hidden" name="ruleId" value={scoring.rule.id} />
+              <p className="font-semibold">{scoring.person.fullName}</p>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="value" className="eyebrow text-xs">
+                  {campoValor} · 0 – {scoring.rule.weight}
+                </label>
+                <input
+                  id="value"
+                  name="value"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max={scoring.rule.weight}
+                  defaultValue={
+                    scoreOf(scoring.rule.id, scoring.person.personId)?.value ?? scoring.rule.weight
+                  }
+                  required
+                  className={inputClass}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="note" className="eyebrow text-xs">
+                  {campoObservacion}
+                </label>
+                <textarea
+                  id="note"
+                  name="note"
+                  rows={3}
+                  defaultValue={scoreOf(scoring.rule.id, scoring.person.personId)?.note ?? ""}
+                  className={inputClass}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-calido">
+                  {t("T-253")}
+                </AdminSubmitButton>
+                <Link href={base} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}
@@ -396,44 +413,46 @@ export default async function PermanenciaComitePage({
       {accion === "destacado" && !closed ? (
         <ResourcePanel title={destacadoTitulo ?? ""} closeHref={base} closeLabel={t("T-291")}>
           <form action={recognizeAction} className="flex flex-col gap-4">
-            <input type="hidden" name="slug" value={slug} />
-            <div className="flex flex-col gap-1">
-              <label htmlFor="month" className="eyebrow text-xs">
-                {campoMes}
-              </label>
-              <select
-                id="month"
-                name="month"
-                defaultValue={String(new Date().getMonth() + 1)}
-                className={inputClass}
-              >
-                {MONTHS.map((name, index) => (
-                  <option key={name} value={index + 1}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="personId" className="eyebrow text-xs">
-                {campoPersona}
-              </label>
-              <select id="personId" name="personId" required className={inputClass}>
-                {members.map((member) => (
-                  <option key={member.personId} value={member.personId}>
-                    {member.fullName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-calido">
-                {nombrarDestacado}
-              </button>
-              <Link href={base} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="slug" value={slug} />
+              <div className="flex flex-col gap-1">
+                <label htmlFor="month" className="eyebrow text-xs">
+                  {campoMes}
+                </label>
+                <select
+                  id="month"
+                  name="month"
+                  defaultValue={String(new Date().getMonth() + 1)}
+                  className={inputClass}
+                >
+                  {MONTHS.map((name, index) => (
+                    <option key={name} value={index + 1}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="personId" className="eyebrow text-xs">
+                  {campoPersona}
+                </label>
+                <select id="personId" name="personId" required className={inputClass}>
+                  {members.map((member) => (
+                    <option key={member.personId} value={member.personId}>
+                      {member.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-calido">
+                  {nombrarDestacado}
+                </AdminSubmitButton>
+                <Link href={base} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}

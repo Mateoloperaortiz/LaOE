@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { getOccasion, listCheckIns } from "@/modules/participation";
 import { LectorCarnet } from "@/modules/participation/components/LectorCarnet";
 import { getPeopleByIds, searchMembersByName } from "@/modules/people";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { formatTime } from "@/shared/lib/dates";
 import { registerAction, scanAction } from "../actions";
@@ -96,9 +98,9 @@ export default async function AnfitrionPage({
                   className="w-full rounded-xl border-2 border-borde bg-fondo px-3 py-3 text-lg text-tinta focus:border-titulo focus:outline-none"
                 />
               </label>
-              <button type="submit" className="boton-secundario min-h-12">
+              <AdminSubmitButton type="submit" className="boton-secundario min-h-12">
                 {t("T-250")}
-              </button>
+              </AdminSubmitButton>
             </form>
             {q ? (
               results.length === 0 ? (
@@ -112,12 +114,14 @@ export default async function AnfitrionPage({
                     >
                       <span className="text-lg font-semibold">{item.fullName.trim()}</span>
                       <form action={registerAction}>
-                        <input type="hidden" name="occasionId" value={id} />
-                        <input type="hidden" name="personId" value={item.id} />
-                        <input type="hidden" name="back" value="anfitrion" />
-                        <button type="submit" className="boton-primario min-h-12">
-                          {altaBoton}
-                        </button>
+                        <AdminFormBody>
+                          <input type="hidden" name="occasionId" value={id} />
+                          <input type="hidden" name="personId" value={item.id} />
+                          <input type="hidden" name="back" value="anfitrion" />
+                          <AdminSubmitButton type="submit" className="boton-primario min-h-12">
+                            {altaBoton}
+                          </AdminSubmitButton>
+                        </AdminFormBody>
                       </form>
                     </li>
                   ))}

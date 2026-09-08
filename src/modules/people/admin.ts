@@ -93,7 +93,7 @@ const fields: FieldDefinition[] = [
   },
   { name: "color", label: t("T-275"), type: "color" },
   { name: "logoKey", label: t("T-276"), type: "select", options: logoOptions() },
-  { name: "presentation", label: t("T-277"), type: "textarea" },
+  { name: "presentation", label: t("T-277"), type: "textarea", textVariant: "code" },
   { name: "contactUrl", label: t("T-278"), type: "url" },
   {
     name: "publicationStatus",

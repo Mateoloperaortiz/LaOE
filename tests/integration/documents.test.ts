@@ -17,10 +17,11 @@ import {
   searchArticles,
   unpublishDocument,
 } from "@/modules/content/domain/documents";
-import { parseArticlesJson } from "@/modules/content/domain/documents-pure";
+import { type DocumentKind, parseArticlesJson } from "@/modules/content/domain/documents-pure";
 import { documentArticle, mediaAsset } from "@/modules/content/schema";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
 import { DomainError } from "@/shared/admin-kit/DomainError";
+import { t } from "@/shared/copy";
 import { sampleArticlesJson, sampleNormativaPdf } from "../helpers/pdf";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
@@ -50,7 +51,7 @@ function articles() {
   return parsed.data;
 }
 
-async function createDocument() {
+async function createDocument(kind: DocumentKind = "ESTATUTOS") {
   const pdf = sampleNormativaPdf();
   const key = await uploadPdf(pdf);
   return runCommand(SYSTEM_ACTOR, (ctx) =>
@@ -58,7 +59,7 @@ async function createDocument() {
       key,
       filename: "estatutos-prueba.pdf",
       title: "Estatutos sintéticos",
-      kind: "ESTATUTOS",
+      kind,
       version: "2",
       audience: "MEMBERS",
     }),
@@ -293,6 +294,49 @@ describe("normativa", () => {
     await expect(runCommand(SYSTEM_ACTOR, (ctx) => publishDocument(ctx, id))).rejects.toThrow(
       DomainError,
     );
+  });
+
+  it.each([
+    "ACTA",
+    "OTRO",
+  ] as const)("publica %s sin contenido cuando coincide con la revisión vacía", async (kind) => {
+    const { id } = await createDocument(kind);
+    await runCommand(SYSTEM_ACTOR, (ctx) => publishDocument(ctx, id, null));
+    const published = await getPublishedDocumentWithArticles(id);
+    expect(published).not.toBeNull();
+    expect((await getDocumentWithArticles(id))?.document).toMatchObject({
+      status: "PUBLISHED",
+      contentSha256: null,
+    });
+    expect(published?.articles).toEqual([]);
+  });
+
+  it.each([
+    "ACTA",
+    "OTRO",
+  ] as const)("rechaza publicar %s desde una revisión vacía si otro administrador ya cargó contenido", async (kind) => {
+    const { id } = await createDocument(kind);
+    // El primer administrador abre el PDF sin JSON. Otro carga contenido antes de que publique.
+    const reviewed = await getDocumentWithArticles(id);
+    if (!reviewed) throw new Error("Falta el documento sintético");
+    expect(reviewed.document.contentSha256).toBeNull();
+    const replacement = { ...completeArticles(), kind };
+    await runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, replacement));
+
+    await expect(
+      runCommand(SYSTEM_ACTOR, (ctx) => publishDocument(ctx, id, reviewed.document.contentSha256)),
+    ).rejects.toThrow(t("T-1304"));
+    const draft = await getDocumentWithArticles(id);
+    expect(draft?.document).toMatchObject({
+      status: "DRAFT",
+      contentSha256: documentContentChecksum(replacement),
+    });
+    expect(draft?.articles).toHaveLength(2);
+    // Revisar el nuevo contenido y publicar con su huella sí funciona.
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      publishDocument(ctx, id, documentContentChecksum(replacement)),
+    );
+    expect((await getPublishedDocumentWithArticles(id))?.articles).toHaveLength(2);
   });
 
   it("serializa reemplazos y publicación sin mezclar unidades ni dejar contenido parcial", async () => {

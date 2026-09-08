@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { RequestView } from "@/modules/crm";
+import { Bloque } from "@/shared/admin-kit/AdminFields";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
-import { Bloque } from "./campos";
 
 // Pestaña Solicitudes de la Persona 360 (02-crm.md, ADR-037 regla 9): las solicitudes de la persona
 // con la decisión de GH; decidir abre el panel de la bandeja.

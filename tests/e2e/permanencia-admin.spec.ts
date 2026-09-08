@@ -17,7 +17,7 @@ test.describe("GH", () => {
     page,
   }) => {
     await page.goto("/admin/permanencia/grupos?nuevo=1");
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await panel.getByLabel("Semestre").selectOption({ label: "2026-2" });
     await panel.getByLabel("Tipo").selectOption("GAP");
     await panel.getByLabel("Nombre").fill("e2e-GAP de prueba");

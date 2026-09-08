@@ -208,3 +208,19 @@ F8-T6 verificó `/app/carnet` y Persona 360 en 375, 768 y 1440 px, claro y oscur
 Los PNG de Apple y el logo Google se generan con `wallet:assets` desde el isotipo existente. Los badges «Agregar a Apple Wallet» y «Añadir a Google Wallet» son recursos distintos y no se generan ni rediseñan con ese script. La procedencia, los hashes y los límites de verificación están registrados en [16-billeteras.md](16-billeteras.md); que un SVG cargue en el navegador no comprueba su procedencia ni sus condiciones de uso.
 
 Recursos seleccionados: Google `es-ES` del ZIP oficial; Apple `es-MX` de `@neostore/cinto@1.0.98`, optimizado por el distribuidor y sin cambios propios. Para Apple no se acreditó identidad byte a byte con el ZIP original ni aceptación del acuerdo por la cuenta titular. Validar arte/condiciones con esa cuenta al activar; procedencia y hashes en [16-billeteras.md](16-billeteras.md).
+
+## Extensión administrativa (2026-09-08)
+
+[ADR-043](adr/ADR-043-experiencia-administrativa.md) adapta exclusivamente Administración a superficies limpias sin textura, títulos de 32/28 px y controles de trabajo compactos con áreas táctiles de 44 px. Conserva la paleta, las fuentes y ambos temas; el portal público y Mi OE mantienen las reglas anteriores.
+
+## Enmienda de presentación del portal y Mi OE (2026-09-08, ADR-044)
+
+Un tramo posterior, [ADR-044](adr/ADR-044-experiencia-del-portal-y-mi-oe.md), ajusta la navegación y los flujos del portal y Mi OE. La extensión administrativa anterior conserva su alcance y su registro histórico.
+
+El portal mantiene sus carteles, titulares condensados, paleta, texturas e isotipos decorativos. La cabecera se compacta en una sola fila a tamaño de texto normal y utiliza un menú modal bajo 1024 px. El hero móvil reduce espaciado y título a 48 px para acercar la agenda sin retirar la firma gráfica. La acción naranja invita a participar según la admisión vigente; Mi OE conserva un acceso propio en la cabecera.
+
+En Mi OE, el título principal usa Sofia Sans Extra Condensed en 36 px desde escritorio y 32 px en móvil; los subtítulos funcionales, etiquetas y contenido usan Plus Jakarta Sans. Las barras editoriales de sección y el saldo conservan su tratamiento gráfico específico. Se mantienen los colores y las texturas de la marca; la excepción de superficies administrativas sin textura no se extiende a estas áreas.
+
+Los accesos cotidianos Inicio, Agenda, Carnet, GH Points y Más se sitúan en una barra inferior móvil y en la cabecera de escritorio. Los iconos se acompañan de texto, los destinos activos tienen una señal adicional al color y las áreas táctiles miden al menos 44 px. La barra reserva espacio para el área segura del dispositivo y no debe ocultar acciones o contenido. Los menús admiten teclado, Escape y retorno del foco.
+
+Los estilos de este tramo están confinados a `.portal-shell` y `.member-shell`, sin cambios en los tokens globales. La revisión visual, los temas, el texto ampliado y la accesibilidad se verificaron localmente a 360, 390, 768 y 1440 px. Los resultados de las pruebas y el cierre de este tramo están registrados en el roadmap.

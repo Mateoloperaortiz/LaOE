@@ -34,9 +34,9 @@ async function requireAdmin() {
   return actor;
 }
 
-function back(extra: Record<string, string> = {}): never {
+function back(id?: string, extra: Record<string, string> = {}): never {
   const qs = new URLSearchParams(extra).toString();
-  redirect(`/admin/documentos${qs ? `?${qs}` : ""}`);
+  redirect(`/admin/documentos${id ? `/${id}` : ""}${qs ? `?${qs}` : ""}`);
 }
 
 export async function publicationAction(formData: FormData): Promise<void> {
@@ -46,8 +46,8 @@ export async function publicationAction(formData: FormData): Promise<void> {
   const checksum = z
     .string()
     .regex(/^[a-f0-9]{64}$/)
-    .optional()
-    .safeParse(formData.get("contentSha256") || undefined);
+    .nullable()
+    .safeParse(formData.get("contentSha256") || null);
   if (!id.success || !checksum.success || (intent !== "publish" && intent !== "unpublish")) {
     back();
   }
@@ -59,7 +59,7 @@ export async function publicationAction(formData: FormData): Promise<void> {
     }
   } catch (error) {
     if (error instanceof DomainError) {
-      back({ error: error.message });
+      back(id.data, { error: error.message });
     }
     throw error;
   }
@@ -67,7 +67,7 @@ export async function publicationAction(formData: FormData): Promise<void> {
   revalidatePath(`/admin/documentos/${id.data}`);
   revalidatePath("/app/normativa");
   revalidatePath(`/app/normativa/${id.data}`);
-  back();
+  back(id.data, { estado: intent === "publish" ? "publicado" : "borrador" });
 }
 
 export async function loadArticlesAction(formData: FormData): Promise<void> {
@@ -79,7 +79,7 @@ export async function loadArticlesAction(formData: FormData): Promise<void> {
   }
   const parsed = parseArticlesJson(await file.text());
   if (!parsed.ok) {
-    back({ error: t("T-499", { detalle: parsed.detail }) });
+    back(id.data, { error: t("T-499", { detalle: parsed.detail }) });
   }
   try {
     const loaded = await replaceArticlesAs(actor, id.data, parsed.data);
@@ -87,10 +87,10 @@ export async function loadArticlesAction(formData: FormData): Promise<void> {
     revalidatePath(`/admin/documentos/${id.data}`);
     revalidatePath("/app/normativa");
     revalidatePath(`/app/normativa/${id.data}`);
-    back({ cargado: String(loaded) });
+    back(id.data, { cargado: String(loaded) });
   } catch (error) {
     if (error instanceof DomainError) {
-      back({ error: error.message });
+      back(id.data, { error: error.message });
     }
     throw error;
   }

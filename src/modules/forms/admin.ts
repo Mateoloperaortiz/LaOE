@@ -72,7 +72,14 @@ const formFields: FieldDefinition[] = [
     help: t("T-916", { identificador: "…" }),
   },
   { name: "title", label: titulo ?? "", type: "text", required: true },
-  { name: "description", label: descripcion ?? "", type: "textarea", rows: 8, help: t("T-337") },
+  {
+    name: "description",
+    label: descripcion ?? "",
+    type: "textarea",
+    textVariant: "code",
+    rows: 8,
+    help: t("T-337"),
+  },
   {
     name: "audience",
     label: audiencia ?? "",
@@ -86,7 +93,14 @@ const formFields: FieldDefinition[] = [
   { name: "maxSubmissions", label: tope ?? "", type: "number" },
   { name: "allowMultiple", label: variasPorCorreo ?? "", type: "checkbox" },
   { name: "consentRequired", label: consentimiento ?? "", type: "checkbox", help: t("T-934") },
-  { name: "thanks", label: gracias ?? "", type: "textarea", rows: 4, help: t("T-337") },
+  {
+    name: "thanks",
+    label: gracias ?? "",
+    type: "textarea",
+    textVariant: "code",
+    rows: 4,
+    help: t("T-337"),
+  },
 ];
 
 export const formsResource: ResourceDefinition<FormListRow, FormInput> = {

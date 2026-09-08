@@ -12,7 +12,7 @@ test("ADMIN crea una organización con un contacto externo y una nota y la busca
   page,
 }) => {
   await page.goto("/admin/organizaciones?nuevo=1");
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await panel.getByLabel("Nombre").fill(NAME);
   await panel.getByLabel("Tipo").selectOption("COMPANY");
   await panel.getByLabel("Sitio web").fill("https://www.bancolombia.com");
@@ -26,7 +26,7 @@ test("ADMIN crea una organización con un contacto externo y una nota y la busca
 
   // Contacto externo nuevo, principal.
   await page.getByRole("link", { name: "Agregar contacto" }).click();
-  const contacto = page.getByRole("complementary");
+  const contacto = page.getByRole("dialog");
   await contacto.getByLabel("Nombre").fill("Clara");
   await contacto.getByLabel("Apellido").fill("Ruiz");
   await contacto.getByLabel("Correo").fill("e2e-clara@bancolombia.test");
@@ -41,10 +41,10 @@ test("ADMIN crea una organización con un contacto externo y una nota y la busca
   // Una nota sobre la organización queda en su línea de tiempo.
   await page.getByRole("link", { name: "Guardar nota" }).click();
   await page
-    .getByRole("complementary")
+    .getByRole("dialog")
     .getByLabel("Guardar nota")
     .fill("Reunión el martes con la gerencia.");
-  await page.getByRole("complementary").getByRole("button", { name: "Guardar nota" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Guardar nota" }).click();
   await expect(page.getByText("Guardado.")).toBeVisible();
   await expect(page.getByText("Reunión el martes con la gerencia.").first()).toBeVisible();
   await sinViolaciones(page);

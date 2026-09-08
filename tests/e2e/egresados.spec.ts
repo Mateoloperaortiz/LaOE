@@ -6,7 +6,11 @@ test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
 test("la galería de egresados muestra un cartel por año y pasa axe", async ({ page }) => {
   await page.goto("/app");
-  await page.getByRole("link", { name: "Egresados" }).click();
+  await page.getByRole("button", { name: "Más", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Mi OE", exact: true })
+    .getByRole("link", { name: "Egresados", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/app\/egresados$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Egresados");
   await expect(

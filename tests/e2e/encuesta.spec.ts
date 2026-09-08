@@ -30,7 +30,7 @@ test("la encuesta de una ocasión cerrada llega a su asistente y el agregado apa
   // 1. ADMIN: el formulario de miembros con calificación y comentario.
   await page.goto("/admin/formularios");
   await page.getByRole("link", { name: "Nuevo" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await panel.getByLabel(/Identificador/).fill(FORM_SLUG);
   await panel.getByLabel("Título", { exact: true }).fill(`e2e Encuesta ${marca}`);
   await panel.getByLabel("Audiencia").selectOption("MEMBERS");
@@ -38,7 +38,7 @@ test("la encuesta de una ocasión cerrada llega a su asistente y el agregado apa
   await expect(page.getByText("Guardado.")).toBeVisible();
   await page.getByRole("link", { name: `e2e Encuesta ${marca}` }).click();
   await page.getByRole("link", { name: "Agregar campo" }).click();
-  const campo = page.getByRole("complementary");
+  const campo = page.getByRole("dialog");
   await campo.getByLabel("Clave").fill("calif");
   await campo.getByLabel("Etiqueta").fill("¿Cómo estuvo?");
   await campo.getByLabel("Tipo").selectOption("RATING");
@@ -46,7 +46,7 @@ test("la encuesta de una ocasión cerrada llega a su asistente y el agregado apa
   await campo.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Campos guardados.")).toBeVisible();
   await page.getByRole("link", { name: "Agregar campo" }).click();
-  const segundo = page.getByRole("complementary");
+  const segundo = page.getByRole("dialog");
   await segundo.getByLabel("Clave").fill("comentario");
   await segundo.getByLabel("Etiqueta").fill("Comentario");
   await segundo.getByLabel("Tipo").selectOption("TEXTAREA");
@@ -56,7 +56,7 @@ test("la encuesta de una ocasión cerrada llega a su asistente y el agregado apa
   // 2. ADMIN: la ocasión con esa encuesta, abierta y con el registro en ventana.
   await page.goto("/admin/ocasiones");
   await page.getByRole("link", { name: "Nuevo" }).click();
-  const ocasion = page.getByRole("complementary");
+  const ocasion = page.getByRole("dialog");
   await ocasion.getByLabel("Título").fill(OCASION);
   await ocasion.getByLabel("Empieza").fill(haceUnaHora());
   await ocasion
@@ -108,6 +108,7 @@ test("la encuesta de una ocasión cerrada llega a su asistente y el agregado apa
   // 6. ADMIN: la consola muestra el agregado y esconde el comentario por pocas respuestas.
   await page.goto(`/admin/ocasiones/${row?.id}`);
   const encuesta = page.getByRole("region", { name: "Encuesta" });
+  await encuesta.locator("summary").click();
   await expect(encuesta.getByText("1 de 1 respondieron")).toBeVisible();
   await expect(encuesta.getByText("Promedio 5.0 de 5")).toBeVisible();
   await expect(

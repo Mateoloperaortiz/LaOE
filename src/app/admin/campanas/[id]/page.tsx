@@ -11,10 +11,12 @@ import {
 import { campaignStatusLabel } from "@/modules/comms/admin";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import { requireConfig } from "@/modules/system";
+import { inputClass } from "@/shared/admin-kit/AdminFields";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
-import { inputClass } from "../../personas/[id]/_ui/campos";
 import { cancelAction, scheduleAction, sendNowAction, sendTestFromCampaignAction } from "./actions";
 
 // Detalle de una campaña (ADR-038 regla 8): destinatarios estimados y excluidos por motivo, programar
@@ -97,7 +99,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
           </Insignia>
         </div>
         <p className="max-w-prose text-sm text-tinta-suave">{t("T-1124", { n: perMinute })}</p>
-        <dl className="grid gap-3 sm:grid-cols-2">
+        <dl className="grid gap-4 rounded-xl border border-borde bg-fondo p-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1">
             <dt className="eyebrow text-xs">{colPlantilla}</dt>
             <dd>
@@ -145,7 +147,10 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
       </header>
 
       {estimate ? (
-        <section aria-labelledby="audiencia" className="flex flex-col gap-4">
+        <section
+          aria-labelledby="audiencia"
+          className="flex flex-col gap-4 rounded-xl border border-borde bg-fondo p-4 sm:p-5"
+        >
           <BarraTitulo color="amarillo" className="self-start">
             <span id="audiencia">{t("T-1176")}</span>
           </BarraTitulo>
@@ -161,42 +166,55 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
           {estimate.eligible === 0 ? (
             <p className="max-w-prose text-sm text-tinta-suave">{t("T-1138")}</p>
           ) : null}
-          <div className="flex flex-wrap items-end gap-6">
+          <div className="flex flex-wrap items-end gap-4 border-t border-borde pt-4">
             <form action={scheduleAction} className="flex flex-wrap items-end gap-3">
-              <input type="hidden" name="campaignId" value={campaign.id} />
-              <div className="flex flex-col gap-1">
-                <label htmlFor="scheduledAt" className="eyebrow text-xs">
-                  {campoProgramar}
-                </label>
-                <input
-                  id="scheduledAt"
-                  name="scheduledAt"
-                  type="datetime-local"
-                  required
-                  defaultValue={
-                    campaign.scheduledAt ? utcToBogotaInput(campaign.scheduledAt) : defaultSchedule
-                  }
-                  className={inputClass}
-                />
-              </div>
-              <button type="submit" className="boton-secundario">
-                {botonProgramar}
-              </button>
+              <AdminFormBody>
+                <input type="hidden" name="campaignId" value={campaign.id} />
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="scheduledAt" className="eyebrow text-xs">
+                    {campoProgramar}
+                  </label>
+                  <input
+                    id="scheduledAt"
+                    name="scheduledAt"
+                    type="datetime-local"
+                    required
+                    defaultValue={
+                      campaign.scheduledAt
+                        ? utcToBogotaInput(campaign.scheduledAt)
+                        : defaultSchedule
+                    }
+                    className={inputClass}
+                  />
+                </div>
+                <AdminSubmitButton type="submit" className="boton-secundario">
+                  {botonProgramar}
+                </AdminSubmitButton>
+              </AdminFormBody>
             </form>
             {accion === "enviar" ? (
-              <form action={sendNowAction} className="flex flex-col gap-3">
-                <input type="hidden" name="campaignId" value={campaign.id} />
-                <p className="max-w-prose">
-                  {t("T-1131", { plantilla: campaign.templateName, n: estimate.eligible })}
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  <button type="submit" className="boton-calido" disabled={estimate.eligible === 0}>
-                    {t("T-1130")}
-                  </button>
-                  <Link href={base} className="boton-secundario">
-                    {t("T-254")}
-                  </Link>
-                </div>
+              <form
+                action={sendNowAction}
+                className="flex basis-full flex-col gap-3 rounded-lg border border-borde bg-fondo-suave p-4"
+              >
+                <AdminFormBody>
+                  <input type="hidden" name="campaignId" value={campaign.id} />
+                  <p className="max-w-prose">
+                    {t("T-1131", { plantilla: campaign.templateName, n: estimate.eligible })}
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <AdminSubmitButton
+                      type="submit"
+                      className="boton-calido"
+                      disabled={estimate.eligible === 0}
+                    >
+                      {t("T-1130")}
+                    </AdminSubmitButton>
+                    <Link href={base} className="boton-secundario">
+                      {t("T-254")}
+                    </Link>
+                  </div>
+                </AdminFormBody>
               </form>
             ) : (
               <Link href={`${base}?accion=enviar`} className="boton-calido">
@@ -204,11 +222,13 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
               </Link>
             )}
             <form action={sendTestFromCampaignAction}>
-              <input type="hidden" name="campaignId" value={campaign.id} />
-              <input type="hidden" name="templateId" value={campaign.templateId} />
-              <button type="submit" className="boton-secundario">
-                {t("T-1120")}
-              </button>
+              <AdminFormBody>
+                <input type="hidden" name="campaignId" value={campaign.id} />
+                <input type="hidden" name="templateId" value={campaign.templateId} />
+                <AdminSubmitButton type="submit" className="boton-secundario">
+                  {t("T-1120")}
+                </AdminSubmitButton>
+              </AdminFormBody>
             </form>
           </div>
         </section>
@@ -216,10 +236,12 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
 
       {campaign.status === "SCHEDULED" || campaign.status === "SENDING" ? (
         <form action={cancelAction} className="self-start">
-          <input type="hidden" name="campaignId" value={campaign.id} />
-          <button type="submit" className="boton-secundario">
-            {t("T-1132")}
-          </button>
+          <AdminFormBody>
+            <input type="hidden" name="campaignId" value={campaign.id} />
+            <AdminSubmitButton type="submit" className="boton-secundario">
+              {t("T-1132")}
+            </AdminSubmitButton>
+          </AdminFormBody>
         </form>
       ) : null}
 
@@ -232,7 +254,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
             <p className="text-tinta-suave">{t("T-1138")}</p>
           ) : (
             <div className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde">
-              <table className="w-full text-left text-sm">
+              <table className="admin-data-table w-full text-left text-sm">
                 <thead className="eyebrow bg-fondo-suave text-xs">
                   <tr>
                     <th scope="col" className="px-3 py-2">
@@ -252,12 +274,12 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
                 <tbody>
                   {recipients.rows.map((row) => (
                     <tr key={row.id} className="border-t border-borde">
-                      <td className="px-3 py-2 font-semibold">
+                      <td data-label={colPersona} className="px-3 py-2 font-semibold">
                         <Link href={`/admin/personas/${row.personId}`}>
                           {row.personName || row.email}
                         </Link>
                       </td>
-                      <td className="px-3 py-2">
+                      <td data-label={colEstado} className="px-3 py-2">
                         <Insignia
                           fondo={
                             row.status === "SENT"
@@ -272,8 +294,12 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
                           {recipientLabel(row.status)}
                         </Insignia>
                       </td>
-                      <td className="px-3 py-2">{reasonLabel(row.skipReason)}</td>
-                      <td className="px-3 py-2">{row.sentAt ? formatDateTime(row.sentAt) : ""}</td>
+                      <td data-label={colMotivo} className="px-3 py-2">
+                        {reasonLabel(row.skipReason)}
+                      </td>
+                      <td data-label={colEnviado} className="px-3 py-2">
+                        {row.sentAt ? formatDateTime(row.sentAt) : ""}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

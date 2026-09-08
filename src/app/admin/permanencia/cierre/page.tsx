@@ -11,6 +11,8 @@ import {
 } from "@/modules/permanence";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
@@ -130,9 +132,9 @@ export default async function CierrePermanenciaPage({
               </option>
             ))}
           </select>
-          <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
+          <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
             {t("T-250")}
-          </button>
+          </AdminSubmitButton>
         </form>
       </header>
 
@@ -280,13 +282,18 @@ export default async function CierrePermanenciaPage({
                 <div className="flex flex-wrap items-center gap-2">
                   {!row.decided ? (
                     <form action={confirmAction}>
-                      <input type="hidden" name="termId" value={term.id} />
-                      <input type="hidden" name="filtro" value={filter === "ALL" ? "" : filter} />
-                      <input type="hidden" name="personId" value={row.personId} />
-                      <input type="hidden" name="persona" value={row.personProposed} />
-                      <button type="submit" className="boton-calido min-h-9 px-4 py-1 text-sm">
-                        {confirmar}
-                      </button>
+                      <AdminFormBody>
+                        <input type="hidden" name="termId" value={term.id} />
+                        <input type="hidden" name="filtro" value={filter === "ALL" ? "" : filter} />
+                        <input type="hidden" name="personId" value={row.personId} />
+                        <input type="hidden" name="persona" value={row.personProposed} />
+                        <AdminSubmitButton
+                          type="submit"
+                          className="boton-calido min-h-9 px-4 py-1 text-sm"
+                        >
+                          {confirmar}
+                        </AdminSubmitButton>
+                      </AdminFormBody>
                     </form>
                   ) : null}
                   <Link
@@ -321,16 +328,18 @@ export default async function CierrePermanenciaPage({
       {accion === "bloque" && closable ? (
         <ResourcePanel title={confirmarTodas ?? ""} closeHref={base} closeLabel={t("T-291")}>
           <form action={confirmAllAction} className="flex flex-col gap-4">
-            <input type="hidden" name="termId" value={term.id} />
-            <p>{t("T-807", { n: summary.undecided })}</p>
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-calido">
-                {confirmarTodas}
-              </button>
-              <Link href={base} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="termId" value={term.id} />
+              <p>{t("T-807", { n: summary.undecided })}</p>
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-calido">
+                  {confirmarTodas}
+                </AdminSubmitButton>
+                <Link href={base} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}
@@ -338,29 +347,37 @@ export default async function CierrePermanenciaPage({
       {accion === "aplicar" && closable ? (
         <ResourcePanel title={aplicar ?? ""} closeHref={base} closeLabel={t("T-291")}>
           <form action={applyAction} className="flex flex-col gap-4">
-            <input type="hidden" name="termId" value={term.id} />
-            <p>
-              {t("T-809", {
-                término: term.code,
-                salen: summary.exitOe,
-                comites: summary.exitCommittee,
-                prueba: summary.probation,
-              })}
-            </p>
-            {summary.undecided > 0 ? (
-              <p className="font-semibold text-oe-orange">{t("T-807", { n: summary.undecided })}</p>
-            ) : null}
-            {summary.pendingEvaluations > 0 ? (
-              <p>{t("T-813", { n: summary.pendingEvaluations })}</p>
-            ) : null}
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-calido" disabled={summary.undecided > 0}>
-                {aplicar}
-              </button>
-              <Link href={base} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="termId" value={term.id} />
+              <p>
+                {t("T-809", {
+                  término: term.code,
+                  salen: summary.exitOe,
+                  comites: summary.exitCommittee,
+                  prueba: summary.probation,
+                })}
+              </p>
+              {summary.undecided > 0 ? (
+                <p className="font-semibold text-oe-orange">
+                  {t("T-807", { n: summary.undecided })}
+                </p>
+              ) : null}
+              {summary.pendingEvaluations > 0 ? (
+                <p>{t("T-813", { n: summary.pendingEvaluations })}</p>
+              ) : null}
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton
+                  type="submit"
+                  className="boton-calido"
+                  disabled={summary.undecided > 0}
+                >
+                  {aplicar}
+                </AdminSubmitButton>
+                <Link href={base} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}
@@ -390,65 +407,72 @@ function PanelCambio({
   return (
     <ResourcePanel title={labels.title} closeHref={closeHref} closeLabel={t("T-291")}>
       <form action={confirmAction} className="flex flex-col gap-4">
-        <input type="hidden" name="termId" value={termId} />
-        <input type="hidden" name="filtro" value={filter === "ALL" ? "" : filter} />
-        <input type="hidden" name="personId" value={row.personId} />
-        <input type="hidden" name="cambiar" value="1" />
-        {row.committees.map((committee) => {
-          const id = `comite-${committee.committeeId}`;
-          return (
-            <div key={committee.committeeId} className="flex flex-col gap-1">
-              <label htmlFor={id} className="eyebrow text-xs">
-                {labels.decision} · {committee.committeeName}
-              </label>
-              <select
-                id={id}
-                name={`comite:${committee.committeeId}`}
-                defaultValue={committee.decision?.decision ?? committee.proposed}
-                className={selectClass}
-              >
-                {COMMITTEE_DECISIONS.map((kind) => (
-                  <option key={kind} value={kind}>
-                    {labels.decisionLabel(kind)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          );
-        })}
-        <div className="flex flex-col gap-1">
-          <label htmlFor="persona" className="eyebrow text-xs">
-            {labels.decision} · {row.name}
-          </label>
-          <select id="persona" name="persona" defaultValue={row.effective} className={selectClass}>
-            {PERSON_DECISIONS.map((kind) => (
-              <option key={kind} value={kind}>
-                {labels.decisionLabel(kind)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="reason" className="eyebrow text-xs">
-            {labels.reason}
-          </label>
-          <textarea
-            id="reason"
-            name="reason"
-            rows={3}
-            defaultValue={row.personDecision?.reason ?? ""}
-            className={selectClass}
-          />
-          <p className="text-xs text-tinta-suave">{t("T-805")}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button type="submit" className="boton-calido">
-            {labels.save}
-          </button>
-          <Link href={closeHref} className="boton-secundario">
-            {t("T-254")}
-          </Link>
-        </div>
+        <AdminFormBody>
+          <input type="hidden" name="termId" value={termId} />
+          <input type="hidden" name="filtro" value={filter === "ALL" ? "" : filter} />
+          <input type="hidden" name="personId" value={row.personId} />
+          <input type="hidden" name="cambiar" value="1" />
+          {row.committees.map((committee) => {
+            const id = `comite-${committee.committeeId}`;
+            return (
+              <div key={committee.committeeId} className="flex flex-col gap-1">
+                <label htmlFor={id} className="eyebrow text-xs">
+                  {labels.decision} · {committee.committeeName}
+                </label>
+                <select
+                  id={id}
+                  name={`comite:${committee.committeeId}`}
+                  defaultValue={committee.decision?.decision ?? committee.proposed}
+                  className={selectClass}
+                >
+                  {COMMITTEE_DECISIONS.map((kind) => (
+                    <option key={kind} value={kind}>
+                      {labels.decisionLabel(kind)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="persona" className="eyebrow text-xs">
+              {labels.decision} · {row.name}
+            </label>
+            <select
+              id="persona"
+              name="persona"
+              defaultValue={row.effective}
+              className={selectClass}
+            >
+              {PERSON_DECISIONS.map((kind) => (
+                <option key={kind} value={kind}>
+                  {labels.decisionLabel(kind)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="reason" className="eyebrow text-xs">
+              {labels.reason}
+            </label>
+            <textarea
+              id="reason"
+              name="reason"
+              rows={3}
+              defaultValue={row.personDecision?.reason ?? ""}
+              className={selectClass}
+            />
+            <p className="text-xs text-tinta-suave">{t("T-805")}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <AdminSubmitButton type="submit" className="boton-calido">
+              {labels.save}
+            </AdminSubmitButton>
+            <Link href={closeHref} className="boton-secundario">
+              {t("T-254")}
+            </Link>
+          </div>
+        </AdminFormBody>
       </form>
     </ResourcePanel>
   );

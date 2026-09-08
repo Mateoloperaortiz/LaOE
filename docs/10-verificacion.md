@@ -10,6 +10,8 @@ Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-road
 - `npm run test:e2e`: Playwright (Chromium) contra el dev server, con `axe` en cada pantalla; `OTP_FIXED_CODE` del `.env` como código. Las pruebas de integración corren contra `casa_digital_test` (la crea y migra `tests/integration/global-setup.ts`) para no chocar con el poller del dev server; las e2e usan la base de desarrollo.
 - `npm run dev` y revisión en navegador a 360, 768 y 1280 px, claro y oscuro, navegación por teclado, `axe` sin violaciones serias o críticas, Lighthouse con PWA instalable.
 
+Si el puerto 3000 está ocupado, la suite admite `E2E_PORT`. El build y el servidor de prueba deben usar el mismo origen: `APP_URL=http://localhost:3105 npm run build` seguido de `E2E_PORT=3105 CI=true npm run test:e2e -- --retries=0`. Para las subidas locales, `MEDIA_CORS_ORIGINS=http://localhost:3105 npm run storage:init` añade ese origen al de `APP_URL`; Garage usa una regla CORS por origen. La suite siempre arranca su propio servidor y rechaza bases y buckets que no sean locales.
+
 ## Unit (módulos puros, sin base)
 
 - Invariantes del ledger: aprobado ⇔ una entrada viva; reversión; término cerrado.
@@ -145,6 +147,14 @@ La emisión real se inicia exclusivamente desde los badges de `/app/carnet`, con
 Una firma de juguete prueba formato e integridad, no confianza de Apple ni distribución real. El cierre de F8-T6 puede acreditar software; las casillas de activación de cada plataforma permanecen pendientes hasta estas comprobaciones.
 
 ## Cierre de fase
+
+### Portal y Mi OE (ADR-044)
+
+`portal-ux`, `member-experience`, `solicitudes-ux` y `ajustes-ux` usan datos sintéticos y recorren los flujos modificados a 360, 390, 768 y 1440 px, claro y oscuro. Verifican navegación activa, Escape, retorno y contención del foco, texto al 200 %, ausencia de desbordamiento y axe WCAG A/AA. Las capturas acompañan la comprobación automática; se revisan también cabeceras, jerarquía, contraste, formularios y menús renderizados.
+
+Los casos funcionales cubren admisión cerrada/prospecto/abierta, búsqueda de comités y limpieza, detalles autenticados de Agenda, páginas del directorio fuera de rango o inválidas, selección de foto sin transferencia, validación de formato/tamaño, reintento con archivo conservado y bloqueo de doble envío. Solicitudes prueba la elección de trámite, errores por campo, casillas y texto conservados, error de red y sesión vencida sin escritura. Ajustes comprueba anclas, secciones, contacto y preferencias tras errores y guardado. Se cancela el reinicio nativo de formularios controlados para que React no desmarque casillas al resolver una acción con errores.
+
+Los contextos anónimos creados manualmente en Playwright declaran `storageState: { cookies: [], origins: [] }`: el runner hereda la configuración de `test.use` al crear otro contexto. La prueba comprueba además que empiecen sin cookies. La suite completa incluye las regresiones administrativas y los flujos de negocio; los resultados efectivos se registran en el roadmap.
 
 Cada fase se cierra con: CI en verde, revisión manual en los tres anchos y dos temas, checklist del roadmap marcado y fila en el registro de avances.
 

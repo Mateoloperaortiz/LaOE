@@ -13,6 +13,9 @@ import { occasionKindLabel, occasionStatusCell } from "@/modules/participation/a
 import { listInternalRoster } from "@/modules/people";
 import { getCurrentTerm } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
+import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
@@ -131,12 +134,12 @@ export default async function ComiteLiderPage({
         {scores.length === 0 ? (
           <p className="text-tinta-suave">{t("T-606")}</p>
         ) : (
-          <div className="overflow-x-auto">
+          <AdminTableRegion label={roster.committee.name} className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left">
                   {scoreColumns.map((label) => (
-                    <th key={label} className="eyebrow py-2 pr-4 text-xs">
+                    <th scope="col" key={label} className="eyebrow py-2 pr-4 text-xs">
                       {label}
                     </th>
                   ))}
@@ -156,7 +159,7 @@ export default async function ComiteLiderPage({
                 ))}
               </tbody>
             </table>
-          </div>
+          </AdminTableRegion>
         )}
       </section>
 
@@ -202,7 +205,10 @@ export default async function ComiteLiderPage({
                 n: encuestas.answered,
               })}
             </p>
-            <div className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde">
+            <AdminTableRegion
+              label={roster.committee.name}
+              className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde"
+            >
               <table className="w-full text-left text-sm">
                 <thead className="eyebrow bg-fondo-suave text-xs">
                   <tr>
@@ -236,7 +242,7 @@ export default async function ComiteLiderPage({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </AdminTableRegion>
           </>
         )}
       </section>
@@ -263,61 +269,69 @@ export default async function ComiteLiderPage({
       {accion === "nueva" ? (
         <ResourcePanel title={nuevaOcasion ?? ""} closeHref={base} closeLabel={t("T-291")}>
           <form action={proposeOccasionAction} className="flex flex-col gap-4">
-            <input type="hidden" name="slug" value={slug} />
-            {error ? (
-              <p role="alert" className="font-semibold text-oe-orange">
-                {error}
-              </p>
-            ) : null}
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{fieldLabels[0]}</span>
-              <input name="title" required className={inputClass} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{fieldLabels[3]}</span>
-              <select name="category" defaultValue="OTHER" className={inputClass}>
-                {OCCASION_CATEGORIES.map((value, index) => (
-                  <option key={value} value={value}>
-                    {categoryLabels[index] ?? value}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{fieldLabels[7]}</span>
-              <input name="startsAt" type="datetime-local" required className={inputClass} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{fieldLabels[8]}</span>
-              <input name="endsAt" type="datetime-local" className={inputClass} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{fieldLabels[6]}</span>
-              <input name="location" className={inputClass} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{fieldLabels[11]}</span>
-              <input name="points" type="number" min={0} defaultValue={0} className={inputClass} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{fieldLabels[12]}</span>
-              <select name="approval" defaultValue="AUTO" className={inputClass}>
-                <option value="AUTO">{approvalLabels[0]}</option>
-                <option value="MANUAL">{approvalLabels[1]}</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{fieldLabels[5]}</span>
-              <textarea name="description" rows={4} className={inputClass} />
-            </label>
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-primario">
-                {t("T-253")}
-              </button>
-              <Link href={base} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="slug" value={slug} />
+              {error ? (
+                <p role="alert" className="font-semibold text-oe-orange">
+                  {error}
+                </p>
+              ) : null}
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{fieldLabels[0]}</span>
+                <input name="title" required className={inputClass} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{fieldLabels[3]}</span>
+                <select name="category" defaultValue="OTHER" className={inputClass}>
+                  {OCCASION_CATEGORIES.map((value, index) => (
+                    <option key={value} value={value}>
+                      {categoryLabels[index] ?? value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{fieldLabels[7]}</span>
+                <input name="startsAt" type="datetime-local" required className={inputClass} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{fieldLabels[8]}</span>
+                <input name="endsAt" type="datetime-local" className={inputClass} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{fieldLabels[6]}</span>
+                <input name="location" className={inputClass} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{fieldLabels[11]}</span>
+                <input
+                  name="points"
+                  type="number"
+                  min={0}
+                  defaultValue={0}
+                  className={inputClass}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{fieldLabels[12]}</span>
+                <select name="approval" defaultValue="AUTO" className={inputClass}>
+                  <option value="AUTO">{approvalLabels[0]}</option>
+                  <option value="MANUAL">{approvalLabels[1]}</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{fieldLabels[5]}</span>
+                <textarea name="description" rows={4} className={inputClass} />
+              </label>
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-primario">
+                  {t("T-253")}
+                </AdminSubmitButton>
+                <Link href={base} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}
@@ -325,47 +339,55 @@ export default async function ComiteLiderPage({
       {accion === "serie" ? (
         <ResourcePanel title={crearSerie ?? ""} closeHref={base} closeLabel={t("T-291")}>
           <form action={createSeriesAction} className="flex flex-col gap-4">
-            <input type="hidden" name="slug" value={slug} />
-            {error ? (
-              <p role="alert" className="font-semibold text-oe-orange">
-                {error}
-              </p>
-            ) : null}
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{serieTitulo}</span>
-              <input name="title" required className={inputClass} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{seriePrimera}</span>
-              <input name="firstDate" type="date" required className={inputClass} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{serieHora}</span>
-              <input name="time" type="time" required defaultValue="18:00" className={inputClass} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{serieDuracion}</span>
-              <input
-                name="durationMinutes"
-                type="number"
-                min={15}
-                max={600}
-                defaultValue={90}
-                className={inputClass}
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="eyebrow text-xs">{serieLugar}</span>
-              <input name="location" className={inputClass} />
-            </label>
-            <div className="flex items-center gap-3">
-              <button type="submit" className="boton-primario">
-                {crearSerie}
-              </button>
-              <Link href={base} className="boton-secundario">
-                {t("T-254")}
-              </Link>
-            </div>
+            <AdminFormBody>
+              <input type="hidden" name="slug" value={slug} />
+              {error ? (
+                <p role="alert" className="font-semibold text-oe-orange">
+                  {error}
+                </p>
+              ) : null}
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{serieTitulo}</span>
+                <input name="title" required className={inputClass} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{seriePrimera}</span>
+                <input name="firstDate" type="date" required className={inputClass} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{serieHora}</span>
+                <input
+                  name="time"
+                  type="time"
+                  required
+                  defaultValue="18:00"
+                  className={inputClass}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{serieDuracion}</span>
+                <input
+                  name="durationMinutes"
+                  type="number"
+                  min={15}
+                  max={600}
+                  defaultValue={90}
+                  className={inputClass}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="eyebrow text-xs">{serieLugar}</span>
+                <input name="location" className={inputClass} />
+              </label>
+              <div className="flex items-center gap-3">
+                <AdminSubmitButton type="submit" className="boton-primario">
+                  {crearSerie}
+                </AdminSubmitButton>
+                <Link href={base} className="boton-secundario">
+                  {t("T-254")}
+                </Link>
+              </div>
+            </AdminFormBody>
           </form>
         </ResourcePanel>
       ) : null}

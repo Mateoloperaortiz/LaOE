@@ -10,12 +10,14 @@ import {
 } from "@/modules/crm";
 import { getFormView } from "@/modules/forms";
 import { getGroup } from "@/modules/permanence";
+import { Campo, inputClass } from "@/shared/admin-kit/AdminFields";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { Markdown } from "@/shared/ui/Markdown";
 import { requireGroupOperator } from "../../permanencia/authz";
-import { Campo, inputClass } from "../../personas/[id]/_ui/campos";
 import { decideEntryAction, setStatusAction } from "./actions";
 
 // Detalle de una convocatoria interna (06-mapa-del-sitio.md, ADR-037 regla 10): inscritos por estado
@@ -67,9 +69,9 @@ export default async function Page({
   const [porOrden, manual] = tList("T-905") as [string, string];
   const accepted = entries.filter((entry) => entry.status === "ACCEPTED");
   const sections: Array<{ title: string; status: (typeof CALL_ENTRY_STATUSES)[number] }> = [
-    { title: tAceptados ?? "", status: "ACCEPTED" },
-    { title: tEspera ?? "", status: "WAITLISTED" },
     { title: tPendientes ?? "", status: "APPLIED" },
+    { title: tEspera ?? "", status: "WAITLISTED" },
+    { title: tAceptados ?? "", status: "ACCEPTED" },
     { title: tNoAceptados ?? "", status: "REJECTED" },
   ];
   const room = call.capacity === null || accepted.length < call.capacity;
@@ -104,11 +106,20 @@ export default async function Page({
         {call.description.trim() ? <Markdown source={call.description} /> : null}
         <div className="flex flex-wrap items-center gap-3">
           <form action={setStatusAction}>
-            <input type="hidden" name="callId" value={id} />
-            <input type="hidden" name="status" value={call.status === "OPEN" ? "CLOSED" : "OPEN"} />
-            <button type="submit" className="boton-secundario min-h-10 px-4 py-2 text-sm">
-              {call.status === "OPEN" ? cerrar : abrir}
-            </button>
+            <AdminFormBody>
+              <input type="hidden" name="callId" value={id} />
+              <input
+                type="hidden"
+                name="status"
+                value={call.status === "OPEN" ? "CLOSED" : "OPEN"}
+              />
+              <AdminSubmitButton
+                type="submit"
+                className="boton-secundario min-h-10 px-4 py-2 text-sm"
+              >
+                {call.status === "OPEN" ? cerrar : abrir}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
           {isAdmin ? (
             <Link href={`/admin/convocatorias?editar=${id}`} className="text-sm underline">
@@ -146,14 +157,30 @@ export default async function Page({
         <h2 id="inscritos" className="text-display-md">
           {tInscritos} · {entries.length}
         </h2>
+        <nav aria-label={tInscritos ?? ""} className="flex flex-wrap gap-2">
+          {sections
+            .filter((section) => entries.some((entry) => entry.status === section.status))
+            .map((section) => (
+              <a
+                key={section.status}
+                href={`#entries-${section.status}`}
+                className="rounded-lg border border-borde px-3 py-2 text-sm font-medium"
+              >
+                {section.title} ·{" "}
+                {entries.filter((entry) => entry.status === section.status).length}
+              </a>
+            ))}
+        </nav>
         {entries.length === 0 ? <p className="text-tinta-suave">{t("T-1026")}</p> : null}
         {sections.map((section) => {
           const rows = entries.filter((entry) => entry.status === section.status);
-          if (rows.length === 0) {
-            return null;
-          }
+          if (rows.length === 0) return null;
           return (
-            <div key={section.status} className="flex flex-col gap-3">
+            <div
+              key={section.status}
+              id={`entries-${section.status}`}
+              className="flex scroll-mt-24 flex-col gap-3"
+            >
               <h3 className="eyebrow text-xs">
                 {section.title} · {rows.length}
               </h3>
@@ -208,37 +235,39 @@ export default async function Page({
                       </dl>
                     ) : null}
                     <form action={decideEntryAction} className="flex flex-wrap items-end gap-2">
-                      <input type="hidden" name="callId" value={id} />
-                      <input type="hidden" name="entryId" value={entry.id} />
-                      <Campo id={`nota-${entry.id}`} label={t("T-1031")}>
-                        <input
-                          id={`nota-${entry.id}`}
-                          name="note"
-                          defaultValue={entry.note ?? ""}
-                          className={inputClass}
-                        />
-                      </Campo>
-                      {entry.status !== "ACCEPTED" ? (
-                        <button
-                          type="submit"
-                          name="status"
-                          value="ACCEPTED"
-                          className="boton-calido min-h-10 px-4 py-2 text-sm"
-                          disabled={!room}
-                        >
-                          {entry.status === "WAITLISTED" ? promover : aceptar}
-                        </button>
-                      ) : null}
-                      {entry.status !== "REJECTED" ? (
-                        <button
-                          type="submit"
-                          name="status"
-                          value="REJECTED"
-                          className="boton-secundario min-h-10 px-4 py-2 text-sm"
-                        >
-                          {rechazar}
-                        </button>
-                      ) : null}
+                      <AdminFormBody>
+                        <input type="hidden" name="callId" value={id} />
+                        <input type="hidden" name="entryId" value={entry.id} />
+                        <Campo id={`nota-${entry.id}`} label={t("T-1031")}>
+                          <input
+                            id={`nota-${entry.id}`}
+                            name="note"
+                            defaultValue={entry.note ?? ""}
+                            className={inputClass}
+                          />
+                        </Campo>
+                        {entry.status !== "ACCEPTED" ? (
+                          <AdminSubmitButton
+                            type="submit"
+                            name="status"
+                            value="ACCEPTED"
+                            className="boton-calido min-h-10 px-4 py-2 text-sm"
+                            disabled={!room}
+                          >
+                            {entry.status === "WAITLISTED" ? promover : aceptar}
+                          </AdminSubmitButton>
+                        ) : null}
+                        {entry.status !== "REJECTED" ? (
+                          <AdminSubmitButton
+                            type="submit"
+                            name="status"
+                            value="REJECTED"
+                            className="boton-secundario min-h-10 px-4 py-2 text-sm"
+                          >
+                            {rechazar}
+                          </AdminSubmitButton>
+                        ) : null}
+                      </AdminFormBody>
                     </form>
                   </li>
                 ))}

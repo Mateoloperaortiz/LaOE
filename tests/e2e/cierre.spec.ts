@@ -40,7 +40,7 @@ test("GH ve las asambleas del término y cierra los puntos con el standing conge
   await page.goto(`/admin/cierre?termId=${termId}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(`Cierre de ${E2E_CLOSING_TERM}`);
   await page.getByRole("link", { name: "Cerrar puntos del semestre" }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   await expect(panel.getByText(/Vas a cerrar 2019-2/)).toBeVisible();
   await panel.getByRole("button", { name: "Cerrar puntos del semestre" }).click();
   await expect(page.getByText("Guardado.")).toBeVisible();

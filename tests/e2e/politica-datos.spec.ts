@@ -98,6 +98,10 @@ test("publica primero, habilita desde el control y vuelve a bloquear de inmediat
   await page.goto("/admin");
   await page
     .getByRole("navigation", { name: t("T-236") })
+    .getByRole("button", { name: "Sistema" })
+    .click();
+  await page
+    .getByRole("navigation", { name: t("T-236") })
     .getByRole("link", { name: t("T-1180"), exact: true })
     .click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-1180"));
@@ -112,7 +116,7 @@ test("publica primero, habilita desde el control y vuelve a bloquear de inmediat
     .getByRole("row")
     .filter({ has: page.getByRole("cell", { name: "privacidad", exact: true }) });
   await row.getByRole("link", { name: t("T-252"), exact: true }).click();
-  const panel = page.getByRole("complementary");
+  const panel = page.getByRole("dialog");
   const text = "Texto sintético para E2E; no representa una política de datos real.";
   await panel.getByLabel(t("T-336")).fill(text);
   await panel.getByLabel(t("T-279")).selectOption("PUBLISHED");

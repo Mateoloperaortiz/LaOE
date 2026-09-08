@@ -27,13 +27,21 @@ test("una ruta protegida manda a ingresar y vuelve tras el OTP", async ({ page }
 
   await expect(page).toHaveURL(/\/app\/ajustes$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Ajustes");
+  await page
+    .getByRole("navigation", { name: "Ajustes", exact: true })
+    .getByRole("link", { name: "Sesiones", exact: true })
+    .click();
   await expect(page.getByRole("cell", { name: "Este dispositivo" })).toBeVisible();
   await sinViolaciones(page);
 
   await page.getByRole("link", { name: "Inicio" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Hola, Prueba");
 
-  await page.getByRole("button", { name: "Cerrar sesión" }).click();
+  await page.getByRole("button", { name: "Más", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Mi OE", exact: true })
+    .getByRole("button", { name: "Cerrar sesión", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/$/);
   await page.goto("/app");
   await expect(page).toHaveURL(/\/ingresar/);

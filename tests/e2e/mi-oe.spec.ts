@@ -50,6 +50,10 @@ test("ajustes: edita el celular, autoriza la foto y descarga sus datos", async (
   await expect(page.getByText("Guardado.")).toBeVisible();
   await expect(page.getByLabel("Celular")).toHaveValue("+573005551234");
 
+  await page
+    .getByRole("navigation", { name: "Ajustes", exact: true })
+    .getByRole("link", { name: "Consentimientos", exact: true })
+    .click();
   const foto = page.locator("li", { hasText: "Foto en el directorio" });
   await foto.getByRole("button", { name: "Autorizar", exact: true }).click();
   await expect(foto.getByText(/Autorizado el/)).toBeVisible();
@@ -64,6 +68,10 @@ test("ajustes: edita el celular, autoriza la foto y descarga sus datos", async (
   expect(body.person.email).toBe(E2E_MEMBER_EMAIL);
   expect(body.consents.find((item) => item.purpose === "DIRECTORY_PHOTO")?.live).not.toBeNull();
 
+  await page
+    .getByRole("navigation", { name: "Ajustes", exact: true })
+    .getByRole("link", { name: "Mis datos y privacidad", exact: true })
+    .click();
   await page.getByRole("link", { name: /Pedir que borren mis datos/ }).click();
   await expect(page.getByText(/GH revisa tu solicitud/)).toBeVisible();
   await page.getByRole("button", { name: "Sí, pedir la eliminación" }).click();

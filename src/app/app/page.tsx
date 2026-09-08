@@ -5,13 +5,15 @@ import { excerpt, listMemberAnnouncements } from "@/modules/content";
 import { getOnboarding } from "@/modules/crm";
 import { findUpcomingEditionsForMembers } from "@/modules/events";
 import { requireActor } from "@/modules/identity";
-import { balanceFor, listMemberAgenda, windowState } from "@/modules/participation";
+import { balanceFor, listMemberAgenda } from "@/modules/participation";
 import { getMyMembership } from "@/modules/people";
 import { getPersonPermanence } from "@/modules/permanence";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo, Insignia, LogoComite, Progreso } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
-import { formatDate, formatDateRange } from "@/shared/lib/dates";
+import { formatDate } from "@/shared/lib/dates";
 import { noticeText } from "./_ui/avisos";
+import { agendaItems, MemberAgenda } from "./_ui/MemberAgenda";
 import { cargoEnComite } from "./_ui/PersonaTarjeta";
 import { Vacio } from "./_ui/Vacio";
 import { markStepAction } from "./actions";
@@ -39,41 +41,47 @@ export default async function AppHome() {
     mine.committees.map((item) => [item.committeeId, item.committeeName]),
   );
   const allDone = steps.length > 0 && steps.every((step) => step.doneAt);
-  const now = new Date();
-  const [catInte, catPartido, catReunion, catCharla, catTaller, catSocial, catActividad] =
-    tList("T-521");
-  const categoria: Record<string, string | undefined> = {
-    INTEGRATION: catInte,
-    ATHLETIC_MATCH: catPartido,
-    COMMITTEE_MEETING: catReunion,
-    TALK: catCharla,
-    WORKSHOP: catTaller,
-    SOCIAL: catSocial,
-    OTHER: catActividad,
-  };
+  const agenda = agendaItems(ocasiones, editions);
   return (
-    <div className="flex flex-col gap-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-display-lg">{t("T-060", { "nombre preferido": actor.name })}</h1>
+    <div className="member-home">
+      <header className="member-home-header">
+        <div>
+          <h1>{t("T-060", { "nombre preferido": actor.name })}</h1>
+          {mine.term ? <p>{mine.term.code}</p> : null}
+        </div>
         {mine.term ? (
-          <Link href="/app/gh-points" className="flex flex-col items-end no-underline">
-            <span className="text-display-md">{t("T-065", { n: saldo })}</span>
-            <span className="text-sm underline">{t("T-555")}</span>
+          <Link href="/app/gh-points" className="member-home-saldo">
+            <strong>{t("T-065", { n: saldo })}</strong>
+            <span>{t("T-555")}</span>
           </Link>
         ) : null}
+      </header>
+      <div className="member-home-priority">
+        <section id="agenda" aria-labelledby="agenda-title">
+          <div className="member-section-heading">
+            <BarraTitulo color="amarillo">
+              <span id="agenda-title">{t("T-062")}</span>
+            </BarraTitulo>
+          </div>
+          <MemberAgenda items={agenda.slice(0, 3)} personId={actor.personId} preview />
+          <Link href="/app/agenda" className="boton-secundario mt-4">
+            {t("T-1667")}
+          </Link>
+        </section>
+        <aside className="member-carnet-shortcut">
+          <h2>{t("T-131")}</h2>
+          <p>{t("T-1674")}</p>
+          <Link href="/app/carnet" className="boton-calido">
+            {t("T-1673")}
+          </Link>
+          {permanence?.notices.length ? (
+            <Link href="#permanencia" className="text-sm text-oe-paper underline">
+              {t("T-1675", { n: permanence.notices.length })}
+            </Link>
+          ) : null}
+        </aside>
       </div>
-
-      {devices === 0 ? (
-        <InstallBanner
-          title={avisoTitulo}
-          text={avisoTexto}
-          button={avisoBoton}
-          dismiss={t("T-1093")}
-          href="/app/ajustes#notificaciones"
-        />
-      ) : null}
-
-      {permanence?.result.evaluated ? (
+      {permanence && (permanence.result.evaluated || permanence.notices.length > 0) ? (
         <section aria-labelledby="permanencia" className="flex flex-col gap-4">
           <BarraTitulo color="amarillo" className="self-start">
             <span id="permanencia">{t("T-110")}</span>
@@ -130,34 +138,54 @@ export default async function AppHome() {
           <BarraTitulo color="naranja" className="self-start">
             <span id="onboarding">{t("T-066")}</span>
           </BarraTitulo>
-          {allDone ? <Vacio texto={t("T-068")} elemento="estrella" color="text-oe-yellow" /> : null}
+
           <ol className="flex list-none flex-col gap-3 p-0">
-            {steps.map((step) => (
-              <li
-                key={step.key}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
-              >
-                <span className="font-semibold">{step.label}</span>
-                <span className="flex items-center gap-3">
-                  <Insignia fondo={step.doneAt ? "amarillo" : "sky"}>
-                    {step.doneAt ? t("T-379") : t("T-378")}
-                  </Insignia>
-                  {step.doneAt ? null : (
-                    <form action={markStepAction}>
-                      <input type="hidden" name="termId" value={onboardingTermId} />
-                      <input type="hidden" name="stepKey" value={step.key} />
-                      <button type="submit" className="boton-secundario text-sm">
-                        {t("T-377")}
-                      </button>
-                    </form>
-                  )}
-                </span>
-              </li>
-            ))}
+            {steps
+              .filter((step) => !step.doneAt)
+              .map((step) => (
+                <li
+                  key={step.key}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
+                >
+                  <span className="font-semibold">{step.label}</span>
+                  <span className="flex items-center gap-3">
+                    <Insignia fondo={step.doneAt ? "amarillo" : "sky"}>
+                      {step.doneAt ? t("T-379") : t("T-378")}
+                    </Insignia>
+                    {step.doneAt ? null : (
+                      <form action={markStepAction}>
+                        <input type="hidden" name="termId" value={onboardingTermId} />
+                        <input type="hidden" name="stepKey" value={step.key} />
+                        <AdminSubmitButton type="submit" className="boton-secundario text-sm">
+                          {t("T-377")}
+                        </AdminSubmitButton>
+                      </form>
+                    )}
+                  </span>
+                </li>
+              ))}
           </ol>
+          {steps.some((step) => step.doneAt) ? (
+            <details className="rounded-xl border border-borde p-4">
+              <summary className="font-semibold">
+                {t("T-1677", { n: steps.filter((step) => step.doneAt).length })}
+              </summary>
+              <ul className="mt-3 flex list-none flex-col gap-3 p-0">
+                {steps
+                  .filter((step) => step.doneAt)
+                  .map((step) => (
+                    <li key={step.key} className="flex items-center justify-between gap-3">
+                      <span>{step.label}</span>
+                      <Insignia fondo="amarillo">{t("T-379")}</Insignia>
+                    </li>
+                  ))}
+              </ul>
+            </details>
+          ) : null}
         </section>
       ) : null}
 
+      {allDone ? <p className="text-sm text-tinta-suave">{t("T-1682")}</p> : null}
       <section aria-labelledby="tus-comites" className="flex flex-col gap-6">
         <BarraTitulo color="azul" className="self-start">
           <span id="tus-comites">{t("T-375")}</span>
@@ -185,69 +213,6 @@ export default async function AppHome() {
                     </span>
                   </span>
                 </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section aria-labelledby="agenda" className="flex flex-col gap-6">
-        <BarraTitulo color="amarillo" className="self-start">
-          <span id="agenda">{t("T-062")}</span>
-        </BarraTitulo>
-        {editions.length === 0 && ocasiones.length === 0 ? (
-          <Vacio texto={t("T-063")} />
-        ) : (
-          <ul className="flex list-none flex-col gap-3 p-0">
-            {ocasiones.map((ocasion) => (
-              <li
-                key={ocasion.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
-              >
-                <span className="flex flex-col">
-                  <span className="text-display-md">{ocasion.title}</span>
-                  <span className="text-sm text-tinta-suave">
-                    {ocasion.kind === "ASSEMBLY" ? tList("T-522")[1] : categoria[ocasion.category]}
-                    {" · "}
-                    {formatDateRange(ocasion.startsAt, ocasion.endsAt)}
-                    {ocasion.location ? ` · ${ocasion.location}` : ""}
-                  </span>
-                </span>
-                <span className="flex items-center gap-2">
-                  {ocasion.kind === "ASSEMBLY" ? (
-                    <Insignia fondo="naranja">{t("T-556")}</Insignia>
-                  ) : null}
-                  {windowState(ocasion, now) === "OPEN" ? (
-                    <Link href={`/a/${ocasion.publicId}`} className="no-underline">
-                      <Insignia fondo="amarillo">{t("T-553")}</Insignia>
-                    </Link>
-                  ) : (
-                    <Insignia fondo="sky">{t("T-554")}</Insignia>
-                  )}
-                </span>
-              </li>
-            ))}
-            {editions.map((edition) => (
-              <li
-                key={edition.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
-              >
-                <span className="flex flex-col">
-                  <span className="text-display-md">
-                    {edition.event.name} · {edition.name}
-                  </span>
-                  <span className="text-sm text-tinta-suave">
-                    {formatDateRange(edition.startsAt, edition.endsAt)}
-                    {edition.location ? ` · ${edition.location}` : ""}
-                  </span>
-                </span>
-                {edition.audience === "MEMBERS" ? (
-                  <Insignia fondo="amarillo">{t("T-380")}</Insignia>
-                ) : (
-                  <Link href={`/eventos/${edition.event.slug}/${edition.slug}`} className="text-sm">
-                    {t("T-311")}
-                  </Link>
-                )}
               </li>
             ))}
           </ul>
@@ -287,6 +252,15 @@ export default async function AppHome() {
           </ul>
         )}
       </section>
+      {devices === 0 ? (
+        <InstallBanner
+          title={avisoTitulo}
+          text={avisoTexto}
+          button={avisoBoton}
+          dismiss={t("T-1093")}
+          href="/app/ajustes#notificaciones"
+        />
+      ) : null}
     </div>
   );
 }

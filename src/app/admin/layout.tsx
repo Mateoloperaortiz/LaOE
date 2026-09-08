@@ -1,8 +1,10 @@
 import Link from "next/link";
+import "./admin.css";
 import { signOutAction } from "@/modules/identity/actions";
 import { CommandPalette } from "@/shared/admin-kit";
-import { LogoOE, ThemeToggle } from "@/shared/brand";
+import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { AdminShell } from "./_components/AdminShell";
 import { requireAdminAreaRoles } from "./_kit/acceso";
 
 // Administración: ADMIN completo; un líder de comité, un líder o evaluador de grupo y la junta entran
@@ -89,64 +91,90 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         { href: "/admin/sistema/jobs", label: t("T-241") },
         { href: "/admin/sistema/alias", label: alias ?? "" },
       ];
+  const groupLabels = tList("T-1400");
+  const groupRoutes = [
+    [
+      "/admin/personas",
+      "/admin/comites",
+      "/admin/cargos",
+      "/admin/terminos",
+      "/admin/etiquetas",
+      "/admin/segmentos",
+      "/admin/personas/importar",
+    ],
+    [
+      "/admin/tareas",
+      "/admin/formularios",
+      "/admin/pipelines",
+      "/admin/organizaciones",
+      "/admin/solicitudes",
+      "/admin/convocatorias",
+    ],
+    ["/admin/paginas", "/admin/cartelera", "/admin/eventos", "/admin/medios", "/admin/documentos"],
+    ["/admin/plantillas", "/admin/campanas", "/admin/mensajes"],
+    ["/admin/ocasiones", "/admin/ledger", "/admin/rankings", "/admin/asambleas", "/admin/cierre"],
+    [
+      "/admin/permanencia/reglas",
+      "/admin/permanencia/grupos",
+      "/admin/permanencia/evaluaciones",
+      "/admin/permanencia/cumplimiento",
+      "/admin/permanencia/cierre",
+      "/admin/junta",
+    ],
+    [
+      "/admin/sistema/politica",
+      "/admin/permisos",
+      "/admin/sistema/importaciones",
+      "/admin/sistema/jobs",
+      "/admin/sistema/alias",
+    ],
+  ];
+  // Solo viajan al cliente los destinos que el actor puede ver.
+  const groups = groupRoutes
+    .map((routes, index) => ({
+      id: `group-${index}`,
+      label: groupLabels[index] ?? "",
+      items: actor.isAdmin
+        ? routes.flatMap((href) => enlaces.filter((link) => link.href === href))
+        : enlaces.filter((link) =>
+            routes.some((href) => link.href === href || link.href.startsWith(`${href}/`)),
+          ),
+    }))
+    .filter((group) => group.items.length > 0);
   return (
-    <>
-      <header className="border-b border-borde bg-fondo-alterno textura-granito">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link
-            href="/admin"
-            className="flex items-center gap-3 text-titulo"
-            aria-label={t("T-236")}
-          >
-            <LogoOE height={56} />
-            <span className="eyebrow">{t("T-236")}</span>
-          </Link>
-          {/* En un celular (modo anfitrión) la navegación es una sola fila que se desplaza; desde sm envuelve. */}
-          <nav
-            aria-label={t("T-236")}
-            className="flex w-full items-center gap-1 overflow-x-auto sm:w-auto sm:flex-wrap sm:overflow-visible"
-          >
-            {enlaces.map((enlace) => (
-              <Link
-                key={enlace.href}
-                href={enlace.href}
-                className="shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold text-titulo hover:bg-fondo-suave"
-              >
-                {enlace.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            {actor.isAdmin ? (
-              <CommandPalette
-                endpoint="/api/admin/buscar"
-                labels={{
-                  open: t("T-299"),
-                  placeholder: t("T-264"),
-                  empty: t("T-256"),
-                  close: t("T-291"),
-                  types: {
-                    person: persona,
-                    committee: comite,
-                    occasion: ocasion,
-                    organization: organizacion,
-                  },
-                }}
-              />
-            ) : null}
-            <Link href="/app" className="boton-secundario min-h-10 px-4 py-2 text-sm">
-              {t("T-004")}
-            </Link>
-            <form action={signOutAction}>
-              <button type="submit" className="boton-secundario min-h-10 px-4 py-2 text-sm">
-                {t("T-231")}
-              </button>
-            </form>
-            <ThemeToggle etiquetas={[temaOscuro, temaClaro]} />
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">{children}</main>
-    </>
+    <AdminShell
+      groups={groups}
+      showHome={actor.isAdmin}
+      search={
+        actor.isAdmin ? (
+          <CommandPalette
+            endpoint="/api/admin/buscar"
+            labels={{
+              open: t("T-299"),
+              placeholder: t("T-264"),
+              empty: t("T-256"),
+              close: t("T-291"),
+              types: {
+                person: persona,
+                committee: comite,
+                occasion: ocasion,
+                organization: organizacion,
+              },
+            }}
+          />
+        ) : null
+      }
+      theme={<ThemeToggle etiquetas={[temaOscuro, temaClaro]} />}
+      account={
+        <>
+          <Link href="/app">{t("T-004")}</Link>
+          <form action={signOutAction}>
+            <button type="submit">{t("T-231")}</button>
+          </form>
+        </>
+      }
+    >
+      {children}
+    </AdminShell>
   );
 }

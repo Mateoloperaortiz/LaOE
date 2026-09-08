@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { listSubscriptionsFor } from "@/modules/comms";
 import { PwaRegistrar } from "@/modules/comms/components/PwaRegistrar";
 import { requireActor } from "@/modules/identity";
 import { signOutAction } from "@/modules/identity/actions";
-import { LogoOE, ThemeToggle } from "@/shared/brand";
+import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { MemberShell } from "./_ui/MemberShell";
+import "./member.css";
 
 // Mi OE: solo con sesión válida (activos y honorarios). Las pestañas de T-061 se habilitan por fase.
 const RUTAS: Record<string, string> = {
@@ -26,36 +27,41 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const devices = await listSubscriptionsFor(actor.personId);
   const [temaOscuro, temaClaro] = tList("T-034") as [string, string];
   const pestañas = tList("T-061").filter((nombre) => nombre in RUTAS);
+  const groups = [
+    { label: t("T-1664"), names: ["Comités", "Personas", "Egresados"] },
+    { label: t("T-1665"), names: ["Permanencia", "Solicitudes", "Convocatorias", "Normativa"] },
+    { label: t("T-1666"), names: ["Ajustes"] },
+  ].map((group) => ({
+    label: group.label,
+    items: group.names
+      .filter((name) => pestañas.includes(name))
+      .map((name) => ({ href: RUTAS[name] ?? "/app", label: name })),
+  }));
   return (
     <>
       <PwaRegistrar endpointsKey={devices.map((item) => item.endpoint).join("\n")} />
-      <header className="border-b border-borde">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link href="/app" className="text-titulo" aria-label={t("T-017") ? "Mi OE" : "Mi OE"}>
-            <LogoOE height={56} />
-          </Link>
-          <nav aria-label="Mi OE" className="flex flex-wrap items-center gap-1">
-            {pestañas.map((nombre) => (
-              <Link
-                key={nombre}
-                href={RUTAS[nombre] ?? "/app"}
-                className="rounded-full px-3 py-2 font-semibold text-titulo hover:bg-fondo-suave"
-              >
-                {nombre}
-              </Link>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3">
-            <form action={signOutAction}>
-              <button type="submit" className="boton-secundario text-sm">
-                {t("T-231")}
-              </button>
-            </form>
-            <ThemeToggle etiquetas={[temaOscuro, temaClaro]} />
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+      <MemberShell
+        primary={[
+          { href: "/app", label: pestañas[0] ?? "" },
+          { href: "/app/agenda", label: t("T-1661") },
+          {
+            href: "/app/carnet",
+            label: pestañas.find((name) => RUTAS[name] === "/app/carnet") ?? t("T-131"),
+          },
+          { href: "/app/gh-points", label: t("T-080") },
+        ]}
+        groups={groups}
+        theme={<ThemeToggle etiquetas={[temaOscuro, temaClaro]} />}
+        account={
+          <form action={signOutAction}>
+            <button type="submit" className="boton-secundario">
+              {t("T-231")}
+            </button>
+          </form>
+        }
+      >
+        {children}
+      </MemberShell>
     </>
   );
 }

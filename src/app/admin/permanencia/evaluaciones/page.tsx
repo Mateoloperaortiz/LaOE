@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { evaluationWindow, listEvaluationTray, loadPermanenceConfig } from "@/modules/permanence";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
@@ -102,9 +104,9 @@ export default async function EvaluacionesPage({
                 </option>
               ))}
             </select>
-            <button type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
+            <AdminSubmitButton type="submit" className="boton-secundario min-h-8 px-3 py-1 text-sm">
               {t("T-250")}
-            </button>
+            </AdminSubmitButton>
           </form>
         ) : null}
       </header>
@@ -130,7 +132,7 @@ export default async function EvaluacionesPage({
                 {group.members.map((member) => (
                   <li
                     key={member.personId}
-                    className="flex flex-col gap-2 rounded-xl border border-borde bg-fondo-alterno p-3"
+                    className="flex min-w-0 flex-col gap-3 border-b border-borde py-4 last:border-b-0"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-semibold">{member.name}</span>
@@ -159,39 +161,41 @@ export default async function EvaluacionesPage({
                     ) : null}
                     {canEvaluate ? (
                       <form action={evaluateAction} className="flex flex-wrap items-end gap-2">
-                        <input type="hidden" name="groupId" value={group.id} />
-                        <input type="hidden" name="termId" value={term.id} />
-                        <input type="hidden" name="personId" value={member.personId} />
-                        <div className="flex min-w-64 flex-1 flex-col gap-1">
-                          <label
-                            htmlFor={`nota-${group.id}-${member.personId}`}
-                            className="eyebrow text-xs"
+                        <AdminFormBody>
+                          <input type="hidden" name="groupId" value={group.id} />
+                          <input type="hidden" name="termId" value={term.id} />
+                          <input type="hidden" name="personId" value={member.personId} />
+                          <div className="flex min-w-0 basis-full flex-col gap-1 sm:flex-1 sm:basis-auto">
+                            <label
+                              htmlFor={`nota-${group.id}-${member.personId}`}
+                              className="eyebrow text-xs"
+                            >
+                              {t("T-769")}
+                            </label>
+                            <input
+                              id={`nota-${group.id}-${member.personId}`}
+                              name="note"
+                              defaultValue={member.note ?? ""}
+                              className={inputClass}
+                            />
+                          </div>
+                          <AdminSubmitButton
+                            type="submit"
+                            name="evaluation"
+                            value="GOOD"
+                            className="boton-calido min-h-10 px-4 py-2 text-sm"
                           >
-                            {t("T-769")}
-                          </label>
-                          <input
-                            id={`nota-${group.id}-${member.personId}`}
-                            name="note"
-                            defaultValue={member.note ?? ""}
-                            className={inputClass}
-                          />
-                        </div>
-                        <button
-                          type="submit"
-                          name="evaluation"
-                          value="GOOD"
-                          className="boton-calido min-h-10 px-4 py-2 text-sm"
-                        >
-                          {bueno}
-                        </button>
-                        <button
-                          type="submit"
-                          name="evaluation"
-                          value="INSUFFICIENT"
-                          className="boton-secundario min-h-10 px-4 py-2 text-sm"
-                        >
-                          {insuficiente}
-                        </button>
+                            {bueno}
+                          </AdminSubmitButton>
+                          <AdminSubmitButton
+                            type="submit"
+                            name="evaluation"
+                            value="INSUFFICIENT"
+                            className="boton-secundario min-h-10 px-4 py-2 text-sm"
+                          >
+                            {insuficiente}
+                          </AdminSubmitButton>
+                        </AdminFormBody>
                       </form>
                     ) : null}
                   </li>

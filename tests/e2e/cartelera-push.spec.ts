@@ -29,7 +29,7 @@ test.describe("ADMIN publica y avisa por push", () => {
   }) => {
     await page.goto("/admin/cartelera");
     await page.getByRole("link", { name: "Nuevo" }).click();
-    const panel = page.getByRole("complementary");
+    const panel = page.getByRole("dialog");
     await panel.getByLabel("Título").fill(TITULO);
     await panel
       .getByLabel("Cuerpo (Markdown)")
@@ -39,7 +39,8 @@ test.describe("ADMIN publica y avisa por push", () => {
     await expect(page.getByText("Guardado.")).toBeVisible();
 
     const fila = page.getByRole("row", { name: new RegExp(TITULO) });
-    await expect(fila.getByText("—")).toBeVisible();
+    await expect(fila.locator('td[data-label="Push"]')).toHaveText("—");
+    await fila.locator("summary", { hasText: "Acciones" }).click();
     await fila.getByRole("button", { name: "Publicar y avisar por push", exact: true }).click();
     await expect(fila.getByText("Enviando")).toBeVisible();
     await drenarOutbox();

@@ -306,6 +306,22 @@ Listo cuando (software): formatos, autorización, concurrencia, reintentos, life
 - [x] N-T2 · Pruebas sintéticas, cotejo privado de 134 artículos y siete secciones, organigrama y tabla
 - [x] N-T3 · CI main/production y staging verificados; mismo SHA `e411a49` promovido y originales 2026-05-08 publicados como MEMBERS, con integridad, privacidad e idempotencia comprobadas en producción privada
 
+## Administración adaptable (ADR-043)
+
+- [x] A-T1 · Navegación agrupada por permisos, barra lateral y menú modal móvil; extensión de marca limitada a Administración
+- [x] A-T2 · Kit compartido, diálogos y foco, listados adaptables, casillas con búsqueda, envío pendiente y conservación de borradores ante errores
+- [x] A-T3 · Documentos/Medios con subida explícita, roster en cuatro pasos y adaptación de las demás familias
+- [x] A-T4 · Verificación de las 54 rutas con datos sintéticos, cuatro tamaños, ambos temas, teclado, texto ampliado, axe y suites completas
+
+## Portal y Mi OE (ADR-044) · `implementación local verificada`
+
+- [x] UX-T1 · Portal: cabecera y menú móvil accesibles, hero más compacto con invitación según admisión vigente, búsqueda de comités y estados coherentes de Unirse
+- [x] UX-T2 · Mi OE: navegación cotidiana compacta, menú Más, escala tipográfica propia, inicio centrado en agenda/carnet y nueva agenda autenticada con detalles; conservar avisos, permanencia, onboarding y contenido existente
+- [x] UX-T3 · Solicitudes por trámite, errores por campo y borradores conservados; foto con selección/vista previa/envío explícito; Ajustes por anclas, sesiones adaptables y directorio con páginas válidas
+- [x] UX-T4 · Verificación final con datos sintéticos: 360/390/768/1440 px, ambos temas, teclado, foco, texto al 200 %, axe, reintentos y dobles envíos, privacidad de Agenda, `npm run check` y regresiones E2E; registrar resultados y evidencia del cierre local
+
+Implementación local verificada con la suite completa. Este tramo conserva identidad, reglas y permisos OE; no incluye migraciones, dependencias visuales ni despliegue.
+
 ## Backlog (después de la v1)
 
 - Votación electrónica de la junta con segunda vuelta: cuando la asistencia funcione sin fallas y con las reglas de los estatutos (voto secreto, quórum)
@@ -475,3 +491,16 @@ Listo cuando (software): formatos, autorización, concurrencia, reintentos, life
 | 2026-09-08 | Normativa / candidato completo | Verificación local del candidato con compatibilidad Node corregida: npm run check PASS (290 unitarias, 253 integración, 11 extractor y build) y CI=true npm run test:e2e -- --retries=0 PASS, 103/103 en 43 archivos, 1,4 minutos. Incluye Normativa, Wallet, Wordle y flujos existentes; no se cambiaron reglas de negocio. Evidencia privada normativa-2026/check-node-compat.log y e2e-full.log. |
 | 2026-09-08 | Normativa / estabilidad e2e | CI 6d1dc49 aprobó 101 e2e y detectó una carrera en la prueba de importación v1: el anunciador de rutas de Next satisfacía la espera genérica de alert antes del redirect, y el JSON seleccionado se perdía al renovarse el formulario. La prueba ahora espera URL y error exactos y limpia sus documentos sintéticos en cada intento. Sin cambios de aplicación; 10 e2e de Normativa, TypeScript y Biome PASS. |
 | 2026-09-08 | Normativa / cierre N-T3 | **Originales publicados y verificados en producción privada.** SHA `e411a495d2db08c2af81db602f59c4c7aecf2bd0`: CI main `34228257941` y production `34231174981` SUCCESS con 103 e2e; staging `06eaf540-622f-4091-ac16-2f8d0a9168da` verificado con corpus sintético, UI ADMIN/Mi OE e idempotencia. Production `be43f531-d551-49dd-8c64-da9dc414f2ba` SUCCESS a las 13:30:18.862 UTC; smoke privado 6/6 por Railway SSH loopback a las 13:30:50.214 UTC. Estatutos 60 artículos/3 secciones/5 capítulos y reglamento 74/4/12, versión 2026-05-08, PUBLISHED/MEMBERS; PDFs, organigrama, tabla y anexo cotejados, búsquedas y privacidad comprobadas. Repetición de simulación/publicación `unchanged`, dos documentos y tres eventos de auditoría por documento, verificados a las 13:34:09 UTC. Check de cierre PASS (290 unitarias, 253 integración, 11 extractor y build). Evidencia privada `normativa-2026/production-*-verified.json`, `production-audit-readback.json`, `production-route-privacy.json` y `production-deployment.json`; IDs y hashes en el runbook. Wallet/Wordle promovidos; proveedores Wallet de producción sin activar. Dominios de producción vacíos; el transporte privado no acredita TLS ni el dominio apex. Pendientes de lanzamiento F7 conservados. |
+
+
+### Registro de Administración adaptable
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-08 | Administración / ADR-043 | **A-T1–T4 completos en local.** Las 54 rutas comparten navegación por permisos, superficies OE, diálogos con foco y controles adaptables. PDF/medios requieren envío explícito; roster separa selección, mapeo, revisión y confirmación. Se conservan borradores y archivos ante errores, valores inmutables y contexto del listado; identificadores inexistentes y páginas fuera de rango se resuelven correctamente. `APP_URL=http://localhost:3105 npm run check` PASS: 306 unitarias, 257 de integración, 11 del extractor y compilación. `E2E_PORT=3105 CI=true npm run test:e2e -- --retries=0` PASS: **131/131**, sin reintentos ni omisiones, sobre la compilación final. Se recorren los 38 destinos y 16 detalles con datos sintéticos; pantallas representativas y todos los detalles a 360/390/768/1440 px, claro/oscuro, sin desbordamiento de página ni violaciones axe WCAG A/AA. Teclado, foco, texto al 200 %, archivos, errores, envíos y permisos cubiertos. Inspección visual de Documentos, paneles, constructor, kanban y QR; regresiones del portal y Mi OE en la suite completa. Catálogo sincronizado, extensión de marca y ADR registradas. Sin dependencias visuales nuevas, migraciones ni despliegue. |
+
+### Registro de experiencia del portal y Mi OE
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-08 | Portal y Mi OE / ADR-044 | **UX-T1–T4 completos en local.** Navegación y hero públicos compactos, búsqueda de comités, admisión coherente, navegación cotidiana de Mi OE, agenda autenticada con detalles y asistencia vigente, solicitudes por trámite, foto con selección/revisión/envío explícito y Ajustes por categorías. Se conserva la identidad OE. Corregidos casillas reiniciadas por React, foco de menús, interferencia de barras decorativas, páginas inválidas del directorio y redirección tras vencer la sesión. `APP_URL=http://localhost:3105 npm run check` PASS: **312 unitarias, 257 de integración, 11 del extractor y build**. `E2E_PORT=3105 CI=true npm run test:e2e -- --retries=0` PASS: **174/174 en 3,2 minutos**, sin reintentos ni omisiones, sobre la compilación final; incluye Administración y flujos anteriores. Capturas y axe WCAG A/AA a 360/390/768/1440 px en ambos temas, teclado, foco y texto al 200 %. Se probaron validación de archivos, selección sin transferencia, reintentos con datos conservados, dobles envíos, casillas tras error/guardado y sesión ausente/inválida sin escrituras. Catálogo sincronizado, ADR y extensión de marca registrados. Evidencia local en `portal-mi-oe-final`; sin nuevas dependencias, migraciones ni despliegue. |

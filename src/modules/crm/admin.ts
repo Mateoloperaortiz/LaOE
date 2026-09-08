@@ -226,7 +226,14 @@ export const organizationsResource: ResourceDefinition<OrganizationListRow, Orga
     { name: "name", label: orgNombre ?? "", type: "text", required: true },
     { name: "kind", label: orgTipo ?? "", type: "select", required: true, options: kindOptions },
     { name: "website", label: orgSitio ?? "", type: "url" },
-    { name: "notes", label: orgNotas ?? "", type: "textarea", rows: 8, help: t("T-337") },
+    {
+      name: "notes",
+      label: orgNotas ?? "",
+      type: "textarea",
+      textVariant: "code",
+      rows: 8,
+      help: t("T-337"),
+    },
   ],
   list: (params) =>
     listOrganizations({
@@ -403,7 +410,14 @@ async function callFields(): Promise<FieldDefinition[]> {
         .filter((form) => form.audience === "MEMBERS")
         .map((form) => ({ value: form.id, label: form.label })),
     },
-    { name: "description", label: cDescripcion ?? "", type: "textarea", rows: 6, help: t("T-337") },
+    {
+      name: "description",
+      label: cDescripcion ?? "",
+      type: "textarea",
+      textVariant: "code",
+      rows: 6,
+      help: t("T-337"),
+    },
     { name: "opensAt", label: cAbre ?? "", type: "datetime", required: true },
     { name: "closesAt", label: cCierra ?? "", type: "datetime", required: true },
     { name: "capacity", label: cCupo ?? "", type: "number" },

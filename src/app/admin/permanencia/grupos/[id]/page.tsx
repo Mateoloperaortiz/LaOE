@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { searchMembersByName } from "@/modules/people";
 import { getGroupDetail } from "@/modules/permanence";
 import { ImportadorGrupo } from "@/modules/permanence/components/ImportadorGrupo";
+import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
+import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
+import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
@@ -46,7 +50,7 @@ export default async function GrupoPage({
   const { isAdmin } = await requireGroupOperator(id, base);
   const detail = await getGroupDetail(id);
   if (!detail) {
-    return null;
+    notFound();
   }
   const search = (await searchParams) as Search;
   const q = single(search.q).trim();
@@ -104,16 +108,16 @@ export default async function GrupoPage({
         {live.length === 0 ? (
           <p className="text-tinta-suave">{t("T-844")}</p>
         ) : (
-          <div className="overflow-x-auto">
+          <AdminTableRegion label={miembros ?? detail.group.name} className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left">
                   {columns.map((column) => (
-                    <th key={column} className="eyebrow py-2 pr-3 text-xs">
+                    <th scope="col" key={column} className="eyebrow py-2 pr-3 text-xs">
                       {column}
                     </th>
                   ))}
-                  <th className="py-2" />
+                  <th scope="col" className="py-2" />
                 </tr>
               </thead>
               <tbody>
@@ -148,18 +152,20 @@ export default async function GrupoPage({
                     <td className="py-2 pr-3 text-tinta-suave">{member.note ?? ""}</td>
                     <td className="py-2 text-right">
                       <form action={removeMemberAction}>
-                        <input type="hidden" name="groupId" value={id} />
-                        <input type="hidden" name="personId" value={member.personId} />
-                        <button type="submit" className="underline">
-                          {quitar}
-                        </button>
+                        <AdminFormBody>
+                          <input type="hidden" name="groupId" value={id} />
+                          <input type="hidden" name="personId" value={member.personId} />
+                          <AdminSubmitButton type="submit" className="underline">
+                            {quitar}
+                          </AdminSubmitButton>
+                        </AdminFormBody>
                       </form>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </AdminTableRegion>
         )}
         <form action={base} method="get" className="flex flex-wrap items-end gap-2">
           <div className="flex flex-col gap-1">
@@ -174,9 +180,9 @@ export default async function GrupoPage({
               className={inputClass}
             />
           </div>
-          <button type="submit" className="boton-secundario min-h-10 px-4 py-2 text-sm">
+          <AdminSubmitButton type="submit" className="boton-secundario min-h-10 px-4 py-2 text-sm">
             {t("T-250")}
-          </button>
+          </AdminSubmitButton>
         </form>
         {q ? (
           candidates.length === 0 ? (
@@ -195,11 +201,16 @@ export default async function GrupoPage({
                     </span>
                   ) : (
                     <form action={addMemberAction}>
-                      <input type="hidden" name="groupId" value={id} />
-                      <input type="hidden" name="personId" value={candidate.id} />
-                      <button type="submit" className="boton-calido min-h-9 px-3 py-1 text-sm">
-                        {agregar}
-                      </button>
+                      <AdminFormBody>
+                        <input type="hidden" name="groupId" value={id} />
+                        <input type="hidden" name="personId" value={candidate.id} />
+                        <AdminSubmitButton
+                          type="submit"
+                          className="boton-calido min-h-9 px-3 py-1 text-sm"
+                        >
+                          {agregar}
+                        </AdminSubmitButton>
+                      </AdminFormBody>
                     </form>
                   )}
                 </li>
@@ -226,14 +237,16 @@ export default async function GrupoPage({
         )}
         {isAdmin ? (
           <form action={setEvaluatorsAction} className="flex flex-col gap-2">
-            <input type="hidden" name="groupId" value={id} />
-            <label htmlFor="emails" className="eyebrow text-xs">
-              {t("T-847")}
-            </label>
-            <textarea id="emails" name="emails" rows={3} className={inputClass} />
-            <button type="submit" className="boton-secundario self-start">
-              {guardarEvaluadores}
-            </button>
+            <AdminFormBody>
+              <input type="hidden" name="groupId" value={id} />
+              <label htmlFor="emails" className="eyebrow text-xs">
+                {t("T-847")}
+              </label>
+              <textarea id="emails" name="emails" rows={3} className={inputClass} />
+              <AdminSubmitButton type="submit" className="boton-secundario self-start">
+                {guardarEvaluadores}
+              </AdminSubmitButton>
+            </AdminFormBody>
           </form>
         ) : null}
       </section>
