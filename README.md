@@ -4,6 +4,8 @@ Documentación de la nueva casa digital de la **Organización Estudiantil de la 
 
 ## Estado
 
+**Normativa 2026 verificada en local** (8 de septiembre): 134 artículos y siete secciones cotejados con los originales, incluidos organigrama, tabla y anexo; lector y búsqueda completos, vista previa ADMIN y publicación con verificación de huella. CI/staging y carga real en producción en curso. Ver [ADR-042](docs/adr/ADR-042-normativa-completa.md) y el [runbook](docs/15-runbook.md).
+
 **Fase 8: software verificado**: carnet opcional en Apple Wallet y Google Wallet, con QR propio revocable y actualización de Google por outbox y conciliación diaria. El carnet de Mi OE sigue usando `oe1`. La implementación y sus pruebas están verificadas sin credenciales reales; la activación por plataforma y el guardado en dispositivos siguen pendientes. Reglas en [ADR-040](docs/adr/ADR-040-carnet-en-billeteras-fase-8.md).
 
 **Fase 7 en curso** (6 de septiembre de 2026): F7-T0 a T4 listos. El candidato `853d622` fue validado en staging y está desplegado en producción; ADMIN, OTP, respaldos restaurados, indicador de respaldo y control de política están comprobados. El dominio temporal fue retirado y producción espera el dominio final. Quedan iPhone, noche de jobs y T6–T8: cutover, retiro de GHPOINTS y siete días de monitoreo. La política real sigue pendiente; DNS y GHPOINTS permanecen intactos. Evidencia en el [runbook](docs/15-runbook.md).
@@ -18,7 +20,7 @@ Documentación de la nueva casa digital de la **Organización Estudiantil de la 
 
 **Fase 2 lista en local** (3 de septiembre de 2026): personas y Mi OE sobre la fase 1. En el admin: importación del roster (CSV o XLSX) en tres pasos con vista previa y step-up, Persona 360 con línea de tiempo, notas, tareas, etiquetas y segmentos, cargos de junta y de comité, consentimientos por propósito, comando de salida y anonimización a pedido, documentos de normativa (PDF en el bucket y artículos buscables) y ensayo de migración desde GHPOINTS (`npm run migrate:ghpoints` y `migrate:verify`, en cero diferencias sobre la copia local). En Mi OE: inicio con onboarding, agenda y cartelera de miembros, directorio sin correos, comités internos, galería de egresados, normativa con buscador, carnet con QR firmado y ajustes (foto, contacto, sesiones, consentimientos, descarga de mis datos y solicitud de eliminación). La fase 1 dejó el portal público editable (páginas, cartelera, macroeventos, comités, medios, OG, SEO, ICS) y la fase 0 el código base (scaffold, datos, marca, acceso por OTP, outbox, admin kit y seed sintético). El seguimiento vive en el [roadmap](docs/09-roadmap.md); las reglas de la fase 2 en [ADR-034](docs/adr/ADR-034-personas-y-mi-oe-fase-2.md) y las de la fase 1 en [ADR-033](docs/adr/ADR-033-contenido-y-medios-fase-1.md). El repositorio vive en [github.com/Mateoloperaortiz/LaOE](https://github.com/Mateoloperaortiz/LaOE) (privado) con CI en cada push. La parte B de la fase 0 quedó comprobada con staging, R2 y las copias externas restauradas; queda completar el contenido real que debe aportar la OE ([11-contenido-pendiente.md](docs/11-contenido-pendiente.md)).
 
-Versión de la documentación: 6 de septiembre de 2026.
+Versión de la documentación: 8 de septiembre de 2026.
 
 ## Un solo lugar
 
@@ -26,7 +28,7 @@ Una app, una base de datos, un bucket, un admin y un proveedor de correo. Todo l
 
 ## Cómo correr en local
 
-Requisitos: Node 24 (`.node-version`), npm 11 y [OrbStack](https://orbstack.dev) (provee `docker` y `docker compose`).
+Requisitos: Node 24 (`.node-version`), npm 11, `uv` (gestiona Python 3.12 para el extractor) y [OrbStack](https://orbstack.dev) (provee `docker` y `docker compose`).
 
 ```bash
 cp .env.example .env        # valores locales; SESSION_SECRET real con: openssl rand -hex 32
@@ -37,7 +39,7 @@ npm run db:reset            # esquema desde cero + datos sintéticos
 npm run dev                 # http://localhost:3000 · salud en /api/health
 ```
 
-Las pruebas de integración usan una base aparte (`casa_digital_test`, creada y migrada sola); las e2e (`npm run test:e2e`) levantan su servidor con credenciales Apple de juguete y Google apagado, sin reutilizar el servidor de uso manual; usan identidades sintéticas. `npm run check` corre todo lo que corre el CI: Biome, dependency-cruiser, knip, `tsc`, pruebas unitarias, pruebas de integración contra la base local y `next build`. Cómo se prueba cada capa: [docs/10-verificacion.md](docs/10-verificacion.md).
+Las pruebas de integración usan una base aparte (`casa_digital_test`, creada y migrada sola); las e2e (`npm run test:e2e`) levantan su servidor con credenciales Apple de juguete y Google apagado, sin reutilizar el servidor de uso manual; usan identidades sintéticas. `npm run check` ejecuta Biome, dependency-cruiser, knip, `tsc`, pruebas unitarias, pruebas sintéticas del extractor, pruebas de integración contra la base local y `next build`. CI añade los e2e completos y la recuperación de respaldos. Cómo se prueba cada capa: [docs/10-verificacion.md](docs/10-verificacion.md).
 
 Wallet se habilita por plataforma con las variables de `.env.example`; sin configuración no se ofrece emitir, pero se conserva la gestión de pases existentes. `wallet:assets` genera los recursos y `wallet:check` diagnostica configuración y fixtures sin emitir pases. Activación y pruebas reales en [16-billeteras.md](docs/16-billeteras.md). Nunca se usan credenciales de juguete para activar Railway.
 
