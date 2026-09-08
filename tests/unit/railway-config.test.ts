@@ -33,7 +33,9 @@ describe("infraestructura por entorno (ADR-039)", () => {
       checkSuites: true,
     });
     expect(web.source).not.toHaveProperty("rootDirectory");
-    expect(web.networking?.customDomains).toBeUndefined();
+    expect(web.networking?.customDomains).toEqual(
+      environment === "production" ? { "oeeafit.com": { port: 8080 } } : undefined,
+    );
     expect(web.deploy?.preDeployCommand).toEqual(["npm run db:release"]);
     expect(web.variables?.DATABASE_URL).toEqual({
       type: "reference",

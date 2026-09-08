@@ -51,7 +51,7 @@ export default defineRailway((ctx) => {
       sleepApplication: false,
       limitOverride: LIMITS,
     },
-    // oeeafit.com se declara únicamente después del cambio de dominio comprobado.
+    ...(production ? { domains: [{ domain: "oeeafit.com", port: 8080 }] } : {}),
     env: {
       ...storage,
       DATABASE_URL: db.env.DATABASE_URL,

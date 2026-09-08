@@ -56,6 +56,34 @@ export interface SmokeResult {
   error?: string;
 }
 
+/** Combina únicamente los grupos User-agent: * (RFC 9309, 2.2.1). */
+function publicRobotsRules(body: string): Array<{ directive: string; path: string }> {
+  let agents: string[] = [];
+  let hasRules = false;
+  let hasWildcard = false;
+  const rules: Array<{ directive: string; path: string }> = [];
+  for (const raw of body.split(/\r?\n/)) {
+    const line = raw.split("#", 1)[0]?.trim() ?? "";
+    const agent = /^user-agent\s*:\s*(.+)$/i.exec(line)?.[1]?.trim();
+    if (agent) {
+      if (hasRules) agents = [];
+      hasRules = false;
+      agents.push(agent);
+      if (agent === "*") hasWildcard = true;
+      continue;
+    }
+    const rule = /^(allow|disallow)\s*:\s*(.*)$/i.exec(line);
+    if (!rule) continue;
+    hasRules = true;
+    if (agents.includes("*")) {
+      const [, directive = "", path = ""] = rule;
+      rules.push({ directive: directive.toLowerCase(), path: path.trim() });
+    }
+  }
+  assert(hasWildcard, "Falta el grupo User-agent: * en robots.txt");
+  return rules;
+}
+
 /** HTTP de solo lectura; nunca abre sesiones, importa datos ni consume una respuesta de usuario. */
 export async function runSmoke(options: SmokeOptions): Promise<SmokeResult[]> {
   const read = async (path: string, contentType: RegExp) => {
@@ -123,15 +151,17 @@ export async function runSmoke(options: SmokeOptions): Promise<SmokeResult[]> {
       "robots.txt",
       async () => {
         const { body } = await read("/robots.txt", /text\/plain/i);
-        assert.match(body, /^User-agent:\s*\*\s*$/im);
-        const rootDisallowed = /^Disallow:\s*\/\s*$/im.test(body);
+        const rules = publicRobotsRules(body);
+        const rootAllowed = rules.some((rule) => rule.directive === "allow" && rule.path === "/");
+        const rootDisallowed =
+          !rootAllowed && rules.some((rule) => rule.directive === "disallow" && rule.path === "/");
         assert.equal(
           rootDisallowed,
           !options.indexing,
           "robots.txt no coincide con la indexación esperada",
         );
         if (options.indexing) {
-          assert.match(body, /^Allow:\s*\/\s*$/im);
+          assert(rootAllowed, "Falta Allow: / para User-agent: *");
           assert(
             body
               .split(/\r?\n/)
