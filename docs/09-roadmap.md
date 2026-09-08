@@ -512,6 +512,29 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 | --- | --- | --- |
 | 2026-09-08 | Producción / F7-T6–T7 parcial | Administración, portal y Mi OE publicados en `oeeafit.com` con `5a305ca`: CI main/production SUCCESS, 174 e2e, staging y producción SUCCESS, smoke público 6/6. Dominio apex y TXT verificados, TLS activo y www redirige correctamente; IaC declara el dominio solo en producción. `gallant-patience` eliminado tras congelar y restaurar el archivo final desde R2; queda únicamente `casa-digital`. Archivo age retenido 90 días, hasta el 7 de diciembre de 2026. Ajuste del smoke para reglas de bots de Cloudflare: check PASS con 316 unitarias, 257 integración, 11 extractor y build. No cierra OTP del dominio final, iPhone, monitoreo, integraciones externas ni archivo del repo. Política real, roster y contenido siguen pendientes para la presentación. IDs, hashes, CI y alcance en [runbook](15-runbook.md#publicación-del-dominio-y-retiro-de-ghpoints-2026-09-08). |
 
+### Primer integrante y agenda Athletic
+
+- [x] Completar la pertenencia actual del primer ADMIN y cargar los cinco partidos solicitados, con auditoría, repetición idempotente y verificación en producción.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-08 | Producción / contenido inicial | Término 2026-2 (1 de julio–31 de diciembre), GEMIS activo con ficha pública DRAFT y cargo Financiero del primer integrante. Conservados ingreso 2026-1, membresía ACTIVE y ADMIN global. Cinco partidos Athletic de la semana del 7 al 11 de septiembre, 10 puntos, QR con código rotativo, ventana −30/+180 minutos y lugares aportados; lunes CLOSED y cuatro OPEN. Carga transaccional por comandos existentes con 14 auditorías; repetición sin cambios de datos ni auditoría. 19 pruebas de integración PASS; sesión real, ficha, carnet, agenda, consola y cierre pasado verificados en navegador. Outbox procesado sin errores; una persona, cero asistencias, puntos acreditados y consentimientos. Detalle y evidencia privada en [runbook](15-runbook.md#primer-integrante-y-partidos-athletic-2026-09-08). Cambios operativos de datos, sin migraciones ni nuevo despliegue; el resto del roster y los pendientes generales de fase 7 siguen abiertos. |
+
+### Registro de activación Wallet en producción
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-08 | 8 / Apple en producción | **Activación técnica verificada.** Cuatro variables Apple cargadas privadamente y releídas idénticas; resto de variables conservadas. Certificado propio de producción vigente hasta 2027-10-07 13:31:40 UTC, `wallet:check` y firma local sintética CMS/cadena/manifiesto PASS. Deployment `41ae3f2c-1a3d-4e47-9c42-5ed37bf5a1d8` SUCCESS, SHA `5a305ca46424a7c52539513f7a0dcc408c05f4ec`; health 200/ok con el mismo SHA a las 18:13:32 UTC y smoke público PASS 6/6. Apple sin sesión respondió 302 al ingreso con `no-store`, badge SVG 200; Google sigue apagado y devuelve 404 con `no-store`. Navegador local sin sesión: badge y guardado nativo en producción pendientes del ensayo propio en iPhone. No cierra aceptación integral, política ni titular/licencia. Detalle y evidencia privada en [operación de billeteras](16-billeteras.md#activación-técnica-de-apple-en-producción--2026-09-08). |
+
+
+### Alta individual de integrante existente
+
+- [x] Ejecutar la incorporación individual autorizada, con historial por semestre, cargos, ADMIN global, auditoría y comprobación en producción.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-08 | Producción / ADR-045 | Excepción puntual documentada y ejecutada: seis términos históricos, cuatro comités activos con ficha DRAFT, integrante ACTIVE con ingreso 2023-1, 19 pertenencias MIEMBRO, dos cargos VP_GH de 2026 y ADMIN global. Solo dos comités vigentes; fechas históricas con precisión de semestre y salidas con límite exclusivo en Bogotá. Ensayo sintético de diez verificaciones y simulación transaccional PASS; carga con 33 auditorías, repetición sin cambios e IDs estables, 14 eventos y ocho recálculos derivados procesados. Ficha revisada con sesión real del ADMIN. Sin consentimientos, bienvenida, asistencias ni puntos; política y altas normales conservan su bloqueo. Evidencia privada y [cierre operativo](15-runbook.md#alta-individual-de-integrante-existente-2026-09-08), sin datos personales en el repositorio. |
+
 
 ### Integración del roster real (ADR-046)
 
@@ -524,3 +547,14 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-09-08 | Roster / software y catálogo | SHA `2a0cf6b31996b9f544f677546f3585da084493f4` verificado y desplegado SUCCESS en staging y producción; check local PASS (335 unitarias, 266 integración, 11 extractor, build), 29 e2e afectados y CI main/production con 174 e2e cada uno. Smoke 6/6 en ambos entornos y ensayo sintético de staging con rollback sin residuos. Migración aditiva y preservación de las dos personas existentes comprobadas. Catálogo completado: 16 comités ACTIVE/DRAFT con logos, seis términos históricos, 22 auditorías y repetición sin creaciones. CSV privado de 453 personas, conciliado con 492 filas de origen: validación local con lógica idéntica a producción, cero errores, 452 altas y una actualización previstas. Política pendiente: ninguna persona, consentimiento ni ImportJob del lote creado. [Detalle operativo](15-runbook.md#integración-del-roster-y-consulta-en-licencia-2026-09-08). |
+
+### Política de datos y habilitación (ADR-047)
+
+- [x] Borrador del texto en el repositorio, ADR y trazabilidad de la habilitación.
+- [ ] Aprobación de la junta con los cinco marcadores resueltos y constancia del respaldo de las autorizaciones.
+- [ ] Ensayo completo en staging: publicar, activar la versión e importar un CSV sintético con repetición.
+- [ ] Publicar la página y activar la versión en producción, con respaldo previo.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-08 | Política / borrador | [ADR-047](adr/ADR-047-politica-de-datos-y-habilitacion.md) y [17-politica-de-datos.md](17-politica-de-datos.md): el cuerpo publicado vive versionado en el repositorio, la versión es la fecha de aprobación de la junta y el respaldo de los consentimientos `MEMBERSHIP`/`IMPORT` es la aceptación que cada integrante da al entrar a la OE, certificada por escrito. El borrador cubre datos, finalidades, autorización, encargados y transferencias (Railway, Cloudflare, Resend, Apple, Google), derechos y plazos, retención, seguridad y vigencia, contrastado con el código. Quedan cinco marcadores para la junta: responsable, domicilio, buzón de atención, fecha de aprobación y menores de edad. Solo documentación: sin cambios de código, sin publicar y con la versión todavía en `pendiente`. |

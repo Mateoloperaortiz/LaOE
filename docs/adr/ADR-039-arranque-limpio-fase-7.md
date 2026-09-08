@@ -45,3 +45,11 @@ Guardar `pendiente` vuelve a bloquear de inmediato nuevas aceptaciones, sin edit
 T4 quedó completado con el candidato 853d622 validado en staging, CI y producción. El bootstrap real fue auditado e idempotente y el OTP de Resend permitió acceder al admin; las copias previa y posterior al bootstrap se restauraron y abrieron en recursos locales aislados. El indicador de respaldo y Política de datos se verificaron en la sesión real de producción, sin publicar texto ni activar una versión. El dominio temporal se eliminó después de esas pruebas; producción quedó sin dominios públicos y su health interno respondió 200. La comprobación final fue el 2026-09-07 a las 00:05:37 UTC, todavía 6 de septiembre en Bogotá.
 
 La publicación de la política real, PWA/push en iPhone, la noche de jobs y T6–T8 siguen pendientes. El dominio final continúa en GHPOINTS, que no se ha respaldado ni retirado como parte de T7; tampoco empezó el monitoreo de siete días. Fechas, SHA, recursos y pruebas concretas están en [15-runbook.md](../15-runbook.md). Esta evidencia completa los pasos ya ejecutados; no modifica las decisiones ni los pendientes restantes.
+
+## Enmienda: alta individual autorizada · 2026-09-08
+
+La [ADR-045](ADR-045-alta-individual-de-integrante-existente.md) habilita una única carga privada de un integrante existente con autorización expresa del ADMIN. Amplía la excepción operativa sin alterar el bootstrap, la política pendiente ni el bloqueo de las altas normales. No registra consentimientos ni bienvenida; el detalle y la verificación se conservan en el runbook y en evidencia privada.
+
+## Enmienda: habilitación de la política · 2026-09-08
+
+La [ADR-047](ADR-047-politica-de-datos-y-habilitacion.md) concreta el punto 4: qué texto se publica, de dónde sale, cómo se numera su versión y con qué se respaldan las autorizaciones de membresía antes de aplicar el roster. No cambia el guard ni el control ya desplegados; `pendiente` sigue siendo el freno inmediato.

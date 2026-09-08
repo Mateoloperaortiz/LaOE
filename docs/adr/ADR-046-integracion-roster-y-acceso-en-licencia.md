@@ -1,6 +1,6 @@
 # ADR-046: Integración del roster y acceso de consulta en licencia
 
-- Estado: Aceptada; implementada y verificada en staging y producción. Importación de personas pendiente por política de datos.
+- Estado: Aceptada (enmendada por ADR-047); implementada y verificada en staging y producción. Importación de personas pendiente por política de datos.
 - Fecha: 2026-09-08
 - Enmienda: ADR-003, ADR-034, ADR-037 y ADR-039
 - Relacionadas: ADR-014, ADR-030, ADR-032, ADR-040 y ADR-045
@@ -28,3 +28,7 @@ El SHA `2a0cf6b31996b9f544f677546f3585da084493f4` quedó desplegado con estado S
 ## Consecuencias
 
 La migración es aditiva y compatible con registros existentes. La publicación de privacidad y los pendientes de GH siguen siendo requisitos de datos, no se resuelven inventando aceptaciones ni fechas. Los originales y reportes de importación conservan su tratamiento privado y las reglas de retención vigentes.
+
+## Enmienda (2026-09-08, ADR-047)
+
+El punto 7 se concreta: el texto por publicar vive en [17-politica-de-datos.md](../17-politica-de-datos.md), la versión es la fecha de aprobación de la junta y el respaldo de las autorizaciones de membresía es la aceptación que cada integrante da al entrar a la OE, certificada por escrito antes de aplicar el lote. El orden de ejecución y su evidencia están en el [runbook](../15-runbook.md#habilitación-de-la-política-de-datos-adr-047-2026-09-08).

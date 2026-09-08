@@ -59,7 +59,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-027 | Unirse, botón | Postulate | GH | Propuesta |
 | T-028 | Unirse, cuando no hay convocatoria abierta | Ahora no hay convocatoria abierta. Dejanos tu correo y te avisamos cuando abra. | GH | Propuesta |
 | T-029 | Privacidad, título | Tratamiento de datos personales | JUNTA | Propuesta |
-| T-030 | Privacidad, texto | Política aprobada por la OE (texto por entregar) | JUNTA | Pendiente |
+| T-030 | Privacidad, texto | Texto completo en docs/17-politica-de-datos.md; se publica en la página privacidad y su versión es la fecha de aprobación | JUNTA | Borrador entregado; falta aprobación de la junta |
 | T-031 | Pie de página | Organización Estudiantil · Universidad EAFIT · desde 1987 | COM | Propuesta |
 | T-032 | Página no encontrada | Esta página no existe. Volvé al inicio. | MATEO | Propuesta |
 | T-033 | Error del servidor | Algo falló de nuestro lado. Ya nos enteramos; intentá de nuevo en un rato. | MATEO | Propuesta |

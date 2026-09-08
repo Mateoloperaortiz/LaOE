@@ -297,6 +297,59 @@ Evidencia privada de operación: `/Users/mateo/.codex/private/casa-digital/relea
 
 Pendientes conservados: OTP real sobre el dominio final (el acceso real anterior está registrado en T4), aceptación iPhone, validación nocturna y semana de monitoreo, integraciones exclusivas/archivo del repo GHPOINTS. Lectura de producción a las 16:42:21: política `pendiente`, página de privacidad DRAFT sin cuerpo, una persona y cero comités; falta el contenido real para la presentación. Los proveedores Wallet de producción continúan sin activar. Estos pendientes no impiden acreditar la publicación del dominio y la eliminación del proyecto, pero mantienen abierta la fase 7.
 
+## Primer integrante y partidos Athletic (2026-09-08)
+
+Carga operativa solicitada y verificada en `casa-digital` / `production`, con el mismo despliegue `095ba4f0-b246-4a52-8119-3904f5643fe3`. Se reutilizaron los comandos de dominio dentro de una transacción con lock y actor del primer ADMIN. No se ejecutaron seeds, migraciones, altas adicionales ni concesiones de permisos.
+
+- Conservados el único usuario, su membresía ACTIVE, el ingreso 2026-1 y el permiso ADMIN global.
+- Creado 2026-2 del 1 de julio al 31 de diciembre, con valores predeterminados del término; GEMIS activo, logo `gemis` y publicación DRAFT. Una sola pertenencia actual con cargo FINANCIERO; no se completó historia de comité en 2026-1.
+- Cinco ocasiones ACTIVITY / ATHLETIC_MATCH generales, 10 puntos, aprobación AUTO y código rotativo obligatorio. Ventana desde 30 minutos antes hasta 180 minutos después del inicio, zona America/Bogota, sin hora de finalización. Placa cubierta para voleibol/básquetbol y cancha de grama sintética para fútbol.
+
+| Partido | Inicio en Bogotá | Estado | publicId | Consola |
+| --- | --- | --- | --- | --- |
+| Voleibol vs. AIESEC | 2026-09-07 15:00 | CLOSED | `e6r2uhq3mm` | `/admin/ocasiones/kfzrq5hghii9xqcdovjgaj45` |
+| Básquetbol vs. GPG | 2026-09-09 14:30 | OPEN | `x7pv3fjb7e` | `/admin/ocasiones/z5byjcof2475ids2zpwikpjf` |
+| Básquetbol vs. Partners | 2026-09-10 11:00 | OPEN | `anubcwumrk` | `/admin/ocasiones/hc8e6k5xiniq4c6mnr4p2i32` |
+| Fútbol masculino vs. Supernovas | 2026-09-10 11:00 | OPEN | `furqxp5xd4` | `/admin/ocasiones/ge0otzafjuy9p9bv9dejfena` |
+| Fútbol femenino vs. Krepres | 2026-09-11 10:00 | OPEN | `u478cfpdv4` | `/admin/ocasiones/qyzwc1gewe7ou07rsewz395y` |
+
+Cada enlace de asistencia es `/a/<publicId>`. Los dos partidos simultáneos conservan registros separados. El lunes permanece en Administración y en la lectura del calendario personal; la agenda de próximos muestra los otros cuatro.
+
+| Verificación | Resultado |
+| --- | --- |
+| Integración sintética | 19/19 PASS en cuatro archivos (`participation-checkin`, `participation-occasions`, `people-membership`, `agenda`), 6,10 s. Cubre código ausente/incorrecto/válido, ventana, 10 puntos y duplicados, incluidos 500 check-ins concurrentes. |
+| Simulación / aplicación | Simulación PASS a las 17:39:07 UTC; aplicación iniciada a las 17:39:36 UTC, PASS. 14 auditorías atribuidas al actor: término, comité, pertenencia, cinco creaciones, cinco aperturas y un cierre. |
+| Repetición | PASS a las 17:40:12 UTC; cero cambios y misma auditoría. SHA-256 de la proyección comparada `3a513f7c2d2c3f5679163a4703c476e82ecc1b43e6e7b9fc7c81075d6f0afc6d`. |
+| Sesión y vistas reales | Acceso autenticado a Mi OE y Administración; ficha con ingreso 2026-1, ACTIVE/ADMIN y GEMIS–Financiero; carnet con cargo y 2026-2; cuatro partidos próximos con sus horarios/lugares; consola con QR y código rotativo; enlace del lunes muestra registro cerrado. Se usó una sesión existente, sin solicitar un OTP nuevo. |
+| Efectos y conteos | PASS a las 17:41:49 UTC: eventos de pertenencia, cierre, score y permanencia procesados al primer intento, sin dead letters; una persona, cero check-ins, entradas de puntos y consentimientos. La carga no acredita asistencia retroactiva. |
+
+Evidencia privada: `/Users/mateo/.codex/private/casa-digital/perfil-athletic-20260908/`, con simulación, aplicación, repetición, identificadores y `verification.json`. Datos personales y archivos operativos fuera del repositorio. La política sigue pendiente; esto completa únicamente el primer integrante y estos partidos, sin cerrar el resto del roster, OTP nuevo del dominio final ni los otros pendientes de fase 7.
+
+## Activación de Apple Wallet en producción · 2026-09-08
+
+Activación solicitada por Mateo para disponer del botón en su iPhone. Se cargaron privadamente las cuatro variables Apple en el servicio `web` de `production`; la relectura confirmó coincidencia y conservación de las demás variables. Se usó el certificado de producción ya emitido, distinto del de staging y vigente hasta el 2027-10-07 a las 13:31:40 UTC. `wallet:check` y la firma local de un pase sintético sin credencial válida verificaron configuración, clave, cadena Apple, manifiesto y CMS; no emitieron un carnet de una persona.
+
+Redespliegue `41ae3f2c-1a3d-4e47-9c42-5ed37bf5a1d8` **SUCCESS**, con el mismo SHA `5a305ca46424a7c52539513f7a0dcc408c05f4ec`. Healthcheck Railway correcto a las 18:13:25 UTC; comprobación pública a las 18:13:32 UTC: `/api/health` 200/`ok` con ese SHA, `/api/wallet/apple` sin sesión 302 al ingreso con `no-store`, badge SVG 200 con hash esperado y Google 404 con `no-store`. Smoke público 6/6 correcto usando el origen efectivo del bucket. La primera invocación del smoke usó por error el endpoint S3 como origen esperado; corregir el argumento resolvió esa comprobación sin cambios de servidor.
+
+Apple queda habilitado en producción; Google continúa sin activar. El navegador de comprobación pidió ingreso, por lo que estos resultados no acreditan observación del botón en una sesión autenticada ni guardado nativo en producción; se solicitó al usuario recargar y guardar desde su iPhone. La aceptación física previa corresponde a staging. Los pendientes de política, titular/licencia y aceptación integral de fase 8 conservan su alcance.
+
+Evidencia privada: `/Users/mateo/.codex/private/casa-digital/wallet/production-activation-20260908/`, con `configuration-receipt.json`, `signature-check.json`, `http-verification.json`, `smoke.log` y `smoke-result.json`. No contiene valores de credenciales en los recibos. Operación de configuración, sin cambio del código desplegado ni promoción de otra revisión.
+
+
+## Alta individual de integrante existente (2026-09-08)
+
+Excepción individual autorizada por el ADMIN y documentada en [ADR-045](adr/ADR-045-alta-individual-de-integrante-existente.md). Operación privada de datos en `casa-digital / production`, sin APIs, migraciones, despliegue ni cambios de variables. El servicio web conservó el deployment `41ae3f2c-1a3d-4e47-9c42-5ed37bf5a1d8` (SUCCESS), SHA `5a305ca46424a7c52539513f7a0dcc408c05f4ec`.
+
+- **Preparación:** manifiesto individual y scripts fuera del repositorio; directorio 0700 y archivos 0600. Se comprobaron identidad del entorno, ADMIN autorizante, datos existentes y logos. El índice `alta-individual-20260908.json` del directorio privado de operaciones conserva las rutas, identificadores e informes; no se reproducen datos personales aquí.
+- **Ensayo sintético:** base local exclusiva, migrada y eliminada al terminar. Diez verificaciones PASS: guard de política pendiente, simulación con rollback íntegro, transacción de persona/historial, reanudación antes del permiso, representación de las 19 pertenencias, repetición con IDs estables, conflicto rechazado, sesión sintética ADMIN/junta y revocación, guard conservado y procesamiento del outbox sin participación ni comunicaciones.
+- **Simulación en producción:** iniciada a las 18:53:10 UTC, ejecutó las mutaciones dentro de una transacción revertida; comparación anterior/posterior idéntica, incluidas auditoría y outbox. Existían una persona, dos términos de 2026 y un comité.
+- **Carga:** iniciada a las 18:53:45 UTC. Creó seis términos de 2023–2025 con fechas convencionales, cuatro comités activos con logo existente y ficha DRAFT, una persona MEMBER/ACTIVE con ingreso 2023-1, 19 pertenencias MIEMBRO y dos cargos VP_GH para 2026. Las entradas conservan `joinedAt = null`; las dos salidas informadas usan el límite exclusivo del siguiente semestre en America/Bogota. ADMIN se concedió después mediante `grantPermissionAs`. Auditoría atribuida al ADMIN autorizante: **33 entradas**.
+- **Repetición:** iniciada a las 18:55:15 UTC; **cero cambios**, mismos IDs de persona, membresía, pertenencias, cargos, permiso y eventos. Sin nuevas auditorías ni eventos de esta operación. Se excluye del cálculo de idempotencia el total global del outbox, que también recibe jobs programados ajenos a la carga.
+- **Verificación de producción:** dos personas y dos ADMIN globales; únicamente dos comités vigentes para la persona incorporada. Ficha administrativa revisada con la sesión existente del ADMIN: ingreso, datos opcionales vacíos, historial completo, salidas y cargos correctos. El integrante puede iniciar sesión con su correo; no se creó una sesión en su nombre ni se solicitó su OTP.
+- **Efectos comprobados:** los **14 eventos de actualización y ocho recálculos derivados** se procesaron sin errores. Cero asistencias, entradas de puntos o consentimientos; los tres mensajes preexistentes se conservaron y la nueva persona no recibió ninguno. Política `pendiente` y página de privacidad sin cambios. Datos previos del primer integrante, comités y agenda conservados.
+
+La evidencia privada incluye manifiesto, código operativo, simulación, carga, repetición, verificación de lecturas y revisión de la ficha. La publicación de la política, el roster general y los pendientes de lanzamiento permanecen abiertos. La conexión operativa quedó cerrada a las 19:02:34 UTC; se comprobó el puerto cerrado y se eliminó su archivo temporal con credenciales.
+
 
 ## Integración del roster y consulta en licencia (2026-09-08)
 
@@ -317,3 +370,21 @@ La preparación privada concilia las 492 filas originales: 453 incluidas y 39 ex
 La aplicación de personas continúa bloqueada por política `pendiente` y página DRAFT vacía, conservadas sin cambios. Antes de aplicar: publicar el texto aprobado, activar su versión y disponer del respaldo de las autorizaciones de membresía. Tomar un respaldo reciente en esa ventana, subir únicamente el CSV final al asistente, elegir 2026-2, revisar el mapeo y la comparación actualizada sin errores y confirmar con un código reciente. Verificar altas, actualización, pertenencias de 2026-2, consentimiento MEMBERSHIP/IMPORT, auditoría y procesamiento de eventos; repetir sin duplicar personas ni pertenencias. La importación no envía bienvenida.
 
 Evidencia privada en `/Users/mateo/.codex/private/casa-digital/roster-release-20260908/` y `/Users/mateo/.codex/private/casa-digital/roster-20260908/`: recibos de despliegue, CI, smoke, sonda y preservación, aplicaciones del catálogo, validación, CSV, guía de entrega y pendientes. No se incorpora ningún dato personal a Git. Las cifras previstas no acreditan una carga aplicada ni autorizaciones obtenidas.
+
+## Habilitación de la política de datos (ADR-047, 2026-09-08)
+
+Estado al escribir esta sección: borrador entregado en [17-politica-de-datos.md](17-politica-de-datos.md), página `privacidad` en DRAFT y vacía, `privacy.policyVersion` en `pendiente`. **No se ejecutó ningún paso de los que siguen.**
+
+Requisitos previos, todos de la junta: responsable del tratamiento y su vínculo con EAFIT, domicilio, buzón real de atención al titular, fecha de aprobación (que es la versión, `AAAA-MM-DD`), decisión sobre integrantes menores de edad y constancia escrita de que la admisión a la OE incluye la aceptación del tratamiento, con la ubicación de esa evidencia.
+
+Orden de ejecución, un paso por vez y con su evidencia:
+
+1. **Ensayo en staging.** Publicar la página con el texto aprobado, activar una versión de ensayo, comprobar que desaparecen T-1178/T-1179 y aplicar un CSV **sintético** con el asistente; repetirlo para ver que no duplica. Es el primer upload/apply completo del asistente contra un entorno remoto.
+2. **Respaldo previo en producción.** Casa Digital → production → backup → Cron Runs → Run now; anotar deployment, archivo y `backup.lastRunAt`.
+3. **Publicar.** `/admin/paginas` → `privacidad`: cuerpo aprobado, `PUBLISHED`, `PUBLIC`. Revisar `/privacidad` en el dominio final; si muestra "en preparación", el cuerpo quedó vacío.
+4. **Activar.** `/admin/sistema/politica` con ADMIN y step-up: guardar la versión aprobada. La acción rechaza una página sin publicar, no pública o vacía; la escritura queda auditada como `config.updated`.
+5. **Comprobar la habilitación.** `/app/ajustes` sin aviso y con "Autorizar" activo, `/admin/personas/importar` sin banner.
+6. **Aplicar el lote.** Respaldo reciente, subir solo el CSV final A–L, término 2026-2, revisar mapeo y vista previa (452 nuevas, 1 con cambios, cero errores, 453 avisos de mayúsculas) y **revisar la propuesta de permiso de líder de cada `General` antes de confirmar**: viene marcada y concede permisos reales. Confirmar con código nuevo.
+7. **Verificar y registrar.** Conteos de personas, membresías y pertenencias de 2026-2; consentimientos `MEMBERSHIP`/`IMPORT` con la versión publicada; `ImportJob` con su resumen; outbox drenado sin deadletters; repetición sin duplicados; sesión real de una persona importada. Registrar aquí las cifras y las referencias, sin datos personales.
+
+Si algo sale mal, guardar `pendiente` en el mismo control: bloquea de inmediato altas, importaciones y autorizaciones nuevas, sin borrar el texto publicado ni los consentimientos ya registrados.

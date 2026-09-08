@@ -176,9 +176,9 @@ export const textos = {
   },
   "T-030": {
     where: "Privacidad, texto",
-    text: "Política aprobada por la OE (texto por entregar)",
+    text: "Texto completo en docs/17-politica-de-datos.md; se publica en la página privacidad y su versión es la fecha de aprobación",
     owner: "JUNTA",
-    status: "Pendiente",
+    status: "Borrador entregado; falta aprobación de la junta",
   },
   "T-031": {
     where: "Pie de página",

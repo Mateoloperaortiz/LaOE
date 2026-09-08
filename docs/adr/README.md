@@ -13,7 +13,8 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-046](ADR-046-integracion-roster-y-acceso-en-licencia.md) | Integración del roster y acceso de consulta en licencia | Implementada y verificada; carga pendiente por política |
+| [ADR-047](ADR-047-politica-de-datos-y-habilitacion.md) | Política de datos, su versión y el respaldo de las autorizaciones | Aceptada; borrador entregado, publicación pendiente |
+| [ADR-046](ADR-046-integracion-roster-y-acceso-en-licencia.md) | Integración del roster y acceso de consulta en licencia | Implementada y verificada; carga pendiente por política (enmendada por ADR-047) |
 | [ADR-001](ADR-001-monolito-modular-serverless.md) | Monolito modular con un solo Postgres | Aceptada (enmendada por ADR-021 y ADR-032) |
 | [ADR-002](ADR-002-persona-como-eje.md) | La persona es el eje; la membresía es un ciclo de vida | Aceptada |
 | [ADR-003](ADR-003-etapas-por-comando.md) | Etapas explícitas por comando | Aceptada (enmendada por ADR-039) |
@@ -27,7 +28,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-011](ADR-011-autorizacion-en-servidor.md) | Autorización en servidor | Aceptada |
 | [ADR-012](ADR-012-outbox-transaccional.md) | Outbox transaccional; efectos fuera del commit | Aceptada (enmendada por ADR-021 y ADR-038, ADR-040) |
 | [ADR-013](ADR-013-formularios-en-la-app.md) | Todo formulario vive en la app | Aceptada (enmendada por ADR-037) |
-| [ADR-014](ADR-014-privacidad-por-diseno.md) | Privacidad por diseño (Ley 1581 de 2012) | Aceptada (enmendada por ADR-030, ADR-039, ADR-040) |
+| [ADR-014](ADR-014-privacidad-por-diseno.md) | Privacidad por diseño (Ley 1581 de 2012) | Aceptada (enmendada por ADR-030, ADR-039, ADR-040 y ADR-047) |
 | [ADR-015](ADR-015-canales.md) | Canales de comunicación | Aceptada (enmendada por ADR-023 y ADR-038) |
 | [ADR-016](ADR-016-medios-en-r2.md) | Medios en un bucket privado sin cargar la app | Reemplazada por ADR-022 |
 | [ADR-017](ADR-017-admin-kit.md) | Admin kit declarativo | Aceptada |
@@ -57,6 +58,8 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-041](ADR-041-wordle-diario-y-cierre-de-puntos.md) | Wordle diario y cierre transaccional de puntos | Aceptada |
 | [ADR-043](ADR-043-experiencia-administrativa.md) | Experiencia administrativa adaptable | Aceptada |
 | [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) | Experiencia del portal y Mi OE | Aceptada; verificación de implementación pendiente |
+
+| [ADR-045](ADR-045-alta-individual-de-integrante-existente.md) | Alta individual de un integrante existente con historial | Aceptada; operación verificada |
 
 ## Plantilla
 

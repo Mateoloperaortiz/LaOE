@@ -28,13 +28,14 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 ## Normativa y privacidad
 
-- [ ] Publicar la página `privacidad` desde Páginas con audiencia PUBLIC, estado PUBLISHED y cuerpo completo; revisar `/privacidad` y guardar la versión desde Política de datos (`/admin/sistema/politica`) con ADMIN y step-up. El control está desplegado y verificado en producción; el texto real y su habilitación siguen pendientes. Habilita nuevas aceptaciones, altas y roster; el bootstrap no registra consentimiento
+- [ ] Publicar la página `privacidad` desde Páginas con audiencia PUBLIC, estado PUBLISHED y cuerpo completo; revisar `/privacidad` y guardar la versión desde Política de datos (`/admin/sistema/politica`) con ADMIN y step-up. El control está desplegado y verificado en producción; el cuerpo sale de [17-politica-de-datos.md](17-politica-de-datos.md) y su publicación espera la aprobación de la junta. Habilita nuevas aceptaciones, altas y roster; el bootstrap no registra consentimiento
 - [ ] Revisión de JUNTA de T-1178 y T-1179, avisos de política pendiente
 
 - [x] Estatutos vigentes en PDF: el firmado con la reforma del 2026-05-08 (28 páginas) está en manos de Mateo; se sube desde `/admin/documentos` y sus artículos se extraen con `scripts/normativa-extract.py` en la fase 2
 - [x] Reglamento vigente en PDF: el firmado con la reforma del 2026-05-08 (43 páginas, con el Anexo 1) está en manos de Mateo; mismo camino
 - [x] Publicación real de normativa 2026 (ADR-042), verificada el 2026-09-08: estatutos 60 artículos + 3 secciones; reglamento 74 artículos + 4 secciones, organigrama, tabla y Anexo 1; versión 2026-05-08, PUBLISHED/MEMBERS. PDFs originales e integridad del contenido, búsquedas, acceso privado y repetición sin duplicados comprobados en producción. IDs, hashes y evidencia en el [runbook](15-runbook.md#normativa-completa-de-2026-adr-042).
-- [ ] Texto de la política de tratamiento de datos personales ya aprobada (documento o PDF) y nombre del responsable del tratamiento; confirmar que cubre la galería de egresados y el contacto posterior a la salida; su versión es la que se guarda en `privacy.policyVersion` (hoy "pendiente") y la que registran los consentimientos
+- [ ] Aprobación de la junta al borrador de la política ([17-politica-de-datos.md](17-politica-de-datos.md), ADR-047) y los cinco marcadores que faltan: responsable del tratamiento y su vínculo con EAFIT, domicilio, buzón real de atención al titular, fecha de aprobación (que es la versión) y qué se hace con integrantes menores de edad. El borrador ya cubre galería de egresados, contacto posterior a la salida, push, campañas y billeteras; su versión es la que se guarda en `privacy.policyVersion` (hoy "pendiente") y la que registran los consentimientos
+- [ ] Constancia escrita de la junta o de GH de que la admisión a la OE incluye la aceptación del tratamiento de datos, y dónde está esa evidencia: es el respaldo de los consentimientos `MEMBERSHIP`/`IMPORT` de la carga del roster (ADR-047, punto 3)
 - [ ] Correo de salida voluntaria (T-206) y correo a los importados (T-201): sin texto final la app no los envía
 
 - [ ] Política y avisos de billeteras (ADR-040): nombre, comités, semestre y semestre de ingreso enviados a Google por acción propia; almacenamiento/sincronización de Apple según su configuración; revisión de T-1214 y T-1215 antes de activar cuentas reales
@@ -78,7 +79,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Preguntas reales de la encuesta corta tras una ocasión: el seed trae una calificación de 1 a 5 y un comentario; GH elige el formulario por defecto en `survey.defaultFormId`
 - [x] Claves VAPID propias para producción y staging generadas y cargadas el 2026-09-06; `VAPID_SUBJECT=https://oeeafit.com` como URL válida de contacto. La prueba de push en iPhone sigue pendiente
 - [ ] Confirmar con GH los supuestos de la fase 6: horas de los recordatorios (07:00 las actividades de hoy, 18:00 las reuniones y asambleas de mañana, 2 a 3 horas antes de cada asamblea) y de los avisos de permanencia (09:00); 50 correos por minuto en campañas; quien está en licencia no recibe push; los comentarios de la encuesta se muestran solo con 3 o más respuestas
-- [ ] Que la política de tratamiento de datos mencione las notificaciones push y las campañas por correo con su baja
+- [x] Que la política de tratamiento de datos mencione las notificaciones push y las campañas por correo con su baja: el borrador las cubre; queda sujeto a la aprobación del texto
 - [x] Acceso al dominio `oeeafit.com` (DNS) y a la cuenta de Resend comprobado el 2026-09-06; el dominio todavía no se ha movido; activación R2 registrada abajo
 
 - [ ] Fecha y aviso de lanzamiento de la app nueva por los canales de la OE; indicar cómo entrar por OTP y recordar la sesión antes de una asamblea
