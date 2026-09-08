@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import { getCarnetMetadata, issueCarnet, requireActor } from "@/modules/identity";
 import { getMyMembership, getPersonRecord } from "@/modules/people";
 import { isStalePass, listPassesFor, walletAvailability } from "@/modules/wallet";
+import { AppleWalletLink } from "@/modules/wallet/components/AppleWalletLink";
 import { Cartel } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
@@ -107,12 +108,7 @@ export default async function CarnetPage({ searchParams }: PageProps<"/app/carne
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
             {available.apple ? (
               <div className="flex min-w-0 flex-1 flex-col items-start gap-3">
-                <a
-                  href="/api/wallet/apple"
-                  target="_blank"
-                  rel="noopener"
-                  className="inline-flex min-h-12 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-titulo"
-                >
+                <AppleWalletLink className="inline-flex min-h-12 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-titulo">
                   <Image
                     src="/wallet/apple-wallet-badge.svg"
                     alt={t("T-1191")}
@@ -121,7 +117,7 @@ export default async function CarnetPage({ searchParams }: PageProps<"/app/carne
                     unoptimized
                     className="h-12 w-auto max-w-full object-contain"
                   />
-                </a>
+                </AppleWalletLink>
                 <p className="max-w-prose text-sm text-tinta-suave">{t("T-1215")}</p>
               </div>
             ) : null}

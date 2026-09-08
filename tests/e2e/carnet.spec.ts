@@ -53,6 +53,42 @@ test("ofrece el pase Apple y explica sus datos; Google apagado no se ofrece", as
   await sinViolaciones(page);
 });
 
+for (const standalone of [false, true]) {
+  test(`el click Apple navega ${standalone ? "en la misma ventana de la PWA" : "en otra ventana del navegador"}`, async ({
+    page,
+    context,
+  }) => {
+    await page.addInitScript((installed) => {
+      Object.defineProperty(navigator, "standalone", { value: installed });
+    }, standalone);
+    // Respuesta HTML sintética: comprueba navegación, sin emitir un pase ni simular Wallet nativo.
+    // La ruta del contexto también intercepta la primera petición de una ventana nueva.
+    await context.route("**/api/wallet/apple", (route) =>
+      route.fulfill({
+        contentType: "text/html; charset=utf-8",
+        body: "<h1>Descarga sintética</h1>",
+      }),
+    );
+    await page.goto("/app/carnet");
+    const apple = page.getByRole("link", { name: "Agregar a Apple Wallet", exact: true });
+    if (standalone) {
+      const before = context.pages().length;
+      await apple.click();
+      await expect(page).toHaveURL(/\/api\/wallet\/apple$/);
+      await expect(page.getByRole("heading", { name: "Descarga sintética" })).toBeVisible();
+      expect(context.pages()).toHaveLength(before);
+    } else {
+      const opened = context.waitForEvent("page");
+      await apple.click();
+      const popup = await opened;
+      await expect(popup).toHaveURL(/\/api\/wallet\/apple$/);
+      await expect(popup.getByRole("heading", { name: "Descarga sintética" })).toBeVisible();
+      await expect(page).toHaveURL(/\/app\/carnet$/);
+      await popup.close();
+    }
+  });
+}
+
 test("revoca el QR de billetera y conserva el carnet de Mi OE", async ({ page }) => {
   expect((await page.request.get("/api/wallet/apple")).status()).toBe(200);
   const before = (await (await page.request.get("/api/mis-datos")).json()) as CarnetExport;
