@@ -1,6 +1,6 @@
 import "server-only";
-import allowedV1 from "../data/wordle/versions/rla-es-2.9-oe-v1/allowed.json";
-import answersV1 from "../data/wordle/versions/rla-es-2.9-oe-v1/answers.json";
+import allowedV1 from "../data/wordle/versions/rla-es-2.9-oe-v1/allowed.json" with { type: "json" };
+import answersV1 from "../data/wordle/versions/rla-es-2.9-oe-v1/answers.json" with { type: "json" };
 import { normalizeWordleGuess } from "./wordle-pure";
 
 export const WORDLE_DICTIONARY_VERSION = "rla-es-2.9-oe-v1";
