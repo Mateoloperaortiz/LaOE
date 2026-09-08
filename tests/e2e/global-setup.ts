@@ -304,7 +304,7 @@ export default async function globalSetup(): Promise<void> {
     }
   }
   if (home) {
-    // Miembro desechable de la fase 5: pide licencia y GH la aprueba (pierde el acceso al aprobarse).
+    // Miembro desechable: al aprobar GH la licencia, conserva consulta de Mi OE y suspende operaciones.
     const [leaver] = await db
       .insert(person)
       .values({

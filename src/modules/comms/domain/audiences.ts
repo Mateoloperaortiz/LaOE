@@ -2,7 +2,7 @@ import { listActiveMemberRefs, listTermCommitteeMembers } from "@/modules/people
 import { getCurrentTerm } from "@/modules/terms";
 
 // Quién recibe cada aviso (ADR-038 reglas 6 y 7): comms resuelve la audiencia con lecturas de people.
-// Quien está en licencia no tiene acceso a Mi OE y no recibe push; los anonimizados tampoco.
+// Quien está en licencia conserva consulta de Mi OE, pero sigue excluido del push; los anonimizados también.
 
 /** Activos y honorarios: la audiencia de un anuncio general, una convocatoria o un recordatorio general. */
 export async function membersAudience(): Promise<string[]> {

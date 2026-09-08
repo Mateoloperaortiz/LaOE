@@ -517,10 +517,10 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 
 - [x] Preparar CSV privado A–L con conciliación por fila y comparación con producción.
 - [x] Implementar campos opcionales y acceso de consulta en licencia.
-- [ ] Completar verificación, despliegue y preparación del catálogo productivo.
+- [x] Completar verificación, despliegue y preparación del catálogo productivo.
 - [ ] Publicar política real, activar versión y acreditar autorizaciones de membresía.
 - [ ] Aplicar lote válido con step-up y respaldo previo; completar pendientes de GH en una segunda carga.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
-| 2026-09-08 | Roster / preparación | CSV privado de 453 personas (452 altas y una actualización prevista), con origen de 492 filas conciliado. Se excluyen columnas M/N y hoja auxiliar, se recuperan celulares mal formateados y se separan conflictos, incompletos y graduados. Comparación productiva de solo lectura: ingreso, cargos e historia conservados. Implementación de cuatro campos opcionales y consulta ON_LEAVE; verificación y despliegue en curso. Política pendiente; ninguna persona ni consentimiento del lote aplicado. |
+| 2026-09-08 | Roster / software y catálogo | SHA `2a0cf6b31996b9f544f677546f3585da084493f4` verificado y desplegado SUCCESS en staging y producción; check local PASS (335 unitarias, 266 integración, 11 extractor, build), 29 e2e afectados y CI main/production con 174 e2e cada uno. Smoke 6/6 en ambos entornos y ensayo sintético de staging con rollback sin residuos. Migración aditiva y preservación de las dos personas existentes comprobadas. Catálogo completado: 16 comités ACTIVE/DRAFT con logos, seis términos históricos, 22 auditorías y repetición sin creaciones. CSV privado de 453 personas, conciliado con 492 filas de origen: validación local con lógica idéntica a producción, cero errores, 452 altas y una actualización previstas. Política pendiente: ninguna persona, consentimiento ni ImportJob del lote creado. [Detalle operativo](15-runbook.md#integración-del-roster-y-consulta-en-licencia-2026-09-08). |

@@ -31,7 +31,7 @@ sequenceDiagram
 
 | Tema | Regla |
 | --- | --- |
-| Quién entra | `Membership.status` `ACTIVE` u `HONORARY`; licencia, retiro y cambio de correo estampan `Person.sessionsRevokedAt` en la misma transacción y ninguna sesión anterior vuelve a resolver un actor; el outbox borra esas sesiones y revoca los permisos segundos después ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)). Los egresados no entran: su correo institucional suele caducar al graduarse ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
+| Quién entra | `Membership.status` `ACTIVE`, `HONORARY` u `ON_LEAVE`; la licencia conserva sesiones y acceso de consulta a Mi OE y datos propios, con participación, permisos operativos y nuevas credenciales suspendidos ([ADR-046](adr/ADR-046-integracion-roster-y-acceso-en-licencia.md)). Retiro y cambio de correo estampan `Person.sessionsRevokedAt` en la misma transacción; ninguna sesión anterior vuelve a resolver un actor. El outbox borra esas sesiones y, en el retiro, procesa la revocación de permisos ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)). Los egresados no entran: su correo institucional suele caducar al graduarse ([ADR-024](adr/ADR-024-reglas-de-participacion.md)) |
 | Dominio | `INSTITUTIONAL_EMAIL_DOMAINS` (`eafit.edu.co`); los contactos externos nunca inician sesión; "dar de alta" exige un correo institucional porque sin él la persona no podría entrar ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) |
 | OTP | 6 dígitos, `SHA-256(secreto:correo:código)`, 10 minutos, 5 intentos; máximo 5 solicitudes por correo y 12 por IP cada 15 minutos, contadas en Postgres |
 | Respuesta | Siempre "si tu correo está en el roster, te llega un código": no se enumera el roster |
@@ -44,7 +44,7 @@ sequenceDiagram
 | Check-in | `/a/[publicId]` exige sesión: sin cookie el proxy redirige a `/ingresar?next=…` (el código rotativo viaja en `?c=` dentro de `next`) y `/ingresar` muestra T-100; no hay check-in anónimo, la salida para quien no tiene sesión es el modo anfitrión |
 | Foto propia | Un miembro sin ADMIN puede pedir un `POST` prefirmado solo para su foto (`purpose = "photo"`, privada, hasta 5 MB); la foto se muestra solo con consentimiento `DIRECTORY_PHOTO` y se sirve con sesión |
 | Formularios públicos | `/f/[slug]` es la única ruta pública con escritura: honeypot (un campo oculto lleno responde el mismo "gracias" sin guardar), máximo 10 envíos por IP cada 15 minutos entre todos los formularios contados en `form_submission`, una respuesta por correo y formulario salvo que el formulario admita varias, tope de respuestas y ventana, y casilla de consentimiento obligatoria (T-154, propósito `DATA_PROCESSING`); un formulario de miembros exige sesión y toma la persona del actor ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) |
-| Solicitudes | Solo un miembro activo pide licencia, retiro o cambio de comité desde Mi OE; decide ADMIN (GH); una licencia o un retiro aprobados revocan las sesiones en la misma transacción y la respuesta llega por correo |
+| Solicitudes | Solo un miembro activo pide licencia, retiro o cambio de comité desde Mi OE; decide ADMIN (GH). La licencia aprobada conserva la consulta de Mi OE y la autogestión personal, con operaciones suspendidas; el retiro revoca las sesiones en la misma transacción. La respuesta llega por correo |
 | Sesiones | `/app/ajustes` lista dispositivos y permite cerrar los demás |
 | Desarrollo | Sin `RESEND_API_KEY` el código se imprime en consola; `OTP_FIXED_CODE` solo fuera de producción |
 
@@ -72,7 +72,7 @@ Cuando una ocasión tiene `requireRotatingCode`, la consola muestra el QR con un
 | --- | --- |
 | Enumerar el roster | Respuesta uniforme; sin diferencia de tiempo apreciable (el envío ocurre igual de rápido o no ocurre) |
 | Fuerza bruta del OTP | 5 intentos por reto, retos con vencimiento, rate limit por correo e IP |
-| Robo de cookie | HttpOnly, Secure, hash en base, cierre remoto, destrucción al cambiar estado |
+| Robo de cookie | HttpOnly, Secure, hash en base, cierre remoto y revocación por retiro o cambio de correo |
 | Redirect abierto | `next` validado como ruta same-origin |
 | Admin comprometido | Step-up para lo sensible, auditoría de cada mutación, no retirar el último ADMIN |
 | QR de billetera fotografiado o celular perdido | Rotar `oe2` invalida el anterior en servidor inmediatamente; Google recibe el QR nuevo en el mismo objeto y Apple se vuelve a agregar. El anfitrión coteja el nombre. No equivale a cerrar sesiones ni retirar la cuenta que ya guardó el objeto. Baja/anonimización invalidan generaciones antiguas aun si luego se reactiva (ADR-040) |

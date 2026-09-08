@@ -1,6 +1,6 @@
 # ADR-046: Integración del roster y acceso de consulta en licencia
 
-- Estado: Aceptada; implementación y verificación en curso
+- Estado: Aceptada; implementada y verificada en staging y producción. Importación de personas pendiente por política de datos.
 - Fecha: 2026-09-08
 - Enmienda: ADR-003, ADR-034, ADR-037 y ADR-039
 - Relacionadas: ADR-014, ADR-030, ADR-032, ADR-040 y ADR-045
@@ -22,6 +22,8 @@ El ADMIN autorizó conservar las columnas A–L del roster real, omitir CARNE y 
 ## Verificación
 
 Pruebas sintéticas de importación, actualización parcial, estados, acceso y permisos en licencia, credenciales, visibilidad, exportación y anonimización. La preparación privada concilia filas y hashes, y documenta exclusiones y correcciones. La verificación en producción conserva solamente agregados y referencias operativas en el repositorio.
+
+El SHA `2a0cf6b31996b9f544f677546f3585da084493f4` quedó desplegado con estado SUCCESS en staging (`9c04e035-bd9f-44c0-bc0d-85f38f19dfe0`) y producción (`cbe18f1f-2052-4584-aa1f-87d2853b8436`). Las corridas CI `34277569936` y `34279813835` aprobaron 174 pruebas e2e cada una. En staging, el smoke aprobó 6/6 y la sonda sintética comprobó campos, fechas, ceros iniciales, actualización parcial y restricciones de licencia con rollback y relectura sin residuos. La sonda no acredita el upload/apply completo del asistente ni OTP o proveedores Wallet. La importación real sigue pendiente de publicar y activar la política y respaldar las autorizaciones; el catálogo se completó por una operación auditada separada, con 16 comités y seis términos nuevos y repetición sin creaciones. La comparación local del CSV contra el catálogo actualizado confirmó 453 filas válidas, cero errores y 452 altas más una actualización previstas; no se creó un ImportJob ni se aplicaron personas. Los recibos y límites están en el runbook.
 
 ## Consecuencias
 
