@@ -2,7 +2,9 @@ import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, runCommand } from "@/db/tx";
+import { canParticipate, getMembershipRef } from "@/modules/people";
 import { calendarToken } from "../schema";
+import { ForbiddenError } from "./errors";
 
 // Token del calendario personal (ADR-038 regla 12): una capacidad de solo lectura sobre la agenda
 // propia, en claro para que Ajustes muestre siempre la URL; regenerarlo invalida el anterior.
@@ -15,6 +17,9 @@ function newToken(): string {
 
 /** El token vigente de la persona; se crea al primer uso. */
 export async function getOrCreateCalendarToken(personId: string): Promise<string> {
+  if (!canParticipate((await getMembershipRef(personId))?.status)) {
+    throw new ForbiddenError();
+  }
   const db = getDb();
   const [existing] = await db
     .select({ token: calendarToken.token })
@@ -45,6 +50,9 @@ export async function rotateCalendarTokenAs(actor: Actor): Promise<string> {
   }
   const token = newToken();
   await runCommand(actor, async (ctx) => {
+    if (!canParticipate((await getMembershipRef(personId, ctx.tx))?.status)) {
+      throw new ForbiddenError();
+    }
     await ctx.tx
       .insert(calendarToken)
       .values({ personId, token })

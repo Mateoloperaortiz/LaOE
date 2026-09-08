@@ -3,6 +3,7 @@ import { and, asc, count, eq, inArray, isNotNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, enqueueEvent, runCommand } from "@/db/tx";
 import { type FormField, getForm, parseFields, validateAnswers } from "@/modules/forms";
+import { canParticipate, getMembershipRef } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { t } from "@/shared/copy";
 import { splitTitleBody } from "@/shared/copy/render";
@@ -111,7 +112,7 @@ export async function getSurveyInviteForActor(
   token: string,
   now = new Date(),
 ): Promise<SurveyInviteState> {
-  if (!TOKEN.test(token)) {
+  if (!TOKEN.test(token) || !canParticipate((await getMembershipRef(personId))?.status)) {
     return { state: "NOT_FOUND" };
   }
   const db = getDb();
@@ -158,14 +159,16 @@ async function answerSurvey(
   invite: Extract<SurveyInviteState, { state: "OPEN" }>,
   answers: Record<string, unknown>,
   now: Date,
-): Promise<void> {
+): Promise<boolean> {
+  if (!canParticipate((await getMembershipRef(ctx.actor.personId ?? "", ctx.tx))?.status))
+    return false;
   const [row] = await ctx.tx
     .select()
     .from(occasionSurveyInvite)
     .where(eq(occasionSurveyInvite.id, invite.inviteId))
     .for("update");
   if (!row || row.answeredAt) {
-    return;
+    return false;
   }
   const [occ] = await ctx.tx
     .select({ committeeId: occasion.committeeId })
@@ -185,6 +188,7 @@ async function answerSurvey(
     entityId: invite.inviteId,
     after: { occasionId: invite.occasionId },
   });
+  return true;
 }
 
 /** La persona responde su invitación: valida contra los campos y guarda sin persona. */
@@ -202,8 +206,10 @@ export async function answerSurveyAs(
   if (!validated.ok) {
     return { ok: false, errors: validated.errors };
   }
-  await runCommand(actor, (ctx) => answerSurvey(ctx, invite, validated.answers, now));
-  return { ok: true };
+  const answered = await runCommand(actor, (ctx) =>
+    answerSurvey(ctx, invite, validated.answers, now),
+  );
+  return answered ? { ok: true } : { ok: false, state: "NOT_FOUND" };
 }
 
 export interface OccasionSurveySummary extends SurveySummary {

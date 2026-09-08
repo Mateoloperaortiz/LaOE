@@ -3,6 +3,7 @@ import Link from "next/link";
 import { findUpcomingEditionsForMembers } from "@/modules/events";
 import { requireActor } from "@/modules/identity";
 import { listMemberAgenda } from "@/modules/participation";
+import { canParticipate } from "@/modules/people";
 import { getCurrentTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { agendaItems, MemberAgenda } from "../_ui/MemberAgenda";
@@ -15,6 +16,7 @@ export default async function AgendaPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const actor = await requireActor("/app/agenda");
+  const participationAllowed = canParticipate(actor.membershipStatus);
   const [term, params] = await Promise.all([getCurrentTerm(), searchParams]);
   const selected = typeof params.actividad === "string" ? params.actividad : "";
   const now = new Date();
@@ -30,14 +32,21 @@ export default async function AgendaPage({
           <h1>{t("T-1661")}</h1>
           <p className="mt-3 max-w-prose text-tinta-suave">{t("T-1672")}</p>
         </div>
-        <Link href="/app/ajustes#calendario" className="boton-secundario">
-          {t("T-308")}
-        </Link>
+        {participationAllowed ? (
+          <Link href="/app/ajustes#calendario" className="boton-secundario">
+            {t("T-308")}
+          </Link>
+        ) : null}
       </header>
       {selected && !items.some((item) => item.key === selected) ? (
         <output>{t("T-1687")}</output>
       ) : null}
-      <MemberAgenda items={items} personId={actor.personId} selected={selected} />
+      <MemberAgenda
+        items={items}
+        personId={actor.personId}
+        selected={selected}
+        participationAllowed={participationAllowed}
+      />
     </div>
   );
 }

@@ -61,6 +61,10 @@ test("el asistente importa un roster con step-up y el nuevo miembro entra por OT
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Rosa Roster");
   await expect(page.getByText("PIXEL · Logística")).toBeVisible();
   await expect(page.getByText("+573001234567").first()).toBeVisible();
+  await page.getByRole("link", { name: "Datos y consentimiento", exact: true }).click();
+  await expect(page.getByText("000123456", { exact: true })).toBeVisible();
+  await expect(page.getByText("000654321", { exact: true })).toBeVisible();
+  await expect(page.getByText("29 de febrero de 2004", { exact: true })).toBeVisible();
 
   // La persona importada entra por OTP y ve su ficha. Se limpian las cookies de esta pestaña (no se
   // cierra la sesión del admin: la comparten las demás pruebas de la suite).
@@ -72,6 +76,10 @@ test("el asistente importa un roster con step-up y el nuevo miembro entra por OT
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page).toHaveURL(/\/app$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Hola, Rosa");
+  await page.goto("/app/ajustes#mis-datos");
+  await expect(page.getByText("000123456", { exact: true })).toBeVisible();
+  await expect(page.getByText("000654321", { exact: true })).toBeVisible();
+  await expect(page.getByText("29 de febrero de 2004", { exact: true })).toBeVisible();
 });
 
 test("la reautenticación conserva una propuesta de líder desmarcada", async ({ page }) => {

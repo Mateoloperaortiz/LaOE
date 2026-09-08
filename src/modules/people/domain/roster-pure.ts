@@ -1,6 +1,6 @@
-import { tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { parseCsv } from "@/shared/lib/csv";
-import { normalizePhone } from "./person-pure";
+import { documentTypeSchema, normalizePhone, parseBirthDate } from "./person-pure";
 
 // Reglas puras del roster (13-importacion-del-roster.md, ADR-029, ADR-034): lectura del CSV, mapeo de
 // columnas, validación fila por fila y diff contra lo existente. Sin I/O.
@@ -18,6 +18,10 @@ export const ROSTER_COLUMNS = [
   "transfer",
   "personalEmail",
   "notes",
+  "documentType",
+  "documentNumber",
+  "epikId",
+  "birthDate",
 ] as const;
 
 export type RosterColumn = (typeof ROSTER_COLUMNS)[number];
@@ -36,6 +40,10 @@ export const HEADER_ALIASES: Record<RosterColumn, string[]> = {
   transfer: ["TRANSFERENCIA"],
   personalEmail: ["CORREO PERSONAL", "EMAIL PERSONAL"],
   notes: ["OBSERVACIONES", "OBSERVACION", "NOTAS"],
+  documentType: ["TIPO DE DOCUMENTO"],
+  documentNumber: ["DOCUMENTO", "NUMERO DE DOCUMENTO"],
+  epikId: ["ID EPIK", "ID DE EPIK"],
+  birthDate: ["FECHA DE NACIMIENTO"],
 };
 
 /** Columnas sin las cuales una persona nueva no se puede crear (el correo siempre es obligatoria). */
@@ -128,14 +136,20 @@ export type RosterStatus = "ACTIVE" | "ON_LEAVE" | "HONORARY" | "INACTIVE";
 const STATUS_WORDS: Record<string, { status: RosterStatus; probation: boolean }> = {
   activo: { status: "ACTIVE", probation: false },
   activa: { status: "ACTIVE", probation: false },
+  nuevo: { status: "ACTIVE", probation: false },
+  nueva: { status: "ACTIVE", probation: false },
+  junta: { status: "ACTIVE", probation: false },
   licencia: { status: "ON_LEAVE", probation: false },
   "en licencia": { status: "ON_LEAVE", probation: false },
+  practica: { status: "ON_LEAVE", probation: false },
+  intercambio: { status: "ON_LEAVE", probation: false },
   honorario: { status: "HONORARY", probation: false },
   honoraria: { status: "HONORARY", probation: false },
   retirado: { status: "INACTIVE", probation: false },
   retirada: { status: "INACTIVE", probation: false },
   prueba: { status: "ACTIVE", probation: true },
   "en prueba": { status: "ACTIVE", probation: true },
+  "periodo de prueba": { status: "ACTIVE", probation: true },
 };
 
 export function parseStatus(raw: string): { status: RosterStatus; probation: boolean } | null {
@@ -226,6 +240,10 @@ export interface ValidatedRow {
   program?: string;
   personalEmail?: string;
   notes?: string;
+  documentType?: string;
+  documentNumber?: string;
+  epikId?: string;
+  birthDate?: string;
   committees?: ParsedCommittee[];
   entryTerm?: string;
   status?: RosterStatus;
@@ -309,6 +327,7 @@ export function parseRoleAssignments(
 }
 
 function isInstitutional(email: string, domains: string[]): boolean {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return false;
   const domain = email.split("@")[1] ?? "";
   return domains.some((allowed) => domain === allowed || domain.endsWith(`.${allowed}`));
 }
@@ -338,7 +357,6 @@ export function validateRoster(
     }
   }
   const generals = new Map<string, number>();
-  const missingTerms = new Set<string>();
   const unknownRoles = new Set<string>();
   const siglas = catalog.committees.map((item) => item.slug);
 
@@ -387,10 +405,42 @@ export function validateRoster(
     if (present.has("notes")) {
       result.notes = values.notes?.trim() ?? "";
     }
+    // Un dato opcional vacío o inválido no borra lo que ya se conoce de la persona (ADR-046).
+    for (const field of ["documentNumber", "epikId"] as const) {
+      const value = values[field]?.trim();
+      if (!present.has(field) || !value) continue;
+      if (
+        value.length > 80 ||
+        [...value].some(
+          (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
+        )
+      ) {
+        warnings.push(t("T-2080", { campo: HEADER_ALIASES[field][0] ?? field }));
+      } else {
+        result[field] = value;
+      }
+    }
+    if (present.has("documentType") && values.documentType?.trim()) {
+      const aliases: Record<string, string> = {
+        "CEDULA DE CIUDADANIA": "CC",
+        "TARJETA DE IDENTIDAD": "TI",
+        "CEDULA DE EXTRANJERIA": "CE",
+        "CEDULA DE EXTRAJERIA": "CE",
+      };
+      const normalized = normalizeHeader(values.documentType);
+      const parsed = documentTypeSchema.safeParse(aliases[normalized] ?? normalized);
+      if (parsed.success) result.documentType = parsed.data;
+      else warnings.push(t("T-2080", { campo: HEADER_ALIASES.documentType[0] ?? "" }));
+    }
+    if (present.has("birthDate") && values.birthDate?.trim()) {
+      const parsed = parseBirthDate(values.birthDate.trim());
+      if (parsed) result.birthDate = parsed;
+      else warnings.push(t("T-2081"));
+    }
     if (present.has("status")) {
       const status = parseStatus(values.status ?? "");
       if (!status) {
-        errors.push(text(5));
+        errors.push(normalizeText(values.status ?? "") === "graduado" ? t("T-2083") : text(5));
       } else {
         result.status = status.status;
         result.probation = status.probation;
@@ -402,8 +452,8 @@ export function validateRoster(
         errors.push(text(4));
       } else {
         result.entryTerm = term;
-        if (!catalog.termCodes.includes(term)) {
-          missingTerms.add(term);
+        if (current?.entryTerm && current.entryTerm !== term) {
+          errors.push(t("T-2084"));
         }
       }
     }
@@ -508,7 +558,18 @@ export function validateRoster(
     rows,
     updateMode,
     missingRequired,
-    missingTerms: [...missingTerms].sort(),
+    missingTerms: [
+      ...new Set(
+        rows
+          .filter(
+            (row) =>
+              row.errors.length === 0 &&
+              row.entryTerm &&
+              !catalog.termCodes.includes(row.entryTerm),
+          )
+          .map((row) => row.entryTerm as string),
+      ),
+    ].sort(),
     unknownRoles: [...unknownRoles].sort(),
   };
 }
@@ -520,6 +581,11 @@ export interface ExistingPerson {
   phone: string | null;
   program: string | null;
   personalEmail: string | null;
+  documentType?: string | null;
+  documentNumber?: string | null;
+  epikId?: string | null;
+  birthDate?: string | null;
+  entryTerm?: string | null;
   status: RosterStatus | null;
   probation: boolean;
   committees: Array<{ slug: string; roleCode: string; transferredIn: boolean }>;
@@ -552,6 +618,9 @@ export function diffRoster(rows: ValidatedRow[], existing: Map<string, ExistingP
       changes.push("program");
     if (row.personalEmail !== undefined && row.personalEmail !== (current.personalEmail ?? "")) {
       changes.push("personalEmail");
+    }
+    for (const field of ["documentType", "documentNumber", "epikId", "birthDate"] as const) {
+      if (row[field] !== undefined && row[field] !== (current[field] ?? "")) changes.push(field);
     }
     if (row.status !== undefined && row.status !== current.status) changes.push("status");
     if (row.probation !== undefined && row.probation !== current.probation) changes.push("status");

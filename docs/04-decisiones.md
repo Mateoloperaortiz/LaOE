@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [046](adr/ADR-046-integracion-roster-y-acceso-en-licencia.md) | Roster y licencia | Cuatro campos personales opcionales, importación depurada A–L, consulta en licencia con capacidades operativas suspendidas y carga condicionada a política/autorizaciones | Aceptada |
 | [001](adr/ADR-001-monolito-modular-serverless.md) | Monolito modular | Una app Next.js con módulos internos y un solo Postgres; sin Redis ni colas de terceros; el worker vive en el mismo proceso | Enmendada por 021 y 032 |
 | [002](adr/ADR-002-persona-como-eje.md) | La persona es el eje | `Person` es la raíz; la membresía es un ciclo de vida con historia; nadie se crea al hacer login | Aceptada |
 | [003](adr/ADR-003-etapas-por-comando.md) | Etapas por comando | Prospecto → Postulante → Miembro → Egresado cambia solo por comandos que auditan y escriben la línea de tiempo | Enmendada por 039 |

@@ -6,8 +6,8 @@ import { membership, person } from "../schema";
 
 export type MembershipStatus = (typeof membership.$inferSelect)["status"];
 
-/** Solo activos y honorarios entran a Mi OE (05-acceso.md). */
-export const SIGN_IN_STATUSES: readonly MembershipStatus[] = ["ACTIVE", "HONORARY"];
+/** La licencia conserva la consulta de Mi OE y la autogestión de datos propios. */
+export const SIGN_IN_STATUSES: readonly MembershipStatus[] = ["ACTIVE", "ON_LEAVE", "HONORARY"];
 
 export interface MemberSummary {
   personId: string;

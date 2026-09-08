@@ -44,6 +44,83 @@ describe("importación del roster", () => {
   beforeEach(truncateAll);
   afterAll(() => closeDb());
 
+  it("importa A–L, conserva vacíos opcionales e historia y repite sin duplicar", async () => {
+    const termId = await seedTerm();
+    const code = currentTermCode();
+    await seedCommittee("a3");
+    const adminId = await seedMember("admin.campos@eafit.edu.co");
+    const header =
+      "NOMBRE;APELLIDO;TIPO DE DOCUMENTO;DOCUMENTO;CORREO;ID EPIK;CELULAR;FECHA DE NACIMIENTO;PREGRADO;COMITES;ENTRADA A LA OE;ESTADO";
+    const bytes = csv(
+      [
+        `Persona;Sintética;TI;00123;roster.campos@eafit.edu.co;00045;;2004-02-29;Derecho;A3;${code};PERÍODO DE PRUEBA`,
+      ],
+      header,
+    );
+    const draft = await preview(adminId, termId, bytes);
+    expect(draft.rows[0]).toMatchObject({
+      documentType: "TI",
+      documentNumber: "00123",
+      epikId: "00045",
+      birthDate: "2004-02-29",
+      probation: true,
+    });
+    await applyRosterImportAs({ personId: adminId }, draft.jobId);
+    const [created] = await db()
+      .select()
+      .from(person)
+      .where(eq(person.email, "roster.campos@eafit.edu.co"));
+    expect(created).toMatchObject({
+      documentType: "TI",
+      documentNumber: "00123",
+      epikId: "00045",
+      birthDate: "2004-02-29",
+    });
+    const update = await preview(
+      adminId,
+      termId,
+      csv(
+        ["roster.campos@eafit.edu.co;CC;;;;Ingeniería"],
+        "CORREO;TIPO DE DOCUMENTO;DOCUMENTO;ID EPIK;FECHA DE NACIMIENTO;PREGRADO",
+      ),
+    );
+    expect(update.rows[0]).toMatchObject({ group: "CHANGED" });
+    expect(update.rows[0]?.changes).toContain("documentType");
+    await applyRosterImportAs({ personId: adminId }, update.jobId);
+    const [updated] = await db()
+      .select()
+      .from(person)
+      .where(eq(person.id, created?.id ?? ""));
+    expect(updated).toMatchObject({
+      documentType: "CC",
+      documentNumber: "00123",
+      epikId: "00045",
+      birthDate: "2004-02-29",
+    });
+    const conflicting = await preview(
+      adminId,
+      termId,
+      csv(["roster.campos@eafit.edu.co;2018-1"], "CORREO;ENTRADA A LA OE"),
+    );
+    expect(conflicting.counts.ERROR).toBe(1);
+    expect((await applyRosterImportAs({ personId: adminId }, conflicting.jobId)).skipped).toBe(1);
+    expect(await db().select().from(term).where(eq(term.code, "2018-1"))).toHaveLength(0);
+    expect((await getPerson360(created?.id ?? ""))?.membership?.firstTermCode).toBe(code);
+    const repeat = await preview(
+      adminId,
+      termId,
+      csv(
+        ["roster.campos@eafit.edu.co;CC;00123;00045;2004-02-29"],
+        "CORREO;TIPO DE DOCUMENTO;DOCUMENTO;ID EPIK;FECHA DE NACIMIENTO",
+      ),
+    );
+    expect(repeat.counts.UNCHANGED).toBe(1);
+    await applyRosterImportAs({ personId: adminId }, repeat.jobId);
+    expect(
+      await db().select().from(person).where(eq(person.email, "roster.campos@eafit.edu.co")),
+    ).toHaveLength(1);
+  });
+
   it("permite preparar el roster, pero la política pendiente impide aplicarlo sin efectos parciales", async () => {
     const termId = await seedTerm();
     await seedCommittee("a3");

@@ -1,6 +1,6 @@
 import "server-only";
 import { redirect } from "next/navigation";
-import { getActor } from "@/modules/identity";
+import { canOperate, getActor } from "@/modules/identity";
 import { getGroup, listMyGroupRoles, type WorkGroupRow } from "@/modules/permanence";
 import { clientIp } from "@/shared/lib/request";
 
@@ -22,6 +22,7 @@ export async function requireGroupOperator(
   if (!actor) {
     redirect(`/ingresar?next=${encodeURIComponent(returnTo)}`);
   }
+  if (!canOperate(actor)) redirect("/app");
   const group = await getGroup(groupId);
   if (!group) {
     redirect("/admin");
@@ -52,6 +53,7 @@ export async function requireEvaluator(
   if (!actor) {
     redirect(`/ingresar?next=${encodeURIComponent(returnTo)}`);
   }
+  if (!canOperate(actor)) redirect("/app");
   const base = { personId: actor.personId, ip: await clientIp() };
   if (actor.isAdmin) {
     return { actor: base, isAdmin: true, groupIds: null };

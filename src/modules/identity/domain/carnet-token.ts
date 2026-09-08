@@ -2,9 +2,9 @@ import { and, eq, lt } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Executor, runCommand, SYSTEM_ACTOR, type Tx } from "@/db/tx";
 import {
+  canParticipate,
   getWalletMemberState,
   lockWalletMember,
-  SIGN_IN_STATUSES,
   type WalletMemberState,
 } from "@/modules/people";
 import { carnetToken } from "../schema";
@@ -67,7 +67,7 @@ export async function getCarnetMetadata(
 }
 
 function requireMember(state: WalletMemberState | null): WalletMemberState {
-  if (!state || state.anonymizedAt || !SIGN_IN_STATUSES.includes(state.status)) {
+  if (!state || state.anonymizedAt || !canParticipate(state.status)) {
     throw new ForbiddenError();
   }
   return state;

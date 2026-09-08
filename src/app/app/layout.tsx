@@ -7,7 +7,7 @@ import { t, tList } from "@/shared/copy";
 import { MemberShell } from "./_ui/MemberShell";
 import "./member.css";
 
-// Mi OE: solo con sesión válida (activos y honorarios). Las pestañas de T-061 se habilitan por fase.
+// Mi OE incluye la consulta y la autogestión de miembros en licencia.
 const RUTAS: Record<string, string> = {
   Inicio: "/app",
   Comités: "/app/comites",
@@ -60,6 +60,11 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
           </form>
         }
       >
+        {actor.membershipStatus === "ON_LEAVE" ? (
+          <output className="mb-6 block rounded-xl border border-borde bg-fondo-suave p-4">
+            {t("T-2040")}
+          </output>
+        ) : null}
         {children}
       </MemberShell>
     </>

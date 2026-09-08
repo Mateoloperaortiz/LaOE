@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, type ReactElement, type ReactNode, useEffect, useState } from "react";
+import { Children, isValidElement, type ReactNode, useEffect, useState } from "react";
 
 /** Las anclas existentes siguen funcionando, también tras guardar o con atrás/adelante. */
 export function SettingsSections({
@@ -44,8 +44,8 @@ export function SettingsSections({
       </nav>
       <div className="min-w-0">
         {Children.map(children, (child) => {
-          const section = child as ReactElement<{ id: string }>;
-          return <div hidden={section.props.id !== active}>{child}</div>;
+          if (!isValidElement<{ id: string }>(child)) return null;
+          return <div hidden={child.props.id !== active}>{child}</div>;
         })}
       </div>
     </div>

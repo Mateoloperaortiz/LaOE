@@ -1,4 +1,5 @@
 import { getEnv } from "@/env";
+import { canParticipate, getMembershipRef } from "@/modules/people";
 import {
   CARNET_TOKEN,
   type SignedCarnet,
@@ -7,10 +8,13 @@ import {
   WALLET_CARNET_PREFIX,
 } from "./carnet-pure";
 import { resolveCarnetToken } from "./carnet-token";
+import { ForbiddenError } from "./errors";
 
 // El carnet de la persona con sesión (ADR-034 regla 10): el secreto vive aquí, nunca en src/app.
 
-export function issueCarnet(personId: string, now = new Date()): SignedCarnet {
+export async function issueCarnet(personId: string, now = new Date()): Promise<SignedCarnet> {
+  const member = await getMembershipRef(personId);
+  if (!canParticipate(member?.status)) throw new ForbiddenError();
   return signCarnet(personId, { secret: getEnv().SESSION_SECRET, now });
 }
 

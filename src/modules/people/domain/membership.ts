@@ -74,7 +74,7 @@ async function closeOpenCommitteeMemberships(
     .where(and(eq(committeeMembership.personId, personId), isNull(committeeMembership.leftAt)));
 }
 
-/** Activo ↔ licencia ↔ honorario; salir de activo u honorario corta el acceso. */
+/** Activo ↔ licencia ↔ honorario; la licencia mantiene acceso de consulta. */
 export async function changeMembershipStatus(
   ctx: CommandContext,
   personId: string,
@@ -322,6 +322,10 @@ export async function anonymizePerson(
       phone: null,
       personalEmail: null,
       program: null,
+      documentType: null,
+      documentNumber: null,
+      epikId: null,
+      birthDate: null,
       photoAssetId: null,
       stage: "ALUMNI",
       anonymizedAt: now,

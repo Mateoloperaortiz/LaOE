@@ -296,3 +296,16 @@ Archivo cifrado final en R2: bucket privado `oe-respaldos`, key `ghpoints/202609
 Evidencia privada de operación: `/Users/mateo/.codex/private/casa-digital/release-20260908/`; respaldo y reporte en `/Users/mateo/.codex/private/casa-digital/ghpoints-archive/20260908T164154Z/`. No contiene material que deba copiarse al repositorio. La fecha de retención quedó registrada; no se creó una tarea automática de eliminación.
 
 Pendientes conservados: OTP real sobre el dominio final (el acceso real anterior está registrado en T4), aceptación iPhone, validación nocturna y semana de monitoreo, integraciones exclusivas/archivo del repo GHPOINTS. Lectura de producción a las 16:42:21: política `pendiente`, página de privacidad DRAFT sin cuerpo, una persona y cero comités; falta el contenido real para la presentación. Los proveedores Wallet de producción continúan sin activar. Estos pendientes no impiden acreditar la publicación del dominio y la eliminación del proyecto, pero mantienen abierta la fase 7.
+
+
+## Integración del roster y consulta en licencia (2026-09-08)
+
+Implementación de [ADR-046](adr/ADR-046-integracion-roster-y-acceso-en-licencia.md): cuatro campos opcionales privados, importación parcial sin borrar vacíos y consulta de Mi OE en licencia con capacidades operativas suspendidas. Migración aditiva `0012_rapid_psylocke`: tres identificadores de texto y nacimiento SQL `date`, todos nullable.
+
+- Verificación local: `npm run check` PASS, 335 unitarias, 266 integración, 11 pruebas del extractor y build. Los 29 e2e de roster, personas, solicitudes/licencia, ajustes y carnet pasaron con datos sintéticos.
+- Preparación privada: 453 filas finales, 452 altas y una actualización previstas; las 492 filas de origen están conciliadas. La copia conserva únicamente A–L, con M/N y la hoja auxiliar físicamente excluidas; el Excel original permanece intacto. Un conflicto de identidad con una persona existente se deja pendiente, sin resolverlo por coincidencia de correo.
+- Respaldo productivo previo verificado: `20260908T204736Z-9206a6d16945af8a.tar.zst.age`, retención de 12 copias completas. Simulación READ ONLY del catálogo: 16 comités y seis términos históricos faltantes, cero escrituras.
+- Secuencia pendiente: CI del candidato, staging y ensayo sintético con rollback, promoción del mismo SHA, smoke productivo, aplicación y repetición del catálogo, comparación final del CSV usando la lógica desplegada. La evidencia se guarda en los directorios privados `roster-release-20260908` y `roster-20260908`.
+- La aplicación de personas continúa bloqueada por política `pendiente`: publicar el texto aprobado, activar su versión y disponer de las autorizaciones de membresía antes de subir el CSV al asistente, revisar cero errores y confirmar con un OTP reciente. Renovar el respaldo antes de esa aplicación si ocurre en otra ventana. Verificar altas, actualización, pertenencias de 2026-2, consentimiento MEMBERSHIP/IMPORT, auditoría y outbox; repetir sin duplicar personas ni pertenencias. La importación no envía bienvenida.
+
+No se publica el CSV ni los pendientes en Git. Las cifras previstas no acreditan una carga aplicada ni consentimientos obtenidos.

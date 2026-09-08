@@ -6,7 +6,7 @@ import { getOnboarding } from "@/modules/crm";
 import { findUpcomingEditionsForMembers } from "@/modules/events";
 import { requireActor } from "@/modules/identity";
 import { balanceFor, listMemberAgenda } from "@/modules/participation";
-import { getMyMembership } from "@/modules/people";
+import { canParticipate, getMyMembership } from "@/modules/people";
 import { getPersonPermanence } from "@/modules/permanence";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo, Insignia, LogoComite, Progreso } from "@/shared/brand";
@@ -23,6 +23,7 @@ import { markStepAction } from "./actions";
 
 export default async function AppHome() {
   const actor = await requireActor("/app");
+  const participationAllowed = canParticipate(actor.membershipStatus);
   const [mine, editions, announcements, devices] = await Promise.all([
     getMyMembership(actor.personId),
     findUpcomingEditionsForMembers(6),
@@ -30,7 +31,7 @@ export default async function AppHome() {
     countSubscriptionsFor(actor.personId),
   ]);
   const [avisoTitulo, avisoTexto, avisoBoton] = tList("T-1092") as [string, string, string];
-  const onboardingTermId = mine.term && mine.isNew ? mine.term.id : null;
+  const onboardingTermId = participationAllowed && mine.term && mine.isNew ? mine.term.id : null;
   const [steps, saldo, ocasiones, permanence] = await Promise.all([
     onboardingTermId ? getOnboarding(actor.personId, onboardingTermId) : Promise.resolve([]),
     mine.term ? balanceFor(actor.personId, mine.term.id) : Promise.resolve(0),
@@ -63,17 +64,24 @@ export default async function AppHome() {
               <span id="agenda-title">{t("T-062")}</span>
             </BarraTitulo>
           </div>
-          <MemberAgenda items={agenda.slice(0, 3)} personId={actor.personId} preview />
+          <MemberAgenda
+            items={agenda.slice(0, 3)}
+            personId={actor.personId}
+            participationAllowed={participationAllowed}
+            preview
+          />
           <Link href="/app/agenda" className="boton-secundario mt-4">
             {t("T-1667")}
           </Link>
         </section>
         <aside className="member-carnet-shortcut">
           <h2>{t("T-131")}</h2>
-          <p>{t("T-1674")}</p>
-          <Link href="/app/carnet" className="boton-calido">
-            {t("T-1673")}
-          </Link>
+          <p>{t(participationAllowed ? "T-1674" : "T-2042")}</p>
+          {participationAllowed ? (
+            <Link href="/app/carnet" className="boton-calido">
+              {t("T-1673")}
+            </Link>
+          ) : null}
           {permanence?.notices.length ? (
             <Link href="#permanencia" className="text-sm text-oe-paper underline">
               {t("T-1675", { n: permanence.notices.length })}
@@ -81,7 +89,9 @@ export default async function AppHome() {
           ) : null}
         </aside>
       </div>
-      {permanence && (permanence.result.evaluated || permanence.notices.length > 0) ? (
+      {participationAllowed &&
+      permanence &&
+      (permanence.result.evaluated || permanence.notices.length > 0) ? (
         <section aria-labelledby="permanencia" className="flex flex-col gap-4">
           <BarraTitulo color="amarillo" className="self-start">
             <span id="permanencia">{t("T-110")}</span>

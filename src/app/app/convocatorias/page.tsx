@@ -87,7 +87,9 @@ export default async function ConvocatoriasPage({ searchParams }: PageProps<"/ap
                         : t("T-898", { fecha: formatDate(call.closesAt) })}
                     </p>
                     <p className="text-sm">{call.selection === "FIRST_COME" ? porOrden : manual}</p>
-                    {inGroup ? (
+                    {actor.membershipStatus === "ON_LEAVE" ? (
+                      <p className="text-sm">{t("T-2041")}</p>
+                    ) : inGroup ? (
                       <p className="text-sm font-semibold">
                         {t("T-900", { grupo: groupName(call.groupId) })}
                       </p>

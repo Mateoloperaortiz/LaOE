@@ -13,7 +13,7 @@ test("un ADMIN da de alta a un prospecto y edita sus datos en la Persona 360", a
   await panel.getByLabel("Nombre", { exact: true }).fill("Prospecto");
   await panel.getByLabel("Apellido").fill(`E2E ${stamp}`);
   await panel.getByLabel("Correo institucional").fill(email);
-  await panel.getByLabel("Tipo").selectOption("STUDENT");
+  await panel.getByLabel("Tipo", { exact: true }).selectOption("STUDENT");
   await panel.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Guardado.")).toBeVisible();
 

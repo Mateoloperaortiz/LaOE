@@ -52,11 +52,13 @@ export async function MemberAgenda({
   personId,
   preview = false,
   selected = "",
+  participationAllowed = true,
 }: {
   items: AgendaItem[];
   personId: string;
   preview?: boolean;
   selected?: string;
+  participationAllowed?: boolean;
 }) {
   if (!items.length) return <Vacio texto={t("T-1681")} />;
   const now = new Date();
@@ -67,7 +69,7 @@ export async function MemberAgenda({
           items.map(async (item) => {
             const open = item.occasion && windowState(item.occasion, now) === "OPEN";
             const registration =
-              !preview && item.edition
+              !preview && participationAllowed && item.edition
                 ? await findOpenRegistrationForm(item.edition.id, now)
                 : null;
             const registered =
@@ -102,7 +104,7 @@ export async function MemberAgenda({
                     >
                       {summary}
                     </Link>
-                    {open ? (
+                    {open && participationAllowed ? (
                       <div className="member-agenda-preview-action">
                         <Link href={`/a/${item.occasion.publicId}`} className="boton-calido">
                           {t("T-1670")}
@@ -140,7 +142,7 @@ export async function MemberAgenda({
                         </p>
                       ) : null}
                       <div className="member-agenda-actions">
-                        {open ? (
+                        {open && participationAllowed ? (
                           <Link href={`/a/${item.occasion.publicId}`} className="boton-calido">
                             {t("T-1670")}
                           </Link>
@@ -154,7 +156,7 @@ export async function MemberAgenda({
                             </Link>
                           )
                         ) : null}
-                        {item.edition?.registrationUrl ? (
+                        {participationAllowed && item.edition?.registrationUrl ? (
                           <a
                             href={item.edition.registrationUrl}
                             target="_blank"

@@ -43,6 +43,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   state.actor.mockResolvedValue({
     personId: "admin-sintetico",
+    membershipStatus: "ACTIVE",
     isAdmin: true,
     permissions: [{ code: "ADMIN", committeeId: null }],
   });
@@ -61,6 +62,19 @@ beforeEach(() => {
 });
 
 describe("edición de recursos y valores inmutables", () => {
+  it("rechaza la escritura de un ADMIN en licencia antes de consultar sus datos", async () => {
+    state.actor.mockResolvedValue({
+      personId: "admin-sintetico",
+      membershipStatus: "ON_LEAVE",
+      isAdmin: true,
+      permissions: [{ code: "ADMIN", committeeId: null }],
+    });
+    await expect(saveResourceAction(initial, form())).rejects.toThrow("redirect:/app");
+    expect(state.get).not.toHaveBeenCalled();
+    expect(state.update).not.toHaveBeenCalled();
+    expect(state.create).not.toHaveBeenCalled();
+  });
+
   it.each([
     undefined,
     "CAMBIADO",

@@ -51,3 +51,8 @@ Regla 3: los campos ganan el tipo `RATING` (calificación de 1 a 5) para las enc
 ## Enmienda (2026-09-06, ADR-039)
 
 Se permite el bootstrap puntual y auditado del primer ADMIN definido por ADR-039, sin ejecutar `admitPerson` ni registrar consentimiento o bienvenida. Altas, aplicación del roster y formularios que crean consentimiento se bloquean mientras `privacy.policyVersion` esté pendiente. La publicación de la política precede operativamente a establecer su versión válida. El login y el check-in siguen disponibles; los demás miembros se dan de alta por los flujos normales una vez habilitados. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).
+
+
+## Enmienda (2026-09-08, ADR-046)
+
+La [ADR-046](ADR-046-integracion-roster-y-acceso-en-licencia.md) amplía los datos personales opcionales del roster y permite consulta de Mi OE en licencia. ON_LEAVE conserva bloqueadas la participación, las nuevas credenciales y las funciones de cargos, con permisos almacenados intactos. El roster inicial preserva historia y deja conflictos y graduados pendientes; su aplicación conserva el requisito de política activa y autorizaciones respaldadas.

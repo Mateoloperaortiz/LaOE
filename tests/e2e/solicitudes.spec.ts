@@ -5,7 +5,7 @@ import { E2E_LEAVE_EMAIL } from "./global-setup";
 // "Listo cuando" de la fase 5 (ADR-037 regla 9): una licencia pedida desde Mi OE termina aprobada y
 // aplicada sin que GH toque la base. El miembro desechable entra por OTP (la sesión guardada es de
 // otras identidades), pide la licencia y ve T-140; ADMIN la ve en la bandeja y en Tareas y la aprueba;
-// la Persona 360 muestra "En licencia" y la persona ya no entra a /app.
+// la Persona 360 muestra "En licencia" y la persona conserva acceso de consulta a /app.
 
 const CODE = process.env.OTP_FIXED_CODE ?? "123456";
 
@@ -45,7 +45,7 @@ test.describe("el miembro pide la licencia", () => {
 test.describe("GH la aprueba", () => {
   test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
-  test("desde la bandeja: la tarea existe, la 360 muestra la licencia y la persona ya no entra", async ({
+  test("desde la bandeja: la tarea existe, la 360 muestra la licencia y la persona conserva consulta", async ({
     page,
   }) => {
     await page.goto("/admin/tareas");
@@ -72,15 +72,25 @@ test.describe("GH la aprueba", () => {
   });
 });
 
-test.describe("la persona en licencia no entra", () => {
+test.describe("la persona en licencia consulta Mi OE", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("el OTP no llega porque ya no está en el roster de acceso", async ({ page }) => {
+  test("entra por OTP, ve sus datos y no puede emitir carnet ni operar", async ({ page }) => {
     await page.goto("/ingresar");
     await page.getByLabel("Correo @eafit.edu.co").fill(E2E_LEAVE_EMAIL);
     await page.getByRole("button", { name: "Enviame el código" }).click();
     await page.getByLabel("Código de seis dígitos").fill(CODE);
     await page.getByRole("button", { name: "Entrar" }).click();
-    await expect(page).not.toHaveURL(/\/app$/);
+    await expect(page).toHaveURL(/\/app$/);
+    await expect(page.getByRole("status").filter({ hasText: "Estás en licencia" })).toBeVisible();
+    await page.goto("/app/carnet");
+    await expect(page.getByText("Tu carnet está suspendido", { exact: false })).toBeVisible();
+    await expect(page.locator("[data-token]")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Apple Wallet|Google Wallet/ })).toHaveCount(0);
+    await page.goto("/admin");
+    await expect(page).toHaveURL(/\/app$/);
+    await page.goto("/app/ajustes");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Ajustes");
+    await sinViolaciones(page);
   });
 });

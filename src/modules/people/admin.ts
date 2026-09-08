@@ -15,6 +15,7 @@ import {
   listCommittees,
   updateCommittee,
 } from "./domain/committees";
+import { DOCUMENT_TYPE_CODES } from "./domain/person-pure";
 import {
   createPerson,
   listPeople,
@@ -249,6 +250,15 @@ const personFields: FieldDefinition[] = [
   { name: "phone", label: campos[4] ?? "", type: "text" },
   { name: "personalEmail", label: campos[5] ?? "", type: "email" },
   { name: "program", label: campos[6] ?? "", type: "text" },
+  {
+    name: "documentType",
+    label: t("T-2010"),
+    type: "select",
+    options: DOCUMENT_TYPE_CODES.map((value) => ({ value, label: value })),
+  },
+  { name: "documentNumber", label: t("T-2011"), type: "text" },
+  { name: "epikId", label: t("T-2012"), type: "text" },
+  { name: "birthDate", label: t("T-2013"), type: "date" },
 ];
 
 export const peopleResource: ResourceDefinition<PersonRow, PersonInput> = {
@@ -325,6 +335,10 @@ export const peopleResource: ResourceDefinition<PersonRow, PersonInput> = {
     Estado: row.membershipStatus ? statusLabel(row.membershipStatus) : null,
     "Semestre de ingreso": row.firstTermCode,
     Etapa: stageLabel(row.stage),
+    [t("T-2010")]: row.documentType,
+    [t("T-2011")]: row.documentNumber,
+    [t("T-2012")]: row.epikId,
+    [t("T-2013")]: row.birthDate,
   }),
 };
 

@@ -1,4 +1,34 @@
+import { z } from "zod";
+import { dateKeyIn } from "@/shared/lib/dates";
+
 // Reglas puras sobre datos de la persona (sin I/O).
+
+export const DOCUMENT_TYPE_CODES = ["CC", "TI", "CE", "PPT"] as const;
+export const documentTypeSchema = z.enum(DOCUMENT_TYPE_CODES);
+
+/** Fecha civil ISO real y no futura; no convierte el nacimiento a un instante en Bogotá. */
+export function parseBirthDate(
+  value: string,
+  today = dateKeyIn("America/Bogota", new Date()),
+): string | null {
+  const date = value.trim();
+  if (!z.iso.date().safeParse(date).success || date.startsWith("0000-") || date > today) {
+    return null;
+  }
+  return date;
+}
+
+export const birthDateSchema = z
+  .string()
+  .trim()
+  .refine((value) => parseBirthDate(value) !== null);
+
+/** Presenta el mismo día del calendario guardado, sin el desplazamiento UTC → Bogotá. */
+export function formatBirthDate(value: string): string {
+  return new Intl.DateTimeFormat("es-CO", { timeZone: "UTC", dateStyle: "long" }).format(
+    new Date(`${value}T12:00:00Z`),
+  );
+}
 
 export interface NormalizedPhone {
   value: string;

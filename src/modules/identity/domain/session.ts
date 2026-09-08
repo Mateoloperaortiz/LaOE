@@ -1,7 +1,7 @@
 import { and, desc, eq, gt, ne } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
-import { getMemberSummary } from "@/modules/people";
+import { canParticipate, getMemberSummary } from "@/modules/people";
 import { permission, session } from "../schema";
 import type { Actor, ActorPermission } from "./actor";
 import {
@@ -146,7 +146,10 @@ export async function resolveActor(token: string, now = new Date()): Promise<Act
   ) {
     return null;
   }
-  const permissions = await listPermissionsFor(record.personId);
+  // Las concesiones se conservan; solo producen capacidades operativas mientras participa.
+  const permissions = canParticipate(member.membershipStatus)
+    ? await listPermissionsFor(record.personId)
+    : [];
   return {
     personId: member.personId,
     sessionId: record.id,

@@ -31,6 +31,7 @@ vi.mock("@/shared/admin-kit", async () => await import("@/shared/admin-kit/Domai
 const documentId = "documentosintetico123";
 const actor = {
   personId: "admin-sintetico",
+  membershipStatus: "ACTIVE",
   isAdmin: true,
   permissions: [{ code: "ADMIN", committeeId: null }],
 };
@@ -49,6 +50,14 @@ beforeEach(() => {
 });
 
 describe("huella revisada en la publicación administrativa", () => {
+  it("el ADMIN en licencia no publica aunque conserve su concesión", async () => {
+    state.actor.mockResolvedValue({ ...actor, membershipStatus: "ON_LEAVE" });
+    await expect(publication("a".repeat(64))).rejects.toThrow("redirect:/app");
+    expect(state.publish).not.toHaveBeenCalled();
+    expect(state.unpublish).not.toHaveBeenCalled();
+    expect(state.revalidate).not.toHaveBeenCalled();
+  });
+
   it.each([
     "",
     null,

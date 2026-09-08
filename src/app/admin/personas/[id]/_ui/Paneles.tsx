@@ -3,6 +3,7 @@ import type { InteractionView } from "@/modules/crm";
 import {
   APPOINTMENT_KINDS,
   type CommitteeRoleRow,
+  DOCUMENT_TYPE_CODES,
   type MyMembershipView,
   type Person360,
   type TagRow,
@@ -16,7 +17,7 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminMultiSelect } from "@/shared/admin-kit/AdminMultiSelect";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
-import { formatDate } from "@/shared/lib/dates";
+import { formatDate, todayKey } from "@/shared/lib/dates";
 import {
   addAppointmentAction,
   addNoteAction,
@@ -182,6 +183,53 @@ export function Paneles({
                 className={inputClass}
               />
             </Campo>
+            <fieldset className="flex min-w-0 flex-col gap-4">
+              <legend className="mb-3 font-semibold">{t("T-2014")}</legend>
+              <p className="text-sm text-tinta-suave">{t("T-2016")}</p>
+              <Campo id="campo-documentType" label={t("T-2010")}>
+                <select
+                  id="campo-documentType"
+                  name="documentType"
+                  defaultValue={person.documentType ?? ""}
+                  className={inputClass}
+                >
+                  <option value="">—</option>
+                  {DOCUMENT_TYPE_CODES.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
+              </Campo>
+              <Campo id="campo-documentNumber" label={t("T-2011")}>
+                <input
+                  id="campo-documentNumber"
+                  name="documentNumber"
+                  defaultValue={person.documentNumber ?? ""}
+                  maxLength={80}
+                  className={inputClass}
+                />
+              </Campo>
+              <Campo id="campo-epikId" label={t("T-2012")}>
+                <input
+                  id="campo-epikId"
+                  name="epikId"
+                  defaultValue={person.epikId ?? ""}
+                  maxLength={80}
+                  className={inputClass}
+                />
+              </Campo>
+              <Campo id="campo-birthDate" label={t("T-2013")}>
+                <input
+                  id="campo-birthDate"
+                  name="birthDate"
+                  type="date"
+                  defaultValue={person.birthDate ?? ""}
+                  max={todayKey()}
+                  className={inputClass}
+                />
+              </Campo>
+            </fieldset>
             <Botones enviar={t("T-253")} cancelHref={closeHref} />
           </AdminFormBody>
         </form>

@@ -49,7 +49,7 @@ describe("acceso al cambiar estado o correo", () => {
   beforeEach(truncateAll);
   afterAll(() => closeDb());
 
-  it("una sesión anterior deja de resolver un actor en la misma transacción y el outbox la borra", async () => {
+  it("la licencia conserva la sesión de consulta y el cambio de correo sigue revocándola", async () => {
     const personId = await seedMember("miembro@eafit.edu.co");
     const token = await openSession(personId);
     expect(await resolveActor(token)).not.toBeNull();
@@ -57,19 +57,19 @@ describe("acceso al cambiar estado o correo", () => {
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       changeMembershipStatus(ctx, personId, { to: "ON_LEAVE", reason: "Semestre afuera" }),
     );
-    expect(await resolveActor(token)).toBeNull();
+    expect(await resolveActor(token)).toMatchObject({ membershipStatus: "ON_LEAVE" });
     const events = await listMembershipEvents(personId);
     expect(events.map((event) => event.toStatus)).toEqual(["ON_LEAVE"]);
 
-    // El handler de identity borra la fila; la marca ya había cortado el acceso.
+    // La licencia conserva la sesión, también después del outbox.
     await drain(20);
     const [sessions] = await db()
       .select({ n: count() })
       .from(session)
       .where(eq(session.personId, personId));
-    expect(sessions?.n).toBe(0);
+    expect(sessions?.n).toBe(1);
 
-    // Volver a activo no revive las sesiones viejas: la marca queda estampada.
+    // Al volver a activo sigue disponible la sesión que no fue revocada.
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       changeMembershipStatus(ctx, personId, { to: "ACTIVE", reason: "Volvió" }),
     );

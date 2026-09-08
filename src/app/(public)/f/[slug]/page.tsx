@@ -74,7 +74,9 @@ export default async function FormularioPage({ params, searchParams }: PageProps
         </BarraTitulo>
         {formulario.description ? <Markdown source={formulario.description} /> : null}
       </header>
-      {enviado ? (
+      {actor?.membershipStatus === "ON_LEAVE" ? (
+        <Aviso>{t("T-2041")}</Aviso>
+      ) : enviado ? (
         <section aria-live="polite" className="flex max-w-2xl flex-col gap-4">
           {formulario.thanks ? (
             <Markdown source={formulario.thanks} />

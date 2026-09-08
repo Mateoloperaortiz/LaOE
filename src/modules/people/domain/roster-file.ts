@@ -1,4 +1,6 @@
 import ExcelJS from "exceljs";
+import { DomainError } from "@/shared/admin-kit/DomainError";
+import { t } from "@/shared/copy";
 import { parseCsv } from "./roster-pure";
 
 // Lee el archivo del roster (CSV o la primera hoja de un XLSX) como celdas de texto.
@@ -23,6 +25,7 @@ function cellText(value: ExcelJS.CellValue): string {
     return "";
   }
   if (value instanceof Date) {
+    if (!Number.isFinite(value.getTime())) throw new DomainError(t("T-2082"));
     return value.toISOString().slice(0, 10);
   }
   if (typeof value === "object") {

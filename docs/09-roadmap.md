@@ -511,3 +511,16 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-09-08 | Producción / F7-T6–T7 parcial | Administración, portal y Mi OE publicados en `oeeafit.com` con `5a305ca`: CI main/production SUCCESS, 174 e2e, staging y producción SUCCESS, smoke público 6/6. Dominio apex y TXT verificados, TLS activo y www redirige correctamente; IaC declara el dominio solo en producción. `gallant-patience` eliminado tras congelar y restaurar el archivo final desde R2; queda únicamente `casa-digital`. Archivo age retenido 90 días, hasta el 7 de diciembre de 2026. Ajuste del smoke para reglas de bots de Cloudflare: check PASS con 316 unitarias, 257 integración, 11 extractor y build. No cierra OTP del dominio final, iPhone, monitoreo, integraciones externas ni archivo del repo. Política real, roster y contenido siguen pendientes para la presentación. IDs, hashes, CI y alcance en [runbook](15-runbook.md#publicación-del-dominio-y-retiro-de-ghpoints-2026-09-08). |
+
+
+### Integración del roster real (ADR-046)
+
+- [x] Preparar CSV privado A–L con conciliación por fila y comparación con producción.
+- [x] Implementar campos opcionales y acceso de consulta en licencia.
+- [ ] Completar verificación, despliegue y preparación del catálogo productivo.
+- [ ] Publicar política real, activar versión y acreditar autorizaciones de membresía.
+- [ ] Aplicar lote válido con step-up y respaldo previo; completar pendientes de GH en una segunda carga.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-08 | Roster / preparación | CSV privado de 453 personas (452 altas y una actualización prevista), con origen de 492 filas conciliado. Se excluyen columnas M/N y hoja auxiliar, se recuperan celulares mal formateados y se separan conflictos, incompletos y graduados. Comparación productiva de solo lectura: ingreso, cargos e historia conservados. Implementación de cuatro campos opcionales y consulta ON_LEAVE; verificación y despliegue en curso. Política pendiente; ninguna persona ni consentimiento del lote aplicado. |

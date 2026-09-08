@@ -192,7 +192,9 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
           </div>
         </dl>
         <div className="mt-8 flex flex-col items-start gap-4" aria-live="polite">
-          {view.kind === "message" ? (
+          {actor.membershipStatus === "ON_LEAVE" ? (
+            <p className="max-w-prose text-xl font-semibold">{t("T-2041")}</p>
+          ) : view.kind === "message" ? (
             <>
               <p className="max-w-prose text-xl font-semibold" data-resultado={result ?? "estado"}>
                 {view.text}

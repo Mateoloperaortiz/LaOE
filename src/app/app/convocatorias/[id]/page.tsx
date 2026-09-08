@@ -38,7 +38,7 @@ export default async function ConvocatoriaPage({
   searchParams,
 }: PageProps<"/app/convocatorias/[id]">) {
   const { id } = await params;
-  await requireActor(`/app/convocatorias/${id}`);
+  const actor = await requireActor(`/app/convocatorias/${id}`);
   const call = ID.test(id) ? await getCall(id) : null;
   if (!call) {
     notFound();
@@ -73,7 +73,9 @@ export default async function ConvocatoriaPage({
           </p>
         ) : null}
       </header>
-      {policyBlocked ? (
+      {actor.membershipStatus === "ON_LEAVE" ? (
+        <p>{t("T-2041")}</p>
+      ) : policyBlocked ? (
         <PrivacyPolicyNotice />
       ) : (
         <form action={applyAction} className="flex max-w-2xl flex-col gap-6">

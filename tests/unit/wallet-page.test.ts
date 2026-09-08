@@ -22,7 +22,8 @@ vi.mock("@/modules/identity", () => ({
   getCarnetMetadata: state.credential,
   issueCarnet: state.issueApp,
 }));
-vi.mock("@/modules/people", () => ({
+vi.mock("@/modules/people", async () => ({
+  canParticipate: (await import("@/modules/people/domain/access-pure")).canParticipate,
   getMyMembership: state.membership,
   getPersonRecord: state.person,
 }));
@@ -90,9 +91,13 @@ function outputs(html: string): string[] {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  state.actor.mockResolvedValue({ personId: credential.personId, name: "Miembro Sintético" });
+  state.actor.mockResolvedValue({
+    personId: credential.personId,
+    name: "Miembro Sintético",
+    membershipStatus: "ACTIVE",
+  });
   state.credential.mockResolvedValue(null);
-  state.issueApp.mockReturnValue({
+  state.issueApp.mockResolvedValue({
     token: "oe1.carnet-sintetico-de-la-app",
     expiresAt: new Date("2026-09-07T15:00:00.000Z"),
   });
@@ -106,6 +111,26 @@ beforeEach(() => {
 });
 
 describe("HTML del carnet y sus billeteras", () => {
+  it("la licencia muestra su aviso sin generar QR ni ofrecer emisión o rotación de billeteras", async () => {
+    state.actor.mockResolvedValue({
+      personId: credential.personId,
+      name: "Miembro Sintético",
+      membershipStatus: "ON_LEAVE",
+    });
+    state.available.mockReturnValue({ apple: true, google: true });
+    state.credential.mockResolvedValue(credential);
+    state.passes.mockResolvedValue([pass("APPLE"), pass("GOOGLE")]);
+    const html = await render();
+    expect(html).toContain(t("T-2042"));
+    expect(html).not.toContain("data-token=");
+    expect(html).not.toContain("oe1.");
+    expect(walletLinks(html)).toEqual([]);
+    expect(html).not.toContain("<form");
+    expect(state.issueApp).not.toHaveBeenCalled();
+    expect(state.credential).not.toHaveBeenCalled();
+    expect(state.passes).not.toHaveBeenCalled();
+  });
+
   it("oculta billeteras sin configuración ni historial y conserva el carnet de Mi OE", async () => {
     const html = await render();
     expect(html).toMatch(/<h1\b[^>]*>Tu carnet OE<\/h1>/);

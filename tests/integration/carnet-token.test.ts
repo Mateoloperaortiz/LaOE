@@ -116,7 +116,7 @@ describe("credenciales del carnet de billetera", () => {
   it("rota con revisiones únicas y conserva cada evento; los oe1 siguen válidos", async () => {
     const personId = await seedMember("rotacion@eafit.edu.co");
     const original = await getOrCreateCarnetToken(personId);
-    const app = issueCarnet(personId);
+    const app = await issueCarnet(personId);
     await resolveCarnetToken(original);
     const rotated = await Promise.all([
       rotateCarnetTokenAs(actorFor(personId)),

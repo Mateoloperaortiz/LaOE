@@ -3,7 +3,7 @@ import type { MessageView, PreferencesView } from "@/modules/comms";
 import { channelLabel, kindLabel, statusLabel as messageStatusLabel } from "@/modules/comms/admin";
 import type { InteractionView, TaskRow } from "@/modules/crm";
 import type { ActorPermission } from "@/modules/identity";
-import type { MyMembershipView, Person360 } from "@/modules/people";
+import { formatBirthDate, type MyMembershipView, type Person360 } from "@/modules/people";
 import { statusLabel } from "@/modules/people/admin";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import type { WalletPassRecord } from "@/modules/wallet";
@@ -542,6 +542,13 @@ export function TabDatos({
           <Dato etiqueta={campos[4] ?? ""} valor={person.phone} />
           <Dato etiqueta={campos[5] ?? ""} valor={person.personalEmail} />
           <Dato etiqueta={campos[6] ?? ""} valor={person.program} />
+          <Dato etiqueta={t("T-2010")} valor={person.documentType} />
+          <Dato etiqueta={t("T-2011")} valor={person.documentNumber} />
+          <Dato etiqueta={t("T-2012")} valor={person.epikId} />
+          <Dato
+            etiqueta={t("T-2013")}
+            valor={person.birthDate ? formatBirthDate(person.birthDate) : null}
+          />
           <Dato
             etiqueta={campos[7] ?? ""}
             valor={person.kind === "STUDENT" ? estudiante : externo}

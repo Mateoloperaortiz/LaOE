@@ -4,12 +4,16 @@ import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { getEdition } from "@/modules/events";
 import {
   addPersonTags,
+  canParticipate,
   findOrCreatePersonFromForm,
   findPersonByEmail,
+  getMembershipRef,
   getPeopleByIds,
   recordConsent,
 } from "@/modules/people";
 import { PrivacyPolicyPendingError, requirePrivacyPolicyVersion } from "@/modules/system";
+import { DomainError } from "@/shared/admin-kit/DomainError";
+import { t } from "@/shared/copy";
 import { logger } from "@/shared/log";
 import { editionRegistration, form, formSubmission } from "../schema";
 import type { FormView, PublicForm } from "./forms";
@@ -29,6 +33,8 @@ import {
 // puntos ni check-ins. La tarjeta del pipeline la crea `crm` al drenar `submission.received`.
 
 export type SubmissionRecord = typeof formSubmission.$inferSelect;
+
+class ParticipationUnavailableError extends DomainError {}
 
 export interface CreateSubmissionInput {
   form: FormView;
@@ -50,6 +56,13 @@ export async function createSubmission(
   ctx: CommandContext,
   input: CreateSubmissionInput,
 ): Promise<{ id: string; registered: boolean }> {
+  const member = input.personId ? await getMembershipRef(input.personId, ctx.tx) : null;
+  if (
+    member?.status === "ON_LEAVE" ||
+    (input.form.audience === "MEMBERS" && !canParticipate(member?.status))
+  ) {
+    throw new ParticipationUnavailableError(t("T-2041"));
+  }
   const [currentForm] = await ctx.tx
     .select({ consentRequired: form.consentRequired })
     .from(form)
@@ -191,6 +204,9 @@ export async function submitFormAs(
   if (target.state !== "OPEN") {
     return { ok: false, code: target.state, errors: {} };
   }
+  if (actor && (await getMembershipRef(actor.personId))?.status === "ON_LEAVE") {
+    return { ok: false, code: "INVALID", errors: {} };
+  }
   let identity: { firstName: string | null; lastName: string | null; email: string };
   let personId: string | null = null;
   if (target.audience === "MEMBERS") {
@@ -280,6 +296,9 @@ export async function submitFormAs(
     // Fuera de runCommand: la persona y todos los efectos anteriores también se revierten.
     if (error instanceof PrivacyPolicyPendingError) {
       return { ok: false, code: "POLICY_PENDING", errors: {} };
+    }
+    if (error instanceof ParticipationUnavailableError) {
+      return { ok: false, code: "INVALID", errors: {} };
     }
     throw error;
   });

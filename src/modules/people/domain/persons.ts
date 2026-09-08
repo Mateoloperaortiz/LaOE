@@ -7,7 +7,7 @@ import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { committee, committeeMembership, committeeRole, membership, person } from "../schema";
-import { normalizePhone } from "./person-pure";
+import { birthDateSchema, documentTypeSchema, normalizePhone } from "./person-pure";
 
 // La persona como eje del CRM (ADR-002): alta manual, edición por ADMIN y listado del admin.
 
@@ -24,6 +24,28 @@ export const personInputSchema = z.object({
   phone: z.string().trim().max(30).optional(),
   personalEmail: emailSchema.optional(),
   program: z.string().trim().max(120).optional(),
+  documentType: documentTypeSchema
+    .or(z.literal("").transform(() => null))
+    .nullable()
+    .optional(),
+  documentNumber: z
+    .string()
+    .trim()
+    .max(80)
+    .transform((value) => value || null)
+    .nullable()
+    .optional(),
+  epikId: z
+    .string()
+    .trim()
+    .max(80)
+    .transform((value) => value || null)
+    .nullable()
+    .optional(),
+  birthDate: birthDateSchema
+    .or(z.literal("").transform(() => null))
+    .nullable()
+    .optional(),
 });
 
 export type PersonInput = z.infer<typeof personInputSchema>;
@@ -38,6 +60,10 @@ function toValues(input: PersonInput) {
     phone: input.phone ? normalizePhone(input.phone).value : null,
     personalEmail: input.personalEmail ?? null,
     program: input.program ?? null,
+    ...(input.documentType !== undefined ? { documentType: input.documentType } : {}),
+    ...(input.documentNumber !== undefined ? { documentNumber: input.documentNumber } : {}),
+    ...(input.epikId !== undefined ? { epikId: input.epikId } : {}),
+    ...(input.birthDate !== undefined ? { birthDate: input.birthDate } : {}),
   };
 }
 
@@ -133,6 +159,10 @@ const EDITABLE = [
   "phone",
   "personalEmail",
   "program",
+  "documentType",
+  "documentNumber",
+  "epikId",
+  "birthDate",
 ] as const;
 
 /** Edición por ADMIN; cambiar el correo invalida las sesiones anteriores (ADR-034). */
@@ -146,7 +176,9 @@ export async function updatePerson(
     throw new DomainError(t("T-032"));
   }
   const values = toValues(input);
-  const changed = EDITABLE.filter((field) => before[field] !== values[field]);
+  const changed = EDITABLE.filter(
+    (field) => values[field] !== undefined && before[field] !== values[field],
+  );
   if (changed.length === 0) {
     return;
   }
@@ -187,6 +219,10 @@ export interface PersonRow {
   firstName: string;
   lastName: string;
   email: string;
+  documentType: string | null;
+  documentNumber: string | null;
+  epikId: string | null;
+  birthDate: string | null;
   kind: PersonRecord["kind"];
   stage: PersonRecord["stage"];
   membershipStatus: (typeof membership.$inferSelect)["status"] | null;
@@ -273,6 +309,10 @@ export async function listPeople(
         firstName: person.firstName,
         lastName: person.lastName,
         email: person.email,
+        documentType: person.documentType,
+        documentNumber: person.documentNumber,
+        epikId: person.epikId,
+        birthDate: person.birthDate,
         kind: person.kind,
         stage: person.stage,
         anonymizedAt: person.anonymizedAt,
@@ -306,6 +346,10 @@ export async function listPeople(
       firstName: row.firstName,
       lastName: row.lastName,
       email: row.email,
+      documentType: row.documentType,
+      documentNumber: row.documentNumber,
+      epikId: row.epikId,
+      birthDate: row.birthDate,
       kind: row.kind,
       stage: row.stage,
       membershipStatus: row.membershipStatus,

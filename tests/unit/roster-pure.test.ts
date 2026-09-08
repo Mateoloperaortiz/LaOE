@@ -124,6 +124,91 @@ describe("lectura del archivo", () => {
 });
 
 describe("validación por fila", () => {
+  it("reconoce A–L, omite M/N y conserva identificadores como texto", () => {
+    const header =
+      "NOMBRE;APELLIDO;TIPO DE DOCUMENTO;DOCUMENTO;CORREO;ID EPIK;CELULAR;FECHA DE NACIMIENTO;PREGRADO;COMITES;ENTRADA A LA OE;ESTADO;CARNE;Columna1";
+    const result = validate(
+      [
+        "Persona;Sintética;CEDULA DE CIUDADANIA;001234;campos@eafit.edu.co;000567;3001234567;2004-02-29;Derecho;A3;2026-2;NUEVO;ignorado;ignorado",
+      ],
+      header,
+    );
+    expect(detectMapping(header.split(";")).slice(-2)).toEqual([null, null]);
+    expect(result.rows[0]).toMatchObject({
+      documentType: "CC",
+      documentNumber: "001234",
+      epikId: "000567",
+      birthDate: "2004-02-29",
+      status: "ACTIVE",
+      probation: false,
+      errors: [],
+    });
+    expect(Object.values(result.rows[0]?.values ?? {})).not.toContain("ignorado");
+  });
+
+  it("conserva campos opcionales al importar vacíos y muestra cambios de datos personales", () => {
+    const existing = new Map(catalog.existing);
+    const original = catalog.existing.get("ana@eafit.edu.co");
+    if (!original) throw new Error("Falta la persona sintética");
+    existing.set("ana@eafit.edu.co", {
+      ...original,
+      documentType: "TI",
+      documentNumber: "00123",
+      epikId: "00045",
+      birthDate: "2004-02-29",
+    });
+    const cells = parseCsv(
+      "CORREO;TIPO DE DOCUMENTO;DOCUMENTO;ID EPIK;FECHA DE NACIMIENTO\nana@eafit.edu.co;;;;",
+    );
+    const mapping = detectMapping(cells[0] ?? []);
+    const validateCells = () =>
+      validateRoster(rowsFromCells(cells, mapping), mapping, { ...catalog, existing });
+    expect(diffRoster(validateCells().rows, existing)[0]?.group).toBe("UNCHANGED");
+    cells[1] = ["ana@eafit.edu.co", "CC", "00999", "00099", "2003-12-31"];
+    expect(diffRoster(validateCells().rows, existing)[0]).toMatchObject({
+      group: "CHANGED",
+      changes: ["documentType", "documentNumber", "epikId", "birthDate"],
+    });
+    cells[1] = ["ana@eafit.edu.co", "DESCONOCIDO", "", "", "2003-02-29"];
+    const invalid = validateCells().rows[0];
+    expect(invalid?.errors).toEqual([]);
+    expect(invalid?.warnings).toHaveLength(2);
+    expect(invalid?.birthDate).toBeUndefined();
+    expect(invalid?.documentType).toBeUndefined();
+  });
+
+  it("aplica equivalencias sin cargos implícitos y deja graduados e ingreso discrepante pendientes", () => {
+    for (const value of ["NUEVO", "JUNTA"])
+      expect(parseStatus(value)).toEqual({ status: "ACTIVE", probation: false });
+    for (const value of ["PERIODO DE PRUEBA", "PERÍODO DE PRUEBA"])
+      expect(parseStatus(value)).toEqual({ status: "ACTIVE", probation: true });
+    for (const value of ["PRÁCTICA", "INTERCAMBIO"])
+      expect(parseStatus(value)).toEqual({ status: "ON_LEAVE", probation: false });
+    const junta = validate(
+      ["Nueva;Persona;nueva@eafit.edu.co;;Derecho;A3;2026-2;JUNTA"],
+      HEADER.split(";CARGO")[0],
+    );
+    expect(junta.rows[0]?.committees?.[0]?.roleCode).toBe("MIEMBRO");
+    expect(
+      validate(["Nueva;Persona;nueva@eafit.edu.co;;Derecho;A3;2026-2;GRADUADO;"]).rows[0]
+        ?.errors[0],
+    ).toContain("pendiente");
+    const existing = new Map(catalog.existing);
+    const original = catalog.existing.get("ana@eafit.edu.co");
+    if (!original) throw new Error("Falta la persona sintética");
+    existing.set("ana@eafit.edu.co", {
+      ...original,
+      entryTerm: "2024-1",
+    });
+    const cells = parseCsv(
+      `${HEADER}\nAna;Arango;ana@eafit.edu.co;;Derecho;A3;2024-2;Activo;General`,
+    );
+    const mapping = detectMapping(cells[0] ?? []);
+    const result = validateRoster(rowsFromCells(cells, mapping), mapping, { ...catalog, existing });
+    expect(diffRoster(result.rows, existing)[0]?.group).toBe("ERROR");
+    expect(result.rows[0]?.errors[0]).toContain("semestre de ingreso");
+  });
+
   it("señala cada regla de 13-importacion con su texto", () => {
     const result = validate([
       "Ana;Arango;ana@eafit.edu.co;3001234567;Derecho;A3;2026-2;Activo;General de A3",

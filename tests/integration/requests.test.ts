@@ -95,7 +95,7 @@ describe("solicitudes", () => {
     ]);
   });
 
-  it("rechazar exige motivo y aprobar una licencia cambia el estado, revoca el acceso y avisa por correo", async () => {
+  it("rechazar exige motivo y aprobar una licencia mantiene acceso de consulta y avisa por correo", async () => {
     setMailTransportsForTests({ primary: fakeTransport(), overflow: null });
     const { personId, actor } = await activeMember("licencia@eafit.edu.co");
     const gh = await seedMember("gh@eafit.edu.co");
@@ -106,7 +106,7 @@ describe("solicitudes", () => {
     await decideRequestAs({ personId: gh, ip: null }, created.id, { decision: "APPROVED" });
     expect(await getMembershipRef(personId)).toMatchObject({ status: "ON_LEAVE" });
     const [who] = await getDb().select().from(person).where(eq(person.id, personId));
-    expect(who?.sessionsRevokedAt).not.toBeNull();
+    expect(who?.sessionsRevokedAt).toBeNull();
     const view = await getRequest(created.id);
     expect(view).toMatchObject({ status: "APPROVED", decidedById: gh });
     await expect(

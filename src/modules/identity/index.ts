@@ -34,6 +34,7 @@ export {
   assertBoard,
   assertLeader,
   assertStepUp,
+  canOperate,
   hasPermission,
   hasRecentStepUp,
 } from "./domain/guards";

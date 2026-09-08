@@ -2,10 +2,12 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import {
+  ForbiddenError,
   getOrCreateCalendarToken,
   resolveCalendarToken,
   rotateCalendarTokenAs,
 } from "@/modules/identity";
+import { calendarToken } from "@/modules/identity/schema";
 import { listAgendaForPerson } from "@/modules/participation";
 import { membership } from "@/modules/people/schema";
 import { truncateAll } from "./db";
@@ -38,6 +40,21 @@ describe("token del calendario", () => {
     expect(rotated).not.toBe(token);
     expect(await resolveCalendarToken(token)).toBeNull();
     expect(await resolveCalendarToken(rotated)).toBe(ana);
+  });
+
+  it("la licencia impide consultar, crear o regenerar el enlace sin alterar el existente", async () => {
+    const withToken = await seedMember("licencia.ics.existente@eafit.edu.co");
+    await getOrCreateCalendarToken(withToken);
+    const withoutToken = await seedMember("licencia.ics.nuevo@eafit.edu.co");
+    await db().update(membership).set({ status: "ON_LEAVE" });
+    const before = await db().select().from(calendarToken);
+
+    for (const personId of [withToken, withoutToken]) {
+      await expect(getOrCreateCalendarToken(personId)).rejects.toBeInstanceOf(ForbiddenError);
+      await expect(rotateCalendarTokenAs({ personId })).rejects.toBeInstanceOf(ForbiddenError);
+    }
+
+    expect(await db().select().from(calendarToken)).toEqual(before);
   });
 });
 

@@ -38,6 +38,7 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
     );
   }
   const view = await getPersonPermanence(actor.personId, term.id);
+  const notices = actor.membershipStatus === "ON_LEAVE" ? [] : (view?.notices ?? []);
   const result = view?.result;
   const committeeIds = result?.results.map((item) => item.committeeId) ?? [];
   const evaluatorIds = new Set<string>();
@@ -104,9 +105,9 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
         </form>
       </Cartel>
 
-      {view && view.notices.some((notice) => notice.kind !== "TERM_CLOSED") ? (
+      {notices.some((notice) => notice.kind !== "TERM_CLOSED") ? (
         <ul className="flex list-none flex-col gap-2 p-0" aria-label={t("T-110")}>
-          {view.notices
+          {notices
             .filter((notice) => notice.kind !== "TERM_CLOSED")
             .map((notice) => (
               <li

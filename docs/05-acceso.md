@@ -1,6 +1,8 @@
 # Acceso e identidad
 
-Solo entran las personas del roster: miembros activos y honorarios. No hay registro abierto ni proveedor de identidad externo. La identidad es el correo institucional; el OTP verifica el buzón, que EAFIT ya protege con Microsoft 365. Reglas en [ADR-010](adr/ADR-010-identidad-por-correo-y-otp.md) y [ADR-011](adr/ADR-011-autorizacion-en-servidor.md).
+Solo entran las personas del roster: miembros activos, honorarios y en licencia. No hay registro abierto ni proveedor de identidad externo. La identidad es el correo institucional; el OTP verifica el buzón, que EAFIT ya protege con Microsoft 365. Reglas en [ADR-010](adr/ADR-010-identidad-por-correo-y-otp.md) y [ADR-011](adr/ADR-011-autorizacion-en-servidor.md).
+
+La [ADR-046](adr/ADR-046-integracion-roster-y-acceso-en-licencia.md) habilita consulta de Mi OE y autogestión personal para ON_LEAVE. Conserva suspendidos permisos operativos, participación y nuevas credenciales. Los permisos guardados no se eliminan y las sesiones revocadas previamente no vuelven a valer. La condición de acceso ya no se reutiliza para decidir quién puede participar o emitir carnet.
 
 El primer ADMIN tiene una excepción puntual de arranque ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)): script privado con identidad real, membresía ACTIVE y permiso ADMIN, sin crear consentimiento ni permitir registro abierto. Después de entrar por OTP, publica la política, activa su versión y carga el roster desde el asistente.
 
@@ -13,7 +15,7 @@ sequenceDiagram
   participant DB as Postgres
   participant M as Mailer
   P->>W: correo
-  W->>DB: ¿Person con Membership ACTIVE u HONORARY?
+  W->>DB: ¿Person con Membership ACTIVE, HONORARY u ON_LEAVE?
   alt no está en el roster
     W-->>P: "Si tu correo está en el roster, te llega un código" (sin enumerar)
   else sí

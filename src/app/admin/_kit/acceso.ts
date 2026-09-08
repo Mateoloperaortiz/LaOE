@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { type Actor, hasPermission, requireActor } from "@/modules/identity";
+import { type Actor, canOperate, hasPermission, requireActor } from "@/modules/identity";
 import { type CommitteeRef, listCommitteesByIds } from "@/modules/people";
 import { type GroupRef, listMyGroupRoles } from "@/modules/permanence";
 import { getCurrentTerm } from "@/modules/terms";
@@ -20,6 +20,17 @@ export interface AdminAreaRoles {
 }
 
 export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
+  if (!canOperate(actor)) {
+    return {
+      actor,
+      isAdmin: false,
+      isBoard: false,
+      ledCommittees: [],
+      ledGroups: [],
+      evaluatedGroups: [],
+      any: false,
+    };
+  }
   const isAdmin = actor.isAdmin;
   const isBoard = hasPermission(actor, "BOARD");
   const ledCommittees = isAdmin

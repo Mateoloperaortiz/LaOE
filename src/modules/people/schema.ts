@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -64,6 +65,10 @@ export const person = pgTable(
     phone: text(),
     personalEmail: text(), // contacto, nunca identidad
     program: text(),
+    documentType: text(),
+    documentNumber: text(),
+    epikId: text(),
+    birthDate: date({ mode: "string" }),
     // Referencia a media_asset validada en el dominio: una clave foránea aquí haría un ciclo content ↔ people.
     photoAssetId: text(),
     source: text().notNull().default("ADMIN"),
@@ -79,6 +84,7 @@ export const person = pgTable(
     uniqueIndex("person_email_unique").on(t.email),
     uniqueIndex("person_legacy_id_unique").on(t.legacyId).where(sql`${t.legacyId} is not null`),
     check("person_email_lowercase", sql`${t.email} = lower(${t.email})`),
+    check("person_document_type_known", sql`${t.documentType} in ('CC', 'TI', 'CE', 'PPT')`),
     index("person_stage_idx").on(t.stage),
   ],
 );

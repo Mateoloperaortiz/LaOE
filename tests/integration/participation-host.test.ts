@@ -15,7 +15,7 @@ describe("modo anfitrión y consola en vivo", () => {
 
   it("lee el carnet con el secreto de la app: válido, vencido y manipulado", async () => {
     const personId = await seedMember("carnet@eafit.edu.co");
-    const carnet = issueCarnet(personId);
+    const carnet = await issueCarnet(personId);
     const read = await readCarnet(carnet.token);
     expect(read.ok && read.personId).toBe(personId);
     const expired = await readCarnet(carnet.token, new Date(carnet.expiresAt.getTime() + 1000));

@@ -27,7 +27,7 @@ import {
   replaceArticlesAs,
 } from "@/modules/content";
 import { listPermissionsFor } from "@/modules/identity";
-import { getMemberSummary } from "@/modules/people";
+import { canParticipate, getMemberSummary } from "@/modules/people";
 import { getObject, putObject } from "@/shared/adapters/storage";
 import {
   matchNormativaDocument,
@@ -267,7 +267,11 @@ async function planDocuments(
 async function requireExistingAdmin(id: string): Promise<Actor> {
   if (!/^[a-z0-9]{10,40}$/.test(id)) throw new NormativaImportError("El ID del ADMIN no es válido");
   const [member, permissions] = await Promise.all([getMemberSummary(id), listPermissionsFor(id)]);
-  if (!member?.canSignIn || !permissions.some((permission) => permission.code === "ADMIN")) {
+  if (
+    !member?.canSignIn ||
+    !canParticipate(member.membershipStatus) ||
+    !permissions.some((permission) => permission.code === "ADMIN")
+  ) {
     throw new NormativaImportError("El actor debe ser un ADMIN existente y habilitado");
   }
   return { personId: id };

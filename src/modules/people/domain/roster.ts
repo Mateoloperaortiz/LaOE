@@ -57,6 +57,10 @@ const previewRowSchema = z.object({
   program: z.string().optional(),
   personalEmail: z.string().optional(),
   notes: z.string().optional(),
+  documentType: z.string().optional(),
+  documentNumber: z.string().optional(),
+  epikId: z.string().optional(),
+  birthDate: z.string().optional(),
   committees: z
     .array(
       z.object({
@@ -128,6 +132,11 @@ async function existingByEmail(
       phone: person.phone,
       program: person.program,
       personalEmail: person.personalEmail,
+      documentType: person.documentType,
+      documentNumber: person.documentNumber,
+      epikId: person.epikId,
+      birthDate: person.birthDate,
+      firstTermId: membership.firstTermId,
       status: membership.status,
     })
     .from(person)
@@ -137,7 +146,7 @@ async function existingByEmail(
   if (ids.length === 0) {
     return map;
   }
-  const [committees, probations] = await Promise.all([
+  const [committees, probations, terms] = await Promise.all([
     db
       .select({
         personId: committeeMembership.personId,
@@ -155,6 +164,7 @@ async function existingByEmail(
       .select({ personId: membershipTerm.personId, probation: membershipTerm.probation })
       .from(membershipTerm)
       .where(and(inArray(membershipTerm.personId, ids), eq(membershipTerm.termId, termId))),
+    listAllTerms(),
   ]);
   for (const row of people) {
     map.set(row.email, {
@@ -164,6 +174,11 @@ async function existingByEmail(
       phone: row.phone,
       program: row.program,
       personalEmail: row.personalEmail,
+      documentType: row.documentType,
+      documentNumber: row.documentNumber,
+      epikId: row.epikId,
+      birthDate: row.birthDate,
+      entryTerm: terms.find((term) => term.id === row.firstTermId)?.code ?? null,
       status: row.status,
       probation: probations.some((item) => item.personId === row.id && item.probation),
       committees: committees
@@ -456,6 +471,10 @@ async function applyRow(
         phone: row.phone || null,
         program: row.program || null,
         personalEmail: row.personalEmail || null,
+        documentType: row.documentType || null,
+        documentNumber: row.documentNumber || null,
+        epikId: row.epikId || null,
+        birthDate: row.birthDate || null,
         stage: status === "INACTIVE" ? "ALUMNI" : "MEMBER",
         source: "ROSTER",
       })
@@ -481,6 +500,9 @@ async function applyRow(
     if (row.phone !== undefined) patch.phone = row.phone || null;
     if (row.program !== undefined) patch.program = row.program || null;
     if (row.personalEmail !== undefined) patch.personalEmail = row.personalEmail || null;
+    for (const field of ["documentType", "documentNumber", "epikId", "birthDate"] as const) {
+      if (row[field]) patch[field] = row[field];
+    }
     if (Object.keys(patch).length > 0) {
       await ctx.tx.update(person).set(patch).where(eq(person.id, personId));
     }

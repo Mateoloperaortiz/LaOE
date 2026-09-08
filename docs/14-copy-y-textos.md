@@ -142,7 +142,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-049 | Código incorrecto | Ese código no es. Te quedan {n} intentos. | MATEO | Propuesta |
 | T-050 | Demasiados intentos | Superaste los intentos. Esperá 15 minutos y volvé a pedir un código. | MATEO | Propuesta |
 | T-051 | Sesión vencida | Tu sesión venció. Entrá de nuevo. | MATEO | Propuesta |
-| T-052 | Cuenta en licencia o retirada (al intentar entrar) | Respuesta igual a T-044; nunca se dice el motivo | MATEO | Propuesta |
+| T-052 | Cuenta retirada (al intentar entrar) | Respuesta igual a T-044; nunca se dice el motivo | MATEO | Propuesta |
 | T-053 | Correo del código, asunto | Tu código para entrar a Mi OE: {código} | MATEO | Propuesta |
 | T-054 | Correo del código, cuerpo | Hola, {nombre}. Tu código es **{código}** y vence en 10 minutos. Si no fuiste vos, ignorá este correo. | MATEO | Propuesta |
 | T-055 | Step-up (acción sensible de admin) | Esta acción pide un código nuevo. Te lo mandamos al correo. | MATEO | Propuesta |
@@ -405,7 +405,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-879 | Solicitud retirada | Retiraste tu solicitud. | MATEO | Propuesta |
 | T-880 | Solicitud: campo del motivo | Contanos por qué | GH | Propuesta |
 | T-881 | Licencia: campo hasta cuándo (opcional) | Hasta cuándo (opcional) | GH | Propuesta |
-| T-882 | Licencia: explicación | Mientras estés en licencia no podés entrar a Mi OE ni se te evalúa la permanencia. Para volver, escribile a GH. | GH | Propuesta |
+| T-882 | Licencia: explicación | Mientras estés en licencia podés consultar Mi OE y actualizar tus datos personales. No podés participar en actividades ni se te evalúa la permanencia. Para volver, escribile a GH. | GH | Propuesta |
 | T-883 | Cambio de comité: explicación | El cambio aplica desde el próximo semestre y cuenta como transferencia: ese semestre tenés que cumplir el 70 % en el comité nuevo. | GH | Propuesta |
 | T-884 | Cambio de comité: comités que dejás | Comités que dejás | GH | Propuesta |
 | T-885 | Cambio de comité: comités a los que entrás | Comités a los que entrás | GH | Propuesta |
@@ -1078,7 +1078,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1001 | Solicitudes (admin): botones | Aprobar · Rechazar | MATEO | Propuesta |
 | T-1002 | Solicitudes (admin): rechazo, campo del motivo | Motivo del rechazo (la persona lo va a leer) | GH | Propuesta |
 | T-1003 | Solicitudes (admin): rechazo sin motivo | Para rechazar tenés que escribir el motivo. | MATEO | Propuesta |
-| T-1004 | Solicitudes (admin): aprobar una licencia, texto | Vas a aprobar la licencia de {nombre}: pasa a "En licencia", pierde el acceso a Mi OE y le llega el correo. | GH | Propuesta |
+| T-1004 | Solicitudes (admin): aprobar una licencia, texto | Vas a aprobar la licencia de {nombre}: pasa a "En licencia", conserva Mi OE para consultar y actualizar sus datos, y le llega el correo. | GH | Propuesta |
 | T-1005 | Solicitudes (admin): aprobar un retiro, texto | Vas a aprobar el retiro de {nombre}: se da de baja con motivo retiro voluntario, con los consentimientos que eligió, y le llega el correo. | GH | Propuesta; texto sensible |
 | T-1006 | Solicitudes (admin): aprobar un cambio de comité, texto | Vas a aprobar el cambio de comité de {nombre} para {término}: deja {deja} y entra a {entra} como transferencia (70 %). | GH | Propuesta |
 | T-1007 | Solicitudes (admin): ya decidida | Esta solicitud ya fue decidida. | MATEO | Propuesta |
@@ -1580,3 +1580,35 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-1631 | Ajustes, validación de campo | Revisá este campo. | MATEO | Propuesta |
 | T-1632 | Ajustes, validación general | Revisá los campos marcados antes de guardar. | MATEO | Propuesta |
 | T-1633 | Ajustes, contexto de categorías | Elegí qué querés ajustar. Tus datos, dispositivos y permisos están organizados por sección. | MATEO | Propuesta |
+
+## Datos del integrante importados desde el roster (2026-09-08)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-2010 | Datos personales: tipo de documento | Tipo de documento | MATEO | Propuesta |
+| T-2011 | Datos personales: número de documento | Número de documento | MATEO | Propuesta |
+| T-2012 | Datos personales: identificador EPIK | ID EPIK | MATEO | Propuesta |
+| T-2013 | Datos personales: fecha civil de nacimiento | Fecha de nacimiento | MATEO | Propuesta |
+| T-2014 | Ajustes: consulta de identificación propia | Datos registrados por la OE | MATEO | Propuesta |
+| T-2015 | Ajustes: ayuda de identificación propia | Podés consultar estos datos. Si necesitás corregirlos, contactá a Gestión Humana. | MATEO | Propuesta |
+| T-2016 | Edición administrativa: borrado de identificadores | Si dejás vacío uno de estos cuatro campos, se borra el dato guardado. | MATEO | Propuesta |
+
+
+## Acceso de consulta durante la licencia
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-2040 | Mi OE: aviso de licencia | Estás en licencia. Podés consultar Mi OE y actualizar tus datos personales. La participación y las funciones de tu cargo vuelven cuando GH te reactive. | MATEO | Confirmado |
+| T-2041 | Mi OE: acción restringida durante licencia | Mientras estés en licencia, esta acción no está disponible. Podés seguir consultando Mi OE y gestionar tus datos en Ajustes. | MATEO | Confirmado |
+| T-2042 | Carnet: licencia | Tu carnet está suspendido para nuevas asistencias mientras estés en licencia. Cuando GH te reactive, vas a poder mostrar el QR y agregarlo a tu billetera de nuevo. | MATEO | Confirmado |
+| T-2043 | Carnet: volver a Mi OE | Volver a Mi OE | MATEO | Confirmado |
+
+## Importación de datos del roster
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-2080 | Roster: dato opcional inválido | {campo} no tiene un formato válido. Se conserva el dato existente y queda pendiente de corrección. | MATEO | Confirmado |
+| T-2081 | Roster: nacimiento inválido | La fecha de nacimiento debe ser una fecha real, no futura, en formato AAAA-MM-DD. Se conserva el dato existente y queda pendiente de corrección. | MATEO | Confirmado |
+| T-2082 | Roster: formato de fecha incorrecto en Excel | El Excel contiene una celda con formato de fecha que no se puede leer. Revisá su formato o subí una copia CSV con los valores corregidos. | MATEO | Confirmado |
+| T-2083 | Roster: graduado pendiente | La persona graduada queda pendiente hasta contar con su fecha o semestre de salida. | MATEO | Confirmado |
+| T-2084 | Roster: discrepancia de ingreso | El semestre de ingreso no coincide con el registrado. Revisá la diferencia antes de importar esta persona. | MATEO | Confirmado |

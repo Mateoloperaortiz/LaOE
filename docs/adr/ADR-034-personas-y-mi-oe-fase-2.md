@@ -67,3 +67,8 @@ La regla 10 conserva intacto el carnet de la app con token firmado `oe1` de 24 h
 ## Enmienda (2026-09-08, ADR-042)
 
 La regla 9 incorpora secciones, tablas e imágenes al lector, formato `oe-normativa/2` con procedencia verificada y compatibilidad v1, vista previa ADMIN y carga operativa auditada en producción privada. Ver [ADR-042](ADR-042-normativa-completa.md).
+
+
+## Enmienda (2026-09-08, ADR-046)
+
+La [ADR-046](ADR-046-integracion-roster-y-acceso-en-licencia.md) amplía los datos personales opcionales del roster y permite consulta de Mi OE en licencia. ON_LEAVE conserva bloqueadas la participación, las nuevas credenciales y las funciones de cargos, con permisos almacenados intactos. El roster inicial preserva historia y deja conflictos y graduados pendientes; su aplicación conserva el requisito de política activa y autorizaciones respaldadas.

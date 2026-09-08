@@ -21,3 +21,8 @@ Si la etapa de una persona fuera un campo editable, la línea de tiempo tendría
 ## Enmienda (2026-09-06, ADR-039)
 
 Excepción limitada al primer ADMIN de ADR-039: el bootstrap privado crea persona en etapa MEMBER y membresía ACTIVE en una transacción auditada, sin ejecutar un alta ordinaria ni un envío de bienvenida. No habilita nuevas rutas públicas ni modifica el alta normal de los miembros. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).
+
+
+## Enmienda (2026-09-08, ADR-046)
+
+La [ADR-046](ADR-046-integracion-roster-y-acceso-en-licencia.md) amplía los datos personales opcionales del roster y permite consulta de Mi OE en licencia. ON_LEAVE conserva bloqueadas la participación, las nuevas credenciales y las funciones de cargos, con permisos almacenados intactos. El roster inicial preserva historia y deja conflictos y graduados pendientes; su aplicación conserva el requisito de política activa y autorizaciones respaldadas.

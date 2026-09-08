@@ -8,7 +8,7 @@ import { promisify } from "node:util";
 import sharp from "sharp";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { SYSTEM_ACTOR } from "@/db/tx";
+import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { getEnv } from "@/env";
 import {
   getDocumentWithArticles,
@@ -19,6 +19,7 @@ import {
   resolveMediaRedirect,
 } from "@/modules/content";
 import { grantPermissionAs, listSessionsFor } from "@/modules/identity";
+import { changeMembershipStatus, getMemberSummary } from "@/modules/people";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { deleteObject, getObject } from "@/shared/adapters/storage";
 import { sampleNormativaPdf } from "../helpers/pdf";
@@ -290,6 +291,24 @@ describe("comando operativo de normativa", () => {
 
   it("un miembro sin ADMIN no puede cargar archivos ni crear sesiones", async () => {
     const actorId = await seedMember("cli.miembro.sintetico@eafit.edu.co");
+    const input = await fixture();
+    const path = await manifestFile([input.manifest]);
+    const before = await writesSnapshot();
+    const result = await runCli(path, ["--actor-id", actorId, "--apply"]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("ADMIN existente y habilitado");
+    expect(await writesSnapshot()).toEqual(before);
+    expect(await listSessionsFor(actorId)).toEqual([]);
+  });
+
+  it("un ADMIN en licencia conserva Mi OE pero no puede importar normativa", async () => {
+    const email = "cli.licencia.sintetica@eafit.edu.co";
+    const actorId = await seedMember(email);
+    await grantPermissionAs(SYSTEM_ACTOR, { email, code: "ADMIN" });
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(ctx, actorId, { to: "ON_LEAVE", reason: "Licencia sintética" }),
+    );
+    expect((await getMemberSummary(actorId))?.canSignIn).toBe(true);
     const input = await fixture();
     const path = await manifestFile([input.manifest]);
     const before = await writesSnapshot();

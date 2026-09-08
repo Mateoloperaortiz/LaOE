@@ -307,7 +307,7 @@ export const textos = {
     status: "Propuesta",
   },
   "T-052": {
-    where: "Cuenta en licencia o retirada (al intentar entrar)",
+    where: "Cuenta retirada (al intentar entrar)",
     text: "Respuesta igual a T-044; nunca se dice el motivo",
     owner: "MATEO",
     status: "Propuesta",
@@ -554,7 +554,7 @@ export const textos = {
   },
   "T-1004": {
     where: "Solicitudes (admin): aprobar una licencia, texto",
-    text: 'Vas a aprobar la licencia de {nombre}: pasa a "En licencia", pierde el acceso a Mi OE y le llega el correo.',
+    text: 'Vas a aprobar la licencia de {nombre}: pasa a "En licencia", conserva Mi OE para consultar y actualizar sus datos, y le llega el correo.',
     owner: "GH",
     status: "Propuesta",
   },
@@ -3418,6 +3418,48 @@ export const textos = {
     owner: "COM",
     status: "Propuesta; se escribe con la campaña de lanzamiento",
   },
+  "T-2010": {
+    where: "Datos personales: tipo de documento",
+    text: "Tipo de documento",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2011": {
+    where: "Datos personales: número de documento",
+    text: "Número de documento",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2012": {
+    where: "Datos personales: identificador EPIK",
+    text: "ID EPIK",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2013": {
+    where: "Datos personales: fecha civil de nacimiento",
+    text: "Fecha de nacimiento",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2014": {
+    where: "Ajustes: consulta de identificación propia",
+    text: "Datos registrados por la OE",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2015": {
+    where: "Ajustes: ayuda de identificación propia",
+    text: "Podés consultar estos datos. Si necesitás corregirlos, contactá a Gestión Humana.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2016": {
+    where: "Edición administrativa: borrado de identificadores",
+    text: "Si dejás vacío uno de estos cuatro campos, se borra el dato guardado.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-202": {
     where: "Resultado de permanencia (cumple)",
     text: "Cerró {término} · Tu resultado en cada comité y tus puntos del semestre",
@@ -3435,6 +3477,30 @@ export const textos = {
     text: "Sobre tu permanencia en la OE · Texto por escribir: comunicación de salida, agradecimiento, cómo queda su historia",
     owner: "GH y JUNTA",
     status: "Pendiente; texto sensible",
+  },
+  "T-2040": {
+    where: "Mi OE: aviso de licencia",
+    text: "Estás en licencia. Podés consultar Mi OE y actualizar tus datos personales. La participación y las funciones de tu cargo vuelven cuando GH te reactive.",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2041": {
+    where: "Mi OE: acción restringida durante licencia",
+    text: "Mientras estés en licencia, esta acción no está disponible. Podés seguir consultando Mi OE y gestionar tus datos en Ajustes.",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2042": {
+    where: "Carnet: licencia",
+    text: "Tu carnet está suspendido para nuevas asistencias mientras estés en licencia. Cuando GH te reactive, vas a poder mostrar el QR y agregarlo a tu billetera de nuevo.",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2043": {
+    where: "Carnet: volver a Mi OE",
+    text: "Volver a Mi OE",
+    owner: "MATEO",
+    status: "Confirmado",
   },
   "T-205": {
     where: "Solicitud respondida",
@@ -3460,6 +3526,36 @@ export const textos = {
     text: "Organización Estudiantil · Universidad EAFIT · Bloque 29 of. 525 · Recibís este correo porque estás en el roster de la OE. {enlace de baja si aplica}",
     owner: "JUNTA",
     status: "Propuesta",
+  },
+  "T-2080": {
+    where: "Roster: dato opcional inválido",
+    text: "{campo} no tiene un formato válido. Se conserva el dato existente y queda pendiente de corrección.",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2081": {
+    where: "Roster: nacimiento inválido",
+    text: "La fecha de nacimiento debe ser una fecha real, no futura, en formato AAAA-MM-DD. Se conserva el dato existente y queda pendiente de corrección.",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2082": {
+    where: "Roster: formato de fecha incorrecto en Excel",
+    text: "El Excel contiene una celda con formato de fecha que no se puede leer. Revisá su formato o subí una copia CSV con los valores corregidos.",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2083": {
+    where: "Roster: graduado pendiente",
+    text: "La persona graduada queda pendiente hasta contar con su fecha o semestre de salida.",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2084": {
+    where: "Roster: discrepancia de ingreso",
+    text: "El semestre de ingreso no coincide con el registrado. Revisá la diferencia antes de importar esta persona.",
+    owner: "MATEO",
+    status: "Confirmado",
   },
   "T-209": {
     where: "Correo de prueba de una plantilla: prefijo del asunto",
@@ -7360,7 +7456,7 @@ export const textos = {
   },
   "T-882": {
     where: "Licencia: explicación",
-    text: "Mientras estés en licencia no podés entrar a Mi OE ni se te evalúa la permanencia. Para volver, escribile a GH.",
+    text: "Mientras estés en licencia podés consultar Mi OE y actualizar tus datos personales. No podés participar en actividades ni se te evalúa la permanencia. Para volver, escribile a GH.",
     owner: "GH",
     status: "Propuesta",
   },

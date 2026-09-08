@@ -73,12 +73,14 @@ describe("requestOtp", () => {
     expect(sent).toHaveLength(0);
   });
 
-  it("no crea reto para una persona en licencia o retirada", async () => {
+  it("permite OTP en licencia y mantiene fuera a las personas retiradas", async () => {
     await seedMember("licencia@eafit.edu.co", "ON_LEAVE");
     await seedMember("retirada@eafit.edu.co", "INACTIVE");
     await requestOtp({ email: "licencia@eafit.edu.co", ip: "1.1.1.1" });
     await requestOtp({ email: "retirada@eafit.edu.co", ip: "1.1.1.1" });
-    expect(sent).toHaveLength(0);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.to).toBe("licencia@eafit.edu.co");
+    expect(await challengesFor("retirada@eafit.edu.co")).toBe(0);
   });
 
   it("crea el reto y manda el código a un miembro activo, normalizando el correo", async () => {
@@ -231,7 +233,11 @@ describe("verifyOtp y sesiones", () => {
       .update(membership)
       .set({ status: "ON_LEAVE" })
       .where(eq(membership.personId, personId));
-    expect(await resolveActor(first.token)).toBeNull();
+    expect(await resolveActor(first.token)).toMatchObject({
+      membershipStatus: "ON_LEAVE",
+      permissions: [],
+      isAdmin: false,
+    });
 
     expect(await destroySessionsFor(db(), personId, second.sessionId)).toBe(1);
     const [remaining] = await db().select({ n: count() }).from(session);

@@ -1,7 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type CommandContext, runCommand } from "@/db/tx";
-import { getMyMembership } from "@/modules/people";
+import { canParticipate, getMembershipRef, getMyMembership } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
@@ -43,6 +43,7 @@ export async function markOnboardingStep(
   source: "MANUAL" | "AUTO" = "MANUAL",
   now = new Date(),
 ): Promise<boolean> {
+  if (!canParticipate((await getMembershipRef(personId, ctx.tx))?.status)) return false;
   const steps = await requireConfig("onboarding.steps");
   if (!steps.some((step) => step.key === stepKey)) {
     throw new DomainError(t("T-032"));

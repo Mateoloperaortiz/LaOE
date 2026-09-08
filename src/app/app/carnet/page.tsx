@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import QRCode from "qrcode";
 import { getCarnetMetadata, issueCarnet, requireActor } from "@/modules/identity";
-import { getMyMembership, getPersonRecord } from "@/modules/people";
+import { canParticipate, getMyMembership, getPersonRecord } from "@/modules/people";
 import { isStalePass, listPassesFor, walletAvailability } from "@/modules/wallet";
 import { AppleWalletLink } from "@/modules/wallet/components/AppleWalletLink";
 import { Cartel } from "@/shared/brand";
@@ -18,6 +19,17 @@ export const metadata: Metadata = { title: t("T-131") };
 
 export default async function CarnetPage({ searchParams }: PageProps<"/app/carnet">) {
   const actor = await requireActor("/app/carnet");
+  if (!canParticipate(actor.membershipStatus)) {
+    return (
+      <div className="flex max-w-2xl flex-col items-start gap-6">
+        <h1>{t("T-131")}</h1>
+        <p>{t("T-2042")}</p>
+        <Link href="/app" className="boton-secundario">
+          {t("T-2043")}
+        </Link>
+      </div>
+    );
+  }
   const params = await searchParams;
   const saved = params.guardado === "carnet";
   const error = typeof params.error === "string" ? params.error : "";
@@ -37,7 +49,7 @@ export default async function CarnetPage({ searchParams }: PageProps<"/app/carne
     (!google.issuedAt || isStalePass(google, credential, mine.term?.id ?? null));
   const showWallet =
     available.apple || available.google || credential !== null || passes.length > 0;
-  const carnet = issueCarnet(actor.personId);
+  const carnet = await issueCarnet(actor.personId);
   const svg = await QRCode.toString(carnet.token, {
     type: "svg",
     margin: 1,

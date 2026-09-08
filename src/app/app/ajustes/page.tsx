@@ -15,6 +15,8 @@ import { CalendarLink } from "@/modules/identity/components/CalendarLink";
 import { SessionsPanel } from "@/modules/identity/components/SessionsPanel";
 import {
   CONSENT_PURPOSES,
+  canParticipate,
+  formatBirthDate,
   getPersonRecord,
   listConsents,
   SELF_MANAGED_PURPOSES,
@@ -66,7 +68,9 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
     getPreferences(actor.personId),
   ]);
   const vapidPublicKey = getEnv().VAPID_PUBLIC_KEY ?? null;
-  const calendarUrl = `${getEnv().APP_URL.replace(/\/$/, "")}/api/ics/mi-agenda.ics?t=${await getOrCreateCalendarToken(actor.personId)}`;
+  const calendarUrl = canParticipate(actor.membershipStatus)
+    ? `${getEnv().APP_URL.replace(/\/$/, "")}/api/ics/mi-agenda.ics?t=${await getOrCreateCalendarToken(actor.personId)}`
+    : null;
   const [colDispositivo, colDesde, colUltimoUso] = tList("T-1076");
   const [prefAnuncios, prefPuntos, prefRecordatorios, prefCampañas] = tList("T-1080") as [
     string,
@@ -81,6 +85,10 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
     { name: "emailCampaigns", label: prefCampañas, checked: preferences.emailCampaigns },
   ];
   const secciones = tList("T-133");
+  const availableSections = SECCIONES.map((id, index) => ({
+    id,
+    label: secciones[index] ?? id,
+  })).filter((section) => section.id !== "calendario" || calendarUrl !== null);
   const purposeLabels = tList("T-516");
   const [autorizar, retirar] = tList("T-413") as [string, string];
   const aviso = (seccion: string) =>
@@ -95,7 +103,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
       </header>
       <SettingsSections
         label={t("T-418")}
-        sections={SECCIONES.map((id, index) => ({ id, label: secciones[index] ?? id }))}
+        sections={availableSections}
         initialSection={
           confirmar
             ? "privacidad"
@@ -103,7 +111,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
               ? "consentimientos"
               : guardado === "dispositivo"
                 ? "notificaciones"
-                : SECCIONES.includes(guardado as (typeof SECCIONES)[number])
+                : availableSections.some((section) => section.id === guardado)
                   ? guardado
                   : "mis-datos"
         }
@@ -143,6 +151,25 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
             phone={who?.phone ?? ""}
             personalEmail={who?.personalEmail ?? ""}
           />
+          <section aria-labelledby="datos-oe-titulo" className="flex max-w-xl flex-col gap-3">
+            <h3 id="datos-oe-titulo" className="font-bold">
+              {t("T-2014")}
+            </h3>
+            <p className="text-sm text-tinta-suave">{t("T-2015")}</p>
+            <dl className="grid gap-4 sm:grid-cols-2">
+              {[
+                [t("T-2010"), who?.documentType],
+                [t("T-2011"), who?.documentNumber],
+                [t("T-2012"), who?.epikId],
+                [t("T-2013"), who?.birthDate ? formatBirthDate(who.birthDate) : null],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-sm text-tinta-suave">{label}</dt>
+                  <dd className="mt-1 break-words font-semibold">{value || "—"}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
         </section>
 
         <section
@@ -237,36 +264,38 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
           <PreferencesForm items={preferencias} />
         </section>
 
-        <section
-          id="calendario"
-          aria-labelledby="calendario-titulo"
-          className="flex flex-col gap-6"
-        >
-          <BarraTitulo color="sky" className="self-start">
-            <span id="calendario-titulo">{secciones[2]}</span>
-          </BarraTitulo>
-          <p className="max-w-prose">{t("T-1084")}</p>
-          <CalendarLink
-            url={calendarUrl}
-            labels={{
-              field: t("T-1085"),
-              copy: t("T-1086"),
-              copied: t("T-1087"),
-              open: t("T-1088"),
-            }}
-          />
-          <p className="max-w-prose text-sm text-tinta-suave">{t("T-1091")}</p>
-          <form action={rotateCalendarAction} className="flex flex-col items-start gap-3">
-            <SettingsFormBody>
-              <button type="submit" className="boton-secundario text-sm">
-                {t("T-1089")}
-              </button>
-              {guardado === "calendario" ? (
-                <output className="block text-sm font-semibold text-titulo">{t("T-1090")}</output>
-              ) : null}
-            </SettingsFormBody>
-          </form>
-        </section>
+        {calendarUrl ? (
+          <section
+            id="calendario"
+            aria-labelledby="calendario-titulo"
+            className="flex flex-col gap-6"
+          >
+            <BarraTitulo color="sky" className="self-start">
+              <span id="calendario-titulo">{secciones[2]}</span>
+            </BarraTitulo>
+            <p className="max-w-prose">{t("T-1084")}</p>
+            <CalendarLink
+              url={calendarUrl}
+              labels={{
+                field: t("T-1085"),
+                copy: t("T-1086"),
+                copied: t("T-1087"),
+                open: t("T-1088"),
+              }}
+            />
+            <p className="max-w-prose text-sm text-tinta-suave">{t("T-1091")}</p>
+            <form action={rotateCalendarAction} className="flex flex-col items-start gap-3">
+              <SettingsFormBody>
+                <button type="submit" className="boton-secundario text-sm">
+                  {t("T-1089")}
+                </button>
+                {guardado === "calendario" ? (
+                  <output className="block text-sm font-semibold text-titulo">{t("T-1090")}</output>
+                ) : null}
+              </SettingsFormBody>
+            </form>
+          </section>
+        ) : null}
 
         <section id="sesiones" aria-labelledby="sesiones-titulo" className="flex flex-col gap-6">
           <BarraTitulo color="naranja" className="self-start">

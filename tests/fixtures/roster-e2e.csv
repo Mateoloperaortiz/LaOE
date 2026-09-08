@@ -1,4 +1,4 @@
-NOMBRE;APELLIDO;CORREO;CELULAR;PREGRADO;COMITES;ENTRADA A LA OE;ESTADO;CARGO
-Rosa;Roster;e2e-roster-rosa@eafit.edu.co;300 123 4567;Ingeniería de Sistemas;AGRO, PIXEL;2024-2;Activo;Logística de PIXEL
-Iván;Importado;e2e-roster-ivan@eafit.edu.co;;Derecho;CIMEC;2026-2;Prueba;
-Lucía;Licencia;e2e-roster-lucia@eafit.edu.co;3109876543;Economía;PIXEL;2023-1;Licencia;
+NOMBRE;APELLIDO;CORREO;CELULAR;PREGRADO;COMITES;ENTRADA A LA OE;ESTADO;CARGO;TIPO DE DOCUMENTO;DOCUMENTO;ID EPIK;FECHA DE NACIMIENTO
+Rosa;Roster;e2e-roster-rosa@eafit.edu.co;300 123 4567;Ingeniería de Sistemas;AGRO, PIXEL;2024-2;Activo;Logística de PIXEL;CC;000123456;000654321;2004-02-29
+Iván;Importado;e2e-roster-ivan@eafit.edu.co;;Derecho;CIMEC;2026-2;PERÍODO DE PRUEBA;;;;;
+Lucía;Licencia;e2e-roster-lucia@eafit.edu.co;3109876543;Economía;PIXEL;2023-1;PRÁCTICA;;;;;

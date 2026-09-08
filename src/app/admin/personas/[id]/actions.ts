@@ -128,6 +128,10 @@ export async function updatePersonAction(formData: FormData): Promise<void> {
     phone: optional(formData, "phone"),
     personalEmail: optional(formData, "personalEmail"),
     program: optional(formData, "program"),
+    ...(formData.has("documentType") ? { documentType: text(formData, "documentType") } : {}),
+    ...(formData.has("documentNumber") ? { documentNumber: text(formData, "documentNumber") } : {}),
+    ...(formData.has("epikId") ? { epikId: text(formData, "epikId") } : {}),
+    ...(formData.has("birthDate") ? { birthDate: text(formData, "birthDate") } : {}),
   });
   if (!parsed.success) {
     await fail(id, "datos", "editar", t("T-260"));

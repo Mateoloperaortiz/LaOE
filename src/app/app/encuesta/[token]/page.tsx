@@ -13,6 +13,14 @@ export const metadata: Metadata = { title: t("T-1161"), robots: { index: false }
 export default async function EncuestaPage({ params }: PageProps<"/app/encuesta/[token]">) {
   const { token } = await params;
   const actor = await requireActor(`/app/encuesta/${token}`);
+  if (actor.membershipStatus === "ON_LEAVE") {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1>{t("T-1161")}</h1>
+        <p>{t("T-2041")}</p>
+      </div>
+    );
+  }
   const invite = await getSurveyInviteForActor(actor.personId, token);
   const [ratingLow, ratingHigh] = tList("T-1102") as [string, string];
   const title =

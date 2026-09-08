@@ -6,6 +6,18 @@ En el arranque limpio ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)), el pri
 
 ## Columnas
 
+### Ampliación del roster real (2026-09-08, ADR-046)
+
+Se reconocen además `TIPO DE DOCUMENTO` (CC, TI, CE, PPT; también sus nombres completos), `DOCUMENTO`, `ID EPIK` y `FECHA DE NACIMIENTO` (AAAA-MM-DD). Son opcionales; documento e ID EPIK se conservan como texto. Una celda opcional vacía o inválida en estas cuatro columnas no borra el dato existente; los inválidos se advierten. ADMIN puede corregirlos desde la ficha y cada titular puede consultarlos y descargarlos. No se muestran en directorios ni carnés.
+
+NUEVO y JUNTA equivalen a Activo; PERÍODO DE PRUEBA a Activo en prueba; PRÁCTICA e INTERCAMBIO a Licencia. JUNTA no concede cargos ni permisos. GRADUADO queda pendiente hasta contar con fecha o semestre de salida. Las diferencias de semestre de ingreso frente a una membresía ya registrada bloquean esa fila. Solo se crean semestres históricos necesarios para filas válidas.
+
+Quienes estén en licencia pueden consultar Mi OE y gestionar sus datos personales; participación, nuevas credenciales y funciones administrativas siguen suspendidas. Ver [ADR-046](adr/ADR-046-integracion-roster-y-acceso-en-licencia.md).
+
+Para la primera carga se prepara un CSV privado con A–L, físicamente sin CARNE, Columna1 ni hojas auxiliares: ignorar una columna en el asistente no la elimina del original que se guarda. Los errores de formato de fechas de Excel se corrigen desde valores comprobados antes de subirlo. Duplicados equivalentes se unifican; los conflictos, datos obligatorios faltantes y graduados permanecen en un reporte privado para una segunda carga. El CSV conserva el estado original.
+
+### Contrato base
+
 Las cabeceras se reconocen sin importar mayúsculas ni tildes. Un archivo por término.
 
 | Columna | Obligatoria | Formato esperado | A dónde va |
