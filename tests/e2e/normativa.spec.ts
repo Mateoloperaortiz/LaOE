@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import sharp from "sharp";
 import { closeDb, getDb } from "@/db/client";
 import { processMedia } from "@/modules/content/domain/media-process";
-import { mediaAsset } from "@/modules/content/schema";
+import { document as documentTable, mediaAsset } from "@/modules/content/schema";
 import { onboardingProgress } from "@/modules/crm/schema";
 import { person } from "@/modules/people/schema";
 import {
@@ -19,8 +19,8 @@ import { E2E_EMAIL } from "./global-setup";
 // Normativa (ADR-034 regla 9): el admin sube un PDF sintético y carga tres artículos; el miembro
 // busca, abre el artículo y el PDF original responde 302 al bucket.
 
-// Título fijo: el global-setup borra los documentos `e2e-%` en cada corrida, y las dos partes de la
-// prueba corren en workers distintos (cada `storageState` es un worker), así que no comparten memoria.
+// Títulos fijos compartidos entre workers. Cada prueba de carga limpia solo su documento sintético
+// antes de empezar: global-setup no se repite cuando Playwright reintenta una prueba.
 const titulo = "e2e-estatutos-prueba";
 const tituloV2 = "e2e-estatutos-completos-de-la-organización-de-prueba";
 
@@ -39,6 +39,7 @@ test.describe("como admin", () => {
   test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
   test("sube un PDF, carga los artículos desde el JSON y lo publica", async ({ page }) => {
+    await getDb().delete(documentTable).where(eq(documentTable.title, titulo));
     await page.goto("/admin/documentos");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Documentos");
     await sinViolaciones(page);
@@ -63,7 +64,14 @@ test.describe("como admin", () => {
     await expect(fila.getByText("Borrador")).toBeVisible();
 
     await fila.getByRole("button", { name: "Publicar", exact: true }).click();
-    await expect(page.getByRole("alert")).toBeVisible();
+    await expect(page).toHaveURL(
+      (url) =>
+        url.searchParams.get("error") === "Cargá el contenido del documento antes de publicarlo.",
+    );
+    // El anunciador de rutas de Next también tiene role=alert; no indica que terminó el redirect.
+    await expect(page.getByRole("main").getByRole("alert")).toHaveText(
+      "Cargá el contenido del documento antes de publicarlo.",
+    );
     await expect(
       page.getByRole("row", { name: new RegExp(titulo) }).getByText("Borrador"),
     ).toBeVisible();
@@ -91,6 +99,7 @@ test.describe("como admin", () => {
     browser,
   }) => {
     test.setTimeout(120_000);
+    await getDb().delete(documentTable).where(eq(documentTable.title, tituloV2));
     await page.goto("/admin/medios");
     await page.getByLabel("Visibilidad").selectOption("PRIVATE");
     const image = await sharp(
