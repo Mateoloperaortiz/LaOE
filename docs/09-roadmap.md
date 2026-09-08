@@ -296,6 +296,10 @@ Cada tramo de software cierra con `npm run check`, `npm run test:e2e`, commit co
 
 Listo cuando (software): formatos, autorización, concurrencia, reintentos, lifecycle, estados y UI funcionan con fixtures y la suite completa queda en verde. **Listo cuando (uso real de cada plataforma):** un miembro guarda el pase en su billetera, el anfitrión lo escanea y queda el check-in; revocar deja el QR anterior sin efecto y el pase nuevo vuelve a acreditar. Sin credenciales reales se cierra solo el software y se conservan las casillas de activación pendientes.
 
+## Wordle diario (ADR-041)
+
+- [x] W-T1 · Diccionario reproducible amplio y respuestas curadas, partidas diarias personales, premio atómico, cierre transaccional, tablero en GH Points y verificación completa
+
 ## Backlog (después de la v1)
 
 - Votación electrónica de la junta con segunda vuelta: cuando la asistencia funcione sin fallas y con las reglas de los estatutos (voto secreto, quórum)
@@ -307,7 +311,7 @@ Listo cuando (software): formatos, autorización, concurrencia, reintentos, life
 - Certificados de participación con QR de verificación (no priorizado)
 - Servicio web y APNs de Apple Wallet para actualizar pases sin volver a agregarlos
 - Passkeys como segundo factor o acceso rápido
-- Reto relámpago, boosters, palabra del día, badges persistidos
+- Reto relámpago, boosters y badges persistidos; palabra del día pasa al tramo Wordle (ADR-041)
 - Fórmulas alternativas de score de comité (ponderadas)
 - WhatsApp Business API
 - Servicio `worker` separado, solo con uso medido
@@ -451,3 +455,5 @@ Listo cuando (software): formatos, autorización, concurrencia, reintentos, life
 | 2026-09-07 23:45 (Bogotá) | 8 | **Cámara Apple→Android PASS** en staging `4ed0285`: Samsung SM-S938B/Android 16 Chrome leyó físicamente el pase Apple V4 mostrado en el iPhone. El lector se detuvo e informó asistencia ya registrada; sin duplicación ni carga de archivo. Evidencia observada a las 04:45:18.121 UTC del 2026-09-08, guardada en los bloques de cámara de ambos registros privados y en una captura del resultado. Google→iPhone continúa pendiente, al igual que semestre/anonimización Google, publicación y criterios de aceptación restantes; producción sin promoción. |
 
 | 2026-09-07 23:52 (Bogotá) | 8 | **Cámara Google→iPhone PASS**: el usuario confirmó el resultado exacto de asistencia ya registrada tras escanear en vivo el Google V3 del Samsung con Safari del iPhone. Correlación: POST del anfitrión 200 en 40 ms a las 04:50:22.305 UTC del 2026-09-08; confirmación a las 04:52:53.376 UTC. Sin carga de archivo. A las 04:54:48.048 UTC, Mirroring permitió observar directamente el mismo resultado en la pestaña existente, sin recarga, archivo ni nuevo escaneo; corroboración posterior registrada en ambos JSON privados. Las dos direcciones de cámara quedan aprobadas; semestre/anonimización Google, publicación, política/titular y pendientes de F7 permanecen abiertos. Sin promoción de producción. |
+
+| 2026-09-07 | Wordle | **W-T1: implementación local verificada** (ADR-041). Una partida diaria por persona y respuesta única cada día de Colombia; cinco letras, seis intentos, tildes opcionales y Ñ; crédito WORDLE de 6 a 1 en la misma transacción que la victoria, reintentos idempotentes y evento de CRM sin push. Diccionario reproducible sin red: 9.130 intentos y 1.429 respuestas revisadas, fuentes/licencias/hashes versionados. Tablero móvil en GH Points, teclado físico/táctil, Mis datos sin respuesta activa y enlace desde semestres anteriores. Cierre de puntos con barrera compartida/exclusiva del término y snapshot transaccional. Corregidos foco tras cada intento y contraste del ranking propio en oscuro. Migración 0010 aplicada y verificada localmente; check completo en verde (270 unitarias, 247 de integración y build), wordle:check reproducible y 8 E2E compiladas sin reintentos (GH Points, Wordle, cierre; axe y pantallas de escritorio/móvil). No desplegado. |

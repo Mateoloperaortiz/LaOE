@@ -144,7 +144,9 @@ Módulo propio desde la fase 5 ([ADR-037](adr/ADR-037-admision-aliados-y-contact
 | `OccasionSurveyInvite` | `occasionId`, `personId`, `tokenHash` único, `sentAt?`, `answeredAt?` | Una por asistente aprobado al cerrar una ocasión con encuesta; única por (ocasión, persona); el token viaja solo en la URL del push; se borra al salir o anonimizarse ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
 | `OccasionSurveyResponse` | `occasionId`, `committeeId?` (copiado de la ocasión), `answers` JSON, `createdAt` | **Sin persona**: la respuesta anónima; los agregados por ocasión y comité muestran textos libres solo con 3 o más respuestas ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
 | `CheckIn` | `occasionId`, `personId`, `status` (`PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`), `source` (`SELF_QR`, `HOST`, `ADMIN`, `IMPORT`), `at`, `decidedById?`, `decidedAt?`, `reason?`, `legacyId?` | Unique por (ocasión, persona); `PENDING → APPROVED \| REJECTED`, `REJECTED → APPROVED`, `APPROVED → CANCELLED`; la IP queda en la auditoría, no aquí |
-| `PointEntry` | `personId`, `termId`, `checkInId?`, `kind` (`CHECKIN`, `ADJUSTMENT`, `REVERSAL`, `LEGACY`), `points` (≠ 0), `reason`, `reversalOfId?` único, `createdById?`, `legacyType?`, `legacyId?` | Append-only; el `CHECKIN` nace en la misma transacción del check-in aprobado |
+| `PointEntry` | `personId`, `termId`, `checkInId?`, `wordleGameId?` único, `kind` (`CHECKIN`, `ADJUSTMENT`, `REVERSAL`, `LEGACY`, `WORDLE`), `points` (≠ 0), `reason`, `reversalOfId?` único, `createdById?`, `legacyType?`, `legacyId?` | Append-only; CHECKIN nace junto a la asistencia y WORDLE junto a la victoria (1 a 6 puntos; ADR-041) |
+| `WordleGame` | `personId`, `termId`, `day`, `answer` privada, `dictionaryVersion`, `rulesVersion`, `status` (`IN_PROGRESS`, `WON`, `LOST`, `EXPIRED`), `completedAt?` | Únicas persona/día y respuesta/día de Colombia; no se crea con GET; respuesta visible únicamente al terminar o vencer |
+| `WordleAttempt` | `gameId`, `ordinal` (1 a 6), `requestId`, `guess`, `feedback` JSON | Únicas partida/ordinal y partida/requestId; pistas por letra guardadas en servidor |
 | `CommitteeParticipation` | `occasionId`, `committeeId`, `termId`, `eligible`, `present`, `rate`, `smoothedRate`, `frozenAt?`, `computedAt` | Unique por (ocasión, comité); cruda y suavizada con `k = 5` (ADR-024); solo comités con elegibles; `eligible` se congela al cerrar la ocasión |
 | `TermStanding` | `termId` único, `topNew` JSON, `topVeteran` JSON, `topCommittees` JSON, `stats` JSON | Snapshot al cerrar puntos, con ids y nombre congelado (anonimizar lo reemplaza por T-223) |
 | `AssemblyRequirement` | `termId`, `personId`, `requiredOrdinary`, `requiresBoardElection`, `requiresRunoff`, `adjustedReason`, `adjustedById?` | Unique por (término, persona); **solo se materializa para ajustes** (ADMIN con motivo): el requisito por defecto se deriva del término (una ordinaria; elección y segunda vuelta en segundo semestre); faltar a una obligatoria propone salida de la OE en el cierre |
@@ -216,6 +218,9 @@ Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().
 | --- | --- |
 | `PointEntry(checkInId) WHERE kind = 'CHECKIN'` | Una entrada de crédito por check-in |
 | `PointEntry(reversalOfId)` único | Una reversión por entrada |
+| `PointEntry(wordleGameId)` único | Una acreditación de Wordle por partida; solo WORDLE lleva este vínculo |
+| `WordleGame(personId, day)` y `WordleGame(answer, day)` únicos | Una partida por integrante y respuestas distintas cada día |
+| `WordleAttempt(gameId, ordinal)` y `WordleAttempt(gameId, requestId)` únicos | Un intento por ordinal y reintentos de red idempotentes |
 | `Membership(personId)` único | Una membresía por persona |
 | `CarnetToken(personId)` y `CarnetToken(token)` únicos | Un token de billetera por persona, sin colisiones |
 | `WalletPass(personId, platform)` único | Una reserva o pase por persona y plataforma |

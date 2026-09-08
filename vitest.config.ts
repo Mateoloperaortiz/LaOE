@@ -13,6 +13,7 @@ export default defineConfig({
           name: "unit",
           environment: "node",
           include: ["tests/unit/**/*.test.ts"],
+          setupFiles: ["tests/server-only.ts"],
         },
       },
       {
@@ -22,7 +23,7 @@ export default defineConfig({
           environment: "node",
           include: ["tests/integration/**/*.test.ts"],
           globalSetup: ["tests/integration/global-setup.ts"],
-          setupFiles: ["tests/integration/setup.ts"],
+          setupFiles: ["tests/server-only.ts", "tests/integration/setup.ts"],
           fileParallelism: false,
           testTimeout: 20_000,
         },

@@ -1,6 +1,6 @@
 # ADR-035: Participación y GH Points (fase 3)
 
-- Estado: Aceptada (enmendada por ADR-036 y ADR-038)
+- Estado: Aceptada (enmendada por ADR-036, ADR-038 y ADR-041)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-020, ADR-024, ADR-028, ADR-030, ADR-031, ADR-032, ADR-034
 - Enmienda: ADR-006 (transiciones del check-in), ADR-009 (filas del score solo con elegibles, congelado y transacción propia), ADR-024 (una sola ordinaria obligatoria, aclaración de redacción), ADR-034 (punto 1: el término pasa a un módulo `terms`), 03-modelo (`rotatingSecret`, columnas nuevas de la ocasión, `assembly_requirement` solo para ajustes) y 05-acceso (step-up para cancelar con créditos y para cerrar puntos; líderes en el admin)
@@ -56,3 +56,7 @@ El layout del admin admite además `BOARD` y a quien lidere o evalúe un grupo d
 ## Enmienda (2026-09-05, ADR-038)
 
 `occasion` gana `surveyFormId` y `participation` importa `forms`; al cerrar una ocasión con encuesta se crean las invitaciones y sale el push T-191. El programado `reminders` suma `participation.reminders`: T-182 a las 07:00 para las ocasiones de hoy, T-193 a las 18:00 para las reuniones de comité de mañana y T-183 la víspera y entre 2 y 3 horas antes de cada asamblea, por el bus de notificaciones. `checkin.approved` con puntos produce el push T-181 desde `comms` con el saldo de `balanceFor`. Ver [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md).
+
+## Enmienda (2026-09-07, ADR-041)
+
+La palabra del día se incorpora con partidas propias y crédito WORDLE. Las escrituras que afectan el cierre usan un guard transaccional compartido del término; el cierre adquiere exclusividad y calcula su snapshot dentro de la misma transacción. Enmienda las reglas 1, 5, 9, 13 y 20 sin cambiar los históricos LEGACY. Ver [ADR-041](ADR-041-wordle-diario-y-cierre-de-puntos.md).

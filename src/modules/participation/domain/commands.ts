@@ -1,7 +1,7 @@
 import { type Actor, runCommand } from "@/db/tx";
-import { getMembershipRef } from "@/modules/people";
+import { getMembershipRef, listActiveMemberRefs, listAllCommittees } from "@/modules/people";
 import { getConfig, requireConfig } from "@/modules/system";
-import { closeTermPoints, findTermContaining, getTerm, listAllTerms } from "@/modules/terms";
+import { closeTermPoints, findTermContaining, getTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
@@ -25,7 +25,6 @@ import {
   countOpenOccasions,
   createOccasion,
   createOccasionSeries,
-  getOccasion,
   getOccasionByPublicId,
   type OccasionContext,
   type OccasionInput,
@@ -36,9 +35,8 @@ import {
   updateOccasion,
 } from "./occasions";
 
-// Los comandos abren su transacción aquí (ADR-012). Las lecturas cruzadas (término, config) se
-// resuelven ANTES de runCommand: dentro de la transacción no se lee con getDb() para no agotar el
-// pool bajo cientos de check-ins simultáneos (ADR-035 regla 1).
+// Los comandos abren su transacción aquí (ADR-012). Membresía, nombres y config se resuelven antes;
+// el guard público de terms usa ctx.tx para coordinar el cierre sin tomar otra conexión del pool.
 
 /** El término que contiene la fecha de inicio (en Bogotá) y la ventana por defecto. */
 export async function resolveOccasionContext(startsAt: Date): Promise<OccasionContext> {
@@ -73,14 +71,8 @@ export async function updateOccasionAs(
   return runCommand(actor, (ctx) => updateOccasion(ctx, id, input, context));
 }
 
-export async function openOccasionAs(actor: Actor, id: string): Promise<void> {
-  const current = await getOccasion(id);
-  if (!current) {
-    throw new DomainError(t("T-032"));
-  }
-  const term = await getTerm(current.termId);
-  const termPointsClosed = term?.pointsClosedAt !== null && term?.pointsClosedAt !== undefined;
-  return runCommand(actor, (ctx) => openOccasion(ctx, id, { termPointsClosed }));
+export function openOccasionAs(actor: Actor, id: string): Promise<void> {
+  return runCommand(actor, (ctx) => openOccasion(ctx, id));
 }
 
 export function closeOccasionAs(actor: Actor, id: string): Promise<void> {
@@ -100,12 +92,7 @@ export async function cancelOccasionAs(
   });
 }
 
-async function termPointsClosed(termId: string): Promise<boolean> {
-  const term = await getTerm(termId);
-  return term?.pointsClosedAt !== null && term?.pointsClosedAt !== undefined;
-}
-
-/** Check-in propio: resuelve ocasión, membresía y término afuera; adentro solo tablas propias. */
+/** Check-in propio: resuelve ocasión y membresía afuera; el cierre se valida dentro. */
 export async function checkInSelfAs(
   actor: Actor & { personId: string },
   input: { publicId: string; code?: string | null; now?: Date },
@@ -114,16 +101,13 @@ export async function checkInSelfAs(
   if (!row) {
     return { ok: false, reason: "NOT_FOUND" };
   }
-  const [membership, closed] = await Promise.all([
-    getMembershipRef(actor.personId),
-    termPointsClosed(row.termId),
-  ]);
+  const membership = await getMembershipRef(actor.personId);
   try {
     return await runCommand(actor, (ctx) =>
       checkInSelf(
         ctx,
         { occasionId: row.id, personId: actor.personId, code: input.code, now: input.now },
-        { membership, termPointsClosed: closed },
+        { membership },
       ),
     );
   } catch (error) {
@@ -181,8 +165,7 @@ export async function adjustPointsAs(
   actor: Actor & { personId: string },
   input: { personId: string; termId: string; points: number; reason: string },
 ): Promise<{ id: string }> {
-  const closed = await termPointsClosed(input.termId);
-  return runCommand(actor, (ctx) => adjustPoints(ctx, input, { termPointsClosed: closed }));
+  return runCommand(actor, (ctx) => adjustPoints(ctx, input));
 }
 
 export async function reverseEntryAs(
@@ -190,13 +173,7 @@ export async function reverseEntryAs(
   entryId: string,
   reason: string,
 ): Promise<{ id: string }> {
-  const terms = await listAllTerms();
-  const closedTerms = new Set(
-    terms.filter((term) => term.pointsClosedAt !== null).map((term) => term.id),
-  );
-  return runCommand(actor, (ctx) =>
-    reverseEntry(ctx, entryId, reason, { termPointsClosed: (termId) => closedTerms.has(termId) }),
-  );
+  return runCommand(actor, (ctx) => reverseEntry(ctx, entryId, reason));
 }
 
 export function adjustRequirementAs(
@@ -207,19 +184,21 @@ export function adjustRequirementAs(
 }
 
 /**
- * Cierra los puntos del término (ADR-035 regla 13): los tableros se calculan afuera; adentro se estampa
- * el término (comando de `terms`) y se escribe el standing en la misma transacción.
+ * Precarga solo nombres y membresías. Dentro, el bloqueo exclusivo espera a los escritores y
+ * conserva juntos el sello de cierre, los totales definitivos, el standing y su evento.
  */
 export async function closeTermPointsAs(
   actor: Actor & { personId: string },
   termId: string,
 ): Promise<{ id: string }> {
-  const [openOccasions, standing] = await Promise.all([
-    countOpenOccasions(termId),
-    buildStanding(termId),
-  ]);
+  const [members, committees] = await Promise.all([listActiveMemberRefs(), listAllCommittees()]);
   return runCommand(actor, async (ctx) => {
     await closeTermPoints(ctx, termId);
+    const openOccasions = await countOpenOccasions(termId, ctx.tx);
+    if (openOccasions > 0) {
+      throw new DomainError(t("T-646", { n: openOccasions }));
+    }
+    const standing = await buildStanding(termId, { exec: ctx.tx, members, committees });
     return writeTermStanding(ctx, termId, standing, { openOccasions });
   });
 }

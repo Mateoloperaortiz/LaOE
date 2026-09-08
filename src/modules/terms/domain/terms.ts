@@ -2,7 +2,7 @@ import { and, asc, count, desc, eq, gte, ilike, lte } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import type { CommandContext, Executor } from "@/db/tx";
+import type { CommandContext, Executor, Tx } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
@@ -189,13 +189,28 @@ export async function ensureNextTerm(
   return { id: created.id, code, created: true };
 }
 
+/**
+ * Barrera compartida del ledger y de los datos que congela el cierre. Los escritores pueden correr
+ * juntos; el cierre toma FOR UPDATE y espera a que todos terminen. Siempre usa la transacción dada.
+ */
+export async function lockOpenTermPoints(tx: Tx, termId: string): Promise<TermRow> {
+  const [row] = await tx.select().from(term).where(eq(term.id, termId)).for("share");
+  if (!row) {
+    throw new DomainError(t("T-032"));
+  }
+  if (row.pointsClosedAt) {
+    throw new DomainError(t("T-629"));
+  }
+  return row;
+}
+
 /** Estampa el cierre de puntos (ADR-004): desde ahí el ledger del término no acepta entradas. Sin reapertura. */
 export async function closeTermPoints(
   ctx: CommandContext,
   id: string,
   at = new Date(),
 ): Promise<TermRow> {
-  const [before] = await ctx.tx.select().from(term).where(eq(term.id, id));
+  const [before] = await ctx.tx.select().from(term).where(eq(term.id, id)).for("update");
   if (!before) {
     throw new DomainError(t("T-032"));
   }

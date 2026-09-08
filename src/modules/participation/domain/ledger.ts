@@ -1,6 +1,7 @@
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
+import { lockOpenTermPoints } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { pointEntry } from "../schema";
@@ -46,6 +47,7 @@ export async function creditCheckIn(
   if (input.points <= 0) {
     return null;
   }
+  await lockOpenTermPoints(ctx.tx, input.termId);
   const existing = await checkInEntry(ctx, input.checkInId);
   if (existing) {
     return existing;
@@ -75,6 +77,7 @@ export async function reverseCheckInCredit(
   if (!entry || (await reversalOf(ctx, entry.id))) {
     return 0;
   }
+  await lockOpenTermPoints(ctx.tx, entry.termId);
   await ctx.tx.insert(pointEntry).values({
     personId: entry.personId,
     termId: entry.termId,
@@ -119,11 +122,8 @@ export interface AdjustInput {
 export async function adjustPoints(
   ctx: CommandContext,
   input: AdjustInput,
-  context: { termPointsClosed: boolean },
 ): Promise<PointEntryRow> {
-  if (context.termPointsClosed) {
-    throw new DomainError(t("T-629"), "termId");
-  }
+  await lockOpenTermPoints(ctx.tx, input.termId);
   if (!Number.isInteger(input.points) || input.points === 0) {
     throw new DomainError(t("T-627"), "points");
   }
@@ -162,7 +162,6 @@ export async function reverseEntry(
   ctx: CommandContext,
   entryId: string,
   reason: string,
-  context: { termPointsClosed: (termId: string) => boolean },
 ): Promise<PointEntryRow> {
   const [entry] = await ctx.tx.select().from(pointEntry).where(eq(pointEntry.id, entryId)).limit(1);
   if (!entry) {
@@ -171,9 +170,7 @@ export async function reverseEntry(
   if (entry.kind !== "ADJUSTMENT" && entry.kind !== "LEGACY") {
     throw new DomainError(t("T-632"));
   }
-  if (context.termPointsClosed(entry.termId)) {
-    throw new DomainError(t("T-629"));
-  }
+  await lockOpenTermPoints(ctx.tx, entry.termId);
   if (await reversalOf(ctx, entry.id)) {
     throw new DomainError(t("T-633"));
   }

@@ -83,6 +83,12 @@ const REQUIRED_INDEXES = [
   "carnet_token_person_unique",
   "carnet_token_token_unique",
   "wallet_pass_person_platform_unique",
+  // Wordle diario (ADR-041)
+  "wordle_game_person_day_unique",
+  "wordle_game_answer_day_unique",
+  "wordle_attempt_game_ordinal_unique",
+  "wordle_attempt_game_request_unique",
+  "point_entry_wordle_game_unique",
 ];
 
 const REQUIRED_EXTENSIONS = ["pg_trgm"];

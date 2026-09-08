@@ -1,4 +1,5 @@
 // API pública del módulo participation (ADR-035, ADR-038).
+
 export { listAgendaForPerson, type PersonAgendaContext } from "./domain/agenda";
 export {
   type AgendaEdition,
@@ -159,3 +160,19 @@ export {
   type SurveySummary,
   summarizeAnswers,
 } from "./domain/surveys-pure";
+export {
+  getTodayWordle,
+  listWordleGamesFor,
+  startWordleAs,
+  submitWordleGuessAs,
+} from "./domain/wordle";
+export type {
+  SubmitWordleInput,
+  TodayWordle,
+  WordleAttemptView,
+  WordleDenial,
+  WordleGameView,
+  WordleLetterState,
+  WordleResult,
+  WordleStatus,
+} from "./wordle-types";

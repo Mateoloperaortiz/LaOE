@@ -5,6 +5,7 @@ import {
   ASSEMBLY_KINDS,
   assemblyStatusFor,
   balanceFor,
+  getTodayWordle,
   levelFor,
   listEntriesFor,
   myPosition,
@@ -12,6 +13,7 @@ import {
   rankCommittees,
   rankPeople,
 } from "@/modules/participation";
+import { Wordle } from "@/modules/participation/components/Wordle";
 import { getMembershipRef, listCommitteesByIds } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -19,6 +21,7 @@ import { Cartel, Insignia, Numeral, SelloOE } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { Vacio } from "../_ui/Vacio";
+import { startWordleAction, submitWordleAction } from "./actions";
 
 // GH Points en Mi OE (06-mapa-del-sitio.md, ADR-035 reglas 9 y 10): saldo, nivel, movimientos y los
 // tableros del semestre (top 10 con nombres más el puesto propio). Las asambleas llegan en F3-T6.
@@ -41,11 +44,12 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   const tablero: BoardKey = BOARDS.includes(tableroParam as BoardKey)
     ? (tableroParam as BoardKey)
     : "nuevos";
-  const [terms, current, membership, cutoffs] = await Promise.all([
+  const [terms, current, membership, cutoffs, wordle] = await Promise.all([
     listAllTerms(),
     getCurrentTerm(),
     getMembershipRef(actor.personId),
     requireConfig("points.levels"),
+    getTodayWordle(actor.personId),
   ]);
   const termParam = single(search.semestre);
   const term = terms.find((item) => item.id === termParam) ?? current;
@@ -59,6 +63,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
       <div className="flex flex-col gap-6">
         <h1 className="text-display-lg">{t("T-080")}</h1>
         <Vacio texto={t("T-548")} />
+        <Wordle initial={wordle} onStart={startWordleAction} onGuess={submitWordleAction} />
       </div>
     );
   }
@@ -172,6 +177,25 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
             : t("T-541")}
         </p>
       </Cartel>
+
+      {term.id === current?.id ? (
+        <Wordle
+          key={`${wordle.day}:${wordle.availability}:${wordle.game?.id ?? "new"}:${wordle.game?.attempts.length ?? 0}:${wordle.game?.status ?? "new"}`}
+          initial={wordle}
+          onStart={startWordleAction}
+          onGuess={submitWordleAction}
+        />
+      ) : (
+        <section aria-labelledby="wordle-history" className="flex flex-col items-start gap-3">
+          <h2 id="wordle-history" className="text-display-md">
+            {t("T-1230")}
+          </h2>
+          <p>{t("T-1258")}</p>
+          <Link href="/app/gh-points#wordle" className="boton-secundario">
+            {t("T-1257")}
+          </Link>
+        </section>
+      )}
 
       <section aria-labelledby="movimientos" className="flex flex-col gap-4">
         <h2 id="movimientos" className="text-display-md">
@@ -292,9 +316,12 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
               <li
                 key={`${item.rank}-${item.name}`}
                 aria-current={item.mine ? "true" : undefined}
-                className={`flex items-center gap-4 rounded-[var(--radius-cartel)] border border-borde p-3 ${item.mine ? "bg-oe-yellow-soft" : "bg-fondo"}`}
+                className={`flex items-center gap-4 rounded-[var(--radius-cartel)] border border-borde p-3 ${item.mine ? "bg-oe-yellow-soft text-oe-navy" : "bg-fondo"}`}
               >
-                <Numeral valor={item.rank} className="w-14 text-display-md text-titulo" />
+                <Numeral
+                  valor={item.rank}
+                  className={`w-14 text-display-md ${item.mine ? "text-oe-navy" : "text-titulo"}`}
+                />
                 <span className="flex-1 text-lg font-semibold">{item.name}</span>
                 <span className="font-semibold tabular-nums">{item.total}</span>
               </li>

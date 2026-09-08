@@ -1,5 +1,6 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import type { Executor } from "@/db/tx";
 import { type ActiveMemberRef, listActiveMemberRefs } from "@/modules/people";
 import { committeeParticipation, occasion, pointEntry } from "../schema";
 import { competitionRanks, type Ranked, termCommitteeScore } from "./ledger-pure";
@@ -16,11 +17,15 @@ export interface RankedPerson {
   firstTermId: string;
 }
 
-async function totalsFor(termId: string, personIds: string[]): Promise<Map<string, number>> {
+async function totalsFor(
+  exec: Executor,
+  termId: string,
+  personIds: string[],
+): Promise<Map<string, number>> {
   if (personIds.length === 0) {
     return new Map();
   }
-  const rows = await getDb()
+  const rows = await exec
     .select({ personId: pointEntry.personId, total: sql<number>`sum(${pointEntry.points})::int` })
     .from(pointEntry)
     .where(and(eq(pointEntry.termId, termId), inArray(pointEntry.personId, personIds)))
@@ -34,8 +39,19 @@ function onBoard(member: ActiveMemberRef, termId: string, board: Board): boolean
 
 /** Tablero completo de un término: quienes suman puntos primero; sin puntos quedan al final con 0. */
 export async function rankPeople(termId: string, board: Board): Promise<Ranked<RankedPerson>[]> {
-  const members = (await listActiveMemberRefs()).filter((member) => onBoard(member, termId, board));
+  return rankPeopleFromMembers(getDb(), termId, board, await listActiveMemberRefs());
+}
+
+/** Ranking con referencias precargadas y una única conexión, también durante el cierre. */
+export async function rankPeopleFromMembers(
+  exec: Executor,
+  termId: string,
+  board: Board,
+  allMembers: readonly ActiveMemberRef[],
+): Promise<Ranked<RankedPerson>[]> {
+  const members = allMembers.filter((member) => onBoard(member, termId, board));
   const totals = await totalsFor(
+    exec,
     termId,
     members.map((member) => member.personId),
   );
@@ -86,8 +102,11 @@ export interface CommitteeScore {
 }
 
 /** Score del término por comité: promedio simple sobre las ocasiones cerradas con puntos. */
-export async function rankCommittees(termId: string): Promise<Ranked<CommitteeScore>[]> {
-  const rows = await getDb()
+export async function rankCommittees(
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<Ranked<CommitteeScore>[]> {
+  const rows = await exec
     .select({
       committeeId: committeeParticipation.committeeId,
       rate: committeeParticipation.rate,

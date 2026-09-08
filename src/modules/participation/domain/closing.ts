@@ -1,12 +1,12 @@
 import { and, count, eq, inArray, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import type { CommandContext } from "@/db/tx";
-import { listActiveMemberRefs, listCommitteesByIds } from "@/modules/people";
+import type { CommandContext, Executor } from "@/db/tx";
+import { type ActiveMemberRef, listActiveMemberRefs, listAllCommittees } from "@/modules/people";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { checkIn, occasion, pointEntry, termStanding } from "../schema";
-import { rankCommittees, rankPeople } from "./rankings";
+import { rankCommittees, rankPeopleFromMembers } from "./rankings";
 
 // Cierre de puntos del término (ADR-004, ADR-035 regla 13): snapshot de los tableros con ids y nombres
 // congelados; el término se estampa en `terms` dentro de la misma transacción.
@@ -50,19 +50,26 @@ export interface TermStandingView {
 
 export const TOP_SIZE = 10;
 
-/** Los tableros y las cifras que se congelan; se calculan fuera de la transacción. */
+/** Agregados definitivos, dentro de la transacción que mantiene el término bloqueado. */
 export async function buildStanding(
   termId: string,
+  context?: {
+    exec: Executor;
+    members: readonly ActiveMemberRef[];
+    committees: readonly { id: string; name: string }[];
+  },
 ): Promise<Omit<TermStandingView, "termId" | "createdAt">> {
-  const [nuevos, veteranos, comites, members] = await Promise.all([
-    rankPeople(termId, "NEW"),
-    rankPeople(termId, "VETERAN"),
-    rankCommittees(termId),
-    listActiveMemberRefs(),
-  ]);
-  const committees = await listCommitteesByIds(comites.map((item) => item.row.committeeId));
+  // La migración histórica también consume esta lectura fuera de un comando. El cierre siempre
+  // pasa contexto completo para no abrir conexiones del pool dentro de su transacción.
+  if (!context) {
+    const [members, committees] = await Promise.all([listActiveMemberRefs(), listAllCommittees()]);
+    context = { exec: getDb(), members, committees };
+  }
+  const { exec: db, members, committees } = context;
+  const nuevos = await rankPeopleFromMembers(db, termId, "NEW", members);
+  const veteranos = await rankPeopleFromMembers(db, termId, "VETERAN", members);
+  const comites = await rankCommittees(termId, db);
   const committeeName = new Map(committees.map((item) => [item.id, item.name]));
-  const db = getDb();
   const [occasions] = await db
     .select({ n: count() })
     .from(occasion)

@@ -2,6 +2,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
+import { lockOpenTermPoints } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
 import { checkIn, occasion } from "../schema";
@@ -20,8 +21,8 @@ import { windowState } from "./occasion-pure";
 import type { OccasionRow } from "./occasions";
 import { verifyRotatingCode } from "./rotating-code-pure";
 
-// Check-ins (ADR-006, ADR-035 reglas 5 y 6): sin locks del término ni de la ocasión; el unique
-// (ocasión, persona) decide los duplicados; el crédito nace en la misma transacción; los efectos
+// Check-ins (ADR-006, ADR-035 reglas 5 y 6): un lock compartido del término coordina el cierre; el
+// unique (ocasión, persona) decide los duplicados; el crédito nace en la misma transacción; los efectos
 // (score, línea de tiempo, onboarding) viajan por outbox con payloads autosuficientes.
 
 export type CheckInRow = typeof checkIn.$inferSelect;
@@ -106,7 +107,6 @@ export interface SelfCheckInInput {
 
 export interface SelfCheckInContext {
   membership: MembershipRef | null;
-  termPointsClosed: boolean;
 }
 
 export type SelfCheckInDenial =
@@ -151,8 +151,13 @@ export async function checkInSelf(
   if (row.status === "DRAFT" || row.status === "CANCELLED" || row.status === "CLOSED") {
     return { ok: false, reason: row.status };
   }
-  if (context.termPointsClosed) {
-    return { ok: false, reason: "TERM_CLOSED" };
+  try {
+    await lockOpenTermPoints(ctx.tx, row.termId);
+  } catch (error) {
+    if (error instanceof DomainError && error.message === t("T-629")) {
+      return { ok: false, reason: "TERM_CLOSED" };
+    }
+    throw error;
   }
   const window = windowState(row, now);
   if (window === "NOT_OPEN") {
@@ -264,6 +269,7 @@ export async function hostCheckIn(
   if (row.newMembersOnly && context.membership.firstTermId !== row.termId) {
     throw new DomainError(t("T-674", { nombre: input.personName }));
   }
+  await lockOpenTermPoints(ctx.tx, row.termId);
   const existing = await readCheckIn(ctx, row.id, input.personId);
   if (existing) {
     if (!canTransitionCheckIn(existing.status, "APPROVED")) {
@@ -327,6 +333,7 @@ async function decide(
   reason: string | null,
   now: Date,
 ): Promise<void> {
+  await lockOpenTermPoints(ctx.tx, row.termId);
   const target = statusForDecision(decision);
   if (!canTransitionCheckIn(current.status, target)) {
     throw new DomainError(t("T-676", { estado: statusLabel(current.status).toLowerCase() }));
@@ -414,6 +421,7 @@ export async function cancelOccasionCheckIns(
   reason: string,
   now = new Date(),
 ): Promise<number> {
+  await lockOpenTermPoints(ctx.tx, row.termId);
   const rows = await ctx.tx
     .select()
     .from(checkIn)

@@ -183,7 +183,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-082 | Niveles (0, 100, 250, 500, 1000 puntos) | Recién llegado · Parchado · De planta · Pilar · Leyenda OE | GH | Propuesta; GH puede renombrar o cambiar los cortes |
 | T-083 | Rankings, pestañas | Nuevos · Veteranos · Comités | GH | Propuesta |
 | T-084 | Ranking de comités, nota de la tasa suavizada | El porcentaje de cada comité es su participación relativa, ajustada para que los comités chicos no dependan de un solo evento. | GH | Propuesta |
-| T-085 | Movimientos, tipos | Asistencia · Ajuste · Reversión · Histórico | MATEO | Propuesta |
+| T-085 | Movimientos, tipos | Asistencia · Ajuste · Reversión · Histórico · Wordle | MATEO | Propuesta |
 | T-086 | Sin movimientos | Todavía no tenés puntos. Tu primera asistencia los estrena. | COM | Propuesta |
 
 ### Registro de asistencia (QR)
@@ -818,7 +818,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-664 | Recurso rankings (plural · singular) | Rankings · Puesto | MATEO | Propuesta |
 | T-665 | Recurso cumplimiento de asambleas (plural · singular) | Cumplimiento de asambleas · Persona | MATEO | Propuesta |
 | T-666 | Tarea: falta crear el semestre siguiente | Crear el semestre {codigo}: el actual termina el {fecha} | MATEO | Propuesta |
-| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} | MATEO | Propuesta |
+| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points | MATEO | Propuesta |
 | T-668 | Persona 360, Participación: títulos | Check-ins · Movimientos de GH Points | MATEO | Propuesta |
 | T-669 | Persona 360, Participación: sin check-ins | Todavía no tiene check-ins. | MATEO | Propuesta |
 | T-670 | Persona 360, Resumen: asambleas obligatorias | {n} de {total} obligatorias | MATEO | Propuesta |
@@ -1336,6 +1336,52 @@ Avisos de arranque con política pendiente (ADR-039; excepción del primer ADMIN
 | T-245 | Admin, sistema: botón para reencolar un fallido | Reintentar | MATEO | Propuesta |
 | T-246 | Admin, sistema: columnas de la tabla del outbox | Evento · Intentos · Próximo intento · Último error · Procesado · Creado | MATEO | Propuesta |
 | T-247 | Admin, sistema: lista vacía | No hay trabajos en esta lista. | MATEO | Propuesta |
+
+## Wordle diario (ADR-041)
+
+Reglas aprobadas por Mateo el 2026-09-07: una partida diaria, cinco letras, seis intentos y premio de 6 a 1 puntos por acertar. Textos funcionales de esta implementación:
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-1230 | GH Points: título del juego | Wordle de hoy | MATEO | Propuesta |
+| T-1231 | Wordle: introducción | Una palabra distinta para vos cada día. Resolvela y sumá GH Points. | MATEO | Propuesta |
+| T-1232 | Wordle: iniciar partida | Jugar el Wordle de hoy | MATEO | Propuesta |
+| T-1233 | Wordle: reglas | Adiviná una palabra de 5 letras en 6 intentos. Podés escribir con o sin tilde; la Ñ es distinta de la N. Cada intento válido queda guardado para que sigás en otro dispositivo. | MATEO | Propuesta |
+| T-1234 | Wordle: título de premios | Tus puntos por acertar | MATEO | Propuesta |
+| T-1235 | Wordle: escala de premios | Intentos · GH Points | MATEO | Propuesta |
+| T-1236 | Wordle: campo de palabra | Tu palabra de cinco letras | MATEO | Propuesta |
+| T-1237 | Wordle: enviar intento | Probar palabra | MATEO | Propuesta |
+| T-1238 | Wordle: borrar letra | Borrar | MATEO | Propuesta |
+| T-1239 | Wordle: envío pendiente | Guardando tu jugada… | MATEO | Propuesta |
+| T-1240 | Wordle: leyenda de pistas | En su lugar · En otro lugar · No aparece | MATEO | Propuesta |
+| T-1241 | Wordle: intento actual | Intento {n} de 6 | MATEO | Propuesta |
+| T-1242 | Wordle: celda accesible | {letra}: {estado} | MATEO | Propuesta |
+| T-1243 | Wordle: longitud o caracteres incorrectos | Escribí una palabra de cinco letras. | MATEO | Propuesta |
+| T-1244 | Wordle: palabra ausente del diccionario | No la encontré en el diccionario. Probá otra; no perdiste un intento. | MATEO | Propuesta |
+| T-1245 | Wordle: victoria | ¡La resolviste en {n}/6! Sumaste {puntos} GH Points. ¡OE OE OE! | MATEO | Propuesta |
+| T-1246 | Wordle: derrota | Se acabaron los intentos. Hoy no sumaste puntos; mañana hay otra palabra. | MATEO | Propuesta |
+| T-1247 | Wordle: respuesta al terminar | La palabra era {palabra}. | MATEO | Propuesta |
+| T-1248 | Wordle: próximo reto | Próxima palabra: {fecha}, a las 12:00 a. m. de Colombia. | MATEO | Propuesta |
+| T-1249 | Wordle: sin semestre o puntos cerrados | El Wordle estará disponible cuando haya un semestre vigente con los puntos abiertos. | MATEO | Propuesta |
+| T-1250 | Wordle: miembro no elegible | El Wordle está disponible para integrantes activos y honorarios. | MATEO | Propuesta |
+| T-1251 | Wordle: catálogo no disponible | No pudimos preparar tu palabra. Probá de nuevo en un rato. | MATEO | Propuesta |
+| T-1252 | Wordle: partida vencida | Terminó el día de esta partida. No sumaste puntos; ya podés consultar el reto de hoy. | MATEO | Propuesta |
+| T-1253 | Wordle: otro dispositivo avanzó | Tu partida cambió en otro dispositivo. Ya trajimos los intentos guardados; revisalos antes de seguir. | MATEO | Propuesta |
+| T-1254 | Wordle: respuesta de red incierta | No recibimos la confirmación. Reintentá la misma jugada: si ya se guardó, no contará dos veces. | MATEO | Propuesta |
+| T-1255 | Wordle: partida no encontrada o solicitud inválida | No pudimos recuperar esa jugada. Actualizá la partida para seguir. | MATEO | Propuesta |
+| T-1256 | Wordle: actualizar estado | Actualizar partida | MATEO | Propuesta |
+| T-1257 | GH Points: enlace al juego actual | Ir al Wordle de hoy | MATEO | Propuesta |
+| T-1258 | GH Points: al consultar otro semestre | El Wordle suma puntos en el semestre vigente. | MATEO | Propuesta |
+| T-1259 | Wordle: nombre accesible del teclado | Teclado del Wordle | MATEO | Propuesta |
+| T-1260 | Wordle: desplegable de instrucciones | Cómo jugar | MATEO | Propuesta |
+| T-1261 | Ledger: motivo del premio Wordle | Wordle del {fecha}: intento {intento}/6 | MATEO | Propuesta |
+| T-1262 | Wordle: nombre accesible del tablero | Tus seis intentos | MATEO | Propuesta |
+| T-1263 | Wordle: pista de celda vacía | Sin letra | MATEO | Propuesta |
+| T-1264 | Wordle: premio posible | Podés sumar {n} GH Points en este intento. | MATEO | Propuesta |
+| T-1265 | Wordle: sin premio por perder | Si no acertás, no sumás puntos. | MATEO | Propuesta |
+| T-1266 | Wordle: día nuevo | Ya cambió el día en Colombia. Actualizá para jugar tu nueva palabra. | MATEO | Propuesta |
+| T-1267 | Wordle: partida cerrada | Tu partida ya terminó. | MATEO | Propuesta |
+| T-1268 | Wordle: reintentar envío incierto | Reintentar jugada | MATEO | Propuesta |
 
 ## 9. Lo que debe entregar cada dueño
 

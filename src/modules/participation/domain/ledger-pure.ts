@@ -1,11 +1,12 @@
 // Aritmética del ledger y de los tableros (ADR-007, ADR-008, ADR-009, ADR-024): sin I/O.
 
-export type PointEntryKind = "CHECKIN" | "ADJUSTMENT" | "REVERSAL" | "LEGACY";
+export type PointEntryKind = "CHECKIN" | "ADJUSTMENT" | "REVERSAL" | "LEGACY" | "WORDLE";
 export const POINT_ENTRY_KINDS: readonly PointEntryKind[] = [
   "CHECKIN",
   "ADJUSTMENT",
   "REVERSAL",
   "LEGACY",
+  "WORDLE",
 ];
 
 /** El saldo nunca se persiste: es la suma de las entradas. */

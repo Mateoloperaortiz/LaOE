@@ -71,6 +71,13 @@
       "when": 1788743200439,
       "tag": "0009_carnet_en_billeteras",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788821360957,
+      "tag": "0010_wordle_diario",
+      "breakpoints": true
     }
   ]
 }

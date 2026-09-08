@@ -11,6 +11,7 @@ export {
   getTerm,
   listAllTerms,
   listTerms,
+  lockOpenTermPoints,
   nextTermCode,
   semesterFromCode,
   TERM_CODE,

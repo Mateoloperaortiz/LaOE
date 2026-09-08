@@ -6,6 +6,7 @@ import {
   listPermissionsFor,
   listSessionsFor,
 } from "@/modules/identity";
+import { listWordleGamesFor } from "@/modules/participation";
 import { collectPersonalData } from "@/modules/people";
 import { recordSelfExport } from "@/modules/system";
 import { listPassesFor } from "@/modules/wallet";
@@ -38,6 +39,7 @@ export async function GET(request: Request) {
     subscriptions,
     carnet,
     passes,
+    wordleGames,
   ] = await Promise.all([
     listInteractions(actor.personId, "ALL", 1000),
     listTasks({ q: "", personId: actor.personId, page: 1, pageSize: 500 }),
@@ -48,6 +50,7 @@ export async function GET(request: Request) {
     listSubscriptionsFor(actor.personId),
     getCarnetMetadata(actor.personId),
     listPassesFor(actor.personId),
+    listWordleGamesFor(actor.personId),
   ]);
   await recordSelfExport(actor.personId);
   const body = {
@@ -66,6 +69,7 @@ export async function GET(request: Request) {
       ip: session.ip,
     })),
     permissions,
+    wordleGames,
     carnet: carnet
       ? {
           walletEpoch: carnet.walletEpoch,

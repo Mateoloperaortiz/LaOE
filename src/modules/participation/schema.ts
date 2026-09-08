@@ -3,6 +3,7 @@ import {
   type AnyPgColumn,
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -17,6 +18,7 @@ import { eventEdition } from "@/modules/events/schema";
 import { form } from "@/modules/forms/schema";
 import { committee, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import type { WordleLetterState } from "./wordle-types";
 
 // Participación (ADR-006, ADR-007, ADR-009, ADR-024, ADR-035): una sola mecánica de asistencia
 // (ocasión + check-in), ledger append-only por término, score de comité por ocasión, standing al
@@ -47,7 +49,67 @@ export const pointEntryKind = pgEnum("point_entry_kind", [
   "ADJUSTMENT",
   "REVERSAL",
   "LEGACY",
+  "WORDLE",
 ]);
+
+export const wordleStatus = pgEnum("wordle_status", ["IN_PROGRESS", "WON", "LOST", "EXPIRED"]);
+
+// La respuesta es privada: únicamente las proyecciones del dominio pueden salir de este módulo.
+export const wordleGame = pgTable(
+  "wordle_game",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    day: date({ mode: "string" }).notNull(),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    answer: text().notNull(),
+    dictionaryVersion: text().notNull(),
+    rulesVersion: text().notNull(),
+    status: wordleStatus().notNull().default("IN_PROGRESS"),
+    completedAt: timestampTz(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("wordle_game_person_day_unique").on(t.personId, t.day),
+    uniqueIndex("wordle_game_answer_day_unique").on(t.answer, t.day),
+    index("wordle_game_term_idx").on(t.termId),
+    check("wordle_game_answer_format", sql`${t.answer} ~ '^[A-ZÑ]{5}$'`),
+    check(
+      "wordle_game_completed_consistent",
+      sql`(${t.status} = 'IN_PROGRESS') = (${t.completedAt} is null)`,
+    ),
+  ],
+);
+
+export const wordleAttempt = pgTable(
+  "wordle_attempt",
+  {
+    id: id(),
+    gameId: text()
+      .notNull()
+      .references(() => wordleGame.id, { onDelete: "cascade" }),
+    ordinal: integer().notNull(),
+    requestId: text().notNull(),
+    guess: text().notNull(),
+    feedback: jsonb().$type<WordleLetterState[]>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("wordle_attempt_game_ordinal_unique").on(t.gameId, t.ordinal),
+    uniqueIndex("wordle_attempt_game_request_unique").on(t.gameId, t.requestId),
+    check("wordle_attempt_ordinal_range", sql`${t.ordinal} between 1 and 6`),
+    check("wordle_attempt_guess_format", sql`${t.guess} ~ '^[A-ZÑ]{5}$'`),
+    check(
+      "wordle_attempt_feedback_length",
+      sql`jsonb_typeof(${t.feedback}) = 'array' and jsonb_array_length(${t.feedback}) = 5`,
+    ),
+  ],
+);
 
 // Momento con check-in: actividad, asamblea o sesión de una edición. `publicId` va en la URL y el QR.
 export const occasion = pgTable(
@@ -154,6 +216,7 @@ export const pointEntry = pgTable(
       .notNull()
       .references(() => term.id),
     checkInId: text().references(() => checkIn.id),
+    wordleGameId: text().references(() => wordleGame.id),
     kind: pointEntryKind().notNull(),
     points: integer().notNull(),
     reason: text().notNull(),
@@ -166,12 +229,21 @@ export const pointEntry = pgTable(
   (t) => [
     uniqueIndex("point_entry_checkin_unique").on(t.checkInId).where(sql`${t.kind} = 'CHECKIN'`),
     uniqueIndex("point_entry_reversal_of_unique").on(t.reversalOfId),
+    uniqueIndex("point_entry_wordle_game_unique").on(t.wordleGameId),
     uniqueIndex("point_entry_legacy_id_unique")
       .on(t.legacyId)
       .where(sql`${t.legacyId} is not null`),
     index("point_entry_person_term_idx").on(t.personId, t.termId),
     index("point_entry_term_created_idx").on(t.termId, t.createdAt),
     check("point_entry_nonzero", sql`${t.points} <> 0`),
+    check(
+      "point_entry_wordle_consistent",
+      sql`(${t.kind}::text = 'WORDLE') = (${t.wordleGameId} is not null)`,
+    ),
+    check(
+      "point_entry_wordle_reward",
+      sql`${t.kind}::text <> 'WORDLE' or ${t.points} between 1 and 6`,
+    ),
     check(
       "point_entry_reversal_consistent",
       sql`(${t.kind} = 'REVERSAL') = (${t.reversalOfId} is not null)`,

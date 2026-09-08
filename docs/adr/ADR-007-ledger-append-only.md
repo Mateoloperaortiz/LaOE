@@ -1,6 +1,6 @@
 # ADR-007: Ledger append-only por término
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-041)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-004, ADR-006, ADR-018
 
@@ -17,3 +17,7 @@ Los puntos son el activo más sensible de GH: cualquier edición silenciosa dest
 - Auditoría completa y reproducible; los rankings son consultas.
 - La migración conserva los importes históricos de GHPOINTS como `LEGACY` con su motivo original.
 - Un error se corrige con una reversión y, si hace falta, un ajuste; nunca con `UPDATE`.
+
+## Enmienda (2026-09-07, ADR-041)
+
+El tipo WORDLE acredita de 1 a 6 puntos junto a la victoria de la partida, con `wordleGameId` único. Los históricos siguen LEGACY y las correcciones del Wordle usan ajustes administrativos con motivo. Las escrituras de puntos y el cierre se coordinan dentro de la transacción mediante la fila del término. Ver [ADR-041](ADR-041-wordle-diario-y-cierre-de-puntos.md).

@@ -2,7 +2,8 @@ import { and, asc, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm"
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
+import { lockOpenTermPoints } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
@@ -162,6 +163,7 @@ export async function createOccasion(
   input: OccasionInput,
   context: OccasionContext,
 ): Promise<{ id: string; publicId: string }> {
+  await lockOpenTermPoints(ctx.tx, context.termId);
   const values = toValues(input, context);
   // El alfabeto sin ambiguos da 50 bits: una colisión es improbable, pero se reintenta por si acaso.
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -206,11 +208,18 @@ export async function updateOccasion(
   input: OccasionInput,
   context: OccasionContext,
 ): Promise<void> {
+  // Localiza términos sin bloquear la ocasión: el orden es término → ocasión. El UPDATE
+  // condicional de abajo rechaza una transición o traslado concurrente.
   const [before] = await ctx.tx.select().from(occasion).where(eq(occasion.id, id));
   if (!before) {
     throw new DomainError(t("T-032"));
   }
   const values = toValues(input, context);
+  if (before.status === "DRAFT" && before.termId !== values.termId) {
+    for (const termId of [...new Set([before.termId, values.termId])].sort()) {
+      await lockOpenTermPoints(ctx.tx, termId);
+    }
+  }
   if (before.status !== "DRAFT") {
     const changed = FROZEN_FIELDS.filter(
       (field) => !sameValue(before[field], (values as Record<string, unknown>)[field]),
@@ -227,7 +236,20 @@ export async function updateOccasion(
     set.rotatingSecret = newRotatingSecret();
   }
   try {
-    await ctx.tx.update(occasion).set(set).where(eq(occasion.id, id));
+    const changed = await ctx.tx
+      .update(occasion)
+      .set(set)
+      .where(
+        and(
+          eq(occasion.id, id),
+          eq(occasion.termId, before.termId),
+          eq(occasion.status, before.status),
+        ),
+      )
+      .returning({ id: occasion.id });
+    if (changed.length === 0) {
+      throw new DomainError(t("T-260"));
+    }
   } catch (error) {
     throw boardElectionError(error) ?? error;
   }
@@ -245,9 +267,23 @@ async function transition(
   id: string,
   to: OccasionStatus,
 ): Promise<OccasionRow> {
-  const [before] = await ctx.tx.select().from(occasion).where(eq(occasion.id, id));
-  if (!before) {
+  const [observed] = await ctx.tx.select().from(occasion).where(eq(occasion.id, id));
+  if (!observed) {
     throw new DomainError(t("T-032"));
+  }
+  // Orden estable: término compartido antes de la fila de la ocasión. Si otro admin trasladó
+  // el borrador entre ambas lecturas, rechazamos y la siguiente petición relee el nuevo término.
+  try {
+    await lockOpenTermPoints(ctx.tx, observed.termId);
+  } catch (error) {
+    if (to === "OPEN" && error instanceof DomainError && error.message === t("T-629")) {
+      throw new DomainError(t("T-579"));
+    }
+    throw error;
+  }
+  const [before] = await ctx.tx.select().from(occasion).where(eq(occasion.id, id)).for("update");
+  if (!before || before.termId !== observed.termId) {
+    throw new DomainError(t("T-260"));
   }
   if (!canTransitionOccasion(before.status, to)) {
     throw new DomainError(t("T-578", { estado: statusLabel(before.status).toLowerCase() }));
@@ -255,15 +291,8 @@ async function transition(
   return before;
 }
 
-export async function openOccasion(
-  ctx: CommandContext,
-  id: string,
-  options: { termPointsClosed: boolean },
-): Promise<void> {
+export async function openOccasion(ctx: CommandContext, id: string): Promise<void> {
   const before = await transition(ctx, id, "OPEN");
-  if (options.termPointsClosed) {
-    throw new DomainError(t("T-579"));
-  }
   const rotatingSecret =
     before.requireRotatingCode && !before.rotatingSecret
       ? newRotatingSecret()
@@ -474,8 +503,11 @@ export async function listOccasionsForTerm(
     .orderBy(desc(occasion.startsAt));
 }
 
-export async function countOpenOccasions(termId: string): Promise<number> {
-  const [row] = await getDb()
+export async function countOpenOccasions(
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<number> {
+  const [row] = await exec
     .select({ n: count() })
     .from(occasion)
     .where(and(eq(occasion.termId, termId), eq(occasion.status, "OPEN")));
@@ -575,6 +607,7 @@ export async function createOccasionSeries(
   input: SeriesInput,
   context: OccasionContext & { termEndsOn: string },
 ): Promise<{ created: number; skipped: number; lastStartsAt: Date | null }> {
+  await lockOpenTermPoints(ctx.tx, context.termId);
   const dates = weeklyDates(input.firstStartsAt, context.termEndsOn);
   if (dates.length === 0) {
     throw new DomainError(t("T-675"), "firstStartsAt");

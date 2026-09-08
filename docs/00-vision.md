@@ -92,8 +92,8 @@ Hechos que sustentan varias de estas decisiones:
 
 ## Alcance v1 (fases 0 a 8)
 
-Portal público y contenido editable · Personas y Mi OE · Participación y GH Points con asambleas · Permanencia (la tabla de GH visible para cada miembro) · Formularios, admisión y aliados · Comunicaciones y PWA · Arranque limpio y retiro de GHPOINTS · Carnet opcional en Apple Wallet y Google Wallet. Detalle y seguimiento en [09-roadmap.md](09-roadmap.md).
+Portal público y contenido editable · Personas y Mi OE · Participación y GH Points con asambleas y Wordle diario personal (ADR-041) · Permanencia (la tabla de GH visible para cada miembro) · Formularios, admisión y aliados · Comunicaciones y PWA · Arranque limpio y retiro de GHPOINTS · Carnet opcional en Apple Wallet y Google Wallet. Detalle y seguimiento en [09-roadmap.md](09-roadmap.md).
 
 ## Fuera de v1
 
-Pagos y boletería, chat, feed social, Graph o sincronización con el directorio EAFIT, galería masiva de fotos de personas, WhatsApp Business API, passkeys (mejora posterior), LLM sobre normativa, marca "En memoria" para miembros fallecidos, votación electrónica de la junta (después, con reglas de los estatutos), reto relámpago, boosters, palabra del día y badges persistidos (su historia se conserva en el ledger como entradas `LEGACY`). El backlog completo está en [09-roadmap.md](09-roadmap.md).
+Pagos y boletería, chat, feed social, Graph o sincronización con el directorio EAFIT, galería masiva de fotos de personas, WhatsApp Business API, passkeys (mejora posterior), LLM sobre normativa, marca "En memoria" para miembros fallecidos, votación electrónica de la junta (después, con reglas de los estatutos), reto relámpago, boosters y badges persistidos (su historia se conserva en el ledger como entradas `LEGACY`). La palabra del día se incorpora mediante ADR-041; sus movimientos históricos siguen como LEGACY. El backlog completo está en [09-roadmap.md](09-roadmap.md).
