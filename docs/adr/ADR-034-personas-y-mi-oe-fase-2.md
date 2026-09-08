@@ -63,3 +63,7 @@ La fase 7 agrega una excepción puntual para habilitar al primer ADMIN real: un 
 ## Enmienda (2026-09-06, ADR-040)
 
 La regla 10 conserva intacto el carnet de la app con token firmado `oe1` de 24 horas. Se añade el token opaco persistente `oe2` para billeteras, con generación de membresía y revisión. `readCarnet` es asíncrono y ambos formatos llegan al mismo `hostCheckIn`. Revocar afecta solo a `oe2`: no cierra sesiones ni invalida QR `oe1` ya emitidos. La baja/anonimización incrementa `membership.walletEpoch` en su propia transacción; reactivar no restaura pases anteriores. La 360 añade estado y revocación ADMIN; "Mis datos" añade metadatos sin tokens. Apple se vuelve a agregar; Google se sincroniza por outbox y conciliación diaria. Ver [ADR-040](ADR-040-carnet-en-billeteras-fase-8.md).
+
+## Enmienda (2026-09-08, ADR-042)
+
+La regla 9 incorpora secciones, tablas e imágenes al lector, formato `oe-normativa/2` con procedencia verificada y compatibilidad v1, vista previa ADMIN y carga operativa auditada en producción privada. Ver [ADR-042](ADR-042-normativa-completa.md).

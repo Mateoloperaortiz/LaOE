@@ -1383,6 +1383,24 @@ Reglas aprobadas por Mateo el 2026-09-07: una partida diaria, cinco letras, seis
 | T-1267 | Wordle: partida cerrada | Tu partida ya terminó. | MATEO | Propuesta |
 | T-1268 | Wordle: reintentar envío incierto | Reintentar jugada | MATEO | Propuesta |
 
+## Normativa completa y vista previa
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-1280 | Normativa: páginas de origen de una unidad | Páginas del PDF: {paginas} | MATEO | Propuesta |
+| T-1281 | Normativa: resumen del contenido | {articulos} artículos · {secciones} secciones | MATEO | Propuesta |
+| T-1282 | Documentos: enlace a la vista previa | Vista previa | MATEO | Propuesta |
+| T-1283 | Documentos: aviso de vista previa administrativa | Esta vista previa es solo para ADMIN. Revisá el contenido y el PDF antes de publicar. Abrirla no marca el paso de normativa del onboarding. | MATEO | Propuesta |
+| T-1284 | Documentos: volver desde la vista previa | Volver a documentos | MATEO | Propuesta |
+| T-1285 | Documentos: conteo de secciones complementarias | {n} secciones | MATEO | Propuesta |
+| T-1286 | Documentos: vista previa sin contenido | Todavía no hay contenido cargado. Cargá el JSON revisado para ver los artículos y las secciones. | MATEO | Propuesta |
+| T-1287 | Documentos: título de la pestaña de vista previa | Vista previa · {titulo} | MATEO | Propuesta |
+| T-1288 | Normativa: imagen no disponible | La imagen no está disponible. Podés consultarla en el PDF original. | MATEO | Propuesta |
+| T-1289 | Normativa: nombre accesible de una tabla | Tabla de {seccion} | MATEO | Propuesta |
+| T-1290 | Documentos: confirmación de carga de contenido | {n} unidades de contenido cargadas | MATEO | Propuesta |
+| T-1291 | Documentos: cargar el JSON del extractor | Cargar contenido (JSON) | MATEO | Propuesta |
+| T-1292 | Documentos: PDF confirmado | Listo: el PDF quedó guardado. Ahora cargá el contenido revisado. | MATEO | Propuesta |
+
 ## 9. Lo que debe entregar cada dueño
 
 - **COM:** nombre del sitio, textos del inicio, descripciones de los cuatro macroeventos, redes y contacto, plantilla de campaña, campaña de lanzamiento; en la fase 5, la plantilla de etapas del patrocinio (T-966) y los aliados que se cargan; en la fase 6, el nombre de la PWA (T-1173, T-1174), el nombre del calendario (T-1085), el aviso de instalar (T-1092) y los textos de la encuesta (T-1095 a T-1102).
@@ -1392,3 +1410,13 @@ Reglas aprobadas por Mateo el 2026-09-07: una partida diaria, cinco letras, seis
 - **Mateo:** todo lo marcado MATEO, que no cambia el sentido institucional.
 
 Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en el registro del [roadmap](09-roadmap.md). Los textos con "sensible" se revisan con GH antes de escribir código, porque un error de tono ahí cuesta más que cualquier bug.
+
+### Normativa completa · integridad (ADR-042)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-1300 | Normativa, publicación vacía | Cargá el contenido del documento antes de publicarlo. | MATEO | Propuesta |
+| T-1301 | Normativa, fuente incompatible | El contenido no corresponde al tipo o al PDF original de este documento. | MATEO | Propuesta |
+| T-1302 | Normativa, edición de publicado | Despublicá el documento antes de reemplazar su contenido y revisalo antes de volver a publicarlo. | MATEO | Propuesta |
+| T-1303 | Normativa, imagen inválida | Las imágenes del documento deben estar disponibles y ser privadas. Revisá sus referencias. | MATEO | Propuesta |
+| T-1304 | Normativa, publicación concurrente | El contenido cambió desde tu revisión. Revisá la vista previa antes de publicarlo. | MATEO | Propuesta |

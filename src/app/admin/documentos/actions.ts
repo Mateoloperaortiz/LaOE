@@ -43,12 +43,17 @@ export async function publicationAction(formData: FormData): Promise<void> {
   const actor = await requireAdmin();
   const id = idSchema.safeParse(formData.get("id"));
   const intent = formData.get("intent");
-  if (!id.success) {
+  const checksum = z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional()
+    .safeParse(formData.get("contentSha256") || undefined);
+  if (!id.success || !checksum.success || (intent !== "publish" && intent !== "unpublish")) {
     back();
   }
   try {
     if (intent === "publish") {
-      await publishDocumentAs(actor, id.data);
+      await publishDocumentAs(actor, id.data, checksum.data);
     } else {
       await unpublishDocumentAs(actor, id.data);
     }
@@ -59,6 +64,9 @@ export async function publicationAction(formData: FormData): Promise<void> {
     throw error;
   }
   revalidatePath("/admin/documentos");
+  revalidatePath(`/admin/documentos/${id.data}`);
+  revalidatePath("/app/normativa");
+  revalidatePath(`/app/normativa/${id.data}`);
   back();
 }
 
@@ -76,6 +84,9 @@ export async function loadArticlesAction(formData: FormData): Promise<void> {
   try {
     const loaded = await replaceArticlesAs(actor, id.data, parsed.data);
     revalidatePath("/admin/documentos");
+    revalidatePath(`/admin/documentos/${id.data}`);
+    revalidatePath("/app/normativa");
+    revalidatePath(`/app/normativa/${id.data}`);
     back({ cargado: String(loaded) });
   } catch (error) {
     if (error instanceof DomainError) {

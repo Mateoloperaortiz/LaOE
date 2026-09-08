@@ -56,7 +56,7 @@ export default async function NormativaPage({ searchParams }: PageProps<"/app/no
         <p className="max-w-prose text-lg">{t("T-130")}</p>
       </header>
       <form method="get" className="flex flex-wrap items-end gap-4">
-        <div className="flex flex-col gap-1">
+        <div className="flex min-w-0 basis-72 flex-col gap-1 sm:grow-0">
           <label htmlFor="q" className="eyebrow text-xs">
             {t("T-390")}
           </label>
@@ -65,7 +65,7 @@ export default async function NormativaPage({ searchParams }: PageProps<"/app/no
             name="q"
             type="search"
             defaultValue={q}
-            className="w-80 max-w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none"
+            className="w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none"
           />
         </div>
         <button type="submit" className="boton-secundario">
@@ -88,10 +88,17 @@ export default async function NormativaPage({ searchParams }: PageProps<"/app/no
                 >
                   <Link
                     href={`/app/normativa/${hit.documentId}#${hit.articleKey}`}
-                    className="text-display-md"
+                    className="text-display-md break-words"
                   >
-                    {hit.documentTitle} · {t("T-397", { n: hit.number })}
-                    {hit.title ? ` · ${hit.title}` : ""}
+                    {hit.documentTitle} ·{" "}
+                    {hit.unitType === "SECTION" ? (
+                      hit.title
+                    ) : (
+                      <>
+                        {t("T-397", { n: hit.number ?? "" })}
+                        {hit.title ? ` · ${hit.title}` : ""}
+                      </>
+                    )}
                   </Link>
                   <p className="text-sm">{resaltar(hit.headline)}</p>
                 </li>
@@ -111,7 +118,7 @@ export default async function NormativaPage({ searchParams }: PageProps<"/app/no
                   variante={feedVariant(index)}
                   nivel="h2"
                   eyebrow={kindLabel(item.kind)}
-                  titulo={item.title}
+                  titulo={<span className="block break-words">{item.title}</span>}
                   subtitulo={t("T-395", { v: item.version })}
                 />
               </Link>

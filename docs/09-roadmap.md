@@ -300,6 +300,12 @@ Listo cuando (software): formatos, autorización, concurrencia, reintentos, life
 
 - [x] W-T1 · Diccionario reproducible amplio y respuestas curadas, partidas diarias personales, premio atómico, cierre transaccional, tablero en GH Points y verificación completa
 
+## Normativa completa (ADR-042)
+
+- [x] N-T1 · Formato v2, migración aditiva, extractor fiel y lector compartido con vista previa ADMIN
+- [x] N-T2 · Pruebas sintéticas, cotejo privado de 134 artículos y siete secciones, organigrama y tabla
+- [ ] N-T3 · CI/staging y promoción de la versión actual; originales publicados y verificados en producción privada
+
 ## Backlog (después de la v1)
 
 - Votación electrónica de la junta con segunda vuelta: cuando la asistencia funcione sin fallas y con las reglas de los estatutos (voto secreto, quórum)
@@ -457,3 +463,5 @@ Listo cuando (software): formatos, autorización, concurrencia, reintentos, life
 | 2026-09-07 23:52 (Bogotá) | 8 | **Cámara Google→iPhone PASS**: el usuario confirmó el resultado exacto de asistencia ya registrada tras escanear en vivo el Google V3 del Samsung con Safari del iPhone. Correlación: POST del anfitrión 200 en 40 ms a las 04:50:22.305 UTC del 2026-09-08; confirmación a las 04:52:53.376 UTC. Sin carga de archivo. A las 04:54:48.048 UTC, Mirroring permitió observar directamente el mismo resultado en la pestaña existente, sin recarga, archivo ni nuevo escaneo; corroboración posterior registrada en ambos JSON privados. Las dos direcciones de cámara quedan aprobadas; semestre/anonimización Google, publicación, política/titular y pendientes de F7 permanecen abiertos. Sin promoción de producción. |
 
 | 2026-09-07 | Wordle | **W-T1: implementación local verificada** (ADR-041). Una partida diaria por persona y respuesta única cada día de Colombia; cinco letras, seis intentos, tildes opcionales y Ñ; crédito WORDLE de 6 a 1 en la misma transacción que la victoria, reintentos idempotentes y evento de CRM sin push. Diccionario reproducible sin red: 9.130 intentos y 1.429 respuestas revisadas, fuentes/licencias/hashes versionados. Tablero móvil en GH Points, teclado físico/táctil, Mis datos sin respuesta activa y enlace desde semestres anteriores. Cierre de puntos con barrera compartida/exclusiva del término y snapshot transaccional. Corregidos foco tras cada intento y contraste del ranking propio en oscuro. Migración 0010 aplicada y verificada localmente; check completo en verde (270 unitarias, 247 de integración y build), wordle:check reproducible y 8 E2E compiladas sin reintentos (GH Points, Wordle, cierre; axe y pantallas de escritorio/móvil). No desplegado. |
+
+| 2026-09-08 | Normativa | **N-T1/T2 listos en local** (ADR-042). Formato oe-normativa/2 compatible con v1, migración aditiva 0011, bloques accesibles, secciones con anclas propias y lector compartido con vista previa ADMIN sin onboarding. Cotejo privado completo: estatutos 60 artículos/5 capítulos/3 secciones, reglamento 74/12/4, organigrama original y tabla de cuatro filas; Anexo 1 pp. 39–43. Check completo en verde y 10 e2e compiladas sin reintentos, con axe y móvil/escritorio claro/oscuro. Extractor con 11 pruebas sintéticas incluido en CI; carga operativa separa simulación, borrador y publicación de huella revisada. N-T3 en curso, originales fuera del repo. |

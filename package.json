@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
-    "check": "npm run lint && npm run typecheck && npm run deps:check && npm run deadcode && npm run test && npm run test:integration && npm run build",
+    "check": "npm run lint && npm run typecheck && npm run deps:check && npm run deadcode && npm run test && npm run test:extractor && npm run test:integration && npm run build",
     "lint": "biome check && bash -n scripts/backup.sh tests/backup/run.sh",
     "format": "biome check --write",
     "typecheck": "next typegen && tsc --noEmit",
@@ -36,7 +36,9 @@
     "wallet:assets": "node --import tsx scripts/wallet-assets.ts",
     "wallet:check": "node --env-file-if-exists=.env --import tsx scripts/wallet-check.ts",
     "wordle:generate": "node scripts/generate-wordle-dictionary.mjs",
-    "wordle:check": "node scripts/generate-wordle-dictionary.mjs --check"
+    "wordle:check": "node scripts/generate-wordle-dictionary.mjs --check",
+    "test:extractor": "uv run --python 3.12 --with-requirements scripts/requirements-normativa.txt python -m unittest discover -s tests/python -v",
+    "normativa:import": "node --import tsx scripts/normativa-import.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1125.0",

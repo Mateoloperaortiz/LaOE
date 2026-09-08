@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createId } from "@paralleldrive/cuid2";
-import { and, asc, count, desc, eq, ilike, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
@@ -13,8 +13,9 @@ import {
 } from "@/shared/adapters/storage";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
-import { document, documentArticle } from "../schema";
+import { document, documentArticle, mediaAsset } from "../schema";
 import {
+  ARTICLES_FORMAT,
   type ArticlesJson,
   DOCUMENT_CONTENT_TYPE,
   DOCUMENT_KEY_PATTERN,
@@ -23,6 +24,7 @@ import {
   DOCUMENT_MIN_BYTES,
   documentKey,
   isPdfHeader,
+  parseArticlesJson,
 } from "./documents-pure";
 import { DELIVERY, UPLOAD_EXPIRY_SECONDS } from "./media-pure";
 
@@ -142,10 +144,14 @@ export function confirmDocumentAs(
 
 export interface DocumentListRow extends DocumentRow {
   articleCount: number;
+  unitCount: number;
 }
 
 // Con alias explícitos: dentro de un `sql` Drizzle no califica las columnas y `"id"` sería el del artículo.
 const articleCount = sql<number>`(
+  select count(*)::int from document_article da where da.document_id = document.id and da.unit_type = 'ARTICLE'
+)`;
+const unitCount = sql<number>`(
   select count(*)::int from document_article da where da.document_id = document.id
 )`;
 
@@ -158,7 +164,7 @@ export async function listDocuments(params: {
   const where = params.q ? ilike(document.title, `%${params.q}%`) : undefined;
   const [rows, totals] = await Promise.all([
     db
-      .select({ row: document, articleCount })
+      .select({ row: document, articleCount, unitCount })
       .from(document)
       .where(where)
       .orderBy(desc(document.createdAt))
@@ -167,7 +173,11 @@ export async function listDocuments(params: {
     db.select({ n: count() }).from(document).where(where),
   ]);
   return {
-    rows: rows.map((item) => ({ ...item.row, articleCount: item.articleCount })),
+    rows: rows.map((item) => ({
+      ...item.row,
+      articleCount: item.articleCount,
+      unitCount: item.unitCount,
+    })),
     total: totals[0]?.n ?? 0,
   };
 }
@@ -181,13 +191,27 @@ async function setStatus(
   ctx: CommandContext,
   id: string,
   status: "DRAFT" | "PUBLISHED",
+  expectedContentSha256?: string,
 ): Promise<void> {
-  const [row] = await ctx.tx.select().from(document).where(eq(document.id, id));
+  const [row] = await ctx.tx.select().from(document).where(eq(document.id, id)).for("update");
   if (!row) {
     throw new DomainError(t("T-032"));
   }
+  if (expectedContentSha256 !== undefined && expectedContentSha256 !== row.contentSha256) {
+    throw new DomainError(t("T-1304"));
+  }
   if (row.status === status) {
     return;
+  }
+  if (status === "PUBLISHED" && (row.kind === "ESTATUTOS" || row.kind === "REGLAMENTO")) {
+    const units = await ctx.tx
+      .select()
+      .from(documentArticle)
+      .where(eq(documentArticle.documentId, id));
+    if (!units.some((unit) => unit.unitType === "ARTICLE" && unit.body.trim())) {
+      throw new DomainError(t("T-1300"));
+    }
+    await validateImageReferences(ctx, units);
   }
   await ctx.tx.update(document).set({ status }).where(eq(document.id, id));
   await ctx.audit({
@@ -199,12 +223,59 @@ async function setStatus(
   });
 }
 
-export function publishDocument(ctx: CommandContext, id: string): Promise<void> {
-  return setStatus(ctx, id, "PUBLISHED");
+export function publishDocument(
+  ctx: CommandContext,
+  id: string,
+  expectedContentSha256?: string,
+): Promise<void> {
+  return setStatus(ctx, id, "PUBLISHED", expectedContentSha256);
 }
 
 export function unpublishDocument(ctx: CommandContext, id: string): Promise<void> {
   return setStatus(ctx, id, "DRAFT");
+}
+
+/** Huella independiente del nombre del archivo y de los IDs internos de las filas. */
+export function documentContentChecksum(json: ArticlesJson): string {
+  return createHash("sha256")
+    .update(
+      JSON.stringify(
+        json.articles.map((unit) => ({
+          key: unit.key,
+          chapterKey: unit.chapterKey,
+          chapterTitle: unit.chapterTitle,
+          unitType: unit.unitType,
+          number: unit.number,
+          title: unit.title,
+          pages: unit.pages,
+          blocks: unit.blocks,
+          body: unit.body,
+        })),
+      ),
+    )
+    .digest("hex");
+}
+
+async function validateImageReferences(ctx: CommandContext, units: Pick<ArticleRow, "blocks">[]) {
+  const ids = [
+    ...new Set(
+      units.flatMap((unit) =>
+        unit.blocks.flatMap((block) => (block.type === "image" ? [block.assetId] : [])),
+      ),
+    ),
+  ];
+  if (!ids.length) return;
+  const assets = await ctx.tx
+    .select({ id: mediaAsset.id })
+    .from(mediaAsset)
+    .where(
+      and(
+        inArray(mediaAsset.id, ids),
+        eq(mediaAsset.status, "READY"),
+        eq(mediaAsset.visibility, "PRIVATE"),
+      ),
+    );
+  if (assets.length !== ids.length) throw new DomainError(t("T-1303"));
 }
 
 /** Reemplaza todos los artículos del documento por los del JSON, en una sola transacción. */
@@ -214,37 +285,64 @@ export async function replaceArticles(
   json: ArticlesJson,
 ): Promise<number> {
   const [row] = await ctx.tx
-    .select({ id: document.id })
+    .select()
     .from(document)
-    .where(eq(document.id, documentId));
+    .where(eq(document.id, documentId))
+    .for("update");
   if (!row) {
     throw new DomainError(t("T-032"));
   }
+  const parsed = parseArticlesJson(
+    JSON.stringify(json.format === ARTICLES_FORMAT ? { ...json, units: json.articles } : json),
+  );
+  if (!parsed.ok) throw new DomainError(t("T-499", { detalle: parsed.detail }));
+  const data = parsed.data;
+  if ((data.kind && data.kind !== row.kind) || (data.sha256 && data.sha256 !== row.sha256)) {
+    throw new DomainError(t("T-1301"));
+  }
+  if (row.status !== "DRAFT") throw new DomainError(t("T-1302"));
+  await validateImageReferences(ctx, data.articles);
+  const checksum = documentContentChecksum(data);
+  if (checksum === row.contentSha256) return data.articles.length;
   await ctx.tx.delete(documentArticle).where(eq(documentArticle.documentId, documentId));
   await ctx.tx.insert(documentArticle).values(
-    json.articles.map((article, index) => ({
+    data.articles.map((article, index) => ({
       documentId,
       articleKey: article.key,
       chapterKey: article.chapterKey,
       chapterTitle: article.chapterTitle,
+      unitType: article.unitType,
       number: article.number,
       title: article.title,
       body: article.body,
+      blocks: article.blocks,
       pages: article.pages,
       sortOrder: index,
     })),
   );
+  await ctx.tx.update(document).set({ contentSha256: checksum }).where(eq(document.id, documentId));
   await ctx.audit({
     action: "document.articles-replaced",
     entityType: "document",
     entityId: documentId,
-    after: { articles: json.articles.length, source: json.source ?? null },
+    after: {
+      articles: data.articles.filter((unit) => unit.unitType === "ARTICLE").length,
+      units: data.articles.length,
+      source: data.source ?? null,
+      format: data.format,
+      sourceSha256: data.sha256 ?? null,
+      contentSha256: checksum,
+    },
   });
-  return json.articles.length;
+  return data.articles.length;
 }
 
-export function publishDocumentAs(actor: Actor, id: string): Promise<void> {
-  return runCommand(actor, (ctx) => publishDocument(ctx, id));
+export function publishDocumentAs(
+  actor: Actor,
+  id: string,
+  expectedContentSha256?: string,
+): Promise<void> {
+  return runCommand(actor, (ctx) => publishDocument(ctx, id, expectedContentSha256));
 }
 
 export function unpublishDocumentAs(actor: Actor, id: string): Promise<void> {
@@ -264,6 +362,7 @@ export interface PublishedDocument {
   byteSize: number;
   updatedAt: Date;
   articleCount: number;
+  unitCount: number;
 }
 
 /** Lo publicado, para el lector de Mi OE: por tipo (estatutos primero) y título. */
@@ -278,6 +377,7 @@ export async function listPublishedDocuments(): Promise<PublishedDocument[]> {
       byteSize: document.byteSize,
       updatedAt: document.updatedAt,
       articleCount,
+      unitCount,
     })
     .from(document)
     .where(eq(document.status, "PUBLISHED"))
@@ -289,6 +389,27 @@ export async function listPublishedDocuments(): Promise<PublishedDocument[]> {
 export interface PublishedDocumentDetail {
   document: PublishedDocument;
   articles: ArticleRow[];
+}
+
+/** Lectura administrativa; la ruta o el comando operativo deben autorizar ADMIN antes de usarla. */
+export async function getDocumentWithArticles(
+  id: string,
+): Promise<{ document: DocumentListRow; articles: ArticleRow[] } | null> {
+  const [row] = await getDb()
+    .select({ row: document, articleCount, unitCount })
+    .from(document)
+    .where(eq(document.id, id))
+    .limit(1);
+  if (!row) return null;
+  const articles = await getDb()
+    .select()
+    .from(documentArticle)
+    .where(eq(documentArticle.documentId, id))
+    .orderBy(asc(documentArticle.sortOrder));
+  return {
+    document: { ...row.row, articleCount: row.articleCount, unitCount: row.unitCount },
+    articles,
+  };
 }
 
 export async function getPublishedDocumentWithArticles(
@@ -304,6 +425,7 @@ export async function getPublishedDocumentWithArticles(
       byteSize: document.byteSize,
       updatedAt: document.updatedAt,
       articleCount,
+      unitCount,
     })
     .from(document)
     .where(and(eq(document.id, id), eq(document.status, "PUBLISHED")))
@@ -324,7 +446,8 @@ export interface ArticleHit {
   documentTitle: string;
   documentKind: DocumentRow["kind"];
   articleKey: string;
-  number: string;
+  unitType: ArticleRow["unitType"];
+  number: string | null;
   title: string;
   /** Fragmentos con las coincidencias entre `[[` y `]]`, para resaltar sin HTML crudo. */
   headline: string;
@@ -345,6 +468,7 @@ export async function searchArticles(q: string, limit = 20): Promise<ArticleHit[
       documentTitle: document.title,
       documentKind: document.kind,
       articleKey: documentArticle.articleKey,
+      unitType: documentArticle.unitType,
       number: documentArticle.number,
       title: documentArticle.title,
       headline: sql<string>`ts_headline('spanish', ${documentArticle.body}, ${tsquery}, 'MaxFragments=2, MaxWords=24, MinWords=10, StartSel=[[, StopSel=]], FragmentDelimiter= … ')`,

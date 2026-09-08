@@ -78,6 +78,13 @@
       "when": 1788821360957,
       "tag": "0010_wordle_diario",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788867841195,
+      "tag": "0011_normativa_completa",
+      "breakpoints": true
     }
   ]
 }

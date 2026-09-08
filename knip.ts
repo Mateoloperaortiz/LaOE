@@ -8,8 +8,8 @@ const config: KnipConfig = {
     css: (texto: string) => [...texto.matchAll(/(?<=@)import[^;]+/g)].join("\n"),
   },
   ignoreDependencies: ["pino-pretty"],
-  // OpenSSL del sistema verifica la firma CMS de los pases sintéticos.
-  ignoreBinaries: ["openssl"],
+  // OpenSSL verifica pases sintéticos; uv ejecuta el extractor Python con dependencias fijadas.
+  ignoreBinaries: ["openssl", "uv"],
   ignoreExportsUsedInFile: true,
 };
 

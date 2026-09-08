@@ -14,12 +14,14 @@ import {
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { audience, publicationStatus } from "@/db/enums";
 import { committee, person } from "@/modules/people/schema";
+import type { DocumentBlock } from "./domain/documents-pure";
 
 // Contenido editable del portal: páginas, cartelera, medios y normativa (03-modelo-de-datos.md, ADR-033, ADR-034).
 
 export const mediaVisibility = pgEnum("media_visibility", ["PUBLIC", "PRIVATE"]);
 export const mediaStatus = pgEnum("media_status", ["PENDING", "READY", "FAILED"]);
 export const documentKind = pgEnum("document_kind", ["ESTATUTOS", "REGLAMENTO", "ACTA", "OTRO"]);
+export const documentUnitType = pgEnum("document_unit_type", ["ARTICLE", "SECTION"]);
 
 const tsvector = customType<{ data: string }>({
   dataType() {
@@ -118,6 +120,7 @@ export const document = pgTable(
     originalFilename: text().notNull(),
     byteSize: integer().notNull(),
     sha256: text(),
+    contentSha256: text(),
     version: text().notNull(), // fecha de la reforma u otra marca de versión
     audience: audience().notNull().default("MEMBERS"),
     status: publicationStatus().notNull().default("DRAFT"),
@@ -139,9 +142,11 @@ export const documentArticle = pgTable(
     articleKey: text().notNull(),
     chapterKey: text().notNull(),
     chapterTitle: text().notNull(),
-    number: text().notNull(),
+    unitType: documentUnitType().notNull().default("ARTICLE"),
+    number: text(),
     title: text().notNull().default(""),
     body: text().notNull(),
+    blocks: jsonb().$type<DocumentBlock[]>().notNull().default(sql`'[]'::jsonb`),
     pages: jsonb().$type<number[]>().notNull().default(sql`'[]'::jsonb`),
     sortOrder: integer().notNull().default(0),
     search: tsvector("search").generatedAlwaysAs(
@@ -149,6 +154,10 @@ export const documentArticle = pgTable(
     ),
   },
   (t) => [
+    check(
+      "document_article_number_check",
+      sql`(${t.unitType} = 'ARTICLE' AND ${t.number} IS NOT NULL) OR (${t.unitType} = 'SECTION' AND ${t.number} IS NULL)`,
+    ),
     uniqueIndex("document_article_key_unique").on(t.documentId, t.articleKey),
     index("document_article_search_idx").using("gin", t.search),
   ],

@@ -1,9 +1,12 @@
+import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import {
   confirmDocument,
+  documentContentChecksum,
+  getDocumentWithArticles,
   getPublishedDocumentWithArticles,
   listDocuments,
   listPublishedDocuments,
@@ -15,7 +18,7 @@ import {
   unpublishDocument,
 } from "@/modules/content/domain/documents";
 import { parseArticlesJson } from "@/modules/content/domain/documents-pure";
-import { documentArticle } from "@/modules/content/schema";
+import { documentArticle, mediaAsset } from "@/modules/content/schema";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { sampleArticlesJson, sampleNormativaPdf } from "../helpers/pdf";
@@ -44,6 +47,59 @@ function articles() {
   if (!parsed.ok) {
     throw new Error(parsed.detail);
   }
+  return parsed.data;
+}
+
+async function createDocument() {
+  const pdf = sampleNormativaPdf();
+  const key = await uploadPdf(pdf);
+  return runCommand(SYSTEM_ACTOR, (ctx) =>
+    confirmDocument(ctx, {
+      key,
+      filename: "estatutos-prueba.pdf",
+      title: "Estatutos sintéticos",
+      kind: "ESTATUTOS",
+      version: "2",
+      audience: "MEMBERS",
+    }),
+  );
+}
+
+function completeArticles(text = "La asamblea convoca una reunión.") {
+  const input = {
+    format: "oe-normativa/2",
+    kind: "ESTATUTOS",
+    source: "estatutos-prueba.pdf",
+    pages: 3,
+    sha256: createHash("sha256").update(sampleNormativaPdf()).digest("hex"),
+    units: [
+      {
+        key: "art-1",
+        unitType: "ARTICLE",
+        number: "1",
+        title: "Reuniones",
+        chapterKey: "cap-1",
+        chapterTitle: "CAPÍTULO PRIMERO",
+        pages: [2],
+        blocks: [{ type: "text", text }],
+      },
+      {
+        key: "anexo-1",
+        unitType: "SECTION",
+        number: null,
+        title: "ANEXO 1: EXCUSAS",
+        chapterKey: "anexo-1",
+        chapterTitle: "",
+        pages: [3],
+        blocks: [
+          { type: "text", text: "Las excusas requieren evidencia." },
+          { type: "table", headers: ["Actividad", "Duración"], rows: [["Taller", "Dos horas"]] },
+        ],
+      },
+    ],
+  };
+  const parsed = parseArticlesJson(JSON.stringify(input));
+  if (!parsed.ok) throw new Error(parsed.detail);
   return parsed.data;
 }
 
@@ -155,5 +211,112 @@ describe("normativa", () => {
 
     await runCommand({ personId: adminId }, (ctx) => unpublishDocument(ctx, id));
     expect(await listPublishedDocuments()).toEqual([]);
+  });
+
+  it("no publica vacíos y conserva el borrador si el contenido pertenece a otro PDF o tipo", async () => {
+    const { id } = await createDocument();
+    await expect(runCommand(SYSTEM_ACTOR, (ctx) => publishDocument(ctx, id))).rejects.toThrow(
+      DomainError,
+    );
+    const data = completeArticles();
+    await runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, data));
+    for (const wrong of [
+      { ...data, sha256: "0".repeat(64) },
+      { ...data, kind: "REGLAMENTO" as const },
+    ]) {
+      await expect(
+        runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, wrong)),
+      ).rejects.toThrow(DomainError);
+    }
+    const detail = await getDocumentWithArticles(id);
+    expect(detail?.document).toMatchObject({
+      status: "DRAFT",
+      articleCount: 1,
+      unitCount: 2,
+      contentSha256: documentContentChecksum(data),
+    });
+    expect(detail?.articles.map((unit) => unit.articleKey)).toEqual(["art-1", "anexo-1"]);
+    await expect(
+      runCommand(SYSTEM_ACTOR, (ctx) => publishDocument(ctx, id, "0".repeat(64))),
+    ).rejects.toThrow(DomainError);
+    expect((await getDocumentWithArticles(id))?.document.status).toBe("DRAFT");
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      publishDocument(ctx, id, documentContentChecksum(data)),
+    );
+    expect((await searchArticles("excusas"))[0]).toMatchObject({
+      unitType: "SECTION",
+      number: null,
+      articleKey: "anexo-1",
+    });
+    expect((await searchArticles("taller"))[0]?.headline).toContain("[[Taller]]");
+    await expect(
+      runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, completeArticles("Otro texto"))),
+    ).rejects.toThrow(DomainError);
+    expect((await getDocumentWithArticles(id))?.document.contentSha256).toBe(
+      documentContentChecksum(data),
+    );
+  });
+
+  it("exige imágenes privadas listas y vuelve a comprobarlas al publicar", async () => {
+    const { id } = await createDocument();
+    const [asset] = await getDb()
+      .insert(mediaAsset)
+      .values({
+        objectKey: "uploads/imagen-sintetica.png",
+        originalFilename: "imagen-sintetica.png",
+        contentType: "image/png",
+        byteSize: 2048,
+        visibility: "PUBLIC",
+        status: "READY",
+      })
+      .returning();
+    if (!asset) throw new Error("Falta la imagen sintética");
+    const data = completeArticles();
+    data.articles[0]?.blocks.push({
+      type: "image",
+      assetId: asset.id,
+      alt: "Dos grupos conectados",
+    });
+    await expect(runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, data))).rejects.toThrow(
+      DomainError,
+    );
+    await getDb()
+      .update(mediaAsset)
+      .set({ visibility: "PRIVATE", status: "PENDING" })
+      .where(eq(mediaAsset.id, asset.id));
+    await expect(runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, data))).rejects.toThrow(
+      DomainError,
+    );
+    await getDb().update(mediaAsset).set({ status: "READY" }).where(eq(mediaAsset.id, asset.id));
+    await runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, data));
+    await getDb().update(mediaAsset).set({ status: "FAILED" }).where(eq(mediaAsset.id, asset.id));
+    await expect(runCommand(SYSTEM_ACTOR, (ctx) => publishDocument(ctx, id))).rejects.toThrow(
+      DomainError,
+    );
+  });
+
+  it("serializa reemplazos y publicación sin mezclar unidades ni dejar contenido parcial", async () => {
+    const { id } = await createDocument();
+    const first = completeArticles("Primera revisión");
+    const second = completeArticles("Segunda revisión");
+    await Promise.all([
+      runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, first)),
+      runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, second)),
+    ]);
+    const detail = await getDocumentWithArticles(id);
+    expect(detail?.articles).toHaveLength(2);
+    const stored = detail?.articles[0]?.body === "Primera revisión" ? first : second;
+    expect(detail?.document.contentSha256).toBe(documentContentChecksum(stored));
+    const replacement = completeArticles("Revisión final");
+    const outcomes = await Promise.allSettled([
+      runCommand(SYSTEM_ACTOR, (ctx) => publishDocument(ctx, id)),
+      runCommand(SYSTEM_ACTOR, (ctx) => replaceArticles(ctx, id, replacement)),
+    ]);
+    expect(outcomes[0]?.status).toBe("fulfilled");
+    const published = await getDocumentWithArticles(id);
+    expect(published?.document.status).toBe("PUBLISHED");
+    expect(published?.articles).toHaveLength(2);
+    const expected = outcomes[1]?.status === "fulfilled" ? replacement : stored;
+    expect(published?.document.contentSha256).toBe(documentContentChecksum(expected));
   });
 });

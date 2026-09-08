@@ -26,11 +26,14 @@ export {
   confirmDocumentSchema,
   type DocumentListRow,
   type DocumentRow,
+  documentContentChecksum,
+  getDocumentWithArticles,
   getPublishedDocumentWithArticles,
   HIGHLIGHT,
   listDocuments,
   listPublishedDocuments,
   type PublishedDocument,
+  type PublishedDocumentDetail,
   prepareDocumentSchema,
   prepareDocumentUpload,
   publishDocumentAs,
@@ -40,10 +43,13 @@ export {
   unpublishDocumentAs,
 } from "./domain/documents";
 export {
+  type ArticlesJson,
+  blocksText,
   chaptersOf,
   DOCUMENT_KINDS,
   DOCUMENT_MAX_BYTES,
   DOCUMENT_MIN_BYTES,
+  type DocumentBlock,
   type DocumentKind,
   parseArticlesJson,
 } from "./domain/documents-pure";
@@ -62,6 +68,7 @@ export {
   prepareUploadSchema,
   resolveMediaRedirect,
 } from "./domain/media";
+export { processMedia } from "./domain/media-process";
 export { MEDIA_LIMITS, PHOTO_MAX_BYTES } from "./domain/media-pure";
 export {
   createPage,

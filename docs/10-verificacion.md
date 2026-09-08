@@ -69,7 +69,11 @@ En modo CI se prueban el build y `next start`; `NODE_ENV=test` solo para el proc
 
 ## Normativa
 
-- `uv run --with pdfplumber scripts/normativa-extract.py estatutos <ruta del PDF firmado> > estatutos.json` genera el JSON revisable; antes de cargarlo se revisan a mano los artículos que cruzan páginas, las listas y los títulos de capítulo, y se compara la cantidad de artículos con el índice del PDF. El JSON no se commitea: se carga desde `/admin/documentos` junto con el PDF.
+- `npm run test:extractor` ejecuta las pruebas Python sintéticas; `npm run check` y CI las incluyen. Las pruebas de dominio cubren hash/tipo incorrectos, imágenes privadas, atomicidad y publicación concurrente; los e2e revisan borradores ADMIN, búsqueda, tabla, organigrama sintético, páginas y dos temas/ancho móvil.
+- Extraer los originales fuera del repo con `scripts/normativa-extract.py` (ver `--help`), conservando también cualquier perfil de geometría y la imagen original. Revisar el cuerpo contra el PDF completo: los índices originales de 2026 están desactualizados y no son la fuente de numeración.
+- Corpus 2026 esperado: estatutos 60 artículos, 5 capítulos, introducción, convenciones y cierre; reglamento 74 artículos, 12 capítulos, introducción, convenciones, cierre y Anexo 1 completo (pp. 39–43). Comprobar organigrama del artículo 4 (estatutos p. 6) y tabla de alimentación del artículo 36 (reglamento p. 21). Mantener erratas, numerales y parágrafos literales.
+- La UI acepta JSON v1/v2 desde Documentos; la importación operativa exige v2 y manifiesto privado. `npm run normativa:import -- --input <manifiesto>` simula; agregar `--apply --actor-id <ADMIN>` carga borradores. Después de revisar, repetir con `--apply --publish --actor-id <ADMIN>` publica únicamente contenido idéntico. Ejecutar una sola importación a la vez y verificar que repetir no cree registros.
+- No commitear PDF, JSON reales, perfiles, imágenes extraídas ni identidades. En staging usar solo datos sintéticos; cargar los originales en producción y comprobarlos por SSH/túnel privado sin crear dominio público. Registrar SHA desplegado, hashes, conteos, IDs y estados sin cuerpos ni secretos.
 
 ## Migración histórica (fuera del lanzamiento, ADR-039)
 

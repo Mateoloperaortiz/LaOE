@@ -46,6 +46,12 @@ jobs:
       - run: npm run deps:check
       - run: npm run deadcode
       - run: npm test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: uv para el extractor de normativa
+        run: python -m pip install uv
+      - run: npm run test:extractor
       - run: npm run build
 
   respaldo:

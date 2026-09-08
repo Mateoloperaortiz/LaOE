@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   DOCUMENT_KINDS,
   DOCUMENT_MAX_BYTES,
@@ -43,7 +44,7 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
           audiences: [publico, soloMiembros],
           help: t("T-496"),
           uploading: t("T-359"),
-          done: t("T-520"),
+          done: t("T-1292"),
           errorType: t("T-501"),
           errorSize: t("T-519"),
           errorUpload: t("T-518"),
@@ -52,7 +53,7 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
       />
       {cargado ? (
         <output className="block text-sm font-semibold text-titulo">
-          {t("T-498", { n: cargado })}
+          {t("T-1290", { n: cargado })}
         </output>
       ) : null}
       {error ? (
@@ -73,7 +74,7 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
                 </th>
               ))}
               <th scope="col" className="px-4 py-3">
-                <span className="sr-only">{t("T-497")}</span>
+                <span className="sr-only">{t("T-1291")}</span>
               </th>
             </tr>
           </thead>
@@ -87,10 +88,19 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
             ) : null}
             {rows.map((row) => (
               <tr key={row.id} className="border-t border-borde align-top">
-                <td className="px-4 py-3 font-semibold">{row.title}</td>
+                <td className="px-4 py-3 font-semibold">
+                  <Link href={`/admin/documentos/${row.id}`}>{row.title}</Link>
+                </td>
                 <td className="px-4 py-3">{kinds[DOCUMENT_KINDS.indexOf(row.kind)] ?? row.kind}</td>
                 <td className="px-4 py-3">{row.version}</td>
-                <td className="px-4 py-3">{row.articleCount}</td>
+                <td className="px-4 py-3">
+                  <p>{row.articleCount}</p>
+                  {row.unitCount > row.articleCount ? (
+                    <p className="mt-1 text-xs text-tinta-suave">
+                      {t("T-1285", { n: row.unitCount - row.articleCount })}
+                    </p>
+                  ) : null}
+                </td>
                 <td className="px-4 py-3">
                   <Insignia fondo={row.status === "PUBLISHED" ? "azul" : "sky"}>
                     {row.status === "PUBLISHED" ? publicado : borrador}
@@ -99,8 +109,10 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
                 <td className="px-4 py-3">{formatDateTime(row.createdAt)}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-col gap-2">
+                    <Link href={`/admin/documentos/${row.id}`}>{t("T-1282")}</Link>
                     <form action={publicationAction}>
                       <input type="hidden" name="id" value={row.id} />
+                      <input type="hidden" name="contentSha256" value={row.contentSha256 ?? ""} />
                       <input
                         type="hidden"
                         name="intent"
@@ -113,7 +125,7 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
                     <form action={loadArticlesAction} className="flex flex-wrap items-center gap-2">
                       <input type="hidden" name="id" value={row.id} />
                       <label htmlFor={`json-${row.id}`} className="sr-only">
-                        {t("T-497")}
+                        {t("T-1291")}
                       </label>
                       <input
                         id={`json-${row.id}`}
@@ -124,7 +136,7 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
                         className="block max-w-56 text-sm file:mr-2 file:rounded-full file:border-0 file:bg-fondo-suave file:px-3 file:py-1 file:text-xs file:font-bold file:text-titulo"
                       />
                       <button type="submit" className="boton-secundario text-sm">
-                        {t("T-497")}
+                        {t("T-1291")}
                       </button>
                     </form>
                   </div>
