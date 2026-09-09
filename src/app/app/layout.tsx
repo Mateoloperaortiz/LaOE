@@ -6,6 +6,7 @@ import { signOutAction } from "@/modules/identity/actions";
 import { hasLiveConsent } from "@/modules/people";
 import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { adminAreaRoles } from "../admin/_kit/acceso";
 import { MemberShell } from "./_ui/MemberShell";
 import "./member.css";
 
@@ -30,7 +31,10 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   if (!(await hasLiveConsent(actor.personId, "MEMBERSHIP"))) {
     redirect("/autorizacion");
   }
-  const devices = await listSubscriptionsFor(actor.personId);
+  const [devices, roles] = await Promise.all([
+    listSubscriptionsFor(actor.personId),
+    adminAreaRoles(actor),
+  ]);
   const [temaOscuro, temaClaro] = tList("T-034") as [string, string];
   const pestañas = tList("T-061").filter((nombre) => nombre in RUTAS);
   const groups = [
@@ -47,6 +51,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
     <>
       <PwaRegistrar endpointsKey={devices.map((item) => item.endpoint).join("\n")} />
       <MemberShell
+        canAccessAdmin={roles.any}
         primary={[
           { href: "/app", label: pestañas[0] ?? "" },
           { href: "/app/agenda", label: t("T-1661") },

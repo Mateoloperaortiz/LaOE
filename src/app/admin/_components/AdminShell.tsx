@@ -7,6 +7,7 @@ import { AdminFormDrafts } from "@/shared/admin-kit/AdminFormDrafts";
 import { type AdminNavGroup, activeAdminHref } from "@/shared/admin-kit/navigation";
 import { LogoOE } from "@/shared/brand";
 import { t } from "@/shared/copy";
+import { AreaSwitch } from "@/shared/ui/AreaSwitch";
 
 function Navigation({
   groups,
@@ -171,6 +172,7 @@ export function AdminShell({
             </button>
             <span className="admin-topbar-label">{t("T-236")}</span>
             <div className="admin-utilities">
+              <AreaSwitch to="member" />
               {search}
               {theme}
               <details className="admin-account" ref={accountMenu}>

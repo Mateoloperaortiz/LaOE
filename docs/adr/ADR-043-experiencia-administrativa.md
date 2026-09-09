@@ -1,6 +1,6 @@
 # ADR-043: Experiencia administrativa adaptable
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-049)
 - Fecha: 2026-09-08
 - Relacionadas: ADR-017, ADR-034, ADR-035, ADR-036, ADR-042; 07-marca
 
@@ -29,5 +29,7 @@ El usuario aprobó un panel sobrio con identidad OE, igual prioridad de computad
 - No se agregan dependencias visuales, migraciones ni infraestructura. La entrega es local; un despliegue es una operación posterior.
 
 ## Verificación
+
+La navegación entre áreas se amplía en [ADR-049](ADR-049-navegacion-entre-mi-oe-y-administracion.md) con un enlace visible a Mi OE en la cabecera.
 
 `admin-responsive.spec.ts` cubre navegación, foco, los 38 destinos, texto al 200 % y capturas a 360/390/768/1440 px. `admin-details-responsive.spec.ts` completa las 16 rutas de detalle con datos sintéticos y axe en los cuatro tamaños, claro/oscuro. Las suites por familia conservan la cobertura de permisos, validación y efectos de negocio. El registro de cierre y resultados efectivos vive en 09-roadmap; no se considera suficiente un cambio de estilos sin comprobar los flujos.

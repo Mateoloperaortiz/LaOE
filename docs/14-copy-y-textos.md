@@ -1533,6 +1533,8 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | Código | Ubicación | Texto | Responsable | Estado |
 | --- | --- | --- | --- | --- |
 | T-1660 | Marca de la aplicación | Mi OE | MATEO | Propuesta |
+| T-2090 | Cambio de área: enlace a Administración | Cambiar a Administración | MATEO | Propuesta |
+| T-2091 | Cambio de área: enlace a Mi OE | Cambiar a Mi OE (vista de integrante) | MATEO | Propuesta |
 | T-1661 | Navegación y página | Agenda | MATEO | Propuesta |
 | T-1662 | Menú secundario | Más | MATEO | Propuesta |
 | T-1663 | Nombre accesible de navegación | Navegación de Mi OE | MATEO | Propuesta |

@@ -110,9 +110,10 @@
 }
 .member-topbar-inner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1.5rem;
+  gap: 0.75rem;
   max-width: 1152px;
   min-height: 72px;
   margin: 0 auto;
@@ -126,6 +127,19 @@
   font-weight: 700;
   color: var(--titulo);
   text-decoration: none;
+}
+.member-utilities {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+.member-utilities > * {
+  flex-shrink: 0;
+}
+.member-utilities .boton-secundario {
+  padding-inline: 0.75rem;
 }
 .member-primary-nav {
   display: flex;

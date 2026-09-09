@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [049](adr/ADR-049-navegacion-entre-mi-oe-y-administracion.md) | Cambio de área | Enlaces visibles entre Mi OE y Administración con la misma sesión; disponibilidad calculada con los roles administrativos existentes | Aceptada |
 | [048](adr/ADR-048-autorizacion-en-el-primer-ingreso.md) | Autorización propia | La importación no registra consentimientos: quien no tiene autorización viva pasa por una pantalla que le muestra la política y la acepta con fuente `SELF`, su versión, fecha e IP | Aceptada |
 | [047](adr/ADR-047-politica-de-datos-y-habilitacion.md) | Política de datos | Texto versionado en el repo, versión igual a la fecha de aprobación de la junta, respaldo de las autorizaciones por la aceptación al entrar a la OE y `pendiente` como freno inmediato | Aceptada; publicación pendiente |
 | [046](adr/ADR-046-integracion-roster-y-acceso-en-licencia.md) | Roster y licencia | Cuatro campos personales opcionales, importación depurada A–L, consulta en licencia con capacidades operativas suspendidas y carga condicionada a política/autorizaciones | Aceptada |

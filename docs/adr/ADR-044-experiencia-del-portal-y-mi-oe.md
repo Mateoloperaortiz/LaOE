@@ -1,6 +1,6 @@
 # ADR-044: Experiencia del portal y Mi OE
 
-- Estado: Aceptada; implementación local verificada
+- Estado: Aceptada; implementación local verificada (enmendada por ADR-049)
 - Fecha: 2026-09-08
 - Relacionadas: ADR-011, ADR-022, ADR-031, ADR-033, ADR-034, ADR-035, ADR-036, ADR-037, ADR-038, ADR-040, ADR-043; 07-marca
 
@@ -34,6 +34,8 @@ Este tramo es posterior y distinto del alcance exclusivo de Administración regi
 - La entrega de este tramo es local. No incluye despliegue, modificación de datos reales, activación de Wallet ni ampliación de los permisos existentes.
 
 ## Verificación
+
+La navegación entre áreas se amplía en [ADR-049](ADR-049-navegacion-entre-mi-oe-y-administracion.md) con un enlace a Administración visible según los roles vigentes.
 
 La compilación final pasó `npm run check` (312 unitarias, 257 de integración, 11 del extractor y build) y la suite completa E2E (174/174, sin reintentos ni omisiones). La revisión cubre capturas a 360/390/768/1440 px en ambos temas, teclado, texto al 200 %, foco de menús y axe WCAG A/AA sin violaciones. Se probaron los estados de admisión, búsqueda y limpieza, páginas fuera de rango, selección de foto sin transferencia, reintento con archivo y borrador conservados, bloqueo de doble envío, navegación por anclas y privacidad de Agenda.
 

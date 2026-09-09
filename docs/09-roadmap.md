@@ -562,9 +562,20 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 ### Autorización en el primer ingreso (ADR-048)
 
 - [x] Quitar el consentimiento de la importación, pantalla de autorización, guard de Mi OE, copy y pruebas.
-- [ ] Desplegar a producción antes de cargar el roster.
+- [x] Desplegar a producción antes de cargar el roster.
+- [x] Publicar y activar la política aprobada; aplicar y verificar el lote de 453 personas (2026-09-09).
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-09-08 | Autorización propia | La importación ya no registra `MEMBERSHIP`/`IMPORT`: quien no tiene autorización viva pasa por `/autorizacion`, lee la política publicada y la acepta con fuente `SELF`, versión, fecha e IP. Ruta fuera de `/app` para no redirigirse a sí misma; los derechos del titular —leer la política y descargar sus datos— quedan disponibles en esa pantalla. Copy T-2085 a T-2088 y T-414 reescrito. Pruebas de integración y e2e nuevas; el `global-setup` deja a las identidades sintéticas con su autorización viva. Verificado en local sobre una base aislada. |
 | 2026-09-09 | Descargas / redirecciones | La comprobación HTTP de la release detectó que Mis datos, PDF y exportes podían enviar al ingreso en `0.0.0.0:8080` detrás de Railway. Las cuatro redirecciones de sesión y código reciente usan ahora `APP_URL`, conservando ruta y filtros. Cuatro pruebas de regresión reprodujeron el fallo y pasan con la corrección, incluso con una cabecera de host ajena. La evidencia de despliegue se registra por separado al comprobar el candidato final. |
+| 2026-09-09 | Política y carga de personas | Código `242a08a` desplegado antes de la carga. Política aprobada publicada PUBLIC/PUBLISHED y versión `2026-09-08` activada con reautenticación. Ensayo remoto: dos altas sintéticas, repetición sin cambios y primer ingreso con autorización SELF. Tras respaldo reciente, el asistente aplicó 452 altas y una actualización: 454 personas totales. Comprobadas las 453 filas, historial y permisos conservados, cero consentimientos y correos creados por la carga; repetición con 453 sin cambios, cero pendientes y errores de outbox. Evidencia y límites en el runbook. |
+| 2026-09-09 | Corrección individual de membresía | Por solicitud del titular ADMIN se retiró su condición de prueba en 2026-2 mediante una actualización parcial auditada. Ficha verificada: Activo, ADMIN global y Financiero de GEMIS. El archivo original de importación permanece como evidencia histórica; el runbook registra la corrección posterior. |
+
+### Navegación entre Mi OE y Administración (ADR-049)
+
+- [x] Agregar accesos visibles en ambas cabeceras, condicionados a los roles existentes, y verificar navegación y presentación local.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-09 | Cambio de área / local | «Administración» en Mi OE según `adminAreaRoles` y «Mi OE» en la cabecera administrativa. Misma sesión y guards; líderes y evaluadores llegan a sus destinos permitidos. Copy T-2090/T-2091 y componente compartido. Lint, typecheck, deps:check, deadcode y build PASS; 31 E2E PASS sobre base local aislada, con ida/vuelta, ausencia del acceso sin permisos, teclado, axe, capturas en ambos temas y regresiones de las dos cabeceras. Accesos comprobados a 360/768/1024/1440 px y texto al 200 %; a 360 px la comprobación ampliada se limita a la cabecera de Mi OE, pues se observó desborde en estados vacíos y acciones del onboarding fuera de este cambio. Base de prueba retirada al terminar. Entrega local, sin despliegue. |

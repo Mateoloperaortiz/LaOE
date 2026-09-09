@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { LogoOE } from "@/shared/brand";
 import { t } from "@/shared/copy";
+import { AreaSwitch } from "@/shared/ui/AreaSwitch";
 
 type Destination = { href: string; label: string };
 type Group = { label: string; items: Destination[] };
@@ -40,12 +41,14 @@ export function MemberShell({
   groups,
   theme,
   account,
+  canAccessAdmin,
 }: {
   children: ReactNode;
   primary: Destination[];
   groups: Group[];
   theme: ReactNode;
   account: ReactNode;
+  canAccessAdmin: boolean;
 }) {
   const pathname = usePathname();
   const drawer = useRef<HTMLDialogElement>(null);
@@ -106,7 +109,10 @@ export function MemberShell({
               <span>{t("T-1662")}</span>
             </button>
           </nav>
-          <div className="member-theme">{theme}</div>
+          <div className="member-utilities">
+            {canAccessAdmin ? <AreaSwitch to="admin" /> : null}
+            {theme}
+          </div>
         </div>
       </header>
       <main id="member-content" tabIndex={-1} className="member-content">

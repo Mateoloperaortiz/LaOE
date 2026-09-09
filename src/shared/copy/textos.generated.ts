@@ -3587,6 +3587,18 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2090": {
+    where: "Cambio de área: enlace a Administración",
+    text: "Cambiar a Administración",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2091": {
+    where: "Cambio de área: enlace a Mi OE",
+    text: "Cambiar a Mi OE (vista de integrante)",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-210": {
     where: "Correo de campaña: texto del enlace de baja (va en el pie T-208)",
     text: "Dejar de recibir estos correos",
