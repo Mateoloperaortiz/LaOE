@@ -1,3 +1,4 @@
+import { getEnv } from "@/env";
 import { getPreferences, listMessagesFor, listSubscriptionsFor } from "@/modules/comms";
 import { listInteractions, listTasks } from "@/modules/crm";
 import {
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
   const actor = await getActor();
   if (!actor) {
     return Response.redirect(
-      new URL(`/ingresar?next=${encodeURIComponent(url.pathname)}`, url),
+      new URL(`/ingresar?next=${encodeURIComponent(url.pathname)}`, getEnv().APP_URL),
       302,
     );
   }

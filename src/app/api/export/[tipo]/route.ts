@@ -1,3 +1,4 @@
+import { getEnv } from "@/env";
 import { getActor, hasPermission, hasRecentStepUp } from "@/modules/identity";
 import { recordExport } from "@/modules/system";
 import { resolveFilters, toCsv } from "@/shared/admin-kit";
@@ -17,14 +18,14 @@ export async function GET(request: Request, { params }: RouteContext<"/api/expor
   const here = encodeURIComponent(url.pathname + url.search);
   const actor = await getActor();
   if (!actor) {
-    return Response.redirect(new URL(`/ingresar?next=${here}`, url), 302);
+    return Response.redirect(new URL(`/ingresar?next=${here}`, getEnv().APP_URL), 302);
   }
   const boardAllowed = resource.access === "ADMIN_OR_BOARD" && hasPermission(actor, "BOARD");
   if (!actor.isAdmin && !boardAllowed) {
     return new Response("Solo ADMIN", { status: 403 });
   }
   if (resource.personalData && !hasRecentStepUp(actor)) {
-    return Response.redirect(new URL(`/ingresar/paso?next=${here}`, url), 302);
+    return Response.redirect(new URL(`/ingresar/paso?next=${here}`, getEnv().APP_URL), 302);
   }
   const filters: Record<string, string> = {};
   for (const filter of await resolveFilters(resource)) {

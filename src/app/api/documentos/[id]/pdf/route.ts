@@ -1,3 +1,4 @@
+import { getEnv } from "@/env";
 import { resolveDocumentRedirect } from "@/modules/content";
 import { getActor } from "@/modules/identity";
 
@@ -17,7 +18,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/docum
   const actor = await getActor();
   if (!actor) {
     return Response.redirect(
-      new URL(`/ingresar?next=${encodeURIComponent(url.pathname)}`, url),
+      new URL(`/ingresar?next=${encodeURIComponent(url.pathname)}`, getEnv().APP_URL),
       302,
     );
   }
