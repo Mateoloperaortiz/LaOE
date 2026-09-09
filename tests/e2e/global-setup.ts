@@ -118,6 +118,16 @@ export default async function globalSetup(): Promise<void> {
   // La persona de e2e es ADMIN para probar el admin; BOARD lo prueba la suite y se limpia aquí.
   await db.delete(permission).where(eq(permission.personId, who.id));
   await db.insert(permission).values({ personId: who.id, code: "ADMIN" });
+  // La identidad ADMIN también entra a Mi OE en algunas suites (ADR-048).
+  await db
+    .insert(consent)
+    .values({
+      personId: who.id,
+      purpose: "MEMBERSHIP",
+      source: "SELF",
+      policyVersion: "prueba-v1",
+    })
+    .onConflictDoNothing();
   // Los límites de OTP por correo (5 cada 15 minutos) no deben depender de corridas anteriores.
   await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_EMAIL));
   await db.delete(editionRegistration).where(eq(editionRegistration.personId, who.id));
@@ -259,6 +269,16 @@ export default async function globalSetup(): Promise<void> {
     .where(eq(person.id, member.id));
   await db.delete(permission).where(eq(permission.personId, member.id));
   await db.delete(consent).where(eq(consent.personId, member.id));
+  // ADR-048: sin autorización viva no se entra a Mi OE. La versión es la que fija el seed.
+  await db
+    .insert(consent)
+    .values({
+      personId: member.id,
+      purpose: "MEMBERSHIP",
+      source: "SELF",
+      policyVersion: "prueba-v1",
+    })
+    .onConflictDoNothing();
   await db.delete(task).where(eq(task.personId, member.id));
   await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_MEMBER_EMAIL));
   await db.delete(editionRegistration).where(eq(editionRegistration.personId, member.id));
@@ -325,6 +345,13 @@ export default async function globalSetup(): Promise<void> {
         termId: current.id,
         roleCode: "MIEMBRO",
         joinedAt: new Date(),
+      });
+      // ADR-048: ya autorizó en un ingreso anterior; su suite prueba licencias, no la autorización.
+      await db.insert(consent).values({
+        personId: leaver.id,
+        purpose: "MEMBERSHIP",
+        source: "SELF",
+        policyVersion: "prueba-v1",
       });
     }
     await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_LEAVE_EMAIL));

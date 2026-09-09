@@ -558,3 +558,12 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-09-08 | Política / borrador | [ADR-047](adr/ADR-047-politica-de-datos-y-habilitacion.md) y [17-politica-de-datos.md](17-politica-de-datos.md): el cuerpo publicado vive versionado en el repositorio, la versión es la fecha de aprobación de la junta y el respaldo de los consentimientos `MEMBERSHIP`/`IMPORT` es la aceptación que cada integrante da al entrar a la OE, certificada por escrito. El borrador cubre datos, finalidades, autorización, encargados y transferencias (Railway, Cloudflare, Resend, Apple, Google), derechos y plazos, retención, seguridad y vigencia, contrastado con el código. Quedan cinco marcadores para la junta: responsable, domicilio, buzón de atención, fecha de aprobación y menores de edad. Solo documentación: sin cambios de código, sin publicar y con la versión todavía en `pendiente`. |
+
+### Autorización en el primer ingreso (ADR-048)
+
+- [x] Quitar el consentimiento de la importación, pantalla de autorización, guard de Mi OE, copy y pruebas.
+- [ ] Desplegar a producción antes de cargar el roster.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-08 | Autorización propia | La importación ya no registra `MEMBERSHIP`/`IMPORT`: quien no tiene autorización viva pasa por `/autorizacion`, lee la política publicada y la acepta con fuente `SELF`, versión, fecha e IP. Ruta fuera de `/app` para no redirigirse a sí misma; los derechos del titular —leer la política y descargar sus datos— quedan disponibles en esa pantalla. Copy T-2085 a T-2088 y T-414 reescrito. Pruebas de integración y e2e nuevas; el `global-setup` deja a las identidades sintéticas con su autorización viva. Verificado en local sobre una base aislada. |

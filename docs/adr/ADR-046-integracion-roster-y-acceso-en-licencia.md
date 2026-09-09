@@ -32,3 +32,7 @@ La migración es aditiva y compatible con registros existentes. La publicación 
 ## Enmienda (2026-09-08, ADR-047)
 
 El punto 7 se concreta: el texto por publicar vive en [17-politica-de-datos.md](../17-politica-de-datos.md), la versión es la fecha de aprobación de la junta y el respaldo de las autorizaciones de membresía es la aceptación que cada integrante da al entrar a la OE, certificada por escrito antes de aplicar el lote. El orden de ejecución y su evidencia están en el [runbook](../15-runbook.md#habilitación-de-la-política-de-datos-adr-047-2026-09-08).
+
+## Enmienda (2026-09-08, ADR-048)
+
+El punto 7 deja de registrar consentimientos `MEMBERSHIP`/`IMPORT`: la carga solo crea personas, membresías y pertenencias, y cada integrante autoriza en su primer ingreso. Se conserva el requisito de política publicada y versión activa, porque esa pantalla necesita el texto.

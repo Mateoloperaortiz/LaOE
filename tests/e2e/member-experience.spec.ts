@@ -134,6 +134,8 @@ for (const width of [360, 390, 768, 1440])
       await more.click();
       await menu.getByRole("link", { name: "Personas", exact: true }).click();
       await expect(menu).toBeHidden();
+      // La navegación es de cliente: sin esperar el destino, el menú se reabre sobre la página vieja.
+      await expect(page).toHaveURL(/\/app\/personas$/);
       await more.click();
       await expect(menu.getByRole("link", { name: "Personas", exact: true })).toHaveAttribute(
         "aria-current",

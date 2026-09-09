@@ -4,7 +4,7 @@ Solo entran las personas del roster: miembros activos, honorarios y en licencia.
 
 La [ADR-046](adr/ADR-046-integracion-roster-y-acceso-en-licencia.md) habilita consulta de Mi OE y autogestión personal para ON_LEAVE. Conserva suspendidos permisos operativos, participación y nuevas credenciales. Los permisos guardados no se eliminan y las sesiones revocadas previamente no vuelven a valer. La condición de acceso ya no se reutiliza para decidir quién puede participar o emitir carnet.
 
-El primer ADMIN tiene una excepción puntual de arranque ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)): script privado con identidad real, membresía ACTIVE y permiso ADMIN, sin crear consentimiento ni permitir registro abierto. Después de entrar por OTP, publica la política, activa su versión y carga el roster desde el asistente.
+El primer ADMIN tiene una excepción puntual de arranque ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)): script privado con identidad real, membresía ACTIVE y permiso ADMIN, sin crear consentimiento ni permitir registro abierto. Después de entrar por OTP, publica la política, activa su versión y carga el roster desde el asistente. Desde [ADR-048](adr/ADR-048-autorizacion-en-el-primer-ingreso.md), quien no tenga autorización viva de membresía —el primer ADMIN incluido— pasa por `/autorizacion` antes de llegar a Mi OE.
 
 ## Flujo de ingreso
 

@@ -1,6 +1,6 @@
 # ADR-014: Privacidad por diseño (Ley 1581 de 2012)
 
-- Estado: Aceptada (enmendada por ADR-030, ADR-039, ADR-040, ADR-047)
+- Estado: Aceptada (enmendada por ADR-030, ADR-039, ADR-040, ADR-047, ADR-048)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-002, ADR-013, ADR-015
 
@@ -36,3 +36,7 @@ Agregar el carnet a Google Wallet envía nombre, comités, semestre y semestre d
 ## Enmienda (2026-09-08, ADR-047)
 
 El texto publicado en `/privacidad` tiene fuente de verdad versionada en el repositorio y su versión es la fecha en que la junta lo aprueba. La autorización de membresía de quien entra por el roster se respalda en la aceptación que da al ingresar a la OE, certificada por escrito y archivada en evidencia privada; publicar una versión nueva no reescribe ni vuelve a pedir las autorizaciones ya registradas. Ver [ADR-047](ADR-047-politica-de-datos-y-habilitacion.md).
+
+## Enmienda (2026-09-08, ADR-048)
+
+El roster importado ya no registra consentimiento con fuente `IMPORT`. Quien no tenga una autorización viva de membresía pasa, al entrar a Mi OE, por una pantalla que le muestra la política publicada y la acepta con fuente `SELF`, su versión, su fecha y su IP. Ver [ADR-048](ADR-048-autorizacion-en-el-primer-ingreso.md).

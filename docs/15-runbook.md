@@ -377,14 +377,15 @@ Estado al escribir esta sección: borrador entregado en [17-politica-de-datos.md
 
 Requisitos previos, todos de la junta: responsable del tratamiento y su vínculo con EAFIT, domicilio, buzón real de atención al titular, fecha de aprobación (que es la versión, `AAAA-MM-DD`), decisión sobre integrantes menores de edad y constancia escrita de que la admisión a la OE incluye la aceptación del tratamiento, con la ubicación de esa evidencia.
 
-Orden de ejecución, un paso por vez y con su evidencia:
+Orden de ejecución, un paso por vez y con su evidencia. Desde [ADR-048](adr/ADR-048-autorizacion-en-el-primer-ingreso.md) el despliegue del código va **antes** que la carga, porque cambia lo que la importación escribe:
 
+0. **Desplegar ADR-048** (CI en `main`, promoción a `production`): la importación deja de registrar consentimientos y aparece la pantalla `/autorizacion`. Ojo: desde ese momento, quien no tenga autorización viva no entra a Mi OE. `/admin` no está detrás del guard, así que el ADMIN puede publicar la política aunque él mismo todavía no haya aceptado; después entra a `/app`, acepta y sigue.
 1. **Ensayo en staging.** Publicar la página con el texto aprobado, activar una versión de ensayo, comprobar que desaparecen T-1178/T-1179 y aplicar un CSV **sintético** con el asistente; repetirlo para ver que no duplica. Es el primer upload/apply completo del asistente contra un entorno remoto.
 2. **Respaldo previo en producción.** Casa Digital → production → backup → Cron Runs → Run now; anotar deployment, archivo y `backup.lastRunAt`.
 3. **Publicar.** `/admin/paginas` → `privacidad`: cuerpo aprobado, `PUBLISHED`, `PUBLIC`. Revisar `/privacidad` en el dominio final; si muestra "en preparación", el cuerpo quedó vacío.
 4. **Activar.** `/admin/sistema/politica` con ADMIN y step-up: guardar la versión aprobada. La acción rechaza una página sin publicar, no pública o vacía; la escritura queda auditada como `config.updated`.
 5. **Comprobar la habilitación.** `/app/ajustes` sin aviso y con "Autorizar" activo, `/admin/personas/importar` sin banner.
 6. **Aplicar el lote.** Respaldo reciente, subir solo el CSV final A–L, término 2026-2, revisar mapeo y vista previa (452 nuevas, 1 con cambios, cero errores, 453 avisos de mayúsculas) y **revisar la propuesta de permiso de líder de cada `General` antes de confirmar**: viene marcada y concede permisos reales. Confirmar con código nuevo.
-7. **Verificar y registrar.** Conteos de personas, membresías y pertenencias de 2026-2; consentimientos `MEMBERSHIP`/`IMPORT` con la versión publicada; `ImportJob` con su resumen; outbox drenado sin deadletters; repetición sin duplicados; sesión real de una persona importada. Registrar aquí las cifras y las referencias, sin datos personales.
+7. **Verificar y registrar.** Conteos de personas, membresías y pertenencias de 2026-2; **cero consentimientos creados por la carga** y la primera autorización propia registrada al entrar; `ImportJob` con su resumen; outbox drenado sin deadletters; repetición sin duplicados; sesión real de una persona importada. Registrar aquí las cifras y las referencias, sin datos personales.
 
 Si algo sale mal, guardar `pendiente` en el mismo control: bloquea de inmediato altas, importaciones y autorizaciones nuevas, sin borrar el texto publicado ni los consentimientos ya registrados.

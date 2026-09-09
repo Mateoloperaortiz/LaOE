@@ -1,7 +1,8 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
+import { page as contentPage } from "@/modules/content/schema";
 import { committee } from "@/modules/people/schema";
 import { sinViolaciones } from "./axe";
 import { E2E_EMAIL } from "./global-setup";
@@ -69,17 +70,43 @@ test("el asistente importa un roster con step-up y el nuevo miembro entra por OT
   // La persona importada entra por OTP y ve su ficha. Se limpian las cookies de esta pestaña (no se
   // cierra la sesión del admin: la comparten las demás pruebas de la suite).
   await page.context().clearCookies();
-  await page.goto("/ingresar");
-  await page.getByLabel("Correo @eafit.edu.co").fill("e2e-roster-rosa@eafit.edu.co");
-  await page.getByRole("button", { name: "Enviame el código" }).click();
-  await page.getByLabel("Código de seis dígitos").fill(CODE);
-  await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page).toHaveURL(/\/app$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Hola, Rosa");
-  await page.goto("/app/ajustes#mis-datos");
-  await expect(page.getByText("000123456", { exact: true })).toBeVisible();
-  await expect(page.getByText("000654321", { exact: true })).toBeVisible();
-  await expect(page.getByText("29 de febrero de 2004", { exact: true })).toBeVisible();
+  // ADR-048: la importación no crea autorizaciones, así que Rosa da la suya al entrar. Para eso la
+  // política tiene que estar publicada; se restaura al terminar (el sitemap la espera en borrador).
+  const [politicaPrevia] = await getDb()
+    .select()
+    .from(contentPage)
+    .where(eq(contentPage.slug, "privacidad"));
+  await getDb()
+    .update(contentPage)
+    .set({
+      body: "Política sintética de la suite.",
+      status: "PUBLISHED",
+      audience: "PUBLIC",
+    })
+    .where(eq(contentPage.slug, "privacidad"));
+  try {
+    await page.goto("/ingresar");
+    await page.getByLabel("Correo @eafit.edu.co").fill("e2e-roster-rosa@eafit.edu.co");
+    await page.getByRole("button", { name: "Enviame el código" }).click();
+    await page.getByLabel("Código de seis dígitos").fill(CODE);
+    await page.getByRole("button", { name: "Entrar" }).click();
+    await expect(page).toHaveURL(/\/autorizacion$/);
+    await page.getByRole("button", { name: "Autorizo y entro", exact: true }).click();
+    await expect(page).toHaveURL(/\/app$/);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Hola, Rosa");
+    await page.goto("/app/ajustes#mis-datos");
+    await expect(page.getByText("000123456", { exact: true })).toBeVisible();
+    await expect(page.getByText("000654321", { exact: true })).toBeVisible();
+    await expect(page.getByText("29 de febrero de 2004", { exact: true })).toBeVisible();
+  } finally {
+    if (politicaPrevia) {
+      await getDb()
+        .update(contentPage)
+        .set(politicaPrevia)
+        .where(eq(contentPage.slug, "privacidad"));
+    }
+    await closeDb();
+  }
 });
 
 test("la reautenticación conserva una propuesta de líder desmarcada", async ({ page }) => {

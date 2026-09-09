@@ -2,20 +2,15 @@
 
 Este documento es la fuente de verdad del texto que se publica en `/privacidad`. El cuerpo de la página (`Page` con slug `privacidad`, Markdown, `PUBLISHED`/`PUBLIC`) se copia de la sección **Texto para publicar**; su versión es la que se guarda en `privacy.policyVersion` desde `/admin/sistema/politica` y la que queda estampada en cada `Consent`. Reglas en [ADR-047](adr/ADR-047-politica-de-datos-y-habilitacion.md), [ADR-014](adr/ADR-014-privacidad-por-diseno.md) y [ADR-039](adr/ADR-039-arranque-limpio-fase-7.md).
 
-**Estado: borrador. No se publica.** Lo redactó Mateo con apoyo del asistente para que la junta lo revise, complete y apruebe; no reemplaza revisión jurídica. Mientras tenga marcadores sin resolver, la página sigue en borrador y `privacy.policyVersion` sigue en `pendiente`.
+**Estado: aprobado por la junta el 2026-09-08 y listo para publicar.** Lo redactó Mateo con apoyo del asistente para que la junta lo revise, complete y apruebe; no reemplaza revisión jurídica. Mientras tenga marcadores sin resolver, la página sigue en borrador y `privacy.policyVersion` sigue en `pendiente`.
 
-## Qué falta antes de publicar
+## Qué se resolvió y qué queda anotado
 
-| Marcador | Qué hay que definir |
-| --- | --- |
-| `{responsable}` | Quién es el responsable del tratamiento: la Organización Estudiantil como grupo estudiantil o la Universidad EAFIT. Cambia el encabezado, el canal de atención y quién responde reclamos |
-| `{direccion}` | Domicilio del responsable para notificaciones |
-| `{correo-atencion}` | Buzón real de atención al titular; hoy la app solo envía desde `noreply@oeeafit.com`, que no recibe |
-| `{version}` | Identificador de la versión: la fecha de aprobación de la junta en formato `AAAA-MM-DD`, como la normativa `2026-05-08` |
-| `{fecha-aprobacion}` | Fecha del acta o decisión que aprueba el texto |
-| `{menores}` | El roster admite documento `TI`. Si hay integrantes menores, la junta define cómo se obtiene y conserva la autorización de su representante legal ([Decreto 1377 de 2013, artículo 12](https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=53646)) y el texto lo dice |
+Resueltos por la junta el 2026-09-08: responsable **Universidad EAFIT**, dirección Carrera 49 N.º 7 Sur-50 de Medellín, canal `datospersonales@eafit.edu.co` y versión `2026-09-08`, que es la fecha de la aprobación.
 
-Además, la junta debe confirmar con la Universidad si al responsable le aplica el registro de la base de datos en el RNBD de la Superintendencia de Industria y Comercio. Esta política no afirma nada al respecto.
+**Menores de edad.** El lote del 2026-2 incluye 22 documentos `TI` y 15 personas que a la fecha de preparación tenían 17 años. La junta decidió cargarlas en el mismo lote y publicar que la autorización otorgada a EAFIT al matricularse cubre este tratamiento. Esa afirmación **se publica antes de que la Universidad la confirme**: la consulta a `datospersonales@eafit.edu.co` sobre responsable, menores y RNBD sigue abierta. Si la respuesta la contradice, hay que corregir el texto, subir la versión y revisar las autorizaciones de esas personas. Queda registrado así por decisión expresa de Mateo del 2026-09-08.
+
+**Respaldo de las autorizaciones.** Desde [ADR-048](adr/ADR-048-autorizacion-en-el-primer-ingreso.md) cada persona autoriza en su primer ingreso a Mi OE: la importación ya no registra consentimientos a nombre de la OE. La constancia de la admisión respalda el periodo anterior, no las autorizaciones nuevas.
 
 ## Cómo se verificó el contenido
 
@@ -27,10 +22,10 @@ Cada categoría de datos, finalidad y tercero del texto corresponde a algo que l
 
 Todo lo que sigue es el cuerpo de la página. **No lleva título propio**: `/privacidad` ya pinta "Tratamiento de datos personales" como `h1` desde `Page.title`, así que el cuerpo empieza en `##`. El Markdown admite tablas (remark-gfm) y descarta HTML embebido.
 
-- **Responsable:** {responsable}
-- **Dirección:** {direccion}
-- **Correo de atención:** {correo-atencion}
-- **Versión:** {version}, aprobada el {fecha-aprobacion}
+- **Responsable:** Universidad EAFIT
+- **Dirección:** Carrera 49 N.º 7 Sur-50, Medellín, Colombia
+- **Correo de atención:** datospersonales@eafit.edu.co
+- **Versión:** 2026-09-08, aprobada el 8 de septiembre de 2026
 
 La Organización Estudiantil de la Universidad EAFIT (la OE) trata datos personales de sus integrantes, de quienes se postulan, de sus egresados y de los contactos con los que trabaja. Esta política explica qué datos guardamos, para qué, con quién los compartimos y cómo podés ejercer tus derechos. Se rige por la Ley 1581 de 2012, el Decreto 1377 de 2013 y las normas que los modifiquen.
 
@@ -104,7 +99,7 @@ En la app tenés dos atajos, en **Mi OE → Ajustes**: **Descargar mis datos**, 
 
 ## Cómo ejercerlos
 
-Escribí a {correo-atencion} desde tu correo institucional, o usá los botones de Ajustes. Indicá tu nombre, tu correo y qué necesitás.
+Escribí a datospersonales@eafit.edu.co desde tu correo institucional, o usá los botones de Ajustes. Indicá tu nombre, tu correo y qué necesitás.
 
 - **Consultas:** respondemos en diez (10) días hábiles. Si no es posible, te avisamos por qué y respondemos dentro de los cinco (5) días hábiles siguientes.
 - **Reclamos:** respondemos en quince (15) días hábiles. Si no es posible, te avisamos por qué y la fecha en que responderemos, dentro de los ocho (8) días hábiles siguientes.
@@ -114,7 +109,7 @@ Al eliminar tus datos conservamos tu historia institucional sin tu nombre: la OE
 
 ## Integrantes menores de edad
 
-{menores}
+Algunas personas vinculadas a la OE son menores de edad. Sus datos se tratan con la misma finalidad de gestionar su participación, atendiendo su interés superior y sus derechos fundamentales. La autorización otorgada a la Universidad EAFIT al matricularse cubre este tratamiento, por ser EAFIT la responsable. El menor o su representante legal puede ejercer todos los derechos de esta política por los mismos canales.
 
 ## Cuánto tiempo los conservamos
 
@@ -126,4 +121,4 @@ Entrás a Mi OE con un código de un solo uso enviado a tu correo institucional;
 
 ## Vigencia y cambios
 
-Esta política rige desde el {fecha-aprobacion} y mientras la OE trate datos personales. Si cambia, publicamos la versión nueva en esta página con su fecha; las autorizaciones ya otorgadas conservan la versión con la que se registraron y te avisamos por los canales de la OE cuando el cambio sea sustancial.
+Esta política rige desde el 8 de septiembre de 2026 y mientras la OE trate datos personales. Si cambia, publicamos la versión nueva en esta página con su fecha; las autorizaciones ya otorgadas conservan la versión con la que se registraron y te avisamos por los canales de la OE cuando el cambio sea sustancial.

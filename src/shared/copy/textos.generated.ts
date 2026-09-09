@@ -3557,6 +3557,30 @@ export const textos = {
     owner: "MATEO",
     status: "Confirmado",
   },
+  "T-2085": {
+    where: "Autorización: título de la pantalla",
+    text: "Antes de entrar, autorizá el tratamiento de tus datos",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-2086": {
+    where: "Autorización: explicación",
+    text: "Para usar Mi OE necesitamos tu autorización. Leé la política y aceptala: queda registrada con la fecha y la versión que estás viendo.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-2087": {
+    where: "Autorización: botón",
+    text: "Autorizo y entro",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-2088": {
+    where: "Autorización: política sin publicar",
+    text: "La política de tratamiento de datos todavía no está publicada, así que no podemos pedirte una autorización válida. Avisale a Gestión Humana antes de continuar.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
   "T-209": {
     where: "Correo de prueba de una plantilla: prefijo del asunto",
     text: "[Prueba]",
@@ -4645,7 +4669,7 @@ export const textos = {
   },
   "T-414": {
     where: "Consentimientos, nota sobre el de membresía",
-    text: "El consentimiento de membresía lo registró la OE al importar el roster. Para retirarlo, pedí la eliminación de tus datos.",
+    text: "Autorizaste el tratamiento de tus datos al entrar por primera vez. Para retirar esa autorización, pedí la eliminación de tus datos.",
     owner: "JUNTA",
     status: "Propuesta",
   },

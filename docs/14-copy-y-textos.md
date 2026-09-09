@@ -306,7 +306,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-411 | Consentimientos, estado autorizado | Autorizado el {fecha} (política versión {v}) | JUNTA | Propuesta |
 | T-412 | Consentimientos, estado no autorizado | No autorizado | JUNTA | Propuesta |
 | T-413 | Consentimientos, botones | Autorizar · Retirar la autorización | JUNTA | Propuesta |
-| T-414 | Consentimientos, nota sobre el de membresía | El consentimiento de membresía lo registró la OE al importar el roster. Para retirarlo, pedí la eliminación de tus datos. | JUNTA | Propuesta |
+| T-414 | Consentimientos, nota sobre el de membresía | Autorizaste el tratamiento de tus datos al entrar por primera vez. Para retirar esa autorización, pedí la eliminación de tus datos. | JUNTA | Propuesta |
 | T-415 | Eliminación, confirmación | ¿Seguro? GH revisa tu solicitud y te contacta antes de borrar nada. Tu historia en la OE se conserva sin tu nombre. | JUNTA | Propuesta; texto sensible |
 | T-416 | Eliminación, solicitud registrada | Tu solicitud quedó registrada el {fecha}. GH responde en {n} días hábiles. | JUNTA | Propuesta |
 | T-417 | Eliminación, botón de confirmación | Sí, pedir la eliminación | JUNTA | Propuesta |
@@ -1612,3 +1612,12 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2082 | Roster: formato de fecha incorrecto en Excel | El Excel contiene una celda con formato de fecha que no se puede leer. Revisá su formato o subí una copia CSV con los valores corregidos. | MATEO | Confirmado |
 | T-2083 | Roster: graduado pendiente | La persona graduada queda pendiente hasta contar con su fecha o semestre de salida. | MATEO | Confirmado |
 | T-2084 | Roster: discrepancia de ingreso | El semestre de ingreso no coincide con el registrado. Revisá la diferencia antes de importar esta persona. | MATEO | Confirmado |
+
+## Autorización en el primer ingreso (ADR-048)
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-2085 | Autorización: título de la pantalla | Antes de entrar, autorizá el tratamiento de tus datos | JUNTA | Propuesta |
+| T-2086 | Autorización: explicación | Para usar Mi OE necesitamos tu autorización. Leé la política y aceptala: queda registrada con la fecha y la versión que estás viendo. | JUNTA | Propuesta |
+| T-2087 | Autorización: botón | Autorizo y entro | JUNTA | Propuesta |
+| T-2088 | Autorización: política sin publicar | La política de tratamiento de datos todavía no está publicada, así que no podemos pedirte una autorización válida. Avisale a Gestión Humana antes de continuar. | JUNTA | Propuesta |

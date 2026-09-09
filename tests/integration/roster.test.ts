@@ -180,11 +180,12 @@ describe("importación del roster", () => {
     expect(juan).toMatchObject({ membershipStatus: "ON_LEAVE", committees: ["A3 · Financiero"] });
     const sofia = listed.rows.find((row) => row.email === "prueba.sofia@eafit.edu.co");
     expect(sofia).toMatchObject({ stage: "ALUMNI", membershipStatus: "INACTIVE", committees: [] });
+    // ADR-048: la importación no registra autorizaciones; cada persona autoriza en su primer ingreso.
     const [consents] = await db()
       .select({ n: count() })
       .from(consent)
       .where(eq(consent.purpose, "MEMBERSHIP"));
-    expect(consents?.n).toBe(4);
+    expect(consents?.n).toBe(0);
     const [imported] = await db()
       .select({ n: count() })
       .from(auditLog)

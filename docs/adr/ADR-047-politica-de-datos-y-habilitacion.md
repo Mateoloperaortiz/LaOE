@@ -27,3 +27,11 @@ El texto no existía. Mateo pidió redactar un borrador para que la junta lo apr
 - El repositorio conserva el texto publicado y su versión, así que se puede reconstruir qué decía la política que cada persona autorizó.
 - Aceptar el respaldo por la vía de la admisión implica que la OE debe poder mostrar esa evidencia si un titular o una autoridad la pide; por eso la constancia es un requisito y no una formalidad.
 - Este documento no es asesoría jurídica: el borrador lo revisa y aprueba la junta, que decide si además necesita revisión legal de la Universidad.
+
+## Enmienda (2026-09-08, ADR-048)
+
+El punto 3 cambia de alcance: la constancia de la admisión respalda el periodo anterior, no las autorizaciones de la carga, porque la importación deja de crearlas. Cada persona autoriza en su primer ingreso ([ADR-048](ADR-048-autorizacion-en-el-primer-ingreso.md)).
+
+## Decisión de publicación · 2026-09-08
+
+La junta aprobó el texto con la Universidad EAFIT como responsable, dirección Carrera 49 N.º 7 Sur-50, canal `datospersonales@eafit.edu.co` y versión `2026-09-08`. Sobre menores de edad se publica que la autorización otorgada a EAFIT al matricularse cubre este tratamiento. **Esa afirmación se publica sin que la Universidad la haya confirmado**: la consulta a `datospersonales@eafit.edu.co` estaba abierta al momento de decidirlo, y Mateo pidió expresamente publicarla igual. Si la respuesta la contradice, hay que corregir el texto, subir la versión y revisar las autorizaciones de las 15 personas menores de edad del lote.

@@ -25,7 +25,6 @@ import {
 } from "../schema";
 import { listCommitteeRoles, setCommitteeMemberships } from "./committee-memberships";
 import { listAllCommittees } from "./committees";
-import { recordConsent } from "./consents";
 import { changeMembershipStatus, endMembership, reactivateMembership } from "./membership";
 import { createCommitteeRole } from "./roles";
 import { ROSTER_MAX_BYTES, readRosterCells, rosterFormat } from "./roster-file";
@@ -569,7 +568,6 @@ async function applyRow(
       })),
     );
   }
-  await recordConsent(ctx, personId, { purpose: "MEMBERSHIP", source: "IMPORT" });
   await ctx.audit({
     action: "person.imported",
     entityType: "person",

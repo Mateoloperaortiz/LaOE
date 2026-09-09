@@ -1,7 +1,9 @@
+import { redirect } from "next/navigation";
 import { listSubscriptionsFor } from "@/modules/comms";
 import { PwaRegistrar } from "@/modules/comms/components/PwaRegistrar";
 import { requireActor } from "@/modules/identity";
 import { signOutAction } from "@/modules/identity/actions";
+import { hasLiveConsent } from "@/modules/people";
 import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { MemberShell } from "./_ui/MemberShell";
@@ -24,6 +26,10 @@ const RUTAS: Record<string, string> = {
 
 export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const actor = await requireActor("/app");
+  // ADR-048: sin autorización viva, la persona pasa primero por la pantalla de autorización.
+  if (!(await hasLiveConsent(actor.personId, "MEMBERSHIP"))) {
+    redirect("/autorizacion");
+  }
   const devices = await listSubscriptionsFor(actor.personId);
   const [temaOscuro, temaClaro] = tList("T-034") as [string, string];
   const pestañas = tList("T-061").filter((nombre) => nombre in RUTAS);

@@ -95,7 +95,7 @@ Un CRM es un archivo de datos personales; esto no es opcional.
 - Público: cero datos personales. Directorio interno: nombre, foto opcional con consentimiento, comités y cargos.
 - "Descargar mis datos" (JSON con todo, notas incluidas) y "Solicitar eliminación" desde Ajustes; la solicitud estampa `deletionRequestedAt`, crea una tarea de tipo `DELETION_REQUEST` sin responsable (la ven todos los ADMIN) con vencimiento a 15 días hábiles (`privacy.deletionDays`) y se atiende con "Anonimizar" desde la Persona 360, con step-up.
 - Salida: no hay anonimización por plazo. Al salir, el perfil pasa a egresado y se depura lo que no es historia (celular salvo consentimiento de contacto, respuestas de formularios, tareas); notas y evaluaciones quedan solo para ADMIN; nombre, comités, cargos, años y ledger se conservan como historia institucional, visibles en la galería de egresados si hay consentimiento `MEMORIAL`. La eliminación a pedido anonimiza de inmediato ([ADR-030](adr/ADR-030-perfil-de-egresado.md)).
-- La política de tratamiento se publica en `/privacidad`; su versión vigente es la que registran los consentimientos nuevos. Detalle en [ADR-014](adr/ADR-014-privacidad-por-diseno.md).
+- La política de tratamiento se publica en `/privacidad`; su versión vigente es la que registran los consentimientos nuevos. La autorización de membresía la da cada persona en su primer ingreso a Mi OE ([ADR-048](adr/ADR-048-autorizacion-en-el-primer-ingreso.md)). Detalle en [ADR-014](adr/ADR-014-privacidad-por-diseno.md).
 
 ## Carnet en la Persona 360 (fase 8)
 

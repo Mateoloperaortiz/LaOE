@@ -2,7 +2,7 @@
 
 El roster entra a la casa digital por un archivo que GH exporta de su base (CSV o Excel). Es la única puerta de entrada masiva de miembros: el login no crea personas ([ADR-002](adr/ADR-002-persona-como-eje.md)). El asistente de importación (fase 2) lee este formato, valida fila por fila, muestra qué va a cambiar y aplica todo en una transacción con auditoría. Reglas del cargo en [ADR-029](adr/ADR-029-cargos-de-comite-y-roster.md).
 
-En el arranque limpio ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)), el primer ADMIN se habilita mediante un bootstrap sin consentimiento. El roster real entra **desde este asistente**, después de publicar la política y activar `privacy.policyVersion`; una versión pendiente bloquea la aplicación antes de registrar personas o autorizaciones.
+En el arranque limpio ([ADR-039](adr/ADR-039-arranque-limpio-fase-7.md)), el primer ADMIN se habilita mediante un bootstrap sin consentimiento. El roster real entra **desde este asistente**, después de publicar la política y activar `privacy.policyVersion`; una versión pendiente bloquea la aplicación antes de registrar personas.
 
 ## Columnas
 
@@ -64,7 +64,7 @@ Advertencias (se importa, pero se marca):
 ## Qué hace la importación
 
 1. **Vista previa** con tres grupos: personas nuevas, personas existentes con cambios (estado, comités, cargo, celular, programa) y sin cambios. Nada se aplica hasta confirmar.
-2. **Consentimiento:** cada persona importada queda con `Consent` de propósito `MEMBERSHIP`, fuente `IMPORT` y la versión vigente de la política.
+2. **Consentimiento:** la importación **no** registra autorizaciones ([ADR-048](adr/ADR-048-autorizacion-en-el-primer-ingreso.md)). Cada persona autoriza en su primer ingreso a Mi OE, con fuente `SELF` y la versión publicada. Por eso la carga sigue exigiendo la política publicada y su versión activa: sin ellas esa pantalla no puede pedir nada.
 3. **Comités por término:** crea las pertenencias del término del archivo; a quien ya existía y no aparece en un comité, le cierra esa pertenencia (`leftAt`) en el término. Quien no aparece en el archivo no se toca: darlo de baja es un comando aparte.
 4. **Cargos:** guarda el cargo en la pertenencia. Para cada `General`, la vista previa propone otorgar el permiso técnico de líder de ese comité, marcado por defecto; ADMIN confirma.
 5. **Nuevos y veteranos:** `ENTRADA A LA OE` fija el primer término; nuevo es quien entra en el término del archivo ([ADR-008](adr/ADR-008-tableros-derivados.md)).

@@ -3,7 +3,13 @@ import { type BrowserContext, expect, test } from "@playwright/test";
 import { eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { request, task } from "@/modules/crm/schema";
-import { committee, committeeMembership, membership, person } from "@/modules/people/schema";
+import {
+  committee,
+  committeeMembership,
+  consent,
+  membership,
+  person,
+} from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
 
@@ -31,6 +37,10 @@ test.beforeAll(async ({ browser }) => {
   if (!who) throw new Error("No se creó el miembro sintético");
   personId = who.id;
   await db.insert(membership).values({ personId, status: "ACTIVE", firstTermId: current.id });
+  // ADR-048: sin autorización viva no se entra a Mi OE; esta suite prueba solicitudes, no la pantalla.
+  await db
+    .insert(consent)
+    .values({ personId, purpose: "MEMBERSHIP", source: "SELF", policyVersion: "prueba-v1" });
   const committees = await db
     .insert(committee)
     .values(
