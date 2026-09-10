@@ -3900,6 +3900,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2141": {
+    where: "Step-up, título de la pantalla",
+    text: "Confirmá que sos vos",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-220": {
     where: "Carnet, textos",
     text: "Organización Estudiantil · {nombre} · {comités} · {semestre} · QR",

@@ -1654,6 +1654,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2115 | Ajustes, contraseña actual equivocada | Esa no es tu contraseña actual. | MATEO | Propuesta |
 | T-2116 | Ajustes, contraseña guardada | Listo, guardamos tu contraseña y cerramos las demás sesiones. | MATEO | Propuesta |
 | T-2117 | Step-up con contraseña | Esta acción es sensible: confirmá con tu contraseña. | MATEO | Propuesta |
+| T-2141 | Step-up, título de la pantalla | Confirmá que sos vos | MATEO | Propuesta |
 | T-2118 | Step-up, contraseña equivocada | Esa no es tu contraseña. | MATEO | Propuesta |
 | T-2119 | Persona 360, botón de emisión | Emitir enlace de acceso | MATEO | Propuesta |
 | T-2120 | Emisión, opción de activación | Primera contraseña | MATEO | Propuesta |

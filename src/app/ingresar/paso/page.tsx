@@ -6,7 +6,7 @@ import { StepUpForm } from "@/modules/identity/components/StepUpForm";
 import { LogoOE } from "@/shared/brand";
 import { t } from "@/shared/copy";
 
-export const metadata: Metadata = { title: t("T-2117"), robots: { index: false } };
+export const metadata: Metadata = { title: t("T-2141"), robots: { index: false } };
 
 // Step-up (ADR-051): la contraseña propia antes de una acción sensible del admin; el código al
 // correo queda como alternativa.
@@ -26,7 +26,7 @@ export default async function PasoPage({ searchParams }: PageProps<"/ingresar/pa
       <span className="self-start text-titulo">
         <LogoOE height={88} />
       </span>
-      <h1 className="text-display-lg">{t("T-2117")}</h1>
+      <h1 className="text-display-lg">{t("T-2141")}</h1>
       <StepUpForm
         initialState={await initialStepUpState(next)}
         labels={{
