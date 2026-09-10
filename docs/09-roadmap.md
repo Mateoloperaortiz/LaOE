@@ -575,9 +575,11 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 ### Navegación entre Mi OE y Administración (ADR-049)
 
 - [x] Agregar accesos visibles en ambas cabeceras, condicionados a los roles existentes, y verificar navegación y presentación local.
+- [x] Promover a producción (2026-09-10).
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
+| 2026-09-10 | Cambio de área / producción | `7f95c8b` promovido a la rama `production` como avance directo desde `242a08a`, sin forzar. CI de `production` SUCCESS ([34496332251](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34496332251)); Railway retuvo el deployment `5fdb7490-85b6-4f27-99c4-eced019d7dab` en `WAITING` hasta que ese CI pasó y luego desplegó SUCCESS a las 15:52:35 UTC. Health de `https://oeeafit.com` en 200 a las 15:52:42 UTC con `commit` `7f95c8b` y latencia de base de 1 ms. Se promovió solo este SHA y no la punta de `main`, para conservar el código en el asunto del OTP mientras Check Point siga reteniendo los correos: es la única vía disponible para el step-up. Sin migraciones ni cambios de variables. |
 | 2026-09-09 | Cambio de área / local | «Administración» en Mi OE según `adminAreaRoles` y «Mi OE» en la cabecera administrativa. Misma sesión y guards; líderes y evaluadores llegan a sus destinos permitidos. Copy T-2090/T-2091 y componente compartido. Lint, typecheck, deps:check, deadcode y build PASS; 31 E2E PASS sobre base local aislada, con ida/vuelta, ausencia del acceso sin permisos, teclado, axe, capturas en ambos temas y regresiones de las dos cabeceras. Accesos comprobados a 360/768/1024/1440 px y texto al 200 %; a 360 px la comprobación ampliada se limita a la cabecera de Mi OE, pues se observó desborde en estados vacíos y acciones del onboarding fuera de este cambio. Base de prueba retirada al terminar. Entrega local, sin despliegue. |
 
 ### Entrega del código de acceso (ADR-050)
