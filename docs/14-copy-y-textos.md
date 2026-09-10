@@ -1668,6 +1668,9 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2129 | Jornada de activación, instrucción | Elegí a la persona, mostrale el QR y esperá a que entre. Un QR a la vez. | MATEO | Propuesta |
 | T-2130 | Jornada de activación, botón | Siguiente persona | MATEO | Propuesta |
 | T-2131 | Jornada de activación, persona que ya tiene contraseña | Ya tiene contraseña. Emitile un enlace solo si la perdió. | MATEO | Propuesta |
+| T-2138 | Jornada de activación, avance general | {activadas} de {personas} ya tienen contraseña | MATEO | Propuesta |
+| T-2139 | Jornada de activación, avance de un comité (texto accesible de la barra) | {activadas} de {total} en {comité} | MATEO | Propuesta |
+| T-2140 | Jornada de activación, sin término abierto | No hay un semestre en curso, así que todavía no hay a quién activar. | MATEO | Propuesta |
 | T-2135 | Jornada de activación, selector de comité | Comité | MATEO | Propuesta |
 | T-2136 | Jornada de activación, sin comité elegido | Elegí un comité para ver a su gente. | MATEO | Propuesta |
 | T-2137 | Jornada de activación, persona sin contraseña todavía | Sin contraseña | MATEO | Propuesta |

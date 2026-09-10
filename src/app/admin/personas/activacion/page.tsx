@@ -2,11 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listPeopleWithPassword } from "@/modules/identity";
-import { listAllCommittees, listInternalRoster } from "@/modules/people";
-import { Insignia } from "@/shared/brand";
+import {
+  listAllCommittees,
+  listInternalRoster,
+  listTermRoster,
+  SIGN_IN_STATUSES,
+} from "@/modules/people";
+import { getCurrentTerm } from "@/modules/terms";
+import { Insignia, Progreso } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { requireAdminAreaRoles } from "../../_kit/acceso";
 import { IssueGrantPanel } from "../IssueGrantPanel";
+import { calcularAvance } from "./progreso";
 
 export const metadata: Metadata = { title: t("T-2128") };
 
@@ -24,11 +31,18 @@ export default async function ActivacionPage({
   const params = await searchParams;
   const comite = typeof params.comite === "string" ? params.comite : "";
   const persona = typeof params.persona === "string" ? params.persona : "";
-  const committees = await listAllCommittees();
-  const roster = comite ? await listInternalRoster(comite) : null;
-  const conClave = roster
-    ? await listPeopleWithPassword(roster.members.map((item) => item.personId))
-    : new Set<string>();
+  const [committees, current, roster] = await Promise.all([
+    listAllCommittees(),
+    getCurrentTerm(),
+    comite ? listInternalRoster(comite) : Promise.resolve(null),
+  ]);
+  // El avance se calcula sobre el término en curso, no sobre el comité que se esté mirando: la
+  // campaña se gobierna con el total, y cada comité muestra el suyo en su ficha.
+  const filas = current
+    ? (await listTermRoster(current.id)).filter((fila) => SIGN_IN_STATUSES.includes(fila.status))
+    : [];
+  const conClave = await listPeopleWithPassword([...new Set(filas.map((f) => f.personId))]);
+  const avance = calcularAvance(filas, conClave);
   const elegida = roster?.members.find((item) => item.personId === persona) ?? null;
   const base = `/admin/personas/activacion?comite=${encodeURIComponent(comite)}`;
 
@@ -39,21 +53,63 @@ export default async function ActivacionPage({
         <p className="max-w-prose">{t("T-2129")}</p>
       </div>
 
+      {current === null ? (
+        <p className="text-tinta-suave">{t("T-2140")}</p>
+      ) : (
+        <section aria-label={t("T-2128")} className="flex max-w-md flex-col gap-2">
+          <p className="text-titulo-lg">
+            {t("T-2138", {
+              activadas: String(avance.activadas),
+              personas: String(avance.personas),
+            })}
+          </p>
+          <Progreso
+            valor={avance.activadas}
+            maximo={avance.personas}
+            nombre={t("T-2128")}
+            etiqueta={t("T-2138", {
+              activadas: String(avance.activadas),
+              personas: String(avance.personas),
+            })}
+          />
+        </section>
+      )}
+
       <nav aria-label={t("T-2135")} className="flex flex-wrap gap-2">
-        {committees.map((item) => (
-          <Link
-            key={item.id}
-            href={`/admin/personas/activacion?comite=${encodeURIComponent(item.slug)}`}
-            aria-current={item.slug === comite ? "page" : undefined}
-            className={
-              item.slug === comite
-                ? "rounded-full bg-oe-navy px-3 py-1 text-sm text-oe-paper no-underline"
-                : "rounded-full border border-borde px-3 py-1 text-sm no-underline"
-            }
-          >
-            {item.name}
-          </Link>
-        ))}
+        {committees.map((item) => {
+          const suyo = avance.porComite.get(item.id);
+          return (
+            <Link
+              key={item.id}
+              href={`/admin/personas/activacion?comite=${encodeURIComponent(item.slug)}`}
+              aria-current={item.slug === comite ? "page" : undefined}
+              aria-describedby={suyo ? `avance-${item.id}` : undefined}
+              className={
+                item.slug === comite
+                  ? "rounded-full bg-oe-navy px-3 py-1 text-sm text-oe-paper no-underline"
+                  : "rounded-full border border-borde px-3 py-1 text-sm no-underline"
+              }
+            >
+              {item.name}
+              {suyo ? (
+                <>
+                  {" "}
+                  <span id={`avance-${item.id}`} className="tabular-nums opacity-70">
+                    {suyo.activadas}/{suyo.total}
+                  </span>
+                  <span className="sr-only">
+                    {" "}
+                    {t("T-2139", {
+                      activadas: String(suyo.activadas),
+                      total: String(suyo.total),
+                      comité: item.name,
+                    })}
+                  </span>
+                </>
+              ) : null}
+            </Link>
+          );
+        })}
       </nav>
 
       {roster === null ? (

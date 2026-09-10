@@ -3882,6 +3882,24 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2138": {
+    where: "Jornada de activación, avance general",
+    text: "{activadas} de {personas} ya tienen contraseña",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2139": {
+    where: "Jornada de activación, avance de un comité (texto accesible de la barra)",
+    text: "{activadas} de {total} en {comité}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2140": {
+    where: "Jornada de activación, sin término abierto",
+    text: "No hay un semestre en curso, así que todavía no hay a quién activar.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-220": {
     where: "Carnet, textos",
     text: "Organización Estudiantil · {nombre} · {comités} · {semestre} · QR",
