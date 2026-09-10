@@ -1624,3 +1624,48 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2086 | Autorización: explicación | Para usar Mi OE necesitamos tu autorización. Leé la política y aceptala: queda registrada con la fecha y la versión que estás viendo. | JUNTA | Propuesta |
 | T-2087 | Autorización: botón | Autorizo y entro | JUNTA | Propuesta |
 | T-2088 | Autorización: política sin publicar | La política de tratamiento de datos todavía no está publicada, así que no podemos pedirte una autorización válida. Avisale a Gestión Humana antes de continuar. | JUNTA | Propuesta |
+
+## Acceso con contraseña propia y enlace de la junta (ADR-051)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-2093 | Ingresar, texto | Escribí tu correo institucional y tu contraseña. | MATEO | Propuesta |
+| T-2094 | Ingresar, campo de contraseña | Contraseña | MATEO | Propuesta |
+| T-2095 | Ingresar, botón | Entrar | MATEO | Propuesta |
+| T-2096 | Ingresar, error de credenciales (igual si el correo no existe, si no tiene contraseña o si está equivocada) | Correo o contraseña incorrectos. | MATEO | Propuesta |
+| T-2097 | Ingresar, bloqueo temporal por intentos | Demasiados intentos. Esperá 15 minutos y volvé a probar. | MATEO | Propuesta |
+| T-2098 | Ingresar, ayuda fija de primer ingreso y olvido (nunca depende del correo tecleado) | ¿Primera vez acá o perdiste la contraseña? Pedile tu enlace de acceso a Gestión Humana o a cualquier persona de la junta. | MATEO | Propuesta |
+| T-2099 | Ingresar, enlace al método alterno | Entrar con un código al correo institucional | MATEO | Propuesta |
+| T-2100 | Ingresar por código, aviso del filtro de EAFIT | El correo de EAFIT está reteniendo nuestros mensajes, así que el código puede no llegarte. Si no llega, pedile tu enlace de acceso a la junta. | MATEO | Propuesta |
+| T-2101 | Activación, título | Elegí tu contraseña | MATEO | Propuesta |
+| T-2102 | Activación, saludo | Hola, {nombre}. Este enlace es tuyo y sirve una sola vez. | MATEO | Propuesta |
+| T-2103 | Activación, campo de contraseña nueva | Contraseña nueva | MATEO | Propuesta |
+| T-2104 | Activación, campo de confirmación | Repetí la contraseña | MATEO | Propuesta |
+| T-2105 | Activación, requisitos | Mínimo 10 caracteres. Usá algo que solo vos sepas y que no uses en otro lado. | MATEO | Propuesta |
+| T-2106 | Activación, botón | Guardar y entrar | MATEO | Propuesta |
+| T-2107 | Activación, enlace vencido, ya usado o desconocido | Este enlace ya no sirve: vence a la hora y se puede usar una sola vez. Pedile uno nuevo a la junta. | MATEO | Propuesta |
+| T-2108 | Activación, contraseña muy corta | La contraseña necesita al menos 10 caracteres. | MATEO | Propuesta |
+| T-2109 | Activación, contraseñas distintas | Las dos contraseñas no son iguales. | MATEO | Propuesta |
+| T-2110 | Activación, contraseña predecible | Esa contraseña es muy fácil de adivinar. Probá con otra que no lleve tu nombre ni tu correo. | MATEO | Propuesta |
+| T-2111 | Activación, aviso de cierre de sesiones | Al guardar cerramos las sesiones que tuvieras abiertas en otros dispositivos. | MATEO | Propuesta |
+| T-2112 | Ajustes, crear la primera contraseña | Creá tu contraseña | MATEO | Propuesta |
+| T-2113 | Ajustes, cambiar la contraseña | Cambiar la contraseña | MATEO | Propuesta |
+| T-2114 | Ajustes, campo de contraseña actual | Contraseña actual | MATEO | Propuesta |
+| T-2115 | Ajustes, contraseña actual equivocada | Esa no es tu contraseña actual. | MATEO | Propuesta |
+| T-2116 | Ajustes, contraseña guardada | Listo, guardamos tu contraseña y cerramos las demás sesiones. | MATEO | Propuesta |
+| T-2117 | Step-up con contraseña | Esta acción es sensible: confirmá con tu contraseña. | MATEO | Propuesta |
+| T-2118 | Step-up, contraseña equivocada | Esa no es tu contraseña. | MATEO | Propuesta |
+| T-2119 | Persona 360, botón de emisión | Emitir enlace de acceso | MATEO | Propuesta |
+| T-2120 | Emisión, opción de activación | Primera contraseña | MATEO | Propuesta |
+| T-2121 | Emisión, opción de recuperación | Recuperación (perdió la contraseña) | MATEO | Propuesta |
+| T-2122 | Emisión, el enlace se muestra una sola vez | Copialo ahora: no lo vas a poder volver a ver. Vence a las {hora} y sirve una sola vez. | MATEO | Propuesta |
+| T-2123 | Emisión, cómo se entrega | Entregáselo en persona o por un canal que ya conozcas de esa persona. Nunca emitas un enlace porque alguien te lo pidió por mensaje. | JUNTA | Propuesta |
+| T-2124 | Emisión, botón de copiar | Copiar enlace | MATEO | Propuesta |
+| T-2125 | Emisión, confirmación de copiado | Copiado | MATEO | Propuesta |
+| T-2126 | Emisión, intento de emitirse a uno mismo | No podés emitirte un enlace a vos. Cambiá tu contraseña desde Ajustes. | MATEO | Propuesta |
+| T-2127 | Emisión, persona que no puede entrar | Esta persona no está activa en el roster, así que no puede entrar a Mi OE. | MATEO | Propuesta |
+| T-2128 | Jornada de activación, título | Jornada de activación | MATEO | Propuesta |
+| T-2129 | Jornada de activación, instrucción | Elegí a la persona, mostrale el QR y esperá a que entre. Un QR a la vez. | MATEO | Propuesta |
+| T-2130 | Jornada de activación, botón | Siguiente persona | MATEO | Propuesta |
+| T-2131 | Jornada de activación, persona que ya tiene contraseña | Ya tiene contraseña. Emitile un enlace solo si la perdió. | MATEO | Propuesta |
+| T-2132 | Push: enlace de acceso emitido (título · cuerpo) | Emitieron tu enlace de acceso · Si no lo pediste, avisale a la junta ya mismo. | MATEO | Propuesta |

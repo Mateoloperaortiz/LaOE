@@ -1,6 +1,6 @@
 # ADR-050: Forma del correo transaccional del código de acceso
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-051)
 - Fecha: 2026-09-10
 - Relacionadas: ADR-010, ADR-012, ADR-014, ADR-023, ADR-038
 
@@ -24,3 +24,7 @@ Enmienda a ADR-023 en la forma del correo transaccional y a ADR-010 en el conten
 Estas correcciones bajan las señales que empujan el mensaje a *bulk* y cierran la fuga, pero **no reemplazan la entrada de permitidos**: el bloqueo del tenant se resuelve con TI de EAFIT. Los códigos ya guardados en `message.subject` vencen a los diez minutos, así que no requieren corrección retroactiva.
 
 El despliegue tiene una condición de orden: mientras el correo no llegue, leer el código del asunto es la única forma de completar el step-up en producción, así que este cambio se promueve **después** de comprobar un ingreso real con código recibido.
+
+## Enmienda (2026-09-10, ADR-051)
+
+La condición de orden del cierre queda resuelta por otro camino. [ADR-051](ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) da a la administración un step-up que no depende del correo, así que leer el código del asunto deja de ser la única forma de completarlo: este cambio se promueve cuando exista una contraseña de ADMIN en producción, sin esperar a que un código llegue al buzón. Lo demás de esta decisión sigue vigente, incluida la regla de permitidos con TI de EAFIT, que es lo único que devuelve la utilidad del OTP.

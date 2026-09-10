@@ -1,6 +1,6 @@
 # ADR-011: Autorización en servidor
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-051)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-010, ADR-017
 
@@ -16,3 +16,7 @@ El proxy solo redirige rutas protegidas cuando no hay cookie y emite la CSP; nun
 
 - Layouts y acciones comparten una sola verdad.
 - Un líder ve el roster de sus comités (sin correo), propone ocasiones en borrador y usa el modo anfitrión; no aprueba puntos ni publica contenido.
+
+## Enmienda (2026-09-10, ADR-051)
+
+El step-up deja de equivaler a "un OTP verificado hace menos de 15 minutos" y pasa a ser "una credencial propia verificada hace menos de 15 minutos": la contraseña del actor estampa la misma marca de sesión que estampaba el código. La ventana de 15 minutos, los guards y la lista de acciones que lo exigen no cambian. Ver [ADR-051](ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md).

@@ -4,6 +4,12 @@ Este documento es la fuente de verdad del texto que se publica en `/privacidad`.
 
 **Estado: aprobado por la junta el 2026-09-08 y listo para publicar.** Lo redactó Mateo con apoyo del asistente para que la junta lo revise, complete y apruebe; no reemplaza revisión jurídica. Mientras tenga marcadores sin resolver, la página sigue en borrador y `privacy.policyVersion` sigue en `pendiente`.
 
+## Cambio pendiente de aprobación (2026-09-10)
+
+**El texto publicado quedará desactualizado cuando lleguen las contraseñas.** La sección "Seguridad" de la versión `2026-09-08` dice que se entra "con un código de un solo uso enviado a tu correo institucional; no hay contraseñas que se puedan filtrar". [ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) cambia eso: la credencial pasa a ser una contraseña propia guardada como hash `scrypt`. El texto nuevo ya está escrito abajo, en "Texto para publicar".
+
+La versión es la fecha en que la junta aprueba (ADR-047, punto 2), así que **no se rellena acá**: queda en `2026-09-08` hasta que la junta apruebe el texto nuevo, y ese es un **requisito para promover las contraseñas a producción**, no un trámite posterior. Publicar una versión nueva no revoca ni vuelve a pedir las autorizaciones vivas (ADR-047, punto 5), de modo que el costo operativo es bajo.
+
 ## Qué se resolvió y qué queda anotado
 
 Resueltos por la junta el 2026-09-08: responsable **Universidad EAFIT**, dirección Carrera 49 N.º 7 Sur-50 de Medellín, canal `datospersonales@eafit.edu.co` y versión `2026-09-08`, que es la fecha de la aprobación.
@@ -117,7 +123,7 @@ Tratamos tus datos mientras dure tu vínculo con la OE. Al salir, tu perfil pasa
 
 ## Seguridad
 
-Entrás a Mi OE con un código de un solo uso enviado a tu correo institucional; no hay contraseñas que se puedan filtrar. Las operaciones sensibles piden un código nuevo, quedan auditadas y solo las pueden hacer personas con permiso. Las copias de respaldo viajan y se almacenan cifradas.
+Entrás a Mi OE con tu correo institucional y una contraseña que elegís vos. Esa contraseña no se guarda tal cual: se guarda transformada con una función criptográfica que no se puede revertir, y ni la OE ni quien administra el sistema puede leerla. Nunca te la vamos a pedir por correo, WhatsApp ni por teléfono. Tu primera contraseña, y la recuperación si la perdés, llegan por un enlace que emite la junta, que sirve una sola vez, vence en una hora y cierra las sesiones que tuvieras abiertas. Cada emisión queda registrada con quién la hizo y para quién. Las operaciones sensibles piden confirmar tu identidad de nuevo, quedan auditadas y solo las pueden hacer personas con permiso. Las copias de respaldo viajan y se almacenan cifradas.
 
 ## Vigencia y cambios
 

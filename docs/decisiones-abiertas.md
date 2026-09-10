@@ -12,6 +12,10 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 
 | Fecha | Pregunta | Resultado |
 | --- | --- | --- |
+| 2026-09-10 | ¿Qué reemplaza al OTP por correo como credencial? | Contraseña propia con hash `scrypt`; el OTP se conserva como método alterno para cuando TI de EAFIT aplique la regla de permitidos. Passkeys siguen como mejora posterior ([ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md)) |
+| 2026-09-10 | ¿Cómo consiguen su primera credencial las 453 personas del roster? | Enlace de un solo uso que emite la junta, entregado por WhatsApp o en persona, más QR de activación en asamblea o reunión de comité. Se descartaron el correo personal como canal de acceso y el formulario público de activación ([ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md)) |
+| 2026-09-10 | ¿Quién puede emitir una recuperación de acceso para otra persona? | ADMIN y BOARD, con step-up y nunca para sí mismos. Los líderes de comité no emiten: escalaría mejor, pero le daría a cada líder la capacidad de entrar como cualquier miembro de su comité ([ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md)) |
+| 2026-09-10 | ¿Qué pasa con los correos críticos que tampoco llegan? | T-202 y T-205 ya salían por push, así que no cambian. T-200 era el único exclusivo del correo y va a alguien sin sesión: se muestra en la pantalla de activación y el correo queda como mejor esfuerzo ([ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md)) |
 | 2026-09-02 | Nombre de la carpeta del repositorio | `Untitled` → `casa-digital` |
 | 2026-09-02 | Neon Free vs Launch | Sin efecto: el hosting es Railway ([ADR-021](adr/ADR-021-infraestructura-railway.md)) |
 | 2026-09-02 | Dominio propio para medios (`media.oeeafit.com`) | No se necesita: bucket privado y URL prefirmadas |

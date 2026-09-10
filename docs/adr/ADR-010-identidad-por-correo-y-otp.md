@@ -1,6 +1,6 @@
 # ADR-010: Identidad por correo del roster con OTP
 
-- Estado: Aceptada (enmendada por ADR-034, ADR-039, ADR-050)
+- Estado: Aceptada (enmendada por ADR-034, ADR-039, ADR-050, ADR-051)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-002, ADR-011, ADR-015
 
@@ -29,3 +29,7 @@ El primer acceso real se habilita con el bootstrap privado y auditado de ADR-039
 ## Enmienda (2026-09-10, ADR-050)
 
 El asunto del correo del código deja de incluirlo: guardarlo en `message.subject` lo dejaba legible en la administración y en el panel del proveedor. El código vive solo en el cuerpo, y el envío exitoso se registra con persona, transporte e identificador del proveedor, nunca con el secreto. Ver [ADR-050](ADR-050-correo-transaccional-del-codigo.md).
+
+## Enmienda (2026-09-10, ADR-051)
+
+**El buzón deja de ser la credencial y pasa a ser un identificador.** Check Point retiene los códigos en la cuarentena del tenant de EAFIT, así que la apuesta por un canal único no se sostiene: la credencial pasa a ser una contraseña propia, guardada como hash `scrypt`, y el consecuente "no se guardan contraseñas" deja de valer. El OTP no desaparece —queda como método alterno, con sus mismas reglas y límites— y la primera credencial la entrega la junta con un enlace de un solo uso, fuera del correo. Ver [ADR-051](ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md).

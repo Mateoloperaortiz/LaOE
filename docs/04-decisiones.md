@@ -4,7 +4,8 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
-| [050](adr/ADR-050-correo-transaccional-del-codigo.md) | Correo del código | El asunto deja de llevar el código, el mensaje usa el envoltorio común con pie transaccional propio y cabeceras de correo automático, y el envío exitoso queda registrado sin el secreto | Aceptada |
+| [051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) | Acceso sin correo | La credencial es una contraseña propia con hash `scrypt`; la primera y la recuperación llegan por un enlace de un solo uso que emite la junta fuera del correo, y el step-up deja de depender del OTP | Aceptada |
+| [050](adr/ADR-050-correo-transaccional-del-codigo.md) | Correo del código | El asunto deja de llevar el código, el mensaje usa el envoltorio común con pie transaccional propio y cabeceras de correo automático, y el envío exitoso queda registrado sin el secreto | Enmendada por 051 |
 | [049](adr/ADR-049-navegacion-entre-mi-oe-y-administracion.md) | Cambio de área | Enlaces visibles entre Mi OE y Administración con la misma sesión; disponibilidad calculada con los roles administrativos existentes | Aceptada |
 | [048](adr/ADR-048-autorizacion-en-el-primer-ingreso.md) | Autorización propia | La importación no registra consentimientos: quien no tiene autorización viva pasa por una pantalla que le muestra la política y la acepta con fuente `SELF`, su versión, fecha e IP | Aceptada |
 | [047](adr/ADR-047-politica-de-datos-y-habilitacion.md) | Política de datos | Texto versionado en el repo, versión igual a la fecha de aprobación de la junta, respaldo de las autorizaciones por la aceptación al entrar a la OE y `pendiente` como freno inmediato | Aceptada; publicación pendiente |

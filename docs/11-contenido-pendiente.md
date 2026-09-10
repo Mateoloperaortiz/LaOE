@@ -30,6 +30,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 - [ ] Publicar la página `privacidad` desde Páginas con audiencia PUBLIC, estado PUBLISHED y cuerpo completo; revisar `/privacidad` y guardar la versión desde Política de datos (`/admin/sistema/politica`) con ADMIN y step-up. El control está desplegado y verificado en producción; el cuerpo sale de [17-politica-de-datos.md](17-politica-de-datos.md) y su publicación espera la aprobación de la junta. Habilita nuevas aceptaciones, altas y roster; el bootstrap no registra consentimiento
 - [ ] Revisión de JUNTA de T-1178 y T-1179, avisos de política pendiente
+- [ ] **Aprobación de la junta al texto nuevo de "Seguridad" de la política y a su versión ([ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md)).** La versión `2026-09-08` dice que no hay contraseñas; con las contraseñas propias esa frase queda falsa. El texto de reemplazo ya está escrito en [17-politica-de-datos.md](17-politica-de-datos.md) y la versión nueva es la fecha en que la junta lo apruebe. **Es requisito para promover las contraseñas a producción**, no un trámite posterior; no revoca ni vuelve a pedir las autorizaciones vivas
 
 - [x] Estatutos vigentes en PDF: el firmado con la reforma del 2026-05-08 (28 páginas) está en manos de Mateo; se sube desde `/admin/documentos` y sus artículos se extraen con `scripts/normativa-extract.py` en la fase 2
 - [x] Reglamento vigente en PDF: el firmado con la reforma del 2026-05-08 (43 páginas, con el Anexo 1) está en manos de Mateo; mismo camino

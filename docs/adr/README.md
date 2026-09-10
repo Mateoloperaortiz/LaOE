@@ -13,7 +13,8 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-050](ADR-050-correo-transaccional-del-codigo.md) | Forma del correo transaccional del código de acceso | Aceptada |
+| [ADR-051](ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) | Acceso con contraseña propia y enlace de un solo uso de la junta | Aceptada |
+| [ADR-050](ADR-050-correo-transaccional-del-codigo.md) | Forma del correo transaccional del código de acceso | Aceptada (enmendada por ADR-051) |
 | [ADR-049](ADR-049-navegacion-entre-mi-oe-y-administracion.md) | Navegación entre Mi OE y Administración | Aceptada |
 | [ADR-048](ADR-048-autorizacion-en-el-primer-ingreso.md) | La autorización de membresía se da en el primer ingreso | Aceptada; implementada y verificada en local |
 | [ADR-047](ADR-047-politica-de-datos-y-habilitacion.md) | Política de datos, su versión y el respaldo de las autorizaciones | Aceptada; borrador entregado, publicación pendiente |
@@ -27,7 +28,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-007](ADR-007-ledger-append-only.md) | Ledger append-only por término | Aceptada (enmendada por ADR-041) |
 | [ADR-008](ADR-008-tableros-derivados.md) | Tableros nuevos/veteranos derivados | Aceptada |
 | [ADR-009](ADR-009-score-de-comite.md) | Score de comité por participación relativa | Aceptada (enmendada por ADR-024 y ADR-035) |
-| [ADR-010](ADR-010-identidad-por-correo-y-otp.md) | Identidad por correo del roster con OTP | Aceptada (enmendada por ADR-034, ADR-039, ADR-050) |
+| [ADR-010](ADR-010-identidad-por-correo-y-otp.md) | Identidad por correo del roster con OTP | Aceptada (enmendada por ADR-034, ADR-039, ADR-050, ADR-051) |
 | [ADR-011](ADR-011-autorizacion-en-servidor.md) | Autorización en servidor | Aceptada |
 | [ADR-012](ADR-012-outbox-transaccional.md) | Outbox transaccional; efectos fuera del commit | Aceptada (enmendada por ADR-021 y ADR-038, ADR-040) |
 | [ADR-013](ADR-013-formularios-en-la-app.md) | Todo formulario vive en la app | Aceptada (enmendada por ADR-037) |
