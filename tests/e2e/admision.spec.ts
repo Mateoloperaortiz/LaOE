@@ -114,7 +114,9 @@ test.describe("GH lleva la tarjeta hasta el alta", () => {
     await alta.getByRole("checkbox", { name: primera, exact: true }).check();
     await alta.getByRole("button", { name: "Dar de alta" }).click();
     await expect(
-      page.getByText("Postulante E2E ya es miembro. Le enviamos la bienvenida."),
+      page.getByText(
+        "Postulante E2E ya es miembro. Falta emitirle su enlace de acceso para que pueda entrar.",
+      ),
     ).toBeVisible();
     await expect(
       page

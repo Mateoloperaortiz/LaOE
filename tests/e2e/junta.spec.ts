@@ -44,6 +44,13 @@ test("la junta ve agregados sin nombres, exporta el CSV y no entra al resto del 
   await expect(page.locator("main")).not.toContainText("@eafit.edu.co");
   await expect(page.locator("main")).not.toContainText("Miembro E2E");
   await expect(page.getByRole("link", { name: "Personas", exact: true })).toHaveCount(0);
+  // La junta sí emite enlaces de acceso, y su superficie es la jornada (ADR-051, regla 4):
+  // la ficha de la persona exige ADMIN. Los grupos de la navegación nacen plegados.
+  const navegacion = page.locator(".admin-sidebar nav");
+  while (await navegacion.getByRole("button", { expanded: false }).count()) {
+    await navegacion.getByRole("button", { expanded: false }).first().click();
+  }
+  await expect(navegacion.getByRole("link", { name: "Jornada de activación" })).toBeVisible();
   await sinViolaciones(page);
 
   const csv = await page.request.get("/api/export/junta");

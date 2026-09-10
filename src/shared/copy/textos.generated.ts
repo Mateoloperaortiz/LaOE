@@ -8384,7 +8384,7 @@ export const textos = {
   },
   "T-984": {
     where: "Dar de alta: texto",
-    text: "Vas a dar de alta a {nombre} en {término}. Elegí de {min} a {max} comités; entra como Miembro y le llega el correo de bienvenida.",
+    text: "Vas a dar de alta a {nombre} en {término}. Elegí de {min} a {max} comités; entra como Miembro. Para que pueda entrar a Mi OE hay que emitirle su enlace de acceso desde la ficha.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -8420,7 +8420,7 @@ export const textos = {
   },
   "T-990": {
     where: "Dar de alta: listo",
-    text: "{nombre} ya es miembro. Le enviamos la bienvenida.",
+    text: "{nombre} ya es miembro. Falta emitirle su enlace de acceso para que pueda entrar.",
     owner: "GH",
     status: "Propuesta",
   },

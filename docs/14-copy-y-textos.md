@@ -1059,13 +1059,13 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-981 | Kanban: insignias de etapa ganada, perdida y tarjeta cerrada | Ganada · Perdida · Cerrada el {fecha} | MATEO | Propuesta |
 | T-982 | Kanban: días en la etapa | {n} días en esta etapa | MATEO | Propuesta |
 | T-983 | Kanban y Persona 360: botón de dar de alta | Dar de alta | GH | Propuesta |
-| T-984 | Dar de alta: texto | Vas a dar de alta a {nombre} en {término}. Elegí de {min} a {max} comités; entra como Miembro y le llega el correo de bienvenida. | GH | Propuesta |
+| T-984 | Dar de alta: texto | Vas a dar de alta a {nombre} en {término}. Elegí de {min} a {max} comités; entra como Miembro. Para que pueda entrar a Mi OE hay que emitirle su enlace de acceso desde la ficha. | GH | Propuesta |
 | T-985 | Dar de alta: campo de comités | Comités | MATEO | Propuesta |
 | T-986 | Dar de alta: la persona ya tiene membresía | {nombre} ya tiene membresía: si está retirada, reactivala. | MATEO | Propuesta |
 | T-987 | Dar de alta: correo fuera del dominio institucional | Para dar de alta necesita un correo institucional. Editá la persona primero. | MATEO | Propuesta |
 | T-988 | Dar de alta: contacto externo | Un contacto externo no se da de alta. | MATEO | Propuesta |
 | T-989 | Dar de alta: sin semestre vigente | No hay un semestre vigente: crealo en Términos. | MATEO | Propuesta |
-| T-990 | Dar de alta: listo | {nombre} ya es miembro. Le enviamos la bienvenida. | GH | Propuesta |
+| T-990 | Dar de alta: listo | {nombre} ya es miembro. Falta emitirle su enlace de acceso para que pueda entrar. | GH | Propuesta |
 | T-991 | Kanban: mover a la etapa ganada de admisión sin membresía | Para pasar a {etapa} primero da de alta a la persona. | MATEO | Propuesta |
 | T-992 | Kanban: tarjeta movida | Tarjeta movida a {etapa}. | MATEO | Propuesta |
 | T-993 | Kanban: ayuda accesible para arrastrar | Arrastrá la tarjeta a otra columna o usá "Mover a…". | MATEO | Propuesta |
