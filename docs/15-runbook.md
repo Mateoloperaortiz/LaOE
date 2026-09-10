@@ -446,6 +446,9 @@ tampoco aparecía en Correo no deseado, y autorizó expresamente los envíos de 
   Collaboration) por encima de Microsoft 365, y es esa capa —no Defender ni la carpeta de Correo no
   deseado— la que retiene el correo. Por eso no aparecía en ninguna carpeta: la única señal es ese
   digest diario, que llega cuando el código ya venció.
+- **Control fuera de EAFIT.** El envío gemelo de las 13:50 UTC llegó a **Recibidos** en Gmail, con el
+  mismo remitente, contenido e infraestructura y en el mismo minuto que el que EAFIT puso en
+  cuarentena. Queda descartado cualquier problema del mensaje o del dominio.
 - **Liberar uno por uno no sirve.** El código vive diez minutos y el reporte de cuarentena llega una
   vez al día. La corrección de fondo es una **regla de permitidos en la consola de Check Point** para
   `noreply@oeeafit.com` y `oeeafit.com`, más la excepción antisuplantación frente a `eafit.edu.co`;
