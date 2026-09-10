@@ -8,6 +8,7 @@ import { MEDIA_LIMITS, PHOTO_MAX_BYTES } from "@/modules/content";
 import {
   describeUserAgent,
   getOrCreateCalendarToken,
+  hasPassword,
   listSessionsFor,
   requireActor,
 } from "@/modules/identity";
@@ -34,6 +35,7 @@ import {
   rotateCalendarAction,
   setPhotoAction,
 } from "./actions";
+import { PasswordForm } from "./PasswordForm";
 import { SettingsFormBody } from "./SettingsFormBody";
 import { ContactForm, PreferencesForm } from "./SettingsForms";
 import { SettingsSections } from "./SettingsSections";
@@ -58,15 +60,18 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
   const guardado = typeof params.guardado === "string" ? params.guardado : "";
   const error = typeof params.error === "string" ? params.error : "";
   const confirmar = params.confirmar === "1";
-  const [who, consents, sessions, deletionDays, policy, devices, preferences] = await Promise.all([
-    getPersonRecord(actor.personId),
-    listConsents(actor.personId),
-    listSessionsFor(actor.personId),
-    requireConfig("privacy.deletionDays"),
-    getPrivacyPolicyState(),
-    listSubscriptionsFor(actor.personId),
-    getPreferences(actor.personId),
-  ]);
+  const [who, consents, sessions, deletionDays, policy, devices, preferences, tieneClave] =
+    await Promise.all([
+      getPersonRecord(actor.personId),
+      listConsents(actor.personId),
+      listSessionsFor(actor.personId),
+      requireConfig("privacy.deletionDays"),
+      getPrivacyPolicyState(),
+      listSubscriptionsFor(actor.personId),
+      getPreferences(actor.personId),
+      hasPassword(actor.personId),
+    ]);
+
   const vapidPublicKey = getEnv().VAPID_PUBLIC_KEY ?? null;
   const calendarUrl = canParticipate(actor.membershipStatus)
     ? `${getEnv().APP_URL.replace(/\/$/, "")}/api/ics/mi-agenda.ics?t=${await getOrCreateCalendarToken(actor.personId)}`
@@ -301,6 +306,17 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
           <BarraTitulo color="naranja" className="self-start">
             <span id="sesiones-titulo">{secciones[3]}</span>
           </BarraTitulo>
+          <PasswordForm
+            hasPassword={tieneClave}
+            labels={{
+              title: tieneClave ? t("T-2113") : t("T-2112"),
+              currentLabel: t("T-2114"),
+              passwordLabel: t("T-2103"),
+              confirmationLabel: t("T-2104"),
+              hint: t("T-2105"),
+              submit: t("T-253"),
+            }}
+          />
           <SessionsPanel
             buttonLabel={t("T-137")}
             doneMessage={t("T-235")}

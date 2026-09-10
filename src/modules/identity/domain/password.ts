@@ -5,13 +5,16 @@ import { logger } from "@/shared/log";
 import { credential, loginAttempt } from "../schema";
 import {
   burnPasswordTime,
+  checkPassword,
+  hashPassword,
   LOGIN_MAX_PER_EMAIL,
   LOGIN_MAX_PER_IP,
   normalizeEmail,
   OTP_WINDOW_MS,
+  type PasswordProblem,
   verifyPassword,
 } from "./pure";
-import { createSession } from "./session";
+import { createSession, destroySessionsFor, markStepUp } from "./session";
 
 // Ingreso con la contraseña propia (ADR-051). La respuesta es siempre la misma: correo que no
 // existe, persona sin contraseña y contraseña equivocada no se distinguen, ni por texto ni por
@@ -39,6 +42,11 @@ export async function findPasswordHash(personId: string): Promise<string | null>
     .from(credential)
     .where(eq(credential.personId, personId));
   return row?.passwordHash ?? null;
+}
+
+/** Si la persona ya eligió contraseña. Devuelve un booleano, no el hash: nada de secretos en la UI. */
+export async function hasPassword(personId: string): Promise<boolean> {
+  return (await findPasswordHash(personId)) !== null;
 }
 
 /** Quiénes de esta lista ya eligieron contraseña, para la jornada de activación (ADR-051). */
@@ -107,4 +115,84 @@ export async function signInWithPassword(input: SignInInput): Promise<SignInResu
   await recordAttempt(email, input.ip, true);
   logger.info({ personId: member.personId }, "sesión abierta con contraseña");
   return { ok: true, ...created, personId: member.personId };
+}
+
+export type StepUpResult = { ok: true } | { ok: false; reason: "INVALID" | "LOCKED" };
+
+export interface StepUpPasswordInput {
+  personId: string;
+  email: string;
+  password: string;
+  sessionId: string;
+  ip: string | null;
+  now?: Date;
+}
+
+/**
+ * Step-up con la contraseña propia (ADR-051, regla 7). Estampa la misma marca de sesión que
+ * estampaba el código, así que la ventana de 15 minutos y los guards no cambian.
+ */
+export async function verifyStepUpPassword(input: StepUpPasswordInput): Promise<StepUpResult> {
+  const now = input.now ?? new Date();
+  const email = normalizeEmail(input.email);
+  const since = new Date(now.getTime() - OTP_WINDOW_MS);
+  if ((await countFailures("email", email, since)) >= LOGIN_MAX_PER_EMAIL) {
+    return { ok: false, reason: "LOCKED" };
+  }
+  if (input.ip && (await countFailures("ip", input.ip, since)) >= LOGIN_MAX_PER_IP) {
+    return { ok: false, reason: "LOCKED" };
+  }
+  const stored = await findPasswordHash(input.personId);
+  const matches = stored
+    ? await verifyPassword(stored, input.password)
+    : await burnPasswordTime().then(() => false);
+  if (!matches) {
+    await recordAttempt(email, input.ip, false);
+    return { ok: false, reason: "INVALID" };
+  }
+  await recordAttempt(email, input.ip, true);
+  await markStepUp(input.sessionId, now);
+  return { ok: true };
+}
+
+export type SetPasswordResult =
+  | { ok: true; closed: number }
+  | { ok: false; reason: "CURRENT" }
+  | { ok: false; reason: "PASSWORD"; problem: PasswordProblem };
+
+export interface SetOwnPasswordInput {
+  personId: string;
+  email: string;
+  names: readonly string[];
+  /** Solo cuando ya hay una contraseña: quien no tiene ninguna llega con step-up. */
+  current: string;
+  password: string;
+  keepSessionId: string;
+  now?: Date;
+}
+
+/**
+ * Crear o cambiar la contraseña propia desde Ajustes (ADR-051, regla 8). Cierra las demás sesiones:
+ * cambiarla es lo que hace alguien que sospecha que su acceso quedó en otro lado.
+ */
+export async function setOwnPassword(input: SetOwnPasswordInput): Promise<SetPasswordResult> {
+  const now = input.now ?? new Date();
+  const stored = await findPasswordHash(input.personId);
+  if (stored && !(await verifyPassword(stored, input.current))) {
+    return { ok: false, reason: "CURRENT" };
+  }
+  const problem = checkPassword(input.password, { email: input.email, names: input.names });
+  if (problem) {
+    return { ok: false, reason: "PASSWORD", problem };
+  }
+  const passwordHash = await hashPassword(input.password);
+  return getDb().transaction(async (tx) => {
+    await tx
+      .insert(credential)
+      .values({ personId: input.personId, passwordHash })
+      .onConflictDoUpdate({ target: credential.personId, set: { passwordHash, updatedAt: now } });
+    const closed = await destroySessionsFor(tx, input.personId, input.keepSessionId);
+    logger.info({ personId: input.personId, closed }, "contraseña propia guardada");
+    return { ok: true, closed };
+  });
 }

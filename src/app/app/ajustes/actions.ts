@@ -5,7 +5,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { removeSubscriptionAs, updatePreferencesAs } from "@/modules/comms";
-import { getActor, rotateCalendarTokenAs } from "@/modules/identity";
+import {
+  findPasswordHash,
+  getActor,
+  hasRecentStepUp,
+  rotateCalendarTokenAs,
+  setOwnPassword,
+} from "@/modules/identity";
 import {
   getPersonRecord,
   ownContactSchema,
@@ -197,4 +203,51 @@ export async function rotateCalendarAction(): Promise<void> {
   await rotateCalendarTokenAs(actor);
   revalidatePath("/app/ajustes");
   back("calendario", { guardado: "calendario" });
+}
+
+export type PasswordState = {
+  status: "idle" | "done" | "error";
+  message?: string;
+  closed?: number;
+};
+
+/**
+ * Crear o cambiar la contraseña propia (ADR-051, regla 8). Quien todavía no tiene una llega con
+ * step-up en lugar de la contraseña actual: ese es el camino de arranque de quien entró por código.
+ */
+export async function changePasswordAction(
+  _previous: PasswordState,
+  formData: FormData,
+): Promise<PasswordState> {
+  const actor = await requireOwnActor();
+  const tiene = (await findPasswordHash(actor.personId)) !== null;
+  if (!tiene && !hasRecentStepUp(actor)) {
+    redirect("/ingresar/paso?next=%2Fapp%2Fajustes");
+  }
+  const current = text(formData, "current");
+  const password = text(formData, "password");
+  const confirmation = text(formData, "confirmation");
+  if (password !== confirmation) {
+    return { status: "error", message: t("T-2109") };
+  }
+  const who = await getPersonRecord(actor.personId);
+  const result = await setOwnPassword({
+    personId: actor.personId,
+    email: actor.email,
+    names: [who?.firstName ?? "", who?.lastName ?? ""],
+    current,
+    password,
+    keepSessionId: actor.sessionId,
+  });
+  if (!result.ok) {
+    if (result.reason === "CURRENT") {
+      return { status: "error", message: t("T-2115") };
+    }
+    return {
+      status: "error",
+      message: result.problem === "SHORT" ? t("T-2108") : t("T-2110"),
+    };
+  }
+  revalidatePath("/app/ajustes");
+  return { status: "done", message: t("T-2116"), closed: result.closed };
 }

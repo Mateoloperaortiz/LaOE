@@ -3,8 +3,7 @@ import { sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { sinViolaciones } from "./axe";
 import { E2E_EMAIL } from "./global-setup";
-
-const CODE = process.env.OTP_FIXED_CODE ?? "123456";
+import { pasarStepUp } from "./stepup";
 
 test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
@@ -37,9 +36,7 @@ test("un segmento se crea con filtros, cuenta personas y su export exige step-up
   expect(blocked.headers().location).toContain("/ingresar/paso");
 
   await page.goto(`/ingresar/paso?next=${encodeURIComponent(href ?? "/admin/segmentos")}`);
-  await page.getByRole("button", { name: "Enviame el código" }).click();
-  await page.getByLabel("Código de seis dígitos").fill(CODE);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await pasarStepUp(page);
   await expect(page).toHaveURL(/\/admin/);
   const csv = await page.request.get(href ?? "");
   expect(csv.status()).toBe(200);

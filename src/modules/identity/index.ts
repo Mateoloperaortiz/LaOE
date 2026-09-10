@@ -49,8 +49,11 @@ export {
 export { requestOtp, verifyOtp, verifyStepUp } from "./domain/otp";
 export {
   findPasswordHash,
+  hasPassword,
   listPeopleWithPassword,
+  setOwnPassword,
   signInWithPassword,
+  verifyStepUpPassword,
 } from "./domain/password";
 export {
   grantPermission,

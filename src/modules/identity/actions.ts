@@ -12,7 +12,7 @@ import { clientIp, userAgent } from "@/shared/lib/request";
 import { SESSION_COOKIE } from "./cookie";
 import { getActor } from "./current";
 import { requestOtp, verifyOtp, verifyStepUp } from "./domain/otp";
-import { signInWithPassword } from "./domain/password";
+import { signInWithPassword, verifyStepUpPassword } from "./domain/password";
 import { normalizeEmail, safeNextPath } from "./domain/pure";
 import { destroySessionByToken, destroySessionsFor } from "./domain/session";
 
@@ -181,16 +181,19 @@ export async function closeOtherSessionsAction(): Promise<CloseOthersState> {
 }
 
 export interface StepUpState {
-  step: "request" | "code";
+  /** La contraseña es el camino principal; el código queda para cuando el correo llegue. */
+  mode: "password" | "code";
+  /** En modo código: si ya se pidió uno. */
+  sent: boolean;
   next: string;
   error: string | null;
 }
 
 export async function initialStepUpState(next: string): Promise<StepUpState> {
-  return { step: "request", next: safeNextPath(next, "/admin"), error: null };
+  return { mode: "password", sent: false, next: safeNextPath(next, "/admin"), error: null };
 }
 
-/** Step-up: pide un OTP nuevo al correo del actor y lo verifica sobre su sesión. */
+/** Step-up (ADR-051, regla 7): la contraseña del actor, o un código al correo si llega. */
 export async function stepUpAction(
   previous: StepUpState,
   formData: FormData,
@@ -201,27 +204,55 @@ export async function stepUpAction(
     redirect(`/ingresar?next=${encodeURIComponent(next)}`);
   }
   const intent = formData.get("intent");
-  if (intent === "request") {
+  const base: StepUpState = { ...previous, next, error: null };
+
+  if (intent === "use-code") {
     await requestOtp({ email: actor.email, ip: await clientIp(), purpose: "STEP_UP" });
-    return { step: "code", next, error: null };
+    return { ...base, mode: "code", sent: true };
   }
-  const code = codeSchema.safeParse(formData.get("code"));
-  if (!code.success) {
-    return { step: "code", next, error: t("T-048") };
+  if (intent === "use-password") {
+    return { ...base, mode: "password", sent: false };
   }
-  const result = await verifyStepUp({
+
+  if (intent === "verify-code") {
+    const code = codeSchema.safeParse(formData.get("code"));
+    if (!code.success) {
+      return { ...base, mode: "code", sent: true, error: t("T-048") };
+    }
+    const result = await verifyStepUp({
+      email: actor.email,
+      code: code.data,
+      sessionId: actor.sessionId,
+    });
+    if (!result.ok) {
+      const error =
+        result.reason === "EXPIRED"
+          ? t("T-048")
+          : result.reason === "LOCKED"
+            ? t("T-050")
+            : t("T-049", { n: result.attemptsLeft });
+      return { ...base, mode: "code", sent: true, error };
+    }
+    redirect(next);
+  }
+
+  const password = formData.get("password");
+  if (typeof password !== "string" || password.length === 0) {
+    return { ...base, mode: "password", error: t("T-2118") };
+  }
+  const result = await verifyStepUpPassword({
+    personId: actor.personId,
     email: actor.email,
-    code: code.data,
+    password,
     sessionId: actor.sessionId,
+    ip: await clientIp(),
   });
   if (!result.ok) {
-    const error =
-      result.reason === "EXPIRED"
-        ? t("T-048")
-        : result.reason === "LOCKED"
-          ? t("T-050")
-          : t("T-049", { n: result.attemptsLeft });
-    return { step: "code", next, error };
+    return {
+      ...base,
+      mode: "password",
+      error: result.reason === "LOCKED" ? t("T-2097") : t("T-2118"),
+    };
   }
   redirect(next);
 }

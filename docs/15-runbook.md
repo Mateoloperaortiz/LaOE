@@ -476,10 +476,14 @@ El sistema comprueba que quien emite sea ADMIN o BOARD y que tenga step-up recie
 
 Quien emite ve el enlace, así que durante esos 60 minutos puede entrar como esa persona. Está registrado quién emitió y para quién, la persona recibe un push cuando se emite, y usar el enlace cierra las sesiones anteriores. Es una amenaza aceptada, no resuelta: por eso la lista de quien puede emitir se mantiene corta.
 
+### Quién llega a cada superficie
+
+La ficha de la persona (`/admin/personas/<id>`) exige ADMIN, así que la junta sin ADMIN emite desde la **jornada de activación** (`/admin/personas/activacion`), que sí admite ADMIN y BOARD y aparece en su navegación. Las dos superficies hacen lo mismo y las dos piden step-up.
+
 ### Emitir de a uno
 
 1. Buscar a la persona en `/admin/personas` y abrir su ficha.
-2. **Emitir enlace de acceso**, eligiendo si es la primera contraseña o una recuperación. Pide step-up.
+2. En la pestaña **Comunicaciones**, **Emitir enlace de acceso**, eligiendo si es la primera contraseña o una recuperación. Pide step-up: la contraseña propia de quien emite.
 3. Copiar el enlace **en ese momento**: no se vuelve a mostrar. Vence en una hora y sirve una sola vez.
 4. Entregarlo por el canal verificado y confirmar con la persona que entró.
 

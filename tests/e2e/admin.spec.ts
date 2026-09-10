@@ -2,10 +2,9 @@ import { expect, test } from "@playwright/test";
 import { sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { E2E_EMAIL } from "./global-setup";
+import { pasarStepUp } from "./stepup";
 
-const CODE = process.env.OTP_FIXED_CODE ?? "123456";
-
-// Sesión de ADMIN guardada por auth.setup.ts: un solo OTP para toda la suite del admin.
+// Sesión de ADMIN guardada por auth.setup.ts: una sola entrada para toda la suite del admin.
 test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
 test("un ADMIN crea y edita un comité desde el panel y lo exporta", async ({ page }) => {
@@ -60,9 +59,7 @@ test("otorgar un permiso exige step-up y queda en la lista", async ({ page }) =>
   await page.goto("/admin/permisos");
   await page.getByRole("link", { name: "Nuevo" }).click();
   await expect(page).toHaveURL(/\/ingresar\/paso/);
-  await page.getByRole("button", { name: "Enviame el código" }).click();
-  await page.getByLabel("Código de seis dígitos").fill(CODE);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await pasarStepUp(page);
   await expect(page).toHaveURL(/\/admin\/permisos/);
 
   const again = page.getByRole("dialog");

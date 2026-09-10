@@ -6,6 +6,7 @@ import { page as contentPage } from "@/modules/content/schema";
 import { committee } from "@/modules/people/schema";
 import { sinViolaciones } from "./axe";
 import { E2E_EMAIL } from "./global-setup";
+import { pasarStepUp } from "./stepup";
 
 const CODE = process.env.OTP_FIXED_CODE ?? "123456";
 
@@ -50,9 +51,7 @@ test("el asistente importa un roster con step-up y el nuevo miembro entra por OT
   await closeDb();
   await page.getByRole("button", { name: "Aplicar la importación" }).click();
   await expect(page).toHaveURL(/\/ingresar\/paso/);
-  await page.getByRole("button", { name: "Enviame el código" }).click();
-  await page.getByLabel("Código de seis dígitos").fill(CODE);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await pasarStepUp(page);
   await expect(page).toHaveURL(/\/admin\/personas\/importar\?job=/);
   await page.getByRole("button", { name: "Aplicar la importación" }).click();
   await expect(page.getByText("Listo: 3 personas nuevas y 0 actualizadas.")).toBeVisible();
@@ -135,9 +134,7 @@ test("la reautenticación conserva una propuesta de líder desmarcada", async ({
   await page.getByRole("button", { name: "Aplicar la importación" }).click();
   await expect(page).toHaveURL(/\/ingresar\/paso/);
   expect(decodeURIComponent(page.url())).not.toContain(email);
-  await page.getByRole("button", { name: "Enviame el código" }).click();
-  await page.getByLabel("Código de seis dígitos").fill(CODE);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await pasarStepUp(page);
   await expect(page).toHaveURL(/paso=confirmacion/);
   await expect(page.getByRole("checkbox")).not.toBeChecked();
   await page.getByRole("button", { name: "Aplicar la importación" }).click();

@@ -9,9 +9,9 @@ test("navegación agrupada, destino único y panel accesible", async ({ page }) 
   while (await navigation.getByRole("button", { expanded: false }).count())
     await navigation.getByRole("button", { expanded: false }).first().click();
   const links = navigation.getByRole("link");
-  await expect(links).toHaveCount(38);
+  await expect(links).toHaveCount(39);
   const hrefs = await links.evaluateAll((items) => items.map((item) => item.getAttribute("href")));
-  expect(new Set(hrefs).size).toBe(38);
+  expect(new Set(hrefs).size).toBe(39);
   await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
   await expect(navigation.locator('[aria-current="page"]')).toHaveText("Documentos");
   await navigation.getByRole("link", { name: "Importar roster", exact: true }).click();

@@ -6,15 +6,16 @@ import { StepUpForm } from "@/modules/identity/components/StepUpForm";
 import { LogoOE } from "@/shared/brand";
 import { t } from "@/shared/copy";
 
-export const metadata: Metadata = { title: t("T-045"), robots: { index: false } };
+export const metadata: Metadata = { title: t("T-2117"), robots: { index: false } };
 
-// Step-up: un código nuevo para acciones sensibles del admin (conceder permisos, exportes con datos personales).
+// Step-up (ADR-051): la contraseña propia antes de una acción sensible del admin; el código al
+// correo queda como alternativa.
 export default async function PasoPage({ searchParams }: PageProps<"/ingresar/paso">) {
   const params = await searchParams;
   const next = safeNextPath(params.next, "/admin");
   const actor = await getActor();
   if (!actor) {
-    // Sin sesión: al entrar, ese OTP ya cuenta como step-up, así que vuelve directo al destino.
+    // Sin sesión: al entrar, esa credencial ya cuenta como step-up, así que vuelve al destino.
     redirect(`/ingresar?next=${encodeURIComponent(next)}`);
   }
   if (hasRecentStepUp(actor)) {
@@ -25,15 +26,18 @@ export default async function PasoPage({ searchParams }: PageProps<"/ingresar/pa
       <span className="self-start text-titulo">
         <LogoOE height={88} />
       </span>
-      <h1 className="text-display-lg">{t("T-045")}</h1>
+      <h1 className="text-display-lg">{t("T-2117")}</h1>
       <StepUpForm
         initialState={await initialStepUpState(next)}
         labels={{
-          intro: t("T-055"),
-          request: t("T-043"),
-          codeTitle: t("T-045"),
+          intro: t("T-2117"),
+          passwordLabel: t("T-2094"),
+          confirm: t("T-2095"),
+          useCode: t("T-2099"),
+          codeIntro: t("T-055"),
           codeLabel: t("T-238"),
           verify: t("T-046"),
+          usePassword: t("T-2133"),
         }}
       />
     </main>

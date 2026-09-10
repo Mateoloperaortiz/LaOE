@@ -6,6 +6,7 @@ import { person } from "@/modules/people/schema";
 import { sinViolaciones } from "./axe";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
 import { drenarOutbox } from "./outbox";
+import { pasarStepUpSiHaceFalta } from "./stepup";
 
 // Campañas (ADR-038 regla 8, 10-verificacion): plantilla y campaña e2e- a un segmento que solo
 // contiene al miembro (por su programa e2e-campana), envío con step-up al mailer de consola, el
@@ -13,17 +14,12 @@ import { drenarOutbox } from "./outbox";
 
 test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
-const CODE = process.env.OTP_FIXED_CODE ?? "123456";
 const marca = Date.now().toString(36);
 const PLANTILLA = `e2e-plantilla-${marca}`;
 const SEGMENTO = `e2e-segmento-${marca}`;
 
 async function stepUpSiHaceFalta(page: Page): Promise<void> {
-  if (page.url().includes("/ingresar/paso")) {
-    await page.getByRole("button", { name: "Enviame el código" }).click();
-    await page.getByLabel("Código de seis dígitos").fill(CODE);
-    await page.getByRole("button", { name: "Entrar" }).click();
-  }
+  await pasarStepUpSiHaceFalta(page);
 }
 
 async function crearCampana(page: Page, nombre: string): Promise<void> {
