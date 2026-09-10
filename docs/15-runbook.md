@@ -501,3 +501,21 @@ Para arrancar a mucha gente de una sola vez, con identificación presencial:
 Se muestra **un QR a la vez**, a propósito: una hoja impresa con decenas de enlaces sería una pila de secretos con una hora de vida cada uno. Si alguien ya tiene contraseña, la pantalla lo dice y no hay que emitirle nada.
 
 Conviene hacerlo por comité, con el líder presente para reconocer a su gente, y dejar registrado cuántas personas quedaron activadas en cada sesión.
+
+### Arranque del acceso cuando nadie puede entrar
+
+`npm run bootstrap:access -- --email <correo institucional>` emite un enlace de activación sin sesión y lo imprime una sola vez. Es la excepción de arranque de [ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md), regla 16, con la misma disciplina que el bootstrap del primer ADMIN.
+
+Cuándo se usa:
+
+- **La primera contraseña en producción.** Después de promover, `/ingresar` pide contraseña y nadie tiene una; el código del OTP no llega y ya no viaja en el asunto. Sin este script no habría entrada.
+- **Si la junta entera pierde el acceso** con el correo todavía retenido. La junta emite enlaces a los miembros, pero nadie puede emitirle a la junta.
+
+Cómo se corre:
+
+1. Apuntar `DATABASE_URL` al Postgres del entorno confirmado y `APP_URL` a su origen público. Sin `--env-file`: las variables las pone el operador, igual que en el bootstrap del primer ADMIN.
+2. Correr el comando con el correo institucional de la persona. Agregar `--kind RECOVERY` si ya tenía contraseña.
+3. Copiar el enlace de la salida estándar: vence en una hora, sirve una sola vez y no se vuelve a mostrar. El log registra solo la persona y el vencimiento, nunca el enlace.
+4. Abrirlo, elegir la contraseña y comprobar el ingreso.
+
+Cada emisión queda en la auditoría como del sistema, sin emisor. **Correrlo es una decisión operativa, no rutina**: quien lo corre tiene acceso a la base, así que el control real es quién puede llegar a ese Postgres, no el script.

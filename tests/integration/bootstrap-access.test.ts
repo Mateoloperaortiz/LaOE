@@ -1,0 +1,102 @@
+import { eq } from "drizzle-orm";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { closeDb, getDb } from "@/db/client";
+import { consumeAccessGrant } from "@/modules/identity/domain/access-grant";
+import { findPasswordHash } from "@/modules/identity/domain/password";
+import { accessGrant } from "@/modules/identity/schema";
+import { membership, person } from "@/modules/people/schema";
+import { auditLog } from "@/modules/system/schema";
+import { term } from "@/modules/terms/schema";
+import { BootstrapAccessError, bootstrapAccess } from "../../scripts/lib/bootstrap-access";
+import { truncateAll } from "./db";
+
+// Arranque del acceso (ADR-051, regla 16): el único camino de vuelta cuando nadie puede entrar.
+
+const db = () => getDb();
+
+async function seedMember(
+  email: string,
+  status: "ACTIVE" | "INACTIVE" = "ACTIVE",
+): Promise<string> {
+  let [current] = await db().select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
+  if (!current) {
+    [current] = await db()
+      .insert(term)
+      .values({ code: "2026-2", semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" })
+      .returning({ id: term.id });
+  }
+  const [who] = await db()
+    .insert(person)
+    .values({ email, firstName: "Junta", lastName: "Sintética", stage: "MEMBER" })
+    .returning({ id: person.id });
+  if (!who || !current) throw new Error("seed");
+  await db().insert(membership).values({ personId: who.id, status, firstTermId: current.id });
+  return who.id;
+}
+
+describe("bootstrapAccess", () => {
+  beforeEach(truncateAll);
+  afterAll(closeDb);
+
+  it("emite un enlace usable sin que nadie tenga sesión", async () => {
+    const personId = await seedMember("arranque@eafit.edu.co");
+
+    const result = await bootstrapAccess({ email: "Arranque@EAFIT.edu.co" });
+
+    expect(result.personId).toBe(personId);
+    expect(result.url).toContain("/activar/");
+    const token = result.url.split("/activar/")[1] ?? "";
+    const usado = await consumeAccessGrant({
+      token,
+      password: "caracol de tinta 91",
+      ip: null,
+      userAgent: null,
+    });
+    expect(usado.ok).toBe(true);
+    expect(await findPasswordHash(personId)).not.toBeNull();
+  });
+
+  it("queda auditado como emisión del sistema, sin emisor", async () => {
+    await seedMember("arranque@eafit.edu.co");
+
+    await bootstrapAccess({ email: "arranque@eafit.edu.co" });
+
+    const [auditoria] = await db()
+      .select({ action: auditLog.action, actorId: auditLog.actorId })
+      .from(auditLog)
+      .where(eq(auditLog.action, "access-grant.issued"));
+    expect(auditoria?.actorId).toBeNull();
+    const [fila] = await db().select().from(accessGrant);
+    expect(fila?.issuedById).toBeNull();
+    expect(fila?.kind).toBe("ACTIVATION");
+  });
+
+  it("acepta RECOVERY para quien ya tiene contraseña", async () => {
+    await seedMember("arranque@eafit.edu.co");
+
+    const result = await bootstrapAccess({ email: "arranque@eafit.edu.co", kind: "RECOVERY" });
+
+    expect(result.url).toContain("/activar/");
+    const [fila] = await db().select().from(accessGrant);
+    expect(fila?.kind).toBe("RECOVERY");
+  });
+
+  it("rechaza un correo que no puede entrar y no deja rastro", async () => {
+    await seedMember("retirada@eafit.edu.co", "INACTIVE");
+
+    await expect(bootstrapAccess({ email: "retirada@eafit.edu.co" })).rejects.toThrow(
+      BootstrapAccessError,
+    );
+    await expect(bootstrapAccess({ email: "nadie@eafit.edu.co" })).rejects.toThrow(
+      BootstrapAccessError,
+    );
+    expect(await db().select().from(accessGrant)).toEqual([]);
+  });
+
+  it("rechaza una entrada mal formada sin decir por qué en detalle", async () => {
+    await expect(bootstrapAccess({ email: "no-es-un-correo" })).rejects.toThrow(
+      BootstrapAccessError,
+    );
+    await expect(bootstrapAccess({})).rejects.toThrow(BootstrapAccessError);
+  });
+});

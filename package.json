@@ -26,6 +26,7 @@
     "pwa:icons": "node --import tsx scripts/pwa-icons.ts",
     "push:check": "node --env-file-if-exists=.env --import tsx scripts/push-check.ts",
     "bootstrap:admin": "node --import tsx scripts/bootstrap-admin.ts",
+    "bootstrap:access": "node --import tsx scripts/bootstrap-access.ts",
     "smoke": "node --import tsx scripts/smoke.ts",
     "test:backup": "bash tests/backup/run.sh",
     "migrate:ghpoints": "node --env-file-if-exists=.env --import tsx scripts/migrate-ghpoints.ts",

@@ -32,6 +32,8 @@ ADR-010 apostó todo a un solo canal: "el buzón, protegido por Microsoft 365 y 
 
 15. **Salir de la OE retira la credencial.** La baja y la anonimización borran la contraseña y los enlaces de esa persona, junto a lo que ya borraban (carnet, sesiones, permisos). Un hash de contraseña no es historia institucional y la anonimización existe para no dejar datos personales atrás (ADR-014, ADR-030). La licencia no lo toca: esa persona vuelve.
 
+16. **Hay un camino de vuelta cuando nadie puede entrar.** `npm run bootstrap:access -- --email <correo>` emite un enlace de activación sin sesión y lo imprime una sola vez, como la excepción de arranque de ADR-039 y con la misma disciplina: el operador apunta `DATABASE_URL` y `APP_URL` al entorno confirmado, y la emisión queda auditada como del sistema, sin emisor. Existe porque la junta emite enlaces a los miembros pero **nadie puede emitirle a la junta**: sin esto, con el correo caído, perder todas las contraseñas de ADMIN dejaría la casa digital sin entrada. También es el modo de conseguir la primera contraseña en producción, donde el código del OTP no llega y ya no está en el asunto.
+
 ## Consecuencias
 
 - Enmienda a **ADR-010**: el buzón institucional deja de ser la credencial y pasa a ser un identificador. El consecuente "no se guardan contraseñas" deja de valer.
