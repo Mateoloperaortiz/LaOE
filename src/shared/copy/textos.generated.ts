@@ -314,7 +314,7 @@ export const textos = {
   },
   "T-053": {
     where: "Correo del código, asunto",
-    text: "Tu código para entrar a Mi OE: {código}",
+    text: "Tu código para entrar a Mi OE",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3596,6 +3596,12 @@ export const textos = {
   "T-2091": {
     where: "Cambio de área: enlace a Mi OE",
     text: "Cambiar a Mi OE (vista de integrante)",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2092": {
+    where: "Correo del código, pie",
+    text: "Organización Estudiantil · Universidad EAFIT · Bloque 29 of. 525 · Este es un mensaje automático de seguridad: te llega porque alguien pidió un código para entrar a Mi OE con tu dirección.",
     owner: "MATEO",
     status: "Propuesta",
   },

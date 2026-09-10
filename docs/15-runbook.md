@@ -410,3 +410,44 @@ Evidencia privada en `/Users/mateo/.codex/private/casa-digital/roster-load-20260
 ### Corrección individual posterior a la carga (2026-09-09)
 
 El ADMIN autorizante pidió quedar Activo sin periodo de prueba y como Financiero de GEMIS para 2026-2. Conservaba tanto ACTIVE como ADMIN global y FINANCIERO; el lote había añadido la condición de prueba. Se aplicó un CSV privado de actualización parcial, de una fila y cuatro columnas, por el mismo asistente y con reautenticación vigente: `ImportJob se1pfhn4wj5tagw1wn9nw0et`, cero altas, una actualización, cero errores y ninguna propuesta de permisos. Relectura de la ficha: Activo, ADMIN, GEMIS · Financiero y sin condición de prueba. El archivo original de la carga masiva se conserva como evidencia histórica; una futura carga debe incorporar esta corrección posterior. Archivo y recibo en `/Users/mateo/.codex/private/casa-digital/correccion-membresia-20260909/`.
+
+## Diagnóstico de entrega del código de acceso (2026-09-10)
+
+Ninguna persona del roster recibía su código desde la carga del 9 de septiembre. Mateo confirmó que
+tampoco aparecía en Correo no deseado, y autorizó expresamente los envíos de prueba.
+
+- **Aplicación y proveedor descartados.** Producción corre `242a08a` (deployment `d4a68b18`) con
+  `MAILER=resend`, `EMAIL_FROM="OE EAFIT <noreply@oeeafit.com>"` y sin desbordamiento SES. En los dos
+  despliegues productivos del 9 de septiembre no hay una sola línea `correo no enviado`, que es lo que
+  `sendTransactionalEmail` registra cuando el transporte falla: Resend acepta todos los mensajes. Las
+  únicas líneas de OTP son tres `otp: correo fuera del roster` de personas que no están en el lote.
+- **Envíos de prueba**, 2026-09-10, reproduciendo el mensaje exacto de `requestOtp` por la API de
+  Resend con la clave de producción, los tres aceptados con 200:
+
+  | Hora (UTC) | Destinatario | ID del proveedor |
+  | --- | --- | --- |
+  | 13:50:45 | mail-tester | `ac2c7eb4-0b85-422e-af82-d245906419e7` |
+  | 13:50:46 | Gmail personal | `b0592d82-bd42-441a-8176-da19b50a904e` |
+  | 13:50:47 | `mloperao1@eafit.edu.co` | `734d96ef-9f71-46e8-8bbf-3438ad1f0914` |
+
+- **Autenticación correcta.** mail-tester: **9,1/10**. SPF `pass` (`send.oeeafit.com`, mecanismo
+  `include:amazonses.com`, IP `54.240.48.54`), DKIM `pass` y alineado (`header.d=oeeafit.com`, selector
+  `resend`), DMARC `pass` con `p=quarantine dis=none`. IP en la lista blanca de Mailspike y sin
+  entradas en listas de bloqueo. El único descuento apreciable es `FROM_FMBLA_NEWDOM14`.
+- **Destinatario y señales negativas.** `eafit.edu.co` resuelve a
+  `eafit-edu-co.mail.protection.outlook.com` (Microsoft 365) y publica DMARC `p=reject` con reportes a
+  `seguridadinformatica@eafit.edu.co`. `oeeafit.com` se registró el **2026-08-27**, así que todavía
+  figura como dominio de registro reciente, y su nombre se parece al de la Universidad: las dos
+  señales que activan la protección antisuplantación de Defender.
+- **Conclusión.** El mensaje sale bien autenticado y el bloqueo ocurre dentro del tenant de EAFIT, sin
+  rebote ni carpeta visible. La corrección de fondo es una entrada de permitidos para `oeeafit.com` y
+  una excepción antisuplantación, que solo puede aplicar TI de EAFIT; la solicitud se envía a
+  `seguridadinformatica@eafit.edu.co` pidiendo además la traza de esos tres mensajes.
+- **No se cambió DNS.** La hipótesis previa de bajar DMARC a `p=none` quedó descartada: DMARC pasa, así
+  que relajar la política no habría mejorado la entrega y sí habría debilitado la protección del
+  dominio contra suplantación.
+- **Correcciones propias** (ADR-050, pendientes de promoción): el asunto deja de llevar el código, el
+  mensaje usa el envoltorio común con pie transaccional y cabeceras de correo automático, y el envío
+  queda registrado. Bajan las señales de correo masivo, pero no reemplazan la entrada de permitidos.
+  **La promoción espera a que llegue un código real:** mientras tanto, leer el código del asunto en el
+  registro del proveedor es la única forma de completar el step-up en producción.

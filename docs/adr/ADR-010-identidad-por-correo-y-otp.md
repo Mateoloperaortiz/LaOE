@@ -1,6 +1,6 @@
 # ADR-010: Identidad por correo del roster con OTP
 
-- Estado: Aceptada (enmendada por ADR-034, ADR-039)
+- Estado: Aceptada (enmendada por ADR-034, ADR-039, ADR-050)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-002, ADR-011, ADR-015
 
@@ -25,3 +25,7 @@ La identidad es el **correo institucional del roster**. Acceso por OTP de 6 díg
 ## Enmienda (2026-09-06, ADR-039)
 
 El primer acceso real se habilita con el bootstrap privado y auditado de ADR-039: persona con membresía ACTIVE y permiso ADMIN, sin registro abierto ni consentimiento ficticio. El OTP sigue validando el buzón real y exige membresía elegible; el roster de los demás miembros llega luego desde la app. Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).
+
+## Enmienda (2026-09-10, ADR-050)
+
+El asunto del correo del código deja de incluirlo: guardarlo en `message.subject` lo dejaba legible en la administración y en el panel del proveedor. El código vive solo en el cuerpo, y el envío exitoso se registra con persona, transporte e identificador del proveedor, nunca con el secreto. Ver [ADR-050](ADR-050-correo-transaccional-del-codigo.md).

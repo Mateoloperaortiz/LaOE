@@ -2,7 +2,7 @@ import { and, count, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { Tx } from "@/db/tx";
 import { getEnv } from "@/env";
-import { sendTransactionalEmail } from "@/modules/comms";
+import { sendTransactionalEmail, wrapEmail } from "@/modules/comms";
 import { findEligibleMemberByEmail } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
@@ -79,15 +79,36 @@ export async function requestOtp(input: RequestOtpInput): Promise<void> {
 
   const nombre = member.preferredName ?? member.firstName;
   const cuerpo = t("T-054", { nombre, código: code });
-  const pie = t("T-208").replace("{enlace de baja si aplica}", "").trim();
+  // Mismo envoltorio que el resto de los correos, con el pie transaccional T-2092 en vez del pie
+  // legal de campañas: el lenguaje de lista de correo empuja la clasificación a masivo (ADR-050).
+  const { html, text } = wrapEmail({
+    siteName: t("T-001"),
+    bodyHtml: `<p>${renderHtml(cuerpo)}</p>`,
+    bodyText: renderPlain(cuerpo),
+    closing: t("T-002"),
+    footer: t("T-2092"),
+  });
   // Inline, no por outbox: la persona está esperando el código (ADR-012).
-  await sendTransactionalEmail({
+  const receipt = await sendTransactionalEmail({
     personId: member.personId,
     to: email,
-    subject: t("T-053", { código: code }),
-    text: `${renderPlain(cuerpo)}\n\n${pie}`,
-    html: `<p>${renderHtml(cuerpo)}</p><p style="color:#666;font-size:12px">${renderHtml(pie)}</p>`,
+    // El asunto nunca lleva el código: se guarda en `message` y se ve en la administración (ADR-050).
+    subject: t("T-053"),
+    text,
+    html,
+    headers: { "Auto-Submitted": "auto-generated", "X-Auto-Response-Suppress": "All" },
   });
+  // Sin esta línea no hay forma de saber si a alguien se le intentó enviar algo; el código nunca se registra.
+  logger.info(
+    {
+      personId: member.personId,
+      purpose,
+      status: receipt.status,
+      provider: receipt.provider,
+      providerId: receipt.providerId,
+    },
+    "otp: correo del código",
+  );
 }
 
 export type VerifyOtpResult =

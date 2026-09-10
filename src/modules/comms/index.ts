@@ -92,4 +92,5 @@ export {
   renderTemplate,
   TEMPLATE_VARIABLES,
   type TemplateValues,
+  wrapEmail,
 } from "./domain/templates-pure";

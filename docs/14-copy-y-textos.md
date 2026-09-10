@@ -143,8 +143,9 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-050 | Demasiados intentos | Superaste los intentos. Esperá 15 minutos y volvé a pedir un código. | MATEO | Propuesta |
 | T-051 | Sesión vencida | Tu sesión venció. Entrá de nuevo. | MATEO | Propuesta |
 | T-052 | Cuenta retirada (al intentar entrar) | Respuesta igual a T-044; nunca se dice el motivo | MATEO | Propuesta |
-| T-053 | Correo del código, asunto | Tu código para entrar a Mi OE: {código} | MATEO | Propuesta |
+| T-053 | Correo del código, asunto | Tu código para entrar a Mi OE | MATEO | Propuesta |
 | T-054 | Correo del código, cuerpo | Hola, {nombre}. Tu código es **{código}** y vence en 10 minutos. Si no fuiste vos, ignorá este correo. | MATEO | Propuesta |
+| T-2092 | Correo del código, pie | Organización Estudiantil · Universidad EAFIT · Bloque 29 of. 525 · Este es un mensaje automático de seguridad: te llega porque alguien pidió un código para entrar a Mi OE con tu dirección. | MATEO | Propuesta |
 | T-055 | Step-up (acción sensible de admin) | Esta acción pide un código nuevo. Te lo mandamos al correo. | MATEO | Propuesta |
 
 ## 4. Mi OE

@@ -1,6 +1,6 @@
 # ADR-023: Operación: entorno de pruebas, copia externa y correo con desbordamiento
 
-- Estado: Aceptada (enmendada por ADR-038, ADR-039)
+- Estado: Aceptada (enmendada por ADR-038, ADR-039, ADR-050)
 - Fecha: 2026-09-02
 - Enmienda: ADR-021 (puntos "Entornos", "Respaldos" y "Presupuesto") y ADR-015 (enrutamiento del correo)
 
@@ -33,3 +33,7 @@ En la fase 7 solo se usan `staging` (sintético) y `production` (arranque limpio
 ### Precisión operativa de ADR-039 · 2026-09-06
 
 La corrida manual del servicio backup se inicia en Railway desde Casa Digital → production → backup → Cron Runs → Run now. `railway redeploy` prepara el deployment de cron y no inicia la copia. Cron mensual, cifrado, verificación de subida y retención de 12 copias totales conservan lo aprobado; resultado y restauración se acreditan por corrida en [15-runbook.md](../15-runbook.md).
+
+## Enmienda (2026-09-10, ADR-050)
+
+El correo transaccional del código de acceso usa el envoltorio común de ADR-038 con un pie transaccional propio, sin el pie legal de campañas ni lenguaje de lista de correo, y declara que es automático con `Auto-Submitted` y `X-Auto-Response-Suppress`. El transporte y el desbordamiento no cambian. Ver [ADR-050](ADR-050-correo-transaccional-del-codigo.md).

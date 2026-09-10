@@ -579,3 +579,15 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-09-09 | Cambio de área / local | «Administración» en Mi OE según `adminAreaRoles` y «Mi OE» en la cabecera administrativa. Misma sesión y guards; líderes y evaluadores llegan a sus destinos permitidos. Copy T-2090/T-2091 y componente compartido. Lint, typecheck, deps:check, deadcode y build PASS; 31 E2E PASS sobre base local aislada, con ida/vuelta, ausencia del acceso sin permisos, teclado, axe, capturas en ambos temas y regresiones de las dos cabeceras. Accesos comprobados a 360/768/1024/1440 px y texto al 200 %; a 360 px la comprobación ampliada se limita a la cabecera de Mi OE, pues se observó desborde en estados vacíos y acciones del onboarding fuera de este cambio. Base de prueba retirada al terminar. Entrega local, sin despliegue. |
+
+### Entrega del código de acceso (ADR-050)
+
+- [x] Diagnosticar por qué no llega el código: configuración, logs, autenticación del dominio y contenido del mensaje.
+- [x] Sacar el código del asunto, envolver el correo con pie transaccional y cabeceras de correo automático, y registrar el envío.
+- [ ] Entrada de permitidos y excepción antisuplantación en el tenant de EAFIT.
+- [ ] Promover a producción tras comprobar un ingreso real con código recibido.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-10 | Diagnóstico de entrega | Descartadas la aplicación y el proveedor: producción corre `242a08a` con `MAILER=resend` y no registra un solo `correo no enviado`. Tres envíos de prueba por la API de Resend (13:50 UTC) salieron con 200. mail-tester dio **9,1/10** con SPF `pass` (`send.oeeafit.com`, IP `54.240.48.54`), DKIM `pass` (`header.d=oeeafit.com`, selector `resend`) y DMARC `pass`; IP en lista blanca de Mailspike y sin listas de bloqueo. Únicas señales negativas: `oeeafit.com` se registró el 2026-08-27 y su nombre se parece a `eafit.edu.co`, cuyo correo está en Microsoft 365. El bloqueo ocurre dentro del tenant de EAFIT y la corrección de fondo depende de su TI. Detalle en el [runbook](15-runbook.md#diagnóstico-de-entrega-del-código-de-acceso-2026-09-10). |
+| 2026-09-10 | Forma del correo / local | ADR-050: el asunto T-053 deja de llevar el código —quedaba guardado en `message.subject` y legible en `/admin/mensajes` y en el proveedor—, el mensaje pasa por `wrapEmail` con el pie transaccional nuevo T-2092 en vez del pie de campañas T-208, declara `Auto-Submitted` y `X-Auto-Response-Suppress`, y `requestOtp` registra persona, estado, transporte e identificador del proveedor sin el código. Tres pruebas de integración nuevas cubren el asunto sin seis dígitos —en el mensaje y en la fila de `message`—, el documento HTML completo y las cabeceras. `npm run check` PASS: 339 unitarias, 270 de integración y build. Entrega local; la promoción espera a que llegue un código real, porque hoy leerlo del asunto es la única forma de completar el step-up en producción. |

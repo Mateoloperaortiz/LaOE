@@ -2,6 +2,7 @@ import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { setMailTransportsForTests } from "@/modules/comms";
+import { message } from "@/modules/comms/schema";
 import { requestOtp, verifyOtp } from "@/modules/identity/domain/otp";
 import { hashCode, OTP_MAX_PER_EMAIL, OTP_MAX_PER_IP } from "@/modules/identity/domain/pure";
 import {
@@ -89,9 +90,39 @@ describe("requestOtp", () => {
     expect(await challengesFor("activa@eafit.edu.co")).toBe(1);
     expect(sent).toHaveLength(1);
     expect(sent[0]?.to).toBe("activa@eafit.edu.co");
-    expect(sent[0]?.subject).toContain(CODE);
+    expect(sent[0]?.text).toContain(CODE);
     expect(sent[0]?.text).toContain("Persona");
     expect(sent[0]?.text).not.toContain("**");
+  });
+
+  // ADR-050: el asunto se guarda en `message` y se ve en la administración y en el proveedor.
+  it("nunca pone el código en el asunto, ni en el mensaje ni en la fila de `message`", async () => {
+    const personId = await seedMember("secreto@eafit.edu.co");
+    await requestOtp({ email: "secreto@eafit.edu.co", ip: "1.1.1.1" });
+    const asunto = sent[0]?.subject ?? "";
+    expect(asunto).not.toContain(CODE);
+    expect(asunto).not.toMatch(/\d{6}/);
+    const [fila] = await db()
+      .select({ subject: message.subject })
+      .from(message)
+      .where(eq(message.personId, personId));
+    expect(fila?.subject).toBe(asunto);
+    expect(fila?.subject ?? "").not.toMatch(/\d{6}/);
+  });
+
+  it("manda un documento HTML completo, con pie transaccional y cabeceras de correo automático", async () => {
+    await seedMember("forma@eafit.edu.co");
+    await requestOtp({ email: "forma@eafit.edu.co", ip: "1.1.1.1" });
+    const correo = sent[0];
+    expect(correo?.html ?? "").toContain("<!doctype html>");
+    expect(correo?.html ?? "").toContain(CODE);
+    // El pie de campañas invita a darse de baja: en un transaccional lo clasifica como masivo.
+    expect(correo?.text ?? "").not.toContain("roster de la OE");
+    expect(correo?.text ?? "").toContain("mensaje automático de seguridad");
+    expect(correo?.headers).toMatchObject({
+      "Auto-Submitted": "auto-generated",
+      "X-Auto-Response-Suppress": "All",
+    });
   });
 
   it("limita a cinco solicitudes por correo en quince minutos", async () => {
