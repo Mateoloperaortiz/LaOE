@@ -3852,6 +3852,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2133": {
+    where: "Ingresar por código, enlace de vuelta",
+    text: "Entrar con tu contraseña",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-220": {
     where: "Carnet, textos",
     text: "Organización Estudiantil · {nombre} · {comités} · {semestre} · QR",

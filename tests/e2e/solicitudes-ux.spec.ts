@@ -62,7 +62,7 @@ test.beforeAll(async ({ browser }) => {
     storageState: { cookies: [], origins: [] },
   });
   const page = await context.newPage();
-  await page.goto("/ingresar?next=%2Fapp%2Fsolicitudes");
+  await page.goto("/ingresar/codigo?next=%2Fapp%2Fsolicitudes");
   await page.getByLabel("Correo @eafit.edu.co").fill(`${prefix}@eafit.edu.co`);
   await page.getByRole("button", { name: "Enviame el código" }).click();
   await page.getByLabel("Código de seis dígitos").fill(process.env.OTP_FIXED_CODE ?? "123456");

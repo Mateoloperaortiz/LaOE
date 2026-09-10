@@ -12,10 +12,56 @@ import { clientIp, userAgent } from "@/shared/lib/request";
 import { SESSION_COOKIE } from "./cookie";
 import { getActor } from "./current";
 import { requestOtp, verifyOtp, verifyStepUp } from "./domain/otp";
+import { signInWithPassword } from "./domain/password";
 import { normalizeEmail, safeNextPath } from "./domain/pure";
 import { destroySessionByToken, destroySessionsFor } from "./domain/session";
 
 export interface LoginState {
+  email: string;
+  next: string;
+  error: string | null;
+  fieldError: string | null;
+}
+
+export async function initialLoginState(next: string): Promise<LoginState> {
+  return { email: "", next: safeNextPath(next), error: null, fieldError: null };
+}
+
+/**
+ * Ingreso con la contraseña propia (ADR-051). El error es el mismo para un correo que no existe,
+ * para quien todavía no eligió contraseña y para una contraseña equivocada.
+ */
+export async function loginAction(previous: LoginState, formData: FormData): Promise<LoginState> {
+  const next = safeNextPath(formData.get("next"), previous.next);
+  const email = emailSchema.safeParse(formData.get("email"));
+  const password = formData.get("password");
+  const base: LoginState = { ...previous, next, error: null, fieldError: null };
+  if (!email.success) {
+    return { ...base, fieldError: t("T-239") };
+  }
+  if (typeof password !== "string" || password.length === 0) {
+    return { ...base, email: email.data, error: t("T-2096") };
+  }
+  const remember = formData.get("remember") === "on";
+  const result = await signInWithPassword({
+    email: email.data,
+    password,
+    ip: await clientIp(),
+    userAgent: await userAgent(),
+    remember,
+  });
+  if (!result.ok) {
+    return {
+      ...base,
+      email: email.data,
+      error: result.reason === "LOCKED" ? t("T-2097") : t("T-2096"),
+    };
+  }
+  await setSessionCookie(result.token, result.expiresAt, remember);
+  redirect(next);
+}
+
+export interface CodeLoginState {
   step: "email" | "code";
   email: string;
   next: string;
@@ -24,7 +70,7 @@ export interface LoginState {
   fieldError: string | null;
 }
 
-export async function initialLoginState(next: string): Promise<LoginState> {
+export async function initialCodeLoginState(next: string): Promise<CodeLoginState> {
   return {
     step: "email",
     email: "",
@@ -54,11 +100,14 @@ async function setSessionCookie(token: string, expiresAt: Date, remember: boolea
   });
 }
 
-/** Un solo formulario en dos pasos: pedir el código, verificarlo o volver a empezar. */
-export async function loginAction(previous: LoginState, formData: FormData): Promise<LoginState> {
+/** Método alterno (ADR-051): un solo formulario en dos pasos, pedir el código y verificarlo. */
+export async function codeLoginAction(
+  previous: CodeLoginState,
+  formData: FormData,
+): Promise<CodeLoginState> {
   const intent = formData.get("intent");
   const next = safeNextPath(formData.get("next"), previous.next);
-  const base: LoginState = { ...previous, next, message: null, error: null, fieldError: null };
+  const base: CodeLoginState = { ...previous, next, message: null, error: null, fieldError: null };
 
   if (intent === "restart") {
     return { ...base, step: "email" };

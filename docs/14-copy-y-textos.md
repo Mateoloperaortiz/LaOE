@@ -1668,4 +1668,5 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2129 | Jornada de activación, instrucción | Elegí a la persona, mostrale el QR y esperá a que entre. Un QR a la vez. | MATEO | Propuesta |
 | T-2130 | Jornada de activación, botón | Siguiente persona | MATEO | Propuesta |
 | T-2131 | Jornada de activación, persona que ya tiene contraseña | Ya tiene contraseña. Emitile un enlace solo si la perdió. | MATEO | Propuesta |
+| T-2133 | Ingresar por código, enlace de vuelta | Entrar con tu contraseña | MATEO | Propuesta |
 | T-2132 | Push: enlace de acceso emitido (título · cuerpo) | Emitieron tu enlace de acceso · Si no lo pediste, avisale a la junta ya mismo. | MATEO | Propuesta |

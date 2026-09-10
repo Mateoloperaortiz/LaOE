@@ -54,6 +54,8 @@ test("sin sesión el QR lleva a entrar, vuelve solo y acredita los puntos una so
   await expect(
     page.getByText("Para registrarte primero entrá a Mi OE. Volvés aquí solo."),
   ).toBeVisible();
+  await page.getByRole("link", { name: "Entrar con un código al correo institucional" }).click();
+  await expect(page).toHaveURL(/\/ingresar\/codigo\?next=%2Fa%2Fe2eqr00001$/);
   await page.getByLabel("Correo @eafit.edu.co").fill(E2E_MEMBER_EMAIL);
   await page.getByRole("button", { name: "Enviame el código" }).click();
   await page.getByLabel("Código de seis dígitos").fill(CODE);

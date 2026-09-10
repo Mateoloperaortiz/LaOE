@@ -13,7 +13,7 @@ test.describe("el miembro pide la licencia", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test("desde Mi OE, con motivo, y la ve pendiente", async ({ page }) => {
-    await page.goto("/ingresar");
+    await page.goto("/ingresar/codigo");
     await page.getByLabel("Correo @eafit.edu.co").fill(E2E_LEAVE_EMAIL);
     await page.getByRole("button", { name: "Enviame el código" }).click();
     await page.getByLabel("Código de seis dígitos").fill(CODE);
@@ -76,7 +76,7 @@ test.describe("la persona en licencia consulta Mi OE", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test("entra por OTP, ve sus datos y no puede emitir carnet ni operar", async ({ page }) => {
-    await page.goto("/ingresar");
+    await page.goto("/ingresar/codigo");
     await page.getByLabel("Correo @eafit.edu.co").fill(E2E_LEAVE_EMAIL);
     await page.getByRole("button", { name: "Enviame el código" }).click();
     await page.getByLabel("Código de seis dígitos").fill(CODE);

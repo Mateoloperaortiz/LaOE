@@ -28,20 +28,27 @@ export default async function IngresarPage({ searchParams }: PageProps<"/ingresa
             {next.startsWith("/a/") ? t("T-100") : t("T-864")}
           </p>
         ) : null}
-        <p className="text-lg">{t("T-041")}</p>
+        <p className="text-lg">{t("T-2093")}</p>
       </div>
       <LoginForm
         initialState={await initialLoginState(next)}
         labels={{
           emailLabel: t("T-042"),
-          requestButton: t("T-043"),
-          codeTitle: t("T-045"),
-          codeLabel: t("T-238"),
+          passwordLabel: t("T-2094"),
           rememberLabel: t("T-047"),
-          verifyButton: t("T-046"),
-          restartButton: t("T-237"),
+          submitButton: t("T-2095"),
         }}
       />
+      {/* Texto fijo: nunca depende del correo tecleado, para no enumerar el roster (ADR-051). */}
+      <div className="flex flex-col gap-3 border-borde border-t pt-6 text-sm">
+        <p>{t("T-2098")}</p>
+        <Link
+          href={`/ingresar/codigo?next=${encodeURIComponent(next)}`}
+          className="text-enlace underline underline-offset-4"
+        >
+          {t("T-2099")}
+        </Link>
+      </div>
     </main>
   );
 }

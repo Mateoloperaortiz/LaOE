@@ -140,7 +140,7 @@ test.describe("el nuevo miembro entra", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test("entra por OTP y ve su primera semana en Mi OE", async ({ page }) => {
-    await page.goto("/ingresar");
+    await page.goto("/ingresar/codigo");
     await page.getByLabel("Correo @eafit.edu.co").fill(EMAIL);
     await page.getByRole("button", { name: "Enviame el código" }).click();
     await page.getByLabel("Código de seis dígitos").fill(CODE);

@@ -10,7 +10,15 @@ import { announcement, document, mediaAsset } from "@/modules/content/schema";
 import { internalCall, organization, pipeline, recognition, task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { editionRegistration, form } from "@/modules/forms/schema";
-import { carnetToken, otpChallenge, permission } from "@/modules/identity/schema";
+import { hashPassword } from "@/modules/identity/domain/pure";
+import {
+  accessGrant,
+  carnetToken,
+  credential,
+  loginAttempt,
+  otpChallenge,
+  permission,
+} from "@/modules/identity/schema";
 import { checkIn, occasion, pointEntry, termStanding } from "@/modules/participation/schema";
 import {
   committee,
@@ -38,6 +46,8 @@ import { walletPass } from "@/modules/wallet/schema";
 export const E2E_EMAIL = "prueba.e2e@eafit.edu.co";
 /** Segunda identidad: un miembro activo sin permisos, para Mi OE (ADR-034). */
 export const E2E_MEMBER_EMAIL = "prueba.miembro@eafit.edu.co";
+/** Contraseña de las dos identidades sintéticas (ADR-051): la suite entra sin pedir códigos. */
+export const E2E_PASSWORD = "trapecio verde 41";
 /** Término viejo de pruebas para el cierre de puntos (ADR-035): se reabre y vacía en cada corrida. */
 export const E2E_CLOSING_TERM = "2019-2";
 /** Término viejo para el cierre de permanencia (ADR-036): puntos cerrados, permanencia abierta y vacía. */
@@ -46,6 +56,23 @@ export const E2E_PERMANENCE_TERM = "2019-1";
 export const E2E_CLOSING_EMAIL = "e2e-cierre@eafit.edu.co";
 /** Miembro desechable que pide una licencia desde Mi OE (fase 5); activo en el término actual. */
 export const E2E_LEAVE_EMAIL = "e2e-licencia@eafit.edu.co";
+
+/**
+ * Deja la contraseña de una identidad sintética y borra lo que un bloqueo de otra corrida hubiera
+ * dejado (ADR-051): la suite entra con contraseña, así que ya no depende del límite de OTP.
+ */
+async function setE2ePassword(personId: string, email: string): Promise<void> {
+  const db = getDb();
+  await db.delete(loginAttempt).where(eq(loginAttempt.email, email));
+  await db.delete(accessGrant).where(eq(accessGrant.personId, personId));
+  await db
+    .insert(credential)
+    .values({ personId, passwordHash: await hashPassword(E2E_PASSWORD) })
+    .onConflictDoUpdate({
+      target: credential.personId,
+      set: { passwordHash: await hashPassword(E2E_PASSWORD) },
+    });
+}
 
 export default async function globalSetup(): Promise<void> {
   // Las identidades y archivos sintéticos solo se limpian en servicios de loopback.
@@ -130,6 +157,7 @@ export default async function globalSetup(): Promise<void> {
     .onConflictDoNothing();
   // Los límites de OTP por correo (5 cada 15 minutos) no deben depender de corridas anteriores.
   await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_EMAIL));
+  await setE2ePassword(who.id, E2E_EMAIL);
   await db.delete(editionRegistration).where(eq(editionRegistration.personId, who.id));
   // Comités y anuncios creados por corridas anteriores de la suite.
   await db.delete(committee).where(like(committee.slug, "e2e-%"));
@@ -281,6 +309,7 @@ export default async function globalSetup(): Promise<void> {
     .onConflictDoNothing();
   await db.delete(task).where(eq(task.personId, member.id));
   await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_MEMBER_EMAIL));
+  await setE2ePassword(member.id, E2E_MEMBER_EMAIL);
   await db.delete(editionRegistration).where(eq(editionRegistration.personId, member.id));
   // Fase 6: dispositivos ficticios y preferencias que deja la suite de la PWA.
   await db

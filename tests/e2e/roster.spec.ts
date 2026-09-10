@@ -85,7 +85,7 @@ test("el asistente importa un roster con step-up y el nuevo miembro entra por OT
     })
     .where(eq(contentPage.slug, "privacidad"));
   try {
-    await page.goto("/ingresar");
+    await page.goto("/ingresar/codigo");
     await page.getByLabel("Correo @eafit.edu.co").fill("e2e-roster-rosa@eafit.edu.co");
     await page.getByRole("button", { name: "Enviame el código" }).click();
     await page.getByLabel("Código de seis dígitos").fill(CODE);

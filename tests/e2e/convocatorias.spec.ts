@@ -67,7 +67,7 @@ test.describe("la segunda persona queda en lista de espera", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test("con el cupo lleno ve T-147", async ({ page }) => {
-    await page.goto("/ingresar");
+    await page.goto("/ingresar/codigo");
     await page.getByLabel("Correo @eafit.edu.co").fill(E2E_LEAVE_EMAIL);
     await page.getByRole("button", { name: "Enviame el código" }).click();
     await page.getByLabel("Código de seis dígitos").fill(CODE);
