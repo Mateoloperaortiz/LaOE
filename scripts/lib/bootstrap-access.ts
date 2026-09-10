@@ -29,6 +29,9 @@ export async function bootstrapAccess(raw: unknown): Promise<BootstrapAccessResu
   if (!parsed.success) {
     throw new BootstrapAccessError("Uso: --email <correo institucional> [--kind RECOVERY]");
   }
+  // El origen se lee ANTES de emitir: emitir consume el enlace vivo de esa persona, así que fallar
+  // después por un `APP_URL` mal puesto la dejaría peor que antes, justo en una recuperación.
+  const base = getEnv().APP_URL.replace(/\/$/, "");
   // El esquema ya bajó el correo a minúsculas, que es como se guarda la identidad.
   const member = await findEligibleMemberByEmail(parsed.data.email);
   if (!member) {
@@ -42,7 +45,7 @@ export async function bootstrapAccess(raw: unknown): Promise<BootstrapAccessResu
     kind: parsed.data.kind,
   });
   return {
-    url: `${getEnv().APP_URL.replace(/\/$/, "")}/activar/${token}`,
+    url: `${base}/activar/${token}`,
     expiresAt,
     personId: member.personId,
   };
