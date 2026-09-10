@@ -3,8 +3,10 @@ import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { registerHandler } from "@/jobs/registry";
 import { SIGN_IN_STATUSES } from "@/modules/people";
+import { deleteAccessGrantsFor } from "./domain/access-grant";
 import { deleteCarnetTokenFor } from "./domain/carnet-token";
 import { pruneIdentity } from "./domain/maintenance";
+import { deleteCredentialFor } from "./domain/password";
 import { revokeAllPermissionsFor } from "./domain/permissions";
 import { destroySessionsFor } from "./domain/session";
 
@@ -29,6 +31,11 @@ registerHandler("membership.changed", async (payload, ctx) => {
   }
   if (to === "INACTIVE") {
     await deleteCarnetTokenFor(personId);
+    // Quien sale no vuelve a entrar: su contraseña y sus enlaces dejan de tener para qué existir
+    // y no son historia institucional (ADR-030, ADR-051).
+    const credentials = await deleteCredentialFor(personId);
+    const grants = await deleteAccessGrantsFor(personId);
+    ctx.log.info({ personId, credentials, grants }, "credencial retirada por baja");
     const result = await runCommand(SYSTEM_ACTOR, (command) =>
       revokeAllPermissionsFor(command, personId),
     );
@@ -49,6 +56,8 @@ registerHandler("person.email-changed", async (payload, ctx) => {
 registerHandler("person.anonymized", async (payload, ctx) => {
   const { personId } = personEvent.parse(payload);
   await deleteCarnetTokenFor(personId);
+  await deleteCredentialFor(personId);
+  await deleteAccessGrantsFor(personId);
   await destroySessionsFor(getDb(), personId);
   const result = await runCommand(SYSTEM_ACTOR, (command) =>
     revokeAllPermissionsFor(command, personId),

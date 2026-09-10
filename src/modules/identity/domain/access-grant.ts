@@ -97,6 +97,15 @@ export function issueAccessGrantAs(
   return runCommand(actor, (ctx) => issueAccessGrant(ctx, input));
 }
 
+/** Borra los enlaces de una persona: los llaman el retiro y la anonimización, como a la credencial. */
+export async function deleteAccessGrantsFor(personId: string): Promise<number> {
+  const rows = await getDb()
+    .delete(accessGrant)
+    .where(eq(accessGrant.personId, personId))
+    .returning({ id: accessGrant.id });
+  return rows.length;
+}
+
 export interface AccessGrantReading {
   personId: string;
   kind: AccessGrantKind;

@@ -6,6 +6,7 @@ Preguntas sin cerrar. Cuando una se decide, se anota la fecha y el resultado en 
 
 | # | Pregunta | Opciones | Quién decide | Cómo se cierra |
 | --- | --- | --- | --- | --- |
+| 2 | Cuando el correo a `eafit.edu.co` vuelva a llegar, ¿el OTP vuelve a ser el método principal? | (a) Volver a dejar el código en `/ingresar` y la contraseña detrás del enlace; (b) dejar la contraseña como principal y el código como alterno, como está hoy; (c) que cada persona elija y recordar su preferencia | Mateo con la junta | Mateo lo pidió el 2026-09-10, con el correo todavía sin llegar. Se decide cuando haya **evidencia sostenida** de entrega, no cuando TI lo anuncie: la primera vez que lo anunciaron, el código seguía sin llegar. El cambio es barato —los dos caminos ya existen y solo se intercambia cuál vive en `/ingresar`—, pero conviene pesar que volver a un canal único es exactamente lo que dejó a 453 personas afuera; se registra en una enmienda a [ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) |
 | 1 | ¿Se paga el Apple Developer Program y a nombre de quién? | Activar Apple con cuenta/certificado válidos o mantenerlo apagado; confirmar costo y titular al contratar | Mateo con la junta | Registrar titular, aprobación de gasto y cuenta operativa; no bloquea Google ni las pruebas sin secretos (ADR-040) |
 
 ## Cerradas

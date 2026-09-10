@@ -30,6 +30,8 @@ ADR-010 apostó todo a un solo canal: "el buzón, protegido por Microsoft 365 y 
 13. **La bienvenida deja de ser exclusiva del correo.** T-200 se muestra en la pantalla de activación, que es el primer contacto real de quien entra; el correo se conserva como mejor esfuerzo. T-202 y T-205 ya salían por push (ADR-038), así que no cambian.
 14. **El enlace no se guarda ni se manda.** No pasa por `message`, no queda en `access_grant` en claro, no aparece en logs ni en exportes. Cada emisión y cada uso quedan auditados con quién emitió, para quién y cuándo.
 
+15. **Salir de la OE retira la credencial.** La baja y la anonimización borran la contraseña y los enlaces de esa persona, junto a lo que ya borraban (carnet, sesiones, permisos). Un hash de contraseña no es historia institucional y la anonimización existe para no dejar datos personales atrás (ADR-014, ADR-030). La licencia no lo toca: esa persona vuelve.
+
 ## Consecuencias
 
 - Enmienda a **ADR-010**: el buzón institucional deja de ser la credencial y pasa a ser un identificador. El consecuente "no se guardan contraseñas" deja de valer.

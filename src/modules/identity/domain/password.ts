@@ -117,6 +117,18 @@ export async function signInWithPassword(input: SignInInput): Promise<SignInResu
   return { ok: true, ...created, personId: member.personId };
 }
 
+/**
+ * Borra la contraseña de una persona. La llaman el retiro y la anonimización (ADR-014, ADR-030):
+ * quien ya no entra no necesita credencial, y un hash de contraseña no es historia institucional.
+ */
+export async function deleteCredentialFor(personId: string): Promise<number> {
+  const rows = await getDb()
+    .delete(credential)
+    .where(eq(credential.personId, personId))
+    .returning({ id: credential.id });
+  return rows.length;
+}
+
 export type StepUpResult = { ok: true } | { ok: false; reason: "INVALID" | "LOCKED" };
 
 export interface StepUpPasswordInput {
