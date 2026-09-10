@@ -11,6 +11,8 @@ const REQUIRED_INDEXES = [
   "permission_global_unique",
   "permission_committee_unique",
   "session_token_hash_unique",
+  "credential_person_unique",
+  "access_grant_token_hash_unique",
   "outbox_dedupe_key_pending_unique",
   "person_full_name_trgm_idx",
   "page_slug_unique",

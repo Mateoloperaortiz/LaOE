@@ -17,7 +17,7 @@ export async function truncateAll(): Promise<void> {
       permanence_decision, permanence_snapshot, manual_credit, leader_score,
       work_group_membership, work_group_evaluator, work_group, permanence_table, permanence_rule, recognition,
       point_entry, wordle_attempt, wordle_game, check_in, committee_participation, term_standing, assembly_requirement, occasion,
-      session, otp_challenge, permission,
+      session, otp_challenge, permission, credential, access_grant, login_attempt,
       document_article, document,
       interaction, task, person_tag, tag, segment, onboarding_progress,
       edition_committee, event_edition, event, media_asset, announcement, page,

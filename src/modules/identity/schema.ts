@@ -9,13 +9,15 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { createdAt, id, timestampTz } from "@/db/columns";
+import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { committee, person } from "@/modules/people/schema";
 
-// Acceso por correo del roster con OTP y sesión opaca en servidor (ADR-010, ADR-011).
+// Acceso por correo del roster y sesión opaca en servidor (ADR-010, ADR-011). Desde ADR-051 la
+// credencial es una contraseña propia y el OTP queda como método alterno.
 
 export const permissionCode = pgEnum("permission_code", ["ADMIN", "COMMITTEE_LEADER", "BOARD"]);
 export const otpPurpose = pgEnum("otp_purpose", ["LOGIN", "STEP_UP"]);
+export const accessGrantKind = pgEnum("access_grant_kind", ["ACTIVATION", "RECOVERY"]);
 
 export const session = pgTable(
   "session",
@@ -57,6 +59,63 @@ export const otpChallenge = pgTable(
   (t) => [
     index("otp_challenge_email_idx").on(t.email, t.createdAt),
     index("otp_challenge_ip_idx").on(t.ip, t.createdAt),
+  ],
+);
+
+// Contraseña propia (ADR-051). El hash lleva sus parámetros adentro (`scrypt$N$r$p$sal$hash`),
+// así que subirlos después no exige migración. Nunca se guarda ni se registra en claro.
+export const credential = pgTable(
+  "credential",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    passwordHash: text().notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("credential_person_unique").on(t.personId)],
+);
+
+// Enlace de un solo uso que emite la junta fuera del correo (ADR-051): en base va solo el
+// SHA-256 del token, que en claro existe únicamente en la URL y en la pantalla de quien lo emite.
+export const accessGrant = pgTable(
+  "access_grant",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    kind: accessGrantKind().notNull(),
+    tokenHash: text().notNull(),
+    issuedById: text().references(() => person.id, { onDelete: "set null" }),
+    expiresAt: timestampTz().notNull(),
+    consumedAt: timestampTz(),
+    consumedIp: text(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("access_grant_token_hash_unique").on(t.tokenHash),
+    index("access_grant_person_idx").on(t.personId, t.createdAt),
+    index("access_grant_expires_idx").on(t.expiresAt),
+  ],
+);
+
+// Límite de intentos del ingreso y del step-up (ADR-051). Tabla propia y no una columna de
+// `credential` porque el límite tiene que funcionar también para correos que no existen.
+export const loginAttempt = pgTable(
+  "login_attempt",
+  {
+    id: id(),
+    email: text().notNull(),
+    ip: text(),
+    succeeded: boolean().notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("login_attempt_email_idx").on(t.email, t.createdAt),
+    index("login_attempt_ip_idx").on(t.ip, t.createdAt),
   ],
 );
 
