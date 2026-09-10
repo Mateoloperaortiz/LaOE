@@ -2,13 +2,15 @@
 
 Este documento es la fuente de verdad del texto que se publica en `/privacidad`. El cuerpo de la página (`Page` con slug `privacidad`, Markdown, `PUBLISHED`/`PUBLIC`) se copia de la sección **Texto para publicar**; su versión es la que se guarda en `privacy.policyVersion` desde `/admin/sistema/politica` y la que queda estampada en cada `Consent`. Reglas en [ADR-047](adr/ADR-047-politica-de-datos-y-habilitacion.md), [ADR-014](adr/ADR-014-privacidad-por-diseno.md) y [ADR-039](adr/ADR-039-arranque-limpio-fase-7.md).
 
-**Estado: aprobado por la junta el 2026-09-08 y listo para publicar.** Lo redactó Mateo con apoyo del asistente para que la junta lo revise, complete y apruebe; no reemplaza revisión jurídica. Mientras tenga marcadores sin resolver, la página sigue en borrador y `privacy.policyVersion` sigue en `pendiente`.
+**Estado: versión `2026-09-10`, aprobada por la junta el 2026-09-10 y lista para publicar.** La versión `2026-09-08` estuvo publicada desde el 9 de septiembre; esta la reemplaza por el cambio de acceso de [ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md). Lo redactó Mateo con apoyo del asistente y lo aprobó la junta; no reemplaza revisión jurídica. Falta copiar el cuerpo a la página `privacidad` y guardar la versión desde `/admin/sistema/politica`, que pide ADMIN y step-up.
 
-## Cambio pendiente de aprobación (2026-09-10)
+## Qué cambió en la versión 2026-09-10
 
-**El texto publicado quedará desactualizado cuando lleguen las contraseñas.** La sección "Seguridad" de la versión `2026-09-08` dice que se entra "con un código de un solo uso enviado a tu correo institucional; no hay contraseñas que se puedan filtrar". [ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) cambia eso: la credencial pasa a ser una contraseña propia guardada como hash `scrypt`. El texto nuevo ya está escrito abajo, en "Texto para publicar".
+La junta aprobó el 10 de septiembre el texto nuevo de **"Seguridad"**. La versión `2026-09-08` decía que se entra "con un código de un solo uso enviado a tu correo institucional; no hay contraseñas que se puedan filtrar". Con [ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) esa frase deja de ser cierta: la credencial es una contraseña propia guardada como hash `scrypt`, y la primera —o su recuperación— llega por un enlace de un solo uso que emite la junta fuera del correo.
 
-La versión es la fecha en que la junta aprueba (ADR-047, punto 2), así que **no se rellena acá**: queda en `2026-09-08` hasta que la junta apruebe el texto nuevo, y ese es un **requisito para promover las contraseñas a producción**, no un trámite posterior. Publicar una versión nueva no revoca ni vuelve a pedir las autorizaciones vivas (ADR-047, punto 5), de modo que el costo operativo es bajo.
+Es el único cambio de esta versión. Responsable, dirección, canal de atención, categorías de datos, finalidades, encargados, derechos y plazos siguen igual.
+
+**Las autorizaciones ya otorgadas conservan la versión `2026-09-08` con la que se registraron**: publicar una versión nueva no las revoca ni las vuelve a pedir (ADR-047, punto 5). El cambio toca cómo se protege el acceso, así que conviene avisarlo por los canales de la OE cuando haya por dónde: hoy el correo a `eafit.edu.co` sigue retenido y nadie tiene todavía un dispositivo con push.
 
 ## Qué se resolvió y qué queda anotado
 
@@ -31,7 +33,7 @@ Todo lo que sigue es el cuerpo de la página. **No lleva título propio**: `/pri
 - **Responsable:** Universidad EAFIT
 - **Dirección:** Carrera 49 N.º 7 Sur-50, Medellín, Colombia
 - **Correo de atención:** datospersonales@eafit.edu.co
-- **Versión:** 2026-09-08, aprobada el 8 de septiembre de 2026
+- **Versión:** 2026-09-10, aprobada el 10 de septiembre de 2026
 
 La Organización Estudiantil de la Universidad EAFIT (la OE) trata datos personales de sus integrantes, de quienes se postulan, de sus egresados y de los contactos con los que trabaja. Esta política explica qué datos guardamos, para qué, con quién los compartimos y cómo podés ejercer tus derechos. Se rige por la Ley 1581 de 2012, el Decreto 1377 de 2013 y las normas que los modifiquen.
 
@@ -127,4 +129,4 @@ Entrás a Mi OE con tu correo institucional y una contraseña que elegís vos. E
 
 ## Vigencia y cambios
 
-Esta política rige desde el 8 de septiembre de 2026 y mientras la OE trate datos personales. Si cambia, publicamos la versión nueva en esta página con su fecha; las autorizaciones ya otorgadas conservan la versión con la que se registraron y te avisamos por los canales de la OE cuando el cambio sea sustancial.
+Esta política rige desde el 10 de septiembre de 2026 y mientras la OE trate datos personales. Si cambia, publicamos la versión nueva en esta página con su fecha; las autorizaciones ya otorgadas conservan la versión con la que se registraron y te avisamos por los canales de la OE cuando el cambio sea sustancial.
