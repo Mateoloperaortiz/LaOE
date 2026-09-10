@@ -3408,7 +3408,7 @@ export const textos = {
   },
   "T-200": {
     where: "Bienvenida al dar de alta",
-    text: "Bienvenido a la OE, {nombre} · Ya podés entrar a Mi OE con tu correo institucional en {url}: te llega un código cada vez que entrás. Tus comités: {comités}. Lo hacemos por vos. ¡OE OE OE!",
+    text: "Bienvenido a la OE, {nombre} · Ya estás en el roster y tus comités son: {comités}. Para entrar a Mi OE en {url} necesitás tu contraseña: pedile tu enlace de acceso a Gestión Humana o a cualquier persona de la junta. Lo hacemos por vos. ¡OE OE OE!",
     owner: "GH",
     status: "Propuesta",
   },
@@ -3855,6 +3855,30 @@ export const textos = {
   "T-2133": {
     where: "Ingresar por código, enlace de vuelta",
     text: "Entrar con tu contraseña",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2134": {
+    where: "Activación, bienvenida (solo cuando es la primera contraseña)",
+    text: "¡Bienvenido a la OE! Elegí tu contraseña y entrás a Mi OE: ahí están tus comités, tus GH Points y tu permanencia.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2135": {
+    where: "Jornada de activación, selector de comité",
+    text: "Comité",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2136": {
+    where: "Jornada de activación, sin comité elegido",
+    text: "Elegí un comité para ver a su gente.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2137": {
+    where: "Jornada de activación, persona sin contraseña todavía",
+    text: "Sin contraseña",
     owner: "MATEO",
     status: "Propuesta",
   },

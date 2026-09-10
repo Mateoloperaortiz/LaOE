@@ -119,6 +119,27 @@ export async function pushRequestDecided(raw: unknown): Promise<DeliveryStats> {
   );
 }
 
+export const accessGrantIssuedSchema = z.object({
+  personId: z.string().min(1),
+  kind: z.enum(["ACTIVATION", "RECOVERY"]),
+});
+
+/**
+ * Se emitió un enlace de acceso para esta persona (T-2132, ADR-051). Transaccional: llega aunque
+ * la persona haya apagado las notificaciones, porque es la única forma de que se entere si el
+ * enlace lo pidió alguien más. La clave incluye el instante: cada emisión avisa.
+ */
+export async function pushAccessGrantIssued(raw: unknown): Promise<DeliveryStats> {
+  const payload = accessGrantIssuedSchema.parse(raw);
+  return notify(
+    "TRANSACTIONAL",
+    [payload.personId],
+    t("T-2132"),
+    "/app/ajustes",
+    `access-grant:${payload.personId}:${Date.now()}`,
+  );
+}
+
 export const callOpenedSchema = z.object({
   callId: z.string().min(1),
   title: z.string().min(1),

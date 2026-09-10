@@ -6,6 +6,7 @@ import { renderHtml, renderPlain } from "@/shared/copy/render";
 import { runCampaignTick } from "./domain/campaigns";
 import {
   emailPermanenceOutcome,
+  pushAccessGrantIssued,
   pushAnnouncement,
   pushCallOpened,
   pushPointsCredited,
@@ -44,6 +45,13 @@ registerHandler("checkin.approved", async (payload, ctx) => {
 registerHandler("call.opened", async (payload, ctx) => {
   const stats = await pushCallOpened(payload);
   ctx.log.info(stats, "push de convocatoria entregado");
+});
+
+// La titular se entera de que se emitió un enlace para su cuenta aunque el enlace se lo hayan
+// entregado a otra persona (ADR-051, amenaza aceptada).
+registerHandler("access-grant.issued", async (payload, ctx) => {
+  const stats = await pushAccessGrantIssued(payload);
+  ctx.log.info(stats, "push del enlace de acceso entregado");
 });
 
 registerHandler("recognition.granted", async (payload, ctx) => {

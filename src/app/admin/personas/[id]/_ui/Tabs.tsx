@@ -14,6 +14,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, formatDateTime } from "@/shared/lib/dates";
 import { Markdown } from "@/shared/ui/Markdown";
+import { IssueGrantPanel } from "../../IssueGrantPanel";
 import {
   completeTaskAction,
   consentAction,
@@ -278,6 +279,7 @@ export function TabComunicaciones({
   personId,
   passes,
   canRevokeCarnet,
+  canIssueGrant,
   messages,
   preferences,
   devices,
@@ -285,6 +287,7 @@ export function TabComunicaciones({
   personId: string;
   passes: WalletPassRecord[];
   canRevokeCarnet: boolean;
+  canIssueGrant: boolean;
   messages: MessageView[];
   preferences: PreferencesView;
   devices: { devices: number; lastSeenAt: Date | null };
@@ -351,6 +354,24 @@ export function TabComunicaciones({
             })}
           </ul>
         )}
+        {canIssueGrant ? (
+          <div className="mb-6 flex flex-col gap-3 rounded-xl border border-borde p-4">
+            <h3 className="text-titulo-lg">{t("T-2119")}</h3>
+            <IssueGrantPanel
+              personId={personId}
+              returnTo={`/admin/personas/${personId}?pestana=comunicaciones`}
+              labels={{
+                submit: t("T-2119"),
+                activation: t("T-2120"),
+                recovery: t("T-2121"),
+                once: t("T-2122"),
+                handover: t("T-2123"),
+                copy: t("T-2124"),
+                copied: t("T-2125"),
+              }}
+            />
+          </div>
+        ) : null}
         {canRevokeCarnet ? (
           <details className="rounded-xl border border-borde p-4">
             <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-titulo">

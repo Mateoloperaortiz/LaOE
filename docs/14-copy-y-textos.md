@@ -1276,7 +1276,7 @@ Los badges conservan sus textos oficiales; el resto de la interfaz usa voseo. Re
 
 | Código | Cuándo | Asunto · cuerpo | Dueño | Estado |
 | --- | --- | --- | --- | --- |
-| T-200 | Bienvenida al dar de alta | Bienvenido a la OE, {nombre} · Ya podés entrar a Mi OE con tu correo institucional en {url}: te llega un código cada vez que entrás. Tus comités: {comités}. Lo hacemos por vos. ¡OE OE OE! | GH | Propuesta |
+| T-200 | Bienvenida al dar de alta | Bienvenido a la OE, {nombre} · Ya estás en el roster y tus comités son: {comités}. Para entrar a Mi OE en {url} necesitás tu contraseña: pedile tu enlace de acceso a Gestión Humana o a cualquier persona de la junta. Lo hacemos por vos. ¡OE OE OE! | GH | Propuesta |
 | T-201 | Roster importado (primer semestre de la app) | Ya tenés tu Mi OE · Explica qué es Mi OE, cómo entrar y qué va a encontrar | COM | Propuesta; se escribe con la campaña de lanzamiento |
 | T-202 | Resultado de permanencia (cumple) | Cerró {término} · Tu resultado en cada comité y tus puntos del semestre | GH | Propuesta |
 | T-203 | Resultado de permanencia (prueba) | Sobre tu permanencia en la OE · Texto por escribir: qué significa el periodo de prueba, qué se espera y con quién hablar | GH | Pendiente; texto sensible |
@@ -1668,5 +1668,9 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2129 | Jornada de activación, instrucción | Elegí a la persona, mostrale el QR y esperá a que entre. Un QR a la vez. | MATEO | Propuesta |
 | T-2130 | Jornada de activación, botón | Siguiente persona | MATEO | Propuesta |
 | T-2131 | Jornada de activación, persona que ya tiene contraseña | Ya tiene contraseña. Emitile un enlace solo si la perdió. | MATEO | Propuesta |
+| T-2135 | Jornada de activación, selector de comité | Comité | MATEO | Propuesta |
+| T-2136 | Jornada de activación, sin comité elegido | Elegí un comité para ver a su gente. | MATEO | Propuesta |
+| T-2137 | Jornada de activación, persona sin contraseña todavía | Sin contraseña | MATEO | Propuesta |
+| T-2134 | Activación, bienvenida (solo cuando es la primera contraseña) | ¡Bienvenido a la OE! Elegí tu contraseña y entrás a Mi OE: ahí están tus comités, tus GH Points y tu permanencia. | MATEO | Propuesta |
 | T-2133 | Ingresar por código, enlace de vuelta | Entrar con tu contraseña | MATEO | Propuesta |
 | T-2132 | Push: enlace de acceso emitido (título · cuerpo) | Emitieron tu enlace de acceso · Si no lo pediste, avisale a la junta ya mismo. | MATEO | Propuesta |

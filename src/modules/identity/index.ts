@@ -7,6 +7,14 @@ export {
   requireAdminOrLeaderActor,
   requireBoardActor,
 } from "./current";
+export {
+  type AccessGrantKind,
+  type AccessGrantReading,
+  consumeAccessGrant,
+  type IssuedAccessGrant,
+  issueAccessGrantAs,
+  resolveAccessGrant,
+} from "./domain/access-grant";
 export type { Actor, ActorPermission } from "./domain/actor";
 export {
   CALENDAR_TOKEN,
@@ -39,6 +47,11 @@ export {
   hasRecentStepUp,
 } from "./domain/guards";
 export { requestOtp, verifyOtp, verifyStepUp } from "./domain/otp";
+export {
+  findPasswordHash,
+  listPeopleWithPassword,
+  signInWithPassword,
+} from "./domain/password";
 export {
   grantPermission,
   grantPermissionAs,

@@ -50,11 +50,17 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         ...(roles.evaluatedGroups.length > 0
           ? [{ href: "/admin/permanencia/evaluaciones", label: misEvaluaciones ?? "" }]
           : []),
-        ...(roles.isBoard ? [{ href: "/admin/junta", label: junta ?? "" }] : []),
+        ...(roles.isBoard
+          ? [
+              { href: "/admin/junta", label: junta ?? "" },
+              { href: "/admin/personas/activacion", label: t("T-2128") },
+            ]
+          : []),
       ]
     : [
         { href: "/admin/personas", label: personas ?? "" },
         { href: "/admin/personas/importar", label: importar ?? "" },
+        { href: "/admin/personas/activacion", label: t("T-2128") },
         { href: "/admin/tareas", label: tareas ?? "" },
         { href: "/admin/formularios", label: formularios ?? "" },
         { href: "/admin/pipelines", label: pipelines ?? "" },
@@ -101,6 +107,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       "/admin/etiquetas",
       "/admin/segmentos",
       "/admin/personas/importar",
+      "/admin/personas/activacion",
     ],
     [
       "/admin/tareas",

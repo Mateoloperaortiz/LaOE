@@ -461,3 +461,39 @@ tampoco aparecía en Correo no deseado, y autorizó expresamente los envíos de 
   queda registrado. Bajan las señales de correo masivo, pero no reemplazan la entrada de permitidos.
   **La promoción espera a que llegue un código real:** mientras tanto, leer el código del asunto en el
   registro del proveedor es la única forma de completar el step-up en producción.
+
+## Emisión de enlaces de acceso y jornada de activación (ADR-051)
+
+Desde [ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) la credencial es una contraseña propia, y la primera —o la recuperación— llega por un enlace de un solo uso que emite la junta fuera del correo. Este procedimiento es la parte que el código no puede hacer solo.
+
+### Antes de emitir: verificar quién pide
+
+El sistema comprueba que quien emite sea ADMIN o BOARD y que tenga step-up reciente. **No puede comprobar que quien recibe el enlace sea la persona correcta**: eso lo hace quien emite, y es la parte que se puede engañar.
+
+- Emitir **en persona**, o por un canal que ya se conozca de esa persona (su chat de siempre, no un número nuevo).
+- **Nunca emitir porque llegó un mensaje pidiéndolo.** Un mensaje que pide un enlace de acceso es la forma exacta que toma la ingeniería social; devolver la llamada o buscar a la persona en la reunión cuesta un minuto.
+- Ante la duda, no emitir y avisarle a otra persona de la junta.
+
+Quien emite ve el enlace, así que durante esos 60 minutos puede entrar como esa persona. Está registrado quién emitió y para quién, la persona recibe un push cuando se emite, y usar el enlace cierra las sesiones anteriores. Es una amenaza aceptada, no resuelta: por eso la lista de quien puede emitir se mantiene corta.
+
+### Emitir de a uno
+
+1. Buscar a la persona en `/admin/personas` y abrir su ficha.
+2. **Emitir enlace de acceso**, eligiendo si es la primera contraseña o una recuperación. Pide step-up.
+3. Copiar el enlace **en ese momento**: no se vuelve a mostrar. Vence en una hora y sirve una sola vez.
+4. Entregarlo por el canal verificado y confirmar con la persona que entró.
+
+Emitir otro enlace para la misma persona invalida el anterior, así que si hay dudas de que el primero llegó bien, se emite uno nuevo y listo.
+
+### Jornada de activación (asamblea o reunión de comité)
+
+Para arrancar a mucha gente de una sola vez, con identificación presencial:
+
+1. Abrir `/admin/personas/activacion` desde un equipo con pantalla visible.
+2. Filtrar por comité y elegir a la persona que está enfrente.
+3. Mostrarle el QR; ella lo escanea con la cámara del celular y elige su contraseña ahí mismo.
+4. Confirmar que entró y pasar a la siguiente.
+
+Se muestra **un QR a la vez**, a propósito: una hoja impresa con decenas de enlaces sería una pila de secretos con una hora de vida cada uno. Si alguien ya tiene contraseña, la pantalla lo dice y no hay que emitirle nada.
+
+Conviene hacerlo por comité, con el líder presente para reconocer a su gente, y dejar registrado cuántas personas quedaron activadas en cada sesión.

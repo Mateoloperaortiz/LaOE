@@ -277,6 +277,11 @@ export default async function PersonaPage({
             carnet !== null &&
             (data.membership?.status === "ACTIVE" || data.membership?.status === "HONORARY")
           }
+          // Emiten ADMIN y BOARD, y nunca para sí mismos (ADR-051, regla 4).
+          canIssueGrant={
+            (actor.isAdmin || actor.permissions.some((item) => item.code === "BOARD")) &&
+            actor.personId !== id
+          }
           messages={messages}
           preferences={
             preferences ?? {

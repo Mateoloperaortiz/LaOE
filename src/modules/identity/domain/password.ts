@@ -1,4 +1,4 @@
-import { and, count, eq, gt } from "drizzle-orm";
+import { and, count, eq, gt, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { findEligibleMemberByEmail } from "@/modules/people";
 import { logger } from "@/shared/log";
@@ -39,6 +39,18 @@ export async function findPasswordHash(personId: string): Promise<string | null>
     .from(credential)
     .where(eq(credential.personId, personId));
   return row?.passwordHash ?? null;
+}
+
+/** Quiénes de esta lista ya eligieron contraseña, para la jornada de activación (ADR-051). */
+export async function listPeopleWithPassword(personIds: string[]): Promise<Set<string>> {
+  if (personIds.length === 0) {
+    return new Set();
+  }
+  const rows = await getDb()
+    .select({ personId: credential.personId })
+    .from(credential)
+    .where(inArray(credential.personId, personIds));
+  return new Set(rows.map((row) => row.personId));
 }
 
 export type SignInResult =
