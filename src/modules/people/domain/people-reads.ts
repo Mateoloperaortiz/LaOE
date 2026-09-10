@@ -1,7 +1,8 @@
-import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
 import { appointment, committeeMembership, membership, membershipTerm, person } from "../schema";
+import { SIGN_IN_STATUSES } from "./reads";
 
 // Lecturas de personas para otros módulos y para la paleta.
 
@@ -287,6 +288,20 @@ export interface MembershipStatusRef {
 }
 
 /** Nombre y estado de membresía de varias personas (para las altas en grupos de trabajo). */
+/**
+ * Quiénes pueden entrar hoy: la lista de quien necesita contraseña (ADR-051). No sale del roster
+ * del término porque un honorario o alguien en licencia puede no tener comité este semestre y
+ * entra igual; contar solo pertenencias los dejaría invisibles en el avance de la activación.
+ */
+export async function listSignInMemberIds(): Promise<string[]> {
+  const rows = await getDb()
+    .select({ personId: person.id })
+    .from(membership)
+    .innerJoin(person, eq(person.id, membership.personId))
+    .where(and(inArray(membership.status, [...SIGN_IN_STATUSES]), isNull(person.anonymizedAt)));
+  return rows.map((row) => row.personId);
+}
+
 export async function listMembershipStatuses(
   personIds: string[],
 ): Promise<Map<string, MembershipStatusRef>> {

@@ -5,8 +5,8 @@ import { listPeopleWithPassword } from "@/modules/identity";
 import {
   listAllCommittees,
   listInternalRoster,
+  listSignInMemberIds,
   listTermRoster,
-  SIGN_IN_STATUSES,
 } from "@/modules/people";
 import { getCurrentTerm } from "@/modules/terms";
 import { Insignia, Progreso } from "@/shared/brand";
@@ -36,13 +36,15 @@ export default async function ActivacionPage({
     getCurrentTerm(),
     comite ? listInternalRoster(comite) : Promise.resolve(null),
   ]);
-  // El avance se calcula sobre el término en curso, no sobre el comité que se esté mirando: la
-  // campaña se gobierna con el total, y cada comité muestra el suyo en su ficha.
-  const filas = current
-    ? (await listTermRoster(current.id)).filter((fila) => SIGN_IN_STATUSES.includes(fila.status))
-    : [];
-  const conClave = await listPeopleWithPassword([...new Set(filas.map((f) => f.personId))]);
-  const avance = calcularAvance(filas, conClave);
+  // El total se gobierna con quién puede entrar hoy; cada comité muestra el suyo sobre el término.
+  const [elegibles, filas] = await Promise.all([
+    listSignInMemberIds(),
+    current ? listTermRoster(current.id) : Promise.resolve([]),
+  ]);
+  const conClave = await listPeopleWithPassword([
+    ...new Set([...elegibles, ...filas.map((fila) => fila.personId)]),
+  ]);
+  const avance = calcularAvance(elegibles, filas, conClave);
   const elegida = roster?.members.find((item) => item.personId === persona) ?? null;
   const base = `/admin/personas/activacion?comite=${encodeURIComponent(comite)}`;
 

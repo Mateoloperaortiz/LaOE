@@ -105,6 +105,7 @@ export {
   listAppointmentsForTerm,
   listMailingRefs,
   listMembershipStatuses,
+  listSignInMemberIds,
   listTermCommitteeMembers,
   listTermRoster,
   type MailingRef,
