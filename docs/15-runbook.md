@@ -439,10 +439,17 @@ tampoco aparecía en Correo no deseado, y autorizó expresamente los envíos de 
   `seguridadinformatica@eafit.edu.co`. `oeeafit.com` se registró el **2026-08-27**, así que todavía
   figura como dominio de registro reciente, y su nombre se parece al de la Universidad: las dos
   señales que activan la protección antisuplantación de Defender.
-- **Conclusión.** El mensaje sale bien autenticado y el bloqueo ocurre dentro del tenant de EAFIT, sin
-  rebote ni carpeta visible. La corrección de fondo es una entrada de permitidos para `oeeafit.com` y
-  una excepción antisuplantación, que solo puede aplicar TI de EAFIT; la solicitud se envía a
-  `seguridadinformatica@eafit.edu.co` pidiendo además la traza de esos tres mensajes.
+- **Confirmado: los retiene Check Point.** El reporte «Quarantined and Spam/Junk Email Report» de
+  `no-reply@checkpoint.com` del 9 de septiembre lista en *Quarantined Emails* dos mensajes de
+  `noreply@oeeafit.com`: «Tu código para entrar a Mi OE: 790759» (09/09 05:19 PM GMT) y «… 815605»
+  (09/09 07:17 PM GMT), con acción *Request to Release*. EAFIT tiene Check Point (Harmony Email &
+  Collaboration) por encima de Microsoft 365, y es esa capa —no Defender ni la carpeta de Correo no
+  deseado— la que retiene el correo. Por eso no aparecía en ninguna carpeta: la única señal es ese
+  digest diario, que llega cuando el código ya venció.
+- **Liberar uno por uno no sirve.** El código vive diez minutos y el reporte de cuarentena llega una
+  vez al día. La corrección de fondo es una **regla de permitidos en la consola de Check Point** para
+  `noreply@oeeafit.com` y `oeeafit.com`, más la excepción antisuplantación frente a `eafit.edu.co`;
+  solo puede aplicarla TI de EAFIT. La solicitud va a `seguridadinformatica@eafit.edu.co`.
 - **No se cambió DNS.** La hipótesis previa de bajar DMARC a `p=none` quedó descartada: DMARC pasa, así
   que relajar la política no habría mejorado la entrega y sí habría debilitado la protección del
   dominio contra suplantación.
