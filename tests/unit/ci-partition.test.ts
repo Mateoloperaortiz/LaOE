@@ -57,11 +57,11 @@ describe("reparto de escenarios E2E por archivo", () => {
     expect(() => partitionFiles(files, known, 0)).toThrow("particiones");
   });
   it("exige que la matriz del workflow declare el mismo total que el reparto", () => {
-    expect(E2E_SHARDS).toBe(4);
-    expect(parseShard("2/4")).toBe(2);
-    expect(() => parseShard("1/3")).toThrow("declara 3");
-    expect(() => parseShard("5/4")).toThrow("no existe");
-    expect(() => parseShard("0/4")).toThrow("inválida");
+    expect(E2E_SHARDS).toBe(5);
+    expect(parseShard("2/5")).toBe(2);
+    expect(() => parseShard("1/4")).toThrow("declara 4");
+    expect(() => parseShard("6/5")).toThrow("no existe");
+    expect(() => parseShard("0/5")).toThrow("inválida");
     expect(parseShard("2/2", 2)).toBe(2);
     expect(() => parseShard(undefined)).toThrow("inválida");
   });
