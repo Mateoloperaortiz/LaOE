@@ -3,7 +3,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { consumeAccessGrant } from "@/modules/identity/domain/access-grant";
 import { findPasswordHash } from "@/modules/identity/domain/password";
-import { accessGrant } from "@/modules/identity/schema";
+import { hashPassword, verifyPassword } from "@/modules/identity/domain/pure";
+import { accessGrant, credential } from "@/modules/identity/schema";
 import { membership, person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
@@ -72,13 +73,28 @@ describe("bootstrapAccess", () => {
   });
 
   it("acepta RECOVERY para quien ya tiene contraseña", async () => {
-    await seedMember("arranque@eafit.edu.co");
+    const personId = await seedMember("arranque@eafit.edu.co");
+    const previous = "caracol anterior 91";
+    await db()
+      .insert(credential)
+      .values({ personId, passwordHash: await hashPassword(previous) });
 
     const result = await bootstrapAccess({ email: "arranque@eafit.edu.co", kind: "RECOVERY" });
 
     expect(result.url).toContain("/activar/");
     const [fila] = await db().select().from(accessGrant);
     expect(fila?.kind).toBe("RECOVERY");
+    expect(
+      await consumeAccessGrant({
+        token: result.url.split("/activar/")[1] ?? "",
+        password: "caracol renovado 92",
+        ip: null,
+        userAgent: null,
+      }),
+    ).toMatchObject({ ok: true });
+    const stored = (await findPasswordHash(personId)) ?? "";
+    expect(await verifyPassword(stored, "caracol renovado 92")).toBe(true);
+    expect(await verifyPassword(stored, previous)).toBe(false);
   });
 
   it("rechaza un correo que no puede entrar y no deja rastro", async () => {

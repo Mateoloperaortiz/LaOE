@@ -1,18 +1,20 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { and, eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { pointEntry } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
 
 // GH Points en Mi OE como miembro (ADR-035 reglas 9 y 10): saldo, nivel, movimientos y rankings.
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const db = getDb();
-  const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
+  const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
   const [member] = await db
     .select({ id: person.id })
     .from(person)

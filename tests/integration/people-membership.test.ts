@@ -138,10 +138,10 @@ describe("salida, reactivación y anonimización", () => {
       endReason: "GRADUATION",
       lastTermId: termId,
     });
-    expect(data?.membership?.endedAt).not.toBeNull();
-    expect(data?.committeesByTerm[0]?.items[0]?.leftAt).not.toBeNull();
+    expect(data?.membership?.endedAt).toBeInstanceOf(Date);
+    expect(data?.committeesByTerm[0]?.items[0]?.leftAt).toBeInstanceOf(Date);
     const consents = await listConsents(personId);
-    expect(consents.find((item) => item.purpose === "MEMORIAL")?.live).not.toBeNull();
+    expect(consents.find((item) => item.purpose === "MEMORIAL")?.live).toEqual(expect.anything());
     expect(consents.find((item) => item.purpose === "COMMUNICATIONS")?.live).toBeNull();
     // Segunda baja: no hace nada.
     expect(
@@ -207,7 +207,7 @@ describe("salida, reactivación y anonimización", () => {
     expect(who?.email).toBe(`eliminado.${personId}@anonimo.invalid`);
     expect(who?.phone).toBeNull();
     expect(who?.program).toBeNull();
-    expect(who?.anonymizedAt).not.toBeNull();
+    expect(who?.anonymizedAt).toBeInstanceOf(Date);
     expect(who?.stage).toBe("ALUMNI");
     const [memberships] = await db()
       .select({ n: count() })

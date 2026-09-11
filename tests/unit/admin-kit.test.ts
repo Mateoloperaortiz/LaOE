@@ -94,11 +94,11 @@ describe("términos", () => {
       expect(ok.data.requiredOrdinaryAssemblies).toBe(1);
       expect(ok.data.permanenceGeneralNominal).toBe(50);
     }
-    const bad = termInputSchema.safeParse({
-      code: "2026-3",
-      startsOn: "2026-07-13",
-      endsOn: "2026-01-01",
-    });
-    expect(bad.success).toBe(false);
+    for (const invalid of [
+      { code: "2026-3", startsOn: "2026-07-13", endsOn: "2026-12-05" },
+      { code: "2026-2", startsOn: "2026-07-13", endsOn: "2026-01-01" },
+    ]) {
+      expect(termInputSchema.safeParse(invalid).success).toBe(false);
+    }
   });
 });

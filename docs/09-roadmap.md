@@ -339,10 +339,28 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 - Servicio `worker` separado, solo con uso medido
 - SES cuando exista cuenta y el volumen justifique activar el desbordamiento; Cloudflare conserva el proxy existente
 
+## Auditoría de la suite · 2026-09-11
+
+- [x] Revisar todas las pruebas existentes, ejecutar las cinco familias, contrastar su utilidad y dejar [inventario y evidencia](auditoria-pruebas-2026-09-11.md): 849 casos finales aprobados más el harness de respaldo. Se reforzaron falsos positivos y se agruparon 24 fases E2E en nueve recorridos completos.
+- [x] R1: base E2E desechable por corrida y drenaje estricto antes de limpiar y al terminar cada escenario; un handler fallido provoca código 1 de Playwright, comprobado con una inyección de fallo real.
+- [x] R2–R3: los 53 specs restauran la base autenticada por escenario y preparan sus datos propios; calendario sintético vigente con bordes de 2027 y 2028 comprobados. Dos corridas completas y una en orden inverso aprobadas, sin reintentos.
+- [ ] R4–R5: clasificar errores del servidor y precisar los escenarios cuyos títulos prometen más de lo que comprueban.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-11 | Auditoría de pruebas | Revisados 168 archivos originales; 169 tras añadir nueve pruebas de protección de la base de integración. `npm run check` PASS: 365 unitarias, 304 de integración, 11 de Python y build; orden aleatorio también PASS. E2E: 169/169 con cero reintentos. Respaldo: retención, fallos y restauración PASS. Tres mutaciones escapaban a las pruebas originales y las reforzadas ya las detectan. Se conserva la cobertura funcional; los límites del outbox, fixtures, calendario y escenarios quedan abiertos y documentados. |
+| 2026-09-11 | Corrección R1–R3 | [ADR-052](adr/ADR-052-aislamiento-y-fallos-de-las-pruebas-e2e.md): base desechable, restauración por caso, outbox estricto y calendario vigente. `check` PASS: 385 unitarias, 309 de integración, 11 de Python y build. Tres corridas E2E completas 169/169, incluida la inversa, y lectores aislados 7/7; cero reintentos y fallos inesperados del outbox. El ensayo negativo hace fallar Playwright por un handler real. Las 76 tablas de desarrollo conservaron sus huellas y no quedaron bases E2E. Se corrige la atribución SEO: su edición viene del seed. R4 y el resto de R5 continúan abiertos. [Evidencia](verificacion-e2e-2026-09-11.json). |
+
+## Evaluación de CI/CD · 2026-09-11
+
+- [x] Medir CI y CD reales, identificar el camino crítico y evaluar alternativas conservando todas las pruebas. [Assessment y propuesta](assessment-ci-cd-2026-09-11.md): 30 ejecuciones analizadas, configuración/logs de Railway y dos particiones E2E comprobadas en local.
+- [ ] Implementar y medir la propuesta: informes de tiempos, integración independiente, dos particiones E2E, tratamiento de documentación, caché de Next y smoke posterior. Objetivo inicial estimado de 10–12 min; falta validación en GitHub.
+
 ## Registro de avances
 
 | Fecha | Fase | Qué cambió |
 | --- | --- | --- |
+| 2026-09-11 | Assessment CI/CD | 30 ejecuciones: 21 exitosas, 8 canceladas y 1 fallida; mediana 16:42 y p90 17:18. Último CI: E2E 11:49, integración 3:32; Railway añade aproximadamente 1:16–1:29 después. Particiones por casos aprobadas en local: 86/86 y 85/85, sin reintentos; unión exacta de los 167 escenarios más autenticación propia de cada partición. [Propuesta y evidencia](assessment-ci-cd-2026-09-11.md), con objetivo inicial estimado de 10–12 min. Assessment terminado; workflow, reglas remotas y Railway sin modificar. |
 | 2026-09-02 | — | Documentación inicial: visión, arquitectura, CRM, modelo de datos, 20 ADR, acceso, mapa del sitio, marca, migración, roadmap |
 | 2026-09-02 | — | Carpeta renombrada de `Untitled` a `casa-digital`. Hosting vuelve a Railway en el workspace Pro existente: ADR-021 reemplaza a ADR-019 y enmienda ADR-001, ADR-012 y ADR-016. Marca reescrita a partir del manual de 19 páginas (logo, color, tipografía, elementos, texturas, composición, orden del feed) |
 | 2026-09-02 | — | Cerradas cuatro decisiones: sustitutos libres de fuentes por comparación visual (Sofia Sans Extra Condensed y Plus Jakarta Sans), isotipo aprobado como favicon, elementos gráficos redibujados en SVG, subida directa prefirmada al bucket (ADR-022 reemplaza a ADR-016). Láminas de comparación en `docs/assets/` |

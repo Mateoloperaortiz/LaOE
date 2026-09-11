@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
 
 // Mi OE como miembro sin permisos (ADR-034): inicio, directorio sin correos, comités internos y
@@ -66,7 +67,9 @@ test("ajustes: edita el celular, autoriza la foto y descarga sus datos", async (
     consents: Array<{ purpose: string; live: unknown }>;
   };
   expect(body.person.email).toBe(E2E_MEMBER_EMAIL);
-  expect(body.consents.find((item) => item.purpose === "DIRECTORY_PHOTO")?.live).not.toBeNull();
+  expect(body.consents.find((item) => item.purpose === "DIRECTORY_PHOTO")?.live).toEqual(
+    expect.anything(),
+  );
 
   await page
     .getByRole("navigation", { name: "Ajustes", exact: true })

@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 
 // Galería de egresados (ADR-030): el seed sintético trae egresados de varios años con consentimiento.
 test.use({ storageState: "tests/e2e/.auth/admin.json" });

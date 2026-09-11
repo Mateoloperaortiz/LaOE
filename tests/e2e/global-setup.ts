@@ -41,6 +41,9 @@ import {
 import { appConfig, importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { walletPass } from "@/modules/wallet/schema";
+import { E2E_TERM } from "./calendar";
+import { alignSeedCalendar } from "./calendar-seed";
+import { assertOwnedDatabase } from "./environment";
 
 // Persona sintética para las pruebas e2e; se recrea en cada corrida, nunca es una persona real.
 export const E2E_EMAIL = "prueba.e2e@eafit.edu.co";
@@ -75,6 +78,9 @@ async function setE2ePassword(personId: string, email: string): Promise<void> {
 }
 
 export default async function globalSetup(): Promise<void> {
+  if (process.env.E2E_RUN !== "1")
+    throw new Error("Usá npm run test:e2e para preparar una base aislada");
+  assertOwnedDatabase(process.env.DATABASE_URL ?? "");
   // Las identidades y archivos sintéticos solo se limpian en servicios de loopback.
   for (const key of ["DATABASE_URL", "S3_ENDPOINT"]) {
     const hostname = new URL(process.env[key] ?? "http://sin-configurar.invalid").hostname;
@@ -83,6 +89,9 @@ export default async function globalSetup(): Promise<void> {
     }
   }
   const db = getDb();
+  // El seed compartido conserva sus ejemplos históricos. Solo la base E2E adapta sus dos
+  // términos al calendario vigente, preservando IDs y relaciones de las fixtures.
+  await alignSeedCalendar(new Date());
   await db
     .insert(appConfig)
     .values({ key: "privacy.policyVersion", value: "prueba-v1" })
@@ -90,12 +99,9 @@ export default async function globalSetup(): Promise<void> {
       target: appConfig.key,
       set: { value: "prueba-v1", updatedAt: new Date() },
     });
-  let [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
+  let [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) {
-    [current] = await db
-      .insert(term)
-      .values({ code: "2026-2", semester: 2, startsOn: "2026-07-13", endsOn: "2026-12-05" })
-      .returning({ id: term.id });
+    [current] = await db.insert(term).values(E2E_TERM).returning({ id: term.id });
   }
   if (!current) {
     throw new Error("sin término");

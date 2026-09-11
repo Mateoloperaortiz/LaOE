@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { page as contentPage } from "@/modules/content/schema";
@@ -6,7 +6,9 @@ import { session } from "@/modules/identity/schema";
 import { person } from "@/modules/people/schema";
 import { appConfig } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { test } from "./fixtures";
 import { E2E_EMAIL } from "./global-setup";
+import { drenarOutbox } from "./outbox";
 
 test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
@@ -70,6 +72,7 @@ test.beforeEach(async () => {
 });
 
 test.afterEach(async () => {
+  await drenarOutbox();
   if (originalPage) {
     await getDb().update(contentPage).set(originalPage).where(eq(contentPage.id, policyId));
   } else {
@@ -90,7 +93,10 @@ test.afterEach(async () => {
       .where(eq(session.id, original.id));
   }
 });
-test.afterAll(closeDb);
+test.afterEach(async () => {
+  await drenarOutbox();
+  await closeDb();
+});
 
 test("publica primero, habilita desde el control y vuelve a bloquear de inmediato", async ({
   page,

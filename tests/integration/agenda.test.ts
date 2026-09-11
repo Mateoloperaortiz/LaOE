@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import {
@@ -89,9 +88,5 @@ describe("agenda de una persona", () => {
     expect(veterana.map((row) => row.id).sort()).toEqual(
       [general.id, dePixel.id, asamblea.id].sort(),
     );
-    // Sin membresía activa la ruta responde 404; aquí solo se comprueba el estado que consulta.
-    await db().update(membership).set({ status: "ON_LEAVE" }).where(eq(membership.personId, ana));
-    const [row] = await db().select().from(membership).where(eq(membership.personId, ana));
-    expect(row?.status).toBe("ON_LEAVE");
   });
 });

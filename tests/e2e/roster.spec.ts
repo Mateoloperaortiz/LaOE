@@ -1,10 +1,12 @@
-import path from "node:path";
-import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { expect } from "@playwright/test";
 import { eq, sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { page as contentPage } from "@/modules/content/schema";
 import { committee } from "@/modules/people/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
 import { E2E_EMAIL } from "./global-setup";
 import { pasarStepUp } from "./stepup";
 
@@ -21,9 +23,16 @@ test("el asistente importa un roster con step-up y el nuevo miembro entra por OT
   await page.goto("/admin/personas/importar");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Importar roster");
   await sinViolaciones(page);
-  await page
-    .getByLabel("Archivo del roster (CSV o Excel)")
-    .setInputFiles(path.join(process.cwd(), "tests/fixtures/roster-e2e.csv"));
+  await page.getByLabel("Archivo del roster (CSV o Excel)").setInputFiles({
+    name: "roster-e2e.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(
+      readFileSync("tests/fixtures/roster-e2e.csv", "utf8").replaceAll(
+        ";2026-2;",
+        `;${E2E_TERM.code};`,
+      ),
+    ),
+  });
   await page.getByRole("button", { name: "Subir y revisar" }).click();
   await expect(page).toHaveURL(/\/admin\/personas\/importar\?job=/);
   await expect(
@@ -113,7 +122,7 @@ test("la reautenticación conserva una propuesta de líder desmarcada", async ({
   const email = "e2e-roster-sin-lider@eafit.edu.co";
   const committeeName = "E2E Roster UI";
   await getDb().insert(committee).values({ slug: "e2e-roster-ui", name: committeeName });
-  const csv = `NOMBRE;APELLIDO;CORREO;COMITES;ENTRADA A LA OE;ESTADO;CARGO\nPrueba;Sin liderazgo;${email};${committeeName};2026-2;Activo;General de ${committeeName}\n`;
+  const csv = `NOMBRE;APELLIDO;CORREO;COMITES;ENTRADA A LA OE;ESTADO;CARGO\nPrueba;Sin liderazgo;${email};${committeeName};${E2E_TERM.code};Activo;General de ${committeeName}\n`;
   await page.goto("/admin/personas/importar");
   await page.getByLabel("Archivo del roster (CSV o Excel)").setInputFiles({
     name: "roster-e2e-sin-lider.csv",

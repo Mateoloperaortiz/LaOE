@@ -1,16 +1,25 @@
 # Verificación
 
-Cómo se prueba cada capa cuando exista código. Cada fase del [roadmap](09-roadmap.md) se considera lista solo si pasa lo que le corresponde aquí.
+Cómo se prueba cada capa. Cada fase del [roadmap](09-roadmap.md) se considera lista solo si pasa lo que le corresponde aquí.
+
+La [auditoría del 2026-09-11](auditoria-pruebas-2026-09-11.md) revisa todos los archivos y sus casos y justifica qué conservar. Su corrección posterior incorpora [aislamiento por escenario, outbox estricto y calendario vigente](adr/ADR-052-aislamiento-y-fallos-de-las-pruebas-e2e.md): los fallos de trabajos de fondo ya hacen fallar Playwright. La [evidencia posterior](verificacion-e2e-2026-09-11.json) registra dos corridas completas consecutivas y una en orden inverso, 169/169 en las tres.
 
 ## Local
 
 - OrbStack como runtime de contenedores: `docker compose up -d` levanta Postgres 18 en `127.0.0.1:5433` (el 5432 lo usa GHPOINTS) y Garage como bucket S3 en `127.0.0.1:3900`; `npm run storage:init` aplica el CORS del bucket con el mismo comando que se usa contra Railway. Mailer de consola.
 - `npm run db:reset`: esquema desde cero con las migraciones SQL de Drizzle, verificación de índices parciales y extensiones, y datos sintéticos sin información real.
-- `npm run check`: Biome, dependency-cruiser, knip, `tsc --noEmit`, unit, integración contra la base local y `next build`.
-- `npm run test:e2e`: Playwright (Chromium) contra el dev server, con `axe` en cada pantalla; `OTP_FIXED_CODE` del `.env` como código. Las pruebas de integración corren contra `casa_digital_test` (la crea y migra `tests/integration/global-setup.ts`) para no chocar con el poller del dev server; las e2e usan la base de desarrollo.
+- `npm test`: solo unitarias. `npm run check` añade Biome, sintaxis Bash, tipos, dependency-cruiser, knip, el extractor Python, integración y `next build`. No incluye E2E ni la restauración de respaldos.
+- `npm run test:extractor`: once pruebas Python del extractor con PDFs sintéticos, también incluidas en `check`.
+- `npm run test:integration`: PostgreSQL local en una base con sufijo `_test` (la crea y migra `tests/integration/global-setup.ts`). El helper rechaza destinos remotos, protocolos distintos de PostgreSQL y nombres de base ausentes. El setup fija correo de consola, jobs deshabilitados y OTP sintético, independientemente del `.env` de desarrollo.
+- `npm run test:e2e`: Playwright (Chromium), con comprobaciones de `axe`, un worker y cero reintentos por defecto. Arranca dev en local o `next start` sobre un build previo con `CI=true`. El launcher crea, migra y siembra una base local desechable y la elimina al terminar; solo toma de `DATABASE_URL` la conexión y las credenciales. Necesita el superusuario del PostgreSQL local de pruebas. El setup prepara dos sesiones con contraseña y guarda la base autenticada; cada caso restaura esa copia antes de preparar sus propios datos. El OTP es sintético. El drenaje final y los anteriores a las limpiezas exigen cero errores del outbox, incluidos los reintentos aplazados.
+- `npm run test:backup`: harness Docker aislado que comprueba cifrado, retención, fallos y restauración real de PostgreSQL y medios. Es un job separado de CI y debe ejecutarse además de `check` y E2E para cubrir las cinco familias.
 - `npm run dev` y revisión en navegador a 360, 768 y 1280 px, claro y oscuro, navegación por teclado, `axe` sin violaciones serias o críticas, Lighthouse con PWA instalable.
 
 Si el puerto 3000 está ocupado, la suite admite `E2E_PORT`. El build y el servidor de prueba deben usar el mismo origen: `APP_URL=http://localhost:3105 npm run build` seguido de `E2E_PORT=3105 CI=true npm run test:e2e -- --retries=0`. Para las subidas locales, `MEDIA_CORS_ORIGINS=http://localhost:3105 npm run storage:init` añade ese origen al de `APP_URL`; Garage usa una regla CORS por origen. La suite siempre arranca su propio servidor y rechaza bases y buckets que no sean locales.
+
+Para comprobar independencia del orden: `E2E_ORDER=reverse CI=true npm run test:e2e` ejecuta los archivos en orden inverso, cada uno con su preparación por caso. Para aislar un recorrido se usa `npm run test:e2e -- tests/e2e/normativa.spec.ts --grep "busca un artículo"`. No hace falta sembrar la base a mano antes de ninguno de estos comandos. `--list` solo enumera y no crea una base.
+
+`tests/e2e/calendar.ts` calcula el término sintético actual y el anterior en Bogotá; `calendar-seed.ts` adapta los IDs del seed en la base desechable. Las pruebas de calendario incluyen 2027, cambio de semestre y 2028 bisiesto. Las de integración invocan la resolución real de `getCurrentTerm()` con el reloj de Vitest; el navegador de la suite completa conserva el reloj real. Los ejemplos históricos de reglas y documentos no son fechas vigentes de la OE.
 
 ## Unit (módulos puros, sin base)
 

@@ -51,7 +51,11 @@ describe("evaluaciones", () => {
     const groupId = await seedWorkGroup(termId, "GAP Días", { evaluatorIds: [evaluator] });
     await seedWorkGroupMembership(groupId, member);
     const evaluatorActor = { personId: evaluator, ip: null };
-    // Hoy (ventana cerrada: el término termina en diciembre) el evaluador no puede; quien no evalúa, tampoco.
+    // La precondición sigue cerrada aunque la suite corra al final del semestre.
+    await getDb()
+      .update(term)
+      .set({ endsOn: new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10) })
+      .where(eq(term.id, termId));
     await expect(
       evaluateAs(
         evaluatorActor,
@@ -262,7 +266,7 @@ describe("reconocimientos", () => {
       }),
     ).rejects.toThrow(t("T-780", { comité: "A3", mes: "agosto" }));
     const byPerson = await listRecognitionsByPeople([withConsent, without], termId);
-    expect(byPerson.get(withConsent)?.[0]?.announcementId).not.toBeNull();
+    expect(byPerson.get(withConsent)?.[0]?.announcementId).toEqual(expect.any(String));
     expect(byPerson.get(without)?.[0]?.announcementId).toBeNull();
     expect((await interactionsOf(withConsent))[0]).toBe("Destacado de agosto en A3");
     const [rows] = await getDb().select({ n: count() }).from(announcement);

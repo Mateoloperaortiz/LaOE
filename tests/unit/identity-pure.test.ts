@@ -1,5 +1,5 @@
-import { scryptSync } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { scrypt, scryptSync } from "node:crypto";
+import { describe, expect, it, vi } from "vitest";
 import {
   burnPasswordTime,
   checkPassword,
@@ -15,6 +15,11 @@ import {
   safeNextPath,
   verifyPassword,
 } from "@/modules/identity/domain/pure";
+
+vi.mock("node:crypto", async (importOriginal) => {
+  const crypto = await importOriginal<typeof import("node:crypto")>();
+  return { ...crypto, scrypt: vi.fn(crypto.scrypt) };
+});
 
 describe("safeNextPath", () => {
   it("acepta rutas del mismo origen con query", () => {
@@ -58,15 +63,17 @@ describe("códigos y hashes", () => {
     expect(codeMatches(a, "s", "a@eafit.edu.co", "111111")).toBe(true);
     expect(codeMatches(a, "s", "a@eafit.edu.co", "111112")).toBe(false);
   });
-  it("el hash del token es estable", () => {
-    expect(hashToken("abc")).toHaveLength(64);
-    expect(hashToken("abc")).toBe(hashToken("abc"));
+  it("el hash del token coincide con SHA-256 y cambia con el token", () => {
+    expect(hashToken("abc")).toBe(
+      "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+    );
+    expect(hashToken("abd")).not.toBe(hashToken("abc"));
   });
 });
 
 describe("correo y dispositivo", () => {
   it("normaliza y valida el dominio institucional", () => {
-    expect(normalizeEmail("  Mateo@EAFIT.edu.co ")).toBe("mateo@eafit.edu.co");
+    expect(normalizeEmail("  Sintetica@EAFIT.edu.co ")).toBe("sintetica@eafit.edu.co");
     expect(isInstitutionalEmail("a@eafit.edu.co", ["eafit.edu.co"])).toBe(true);
     expect(isInstitutionalEmail("a@gmail.com", ["eafit.edu.co"])).toBe(false);
   });
@@ -122,13 +129,37 @@ describe("contraseña propia (ADR-051)", () => {
     }
   });
 
-  it("gasta tiempo cuando no hay credencial", async () => {
-    await expect(burnPasswordTime()).resolves.toBeUndefined();
+  it("espera una derivación con el costo de una contraseña cuando no hay credencial", async () => {
+    let complete: (() => void) | undefined;
+    vi.mocked(scrypt).mockClear();
+    vi.mocked(scrypt).mockImplementationOnce((...args: Parameters<typeof scrypt>) => {
+      complete = () => args[4](null, Buffer.alloc(32));
+    });
+    let settled = false;
+    const pending = burnPasswordTime().then(() => {
+      settled = true;
+    });
+    expect(scrypt).toHaveBeenCalledExactlyOnceWith(
+      "",
+      expect.any(Buffer),
+      32,
+      { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 },
+      expect.any(Function),
+    );
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    expect(complete).toBeTypeOf("function");
+    complete?.();
+    await pending;
+    expect(settled).toBe(true);
   });
 });
 
 describe("checkPassword", () => {
-  const contexto = { email: "mateo.lopera@eafit.edu.co", names: ["Mateo", "Lopera Ortiz"] };
+  const contexto = {
+    email: "camila.inventada@eafit.edu.co",
+    names: ["Camila", "Inventada Prueba"],
+  };
 
   it("acepta una contraseña larga que no es de nadie", () => {
     expect(checkPassword("caracol de tinta 91", contexto)).toBeNull();
@@ -146,10 +177,10 @@ describe("checkPassword", () => {
   });
 
   it("rechaza lo que lleva el correo o el nombre, con o sin tildes", () => {
-    expect(checkPassword("mateo es el mejor", contexto)).toBe("PERSONAL");
-    expect(checkPassword("xx lopera xx 2026", contexto)).toBe("PERSONAL");
-    expect(checkPassword("nada de LOPERA acá", contexto)).toBe("PERSONAL");
-    expect(checkPassword("un rato con Mátéó", contexto)).toBe("PERSONAL");
+    expect(checkPassword("camila es la mejor", contexto)).toBe("PERSONAL");
+    expect(checkPassword("xx inventada xx 2026", contexto)).toBe("PERSONAL");
+    expect(checkPassword("nada de INVENTADA acá", contexto)).toBe("PERSONAL");
+    expect(checkPassword("un rato con Cámílá", contexto)).toBe("PERSONAL");
   });
 
   it("no se confunde con fragmentos de menos de cuatro letras", () => {

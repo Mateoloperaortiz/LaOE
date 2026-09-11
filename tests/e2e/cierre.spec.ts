@@ -1,9 +1,11 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { termStanding } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
 import { E2E_CLOSING_TERM } from "./global-setup";
 
 // Cierre de puntos como ADMIN (ADR-035 regla 13) sobre el término de pruebas que el global-setup
@@ -12,7 +14,7 @@ test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
 let termId = "";
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const db = getDb();
   const [row] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_CLOSING_TERM));
   if (!row) throw new Error("sin término de pruebas");
@@ -33,7 +35,9 @@ test("GH ve las asambleas del término y cierra los puntos con el standing conge
   page,
 }) => {
   await page.goto("/admin/asambleas");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Asambleas de 2026-2");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    `Asambleas de ${E2E_TERM.code}`,
+  );
   await expect(page.getByRole("link", { name: "Cumplen", exact: true })).toBeVisible();
   await sinViolaciones(page);
 

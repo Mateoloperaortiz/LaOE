@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import {
@@ -11,6 +11,9 @@ import {
 } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
+import { drenarOutbox } from "./outbox";
 import { pasarStepUpSiHaceFalta } from "./stepup";
 
 // Acceso sin correo (ADR-051): la junta emite el enlace, la persona elige su contraseña, entra y
@@ -25,9 +28,9 @@ const OTRA = "bulevar sin nombre 77";
 let personId: string;
 let committeeId: string;
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const db = getDb();
-  const [current] = await db.select().from(term).where(eq(term.code, "2026-2"));
+  const [current] = await db.select().from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("Falta el semestre sintético");
   const [comite] = await db
     .insert(committee)
@@ -56,7 +59,8 @@ test.beforeAll(async () => {
     .values({ personId, committeeId, termId: current.id, roleCode: "MIEMBRO" });
 });
 
-test.afterAll(async () => {
+test.afterEach(async () => {
+  await drenarOutbox();
   const db = getDb();
   await db.delete(person).where(eq(person.id, personId));
   await db.delete(committee).where(eq(committee.id, committeeId));

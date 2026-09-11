@@ -173,7 +173,7 @@ describe("migración en seco desde GHPOINTS", () => {
         // Fase 2: términos, personas, pertenencias y permisos.
         const [closed] = await getDb().select().from(term).where(eq(term.code, "2026-1"));
         const [current] = await getDb().select().from(term).where(eq(term.code, "2026-2"));
-        expect(closed?.pointsClosedAt).not.toBeNull();
+        expect(closed?.pointsClosedAt).toBeInstanceOf(Date);
         const [a3] = await getDb().select().from(committee).where(eq(committee.slug, "a3"));
         expect(a3).toMatchObject({ legacyId: "c1", presentation: "Presentación vieja" });
         const [ada] = await getDb().select().from(person).where(eq(person.legacyId, "m1"));
@@ -389,7 +389,7 @@ describe("migración en seco desde GHPOINTS", () => {
             ),
           );
         expect(scores[0]).toMatchObject({ eligible: 1, present: 1, rate: 1 });
-        expect(scores[0]?.frozenAt).not.toBeNull();
+        expect(scores[0]?.frozenAt).toBeInstanceOf(Date);
 
         // Segunda corrida: nada nuevo, sin advertencias; la verificación queda en cero.
         const second = await migrateGhpoints(source, { actorId: null });

@@ -1,11 +1,14 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { occasion } from "@/modules/participation/schema";
 import { legacyAlias } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
+import { drenarOutbox } from "./outbox";
 
 // El "listo cuando" del QR (10-verificacion): sin sesión → ingreso → vuelve al QR → puntos acreditados.
 // Contexto sin sesión: la persona escanea el QR con el celular limpio.
@@ -15,9 +18,9 @@ const CODE = process.env.OTP_FIXED_CODE ?? "123456";
 const PUBLIC_ID = "e2eqr00001";
 const LEGACY_ID = "e2elegacy1";
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const db = getDb();
-  const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
+  const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("sin término");
   const now = Date.now();
   const [row] = await db
@@ -40,7 +43,8 @@ test.beforeAll(async () => {
   await db.insert(legacyAlias).values({ path: `/asamblea/${LEGACY_ID}`, targetId: row.id });
 });
 
-test.afterAll(async () => {
+test.afterEach(async () => {
+  await drenarOutbox();
   const db = getDb();
   await db.delete(legacyAlias).where(eq(legacyAlias.path, `/asamblea/${LEGACY_ID}`));
   await closeDb();

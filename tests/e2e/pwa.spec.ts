@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 
 // PWA y notificaciones (ADR-038 reglas 4 y 5): manifest e iconos, service worker, suscripción de un
 // dispositivo (ficticio: el navegador de pruebas no llega a un servicio de push), preferencias y baja

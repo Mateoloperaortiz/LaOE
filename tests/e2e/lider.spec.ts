@@ -1,10 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { and, asc, eq, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
 import { committee, person } from "@/modules/people/schema";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
+import { drenarOutbox } from "./outbox";
 
 // Vista de líder (ADR-035 regla 15): el miembro de pruebas recibe COMMITTEE_LEADER de su comité por
 // SQL (el global-setup lo revoca en cada corrida), entra al admin recortado y crea la serie semanal.
@@ -13,7 +15,7 @@ test.use({ storageState: "tests/e2e/.auth/member.json" });
 let slug = "";
 let name = "";
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const db = getDb();
   const [member] = await db
     .select({ id: person.id })
@@ -36,7 +38,8 @@ test.beforeAll(async () => {
 });
 
 // El permiso es solo de este spec: se revoca al terminar para que el miembro siga sin permisos.
-test.afterAll(async () => {
+test.afterEach(async () => {
+  await drenarOutbox();
   const db = getDb();
   const [member] = await db
     .select({ id: person.id })

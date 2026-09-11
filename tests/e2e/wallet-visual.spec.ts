@@ -1,5 +1,8 @@
-import { expect, type Page, type TestInfo, test } from "@playwright/test";
+import { expect, type Page, type TestInfo } from "@playwright/test";
+import { getDb } from "@/db/client";
+import { message } from "@/modules/comms/schema";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
@@ -105,6 +108,15 @@ for (const width of [375, 768, 1440]) {
       await expectNoOverflow(page);
 
       const exported = await (await page.request.get("/api/mis-datos")).json();
+      // La región accesible se renderiza cuando hay mensajes: este caso prepara el suyo.
+      await getDb().insert(message).values({
+        personId: exported.person.id,
+        channel: "EMAIL",
+        subject: "Mensaje sintético E2E para comprobar el foco y el reflujo",
+        status: "SENT",
+        provider: "console",
+        sentAt: new Date(),
+      });
       const admin = await browser.newContext({
         storageState: "tests/e2e/.auth/admin.json",
         viewport: { width, height: 1000 },

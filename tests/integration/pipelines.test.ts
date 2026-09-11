@@ -116,7 +116,7 @@ describe("pipelines y tarjetas", () => {
     if (!won || !lost) throw new Error("stages");
     await moveCardAs(admin, created.id, won.id);
     view = await getCard(created.id);
-    expect(view?.closedAt).not.toBeNull();
+    expect(view?.closedAt).toBeInstanceOf(Date);
     // El patrocinio ganado abre la tarea de seguimiento sobre la organización y la tarjeta.
     const [followUp] = await getDb().select().from(task).where(eq(task.cardId, created.id));
     expect(followUp).toMatchObject({
@@ -198,7 +198,7 @@ describe("pipelines y tarjetas", () => {
     });
     const view = await getCard(created.id);
     expect(view).toMatchObject({ stageName: "Alta", stageIsWon: true });
-    expect(view?.closedAt).not.toBeNull();
+    expect(view?.closedAt).toBeInstanceOf(Date);
     expect((await getMyMembership(personId)).committees.map((row) => row.committeeSlug)).toEqual([
       "a3",
     ]);

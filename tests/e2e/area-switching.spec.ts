@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 
 test.describe("cambio de área con la misma cuenta", () => {
   test.use({ storageState: "tests/e2e/.auth/admin.json" });

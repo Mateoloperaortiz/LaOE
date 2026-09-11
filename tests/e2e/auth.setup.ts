@@ -1,5 +1,12 @@
 import { expect, test as setup } from "@playwright/test";
+import { saveBaseline } from "./database";
 import { E2E_EMAIL, E2E_MEMBER_EMAIL, E2E_PASSWORD } from "./global-setup";
+import { drenarOutbox } from "./outbox";
+
+setup.afterAll(async () => {
+  await drenarOutbox();
+  await saveBaseline();
+});
 
 // Entra una vez por identidad con la contraseña propia (ADR-051) y guarda la sesión. Con
 // contraseña ya no hay que esquivar el límite de cinco códigos por correo cada 15 minutos.

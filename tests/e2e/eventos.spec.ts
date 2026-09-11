@@ -1,6 +1,7 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { closeDb } from "@/db/client";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 import { subirPortada } from "./media-helper";
 
 // Eventos y ediciones (F1-T4): admin anidado, portal, próximo encuentro e ICS.

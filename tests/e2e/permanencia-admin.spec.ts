@@ -1,10 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { person } from "@/modules/people/schema";
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
 
 // Grupos de trabajo (ADR-036 regla 6): GH crea un grupo, importa miembros desde un CSV y siembra los
@@ -18,7 +20,7 @@ test.describe("GH", () => {
   }) => {
     await page.goto("/admin/permanencia/grupos?nuevo=1");
     const panel = page.getByRole("dialog");
-    await panel.getByLabel("Semestre").selectOption({ label: "2026-2" });
+    await panel.getByLabel("Semestre").selectOption({ label: E2E_TERM.code });
     await panel.getByLabel("Tipo").selectOption("GAP");
     await panel.getByLabel("Nombre").fill("e2e-GAP de prueba");
     await panel.getByRole("button", { name: "Guardar" }).click();
@@ -48,7 +50,7 @@ test.describe("GH", () => {
 
     await page.goto("/admin/permanencia/grupos");
     await page.getByRole("button", { name: /Sembrar comités de trabajo/ }).click();
-    await expect(page.getByText(/comités de trabajo creados para 2026-2/)).toBeVisible();
+    await expect(page.getByText(`comités de trabajo creados para ${E2E_TERM.code}`)).toBeVisible();
     await sinViolaciones(page);
   });
 });
@@ -58,13 +60,16 @@ test.describe("líder de grupo", () => {
 
   let groupId = "";
 
-  test.beforeAll(async () => {
+  test.beforeEach(async () => {
     const db = getDb();
     const [member] = await db
       .select({ id: person.id })
       .from(person)
       .where(eq(person.email, E2E_MEMBER_EMAIL));
-    const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
+    const [current] = await db
+      .select({ id: term.id })
+      .from(term)
+      .where(eq(term.code, E2E_TERM.code));
     if (!member || !current) throw new Error("sin miembro o término");
     const [row] = await db
       .insert(workGroup)
@@ -80,9 +85,7 @@ test.describe("líder de grupo", () => {
     await closeDb();
   });
 
-  test("entra derecho a su grupo, agrega a alguien por nombre y no ve el resto del admin", async ({
-    page,
-  }) => {
+  test("entra derecho a su grupo y no ve el resto del admin", async ({ page }) => {
     await page.goto("/admin");
     await expect(page).toHaveURL(new RegExp(`/admin/permanencia/grupos/${groupId}$`));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("e2e-GT que lidero");

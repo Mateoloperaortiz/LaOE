@@ -36,7 +36,7 @@ describe("tableros y ledger manual", () => {
   beforeEach(truncateAll);
   afterAll(() => closeDb());
 
-  it("separa nuevos y veteranos por el primer término, solo activos, con puestos 1, 2, 2, 4 y puesto propio", async () => {
+  it("separa nuevos y veteranos por el primer término, solo activos, con empates 1, 1, 3, 3 y puesto propio", async () => {
     const termId = await seedTerm(currentTermCode());
     const oldTermId = await seedTerm("2019-1");
     const nueva = await seedMember("nueva@eafit.edu.co", { firstName: "Nueva", lastName: "Uno" });

@@ -1,6 +1,7 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { verifyCarnet } from "@/modules/identity/domain/carnet-pure";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 
 // Carnet (ADR-034 regla 10): el QR lleva un token firmado que `verifyCarnet` acepta.
 test.use({ storageState: "tests/e2e/.auth/member.json" });

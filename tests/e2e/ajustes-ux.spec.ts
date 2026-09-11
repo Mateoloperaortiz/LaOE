@@ -1,6 +1,7 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import sharp from "sharp";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 

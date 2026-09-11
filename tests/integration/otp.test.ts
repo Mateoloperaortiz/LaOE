@@ -225,7 +225,7 @@ describe("verifyOtp y sesiones", () => {
     expect(days).toBeGreaterThan(89);
 
     const [challenge] = await db().select().from(otpChallenge);
-    expect(challenge?.consumedAt).not.toBeNull();
+    expect(challenge?.consumedAt).toBeInstanceOf(Date);
 
     const actor = await resolveActor(result.token);
     expect(actor).toMatchObject({

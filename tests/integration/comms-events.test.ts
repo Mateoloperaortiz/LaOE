@@ -76,15 +76,15 @@ describe("push por evento", () => {
     );
     await runCommand(SYSTEM_ACTOR, (ctx) => publishAndPushAnnouncement(ctx, id));
     let row = await getAnnouncement(id);
-    expect(row?.publishedAt).not.toBeNull();
-    expect(row?.pushRequestedAt).not.toBeNull();
+    expect(row?.publishedAt).toBeInstanceOf(Date);
+    expect(row?.pushRequestedAt).toBeInstanceOf(Date);
     expect(row?.pushSentAt).toBeNull();
 
     const result = await drain(20);
     expect(result.failed).toBe(0);
     expect(delivered).toEqual(["https://push.example/dentro"]);
     row = await getAnnouncement(id);
-    expect(row?.pushSentAt).not.toBeNull();
+    expect(row?.pushSentAt).toBeInstanceOf(Date);
     expect(row?.pushCount).toBe(1);
     const [sent] = await messagesOf(dentro);
     expect(sent).toMatchObject({

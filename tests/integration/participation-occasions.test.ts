@@ -2,7 +2,7 @@ import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
-import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { SYSTEM_ACTOR } from "@/db/tx";
 import {
   cancelOccasionAs,
   closeOccasionAs,
@@ -25,16 +25,15 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { todayKey } from "@/shared/lib/dates";
 import { truncateAll } from "./db";
 import { currentTermCode, seedOccasion, seedTerm } from "./factories";
 
 const db = () => getDb();
 
 // Una fecha dentro del término actual, escrita como la escribe el admin (datetime-local en Bogotá).
-function localInput(daysFromNow = 1, hour = "18:00"): string {
-  const at = new Date(Date.now() + daysFromNow * 86_400_000);
-  const key = `${at.getUTCFullYear()}-${String(at.getUTCMonth() + 1).padStart(2, "0")}-${String(at.getUTCDate()).padStart(2, "0")}`;
-  return `${key}T${hour}`;
+function localInput(hour = "18:00"): string {
+  return `${todayKey()}T${hour}`;
 }
 
 function parse(overrides: Record<string, unknown> = {}): OccasionInput {
@@ -87,8 +86,8 @@ describe("ocasiones", () => {
     const window = occasionInputSchema.safeParse({
       title: "Charla",
       startsAt: localInput(),
-      checkInOpensAt: localInput(1, "19:00"),
-      checkInClosesAt: localInput(1, "18:00"),
+      checkInOpensAt: localInput("19:00"),
+      checkInClosesAt: localInput("18:00"),
     });
     expect(window.success).toBe(false);
     const session = occasionInputSchema.safeParse({
@@ -170,8 +169,8 @@ describe("ocasiones", () => {
       kind: base.kind,
       category: base.category,
       startsAt: localInput(),
-      checkInOpensAt: localInput(1, "17:30"),
-      checkInClosesAt: localInput(1, "21:00"),
+      checkInOpensAt: localInput("17:30"),
+      checkInClosesAt: localInput("21:00"),
       points: String(base.points),
       approval: base.approval,
     };
@@ -238,6 +237,5 @@ describe("ocasiones", () => {
     expect(found.map((row) => row.title)).toContain("Integración de nuevos");
     const [total] = await db().select({ n: count() }).from(occasion);
     expect(total?.n).toBe(2);
-    await runCommand(SYSTEM_ACTOR, async () => undefined);
   });
 });

@@ -1,18 +1,20 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
 
 // Avisos de permanencia en Mi OE (ADR-036 regla 11): una asamblea obligatoria `e2e-` en las próximas
 // 24 horas produce el aviso T-183 en el inicio y en /app/permanencia sin ningún job de por medio.
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const db = getDb();
-  const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
+  const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("sin término");
   const now = Date.now();
   await db.insert(occasion).values({

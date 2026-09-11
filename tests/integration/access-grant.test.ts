@@ -131,7 +131,7 @@ describe("enlace de acceso", () => {
     expect(guardado).not.toBeNull();
     expect(await verifyPassword(guardado ?? "", CLAVE)).toBe(true);
     const [fila] = await db().select().from(accessGrant);
-    expect(fila?.consumedAt).not.toBeNull();
+    expect(fila?.consumedAt).toBeInstanceOf(Date);
     expect(fila?.consumedIp).toBe("10.0.0.9");
   });
 
