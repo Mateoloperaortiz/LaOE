@@ -169,6 +169,7 @@ export {
 } from "./domain/segments";
 export { markApplicant } from "./domain/stage";
 export { addPersonTags, listAllTags, listPersonTags, type TagRow } from "./domain/tags";
+export { probationInputSchema } from "./domain/term-outcomes";
 export {
   getWalletMemberState,
   lockWalletMember,

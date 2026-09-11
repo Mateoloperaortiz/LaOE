@@ -1,6 +1,6 @@
 # ADR-037: Admisión, aliados y contactos (fase 5)
 
-- Estado: Aceptada (enmendada por ADR-038, ADR-039)
+- Estado: Aceptada (enmendada por ADR-038, ADR-039, ADR-046, ADR-050 y ADR-056)
 - Fecha: 2026-09-05
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, ADR-015, ADR-017, ADR-023, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035, ADR-036
 - Enmienda: ADR-013 (números del rate limit, honeypot, una respuesta por correo, consentimiento `DATA_PROCESSING`), ADR-031 (tipos de solicitud y transferencia al semestre siguiente; correos T-200 y T-205 en esta fase), ADR-033 (sin `registrationFormId`: la acción del formulario es la única fuente), ADR-034 (`crm → forms`; `interaction.personId` puede ser nulo; `stage APPLICANT` por tarjeta), ADR-036 (handler de `call-entry.changed` en `permanence`), 02-crm (un postulante no admitido sigue postulante; tres tipos de solicitud; tablero del inicio), 03-modelo (tablas definitivas de `forms` y `crm`), 05-acceso (formularios públicos, líder de grupo en convocatorias) y 14-copy (T-061, T-139, T-160, T-205, T-290, T-461)
@@ -56,3 +56,7 @@ Se permite el bootstrap puntual y auditado del primer ADMIN definido por ADR-039
 ## Enmienda (2026-09-08, ADR-046)
 
 La [ADR-046](ADR-046-integracion-roster-y-acceso-en-licencia.md) amplía los datos personales opcionales del roster y permite consulta de Mi OE en licencia. ON_LEAVE conserva bloqueadas la participación, las nuevas credenciales y las funciones de cargos, con permisos almacenados intactos. El roster inicial preserva historia y deja conflictos y graduados pendientes; su aplicación conserva el requisito de política activa y autorizaciones respaldadas.
+
+## Enmienda (2026-09-11, ADR-056)
+
+Regla 8: el panel de "dar de alta" de la Persona 360 se abre también desde la cabecera, como primera acción para un estudiante sin membresía; el comando, sus validaciones y la ausencia de step-up no cambian. Ver [ADR-056](ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md).

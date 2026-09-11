@@ -258,6 +258,14 @@ export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipVi
         )}
       </Bloque>
       <Bloque titulo={condicion}>
+        {data.membership && data.membership.status !== "INACTIVE" ? (
+          <Link
+            href={`${base}?pestana=membresia&accion=condicion`}
+            className="boton-secundario min-h-9 self-start px-4 py-1 text-sm"
+          >
+            {t("T-2142")}
+          </Link>
+        ) : null}
         {data.probation.length === 0 ? (
           <p className="text-sm text-tinta-suave">—</p>
         ) : (

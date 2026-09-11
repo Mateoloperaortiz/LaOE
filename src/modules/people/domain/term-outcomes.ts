@@ -1,4 +1,5 @@
 import { and, eq, isNull } from "drizzle-orm";
+import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
@@ -6,12 +7,15 @@ import { committeeMembership, membershipTerm } from "../schema";
 
 // Resultados del cierre de permanencia sobre la persona (ADR-036 regla 9): la condición de prueba
 // para el término siguiente y la salida de un comité. Los ejecuta el job `permanence.apply-decisions`
-// con el actor que confirmó la decisión; `permanence` no escribe estas tablas.
+// con el actor que confirmó la decisión; `permanence` no escribe estas tablas. La condición también la
+// fija ADMIN desde la Persona 360 con motivo (ADR-056).
 
-export interface ProbationInput {
-  probation: boolean;
-  reason: string;
-}
+export const probationInputSchema = z.object({
+  probation: z.boolean(),
+  reason: z.string().trim().min(2).max(500),
+});
+
+export type ProbationInput = z.infer<typeof probationInputSchema>;
 
 /** Fija (upsert) la condición de la persona en un término; idempotente. */
 export async function setProbation(
@@ -46,7 +50,13 @@ export async function setProbation(
   });
   await ctx.emit({
     type: "membership-term.changed",
-    payload: { actorId: ctx.actor.personId, personId, termId, probation: input.probation },
+    payload: {
+      actorId: ctx.actor.personId,
+      personId,
+      termId,
+      probation: input.probation,
+      reason: values.reason,
+    },
   });
 }
 

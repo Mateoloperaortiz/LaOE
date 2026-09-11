@@ -173,6 +173,34 @@ describe("línea de tiempo de permanencia (fase 4)", () => {
         lookup,
       )?.summary,
     ).toBe("Crédito manual en Extra: 4 (Apoyo)");
+    // Condición del semestre (ADR-056): marcada o retirada, con el término y el motivo.
+    expect(
+      summarizeEvent(
+        "membership-term.changed",
+        {
+          personId: "p",
+          termId: "t1",
+          probation: true,
+          reason: "Roster mal cargado",
+          actorId: "a",
+        },
+        labels,
+        lookup,
+      ),
+    ).toMatchObject({
+      kind: "PERMANENCE",
+      actorId: "a",
+      summary: "En periodo de prueba en 2026-2: Roster mal cargado",
+      metadata: { event: "membership-term.changed", termId: "t1", probation: true },
+    });
+    expect(
+      summarizeEvent(
+        "membership-term.changed",
+        { personId: "p", termId: "t1", probation: false, reason: "" },
+        labels,
+        lookup,
+      )?.summary,
+    ).toBe("Sin periodo de prueba en 2026-2: —");
     expect(
       summarizeEvent(
         "work-group-membership.changed",

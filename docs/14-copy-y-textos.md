@@ -959,7 +959,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-829 | Persona 360, Permanencia: bloques | Resultado por comité · Tabla general · Decisiones del cierre · Créditos manuales | MATEO | Propuesta |
 | T-830 | Persona 360, Permanencia: exento | Sin evaluación de permanencia este semestre ({estado}). | MATEO | Propuesta |
 | T-831 | Persona 360, Permanencia: decisión confirmada | {decisión}: {motivo} (por {quien}, {fecha}) | MATEO | Propuesta |
-| T-832 | Línea de tiempo: eventos de permanencia (buen desempeño, insuficiente, puntaje del líder, crédito manual, entró al grupo, salió del grupo, decisión del cierre) | Buen desempeño en {grupo}, evaluado por {evaluador} · Desempeño insuficiente en {grupo}, evaluado por {evaluador}: {nota} · {criterio} en {comité}: {valor} de {peso} · Crédito manual en {criterio}: {valor} ({motivo}) · Entró al grupo {grupo} · Salió del grupo {grupo} · Cierre de {término}: {decisión} | MATEO | Propuesta |
+| T-832 | Línea de tiempo: eventos de permanencia (buen desempeño, insuficiente, puntaje del líder, crédito manual, entró al grupo, salió del grupo, decisión del cierre, condición de prueba marcada, condición de prueba retirada) | Buen desempeño en {grupo}, evaluado por {evaluador} · Desempeño insuficiente en {grupo}, evaluado por {evaluador}: {nota} · {criterio} en {comité}: {valor} de {peso} · Crédito manual en {criterio}: {valor} ({motivo}) · Entró al grupo {grupo} · Salió del grupo {grupo} · Cierre de {término}: {decisión} · En periodo de prueba en {término}: {motivo} · Sin periodo de prueba en {término}: {motivo} | MATEO | Propuesta |
 | T-833 | Línea de tiempo: reconocimiento | Destacado de {mes} en {comité} | MATEO | Propuesta |
 | T-834 | Permanencia: el semestre ya cerró su permanencia (comandos) | El semestre ya cerró su permanencia: no se puede cambiar. | MATEO | Propuesta |
 | T-835 | Permanencia: sin permiso sobre el grupo | No operás este grupo. | MATEO | Propuesta |
@@ -1678,3 +1678,10 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2134 | Activación, bienvenida (solo cuando es la primera contraseña) | ¡Bienvenido a la OE! Elegí tu contraseña y entrás a Mi OE: ahí están tus comités, tus GH Points y tu permanencia. | MATEO | Propuesta |
 | T-2133 | Ingresar por código, enlace de vuelta | Entrar con tu contraseña | MATEO | Propuesta |
 | T-2132 | Push: enlace de acceso emitido (título · cuerpo) | Emitieron tu enlace de acceso · Si no lo pediste, avisale a la junta ya mismo. | MATEO | Propuesta |
+
+## Alta y condición del semestre desde la Persona 360 (ADR-056)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-2142 | Persona 360, Membresía: botón para cambiar la condición del semestre | Cambiar condición | MATEO | Propuesta |
+| T-2143 | Condición del semestre: ayuda del panel | Marcá o quitá el periodo de prueba de ese semestre. Cambia el umbral que le aplica en permanencia y queda en la línea de tiempo con tu motivo. | MATEO | Propuesta |

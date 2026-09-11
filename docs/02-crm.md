@@ -16,6 +16,7 @@ stateDiagram-v2
   [*] --> Prospecto: formulario publico sin convocatoria
   [*] --> Postulante: formulario de postulacion con convocatoria abierta
   Prospecto --> Postulante: entra a pipeline de admision
+  Prospecto --> Miembro: Dar de alta desde la Persona 360 (alta manual)
   Postulante --> Miembro: Dar de alta (membresia + comites)
   Postulante --> Postulante: no admitido, la tarjeta queda perdida como historia
   Miembro --> Egresado: retiro o graduacion
@@ -34,13 +35,13 @@ Los contactos externos (`kind=EXTERNAL`) no tienen etapa de miembro ni acceso: s
 
 ## Persona 360
 
-`/admin/personas/[id]` es la pantalla más importante del admin. Cabecera con nombre, etapa, estado de membresía, comités del término, cargos y etiquetas; acciones de etapa según el estado (editar datos, cambiar estado, dar de baja, reactivar, anonimizar, nota, tarea, etiquetas, permisos), cada una en un panel lateral. Es UI a medida desde la fase 2 ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)); las pestañas de fases posteriores existen desde el principio y muestran "llega en una fase siguiente" hasta que su fase las llene. Pestañas:
+`/admin/personas/[id]` es la pantalla más importante del admin. Cabecera con nombre, etapa, estado de membresía, comités del término, cargos y etiquetas; acciones de etapa según el estado (dar de alta para un estudiante sin membresía, editar datos, cambiar estado, dar de baja, reactivar, anonimizar, nota, tarea, etiquetas, permisos), cada una en un panel lateral ([ADR-056](adr/ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md)). Es UI a medida desde la fase 2 ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)); las pestañas de fases posteriores existen desde el principio y muestran "llega en una fase siguiente" hasta que su fase las llene. Pestañas:
 
 | Pestaña | Contenido |
 | --- | --- |
 | Resumen | Puntos del término, asistencias, asambleas firmadas/requeridas, último contacto, tareas abiertas |
 | Línea de tiempo | Interacciones automáticas y notas, con filtro por tipo y compositor de nota |
-| Membresía | Términos, comités por término con el cargo en cada uno (General, Financiero, Logística…), cargos de junta o de GH, transferencias, historial de estados con motivos |
+| Membresía | Términos, comités por término con el cargo en cada uno (General, Financiero, Logística…), cargos de junta o de GH, transferencias, historial de estados con motivos, condición del semestre (periodo de prueba por término, que ADMIN marca o retira con motivo) |
 | Participación | Check-ins con ocasión y fuente; ledger con ajustes y reversiones |
 | Permanencia | Resultado por cada comité frente a su umbral, parte general y parte del comité criterio por criterio, condición (nuevo, prueba, transferencia), grupos y evaluaciones, puntajes y observaciones del líder, decisiones de cierre |
 | Formularios | Respuestas enviadas, inscripciones a ediciones y tarjetas de pipeline, con enlace al kanban |

@@ -29,6 +29,7 @@ import {
   endMembershipAction,
   reactivateAction,
   setCommitteesAction,
+  setProbationAction,
   setTagsAction,
   updatePersonAction,
 } from "../actions";
@@ -45,6 +46,8 @@ type Props = {
   personTagIds: string[];
   assignees: Array<{ value: string; label: string }>;
   note: InteractionView | null;
+  /** Término preseleccionado en el panel de condición (`?semestre=`), si existe. */
+  semestreId: string | null;
   closeHref: string;
   error: string;
   policyReady: boolean;
@@ -91,6 +94,7 @@ export function Paneles({
   personTagIds,
   assignees,
   note,
+  semestreId,
   closeHref,
   error,
   policyReady,
@@ -462,6 +466,58 @@ export function Paneles({
                 </fieldset>
               );
             })}
+            <Botones enviar={t("T-253")} cancelHref={closeHref} />
+          </AdminFormBody>
+        </form>
+      </ResourcePanel>
+    );
+  }
+
+  // Condición del semestre (ADR-056): periodo de prueba por término, con motivo, sobre una membresía viva.
+  if (accion === "condicion" && membership && membership.status !== "INACTIVE") {
+    const [, , , condicion] = tList("T-443") as [string, string, string, string];
+    const [, término] = tList("T-262") as [string, string];
+    const selected = terms.find((item) => item.id === semestreId) ?? my.term ?? terms[0] ?? null;
+    const onProbation = selected
+      ? data.probation.some((item) => item.termId === selected.id)
+      : false;
+    return (
+      <ResourcePanel title={condicion} closeHref={closeHref} closeLabel={t("T-291")}>
+        {alerta}
+        <p className="text-sm">{t("T-2143")}</p>
+        <form action={setProbationAction} className="flex flex-col gap-4">
+          <AdminFormBody>
+            {hidden}
+            <Campo id="campo-termId-condicion" label={término}>
+              <select
+                id="campo-termId-condicion"
+                name="termId"
+                required
+                className={inputClass}
+                defaultValue={selected?.id ?? ""}
+              >
+                {terms.map((term) => (
+                  <option key={term.id} value={term.id}>
+                    {term.code}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+            <Casilla
+              id="campo-probation"
+              name="probation"
+              label={t("T-449")}
+              defaultChecked={onProbation}
+            />
+            <Campo id="campo-reason-condicion" label={t("T-434")}>
+              <textarea
+                id="campo-reason-condicion"
+                name="reason"
+                required
+                rows={3}
+                className={inputClass}
+              />
+            </Campo>
             <Botones enviar={t("T-253")} cancelHref={closeHref} />
           </AdminFormBody>
         </form>
