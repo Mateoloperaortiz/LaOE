@@ -150,8 +150,12 @@ describe("validación de respuestas", () => {
         email: "ANA@EAFIT.EDU.CO",
       }),
     ).toEqual({ firstName: "Ana", lastName: "Pérez", email: "ana@eafit.edu.co" });
-    expect(
-      publicIdentitySchema.safeParse({ firstName: "", lastName: "P", email: "x" }).success,
-    ).toBe(false);
+    for (const invalid of [
+      { firstName: "", lastName: "Sintética", email: "prueba@eafit.edu.co" },
+      { firstName: "Persona", lastName: "", email: "prueba@eafit.edu.co" },
+      { firstName: "Persona", lastName: "Sintética", email: "x" },
+    ]) {
+      expect(publicIdentitySchema.safeParse(invalid).success).toBe(false);
+    }
   });
 });

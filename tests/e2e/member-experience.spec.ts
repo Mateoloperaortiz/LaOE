@@ -1,11 +1,14 @@
 import { randomBytes } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { event, eventEdition } from "@/modules/events/schema";
 import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
+import { drenarOutbox } from "./outbox";
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
@@ -14,9 +17,9 @@ let eventId: string;
 let activityId: string;
 let editionId: string;
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const db = getDb();
-  const [current] = await db.select().from(term).where(eq(term.code, "2026-2"));
+  const [current] = await db.select().from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("Falta el término sintético");
   const [createdEvent] = await db
     .insert(event)
@@ -52,7 +55,8 @@ test.beforeAll(async () => {
   editionId = edition.id;
   activityId = activity.id;
 });
-test.afterAll(async () => {
+test.afterEach(async () => {
+  await drenarOutbox();
   if (activityId) await getDb().delete(occasion).where(eq(occasion.id, activityId));
   if (eventId) await getDb().delete(event).where(eq(event.id, eventId));
   await closeDb();

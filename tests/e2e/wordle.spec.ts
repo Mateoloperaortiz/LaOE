@@ -1,10 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { and, eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { pointEntry, wordleGame } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
+import { drenarOutbox } from "./outbox";
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
@@ -34,7 +36,10 @@ test.beforeEach(async () => {
     .where(and(eq(pointEntry.personId, id), eq(pointEntry.kind, "WORDLE")));
   await getDb().delete(wordleGame).where(eq(wordleGame.personId, id));
 });
-test.afterAll(closeDb);
+test.afterEach(async () => {
+  await drenarOutbox();
+  await closeDb();
+});
 
 test("inicia sin filtrar la respuesta, rechaza palabras ausentes y acredita una sola victoria", async ({
   page,

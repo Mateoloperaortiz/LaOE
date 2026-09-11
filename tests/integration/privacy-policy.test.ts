@@ -79,7 +79,7 @@ describe("política pendiente (ADR-039)", () => {
       ),
     ).rejects.toBeInstanceOf(PrivacyPolicyPendingError);
     await revokeConsentAs(SYSTEM_ACTOR, personId, "MEMORIAL");
-    expect((await db().select().from(consent))[0]?.revokedAt).not.toBeNull();
+    expect((await db().select().from(consent))[0]?.revokedAt).toBeInstanceOf(Date);
     await setPolicy("prueba-v2");
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       recordConsent(ctx, personId, { purpose: "MEMORIAL", source: "SELF" }),

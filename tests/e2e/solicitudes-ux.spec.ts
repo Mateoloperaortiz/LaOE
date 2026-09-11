@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { type BrowserContext, expect, test } from "@playwright/test";
+import { type BrowserContext, expect } from "@playwright/test";
 import { eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { request, task } from "@/modules/crm/schema";
@@ -12,6 +12,9 @@ import {
 } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
+import { drenarOutbox } from "./outbox";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -20,9 +23,9 @@ let personId: string;
 let committeeIds: string[];
 const prefix = `e2e-solicitud-ux-${randomBytes(4).toString("hex")}`;
 
-test.beforeAll(async ({ browser }) => {
+test.beforeEach(async ({ browser }) => {
   const db = getDb();
-  const [current] = await db.select().from(term).where(eq(term.code, "2026-2"));
+  const [current] = await db.select().from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("Falta el semestre sintético");
   const [who] = await db
     .insert(person)
@@ -76,7 +79,8 @@ test.beforeEach(async ({ context }) => {
   await context.addCookies(cookies);
 });
 
-test.afterAll(async () => {
+test.afterEach(async () => {
+  await drenarOutbox();
   const db = getDb();
   if (personId) {
     await db.delete(request).where(eq(request.personId, personId));
@@ -160,7 +164,7 @@ test("un fallo de red conserva los datos y permite reintentar", async ({ page })
   await page.goto("/app/solicitudes?tipo=licencia");
   const form = page.getByRole("form", { name: "Datos de la solicitud" });
   await form.getByLabel("Contanos por qué", { exact: true }).fill("x");
-  await form.getByLabel("Hasta cuándo (opcional)").fill("2026-12-01");
+  await form.getByLabel("Hasta cuándo (opcional)").fill(E2E_TERM.endsOn);
   await page.route("**/app/solicitudes**", async (route) => {
     if (route.request().method() === "POST") await route.abort("failed");
     else await route.continue();
@@ -171,12 +175,12 @@ test("un fallo de red conserva los datos y permite reintentar", async ({ page })
   );
   await expect(form.getByRole("alert")).toBeFocused();
   await expect(form.getByLabel("Contanos por qué", { exact: true })).toHaveValue("x");
-  await expect(form.getByLabel("Hasta cuándo (opcional)")).toHaveValue("2026-12-01");
+  await expect(form.getByLabel("Hasta cuándo (opcional)")).toHaveValue(E2E_TERM.endsOn);
   await page.unroute("**/app/solicitudes**");
   await form.getByRole("button", { name: "Enviar solicitud", exact: true }).click();
   await expect(form.getByRole("alert")).toHaveText("Revisá los campos señalados antes de enviar.");
   await expect(form.getByLabel("Contanos por qué", { exact: true })).toBeFocused();
-  await expect(form.getByLabel("Hasta cuándo (opcional)")).toHaveValue("2026-12-01");
+  await expect(form.getByLabel("Hasta cuándo (opcional)")).toHaveValue(E2E_TERM.endsOn);
 });
 
 test("el envío bloquea cambios y dobles envíos y permite retirar la solicitud", async ({

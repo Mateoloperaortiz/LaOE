@@ -1,0 +1,9 @@
+[
+  "docs/09-roadmap.md",
+  "docs/15-runbook.md",
+  "docs/adr/**",
+  "docs/assessment-ci-cd-*.md",
+  "docs/assessment-ci-cd-*.json",
+  "docs/ci-cd-*.md",
+  "docs/ci-cd-*.json"
+]

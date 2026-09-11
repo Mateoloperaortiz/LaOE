@@ -1,9 +1,11 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
 
 // Consola de la ocasión y modo anfitrión como ADMIN (ADR-035): QR, contador, alta manual y el
 // anfitrión que registra a una persona sin sesión por nombre.
@@ -11,9 +13,9 @@ test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
 let occasionId = "";
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const db = getDb();
-  const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
+  const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("sin término");
   const now = Date.now();
   const [row] = await db

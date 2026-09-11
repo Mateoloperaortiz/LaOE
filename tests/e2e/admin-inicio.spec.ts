@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 
 // Tablero del inicio del admin (ADR-037 regla 11): las secciones de T-160 enlazan a sus rutas y cada
 // bloque del tablero enlaza a su sección. Los datos varían con el resto de la suite, así que se

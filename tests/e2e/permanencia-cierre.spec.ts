@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { and, eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { committeeMembership, membership, person } from "@/modules/people/schema";
@@ -6,6 +6,7 @@ import { applyDecisions, recomputeSnapshots } from "@/modules/permanence";
 import { permanenceDecision, permanenceSnapshot } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 import { E2E_CLOSING_EMAIL, E2E_PERMANENCE_TERM } from "./global-setup";
 
 // Cierre de permanencia como ADMIN (ADR-036 regla 9) sobre el término 2019-1 que el global-setup
@@ -17,7 +18,7 @@ let termId = "";
 let nextTermId = "";
 let personId = "";
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const db = getDb();
   const [row] = await db
     .select({ id: term.id })

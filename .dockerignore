@@ -2,6 +2,7 @@
 node_modules
 .next
 coverage
+ci-results
 test-results
 playwright-report
 .env

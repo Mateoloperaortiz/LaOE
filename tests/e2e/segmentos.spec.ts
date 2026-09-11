@@ -1,7 +1,8 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 import { E2E_EMAIL } from "./global-setup";
 import { pasarStepUp } from "./stepup";
 

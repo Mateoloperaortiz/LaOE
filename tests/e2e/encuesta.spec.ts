@@ -1,9 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { createSurveyInvites } from "@/modules/participation";
 import { occasion } from "@/modules/participation/schema";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 import { drenarOutbox } from "./outbox";
 
 // Encuesta tras la ocasión (ADR-038 regla 13, "listo cuando" de la fase 6): ADMIN arma un formulario

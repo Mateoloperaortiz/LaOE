@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, production]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -13,6 +14,7 @@ permissions:
   contents: read
 
 env:
+  CI: "true"
   APP_URL: http://localhost:3000
   APP_TIMEZONE: America/Bogota
   TZ: UTC
@@ -30,8 +32,26 @@ env:
   JOBS_ENABLED: "false"
 
 jobs:
+  cambios:
+    name: Clasificar cambios
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      mode: ${{ steps.scope.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - id: scope
+        run: node scripts/ci/run.mjs classify
+
   calidad:
     name: Biome · dependency-cruiser · knip · tsc · unit · build
+    needs: cambios
+    if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -41,21 +61,45 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: mkdir -p ci-results
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run deps:check
       - run: npm run deadcode
-      - run: npm test
+      - run: npm test -- --reporter=default --reporter=json --outputFile=ci-results/unit.json
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: uv para el extractor de normativa
         run: python -m pip install uv
       - run: npm run test:extractor
+      - uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-node24-next-quality-${{ hashFiles('package-lock.json', 'next.config.ts', 'tsconfig.json') }}-${{ hashFiles('src/**', 'public/**') }}
+          restore-keys: |
+            ${{ runner.os }}-node24-next-quality-${{ hashFiles('package-lock.json', 'next.config.ts', 'tsconfig.json') }}-
       - run: npm run build
+        env:
+          NODE_ENV: production
+          OTP_FIXED_CODE: ""
+      - name: Inventario completo de E2E, sin crear base ni arrancar servidor
+        run: npm run test:e2e -- --list --reporter=json
+        env:
+          DATABASE_URL: postgresql://casa:casa@127.0.0.1:5433/casa_digital
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ci-results/inventory.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-quality
+          path: ci-results/*.json
+          if-no-files-found: error
+          retention-days: 14
 
   respaldo:
     name: respaldo · retención · concurrencia · restauración
+    needs: cambios
+    if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -66,16 +110,18 @@ jobs:
           bash -n scripts/backup.sh tests/backup/run.sh
           bash tests/backup/run.sh 2>&1 | tee "$RUNNER_TEMP/backup-test.log"
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
-          name: backup-test
+          name: ci-backup
           path: ${{ runner.temp }}/backup-test.log
           retention-days: 7
 
   integracion:
-    name: integración · e2e (Postgres 18 + Garage)
+    name: integración (Postgres 18 + Garage)
+    needs: cambios
+    if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:18-alpine
@@ -108,22 +154,117 @@ jobs:
             -e GARAGE_DEFAULT_BUCKET="$S3_BUCKET" \
             dxflrs/garage:v2.3.0 /garage server --single-node --default-bucket
       - run: npm ci
+      - run: mkdir -p ci-results
       - run: npm run storage:init
-      - run: npm run db:release
-      - run: npm run db:seed
-      - run: npm run test:integration
+      # global-setup crea y migra su base _test; E2E prepara otra en su propio runner.
+      - run: npm run test:integration -- --reporter=default --reporter=json --outputFile=ci-results/integration.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-integration
+          path: ci-results/integration.json
+          if-no-files-found: error
+          retention-days: 14
+
+  e2e:
+    name: E2E ${{ matrix.shard }}/2
+    needs: cambios
+    if: needs.cambios.outputs.mode == 'full'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: casa
+          POSTGRES_PASSWORD: casa
+          POSTGRES_DB: casa_digital
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U casa -d casa_digital"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://casa:casa@127.0.0.1:5433/casa_digital
+      PLAYWRIGHT_JSON_OUTPUT_FILE: ci-results/e2e-${{ matrix.shard }}.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Garage (bucket S3 propio de la partición)
+        run: |
+          docker run -d --name garage -p 3900:3900 -p 3903:3903 \
+            -v "$PWD/docker/garage/garage.toml:/etc/garage.toml:ro" \
+            -e GARAGE_DEFAULT_ACCESS_KEY="$S3_ACCESS_KEY_ID" \
+            -e GARAGE_DEFAULT_SECRET_KEY="$S3_SECRET_ACCESS_KEY" \
+            -e GARAGE_DEFAULT_BUCKET="$S3_BUCKET" \
+            dxflrs/garage:v2.3.0 /garage server --single-node --default-bucket
+      - run: npm ci
+      - run: mkdir -p ci-results
+      - run: npm run storage:init
+      - uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-node24-next-e2e-${{ hashFiles('package-lock.json', 'next.config.ts', 'tsconfig.json') }}-${{ hashFiles('src/**', 'public/**') }}
+          restore-keys: |
+            ${{ runner.os }}-node24-next-e2e-${{ hashFiles('package-lock.json', 'next.config.ts', 'tsconfig.json') }}-
       - name: Build de producción para e2e
         run: npm run build
         env:
           NODE_ENV: production
           OTP_FIXED_CODE: ""
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --fully-parallel --shard=${{ matrix.shard }}/2 --workers=1 --forbid-only --reporter=github,json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-e2e-${{ matrix.shard }}
+          path: ci-results/e2e-${{ matrix.shard }}.json
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright
+          name: playwright-failure-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
           retention-days: 7
+
+  resultado:
+    name: CI
+    if: always()
+    needs: [cambios, calidad, respaldo, integracion, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        if: needs.cambios.outputs.mode == 'full'
+        with:
+          pattern: ci-*
+          path: ci-results
+          merge-multiple: true
+      - name: Exigir jobs aprobados, inventario completo y outbox sano
+        if: always()
+        run: node scripts/ci/run.mjs gate
+        env:
+          CI_NEEDS_JSON: ${{ toJSON(needs) }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-result
+          path: ci-results/ci-result.json
+          if-no-files-found: error
+          retention-days: 14

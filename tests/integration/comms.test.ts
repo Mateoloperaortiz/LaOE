@@ -60,7 +60,7 @@ describe("sendTransactionalEmail", () => {
     expect(row).toMatchObject({ personId, channel: "EMAIL", provider: "resend", status: "SENT" });
   });
 
-  it("desborda a SES cuando Resend agota la cuota y registra el fallo si SES también falla", async () => {
+  it("desborda a SES solo por cuota y registra también los fallos del proveedor de respaldo", async () => {
     const personId = await seedPerson();
     setMailTransportsForTests({
       primary: fakeTransport("resend", async () => {
@@ -89,11 +89,27 @@ describe("sendTransactionalEmail", () => {
       text: "x",
     });
     expect(failed).toMatchObject({ status: "FAILED", provider: "resend", error: "boom" });
+    setMailTransportsForTests({
+      primary: fakeTransport("resend", async () => {
+        throw new QuotaExceededError("daily_quota_exceeded");
+      }),
+      overflow: fakeTransport("ses", async () => {
+        throw new Error("SES no disponible");
+      }),
+    });
+    expect(
+      await sendTransactionalEmail({
+        personId,
+        to: "correo@eafit.edu.co",
+        subject: "Hola",
+        text: "x",
+      }),
+    ).toMatchObject({ status: "FAILED", provider: "ses", error: "SES no disponible" });
     const [failures] = await db()
       .select({ n: count() })
       .from(message)
       .where(eq(message.status, "FAILED"));
-    expect(failures?.n).toBe(1);
+    expect(failures?.n).toBe(2);
   });
 
   it("sale por SES directamente cuando el contador del día llegó al límite", async () => {

@@ -1,11 +1,12 @@
 import { randomBytes } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { and, eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { pipeline } from "@/modules/crm/schema";
 import { form } from "@/modules/forms/schema";
 import { committee } from "@/modules/people/schema";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 

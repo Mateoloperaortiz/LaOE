@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 
 // Portal público de la fase 1. La sesión de ADMIN viene de auth.setup.ts; las rutas públicas no la necesitan.
 test.use({ storageState: "tests/e2e/.auth/admin.json" });

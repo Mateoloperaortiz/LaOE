@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { campaign, emailTemplate } from "@/modules/comms/schema";
@@ -12,7 +12,10 @@ import { committee, person, segment } from "@/modules/people/schema";
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
 import { E2E_EMAIL } from "./global-setup";
+import { drenarOutbox } from "./outbox";
 
 test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
@@ -27,10 +30,10 @@ function first<T>(rows: T[]): T {
 let routes: string[];
 let removeFixtures: () => Promise<void>;
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const db = getDb();
   const prefix = `e2e-ui-${randomBytes(4).toString("hex")}`;
-  const [current] = await db.select().from(term).where(eq(term.code, "2026-2"));
+  const [current] = await db.select().from(term).where(eq(term.code, E2E_TERM.code));
   const [admin] = await db.select().from(person).where(eq(person.email, E2E_EMAIL));
   const [pixel] = await db.select().from(committee).where(eq(committee.slug, "pixel"));
   if (!current || !admin || !pixel) throw new Error("Faltan las referencias sintéticas del E2E");
@@ -77,8 +80,8 @@ test.beforeAll(async () => {
       termId: current.id,
       groupId: group.id,
       title: prefix,
-      opensAt: new Date("2026-09-01T12:00:00Z"),
-      closesAt: new Date("2026-10-01T12:00:00Z"),
+      opensAt: new Date(Date.now() - 86_400_000),
+      closesAt: new Date(Date.now() + 7 * 86_400_000),
     })
     .returning()
     .then(first);
@@ -111,7 +114,7 @@ test.beforeAll(async () => {
       eventId: permanent.id,
       slug: prefix,
       name: prefix,
-      startsAt: new Date("2026-09-12T12:00:00Z"),
+      startsAt: new Date(Date.now() + 86_400_000),
     })
     .returning()
     .then(first);
@@ -158,6 +161,7 @@ test.beforeAll(async () => {
     `/admin/plantillas/${template.id}`,
   ];
   removeFixtures = async () => {
+    const db = getDb();
     await db.delete(campaign).where(eq(campaign.id, mail.id));
     await db.delete(emailTemplate).where(eq(emailTemplate.id, template.id));
     await db.delete(segment).where(eq(segment.id, audience.id));
@@ -172,7 +176,8 @@ test.beforeAll(async () => {
   };
 });
 
-test.afterAll(async () => {
+test.afterEach(async () => {
+  await drenarOutbox();
   await removeFixtures?.();
   await closeDb();
 });

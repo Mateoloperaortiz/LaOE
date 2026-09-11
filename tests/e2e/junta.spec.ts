@@ -1,17 +1,19 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
 import { person } from "@/modules/people/schema";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
+import { drenarOutbox } from "./outbox";
 
 // Panel de la junta (ADR-036 regla 12): el miembro de pruebas recibe BOARD por SQL solo durante este
 // spec, entra derecho al panel sin ver nombres ni correos, descarga el CSV sin step-up y el resto del
 // admin lo devuelve a Mi OE.
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const db = getDb();
   const [member] = await db
     .select({ id: person.id })
@@ -22,7 +24,8 @@ test.beforeAll(async () => {
   await closeDb();
 });
 
-test.afterAll(async () => {
+test.afterEach(async () => {
+  await drenarOutbox();
   const db = getDb();
   const [member] = await db
     .select({ id: person.id })

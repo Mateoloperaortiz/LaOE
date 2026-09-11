@@ -84,7 +84,7 @@ describe("grupos de trabajo", () => {
     expect(await pendingRecomputes()).toBe(1);
     expect(await removeMemberAs(admin, id, active)).toBe(true);
     expect(await removeMemberAs(admin, id, active)).toBe(false);
-    expect((await getGroupDetail(id))?.members[0]?.leftAt).not.toBeNull();
+    expect((await getGroupDetail(id))?.members[0]?.leftAt).toBeInstanceOf(Date);
   });
 
   it("importa desde un CSV de correos: agrega activos, reporta repetidos, inactivos y desconocidos", async () => {

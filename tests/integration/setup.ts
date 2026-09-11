@@ -15,6 +15,14 @@ if (!process.env.DATABASE_URL) {
 }
 process.env.DATABASE_URL = testDatabaseUrl(process.env.DATABASE_URL);
 
+// El .env de desarrollo no decide transportes ni códigos de una prueba.
+Object.assign(process.env, {
+  NODE_ENV: "test",
+  MAILER: "console",
+  JOBS_ENABLED: "false",
+  OTP_FIXED_CODE: "123456",
+});
+
 // Las pruebas nunca mandan push de verdad: sin claves VAPID el proveedor es `console`, como en CI,
 // aunque el `.env` local tenga un par para probar en Chrome (10-verificacion).
 delete process.env.VAPID_PUBLIC_KEY;

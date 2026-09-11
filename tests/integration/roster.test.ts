@@ -249,7 +249,7 @@ describe("importación del roster", () => {
     const data = await getPerson360(juan?.id ?? "");
     expect(data?.person.stage).toBe("ALUMNI");
     expect(data?.membership?.status).toBe("INACTIVE");
-    expect(data?.committeesByTerm[0]?.items[0]?.leftAt).not.toBeNull();
+    expect(data?.committeesByTerm[0]?.items[0]?.leftAt).toBeInstanceOf(Date);
   });
 
   it("bloquea siglas inexistentes y dos Generales, permite corregir el mapeo y descartar", async () => {

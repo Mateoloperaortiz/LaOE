@@ -195,8 +195,10 @@ describe("cierre de permanencia", () => {
     });
     const next = await findTermByCode("2025-1");
     expect(next).not.toBeNull();
-    expect((await getTerm(termId))?.permanenceClosedAt).not.toBeNull();
-    expect((await listSnapshots(termId)).every((row) => row.frozenAt !== null)).toBe(true);
+    expect((await getTerm(termId))?.permanenceClosedAt).toBeInstanceOf(Date);
+    const snapshots = await listSnapshots(termId);
+    expect(snapshots).toHaveLength(3);
+    for (const snapshot of snapshots) expect(snapshot.frozenAt).toBeInstanceOf(Date);
     await expect(closeTermPermanenceAs(GH, termId)).rejects.toThrow(/ya cerró su permanencia/);
   });
 
@@ -258,7 +260,7 @@ describe("cierre de permanencia", () => {
           eq(committeeMembership.termId, termId),
         ),
       );
-    expect(left?.leftAt).not.toBeNull();
+    expect(left?.leftAt).toBeInstanceOf(Date);
     const [stays] = await db
       .select()
       .from(committeeMembership)

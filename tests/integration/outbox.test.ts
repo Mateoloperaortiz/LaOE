@@ -58,7 +58,7 @@ describe("poller del outbox", () => {
     }
     [row] = await db().select().from(outbox);
     expect(row?.attempts).toBe(5);
-    expect(row?.deadLetterAt).not.toBeNull();
+    expect(row?.deadLetterAt).toBeInstanceOf(Date);
 
     const id = row?.id ?? "";
     const revived = await runCommand(SYSTEM_ACTOR, (ctx) => retryDeadLetter(ctx, id));
@@ -77,11 +77,11 @@ describe("poller del outbox", () => {
     await enqueueEvent(db(), { type: "nadie.lo.atiende", payload: {} });
     expect(await processOne()).toBe("processed");
     const [row] = await db().select().from(outbox);
-    expect(row?.processedAt).not.toBeNull();
+    expect(row?.processedAt).toBeInstanceOf(Date);
     expect(row?.lastError).toBeNull();
   });
 
-  it("varios handlers del mismo evento corren en orden y en la misma transacción", async () => {
+  it("varios handlers del mismo evento corren en orden antes de marcarlo procesado", async () => {
     const order: string[] = [];
     registerHandler("dos.oyen", async () => {
       order.push("primero");

@@ -1,5 +1,6 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 import { E2E_EMAIL, E2E_PASSWORD } from "./global-setup";
 
 const CODE = process.env.OTP_FIXED_CODE ?? "123456";

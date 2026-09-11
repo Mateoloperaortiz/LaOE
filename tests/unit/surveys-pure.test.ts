@@ -80,6 +80,11 @@ describe("summarizeAnswers", () => {
     const texts = summary.questions[1]?.texts ?? [];
     expect(texts).toHaveLength(SURVEY_TEXT_MIN);
     expect([...texts].sort()).toEqual(["Comentario 0", "Comentario 1", "Comentario 2"]);
+    // Cambiar el orden de llegada no puede revelar quién respondió primero.
+    expect(summarizeAnswers(fields, [...answers].reverse()).questions[1]?.texts).toEqual(texts);
+    expect(
+      summarizeAnswers(fields, [...answers.slice(1), ...answers.slice(0, 1)]).questions[1]?.texts,
+    ).toEqual(texts);
     expect(summary.questions[0]?.average).toBe(4);
     expect(summarizeAnswers(fields, []).questions[0]?.average).toBeNull();
   });

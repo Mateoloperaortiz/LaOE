@@ -76,7 +76,7 @@ describe("envío de un formulario público", () => {
       answers: { motivo: "Quiero aportar", phone: "+573001234567", comite: "A3" },
       ip: "10.0.0.1",
     });
-    expect(stored?.consentAcceptedAt).not.toBeNull();
+    expect(stored?.consentAcceptedAt).toBeInstanceOf(Date);
     await drain(10);
     const timeline = await getDb()
       .select()
@@ -175,9 +175,10 @@ describe("envío de un formulario público", () => {
       answers: { motivo: "", comite: "OTRO" },
       consent: true,
     });
-    if (!badAnswers.ok) {
-      expect(badAnswers.errors).toEqual({ motivo: "T-853", comite: "T-856" });
-    }
+    expect(badAnswers).toMatchObject({
+      ok: false,
+      errors: { motivo: "T-853", comite: "T-856" },
+    });
     await seedSubmission(view.id, "lleno@gmail.com");
     const full = await submitFormAs(null, view, {
       identity,
@@ -240,7 +241,7 @@ describe("envío de un formulario público", () => {
     void termId;
   });
 
-  it("salir de la OE borra las respuestas y la aprobación de la anonimización también", async () => {
+  it("salir de la OE borra las respuestas por outbox", async () => {
     const memberId = await seedMember("saliente@eafit.edu.co");
     const { view } = await publicForm("encuesta");
     await seedSubmission(view.id, "saliente@eafit.edu.co", { personId: memberId });

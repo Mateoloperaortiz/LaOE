@@ -81,18 +81,22 @@ describe("verifyStepUpPassword", () => {
   it("no estampa nada con la contraseña equivocada ni sin credencial", async () => {
     const conCredencial = await conClave();
     const sinCredencial = await seedMember("sin-clave@eafit.edu.co");
+    const stale = new Date(Date.now() - 60 * 60_000);
     const uno = await createSession(db(), {
       personId: conCredencial,
       remember: true,
       userAgent: null,
       ip: null,
+      now: stale,
     });
     const otro = await createSession(db(), {
       personId: sinCredencial,
       remember: true,
       userAgent: null,
       ip: null,
+      now: stale,
     });
+    const before = await db().select().from(session).orderBy(session.id);
 
     expect(
       await verifyStepUpPassword({
@@ -113,6 +117,12 @@ describe("verifyStepUpPassword", () => {
       }),
     ).toEqual({ ok: false, reason: "INVALID" });
     expect(await db().select().from(loginAttempt)).toHaveLength(2);
+    expect(await db().select().from(session).orderBy(session.id)).toEqual(before);
+    for (const token of [uno.token, otro.token]) {
+      const actor = await resolveActor(token);
+      expect(actor).not.toBeNull();
+      expect(actor && hasRecentStepUp(actor)).toBe(false);
+    }
   });
 
   it("respeta el mismo límite que el ingreso", async () => {

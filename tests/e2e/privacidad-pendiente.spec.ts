@@ -1,10 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { form, formSubmission } from "@/modules/forms/schema";
 import { person } from "@/modules/people/schema";
 import { appConfig } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { test } from "./fixtures";
+import { drenarOutbox } from "./outbox";
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
@@ -16,7 +18,7 @@ async function policy(value: unknown) {
   await getDb().update(appConfig).set({ value }).where(eq(appConfig.key, "privacy.policyVersion"));
 }
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   const [config] = await getDb()
     .select()
     .from(appConfig)
@@ -38,8 +40,12 @@ test.beforeAll(async () => {
   if (!created) throw new Error("formulario de prueba");
   formId = created.id;
 });
-test.afterEach(() => policy(originalVersion));
-test.afterAll(async () => {
+test.afterEach(async () => {
+  await drenarOutbox();
+  return policy(originalVersion);
+});
+test.afterEach(async () => {
+  await drenarOutbox();
   await getDb().delete(form).where(eq(form.id, formId));
   await closeDb();
 });

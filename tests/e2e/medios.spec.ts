@@ -1,10 +1,11 @@
 import { randomBytes } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { desc, eq } from "drizzle-orm";
 import sharp from "sharp";
 import { closeDb, getDb } from "@/db/client";
 import { mediaAsset } from "@/modules/content/schema";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 
 // Criterio de la fase 1 (09-roadmap.md): una portada de 5 MB sube directo al bucket y se sirve por
 // redirección prefirmada. El outbox se drena desde la prueba porque en CI el poller está apagado.

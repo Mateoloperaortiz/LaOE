@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { and, asc, eq, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
@@ -6,7 +6,10 @@ import { committee, person } from "@/modules/people/schema";
 import { permanenceTable } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
 import { E2E_CLOSING_TERM, E2E_MEMBER_EMAIL } from "./global-setup";
+import { drenarOutbox } from "./outbox";
 
 // Tablas de permanencia (ADR-036 regla 3): GH carga la referencia sobre el término de pruebas, crea
 // un criterio de comité y bloquea la tabla; el líder edita la suya y respeta el bloqueo.
@@ -30,7 +33,7 @@ test.describe("GH", () => {
   let slug = "";
   let name = "";
 
-  test.beforeAll(async () => {
+  test.beforeEach(async () => {
     const db = getDb();
     const [closing] = await db
       .select({ id: term.id })
@@ -81,14 +84,17 @@ test.describe("líder", () => {
   let committeeId = "";
   let currentTermId = "";
 
-  test.beforeAll(async () => {
+  test.beforeEach(async () => {
     const db = getDb();
     const [member] = await db
       .select({ id: person.id })
       .from(person)
       .where(eq(person.email, E2E_MEMBER_EMAIL));
     const home = await firstCommittee();
-    const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
+    const [current] = await db
+      .select({ id: term.id })
+      .from(term)
+      .where(eq(term.code, E2E_TERM.code));
     if (!member || !current) throw new Error("sin miembro o término");
     slug = home.slug;
     committeeId = home.id;
@@ -100,7 +106,8 @@ test.describe("líder", () => {
     await closeDb();
   });
 
-  test.afterAll(async () => {
+  test.afterEach(async () => {
+    await drenarOutbox();
     const db = getDb();
     const [member] = await db
       .select({ id: person.id })

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import sharp from "sharp";
 import { closeDb, getDb } from "@/db/client";
@@ -14,17 +14,22 @@ import {
   sampleNormativaV2Pdf,
 } from "../helpers/pdf";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 import { E2E_EMAIL } from "./global-setup";
+import { prepareReaderDocument } from "./normativa-fixture";
+import { drenarOutbox } from "./outbox";
 
 // Normativa (ADR-034 regla 9): el admin sube un PDF sintético y carga tres artículos; el miembro
 // busca, abre el artículo y el PDF original responde 302 al bucket.
 
-// Títulos fijos compartidos entre workers. Cada prueba de carga limpia solo su documento sintético
-// antes de empezar: global-setup no se repite cuando Playwright reintenta una prueba.
+// Cada lector prepara su versión después de restaurar la base; no depende de las cargas por UI.
 const titulo = "e2e-estatutos-prueba";
 const tituloV2 = "e2e-estatutos-completos-de-la-organización-de-prueba";
 
-test.afterAll(async () => closeDb());
+test.afterEach(async () => {
+  await drenarOutbox();
+  return closeDb();
+});
 
 async function adminOnboarding() {
   return getDb()
@@ -271,6 +276,7 @@ test.describe("como admin", () => {
 
 test.describe("como miembro", () => {
   test.use({ storageState: "tests/e2e/.auth/member.json" });
+  test.beforeEach(() => prepareReaderDocument(titulo, 1));
 
   test("busca un artículo, lo abre y el PDF original redirige al bucket", async ({ page }) => {
     await page.goto("/app/normativa");
@@ -302,6 +308,7 @@ test.describe("como miembro", () => {
 
 test.describe("normativa completa como miembro", () => {
   test.use({ storageState: "tests/e2e/.auth/member.json" });
+  test.beforeEach(() => prepareReaderDocument(tituloV2, 2));
 
   test("busca secciones y celdas, conserva sus anclas y muestra el organigrama privado", async ({
     page,

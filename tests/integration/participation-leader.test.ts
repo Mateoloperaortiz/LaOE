@@ -45,7 +45,7 @@ describe("vista de líder, exportes y alias", () => {
     if (!term) throw new Error("sin término");
     const committeeId = await seedCommittee("c1");
     const leader = await seedMember("lider@eafit.edu.co");
-    const first = new Date(Date.now() + 86_400_000);
+    const first = new Date(`${term.startsOn}T18:00:00-05:00`);
     const expected = weeklyDates(first, term.endsOn);
     expect(expected.length).toBeGreaterThan(0);
     const result = await createOccasionSeriesAs(

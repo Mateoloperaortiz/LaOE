@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 
 // Organizaciones y contactos (ADR-037 regla 6): ADMIN crea una organización e2e-, le agrega un contacto
 // externo y una nota, y la encuentra en la paleta ⌘K.

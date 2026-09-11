@@ -9,6 +9,7 @@ import {
   ref,
   service,
 } from "railway/iac";
+import documentationPaths from "../scripts/ci/documentation-paths.json";
 
 const REGION = "us-east4-eqdc4a";
 const LIMITS = { containers: { cpu: 1, memoryBytes: 1_000_000_000 } };
@@ -39,7 +40,11 @@ export default defineRailway((ctx) => {
   };
   const web = service("web", {
     source,
-    build: "npm run build",
+    build: {
+      buildCommand: "npm run build",
+      // ADR-053: todo cambio desconocido despliega; solo se excluye documentación comprobada.
+      watchPatterns: ["**", ...documentationPaths.map((path) => `!/${path}`)],
+    },
     start: "npm run start",
     preDeploy: "npm run db:release",
     healthcheck: "/api/health",

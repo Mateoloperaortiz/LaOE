@@ -299,8 +299,6 @@ describe("check-in propio", () => {
       { occasionId: id, personId: other, personName: "Otra", source: "HOST" },
     );
     expect((await findCheckIn(id, other))?.status).toBe("APPROVED");
-    // Cerrada: solo un admin da de alta.
-    await db().update(checkIn).set({ status: "APPROVED" }).where(eq(checkIn.id, "nunca"));
   });
 
   it("cancelar la ocasión anula los check-ins vivos y revierte sus créditos en una transacción", async () => {

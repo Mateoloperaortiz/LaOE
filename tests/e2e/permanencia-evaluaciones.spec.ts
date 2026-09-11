@@ -1,8 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { and, asc, eq, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
 import { committee, person } from "@/modules/people/schema";
+import { evaluateAs, grantManualCreditAs } from "@/modules/permanence";
 import {
   permanenceRule,
   workGroup,
@@ -11,6 +12,8 @@ import {
 } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
+import { E2E_TERM } from "./calendar";
+import { test } from "./fixtures";
 import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
 import { drenarOutbox } from "./outbox";
 
@@ -28,7 +31,7 @@ async function ids() {
     .select({ id: person.id })
     .from(person)
     .where(eq(person.email, E2E_MEMBER_EMAIL));
-  const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
+  const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
   const [home] = await db
     .select({ id: committee.id, slug: committee.slug, name: committee.name })
     .from(committee)
@@ -42,7 +45,7 @@ async function ids() {
 test.describe("director de GH", () => {
   test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
-  test.beforeAll(async () => {
+  test.beforeEach(async () => {
     const { admin, member, current } = await ids();
     const db = getDb();
     let [group] = await db
@@ -115,6 +118,44 @@ test.describe("director de GH", () => {
 test.describe("miembro", () => {
   test.use({ storageState: "tests/e2e/.auth/member.json" });
 
+  test.beforeEach(async () => {
+    const { admin, member, current, home } = await ids();
+    const [group] = await getDb()
+      .insert(workGroup)
+      .values({
+        termId: current.id,
+        kind: "GAP",
+        name: "e2e-GAP evaluado",
+      })
+      .returning({ id: workGroup.id });
+    const [rule] = await getDb()
+      .insert(permanenceRule)
+      .values({
+        termId: current.id,
+        scope: "COMMITTEE",
+        committeeId: home.id,
+        key: "e2e-manual",
+        label: "e2e-Apoyo especial",
+        weight: 6,
+        computation: "MANUAL",
+      })
+      .returning({ id: permanenceRule.id });
+    if (!group || !rule) throw new Error("No se pudo preparar la permanencia del miembro");
+    await getDb().insert(workGroupMembership).values({ groupId: group.id, personId: member.id });
+    const actor = { personId: admin.id, ip: null };
+    await evaluateAs(
+      actor,
+      { groupId: group.id, personId: member.id, evaluation: "GOOD", note: "" },
+      { isAdmin: true },
+    );
+    await grantManualCreditAs(actor, {
+      ruleId: rule.id,
+      personId: member.id,
+      value: 4,
+      reason: "e2e-Organizó la integración",
+    });
+  });
+
   test("ve el GAP evaluado con buen desempeño y el crédito en su permanencia", async ({ page }) => {
     // El historial lo materializa evaluation.recorded; CI no arranca jobs de fondo.
     await drenarOutbox();
@@ -131,7 +172,7 @@ test.describe("líder", () => {
 
   let slug = "";
 
-  test.beforeAll(async () => {
+  test.beforeEach(async () => {
     const { member, home } = await ids();
     slug = home.slug;
     const db = getDb();
@@ -142,7 +183,8 @@ test.describe("líder", () => {
     await closeDb();
   });
 
-  test.afterAll(async () => {
+  test.afterEach(async () => {
+    await drenarOutbox();
     const { member } = await ids();
     const db = getDb();
     await db.delete(permission).where(eq(permission.personId, member.id));

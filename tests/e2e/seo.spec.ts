@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test } from "./fixtures";
 
 // SEO e imágenes para compartir (F1-T5): metadata, OG, robots y sitemap. En local y CI
 // PUBLIC_INDEXING no está encendido, así que todo lleva noindex y robots cierra el sitio.

@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 
 // Personas (fase 2): alta manual desde el kit, Persona 360 con edición, cambio de estado, nota y tarea.
 test.use({ storageState: "tests/e2e/.auth/admin.json" });

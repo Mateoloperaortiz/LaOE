@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { and, eq, isNull } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { page as contentPage } from "@/modules/content/schema";
@@ -6,7 +6,9 @@ import { consent, person } from "@/modules/people/schema";
 import { appConfig } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
+import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
+import { drenarOutbox } from "./outbox";
 
 // Autorización en el primer ingreso (ADR-048): sin ella Mi OE no se abre, y la persona la da
 // leyendo la política publicada.
@@ -58,6 +60,7 @@ test.beforeEach(async () => {
 });
 
 test.afterEach(async () => {
+  await drenarOutbox();
   if (originalPage) {
     await getDb().update(contentPage).set(originalPage).where(eq(contentPage.slug, "privacidad"));
   }

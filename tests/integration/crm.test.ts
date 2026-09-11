@@ -79,7 +79,7 @@ describe("línea de tiempo por outbox", () => {
     await runCommand({ personId: adaId }, (ctx) => editNote(ctx, note.id, "Corregida"));
     const notes = await listInteractions(personId, "NOTE");
     expect(notes[0]).toMatchObject({ summary: "Corregida", body: "Corregida" });
-    expect(notes[0]?.editedAt).not.toBeNull();
+    expect(notes[0]?.editedAt).toBeInstanceOf(Date);
 
     const created = await runCommand({ personId: adaId }, (ctx) =>
       createTask(ctx, { title: "Llamar", kind: "GENERAL", assigneeId: adaId, personId }),
