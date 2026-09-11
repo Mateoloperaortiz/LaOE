@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "recordedAt": "2026-09-11T14:35:33.093040+00:00",
+  "recordedAt": "2026-09-11T15:21:51.130306+00:00",
   "status": "validación remota inicial aprobada; rollout en curso",
   "reference": {
     "runId": 34605678356,
@@ -3563,6 +3563,575 @@
       "jobId": 103298190570,
       "result": "success",
       "timingIncludedInBenchmark": false
+    },
+    "stalledInitialization": {
+      "metrics": {
+        "runId": 34613619871,
+        "url": "https://github.com/Mateoloperaortiz/LaOE/actions/runs/34613619871",
+        "sha": "3a580ee426279c9d04808dd58a8f9e717d3fd8b5",
+        "branch": "codex/medicion-ci-20260911-4",
+        "event": "workflow_dispatch",
+        "attempt": 1,
+        "conclusion": "cancelled",
+        "createdAt": "2026-09-11T15:01:20Z",
+        "startedAt": "2026-09-11T15:01:20Z",
+        "completedAt": "2026-09-11T15:15:48+00:00",
+        "totalSeconds": 868.0,
+        "initialQueueSeconds": 4.0,
+        "runnerSeconds": 1742.0,
+        "jobs": [
+          {
+            "id": 103309985414,
+            "name": "Clasificar cambios",
+            "conclusion": "success",
+            "startedAt": "2026-09-11T15:01:24Z",
+            "completedAt": "2026-09-11T15:01:30Z",
+            "seconds": 6.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run node scripts/ci/run.mjs classify",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          },
+          {
+            "id": 103310037304,
+            "name": "respaldo · retención · concurrencia · restauración",
+            "conclusion": "success",
+            "startedAt": "2026-09-11T15:01:34Z",
+            "completedAt": "2026-09-11T15:02:16Z",
+            "seconds": 42.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Imagen y recuperación con datos sintéticos aislados",
+                "conclusion": "success",
+                "seconds": 34.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          },
+          {
+            "id": 103310037319,
+            "name": "integración (Postgres 18 + Garage)",
+            "conclusion": "success",
+            "startedAt": "2026-09-11T15:01:33Z",
+            "completedAt": "2026-09-11T15:06:08Z",
+            "seconds": 275.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Initialize containers",
+                "conclusion": "success",
+                "seconds": 17.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 8.0
+              },
+              {
+                "name": "Garage (bucket S3 local)",
+                "conclusion": "success",
+                "seconds": 3.0
+              },
+              {
+                "name": "Run npm ci",
+                "conclusion": "success",
+                "seconds": 14.0
+              },
+              {
+                "name": "Run mkdir -p ci-results",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run npm run storage:init",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run npm run test:integration -- --reporter=default --reporter=json --outputFile=ci-results/integration.json",
+                "conclusion": "success",
+                "seconds": 224.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Post Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Stop containers",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          },
+          {
+            "id": 103310037323,
+            "name": "Biome · dependency-cruiser · knip · tsc · unit · build",
+            "conclusion": "success",
+            "startedAt": "2026-09-11T15:01:34Z",
+            "completedAt": "2026-09-11T15:03:28Z",
+            "seconds": 114.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 9.0
+              },
+              {
+                "name": "Run npm ci",
+                "conclusion": "success",
+                "seconds": 15.0
+              },
+              {
+                "name": "Run mkdir -p ci-results",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run npm run lint",
+                "conclusion": "success",
+                "seconds": 4.0
+              },
+              {
+                "name": "Run npm run typecheck",
+                "conclusion": "success",
+                "seconds": 23.0
+              },
+              {
+                "name": "Run npm run deps:check",
+                "conclusion": "success",
+                "seconds": 3.0
+              },
+              {
+                "name": "Run npm run deadcode",
+                "conclusion": "success",
+                "seconds": 3.0
+              },
+              {
+                "name": "Run npm test -- --reporter=default --reporter=json --outputFile=ci-results/unit.json",
+                "conclusion": "success",
+                "seconds": 22.0
+              },
+              {
+                "name": "Run actions/setup-python@v5",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "uv para el extractor de normativa",
+                "conclusion": "success",
+                "seconds": 5.0
+              },
+              {
+                "name": "Run npm run test:extractor",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run actions/cache@v4",
+                "conclusion": "success",
+                "seconds": 3.0
+              },
+              {
+                "name": "Run npm run build",
+                "conclusion": "success",
+                "seconds": 11.0
+              },
+              {
+                "name": "Inventario completo de E2E, sin crear base ni arrancar servidor",
+                "conclusion": "success",
+                "seconds": 7.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Post Run actions/cache@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Post Run actions/setup-python@v5",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          },
+          {
+            "id": 103310037404,
+            "name": "E2E 1/2",
+            "conclusion": "cancelled",
+            "startedAt": "2026-09-11T15:01:33Z",
+            "completedAt": "2026-09-11T15:15:35Z",
+            "seconds": 842.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Initialize containers",
+                "conclusion": "success",
+                "seconds": 12.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Garage (bucket S3 propio de la partición)",
+                "conclusion": "success",
+                "seconds": 3.0
+              },
+              {
+                "name": "Run npm ci",
+                "conclusion": "success",
+                "seconds": 16.0
+              },
+              {
+                "name": "Run mkdir -p ci-results",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run npm run storage:init",
+                "conclusion": "cancelled",
+                "seconds": 803.0
+              },
+              {
+                "name": "Run actions/cache@v4",
+                "conclusion": "skipped",
+                "seconds": 0.0
+              },
+              {
+                "name": "Build de producción para e2e",
+                "conclusion": "skipped",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run npx playwright install --with-deps chromium",
+                "conclusion": "skipped",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run npm run test:e2e -- --fully-parallel --shard=1/2 --workers=1 --forbid-only --reporter=github,json",
+                "conclusion": "skipped",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "failure",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "skipped",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/setup-node@v4",
+                "conclusion": "skipped",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Stop containers",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          },
+          {
+            "id": 103310037489,
+            "name": "E2E 2/2",
+            "conclusion": "success",
+            "startedAt": "2026-09-11T15:01:34Z",
+            "completedAt": "2026-09-11T15:09:10Z",
+            "seconds": 456.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Initialize containers",
+                "conclusion": "success",
+                "seconds": 14.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 4.0
+              },
+              {
+                "name": "Garage (bucket S3 propio de la partición)",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run npm ci",
+                "conclusion": "success",
+                "seconds": 15.0
+              },
+              {
+                "name": "Run mkdir -p ci-results",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run npm run storage:init",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/cache@v4",
+                "conclusion": "success",
+                "seconds": 3.0
+              },
+              {
+                "name": "Build de producción para e2e",
+                "conclusion": "success",
+                "seconds": 10.0
+              },
+              {
+                "name": "Run npx playwright install --with-deps chromium",
+                "conclusion": "success",
+                "seconds": 29.0
+              },
+              {
+                "name": "Run npm run test:e2e -- --fully-parallel --shard=2/2 --workers=1 --forbid-only --reporter=github,json",
+                "conclusion": "success",
+                "seconds": 370.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "skipped",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/cache@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Post Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Stop containers",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          },
+          {
+            "id": 103314768877,
+            "name": "CI",
+            "conclusion": "failure",
+            "startedAt": "2026-09-11T15:15:41Z",
+            "completedAt": "2026-09-11T15:15:48Z",
+            "seconds": 7.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/download-artifact@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Exigir jobs aprobados, inventario completo y outbox sano",
+                "conclusion": "failure",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "failure",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/setup-node@v4",
+                "conclusion": "skipped",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          }
+        ]
+      },
+      "observed": "Bucket y CORS listos a las 15:02:10.580 UTC; proceso abierto hasta cancelación a las 15:15:32.891 UTC.",
+      "gate": "failure por partición ausente",
+      "causeLimit": "El log no identifica con certeza el recurso que retenía el proceso.",
+      "mitigation": "Pino pretty solo en terminal interactiva fuera de CI; timeout-minutes: 1 en ambos pasos storage:init; diagnóstico de Garage en caso de fallo.",
+      "status": "validación de la corrección en curso"
     }
   },
   "rollout": {
