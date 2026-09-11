@@ -18,20 +18,25 @@ function spec(id: string, projectName = "chromium") {
   };
 }
 
-function report(current: number, ids: string[]) {
+function report(ids: string[]) {
   const specs = [spec("admin", "setup"), spec("miembro", "setup"), ...ids.map((id) => spec(id))];
   return {
     errors: [] as unknown[],
     suites: [{ specs }] as const,
-    config: { workers: 1, fullyParallel: true, forbidOnly: true, shard: { current, total: 2 } },
+    config: {
+      workers: 1,
+      forbidOnly: true,
+      shard: null as null | { current: number; total: number },
+    },
     stats: { expected: specs.length, unexpected: 0, skipped: 0, flaky: 0, duration: 100 },
   };
 }
 
 function fixture() {
   return {
-    inventory: report(1, ["uno", "dos", "tres"]),
-    reports: [report(1, ["uno", "dos"]), report(2, ["tres"])] as const,
+    inventory: report(["uno", "dos", "tres"]),
+    reports: [report(["uno", "dos"]), report(["tres"])] as const,
+    partitions: [{ files: ["uno.spec.ts", "dos.spec.ts"] }, { files: ["tres.spec.ts"] }],
   };
 }
 
@@ -43,69 +48,88 @@ function scenario(value: ReturnType<typeof report>) {
 
 describe("integridad de los informes E2E", () => {
   it("cuenta una vez los escenarios y exige autenticación en cada máquina", () => {
-    const { inventory, reports } = fixture();
-    expect(verifyE2eReports(inventory, reports)).toMatchObject({
+    const { inventory, reports, partitions } = fixture();
+    expect(verifyE2eReports(inventory, reports, partitions)).toMatchObject({
       uniqueCases: 5,
       scenarios: 3,
       setupPerShard: 2,
+      shards: [
+        { shard: 1, files: 2, cases: 4 },
+        { shard: 2, files: 1, cases: 3 },
+      ],
     });
   });
   it("rechaza informes ausentes, repetidos o sin su autenticación", () => {
-    const { inventory, reports } = fixture();
-    expect(() => verifyE2eReports(inventory, reports.slice(0, 1))).toThrow("dos informes");
-    expect(() => verifyE2eReports(inventory, [reports[0], reports[0]])).toThrow(
-      "Partición duplicada",
+    const { inventory, reports, partitions } = fixture();
+    expect(() => verifyE2eReports(inventory, reports.slice(0, 1), partitions)).toThrow(
+      "2 informes",
     );
+    expect(() => verifyE2eReports(inventory, [reports[0], reports[0]], partitions)).toThrow(
+      "repetido",
+    );
+    expect(() => verifyE2eReports(inventory, reports, [])).toThrow("reparto");
     reports[1].suites[0].specs.shift();
     reports[1].stats.expected--;
-    expect(() => verifyE2eReports(inventory, reports)).toThrow("Autenticación incompleta");
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow(
+      "Autenticación incompleta",
+    );
+  });
+  it("exige que cada máquina ejecute exactamente los archivos de su partición", () => {
+    const { inventory, reports, partitions } = fixture();
+    expect(() => verifyE2eReports(inventory, reports, [partitions[1], partitions[0]])).toThrow(
+      "exactamente sus archivos",
+    );
+    reports[0].config.shard = { current: 1, total: 2 };
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow("--shard");
   });
   it("detecta una omisión aunque todos los contadores del reporte reducido estén en verde", () => {
-    const { inventory, reports } = fixture();
+    const { inventory, reports, partitions } = fixture();
     reports[0].suites[0].specs.pop();
     reports[0].stats.expected--;
-    expect(() => verifyE2eReports(inventory, reports)).toThrow("Faltan escenarios");
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow("exactamente");
+    partitions[0]?.files.pop();
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow("Faltan escenarios");
   });
   it("detecta escenarios repetidos entre máquinas", () => {
-    const { inventory, reports } = fixture();
+    const { inventory, reports, partitions } = fixture();
     reports[1].suites[0].specs.push(spec("uno"));
     reports[1].stats.expected++;
-    expect(() => verifyE2eReports(inventory, reports)).toThrow("Escenario repetido");
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow("Escenario repetido");
   });
   it("rechaza un caso ajeno al inventario", () => {
-    const { inventory, reports } = fixture();
+    const { inventory, reports, partitions } = fixture();
     scenario(reports[1]).id = "desconocido";
-    expect(() => verifyE2eReports(inventory, reports)).toThrow("ajeno al inventario");
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow("ajeno al inventario");
   });
   it("rechaza un caso que no pasó por el drenaje estricto del outbox", () => {
-    const { inventory, reports } = fixture();
+    const { inventory, reports, partitions } = fixture();
     scenario(reports[1]).tests[0].annotations = [];
-    expect(() => verifyE2eReports(inventory, reports)).toThrow("outbox");
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow("outbox");
   });
   it.each(["unexpected", "skipped", "flaky"] as const)("rechaza casos %s", (status) => {
-    const { inventory, reports } = fixture();
+    const { inventory, reports, partitions } = fixture();
     reports[0].stats[status] = 1;
-    expect(() => verifyE2eReports(inventory, reports)).toThrow(status);
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow(status);
   });
   it("rechaza reintentos, fallos esperados y errores globales", () => {
-    const { inventory, reports } = fixture();
+    const { inventory, reports, partitions } = fixture();
     const test = scenario(reports[0]).tests[0];
     test.results[0].retry = 1;
-    expect(() => verifyE2eReports(inventory, reports)).toThrow("reintento");
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow("reintento");
     test.results[0].retry = 0;
     test.expectedStatus = "failed";
-    expect(() => verifyE2eReports(inventory, reports)).toThrow("esperaba un fallo");
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow("esperaba un fallo");
     test.expectedStatus = "passed";
     reports[0].errors.push({ message: "Servidor caído" });
-    expect(() => verifyE2eReports(inventory, reports)).toThrow("errores globales");
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow("errores globales");
   });
   it("exige la configuración que protege contra concurrencia y pruebas enfocadas", () => {
-    const { inventory, reports } = fixture();
+    const { inventory, reports, partitions } = fixture();
     reports[0].config.workers = 2;
-    expect(() => verifyE2eReports(inventory, reports)).toThrow("worker");
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow("worker");
     reports[0].config.workers = 1;
     reports[0].config.forbidOnly = false;
-    expect(() => verifyE2eReports(inventory, reports)).toThrow("enfocadas");
+    expect(() => verifyE2eReports(inventory, reports, partitions)).toThrow("enfocadas");
   });
 });
 
