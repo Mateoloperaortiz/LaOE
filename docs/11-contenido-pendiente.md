@@ -93,7 +93,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 - [ ] Decisión de pago y titular del Apple Developer Program; verificar tarifa vigente al contratar, separado del tope Railway
 - [ ] Apple: inscripción, Pass Type ID distinto por entorno, Team ID, certificado/clave de firma válidos, responsable y fecha de renovación; custodia privada, nunca en el repositorio
-- [ ] Google: cuenta de emisor, proyecto Cloud con Wallet API, cuenta de servicio autorizada, usuarios de prueba y solicitud de acceso de publicación
+- [ ] Google: cuenta de emisor, proyecto Cloud con Wallet API, cuenta de servicio autorizada, usuarios de prueba y solicitud de acceso de publicación. Emisor, API y cuentas de servicio por entorno listos; solicitud de publicación enviada el 2026-09-11, aprobación pendiente por correo; sin cuentas de prueba registradas
 - [ ] Credenciales reales por entorno, sufijo Google propio de staging y variables adoptadas/preservadas en IaC; activar cada plataforma por separado
 - [ ] COM: validar textos de organización/billetera T-1189 y T-1197 y aplicar el uso aprobado del isotipo; badges oficiales en español sin rediseño
 - [ ] iPhone: guardar un pase firmado válido desde navegador y PWA sobre HTTPS; Android/Google: guardar con cuenta autorizada; escanear ambos en modo anfitrión, probar revocación y actualización
