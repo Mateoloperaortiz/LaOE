@@ -5,7 +5,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
 | [052](adr/ADR-052-aislamiento-y-fallos-de-las-pruebas-e2e.md) | Pruebas E2E | Base local desechable por corrida, restauración autenticada por escenario, outbox estricto, calendario sintético vigente y cero reintentos automáticos | Aceptada |
-| [053](adr/ADR-053-ci-en-paralelo-y-verificacion-del-despliegue.md) | CI/CD | Integración independiente, dos particiones E2E aisladas, inventario y outbox obligatorios, documentación selectiva, caché Next y smoke posterior por SHA | Aceptada; validación remota en curso |
+| [053](adr/ADR-053-ci-en-paralelo-y-verificacion-del-despliegue.md) | CI/CD | Integración independiente, dos particiones E2E aisladas, inventario y outbox obligatorios, documentación selectiva, caché Next y smoke posterior por SHA | Aceptada |
 | [051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) | Acceso sin correo | La credencial es una contraseña propia con hash `scrypt`; la primera y la recuperación llegan por un enlace de un solo uso que emite la junta fuera del correo, y el step-up deja de depender del OTP | Aceptada |
 | [050](adr/ADR-050-correo-transaccional-del-codigo.md) | Correo del código | El asunto deja de llevar el código, el mensaje usa el envoltorio común con pie transaccional propio y cabeceras de correo automático, y el envío exitoso queda registrado sin el secreto | Enmendada por 051 |
 | [049](adr/ADR-049-navegacion-entre-mi-oe-y-administracion.md) | Cambio de área | Enlaces visibles entre Mi OE y Administración con la misma sesión; disponibilidad calculada con los roles administrativos existentes | Aceptada |

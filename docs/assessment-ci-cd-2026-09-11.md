@@ -2,7 +2,7 @@
 
 **El pipeline puede mejorar sustancialmente sin quitar pruebas.** La mediana reciente es **16 min 42 s**. El camino que determina su duración encadena integración, build, instalación de Chromium y todos los E2E en una sola máquina. Separar integración y distribuir E2E entre dos máquinas permite plantear un **objetivo inicial de 10–12 minutos**. Es una estimación pendiente de medir en GitHub; un objetivo posterior de 8–10 minutos requiere comprobar el balance y la caché.
 
-Este documento entrega el assessment y una propuesta concreta. No modifica el workflow, las reglas de GitHub ni la configuración de Railway. Las correcciones locales de la suite de [ADR-052](adr/ADR-052-aislamiento-y-fallos-de-las-pruebas-e2e.md) siguen sin publicarse: las ejecuciones remotas medidas tienen 184 E2E; la suite local actual tiene 169. No se atribuye a GitHub una aceleración medida en el equipo local.
+Este documento conserva el assessment previo a la implementación. En el momento de esa evaluación no se habían modificado el workflow, las reglas de GitHub ni Railway, y las correcciones de [ADR-052](adr/ADR-052-aislamiento-y-fallos-de-las-pruebas-e2e.md) todavía no estaban publicadas: las ejecuciones históricas medidas tienen 184 E2E y la suite corregida tiene 169. La [implementación posterior y sus mediciones reales](ci-cd-2026-09-11.md) se registran por separado.
 
 La [evidencia estructurada](assessment-ci-cd-2026-09-11.json) conserva las ejecuciones, pasos, configuración consultada, particiones y comprobaciones. Las propuestas no constituyen una nueva decisión arquitectónica aceptada; su implementación deberá registrar la ADR correspondiente.
 
