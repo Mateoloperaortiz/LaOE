@@ -14,6 +14,38 @@ export function verifyVitestReport(report) {
   return { cases: report.numTotalTests, files: report.testResults.length };
 }
 
+/** Cada runner de integración ejecuta exactamente los archivos de su partición; ninguno se pierde. */
+export function verifyIntegrationReports(reports, partitions, fileOf) {
+  assert(Array.isArray(partitions) && partitions.length > 0, "Falta el reparto de integración");
+  assert.equal(
+    reports.length,
+    partitions.length,
+    `Se necesitan los ${partitions.length} informes de integración`,
+  );
+  const seen = new Set();
+  const shards = [];
+  let cases = 0;
+  for (const [index, report] of reports.entries()) {
+    const shard = index + 1;
+    const summary = verifyVitestReport(report);
+    const files = new Set();
+    for (const file of report.testResults) {
+      const name = fileOf(file.name);
+      assert(!seen.has(name), `Archivo de integración repetido entre particiones: ${name}`);
+      seen.add(name);
+      files.add(name);
+    }
+    assert.deepEqual(
+      files,
+      new Set(partitions[index].files),
+      `La partición ${shard} de integración no ejecutó exactamente sus archivos`,
+    );
+    cases += summary.cases;
+    shards.push({ shard, files: files.size, cases: summary.cases });
+  }
+  return { cases, files: seen.size, shards };
+}
+
 function cases(report) {
   assert.deepEqual(report.errors, [], "El informe contiene errores globales");
   const result = new Map();

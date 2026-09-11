@@ -17,6 +17,9 @@ describe("clasificación conservadora de CI", () => {
   it("permite el recorrido ligero para documentación conocida", () => {
     expect(classifyPaths(["docs/09-roadmap.md", "docs/adr/ADR-053-ci.md"])).toBe("documentation");
     expect(classifyPaths(["docs/ci-cd-2026-09-11.json"])).toBe("documentation");
+    expect(classifyPaths(["docs/04-decisiones.md", "docs/10-verificacion.md"])).toBe(
+      "documentation",
+    );
   });
   it.each([
     "src/app/page.tsx",

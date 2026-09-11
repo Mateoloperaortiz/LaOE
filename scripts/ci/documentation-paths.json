@@ -5,5 +5,7 @@
   "docs/assessment-ci-cd-*.md",
   "docs/assessment-ci-cd-*.json",
   "docs/ci-cd-*.md",
-  "docs/ci-cd-*.json"
+  "docs/ci-cd-*.json",
+  "docs/04-decisiones.md",
+  "docs/10-verificacion.md"
 ]

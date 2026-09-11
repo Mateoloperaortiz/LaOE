@@ -18,9 +18,16 @@ import {
   parseShard,
   partitionFiles,
 } from "./e2e-partition.mjs";
+import integrationDurations from "./integration-durations.json" with { type: "json" };
+import {
+  durationsFromVitestReport,
+  INTEGRATION_SHARDS,
+  integrationFileOf,
+  integrationPartitions,
+} from "./integration-partition.mjs";
 import { classifyPaths, comparisonBase, verifyJobs } from "./policy.mjs";
 import { findPromotionEvidence, promotionHead, REPOSITORY, verifyEvidence } from "./promotion.mjs";
-import { verifyE2eReports, verifyVitestReport } from "./reports.mjs";
+import { verifyE2eReports, verifyIntegrationReports, verifyVitestReport } from "./reports.mjs";
 import { readSmokeDeployment } from "./smoke-context.mjs";
 
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
@@ -148,9 +155,14 @@ try {
     };
     if (mode === "full") {
       const partitions = currentPartitions();
+      const integration = integrationPartitions();
       Object.assign(evidence, {
         unit: verifyVitestReport(readJson(`${directory}/unit.json`)),
-        integration: verifyVitestReport(readJson(`${directory}/integration.json`)),
+        integration: verifyIntegrationReports(
+          integration.map((_, index) => readJson(`${directory}/integration-${index + 1}.json`)),
+          integration,
+          integrationFileOf,
+        ),
         e2e: verifyE2eReports(
           readJson(`${directory}/inventory.json`),
           partitions.map((_, index) => readJson(`${directory}/e2e-${index + 1}.json`)),
@@ -179,7 +191,7 @@ try {
     }
     if (evidence.e2e && mode === "full") {
       summary(
-        `${evidence.e2e.uniqueCases} casos únicos; ${evidence.e2e.scenarios} escenarios. Outbox: ${evidence.e2e.outbox}.`,
+        `${evidence.e2e.uniqueCases} casos únicos; ${evidence.e2e.scenarios} escenarios. Outbox: ${evidence.e2e.outbox}. Integración: ${evidence.integration.cases} casos en ${evidence.integration.files} archivos (${evidence.integration.shards.map((shard) => `${shard.files} archivos y ${shard.cases} casos en ${shard.shard}/${INTEGRATION_SHARDS}`).join("; ")}).`,
       );
       summary("\n| Partición | Archivos | Casos | Segundos E2E |\n| --- | ---: | ---: | ---: |");
       for (const shard of evidence.e2e.shards) {
@@ -204,6 +216,27 @@ try {
     summary(
       `Partición ${current}/${E2E_SHARDS}: ${partition.files.length} archivos, ~${partition.seconds.toFixed(0)} s según la ejecución ${durations.sourceRunId}.`,
     );
+  } else if (process.argv[2] === "integration-shard") {
+    const current = parseShard(process.argv[3], INTEGRATION_SHARDS);
+    const partition = integrationPartitions()[current - 1];
+    output("files", partition.files.join(" "));
+    process.stdout.write(`${partition.files.join("\n")}\n`);
+    summary(
+      `Integración ${current}/${INTEGRATION_SHARDS}: ${partition.files.length} archivos, ~${partition.seconds.toFixed(0)} s de pruebas según la ejecución ${integrationDurations.sourceRunId}.`,
+    );
+  } else if (process.argv[2] === "integration-durations") {
+    const generated = durationsFromVitestReport(
+      readJson(process.argv[3]),
+      process.argv[4] ?? "manual",
+      process.argv[5] ?? "manual",
+    );
+    writeFileSync(
+      new URL("./integration-durations.json", import.meta.url),
+      `${JSON.stringify(generated, null, 2)}\n`,
+    );
+    process.stdout.write(
+      `Duraciones de ${Object.keys(generated.files).length} archivos de integración desde la ejecución ${generated.sourceRunId}.\n`,
+    );
   } else if (process.argv[2] === "e2e-durations") {
     const generated = durationsFromResult(readJson(process.argv[3]));
     writeFileSync(
@@ -227,7 +260,7 @@ try {
     );
   } else {
     throw new Error(
-      "Uso: node scripts/ci/run.mjs classify|gate|e2e-shard k/n|e2e-durations <ci-result.json>|smoke-context",
+      "Uso: node scripts/ci/run.mjs classify|gate|e2e-shard k/n|integration-shard k/n|e2e-durations <ci-result.json>|integration-durations <integration.json> [run] [sha]|smoke-context",
     );
   }
 } catch (error) {
