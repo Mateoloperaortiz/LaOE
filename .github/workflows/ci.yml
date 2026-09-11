@@ -13,6 +13,10 @@ concurrency:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 env:
   CI: "true"
   APP_URL: http://localhost:3000
@@ -36,6 +40,10 @@ jobs:
     name: Clasificar cambios
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    # ADR-054: lista ejecuciones y descarga el ci-result de main para reutilizarlo al promover.
+    permissions:
+      contents: read
+      actions: read
     outputs:
       mode: ${{ steps.scope.outputs.mode }}
     steps:
@@ -47,6 +55,15 @@ jobs:
           node-version: 24
       - id: scope
         run: node scripts/ci/run.mjs classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@v4
+        if: steps.scope.outputs.mode == 'promotion'
+        with:
+          name: ci-promotion
+          path: ci-results/promotion.json
+          if-no-files-found: error
+          retention-days: 14
 
   calidad:
     name: Biome · dependency-cruiser · knip · tsc · unit · build
@@ -171,7 +188,7 @@ jobs:
           retention-days: 14
 
   e2e:
-    name: E2E ${{ matrix.shard }}/2
+    name: E2E ${{ matrix.shard }}/3
     needs: cambios
     if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
@@ -179,7 +196,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     services:
       postgres:
         image: postgres:18-alpine
@@ -230,7 +247,12 @@ jobs:
           NODE_ENV: production
           OTP_FIXED_CODE: ""
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e -- --fully-parallel --shard=${{ matrix.shard }}/2 --workers=1 --forbid-only --reporter=github,json
+      - id: particion
+        name: Reparto balanceado de escenarios por duración
+        run: node scripts/ci/run.mjs e2e-shard ${{ matrix.shard }}/3
+      - run: npm run test:e2e -- --workers=1 --forbid-only --reporter=github,json
+        env:
+          E2E_FILES: ${{ steps.particion.outputs.files }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -259,7 +281,7 @@ jobs:
         with:
           node-version: 24
       - uses: actions/download-artifact@v4
-        if: needs.cambios.outputs.mode == 'full'
+        if: needs.cambios.outputs.mode != 'documentation'
         with:
           pattern: ci-*
           path: ci-results

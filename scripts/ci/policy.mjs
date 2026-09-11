@@ -25,11 +25,11 @@ export function comparisonBase(eventName, event, head) {
     : null;
 }
 
-/** Un job omitido solo es válido cuando el clasificador ha reconocido documentación. */
+/** Un job omitido solo es válido con documentación reconocida o con evidencia de promoción (ADR-054). */
 export function verifyJobs(needs) {
   assert.equal(needs.cambios?.result, "success", "Falló la clasificación del cambio");
   const mode = needs.cambios.outputs?.mode;
-  assert(["documentation", "full"].includes(mode), "Modo de CI ausente o desconocido");
+  assert(["documentation", "promotion", "full"].includes(mode), "Modo de CI ausente o desconocido");
   for (const name of ["calidad", "respaldo", "integracion", "e2e"]) {
     assert.equal(
       needs[name]?.result,

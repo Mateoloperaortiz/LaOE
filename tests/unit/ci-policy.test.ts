@@ -53,9 +53,16 @@ describe("clasificación conservadora de CI", () => {
 });
 
 describe("resultado final de CI", () => {
-  it("acepta la suite completa aprobada y la omisión documental explícita", () => {
+  it("acepta la suite completa aprobada y las omisiones explícitas documental y de promoción", () => {
     expect(verifyJobs(jobs())).toBe("full");
     expect(verifyJobs(jobs("documentation"))).toBe("documentation");
+    expect(verifyJobs(jobs("promotion"))).toBe("promotion");
+  });
+  it("exige que una promoción omita los jobs pesados en vez de ejecutarlos a medias", () => {
+    expect(() => verifyJobs({ ...jobs("promotion"), e2e: { result: "success" } })).toThrow("e2e");
+    expect(() => verifyJobs({ ...jobs("promotion"), calidad: { result: "failure" } })).toThrow(
+      "calidad",
+    );
   });
   it.each([
     "failure",

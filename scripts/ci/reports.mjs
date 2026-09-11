@@ -38,33 +38,35 @@ function cases(report) {
   return result;
 }
 
-/** Compara casos descubiertos y ejecutados; la autenticación debe repetirse en cada partición. */
-export function verifyE2eReports(inventory, reports) {
+/** Compara inventario y ejecución; cada runner corre exactamente los archivos de su partición. */
+export function verifyE2eReports(inventory, reports, partitions) {
   const expected = cases(inventory);
   const setups = new Set(
     [...expected].filter(([, item]) => item.test.projectName === "setup").map(([key]) => key),
   );
   assert(setups.size > 0 && expected.size > setups.size, "Faltan autenticación o escenarios");
-  assert.equal(reports.length, 2, "Se necesitan los dos informes E2E");
-  const seenShards = new Set();
+  assert(Array.isArray(partitions) && partitions.length > 0, "Falta el reparto de particiones");
+  assert.equal(
+    reports.length,
+    partitions.length,
+    `Se necesitan los ${partitions.length} informes E2E`,
+  );
   const seenScenarios = new Set();
   const durations = [];
   const shards = [];
-  for (const report of reports) {
+  for (const [index, report] of reports.entries()) {
+    const shard = index + 1;
     const { config, stats } = report;
     assert.equal(config?.workers, 1, "Cada partición exige un worker");
-    assert.equal(config.fullyParallel, true, "La partición debe distribuir casos");
     assert.equal(config.forbidOnly, true, "CI debe rechazar pruebas enfocadas");
-    assert.equal(config.shard?.total, 2, "Total de particiones incorrecto");
-    const shard = config.shard.current;
-    assert([1, 2].includes(shard) && !seenShards.has(shard), "Partición duplicada o inválida");
-    seenShards.add(shard);
+    assert.equal(config.shard ?? null, null, "El reparto por archivo no admite --shard");
     for (const status of ["unexpected", "skipped", "flaky"]) {
       assert.equal(stats?.[status], 0, `La partición ${shard} tiene casos ${status}`);
     }
     const actual = cases(report);
     assert.equal(stats.expected, actual.size, "El conteo del informe no coincide con sus casos");
     const actualSetups = new Set();
+    const files = new Set();
     for (const [key, { spec, test }] of actual) {
       assert(expected.has(key), `Caso ajeno al inventario: ${key}`);
       assert.equal(test.expectedStatus, "passed", `Se esperaba un fallo en ${key}`);
@@ -80,6 +82,7 @@ export function verifyE2eReports(inventory, reports) {
       } else {
         assert(!seenScenarios.has(key), `Escenario repetido entre particiones: ${key}`);
         seenScenarios.add(key);
+        files.add(spec.file);
         const annotations = [...(test.annotations ?? []), ...(result.annotations ?? [])];
         assert(
           annotations.some((item) => item.type === "outbox" && item.description === "sin fallos"),
@@ -89,7 +92,12 @@ export function verifyE2eReports(inventory, reports) {
       durations.push({ id: key, file: spec.file, title: spec.title, durationMs: result.duration });
     }
     assert.deepEqual(actualSetups, setups, `Autenticación incompleta en la partición ${shard}`);
-    shards.push({ shard, cases: actual.size, durationMs: stats.duration });
+    assert.deepEqual(
+      files,
+      new Set(partitions[index].files),
+      `La partición ${shard} no ejecutó exactamente sus archivos`,
+    );
+    shards.push({ shard, files: files.size, cases: actual.size, durationMs: stats.duration });
   }
   assert.deepEqual(
     seenScenarios,

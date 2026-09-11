@@ -43,13 +43,22 @@ El plan abarca el entorno completo. Inspeccionarlo y aplicar únicamente ese arc
 
 Cada tramo de código cierra con `npm run check`, `npm run test:e2e` cuando corresponda, commit convencional y push. No ejecutar check/build con `next dev` usando el mismo `.next`. El e2e en modo CI corre contra build y `next start`; `NODE_ENV=test` se usa únicamente en ese entorno de pruebas para su OTP fijo. Producción sigue rechazando OTP fijo. La CSP activa `upgrade-insecure-requests` cuando `APP_URL` usa HTTPS; se conserva en los dominios publicados. Promoción: sustituir `<SHA_VALIDADO>` por el SHA exacto comprobado en CI, staging y su healthcheck, y ejecutar `git -c 'credential.helper=!gh auth git-credential' push origin <SHA_VALIDADO>:production`. Registrar SHA promovido y comprobar después el SHA del healthcheck de producción; un avance concurrente de main no cambia el candidato elegido. La promoción no se ejecuta dentro de la ventana del dominio.
 
-## CI y comprobación del despliegue (ADR-053)
+## CI y comprobación del despliegue (ADR-053 y ADR-054)
 
 Publicar cambios en una rama de trabajo y abrir un PR. Las ramas `main` y `production` exigen el check `CI` de GitHub Actions; un resultado pendiente, fallido o cancelado bloquea el avance. El check final exige las familias completas y verifica el inventario E2E y el outbox. Los resultados y tiempos quedan en `ci-result` y en los artefactos `ci-*` de la ejecución.
 
 Tras el despliegue, `Smoke de Railway` comprueba por HTTP la salud y el SHA, HTTPS/CSP/indexación, robots, sitemap, manifest y calendario público. Su workflow separado evita esperar el deployment dentro del CI previo. Si se necesita repetirlo, ejecutar `gh workflow run smoke.yml --ref main -f deployment_id=<ID_GITHUB_DEPLOYMENT>` con el ID del deployment exitoso del entorno; el ID de GitHub es numérico y difiere del UUID de Railway. El modo manual valida el emisor, entorno e ID y usa las expectativas versionadas del entorno. También se conserva el comando local de smoke para diagnóstico.
 
 La lista `scripts/ci/documentation-paths.json` permite validar documentación conocida sin ejecutar la suite completa. El clasificador analiza todo el rango; un archivo desconocido, copy, código, migraciones, dependencias, tests o configuración ejecutan todo. La misma lista excluye esos cambios documentales del autodeploy de web. Un `SKIPPED` de Railway por documentación conserva el último SHA realmente desplegado: no esperar que `/api/health` cambie al SHA del commit documental. Para promover código, seguir usando el SHA exacto aprobado en staging; la promoción conserva CI completo y smoke de producción.
+
+Los E2E corren en tres runners con una partición por archivo calculada desde `scripts/ci/e2e-durations.json` (ADR-054). El check `CI` exige que cada runner ejecute exactamente su partición y que la unión sea el inventario; un spec nuevo sin duración conocida entra con la mediana y nunca queda por fuera. Cuando la suite cambie de forma apreciable, refrescar las duraciones desde un `ci-result` completo y aprobado y publicar el JSON con el cambio:
+
+```sh
+gh run download <ID_RUN_MAIN> --name ci-result --dir ci-results
+node scripts/ci/run.mjs e2e-durations ci-results/ci-result.json
+```
+
+Promoción (ADR-054): el push a `production` de un SHA con CI completo aprobado en `main` entra en modo `promotion`: el clasificador descarga el `ci-result` de esa ejecución con el token del workflow, lo verifica (SHA, ejecución, `mode: full`, resultado y las tres familias) y el check `CI` queda en verde en cerca de un minuto con los jobs pesados omitidos; el resumen y `ci-result.json` nombran la ejecución reutilizada. Railway sigue esperando ese check y el smoke posterior comprueba el SHA servido. Sin evidencia, con el artefacto vencido a los 14 días o ante cualquier incoherencia, la promoción ejecuta la suite completa: no hay que intervenir, solo esperar. Seguir promoviendo el SHA exacto validado en staging.
 
 La evidencia de activación y las mediciones están en [la implementación del 2026-09-11](ci-cd-2026-09-11.md). Las reglas, el rollout y el comportamiento de la documentación se acreditan allí, no por la existencia de este procedimiento.
 
