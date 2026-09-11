@@ -3,7 +3,7 @@ import { readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 /** Runners E2E de la matriz del workflow; el comando rechaza cualquier otro total (ADR-055). */
-export const E2E_SHARDS = 4;
+export const E2E_SHARDS = 5;
 
 const SCENARIO = /\.(spec|test)\.[cm]?[jt]sx?$/;
 

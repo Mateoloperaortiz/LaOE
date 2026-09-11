@@ -195,7 +195,7 @@ jobs:
           retention-days: 14
 
   e2e:
-    name: E2E ${{ matrix.shard }}/4
+    name: E2E ${{ matrix.shard }}/5
     needs: cambios
     if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
@@ -203,7 +203,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5]
     services:
       postgres:
         image: postgres:18-alpine
@@ -256,7 +256,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - id: particion
         name: Reparto balanceado de escenarios por duración
-        run: node scripts/ci/run.mjs e2e-shard ${{ matrix.shard }}/4
+        run: node scripts/ci/run.mjs e2e-shard ${{ matrix.shard }}/5
       - run: npm run test:e2e -- --workers=1 --forbid-only --reporter=github,json
         env:
           E2E_FILES: ${{ steps.particion.outputs.files }}
