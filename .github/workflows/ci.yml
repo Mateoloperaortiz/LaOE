@@ -156,6 +156,10 @@ jobs:
       - run: npm ci
       - run: mkdir -p ci-results
       - run: npm run storage:init
+        timeout-minutes: 1
+      - name: Diagnóstico de Garage si la preparación falla
+        if: failure()
+        run: docker logs --tail 100 garage
       # global-setup crea y migra su base _test; E2E prepara otra en su propio runner.
       - run: npm run test:integration -- --reporter=default --reporter=json --outputFile=ci-results/integration.json
       - uses: actions/upload-artifact@v4
@@ -210,6 +214,10 @@ jobs:
       - run: npm ci
       - run: mkdir -p ci-results
       - run: npm run storage:init
+        timeout-minutes: 1
+      - name: Diagnóstico de Garage si la preparación falla
+        if: failure()
+        run: docker logs --tail 100 garage
       - uses: actions/cache@v4
         with:
           path: .next/cache

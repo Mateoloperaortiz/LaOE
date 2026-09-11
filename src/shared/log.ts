@@ -1,8 +1,9 @@
 import pino from "pino";
 
 const isProduction = process.env.NODE_ENV === "production";
+const pretty = !isProduction && !process.env.CI && process.stdout.isTTY;
 
-// Logs estructurados: JSON en producción (Railway los indexa), legibles en desarrollo.
+// JSON en producción, CI y archivos; el formateador con worker queda para la terminal local.
 export const logger = pino({
   level: process.env.LOG_LEVEL ?? (isProduction ? "info" : "debug"),
   base: null,
@@ -17,12 +18,12 @@ export const logger = pino({
     ],
     censor: "[oculto]",
   },
-  ...(isProduction
-    ? {}
-    : {
+  ...(pretty
+    ? {
         transport: {
           target: "pino-pretty",
           options: { colorize: true, translateTime: "SYS:HH:MM:ss", ignore: "pid,hostname" },
         },
-      }),
+      }
+    : {}),
 });
