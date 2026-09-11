@@ -4,7 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
-| [054](adr/ADR-054-reutilizacion-del-ci-en-promocion-y-particiones-e2e-balanceadas.md) | CI/CD | Tres particiones E2E repartidas por archivo con duraciones medidas y verificadas por el gate; un push a `production` reutiliza el CI completo de `main` del mismo SHA (modo `promotion`) y ante cualquier duda ejecuta todo | Aceptada; validación remota en curso |
+| [054](adr/ADR-054-reutilizacion-del-ci-en-promocion-y-particiones-e2e-balanceadas.md) | CI/CD | Tres particiones E2E repartidas por archivo con duraciones medidas y verificadas por el gate; un push a `production` reutiliza el CI completo de `main` del mismo SHA (modo `promotion`) y ante cualquier duda ejecuta todo | Aceptada; validada en remoto |
 | [052](adr/ADR-052-aislamiento-y-fallos-de-las-pruebas-e2e.md) | Pruebas E2E | Base local desechable por corrida, restauración autenticada por escenario, outbox estricto, calendario sintético vigente y cero reintentos automáticos | Aceptada |
 | [053](adr/ADR-053-ci-en-paralelo-y-verificacion-del-despliegue.md) | CI/CD | Integración independiente, dos particiones E2E aisladas, inventario y outbox obligatorios, documentación selectiva, caché Next y smoke posterior por SHA | Aceptada (enmendada por 054) |
 | [051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) | Acceso sin correo | La credencial es una contraseña propia con hash `scrypt`; la primera y la recuperación llegan por un enlace de un solo uso que emite la junta fuera del correo, y el step-up deja de depender del OTP | Aceptada |

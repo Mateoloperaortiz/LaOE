@@ -1,6 +1,6 @@
 # ADR-054: Reutilización del CI en la promoción y particiones E2E balanceadas
 
-- Estado: Aceptada; validación remota en curso
+- Estado: Aceptada; validada en remoto el 2026-09-11 (PR 7 y primera promoción)
 - Fecha: 2026-09-11
 - Enmienda: ADR-053 (puntos 3, 4, 9 y 10)
 - Evidencia: [implementación de CI/CD](../ci-cd-2026-09-11.md)
@@ -23,7 +23,7 @@ La promoción a `production` repite el CI completo sobre un SHA que ya pasó la 
 
 ## Consecuencias
 
-Estimación con las duraciones de la ejecución 34618190390: cada runner E2E baja de unos 9:30 a unos 6:30 y el CI completo queda alrededor de 6:45, con un runner E2E más, cerca de 2 minutos de runner adicionales por corrida. Una promoción pasa de unos 12 a unos 3 minutos hasta `SUCCESS` en Railway y ahorra unos 25 minutos de runner. Ambas cifras se acreditan en el registro de implementación, no por esta ADR.
+Estimación con las duraciones de la ejecución 34618190390: cada runner E2E baja de unos 9:30 a unos 6:30 y el CI completo queda alrededor de 6:45, con un runner E2E más, cerca de 2 minutos de runner adicionales por corrida. Una promoción pasa de unos 12 a unos 3 minutos hasta `SUCCESS` en Railway y ahorra unos 25 minutos de runner. Ambas cifras se acreditan en el registro de implementación, no por esta ADR. Medido el mismo día: CI completo en 6:50, 6:55 y 7:04, y la primera promoción con `SUCCESS` en Railway a los 3:25 del push, con el check `CI` en 0:27.
 
 Integración pasa a ser el siguiente camino crítico. Repartirla con `vitest --shard` y un Postgres por job queda como etapa siguiente, igual que subir a cuatro particiones E2E, que solo requiere cambiar la matriz y `E2E_SHARDS`.
 
