@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "recordedAt": "2026-09-11T14:14:00Z",
+  "recordedAt": "2026-09-11T14:35:33.093040+00:00",
   "status": "validación remota inicial aprobada; rollout en curso",
   "reference": {
     "runId": 34605678356,
@@ -1817,6 +1817,1637 @@
           ]
         }
       }
+    },
+    {
+      "cache": "caliente",
+      "metrics": {
+        "runId": 34609039699,
+        "url": "https://github.com/Mateoloperaortiz/LaOE/actions/runs/34609039699/attempts/1",
+        "sha": "bddb0e0323258f8ae0521ac9b6b61b22cc485d36",
+        "branch": "codex/optimizar-ci-20260911",
+        "event": "pull_request",
+        "attempt": 1,
+        "conclusion": "success",
+        "createdAt": "2026-09-11T14:15:21Z",
+        "startedAt": "2026-09-11T14:15:21Z",
+        "completedAt": "2026-09-11T14:25:30+00:00",
+        "totalSeconds": 609.0,
+        "initialQueueSeconds": 4.0,
+        "runnerSeconds": 1424.0,
+        "jobs": [
+          {
+            "id": 103294577926,
+            "name": "Clasificar cambios",
+            "conclusion": "success",
+            "startedAt": "2026-09-11T14:15:25Z",
+            "completedAt": "2026-09-11T14:15:34Z",
+            "seconds": 9.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run node scripts/ci/run.mjs classify",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          },
+          {
+            "id": 103294647658,
+            "name": "E2E 1/2",
+            "conclusion": "success",
+            "startedAt": "2026-09-11T14:15:38Z",
+            "completedAt": "2026-09-11T14:25:19Z",
+            "seconds": 581.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Initialize containers",
+                "conclusion": "success",
+                "seconds": 15.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 7.0
+              },
+              {
+                "name": "Garage (bucket S3 propio de la partición)",
+                "conclusion": "success",
+                "seconds": 3.0
+              },
+              {
+                "name": "Run npm ci",
+                "conclusion": "success",
+                "seconds": 14.0
+              },
+              {
+                "name": "Run mkdir -p ci-results",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run npm run storage:init",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/cache@v4",
+                "conclusion": "success",
+                "seconds": 4.0
+              },
+              {
+                "name": "Build de producción para e2e",
+                "conclusion": "success",
+                "seconds": 12.0
+              },
+              {
+                "name": "Run npx playwright install --with-deps chromium",
+                "conclusion": "success",
+                "seconds": 29.0
+              },
+              {
+                "name": "Run npm run test:e2e -- --fully-parallel --shard=1/2 --workers=1 --forbid-only --reporter=github,json",
+                "conclusion": "success",
+                "seconds": 486.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "skipped",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/cache@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Post Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Stop containers",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          },
+          {
+            "id": 103294647682,
+            "name": "E2E 2/2",
+            "conclusion": "success",
+            "startedAt": "2026-09-11T14:15:37Z",
+            "completedAt": "2026-09-11T14:23:00Z",
+            "seconds": 443.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Initialize containers",
+                "conclusion": "success",
+                "seconds": 14.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 4.0
+              },
+              {
+                "name": "Garage (bucket S3 propio de la partición)",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run npm ci",
+                "conclusion": "success",
+                "seconds": 14.0
+              },
+              {
+                "name": "Run mkdir -p ci-results",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run npm run storage:init",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/cache@v4",
+                "conclusion": "success",
+                "seconds": 3.0
+              },
+              {
+                "name": "Build de producción para e2e",
+                "conclusion": "success",
+                "seconds": 12.0
+              },
+              {
+                "name": "Run npx playwright install --with-deps chromium",
+                "conclusion": "success",
+                "seconds": 32.0
+              },
+              {
+                "name": "Run npm run test:e2e -- --fully-parallel --shard=2/2 --workers=1 --forbid-only --reporter=github,json",
+                "conclusion": "success",
+                "seconds": 353.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "skipped",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/cache@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Post Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Stop containers",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          },
+          {
+            "id": 103294647715,
+            "name": "Biome · dependency-cruiser · knip · tsc · unit · build",
+            "conclusion": "success",
+            "startedAt": "2026-09-11T14:16:13Z",
+            "completedAt": "2026-09-11T14:17:55Z",
+            "seconds": 102.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run npm ci",
+                "conclusion": "success",
+                "seconds": 17.0
+              },
+              {
+                "name": "Run mkdir -p ci-results",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run npm run lint",
+                "conclusion": "success",
+                "seconds": 3.0
+              },
+              {
+                "name": "Run npm run typecheck",
+                "conclusion": "success",
+                "seconds": 23.0
+              },
+              {
+                "name": "Run npm run deps:check",
+                "conclusion": "success",
+                "seconds": 3.0
+              },
+              {
+                "name": "Run npm run deadcode",
+                "conclusion": "success",
+                "seconds": 3.0
+              },
+              {
+                "name": "Run npm test -- --reporter=default --reporter=json --outputFile=ci-results/unit.json",
+                "conclusion": "success",
+                "seconds": 21.0
+              },
+              {
+                "name": "Run actions/setup-python@v5",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "uv para el extractor de normativa",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run npm run test:extractor",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run actions/cache@v4",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run npm run build",
+                "conclusion": "success",
+                "seconds": 12.0
+              },
+              {
+                "name": "Inventario completo de E2E, sin crear base ni arrancar servidor",
+                "conclusion": "success",
+                "seconds": 6.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Post Run actions/cache@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Post Run actions/setup-python@v5",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          },
+          {
+            "id": 103294647779,
+            "name": "respaldo · retención · concurrencia · restauración",
+            "conclusion": "success",
+            "startedAt": "2026-09-11T14:15:37Z",
+            "completedAt": "2026-09-11T14:16:15Z",
+            "seconds": 38.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Imagen y recuperación con datos sintéticos aislados",
+                "conclusion": "success",
+                "seconds": 30.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          },
+          {
+            "id": 103294647809,
+            "name": "integración (Postgres 18 + Garage)",
+            "conclusion": "success",
+            "startedAt": "2026-09-11T14:15:37Z",
+            "completedAt": "2026-09-11T14:19:40Z",
+            "seconds": 243.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Initialize containers",
+                "conclusion": "success",
+                "seconds": 23.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 2.0
+              },
+              {
+                "name": "Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 5.0
+              },
+              {
+                "name": "Garage (bucket S3 local)",
+                "conclusion": "success",
+                "seconds": 5.0
+              },
+              {
+                "name": "Run npm ci",
+                "conclusion": "success",
+                "seconds": 10.0
+              },
+              {
+                "name": "Run mkdir -p ci-results",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run npm run storage:init",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run npm run test:integration -- --reporter=default --reporter=json --outputFile=ci-results/integration.json",
+                "conclusion": "success",
+                "seconds": 190.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Post Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Stop containers",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          },
+          {
+            "id": 103297849944,
+            "name": "CI",
+            "conclusion": "success",
+            "startedAt": "2026-09-11T14:25:22Z",
+            "completedAt": "2026-09-11T14:25:30Z",
+            "seconds": 8.0,
+            "steps": [
+              {
+                "name": "Set up job",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Run actions/download-artifact@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Exigir jobs aprobados, inventario completo y outbox sano",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Run actions/upload-artifact@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Post Run actions/setup-node@v4",
+                "conclusion": "success",
+                "seconds": 0.0
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "conclusion": "success",
+                "seconds": 1.0
+              },
+              {
+                "name": "Complete job",
+                "conclusion": "success",
+                "seconds": 0.0
+              }
+            ]
+          }
+        ]
+      },
+      "verification": {
+        "schema": 1,
+        "sha": "317f27451117d8dcf45dd6806e7cba3f23381030",
+        "runId": "34609039699",
+        "mode": "full",
+        "result": "success",
+        "unit": {
+          "cases": 422,
+          "files": 54
+        },
+        "integration": {
+          "cases": 309,
+          "files": 65
+        },
+        "e2e": {
+          "uniqueCases": 169,
+          "scenarios": 167,
+          "setupPerShard": 2,
+          "outbox": "sin fallos en todos los escenarios",
+          "shards": [
+            {
+              "shard": 1,
+              "cases": 86,
+              "durationMs": 478825.134
+            },
+            {
+              "shard": 2,
+              "cases": 85,
+              "durationMs": 344886.404
+            }
+          ],
+          "durations": [
+            {
+              "id": "chromium/da7c59ce61d93dc7813a-2d515a91957d8f9efaae",
+              "file": "admin-responsive.spec.ts",
+              "title": "todos los destinos administrativos funcionan en móvil",
+              "durationMs": 40623
+            },
+            {
+              "id": "chromium/8cd45c6f9c2ded76f534-73a24ee05c497d237db9",
+              "file": "admin-details-responsive.spec.ts",
+              "title": "detalles administrativos 1440px light",
+              "durationMs": 17090
+            },
+            {
+              "id": "chromium/8cd45c6f9c2ded76f534-4814be545895db1c1f07",
+              "file": "admin-details-responsive.spec.ts",
+              "title": "detalles administrativos 1440px dark",
+              "durationMs": 16847
+            },
+            {
+              "id": "chromium/8cd45c6f9c2ded76f534-d4a4e7c42a5da6f33338",
+              "file": "admin-details-responsive.spec.ts",
+              "title": "detalles administrativos 768px dark",
+              "durationMs": 14965
+            },
+            {
+              "id": "chromium/8cd45c6f9c2ded76f534-74c75cd2d0100a9091d3",
+              "file": "admin-details-responsive.spec.ts",
+              "title": "detalles administrativos 360px light",
+              "durationMs": 14706
+            },
+            {
+              "id": "chromium/8cd45c6f9c2ded76f534-92d80015c5648bbac094",
+              "file": "admin-details-responsive.spec.ts",
+              "title": "detalles administrativos 390px dark",
+              "durationMs": 14701
+            },
+            {
+              "id": "chromium/8cd45c6f9c2ded76f534-fa4cb31b73b4b876deba",
+              "file": "admin-details-responsive.spec.ts",
+              "title": "detalles administrativos 768px light",
+              "durationMs": 14563
+            },
+            {
+              "id": "chromium/8cd45c6f9c2ded76f534-05f668dd34c23e4d964b",
+              "file": "admin-details-responsive.spec.ts",
+              "title": "detalles administrativos 360px dark",
+              "durationMs": 14541
+            },
+            {
+              "id": "chromium/8cd45c6f9c2ded76f534-8d7314e528271c0ea26c",
+              "file": "admin-details-responsive.spec.ts",
+              "title": "detalles administrativos 390px light",
+              "durationMs": 14388
+            },
+            {
+              "id": "chromium/dce26b35c5be48766643-a2dcd01c666d175d5bc9",
+              "file": "member-experience.spec.ts",
+              "title": "Mi OE accesible 1440px light",
+              "durationMs": 13341
+            },
+            {
+              "id": "chromium/0d0e2a68de4f10ba306f-7597c2bdad6415b058e6",
+              "file": "formularios.spec.ts",
+              "title": "crear formulario público, responderlo y revisar la respuesta",
+              "durationMs": 12082
+            },
+            {
+              "id": "chromium/dce26b35c5be48766643-8ef6f2e315f34c722d09",
+              "file": "member-experience.spec.ts",
+              "title": "Mi OE accesible 768px dark",
+              "durationMs": 10977
+            },
+            {
+              "id": "chromium/dce26b35c5be48766643-9a189b8e8dba2ce45d1f",
+              "file": "member-experience.spec.ts",
+              "title": "Mi OE accesible 360px dark",
+              "durationMs": 10922
+            },
+            {
+              "id": "chromium/dce26b35c5be48766643-6e3f343928a51466d790",
+              "file": "member-experience.spec.ts",
+              "title": "Mi OE accesible 768px light",
+              "durationMs": 10643
+            },
+            {
+              "id": "chromium/dce26b35c5be48766643-3866da5d9a9c9777346f",
+              "file": "member-experience.spec.ts",
+              "title": "Mi OE accesible 1440px dark",
+              "durationMs": 10481
+            },
+            {
+              "id": "chromium/dce26b35c5be48766643-fbd7c7cb40b96b68ec34",
+              "file": "member-experience.spec.ts",
+              "title": "Mi OE accesible 360px light",
+              "durationMs": 10476
+            },
+            {
+              "id": "chromium/dce26b35c5be48766643-8929a85f6443aa901a3f",
+              "file": "member-experience.spec.ts",
+              "title": "Mi OE accesible 390px light",
+              "durationMs": 10419
+            },
+            {
+              "id": "chromium/dce26b35c5be48766643-0bf8c5c465a661f9c59a",
+              "file": "member-experience.spec.ts",
+              "title": "Mi OE accesible 390px dark",
+              "durationMs": 10332
+            },
+            {
+              "id": "chromium/ca5f271e0c8d13cb1756-01feddee7110c6b08443",
+              "file": "solicitudes.spec.ts",
+              "title": "pedir licencia, aprobarla y conservar el acceso de consulta",
+              "durationMs": 10098
+            },
+            {
+              "id": "chromium/eb1bfd7acc81307d1d41-15d5de14a6c2b9b40dab",
+              "file": "admision.spec.ts",
+              "title": "crear convocatoria, recibir postulación, admitir y entrar a Mi OE",
+              "durationMs": 9989
+            },
+            {
+              "id": "chromium/266c7773bc8b445a4f7e-cc3249705401b8ec5d58",
+              "file": "convocatorias.spec.ts",
+              "title": "abrir convocatoria, llenar el cupo y comprobar la lista de espera",
+              "durationMs": 9275
+            },
+            {
+              "id": "chromium/ebc0a4d0f189ddb99459-89f00cd92b86abadbc85",
+              "file": "campanas.spec.ts",
+              "title": "crear campaña, darse de baja y comprobar la exclusión de la siguiente",
+              "durationMs": 9172
+            },
+            {
+              "id": "chromium/37684a1d4cc1741223fb-f2a4e3844b4c3e979644",
+              "file": "encuesta.spec.ts",
+              "title": "la encuesta de una ocasión cerrada llega a su asistente y el agregado aparece en la consola",
+              "durationMs": 8072
+            },
+            {
+              "id": "chromium/70748693b849e6ccd7c1-684c12fa70c41e69c3a6",
+              "file": "acceso.spec.ts",
+              "title": "la junta emite el enlace, la persona elige su contraseña y después la cambia",
+              "durationMs": 7659
+            },
+            {
+              "id": "chromium/f428baa1ca1ff2e3543d-5bf488fd561c7e1a8c0a",
+              "file": "area-switching.spec.ts",
+              "title": "ADMIN pasa entre Mi OE y Administración a 1440px",
+              "durationMs": 7185
+            },
+            {
+              "id": "chromium/f428baa1ca1ff2e3543d-d05c3e976d7896439f47",
+              "file": "area-switching.spec.ts",
+              "title": "ADMIN pasa entre Mi OE y Administración a 1024px",
+              "durationMs": 7067
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-fdf8cf0d7fd11fc7ec91",
+              "file": "ajustes-ux.spec.ts",
+              "title": "ajustes por categorías y sesiones accesibles a 360px dark",
+              "durationMs": 6903
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-a3bf3061bb4c0d9c6ed0",
+              "file": "ajustes-ux.spec.ts",
+              "title": "ajustes por categorías y sesiones accesibles a 390px dark",
+              "durationMs": 6608
+            },
+            {
+              "id": "chromium/f428baa1ca1ff2e3543d-c8dbce5bcac280484d12",
+              "file": "area-switching.spec.ts",
+              "title": "ADMIN pasa entre Mi OE y Administración a 768px",
+              "durationMs": 6574
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-ed0b2f78c1e0bb98fcf0",
+              "file": "ajustes-ux.spec.ts",
+              "title": "ajustes por categorías y sesiones accesibles a 360px light",
+              "durationMs": 6567
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-80fdf16e390da22f796a",
+              "file": "ajustes-ux.spec.ts",
+              "title": "ajustes por categorías y sesiones accesibles a 390px light",
+              "durationMs": 6476
+            },
+            {
+              "id": "chromium/f428baa1ca1ff2e3543d-9702a5d9cd5f8f5d07f4",
+              "file": "area-switching.spec.ts",
+              "title": "ADMIN pasa entre Mi OE y Administración a 360px",
+              "durationMs": 6387
+            },
+            {
+              "id": "chromium/fbac58608a68e3944469-03f1afa5a7851cbc8c1b",
+              "file": "roster.spec.ts",
+              "title": "el asistente importa un roster con step-up y el nuevo miembro entra por OTP",
+              "durationMs": 6241
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-288c3f793437ba87193b",
+              "file": "ajustes-ux.spec.ts",
+              "title": "ajustes por categorías y sesiones accesibles a 1440px light",
+              "durationMs": 6009
+            },
+            {
+              "id": "chromium/4338323cdbcb181f6852-a7dfc81368eebd995803",
+              "file": "eventos.spec.ts",
+              "title": "un ADMIN crea una edición con portada y organizadores y el visitante la ve con su imagen",
+              "durationMs": 5973
+            },
+            {
+              "id": "chromium/6f4c96336ad140ce0989-64dcda51a438ac077405",
+              "file": "normativa.spec.ts",
+              "title": "revisa un borrador v2 con secciones, tabla e imagen privada sin marcar el onboarding",
+              "durationMs": 5950
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-3772c53070ffed5c4233",
+              "file": "ajustes-ux.spec.ts",
+              "title": "ajustes por categorías y sesiones accesibles a 1440px dark",
+              "durationMs": 5948
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-36e1f7a82385c69f2f01",
+              "file": "ajustes-ux.spec.ts",
+              "title": "ajustes por categorías y sesiones accesibles a 768px light",
+              "durationMs": 5841
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-5eab73c6b9cc56ce59e3",
+              "file": "ajustes-ux.spec.ts",
+              "title": "ajustes por categorías y sesiones accesibles a 768px dark",
+              "durationMs": 5758
+            },
+            {
+              "id": "chromium/cb67bfc1034f6c472748-c8e81b332b2172af8dc3",
+              "file": "permanencia-cierre.spec.ts",
+              "title": "GH cambia una propuesta con motivo, aplica el cierre con step-up y la decisión llega a la persona",
+              "durationMs": 5481
+            },
+            {
+              "id": "chromium/2307020dd46f4cf25255-811ba4e91438bb71f2bb",
+              "file": "personas.spec.ts",
+              "title": "la Persona 360 cambia el estado, deja una nota y crea una tarea",
+              "durationMs": 5357
+            },
+            {
+              "id": "chromium/9298b8f752453899f7f6-ab58d1ef65387be16aa9",
+              "file": "ledger.spec.ts",
+              "title": "GH ajusta puntos desde la 360, los ve en el ledger, los revierte y el ranking lista el término",
+              "durationMs": 5218
+            },
+            {
+              "id": "chromium/8577f59bef6a398da0df-1491f0cad8c0532a610d",
+              "file": "organizaciones.spec.ts",
+              "title": "ADMIN crea una organización con un contacto externo y una nota y la busca en la paleta",
+              "durationMs": 5019
+            },
+            {
+              "id": "chromium/06e6f91bb0d834e7cd04-6a18236a71ee0dd4e316",
+              "file": "permanencia-admin.spec.ts",
+              "title": "crea un grupo, importa un CSV con el correo del miembro y siembra los comités de trabajo",
+              "durationMs": 4956
+            },
+            {
+              "id": "chromium/a7c20d17cfd623c394da-55939f01ab4b29c48e9e",
+              "file": "cartelera-push.spec.ts",
+              "title": "registrar dispositivo, publicar con push y leer el anuncio",
+              "durationMs": 4894
+            },
+            {
+              "id": "chromium/2301902c1306cf8ab7e7-f6b687a02bf72e3dfcd5",
+              "file": "permanencia-reglas.spec.ts",
+              "title": "carga la referencia, crea un criterio de comité y bloquea la tabla",
+              "durationMs": 4818
+            },
+            {
+              "id": "chromium/f2d065580ef514b69929-8f4f924962877a75a557",
+              "file": "cierre.spec.ts",
+              "title": "GH ve las asambleas del término y cierra los puntos con el standing congelado",
+              "durationMs": 4704
+            },
+            {
+              "id": "chromium/aeb6c2e5fdb80ecaea6a-fb35c69469a10dd36d38",
+              "file": "permanencia.spec.ts",
+              "title": "cumplimiento lista el roster, filtra y abre la pestaña Permanencia de la persona",
+              "durationMs": 4696
+            },
+            {
+              "id": "chromium/29aeb2bd6c43d2a1b792-186394b9e8346114dcc1",
+              "file": "consola.spec.ts",
+              "title": "la consola muestra el QR y el contador, y el modo anfitrión registra por nombre",
+              "durationMs": 4650
+            },
+            {
+              "id": "chromium/4b8d217e4d0191ca578e-fedb67b84a65c21793af",
+              "file": "mi-oe.spec.ts",
+              "title": "ajustes: edita el celular, autoriza la foto y descarga sus datos",
+              "durationMs": 4510
+            },
+            {
+              "id": "chromium/f50bcdb8678bc1032da8-f50ac5f146bb8933f4d2",
+              "file": "wallet-visual.spec.ts",
+              "title": "carnet y Apple Wallet: 1440px, tema dark, nombre largo y foco",
+              "durationMs": 4393
+            },
+            {
+              "id": "chromium/291f6c0e7fe47579f0c2-861911228fe438ea5944",
+              "file": "portal.spec.ts",
+              "title": "un ADMIN publica y fija un anuncio y el visitante lo ve en el inicio, la cartelera y su página",
+              "durationMs": 4391
+            },
+            {
+              "id": "chromium/f50bcdb8678bc1032da8-a3b58bb81d785342eee1",
+              "file": "wallet-visual.spec.ts",
+              "title": "carnet y Apple Wallet: 375px, tema light, nombre largo y foco",
+              "durationMs": 4238
+            },
+            {
+              "id": "chromium/f50bcdb8678bc1032da8-303e6b1d31c06a386df7",
+              "file": "wallet-visual.spec.ts",
+              "title": "carnet y Apple Wallet: 1440px, tema light, nombre largo y foco",
+              "durationMs": 4235
+            },
+            {
+              "id": "chromium/41d3fd2474a19feb00a1-96ec0f037f780ee185f5",
+              "file": "login.spec.ts",
+              "title": "una ruta protegida manda a ingresar y vuelve tras la contraseña",
+              "durationMs": 4186
+            },
+            {
+              "id": "chromium/f50bcdb8678bc1032da8-e18559cf69aec4c1dfd9",
+              "file": "wallet-visual.spec.ts",
+              "title": "carnet y Apple Wallet: 768px, tema dark, nombre largo y foco",
+              "durationMs": 4169
+            },
+            {
+              "id": "chromium/2423ef1b728ff8f06bcb-3f526211836c7043215f",
+              "file": "medios.spec.ts",
+              "title": "un ADMIN sube una portada de 5 MB directo al bucket y se sirve con 302 al bucket",
+              "durationMs": 4131
+            },
+            {
+              "id": "chromium/da7c59ce61d93dc7813a-e86d817aa916f8a4a9e8",
+              "file": "admin-responsive.spec.ts",
+              "title": "administración adaptable 768px dark",
+              "durationMs": 4059
+            },
+            {
+              "id": "chromium/f50bcdb8678bc1032da8-404b550061220faa11a9",
+              "file": "wallet-visual.spec.ts",
+              "title": "carnet y Apple Wallet: 768px, tema light, nombre largo y foco",
+              "durationMs": 3987
+            },
+            {
+              "id": "chromium/d3c031e7b99f7aa001b1-d5962d61adee761b198c",
+              "file": "wordle.spec.ts",
+              "title": "retoma los intentos en otra pestaña y funciona en móvil con teclado táctil y Ñ",
+              "durationMs": 3956
+            },
+            {
+              "id": "chromium/f50bcdb8678bc1032da8-e7d829e9b41d35c15c68",
+              "file": "wallet-visual.spec.ts",
+              "title": "carnet y Apple Wallet: 375px, tema dark, nombre largo y foco",
+              "durationMs": 3934
+            },
+            {
+              "id": "chromium/265a6ee67c94b2ef6801-279e005154a1b36609db",
+              "file": "seo.spec.ts",
+              "title": "cada página lleva canonical, og:image que responde PNG y noindex mientras no se indexe",
+              "durationMs": 3933
+            },
+            {
+              "id": "chromium/da7c59ce61d93dc7813a-b6e19ad1f23cab4c0f17",
+              "file": "admin-responsive.spec.ts",
+              "title": "administración adaptable 390px dark",
+              "durationMs": 3793
+            },
+            {
+              "id": "chromium/d609c2ae76c9f23c2be3-d3ed670bd41c624ff8f8",
+              "file": "politica-datos.spec.ts",
+              "title": "publica primero, habilita desde el control y vuelve a bloquear de inmediato",
+              "durationMs": 3777
+            },
+            {
+              "id": "chromium/da7c59ce61d93dc7813a-2a081aeb8542372d64d2",
+              "file": "admin-responsive.spec.ts",
+              "title": "administración adaptable 360px dark",
+              "durationMs": 3773
+            },
+            {
+              "id": "chromium/8ff3fa35dc6e810382d6-01f0385db27d76a59527",
+              "file": "solicitudes-ux.spec.ts",
+              "title": "el retiro conserva consentimiento y correo al corregir un campo",
+              "durationMs": 3769
+            },
+            {
+              "id": "chromium/2307020dd46f4cf25255-6b29bd5a75b43fa7d3bf",
+              "file": "personas.spec.ts",
+              "title": "un ADMIN da de alta a un prospecto y edita sus datos en la Persona 360",
+              "durationMs": 3761
+            },
+            {
+              "id": "chromium/da7c59ce61d93dc7813a-c6f21a21cb39df9043c3",
+              "file": "admin-responsive.spec.ts",
+              "title": "administración adaptable 390px light",
+              "durationMs": 3736
+            },
+            {
+              "id": "chromium/da7c59ce61d93dc7813a-fc560a39629ea0f34e1a",
+              "file": "admin-responsive.spec.ts",
+              "title": "administración adaptable 360px light",
+              "durationMs": 3726
+            },
+            {
+              "id": "chromium/da7c59ce61d93dc7813a-ca34d27ec6b83b9d5afb",
+              "file": "admin-responsive.spec.ts",
+              "title": "administración adaptable 768px light",
+              "durationMs": 3706
+            },
+            {
+              "id": "chromium/bdf9f71a74af62749df8-1a86afa57836cc1748db",
+              "file": "agenda.spec.ts",
+              "title": "crear actividad y suscribirse, descargar y regenerar el calendario",
+              "durationMs": 3683
+            },
+            {
+              "id": "chromium/d3c031e7b99f7aa001b1-900f67e67da9294b96c7",
+              "file": "wordle.spec.ts",
+              "title": "inicia sin filtrar la respuesta, rechaza palabras ausentes y acredita una sola victoria",
+              "durationMs": 3608
+            },
+            {
+              "id": "chromium/8ffcf3986b76b0ca1942-c118040a4f761d236103",
+              "file": "junta.spec.ts",
+              "title": "la junta ve agregados sin nombres, exporta el CSV y no entra al resto del admin",
+              "durationMs": 3605
+            },
+            {
+              "id": "chromium/8ff3fa35dc6e810382d6-cc86f7b6e942875b066c",
+              "file": "solicitudes-ux.spec.ts",
+              "title": "el envío bloquea cambios y dobles envíos y permite retirar la solicitud",
+              "durationMs": 3564
+            },
+            {
+              "id": "chromium/2301902c1306cf8ab7e7-900d7c202f118747288b",
+              "file": "permanencia-reglas.spec.ts",
+              "title": "edita la tabla de su comité y respeta el bloqueo de GH",
+              "durationMs": 3529
+            },
+            {
+              "id": "chromium/d8ef7455691730a2dced-d8cdfa10b22c9c9a2ac4",
+              "file": "portal-ux.spec.ts",
+              "title": "portal adaptable: 390px dark",
+              "durationMs": 3502
+            },
+            {
+              "id": "chromium/3ef3b8a7f2f390ba6ccc-78f7033e3e3cb31866f2",
+              "file": "lider.spec.ts",
+              "title": "el líder entra a su comité, crea la serie semanal y no ve el resto del admin",
+              "durationMs": 3498
+            },
+            {
+              "id": "chromium/b1ddd4924b29646b9a43-fd55e11e70cc40ee627e",
+              "file": "segmentos.spec.ts",
+              "title": "un segmento se crea con filtros, cuenta personas y su export exige step-up",
+              "durationMs": 3488
+            },
+            {
+              "id": "chromium/d8ef7455691730a2dced-431604ef6ad7802b3ea5",
+              "file": "portal-ux.spec.ts",
+              "title": "portal adaptable: 768px dark",
+              "durationMs": 3456
+            },
+            {
+              "id": "chromium/291f6c0e7fe47579f0c2-cff838fa1b0a29e29732",
+              "file": "portal.spec.ts",
+              "title": "las páginas fijas nacen de la migración, responden con su título y pasan axe",
+              "durationMs": 3416
+            },
+            {
+              "id": "chromium/d8ef7455691730a2dced-9cf89356d98e76be0674",
+              "file": "portal-ux.spec.ts",
+              "title": "portal adaptable: 768px light",
+              "durationMs": 3408
+            },
+            {
+              "id": "chromium/8ff3fa35dc6e810382d6-1a98dc955ea16d026a5c",
+              "file": "solicitudes-ux.spec.ts",
+              "title": "el error de motivo conserva el texto y las casillas del cambio",
+              "durationMs": 3392
+            },
+            {
+              "id": "chromium/da7c59ce61d93dc7813a-f85d0ae00fac3e86c2a0",
+              "file": "admin-responsive.spec.ts",
+              "title": "administración adaptable 1440px light",
+              "durationMs": 3385
+            },
+            {
+              "id": "chromium/6f4c96336ad140ce0989-1f246bcf9b814d6bb1a2",
+              "file": "normativa.spec.ts",
+              "title": "sube un PDF, carga los artículos desde el JSON y lo publica",
+              "durationMs": 3375
+            },
+            {
+              "id": "chromium/587c885cafbde9285df6-dfb7817ba5b7d33682e3",
+              "file": "admin-custom-ui.spec.ts",
+              "title": "las matrices de junta se recorren con teclado sin desbordar la página móvil",
+              "durationMs": 3367
+            },
+            {
+              "id": "chromium/587c885cafbde9285df6-90388ef27e8b0364476e",
+              "file": "admin-custom-ui.spec.ts",
+              "title": "la Persona 360 permite cambiar de sección en móvil y cerrar acciones con Escape",
+              "durationMs": 3366
+            },
+            {
+              "id": "chromium/aa38a869995c4c08644d-91702abce14f63244249",
+              "file": "checkin.spec.ts",
+              "title": "sin sesión el QR lleva a entrar, vuelve solo y acredita los puntos una sola vez",
+              "durationMs": 3348
+            },
+            {
+              "id": "chromium/d8ef7455691730a2dced-fe3d37d17aa1c546f5b4",
+              "file": "portal-ux.spec.ts",
+              "title": "comités: busca nombre sin tildes y sigla, limpia y conserva la búsqueda al volver",
+              "durationMs": 3326
+            },
+            {
+              "id": "chromium/da7c59ce61d93dc7813a-751950cfe631507fd89a",
+              "file": "admin-responsive.spec.ts",
+              "title": "navegación agrupada, destino único y panel accesible",
+              "durationMs": 3312
+            },
+            {
+              "id": "chromium/da7c59ce61d93dc7813a-7ea005401740b264b1be",
+              "file": "admin-responsive.spec.ts",
+              "title": "administración adaptable 1440px dark",
+              "durationMs": 3306
+            },
+            {
+              "id": "chromium/aeb6c2e5fdb80ecaea6a-a234547090b18077f9a6",
+              "file": "permanencia.spec.ts",
+              "title": "ve su permanencia y el criterio sube tras un check-in de integración",
+              "durationMs": 3285
+            },
+            {
+              "id": "chromium/75ad7d8441bc6b7a4c05-a7d318fa789c09e8c176",
+              "file": "carnet.spec.ts",
+              "title": "ADMIN revoca desde Comunicaciones de la 360 y el miembro ve el aviso",
+              "durationMs": 3233
+            },
+            {
+              "id": "chromium/30bf0965a0eb07fc9173-7ae25b114ea7a8be4a9a",
+              "file": "pwa.spec.ts",
+              "title": "un dispositivo se registra, se ve en Ajustes, las preferencias se guardan y el dispositivo se quita",
+              "durationMs": 3211
+            },
+            {
+              "id": "chromium/d8ef7455691730a2dced-5ae51f63137d12b5d6e2",
+              "file": "portal-ux.spec.ts",
+              "title": "portal adaptable: 360px dark",
+              "durationMs": 3189
+            },
+            {
+              "id": "chromium/d8ef7455691730a2dced-0d5133496b09a3fd1b76",
+              "file": "portal-ux.spec.ts",
+              "title": "el hero y Unirse reflejan convocatoria cerrada, prospecto y admisión vigente",
+              "durationMs": 3141
+            },
+            {
+              "id": "chromium/d8ef7455691730a2dced-47a2466e28cbf0424cfe",
+              "file": "portal-ux.spec.ts",
+              "title": "portal adaptable: 390px light",
+              "durationMs": 3122
+            },
+            {
+              "id": "chromium/52a6c5ecb94f72ef1aeb-1b98457a33030c2e0390",
+              "file": "permanencia-evaluaciones.spec.ts",
+              "title": "pone un puntaje con observación y nombra al destacado del mes",
+              "durationMs": 3099
+            },
+            {
+              "id": "chromium/d8ef7455691730a2dced-33ed79e8b54b78e297f7",
+              "file": "portal-ux.spec.ts",
+              "title": "portal adaptable: 360px light",
+              "durationMs": 3095
+            },
+            {
+              "id": "chromium/291f6c0e7fe47579f0c2-191f7e8f73774eb0f2ad",
+              "file": "portal.spec.ts",
+              "title": "un ADMIN edita y publica La OE desde el panel y el visitante la ve",
+              "durationMs": 3069
+            },
+            {
+              "id": "chromium/52a6c5ecb94f72ef1aeb-19854d9db25d412fced5",
+              "file": "permanencia-evaluaciones.spec.ts",
+              "title": "evalúa buen desempeño en el GAP desde la bandeja",
+              "durationMs": 3065
+            },
+            {
+              "id": "chromium/291f6c0e7fe47579f0c2-917bbc7beeb02a46e0c1",
+              "file": "portal.spec.ts",
+              "title": "un comité publicado tiene ficha pública sin roster",
+              "durationMs": 3058
+            },
+            {
+              "id": "chromium/8316bbcc54afb1f8c00a-3cb594cd27e3b562cde8",
+              "file": "permanencia-avisos.spec.ts",
+              "title": "el miembro ve el aviso de la asamblea obligatoria en el inicio y en su permanencia",
+              "durationMs": 2993
+            },
+            {
+              "id": "chromium/52a6c5ecb94f72ef1aeb-ec9de0c5258b3e8b0bc4",
+              "file": "permanencia-evaluaciones.spec.ts",
+              "title": "reconoce un crédito manual desde la Persona 360",
+              "durationMs": 2955
+            },
+            {
+              "id": "chromium/d8ef7455691730a2dced-11a12d2c9981a5c15c17",
+              "file": "portal-ux.spec.ts",
+              "title": "portal adaptable: 1440px dark",
+              "durationMs": 2950
+            },
+            {
+              "id": "chromium/75ad7d8441bc6b7a4c05-932aace0b61fc234d3b7",
+              "file": "carnet.spec.ts",
+              "title": "revoca el QR de billetera y conserva el carnet de Mi OE",
+              "durationMs": 2944
+            },
+            {
+              "id": "chromium/0d0e2a68de4f10ba306f-007c623e968ba16ce5ff",
+              "file": "formularios.spec.ts",
+              "title": "inscribirse a una edición mediante un formulario de miembros",
+              "durationMs": 2895
+            },
+            {
+              "id": "chromium/6f4c96336ad140ce0989-38e1926c9fe9139e82e6",
+              "file": "normativa.spec.ts",
+              "title": "lector completo accesible a 1440px en tema light",
+              "durationMs": 2869
+            },
+            {
+              "id": "chromium/6f4c96336ad140ce0989-35dbafa1d52cfd5aff37",
+              "file": "normativa.spec.ts",
+              "title": "busca un artículo, lo abre y el PDF original redirige al bucket",
+              "durationMs": 2825
+            },
+            {
+              "id": "chromium/6f4c96336ad140ce0989-1ec943fe6638f02dac05",
+              "file": "normativa.spec.ts",
+              "title": "lector completo accesible a 1440px en tema dark",
+              "durationMs": 2803
+            },
+            {
+              "id": "chromium/d4043a9dd1ab94463227-8e36aa5d6e5d697a3e5e",
+              "file": "admin.spec.ts",
+              "title": "un ADMIN crea y edita un comité desde el panel y lo exporta",
+              "durationMs": 2795
+            },
+            {
+              "id": "chromium/d8ef7455691730a2dced-0ea1ad19f04771665812",
+              "file": "portal-ux.spec.ts",
+              "title": "portal adaptable: 1440px light",
+              "durationMs": 2790
+            },
+            {
+              "id": "chromium/dce26b35c5be48766643-b692de4c67f0d2ba5298",
+              "file": "member-experience.spec.ts",
+              "title": "el directorio corrige páginas inexistentes y conserva filtros",
+              "durationMs": 2779
+            },
+            {
+              "id": "chromium/8ff3fa35dc6e810382d6-741a4649886cffa7522c",
+              "file": "solicitudes-ux.spec.ts",
+              "title": "elegís un trámite y el historial conserva su contexto",
+              "durationMs": 2768
+            },
+            {
+              "id": "chromium/8ff3fa35dc6e810382d6-aaf792a5cb1c8475ab55",
+              "file": "solicitudes-ux.spec.ts",
+              "title": "Ajustes con sesión vencida vuelve al ingreso sin cambiar datos",
+              "durationMs": 2759
+            },
+            {
+              "id": "chromium/6f4c96336ad140ce0989-3a3df41d765fd65bfbef",
+              "file": "normativa.spec.ts",
+              "title": "lector completo accesible a 375px en tema dark",
+              "durationMs": 2726
+            },
+            {
+              "id": "chromium/a00f6b208f65ffe78dbd-c5f285688868effdaad6",
+              "file": "recordatorios.spec.ts",
+              "title": "registrar dispositivo y recibir el recordatorio de la actividad",
+              "durationMs": 2697
+            },
+            {
+              "id": "chromium/8ff3fa35dc6e810382d6-b20ff03cc1087a1d77af",
+              "file": "solicitudes-ux.spec.ts",
+              "title": "una sesión vencida vuelve al ingreso sin crear solicitudes",
+              "durationMs": 2654
+            },
+            {
+              "id": "chromium/dce26b35c5be48766643-1da6a0c39e3bc2f9af43",
+              "file": "member-experience.spec.ts",
+              "title": "la agenda da detalles de miembros y de una actividad antes de abrir el registro",
+              "durationMs": 2652
+            },
+            {
+              "id": "chromium/0672bd4e85784e9a76e5-4e9b87de9ec7bf375b43",
+              "file": "admin-inicio.spec.ts",
+              "title": "el inicio del admin muestra el tablero con sus bloques y enlaces",
+              "durationMs": 2544
+            },
+            {
+              "id": "chromium/f8b63cf01db541aaa887-c17cc5a076de179aaa43",
+              "file": "admin-navigation-roles.spec.ts",
+              "title": "líder y evaluador de grupo reciben solo sus destinos, con un único activo",
+              "durationMs": 2542
+            },
+            {
+              "id": "chromium/6f4c96336ad140ce0989-027fc4c1361c6b801f53",
+              "file": "normativa.spec.ts",
+              "title": "lector completo accesible a 375px en tema light",
+              "durationMs": 2475
+            },
+            {
+              "id": "chromium/fbac58608a68e3944469-b7289450c61b99e0a3c5",
+              "file": "roster.spec.ts",
+              "title": "la reautenticación conserva una propuesta de líder desmarcada",
+              "durationMs": 2472
+            },
+            {
+              "id": "chromium/5bef814abf3472ecc275-cfb30670b27c89a6295a",
+              "file": "gh-points.spec.ts",
+              "title": "el miembro ve su saldo, su nivel, sus movimientos y los rankings",
+              "durationMs": 2460
+            },
+            {
+              "id": "chromium/d8ef7455691730a2dced-7ce71184138e5d7b073f",
+              "file": "portal-ux.spec.ts",
+              "title": "menú móvil: foco contenido, Escape, retorno y cierre al navegar",
+              "durationMs": 2428
+            },
+            {
+              "id": "chromium/6f4c96336ad140ce0989-1ec6a59ac4fff8911651",
+              "file": "normativa.spec.ts",
+              "title": "elegir un PDF no lo sube y un fallo conserva el archivo y los metadatos",
+              "durationMs": 2427
+            },
+            {
+              "id": "chromium/d3c031e7b99f7aa001b1-c2b0644814a4f17de1ed",
+              "file": "wordle.spec.ts",
+              "title": "recupera una victoria cuya respuesta de red se perdió sin duplicar el premio",
+              "durationMs": 2391
+            },
+            {
+              "id": "chromium/2423ef1b728ff8f06bcb-157e3165af0c07520ff3",
+              "file": "medios.spec.ts",
+              "title": "la imagen y su visibilidad se conservan después de un fallo",
+              "durationMs": 2357
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-b82f3a53e26d1eecbe0d",
+              "file": "ajustes-ux.spec.ts",
+              "title": "un error de contacto conserva los dos campos, enfoca el inválido y permite corregirlo",
+              "durationMs": 2292
+            },
+            {
+              "id": "chromium/4b8d217e4d0191ca578e-77a64f11f7839f839f32",
+              "file": "mi-oe.spec.ts",
+              "title": "el inicio saluda, muestra tus comités y el admin lo devuelve a Mi OE",
+              "durationMs": 2274
+            },
+            {
+              "id": "chromium/d8ef7455691730a2dced-96a5cb1b14e8dcce25de",
+              "file": "portal-ux.spec.ts",
+              "title": "portal con texto al 200 % mantiene navegación y búsqueda accesibles",
+              "durationMs": 2259
+            },
+            {
+              "id": "chromium/dce26b35c5be48766643-ca346c023f3c06c09d72",
+              "file": "member-experience.spec.ts",
+              "title": "Mi OE mantiene acceso con texto al 200 % y foco dentro del menú",
+              "durationMs": 2254
+            },
+            {
+              "id": "chromium/da7c59ce61d93dc7813a-626cd52358dadd076e38",
+              "file": "admin-responsive.spec.ts",
+              "title": "el texto al 200 % conserva controles y contenido",
+              "durationMs": 2204
+            },
+            {
+              "id": "chromium/8ff3fa35dc6e810382d6-8fade54543d2073eb52d",
+              "file": "solicitudes-ux.spec.ts",
+              "title": "un fallo de red conserva los datos y permite reintentar",
+              "durationMs": 2194
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-c628c51e10d595ecd3ec",
+              "file": "ajustes-ux.spec.ts",
+              "title": "las preferencias conservan casillas tras error y guardado sin reinicio automático",
+              "durationMs": 2187
+            },
+            {
+              "id": "chromium/587c885cafbde9285df6-f3565b4a3a9b6c2e46f9",
+              "file": "admin-custom-ui.spec.ts",
+              "title": "guardar datos mantiene los campos bloqueados hasta recibir la respuesta",
+              "durationMs": 2158
+            },
+            {
+              "id": "chromium/75ad7d8441bc6b7a4c05-1cdf9193aeb9cf2ba9b4",
+              "file": "carnet.spec.ts",
+              "title": "ofrece el pase Apple y explica sus datos; Google apagado no se ofrece",
+              "durationMs": 2150
+            },
+            {
+              "id": "chromium/c25fb700bfe16b426b11-93cb350a210135ecfe59",
+              "file": "privacidad-pendiente.spec.ts",
+              "title": "la política pendiente mantiene Mi OE y deshabilita nuevas autorizaciones y formularios",
+              "durationMs": 2141
+            },
+            {
+              "id": "chromium/06e6f91bb0d834e7cd04-d0d3ab1a02c836a2746e",
+              "file": "permanencia-admin.spec.ts",
+              "title": "entra derecho a su grupo y no ve el resto del admin",
+              "durationMs": 2130
+            },
+            {
+              "id": "chromium/4b8d217e4d0191ca578e-c87b253ceb6ba97e0ec2",
+              "file": "mi-oe.spec.ts",
+              "title": "el directorio encuentra por nombre y nunca muestra correos",
+              "durationMs": 2109
+            },
+            {
+              "id": "chromium/4b8d217e4d0191ca578e-558aadd77a637eacdd71",
+              "file": "mi-oe.spec.ts",
+              "title": "los comités internos llevan al roster del semestre",
+              "durationMs": 2067
+            },
+            {
+              "id": "chromium/41d3fd2474a19feb00a1-2a2c5663256541835a2f",
+              "file": "login.spec.ts",
+              "title": "el método por código sigue disponible como alterno",
+              "durationMs": 2030
+            },
+            {
+              "id": "chromium/192352e43931ac1b4e42-0e98f20e882e844c3aa2",
+              "file": "egresados.spec.ts",
+              "title": "la galería de egresados muestra un cartel por año y pasa axe",
+              "durationMs": 2002
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-5c078d4ca876abdcb159",
+              "file": "ajustes-ux.spec.ts",
+              "title": "la foto se revisa antes de subir, bloquea dobles envíos y conserva el archivo para reintentar",
+              "durationMs": 1990
+            },
+            {
+              "id": "chromium/587c885cafbde9285df6-23546839ae38b7970a61",
+              "file": "admin-custom-ui.spec.ts",
+              "title": "un error de validación en la ficha conserva lo que se estaba editando",
+              "durationMs": 1955
+            },
+            {
+              "id": "chromium/21e13903f90a72ef44b6-29f2bb04ce22c7090563",
+              "file": "autorizacion.spec.ts",
+              "title": "sin autorización, Mi OE lleva a la pantalla y aceptar la registra como propia",
+              "durationMs": 1952
+            },
+            {
+              "id": "setup/17e3fe6f4d9d8bd79c6b-3e43729c823f01dd7f73",
+              "file": "auth.setup.ts",
+              "title": "entra como admin de pruebas",
+              "durationMs": 1929
+            },
+            {
+              "id": "setup/17e3fe6f4d9d8bd79c6b-3e43729c823f01dd7f73",
+              "file": "auth.setup.ts",
+              "title": "entra como admin de pruebas",
+              "durationMs": 1903
+            },
+            {
+              "id": "chromium/d4043a9dd1ab94463227-5136ca78a61c178f5fdd",
+              "file": "admin.spec.ts",
+              "title": "otorgar un permiso exige step-up y queda en la lista",
+              "durationMs": 1826
+            },
+            {
+              "id": "chromium/8cd45c6f9c2ded76f534-2b4e5d1384d1df28d7c9",
+              "file": "admin-details-responsive.spec.ts",
+              "title": "la edición conserva el tipo bloqueado, los filtros y una página válida",
+              "durationMs": 1751
+            },
+            {
+              "id": "chromium/6f4c96336ad140ce0989-242343f15a2c3b889440",
+              "file": "normativa.spec.ts",
+              "title": "busca secciones y celdas, conserva sus anclas y muestra el organigrama privado",
+              "durationMs": 1713
+            },
+            {
+              "id": "chromium/75ad7d8441bc6b7a4c05-31f4d06473472798b3f5",
+              "file": "carnet.spec.ts",
+              "title": "el carnet muestra un QR con un token firmado de 24 horas",
+              "durationMs": 1687
+            },
+            {
+              "id": "chromium/d4043a9dd1ab94463227-a67758ab111fbf2ef2c9",
+              "file": "admin.spec.ts",
+              "title": "la paleta busca comités y personas",
+              "durationMs": 1636
+            },
+            {
+              "id": "chromium/d3c031e7b99f7aa001b1-5a3793f878008719affc",
+              "file": "wordle.spec.ts",
+              "title": "un semestre anterior enlaza al reto vigente",
+              "durationMs": 1590
+            },
+            {
+              "id": "chromium/f428baa1ca1ff2e3543d-562e07f89ffb8074a75d",
+              "file": "area-switching.spec.ts",
+              "title": "los accesos siguen disponibles con texto al 200 %",
+              "durationMs": 1492
+            },
+            {
+              "id": "chromium/f428baa1ca1ff2e3543d-a1d7b715d4ced28e960e",
+              "file": "area-switching.spec.ts",
+              "title": "no recibe el acceso a Administración ni puede entrar por URL",
+              "durationMs": 1432
+            },
+            {
+              "id": "chromium/c25fb700bfe16b426b11-70dcc1b4f915714a87a6",
+              "file": "privacidad-pendiente.spec.ts",
+              "title": "una página abierta antes de bloquear la política no puede guardar una aceptación",
+              "durationMs": 1364
+            },
+            {
+              "id": "setup/17e3fe6f4d9d8bd79c6b-c14e82efca404fe00613",
+              "file": "auth.setup.ts",
+              "title": "entra como miembro de pruebas",
+              "durationMs": 1363
+            },
+            {
+              "id": "chromium/41d3fd2474a19feb00a1-1c2aee8d9a555781a21e",
+              "file": "login.spec.ts",
+              "title": "el destino next solo acepta rutas del mismo origen",
+              "durationMs": 1344
+            },
+            {
+              "id": "setup/17e3fe6f4d9d8bd79c6b-c14e82efca404fe00613",
+              "file": "auth.setup.ts",
+              "title": "entra como miembro de pruebas",
+              "durationMs": 1334
+            },
+            {
+              "id": "chromium/d609c2ae76c9f23c2be3-e5d0a09e47419ce637ab",
+              "file": "politica-datos.spec.ts",
+              "title": "un formulario abierto no guarda cuando vence el step-up",
+              "durationMs": 1287
+            },
+            {
+              "id": "chromium/41d3fd2474a19feb00a1-9cf88f6bb34d28f24232",
+              "file": "login.spec.ts",
+              "title": "un correo fuera del roster recibe el mismo error que una contraseña mala",
+              "durationMs": 1271
+            },
+            {
+              "id": "chromium/52a6c5ecb94f72ef1aeb-cd0300a3e85b3c1d01f6",
+              "file": "permanencia-evaluaciones.spec.ts",
+              "title": "ve el GAP evaluado con buen desempeño y el crédito en su permanencia",
+              "durationMs": 1240
+            },
+            {
+              "id": "chromium/75ad7d8441bc6b7a4c05-a74fcd149baf731fb337",
+              "file": "carnet.spec.ts",
+              "title": "el click Apple navega en otra ventana del navegador",
+              "durationMs": 1206
+            },
+            {
+              "id": "chromium/d609c2ae76c9f23c2be3-f6f7d50c213f7fa8b1f8",
+              "file": "politica-datos.spec.ts",
+              "title": "un miembro sin ADMIN no abre el control",
+              "durationMs": 1205
+            },
+            {
+              "id": "chromium/21e13903f90a72ef44b6-3e52dca27551e2db2eb4",
+              "file": "autorizacion.spec.ts",
+              "title": "con la política sin publicar avisa y no ofrece aceptar",
+              "durationMs": 1157
+            },
+            {
+              "id": "chromium/75ad7d8441bc6b7a4c05-1d68c287c24b7a85a0fa",
+              "file": "carnet.spec.ts",
+              "title": "el click Apple navega en la misma ventana de la PWA",
+              "durationMs": 1117
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-b66cc67a1478da355088",
+              "file": "ajustes-ux.spec.ts",
+              "title": "una foto de menos de 5 KB se valida antes de transferir",
+              "durationMs": 1114
+            },
+            {
+              "id": "chromium/8bb7f77fe97341c84cbd-422835cdb3d1420100bf",
+              "file": "ajustes-ux.spec.ts",
+              "title": "una foto inválida no puede enviarse",
+              "durationMs": 1052
+            },
+            {
+              "id": "chromium/30bf0965a0eb07fc9173-8458839e4b5a79c3f98a",
+              "file": "pwa.spec.ts",
+              "title": "el manifest lista iconos que responden PNG y el service worker se sirve como JavaScript",
+              "durationMs": 1044
+            },
+            {
+              "id": "chromium/265a6ee67c94b2ef6801-e55186ba10ac190513fc",
+              "file": "seo.spec.ts",
+              "title": "robots cierra el sitio y el sitemap lista solo lo publicado",
+              "durationMs": 642
+            },
+            {
+              "id": "chromium/75ad7d8441bc6b7a4c05-af788fb86a7e9de4f6f8",
+              "file": "carnet.spec.ts",
+              "title": "las rutas Wallet usan redirecciones locales y no guardan respuestas sensibles en caché",
+              "durationMs": 632
+            }
+          ]
+        }
+      }
     }
   ],
   "controls": {
@@ -1887,6 +3518,51 @@
       "expected": "rechazar test.only",
       "exitCode": 1,
       "passed": true
+    },
+    "gateCli": [
+      {
+        "case": "informes reales completos de GitHub",
+        "exitCode": 0,
+        "passed": true
+      },
+      {
+        "case": "partición cancelada",
+        "exitCode": 1,
+        "passed": true
+      },
+      {
+        "case": "informe de una partición ausente",
+        "exitCode": 1,
+        "passed": true
+      },
+      {
+        "case": "escenario sin drenaje de outbox",
+        "exitCode": 1,
+        "passed": true
+      },
+      {
+        "case": "selección exclusiva permitida",
+        "exitCode": 1,
+        "passed": true
+      },
+      {
+        "case": "resultado con un reintento",
+        "exitCode": 1,
+        "passed": true
+      },
+      {
+        "case": "informe unitario con fallo aunque el job diga success",
+        "exitCode": 1,
+        "passed": true
+      }
+    ],
+    "gateRerun": {
+      "runId": 34609039699,
+      "attempt": 2,
+      "scope": "solo job CI",
+      "jobId": 103298190570,
+      "result": "success",
+      "timingIncludedInBenchmark": false
     }
   },
   "rollout": {
@@ -1894,6 +3570,14 @@
     "productionRequiredCheck": "CI / GitHub Actions (15368)",
     "railwayStagingWatchPatterns": "aplicados; falta comprobar push documental",
     "railwayProductionWatchPatterns": "pendiente",
-    "automaticSmoke": "pendiente de publicar workflow en main"
+    "automaticSmoke": "pendiente de publicar workflow en main",
+    "initialMainSha": "501d0cea25f768458ea39ef488d2c17e0c656c2e",
+    "blocker": {
+      "dependabotRunId": 34610240409,
+      "railwayDeploymentId": "88f497a3-223d-49c1-9837-c478e64ad269",
+      "status": "SKIPPED",
+      "error": "security_update_not_possible: passkit-generator fija joi@17.13.4",
+      "fix": "override passkit-generator → joi@^17.13.8; lockfile 17.13.8; validación en curso"
+    }
   }
 }
