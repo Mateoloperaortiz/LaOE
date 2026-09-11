@@ -21,6 +21,16 @@ Para comprobar independencia del orden: `E2E_ORDER=reverse CI=true npm run test:
 
 `tests/e2e/calendar.ts` calcula el término sintético actual y el anterior en Bogotá; `calendar-seed.ts` adapta los IDs del seed en la base desechable. Las pruebas de calendario incluyen 2027, cambio de semestre y 2028 bisiesto. Las de integración invocan la resolución real de `getCurrentTerm()` con el reloj de Vitest; el navegador de la suite completa conserva el reloj real. Los ejemplos históricos de reglas y documentos no son fechas vigentes de la OE.
 
+## CI y verificación de deployments (ADR-053)
+
+GitHub Actions clasifica el rango completo del cambio. Calidad, respaldo, integración y dos particiones E2E se ejecutan en máquinas independientes. Para reproducir una partición sobre el build local: `CI=true npm run test:e2e -- --fully-parallel --shard=1/2 --workers=1 --forbid-only`; repetir con `2/2`. `fully-parallel` distribuye casos entre particiones; cada máquina sigue ejecutando un solo caso a la vez.
+
+El check final `CI` contrasta el inventario completo con ambos informes y exige la anotación del drenaje estricto en cada escenario, autenticación completa por partición, cero saltos/reintentos y todos los jobs requeridos aprobados. Guarda `ci-result.json` y los tiempos individuales durante 14 días. Las unitarias de `ci-policy`, `ci-reports` y `ci-smoke` prueban rechazos de omisiones, cancelaciones, referencias desconocidas y metadata de deployment incoherente.
+
+Los cambios limitados a la lista de `scripts/ci/documentation-paths.json` validan el diff y emiten el mismo check final, con los jobs pesados omitidos explícitamente. Todo cambio desconocido y toda ejecución manual de CI ejecutan la suite completa. Web utiliza la misma lista para sus exclusiones de autodeploy; copy no está excluido.
+
+`Smoke de Railway` se ejecuta después de un deployment exitoso, con el SHA y las expectativas del entorno verificado, mediante `npm run smoke`. Puede lanzarse manualmente con un ID de deployment de GitHub. Su resultado no se usa como requisito anterior al mismo deployment; las seis comprobaciones HTTP y el artefacto quedan registrados por separado.
+
 ## Unit (módulos puros, sin base)
 
 - Invariantes del ledger: aprobado ⇔ una entrada viva; reversión; término cerrado.

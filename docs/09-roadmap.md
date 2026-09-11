@@ -354,7 +354,7 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 ## Evaluación de CI/CD · 2026-09-11
 
 - [x] Medir CI y CD reales, identificar el camino crítico y evaluar alternativas conservando todas las pruebas. [Assessment y propuesta](assessment-ci-cd-2026-09-11.md): 30 ejecuciones analizadas, configuración/logs de Railway y dos particiones E2E comprobadas en local.
-- [ ] Implementar y medir la propuesta: informes de tiempos, integración independiente, dos particiones E2E, tratamiento de documentación, caché de Next y smoke posterior. Objetivo inicial estimado de 10–12 min; falta validación en GitHub.
+- [ ] Implementar y medir la propuesta (ADR-053): informes de tiempos, integración independiente, dos particiones E2E, tratamiento de documentación, caché de Next y smoke posterior. Implementación local validada con `npm run check` (422 unitarias, 309 de integración y 11 Python); referencia en GitHub con la suite aislada y el pipeline anterior: [19 min 32 s](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34605678356). Objetivo inicial estimado de 10–12 min; medición del pipeline nuevo y activación remota en curso.
 
 ## Registro de avances
 

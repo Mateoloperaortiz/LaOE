@@ -16,6 +16,7 @@ export const test = base.extend<{ isolatedData: undefined }>({
         for (const context of browser.contexts()) await context.close();
         try {
           await drenarOutbox();
+          testInfo.annotations.push({ type: "outbox", description: "sin fallos" });
         } finally {
           await closeDb();
         }

@@ -33,6 +33,10 @@ describe("infraestructura por entorno (ADR-039)", () => {
       checkSuites: true,
     });
     expect(web.source).not.toHaveProperty("rootDirectory");
+    expect(web.build?.watchPatterns).toContain("**");
+    expect(web.build?.watchPatterns).toContain("!/docs/09-roadmap.md");
+    expect(web.build?.watchPatterns).not.toContain("!/docs/**");
+    expect(web.build?.watchPatterns).not.toContain("!/docs/14-copy-y-textos.md");
     expect(web.networking?.customDomains).toEqual(
       environment === "production" ? { "oeeafit.com": { port: 8080 } } : undefined,
     );
