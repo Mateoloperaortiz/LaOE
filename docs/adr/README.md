@@ -13,9 +13,10 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-054](ADR-054-reutilizacion-del-ci-en-promocion-y-particiones-e2e-balanceadas.md) | Reutilización del CI en la promoción y particiones E2E balanceadas | Aceptada; validada en remoto |
+| [ADR-055](ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) | Cuatro particiones E2E, integración en dos runners y lista documental ampliada | Aceptada; validación remota en curso |
+| [ADR-054](ADR-054-reutilizacion-del-ci-en-promocion-y-particiones-e2e-balanceadas.md) | Reutilización del CI en la promoción y particiones E2E balanceadas | Aceptada (enmendada por ADR-055); validada en remoto |
 | [ADR-052](ADR-052-aislamiento-y-fallos-de-las-pruebas-e2e.md) | Aislamiento, calendario y fallos de las pruebas E2E | Aceptada |
-| [ADR-053](ADR-053-ci-en-paralelo-y-verificacion-del-despliegue.md) | CI en paralelo, inventario obligatorio y smoke posterior | Aceptada (enmendada por ADR-054) |
+| [ADR-053](ADR-053-ci-en-paralelo-y-verificacion-del-despliegue.md) | CI en paralelo, inventario obligatorio y smoke posterior | Aceptada (enmendada por ADR-054 y ADR-055) |
 | [ADR-051](ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) | Acceso con contraseña propia y enlace de un solo uso de la junta | Aceptada |
 | [ADR-050](ADR-050-correo-transaccional-del-codigo.md) | Forma del correo transaccional del código de acceso | Aceptada (enmendada por ADR-051) |
 | [ADR-049](ADR-049-navegacion-entre-mi-oe-y-administracion.md) | Navegación entre Mi OE y Administración | Aceptada |

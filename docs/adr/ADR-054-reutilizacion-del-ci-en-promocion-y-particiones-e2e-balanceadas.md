@@ -1,6 +1,6 @@
 # ADR-054: Reutilización del CI en la promoción y particiones E2E balanceadas
 
-- Estado: Aceptada; validada en remoto el 2026-09-11 (PR 7 y primera promoción)
+- Estado: Aceptada (enmendada por ADR-055); validada en remoto el 2026-09-11 (PR 7 y primera promoción)
 - Fecha: 2026-09-11
 - Enmienda: ADR-053 (puntos 3, 4, 9 y 10)
 - Evidencia: [implementación de CI/CD](../ci-cd-2026-09-11.md)
@@ -28,3 +28,7 @@ Estimación con las duraciones de la ejecución 34618190390: cada runner E2E baj
 Integración pasa a ser el siguiente camino crítico. Repartirla con `vitest --shard` y un Postgres por job queda como etapa siguiente, igual que subir a cuatro particiones E2E, que solo requiere cambiar la matriz y `E2E_SHARDS`.
 
 La evidencia reutilizada vive lo que el artefacto: 14 días. Promover un SHA más viejo ejecuta todo. La consulta a la API añade segundos al clasificador solo en promociones. Cuando GitHub no responda, el CI completo sigue siendo el camino, sin reintentos ni esperas.
+
+## Enmienda (2026-09-11, ADR-055)
+
+[ADR-055](ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) sube `E2E_SHARDS` a 4 (punto 2) y aplica el mismo reparto por archivo a integración. Corrige además la lectura de las consecuencias: con tres particiones el camino crítico seguía siendo E2E, no integración.
