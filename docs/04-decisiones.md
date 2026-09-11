@@ -4,7 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
-| [055](adr/ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) | CI/CD | Cuatro particiones E2E, integración en dos runners con reparto por archivo verificado por el gate y lista documental con `04-decisiones.md` y `10-verificacion.md`, aplicada también a los watch patterns de `web` | Aceptada; validación remota en curso |
+| [055](adr/ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) | CI/CD | Cuatro particiones E2E, integración en dos runners con reparto por archivo verificado por el gate y lista documental con `04-decisiones.md` y `10-verificacion.md`, aplicada también a los watch patterns de `web` | Aceptada; validada en remoto |
 | [054](adr/ADR-054-reutilizacion-del-ci-en-promocion-y-particiones-e2e-balanceadas.md) | CI/CD | Tres particiones E2E repartidas por archivo con duraciones medidas y verificadas por el gate; un push a `production` reutiliza el CI completo de `main` del mismo SHA (modo `promotion`) y ante cualquier duda ejecuta todo | Aceptada (enmendada por 055); validada en remoto |
 | [052](adr/ADR-052-aislamiento-y-fallos-de-las-pruebas-e2e.md) | Pruebas E2E | Base local desechable por corrida, restauración autenticada por escenario, outbox estricto, calendario sintético vigente y cero reintentos automáticos | Aceptada |
 | [053](adr/ADR-053-ci-en-paralelo-y-verificacion-del-despliegue.md) | CI/CD | Integración independiente, dos particiones E2E aisladas, inventario y outbox obligatorios, documentación selectiva, caché Next y smoke posterior por SHA | Aceptada (enmendada por 054 y 055) |
