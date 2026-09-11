@@ -530,6 +530,6 @@ Orden del arranque, que no se puede alterar porque cada paso habilita el siguien
 
 1. **`npm run bootstrap:access -- --email <ADMIN>`** con `DATABASE_URL` al Postgres de producción y `APP_URL=https://oeeafit.com`. Entre el despliegue y este paso nadie puede entrar, así que conviene que sea inmediato.
 2. Abrir el enlace y elegir la contraseña. Eso abre sesión y deja el step-up fresco.
-3. Publicar el cuerpo de la política en la página `privacidad` y guardar la versión `2026-09-10` desde `/admin/sistema/politica`, que exige ADMIN y step-up. Hasta este paso, el texto publicado todavía dice que no hay contraseñas.
+3. Publicar la política, que son **dos operaciones distintas y las dos hacen falta**: reemplazar el cuerpo de la página `privacidad` desde `/admin/paginas` con el texto de [17-politica-de-datos.md](17-politica-de-datos.md), y guardar la versión desde `/admin/sistema/politica`. Guardar la versión **no** cambia el cuerpo. En el despliegue del 11 de septiembre quedó hecha solo la segunda, y la página siguió afirmando que no hay contraseñas durante horas, con contraseñas ya vivas. Hasta este paso el texto publicado es falso, así que va inmediatamente después de la primera contraseña.
 4. Comprobar el step-up con contraseña y emitir un enlace de prueba desde la jornada.
 5. Empezar la campaña por comité. La jornada arranca en 0 de 453.
