@@ -90,6 +90,11 @@
     "typescript": "~5.9.3",
     "vitest": "^4.1.11"
   },
+  "overrides": {
+    "passkit-generator": {
+      "joi": "^17.13.8"
+    }
+  },
   "description": "Casa digital de la Organización Estudiantil de la Universidad EAFIT: portal, Mi OE, Participación y GH Points, CRM de comunidad.",
   "type": "module",
   "engines": {

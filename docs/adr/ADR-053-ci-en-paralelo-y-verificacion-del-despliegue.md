@@ -29,3 +29,9 @@ La espera puede bajar a costa de repetir preparación y builds en dos runners E2
 La verificación del inventario protege frente a particiones vacías o casos omitidos por selección. Las bases siguen siendo secuenciales dentro de cada máquina. La lista documental es deliberadamente limitada: copy, migraciones, código, pruebas, dependencias y configuración nueva ejecutan la suite completa y siguen pudiendo desplegar web.
 
 Las ramas, el despliegue, el smoke y los cambios efectivos en Railway se acreditan por ejecución en el registro de implementación. Escribir esta ADR no los da por realizados.
+
+## Incidencia durante la activación
+
+El merge inicial activó un job de seguridad de Dependabot para `joi`. El actualizador terminó en `security_update_not_possible`: `passkit-generator@3.5.8` fija `joi@17.13.4`, y su solución automática proponía bajar PassKit a 3.1.2. Railway, con Wait for CI, descartó el deployment `88f497a3-223d-49c1-9837-c478e64ad269` al fallar ese check. La [ejecución fallida](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34610240409) conserva el diagnóstico.
+
+Se corrige la dependencia con un override limitado a `passkit-generator → joi@^17.13.8`, resuelto en el lockfile a 17.13.8. Se conserva PassKit 3.5.8; sus pruebas existentes firman un pase sintético y verifican bytes, manifiesto y CMS con OpenSSL. `npm ci`, la auditoría de la dependencia y `npm run check` deben comprobar la resolución y la compatibilidad antes de publicar. El [changelog de Joi](https://joi.dev/resources/changelog) registra los parches de la misma serie 17.13. El override podrá retirarse cuando la dependencia upstream acepte esas correcciones. Se conservan Dependabot y la espera de CI de Railway.
