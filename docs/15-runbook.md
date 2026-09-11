@@ -519,3 +519,17 @@ Cómo se corre:
 4. Abrirlo, elegir la contraseña y comprobar el ingreso.
 
 Cada emisión queda en la auditoría como del sistema, sin emisor. **Correrlo es una decisión operativa, no rutina**: quien lo corre tiene acceso a la base, así que el control real es quién puede llegar a ese Postgres, no el script.
+
+## Despliegue del acceso con contraseña · 2026-09-11
+
+`0da910c` promovido a `production` como avance directo desde `7f95c8b`, después de CI en verde y del mismo SHA validado en staging con smoke 6/6. El `preDeploy` aplicó la migración `0013` y verificó el esquema con 81 índices. Smoke de producción 6/6 con `--indexing true` y bucket `media-7-uwyewipofe3gx5s6`.
+
+**El smoke exige el host virtual del bucket del entorno**, no el `S3_ENDPOINT` y no el de otro entorno: con el bucket equivocado falla en «connect-src no incluye el bucket» aunque todo lo demás esté bien.
+
+Orden del arranque, que no se puede alterar porque cada paso habilita el siguiente:
+
+1. **`npm run bootstrap:access -- --email <ADMIN>`** con `DATABASE_URL` al Postgres de producción y `APP_URL=https://oeeafit.com`. Entre el despliegue y este paso nadie puede entrar, así que conviene que sea inmediato.
+2. Abrir el enlace y elegir la contraseña. Eso abre sesión y deja el step-up fresco.
+3. Publicar el cuerpo de la política en la página `privacidad` y guardar la versión `2026-09-10` desde `/admin/sistema/politica`, que exige ADMIN y step-up. Hasta este paso, el texto publicado todavía dice que no hay contraseñas.
+4. Comprobar el step-up con contraseña y emitir un enlace de prueba desde la jornada.
+5. Empezar la campaña por comité. La jornada arranca en 0 de 453.
