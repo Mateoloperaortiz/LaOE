@@ -359,6 +359,18 @@ Apple queda habilitado en producción; Google continúa sin activar. El navegado
 Evidencia privada: `/Users/mateo/.codex/private/casa-digital/wallet/production-activation-20260908/`, con `configuration-receipt.json`, `signature-check.json`, `http-verification.json`, `smoke.log` y `smoke-result.json`. No contiene valores de credenciales en los recibos. Operación de configuración, sin cambio del código desplegado ni promoción de otra revisión.
 
 
+## Activación de Google Wallet en producción · 2026-09-11
+
+Activación solicitada por Mateo para disponer del botón «Añadir a Google Wallet» en el carnet de producción. Se cargaron privadamente las cuatro variables Google en el servicio `web` de `production` en una sola solicitud: emisor, correo y clave de la cuenta de servicio y `GOOGLE_WALLET_CLASS_SUFFIX=carnet-oe`, el sufijo que IaC ya declaraba para producción. La relectura confirmó los cuatro valores idénticos a los enviados y las 28 variables existentes sin cambios. La cuenta de servicio es la propia de producción, distinta de la de staging, sobre el mismo emisor demo: la separación entre entornos es el sufijo de clase, como fija ADR-040.
+
+Antes de cargar, `wallet:check` con entorno aislado pasó con la configuración Google completa, PEM/IDs válidos y `APP_URL` HTTPS, y una sonda de solo lectura con esa credencial obtuvo OAuth 200, `GET issuer` 200 con el id esperado y `GET genericClass` 404 para `<issuer>.carnet-oe`: la clase de producción todavía no existe y la app la crea en la primera emisión. No se creó ni modificó ningún recurso en Google.
+
+La carga fue aceptada a las 21:14:53 UTC y disparó el despliegue `dfc653b2-373b-4c90-93e5-f879de880f89`, **SUCCESS** a las 21:16:51 UTC con el mismo SHA `6878340ca36608a0e7ecd3df93f89b54a5c7071b` que ya corría. Comprobación pública a las 21:17:09 UTC: `/api/health` 200/`ok` con ese SHA; `/api/wallet/google` sin sesión pasó de 404 a 302 hacia `/ingresar?next=%2Fapi%2Fwallet%2Fgoogle` con `no-store`; `/api/wallet/apple` conservó 302 con `no-store`; los badges Google y Apple respondieron 200 con los hashes registrados en [16-billeteras.md](16-billeteras.md) y `/wallet/google-logo.png` 200 como `image/png`. Smoke público 6/6 con el origen virtual del bucket.
+
+Google queda habilitado en producción junto a Apple. El emisor sigue en modo demo: solo las cuentas registradas como testers en la consola del emisor pueden guardar el pase y el diálogo muestra la marca de prueba; la publicación general se solicita desde esa consola. Estos resultados no acreditan la visibilidad del badge con sesión ni el guardado nativo; se solicitó al usuario abrir el carnet desde su celular y guardar el pase. Publicación, cambio real de semestre, anonimización Google, política y titular/licencia conservan su alcance.
+
+Evidencia privada: `/Users/mateo/.codex/private/casa-digital/wallet/production-activation-google-20260911/`, con `activate-google-production.mjs`, `google-probe.json`, `configuration-receipt.json`, `http-verification.json`, `apply-production.log`, `smoke.log` y `smoke-result.json`. No contiene valores de credenciales. Operación de configuración, sin cambio del código desplegado ni promoción de otra revisión.
+
 ## Alta individual de integrante existente (2026-09-08)
 
 Excepción individual autorizada por el ADMIN y documentada en [ADR-045](adr/ADR-045-alta-individual-de-integrante-existente.md). Operación privada de datos en `casa-digital / production`, sin APIs, migraciones, despliegue ni cambios de variables. El servicio web conservó el deployment `41ae3f2c-1a3d-4e47-9c42-5ed37bf5a1d8` (SUCCESS), SHA `5a305ca46424a7c52539513f7a0dcc408c05f4ec`.
