@@ -82,7 +82,12 @@ try {
       readJson(process.env.GITHUB_EVENT_PATH),
     );
     for (const key of ["base", "bucketOrigin", "sha", "indexing"]) output(key, config[key]);
-    summary(`Smoke del SHA \`${config.sha}\` en ${config.base}.`);
+    output("shouldRun", config.supersededBy ? "false" : "true");
+    summary(
+      config.supersededBy
+        ? `Evento histórico omitido: el deployment ${config.supersededBy} es posterior y ya fue aprobado. No se certifica el SHA ${config.sha}.`
+        : `Smoke del SHA \`${config.sha}\` en ${config.base}.`,
+    );
   } else {
     throw new Error("Uso: node scripts/ci/run.mjs classify|gate|smoke-context");
   }
