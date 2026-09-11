@@ -33,6 +33,7 @@ import {
   endMembershipSchema,
   getPersonRecord,
   personInputSchema,
+  probationInputSchema,
   reactivateMembershipAs,
   reactivateSchema,
   recordConsentAs,
@@ -40,9 +41,11 @@ import {
   revokeConsentAs,
   setCommitteeMembershipsAs,
   setPersonTagsAs,
+  setProbationAs,
   updatePersonAs,
 } from "@/modules/people";
 import { grantManualCreditAs, manualCreditInputSchema } from "@/modules/permanence";
+import { getTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 import { clientIp } from "@/shared/lib/request";
@@ -250,6 +253,24 @@ export async function setCommitteesAction(formData: FormData): Promise<void> {
   }
   await run(id, "membresia", "comites", () =>
     setCommitteeMembershipsAs({ personId: actor.personId }, id, termId, rows),
+  );
+}
+
+// Condición del semestre (ADR-056): ADMIN marca o retira el periodo de prueba de un término con motivo.
+export async function setProbationAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("personId"));
+  const actor = await requireAdmin(await personUrl(id, "membresia"));
+  const termId = text(formData, "termId");
+  const parsed = probationInputSchema.safeParse({
+    probation: checked(formData, "probation"),
+    reason: text(formData, "reason"),
+  });
+  if (!parsed.success || !termId || !(await getTerm(termId))) {
+    await fail(id, "membresia", "condicion", t("T-260"));
+    return;
+  }
+  await run(id, "membresia", "condicion", () =>
+    setProbationAs({ personId: actor.personId }, id, termId, parsed.data),
   );
 }
 

@@ -24,8 +24,18 @@ export function Cabecera({ data, my, permissions, committeeNames, tags }: Props)
   const [admin, lider, junta] = tList("T-289") as [string, string, string];
   const anonymized = person.anonymizedAt !== null;
   const active = membership !== null && membership.status !== "INACTIVE";
+  // Estudiante sin membresía: "dar de alta" es su siguiente paso (ADR-037 regla 8, ADR-056).
+  const admissible = !anonymized && membership === null && person.kind === "STUDENT";
   const base = `/admin/personas/${person.id}`;
   const enlaces: Array<{ key: string; label: string; href: string; calido?: boolean }> = [];
+  if (admissible) {
+    enlaces.push({
+      key: "alta",
+      label: t("T-983"),
+      href: `${base}?pestana=membresia&accion=alta`,
+      calido: true,
+    });
+  }
   if (!anonymized) {
     enlaces.push({
       key: "editar",
@@ -88,7 +98,9 @@ export function Cabecera({ data, my, permissions, committeeNames, tags }: Props)
       : item.code === "BOARD"
         ? junta
         : `${lider}${item.committeeId ? ` · ${committeeNames.get(item.committeeId) ?? ""}` : ""}`;
-  const primaryActions = enlaces.filter((item) => ["editar", "nota", "tarea"].includes(item.key));
+  const primaryActions = enlaces.filter((item) =>
+    ["alta", "editar", "nota", "tarea"].includes(item.key),
+  );
   const secondaryActions = enlaces.filter((item) => !primaryActions.includes(item));
   return (
     <header className="flex flex-col gap-5">
@@ -158,7 +170,7 @@ export function Cabecera({ data, my, permissions, committeeNames, tags }: Props)
         <p className="eyebrow text-xs text-tinta-suave">{t("T-431")}</p>
         <ul className="flex list-none flex-wrap gap-2 p-0">
           {my.committees.length === 0 ? (
-            <li className="text-sm text-tinta-suave">{t("T-402")}</li>
+            <li className="text-sm text-tinta-suave">{t(admissible ? "T-1053" : "T-402")}</li>
           ) : (
             my.committees.map((item) => (
               <li key={item.id}>

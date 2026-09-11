@@ -346,6 +346,7 @@ export default async function PersonaPage({
           personTagIds={personTags.map((item) => item.id)}
           assignees={assignees}
           note={note}
+          semestreId={terms.find((item) => item.id === single(search.semestre))?.id ?? null}
           closeHref={closeHref}
           error={error}
           policyReady={policy.ready}
