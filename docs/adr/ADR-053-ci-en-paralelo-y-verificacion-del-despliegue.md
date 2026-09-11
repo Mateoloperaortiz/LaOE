@@ -1,6 +1,6 @@
 # ADR-053: CI en paralelo y verificación del despliegue
 
-- Estado: Aceptada (enmendada por ADR-054); validación remota en curso
+- Estado: Aceptada (enmendada por ADR-054 y ADR-055)
 - Fecha: 2026-09-11
 - Enmienda: ADR-023, ADR-039 y ADR-052
 - Evidencia inicial: [assessment de CI/CD](../assessment-ci-cd-2026-09-11.md)
@@ -55,3 +55,7 @@ La consulta manual conserva siempre el SHA solicitado y exige un estado exitoso 
 ## Enmienda (2026-09-11, ADR-054)
 
 [ADR-054](ADR-054-reutilizacion-del-ci-en-promocion-y-particiones-e2e-balanceadas.md) cambia cuatro puntos. El punto 3 deja de usar `--shard` y `--fully-parallel`: cada runner recibe una partición por archivo calculada desde duraciones medidas, y son tres runners en vez de dos. El punto 4 añade al gate la comprobación de que cada informe contiene exactamente los archivos de su partición. El punto 9 se activa: un push a `production` cuyo SHA tiene un CI completo aprobado en `main` reutiliza esa evidencia con el modo `promotion`, con fallback a la suite completa ante cualquier duda. El punto 10 admite ese tercer modo del check estable `CI`; la validación documental sigue sin servir de evidencia. El resto de esta ADR conserva su texto.
+
+## Enmienda (2026-09-11, ADR-055)
+
+[ADR-055](ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) amplía la lista documental del punto 1 con `docs/04-decisiones.md` y `docs/10-verificacion.md`, reparte integración en dos runners con base propia cada uno (punto 2) y aplica la misma lista a los watch patterns de `web` (punto 7). El resto conserva su texto.

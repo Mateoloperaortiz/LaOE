@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
-/** Runners E2E de la matriz del workflow; el comando rechaza cualquier otro total (ADR-054). */
-export const E2E_SHARDS = 3;
+/** Runners E2E de la matriz del workflow; el comando rechaza cualquier otro total (ADR-055). */
+export const E2E_SHARDS = 4;
 
 const SCENARIO = /\.(spec|test)\.[cm]?[jt]sx?$/;
 

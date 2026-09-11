@@ -134,11 +134,15 @@ jobs:
           retention-days: 7
 
   integracion:
-    name: integración (Postgres 18 + Garage)
+    name: integración ${{ matrix.shard }}/2
     needs: cambios
     if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     services:
       postgres:
         image: postgres:18-alpine
@@ -177,18 +181,21 @@ jobs:
       - name: Diagnóstico de Garage si la preparación falla
         if: failure()
         run: docker logs --tail 100 garage
-      # global-setup crea y migra su base _test; E2E prepara otra en su propio runner.
-      - run: npm run test:integration -- --reporter=default --reporter=json --outputFile=ci-results/integration.json
+      - id: particion
+        name: Reparto balanceado de archivos por duración
+        run: node scripts/ci/run.mjs integration-shard ${{ matrix.shard }}/2
+      # global-setup crea y migra su base _test en cada runner; E2E prepara otra en los suyos.
+      - run: npm run test:integration -- --reporter=default --reporter=json --outputFile=ci-results/integration-${{ matrix.shard }}.json ${{ steps.particion.outputs.files }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ci-integration
-          path: ci-results/integration.json
+          name: ci-integration-${{ matrix.shard }}
+          path: ci-results/integration-${{ matrix.shard }}.json
           if-no-files-found: error
           retention-days: 14
 
   e2e:
-    name: E2E ${{ matrix.shard }}/3
+    name: E2E ${{ matrix.shard }}/4
     needs: cambios
     if: needs.cambios.outputs.mode == 'full'
     runs-on: ubuntu-latest
@@ -196,7 +203,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     services:
       postgres:
         image: postgres:18-alpine
@@ -249,7 +256,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - id: particion
         name: Reparto balanceado de escenarios por duración
-        run: node scripts/ci/run.mjs e2e-shard ${{ matrix.shard }}/3
+        run: node scripts/ci/run.mjs e2e-shard ${{ matrix.shard }}/4
       - run: npm run test:e2e -- --workers=1 --forbid-only --reporter=github,json
         env:
           E2E_FILES: ${{ steps.particion.outputs.files }}

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { verifyE2eReports, verifyVitestReport } from "../../scripts/ci/reports.mjs";
+import {
+  verifyE2eReports,
+  verifyIntegrationReports,
+  verifyVitestReport,
+} from "../../scripts/ci/reports.mjs";
 
 function spec(id: string, projectName = "chromium") {
   const result = { status: "passed", retry: 0, errors: [] as unknown[], duration: 10 };
@@ -148,5 +152,57 @@ describe("integridad de informes unitarios y de integración", () => {
     expect(() => verifyVitestReport({ ...complete(), numTotalTests: 2 })).toThrow("omitió");
     expect(() => verifyVitestReport({ ...complete(), numFailedTests: 1 })).toThrow("fallos");
     expect(() => verifyVitestReport({ ...complete(), testResults: [] })).toThrow("incompleto");
+  });
+});
+
+describe("integridad de los informes de integración por partición", () => {
+  const fileOf = (name: string) => name.replace(/^.*\/(tests\/integration\/)/, "$1");
+  const vitest = (names: string[]) => ({
+    success: true,
+    numTotalTests: names.length,
+    numPassedTests: names.length,
+    numFailedTests: 0,
+    testResults: names.map((name) => ({
+      name: `/repo/tests/integration/${name}.test.ts`,
+      assertionResults: [{ status: "passed" }],
+    })),
+  });
+  const partitions = () => [
+    { files: ["tests/integration/a.test.ts", "tests/integration/b.test.ts"] },
+    { files: ["tests/integration/c.test.ts"] },
+  ];
+  it("suma casos y archivos cuando cada máquina ejecutó exactamente su partición", () => {
+    expect(
+      verifyIntegrationReports([vitest(["a", "b"]), vitest(["c"])], partitions(), fileOf),
+    ).toEqual({
+      cases: 3,
+      files: 3,
+      shards: [
+        { shard: 1, files: 2, cases: 2 },
+        { shard: 2, files: 1, cases: 1 },
+      ],
+    });
+  });
+  it("rechaza particiones cambiadas, archivos repetidos, informes ausentes y fallos", () => {
+    const [first, second] = partitions();
+    expect(() =>
+      verifyIntegrationReports([vitest(["a", "b"]), vitest(["c"])], [second, first], fileOf),
+    ).toThrow("exactamente");
+    expect(() =>
+      verifyIntegrationReports([vitest(["a", "b"]), vitest(["a", "c"])], partitions(), fileOf),
+    ).toThrow("repetido");
+    expect(() => verifyIntegrationReports([vitest(["a", "b"])], partitions(), fileOf)).toThrow(
+      "2 informes",
+    );
+    expect(() =>
+      verifyIntegrationReports(
+        [{ ...vitest(["a", "b"]), numFailedTests: 1 }, vitest(["c"])],
+        partitions(),
+        fileOf,
+      ),
+    ).toThrow("fallos");
+    expect(() => verifyIntegrationReports([vitest(["a", "b"]), vitest(["c"])], [], fileOf)).toThrow(
+      "reparto",
+    );
   });
 });

@@ -43,7 +43,7 @@ El plan abarca el entorno completo. Inspeccionarlo y aplicar únicamente ese arc
 
 Cada tramo de código cierra con `npm run check`, `npm run test:e2e` cuando corresponda, commit convencional y push. No ejecutar check/build con `next dev` usando el mismo `.next`. El e2e en modo CI corre contra build y `next start`; `NODE_ENV=test` se usa únicamente en ese entorno de pruebas para su OTP fijo. Producción sigue rechazando OTP fijo. La CSP activa `upgrade-insecure-requests` cuando `APP_URL` usa HTTPS; se conserva en los dominios publicados. Promoción: sustituir `<SHA_VALIDADO>` por el SHA exacto comprobado en CI, staging y su healthcheck, y ejecutar `git -c 'credential.helper=!gh auth git-credential' push origin <SHA_VALIDADO>:production`. Registrar SHA promovido y comprobar después el SHA del healthcheck de producción; un avance concurrente de main no cambia el candidato elegido. La promoción no se ejecuta dentro de la ventana del dominio.
 
-## CI y comprobación del despliegue (ADR-053 y ADR-054)
+## CI y comprobación del despliegue (ADR-053, ADR-054 y ADR-055)
 
 Publicar cambios en una rama de trabajo y abrir un PR. Las ramas `main` y `production` exigen el check `CI` de GitHub Actions; un resultado pendiente, fallido o cancelado bloquea el avance. El check final exige las familias completas y verifica el inventario E2E y el outbox. Los resultados y tiempos quedan en `ci-result` y en los artefactos `ci-*` de la ejecución.
 
@@ -51,12 +51,16 @@ Tras el despliegue, `Smoke de Railway` comprueba por HTTP la salud y el SHA, HTT
 
 La lista `scripts/ci/documentation-paths.json` permite validar documentación conocida sin ejecutar la suite completa. El clasificador analiza todo el rango; un archivo desconocido, copy, código, migraciones, dependencias, tests o configuración ejecutan todo. La misma lista excluye esos cambios documentales del autodeploy de web. Un `SKIPPED` de Railway por documentación conserva el último SHA realmente desplegado: no esperar que `/api/health` cambie al SHA del commit documental. Para promover código, seguir usando el SHA exacto aprobado en staging; la promoción conserva CI completo y smoke de producción.
 
-Los E2E corren en tres runners con una partición por archivo calculada desde `scripts/ci/e2e-durations.json` (ADR-054). El check `CI` exige que cada runner ejecute exactamente su partición y que la unión sea el inventario; un spec nuevo sin duración conocida entra con la mediana y nunca queda por fuera. Cuando la suite cambie de forma apreciable, refrescar las duraciones desde un `ci-result` completo y aprobado y publicar el JSON con el cambio:
+Los E2E corren en cuatro runners y la integración en dos, cada uno con una partición por archivo calculada desde `scripts/ci/e2e-durations.json` y `scripts/ci/integration-durations.json` (ADR-054 y ADR-055). El check `CI` exige que cada runner ejecute exactamente su partición y que la unión sea el inventario; un spec nuevo sin duración conocida entra con la mediana y nunca queda por fuera. Cuando la suite cambie de forma apreciable, refrescar las duraciones desde un `ci-result` completo y aprobado y publicar el JSON con el cambio:
 
 ```sh
 gh run download <ID_RUN_MAIN> --name ci-result --dir ci-results
 node scripts/ci/run.mjs e2e-durations ci-results/ci-result.json
+gh run download <ID_RUN_MAIN> --pattern 'ci-integration-*' --dir ci-results --merge
+node scripts/ci/run.mjs integration-durations ci-results/integration-1.json <ID_RUN_MAIN> <SHA>
 ```
+
+Los informes de integración de una corrida vienen partidos (`integration-1.json`, `integration-2.json`); el comando acepta uno y suma los archivos que trae, así que para refrescar las duraciones completas conviene pasarlos uno por uno o generar el JSON desde una corrida local de la suite entera. Cuando cambie la lista documental, aplicar la misma lista a los watch patterns de `web` en staging y producción con `update-service` (solo `watchPatterns`, sin cambios escalonados) y releer la configuración.
 
 Promoción (ADR-054): el push a `production` de un SHA con CI completo aprobado en `main` entra en modo `promotion`: el clasificador descarga el `ci-result` de esa ejecución con el token del workflow, lo verifica (SHA, ejecución, `mode: full`, resultado y las tres familias) y el check `CI` queda en verde en cerca de un minuto con los jobs pesados omitidos; el resumen y `ci-result.json` nombran la ejecución reutilizada. Railway sigue esperando ese check y el smoke posterior comprueba el SHA servido. Sin evidencia, con el artefacto vencido a los 14 días o ante cualquier incoherencia, la promoción ejecuta la suite completa: no hay que intervenir, solo esperar. Seguir promoviendo el SHA exacto validado en staging.
 
