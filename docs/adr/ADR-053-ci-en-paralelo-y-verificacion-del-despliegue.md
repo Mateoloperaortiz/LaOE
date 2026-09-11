@@ -1,6 +1,6 @@
 # ADR-053: CI en paralelo y verificación del despliegue
 
-- Estado: Aceptada; validación remota en curso
+- Estado: Aceptada (enmendada por ADR-054); validación remota en curso
 - Fecha: 2026-09-11
 - Enmienda: ADR-023, ADR-039 y ADR-052
 - Evidencia inicial: [assessment de CI/CD](../assessment-ci-cd-2026-09-11.md)
@@ -51,3 +51,7 @@ La revisión del artefacto de [34619339626](https://github.com/Mateoloperaortiz/
 Railway había emitido un nuevo estado exitoso para el deployment retirado después de aprobar el actual. Los eventos automáticos comprueban si existe un deployment posterior del mismo entorno y emisor que haya sido aprobado; en ese caso omiten la comprobación HTTP y lo explican en el resumen, sin certificar el SHA antiguo. Un deployment posterior pendiente o fallido no la suprime. La falta de metadata provoca un fallo, nunca una aprobación.
 
 La consulta manual conserva siempre el SHA solicitado y exige un estado exitoso histórico. Puede comprobar un deployment marcado después como inactivo: la verificación HTTP decide si ese SHA está realmente servido. Las pruebas cubren eventos tardíos, emisores y entornos ajenos, errores de consulta y estados pendientes/fallidos. La validación remota incluye un control negativo con el SHA retirado y otro positivo con el SHA vigente. Los workflows de commits anteriores conservan su versión histórica; sus estados verdes no sustituyen la inspección del artefacto.
+
+## Enmienda (2026-09-11, ADR-054)
+
+[ADR-054](ADR-054-reutilizacion-del-ci-en-promocion-y-particiones-e2e-balanceadas.md) cambia cuatro puntos. El punto 3 deja de usar `--shard` y `--fully-parallel`: cada runner recibe una partición por archivo calculada desde duraciones medidas, y son tres runners en vez de dos. El punto 4 añade al gate la comprobación de que cada informe contiene exactamente los archivos de su partición. El punto 9 se activa: un push a `production` cuyo SHA tiene un CI completo aprobado en `main` reutiliza esa evidencia con el modo `promotion`, con fallback a la suite completa ante cualquier duda. El punto 10 admite ese tercer modo del check estable `CI`; la validación documental sigue sin servir de evidencia. El resto de esta ADR conserva su texto.
