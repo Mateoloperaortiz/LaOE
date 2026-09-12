@@ -6,9 +6,11 @@ import type { CommandContext } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { committeeRole } from "../schema";
+import { capabilitySchema, parseCapabilities } from "./capabilities";
 import type { CommitteeRoleRow } from "./committee-memberships";
 
-// Catálogo editable de cargos dentro del comité (ADR-029): sembrado por la migración 0001.
+// Catálogo editable de cargos dentro del comité (ADR-029): sembrado por la migración 0001 y, desde
+// ADR-058 (migración 0015), con cargos obligatorios y capacidades por cargo.
 
 export const committeeRoleInputSchema = z.object({
   code: z
@@ -20,6 +22,11 @@ export const committeeRoleInputSchema = z.object({
     .regex(/^[A-Z][A-Z0-9_]*$/),
   label: z.string().trim().min(2).max(80),
   isLeadership: z.boolean().default(false),
+  required: z.boolean().default(false),
+  capabilities: z
+    .array(capabilitySchema)
+    .default([])
+    .transform((values) => parseCapabilities(values)),
   sortOrder: z.coerce.number().int().min(0).max(999).default(50),
 });
 
@@ -90,6 +97,8 @@ export async function updateCommitteeRole(
   const values = {
     label: input.label,
     isLeadership: input.isLeadership,
+    required: input.required,
+    capabilities: input.capabilities,
     sortOrder: input.sortOrder,
   };
   await ctx.tx.update(committeeRole).set(values).where(eq(committeeRole.code, code));

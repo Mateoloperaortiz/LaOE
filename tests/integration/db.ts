@@ -22,7 +22,7 @@ export async function truncateAll(): Promise<void> {
       interaction, task, person_tag, tag, segment, onboarding_progress,
       edition_committee, event_edition, event, media_asset, announcement, page,
       consent, appointment, membership_term,
-      committee_membership, membership_event, membership, person, committee, term
+      committee_role_assignment, committee_membership, membership_event, membership, person, committee, term
     restart identity cascade
   `);
   if (config.length > 0) {

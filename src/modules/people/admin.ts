@@ -4,6 +4,7 @@ import type { Badge, FieldDefinition, ResourceDefinition } from "@/shared/admin-
 import { MULTI_SEPARATOR } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { COMMITTEE_CAPABILITIES } from "./domain/capabilities";
 import { type CommitteeRoleRow, listCommitteeRoles } from "./domain/committee-memberships";
 import {
   type CommitteeInput,
@@ -342,20 +343,37 @@ export const peopleResource: ResourceDefinition<PersonRow, PersonInput> = {
   }),
 };
 
-// Cargos de comité: catálogo editable (ADR-029), sembrado por la migración 0001.
+// Cargos de comité: catálogo editable (ADR-029), sembrado por la migración 0001; desde ADR-058
+// (migración 0015) cada cargo dice si es dirección, si es obligatorio y qué capacidades habilita.
 
 const [cargosPlural, cargoSingular] = tList("T-421") as [string, string];
-const [codigo, nombreCargo, esLiderazgo, orden] = tList("T-473") as [
+const [codigo, nombreCargo, esDireccion, obligatorio, capacidades, orden] = tList("T-473") as [
+  string,
+  string,
   string,
   string,
   string,
   string,
 ];
+const capacidadLabels = tList("T-2179");
+const capabilityOptions = COMMITTEE_CAPABILITIES.map((value, index) => ({
+  value,
+  label: capacidadLabels[index] ?? value,
+}));
+
+function capabilityLabels(codes: string[]): string {
+  return capabilityOptions
+    .filter((option) => codes.includes(option.value))
+    .map((option) => option.label)
+    .join(" · ");
+}
 
 const roleFields: FieldDefinition[] = [
   { name: "code", label: codigo, type: "text", required: true, lockedOnEdit: true },
   { name: "label", label: nombreCargo, type: "text", required: true },
-  { name: "isLeadership", label: esLiderazgo, type: "checkbox" },
+  { name: "isLeadership", label: esDireccion, type: "checkbox" },
+  { name: "required", label: obligatorio, type: "checkbox", help: t("T-2180") },
+  { name: "capabilities", label: capacidades, type: "multiselect", options: capabilityOptions },
   { name: "sortOrder", label: orden, type: "number" },
 ];
 
@@ -368,8 +386,18 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
     { key: "label", label: nombreCargo, render: (row) => row.label },
     {
       key: "isLeadership",
-      label: esLiderazgo,
-      render: (row) => (row.isLeadership ? { text: esLiderazgo, badge: "amarillo" } : null),
+      label: esDireccion,
+      render: (row) => (row.isLeadership ? { text: esDireccion, badge: "amarillo" } : null),
+    },
+    {
+      key: "required",
+      label: obligatorio,
+      render: (row) => (row.required ? { text: obligatorio, badge: "naranja" } : null),
+    },
+    {
+      key: "capabilities",
+      label: capacidades,
+      render: (row) => capabilityLabels(row.capabilities),
     },
     { key: "sortOrder", label: orden, render: (row) => row.sortOrder },
   ],
@@ -381,6 +409,8 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
     code: row.code,
     label: row.label,
     isLeadership: row.isLeadership ? "true" : "",
+    required: row.required ? "true" : "",
+    capabilities: row.capabilities.join(MULTI_SEPARATOR),
     sortOrder: String(row.sortOrder),
   }),
   create: (actor, input) =>
@@ -390,7 +420,9 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
   exportRow: (row) => ({
     codigo: row.code,
     nombre: row.label,
-    liderazgo: row.isLeadership ? "sí" : "no",
+    direccion: row.isLeadership ? "sí" : "no",
+    obligatorio: row.required ? "sí" : "no",
+    capacidades: capabilityLabels(row.capabilities),
     orden: row.sortOrder,
   }),
 };

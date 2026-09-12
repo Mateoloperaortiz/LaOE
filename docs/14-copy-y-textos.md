@@ -639,7 +639,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-449 | Membresía: condición de prueba | En periodo de prueba | GH | Propuesta |
 | T-450 | Membresía: campos de una pertenencia | Comité · Cargo · Transferencia interna | MATEO | Propuesta |
 | T-451 | Membresía: regla de cantidad de comités | Un activo necesita entre {min} y {max} comités. | MATEO | Propuesta |
-| T-452 | Membresía: ya hay un General | {comité} ya tiene un General este semestre. | MATEO | Propuesta |
+| T-452 | Membresía: ya hay quien ocupe ese cargo (titular o codirección, ADR-058) | {comité} ya tiene {cargo} este semestre. | MATEO | Propuesta |
 | T-453 | Resumen: etiquetas | Último contacto · Tareas abiertas · Consentimientos · Permisos · Puntos del semestre · Asambleas | MATEO | Propuesta |
 | T-454 | Línea de tiempo: filtro por tipo | Todo · Notas · Membresía · Comités · Consentimientos · Datos · Importaciones · Otros · Participación · Formularios · Pipelines · Solicitudes · Convocatorias | MATEO | Propuesta |
 | T-455 | Línea de tiempo: ayuda del compositor de notas | Escribí una nota para el equipo. La persona puede pedir verla. | MATEO | Propuesta |
@@ -660,7 +660,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-470 | Segmentos: opciones de consentimiento | Cualquiera · Con consentimiento de comunicaciones · Sin consentimiento de comunicaciones · Con foto autorizada · Con galería de egresados autorizada | MATEO | Propuesta |
 | T-471 | Segmentos: columna de personas | Personas | MATEO | Propuesta |
 | T-472 | Segmentos: acción de exportar | Exportar personas | MATEO | Propuesta |
-| T-473 | Cargos de comité: campos | Código · Nombre · Es liderazgo · Orden | MATEO | Propuesta |
+| T-473 | Cargos de comité: campos | Código · Nombre · Es dirección · Obligatorio · Capacidades · Orden | MATEO | Propuesta |
 | T-474 | Cargos de comité: código repetido | Ya existe un cargo con ese código. | MATEO | Propuesta |
 | T-475 | Importación: pasos | 1. Archivo y semestre · 2. Columnas · 3. Revisión y confirmación | MATEO | Propuesta |
 | T-476 | Importación: campo del archivo | Archivo del roster (CSV o Excel) | MATEO | Propuesta |

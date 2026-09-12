@@ -4,7 +4,14 @@ import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { permission } from "@/modules/identity/schema";
-import { committee, committeeMembership, membership, person } from "@/modules/people/schema";
+import {
+  committee,
+  committeeMembership,
+  committeeRole,
+  committeeRoleAssignment,
+  membership,
+  person,
+} from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { truncateAll } from "./db";
@@ -79,27 +86,88 @@ describe("restricciones que no negocia el esquema", () => {
     ).rejects.toSatisfy((error) => isCheckViolation(error, "permission_committee_scope"));
   });
 
-  it("admite un solo General vivo por comité y término", async () => {
+  it("admite un General titular y una codirección vivos por comité y término", async () => {
     const termId = await createTerm();
     const committeeId = await createCommittee("pixel");
     const first = await createPerson("g1@eafit.edu.co");
     const second = await createPerson("g2@eafit.edu.co");
+    const third = await createPerson("g3@eafit.edu.co");
+    // La pertenencia se conserva entre intentos: solo el cargo asignado choca con los índices.
+    const assign = async (personId: string, coDirector: boolean) => {
+      await db()
+        .insert(committeeMembership)
+        .values({ personId, committeeId, termId, roleCode: "GENERAL" })
+        .onConflictDoNothing();
+      const [row] = await db()
+        .select({ id: committeeMembership.id })
+        .from(committeeMembership)
+        .where(eq(committeeMembership.personId, personId));
+      if (!row) throw new Error("sin pertenencia");
+      await db().insert(committeeRoleAssignment).values({
+        membershipId: row.id,
+        personId,
+        committeeId,
+        termId,
+        roleCode: "GENERAL",
+        coDirector,
+      });
+      return row.id;
+    };
+    const firstMembership = await assign(first, false);
+    await assign(second, true);
+    await expect(assign(third, false)).rejects.toSatisfy((error) =>
+      isUniqueViolation(error, "committee_role_assignment_titular_unique"),
+    );
+    // El mismo cargo no se repite en una pertenencia, ni siquiera como codirección.
+    const logistics = {
+      membershipId: firstMembership,
+      personId: first,
+      committeeId,
+      termId,
+      roleCode: "LOGISTICA",
+    };
     await db()
-      .insert(committeeMembership)
-      .values({ personId: first, committeeId, termId, roleCode: "GENERAL" });
+      .insert(committeeRoleAssignment)
+      .values({ ...logistics, coDirector: false });
     await expect(
       db()
-        .insert(committeeMembership)
-        .values({ personId: second, committeeId, termId, roleCode: "GENERAL" }),
-    ).rejects.toSatisfy((error) => isUniqueViolation(error, "committee_membership_one_general"));
+        .insert(committeeRoleAssignment)
+        .values({ ...logistics, coDirector: true }),
+    ).rejects.toSatisfy((error) =>
+      isUniqueViolation(error, "committee_role_assignment_membership_role_unique"),
+    );
 
+    await db()
+      .update(committeeRoleAssignment)
+      .set({ endedAt: new Date() })
+      .where(eq(committeeRoleAssignment.personId, first));
     await db()
       .update(committeeMembership)
       .set({ leftAt: new Date() })
       .where(eq(committeeMembership.personId, first));
-    await db()
-      .insert(committeeMembership)
-      .values({ personId: second, committeeId, termId, roleCode: "GENERAL" });
+    await assign(third, false);
+  });
+
+  it("siembra el catálogo con la dirección, los obligatorios y las capacidades de ADR-058", async () => {
+    const rows = await db().select().from(committeeRole);
+    const byCode = new Map(rows.map((row) => [row.code, row]));
+    expect(byCode.get("MERCADEO")?.label).toBe("Mercadeo");
+    expect(byCode.get("GENERAL")?.required).toBe(true);
+    expect(byCode.get("FINANCIERO")?.required).toBe(true);
+    expect(byCode.get("MIEMBRO")?.isLeadership).toBe(false);
+    expect(byCode.get("MIEMBRO")?.capabilities).toEqual([]);
+    expect(byCode.get("GESTION_HUMANA")?.capabilities).toEqual(["ROSTER", "PERMANENCE"]);
+    expect(byCode.get("GENERAL")?.capabilities).toContain("DIRECTION");
+    for (const code of [
+      "FINANCIERO",
+      "PUBLICIDAD",
+      "MERCADEO",
+      "RELACIONES_PUBLICAS",
+      "LOGISTICA",
+      "GESTION_HUMANA",
+    ]) {
+      expect(byCode.get(code)?.isLeadership).toBe(true);
+    }
   });
 
   it("rechaza un cargo que no está en el catálogo", async () => {

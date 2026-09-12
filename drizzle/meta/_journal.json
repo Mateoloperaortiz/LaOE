@@ -106,6 +106,13 @@
       "when": 1789181747424,
       "tag": "0014_vicepresidencia_de_comunicaciones",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789255025051,
+      "tag": "0015_cargos_por_areas",
+      "breakpoints": true
     }
   ]
 }

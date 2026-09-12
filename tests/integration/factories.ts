@@ -15,6 +15,7 @@ import {
   appointment,
   committee,
   committeeMembership,
+  committeeRoleAssignment,
   membership,
   membershipTerm,
   person,
@@ -120,12 +121,17 @@ export async function seedCommittee(slug: string, name = slug.toUpperCase()): Pr
   return row.id;
 }
 
+/**
+ * Pertenencia en un comité y término. Un cargo distinto de MIEMBRO también se escribe como cargo
+ * asignado (ADR-058); `roleCode` queda como cargo principal (o MIEMBRO si el cargo es codirección
+ * sin otro cargo, igual que hace el dominio).
+ */
 export async function seedCommitteeMembership(
   personId: string,
   committeeId: string,
   termId: string,
   roleCode = "MIEMBRO",
-  overrides: Partial<{ joinedAt: Date | null; transferredIn: boolean }> = {},
+  overrides: Partial<{ joinedAt: Date | null; transferredIn: boolean; coDirector: boolean }> = {},
 ): Promise<string> {
   const [row] = await db()
     .insert(committeeMembership)
@@ -139,6 +145,18 @@ export async function seedCommitteeMembership(
     })
     .returning({ id: committeeMembership.id });
   if (!row) throw new Error("seed committee membership");
+  if (roleCode !== "MIEMBRO") {
+    await db()
+      .insert(committeeRoleAssignment)
+      .values({
+        membershipId: row.id,
+        personId,
+        committeeId,
+        termId,
+        roleCode,
+        coDirector: overrides.coDirector ?? false,
+      });
+  }
   return row.id;
 }
 

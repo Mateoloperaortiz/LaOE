@@ -214,11 +214,14 @@ export const committee = pgTable(
   ],
 );
 
-// Catálogo de cargos dentro del comité (ADR-029): General, Financiero, …, Miembro.
+// Catálogo de cargos dentro del comité (ADR-029, ADR-058): cuáles son dirección, cuáles no pueden
+// faltar en un comité y qué capacidades habilita cada uno (vocabulario cerrado en domain/capabilities.ts).
 export const committeeRole = pgTable("committee_role", {
   code: text().primaryKey(),
   label: text().notNull(),
   isLeadership: boolean().notNull().default(false),
+  required: boolean().notNull().default(false),
+  capabilities: text().array().notNull().default(sql`'{}'::text[]`),
   sortOrder: integer().notNull().default(0),
 });
 
@@ -235,6 +238,8 @@ export const committeeMembership = pgTable(
     termId: text()
       .notNull()
       .references(() => term.id),
+    // Cargo principal derivado de `committee_role_assignment` (ADR-058): el vivo de menor orden, o
+    // MIEMBRO si no hay ninguno. Lo recalcula cada escritura; los cargos completos viven abajo.
     roleCode: text()
       .notNull()
       .default("MIEMBRO")
@@ -250,11 +255,50 @@ export const committeeMembership = pgTable(
       t.committeeId,
       t.termId,
     ),
-    // Un solo General vivo por comité y término.
-    uniqueIndex("committee_membership_one_general")
-      .on(t.committeeId, t.termId)
-      .where(sql`${t.roleCode} = 'GENERAL' and ${t.leftAt} is null`),
     index("committee_membership_term_idx").on(t.termId, t.committeeId),
+  ],
+);
+
+// Cargos asignados a una pertenencia (ADR-058): titular o codirección por cargo, con inicio y fin.
+// `personId`, `committeeId` y `termId` se copian de la pertenencia para que los índices únicos vivan
+// en la base: un titular y una codirección por cargo, comité y término, y sin cargo repetido en la
+// misma pertenencia.
+export const committeeRoleAssignment = pgTable(
+  "committee_role_assignment",
+  {
+    id: id(),
+    membershipId: text()
+      .notNull()
+      .references(() => committeeMembership.id, { onDelete: "cascade" }),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    committeeId: text()
+      .notNull()
+      .references(() => committee.id),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    roleCode: text()
+      .notNull()
+      .references(() => committeeRole.code),
+    coDirector: boolean().notNull().default(false),
+    startedAt: timestampTz().notNull().defaultNow(),
+    endedAt: timestampTz(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("committee_role_assignment_titular_unique")
+      .on(t.committeeId, t.termId, t.roleCode)
+      .where(sql`${t.coDirector} = false and ${t.endedAt} is null`),
+    uniqueIndex("committee_role_assignment_codireccion_unique")
+      .on(t.committeeId, t.termId, t.roleCode)
+      .where(sql`${t.coDirector} = true and ${t.endedAt} is null`),
+    uniqueIndex("committee_role_assignment_membership_role_unique")
+      .on(t.membershipId, t.roleCode)
+      .where(sql`${t.endedAt} is null`),
+    index("committee_role_assignment_person_term_idx").on(t.personId, t.termId),
+    index("committee_role_assignment_committee_term_idx").on(t.committeeId, t.termId),
   ],
 );
 

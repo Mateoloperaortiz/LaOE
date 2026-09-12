@@ -5576,8 +5576,8 @@ export const textos = {
     status: "Propuesta",
   },
   "T-452": {
-    where: "Membresía: ya hay un General",
-    text: "{comité} ya tiene un General este semestre.",
+    where: "Membresía: ya hay quien ocupe ese cargo (titular o codirección, ADR-058)",
+    text: "{comité} ya tiene {cargo} este semestre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5703,7 +5703,7 @@ export const textos = {
   },
   "T-473": {
     where: "Cargos de comité: campos",
-    text: "Código · Nombre · Es liderazgo · Orden",
+    text: "Código · Nombre · Es dirección · Obligatorio · Capacidades · Orden",
     owner: "MATEO",
     status: "Propuesta",
   },

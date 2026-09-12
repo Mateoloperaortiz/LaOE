@@ -424,6 +424,8 @@ async function ensureRoles(ctx: CommandContext, rows: PreviewRow[]): Promise<str
           code: item.roleCode,
           label: item.newRoleLabel,
           isLeadership: false,
+          required: false,
+          capabilities: [],
           sortOrder: 50,
         });
         known.add(item.roleCode);

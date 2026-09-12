@@ -1,24 +1,35 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext, Executor } from "@/db/tx";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm, listAllTerms, type TermRow } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
-import { t, tList } from "@/shared/copy";
+import { t } from "@/shared/copy";
 import { committee, committeeMembership, committeeRole, membership } from "../schema";
+import {
+  endRoles,
+  listLiveRolesByMembership,
+  type RoleAssignmentInput,
+  replaceRoles,
+  roleAssignmentInputSchema,
+  rolesFromInput,
+} from "./committee-role-assignments";
 
-// Pertenencia a comité por término (ADR-005) con el cargo en la pertenencia (ADR-029): de 1 a 3 para
-// activos y un solo General vivo por comité y término.
+// Pertenencia a comité por término (ADR-005): de 1 a 3 para activos. Los cargos viven en
+// `committee_role_assignment` (ADR-058), con un titular y una codirección por cargo, comité y término;
+// `roleCode` conserva el cargo principal derivado.
 
 export const committeeMembershipInputSchema = z.object({
   committeeId: z.string().trim().min(1),
+  /** Cargo suelto (ADR-029), para quien todavía manda uno solo; si viene `roles`, manda `roles`. */
   roleCode: z.string().trim().min(1).max(40).default("MIEMBRO"),
+  roles: z.array(roleAssignmentInputSchema).default([]),
   transferredIn: z.boolean().default(false),
 });
 
-export type CommitteeMembershipInput = z.infer<typeof committeeMembershipInputSchema>;
+/** Lo que aceptan los comandos: `roles` y `transferredIn` pueden faltar (la validación pone los valores por defecto). */
+export type CommitteeMembershipInput = z.input<typeof committeeMembershipInputSchema>;
 
 export interface CommitteeMembershipView {
   id: string;
@@ -117,10 +128,56 @@ export async function getMyMembership(
   return { term: current, committees: rows, isNew: own?.firstTermId === current.id };
 }
 
+export interface LiveCommitteePayload {
+  committeeId: string;
+  /** Cargo principal derivado: el de menor orden entre los vivos, o MIEMBRO. */
+  roleCode: string;
+  transferredIn: boolean;
+  roles: RoleAssignmentInput[];
+}
+
 /**
- * Deja las pertenencias de la persona en un término como dice la lista: cierra las que ya no figuran,
- * actualiza cargo y transferencia en las que siguen y crea las nuevas. Los activos necesitan entre
- * `committees.min` y `committees.max` comités.
+ * Las pertenencias vivas de la persona en el término, con el cargo principal y todos sus cargos: es
+ * lo que viaja en la auditoría y en `committee-membership.changed` (permanencia, billetera y línea de
+ * tiempo leen `committeeId` y `roleCode`; los lectores nuevos, `roles`).
+ */
+export async function liveCommitteesPayload(
+  exec: Executor,
+  personId: string,
+  termId: string,
+): Promise<LiveCommitteePayload[]> {
+  const rows = await exec
+    .select({
+      id: committeeMembership.id,
+      committeeId: committeeMembership.committeeId,
+      roleCode: committeeMembership.roleCode,
+      transferredIn: committeeMembership.transferredIn,
+    })
+    .from(committeeMembership)
+    .where(
+      and(
+        eq(committeeMembership.personId, personId),
+        eq(committeeMembership.termId, termId),
+        isNull(committeeMembership.leftAt),
+      ),
+    );
+  const roles = await listLiveRolesByMembership(
+    exec,
+    rows.map((row) => row.id),
+  );
+  return rows.map((row) => ({
+    committeeId: row.committeeId,
+    roleCode: row.roleCode,
+    transferredIn: row.transferredIn,
+    roles: (roles.get(row.id) ?? []).map(({ roleCode, coDirector }) => ({ roleCode, coDirector })),
+  }));
+}
+
+/**
+ * Deja las pertenencias de la persona en un término como dice la lista: cierra las que ya no figuran
+ * (con sus cargos), actualiza transferencia y cargos en las que siguen y crea las nuevas. Los activos
+ * necesitan entre `committees.min` y `committees.max` comités. Los cargos se validan y escriben en
+ * `replaceRoles`, que traduce a T-452 el choque con un titular o una codirección que ya existe.
  */
 export async function setCommitteeMemberships(
   ctx: CommandContext,
@@ -129,17 +186,12 @@ export async function setCommitteeMemberships(
   rows: CommitteeMembershipInput[],
   now = new Date(),
 ): Promise<void> {
-  const wanted = new Map<string, CommitteeMembershipInput>();
+  const wanted = new Map<string, { transferredIn: boolean; roles: RoleAssignmentInput[] }>();
   for (const row of rows) {
-    wanted.set(row.committeeId, row);
-  }
-  const roles = await ctx.tx.select({ code: committeeRole.code }).from(committeeRole);
-  const known = new Set(roles.map((role) => role.code));
-  const errors = tList("T-165");
-  for (const row of wanted.values()) {
-    if (!known.has(row.roleCode)) {
-      throw new DomainError(errors[6] ?? "", "roleCode");
-    }
+    wanted.set(row.committeeId, {
+      transferredIn: row.transferredIn ?? false,
+      roles: rolesFromInput(row.roleCode, row.roles),
+    });
   }
   const [current] = await ctx.tx
     .select({ status: membership.status })
@@ -158,73 +210,62 @@ export async function setCommitteeMemberships(
     .select()
     .from(committeeMembership)
     .where(and(eq(committeeMembership.personId, personId), eq(committeeMembership.termId, termId)));
-  // El nombre del comité del General se lee antes de escribir: tras una violación la transacción ya no responde.
-  const general = rows.find((row) => row.roleCode === "GENERAL");
-  const [generalCommittee] = general
-    ? await ctx.tx
-        .select({ name: committee.name })
-        .from(committee)
-        .where(eq(committee.id, general.committeeId))
-    : [];
-  try {
-    // Primero se cierran las que sobran y se retiran los Generales que dejan de serlo: así un
-    // General nuevo no choca con el anterior dentro de la misma transacción.
-    for (const row of existing) {
-      if (!wanted.has(row.committeeId) && row.leftAt === null) {
-        await ctx.tx
-          .update(committeeMembership)
-          .set({ leftAt: now })
-          .where(eq(committeeMembership.id, row.id));
-      }
-    }
-    for (const row of existing) {
-      const target = wanted.get(row.committeeId);
-      if (target && row.roleCode === "GENERAL" && target.roleCode !== "GENERAL") {
-        await ctx.tx
-          .update(committeeMembership)
-          .set({ roleCode: target.roleCode })
-          .where(eq(committeeMembership.id, row.id));
-      }
-    }
-    for (const row of existing) {
-      const target = wanted.get(row.committeeId);
-      if (!target) {
-        continue;
-      }
+  const before = await liveCommitteesPayload(ctx.tx, personId, termId);
+  // Primero se cierran las que sobran, con sus cargos: así un cargo que pasa a otra pertenencia no
+  // choca con el anterior dentro de la misma transacción.
+  for (const row of existing) {
+    if (!wanted.has(row.committeeId) && row.leftAt === null) {
       await ctx.tx
         .update(committeeMembership)
-        .set({ roleCode: target.roleCode, transferredIn: target.transferredIn, leftAt: null })
+        .set({ leftAt: now })
         .where(eq(committeeMembership.id, row.id));
-      wanted.delete(row.committeeId);
+      await endRoles(ctx.tx, row.id, now);
     }
-    for (const target of wanted.values()) {
-      await ctx.tx.insert(committeeMembership).values({
+  }
+  for (const row of existing) {
+    const target = wanted.get(row.committeeId);
+    if (!target) {
+      continue;
+    }
+    await ctx.tx
+      .update(committeeMembership)
+      .set({ transferredIn: target.transferredIn, leftAt: null })
+      .where(eq(committeeMembership.id, row.id));
+    await replaceRoles(
+      ctx.tx,
+      { id: row.id, personId, committeeId: row.committeeId, termId },
+      target.roles,
+      now,
+    );
+    wanted.delete(row.committeeId);
+  }
+  for (const [committeeId, target] of wanted) {
+    const [created] = await ctx.tx
+      .insert(committeeMembership)
+      .values({
         personId,
-        committeeId: target.committeeId,
+        committeeId,
         termId,
-        roleCode: target.roleCode,
         transferredIn: target.transferredIn,
         joinedAt: now,
-      });
+      })
+      .returning({ id: committeeMembership.id });
+    if (!created) {
+      throw new Error("No se pudo crear la pertenencia");
     }
-  } catch (error) {
-    if (isUniqueViolation(error, "committee_membership_one_general")) {
-      throw new DomainError(t("T-452", { comité: generalCommittee?.name ?? "" }), "roleCode");
-    }
-    throw error;
+    await replaceRoles(
+      ctx.tx,
+      { id: created.id, personId, committeeId, termId },
+      target.roles,
+      now,
+    );
   }
-  const after = rows.map((row) => ({
-    committeeId: row.committeeId,
-    roleCode: row.roleCode,
-    transferredIn: row.transferredIn,
-  }));
+  const after = await liveCommitteesPayload(ctx.tx, personId, termId);
   await ctx.audit({
     action: "committee-membership.set",
     entityType: "person",
     entityId: personId,
-    before: existing
-      .filter((row) => row.leftAt === null)
-      .map((row) => ({ committeeId: row.committeeId, roleCode: row.roleCode })),
+    before: { termId, committees: before },
     after: { termId, committees: after },
   });
   await ctx.emit({
@@ -238,6 +279,10 @@ export interface CommitteeRoleRow {
   code: string;
   label: string;
   isLeadership: boolean;
+  /** No puede faltar en ningún comité (ADR-058): General y Financiero. */
+  required: boolean;
+  /** Capacidades que el cargo habilita sobre su comité (domain/capabilities.ts). */
+  capabilities: string[];
   sortOrder: number;
 }
 
