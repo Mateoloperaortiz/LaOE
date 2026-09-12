@@ -5174,7 +5174,7 @@ export const textos = {
   },
   "T-444": {
     where: "Membresía: cargos de junta y de GH (opciones)",
-    text: "Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · GH principal · Director de GH · Otro",
+    text: "Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Publicidad · GH principal · Director de GH · Otro",
     owner: "JUNTA",
     status: "Propuesta",
   },

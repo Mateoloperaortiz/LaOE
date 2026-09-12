@@ -1,0 +1,1 @@
+ALTER TYPE "public"."appointment_kind" ADD VALUE 'VP_COMMUNICATIONS' BEFORE 'GH_HEAD';

@@ -1,6 +1,6 @@
 # ADR-034: Personas, CRM mínimo y Mi OE (fase 2)
 
-- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040)
+- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-022, ADR-029, ADR-030, ADR-031, ADR-032, ADR-033
 - Enmienda: ADR-010 (destrucción de sesiones), ADR-018 y 08-migracion (mapeo del líder de comité), ADR-022 (el archivo del roster sí pasa por la app)
@@ -72,3 +72,7 @@ La regla 9 incorpora secciones, tablas e imágenes al lector, formato `oe-normat
 ## Enmienda (2026-09-08, ADR-046)
 
 La [ADR-046](ADR-046-integracion-roster-y-acceso-en-licencia.md) amplía los datos personales opcionales del roster y permite consulta de Mi OE en licencia. ON_LEAVE conserva bloqueadas la participación, las nuevas credenciales y las funciones de cargos, con permisos almacenados intactos. El roster inicial preserva historia y deja conflictos y graduados pendientes; su aplicación conserva el requisito de política activa y autorizaciones respaldadas.
+
+## Enmienda (2026-09-11, ADR-057)
+
+Regla 13: `appointment.kind` suma `VP_COMMUNICATIONS` (Vicepresidencia de Comunicaciones y Publicidad) entre `VP_FINANCE` y `GH_HEAD`; el resto de la regla no cambia. Ver [ADR-057](ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md).
