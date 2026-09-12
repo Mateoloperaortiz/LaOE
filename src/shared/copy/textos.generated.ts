@@ -3906,6 +3906,18 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2142": {
+    where: "Persona 360, Membresía: botón para cambiar la condición del semestre",
+    text: "Cambiar condición",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2143": {
+    where: "Condición del semestre: ayuda del panel",
+    text: "Marcá o quitá el periodo de prueba de ese semestre. Cambia el umbral que le aplica en permanencia y queda en la línea de tiempo con tu motivo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-220": {
     where: "Carnet, textos",
     text: "Organización Estudiantil · {nombre} · {comités} · {semestre} · QR",
@@ -7491,8 +7503,8 @@ export const textos = {
   },
   "T-832": {
     where:
-      "Línea de tiempo: eventos de permanencia (buen desempeño, insuficiente, puntaje del líder, crédito manual, entró al grupo, salió del grupo, decisión del cierre)",
-    text: "Buen desempeño en {grupo}, evaluado por {evaluador} · Desempeño insuficiente en {grupo}, evaluado por {evaluador}: {nota} · {criterio} en {comité}: {valor} de {peso} · Crédito manual en {criterio}: {valor} ({motivo}) · Entró al grupo {grupo} · Salió del grupo {grupo} · Cierre de {término}: {decisión}",
+      "Línea de tiempo: eventos de permanencia (buen desempeño, insuficiente, puntaje del líder, crédito manual, entró al grupo, salió del grupo, decisión del cierre, condición de prueba marcada, condición de prueba retirada)",
+    text: "Buen desempeño en {grupo}, evaluado por {evaluador} · Desempeño insuficiente en {grupo}, evaluado por {evaluador}: {nota} · {criterio} en {comité}: {valor} de {peso} · Crédito manual en {criterio}: {valor} ({motivo}) · Entró al grupo {grupo} · Salió del grupo {grupo} · Cierre de {término}: {decisión} · En periodo de prueba en {término}: {motivo} · Sin periodo de prueba en {término}: {motivo}",
     owner: "MATEO",
     status: "Propuesta",
   },

@@ -284,8 +284,10 @@ describe("cierre de permanencia", () => {
       .select({ summary: interaction.summary })
       .from(interaction)
       .where(and(eq(interaction.personId, people.sale), eq(interaction.kind, "PERMANENCE")));
-    expect(timeline.length).toBe(3);
+    // Una por decisión más la condición de prueba fijada en el término siguiente (ADR-056).
+    expect(timeline.length).toBe(4);
     expect(timeline.some((row) => row.summary.includes("Sale del comité"))).toBe(true);
+    expect(timeline.some((row) => row.summary.startsWith("En periodo de prueba en "))).toBe(true);
     // El término cerrado no recalcula ni descongela.
     expect(await recomputeSnapshots(termId)).toBe(0);
   });

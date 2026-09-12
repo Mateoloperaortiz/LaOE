@@ -28,6 +28,7 @@ export const TIMELINE_EVENTS = [
   "manual-credit.granted",
   "work-group-membership.changed",
   "permanence.decided",
+  "membership-term.changed",
   "submission.received",
   "registration.created",
   "card.created",
@@ -45,7 +46,7 @@ export interface TimelineLabels {
   texts: string[];
   /** Los textos de participación de T-667, en orden (fase 3). */
   participationTexts: string[];
-  /** Los textos de permanencia de T-832, en orden (fase 4). */
+  /** Los textos de permanencia de T-832, en orden (fase 4; los dos últimos, ADR-056). */
   permanenceTexts: string[];
   /** Los textos de admisión, aliados y contactos de T-1046, en orden (fase 5). */
   crmTexts: string[];
@@ -319,6 +320,17 @@ export function summarizeEvent(
           decisión: `${label(labels.decisions, decision)}${committee ? ` (${lookup.committeeName(committee)})` : ""}`,
         })}${reason ? `: ${reason}` : ""}`,
         { termId: str(payload, "termId"), committeeId: committee || null, decision },
+      );
+    }
+    case "membership-term.changed": {
+      const probation = payload.probation === true;
+      return entry(
+        "PERMANENCE",
+        fill(labels.permanenceTexts[probation ? 7 : 8] ?? "", {
+          término: lookup.termCode(str(payload, "termId")),
+          motivo: str(payload, "reason") || "—",
+        }),
+        { termId: str(payload, "termId"), probation },
       );
     }
     case "submission.received":

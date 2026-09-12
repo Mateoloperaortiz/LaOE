@@ -46,6 +46,13 @@ registerHandler("committee-membership.changed", async (payload) => {
   await enqueueRecompute(termId, personId);
 });
 
+// Condición de prueba fijada por el cierre o por ADMIN desde la Persona 360 (ADR-056): la persona en
+// ese término, para que el umbral nuevo se vea sin esperar al programado diario.
+registerHandler("membership-term.changed", async (payload) => {
+  const { personId, termId } = committeeEvent.parse(payload);
+  await enqueueRecompute(termId, personId);
+});
+
 // Cambio de estado de la membresía: el término actual.
 const personEvent = z.object({ personId: z.string().min(1) });
 registerHandler("membership.changed", async (payload) => {
