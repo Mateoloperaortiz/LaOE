@@ -6,6 +6,7 @@ import { campaignStatusLabel } from "@/modules/comms/admin";
 import { dashboardForAdmin, type TaskRow } from "@/modules/crm";
 import { recentSubmissionCounts } from "@/modules/forms";
 import { listOccasions } from "@/modules/participation";
+import { listCommitteesMissingRequiredRoles } from "@/modules/people";
 import { listGroupRefs } from "@/modules/permanence";
 import { countDeadLetters, getBackupStatus } from "@/modules/system";
 import { getCurrentTerm } from "@/modules/terms";
@@ -92,7 +93,7 @@ export default async function AdminHome() {
   const roles = await requireAdminAreaRoles("/admin");
   if (!roles.isAdmin) {
     // Quien no es ADMIN entra derecho a lo suyo (ADR-035 regla 15, ADR-036 regla 10).
-    const committee = roles.ledCommittees[0];
+    const committee = roles.committees[0]?.committee;
     const group = roles.ledGroups[0];
     redirect(
       committee
@@ -107,23 +108,25 @@ export default async function AdminHome() {
     );
   }
   const term = await getCurrentTerm();
-  const [tablero, respuestas, ocasiones, deadLetters, backup, campanas] = await Promise.all([
-    dashboardForAdmin(roles.actor.personId, term?.id ?? null),
-    recentSubmissionCounts(7),
-    term
-      ? listOccasions({
-          q: "",
-          termId: term.id,
-          status: "OPEN",
-          order: "asc",
-          page: 1,
-          pageSize: OCCASION_ROWS,
-        })
-      : Promise.resolve({ rows: [], total: 0 }),
-    countDeadLetters(),
-    getBackupStatus(),
-    listActiveCampaigns(),
-  ]);
+  const [tablero, respuestas, ocasiones, deadLetters, backup, campanas, sinCargos] =
+    await Promise.all([
+      dashboardForAdmin(roles.actor.personId, term?.id ?? null),
+      recentSubmissionCounts(7),
+      term
+        ? listOccasions({
+            q: "",
+            termId: term.id,
+            status: "OPEN",
+            order: "asc",
+            page: 1,
+            pageSize: OCCASION_ROWS,
+          })
+        : Promise.resolve({ rows: [], total: 0 }),
+      countDeadLetters(),
+      getBackupStatus(),
+      listActiveCampaigns(),
+      term ? listCommitteesMissingRequiredRoles(term.id) : Promise.resolve([]),
+    ]);
   const grupos = await listGroupRefs(tablero.openCalls.map((call) => call.groupId));
   const [bPendientes, bVencidas, bSolicitudes, bRespuestas, bPipelines, bConvocatorias, bSistema] =
     tList("T-1033") as [string, string, string, string, string, string, string];
@@ -279,6 +282,24 @@ export default async function AdminHome() {
             </ul>
           )}
         </Bloque>
+
+        {sinCargos.length > 0 ? (
+          <Bloque id="cargos" titulo={t("T-2176")} href="/admin/comites">
+            <ul className="flex list-none flex-col gap-2 p-0">
+              {sinCargos.flatMap((row) =>
+                row.missing.map((role) => (
+                  <li key={`${row.committee.id}-${role.roleCode}`}>
+                    <Link href={`/admin/comites/${row.committee.slug}`}>
+                      <Insignia fondo="naranja">
+                        {t("T-2175", { comité: row.committee.name, cargo: role.roleLabel })}
+                      </Insignia>
+                    </Link>
+                  </li>
+                )),
+              )}
+            </ul>
+          </Bloque>
+        ) : null}
 
         <Bloque id="sistema" titulo={bSistema} href="/admin/sistema/jobs">
           <ul className="flex list-none flex-col gap-2 p-0">

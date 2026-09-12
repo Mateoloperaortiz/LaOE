@@ -4,20 +4,20 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { assertLeader, ForbiddenError, getActor } from "@/modules/identity";
 import {
   createOccasionAs,
   createOccasionSeriesAs,
   occasionInputSchema,
 } from "@/modules/participation";
-import { listInternalRoster } from "@/modules/people";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { clientIp } from "@/shared/lib/request";
+import { requireCommitteeCapability } from "../_kit/capacidades";
 
-// Acciones de la vista de líder (ADR-035 regla 15): ADMIN o líder del comité; una ocasión nueva nace
-// en borrador con el comité fijo; la serie semanal crea reuniones abiertas sin puntos.
+// Acciones de ocasiones de la vista del comité (ADR-035 regla 15, ADR-058): quien tiene la capacidad
+// OCCASIONS (ADMIN, líder técnico o la dirección por su cargo); una ocasión nueva nace en borrador con
+// el comité fijo; la serie semanal crea reuniones abiertas sin puntos.
 
 const slugSchema = z.string().regex(/^[a-z0-9-]+$/);
 
@@ -27,24 +27,8 @@ function text(formData: FormData, name: string): string {
 }
 
 async function leaderOf(slug: string, returnTo: string) {
-  const actor = await getActor();
-  if (!actor) {
-    redirect(`/ingresar?next=${encodeURIComponent(returnTo)}`);
-  }
-  const roster = await listInternalRoster(slug);
-  if (!roster) {
-    redirect("/admin");
-  }
-  const committee = roster.committee;
-  try {
-    assertLeader(actor, committee.id);
-  } catch (error) {
-    if (error instanceof ForbiddenError) {
-      redirect("/app");
-    }
-    throw error;
-  }
-  return { actor, committee };
+  const access = await requireCommitteeCapability(slug, "OCCASIONS", returnTo);
+  return { actor: access.actor, committee: access.roster.committee };
 }
 
 function back(slug: string, extra: Record<string, string> = {}): string {

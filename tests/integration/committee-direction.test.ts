@@ -1,9 +1,11 @@
 import { and, desc, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { adminAreaRoles } from "@/app/admin/_kit/acceso";
 import { closeDb, getDb } from "@/db/client";
 import "@/jobs/handlers";
 import { drain } from "@/jobs/poller";
 import { interaction, task } from "@/modules/crm/schema";
+import type { Actor } from "@/modules/identity";
 import {
   addCommitteeMemberAs,
   listCommitteesMissingRequiredRoles,
@@ -299,5 +301,35 @@ describe("agregar, cargos y pedido de retiro", () => {
         and(eq(committeeMembership.personId, f.member), eq(committeeMembership.committeeId, f.a3)),
       );
     expect(still[0]?.leftAt).toBeNull();
+  });
+});
+
+describe("roles del área de administración", () => {
+  beforeEach(truncateAll);
+  afterAll(closeDb);
+
+  const actorFor = (personId: string): Actor => ({
+    personId,
+    sessionId: "s",
+    email: "x@eafit.edu.co",
+    name: "X",
+    firstName: "X",
+    membershipStatus: "ACTIVE",
+    permissions: [],
+    otpVerifiedAt: new Date(),
+    sessionLastSeenAt: new Date(),
+    sessionRemembered: false,
+    isAdmin: false,
+  });
+
+  it("la dirección entra al admin con su comité y sus capacidades; un miembro no", async () => {
+    const f = await fixture();
+    const gh = await adminAreaRoles(actorFor(f.gh));
+    expect(gh.any).toBe(true);
+    expect(
+      gh.committees.map((item) => [item.committee.slug, item.capabilities, item.isLeader]),
+    ).toEqual([["a3", ["ROSTER", "PERMANENCE"], false]]);
+    const member = await adminAreaRoles(actorFor(f.member));
+    expect(member).toMatchObject({ any: false, committees: [] });
   });
 });

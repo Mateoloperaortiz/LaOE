@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { hasPermission, requireAdminOrLeaderActor } from "@/modules/identity";
 import {
   listCommitteeScores,
   listOccasions,
@@ -19,10 +17,12 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
+import { requireCommitteeAccess } from "../_kit/capacidades";
 import { createSeriesAction, proposeOccasionAction } from "./actions";
 
-// Vista de líder de comité (06-mapa-del-sitio.md, ADR-035 regla 15): roster sin correos, score del
-// comité, sus ocasiones, "Nueva ocasión" en borrador y la serie semanal de reuniones.
+// Vista del comité (06-mapa-del-sitio.md, ADR-035 regla 15, ADR-058): la ven ADMIN, el líder técnico
+// y la dirección del comité por sus cargos; roster sin correos y score para todos, y "Nueva ocasión"
+// en borrador y la serie semanal solo con la capacidad OCCASIONS.
 
 type Search = Record<string, string | string[] | undefined>;
 
@@ -48,14 +48,9 @@ export default async function ComiteLiderPage({
   const { slug } = await params;
   const search = (await searchParams) as Search;
   const base = `/admin/comites/${slug}`;
-  const actor = await requireAdminOrLeaderActor(base);
-  const roster = await listInternalRoster(slug);
-  if (!roster) {
-    notFound();
-  }
-  if (!actor.isAdmin && !hasPermission(actor, "COMMITTEE_LEADER", roster.committee.id)) {
-    redirect("/app");
-  }
+  const access = await requireCommitteeAccess(slug, base);
+  const { roster } = access;
+  const canOperate = access.capabilities.has("OCCASIONS");
   const accion = single(search.accion);
   const error = single(search.error);
   const guardado = single(search.guardado) === "1";
@@ -113,14 +108,16 @@ export default async function ComiteLiderPage({
           </p>
         ) : null}
         <p className="max-w-prose text-sm text-tinta-suave">{t("T-653")}</p>
-        <div className="flex flex-wrap gap-3">
-          <Link href={`${base}?accion=nueva`} className="boton-primario">
-            {nuevaOcasion}
-          </Link>
-          <Link href={`${base}?accion=serie`} className="boton-secundario">
-            {crearSerie}
-          </Link>
-        </div>
+        {canOperate ? (
+          <div className="flex flex-wrap gap-3">
+            <Link href={`${base}?accion=nueva`} className="boton-primario">
+              {nuevaOcasion}
+            </Link>
+            <Link href={`${base}?accion=serie`} className="boton-secundario">
+              {crearSerie}
+            </Link>
+          </div>
+        ) : null}
       </header>
 
       <section aria-label={participacion} className="flex flex-col gap-3">
@@ -266,7 +263,7 @@ export default async function ComiteLiderPage({
         )}
       </section>
 
-      {accion === "nueva" ? (
+      {canOperate && accion === "nueva" ? (
         <ResourcePanel title={nuevaOcasion ?? ""} closeHref={base} closeLabel={t("T-291")}>
           <form action={proposeOccasionAction} className="flex flex-col gap-4">
             <AdminFormBody>
@@ -336,7 +333,7 @@ export default async function ComiteLiderPage({
         </ResourcePanel>
       ) : null}
 
-      {accion === "serie" ? (
+      {canOperate && accion === "serie" ? (
         <ResourcePanel title={crearSerie ?? ""} closeHref={base} closeLabel={t("T-291")}>
           <form action={createSeriesAction} className="flex flex-col gap-4">
             <AdminFormBody>

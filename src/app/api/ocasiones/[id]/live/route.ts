@@ -2,7 +2,7 @@ import { canOperateOccasion } from "@/app/admin/ocasiones/[id]/authz";
 import { getActor } from "@/modules/identity";
 import { buildLiveSnapshot, getOccasion } from "@/modules/participation";
 
-// Contador en vivo de la consola (ADR-035 regla 16): JSON sin caché para ADMIN o el líder del comité.
+// Contador en vivo de la consola (ADR-035 regla 16): JSON sin caché para quien opera la ocasión.
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/ocas
   if (!occasion) {
     return Response.json({ error: "no existe" }, { status: 404 });
   }
-  if (!canOperateOccasion(actor, occasion)) {
+  if (!(await canOperateOccasion(actor, occasion))) {
     return Response.json({ error: "sin permiso" }, { status: 403 });
   }
   const snapshot = await buildLiveSnapshot(id);

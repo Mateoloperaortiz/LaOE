@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 import { listCommitteeRecognitions, MONTHS, monthName } from "@/modules/crm";
-import { hasPermission } from "@/modules/identity";
 import { listInternalRoster } from "@/modules/people";
 import {
   deviatesFromNominal,
@@ -20,8 +18,8 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
-import { requireAdminAreaRoles } from "../../../_kit/acceso";
 import { reglaFormLabels, reglaFormValues } from "../../../permanencia/_ui/reglas";
+import { requireCommitteeCapability } from "../../_kit/capacidades";
 import {
   applyCommitteeTemplateAction,
   copyCommitteeRulesAction,
@@ -57,15 +55,10 @@ export default async function PermanenciaComitePage({
 }: PageProps<"/admin/comites/[slug]/permanencia">) {
   const { slug } = await params;
   const base = `/admin/comites/${slug}/permanencia`;
-  const roles = await requireAdminAreaRoles(base);
-  const roster = await listInternalRoster(slug);
-  if (!roster) {
-    notFound();
-  }
+  const access = await requireCommitteeCapability(slug, "PERMANENCE", base);
+  const roles = { isAdmin: access.isAdmin, actor: access.actor };
+  const roster = access.roster;
   const committee = roster.committee;
-  if (!roles.isAdmin && !hasPermission(roles.actor, "COMMITTEE_LEADER", committee.id)) {
-    redirect("/app");
-  }
   const term = roster.term ?? (await getCurrentTerm());
   const search = (await searchParams) as Search;
   const accion = single(search.accion);
