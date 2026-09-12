@@ -13,7 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-056](ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md) | Alta y condición del semestre desde la Persona 360 | Aceptada |
+| [ADR-056](ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md) | Alta y condición del semestre desde la Persona 360 | Aceptada; verificada en producción |
 | [ADR-055](ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) | Cuatro particiones E2E, integración en dos runners y lista documental ampliada | Aceptada; validada en remoto |
 | [ADR-054](ADR-054-reutilizacion-del-ci-en-promocion-y-particiones-e2e-balanceadas.md) | Reutilización del CI en la promoción y particiones E2E balanceadas | Aceptada (enmendada por ADR-055); validada en remoto |
 | [ADR-052](ADR-052-aislamiento-y-fallos-de-las-pruebas-e2e.md) | Aislamiento, calendario y fallos de las pruebas E2E | Aceptada |
