@@ -1,6 +1,6 @@
 # ADR-056: Alta y condición del semestre desde la Persona 360
 
-- Estado: Aceptada
+- Estado: Aceptada; verificada en producción el 2026-09-11
 - Fecha: 2026-09-11
 - Enmienda: ADR-036 (regla 9: quién fija la condición de prueba), ADR-037 (regla 8: desde dónde se llega a "dar de alta"), 02-crm (acciones de la cabecera, ciclo de vida y pestaña Membresía), 03-modelo (`MembershipTerm`), 12-permanencia (umbral por condición) y 14-copy (T-832, T-2142 y T-2143)
 - Relacionadas: ADR-002, ADR-003, ADR-012, ADR-025, ADR-034, ADR-043, ADR-045, ADR-046
