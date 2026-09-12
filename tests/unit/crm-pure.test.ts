@@ -9,6 +9,7 @@ const labels: TimelineLabels = {
   participationTexts: tList("T-667"),
   permanenceTexts: tList("T-832"),
   crmTexts: tList("T-1046"),
+  directionTexts: tList("T-2171"),
   stages: { PROSPECT: "prospecto", APPLICANT: "postulante", MEMBER: "miembro", ALUMNI: "egresado" },
   requestStatuses: { APPROVED: "Aprobada", REJECTED: "Rechazada", WITHDRAWN: "Retirada" },
   callEntryStatuses: { ACCEPTED: "Aceptada", WAITLISTED: "En lista de espera" },
@@ -63,6 +64,35 @@ describe("línea de tiempo", () => {
         lookup,
       )?.summary,
     ).toBe("Comités de 2026-2: A3 · General, PIXEL · Miembro");
+    expect(
+      summarizeEvent(
+        "committee-membership.changed",
+        {
+          personId: "p",
+          termId: "t1",
+          committees: [
+            {
+              committeeId: "c1",
+              roleCode: "GENERAL",
+              roles: [
+                { roleCode: "GENERAL", coDirector: true },
+                { roleCode: "LOGISTICA", coDirector: false },
+              ],
+            },
+          ],
+        },
+        labels,
+        lookup,
+      )?.summary,
+    ).toBe("Comités de 2026-2: A3 · Codirección de General y Miembro");
+    expect(
+      summarizeEvent(
+        "committee-removal.requested",
+        { personId: "p", actorId: "a", committeeId: "c1", termId: "t1", reason: "No volvió" },
+        labels,
+        lookup,
+      ),
+    ).toMatchObject({ kind: "COMMITTEES", summary: "Pidieron a GH su retiro de A3: No volvió" });
     expect(
       summarizeEvent(
         "appointment.changed",

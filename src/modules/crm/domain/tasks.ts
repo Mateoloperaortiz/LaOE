@@ -11,7 +11,7 @@ import { organization, task } from "../schema";
 // Tareas (02-crm.md): pendiente con responsable y vencimiento sobre una persona; sin responsable la ven
 // todos los ADMIN.
 
-export const TASK_KINDS = ["GENERAL", "DELETION_REQUEST", "REQUEST"] as const;
+export const TASK_KINDS = ["GENERAL", "DELETION_REQUEST", "REQUEST", "COMMITTEE_REMOVAL"] as const;
 
 export const taskInputSchema = z.object({
   title: z.string().trim().min(2).max(160),

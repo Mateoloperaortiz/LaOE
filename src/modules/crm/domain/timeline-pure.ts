@@ -1,3 +1,4 @@
+import { committeeRolesLabel } from "@/modules/people";
 import type { InteractionKind } from "../schema";
 
 // Traduce un evento de dominio a una entrada de la línea de tiempo (02-crm.md). Sin I/O: los nombres
@@ -8,6 +9,7 @@ export const TIMELINE_EVENTS = [
   "person.imported",
   "membership.changed",
   "committee-membership.changed",
+  "committee-removal.requested",
   "appointment.changed",
   "consent.changed",
   "person.updated",
@@ -50,6 +52,8 @@ export interface TimelineLabels {
   permanenceTexts: string[];
   /** Los textos de admisión, aliados y contactos de T-1046, en orden (fase 5). */
   crmTexts: string[];
+  /** El pedido de retiro de un comité por su dirección, T-2171 (ADR-058). */
+  directionTexts: string[];
   /** Las etapas de la persona de T-1047, en el orden del modelo. */
   stages: Record<string, string>;
   /** Los estados de una solicitud de T-876, en el orden del modelo. */
@@ -153,11 +157,25 @@ export function summarizeEvent(
     case "committee-membership.changed": {
       const committees = Array.isArray(payload.committees) ? payload.committees : [];
       const names = committees
-        .map((item) =>
-          item && typeof item === "object"
-            ? `${lookup.committeeName(str(item as Record<string, unknown>, "committeeId"))} · ${lookup.roleLabel(str(item as Record<string, unknown>, "roleCode"))}`
-            : "",
-        )
+        .map((item) => {
+          if (!item || typeof item !== "object") {
+            return "";
+          }
+          const row = item as Record<string, unknown>;
+          // Con `roles` (ADR-058) se leen todos los cargos; un payload viejo trae solo el principal.
+          const roles = (Array.isArray(row.roles) ? row.roles : [])
+            .filter((role): role is Record<string, unknown> => !!role && typeof role === "object")
+            .map((role) => ({
+              roleCode: str(role, "roleCode"),
+              roleLabel: lookup.roleLabel(str(role, "roleCode")),
+              coDirector: role.coDirector === true,
+            }));
+          const cargo =
+            roles.length > 0
+              ? committeeRolesLabel(roles, lookup.roleLabel("MIEMBRO"))
+              : lookup.roleLabel(str(row, "roleCode"));
+          return `${lookup.committeeName(str(row, "committeeId"))} · ${cargo}`;
+        })
         .filter(Boolean);
       return entry(
         "COMMITTEES",
@@ -167,6 +185,15 @@ export function summarizeEvent(
         }),
       );
     }
+    case "committee-removal.requested":
+      return entry(
+        "COMMITTEES",
+        fill(labels.directionTexts[0] ?? "", {
+          comité: lookup.committeeName(str(payload, "committeeId")),
+          motivo: str(payload, "reason") || "—",
+        }),
+        { committeeId: str(payload, "committeeId"), termId: str(payload, "termId") },
+      );
     case "appointment.changed": {
       const cargo = label(labels.appointmentKinds, str(payload, "kind"));
       const término = lookup.termCode(str(payload, "termId"));

@@ -5631,7 +5631,7 @@ export const textos = {
   },
   "T-461": {
     where: "Tareas: tipos",
-    text: "General · Solicitud de eliminación · Solicitud de miembro",
+    text: "General · Solicitud de eliminación · Solicitud de miembro · Retiro de comité",
     owner: "MATEO",
     status: "Propuesta",
   },

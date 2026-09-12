@@ -648,7 +648,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-458 | Línea de tiempo: textos de las interacciones automáticas | Importado desde el roster {término} · Estado cambió de {de} a {a}: {motivo} · Dado de baja: {motivo} · Reactivado · Comités de {término}: {comités} · Cargo {cargo} desde {término} · Cargo {cargo} retirado · Consentimiento de {propósito} autorizado · Consentimiento de {propósito} retirado · Datos actualizados: {campos} · Correo institucional cambiado · Pidió la eliminación de sus datos · Descargó sus datos · Datos anonimizados · Permiso {permiso} otorgado · Permiso {permiso} revocado | MATEO | Propuesta |
 | T-459 | Tareas: campos y columnas | Título · Responsable · Vence · Estado · Persona · Tipo | MATEO | Propuesta |
 | T-460 | Tareas: opciones de estado | Abierta · Hecha | MATEO | Propuesta |
-| T-461 | Tareas: tipos | General · Solicitud de eliminación · Solicitud de miembro | MATEO | Propuesta |
+| T-461 | Tareas: tipos | General · Solicitud de eliminación · Solicitud de miembro · Retiro de comité | MATEO | Propuesta |
 | T-462 | Tareas: acción de cerrar | Marcar hecha | MATEO | Propuesta |
 | T-463 | Tareas: filtro por responsable | Mías · Sin asignar · Todas | MATEO | Propuesta |
 | T-464 | Tarea de eliminación: título | Eliminación de datos pedida por {nombre} | MATEO | Propuesta |

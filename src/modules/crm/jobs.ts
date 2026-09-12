@@ -52,6 +52,7 @@ function labels(): TimelineLabels {
     participationTexts: tList("T-667"),
     permanenceTexts: tList("T-832"),
     crmTexts: tList("T-1046"),
+    directionTexts: tList("T-2171"),
     stages: zip(STAGE_CODES, tList("T-1047")),
     requestStatuses: zip(REQUEST_STATUS_CODES, tList("T-876")),
     callEntryStatuses: zip(CALL_ENTRY_CODES, tList("T-899")),
@@ -139,6 +140,62 @@ registerHandler("person.deletion-requested", async (payload, ctx) => {
     })
     .returning({ id: task.id });
   ctx.log.info({ personId, taskId: created?.id }, "tarea de eliminación creada");
+});
+
+// Pedido de retiro de un comité por su dirección (ADR-058): una tarea sin responsable para GH con el
+// vencimiento de las solicitudes; idempotente por la tarea abierta con el mismo título. La pertenencia
+// no se toca: GH decide desde la Persona 360.
+const removalEvent = z.object({
+  actorId: z.string().nullable().optional(),
+  personId: z.string().min(1),
+  committeeId: z.string().min(1),
+  reason: z.string().default(""),
+});
+registerHandler("committee-removal.requested", async (payload, ctx) => {
+  const event = removalEvent.parse(payload);
+  const [people, committees, days] = await Promise.all([
+    getPeopleByIds([event.personId]),
+    listAllCommittees(),
+    requireConfig("requests.taskDays"),
+  ]);
+  const title = t("T-2170", {
+    nombre: people.get(event.personId)?.fullName?.trim() ?? "",
+    comité: committees.find((item) => item.id === event.committeeId)?.name ?? "",
+    motivo: event.reason || "—",
+  });
+  const [open] = await getDb()
+    .select({ id: task.id })
+    .from(task)
+    .where(
+      and(
+        eq(task.personId, event.personId),
+        eq(task.kind, "COMMITTEE_REMOVAL"),
+        eq(task.status, "OPEN"),
+        eq(task.title, title),
+      ),
+    )
+    .limit(1);
+  if (open) {
+    ctx.log.debug(
+      { personId: event.personId, taskId: open.id },
+      "el pedido de retiro ya tiene tarea",
+    );
+    return;
+  }
+  const [created] = await getDb()
+    .insert(task)
+    .values({
+      title,
+      kind: "COMMITTEE_REMOVAL",
+      personId: event.personId,
+      createdById: event.actorId ?? null,
+      dueAt: addBusinessDays(new Date(), days),
+    })
+    .returning({ id: task.id });
+  ctx.log.info(
+    { personId: event.personId, taskId: created?.id },
+    "tarea de retiro de comité creada",
+  );
 });
 
 // La primera integración marca sola el paso del onboarding (ADR-031, ADR-034 regla 15).

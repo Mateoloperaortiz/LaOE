@@ -7,8 +7,10 @@ import { getCurrentTerm, listAllTerms, type TermRow } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { committee, committeeMembership, committeeRole, membership } from "../schema";
+import type { RoleView } from "./committee-direction-pure";
 import {
   endRoles,
+  type LiveRole,
   listLiveRolesByMembership,
   type RoleAssignmentInput,
   replaceRoles,
@@ -36,12 +38,23 @@ export interface CommitteeMembershipView {
   committeeId: string;
   committeeName: string;
   committeeSlug: string;
+  /** Cargo principal derivado (ADR-058); `roles` trae todos los vivos, con codirección. */
   roleCode: string;
   roleLabel: string;
   isLeadership: boolean;
+  roles: RoleView[];
   transferredIn: boolean;
   joinedAt: Date | null;
   leftAt: Date | null;
+}
+
+/** Los cargos vivos de una pertenencia como vista: solo lo que la interfaz muestra. */
+export function rolesOf(roles: Map<string, LiveRole[]>, membershipId: string): RoleView[] {
+  return (roles.get(membershipId) ?? []).map(({ roleCode, roleLabel, coDirector }) => ({
+    roleCode,
+    roleLabel,
+    coDirector,
+  }));
 }
 
 export interface TermCommittees {
@@ -75,6 +88,10 @@ export async function listCommitteeMembershipsByTerm(personId: string): Promise<
       .orderBy(asc(committee.name)),
     listAllTerms(),
   ]);
+  const roles = await listLiveRolesByMembership(
+    getDb(),
+    rows.map((row) => row.id),
+  );
   const termById = new Map(terms.map((term) => [term.id, term]));
   const grouped: TermCommittees[] = [];
   for (const row of rows) {
@@ -84,7 +101,7 @@ export async function listCommitteeMembershipsByTerm(personId: string): Promise<
       grouped.push(group);
     }
     const { termId: _termId, ...view } = row;
-    group.items.push(view);
+    group.items.push({ ...view, roles: rolesOf(roles, row.id) });
   }
   return grouped.sort((a, b) =>
     (termById.get(b.termId)?.startsOn ?? "").localeCompare(termById.get(a.termId)?.startsOn ?? ""),
@@ -125,7 +142,15 @@ export async function getMyMembership(
       ),
     )
     .orderBy(asc(committee.name));
-  return { term: current, committees: rows, isNew: own?.firstTermId === current.id };
+  const roles = await listLiveRolesByMembership(
+    exec,
+    rows.map((row) => row.id),
+  );
+  return {
+    term: current,
+    committees: rows.map((row) => ({ ...row, roles: rolesOf(roles, row.id) })),
+    isNew: own?.firstTermId === current.id,
+  };
 }
 
 export interface LiveCommitteePayload {
