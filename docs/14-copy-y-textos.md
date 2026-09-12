@@ -1685,3 +1685,72 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | --- | --- | --- | --- | --- |
 | T-2142 | Persona 360, Membresía: botón para cambiar la condición del semestre | Cambiar condición | MATEO | Propuesta |
 | T-2143 | Condición del semestre: ayuda del panel | Marcá o quitá el periodo de prueba de ese semestre. Cambia el umbral que le aplica en permanencia y queda en la línea de tiempo con tu motivo. | MATEO | Propuesta |
+
+## La dirección del comité por áreas (ADR-058)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-2144 | Cargo con codirección; se compone con T-370 en Mi OE, carnet y billetera y con "{comité} · {cargo}" en el admin | Codirección de {cargo} | MATEO | Propuesta |
+| T-2145 | Vista del comité, área Personas: título de la gestión del roster | Gestión del roster | MATEO | Propuesta |
+| T-2146 | Vista del comité, área Personas: ayuda para la dirección | Podés agregar miembros activos y cambiar cargos. Sacar a alguien es un pedido a GH, que lo resuelve desde la ficha. | GH | Propuesta |
+| T-2147 | Vista del comité: botón y título del panel de agregar | Agregar miembro | MATEO | Propuesta |
+| T-2148 | Agregar miembro: campo de búsqueda | Buscá por nombre | MATEO | Propuesta |
+| T-2149 | Agregar miembro: botón de buscar | Buscar | MATEO | Propuesta |
+| T-2150 | Agregar miembro: sin candidatos | Nadie con ese nombre está activo y fuera de este comité. | MATEO | Propuesta |
+| T-2151 | Agregar miembro: candidato sin cupo | Ya está en {max} comités. | MATEO | Propuesta |
+| T-2152 | Gestión del roster: columnas | Miembro · Cargos · Acciones | MATEO | Propuesta |
+| T-2153 | Casilla de codirección (roster, agregar y Persona 360) | Codirección | MATEO | Propuesta |
+| T-2154 | Gestión del roster: la propia fila | Tu cargo lo cambia GH. | MATEO | Propuesta |
+| T-2155 | Gestión del roster: botón de pedir retiro | Pedir retiro a GH | GH | Propuesta |
+| T-2156 | Pedir retiro: título del panel | Pedir a GH que retire a {nombre} | MATEO | Propuesta |
+| T-2157 | Pedir retiro: ayuda | No lo saca del comité: GH recibe tu pedido como tarea y decide desde la ficha. Contale el motivo. | GH | Propuesta |
+| T-2158 | Pedir retiro: campo del motivo | Motivo | MATEO | Propuesta |
+| T-2159 | Pedir retiro: botón | Enviar el pedido | MATEO | Propuesta |
+| T-2160 | Pedir retiro: confirmación | Listo: GH ya tiene tu pedido. | MATEO | Propuesta |
+| T-2161 | Agregar miembro: confirmación | {nombre} ya hace parte del comité. ¡OE OE OE! | MATEO | Propuesta |
+| T-2162 | Guarda: sin esa capacidad en el comité | No tenés a cargo esta área de {comité}. | MATEO | Propuesta |
+| T-2163 | Guarda: la propia pertenencia | Tu propia pertenencia la cambia GH. | MATEO | Propuesta |
+| T-2164 | Guarda: la persona no está activa | Solo podés agregar a miembros activos de la OE. | MATEO | Propuesta |
+| T-2165 | Guarda: ya está en el comité | {nombre} ya está en este comité. | MATEO | Propuesta |
+| T-2166 | Guarda: sin cupo | {nombre} ya está en {max} comités este semestre. | MATEO | Propuesta |
+| T-2167 | Guarda: cargo de dirección sin la capacidad de nombrar | Los cargos de dirección los asigna o quita el General del comité o GH. | MATEO | Propuesta |
+| T-2168 | Guarda: cargo obligatorio sin titular | El comité no puede quedar sin {cargo} titular: nombrá primero a quien lo reemplace. | MATEO | Propuesta |
+| T-2169 | Guarda: codirección sobre un cargo que no es de dirección | La codirección solo aplica a cargos de dirección. | MATEO | Propuesta |
+| T-2170 | Tarea de retiro de comité: título | Retirar a {nombre} de {comité}: {motivo} | MATEO | Propuesta |
+| T-2171 | Línea de tiempo: pedido de retiro | Pidieron a GH su retiro de {comité}: {motivo} | MATEO | Propuesta |
+| T-2172 | Gestión del roster (ADMIN): enlace a la ficha | Ver ficha | MATEO | Propuesta |
+| T-2173 | Guarda: la persona ya no está en el comité | Esa persona ya no está en el comité. | MATEO | Propuesta |
+| T-2174 | Vista del comité: áreas (pestañas) | Personas · Actividades · Comunicación · Aliados · Finanzas | MATEO | Propuesta |
+| T-2175 | Cabecera del comité y tablero: cargo obligatorio vacío | {comité} no tiene {cargo} titular. | MATEO | Propuesta |
+| T-2176 | Tablero de ADMIN: título del bloque | Comités sin cargos obligatorios | MATEO | Propuesta |
+| T-2177 | Importación: advertencia por comité | {comité} queda sin {cargo} titular en {término}. | MATEO | Propuesta |
+| T-2178 | Varios cargos: conector de la lista | {lista} y {último} | MATEO | Propuesta |
+| T-2179 | Catálogo de cargos: capacidades (por índice) | Roster · Nombrar cargos · Permanencia · Ocasiones · Eventos · Cartelera · Ficha pública · Aliados · Finanzas | MATEO | Propuesta |
+| T-2180 | Catálogo de cargos: casilla de obligatorio | Obligatorio en todo comité | MATEO | Propuesta |
+| T-2181 | Gestión del roster: panel de cargos de una persona | Cargos de {nombre} en {comité} | MATEO | Propuesta |
+| T-2182 | Vista del comité, área Comunicación: títulos | Cartelera del comité · Nuevo anuncio · Ficha pública | MATEO | Propuesta |
+| T-2183 | Nuevo anuncio interno: ayuda | Lo ven solo los miembros de {comité} en Mi OE. | GH | Propuesta |
+| T-2184 | Ficha pública: ayuda | La presentación y el contacto salen en la página pública del comité; publicarla y cambiar el logo siguen siendo de la junta. | MATEO | Propuesta |
+| T-2185 | Vista del comité, área Actividades: ediciones | Eventos que organiza el comité | MATEO | Propuesta |
+| T-2186 | Vista del comité, área Aliados: aviso | Acá van a vivir las organizaciones y patrocinios del comité. | MATEO | Propuesta |
+
+## Presupuesto del comité (ADR-059)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-2190 | Área Finanzas: títulos | Presupuesto {año} · Rubros · Gastos · Traslados | MATEO | Propuesta |
+| T-2191 | Área Finanzas: columnas del resumen por rubro | Rubro · Asignado · Gastado · Trasladado · Disponible | MATEO | Propuesta |
+| T-2192 | Área Finanzas: botón y panel de gasto | Registrar gasto | MATEO | Propuesta |
+| T-2193 | Área Finanzas: botón y panel de traslado | Trasladar entre rubros | MATEO | Propuesta |
+| T-2194 | Registrar gasto: campos | Fecha · Rubro · Monto · Descripción | MATEO | Propuesta |
+| T-2195 | Trasladar entre rubros: campos | Desde · Hacia · Monto · Motivo | MATEO | Propuesta |
+| T-2196 | Guarda: sin disponible en el rubro | No hay disponible en {rubro}: quedan {monto}. | MATEO | Propuesta |
+| T-2197 | Área Finanzas: sin presupuesto del año | Sin presupuesto cargado para {año}: pedíselo a la junta. | MATEO | Propuesta |
+| T-2198 | Registrar gasto: confirmación | Gasto registrado. | MATEO | Propuesta |
+| T-2199 | Trasladar entre rubros: confirmación | Traslado registrado. | MATEO | Propuesta |
+| T-2200 | Recurso Presupuestos: nombre (plural · singular) | Presupuestos · Presupuesto | MATEO | Propuesta |
+| T-2201 | Recurso Presupuestos: campos | Comité · Año · Estado · Notas | MATEO | Propuesta |
+| T-2202 | Presupuesto: estados | Borrador · Abierto · Cerrado | MATEO | Propuesta |
+| T-2203 | Rubros: campos | Nombre · Asignado · Orden | MATEO | Propuesta |
+| T-2204 | Guarda: presupuesto que no está abierto | El presupuesto {año} no está abierto: solo la junta lo cambia. | MATEO | Propuesta |
+| T-2205 | Área Finanzas: ayuda | Registrá cada gasto en su rubro y, si un rubro va a sobrar, trasladalo a tiempo: lo que no se ejecuta en el año se pierde. | JUNTA | Propuesta |

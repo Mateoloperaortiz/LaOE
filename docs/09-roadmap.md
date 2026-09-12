@@ -689,3 +689,19 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-09-11 | Catálogo de cargos | Mateo señaló que el selector de cargos de la Persona 360 no tenía la Vicepresidencia de Comunicaciones y Publicidad. [ADR-057](adr/ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md): `VP_COMMUNICATIONS` entre `VP_FINANCE` y `GH_HEAD` en el enum, `APPOINTMENT_KINDS` y el esquema de entrada; migración aditiva `0014_vicepresidencia_de_comunicaciones` (`ALTER TYPE … ADD VALUE … BEFORE 'GH_HEAD'`), aplicada en local con el esquema verificado; etiqueta nueva en T-444 en la misma posición porque las etiquetas se resuelven por índice; prueba unitaria que fija el largo del catálogo contra T-444 y la etiqueta del valor nuevo. `npm run check` PASS: 475 unitarias, 311 de integración, 11 de Python y build. |
+
+### La dirección del comité por áreas y presupuesto (ADR-058 y ADR-059)
+
+- [x] Docs: ADR-058 y ADR-059, enmiendas a ADR-011, ADR-029, ADR-034, ADR-035 y ADR-036, 01-arquitectura, 02-crm, 03-modelo, 05-acceso, 06-mapa, 11-contenido-pendiente, 13-importacion, glosario, decisiones y copy (T-2144 a T-2205).
+- [ ] Esquema: `committee_role.required` y `capabilities`, `committee_role_assignment` con backfill, `MERCADEO`, migración `0015`, `REQUIRED_INDEXES`.
+- [ ] Dominio `people`: cargos múltiples con `roleCode` derivado, capacidades, comandos por comité (agregar, cargos, pedido de retiro) y handlers en `crm`.
+- [ ] Autorización y navegación por capacidades; `assertLeader` reemplazado en ocasiones, permanencia, `live` y buscador.
+- [ ] Vista del comité por áreas: Personas, Actividades, Comunicación, Aliados (T-240) y Finanzas (T-240 hasta el tramo de la ADR-059).
+- [ ] Persona 360, Mi OE, carnet y billetera con varios cargos y codirección.
+- [ ] Importación: varios cargos por comité, prefijo «Codirección de», advertencia de cargos obligatorios.
+- [ ] Pruebas e2e `comite-areas.spec.ts`; PR 1 mezclado en `main` y promovido a `production`.
+- [ ] ADR-059: módulo `finance`, migración `0016`, `/admin/presupuestos`, área Finanzas, e2e `presupuesto.spec.ts`; PR 2.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-12 | Docs | Mateo pidió que cada cargo del comité gestione lo de su comité y, al afinar, que cada cargo vea solo su área, que General y Financiero sean obligatorios, que una persona pueda tener varios cargos en el mismo comité y que Finanzas lleve presupuesto, gastos y traslados. [ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md) (capacidades por cargo, cargos múltiples con titular y codirección, obligatorios, Personas con pedido de retiro a GH, líder técnico como excepción) y [ADR-059](adr/ADR-059-presupuesto-del-comite.md) (módulo `finance`, propuesta); enmiendas a ADR-011, ADR-029, ADR-034, ADR-035 y ADR-036; 01-arquitectura, 02-crm, 03-modelo, 05-acceso, 06-mapa, 11-contenido-pendiente, 13-importacion, glosario, 04-decisiones, decisiones-abiertas y copy (T-2144 a T-2186 y T-2190 a T-2205). Rama `feat/direccion-por-areas` en un worktree sobre `feat/vicepresidencia-comunicaciones` (PR 19 abierto) para que la migración `0015` siga a `0014`. `npm run check` PASS: 475 unitarias, 311 de integración, 11 de Python y build. |

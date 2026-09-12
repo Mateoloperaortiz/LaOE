@@ -1,6 +1,6 @@
 # ADR-011: Autorización en servidor
 
-- Estado: Aceptada (enmendada por ADR-051)
+- Estado: Aceptada (enmendada por ADR-051 y ADR-058)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-010, ADR-017
 
@@ -20,3 +20,7 @@ El proxy solo redirige rutas protegidas cuando no hay cookie y emite la CSP; nun
 ## Enmienda (2026-09-10, ADR-051)
 
 El step-up deja de equivaler a "un OTP verificado hace menos de 15 minutos" y pasa a ser "una credencial propia verificada hace menos de 15 minutos": la contraseña del actor estampa la misma marca de sesión que estampaba el código. La ventana de 15 minutos, los guards y la lista de acciones que lo exigen no cambian. Ver [ADR-051](ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md).
+
+## Enmienda (2026-09-12, ADR-058)
+
+Los cargos de la OE siguen sin ser permisos técnicos, pero un cargo de dirección del comité (`committee_role.isLeadership`, con las capacidades que declara el catálogo) sí habilita, por datos y solo sobre su comité, lo de su área: Personas, Actividades, Comunicación, Aliados o Finanzas según el cargo. El guard no vive en `identity` sino en `src/app/admin/comites/_kit/capacidades.ts`, y las guardas finas en el dominio de `people`. `COMMITTEE_LEADER` queda como excepción con todas las capacidades del comité. Ver [ADR-058](ADR-058-direccion-del-comite-por-areas.md).

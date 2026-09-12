@@ -17,10 +17,15 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Comité | `Committee` | Grupo de trabajo con ficha editorial y logo |
 | Pertenencia a comité | `CommitteeMembership` | Persona en un comité durante un término; de 1 a 3 activas para activos |
 | Cargo de junta o de GH | `Appointment` | Rol visible con historia fuera del comité: presidencia, vicepresidencias, GH principal, directores de GH |
-| Cargo en el comité | `CommitteeMembership.roleCode` | Lo que la persona desempeña dentro de su comité en el término: General (líder), Financiero, Publicidad, Relaciones Públicas, Logística, Gestión Humana o Miembro |
-| General | `roleCode=GENERAL` | Líder del comité; uno por comité y término; el permiso técnico de líder se otorga aparte |
+| Cargo en el comité | `CommitteeRoleAssignment` | Lo que la persona desempeña dentro de su comité en el término, uno o varios: General, Financiero, Publicidad, Mercadeo, Relaciones Públicas, Logística o Gestión Humana; sin cargos es Miembro; `CommitteeMembership.roleCode` conserva el principal ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)) |
+| Cargo asignado | `CommitteeRoleAssignment` | Un cargo de una pertenencia: titular o codirección, con inicio y fin; un titular y una codirección por cargo, comité y término |
+| Codirección | `CommitteeRoleAssignment.coDirector` | Segunda persona en un cargo de dirección; se muestra como "Codirección de {cargo}" y tiene las mismas capacidades que el titular |
+| Capacidad | `CommitteeRole.capabilities` | Lo que un cargo habilita sobre su comité: `ROSTER`, `DIRECTION`, `PERMANENCE`, `OCCASIONS`, `EVENTS`, `BOARD`, `PROFILE`, `PARTNERS`, `FINANCE`; GH las edita por cargo |
+| Área del comité | Pestañas de `/admin/comites/[slug]` | Personas, Actividades, Comunicación, Aliados y Finanzas: cada director ve las de sus capacidades |
+| Cargo obligatorio | `CommitteeRole.required` | General y Financiero: ningún director deja uno sin titular; ADMIN recibe la alerta |
+| General | cargo asignado `GENERAL` | Dirige el comité: un titular por comité y término, con codirección opcional; tiene todas las capacidades y nombra los demás cargos; el permiso técnico de líder se otorga aparte |
 | Roster | `ImportJob` de tipo roster | Archivo por término con el que GH carga o actualiza miembros, comités, cargos y estados |
-| Permiso | `Permission` | Derecho técnico: `ADMIN` o `COMMITTEE_LEADER` de un comité. No es un título |
+| Permiso | `Permission` | Derecho técnico: `ADMIN`, `BOARD` o `COMMITTEE_LEADER` de un comité (todas las capacidades de ese comité). No es un título |
 | Término | `Term` | Semestre académico (`2026-2`) con fechas; reloj universal del sistema |
 | Cierre de puntos | `Term.pointsClosedAt` | Momento desde el que el ledger del término no acepta más entradas |
 | Ocasión | `Occasion` | Momento con check-in: actividad GH, asamblea o sesión de una edición |
@@ -30,7 +35,9 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Consola de la ocasión | `/admin/ocasiones/[id]` | Pantalla del organizador: QR, contador en vivo, pendientes, asistentes, alta manual y ciclo de vida |
 | Cierre automático | `participation.auto-close` | Job horario que cierra una ocasión abierta 24 horas después de vencida su ventana de check-in |
 | Serie semanal | `createOccasionSeries` | Reuniones de comité creadas de una vez, mismo día y hora hasta el fin del término, cada una una ocasión independiente |
-| Vista de líder | `/admin/comites/[slug]` | Lo que ve un `COMMITTEE_LEADER` en el admin: roster sin correos, score, sus ocasiones y la serie semanal |
+| Vista del comité | `/admin/comites/[slug]` | Lo que ve quien dirige un comité o es su líder técnico: pestañas por área según sus capacidades ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)) |
+| Rubro | `BudgetLine` | Partida del presupuesto anual de un comité con su monto asignado |
+| Traslado | `BudgetTransfer` | Movimiento de disponible entre dos rubros del mismo presupuesto, con motivo ([ADR-059](adr/ADR-059-presupuesto-del-comite.md)) |
 | Entrada de puntos | `PointEntry` | Fila del ledger: crédito por check-in, ajuste, reversión o legado |
 | Ledger | `PointEntry[]` | Historial inmutable de puntos; el saldo es la suma |
 | Reversión | `PointEntry.kind=REVERSAL` | Entrada que anula otra; nunca se edita la original |

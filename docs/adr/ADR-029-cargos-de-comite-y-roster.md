@@ -1,6 +1,6 @@
 # ADR-029: Cargos dentro del comité y formato del roster
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-030 y ADR-058)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-002, ADR-005, ADR-008, ADR-011, ADR-014
 
@@ -26,3 +26,7 @@ GH va a enviar el roster con las columnas `NOMBRE`, `APELLIDO`, `CORREO`, `CELUL
 ## Precisiones (2026-09-02, respuesta de GH)
 
 El vocabulario de `ESTADO` es `Activo`, `Licencia`, `Honorario`, `Retirado` y `Prueba`. Los cargos son exactamente los seis del punto 1. La base actual no tiene `CARGO`: llegará en una segunda entrega, por lo que la importación admite un **modo actualización** (archivo con `CORREO` y un subconjunto de columnas que solo toca esas columnas en personas existentes). Mateo decidió el 2026-09-03 que el permiso se otorga con confirmación, como proponía el punto 2 ([ADR-030](ADR-030-perfil-de-egresado.md)).
+
+## Enmienda (2026-09-12, ADR-058)
+
+Regla 1: el catálogo suma `MERCADEO`, marca como dirección a los seis cargos distintos de `MIEMBRO` y gana `required` (`GENERAL` y `FINANCIERO`) y las capacidades de cada cargo. Regla 2: "un solo General por comité y término" pasa a "un solo General **titular**"; la codirección de General se marca con `coDirector` y también recibe la propuesta de líder al importar. Una pertenencia ya no guarda un solo cargo: los cargos viven en `committee_role_assignment` y `roleCode` queda como cargo principal derivado. El formato del roster admite varios cargos por comité (`General de A3; Logística de A3`) y el prefijo «Codirección de» ([13-importacion-del-roster.md](../13-importacion-del-roster.md)). Ver [ADR-058](ADR-058-direccion-del-comite-por-areas.md).

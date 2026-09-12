@@ -41,7 +41,7 @@ Los contactos externos (`kind=EXTERNAL`) no tienen etapa de miembro ni acceso: s
 | --- | --- |
 | Resumen | Puntos del término, asistencias, asambleas firmadas/requeridas, último contacto, tareas abiertas |
 | Línea de tiempo | Interacciones automáticas y notas, con filtro por tipo y compositor de nota |
-| Membresía | Términos, comités por término con el cargo en cada uno (General, Financiero, Logística…), cargos de junta o de GH, transferencias, historial de estados con motivos, condición del semestre (periodo de prueba por término, que ADMIN marca o retira con motivo) |
+| Membresía | Términos, comités por término con los cargos en cada uno (General, Financiero, Logística…, con codirección; [ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)), cargos de junta o de GH, transferencias, historial de estados con motivos, condición del semestre (periodo de prueba por término, que ADMIN marca o retira con motivo) |
 | Participación | Check-ins con ocasión y fuente; ledger con ajustes y reversiones |
 | Permanencia | Resultado por cada comité frente a su umbral, parte general y parte del comité criterio por criterio, condición (nuevo, prueba, transferencia), grupos y evaluaciones, puntajes y observaciones del líder, decisiones de cierre |
 | Formularios | Respuestas enviadas, inscripciones a ediciones y tarjetas de pipeline, con enlace al kanban |
@@ -72,7 +72,7 @@ Un `Segment` es un filtro guardado: etapa, estado, término, comité, etiqueta, 
 
 ## Tareas
 
-`Task` con título, tipo (general, solicitud de eliminación, solicitud de miembro), responsable, vencimiento, sujeto (persona, organización o tarjeta) y estado. El inicio del admin (`/admin`) es un tablero: pendientes del actor, tareas vencidas del equipo, solicitudes pendientes, respuestas recientes por formulario, tarjetas por etapa de cada pipeline, convocatorias y ocasiones abiertas, y alertas de sistema ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)).
+`Task` con título, tipo (general, solicitud de eliminación, solicitud de miembro, retiro de comité pedido por la dirección de un comité: sin responsable y con vencimiento `requests.taskDays`, [ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)), responsable, vencimiento, sujeto (persona, organización o tarjeta) y estado. El inicio del admin (`/admin`) es un tablero: pendientes del actor, tareas vencidas del equipo, solicitudes pendientes, respuestas recientes por formulario, tarjetas por etapa de cada pipeline, convocatorias y ocasiones abiertas, y alertas de sistema ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)).
 
 ## Solicitudes y convocatorias
 
@@ -84,7 +84,7 @@ Un miembro activo pide desde Mi OE una licencia, su retiro voluntario o un cambi
 2. Ningún formulario ni login crea miembros: solo la importación o "Dar de alta".
 3. Las interacciones automáticas son inmutables; las notas pueden editarse por su autor y quedan con `editedAt`.
 4. Las etiquetas y segmentos no cambian el estado de nadie: describen, no deciden.
-5. El correo y el teléfono se ven solo con permiso `ADMIN`; los líderes ven nombre, comités y cargos.
+5. El correo y el teléfono se ven solo con permiso `ADMIN`; los líderes y la dirección de cada comité ven nombre, comités y cargos.
 6. Las solicitudes del miembro no cambian nada hasta que GH las aprueba; aprobar ejecuta el mismo comando que haría un admin a mano ([ADR-031](adr/ADR-031-autogestion-del-miembro.md)).
 7. La persona mantiene sus propios datos (foto, celular, correo personal) desde Ajustes, con consentimiento por propósito; el correo institucional no se edita.
 

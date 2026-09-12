@@ -19,6 +19,9 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Contacto o enlace de cada comité (Instagram, correo, WhatsApp)
 - [ ] Confirmar que la lista de 27 comités con logo sigue vigente (comités nuevos o cerrados)
 - [ ] Nombre oficial de cada comité: el seed sintético y la primera carga usan la sigla del logo en mayúsculas como nombre provisional
+- [ ] Confirmar con GH el reparto de capacidades por cargo sembrado por defecto (Personas para Gestión Humana, Actividades para Logística, Comunicación para Publicidad y Mercadeo, Aliados para Relaciones Públicas y Financiero, Finanzas para Financiero) y si Mercadeo existe como cargo en todos los comités ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md))
+- [ ] Qué deben ver Relaciones Públicas y Financiero en el área Aliados de su comité: organizaciones y patrocinios ligados al comité, hoy sin comité en la base ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md))
+- [ ] Presupuesto de los comités: rubros estándar, si es por año calendario o por semestre, si un traslado entre rubros exige aprobación de la Vicepresidencia Financiera, si se adjuntan soportes y si hay topes por rubro ([ADR-059](adr/ADR-059-presupuesto-del-comite.md))
 
 ## Eventos
 
