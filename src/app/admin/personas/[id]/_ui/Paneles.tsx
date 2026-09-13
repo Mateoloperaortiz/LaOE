@@ -494,8 +494,17 @@ export function Paneles({
     const [, término] = tList("T-262") as [string, string];
     const selected = terms.find((item) => item.id === semestreId) ?? my.term ?? terms[0] ?? null;
     const onProbation = selected
-      ? data.probation.some((item) => item.termId === selected.id)
+      ? data.probation.some((item) => item.termId === selected.id && item.committeeId === null)
       : false;
+    // Los comités en que la persona estuvo o está, para fijar la prueba solo en uno (ADR-060 regla 2).
+    const [, comitéLabel] = tList("T-449") as [string, string];
+    const personCommittees = [
+      ...new Map(
+        data.committeesByTerm
+          .flatMap((group) => group.items)
+          .map((item) => [item.committeeId, item.committeeName] as const),
+      ),
+    ];
     return (
       <ResourcePanel title={condicion} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
@@ -518,10 +527,25 @@ export function Paneles({
                 ))}
               </select>
             </Campo>
+            <Campo id="campo-committeeId-condicion" label={comitéLabel}>
+              <select
+                id="campo-committeeId-condicion"
+                name="committeeId"
+                className={inputClass}
+                defaultValue=""
+              >
+                <option value="">{t("T-2207")}</option>
+                {personCommittees.map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </Campo>
             <Casilla
               id="campo-probation"
               name="probation"
-              label={t("T-449")}
+              label={tList("T-449")[0] ?? ""}
               defaultChecked={onProbation}
             />
             <Campo id="campo-reason-condicion" label={t("T-434")}>

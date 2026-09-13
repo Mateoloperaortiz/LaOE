@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
@@ -15,21 +15,36 @@ import { endRoles } from "./committee-role-assignments";
 export const probationInputSchema = z.object({
   probation: z.boolean(),
   reason: z.string().trim().min(2).max(500),
+  /** Comité al que aplica la condición; sin comité, a todos los de la persona (ADR-060 regla 2). */
+  committeeId: z.string().trim().min(1).nullable().default(null),
 });
 
-export type ProbationInput = z.infer<typeof probationInputSchema>;
+export type ProbationInput = z.input<typeof probationInputSchema>;
 
-/** Fija (upsert) la condición de la persona en un término; idempotente. */
+/**
+ * Fija (upsert) la condición de la persona en un término, para todos sus comités o solo para uno;
+ * idempotente. La categoría es por comité (Est. art. 5 par. 2): el cierre escribe la del comité
+ * donde quedó en la banda y el roster o ADMIN pueden escribir la de toda la persona.
+ */
 export async function setProbation(
   ctx: CommandContext,
   personId: string,
   termId: string,
   input: ProbationInput,
 ): Promise<void> {
+  const committeeId = input.committeeId ?? null;
   const [existing] = await ctx.tx
     .select()
     .from(membershipTerm)
-    .where(and(eq(membershipTerm.personId, personId), eq(membershipTerm.termId, termId)));
+    .where(
+      and(
+        eq(membershipTerm.personId, personId),
+        eq(membershipTerm.termId, termId),
+        committeeId
+          ? eq(membershipTerm.committeeId, committeeId)
+          : isNull(membershipTerm.committeeId),
+      ),
+    );
   if (existing?.probation === input.probation && existing.reason === input.reason) {
     return;
   }
@@ -41,14 +56,14 @@ export async function setProbation(
   if (existing) {
     await ctx.tx.update(membershipTerm).set(values).where(eq(membershipTerm.id, existing.id));
   } else {
-    await ctx.tx.insert(membershipTerm).values({ personId, termId, ...values });
+    await ctx.tx.insert(membershipTerm).values({ personId, termId, committeeId, ...values });
   }
   await ctx.audit({
     action: "membership-term.set",
     entityType: "person",
     entityId: personId,
     before: existing ? { probation: existing.probation, reason: existing.reason } : null,
-    after: { termId, ...values },
+    after: { termId, committeeId, ...values },
   });
   await ctx.emit({
     type: "membership-term.changed",
@@ -56,6 +71,7 @@ export async function setProbation(
       actorId: ctx.actor.personId,
       personId,
       termId,
+      committeeId,
       probation: input.probation,
       reason: values.reason,
     },

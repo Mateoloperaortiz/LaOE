@@ -272,6 +272,7 @@ export async function setProbationAction(formData: FormData): Promise<void> {
   const parsed = probationInputSchema.safeParse({
     probation: checked(formData, "probation"),
     reason: text(formData, "reason"),
+    committeeId: text(formData, "committeeId") || null,
   });
   if (!parsed.success || !termId || !(await getTerm(termId))) {
     await fail(id, "membresia", "condicion", t("T-260"));

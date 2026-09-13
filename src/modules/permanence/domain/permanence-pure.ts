@@ -15,7 +15,8 @@ export type DecisionKind = "CONTINUES" | "PROBATION" | "EXIT_COMMITTEE" | "EXIT_
 
 export interface PermanenceConfig {
   thresholds: { active: number; new: number; probation: number; transfer: number };
-  probationMargin: number;
+  /** Puntos por debajo del umbral que aún dejan en prueba, por condición (ADR-060 regla 1). */
+  probationMargins: { active: number; new: number; probation: number; transfer: number };
   evaluationWindowDays: number;
   warningDays: number;
 }
@@ -67,6 +68,8 @@ export interface CommitteeFact {
   committeeId: string;
   roleCode: string;
   transferredIn: boolean;
+  /** Prueba fijada solo para este comité (ADR-060 regla 2); la de toda la persona va en PersonFacts. */
+  probation: boolean;
   joinedAt: Date | null;
   leftAt: Date | null;
 }
@@ -90,6 +93,7 @@ export interface PersonFacts {
   personId: string;
   status: MembershipStatus;
   isNew: boolean;
+  /** Prueba en todos los comités (roster o ADMIN sin comité); la de un comité va en cada CommitteeFact. */
   probation: boolean;
   committees: CommitteeFact[];
   /** Ids de las ocasiones con check-in aprobado. */
@@ -243,6 +247,26 @@ export function conditionFor(person: {
     return "TRANSFER";
   }
   return "ACTIVE";
+}
+
+/** Banda de riesgo de los estados abiertos (ADR-036 regla 4): aviso, no consecuencia. */
+export const RISK_BAND = 10;
+
+/** Puntos por debajo del umbral que dejan en prueba según la condición (ADR-060 regla 1). */
+export function marginFor(
+  condition: Condition,
+  margins: PermanenceConfig["probationMargins"],
+): number {
+  switch (condition) {
+    case "NEW":
+      return margins.new;
+    case "PROBATION":
+      return margins.probation;
+    case "TRANSFER":
+      return margins.transfer;
+    default:
+      return margins.active;
+  }
 }
 
 /** Umbral del comité: el máximo de los que aplican (prueba con transferencia usa el de prueba). */
@@ -633,7 +657,10 @@ export function computeCriterion(
   }
 }
 
-/** Estado abierto por margen (ADR-036 regla 4) o final como si cerrara hoy. */
+/**
+ * Estado abierto por la banda de riesgo (ADR-036 regla 4) o, cerrado, el final con el margen de
+ * prueba de la condición (ADR-060 regla 1), como si cerrara hoy.
+ */
 export function stateFor(
   total: number,
   remaining: number,
@@ -645,7 +672,7 @@ export function stateFor(
     return finalStateFor(total, threshold, probationMargin);
   }
   const margin = round2(total + remaining - threshold);
-  if (total >= threshold || margin >= probationMargin) {
+  if (total >= threshold || margin >= RISK_BAND) {
     return "EN_CAMINO";
   }
   return margin >= 0 ? "EN_RIESGO" : "NO_ALCANZA";
@@ -768,14 +795,16 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
         const remaining = round2(generalRemaining + committeeRemaining);
         const shape = {
           isNew: person.isNew,
-          probation: person.probation,
+          probation: person.probation || membership.probation,
           transferredIn: membership.transferredIn,
         };
+        const condition = conditionFor(shape);
         const threshold = thresholdFor(shape, facts.config.thresholds);
+        const margin = marginFor(condition, facts.config.probationMargins);
         return {
           committeeId: membership.committeeId,
           transferredIn: membership.transferredIn,
-          condition: conditionFor(shape),
+          condition,
           threshold,
           committeeTotal,
           committeeMax:
@@ -785,8 +814,8 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
           total,
           remaining,
           margin: round2(total + remaining - threshold),
-          state: stateFor(total, remaining, threshold, facts.config.probationMargin, closed),
-          finalState: finalStateFor(total, threshold, facts.config.probationMargin),
+          state: stateFor(total, remaining, threshold, margin, closed),
+          finalState: finalStateFor(total, threshold, margin),
           criteria,
         };
       })
@@ -795,7 +824,7 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
     personId: person.personId,
     status: person.status,
     isNew: person.isNew,
-    probation: person.probation,
+    probation: person.probation || liveCommittees.some((item) => item.probation),
     evaluated,
     general,
     generalTotal,

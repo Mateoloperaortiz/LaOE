@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { listAllTerms } from "@/modules/terms";
-import { membership, membershipTerm, person } from "../schema";
+import { committee, membership, membershipTerm, person } from "../schema";
 import { type AppointmentView, listAppointments } from "./appointments";
 import { listCommitteeMembershipsByTerm, type TermCommittees } from "./committee-memberships";
 import { type ConsentState, listConsents } from "./consents";
@@ -21,7 +21,14 @@ export interface Person360 {
   committeesByTerm: TermCommittees[];
   appointments: AppointmentView[];
   consents: ConsentState[];
-  probation: Array<{ termId: string; termCode: string; reason: string | null }>;
+  probation: Array<{
+    termId: string;
+    termCode: string;
+    /** Comité al que aplica; nulo cuando aplica a todos (ADR-060 regla 2). */
+    committeeId: string | null;
+    committeeName: string | null;
+    reason: string | null;
+  }>;
 }
 
 export async function getPerson360(id: string): Promise<Person360 | null> {
@@ -40,10 +47,13 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
       db
         .select({
           termId: membershipTerm.termId,
+          committeeId: membershipTerm.committeeId,
+          committeeName: committee.name,
           reason: membershipTerm.reason,
           probation: membershipTerm.probation,
         })
         .from(membershipTerm)
+        .leftJoin(committee, eq(committee.id, membershipTerm.committeeId))
         .where(eq(membershipTerm.personId, id)),
       listAllTerms(),
     ]);
@@ -54,6 +64,8 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
     .map((row) => ({
       termId: row.termId,
       termCode: termById.get(row.termId)?.code ?? "",
+      committeeId: row.committeeId,
+      committeeName: row.committeeId ? (row.committeeName ?? "") : null,
       reason: row.reason,
       startsOn: termById.get(row.termId)?.startsOn ?? "",
     }))

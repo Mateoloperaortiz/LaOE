@@ -1,4 +1,5 @@
 import { and, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
 import { appointment, committeeMembership, membership, membershipTerm, person } from "../schema";
@@ -185,7 +186,10 @@ export interface TermRosterRow {
   personId: string;
   status: (typeof membership.$inferSelect)["status"];
   firstTermId: string;
+  /** Prueba en todos los comités (fila de `membership_term` sin comité). */
   probation: boolean;
+  /** Prueba fijada solo para este comité (ADR-060 regla 2). */
+  committeeProbation: boolean;
   committeeId: string;
   roleCode: string;
   transferredIn: boolean;
@@ -197,12 +201,15 @@ async function rosterRows(termId: string, personIds?: string[]): Promise<TermRos
   if (personIds && personIds.length === 0) {
     return [];
   }
+  const personTerm = alias(membershipTerm, "person_term");
+  const committeeTerm = alias(membershipTerm, "committee_term");
   const rows = await getDb()
     .select({
       personId: committeeMembership.personId,
       status: membership.status,
       firstTermId: membership.firstTermId,
-      probation: membershipTerm.probation,
+      probation: personTerm.probation,
+      committeeProbation: committeeTerm.probation,
       committeeId: committeeMembership.committeeId,
       roleCode: committeeMembership.roleCode,
       transferredIn: committeeMembership.transferredIn,
@@ -212,10 +219,19 @@ async function rosterRows(termId: string, personIds?: string[]): Promise<TermRos
     .from(committeeMembership)
     .innerJoin(membership, eq(membership.personId, committeeMembership.personId))
     .leftJoin(
-      membershipTerm,
+      personTerm,
       and(
-        eq(membershipTerm.personId, committeeMembership.personId),
-        eq(membershipTerm.termId, committeeMembership.termId),
+        eq(personTerm.personId, committeeMembership.personId),
+        eq(personTerm.termId, committeeMembership.termId),
+        isNull(personTerm.committeeId),
+      ),
+    )
+    .leftJoin(
+      committeeTerm,
+      and(
+        eq(committeeTerm.personId, committeeMembership.personId),
+        eq(committeeTerm.termId, committeeMembership.termId),
+        eq(committeeTerm.committeeId, committeeMembership.committeeId),
       ),
     )
     .where(
@@ -224,7 +240,11 @@ async function rosterRows(termId: string, personIds?: string[]): Promise<TermRos
         personIds ? inArray(committeeMembership.personId, personIds) : undefined,
       ),
     );
-  return rows.map((row) => ({ ...row, probation: row.probation ?? false }));
+  return rows.map((row) => ({
+    ...row,
+    probation: row.probation ?? false,
+    committeeProbation: row.committeeProbation ?? false,
+  }));
 }
 
 /** Una fila por pertenencia del término, con estado, primer término y condición de prueba; opcionalmente solo algunas personas. */

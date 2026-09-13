@@ -351,13 +351,17 @@ export function summarizeEvent(
     }
     case "membership-term.changed": {
       const probation = payload.probation === true;
+      const committee = str(payload, "committeeId");
+      // Con comité usa los textos décimo y undécimo de T-832 (ADR-060 regla 2).
+      const index = committee ? (probation ? 9 : 10) : probation ? 7 : 8;
       return entry(
         "PERMANENCE",
-        fill(labels.permanenceTexts[probation ? 7 : 8] ?? "", {
+        fill(labels.permanenceTexts[index] ?? "", {
           término: lookup.termCode(str(payload, "termId")),
+          comité: committee ? lookup.committeeName(committee) : "",
           motivo: str(payload, "reason") || "—",
         }),
-        { termId: str(payload, "termId"), probation },
+        { termId: str(payload, "termId"), committeeId: committee || null, probation },
       );
     }
     case "submission.received":

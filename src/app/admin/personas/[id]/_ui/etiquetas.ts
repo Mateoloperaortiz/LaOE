@@ -37,7 +37,14 @@ export function appointmentLabel(kind: AppointmentKind, title: string | null): s
   return kind === "OTHER" && title ? title : label;
 }
 
-export const END_REASONS = ["GRADUATION", "RESIGNATION", "PERMANENCE", "OTHER"] as const;
+export const END_REASONS = [
+  "GRADUATION",
+  "RESIGNATION",
+  "PERMANENCE",
+  "EXPULSION",
+  "STUDENT_STATUS_LOST",
+  "OTHER",
+] as const;
 
 export const CONSENT_TEXTS = ["T-150", "T-151", "T-152", "T-153", "T-154"] as const;
 

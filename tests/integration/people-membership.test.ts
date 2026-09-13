@@ -174,6 +174,28 @@ describe("salida, reactivación y anonimización", () => {
     expect(audits?.n).toBeGreaterThanOrEqual(4);
   });
 
+  it("una persona expulsada no se reactiva (Regl. art. 61.3; ADR-060 regla 3)", async () => {
+    await seedTerm();
+    const personId = await seedMember("expulsada@eafit.edu.co");
+    const adminId = await seedMember("admin2@eafit.edu.co");
+    await runCommand({ personId: adminId }, (ctx) =>
+      endMembership(ctx, personId, {
+        endReason: "EXPULSION",
+        note: "Falta grave con otra sanción viva",
+        memorialConsent: false,
+        contactConsent: false,
+      }),
+    );
+    await expect(
+      runCommand({ personId: adminId }, (ctx) =>
+        reactivateMembership(ctx, personId, { reason: "Pidió volver" }),
+      ),
+    ).rejects.toBeInstanceOf(DomainError);
+    const data = await getPerson360(personId);
+    expect(data?.membership).toMatchObject({ status: "INACTIVE", endReason: "EXPULSION" });
+    expect(data?.person.stage).toBe("ALUMNI");
+  });
+
   it("anonimizar exige la solicitud, borra nombre y contacto, conserva las pertenencias y limpia la auditoría", async () => {
     const termId = await seedTerm();
     const personId = await seedMember("borrar@eafit.edu.co", {

@@ -149,6 +149,7 @@ async function existingByEmail(
       birthDate: person.birthDate,
       firstTermId: membership.firstTermId,
       status: membership.status,
+      endReason: membership.endReason,
     })
     .from(person)
     .leftJoin(membership, eq(membership.personId, person.id))
@@ -174,7 +175,13 @@ async function existingByEmail(
     db
       .select({ personId: membershipTerm.personId, probation: membershipTerm.probation })
       .from(membershipTerm)
-      .where(and(inArray(membershipTerm.personId, ids), eq(membershipTerm.termId, termId))),
+      .where(
+        and(
+          inArray(membershipTerm.personId, ids),
+          eq(membershipTerm.termId, termId),
+          isNull(membershipTerm.committeeId),
+        ),
+      ),
     listAllTerms(),
   ]);
   const assignments = await db
@@ -207,6 +214,7 @@ async function existingByEmail(
       birthDate: row.birthDate,
       entryTerm: terms.find((term) => term.id === row.firstTermId)?.code ?? null,
       status: row.status,
+      endReason: row.endReason,
       probation: probations.some((item) => item.personId === row.id && item.probation),
       committees: committees
         .filter((item) => item.personId === row.id && item.leftAt === null)
@@ -549,7 +557,7 @@ async function applyRow(
       await ctx.tx.update(person).set(patch).where(eq(person.id, personId));
     }
     const [current] = await ctx.tx
-      .select({ status: membership.status })
+      .select({ status: membership.status, endReason: membership.endReason })
       .from(membership)
       .where(eq(membership.personId, personId));
     if (!current) {
@@ -575,9 +583,13 @@ async function applyRow(
           contactConsent: false,
         });
       } else if (current.status === "INACTIVE") {
-        await reactivateMembership(ctx, personId, { reason });
-        if (status !== "ACTIVE") {
-          await changeMembershipStatus(ctx, personId, { to: status, reason });
+        // Quien fue expulsado no vuelve por el roster (Regl. art. 61.3; ADR-060 regla 3): la fila
+        // conserva sus datos y su estado; la vista previa ya lo avisó.
+        if (current.endReason !== "EXPULSION") {
+          await reactivateMembership(ctx, personId, { reason });
+          if (status !== "ACTIVE") {
+            await changeMembershipStatus(ctx, personId, { to: status, reason });
+          }
         }
       } else {
         await changeMembershipStatus(ctx, personId, { to: status, reason });
@@ -596,6 +608,7 @@ async function applyRow(
       })
       .onConflictDoUpdate({
         target: [membershipTerm.personId, membershipTerm.termId],
+        targetWhere: isNull(membershipTerm.committeeId),
         set: { probation: row.probation, reason },
       });
   }

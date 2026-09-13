@@ -5,6 +5,7 @@ import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { drain } from "@/jobs/poller";
 import "@/jobs/handlers";
 import { interaction } from "@/modules/crm/schema";
+import { reactivateMembershipAs } from "@/modules/people";
 import { committeeMembership, membership, membershipTerm } from "@/modules/people/schema";
 import {
   applyDecisions,
@@ -18,6 +19,7 @@ import {
 } from "@/modules/permanence";
 import { manualCredit } from "@/modules/permanence/schema";
 import { closeTermPoints, findTermByCode, getTerm } from "@/modules/terms";
+import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
 import {
   seedCheckIn,
@@ -290,5 +292,42 @@ describe("cierre de permanencia", () => {
     expect(timeline.some((row) => row.summary.startsWith("En periodo de prueba en "))).toBe(true);
     // El término cerrado no recalcula ni descongela.
     expect(await recomputeSnapshots(termId)).toBe(0);
+  });
+
+  it("expulsa a quien faltó a una obligatoria y fija la prueba solo en su comité (ADR-060)", async () => {
+    const { termId, people, a3 } = await setup();
+    await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
+    const { rows } = await listClosingRows(termId);
+    const row = (id: string) => rows.find((item) => item.personId === id);
+    // 55 en A3 con banda de 20 (Est. art. 7.5) es prueba en ese comité; pero faltó a la obligatoria.
+    expect(row(people.prueba)?.committees[0]).toMatchObject({
+      committeeId: a3,
+      proposed: "PROBATION",
+      reason: 1,
+    });
+    expect(row(people.prueba)).toMatchObject({ personProposed: "EXIT_OE", personReason: 4 });
+    // 10 en A3 y 20 en Pixel están fuera de la banda: sale de los dos y de la OE por permanencia.
+    expect(row(people.sale)).toMatchObject({ personProposed: "EXIT_OE", personReason: 3 });
+    expect(row(people.cumple)).toMatchObject({ personProposed: "CONTINUES" });
+
+    await confirmAllProposedAs(GH, termId);
+    const { nextTermId } = await closeTermPermanenceAs(GH, termId);
+    await applyDecisions(termId, nextTermId);
+    const db = getDb();
+    const membershipOf = async (personId: string) =>
+      (await db.select().from(membership).where(eq(membership.personId, personId)))[0];
+    expect(await membershipOf(people.prueba)).toMatchObject({
+      status: "INACTIVE",
+      endReason: "EXPULSION",
+    });
+    expect(await membershipOf(people.sale)).toMatchObject({
+      status: "INACTIVE",
+      endReason: "PERMANENCE",
+    });
+    expect(await membershipOf(people.cumple)).toMatchObject({ status: "ACTIVE" });
+    // Quien fue expulsado no vuelve a ingresar (Regl. art. 61.3).
+    await expect(
+      reactivateMembershipAs(GH, people.prueba, { reason: "Pidió volver" }),
+    ).rejects.toThrow(t("T-2206"));
   });
 });

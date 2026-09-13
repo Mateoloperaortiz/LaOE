@@ -623,7 +623,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-433 | Persona 360: acciones | Editar datos · Cambiar estado · Dar de baja · Reactivar · Anonimizar · Nueva nota · Nueva tarea · Etiquetas · Permisos | MATEO | Propuesta |
 | T-434 | Cambiar estado, baja y notas: campo motivo | Motivo | MATEO | Propuesta |
 | T-435 | Cambiar estado: campo del estado nuevo | Estado nuevo | MATEO | Propuesta |
-| T-436 | Dar de baja: motivos | Graduación · Retiro voluntario · Permanencia · Otro | GH | Propuesta |
+| T-436 | Dar de baja: motivos (en el orden del modelo) | Graduación · Retiro voluntario · Permanencia · Expulsión · Pérdida de la calidad de estudiante · Otro | GH | Propuesta |
 | T-437 | Dar de baja: casillas de consentimiento | Autoriza aparecer en la galería de egresados · Autoriza que la OE lo contacte después de salir | JUNTA | Propuesta |
 | T-438 | Dar de baja: botón | Dar de baja | GH | Propuesta |
 | T-439 | Reactivar: texto | Vas a reactivar a {nombre}: vuelve a ser miembro activo con su historia. Si tiene un correo institucional nuevo, escribilo. | GH | Propuesta |
@@ -636,7 +636,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-446 | Membresía: casilla del permiso de junta | Otorgar también el permiso Junta (pide un código nuevo) | MATEO | Propuesta |
 | T-447 | Membresía: botones de cargos | Agregar cargo · Quitar | MATEO | Propuesta |
 | T-448 | Membresía: título del editor de comités | Comités de {término} | MATEO | Propuesta |
-| T-449 | Membresía: condición de prueba | En periodo de prueba | GH | Propuesta |
+| T-449 | Membresía: condición de prueba (insignia · campo del comité) | En periodo de prueba · Comité | GH | Propuesta |
 | T-450 | Membresía: campos de una pertenencia | Comité · Cargo · Transferencia interna | MATEO | Propuesta |
 | T-451 | Membresía: regla de cantidad de comités | Un activo necesita entre {min} y {max} comités. | MATEO | Propuesta |
 | T-452 | Membresía: ya hay quien ocupe ese cargo (titular o codirección, ADR-058) | {comité} ya tiene {cargo} este semestre. | MATEO | Propuesta |
@@ -928,7 +928,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-798 | Cierre de permanencia: título | Cierre de permanencia | GH | Propuesta |
 | T-799 | Cierre: puntos sin cerrar | Primero cerrá los puntos de {término}. Las propuestas se ven, pero no se confirman hasta entonces. | MATEO | Propuesta |
 | T-800 | Cierre: resumen | Personas · Continúan · En prueba · Salen de un comité · Salen de la OE · Sin decisión · Evaluaciones pendientes | MATEO | Propuesta |
-| T-801 | Cierre: motivos automáticos (cumple, prueba, no cumple, sin comité, obligatoria) | Cumplió el umbral · Hasta 10 puntos por debajo del umbral · Más de 10 puntos por debajo del umbral · No le queda un comité donde cumpla o esté en prueba · Faltó a una asamblea obligatoria | GH | Propuesta |
+| T-801 | Cierre: motivos automáticos (cumple, prueba, no cumple, sin comité, obligatoria) | Cumplió el umbral · Por debajo del umbral, dentro de la banda de prueba de su condición · Por debajo del umbral, fuera de la banda de prueba de su condición · No le queda un comité donde cumpla o esté en prueba · Faltó a una asamblea obligatoria | GH | Propuesta |
 | T-802 | Cierre y Persona 360: decisiones (en el orden del modelo) | Continúa · Periodo de prueba · Sale del comité · Sale de la OE | GH | Propuesta |
 | T-803 | Cierre: botones | Confirmar propuesta · Cambiar · Confirmar todas las propuestas · Aplicar cierre | MATEO | Propuesta |
 | T-804 | Cierre: campos al cambiar | Decisión · Motivo | MATEO | Propuesta |
@@ -959,7 +959,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-829 | Persona 360, Permanencia: bloques | Resultado por comité · Tabla general · Decisiones del cierre · Créditos manuales | MATEO | Propuesta |
 | T-830 | Persona 360, Permanencia: exento | Sin evaluación de permanencia este semestre ({estado}). | MATEO | Propuesta |
 | T-831 | Persona 360, Permanencia: decisión confirmada | {decisión}: {motivo} (por {quien}, {fecha}) | MATEO | Propuesta |
-| T-832 | Línea de tiempo: eventos de permanencia (buen desempeño, insuficiente, puntaje del líder, crédito manual, entró al grupo, salió del grupo, decisión del cierre, condición de prueba marcada, condición de prueba retirada) | Buen desempeño en {grupo}, evaluado por {evaluador} · Desempeño insuficiente en {grupo}, evaluado por {evaluador}: {nota} · {criterio} en {comité}: {valor} de {peso} · Crédito manual en {criterio}: {valor} ({motivo}) · Entró al grupo {grupo} · Salió del grupo {grupo} · Cierre de {término}: {decisión} · En periodo de prueba en {término}: {motivo} · Sin periodo de prueba en {término}: {motivo} | MATEO | Propuesta |
+| T-832 | Línea de tiempo: eventos de permanencia (buen desempeño, insuficiente, puntaje del líder, crédito manual, entró al grupo, salió del grupo, decisión del cierre, condición de prueba marcada, condición de prueba retirada, prueba marcada en un comité, prueba retirada en un comité) | Buen desempeño en {grupo}, evaluado por {evaluador} · Desempeño insuficiente en {grupo}, evaluado por {evaluador}: {nota} · {criterio} en {comité}: {valor} de {peso} · Crédito manual en {criterio}: {valor} ({motivo}) · Entró al grupo {grupo} · Salió del grupo {grupo} · Cierre de {término}: {decisión} · En periodo de prueba en {término}: {motivo} · Sin periodo de prueba en {término}: {motivo} · En periodo de prueba en {comité} en {término}: {motivo} · Sin periodo de prueba en {comité} en {término}: {motivo} | MATEO | Propuesta |
 | T-833 | Línea de tiempo: reconocimiento | Destacado de {mes} en {comité} | MATEO | Propuesta |
 | T-834 | Permanencia: el semestre ya cerró su permanencia (comandos) | El semestre ya cerró su permanencia: no se puede cambiar. | MATEO | Propuesta |
 | T-835 | Permanencia: sin permiso sobre el grupo | No operás este grupo. | MATEO | Propuesta |
@@ -1684,7 +1684,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-2142 | Persona 360, Membresía: botón para cambiar la condición del semestre | Cambiar condición | MATEO | Propuesta |
-| T-2143 | Condición del semestre: ayuda del panel | Marcá o quitá el periodo de prueba de ese semestre. Cambia el umbral que le aplica en permanencia y queda en la línea de tiempo con tu motivo. | MATEO | Propuesta |
+| T-2143 | Condición del semestre: ayuda del panel | Marcá o quitá el periodo de prueba de ese semestre, en todos sus comités o solo en uno. Cambia el umbral que le aplica en permanencia y queda en la línea de tiempo con tu motivo. | MATEO | Propuesta |
 
 ## La dirección del comité por áreas (ADR-058)
 
@@ -1754,3 +1754,9 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2203 | Rubros: campos | Nombre · Asignado · Orden | MATEO | Propuesta |
 | T-2204 | Guarda: presupuesto que no está abierto | El presupuesto {año} no está abierto: solo la junta lo cambia. | MATEO | Propuesta |
 | T-2205 | Área Finanzas: ayuda | Registrá cada gasto en su rubro y, si un rubro va a sobrar, trasladalo a tiempo: lo que no se ejecuta en el año se pierde. | JUNTA | Propuesta |
+
+## Normativa 2026 (ADR-060)
+
+| T-2206 | Persona 360: reactivar a una persona expulsada | No se puede reactivar: fue expulsada de la OE y el Reglamento no admite el reingreso (art. 61). | GH | Propuesta; texto sensible |
+| T-2207 | Condición del semestre: opción del comité que aplica a todos | Todos sus comités | MATEO | Propuesta |
+| T-2208 | Importación del roster: aviso por persona expulsada | {nombre} fue expulsada de la OE y el roster no la reactiva (Reglamento, art. 61); su fila conserva el estado actual. | GH | Propuesta |

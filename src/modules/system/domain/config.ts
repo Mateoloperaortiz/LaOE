@@ -18,7 +18,13 @@ export const CONFIG = {
   "permanence.threshold.new": z.number().min(0).max(100),
   "permanence.threshold.probation": z.number().min(0).max(100),
   "permanence.threshold.transfer": z.number().min(0).max(100),
-  "permanence.probationMargin": z.number().min(0),
+  // ADR-060 regla 1: banda de prueba por condición (Est. art. 7.5, 8.3, 11.4 y 11.5).
+  "permanence.probationMargins": z.object({
+    active: z.number().min(0),
+    new: z.number().min(0),
+    probation: z.number().min(0),
+    transfer: z.number().min(0),
+  }),
   // Fase 4 (ADR-036): ventana de evaluación antes del fin del término y días del aviso de cierre.
   "permanence.evaluationWindowDays": z.number().int().min(0),
   "permanence.warningDays": z.number().int().min(0),

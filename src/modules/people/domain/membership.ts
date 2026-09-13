@@ -27,7 +27,14 @@ export const changeStatusSchema = z.object({
 });
 
 export const endMembershipSchema = z.object({
-  endReason: z.enum(["GRADUATION", "RESIGNATION", "PERMANENCE", "OTHER"]),
+  endReason: z.enum([
+    "GRADUATION",
+    "RESIGNATION",
+    "PERMANENCE",
+    "EXPULSION",
+    "STUDENT_STATUS_LOST",
+    "OTHER",
+  ]),
   note: z.string().trim().max(500).optional(),
   memorialConsent: z.boolean().default(false),
   contactConsent: z.boolean().default(false),
@@ -204,6 +211,10 @@ export async function reactivateMembership(
   const current = await lockMembership(ctx, personId);
   if (current.status !== "INACTIVE") {
     throw new Error("Solo se reactiva una membresía terminada");
+  }
+  // Quien fue expulsado no vuelve a ingresar (Regl. art. 61.3; ADR-060 regla 3).
+  if (current.endReason === "EXPULSION") {
+    throw new DomainError(t("T-2206"));
   }
   const [who] = await ctx.tx.select().from(person).where(eq(person.id, personId));
   if (!who) {

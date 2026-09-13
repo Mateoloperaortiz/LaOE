@@ -13,7 +13,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Perfil de egresado (memorial) | `stage=ALUMNI` + `Consent MEMORIAL` | Historia institucional de quien salió: comités, cargos, años, puntos; visible en la galería de egresados si hay consentimiento |
 | Galería de egresados | `/app/egresados` | Lista por año de salida con cartel por año; "memorial" es el nombre interno |
 | Membresía | `Membership` | Estado de miembro con primer término, fin y motivo; una por persona |
-| Activo / En licencia / Honorario / Retirado | `ACTIVE` / `ON_LEAVE` / `HONORARY` / `INACTIVE` | Estados de la membresía. Entran a Mi OE activos y honorarios |
+| Activo / En licencia / Honorario / Retirado | `ACTIVE` / `ON_LEAVE` / `HONORARY` / `INACTIVE` | Estados de la membresía. Entran a Mi OE activos y honorarios. Al terminar, el motivo es graduación, retiro voluntario, permanencia, expulsión (sin reingreso posible), pérdida de la calidad de estudiante u otro |
 | Comité | `Committee` | Grupo de trabajo con ficha editorial y logo |
 | Pertenencia a comité | `CommitteeMembership` | Persona en un comité durante un término; de 1 a 3 activas para activos |
 | Cargo de junta o de GH | `Appointment` | Rol visible con historia fuera del comité: presidencia, vicepresidencias, GH principal, directores de GH |
@@ -71,7 +71,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Tabla general | `PermanenceRule.scope=GENERAL` | Criterios de permanencia de la junta, aplicados por GH a toda la OE; vale unos 50 puntos |
 | Tabla del comité | `PermanenceRule.scope=COMMITTEE` | Criterios de permanencia propios de un comité, definidos por su líder; vale unos 60 puntos |
 | Resultado por comité | `PermanenceSnapshot.results` | Parte general más la tabla de ese comité; una persona con varios comités tiene un resultado en cada uno |
-| Periodo de prueba | `MembershipTerm.probation` | Condición de quien cerró hasta 10 puntos por debajo de su umbral; el término siguiente debe cumplir 80 % |
+| Periodo de prueba | `MembershipTerm.probation` | Condición de quien cerró por debajo de su umbral dentro de la banda de su condición (activo: 20 puntos; nuevo, prueba y transferencia: sin banda); el término siguiente debe cumplir 80 % en ese comité. Sin comité aplica a todos; con comité (`MembershipTerm.committeeId`) solo a ese ([ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md)) |
 | Transferencia interna | `CommitteeMembership.transferredIn` | Cambio de comité dentro de la OE, pedido desde Mi OE para el semestre siguiente o hecho por GH; ese término debe cumplir 70 % en el comité nuevo |
 | Director de GH | `Appointment.kind=GH_DIRECTOR`, `WorkGroupEvaluator` | Quien evalúa, al cerrar el semestre, el buen desempeño de los grupos de su frente |
 | GH principal | `Appointment.kind=GH_HEAD` | Cabeza de Gestión Humana; evalúa las tareas de nuevos y confirma el cierre |

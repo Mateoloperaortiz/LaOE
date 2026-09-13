@@ -468,6 +468,18 @@ export function validateRoster(
       } else {
         result.status = status.status;
         result.probation = status.probation;
+        if (
+          status.status !== "INACTIVE" &&
+          current?.status === "INACTIVE" &&
+          current.endReason === "EXPULSION"
+        ) {
+          warnings.push(
+            t("T-2208", {
+              nombre:
+                `${result.firstName || current.firstName} ${result.lastName || current.lastName}`.trim(),
+            }),
+          );
+        }
       }
     }
     if (present.has("entry")) {
@@ -621,6 +633,8 @@ export interface ExistingPerson {
   epikId?: string | null;
   birthDate?: string | null;
   entryTerm?: string | null;
+  /** Motivo de la salida cuando está retirada; una expulsión no se reactiva por el roster (ADR-060 regla 3). */
+  endReason?: string | null;
   status: RosterStatus | null;
   probation: boolean;
   committees: Array<{

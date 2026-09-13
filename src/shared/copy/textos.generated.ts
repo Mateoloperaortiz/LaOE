@@ -3914,7 +3914,7 @@ export const textos = {
   },
   "T-2143": {
     where: "Condición del semestre: ayuda del panel",
-    text: "Marcá o quitá el periodo de prueba de ese semestre. Cambia el umbral que le aplica en permanencia y queda en la línea de tiempo con tu motivo.",
+    text: "Marcá o quitá el periodo de prueba de ese semestre, en todos sus comités o solo en uno. Cambia el umbral que le aplica en permanencia y queda en la línea de tiempo con tu motivo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4277,6 +4277,24 @@ export const textos = {
     where: "Área Finanzas: ayuda",
     text: "Registrá cada gasto en su rubro y, si un rubro va a sobrar, trasladalo a tiempo: lo que no se ejecuta en el año se pierde.",
     owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-2206": {
+    where: "Persona 360: reactivar a una persona expulsada",
+    text: "No se puede reactivar: fue expulsada de la OE y el Reglamento no admite el reingreso (art. 61).",
+    owner: "GH",
+    status: "Propuesta; texto sensible",
+  },
+  "T-2207": {
+    where: "Condición del semestre: opción del comité que aplica a todos",
+    text: "Todos sus comités",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2208": {
+    where: "Importación del roster: aviso por persona expulsada",
+    text: "{nombre} fue expulsada de la OE y el roster no la reactiva (Reglamento, art. 61); su fila conserva el estado actual.",
+    owner: "GH",
     status: "Propuesta",
   },
   "T-221": {
@@ -5480,8 +5498,8 @@ export const textos = {
     status: "Propuesta",
   },
   "T-436": {
-    where: "Dar de baja: motivos",
-    text: "Graduación · Retiro voluntario · Permanencia · Otro",
+    where: "Dar de baja: motivos (en el orden del modelo)",
+    text: "Graduación · Retiro voluntario · Permanencia · Expulsión · Pérdida de la calidad de estudiante · Otro",
     owner: "GH",
     status: "Propuesta",
   },
@@ -5558,8 +5576,8 @@ export const textos = {
     status: "Propuesta",
   },
   "T-449": {
-    where: "Membresía: condición de prueba",
-    text: "En periodo de prueba",
+    where: "Membresía: condición de prueba (insignia · campo del comité)",
+    text: "En periodo de prueba · Comité",
     owner: "GH",
     status: "Propuesta",
   },
@@ -7672,7 +7690,7 @@ export const textos = {
   },
   "T-801": {
     where: "Cierre: motivos automáticos (cumple, prueba, no cumple, sin comité, obligatoria)",
-    text: "Cumplió el umbral · Hasta 10 puntos por debajo del umbral · Más de 10 puntos por debajo del umbral · No le queda un comité donde cumpla o esté en prueba · Faltó a una asamblea obligatoria",
+    text: "Cumplió el umbral · Por debajo del umbral, dentro de la banda de prueba de su condición · Por debajo del umbral, fuera de la banda de prueba de su condición · No le queda un comité donde cumpla o esté en prueba · Faltó a una asamblea obligatoria",
     owner: "GH",
     status: "Propuesta",
   },
@@ -7858,8 +7876,8 @@ export const textos = {
   },
   "T-832": {
     where:
-      "Línea de tiempo: eventos de permanencia (buen desempeño, insuficiente, puntaje del líder, crédito manual, entró al grupo, salió del grupo, decisión del cierre, condición de prueba marcada, condición de prueba retirada)",
-    text: "Buen desempeño en {grupo}, evaluado por {evaluador} · Desempeño insuficiente en {grupo}, evaluado por {evaluador}: {nota} · {criterio} en {comité}: {valor} de {peso} · Crédito manual en {criterio}: {valor} ({motivo}) · Entró al grupo {grupo} · Salió del grupo {grupo} · Cierre de {término}: {decisión} · En periodo de prueba en {término}: {motivo} · Sin periodo de prueba en {término}: {motivo}",
+      "Línea de tiempo: eventos de permanencia (buen desempeño, insuficiente, puntaje del líder, crédito manual, entró al grupo, salió del grupo, decisión del cierre, condición de prueba marcada, condición de prueba retirada, prueba marcada en un comité, prueba retirada en un comité)",
+    text: "Buen desempeño en {grupo}, evaluado por {evaluador} · Desempeño insuficiente en {grupo}, evaluado por {evaluador}: {nota} · {criterio} en {comité}: {valor} de {peso} · Crédito manual en {criterio}: {valor} ({motivo}) · Entró al grupo {grupo} · Salió del grupo {grupo} · Cierre de {término}: {decisión} · En periodo de prueba en {término}: {motivo} · Sin periodo de prueba en {término}: {motivo} · En periodo de prueba en {comité} en {término}: {motivo} · Sin periodo de prueba en {comité} en {término}: {motivo}",
     owner: "MATEO",
     status: "Propuesta",
   },

@@ -276,8 +276,9 @@ export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipVi
         ) : (
           <ul className="flex list-none flex-col gap-1 p-0 text-sm">
             {data.probation.map((item) => (
-              <li key={item.termId}>
-                <Insignia fondo="naranja">{t("T-449")}</Insignia> {item.termCode}
+              <li key={`${item.termId}:${item.committeeId ?? ""}`}>
+                <Insignia fondo="naranja">{tList("T-449")[0]}</Insignia> {item.termCode}
+                {item.committeeName ? ` · ${item.committeeName}` : ""}
                 {item.reason ? ` · ${item.reason}` : ""}
               </li>
             ))}

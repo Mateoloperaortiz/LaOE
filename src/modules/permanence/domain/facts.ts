@@ -39,7 +39,7 @@ export async function loadPermanenceConfig(): Promise<PermanenceConfig> {
       probation: await requireConfig("permanence.threshold.probation"),
       transfer: await requireConfig("permanence.threshold.transfer"),
     },
-    probationMargin: await requireConfig("permanence.probationMargin"),
+    probationMargins: await requireConfig("permanence.probationMargins"),
     evaluationWindowDays: await requireConfig("permanence.evaluationWindowDays"),
     warningDays: await requireConfig("permanence.warningDays"),
   };
@@ -220,6 +220,7 @@ export async function loadPeopleFacts(
         committeeId: row.committeeId,
         roleCode: row.roleCode,
         transferredIn: row.transferredIn,
+        probation: row.committeeProbation,
         joinedAt: row.joinedAt,
         leftAt: row.leftAt,
       })),

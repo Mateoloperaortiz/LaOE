@@ -25,10 +25,13 @@ export const membershipStatus = pgEnum("membership_status", [
   "HONORARY",
   "INACTIVE",
 ]);
+// La expulsión y la pérdida de la calidad de estudiante son causales propias (ADR-060 regla 3).
 export const membershipEndReason = pgEnum("membership_end_reason", [
   "GRADUATION",
   "RESIGNATION",
   "PERMANENCE",
+  "EXPULSION",
+  "STUDENT_STATUS_LOST",
   "OTHER",
 ]);
 export const committeeStatus = pgEnum("committee_status", ["ACTIVE", "INACTIVE"]);
@@ -130,7 +133,9 @@ export const appointment = pgTable(
   (t) => [index("appointment_person_idx").on(t.personId, t.termId)],
 );
 
-// Condición de la persona en un término: periodo de prueba (umbral 80 %), decidido en el cierre anterior o por el roster.
+// Condición de la persona en un término: periodo de prueba (umbral 80 %). Sin comité aplica a todos
+// sus comités (la carga el roster o ADMIN); con comité, solo a ese (la escribe el cierre para el
+// comité donde quedó en la banda, o ADMIN eligiéndolo): la categoría es por comité (ADR-060 regla 2).
 export const membershipTerm = pgTable(
   "membership_term",
   {
@@ -141,12 +146,20 @@ export const membershipTerm = pgTable(
     termId: text()
       .notNull()
       .references(() => term.id),
+    committeeId: text().references(() => committee.id),
     probation: boolean().notNull().default(false),
     reason: text(),
     decidedById: text().references(() => person.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex("membership_term_person_term_unique").on(t.personId, t.termId)],
+  (t) => [
+    uniqueIndex("membership_term_person_term_unique")
+      .on(t.personId, t.termId)
+      .where(sql`${t.committeeId} is null`),
+    uniqueIndex("membership_term_committee_unique")
+      .on(t.personId, t.termId, t.committeeId)
+      .where(sql`${t.committeeId} is not null`),
+  ],
 );
 
 export const membership = pgTable(

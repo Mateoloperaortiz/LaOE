@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
   card,
@@ -269,6 +269,7 @@ export async function seedMembershipTerm(
     .values({ personId, termId, probation, reason: "prueba de integración" })
     .onConflictDoUpdate({
       target: [membershipTerm.personId, membershipTerm.termId],
+      targetWhere: isNull(membershipTerm.committeeId),
       set: { probation },
     });
 }

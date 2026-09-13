@@ -15,6 +15,7 @@ import {
   evaluationWindow,
   finalStateFor,
   type GroupFact,
+  marginFor,
   noticesFor,
   type OccasionFact,
   type PermanenceConfig,
@@ -39,7 +40,7 @@ import {
 
 const CONFIG: PermanenceConfig = {
   thresholds: { active: 60, new: 80, probation: 80, transfer: 70 },
-  probationMargin: 10,
+  probationMargins: { active: 20, new: 0, probation: 0, transfer: 0 },
   evaluationWindowDays: 14,
   warningDays: 21,
 };
@@ -125,6 +126,7 @@ function committee(committeeId: string, overrides: Partial<CommitteeFact> = {}):
     committeeId,
     roleCode: "MIEMBRO",
     transferredIn: false,
+    probation: false,
     joinedAt: new Date("2026-07-13T00:00:00Z"),
     leftAt: null,
     ...overrides,
@@ -401,11 +403,93 @@ describe("estados y margen de prueba (ADR-027, ADR-028)", () => {
     expect(stateFor(50, 9, 60, 10, false)).toBe("NO_ALCANZA");
   });
 
-  it("cerrado: cumple, prueba hasta 10 por debajo y no cumple más abajo", () => {
+  it("cerrado: cumple, prueba dentro de la banda y no cumple más abajo", () => {
     expect(finalStateFor(60, 60, 10)).toBe("CUMPLE");
     expect(finalStateFor(50, 60, 10)).toBe("PRUEBA");
     expect(finalStateFor(49.99, 60, 10)).toBe("NO_CUMPLE");
     expect(stateFor(75, 100, 80, 10, true)).toBe("PRUEBA");
+  });
+
+  it("la banda de prueba depende de la condición (ADR-060 regla 1): 20 para activos, cero para el resto", () => {
+    const margins = CONFIG.probationMargins;
+    expect(marginFor("ACTIVE", margins)).toBe(20);
+    expect(marginFor("NEW", margins)).toBe(0);
+    expect(marginFor("PROBATION", margins)).toBe(0);
+    expect(marginFor("TRANSFER", margins)).toBe(0);
+    // Est. art. 7.5: entre 40 y 59 queda en prueba; bajo 40 sale.
+    expect(finalStateFor(45, 60, marginFor("ACTIVE", margins))).toBe("PRUEBA");
+    expect(finalStateFor(40, 60, marginFor("ACTIVE", margins))).toBe("PRUEBA");
+    expect(finalStateFor(39.99, 60, marginFor("ACTIVE", margins))).toBe("NO_CUMPLE");
+    // Est. art. 11.4 y 11.5: sin banda para nuevos y en prueba.
+    expect(finalStateFor(79.99, 80, marginFor("NEW", margins))).toBe("NO_CUMPLE");
+    expect(finalStateFor(79.99, 80, marginFor("PROBATION", margins))).toBe("NO_CUMPLE");
+    // La banda de riesgo de los estados abiertos sigue siendo de 10 puntos, para toda condición.
+    expect(stateFor(72, 5, 80, 0, false)).toBe("NO_ALCANZA");
+    expect(stateFor(72, 8, 80, 0, false)).toBe("EN_RIESGO");
+    expect(stateFor(72, 18, 80, 0, false)).toBe("EN_CAMINO");
+  });
+
+  it("un activo con 45 queda en prueba y con 38 sale; un nuevo con 72 sale (Est. art. 7.5 y 11.4)", () => {
+    const eventos = rule(
+      { key: "eventos", label: "Eventos", weight: 60, computation: "MANUAL", params: {} },
+      "COMMITTEE",
+      "a3",
+    );
+    const termFacts = facts({
+      rules: [eventos],
+      term: { ...TERM, permanenceClosedAt: new Date() },
+    });
+    const at = (value: number, overrides: Partial<PersonFacts> = {}) =>
+      computePerson(
+        termFacts,
+        person({
+          committees: [committee("a3")],
+          credits: [{ ruleId: eventos.id, value, reason: "" }],
+          ...overrides,
+        }),
+        NOW,
+      ).results[0];
+    expect(at(45)).toMatchObject({ condition: "ACTIVE", threshold: 60, finalState: "PRUEBA" });
+    expect(at(38)).toMatchObject({ condition: "ACTIVE", threshold: 60, finalState: "NO_CUMPLE" });
+    expect(at(60)).toMatchObject({ condition: "ACTIVE", finalState: "CUMPLE" });
+    expect(at(72, { isNew: true })).toMatchObject({
+      condition: "NEW",
+      threshold: 80,
+      finalState: "NO_CUMPLE",
+    });
+  });
+
+  it("la prueba fijada en un solo comité rige solo ahí (ADR-060 regla 2)", () => {
+    const eventos = rule(
+      { key: "eventos", label: "Eventos", weight: 60, computation: "MANUAL", params: {} },
+      "COMMITTEE",
+      "a3",
+    );
+    const otros = rule(
+      { key: "eventos", label: "Eventos", weight: 60, computation: "MANUAL", params: {} },
+      "COMMITTEE",
+      "pixel",
+    );
+    const termFacts = facts({
+      rules: [eventos, otros],
+      term: { ...TERM, permanenceClosedAt: new Date() },
+    });
+    const result = computePerson(
+      termFacts,
+      person({
+        committees: [committee("a3", { probation: true }), committee("pixel")],
+        credits: [
+          { ruleId: eventos.id, value: 60, reason: "" },
+          { ruleId: otros.id, value: 60, reason: "" },
+        ],
+      }),
+      NOW,
+    );
+    const [a3, pixel] = result.results;
+    expect(a3).toMatchObject({ condition: "PROBATION", threshold: 80, finalState: "NO_CUMPLE" });
+    expect(pixel).toMatchObject({ condition: "ACTIVE", threshold: 60, finalState: "CUMPLE" });
+    // La persona figura en prueba porque lo está en al menos un comité.
+    expect(result.probation).toBe(true);
   });
 
   it("en prueba exige 80 y una transferencia 70 solo en ese comité", () => {
@@ -443,12 +527,13 @@ describe("estados y margen de prueba (ADR-027, ADR-028)", () => {
       ],
     });
     const [a3, pixel] = computePerson(termFacts, transferred, NOW).results;
-    // El crédito de 65 se acota al peso (60): en la transferencia falta para 70, en el otro comité cumple.
+    // El crédito de 65 se acota al peso (60): en la transferencia falta para 70 y no hay banda de
+    // prueba (Est. art. 8.3), así que sale de ese comité; en el otro comité cumple.
     expect(a3).toMatchObject({
       condition: "TRANSFER",
       threshold: 70,
       total: 60,
-      finalState: "PRUEBA",
+      finalState: "NO_CUMPLE",
     });
     expect(pixel).toMatchObject({
       condition: "ACTIVE",
@@ -807,7 +892,7 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
         committees: [committee("a3"), committee("pixel")],
         attended: new Set(["ord", "elec"]),
         credits: [
-          { ruleId: eventos.id, value: 40, reason: "" },
+          { ruleId: eventos.id, value: 30, reason: "" },
           { ruleId: pixel.id, value: 55, reason: "" },
         ],
       }),
