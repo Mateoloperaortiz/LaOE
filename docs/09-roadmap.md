@@ -700,7 +700,7 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 - [x] Persona 360, Mi OE, carnet y billetera con varios cargos y codirección.
 - [x] Importación: varios cargos por comité, prefijo «Codirección de» y un solo titular por cargo (la advertencia por comité sin cargo obligatorio queda en la cabecera del comité y el tablero, no en la vista previa).
 - [x] Pruebas e2e `comite-areas.spec.ts` y suite E2E completa en verde en local (173 casos).
-- [ ] PR 1 mezclado en `main` y promovido a `production`.
+- [ ] PR 20 (`feat/direccion-por-areas`, abierto el 2026-09-12 después del PR 19) mezclado en `main` y promovido a `production`.
 - [ ] ADR-059: módulo `finance`, migración `0016`, `/admin/presupuestos`, área Finanzas, e2e `presupuesto.spec.ts`; PR 2.
 - [ ] Advertencia por comité sin General o Financiero titular en la vista previa de la importación (T-2177); hoy avisan la cabecera del comité y el tablero.
 
