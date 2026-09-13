@@ -318,7 +318,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
-| T-521 | Check-in, agenda y admin: nombre de la categoría de una ocasión (en el orden del modelo) | Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Actividad | GH | Propuesta |
+| T-521 | Check-in, agenda y admin: nombre de la categoría de una ocasión (en el orden del modelo) | Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Actividad · Inducción | GH | Propuesta |
 | T-522 | Check-in, agenda y admin: nombre del tipo de ocasión (en el orden del modelo) | Actividad · Asamblea · Sesión de edición | GH | Propuesta |
 | T-523 | Check-in: la actividad es solo para nuevos | Esta actividad es solo para quienes entraron a la OE este semestre. | GH | Propuesta |
 | T-524 | Check-in: actividad cancelada | Esta actividad fue cancelada. | MATEO | Propuesta |
@@ -718,7 +718,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-563 | Ocasiones: campos | Título · Tipo · Tipo de asamblea · Categoría · Solo nuevos · Descripción (Markdown) · Lugar · Empieza · Termina · Abre el registro · Cierra el registro · GH Points · Aprobación · Código rotativo · Comité · Edición · Semestre | MATEO | Propuesta |
 | T-564 | Ocasiones: opciones de tipo | Actividad · Asamblea · Sesión de edición | MATEO | Propuesta |
 | T-565 | Ocasiones: opciones de tipo de asamblea | Ordinaria · Elección de junta · Segunda vuelta | GH | Propuesta |
-| T-566 | Ocasiones: opciones de categoría | Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Otra | GH | Propuesta |
+| T-566 | Ocasiones: opciones de categoría | Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Otra · Inducción | GH | Propuesta |
 | T-567 | Ocasiones: opciones de aprobación | Automática · Manual (GH revisa cada registro) | GH | Propuesta |
 | T-568 | Ocasiones: estados | Borrador · Abierta · Cerrada · Cancelada | MATEO | Propuesta |
 | T-569 | Ocasiones: acciones de fila | Abrir · Cerrar · Consola | MATEO | Propuesta |
@@ -1864,3 +1864,15 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2310 | Presupuesto: totales | Asignado {asignado} · Gastado {gastado} · Disponible {disponible} | MATEO | Propuesta |
 | T-2311 | Presupuesto (detalle): sin movimientos, sin presolicitudes, sin avales | Sin movimientos todavía. · Sin presolicitudes todavía. · Sin avales pedidos. | MATEO | Propuesta |
 | T-2312 | Presupuesto (detalle): campos de la aprobación y de la sanción | Quién aprueba · Fecha · Porcentaje · Motivo · Nota de la decisión | MATEO | Propuesta |
+| T-2313 | Condición del semestre: casilla de verificación académica | Requisitos académicos verificados este semestre (Estatutos, art. 6 y 7; sin guardar promedio ni materias) | GH | Propuesta |
+| T-2314 | Condición del semestre: insignia de la verificación académica | Verificación académica: {fecha} | MATEO | Propuesta |
+| T-2315 | Membresía: elegibilidad a honorario (título y ayuda) | Elegibilidad a honorario · Cuatro de cinco requisitos (Reglamento, art. 23): la junta decide y la asamblea resuelve las apelaciones. En periodo de prueba no se piden avales (art. 73). Los cargos "completos" se aproximan como vivos hasta el fin del semestre; la junta, como los dos semestres del mismo año. | JUNTA | Propuesta |
+| T-2316 | Elegibilidad a honorario: requisitos (en el orden del modelo) | Cargo directivo de comité completo · Cargo directivo de macroevento completo · Seis semestres como miembro activo · Junta Directiva completa (año) · Un año en un comité de trabajo | JUNTA | Propuesta |
+| T-2317 | Elegibilidad a honorario: resumen e insignias | Cumple {n} de {m} requisitos · Elegible · Todavía no elegible | MATEO | Propuesta |
+| T-2318 | Permanencia: inducción de nuevos (título y estados) | Inducción · Obligatoria para nuevos (Reglamento, art. 47) · Asististe · Pendiente · Sin registro | GH | Propuesta |
+| T-2319 | Ocasiones: asamblea citada con menos de tres días hábiles | Citada con menos de tres días hábiles (Reglamento, art. 15 par. 1) | MATEO | Propuesta |
+| T-2320 | Premios OE: categorías (en el orden del Reglamento, art. 71) | Mejor Dirección General · Mejor Dirección Financiera · Mejor Dirección de Gestión Humana · Mejor Dirección de Logística · Mejor Dirección de Relaciones Públicas · Mejor Dirección de Mercadeo · Mejor Mesa Directiva · Mejor Miembro Nuevo · Mejor Evento Académico · Mejor Evento Cultural · Mejor Evento Social · Mejor Evento Deportivo · Mejor Evento Recreativo · Mejor Comité · Mejor Semana de Carrera · Comité Revelación | JUNTA | Propuesta |
+| T-2321 | Premio OE: panel (título, campo, botón, confirmación y enlace) | Premio OE · Categoría · Otorgar · Premio registrado. · Otorgar Premio OE | MATEO | Propuesta |
+| T-2322 | Membresía: reconocimientos (título, vacío y tipos) | Reconocimientos · Sin reconocimientos. · Destacado del mes · Otro · Premio OE | MATEO | Propuesta |
+| T-2323 | Horario preferencial: recurso (plural · singular), columnas y tipos | Horario preferencial · Horario preferencial · Nombre · Ámbito · Cargo · Junta Directiva · Mesa directiva · Macroevento | MATEO | Propuesta |
+| T-2324 | Horario preferencial: ayuda | Junta Directiva, mesas directivas de los comités (máximo seis por CIC o CE, titulares antes que codirecciones) y directores de macroevento del término (Reglamento, art. 72). La Universidad exige acreditar la asistencia a la Asamblea de Carrera; el CSV lleva el correo. | JUNTA | Propuesta |

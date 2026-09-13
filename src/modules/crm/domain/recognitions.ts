@@ -11,7 +11,7 @@ import {
   sanctionStateFor,
 } from "@/modules/people";
 import { DomainError } from "@/shared/admin-kit/DomainError";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import { interaction, recognition } from "../schema";
 
@@ -19,14 +19,46 @@ import { interaction, recognition } from "../schema";
 // Con consentimiento de directorio se publica en la cartelera del comité en la misma transacción;
 // sin consentimiento queda registrado sin publicarse. La interacción se escribe aquí mismo.
 
-export const recognitionInputSchema = z.object({
-  personId: z.string().min(1),
-  kind: z.enum(["MEMBER_OF_MONTH", "OTHER"]).default("MEMBER_OF_MONTH"),
-  committeeId: z.string().min(1).optional(),
-  termId: z.string().min(1),
-  month: z.coerce.number().int().min(1).max(12).optional(),
-  title: z.string().trim().max(140).default(""),
-});
+/** Categorías de Premios OE en el orden del Reglamento (art. 71; ADR-060 regla 13); etiquetas en T-2320. */
+export const OE_AWARDS = [
+  "BEST_GENERAL",
+  "BEST_FINANCE",
+  "BEST_GH",
+  "BEST_LOGISTICS",
+  "BEST_PUBLIC_RELATIONS",
+  "BEST_MARKETING",
+  "BEST_BOARD",
+  "BEST_NEW_MEMBER",
+  "BEST_ACADEMIC_EVENT",
+  "BEST_CULTURAL_EVENT",
+  "BEST_SOCIAL_EVENT",
+  "BEST_SPORTS_EVENT",
+  "BEST_RECREATIONAL_EVENT",
+  "BEST_COMMITTEE",
+  "BEST_CAREER_WEEK",
+  "REVELATION_COMMITTEE",
+] as const;
+
+export function awardLabel(award: string | null): string {
+  return award
+    ? (tList("T-2320")[OE_AWARDS.indexOf(award as (typeof OE_AWARDS)[number])] ?? award)
+    : "";
+}
+
+export const recognitionInputSchema = z
+  .object({
+    personId: z.string().min(1),
+    kind: z.enum(["MEMBER_OF_MONTH", "OTHER", "OE_AWARD"]).default("MEMBER_OF_MONTH"),
+    committeeId: z.string().min(1).optional(),
+    termId: z.string().min(1),
+    month: z.coerce.number().int().min(1).max(12).optional(),
+    title: z.string().trim().max(140).default(""),
+    award: z.enum(OE_AWARDS).optional(),
+  })
+  .refine((input) => (input.kind === "OE_AWARD") === (input.award !== undefined), {
+    path: ["award"],
+    message: t("T-260"),
+  });
 export type RecognitionInput = z.infer<typeof recognitionInputSchema>;
 
 export const MONTHS = [
@@ -69,7 +101,11 @@ export async function grantRecognition(
   const mes = monthName(input.month ?? null);
   const title =
     input.title ||
-    (input.kind === "MEMBER_OF_MONTH" ? t("T-783", { mes, nombre: context.personName }) : "");
+    (input.kind === "MEMBER_OF_MONTH"
+      ? t("T-783", { mes, nombre: context.personName })
+      : input.kind === "OE_AWARD"
+        ? awardLabel(input.award ?? null)
+        : "");
   if (!title) {
     throw new DomainError(t("T-260"), "title");
   }
@@ -99,6 +135,7 @@ export async function grantRecognition(
         termId: input.termId,
         month: input.month ?? null,
         title,
+        award: input.award ?? null,
         announcementId,
         grantedById: ctx.actor.personId,
       })
@@ -187,13 +224,34 @@ export async function grantRecognitionAs(
 export interface RecognitionView {
   id: string;
   personId: string;
-  kind: "MEMBER_OF_MONTH" | "OTHER";
+  kind: "MEMBER_OF_MONTH" | "OTHER" | "OE_AWARD";
   committeeId: string | null;
   termId: string;
   month: number | null;
   title: string;
+  award: string | null;
   announcementId: string | null;
   createdAt: Date;
+}
+
+/** Todos los reconocimientos de una persona, del más reciente al más viejo (Persona 360). */
+export async function listRecognitionsFor(personId: string): Promise<RecognitionView[]> {
+  return getDb()
+    .select({
+      id: recognition.id,
+      personId: recognition.personId,
+      kind: recognition.kind,
+      committeeId: recognition.committeeId,
+      termId: recognition.termId,
+      month: recognition.month,
+      title: recognition.title,
+      award: recognition.award,
+      announcementId: recognition.announcementId,
+      createdAt: recognition.createdAt,
+    })
+    .from(recognition)
+    .where(eq(recognition.personId, personId))
+    .orderBy(desc(recognition.createdAt));
 }
 
 /** Reconocimientos de varias personas en un término (insignias del directorio y del comité). */

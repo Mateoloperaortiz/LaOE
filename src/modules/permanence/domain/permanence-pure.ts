@@ -202,6 +202,8 @@ export interface MandatoryView {
   /** Tipos de obligatoria con una excusa aceptada (ADR-060 regla 5). */
   excused: AssemblyKindName[];
   upcoming: Array<UpcomingOccasion & { assemblyKind: AssemblyKindName }>;
+  /** Inducción de nuevos (Regl. art. 47; ADR-060 regla 13): informa, no expulsa. */
+  induction: { required: boolean; attended: boolean; excused: boolean; pending: boolean };
 }
 
 export interface PersonPermanence {
@@ -761,7 +763,32 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
       startsAt: item.startsAt.toISOString(),
       assemblyKind: item.assemblyKind as AssemblyKindName,
     }));
-  return { required, attended, met: missing.length === 0, missing, lost, excused, upcoming };
+  const inductions = facts.occasions.filter(
+    (item) => item.category === "INDUCTION" && item.status !== "CANCELLED",
+  );
+  const inductionAttended = inductions.some((item) => person.attended.has(item.id));
+  const inductionExcused = inductions.some((item) => person.excused.has(item.id));
+  const induction = {
+    required: person.isNew && inductions.length > 0,
+    attended: inductionAttended,
+    excused: inductionExcused,
+    pending:
+      person.isNew &&
+      inductions.length > 0 &&
+      !inductionAttended &&
+      !inductionExcused &&
+      inductions.some((item) => item.startsAt > now),
+  };
+  return {
+    required,
+    attended,
+    met: missing.length === 0 && (!induction.required || inductionAttended || inductionExcused),
+    missing,
+    lost,
+    excused,
+    upcoming,
+    induction,
+  };
 }
 
 /** El resultado completo de una persona en el término: general, por comité y obligatorias. */

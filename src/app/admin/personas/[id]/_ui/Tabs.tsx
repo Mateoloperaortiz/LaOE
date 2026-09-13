@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type { MessageView, PreferencesView } from "@/modules/comms";
 import { channelLabel, kindLabel, statusLabel as messageStatusLabel } from "@/modules/comms/admin";
-import type { InteractionView, TaskRow } from "@/modules/crm";
+import type { InteractionView, RecognitionView, TaskRow } from "@/modules/crm";
 import type { ActorPermission } from "@/modules/identity";
 import {
   appointmentLabel,
   committeeRolesLabel,
   formatBirthDate,
+  type HonoraryEligibility,
   type MyMembershipView,
   type Person360,
 } from "@/modules/people";
@@ -152,13 +153,30 @@ export function TabLinea({
   );
 }
 
-export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipView }) {
+export function TabMembresia({
+  data,
+  my,
+  honorary,
+  recognitions,
+}: {
+  data: Person360;
+  my: MyMembershipView;
+  honorary: HonoraryEligibility;
+  recognitions: RecognitionView[];
+}) {
   const [historial, comitesPorSemestre, cargos, condicion] = tList("T-443") as [
     string,
     string,
     string,
     string,
   ];
+  const [honorarioTitulo, honorarioAyuda] = tList("T-2315");
+  const requisitos = tList("T-2316");
+  const [, elegible, noElegible] = tList("T-2317");
+  const [reconocimientosTitulo, sinReconocimientos, destacado, otro, premio] = tList("T-2322");
+  const [, , , , otorgarPremio] = tList("T-2321");
+  const kindLabelOf = (kind: RecognitionView["kind"]) =>
+    kind === "MEMBER_OF_MONTH" ? destacado : kind === "OE_AWARD" ? premio : otro;
   const [agregarCargo, quitar] = tList("T-447") as [string, string];
   const [sancionesTitulo, sinSanciones] = tList("T-2239") as [string, string];
   const [registrarSancion, revocarSancion] = tList("T-2232") as [string, string];
@@ -282,10 +300,58 @@ export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipVi
             {data.probation.map((item) => (
               <li key={`${item.termId}:${item.committeeId ?? ""}`}>
                 {item.probation ? <Insignia fondo="naranja">{tList("T-449")[0]}</Insignia> : null}
-                {item.reportAsVeteran ? <Insignia fondo="sky">{t("T-2262")}</Insignia> : null}{" "}
+                {item.reportAsVeteran ? <Insignia fondo="sky">{t("T-2262")}</Insignia> : null}
+                {item.academicVerifiedOn ? (
+                  <Insignia fondo="paper">
+                    {t("T-2314", {
+                      fecha: formatDate(new Date(`${item.academicVerifiedOn}T12:00:00Z`)),
+                    })}
+                  </Insignia>
+                ) : null}{" "}
                 {item.termCode}
                 {item.committeeName ? ` · ${item.committeeName}` : ""}
                 {item.reason ? ` · ${item.reason}` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Bloque>
+      <Bloque titulo={honorarioTitulo ?? ""}>
+        <p className="text-sm text-tinta-suave">{honorarioAyuda}</p>
+        <p className="text-sm font-semibold">
+          {t("T-2317", { n: honorary.metCount, m: honorary.items.length }).split(" · ")[0]}{" "}
+          <Insignia fondo={honorary.eligible ? "azul" : "paper"}>
+            {honorary.eligible ? elegible : noElegible}
+          </Insignia>
+        </p>
+        <ul className="flex list-none flex-col gap-1 p-0 text-sm">
+          {honorary.items.map((item, index) => (
+            <li key={item.code} className="flex items-center gap-2">
+              <Insignia fondo={item.met ? "azul" : "paper"}>{item.met ? "✓" : "—"}</Insignia>
+              <span>
+                {requisitos[index] ?? item.code} · {item.count}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Bloque>
+      <Bloque titulo={reconocimientosTitulo ?? ""}>
+        {data.membership && data.membership.status !== "INACTIVE" ? (
+          <Link
+            href={`${base}?pestana=membresia&accion=premio`}
+            className="boton-secundario min-h-9 self-start px-4 py-1 text-sm"
+          >
+            {otorgarPremio}
+          </Link>
+        ) : null}
+        {recognitions.length === 0 ? (
+          <p className="text-sm text-tinta-suave">{sinReconocimientos}</p>
+        ) : (
+          <ul className="flex list-none flex-col gap-1 p-0 text-sm">
+            {recognitions.map((item) => (
+              <li key={item.id}>
+                <span className="font-semibold">{item.title}</span> · {kindLabelOf(item.kind)} ·{" "}
+                {formatDate(item.createdAt)}
               </li>
             ))}
           </ul>

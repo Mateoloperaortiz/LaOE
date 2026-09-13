@@ -106,9 +106,17 @@ export const mandatorySchema: z.ZodType<MandatoryView> = z.object({
   met: z.boolean(),
   missing: z.array(assemblyKind),
   lost: z.array(assemblyKind),
-  // Los snapshots anteriores a ADR-060 no traen excusas.
+  // Los snapshots anteriores a ADR-060 no traen excusas ni inducción.
   excused: z.array(assemblyKind).default([]),
   upcoming: z.array(upcoming.extend({ assemblyKind })),
+  induction: z
+    .object({
+      required: z.boolean(),
+      attended: z.boolean(),
+      excused: z.boolean(),
+      pending: z.boolean(),
+    })
+    .default({ required: false, attended: false, excused: false, pending: false }),
 });
 
 export const EMPTY_MANDATORY: MandatoryView = {
@@ -118,6 +126,7 @@ export const EMPTY_MANDATORY: MandatoryView = {
   missing: [],
   lost: [],
   excused: [],
+  induction: { required: false, attended: false, excused: false, pending: false },
   upcoming: [],
 };
 

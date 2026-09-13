@@ -11,7 +11,8 @@ export type OccasionCategory =
   | "TALK"
   | "WORKSHOP"
   | "SOCIAL"
-  | "OTHER";
+  | "OTHER"
+  | "INDUCTION";
 
 export const OCCASION_KINDS: readonly OccasionKind[] = ["ACTIVITY", "ASSEMBLY", "EDITION_SESSION"];
 export const ASSEMBLY_KINDS: readonly AssemblyKind[] = ["ORDINARY", "BOARD_ELECTION", "RUNOFF"];
@@ -23,7 +24,22 @@ export const OCCASION_CATEGORIES: readonly OccasionCategory[] = [
   "WORKSHOP",
   "SOCIAL",
   "OTHER",
+  "INDUCTION",
 ];
+
+/** Una asamblea citada con menos de tres días hábiles (Regl. art. 15 par. 1; ADR-060 regla 13). */
+export function isShortNotice(createdAt: Date, startsAt: Date, businessDays = 3): boolean {
+  let cursor = new Date(createdAt);
+  let counted = 0;
+  while (counted < businessDays) {
+    cursor = new Date(cursor.getTime() + 24 * 60 * 60_000);
+    const day = cursor.getUTCDay();
+    if (day !== 0 && day !== 6) {
+      counted += 1;
+    }
+  }
+  return startsAt < cursor;
+}
 export const OCCASION_STATUSES: readonly OccasionStatus[] = [
   "DRAFT",
   "OPEN",

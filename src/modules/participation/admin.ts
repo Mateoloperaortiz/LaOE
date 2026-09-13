@@ -25,6 +25,7 @@ import { type LedgerListRow, listLedger } from "./domain/ledger";
 import { POINT_ENTRY_KINDS } from "./domain/ledger-pure";
 import {
   ASSEMBLY_KINDS,
+  isShortNotice,
   OCCASION_CATEGORIES,
   OCCASION_KINDS,
   OCCASION_STATUSES,
@@ -193,7 +194,14 @@ export const occasionsResource: ResourceDefinition<OccasionListRow, OccasionInpu
   basePath: "/admin/ocasiones",
   columns: [
     { key: "title", label: columnLabels[0] ?? "", render: (row) => row.title },
-    { key: "kind", label: columnLabels[1] ?? "", render: (row) => occasionKindLabel(row) },
+    {
+      key: "kind",
+      label: columnLabels[1] ?? "",
+      render: (row) =>
+        row.kind === "ASSEMBLY" && isShortNotice(row.createdAt, row.startsAt)
+          ? { text: `${occasionKindLabel(row)} · ${t("T-2319")}`, badge: "naranja" as const }
+          : occasionKindLabel(row),
+    },
     {
       key: "startsAt",
       label: columnLabels[2] ?? "",

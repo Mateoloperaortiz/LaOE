@@ -145,3 +145,8 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Rubro | `BudgetLine` | Monto asignado dentro de un presupuesto; disponible = asignado + traslados recibidos − traslados salientes − gastos |
 | Presolicitud | `BudgetPrerequest` | Pedido mensual del Financiero para acceder a los recursos; sin ella no hay gasto ese mes (Est. art. 38.3) |
 | Aval de evento | `EventApproval` | Aprobación de la Presidencia antes de ejecutar, difundir o comprar para un evento (Regl. art. 35 par. 1); los gastos y traslados del evento se ligan a él |
+| Inducción | `Occasion.category = INDUCTION` | Inducción de nuevos al inicio del semestre, obligatoria para ellos (Regl. art. 47); la permanencia y Mi OE muestran si asistió |
+| Elegibilidad a honorario | `honoraryEligibility()` | Cuántos de los cinco requisitos del Regl. art. 23 cumple una persona según su historial (cargos completos de comité y macroevento, seis semestres activos, junta completa, un año en CT); informa, la junta decide |
+| Premio OE | `Recognition.kind = OE_AWARD` + `award` | Reconocimiento anual en una de las dieciséis categorías del Regl. art. 71, registrado por ADMIN desde la Persona 360 |
+| Horario preferencial | `listPreferentialSchedule()` | Junta, mesas directivas (máximo seis por comité) y directores de macroevento del término, exportable con correo para acreditarlo ante la Universidad (Regl. art. 72) |
+| Verificación académica | `MembershipTerm.academicVerifiedOn` | Constancia de que Desarrollo Estudiantil o GH verificó los requisitos académicos del término, sin promedio ni materias (Est. art. 6 y 7; Ley 1581) |

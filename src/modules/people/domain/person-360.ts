@@ -32,6 +32,7 @@ export interface Person360 {
     probation: boolean;
     reportAsVeteran: boolean;
     reason: string | null;
+    academicVerifiedOn: string | null;
   }>;
 }
 
@@ -64,6 +65,7 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
         reason: membershipTerm.reason,
         probation: membershipTerm.probation,
         reportAsVeteran: membershipTerm.reportAsVeteran,
+        academicVerifiedOn: membershipTerm.academicVerifiedOn,
       })
       .from(membershipTerm)
       .leftJoin(committee, eq(committee.id, membershipTerm.committeeId))
@@ -74,7 +76,7 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
   const termById = new Map(terms.map((term) => [term.id, term]));
   const first = membershipRows[0];
   const probation = probationRows
-    .filter((row) => row.probation || row.reportAsVeteran)
+    .filter((row) => row.probation || row.reportAsVeteran || row.academicVerifiedOn !== null)
     .map((row) => ({
       termId: row.termId,
       termCode: termById.get(row.termId)?.code ?? "",
@@ -83,6 +85,7 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
       probation: row.probation,
       reportAsVeteran: row.reportAsVeteran,
       reason: row.reason,
+      academicVerifiedOn: row.academicVerifiedOn,
       startsOn: termById.get(row.termId)?.startsOn ?? "",
     }))
     .sort((a, b) => a.startsOn.localeCompare(b.startsOn))

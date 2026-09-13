@@ -12,15 +12,18 @@ export interface AssemblyRequirementView {
   reason: string | null;
 }
 
-/** Una ordinaria por defecto; en segundo semestre además la elección y la segunda vuelta si existe. */
+/**
+ * Una ordinaria por defecto; la elección de junta y la segunda vuelta se exigen cuando existen en el
+ * término, en cualquier semestre (Regl. art. 60 y 63; Est. art. 7.9; ADR-060 regla 13).
+ */
 export function defaultRequirement(
-  term: { semester: number; requiredOrdinaryAssemblies: number },
-  hasRunoff: boolean,
+  term: { requiredOrdinaryAssemblies: number },
+  existing: { hasBoardElection: boolean; hasRunoff: boolean },
 ): AssemblyRequirementView {
   return {
     requiredOrdinary: term.requiredOrdinaryAssemblies,
-    requiresBoardElection: term.semester === 2,
-    requiresRunoff: term.semester === 2 && hasRunoff,
+    requiresBoardElection: existing.hasBoardElection,
+    requiresRunoff: existing.hasRunoff,
     adjusted: false,
     reason: null,
   };

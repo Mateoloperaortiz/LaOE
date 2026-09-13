@@ -368,7 +368,7 @@ export const onboardingProgress = pgTable(
   (t) => [uniqueIndex("onboarding_progress_unique").on(t.personId, t.termId, t.stepKey)],
 );
 
-export const recognitionKind = pgEnum("recognition_kind", ["MEMBER_OF_MONTH", "OTHER"]);
+export const recognitionKind = pgEnum("recognition_kind", ["MEMBER_OF_MONTH", "OTHER", "OE_AWARD"]);
 
 // Reconocimiento (ADR-031, ADR-036): el destacado del mes que nombra el líder desde su tabla de permanencia
 // u otro mérito de ADMIN; con consentimiento de directorio se publica como anuncio del comité.
@@ -386,11 +386,17 @@ export const recognition = pgTable(
       .references(() => term.id),
     month: integer(),
     title: text().notNull(),
+    /** Categoría de Premios OE (Regl. art. 71; ADR-060 regla 13); solo en `OE_AWARD`. */
+    award: text(),
     announcementId: text().references(() => announcement.id, { onDelete: "set null" }),
     grantedById: text().references(() => person.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
   (t) => [
+    check(
+      "recognition_award_consistent",
+      sql`(${t.kind}::text = 'OE_AWARD') = (${t.award} is not null)`,
+    ),
     uniqueIndex("recognition_month_unique")
       .on(t.termId, t.committeeId, t.month)
       .where(sql`${t.kind} = 'MEMBER_OF_MONTH'`),

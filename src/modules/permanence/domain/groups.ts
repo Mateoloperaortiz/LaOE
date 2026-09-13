@@ -656,3 +656,13 @@ export async function listGroupIdsOf(personId: string): Promise<string[]> {
     .where(and(eq(workGroupMembership.personId, personId), isNull(workGroupMembership.leftAt)));
   return rows.map((row) => row.groupId);
 }
+
+/** Términos en los que la persona perteneció a un comité de trabajo (Regl. art. 23.5; ADR-060 regla 13). */
+export async function listWorkCommitteeTermIds(personId: string): Promise<string[]> {
+  const rows = await getDb()
+    .selectDistinct({ termId: workGroup.termId })
+    .from(workGroupMembership)
+    .innerJoin(workGroup, eq(workGroup.id, workGroupMembership.groupId))
+    .where(and(eq(workGroupMembership.personId, personId), eq(workGroup.kind, "WORK_COMMITTEE")));
+  return rows.map((row) => row.termId);
+}

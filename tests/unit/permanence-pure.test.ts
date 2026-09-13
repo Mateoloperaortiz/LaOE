@@ -171,6 +171,53 @@ function byKey(results: ReadonlyArray<{ key: string; achieved: number; remaining
   return new Map(results.map((item) => [item.key, item]));
 }
 
+describe("inducción de nuevos (ADR-060 regla 13)", () => {
+  const induction = {
+    id: "ind",
+    title: "Inducción OE",
+    location: "Auditorio",
+    kind: "ACTIVITY" as const,
+    assemblyKind: null,
+    category: "INDUCTION",
+    committeeId: null,
+    newMembersOnly: true,
+    startsAt: new Date("2026-08-01T15:00:00Z"),
+    status: "CLOSED" as const,
+  };
+  const now = new Date("2026-09-13T12:00:00Z");
+  // Sin asambleas exigidas, para aislar la inducción en `met`.
+  const sinAsambleas = { requiredOrdinary: 0, requiresBoardElection: false, requiresRunoff: false };
+
+  it("es obligatoria solo para nuevos y no expulsa", () => {
+    const veteran = computePerson(
+      facts({ occasions: [induction] }),
+      person({ assemblyRequirement: sinAsambleas }),
+      now,
+    );
+    expect(veteran.mandatory.induction).toMatchObject({ required: false, attended: false });
+    expect(veteran.mandatory.met).toBe(true);
+    const missed = computePerson(
+      facts({ occasions: [induction] }),
+      person({ isNew: true, assemblyRequirement: sinAsambleas }),
+      now,
+    );
+    expect(missed.mandatory.induction).toMatchObject({
+      required: true,
+      attended: false,
+      pending: false,
+    });
+    expect(missed.mandatory.met).toBe(false);
+    expect(missed.mandatory.lost).toEqual([]);
+    const attended = computePerson(
+      facts({ occasions: [induction] }),
+      person({ isNew: true, attended: new Set(["ind"]), assemblyRequirement: sinAsambleas }),
+      now,
+    );
+    expect(attended.mandatory.induction.attended).toBe(true);
+    expect(attended.mandatory.met).toBe(true);
+  });
+});
+
 describe("condición y umbral (ADR-027)", () => {
   it("elige la condición y el umbral máximo que aplica", () => {
     const active = { isNew: false, probation: false, transferredIn: false };

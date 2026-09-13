@@ -4952,10 +4952,82 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2313": {
+    where: "Condición del semestre: casilla de verificación académica",
+    text: "Requisitos académicos verificados este semestre (Estatutos, art. 6 y 7; sin guardar promedio ni materias)",
+    owner: "GH",
+    status: "Propuesta",
+  },
+  "T-2314": {
+    where: "Condición del semestre: insignia de la verificación académica",
+    text: "Verificación académica: {fecha}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2315": {
+    where: "Membresía: elegibilidad a honorario (título y ayuda)",
+    text: 'Elegibilidad a honorario · Cuatro de cinco requisitos (Reglamento, art. 23): la junta decide y la asamblea resuelve las apelaciones. En periodo de prueba no se piden avales (art. 73). Los cargos "completos" se aproximan como vivos hasta el fin del semestre; la junta, como los dos semestres del mismo año.',
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-2316": {
+    where: "Elegibilidad a honorario: requisitos (en el orden del modelo)",
+    text: "Cargo directivo de comité completo · Cargo directivo de macroevento completo · Seis semestres como miembro activo · Junta Directiva completa (año) · Un año en un comité de trabajo",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-2317": {
+    where: "Elegibilidad a honorario: resumen e insignias",
+    text: "Cumple {n} de {m} requisitos · Elegible · Todavía no elegible",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2318": {
+    where: "Permanencia: inducción de nuevos (título y estados)",
+    text: "Inducción · Obligatoria para nuevos (Reglamento, art. 47) · Asististe · Pendiente · Sin registro",
+    owner: "GH",
+    status: "Propuesta",
+  },
+  "T-2319": {
+    where: "Ocasiones: asamblea citada con menos de tres días hábiles",
+    text: "Citada con menos de tres días hábiles (Reglamento, art. 15 par. 1)",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-232": {
     where: "Sesiones: marca de la sesión actual",
     text: "Este dispositivo",
     owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2320": {
+    where: "Premios OE: categorías (en el orden del Reglamento, art. 71)",
+    text: "Mejor Dirección General · Mejor Dirección Financiera · Mejor Dirección de Gestión Humana · Mejor Dirección de Logística · Mejor Dirección de Relaciones Públicas · Mejor Dirección de Mercadeo · Mejor Mesa Directiva · Mejor Miembro Nuevo · Mejor Evento Académico · Mejor Evento Cultural · Mejor Evento Social · Mejor Evento Deportivo · Mejor Evento Recreativo · Mejor Comité · Mejor Semana de Carrera · Comité Revelación",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-2321": {
+    where: "Premio OE: panel (título, campo, botón, confirmación y enlace)",
+    text: "Premio OE · Categoría · Otorgar · Premio registrado. · Otorgar Premio OE",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2322": {
+    where: "Membresía: reconocimientos (título, vacío y tipos)",
+    text: "Reconocimientos · Sin reconocimientos. · Destacado del mes · Otro · Premio OE",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2323": {
+    where: "Horario preferencial: recurso (plural · singular), columnas y tipos",
+    text: "Horario preferencial · Horario preferencial · Nombre · Ámbito · Cargo · Junta Directiva · Mesa directiva · Macroevento",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2324": {
+    where: "Horario preferencial: ayuda",
+    text: "Junta Directiva, mesas directivas de los comités (máximo seis por CIC o CE, titulares antes que codirecciones) y directores de macroevento del término (Reglamento, art. 72). La Universidad exige acreditar la asistencia a la Asamblea de Carrera; el CSV lleva el correo.",
+    owner: "JUNTA",
     status: "Propuesta",
   },
   "T-233": {
@@ -6636,7 +6708,7 @@ export const textos = {
   "T-521": {
     where:
       "Check-in, agenda y admin: nombre de la categoría de una ocasión (en el orden del modelo)",
-    text: "Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Actividad",
+    text: "Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Actividad · Inducción",
     owner: "GH",
     status: "Propuesta",
   },
@@ -6906,7 +6978,7 @@ export const textos = {
   },
   "T-566": {
     where: "Ocasiones: opciones de categoría",
-    text: "Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Otra",
+    text: "Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Otra · Inducción",
     owner: "GH",
     status: "Propuesta",
   },

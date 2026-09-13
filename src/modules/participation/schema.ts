@@ -34,6 +34,8 @@ export const occasionCategory = pgEnum("occasion_category", [
   "WORKSHOP",
   "SOCIAL",
   "OTHER",
+  // Inducción de nuevos (Regl. art. 47; ADR-060 regla 13): obligatoria para nuevos como las asambleas.
+  "INDUCTION",
 ]);
 export const occasionApproval = pgEnum("occasion_approval", ["AUTO", "MANUAL"]);
 export const occasionStatus = pgEnum("occasion_status", ["DRAFT", "OPEN", "CLOSED", "CANCELLED"]);

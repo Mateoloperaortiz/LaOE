@@ -185,6 +185,9 @@ export const membershipTerm = pgTable(
     reportAsVeteran: boolean().notNull().default(false),
     reason: text(),
     decidedById: text().references(() => person.id, { onDelete: "set null" }),
+    /** Constancia de que se verificaron los requisitos académicos del término, sin promedio ni materias (ADR-060 regla 13). */
+    academicVerifiedOn: date({ mode: "string" }),
+    academicVerifiedById: text().references(() => person.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
   (t) => [

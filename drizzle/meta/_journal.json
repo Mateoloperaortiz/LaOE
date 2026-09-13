@@ -176,6 +176,13 @@
       "when": 1789321748539,
       "tag": "0024_finanzas",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789322581660,
+      "tag": "0025_menores_normativa",
+      "breakpoints": true
     }
   ]
 }

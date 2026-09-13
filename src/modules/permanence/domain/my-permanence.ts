@@ -47,6 +47,7 @@ function emptyResult(personId: string): PersonPermanence {
       lost: [],
       excused: [],
       upcoming: [],
+      induction: { required: false, attended: false, excused: false, pending: false },
     },
   };
 }

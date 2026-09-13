@@ -229,7 +229,12 @@ export async function loadPeopleFacts(
   const hasRunoff = facts.occasions.some(
     (item) => item.assemblyKind === "RUNOFF" && item.status !== "CANCELLED",
   );
-  const fallback: AssemblyRequirementFact = defaultRequirement(facts.term, hasRunoff);
+  const fallback: AssemblyRequirementFact = defaultRequirement(facts.term, {
+    hasBoardElection: facts.occasions.some(
+      (item) => item.assemblyKind === "BOARD_ELECTION" && item.status !== "CANCELLED",
+    ),
+    hasRunoff,
+  });
   const requirements = new Map<string, AssemblyRequirementFact>();
   for (const row of await assemblyOverview(facts.term)) {
     requirements.set(row.personId, row.requirement);

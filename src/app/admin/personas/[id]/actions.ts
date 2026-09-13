@@ -9,6 +9,8 @@ import {
   completeTaskAs,
   createTaskAs,
   editNoteAs,
+  grantRecognitionAs,
+  recognitionInputSchema,
   taskInputSchema,
 } from "@/modules/crm";
 import {
@@ -285,6 +287,7 @@ export async function setProbationAction(formData: FormData): Promise<void> {
     reason: text(formData, "reason"),
     committeeId: text(formData, "committeeId") || null,
     reportAsVeteran: checked(formData, "reportAsVeteran"),
+    academicVerified: checked(formData, "academicVerified"),
   });
   if (!parsed.success || !termId || !(await getTerm(termId))) {
     await fail(id, "membresia", "condicion", t("T-260"));
@@ -515,4 +518,23 @@ export async function revokeSanctionAction(formData: FormData): Promise<void> {
   await run(id, "membresia", "revocar-sancion", () =>
     revokeSanctionAs({ personId: actor.personId }, sanctionId, text(formData, "reason")),
   );
+}
+
+// Premios OE (Regl. art. 71; ADR-060 regla 13): ADMIN registra la categoría del año como reconocimiento.
+export async function grantAwardAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("personId"));
+  const actor = await requireAdmin(await personUrl(id, "membresia"));
+  const parsed = recognitionInputSchema.safeParse({
+    personId: id,
+    kind: "OE_AWARD",
+    termId: text(formData, "termId"),
+    award: text(formData, "award"),
+  });
+  if (!parsed.success) {
+    await fail(id, "membresia", "premio", t("T-260"));
+    return;
+  }
+  await run(id, "membresia", "premio", async () => {
+    await grantRecognitionAs({ personId: actor.personId }, parsed.data);
+  });
 }

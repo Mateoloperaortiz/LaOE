@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { InteractionView } from "@/modules/crm";
+import { type InteractionView, OE_AWARDS } from "@/modules/crm";
 import {
   APPOINTMENT_KINDS,
   BOARD_APPOINTMENT_KINDS,
@@ -29,6 +29,7 @@ import {
   createTaskAction,
   editNoteAction,
   endMembershipAction,
+  grantAwardAction,
   reactivateAction,
   recordSanctionAction,
   revokeSanctionAction,
@@ -522,6 +523,14 @@ export function Paneles({
             item.termId === selected.id && item.committeeId === null && item.reportAsVeteran,
         )
       : false;
+    const academicVerified = selected
+      ? data.probation.some(
+          (item) =>
+            item.termId === selected.id &&
+            item.committeeId === null &&
+            item.academicVerifiedOn !== null,
+        )
+      : false;
     // Los comités en que la persona estuvo o está, para fijar la prueba solo en uno (ADR-060 regla 2).
     const [, comitéLabel] = tList("T-449") as [string, string];
     const personCommittees = [
@@ -579,6 +588,12 @@ export function Paneles({
               name="reportAsVeteran"
               label={t("T-2262")}
               defaultChecked={asVeteran}
+            />
+            <Casilla
+              id="campo-academicVerified"
+              name="academicVerified"
+              label={t("T-2313")}
+              defaultChecked={academicVerified}
             />
             <Campo id="campo-reason-condicion" label={t("T-434")}>
               <textarea
@@ -776,6 +791,48 @@ export function Paneles({
               <input id="campo-override-cargo" name="overrideReason" className={inputClass} />
             </Campo>
             <Botones enviar={agregar} cancelHref={closeHref} />
+          </AdminFormBody>
+        </form>
+      </ResourcePanel>
+    );
+  }
+
+  // Premios OE (Regl. art. 71; ADR-060 regla 13): ADMIN registra la categoría del año.
+  if (accion === "premio" && membership && membership.status !== "INACTIVE") {
+    const [titulo, categoria, otorgar] = tList("T-2321");
+    const categorias = tList("T-2320");
+    return (
+      <ResourcePanel title={titulo ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
+        {alerta}
+        <form action={grantAwardAction} className="flex flex-col gap-4">
+          <AdminFormBody>
+            {hidden}
+            <Campo id="campo-award" label={categoria ?? ""}>
+              <select id="campo-award" name="award" required className={inputClass} defaultValue="">
+                <option value="">—</option>
+                {OE_AWARDS.map((code, index) => (
+                  <option key={code} value={code}>
+                    {categorias[index] ?? code}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+            <Campo id="campo-termId-premio" label={tList("T-262")[1] ?? ""}>
+              <select
+                id="campo-termId-premio"
+                name="termId"
+                required
+                className={inputClass}
+                defaultValue={my.term?.id ?? ""}
+              >
+                {terms.map((term) => (
+                  <option key={term.id} value={term.id}>
+                    {term.code}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+            <Botones enviar={otorgar ?? ""} cancelHref={closeHref} />
           </AdminFormBody>
         </form>
       </ResourcePanel>

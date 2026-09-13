@@ -23,6 +23,7 @@ import { listAllCommittees } from "@/modules/people";
 import {
   committeesResource,
   peopleResource,
+  preferentialScheduleResource,
   rolesResource,
   segmentsResource,
   tagsResource,
@@ -149,6 +150,7 @@ const resources: Record<string, AnyResource> = {
   [workGroupsResource.key]: workGroupsResource as unknown as AnyResource,
   [boardResource.key]: boardResource as unknown as AnyResource,
   [budgetsResource.key]: budgetsResource as unknown as AnyResource,
+  [preferentialScheduleResource.key]: preferentialScheduleResource as unknown as AnyResource,
   [permissionsResource.key]: permissionsResource as unknown as AnyResource,
   [pagesResource.key]: pagesResource as unknown as AnyResource,
   [announcementsResource.key]: carteleraResource as unknown as AnyResource,

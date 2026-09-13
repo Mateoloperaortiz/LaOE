@@ -117,6 +117,14 @@ export {
   listInternalRoster,
   type RosterMember,
 } from "./domain/directory";
+export { honoraryFacts } from "./domain/honorary";
+export {
+  HONORARY_REQUIREMENTS,
+  type HonoraryEligibility,
+  type HonoraryFacts,
+  honoraryEligibility,
+  MIN_HONORARY_REQUIREMENTS,
+} from "./domain/honorary-pure";
 export { leaveUntilError, leaveWindow } from "./domain/leave-pure";
 export {
   type ChangeStatusInput,
@@ -181,6 +189,11 @@ export {
   type PersonRow,
   personInputSchema,
 } from "./domain/persons";
+export {
+  listPreferentialSchedule,
+  type PreferentialRow,
+  preferentialKindLabel,
+} from "./domain/preferential-schedule";
 export {
   findEligibleMemberByEmail,
   getMemberSummary,

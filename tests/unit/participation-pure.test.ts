@@ -33,6 +33,7 @@ import {
   canTransitionOccasion,
   defaultWindow,
   isAutoCloseDue,
+  isShortNotice,
   windowState,
 } from "@/modules/participation/domain/occasion-pure";
 import {
@@ -274,25 +275,47 @@ describe("elegibles del score", () => {
 });
 
 describe("asambleas", () => {
-  it("deriva el requisito del término: una ordinaria; elección y segunda vuelta en segundo semestre", () => {
-    const first = defaultRequirement({ semester: 1, requiredOrdinaryAssemblies: 1 }, true);
-    expect(first).toMatchObject({
+  it("deriva el requisito de las ocasiones del término: elección y segunda vuelta cuando existen (ADR-060 regla 13)", () => {
+    const none = defaultRequirement(
+      { requiredOrdinaryAssemblies: 1 },
+      { hasBoardElection: false, hasRunoff: false },
+    );
+    expect(none).toMatchObject({
       requiredOrdinary: 1,
       requiresBoardElection: false,
       requiresRunoff: false,
     });
-    const second = defaultRequirement({ semester: 2, requiredOrdinaryAssemblies: 1 }, false);
-    expect(second).toMatchObject({
+    const election = defaultRequirement(
+      { requiredOrdinaryAssemblies: 1 },
+      { hasBoardElection: true, hasRunoff: false },
+    );
+    expect(election).toMatchObject({
       requiredOrdinary: 1,
       requiresBoardElection: true,
       requiresRunoff: false,
     });
-    const withRunoff = defaultRequirement({ semester: 2, requiredOrdinaryAssemblies: 2 }, true);
+    const withRunoff = defaultRequirement(
+      { requiredOrdinaryAssemblies: 2 },
+      { hasBoardElection: true, hasRunoff: true },
+    );
     expect(withRunoff.requiresRunoff).toBe(true);
     expect(requiredTotal(withRunoff)).toBe(4);
   });
+  it("marca la asamblea citada con menos de tres días hábiles (Regl. art. 15 par. 1)", () => {
+    // Creada un lunes: tres días hábiles llegan al jueves.
+    const monday = new Date("2026-09-14T15:00:00Z");
+    expect(isShortNotice(monday, new Date("2026-09-16T23:00:00Z"))).toBe(true);
+    expect(isShortNotice(monday, new Date("2026-09-17T15:00:00Z"))).toBe(false);
+    // Creada un jueves: el fin de semana no cuenta, llega al martes.
+    const thursday = new Date("2026-09-17T15:00:00Z");
+    expect(isShortNotice(thursday, new Date("2026-09-21T15:00:00Z"))).toBe(true);
+    expect(isShortNotice(thursday, new Date("2026-09-22T15:00:00Z"))).toBe(false);
+  });
   it("calcula el cumplimiento por persona y lo que falta en orden", () => {
-    const requirement = defaultRequirement({ semester: 2, requiredOrdinaryAssemblies: 1 }, true);
+    const requirement = defaultRequirement(
+      { requiredOrdinaryAssemblies: 1 },
+      { hasBoardElection: true, hasRunoff: true },
+    );
     const none = assemblyCompliance(requirement, []);
     expect(none.compliant).toBe(false);
     expect(none.missing).toEqual(["ORDINARY", "BOARD_ELECTION", "RUNOFF"]);

@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { todayKey } from "@/shared/lib/dates";
 import { committeeMembership, membershipTerm } from "../schema";
 import { liveCommitteesPayload } from "./committee-memberships";
 import { endRoles } from "./committee-role-assignments";
@@ -19,6 +20,8 @@ export const probationInputSchema = z.object({
   committeeId: z.string().trim().min(1).nullable().default(null),
   /** La mesa de un comité nuevo o reactivado se reporta como activa aunque sea nueva (Est. art. 5 par. 1). */
   reportAsVeteran: z.boolean().default(false),
+  /** Constancia de la verificación académica del término, solo en el ámbito general (ADR-060 regla 13). */
+  academicVerified: z.boolean().optional(),
 });
 
 export type ProbationInput = z.input<typeof probationInputSchema>;
@@ -48,10 +51,23 @@ export async function setProbation(
       ),
     );
   const reportAsVeteran = input.reportAsVeteran ?? false;
+  const academic =
+    committeeId === null && input.academicVerified !== undefined
+      ? {
+          academicVerifiedOn: input.academicVerified
+            ? (existing?.academicVerifiedOn ?? todayKey())
+            : null,
+          academicVerifiedById: input.academicVerified
+            ? (existing?.academicVerifiedById ?? ctx.actor.personId)
+            : null,
+        }
+      : {};
   if (
     existing?.probation === input.probation &&
     existing.reason === input.reason &&
-    existing.reportAsVeteran === reportAsVeteran
+    existing.reportAsVeteran === reportAsVeteran &&
+    (academic.academicVerifiedOn === undefined ||
+      academic.academicVerifiedOn === existing.academicVerifiedOn)
   ) {
     return;
   }
@@ -60,6 +76,7 @@ export async function setProbation(
     reportAsVeteran,
     reason: input.reason || null,
     decidedById: ctx.actor.personId,
+    ...academic,
   };
   if (existing) {
     await ctx.tx.update(membershipTerm).set(values).where(eq(membershipTerm.id, existing.id));
@@ -75,6 +92,7 @@ export async function setProbation(
           probation: existing.probation,
           reportAsVeteran: existing.reportAsVeteran,
           reason: existing.reason,
+          academicVerifiedOn: existing.academicVerifiedOn,
         }
       : null,
     after: { termId, committeeId, ...values },

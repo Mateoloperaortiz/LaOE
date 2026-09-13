@@ -1,5 +1,7 @@
 import { readdirSync } from "node:fs";
+import { z } from "zod";
 import { runCommand } from "@/db/tx";
+import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import type { Badge, FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { MULTI_SEPARATOR } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
@@ -24,6 +26,11 @@ import {
   type PersonRow,
   personInputSchema,
 } from "./domain/persons";
+import {
+  listPreferentialSchedule,
+  type PreferentialRow,
+  preferentialKindLabel,
+} from "./domain/preferential-schedule";
 import {
   type CommitteeRoleInput,
   committeeRoleInputSchema,
@@ -597,5 +604,57 @@ export const segmentsResource: ResourceDefinition<SegmentRow, SegmentInput> = {
     nombre: row.name,
     personas: row.count,
     filtro: JSON.stringify(row.filter),
+  }),
+};
+
+// Horario preferencial (Regl. art. 72; ADR-060 regla 13): exporte de solo lectura con datos personales.
+const [preferencialPlural, preferencialSingular, nombreCol, ambitoCol, cargoCol] = tList("T-2323");
+const preferencialEmpty = z.object({});
+
+export const preferentialScheduleResource: ResourceDefinition<
+  PreferentialRow,
+  z.infer<typeof preferencialEmpty>
+> = {
+  key: "horario-preferencial",
+  names: { plural: preferencialPlural ?? "", singular: preferencialSingular ?? "" },
+  basePath: "/admin/horario-preferencial",
+  columns: [
+    { key: "name", label: nombreCol ?? "", render: (row) => row.name },
+    {
+      key: "kind",
+      label: tList("T-2288")[0] ?? "",
+      render: (row) => preferentialKindLabel(row.kind),
+    },
+    { key: "scope", label: ambitoCol ?? "", render: (row) => row.scope },
+    { key: "role", label: cargoCol ?? "", render: (row) => row.roleLabel },
+  ],
+  filters: async () => [
+    {
+      key: "termId",
+      label: tList("T-262")[1] ?? "",
+      options: (await listAllTerms()).map((term) => ({ value: term.id, label: term.code })),
+    },
+  ],
+  schema: preferencialEmpty,
+  fields: [],
+  list: async (params) => {
+    const term = params.filters.termId
+      ? (await listAllTerms()).find((item) => item.id === params.filters.termId)
+      : await getCurrentTerm();
+    if (!term) {
+      return { rows: [], total: 0 };
+    }
+    const rows = await listPreferentialSchedule(term.id);
+    return { rows, total: rows.length };
+  },
+  get: () => Promise.resolve(null),
+  toFormValues: () => ({}),
+  personalData: true,
+  exportRow: (row) => ({
+    nombre: row.name,
+    correo: row.email,
+    tipo: preferentialKindLabel(row.kind),
+    ámbito: row.scope,
+    cargo: row.roleLabel,
   }),
 };
