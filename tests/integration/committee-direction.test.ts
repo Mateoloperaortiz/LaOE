@@ -174,12 +174,19 @@ describe("agregar, cargos y pedido de retiro", () => {
     await addCommitteeMemberAs(actor(f.general), scope, director, {
       personId: co,
       roles: [
-        { roleCode: "PUBLICIDAD", coDirector: false },
+        { roleCode: "MERCADEO", coDirector: false },
         { roleCode: "GENERAL", coDirector: true },
       ],
     });
     const mine = await getMyMembership(co);
     expect(mine.committees.map((item) => item.roleCode)).toEqual(["GENERAL"]);
+    // Publicidad quedó retirado del catálogo de comités (ADR-060 regla 4): no se nombra nuevo.
+    await expect(
+      setMemberRolesAs(actor(f.general), scope, director, {
+        personId: co,
+        roles: [{ roleCode: "PUBLICIDAD", coDirector: false }],
+      }),
+    ).rejects.toMatchObject({ message: expect.stringContaining("Mercadeo") });
     const [audit] = await db()
       .select()
       .from(auditLog)

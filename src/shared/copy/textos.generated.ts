@@ -4297,9 +4297,45 @@ export const textos = {
     owner: "GH",
     status: "Propuesta",
   },
+  "T-2209": {
+    where: "Catálogo de cargos: casilla de retirado · campo del reemplazo",
+    text: "Retirado del catálogo · Lo reemplaza (código)",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-221": {
     where: "Exportes, cabeceras",
     text: "En español, sin abreviaturas: Nombre, Apellido, Correo, Comités, Estado, Semestre de ingreso, Puntos, Permanencia",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2210": {
+    where: "Catálogo de cargos: ayuda de retirado",
+    text: "Un cargo retirado no se ofrece al nombrar; quien ya lo tiene lo conserva hasta cerrarlo y el roster lo traduce al reemplazo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2211": {
+    where: "Catálogo de cargos: reemplazo inválido",
+    text: "El cargo de reemplazo no existe en el catálogo o es el mismo cargo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2212": {
+    where: "Guarda: nombrar un cargo retirado con reemplazo",
+    text: "El cargo {cargo} está retirado del catálogo: usá {nuevo}.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2213": {
+    where: "Importación: aviso de cargo traducido",
+    text: "{cargo} ya no existe en los comités desde los Estatutos 2026: se carga como {nuevo}.",
+    owner: "GH",
+    status: "Propuesta",
+  },
+  "T-2214": {
+    where: "Guarda e importación: cargo retirado sin reemplazo",
+    text: "El cargo {cargo} está retirado del catálogo y no tiene reemplazo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5547,9 +5583,10 @@ export const textos = {
   },
   "T-444": {
     where: "Membresía: cargos de junta y de GH (opciones)",
-    text: "Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Publicidad · GH principal · Director de GH · Otro",
+    text: "Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Mercadeo · GH principal · Director de GH · Otro",
     owner: "JUNTA",
-    status: "Propuesta",
+    status:
+      "Propuesta; el nombre es el del cuerpo de los Estatutos 2026 (art. 21 y 27), ADR-060 regla 4",
   },
   "T-445": {
     where: "Membresía: campo del título cuando el cargo es Otro",

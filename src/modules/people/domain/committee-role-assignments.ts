@@ -127,6 +127,8 @@ export async function replaceRoles(
       code: committeeRole.code,
       label: committeeRole.label,
       isLeadership: committeeRole.isLeadership,
+      retired: committeeRole.retired,
+      replacedByCode: committeeRole.replacedByCode,
     })
     .from(committeeRole);
   const byCode = new Map(catalog.map((row) => [row.code, row]));
@@ -156,6 +158,19 @@ export async function replaceRoles(
   const before = current.map(({ roleCode, coDirector }) => ({ roleCode, coDirector }));
   const toEnd = current.filter((row) => !wanted.some((role) => sameRole(role, row)));
   const toAdd = wanted.filter((role) => !current.some((row) => sameRole(role, row)));
+  // Un cargo retirado no se abre nuevo; quien ya lo tiene lo conserva (ADR-060 regla 4).
+  for (const role of toAdd) {
+    const known = byCode.get(role.roleCode);
+    if (known?.retired && !current.some((row) => row.roleCode === role.roleCode)) {
+      const replacement = known.replacedByCode ? byCode.get(known.replacedByCode) : undefined;
+      throw new DomainError(
+        replacement
+          ? t("T-2212", { cargo: known.label, nuevo: replacement.label })
+          : t("T-2214", { cargo: known.label }),
+        "roleCode",
+      );
+    }
+  }
   if (toEnd.length === 0 && toAdd.length === 0) {
     return { changed: false, before, after: before };
   }

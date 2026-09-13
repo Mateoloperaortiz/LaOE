@@ -259,7 +259,12 @@ async function buildPreview(
   ]);
   const validation = validateRoster(inputs, resolvedMapping, {
     committees,
-    roles: roles.map((role) => ({ code: role.code, label: role.label })),
+    roles: roles.map((role) => ({
+      code: role.code,
+      label: role.label,
+      retired: role.retired,
+      replacedByCode: role.replacedByCode,
+    })),
     termCodes: terms.map((term) => term.code),
     domains: getEnv().INSTITUTIONAL_EMAIL_DOMAINS,
     existing,
@@ -475,6 +480,8 @@ async function ensureRoles(ctx: CommandContext, rows: PreviewRow[]): Promise<str
           isLeadership: false,
           required: false,
           capabilities: [],
+          retired: false,
+          replacedByCode: null,
           sortOrder: 50,
         });
         known.add(role.code);

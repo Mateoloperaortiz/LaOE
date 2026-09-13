@@ -36,7 +36,11 @@ function CargosCasillas({
   return (
     <ul className="flex list-none flex-col gap-2 p-0">
       {roles
-        .filter((role) => role.code !== "MIEMBRO")
+        .filter(
+          (role) =>
+            role.code !== "MIEMBRO" &&
+            (!role.retired || current.some((item) => item.roleCode === role.code)),
+        )
         .map((role) => {
           const mine = current.find((item) => item.roleCode === role.code);
           const locked = role.isLeadership && !canDirect;

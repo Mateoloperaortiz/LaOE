@@ -28,9 +28,40 @@ export const committeeRoleInputSchema = z.object({
     .default([])
     .transform((values) => parseCapabilities(values)),
   sortOrder: z.coerce.number().int().min(0).max(999).default(50),
+  /** Retirado del catálogo de comités (ADR-060 regla 4): no se ofrece al nombrar y el roster lo traduce. */
+  retired: z.boolean().default(false),
+  replacedByCode: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .max(40)
+    .nullable()
+    .default(null)
+    .transform((value) => value || null),
 });
 
 export type CommitteeRoleInput = z.infer<typeof committeeRoleInputSchema>;
+
+/** El reemplazo de un cargo retirado tiene que existir y ser otro cargo. */
+async function assertReplacement(
+  ctx: CommandContext,
+  code: string,
+  replacedByCode: string | null,
+): Promise<void> {
+  if (!replacedByCode) {
+    return;
+  }
+  const [row] =
+    replacedByCode === code
+      ? []
+      : await ctx.tx
+          .select({ code: committeeRole.code })
+          .from(committeeRole)
+          .where(eq(committeeRole.code, replacedByCode));
+  if (!row) {
+    throw new DomainError(t("T-2211"), "replacedByCode");
+  }
+}
 
 export async function listRoles(params: {
   q: string;
@@ -67,6 +98,7 @@ export async function createCommitteeRole(
   ctx: CommandContext,
   input: CommitteeRoleInput,
 ): Promise<{ id: string }> {
+  await assertReplacement(ctx, input.code, input.replacedByCode);
   try {
     await ctx.tx.insert(committeeRole).values(input);
   } catch (error) {
@@ -94,12 +126,15 @@ export async function updateCommitteeRole(
   if (!before) {
     throw new DomainError(t("T-032"));
   }
+  await assertReplacement(ctx, code, input.replacedByCode);
   const values = {
     label: input.label,
     isLeadership: input.isLeadership,
     required: input.required,
     capabilities: input.capabilities,
     sortOrder: input.sortOrder,
+    retired: input.retired,
+    replacedByCode: input.replacedByCode,
   };
   await ctx.tx.update(committeeRole).set(values).where(eq(committeeRole.code, code));
   await ctx.audit({

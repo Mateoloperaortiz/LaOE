@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   date,
@@ -229,6 +230,8 @@ export const committee = pgTable(
 
 // Catálogo de cargos dentro del comité (ADR-029, ADR-058): cuáles son dirección, cuáles no pueden
 // faltar en un comité y qué capacidades habilita cada uno (vocabulario cerrado en domain/capabilities.ts).
+// Un cargo retirado (ADR-060 regla 4) no se ofrece al nombrar; los vivos que lo tengan siguen hasta
+// cerrarse y el roster lo traduce al que lo reemplaza (Publicidad → Mercadeo desde los Estatutos 2026).
 export const committeeRole = pgTable("committee_role", {
   code: text().primaryKey(),
   label: text().notNull(),
@@ -236,6 +239,8 @@ export const committeeRole = pgTable("committee_role", {
   required: boolean().notNull().default(false),
   capabilities: text().array().notNull().default(sql`'{}'::text[]`),
   sortOrder: integer().notNull().default(0),
+  retired: boolean().notNull().default(false),
+  replacedByCode: text().references((): AnyPgColumn => committeeRole.code),
 });
 
 export const committeeMembership = pgTable(

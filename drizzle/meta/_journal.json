@@ -120,6 +120,13 @@
       "when": 1789303165278,
       "tag": "0016_permanencia_segun_estatutos",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789304134358,
+      "tag": "0017_catalogo_de_cargos_2026",
+      "breakpoints": true
     }
   ]
 }

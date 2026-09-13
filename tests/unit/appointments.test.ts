@@ -9,7 +9,7 @@ describe("cargos de junta y de GH", () => {
     const labels = tList("T-444");
     expect(labels).toHaveLength(APPOINTMENT_KINDS.length);
     expect(labels[APPOINTMENT_KINDS.indexOf("VP_COMMUNICATIONS")]).toBe(
-      "Vicepresidencia de Comunicaciones y Publicidad",
+      "Vicepresidencia de Comunicaciones y Mercadeo",
     );
     expect(labels[APPOINTMENT_KINDS.indexOf("OTHER")]).toBe("Otro");
   });

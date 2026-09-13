@@ -309,6 +309,9 @@ export interface CommitteeRoleRow {
   /** Capacidades que el cargo habilita sobre su comité (domain/capabilities.ts). */
   capabilities: string[];
   sortOrder: number;
+  /** Retirado del catálogo de comités y su reemplazo (ADR-060 regla 4). */
+  retired: boolean;
+  replacedByCode: string | null;
 }
 
 export async function listCommitteeRoles(): Promise<CommitteeRoleRow[]> {

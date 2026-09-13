@@ -210,6 +210,9 @@ export interface RosterCommittee {
 export interface RosterRole {
   code: string;
   label: string;
+  /** Retirado del catálogo de comités (ADR-060 regla 4); el roster lo traduce a `replacedByCode`. */
+  retired?: boolean;
+  replacedByCode?: string | null;
 }
 
 export interface RosterCatalog {
@@ -541,6 +544,16 @@ export function validateRoster(
         const parsedRoles: ParsedRole[] = wanted
           ? wanted.map((item) => {
               const role = findRole(item.label, catalog.roles);
+              if (role?.retired) {
+                const replacement = role.replacedByCode
+                  ? catalog.roles.find((known) => known.code === role.replacedByCode)
+                  : undefined;
+                if (replacement) {
+                  warnings.push(t("T-2213", { cargo: role.label, nuevo: replacement.label }));
+                  return { roleCode: replacement.code, coDirector: item.coDirector };
+                }
+                errors.push(t("T-2214", { cargo: role.label }));
+              }
               if (role) {
                 return { roleCode: role.code, coDirector: item.coDirector };
               }

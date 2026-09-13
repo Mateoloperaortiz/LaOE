@@ -446,7 +446,11 @@ export function Paneles({
                   <fieldset className="flex flex-col gap-2">
                     <legend className="eyebrow px-1 text-xs">{cargo}</legend>
                     {roles
-                      .filter((item) => item.code !== "MIEMBRO")
+                      .filter(
+                        (item) =>
+                          item.code !== "MIEMBRO" &&
+                          (!item.retired || row?.roles.some((role) => role.roleCode === item.code)),
+                      )
                       .map((item) => {
                         const mine = row?.roles.find((role) => role.roleCode === item.code);
                         return (

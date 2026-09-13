@@ -631,7 +631,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-441 | Anonimizar: botón | Anonimizar | MATEO | Propuesta |
 | T-442 | Anonimizar sin solicitud previa | Solo se anonimiza a quien lo pidió desde Mi OE. | MATEO | Propuesta |
 | T-443 | Membresía: títulos de los bloques | Historial de estados · Comités por semestre · Cargos de junta y de GH · Condición del semestre | MATEO | Propuesta |
-| T-444 | Membresía: cargos de junta y de GH (opciones) | Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Publicidad · GH principal · Director de GH · Otro | JUNTA | Propuesta |
+| T-444 | Membresía: cargos de junta y de GH (opciones) | Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Mercadeo · GH principal · Director de GH · Otro | JUNTA | Propuesta; el nombre es el del cuerpo de los Estatutos 2026 (art. 21 y 27), ADR-060 regla 4 |
 | T-445 | Membresía: campo del título cuando el cargo es Otro | Título del cargo | MATEO | Propuesta |
 | T-446 | Membresía: casilla del permiso de junta | Otorgar también el permiso Junta (pide un código nuevo) | MATEO | Propuesta |
 | T-447 | Membresía: botones de cargos | Agregar cargo · Quitar | MATEO | Propuesta |
@@ -1760,3 +1760,9 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2206 | Persona 360: reactivar a una persona expulsada | No se puede reactivar: fue expulsada de la OE y el Reglamento no admite el reingreso (art. 61). | GH | Propuesta; texto sensible |
 | T-2207 | Condición del semestre: opción del comité que aplica a todos | Todos sus comités | MATEO | Propuesta |
 | T-2208 | Importación del roster: aviso por persona expulsada | {nombre} fue expulsada de la OE y el roster no la reactiva (Reglamento, art. 61); su fila conserva el estado actual. | GH | Propuesta |
+| T-2209 | Catálogo de cargos: casilla de retirado · campo del reemplazo | Retirado del catálogo · Lo reemplaza (código) | MATEO | Propuesta |
+| T-2210 | Catálogo de cargos: ayuda de retirado | Un cargo retirado no se ofrece al nombrar; quien ya lo tiene lo conserva hasta cerrarlo y el roster lo traduce al reemplazo. | MATEO | Propuesta |
+| T-2211 | Catálogo de cargos: reemplazo inválido | El cargo de reemplazo no existe en el catálogo o es el mismo cargo. | MATEO | Propuesta |
+| T-2212 | Guarda: nombrar un cargo retirado con reemplazo | El cargo {cargo} está retirado del catálogo: usá {nuevo}. | MATEO | Propuesta |
+| T-2213 | Importación: aviso de cargo traducido | {cargo} ya no existe en los comités desde los Estatutos 2026: se carga como {nuevo}. | GH | Propuesta |
+| T-2214 | Guarda e importación: cargo retirado sin reemplazo | El cargo {cargo} está retirado del catálogo y no tiene reemplazo. | MATEO | Propuesta |

@@ -368,6 +368,8 @@ function capabilityLabels(codes: string[]): string {
     .join(" · ");
 }
 
+const [retirado, reemplazo] = tList("T-2209") as [string, string];
+
 const roleFields: FieldDefinition[] = [
   { name: "code", label: codigo, type: "text", required: true, lockedOnEdit: true },
   { name: "label", label: nombreCargo, type: "text", required: true },
@@ -375,6 +377,9 @@ const roleFields: FieldDefinition[] = [
   { name: "required", label: obligatorio, type: "checkbox", help: t("T-2180") },
   { name: "capabilities", label: capacidades, type: "multiselect", options: capabilityOptions },
   { name: "sortOrder", label: orden, type: "number" },
+  // ADR-060 regla 4: un cargo retirado no se ofrece al nombrar y el roster lo traduce al reemplazo.
+  { name: "retired", label: retirado, type: "checkbox", help: t("T-2210") },
+  { name: "replacedByCode", label: reemplazo, type: "text" },
 ];
 
 export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleInput> = {
@@ -400,6 +405,17 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
       render: (row) => capabilityLabels(row.capabilities),
     },
     { key: "sortOrder", label: orden, render: (row) => row.sortOrder },
+    {
+      key: "retired",
+      label: retirado,
+      render: (row) =>
+        row.retired
+          ? {
+              text: row.replacedByCode ? `${retirado} → ${row.replacedByCode}` : retirado,
+              badge: "paper",
+            }
+          : null,
+    },
   ],
   schema: committeeRoleInputSchema,
   fields: roleFields,
@@ -412,6 +428,8 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
     required: row.required ? "true" : "",
     capabilities: row.capabilities.join(MULTI_SEPARATOR),
     sortOrder: String(row.sortOrder),
+    retired: row.retired ? "true" : "",
+    replacedByCode: row.replacedByCode ?? "",
   }),
   create: (actor, input) =>
     runCommand({ personId: actor.personId }, (ctx) => createCommitteeRole(ctx, input)),
@@ -424,6 +442,8 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
     obligatorio: row.required ? "sí" : "no",
     capacidades: capabilityLabels(row.capabilities),
     orden: row.sortOrder,
+    retirado: row.retired ? "sí" : "no",
+    reemplazo: row.replacedByCode ?? "",
   }),
 };
 

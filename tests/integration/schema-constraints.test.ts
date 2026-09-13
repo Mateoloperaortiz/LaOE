@@ -169,6 +169,23 @@ describe("restricciones que no negocia el esquema", () => {
     ]) {
       expect(byCode.get(code)?.isLeadership).toBe(true);
     }
+    // Estatutos 2026 (ADR-060 regla 4): Publicidad retirado y reemplazado por Mercadeo; Logística con roster.
+    expect(byCode.get("PUBLICIDAD")).toMatchObject({ retired: true, replacedByCode: "MERCADEO" });
+    expect(byCode.get("MERCADEO")).toMatchObject({ retired: false, sortOrder: 3 });
+    expect(byCode.get("LOGISTICA")?.capabilities).toEqual(["OCCASIONS", "EVENTS", "ROSTER"]);
+    expect(
+      rows
+        .filter((row) => row.isLeadership && !row.retired)
+        .map((row) => row.code)
+        .sort(),
+    ).toEqual([
+      "FINANCIERO",
+      "GENERAL",
+      "GESTION_HUMANA",
+      "LOGISTICA",
+      "MERCADEO",
+      "RELACIONES_PUBLICAS",
+    ]);
   });
 
   it("rechaza un cargo que no está en el catálogo", async () => {
