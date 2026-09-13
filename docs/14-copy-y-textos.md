@@ -238,7 +238,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-136 | Solicitar eliminación | Pedir que borren mis datos (GH responde en 15 días hábiles) | JUNTA | Propuesta; el plazo sale de la política |
 | T-137 | Cerrar otras sesiones | Cerrar sesión en los demás dispositivos | MATEO | Propuesta |
 | T-138 | Solicitudes, título | Solicitudes | GH | Propuesta |
-| T-139 | Solicitudes, tipos (en el orden del modelo: licencia, retiro, cambio de comité) | Pedir licencia · Retirarme de la OE · Cambiarme de comité el próximo semestre | GH | Propuesta |
+| T-139 | Solicitudes, tipos (en el orden del modelo: licencia, retiro, cambio de comité, excusa) | Pedir licencia · Retirarme de la OE · Cambiarme de comité el próximo semestre · Presentar una excusa | GH | Propuesta |
 | T-140 | Solicitud enviada | Tu solicitud llegó a GH. Te avisamos cuando la respondan. | GH | Propuesta |
 | T-141 | Solicitud aprobada | GH aprobó tu solicitud de {tipo}. Ya está aplicada. | GH | Propuesta |
 | T-142 | Solicitud rechazada | GH no aprobó tu solicitud de {tipo}: {motivo}. Si querés hablarlo, escribiles. | GH | Propuesta |
@@ -418,7 +418,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-891 | Solicitud: ya hay una pendiente de ese tipo | Ya tenés una solicitud de {tipo} pendiente. | MATEO | Propuesta |
 | T-892 | Solicitud: solo miembros activos | Solo un miembro activo puede hacer solicitudes. | GH | Propuesta |
 | T-893 | Solicitud: botón de enviar | Enviar solicitud | MATEO | Propuesta |
-| T-894 | Solicitud: tipos en singular para los mensajes (en el orden del modelo: licencia, retiro, cambio de comité) | licencia · retiro · cambio de comité | MATEO | Propuesta |
+| T-894 | Solicitud: tipos en singular para los mensajes (en el orden del modelo: licencia, retiro, cambio de comité, excusa) | licencia · retiro · cambio de comité · excusa | MATEO | Propuesta |
 | T-895 | Solicitud: respuesta de GH, título | Respuesta de GH | GH | Propuesta |
 | T-896 | Convocatorias: sin convocatorias abiertas | No hay convocatorias abiertas ahora. Cuando se abra una, la vas a ver acá. | GH | Propuesta |
 | T-897 | Convocatoria: cupo y cierre | {cupo} cupos · cierra el {fecha} | MATEO | Propuesta |
@@ -749,7 +749,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-594 | Consola: lista de asistentes, título | Asistentes | MATEO | Propuesta |
 | T-595 | Consola: columnas de asistentes | Persona · Comités · Hora · Fuente · Estado | MATEO | Propuesta |
 | T-596 | Consola y Persona 360: fuentes del check-in (en el orden del modelo) | QR · Anfitrión · Admin · Importado | MATEO | Propuesta |
-| T-597 | Consola y Persona 360: estados del check-in (en el orden del modelo) | Pendiente · Aprobado · Rechazado · Anulado | MATEO | Propuesta |
+| T-597 | Consola y Persona 360: estados del check-in (en el orden del modelo) | Pendiente · Aprobado · Rechazado · Anulado · Excusado | MATEO | Propuesta |
 | T-598 | Consola: alta manual, título y botón | Registrar a alguien · Registrar | GH | Propuesta |
 | T-599 | Consola y anfitrión: campo de búsqueda | Buscá por nombre | MATEO | Propuesta |
 | T-600 | Consola y anfitrión: sin resultados | No encontramos a nadie con ese nombre. | MATEO | Propuesta |
@@ -819,7 +819,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-664 | Recurso rankings (plural · singular) | Rankings · Puesto | MATEO | Propuesta |
 | T-665 | Recurso cumplimiento de asambleas (plural · singular) | Cumplimiento de asambleas · Persona | MATEO | Propuesta |
 | T-666 | Tarea: falta crear el semestre siguiente | Crear el semestre {codigo}: el actual termina el {fecha} | MATEO | Propuesta |
-| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points | MATEO | Propuesta |
+| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} | MATEO | Propuesta |
 | T-668 | Persona 360, Participación: títulos | Check-ins · Movimientos de GH Points | MATEO | Propuesta |
 | T-669 | Persona 360, Participación: sin check-ins | Todavía no tiene check-ins. | MATEO | Propuesta |
 | T-670 | Persona 360, Resumen: asambleas obligatorias | {n} de {total} obligatorias | MATEO | Propuesta |
@@ -1132,7 +1132,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1054 | Kanban: buscador de persona u organización, texto | Buscá por nombre o correo | MATEO | Propuesta |
 | T-1055 | Kanban: sujeto elegido | Sujeto | MATEO | Propuesta |
 | T-1056 | Correos: destinatario sin nombre preferido | Hola | MATEO | Propuesta |
-| T-1057 | Solicitud (admin): tipos en plural para los filtros | Licencias · Retiros · Cambios de comité | MATEO | Propuesta |
+| T-1057 | Solicitud (admin): tipos en plural para los filtros | Licencias · Retiros · Cambios de comité · Excusas | MATEO | Propuesta |
 | T-1058 | Formulario: valor "sí" y "no" de una casilla en respuestas y exportes | Sí · No | MATEO | Propuesta |
 | T-1059 | Organización: sin tareas | Sin tareas. | MATEO | Propuesta |
 | T-1060 | Kanban: sin responsable | Sin responsable | MATEO | Propuesta |
@@ -1766,3 +1766,17 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2212 | Guarda: nombrar un cargo retirado con reemplazo | El cargo {cargo} está retirado del catálogo: usá {nuevo}. | MATEO | Propuesta |
 | T-2213 | Importación: aviso de cargo traducido | {cargo} ya no existe en los comités desde los Estatutos 2026: se carga como {nuevo}. | GH | Propuesta |
 | T-2214 | Guarda e importación: cargo retirado sin reemplazo | El cargo {cargo} está retirado del catálogo y no tiene reemplazo. | MATEO | Propuesta |
+| T-2215 | Excusa: causales del Anexo 1 del Reglamento (en el orden del modelo) | Clase, parcial o actividad académica obligatoria · Cita médica, odontológica, psicológica o terapéutica · Incapacidad médica · Emergencia médica o accidente propio o de un familiar cercano · Fallecimiento de un familiar o de una persona cercana · Obligación laboral que no se puede reprogramar · Diligencia académica o institucional obligatoria · Problema de movilidad (accidente, cierre vial, manifestación, transporte o clima) · Situación familiar de fuerza mayor · Citación judicial, notarial o de una entidad pública · Competencia, congreso o evento en representación de la Universidad · Falla técnica imprevista para asistir o entregar de forma virtual · Riesgo para la seguridad o la integridad personal · Otra circunstancia de fuerza mayor o caso fortuito | GH | Propuesta; transcripción del Anexo 1 |
+| T-2216 | Excusa: detalle en listas y paneles | Excusa para {ocasión} · {causal} | MATEO | Propuesta |
+| T-2217 | Solicitudes (admin): aceptar una excusa, texto | Vas a aceptar la excusa de {nombre} ({detalle}): la ocasión queda excusada, sin puntos, y no cuenta como falta ni como obligatoria perdida. | GH | Propuesta |
+| T-2218 | Excusa: campos del formulario (ocasión · causal · soporte) | Ocasión · Causal (Anexo 1 del Reglamento) · Soporte: enlace o descripción (opcional) | GH | Propuesta |
+| T-2219 | Excusa: fuera de plazo | La excusa se presenta antes de la ocasión o hasta tres días hábiles después (Reglamento, Anexo 1). Ya pasó el plazo: hablá con GH. | GH | Propuesta; texto sensible |
+| T-2220 | Excusa: ya hay una pendiente para esa ocasión | Ya tenés una excusa pendiente para esa ocasión. | MATEO | Propuesta |
+| T-2221 | Excusa: explicación | Si no pudiste ir a una asamblea, actividad, reunión o partido por una causal del Reglamento, presentá la excusa antes o hasta tres días hábiles después. Si GH o tu comité la aceptan, no cuenta como falta ni te expulsa por una asamblea obligatoria; tampoco suma puntos. | GH | Propuesta |
+| T-2222 | Excusa: falta la ocasión o la causal | Elegí la ocasión y la causal. | MATEO | Propuesta |
+| T-2223 | Excusa: la ocasión ya tiene asistencia | Esa ocasión ya tiene tu asistencia registrada: no hace falta excusa. | MATEO | Propuesta |
+| T-2224 | Excusa: sin ocasiones para excusar | No hay ocasiones recientes ni próximas para excusar. | MATEO | Propuesta |
+| T-2225 | Permanencia del comité: bloque de excusas pendientes, título | Excusas pendientes de tu comité | GH | Propuesta |
+| T-2226 | Permanencia del comité: sin excusas pendientes | No hay excusas pendientes sobre las ocasiones de tu comité. | MATEO | Propuesta |
+| T-2227 | Excusa: ocasión inválida | La ocasión no existe, está cancelada o no es de este semestre. | MATEO | Propuesta |
+| T-2228 | Excusa: decidida desde el comité | Excusa {estado}. | MATEO | Propuesta |

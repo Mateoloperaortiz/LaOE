@@ -98,6 +98,8 @@ export interface PersonFacts {
   committees: CommitteeFact[];
   /** Ids de las ocasiones con check-in aprobado. */
   attended: ReadonlySet<string>;
+  /** Ids de las ocasiones con excusa válida aceptada (ADR-060 regla 5): no cuentan como falta. */
+  excused: ReadonlySet<string>;
   groupMemberships: GroupMembershipFact[];
   leaderScores: Array<{ ruleId: string; value: number; note: string | null; scoredAt: Date }>;
   credits: Array<{ ruleId: string; value: number; reason: string }>;
@@ -193,8 +195,10 @@ export interface MandatoryView {
   attended: { ordinary: number; boardElection: boolean; runoff: boolean };
   met: boolean;
   missing: AssemblyKindName[];
-  /** Obligatorias que ya pasaron sin registro y no tienen reemplazo programado. */
+  /** Obligatorias que ya pasaron sin registro ni excusa y no tienen reemplazo programado. */
   lost: AssemblyKindName[];
+  /** Tipos de obligatoria con una excusa aceptada (ADR-060 regla 5). */
+  excused: AssemblyKindName[];
   upcoming: Array<UpcomingOccasion & { assemblyKind: AssemblyKindName }>;
 }
 
@@ -537,7 +541,8 @@ export function computeCriterion(
         }
         return true;
       });
-      const held = eligible.filter((item) => item.startsAt <= now);
+      // Una reunión con excusa aceptada sale del denominador (ADR-060 regla 5).
+      const held = eligible.filter((item) => item.startsAt <= now && !person.excused.has(item.id));
       const attended = held.filter((item) => person.attended.has(item.id)).length;
       const future = upcomingOf(eligible, now).length;
       const rate = held.length === 0 ? 0 : attended / held.length;
@@ -701,8 +706,14 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
     assemblies.filter((item) => item.assemblyKind === kind && person.attended.has(item.id)).length;
   const upcomingOf = (kind: AssemblyKindName) =>
     assemblies.filter((item) => item.assemblyKind === kind && item.startsAt > now).length;
+  // Una obligatoria con excusa aceptada no se celebró "sin registro": no se pierde (ADR-060 regla 5).
   const heldOf = (kind: AssemblyKindName) =>
-    assemblies.filter((item) => item.assemblyKind === kind && item.startsAt <= now).length;
+    assemblies.filter(
+      (item) => item.assemblyKind === kind && item.startsAt <= now && !person.excused.has(item.id),
+    ).length;
+  const excused = (["ORDINARY", "BOARD_ELECTION", "RUNOFF"] as const).filter((kind) =>
+    assemblies.some((item) => item.assemblyKind === kind && person.excused.has(item.id)),
+  );
   const required = {
     ordinary: person.assemblyRequirement.requiredOrdinary,
     boardElection: person.assemblyRequirement.requiresBoardElection,
@@ -747,7 +758,7 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
       startsAt: item.startsAt.toISOString(),
       assemblyKind: item.assemblyKind as AssemblyKindName,
     }));
-  return { required, attended, met: missing.length === 0, missing, lost, upcoming };
+  return { required, attended, met: missing.length === 0, missing, lost, excused, upcoming };
 }
 
 /** El resultado completo de una persona en el término: general, por comité y obligatorias. */

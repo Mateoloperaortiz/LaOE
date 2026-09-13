@@ -33,11 +33,15 @@ export {
 export {
   type ApprovedCheckIn,
   type CheckInRow,
+  type ExcuseInput,
+  excuseCheckIn,
   findCheckIn,
   listApprovedCheckInsForPersonInTerm,
   listApprovedCheckInsForTerm,
   listCheckIns,
   listCheckInsForPerson,
+  listExcusedCheckInsForPersonInTerm,
+  listExcusedCheckInsForTerm,
   type SelfCheckInDenial,
   type SelfCheckInResult,
 } from "./domain/check-ins";

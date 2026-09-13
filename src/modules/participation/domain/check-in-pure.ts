@@ -1,7 +1,8 @@
 // Estados del check-in (ADR-035 regla 6): reaprobar un rechazo es válido porque nunca tuvo crédito;
-// anular un aprobado revierte su crédito y es terminal.
+// anular un aprobado revierte su crédito y es terminal. EXCUSED es la falta con excusa válida aceptada
+// (ADR-060 regla 5): sin crédito, terminal, y no cuenta como falta.
 
-export type CheckInStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+export type CheckInStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "EXCUSED";
 export type CheckInSource = "SELF_QR" | "HOST" | "ADMIN" | "IMPORT";
 export type CheckInDecision = "APPROVE" | "REJECT" | "CANCEL";
 
@@ -10,14 +11,16 @@ export const CHECK_IN_STATUSES: readonly CheckInStatus[] = [
   "APPROVED",
   "REJECTED",
   "CANCELLED",
+  "EXCUSED",
 ];
 export const CHECK_IN_SOURCES: readonly CheckInSource[] = ["SELF_QR", "HOST", "ADMIN", "IMPORT"];
 
 const TRANSITIONS: Record<CheckInStatus, readonly CheckInStatus[]> = {
-  PENDING: ["APPROVED", "REJECTED"],
+  PENDING: ["APPROVED", "REJECTED", "EXCUSED"],
   APPROVED: ["CANCELLED"],
-  REJECTED: ["APPROVED"],
-  CANCELLED: [],
+  REJECTED: ["APPROVED", "EXCUSED"],
+  CANCELLED: ["EXCUSED"],
+  EXCUSED: [],
 };
 
 export function canTransitionCheckIn(from: CheckInStatus, to: CheckInStatus): boolean {

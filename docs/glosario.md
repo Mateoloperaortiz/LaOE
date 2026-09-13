@@ -98,7 +98,8 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Interacción | `Interaction` | Entrada de la línea de tiempo de una persona: automática o nota manual |
 | Nota | `Interaction.kind=NOTE` | Interacción escrita por alguien del equipo |
 | Tarea | `Task` | Pendiente con responsable y vencimiento sobre persona, organización o tarjeta; de tipo general, solicitud de eliminación o solicitud de miembro |
-| Solicitud | `Request` | Pedido del miembro desde Mi OE (licencia, retiro voluntario o cambio de comité para el semestre siguiente) que GH aprueba; aprobar ejecuta el comando en la misma transacción |
+| Solicitud | `Request` | Pedido del miembro desde Mi OE (licencia, retiro voluntario, cambio de comité para el semestre siguiente o excusa válida sobre una ocasión) que GH aprueba; aprobar ejecuta el comando en la misma transacción |
+| Excusa válida | `Request.kind = EXCUSE` + `CheckIn.status = EXCUSED` | Falta justificada por una causal del Anexo 1 del Reglamento, presentada antes de la ocasión o hasta tres días hábiles después; la decide GH o la dirección del comité dueño de la ocasión y, aceptada, no da puntos ni cuenta como falta ni como obligatoria perdida ([ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) regla 5) |
 | Convocatoria interna | `InternalCall` | Llamado a inscribirse en un grupo de trabajo con formulario opcional, cupo, ventana y selección por orden de llegada o manual |
 | Inscripción a convocatoria | `InternalCallEntry` | Persona apuntada a una convocatoria: aplicada, aceptada, en lista de espera o rechazada; la aceptada crea la pertenencia al grupo por outbox |
 | Tablero del admin | `/admin` | Inicio del admin con pendientes, vencidas, solicitudes, respuestas, tarjetas, convocatorias, ocasiones y alertas |

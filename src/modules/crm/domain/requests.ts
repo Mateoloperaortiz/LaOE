@@ -1,7 +1,13 @@
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import {
+  excuseCheckIn,
+  findCheckIn,
+  getOccasionsByIds,
+  listOccasionsForTerm,
+} from "@/modules/participation";
 import {
   changeMembershipStatus,
   endMembership,
@@ -19,6 +25,9 @@ import { t, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate } from "@/shared/lib/dates";
 import { request, task } from "../schema";
 import {
+  EXCUSE_BUSINESS_DAYS,
+  EXCUSE_CAUSES,
+  type ExcusePayload,
   REQUEST_KINDS,
   REQUEST_PAYLOAD_SCHEMAS,
   REQUEST_STATUSES,
@@ -53,7 +62,30 @@ export function requestStatusLabel(status: RequestStatus): string {
   return tList("T-876")[REQUEST_STATUSES.indexOf(status)] ?? status;
 }
 
-async function describe(kind: RequestKind, payload: Record<string, unknown>): Promise<string> {
+/** Causal del Anexo 1 en el orden de T-2215 (ADR-060 regla 5). */
+export function excuseCauseLabel(cause: string): string {
+  const index = (EXCUSE_CAUSES as readonly string[]).indexOf(cause);
+  return index >= 0 ? (tList("T-2215")[index] ?? cause) : cause;
+}
+
+/** Hasta cuándo se presenta la excusa de una ocasión: tres días hábiles después (Anexo 1, par. 1). */
+export function excuseDeadline(startsAt: Date): Date {
+  return addBusinessDays(startsAt, EXCUSE_BUSINESS_DAYS);
+}
+
+async function describe(
+  kind: RequestKind,
+  payload: Record<string, unknown>,
+  occasionId: string | null,
+): Promise<string> {
+  if (kind === "EXCUSE") {
+    const parsed = REQUEST_PAYLOAD_SCHEMAS.EXCUSE.safeParse(payload);
+    const title = occasionId ? (await getOccasionsByIds([occasionId])).get(occasionId)?.title : "";
+    return t("T-2216", {
+      ocasión: title ?? "",
+      causal: parsed.success ? excuseCauseLabel(parsed.data.cause) : t("T-1015"),
+    });
+  }
   if (kind === "LEAVE") {
     const parsed = REQUEST_PAYLOAD_SCHEMAS.LEAVE.safeParse(payload);
     const [conFecha, sinFecha] = tList("T-1010") as [string, string];
@@ -89,7 +121,7 @@ async function toViews(rows: RequestRecord[]): Promise<RequestView[]> {
       personEmail: people.get(row.personId)?.email ?? "",
       kindLabel: requestKindLabel(row.kind),
       statusLabel: requestStatusLabel(row.status),
-      detail: await describe(row.kind, row.payload),
+      detail: await describe(row.kind, row.payload, row.occasionId),
       decidedByName: row.decidedById ? (people.get(row.decidedById)?.fullName ?? null) : null,
     })),
   );
@@ -208,6 +240,24 @@ export async function createRequestAs(
     throw new DomainError(t("T-989"));
   }
   const kindLabel = requestKindLabel(kind);
+  // Excusa (ADR-060 regla 5): una ocasión del término, no cancelada, sin asistencia registrada y
+  // antes de la ocasión o hasta tres días hábiles después (Anexo 1, parágrafo 1).
+  let occasionId: string | null = null;
+  if (kind === "EXCUSE") {
+    const excuse = payload as ExcusePayload;
+    const row = (await getOccasionsByIds([excuse.occasionId])).get(excuse.occasionId);
+    if (!row || row.termId !== term.id || row.status === "CANCELLED" || row.status === "DRAFT") {
+      throw new DomainError(t("T-2227"), "occasionId");
+    }
+    if (excuseDeadline(row.startsAt) < new Date()) {
+      throw new DomainError(t("T-2219"), "occasionId");
+    }
+    const existing = await findCheckIn(row.id, actor.personId);
+    if (existing && (existing.status === "APPROVED" || existing.status === "EXCUSED")) {
+      throw new DomainError(t("T-2223"), "occasionId");
+    }
+    occasionId = row.id;
+  }
   return runCommand(actor, async (ctx) => {
     if (kind === "RESIGNATION") {
       const resignation = REQUEST_PAYLOAD_SCHEMAS.RESIGNATION.parse(payload);
@@ -217,11 +267,14 @@ export async function createRequestAs(
     }
     const [created] = await ctx.tx
       .insert(request)
-      .values({ personId: actor.personId, kind, termId: term.id, payload })
+      .values({ personId: actor.personId, kind, termId: term.id, occasionId, payload })
       .returning({ id: request.id })
       .catch((error: unknown) => {
         if (isUniqueViolation(error, "request_pending_unique")) {
           throw new DomainError(t("T-891", { tipo: kindLabel }));
+        }
+        if (isUniqueViolation(error, "request_excuse_pending_unique")) {
+          throw new DomainError(t("T-2220"), "occasionId");
         }
         throw error;
       });
@@ -404,6 +457,18 @@ async function apply(
     limits: { min: number; max: number };
   },
 ): Promise<TermRow | null> {
+  if (row.kind === "EXCUSE") {
+    const payload = REQUEST_PAYLOAD_SCHEMAS.EXCUSE.parse(row.payload);
+    if (!row.occasionId) {
+      throw new DomainError(t("T-2227"));
+    }
+    await excuseCheckIn(ctx, {
+      occasionId: row.occasionId,
+      personId: row.personId,
+      reason: `${excuseCauseLabel(payload.cause)}: ${payload.reason}`,
+    });
+    return null;
+  }
   if (row.kind === "LEAVE") {
     const payload = REQUEST_PAYLOAD_SCHEMAS.LEAVE.parse(row.payload);
     await changeMembershipStatus(ctx, row.personId, { to: "ON_LEAVE", reason: payload.reason });
@@ -439,4 +504,50 @@ async function apply(
   const next = await ensureNextTerm(ctx, context.term);
   await setCommitteeMemberships(ctx, row.personId, next.id, change.rows);
   return { ...context.term, id: next.id, code: next.code };
+}
+
+// Excusas por comité (ADR-060 regla 5): quien tiene PERMANENCE en el comité decide las excusas
+// sobre las ocasiones de ese comité; la comprobación de la capacidad la hace la acción.
+
+/** Excusas pendientes sobre ocasiones de un comité en un término, de la más reciente a la más vieja. */
+export async function listPendingExcusesForCommittee(
+  committeeId: string,
+  termId: string,
+): Promise<RequestView[]> {
+  const occasionIds = (await listOccasionsForTerm(termId))
+    .filter((row) => row.committeeId === committeeId)
+    .map((row) => row.id);
+  if (occasionIds.length === 0) {
+    return [];
+  }
+  const rows = await getDb()
+    .select()
+    .from(request)
+    .where(
+      and(
+        eq(request.kind, "EXCUSE"),
+        eq(request.status, "PENDING"),
+        inArray(request.occasionId, occasionIds),
+      ),
+    )
+    .orderBy(desc(request.createdAt));
+  return toViews(rows);
+}
+
+/** La dirección del comité decide una excusa solo si la ocasión es de su comité. */
+export async function decideExcuseForCommitteeAs(
+  actor: Actor,
+  requestId: string,
+  committeeId: string,
+  input: DecisionInput,
+): Promise<void> {
+  const current = await getRequest(requestId);
+  if (!current || current.kind !== "EXCUSE" || !current.occasionId) {
+    throw new DomainError(t("T-032"));
+  }
+  const row = (await getOccasionsByIds([current.occasionId])).get(current.occasionId);
+  if (!row || row.committeeId !== committeeId) {
+    throw new DomainError(t("T-032"));
+  }
+  await decideRequestAs(actor, requestId, input);
 }

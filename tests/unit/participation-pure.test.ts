@@ -304,3 +304,14 @@ describe("asambleas", () => {
     expect(pending.missing).toEqual(["ORDINARY", "RUNOFF"]);
   });
 });
+
+describe("excusa válida aceptada (ADR-060 regla 5)", () => {
+  it("un pendiente, un rechazado o un anulado pasan a excusado; un aprobado no, y el excusado es terminal", () => {
+    expect(canTransitionCheckIn("PENDING", "EXCUSED")).toBe(true);
+    expect(canTransitionCheckIn("REJECTED", "EXCUSED")).toBe(true);
+    expect(canTransitionCheckIn("CANCELLED", "EXCUSED")).toBe(true);
+    expect(canTransitionCheckIn("APPROVED", "EXCUSED")).toBe(false);
+    expect(canTransitionCheckIn("EXCUSED", "APPROVED")).toBe(false);
+    expect(canTransitionCheckIn("EXCUSED", "CANCELLED")).toBe(false);
+  });
+});

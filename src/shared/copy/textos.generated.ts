@@ -874,7 +874,7 @@ export const textos = {
   },
   "T-1057": {
     where: "Solicitud (admin): tipos en plural para los filtros",
-    text: "Licencias · Retiros · Cambios de comité",
+    text: "Licencias · Retiros · Cambios de comité · Excusas",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2351,8 +2351,9 @@ export const textos = {
     status: "Propuesta",
   },
   "T-139": {
-    where: "Solicitudes, tipos (en el orden del modelo: licencia, retiro, cambio de comité)",
-    text: "Pedir licencia · Retirarme de la OE · Cambiarme de comité el próximo semestre",
+    where:
+      "Solicitudes, tipos (en el orden del modelo: licencia, retiro, cambio de comité, excusa)",
+    text: "Pedir licencia · Retirarme de la OE · Cambiarme de comité el próximo semestre · Presentar una excusa",
     owner: "GH",
     status: "Propuesta",
   },
@@ -4339,10 +4340,94 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2215": {
+    where: "Excusa: causales del Anexo 1 del Reglamento (en el orden del modelo)",
+    text: "Clase, parcial o actividad académica obligatoria · Cita médica, odontológica, psicológica o terapéutica · Incapacidad médica · Emergencia médica o accidente propio o de un familiar cercano · Fallecimiento de un familiar o de una persona cercana · Obligación laboral que no se puede reprogramar · Diligencia académica o institucional obligatoria · Problema de movilidad (accidente, cierre vial, manifestación, transporte o clima) · Situación familiar de fuerza mayor · Citación judicial, notarial o de una entidad pública · Competencia, congreso o evento en representación de la Universidad · Falla técnica imprevista para asistir o entregar de forma virtual · Riesgo para la seguridad o la integridad personal · Otra circunstancia de fuerza mayor o caso fortuito",
+    owner: "GH",
+    status: "Propuesta; transcripción del Anexo 1",
+  },
+  "T-2216": {
+    where: "Excusa: detalle en listas y paneles",
+    text: "Excusa para {ocasión} · {causal}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2217": {
+    where: "Solicitudes (admin): aceptar una excusa, texto",
+    text: "Vas a aceptar la excusa de {nombre} ({detalle}): la ocasión queda excusada, sin puntos, y no cuenta como falta ni como obligatoria perdida.",
+    owner: "GH",
+    status: "Propuesta",
+  },
+  "T-2218": {
+    where: "Excusa: campos del formulario (ocasión · causal · soporte)",
+    text: "Ocasión · Causal (Anexo 1 del Reglamento) · Soporte: enlace o descripción (opcional)",
+    owner: "GH",
+    status: "Propuesta",
+  },
+  "T-2219": {
+    where: "Excusa: fuera de plazo",
+    text: "La excusa se presenta antes de la ocasión o hasta tres días hábiles después (Reglamento, Anexo 1). Ya pasó el plazo: hablá con GH.",
+    owner: "GH",
+    status: "Propuesta; texto sensible",
+  },
   "T-222": {
     where: "Cartel de egresados por año",
     text: "Egresados {año} · {nombres}",
     owner: "COM",
+    status: "Propuesta",
+  },
+  "T-2220": {
+    where: "Excusa: ya hay una pendiente para esa ocasión",
+    text: "Ya tenés una excusa pendiente para esa ocasión.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2221": {
+    where: "Excusa: explicación",
+    text: "Si no pudiste ir a una asamblea, actividad, reunión o partido por una causal del Reglamento, presentá la excusa antes o hasta tres días hábiles después. Si GH o tu comité la aceptan, no cuenta como falta ni te expulsa por una asamblea obligatoria; tampoco suma puntos.",
+    owner: "GH",
+    status: "Propuesta",
+  },
+  "T-2222": {
+    where: "Excusa: falta la ocasión o la causal",
+    text: "Elegí la ocasión y la causal.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2223": {
+    where: "Excusa: la ocasión ya tiene asistencia",
+    text: "Esa ocasión ya tiene tu asistencia registrada: no hace falta excusa.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2224": {
+    where: "Excusa: sin ocasiones para excusar",
+    text: "No hay ocasiones recientes ni próximas para excusar.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2225": {
+    where: "Permanencia del comité: bloque de excusas pendientes, título",
+    text: "Excusas pendientes de tu comité",
+    owner: "GH",
+    status: "Propuesta",
+  },
+  "T-2226": {
+    where: "Permanencia del comité: sin excusas pendientes",
+    text: "No hay excusas pendientes sobre las ocasiones de tu comité.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2227": {
+    where: "Excusa: ocasión inválida",
+    text: "La ocasión no existe, está cancelada o no es de este semestre.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2228": {
+    where: "Excusa: decidida desde el comité",
+    text: "Excusa {estado}.",
+    owner: "MATEO",
     status: "Propuesta",
   },
   "T-223": {
@@ -6503,7 +6588,7 @@ export const textos = {
   },
   "T-597": {
     where: "Consola y Persona 360: estados del check-in (en el orden del modelo)",
-    text: "Pendiente · Aprobado · Rechazado · Anulado",
+    text: "Pendiente · Aprobado · Rechazado · Anulado · Excusado",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6923,7 +7008,7 @@ export const textos = {
   },
   "T-667": {
     where: "Línea de tiempo: textos de las interacciones de participación",
-    text: "Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points",
+    text: "Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion}",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8287,8 +8372,8 @@ export const textos = {
   },
   "T-894": {
     where:
-      "Solicitud: tipos en singular para los mensajes (en el orden del modelo: licencia, retiro, cambio de comité)",
-    text: "licencia · retiro · cambio de comité",
+      "Solicitud: tipos en singular para los mensajes (en el orden del modelo: licencia, retiro, cambio de comité, excusa)",
+    text: "licencia · retiro · cambio de comité · excusa",
     owner: "MATEO",
     status: "Propuesta",
   },

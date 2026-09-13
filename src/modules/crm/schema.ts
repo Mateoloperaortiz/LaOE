@@ -15,6 +15,7 @@ import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { announcement } from "@/modules/content/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { form, formSubmission } from "@/modules/forms/schema";
+import { occasion } from "@/modules/participation/schema";
 import { committee, person, tag } from "@/modules/people/schema";
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
@@ -31,7 +32,8 @@ export const organizationKind = pgEnum("organization_kind", [
   "OTHER",
 ]);
 export const pipelineKind = pgEnum("pipeline_kind", ["ADMISSION", "SPONSORSHIP", "CUSTOM"]);
-export const requestKind = pgEnum("request_kind", ["LEAVE", "RESIGNATION", "TRANSFER"]);
+// EXCUSE: excusa válida sobre una ocasión (ADR-060 regla 5).
+export const requestKind = pgEnum("request_kind", ["LEAVE", "RESIGNATION", "TRANSFER", "EXCUSE"]);
 export const requestStatus = pgEnum("request_status", [
   "PENDING",
   "APPROVED",
@@ -256,6 +258,8 @@ export const request = pgTable(
     termId: text()
       .notNull()
       .references(() => term.id),
+    /** La ocasión de una excusa (ADR-060 regla 5); nula en los demás tipos. */
+    occasionId: text().references(() => occasion.id, { onDelete: "cascade" }),
     payload: jsonb().$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
     status: requestStatus().notNull().default("PENDING"),
     taskId: text().references(() => task.id, { onDelete: "set null" }),
@@ -266,14 +270,26 @@ export const request = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [
+    // Una pendiente por persona y tipo; las excusas (las únicas con ocasión, ver el check), una
+    // pendiente por persona y ocasión. Los predicados no nombran el valor nuevo del enum: un cast
+    // enum → text no es inmutable y un índice no lo admite.
     uniqueIndex("request_pending_unique")
       .on(t.personId, t.kind)
-      .where(sql`${t.status} = 'PENDING'`),
+      .where(sql`${t.status} = 'PENDING' and ${t.occasionId} is null`),
+    uniqueIndex("request_excuse_pending_unique")
+      .on(t.personId, t.occasionId)
+      .where(sql`${t.status} = 'PENDING' and ${t.occasionId} is not null`),
     index("request_status_idx").on(t.status, t.createdAt),
     index("request_person_idx").on(t.personId),
     check(
       "request_reason_when_rejected",
       sql`${t.status} <> 'REJECTED' or ${t.reason} is not null`,
+    ),
+    check(
+      "request_excuse_has_occasion",
+      // Solo las excusas llevan ocasión y todas la llevan; `::text` evita usar el valor nuevo del
+      // enum en la misma transacción que lo agrega.
+      sql`(${t.kind}::text = 'EXCUSE') = (${t.occasionId} is not null)`,
     ),
   ],
 );

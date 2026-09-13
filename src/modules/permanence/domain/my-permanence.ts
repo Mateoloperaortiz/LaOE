@@ -44,6 +44,7 @@ function emptyResult(personId: string): PersonPermanence {
       met: true,
       missing: [],
       lost: [],
+      excused: [],
       upcoming: [],
     },
   };

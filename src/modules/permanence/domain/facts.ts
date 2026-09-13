@@ -5,6 +5,8 @@ import {
   defaultRequirement,
   listApprovedCheckInsForPersonInTerm,
   listApprovedCheckInsForTerm,
+  listExcusedCheckInsForPersonInTerm,
+  listExcusedCheckInsForTerm,
   listOccasionsForTerm,
 } from "@/modules/participation";
 import { listTermRoster, type TermRosterRow } from "@/modules/people";
@@ -133,23 +135,44 @@ function groupRoster(rows: TermRosterRow[]): Map<string, TermRosterRow[]> {
   return map;
 }
 
-async function attendedByPerson(
+async function occasionsByPerson(
   termId: string,
   personIds: string[] | undefined,
+  forPerson: (personId: string, termId: string) => Promise<string[]>,
+  forTerm: (termId: string) => Promise<Array<{ personId: string; occasionId: string }>>,
 ): Promise<Map<string, Set<string>>> {
   const map = new Map<string, Set<string>>();
   if (personIds) {
     for (const personId of personIds) {
-      map.set(personId, new Set(await listApprovedCheckInsForPersonInTerm(personId, termId)));
+      map.set(personId, new Set(await forPerson(personId, termId)));
     }
     return map;
   }
-  for (const row of await listApprovedCheckInsForTerm(termId)) {
+  for (const row of await forTerm(termId)) {
     const set = map.get(row.personId) ?? new Set<string>();
     set.add(row.occasionId);
     map.set(row.personId, set);
   }
   return map;
+}
+
+function attendedByPerson(termId: string, personIds: string[] | undefined) {
+  return occasionsByPerson(
+    termId,
+    personIds,
+    listApprovedCheckInsForPersonInTerm,
+    listApprovedCheckInsForTerm,
+  );
+}
+
+/** Ocasiones con excusa aceptada (ADR-060 regla 5): no cuentan como falta. */
+function excusedByPerson(termId: string, personIds: string[] | undefined) {
+  return occasionsByPerson(
+    termId,
+    personIds,
+    listExcusedCheckInsForPersonInTerm,
+    listExcusedCheckInsForTerm,
+  );
 }
 
 /**
@@ -168,6 +191,7 @@ export async function loadPeopleFacts(
   }
   const db = getDb();
   const attended = await attendedByPerson(termId, personIds);
+  const excused = await excusedByPerson(termId, personIds);
   const memberships = await db
     .select({
       personId: workGroupMembership.personId,
@@ -225,6 +249,7 @@ export async function loadPeopleFacts(
         leftAt: row.leftAt,
       })),
       attended: attended.get(personId) ?? new Set(),
+      excused: excused.get(personId) ?? new Set(),
       groupMemberships: memberships
         .filter((item) => item.personId === personId)
         .map(({ personId: _p, ...rest }) => rest),

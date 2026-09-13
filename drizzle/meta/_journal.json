@@ -127,6 +127,13 @@
       "when": 1789304134358,
       "tag": "0017_catalogo_de_cargos_2026",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789305149478,
+      "tag": "0018_excusas_validas",
+      "breakpoints": true
     }
   ]
 }

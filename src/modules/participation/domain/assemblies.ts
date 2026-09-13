@@ -54,7 +54,7 @@ export interface PersonAssemblyStatus {
   compliance: AssemblyCompliance;
   assemblies: Array<{
     occasion: OccasionRow;
-    status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | null;
+    status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "EXCUSED" | null;
   }>;
 }
 

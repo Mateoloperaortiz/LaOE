@@ -32,12 +32,14 @@ export function PanelSolicitud({
       ? t("T-1004", { nombre: request.personName })
       : request.kind === "RESIGNATION"
         ? t("T-1005", { nombre: request.personName })
-        : t("T-1006", {
-            nombre: request.personName,
-            término: nextTermCode ?? "",
-            deja: request.detail.split(" · ")[0]?.replace(/^[^:]*:\s*/, "") ?? "",
-            entra: request.detail.split(" · ")[1]?.replace(/^[^:]*:\s*/, "") ?? "",
-          });
+        : request.kind === "EXCUSE"
+          ? t("T-2217", { nombre: request.personName, detalle: request.detail })
+          : t("T-1006", {
+              nombre: request.personName,
+              término: nextTermCode ?? "",
+              deja: request.detail.split(" · ")[0]?.replace(/^[^:]*:\s*/, "") ?? "",
+              entra: request.detail.split(" · ")[1]?.replace(/^[^:]*:\s*/, "") ?? "",
+            });
   return (
     <ResourcePanel
       title={`${request.kindLabel} · ${request.personName}`}
@@ -80,6 +82,9 @@ export function PanelSolicitud({
         {request.reason ? <Dato etiqueta={t("T-1002")} valor={request.reason} /> : null}
         {typeof request.payload.reason === "string" ? (
           <Dato etiqueta={t("T-880")} valor={request.payload.reason} />
+        ) : null}
+        {typeof request.payload.evidence === "string" && request.payload.evidence ? (
+          <Dato etiqueta={tList("T-2218")[2] ?? ""} valor={request.payload.evidence} />
         ) : null}
       </dl>
       {request.status === "PENDING" ? (

@@ -72,6 +72,7 @@ const REQUIRED_INDEXES = [
   "organization_tag_unique",
   "card_submission_unique",
   "request_pending_unique",
+  "request_excuse_pending_unique",
   "internal_call_entry_unique",
   // Fase 6 (ADR-038)
   "message_person_dedupe_unique",

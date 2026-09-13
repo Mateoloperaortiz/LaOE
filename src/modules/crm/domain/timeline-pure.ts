@@ -22,6 +22,7 @@ export const TIMELINE_EVENTS = [
   "checkin.approved",
   "checkin.pending",
   "checkin.cancelled",
+  "checkin.excused",
   "points.adjusted",
   "points.reversed",
   "wordle.completed",
@@ -256,6 +257,12 @@ export function summarizeEvent(
           motivo: str(payload, "reason") || "—",
         }),
         { occasionId: str(payload, "occasionId") },
+      );
+    case "checkin.excused":
+      return entry(
+        "PARTICIPATION",
+        fill(labels.participationTexts[7] ?? "", { ocasion: str(payload, "occasionTitle") }),
+        { occasionId: str(payload, "occasionId"), excused: true },
       );
     case "wordle.completed": {
       const points = typeof payload.points === "number" ? payload.points : 0;

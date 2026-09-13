@@ -28,7 +28,7 @@ export function defaultRequirement(
 
 export interface AttendedAssembly {
   assemblyKind: AssemblyKind;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "EXCUSED";
 }
 
 export interface AssemblyCompliance {

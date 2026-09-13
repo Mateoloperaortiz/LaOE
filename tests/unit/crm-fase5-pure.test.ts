@@ -6,7 +6,11 @@ import {
   templateStages,
 } from "@/modules/crm/domain/pipelines-pure";
 import {
+  EXCUSE_BUSINESS_DAYS,
+  EXCUSE_CAUSES,
+  excusePayloadSchema,
   leavePayloadSchema,
+  REQUEST_KINDS,
   resignationPayloadSchema,
   resultingCommittees,
   transferPayloadSchema,
@@ -137,5 +141,54 @@ describe("convocatorias", () => {
     expect(initialEntryStatus("MANUAL", 2, 0)).toBe("APPLIED");
     expect(hasRoom(1, 1)).toBe(false);
     expect(hasRoom(null, 10)).toBe(true);
+  });
+});
+
+describe("excusa válida (ADR-060 regla 5)", () => {
+  it("las causales del Anexo 1 tienen su etiqueta en T-2215 y los tipos de solicitud sus textos", () => {
+    expect(EXCUSE_CAUSES).toHaveLength(14);
+    expect(tList("T-2215")).toHaveLength(EXCUSE_CAUSES.length);
+    expect(REQUEST_KINDS).toContain("EXCUSE");
+    for (const code of ["T-139", "T-894", "T-1057"] as const) {
+      expect(tList(code)).toHaveLength(REQUEST_KINDS.length);
+    }
+    expect(EXCUSE_BUSINESS_DAYS).toBe(3);
+  });
+
+  it("exige ocasión, causal del catálogo y motivo; el soporte es opcional", () => {
+    expect(
+      excusePayloadSchema.safeParse({
+        occasionId: "o1",
+        cause: "MEDICAL_LEAVE",
+        reason: "Incapacidad",
+      }).success,
+    ).toBe(true);
+    expect(
+      excusePayloadSchema.safeParse({
+        occasionId: "",
+        cause: "MEDICAL_LEAVE",
+        reason: "Incapacidad",
+      }).error?.issues[0]?.message,
+    ).toBe("T-2222");
+    expect(
+      excusePayloadSchema.safeParse({ occasionId: "o1", cause: "OTRA", reason: "Incapacidad" })
+        .error?.issues[0]?.message,
+    ).toBe("T-2222");
+    expect(
+      excusePayloadSchema.safeParse({ occasionId: "o1", cause: "WORK", reason: "x" }).success,
+    ).toBe(false);
+    expect(
+      excusePayloadSchema.parse({
+        occasionId: "o1",
+        cause: "WORK",
+        reason: " Turno ",
+        evidence: " https://ejemplo.test/soporte ",
+      }),
+    ).toEqual({
+      occasionId: "o1",
+      cause: "WORK",
+      reason: "Turno",
+      evidence: "https://ejemplo.test/soporte",
+    });
   });
 });

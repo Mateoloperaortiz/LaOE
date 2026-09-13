@@ -141,6 +141,7 @@ function person(overrides: Partial<PersonFacts> = {}): PersonFacts {
     probation: false,
     committees: [committee("pixel")],
     attended: new Set(),
+    excused: new Set(),
     groupMemberships: [],
     leaderScores: [],
     credits: [],
@@ -609,6 +610,57 @@ describe("lo que aún es posible", () => {
     });
   });
 
+  it("una reunión con excusa aceptada sale del denominador de la tasa (ADR-060 regla 5)", () => {
+    const reuniones = rule(
+      {
+        key: "reuniones",
+        label: "Reuniones",
+        weight: 15,
+        computation: "CHECKIN_RATE",
+        params: { category: "COMMITTEE_MEETING" },
+      },
+      "COMMITTEE",
+      "a3",
+    );
+    const meetings = [1, 2, 3, 4].map((n) =>
+      occ({
+        id: `m${n}`,
+        category: "COMMITTEE_MEETING",
+        committeeId: "a3",
+        startsAt: past(n * 7),
+      }),
+    );
+    const termFacts = facts({ rules: [reuniones], occasions: meetings });
+    const sinExcusa = computePerson(
+      termFacts,
+      person({ committees: [committee("a3")], attended: new Set(["m1", "m2"]) }),
+      NOW,
+    );
+    const conExcusa = computePerson(
+      termFacts,
+      person({
+        committees: [committee("a3")],
+        attended: new Set(["m1", "m2"]),
+        excused: new Set(["m3", "m4"]),
+      }),
+      NOW,
+    );
+    const rateOf = (result: ReturnType<typeof computePerson>) =>
+      result.results[0]?.criteria[0]?.detail;
+    expect(rateOf(sinExcusa)).toMatchObject({
+      type: "CHECKIN_RATE",
+      attended: 2,
+      held: 4,
+      rate: 0.5,
+    });
+    expect(rateOf(conExcusa)).toMatchObject({
+      type: "CHECKIN_RATE",
+      attended: 2,
+      held: 2,
+      rate: 1,
+    });
+  });
+
   it("la tasa de reuniones solo cuenta las reuniones en que la persona estaba en el comité", () => {
     const reuniones = rule(
       { key: "reuniones", label: "Reuniones", weight: 15, computation: "CHECKIN_RATE", params: {} },
@@ -847,6 +899,37 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
       lost: ["BOARD_ELECTION"],
     });
     expect(result.mandatory.upcoming.map((item) => item.occasionId)).toEqual(["ord-2"]);
+  });
+
+  it("una obligatoria con excusa aceptada no se pierde ni expulsa (ADR-060 regla 5)", () => {
+    const closedTerm = { ...TERM, permanenceClosedAt: new Date() };
+    const termFacts = facts({
+      rules: [eventos],
+      occasions: [ordinary, election],
+      term: closedTerm,
+    });
+    const excusedFromElection = person({
+      committees: [committee("a3")],
+      attended: new Set(["ord"]),
+      excused: new Set(["elec"]),
+      credits: [{ ruleId: eventos.id, value: 60, reason: "" }],
+    });
+    const result = computePerson(termFacts, excusedFromElection, NOW);
+    expect(result.mandatory).toMatchObject({
+      met: false,
+      missing: ["BOARD_ELECTION"],
+      lost: [],
+      excused: ["BOARD_ELECTION"],
+    });
+    expect(proposeDecisions(result).person).toEqual({ proposed: "CONTINUES", reason: 0 });
+    // Sin excusa, la elección perdida sí expulsa.
+    const absent = computePerson(
+      termFacts,
+      person({ ...excusedFromElection, excused: new Set() }),
+      NOW,
+    );
+    expect(absent.mandatory.lost).toEqual(["BOARD_ELECTION"]);
+    expect(proposeDecisions(absent).person).toEqual({ proposed: "EXIT_OE", reason: 4 });
   });
 
   it("una obligatoria sin programar todavía no se da por perdida", () => {

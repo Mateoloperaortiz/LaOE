@@ -3,7 +3,7 @@ import { z } from "zod";
 // Solicitudes sin I/O (ADR-031, ADR-037): un payload por tipo y el conjunto de comités que resulta de un
 // cambio para el semestre siguiente. El orden de REQUEST_KINDS es el de T-139 y T-894.
 
-export const REQUEST_KINDS = ["LEAVE", "RESIGNATION", "TRANSFER"] as const;
+export const REQUEST_KINDS = ["LEAVE", "RESIGNATION", "TRANSFER", "EXCUSE"] as const;
 export type RequestKind = (typeof REQUEST_KINDS)[number];
 
 export const REQUEST_STATUSES = ["PENDING", "APPROVED", "REJECTED", "WITHDRAWN"] as const;
@@ -23,6 +23,38 @@ export const resignationPayloadSchema = z.object({
   contactConsent: z.boolean().default(false),
   personalEmail: email.optional(),
 });
+
+/** Causales de excusa válida del Anexo 1 del Reglamento, en el orden de T-2215 (ADR-060 regla 5). */
+export const EXCUSE_CAUSES = [
+  "ACADEMIC",
+  "MEDICAL_APPOINTMENT",
+  "MEDICAL_LEAVE",
+  "EMERGENCY",
+  "BEREAVEMENT",
+  "WORK",
+  "INSTITUTIONAL",
+  "MOBILITY",
+  "FAMILY",
+  "LEGAL",
+  "REPRESENTATION",
+  "TECHNICAL",
+  "SAFETY",
+  "FORCE_MAJEURE",
+] as const;
+export type ExcuseCause = (typeof EXCUSE_CAUSES)[number];
+
+/** Días hábiles después de la ocasión en que todavía se presenta una excusa (Anexo 1, parágrafo 1). */
+export const EXCUSE_BUSINESS_DAYS = 3;
+
+export const excusePayloadSchema = z.object({
+  occasionId: z.string().trim().min(1, "T-2222"),
+  cause: z.enum(EXCUSE_CAUSES, { message: "T-2222" }),
+  reason,
+  /** Soporte: un enlace o una descripción; opcional (Anexo 1, parágrafo 2). */
+  evidence: z.string().trim().max(500).optional(),
+});
+
+export type ExcusePayload = z.infer<typeof excusePayloadSchema>;
 
 export const transferPayloadSchema = z
   .object({
@@ -47,6 +79,7 @@ export const REQUEST_PAYLOAD_SCHEMAS = {
   LEAVE: leavePayloadSchema,
   RESIGNATION: resignationPayloadSchema,
   TRANSFER: transferPayloadSchema,
+  EXCUSE: excusePayloadSchema,
 } as const;
 
 export interface CommitteeChange {

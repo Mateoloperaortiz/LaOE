@@ -32,7 +32,7 @@ registerHandler("permanence.recompute", async (payload, ctx) => {
 
 // Check-ins aprobados o anulados: la persona en el término de la ocasión.
 const checkInEvent = z.object({ personId: z.string().min(1), termId: z.string().min(1) });
-for (const type of ["checkin.approved", "checkin.cancelled"]) {
+for (const type of ["checkin.approved", "checkin.cancelled", "checkin.excused"]) {
   registerHandler(type, async (payload) => {
     const { personId, termId } = checkInEvent.parse(payload);
     await enqueueRecompute(termId, personId);

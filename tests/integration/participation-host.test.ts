@@ -70,7 +70,13 @@ describe("modo anfitrión y consola en vivo", () => {
     );
     const snapshot = await buildLiveSnapshot(id, now);
     if (!snapshot) throw new Error("sin snapshot");
-    expect(snapshot.counts).toEqual({ PENDING: 1, APPROVED: 1, REJECTED: 0, CANCELLED: 0 });
+    expect(snapshot.counts).toEqual({
+      PENDING: 1,
+      APPROVED: 1,
+      REJECTED: 0,
+      CANCELLED: 0,
+      EXCUSED: 0,
+    });
     expect(snapshot.recent.map((item) => [item.name, item.status, item.source])).toEqual([
       ["Beto Dos", "APPROVED", "HOST"],
       ["Ana Uno", "PENDING", "SELF_QR"],

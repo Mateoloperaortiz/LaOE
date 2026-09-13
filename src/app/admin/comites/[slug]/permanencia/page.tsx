@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { listCommitteeRecognitions, MONTHS, monthName } from "@/modules/crm";
+import {
+  listCommitteeRecognitions,
+  listPendingExcusesForCommittee,
+  MONTHS,
+  monthName,
+} from "@/modules/crm";
 import { listInternalRoster } from "@/modules/people";
 import {
   deviatesFromNominal,
@@ -23,6 +28,7 @@ import { requireCommitteeCapability } from "../../_kit/capacidades";
 import {
   applyCommitteeTemplateAction,
   copyCommitteeRulesAction,
+  decideExcuseAction,
   deleteCommitteeRuleAction,
   recognizeAction,
   saveCommitteeRuleAction,
@@ -82,11 +88,14 @@ export default async function PermanenciaComitePage({
   const locked = view.lockedAt !== null && !roles.isAdmin;
   const editing = accion === "editar" ? await getRule(single(search.regla)) : null;
   const hidden = { slug };
-  const [scores, snapshots, recognitions] = await Promise.all([
+  const [scores, snapshots, recognitions, excuses] = await Promise.all([
     listLeaderScores(term.id, committee.id),
     listSnapshots(term.id),
     listCommitteeRecognitions(committee.id, term.id),
+    listPendingExcusesForCommittee(committee.id, term.id),
   ]);
+  const excusa = single(search.excusa);
+  const [aprobarExcusa, rechazarExcusa] = tList("T-1001") as [string, string];
   const scoreRules = view.rules.filter((rule) => rule.computation === "LEADER_SCORE");
   const scoreOf = (ruleId: string, personId: string) =>
     scores.find((item) => item.ruleId === ruleId && item.personId === personId) ?? null;
@@ -141,6 +150,76 @@ export default async function PermanenciaComitePage({
           {committee.name}
         </Link>
       </header>
+      {excusa ? (
+        <output className="block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-2 text-sm font-semibold text-oe-navy">
+          {t("T-2228", {
+            estado: (tList("T-876")[excusa === "APPROVED" ? 1 : 2] ?? "").toLowerCase(),
+          })}
+        </output>
+      ) : null}
+
+      <section aria-labelledby="excusas" className="flex flex-col gap-3">
+        <h2 id="excusas" className="text-display-md">
+          {t("T-2225")}
+        </h2>
+        {excuses.length === 0 ? (
+          <p className="text-sm text-tinta-suave">{t("T-2226")}</p>
+        ) : (
+          <ul className="flex list-none flex-col gap-3 p-0">
+            {excuses.map((row) => (
+              <li
+                key={row.id}
+                className="flex flex-col gap-3 rounded-xl border border-borde bg-fondo p-4"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold">{row.personName}</span>
+                  <span className="text-sm text-tinta-suave">{row.detail}</span>
+                </div>
+                {typeof row.payload.reason === "string" ? (
+                  <p className="whitespace-pre-wrap break-words text-sm">{row.payload.reason}</p>
+                ) : null}
+                {typeof row.payload.evidence === "string" && row.payload.evidence ? (
+                  <p className="break-words text-sm text-tinta-suave">{row.payload.evidence}</p>
+                ) : null}
+                <div className="flex flex-wrap items-end gap-3">
+                  <form action={decideExcuseAction}>
+                    <AdminFormBody>
+                      <input type="hidden" name="slug" value={slug} />
+                      <input type="hidden" name="requestId" value={row.id} />
+                      <input type="hidden" name="decision" value="APPROVED" />
+                      <AdminSubmitButton type="submit" className="boton-calido">
+                        {aprobarExcusa}
+                      </AdminSubmitButton>
+                    </AdminFormBody>
+                  </form>
+                  <form action={decideExcuseAction} className="flex flex-wrap items-end gap-2">
+                    <AdminFormBody>
+                      <input type="hidden" name="slug" value={slug} />
+                      <input type="hidden" name="requestId" value={row.id} />
+                      <input type="hidden" name="decision" value="REJECTED" />
+                      <label
+                        className="flex flex-col gap-1 text-sm"
+                        htmlFor={`excusa-motivo-${row.id}`}
+                      >
+                        {t("T-1002")}
+                        <input
+                          id={`excusa-motivo-${row.id}`}
+                          name="reason"
+                          type="text"
+                          className={inputClass}
+                        />
+                      </label>
+                      <AdminSubmitButton type="submit" className="boton-secundario">
+                        {rechazarExcusa}
+                      </AdminSubmitButton>
+                    </AdminFormBody>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {locked ? (
         <p className="rounded-xl bg-oe-yellow-soft px-4 py-3 font-semibold text-oe-navy">

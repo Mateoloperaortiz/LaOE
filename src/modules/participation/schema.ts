@@ -37,11 +37,13 @@ export const occasionCategory = pgEnum("occasion_category", [
 ]);
 export const occasionApproval = pgEnum("occasion_approval", ["AUTO", "MANUAL"]);
 export const occasionStatus = pgEnum("occasion_status", ["DRAFT", "OPEN", "CLOSED", "CANCELLED"]);
+// EXCUSED: falta con excusa válida aceptada (ADR-060 regla 5); no da puntos ni cuenta como falta.
 export const checkInStatus = pgEnum("check_in_status", [
   "PENDING",
   "APPROVED",
   "REJECTED",
   "CANCELLED",
+  "EXCUSED",
 ]);
 export const checkInSource = pgEnum("check_in_source", ["SELF_QR", "HOST", "ADMIN", "IMPORT"]);
 export const pointEntryKind = pgEnum("point_entry_kind", [

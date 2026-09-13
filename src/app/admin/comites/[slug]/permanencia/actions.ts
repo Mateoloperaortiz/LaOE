@@ -4,7 +4,11 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { grantRecognitionAs, recognitionInputSchema } from "@/modules/crm";
+import {
+  decideExcuseForCommitteeAs,
+  grantRecognitionAs,
+  recognitionInputSchema,
+} from "@/modules/crm";
 import { listInternalRoster } from "@/modules/people";
 import {
   applyTemplateAs,
@@ -190,4 +194,30 @@ export async function recognizeAction(formData: FormData): Promise<void> {
       mes: String(parsed.data.month ?? ""),
     }),
   );
+}
+
+// Excusas sobre las ocasiones del comité (ADR-060 regla 5): quien tiene PERMANENCE en el comité las
+// acepta o rechaza; el dominio vuelve a comprobar que la ocasión sea de este comité.
+export async function decideExcuseAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const requestId = idSchema.parse(formData.get("requestId"));
+  const decision = text(formData, "decision") === "APPROVED" ? "APPROVED" : "REJECTED";
+  const returnTo = back(slug);
+  const access = await requireCommitteeCapability(slug, "PERMANENCE", returnTo);
+  try {
+    await decideExcuseForCommitteeAs(
+      { personId: access.actor.personId, ip: await clientIp() },
+      requestId,
+      access.roster.committee.id,
+      { decision, reason: text(formData, "reason") || undefined },
+    );
+  } catch (error) {
+    if (error instanceof DomainError) {
+      redirect(back(slug, { error: error.message }));
+    }
+    throw error;
+  }
+  revalidatePath(returnTo);
+  revalidatePath("/admin/solicitudes");
+  redirect(back(slug, { guardado: "1", excusa: decision }));
 }
