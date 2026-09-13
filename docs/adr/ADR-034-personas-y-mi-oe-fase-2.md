@@ -1,6 +1,6 @@
 # ADR-034: Personas, CRM mínimo y Mi OE (fase 2)
 
-- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057)
+- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-022, ADR-029, ADR-030, ADR-031, ADR-032, ADR-033
 - Enmienda: ADR-010 (destrucción de sesiones), ADR-018 y 08-migracion (mapeo del líder de comité), ADR-022 (el archivo del roster sí pasa por la app)
@@ -76,3 +76,7 @@ La [ADR-046](ADR-046-integracion-roster-y-acceso-en-licencia.md) amplía los dat
 ## Enmienda (2026-09-11, ADR-057)
 
 Regla 13: `appointment.kind` suma `VP_COMMUNICATIONS` (Vicepresidencia de Comunicaciones y Publicidad) entre `VP_FINANCE` y `GH_HEAD`; el resto de la regla no cambia. Ver [ADR-057](ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md).
+
+## Enmienda (2026-09-12, ADR-058)
+
+Regla 5: el editor de comités de la Persona 360 admite varios cargos por comité, con casilla de codirección junto a cada cargo de dirección. Regla 13: el líder de comité es un cargo asignado `GENERAL` en `committee_role_assignment` (titular o codirección), no `committee_membership.roleCode`, que queda como cargo principal derivado. Ver [ADR-058](ADR-058-direccion-del-comite-por-areas.md).

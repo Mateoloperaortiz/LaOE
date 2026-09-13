@@ -10,6 +10,9 @@ import {
   person,
 } from "../schema";
 import type { AppointmentKind } from "./appointments";
+import type { RoleView } from "./committee-direction-pure";
+import { rolesOf } from "./committee-memberships";
+import { listLiveRolesByMembership } from "./committee-role-assignments";
 import { liveConsentExists } from "./consents";
 import type { MembershipStatus } from "./reads";
 
@@ -23,9 +26,11 @@ export interface DirectoryCommittee {
   slug: string;
   name: string;
   logoKey: string | null;
+  /** Cargo principal derivado; `roles` trae todos los vivos con codirección (ADR-058). */
   roleCode: string;
   roleLabel: string;
   isLeadership: boolean;
+  roles: RoleView[];
 }
 
 export interface DirectoryEntry {
@@ -77,6 +82,7 @@ async function decorate(rows: BaseRow[], term: TermRow | null): Promise<Director
     term
       ? getDb()
           .select({
+            membershipId: committeeMembership.id,
             personId: committeeMembership.personId,
             committeeId: committee.id,
             slug: committee.slug,
@@ -109,6 +115,10 @@ async function decorate(rows: BaseRow[], term: TermRow | null): Promise<Director
           .where(and(inArray(appointment.personId, ids), eq(appointment.termId, term.id)))
       : Promise.resolve([]),
   ]);
+  const roles = await listLiveRolesByMembership(
+    getDb(),
+    committees.map((item) => item.membershipId),
+  );
   return rows.map((row) => ({
     personId: row.personId,
     fullName: row.fullName?.trim() ?? "",
@@ -117,7 +127,10 @@ async function decorate(rows: BaseRow[], term: TermRow | null): Promise<Director
     status: row.status,
     committees: committees
       .filter((item) => item.personId === row.personId)
-      .map(({ personId: _personId, ...item }) => item),
+      .map(({ personId: _personId, membershipId, ...item }) => ({
+        ...item,
+        roles: rolesOf(roles, membershipId),
+      })),
     appointments: appointments
       .filter((item) => item.personId === row.personId)
       .map((item) => ({ kind: item.kind, title: item.title })),
@@ -218,9 +231,11 @@ export interface RosterMember {
   preferredName: string | null;
   photoAssetId: string | null;
   status: MembershipStatus;
+  /** Cargo principal derivado; `roles` trae todos los vivos con codirección (ADR-058). */
   roleCode: string;
   roleLabel: string;
   isLeadership: boolean;
+  roles: RoleView[];
 }
 
 export interface InternalRoster {
@@ -254,6 +269,7 @@ export async function listInternalRoster(slug: string): Promise<InternalRoster |
   const rows = await db
     .select({
       ...baseColumns,
+      membershipId: committeeMembership.id,
       photoAllowed: liveConsentExists("DIRECTORY_PHOTO"),
       roleCode: committeeMembership.roleCode,
       roleLabel: committeeRole.label,
@@ -273,6 +289,10 @@ export async function listInternalRoster(slug: string): Promise<InternalRoster |
       ),
     )
     .orderBy(asc(person.fullName));
+  const roles = await listLiveRolesByMembership(
+    db,
+    rows.map((row) => row.membershipId),
+  );
   const members: RosterMember[] = rows
     .map((row) => ({
       personId: row.personId,
@@ -283,6 +303,7 @@ export async function listInternalRoster(slug: string): Promise<InternalRoster |
       roleCode: row.roleCode,
       roleLabel: row.roleLabel,
       isLeadership: row.isLeadership,
+      roles: rolesOf(roles, row.membershipId),
     }))
     .sort((a, b) => Number(b.isLeadership) - Number(a.isLeadership));
   return { committee: { ...found, memberCount: members.length }, term, members };

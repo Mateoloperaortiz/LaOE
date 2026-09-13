@@ -1,7 +1,17 @@
 import { type Actor, runCommand } from "@/db/tx";
 import { type AdmitInput, admitPerson } from "./admission";
 import { type AppointmentInput, addAppointment, removeAppointment } from "./appointments";
+import {
+  addCommitteeMember,
+  type RemovalRequestInput,
+  type RosterActorContext,
+  type RosterChangeInput,
+  type RosterScope,
+  requestCommitteeRemoval,
+  setMemberRoles,
+} from "./committee-direction";
 import { type CommitteeMembershipInput, setCommitteeMemberships } from "./committee-memberships";
+import { type CommitteeProfileInput, updateCommitteeProfile } from "./committees";
 import { type ConsentPurpose, type ConsentSource, recordConsent, revokeConsent } from "./consents";
 import {
   anonymizePerson,
@@ -143,4 +153,42 @@ export function leaveCommitteeAs(
   reason: string,
 ): Promise<void> {
   return runCommand(actor, (ctx) => leaveCommittee(ctx, personId, committeeId, termId, reason));
+}
+
+// La dirección del comité (ADR-058): comandos con eje comité; `who` dice si el actor es ADMIN o
+// líder técnico, porque `people` no conoce `Permission`.
+
+export function addCommitteeMemberAs(
+  actor: Actor,
+  scope: RosterScope,
+  who: RosterActorContext,
+  input: RosterChangeInput,
+): Promise<{ membershipId: string; revived: boolean }> {
+  return runCommand(actor, (ctx) => addCommitteeMember(ctx, scope, who, input));
+}
+
+export function setMemberRolesAs(
+  actor: Actor,
+  scope: RosterScope,
+  who: RosterActorContext,
+  input: RosterChangeInput,
+): Promise<{ changed: boolean }> {
+  return runCommand(actor, (ctx) => setMemberRoles(ctx, scope, who, input));
+}
+
+export function updateCommitteeProfileAs(
+  actor: Actor,
+  committeeId: string,
+  input: CommitteeProfileInput,
+): Promise<void> {
+  return runCommand(actor, (ctx) => updateCommitteeProfile(ctx, committeeId, input));
+}
+
+export function requestCommitteeRemovalAs(
+  actor: Actor,
+  scope: RosterScope,
+  who: RosterActorContext,
+  input: RemovalRequestInput,
+): Promise<void> {
+  return runCommand(actor, (ctx) => requestCommitteeRemoval(ctx, scope, who, input));
 }

@@ -1,6 +1,6 @@
 # ADR-036: Permanencia (fase 4)
 
-- Estado: Aceptada (enmendada por ADR-037, ADR-038 y ADR-056)
+- Estado: Aceptada (enmendada por ADR-037, ADR-038, ADR-056 y ADR-058)
 - Fecha: 2026-09-04
 - Relacionadas: ADR-003, ADR-004, ADR-005, ADR-011, ADR-012, ADR-014, ADR-017, ADR-025, ADR-026, ADR-027, ADR-028, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035
 - Enmienda: ADR-025 (recompute, estados, decisiones y vista en vivo), ADR-026 (bloqueo y comentario por tabla), ADR-028 (ventana por configuración y pendientes al cierre), ADR-031 (avisos en la app hasta la fase 6; anuncios de comité), ADR-033 (`announcement.committeeId`), ADR-035 (layout del admin con más roles; handlers de `term.points-closed` y `occasion.closed`), 03-modelo (tablas definitivas de `permanence`, `permanence_table`, `ruleId`, columnas del snapshot, `term.permanenceClosedAt`) y 05-acceso (roles derivados de los grupos, `BOARD`, step-up del cierre)
@@ -54,3 +54,7 @@ Regla 11: los avisos de `noticesFor` salen también por push desde el programado
 ## Enmienda (2026-09-11, ADR-056)
 
 Regla 9: `people.setProbationAs` deja de ser exclusivo del handler `permanence.apply-decisions`. ADMIN también fija o retira la condición de prueba de un término desde la pestaña Membresía de la Persona 360, con motivo obligatorio y la misma auditoría; `membership-term.changed` gana `reason`, `permanence` lo escucha para recalcular a la persona en ese término y `crm` lo anota en la línea de tiempo. Ver [ADR-056](ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md).
+
+## Enmienda (2026-09-12, ADR-058)
+
+Regla 10: `acceso.ts` compone además los comités donde el actor tiene capacidades por cargo (`people.listMyCommitteeCapabilities`); la navegación enlaza cada comité y `/admin` redirige al primero. `/admin/comites/[slug]/permanencia`, los puntajes del líder y el destacado del mes se operan con la capacidad `PERMANENCE` en lugar de `assertLeader`. Ver [ADR-058](ADR-058-direccion-del-comite-por-areas.md).

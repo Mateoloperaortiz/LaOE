@@ -2,6 +2,7 @@ import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
 import { getCarnetCredential } from "@/modules/identity";
 import {
+  committeeRolesLabel,
   getMembershipRef,
   getMyMembership,
   getPersonRecord,
@@ -39,7 +40,10 @@ export async function loadCarnetData(
   return {
     personId,
     fullName: who.fullName?.trim() || [who.firstName, who.lastName].filter(Boolean).join(" "),
-    committees: mine.committees.map((item) => ({ name: item.committeeName, role: item.roleLabel })),
+    committees: mine.committees.map((item) => ({
+      name: item.committeeName,
+      role: committeeRolesLabel(item.roles, item.roleLabel),
+    })),
     term: mine.term ? { id: mine.term.id, code: mine.term.code } : null,
     firstTermCode: first?.code ?? null,
     token: credential.token,

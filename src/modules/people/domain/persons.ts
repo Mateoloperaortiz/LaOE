@@ -7,6 +7,9 @@ import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { committee, committeeMembership, committeeRole, membership, person } from "../schema";
+import { committeeRolesLabel } from "./committee-direction-pure";
+import { rolesOf } from "./committee-memberships";
+import { listLiveRolesByMembership } from "./committee-role-assignments";
 import { birthDateSchema, documentTypeSchema, normalizePhone } from "./person-pure";
 
 // La persona como eje del CRM (ADR-002): alta manual, edición por ADMIN y listado del admin.
@@ -371,6 +374,7 @@ export async function currentCommitteesFor(
   }
   const rows = await getDb()
     .select({
+      id: committeeMembership.id,
       personId: committeeMembership.personId,
       name: committee.name,
       role: committeeRole.label,
@@ -386,9 +390,13 @@ export async function currentCommitteesFor(
       ),
     )
     .orderBy(asc(committee.name));
+  const roles = await listLiveRolesByMembership(
+    getDb(),
+    rows.map((row) => row.id),
+  );
   for (const row of rows) {
     const list = map.get(row.personId) ?? [];
-    list.push(`${row.name} · ${row.role}`);
+    list.push(`${row.name} · ${committeeRolesLabel(rolesOf(roles, row.id), row.role)}`);
     map.set(row.personId, list);
   }
   return map;

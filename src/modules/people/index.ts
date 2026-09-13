@@ -15,7 +15,16 @@ export {
   appointmentInputSchema,
 } from "./domain/appointments";
 export {
+  areasFor,
+  COMMITTEE_AREAS,
+  COMMITTEE_CAPABILITIES,
+  type CommitteeArea,
+  type CommitteeCapability,
+  hasCapability,
+} from "./domain/capabilities";
+export {
   addAppointmentAs,
+  addCommitteeMemberAs,
   admitPersonAs,
   anonymizePersonAs,
   changeMembershipStatusAs,
@@ -25,15 +34,33 @@ export {
   reactivateMembershipAs,
   recordConsentAs,
   removeAppointmentAs,
+  requestCommitteeRemovalAs,
   requestDeletionAs,
   revokeConsentAs,
   setCommitteeMembershipsAs,
+  setMemberRolesAs,
   setOwnPhotoAs,
   setPersonTagsAs,
   setProbationAs,
+  updateCommitteeProfileAs,
   updateOwnContactAs,
   updatePersonAs,
 } from "./domain/commands";
+export {
+  type DirectedCommittee,
+  type EligibleMember,
+  listCommitteesMissingRequiredRoles,
+  listMyCommitteeCapabilities,
+  type MissingRequiredRoles,
+  type RemovalRequestInput,
+  type RosterActorContext,
+  type RosterChangeInput,
+  type RosterScope,
+  removalRequestSchema,
+  rosterChangeSchema,
+  searchEligibleMembers,
+} from "./domain/committee-direction";
+export { committeeRolesLabel, type RoleView } from "./domain/committee-direction-pure";
 export {
   type CommitteeMembershipInput,
   type CommitteeMembershipView,
@@ -46,7 +73,9 @@ export {
   type TermCommittees,
 } from "./domain/committee-memberships";
 export {
+  type CommitteeProfileInput,
   type CommitteeRef,
+  committeeProfileSchema,
   createCommittee,
   getCommittee,
   getPublishedCommittee,

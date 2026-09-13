@@ -7,7 +7,9 @@ import { logger } from "@/shared/log";
 const REQUIRED_INDEXES = [
   "person_email_unique",
   "membership_person_unique",
-  "committee_membership_one_general",
+  "committee_role_assignment_titular_unique",
+  "committee_role_assignment_codireccion_unique",
+  "committee_role_assignment_membership_role_unique",
   "permission_global_unique",
   "permission_committee_unique",
   "session_token_hash_unique",

@@ -47,7 +47,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzl
 | Módulo | Responsabilidad | Modelos principales |
 | --- | --- | --- |
 | `identity` | Acceso por OTP, sesiones, permisos técnicos, actor, token del calendario personal | `Session`, `OtpChallenge`, `Permission`, `CalendarToken`, `CarnetToken` |
-| `people` | La persona como eje del CRM, ciclo de vida, comités por término, cargos, consentimiento | `Person`, `Membership`, `CommitteeMembership`, `Appointment`, `Consent`, `Committee` |
+| `people` | La persona como eje del CRM, ciclo de vida, comités por término, cargos asignados con capacidades por cargo ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)), consentimiento | `Person`, `Membership`, `CommitteeMembership`, `Appointment`, `Consent`, `Committee` |
 | `crm` | Organizaciones, contactos, pipelines, tarjetas, solicitudes, convocatorias internas, línea de tiempo, notas, tareas, onboarding, reconocimientos; importa `people`, `terms`, `content`, `system` y, desde la fase 5, `forms` ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) | `Organization`, `OrganizationContact`, `Pipeline`, `PipelineStage`, `Card`, `Request`, `InternalCall`, `InternalCallEntry`, `Interaction`, `Task`, `OnboardingProgress`, `Recognition` |
 | `forms` | Formularios propios (públicos y de miembros), respuestas, inscripciones a ediciones; importa `people`, `events`, `system` y `terms`, nunca `crm` ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) | `Form`, `Submission`, `EditionRegistration` |
 | `events` | Eventos permanentes, ediciones, comités organizadores, calendario ICS | `Event`, `EventEdition`, `EditionCommittee` |
@@ -58,6 +58,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzl
 | `comms` | Bus de notificaciones (push por preferencia, un `Message` por persona), suscripciones push y preferencias, plantillas de correo y campañas por segmento en lotes, registro de mensajes; importa `people`, `terms`, `content`, `participation` y `system`, nadie lo importa ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) | `EmailTemplate`, `Campaign`, `CampaignRecipient`, `Message`, `PushSubscription`, `NotificationPreference` |
 | `system` | Auditoría, configuración, outbox, importaciones, exportes, alias legados, salud | `AuditLog`, `AppConfig`, `Outbox`, `ImportJob`, `LegacyAlias` |
 | `wallet` | Carnet opcional en Apple y Google Wallet, reservas y estados, sincronización/supresión de Google y conciliación diaria; importa `identity`, `people` y `terms` por API pública ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)) | `WalletPass` |
+| `finance` | Presupuesto anual de cada comité: rubros, gastos y traslados entre rubros; importa `people`, `terms` y `system` ([ADR-059](adr/ADR-059-presupuesto-del-comite.md)) | `CommitteeBudget`, `BudgetLine`, `BudgetExpense`, `BudgetTransfer` |
 
 ## Capas dentro de un request
 

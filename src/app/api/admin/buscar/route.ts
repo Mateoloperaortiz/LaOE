@@ -1,7 +1,8 @@
 import { searchOrganizations } from "@/modules/crm";
 import { getActor } from "@/modules/identity";
 import { searchOccasions } from "@/modules/participation";
-import { searchCommittees, searchPeople } from "@/modules/people";
+import { listMyCommitteeCapabilities, searchCommittees, searchPeople } from "@/modules/people";
+import { getCurrentTerm } from "@/modules/terms";
 import type { PaletteResult } from "@/shared/admin-kit";
 import { tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
@@ -15,8 +16,11 @@ export async function GET(request: Request) {
   if (!actor) {
     return Response.json({ results: [] }, { status: 401 });
   }
+  const term = await getCurrentTerm();
   const canSearch =
-    actor.isAdmin || actor.permissions.some((item) => item.code === "COMMITTEE_LEADER");
+    actor.isAdmin ||
+    actor.permissions.some((item) => item.code === "COMMITTEE_LEADER") ||
+    (term !== null && (await listMyCommitteeCapabilities(actor.personId, term.id)).length > 0);
   if (!canSearch) {
     return Response.json({ results: [] }, { status: 403 });
   }

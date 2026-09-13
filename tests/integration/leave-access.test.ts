@@ -71,6 +71,7 @@ describe("consulta de Mi OE en licencia", () => {
     if (!actor) throw new Error("Sin actor");
     expect(await adminAreaRoles(actor)).toMatchObject({
       any: false,
+      committees: [],
       ledGroups: [],
       evaluatedGroups: [],
     });

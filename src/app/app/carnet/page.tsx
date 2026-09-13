@@ -56,7 +56,7 @@ export default async function CarnetPage({ searchParams }: PageProps<"/app/carne
     errorCorrectionLevel: "M",
   });
   const [organizacion] = tList("T-220");
-  const comites = mine.committees.map((item) => cargoEnComite(item.roleLabel, item.committeeName));
+  const comites = mine.committees.map((item) => cargoEnComite(item, item.committeeName));
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-3">

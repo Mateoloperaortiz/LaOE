@@ -108,7 +108,7 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
                 nombre={entry.fullName}
                 fotoId={entry.photoAssetId}
                 estado={entry.status}
-                comites={entry.committees.map((item) => cargoEnComite(item.roleLabel, item.name))}
+                comites={entry.committees.map((item) => cargoEnComite(item, item.name))}
                 cargos={entry.appointments.map(cargoEtiqueta)}
                 insignias={insigniasDe(entry.personId)}
               />

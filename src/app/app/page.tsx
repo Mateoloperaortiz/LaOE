@@ -219,7 +219,7 @@ export default async function AppHome() {
                   <span className="flex flex-col">
                     <span className="text-display-md">{item.committeeName}</span>
                     <span className="text-sm text-tinta-suave">
-                      {cargoEnComite(item.roleLabel, item.committeeName)}
+                      {cargoEnComite(item, item.committeeName)}
                     </span>
                   </span>
                 </Link>

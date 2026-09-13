@@ -9,6 +9,7 @@ import {
   inArray,
   isNull,
   notExists,
+  or,
   sql,
 } from "drizzle-orm";
 import { z } from "zod";
@@ -17,7 +18,15 @@ import type { CommandContext } from "@/db/tx";
 import { getCurrentTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
-import { committeeMembership, consent, membership, person, personTag, segment } from "../schema";
+import {
+  committeeMembership,
+  committeeRoleAssignment,
+  consent,
+  membership,
+  person,
+  personTag,
+  segment,
+} from "../schema";
 
 // Segmentos: filtros guardados que alimentan exportes y, después, campañas (02-crm.md). El filtro se
 // valida con Zod al leer; se evalúa en SQL sobre el término actual.
@@ -79,7 +88,30 @@ export async function findPeopleByFilter(filter: SegmentFilter): Promise<string[
       inTerm.push(inArray(committeeMembership.committeeId, filter.committeeIds));
     }
     if (filter.roleCodes.length > 0) {
-      inTerm.push(inArray(committeeMembership.roleCode, filter.roleCodes));
+      // Cualquier cargo vivo de la pertenencia (ADR-058); "Miembro" es no tener ninguno.
+      const codes = filter.roleCodes.filter((code) => code !== "MIEMBRO");
+      const byRole =
+        codes.length > 0
+          ? exists(
+              db
+                .select({ one: sql`1` })
+                .from(committeeRoleAssignment)
+                .where(
+                  and(
+                    eq(committeeRoleAssignment.membershipId, committeeMembership.id),
+                    isNull(committeeRoleAssignment.endedAt),
+                    inArray(committeeRoleAssignment.roleCode, codes),
+                  ),
+                ),
+            )
+          : undefined;
+      const asMember = filter.roleCodes.includes("MIEMBRO")
+        ? eq(committeeMembership.roleCode, "MIEMBRO")
+        : undefined;
+      const anyRole = or(...[byRole, asMember].filter((item) => item !== undefined));
+      if (anyRole) {
+        inTerm.push(anyRole);
+      }
     }
     conditions.push(
       exists(

@@ -3,7 +3,12 @@ import type { MessageView, PreferencesView } from "@/modules/comms";
 import { channelLabel, kindLabel, statusLabel as messageStatusLabel } from "@/modules/comms/admin";
 import type { InteractionView, TaskRow } from "@/modules/crm";
 import type { ActorPermission } from "@/modules/identity";
-import { formatBirthDate, type MyMembershipView, type Person360 } from "@/modules/people";
+import {
+  committeeRolesLabel,
+  formatBirthDate,
+  type MyMembershipView,
+  type Person360,
+} from "@/modules/people";
 import { statusLabel } from "@/modules/people/admin";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import type { WalletPassRecord } from "@/modules/wallet";
@@ -211,7 +216,7 @@ export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipVi
                 {group.items.map((item) => (
                   <li key={item.id}>
                     <Insignia fondo={item.leftAt ? "paper" : item.isLeadership ? "naranja" : "sky"}>
-                      {item.committeeName} · {item.roleLabel}
+                      {item.committeeName} · {committeeRolesLabel(item.roles, item.roleLabel)}
                       {item.transferredIn ? " · ↔" : ""}
                       {item.leftAt ? ` · ${formatDate(item.leftAt)}` : ""}
                     </Insignia>

@@ -10,6 +10,7 @@ erDiagram
   Person ||--o{ CommitteeMembership : "por termino"
   Committee ||--o{ CommitteeMembership : ""
   Term ||--o{ CommitteeMembership : ""
+  CommitteeMembership ||--o{ CommitteeRoleAssignment : "cargos"
   Person ||--o{ Appointment : "cargos"
   Person ||--o{ Permission : "permisos"
   Person ||--o{ Interaction : "linea de tiempo"
@@ -85,8 +86,9 @@ erDiagram
 | `Membership` | `personId` único, `status` (`ACTIVE`, `ON_LEAVE`, `HONORARY`, `INACTIVE`), `firstTermId`, `lastTermId?`, `endedAt?`, `walletEpoch` (0 por defecto), `endReason?` (`GRADUATION`, `RESIGNATION`, `PERMANENCE`, `OTHER`) | Una por persona; baja/anonimización incrementan `walletEpoch` en la misma transacción y reactivar no lo reduce (ADR-040); al terminar, el perfil pasa a egresado y se depura lo que no es historia ([ADR-030](adr/ADR-030-perfil-de-egresado.md)) |
 | `MembershipEvent` | `membershipId`, `from`, `to`, `reason`, `actorId`, `at` | Historial de estados |
 | `Committee` | `slug` único, `name`, `status`, `color`, `logoKey`, `presentation`, `contactUrl`, `publicationStatus`, `legacyId?` | Los 27 logos viven en `public/logos/committees`; `legacyId` es el id en GHPOINTS |
-| `CommitteeMembership` | `personId`, `committeeId`, `termId`, `roleCode` (`MIEMBRO` por defecto), `transferredIn`, `joinedAt?`, `leftAt?` | Unique por (persona, comité, término); 1 a 3 activas para activos; `transferredIn` marca una transferencia interna (umbral 70 % en ese comité); un solo `GENERAL` por comité y término |
-| `CommitteeRole` | `code` único, `label`, `isLeadership`, `order` | Catálogo: `GENERAL` (líder), `FINANCIERO`, `PUBLICIDAD`, `RELACIONES_PUBLICAS`, `LOGISTICA`, `GESTION_HUMANA` (GH confirmó que son esos seis) más `MIEMBRO` por defecto; sigue siendo editable por si aparece otro |
+| `CommitteeMembership` | `personId`, `committeeId`, `termId`, `roleCode` (cargo principal derivado de `CommitteeRoleAssignment`; `MIEMBRO` si no hay), `transferredIn`, `joinedAt?`, `leftAt?` | Unique por (persona, comité, término); 1 a 3 activas para activos; `transferredIn` marca una transferencia interna (umbral 70 % en ese comité); los cargos viven en `CommitteeRoleAssignment` y `roleCode` se recalcula en cada escritura hasta retirarlo ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)) |
+| `CommitteeRoleAssignment` | `membershipId`, `personId`, `committeeId`, `termId`, `roleCode`, `coDirector`, `startedAt`, `endedAt?` | Un cargo de la pertenencia, titular o codirección; `personId`, `committeeId` y `termId` se copian de la pertenencia para los índices; cerrar la pertenencia cierra sus cargos ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)) |
+| `CommitteeRole` | `code` único, `label`, `isLeadership`, `required`, `capabilities[]`, `order` | Catálogo: `GENERAL`, `FINANCIERO`, `PUBLICIDAD`, `MERCADEO`, `RELACIONES_PUBLICAS`, `LOGISTICA` y `GESTION_HUMANA` son dirección (`isLeadership`), `GENERAL` y `FINANCIERO` obligatorios (`required`), cada uno con sus capacidades (`ROSTER`, `DIRECTION`, `PERMANENCE`, `OCCASIONS`, `EVENTS`, `BOARD`, `PROFILE`, `PARTNERS`, `FINANCE`); `MIEMBRO` sin ninguna; editable por GH desde `/admin/cargos` ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)) |
 | `MembershipTerm` | `personId`, `termId`, `probation`, `reason?`, `decidedById?` | Condición de la persona en el término: periodo de prueba (umbral 80 %) decidido en el cierre anterior, cargado por el roster o fijado por ADMIN desde la Persona 360 con motivo ([ADR-056](adr/ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md)) |
 | `Appointment` | `personId`, `kind` (`PRESIDENT`, `VP_GH`, `VP_PUBLIC_RELATIONS`, `VP_ADMIN`, `VP_FINANCE`, `VP_COMMUNICATIONS`, `GH_HEAD`, `GH_DIRECTOR`, `OTHER`), `committeeId?`, `termId`, `title?` | Cargo de junta o de GH, visible y con historia; el líder de comité no es un `Appointment` sino `CommitteeMembership.roleCode = GENERAL` ([ADR-034](adr/ADR-034-personas-y-mi-oe-fase-2.md)); los cargos de junta lideran los comités de trabajo y los de GH evalúan grupos |
 | `Consent` | `personId`, `purpose` (`MEMBERSHIP`, `COMMUNICATIONS`, `DIRECTORY_PHOTO`, `MEMORIAL`, `DATA_PROCESSING`), `policyVersion`, `acceptedAt`, `source` (`FORM`, `IMPORT`, `ADMIN`, `SELF`), `ip?`, `revokedAt?` | Una fila por aceptación; revocar estampa `revokedAt`; un solo consentimiento vivo por persona y propósito; `MEMORIAL` habilita la galería de egresados; `DATA_PROCESSING` es la casilla T-154 de un formulario público, con fuente `FORM` e IP ([ADR-037](adr/ADR-037-admision-aliados-y-contactos-fase-5.md)) |
@@ -210,6 +212,17 @@ Google usa objeto `<issuerId>.<suffix>.<personId>` y Apple `personId` como seria
 | `ImportJob` | `type` (`ROSTER`, `GHPOINTS`), `status` (`PREVIEW`, `APPLIED`, `DISCARDED`, `FAILED`), `filename`, `fileKey?` (`imports/AAAA/MM/<id>.<ext>`), `termId?`, `mapping` JSON, `payload` JSON (filas validadas y diff de la vista previa), `summary` JSON, `createdById?`, `appliedAt?` | Roster por término (formato en [13-importacion-del-roster.md](13-importacion-del-roster.md)) y migración; el archivo original queda en el bucket privado como objeto propio, no como `MediaAsset` |
 | `LegacyAlias` | `path` único, `targetType` (`OCCASION`), `targetId` | `/asamblea/{publicId}` de GHPOINTS y los `publicId` retirados de sus historiales (`/a/…` y `/asamblea/…`); los `publicId` vigentes no necesitan alias porque `/a/{publicId}` es la misma URL |
 
+### finance
+
+Propuesto en [ADR-059](adr/ADR-059-presupuesto-del-comite.md); llega con su tramo.
+
+| Modelo | Campos clave | Notas |
+| --- | --- | --- |
+| `CommitteeBudget` | `committeeId`, `year`, `status` (`DRAFT`, `OPEN`, `CLOSED`), `notes?` | Presupuesto anual de un comité; único por comité y año; lo crea, abre y cierra ADMIN |
+| `BudgetLine` | `budgetId`, `name`, `assigned` (`numeric(12,2)`), `sortOrder` | Rubro con su monto asignado; solo ADMIN lo edita |
+| `BudgetExpense` | `budgetId`, `lineId`, `spentOn`, `amount`, `description`, `registeredById` | Gasto contra un rubro; no supera el disponible; nunca se edita ni se borra |
+| `BudgetTransfer` | `budgetId`, `fromLineId`, `toLineId`, `amount`, `reason`, `registeredById` | Traslado de disponible entre rubros del mismo presupuesto, con motivo |
+
 ## Restricciones que no negocia el esquema
 
 Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().where(sql)`), de modo que salen en la migración SQL y `db:release` verifica que existan:
@@ -226,7 +239,9 @@ Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().
 | `WalletPass(personId, platform)` único | Una reserva o pase por persona y plataforma |
 | `Permission(personId, code) WHERE committeeId IS NULL` y `(personId, code, committeeId) WHERE committeeId IS NOT NULL` | Sin permisos duplicados |
 | `CommitteeMembership(personId, committeeId, termId)` único | Una pertenencia por término |
-| `CommitteeMembership(committeeId, termId) WHERE roleCode = 'GENERAL' AND leftAt IS NULL` | Un General por comité y término |
+| `CommitteeRoleAssignment(committeeId, termId, roleCode) WHERE coDirector = false AND endedAt IS NULL` | Un titular por cargo, comité y término |
+| `CommitteeRoleAssignment(committeeId, termId, roleCode) WHERE coDirector = true AND endedAt IS NULL` | Una codirección por cargo, comité y término |
+| `CommitteeRoleAssignment(membershipId, roleCode) WHERE endedAt IS NULL` | Sin cargo repetido en la misma pertenencia |
 | `CheckIn(occasionId, personId)` único | Un check-in por persona y ocasión |
 | `Outbox(dedupeKey) WHERE processedAt IS NULL AND deadLetterAt IS NULL` | Un pendiente por clave |
 | `LegacyAlias(path)` único | Un destino por ruta antigua |

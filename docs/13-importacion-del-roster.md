@@ -30,7 +30,7 @@ Las cabeceras se reconocen sin importar mayúsculas ni tildes. Un archivo por t�
 | `COMITES` | Sí | Siglas separadas por coma o punto y coma, por ejemplo `A3, PIXEL` | Una `CommitteeMembership` por sigla en el término del archivo; entre 1 y 3 |
 | `ENTRADA A LA OE` | Sí | Término de ingreso `2024-2` (una fecha se convierte al término que la contiene) | `Membership.firstTermId`: define nuevo o veterano y su umbral de permanencia |
 | `ESTADO` | Sí | `Activo`, `Licencia`, `Honorario`, `Retirado`, `Prueba` (vocabulario confirmado por GH) | `Membership.status`; `Prueba` además marca `MembershipTerm.probation` en el término del archivo |
-| `CARGO` | No (columna nueva; la base actual de GH no la tiene, llegará en una entrega posterior) | Cargo dentro del comité, exactamente uno de estos seis: `General`, `Financiero`, `Publicidad`, `Relaciones Públicas`, `Logística`, `Gestión Humana`. Si la persona tiene varios comités, se indica en cuál: `General de A3; Logística de PIXEL` | `CommitteeMembership.role`; sin valor es `Miembro` |
+| `CARGO` | No (columna nueva; la base actual de GH no la tiene, llegará en una entrega posterior) | Uno o varios cargos del catálogo (`General`, `Financiero`, `Publicidad`, `Mercadeo`, `Relaciones Públicas`, `Logística`, `Gestión Humana`), cada uno con su comité: `General de A3; Logística de A3; Financiero de PIXEL`. Una codirección lleva el prefijo `Codirección de`: `Codirección de Financiero de PIXEL` ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)) | Un `CommitteeRoleAssignment` por cargo; sin valor es `Miembro` |
 
 Columnas opcionales que el asistente también reconoce si aparecen: `TRANSFERENCIA` (sigla del comité al que la persona se transfirió este término: umbral 70 %), `CORREO PERSONAL` (contacto, nunca acceso) y `OBSERVACIONES` (queda como nota en la línea de tiempo).
 
@@ -43,6 +43,7 @@ NOMBRE;APELLIDO;CORREO;CELULAR;PREGRADO;COMITES;ENTRADA A LA OE;ESTADO;CARGO
 Mateo;Lopera;mloperao1@eafit.edu.co;3001234567;Ingeniería de Sistemas;A3, PIXEL;2024-2;Activo;General de A3
 Ana;Pérez;aperezg@eafit.edu.co;;Derecho;IUS;2026-2;Activo;
 Juan;Gómez;jgomezr@eafit.edu.co;3109876543;Economía;ECO;2023-1;Licencia;Financiero
+Sara;Ruiz;sruizm@eafit.edu.co;;Comunicación Social;PIXEL, A3;2025-1;Activo;Codirección de Financiero de PIXEL; Logística de A3
 ```
 
 ## Validaciones
@@ -55,18 +56,19 @@ Errores (la fila no se importa hasta corregirla en la vista previa):
 - `ENTRADA A LA OE` vacía o con un término que no existe.
 - `ESTADO` fuera del vocabulario.
 - Cargo desconocido (se puede agregar al catálogo desde la vista previa) o cargo sin comité cuando la persona tiene más de uno.
-- Dos `General` para el mismo comité en el mismo término.
+- Dos titulares del mismo cargo en el mismo comité y término (la codirección no cuenta).
 
 Advertencias (se importa, pero se marca):
 
 - Programa que no coincide con el catálogo; celular con formato raro; nombre en mayúsculas sostenidas (se conserva tal cual, se sugiere corregir).
+- Pendiente: un comité que queda sin General o Financiero titular en ese término (T-2177); mientras tanto lo avisan la cabecera del comité y el tablero de ADMIN ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)).
 
 ## Qué hace la importación
 
 1. **Vista previa** con tres grupos: personas nuevas, personas existentes con cambios (estado, comités, cargo, celular, programa) y sin cambios. Nada se aplica hasta confirmar.
 2. **Consentimiento:** la importación **no** registra autorizaciones ([ADR-048](adr/ADR-048-autorizacion-en-el-primer-ingreso.md)). Cada persona autoriza en su primer ingreso a Mi OE, con fuente `SELF` y la versión publicada. Por eso la carga sigue exigiendo la política publicada y su versión activa: sin ellas esa pantalla no puede pedir nada.
 3. **Comités por término:** crea las pertenencias del término del archivo; a quien ya existía y no aparece en un comité, le cierra esa pertenencia (`leftAt`) en el término. Quien no aparece en el archivo no se toca: darlo de baja es un comando aparte.
-4. **Cargos:** guarda el cargo en la pertenencia. Para cada `General`, la vista previa propone otorgar el permiso técnico de líder de ese comité, marcado por defecto; ADMIN confirma.
+4. **Cargos:** guarda cada cargo como un cargo asignado de la pertenencia (titular o codirección). Para cada `General`, titular o codirección, la vista previa propone otorgar el permiso técnico de líder de ese comité, marcado por defecto; ADMIN confirma.
 5. **Nuevos y veteranos:** `ENTRADA A LA OE` fija el primer término; nuevo es quien entra en el término del archivo ([ADR-008](adr/ADR-008-tableros-derivados.md)).
 6. **Auditoría e historia:** una transacción por lote, `AuditLog` por entidad, interacción "importado desde el roster 2026-2" en cada persona, `ImportJob` con el resumen y el archivo original en el bucket privado.
 7. **Idempotente:** volver a subir el mismo archivo no duplica nada; la clave es el correo.

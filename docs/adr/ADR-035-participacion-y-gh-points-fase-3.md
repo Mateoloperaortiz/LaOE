@@ -1,6 +1,6 @@
 # ADR-035: Participación y GH Points (fase 3)
 
-- Estado: Aceptada (enmendada por ADR-036, ADR-038 y ADR-041)
+- Estado: Aceptada (enmendada por ADR-036, ADR-038, ADR-041 y ADR-058)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-020, ADR-024, ADR-028, ADR-030, ADR-031, ADR-032, ADR-034
 - Enmienda: ADR-006 (transiciones del check-in), ADR-009 (filas del score solo con elegibles, congelado y transacción propia), ADR-024 (una sola ordinaria obligatoria, aclaración de redacción), ADR-034 (punto 1: el término pasa a un módulo `terms`), 03-modelo (`rotatingSecret`, columnas nuevas de la ocasión, `assembly_requirement` solo para ajustes) y 05-acceso (step-up para cancelar con créditos y para cerrar puntos; líderes en el admin)
@@ -60,3 +60,7 @@ El layout del admin admite además `BOARD` y a quien lidere o evalúe un grupo d
 ## Enmienda (2026-09-07, ADR-041)
 
 La palabra del día se incorpora con partidas propias y crédito WORDLE. Las escrituras que afectan el cierre usan un guard transaccional compartido del término; el cierre adquiere exclusividad y calcula su snapshot dentro de la misma transacción. Enmienda las reglas 1, 5, 9, 13 y 20 sin cambiar los históricos LEGACY. Ver [ADR-041](ADR-041-wordle-diario-y-cierre-de-puntos.md).
+
+## Enmienda (2026-09-12, ADR-058)
+
+Regla 15: la vista de líder pasa a ser la vista del comité por áreas; crear ocasiones, la serie semanal, la consola, el modo anfitrión y `live` se operan con la capacidad `OCCASIONS` del comité (ADMIN y `COMMITTEE_LEADER` la tienen siempre) en lugar de `assertLeader`. Los cargos de dirección sí habilitan lo de su área por datos; el permiso técnico queda como excepción. Ver [ADR-058](ADR-058-direccion-del-comite-por-areas.md).

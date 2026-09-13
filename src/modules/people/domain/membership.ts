@@ -9,6 +9,7 @@ import { getCurrentTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { committeeMembership, membership, membershipEvent, person } from "../schema";
+import { endRolesForPerson } from "./committee-role-assignments";
 import { revokeAllConsents, syncConsent } from "./consents";
 import { SIGN_IN_STATUSES } from "./reads";
 import { lockWalletMember } from "./wallet-member";
@@ -72,6 +73,7 @@ async function closeOpenCommitteeMemberships(
     .update(committeeMembership)
     .set({ leftAt: now })
     .where(and(eq(committeeMembership.personId, personId), isNull(committeeMembership.leftAt)));
+  await endRolesForPerson(ctx.tx, personId, now);
 }
 
 /** Activo ↔ licencia ↔ honorario; la licencia mantiene acceso de consulta. */

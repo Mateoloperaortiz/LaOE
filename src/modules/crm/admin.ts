@@ -59,7 +59,12 @@ const [titulo, responsable, vence, estado, persona, tipo] = tList("T-459") as [
   string,
 ];
 const [abierta, hecha] = tList("T-460") as [string, string];
-const [general, eliminacion, solicitud] = tList("T-461") as [string, string, string];
+const [general, eliminacion, solicitud, retiroComite] = tList("T-461") as [
+  string,
+  string,
+  string,
+  string,
+];
 const [mias, sinAsignar, todas] = tList("T-463") as [string, string, string];
 
 /** Las tareas se asignan a quien tiene permiso ADMIN. */
@@ -82,6 +87,7 @@ async function fields(): Promise<FieldDefinition[]> {
         { value: "GENERAL", label: general },
         { value: "DELETION_REQUEST", label: eliminacion },
         { value: "REQUEST", label: solicitud },
+        { value: "COMMITTEE_REMOVAL", label: retiroComite },
       ],
     },
   ];
@@ -125,9 +131,13 @@ export const tasksResource: ResourceDefinition<TaskRow, TaskInput> = {
       render: (row) =>
         row.kind === "REQUEST"
           ? { text: t("T-1013"), href: `/admin/solicitudes?tarea=${row.id}` }
-          : row.kind === "DELETION_REQUEST"
-            ? eliminacion
-            : general,
+          : row.kind === "COMMITTEE_REMOVAL"
+            ? row.personId
+              ? { text: retiroComite, href: `/admin/personas/${row.personId}?pestana=membresia` }
+              : retiroComite
+            : row.kind === "DELETION_REQUEST"
+              ? eliminacion
+              : general,
     },
   ],
   filters: [

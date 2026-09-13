@@ -225,9 +225,24 @@ export interface ParsedCommittee {
   committeeId: string;
   slug: string;
   name: string;
+  /** Cargo principal (el primero de la lista), para quien todavía lee uno solo. */
   roleCode: string;
+  /** Todos los cargos de la persona en ese comité, titulares o codirecciones (ADR-058). */
+  roles: ParsedRole[];
   /** Cargo que no está en el catálogo: se crea al aplicar (T-486). */
   newRoleLabel?: string;
+}
+
+export interface ParsedRole {
+  roleCode: string;
+  coDirector: boolean;
+  /** Cargo que no está en el catálogo: se crea al aplicar (T-486). */
+  newLabel?: string;
+}
+
+export interface RoleLabelAssignment {
+  label: string;
+  coDirector: boolean;
 }
 
 export interface ValidatedRow {
@@ -295,24 +310,33 @@ function findCommittee(sigla: string, committees: RosterCommittee[]): RosterComm
 }
 
 /**
- * `General de A3; Logística de PIXEL` o `General` (un solo comité) → cargo por sigla.
- * Devuelve el cargo por sigla normalizada y los errores de forma (índices de T-165).
+ * `General de A3; Logística de A3; Codirección de Financiero de PIXEL` o `General` (un solo comité)
+ * → cargos por sigla, varios por comité y con codirección (ADR-058). Devuelve los cargos por sigla
+ * normalizada y los errores de forma (índices de T-165).
  */
 export function parseRoleAssignments(
   raw: string,
   committees: RosterCommittee[],
   parsed: RosterCommittee[],
-): { bySlug: Map<string, string>; error: number | null } {
-  const bySlug = new Map<string, string>();
-  const parts = splitList(raw);
-  for (const part of parts) {
-    const match = part.match(/^(.+?)\s+(?:de|del|en)\s+(.+)$/i);
+): { bySlug: Map<string, RoleLabelAssignment[]>; error: number | null } {
+  const bySlug = new Map<string, RoleLabelAssignment[]>();
+  const add = (slug: string, item: RoleLabelAssignment) => {
+    const list = bySlug.get(slug) ?? [];
+    list.push(item);
+    bySlug.set(slug, list);
+  };
+  for (const part of splitList(raw)) {
+    // "Codirección de Financiero de PIXEL": con o sin tilde, con o sin guion.
+    const co = part.match(/^co-?direcci[oó]n\s+(?:de|del)\s+(.+)$/i);
+    const rest = co ? (co[1] ?? "").trim() : part;
+    const coDirector = co !== null;
+    const match = rest.match(/^(.+?)\s+(?:de|del|en)\s+(.+)$/i);
     if (match) {
       const target = findCommittee((match[2] ?? "").trim(), committees);
       if (!target) {
         return { bySlug, error: 2 };
       }
-      bySlug.set(target.slug, (match[1] ?? "").trim());
+      add(target.slug, { label: (match[1] ?? "").trim(), coDirector });
       continue;
     }
     if (parsed.length > 1) {
@@ -320,7 +344,7 @@ export function parseRoleAssignments(
     }
     const only = parsed[0];
     if (only) {
-      bySlug.set(only.slug, part);
+      add(only.slug, { label: rest, coDirector });
     }
   }
   return { bySlug, error: null };
@@ -356,7 +380,7 @@ export function validateRoster(
       emailCounts.set(email, (emailCounts.get(email) ?? 0) + 1);
     }
   }
-  const generals = new Map<string, number>();
+  const titulars = new Map<string, number>();
   const unknownRoles = new Set<string>();
   const siglas = catalog.committees.map((item) => item.slug);
 
@@ -483,49 +507,54 @@ export function validateRoster(
           }
         }
       }
-      const roles = new Map<string, string>();
+      const roles = new Map<string, RoleLabelAssignment[]>();
       if (present.has("role") && values.role) {
         const assignments = parseRoleAssignments(values.role, catalog.committees, parsed);
         if (assignments.error !== null) {
           errors.push(text(assignments.error, { sigla: values.role, sugerencia: "—" }));
         }
-        for (const [slug, label] of assignments.bySlug) {
-          roles.set(slug, label);
+        for (const [slug, list] of assignments.bySlug) {
+          roles.set(slug, list);
         }
       }
-      // Sin columna CARGO se conserva el cargo que la persona ya tiene; con la columna, vacío es Miembro.
-      const keptRole = (slug: string) =>
+      // Sin columna CARGO se conservan los cargos que la persona ya tiene; con la columna, vacío es Miembro.
+      const keptRoles = (slug: string): ParsedRole[] =>
         present.has("role")
-          ? "MIEMBRO"
-          : (current?.committees.find((item) => item.slug === slug)?.roleCode ?? "MIEMBRO");
+          ? []
+          : existingRoles(
+              current?.committees.find((item) => item.slug === slug) ?? { roleCode: "MIEMBRO" },
+            ).map((item) => ({ roleCode: item.roleCode, coDirector: item.coDirector }));
       result.committees = parsed.map((target) => {
-        const label = roles.get(target.slug);
-        if (!label) {
-          const roleCode = keptRole(target.slug);
-          if (roleCode === "GENERAL") {
-            generals.set(target.id, (generals.get(target.id) ?? 0) + 1);
+        const wanted = roles.get(target.slug);
+        const parsedRoles: ParsedRole[] = wanted
+          ? wanted.map((item) => {
+              const role = findRole(item.label, catalog.roles);
+              if (role) {
+                return { roleCode: role.code, coDirector: item.coDirector };
+              }
+              unknownRoles.add(item.label);
+              return {
+                roleCode: roleCodeFromLabel(item.label),
+                coDirector: item.coDirector,
+                newLabel: item.label,
+              };
+            })
+          : keptRoles(target.slug);
+        for (const role of parsedRoles) {
+          if (!role.coDirector) {
+            const key = `${target.id}:${role.roleCode}`;
+            titulars.set(key, (titulars.get(key) ?? 0) + 1);
           }
-          return { committeeId: target.id, slug: target.slug, name: target.name, roleCode };
         }
-        const role = findRole(label, catalog.roles);
-        if (role) {
-          if (role.code === "GENERAL") {
-            generals.set(target.id, (generals.get(target.id) ?? 0) + 1);
-          }
-          return {
-            committeeId: target.id,
-            slug: target.slug,
-            name: target.name,
-            roleCode: role.code,
-          };
-        }
-        unknownRoles.add(label);
+        const first = parsedRoles.find((role) => !role.newLabel) ?? parsedRoles[0];
+        const unknown = parsedRoles.find((role) => role.newLabel)?.newLabel;
         return {
           committeeId: target.id,
           slug: target.slug,
           name: target.name,
-          roleCode: roleCodeFromLabel(label),
-          newRoleLabel: label,
+          roleCode: first?.roleCode ?? "MIEMBRO",
+          roles: parsedRoles,
+          ...(unknown !== undefined ? { newRoleLabel: unknown } : {}),
         };
       });
     }
@@ -547,10 +576,16 @@ export function validateRoster(
     return result;
   });
 
+  // Un solo titular por cargo, comité y término (ADR-058): la codirección no cuenta.
   for (const row of rows) {
     for (const item of row.committees ?? []) {
-      if (item.roleCode === "GENERAL" && (generals.get(item.committeeId) ?? 0) > 1) {
-        row.errors.push(text(8, { comité: item.name }));
+      for (const role of item.roles.filter((role) => !role.coDirector)) {
+        if ((titulars.get(`${item.committeeId}:${role.roleCode}`) ?? 0) > 1) {
+          const label = catalog.roles.find((known) => known.code === role.roleCode)?.label;
+          row.errors.push(
+            text(8, { comité: item.name, cargo: label ?? role.newLabel ?? role.roleCode }),
+          );
+        }
       }
     }
   }
@@ -588,7 +623,24 @@ export interface ExistingPerson {
   entryTerm?: string | null;
   status: RosterStatus | null;
   probation: boolean;
-  committees: Array<{ slug: string; roleCode: string; transferredIn: boolean }>;
+  committees: Array<{
+    slug: string;
+    roleCode: string;
+    /** Todos los cargos vivos (ADR-058); si falta, se deriva del cargo principal. */
+    roles?: Array<{ roleCode: string; coDirector: boolean }>;
+    transferredIn: boolean;
+  }>;
+}
+
+/** Los cargos de una pertenencia existente, derivados del principal cuando la lectura no los trae. */
+export function existingRoles(item: {
+  roleCode: string;
+  roles?: Array<{ roleCode: string; coDirector: boolean }>;
+}): Array<{ roleCode: string; coDirector: boolean }> {
+  if (item.roles) {
+    return item.roles;
+  }
+  return item.roleCode !== "MIEMBRO" ? [{ roleCode: item.roleCode, coDirector: false }] : [];
 }
 
 export type DiffGroup = "NEW" | "CHANGED" | "UNCHANGED" | "ERROR";
@@ -625,12 +677,17 @@ export function diffRoster(rows: ValidatedRow[], existing: Map<string, ExistingP
     if (row.status !== undefined && row.status !== current.status) changes.push("status");
     if (row.probation !== undefined && row.probation !== current.probation) changes.push("status");
     if (row.committees !== undefined && row.status !== "INACTIVE") {
+      const rolesKey = (roles: Array<{ roleCode: string; coDirector: boolean }>) =>
+        roles
+          .map((role) => `${role.roleCode}${role.coDirector ? "*" : ""}`)
+          .sort()
+          .join("+");
       const wanted = row.committees
-        .map((item) => `${item.slug}:${item.roleCode}:${row.transferSlug === item.slug}`)
+        .map((item) => `${item.slug}:${rolesKey(item.roles)}:${row.transferSlug === item.slug}`)
         .sort()
         .join("|");
       const have = current.committees
-        .map((item) => `${item.slug}:${item.roleCode}:${item.transferredIn}`)
+        .map((item) => `${item.slug}:${rolesKey(existingRoles(item))}:${item.transferredIn}`)
         .sort()
         .join("|");
       if (wanted !== have) changes.push("committees");

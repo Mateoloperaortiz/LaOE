@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { grantRecognitionAs, recognitionInputSchema } from "@/modules/crm";
-import { assertLeader, ForbiddenError, getActor } from "@/modules/identity";
 import { listInternalRoster } from "@/modules/people";
 import {
   applyTemplateAs,
@@ -23,9 +22,11 @@ import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 import { clientIp } from "@/shared/lib/request";
 import { ruleInputFromForm } from "../../../permanencia/_ui/reglas";
+import { requireCommitteeCapability } from "../../_kit/capacidades";
 
-// Tabla de permanencia del comité (ADR-026, ADR-036 regla 3): ADMIN o el líder del comité, sobre el
-// término actual; el líder no pasa por encima del bloqueo de GH.
+// Tabla de permanencia del comité (ADR-026, ADR-036 regla 3, ADR-058): quien tiene la capacidad
+// PERMANENCE (ADMIN, líder técnico o la dirección por su cargo), sobre el término actual; solo ADMIN
+// pasa por encima del bloqueo de GH.
 
 const slugSchema = z.string().regex(/^[a-z0-9-]+$/);
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
@@ -41,27 +42,19 @@ function back(slug: string, extra: Record<string, string> = {}): string {
 }
 
 async function leaderOf(slug: string, returnTo: string) {
-  const actor = await getActor();
-  if (!actor) {
-    redirect(`/ingresar?next=${encodeURIComponent(returnTo)}`);
-  }
-  const roster = await listInternalRoster(slug);
+  const access = await requireCommitteeCapability(slug, "PERMANENCE", returnTo);
   const term = await getCurrentTerm();
-  if (!roster || !term) {
+  if (!term) {
     redirect("/admin");
   }
-  try {
-    assertLeader(actor, roster.committee.id);
-  } catch (error) {
-    if (error instanceof ForbiddenError) {
-      redirect("/app");
-    }
-    throw error;
-  }
-  const ref: TableRef = { termId: term.id, scope: "COMMITTEE", committeeId: roster.committee.id };
+  const ref: TableRef = {
+    termId: term.id,
+    scope: "COMMITTEE",
+    committeeId: access.roster.committee.id,
+  };
   return {
-    actor: { personId: actor.personId, ip: await clientIp() },
-    editor: { bypassLock: actor.isAdmin },
+    actor: { personId: access.actor.personId, ip: await clientIp() },
+    editor: { bypassLock: access.isAdmin },
     ref,
   };
 }

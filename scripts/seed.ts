@@ -12,6 +12,7 @@ import {
   appointment,
   committee,
   committeeMembership,
+  committeeRoleAssignment,
   consent,
   membership,
   membershipTerm,
@@ -206,7 +207,7 @@ async function seedPeople(
       const roleCode =
         !generalsAssigned.has(target.id) && status === "ACTIVE" ? "GENERAL" : "MIEMBRO";
       if (roleCode === "GENERAL") generalsAssigned.add(target.id);
-      await db
+      const [row] = await db
         .insert(committeeMembership)
         .values({
           personId: who.id,
@@ -215,9 +216,28 @@ async function seedPeople(
           roleCode,
           joinedAt: new Date("2026-07-13T05:00:00Z"),
         })
-        .onConflictDoNothing();
+        .onConflictDoNothing()
+        .returning({ id: committeeMembership.id });
+      if (row && roleCode !== "MIEMBRO") {
+        await seedRoleAssignment(row.id, who.id, target.id, current, roleCode, null);
+      }
     }
   }
+}
+
+// Cargo asignado de una pertenencia (ADR-058): el seed escribe ambas filas, como hace el dominio.
+async function seedRoleAssignment(
+  membershipId: string,
+  personId: string,
+  committeeId: string,
+  termId: string,
+  roleCode: string,
+  endedAt: Date | null,
+): Promise<void> {
+  await db
+    .insert(committeeRoleAssignment)
+    .values({ membershipId, personId, committeeId, termId, roleCode, endedAt })
+    .onConflictDoNothing();
 }
 
 // Egresados sintéticos de varios años, con comités en el término anterior, para la galería (ADR-030).
@@ -258,17 +278,23 @@ async function seedAlumni(
     for (let n = 0; n < 1 + (index % 2); n += 1) {
       const target = committees[(index * 7 + n * 11) % committees.length];
       if (!target) continue;
-      await db
+      const roleCode = n === 0 && index % 4 === 0 ? "GENERAL" : "MIEMBRO";
+      const leftAt = new Date("2026-06-06T05:00:00Z");
+      const [row] = await db
         .insert(committeeMembership)
         .values({
           personId: who.id,
           committeeId: target.id,
           termId: previous,
-          roleCode: n === 0 && index % 4 === 0 ? "GENERAL" : "MIEMBRO",
+          roleCode,
           joinedAt: new Date("2026-01-19T05:00:00Z"),
-          leftAt: new Date("2026-06-06T05:00:00Z"),
+          leftAt,
         })
-        .onConflictDoNothing();
+        .onConflictDoNothing()
+        .returning({ id: committeeMembership.id });
+      if (row && roleCode !== "MIEMBRO") {
+        await seedRoleAssignment(row.id, who.id, target.id, previous, roleCode, leftAt);
+      }
     }
   }
 }

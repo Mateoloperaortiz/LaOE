@@ -2,7 +2,10 @@
 export { Imagen } from "./components/Imagen";
 export {
   type AnnouncementRow,
+  type CommitteeAnnouncementInput,
+  committeeAnnouncementSchema,
   createAnnouncement,
+  createCommitteeAnnouncementAs,
   getAnnouncement,
   getMemberAnnouncement,
   getPublicAnnouncement,

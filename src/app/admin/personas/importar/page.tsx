@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import {
+  committeeRolesLabel,
   getRosterPreview,
   HEADER_ALIASES,
   type PreviewRow,
@@ -80,7 +81,20 @@ function Mapeo({ preview }: { preview: RosterPreview }) {
 
 function committeesText(row: PreviewRow): string {
   return (row.committees ?? [])
-    .map((item) => `${item.name} · ${item.newRoleLabel ?? item.roleCode}`)
+    .map((item) => {
+      const cargos =
+        item.roles.length > 0
+          ? committeeRolesLabel(
+              item.roles.map((role) => ({
+                roleCode: role.roleCode,
+                roleLabel: role.newLabel ?? role.roleCode,
+                coDirector: role.coDirector,
+              })),
+              item.roleCode,
+            )
+          : (item.newRoleLabel ?? item.roleCode);
+      return `${item.name} · ${cargos}`;
+    })
     .join(", ");
 }
 
@@ -279,7 +293,10 @@ function Confirmacion({
                     />
                     <span>
                       {proposal.personName} ·{" "}
-                      {t("T-370", { cargo: "General", comité: proposal.committeeName })}
+                      {t("T-370", {
+                        cargo: proposal.coDirector ? t("T-2144", { cargo: "General" }) : "General",
+                        comité: proposal.committeeName,
+                      })}
                     </span>
                   </label>
                 );

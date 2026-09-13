@@ -7,9 +7,9 @@ import { t, tList } from "@/shared/copy";
 import { AdminShell } from "./_components/AdminShell";
 import { requireAdminAreaRoles } from "./_kit/acceso";
 
-// Administración: ADMIN completo; un líder de comité, un líder o evaluador de grupo y la junta entran
-// con la navegación recortada a lo suyo (ADR-035 regla 15, ADR-036 regla 10) y cada página que no es
-// de su rol vuelve a exigir ADMIN.
+// Administración: ADMIN completo; un líder de comité, la dirección de un comité por sus cargos
+// (ADR-058), un líder o evaluador de grupo y la junta entran con la navegación recortada a lo suyo
+// (ADR-035 regla 15, ADR-036 regla 10) y cada página que no es de su rol vuelve a exigir ADMIN.
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const roles = await requireAdminAreaRoles("/admin");
   const actor = roles.actor;
@@ -36,12 +36,19 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [plantillas, campanas, mensajes] = tList("T-1172");
   const enlaces = !actor.isAdmin
     ? [
-        ...roles.ledCommittees.flatMap((item) => [
-          { href: `/admin/comites/${item.slug}`, label: item.name },
-          {
-            href: `/admin/comites/${item.slug}/permanencia`,
-            label: t("T-709", { comité: item.name }).split(" · ")[0] ?? permanenciaDe ?? "",
-          },
+        ...roles.committees.flatMap((item) => [
+          { href: `/admin/comites/${item.committee.slug}`, label: item.committee.name },
+          ...(item.capabilities.includes("PERMANENCE")
+            ? [
+                {
+                  href: `/admin/comites/${item.committee.slug}/permanencia`,
+                  label:
+                    t("T-709", { comité: item.committee.name }).split(" · ")[0] ??
+                    permanenciaDe ??
+                    "",
+                },
+              ]
+            : []),
         ]),
         ...roles.ledGroups.map((item) => ({
           href: `/admin/permanencia/grupos/${item.id}`,

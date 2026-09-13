@@ -1,6 +1,11 @@
 import Link from "next/link";
 import type { ActorPermission } from "@/modules/identity";
-import type { MyMembershipView, Person360, TagRow } from "@/modules/people";
+import {
+  committeeRolesLabel,
+  type MyMembershipView,
+  type Person360,
+  type TagRow,
+} from "@/modules/people";
 import { stageCell, statusCell } from "@/modules/people/admin";
 import { AdminActionsMenu } from "@/shared/admin-kit/AdminActionsMenu";
 import { Dato } from "@/shared/admin-kit/AdminFields";
@@ -175,7 +180,7 @@ export function Cabecera({ data, my, permissions, committeeNames, tags }: Props)
             my.committees.map((item) => (
               <li key={item.id}>
                 <Insignia fondo={item.isLeadership ? "naranja" : "sky"}>
-                  {item.committeeName} · {item.roleLabel}
+                  {item.committeeName} · {committeeRolesLabel(item.roles, item.roleLabel)}
                 </Insignia>
               </li>
             ))

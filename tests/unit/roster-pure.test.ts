@@ -109,8 +109,8 @@ describe("lectura del archivo", () => {
       parsed,
     );
     expect([...assignments.bySlug]).toEqual([
-      ["a3", "General"],
-      ["pixel", "Logística"],
+      ["a3", [{ label: "General", coDirector: false }]],
+      ["pixel", [{ label: "Logística", coDirector: false }]],
     ]);
     expect(assignments.error).toBeNull();
     expect(parseRoleAssignments("General", committees, parsed).error).toBe(7);
@@ -118,8 +118,30 @@ describe("lectura del archivo", () => {
       parseRoleAssignments("General", committees, [
         parsed[0] as (typeof committees)[number],
       ]).bySlug.get("a3"),
-    ).toBe("General");
+    ).toEqual([{ label: "General", coDirector: false }]);
     expect(parseRoleAssignments("General de NADA", committees, parsed).error).toBe(2);
+    // ADR-058: varios cargos en el mismo comité y codirección, con o sin tilde ni guion.
+    expect([
+      ...parseRoleAssignments(
+        "General de A3; Logística de A3; Codirección de Financiero de PIXEL",
+        committees,
+        parsed,
+      ).bySlug,
+    ]).toEqual([
+      [
+        "a3",
+        [
+          { label: "General", coDirector: false },
+          { label: "Logística", coDirector: false },
+        ],
+      ],
+      ["pixel", [{ label: "Financiero", coDirector: true }]],
+    ]);
+    expect(
+      parseRoleAssignments("co-direccion de general", committees, [
+        parsed[0] as (typeof committees)[number],
+      ]).bySlug.get("a3"),
+    ).toEqual([{ label: "general", coDirector: true }]);
   });
 });
 
@@ -230,7 +252,7 @@ describe("validación por fila", () => {
       "Semestre de ingreso vacío o inexistente",
     ]);
     expect(byEmail("felipe@eafit.edu.co")?.errors).toEqual(["Estado fuera de la lista"]);
-    expect(byEmail("gabi@eafit.edu.co")?.errors).toEqual(["Dos Generales en A3"]);
+    expect(byEmail("gabi@eafit.edu.co")?.errors).toEqual(["Dos titulares de General en A3"]);
     expect(byEmail("hugo@eafit.edu.co")?.errors).toEqual([
       "Cargo sin comité (la persona tiene varios)",
     ]);

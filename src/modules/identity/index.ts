@@ -4,7 +4,6 @@ export {
   getActor,
   requireActor,
   requireAdminActor,
-  requireAdminOrLeaderActor,
   requireBoardActor,
 } from "./current";
 export {

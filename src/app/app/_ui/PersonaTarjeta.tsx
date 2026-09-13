@@ -1,4 +1,10 @@
-import { APPOINTMENT_KINDS, type AppointmentKind, type MembershipStatus } from "@/modules/people";
+import {
+  APPOINTMENT_KINDS,
+  type AppointmentKind,
+  committeeRolesLabel,
+  type MembershipStatus,
+  type RoleView,
+} from "@/modules/people";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { mediaUrl } from "@/shared/lib/media";
@@ -17,9 +23,15 @@ export function cargoEtiqueta(item: { kind: AppointmentKind; title: string | nul
   return item.kind === "OTHER" && item.title ? item.title : label;
 }
 
-/** "{cargo} de {comité}" (T-370) para todos los cargos, también para Miembro. */
-export function cargoEnComite(roleLabel: string, committeeName: string): string {
-  return t("T-370", { cargo: roleLabel, comité: committeeName });
+/** "{cargos} de {comité}" (T-370): todos los cargos vivos, con codirección; Miembro si no hay ninguno. */
+export function cargoEnComite(
+  item: { roleLabel: string; roles: readonly RoleView[] },
+  committeeName: string,
+): string {
+  return t("T-370", {
+    cargo: committeeRolesLabel(item.roles, item.roleLabel),
+    comité: committeeName,
+  });
 }
 
 function iniciales(nombre: string): string {

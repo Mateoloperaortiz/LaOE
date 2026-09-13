@@ -1,9 +1,11 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { committeeMembership, membershipTerm } from "../schema";
+import { liveCommitteesPayload } from "./committee-memberships";
+import { endRoles } from "./committee-role-assignments";
 
 // Resultados del cierre de permanencia sobre la persona (ADR-036 regla 9): la condición de prueba
 // para el término siguiente y la salida de un comité. Los ejecuta el job `permanence.apply-decisions`
@@ -89,20 +91,8 @@ export async function leaveCommittee(
     .update(committeeMembership)
     .set({ leftAt: now })
     .where(eq(committeeMembership.id, row.id));
-  const live = await ctx.tx
-    .select({
-      committeeId: committeeMembership.committeeId,
-      roleCode: committeeMembership.roleCode,
-      transferredIn: committeeMembership.transferredIn,
-    })
-    .from(committeeMembership)
-    .where(
-      and(
-        eq(committeeMembership.personId, personId),
-        eq(committeeMembership.termId, termId),
-        isNull(committeeMembership.leftAt),
-      ),
-    );
+  await endRoles(ctx.tx, row.id, now);
+  const live = await liveCommitteesPayload(ctx.tx, personId, termId);
   await ctx.audit({
     action: "committee-membership.left",
     entityType: "person",
