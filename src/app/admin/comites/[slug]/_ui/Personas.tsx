@@ -1,8 +1,10 @@
 import Link from "next/link";
+import type { CommitteeRepresentationSummary } from "@/modules/participation";
 import {
   type CommitteeRoleRow,
   committeeRolesLabel,
   type EligibleMember,
+  type RepresentativeView,
   type RoleView,
   type RosterMember,
 } from "@/modules/people";
@@ -11,8 +13,14 @@ import { Casilla } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
+import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
-import { addMemberAction, requestRemovalAction, setRolesAction } from "../actions";
+import {
+  addMemberAction,
+  requestRemovalAction,
+  setRepresentativesAction,
+  setRolesAction,
+} from "../actions";
 
 // Área Personas de la vista del comité (ADR-058, decisión 4): roster con cargos, agregar miembros
 // activos con cupo, cambiar cargos (los de dirección solo con DIRECTION) y pedir a GH un retiro.
@@ -77,6 +85,9 @@ export function Personas({
   hasTerm,
   isAdmin,
   canDirect,
+  canRoster,
+  representatives,
+  representation,
   actorPersonId,
   roles,
   max,
@@ -93,6 +104,10 @@ export function Personas({
   hasTerm: boolean;
   isAdmin: boolean;
   canDirect: boolean;
+  /** Nombra al titular y al suplente ante la Asamblea (ADR-060 regla 7). */
+  canRoster: boolean;
+  representatives: RepresentativeView[];
+  representation: CommitteeRepresentationSummary | null;
   actorPersonId: string;
   roles: CommitteeRoleRow[];
   max: number;
@@ -105,6 +120,12 @@ export function Personas({
   const [, rosterTitulo] = tList("T-651");
   const columnas = tList("T-2152");
   const closeHref = `${base}?area=personas`;
+  const [titularLabel, suplenteLabel] = tList("T-2246") as [string, string];
+  const [sinRepresentante] = tList("T-2257") as [string, string];
+  const ladderLabels = tList("T-2250");
+  const titular = representatives.find((item) => item.role === "TITULAR") ?? null;
+  const suplente = representatives.find((item) => item.role === "SUPLENTE") ?? null;
+  const activos = members.filter((member) => member.status === "ACTIVE");
   const chosen = members.find((member) => member.personId === persona) ?? null;
   const hidden = <input type="hidden" name="slug" value={slug} />;
   const alerta = error ? (
@@ -126,6 +147,77 @@ export function Personas({
           </Link>
         ) : null}
       </div>
+      {hasTerm ? (
+        <section
+          aria-labelledby="representacion-asamblea"
+          className="flex flex-col gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-4"
+        >
+          <h3 id="representacion-asamblea" className="text-display-md">
+            {t("T-2247")}
+          </h3>
+          <p className="max-w-prose text-sm text-tinta-suave">{t("T-2248")}</p>
+          {representation && representation.assemblies > 0 ? (
+            <p className="text-sm">
+              {t("T-2258", {
+                n: representation.represented,
+                m: representation.assemblies,
+                faltas: representation.unexcused,
+                excusadas: representation.excused,
+              })}{" "}
+              <Insignia fondo={representation.ladder === 0 ? "paper" : "naranja"}>
+                {ladderLabels[representation.ladder] ?? ""}
+              </Insignia>
+              {representation.excusedOverflow ? (
+                <span className="block text-xs text-oe-orange">{t("T-2251")}</span>
+              ) : null}
+            </p>
+          ) : null}
+          {canRoster ? (
+            <form action={setRepresentativesAction} className="flex flex-col gap-3">
+              <AdminFormBody>
+                {hidden}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {(
+                    [
+                      ["titular", titularLabel, titular],
+                      ["suplente", suplenteLabel, suplente],
+                    ] as const
+                  ).map(([name, label, current]) => (
+                    <label
+                      key={name}
+                      className="flex flex-col gap-1 text-sm"
+                      htmlFor={`rep-${name}`}
+                    >
+                      {label}
+                      <select
+                        id={`rep-${name}`}
+                        name={name}
+                        defaultValue={current?.personId ?? ""}
+                        className={inputClass}
+                      >
+                        <option value="">{sinRepresentante}</option>
+                        {activos.map((member) => (
+                          <option key={member.personId} value={member.personId}>
+                            {member.fullName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ))}
+                </div>
+                <AdminSubmitButton type="submit" className="boton-secundario self-start">
+                  {t("T-2256")}
+                </AdminSubmitButton>
+              </AdminFormBody>
+            </form>
+          ) : (
+            <p className="text-sm">
+              {titularLabel}: {titular?.fullName ?? sinRepresentante} · {suplenteLabel}:{" "}
+              {suplente?.fullName ?? sinRepresentante}
+            </p>
+          )}
+        </section>
+      ) : null}
       {!hasTerm ? (
         <p className="text-tinta-suave">{t("T-2140")}</p>
       ) : members.length === 0 ? (

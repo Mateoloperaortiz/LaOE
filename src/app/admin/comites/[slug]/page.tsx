@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listCommitteeAnnouncements } from "@/modules/content";
 import { listEditionsByCommittee } from "@/modules/events";
 import {
+  listCommitteeRepresentation,
   listCommitteeScores,
   listOccasions,
   OCCASION_CATEGORIES,
@@ -16,6 +17,7 @@ import {
   listCommitteeRoles,
   listCommitteesMissingRequiredRoles,
   listInternalRoster,
+  listRepresentatives,
   searchEligibleMembers,
 } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
@@ -142,6 +144,15 @@ export default async function ComitePage({
           hasTerm={term !== null}
           isAdmin={access.isAdmin}
           canDirect={capabilities.has("DIRECTION")}
+          canRoster={access.isAdmin || capabilities.has("ROSTER")}
+          representatives={term ? await listRepresentatives(term.id, roster.committee.id) : []}
+          representation={
+            term
+              ? ((await listCommitteeRepresentation(term.id)).find(
+                  (row) => row.committeeId === roster.committee.id,
+                ) ?? null)
+              : null
+          }
           actorPersonId={access.actor.personId}
           roles={await listCommitteeRoles()}
           max={await requireConfig("committees.max")}

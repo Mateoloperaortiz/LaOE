@@ -44,6 +44,7 @@ export {
   setOwnPhotoAs,
   setPersonTagsAs,
   setProbationAs,
+  setRepresentativeAs,
   updateCommitteeProfileAs,
   updateOwnContactAs,
   updatePersonAs,
@@ -177,6 +178,17 @@ export {
   type MembershipStatus,
   SIGN_IN_STATUSES,
 } from "./domain/reads";
+export {
+  type DirectionRef,
+  listLiveDirectionForTerm,
+  listRepresentatives,
+  REPRESENTATIVE_ROLES,
+  type RepresentativeInput,
+  type RepresentativeRole,
+  type RepresentativeView,
+  representativeInputSchema,
+  representativeRoleLabel,
+} from "./domain/representatives";
 export {
   applyRosterImportAs,
   createRosterPreviewAs,

@@ -1797,3 +1797,16 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2243 | Sanciones: estados (vigente · vencida · revocada) | Vigente · Vencida · Revocada | MATEO | Propuesta |
 | T-2244 | Sanciones: membresía terminada | Solo se sanciona a un miembro con membresía viva; una persona retirada se da de baja con motivo expulsión. | MATEO | Propuesta |
 | T-2245 | Mi OE, permanencia: sanción revocada o vencida | Sin sanciones vigentes. | MATEO | Propuesta |
+| T-2246 | Representantes ante la Asamblea: roles (en el orden del modelo) | Titular · Suplente | MATEO | Propuesta |
+| T-2247 | Comité, área Personas: bloque de representación, título | Representación ante la Asamblea Directiva | GH | Propuesta |
+| T-2248 | Comité, área Personas: ayuda de representación | Un titular y un suplente de la mesa directiva, miembros activos del comité (Reglamento, art. 14). El comité cuenta como representado cuando su titular, su suplente o cualquier cargo de dirección registra asistencia en la asamblea; con excusa aceptada, la falta cuenta con excusa. | GH | Propuesta |
+| T-2249 | Asambleas (admin): columnas de la representación por comité | Comité · Titular · Suplente · Representado en · Faltas sin excusa · Faltas con excusa · Consecuencia | MATEO | Propuesta |
+| T-2250 | Representación: escalera de consecuencias del término (en el orden del modelo) | Al día · Primera falta: sin voto en la siguiente asamblea y llamado de atención a la mesa · Segunda falta: sin voto en las dos siguientes y falta leve a la mesa · Tercera falta: causal de desactivación y falta grave a la mesa | GH | Propuesta; Reglamento art. 64; texto sensible |
+| T-2251 | Representación: más de dos faltas con excusa | Más de dos faltas con excusa en el semestre (Reglamento, art. 64). | GH | Propuesta |
+| T-2252 | Asambleas (admin): comités representados en una asamblea | {n} de {m} comités representados | MATEO | Propuesta |
+| T-2253 | Asambleas (admin): sección de representación, título | Representación de los comités | GH | Propuesta |
+| T-2254 | Asambleas (admin): botón de recalcular la representación | Recalcular | MATEO | Propuesta |
+| T-2255 | Representantes: persona no elegible | El representante debe ser un miembro activo del comité en este semestre (Reglamento, art. 14). | MATEO | Propuesta |
+| T-2256 | Comité, área Personas: botón de guardar representantes | Guardar representantes | MATEO | Propuesta |
+| T-2257 | Representación: sin representante · sin asambleas cerradas | Sin representante · Sin asambleas cerradas todavía | MATEO | Propuesta |
+| T-2258 | Comité, área Personas: resumen de la representación del semestre | Representado en {n} de {m} asambleas · {faltas} sin excusa · {excusadas} con excusa | MATEO | Propuesta |

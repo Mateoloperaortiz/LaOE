@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
-import { adjustRequirementAs } from "@/modules/participation";
+import { adjustRequirementAs, recomputeCommitteeAssembly } from "@/modules/participation";
 import { DomainError } from "@/shared/admin-kit";
 import { clientIp } from "@/shared/lib/request";
 
@@ -63,4 +63,36 @@ export async function adjustRequirementAction(formData: FormData): Promise<void>
   }
   revalidatePath("/admin/asambleas");
   redirect(`${back}&guardado=${encodeURIComponent(parsed.data.personId)}`);
+}
+
+// Representación por comité (ADR-060 regla 7): dato derivado; ADMIN puede recalcularlo a pedido.
+const recomputeSchema = z.object({
+  occasionId: z.string().regex(/^[a-z0-9-]+$/),
+  termId: z.string().regex(/^[a-z0-9-]+$/),
+});
+
+export async function recomputeRepresentationAction(formData: FormData): Promise<void> {
+  const parsed = recomputeSchema.safeParse({
+    occasionId: formData.get("occasionId"),
+    termId: formData.get("termId"),
+  });
+  const back = `/admin/asambleas?termId=${encodeURIComponent(parsed.success ? parsed.data.termId : "")}`;
+  const actor = await getActor();
+  if (!actor) {
+    redirect(`/ingresar?next=${encodeURIComponent(back)}`);
+  }
+  try {
+    assertAdmin(actor);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      redirect("/app");
+    }
+    throw error;
+  }
+  if (!parsed.success) {
+    redirect(`${back}&error=${encodeURIComponent("T-260")}`);
+  }
+  await recomputeCommitteeAssembly(parsed.data.occasionId);
+  revalidatePath("/admin/asambleas");
+  redirect(back);
 }

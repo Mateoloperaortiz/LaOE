@@ -141,6 +141,13 @@
       "when": 1789305507481,
       "tag": "0019_faltas_y_sanciones",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789306172765,
+      "tag": "0020_representacion_en_asamblea",
+      "breakpoints": true
     }
   ]
 }

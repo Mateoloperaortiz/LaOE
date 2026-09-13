@@ -415,3 +415,29 @@ export const sanction = pgTable(
     ),
   ],
 );
+
+// Representante y suplente de cada comité ante la Asamblea Directiva (Est. art. 16.2 y 33.3; Regl.
+// art. 14; ADR-060 regla 7): miembros activos del comité en el término, uno por rol.
+export const representativeRole = pgEnum("representative_role", ["TITULAR", "SUPLENTE"]);
+
+export const committeeRepresentative = pgTable(
+  "committee_representative",
+  {
+    id: id(),
+    committeeId: text()
+      .notNull()
+      .references(() => committee.id),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    role: representativeRole().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("committee_representative_role_unique").on(t.committeeId, t.termId, t.role),
+    uniqueIndex("committee_representative_person_unique").on(t.committeeId, t.termId, t.personId),
+  ],
+);

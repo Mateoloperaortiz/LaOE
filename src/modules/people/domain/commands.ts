@@ -24,6 +24,7 @@ import {
 } from "./membership";
 import { type OwnContactInput, requestDeletion, setOwnPhoto, updateOwnContact } from "./own-data";
 import { createPerson, type PersonInput, updatePerson } from "./persons";
+import { type RepresentativeInput, setRepresentative } from "./representatives";
 import { recordSanction, revokeSanction, type SanctionInput } from "./sanctions";
 import { setPersonTags } from "./tags";
 import { leaveCommittee, type ProbationInput, setProbation } from "./term-outcomes";
@@ -206,4 +207,10 @@ export function recordSanctionAs(
 
 export function revokeSanctionAs(actor: Actor, sanctionId: string, reason: string): Promise<void> {
   return runCommand(actor, (ctx) => revokeSanction(ctx, sanctionId, reason));
+}
+
+// Representación ante la Asamblea Directiva (ADR-060 regla 7).
+
+export function setRepresentativeAs(actor: Actor, input: RepresentativeInput): Promise<void> {
+  return runCommand(actor, (ctx) => setRepresentative(ctx, input));
 }

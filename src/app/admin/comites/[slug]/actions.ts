@@ -21,8 +21,10 @@ import {
   requestCommitteeRemovalAs,
   rosterChangeSchema,
   setMemberRolesAs,
+  setRepresentativeAs,
   updateCommitteeProfileAs,
 } from "@/modules/people";
+import { getCurrentTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
@@ -341,4 +343,37 @@ export async function updateProfileAction(formData: FormData): Promise<void> {
   }
   revalidatePath(back(slug));
   redirect(back(slug, { ...comunicacion, guardado: "1" }));
+}
+
+// Representantes ante la Asamblea Directiva (ADR-060 regla 7): quien tiene ROSTER nombra al titular y
+// al suplente del término entre los miembros activos del comité.
+const representativeIdSchema = z.string().regex(/^[a-z0-9-]*$/);
+
+export async function setRepresentativesAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const returnTo = back(slug, { area: "personas" });
+  const access = await requireCommitteeCapability(slug, "ROSTER", returnTo);
+  const term = await getCurrentTerm();
+  if (!term) {
+    redirect(back(slug, { area: "personas", error: t("T-260") }));
+  }
+  const actor = { personId: access.actor.personId, ip: await clientIp() };
+  try {
+    for (const role of ["TITULAR", "SUPLENTE"] as const) {
+      await setRepresentativeAs(actor, {
+        committeeId: access.roster.committee.id,
+        termId: term.id,
+        role,
+        personId: representativeIdSchema.parse(text(formData, role.toLowerCase())) || null,
+      });
+    }
+  } catch (error) {
+    if (error instanceof DomainError) {
+      redirect(back(slug, { area: "personas", error: error.message }));
+    }
+    throw error;
+  }
+  revalidatePath(returnTo);
+  revalidatePath("/admin/asambleas");
+  redirect(back(slug, { area: "personas", guardado: "1" }));
 }

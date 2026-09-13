@@ -357,3 +357,30 @@ export const occasionSurveyResponse = pgTable(
   },
   (t) => [index("occasion_survey_response_occasion_idx").on(t.occasionId)],
 );
+
+// Asistencia de cada comité a una asamblea cerrada (Regl. art. 14 y 64; ADR-060 regla 7): representado
+// si su titular, su suplente o cualquier cargo de dirección registró asistencia; con excusa si alguno
+// de ellos tiene la excusa aceptada. Derivada por outbox al cerrar la asamblea y al cambiar un check-in.
+export const committeeAssemblyAttendance = pgTable(
+  "committee_assembly_attendance",
+  {
+    id: id(),
+    occasionId: text()
+      .notNull()
+      .references(() => occasion.id, { onDelete: "cascade" }),
+    committeeId: text()
+      .notNull()
+      .references(() => committee.id),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    represented: boolean().notNull().default(false),
+    excused: boolean().notNull().default(false),
+    representedById: text().references(() => person.id, { onDelete: "set null" }),
+    computedAt: timestampTz().notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("committee_assembly_attendance_unique").on(t.occasionId, t.committeeId),
+    index("committee_assembly_attendance_term_idx").on(t.termId, t.committeeId),
+  ],
+);

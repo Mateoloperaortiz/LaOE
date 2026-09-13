@@ -11,6 +11,10 @@ import {
   statusForDecision,
 } from "@/modules/participation/domain/check-in-pure";
 import {
+  MAX_EXCUSED_ABSENCES,
+  representationLadder,
+} from "@/modules/participation/domain/committee-assembly";
+import {
   balance,
   competitionRanks,
   levelFor,
@@ -313,5 +317,16 @@ describe("excusa válida aceptada (ADR-060 regla 5)", () => {
     expect(canTransitionCheckIn("APPROVED", "EXCUSED")).toBe(false);
     expect(canTransitionCheckIn("EXCUSED", "APPROVED")).toBe(false);
     expect(canTransitionCheckIn("EXCUSED", "CANCELLED")).toBe(false);
+  });
+});
+
+describe("representación de los comités en la asamblea (ADR-060 regla 7)", () => {
+  it("sube la escalera del Reglamento (art. 64) con cada falta sin excusa y admite dos con excusa", () => {
+    expect(representationLadder(0)).toBe(0);
+    expect(representationLadder(1)).toBe(1);
+    expect(representationLadder(2)).toBe(2);
+    expect(representationLadder(3)).toBe(3);
+    expect(representationLadder(7)).toBe(3);
+    expect(MAX_EXCUSED_ABSENCES).toBe(2);
   });
 });

@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdminActor } from "@/modules/identity";
-import { ASSEMBLY_KINDS, assemblyOverview, listTermAssemblies } from "@/modules/participation";
+import {
+  ASSEMBLY_KINDS,
+  assemblyOverview,
+  listAssemblyRepresentation,
+  listCommitteeRepresentation,
+  listTermAssemblies,
+} from "@/modules/participation";
 import { occasionStatusCell } from "@/modules/participation/admin";
 import { getPeopleByIds } from "@/modules/people";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -12,7 +18,7 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
-import { adjustRequirementAction } from "./actions";
+import { adjustRequirementAction, recomputeRepresentationAction } from "./actions";
 
 // Asambleas del término para GH (ADR-024, ADR-028, ADR-035 regla 12): las asambleas, el cumplimiento
 // por persona y el ajuste individual del requisito con motivo.
@@ -57,10 +63,15 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
       </div>
     );
   }
-  const [assemblies, overview] = await Promise.all([
+  const [assemblies, overview, representation, byAssembly] = await Promise.all([
     listTermAssemblies(term.id),
     assemblyOverview(term),
+    listCommitteeRepresentation(term.id),
+    listAssemblyRepresentation(term.id),
   ]);
+  const representationColumns = tList("T-2249");
+  const ladderLabels = tList("T-2250");
+  const [sinRepresentante, sinAsambleas] = tList("T-2257") as [string, string];
   const rows = overview.filter((row) =>
     filter === "cumplen"
       ? row.compliance.compliant
@@ -135,10 +146,88 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
                     {item.title}
                   </Link>
                   <span className="text-sm text-tinta-suave">{formatDateTime(item.startsAt)}</span>
+                  {item.status === "CLOSED" ? (
+                    <form
+                      action={recomputeRepresentationAction}
+                      className="flex flex-wrap items-center gap-2 text-sm"
+                    >
+                      <input type="hidden" name="occasionId" value={item.id} />
+                      <input type="hidden" name="termId" value={term.id} />
+                      <span className="text-tinta-suave">
+                        {t("T-2252", {
+                          n: byAssembly.get(item.id)?.represented ?? 0,
+                          m: byAssembly.get(item.id)?.total ?? 0,
+                        })}
+                      </span>
+                      <AdminSubmitButton
+                        type="submit"
+                        className="boton-secundario min-h-8 px-3 py-1 text-xs"
+                      >
+                        {t("T-2254")}
+                      </AdminSubmitButton>
+                    </form>
+                  ) : null}
                 </li>
               );
             })}
           </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="representacion" className="flex flex-col gap-3">
+        <h2 id="representacion" className="text-display-md">
+          {t("T-2253")}
+        </h2>
+        {representation.length === 0 ? (
+          <p className="text-sm text-tinta-suave">{sinAsambleas}</p>
+        ) : (
+          <AdminTableRegion
+            label={t("T-2253")}
+            className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde"
+          >
+            <table className="admin-data-table w-full text-left text-sm">
+              <thead className="eyebrow bg-fondo-suave text-xs">
+                <tr>
+                  {representationColumns.map((column) => (
+                    <th key={column} scope="col" className="px-3 py-2">
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {representation.map((row) => (
+                  <tr key={row.committeeId} className="border-borde border-t">
+                    <td className="px-3 py-2 font-semibold">
+                      <Link
+                        href={`/admin/comites/${row.committeeSlug}?area=personas`}
+                        className="underline"
+                      >
+                        {row.committeeName}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2">{row.titular?.fullName ?? sinRepresentante}</td>
+                    <td className="px-3 py-2">{row.suplente?.fullName ?? sinRepresentante}</td>
+                    <td className="px-3 py-2">
+                      {row.represented}/{row.assemblies}
+                    </td>
+                    <td className="px-3 py-2">{row.unexcused}</td>
+                    <td className="px-3 py-2">
+                      {row.excused}
+                      {row.excusedOverflow ? (
+                        <span className="block text-xs text-oe-orange">{t("T-2251")}</span>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Insignia fondo={row.ladder === 0 ? "paper" : "naranja"}>
+                        {ladderLabels[row.ladder] ?? ""}
+                      </Insignia>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </AdminTableRegion>
         )}
       </section>
 

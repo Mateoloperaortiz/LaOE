@@ -71,6 +71,16 @@ export {
   setRotatingCodeAs,
   updateOccasionAs,
 } from "./domain/commands";
+export {
+  type AssemblyRepresentation,
+  type CommitteeRepresentationSummary,
+  listAssemblyRepresentation,
+  listCommitteeRepresentation,
+  MAX_EXCUSED_ABSENCES,
+  type RepresentationLadder,
+  recomputeCommitteeAssembly,
+  representationLadder,
+} from "./domain/committee-assembly";
 export { type CheckInExportRow, listCheckInsForExport } from "./domain/exports";
 export {
   balanceFor,

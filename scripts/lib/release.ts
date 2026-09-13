@@ -73,6 +73,10 @@ const REQUIRED_INDEXES = [
   "card_submission_unique",
   "request_pending_unique",
   "request_excuse_pending_unique",
+  // Normativa 2026 (ADR-060)
+  "committee_representative_role_unique",
+  "committee_representative_person_unique",
+  "committee_assembly_attendance_unique",
   "internal_call_entry_unique",
   // Fase 6 (ADR-038)
   "message_person_dedupe_unique",
