@@ -21,7 +21,12 @@ export const committeeInputSchema = z.object({
     .max(40)
     .regex(/^[a-z0-9-]+$/),
   name: z.string().trim().min(2).max(80),
-  status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
+  status: z.enum(["ACTIVE", "INACTIVE", "ON_TRIAL"]).default("ACTIVE"),
+  /** Periodo de prueba de un comité creado o reactivado (Regl. art. 25; ADR-060 regla 8). */
+  trialStartsOn: z.union([z.literal(""), z.iso.date()]).default(""),
+  trialEndsOn: z.union([z.literal(""), z.iso.date()]).default(""),
+  /** Cuándo la junta lo desactivó (Regl. art. 26). */
+  deactivatedOn: z.union([z.literal(""), z.iso.date()]).default(""),
   color: z
     .string()
     .trim()
@@ -37,7 +42,8 @@ export const committeeInputSchema = z.object({
   publicationStatus: z.enum(["DRAFT", "PUBLISHED"]).default("DRAFT"),
 });
 
-export type CommitteeInput = z.infer<typeof committeeInputSchema>;
+/** Lo que reciben los comandos: los valores por defecto (estado, publicación, fechas) los aplica `toValues`. */
+export type CommitteeInput = z.input<typeof committeeInputSchema>;
 
 export interface CommitteeListParams {
   q: string;
@@ -56,7 +62,7 @@ export async function listCommittees(
       or(ilike(committee.name, `%${params.q}%`), ilike(committee.slug, `%${params.q}%`)),
     );
   }
-  if (params.status === "ACTIVE" || params.status === "INACTIVE") {
+  if (params.status === "ACTIVE" || params.status === "INACTIVE" || params.status === "ON_TRIAL") {
     conditions.push(eq(committee.status, params.status));
   }
   if (params.publicationStatus === "DRAFT" || params.publicationStatus === "PUBLISHED") {
@@ -83,10 +89,22 @@ export async function getCommittee(id: string): Promise<CommitteeRow | null> {
 }
 
 export async function listAllCommittees(): Promise<
-  Array<{ id: string; slug: string; name: string }>
+  Array<{
+    id: string;
+    slug: string;
+    name: string;
+    status: "ACTIVE" | "INACTIVE" | "ON_TRIAL";
+    trialEndsOn: string | null;
+  }>
 > {
   return getDb()
-    .select({ id: committee.id, slug: committee.slug, name: committee.name })
+    .select({
+      id: committee.id,
+      slug: committee.slug,
+      name: committee.name,
+      status: committee.status,
+      trialEndsOn: committee.trialEndsOn,
+    })
     .from(committee)
     .orderBy(asc(committee.name));
 }
@@ -132,7 +150,10 @@ const publicColumns = {
   contactUrl: committee.contactUrl,
 };
 
-const isPublic = and(eq(committee.status, "ACTIVE"), eq(committee.publicationStatus, "PUBLISHED"));
+const isPublic = and(
+  inArray(committee.status, ["ACTIVE", "ON_TRIAL"]),
+  eq(committee.publicationStatus, "PUBLISHED"),
+);
 
 export const listPublishedCommittees = cache(async (): Promise<PublicCommittee[]> => {
   return getDb().select(publicColumns).from(committee).where(isPublic).orderBy(asc(committee.name));
@@ -168,7 +189,7 @@ export const listCommitteesByIds = cache(async (ids: string[]): Promise<Committe
     slug: row.slug,
     name: row.name,
     logoKey: row.logoKey,
-    isPublished: row.status === "ACTIVE" && row.publicationStatus === "PUBLISHED",
+    isPublished: row.status !== "INACTIVE" && row.publicationStatus === "PUBLISHED",
   }));
 });
 
@@ -183,7 +204,8 @@ export const getPublishedCommittee = cache(
   },
 );
 
-function toValues(input: CommitteeInput) {
+function toValues(raw: CommitteeInput) {
+  const input = committeeInputSchema.parse(raw);
   return {
     slug: input.slug,
     name: input.name,
@@ -193,6 +215,9 @@ function toValues(input: CommitteeInput) {
     presentation: input.presentation ?? null,
     contactUrl: input.contactUrl ?? null,
     publicationStatus: input.publicationStatus,
+    trialStartsOn: input.trialStartsOn || null,
+    trialEndsOn: input.trialEndsOn || null,
+    deactivatedOn: input.deactivatedOn || null,
   };
 }
 

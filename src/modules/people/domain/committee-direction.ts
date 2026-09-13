@@ -84,7 +84,7 @@ export const listMyCommitteeCapabilities = cache(
           eq(committeeRoleAssignment.termId, termId),
           isNull(committeeRoleAssignment.endedAt),
           eq(committeeRole.isLeadership, true),
-          eq(committee.status, "ACTIVE"),
+          inArray(committee.status, ["ACTIVE", "ON_TRIAL"]),
           inArray(membership.status, [...OPERATING_STATUSES]),
         ),
       )
@@ -150,7 +150,7 @@ export async function listCommitteesMissingRequiredRoles(
       .innerJoin(committeeMembership, eq(committeeMembership.committeeId, committee.id))
       .where(
         and(
-          eq(committee.status, "ACTIVE"),
+          inArray(committee.status, ["ACTIVE", "ON_TRIAL"]),
           eq(committeeMembership.termId, termId),
           isNull(committeeMembership.leftAt),
         ),

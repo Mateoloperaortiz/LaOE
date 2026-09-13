@@ -190,6 +190,8 @@ export interface TermRosterRow {
   probation: boolean;
   /** Prueba fijada solo para este comité (ADR-060 regla 2). */
   committeeProbation: boolean;
+  /** Se reporta como activo aunque sea su primer término (Est. art. 5 par. 1; ADR-060 regla 8). */
+  reportAsVeteran: boolean;
   committeeId: string;
   roleCode: string;
   transferredIn: boolean;
@@ -209,6 +211,7 @@ async function rosterRows(termId: string, personIds?: string[]): Promise<TermRos
       status: membership.status,
       firstTermId: membership.firstTermId,
       probation: personTerm.probation,
+      reportAsVeteran: personTerm.reportAsVeteran,
       committeeProbation: committeeTerm.probation,
       committeeId: committeeMembership.committeeId,
       roleCode: committeeMembership.roleCode,
@@ -243,6 +246,7 @@ async function rosterRows(termId: string, personIds?: string[]): Promise<TermRos
   return rows.map((row) => ({
     ...row,
     probation: row.probation ?? false,
+    reportAsVeteran: row.reportAsVeteran ?? false,
     committeeProbation: row.committeeProbation ?? false,
   }));
 }

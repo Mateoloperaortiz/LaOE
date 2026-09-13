@@ -35,7 +35,8 @@ export const membershipEndReason = pgEnum("membership_end_reason", [
   "STUDENT_STATUS_LOST",
   "OTHER",
 ]);
-export const committeeStatus = pgEnum("committee_status", ["ACTIVE", "INACTIVE"]);
+// ON_TRIAL: comité creado o reactivado en su periodo de prueba (Regl. art. 25; ADR-060 regla 8).
+export const committeeStatus = pgEnum("committee_status", ["ACTIVE", "INACTIVE", "ON_TRIAL"]);
 export const consentPurpose = pgEnum("consent_purpose", [
   "MEMBERSHIP",
   "COMMUNICATIONS",
@@ -149,6 +150,8 @@ export const membershipTerm = pgTable(
       .references(() => term.id),
     committeeId: text().references(() => committee.id),
     probation: boolean().notNull().default(false),
+    /** La mesa de un comité nuevo o reactivado se reporta como activa aunque sea nueva (Est. art. 5 par. 1). */
+    reportAsVeteran: boolean().notNull().default(false),
     reason: text(),
     decidedById: text().references(() => person.id, { onDelete: "set null" }),
     createdAt: createdAt(),
@@ -217,6 +220,11 @@ export const committee = pgTable(
     presentation: text(),
     contactUrl: text(),
     publicationStatus: publicationStatus().notNull().default("DRAFT"),
+    /** Periodo de prueba de un comité creado o reactivado: seis meses, ampliables a un año (Regl. art. 25). */
+    trialStartsOn: date({ mode: "string" }),
+    trialEndsOn: date({ mode: "string" }),
+    /** Cuándo la junta lo desactivó (Regl. art. 26); reactivar solo tras dos meses (art. 64). */
+    deactivatedOn: date({ mode: "string" }),
     legacyId: text(), // id de Committee en GHPOINTS
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -225,6 +233,14 @@ export const committee = pgTable(
     uniqueIndex("committee_slug_unique").on(t.slug),
     uniqueIndex("committee_legacy_id_unique").on(t.legacyId).where(sql`${t.legacyId} is not null`),
     check("committee_slug_format", sql`${t.slug} ~ '^[a-z0-9-]+$'`),
+    check(
+      "committee_trial_consistent",
+      sql`(${t.trialStartsOn} is null) = (${t.trialEndsOn} is null)`,
+    ),
+    check(
+      "committee_trial_ordered",
+      sql`${t.trialEndsOn} is null or ${t.trialEndsOn} >= ${t.trialStartsOn}`,
+    ),
   ],
 );
 

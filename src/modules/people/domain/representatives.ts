@@ -142,6 +142,8 @@ export async function listRepresentatives(
 export interface DirectionRef {
   committeeId: string;
   personId: string;
+  roleCode: string;
+  required: boolean;
 }
 
 /** Cargos de dirección vivos del término con membresía activa u honoraria: la mesa directiva de cada comité. */
@@ -150,6 +152,8 @@ export async function listLiveDirectionForTerm(termId: string): Promise<Directio
     .select({
       committeeId: committeeRoleAssignment.committeeId,
       personId: committeeRoleAssignment.personId,
+      roleCode: committeeRoleAssignment.roleCode,
+      required: committeeRole.required,
     })
     .from(committeeRoleAssignment)
     .innerJoin(committeeRole, eq(committeeRole.code, committeeRoleAssignment.roleCode))

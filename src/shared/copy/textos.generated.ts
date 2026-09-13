@@ -4616,6 +4616,48 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2259": {
+    where: "Comité: campos del periodo de prueba y la desactivación",
+    text: "Prueba desde · Prueba hasta · Desactivado el",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2260": {
+    where: "Comité: ayuda del periodo de prueba",
+    text: "Un comité creado o reactivado queda en prueba seis meses, ampliables a un año por la junta con motivo; en ese lapso debe hacer al menos un evento propio, representar al comité en el 90 % de las asambleas y cerrar con diez miembros fuera de la mesa (Reglamento, art. 25). Reactivar uno desactivado solo tras dos meses (art. 64).",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-2261": {
+    where: "Tablero y cabecera del comité: aviso de viabilidad",
+    text: "{comité}: {alerta}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2262": {
+    where: "Condición del semestre: casilla de mesa de comité nuevo",
+    text: "Se reporta como activo aunque sea nuevo (mesa de comité nuevo o reactivado, Estatutos art. 5)",
+    owner: "GH",
+    status: "Propuesta",
+  },
+  "T-2263": {
+    where: "Tablero de ADMIN: viabilidad de los comités, título",
+    text: "Viabilidad de los comités",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2264": {
+    where: "Viabilidad: avisos (en el orden del modelo)",
+    text: "Menos de tres direcciones vivas · Sin General o Financiero titular · Menos de seis miembros fuera de la mesa · Tres o más faltas sin excusa a la Asamblea · Sin evento propio en el semestre · En prueba con menos de diez miembros fuera de la mesa · En prueba con menos del 90 % de asambleas representadas · La prueba termina en menos de 30 días",
+    owner: "GH",
+    status: "Propuesta; Reglamento art. 25 y 26; texto sensible",
+  },
+  "T-2265": {
+    where: "Comité en prueba: insignia de la cabecera",
+    text: "En prueba hasta el {fecha}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-230": {
     where: "Botón para reintentar tras un error",
     text: "Intentar de nuevo",
@@ -4948,7 +4990,7 @@ export const textos = {
   },
   "T-287": {
     where: "Comités: opciones de estado",
-    text: "Activo · Inactivo",
+    text: "Activo · Inactivo · En prueba",
     owner: "MATEO",
     status: "Propuesta",
   },

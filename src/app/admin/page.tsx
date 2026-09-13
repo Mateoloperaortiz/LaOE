@@ -5,7 +5,7 @@ import { listActiveCampaigns } from "@/modules/comms";
 import { campaignStatusLabel } from "@/modules/comms/admin";
 import { dashboardForAdmin, type TaskRow } from "@/modules/crm";
 import { recentSubmissionCounts } from "@/modules/forms";
-import { listOccasions } from "@/modules/participation";
+import { listCommitteeViability, listOccasions, VIABILITY_ALERTS } from "@/modules/participation";
 import { listCommitteesMissingRequiredRoles } from "@/modules/people";
 import { listGroupRefs } from "@/modules/permanence";
 import { countDeadLetters, getBackupStatus } from "@/modules/system";
@@ -108,7 +108,7 @@ export default async function AdminHome() {
     );
   }
   const term = await getCurrentTerm();
-  const [tablero, respuestas, ocasiones, deadLetters, backup, campanas, sinCargos] =
+  const [tablero, respuestas, ocasiones, deadLetters, backup, campanas, sinCargos, viabilidad] =
     await Promise.all([
       dashboardForAdmin(roles.actor.personId, term?.id ?? null),
       recentSubmissionCounts(7),
@@ -126,7 +126,9 @@ export default async function AdminHome() {
       getBackupStatus(),
       listActiveCampaigns(),
       term ? listCommitteesMissingRequiredRoles(term.id) : Promise.resolve([]),
+      term ? listCommitteeViability(term.id) : Promise.resolve([]),
     ]);
+  const viabilityLabels = tList("T-2264");
   const grupos = await listGroupRefs(tablero.openCalls.map((call) => call.groupId));
   const [bPendientes, bVencidas, bSolicitudes, bRespuestas, bPipelines, bConvocatorias, bSistema] =
     tList("T-1033") as [string, string, string, string, string, string, string];
@@ -282,6 +284,29 @@ export default async function AdminHome() {
             </ul>
           )}
         </Bloque>
+
+        {viabilidad.length > 0 ? (
+          <Bloque id="viabilidad" titulo={t("T-2263")} href="/admin/comites">
+            <ul className="flex list-none flex-col gap-2 p-0">
+              {viabilidad.flatMap((row) =>
+                row.alerts
+                  .filter((alert) => alert !== "MISSING_REQUIRED")
+                  .map((alert) => (
+                    <li key={`${row.committeeId}-${alert}`}>
+                      <Link href={`/admin/comites/${row.committeeSlug}`}>
+                        <Insignia fondo="naranja">
+                          {t("T-2261", {
+                            comité: row.committeeName,
+                            alerta: viabilityLabels[VIABILITY_ALERTS.indexOf(alert)] ?? alert,
+                          })}
+                        </Insignia>
+                      </Link>
+                    </li>
+                  )),
+              )}
+            </ul>
+          </Bloque>
+        ) : null}
 
         {sinCargos.length > 0 ? (
           <Bloque id="cargos" titulo={t("T-2176")} href="/admin/comites">

@@ -81,6 +81,13 @@ export {
   recomputeCommitteeAssembly,
   representationLadder,
 } from "./domain/committee-assembly";
+export { type CommitteeViability, listCommitteeViability } from "./domain/committee-viability";
+export {
+  VIABILITY_ALERTS,
+  type ViabilityAlert,
+  type ViabilityInput,
+  viabilityAlerts,
+} from "./domain/committee-viability-pure";
 export { type CheckInExportRow, listCheckInsForExport } from "./domain/exports";
 export {
   balanceFor,

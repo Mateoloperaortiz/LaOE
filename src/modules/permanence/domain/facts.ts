@@ -240,7 +240,8 @@ export async function loadPeopleFacts(
     return {
       personId,
       status: first?.status ?? "INACTIVE",
-      isNew: first?.firstTermId === termId,
+      // La mesa de un comité nuevo se reporta como activa aunque sea nueva (Est. art. 5 par. 1).
+      isNew: first?.firstTermId === termId && !(first?.reportAsVeteran ?? false),
       probation: first?.probation ?? false,
       committees: rows.map((row) => ({
         committeeId: row.committeeId,

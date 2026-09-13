@@ -15,6 +15,10 @@ import {
   representationLadder,
 } from "@/modules/participation/domain/committee-assembly";
 import {
+  type ViabilityInput,
+  viabilityAlerts,
+} from "@/modules/participation/domain/committee-viability-pure";
+import {
   balance,
   competitionRanks,
   levelFor,
@@ -328,5 +332,64 @@ describe("representación de los comités en la asamblea (ADR-060 regla 7)", () 
     expect(representationLadder(3)).toBe(3);
     expect(representationLadder(7)).toBe(3);
     expect(MAX_EXCUSED_ABSENCES).toBe(2);
+  });
+});
+
+describe("viabilidad del comité (ADR-060 regla 8)", () => {
+  const healthy: ViabilityInput = {
+    status: "ACTIVE",
+    directions: 4,
+    missingRequired: 0,
+    membersOutsideDirection: 8,
+    unexcusedAbsences: 1,
+    representedAssemblies: 3,
+    closedAssemblies: 4,
+    eventsThisTerm: 1,
+    pastMidterm: true,
+    trialEndsOn: null,
+    todayKey: "2026-10-05",
+  };
+
+  it("un comité sano no avisa nada y un inactivo tampoco", () => {
+    expect(viabilityAlerts(healthy)).toEqual([]);
+    expect(viabilityAlerts({ ...healthy, status: "INACTIVE", directions: 0 })).toEqual([]);
+  });
+
+  it("avisa las causales de desactivación del Regl. art. 26", () => {
+    expect(
+      viabilityAlerts({
+        ...healthy,
+        directions: 2,
+        missingRequired: 1,
+        membersOutsideDirection: 5,
+        unexcusedAbsences: 3,
+        eventsThisTerm: 0,
+      }),
+    ).toEqual(["FEW_DIRECTIONS", "MISSING_REQUIRED", "FEW_MEMBERS", "ABSENCES", "NO_EVENT"]);
+    // Antes de la mitad del término no se reclama el evento.
+    expect(viabilityAlerts({ ...healthy, eventsThisTerm: 0, pastMidterm: false })).toEqual([]);
+  });
+
+  it("en prueba exige diez miembros, el 90 % de asambleas y avisa el vencimiento (Regl. art. 25)", () => {
+    expect(
+      viabilityAlerts({
+        ...healthy,
+        status: "ON_TRIAL",
+        membersOutsideDirection: 9,
+        representedAssemblies: 3,
+        closedAssemblies: 4,
+        trialEndsOn: "2026-10-20",
+      }),
+    ).toEqual(["TRIAL_FEW_MEMBERS", "TRIAL_LOW_ATTENDANCE", "TRIAL_ENDING"]);
+    expect(
+      viabilityAlerts({
+        ...healthy,
+        status: "ON_TRIAL",
+        membersOutsideDirection: 10,
+        representedAssemblies: 9,
+        closedAssemblies: 10,
+        trialEndsOn: "2027-03-01",
+      }),
+    ).toEqual([]);
   });
 });

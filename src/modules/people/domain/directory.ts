@@ -211,7 +211,7 @@ export async function listInternalCommittees(): Promise<InternalCommittee[]> {
         contactUrl: committee.contactUrl,
       })
       .from(committee)
-      .where(eq(committee.status, "ACTIVE"))
+      .where(inArray(committee.status, ["ACTIVE", "ON_TRIAL"]))
       .orderBy(asc(committee.name)),
     term
       ? db
@@ -257,7 +257,7 @@ export async function listInternalRoster(slug: string): Promise<InternalRoster |
       contactUrl: committee.contactUrl,
     })
     .from(committee)
-    .where(and(eq(committee.slug, slug), eq(committee.status, "ACTIVE")))
+    .where(and(eq(committee.slug, slug), inArray(committee.status, ["ACTIVE", "ON_TRIAL"])))
     .limit(1);
   if (!found) {
     return null;

@@ -58,7 +58,8 @@ import {
 // Etiquetas y Segmentos.
 
 const [plural, singular] = tList("T-261") as [string, string];
-const [activo, inactivo] = tList("T-287") as [string, string];
+const [activo, inactivo, enPrueba] = tList("T-287") as [string, string, string];
+const [pruebaDesde, pruebaHasta, desactivadoEl] = tList("T-2259") as [string, string, string];
 const [borrador, publicado] = tList("T-288") as [string, string];
 
 function logoOptions(): Array<{ value: string; label: string }> {
@@ -91,8 +92,13 @@ const fields: FieldDefinition[] = [
     options: [
       { value: "ACTIVE", label: activo },
       { value: "INACTIVE", label: inactivo },
+      { value: "ON_TRIAL", label: enPrueba },
     ],
   },
+  // Periodo de prueba y desactivación (Regl. art. 25 y 26; ADR-060 regla 8).
+  { name: "trialStartsOn", label: pruebaDesde, type: "date", help: t("T-2260") },
+  { name: "trialEndsOn", label: pruebaHasta, type: "date" },
+  { name: "deactivatedOn", label: desactivadoEl, type: "date" },
   { name: "color", label: t("T-275"), type: "color" },
   { name: "logoKey", label: t("T-276"), type: "select", options: logoOptions() },
   { name: "presentation", label: t("T-277"), type: "textarea", textVariant: "code" },
@@ -122,7 +128,9 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
       render: (row) =>
         row.status === "ACTIVE"
           ? { text: activo, badge: "amarillo" }
-          : { text: inactivo, badge: "paper" },
+          : row.status === "ON_TRIAL"
+            ? { text: enPrueba, badge: "sky" }
+            : { text: inactivo, badge: "paper" },
     },
     {
       key: "publicationStatus",
@@ -140,6 +148,7 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
       options: [
         { value: "ACTIVE", label: activo },
         { value: "INACTIVE", label: inactivo },
+        { value: "ON_TRIAL", label: enPrueba },
       ],
     },
     {
@@ -166,6 +175,9 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
     slug: row.slug,
     name: row.name,
     status: row.status,
+    trialStartsOn: row.trialStartsOn ?? "",
+    trialEndsOn: row.trialEndsOn ?? "",
+    deactivatedOn: row.deactivatedOn ?? "",
     color: row.color ?? "",
     logoKey: row.logoKey ?? "",
     presentation: row.presentation ?? "",

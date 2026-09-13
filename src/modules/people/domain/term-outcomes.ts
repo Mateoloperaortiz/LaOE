@@ -17,6 +17,8 @@ export const probationInputSchema = z.object({
   reason: z.string().trim().min(2).max(500),
   /** Comité al que aplica la condición; sin comité, a todos los de la persona (ADR-060 regla 2). */
   committeeId: z.string().trim().min(1).nullable().default(null),
+  /** La mesa de un comité nuevo o reactivado se reporta como activa aunque sea nueva (Est. art. 5 par. 1). */
+  reportAsVeteran: z.boolean().default(false),
 });
 
 export type ProbationInput = z.input<typeof probationInputSchema>;
@@ -45,11 +47,17 @@ export async function setProbation(
           : isNull(membershipTerm.committeeId),
       ),
     );
-  if (existing?.probation === input.probation && existing.reason === input.reason) {
+  const reportAsVeteran = input.reportAsVeteran ?? false;
+  if (
+    existing?.probation === input.probation &&
+    existing.reason === input.reason &&
+    existing.reportAsVeteran === reportAsVeteran
+  ) {
     return;
   }
   const values = {
     probation: input.probation,
+    reportAsVeteran,
     reason: input.reason || null,
     decidedById: ctx.actor.personId,
   };
@@ -62,7 +70,13 @@ export async function setProbation(
     action: "membership-term.set",
     entityType: "person",
     entityId: personId,
-    before: existing ? { probation: existing.probation, reason: existing.reason } : null,
+    before: existing
+      ? {
+          probation: existing.probation,
+          reportAsVeteran: existing.reportAsVeteran,
+          reason: existing.reason,
+        }
+      : null,
     after: { termId, committeeId, ...values },
   });
   await ctx.emit({
@@ -73,6 +87,7 @@ export async function setProbation(
       termId,
       committeeId,
       probation: input.probation,
+      reportAsVeteran,
       reason: values.reason,
     },
   });

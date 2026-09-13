@@ -6,6 +6,7 @@ import { drain } from "@/jobs/poller";
 import { interaction } from "@/modules/crm/schema";
 import { listTermRoster, probationInputSchema, setProbationAs } from "@/modules/people";
 import { membershipTerm } from "@/modules/people/schema";
+import { getSnapshot, recomputeSnapshots } from "@/modules/permanence";
 import { permanenceSnapshot } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { truncateAll } from "./db";
@@ -50,7 +51,12 @@ describe("condición del semestre (ADR-056)", () => {
     expect(probationInputSchema.safeParse({ probation: true, reason: "   " }).success).toBe(false);
     expect(
       probationInputSchema.parse({ probation: false, reason: "  Cumplió el semestre  " }),
-    ).toEqual({ probation: false, reason: "Cumplió el semestre", committeeId: null });
+    ).toEqual({
+      probation: false,
+      reason: "Cumplió el semestre",
+      committeeId: null,
+      reportAsVeteran: false,
+    });
   });
 
   it("marca y retira la prueba con auditoría, recálculo de permanencia y línea de tiempo", async () => {
@@ -178,5 +184,25 @@ describe("condición del semestre (ADR-056)", () => {
       `En periodo de prueba en A3 en ${currentTermCode()}: Quedó en la banda en A3`,
     );
     expect(summaries).toContain(`En periodo de prueba en ${currentTermCode()}: Roster`);
+  });
+
+  it("la mesa de un comité nuevo se reporta como activa aunque sea nueva (Est. art. 5 par. 1)", async () => {
+    const gh = await seedMember("gh3@eafit.edu.co");
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const personId = await seedMember("nueva@eafit.edu.co");
+    await seedCommitteeMembership(personId, a3, termId, "GENERAL");
+    const actor = { personId: gh, ip: null };
+    await recomputeSnapshots(termId);
+    expect((await getSnapshot(personId, termId))?.isNew).toBe(true);
+    await setProbationAs(actor, personId, termId, {
+      probation: false,
+      reason: "Mesa del comité reactivado",
+      reportAsVeteran: true,
+    });
+    const [row] = await listTermRoster(termId, [personId]);
+    expect(row).toMatchObject({ reportAsVeteran: true, probation: false });
+    await drenar();
+    expect((await getSnapshot(personId, termId))?.isNew).toBe(false);
   });
 });

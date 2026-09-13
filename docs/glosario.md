@@ -14,7 +14,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Galería de egresados | `/app/egresados` | Lista por año de salida con cartel por año; "memorial" es el nombre interno |
 | Membresía | `Membership` | Estado de miembro con primer término, fin y motivo; una por persona |
 | Activo / En licencia / Honorario / Retirado | `ACTIVE` / `ON_LEAVE` / `HONORARY` / `INACTIVE` | Estados de la membresía. Entran a Mi OE activos y honorarios. Al terminar, el motivo es graduación, retiro voluntario, permanencia, expulsión (sin reingreso posible), pérdida de la calidad de estudiante u otro |
-| Comité | `Committee` | Grupo de trabajo con ficha editorial y logo |
+| Comité | `Committee` | Grupo de trabajo con ficha editorial y logo; activo, inactivo o en prueba (comité creado o reactivado, Regl. art. 25), con avisos de viabilidad según el Regl. art. 26 ([ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) regla 8) |
 | Pertenencia a comité | `CommitteeMembership` | Persona en un comité durante un término; de 1 a 3 activas para activos |
 | Cargo de junta o de GH | `Appointment` | Rol visible con historia fuera del comité: presidencia, vicepresidencias, GH principal, directores de GH |
 | Cargo en el comité | `CommitteeRoleAssignment` | Lo que la persona desempeña dentro de su comité en el término, uno o varios: General, Logística, Financiero, Relaciones Públicas, Mercadeo o Gestión Humana (los seis de los Estatutos 2026); sin cargos es Miembro; `CommitteeMembership.roleCode` conserva el principal ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)) |

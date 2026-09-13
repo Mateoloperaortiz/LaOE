@@ -29,6 +29,8 @@ export interface Person360 {
     /** Comité al que aplica; nulo cuando aplica a todos (ADR-060 regla 2). */
     committeeId: string | null;
     committeeName: string | null;
+    probation: boolean;
+    reportAsVeteran: boolean;
     reason: string | null;
   }>;
 }
@@ -61,6 +63,7 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
         committeeName: committee.name,
         reason: membershipTerm.reason,
         probation: membershipTerm.probation,
+        reportAsVeteran: membershipTerm.reportAsVeteran,
       })
       .from(membershipTerm)
       .leftJoin(committee, eq(committee.id, membershipTerm.committeeId))
@@ -71,12 +74,14 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
   const termById = new Map(terms.map((term) => [term.id, term]));
   const first = membershipRows[0];
   const probation = probationRows
-    .filter((row) => row.probation)
+    .filter((row) => row.probation || row.reportAsVeteran)
     .map((row) => ({
       termId: row.termId,
       termCode: termById.get(row.termId)?.code ?? "",
       committeeId: row.committeeId,
       committeeName: row.committeeId ? (row.committeeName ?? "") : null,
+      probation: row.probation,
+      reportAsVeteran: row.reportAsVeteran,
       reason: row.reason,
       startsOn: termById.get(row.termId)?.startsOn ?? "",
     }))

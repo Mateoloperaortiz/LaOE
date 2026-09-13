@@ -544,7 +544,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-284 | Términos: nominal de la tabla general | Puntos nominales de la tabla general | MATEO | Propuesta |
 | T-285 | Términos: nominal de la tabla de comité | Puntos nominales de la tabla de comité | MATEO | Propuesta |
 | T-286 | Términos: cierre de puntos | Puntos cerrados el | MATEO | Propuesta |
-| T-287 | Comités: opciones de estado | Activo · Inactivo | MATEO | Propuesta |
+| T-287 | Comités: opciones de estado | Activo · Inactivo · En prueba | MATEO | Propuesta |
 | T-288 | Contenido: opciones de publicación | Borrador · Publicado | MATEO | Propuesta |
 | T-289 | Permisos: opciones (ADMIN, líder, junta) | ADMIN · Líder de comité · Junta | MATEO | Propuesta |
 | T-290 | Paleta ⌘K: tipos de resultado | Persona · Comité · Ocasión · Organización | MATEO | Propuesta |
@@ -1810,3 +1810,10 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2256 | Comité, área Personas: botón de guardar representantes | Guardar representantes | MATEO | Propuesta |
 | T-2257 | Representación: sin representante · sin asambleas cerradas | Sin representante · Sin asambleas cerradas todavía | MATEO | Propuesta |
 | T-2258 | Comité, área Personas: resumen de la representación del semestre | Representado en {n} de {m} asambleas · {faltas} sin excusa · {excusadas} con excusa | MATEO | Propuesta |
+| T-2259 | Comité: campos del periodo de prueba y la desactivación | Prueba desde · Prueba hasta · Desactivado el | MATEO | Propuesta |
+| T-2260 | Comité: ayuda del periodo de prueba | Un comité creado o reactivado queda en prueba seis meses, ampliables a un año por la junta con motivo; en ese lapso debe hacer al menos un evento propio, representar al comité en el 90 % de las asambleas y cerrar con diez miembros fuera de la mesa (Reglamento, art. 25). Reactivar uno desactivado solo tras dos meses (art. 64). | JUNTA | Propuesta |
+| T-2261 | Tablero y cabecera del comité: aviso de viabilidad | {comité}: {alerta} | MATEO | Propuesta |
+| T-2262 | Condición del semestre: casilla de mesa de comité nuevo | Se reporta como activo aunque sea nuevo (mesa de comité nuevo o reactivado, Estatutos art. 5) | GH | Propuesta |
+| T-2263 | Tablero de ADMIN: viabilidad de los comités, título | Viabilidad de los comités | MATEO | Propuesta |
+| T-2264 | Viabilidad: avisos (en el orden del modelo) | Menos de tres direcciones vivas · Sin General o Financiero titular · Menos de seis miembros fuera de la mesa · Tres o más faltas sin excusa a la Asamblea · Sin evento propio en el semestre · En prueba con menos de diez miembros fuera de la mesa · En prueba con menos del 90 % de asambleas representadas · La prueba termina en menos de 30 días | GH | Propuesta; Reglamento art. 25 y 26; texto sensible |
+| T-2265 | Comité en prueba: insignia de la cabecera | En prueba hasta el {fecha} | MATEO | Propuesta |

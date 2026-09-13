@@ -276,6 +276,7 @@ export async function setProbationAction(formData: FormData): Promise<void> {
     probation: checked(formData, "probation"),
     reason: text(formData, "reason"),
     committeeId: text(formData, "committeeId") || null,
+    reportAsVeteran: checked(formData, "reportAsVeteran"),
   });
   if (!parsed.success || !termId || !(await getTerm(termId))) {
     await fail(id, "membresia", "condicion", t("T-260"));

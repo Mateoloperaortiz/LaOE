@@ -5,10 +5,12 @@ import { listEditionsByCommittee } from "@/modules/events";
 import {
   listCommitteeRepresentation,
   listCommitteeScores,
+  listCommitteeViability,
   listOccasions,
   OCCASION_CATEGORIES,
   rankCommittees,
   surveySummaryForCommittee,
+  VIABILITY_ALERTS,
 } from "@/modules/participation";
 import { occasionKindLabel, occasionStatusCell } from "@/modules/participation/admin";
 import {
@@ -87,6 +89,13 @@ export default async function ComitePage({
         (row) => row.committee.id === roster.committee.id,
       )?.missing ?? [])
     : [];
+  // Viabilidad (Regl. art. 25 y 26; ADR-060 regla 8): los avisos que no sean el de cargos obligatorios.
+  const viability = term
+    ? ((await listCommitteeViability(term.id)).find(
+        (row) => row.committeeId === roster.committee.id,
+      ) ?? null)
+    : null;
+  const viabilityLabels = tList("T-2264");
 
   return (
     <div className="flex flex-col gap-8">
@@ -99,6 +108,26 @@ export default async function ComitePage({
           </div>
         </div>
         {term ? <p className="text-tinta-suave">{term.code}</p> : null}
+        {viability?.status === "ON_TRIAL" && viability.trialEndsOn ? (
+          <Insignia fondo="sky">
+            {t("T-2265", {
+              fecha: formatDate(new Date(`${viability.trialEndsOn}T12:00:00Z`)),
+            })}
+          </Insignia>
+        ) : null}
+        {viability?.alerts.some((alert) => alert !== "MISSING_REQUIRED") ? (
+          <ul className="flex list-none flex-wrap gap-2 p-0">
+            {viability.alerts
+              .filter((alert) => alert !== "MISSING_REQUIRED")
+              .map((alert) => (
+                <li key={alert}>
+                  <Insignia fondo="naranja">
+                    {viabilityLabels[VIABILITY_ALERTS.indexOf(alert)] ?? alert}
+                  </Insignia>
+                </li>
+              ))}
+          </ul>
+        ) : null}
         {missing.length > 0 ? (
           <ul className="flex list-none flex-wrap gap-2 p-0">
             {missing.map((role) => (

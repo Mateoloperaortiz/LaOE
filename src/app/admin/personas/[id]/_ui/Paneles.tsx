@@ -504,7 +504,15 @@ export function Paneles({
     const [, término] = tList("T-262") as [string, string];
     const selected = terms.find((item) => item.id === semestreId) ?? my.term ?? terms[0] ?? null;
     const onProbation = selected
-      ? data.probation.some((item) => item.termId === selected.id && item.committeeId === null)
+      ? data.probation.some(
+          (item) => item.termId === selected.id && item.committeeId === null && item.probation,
+        )
+      : false;
+    const asVeteran = selected
+      ? data.probation.some(
+          (item) =>
+            item.termId === selected.id && item.committeeId === null && item.reportAsVeteran,
+        )
       : false;
     // Los comités en que la persona estuvo o está, para fijar la prueba solo en uno (ADR-060 regla 2).
     const [, comitéLabel] = tList("T-449") as [string, string];
@@ -557,6 +565,12 @@ export function Paneles({
               name="probation"
               label={tList("T-449")[0] ?? ""}
               defaultChecked={onProbation}
+            />
+            <Casilla
+              id="campo-reportAsVeteran"
+              name="reportAsVeteran"
+              label={t("T-2262")}
+              defaultChecked={asVeteran}
             />
             <Campo id="campo-reason-condicion" label={t("T-434")}>
               <textarea
