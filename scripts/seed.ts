@@ -316,6 +316,7 @@ async function seedAppointments(terms: Map<string, string>): Promise<void> {
       | "VP_PUBLIC_RELATIONS"
       | "VP_ADMIN"
       | "VP_FINANCE"
+      | "VP_COMMUNICATIONS"
       | "GH_HEAD"
       | "GH_DIRECTOR";
   }> = [

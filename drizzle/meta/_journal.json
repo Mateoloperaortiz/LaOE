@@ -99,6 +99,13 @@
       "when": 1789072710210,
       "tag": "0013_acceso_con_contrasena",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789181747424,
+      "tag": "0014_vicepresidencia_de_comunicaciones",
+      "breakpoints": true
     }
   ]
 }

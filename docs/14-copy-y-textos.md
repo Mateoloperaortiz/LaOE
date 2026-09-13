@@ -631,7 +631,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-441 | Anonimizar: botón | Anonimizar | MATEO | Propuesta |
 | T-442 | Anonimizar sin solicitud previa | Solo se anonimiza a quien lo pidió desde Mi OE. | MATEO | Propuesta |
 | T-443 | Membresía: títulos de los bloques | Historial de estados · Comités por semestre · Cargos de junta y de GH · Condición del semestre | MATEO | Propuesta |
-| T-444 | Membresía: cargos de junta y de GH (opciones) | Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · GH principal · Director de GH · Otro | JUNTA | Propuesta |
+| T-444 | Membresía: cargos de junta y de GH (opciones) | Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Publicidad · GH principal · Director de GH · Otro | JUNTA | Propuesta |
 | T-445 | Membresía: campo del título cuando el cargo es Otro | Título del cargo | MATEO | Propuesta |
 | T-446 | Membresía: casilla del permiso de junta | Otorgar también el permiso Junta (pide un código nuevo) | MATEO | Propuesta |
 | T-447 | Membresía: botones de cargos | Agregar cargo · Quitar | MATEO | Propuesta |

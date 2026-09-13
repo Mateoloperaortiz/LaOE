@@ -46,6 +46,7 @@ export const appointmentKind = pgEnum("appointment_kind", [
   "VP_PUBLIC_RELATIONS",
   "VP_ADMIN",
   "VP_FINANCE",
+  "VP_COMMUNICATIONS",
   "GH_HEAD",
   "GH_DIRECTOR",
   "OTHER",

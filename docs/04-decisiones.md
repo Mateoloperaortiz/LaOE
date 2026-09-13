@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [057](adr/ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md) | Cargos de junta | `appointment_kind` suma `VP_COMMUNICATIONS` (Vicepresidencia de Comunicaciones y Publicidad) con migración aditiva y su etiqueta en T-444; sin permisos ni cambios en los comités de trabajo | Aceptada |
 | [056](adr/ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md) | Persona 360 | "Dar de alta" en la cabecera para un estudiante sin membresía y condición de prueba por término editable por ADMIN con motivo; `membership-term.changed` recalcula permanencia y alimenta la línea de tiempo | Aceptada; verificada en producción |
 | [055](adr/ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) | CI/CD | Cuatro particiones E2E, integración en dos runners con reparto por archivo verificado por el gate y lista documental con `04-decisiones.md` y `10-verificacion.md`, aplicada también a los watch patterns de `web` | Aceptada; validada en remoto |
 | [054](adr/ADR-054-reutilizacion-del-ci-en-promocion-y-particiones-e2e-balanceadas.md) | CI/CD | Tres particiones E2E repartidas por archivo con duraciones medidas y verificadas por el gate; un push a `production` reutiliza el CI completo de `main` del mismo SHA (modo `promotion`) y ante cualquier duda ejecuta todo | Aceptada (enmendada por 055); validada en remoto |
