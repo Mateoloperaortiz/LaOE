@@ -1,6 +1,6 @@
 # ADR-057: Vicepresidencia de Comunicaciones y Publicidad como cargo de junta
 
-- Estado: Aceptada
+- Estado: Aceptada; en producción desde el 2026-09-12 (`7d7594f`)
 - Fecha: 2026-09-11
 - Enmienda: ADR-034 (regla 13), 03-modelo (`Appointment.kind`) y 14-copy (T-444)
 - Relacionadas: ADR-029, ADR-031, ADR-034, ADR-036
