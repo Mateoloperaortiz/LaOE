@@ -65,6 +65,8 @@ type PersonOverrides = Partial<{
   phone: string | null;
   program: string | null;
   personalEmail: string | null;
+  /** Término de ingreso de `seedMember`; uno anterior al actual lo hace veterano (sin la guarda de nuevo, ADR-060 regla 11). */
+  entryTermCode: string;
 }>;
 
 export async function seedPerson(email: string, overrides: PersonOverrides = {}): Promise<string> {
@@ -108,8 +110,14 @@ export async function seedMembership(
 export async function seedMember(email: string, overrides: PersonOverrides = {}): Promise<string> {
   const termId = await seedTerm();
   const personId = await seedPerson(email, overrides);
-  await seedMembership(personId, termId);
+  const entryTermId = overrides.entryTermCode ? await seedTerm(overrides.entryTermCode) : termId;
+  await seedMembership(personId, entryTermId);
   return personId;
+}
+
+/** Un activo veterano: entró en un término anterior, así que puede recibir cargos de mesa. */
+export async function seedVeteran(email: string, overrides: PersonOverrides = {}): Promise<string> {
+  return seedMember(email, { entryTermCode: "2025-1", ...overrides });
 }
 
 export async function seedCommittee(slug: string, name = slug.toUpperCase()): Promise<string> {

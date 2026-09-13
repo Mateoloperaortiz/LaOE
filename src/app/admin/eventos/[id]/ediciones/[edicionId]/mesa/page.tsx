@@ -60,6 +60,7 @@ export default async function Page({
     .filter((member) => !member.anonymized)
     .sort((a, b) => a.fullName.localeCompare(b.fullName, "es"));
   const [cargo, persona, agregar, quitar] = tList("T-2270");
+  const [excepcion, excepcionAyuda] = tList("T-2283");
   const titulo = t("T-2266");
 
   return (
@@ -175,6 +176,9 @@ export default async function Page({
             </select>
           </Campo>
           <Casilla id="mesa-coDirector" name="coDirector" label={t("T-2153")} />
+          <Campo id="mesa-overrideReason" label={excepcion ?? ""} help={excepcionAyuda ?? ""}>
+            <input id="mesa-overrideReason" name="overrideReason" className={inputClass} />
+          </Campo>
           <AdminSubmitButton type="submit" className="boton-primario self-start">
             {agregar}
           </AdminSubmitButton>

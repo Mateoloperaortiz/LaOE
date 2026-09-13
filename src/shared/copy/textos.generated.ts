@@ -4748,6 +4748,36 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2281": {
+    where: "Inhabilidades para cargos: motivos (en el orden del modelo)",
+    text: "Tiene una inhabilidad para cargos vigente · Es de la Junta Directiva y la junta no convive con la mesa de un comité (Reglamento, art. 11) · Es nuevo: un cargo de mesa necesita el aval de la Vicepresidencia de GH (art. 27) · Ya dirige otro macroevento · Ya es General de otro comité · Ya es Financiero de otro comité · Superaría dos cargos directivos · Con dos cargos directivos, al menos uno debe ser codirección",
+    owner: "GH",
+    status: "Propuesta; Reglamento art. 11 y 27 par. 3 y 4",
+  },
+  "T-2282": {
+    where: "Inhabilidades: guarda al nombrar",
+    text: "No se puede nombrar: {motivos}. ADMIN puede registrar una excepción con motivo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2283": {
+    where: "Inhabilidades: campo de excepción (Persona 360, mesa de macroevento) y su ayuda",
+    text: "Excepción registrada (motivo) · Solo si hay una inhabilidad: el aval de la Vicepresidencia de GH o la decisión de la junta quedan auditados con este motivo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2284": {
+    where: "Grupos de trabajo: tope de comités de trabajo por persona",
+    text: "{nombre} ya está en dos comités de trabajo este semestre (Estatutos, art. 4 par. 3).",
+    owner: "GH",
+    status: "Propuesta",
+  },
+  "T-2285": {
+    where: "Roster: aviso de inhabilidad en la vista previa",
+    text: "Inhabilidad al nombrar ({motivos}): se aplica igual y queda auditada con el motivo del roster.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-230": {
     where: "Botón para reintentar tras un error",
     text: "Intentar de nuevo",

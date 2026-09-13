@@ -14,7 +14,7 @@ import {
 import { conventionalTermDates, createTerm, getTerm, listAllTerms } from "@/modules/terms";
 import { getObject, putObject } from "@/shared/adapters/storage";
 import { DomainError } from "@/shared/admin-kit/DomainError";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import {
   committee,
@@ -25,8 +25,14 @@ import {
   membershipTerm,
   person,
 } from "../schema";
-import { listCommitteeRoles, setCommitteeMemberships } from "./committee-memberships";
+import {
+  type CommitteeRoleRow,
+  listCommitteeRoles,
+  setCommitteeMemberships,
+} from "./committee-memberships";
 import { listAllCommittees } from "./committees";
+import { leadershipContext } from "./inhabilities";
+import { type HeldRole, inhabilities, inhabilityLabels } from "./inhabilities-pure";
 import { leaveWindow } from "./leave-pure";
 import { changeMembershipStatus, endMembership, reactivateMembership } from "./membership";
 import { createCommitteeRole } from "./roles";
@@ -242,6 +248,52 @@ interface BuiltPreview {
   existing: Map<string, ExistingPerson>;
 }
 
+/**
+ * Aviso por fila cuando los cargos del roster chocan con una inhabilidad (ADR-060 regla 11): la
+ * fila entera es el conjunto final de cargos de comité de la persona; quien no existe aún es nuevo.
+ */
+async function warnInhabilities(
+  rows: PreviewRow[],
+  existing: Map<string, ExistingPerson>,
+  roles: CommitteeRoleRow[],
+  termId: string,
+): Promise<void> {
+  const leadership = new Set(roles.filter((role) => role.isLeadership).map((role) => role.code));
+  const labels = tList("T-2281");
+  for (const row of rows) {
+    if (row.group === "ERROR" || !row.email || !row.committees) {
+      continue;
+    }
+    const wanted: HeldRole[] = row.committees.flatMap((item) =>
+      item.roles
+        .filter((role) => leadership.has(role.roleCode))
+        .map((role) => ({
+          kind: "COMMITTEE" as const,
+          scopeId: item.committeeId,
+          roleCode: role.roleCode,
+          coDirector: role.coDirector,
+        })),
+    );
+    if (wanted.length === 0) {
+      continue;
+    }
+    const who = existing.get(row.email);
+    const context = who
+      ? await leadershipContext(getDb(), who.personId, termId)
+      : { existing: [], hasBoardAppointment: false, isNew: true, officeBan: false };
+    const codes = inhabilities({
+      existing: context.existing.filter((role) => role.kind === "MACROEVENT"),
+      wanted,
+      hasBoardAppointment: context.hasBoardAppointment,
+      isNew: context.isNew,
+      officeBan: context.officeBan,
+    });
+    if (codes.length > 0) {
+      row.warnings.push(t("T-2285", { motivos: inhabilityLabels(codes, labels).join("; ") }));
+    }
+  }
+}
+
 async function buildPreview(
   cells: string[][],
   mapping: Array<RosterColumn | null> | null,
@@ -280,6 +332,7 @@ async function buildPreview(
     group: item.group,
     changes: item.changes,
   }));
+  await warnInhabilities(rows, existing, roles, termId);
   const proposals: LeaderProposal[] = [];
   for (const row of rows) {
     if (row.group === "ERROR" || !row.email) {
@@ -659,6 +712,9 @@ async function applyRow(
         roles: item.roles.map((role) => ({ roleCode: role.roleCode, coDirector: role.coDirector })),
         transferredIn: row.transferSlug === item.slug,
       })),
+      new Date(),
+      // Inhabilidades (ADR-060 regla 11): el roster de ADMIN las fuerza y quedan auditadas con su motivo.
+      { reason },
     );
   }
   await ctx.audit({

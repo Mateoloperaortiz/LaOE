@@ -26,6 +26,7 @@ import {
   seedMembership,
   seedPerson,
   seedTerm,
+  seedVeteran,
 } from "./factories";
 
 // La dirección del comité por áreas (ADR-058): capacidades derivadas de los cargos, alerta de cargos
@@ -69,7 +70,7 @@ async function fixture(): Promise<Fixture> {
     firstName: "Lucho",
     lastName: "Logi",
   });
-  const member = await seedMember("miembro@eafit.edu.co", {
+  const member = await seedVeteran("miembro@eafit.edu.co", {
     firstName: "Mila",
     lastName: "Miembro",
   });
@@ -177,7 +178,7 @@ describe("agregar, cargos y pedido de retiro", () => {
     ).rejects.toMatchObject({ message: expect.stringContaining("3 comités") });
 
     // El General nombra con cargos, y el cargo principal derivado queda en la pertenencia.
-    const co = await seedMember("co@eafit.edu.co", { firstName: "Cora", lastName: "Codi" });
+    const co = await seedVeteran("co@eafit.edu.co", { firstName: "Cora", lastName: "Codi" });
     await addCommitteeMemberAs(actor(f.general), scope, director, {
       personId: co,
       roles: [

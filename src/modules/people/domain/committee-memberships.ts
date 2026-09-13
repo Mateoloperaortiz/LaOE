@@ -17,6 +17,8 @@ import {
   roleAssignmentInputSchema,
   rolesFromInput,
 } from "./committee-role-assignments";
+import { assertNoInhabilities, leadershipRolesOf, type Override } from "./inhabilities";
+import type { HeldRole } from "./inhabilities-pure";
 
 // Pertenencia a comité por término (ADR-005): de 1 a 3 para activos. Los cargos viven en
 // `committee_role_assignment` (ADR-058), con un titular y una codirección por cargo, comité y término;
@@ -210,6 +212,7 @@ export async function setCommitteeMemberships(
   termId: string,
   rows: CommitteeMembershipInput[],
   now = new Date(),
+  override?: Override,
 ): Promise<void> {
   const wanted = new Map<string, { transferredIn: boolean; roles: RoleAssignmentInput[] }>();
   for (const row of rows) {
@@ -231,6 +234,20 @@ export async function setCommitteeMemberships(
       throw new DomainError(t("T-451", { min, max }), "committeeId");
     }
   }
+  // Inhabilidades y topes (ADR-060 regla 11): la lista es el conjunto final de cargos de comité.
+  const wantedRoles: HeldRole[] = [];
+  for (const [committeeId, target] of wanted) {
+    wantedRoles.push(...(await leadershipRolesOf(ctx.tx, committeeId, target.roles)));
+  }
+  await assertNoInhabilities(ctx, {
+    personId,
+    termId,
+    replacing: [],
+    replacingAllCommittees: true,
+    wanted: wantedRoles,
+    override,
+    now,
+  });
   const existing = await ctx.tx
     .select()
     .from(committeeMembership)

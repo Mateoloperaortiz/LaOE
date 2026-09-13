@@ -7,6 +7,7 @@ import { listAllTerms } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
 import { appointment, committee, macroeventRole, membership, person } from "../schema";
+import { assertNoInhabilities, BOARD_KINDS, type Override } from "./inhabilities";
 
 // Cargos de junta y de GH (ADR-034, punto 13): visibles, con historia por término; no otorgan permisos.
 // Desde ADR-060 (regla 9) también los cargos de la mesa directiva de un macroevento: llevan la edición
@@ -171,7 +172,19 @@ export async function addAppointment(
   ctx: CommandContext,
   personId: string,
   input: AppointmentInput,
+  override?: Override,
 ): Promise<{ id: string }> {
+  // Junta y mesa de un comité no conviven (Regl. art. 11; ADR-060 regla 11).
+  if ((BOARD_KINDS as readonly string[]).includes(input.kind)) {
+    await assertNoInhabilities(ctx, {
+      personId,
+      termId: input.termId,
+      replacing: [],
+      wanted: [],
+      wantsBoard: true,
+      override,
+    });
+  }
   const values = {
     personId,
     kind: input.kind,
@@ -277,6 +290,7 @@ export async function listMacroeventBoard(editionId: string): Promise<Macroevent
 export async function addMacroeventDirector(
   ctx: CommandContext,
   raw: MacroeventDirectorInput,
+  override?: Override,
 ): Promise<{ id: string }> {
   const input = macroeventDirectorInputSchema.parse(raw);
   const [titularTomado, codireccionTomada, soloActivos, yaEnLaMesa] = tList("T-2271");
@@ -304,6 +318,21 @@ export async function addMacroeventDirector(
   ) {
     throw new DomainError((input.coDirector ? codireccionTomada : titularTomado) ?? "");
   }
+  // Topes entre comités y macroeventos (Regl. art. 27 par. 3 y 4; ADR-060 regla 11).
+  await assertNoInhabilities(ctx, {
+    personId: input.personId,
+    termId: input.termId,
+    replacing: [{ kind: "MACROEVENT", scopeId: input.editionId }],
+    wanted: [
+      {
+        kind: "MACROEVENT",
+        scopeId: input.editionId,
+        roleCode: input.roleCode,
+        coDirector: input.coDirector,
+      },
+    ],
+    override,
+  });
   const values = {
     personId: input.personId,
     kind: "MACROEVENT_DIRECTOR" as const,

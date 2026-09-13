@@ -140,6 +140,8 @@ Comparten los hechos pero no se mezclan: una integración suma puntos (los que G
 
 GH respondió todo lo que estaba abierto ([ADR-028](adr/ADR-028-permanencia-consecuencias.md)). Falta contenido, no decisiones: las tablas de los demás comités, los pesos de los eventos de cada comité, la lista de directores de GH por frente y los nombres del capitán y el DT del Athletic; GH los envía cuando termine de limpiar su base ([11-contenido-pendiente.md](11-contenido-pendiente.md)).
 
+Nadie pertenece a más de dos comités de trabajo en un término (Est. art. 4 par. 3): agregar a un tercero, a mano o por CSV, falla con T-2284 ([ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) regla 11).
+
 Quien vuelve de una licencia a activo retoma la condición que tenía al salir (Est. art. 5 par. 2): la última condición fijada antes del término actual (prueba, por comité o general) se copia a este con el motivo T-2276, sin pisar una condición que GH ya haya decidido para el término ([ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) regla 10).
 
 La revisión del 2026-09-13 frente a los Estatutos y el Reglamento 2026 ([18-revision-normativa-2026.md](18-revision-normativa-2026.md)) reabre cuatro puntos del cierre que dependen de GH y de la junta: la banda de prueba de los activos (20 puntos según Est. art. 7.5, 10 en la app), la ausencia de banda para nuevos, en prueba y transferencias (Est. art. 8.3, 11.4 y 11.5), la prueba por comité (Est. art. 5 par. 2) y la expulsión como causal propia. Son las decisiones 5 y 6 de [decisiones-abiertas.md](decisiones-abiertas.md); mientras no se respondan, la app sigue las reglas de esta página.

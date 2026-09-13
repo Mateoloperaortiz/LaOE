@@ -418,6 +418,7 @@ export function Paneles({
 
   if (accion === "comites" && my.term) {
     const [comite, cargo, transferencia] = tList("T-450") as [string, string, string];
+    const [excepcion, excepcionAyuda] = tList("T-2283") as [string, string];
     const rows = Array.from({ length: MAX_ROWS }, (_, index) => my.committees[index] ?? null);
     return (
       <ResourcePanel
@@ -495,6 +496,9 @@ export function Paneles({
                 </fieldset>
               );
             })}
+            <Campo id="campo-override-comites" label={excepcion} help={excepcionAyuda}>
+              <input id="campo-override-comites" name="overrideReason" className={inputClass} />
+            </Campo>
             <Botones enviar={t("T-253")} cancelHref={closeHref} />
           </AdminFormBody>
         </form>
@@ -709,6 +713,7 @@ export function Paneles({
   if (accion === "cargo") {
     const kinds = tList("T-444");
     const [agregar] = tList("T-447") as [string, string];
+    const [excepcion, excepcionAyuda] = tList("T-2283") as [string, string];
     const [, , cargosTitulo] = tList("T-443") as [string, string, string, string];
     return (
       <ResourcePanel title={cargosTitulo} closeHref={closeHref} closeLabel={t("T-291")}>
@@ -767,6 +772,9 @@ export function Paneles({
               <input id="campo-title-cargo" name="title" className={inputClass} />
             </Campo>
             <Casilla id="campo-grantBoard" name="grantBoard" label={t("T-446")} />
+            <Campo id="campo-override-cargo" label={excepcion} help={excepcionAyuda}>
+              <input id="campo-override-cargo" name="overrideReason" className={inputClass} />
+            </Campo>
             <Botones enviar={agregar} cancelHref={closeHref} />
           </AdminFormBody>
         </form>

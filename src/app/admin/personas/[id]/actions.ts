@@ -263,8 +263,15 @@ export async function setCommitteesAction(formData: FormData): Promise<void> {
     await fail(id, "membresia", "comites", t("T-260"));
     return;
   }
+  const overrideReason = optional(formData, "overrideReason");
   await run(id, "membresia", "comites", () =>
-    setCommitteeMembershipsAs({ personId: actor.personId }, id, termId, rows),
+    setCommitteeMembershipsAs(
+      { personId: actor.personId },
+      id,
+      termId,
+      rows,
+      overrideReason ? { reason: overrideReason } : undefined,
+    ),
   );
 }
 
@@ -306,8 +313,14 @@ export async function addAppointmentAction(formData: FormData): Promise<void> {
     await fail(id, "membresia", "cargo", t("T-260"));
     return;
   }
+  const overrideReason = optional(formData, "overrideReason");
   await run(id, "membresia", "cargo", async () => {
-    await addAppointmentAs({ personId: actor.personId }, id, parsed.data);
+    await addAppointmentAs(
+      { personId: actor.personId },
+      id,
+      parsed.data,
+      overrideReason ? { reason: overrideReason } : undefined,
+    );
     if (grantBoard) {
       const who = await getPersonRecord(id);
       if (who) {

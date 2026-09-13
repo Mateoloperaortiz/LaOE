@@ -86,14 +86,19 @@ export async function addDirectorAction(formData: FormData): Promise<void> {
   if (!term) {
     redirect(`${back}?error=${encodeURIComponent("T-260")}`);
   }
+  const overrideReason = text(formData, "overrideReason").trim();
   try {
-    await addMacroeventDirectorAs(actor, {
-      editionId: parsed.data.editionId,
-      termId: term.id,
-      personId: parsed.data.personId,
-      roleCode: parsed.data.roleCode,
-      coDirector: parsed.data.coDirector,
-    });
+    await addMacroeventDirectorAs(
+      actor,
+      {
+        editionId: parsed.data.editionId,
+        termId: term.id,
+        personId: parsed.data.personId,
+        roleCode: parsed.data.roleCode,
+        coDirector: parsed.data.coDirector,
+      },
+      overrideReason ? { reason: overrideReason } : undefined,
+    );
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(`${back}?error=${encodeURIComponent(error.message)}`);

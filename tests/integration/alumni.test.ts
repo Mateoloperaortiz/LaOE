@@ -45,8 +45,9 @@ describe("galería de egresados", () => {
     );
     await seedCommitteeMembership(ana, a3, t2024, "GENERAL");
     await seedCommitteeMembership(ana, a3, t2026, "MIEMBRO");
+    // Junta y mesa no conviven (ADR-060 regla 11): el dato histórico entra como excepción con motivo.
     await runCommand(SYSTEM_ACTOR, (ctx) =>
-      addAppointment(ctx, ana, { kind: "VP_GH", termId: t2024 }),
+      addAppointment(ctx, ana, { kind: "VP_GH", termId: t2024 }, { reason: "histórico" }),
     );
     for (const id of [ana, bruno, cami]) {
       await runCommand(SYSTEM_ACTOR, (ctx) =>

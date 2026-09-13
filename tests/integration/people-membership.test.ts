@@ -33,6 +33,7 @@ import {
   seedMembershipTerm,
   seedPerson,
   seedTerm,
+  seedVeteran,
 } from "./factories";
 
 const db = () => getDb();
@@ -315,8 +316,9 @@ describe("comités del término", () => {
 
   it("exige entre 1 y 3 comités para activos, un General por comité y cierra lo que ya no figura", async () => {
     const termId = await seedTerm();
-    const personId = await seedMember("uno@eafit.edu.co");
-    const other = await seedMember("dos@eafit.edu.co");
+    // Veteranos: un nuevo no recibe cargo de mesa sin aval (ADR-060 regla 11).
+    const personId = await seedVeteran("uno@eafit.edu.co");
+    const other = await seedVeteran("dos@eafit.edu.co");
     const ids = await Promise.all(["a3", "pixel", "ius", "eco"].map((slug) => seedCommittee(slug)));
     const [a3, pixel, ius, eco] = ids as [string, string, string, string];
 

@@ -142,10 +142,16 @@ describe("etiquetas y segmentos", () => {
       firstName: "Camila",
       lastName: "Cadavid",
     });
+    // Los tres son nuevos: el cargo de mesa de Ana entra con el aval registrado (ADR-060 regla 11).
     await runCommand(SYSTEM_ACTOR, (ctx) =>
-      setCommitteeMemberships(ctx, ana, termId, [
-        { committeeId: a3, roleCode: "GENERAL", transferredIn: false },
-      ]),
+      setCommitteeMemberships(
+        ctx,
+        ana,
+        termId,
+        [{ committeeId: a3, roleCode: "GENERAL", transferredIn: false }],
+        new Date(),
+        { reason: "Aval de la Vicepresidencia de GH" },
+      ),
     );
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       setCommitteeMemberships(ctx, bruno, termId, [
