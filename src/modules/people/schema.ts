@@ -357,3 +357,61 @@ export const segment = pgTable("segment", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
+
+// Faltas y sanciones del Reglamento (cap. 9 y Anexo 1; ADR-060 regla 6): un llamado de atención
+// suspende derechos y beneficios 7 días y una falta leve 20; una suspensión explícita dura hasta un
+// mes; una falta grave no suspende pero advierte de expulsión; la inhabilidad para cargos dura un año;
+// toda falta vence al año. Las fechas derivadas se calculan en domain/sanction-pure.ts al registrar.
+export const sanctionKind = pgEnum("sanction_kind", [
+  "WARNING",
+  "MINOR",
+  "MAJOR",
+  "SUSPENSION",
+  "OFFICE_BAN",
+]);
+
+export const sanction = pgTable(
+  "sanction",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    /** Comité o macroevento que la impuso; nulo cuando la impone la junta. */
+    committeeId: text().references(() => committee.id),
+    kind: sanctionKind().notNull(),
+    /** Los hechos y los descargos, en palabras de quien la registra. */
+    cause: text().notNull(),
+    /** Artículo o numeral del Anexo 1 que aplica, si se cita. */
+    reference: text(),
+    occurredOn: date({ mode: "string" }).notNull(),
+    suspendedFrom: date({ mode: "string" }),
+    suspendedUntil: date({ mode: "string" }),
+    expiresOn: date({ mode: "string" }).notNull(),
+    issuedById: text().references(() => person.id, { onDelete: "set null" }),
+    revokedAt: timestampTz(),
+    revokedById: text().references(() => person.id, { onDelete: "set null" }),
+    revokeReason: text(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("sanction_person_idx").on(t.personId, t.expiresOn),
+    index("sanction_term_idx").on(t.termId),
+    check(
+      "sanction_suspension_consistent",
+      sql`(${t.suspendedFrom} is null) = (${t.suspendedUntil} is null)`,
+    ),
+    check(
+      "sanction_suspension_ordered",
+      sql`${t.suspendedUntil} is null or ${t.suspendedUntil} >= ${t.suspendedFrom}`,
+    ),
+    check("sanction_expires_after", sql`${t.expiresOn} >= ${t.occurredOn}`),
+    check(
+      "sanction_revoke_consistent",
+      sql`(${t.revokedAt} is null) = (${t.revokeReason} is null)`,
+    ),
+  ],
+);

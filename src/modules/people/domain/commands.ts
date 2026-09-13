@@ -24,6 +24,7 @@ import {
 } from "./membership";
 import { type OwnContactInput, requestDeletion, setOwnPhoto, updateOwnContact } from "./own-data";
 import { createPerson, type PersonInput, updatePerson } from "./persons";
+import { recordSanction, revokeSanction, type SanctionInput } from "./sanctions";
 import { setPersonTags } from "./tags";
 import { leaveCommittee, type ProbationInput, setProbation } from "./term-outcomes";
 
@@ -191,4 +192,18 @@ export function requestCommitteeRemovalAs(
   input: RemovalRequestInput,
 ): Promise<void> {
   return runCommand(actor, (ctx) => requestCommitteeRemoval(ctx, scope, who, input));
+}
+
+// Faltas y sanciones (ADR-060 regla 6).
+
+export function recordSanctionAs(
+  actor: Actor,
+  personId: string,
+  input: SanctionInput,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => recordSanction(ctx, personId, input));
+}
+
+export function revokeSanctionAs(actor: Actor, sanctionId: string, reason: string): Promise<void> {
+  return runCommand(actor, (ctx) => revokeSanction(ctx, sanctionId, reason));
 }

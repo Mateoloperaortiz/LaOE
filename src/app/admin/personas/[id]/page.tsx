@@ -347,6 +347,7 @@ export default async function PersonaPage({
           assignees={assignees}
           note={note}
           semestreId={terms.find((item) => item.id === single(search.semestre))?.id ?? null}
+          sancionId={single(search.sancion) || null}
           closeHref={closeHref}
           error={error}
           policyReady={policy.ready}

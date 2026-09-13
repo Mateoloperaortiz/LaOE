@@ -928,7 +928,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-798 | Cierre de permanencia: título | Cierre de permanencia | GH | Propuesta |
 | T-799 | Cierre: puntos sin cerrar | Primero cerrá los puntos de {término}. Las propuestas se ven, pero no se confirman hasta entonces. | MATEO | Propuesta |
 | T-800 | Cierre: resumen | Personas · Continúan · En prueba · Salen de un comité · Salen de la OE · Sin decisión · Evaluaciones pendientes | MATEO | Propuesta |
-| T-801 | Cierre: motivos automáticos (cumple, prueba, no cumple, sin comité, obligatoria) | Cumplió el umbral · Por debajo del umbral, dentro de la banda de prueba de su condición · Por debajo del umbral, fuera de la banda de prueba de su condición · No le queda un comité donde cumpla o esté en prueba · Faltó a una asamblea obligatoria | GH | Propuesta |
+| T-801 | Cierre: motivos automáticos (cumple, prueba, no cumple, sin comité, obligatoria, sanciones) | Cumplió el umbral · Por debajo del umbral, dentro de la banda de prueba de su condición · Por debajo del umbral, fuera de la banda de prueba de su condición · No le queda un comité donde cumpla o esté en prueba · Faltó a una asamblea obligatoria · Falta grave vigente más otra sanción (Reglamento, art. 69) | GH | Propuesta |
 | T-802 | Cierre y Persona 360: decisiones (en el orden del modelo) | Continúa · Periodo de prueba · Sale del comité · Sale de la OE | GH | Propuesta |
 | T-803 | Cierre: botones | Confirmar propuesta · Cambiar · Confirmar todas las propuestas · Aplicar cierre | MATEO | Propuesta |
 | T-804 | Cierre: campos al cambiar | Decisión · Motivo | MATEO | Propuesta |
@@ -1780,3 +1780,20 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2226 | Permanencia del comité: sin excusas pendientes | No hay excusas pendientes sobre las ocasiones de tu comité. | MATEO | Propuesta |
 | T-2227 | Excusa: ocasión inválida | La ocasión no existe, está cancelada o no es de este semestre. | MATEO | Propuesta |
 | T-2228 | Excusa: decidida desde el comité | Excusa {estado}. | MATEO | Propuesta |
+| T-2229 | Sanciones: tipos (en el orden del modelo) | Llamado de atención · Falta leve · Falta grave · Suspensión · Inhabilidad para cargos | GH | Propuesta; Reglamento cap. 9 y Anexo 1 |
+| T-2230 | Sanciones: campos del formulario | Tipo · Causal: los hechos y los descargos · Referencia del Reglamento (opcional) · Fecha de la falta · Suspendida hasta (solo suspensión) · Comité que la impone (opcional) · Miembro | GH | Propuesta |
+| T-2231 | Sanciones: ayuda del formulario | Un llamado de atención suspende derechos y beneficios 7 días y una falta leve 20; una suspensión dura hasta un mes; una falta grave no suspende pero advierte de expulsión y, con otra sanción vigente, el cierre propone la salida; la inhabilidad para cargos dura un año. Toda falta vence al año. Anotá los descargos en la causal. | GH | Propuesta; texto sensible |
+| T-2232 | Sanciones: botones | Registrar sanción · Revocar sanción | MATEO | Propuesta |
+| T-2233 | Guarda: reconocimiento o aval a una persona suspendida | {nombre} tiene derechos y beneficios suspendidos hasta el {fecha}: no puede recibir reconocimientos ni avales (Reglamento, art. 69 y 73). | GH | Propuesta; texto sensible |
+| T-2234 | Línea de tiempo: sanción registrada · sanción revocada | Sanción registrada: {tipo} ({causal}) · Sanción revocada: {tipo} ({motivo}) | MATEO | Propuesta |
+| T-2235 | Mi OE, permanencia: bloque de sanciones, título | Faltas y sanciones | GH | Propuesta |
+| T-2236 | Mi OE, permanencia: línea de una sanción | {tipo} del {fecha}: {causal}. Vence el {vence}. | GH | Propuesta; texto sensible |
+| T-2237 | Mi OE, permanencia: derechos suspendidos | Tus derechos y beneficios en la OE están suspendidos hasta el {fecha}. Seguís con tus deberes y tus reuniones. | GH | Propuesta; texto sensible |
+| T-2238 | Mi OE, permanencia: advertencia de expulsión | Tenés una falta grave vigente más otra sanción: el cierre del semestre propone tu salida de la OE (Reglamento, art. 69). Hablá con GH. | GH | Propuesta; texto sensible |
+| T-2239 | Persona 360, Membresía: bloque de sanciones (título · vacío) | Faltas y sanciones · Sin sanciones registradas | MATEO | Propuesta |
+| T-2240 | Sanciones: motivo de la revocación | Motivo de la revocación (descargos o revisión de la junta) | GH | Propuesta |
+| T-2241 | Sanciones: fecha de fin de la suspensión inválida | La suspensión necesita una fecha de fin entre la falta y un mes después (Reglamento, art. 58). | MATEO | Propuesta |
+| T-2242 | Permanencia del comité: registrar una falta, título | Registrar una falta a un miembro del comité | GH | Propuesta |
+| T-2243 | Sanciones: estados (vigente · vencida · revocada) | Vigente · Vencida · Revocada | MATEO | Propuesta |
+| T-2244 | Sanciones: membresía terminada | Solo se sanciona a un miembro con membresía viva; una persona retirada se da de baja con motivo expulsión. | MATEO | Propuesta |
+| T-2245 | Mi OE, permanencia: sanción revocada o vencida | Sin sanciones vigentes. | MATEO | Propuesta |

@@ -10,6 +10,7 @@ import {
   getPersonRecord,
   listAllCommittees,
   listCommitteeRoles,
+  SANCTION_KINDS,
 } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { listAllTerms } from "@/modules/terms";
@@ -53,6 +54,8 @@ function labels(): TimelineLabels {
     permanenceTexts: tList("T-832"),
     crmTexts: tList("T-1046"),
     directionTexts: tList("T-2171"),
+    sanctionTexts: tList("T-2234"),
+    sanctionKinds: zip(SANCTION_KINDS, tList("T-2229")),
     stages: zip(STAGE_CODES, tList("T-1047")),
     requestStatuses: zip(REQUEST_STATUS_CODES, tList("T-876")),
     callEntryStatuses: zip(CALL_ENTRY_CODES, tList("T-899")),

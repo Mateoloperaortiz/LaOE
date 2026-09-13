@@ -42,6 +42,8 @@ export const TIMELINE_EVENTS = [
   "request.decided",
   "request.withdrawn",
   "call-entry.changed",
+  "sanction.recorded",
+  "sanction.revoked",
 ] as const;
 
 export interface TimelineLabels {
@@ -55,6 +57,9 @@ export interface TimelineLabels {
   crmTexts: string[];
   /** El pedido de retiro de un comité por su dirección, T-2171 (ADR-058). */
   directionTexts: string[];
+  /** Sanción registrada y revocada, T-2234, y los tipos de T-2229 (ADR-060 regla 6). */
+  sanctionTexts?: string[];
+  sanctionKinds?: Record<string, string>;
   /** Las etapas de la persona de T-1047, en el orden del modelo. */
   stages: Record<string, string>;
   /** Los estados de una solicitud de T-876, en el orden del modelo. */
@@ -263,6 +268,24 @@ export function summarizeEvent(
         "PARTICIPATION",
         fill(labels.participationTexts[7] ?? "", { ocasion: str(payload, "occasionTitle") }),
         { occasionId: str(payload, "occasionId"), excused: true },
+      );
+    case "sanction.recorded":
+      return entry(
+        "MEMBERSHIP",
+        fill(labels.sanctionTexts?.[0] ?? "", {
+          tipo: label(labels.sanctionKinds ?? {}, str(payload, "kind")),
+          causal: str(payload, "cause"),
+        }),
+        { sanctionId: str(payload, "sanctionId"), kind: str(payload, "kind") },
+      );
+    case "sanction.revoked":
+      return entry(
+        "MEMBERSHIP",
+        fill(labels.sanctionTexts?.[1] ?? "", {
+          tipo: label(labels.sanctionKinds ?? {}, str(payload, "kind")),
+          motivo: str(payload, "reason") || "—",
+        }),
+        { sanctionId: str(payload, "sanctionId"), kind: str(payload, "kind") },
       );
     case "wordle.completed": {
       const points = typeof payload.points === "number" ? payload.points : 0;

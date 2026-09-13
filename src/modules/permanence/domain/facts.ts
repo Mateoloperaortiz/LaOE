@@ -9,7 +9,7 @@ import {
   listExcusedCheckInsForTerm,
   listOccasionsForTerm,
 } from "@/modules/participation";
-import { listTermRoster, type TermRosterRow } from "@/modules/people";
+import { listExpulsionWarnings, listTermRoster, type TermRosterRow } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { getTerm } from "@/modules/terms";
 import {
@@ -192,6 +192,8 @@ export async function loadPeopleFacts(
   const db = getDb();
   const attended = await attendedByPerson(termId, personIds);
   const excused = await excusedByPerson(termId, personIds);
+  // Sanciones vivas al cerrar el término (ADR-060 regla 6).
+  const warned = await listExpulsionWarnings(facts.term.endsOn, ids);
   const memberships = await db
     .select({
       personId: workGroupMembership.personId,
@@ -250,6 +252,7 @@ export async function loadPeopleFacts(
       })),
       attended: attended.get(personId) ?? new Set(),
       excused: excused.get(personId) ?? new Set(),
+      expulsionWarning: warned.has(personId),
       groupMemberships: memberships
         .filter((item) => item.personId === personId)
         .map(({ personId: _p, ...rest }) => rest),

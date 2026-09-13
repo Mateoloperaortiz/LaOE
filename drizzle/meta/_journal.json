@@ -134,6 +134,13 @@
       "when": 1789305149478,
       "tag": "0018_excusas_validas",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789305507481,
+      "tag": "0019_faltas_y_sanciones",
+      "breakpoints": true
     }
   ]
 }

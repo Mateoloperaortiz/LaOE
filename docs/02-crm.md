@@ -41,7 +41,7 @@ Los contactos externos (`kind=EXTERNAL`) no tienen etapa de miembro ni acceso: s
 | --- | --- |
 | Resumen | Puntos del término, asistencias, asambleas firmadas/requeridas, último contacto, tareas abiertas |
 | Línea de tiempo | Interacciones automáticas y notas, con filtro por tipo y compositor de nota |
-| Membresía | Términos, comités por término con los cargos en cada uno (General, Financiero, Logística…, con codirección; [ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)), cargos de junta o de GH, transferencias, historial de estados con motivos, condición del semestre (periodo de prueba por término, que ADMIN marca o retira con motivo) |
+| Membresía | Términos, comités por término con los cargos en cada uno (General, Financiero, Logística…, con codirección; [ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)), cargos de junta o de GH, transferencias, historial de estados con motivos, condición del semestre (periodo de prueba por término y por comité, que ADMIN marca o retira con motivo), y faltas y sanciones con su vigencia, la suspensión de derechos y la revocación con motivo ([ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) reglas 2 y 6) |
 | Participación | Check-ins con ocasión y fuente; ledger con ajustes y reversiones |
 | Permanencia | Resultado por cada comité frente a su umbral, parte general y parte del comité criterio por criterio, condición (nuevo, prueba, transferencia), grupos y evaluaciones, puntajes y observaciones del líder, decisiones de cierre |
 | Formularios | Respuestas enviadas, inscripciones a ediciones y tarjetas de pipeline, con enlace al kanban |

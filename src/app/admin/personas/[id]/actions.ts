@@ -38,8 +38,11 @@ import {
   reactivateMembershipAs,
   reactivateSchema,
   recordConsentAs,
+  recordSanctionAs,
   removeAppointmentAs,
   revokeConsentAs,
+  revokeSanctionAs,
+  sanctionInputSchema,
   setCommitteeMembershipsAs,
   setPersonTagsAs,
   setProbationAs,
@@ -466,4 +469,35 @@ export async function revokeCarnetAction(formData: FormData): Promise<void> {
   revalidatePath(`/admin/personas/${id}`);
   revalidatePath("/app/carnet");
   redirect(await personUrl(id, "comunicaciones", { guardado: "carnet" }));
+}
+
+// Faltas y sanciones (ADR-060 regla 6): ADMIN registra sobre una membresía viva y revoca con motivo.
+export async function recordSanctionAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("personId"));
+  const actor = await requireAdmin(await personUrl(id, "membresia"));
+  const parsed = sanctionInputSchema.safeParse({
+    termId: text(formData, "termId"),
+    kind: text(formData, "kind"),
+    cause: text(formData, "cause"),
+    reference: text(formData, "reference") || null,
+    occurredOn: text(formData, "occurredOn"),
+    suspendedUntil: text(formData, "suspendedUntil") || null,
+    committeeId: text(formData, "committeeId") || null,
+  });
+  if (!parsed.success || !(await getTerm(parsed.data.termId))) {
+    await fail(id, "membresia", "sancion", t("T-260"));
+    return;
+  }
+  await run(id, "membresia", "sancion", async () => {
+    await recordSanctionAs({ personId: actor.personId }, id, parsed.data);
+  });
+}
+
+export async function revokeSanctionAction(formData: FormData): Promise<void> {
+  const id = idSchema.parse(formData.get("personId"));
+  const sanctionId = idSchema.parse(formData.get("sanctionId"));
+  const actor = await requireAdmin(await personUrl(id, "membresia"));
+  await run(id, "membresia", "revocar-sancion", () =>
+    revokeSanctionAs({ personId: actor.personId }, sanctionId, text(formData, "reason")),
+  );
 }

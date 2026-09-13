@@ -11,6 +11,7 @@ import {
   type MembershipRecord,
 } from "./membership";
 import type { PersonRecord } from "./persons";
+import { listSanctionsForPerson, type SanctionView } from "./sanctions";
 
 // Todo lo que la Persona 360 necesita de `people` en una sola lectura (02-crm.md).
 
@@ -21,6 +22,7 @@ export interface Person360 {
   committeesByTerm: TermCommittees[];
   appointments: AppointmentView[];
   consents: ConsentState[];
+  sanctions: SanctionView[];
   probation: Array<{
     termId: string;
     termCode: string;
@@ -37,26 +39,35 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
   if (!who) {
     return null;
   }
-  const [membershipRows, events, committeesByTerm, appointments, consents, probationRows, terms] =
-    await Promise.all([
-      db.select().from(membership).where(eq(membership.personId, id)).limit(1),
-      listMembershipEvents(id),
-      listCommitteeMembershipsByTerm(id),
-      listAppointments(id),
-      listConsents(id),
-      db
-        .select({
-          termId: membershipTerm.termId,
-          committeeId: membershipTerm.committeeId,
-          committeeName: committee.name,
-          reason: membershipTerm.reason,
-          probation: membershipTerm.probation,
-        })
-        .from(membershipTerm)
-        .leftJoin(committee, eq(committee.id, membershipTerm.committeeId))
-        .where(eq(membershipTerm.personId, id)),
-      listAllTerms(),
-    ]);
+  const [
+    membershipRows,
+    events,
+    committeesByTerm,
+    appointments,
+    consents,
+    probationRows,
+    terms,
+    sanctions,
+  ] = await Promise.all([
+    db.select().from(membership).where(eq(membership.personId, id)).limit(1),
+    listMembershipEvents(id),
+    listCommitteeMembershipsByTerm(id),
+    listAppointments(id),
+    listConsents(id),
+    db
+      .select({
+        termId: membershipTerm.termId,
+        committeeId: membershipTerm.committeeId,
+        committeeName: committee.name,
+        reason: membershipTerm.reason,
+        probation: membershipTerm.probation,
+      })
+      .from(membershipTerm)
+      .leftJoin(committee, eq(committee.id, membershipTerm.committeeId))
+      .where(eq(membershipTerm.personId, id)),
+    listAllTerms(),
+    listSanctionsForPerson(id),
+  ]);
   const termById = new Map(terms.map((term) => [term.id, term]));
   const first = membershipRows[0];
   const probation = probationRows
@@ -84,6 +95,7 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
     committeesByTerm,
     appointments,
     consents,
+    sanctions,
     probation,
   };
 }

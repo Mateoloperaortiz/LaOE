@@ -33,10 +33,12 @@ export {
   leaveCommitteeAs,
   reactivateMembershipAs,
   recordConsentAs,
+  recordSanctionAs,
   removeAppointmentAs,
   requestCommitteeRemovalAs,
   requestDeletionAs,
   revokeConsentAs,
+  revokeSanctionAs,
   setCommitteeMembershipsAs,
   setMemberRolesAs,
   setOwnPhotoAs,
@@ -188,6 +190,25 @@ export {
 } from "./domain/roster";
 export { ROSTER_MAX_BYTES } from "./domain/roster-file";
 export { HEADER_ALIASES, ROSTER_COLUMNS, type RosterColumn } from "./domain/roster-pure";
+export {
+  addDays as addDaysToKey,
+  dayKeyOf,
+  expulsionWarning,
+  SANCTION_KINDS,
+  type SanctionKind,
+  type SanctionLike,
+  type SanctionState,
+} from "./domain/sanction-pure";
+export {
+  listExpulsionWarnings,
+  listSanctionsForPerson,
+  type SanctionInput,
+  type SanctionStateView,
+  type SanctionView,
+  sanctionInputSchema,
+  sanctionKindLabel,
+  sanctionStateFor,
+} from "./domain/sanctions";
 export {
   findPeopleByFilter,
   getSegment,

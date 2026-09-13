@@ -100,6 +100,8 @@ export interface PersonFacts {
   attended: ReadonlySet<string>;
   /** Ids de las ocasiones con excusa válida aceptada (ADR-060 regla 5): no cuentan como falta. */
   excused: ReadonlySet<string>;
+  /** Falta grave más otra sanción vivas al cerrar (ADR-060 regla 6): el cierre propone la expulsión. */
+  expulsionWarning: boolean;
   groupMemberships: GroupMembershipFact[];
   leaderScores: Array<{ ruleId: string; value: number; note: string | null; scoredAt: Date }>;
   credits: Array<{ ruleId: string; value: number; reason: string }>;
@@ -207,6 +209,7 @@ export interface PersonPermanence {
   status: MembershipStatus;
   isNew: boolean;
   probation: boolean;
+  expulsionWarning: boolean;
   /** Solo se evalúa a activos con al menos un comité vivo. */
   evaluated: boolean;
   general: CriterionResult[];
@@ -836,6 +839,7 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
     status: person.status,
     isNew: person.isNew,
     probation: person.probation || liveCommittees.some((item) => item.probation),
+    expulsionWarning: person.expulsionWarning,
     evaluated,
     general,
     generalTotal,
@@ -846,7 +850,7 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
 }
 
 /** Motivo automático de una propuesta, en el orden de T-801. */
-export type ProposalReason = 0 | 1 | 2 | 3 | 4;
+export type ProposalReason = 0 | 1 | 2 | 3 | 4 | 5;
 
 export type CommitteeDecision = Exclude<DecisionKind, "EXIT_OE">;
 
@@ -874,6 +878,10 @@ export function proposeDecisions(result: PersonPermanence): Proposal {
   // una obligatoria que nunca se registró en el sistema no expulsa a nadie.
   if (result.mandatory.lost.length > 0) {
     return { committees, person: { proposed: "EXIT_OE", reason: 4 } };
+  }
+  // Una falta grave viva más cualquier otra sanción viva expulsa (Regl. art. 69.3; ADR-060 regla 6).
+  if (result.expulsionWarning) {
+    return { committees, person: { proposed: "EXIT_OE", reason: 5 } };
   }
   const stays = committees.some((item) => item.proposed !== "EXIT_COMMITTEE");
   return {

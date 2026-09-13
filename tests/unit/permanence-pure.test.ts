@@ -34,6 +34,7 @@ import {
   referenceCommitteeRules,
   referenceGeneralRules,
 } from "@/modules/permanence/domain/templates";
+import { tList } from "@/shared/copy";
 
 // Cálculo de permanencia (10-verificacion, unit): las tablas de referencia de 2026-2 reproducen las
 // hojas de GH criterio por criterio, con el ejemplo de Pixel 75 % y Cigma 95 %.
@@ -142,6 +143,7 @@ function person(overrides: Partial<PersonFacts> = {}): PersonFacts {
     committees: [committee("pixel")],
     attended: new Set(),
     excused: new Set(),
+    expulsionWarning: false,
     groupMemberships: [],
     leaderScores: [],
     credits: [],
@@ -899,6 +901,31 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
       lost: ["BOARD_ELECTION"],
     });
     expect(result.mandatory.upcoming.map((item) => item.occasionId)).toEqual(["ord-2"]);
+  });
+
+  it("una falta grave más otra sanción viva propone la expulsión (ADR-060 regla 6)", () => {
+    const closedTerm = { ...TERM, permanenceClosedAt: new Date() };
+    const termFacts = facts({
+      rules: [eventos],
+      occasions: [ordinary, election],
+      term: closedTerm,
+    });
+    const warned = computePerson(
+      termFacts,
+      person({
+        committees: [committee("a3")],
+        attended: new Set(["ord", "elec"]),
+        expulsionWarning: true,
+        credits: [{ ruleId: eventos.id, value: 60, reason: "" }],
+      }),
+      NOW,
+    );
+    expect(warned.expulsionWarning).toBe(true);
+    expect(proposeDecisions(warned)).toEqual({
+      committees: [{ committeeId: "a3", proposed: "CONTINUES", reason: 0 }],
+      person: { proposed: "EXIT_OE", reason: 5 },
+    });
+    expect(tList("T-801")).toHaveLength(6);
   });
 
   it("una obligatoria con excusa aceptada no se pierde ni expulsa (ADR-060 regla 5)", () => {

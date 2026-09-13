@@ -9,7 +9,7 @@ import {
   grantRecognitionAs,
   recognitionInputSchema,
 } from "@/modules/crm";
-import { listInternalRoster } from "@/modules/people";
+import { listInternalRoster, recordSanctionAs, sanctionInputSchema } from "@/modules/people";
 import {
   applyTemplateAs,
   copyFromPreviousTermAs,
@@ -220,4 +220,43 @@ export async function decideExcuseAction(formData: FormData): Promise<void> {
   revalidatePath(returnTo);
   revalidatePath("/admin/solicitudes");
   redirect(back(slug, { guardado: "1", excusa: decision }));
+}
+
+// Faltas del comité (Regl. art. 69 par. 2; ADR-060 regla 6): quien tiene PERMANENCE registra una falta
+// a un miembro de su comité; la suspensión explícita y la revocación quedan para GH.
+export async function recordCommitteeSanctionAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const personId = idSchema.parse(formData.get("personId"));
+  const returnTo = back(slug);
+  const access = await requireCommitteeCapability(slug, "PERMANENCE", returnTo);
+  const term = await getCurrentTerm();
+  if (!term || !access.roster.members.some((member) => member.personId === personId)) {
+    redirect(back(slug, { error: t("T-032") }));
+  }
+  const parsed = sanctionInputSchema.safeParse({
+    termId: term.id,
+    kind: text(formData, "kind"),
+    cause: text(formData, "cause"),
+    reference: text(formData, "reference") || null,
+    occurredOn: text(formData, "occurredOn"),
+    suspendedUntil: null,
+    committeeId: access.roster.committee.id,
+  });
+  if (!parsed.success || parsed.data.kind === "SUSPENSION" || parsed.data.kind === "OFFICE_BAN") {
+    redirect(back(slug, { error: t("T-260") }));
+  }
+  try {
+    await recordSanctionAs(
+      { personId: access.actor.personId, ip: await clientIp() },
+      personId,
+      parsed.data,
+    );
+  } catch (error) {
+    if (error instanceof DomainError) {
+      redirect(back(slug, { error: error.message }));
+    }
+    throw error;
+  }
+  revalidatePath(returnTo);
+  redirect(back(slug, { guardado: "1", sancion: "1" }));
 }

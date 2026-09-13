@@ -22,6 +22,7 @@ export interface SnapshotView {
   status: "ACTIVE" | "ON_LEAVE" | "HONORARY" | "INACTIVE";
   isNew: boolean;
   probation: boolean;
+  expulsionWarning: boolean;
   generalTotal: number;
   generalMax: number;
   general: CriterionResult[];
@@ -38,6 +39,7 @@ function toView(row: typeof permanenceSnapshot.$inferSelect): SnapshotView {
     status: row.status,
     isNew: row.isNew,
     probation: row.probation,
+    expulsionWarning: row.expulsionWarning,
     generalTotal: row.generalTotal,
     generalMax: row.generalMax,
     general: parseGeneral(row.general),
@@ -55,6 +57,7 @@ export function snapshotToResult(view: SnapshotView): PersonPermanence {
     status: view.status,
     isNew: view.isNew,
     probation: view.probation,
+    expulsionWarning: view.expulsionWarning,
     evaluated: view.status === "ACTIVE" && view.results.length > 0,
     general: view.general,
     generalTotal: view.generalTotal,
@@ -106,6 +109,7 @@ export async function recomputeSnapshots(
         status: person.status,
         isNew: result.isNew,
         probation: result.probation,
+        expulsionWarning: result.expulsionWarning,
         generalTotal: result.generalTotal,
         generalMax: result.generalMax,
         general: result.general,

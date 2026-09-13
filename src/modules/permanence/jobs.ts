@@ -53,6 +53,15 @@ registerHandler("membership-term.changed", async (payload) => {
   await enqueueRecompute(termId, personId);
 });
 
+// Sanciones registradas o revocadas (ADR-060 regla 6): la persona en el término de la sanción.
+const sanctionEvent = z.object({ personId: z.string().min(1), termId: z.string().min(1) });
+for (const type of ["sanction.recorded", "sanction.revoked"]) {
+  registerHandler(type, async (payload) => {
+    const { personId, termId } = sanctionEvent.parse(payload);
+    await enqueueRecompute(termId, personId);
+  });
+}
+
 // Cambio de estado de la membresía: el término actual.
 const personEvent = z.object({ personId: z.string().min(1) });
 registerHandler("membership.changed", async (payload) => {

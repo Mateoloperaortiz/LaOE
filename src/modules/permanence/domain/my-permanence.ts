@@ -33,6 +33,7 @@ function emptyResult(personId: string): PersonPermanence {
     status: "INACTIVE",
     isNew: false,
     probation: false,
+    expulsionWarning: false,
     evaluated: false,
     general: [],
     generalTotal: 0,

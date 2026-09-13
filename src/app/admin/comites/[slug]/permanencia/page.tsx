@@ -6,7 +6,7 @@ import {
   MONTHS,
   monthName,
 } from "@/modules/crm";
-import { listInternalRoster } from "@/modules/people";
+import { listInternalRoster, SANCTION_KINDS } from "@/modules/people";
 import {
   deviatesFromNominal,
   getRule,
@@ -23,6 +23,7 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { todayKey } from "@/shared/lib/dates";
 import { reglaFormLabels, reglaFormValues } from "../../../permanencia/_ui/reglas";
 import { requireCommitteeCapability } from "../../_kit/capacidades";
 import {
@@ -31,6 +32,7 @@ import {
   decideExcuseAction,
   deleteCommitteeRuleAction,
   recognizeAction,
+  recordCommitteeSanctionAction,
   saveCommitteeRuleAction,
   scoreAction,
 } from "./actions";
@@ -96,6 +98,14 @@ export default async function PermanenciaComitePage({
   ]);
   const excusa = single(search.excusa);
   const [aprobarExcusa, rechazarExcusa] = tList("T-1001") as [string, string];
+  const [campoTipo, campoCausal, campoReferencia, campoFecha, , , campoMiembro] = tList("T-2230");
+  const [registrarSancion] = tList("T-2232") as [string, string];
+  const kindLabels = tList("T-2229");
+  // Desde el comité solo se registran llamados, faltas leves y graves; la suspensión y la
+  // inhabilidad las decide GH (Regl. art. 58, 62 y 63).
+  const committeeKinds = SANCTION_KINDS.filter((kind) =>
+    ["WARNING", "MINOR", "MAJOR"].includes(kind),
+  );
   const scoreRules = view.rules.filter((rule) => rule.computation === "LEADER_SCORE");
   const scoreOf = (ruleId: string, personId: string) =>
     scores.find((item) => item.ruleId === ruleId && item.personId === personId) ?? null;
@@ -219,6 +229,63 @@ export default async function PermanenciaComitePage({
             ))}
           </ul>
         )}
+      </section>
+
+      <section aria-labelledby="registrar-falta" className="flex flex-col gap-3">
+        <h2 id="registrar-falta" className="text-display-md">
+          {t("T-2242")}
+        </h2>
+        <p className="max-w-prose text-sm text-tinta-suave">{t("T-2231")}</p>
+        <form action={recordCommitteeSanctionAction} className="flex flex-col gap-3">
+          <AdminFormBody>
+            <input type="hidden" name="slug" value={slug} />
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm" htmlFor="falta-persona">
+                {campoMiembro}
+                <select id="falta-persona" name="personId" required className={inputClass}>
+                  <option value="">—</option>
+                  {members.map((member) => (
+                    <option key={member.personId} value={member.personId}>
+                      {member.fullName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm" htmlFor="falta-tipo">
+                {campoTipo}
+                <select id="falta-tipo" name="kind" required className={inputClass}>
+                  {committeeKinds.map((kind) => (
+                    <option key={kind} value={kind}>
+                      {kindLabels[SANCTION_KINDS.indexOf(kind)] ?? kind}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm md:col-span-2" htmlFor="falta-causal">
+                {campoCausal}
+                <textarea id="falta-causal" name="cause" required rows={3} className={inputClass} />
+              </label>
+              <label className="flex flex-col gap-1 text-sm" htmlFor="falta-referencia">
+                {campoReferencia}
+                <input id="falta-referencia" name="reference" type="text" className={inputClass} />
+              </label>
+              <label className="flex flex-col gap-1 text-sm" htmlFor="falta-fecha">
+                {campoFecha}
+                <input
+                  id="falta-fecha"
+                  name="occurredOn"
+                  type="date"
+                  required
+                  defaultValue={todayKey()}
+                  className={inputClass}
+                />
+              </label>
+            </div>
+            <AdminSubmitButton type="submit" className="boton-secundario self-start">
+              {registrarSancion}
+            </AdminSubmitButton>
+          </AdminFormBody>
+        </form>
       </section>
 
       {locked ? (

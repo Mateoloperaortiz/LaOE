@@ -474,7 +474,8 @@ export async function applyDecisions(termId: string, nextTermId: string): Promis
     if (personRow?.decision === "EXIT_OE") {
       // Faltar a una obligatoria expulsa (ADR-060 regla 3); quedarse sin comité es permanencia.
       const snapshot = await getSnapshot(personId, termId);
-      const expelled = snapshot !== null && snapshot.mandatory.lost.length > 0;
+      const expelled =
+        snapshot !== null && (snapshot.mandatory.lost.length > 0 || snapshot.expulsionWarning);
       await endMembershipAs(actor, personId, {
         endReason: expelled ? "EXPULSION" : "PERMANENCE",
         note: reason || undefined,
