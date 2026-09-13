@@ -124,6 +124,35 @@ export async function listEditions(
   };
 }
 
+export interface CommitteeEditionRow {
+  id: string;
+  name: string;
+  eventName: string;
+  startsAt: Date;
+  publicationStatus: "DRAFT" | "PUBLISHED";
+}
+
+/** Las ediciones donde el comité es organizador, de la más reciente a la más vieja (ADR-058). */
+export async function listEditionsByCommittee(
+  committeeId: string,
+  limit = 12,
+): Promise<CommitteeEditionRow[]> {
+  return getDb()
+    .select({
+      id: eventEdition.id,
+      name: eventEdition.name,
+      eventName: event.name,
+      startsAt: eventEdition.startsAt,
+      publicationStatus: eventEdition.publicationStatus,
+    })
+    .from(editionCommittee)
+    .innerJoin(eventEdition, eq(eventEdition.id, editionCommittee.editionId))
+    .innerJoin(event, eq(event.id, eventEdition.eventId))
+    .where(eq(editionCommittee.committeeId, committeeId))
+    .orderBy(desc(eventEdition.startsAt))
+    .limit(limit);
+}
+
 export interface EditionOption {
   id: string;
   label: string;

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { listCommitteeAnnouncements } from "@/modules/content";
+import { listEditionsByCommittee } from "@/modules/events";
 import {
   listCommitteeScores,
   listOccasions,
@@ -8,7 +10,15 @@ import {
   surveySummaryForCommittee,
 } from "@/modules/participation";
 import { occasionKindLabel, occasionStatusCell } from "@/modules/participation/admin";
-import { listInternalRoster } from "@/modules/people";
+import {
+  areasFor,
+  type CommitteeArea,
+  listCommitteeRoles,
+  listCommitteesMissingRequiredRoles,
+  listInternalRoster,
+  searchEligibleMembers,
+} from "@/modules/people";
+import { requireConfig } from "@/modules/system";
 import { getCurrentTerm } from "@/modules/terms";
 import { ResourcePanel } from "@/shared/admin-kit";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
@@ -18,11 +28,15 @@ import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { requireCommitteeAccess } from "../_kit/capacidades";
+import { Areas } from "./_ui/Areas";
+import { Comunicacion } from "./_ui/Comunicacion";
+import { Personas } from "./_ui/Personas";
 import { createSeriesAction, proposeOccasionAction } from "./actions";
 
-// Vista del comité (06-mapa-del-sitio.md, ADR-035 regla 15, ADR-058): la ven ADMIN, el líder técnico
-// y la dirección del comité por sus cargos; roster sin correos y score para todos, y "Nueva ocasión"
-// en borrador y la serie semanal solo con la capacidad OCCASIONS.
+// Vista del comité por áreas (06-mapa-del-sitio.md, ADR-058): la ven ADMIN, el líder técnico y la
+// dirección por sus cargos, cada uno con las pestañas de sus capacidades. Personas (roster y cargos),
+// Actividades (score, ocasiones, encuestas y ediciones), Comunicación (cartelera interna y ficha),
+// Aliados y Finanzas (llegan en fases siguientes). Nunca correos ni celulares.
 
 type Search = Record<string, string | string[] | undefined>;
 
@@ -41,7 +55,7 @@ export async function generateMetadata({
   return { title: roster?.committee.name ?? "" };
 }
 
-export default async function ComiteLiderPage({
+export default async function ComitePage({
   params,
   searchParams,
 }: PageProps<"/admin/comites/[slug]">) {
@@ -49,39 +63,28 @@ export default async function ComiteLiderPage({
   const search = (await searchParams) as Search;
   const base = `/admin/comites/${slug}`;
   const access = await requireCommitteeAccess(slug, base);
-  const { roster } = access;
-  const canOperate = access.capabilities.has("OCCASIONS");
+  const { roster, capabilities } = access;
+  const term = roster.term ?? (await getCurrentTerm());
+  const areas = areasFor(capabilities);
+  const requested = single(search.area) as CommitteeArea;
+  const area: CommitteeArea = areas.includes(requested) ? requested : (areas[0] ?? "personas");
   const accion = single(search.accion);
   const error = single(search.error);
   const guardado = single(search.guardado) === "1";
+  const agregado = single(search.agregado);
+  const pedido = single(search.pedido) === "1";
   const serie = single(search.serie);
   const hasta = single(search.hasta);
-  const term = roster.term ?? (await getCurrentTerm());
-  const encuestas = term
-    ? await surveySummaryForCommittee(term.id, roster.committee.id)
-    : { rows: [], answered: 0, average: null };
-  const [encActividad, encRespondieron, encPromedio] = tList("T-1168");
-  const [occasions, scores, ranking] = await Promise.all([
-    term
-      ? listOccasions({
-          q: "",
-          termId: term.id,
-          committeeId: roster.committee.id,
-          page: 1,
-          pageSize: 100,
-        })
-      : Promise.resolve({ rows: [], total: 0 }),
-    term ? listCommitteeScores(roster.committee.id, term.id) : Promise.resolve([]),
-    term ? rankCommittees(term.id) : Promise.resolve([]),
-  ]);
-  const mine = ranking.find((item) => item.row.committeeId === roster.committee.id);
-  const [tuComite, rosterTitulo, participacion, ocasionesTitulo] = tList("T-651");
-  const [nuevaOcasion, crearSerie] = tList("T-652");
-  const [serieTitulo, , serieHora, serieDuracion, serieLugar, seriePrimera] = tList("T-654");
-  const scoreColumns = tList("T-657");
-  const fieldLabels = tList("T-563");
-  const categoryLabels = tList("T-566");
-  const approvalLabels = tList("T-567");
+  const q = single(search.q).trim();
+  const persona = single(search.persona);
+  const canOperate = capabilities.has("OCCASIONS");
+  const [tuComite] = tList("T-651");
+
+  const missing = term
+    ? ((await listCommitteesMissingRequiredRoles(term.id)).find(
+        (row) => row.committee.id === roster.committee.id,
+      )?.missing ?? [])
+    : [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -94,8 +97,27 @@ export default async function ComiteLiderPage({
           </div>
         </div>
         {term ? <p className="text-tinta-suave">{term.code}</p> : null}
+        {missing.length > 0 ? (
+          <ul className="flex list-none flex-wrap gap-2 p-0">
+            {missing.map((role) => (
+              <li key={role.roleCode}>
+                <Insignia fondo="naranja">
+                  {t("T-2175", { comité: roster.committee.name, cargo: role.roleLabel })}
+                </Insignia>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {guardado ? (
           <output className="block font-semibold text-oe-blue">{t("T-259")}</output>
+        ) : null}
+        {agregado ? (
+          <output className="block font-semibold text-oe-blue">
+            {t("T-2161", { nombre: agregado })}
+          </output>
+        ) : null}
+        {pedido ? (
+          <output className="block font-semibold text-oe-blue">{t("T-2160")}</output>
         ) : null}
         {serie ? (
           <output className="block font-semibold text-oe-blue">
@@ -107,18 +129,136 @@ export default async function ComiteLiderPage({
             {error}
           </p>
         ) : null}
-        <p className="max-w-prose text-sm text-tinta-suave">{t("T-653")}</p>
-        {canOperate ? (
+      </header>
+
+      <Areas base={base} active={area} areas={areas} />
+
+      {area === "personas" ? (
+        <Personas
+          slug={slug}
+          base={base}
+          committeeName={roster.committee.name}
+          members={roster.members}
+          hasTerm={term !== null}
+          isAdmin={access.isAdmin}
+          canDirect={capabilities.has("DIRECTION")}
+          actorPersonId={access.actor.personId}
+          roles={await listCommitteeRoles()}
+          max={await requireConfig("committees.max")}
+          q={q}
+          candidates={
+            accion === "agregar" && q.length >= 2 && term
+              ? await searchEligibleMembers(roster.committee.id, term.id, q)
+              : []
+          }
+          accion={accion}
+          persona={persona}
+          error={error}
+        />
+      ) : null}
+
+      {area === "actividades" ? (
+        <Actividades
+          base={base}
+          slug={slug}
+          committeeId={roster.committee.id}
+          committeeName={roster.committee.name}
+          termId={term?.id ?? null}
+          canOperate={canOperate}
+          canSeeEvents={capabilities.has("EVENTS")}
+          accion={accion}
+          error={error}
+        />
+      ) : null}
+
+      {area === "comunicacion" ? (
+        <Comunicacion
+          slug={slug}
+          base={base}
+          committee={roster.committee}
+          announcements={await listCommitteeAnnouncements(roster.committee.id, 12)}
+          canBoard={capabilities.has("BOARD")}
+          canProfile={capabilities.has("PROFILE")}
+          accion={accion}
+          error={error}
+        />
+      ) : null}
+
+      {area === "aliados" ? (
+        <section aria-label={tList("T-2174")[3] ?? ""} className="flex flex-col gap-2">
+          <p className="max-w-prose text-lg">{t("T-2186")}</p>
+          <p className="text-tinta-suave">{t("T-240")}</p>
+        </section>
+      ) : null}
+
+      {area === "finanzas" ? (
+        <section aria-label={tList("T-2174")[4] ?? ""} className="flex flex-col gap-2">
+          <p className="text-tinta-suave">{t("T-240")}</p>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+/** Actividades: lo que ya veía el líder (score, ocasiones, encuestas) más las ediciones que organiza. */
+async function Actividades({
+  base,
+  slug,
+  committeeId,
+  committeeName,
+  termId,
+  canOperate,
+  canSeeEvents,
+  accion,
+  error,
+}: {
+  base: string;
+  slug: string;
+  committeeId: string;
+  committeeName: string;
+  termId: string | null;
+  canOperate: boolean;
+  canSeeEvents: boolean;
+  accion: string;
+  error: string;
+}) {
+  const closeHref = `${base}?area=actividades`;
+  const [, , participacion, ocasionesTitulo] = tList("T-651");
+  const [nuevaOcasion, crearSerie] = tList("T-652");
+  const [serieTitulo, , serieHora, serieDuracion, serieLugar, seriePrimera] = tList("T-654");
+  const scoreColumns = tList("T-657");
+  const fieldLabels = tList("T-563");
+  const categoryLabels = tList("T-566");
+  const approvalLabels = tList("T-567");
+  const [encActividad, encRespondieron, encPromedio] = tList("T-1168");
+  const [occasions, scores, ranking, encuestas, editions] = await Promise.all([
+    termId
+      ? listOccasions({ q: "", termId, committeeId, page: 1, pageSize: 100 })
+      : Promise.resolve({ rows: [], total: 0 }),
+    termId ? listCommitteeScores(committeeId, termId) : Promise.resolve([]),
+    termId ? rankCommittees(termId) : Promise.resolve([]),
+    termId
+      ? surveySummaryForCommittee(termId, committeeId)
+      : Promise.resolve({ rows: [], answered: 0, average: null }),
+    canSeeEvents ? listEditionsByCommittee(committeeId) : Promise.resolve([]),
+  ]);
+  const mine = ranking.find((item) => item.row.committeeId === committeeId);
+
+  return (
+    <div className="flex flex-col gap-8">
+      {canOperate ? (
+        <div className="flex flex-col gap-3">
+          <p className="max-w-prose text-sm text-tinta-suave">{t("T-653")}</p>
           <div className="flex flex-wrap gap-3">
-            <Link href={`${base}?accion=nueva`} className="boton-primario">
+            <Link href={`${closeHref}&accion=nueva`} className="boton-primario">
               {nuevaOcasion}
             </Link>
-            <Link href={`${base}?accion=serie`} className="boton-secundario">
+            <Link href={`${closeHref}&accion=serie`} className="boton-secundario">
               {crearSerie}
             </Link>
           </div>
-        ) : null}
-      </header>
+        </div>
+      ) : null}
 
       <section aria-label={participacion} className="flex flex-col gap-3">
         <h2 className="text-display-md">{participacion}</h2>
@@ -131,7 +271,7 @@ export default async function ComiteLiderPage({
         {scores.length === 0 ? (
           <p className="text-tinta-suave">{t("T-606")}</p>
         ) : (
-          <AdminTableRegion label={roster.committee.name} className="overflow-x-auto">
+          <AdminTableRegion label={committeeName} className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left">
@@ -174,9 +314,13 @@ export default async function ComiteLiderPage({
                   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-borde bg-fondo px-4 py-2"
                 >
                   <span className="flex flex-col">
-                    <Link href={`/admin/ocasiones/${row.id}`} className="font-semibold">
-                      {row.title}
-                    </Link>
+                    {canOperate ? (
+                      <Link href={`/admin/ocasiones/${row.id}`} className="font-semibold">
+                        {row.title}
+                      </Link>
+                    ) : (
+                      <span className="font-semibold">{row.title}</span>
+                    )}
                     <span className="text-sm text-tinta-suave">
                       {occasionKindLabel(row)} · {formatDateTime(row.startsAt)} · {row.points} GH
                       Points
@@ -203,7 +347,7 @@ export default async function ComiteLiderPage({
               })}
             </p>
             <AdminTableRegion
-              label={roster.committee.name}
+              label={committeeName}
               className="overflow-x-auto rounded-[var(--radius-cartel)] border border-borde"
             >
               <table className="w-full text-left text-sm">
@@ -224,7 +368,11 @@ export default async function ComiteLiderPage({
                   {encuestas.rows.map((row) => (
                     <tr key={row.occasionId} className="border-t border-borde">
                       <td className="px-3 py-2 font-semibold">
-                        <Link href={`/admin/ocasiones/${row.occasionId}`}>{row.title}</Link>
+                        {canOperate ? (
+                          <Link href={`/admin/ocasiones/${row.occasionId}`}>{row.title}</Link>
+                        ) : (
+                          row.title
+                        )}
                         <span className="block text-xs text-tinta-suave">
                           {formatDate(row.startsAt)}
                         </span>
@@ -244,27 +392,31 @@ export default async function ComiteLiderPage({
         )}
       </section>
 
-      <section aria-label={rosterTitulo} className="flex flex-col gap-3">
-        <h2 className="text-display-md">{rosterTitulo}</h2>
-        {roster.members.length === 0 ? (
-          <p className="text-tinta-suave">{t("T-384")}</p>
-        ) : (
-          <ul className="grid list-none gap-2 p-0 sm:grid-cols-2 lg:grid-cols-3">
-            {roster.members.map((member) => (
-              <li
-                key={member.personId}
-                className="flex items-center justify-between gap-3 rounded-xl border border-borde bg-fondo px-4 py-2"
-              >
-                <span className="font-semibold">{member.fullName.trim()}</span>
-                <span className="text-sm text-tinta-suave">{member.roleLabel}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {canSeeEvents ? (
+        <section aria-label={t("T-2185")} className="flex flex-col gap-3">
+          <h2 className="text-display-md">{t("T-2185")}</h2>
+          {editions.length === 0 ? (
+            <p className="text-tinta-suave">{t("T-256")}</p>
+          ) : (
+            <ul className="flex list-none flex-col gap-2 p-0">
+              {editions.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-xl border border-borde bg-fondo px-4 py-2"
+                >
+                  <span className="font-semibold">
+                    {row.eventName} · {row.name}
+                  </span>
+                  <span className="text-sm text-tinta-suave">{formatDate(row.startsAt)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
       {canOperate && accion === "nueva" ? (
-        <ResourcePanel title={nuevaOcasion ?? ""} closeHref={base} closeLabel={t("T-291")}>
+        <ResourcePanel title={nuevaOcasion ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
           <form action={proposeOccasionAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="slug" value={slug} />
@@ -324,7 +476,7 @@ export default async function ComiteLiderPage({
                 <AdminSubmitButton type="submit" className="boton-primario">
                   {t("T-253")}
                 </AdminSubmitButton>
-                <Link href={base} className="boton-secundario">
+                <Link href={closeHref} className="boton-secundario">
                   {t("T-254")}
                 </Link>
               </div>
@@ -334,7 +486,7 @@ export default async function ComiteLiderPage({
       ) : null}
 
       {canOperate && accion === "serie" ? (
-        <ResourcePanel title={crearSerie ?? ""} closeHref={base} closeLabel={t("T-291")}>
+        <ResourcePanel title={crearSerie ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
           <form action={createSeriesAction} className="flex flex-col gap-4">
             <AdminFormBody>
               <input type="hidden" name="slug" value={slug} />
@@ -380,7 +532,7 @@ export default async function ComiteLiderPage({
                 <AdminSubmitButton type="submit" className="boton-primario">
                   {crearSerie}
                 </AdminSubmitButton>
-                <Link href={base} className="boton-secundario">
+                <Link href={closeHref} className="boton-secundario">
                   {t("T-254")}
                 </Link>
               </div>

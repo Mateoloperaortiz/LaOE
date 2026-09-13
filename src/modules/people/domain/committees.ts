@@ -223,6 +223,40 @@ export async function createCommittee(
   }
 }
 
+/** Lo que la dirección edita de la ficha (ADR-058): publicar y el logo siguen con ADMIN. */
+export const committeeProfileSchema = z.object({
+  presentation: z.string().trim().max(20_000).default(""),
+  contactUrl: z.union([z.literal(""), z.string().trim().url().max(500)]).default(""),
+});
+
+export type CommitteeProfileInput = z.infer<typeof committeeProfileSchema>;
+
+export async function updateCommitteeProfile(
+  ctx: CommandContext,
+  id: string,
+  input: CommitteeProfileInput,
+): Promise<void> {
+  const [before] = await ctx.tx
+    .select({ presentation: committee.presentation, contactUrl: committee.contactUrl })
+    .from(committee)
+    .where(eq(committee.id, id));
+  if (!before) {
+    throw new DomainError(t("T-032"));
+  }
+  const values = {
+    presentation: input.presentation || null,
+    contactUrl: input.contactUrl || null,
+  };
+  await ctx.tx.update(committee).set(values).where(eq(committee.id, id));
+  await ctx.audit({
+    action: "committee.profile-updated",
+    entityType: "committee",
+    entityId: id,
+    before,
+    after: values,
+  });
+}
+
 export async function updateCommittee(
   ctx: CommandContext,
   id: string,

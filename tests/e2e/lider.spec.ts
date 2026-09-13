@@ -61,6 +61,8 @@ test("el líder entra a su comité, crea la serie semanal y no ve el resto del a
   await expect(page.locator("main")).not.toContainText("@eafit.edu.co");
   await sinViolaciones(page);
 
+  // Las ocasiones viven en el área Actividades de la vista por áreas (ADR-058).
+  await page.getByRole("link", { name: "Actividades" }).click();
   await page.getByRole("link", { name: "Crear serie semanal" }).click();
   const panel = page.getByRole("dialog");
   await panel.getByLabel("Título").fill("e2e-Reunión semanal");

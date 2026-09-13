@@ -11,6 +11,7 @@ import {
   setMemberRoles,
 } from "./committee-direction";
 import { type CommitteeMembershipInput, setCommitteeMemberships } from "./committee-memberships";
+import { type CommitteeProfileInput, updateCommitteeProfile } from "./committees";
 import { type ConsentPurpose, type ConsentSource, recordConsent, revokeConsent } from "./consents";
 import {
   anonymizePerson,
@@ -173,6 +174,14 @@ export function setMemberRolesAs(
   input: RosterChangeInput,
 ): Promise<{ changed: boolean }> {
   return runCommand(actor, (ctx) => setMemberRoles(ctx, scope, who, input));
+}
+
+export function updateCommitteeProfileAs(
+  actor: Actor,
+  committeeId: string,
+  input: CommitteeProfileInput,
+): Promise<void> {
+  return runCommand(actor, (ctx) => updateCommitteeProfile(ctx, committeeId, input));
 }
 
 export function requestCommitteeRemovalAs(

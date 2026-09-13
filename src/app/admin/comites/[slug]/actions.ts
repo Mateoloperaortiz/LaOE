@@ -4,11 +4,25 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { committeeAnnouncementSchema, createCommitteeAnnouncementAs } from "@/modules/content";
 import {
   createOccasionAs,
   createOccasionSeriesAs,
   occasionInputSchema,
 } from "@/modules/participation";
+import {
+  addCommitteeMemberAs,
+  type CommitteeRoleRow,
+  committeeProfileSchema,
+  getPeopleByIds,
+  listCommitteeRoles,
+  type RoleView,
+  removalRequestSchema,
+  requestCommitteeRemovalAs,
+  rosterChangeSchema,
+  setMemberRolesAs,
+  updateCommitteeProfileAs,
+} from "@/modules/people";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
@@ -36,9 +50,14 @@ function back(slug: string, extra: Record<string, string> = {}): string {
   return `/admin/comites/${slug}${query ? `?${query}` : ""}`;
 }
 
+const actividades = { area: "actividades" };
+
 export async function proposeOccasionAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const { actor, committee } = await leaderOf(slug, back(slug, { accion: "nueva" }));
+  const { actor, committee } = await leaderOf(
+    slug,
+    back(slug, { ...actividades, accion: "nueva" }),
+  );
   const parsed = occasionInputSchema.safeParse({
     title: text(formData, "title"),
     kind: "ACTIVITY",
@@ -52,18 +71,24 @@ export async function proposeOccasionAction(formData: FormData): Promise<void> {
     committeeId: committee.id,
   });
   if (!parsed.success) {
-    redirect(back(slug, { accion: "nueva", error: parsed.error.issues[0]?.message ?? t("T-260") }));
+    redirect(
+      back(slug, {
+        ...actividades,
+        accion: "nueva",
+        error: parsed.error.issues[0]?.message ?? t("T-260"),
+      }),
+    );
   }
   try {
     await createOccasionAs({ personId: actor.personId, ip: await clientIp() }, parsed.data);
   } catch (error) {
     if (error instanceof DomainError) {
-      redirect(back(slug, { accion: "nueva", error: error.message }));
+      redirect(back(slug, { ...actividades, accion: "nueva", error: error.message }));
     }
     throw error;
   }
   revalidatePath(back(slug));
-  redirect(back(slug, { guardado: "1" }));
+  redirect(back(slug, { ...actividades, guardado: "1" }));
 }
 
 const seriesSchema = z.object({
@@ -76,7 +101,10 @@ const seriesSchema = z.object({
 
 export async function createSeriesAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const { actor, committee } = await leaderOf(slug, back(slug, { accion: "serie" }));
+  const { actor, committee } = await leaderOf(
+    slug,
+    back(slug, { ...actividades, accion: "serie" }),
+  );
   const parsed = seriesSchema.safeParse({
     title: text(formData, "title"),
     firstDate: text(formData, "firstDate"),
@@ -86,7 +114,7 @@ export async function createSeriesAction(formData: FormData): Promise<void> {
   });
   const local = parsed.success ? `${parsed.data.firstDate}T${parsed.data.time}` : "";
   if (!parsed.success || !LOCAL_INPUT.test(local)) {
-    redirect(back(slug, { accion: "serie", error: t("T-260") }));
+    redirect(back(slug, { ...actividades, accion: "serie", error: t("T-260") }));
   }
   try {
     const result = await createOccasionSeriesAs(
@@ -102,14 +130,215 @@ export async function createSeriesAction(formData: FormData): Promise<void> {
     revalidatePath(back(slug));
     redirect(
       back(slug, {
+        ...actividades,
         serie: String(result.created),
         hasta: result.lastStartsAt ? result.lastStartsAt.toISOString() : "",
       }),
     );
   } catch (error) {
     if (error instanceof DomainError) {
-      redirect(back(slug, { accion: "serie", error: error.message }));
+      redirect(back(slug, { ...actividades, accion: "serie", error: error.message }));
     }
     throw error;
   }
+}
+
+// Área Personas (ADR-058, decisión 4): agregar, cargos y pedido de retiro, con la capacidad ROSTER; las
+// guardas finas viven en `people`. Las casillas se llaman `role-CODIGO` y `co-CODIGO`; un cargo de
+// dirección que el actor no puede tocar (sin DIRECTION) se conserva como está.
+
+const personas = { area: "personas" };
+
+function rolesFromForm(
+  formData: FormData,
+  catalog: CommitteeRoleRow[],
+  keep: RoleView[],
+  canDirect: boolean,
+): Array<{ roleCode: string; coDirector: boolean }> {
+  const roles: Array<{ roleCode: string; coDirector: boolean }> = [];
+  for (const role of catalog) {
+    if (role.code === "MIEMBRO") {
+      continue;
+    }
+    if (role.isLeadership && !canDirect) {
+      const current = keep.find((item) => item.roleCode === role.code);
+      if (current) {
+        roles.push({ roleCode: role.code, coDirector: current.coDirector });
+      }
+      continue;
+    }
+    if (formData.get(`role-${role.code}`) === "on") {
+      roles.push({ roleCode: role.code, coDirector: formData.get(`co-${role.code}`) === "on" });
+    }
+  }
+  return roles;
+}
+
+export async function addMemberAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const q = text(formData, "q");
+  const panel = { ...personas, accion: "agregar", ...(q ? { q } : {}) };
+  const access = await requireCommitteeCapability(slug, "ROSTER", back(slug, panel));
+  const term = access.roster.term;
+  if (!term) {
+    redirect(back(slug, { ...personas, error: t("T-2140") }));
+  }
+  const catalog = await listCommitteeRoles();
+  const parsed = rosterChangeSchema.safeParse({
+    personId: text(formData, "personId"),
+    roles: rolesFromForm(formData, catalog, [], access.capabilities.has("DIRECTION")),
+  });
+  if (!parsed.success) {
+    redirect(back(slug, { ...panel, error: t("T-260") }));
+  }
+  try {
+    await addCommitteeMemberAs(
+      { personId: access.actor.personId, ip: await clientIp() },
+      { committeeId: access.roster.committee.id, termId: term.id },
+      access.context,
+      parsed.data,
+    );
+  } catch (error) {
+    if (error instanceof DomainError) {
+      redirect(back(slug, { ...panel, error: error.message }));
+    }
+    throw error;
+  }
+  const people = await getPeopleByIds([parsed.data.personId]);
+  revalidatePath(back(slug));
+  redirect(
+    back(slug, {
+      ...personas,
+      agregado: people.get(parsed.data.personId)?.fullName?.trim() ?? "",
+    }),
+  );
+}
+
+export async function setRolesAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const personId = text(formData, "personId");
+  const panel = { ...personas, accion: "cargos", persona: personId };
+  const access = await requireCommitteeCapability(slug, "ROSTER", back(slug, panel));
+  const term = access.roster.term;
+  if (!term) {
+    redirect(back(slug, { ...personas, error: t("T-2140") }));
+  }
+  const member = access.roster.members.find((item) => item.personId === personId);
+  const catalog = await listCommitteeRoles();
+  const parsed = rosterChangeSchema.safeParse({
+    personId,
+    roles: rolesFromForm(
+      formData,
+      catalog,
+      member?.roles ?? [],
+      access.capabilities.has("DIRECTION"),
+    ),
+  });
+  if (!parsed.success) {
+    redirect(back(slug, { ...panel, error: t("T-260") }));
+  }
+  try {
+    await setMemberRolesAs(
+      { personId: access.actor.personId, ip: await clientIp() },
+      { committeeId: access.roster.committee.id, termId: term.id },
+      access.context,
+      parsed.data,
+    );
+  } catch (error) {
+    if (error instanceof DomainError) {
+      redirect(back(slug, { ...panel, error: error.message }));
+    }
+    throw error;
+  }
+  revalidatePath(back(slug));
+  redirect(back(slug, { ...personas, guardado: "1" }));
+}
+
+export async function requestRemovalAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const personId = text(formData, "personId");
+  const panel = { ...personas, accion: "retiro", persona: personId };
+  const access = await requireCommitteeCapability(slug, "ROSTER", back(slug, panel));
+  const term = access.roster.term;
+  if (!term) {
+    redirect(back(slug, { ...personas, error: t("T-2140") }));
+  }
+  const parsed = removalRequestSchema.safeParse({ personId, reason: text(formData, "reason") });
+  if (!parsed.success) {
+    redirect(back(slug, { ...panel, error: t("T-260") }));
+  }
+  try {
+    await requestCommitteeRemovalAs(
+      { personId: access.actor.personId, ip: await clientIp() },
+      { committeeId: access.roster.committee.id, termId: term.id },
+      access.context,
+      parsed.data,
+    );
+  } catch (error) {
+    if (error instanceof DomainError) {
+      redirect(back(slug, { ...panel, error: error.message }));
+    }
+    throw error;
+  }
+  revalidatePath(back(slug));
+  redirect(back(slug, { ...personas, pedido: "1" }));
+}
+
+// Área Comunicación (ADR-058, decisión 5): cartelera interna con BOARD y ficha con PROFILE.
+
+const comunicacion = { area: "comunicacion" };
+
+export async function createCommitteeAnnouncementAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const panel = { ...comunicacion, accion: "anuncio" };
+  const access = await requireCommitteeCapability(slug, "BOARD", back(slug, panel));
+  const parsed = committeeAnnouncementSchema.safeParse({
+    title: text(formData, "title"),
+    body: typeof formData.get("body") === "string" ? formData.get("body") : "",
+    push: formData.get("push") === "on",
+  });
+  if (!parsed.success) {
+    redirect(back(slug, { ...panel, error: t("T-260") }));
+  }
+  try {
+    await createCommitteeAnnouncementAs(
+      { personId: access.actor.personId, ip: await clientIp() },
+      access.roster.committee.id,
+      parsed.data,
+    );
+  } catch (error) {
+    if (error instanceof DomainError) {
+      redirect(back(slug, { ...panel, error: error.message }));
+    }
+    throw error;
+  }
+  revalidatePath(back(slug));
+  redirect(back(slug, { ...comunicacion, guardado: "1" }));
+}
+
+export async function updateProfileAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const access = await requireCommitteeCapability(slug, "PROFILE", back(slug, comunicacion));
+  const parsed = committeeProfileSchema.safeParse({
+    presentation:
+      typeof formData.get("presentation") === "string" ? formData.get("presentation") : "",
+    contactUrl: text(formData, "contactUrl"),
+  });
+  if (!parsed.success) {
+    redirect(back(slug, { ...comunicacion, error: t("T-260") }));
+  }
+  try {
+    await updateCommitteeProfileAs(
+      { personId: access.actor.personId, ip: await clientIp() },
+      access.roster.committee.id,
+      parsed.data,
+    );
+  } catch (error) {
+    if (error instanceof DomainError) {
+      redirect(back(slug, { ...comunicacion, error: error.message }));
+    }
+    throw error;
+  }
+  revalidatePath(back(slug));
+  redirect(back(slug, { ...comunicacion, guardado: "1" }));
 }

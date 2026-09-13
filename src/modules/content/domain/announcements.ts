@@ -2,7 +2,7 @@ import { and, count, desc, eq, ilike, inArray, isNotNull, isNull, lte } from "dr
 import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import type { CommandContext } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { announcement } from "../schema";
@@ -198,6 +198,41 @@ export async function publishAndPushAnnouncement(
 ): Promise<void> {
   await publishAnnouncement(ctx, id, now);
   await requestAnnouncementPush(ctx, id, now);
+}
+
+/** Un anuncio de la cartelera interna de un comité, publicado por su dirección (ADR-058). */
+export const committeeAnnouncementSchema = z.object({
+  title: z.string().trim().min(2).max(140),
+  body: z.string().max(20_000).default(""),
+  push: z.boolean().default(false),
+});
+
+export type CommitteeAnnouncementInput = z.infer<typeof committeeAnnouncementSchema>;
+
+/**
+ * Crea y publica de una vez un anuncio de la cartelera interna del comité (solo miembros); con `push`
+ * pide el aviso a comms como hace ADMIN desde /admin/cartelera.
+ */
+export function createCommitteeAnnouncementAs(
+  actor: Actor,
+  committeeId: string,
+  input: CommitteeAnnouncementInput,
+): Promise<{ id: string }> {
+  return runCommand(actor, async (ctx) => {
+    const created = await createAnnouncement(ctx, {
+      title: input.title,
+      body: input.body,
+      audience: "MEMBERS",
+      pinned: false,
+      committeeId,
+    });
+    if (input.push) {
+      await publishAndPushAnnouncement(ctx, created.id);
+    } else {
+      await publishAnnouncement(ctx, created.id);
+    }
+    return created;
+  });
 }
 
 /** Lo llama comms al terminar de entregar el push: fecha y cuántas personas lo recibieron. */

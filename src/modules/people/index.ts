@@ -42,6 +42,7 @@ export {
   setOwnPhotoAs,
   setPersonTagsAs,
   setProbationAs,
+  updateCommitteeProfileAs,
   updateOwnContactAs,
   updatePersonAs,
 } from "./domain/commands";
@@ -72,7 +73,9 @@ export {
   type TermCommittees,
 } from "./domain/committee-memberships";
 export {
+  type CommitteeProfileInput,
   type CommitteeRef,
+  committeeProfileSchema,
   createCommittee,
   getCommittee,
   getPublishedCommittee,
