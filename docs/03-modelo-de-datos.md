@@ -2,6 +2,8 @@
 
 PostgreSQL en Railway, Drizzle con el esquema de cada módulo en `src/modules/<módulo>/schema.ts` ([ADR-032](adr/ADR-032-drizzle-y-esquema-por-modulo.md)). En SQL las tablas y columnas van en `snake_case` (`point_entry.check_in_id`) y en el código en `camelCase`; esta página usa los nombres del código. Convenciones: ids `cuid2`; identificadores públicos `nanoid` solo donde se exponen en URL o QR; timestamps `timestamptz` en UTC; fechas de término como `date`; JSON parseado con Zod en la frontera de lectura; sin borrado físico de personas (anonimización).
 
+La correspondencia de este modelo con los Estatutos y el Reglamento Interno 2026, con lo que coincide, lo que decide distinto y lo que no modela, está en [18-revision-normativa-2026.md](18-revision-normativa-2026.md).
+
 ## Diagrama
 
 ```mermaid

@@ -65,6 +65,7 @@ Wallet se habilita por plataforma con las variables de `.env.example`; sin confi
 | [13-importacion-del-roster.md](docs/13-importacion-del-roster.md) | Formato del archivo del roster, validaciones y qué hace la importación |
 | [14-copy-y-textos.md](docs/14-copy-y-textos.md) | Todos los textos de la app con propuesta, dueño y estado, para que GH, comunicaciones y los comités pongan los suyos |
 | [15-runbook.md](docs/15-runbook.md) | Despliegue, bootstrap, respaldo, restauración, dominio y retiro con evidencia |
+| [18-revision-normativa-2026.md](docs/18-revision-normativa-2026.md) | Contraste del modelo con los Estatutos y el Reglamento Interno 2026: coincidencias, conflictos, vacíos y preguntas para la junta |
 | [decisiones-abiertas.md](docs/decisiones-abiertas.md) | Preguntas sin cerrar |
 | [glosario.md](docs/glosario.md) | Términos de la interfaz y del código |
 

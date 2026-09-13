@@ -322,6 +322,23 @@ Listo cuando (software): formatos, autorización, concurrencia, reintentos, life
 
 Implementación local verificada con la suite completa. Este tramo conserva identidad, reglas y permisos OE; no incluye migraciones, dependencias visuales ni despliegue.
 
+## Normativa 2026 (ADR-060) · `en curso`
+
+Alineación con los Estatutos y el Reglamento Interno 2026 según la [revisión del 2026-09-13](18-revision-normativa-2026.md); reglas en [ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md). Cada tramo lleva migración aditiva, dominio, interfaz, copy, pruebas y `npm run check` en verde, con un commit por tramo en `feat/normativa-2026`.
+
+- [x] N26-T0 · ADR-060, decisiones 5 a 9 cerradas, sección del roadmap e índices
+- [ ] N26-T1 · Permanencia según los Estatutos: márgenes por condición, prueba por comité, expulsión como causal y guarda de reingreso
+- [ ] N26-T2 · Catálogo de cargos 2026: Publicidad retirado de los comités, roster traduce a Mercadeo, Logística con roster y etiqueta de la vicepresidencia
+- [ ] N26-T3 · Excusas válidas: solicitud, decisión de GH o del director, check-in excusado y efectos en obligatorias y reuniones
+- [ ] N26-T4 · Faltas y sanciones: registro, vigencia, suspensión de beneficios, inhabilidad y expulsión propuesta en el cierre
+- [ ] N26-T5 · Representantes ante la Asamblea Directiva y asistencia por comité con su escalera de consecuencias
+- [ ] N26-T6 · Ciclo de vida del comité: en prueba, alertas de viabilidad y mesa reportada como activa
+- [ ] N26-T7 · Mesas directivas de macroeventos por edición
+- [ ] N26-T8 · Licencias con vencimiento, tarea a GH, condición al volver y capacidades de cargo en licencia
+- [ ] N26-T9 · Inhabilidades y topes: cargos directivos, mesa y junta, candidatos activos y comités de trabajo
+- [ ] N26-T10 · Finanzas: módulo `finance` de ADR-059 con presupuesto ordinario y extraordinario, aprobación, presolicitud y aval de evento
+- [ ] N26-T11 · Menores: verificación académica, elegibilidad a honorario, inducción obligatoria, elección por ocasión, horario preferencial, Premios OE, citación con tres días hábiles y cargo de junta por año
+
 ## Backlog (después de la v1)
 
 - Votación electrónica de la junta con segunda vuelta: cuando la asistencia funcione sin fallas y con las reglas de los estatutos (voto secreto, quórum)
@@ -338,6 +355,19 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 - WhatsApp Business API
 - Servicio `worker` separado, solo con uso medido
 - SES cuando exista cuenta y el volumen justifique activar el desbordamiento; Cloudflare conserva el proxy existente
+- Alineación con la normativa 2026 ([18-revision-normativa-2026.md](18-revision-normativa-2026.md)), decidida el 2026-09-13 y en curso como tramos N26 de [ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md); se conserva la lista como referencia de origen:
+  - V4 · Representante y suplente de cada comité ante la Asamblea Directiva, con panel de comités representados y contador de faltas del semestre (Regl. art. 14, 17 y 64)
+  - V5 · Ciclo de vida del comité: estado en prueba con fechas y alertas de viabilidad (miembros, direcciones, eventos, asambleas) y condición "nuevo" anulable para la mesa de un comité nuevo (Regl. art. 25 y 26; Est. art. 5 par. 1)
+  - V6 · Mesas directivas de macroeventos como cargos por edición (Est. art. 49 y 52 a 56; Regl. art. 40 a 46)
+  - V7 · Vencimiento de la licencia a un año, tarea a GH al vencer, condición previa al volver y capacidades de un cargo de mesa en licencia (Est. art. 5.4, 5 par. 2 y 11.3; Regl. art. 27 par. 6)
+  - V8 · Guardas de inhabilidades: dos cargos directivos como máximo, mesa y junta excluyentes, candidatos activos, dos comités de trabajo (Regl. art. 11 y 27; Est. art. 4 par. 3)
+  - V9 · Enmienda a [ADR-059](adr/ADR-059-presupuesto-del-comite.md) antes de su tramo: presupuesto ordinario y extraordinario, aprobación, presolicitud y aval de evento (Regl. art. 35, 50 y 66; Est. art. 38)
+  - V10 · Marca de verificación académica por término, sin guardar promedio ni materias (Est. art. 6 y 7)
+  - V11 · Elegibilidad a honorario derivada del historial (Regl. art. 23 y 24)
+  - V12 · Inducción como categoría de ocasión obligatoria para nuevos (Regl. art. 47)
+  - V13 · Elección de junta obligatoria por existencia de la ocasión y no por semestre (Regl. art. 60 y 63; Est. art. 7.9)
+  - V14 · Export de horario preferencial, catálogo de Premios OE y aviso al citar una asamblea con menos de tres días hábiles (Regl. art. 15, 71 y 72)
+  - V15 · Cargo de junta por año calendario: "completo" derivado de dos términos consecutivos (Est. art. 21 y 22.11)
 
 ## Auditoría de la suite · 2026-09-11
 
@@ -366,6 +396,8 @@ Implementación local verificada con la suite completa. Este tramo conserva iden
 
 | Fecha | Fase | Qué cambió |
 | --- | --- | --- |
+| 2026-09-13 | Normativa 2026 · N26-T0 | [ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) aceptada: Mateo decidió modelar toda la normativa y seguir los Estatutos donde la práctica de GH difería (banda de prueba 20/0/0/0, prueba por comité, catálogo de cargos 2026, "Comunicaciones y Mercadeo", excusas y sanciones completas). Decisiones 5 a 9 cerradas, doce tramos N26-T0 a T11 en esta sección, índices de ADR y de decisiones actualizados. Rama `feat/normativa-2026`. |
+| 2026-09-13 | Normativa · revisión del modelo | Revisión completa del modelo frente a los Estatutos y el Reglamento Interno 2026 ([18-revision-normativa-2026.md](18-revision-normativa-2026.md)): la normativa cargada es la misma versión de los PDF (2026-05-08). Coincide el núcleo (categorías, umbrales 60/80/70, tres comités, asambleas obligatorias, honorarios, junta, comités de trabajo, cargos obligatorios, codirección, solicitudes). Ocho conflictos, cuatro en el cierre de permanencia: banda de prueba de 20 puntos para activos según Est. art. 7.5 frente a los 10 de la app; nuevos, en prueba y transferencias sin banda según Est. art. 8.3, 11.4 y 11.5; prueba por comité según Est. art. 5 par. 2; más el catálogo de cargos tras el renombre de 2026, el nombre de la vicepresidencia, el momento de la expulsión y el reparto de capacidades. Quince vacíos: excusas, faltas y sanciones, expulsión como causal con veto de reingreso, representantes ante asamblea, ciclo de vida del comité, mesas de macroevento, vencimiento de licencias, inhabilidades, reglas financieras y seis menores. Cinco decisiones abiertas nuevas (5 a 9), tres preguntas de contenido a GH, backlog "Alineación con la normativa 2026", nota en ADR-059 y fe de erratas de los PDF para la junta. Solo documentación: sin código, sin migraciones y sin ADR nueva hasta que GH y la junta respondan. |
 | 2026-09-11 | CI/CD · observación de watch paths | Falsa alarma corregida: el merge de docs `0ec836d` figuró `BUILDING` unos 30 segundos y terminó `SKIPPED`; Railway evalúa los watch paths después de crear el deployment. Los tres merges documentales del día (`ef91d4c`, `0ec836d`, `1120d4c`) quedaron sin despliegue y con CI documental en menos de medio minuto. |
 | 2026-09-11 | CI/CD · cierre de la quinta partición | PR 11 mezclado en `main` (`6878340`): CI completo en 5:25 en el PR y 5:33 en `main`, con 29,1 a 30,1 minutos de runner; staging y smoke en verde; promovido a `production` en modo `promotion` (`SUCCESS` en 2:26 desde el push, smoke aprobado). Cierra la serie del día: de una mediana de 10:48 a 5:25 y 5:33, y la promoción de unos 12 minutos a menos de 3. |
 | 2026-09-11 | CI/CD · quinta partición E2E | Ajuste previsto por ADR-055: `E2E_SHARDS` a 5 y matriz de cinco runners; reparto por archivo, gate y autenticación por runner sin cambios. Validación local y remota pendientes del PR. |
