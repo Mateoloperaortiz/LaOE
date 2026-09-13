@@ -26,7 +26,7 @@ import {
 import { createTag, listPersonTags, setPersonTags } from "@/modules/people/domain/tags";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { truncateAll } from "./db";
-import { seedCommittee, seedMember, seedTerm } from "./factories";
+import { leaveUntilSoon, seedCommittee, seedMember, seedTerm } from "./factories";
 
 const db = () => getDb();
 
@@ -38,7 +38,11 @@ describe("línea de tiempo por outbox", () => {
     const adminId = await seedMember("admin@eafit.edu.co", { firstName: "Ada", lastName: "Admin" });
     const personId = await seedMember("miembro@eafit.edu.co");
     await runCommand({ personId: adminId }, (ctx) =>
-      changeMembershipStatus(ctx, personId, { to: "ON_LEAVE", reason: "Intercambio" }),
+      changeMembershipStatus(ctx, personId, {
+        to: "ON_LEAVE",
+        reason: "Intercambio",
+        leaveUntil: leaveUntilSoon(),
+      }),
     );
     await drain(20);
     await drain(20);

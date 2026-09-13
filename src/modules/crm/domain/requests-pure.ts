@@ -14,7 +14,8 @@ const email = z.string().trim().toLowerCase().pipe(z.email()).pipe(z.string().ma
 
 export const leavePayloadSchema = z.object({
   reason,
-  until: z.iso.date().optional(),
+  /** Regreso previsto, obligatorio: desde mañana y hasta un año (Est. art. 5.4; ADR-060 regla 10). */
+  until: z.iso.date(),
 });
 
 export const resignationPayloadSchema = z.object({

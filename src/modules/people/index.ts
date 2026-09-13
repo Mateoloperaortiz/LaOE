@@ -117,13 +117,16 @@ export {
   listInternalRoster,
   type RosterMember,
 } from "./domain/directory";
+export { leaveUntilError, leaveWindow } from "./domain/leave-pure";
 export {
   type ChangeStatusInput,
   changeMembershipStatus,
   changeStatusSchema,
   type EndMembershipInput,
+  type ExpiredLeave,
   endMembership,
   endMembershipSchema,
+  listExpiredLeaves,
   type MembershipEventView,
   reactivateSchema,
 } from "./domain/membership";

@@ -11,10 +11,11 @@ import {
   requirePrivacyPolicyVersion,
   updateImportJob,
 } from "@/modules/system";
-import { conventionalTermDates, createTerm, listAllTerms } from "@/modules/terms";
+import { conventionalTermDates, createTerm, getTerm, listAllTerms } from "@/modules/terms";
 import { getObject, putObject } from "@/shared/adapters/storage";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { todayKey } from "@/shared/lib/dates";
 import {
   committee,
   committeeMembership,
@@ -26,6 +27,7 @@ import {
 } from "../schema";
 import { listCommitteeRoles, setCommitteeMemberships } from "./committee-memberships";
 import { listAllCommittees } from "./committees";
+import { leaveWindow } from "./leave-pure";
 import { changeMembershipStatus, endMembership, reactivateMembership } from "./membership";
 import { createCommitteeRole } from "./roles";
 import { ROSTER_MAX_BYTES, readRosterCells, rosterFormat } from "./roster-file";
@@ -492,6 +494,25 @@ async function ensureRoles(ctx: CommandContext, rows: PreviewRow[]): Promise<str
   return created;
 }
 
+/**
+ * El roster no trae regreso previsto: una licencia importada vence al fin del término importado,
+ * dentro de la ventana de un año desde hoy (Est. art. 5.4; ADR-060 regla 10).
+ */
+async function rosterLeaveUntil(
+  ctx: CommandContext,
+  status: RosterStatus,
+  termId: string,
+): Promise<{ leaveUntil?: string }> {
+  if (status !== "ON_LEAVE") {
+    return {};
+  }
+  const [rosterTerm, window] = [await getTerm(termId, ctx.tx), leaveWindow(todayKey())];
+  const endsOn = rosterTerm?.endsOn ?? window.min;
+  return {
+    leaveUntil: endsOn < window.min ? window.min : endsOn > window.max ? window.max : endsOn,
+  };
+}
+
 async function applyRow(
   ctx: CommandContext,
   row: PreviewRow,
@@ -595,11 +616,19 @@ async function applyRow(
         if (current.endReason !== "EXPULSION") {
           await reactivateMembership(ctx, personId, { reason });
           if (status !== "ACTIVE") {
-            await changeMembershipStatus(ctx, personId, { to: status, reason });
+            await changeMembershipStatus(ctx, personId, {
+              to: status,
+              reason,
+              ...(await rosterLeaveUntil(ctx, status, termId)),
+            });
           }
         }
       } else {
-        await changeMembershipStatus(ctx, personId, { to: status, reason });
+        await changeMembershipStatus(ctx, personId, {
+          to: status,
+          reason,
+          ...(await rosterLeaveUntil(ctx, status, termId)),
+        });
       }
     }
   }

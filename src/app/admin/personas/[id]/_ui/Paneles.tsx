@@ -267,6 +267,9 @@ export function Paneles({
                 ))}
               </select>
             </Campo>
+            <Campo id="campo-leaveUntil" label={t("T-2278")} help={t("T-2279")}>
+              <input id="campo-leaveUntil" name="leaveUntil" type="date" className={inputClass} />
+            </Campo>
             <Campo id="campo-reason" label={t("T-434")}>
               <textarea id="campo-reason" name="reason" required rows={3} className={inputClass} />
             </Campo>

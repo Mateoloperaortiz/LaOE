@@ -101,11 +101,18 @@ describe("capacidades por cargo", () => {
     expect(generalA3?.isGeneral).toBe(true);
     expect(await listMyCommitteeCapabilities(f.member, f.termId)).toEqual([]);
 
-    // En licencia no se opera: las capacidades desaparecen sin tocar los cargos.
+    // En licencia se conservan las capacidades del cargo de mesa sobre su comité (Regl. art. 27
+    // par. 6; ADR-060 regla 10); una membresía terminada no opera.
     const onLeave = await seedPerson("licencia@eafit.edu.co");
     await seedMembership(onLeave, f.termId, "ON_LEAVE");
     await seedCommitteeMembership(onLeave, f.pixel, f.termId, "GENERAL");
-    expect(await listMyCommitteeCapabilities(onLeave, f.termId)).toEqual([]);
+    expect((await listMyCommitteeCapabilities(onLeave, f.termId))[0]).toMatchObject({
+      isGeneral: true,
+    });
+    const inactive = await seedPerson("baja@eafit.edu.co");
+    await seedMembership(inactive, f.termId, "INACTIVE");
+    await seedCommitteeMembership(inactive, f.pixel, f.termId, "FINANCIERO");
+    expect(await listMyCommitteeCapabilities(inactive, f.termId)).toEqual([]);
   });
 
   it("avisa qué comités con gente quedaron sin un cargo obligatorio", async () => {

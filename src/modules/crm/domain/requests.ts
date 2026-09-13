@@ -15,6 +15,8 @@ import {
   getMyMembership,
   getPeopleByIds,
   getPersonRecord,
+  leaveUntilError,
+  leaveWindow,
   listCommitteesByIds,
   setCommitteeMemberships,
 } from "@/modules/people";
@@ -22,12 +24,13 @@ import { requireConfig, requirePrivacyPolicyVersion } from "@/modules/system";
 import { ensureNextTerm, getCurrentTerm, type TermRow } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
-import { addBusinessDays, formatDate } from "@/shared/lib/dates";
+import { addBusinessDays, formatDate, todayKey } from "@/shared/lib/dates";
 import { request, task } from "../schema";
 import {
   EXCUSE_BUSINESS_DAYS,
   EXCUSE_CAUSES,
   type ExcusePayload,
+  type LeavePayload,
   REQUEST_KINDS,
   REQUEST_PAYLOAD_SCHEMAS,
   REQUEST_STATUSES,
@@ -219,6 +222,17 @@ export async function createRequestAs(
     throw new DomainError(t(code as "T-880"), String(issue?.path[0] ?? ""));
   }
   const payload = parsed.data;
+  // Licencia (ADR-060 regla 10): el regreso va desde mañana y hasta un año (Est. art. 5.4).
+  if (kind === "LEAVE") {
+    const today = todayKey();
+    const error = leaveUntilError((payload as LeavePayload).until, today);
+    if (error) {
+      throw new DomainError(
+        t(error, { fecha: formatDate(new Date(`${leaveWindow(today).max}T12:00:00Z`)) }),
+        "until",
+      );
+    }
+  }
   if (kind === "TRANSFER") {
     const mine = await getMyMembership(actor.personId);
     const change = resultingCommittees(
@@ -471,7 +485,11 @@ async function apply(
   }
   if (row.kind === "LEAVE") {
     const payload = REQUEST_PAYLOAD_SCHEMAS.LEAVE.parse(row.payload);
-    await changeMembershipStatus(ctx, row.personId, { to: "ON_LEAVE", reason: payload.reason });
+    await changeMembershipStatus(ctx, row.personId, {
+      to: "ON_LEAVE",
+      reason: payload.reason,
+      leaveUntil: payload.until,
+    });
     return null;
   }
   if (row.kind === "RESIGNATION") {

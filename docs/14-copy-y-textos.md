@@ -405,7 +405,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-878 | Solicitud: botón para retirar una pendiente | Retirar solicitud | MATEO | Propuesta |
 | T-879 | Solicitud retirada | Retiraste tu solicitud. | MATEO | Propuesta |
 | T-880 | Solicitud: campo del motivo | Contanos por qué | GH | Propuesta |
-| T-881 | Licencia: campo hasta cuándo (opcional) | Hasta cuándo (opcional) | GH | Propuesta |
+| T-881 | Licencia: campo hasta cuándo (obligatorio desde ADR-060 regla 10) | Hasta cuándo volvés | GH | Propuesta |
 | T-882 | Licencia: explicación | Mientras estés en licencia podés consultar Mi OE y actualizar tus datos personales. No podés participar en actividades ni se te evalúa la permanencia. Para volver, escribile a GH. | GH | Propuesta |
 | T-883 | Cambio de comité: explicación | El cambio aplica desde el próximo semestre y cuenta como transferencia: ese semestre tenés que cumplir el 70 % en el comité nuevo. | GH | Propuesta |
 | T-884 | Cambio de comité: comités que dejás | Comités que dejás | GH | Propuesta |
@@ -648,7 +648,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-458 | Línea de tiempo: textos de las interacciones automáticas | Importado desde el roster {término} · Estado cambió de {de} a {a}: {motivo} · Dado de baja: {motivo} · Reactivado · Comités de {término}: {comités} · Cargo {cargo} desde {término} · Cargo {cargo} retirado · Consentimiento de {propósito} autorizado · Consentimiento de {propósito} retirado · Datos actualizados: {campos} · Correo institucional cambiado · Pidió la eliminación de sus datos · Descargó sus datos · Datos anonimizados · Permiso {permiso} otorgado · Permiso {permiso} revocado | MATEO | Propuesta |
 | T-459 | Tareas: campos y columnas | Título · Responsable · Vence · Estado · Persona · Tipo | MATEO | Propuesta |
 | T-460 | Tareas: opciones de estado | Abierta · Hecha | MATEO | Propuesta |
-| T-461 | Tareas: tipos | General · Solicitud de eliminación · Solicitud de miembro · Retiro de comité | MATEO | Propuesta |
+| T-461 | Tareas: tipos | General · Solicitud de eliminación · Solicitud de miembro · Retiro de comité · Licencia vencida | MATEO | Propuesta |
 | T-462 | Tareas: acción de cerrar | Marcar hecha | MATEO | Propuesta |
 | T-463 | Tareas: filtro por responsable | Mías · Sin asignar · Todas | MATEO | Propuesta |
 | T-464 | Tarea de eliminación: título | Eliminación de datos pedida por {nombre} | MATEO | Propuesta |
@@ -1508,7 +1508,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-1593 | Solicitudes: datos del formulario | Datos de la solicitud | MATEO | Propuesta |
 | T-1594 | Solicitudes: retiro pendiente | Retirando solicitud… | MATEO | Propuesta |
 | T-1595 | Solicitudes: fallo al retirar | No pudimos confirmar el retiro. Intentá de nuevo. | MATEO | Propuesta |
-| T-1596 | Solicitudes: fecha opcional, ayuda | Si todavía no sabés la fecha, dejá este campo vacío. | MATEO | Propuesta |
+| T-1596 | Solicitudes: fecha de regreso, ayuda | La licencia dura máximo un año (Estatutos, art. 5.4). Al volver retomás la condición que tenías. | MATEO | Propuesta |
 | T-1597 | Solicitudes: recuento de historial | Solicitudes: {n} | MATEO | Propuesta |
 | T-1598 | Solicitudes: ver seguimiento | Ver mis solicitudes | MATEO | Propuesta |
 
@@ -1825,3 +1825,10 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2271 | Mesa directiva: guardas | Ese cargo ya tiene titular en esta edición. · Ese cargo ya tiene codirección en esta edición. · Solo un miembro activo puede tener un cargo de macroevento. · Esa persona ya tiene un cargo en esta edición. | MATEO | Propuesta |
 | T-2272 | Mesa directiva: sin cargos | Esta edición no tiene cargos registrados. | MATEO | Propuesta |
 | T-2273 | Mesa directiva: confirmación | Mesa directiva actualizada. | MATEO | Propuesta |
+| T-2274 | Licencia: guarda sin fecha de regreso | La licencia necesita una fecha de regreso. | MATEO | Propuesta |
+| T-2275 | Licencia: guarda de la ventana de regreso | La licencia empieza mañana y dura máximo un año (Estatutos, art. 5.4): el regreso puede ser hasta el {fecha}. | MATEO | Propuesta |
+| T-2276 | Condición retomada al volver de licencia (motivo automático) | Retoma la condición que tenía al salir a licencia (Estatutos, art. 5 par. 2). | MATEO | Propuesta |
+| T-2277 | Tarea a GH: licencia vencida sin regreso | Licencia vencida: {nombre} debía volver el {fecha} (Estatutos, art. 11.3). | GH | Propuesta |
+| T-2278 | Cambiar estado: campo del regreso previsto | Regreso previsto | MATEO | Propuesta |
+| T-2279 | Cambiar estado: ayuda del regreso previsto | Obligatorio para la licencia: desde mañana y máximo un año (Estatutos, art. 5.4). Al volver a activo retoma la condición que tenía. | MATEO | Propuesta |
+| T-2280 | Membresía: licencia con regreso previsto | En licencia hasta el {fecha} | MATEO | Propuesta |

@@ -20,6 +20,8 @@ export const SCHEDULE: ScheduleEntry[] = [
   { name: "permanence", cron: "0 6 * * *", events: ["permanence.daily"] },
   // Avisos de permanencia por push (ADR-038 regla 10), a una hora en la que alguien los lee.
   { name: "notices", cron: "0 9 * * *", events: ["permanence.notices"] },
+  // Licencias vencidas sin regreso (Est. art. 11.3; ADR-060 regla 10): abre una tarea a GH.
+  { name: "membership", cron: "0 7 * * *", events: ["membership.leave-check"] },
   { name: "prune", cron: "0 3 * * *", events: ["identity.prune", "system.prune"] },
   { name: "backup-check", cron: "30 3 * * *", events: ["system.backup-check"] },
 ];

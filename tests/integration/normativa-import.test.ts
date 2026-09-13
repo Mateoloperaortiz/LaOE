@@ -24,7 +24,7 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { deleteObject, getObject } from "@/shared/adapters/storage";
 import { sampleNormativaPdf } from "../helpers/pdf";
 import { truncateAll } from "./db";
-import { seedMember } from "./factories";
+import { leaveUntilSoon, seedMember } from "./factories";
 
 const runFile = promisify(execFile);
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -306,7 +306,11 @@ describe("comando operativo de normativa", () => {
     const actorId = await seedMember(email);
     await grantPermissionAs(SYSTEM_ACTOR, { email, code: "ADMIN" });
     await runCommand(SYSTEM_ACTOR, (ctx) =>
-      changeMembershipStatus(ctx, actorId, { to: "ON_LEAVE", reason: "Licencia sintética" }),
+      changeMembershipStatus(ctx, actorId, {
+        to: "ON_LEAVE",
+        reason: "Licencia sintética",
+        leaveUntil: leaveUntilSoon(),
+      }),
     );
     expect((await getMemberSummary(actorId))?.canSignIn).toBe(true);
     const input = await fixture();

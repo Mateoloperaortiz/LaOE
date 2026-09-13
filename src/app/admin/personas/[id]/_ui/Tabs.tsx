@@ -166,6 +166,13 @@ export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipVi
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Bloque titulo={historial}>
+        {data.membership?.status === "ON_LEAVE" && data.membership.leaveUntil ? (
+          <p className="text-sm font-semibold">
+            {t("T-2280", {
+              fecha: formatDate(new Date(`${data.membership.leaveUntil}T12:00:00Z`)),
+            })}
+          </p>
+        ) : null}
         {data.events.length === 0 ? (
           <p className="text-sm text-tinta-suave">—</p>
         ) : (

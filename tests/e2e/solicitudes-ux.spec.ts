@@ -164,7 +164,7 @@ test("un fallo de red conserva los datos y permite reintentar", async ({ page })
   await page.goto("/app/solicitudes?tipo=licencia");
   const form = page.getByRole("form", { name: "Datos de la solicitud" });
   await form.getByLabel("Contanos por qué", { exact: true }).fill("x");
-  await form.getByLabel("Hasta cuándo (opcional)").fill(E2E_TERM.endsOn);
+  await form.getByLabel("Hasta cuándo volvés").fill(E2E_TERM.endsOn);
   await page.route("**/app/solicitudes**", async (route) => {
     if (route.request().method() === "POST") await route.abort("failed");
     else await route.continue();
@@ -175,12 +175,12 @@ test("un fallo de red conserva los datos y permite reintentar", async ({ page })
   );
   await expect(form.getByRole("alert")).toBeFocused();
   await expect(form.getByLabel("Contanos por qué", { exact: true })).toHaveValue("x");
-  await expect(form.getByLabel("Hasta cuándo (opcional)")).toHaveValue(E2E_TERM.endsOn);
+  await expect(form.getByLabel("Hasta cuándo volvés")).toHaveValue(E2E_TERM.endsOn);
   await page.unroute("**/app/solicitudes**");
   await form.getByRole("button", { name: "Enviar solicitud", exact: true }).click();
   await expect(form.getByRole("alert")).toHaveText("Revisá los campos señalados antes de enviar.");
   await expect(form.getByLabel("Contanos por qué", { exact: true })).toBeFocused();
-  await expect(form.getByLabel("Hasta cuándo (opcional)")).toHaveValue(E2E_TERM.endsOn);
+  await expect(form.getByLabel("Hasta cuándo volvés")).toHaveValue(E2E_TERM.endsOn);
 });
 
 test("el envío bloquea cambios y dobles envíos y permite retirar la solicitud", async ({
@@ -190,6 +190,7 @@ test("el envío bloquea cambios y dobles envíos y permite retirar la solicitud"
   const form = page.getByRole("form", { name: "Datos de la solicitud" });
   const reason = `${prefix} motivo de prueba`;
   await form.getByLabel("Contanos por qué", { exact: true }).fill(reason);
+  await form.getByLabel("Hasta cuándo volvés").fill(E2E_TERM.endsOn);
   let release = () => {};
   let started = () => {};
   const gate = new Promise<void>((resolve) => {
@@ -244,6 +245,7 @@ test("una sesión vencida vuelve al ingreso sin crear solicitudes", async ({ pag
     await page.goto("/app/solicitudes?tipo=licencia");
     const form = page.getByRole("form", { name: "Datos de la solicitud" });
     await form.getByLabel("Contanos por qué", { exact: true }).fill(`${prefix} sin sesión válida`);
+    await form.getByLabel("Hasta cuándo volvés").fill(E2E_TERM.endsOn);
     await context.clearCookies();
     if (!missingCookie) {
       const session = cookies.find((cookie) => cookie.name === "oe_sesion");

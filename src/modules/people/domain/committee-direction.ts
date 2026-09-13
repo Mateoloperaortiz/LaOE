@@ -42,6 +42,8 @@ import type { CommitteeRef } from "./committees";
 // desde `src/app` con todas las capacidades.
 
 const OPERATING_STATUSES = ["ACTIVE", "HONORARY"] as const;
+/** Quien está en licencia conserva las capacidades de su cargo de mesa (Regl. art. 27 par. 6; ADR-060 regla 10). */
+const DIRECTION_STATUSES = ["ACTIVE", "HONORARY", "ON_LEAVE"] as const;
 
 export interface DirectedRole {
   roleCode: string;
@@ -85,7 +87,7 @@ export const listMyCommitteeCapabilities = cache(
           isNull(committeeRoleAssignment.endedAt),
           eq(committeeRole.isLeadership, true),
           inArray(committee.status, ["ACTIVE", "ON_TRIAL"]),
-          inArray(membership.status, [...OPERATING_STATUSES]),
+          inArray(membership.status, [...DIRECTION_STATUSES]),
         ),
       )
       .orderBy(asc(committee.name), asc(committeeRole.sortOrder), asc(committeeRole.label));

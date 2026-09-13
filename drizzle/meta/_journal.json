@@ -162,6 +162,13 @@
       "when": 1789307534777,
       "tag": "0022_mesas_de_macroevento",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1789320024485,
+      "tag": "0023_licencia_con_vencimiento",
+      "breakpoints": true
     }
   ]
 }

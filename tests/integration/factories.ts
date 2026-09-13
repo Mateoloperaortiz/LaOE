@@ -581,3 +581,8 @@ export async function seedCallEntry(
   if (!row) throw new Error("seed call entry");
   return row.id;
 }
+
+/** Regreso previsto de una licencia dentro de la ventana de un año (ADR-060 regla 10): en `days` días. */
+export function leaveUntilSoon(days = 90): string {
+  return new Date(Date.now() + days * 24 * 60 * 60_000).toISOString().slice(0, 10);
+}

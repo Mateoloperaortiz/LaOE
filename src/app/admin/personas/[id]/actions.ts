@@ -173,6 +173,7 @@ export async function changeStatusAction(formData: FormData): Promise<void> {
   const parsed = changeStatusSchema.safeParse({
     to: text(formData, "to"),
     reason: text(formData, "reason"),
+    leaveUntil: optional(formData, "leaveUntil"),
   });
   if (!parsed.success) {
     await fail(id, "membresia", "estado", t("T-260"));

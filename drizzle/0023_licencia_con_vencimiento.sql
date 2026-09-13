@@ -1,0 +1,1 @@
+ALTER TABLE "membership" ADD COLUMN "leave_until" date;

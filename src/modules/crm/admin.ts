@@ -59,7 +59,8 @@ const [titulo, responsable, vence, estado, persona, tipo] = tList("T-459") as [
   string,
 ];
 const [abierta, hecha] = tList("T-460") as [string, string];
-const [general, eliminacion, solicitud, retiroComite] = tList("T-461") as [
+const [general, eliminacion, solicitud, retiroComite, licenciaVencida] = tList("T-461") as [
+  string,
   string,
   string,
   string,
@@ -88,6 +89,7 @@ async function fields(): Promise<FieldDefinition[]> {
         { value: "DELETION_REQUEST", label: eliminacion },
         { value: "REQUEST", label: solicitud },
         { value: "COMMITTEE_REMOVAL", label: retiroComite },
+        { value: "LEAVE_EXPIRED", label: licenciaVencida },
       ],
     },
   ];
@@ -131,10 +133,15 @@ export const tasksResource: ResourceDefinition<TaskRow, TaskInput> = {
       render: (row) =>
         row.kind === "REQUEST"
           ? { text: t("T-1013"), href: `/admin/solicitudes?tarea=${row.id}` }
-          : row.kind === "COMMITTEE_REMOVAL"
+          : row.kind === "COMMITTEE_REMOVAL" || row.kind === "LEAVE_EXPIRED"
             ? row.personId
-              ? { text: retiroComite, href: `/admin/personas/${row.personId}?pestana=membresia` }
-              : retiroComite
+              ? {
+                  text: row.kind === "LEAVE_EXPIRED" ? licenciaVencida : retiroComite,
+                  href: `/admin/personas/${row.personId}?pestana=membresia`,
+                }
+              : row.kind === "LEAVE_EXPIRED"
+                ? licenciaVencida
+                : retiroComite
             : row.kind === "DELETION_REQUEST"
               ? eliminacion
               : general,

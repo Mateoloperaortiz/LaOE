@@ -36,3 +36,7 @@ El punto 7 se concreta: el texto por publicar vive en [17-politica-de-datos.md](
 ## Enmienda (2026-09-08, ADR-048)
 
 El punto 7 deja de registrar consentimientos `MEMBERSHIP`/`IMPORT`: la carga solo crea personas, membresías y pertenencias, y cada integrante autoriza en su primer ingreso. Se conserva el requisito de política publicada y versión activa, porque esa pantalla necesita el texto.
+
+## Enmienda (2026-09-13, ADR-060)
+
+El punto 4 gana una excepción y un vencimiento: quien está en licencia y tiene un cargo de mesa vivo conserva las capacidades de ese cargo sobre su comité (Regl. art. 27 par. 6), aunque sigan suspendidos permisos, junta, grupos, participación y credenciales; y la licencia lleva regreso previsto obligatorio (`membership.leaveUntil`, máximo un año, Est. art. 5.4), con tarea a GH al vencer sin regreso y condición retomada al volver ([ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) regla 10).

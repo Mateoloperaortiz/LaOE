@@ -21,14 +21,16 @@ import {
 } from "@/modules/people/domain/membership";
 import { getPerson360 } from "@/modules/people/domain/person-360";
 import { listPeople, updatePerson } from "@/modules/people/domain/persons";
-import { committeeMembership, membership, person } from "@/modules/people/schema";
+import { committeeMembership, membership, membershipTerm, person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { DomainError } from "@/shared/admin-kit/DomainError";
+import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
+  seedMembershipTerm,
   seedPerson,
   seedTerm,
 } from "./factories";
@@ -55,7 +57,11 @@ describe("acceso al cambiar estado o correo", () => {
     expect(await resolveActor(token)).not.toBeNull();
 
     await runCommand(SYSTEM_ACTOR, (ctx) =>
-      changeMembershipStatus(ctx, personId, { to: "ON_LEAVE", reason: "Semestre afuera" }),
+      changeMembershipStatus(ctx, personId, {
+        to: "ON_LEAVE",
+        reason: "Semestre afuera",
+        leaveUntil: "2027-01-31",
+      }),
     );
     expect(await resolveActor(token)).toMatchObject({ membershipStatus: "ON_LEAVE" });
     const events = await listMembershipEvents(personId);
@@ -102,6 +108,61 @@ describe("acceso al cambiar estado o correo", () => {
 
 describe("salida, reactivación y anonimización", () => {
   beforeEach(truncateAll);
+
+  it("la licencia exige regreso dentro de un año y al volver retoma la condición que tenía (ADR-060 regla 10)", async () => {
+    const previo = await seedTerm("2026-1");
+    const personId = await seedMember("condicion@eafit.edu.co");
+    await seedMembershipTerm(personId, previo, true);
+    const hoy = new Date("2026-09-13T15:00:00Z");
+    await expect(
+      runCommand(SYSTEM_ACTOR, (ctx) =>
+        changeMembershipStatus(ctx, personId, { to: "ON_LEAVE", reason: "Sin fecha" }, hoy),
+      ),
+    ).rejects.toThrow(new DomainError(t("T-2274"), "leaveUntil"));
+    await expect(
+      runCommand(SYSTEM_ACTOR, (ctx) =>
+        changeMembershipStatus(
+          ctx,
+          personId,
+          { to: "ON_LEAVE", reason: "Muy larga", leaveUntil: "2027-09-14" },
+          hoy,
+        ),
+      ),
+    ).rejects.toThrow(/máximo un año/);
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(
+        ctx,
+        personId,
+        { to: "ON_LEAVE", reason: "Intercambio", leaveUntil: "2027-09-13" },
+        hoy,
+      ),
+    );
+    const leaveUntilOf = async () =>
+      (
+        await db()
+          .select({ leaveUntil: membership.leaveUntil })
+          .from(membership)
+          .where(eq(membership.personId, personId))
+      )[0]?.leaveUntil;
+    expect(await leaveUntilOf()).toBe("2027-09-13");
+
+    // Al volver: sin regreso previsto y con la prueba del término anterior copiada al actual.
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(ctx, personId, { to: "ACTIVE", reason: "Volvió" }),
+    );
+    expect(await leaveUntilOf()).toBeNull();
+    const condiciones = await db()
+      .select({
+        termId: membershipTerm.termId,
+        probation: membershipTerm.probation,
+        reason: membershipTerm.reason,
+      })
+      .from(membershipTerm)
+      .where(eq(membershipTerm.personId, personId));
+    expect(condiciones).toHaveLength(2);
+    const actual = condiciones.find((row) => row.termId !== previo);
+    expect(actual).toMatchObject({ probation: true, reason: t("T-2276") });
+  });
 
   it("dar de baja depura lo que no es historia y registra los consentimientos; reactivar recupera el perfil", async () => {
     const termId = await seedTerm();

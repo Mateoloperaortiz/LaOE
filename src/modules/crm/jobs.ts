@@ -10,16 +10,17 @@ import {
   getPersonRecord,
   listAllCommittees,
   listCommitteeRoles,
+  listExpiredLeaves,
   SANCTION_KINDS,
 } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { listAllTerms } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
-import { addBusinessDays } from "@/shared/lib/dates";
+import { addBusinessDays, formatDate, todayKey } from "@/shared/lib/dates";
 import { createCardFromSubmission } from "./domain/cards";
 import { deleteNotesFor, recordAutomaticInteraction } from "./domain/interactions";
 import { recordOnboardingEvidence } from "./domain/onboarding";
-import { deleteTasksFor } from "./domain/tasks";
+import { createTask, deleteTasksFor } from "./domain/tasks";
 import { summarizeEvent, TIMELINE_EVENTS, type TimelineLabels } from "./domain/timeline-pure";
 import { task } from "./schema";
 
@@ -275,4 +276,41 @@ registerHandler("submission.received", async (payload, ctx) => {
     { submissionId, cardId: result?.id ?? null, created: result?.created ?? false },
     "tarjeta desde la respuesta",
   );
+});
+
+// Licencia vencida sin regreso (Est. art. 11.3; ADR-060 regla 10): el programado diario abre una tarea
+// a GH por persona, una sola vez mientras siga abierta; GH decide si vuelve, sigue o pierde la calidad.
+registerHandler("membership.leave-check", async (_payload, ctx) => {
+  const today = todayKey();
+  const expired = await listExpiredLeaves(today);
+  let opened = 0;
+  for (const item of expired) {
+    const [existing] = await getDb()
+      .select({ id: task.id })
+      .from(task)
+      .where(
+        and(
+          eq(task.personId, item.personId),
+          eq(task.kind, "LEAVE_EXPIRED"),
+          eq(task.status, "OPEN"),
+        ),
+      )
+      .limit(1);
+    if (existing) {
+      continue;
+    }
+    await runCommand(SYSTEM_ACTOR, (tx) =>
+      createTask(tx, {
+        title: t("T-2277", {
+          nombre: item.fullName,
+          fecha: formatDate(new Date(`${item.leaveUntil}T12:00:00Z`)),
+        }),
+        kind: "LEAVE_EXPIRED",
+        personId: item.personId,
+        dueAt: `${today}T09:00`,
+      }),
+    );
+    opened += 1;
+  }
+  ctx.log.info({ expired: expired.length, opened }, "licencias vencidas revisadas");
 });

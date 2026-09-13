@@ -22,6 +22,7 @@ import { requireConfig } from "@/modules/system";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { truncateAll } from "./db";
 import {
+  leaveUntilSoon,
   seedCheckIn,
   seedCommittee,
   seedForm,
@@ -35,7 +36,11 @@ const db = () => getDb();
 
 async function onLeave(personId: string) {
   await runCommand(SYSTEM_ACTOR, (ctx) =>
-    changeMembershipStatus(ctx, personId, { to: "ON_LEAVE", reason: "Licencia sintética" }),
+    changeMembershipStatus(ctx, personId, {
+      to: "ON_LEAVE",
+      reason: "Licencia sintética",
+      leaveUntil: leaveUntilSoon(),
+    }),
   );
 }
 

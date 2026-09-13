@@ -367,6 +367,7 @@ export function RequestForm({
                 id="leave-until"
                 name="until"
                 type="date"
+                required
                 value={values.until}
                 onChange={(event) => setValues({ ...values, until: event.target.value })}
                 aria-invalid={Boolean(fieldErrors.until)}

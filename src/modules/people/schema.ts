@@ -211,6 +211,8 @@ export const membership = pgTable(
       .notNull()
       .references(() => term.id),
     lastTermId: text().references(() => term.id),
+    // Regreso previsto de una licencia (Est. art. 5.4: máximo un año; ADR-060 regla 10); null fuera de ella.
+    leaveUntil: date({ mode: "string" }),
     endedAt: timestampTz(),
     endReason: membershipEndReason(),
     createdAt: createdAt(),

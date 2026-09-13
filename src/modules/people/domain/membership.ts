@@ -1,17 +1,26 @@
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, lt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
 import { redactAuditEntries } from "@/modules/system";
-import { getCurrentTerm } from "@/modules/terms";
+import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
-import { committeeMembership, membership, membershipEvent, person } from "../schema";
+import { formatDate, todayKey } from "@/shared/lib/dates";
+import {
+  committeeMembership,
+  membership,
+  membershipEvent,
+  membershipTerm,
+  person,
+} from "../schema";
 import { endRolesForPerson } from "./committee-role-assignments";
 import { revokeAllConsents, syncConsent } from "./consents";
+import { leaveUntilError, leaveWindow } from "./leave-pure";
 import { SIGN_IN_STATUSES } from "./reads";
+import { setProbation } from "./term-outcomes";
 import { lockWalletMember } from "./wallet-member";
 
 // El ciclo de vida de la membresía cambia solo por comandos (ADR-003): cada uno audita, escribe el
@@ -24,6 +33,8 @@ const emailSchema = z.string().trim().toLowerCase().pipe(z.email()).pipe(z.strin
 export const changeStatusSchema = z.object({
   to: z.enum(["ACTIVE", "ON_LEAVE", "HONORARY"]),
   reason: z.string().trim().min(2).max(500),
+  /** Regreso previsto; obligatorio al pasar a licencia (ADR-060 regla 10). */
+  leaveUntil: z.iso.date().optional(),
 });
 
 export const endMembershipSchema = z.object({
@@ -83,11 +94,56 @@ async function closeOpenCommitteeMemberships(
   await endRolesForPerson(ctx.tx, personId, now);
 }
 
-/** Activo ↔ licencia ↔ honorario; la licencia mantiene acceso de consulta. */
+/**
+ * Al volver de la licencia la persona retoma la condición que tenía al salir (Est. art. 5 par. 2):
+ * la última condición fijada antes del término actual se copia a este, sin pisar una ya decidida.
+ */
+async function carryOverCondition(ctx: CommandContext, personId: string, now: Date): Promise<void> {
+  const [term, terms] = await Promise.all([getCurrentTerm(now), listAllTerms()]);
+  if (!term) {
+    return;
+  }
+  const startsOn = new Map(terms.map((row) => [row.id, row.startsOn]));
+  const rows = await ctx.tx
+    .select({
+      termId: membershipTerm.termId,
+      committeeId: membershipTerm.committeeId,
+      probation: membershipTerm.probation,
+    })
+    .from(membershipTerm)
+    .where(eq(membershipTerm.personId, personId));
+  const previous = rows
+    .filter((row) => (startsOn.get(row.termId) ?? "") < term.startsOn)
+    .sort((a, b) => (startsOn.get(b.termId) ?? "").localeCompare(startsOn.get(a.termId) ?? ""));
+  const lastTermId = previous[0]?.termId;
+  if (!lastTermId) {
+    return;
+  }
+  const alreadyDecided = new Set(
+    rows.filter((row) => row.termId === term.id).map((row) => row.committeeId ?? ""),
+  );
+  for (const row of previous.filter((item) => item.termId === lastTermId && item.probation)) {
+    if (alreadyDecided.has(row.committeeId ?? "")) {
+      continue;
+    }
+    await setProbation(ctx, personId, term.id, {
+      probation: true,
+      reason: t("T-2276"),
+      committeeId: row.committeeId,
+    });
+  }
+}
+
+/**
+ * Activo ↔ licencia ↔ honorario; la licencia mantiene acceso de consulta. Pasar a licencia exige el
+ * regreso previsto, desde mañana y hasta un año (Est. art. 5.4); al volver a activo se retoma la
+ * condición que tenía (ADR-060 regla 10).
+ */
 export async function changeMembershipStatus(
   ctx: CommandContext,
   personId: string,
   input: ChangeStatusInput,
+  now = new Date(),
 ): Promise<void> {
   await lockWalletMember(ctx.tx, personId);
   const current = await lockMembership(ctx, personId);
@@ -97,7 +153,22 @@ export async function changeMembershipStatus(
   if (current.status === input.to) {
     return;
   }
-  await ctx.tx.update(membership).set({ status: input.to }).where(eq(membership.id, current.id));
+  const today = todayKey(now);
+  let leaveUntil: string | null = null;
+  if (input.to === "ON_LEAVE") {
+    const error = leaveUntilError(input.leaveUntil, today);
+    if (error) {
+      throw new DomainError(
+        t(error, { fecha: formatDate(new Date(`${leaveWindow(today).max}T12:00:00Z`)) }),
+        "leaveUntil",
+      );
+    }
+    leaveUntil = input.leaveUntil ?? null;
+  }
+  await ctx.tx
+    .update(membership)
+    .set({ status: input.to, leaveUntil })
+    .where(eq(membership.id, current.id));
   await ctx.tx.insert(membershipEvent).values({
     membershipId: current.id,
     fromStatus: current.status,
@@ -108,12 +179,15 @@ export async function changeMembershipStatus(
   if (!SIGN_IN_STATUSES.includes(input.to)) {
     await revokeAccess(ctx, personId);
   }
+  if (current.status === "ON_LEAVE" && input.to === "ACTIVE") {
+    await carryOverCondition(ctx, personId, now);
+  }
   await ctx.audit({
     action: "membership.status-changed",
     entityType: "membership",
     entityId: current.id,
-    before: { status: current.status },
-    after: { status: input.to, reason: input.reason },
+    before: { status: current.status, leaveUntil: current.leaveUntil },
+    after: { status: input.to, reason: input.reason, leaveUntil },
   });
   await ctx.emit({
     type: "membership.changed",
@@ -123,8 +197,32 @@ export async function changeMembershipStatus(
       from: current.status,
       to: input.to,
       reason: input.reason,
+      leaveUntil,
     },
   });
+}
+
+export interface ExpiredLeave {
+  personId: string;
+  fullName: string;
+  leaveUntil: string;
+}
+
+/** Licencias con regreso previsto antes de hoy y sin vuelta (Est. art. 11.3): GH decide. */
+export async function listExpiredLeaves(today = todayKey()): Promise<ExpiredLeave[]> {
+  const rows = await getDb()
+    .select({
+      personId: membership.personId,
+      fullName: person.fullName,
+      leaveUntil: membership.leaveUntil,
+    })
+    .from(membership)
+    .innerJoin(person, eq(person.id, membership.personId))
+    .where(and(eq(membership.status, "ON_LEAVE"), lt(membership.leaveUntil, today)))
+    .orderBy(asc(membership.leaveUntil));
+  return rows.flatMap((row) =>
+    row.leaveUntil ? [{ ...row, fullName: row.fullName ?? "", leaveUntil: row.leaveUntil }] : [],
+  );
 }
 
 /**
@@ -149,6 +247,7 @@ export async function endMembership(
     .set({
       status: "INACTIVE",
       walletEpoch: current.walletEpoch + 1,
+      leaveUntil: null,
       endedAt: now,
       endReason: input.endReason,
       lastTermId: input.lastTermId ?? term?.id ?? current.lastTermId,
@@ -225,7 +324,7 @@ export async function reactivateMembership(
   }
   await ctx.tx
     .update(membership)
-    .set({ status: "ACTIVE", endedAt: null, endReason: null, lastTermId: null })
+    .set({ status: "ACTIVE", leaveUntil: null, endedAt: null, endReason: null, lastTermId: null })
     .where(eq(membership.id, current.id));
   const emailChanged = input.email !== undefined && input.email !== who.email;
   try {
