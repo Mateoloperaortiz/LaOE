@@ -29,7 +29,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Descripción de cada macroevento: Días EAFIT, Inventiva, EnFemenino, Subsidios-OE
 - [ ] Fechas reales de la próxima edición de cada uno (no se inventan)
 - [ ] Portadas o fotos con permiso de uso; sin fotos de personas sin consentimiento
-- [ ] Lista de cargos de la mesa directiva de cada macroevento vigente y quiénes los ocupan en la edición en curso (Regl. art. 41 a 43; [18-revision-normativa-2026.md](18-revision-normativa-2026.md), V6)
+- [ ] Quiénes ocupan la mesa directiva de cada macroevento en la edición en curso (el catálogo de cargos ya lo siembra la migración `0022` desde el Regl. art. 41 a 43; se registran en `/admin/eventos/[id]/ediciones/[edicionId]/mesa`) y quiénes los ocupan en la edición en curso (Regl. art. 41 a 43; [18-revision-normativa-2026.md](18-revision-normativa-2026.md), V6)
 
 ## Normativa y privacidad
 

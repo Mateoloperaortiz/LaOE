@@ -1,6 +1,7 @@
 // API pública del módulo events: lo que otros módulos y src/app pueden usar.
 export {
   createEdition,
+  type EditionRef,
   type EditionRow,
   findNextPublicEdition,
   findNextPublicEditions,
@@ -8,6 +9,7 @@ export {
   getEdition,
   getPublishedEdition,
   listEditionOptions,
+  listEditionRefs,
   listEditions,
   listEditionsByCommittee,
   listMemberEditionsForIcs,

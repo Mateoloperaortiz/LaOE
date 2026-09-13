@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { publicationStatus } from "@/db/enums";
+import { eventEdition } from "@/modules/events/schema";
 import { term } from "@/modules/terms/schema";
 
 // La persona es el eje del CRM (ADR-002); la membresía es su ciclo de vida (ADR-003).
@@ -54,6 +55,7 @@ export const appointmentKind = pgEnum("appointment_kind", [
   "VP_COMMUNICATIONS",
   "GH_HEAD",
   "GH_DIRECTOR",
+  "MACROEVENT_DIRECTOR",
   "OTHER",
 ]);
 
@@ -116,7 +118,17 @@ export const consent = pgTable(
   ],
 );
 
+// Catálogo de cargos de la mesa directiva de un macroevento (Regl. art. 41 a 43; Est. art. 52 a 56;
+// ADR-060 regla 9), sembrado por la migración 0022.
+export const macroeventRole = pgTable("macroevent_role", {
+  code: text().primaryKey(),
+  label: text().notNull(),
+  sortOrder: integer().notNull().default(0),
+});
+
 // Cargo de junta o de GH, visible y con historia; el líder de comité es roleCode = GENERAL (ADR-034).
+// Un MACROEVENT_DIRECTOR lleva la edición y el cargo del catálogo, con titular y codirección
+// (ADR-060 regla 9); los índices no nombran el valor nuevo del enum: la edición ya lo implica.
 export const appointment = pgTable(
   "appointment",
   {
@@ -129,10 +141,29 @@ export const appointment = pgTable(
     termId: text()
       .notNull()
       .references(() => term.id),
+    editionId: text().references(() => eventEdition.id, { onDelete: "cascade" }),
+    roleCode: text().references(() => macroeventRole.code),
+    coDirector: boolean().notNull().default(false),
     title: text(),
     createdAt: createdAt(),
   },
-  (t) => [index("appointment_person_idx").on(t.personId, t.termId)],
+  (t) => [
+    index("appointment_person_idx").on(t.personId, t.termId),
+    index("appointment_edition_idx").on(t.editionId),
+    uniqueIndex("appointment_edition_titular_unique")
+      .on(t.editionId, t.roleCode)
+      .where(sql`${t.editionId} is not null and ${t.coDirector} = false`),
+    uniqueIndex("appointment_edition_codireccion_unique")
+      .on(t.editionId, t.roleCode)
+      .where(sql`${t.editionId} is not null and ${t.coDirector} = true`),
+    uniqueIndex("appointment_edition_person_unique")
+      .on(t.editionId, t.personId)
+      .where(sql`${t.editionId} is not null`),
+    check(
+      "appointment_macroevent_consistent",
+      sql`(${t.kind}::text = 'MACROEVENT_DIRECTOR') = (${t.editionId} is not null and ${t.roleCode} is not null)`,
+    ),
+  ],
 );
 
 // Condición de la persona en un término: periodo de prueba (umbral 80 %). Sin comité aplica a todos

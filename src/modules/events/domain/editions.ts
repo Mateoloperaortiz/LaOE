@@ -179,6 +179,35 @@ export async function listEditionOptions(limit = 200): Promise<EditionOption[]> 
   }));
 }
 
+export interface EditionRef {
+  id: string;
+  name: string;
+  eventName: string;
+  startsAt: Date;
+}
+
+/** Nombre y evento de varias ediciones por id (para etiquetar cargos de macroevento, ADR-060 regla 9). */
+export async function listEditionRefs(ids: readonly string[]): Promise<Map<string, EditionRef>> {
+  const map = new Map<string, EditionRef>();
+  if (ids.length === 0) {
+    return map;
+  }
+  const rows = await getDb()
+    .select({
+      id: eventEdition.id,
+      name: eventEdition.name,
+      eventName: event.name,
+      startsAt: eventEdition.startsAt,
+    })
+    .from(eventEdition)
+    .innerJoin(event, eq(event.id, eventEdition.eventId))
+    .where(inArray(eventEdition.id, [...ids]));
+  for (const row of rows) {
+    map.set(row.id, row);
+  }
+  return map;
+}
+
 export async function getEdition(id: string): Promise<EditionListRow | null> {
   const [row] = await getDb()
     .select(listColumns)

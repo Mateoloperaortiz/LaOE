@@ -11,8 +11,14 @@ export { type AlumniEntry, type AlumniYear, listAlumniByYear } from "./domain/al
 export {
   APPOINTMENT_KINDS,
   type AppointmentKind,
+  type AppointmentLabelInput,
   type AppointmentView,
   appointmentInputSchema,
+  appointmentLabel,
+  BOARD_APPOINTMENT_KINDS,
+  listMacroeventBoard,
+  listMacroeventRoles,
+  MACROEVENT_ROLE_CODES,
 } from "./domain/appointments";
 export {
   areasFor,
@@ -25,6 +31,7 @@ export {
 export {
   addAppointmentAs,
   addCommitteeMemberAs,
+  addMacroeventDirectorAs,
   admitPersonAs,
   anonymizePersonAs,
   changeMembershipStatusAs,

@@ -78,7 +78,16 @@ describe("galería de egresados", () => {
       committees: ["A3 · General"],
       fromTermCode: "2024-1",
     });
-    expect(first?.appointments).toEqual([{ kind: "VP_GH", title: null, termCode: "2024-1" }]);
+    expect(first?.appointments).toEqual([
+      {
+        kind: "VP_GH",
+        title: null,
+        termCode: "2024-1",
+        roleLabel: null,
+        editionLabel: null,
+        coDirector: false,
+      },
+    ]);
     // Sin consentimiento de foto no hay foto, aunque exista.
     expect(years[0]?.entries[1]?.photoAssetId).toBeNull();
 

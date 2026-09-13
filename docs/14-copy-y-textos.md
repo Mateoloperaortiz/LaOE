@@ -631,7 +631,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-441 | Anonimizar: botón | Anonimizar | MATEO | Propuesta |
 | T-442 | Anonimizar sin solicitud previa | Solo se anonimiza a quien lo pidió desde Mi OE. | MATEO | Propuesta |
 | T-443 | Membresía: títulos de los bloques | Historial de estados · Comités por semestre · Cargos de junta y de GH · Condición del semestre | MATEO | Propuesta |
-| T-444 | Membresía: cargos de junta y de GH (opciones) | Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Mercadeo · GH principal · Director de GH · Otro | JUNTA | Propuesta; el nombre es el del cuerpo de los Estatutos 2026 (art. 21 y 27), ADR-060 regla 4 |
+| T-444 | Membresía: cargos de junta y de GH (opciones) | Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Mercadeo · GH principal · Director de GH · Dirección de macroevento · Otro | JUNTA | Propuesta; el nombre es el del cuerpo de los Estatutos 2026 (art. 21 y 27), ADR-060 regla 4; la dirección de macroevento se etiqueta con T-2268 y T-2269 (regla 9) |
 | T-445 | Membresía: campo del título cuando el cargo es Otro | Título del cargo | MATEO | Propuesta |
 | T-446 | Membresía: casilla del permiso de junta | Otorgar también el permiso Junta (pide un código nuevo) | MATEO | Propuesta |
 | T-447 | Membresía: botones de cargos | Agregar cargo · Quitar | MATEO | Propuesta |
@@ -1817,3 +1817,11 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2263 | Tablero de ADMIN: viabilidad de los comités, título | Viabilidad de los comités | MATEO | Propuesta |
 | T-2264 | Viabilidad: avisos (en el orden del modelo) | Menos de tres direcciones vivas · Sin General o Financiero titular · Menos de seis miembros fuera de la mesa · Tres o más faltas sin excusa a la Asamblea · Sin evento propio en el semestre · En prueba con menos de diez miembros fuera de la mesa · En prueba con menos del 90 % de asambleas representadas · La prueba termina en menos de 30 días | GH | Propuesta; Reglamento art. 25 y 26; texto sensible |
 | T-2265 | Comité en prueba: insignia de la cabecera | En prueba hasta el {fecha} | MATEO | Propuesta |
+| T-2266 | Ediciones: columna, enlace y título de la mesa directiva | Mesa directiva | MATEO | Propuesta |
+| T-2267 | Mesa directiva de la edición: ayuda | Los cargos de la mesa directiva de un macroevento los elige la Asamblea Directiva (Reglamento, art. 41 a 43); aquí queda el resultado, con un titular y, si la hay, una codirección por cargo. Solo miembros activos. | JUNTA | Propuesta |
+| T-2268 | Cargo de macroevento: etiqueta del titular (Persona 360, directorio, egresados) | {cargo} · {edición} | MATEO | Propuesta |
+| T-2269 | Cargo de macroevento: etiqueta de la codirección | {cargo} (codirección) · {edición} | MATEO | Propuesta |
+| T-2270 | Mesa directiva: campos y botones | Cargo · Persona · Agregar a la mesa · Quitar | MATEO | Propuesta |
+| T-2271 | Mesa directiva: guardas | Ese cargo ya tiene titular en esta edición. · Ese cargo ya tiene codirección en esta edición. · Solo un miembro activo puede tener un cargo de macroevento. · Esa persona ya tiene un cargo en esta edición. | MATEO | Propuesta |
+| T-2272 | Mesa directiva: sin cargos | Esta edición no tiene cargos registrados. | MATEO | Propuesta |
+| T-2273 | Mesa directiva: confirmación | Mesa directiva actualizada. | MATEO | Propuesta |

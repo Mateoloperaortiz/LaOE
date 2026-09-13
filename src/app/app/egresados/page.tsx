@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireActor } from "@/modules/identity";
-import { type AlumniEntry, APPOINTMENT_KINDS, listAlumniByYear } from "@/modules/people";
+import { type AlumniEntry, appointmentLabel, listAlumniByYear } from "@/modules/people";
 import { Cartel, Elemento, feedVariant, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { mediaUrl } from "@/shared/lib/media";
@@ -9,10 +9,8 @@ import { mediaUrl } from "@/shared/lib/media";
 
 export const metadata: Metadata = { title: t("T-074") };
 
-function appointmentLabel(entry: AlumniEntry["appointments"][number]): string {
-  const names = tList("T-444");
-  const label = names[APPOINTMENT_KINDS.indexOf(entry.kind)] ?? entry.kind;
-  return `${entry.kind === "OTHER" && entry.title ? entry.title : label} · ${entry.termCode}`;
+function cargoEtiqueta(entry: AlumniEntry["appointments"][number]): string {
+  return `${appointmentLabel(entry)} · ${entry.termCode}`;
 }
 
 export default async function EgresadosPage() {
@@ -92,7 +90,7 @@ export default async function EgresadosPage() {
                       <ul className="flex list-none flex-wrap gap-2 p-0">
                         {entry.appointments.map((item) => (
                           <li key={`${item.kind}-${item.termCode}`}>
-                            <Insignia fondo="amarillo">{appointmentLabel(item)}</Insignia>
+                            <Insignia fondo="amarillo">{cargoEtiqueta(item)}</Insignia>
                           </li>
                         ))}
                       </ul>

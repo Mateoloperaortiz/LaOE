@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ActorPermission } from "@/modules/identity";
 import {
+  appointmentLabel,
   committeeRolesLabel,
   type MyMembershipView,
   type Person360,
@@ -11,7 +12,6 @@ import { AdminActionsMenu } from "@/shared/admin-kit/AdminActionsMenu";
 import { Dato } from "@/shared/admin-kit/AdminFields";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
-import { appointmentLabel } from "./etiquetas";
 
 type Props = {
   data: Person360;
@@ -194,7 +194,7 @@ export function Cabecera({ data, my, permissions, committeeNames, tags }: Props)
             {appointments.map((item) => (
               <li key={item.id}>
                 <Insignia fondo="amarillo">
-                  {appointmentLabel(item.kind, item.title)} · {item.termCode}
+                  {appointmentLabel(item)} · {item.termCode}
                 </Insignia>
               </li>
             ))}

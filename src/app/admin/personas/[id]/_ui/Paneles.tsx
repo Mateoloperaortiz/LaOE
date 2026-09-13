@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { InteractionView } from "@/modules/crm";
 import {
   APPOINTMENT_KINDS,
+  BOARD_APPOINTMENT_KINDS,
   type CommitteeRoleRow,
   DOCUMENT_TYPE_CODES,
   type MyMembershipView,
@@ -721,9 +722,9 @@ export function Paneles({
                 defaultValue=""
               >
                 <option value="">—</option>
-                {APPOINTMENT_KINDS.map((kind, index) => (
+                {BOARD_APPOINTMENT_KINDS.map((kind) => (
                   <option key={kind} value={kind}>
-                    {kinds[index] ?? kind}
+                    {kinds[APPOINTMENT_KINDS.indexOf(kind)] ?? kind}
                   </option>
                 ))}
               </select>

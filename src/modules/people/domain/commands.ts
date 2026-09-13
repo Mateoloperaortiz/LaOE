@@ -1,6 +1,12 @@
 import { type Actor, runCommand } from "@/db/tx";
 import { type AdmitInput, admitPerson } from "./admission";
-import { type AppointmentInput, addAppointment, removeAppointment } from "./appointments";
+import {
+  type AppointmentInput,
+  addAppointment,
+  addMacroeventDirector,
+  type MacroeventDirectorInput,
+  removeAppointment,
+} from "./appointments";
 import {
   addCommitteeMember,
   type RemovalRequestInput,
@@ -95,6 +101,13 @@ export function addAppointmentAs(
 
 export function removeAppointmentAs(actor: Actor, id: string): Promise<void> {
   return runCommand(actor, (ctx) => removeAppointment(ctx, id));
+}
+
+export function addMacroeventDirectorAs(
+  actor: Actor,
+  input: MacroeventDirectorInput,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => addMacroeventDirector(ctx, input));
 }
 
 export function recordConsentAs(

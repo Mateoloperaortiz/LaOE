@@ -4658,6 +4658,54 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2266": {
+    where: "Ediciones: columna, enlace y título de la mesa directiva",
+    text: "Mesa directiva",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2267": {
+    where: "Mesa directiva de la edición: ayuda",
+    text: "Los cargos de la mesa directiva de un macroevento los elige la Asamblea Directiva (Reglamento, art. 41 a 43); aquí queda el resultado, con un titular y, si la hay, una codirección por cargo. Solo miembros activos.",
+    owner: "JUNTA",
+    status: "Propuesta",
+  },
+  "T-2268": {
+    where: "Cargo de macroevento: etiqueta del titular (Persona 360, directorio, egresados)",
+    text: "{cargo} · {edición}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2269": {
+    where: "Cargo de macroevento: etiqueta de la codirección",
+    text: "{cargo} (codirección) · {edición}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2270": {
+    where: "Mesa directiva: campos y botones",
+    text: "Cargo · Persona · Agregar a la mesa · Quitar",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2271": {
+    where: "Mesa directiva: guardas",
+    text: "Ese cargo ya tiene titular en esta edición. · Ese cargo ya tiene codirección en esta edición. · Solo un miembro activo puede tener un cargo de macroevento. · Esa persona ya tiene un cargo en esta edición.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2272": {
+    where: "Mesa directiva: sin cargos",
+    text: "Esta edición no tiene cargos registrados.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2273": {
+    where: "Mesa directiva: confirmación",
+    text: "Mesa directiva actualizada.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-230": {
     where: "Botón para reintentar tras un error",
     text: "Intentar de nuevo",
@@ -5890,10 +5938,10 @@ export const textos = {
   },
   "T-444": {
     where: "Membresía: cargos de junta y de GH (opciones)",
-    text: "Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Mercadeo · GH principal · Director de GH · Otro",
+    text: "Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Mercadeo · GH principal · Director de GH · Dirección de macroevento · Otro",
     owner: "JUNTA",
     status:
-      "Propuesta; el nombre es el del cuerpo de los Estatutos 2026 (art. 21 y 27), ADR-060 regla 4",
+      "Propuesta; el nombre es el del cuerpo de los Estatutos 2026 (art. 21 y 27), ADR-060 regla 4; la dirección de macroevento se etiqueta con T-2268 y T-2269 (regla 9)",
   },
   "T-445": {
     where: "Membresía: campo del título cuando el cargo es Otro",

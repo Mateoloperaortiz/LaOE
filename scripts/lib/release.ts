@@ -77,6 +77,9 @@ const REQUIRED_INDEXES = [
   "committee_representative_role_unique",
   "committee_representative_person_unique",
   "committee_assembly_attendance_unique",
+  "appointment_edition_titular_unique",
+  "appointment_edition_codireccion_unique",
+  "appointment_edition_person_unique",
   "internal_call_entry_unique",
   // Fase 6 (ADR-038)
   "message_person_dedupe_unique",

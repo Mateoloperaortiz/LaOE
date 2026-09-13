@@ -4,6 +4,7 @@ import { channelLabel, kindLabel, statusLabel as messageStatusLabel } from "@/mo
 import type { InteractionView, TaskRow } from "@/modules/crm";
 import type { ActorPermission } from "@/modules/identity";
 import {
+  appointmentLabel,
   committeeRolesLabel,
   formatBirthDate,
   type MyMembershipView,
@@ -26,12 +27,7 @@ import {
   removeAppointmentAction,
   revokeCarnetAction,
 } from "../actions";
-import {
-  appointmentLabel,
-  CONSENT_TEXTS,
-  TIMELINE_FILTERS,
-  type TimelineFilterKey,
-} from "./etiquetas";
+import { CONSENT_TEXTS, TIMELINE_FILTERS, type TimelineFilterKey } from "./etiquetas";
 
 // Contenido de cada pestaña de la Persona 360. Las de fases siguientes muestran T-240.
 
@@ -243,8 +239,7 @@ export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipVi
             {data.appointments.map((item) => (
               <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span>
-                  <span className="font-semibold">{appointmentLabel(item.kind, item.title)}</span> ·{" "}
-                  {item.termCode}
+                  <span className="font-semibold">{appointmentLabel(item)}</span> · {item.termCode}
                   {item.committeeName ? ` · ${item.committeeName}` : ""}
                 </span>
                 <form action={removeAppointmentAction}>
