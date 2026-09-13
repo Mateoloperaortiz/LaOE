@@ -141,3 +141,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Solicitud de eliminación | `Person.deletionRequestedAt` + `Task.kind = DELETION_REQUEST` | Pedido del miembro para borrar sus datos; GH lo atiende anonimizando el perfil |
 | Segmento guardado | `Segment.filter` | Etapa, estado, ingreso, comités, cargos, etiquetas, consentimiento y programa; alimenta exportes y, después, campañas |
 | Medio | `MediaAsset` | Referencia a un archivo en el bucket (portada, foto, PDF) |
+| Presupuesto del comité | `CommitteeBudget` | Ordinario anual o extraordinario de una actividad no prevista; se abre con las aprobaciones de Desarrollo Estudiantil y de la Vicepresidencia Financiera (Regl. art. 50) y puede llevar la sanción del 10 % por presentación tardía (art. 66) |
+| Rubro | `BudgetLine` | Monto asignado dentro de un presupuesto; disponible = asignado + traslados recibidos − traslados salientes − gastos |
+| Presolicitud | `BudgetPrerequest` | Pedido mensual del Financiero para acceder a los recursos; sin ella no hay gasto ese mes (Est. art. 38.3) |
+| Aval de evento | `EventApproval` | Aprobación de la Presidencia antes de ejecutar, difundir o comprar para un evento (Regl. art. 35 par. 1); los gastos y traslados del evento se ligan a él |

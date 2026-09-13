@@ -1,6 +1,6 @@
 # ADR-059: Presupuesto del comité por rubros, gastos y traslados
 
-- Estado: Propuesta
+- Estado: Aceptada (2026-09-13, con las enmiendas de [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) regla 12)
 - Fecha: 2026-09-12
 - Enmienda: 01-arquitectura (módulo `finance`), 03-modelo (`CommitteeBudget`, `BudgetLine`, `BudgetExpense`, `BudgetTransfer`), 06-mapa (`/admin/presupuestos` y el área Finanzas del comité), glosario y 14-copy (T-2190 a T-2205)
 - Relacionadas: ADR-004, ADR-011, ADR-012, ADR-014, ADR-017, ADR-032, ADR-058
@@ -33,3 +33,7 @@ Antes de implementar el tramo, resolver lo que el Reglamento y los Estatutos exi
 - Compras solo a proveedores de la lista de la Universidad y alineadas con la Política de Compras Sostenibles (Regl. art. 51); cabe como dato del gasto, no como validación.
 
 Estos puntos se suman a las preguntas ya anotadas para Finanzas y la junta; la ADR pasa a Aceptada con ellos resueltos o explícitamente aplazados.
+
+## Enmienda (2026-09-13, ADR-060)
+
+Implementada en el tramo N26-T10 con lo que pedía la revisión normativa: `committee_budget.kind` (ordinario anual o extraordinario con su actividad, Regl. art. 50) y las aprobaciones de Desarrollo Estudiantil y de la Vicepresidencia Financiera como requisito para abrir (par. 1); `budget_prerequest` mensual sin la cual no se registran gastos de ese mes (Est. art. 38.3 y par. 1); `event_approval` como aval de evento que la Presidencia decide y al que se ligan gastos y traslados, estos últimos solo antes del evento (Regl. art. 35 par. 1; Est. art. 38 par. 2); la sanción del 10 % como ajuste porcentual de lo asignado con motivo (Regl. art. 66); y el proveedor como dato del gasto (Regl. art. 51). Siguen abiertas para Finanzas y la junta: rubros estándar, soportes adjuntos y topes por rubro.

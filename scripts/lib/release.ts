@@ -80,6 +80,8 @@ const REQUIRED_INDEXES = [
   "appointment_edition_titular_unique",
   "appointment_edition_codireccion_unique",
   "appointment_edition_person_unique",
+  "committee_budget_ordinary_unique",
+  "budget_prerequest_month_unique",
   "internal_call_entry_unique",
   // Fase 6 (ADR-038)
   "message_person_dedupe_unique",

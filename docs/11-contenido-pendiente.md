@@ -21,7 +21,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Nombre oficial de cada comité: el seed sintético y la primera carga usan la sigla del logo en mayúsculas como nombre provisional
 - [x] Reparto de capacidades por cargo y existencia de Mercadeo: decidido el 2026-09-13 siguiendo los Estatutos 2026 (mesa de seis cargos, Publicidad retirado y traducido a Mercadeo, Logística con roster; [ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) regla 4). Queda para GH revisar el reparto desde `/admin/cargos` si quiere afinarlo
 - [ ] Qué deben ver Relaciones Públicas y Financiero en el área Aliados de su comité: organizaciones y patrocinios ligados al comité, hoy sin comité en la base ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md))
-- [ ] Presupuesto de los comités: rubros estándar, si es por año calendario o por semestre, si un traslado entre rubros exige aprobación de la Vicepresidencia Financiera, si se adjuntan soportes y si hay topes por rubro ([ADR-059](adr/ADR-059-presupuesto-del-comite.md))
+- [ ] Presupuesto de los comités: rubros estándar, si es por año calendario o por semestre, si un traslado entre rubros exige aprobación de la Vicepresidencia Financiera, si se adjuntan soportes y si hay topes por rubro ([ADR-059](adr/ADR-059-presupuesto-del-comite.md)) (desde el tramo N26-T10 el módulo `finance` existe: faltan los rubros estándar para sembrarlos, si la junta los define)
 - [ ] Representante ante la Asamblea Directiva y suplente de cada comité en 2026-2, para llevar la asistencia por comité que exige el Reglamento (art. 14, 17 y 64; [18-revision-normativa-2026.md](18-revision-normativa-2026.md), V4)
 
 ## Eventos

@@ -1837,3 +1837,30 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2283 | Inhabilidades: campo de excepción (Persona 360, mesa de macroevento) y su ayuda | Excepción registrada (motivo) · Solo si hay una inhabilidad: el aval de la Vicepresidencia de GH o la decisión de la junta quedan auditados con este motivo. | MATEO | Propuesta |
 | T-2284 | Grupos de trabajo: tope de comités de trabajo por persona | {nombre} ya está en dos comités de trabajo este semestre (Estatutos, art. 4 par. 3). | GH | Propuesta |
 | T-2285 | Roster: aviso de inhabilidad en la vista previa | Inhabilidad al nombrar ({motivos}): se aplica igual y queda auditada con el motivo del roster. | MATEO | Propuesta |
+| T-2286 | Presupuesto: tipos (en el orden del modelo) | Ordinario · Extraordinario | MATEO | Propuesta |
+| T-2287 | Presupuesto: guarda de ordinario repetido | Ese comité ya tiene presupuesto ordinario para {año}. | MATEO | Propuesta |
+| T-2288 | Presupuesto: campos de ADR-060 | Tipo · Actividad (solo extraordinario) · Presentado el · Aprobación de Desarrollo Estudiantil · Aprobación de la Vicepresidencia Financiera · Sanción (%) · Motivo de la sanción | MATEO | Propuesta |
+| T-2289 | Rubros: guarda al borrar uno con movimientos | El rubro {rubro} tiene movimientos: no se borra; trasladá lo que queda. | MATEO | Propuesta |
+| T-2290 | Presupuesto: guarda al abrir sin aprobaciones | Para abrirlo faltan las aprobaciones de Desarrollo Estudiantil y de la Vicepresidencia Financiera (Reglamento, art. 50 par. 1). | MATEO | Propuesta |
+| T-2291 | Presupuesto: guarda al abrir sin rubros | Para abrirlo necesita al menos un rubro. | MATEO | Propuesta |
+| T-2292 | Gasto: guarda sin presolicitud del mes | Sin presolicitud de {mes} el comité no tiene acceso a los recursos ese mes (Estatutos, art. 38): registrala primero. | MATEO | Propuesta |
+| T-2293 | Traslado: guarda de rubros iguales | Elegí dos rubros distintos. | MATEO | Propuesta |
+| T-2294 | Aval: guarda de aval no aprobado o de otro comité | Ese aval no está aprobado o no es de este comité. | MATEO | Propuesta |
+| T-2295 | Traslado: guarda después del evento | Las reasignaciones se presentan antes del evento (Estatutos, art. 38 par. 2): el evento del aval fue el {fecha}. | MATEO | Propuesta |
+| T-2296 | Aval: guarda de decisión repetida | Ese aval ya fue decidido. | MATEO | Propuesta |
+| T-2297 | Presolicitud: guarda de mes repetido | Ya hay presolicitud para {mes}. | MATEO | Propuesta |
+| T-2298 | Presolicitud: título, campos, botón y confirmación | Presolicitud mensual · Mes · Notas · Registrar presolicitud · Presolicitud registrada. | MATEO | Propuesta |
+| T-2299 | Aval de evento: título, campos, botón y confirmación | Avales de evento · Evento · Fecha del evento · Edición (opcional) · Descripción · Pedir aval · Aval pedido: lo decide la Presidencia. | MATEO | Propuesta |
+| T-2300 | Aval de evento: estados (en el orden del modelo) | Pendiente · Aprobado · Rechazado | MATEO | Propuesta |
+| T-2301 | Aval de evento: ayuda | Antes de ejecutar, difundir o comprar para un evento, la Presidencia lo avala (Reglamento, art. 35 par. 1). Los gastos y los traslados de ese evento se ligan a su aval. | JUNTA | Propuesta |
+| T-2302 | Presupuesto (detalle): títulos | Aprobaciones · Sanción por presentación tardía · Presolicitudes · Avales · Movimientos · Detalle | MATEO | Propuesta |
+| T-2303 | Presupuesto (detalle): botones | Registrar aprobación · Abrir · Cerrar · Aplicar sanción · Guardar rubros · Aprobar · Rechazar | MATEO | Propuesta |
+| T-2304 | Presupuesto (detalle): aprobador (en el orden del modelo) | Desarrollo Estudiantil · Vicepresidencia Financiera | MATEO | Propuesta |
+| T-2305 | Presupuesto: ayuda del tipo | El ordinario es anual y se presenta al final del año anterior; los extraordinarios cubren actividades no previstas durante el año (Reglamento, art. 50). Los dos los aprueban Desarrollo Estudiantil y la Vicepresidencia Financiera antes de abrirse. | JUNTA | Propuesta |
+| T-2306 | Presupuesto: ayuda de la sanción | No presentar el presupuesto a tiempo sin aplazamiento descuenta el 10 % del siguiente presupuesto aprobado (Reglamento, art. 66): queda como ajuste con motivo. | JUNTA | Propuesta |
+| T-2307 | Gasto y traslado: campos del aval y del proveedor | Aval del evento (opcional) · Proveedor (de la lista de la Universidad, Reglamento art. 51) · Sin aval | MATEO | Propuesta |
+| T-2308 | Presupuesto (detalle): confirmación | Presupuesto actualizado. | MATEO | Propuesta |
+| T-2309 | Presupuesto extraordinario: etiqueta | Extraordinario: {actividad} | MATEO | Propuesta |
+| T-2310 | Presupuesto: totales | Asignado {asignado} · Gastado {gastado} · Disponible {disponible} | MATEO | Propuesta |
+| T-2311 | Presupuesto (detalle): sin movimientos, sin presolicitudes, sin avales | Sin movimientos todavía. · Sin presolicitudes todavía. · Sin avales pedidos. | MATEO | Propuesta |
+| T-2312 | Presupuesto (detalle): campos de la aprobación y de la sanción | Quién aprueba · Fecha · Porcentaje · Motivo · Nota de la decisión | MATEO | Propuesta |

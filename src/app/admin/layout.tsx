@@ -99,6 +99,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         { href: "/admin/permanencia/cumplimiento", label: cumplimiento ?? "" },
         { href: "/admin/permanencia/cierre", label: cierrePermanencia ?? "" },
         { href: "/admin/junta", label: junta ?? "" },
+        { href: "/admin/presupuestos", label: tList("T-2200")[0] ?? "" },
         { href: "/admin/permisos", label: permisos ?? "" },
         { href: "/admin/sistema/importaciones", label: importaciones ?? "" },
         { href: "/admin/sistema/jobs", label: t("T-241") },
@@ -133,6 +134,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       "/admin/permanencia/evaluaciones",
       "/admin/permanencia/cumplimiento",
       "/admin/permanencia/cierre",
+      "/admin/presupuestos",
       "/admin/junta",
     ],
     [

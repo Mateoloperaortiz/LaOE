@@ -58,7 +58,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzl
 | `comms` | Bus de notificaciones (push por preferencia, un `Message` por persona), suscripciones push y preferencias, plantillas de correo y campañas por segmento en lotes, registro de mensajes; importa `people`, `terms`, `content`, `participation` y `system`, nadie lo importa ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) | `EmailTemplate`, `Campaign`, `CampaignRecipient`, `Message`, `PushSubscription`, `NotificationPreference` |
 | `system` | Auditoría, configuración, outbox, importaciones, exportes, alias legados, salud | `AuditLog`, `AppConfig`, `Outbox`, `ImportJob`, `LegacyAlias` |
 | `wallet` | Carnet opcional en Apple y Google Wallet, reservas y estados, sincronización/supresión de Google y conciliación diaria; importa `identity`, `people` y `terms` por API pública ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)) | `WalletPass` |
-| `finance` | Presupuesto anual de cada comité: rubros, gastos y traslados entre rubros; importa `people`, `terms` y `system` ([ADR-059](adr/ADR-059-presupuesto-del-comite.md)) | `CommitteeBudget`, `BudgetLine`, `BudgetExpense`, `BudgetTransfer` |
+| `finance` | Presupuesto de cada comité: ordinario anual y extraordinarios con aprobación de Desarrollo Estudiantil y de la Vicepresidencia Financiera, rubros, presolicitud mensual, aval de evento, gastos y traslados; importa `people` y `events` ([ADR-059](adr/ADR-059-presupuesto-del-comite.md), [ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) regla 12) | `CommitteeBudget`, `BudgetLine`, `EventApproval`, `BudgetPrerequest`, `BudgetExpense`, `BudgetTransfer` |
 
 ## Capas dentro de un request
 

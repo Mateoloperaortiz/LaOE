@@ -6,6 +6,17 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { committeeAnnouncementSchema, createCommitteeAnnouncementAs } from "@/modules/content";
 import {
+  approvalRequestSchema,
+  expenseInputSchema,
+  getBudget,
+  prerequestInputSchema,
+  recordExpenseAs,
+  recordTransferAs,
+  requestEventApprovalAs,
+  submitPrerequestAs,
+  transferInputSchema,
+} from "@/modules/finance";
+import {
   createOccasionAs,
   createOccasionSeriesAs,
   occasionInputSchema,
@@ -376,4 +387,107 @@ export async function setRepresentativesAction(formData: FormData): Promise<void
   revalidatePath(returnTo);
   revalidatePath("/admin/asambleas");
   redirect(back(slug, { area: "personas", guardado: "1" }));
+}
+
+// Área Finanzas (ADR-059 regla 2; ADR-060 regla 12): quien tiene FINANCE registra la presolicitud del
+// mes, gastos y traslados sobre un presupuesto de su comité, y pide el aval de un evento.
+const finanzas = { area: "finanzas" };
+
+async function financeOf(slug: string, budgetId: string) {
+  const access = await requireCommitteeCapability(slug, "FINANCE", back(slug, finanzas));
+  const budget = budgetId ? await getBudget(budgetId) : null;
+  if (budgetId && (!budget || budget.committeeId !== access.roster.committee.id)) {
+    redirect(back(slug, { ...finanzas, error: t("T-032") }));
+  }
+  return {
+    actor: { personId: access.actor.personId, ip: await clientIp() },
+    committee: access.roster.committee,
+  };
+}
+
+async function runFinance(
+  slug: string,
+  guardado: string,
+  work: () => Promise<unknown>,
+): Promise<void> {
+  try {
+    await work();
+  } catch (error) {
+    if (error instanceof DomainError) {
+      redirect(back(slug, { ...finanzas, error: error.message }));
+    }
+    throw error;
+  }
+  revalidatePath(back(slug));
+  redirect(back(slug, { ...finanzas, guardado }));
+}
+
+export async function submitPrerequestAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const budgetId = text(formData, "budgetId");
+  const { actor } = await financeOf(slug, budgetId);
+  const parsed = prerequestInputSchema.safeParse({
+    budgetId,
+    month: text(formData, "month"),
+    notes: text(formData, "notes"),
+  });
+  if (!parsed.success) {
+    redirect(back(slug, { ...finanzas, error: t("T-260") }));
+  }
+  await runFinance(slug, "presolicitud", () => submitPrerequestAs(actor, parsed.data));
+}
+
+export async function recordExpenseAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const budgetId = text(formData, "budgetId");
+  const { actor } = await financeOf(slug, budgetId);
+  const parsed = expenseInputSchema.safeParse({
+    budgetId,
+    lineId: text(formData, "lineId"),
+    spentOn: text(formData, "spentOn"),
+    amount: text(formData, "amount"),
+    description: text(formData, "description"),
+    supplier: text(formData, "supplier"),
+    approvalId: text(formData, "approvalId") || undefined,
+  });
+  if (!parsed.success) {
+    redirect(back(slug, { ...finanzas, error: t("T-260") }));
+  }
+  await runFinance(slug, "gasto", () => recordExpenseAs(actor, parsed.data));
+}
+
+export async function recordTransferAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const budgetId = text(formData, "budgetId");
+  const { actor } = await financeOf(slug, budgetId);
+  const parsed = transferInputSchema.safeParse({
+    budgetId,
+    fromLineId: text(formData, "fromLineId"),
+    toLineId: text(formData, "toLineId"),
+    amount: text(formData, "amount"),
+    reason: text(formData, "reason"),
+    approvalId: text(formData, "approvalId") || undefined,
+  });
+  if (!parsed.success) {
+    redirect(back(slug, { ...finanzas, error: t("T-260") }));
+  }
+  await runFinance(slug, "traslado", () => recordTransferAs(actor, parsed.data));
+}
+
+export async function requestApprovalAction(formData: FormData): Promise<void> {
+  const slug = slugSchema.parse(formData.get("slug"));
+  const budgetId = text(formData, "budgetId");
+  const { actor, committee } = await financeOf(slug, budgetId);
+  const parsed = approvalRequestSchema.safeParse({
+    committeeId: committee.id,
+    budgetId: budgetId || undefined,
+    editionId: text(formData, "editionId") || undefined,
+    title: text(formData, "title"),
+    description: text(formData, "description"),
+    eventOn: text(formData, "eventOn"),
+  });
+  if (!parsed.success) {
+    redirect(back(slug, { ...finanzas, error: t("T-260") }));
+  }
+  await runFinance(slug, "aval", () => requestEventApprovalAs(actor, parsed.data));
 }

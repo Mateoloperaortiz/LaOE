@@ -9,6 +9,7 @@ export async function truncateAll(): Promise<void> {
   const config = await db.select().from(appConfig);
   await db.execute(sql`
     truncate table
+      budget_transfer, budget_expense, budget_prerequest, event_approval, budget_line, committee_budget,
       audit_log, outbox, campaign_recipient, message, campaign, email_template,
       push_subscription, notification_preference, calendar_token, carnet_token, wallet_pass,
       occasion_survey_response, occasion_survey_invite, import_job, legacy_alias,

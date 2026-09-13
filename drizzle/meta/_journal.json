@@ -169,6 +169,13 @@
       "when": 1789320024485,
       "tag": "0023_licencia_con_vencimiento",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789321748539,
+      "tag": "0024_finanzas",
+      "breakpoints": true
     }
   ]
 }

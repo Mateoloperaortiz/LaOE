@@ -7,6 +7,7 @@ import {
   tasksResource,
 } from "@/modules/crm/admin";
 import { editionsResource, eventsResource } from "@/modules/events/admin";
+import { budgetsResource } from "@/modules/finance/admin";
 import { countRegistrationsByEdition } from "@/modules/forms";
 import { formsResource, registrationsResource, submissionsResource } from "@/modules/forms/admin";
 import { permissionsResource } from "@/modules/identity/admin";
@@ -147,6 +148,7 @@ const resources: Record<string, AnyResource> = {
   [complianceResource.key]: complianceResource as unknown as AnyResource,
   [workGroupsResource.key]: workGroupsResource as unknown as AnyResource,
   [boardResource.key]: boardResource as unknown as AnyResource,
+  [budgetsResource.key]: budgetsResource as unknown as AnyResource,
   [permissionsResource.key]: permissionsResource as unknown as AnyResource,
   [pagesResource.key]: pagesResource as unknown as AnyResource,
   [announcementsResource.key]: carteleraResource as unknown as AnyResource,

@@ -222,14 +222,16 @@ Google usa objeto `<issuerId>.<suffix>.<personId>` y Apple `personId` como seria
 
 ### finance
 
-Propuesto en [ADR-059](adr/ADR-059-presupuesto-del-comite.md); llega con su tramo.
+Presupuesto del comité ([ADR-059](adr/ADR-059-presupuesto-del-comite.md) con las enmiendas de [ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) regla 12), migración `0024`. Importa `people` y `events` por esquema (claves foráneas) y `people` por API; nadie lo importa.
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `CommitteeBudget` | `committeeId`, `year`, `status` (`DRAFT`, `OPEN`, `CLOSED`), `notes?` | Presupuesto anual de un comité; único por comité y año; lo crea, abre y cierra ADMIN |
-| `BudgetLine` | `budgetId`, `name`, `assigned` (`numeric(12,2)`), `sortOrder` | Rubro con su monto asignado; solo ADMIN lo edita |
-| `BudgetExpense` | `budgetId`, `lineId`, `spentOn`, `amount`, `description`, `registeredById` | Gasto contra un rubro; no supera el disponible; nunca se edita ni se borra |
-| `BudgetTransfer` | `budgetId`, `fromLineId`, `toLineId`, `amount`, `reason`, `registeredById` | Traslado de disponible entre rubros del mismo presupuesto, con motivo |
+| `CommitteeBudget` | `committeeId`, `year`, `kind` (`ORDINARY`, `EXTRAORDINARY`), `title` (actividad del extraordinario), `status` (`DRAFT`, `OPEN`, `CLOSED`), `notes`, `submittedOn?`, `studentDevelopmentApprovedOn?`, `vpFinanceApprovedOn?`, `sanctionPercent`, `sanctionReason` | Ordinario anual (uno por comité y año, unique parcial) o extraordinario para una actividad no prevista (Regl. art. 50); se abre solo con las dos aprobaciones (check) y al menos un rubro; la sanción del 10 % por presentación tardía (Regl. art. 66) descuenta lo asignado con motivo; lo crea, aprueba, abre, cierra y sanciona ADMIN |
+| `BudgetLine` | `budgetId`, `name`, `assigned` (`numeric(12,2)`), `sortOrder` | Rubro con su monto asignado; solo ADMIN lo edita; no se borra con movimientos |
+| `EventApproval` | `committeeId`, `budgetId?`, `editionId?`, `title`, `description`, `eventOn`, `status` (`PENDING`, `APPROVED`, `REJECTED`), `requestedById?`, `decidedById?`, `decidedAt?`, `decisionNote` | Aval de evento (Regl. art. 35 par. 1; Est. art. 23.11 y 36.3): lo pide el comité y lo decide la Presidencia una sola vez; los gastos y traslados del evento se ligan al aval aprobado |
+| `BudgetPrerequest` | `budgetId`, `month` (`AAAA-MM`), `submittedOn`, `submittedById?`, `notes` | Presolicitud mensual del Financiero (Est. art. 38.3 y par. 1): una por mes; sin ella no se registran gastos de ese mes |
+| `BudgetExpense` | `budgetId`, `lineId`, `approvalId?`, `spentOn`, `amount`, `description`, `supplier`, `registeredById?` | Gasto contra un rubro de un presupuesto abierto; no supera el disponible; el proveedor es dato (Regl. art. 51); nunca se edita ni se borra |
+| `BudgetTransfer` | `budgetId`, `fromLineId`, `toLineId`, `approvalId?`, `amount`, `reason`, `registeredById?` | Traslado de disponible entre rubros del mismo presupuesto, con motivo; con aval solo antes del evento (Est. art. 38 par. 2) |
 
 ## Restricciones que no negocia el esquema
 
