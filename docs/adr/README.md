@@ -14,7 +14,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | ADR | Título | Estado |
 | --- | --- | --- |
 | [ADR-059](ADR-059-presupuesto-del-comite.md) | Presupuesto del comité por rubros, gastos y traslados | Propuesta |
-| [ADR-058](ADR-058-direccion-del-comite-por-areas.md) | La dirección del comité por áreas: capacidades por cargo, cargos múltiples y codirección | Aceptada |
+| [ADR-058](ADR-058-direccion-del-comite-por-areas.md) | La dirección del comité por áreas: capacidades por cargo, cargos múltiples y codirección | Aceptada; implementada y verificada en local, promoción pendiente |
 | [ADR-057](ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md) | Vicepresidencia de Comunicaciones y Publicidad como cargo de junta | Aceptada |
 | [ADR-056](ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md) | Alta y condición del semestre desde la Persona 360 | Aceptada; verificada en producción |
 | [ADR-055](ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md) | Cuatro particiones E2E, integración en dos runners y lista documental ampliada | Aceptada; validada en remoto |
