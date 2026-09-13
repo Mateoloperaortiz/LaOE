@@ -110,7 +110,7 @@ export default async function ComiteInternoPage({ params }: PageProps<"/app/comi
                   nombre={member.fullName}
                   fotoId={member.photoAssetId}
                   estado={member.status}
-                  comites={[cargoEnComite(member.roleLabel, committee.name)]}
+                  comites={[cargoEnComite(member, committee.name)]}
                   cargos={[]}
                   insignias={insigniasDe(member.personId)}
                 />

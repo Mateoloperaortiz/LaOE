@@ -73,7 +73,7 @@ export default async function ComitesInternosPage() {
                   presentation: found?.presentation ?? null,
                 },
                 index,
-                cargoEnComite(item.roleLabel, item.committeeName),
+                cargoEnComite(item, item.committeeName),
               );
             })}
           </ul>

@@ -443,20 +443,35 @@ export function Paneles({
                       ))}
                     </select>
                   </Campo>
-                  <Campo id={`campo-roleCode${n}`} label={cargo}>
-                    <select
-                      id={`campo-roleCode${n}`}
-                      name={`roleCode${n}`}
-                      defaultValue={row?.roleCode ?? "MIEMBRO"}
-                      className={inputClass}
-                    >
-                      {roles.map((item) => (
-                        <option key={item.code} value={item.code}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                  </Campo>
+                  <fieldset className="flex flex-col gap-2">
+                    <legend className="eyebrow px-1 text-xs">{cargo}</legend>
+                    {roles
+                      .filter((item) => item.code !== "MIEMBRO")
+                      .map((item) => {
+                        const mine = row?.roles.find((role) => role.roleCode === item.code);
+                        return (
+                          <div
+                            key={item.code}
+                            className="flex flex-wrap items-center gap-x-6 gap-y-1"
+                          >
+                            <Casilla
+                              id={`campo-role${n}-${item.code}`}
+                              name={`role${n}-${item.code}`}
+                              label={item.label}
+                              defaultChecked={mine !== undefined}
+                            />
+                            {item.isLeadership ? (
+                              <Casilla
+                                id={`campo-co${n}-${item.code}`}
+                                name={`co${n}-${item.code}`}
+                                label={t("T-2153")}
+                                defaultChecked={mine?.coDirector ?? false}
+                              />
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                  </fieldset>
                   <Casilla
                     id={`campo-transferredIn${n}`}
                     name={`transferredIn${n}`}

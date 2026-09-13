@@ -32,6 +32,7 @@ import {
   endMembershipAs,
   endMembershipSchema,
   getPersonRecord,
+  listCommitteeRoles,
   personInputSchema,
   probationInputSchema,
   reactivateMembershipAs,
@@ -230,15 +231,22 @@ export async function setCommitteesAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const actor = await requireAdmin(await personUrl(id, "membresia"));
   const termId = text(formData, "termId");
+  const catalog = await listCommitteeRoles();
   const rows: CommitteeMembershipInput[] = [];
   for (let index = 1; index <= MAX_ROWS; index += 1) {
     const committeeId = text(formData, `committeeId${index}`);
     if (!committeeId) {
       continue;
     }
+    // Varios cargos por comité (ADR-058): casillas `role{n}-CODIGO` y `co{n}-CODIGO`.
     const parsed = committeeMembershipInputSchema.safeParse({
       committeeId,
-      roleCode: text(formData, `roleCode${index}`) || "MIEMBRO",
+      roles: catalog
+        .filter((role) => role.code !== "MIEMBRO" && checked(formData, `role${index}-${role.code}`))
+        .map((role) => ({
+          roleCode: role.code,
+          coDirector: checked(formData, `co${index}-${role.code}`),
+        })),
       transferredIn: checked(formData, `transferredIn${index}`),
     });
     if (!parsed.success) {
