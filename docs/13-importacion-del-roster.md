@@ -61,7 +61,7 @@ Errores (la fila no se importa hasta corregirla en la vista previa):
 Advertencias (se importa, pero se marca):
 
 - Programa que no coincide con el catálogo; celular con formato raro; nombre en mayúsculas sostenidas (se conserva tal cual, se sugiere corregir).
-- Un comité que queda sin General o Financiero titular en ese término, por comité ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)).
+- Pendiente: un comité que queda sin General o Financiero titular en ese término (T-2177); mientras tanto lo avisan la cabecera del comité y el tablero de ADMIN ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md)).
 
 ## Qué hace la importación
 

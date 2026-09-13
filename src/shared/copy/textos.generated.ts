@@ -3108,7 +3108,7 @@ export const textos = {
   },
   "T-165": {
     where: "Importación, errores (uno por regla)",
-    text: 'Correo repetido en el archivo · Correo fuera del dominio institucional · Comité "{sigla}" no existe, ¿quisiste decir "{sugerencia}"? · Más de 3 comités · Semestre de ingreso vacío o inexistente · Estado fuera de la lista · Cargo desconocido · Cargo sin comité (la persona tiene varios) · Dos Generales en {comité} · Faltan columnas obligatorias para una persona nueva',
+    text: 'Correo repetido en el archivo · Correo fuera del dominio institucional · Comité "{sigla}" no existe, ¿quisiste decir "{sugerencia}"? · Más de 3 comités · Semestre de ingreso vacío o inexistente · Estado fuera de la lista · Cargo desconocido · Cargo sin comité (la persona tiene varios) · Dos titulares de {cargo} en {comité} · Faltan columnas obligatorias para una persona nueva',
     owner: "MATEO",
     status: "Propuesta",
   },

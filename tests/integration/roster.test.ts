@@ -153,22 +153,33 @@ describe("importación del roster", () => {
       `Ana;Pérez;prueba.ana@eafit.edu.co;;Derecho;IUS;${code};Activo;`,
       "Juan;Gómez;prueba.juan@eafit.edu.co;3109876543;Economía;A3;2023-1;Licencia;Financiero",
       "Sofía;Retirada;prueba.sofia@eafit.edu.co;;Diseño;;2021-2;Retirado;",
+      // ADR-058: varios cargos en el mismo comité y codirección de General, que también recibe propuesta.
+      "Cora;Codi;prueba.cora@eafit.edu.co;;Diseño;A3;2024-2;Activo;Codirección de General de A3, Logística de A3",
     ]);
     const first = await preview(adminId, termId, bytes);
-    expect(first.counts).toEqual({ NEW: 4, CHANGED: 0, UNCHANGED: 0, ERROR: 0 });
+    expect(first.counts).toEqual({ NEW: 5, CHANGED: 0, UNCHANGED: 0, ERROR: 0 });
     expect(first.missingTerms).toEqual(["2021-2", "2023-1", "2024-2"]);
     expect(first.proposals).toEqual([
-      expect.objectContaining({ email: "prueba.mateo@eafit.edu.co", committeeName: "A3" }),
+      expect.objectContaining({
+        email: "prueba.mateo@eafit.edu.co",
+        committeeName: "A3",
+        coDirector: false,
+      }),
+      expect.objectContaining({
+        email: "prueba.cora@eafit.edu.co",
+        committeeName: "A3",
+        coDirector: true,
+      }),
     ]);
 
     const summary = await applyRosterImportAs({ personId: adminId }, first.jobId);
-    expect(summary).toMatchObject({ created: 4, updated: 0, unchanged: 0, skipped: 0 });
+    expect(summary).toMatchObject({ created: 5, updated: 0, unchanged: 0, skipped: 0 });
     expect(summary.termsCreated).toEqual(["2021-2", "2023-1", "2024-2"]);
     const [created] = await db().select().from(term).where(eq(term.code, "2024-2"));
     expect(created).toMatchObject({ startsOn: "2024-07-01", endsOn: "2024-12-31", semester: 2 });
 
     const listed = await listPeople({ q: "prueba.", page: 1, pageSize: 10 });
-    expect(listed.total).toBe(4);
+    expect(listed.total).toBe(5);
     const mateo = listed.rows.find((row) => row.email === "prueba.mateo@eafit.edu.co");
     expect(mateo).toMatchObject({
       stage: "MEMBER",
@@ -178,6 +189,8 @@ describe("importación del roster", () => {
     });
     const juan = listed.rows.find((row) => row.email === "prueba.juan@eafit.edu.co");
     expect(juan).toMatchObject({ membershipStatus: "ON_LEAVE", committees: ["A3 · Financiero"] });
+    const cora = listed.rows.find((row) => row.email === "prueba.cora@eafit.edu.co");
+    expect(cora).toMatchObject({ committees: ["A3 · Codirección de General y Logística"] });
     const sofia = listed.rows.find((row) => row.email === "prueba.sofia@eafit.edu.co");
     expect(sofia).toMatchObject({ stage: "ALUMNI", membershipStatus: "INACTIVE", committees: [] });
     // ADR-048: la importación no registra autorizaciones; cada persona autoriza en su primer ingreso.
@@ -190,14 +203,14 @@ describe("importación del roster", () => {
       .select({ n: count() })
       .from(auditLog)
       .where(eq(auditLog.action, "person.imported"));
-    expect(imported?.n).toBe(4);
+    expect(imported?.n).toBe(5);
 
     const second = await preview(adminId, termId, bytes);
-    expect(second.counts).toEqual({ NEW: 0, CHANGED: 0, UNCHANGED: 4, ERROR: 0 });
+    expect(second.counts).toEqual({ NEW: 0, CHANGED: 0, UNCHANGED: 5, ERROR: 0 });
     const again = await applyRosterImportAs({ personId: adminId }, second.jobId);
-    expect(again).toMatchObject({ created: 0, updated: 0, unchanged: 4 });
+    expect(again).toMatchObject({ created: 0, updated: 0, unchanged: 5 });
     const [people] = await db().select({ n: count() }).from(person);
-    expect(people?.n).toBe(5);
+    expect(people?.n).toBe(6);
   });
 
   it("actualiza por correo solo las columnas presentes, da de baja por Retirado y crea cargos nuevos", async () => {

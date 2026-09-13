@@ -1,5 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
@@ -19,6 +19,7 @@ import {
   committee,
   committeeMembership,
   committeeRole,
+  committeeRoleAssignment,
   membership,
   membershipTerm,
   person,
@@ -67,6 +68,15 @@ const previewRowSchema = z.object({
         slug: z.string(),
         name: z.string(),
         roleCode: z.string(),
+        roles: z
+          .array(
+            z.object({
+              roleCode: z.string(),
+              coDirector: z.boolean().default(false),
+              newLabel: z.string().optional(),
+            }),
+          )
+          .default([]),
         newRoleLabel: z.string().optional(),
       }),
     )
@@ -86,6 +96,8 @@ export const leaderProposalSchema = z.object({
   personName: z.string(),
   committeeId: z.string(),
   committeeName: z.string(),
+  /** La codirección de General también recibe la propuesta de líder (ADR-058). */
+  coDirector: z.boolean().default(false),
 });
 
 const previewPayloadSchema = z.object({
@@ -165,6 +177,22 @@ async function existingByEmail(
       .where(and(inArray(membershipTerm.personId, ids), eq(membershipTerm.termId, termId))),
     listAllTerms(),
   ]);
+  const assignments = await db
+    .select({
+      personId: committeeRoleAssignment.personId,
+      slug: committee.slug,
+      roleCode: committeeRoleAssignment.roleCode,
+      coDirector: committeeRoleAssignment.coDirector,
+    })
+    .from(committeeRoleAssignment)
+    .innerJoin(committee, eq(committee.id, committeeRoleAssignment.committeeId))
+    .where(
+      and(
+        inArray(committeeRoleAssignment.personId, ids),
+        eq(committeeRoleAssignment.termId, termId),
+        isNull(committeeRoleAssignment.endedAt),
+      ),
+    );
   for (const row of people) {
     map.set(row.email, {
       personId: row.id,
@@ -185,6 +213,9 @@ async function existingByEmail(
         .map((item) => ({
           slug: item.slug,
           roleCode: item.roleCode,
+          roles: assignments
+            .filter((role) => role.personId === row.id && role.slug === item.slug)
+            .map((role) => ({ roleCode: role.roleCode, coDirector: role.coDirector })),
           transferredIn: item.transferredIn,
         })),
     });
@@ -240,13 +271,14 @@ async function buildPreview(
       continue;
     }
     for (const item of row.committees ?? []) {
-      if (item.roleCode === "GENERAL") {
+      for (const role of item.roles.filter((role) => role.roleCode === "GENERAL")) {
         proposals.push({
           email: row.email,
           personName:
             `${row.firstName ?? existing.get(row.email)?.firstName ?? ""} ${row.lastName ?? existing.get(row.email)?.lastName ?? ""}`.trim(),
           committeeId: item.committeeId,
           committeeName: item.name,
+          coDirector: role.coDirector,
         });
       }
     }
@@ -419,17 +451,26 @@ async function ensureRoles(ctx: CommandContext, rows: PreviewRow[]): Promise<str
   const created: string[] = [];
   for (const row of rows) {
     for (const item of row.committees ?? []) {
-      if (item.newRoleLabel && !known.has(item.roleCode)) {
+      const pending = item.roles
+        .filter((role) => role.newLabel !== undefined)
+        .map((role) => ({ code: role.roleCode, label: role.newLabel as string }));
+      if (item.newRoleLabel && pending.length === 0) {
+        pending.push({ code: item.roleCode, label: item.newRoleLabel });
+      }
+      for (const role of pending) {
+        if (known.has(role.code)) {
+          continue;
+        }
         await createCommitteeRole(ctx, {
-          code: item.roleCode,
-          label: item.newRoleLabel,
+          code: role.code,
+          label: role.label,
           isLeadership: false,
           required: false,
           capabilities: [],
           sortOrder: 50,
         });
-        known.add(item.roleCode);
-        created.push(item.newRoleLabel);
+        known.add(role.code);
+        created.push(role.label);
       }
     }
   }
@@ -566,6 +607,7 @@ async function applyRow(
       row.committees.map((item) => ({
         committeeId: item.committeeId,
         roleCode: item.roleCode,
+        roles: item.roles.map((role) => ({ roleCode: role.roleCode, coDirector: role.coDirector })),
         transferredIn: row.transferSlug === item.slug,
       })),
     );
