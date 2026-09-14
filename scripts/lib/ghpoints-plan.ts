@@ -26,13 +26,15 @@ export const ghManifestSchema = z
           .object({
             key,
             title: z.string().min(2).max(200),
-            type: z.enum(["PARTIDO", "JUEGOS", "DECORACION"]),
+            type: z.enum(["PARTIDO", "JUEGOS", "DECORACION", "ASAMBLEA"]),
+            assemblyKind: z.enum(["ORDINARY", "BOARD_ELECTION", "RUNOFF"]).optional(),
             date: day,
             endDate: day,
             datePrecision: z.literal("DAY"),
             newMembersOnly: z.boolean(),
             existingOccasionId: z.string().min(1).nullable(),
             sourceKey: key,
+            sourceSheet: z.string().min(1).max(31).optional(),
             evidenceEvaluation: z.enum(["PENDING", "GOOD"]).default("PENDING"),
             participants: z.array(participant).min(1).max(1000),
           })
@@ -46,6 +48,9 @@ export const ghManifestSchema = z
     const keys = new Set<string>();
     const sources = new Set(m.sources.map((s) => s.key));
     const records = new Set<string>();
+    const assemblyDates = new Set<string>();
+    if (m.activities.filter((a) => a.assemblyKind === "RUNOFF").length > 1)
+      ctx.addIssue({ code: "custom", message: "El lote repite la segunda vuelta del término" });
     if (sources.size !== m.sources.length)
       ctx.addIssue({ code: "custom", message: "Fuentes repetidas" });
     if (new Set(m.permanenceRules.map((r) => r.key)).size !== m.permanenceRules.length)
@@ -62,6 +67,20 @@ export const ghManifestSchema = z
           message: "Actividad repetida, fechas/fuente inválidas o decoración abierta a veteranos",
         });
       keys.add(a.key);
+      if (a.type === "ASAMBLEA") {
+        if (assemblyDates.has(a.date))
+          ctx.addIssue({
+            code: "custom",
+            message: "Conciliá las asambleas repetidas del mismo día",
+          });
+        assemblyDates.add(a.date);
+      }
+      if (
+        a.type === "ASAMBLEA"
+          ? !a.assemblyKind || a.newMembersOnly || a.endDate !== a.date
+          : a.assemblyKind !== undefined
+      )
+        ctx.addIssue({ code: "custom", message: "Tipo o período de asamblea inválido" });
       const emails = new Set<string>();
       for (const p of a.participants) {
         if (emails.has(p.email) || records.has(p.recordId))
@@ -100,6 +119,7 @@ export interface GhSnapshot {
     legacy_id: string | null;
     title: string;
     kind: string;
+    assembly_kind?: string | null;
     category: string;
     new_members_only: boolean;
     status: string;
@@ -136,9 +156,18 @@ export interface GhSnapshot {
   generalTableLocked: boolean;
 }
 export const pointsFor = (type: GhActivity["type"]) =>
-  ({ PARTIDO: 10, JUEGOS: 20, DECORACION: 30 })[type];
+  ({ PARTIDO: 10, JUEGOS: 20, DECORACION: 30, ASAMBLEA: 0 })[type];
 export const categoryFor = (type: GhActivity["type"]) =>
-  (({ PARTIDO: "ATHLETIC_MATCH", JUEGOS: "INTEGRATION", DECORACION: "OTHER" }) as const)[type];
+  (
+    ({
+      PARTIDO: "ATHLETIC_MATCH",
+      JUEGOS: "INTEGRATION",
+      DECORACION: "OTHER",
+      ASAMBLEA: "OTHER",
+    }) as const
+  )[type];
+export const kindFor = (type: GhActivity["type"]) =>
+  type === "ASAMBLEA" ? "ASSEMBLY" : "ACTIVITY";
 export const legacyKey = (m: GhManifest, a: GhActivity) => `gh-import:${m.batchId}:${a.key}`;
 const normalize = (value: string) =>
   value
@@ -230,12 +259,14 @@ export function planGhImport(manifest: GhManifest, snapshot: GhSnapshot) {
     let reason = "";
     if (ruleConflict) reason = "PERMANENCE_RULE_CONFLICT";
     else if (term.points_closed_at) reason = "TERM_CLOSED";
+    else if (a.type === "ASAMBLEA" && term.permanence_closed_at) reason = "PERMANENCE_CLOSED";
     else if (a.date < term.starts_on || a.endDate > term.ends_on) reason = "DATE_OUTSIDE_TERM";
     else if (a.existingOccasionId && !o) reason = "OCCASION_MISSING";
     else if (owned.length > 1 || (owned[0] && o?.id !== owned[0].id)) reason = "OCCASION_CONFLICT";
     else if (
       o &&
-      (o.kind !== "ACTIVITY" ||
+      (o.kind !== kindFor(a.type) ||
+        (o.assembly_kind ?? null) !== (a.assemblyKind ?? null) ||
         o.category !== categoryFor(a.type) ||
         o.points !== pointsFor(a.type) ||
         o.new_members_only !== a.newMembersOnly ||
@@ -252,6 +283,19 @@ export function planGhImport(manifest: GhManifest, snapshot: GhSnapshot) {
       )
     )
       reason = "EXISTING_OCCASION_NEEDS_MAPPING";
+    if (
+      !reason &&
+      a.type === "ASAMBLEA" &&
+      snapshot.occasions.some(
+        (x) =>
+          x.id !== o?.id &&
+          x.kind === "ASSEMBLY" &&
+          x.status !== "CANCELLED" &&
+          (dayInBogota(x.starts_at) === a.date ||
+            (a.assemblyKind === "RUNOFF" && x.assembly_kind === "RUNOFF")),
+      )
+    )
+      reason = "EXISTING_ASSEMBLY_NEEDS_MAPPING";
     if (o) {
       if (existingTargets.has(o.id)) reason = "REPEATED_OCCASION_MAPPING";
       existingTargets.add(o.id);
@@ -291,19 +335,19 @@ export function planGhImport(manifest: GhManifest, snapshot: GhSnapshot) {
               !snapshot.entries.some((r) => r.reversal_of_id === e.id),
           )
         : [];
-      if (
-        !block &&
-        check &&
-        (checks.length !== 1 ||
-          check.status !== "APPROVED" ||
-          live.length !== 1 ||
-          live[0]?.points !== pointsFor(a.type) ||
-          live[0]?.person_id !== person?.id)
-      )
+      const expectedPoints = pointsFor(a.type);
+      const creditConflict =
+        expectedPoints === 0
+          ? snapshot.entries.some((e) => e.check_in_id === check?.id)
+          : live.length !== 1 ||
+            live[0]?.points !== expectedPoints ||
+            live[0]?.person_id !== person?.id;
+      if (!block && check && (checks.length !== 1 || check.status !== "APPROVED" || creditConflict))
         block = "EXISTING_CHECKIN_CONFLICT";
       if (
         !block &&
         !check &&
+        expectedPoints > 0 &&
         person &&
         snapshot.entries.some(
           (e) =>

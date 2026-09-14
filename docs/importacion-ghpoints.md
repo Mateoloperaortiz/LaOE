@@ -4,9 +4,11 @@ El CLI importa asistencias normalizadas y evidencias de permanencia. No interpre
 
 ## Preparación
 
-El manifiesto `oe-ghpoints/2` contiene `batchId`, `termCode`, `targetTermId`, `allowOnLeavePoints`, `sources`, `confirmations`, `permanenceRules` y `activities`. Cada fuente tiene `key`, ruta relativa al paquete y SHA-256. Cada actividad tiene clave estable, título, tipo (`PARTIDO`, `JUEGOS`, `DECORACION`), fechas inclusivas, precisión `DAY`, restricción de nuevos, ID de ocasión existente o `null`, fuente, evaluación y participantes (`recordId`, correo y fila).
+El manifiesto `oe-ghpoints/2` contiene `batchId`, `termCode`, `targetTermId`, `allowOnLeavePoints`, `sources`, `confirmations`, `permanenceRules` y `activities`. Cada fuente tiene `key`, ruta relativa al paquete y SHA-256. Cada actividad tiene clave estable, título, tipo (`PARTIDO`, `JUEGOS`, `DECORACION`, `ASAMBLEA`), fechas inclusivas, precisión `DAY`, restricción de nuevos, ID de ocasión existente o `null`, fuente, evaluación y participantes (`recordId`, correo y fila). `sourceSheet` conserva la hoja cuando la fuente es un libro. Para `ASAMBLEA`, `assemblyKind` es obligatorio y explícito: `ORDINARY`, `BOARD_ELECTION` o `RUNOFF`.
 
 Los puntos son 10 por partido, 20 por juegos y 30 por decoración. Una actividad de varios días da puntos una sola vez. Las fuentes se verifican antes de cualquier subida: máximo 30 MB por archivo y 200 MB por paquete; rutas y enlaces deben permanecer dentro del paquete.
+
+Las asambleas tienen cero puntos y registran un check-in aprobado sin entrada de ledger; alimentan permanencia y el cumplimiento de asambleas. Se deduplican después de resolver las identidades. Una asamblea existente en la misma fecha requiere mapeo; una membresía pendiente retiene su asistencia. El importador no crea fichas ni asigna la clase de asamblea a partir de una fecha. Véase [ADR-063](adr/ADR-063-importacion-de-asambleas.md).
 
 ## Vista previa
 

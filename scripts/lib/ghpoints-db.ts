@@ -19,13 +19,16 @@ import { lockOpenTermPoints } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import {
+  categoryFor,
   dayWindow,
   evidenceGroup,
   GhImportError,
   type GhManifest,
   type GhSnapshot,
+  kindFor,
   legacyKey,
   planGhImport,
+  pointsFor,
 } from "./ghpoints-plan";
 
 /** La consulta y la escritura comparten el mismo recorte del término y de las personas. */
@@ -70,6 +73,7 @@ export async function readGhSnapshot(
       legacy_id: occasion.legacyId,
       title: occasion.title,
       kind: occasion.kind,
+      assembly_kind: occasion.assemblyKind,
       category: occasion.category,
       new_members_only: occasion.newMembersOnly,
       status: occasion.status,
@@ -274,13 +278,9 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
           .values({
             publicId: newPublicId(),
             termId: plan.termId,
-            kind: "ACTIVITY",
-            category:
-              activity.type === "PARTIDO"
-                ? "ATHLETIC_MATCH"
-                : activity.type === "JUEGOS"
-                  ? "INTEGRATION"
-                  : "OTHER",
+            kind: kindFor(activity.type),
+            assemblyKind: activity.assemblyKind ?? null,
+            category: categoryFor(activity.type),
             title: activity.title,
             description: t("T-2340", { inicio: activity.date, fin: activity.endDate }),
             newMembersOnly: activity.newMembersOnly,
@@ -288,7 +288,7 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
             endsAt: window.endsAt,
             checkInOpensAt: window.startsAt,
             checkInClosesAt: window.endsAt,
-            points: activity.type === "PARTIDO" ? 10 : activity.type === "JUEGOS" ? 20 : 30,
+            points: pointsFor(activity.type),
             approval: "MANUAL",
             status: "CLOSED",
             closedAt: now,
@@ -308,6 +308,7 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
             datePrecision: "DAY",
             date: activity.date,
             endDate: activity.endDate,
+            assemblyKind: activity.assemblyKind ?? null,
           },
         });
       }
@@ -319,6 +320,7 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
           sourceKey: activity.sourceKey,
           fileKey: options.evidenceKeys[activity.sourceKey],
           sourceRow: participant?.sourceRow,
+          sourceSheet: activity.sourceSheet ?? null,
           recordId: row.recordId,
           datePrecision: "DAY",
         };
@@ -358,13 +360,8 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
               occasionId,
               occasionTitle: activity.title,
               termId: plan.termId,
-              category:
-                activity.type === "PARTIDO"
-                  ? "ATHLETIC_MATCH"
-                  : activity.type === "JUEGOS"
-                    ? "INTEGRATION"
-                    : "OTHER",
-              kind: "ACTIVITY",
+              category: categoryFor(activity.type),
+              kind: kindFor(activity.type),
               points: row.points,
               source: "IMPORT",
             },

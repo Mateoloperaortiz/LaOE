@@ -1,6 +1,6 @@
 # ADR-062: Importación histórica de asistencias y evidencias de GH
 
-- Estado: Implementada, desplegada y carga verificada en producción
+- Estado: Implementada, desplegada y carga verificada en producción; enmendada por ADR-063
 - Fecha: 2026-09-14
 - Relacionadas: ADR-007, ADR-012, ADR-022, ADR-035, ADR-036, ADR-038
 - Enmienda: ADR-035 (entrada administrativa de asistencias históricas), ADR-036 (evidencias previamente validadas por GH), ADR-038 (sin push para créditos importados)
@@ -29,3 +29,7 @@ No se necesita un formato distinto por cada Excel ni una migración de esquema. 
 Uso y verificaciones: [Importación de GH Points](../importacion-ghpoints.md).
 
 La carga autorizada del 14/09/2026 quedó aplicada y verificada: 222 asistencias y 3.650 GH Points para 117 personas, sin retenciones ni diferencias de porcentajes. Evidencia del despliegue, integridad e idempotencia en el [runbook](../15-runbook.md#carga-histórica-de-gh-points--2026-09-14).
+
+## Enmienda: asambleas
+
+[ADR-063](ADR-063-importacion-de-asambleas.md) agrega el tipo `ASAMBLEA`, su clasificación explícita y la hoja de procedencia. Su check-in no genera crédito y se reconoce como existente sin ledger; conserva las protecciones de carga e incorpora el cierre de permanencia y la conciliación por fecha.

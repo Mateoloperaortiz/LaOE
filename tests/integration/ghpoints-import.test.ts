@@ -9,6 +9,7 @@ import { membership } from "@/modules/people/schema";
 import { computePerson, loadPeopleFacts, loadTermFacts } from "@/modules/permanence";
 import { referenceGeneralRules } from "@/modules/permanence/domain/templates";
 import { permanenceRule, workGroupMembership } from "@/modules/permanence/schema";
+import { auditLog, outbox } from "@/modules/system/schema";
 import { applyGhImport, previewGhImport } from "../../scripts/lib/ghpoints-db";
 import { type GhManifest, ghManifestSchema } from "../../scripts/lib/ghpoints-plan";
 import { truncateAll } from "./db";
@@ -66,6 +67,79 @@ const opts = (hash: string, skipBlocked = false) => ({
 });
 
 describe("importación administrativa de GH Points", () => {
+  it("tres asambleas aportan 10% sin créditos, conservan hoja/fila y se pueden reconsultar sin duplicar", async () => {
+    await getDb()
+      .update(membership)
+      .set({ status: "ACTIVE" })
+      .where(eq(membership.personId, personId));
+    const committeeId = await seedCommittee("assembly-committee");
+    await seedCommitteeMembership(personId, committeeId, termId);
+    const base = first(m.activities);
+    m.activities = [1, 2, 3].map((i) => ({
+      ...base,
+      key: `ASSEMBLY-${i}`,
+      title: `Asamblea sintética ${i}`,
+      type: "ASAMBLEA",
+      assemblyKind: "ORDINARY",
+      newMembersOnly: false,
+      date: `2025-08-0${i}`,
+      endDate: `2025-08-0${i}`,
+      sourceSheet: `Hoja ${i}`,
+      participants: [
+        { recordId: `ASSEMBLY-RECORD-${i}`, email: "person@example.test", sourceRow: 7 },
+      ],
+    }));
+    const preview = await previewGhImport(m, "test");
+    expect(preview.summary).toMatchObject({ rowsToAdd: 3, pointsToAdd: 0 });
+    await applyGhImport(m, opts(preview.planHash));
+    expect(await getDb().select().from(pointEntry)).toHaveLength(0);
+    expect(await getDb().select().from(workGroupMembership)).toHaveLength(0);
+    const assemblies = await getDb().select().from(occasion);
+    expect(assemblies).toHaveLength(3);
+    for (const a of assemblies)
+      expect(a).toMatchObject({
+        kind: "ASSEMBLY",
+        assemblyKind: "ORDINARY",
+        points: 0,
+        status: "CLOSED",
+      });
+    const audit = await getDb()
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, "checkin.imported"));
+    expect(audit).toHaveLength(3);
+    expect(audit.map((a) => (a.after as { sourceSheet: string }).sourceSheet).sort()).toEqual([
+      "Hoja 1",
+      "Hoja 2",
+      "Hoja 3",
+    ]);
+    for (const a of audit) expect(a.after).toMatchObject({ sourceRow: 7 });
+    const events = await getDb()
+      .select()
+      .from(outbox)
+      .where(eq(outbox.eventType, "checkin.approved"));
+    expect(events).toHaveLength(3);
+    for (const e of events)
+      expect(e.payload).toMatchObject({ kind: "ASSEMBLY", source: "IMPORT", points: 0 });
+    const facts = await loadTermFacts(termId);
+    if (!facts) throw Error("Faltan hechos");
+    const result = computePerson(
+      facts,
+      first(await loadPeopleFacts(facts, [personId])),
+      new Date("2025-10-01T15:00:00Z"),
+    );
+    expect(result.general.find((r) => r.key === "asambleas")?.achieved).toBe(10);
+    expect(result.mandatory.attended.ordinary).toBe(3);
+    const recheck = await previewGhImport(m, "test");
+    expect(recheck.summary).toMatchObject({
+      rowsExisting: 3,
+      rowsToAdd: 0,
+      rowsBlocked: 0,
+      pointsToAdd: 0,
+    });
+    expect((await applyGhImport(m, opts(recheck.planHash))).applied).toBe(false);
+    expect(await getDb().select().from(checkIn)).toHaveLength(3);
+  });
   it("las evidencias importadas producen 4% de juegos, 5% de apoyo y 10% de decoración en el cálculo real", async () => {
     await getDb()
       .update(membership)
