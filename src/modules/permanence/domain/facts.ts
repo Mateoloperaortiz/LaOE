@@ -50,7 +50,13 @@ export async function loadPermanenceConfig(): Promise<PermanenceConfig> {
 export async function loadGroups(termId: string): Promise<GroupFact[]> {
   const db = getDb();
   const groups = await db
-    .select({ id: workGroup.id, kind: workGroup.kind, code: workGroup.code, name: workGroup.name })
+    .select({
+      id: workGroup.id,
+      kind: workGroup.kind,
+      code: workGroup.code,
+      name: workGroup.name,
+      macroeventId: workGroup.eventId,
+    })
     .from(workGroup)
     .where(eq(workGroup.termId, termId))
     .orderBy(asc(workGroup.name));

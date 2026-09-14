@@ -171,6 +171,59 @@ function byKey(results: ReadonlyArray<{ key: string; achieved: number; remaining
   return new Map(results.map((item) => [item.key, item]));
 }
 
+it("cuenta macroeventos distintos: dos GT del mismo evento no suben de nivel", () => {
+  const groups: GroupFact[] = [
+    {
+      id: "a",
+      name: "Inventiva A",
+      macroeventId: "inventiva",
+      kind: "GT_MACROEVENT",
+      code: null,
+      evaluatorIds: [],
+    },
+    {
+      id: "b",
+      name: "Inventiva B",
+      macroeventId: "inventiva",
+      kind: "GT_MACROEVENT",
+      code: null,
+      evaluatorIds: [],
+    },
+    {
+      id: "c",
+      name: "Días",
+      macroeventId: "dias",
+      kind: "GT_MACROEVENT",
+      code: null,
+      evaluatorIds: [],
+    },
+  ];
+  const member = person({
+    groupMemberships: groups.map((group) => ({
+      groupId: group.id,
+      evaluation: "GOOD",
+      evaluatedById: "gh",
+      evaluatedAt: NOW,
+      note: null,
+      leftAt: null,
+    })),
+  });
+  expect(
+    byKey(computePerson(facts({ groups }), member, NOW).general).get("gt-macroeventos")?.achieved,
+  ).toBe(6);
+  member.groupMemberships[1] = {
+    groupId: "b",
+    evaluation: "PENDING",
+    leftAt: null,
+    evaluatedAt: null,
+    evaluatedById: null,
+    note: null,
+  };
+  expect(
+    byKey(computePerson(facts({ groups }), member, NOW).general).get("gt-macroeventos")?.achieved,
+  ).toBe(6);
+});
+
 describe("inducción de nuevos (ADR-060 regla 13)", () => {
   const induction = {
     id: "ind",

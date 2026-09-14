@@ -143,6 +143,9 @@ export const workGroup = pgTable(
   },
   (t) => [
     uniqueIndex("work_group_code_unique").on(t.termId, t.code).where(sql`${t.code} is not null`),
+    uniqueIndex("work_group_macroevent_term_unique")
+      .on(t.termId, t.eventId)
+      .where(sql`${t.kind} = 'GT_MACROEVENT' and ${t.eventId} is not null`),
     index("work_group_term_kind_idx").on(t.termId, t.kind),
     index("work_group_leader_idx").on(t.leaderPersonId),
     check("work_group_code_format", sql`${t.code} is null or ${t.code} ~ '^[A-Z0-9-]{2,20}$'`),

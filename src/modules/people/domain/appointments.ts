@@ -2,7 +2,7 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
-import { listEditionRefs } from "@/modules/events";
+import { getMacroeventEdition, listEditionRefs, macroeventRoleCodes } from "@/modules/events";
 import { listAllTerms } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
@@ -63,8 +63,8 @@ export const MACROEVENT_ROLE_CODES = [
   "GENERAL",
   "LOGISTICA",
   "FINANZAS",
+  "RELACIONES_PUBLICAS",
   "MERCADEO",
-  "PUBLICIDAD",
   "GESTION_HUMANA",
   "THE_GAMES",
   "CARNIVAL",
@@ -248,8 +248,14 @@ export interface MacroeventRoleRow {
   sortOrder: number;
 }
 
-export async function listMacroeventRoles(): Promise<MacroeventRoleRow[]> {
-  return getDb().select().from(macroeventRole).orderBy(asc(macroeventRole.sortOrder));
+export async function listMacroeventRoles(eventSlug?: string): Promise<MacroeventRoleRow[]> {
+  const codes = eventSlug ? macroeventRoleCodes(eventSlug) : MACROEVENT_ROLE_CODES;
+  const rows = await getDb()
+    .select()
+    .from(macroeventRole)
+    .where(inArray(macroeventRole.code, [...codes]))
+    .orderBy(asc(macroeventRole.sortOrder));
+  return eventSlug ? rows.sort((a, b) => codes.indexOf(a.code) - codes.indexOf(b.code)) : rows;
 }
 
 export interface MacroeventBoardRow {
@@ -293,6 +299,10 @@ export async function addMacroeventDirector(
   override?: Override,
 ): Promise<{ id: string }> {
   const input = macroeventDirectorInputSchema.parse(raw);
+  const edition = await getMacroeventEdition(input.editionId, ctx.tx);
+  if (!edition || !macroeventRoleCodes(edition.eventSlug).includes(input.roleCode)) {
+    throw new DomainError(t("T-2351"), "roleCode");
+  }
   const [titularTomado, codireccionTomada, soloActivos, yaEnLaMesa] = tList("T-2271");
   const [member] = await ctx.tx
     .select({ status: membership.status })

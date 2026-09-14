@@ -206,7 +206,14 @@ describe("cargador de hechos", () => {
     expect(facts.rules[0]?.scope).toBe("GENERAL");
     expect(facts.occasions).toHaveLength(1);
     expect(facts.groups).toEqual([
-      { id: groupId, kind: "GAP", code: null, name: "GAP Días EAFIT", evaluatorIds: [outsiderId] },
+      {
+        id: groupId,
+        kind: "GAP",
+        code: null,
+        name: "GAP Días EAFIT",
+        macroeventId: null,
+        evaluatorIds: [outsiderId],
+      },
     ]);
     expect(facts.config.thresholds).toEqual({ active: 60, new: 80, probation: 80, transfer: 70 });
 

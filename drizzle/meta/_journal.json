@@ -197,6 +197,13 @@
       "when": 1789391838767,
       "tag": "0027_transferencia_al_regresar",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1789425158155,
+      "tag": "0028_gestion_macroeventos",
+      "breakpoints": true
     }
   ]
 }

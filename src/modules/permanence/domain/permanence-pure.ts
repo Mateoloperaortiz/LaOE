@@ -54,6 +54,8 @@ export interface GroupFact {
   code: string | null;
   name: string;
   evaluatorIds: string[];
+  /** Un macroevento cuenta una sola vez aunque conserve varios GT históricos. */
+  macroeventId?: string | null;
 }
 
 export interface TermFacts {
@@ -435,11 +437,17 @@ function groupStanding(
       evaluatorIds: group.evaluatorIds,
     });
   }
-  return {
-    groups,
-    goodCount: groups.filter((item) => item.evaluation === "GOOD").length,
-    pendingCount: groups.filter((item) => item.evaluation === "PENDING").length,
-  } satisfies GroupStanding;
+  const identity = (groupId: string) =>
+    groupKind === "GT_MACROEVENT" ? (byId.get(groupId)?.macroeventId ?? groupId) : groupId;
+  const good = new Set(
+    groups.filter((item) => item.evaluation === "GOOD").map((item) => identity(item.groupId)),
+  );
+  const pending = new Set(
+    groups
+      .filter((item) => item.evaluation === "PENDING" && !good.has(identity(item.groupId)))
+      .map((item) => identity(item.groupId)),
+  );
+  return { groups, goodCount: good.size, pendingCount: pending.size } satisfies GroupStanding;
 }
 
 interface ComputeOptions {

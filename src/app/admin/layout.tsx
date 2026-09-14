@@ -86,6 +86,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         { href: "/admin/campanas", label: campanas ?? "" },
         { href: "/admin/mensajes", label: mensajes ?? "" },
         { href: "/admin/comites", label: comites ?? "" },
+        { href: "/admin/macroeventos", label: t("T-2344") },
         { href: "/admin/cargos", label: cargos ?? "" },
         { href: "/admin/horario-preferencial", label: tList("T-2323")[0] ?? "" },
         { href: "/admin/terminos", label: terminos ?? "" },
@@ -111,6 +112,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     [
       "/admin/personas",
       "/admin/comites",
+      "/admin/macroeventos",
       "/admin/cargos",
       "/admin/horario-preferencial",
       "/admin/terminos",
