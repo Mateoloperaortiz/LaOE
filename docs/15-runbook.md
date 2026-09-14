@@ -611,3 +611,15 @@ Importación `czwh3bv146xic194kjo8sjp4`, APPLIED en `2026-09-14T21:38:20.431Z`. 
 - Reconsulta del parcial: 400 existentes, cero altas, cero retenciones; cinco ocasiones reutilizadas. Reconsulta de solo lectura del manifiesto completo: 400 existentes y exactamente los diez registros reservados restantes. Sin cola pendiente, eventos fallidos ni avisos históricos de puntos.
 
 Paquete y recibos privados en `outputs/asambleas-20260914/`, fuera del repositorio. `COMPROBANTE_PRODUCCION.md` y `estado_produccion.json` registran el resultado posterior. El Excel, los CSV y las vistas previas originales se conservan como propuesta previa; `manifiesto_carga_parcial.json` contiene la selección aplicada. Antes de cargar las diez restantes, confirmar identidades/membresías y revisar otra vista previa del lote con los mismos IDs; no inferir autorización de que una membresía ya exista.
+
+## Gestión de macroeventos · producción, 2026-09-14
+
+[ADR-064](adr/ADR-064-gestion-de-macroeventos.md) implementada mediante [PR 28](https://github.com/Mateoloperaortiz/LaOE/pull/28). Candidato `9d0671f063715bcebbae5e406e189230e78ac91e` promovido por avance directo de `production` después de verificar el mismo SHA en staging.
+
+- CI [PR 34909307870](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34909307870) y [main 34909839470](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34909839470): SUCCESS, 542 unitarias, 365 de integración y 176 casos E2E (174 escenarios, sin fallos de outbox). [Promoción 34910489916](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34910489916): SUCCESS, reutilizando el resultado completo del mismo SHA de main.
+- Railway staging `bf5bf5fe-1279-45f7-94e8-6a7b6d84ee5a` y producción `39ae0133-3a16-4868-ab6d-55e597ec2cac`: SUCCESS. Smoke público 6/6 en ambos, con la indexación y bucket propios de cada entorno.
+- Migración `0028` aplicada: nuevo catálogo de Relaciones Públicas, Publicidad conservada para historia e índice `work_group_macroevent_term_unique` presente. El verificador de release exige ahora 94 índices.
+- Relectura de producción: tres identidades de macroevento, once roles en catálogo histórico, cero ediciones y cero GT, igual que antes de la publicación. No se cargaron nombres, fechas ni nombramientos. La UI muestra Inventiva 6, EnFemenino 7 y Días EAFIT 9, con Agenda Académica y Seguridad/Carnival/The Games en las fichas correspondientes.
+- Revisión de escritorio y móvil aprobada; los responsables y la edición del GT se guardan de manera atómica, cada acción vuelve a comprobar ADMIN, y la evaluación conserva el recálculo y la auditoría existentes.
+
+Recibos privados en `/Users/mateo/.codex/private/casa-digital/macroeventos-20260914/`: resultados de CI, logs de comprobación y `production-verification.json`. Para comenzar a registrar mesas hace falta la edición con fecha real; los integrantes del GT pueden organizarse por semestre sin inventar una edición.
