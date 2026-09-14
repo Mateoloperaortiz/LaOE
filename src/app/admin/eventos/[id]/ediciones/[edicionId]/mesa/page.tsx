@@ -53,7 +53,7 @@ export default async function Page({
   const guardado = single(search.guardado) === "1";
   const [board, roles, members] = await Promise.all([
     listMacroeventBoard(edicion.id),
-    listMacroeventRoles(),
+    listMacroeventRoles(edicion.eventSlug),
     listActiveMemberRefs(),
   ]);
   const activos = members

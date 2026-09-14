@@ -1896,3 +1896,35 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2341 | Importación: grupo de decoración | Decoración de oficina | GH | Confirmado |
 | T-2342 | Importación: grupo de apoyo deportivo | Apoyo Athletic OE | GH | Confirmado |
 | T-2343 | Importación: evaluación validada | Cumplimiento validado por GH en las evidencias de la importación. | GH | Confirmado |
+
+| T-2344 | Macroeventos: sección | Macroeventos | MATEO | Confirmado |
+| T-2345 | Macroeventos: ayuda | Administrá la mesa directiva por edición y el equipo del GT por semestre. | MATEO | Confirmado |
+| T-2346 | Macroeventos: abrir ficha | Gestionar macroevento | MATEO | Confirmado |
+| T-2347 | Macroeventos: áreas | Mesa directiva · Equipo del GT · Ediciones | MATEO | Confirmado |
+| T-2348 | Macroeventos: GT vacío | Todavía no hay un GT preparado para este semestre. Podés organizar el equipo aunque la fecha del evento esté pendiente. | MATEO | Propuesta |
+| T-2349 | Macroeventos: preparar | Preparar GT del semestre | MATEO | Propuesta |
+| T-2350 | Macroeventos: cargos disponibles | {n} cargos de dirección, con opción de codirección. | MATEO | Confirmado |
+| T-2351 | Macroeventos: cargo inválido | Ese cargo no corresponde a este macroevento. Elegí uno de los cargos disponibles. | MATEO | Propuesta |
+| T-2352 | Macroeventos: GT repetido | Ya existe un GT de este macroevento en el semestre. Usá ese equipo para conservar sus evaluaciones. | MATEO | Propuesta |
+| T-2353 | Macroeventos: vínculo inválido | El macroevento, la edición y el GT deben corresponder. Revisá la selección. | MATEO | Propuesta |
+| T-2354 | Macroeventos: sin edición | Todavía no hay ediciones registradas. Registrá una edición con su fecha real para nombrar la mesa directiva. | MATEO | Propuesta |
+| T-2355 | Macroeventos: edición | Edición de la mesa directiva | MATEO | Propuesta |
+| T-2356 | Macroeventos: administrar ediciones | Administrar ediciones | MATEO | Propuesta |
+| T-2357 | Macroeventos: vacante | Sin asignar | MATEO | Propuesta |
+| T-2358 | Macroeventos: responsables | Responsables del GT | MATEO | Propuesta |
+| T-2359 | Macroeventos: equipo, ayuda | Agregá a quienes trabajan en el GT. GH acredita su desempeño para el criterio de macroeventos de permanencia: 4%, 6% u 8% según los macroeventos cumplidos. | GH | Confirmado |
+| T-2360 | Macroeventos: evaluar | Evaluar desempeño | GH | Propuesta |
+| T-2361 | Macroeventos: observación | Observación (obligatoria si el desempeño es insuficiente) | GH | Propuesta |
+| T-2362 | Macroeventos: guardar evaluación | Guardar evaluación | GH | Propuesta |
+| T-2363 | Macroeventos: guardar responsables | Guardar responsables y edición | GH | Propuesta |
+| T-2364 | Macroeventos: líder | Líder del GT | GH | Propuesta |
+| T-2365 | Macroeventos: evaluadores | Evaluadores de GH | GH | Propuesta |
+| T-2366 | Macroeventos: edición opcional | Edición vinculada al GT (opcional) | GH | Propuesta |
+| T-2367 | Macroeventos: sin vínculo | Sin edición vinculada | GH | Propuesta |
+| T-2368 | Macroeventos: sin evaluaciones automáticas | Nombrar un cargo no incorpora a la persona al GT. Agregala al equipo para que GH pueda evaluar su desempeño y acreditar el cumplimiento. | GH | Confirmado |
+| T-2369 | Macroeventos: historial de integrantes | Integrantes anteriores | GH | Propuesta |
+| T-2370 | Macroeventos: resumen de equipo | Integrantes: {n} · Evaluaciones pendientes: {m} | GH | Propuesta |
+| T-2371 | Macroeventos: semestre cerrado | Este semestre está cerrado. Podés consultar su equipo y sus evaluaciones. | GH | Propuesta |
+| T-2372 | Macroeventos: historial | Cada edición conserva su propia mesa directiva. Seleccioná una edición para consultar sus cargos. | MATEO | Propuesta |
+| T-2373 | Macroeventos: titular | Titular | MATEO | Propuesta |
+| T-2374 | Macroeventos: operación | Nombrar dirección | MATEO | Propuesta |

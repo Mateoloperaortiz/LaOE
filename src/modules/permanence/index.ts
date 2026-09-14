@@ -81,6 +81,11 @@ export {
   manualCreditInputSchema,
   scoreCriterionAs,
 } from "./domain/leader-scores";
+export {
+  configureMacroeventGroupAs,
+  findMacroeventGroup,
+  prepareMacroeventGroupAs,
+} from "./domain/macroevents";
 export { getPersonPermanence, type PersonPermanenceView } from "./domain/my-permanence";
 export { type NoticesResult, runNotices } from "./domain/notices";
 export { isoWeek, type NoticePush, noticePush } from "./domain/notices-push-pure";

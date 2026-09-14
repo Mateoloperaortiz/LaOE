@@ -22,10 +22,10 @@ import { seedMember, seedPerson, seedTerm } from "./factories";
 // Mesa directiva de un macroevento (ADR-060 regla 9): un titular y una codirección por cargo, una
 // persona por edición, solo miembros activos; se etiqueta con la edición.
 
-async function seedEdition(): Promise<string> {
+async function seedEdition(slug = "inventiva"): Promise<string> {
   const evento = await runCommand(SYSTEM_ACTOR, (ctx) =>
     createEvent(ctx, {
-      slug: "inventiva",
+      slug,
       name: "Inventiva",
       summary: "",
       description: "",
@@ -52,6 +52,52 @@ async function seedEdition(): Promise<string> {
 describe("mesa directiva de macroevento", () => {
   beforeEach(truncateAll);
   afterAll(() => closeDb());
+
+  it("filtra los cargos 6/7/9 y rechaza especialidades de otro macroevento", async () => {
+    expect(await listMacroeventRoles("inventiva")).toHaveLength(6);
+    expect(await listMacroeventRoles("enfemenino")).toHaveLength(7);
+    expect(await listMacroeventRoles("dias-eafit")).toHaveLength(9);
+    const termId = await seedTerm();
+    const editionId = await seedEdition();
+    const personId = await seedMember("especialidad@example.com");
+    await expect(
+      runCommand(SYSTEM_ACTOR, (ctx) =>
+        addMacroeventDirector(ctx, {
+          editionId,
+          termId,
+          personId,
+          roleCode: "THE_GAMES",
+        }),
+      ),
+    ).rejects.toThrow("Ese cargo no corresponde");
+    const enFemenino = await seedEdition("enfemenino");
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      addMacroeventDirector(ctx, {
+        editionId: enFemenino,
+        termId,
+        personId,
+        roleCode: "AGENDA_ACADEMICA",
+      }),
+    );
+    expect(await listMacroeventBoard(enFemenino)).toEqual([
+      expect.objectContaining({ roleCode: "AGENDA_ACADEMICA" }),
+    ]);
+  });
+
+  it("conserva la etiqueta y los nombramientos históricos de Publicidad", async () => {
+    const termId = await seedTerm();
+    const editionId = await seedEdition();
+    const personId = await seedMember("historico@example.com");
+    await getDb()
+      .insert(appointment)
+      .values({ personId, termId, editionId, kind: "MACROEVENT_DIRECTOR", roleCode: "PUBLICIDAD" });
+    expect(await listMacroeventBoard(editionId)).toEqual([
+      expect.objectContaining({ roleLabel: "Dirección de Publicidad" }),
+    ]);
+    expect((await listMacroeventRoles("inventiva")).map((role) => role.code)).not.toContain(
+      "PUBLICIDAD",
+    );
+  });
 
   it("nombra titular y codirección por cargo y etiqueta el cargo con la edición", async () => {
     const termId = await seedTerm();
@@ -102,8 +148,8 @@ describe("mesa directiva de macroevento", () => {
       "GENERAL",
       "LOGISTICA",
       "FINANZAS",
+      "RELACIONES_PUBLICAS",
       "MERCADEO",
-      "PUBLICIDAD",
       "GESTION_HUMANA",
       "THE_GAMES",
       "CARNIVAL",

@@ -107,3 +107,8 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Validación del badge Apple por la cuenta titular al activar: candidato `es-MX` de Cinto 1.0.98 sin modificaciones propias, optimizado por el distribuidor, sin comparación byte a byte con el ZIP Apple ni aceptación del acuerdo. Google `es-ES` proviene del ZIP oficial; conservar ambas procedencias con la revisión F8-T6, sin tratarlos como arte generado por `wallet:assets`
 
 Las pruebas reales y el diagnóstico de los proveedores se registran siguiendo [16-billeteras.md](16-billeteras.md).
+
+### Macroeventos · 2026-09-14
+
+- Cargos confirmados e implementados en ADR-064: Inventiva 6, EnFemenino 7, Días EAFIT 9. Los seis comunes incluyen Relaciones Públicas y Mercadeo.
+- Pendientes de datos: fechas y nombres de las ediciones, personas de las mesas, integrantes de los GT y responsables/evaluadores de cada semestre. No se inventan fechas ni se asignan personas al desplegar.

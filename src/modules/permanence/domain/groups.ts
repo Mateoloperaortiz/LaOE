@@ -14,6 +14,7 @@ import {
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { workGroup, workGroupEvaluator, workGroupMembership } from "../schema";
+import { resolveGroupEvent } from "./group-links";
 import { parseGroupCsv } from "./groups-pure";
 import { GROUP_CODE, WORK_GROUP_KINDS } from "./params";
 
@@ -142,6 +143,7 @@ function toValues(input: GroupInput) {
 }
 
 export async function createGroup(ctx: CommandContext, input: GroupInput): Promise<{ id: string }> {
+  input = { ...input, eventId: await resolveGroupEvent(ctx, input) };
   try {
     const [row] = await ctx.tx
       .insert(workGroup)
@@ -158,6 +160,9 @@ export async function createGroup(ctx: CommandContext, input: GroupInput): Promi
     });
     return row;
   } catch (error) {
+    if (isUniqueViolation(error, "work_group_macroevent_term_unique")) {
+      throw new DomainError(t("T-2352"));
+    }
     if (isUniqueViolation(error, "work_group_code_unique")) {
       throw new DomainError(t("T-758"), "code");
     }
@@ -174,12 +179,22 @@ export async function updateGroup(
   if (!before) {
     throw new DomainError(t("T-032"));
   }
+  input = {
+    ...input,
+    eventId: await resolveGroupEvent(ctx, {
+      ...input,
+      eventId: input.eventId ?? (input.editionId ? undefined : (before.eventId ?? undefined)),
+    }),
+  };
   try {
     await ctx.tx
       .update(workGroup)
       .set({ ...toValues(input), termId: before.termId })
       .where(eq(workGroup.id, id));
   } catch (error) {
+    if (isUniqueViolation(error, "work_group_macroevent_term_unique")) {
+      throw new DomainError(t("T-2352"));
+    }
     if (isUniqueViolation(error, "work_group_code_unique")) {
       throw new DomainError(t("T-758"), "code");
     }

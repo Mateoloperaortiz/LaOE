@@ -31,3 +31,5 @@ export {
   updateEvent,
 } from "./domain/events";
 export { buildIcs, type IcsEvent } from "./domain/ics-pure";
+export { getEventRef, getMacroeventEdition, listMacroevents } from "./domain/macroevents";
+export { isMacroeventSlug, macroeventRoleCodes } from "./domain/macroevents-pure";

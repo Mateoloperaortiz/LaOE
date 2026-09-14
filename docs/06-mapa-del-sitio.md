@@ -92,3 +92,7 @@ Vista de **evaluador** (director de GH del frente, GH principal para las tareas 
 | `/asamblea/[publicId]` | Ruta histórica que resuelve `LegacyAlias` hacia `/a/[publicId]`; en el arranque limpio de ADR-039 no se importan alias ni QR de GHPOINTS y no se agregan redirecciones de compatibilidad |
 
 La pestaña Comunicaciones de `/admin/personas/[id]` añade Carnet en billeteras: reserva pendiente, emisión, revocación y acción ADMIN de revocar con confirmación. Nunca muestra el QR ni el token. Las actualizaciones y limpiezas de Google salen por `wallet.sync`; la conciliación diaria de las 00:05 de Bogotá recorre lotes de 100 ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)).
+
+### Macroeventos (ADR-064)
+
+`/admin/macroeventos` reúne Inventiva, EnFemenino y Días EAFIT. Cada ficha `/admin/macroeventos/[slug]` tiene mesa directiva por edición, equipo y evaluación del GT por semestre, responsables e historial de ediciones. ADMIN registra cargos; líderes y GH mantienen sus accesos a grupos y a la bandeja de evaluaciones.

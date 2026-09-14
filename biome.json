@@ -16,7 +16,8 @@
       "!drizzle",
       "!public",
       "!test-results",
-      "!playwright-report"
+      "!playwright-report",
+      "!.impeccable"
     ]
   },
   "formatter": {
