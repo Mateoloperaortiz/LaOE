@@ -1,6 +1,6 @@
 # ADR-063: Importación de asistencias a asambleas
 
-- Estado: Implementada en local; carga pendiente de las altas del equipo
+- Estado: Implementada y verificada en producción; 400 asistencias cargadas y diez reservadas por instrucción de GH
 - Fecha: 2026-09-14
 - Relacionadas: ADR-024, ADR-028, ADR-035, ADR-036, ADR-060, ADR-062
 - Enmienda: ADR-062 (asambleas sin crédito y procedencia por hoja)
@@ -21,4 +21,8 @@ El importador histórico existente admite partidos, juegos y decoración con cr�
 
 ## Consecuencias
 
-No cambia el esquema de la base ni se crea una pantalla de importación. Las asambleas aportan el criterio vigente de permanencia —10% al alcanzar tres— sin aumentar GH Points. La regla de ordinarias obligatorias se conserva. El lote completo requiere las cuatro altas pendientes y una nueva consulta antes de aplicar.
+No cambia el esquema de la base ni se crea una pantalla de importación. Las asambleas aportan el criterio vigente de permanencia —10% al alcanzar tres— sin aumentar GH Points. La regla de ordinarias obligatorias se conserva. GH autorizó después cargar únicamente las 400 asistencias conciliadas y reservar las diez pendientes. Se aplicó un manifiesto parcial con los mismos identificadores del lote completo; una alta concurrente no amplía automáticamente la selección autorizada. El lote completo se conserva para conciliar y revisar las diez restantes antes de otra carga.
+
+## Verificación productiva · 2026-09-14
+
+[PR 26](https://github.com/Mateoloperaortiz/LaOE/pull/26), versión `af58b9990bcc3f72cbdadfa9a5778fa6a622bb75`, publicada con CI y smoke en staging y producción. Importación `czwh3bv146xic194kjo8sjp4`: 400 asistencias aprobadas de 217 personas, cinco asambleas ordinarias, cero puntos y cero entradas de ledger. Reconsulta con 400 existentes y cero altas; exactamente diez registros excluidos. El 10% coincide para 48 personas evaluables y nueve personas conservan su exención. Auditoría por archivo/hoja/fila, dos objetos privados verificados y datos previos intactos. Detalle operativo en [el runbook](../15-runbook.md#carga-parcial-de-asambleas--2026-09-14).
