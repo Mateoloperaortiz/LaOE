@@ -572,3 +572,23 @@ Orden del arranque, que no se puede alterar porque cada paso habilita el siguien
 3. Publicar la política, que son **dos operaciones distintas y las dos hacen falta**: reemplazar el cuerpo de la página `privacidad` desde `/admin/paginas` con el texto de [17-politica-de-datos.md](17-politica-de-datos.md), y guardar la versión desde `/admin/sistema/politica`. Guardar la versión **no** cambia el cuerpo. En el despliegue del 11 de septiembre quedó hecha solo la segunda, y la página siguió afirmando que no hay contraseñas durante horas, con contraseñas ya vivas. Hasta este paso el texto publicado es falso, así que va inmediatamente después de la primera contraseña.
 4. Comprobar el step-up con contraseña y emitir un enlace de prueba desde la jornada.
 5. Empezar la campaña por comité. La jornada arranca en 0 de 453.
+
+## Carga histórica de GH Points · 2026-09-14
+
+Carga completa autorizada por Mateo después de resolver identidades, altas, fechas y cumplimiento de las evidencias. [ADR-062](adr/ADR-062-importacion-de-asistencias-y-evidencias-gh.md) y [procedimiento del importador](importacion-ghpoints.md). Los nombres, correos, originales y resultados individuales se conservan fuera de Git.
+
+Se publicó el soporte del importador antes de cargar para que los créditos históricos no enviaran avisos push. [PR 24](https://github.com/Mateoloperaortiz/LaOE/pull/24), SHA `bfaec140b268e45abcf49be731b2b9383060edf9`: [CI de main 34893149019](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34893149019) y [control de promoción 34894145593](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34894145593) SUCCESS. Comprobación local completa: 537 pruebas unitarias, 359 de integración, 11 de Python, lint, tipos, dependencias, código muerto y build; CI acreditó 174 casos E2E únicos. No requirió migración de esquema.
+
+Railway staging `fe157770-026e-418c-8060-2a56afba8060` y production `73dad908-2f19-402a-ad75-b6bbcf887205`, ambos SUCCESS con ese SHA. Smoke público 6/6 en ambos entornos, con el bucket e indexación propios de cada uno. La consulta previa confirmó `APP_URL=https://oeeafit.com`, término 2026-2 abierto, ADMIN habilitado y soporte de importación silenciosa desplegado.
+
+La vista previa viva confirmó 222 asistencias y 3.650 puntos, sin retenciones; hash revisado `cb9d99c37116a2f71aebc1807e823bdc6285a2dff3f7ff8664f6644e3d5d587f`. Se ejecutó una única carga con `--apply`, ADMIN y ese hash, sin `--skip-blocked`. Importación `dmfimk1u3x3ab2yrq8bitr4x`, estado `APPLIED`, aplicada el **2026-09-14 a las 20:45:51.607 UTC** (15:45:51 Bogotá).
+
+Verificación de solo lectura final a las 20:47:10 UTC:
+
+- 222 check-ins `APPROVED`/`IMPORT`, cada uno con un único crédito `CHECKIN` correcto y sin reversión: 3.650 GH Points para 117 personas.
+- 17 actividades: 13 creadas y 4 reutilizadas, con todos los metadatos y horarios originales intactos.
+- 97 evaluaciones válidas de apoyo y decoración; 41 cumplimientos de decoración de nuevos. Los 117 snapshots existen; los tres rubros contrastados coinciden con la proyección, y los dos miembros en licencia conservan su estado y exención.
+- 222 auditorías de asistencia enlazadas con archivo y fila original. Los 21 archivos fuente y el manifiesto en el bucket privado coinciden por contenido y SHA-256 con el paquete revisado.
+- Cola del término vacía, sin eventos fallidos ni avisos históricos de puntos. Reconsulta del mismo manifiesto: 222 asistencias existentes, cero por añadir, cero retenidas, 17 actividades reutilizadas y las nueve reglas ya existentes.
+
+Paquete y comprobante privados: `outputs/gh-points-20260914/`, fuera del repositorio de la aplicación. `COMPROBANTE_PRODUCCION.md` y `estado_produccion.json` registran el estado posterior; el Excel, los CSV y el plan revisado permanecen como evidencia de la propuesta previa. Las evidencias del bucket se conservan con sus claves deterministas.
