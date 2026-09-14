@@ -66,6 +66,155 @@ const snapshot = (): GhSnapshot => ({
 const row = (s: GhSnapshot, m = manifest()) => planGhImport(m, s).activities[0]?.rows[0];
 
 describe("preparación de GH Points", () => {
+  it("exige clasificar las asambleas y no admite tipo de asamblea en actividades", () => {
+    const m = manifest(),
+      a = first(m.activities);
+    for (const invalid of [
+      { ...a, type: "ASAMBLEA", newMembersOnly: false },
+      { ...a, assemblyKind: "ORDINARY" },
+      { ...a, type: "ASAMBLEA", assemblyKind: "ORDINARY" },
+    ])
+      expect(() => ghManifestSchema.parse({ ...m, activities: [invalid] })).toThrow();
+    const assembly = {
+      ...a,
+      type: "ASAMBLEA",
+      assemblyKind: "ORDINARY",
+      newMembersOnly: false,
+      endDate: a.date,
+    };
+    expect(() =>
+      ghManifestSchema.parse({
+        ...m,
+        activities: [
+          assembly,
+          {
+            ...assembly,
+            key: "SECOND",
+            participants: [
+              { recordId: "SECOND-RECORD", email: "person@example.test", sourceRow: 2 },
+            ],
+          },
+        ],
+      }),
+    ).toThrow("mismo día");
+  });
+  it("reconoce la asamblea aprobada sin crédito y retiene ledger o tipo incompatibles", () => {
+    const m = manifest(),
+      a = first(m.activities),
+      s = snapshot();
+    Object.assign(a, {
+      type: "ASAMBLEA",
+      assemblyKind: "ORDINARY",
+      newMembersOnly: false,
+      endDate: a.date,
+    });
+    s.occasions = [
+      {
+        id: "assembly-test",
+        legacy_id: legacyKey(m, a),
+        title: a.title,
+        kind: "ASSEMBLY",
+        assembly_kind: "ORDINARY",
+        category: "OTHER",
+        new_members_only: false,
+        status: "CLOSED",
+        points: 0,
+        starts_at: "2025-09-08T05:00:00Z",
+        ends_at: "2025-09-09T05:00:00Z",
+      },
+    ];
+    s.entries = [
+      {
+        id: "manual",
+        person_id: "person-test",
+        check_in_id: null,
+        kind: "ADJUSTMENT",
+        points: 50,
+        reason: "Otro concepto",
+        reversal_of_id: null,
+      },
+    ];
+    expect(row(s, m)).toMatchObject({ action: "ADD", points: 0, evidenceAction: "NONE" });
+    s.checkIns = [
+      {
+        id: "check-test",
+        occasion_id: "assembly-test",
+        person_id: "person-test",
+        status: "APPROVED",
+      },
+    ];
+    expect(row(s, m)).toMatchObject({ action: "EXISTS", points: 0 });
+    first(s.entries).check_in_id = "check-test";
+    expect(row(s, m)?.reason).toBe("EXISTING_CHECKIN_CONFLICT");
+    s.entries = [];
+    first(s.occasions).assembly_kind = "BOARD_ELECTION";
+    expect(row(s, m)?.reason).toBe("OCCASION_METADATA_CONFLICT");
+  });
+  it("retiene asambleas del mismo día sin conciliar y la permanencia cerrada", () => {
+    const m = manifest(),
+      a = first(m.activities),
+      s = snapshot();
+    Object.assign(a, {
+      type: "ASAMBLEA",
+      assemblyKind: "ORDINARY",
+      newMembersOnly: false,
+      endDate: a.date,
+    });
+    s.occasions = [
+      {
+        id: "another",
+        legacy_id: null,
+        title: "Otro título",
+        kind: "ASSEMBLY",
+        assembly_kind: "ORDINARY",
+        category: "OTHER",
+        new_members_only: false,
+        status: "CLOSED",
+        points: 0,
+        starts_at: "2025-09-08T20:00:00Z",
+        ends_at: null,
+      },
+    ];
+    expect(row(s, m)?.reason).toBe("EXISTING_ASSEMBLY_NEEDS_MAPPING");
+    s.occasions = [];
+    first(s.terms).permanence_closed_at = "2025-12-31";
+    expect(row(s, m)?.reason).toBe("PERMANENCE_CLOSED");
+  });
+  it("solo permite una segunda vuelta no cancelada por término", () => {
+    const m = manifest(),
+      a = first(m.activities),
+      s = snapshot();
+    Object.assign(a, {
+      type: "ASAMBLEA",
+      assemblyKind: "RUNOFF",
+      newMembersOnly: false,
+      endDate: a.date,
+    });
+    s.occasions = [
+      {
+        id: "another",
+        legacy_id: null,
+        title: "Segunda vuelta",
+        kind: "ASSEMBLY",
+        assembly_kind: "RUNOFF",
+        category: "OTHER",
+        new_members_only: false,
+        status: "CLOSED",
+        points: 0,
+        starts_at: "2025-09-01T20:00:00Z",
+        ends_at: null,
+      },
+    ];
+    expect(row(s, m)?.reason).toBe("EXISTING_ASSEMBLY_NEEDS_MAPPING");
+    m.activities.push({
+      ...a,
+      key: "SECOND",
+      date: "2025-09-09",
+      endDate: "2025-09-09",
+      participants: [{ recordId: "SECOND-RECORD", email: "person@example.test", sourceRow: 2 }],
+    });
+    expect(() => ghManifestSchema.parse(m)).toThrow();
+  });
   it("acepta licencia para los puntos solo con la política explícita y exige nuevos en decoración", () => {
     const s = snapshot();
     first(s.people).status = "ON_LEAVE";
