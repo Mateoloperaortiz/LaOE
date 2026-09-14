@@ -1,0 +1,1 @@
+ALTER TABLE "membership_term" ADD COLUMN "resumed_transfer" boolean DEFAULT false NOT NULL;

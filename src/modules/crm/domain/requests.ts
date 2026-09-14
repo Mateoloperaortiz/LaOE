@@ -263,7 +263,7 @@ export async function createRequestAs(
     if (!row || row.termId !== term.id || row.status === "CANCELLED" || row.status === "DRAFT") {
       throw new DomainError(t("T-2227"), "occasionId");
     }
-    if (excuseDeadline(row.startsAt) < new Date()) {
+    if (excuseDeadline(row.startsAt) < new Date() && !excuse.lateSubmission) {
       throw new DomainError(t("T-2219"), "occasionId");
     }
     const existing = await findCheckIn(row.id, actor.personId);
@@ -398,6 +398,12 @@ export async function decideRequestAs(
   }
   if (current.status !== "PENDING") {
     throw new DomainError(t("T-1007"));
+  }
+  if (input.decision === "APPROVED" && current.kind === "EXCUSE" && current.occasionId) {
+    const occasion = (await getOccasionsByIds([current.occasionId])).get(current.occasionId);
+    if (occasion && current.createdAt > excuseDeadline(occasion.startsAt) && reason.length < 2) {
+      throw new DomainError(t("T-2337"), "reason");
+    }
   }
   // Lecturas cruzadas antes de la transacción (people y terms por getDb()).
   const [who, mine, term, limits] = await Promise.all([
@@ -566,6 +572,9 @@ export async function decideExcuseForCommitteeAs(
   const row = (await getOccasionsByIds([current.occasionId])).get(current.occasionId);
   if (!row || row.committeeId !== committeeId) {
     throw new DomainError(t("T-032"));
+  }
+  if (input.decision === "APPROVED" && current.createdAt > excuseDeadline(row.startsAt)) {
+    throw new DomainError(t("T-2337"));
   }
   await decideRequestAs(actor, requestId, input);
 }

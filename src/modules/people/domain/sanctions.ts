@@ -1,12 +1,12 @@
 import { and, desc, eq, gte, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
+import { todayKey } from "@/shared/lib/dates";
 import { committee, membership, sanction } from "../schema";
 import {
-  dayKeyOf,
   deriveDates,
   expulsionWarning,
   hasOfficeBan,
@@ -193,7 +193,7 @@ export async function listSanctionsForPerson(
   personId: string,
   now = new Date(),
 ): Promise<SanctionView[]> {
-  const onKey = dayKeyOf(now);
+  const onKey = todayKey(now);
   const rows = await getDb()
     .select({ row: sanction, committeeName: committee.name })
     .from(sanction)
@@ -206,11 +206,12 @@ export async function listSanctionsForPerson(
 async function liveSanctions(
   onKey: string,
   personIds?: string[],
+  exec: Executor = getDb(),
 ): Promise<Map<string, SanctionLike[]>> {
   if (personIds && personIds.length === 0) {
     return new Map();
   }
-  const rows = await getDb()
+  const rows = await exec
     .select()
     .from(sanction)
     .where(
@@ -238,9 +239,10 @@ export interface SanctionStateView {
 export async function sanctionStateFor(
   personId: string,
   now = new Date(),
+  exec: Executor = getDb(),
 ): Promise<SanctionStateView> {
-  const onKey = dayKeyOf(now);
-  const items = (await liveSanctions(onKey, [personId])).get(personId) ?? [];
+  const onKey = todayKey(now);
+  const items = (await liveSanctions(onKey, [personId], exec)).get(personId) ?? [];
   return {
     suspendedUntil: suspendedUntil(items, onKey),
     officeBan: hasOfficeBan(items, onKey),

@@ -31,6 +31,8 @@ export interface Person360 {
     committeeName: string | null;
     probation: boolean;
     reportAsVeteran: boolean;
+    resumedNew: boolean;
+    resumedTransfer: boolean;
     reason: string | null;
     academicVerifiedOn: string | null;
   }>;
@@ -65,6 +67,8 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
         reason: membershipTerm.reason,
         probation: membershipTerm.probation,
         reportAsVeteran: membershipTerm.reportAsVeteran,
+        resumedNew: membershipTerm.resumedNew,
+        resumedTransfer: membershipTerm.resumedTransfer,
         academicVerifiedOn: membershipTerm.academicVerifiedOn,
       })
       .from(membershipTerm)
@@ -76,7 +80,14 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
   const termById = new Map(terms.map((term) => [term.id, term]));
   const first = membershipRows[0];
   const probation = probationRows
-    .filter((row) => row.probation || row.reportAsVeteran || row.academicVerifiedOn !== null)
+    .filter(
+      (row) =>
+        row.probation ||
+        row.reportAsVeteran ||
+        row.resumedNew ||
+        row.resumedTransfer ||
+        row.academicVerifiedOn !== null,
+    )
     .map((row) => ({
       termId: row.termId,
       termCode: termById.get(row.termId)?.code ?? "",
@@ -84,6 +95,8 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
       committeeName: row.committeeId ? (row.committeeName ?? "") : null,
       probation: row.probation,
       reportAsVeteran: row.reportAsVeteran,
+      resumedNew: row.resumedNew,
+      resumedTransfer: row.resumedTransfer,
       reason: row.reason,
       academicVerifiedOn: row.academicVerifiedOn,
       startsOn: termById.get(row.termId)?.startsOn ?? "",

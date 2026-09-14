@@ -1,7 +1,8 @@
 import { eq } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { listEventApprovals } from "@/modules/finance/domain/approvals";
+import { runCommand } from "@/db/tx";
+import { decideEventApproval, listEventApprovals } from "@/modules/finance/domain/approvals";
 import { getBudgetSummary, listCommitteeBudgets } from "@/modules/finance/domain/budgets";
 import {
   approveBudgetAs,
@@ -49,7 +50,12 @@ async function lineIds(budgetId: string): Promise<{ logistica: string; alimentac
 }
 
 describe("presupuesto del comité", () => {
-  beforeEach(truncateAll);
+  beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-13T12:00:00Z"));
+    await truncateAll();
+  });
+  afterEach(() => vi.useRealTimers());
   afterAll(() => closeDb());
 
   it("un ordinario por comité y año, extraordinarios con actividad, y se abre solo aprobado y con rubros", async () => {
@@ -128,11 +134,27 @@ describe("presupuesto del comité", () => {
         reason: "Mismo rubro",
       }),
     ).rejects.toThrow(t("T-2293"));
+    const transfer = {
+      budgetId: id,
+      fromLineId: logistica,
+      toLineId: alimentacion,
+      amount: 400,
+      reason: "Sobró logística",
+    };
+    await expect(recordTransferAs(actor, transfer)).rejects.toThrow(t("T-2294"));
+    const { id: approvedId } = await requestEventApprovalAs(actor, {
+      committeeId: a3,
+      budgetId: id,
+      title: "Evento sintético",
+      eventOn: "2026-11-20",
+    });
+    await decideEventApprovalAs(admin, approvedId, { decision: "APPROVED" });
     await recordTransferAs(actor, {
       budgetId: id,
       fromLineId: logistica,
       toLineId: alimentacion,
       amount: 400,
+      approvalId: approvedId,
       reason: "Sobró logística",
     });
     const summary = await getBudgetSummary(id);
@@ -187,11 +209,31 @@ describe("presupuesto del comité", () => {
     const { logistica, alimentacion } = await lineIds(id);
     await submitPrerequestAs(actor, { budgetId: id, month: "2026-09" });
 
+    await expect(submitPrerequestAs(actor, { budgetId: id, month: "2026-13" })).rejects.toThrow();
+    await expect(submitPrerequestAs(actor, { budgetId: id, month: "2027-01" })).rejects.toThrow(
+      t("T-2329", { año: 2026 }),
+    );
+    await expect(
+      requestEventApprovalAs(actor, {
+        committeeId: pixel,
+        budgetId: id,
+        title: "Ajeno",
+        eventOn: "2026-11-20",
+      }),
+    ).rejects.toThrow(t("T-2294"));
+    await expect(
+      requestEventApprovalAs(actor, {
+        committeeId: a3,
+        budgetId: id,
+        title: "Otro año",
+        eventOn: "2027-11-20",
+      }),
+    ).rejects.toThrow(t("T-2329", { año: 2026 }));
     const { id: aval } = await requestEventApprovalAs(actor, {
       committeeId: a3,
       budgetId: id,
       title: "Noche de talentos",
-      eventOn: "2099-11-20",
+      eventOn: "2026-11-20",
     });
     const { id: pasado } = await requestEventApprovalAs(actor, {
       committeeId: a3,
@@ -201,7 +243,7 @@ describe("presupuesto del comité", () => {
     const { id: ajeno } = await requestEventApprovalAs(actor, {
       committeeId: pixel,
       title: "De otro comité",
-      eventOn: "2099-11-20",
+      eventOn: "2026-11-20",
     });
     // Pendiente no sirve como aval.
     await expect(
@@ -214,12 +256,29 @@ describe("presupuesto del comité", () => {
         approvalId: aval,
       }),
     ).rejects.toThrow(t("T-2294"));
-    for (const approvalId of [aval, pasado, ajeno]) {
+    await expect(decideEventApprovalAs(admin, pasado, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-2330"),
+    );
+    // Un aval histórico se aprobó antes de su evento; hoy ya no permite traslados.
+    await runCommand(admin, (ctx) =>
+      decideEventApproval(ctx, pasado, { decision: "APPROVED" }, new Date("2026-01-10T12:00:00Z")),
+    );
+    for (const approvalId of [aval, ajeno]) {
       await decideEventApprovalAs(admin, approvalId, { decision: "APPROVED", note: "Adelante" });
     }
     await expect(
       decideEventApprovalAs(admin, aval, { decision: "REJECTED", note: "Tarde" }),
     ).rejects.toThrow(t("T-2296"));
+    await expect(
+      recordExpenseAs(actor, {
+        budgetId: id,
+        lineId: logistica,
+        spentOn: "2026-09-12",
+        amount: 50,
+        description: "Anterior al aval",
+        approvalId: aval,
+      }),
+    ).rejects.toThrow(t("T-2330"));
     await recordExpenseAs(actor, {
       budgetId: id,
       lineId: logistica,

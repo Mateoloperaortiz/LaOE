@@ -6,7 +6,9 @@ import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { todayKey } from "@/shared/lib/dates";
 import { committee } from "../schema";
+import { committeeLifecycleError } from "./committee-lifecycle-pure";
 
 // Comités: ficha editorial con logo, presentación y contacto (03-modelo-de-datos.md).
 
@@ -27,6 +29,7 @@ export const committeeInputSchema = z.object({
   trialEndsOn: z.union([z.literal(""), z.iso.date()]).default(""),
   /** Cuándo la junta lo desactivó (Regl. art. 26). */
   deactivatedOn: z.union([z.literal(""), z.iso.date()]).default(""),
+  lifecycleReason: z.string().trim().max(500).default(""),
   color: z
     .string()
     .trim()
@@ -225,11 +228,13 @@ export async function createCommittee(
   ctx: CommandContext,
   input: CommitteeInput,
 ): Promise<{ id: string }> {
+  const values = toValues(input);
+  const error = committeeLifecycleError(values, null, input.lifecycleReason ?? "", todayKey());
+  if (error) {
+    throw new DomainError(t(error));
+  }
   try {
-    const [row] = await ctx.tx
-      .insert(committee)
-      .values(toValues(input))
-      .returning({ id: committee.id });
+    const [row] = await ctx.tx.insert(committee).values(values).returning({ id: committee.id });
     if (!row) {
       throw new Error("No se pudo crear el comité");
     }
@@ -237,7 +242,7 @@ export async function createCommittee(
       action: "committee.created",
       entityType: "committee",
       entityId: row.id,
-      after: toValues(input),
+      after: { ...values, lifecycleReason: input.lifecycleReason ?? "" },
     });
     return row;
   } catch (error) {
@@ -287,11 +292,15 @@ export async function updateCommittee(
   id: string,
   input: CommitteeInput,
 ): Promise<void> {
-  const [before] = await ctx.tx.select().from(committee).where(eq(committee.id, id));
+  const [before] = await ctx.tx.select().from(committee).where(eq(committee.id, id)).for("update");
   if (!before) {
     throw new DomainError(t("T-032"));
   }
   const values = { ...toValues(input), slug: before.slug }; // la sigla no cambia: es parte de la URL y del logo
+  const error = committeeLifecycleError(values, before, input.lifecycleReason ?? "", todayKey());
+  if (error) {
+    throw new DomainError(t(error));
+  }
   try {
     await ctx.tx.update(committee).set(values).where(eq(committee.id, id));
   } catch (error) {
@@ -305,6 +314,6 @@ export async function updateCommittee(
     entityType: "committee",
     entityId: id,
     before,
-    after: values,
+    after: { ...values, lifecycleReason: input.lifecycleReason ?? "" },
   });
 }

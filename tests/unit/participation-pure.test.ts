@@ -328,6 +328,17 @@ describe("asambleas", () => {
     expect(all.compliant).toBe(true);
     expect(all.ordinaryAttended).toBe(1);
     expect(all.attendedTotal).toBe(3);
+    const excused = assemblyCompliance(requirement, [
+      { assemblyKind: "ORDINARY", status: "EXCUSED" },
+      { assemblyKind: "BOARD_ELECTION", status: "EXCUSED" },
+      { assemblyKind: "RUNOFF", status: "EXCUSED" },
+    ]);
+    expect(excused).toMatchObject({
+      compliant: true,
+      missing: [],
+      ordinaryAttended: 0,
+      attendedTotal: 0,
+    });
     const pending = assemblyCompliance(requirement, [
       { assemblyKind: "ORDINARY", status: "PENDING" },
       { assemblyKind: "BOARD_ELECTION", status: "APPROVED" },

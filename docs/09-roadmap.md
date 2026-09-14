@@ -322,7 +322,7 @@ Listo cuando (software): formatos, autorización, concurrencia, reintentos, life
 
 Implementación local verificada con la suite completa. Este tramo conserva identidad, reglas y permisos OE; no incluye migraciones, dependencias visuales ni despliegue.
 
-## Normativa 2026 (ADR-060) · `en revisión`
+## Normativa 2026 (ADR-060) · `implementada y verificada en local`
 
 Alineación con los Estatutos y el Reglamento Interno 2026 según la [revisión del 2026-09-13](18-revision-normativa-2026.md); reglas en [ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md). Cada tramo lleva migración aditiva, dominio, interfaz, copy, pruebas y `npm run check` en verde, con un commit por tramo en `feat/normativa-2026`.
 
@@ -338,6 +338,9 @@ Alineación con los Estatutos y el Reglamento Interno 2026 según la [revisión 
 - [x] N26-T9 · Inhabilidades y topes: cargos directivos, mesa y junta, candidatos activos y comités de trabajo
 - [x] N26-T10 · Finanzas: módulo `finance` de ADR-059 con presupuesto ordinario y extraordinario, aprobación, presolicitud y aval de evento
 - [x] N26-T11 · Menores: verificación académica, elegibilidad a honorario, inducción obligatoria, elección por ocasión, horario preferencial, Premios OE, citación con tres días hábiles y cargo de junta por año
+
+- [x] N26-T12 · Revisión de C1–C8 y V1–V15, corrección de regresiones y guardas; [ADR-061](adr/ADR-061-verificacion-y-correcciones-de-normativa-2026.md) y [matriz](19-verificacion-normativa-2026.md).
+La entrega exige CI completo, staging y promoción del mismo SHA a producción con humo verificado, según el runbook. La evidencia local está en la matriz y la remota en los checks de la PR #23 y del SHA promovido.
 
 ## Backlog (después de la v1)
 

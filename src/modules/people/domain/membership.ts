@@ -1,21 +1,23 @@
-import { and, asc, eq, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
 import { redactAuditEntries } from "@/modules/system";
-import { getCurrentTerm, listAllTerms } from "@/modules/terms";
+import { getCurrentTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
 import {
   committeeMembership,
+  type LeaveCondition,
   membership,
   membershipEvent,
   membershipTerm,
   person,
 } from "../schema";
+import { assertBenefitsAvailable } from "./benefits";
 import { endRolesForPerson } from "./committee-role-assignments";
 import { revokeAllConsents, syncConsent } from "./consents";
 import { leaveUntilError, leaveWindow } from "./leave-pure";
@@ -94,43 +96,89 @@ async function closeOpenCommitteeMemberships(
   await endRolesForPerson(ctx.tx, personId, now);
 }
 
-/**
- * Al volver de la licencia la persona retoma la condición que tenía al salir (Est. art. 5 par. 2):
- * la última condición fijada antes del término actual se copia a este, sin pisar una ya decidida.
- */
-async function carryOverCondition(ctx: CommandContext, personId: string, now: Date): Promise<void> {
-  const [term, terms] = await Promise.all([getCurrentTerm(now), listAllTerms()]);
-  if (!term) {
-    return;
-  }
-  const startsOn = new Map(terms.map((row) => [row.id, row.startsOn]));
+/** Congela la condición al salir; una edición posterior del término no la modifica. */
+async function conditionAtDeparture(
+  ctx: CommandContext,
+  current: MembershipRecord,
+  when: Date,
+): Promise<LeaveCondition[]> {
+  const term = await getCurrentTerm(when);
+  if (!term) return [];
   const rows = await ctx.tx
-    .select({
-      termId: membershipTerm.termId,
-      committeeId: membershipTerm.committeeId,
-      probation: membershipTerm.probation,
-    })
+    .select()
     .from(membershipTerm)
-    .where(eq(membershipTerm.personId, personId));
-  const previous = rows
-    .filter((row) => (startsOn.get(row.termId) ?? "") < term.startsOn)
-    .sort((a, b) => (startsOn.get(b.termId) ?? "").localeCompare(startsOn.get(a.termId) ?? ""));
-  const lastTermId = previous[0]?.termId;
-  if (!lastTermId) {
-    return;
+    .where(and(eq(membershipTerm.personId, current.personId), eq(membershipTerm.termId, term.id)));
+  const conditions: LeaveCondition[] = rows.map((row) => ({
+    committeeId: row.committeeId,
+    probation: row.probation,
+    reportAsVeteran: row.reportAsVeteran,
+    resumedNew: row.resumedNew,
+    resumedTransfer: row.resumedTransfer,
+  }));
+  const transfers = await ctx.tx
+    .select({ committeeId: committeeMembership.committeeId })
+    .from(committeeMembership)
+    .where(
+      and(
+        eq(committeeMembership.personId, current.personId),
+        eq(committeeMembership.termId, term.id),
+        eq(committeeMembership.transferredIn, true),
+        isNull(committeeMembership.leftAt),
+      ),
+    );
+  for (const transfer of transfers) {
+    const scope = conditions.find((row) => row.committeeId === transfer.committeeId);
+    if (scope) scope.resumedTransfer = true;
+    else
+      conditions.push({
+        committeeId: transfer.committeeId,
+        probation: false,
+        reportAsVeteran: false,
+        resumedNew: false,
+        resumedTransfer: true,
+      });
   }
-  const alreadyDecided = new Set(
-    rows.filter((row) => row.termId === term.id).map((row) => row.committeeId ?? ""),
-  );
-  for (const row of previous.filter((item) => item.termId === lastTermId && item.probation)) {
-    if (alreadyDecided.has(row.committeeId ?? "")) {
-      continue;
-    }
-    await setProbation(ctx, personId, term.id, {
-      probation: true,
-      reason: t("T-2276"),
-      committeeId: row.committeeId,
+  const general = conditions.find((row) => row.committeeId === null);
+  if (general) general.resumedNew ||= current.firstTermId === term.id;
+  else
+    conditions.push({
+      committeeId: null,
+      probation: false,
+      reportAsVeteran: false,
+      resumedNew: current.firstTermId === term.id,
     });
+  return conditions;
+}
+
+/** Retoma la condición guardada, respetando una decisión explícita ya tomada para el regreso. */
+async function carryOverCondition(
+  ctx: CommandContext,
+  current: MembershipRecord,
+  now: Date,
+): Promise<void> {
+  const term = await getCurrentTerm(now);
+  if (!term) return;
+  let snapshot = current.leaveCondition;
+  if (snapshot === null) {
+    // Licencias anteriores a la migración: reconstruir desde el término de la salida registrada.
+    const [departure] = await ctx.tx
+      .select({ at: membershipEvent.at })
+      .from(membershipEvent)
+      .where(
+        and(eq(membershipEvent.membershipId, current.id), eq(membershipEvent.toStatus, "ON_LEAVE")),
+      )
+      .orderBy(desc(membershipEvent.at))
+      .limit(1);
+    snapshot = departure ? await conditionAtDeparture(ctx, current, departure.at) : [];
+  }
+  const decided = await ctx.tx
+    .select({ committeeId: membershipTerm.committeeId })
+    .from(membershipTerm)
+    .where(and(eq(membershipTerm.personId, current.personId), eq(membershipTerm.termId, term.id)));
+  const scopes = new Set(decided.map((row) => row.committeeId));
+  for (const condition of snapshot) {
+    if (scopes.has(condition.committeeId)) continue;
+    await setProbation(ctx, current.personId, term.id, { ...condition, reason: t("T-2276") });
   }
 }
 
@@ -154,6 +202,10 @@ export async function changeMembershipStatus(
     return;
   }
   const today = todayKey(now);
+  if (input.to === "HONORARY") {
+    const term = await getCurrentTerm(now);
+    if (term) await assertBenefitsAvailable(ctx.tx, personId, term.id, now);
+  }
   let leaveUntil: string | null = null;
   if (input.to === "ON_LEAVE") {
     const error = leaveUntilError(input.leaveUntil, today);
@@ -167,7 +219,12 @@ export async function changeMembershipStatus(
   }
   await ctx.tx
     .update(membership)
-    .set({ status: input.to, leaveUntil })
+    .set({
+      status: input.to,
+      leaveUntil,
+      leaveCondition:
+        input.to === "ON_LEAVE" ? await conditionAtDeparture(ctx, current, now) : null,
+    })
     .where(eq(membership.id, current.id));
   await ctx.tx.insert(membershipEvent).values({
     membershipId: current.id,
@@ -175,12 +232,13 @@ export async function changeMembershipStatus(
     toStatus: input.to,
     reason: input.reason,
     actorId: ctx.actor.personId,
+    at: now,
   });
   if (!SIGN_IN_STATUSES.includes(input.to)) {
     await revokeAccess(ctx, personId);
   }
   if (current.status === "ON_LEAVE" && input.to === "ACTIVE") {
-    await carryOverCondition(ctx, personId, now);
+    await carryOverCondition(ctx, current, now);
   }
   await ctx.audit({
     action: "membership.status-changed",

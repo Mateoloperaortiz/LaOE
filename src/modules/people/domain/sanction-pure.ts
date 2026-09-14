@@ -45,7 +45,11 @@ export function addDays(key: string, days: number): string {
 
 export function addMonths(key: string, months: number): string {
   const date = fromKey(key);
+  const day = date.getUTCDate();
+  date.setUTCDate(1);
   date.setUTCMonth(date.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
+  date.setUTCDate(Math.min(day, lastDay));
   return dayKeyOf(date);
 }
 
@@ -88,7 +92,7 @@ export function deriveDates(
 
 /** Viva: no revocada y sin vencer al día dado. */
 export function isLive(item: SanctionLike, onKey: string): boolean {
-  return item.revokedAt === null && item.expiresOn >= onKey;
+  return item.revokedAt === null && item.occurredOn <= onKey && item.expiresOn >= onKey;
 }
 
 /** Derechos y beneficios suspendidos ese día: hasta cuándo, o nulo. */

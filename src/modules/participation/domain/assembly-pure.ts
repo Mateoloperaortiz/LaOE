@@ -50,17 +50,29 @@ export function assemblyCompliance(
   attended: ReadonlyArray<AttendedAssembly>,
 ): AssemblyCompliance {
   const approved = attended.filter((item) => item.status === "APPROVED");
+  const excused = attended.filter((item) => item.status === "EXCUSED");
   const ordinaryAttended = approved.filter((item) => item.assemblyKind === "ORDINARY").length;
   const boardElectionAttended = approved.some((item) => item.assemblyKind === "BOARD_ELECTION");
   const runoffAttended = approved.some((item) => item.assemblyKind === "RUNOFF");
   const missing: AssemblyKind[] = [];
-  if (ordinaryAttended < requirement.requiredOrdinary) {
+  if (
+    ordinaryAttended + excused.filter((item) => item.assemblyKind === "ORDINARY").length <
+    requirement.requiredOrdinary
+  ) {
     missing.push("ORDINARY");
   }
-  if (requirement.requiresBoardElection && !boardElectionAttended) {
+  if (
+    requirement.requiresBoardElection &&
+    !boardElectionAttended &&
+    !excused.some((item) => item.assemblyKind === "BOARD_ELECTION")
+  ) {
     missing.push("BOARD_ELECTION");
   }
-  if (requirement.requiresRunoff && !runoffAttended) {
+  if (
+    requirement.requiresRunoff &&
+    !runoffAttended &&
+    !excused.some((item) => item.assemblyKind === "RUNOFF")
+  ) {
     missing.push("RUNOFF");
   }
   return {

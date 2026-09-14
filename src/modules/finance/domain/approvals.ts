@@ -2,10 +2,12 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
-import { listCommitteesByIds } from "@/modules/people";
+import { assertBenefitsAvailable, listCommitteesByIds } from "@/modules/people";
+import { getCurrentTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
-import { eventApproval } from "../schema";
+import { todayKey } from "@/shared/lib/dates";
+import { committeeBudget, eventApproval } from "../schema";
 import { APPROVAL_STATUSES } from "./budget-pure";
 
 // Aval de evento (Regl. art. 35 par. 1; Est. art. 23.11 y 36.3; ADR-060 regla 12): el comité lo pide
@@ -42,6 +44,22 @@ export async function requestEventApproval(
   raw: ApprovalRequestInput,
 ): Promise<{ id: string }> {
   const input = approvalRequestSchema.parse(raw);
+  const term = await getCurrentTerm();
+  if (ctx.actor.personId && term) {
+    await assertBenefitsAvailable(ctx.tx, ctx.actor.personId, term.id);
+  }
+  if (input.budgetId) {
+    const [budget] = await ctx.tx
+      .select()
+      .from(committeeBudget)
+      .where(eq(committeeBudget.id, input.budgetId));
+    if (!budget || budget.committeeId !== input.committeeId) {
+      throw new DomainError(t("T-2294"), "budgetId");
+    }
+    if (Number(input.eventOn.slice(0, 4)) !== budget.year) {
+      throw new DomainError(t("T-2329", { año: budget.year }), "eventOn");
+    }
+  }
   const values = {
     committeeId: input.committeeId,
     budgetId: input.budgetId ?? null,
@@ -85,6 +103,9 @@ export async function decideEventApproval(
   }
   if (row.status !== "PENDING") {
     throw new DomainError(t("T-2296"));
+  }
+  if (input.decision === "APPROVED" && row.eventOn <= todayKey(now)) {
+    throw new DomainError(t("T-2330"));
   }
   await ctx.tx
     .update(eventApproval)

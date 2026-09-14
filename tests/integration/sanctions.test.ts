@@ -220,6 +220,14 @@ describe("faltas y sanciones", () => {
       checkInClosesAt: new Date("2024-11-10T23:00:00Z"),
     });
     await seedCheckIn(election.id, personId);
+    const induction = await seedOccasion(termId, {
+      kind: "ACTIVITY",
+      category: "INDUCTION",
+      status: "CLOSED",
+      points: 0,
+      startsAt: new Date("2024-08-01T15:00:00Z"),
+    });
+    await seedCheckIn(induction.id, personId);
     const actor = { personId: gh, ip: null };
     await recordSanctionAs(actor, personId, {
       termId,

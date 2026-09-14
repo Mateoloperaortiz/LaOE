@@ -1,6 +1,6 @@
 # ADR-060: Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026
 
-- Estado: Aceptada (2026-09-13); implementación por tramos N26-T0 a N26-T11 en el [roadmap](../09-roadmap.md#normativa-2026-adr-060)
+- Estado: Aceptada (2026-09-13), enmendada por ADR-061; implementación por tramos N26-T0 a N26-T11 en el [roadmap](../09-roadmap.md#normativa-2026-adr-060)
 - Fecha: 2026-09-13
 - Enmienda: ADR-024 (punto 2: la elección de junta obligatoria se deriva de que exista la ocasión, no del semestre), ADR-027 (banda de prueba por condición), ADR-028 (punto 1: consecuencias por condición y expulsión como causal propia), ADR-029 y ADR-058 (catálogo de cargos 2026, cargos retirados y `ROSTER` para Logística), ADR-030 (reactivar: el expulsado no vuelve), ADR-031 y ADR-037 (solicitud de excusa; tarea por vencimiento de licencia), ADR-036 (regla 9: la prueba se fija por comité), ADR-046 (licencia con vencimiento y capacidades de un cargo de mesa en licencia), ADR-056 (condición del semestre con comité opcional), ADR-057 (etiqueta "Comunicaciones y Mercadeo"), ADR-059 (presupuesto ordinario y extraordinario, aprobación, presolicitud y aval de evento), 02-crm, 03-modelo, 05-acceso, 12-permanencia, 13-importacion, glosario y 14-copy (bloque T-2206 en adelante)
 - Relacionadas: ADR-002, ADR-003, ADR-012, ADR-014, ADR-025, ADR-026, ADR-042, ADR-047
@@ -53,3 +53,7 @@ Cada regla cita el artículo que la sustenta ("Est." Estatutos, "Regl." Reglamen
 - Migraciones aditivas por tramo (0016 en adelante); ninguna borra datos. Los textos nuevos entran al inventario (T-2206 en adelante) y `copy:sync` los genera.
 - Cada tramo trae pruebas unitarias de lo puro, de integración de comandos, guardas e índices, y `npm run check` en verde; los e2e existentes no cambian de contrato.
 - Las preguntas de contenido a GH (cargos de cada macroevento, representantes y suplentes, causales del Anexo 1) siguen en [11-contenido-pendiente](../11-contenido-pendiente.md): la app funciona sin ellas y las recibe como datos.
+
+## Enmienda · 2026-09-14 · ADR-061
+
+[ADR-061](ADR-061-verificacion-y-correcciones-de-normativa-2026.md) completa las guardas, la conservación de condición al volver de licencia y la verificación de entrega. La [matriz](../19-verificacion-normativa-2026.md) documenta la cobertura de C1–C8 y V1–V15 y los límites humanos aceptados.

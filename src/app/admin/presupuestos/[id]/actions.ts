@@ -23,7 +23,7 @@ import { clientIp } from "@/shared/lib/request";
 // aprobaciones, abre, cierra, anota la sanción y decide los avales como Presidencia.
 
 const ID = /^[a-z0-9-]{10,40}$/;
-const MAX_LINES = 12;
+const MAX_LINES = 40;
 
 function text(formData: FormData, name: string): string {
   const value = formData.get(name);

@@ -5,14 +5,13 @@ import { isUniqueViolation } from "@/db/errors";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { createAnnouncement, publishAnnouncement } from "@/modules/content";
 import {
+  assertBenefitsAvailable,
   getPeopleByIds,
   hasLiveConsent,
   listCommitteesByIds,
-  sanctionStateFor,
 } from "@/modules/people";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
-import { formatDate } from "@/shared/lib/dates";
 import { interaction, recognition } from "../schema";
 
 // Reconocimientos (ADR-031, ADR-036 regla 7): el destacado del mes que nombra el líder desde su tabla.
@@ -98,6 +97,7 @@ export async function grantRecognition(
   input: RecognitionInput,
   context: RecognitionContext,
 ): Promise<RecognitionResult> {
+  await assertBenefitsAvailable(ctx.tx, input.personId, input.termId);
   const mes = monthName(input.month ?? null);
   const title =
     input.title ||
@@ -195,22 +195,11 @@ export async function grantRecognitionAs(
   actor: Actor,
   input: RecognitionInput,
 ): Promise<RecognitionResult & { published: boolean }> {
-  const [people, committees, consent, sanctions] = await Promise.all([
+  const [people, committees, consent] = await Promise.all([
     getPeopleByIds([input.personId]),
     input.committeeId ? listCommitteesByIds([input.committeeId]) : Promise.resolve([]),
     hasLiveConsent(input.personId, "DIRECTORY_PHOTO"),
-    sanctionStateFor(input.personId),
   ]);
-  // Con derechos y beneficios suspendidos no hay reconocimientos (Regl. art. 69 y 73; ADR-060 regla 6).
-  if (sanctions.suspendedUntil) {
-    throw new DomainError(
-      t("T-2233", {
-        nombre: people.get(input.personId)?.fullName ?? "",
-        fecha: formatDate(new Date(`${sanctions.suspendedUntil}T12:00:00Z`)),
-      }),
-      "personId",
-    );
-  }
   const context: RecognitionContext = {
     personName: people.get(input.personId)?.fullName ?? "",
     committeeName: committees[0]?.name ?? "",

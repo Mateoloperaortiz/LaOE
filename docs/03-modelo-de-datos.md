@@ -294,3 +294,7 @@ Reglas que viven en el dominio y se prueban en integración: tope de 3 comités 
 ## Excepción del primer acceso (ADR-039)
 
 El bootstrap privado crea una persona real `STUDENT/MEMBER` con `source=BOOTSTRAP`, membresía `ACTIVE` con término de ingreso real y permiso global `ADMIN`. No crea pertenencias a comités, consentimiento ni importación; queda auditado en una transacción y limitado al primer ADMIN. El roster normal completa posteriormente la ficha y los comités después de publicar la política y activar su versión.
+
+## Enmienda de verificación normativa · ADR-061
+
+Las migraciones 0026–0027 agregan `membership.leaveCondition` (condiciones por comité y general conservadas al salir a licencia), `membership_term.resumedNew` y `resumedTransfer` (condición retomada al regreso sin alterar `firstTermId`). El cambio de estado consume la copia dentro de la misma transacción; conserva las decisiones explícitas del término de regreso. Ver [ADR-061](adr/ADR-061-verificacion-y-correcciones-de-normativa-2026.md).

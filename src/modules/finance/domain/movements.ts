@@ -23,7 +23,7 @@ const money = z.coerce.number().positive().max(1_000_000_000_000);
 
 export const prerequestInputSchema = z.object({
   budgetId: z.string().trim().min(1),
-  month: z.string().regex(/^\d{4}-\d{2}$/),
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
   submittedOn: z.iso.date().optional(),
   notes: z.string().trim().max(1000).default(""),
 });
@@ -69,13 +69,23 @@ async function openBudgetOf(ctx: CommandContext, budgetId: string) {
 }
 
 /** El aval debe estar aprobado y ser del comité del presupuesto (Regl. art. 35 par. 1). */
-async function approvedApproval(ctx: CommandContext, approvalId: string, committeeId: string) {
+async function approvedApproval(
+  ctx: CommandContext,
+  approvalId: string,
+  budget: typeof committeeBudget.$inferSelect,
+) {
   const [row] = await ctx.tx
     .select()
     .from(eventApproval)
     .where(eq(eventApproval.id, approvalId))
     .limit(1);
-  if (!row || row.status !== "APPROVED" || row.committeeId !== committeeId) {
+  if (
+    !row ||
+    row.status !== "APPROVED" ||
+    row.committeeId !== budget.committeeId ||
+    (row.budgetId !== null && row.budgetId !== budget.id) ||
+    Number(row.eventOn.slice(0, 4)) !== budget.year
+  ) {
     throw new DomainError(t("T-2294"), "approvalId");
   }
   return row;
@@ -97,6 +107,9 @@ export async function submitPrerequest(
 ): Promise<{ id: string }> {
   const input = prerequestInputSchema.parse(raw);
   const budget = await openBudgetOf(ctx, input.budgetId);
+  if (Number(input.month.slice(0, 4)) !== budget.year) {
+    throw new DomainError(t("T-2329", { año: budget.year }), "month");
+  }
   const [existing] = await ctx.tx
     .select({ id: budgetPrerequest.id })
     .from(budgetPrerequest)
@@ -137,6 +150,9 @@ export async function recordExpense(
   const input = expenseInputSchema.parse(raw);
   const budget = await openBudgetOf(ctx, input.budgetId);
   const month = monthKey(input.spentOn);
+  if (Number(input.spentOn.slice(0, 4)) !== budget.year) {
+    throw new DomainError(t("T-2329", { año: budget.year }), "spentOn");
+  }
   const [prerequest] = await ctx.tx
     .select({ id: budgetPrerequest.id })
     .from(budgetPrerequest)
@@ -158,7 +174,10 @@ export async function recordExpense(
     );
   }
   if (input.approvalId) {
-    await approvedApproval(ctx, input.approvalId, budget.committeeId);
+    const approval = await approvedApproval(ctx, input.approvalId, budget);
+    if (!approval.decidedAt || todayKey(approval.decidedAt) > input.spentOn) {
+      throw new DomainError(t("T-2330"), "approvalId");
+    }
   }
   const values = {
     budgetId: budget.id,
@@ -209,10 +228,13 @@ export async function recordTransfer(
       "amount",
     );
   }
-  if (input.approvalId) {
+  if (!input.approvalId) {
+    throw new DomainError(t("T-2294"), "approvalId");
+  }
+  {
     // Las reasignaciones se presentan con el aval y antes del evento (Est. art. 38 par. 2).
-    const approval = await approvedApproval(ctx, input.approvalId, budget.committeeId);
-    if (approval.eventOn < todayKey(now)) {
+    const approval = await approvedApproval(ctx, input.approvalId, budget);
+    if (approval.eventOn <= todayKey(now)) {
       throw new DomainError(
         t("T-2295", { fecha: formatDate(new Date(`${approval.eventOn}T12:00:00Z`)) }),
         "approvalId",

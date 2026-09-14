@@ -53,6 +53,7 @@ export const excusePayloadSchema = z.object({
   reason,
   /** Soporte: un enlace o una descripción; opcional (Anexo 1, parágrafo 2). */
   evidence: z.string().trim().max(500).optional(),
+  lateSubmission: z.boolean().optional(),
 });
 
 export type ExcusePayload = z.infer<typeof excusePayloadSchema>;

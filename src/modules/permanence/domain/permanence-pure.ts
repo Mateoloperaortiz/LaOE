@@ -70,6 +70,7 @@ export interface CommitteeFact {
   transferredIn: boolean;
   /** Prueba fijada solo para este comité (ADR-060 regla 2); la de toda la persona va en PersonFacts. */
   probation: boolean;
+  reportAsVeteran?: boolean;
   joinedAt: Date | null;
   leftAt: Date | null;
 }
@@ -709,6 +710,8 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
   );
   const attendedOf = (kind: AssemblyKindName) =>
     assemblies.filter((item) => item.assemblyKind === kind && person.attended.has(item.id)).length;
+  const excusedOf = (kind: AssemblyKindName) =>
+    assemblies.filter((item) => item.assemblyKind === kind && person.excused.has(item.id)).length;
   const upcomingOf = (kind: AssemblyKindName) =>
     assemblies.filter((item) => item.assemblyKind === kind && item.startsAt > now).length;
   // Una obligatoria con excusa aceptada no se celebró "sin registro": no se pierde (ADR-060 regla 5).
@@ -734,19 +737,19 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
   // Perdida: ya se celebró alguna de ese tipo sin registro y no queda otra programada que la reemplace.
   const isLost = (kind: AssemblyKindName, attendedCount: number, requiredCount: number) =>
     heldOf(kind) > attendedCount && attendedCount + upcomingOf(kind) < requiredCount;
-  if (attended.ordinary < required.ordinary) {
+  if (attended.ordinary + excusedOf("ORDINARY") < required.ordinary) {
     missing.push("ORDINARY");
-    if (isLost("ORDINARY", attended.ordinary, required.ordinary)) {
+    if (isLost("ORDINARY", attended.ordinary, required.ordinary - excusedOf("ORDINARY"))) {
       lost.push("ORDINARY");
     }
   }
-  if (required.boardElection && !attended.boardElection) {
+  if (required.boardElection && !attended.boardElection && excusedOf("BOARD_ELECTION") === 0) {
     missing.push("BOARD_ELECTION");
     if (isLost("BOARD_ELECTION", 0, 1)) {
       lost.push("BOARD_ELECTION");
     }
   }
-  if (required.runoff && !attended.runoff) {
+  if (required.runoff && !attended.runoff && excusedOf("RUNOFF") === 0) {
     missing.push("RUNOFF");
     if (isLost("RUNOFF", 0, 1)) {
       lost.push("RUNOFF");
@@ -769,15 +772,14 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
   const inductionAttended = inductions.some((item) => person.attended.has(item.id));
   const inductionExcused = inductions.some((item) => person.excused.has(item.id));
   const induction = {
-    required: person.isNew && inductions.length > 0,
+    required: person.isNew,
     attended: inductionAttended,
     excused: inductionExcused,
     pending:
       person.isNew &&
-      inductions.length > 0 &&
       !inductionAttended &&
       !inductionExcused &&
-      inductions.some((item) => item.startsAt > now),
+      (inductions.length === 0 || inductions.some((item) => item.startsAt > now)),
   };
   return {
     required,
@@ -835,7 +837,7 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
         const total = round2(generalTotal + committeeTotal);
         const remaining = round2(generalRemaining + committeeRemaining);
         const shape = {
-          isNew: person.isNew,
+          isNew: person.isNew && !membership.reportAsVeteran,
           probation: person.probation || membership.probation,
           transferredIn: membership.transferredIn,
         };

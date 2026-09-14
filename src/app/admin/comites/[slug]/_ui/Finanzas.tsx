@@ -201,11 +201,17 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
                       className={inputClass}
                     >
                       <option value="">{sinAval}</option>
-                      {aprobados.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.title} · {civil(item.eventOn)}
-                        </option>
-                      ))}
+                      {aprobados
+                        .filter(
+                          (item) =>
+                            (!item.budgetId || item.budgetId === budget.id) &&
+                            Number(item.eventOn.slice(0, 4)) === budget.year,
+                        )
+                        .map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.title} · {civil(item.eventOn)}
+                          </option>
+                        ))}
                     </select>
                   </Campo>
                   <AdminSubmitButton type="submit" className="boton-primario self-start">
@@ -258,18 +264,26 @@ export function Finanzas({ slug, year, budgets, approvals, editions, guardado }:
                       className={inputClass}
                     />
                   </Campo>
-                  <Campo id={`traslado-${budget.id}-approvalId`} label={avalCampo ?? ""}>
+                  <Campo id={`traslado-${budget.id}-approvalId`} label={t("T-2334")}>
                     <select
+                      required
                       id={`traslado-${budget.id}-approvalId`}
                       name="approvalId"
                       className={inputClass}
                     >
                       <option value="">{sinAval}</option>
-                      {aprobados.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.title} · {civil(item.eventOn)}
-                        </option>
-                      ))}
+                      {aprobados
+                        .filter(
+                          (item) =>
+                            (!item.budgetId || item.budgetId === budget.id) &&
+                            Number(item.eventOn.slice(0, 4)) === budget.year &&
+                            item.eventOn > todayKey(),
+                        )
+                        .map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.title} · {civil(item.eventOn)}
+                          </option>
+                        ))}
                     </select>
                   </Campo>
                   <AdminSubmitButton type="submit" className="boton-secundario self-start">

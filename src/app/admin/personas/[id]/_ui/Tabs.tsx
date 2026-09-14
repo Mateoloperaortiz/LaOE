@@ -301,6 +301,10 @@ export function TabMembresia({
               <li key={`${item.termId}:${item.committeeId ?? ""}`}>
                 {item.probation ? <Insignia fondo="naranja">{tList("T-449")[0]}</Insignia> : null}
                 {item.reportAsVeteran ? <Insignia fondo="sky">{t("T-2262")}</Insignia> : null}
+                {item.resumedNew && !item.reportAsVeteran ? (
+                  <Insignia fondo="sky">{t("T-2333")}</Insignia>
+                ) : null}
+                {item.resumedTransfer ? <Insignia fondo="sky">{t("T-2335")}</Insignia> : null}
                 {item.academicVerifiedOn ? (
                   <Insignia fondo="paper">
                     {t("T-2314", {

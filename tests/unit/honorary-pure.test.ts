@@ -85,4 +85,17 @@ describe("elegibilidad a honorario", () => {
     expect(result.metCount).toBe(3);
     expect(result.eligible).toBe(false);
   });
+
+  it("la prueba o suspensión bloquea la elegibilidad aunque cumpla cuatro requisitos", () => {
+    const facts = {
+      ...base,
+      benefitsBlocked: true,
+      memberTermIds: terms.map((row) => row.id),
+      boardTermIds: ["t24-1", "t24-2"],
+      workCommitteeTermIds: ["t24-1", "t24-2"],
+      macroeventRoles: [{ editionStartsAt: new Date("2025-01-01T12:00:00Z") }],
+    };
+    expect(honoraryEligibility(facts, now)).toMatchObject({ metCount: 4, eligible: false });
+    expect(honoraryEligibility({ ...facts, benefitsBlocked: false }, now).eligible).toBe(true);
+  });
 });

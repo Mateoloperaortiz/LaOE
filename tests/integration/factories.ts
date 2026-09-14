@@ -172,14 +172,7 @@ type OccasionOverrides = Partial<{
   title: string;
   kind: "ACTIVITY" | "ASSEMBLY" | "EDITION_SESSION";
   assemblyKind: "ORDINARY" | "BOARD_ELECTION" | "RUNOFF" | null;
-  category:
-    | "INTEGRATION"
-    | "ATHLETIC_MATCH"
-    | "COMMITTEE_MEETING"
-    | "TALK"
-    | "WORKSHOP"
-    | "SOCIAL"
-    | "OTHER";
+  category: (typeof occasion.$inferInsert)["category"];
   newMembersOnly: boolean;
   points: number;
   approval: "AUTO" | "MANUAL";

@@ -12,7 +12,7 @@ import {
   listRequestsByPerson,
 } from "@/modules/crm";
 import { interaction, request, task } from "@/modules/crm/schema";
-import { checkIn } from "@/modules/participation/schema";
+import { checkIn, occasion } from "@/modules/participation/schema";
 import { getSnapshot, recomputeSnapshots } from "@/modules/permanence";
 import { closeTermPoints } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
@@ -92,6 +92,42 @@ async function setup() {
 describe("excusas válidas", () => {
   beforeEach(truncateAll);
   afterAll(closeDb);
+
+  it("una excusa tardía requiere solicitud de excepción y aprobación motivada de ADMIN", async () => {
+    const f = await setup();
+    await db().update(occasion).set({ committeeId: f.a3 }).where(eq(occasion.id, f.old.id));
+    const submitted = await createRequestAs(f.actor, "EXCUSE", {
+      occasionId: f.old.id,
+      cause: "WORK",
+      reason: "No pude presentar el soporte antes",
+      lateSubmission: true,
+    });
+    const actor = { personId: f.gh };
+    await expect(
+      decideExcuseForCommitteeAs(actor, submitted.id, f.a3, {
+        decision: "APPROVED",
+        reason: "Motivo del comité",
+      }),
+    ).rejects.toThrow(t("T-2337"));
+    await expect(decideRequestAs(actor, submitted.id, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-2337"),
+    );
+    expect(await db().select().from(checkIn).where(eq(checkIn.occasionId, f.old.id))).toHaveLength(
+      0,
+    );
+    await decideRequestAs(actor, submitted.id, {
+      decision: "APPROVED",
+      reason: "GH acepta la presentación tardía por el soporte verificado",
+    });
+    const [stored] = await db().select().from(request).where(eq(request.id, submitted.id));
+    expect(stored).toMatchObject({
+      status: "APPROVED",
+      reason: "GH acepta la presentación tardía por el soporte verificado",
+    });
+    expect(
+      (await db().select().from(checkIn).where(eq(checkIn.occasionId, f.old.id)))[0]?.status,
+    ).toBe("EXCUSED");
+  });
 
   it("se presenta dentro del plazo, una pendiente por ocasión, y abre una tarea para GH", async () => {
     const f = await setup();

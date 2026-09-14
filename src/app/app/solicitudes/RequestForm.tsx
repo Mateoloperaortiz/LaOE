@@ -147,6 +147,7 @@ export function RequestForm({
     occasionId: "",
     cause: "",
     evidence: "",
+    lateSubmission: false,
   });
   const [ocasionLabel, causalLabel, soporteLabel] = tList("T-2218") as [string, string, string];
   const [consents, setConsents] = useState({ memorial: false, contact: false, confirm: false });
@@ -296,6 +297,17 @@ export function RequestForm({
                 </select>
                 <FieldError id="excuse-cause-error" message={fieldErrors.cause} />
               </div>
+              <label className="flex items-start gap-2 text-sm sm:col-span-2">
+                <input
+                  type="checkbox"
+                  name="lateSubmission"
+                  checked={values.lateSubmission}
+                  onChange={(event) =>
+                    setValues({ ...values, lateSubmission: event.target.checked })
+                  }
+                />
+                {t("T-2336")}
+              </label>
             </div>
           ) : null}
           {kind === "TRANSFER" ? (

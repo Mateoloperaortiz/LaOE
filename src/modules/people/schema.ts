@@ -183,6 +183,9 @@ export const membershipTerm = pgTable(
     probation: boolean().notNull().default(false),
     /** La mesa de un comité nuevo o reactivado se reporta como activa aunque sea nueva (Est. art. 5 par. 1). */
     reportAsVeteran: boolean().notNull().default(false),
+    /** Condición de nuevo retomada al volver de una licencia; no cambia el ingreso histórico. */
+    resumedNew: boolean().notNull().default(false),
+    resumedTransfer: boolean().notNull().default(false),
     reason: text(),
     decidedById: text().references(() => person.id, { onDelete: "set null" }),
     /** Constancia de que se verificaron los requisitos académicos del término, sin promedio ni materias (ADR-060 regla 13). */
@@ -200,6 +203,14 @@ export const membershipTerm = pgTable(
   ],
 );
 
+export interface LeaveCondition {
+  committeeId: string | null;
+  probation: boolean;
+  reportAsVeteran: boolean;
+  resumedNew: boolean;
+  resumedTransfer?: boolean;
+}
+
 export const membership = pgTable(
   "membership",
   {
@@ -216,6 +227,7 @@ export const membership = pgTable(
     lastTermId: text().references(() => term.id),
     // Regreso previsto de una licencia (Est. art. 5.4: máximo un año; ADR-060 regla 10); null fuera de ella.
     leaveUntil: date({ mode: "string" }),
+    leaveCondition: jsonb().$type<LeaveCondition[]>(),
     endedAt: timestampTz(),
     endReason: membershipEndReason(),
     createdAt: createdAt(),

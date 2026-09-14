@@ -31,6 +31,7 @@ export interface RoleSpan {
 }
 
 export interface HonoraryFacts {
+  benefitsBlocked?: boolean;
   terms: readonly TermRef[];
   /** Cargos de dirección de comité con su vigencia. */
   committeeRoles: readonly RoleSpan[];
@@ -129,5 +130,9 @@ export function honoraryEligibility(facts: HonoraryFacts, now = new Date()): Hon
     met: counts[code] >= thresholds[code],
   }));
   const metCount = items.filter((item) => item.met).length;
-  return { items, metCount, eligible: metCount >= MIN_HONORARY_REQUIREMENTS };
+  return {
+    items,
+    metCount,
+    eligible: metCount >= MIN_HONORARY_REQUIREMENTS && !facts.benefitsBlocked,
+  };
 }

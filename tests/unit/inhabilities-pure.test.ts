@@ -56,6 +56,9 @@ describe("inhabilidades para cargos", () => {
 
   it("la junta no convive con la mesa de un comité", () => {
     expect(
+      inhabilities({ ...base, officeBan: true, existing: [], wanted: [], wantsBoard: true }),
+    ).toEqual(["OFFICE_BAN"]);
+    expect(
       inhabilities({ ...base, existing: [general("a3")], wanted: [], wantsBoard: true }),
     ).toEqual(["BOARD"]);
     expect(

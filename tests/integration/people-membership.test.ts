@@ -112,9 +112,9 @@ describe("salida, reactivación y anonimización", () => {
 
   it("la licencia exige regreso dentro de un año y al volver retoma la condición que tenía (ADR-060 regla 10)", async () => {
     const previo = await seedTerm("2026-1");
-    const personId = await seedMember("condicion@eafit.edu.co");
+    const personId = await seedMember("condicion@eafit.edu.co", { entryTermCode: "2026-1" });
     await seedMembershipTerm(personId, previo, true);
-    const hoy = new Date("2026-09-13T15:00:00Z");
+    const hoy = new Date("2026-06-01T15:00:00Z");
     await expect(
       runCommand(SYSTEM_ACTOR, (ctx) =>
         changeMembershipStatus(ctx, personId, { to: "ON_LEAVE", reason: "Sin fecha" }, hoy),
@@ -125,7 +125,7 @@ describe("salida, reactivación y anonimización", () => {
         changeMembershipStatus(
           ctx,
           personId,
-          { to: "ON_LEAVE", reason: "Muy larga", leaveUntil: "2027-09-14" },
+          { to: "ON_LEAVE", reason: "Muy larga", leaveUntil: "2027-06-02" },
           hoy,
         ),
       ),
@@ -134,7 +134,7 @@ describe("salida, reactivación y anonimización", () => {
       changeMembershipStatus(
         ctx,
         personId,
-        { to: "ON_LEAVE", reason: "Intercambio", leaveUntil: "2027-09-13" },
+        { to: "ON_LEAVE", reason: "Intercambio", leaveUntil: "2027-06-01" },
         hoy,
       ),
     );
@@ -145,7 +145,7 @@ describe("salida, reactivación y anonimización", () => {
           .from(membership)
           .where(eq(membership.personId, personId))
       )[0]?.leaveUntil;
-    expect(await leaveUntilOf()).toBe("2027-09-13");
+    expect(await leaveUntilOf()).toBe("2027-06-01");
 
     // Al volver: sin regreso previsto y con la prueba del término anterior copiada al actual.
     await runCommand(SYSTEM_ACTOR, (ctx) =>

@@ -189,6 +189,13 @@ describe("inducción de nuevos (ADR-060 regla 13)", () => {
   const sinAsambleas = { requiredOrdinary: 0, requiresBoardElection: false, requiresRunoff: false };
 
   it("es obligatoria solo para nuevos y no expulsa", () => {
+    const unscheduled = computePerson(
+      facts({ occasions: [] }),
+      person({ isNew: true, assemblyRequirement: sinAsambleas }),
+      now,
+    );
+    expect(unscheduled.mandatory.induction).toMatchObject({ required: true, pending: true });
+    expect(unscheduled.mandatory.met).toBe(false);
     const veteran = computePerson(
       facts({ occasions: [induction] }),
       person({ assemblyRequirement: sinAsambleas }),
@@ -219,6 +226,18 @@ describe("inducción de nuevos (ADR-060 regla 13)", () => {
 });
 
 describe("condición y umbral (ADR-027)", () => {
+  it("reportar como activo en un comité no cambia la condición de nuevo en el otro", () => {
+    const result = computePerson(
+      facts(),
+      person({
+        isNew: true,
+        committees: [{ ...committee("a3"), reportAsVeteran: true }, committee("pixel")],
+      }),
+      NOW,
+    );
+    expect(result.results.find((row) => row.committeeId === "a3")?.condition).toBe("ACTIVE");
+    expect(result.results.find((row) => row.committeeId === "pixel")?.condition).toBe("NEW");
+  });
   it("elige la condición y el umbral máximo que aplica", () => {
     const active = { isNew: false, probation: false, transferredIn: false };
     expect(conditionFor(active)).toBe("ACTIVE");
@@ -990,8 +1009,8 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
     });
     const result = computePerson(termFacts, excusedFromElection, NOW);
     expect(result.mandatory).toMatchObject({
-      met: false,
-      missing: ["BOARD_ELECTION"],
+      met: true,
+      missing: [],
       lost: [],
       excused: ["BOARD_ELECTION"],
     });

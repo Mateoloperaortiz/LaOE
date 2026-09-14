@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { CommandContext, Executor } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
@@ -81,17 +81,20 @@ export async function leadershipContext(
       .where(eq(membership.personId, personId))
       .limit(1),
     exec
-      .select({ id: membershipTerm.id })
+      .select({
+        reportAsVeteran: membershipTerm.reportAsVeteran,
+        resumedNew: membershipTerm.resumedNew,
+      })
       .from(membershipTerm)
       .where(
         and(
           eq(membershipTerm.personId, personId),
           eq(membershipTerm.termId, termId),
-          eq(membershipTerm.reportAsVeteran, true),
+          isNull(membershipTerm.committeeId),
         ),
       )
       .limit(1),
-    sanctionStateFor(personId, now),
+    sanctionStateFor(personId, now, exec),
   ]);
   const existing: HeldRole[] = [
     ...committeeRoles.map((row) => ({
@@ -118,7 +121,9 @@ export async function leadershipContext(
     hasBoardAppointment: appointments.some((row) =>
       (BOARD_KINDS as readonly string[]).includes(row.kind),
     ),
-    isNew: member?.firstTermId === termId && veteran.length === 0,
+    isNew:
+      (member?.firstTermId === termId || (veteran[0]?.resumedNew ?? false)) &&
+      !(veteran[0]?.reportAsVeteran ?? false),
     officeBan: sanctions.officeBan,
   };
 }
@@ -144,6 +149,9 @@ export async function assertNoInhabilities(
   ctx: CommandContext,
   check: InhabilityCheck,
 ): Promise<InhabilityCode[]> {
+  await ctx.tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`leadership:${check.personId}`}, 0))`,
+  );
   const context = await leadershipContext(ctx.tx, check.personId, check.termId, check.now);
   const existing = context.existing.filter(
     (role) =>

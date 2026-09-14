@@ -1845,7 +1845,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2291 | Presupuesto: guarda al abrir sin rubros | Para abrirlo necesita al menos un rubro. | MATEO | Propuesta |
 | T-2292 | Gasto: guarda sin presolicitud del mes | Sin presolicitud de {mes} el comité no tiene acceso a los recursos ese mes (Estatutos, art. 38): registrala primero. | MATEO | Propuesta |
 | T-2293 | Traslado: guarda de rubros iguales | Elegí dos rubros distintos. | MATEO | Propuesta |
-| T-2294 | Aval: guarda de aval no aprobado o de otro comité | Ese aval no está aprobado o no es de este comité. | MATEO | Propuesta |
+| T-2294 | Aval: guarda de aval no aprobado o de otro comité | Elegí un aval aprobado para este comité y presupuesto. | MATEO | Propuesta |
 | T-2295 | Traslado: guarda después del evento | Las reasignaciones se presentan antes del evento (Estatutos, art. 38 par. 2): el evento del aval fue el {fecha}. | MATEO | Propuesta |
 | T-2296 | Aval: guarda de decisión repetida | Ese aval ya fue decidido. | MATEO | Propuesta |
 | T-2297 | Presolicitud: guarda de mes repetido | Ya hay presolicitud para {mes}. | MATEO | Propuesta |
@@ -1876,3 +1876,18 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2322 | Membresía: reconocimientos (título, vacío y tipos) | Reconocimientos · Sin reconocimientos. · Destacado del mes · Otro · Premio OE | MATEO | Propuesta |
 | T-2323 | Horario preferencial: recurso (plural · singular), columnas y tipos | Horario preferencial · Horario preferencial · Nombre · Ámbito · Cargo · Junta Directiva · Mesa directiva · Macroevento | MATEO | Propuesta |
 | T-2324 | Horario preferencial: ayuda | Junta Directiva, mesas directivas de los comités (máximo seis por CIC o CE, titulares antes que codirecciones) y directores de macroevento del término (Reglamento, art. 72). La Universidad exige acreditar la asistencia a la Asamblea de Carrera; el CSV lleva el correo. | JUNTA | Propuesta |
+
+| T-2325 | Comité: fecha de desactivación | Registrá la fecha de desactivación, sin usar una fecha futura. | JUNTA | Propuesta |
+| T-2326 | Comité: reactivación | Un comité desactivado vuelve en periodo de prueba, después de al menos dos meses desde su desactivación. | JUNTA | Propuesta |
+| T-2327 | Comité: límites del periodo de prueba | El periodo de prueba va de seis a doce meses desde su inicio. Conservá la fecha de inicio y esperá al vencimiento antes de pasarlo a activo. | JUNTA | Propuesta |
+| T-2328 | Comité: motivo de ampliación | Para ampliar la prueba más allá de seis meses, registrá el motivo de la decisión de la junta. | JUNTA | Propuesta |
+| T-2329 | Finanzas: año del presupuesto | La fecha debe corresponder al año {año} de este presupuesto. | MATEO | Propuesta |
+| T-2330 | Aval: aprobación previa | El aval debe aprobarse antes del evento y antes de los gastos que se registren con él. | JUNTA | Propuesta |
+| T-2331 | Beneficios y avales: prueba o suspensión | En periodo de prueba o con derechos suspendidos no se reciben beneficios ni se piden avales (Reglamento, art. 73). | JUNTA | Propuesta |
+| T-2332 | Comité: motivo del cambio | Motivo de la decisión sobre el periodo de prueba | JUNTA | Propuesta |
+| T-2333 | Condición retomada en licencia | Nuevo al regresar de licencia | GH | Propuesta |
+| T-2334 | Traslado: aval obligatorio | Aval aprobado del evento | MATEO | Propuesta |
+| T-2335 | Condición retomada en licencia | Transferencia al regresar de licencia | GH | Propuesta |
+| T-2336 | Excusa: revisión excepcional | Si está fuera de plazo, solicito revisión excepcional de la Vicepresidencia de Gestión Humana; explico el retraso en el motivo. | GH | Propuesta |
+| T-2337 | Excusa tardía: autoridad y motivo | Una excusa presentada fuera de plazo solo la acepta ADMIN como Vicepresidencia de Gestión Humana, con motivo de la excepción. | GH | Propuesta |
+| T-2338 | Excusa: ocasión fuera de plazo | Fuera de plazo: revisión excepcional | GH | Propuesta |

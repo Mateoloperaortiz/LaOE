@@ -49,6 +49,7 @@ export async function createRequestAction(
             cause: text(formData, "cause"),
             reason: text(formData, "reason"),
             evidence: text(formData, "evidence") || undefined,
+            lateSubmission: formData.get("lateSubmission") === "on",
           }
         : kind === "RESIGNATION"
           ? {

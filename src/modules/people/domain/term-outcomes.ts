@@ -20,6 +20,8 @@ export const probationInputSchema = z.object({
   committeeId: z.string().trim().min(1).nullable().default(null),
   /** La mesa de un comité nuevo o reactivado se reporta como activa aunque sea nueva (Est. art. 5 par. 1). */
   reportAsVeteran: z.boolean().default(false),
+  resumedNew: z.boolean().optional(),
+  resumedTransfer: z.boolean().optional(),
   /** Constancia de la verificación académica del término, solo en el ámbito general (ADR-060 regla 13). */
   academicVerified: z.boolean().optional(),
 });
@@ -51,6 +53,8 @@ export async function setProbation(
       ),
     );
   const reportAsVeteran = input.reportAsVeteran ?? false;
+  const resumedNew = input.resumedNew ?? existing?.resumedNew ?? false;
+  const resumedTransfer = input.resumedTransfer ?? existing?.resumedTransfer ?? false;
   const academic =
     committeeId === null && input.academicVerified !== undefined
       ? {
@@ -66,6 +70,8 @@ export async function setProbation(
     existing?.probation === input.probation &&
     existing.reason === input.reason &&
     existing.reportAsVeteran === reportAsVeteran &&
+    existing.resumedNew === resumedNew &&
+    existing.resumedTransfer === resumedTransfer &&
     (academic.academicVerifiedOn === undefined ||
       academic.academicVerifiedOn === existing.academicVerifiedOn)
   ) {
@@ -74,6 +80,8 @@ export async function setProbation(
   const values = {
     probation: input.probation,
     reportAsVeteran,
+    resumedNew,
+    resumedTransfer,
     reason: input.reason || null,
     decidedById: ctx.actor.personId,
     ...academic,

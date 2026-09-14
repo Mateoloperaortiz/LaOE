@@ -20,6 +20,7 @@ export {
   listMacroeventRoles,
   MACROEVENT_ROLE_CODES,
 } from "./domain/appointments";
+export { assertBenefitsAvailable } from "./domain/benefits";
 export {
   areasFor,
   COMMITTEE_AREAS,

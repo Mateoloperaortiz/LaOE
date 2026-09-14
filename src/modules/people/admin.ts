@@ -106,6 +106,7 @@ const fields: FieldDefinition[] = [
   { name: "trialStartsOn", label: pruebaDesde, type: "date", help: t("T-2260") },
   { name: "trialEndsOn", label: pruebaHasta, type: "date" },
   { name: "deactivatedOn", label: desactivadoEl, type: "date" },
+  { name: "lifecycleReason", label: t("T-2332"), type: "textarea" },
   { name: "color", label: t("T-275"), type: "color" },
   { name: "logoKey", label: t("T-276"), type: "select", options: logoOptions() },
   { name: "presentation", label: t("T-277"), type: "textarea", textVariant: "code" },

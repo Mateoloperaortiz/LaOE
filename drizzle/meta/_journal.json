@@ -183,6 +183,20 @@
       "when": 1789322581660,
       "tag": "0025_menores_normativa",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789391319609,
+      "tag": "0026_correcciones_normativa_2026",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1789391838767,
+      "tag": "0027_transferencia_al_regresar",
+      "breakpoints": true
     }
   ]
 }

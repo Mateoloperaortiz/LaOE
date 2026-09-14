@@ -10,6 +10,7 @@ import {
   person,
 } from "../schema";
 import { APPOINTMENT_KINDS, editionLabelsFor } from "./appointments";
+import { blockedBenefits } from "./benefits";
 import { BOARD_KINDS } from "./inhabilities";
 
 // Horario preferencial (Regl. art. 72; ADR-060 regla 13): junta, mesas directivas (máximo seis por
@@ -83,29 +84,36 @@ export async function listPreferentialSchedule(termId: string): Promise<Preferen
       ),
   ]);
   const editions = await editionLabelsFor(appointments.map((row) => row.editionId));
+  const blocked = await blockedBenefits(
+    [...new Set([...appointments, ...roles].map((row) => row.personId))],
+    termId,
+  );
   const boardLabels = tList("T-444");
-  const rows: PreferentialRow[] = appointments.map((row) => ({
-    id: row.id,
-    personId: row.personId,
-    name: row.name ?? "",
-    email: row.email,
-    kind: row.kind === "MACROEVENT_DIRECTOR" ? "MACROEVENT" : "BOARD",
-    scope:
-      row.kind === "MACROEVENT_DIRECTOR"
-        ? row.editionId
-          ? (editions.get(row.editionId) ?? "")
-          : ""
-        : (junta ?? ""),
-    roleLabel:
-      row.kind === "MACROEVENT_DIRECTOR"
-        ? row.coDirector
-          ? t("T-2144", { cargo: row.roleLabel ?? "" })
-          : (row.roleLabel ?? "")
-        : (boardLabels[APPOINTMENT_KINDS.indexOf(row.kind)] ?? row.kind),
-  }));
+  const rows: PreferentialRow[] = appointments
+    .filter((row) => !blocked.has(row.personId))
+    .map((row) => ({
+      id: row.id,
+      personId: row.personId,
+      name: row.name ?? "",
+      email: row.email,
+      kind: row.kind === "MACROEVENT_DIRECTOR" ? "MACROEVENT" : "BOARD",
+      scope:
+        row.kind === "MACROEVENT_DIRECTOR"
+          ? row.editionId
+            ? (editions.get(row.editionId) ?? "")
+            : ""
+          : (junta ?? ""),
+      roleLabel:
+        row.kind === "MACROEVENT_DIRECTOR"
+          ? row.coDirector
+            ? t("T-2144", { cargo: row.roleLabel ?? "" })
+            : (row.roleLabel ?? "")
+          : (boardLabels[APPOINTMENT_KINDS.indexOf(row.kind)] ?? row.kind),
+    }));
   // Mesa directiva: máximo seis personas por comité, una sola vez cada una.
   const perCommittee = new Map<string, Set<string>>();
   for (const row of roles) {
+    if (blocked.has(row.personId)) continue;
     const seen = perCommittee.get(row.committeeId) ?? new Set<string>();
     if (seen.has(row.personId) || seen.size >= MAX_PREFERENTIAL_PER_COMMITTEE) {
       continue;

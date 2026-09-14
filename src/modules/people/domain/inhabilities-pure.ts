@@ -55,6 +55,9 @@ export function inhabilities(input: InhabilityInput): InhabilityCode[] {
   const all = [...input.existing, ...input.wanted];
   const wantsCommittee = input.wanted.some((role) => role.kind === "COMMITTEE");
   const codes: InhabilityCode[] = [];
+  if (input.officeBan && (input.wantsBoard || input.wanted.length > 0)) {
+    codes.push("OFFICE_BAN");
+  }
   if (input.wantsBoard) {
     if (all.some((role) => role.kind === "COMMITTEE")) {
       codes.push("BOARD");
@@ -65,9 +68,6 @@ export function inhabilities(input: InhabilityInput): InhabilityCode[] {
   }
   if (input.wanted.length === 0) {
     return [];
-  }
-  if (input.officeBan) {
-    codes.push("OFFICE_BAN");
   }
   if (input.hasBoardAppointment && wantsCommittee && !codes.includes("BOARD")) {
     codes.push("BOARD");

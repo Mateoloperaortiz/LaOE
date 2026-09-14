@@ -55,7 +55,9 @@ describe("fechas derivadas", () => {
     expect(deriveDates("SUSPENSION", "2026-09-01", null)).toEqual({ error: "T-2241" });
     expect(deriveDates("SUSPENSION", "2026-09-01", "2026-08-30")).toEqual({ error: "T-2241" });
     expect(deriveDates("SUSPENSION", "2026-09-01", "2026-10-02")).toEqual({ error: "T-2241" });
-    expect(addMonths("2026-01-31", 1)).toBe("2026-03-03");
+    expect(addMonths("2026-01-31", 1)).toBe("2026-02-28");
+    expect(addMonths("2024-02-29", 12)).toBe("2025-02-28");
+    expect(deriveDates("SUSPENSION", "2026-01-31", "2026-03-01")).toEqual({ error: "T-2241" });
     expect(addDays("2026-12-30", 3)).toBe("2027-01-02");
   });
 
@@ -69,6 +71,7 @@ describe("efectos", () => {
   it("una sanción vive hasta vencer o revocarse", () => {
     const warning = sanction({ kind: "WARNING" });
     expect(isLive(warning, "2026-09-01")).toBe(true);
+    expect(isLive(warning, "2026-08-31")).toBe(false);
     expect(isLive(warning, "2027-09-01")).toBe(true);
     expect(isLive(warning, "2027-09-02")).toBe(false);
     expect(sanctionState(warning, "2027-09-02")).toBe("EXPIRED");

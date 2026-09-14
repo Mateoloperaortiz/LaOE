@@ -166,6 +166,9 @@ describe("inhabilidades y topes de cargos", () => {
       occurredOn: todayKey(),
     });
     await expect(
+      addAppointmentAs(admin, sancionada, { kind: "VP_FINANCE", termId }),
+    ).rejects.toThrow(motivos[0] ?? "x");
+    await expect(
       setCommitteeMembershipsAs(admin, sancionada, termId, [
         { committeeId: a3, roles: [{ roleCode: "FINANCIERO", coDirector: false }] },
       ]),

@@ -51,12 +51,12 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
       .map((row) => row.occasionId),
   );
   const occasionOptions = termOccasions
-    .filter(
-      (row) =>
-        !covered.has(row.id) && excuseDeadline(row.startsAt) >= now && row.startsAt <= horizon,
-    )
+    .filter((row) => !covered.has(row.id) && row.startsAt <= horizon)
     .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
-    .map((row) => ({ id: row.id, label: `${formatDateTime(row.startsAt)} · ${row.title}` }));
+    .map((row) => ({
+      id: row.id,
+      label: `${formatDateTime(row.startsAt)} · ${row.title}${excuseDeadline(row.startsAt) < now ? ` · ${t("T-2338")}` : ""}`,
+    }));
   const causeLabels = tList("T-2215");
   const causeOptions = EXCUSE_CAUSES.map((code, index) => ({
     code,
