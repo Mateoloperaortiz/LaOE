@@ -1,5 +1,7 @@
 # ADR-036: Permanencia (fase 4)
 
+Enmienda posterior: [ADR-062](ADR-062-importacion-de-asistencias-y-evidencias-gh.md) permite importar evidencia previamente validada por GH como `GOOD`, conservando fuente, fila, autor y auditoría. Los cálculos y la exención de licencia se conservan.
+
 - Estado: Aceptada (enmendada por ADR-037, ADR-038, ADR-056 y ADR-058)
 - Fecha: 2026-09-04
 - Relacionadas: ADR-003, ADR-004, ADR-005, ADR-011, ADR-012, ADR-014, ADR-017, ADR-025, ADR-026, ADR-027, ADR-028, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035
