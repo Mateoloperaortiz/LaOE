@@ -45,7 +45,7 @@ test("pedir licencia, aprobarla y conservar el acceso de consulta", async ({
       await licencia
         .getByLabel("Contanos por qué")
         .fill("Intercambio en Chile el próximo semestre.");
-      await licencia.getByLabel("Hasta cuándo (opcional)").fill(E2E_TERM.endsOn);
+      await licencia.getByLabel("Hasta cuándo volvés").fill(E2E_TERM.endsOn);
       await licencia.getByRole("button", { name: "Enviar solicitud" }).click();
       await expect(
         page.getByText("Tu solicitud llegó a GH. Te avisamos cuando la respondan."),

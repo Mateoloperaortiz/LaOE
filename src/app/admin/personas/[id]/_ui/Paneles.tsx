@@ -1,11 +1,13 @@
 import Link from "next/link";
-import type { InteractionView } from "@/modules/crm";
+import { type InteractionView, OE_AWARDS } from "@/modules/crm";
 import {
   APPOINTMENT_KINDS,
+  BOARD_APPOINTMENT_KINDS,
   type CommitteeRoleRow,
   DOCUMENT_TYPE_CODES,
   type MyMembershipView,
   type Person360,
+  SANCTION_KINDS,
   type TagRow,
 } from "@/modules/people";
 import { STATUS_CODES, statusLabel } from "@/modules/people/admin";
@@ -27,7 +29,10 @@ import {
   createTaskAction,
   editNoteAction,
   endMembershipAction,
+  grantAwardAction,
   reactivateAction,
+  recordSanctionAction,
+  revokeSanctionAction,
   setCommitteesAction,
   setProbationAction,
   setTagsAction,
@@ -48,6 +53,8 @@ type Props = {
   note: InteractionView | null;
   /** Término preseleccionado en el panel de condición (`?semestre=`), si existe. */
   semestreId: string | null;
+  /** Sanción a revocar (`?sancion=`), si existe. */
+  sancionId: string | null;
   closeHref: string;
   error: string;
   policyReady: boolean;
@@ -95,6 +102,7 @@ export function Paneles({
   assignees,
   note,
   semestreId,
+  sancionId,
   closeHref,
   error,
   policyReady,
@@ -260,6 +268,9 @@ export function Paneles({
                 ))}
               </select>
             </Campo>
+            <Campo id="campo-leaveUntil" label={t("T-2278")} help={t("T-2279")}>
+              <input id="campo-leaveUntil" name="leaveUntil" type="date" className={inputClass} />
+            </Campo>
             <Campo id="campo-reason" label={t("T-434")}>
               <textarea id="campo-reason" name="reason" required rows={3} className={inputClass} />
             </Campo>
@@ -408,6 +419,7 @@ export function Paneles({
 
   if (accion === "comites" && my.term) {
     const [comite, cargo, transferencia] = tList("T-450") as [string, string, string];
+    const [excepcion, excepcionAyuda] = tList("T-2283") as [string, string];
     const rows = Array.from({ length: MAX_ROWS }, (_, index) => my.committees[index] ?? null);
     return (
       <ResourcePanel
@@ -446,7 +458,11 @@ export function Paneles({
                   <fieldset className="flex flex-col gap-2">
                     <legend className="eyebrow px-1 text-xs">{cargo}</legend>
                     {roles
-                      .filter((item) => item.code !== "MIEMBRO")
+                      .filter(
+                        (item) =>
+                          item.code !== "MIEMBRO" &&
+                          (!item.retired || row?.roles.some((role) => role.roleCode === item.code)),
+                      )
                       .map((item) => {
                         const mine = row?.roles.find((role) => role.roleCode === item.code);
                         return (
@@ -481,6 +497,9 @@ export function Paneles({
                 </fieldset>
               );
             })}
+            <Campo id="campo-override-comites" label={excepcion} help={excepcionAyuda}>
+              <input id="campo-override-comites" name="overrideReason" className={inputClass} />
+            </Campo>
             <Botones enviar={t("T-253")} cancelHref={closeHref} />
           </AdminFormBody>
         </form>
@@ -494,8 +513,33 @@ export function Paneles({
     const [, término] = tList("T-262") as [string, string];
     const selected = terms.find((item) => item.id === semestreId) ?? my.term ?? terms[0] ?? null;
     const onProbation = selected
-      ? data.probation.some((item) => item.termId === selected.id)
+      ? data.probation.some(
+          (item) => item.termId === selected.id && item.committeeId === null && item.probation,
+        )
       : false;
+    const asVeteran = selected
+      ? data.probation.some(
+          (item) =>
+            item.termId === selected.id && item.committeeId === null && item.reportAsVeteran,
+        )
+      : false;
+    const academicVerified = selected
+      ? data.probation.some(
+          (item) =>
+            item.termId === selected.id &&
+            item.committeeId === null &&
+            item.academicVerifiedOn !== null,
+        )
+      : false;
+    // Los comités en que la persona estuvo o está, para fijar la prueba solo en uno (ADR-060 regla 2).
+    const [, comitéLabel] = tList("T-449") as [string, string];
+    const personCommittees = [
+      ...new Map(
+        data.committeesByTerm
+          .flatMap((group) => group.items)
+          .map((item) => [item.committeeId, item.committeeName] as const),
+      ),
+    ];
     return (
       <ResourcePanel title={condicion} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
@@ -518,11 +562,38 @@ export function Paneles({
                 ))}
               </select>
             </Campo>
+            <Campo id="campo-committeeId-condicion" label={comitéLabel}>
+              <select
+                id="campo-committeeId-condicion"
+                name="committeeId"
+                className={inputClass}
+                defaultValue=""
+              >
+                <option value="">{t("T-2207")}</option>
+                {personCommittees.map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </Campo>
             <Casilla
               id="campo-probation"
               name="probation"
-              label={t("T-449")}
+              label={tList("T-449")[0] ?? ""}
               defaultChecked={onProbation}
+            />
+            <Casilla
+              id="campo-reportAsVeteran"
+              name="reportAsVeteran"
+              label={t("T-2262")}
+              defaultChecked={asVeteran}
+            />
+            <Casilla
+              id="campo-academicVerified"
+              name="academicVerified"
+              label={t("T-2313")}
+              defaultChecked={academicVerified}
             />
             <Campo id="campo-reason-condicion" label={t("T-434")}>
               <textarea
@@ -540,9 +611,124 @@ export function Paneles({
     );
   }
 
+  // Faltas y sanciones (ADR-060 regla 6): registrar sobre una membresía viva y revocar con motivo.
+  if (accion === "sancion" && membership && membership.status !== "INACTIVE") {
+    const [sancionesTitulo] = tList("T-2239") as [string, string];
+    const [campoTipo, campoCausal, campoReferencia, campoFecha, campoHasta, campoComite] =
+      tList("T-2230");
+    const [registrar] = tList("T-2232") as [string, string];
+    const kinds = tList("T-2229");
+    const selectedTerm = my.term ?? terms[0] ?? null;
+    const personCommittees = [
+      ...new Map(
+        data.committeesByTerm
+          .flatMap((group) => group.items)
+          .map((item) => [item.committeeId, item.committeeName] as const),
+      ),
+    ];
+    return (
+      <ResourcePanel title={sancionesTitulo} closeHref={closeHref} closeLabel={t("T-291")}>
+        {alerta}
+        <p className="text-sm">{t("T-2231")}</p>
+        <form action={recordSanctionAction} className="flex flex-col gap-4">
+          <AdminFormBody>
+            {hidden}
+            <input type="hidden" name="termId" value={selectedTerm?.id ?? ""} />
+            <Campo id="campo-kind-sancion" label={campoTipo ?? ""}>
+              <select id="campo-kind-sancion" name="kind" required className={inputClass}>
+                {SANCTION_KINDS.map((code, index) => (
+                  <option key={code} value={code}>
+                    {kinds[index] ?? code}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+            <Campo id="campo-cause-sancion" label={campoCausal ?? ""}>
+              <textarea
+                id="campo-cause-sancion"
+                name="cause"
+                required
+                rows={4}
+                className={inputClass}
+              />
+            </Campo>
+            <Campo id="campo-reference-sancion" label={campoReferencia ?? ""}>
+              <input
+                id="campo-reference-sancion"
+                name="reference"
+                type="text"
+                className={inputClass}
+              />
+            </Campo>
+            <Campo id="campo-occurredOn-sancion" label={campoFecha ?? ""}>
+              <input
+                id="campo-occurredOn-sancion"
+                name="occurredOn"
+                type="date"
+                required
+                defaultValue={todayKey()}
+                className={inputClass}
+              />
+            </Campo>
+            <Campo id="campo-suspendedUntil-sancion" label={campoHasta ?? ""}>
+              <input
+                id="campo-suspendedUntil-sancion"
+                name="suspendedUntil"
+                type="date"
+                className={inputClass}
+              />
+            </Campo>
+            <Campo id="campo-committeeId-sancion" label={campoComite ?? ""}>
+              <select
+                id="campo-committeeId-sancion"
+                name="committeeId"
+                className={inputClass}
+                defaultValue=""
+              >
+                <option value="">—</option>
+                {personCommittees.map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+            <Botones enviar={registrar} cancelHref={closeHref} />
+          </AdminFormBody>
+        </form>
+      </ResourcePanel>
+    );
+  }
+
+  if (accion === "revocar-sancion" && sancionId) {
+    const [, revocar] = tList("T-2232") as [string, string];
+    return (
+      <ResourcePanel title={revocar} closeHref={closeHref} closeLabel={t("T-291")}>
+        {alerta}
+        <form action={revokeSanctionAction} className="flex flex-col gap-4">
+          <AdminFormBody>
+            {hidden}
+            <input type="hidden" name="sanctionId" value={sancionId} />
+            <Campo id="campo-reason-revocar" label={t("T-2240")}>
+              <textarea
+                id="campo-reason-revocar"
+                name="reason"
+                required
+                rows={3}
+                className={inputClass}
+              />
+            </Campo>
+            <Botones enviar={revocar} cancelHref={closeHref} />
+          </AdminFormBody>
+        </form>
+      </ResourcePanel>
+    );
+  }
+
   if (accion === "cargo") {
     const kinds = tList("T-444");
     const [agregar] = tList("T-447") as [string, string];
+    const [excepcion, excepcionAyuda] = tList("T-2283") as [string, string];
     const [, , cargosTitulo] = tList("T-443") as [string, string, string, string];
     return (
       <ResourcePanel title={cargosTitulo} closeHref={closeHref} closeLabel={t("T-291")}>
@@ -559,9 +745,9 @@ export function Paneles({
                 defaultValue=""
               >
                 <option value="">—</option>
-                {APPOINTMENT_KINDS.map((kind, index) => (
+                {BOARD_APPOINTMENT_KINDS.map((kind) => (
                   <option key={kind} value={kind}>
-                    {kinds[index] ?? kind}
+                    {kinds[APPOINTMENT_KINDS.indexOf(kind)] ?? kind}
                   </option>
                 ))}
               </select>
@@ -601,7 +787,52 @@ export function Paneles({
               <input id="campo-title-cargo" name="title" className={inputClass} />
             </Campo>
             <Casilla id="campo-grantBoard" name="grantBoard" label={t("T-446")} />
+            <Campo id="campo-override-cargo" label={excepcion} help={excepcionAyuda}>
+              <input id="campo-override-cargo" name="overrideReason" className={inputClass} />
+            </Campo>
             <Botones enviar={agregar} cancelHref={closeHref} />
+          </AdminFormBody>
+        </form>
+      </ResourcePanel>
+    );
+  }
+
+  // Premios OE (Regl. art. 71; ADR-060 regla 13): ADMIN registra la categoría del año.
+  if (accion === "premio" && membership && membership.status !== "INACTIVE") {
+    const [titulo, categoria, otorgar] = tList("T-2321");
+    const categorias = tList("T-2320");
+    return (
+      <ResourcePanel title={titulo ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
+        {alerta}
+        <form action={grantAwardAction} className="flex flex-col gap-4">
+          <AdminFormBody>
+            {hidden}
+            <Campo id="campo-award" label={categoria ?? ""}>
+              <select id="campo-award" name="award" required className={inputClass} defaultValue="">
+                <option value="">—</option>
+                {OE_AWARDS.map((code, index) => (
+                  <option key={code} value={code}>
+                    {categorias[index] ?? code}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+            <Campo id="campo-termId-premio" label={tList("T-262")[1] ?? ""}>
+              <select
+                id="campo-termId-premio"
+                name="termId"
+                required
+                className={inputClass}
+                defaultValue={my.term?.id ?? ""}
+              >
+                {terms.map((term) => (
+                  <option key={term.id} value={term.id}>
+                    {term.code}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+            <Botones enviar={otorgar ?? ""} cancelHref={closeHref} />
           </AdminFormBody>
         </form>
       </ResourcePanel>

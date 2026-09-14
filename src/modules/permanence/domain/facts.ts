@@ -5,9 +5,11 @@ import {
   defaultRequirement,
   listApprovedCheckInsForPersonInTerm,
   listApprovedCheckInsForTerm,
+  listExcusedCheckInsForPersonInTerm,
+  listExcusedCheckInsForTerm,
   listOccasionsForTerm,
 } from "@/modules/participation";
-import { listTermRoster, type TermRosterRow } from "@/modules/people";
+import { listExpulsionWarnings, listTermRoster, type TermRosterRow } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { getTerm } from "@/modules/terms";
 import {
@@ -39,7 +41,7 @@ export async function loadPermanenceConfig(): Promise<PermanenceConfig> {
       probation: await requireConfig("permanence.threshold.probation"),
       transfer: await requireConfig("permanence.threshold.transfer"),
     },
-    probationMargin: await requireConfig("permanence.probationMargin"),
+    probationMargins: await requireConfig("permanence.probationMargins"),
     evaluationWindowDays: await requireConfig("permanence.evaluationWindowDays"),
     warningDays: await requireConfig("permanence.warningDays"),
   };
@@ -133,23 +135,44 @@ function groupRoster(rows: TermRosterRow[]): Map<string, TermRosterRow[]> {
   return map;
 }
 
-async function attendedByPerson(
+async function occasionsByPerson(
   termId: string,
   personIds: string[] | undefined,
+  forPerson: (personId: string, termId: string) => Promise<string[]>,
+  forTerm: (termId: string) => Promise<Array<{ personId: string; occasionId: string }>>,
 ): Promise<Map<string, Set<string>>> {
   const map = new Map<string, Set<string>>();
   if (personIds) {
     for (const personId of personIds) {
-      map.set(personId, new Set(await listApprovedCheckInsForPersonInTerm(personId, termId)));
+      map.set(personId, new Set(await forPerson(personId, termId)));
     }
     return map;
   }
-  for (const row of await listApprovedCheckInsForTerm(termId)) {
+  for (const row of await forTerm(termId)) {
     const set = map.get(row.personId) ?? new Set<string>();
     set.add(row.occasionId);
     map.set(row.personId, set);
   }
   return map;
+}
+
+function attendedByPerson(termId: string, personIds: string[] | undefined) {
+  return occasionsByPerson(
+    termId,
+    personIds,
+    listApprovedCheckInsForPersonInTerm,
+    listApprovedCheckInsForTerm,
+  );
+}
+
+/** Ocasiones con excusa aceptada (ADR-060 regla 5): no cuentan como falta. */
+function excusedByPerson(termId: string, personIds: string[] | undefined) {
+  return occasionsByPerson(
+    termId,
+    personIds,
+    listExcusedCheckInsForPersonInTerm,
+    listExcusedCheckInsForTerm,
+  );
 }
 
 /**
@@ -168,6 +191,9 @@ export async function loadPeopleFacts(
   }
   const db = getDb();
   const attended = await attendedByPerson(termId, personIds);
+  const excused = await excusedByPerson(termId, personIds);
+  // Sanciones vivas al cerrar el término (ADR-060 regla 6).
+  const warned = await listExpulsionWarnings(facts.term.endsOn, ids);
   const memberships = await db
     .select({
       personId: workGroupMembership.personId,
@@ -203,7 +229,12 @@ export async function loadPeopleFacts(
   const hasRunoff = facts.occasions.some(
     (item) => item.assemblyKind === "RUNOFF" && item.status !== "CANCELLED",
   );
-  const fallback: AssemblyRequirementFact = defaultRequirement(facts.term, hasRunoff);
+  const fallback: AssemblyRequirementFact = defaultRequirement(facts.term, {
+    hasBoardElection: facts.occasions.some(
+      (item) => item.assemblyKind === "BOARD_ELECTION" && item.status !== "CANCELLED",
+    ),
+    hasRunoff,
+  });
   const requirements = new Map<string, AssemblyRequirementFact>();
   for (const row of await assemblyOverview(facts.term)) {
     requirements.set(row.personId, row.requirement);
@@ -214,16 +245,23 @@ export async function loadPeopleFacts(
     return {
       personId,
       status: first?.status ?? "INACTIVE",
-      isNew: first?.firstTermId === termId,
+      // La mesa de un comité nuevo se reporta como activa aunque sea nueva (Est. art. 5 par. 1).
+      isNew:
+        (first?.firstTermId === termId || (first?.resumedNew ?? false)) &&
+        !(first?.reportAsVeteran ?? false),
       probation: first?.probation ?? false,
       committees: rows.map((row) => ({
         committeeId: row.committeeId,
         roleCode: row.roleCode,
         transferredIn: row.transferredIn,
+        probation: row.committeeProbation,
+        reportAsVeteran: row.committeeReportAsVeteran,
         joinedAt: row.joinedAt,
         leftAt: row.leftAt,
       })),
       attended: attended.get(personId) ?? new Set(),
+      excused: excused.get(personId) ?? new Set(),
+      expulsionWarning: warned.has(personId),
       groupMemberships: memberships
         .filter((item) => item.personId === personId)
         .map(({ personId: _p, ...rest }) => rest),

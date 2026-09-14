@@ -19,15 +19,17 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Contacto o enlace de cada comité (Instagram, correo, WhatsApp)
 - [ ] Confirmar que la lista de 27 comités con logo sigue vigente (comités nuevos o cerrados)
 - [ ] Nombre oficial de cada comité: el seed sintético y la primera carga usan la sigla del logo en mayúsculas como nombre provisional
-- [ ] Confirmar con GH el reparto de capacidades por cargo sembrado por defecto (Personas para Gestión Humana, Actividades para Logística, Comunicación para Publicidad y Mercadeo, Aliados para Relaciones Públicas y Financiero, Finanzas para Financiero) y si Mercadeo existe como cargo en todos los comités ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md))
+- [x] Reparto de capacidades por cargo y existencia de Mercadeo: decidido el 2026-09-13 siguiendo los Estatutos 2026 (mesa de seis cargos, Publicidad retirado y traducido a Mercadeo, Logística con roster; [ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) regla 4). Queda para GH revisar el reparto desde `/admin/cargos` si quiere afinarlo
 - [ ] Qué deben ver Relaciones Públicas y Financiero en el área Aliados de su comité: organizaciones y patrocinios ligados al comité, hoy sin comité en la base ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md))
-- [ ] Presupuesto de los comités: rubros estándar, si es por año calendario o por semestre, si un traslado entre rubros exige aprobación de la Vicepresidencia Financiera, si se adjuntan soportes y si hay topes por rubro ([ADR-059](adr/ADR-059-presupuesto-del-comite.md))
+- [ ] Presupuesto de los comités: rubros estándar, si es por año calendario o por semestre, si un traslado entre rubros exige aprobación de la Vicepresidencia Financiera, si se adjuntan soportes y si hay topes por rubro ([ADR-059](adr/ADR-059-presupuesto-del-comite.md)) (desde el tramo N26-T10 el módulo `finance` existe: faltan los rubros estándar para sembrarlos, si la junta los define)
+- [ ] Representante ante la Asamblea Directiva y suplente de cada comité en 2026-2, para llevar la asistencia por comité que exige el Reglamento (art. 14, 17 y 64; [18-revision-normativa-2026.md](18-revision-normativa-2026.md), V4)
 
 ## Eventos
 
 - [ ] Descripción de cada macroevento: Días EAFIT, Inventiva, EnFemenino, Subsidios-OE
 - [ ] Fechas reales de la próxima edición de cada uno (no se inventan)
 - [ ] Portadas o fotos con permiso de uso; sin fotos de personas sin consentimiento
+- [ ] Quiénes ocupan la mesa directiva de cada macroevento en la edición en curso (el catálogo de cargos ya lo siembra la migración `0022` desde el Regl. art. 41 a 43; se registran en `/admin/eventos/[id]/ediciones/[edicionId]/mesa`) y quiénes los ocupan en la edición en curso (Regl. art. 41 a 43; [18-revision-normativa-2026.md](18-revision-normativa-2026.md), V6)
 
 ## Normativa y privacidad
 
@@ -67,6 +69,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [ ] Confirmar con GH los supuestos de la fase 4: prueba con transferencia usa 80 %; en licencia y honorarios no se evalúan; las evaluaciones pendientes al cerrar cuentan como no logradas; el aviso del nominal salta a 5 puntos
 - [ ] Descripción de una línea de cada criterio de la tabla general (T-126) y de los criterios de cada comité
 - [ ] Textos sensibles del cierre: periodo de prueba (T-203) y salida (T-204); desde la fase 6 la app manda por correo el resultado de quien cumple (T-202) y estos dos siguen en persona hasta tener texto
+- [ ] Causales del Anexo 1 (llamados de atención, faltas leves y graves) y lista de excusas válidas como catálogo, si la decisión 9 de [decisiones-abiertas.md](decisiones-abiertas.md) mete faltas y excusas en la app ([18-revision-normativa-2026.md](18-revision-normativa-2026.md), V1 y V2)
 
 ## Operación
 

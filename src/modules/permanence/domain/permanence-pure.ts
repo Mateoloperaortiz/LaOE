@@ -15,7 +15,8 @@ export type DecisionKind = "CONTINUES" | "PROBATION" | "EXIT_COMMITTEE" | "EXIT_
 
 export interface PermanenceConfig {
   thresholds: { active: number; new: number; probation: number; transfer: number };
-  probationMargin: number;
+  /** Puntos por debajo del umbral que aún dejan en prueba, por condición (ADR-060 regla 1). */
+  probationMargins: { active: number; new: number; probation: number; transfer: number };
   evaluationWindowDays: number;
   warningDays: number;
 }
@@ -67,6 +68,9 @@ export interface CommitteeFact {
   committeeId: string;
   roleCode: string;
   transferredIn: boolean;
+  /** Prueba fijada solo para este comité (ADR-060 regla 2); la de toda la persona va en PersonFacts. */
+  probation: boolean;
+  reportAsVeteran?: boolean;
   joinedAt: Date | null;
   leftAt: Date | null;
 }
@@ -90,10 +94,15 @@ export interface PersonFacts {
   personId: string;
   status: MembershipStatus;
   isNew: boolean;
+  /** Prueba en todos los comités (roster o ADMIN sin comité); la de un comité va en cada CommitteeFact. */
   probation: boolean;
   committees: CommitteeFact[];
   /** Ids de las ocasiones con check-in aprobado. */
   attended: ReadonlySet<string>;
+  /** Ids de las ocasiones con excusa válida aceptada (ADR-060 regla 5): no cuentan como falta. */
+  excused: ReadonlySet<string>;
+  /** Falta grave más otra sanción vivas al cerrar (ADR-060 regla 6): el cierre propone la expulsión. */
+  expulsionWarning: boolean;
   groupMemberships: GroupMembershipFact[];
   leaderScores: Array<{ ruleId: string; value: number; note: string | null; scoredAt: Date }>;
   credits: Array<{ ruleId: string; value: number; reason: string }>;
@@ -189,9 +198,13 @@ export interface MandatoryView {
   attended: { ordinary: number; boardElection: boolean; runoff: boolean };
   met: boolean;
   missing: AssemblyKindName[];
-  /** Obligatorias que ya pasaron sin registro y no tienen reemplazo programado. */
+  /** Obligatorias que ya pasaron sin registro ni excusa y no tienen reemplazo programado. */
   lost: AssemblyKindName[];
+  /** Tipos de obligatoria con una excusa aceptada (ADR-060 regla 5). */
+  excused: AssemblyKindName[];
   upcoming: Array<UpcomingOccasion & { assemblyKind: AssemblyKindName }>;
+  /** Inducción de nuevos (Regl. art. 47; ADR-060 regla 13): informa, no expulsa. */
+  induction: { required: boolean; attended: boolean; excused: boolean; pending: boolean };
 }
 
 export interface PersonPermanence {
@@ -199,6 +212,7 @@ export interface PersonPermanence {
   status: MembershipStatus;
   isNew: boolean;
   probation: boolean;
+  expulsionWarning: boolean;
   /** Solo se evalúa a activos con al menos un comité vivo. */
   evaluated: boolean;
   general: CriterionResult[];
@@ -243,6 +257,26 @@ export function conditionFor(person: {
     return "TRANSFER";
   }
   return "ACTIVE";
+}
+
+/** Banda de riesgo de los estados abiertos (ADR-036 regla 4): aviso, no consecuencia. */
+export const RISK_BAND = 10;
+
+/** Puntos por debajo del umbral que dejan en prueba según la condición (ADR-060 regla 1). */
+export function marginFor(
+  condition: Condition,
+  margins: PermanenceConfig["probationMargins"],
+): number {
+  switch (condition) {
+    case "NEW":
+      return margins.new;
+    case "PROBATION":
+      return margins.probation;
+    case "TRANSFER":
+      return margins.transfer;
+    default:
+      return margins.active;
+  }
 }
 
 /** Umbral del comité: el máximo de los que aplican (prueba con transferencia usa el de prueba). */
@@ -513,7 +547,8 @@ export function computeCriterion(
         }
         return true;
       });
-      const held = eligible.filter((item) => item.startsAt <= now);
+      // Una reunión con excusa aceptada sale del denominador (ADR-060 regla 5).
+      const held = eligible.filter((item) => item.startsAt <= now && !person.excused.has(item.id));
       const attended = held.filter((item) => person.attended.has(item.id)).length;
       const future = upcomingOf(eligible, now).length;
       const rate = held.length === 0 ? 0 : attended / held.length;
@@ -633,7 +668,10 @@ export function computeCriterion(
   }
 }
 
-/** Estado abierto por margen (ADR-036 regla 4) o final como si cerrara hoy. */
+/**
+ * Estado abierto por la banda de riesgo (ADR-036 regla 4) o, cerrado, el final con el margen de
+ * prueba de la condición (ADR-060 regla 1), como si cerrara hoy.
+ */
 export function stateFor(
   total: number,
   remaining: number,
@@ -645,7 +683,7 @@ export function stateFor(
     return finalStateFor(total, threshold, probationMargin);
   }
   const margin = round2(total + remaining - threshold);
-  if (total >= threshold || margin >= probationMargin) {
+  if (total >= threshold || margin >= RISK_BAND) {
     return "EN_CAMINO";
   }
   return margin >= 0 ? "EN_RIESGO" : "NO_ALCANZA";
@@ -672,10 +710,18 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
   );
   const attendedOf = (kind: AssemblyKindName) =>
     assemblies.filter((item) => item.assemblyKind === kind && person.attended.has(item.id)).length;
+  const excusedOf = (kind: AssemblyKindName) =>
+    assemblies.filter((item) => item.assemblyKind === kind && person.excused.has(item.id)).length;
   const upcomingOf = (kind: AssemblyKindName) =>
     assemblies.filter((item) => item.assemblyKind === kind && item.startsAt > now).length;
+  // Una obligatoria con excusa aceptada no se celebró "sin registro": no se pierde (ADR-060 regla 5).
   const heldOf = (kind: AssemblyKindName) =>
-    assemblies.filter((item) => item.assemblyKind === kind && item.startsAt <= now).length;
+    assemblies.filter(
+      (item) => item.assemblyKind === kind && item.startsAt <= now && !person.excused.has(item.id),
+    ).length;
+  const excused = (["ORDINARY", "BOARD_ELECTION", "RUNOFF"] as const).filter((kind) =>
+    assemblies.some((item) => item.assemblyKind === kind && person.excused.has(item.id)),
+  );
   const required = {
     ordinary: person.assemblyRequirement.requiredOrdinary,
     boardElection: person.assemblyRequirement.requiresBoardElection,
@@ -691,19 +737,19 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
   // Perdida: ya se celebró alguna de ese tipo sin registro y no queda otra programada que la reemplace.
   const isLost = (kind: AssemblyKindName, attendedCount: number, requiredCount: number) =>
     heldOf(kind) > attendedCount && attendedCount + upcomingOf(kind) < requiredCount;
-  if (attended.ordinary < required.ordinary) {
+  if (attended.ordinary + excusedOf("ORDINARY") < required.ordinary) {
     missing.push("ORDINARY");
-    if (isLost("ORDINARY", attended.ordinary, required.ordinary)) {
+    if (isLost("ORDINARY", attended.ordinary, required.ordinary - excusedOf("ORDINARY"))) {
       lost.push("ORDINARY");
     }
   }
-  if (required.boardElection && !attended.boardElection) {
+  if (required.boardElection && !attended.boardElection && excusedOf("BOARD_ELECTION") === 0) {
     missing.push("BOARD_ELECTION");
     if (isLost("BOARD_ELECTION", 0, 1)) {
       lost.push("BOARD_ELECTION");
     }
   }
-  if (required.runoff && !attended.runoff) {
+  if (required.runoff && !attended.runoff && excusedOf("RUNOFF") === 0) {
     missing.push("RUNOFF");
     if (isLost("RUNOFF", 0, 1)) {
       lost.push("RUNOFF");
@@ -720,7 +766,31 @@ function mandatoryFor(facts: TermFacts, person: PersonFacts, now: Date): Mandato
       startsAt: item.startsAt.toISOString(),
       assemblyKind: item.assemblyKind as AssemblyKindName,
     }));
-  return { required, attended, met: missing.length === 0, missing, lost, upcoming };
+  const inductions = facts.occasions.filter(
+    (item) => item.category === "INDUCTION" && item.status !== "CANCELLED",
+  );
+  const inductionAttended = inductions.some((item) => person.attended.has(item.id));
+  const inductionExcused = inductions.some((item) => person.excused.has(item.id));
+  const induction = {
+    required: person.isNew,
+    attended: inductionAttended,
+    excused: inductionExcused,
+    pending:
+      person.isNew &&
+      !inductionAttended &&
+      !inductionExcused &&
+      (inductions.length === 0 || inductions.some((item) => item.startsAt > now)),
+  };
+  return {
+    required,
+    attended,
+    met: missing.length === 0 && (!induction.required || inductionAttended || inductionExcused),
+    missing,
+    lost,
+    excused,
+    upcoming,
+    induction,
+  };
 }
 
 /** El resultado completo de una persona en el término: general, por comité y obligatorias. */
@@ -767,15 +837,17 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
         const total = round2(generalTotal + committeeTotal);
         const remaining = round2(generalRemaining + committeeRemaining);
         const shape = {
-          isNew: person.isNew,
-          probation: person.probation,
+          isNew: person.isNew && !membership.reportAsVeteran,
+          probation: person.probation || membership.probation,
           transferredIn: membership.transferredIn,
         };
+        const condition = conditionFor(shape);
         const threshold = thresholdFor(shape, facts.config.thresholds);
+        const margin = marginFor(condition, facts.config.probationMargins);
         return {
           committeeId: membership.committeeId,
           transferredIn: membership.transferredIn,
-          condition: conditionFor(shape),
+          condition,
           threshold,
           committeeTotal,
           committeeMax:
@@ -785,8 +857,8 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
           total,
           remaining,
           margin: round2(total + remaining - threshold),
-          state: stateFor(total, remaining, threshold, facts.config.probationMargin, closed),
-          finalState: finalStateFor(total, threshold, facts.config.probationMargin),
+          state: stateFor(total, remaining, threshold, margin, closed),
+          finalState: finalStateFor(total, threshold, margin),
           criteria,
         };
       })
@@ -795,7 +867,8 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
     personId: person.personId,
     status: person.status,
     isNew: person.isNew,
-    probation: person.probation,
+    probation: person.probation || liveCommittees.some((item) => item.probation),
+    expulsionWarning: person.expulsionWarning,
     evaluated,
     general,
     generalTotal,
@@ -806,7 +879,7 @@ export function computePerson(facts: TermFacts, person: PersonFacts, now: Date):
 }
 
 /** Motivo automático de una propuesta, en el orden de T-801. */
-export type ProposalReason = 0 | 1 | 2 | 3 | 4;
+export type ProposalReason = 0 | 1 | 2 | 3 | 4 | 5;
 
 export type CommitteeDecision = Exclude<DecisionKind, "EXIT_OE">;
 
@@ -834,6 +907,10 @@ export function proposeDecisions(result: PersonPermanence): Proposal {
   // una obligatoria que nunca se registró en el sistema no expulsa a nadie.
   if (result.mandatory.lost.length > 0) {
     return { committees, person: { proposed: "EXIT_OE", reason: 4 } };
+  }
+  // Una falta grave viva más cualquier otra sanción viva expulsa (Regl. art. 69.3; ADR-060 regla 6).
+  if (result.expulsionWarning) {
+    return { committees, person: { proposed: "EXIT_OE", reason: 5 } };
   }
   const stays = committees.some((item) => item.proposed !== "EXIT_COMMITTEE");
   return {

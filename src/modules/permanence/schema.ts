@@ -266,6 +266,8 @@ export const permanenceSnapshot = pgTable(
     status: membershipStatus().notNull(),
     isNew: boolean().notNull().default(false),
     probation: boolean().notNull().default(false),
+    /** Falta grave vigente más otra sanción viva al cerrar: el cierre propone la expulsión (ADR-060 regla 6). */
+    expulsionWarning: boolean().notNull().default(false),
     generalTotal: points().notNull().default(0),
     generalMax: points().notNull().default(0),
     general: jsonb().$type<unknown>().notNull(),

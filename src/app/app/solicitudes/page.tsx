@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { listRequestsByPerson } from "@/modules/crm";
+import { EXCUSE_CAUSES, excuseDeadline, listRequestsByPerson } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
+import { listCheckInsForPerson, listOccasionsForTerm } from "@/modules/participation";
 import { getMembershipRef, getMyMembership, listAllCommittees } from "@/modules/people";
 import { getPrivacyPolicyState } from "@/modules/system";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
+import { getCurrentTerm } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
@@ -24,13 +26,42 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
   const search: Search = await searchParams;
   const selected = requestTypes[single(search.tipo)];
   const error = single(search.error);
-  const [requests, membership, mine, committees, policy] = await Promise.all([
+  const [requests, membership, mine, committees, policy, term] = await Promise.all([
     listRequestsByPerson(actor.personId),
     getMembershipRef(actor.personId),
     getMyMembership(actor.personId),
     listAllCommittees(),
     getPrivacyPolicyState(),
+    getCurrentTerm(),
   ]);
+  // Ocasiones que todavía se pueden excusar (ADR-060 regla 5): del término, no canceladas, sin
+  // asistencia ni excusa registrada, dentro del plazo de tres días hábiles y hasta 45 días adelante.
+  const now = new Date();
+  const horizon = new Date(now.getTime() + 45 * 86_400_000);
+  const [termOccasions, myCheckIns] =
+    selected === "EXCUSE" && term
+      ? await Promise.all([
+          listOccasionsForTerm(term.id, ["OPEN", "CLOSED"]),
+          listCheckInsForPerson(actor.personId),
+        ])
+      : [[], []];
+  const covered = new Set(
+    myCheckIns
+      .filter((row) => row.status === "APPROVED" || row.status === "EXCUSED")
+      .map((row) => row.occasionId),
+  );
+  const occasionOptions = termOccasions
+    .filter((row) => !covered.has(row.id) && row.startsAt <= horizon)
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
+    .map((row) => ({
+      id: row.id,
+      label: `${formatDateTime(row.startsAt)} · ${row.title}${excuseDeadline(row.startsAt) < now ? ` · ${t("T-2338")}` : ""}`,
+    }));
+  const causeLabels = tList("T-2215");
+  const causeOptions = EXCUSE_CAUSES.map((code, index) => ({
+    code,
+    label: causeLabels[index] ?? code,
+  }));
   const kinds = tList("T-139");
   const kindLabels = tList("T-894");
   const isActive = membership?.status === "ACTIVE";
@@ -71,6 +102,13 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
       label: kindLabels[1] ?? "",
       explanation: t("T-143"),
     },
+    {
+      type: "excusa",
+      kind: "EXCUSE",
+      title: kinds[3] ?? "",
+      label: kindLabels[3] ?? "",
+      explanation: t("T-2221"),
+    },
   ] as const;
   const activeOption = options.find((option) => option.kind === selected);
 
@@ -106,9 +144,11 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
           otherCommittees={committees
             .filter((committee) => !mineIds.has(committee.id))
             .map((committee) => ({ id: committee.id, name: committee.name }))}
+          occasions={occasionOptions}
+          causes={causeOptions}
           policyReady={policy.ready}
           policyNotice={!policy.ready ? <PrivacyPolicyNotice /> : null}
-          existingPending={pending.has(selected)}
+          existingPending={selected !== "EXCUSE" && pending.has(selected)}
           pendingLabel={t("T-891", { tipo: activeOption.label })}
           closeHref={href()}
           successHref={href({ enviada: "1" }, "solicitudes")}
@@ -121,7 +161,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
             </h2>
             <p className="text-sm text-tinta-suave">{t("T-1581")}</p>
           </div>
-          <ul className="grid list-none gap-3 p-0 md:grid-cols-3">
+          <ul className="grid list-none gap-3 p-0 md:grid-cols-2 xl:grid-cols-4">
             {options.map((option) => (
               <li key={option.type} className="min-w-0">
                 <Link
@@ -132,7 +172,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
                     <span>{option.title}</span>
                     <span aria-hidden="true">↗</span>
                   </span>
-                  {pending.has(option.kind) ? (
+                  {option.kind !== "EXCUSE" && pending.has(option.kind) ? (
                     <span className="text-sm text-tinta-suave">
                       {t("T-891", { tipo: option.label })}
                     </span>

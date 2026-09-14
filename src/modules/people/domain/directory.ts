@@ -6,10 +6,11 @@ import {
   committee,
   committeeMembership,
   committeeRole,
+  macroeventRole,
   membership,
   person,
 } from "../schema";
-import type { AppointmentKind } from "./appointments";
+import { type AppointmentLabelInput, editionLabelsFor } from "./appointments";
 import type { RoleView } from "./committee-direction-pure";
 import { rolesOf } from "./committee-memberships";
 import { listLiveRolesByMembership } from "./committee-role-assignments";
@@ -40,7 +41,7 @@ export interface DirectoryEntry {
   photoAssetId: string | null;
   status: MembershipStatus;
   committees: DirectoryCommittee[];
-  appointments: Array<{ kind: AppointmentKind; title: string | null }>;
+  appointments: AppointmentLabelInput[];
 }
 
 export interface DirectoryParams {
@@ -110,15 +111,22 @@ async function decorate(rows: BaseRow[], term: TermRow | null): Promise<Director
             personId: appointment.personId,
             kind: appointment.kind,
             title: appointment.title,
+            editionId: appointment.editionId,
+            roleLabel: macroeventRole.label,
+            coDirector: appointment.coDirector,
           })
           .from(appointment)
+          .leftJoin(macroeventRole, eq(macroeventRole.code, appointment.roleCode))
           .where(and(inArray(appointment.personId, ids), eq(appointment.termId, term.id)))
       : Promise.resolve([]),
   ]);
-  const roles = await listLiveRolesByMembership(
-    getDb(),
-    committees.map((item) => item.membershipId),
-  );
+  const [roles, editions] = await Promise.all([
+    listLiveRolesByMembership(
+      getDb(),
+      committees.map((item) => item.membershipId),
+    ),
+    editionLabelsFor(appointments.map((item) => item.editionId)),
+  ]);
   return rows.map((row) => ({
     personId: row.personId,
     fullName: row.fullName?.trim() ?? "",
@@ -133,7 +141,13 @@ async function decorate(rows: BaseRow[], term: TermRow | null): Promise<Director
       })),
     appointments: appointments
       .filter((item) => item.personId === row.personId)
-      .map((item) => ({ kind: item.kind, title: item.title })),
+      .map((item) => ({
+        kind: item.kind,
+        title: item.title,
+        roleLabel: item.roleLabel,
+        editionLabel: item.editionId ? (editions.get(item.editionId) ?? null) : null,
+        coDirector: item.coDirector,
+      })),
   }));
 }
 
@@ -211,7 +225,7 @@ export async function listInternalCommittees(): Promise<InternalCommittee[]> {
         contactUrl: committee.contactUrl,
       })
       .from(committee)
-      .where(eq(committee.status, "ACTIVE"))
+      .where(inArray(committee.status, ["ACTIVE", "ON_TRIAL"]))
       .orderBy(asc(committee.name)),
     term
       ? db
@@ -257,7 +271,7 @@ export async function listInternalRoster(slug: string): Promise<InternalRoster |
       contactUrl: committee.contactUrl,
     })
     .from(committee)
-    .where(and(eq(committee.slug, slug), eq(committee.status, "ACTIVE")))
+    .where(and(eq(committee.slug, slug), inArray(committee.status, ["ACTIVE", "ON_TRIAL"])))
     .limit(1);
   if (!found) {
     return null;

@@ -11,9 +11,16 @@ export { type AlumniEntry, type AlumniYear, listAlumniByYear } from "./domain/al
 export {
   APPOINTMENT_KINDS,
   type AppointmentKind,
+  type AppointmentLabelInput,
   type AppointmentView,
   appointmentInputSchema,
+  appointmentLabel,
+  BOARD_APPOINTMENT_KINDS,
+  listMacroeventBoard,
+  listMacroeventRoles,
+  MACROEVENT_ROLE_CODES,
 } from "./domain/appointments";
+export { assertBenefitsAvailable } from "./domain/benefits";
 export {
   areasFor,
   COMMITTEE_AREAS,
@@ -25,6 +32,7 @@ export {
 export {
   addAppointmentAs,
   addCommitteeMemberAs,
+  addMacroeventDirectorAs,
   admitPersonAs,
   anonymizePersonAs,
   changeMembershipStatusAs,
@@ -33,15 +41,18 @@ export {
   leaveCommitteeAs,
   reactivateMembershipAs,
   recordConsentAs,
+  recordSanctionAs,
   removeAppointmentAs,
   requestCommitteeRemovalAs,
   requestDeletionAs,
   revokeConsentAs,
+  revokeSanctionAs,
   setCommitteeMembershipsAs,
   setMemberRolesAs,
   setOwnPhotoAs,
   setPersonTagsAs,
   setProbationAs,
+  setRepresentativeAs,
   updateCommitteeProfileAs,
   updateOwnContactAs,
   updatePersonAs,
@@ -107,13 +118,24 @@ export {
   listInternalRoster,
   type RosterMember,
 } from "./domain/directory";
+export { honoraryFacts } from "./domain/honorary";
+export {
+  HONORARY_REQUIREMENTS,
+  type HonoraryEligibility,
+  type HonoraryFacts,
+  honoraryEligibility,
+  MIN_HONORARY_REQUIREMENTS,
+} from "./domain/honorary-pure";
+export { leaveUntilError, leaveWindow } from "./domain/leave-pure";
 export {
   type ChangeStatusInput,
   changeMembershipStatus,
   changeStatusSchema,
   type EndMembershipInput,
+  type ExpiredLeave,
   endMembership,
   endMembershipSchema,
+  listExpiredLeaves,
   type MembershipEventView,
   reactivateSchema,
 } from "./domain/membership";
@@ -169,12 +191,28 @@ export {
   personInputSchema,
 } from "./domain/persons";
 export {
+  listPreferentialSchedule,
+  type PreferentialRow,
+  preferentialKindLabel,
+} from "./domain/preferential-schedule";
+export {
   findEligibleMemberByEmail,
   getMemberSummary,
   type MemberSummary,
   type MembershipStatus,
   SIGN_IN_STATUSES,
 } from "./domain/reads";
+export {
+  type DirectionRef,
+  listLiveDirectionForTerm,
+  listRepresentatives,
+  REPRESENTATIVE_ROLES,
+  type RepresentativeInput,
+  type RepresentativeRole,
+  type RepresentativeView,
+  representativeInputSchema,
+  representativeRoleLabel,
+} from "./domain/representatives";
 export {
   applyRosterImportAs,
   createRosterPreviewAs,
@@ -188,6 +226,25 @@ export {
 } from "./domain/roster";
 export { ROSTER_MAX_BYTES } from "./domain/roster-file";
 export { HEADER_ALIASES, ROSTER_COLUMNS, type RosterColumn } from "./domain/roster-pure";
+export {
+  addDays as addDaysToKey,
+  dayKeyOf,
+  expulsionWarning,
+  SANCTION_KINDS,
+  type SanctionKind,
+  type SanctionLike,
+  type SanctionState,
+} from "./domain/sanction-pure";
+export {
+  listExpulsionWarnings,
+  listSanctionsForPerson,
+  type SanctionInput,
+  type SanctionStateView,
+  type SanctionView,
+  sanctionInputSchema,
+  sanctionKindLabel,
+  sanctionStateFor,
+} from "./domain/sanctions";
 export {
   findPeopleByFilter,
   getSegment,

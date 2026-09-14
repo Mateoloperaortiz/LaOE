@@ -27,7 +27,7 @@ import { getWalletMemberState } from "@/modules/people/domain/wallet-member";
 import { person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { truncateAll } from "./db";
-import { seedMember, seedPerson } from "./factories";
+import { leaveUntilSoon, seedMember, seedPerson } from "./factories";
 
 function actorFor(personId: string, isAdmin = false): Actor {
   return {
@@ -165,7 +165,11 @@ describe("credenciales del carnet de billetera", () => {
     const personId = await seedMember("licencia@eafit.edu.co");
     const token = await getOrCreateCarnetToken(personId);
     await runCommand(SYSTEM_ACTOR, (ctx) =>
-      changeMembershipStatus(ctx, personId, { to: "ON_LEAVE", reason: "Semestre afuera" }),
+      changeMembershipStatus(ctx, personId, {
+        to: "ON_LEAVE",
+        reason: "Semestre afuera",
+        leaveUntil: leaveUntilSoon(),
+      }),
     );
     await expect(getOrCreateCarnetToken(personId)).rejects.toBeInstanceOf(ForbiddenError);
     await expect(rotateCarnetTokenAs(actorFor(personId))).rejects.toBeInstanceOf(ForbiddenError);

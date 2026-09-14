@@ -6,7 +6,12 @@ import { type ReactNode, useActionState, useEffect, useRef, useState } from "rea
 import type { RequestKind } from "@/modules/crm";
 import { t, tList } from "@/shared/copy";
 import { createRequestAction, withdrawRequestAction } from "./actions";
-import type { CommitteeOption, RequestActionState } from "./form-state";
+import type {
+  CauseOption,
+  CommitteeOption,
+  OccasionOption,
+  RequestActionState,
+} from "./form-state";
 
 const inputClass =
   "w-full min-h-11 rounded-xl border border-borde bg-fondo px-3 py-2 text-base text-tinta focus:border-titulo focus:outline-none focus:ring-2 focus:ring-borde";
@@ -107,6 +112,8 @@ export function RequestForm({
   explanation,
   currentCommittees,
   otherCommittees,
+  occasions = [],
+  causes = [],
   policyReady,
   policyNotice,
   existingPending,
@@ -119,6 +126,9 @@ export function RequestForm({
   explanation: string;
   currentCommittees: CommitteeOption[];
   otherCommittees: CommitteeOption[];
+  /** Ocasiones que se pueden excusar y causales del Anexo 1 (solo EXCUSE, ADR-060 regla 5). */
+  occasions?: OccasionOption[];
+  causes?: CauseOption[];
   policyReady: boolean;
   policyNotice: ReactNode;
   existingPending: boolean;
@@ -130,7 +140,16 @@ export function RequestForm({
   const formRef = useRef<HTMLFormElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const sendingRef = useRef(false);
-  const [values, setValues] = useState({ reason: "", until: "", personalEmail: "" });
+  const [values, setValues] = useState({
+    reason: "",
+    until: "",
+    personalEmail: "",
+    occasionId: "",
+    cause: "",
+    evidence: "",
+    lateSubmission: false,
+  });
+  const [ocasionLabel, causalLabel, soporteLabel] = tList("T-2218") as [string, string, string];
   const [consents, setConsents] = useState({ memorial: false, contact: false, confirm: false });
   const [leaveIds, setLeaveIds] = useState<string[]>([]);
   const [joinIds, setJoinIds] = useState<string[]>([]);
@@ -227,6 +246,70 @@ export function RequestForm({
         ) : null}
         <fieldset disabled={blocked || existingPending} className="flex min-w-0 flex-col gap-5">
           <input type="hidden" name="kind" value={kind} />
+          {kind === "EXCUSE" ? (
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+              <div className="flex min-w-0 flex-col gap-2">
+                <label htmlFor="excuse-occasion" className="text-sm font-semibold">
+                  {ocasionLabel}
+                </label>
+                <select
+                  id="excuse-occasion"
+                  name="occasionId"
+                  required
+                  value={values.occasionId}
+                  onChange={(event) => setValues({ ...values, occasionId: event.target.value })}
+                  aria-invalid={Boolean(fieldErrors.occasionId)}
+                  aria-describedby={fieldErrors.occasionId ? "excuse-occasion-error" : undefined}
+                  className={inputClass}
+                >
+                  <option value="">—</option>
+                  {occasions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {occasions.length === 0 ? (
+                  <p className="text-sm text-tinta-suave">{t("T-2224")}</p>
+                ) : null}
+                <FieldError id="excuse-occasion-error" message={fieldErrors.occasionId} />
+              </div>
+              <div className="flex min-w-0 flex-col gap-2">
+                <label htmlFor="excuse-cause" className="text-sm font-semibold">
+                  {causalLabel}
+                </label>
+                <select
+                  id="excuse-cause"
+                  name="cause"
+                  required
+                  value={values.cause}
+                  onChange={(event) => setValues({ ...values, cause: event.target.value })}
+                  aria-invalid={Boolean(fieldErrors.cause)}
+                  aria-describedby={fieldErrors.cause ? "excuse-cause-error" : undefined}
+                  className={inputClass}
+                >
+                  <option value="">—</option>
+                  {causes.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <FieldError id="excuse-cause-error" message={fieldErrors.cause} />
+              </div>
+              <label className="flex items-start gap-2 text-sm sm:col-span-2">
+                <input
+                  type="checkbox"
+                  name="lateSubmission"
+                  checked={values.lateSubmission}
+                  onChange={(event) =>
+                    setValues({ ...values, lateSubmission: event.target.checked })
+                  }
+                />
+                {t("T-2336")}
+              </label>
+            </div>
+          ) : null}
           {kind === "TRANSFER" ? (
             <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               <CommitteeChoices
@@ -268,6 +351,25 @@ export function RequestForm({
             </p>
             <FieldError id="request-reason-error" message={fieldErrors.reason} />
           </div>
+          {kind === "EXCUSE" ? (
+            <div className="flex flex-col gap-2">
+              <label htmlFor="excuse-evidence" className="text-sm font-semibold">
+                {soporteLabel}
+              </label>
+              <input
+                id="excuse-evidence"
+                name="evidence"
+                type="text"
+                maxLength={500}
+                value={values.evidence}
+                onChange={(event) => setValues({ ...values, evidence: event.target.value })}
+                aria-invalid={Boolean(fieldErrors.evidence)}
+                aria-describedby={fieldErrors.evidence ? "excuse-evidence-error" : undefined}
+                className={inputClass}
+              />
+              <FieldError id="excuse-evidence-error" message={fieldErrors.evidence} />
+            </div>
+          ) : null}
           {kind === "LEAVE" ? (
             <div className="flex max-w-sm flex-col gap-2">
               <label htmlFor="leave-until" className="text-sm font-semibold">
@@ -277,6 +379,7 @@ export function RequestForm({
                 id="leave-until"
                 name="until"
                 type="date"
+                required
                 value={values.until}
                 onChange={(event) => setValues({ ...values, until: event.target.value })}
                 aria-invalid={Boolean(fieldErrors.until)}

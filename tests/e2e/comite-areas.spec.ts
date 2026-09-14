@@ -11,7 +11,7 @@ import {
 } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
-import { E2E_TERM } from "./calendar";
+import { E2E_CALENDAR, E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
 import { E2E_LEAVE_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
 import { drenarOutbox } from "./outbox";
@@ -134,7 +134,7 @@ test("Gestión Humana ve solo Personas, agrega un miembro y pide un retiro a GH"
   await expect(page).toHaveURL(/\/app$/);
 });
 
-test("Logística ve solo Actividades y crea la serie semanal", async ({ page }) => {
+test("Logística ve Personas y Actividades, sin las otras áreas", async ({ page }) => {
   await direct("LOGISTICA");
   await page.goto("/admin");
   await expect(page).toHaveURL(new RegExp(`/admin/comites/${slug}$`));
@@ -142,8 +142,14 @@ test("Logística ve solo Actividades y crea la serie semanal", async ({ page }) 
   await expect(nav.getByRole("link")).toHaveCount(1);
   const tabs = page.getByRole("navigation", { name: "Sección" });
   await expect(tabs.getByRole("link", { name: "Actividades" })).toBeVisible();
-  await expect(tabs.getByRole("link", { name: "Personas" })).toHaveCount(0);
+  await expect(tabs.getByRole("link", { name: "Personas" })).toBeVisible();
+  for (const name of ["Comunicación", "Aliados", "Finanzas"]) {
+    await expect(tabs.getByRole("link", { name })).toHaveCount(0);
+  }
+  await tabs.getByRole("link", { name: "Actividades" }).click();
   await expect(page.getByRole("link", { name: "Crear serie semanal" })).toBeVisible();
+  await tabs.getByRole("link", { name: "Personas" }).click();
+  await expect(page.getByRole("heading", { name: "Gestión del roster" })).toBeVisible();
   await sinViolaciones(page);
 });
 
@@ -161,6 +167,20 @@ test("la codirección del General ve las cinco áreas y no deja un cargo obligat
   await fila.getByRole("link", { name: "Cargos" }).click();
   const panel = page.getByRole("dialog");
   await panel.getByLabel("Financiero", { exact: true }).check();
+  await panel.getByRole("button", { name: "Guardar" }).click();
+  await expect(panel.getByRole("alert")).toContainText(
+    "Es nuevo: un cargo de mesa necesita el aval",
+  );
+  // La guarda sigue vigente. Para el camino permitido, la misma identidad sintética es veterana.
+  const db = getDb();
+  const [previous] = await db.select().from(term).where(eq(term.code, E2E_CALENDAR.previous.code));
+  const [target] = await db.select().from(person).where(eq(person.email, E2E_LEAVE_EMAIL));
+  if (!previous || !target) throw new Error("Faltan identidades sintéticas");
+  await db
+    .update(membership)
+    .set({ firstTermId: previous.id })
+    .where(eq(membership.personId, target.id));
+  await closeDb();
   await panel.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Guardado.")).toBeVisible();
   await expect(page.getByRole("row", { name: /Licencia E2E/ })).toContainText("Financiero");

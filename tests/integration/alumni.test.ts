@@ -45,8 +45,9 @@ describe("galería de egresados", () => {
     );
     await seedCommitteeMembership(ana, a3, t2024, "GENERAL");
     await seedCommitteeMembership(ana, a3, t2026, "MIEMBRO");
+    // Junta y mesa no conviven (ADR-060 regla 11): el dato histórico entra como excepción con motivo.
     await runCommand(SYSTEM_ACTOR, (ctx) =>
-      addAppointment(ctx, ana, { kind: "VP_GH", termId: t2024 }),
+      addAppointment(ctx, ana, { kind: "VP_GH", termId: t2024 }, { reason: "histórico" }),
     );
     for (const id of [ana, bruno, cami]) {
       await runCommand(SYSTEM_ACTOR, (ctx) =>
@@ -78,7 +79,16 @@ describe("galería de egresados", () => {
       committees: ["A3 · General"],
       fromTermCode: "2024-1",
     });
-    expect(first?.appointments).toEqual([{ kind: "VP_GH", title: null, termCode: "2024-1" }]);
+    expect(first?.appointments).toEqual([
+      {
+        kind: "VP_GH",
+        title: null,
+        termCode: "2024-1",
+        roleLabel: null,
+        editionLabel: null,
+        coDirector: false,
+      },
+    ]);
     // Sin consentimiento de foto no hay foto, aunque exista.
     expect(years[0]?.entries[1]?.photoAssetId).toBeNull();
 

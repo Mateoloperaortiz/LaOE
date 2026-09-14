@@ -60,3 +60,7 @@ La [ADR-046](ADR-046-integracion-roster-y-acceso-en-licencia.md) amplía los dat
 ## Enmienda (2026-09-11, ADR-056)
 
 Regla 8: el panel de "dar de alta" de la Persona 360 se abre también desde la cabecera, como primera acción para un estudiante sin membresía; el comando, sus validaciones y la ausencia de step-up no cambian. Ver [ADR-056](ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md).
+
+## Enmienda (2026-09-13, ADR-060)
+
+Regla 9: las solicitudes son cuatro. Se suma la excusa válida (`EXCUSE`) sobre una ocasión del término, con la causal del Anexo 1 del Reglamento y un plazo de tres días hábiles después de la ocasión; una pendiente por persona y ocasión; la decide GH o quien tiene `PERMANENCE` en el comité dueño de la ocasión, y aprobarla escribe en la misma transacción un check-in `EXCUSED` de `participation`. Ver [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) regla 5.

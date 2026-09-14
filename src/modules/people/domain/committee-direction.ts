@@ -34,6 +34,7 @@ import {
   roleAssignmentInputSchema,
 } from "./committee-role-assignments";
 import type { CommitteeRef } from "./committees";
+import { assertNoInhabilities, leadershipRolesOf } from "./inhabilities";
 
 // La dirección del comité (ADR-058): qué comités dirige una persona y con qué capacidades, qué comités
 // quedaron sin un cargo obligatorio, quién puede entrar a un comité y los comandos con eje comité
@@ -42,6 +43,8 @@ import type { CommitteeRef } from "./committees";
 // desde `src/app` con todas las capacidades.
 
 const OPERATING_STATUSES = ["ACTIVE", "HONORARY"] as const;
+/** Quien está en licencia conserva las capacidades de su cargo de mesa (Regl. art. 27 par. 6; ADR-060 regla 10). */
+const DIRECTION_STATUSES = ["ACTIVE", "HONORARY", "ON_LEAVE"] as const;
 
 export interface DirectedRole {
   roleCode: string;
@@ -84,8 +87,8 @@ export const listMyCommitteeCapabilities = cache(
           eq(committeeRoleAssignment.termId, termId),
           isNull(committeeRoleAssignment.endedAt),
           eq(committeeRole.isLeadership, true),
-          eq(committee.status, "ACTIVE"),
-          inArray(membership.status, [...OPERATING_STATUSES]),
+          inArray(committee.status, ["ACTIVE", "ON_TRIAL"]),
+          inArray(membership.status, [...DIRECTION_STATUSES]),
         ),
       )
       .orderBy(asc(committee.name), asc(committeeRole.sortOrder), asc(committeeRole.label));
@@ -150,7 +153,7 @@ export async function listCommitteesMissingRequiredRoles(
       .innerJoin(committeeMembership, eq(committeeMembership.committeeId, committee.id))
       .where(
         and(
-          eq(committee.status, "ACTIVE"),
+          inArray(committee.status, ["ACTIVE", "ON_TRIAL"]),
           eq(committeeMembership.termId, termId),
           isNull(committeeMembership.leftAt),
         ),
@@ -444,6 +447,13 @@ export async function addCommitteeMember(
   if (error) {
     throw new DomainError(rolesChangeMessage(error, [], target), "roles");
   }
+  await assertNoInhabilities(ctx, {
+    personId: who.id,
+    termId: scope.termId,
+    replacing: [{ kind: "COMMITTEE", scopeId: scope.committeeId }],
+    wanted: await leadershipRolesOf(ctx.tx, scope.committeeId, input.roles),
+    now,
+  });
   let membershipId: string;
   if (existing) {
     await ctx.tx
@@ -528,6 +538,13 @@ export async function setMemberRoles(
   if (error) {
     throw new DomainError(rolesChangeMessage(error, current, target), "roles");
   }
+  await assertNoInhabilities(ctx, {
+    personId: who.id,
+    termId: scope.termId,
+    replacing: [{ kind: "COMMITTEE", scopeId: scope.committeeId }],
+    wanted: await leadershipRolesOf(ctx.tx, scope.committeeId, input.roles),
+    now,
+  });
   const change = await replaceRoles(
     ctx.tx,
     { id: existing.id, personId: who.id, committeeId: scope.committeeId, termId: scope.termId },

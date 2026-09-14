@@ -43,22 +43,30 @@ export async function createRequestAction(
   const payload =
     kind === "LEAVE"
       ? { reason: text(formData, "reason"), until: text(formData, "until") || undefined }
-      : kind === "RESIGNATION"
+      : kind === "EXCUSE"
         ? {
+            occasionId: text(formData, "occasionId"),
+            cause: text(formData, "cause"),
             reason: text(formData, "reason"),
-            memorialConsent: formData.get("memorialConsent") === "on",
-            contactConsent: formData.get("contactConsent") === "on",
-            personalEmail: text(formData, "personalEmail") || undefined,
+            evidence: text(formData, "evidence") || undefined,
+            lateSubmission: formData.get("lateSubmission") === "on",
           }
-        : {
-            reason: text(formData, "reason"),
-            leaveCommitteeIds: formData
-              .getAll("leaveCommitteeIds")
-              .filter((item): item is string => typeof item === "string" && item !== ""),
-            joinCommitteeIds: formData
-              .getAll("joinCommitteeIds")
-              .filter((item): item is string => typeof item === "string" && item !== ""),
-          };
+        : kind === "RESIGNATION"
+          ? {
+              reason: text(formData, "reason"),
+              memorialConsent: formData.get("memorialConsent") === "on",
+              contactConsent: formData.get("contactConsent") === "on",
+              personalEmail: text(formData, "personalEmail") || undefined,
+            }
+          : {
+              reason: text(formData, "reason"),
+              leaveCommitteeIds: formData
+                .getAll("leaveCommitteeIds")
+                .filter((item): item is string => typeof item === "string" && item !== ""),
+              joinCommitteeIds: formData
+                .getAll("joinCommitteeIds")
+                .filter((item): item is string => typeof item === "string" && item !== ""),
+            };
   const parsed = REQUEST_PAYLOAD_SCHEMAS[kind as RequestKind].safeParse(payload);
   const fieldErrors: Record<string, string> = {};
   if (!parsed.success) {
@@ -71,7 +79,9 @@ export async function createRequestAction(
             ? t("T-1586")
             : field === "personalEmail"
               ? t("T-1587")
-              : t("T-887");
+              : field === "occasionId" || field === "cause"
+                ? t("T-2222")
+                : t("T-887");
     }
   }
   if (kind === "RESIGNATION" && formData.get("confirm") !== "on") {

@@ -21,16 +21,19 @@ import {
 } from "@/modules/people/domain/membership";
 import { getPerson360 } from "@/modules/people/domain/person-360";
 import { listPeople, updatePerson } from "@/modules/people/domain/persons";
-import { committeeMembership, membership, person } from "@/modules/people/schema";
+import { committeeMembership, membership, membershipTerm, person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { DomainError } from "@/shared/admin-kit/DomainError";
+import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
+  seedMembershipTerm,
   seedPerson,
   seedTerm,
+  seedVeteran,
 } from "./factories";
 
 const db = () => getDb();
@@ -55,7 +58,11 @@ describe("acceso al cambiar estado o correo", () => {
     expect(await resolveActor(token)).not.toBeNull();
 
     await runCommand(SYSTEM_ACTOR, (ctx) =>
-      changeMembershipStatus(ctx, personId, { to: "ON_LEAVE", reason: "Semestre afuera" }),
+      changeMembershipStatus(ctx, personId, {
+        to: "ON_LEAVE",
+        reason: "Semestre afuera",
+        leaveUntil: "2027-01-31",
+      }),
     );
     expect(await resolveActor(token)).toMatchObject({ membershipStatus: "ON_LEAVE" });
     const events = await listMembershipEvents(personId);
@@ -102,6 +109,61 @@ describe("acceso al cambiar estado o correo", () => {
 
 describe("salida, reactivación y anonimización", () => {
   beforeEach(truncateAll);
+
+  it("la licencia exige regreso dentro de un año y al volver retoma la condición que tenía (ADR-060 regla 10)", async () => {
+    const previo = await seedTerm("2026-1");
+    const personId = await seedMember("condicion@eafit.edu.co", { entryTermCode: "2026-1" });
+    await seedMembershipTerm(personId, previo, true);
+    const hoy = new Date("2026-06-01T15:00:00Z");
+    await expect(
+      runCommand(SYSTEM_ACTOR, (ctx) =>
+        changeMembershipStatus(ctx, personId, { to: "ON_LEAVE", reason: "Sin fecha" }, hoy),
+      ),
+    ).rejects.toThrow(new DomainError(t("T-2274"), "leaveUntil"));
+    await expect(
+      runCommand(SYSTEM_ACTOR, (ctx) =>
+        changeMembershipStatus(
+          ctx,
+          personId,
+          { to: "ON_LEAVE", reason: "Muy larga", leaveUntil: "2027-06-02" },
+          hoy,
+        ),
+      ),
+    ).rejects.toThrow(/máximo un año/);
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(
+        ctx,
+        personId,
+        { to: "ON_LEAVE", reason: "Intercambio", leaveUntil: "2027-06-01" },
+        hoy,
+      ),
+    );
+    const leaveUntilOf = async () =>
+      (
+        await db()
+          .select({ leaveUntil: membership.leaveUntil })
+          .from(membership)
+          .where(eq(membership.personId, personId))
+      )[0]?.leaveUntil;
+    expect(await leaveUntilOf()).toBe("2027-06-01");
+
+    // Al volver: sin regreso previsto y con la prueba del término anterior copiada al actual.
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(ctx, personId, { to: "ACTIVE", reason: "Volvió" }),
+    );
+    expect(await leaveUntilOf()).toBeNull();
+    const condiciones = await db()
+      .select({
+        termId: membershipTerm.termId,
+        probation: membershipTerm.probation,
+        reason: membershipTerm.reason,
+      })
+      .from(membershipTerm)
+      .where(eq(membershipTerm.personId, personId));
+    expect(condiciones).toHaveLength(2);
+    const actual = condiciones.find((row) => row.termId !== previo);
+    expect(actual).toMatchObject({ probation: true, reason: t("T-2276") });
+  });
 
   it("dar de baja depura lo que no es historia y registra los consentimientos; reactivar recupera el perfil", async () => {
     const termId = await seedTerm();
@@ -174,6 +236,28 @@ describe("salida, reactivación y anonimización", () => {
     expect(audits?.n).toBeGreaterThanOrEqual(4);
   });
 
+  it("una persona expulsada no se reactiva (Regl. art. 61.3; ADR-060 regla 3)", async () => {
+    await seedTerm();
+    const personId = await seedMember("expulsada@eafit.edu.co");
+    const adminId = await seedMember("admin2@eafit.edu.co");
+    await runCommand({ personId: adminId }, (ctx) =>
+      endMembership(ctx, personId, {
+        endReason: "EXPULSION",
+        note: "Falta grave con otra sanción viva",
+        memorialConsent: false,
+        contactConsent: false,
+      }),
+    );
+    await expect(
+      runCommand({ personId: adminId }, (ctx) =>
+        reactivateMembership(ctx, personId, { reason: "Pidió volver" }),
+      ),
+    ).rejects.toBeInstanceOf(DomainError);
+    const data = await getPerson360(personId);
+    expect(data?.membership).toMatchObject({ status: "INACTIVE", endReason: "EXPULSION" });
+    expect(data?.person.stage).toBe("ALUMNI");
+  });
+
   it("anonimizar exige la solicitud, borra nombre y contacto, conserva las pertenencias y limpia la auditoría", async () => {
     const termId = await seedTerm();
     const personId = await seedMember("borrar@eafit.edu.co", {
@@ -232,8 +316,9 @@ describe("comités del término", () => {
 
   it("exige entre 1 y 3 comités para activos, un General por comité y cierra lo que ya no figura", async () => {
     const termId = await seedTerm();
-    const personId = await seedMember("uno@eafit.edu.co");
-    const other = await seedMember("dos@eafit.edu.co");
+    // Veteranos: un nuevo no recibe cargo de mesa sin aval (ADR-060 regla 11).
+    const personId = await seedVeteran("uno@eafit.edu.co");
+    const other = await seedVeteran("dos@eafit.edu.co");
     const ids = await Promise.all(["a3", "pixel", "ius", "eco"].map((slug) => seedCommittee(slug)));
     const [a3, pixel, ius, eco] = ids as [string, string, string, string];
 

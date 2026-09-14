@@ -32,7 +32,7 @@ registerHandler("permanence.recompute", async (payload, ctx) => {
 
 // Check-ins aprobados o anulados: la persona en el término de la ocasión.
 const checkInEvent = z.object({ personId: z.string().min(1), termId: z.string().min(1) });
-for (const type of ["checkin.approved", "checkin.cancelled"]) {
+for (const type of ["checkin.approved", "checkin.cancelled", "checkin.excused"]) {
   registerHandler(type, async (payload) => {
     const { personId, termId } = checkInEvent.parse(payload);
     await enqueueRecompute(termId, personId);
@@ -52,6 +52,15 @@ registerHandler("membership-term.changed", async (payload) => {
   const { personId, termId } = committeeEvent.parse(payload);
   await enqueueRecompute(termId, personId);
 });
+
+// Sanciones registradas o revocadas (ADR-060 regla 6): la persona en el término de la sanción.
+const sanctionEvent = z.object({ personId: z.string().min(1), termId: z.string().min(1) });
+for (const type of ["sanction.recorded", "sanction.revoked"]) {
+  registerHandler(type, async (payload) => {
+    const { personId, termId } = sanctionEvent.parse(payload);
+    await enqueueRecompute(termId, personId);
+  });
+}
 
 // Cambio de estado de la membresía: el término actual.
 const personEvent = z.object({ personId: z.string().min(1) });

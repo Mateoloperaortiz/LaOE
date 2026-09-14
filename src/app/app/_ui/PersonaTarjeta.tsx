@@ -1,6 +1,6 @@
 import {
-  APPOINTMENT_KINDS,
-  type AppointmentKind,
+  type AppointmentLabelInput,
+  appointmentLabel,
   committeeRolesLabel,
   type MembershipStatus,
   type RoleView,
@@ -18,9 +18,8 @@ export function estadoEtiqueta(status: MembershipStatus): string {
   return tList("T-381")[STATUS_CODES.indexOf(status)] ?? status;
 }
 
-export function cargoEtiqueta(item: { kind: AppointmentKind; title: string | null }): string {
-  const label = tList("T-444")[APPOINTMENT_KINDS.indexOf(item.kind)] ?? item.kind;
-  return item.kind === "OTHER" && item.title ? item.title : label;
+export function cargoEtiqueta(item: AppointmentLabelInput): string {
+  return appointmentLabel(item);
 }
 
 /** "{cargos} de {comité}" (T-370): todos los cargos vivos, con codirección; Miembro si no hay ninguno. */

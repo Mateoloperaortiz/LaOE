@@ -22,7 +22,13 @@ import {
   type ProposalReason,
   proposeDecisions,
 } from "./permanence-pure";
-import { freezeSnapshots, listSnapshots, recomputeSnapshots, snapshotToResult } from "./snapshots";
+import {
+  freezeSnapshots,
+  getSnapshot,
+  listSnapshots,
+  recomputeSnapshots,
+  snapshotToResult,
+} from "./snapshots";
 
 // Cierre de permanencia (ADR-027, ADR-028, ADR-036 regla 9): las propuestas se derivan del snapshot
 // y solo se guardan las decisiones confirmadas; GH confirma por persona o en bloque; "aplicar"
@@ -466,8 +472,12 @@ export async function applyDecisions(termId: string, nextTermId: string): Promis
     const actor: Actor = { personId: personRow?.decidedById ?? rows[0]?.decidedById ?? null };
     const reason = personRow?.reason ?? "";
     if (personRow?.decision === "EXIT_OE") {
+      // Faltar a una obligatoria expulsa (ADR-060 regla 3); quedarse sin comité es permanencia.
+      const snapshot = await getSnapshot(personId, termId);
+      const expelled =
+        snapshot !== null && (snapshot.mandatory.lost.length > 0 || snapshot.expulsionWarning);
       await endMembershipAs(actor, personId, {
-        endReason: "PERMANENCE",
+        endReason: expelled ? "EXPULSION" : "PERMANENCE",
         note: reason || undefined,
         memorialConsent: false,
         contactConsent: false,
@@ -475,15 +485,20 @@ export async function applyDecisions(termId: string, nextTermId: string): Promis
       });
     } else {
       for (const row of rows) {
-        if (row.decision === "EXIT_COMMITTEE" && row.committeeId) {
+        if (!row.committeeId) {
+          continue;
+        }
+        if (row.decision === "EXIT_COMMITTEE") {
           await leaveCommitteeAs(actor, personId, row.committeeId, termId, row.reason ?? "");
         }
-      }
-      if (rows.some((row) => row.decision === "PROBATION")) {
-        await setProbationAs(actor, personId, nextTermId, {
-          probation: true,
-          reason: reason || probationReason,
-        });
+        // La prueba se fija solo en el comité donde quedó en la banda (ADR-060 regla 2).
+        if (row.decision === "PROBATION") {
+          await setProbationAs(actor, personId, nextTermId, {
+            probation: true,
+            reason: row.reason ?? (reason || probationReason),
+            committeeId: row.committeeId,
+          });
+        }
       }
     }
     await runCommand(actor, async (ctx) => {

@@ -1,5 +1,7 @@
 import { readdirSync } from "node:fs";
+import { z } from "zod";
 import { runCommand } from "@/db/tx";
+import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import type { Badge, FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { MULTI_SEPARATOR } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
@@ -24,6 +26,11 @@ import {
   type PersonRow,
   personInputSchema,
 } from "./domain/persons";
+import {
+  listPreferentialSchedule,
+  type PreferentialRow,
+  preferentialKindLabel,
+} from "./domain/preferential-schedule";
 import {
   type CommitteeRoleInput,
   committeeRoleInputSchema,
@@ -58,7 +65,8 @@ import {
 // Etiquetas y Segmentos.
 
 const [plural, singular] = tList("T-261") as [string, string];
-const [activo, inactivo] = tList("T-287") as [string, string];
+const [activo, inactivo, enPrueba] = tList("T-287") as [string, string, string];
+const [pruebaDesde, pruebaHasta, desactivadoEl] = tList("T-2259") as [string, string, string];
 const [borrador, publicado] = tList("T-288") as [string, string];
 
 function logoOptions(): Array<{ value: string; label: string }> {
@@ -91,8 +99,14 @@ const fields: FieldDefinition[] = [
     options: [
       { value: "ACTIVE", label: activo },
       { value: "INACTIVE", label: inactivo },
+      { value: "ON_TRIAL", label: enPrueba },
     ],
   },
+  // Periodo de prueba y desactivación (Regl. art. 25 y 26; ADR-060 regla 8).
+  { name: "trialStartsOn", label: pruebaDesde, type: "date", help: t("T-2260") },
+  { name: "trialEndsOn", label: pruebaHasta, type: "date" },
+  { name: "deactivatedOn", label: desactivadoEl, type: "date" },
+  { name: "lifecycleReason", label: t("T-2332"), type: "textarea" },
   { name: "color", label: t("T-275"), type: "color" },
   { name: "logoKey", label: t("T-276"), type: "select", options: logoOptions() },
   { name: "presentation", label: t("T-277"), type: "textarea", textVariant: "code" },
@@ -122,7 +136,9 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
       render: (row) =>
         row.status === "ACTIVE"
           ? { text: activo, badge: "amarillo" }
-          : { text: inactivo, badge: "paper" },
+          : row.status === "ON_TRIAL"
+            ? { text: enPrueba, badge: "sky" }
+            : { text: inactivo, badge: "paper" },
     },
     {
       key: "publicationStatus",
@@ -140,6 +156,7 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
       options: [
         { value: "ACTIVE", label: activo },
         { value: "INACTIVE", label: inactivo },
+        { value: "ON_TRIAL", label: enPrueba },
       ],
     },
     {
@@ -166,6 +183,9 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
     slug: row.slug,
     name: row.name,
     status: row.status,
+    trialStartsOn: row.trialStartsOn ?? "",
+    trialEndsOn: row.trialEndsOn ?? "",
+    deactivatedOn: row.deactivatedOn ?? "",
     color: row.color ?? "",
     logoKey: row.logoKey ?? "",
     presentation: row.presentation ?? "",
@@ -368,6 +388,8 @@ function capabilityLabels(codes: string[]): string {
     .join(" · ");
 }
 
+const [retirado, reemplazo] = tList("T-2209") as [string, string];
+
 const roleFields: FieldDefinition[] = [
   { name: "code", label: codigo, type: "text", required: true, lockedOnEdit: true },
   { name: "label", label: nombreCargo, type: "text", required: true },
@@ -375,6 +397,9 @@ const roleFields: FieldDefinition[] = [
   { name: "required", label: obligatorio, type: "checkbox", help: t("T-2180") },
   { name: "capabilities", label: capacidades, type: "multiselect", options: capabilityOptions },
   { name: "sortOrder", label: orden, type: "number" },
+  // ADR-060 regla 4: un cargo retirado no se ofrece al nombrar y el roster lo traduce al reemplazo.
+  { name: "retired", label: retirado, type: "checkbox", help: t("T-2210") },
+  { name: "replacedByCode", label: reemplazo, type: "text" },
 ];
 
 export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleInput> = {
@@ -400,6 +425,17 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
       render: (row) => capabilityLabels(row.capabilities),
     },
     { key: "sortOrder", label: orden, render: (row) => row.sortOrder },
+    {
+      key: "retired",
+      label: retirado,
+      render: (row) =>
+        row.retired
+          ? {
+              text: row.replacedByCode ? `${retirado} → ${row.replacedByCode}` : retirado,
+              badge: "paper",
+            }
+          : null,
+    },
   ],
   schema: committeeRoleInputSchema,
   fields: roleFields,
@@ -412,6 +448,8 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
     required: row.required ? "true" : "",
     capabilities: row.capabilities.join(MULTI_SEPARATOR),
     sortOrder: String(row.sortOrder),
+    retired: row.retired ? "true" : "",
+    replacedByCode: row.replacedByCode ?? "",
   }),
   create: (actor, input) =>
     runCommand({ personId: actor.personId }, (ctx) => createCommitteeRole(ctx, input)),
@@ -424,6 +462,8 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
     obligatorio: row.required ? "sí" : "no",
     capacidades: capabilityLabels(row.capabilities),
     orden: row.sortOrder,
+    retirado: row.retired ? "sí" : "no",
+    reemplazo: row.replacedByCode ?? "",
   }),
 };
 
@@ -565,5 +605,57 @@ export const segmentsResource: ResourceDefinition<SegmentRow, SegmentInput> = {
     nombre: row.name,
     personas: row.count,
     filtro: JSON.stringify(row.filter),
+  }),
+};
+
+// Horario preferencial (Regl. art. 72; ADR-060 regla 13): exporte de solo lectura con datos personales.
+const [preferencialPlural, preferencialSingular, nombreCol, ambitoCol, cargoCol] = tList("T-2323");
+const preferencialEmpty = z.object({});
+
+export const preferentialScheduleResource: ResourceDefinition<
+  PreferentialRow,
+  z.infer<typeof preferencialEmpty>
+> = {
+  key: "horario-preferencial",
+  names: { plural: preferencialPlural ?? "", singular: preferencialSingular ?? "" },
+  basePath: "/admin/horario-preferencial",
+  columns: [
+    { key: "name", label: nombreCol ?? "", render: (row) => row.name },
+    {
+      key: "kind",
+      label: tList("T-2288")[0] ?? "",
+      render: (row) => preferentialKindLabel(row.kind),
+    },
+    { key: "scope", label: ambitoCol ?? "", render: (row) => row.scope },
+    { key: "role", label: cargoCol ?? "", render: (row) => row.roleLabel },
+  ],
+  filters: async () => [
+    {
+      key: "termId",
+      label: tList("T-262")[1] ?? "",
+      options: (await listAllTerms()).map((term) => ({ value: term.id, label: term.code })),
+    },
+  ],
+  schema: preferencialEmpty,
+  fields: [],
+  list: async (params) => {
+    const term = params.filters.termId
+      ? (await listAllTerms()).find((item) => item.id === params.filters.termId)
+      : await getCurrentTerm();
+    if (!term) {
+      return { rows: [], total: 0 };
+    }
+    const rows = await listPreferentialSchedule(term.id);
+    return { rows, total: rows.length };
+  },
+  get: () => Promise.resolve(null),
+  toFormValues: () => ({}),
+  personalData: true,
+  exportRow: (row) => ({
+    nombre: row.name,
+    correo: row.email,
+    tipo: preferentialKindLabel(row.kind),
+    ámbito: row.scope,
+    cargo: row.roleLabel,
   }),
 };

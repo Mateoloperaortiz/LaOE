@@ -2,12 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { listCommitteeAnnouncements } from "@/modules/content";
 import { listEditionsByCommittee } from "@/modules/events";
+import { getBudgetSummary, listCommitteeBudgets, listEventApprovals } from "@/modules/finance";
 import {
+  listCommitteeRepresentation,
   listCommitteeScores,
+  listCommitteeViability,
   listOccasions,
   OCCASION_CATEGORIES,
   rankCommittees,
   surveySummaryForCommittee,
+  VIABILITY_ALERTS,
 } from "@/modules/participation";
 import { occasionKindLabel, occasionStatusCell } from "@/modules/participation/admin";
 import {
@@ -16,6 +20,7 @@ import {
   listCommitteeRoles,
   listCommitteesMissingRequiredRoles,
   listInternalRoster,
+  listRepresentatives,
   searchEligibleMembers,
 } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
@@ -26,10 +31,11 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
-import { formatDate, formatDateTime } from "@/shared/lib/dates";
+import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
 import { requireCommitteeAccess } from "../_kit/capacidades";
 import { Areas } from "./_ui/Areas";
 import { Comunicacion } from "./_ui/Comunicacion";
+import { Finanzas } from "./_ui/Finanzas";
 import { Personas } from "./_ui/Personas";
 import { createSeriesAction, proposeOccasionAction } from "./actions";
 
@@ -85,6 +91,13 @@ export default async function ComitePage({
         (row) => row.committee.id === roster.committee.id,
       )?.missing ?? [])
     : [];
+  // Viabilidad (Regl. art. 25 y 26; ADR-060 regla 8): los avisos que no sean el de cargos obligatorios.
+  const viability = term
+    ? ((await listCommitteeViability(term.id)).find(
+        (row) => row.committeeId === roster.committee.id,
+      ) ?? null)
+    : null;
+  const viabilityLabels = tList("T-2264");
 
   return (
     <div className="flex flex-col gap-8">
@@ -97,6 +110,26 @@ export default async function ComitePage({
           </div>
         </div>
         {term ? <p className="text-tinta-suave">{term.code}</p> : null}
+        {viability?.status === "ON_TRIAL" && viability.trialEndsOn ? (
+          <Insignia fondo="sky">
+            {t("T-2265", {
+              fecha: formatDate(new Date(`${viability.trialEndsOn}T12:00:00Z`)),
+            })}
+          </Insignia>
+        ) : null}
+        {viability?.alerts.some((alert) => alert !== "MISSING_REQUIRED") ? (
+          <ul className="flex list-none flex-wrap gap-2 p-0">
+            {viability.alerts
+              .filter((alert) => alert !== "MISSING_REQUIRED")
+              .map((alert) => (
+                <li key={alert}>
+                  <Insignia fondo="naranja">
+                    {viabilityLabels[VIABILITY_ALERTS.indexOf(alert)] ?? alert}
+                  </Insignia>
+                </li>
+              ))}
+          </ul>
+        ) : null}
         {missing.length > 0 ? (
           <ul className="flex list-none flex-wrap gap-2 p-0">
             {missing.map((role) => (
@@ -142,6 +175,15 @@ export default async function ComitePage({
           hasTerm={term !== null}
           isAdmin={access.isAdmin}
           canDirect={capabilities.has("DIRECTION")}
+          canRoster={access.isAdmin || capabilities.has("ROSTER")}
+          representatives={term ? await listRepresentatives(term.id, roster.committee.id) : []}
+          representation={
+            term
+              ? ((await listCommitteeRepresentation(term.id)).find(
+                  (row) => row.committeeId === roster.committee.id,
+                ) ?? null)
+              : null
+          }
           actorPersonId={access.actor.personId}
           roles={await listCommitteeRoles()}
           max={await requireConfig("committees.max")}
@@ -192,9 +234,11 @@ export default async function ComitePage({
       ) : null}
 
       {area === "finanzas" ? (
-        <section aria-label={tList("T-2174")[4] ?? ""} className="flex flex-col gap-2">
-          <p className="text-tinta-suave">{t("T-240")}</p>
-        </section>
+        <FinanzasArea
+          slug={slug}
+          committeeId={access.roster.committee.id}
+          guardado={single(search.guardado)}
+        />
       ) : null}
     </div>
   );
@@ -541,5 +585,39 @@ async function Actividades({
         </ResourcePanel>
       ) : null}
     </div>
+  );
+}
+
+/** Finanzas (ADR-059, ADR-060 regla 12): los presupuestos del año calendario en curso y los avales. */
+async function FinanzasArea({
+  slug,
+  committeeId,
+  guardado,
+}: {
+  slug: string;
+  committeeId: string;
+  guardado: string;
+}) {
+  const year = Number.parseInt(todayKey().slice(0, 4), 10);
+  const [budgets, approvals, editions] = await Promise.all([
+    listCommitteeBudgets(committeeId, year),
+    listEventApprovals({ committeeId }),
+    listEditionsByCommittee(committeeId),
+  ]);
+  const summaries = (
+    await Promise.all(budgets.map((budget) => getBudgetSummary(budget.id)))
+  ).flatMap((summary) => (summary ? [summary] : []));
+  return (
+    <Finanzas
+      slug={slug}
+      year={year}
+      budgets={summaries}
+      approvals={approvals}
+      editions={editions.map((item) => ({
+        id: item.id,
+        label: `${item.eventName} · ${item.name}`,
+      }))}
+      guardado={guardado}
+    />
   );
 }

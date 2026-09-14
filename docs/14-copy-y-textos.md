@@ -238,7 +238,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-136 | Solicitar eliminación | Pedir que borren mis datos (GH responde en 15 días hábiles) | JUNTA | Propuesta; el plazo sale de la política |
 | T-137 | Cerrar otras sesiones | Cerrar sesión en los demás dispositivos | MATEO | Propuesta |
 | T-138 | Solicitudes, título | Solicitudes | GH | Propuesta |
-| T-139 | Solicitudes, tipos (en el orden del modelo: licencia, retiro, cambio de comité) | Pedir licencia · Retirarme de la OE · Cambiarme de comité el próximo semestre | GH | Propuesta |
+| T-139 | Solicitudes, tipos (en el orden del modelo: licencia, retiro, cambio de comité, excusa) | Pedir licencia · Retirarme de la OE · Cambiarme de comité el próximo semestre · Presentar una excusa | GH | Propuesta |
 | T-140 | Solicitud enviada | Tu solicitud llegó a GH. Te avisamos cuando la respondan. | GH | Propuesta |
 | T-141 | Solicitud aprobada | GH aprobó tu solicitud de {tipo}. Ya está aplicada. | GH | Propuesta |
 | T-142 | Solicitud rechazada | GH no aprobó tu solicitud de {tipo}: {motivo}. Si querés hablarlo, escribiles. | GH | Propuesta |
@@ -318,7 +318,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
-| T-521 | Check-in, agenda y admin: nombre de la categoría de una ocasión (en el orden del modelo) | Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Actividad | GH | Propuesta |
+| T-521 | Check-in, agenda y admin: nombre de la categoría de una ocasión (en el orden del modelo) | Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Actividad · Inducción | GH | Propuesta |
 | T-522 | Check-in, agenda y admin: nombre del tipo de ocasión (en el orden del modelo) | Actividad · Asamblea · Sesión de edición | GH | Propuesta |
 | T-523 | Check-in: la actividad es solo para nuevos | Esta actividad es solo para quienes entraron a la OE este semestre. | GH | Propuesta |
 | T-524 | Check-in: actividad cancelada | Esta actividad fue cancelada. | MATEO | Propuesta |
@@ -405,7 +405,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-878 | Solicitud: botón para retirar una pendiente | Retirar solicitud | MATEO | Propuesta |
 | T-879 | Solicitud retirada | Retiraste tu solicitud. | MATEO | Propuesta |
 | T-880 | Solicitud: campo del motivo | Contanos por qué | GH | Propuesta |
-| T-881 | Licencia: campo hasta cuándo (opcional) | Hasta cuándo (opcional) | GH | Propuesta |
+| T-881 | Licencia: campo hasta cuándo (obligatorio desde ADR-060 regla 10) | Hasta cuándo volvés | GH | Propuesta |
 | T-882 | Licencia: explicación | Mientras estés en licencia podés consultar Mi OE y actualizar tus datos personales. No podés participar en actividades ni se te evalúa la permanencia. Para volver, escribile a GH. | GH | Propuesta |
 | T-883 | Cambio de comité: explicación | El cambio aplica desde el próximo semestre y cuenta como transferencia: ese semestre tenés que cumplir el 70 % en el comité nuevo. | GH | Propuesta |
 | T-884 | Cambio de comité: comités que dejás | Comités que dejás | GH | Propuesta |
@@ -418,7 +418,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-891 | Solicitud: ya hay una pendiente de ese tipo | Ya tenés una solicitud de {tipo} pendiente. | MATEO | Propuesta |
 | T-892 | Solicitud: solo miembros activos | Solo un miembro activo puede hacer solicitudes. | GH | Propuesta |
 | T-893 | Solicitud: botón de enviar | Enviar solicitud | MATEO | Propuesta |
-| T-894 | Solicitud: tipos en singular para los mensajes (en el orden del modelo: licencia, retiro, cambio de comité) | licencia · retiro · cambio de comité | MATEO | Propuesta |
+| T-894 | Solicitud: tipos en singular para los mensajes (en el orden del modelo: licencia, retiro, cambio de comité, excusa) | licencia · retiro · cambio de comité · excusa | MATEO | Propuesta |
 | T-895 | Solicitud: respuesta de GH, título | Respuesta de GH | GH | Propuesta |
 | T-896 | Convocatorias: sin convocatorias abiertas | No hay convocatorias abiertas ahora. Cuando se abra una, la vas a ver acá. | GH | Propuesta |
 | T-897 | Convocatoria: cupo y cierre | {cupo} cupos · cierra el {fecha} | MATEO | Propuesta |
@@ -544,7 +544,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-284 | Términos: nominal de la tabla general | Puntos nominales de la tabla general | MATEO | Propuesta |
 | T-285 | Términos: nominal de la tabla de comité | Puntos nominales de la tabla de comité | MATEO | Propuesta |
 | T-286 | Términos: cierre de puntos | Puntos cerrados el | MATEO | Propuesta |
-| T-287 | Comités: opciones de estado | Activo · Inactivo | MATEO | Propuesta |
+| T-287 | Comités: opciones de estado | Activo · Inactivo · En prueba | MATEO | Propuesta |
 | T-288 | Contenido: opciones de publicación | Borrador · Publicado | MATEO | Propuesta |
 | T-289 | Permisos: opciones (ADMIN, líder, junta) | ADMIN · Líder de comité · Junta | MATEO | Propuesta |
 | T-290 | Paleta ⌘K: tipos de resultado | Persona · Comité · Ocasión · Organización | MATEO | Propuesta |
@@ -623,7 +623,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-433 | Persona 360: acciones | Editar datos · Cambiar estado · Dar de baja · Reactivar · Anonimizar · Nueva nota · Nueva tarea · Etiquetas · Permisos | MATEO | Propuesta |
 | T-434 | Cambiar estado, baja y notas: campo motivo | Motivo | MATEO | Propuesta |
 | T-435 | Cambiar estado: campo del estado nuevo | Estado nuevo | MATEO | Propuesta |
-| T-436 | Dar de baja: motivos | Graduación · Retiro voluntario · Permanencia · Otro | GH | Propuesta |
+| T-436 | Dar de baja: motivos (en el orden del modelo) | Graduación · Retiro voluntario · Permanencia · Expulsión · Pérdida de la calidad de estudiante · Otro | GH | Propuesta |
 | T-437 | Dar de baja: casillas de consentimiento | Autoriza aparecer en la galería de egresados · Autoriza que la OE lo contacte después de salir | JUNTA | Propuesta |
 | T-438 | Dar de baja: botón | Dar de baja | GH | Propuesta |
 | T-439 | Reactivar: texto | Vas a reactivar a {nombre}: vuelve a ser miembro activo con su historia. Si tiene un correo institucional nuevo, escribilo. | GH | Propuesta |
@@ -631,12 +631,12 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-441 | Anonimizar: botón | Anonimizar | MATEO | Propuesta |
 | T-442 | Anonimizar sin solicitud previa | Solo se anonimiza a quien lo pidió desde Mi OE. | MATEO | Propuesta |
 | T-443 | Membresía: títulos de los bloques | Historial de estados · Comités por semestre · Cargos de junta y de GH · Condición del semestre | MATEO | Propuesta |
-| T-444 | Membresía: cargos de junta y de GH (opciones) | Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Publicidad · GH principal · Director de GH · Otro | JUNTA | Propuesta |
+| T-444 | Membresía: cargos de junta y de GH (opciones) | Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Mercadeo · GH principal · Director de GH · Dirección de macroevento · Otro | JUNTA | Propuesta; el nombre es el del cuerpo de los Estatutos 2026 (art. 21 y 27), ADR-060 regla 4; la dirección de macroevento se etiqueta con T-2268 y T-2269 (regla 9) |
 | T-445 | Membresía: campo del título cuando el cargo es Otro | Título del cargo | MATEO | Propuesta |
 | T-446 | Membresía: casilla del permiso de junta | Otorgar también el permiso Junta (pide un código nuevo) | MATEO | Propuesta |
 | T-447 | Membresía: botones de cargos | Agregar cargo · Quitar | MATEO | Propuesta |
 | T-448 | Membresía: título del editor de comités | Comités de {término} | MATEO | Propuesta |
-| T-449 | Membresía: condición de prueba | En periodo de prueba | GH | Propuesta |
+| T-449 | Membresía: condición de prueba (insignia · campo del comité) | En periodo de prueba · Comité | GH | Propuesta |
 | T-450 | Membresía: campos de una pertenencia | Comité · Cargo · Transferencia interna | MATEO | Propuesta |
 | T-451 | Membresía: regla de cantidad de comités | Un activo necesita entre {min} y {max} comités. | MATEO | Propuesta |
 | T-452 | Membresía: ya hay quien ocupe ese cargo (titular o codirección, ADR-058) | {comité} ya tiene {cargo} este semestre. | MATEO | Propuesta |
@@ -648,7 +648,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-458 | Línea de tiempo: textos de las interacciones automáticas | Importado desde el roster {término} · Estado cambió de {de} a {a}: {motivo} · Dado de baja: {motivo} · Reactivado · Comités de {término}: {comités} · Cargo {cargo} desde {término} · Cargo {cargo} retirado · Consentimiento de {propósito} autorizado · Consentimiento de {propósito} retirado · Datos actualizados: {campos} · Correo institucional cambiado · Pidió la eliminación de sus datos · Descargó sus datos · Datos anonimizados · Permiso {permiso} otorgado · Permiso {permiso} revocado | MATEO | Propuesta |
 | T-459 | Tareas: campos y columnas | Título · Responsable · Vence · Estado · Persona · Tipo | MATEO | Propuesta |
 | T-460 | Tareas: opciones de estado | Abierta · Hecha | MATEO | Propuesta |
-| T-461 | Tareas: tipos | General · Solicitud de eliminación · Solicitud de miembro · Retiro de comité | MATEO | Propuesta |
+| T-461 | Tareas: tipos | General · Solicitud de eliminación · Solicitud de miembro · Retiro de comité · Licencia vencida | MATEO | Propuesta |
 | T-462 | Tareas: acción de cerrar | Marcar hecha | MATEO | Propuesta |
 | T-463 | Tareas: filtro por responsable | Mías · Sin asignar · Todas | MATEO | Propuesta |
 | T-464 | Tarea de eliminación: título | Eliminación de datos pedida por {nombre} | MATEO | Propuesta |
@@ -718,7 +718,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-563 | Ocasiones: campos | Título · Tipo · Tipo de asamblea · Categoría · Solo nuevos · Descripción (Markdown) · Lugar · Empieza · Termina · Abre el registro · Cierra el registro · GH Points · Aprobación · Código rotativo · Comité · Edición · Semestre | MATEO | Propuesta |
 | T-564 | Ocasiones: opciones de tipo | Actividad · Asamblea · Sesión de edición | MATEO | Propuesta |
 | T-565 | Ocasiones: opciones de tipo de asamblea | Ordinaria · Elección de junta · Segunda vuelta | GH | Propuesta |
-| T-566 | Ocasiones: opciones de categoría | Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Otra | GH | Propuesta |
+| T-566 | Ocasiones: opciones de categoría | Integración · Partido del Athletic · Reunión de comité · Charla · Taller · Social · Otra · Inducción | GH | Propuesta |
 | T-567 | Ocasiones: opciones de aprobación | Automática · Manual (GH revisa cada registro) | GH | Propuesta |
 | T-568 | Ocasiones: estados | Borrador · Abierta · Cerrada · Cancelada | MATEO | Propuesta |
 | T-569 | Ocasiones: acciones de fila | Abrir · Cerrar · Consola | MATEO | Propuesta |
@@ -749,7 +749,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-594 | Consola: lista de asistentes, título | Asistentes | MATEO | Propuesta |
 | T-595 | Consola: columnas de asistentes | Persona · Comités · Hora · Fuente · Estado | MATEO | Propuesta |
 | T-596 | Consola y Persona 360: fuentes del check-in (en el orden del modelo) | QR · Anfitrión · Admin · Importado | MATEO | Propuesta |
-| T-597 | Consola y Persona 360: estados del check-in (en el orden del modelo) | Pendiente · Aprobado · Rechazado · Anulado | MATEO | Propuesta |
+| T-597 | Consola y Persona 360: estados del check-in (en el orden del modelo) | Pendiente · Aprobado · Rechazado · Anulado · Excusado | MATEO | Propuesta |
 | T-598 | Consola: alta manual, título y botón | Registrar a alguien · Registrar | GH | Propuesta |
 | T-599 | Consola y anfitrión: campo de búsqueda | Buscá por nombre | MATEO | Propuesta |
 | T-600 | Consola y anfitrión: sin resultados | No encontramos a nadie con ese nombre. | MATEO | Propuesta |
@@ -819,7 +819,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-664 | Recurso rankings (plural · singular) | Rankings · Puesto | MATEO | Propuesta |
 | T-665 | Recurso cumplimiento de asambleas (plural · singular) | Cumplimiento de asambleas · Persona | MATEO | Propuesta |
 | T-666 | Tarea: falta crear el semestre siguiente | Crear el semestre {codigo}: el actual termina el {fecha} | MATEO | Propuesta |
-| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points | MATEO | Propuesta |
+| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} | MATEO | Propuesta |
 | T-668 | Persona 360, Participación: títulos | Check-ins · Movimientos de GH Points | MATEO | Propuesta |
 | T-669 | Persona 360, Participación: sin check-ins | Todavía no tiene check-ins. | MATEO | Propuesta |
 | T-670 | Persona 360, Resumen: asambleas obligatorias | {n} de {total} obligatorias | MATEO | Propuesta |
@@ -928,7 +928,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-798 | Cierre de permanencia: título | Cierre de permanencia | GH | Propuesta |
 | T-799 | Cierre: puntos sin cerrar | Primero cerrá los puntos de {término}. Las propuestas se ven, pero no se confirman hasta entonces. | MATEO | Propuesta |
 | T-800 | Cierre: resumen | Personas · Continúan · En prueba · Salen de un comité · Salen de la OE · Sin decisión · Evaluaciones pendientes | MATEO | Propuesta |
-| T-801 | Cierre: motivos automáticos (cumple, prueba, no cumple, sin comité, obligatoria) | Cumplió el umbral · Hasta 10 puntos por debajo del umbral · Más de 10 puntos por debajo del umbral · No le queda un comité donde cumpla o esté en prueba · Faltó a una asamblea obligatoria | GH | Propuesta |
+| T-801 | Cierre: motivos automáticos (cumple, prueba, no cumple, sin comité, obligatoria, sanciones) | Cumplió el umbral · Por debajo del umbral, dentro de la banda de prueba de su condición · Por debajo del umbral, fuera de la banda de prueba de su condición · No le queda un comité donde cumpla o esté en prueba · Faltó a una asamblea obligatoria · Falta grave vigente más otra sanción (Reglamento, art. 69) | GH | Propuesta |
 | T-802 | Cierre y Persona 360: decisiones (en el orden del modelo) | Continúa · Periodo de prueba · Sale del comité · Sale de la OE | GH | Propuesta |
 | T-803 | Cierre: botones | Confirmar propuesta · Cambiar · Confirmar todas las propuestas · Aplicar cierre | MATEO | Propuesta |
 | T-804 | Cierre: campos al cambiar | Decisión · Motivo | MATEO | Propuesta |
@@ -959,7 +959,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-829 | Persona 360, Permanencia: bloques | Resultado por comité · Tabla general · Decisiones del cierre · Créditos manuales | MATEO | Propuesta |
 | T-830 | Persona 360, Permanencia: exento | Sin evaluación de permanencia este semestre ({estado}). | MATEO | Propuesta |
 | T-831 | Persona 360, Permanencia: decisión confirmada | {decisión}: {motivo} (por {quien}, {fecha}) | MATEO | Propuesta |
-| T-832 | Línea de tiempo: eventos de permanencia (buen desempeño, insuficiente, puntaje del líder, crédito manual, entró al grupo, salió del grupo, decisión del cierre, condición de prueba marcada, condición de prueba retirada) | Buen desempeño en {grupo}, evaluado por {evaluador} · Desempeño insuficiente en {grupo}, evaluado por {evaluador}: {nota} · {criterio} en {comité}: {valor} de {peso} · Crédito manual en {criterio}: {valor} ({motivo}) · Entró al grupo {grupo} · Salió del grupo {grupo} · Cierre de {término}: {decisión} · En periodo de prueba en {término}: {motivo} · Sin periodo de prueba en {término}: {motivo} | MATEO | Propuesta |
+| T-832 | Línea de tiempo: eventos de permanencia (buen desempeño, insuficiente, puntaje del líder, crédito manual, entró al grupo, salió del grupo, decisión del cierre, condición de prueba marcada, condición de prueba retirada, prueba marcada en un comité, prueba retirada en un comité) | Buen desempeño en {grupo}, evaluado por {evaluador} · Desempeño insuficiente en {grupo}, evaluado por {evaluador}: {nota} · {criterio} en {comité}: {valor} de {peso} · Crédito manual en {criterio}: {valor} ({motivo}) · Entró al grupo {grupo} · Salió del grupo {grupo} · Cierre de {término}: {decisión} · En periodo de prueba en {término}: {motivo} · Sin periodo de prueba en {término}: {motivo} · En periodo de prueba en {comité} en {término}: {motivo} · Sin periodo de prueba en {comité} en {término}: {motivo} | MATEO | Propuesta |
 | T-833 | Línea de tiempo: reconocimiento | Destacado de {mes} en {comité} | MATEO | Propuesta |
 | T-834 | Permanencia: el semestre ya cerró su permanencia (comandos) | El semestre ya cerró su permanencia: no se puede cambiar. | MATEO | Propuesta |
 | T-835 | Permanencia: sin permiso sobre el grupo | No operás este grupo. | MATEO | Propuesta |
@@ -1132,7 +1132,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1054 | Kanban: buscador de persona u organización, texto | Buscá por nombre o correo | MATEO | Propuesta |
 | T-1055 | Kanban: sujeto elegido | Sujeto | MATEO | Propuesta |
 | T-1056 | Correos: destinatario sin nombre preferido | Hola | MATEO | Propuesta |
-| T-1057 | Solicitud (admin): tipos en plural para los filtros | Licencias · Retiros · Cambios de comité | MATEO | Propuesta |
+| T-1057 | Solicitud (admin): tipos en plural para los filtros | Licencias · Retiros · Cambios de comité · Excusas | MATEO | Propuesta |
 | T-1058 | Formulario: valor "sí" y "no" de una casilla en respuestas y exportes | Sí · No | MATEO | Propuesta |
 | T-1059 | Organización: sin tareas | Sin tareas. | MATEO | Propuesta |
 | T-1060 | Kanban: sin responsable | Sin responsable | MATEO | Propuesta |
@@ -1508,7 +1508,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-1593 | Solicitudes: datos del formulario | Datos de la solicitud | MATEO | Propuesta |
 | T-1594 | Solicitudes: retiro pendiente | Retirando solicitud… | MATEO | Propuesta |
 | T-1595 | Solicitudes: fallo al retirar | No pudimos confirmar el retiro. Intentá de nuevo. | MATEO | Propuesta |
-| T-1596 | Solicitudes: fecha opcional, ayuda | Si todavía no sabés la fecha, dejá este campo vacío. | MATEO | Propuesta |
+| T-1596 | Solicitudes: fecha de regreso, ayuda | La licencia dura máximo un año (Estatutos, art. 5.4). Al volver retomás la condición que tenías. | MATEO | Propuesta |
 | T-1597 | Solicitudes: recuento de historial | Solicitudes: {n} | MATEO | Propuesta |
 | T-1598 | Solicitudes: ver seguimiento | Ver mis solicitudes | MATEO | Propuesta |
 
@@ -1684,7 +1684,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-2142 | Persona 360, Membresía: botón para cambiar la condición del semestre | Cambiar condición | MATEO | Propuesta |
-| T-2143 | Condición del semestre: ayuda del panel | Marcá o quitá el periodo de prueba de ese semestre. Cambia el umbral que le aplica en permanencia y queda en la línea de tiempo con tu motivo. | MATEO | Propuesta |
+| T-2143 | Condición del semestre: ayuda del panel | Marcá o quitá el periodo de prueba de ese semestre, en todos sus comités o solo en uno. Cambia el umbral que le aplica en permanencia y queda en la línea de tiempo con tu motivo. | MATEO | Propuesta |
 
 ## La dirección del comité por áreas (ADR-058)
 
@@ -1754,3 +1754,140 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2203 | Rubros: campos | Nombre · Asignado · Orden | MATEO | Propuesta |
 | T-2204 | Guarda: presupuesto que no está abierto | El presupuesto {año} no está abierto: solo la junta lo cambia. | MATEO | Propuesta |
 | T-2205 | Área Finanzas: ayuda | Registrá cada gasto en su rubro y, si un rubro va a sobrar, trasladalo a tiempo: lo que no se ejecuta en el año se pierde. | JUNTA | Propuesta |
+
+## Normativa 2026 (ADR-060)
+
+| T-2206 | Persona 360: reactivar a una persona expulsada | No se puede reactivar: fue expulsada de la OE y el Reglamento no admite el reingreso (art. 61). | GH | Propuesta; texto sensible |
+| T-2207 | Condición del semestre: opción del comité que aplica a todos | Todos sus comités | MATEO | Propuesta |
+| T-2208 | Importación del roster: aviso por persona expulsada | {nombre} fue expulsada de la OE y el roster no la reactiva (Reglamento, art. 61); su fila conserva el estado actual. | GH | Propuesta |
+| T-2209 | Catálogo de cargos: casilla de retirado · campo del reemplazo | Retirado del catálogo · Lo reemplaza (código) | MATEO | Propuesta |
+| T-2210 | Catálogo de cargos: ayuda de retirado | Un cargo retirado no se ofrece al nombrar; quien ya lo tiene lo conserva hasta cerrarlo y el roster lo traduce al reemplazo. | MATEO | Propuesta |
+| T-2211 | Catálogo de cargos: reemplazo inválido | El cargo de reemplazo no existe en el catálogo o es el mismo cargo. | MATEO | Propuesta |
+| T-2212 | Guarda: nombrar un cargo retirado con reemplazo | El cargo {cargo} está retirado del catálogo: usá {nuevo}. | MATEO | Propuesta |
+| T-2213 | Importación: aviso de cargo traducido | {cargo} ya no existe en los comités desde los Estatutos 2026: se carga como {nuevo}. | GH | Propuesta |
+| T-2214 | Guarda e importación: cargo retirado sin reemplazo | El cargo {cargo} está retirado del catálogo y no tiene reemplazo. | MATEO | Propuesta |
+| T-2215 | Excusa: causales del Anexo 1 del Reglamento (en el orden del modelo) | Clase, parcial o actividad académica obligatoria · Cita médica, odontológica, psicológica o terapéutica · Incapacidad médica · Emergencia médica o accidente propio o de un familiar cercano · Fallecimiento de un familiar o de una persona cercana · Obligación laboral que no se puede reprogramar · Diligencia académica o institucional obligatoria · Problema de movilidad (accidente, cierre vial, manifestación, transporte o clima) · Situación familiar de fuerza mayor · Citación judicial, notarial o de una entidad pública · Competencia, congreso o evento en representación de la Universidad · Falla técnica imprevista para asistir o entregar de forma virtual · Riesgo para la seguridad o la integridad personal · Otra circunstancia de fuerza mayor o caso fortuito | GH | Propuesta; transcripción del Anexo 1 |
+| T-2216 | Excusa: detalle en listas y paneles | Excusa para {ocasión} · {causal} | MATEO | Propuesta |
+| T-2217 | Solicitudes (admin): aceptar una excusa, texto | Vas a aceptar la excusa de {nombre} ({detalle}): la ocasión queda excusada, sin puntos, y no cuenta como falta ni como obligatoria perdida. | GH | Propuesta |
+| T-2218 | Excusa: campos del formulario (ocasión · causal · soporte) | Ocasión · Causal (Anexo 1 del Reglamento) · Soporte: enlace o descripción (opcional) | GH | Propuesta |
+| T-2219 | Excusa: fuera de plazo | La excusa se presenta antes de la ocasión o hasta tres días hábiles después (Reglamento, Anexo 1). Ya pasó el plazo: hablá con GH. | GH | Propuesta; texto sensible |
+| T-2220 | Excusa: ya hay una pendiente para esa ocasión | Ya tenés una excusa pendiente para esa ocasión. | MATEO | Propuesta |
+| T-2221 | Excusa: explicación | Si no pudiste ir a una asamblea, actividad, reunión o partido por una causal del Reglamento, presentá la excusa antes o hasta tres días hábiles después. Si GH o tu comité la aceptan, no cuenta como falta ni te expulsa por una asamblea obligatoria; tampoco suma puntos. | GH | Propuesta |
+| T-2222 | Excusa: falta la ocasión o la causal | Elegí la ocasión y la causal. | MATEO | Propuesta |
+| T-2223 | Excusa: la ocasión ya tiene asistencia | Esa ocasión ya tiene tu asistencia registrada: no hace falta excusa. | MATEO | Propuesta |
+| T-2224 | Excusa: sin ocasiones para excusar | No hay ocasiones recientes ni próximas para excusar. | MATEO | Propuesta |
+| T-2225 | Permanencia del comité: bloque de excusas pendientes, título | Excusas pendientes de tu comité | GH | Propuesta |
+| T-2226 | Permanencia del comité: sin excusas pendientes | No hay excusas pendientes sobre las ocasiones de tu comité. | MATEO | Propuesta |
+| T-2227 | Excusa: ocasión inválida | La ocasión no existe, está cancelada o no es de este semestre. | MATEO | Propuesta |
+| T-2228 | Excusa: decidida desde el comité | Excusa {estado}. | MATEO | Propuesta |
+| T-2229 | Sanciones: tipos (en el orden del modelo) | Llamado de atención · Falta leve · Falta grave · Suspensión · Inhabilidad para cargos | GH | Propuesta; Reglamento cap. 9 y Anexo 1 |
+| T-2230 | Sanciones: campos del formulario | Tipo · Causal: los hechos y los descargos · Referencia del Reglamento (opcional) · Fecha de la falta · Suspendida hasta (solo suspensión) · Comité que la impone (opcional) · Miembro | GH | Propuesta |
+| T-2231 | Sanciones: ayuda del formulario | Un llamado de atención suspende derechos y beneficios 7 días y una falta leve 20; una suspensión dura hasta un mes; una falta grave no suspende pero advierte de expulsión y, con otra sanción vigente, el cierre propone la salida; la inhabilidad para cargos dura un año. Toda falta vence al año. Anotá los descargos en la causal. | GH | Propuesta; texto sensible |
+| T-2232 | Sanciones: botones | Registrar sanción · Revocar sanción | MATEO | Propuesta |
+| T-2233 | Guarda: reconocimiento o aval a una persona suspendida | {nombre} tiene derechos y beneficios suspendidos hasta el {fecha}: no puede recibir reconocimientos ni avales (Reglamento, art. 69 y 73). | GH | Propuesta; texto sensible |
+| T-2234 | Línea de tiempo: sanción registrada · sanción revocada | Sanción registrada: {tipo} ({causal}) · Sanción revocada: {tipo} ({motivo}) | MATEO | Propuesta |
+| T-2235 | Mi OE, permanencia: bloque de sanciones, título | Faltas y sanciones | GH | Propuesta |
+| T-2236 | Mi OE, permanencia: línea de una sanción | {tipo} del {fecha}: {causal}. Vence el {vence}. | GH | Propuesta; texto sensible |
+| T-2237 | Mi OE, permanencia: derechos suspendidos | Tus derechos y beneficios en la OE están suspendidos hasta el {fecha}. Seguís con tus deberes y tus reuniones. | GH | Propuesta; texto sensible |
+| T-2238 | Mi OE, permanencia: advertencia de expulsión | Tenés una falta grave vigente más otra sanción: el cierre del semestre propone tu salida de la OE (Reglamento, art. 69). Hablá con GH. | GH | Propuesta; texto sensible |
+| T-2239 | Persona 360, Membresía: bloque de sanciones (título · vacío) | Faltas y sanciones · Sin sanciones registradas | MATEO | Propuesta |
+| T-2240 | Sanciones: motivo de la revocación | Motivo de la revocación (descargos o revisión de la junta) | GH | Propuesta |
+| T-2241 | Sanciones: fecha de fin de la suspensión inválida | La suspensión necesita una fecha de fin entre la falta y un mes después (Reglamento, art. 58). | MATEO | Propuesta |
+| T-2242 | Permanencia del comité: registrar una falta, título | Registrar una falta a un miembro del comité | GH | Propuesta |
+| T-2243 | Sanciones: estados (vigente · vencida · revocada) | Vigente · Vencida · Revocada | MATEO | Propuesta |
+| T-2244 | Sanciones: membresía terminada | Solo se sanciona a un miembro con membresía viva; una persona retirada se da de baja con motivo expulsión. | MATEO | Propuesta |
+| T-2245 | Mi OE, permanencia: sanción revocada o vencida | Sin sanciones vigentes. | MATEO | Propuesta |
+| T-2246 | Representantes ante la Asamblea: roles (en el orden del modelo) | Titular · Suplente | MATEO | Propuesta |
+| T-2247 | Comité, área Personas: bloque de representación, título | Representación ante la Asamblea Directiva | GH | Propuesta |
+| T-2248 | Comité, área Personas: ayuda de representación | Un titular y un suplente de la mesa directiva, miembros activos del comité (Reglamento, art. 14). El comité cuenta como representado cuando su titular, su suplente o cualquier cargo de dirección registra asistencia en la asamblea; con excusa aceptada, la falta cuenta con excusa. | GH | Propuesta |
+| T-2249 | Asambleas (admin): columnas de la representación por comité | Comité · Titular · Suplente · Representado en · Faltas sin excusa · Faltas con excusa · Consecuencia | MATEO | Propuesta |
+| T-2250 | Representación: escalera de consecuencias del término (en el orden del modelo) | Al día · Primera falta: sin voto en la siguiente asamblea y llamado de atención a la mesa · Segunda falta: sin voto en las dos siguientes y falta leve a la mesa · Tercera falta: causal de desactivación y falta grave a la mesa | GH | Propuesta; Reglamento art. 64; texto sensible |
+| T-2251 | Representación: más de dos faltas con excusa | Más de dos faltas con excusa en el semestre (Reglamento, art. 64). | GH | Propuesta |
+| T-2252 | Asambleas (admin): comités representados en una asamblea | {n} de {m} comités representados | MATEO | Propuesta |
+| T-2253 | Asambleas (admin): sección de representación, título | Representación de los comités | GH | Propuesta |
+| T-2254 | Asambleas (admin): botón de recalcular la representación | Recalcular | MATEO | Propuesta |
+| T-2255 | Representantes: persona no elegible | El representante debe ser un miembro activo del comité en este semestre (Reglamento, art. 14). | MATEO | Propuesta |
+| T-2256 | Comité, área Personas: botón de guardar representantes | Guardar representantes | MATEO | Propuesta |
+| T-2257 | Representación: sin representante · sin asambleas cerradas | Sin representante · Sin asambleas cerradas todavía | MATEO | Propuesta |
+| T-2258 | Comité, área Personas: resumen de la representación del semestre | Representado en {n} de {m} asambleas · {faltas} sin excusa · {excusadas} con excusa | MATEO | Propuesta |
+| T-2259 | Comité: campos del periodo de prueba y la desactivación | Prueba desde · Prueba hasta · Desactivado el | MATEO | Propuesta |
+| T-2260 | Comité: ayuda del periodo de prueba | Un comité creado o reactivado queda en prueba seis meses, ampliables a un año por la junta con motivo; en ese lapso debe hacer al menos un evento propio, representar al comité en el 90 % de las asambleas y cerrar con diez miembros fuera de la mesa (Reglamento, art. 25). Reactivar uno desactivado solo tras dos meses (art. 64). | JUNTA | Propuesta |
+| T-2261 | Tablero y cabecera del comité: aviso de viabilidad | {comité}: {alerta} | MATEO | Propuesta |
+| T-2262 | Condición del semestre: casilla de mesa de comité nuevo | Se reporta como activo aunque sea nuevo (mesa de comité nuevo o reactivado, Estatutos art. 5) | GH | Propuesta |
+| T-2263 | Tablero de ADMIN: viabilidad de los comités, título | Viabilidad de los comités | MATEO | Propuesta |
+| T-2264 | Viabilidad: avisos (en el orden del modelo) | Menos de tres direcciones vivas · Sin General o Financiero titular · Menos de seis miembros fuera de la mesa · Tres o más faltas sin excusa a la Asamblea · Sin evento propio en el semestre · En prueba con menos de diez miembros fuera de la mesa · En prueba con menos del 90 % de asambleas representadas · La prueba termina en menos de 30 días | GH | Propuesta; Reglamento art. 25 y 26; texto sensible |
+| T-2265 | Comité en prueba: insignia de la cabecera | En prueba hasta el {fecha} | MATEO | Propuesta |
+| T-2266 | Ediciones: columna, enlace y título de la mesa directiva | Mesa directiva | MATEO | Propuesta |
+| T-2267 | Mesa directiva de la edición: ayuda | Los cargos de la mesa directiva de un macroevento los elige la Asamblea Directiva (Reglamento, art. 41 a 43); aquí queda el resultado, con un titular y, si la hay, una codirección por cargo. Solo miembros activos. | JUNTA | Propuesta |
+| T-2268 | Cargo de macroevento: etiqueta del titular (Persona 360, directorio, egresados) | {cargo} · {edición} | MATEO | Propuesta |
+| T-2269 | Cargo de macroevento: etiqueta de la codirección | {cargo} (codirección) · {edición} | MATEO | Propuesta |
+| T-2270 | Mesa directiva: campos y botones | Cargo · Persona · Agregar a la mesa · Quitar | MATEO | Propuesta |
+| T-2271 | Mesa directiva: guardas | Ese cargo ya tiene titular en esta edición. · Ese cargo ya tiene codirección en esta edición. · Solo un miembro activo puede tener un cargo de macroevento. · Esa persona ya tiene un cargo en esta edición. | MATEO | Propuesta |
+| T-2272 | Mesa directiva: sin cargos | Esta edición no tiene cargos registrados. | MATEO | Propuesta |
+| T-2273 | Mesa directiva: confirmación | Mesa directiva actualizada. | MATEO | Propuesta |
+| T-2274 | Licencia: guarda sin fecha de regreso | La licencia necesita una fecha de regreso. | MATEO | Propuesta |
+| T-2275 | Licencia: guarda de la ventana de regreso | La licencia empieza mañana y dura máximo un año (Estatutos, art. 5.4): el regreso puede ser hasta el {fecha}. | MATEO | Propuesta |
+| T-2276 | Condición retomada al volver de licencia (motivo automático) | Retoma la condición que tenía al salir a licencia (Estatutos, art. 5 par. 2). | MATEO | Propuesta |
+| T-2277 | Tarea a GH: licencia vencida sin regreso | Licencia vencida: {nombre} debía volver el {fecha} (Estatutos, art. 11.3). | GH | Propuesta |
+| T-2278 | Cambiar estado: campo del regreso previsto | Regreso previsto | MATEO | Propuesta |
+| T-2279 | Cambiar estado: ayuda del regreso previsto | Obligatorio para la licencia: desde mañana y máximo un año (Estatutos, art. 5.4). Al volver a activo retoma la condición que tenía. | MATEO | Propuesta |
+| T-2280 | Membresía: licencia con regreso previsto | En licencia hasta el {fecha} | MATEO | Propuesta |
+| T-2281 | Inhabilidades para cargos: motivos (en el orden del modelo) | Tiene una inhabilidad para cargos vigente · Es de la Junta Directiva y la junta no convive con la mesa de un comité (Reglamento, art. 11) · Es nuevo: un cargo de mesa necesita el aval de la Vicepresidencia de GH (art. 27) · Ya dirige otro macroevento · Ya es General de otro comité · Ya es Financiero de otro comité · Superaría dos cargos directivos · Con dos cargos directivos, al menos uno debe ser codirección | GH | Propuesta; Reglamento art. 11 y 27 par. 3 y 4 |
+| T-2282 | Inhabilidades: guarda al nombrar | No se puede nombrar: {motivos}. ADMIN puede registrar una excepción con motivo. | MATEO | Propuesta |
+| T-2283 | Inhabilidades: campo de excepción (Persona 360, mesa de macroevento) y su ayuda | Excepción registrada (motivo) · Solo si hay una inhabilidad: el aval de la Vicepresidencia de GH o la decisión de la junta quedan auditados con este motivo. | MATEO | Propuesta |
+| T-2284 | Grupos de trabajo: tope de comités de trabajo por persona | {nombre} ya está en dos comités de trabajo este semestre (Estatutos, art. 4 par. 3). | GH | Propuesta |
+| T-2285 | Roster: aviso de inhabilidad en la vista previa | Inhabilidad al nombrar ({motivos}): se aplica igual y queda auditada con el motivo del roster. | MATEO | Propuesta |
+| T-2286 | Presupuesto: tipos (en el orden del modelo) | Ordinario · Extraordinario | MATEO | Propuesta |
+| T-2287 | Presupuesto: guarda de ordinario repetido | Ese comité ya tiene presupuesto ordinario para {año}. | MATEO | Propuesta |
+| T-2288 | Presupuesto: campos de ADR-060 | Tipo · Actividad (solo extraordinario) · Presentado el · Aprobación de Desarrollo Estudiantil · Aprobación de la Vicepresidencia Financiera · Sanción (%) · Motivo de la sanción | MATEO | Propuesta |
+| T-2289 | Rubros: guarda al borrar uno con movimientos | El rubro {rubro} tiene movimientos: no se borra; trasladá lo que queda. | MATEO | Propuesta |
+| T-2290 | Presupuesto: guarda al abrir sin aprobaciones | Para abrirlo faltan las aprobaciones de Desarrollo Estudiantil y de la Vicepresidencia Financiera (Reglamento, art. 50 par. 1). | MATEO | Propuesta |
+| T-2291 | Presupuesto: guarda al abrir sin rubros | Para abrirlo necesita al menos un rubro. | MATEO | Propuesta |
+| T-2292 | Gasto: guarda sin presolicitud del mes | Sin presolicitud de {mes} el comité no tiene acceso a los recursos ese mes (Estatutos, art. 38): registrala primero. | MATEO | Propuesta |
+| T-2293 | Traslado: guarda de rubros iguales | Elegí dos rubros distintos. | MATEO | Propuesta |
+| T-2294 | Aval: guarda de aval no aprobado o de otro comité | Elegí un aval aprobado para este comité y presupuesto. | MATEO | Propuesta |
+| T-2295 | Traslado: guarda después del evento | Las reasignaciones se presentan antes del evento (Estatutos, art. 38 par. 2): el evento del aval fue el {fecha}. | MATEO | Propuesta |
+| T-2296 | Aval: guarda de decisión repetida | Ese aval ya fue decidido. | MATEO | Propuesta |
+| T-2297 | Presolicitud: guarda de mes repetido | Ya hay presolicitud para {mes}. | MATEO | Propuesta |
+| T-2298 | Presolicitud: título, campos, botón y confirmación | Presolicitud mensual · Mes · Notas · Registrar presolicitud · Presolicitud registrada. | MATEO | Propuesta |
+| T-2299 | Aval de evento: título, campos, botón y confirmación | Avales de evento · Evento · Fecha del evento · Edición (opcional) · Descripción · Pedir aval · Aval pedido: lo decide la Presidencia. | MATEO | Propuesta |
+| T-2300 | Aval de evento: estados (en el orden del modelo) | Pendiente · Aprobado · Rechazado | MATEO | Propuesta |
+| T-2301 | Aval de evento: ayuda | Antes de ejecutar, difundir o comprar para un evento, la Presidencia lo avala (Reglamento, art. 35 par. 1). Los gastos y los traslados de ese evento se ligan a su aval. | JUNTA | Propuesta |
+| T-2302 | Presupuesto (detalle): títulos | Aprobaciones · Sanción por presentación tardía · Presolicitudes · Avales · Movimientos · Detalle | MATEO | Propuesta |
+| T-2303 | Presupuesto (detalle): botones | Registrar aprobación · Abrir · Cerrar · Aplicar sanción · Guardar rubros · Aprobar · Rechazar | MATEO | Propuesta |
+| T-2304 | Presupuesto (detalle): aprobador (en el orden del modelo) | Desarrollo Estudiantil · Vicepresidencia Financiera | MATEO | Propuesta |
+| T-2305 | Presupuesto: ayuda del tipo | El ordinario es anual y se presenta al final del año anterior; los extraordinarios cubren actividades no previstas durante el año (Reglamento, art. 50). Los dos los aprueban Desarrollo Estudiantil y la Vicepresidencia Financiera antes de abrirse. | JUNTA | Propuesta |
+| T-2306 | Presupuesto: ayuda de la sanción | No presentar el presupuesto a tiempo sin aplazamiento descuenta el 10 % del siguiente presupuesto aprobado (Reglamento, art. 66): queda como ajuste con motivo. | JUNTA | Propuesta |
+| T-2307 | Gasto y traslado: campos del aval y del proveedor | Aval del evento (opcional) · Proveedor (de la lista de la Universidad, Reglamento art. 51) · Sin aval | MATEO | Propuesta |
+| T-2308 | Presupuesto (detalle): confirmación | Presupuesto actualizado. | MATEO | Propuesta |
+| T-2309 | Presupuesto extraordinario: etiqueta | Extraordinario: {actividad} | MATEO | Propuesta |
+| T-2310 | Presupuesto: totales | Asignado {asignado} · Gastado {gastado} · Disponible {disponible} | MATEO | Propuesta |
+| T-2311 | Presupuesto (detalle): sin movimientos, sin presolicitudes, sin avales | Sin movimientos todavía. · Sin presolicitudes todavía. · Sin avales pedidos. | MATEO | Propuesta |
+| T-2312 | Presupuesto (detalle): campos de la aprobación y de la sanción | Quién aprueba · Fecha · Porcentaje · Motivo · Nota de la decisión | MATEO | Propuesta |
+| T-2313 | Condición del semestre: casilla de verificación académica | Requisitos académicos verificados este semestre (Estatutos, art. 6 y 7; sin guardar promedio ni materias) | GH | Propuesta |
+| T-2314 | Condición del semestre: insignia de la verificación académica | Verificación académica: {fecha} | MATEO | Propuesta |
+| T-2315 | Membresía: elegibilidad a honorario (título y ayuda) | Elegibilidad a honorario · Cuatro de cinco requisitos (Reglamento, art. 23): la junta decide y la asamblea resuelve las apelaciones. En periodo de prueba no se piden avales (art. 73). Los cargos "completos" se aproximan como vivos hasta el fin del semestre; la junta, como los dos semestres del mismo año. | JUNTA | Propuesta |
+| T-2316 | Elegibilidad a honorario: requisitos (en el orden del modelo) | Cargo directivo de comité completo · Cargo directivo de macroevento completo · Seis semestres como miembro activo · Junta Directiva completa (año) · Un año en un comité de trabajo | JUNTA | Propuesta |
+| T-2317 | Elegibilidad a honorario: resumen e insignias | Cumple {n} de {m} requisitos · Elegible · Todavía no elegible | MATEO | Propuesta |
+| T-2318 | Permanencia: inducción de nuevos (título y estados) | Inducción · Obligatoria para nuevos (Reglamento, art. 47) · Asististe · Pendiente · Sin registro | GH | Propuesta |
+| T-2319 | Ocasiones: asamblea citada con menos de tres días hábiles | Citada con menos de tres días hábiles (Reglamento, art. 15 par. 1) | MATEO | Propuesta |
+| T-2320 | Premios OE: categorías (en el orden del Reglamento, art. 71) | Mejor Dirección General · Mejor Dirección Financiera · Mejor Dirección de Gestión Humana · Mejor Dirección de Logística · Mejor Dirección de Relaciones Públicas · Mejor Dirección de Mercadeo · Mejor Mesa Directiva · Mejor Miembro Nuevo · Mejor Evento Académico · Mejor Evento Cultural · Mejor Evento Social · Mejor Evento Deportivo · Mejor Evento Recreativo · Mejor Comité · Mejor Semana de Carrera · Comité Revelación | JUNTA | Propuesta |
+| T-2321 | Premio OE: panel (título, campo, botón, confirmación y enlace) | Premio OE · Categoría · Otorgar · Premio registrado. · Otorgar Premio OE | MATEO | Propuesta |
+| T-2322 | Membresía: reconocimientos (título, vacío y tipos) | Reconocimientos · Sin reconocimientos. · Destacado del mes · Otro · Premio OE | MATEO | Propuesta |
+| T-2323 | Horario preferencial: recurso (plural · singular), columnas y tipos | Horario preferencial · Horario preferencial · Nombre · Ámbito · Cargo · Junta Directiva · Mesa directiva · Macroevento | MATEO | Propuesta |
+| T-2324 | Horario preferencial: ayuda | Junta Directiva, mesas directivas de los comités (máximo seis por CIC o CE, titulares antes que codirecciones) y directores de macroevento del término (Reglamento, art. 72). La Universidad exige acreditar la asistencia a la Asamblea de Carrera; el CSV lleva el correo. | JUNTA | Propuesta |
+
+| T-2325 | Comité: fecha de desactivación | Registrá la fecha de desactivación, sin usar una fecha futura. | JUNTA | Propuesta |
+| T-2326 | Comité: reactivación | Un comité desactivado vuelve en periodo de prueba, después de al menos dos meses desde su desactivación. | JUNTA | Propuesta |
+| T-2327 | Comité: límites del periodo de prueba | El periodo de prueba va de seis a doce meses desde su inicio. Conservá la fecha de inicio y esperá al vencimiento antes de pasarlo a activo. | JUNTA | Propuesta |
+| T-2328 | Comité: motivo de ampliación | Para ampliar la prueba más allá de seis meses, registrá el motivo de la decisión de la junta. | JUNTA | Propuesta |
+| T-2329 | Finanzas: año del presupuesto | La fecha debe corresponder al año {año} de este presupuesto. | MATEO | Propuesta |
+| T-2330 | Aval: aprobación previa | El aval debe aprobarse antes del evento y antes de los gastos que se registren con él. | JUNTA | Propuesta |
+| T-2331 | Beneficios y avales: prueba o suspensión | En periodo de prueba o con derechos suspendidos no se reciben beneficios ni se piden avales (Reglamento, art. 73). | JUNTA | Propuesta |
+| T-2332 | Comité: motivo del cambio | Motivo de la decisión sobre el periodo de prueba | JUNTA | Propuesta |
+| T-2333 | Condición retomada en licencia | Nuevo al regresar de licencia | GH | Propuesta |
+| T-2334 | Traslado: aval obligatorio | Aval aprobado del evento | MATEO | Propuesta |
+| T-2335 | Condición retomada en licencia | Transferencia al regresar de licencia | GH | Propuesta |
+| T-2336 | Excusa: revisión excepcional | Si está fuera de plazo, solicito revisión excepcional de la Vicepresidencia de Gestión Humana; explico el retraso en el motivo. | GH | Propuesta |
+| T-2337 | Excusa tardía: autoridad y motivo | Una excusa presentada fuera de plazo solo la acepta ADMIN como Vicepresidencia de Gestión Humana, con motivo de la excepción. | GH | Propuesta |
+| T-2338 | Excusa: ocasión fuera de plazo | Fuera de plazo: revisión excepcional | GH | Propuesta |

@@ -1,6 +1,12 @@
 import { type Actor, runCommand } from "@/db/tx";
 import { type AdmitInput, admitPerson } from "./admission";
-import { type AppointmentInput, addAppointment, removeAppointment } from "./appointments";
+import {
+  type AppointmentInput,
+  addAppointment,
+  addMacroeventDirector,
+  type MacroeventDirectorInput,
+  removeAppointment,
+} from "./appointments";
 import {
   addCommitteeMember,
   type RemovalRequestInput,
@@ -13,6 +19,7 @@ import {
 import { type CommitteeMembershipInput, setCommitteeMemberships } from "./committee-memberships";
 import { type CommitteeProfileInput, updateCommitteeProfile } from "./committees";
 import { type ConsentPurpose, type ConsentSource, recordConsent, revokeConsent } from "./consents";
+import type { Override } from "./inhabilities";
 import {
   anonymizePerson,
   type ChangeStatusInput,
@@ -24,6 +31,8 @@ import {
 } from "./membership";
 import { type OwnContactInput, requestDeletion, setOwnPhoto, updateOwnContact } from "./own-data";
 import { createPerson, type PersonInput, updatePerson } from "./persons";
+import { type RepresentativeInput, setRepresentative } from "./representatives";
+import { recordSanction, revokeSanction, type SanctionInput } from "./sanctions";
 import { setPersonTags } from "./tags";
 import { leaveCommittee, type ProbationInput, setProbation } from "./term-outcomes";
 
@@ -79,20 +88,32 @@ export function setCommitteeMembershipsAs(
   personId: string,
   termId: string,
   rows: CommitteeMembershipInput[],
+  override?: Override,
 ): Promise<void> {
-  return runCommand(actor, (ctx) => setCommitteeMemberships(ctx, personId, termId, rows));
+  return runCommand(actor, (ctx) =>
+    setCommitteeMemberships(ctx, personId, termId, rows, new Date(), override),
+  );
 }
 
 export function addAppointmentAs(
   actor: Actor,
   personId: string,
   input: AppointmentInput,
+  override?: Override,
 ): Promise<{ id: string }> {
-  return runCommand(actor, (ctx) => addAppointment(ctx, personId, input));
+  return runCommand(actor, (ctx) => addAppointment(ctx, personId, input, override));
 }
 
 export function removeAppointmentAs(actor: Actor, id: string): Promise<void> {
   return runCommand(actor, (ctx) => removeAppointment(ctx, id));
+}
+
+export function addMacroeventDirectorAs(
+  actor: Actor,
+  input: MacroeventDirectorInput,
+  override?: Override,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => addMacroeventDirector(ctx, input, override));
 }
 
 export function recordConsentAs(
@@ -191,4 +212,24 @@ export function requestCommitteeRemovalAs(
   input: RemovalRequestInput,
 ): Promise<void> {
   return runCommand(actor, (ctx) => requestCommitteeRemoval(ctx, scope, who, input));
+}
+
+// Faltas y sanciones (ADR-060 regla 6).
+
+export function recordSanctionAs(
+  actor: Actor,
+  personId: string,
+  input: SanctionInput,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => recordSanction(ctx, personId, input));
+}
+
+export function revokeSanctionAs(actor: Actor, sanctionId: string, reason: string): Promise<void> {
+  return runCommand(actor, (ctx) => revokeSanction(ctx, sanctionId, reason));
+}
+
+// Representación ante la Asamblea Directiva (ADR-060 regla 7).
+
+export function setRepresentativeAs(actor: Actor, input: RepresentativeInput): Promise<void> {
+  return runCommand(actor, (ctx) => setRepresentative(ctx, input));
 }

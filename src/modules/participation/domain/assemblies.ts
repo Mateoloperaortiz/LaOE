@@ -54,7 +54,7 @@ export interface PersonAssemblyStatus {
   compliance: AssemblyCompliance;
   assemblies: Array<{
     occasion: OccasionRow;
-    status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | null;
+    status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "EXCUSED" | null;
   }>;
 }
 
@@ -64,13 +64,16 @@ export async function assemblyStatusFor(
   term: TermLike,
 ): Promise<PersonAssemblyStatus> {
   const assemblies = await listTermAssemblies(term.id);
-  const hasRunoff = assemblies.some((item) => item.assemblyKind === "RUNOFF");
+  const existing = {
+    hasBoardElection: assemblies.some((item) => item.assemblyKind === "BOARD_ELECTION"),
+    hasRunoff: assemblies.some((item) => item.assemblyKind === "RUNOFF"),
+  };
   const [adjustment] = await getDb()
     .select()
     .from(assemblyRequirement)
     .where(and(eq(assemblyRequirement.termId, term.id), eq(assemblyRequirement.personId, personId)))
     .limit(1);
-  const requirement = adjustment ? toView(adjustment) : defaultRequirement(term, hasRunoff);
+  const requirement = adjustment ? toView(adjustment) : defaultRequirement(term, existing);
   const checkIns =
     assemblies.length === 0
       ? []
@@ -118,7 +121,10 @@ export async function assemblyOverview(term: TermLike): Promise<AssemblyOverview
     listTermAssemblies(term.id),
     getDb().select().from(assemblyRequirement).where(eq(assemblyRequirement.termId, term.id)),
   ]);
-  const hasRunoff = assemblies.some((item) => item.assemblyKind === "RUNOFF");
+  const existing = {
+    hasBoardElection: assemblies.some((item) => item.assemblyKind === "BOARD_ELECTION"),
+    hasRunoff: assemblies.some((item) => item.assemblyKind === "RUNOFF"),
+  };
   const kindByOccasion = new Map(assemblies.map((item) => [item.id, item.assemblyKind]));
   const checkIns =
     assemblies.length === 0
@@ -154,7 +160,7 @@ export async function assemblyOverview(term: TermLike): Promise<AssemblyOverview
   return members
     .map((member) => {
       const adjustment = adjustmentByPerson.get(member.personId);
-      const requirement = adjustment ? toView(adjustment) : defaultRequirement(term, hasRunoff);
+      const requirement = adjustment ? toView(adjustment) : defaultRequirement(term, existing);
       return {
         personId: member.personId,
         name: member.fullName.trim(),

@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, count, eq, ilike, inArray, isNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
@@ -215,6 +215,9 @@ export async function setEvaluators(
   });
 }
 
+/** Tope de comités de trabajo por persona y término (Est. art. 4 par. 3). */
+const MAX_WORK_COMMITTEES = 2;
+
 export interface AddMembersContext {
   /** Estado de membresía de cada persona, leído en el wrapper: solo entran activos (T-752). */
   statuses: Map<string, { name: string; status: string }>;
@@ -236,6 +239,25 @@ export async function addMembers(
     const person = context.statuses.get(personId);
     if (!person || person.status !== "ACTIVE") {
       throw new DomainError(t("T-752", { nombre: person?.name ?? personId }));
+    }
+    // Nadie pertenece a más de dos comités de trabajo en un término (Est. art. 4 par. 3; ADR-060 regla 11).
+    if (group.kind === "WORK_COMMITTEE") {
+      const [others] = await ctx.tx
+        .select({ n: count() })
+        .from(workGroupMembership)
+        .innerJoin(workGroup, eq(workGroup.id, workGroupMembership.groupId))
+        .where(
+          and(
+            eq(workGroupMembership.personId, personId),
+            isNull(workGroupMembership.leftAt),
+            eq(workGroup.termId, group.termId),
+            eq(workGroup.kind, "WORK_COMMITTEE"),
+            ne(workGroup.id, groupId),
+          ),
+        );
+      if ((others?.n ?? 0) >= MAX_WORK_COMMITTEES) {
+        throw new DomainError(t("T-2284", { nombre: person.name }));
+      }
     }
     const [row] = await ctx.tx
       .insert(workGroupMembership)
@@ -633,4 +655,14 @@ export async function listGroupIdsOf(personId: string): Promise<string[]> {
     .from(workGroupMembership)
     .where(and(eq(workGroupMembership.personId, personId), isNull(workGroupMembership.leftAt)));
   return rows.map((row) => row.groupId);
+}
+
+/** Términos en los que la persona perteneció a un comité de trabajo (Regl. art. 23.5; ADR-060 regla 13). */
+export async function listWorkCommitteeTermIds(personId: string): Promise<string[]> {
+  const rows = await getDb()
+    .selectDistinct({ termId: workGroup.termId })
+    .from(workGroupMembership)
+    .innerJoin(workGroup, eq(workGroup.id, workGroupMembership.groupId))
+    .where(and(eq(workGroupMembership.personId, personId), eq(workGroup.kind, "WORK_COMMITTEE")));
+  return rows.map((row) => row.termId);
 }

@@ -243,6 +243,20 @@ function Obligatorias({ mandatory }: { mandatory: MandatoryView }) {
           {t("T-695", { asamblea: next.title, fecha: formatDate(new Date(next.startsAt)) })}
         </p>
       ) : null}
+      {mandatory.induction?.required ? (
+        <p className="text-sm">
+          <Insignia
+            fondo={mandatory.induction.attended || mandatory.induction.excused ? "sky" : "naranja"}
+          >
+            {tList("T-2318")[0]} ·{" "}
+            {mandatory.induction.attended || mandatory.induction.excused
+              ? tList("T-2318")[2]
+              : mandatory.induction.pending
+                ? tList("T-2318")[3]
+                : tList("T-2318")[4]}
+          </Insignia>
+        </p>
+      ) : null}
     </div>
   );
 }

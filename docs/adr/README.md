@@ -13,7 +13,9 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-059](ADR-059-presupuesto-del-comite.md) | Presupuesto del comité por rubros, gastos y traslados | Propuesta |
+| [ADR-061](ADR-061-verificacion-y-correcciones-de-normativa-2026.md) | Verificación y correcciones de normativa 2026 | Aceptada |
+| [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) | Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026 | Aceptada; en curso por tramos |
+| [ADR-059](ADR-059-presupuesto-del-comite.md) | Presupuesto del comité por rubros, gastos y traslados | Propuesta; enmendada por ADR-060 |
 | [ADR-058](ADR-058-direccion-del-comite-por-areas.md) | La dirección del comité por áreas: capacidades por cargo, cargos múltiples y codirección | Aceptada; promovida a producción, verificación con la dirección real pendiente |
 | [ADR-057](ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md) | Vicepresidencia de Comunicaciones y Publicidad como cargo de junta | Aceptada; en producción |
 | [ADR-056](ADR-056-alta-y-condicion-del-semestre-desde-la-persona-360.md) | Alta y condición del semestre desde la Persona 360 | Aceptada; verificada en producción |
@@ -63,7 +65,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) | Personas, CRM mínimo y Mi OE (fase 2) | Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058) |
 | [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) | Participación y GH Points (fase 3) | Aceptada (enmendada por ADR-036, ADR-038, ADR-041 y ADR-058) |
 | [ADR-036](ADR-036-permanencia-fase-4.md) | Permanencia (fase 4) | Aceptada (enmendada por ADR-037, ADR-038, ADR-056 y ADR-058) |
-| [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md) | Admisión, aliados y contactos (fase 5) | Aceptada (enmendada por ADR-038, ADR-039, ADR-046, ADR-050 y ADR-056) |
+| [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md) | Admisión, aliados y contactos (fase 5) | Aceptada (enmendada por ADR-038, ADR-039, ADR-046, ADR-050, ADR-056 y ADR-060) |
 | [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md) | Comunicaciones y PWA (fase 6) | Aceptada (enmendada por ADR-039) |
 | [ADR-039](ADR-039-arranque-limpio-fase-7.md) | Arranque limpio en Railway y retiro de GHPOINTS (fase 7) | Aceptada; operación pendiente |
 | [ADR-040](ADR-040-carnet-en-billeteras-fase-8.md) | Carnet en Apple Wallet y Google Wallet (fase 8) | Aceptada; implementación y activación pendientes de verificación |
@@ -72,6 +74,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-044](ADR-044-experiencia-del-portal-y-mi-oe.md) | Experiencia del portal y Mi OE | Aceptada; implementación verificada (enmendada por ADR-049) |
 
 | [ADR-045](ADR-045-alta-individual-de-integrante-existente.md) | Alta individual de un integrante existente con historial | Aceptada; operación verificada |
+
 
 ## Plantilla
 

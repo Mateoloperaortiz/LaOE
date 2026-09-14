@@ -33,11 +33,15 @@ export {
 export {
   type ApprovedCheckIn,
   type CheckInRow,
+  type ExcuseInput,
+  excuseCheckIn,
   findCheckIn,
   listApprovedCheckInsForPersonInTerm,
   listApprovedCheckInsForTerm,
   listCheckIns,
   listCheckInsForPerson,
+  listExcusedCheckInsForPersonInTerm,
+  listExcusedCheckInsForTerm,
   type SelfCheckInDenial,
   type SelfCheckInResult,
 } from "./domain/check-ins";
@@ -67,6 +71,23 @@ export {
   setRotatingCodeAs,
   updateOccasionAs,
 } from "./domain/commands";
+export {
+  type AssemblyRepresentation,
+  type CommitteeRepresentationSummary,
+  listAssemblyRepresentation,
+  listCommitteeRepresentation,
+  MAX_EXCUSED_ABSENCES,
+  type RepresentationLadder,
+  recomputeCommitteeAssembly,
+  representationLadder,
+} from "./domain/committee-assembly";
+export { type CommitteeViability, listCommitteeViability } from "./domain/committee-viability";
+export {
+  VIABILITY_ALERTS,
+  type ViabilityAlert,
+  type ViabilityInput,
+  viabilityAlerts,
+} from "./domain/committee-viability-pure";
 export { type CheckInExportRow, listCheckInsForExport } from "./domain/exports";
 export {
   balanceFor,

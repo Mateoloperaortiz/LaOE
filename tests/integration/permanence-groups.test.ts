@@ -35,6 +35,28 @@ describe("grupos de trabajo", () => {
   beforeEach(truncateAll);
   afterAll(() => closeDb());
 
+  it("nadie entra a más de dos comités de trabajo en el término (Est. art. 4 par. 3)", async () => {
+    const termId = await seedTerm();
+    const persona = await seedMember("tres@eafit.edu.co", { firstName: "Tere", lastName: "Tres" });
+    await seedWorkCommitteesAs(admin, termId);
+    const { rows } = await listGroups({
+      q: "",
+      termId,
+      kind: "WORK_COMMITTEE",
+      page: 1,
+      pageSize: 20,
+    });
+    const [cap, cgh, cml] = rows.map((row) => row.id);
+    if (!cap || !cgh || !cml) throw new Error("faltan comités de trabajo");
+    expect(await addMembersAs(admin, cap, [persona])).toBe(1);
+    expect(await addMembersAs(admin, cgh, [persona])).toBe(1);
+    await expect(addMembersAs(admin, cml, [persona])).rejects.toThrow(
+      t("T-2284", { nombre: "Tere Tres" }),
+    );
+    // Repetir donde ya está no cuenta.
+    expect(await addMembersAs(admin, cap, [persona])).toBe(0);
+  });
+
   it("siembra los siete comités de trabajo con el líder de su cargo y no los repite", async () => {
     const termId = await seedTerm();
     const president = await seedMember("presi@eafit.edu.co");

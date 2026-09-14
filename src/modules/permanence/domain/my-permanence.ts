@@ -33,6 +33,7 @@ function emptyResult(personId: string): PersonPermanence {
     status: "INACTIVE",
     isNew: false,
     probation: false,
+    expulsionWarning: false,
     evaluated: false,
     general: [],
     generalTotal: 0,
@@ -44,7 +45,9 @@ function emptyResult(personId: string): PersonPermanence {
       met: true,
       missing: [],
       lost: [],
+      excused: [],
       upcoming: [],
+      induction: { required: false, attended: false, excused: false, pending: false },
     },
   };
 }

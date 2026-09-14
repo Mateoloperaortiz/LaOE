@@ -228,6 +228,14 @@ export const editionsResource: ResourceDefinition<EditionListRow, EditionInput> 
       label: t("T-279"),
       render: (row) => publicationCell(row.publicationStatus),
     },
+    {
+      key: "board",
+      label: t("T-2266"),
+      render: (row) => ({
+        text: t("T-2266"),
+        href: `/admin/eventos/${row.eventId}/ediciones/${row.id}/mesa`,
+      }),
+    },
   ],
   filters: [{ key: "publicationStatus", label: t("T-279"), options: statusOptions }],
   schema: editionInputSchema,

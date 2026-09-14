@@ -12,15 +12,18 @@ export interface AssemblyRequirementView {
   reason: string | null;
 }
 
-/** Una ordinaria por defecto; en segundo semestre además la elección y la segunda vuelta si existe. */
+/**
+ * Una ordinaria por defecto; la elección de junta y la segunda vuelta se exigen cuando existen en el
+ * término, en cualquier semestre (Regl. art. 60 y 63; Est. art. 7.9; ADR-060 regla 13).
+ */
 export function defaultRequirement(
-  term: { semester: number; requiredOrdinaryAssemblies: number },
-  hasRunoff: boolean,
+  term: { requiredOrdinaryAssemblies: number },
+  existing: { hasBoardElection: boolean; hasRunoff: boolean },
 ): AssemblyRequirementView {
   return {
     requiredOrdinary: term.requiredOrdinaryAssemblies,
-    requiresBoardElection: term.semester === 2,
-    requiresRunoff: term.semester === 2 && hasRunoff,
+    requiresBoardElection: existing.hasBoardElection,
+    requiresRunoff: existing.hasRunoff,
     adjusted: false,
     reason: null,
   };
@@ -28,7 +31,7 @@ export function defaultRequirement(
 
 export interface AttendedAssembly {
   assemblyKind: AssemblyKind;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "EXCUSED";
 }
 
 export interface AssemblyCompliance {
@@ -47,17 +50,29 @@ export function assemblyCompliance(
   attended: ReadonlyArray<AttendedAssembly>,
 ): AssemblyCompliance {
   const approved = attended.filter((item) => item.status === "APPROVED");
+  const excused = attended.filter((item) => item.status === "EXCUSED");
   const ordinaryAttended = approved.filter((item) => item.assemblyKind === "ORDINARY").length;
   const boardElectionAttended = approved.some((item) => item.assemblyKind === "BOARD_ELECTION");
   const runoffAttended = approved.some((item) => item.assemblyKind === "RUNOFF");
   const missing: AssemblyKind[] = [];
-  if (ordinaryAttended < requirement.requiredOrdinary) {
+  if (
+    ordinaryAttended + excused.filter((item) => item.assemblyKind === "ORDINARY").length <
+    requirement.requiredOrdinary
+  ) {
     missing.push("ORDINARY");
   }
-  if (requirement.requiresBoardElection && !boardElectionAttended) {
+  if (
+    requirement.requiresBoardElection &&
+    !boardElectionAttended &&
+    !excused.some((item) => item.assemblyKind === "BOARD_ELECTION")
+  ) {
     missing.push("BOARD_ELECTION");
   }
-  if (requirement.requiresRunoff && !runoffAttended) {
+  if (
+    requirement.requiresRunoff &&
+    !runoffAttended &&
+    !excused.some((item) => item.assemblyKind === "RUNOFF")
+  ) {
     missing.push("RUNOFF");
   }
   return {

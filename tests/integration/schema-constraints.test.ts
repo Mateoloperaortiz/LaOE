@@ -10,6 +10,7 @@ import {
   committeeRole,
   committeeRoleAssignment,
   membership,
+  membershipTerm,
   person,
 } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
@@ -168,6 +169,23 @@ describe("restricciones que no negocia el esquema", () => {
     ]) {
       expect(byCode.get(code)?.isLeadership).toBe(true);
     }
+    // Estatutos 2026 (ADR-060 regla 4): Publicidad retirado y reemplazado por Mercadeo; Logística con roster.
+    expect(byCode.get("PUBLICIDAD")).toMatchObject({ retired: true, replacedByCode: "MERCADEO" });
+    expect(byCode.get("MERCADEO")).toMatchObject({ retired: false, sortOrder: 3 });
+    expect(byCode.get("LOGISTICA")?.capabilities).toEqual(["OCCASIONS", "EVENTS", "ROSTER"]);
+    expect(
+      rows
+        .filter((row) => row.isLeadership && !row.retired)
+        .map((row) => row.code)
+        .sort(),
+    ).toEqual([
+      "FINANCIERO",
+      "GENERAL",
+      "GESTION_HUMANA",
+      "LOGISTICA",
+      "MERCADEO",
+      "RELACIONES_PUBLICAS",
+    ]);
   });
 
   it("rechaza un cargo que no está en el catálogo", async () => {
@@ -182,6 +200,22 @@ describe("restricciones que no negocia el esquema", () => {
 
 describe("runCommand", () => {
   beforeEach(truncateAll);
+
+  it("la condición del semestre es única por persona y término, y una por comité (ADR-060 regla 2)", async () => {
+    const personId = await createPerson("condicion@eafit.edu.co");
+    const termId = await createTerm();
+    const a3 = await createCommittee("a3");
+    await db().insert(membershipTerm).values({ personId, termId, probation: true });
+    await expect(
+      db().insert(membershipTerm).values({ personId, termId, probation: false }),
+    ).rejects.toSatisfy((error) => isUniqueViolation(error, "membership_term_person_term_unique"));
+    await db()
+      .insert(membershipTerm)
+      .values({ personId, termId, committeeId: a3, probation: true });
+    await expect(
+      db().insert(membershipTerm).values({ personId, termId, committeeId: a3, probation: false }),
+    ).rejects.toSatisfy((error) => isUniqueViolation(error, "membership_term_committee_unique"));
+  });
 
   it("escribe mutación, auditoría y evento en la misma transacción", async () => {
     const personId = await runCommand(SYSTEM_ACTOR, async (ctx) => {

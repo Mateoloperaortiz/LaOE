@@ -11,6 +11,14 @@ import {
   statusForDecision,
 } from "@/modules/participation/domain/check-in-pure";
 import {
+  MAX_EXCUSED_ABSENCES,
+  representationLadder,
+} from "@/modules/participation/domain/committee-assembly";
+import {
+  type ViabilityInput,
+  viabilityAlerts,
+} from "@/modules/participation/domain/committee-viability-pure";
+import {
   balance,
   competitionRanks,
   levelFor,
@@ -25,6 +33,7 @@ import {
   canTransitionOccasion,
   defaultWindow,
   isAutoCloseDue,
+  isShortNotice,
   windowState,
 } from "@/modules/participation/domain/occasion-pure";
 import {
@@ -266,25 +275,47 @@ describe("elegibles del score", () => {
 });
 
 describe("asambleas", () => {
-  it("deriva el requisito del término: una ordinaria; elección y segunda vuelta en segundo semestre", () => {
-    const first = defaultRequirement({ semester: 1, requiredOrdinaryAssemblies: 1 }, true);
-    expect(first).toMatchObject({
+  it("deriva el requisito de las ocasiones del término: elección y segunda vuelta cuando existen (ADR-060 regla 13)", () => {
+    const none = defaultRequirement(
+      { requiredOrdinaryAssemblies: 1 },
+      { hasBoardElection: false, hasRunoff: false },
+    );
+    expect(none).toMatchObject({
       requiredOrdinary: 1,
       requiresBoardElection: false,
       requiresRunoff: false,
     });
-    const second = defaultRequirement({ semester: 2, requiredOrdinaryAssemblies: 1 }, false);
-    expect(second).toMatchObject({
+    const election = defaultRequirement(
+      { requiredOrdinaryAssemblies: 1 },
+      { hasBoardElection: true, hasRunoff: false },
+    );
+    expect(election).toMatchObject({
       requiredOrdinary: 1,
       requiresBoardElection: true,
       requiresRunoff: false,
     });
-    const withRunoff = defaultRequirement({ semester: 2, requiredOrdinaryAssemblies: 2 }, true);
+    const withRunoff = defaultRequirement(
+      { requiredOrdinaryAssemblies: 2 },
+      { hasBoardElection: true, hasRunoff: true },
+    );
     expect(withRunoff.requiresRunoff).toBe(true);
     expect(requiredTotal(withRunoff)).toBe(4);
   });
+  it("marca la asamblea citada con menos de tres días hábiles (Regl. art. 15 par. 1)", () => {
+    // Creada un lunes: tres días hábiles llegan al jueves.
+    const monday = new Date("2026-09-14T15:00:00Z");
+    expect(isShortNotice(monday, new Date("2026-09-16T23:00:00Z"))).toBe(true);
+    expect(isShortNotice(monday, new Date("2026-09-17T15:00:00Z"))).toBe(false);
+    // Creada un jueves: el fin de semana no cuenta, llega al martes.
+    const thursday = new Date("2026-09-17T15:00:00Z");
+    expect(isShortNotice(thursday, new Date("2026-09-21T15:00:00Z"))).toBe(true);
+    expect(isShortNotice(thursday, new Date("2026-09-22T15:00:00Z"))).toBe(false);
+  });
   it("calcula el cumplimiento por persona y lo que falta en orden", () => {
-    const requirement = defaultRequirement({ semester: 2, requiredOrdinaryAssemblies: 1 }, true);
+    const requirement = defaultRequirement(
+      { requiredOrdinaryAssemblies: 1 },
+      { hasBoardElection: true, hasRunoff: true },
+    );
     const none = assemblyCompliance(requirement, []);
     expect(none.compliant).toBe(false);
     expect(none.missing).toEqual(["ORDINARY", "BOARD_ELECTION", "RUNOFF"]);
@@ -297,10 +328,102 @@ describe("asambleas", () => {
     expect(all.compliant).toBe(true);
     expect(all.ordinaryAttended).toBe(1);
     expect(all.attendedTotal).toBe(3);
+    const excused = assemblyCompliance(requirement, [
+      { assemblyKind: "ORDINARY", status: "EXCUSED" },
+      { assemblyKind: "BOARD_ELECTION", status: "EXCUSED" },
+      { assemblyKind: "RUNOFF", status: "EXCUSED" },
+    ]);
+    expect(excused).toMatchObject({
+      compliant: true,
+      missing: [],
+      ordinaryAttended: 0,
+      attendedTotal: 0,
+    });
     const pending = assemblyCompliance(requirement, [
       { assemblyKind: "ORDINARY", status: "PENDING" },
       { assemblyKind: "BOARD_ELECTION", status: "APPROVED" },
     ]);
     expect(pending.missing).toEqual(["ORDINARY", "RUNOFF"]);
+  });
+});
+
+describe("excusa válida aceptada (ADR-060 regla 5)", () => {
+  it("un pendiente, un rechazado o un anulado pasan a excusado; un aprobado no, y el excusado es terminal", () => {
+    expect(canTransitionCheckIn("PENDING", "EXCUSED")).toBe(true);
+    expect(canTransitionCheckIn("REJECTED", "EXCUSED")).toBe(true);
+    expect(canTransitionCheckIn("CANCELLED", "EXCUSED")).toBe(true);
+    expect(canTransitionCheckIn("APPROVED", "EXCUSED")).toBe(false);
+    expect(canTransitionCheckIn("EXCUSED", "APPROVED")).toBe(false);
+    expect(canTransitionCheckIn("EXCUSED", "CANCELLED")).toBe(false);
+  });
+});
+
+describe("representación de los comités en la asamblea (ADR-060 regla 7)", () => {
+  it("sube la escalera del Reglamento (art. 64) con cada falta sin excusa y admite dos con excusa", () => {
+    expect(representationLadder(0)).toBe(0);
+    expect(representationLadder(1)).toBe(1);
+    expect(representationLadder(2)).toBe(2);
+    expect(representationLadder(3)).toBe(3);
+    expect(representationLadder(7)).toBe(3);
+    expect(MAX_EXCUSED_ABSENCES).toBe(2);
+  });
+});
+
+describe("viabilidad del comité (ADR-060 regla 8)", () => {
+  const healthy: ViabilityInput = {
+    status: "ACTIVE",
+    directions: 4,
+    missingRequired: 0,
+    membersOutsideDirection: 8,
+    unexcusedAbsences: 1,
+    representedAssemblies: 3,
+    closedAssemblies: 4,
+    eventsThisTerm: 1,
+    pastMidterm: true,
+    trialEndsOn: null,
+    todayKey: "2026-10-05",
+  };
+
+  it("un comité sano no avisa nada y un inactivo tampoco", () => {
+    expect(viabilityAlerts(healthy)).toEqual([]);
+    expect(viabilityAlerts({ ...healthy, status: "INACTIVE", directions: 0 })).toEqual([]);
+  });
+
+  it("avisa las causales de desactivación del Regl. art. 26", () => {
+    expect(
+      viabilityAlerts({
+        ...healthy,
+        directions: 2,
+        missingRequired: 1,
+        membersOutsideDirection: 5,
+        unexcusedAbsences: 3,
+        eventsThisTerm: 0,
+      }),
+    ).toEqual(["FEW_DIRECTIONS", "MISSING_REQUIRED", "FEW_MEMBERS", "ABSENCES", "NO_EVENT"]);
+    // Antes de la mitad del término no se reclama el evento.
+    expect(viabilityAlerts({ ...healthy, eventsThisTerm: 0, pastMidterm: false })).toEqual([]);
+  });
+
+  it("en prueba exige diez miembros, el 90 % de asambleas y avisa el vencimiento (Regl. art. 25)", () => {
+    expect(
+      viabilityAlerts({
+        ...healthy,
+        status: "ON_TRIAL",
+        membersOutsideDirection: 9,
+        representedAssemblies: 3,
+        closedAssemblies: 4,
+        trialEndsOn: "2026-10-20",
+      }),
+    ).toEqual(["TRIAL_FEW_MEMBERS", "TRIAL_LOW_ATTENDANCE", "TRIAL_ENDING"]);
+    expect(
+      viabilityAlerts({
+        ...healthy,
+        status: "ON_TRIAL",
+        membersOutsideDirection: 10,
+        representedAssemblies: 9,
+        closedAssemblies: 10,
+        trialEndsOn: "2027-03-01",
+      }),
+    ).toEqual([]);
   });
 });

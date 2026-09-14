@@ -274,6 +274,38 @@ describe("validación por fila", () => {
     expect(result.updateMode).toBe(false);
   });
 
+  it("traduce un cargo retirado al que lo reemplaza y avisa (ADR-060 regla 4)", () => {
+    const withRetired: RosterCatalog = {
+      ...catalog,
+      roles: [
+        ...catalog.roles,
+        { code: "MERCADEO", label: "Mercadeo" },
+        { code: "PUBLICIDAD", label: "Publicidad", retired: true, replacedByCode: "MERCADEO" },
+        { code: "TESORERIA", label: "Tesorería", retired: true, replacedByCode: null },
+      ],
+    };
+    const cells = parseCsv(
+      [
+        HEADER,
+        "Ana;Arango;ana@eafit.edu.co;;Derecho;A3;2026-2;Activo;Publicidad de A3",
+        "Beto;Bedoya;beto@eafit.edu.co;;Derecho;A3;2026-2;Activo;Tesorería de A3",
+      ].join("\n"),
+    );
+    const mapping = detectMapping(cells[0] ?? []);
+    const result = validateRoster(rowsFromCells(cells, mapping), mapping, withRetired);
+    const ana = result.rows.find((row) => row.email === "ana@eafit.edu.co");
+    expect(ana?.errors).toEqual([]);
+    expect(ana?.committees?.[0]?.roles).toEqual([{ roleCode: "MERCADEO", coDirector: false }]);
+    expect(ana?.warnings).toEqual([
+      "Publicidad ya no existe en los comités desde los Estatutos 2026: se carga como Mercadeo.",
+    ]);
+    const beto = result.rows.find((row) => row.email === "beto@eafit.edu.co");
+    expect(beto?.errors).toEqual([
+      "El cargo Tesorería está retirado del catálogo y no tiene reemplazo.",
+    ]);
+    expect(result.unknownRoles).toEqual([]);
+  });
+
   it("en modo actualización solo acepta personas existentes", () => {
     const result = validate(
       ["ana@eafit.edu.co;General de A3", "nueva@eafit.edu.co;Logística"],

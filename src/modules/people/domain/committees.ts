@@ -6,7 +6,9 @@ import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { todayKey } from "@/shared/lib/dates";
 import { committee } from "../schema";
+import { committeeLifecycleError } from "./committee-lifecycle-pure";
 
 // Comités: ficha editorial con logo, presentación y contacto (03-modelo-de-datos.md).
 
@@ -21,7 +23,13 @@ export const committeeInputSchema = z.object({
     .max(40)
     .regex(/^[a-z0-9-]+$/),
   name: z.string().trim().min(2).max(80),
-  status: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
+  status: z.enum(["ACTIVE", "INACTIVE", "ON_TRIAL"]).default("ACTIVE"),
+  /** Periodo de prueba de un comité creado o reactivado (Regl. art. 25; ADR-060 regla 8). */
+  trialStartsOn: z.union([z.literal(""), z.iso.date()]).default(""),
+  trialEndsOn: z.union([z.literal(""), z.iso.date()]).default(""),
+  /** Cuándo la junta lo desactivó (Regl. art. 26). */
+  deactivatedOn: z.union([z.literal(""), z.iso.date()]).default(""),
+  lifecycleReason: z.string().trim().max(500).default(""),
   color: z
     .string()
     .trim()
@@ -37,7 +45,8 @@ export const committeeInputSchema = z.object({
   publicationStatus: z.enum(["DRAFT", "PUBLISHED"]).default("DRAFT"),
 });
 
-export type CommitteeInput = z.infer<typeof committeeInputSchema>;
+/** Lo que reciben los comandos: los valores por defecto (estado, publicación, fechas) los aplica `toValues`. */
+export type CommitteeInput = z.input<typeof committeeInputSchema>;
 
 export interface CommitteeListParams {
   q: string;
@@ -56,7 +65,7 @@ export async function listCommittees(
       or(ilike(committee.name, `%${params.q}%`), ilike(committee.slug, `%${params.q}%`)),
     );
   }
-  if (params.status === "ACTIVE" || params.status === "INACTIVE") {
+  if (params.status === "ACTIVE" || params.status === "INACTIVE" || params.status === "ON_TRIAL") {
     conditions.push(eq(committee.status, params.status));
   }
   if (params.publicationStatus === "DRAFT" || params.publicationStatus === "PUBLISHED") {
@@ -83,10 +92,22 @@ export async function getCommittee(id: string): Promise<CommitteeRow | null> {
 }
 
 export async function listAllCommittees(): Promise<
-  Array<{ id: string; slug: string; name: string }>
+  Array<{
+    id: string;
+    slug: string;
+    name: string;
+    status: "ACTIVE" | "INACTIVE" | "ON_TRIAL";
+    trialEndsOn: string | null;
+  }>
 > {
   return getDb()
-    .select({ id: committee.id, slug: committee.slug, name: committee.name })
+    .select({
+      id: committee.id,
+      slug: committee.slug,
+      name: committee.name,
+      status: committee.status,
+      trialEndsOn: committee.trialEndsOn,
+    })
     .from(committee)
     .orderBy(asc(committee.name));
 }
@@ -132,7 +153,10 @@ const publicColumns = {
   contactUrl: committee.contactUrl,
 };
 
-const isPublic = and(eq(committee.status, "ACTIVE"), eq(committee.publicationStatus, "PUBLISHED"));
+const isPublic = and(
+  inArray(committee.status, ["ACTIVE", "ON_TRIAL"]),
+  eq(committee.publicationStatus, "PUBLISHED"),
+);
 
 export const listPublishedCommittees = cache(async (): Promise<PublicCommittee[]> => {
   return getDb().select(publicColumns).from(committee).where(isPublic).orderBy(asc(committee.name));
@@ -168,7 +192,7 @@ export const listCommitteesByIds = cache(async (ids: string[]): Promise<Committe
     slug: row.slug,
     name: row.name,
     logoKey: row.logoKey,
-    isPublished: row.status === "ACTIVE" && row.publicationStatus === "PUBLISHED",
+    isPublished: row.status !== "INACTIVE" && row.publicationStatus === "PUBLISHED",
   }));
 });
 
@@ -183,7 +207,8 @@ export const getPublishedCommittee = cache(
   },
 );
 
-function toValues(input: CommitteeInput) {
+function toValues(raw: CommitteeInput) {
+  const input = committeeInputSchema.parse(raw);
   return {
     slug: input.slug,
     name: input.name,
@@ -193,6 +218,9 @@ function toValues(input: CommitteeInput) {
     presentation: input.presentation ?? null,
     contactUrl: input.contactUrl ?? null,
     publicationStatus: input.publicationStatus,
+    trialStartsOn: input.trialStartsOn || null,
+    trialEndsOn: input.trialEndsOn || null,
+    deactivatedOn: input.deactivatedOn || null,
   };
 }
 
@@ -200,11 +228,13 @@ export async function createCommittee(
   ctx: CommandContext,
   input: CommitteeInput,
 ): Promise<{ id: string }> {
+  const values = toValues(input);
+  const error = committeeLifecycleError(values, null, input.lifecycleReason ?? "", todayKey());
+  if (error) {
+    throw new DomainError(t(error));
+  }
   try {
-    const [row] = await ctx.tx
-      .insert(committee)
-      .values(toValues(input))
-      .returning({ id: committee.id });
+    const [row] = await ctx.tx.insert(committee).values(values).returning({ id: committee.id });
     if (!row) {
       throw new Error("No se pudo crear el comité");
     }
@@ -212,7 +242,7 @@ export async function createCommittee(
       action: "committee.created",
       entityType: "committee",
       entityId: row.id,
-      after: toValues(input),
+      after: { ...values, lifecycleReason: input.lifecycleReason ?? "" },
     });
     return row;
   } catch (error) {
@@ -262,11 +292,15 @@ export async function updateCommittee(
   id: string,
   input: CommitteeInput,
 ): Promise<void> {
-  const [before] = await ctx.tx.select().from(committee).where(eq(committee.id, id));
+  const [before] = await ctx.tx.select().from(committee).where(eq(committee.id, id)).for("update");
   if (!before) {
     throw new DomainError(t("T-032"));
   }
   const values = { ...toValues(input), slug: before.slug }; // la sigla no cambia: es parte de la URL y del logo
+  const error = committeeLifecycleError(values, before, input.lifecycleReason ?? "", todayKey());
+  if (error) {
+    throw new DomainError(t(error));
+  }
   try {
     await ctx.tx.update(committee).set(values).where(eq(committee.id, id));
   } catch (error) {
@@ -280,6 +314,6 @@ export async function updateCommittee(
     entityType: "committee",
     entityId: id,
     before,
-    after: values,
+    after: { ...values, lifecycleReason: input.lifecycleReason ?? "" },
   });
 }

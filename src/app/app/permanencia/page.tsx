@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getOnboarding, listInteractions } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
-import { getPeopleByIds, listCommitteesByIds } from "@/modules/people";
+import { getPeopleByIds, listCommitteesByIds, listSanctionsForPerson } from "@/modules/people";
 import { getPersonPermanence } from "@/modules/permanence";
 import { Desglose } from "@/modules/permanence/components/Desglose";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { Cartel, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
-import { formatDateTime } from "@/shared/lib/dates";
+import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { noticeText } from "../_ui/avisos";
 import { Vacio } from "../_ui/Vacio";
 
@@ -53,14 +53,24 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
       for (const id of detail.group.evaluatorIds) evaluatorIds.add(id);
     }
   }
-  const [committees, people, onboarding, history] = await Promise.all([
+  const [committees, people, onboarding, history, sanctions] = await Promise.all([
     listCommitteesByIds(committeeIds),
     getPeopleByIds([...evaluatorIds]),
     result?.isNew && term.id === current?.id
       ? getOnboarding(actor.personId, term.id)
       : Promise.resolve(null),
     listInteractions(actor.personId, "PERMANENCE", 30),
+    listSanctionsForPerson(actor.personId),
   ]);
+  const liveSanctions = sanctions.filter((item) => item.state === "LIVE");
+  const suspendedUntil = liveSanctions
+    .map((item) => item.suspendedUntil)
+    .filter(
+      (value): value is string => value !== null && value >= new Date().toISOString().slice(0, 10),
+    )
+    .sort()
+    .at(-1);
+  const dateOf = (key: string) => formatDate(new Date(`${key}T12:00:00Z`));
   const committeeNames = new Map(committees.map((item) => [item.id, item.name]));
   const personNames = new Map([...people.values()].map((item) => [item.id, item.fullName]));
   const closed = term.permanenceClosedAt !== null;
@@ -129,6 +139,39 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
         </ul>
       ) : null}
 
+      {result?.expulsionWarning ? (
+        <p role="alert" className="rounded-xl bg-oe-orange px-4 py-3 font-semibold text-oe-navy">
+          {t("T-2238")}
+        </p>
+      ) : null}
+      {suspendedUntil ? (
+        <p className="rounded-xl bg-oe-yellow-soft px-4 py-3 font-semibold text-oe-navy">
+          {t("T-2237", { fecha: dateOf(suspendedUntil) })}
+        </p>
+      ) : null}
+      {sanctions.length > 0 ? (
+        <section aria-labelledby="sanciones" className="flex flex-col gap-2">
+          <h2 id="sanciones" className="text-display-md">
+            {t("T-2235")}
+          </h2>
+          {liveSanctions.length === 0 ? (
+            <p className="text-sm text-tinta-suave">{t("T-2245")}</p>
+          ) : (
+            <ul className="flex list-none flex-col gap-2 p-0 text-sm">
+              {liveSanctions.map((item) => (
+                <li key={item.id}>
+                  {t("T-2236", {
+                    tipo: item.kindLabel,
+                    fecha: dateOf(item.occurredOn),
+                    causal: item.cause,
+                    vence: dateOf(item.expiresOn),
+                  })}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
       {onboarding && pendingSteps.length > 0 ? (
         <section aria-labelledby="onboarding" className="flex flex-col gap-2">
           <h2 id="onboarding" className="text-display-md">

@@ -15,6 +15,7 @@ import {
   evaluationWindow,
   finalStateFor,
   type GroupFact,
+  marginFor,
   noticesFor,
   type OccasionFact,
   type PermanenceConfig,
@@ -33,13 +34,14 @@ import {
   referenceCommitteeRules,
   referenceGeneralRules,
 } from "@/modules/permanence/domain/templates";
+import { tList } from "@/shared/copy";
 
 // Cálculo de permanencia (10-verificacion, unit): las tablas de referencia de 2026-2 reproducen las
 // hojas de GH criterio por criterio, con el ejemplo de Pixel 75 % y Cigma 95 %.
 
 const CONFIG: PermanenceConfig = {
   thresholds: { active: 60, new: 80, probation: 80, transfer: 70 },
-  probationMargin: 10,
+  probationMargins: { active: 20, new: 0, probation: 0, transfer: 0 },
   evaluationWindowDays: 14,
   warningDays: 21,
 };
@@ -125,6 +127,7 @@ function committee(committeeId: string, overrides: Partial<CommitteeFact> = {}):
     committeeId,
     roleCode: "MIEMBRO",
     transferredIn: false,
+    probation: false,
     joinedAt: new Date("2026-07-13T00:00:00Z"),
     leftAt: null,
     ...overrides,
@@ -139,6 +142,8 @@ function person(overrides: Partial<PersonFacts> = {}): PersonFacts {
     probation: false,
     committees: [committee("pixel")],
     attended: new Set(),
+    excused: new Set(),
+    expulsionWarning: false,
     groupMemberships: [],
     leaderScores: [],
     credits: [],
@@ -166,7 +171,73 @@ function byKey(results: ReadonlyArray<{ key: string; achieved: number; remaining
   return new Map(results.map((item) => [item.key, item]));
 }
 
+describe("inducción de nuevos (ADR-060 regla 13)", () => {
+  const induction = {
+    id: "ind",
+    title: "Inducción OE",
+    location: "Auditorio",
+    kind: "ACTIVITY" as const,
+    assemblyKind: null,
+    category: "INDUCTION",
+    committeeId: null,
+    newMembersOnly: true,
+    startsAt: new Date("2026-08-01T15:00:00Z"),
+    status: "CLOSED" as const,
+  };
+  const now = new Date("2026-09-13T12:00:00Z");
+  // Sin asambleas exigidas, para aislar la inducción en `met`.
+  const sinAsambleas = { requiredOrdinary: 0, requiresBoardElection: false, requiresRunoff: false };
+
+  it("es obligatoria solo para nuevos y no expulsa", () => {
+    const unscheduled = computePerson(
+      facts({ occasions: [] }),
+      person({ isNew: true, assemblyRequirement: sinAsambleas }),
+      now,
+    );
+    expect(unscheduled.mandatory.induction).toMatchObject({ required: true, pending: true });
+    expect(unscheduled.mandatory.met).toBe(false);
+    const veteran = computePerson(
+      facts({ occasions: [induction] }),
+      person({ assemblyRequirement: sinAsambleas }),
+      now,
+    );
+    expect(veteran.mandatory.induction).toMatchObject({ required: false, attended: false });
+    expect(veteran.mandatory.met).toBe(true);
+    const missed = computePerson(
+      facts({ occasions: [induction] }),
+      person({ isNew: true, assemblyRequirement: sinAsambleas }),
+      now,
+    );
+    expect(missed.mandatory.induction).toMatchObject({
+      required: true,
+      attended: false,
+      pending: false,
+    });
+    expect(missed.mandatory.met).toBe(false);
+    expect(missed.mandatory.lost).toEqual([]);
+    const attended = computePerson(
+      facts({ occasions: [induction] }),
+      person({ isNew: true, attended: new Set(["ind"]), assemblyRequirement: sinAsambleas }),
+      now,
+    );
+    expect(attended.mandatory.induction.attended).toBe(true);
+    expect(attended.mandatory.met).toBe(true);
+  });
+});
+
 describe("condición y umbral (ADR-027)", () => {
+  it("reportar como activo en un comité no cambia la condición de nuevo en el otro", () => {
+    const result = computePerson(
+      facts(),
+      person({
+        isNew: true,
+        committees: [{ ...committee("a3"), reportAsVeteran: true }, committee("pixel")],
+      }),
+      NOW,
+    );
+    expect(result.results.find((row) => row.committeeId === "a3")?.condition).toBe("ACTIVE");
+    expect(result.results.find((row) => row.committeeId === "pixel")?.condition).toBe("NEW");
+  });
   it("elige la condición y el umbral máximo que aplica", () => {
     const active = { isNew: false, probation: false, transferredIn: false };
     expect(conditionFor(active)).toBe("ACTIVE");
@@ -401,11 +472,93 @@ describe("estados y margen de prueba (ADR-027, ADR-028)", () => {
     expect(stateFor(50, 9, 60, 10, false)).toBe("NO_ALCANZA");
   });
 
-  it("cerrado: cumple, prueba hasta 10 por debajo y no cumple más abajo", () => {
+  it("cerrado: cumple, prueba dentro de la banda y no cumple más abajo", () => {
     expect(finalStateFor(60, 60, 10)).toBe("CUMPLE");
     expect(finalStateFor(50, 60, 10)).toBe("PRUEBA");
     expect(finalStateFor(49.99, 60, 10)).toBe("NO_CUMPLE");
     expect(stateFor(75, 100, 80, 10, true)).toBe("PRUEBA");
+  });
+
+  it("la banda de prueba depende de la condición (ADR-060 regla 1): 20 para activos, cero para el resto", () => {
+    const margins = CONFIG.probationMargins;
+    expect(marginFor("ACTIVE", margins)).toBe(20);
+    expect(marginFor("NEW", margins)).toBe(0);
+    expect(marginFor("PROBATION", margins)).toBe(0);
+    expect(marginFor("TRANSFER", margins)).toBe(0);
+    // Est. art. 7.5: entre 40 y 59 queda en prueba; bajo 40 sale.
+    expect(finalStateFor(45, 60, marginFor("ACTIVE", margins))).toBe("PRUEBA");
+    expect(finalStateFor(40, 60, marginFor("ACTIVE", margins))).toBe("PRUEBA");
+    expect(finalStateFor(39.99, 60, marginFor("ACTIVE", margins))).toBe("NO_CUMPLE");
+    // Est. art. 11.4 y 11.5: sin banda para nuevos y en prueba.
+    expect(finalStateFor(79.99, 80, marginFor("NEW", margins))).toBe("NO_CUMPLE");
+    expect(finalStateFor(79.99, 80, marginFor("PROBATION", margins))).toBe("NO_CUMPLE");
+    // La banda de riesgo de los estados abiertos sigue siendo de 10 puntos, para toda condición.
+    expect(stateFor(72, 5, 80, 0, false)).toBe("NO_ALCANZA");
+    expect(stateFor(72, 8, 80, 0, false)).toBe("EN_RIESGO");
+    expect(stateFor(72, 18, 80, 0, false)).toBe("EN_CAMINO");
+  });
+
+  it("un activo con 45 queda en prueba y con 38 sale; un nuevo con 72 sale (Est. art. 7.5 y 11.4)", () => {
+    const eventos = rule(
+      { key: "eventos", label: "Eventos", weight: 60, computation: "MANUAL", params: {} },
+      "COMMITTEE",
+      "a3",
+    );
+    const termFacts = facts({
+      rules: [eventos],
+      term: { ...TERM, permanenceClosedAt: new Date() },
+    });
+    const at = (value: number, overrides: Partial<PersonFacts> = {}) =>
+      computePerson(
+        termFacts,
+        person({
+          committees: [committee("a3")],
+          credits: [{ ruleId: eventos.id, value, reason: "" }],
+          ...overrides,
+        }),
+        NOW,
+      ).results[0];
+    expect(at(45)).toMatchObject({ condition: "ACTIVE", threshold: 60, finalState: "PRUEBA" });
+    expect(at(38)).toMatchObject({ condition: "ACTIVE", threshold: 60, finalState: "NO_CUMPLE" });
+    expect(at(60)).toMatchObject({ condition: "ACTIVE", finalState: "CUMPLE" });
+    expect(at(72, { isNew: true })).toMatchObject({
+      condition: "NEW",
+      threshold: 80,
+      finalState: "NO_CUMPLE",
+    });
+  });
+
+  it("la prueba fijada en un solo comité rige solo ahí (ADR-060 regla 2)", () => {
+    const eventos = rule(
+      { key: "eventos", label: "Eventos", weight: 60, computation: "MANUAL", params: {} },
+      "COMMITTEE",
+      "a3",
+    );
+    const otros = rule(
+      { key: "eventos", label: "Eventos", weight: 60, computation: "MANUAL", params: {} },
+      "COMMITTEE",
+      "pixel",
+    );
+    const termFacts = facts({
+      rules: [eventos, otros],
+      term: { ...TERM, permanenceClosedAt: new Date() },
+    });
+    const result = computePerson(
+      termFacts,
+      person({
+        committees: [committee("a3", { probation: true }), committee("pixel")],
+        credits: [
+          { ruleId: eventos.id, value: 60, reason: "" },
+          { ruleId: otros.id, value: 60, reason: "" },
+        ],
+      }),
+      NOW,
+    );
+    const [a3, pixel] = result.results;
+    expect(a3).toMatchObject({ condition: "PROBATION", threshold: 80, finalState: "NO_CUMPLE" });
+    expect(pixel).toMatchObject({ condition: "ACTIVE", threshold: 60, finalState: "CUMPLE" });
+    // La persona figura en prueba porque lo está en al menos un comité.
+    expect(result.probation).toBe(true);
   });
 
   it("en prueba exige 80 y una transferencia 70 solo en ese comité", () => {
@@ -443,12 +596,13 @@ describe("estados y margen de prueba (ADR-027, ADR-028)", () => {
       ],
     });
     const [a3, pixel] = computePerson(termFacts, transferred, NOW).results;
-    // El crédito de 65 se acota al peso (60): en la transferencia falta para 70, en el otro comité cumple.
+    // El crédito de 65 se acota al peso (60): en la transferencia falta para 70 y no hay banda de
+    // prueba (Est. art. 8.3), así que sale de ese comité; en el otro comité cumple.
     expect(a3).toMatchObject({
       condition: "TRANSFER",
       threshold: 70,
       total: 60,
-      finalState: "PRUEBA",
+      finalState: "NO_CUMPLE",
     });
     expect(pixel).toMatchObject({
       condition: "ACTIVE",
@@ -521,6 +675,57 @@ describe("lo que aún es posible", () => {
       remaining: 0,
       state: "NO_ALCANZA",
       finalState: "NO_CUMPLE",
+    });
+  });
+
+  it("una reunión con excusa aceptada sale del denominador de la tasa (ADR-060 regla 5)", () => {
+    const reuniones = rule(
+      {
+        key: "reuniones",
+        label: "Reuniones",
+        weight: 15,
+        computation: "CHECKIN_RATE",
+        params: { category: "COMMITTEE_MEETING" },
+      },
+      "COMMITTEE",
+      "a3",
+    );
+    const meetings = [1, 2, 3, 4].map((n) =>
+      occ({
+        id: `m${n}`,
+        category: "COMMITTEE_MEETING",
+        committeeId: "a3",
+        startsAt: past(n * 7),
+      }),
+    );
+    const termFacts = facts({ rules: [reuniones], occasions: meetings });
+    const sinExcusa = computePerson(
+      termFacts,
+      person({ committees: [committee("a3")], attended: new Set(["m1", "m2"]) }),
+      NOW,
+    );
+    const conExcusa = computePerson(
+      termFacts,
+      person({
+        committees: [committee("a3")],
+        attended: new Set(["m1", "m2"]),
+        excused: new Set(["m3", "m4"]),
+      }),
+      NOW,
+    );
+    const rateOf = (result: ReturnType<typeof computePerson>) =>
+      result.results[0]?.criteria[0]?.detail;
+    expect(rateOf(sinExcusa)).toMatchObject({
+      type: "CHECKIN_RATE",
+      attended: 2,
+      held: 4,
+      rate: 0.5,
+    });
+    expect(rateOf(conExcusa)).toMatchObject({
+      type: "CHECKIN_RATE",
+      attended: 2,
+      held: 2,
+      rate: 1,
     });
   });
 
@@ -764,6 +969,62 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
     expect(result.mandatory.upcoming.map((item) => item.occasionId)).toEqual(["ord-2"]);
   });
 
+  it("una falta grave más otra sanción viva propone la expulsión (ADR-060 regla 6)", () => {
+    const closedTerm = { ...TERM, permanenceClosedAt: new Date() };
+    const termFacts = facts({
+      rules: [eventos],
+      occasions: [ordinary, election],
+      term: closedTerm,
+    });
+    const warned = computePerson(
+      termFacts,
+      person({
+        committees: [committee("a3")],
+        attended: new Set(["ord", "elec"]),
+        expulsionWarning: true,
+        credits: [{ ruleId: eventos.id, value: 60, reason: "" }],
+      }),
+      NOW,
+    );
+    expect(warned.expulsionWarning).toBe(true);
+    expect(proposeDecisions(warned)).toEqual({
+      committees: [{ committeeId: "a3", proposed: "CONTINUES", reason: 0 }],
+      person: { proposed: "EXIT_OE", reason: 5 },
+    });
+    expect(tList("T-801")).toHaveLength(6);
+  });
+
+  it("una obligatoria con excusa aceptada no se pierde ni expulsa (ADR-060 regla 5)", () => {
+    const closedTerm = { ...TERM, permanenceClosedAt: new Date() };
+    const termFacts = facts({
+      rules: [eventos],
+      occasions: [ordinary, election],
+      term: closedTerm,
+    });
+    const excusedFromElection = person({
+      committees: [committee("a3")],
+      attended: new Set(["ord"]),
+      excused: new Set(["elec"]),
+      credits: [{ ruleId: eventos.id, value: 60, reason: "" }],
+    });
+    const result = computePerson(termFacts, excusedFromElection, NOW);
+    expect(result.mandatory).toMatchObject({
+      met: true,
+      missing: [],
+      lost: [],
+      excused: ["BOARD_ELECTION"],
+    });
+    expect(proposeDecisions(result).person).toEqual({ proposed: "CONTINUES", reason: 0 });
+    // Sin excusa, la elección perdida sí expulsa.
+    const absent = computePerson(
+      termFacts,
+      person({ ...excusedFromElection, excused: new Set() }),
+      NOW,
+    );
+    expect(absent.mandatory.lost).toEqual(["BOARD_ELECTION"]);
+    expect(proposeDecisions(absent).person).toEqual({ proposed: "EXIT_OE", reason: 4 });
+  });
+
   it("una obligatoria sin programar todavía no se da por perdida", () => {
     const result = computePerson(
       facts({ rules: [eventos], occasions: [ordinary] }),
@@ -807,7 +1068,7 @@ describe("asambleas obligatorias y propuestas del cierre", () => {
         committees: [committee("a3"), committee("pixel")],
         attended: new Set(["ord", "elec"]),
         credits: [
-          { ruleId: eventos.id, value: 40, reason: "" },
+          { ruleId: eventos.id, value: 30, reason: "" },
           { ruleId: pixel.id, value: 55, reason: "" },
         ],
       }),

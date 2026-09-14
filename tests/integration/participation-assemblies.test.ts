@@ -65,7 +65,8 @@ describe("asambleas", () => {
     });
     const before = await assemblyStatusFor(personId, current);
     expect(before.requirement.adjusted).toBe(false);
-    expect(before.requirement.requiresBoardElection).toBe(current.semester === 2);
+    // La elección se exige cuando existe la ocasión, en cualquier semestre (ADR-060 regla 13).
+    expect(before.requirement.requiresBoardElection).toBe(true);
     expect(before.compliance.compliant).toBe(false);
     expect(before.assemblies.map((item) => item.status)).toEqual([null, null]);
 

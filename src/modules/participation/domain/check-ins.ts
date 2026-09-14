@@ -449,6 +449,60 @@ export async function cancelOccasionCheckIns(
   return rows.length;
 }
 
+// Excusa válida aceptada (ADR-060 regla 5): la escribe crm al aprobar la solicitud, en la misma
+// transacción. Sin puntos ni score; el efecto sobre permanencia viaja por `checkin.excused`.
+
+export interface ExcuseInput {
+  occasionId: string;
+  personId: string;
+  reason: string;
+  now?: Date | undefined;
+}
+
+export async function excuseCheckIn(ctx: CommandContext, input: ExcuseInput): Promise<void> {
+  const row = await readOccasion(ctx, input.occasionId);
+  if (!row || row.status === "CANCELLED") {
+    throw new DomainError(t("T-2227"));
+  }
+  const now = input.now ?? new Date();
+  const reason = input.reason.trim() || null;
+  const current = await readCheckIn(ctx, row.id, input.personId);
+  if (current?.status === "EXCUSED") {
+    return;
+  }
+  if (current && !canTransitionCheckIn(current.status, "EXCUSED")) {
+    throw new DomainError(t("T-2223"));
+  }
+  if (current) {
+    await ctx.tx
+      .update(checkIn)
+      .set({ status: "EXCUSED", decidedById: ctx.actor.personId, decidedAt: now, reason })
+      .where(eq(checkIn.id, current.id));
+  } else {
+    await ctx.tx.insert(checkIn).values({
+      occasionId: row.id,
+      personId: input.personId,
+      status: "EXCUSED",
+      source: "ADMIN",
+      at: now,
+      decidedById: ctx.actor.personId,
+      decidedAt: now,
+      reason,
+    });
+  }
+  await ctx.audit({
+    action: "checkin.excused",
+    entityType: "check_in",
+    entityId: `${row.id}:${input.personId}`,
+    before: current ? { status: current.status } : null,
+    after: { status: "EXCUSED", reason },
+  });
+  await ctx.emit({
+    type: "checkin.excused",
+    payload: { ...approvedPayload(row, input.personId, "ADMIN"), reason },
+  });
+}
+
 // Lecturas.
 
 export async function findCheckIn(
@@ -496,6 +550,33 @@ export async function listApprovedCheckInsForTerm(termId: string): Promise<Appro
     .from(checkIn)
     .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
     .where(and(eq(occasion.termId, termId), eq(checkIn.status, "APPROVED")));
+}
+
+/** Ocasiones del término con excusa aceptada, por persona (ADR-060 regla 5). */
+export async function listExcusedCheckInsForTerm(termId: string): Promise<ApprovedCheckIn[]> {
+  return getDb()
+    .select({ personId: checkIn.personId, occasionId: checkIn.occasionId })
+    .from(checkIn)
+    .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
+    .where(and(eq(occasion.termId, termId), eq(checkIn.status, "EXCUSED")));
+}
+
+export async function listExcusedCheckInsForPersonInTerm(
+  personId: string,
+  termId: string,
+): Promise<string[]> {
+  const rows = await getDb()
+    .select({ occasionId: checkIn.occasionId })
+    .from(checkIn)
+    .innerJoin(occasion, eq(occasion.id, checkIn.occasionId))
+    .where(
+      and(
+        eq(occasion.termId, termId),
+        eq(checkIn.personId, personId),
+        eq(checkIn.status, "EXCUSED"),
+      ),
+    );
+  return rows.map((row) => row.occasionId);
 }
 
 export async function listApprovedCheckInsForPersonInTerm(

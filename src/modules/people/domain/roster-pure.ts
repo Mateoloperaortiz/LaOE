@@ -210,6 +210,9 @@ export interface RosterCommittee {
 export interface RosterRole {
   code: string;
   label: string;
+  /** Retirado del catálogo de comités (ADR-060 regla 4); el roster lo traduce a `replacedByCode`. */
+  retired?: boolean;
+  replacedByCode?: string | null;
 }
 
 export interface RosterCatalog {
@@ -468,6 +471,18 @@ export function validateRoster(
       } else {
         result.status = status.status;
         result.probation = status.probation;
+        if (
+          status.status !== "INACTIVE" &&
+          current?.status === "INACTIVE" &&
+          current.endReason === "EXPULSION"
+        ) {
+          warnings.push(
+            t("T-2208", {
+              nombre:
+                `${result.firstName || current.firstName} ${result.lastName || current.lastName}`.trim(),
+            }),
+          );
+        }
       }
     }
     if (present.has("entry")) {
@@ -529,6 +544,16 @@ export function validateRoster(
         const parsedRoles: ParsedRole[] = wanted
           ? wanted.map((item) => {
               const role = findRole(item.label, catalog.roles);
+              if (role?.retired) {
+                const replacement = role.replacedByCode
+                  ? catalog.roles.find((known) => known.code === role.replacedByCode)
+                  : undefined;
+                if (replacement) {
+                  warnings.push(t("T-2213", { cargo: role.label, nuevo: replacement.label }));
+                  return { roleCode: replacement.code, coDirector: item.coDirector };
+                }
+                errors.push(t("T-2214", { cargo: role.label }));
+              }
               if (role) {
                 return { roleCode: role.code, coDirector: item.coDirector };
               }
@@ -621,6 +646,8 @@ export interface ExistingPerson {
   epikId?: string | null;
   birthDate?: string | null;
   entryTerm?: string | null;
+  /** Motivo de la salida cuando está retirada; una expulsión no se reactiva por el roster (ADR-060 regla 3). */
+  endReason?: string | null;
   status: RosterStatus | null;
   probation: boolean;
   committees: Array<{

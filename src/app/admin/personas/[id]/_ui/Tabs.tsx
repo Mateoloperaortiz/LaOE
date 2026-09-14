@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { MessageView, PreferencesView } from "@/modules/comms";
 import { channelLabel, kindLabel, statusLabel as messageStatusLabel } from "@/modules/comms/admin";
-import type { InteractionView, TaskRow } from "@/modules/crm";
+import type { InteractionView, RecognitionView, TaskRow } from "@/modules/crm";
 import type { ActorPermission } from "@/modules/identity";
 import {
+  appointmentLabel,
   committeeRolesLabel,
   formatBirthDate,
+  type HonoraryEligibility,
   type MyMembershipView,
   type Person360,
 } from "@/modules/people";
@@ -26,12 +28,7 @@ import {
   removeAppointmentAction,
   revokeCarnetAction,
 } from "../actions";
-import {
-  appointmentLabel,
-  CONSENT_TEXTS,
-  TIMELINE_FILTERS,
-  type TimelineFilterKey,
-} from "./etiquetas";
+import { CONSENT_TEXTS, TIMELINE_FILTERS, type TimelineFilterKey } from "./etiquetas";
 
 // Contenido de cada pestaña de la Persona 360. Las de fases siguientes muestran T-240.
 
@@ -156,18 +153,44 @@ export function TabLinea({
   );
 }
 
-export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipView }) {
+export function TabMembresia({
+  data,
+  my,
+  honorary,
+  recognitions,
+}: {
+  data: Person360;
+  my: MyMembershipView;
+  honorary: HonoraryEligibility;
+  recognitions: RecognitionView[];
+}) {
   const [historial, comitesPorSemestre, cargos, condicion] = tList("T-443") as [
     string,
     string,
     string,
     string,
   ];
+  const [honorarioTitulo, honorarioAyuda] = tList("T-2315");
+  const requisitos = tList("T-2316");
+  const [, elegible, noElegible] = tList("T-2317");
+  const [reconocimientosTitulo, sinReconocimientos, destacado, otro, premio] = tList("T-2322");
+  const [, , , , otorgarPremio] = tList("T-2321");
+  const kindLabelOf = (kind: RecognitionView["kind"]) =>
+    kind === "MEMBER_OF_MONTH" ? destacado : kind === "OE_AWARD" ? premio : otro;
   const [agregarCargo, quitar] = tList("T-447") as [string, string];
+  const [sancionesTitulo, sinSanciones] = tList("T-2239") as [string, string];
+  const [registrarSancion, revocarSancion] = tList("T-2232") as [string, string];
   const base = `/admin/personas/${data.person.id}`;
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Bloque titulo={historial}>
+        {data.membership?.status === "ON_LEAVE" && data.membership.leaveUntil ? (
+          <p className="text-sm font-semibold">
+            {t("T-2280", {
+              fecha: formatDate(new Date(`${data.membership.leaveUntil}T12:00:00Z`)),
+            })}
+          </p>
+        ) : null}
         {data.events.length === 0 ? (
           <p className="text-sm text-tinta-suave">—</p>
         ) : (
@@ -241,8 +264,7 @@ export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipVi
             {data.appointments.map((item) => (
               <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span>
-                  <span className="font-semibold">{appointmentLabel(item.kind, item.title)}</span> ·{" "}
-                  {item.termCode}
+                  <span className="font-semibold">{appointmentLabel(item)}</span> · {item.termCode}
                   {item.committeeName ? ` · ${item.committeeName}` : ""}
                 </span>
                 <form action={removeAppointmentAction}>
@@ -276,9 +298,117 @@ export function TabMembresia({ data, my }: { data: Person360; my: MyMembershipVi
         ) : (
           <ul className="flex list-none flex-col gap-1 p-0 text-sm">
             {data.probation.map((item) => (
-              <li key={item.termId}>
-                <Insignia fondo="naranja">{t("T-449")}</Insignia> {item.termCode}
+              <li key={`${item.termId}:${item.committeeId ?? ""}`}>
+                {item.probation ? <Insignia fondo="naranja">{tList("T-449")[0]}</Insignia> : null}
+                {item.reportAsVeteran ? <Insignia fondo="sky">{t("T-2262")}</Insignia> : null}
+                {item.resumedNew && !item.reportAsVeteran ? (
+                  <Insignia fondo="sky">{t("T-2333")}</Insignia>
+                ) : null}
+                {item.resumedTransfer ? <Insignia fondo="sky">{t("T-2335")}</Insignia> : null}
+                {item.academicVerifiedOn ? (
+                  <Insignia fondo="paper">
+                    {t("T-2314", {
+                      fecha: formatDate(new Date(`${item.academicVerifiedOn}T12:00:00Z`)),
+                    })}
+                  </Insignia>
+                ) : null}{" "}
+                {item.termCode}
+                {item.committeeName ? ` · ${item.committeeName}` : ""}
                 {item.reason ? ` · ${item.reason}` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Bloque>
+      <Bloque titulo={honorarioTitulo ?? ""}>
+        <p className="text-sm text-tinta-suave">{honorarioAyuda}</p>
+        <p className="text-sm font-semibold">
+          {t("T-2317", { n: honorary.metCount, m: honorary.items.length }).split(" · ")[0]}{" "}
+          <Insignia fondo={honorary.eligible ? "azul" : "paper"}>
+            {honorary.eligible ? elegible : noElegible}
+          </Insignia>
+        </p>
+        <ul className="flex list-none flex-col gap-1 p-0 text-sm">
+          {honorary.items.map((item, index) => (
+            <li key={item.code} className="flex items-center gap-2">
+              <Insignia fondo={item.met ? "azul" : "paper"}>{item.met ? "✓" : "—"}</Insignia>
+              <span>
+                {requisitos[index] ?? item.code} · {item.count}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Bloque>
+      <Bloque titulo={reconocimientosTitulo ?? ""}>
+        {data.membership && data.membership.status !== "INACTIVE" ? (
+          <Link
+            href={`${base}?pestana=membresia&accion=premio`}
+            className="boton-secundario min-h-9 self-start px-4 py-1 text-sm"
+          >
+            {otorgarPremio}
+          </Link>
+        ) : null}
+        {recognitions.length === 0 ? (
+          <p className="text-sm text-tinta-suave">{sinReconocimientos}</p>
+        ) : (
+          <ul className="flex list-none flex-col gap-1 p-0 text-sm">
+            {recognitions.map((item) => (
+              <li key={item.id}>
+                <span className="font-semibold">{item.title}</span> · {kindLabelOf(item.kind)} ·{" "}
+                {formatDate(item.createdAt)}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Bloque>
+      <Bloque titulo={sancionesTitulo}>
+        {data.membership && data.membership.status !== "INACTIVE" ? (
+          <Link
+            href={`${base}?pestana=membresia&accion=sancion`}
+            className="boton-secundario min-h-9 self-start px-4 py-1 text-sm"
+          >
+            {registrarSancion}
+          </Link>
+        ) : null}
+        {data.sanctions.length === 0 ? (
+          <p className="text-sm text-tinta-suave">{sinSanciones}</p>
+        ) : (
+          <ul className="flex list-none flex-col gap-2 p-0 text-sm">
+            {data.sanctions.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-baseline gap-2">
+                <Insignia fondo={item.state === "LIVE" ? "naranja" : "paper"}>
+                  {item.stateLabel}
+                </Insignia>
+                <span className="font-semibold">{item.kindLabel}</span>
+                <span className="text-tinta-suave">
+                  {formatDate(new Date(`${item.occurredOn}T12:00:00Z`))}
+                </span>
+                <span>· {item.cause}</span>
+                {item.reference ? (
+                  <span className="text-tinta-suave">· {item.reference}</span>
+                ) : null}
+                {item.committeeName ? (
+                  <span className="text-tinta-suave">· {item.committeeName}</span>
+                ) : null}
+                {item.suspendedUntil ? (
+                  <span className="text-tinta-suave">
+                    ·{" "}
+                    {t("T-2237", {
+                      fecha: formatDate(new Date(`${item.suspendedUntil}T12:00:00Z`)),
+                    })}
+                  </span>
+                ) : null}
+                {item.revokeReason ? (
+                  <span className="text-tinta-suave">· {item.revokeReason}</span>
+                ) : null}
+                {item.state === "LIVE" ? (
+                  <Link
+                    href={`${base}?pestana=membresia&accion=revocar-sancion&sancion=${item.id}`}
+                    className="underline"
+                  >
+                    {revocarSancion}
+                  </Link>
+                ) : null}
               </li>
             ))}
           </ul>

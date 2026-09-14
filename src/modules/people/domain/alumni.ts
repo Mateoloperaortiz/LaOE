@@ -8,10 +8,11 @@ import {
   committee,
   committeeMembership,
   committeeRole,
+  macroeventRole,
   membership,
   person,
 } from "../schema";
-import type { AppointmentKind } from "./appointments";
+import { type AppointmentLabelInput, editionLabelsFor } from "./appointments";
 import { liveConsentExists } from "./consents";
 
 // Galería de egresados (ADR-030): quienes salieron, con consentimiento MEMORIAL vivo y sin anonimizar,
@@ -23,7 +24,7 @@ export interface AlumniEntry {
   photoAssetId: string | null;
   /** "A3 · General", sin repetir comités. */
   committees: string[];
-  appointments: Array<{ kind: AppointmentKind; title: string | null; termCode: string }>;
+  appointments: Array<AppointmentLabelInput & { termCode: string }>;
   fromTermCode: string | null;
   toTermCode: string | null;
 }
@@ -78,10 +79,15 @@ export async function listAlumniByYear(): Promise<AlumniYear[]> {
         kind: appointment.kind,
         title: appointment.title,
         termId: appointment.termId,
+        editionId: appointment.editionId,
+        roleLabel: macroeventRole.label,
+        coDirector: appointment.coDirector,
       })
       .from(appointment)
+      .leftJoin(macroeventRole, eq(macroeventRole.code, appointment.roleCode))
       .where(inArray(appointment.personId, ids)),
   ]);
+  const editions = await editionLabelsFor(appointments.map((item) => item.editionId));
   const termById = new Map(terms.map((term) => [term.id, term]));
   const years = new Map<number, AlumniEntry[]>();
   for (const row of people) {
@@ -109,6 +115,9 @@ export async function listAlumniByYear(): Promise<AlumniYear[]> {
         .map((a) => ({
           kind: a.kind,
           title: a.title,
+          roleLabel: a.roleLabel,
+          editionLabel: a.editionId ? (editions.get(a.editionId) ?? null) : null,
+          coDirector: a.coDirector,
           termCode: termById.get(a.termId)?.code ?? "",
         })),
       fromTermCode: termById.get(row.firstTermId)?.code ?? null,

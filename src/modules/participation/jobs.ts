@@ -5,6 +5,7 @@ import { listTermCommitteeMembers } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { findTermByCode, getCurrentTerm, nextTermCode } from "@/modules/terms";
 import { scrubStandingName } from "./domain/closing";
+import { recomputeCommitteeAssembly } from "./domain/committee-assembly";
 import { isAutoCloseDue } from "./domain/occasion-pure";
 import { closeOccasion, getOccasion, listOccasionsForTerm } from "./domain/occasions";
 import { runReminders } from "./domain/reminders";
@@ -96,6 +97,11 @@ const occasionClosed = z.object({ occasionId: z.string().min(1) });
 
 registerHandler("occasion.closed", async (payload, ctx) => {
   const { occasionId } = occasionClosed.parse(payload);
+  // Representación de los comités en una asamblea cerrada (ADR-060 regla 7).
+  const represented = await recomputeCommitteeAssembly(occasionId);
+  if (represented > 0) {
+    ctx.log.info({ occasionId, represented }, "representación por comité calculada");
+  }
   const result = await createSurveyInvites(occasionId);
   if (result.invited > 0) {
     ctx.log.info(
@@ -104,6 +110,17 @@ registerHandler("occasion.closed", async (payload, ctx) => {
     );
   }
 });
+
+// Un check-in decidido después de cerrar una asamblea cambia qué comités estuvieron representados.
+const assemblyCheckIn = z.object({ occasionId: z.string().min(1), kind: z.string() });
+for (const type of ["checkin.approved", "checkin.cancelled", "checkin.excused"]) {
+  registerHandler(type, async (payload) => {
+    const { occasionId, kind } = assemblyCheckIn.parse(payload);
+    if (kind === "ASSEMBLY") {
+      await recomputeCommitteeAssembly(occasionId);
+    }
+  });
+}
 
 // Al anonimizar, el nombre congelado en los standings pasa a T-223 (ADR-030): people no toca
 // tablas de participation. Las invitaciones de encuesta tampoco son historia.

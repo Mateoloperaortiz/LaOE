@@ -113,6 +113,90 @@
       "when": 1789255025051,
       "tag": "0015_cargos_por_areas",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789303165278,
+      "tag": "0016_permanencia_segun_estatutos",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789304134358,
+      "tag": "0017_catalogo_de_cargos_2026",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789305149478,
+      "tag": "0018_excusas_validas",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789305507481,
+      "tag": "0019_faltas_y_sanciones",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789306172765,
+      "tag": "0020_representacion_en_asamblea",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789306583425,
+      "tag": "0021_ciclo_de_vida_del_comite",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1789307534777,
+      "tag": "0022_mesas_de_macroevento",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1789320024485,
+      "tag": "0023_licencia_con_vencimiento",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789321748539,
+      "tag": "0024_finanzas",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789322581660,
+      "tag": "0025_menores_normativa",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789391319609,
+      "tag": "0026_correcciones_normativa_2026",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1789391838767,
+      "tag": "0027_transferencia_al_regresar",
+      "breakpoints": true
     }
   ]
 }

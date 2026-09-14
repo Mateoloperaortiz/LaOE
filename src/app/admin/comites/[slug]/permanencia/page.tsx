@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { listCommitteeRecognitions, MONTHS, monthName } from "@/modules/crm";
-import { listInternalRoster } from "@/modules/people";
+import {
+  listCommitteeRecognitions,
+  listPendingExcusesForCommittee,
+  MONTHS,
+  monthName,
+} from "@/modules/crm";
+import { listInternalRoster, SANCTION_KINDS } from "@/modules/people";
 import {
   deviatesFromNominal,
   getRule,
@@ -18,13 +23,16 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { todayKey } from "@/shared/lib/dates";
 import { reglaFormLabels, reglaFormValues } from "../../../permanencia/_ui/reglas";
 import { requireCommitteeCapability } from "../../_kit/capacidades";
 import {
   applyCommitteeTemplateAction,
   copyCommitteeRulesAction,
+  decideExcuseAction,
   deleteCommitteeRuleAction,
   recognizeAction,
+  recordCommitteeSanctionAction,
   saveCommitteeRuleAction,
   scoreAction,
 } from "./actions";
@@ -82,11 +90,22 @@ export default async function PermanenciaComitePage({
   const locked = view.lockedAt !== null && !roles.isAdmin;
   const editing = accion === "editar" ? await getRule(single(search.regla)) : null;
   const hidden = { slug };
-  const [scores, snapshots, recognitions] = await Promise.all([
+  const [scores, snapshots, recognitions, excuses] = await Promise.all([
     listLeaderScores(term.id, committee.id),
     listSnapshots(term.id),
     listCommitteeRecognitions(committee.id, term.id),
+    listPendingExcusesForCommittee(committee.id, term.id),
   ]);
+  const excusa = single(search.excusa);
+  const [aprobarExcusa, rechazarExcusa] = tList("T-1001") as [string, string];
+  const [campoTipo, campoCausal, campoReferencia, campoFecha, , , campoMiembro] = tList("T-2230");
+  const [registrarSancion] = tList("T-2232") as [string, string];
+  const kindLabels = tList("T-2229");
+  // Desde el comité solo se registran llamados, faltas leves y graves; la suspensión y la
+  // inhabilidad las decide GH (Regl. art. 58, 62 y 63).
+  const committeeKinds = SANCTION_KINDS.filter((kind) =>
+    ["WARNING", "MINOR", "MAJOR"].includes(kind),
+  );
   const scoreRules = view.rules.filter((rule) => rule.computation === "LEADER_SCORE");
   const scoreOf = (ruleId: string, personId: string) =>
     scores.find((item) => item.ruleId === ruleId && item.personId === personId) ?? null;
@@ -141,6 +160,133 @@ export default async function PermanenciaComitePage({
           {committee.name}
         </Link>
       </header>
+      {excusa ? (
+        <output className="block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-2 text-sm font-semibold text-oe-navy">
+          {t("T-2228", {
+            estado: (tList("T-876")[excusa === "APPROVED" ? 1 : 2] ?? "").toLowerCase(),
+          })}
+        </output>
+      ) : null}
+
+      <section aria-labelledby="excusas" className="flex flex-col gap-3">
+        <h2 id="excusas" className="text-display-md">
+          {t("T-2225")}
+        </h2>
+        {excuses.length === 0 ? (
+          <p className="text-sm text-tinta-suave">{t("T-2226")}</p>
+        ) : (
+          <ul className="flex list-none flex-col gap-3 p-0">
+            {excuses.map((row) => (
+              <li
+                key={row.id}
+                className="flex flex-col gap-3 rounded-xl border border-borde bg-fondo p-4"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold">{row.personName}</span>
+                  <span className="text-sm text-tinta-suave">{row.detail}</span>
+                </div>
+                {typeof row.payload.reason === "string" ? (
+                  <p className="whitespace-pre-wrap break-words text-sm">{row.payload.reason}</p>
+                ) : null}
+                {typeof row.payload.evidence === "string" && row.payload.evidence ? (
+                  <p className="break-words text-sm text-tinta-suave">{row.payload.evidence}</p>
+                ) : null}
+                <div className="flex flex-wrap items-end gap-3">
+                  <form action={decideExcuseAction}>
+                    <AdminFormBody>
+                      <input type="hidden" name="slug" value={slug} />
+                      <input type="hidden" name="requestId" value={row.id} />
+                      <input type="hidden" name="decision" value="APPROVED" />
+                      <AdminSubmitButton type="submit" className="boton-calido">
+                        {aprobarExcusa}
+                      </AdminSubmitButton>
+                    </AdminFormBody>
+                  </form>
+                  <form action={decideExcuseAction} className="flex flex-wrap items-end gap-2">
+                    <AdminFormBody>
+                      <input type="hidden" name="slug" value={slug} />
+                      <input type="hidden" name="requestId" value={row.id} />
+                      <input type="hidden" name="decision" value="REJECTED" />
+                      <label
+                        className="flex flex-col gap-1 text-sm"
+                        htmlFor={`excusa-motivo-${row.id}`}
+                      >
+                        {t("T-1002")}
+                        <input
+                          id={`excusa-motivo-${row.id}`}
+                          name="reason"
+                          type="text"
+                          className={inputClass}
+                        />
+                      </label>
+                      <AdminSubmitButton type="submit" className="boton-secundario">
+                        {rechazarExcusa}
+                      </AdminSubmitButton>
+                    </AdminFormBody>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="registrar-falta" className="flex flex-col gap-3">
+        <h2 id="registrar-falta" className="text-display-md">
+          {t("T-2242")}
+        </h2>
+        <p className="max-w-prose text-sm text-tinta-suave">{t("T-2231")}</p>
+        <form action={recordCommitteeSanctionAction} className="flex flex-col gap-3">
+          <AdminFormBody>
+            <input type="hidden" name="slug" value={slug} />
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm" htmlFor="falta-persona">
+                {campoMiembro}
+                <select id="falta-persona" name="personId" required className={inputClass}>
+                  <option value="">—</option>
+                  {members.map((member) => (
+                    <option key={member.personId} value={member.personId}>
+                      {member.fullName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm" htmlFor="falta-tipo">
+                {campoTipo}
+                <select id="falta-tipo" name="kind" required className={inputClass}>
+                  {committeeKinds.map((kind) => (
+                    <option key={kind} value={kind}>
+                      {kindLabels[SANCTION_KINDS.indexOf(kind)] ?? kind}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm md:col-span-2" htmlFor="falta-causal">
+                {campoCausal}
+                <textarea id="falta-causal" name="cause" required rows={3} className={inputClass} />
+              </label>
+              <label className="flex flex-col gap-1 text-sm" htmlFor="falta-referencia">
+                {campoReferencia}
+                <input id="falta-referencia" name="reference" type="text" className={inputClass} />
+              </label>
+              <label className="flex flex-col gap-1 text-sm" htmlFor="falta-fecha">
+                {campoFecha}
+                <input
+                  id="falta-fecha"
+                  name="occurredOn"
+                  type="date"
+                  required
+                  defaultValue={todayKey()}
+                  className={inputClass}
+                />
+              </label>
+            </div>
+            <AdminSubmitButton type="submit" className="boton-secundario self-start">
+              {registrarSancion}
+            </AdminSubmitButton>
+          </AdminFormBody>
+        </form>
+      </section>
 
       {locked ? (
         <p className="rounded-xl bg-oe-yellow-soft px-4 py-3 font-semibold text-oe-navy">

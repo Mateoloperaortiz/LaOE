@@ -34,14 +34,18 @@ export const occasionCategory = pgEnum("occasion_category", [
   "WORKSHOP",
   "SOCIAL",
   "OTHER",
+  // Inducción de nuevos (Regl. art. 47; ADR-060 regla 13): obligatoria para nuevos como las asambleas.
+  "INDUCTION",
 ]);
 export const occasionApproval = pgEnum("occasion_approval", ["AUTO", "MANUAL"]);
 export const occasionStatus = pgEnum("occasion_status", ["DRAFT", "OPEN", "CLOSED", "CANCELLED"]);
+// EXCUSED: falta con excusa válida aceptada (ADR-060 regla 5); no da puntos ni cuenta como falta.
 export const checkInStatus = pgEnum("check_in_status", [
   "PENDING",
   "APPROVED",
   "REJECTED",
   "CANCELLED",
+  "EXCUSED",
 ]);
 export const checkInSource = pgEnum("check_in_source", ["SELF_QR", "HOST", "ADMIN", "IMPORT"]);
 export const pointEntryKind = pgEnum("point_entry_kind", [
@@ -354,4 +358,31 @@ export const occasionSurveyResponse = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("occasion_survey_response_occasion_idx").on(t.occasionId)],
+);
+
+// Asistencia de cada comité a una asamblea cerrada (Regl. art. 14 y 64; ADR-060 regla 7): representado
+// si su titular, su suplente o cualquier cargo de dirección registró asistencia; con excusa si alguno
+// de ellos tiene la excusa aceptada. Derivada por outbox al cerrar la asamblea y al cambiar un check-in.
+export const committeeAssemblyAttendance = pgTable(
+  "committee_assembly_attendance",
+  {
+    id: id(),
+    occasionId: text()
+      .notNull()
+      .references(() => occasion.id, { onDelete: "cascade" }),
+    committeeId: text()
+      .notNull()
+      .references(() => committee.id),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    represented: boolean().notNull().default(false),
+    excused: boolean().notNull().default(false),
+    representedById: text().references(() => person.id, { onDelete: "set null" }),
+    computedAt: timestampTz().notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("committee_assembly_attendance_unique").on(t.occasionId, t.committeeId),
+    index("committee_assembly_attendance_term_idx").on(t.termId, t.committeeId),
+  ],
 );

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
   card,
@@ -65,6 +65,8 @@ type PersonOverrides = Partial<{
   phone: string | null;
   program: string | null;
   personalEmail: string | null;
+  /** Término de ingreso de `seedMember`; uno anterior al actual lo hace veterano (sin la guarda de nuevo, ADR-060 regla 11). */
+  entryTermCode: string;
 }>;
 
 export async function seedPerson(email: string, overrides: PersonOverrides = {}): Promise<string> {
@@ -108,8 +110,14 @@ export async function seedMembership(
 export async function seedMember(email: string, overrides: PersonOverrides = {}): Promise<string> {
   const termId = await seedTerm();
   const personId = await seedPerson(email, overrides);
-  await seedMembership(personId, termId);
+  const entryTermId = overrides.entryTermCode ? await seedTerm(overrides.entryTermCode) : termId;
+  await seedMembership(personId, entryTermId);
   return personId;
+}
+
+/** Un activo veterano: entró en un término anterior, así que puede recibir cargos de mesa. */
+export async function seedVeteran(email: string, overrides: PersonOverrides = {}): Promise<string> {
+  return seedMember(email, { entryTermCode: "2025-1", ...overrides });
 }
 
 export async function seedCommittee(slug: string, name = slug.toUpperCase()): Promise<string> {
@@ -164,14 +172,7 @@ type OccasionOverrides = Partial<{
   title: string;
   kind: "ACTIVITY" | "ASSEMBLY" | "EDITION_SESSION";
   assemblyKind: "ORDINARY" | "BOARD_ELECTION" | "RUNOFF" | null;
-  category:
-    | "INTEGRATION"
-    | "ATHLETIC_MATCH"
-    | "COMMITTEE_MEETING"
-    | "TALK"
-    | "WORKSHOP"
-    | "SOCIAL"
-    | "OTHER";
+  category: (typeof occasion.$inferInsert)["category"];
   newMembersOnly: boolean;
   points: number;
   approval: "AUTO" | "MANUAL";
@@ -269,6 +270,7 @@ export async function seedMembershipTerm(
     .values({ personId, termId, probation, reason: "prueba de integración" })
     .onConflictDoUpdate({
       target: [membershipTerm.personId, membershipTerm.termId],
+      targetWhere: isNull(membershipTerm.committeeId),
       set: { probation },
     });
 }
@@ -579,4 +581,9 @@ export async function seedCallEntry(
     .returning({ id: internalCallEntry.id });
   if (!row) throw new Error("seed call entry");
   return row.id;
+}
+
+/** Regreso previsto de una licencia dentro de la ventana de un año (ADR-060 regla 10): en `days` días. */
+export function leaveUntilSoon(days = 90): string {
+  return new Date(Date.now() + days * 24 * 60 * 60_000).toISOString().slice(0, 10);
 }

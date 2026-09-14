@@ -16,7 +16,7 @@ import {
 } from "@/modules/crm";
 import { interaction, task } from "@/modules/crm/schema";
 import { getMembershipRef, getMyMembership, hasLiveConsent, listConsents } from "@/modules/people";
-import { committeeMembership, person } from "@/modules/people/schema";
+import { committeeMembership, membership, person } from "@/modules/people/schema";
 import { findTermByCode, nextTermCode } from "@/modules/terms";
 import type { MailTransport } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
@@ -34,6 +34,9 @@ import {
 // aprobar ejecuta el comando de people en la misma transacción y la respuesta sale por correo.
 
 const _admin = { personId: null, ip: null };
+
+// Regreso previsto dentro de la ventana (ADR-060 regla 10): en dos meses.
+const until = new Date(Date.now() + 60 * 24 * 60 * 60_000).toISOString().slice(0, 10);
 
 function fakeTransport(): MailTransport {
   return { name: "resend", send: async () => ({ id: "re_ok" }) };
@@ -60,10 +63,15 @@ describe("solicitudes", () => {
     await expect(
       createRequestAs({ personId: prospect, ip: null }, "LEAVE", { reason: "Viaje" }),
     ).rejects.toThrow(t("T-892"));
-    await expect(createRequestAs(actor, "LEAVE", { reason: "x" })).rejects.toThrow();
+    await expect(createRequestAs(actor, "LEAVE", { reason: "x", until })).rejects.toThrow();
+    // Sin regreso o fuera de la ventana de un año no hay solicitud (ADR-060 regla 10).
+    await expect(createRequestAs(actor, "LEAVE", { reason: "Sin fecha" })).rejects.toThrow();
+    await expect(
+      createRequestAs(actor, "LEAVE", { reason: "Muy larga", until: "2099-01-01" }),
+    ).rejects.toThrow(/máximo un año/);
     const created = await createRequestAs(actor, "LEAVE", {
       reason: "Intercambio",
-      until: "2026-12-01",
+      until,
     });
     const view = await getRequest(created.id);
     expect(view).toMatchObject({ status: "PENDING", kind: "LEAVE", personId });
@@ -75,7 +83,7 @@ describe("solicitudes", () => {
       title: t("T-1009", { nombre: "Persona Sintética", tipo: "licencia" }),
     });
     expect(view?.taskId).toBe(opened?.id);
-    await expect(createRequestAs(actor, "LEAVE", { reason: "Otra vez" })).rejects.toThrow(
+    await expect(createRequestAs(actor, "LEAVE", { reason: "Otra vez", until })).rejects.toThrow(
       t("T-891", { tipo: "licencia" }),
     );
     expect(await countPendingRequests()).toBe(1);
@@ -88,7 +96,9 @@ describe("solicitudes", () => {
     expect(closed?.status).toBe("DONE");
     await expect(withdrawRequestAs(actor, created.id)).rejects.toThrow(t("T-1007"));
     // Retirada, se puede pedir otra del mismo tipo.
-    await expect(createRequestAs(actor, "LEAVE", { reason: "De nuevo" })).resolves.toBeTruthy();
+    await expect(
+      createRequestAs(actor, "LEAVE", { reason: "De nuevo", until }),
+    ).resolves.toBeTruthy();
     expect((await listRequestsByPerson(personId)).map((row) => row.status)).toEqual([
       "PENDING",
       "WITHDRAWN",
@@ -99,12 +109,17 @@ describe("solicitudes", () => {
     setMailTransportsForTests({ primary: fakeTransport(), overflow: null });
     const { personId, actor } = await activeMember("licencia@eafit.edu.co");
     const gh = await seedMember("gh@eafit.edu.co");
-    const created = await createRequestAs(actor, "LEAVE", { reason: "Intercambio" });
+    const created = await createRequestAs(actor, "LEAVE", { reason: "Intercambio", until });
     await expect(
       decideRequestAs({ personId: gh, ip: null }, created.id, { decision: "REJECTED" }),
     ).rejects.toThrow(t("T-1003"));
     await decideRequestAs({ personId: gh, ip: null }, created.id, { decision: "APPROVED" });
     expect(await getMembershipRef(personId)).toMatchObject({ status: "ON_LEAVE" });
+    const [licencia] = await getDb()
+      .select({ leaveUntil: membership.leaveUntil })
+      .from(membership)
+      .where(eq(membership.personId, personId));
+    expect(licencia?.leaveUntil).toBe(until);
     const [who] = await getDb().select().from(person).where(eq(person.id, personId));
     expect(who?.sessionsRevokedAt).toBeNull();
     const view = await getRequest(created.id);
@@ -149,7 +164,7 @@ describe("solicitudes", () => {
     expect(memorial?.live?.source).toBe("SELF");
     // Otra persona: rechazo con motivo.
     const other = await activeMember("otra@eafit.edu.co", "pixel");
-    const second = await createRequestAs(other.actor, "LEAVE", { reason: "Trabajo" });
+    const second = await createRequestAs(other.actor, "LEAVE", { reason: "Trabajo", until });
     await decideRequestAs({ personId: gh, ip: null }, second.id, {
       decision: "REJECTED",
       reason: "Hablemos primero",

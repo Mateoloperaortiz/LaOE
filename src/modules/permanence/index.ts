@@ -60,6 +60,7 @@ export {
   listGroupRefs,
   listGroups,
   listMyGroupRoles,
+  listWorkCommitteeTermIds,
   type MyGroupRoles,
   previewMemberImport,
   removeMemberAs,

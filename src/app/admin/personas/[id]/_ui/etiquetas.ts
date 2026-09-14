@@ -1,5 +1,4 @@
 import type { TimelineFilter } from "@/modules/crm";
-import { APPOINTMENT_KINDS, type AppointmentKind } from "@/modules/people";
 import { tList } from "@/shared/copy";
 
 // Etiquetas compartidas por la cabecera, las pestañas y los paneles de la Persona 360.
@@ -31,13 +30,14 @@ export function tabLabels(): Record<Tab, string> {
   >;
 }
 
-export function appointmentLabel(kind: AppointmentKind, title: string | null): string {
-  const names = tList("T-444");
-  const label = names[APPOINTMENT_KINDS.indexOf(kind)] ?? kind;
-  return kind === "OTHER" && title ? title : label;
-}
-
-export const END_REASONS = ["GRADUATION", "RESIGNATION", "PERMANENCE", "OTHER"] as const;
+export const END_REASONS = [
+  "GRADUATION",
+  "RESIGNATION",
+  "PERMANENCE",
+  "EXPULSION",
+  "STUDENT_STATUS_LOST",
+  "OTHER",
+] as const;
 
 export const CONSENT_TEXTS = ["T-150", "T-151", "T-152", "T-153", "T-154"] as const;
 

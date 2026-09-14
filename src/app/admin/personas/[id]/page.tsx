@@ -6,6 +6,7 @@ import {
   latestContact,
   listCardsByPerson,
   listInteractions,
+  listRecognitionsFor,
   listRequestsByPerson,
   listTasks,
 } from "@/modules/crm";
@@ -27,11 +28,14 @@ import {
 import {
   getMyMembership,
   getPerson360,
+  honoraryEligibility,
+  honoraryFacts,
   listAllCommittees,
   listAllTags,
   listCommitteeRoles,
   listPersonTags,
 } from "@/modules/people";
+import { listWorkCommitteeTermIds } from "@/modules/permanence";
 import { getConfig, getPrivacyPolicyState } from "@/modules/system";
 import { listAllTerms } from "@/modules/terms";
 import { listPassesFor } from "@/modules/wallet";
@@ -265,9 +269,22 @@ export default async function PersonaPage({
         />
       );
       break;
-    case "membresia":
-      content = <TabMembresia data={data} my={my} />;
+    case "membresia": {
+      const [facts, workCommitteeTermIds, recognitions] = await Promise.all([
+        honoraryFacts(id),
+        listWorkCommitteeTermIds(id),
+        listRecognitionsFor(id),
+      ]);
+      content = (
+        <TabMembresia
+          data={data}
+          my={my}
+          honorary={honoraryEligibility({ ...facts, workCommitteeTermIds })}
+          recognitions={recognitions}
+        />
+      );
       break;
+    }
     case "comunicaciones":
       content = (
         <TabComunicaciones
@@ -347,6 +364,7 @@ export default async function PersonaPage({
           assignees={assignees}
           note={note}
           semestreId={terms.find((item) => item.id === single(search.semestre))?.id ?? null}
+          sancionId={single(search.sancion) || null}
           closeHref={closeHref}
           error={error}
           policyReady={policy.ready}

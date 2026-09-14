@@ -37,7 +37,10 @@ export interface AdminAreaRoles {
 }
 
 export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
-  if (!canOperate(actor)) {
+  // En licencia solo queda la dirección de su comité (Regl. art. 27 par. 6; ADR-060 regla 10): sin
+  // permisos, junta ni grupos, que ADR-046 suspende.
+  const onLeave = actor.membershipStatus === "ON_LEAVE";
+  if (!canOperate(actor) && !onLeave) {
     return {
       actor,
       isAdmin: false,
@@ -61,7 +64,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
   const term = isAdmin ? null : await getCurrentTerm();
   const [groups, directed] = term
     ? await Promise.all([
-        listMyGroupRoles(actor.personId, term.id),
+        onLeave ? { leads: [], evaluates: [] } : listMyGroupRoles(actor.personId, term.id),
         listMyCommitteeCapabilities(actor.personId, term.id),
       ])
     : [{ leads: [], evaluates: [] }, []];

@@ -11,8 +11,19 @@ export interface CommitteeOption {
   name: string;
 }
 
+export interface OccasionOption {
+  id: string;
+  label: string;
+}
+
+export interface CauseOption {
+  code: string;
+  label: string;
+}
+
 export const requestTypes: Record<string, RequestKind> = {
   licencia: "LEAVE",
   cambio: "TRANSFER",
   retiro: "RESIGNATION",
+  excusa: "EXCUSE",
 };
