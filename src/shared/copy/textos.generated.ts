@@ -5126,6 +5126,30 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2340": {
+    where: "Importación histórica: precisión de fecha",
+    text: "Actividad histórica del {inicio} al {fin}. La fuente solo contiene fechas; el intervalo registrado representa días completos y no un horario real.",
+    owner: "GH",
+    status: "Confirmado",
+  },
+  "T-2341": {
+    where: "Importación: grupo de decoración",
+    text: "Decoración de oficina",
+    owner: "GH",
+    status: "Confirmado",
+  },
+  "T-2342": {
+    where: "Importación: grupo de apoyo deportivo",
+    text: "Apoyo Athletic OE",
+    owner: "GH",
+    status: "Confirmado",
+  },
+  "T-2343": {
+    where: "Importación: evaluación validada",
+    text: "Cumplimiento validado por GH en las evidencias de la importación.",
+    owner: "GH",
+    status: "Confirmado",
+  },
   "T-235": {
     where: "Sesiones: confirmación al cerrar las demás",
     text: "Listo: cerramos tus otras sesiones.",

@@ -1891,3 +1891,8 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2336 | Excusa: revisión excepcional | Si está fuera de plazo, solicito revisión excepcional de la Vicepresidencia de Gestión Humana; explico el retraso en el motivo. | GH | Propuesta |
 | T-2337 | Excusa tardía: autoridad y motivo | Una excusa presentada fuera de plazo solo la acepta ADMIN como Vicepresidencia de Gestión Humana, con motivo de la excepción. | GH | Propuesta |
 | T-2338 | Excusa: ocasión fuera de plazo | Fuera de plazo: revisión excepcional | GH | Propuesta |
+
+| T-2340 | Importación histórica: precisión de fecha | Actividad histórica del {inicio} al {fin}. La fuente solo contiene fechas; el intervalo registrado representa días completos y no un horario real. | GH | Confirmado |
+| T-2341 | Importación: grupo de decoración | Decoración de oficina | GH | Confirmado |
+| T-2342 | Importación: grupo de apoyo deportivo | Apoyo Athletic OE | GH | Confirmado |
+| T-2343 | Importación: evaluación validada | Cumplimiento validado por GH en las evidencias de la importación. | GH | Confirmado |

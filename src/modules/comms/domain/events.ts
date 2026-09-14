@@ -78,12 +78,13 @@ export const checkInApprovedSchema = z.object({
   personId: z.string().min(1),
   termId: z.string().min(1),
   points: z.number().int().default(0),
+  source: z.string().optional(),
 });
 
 /** Puntos acreditados (T-181), solo cuando la ocasión da puntos. */
 export async function pushPointsCredited(raw: unknown): Promise<DeliveryStats | null> {
   const payload = checkInApprovedSchema.parse(raw);
-  if (payload.points <= 0) {
+  if (payload.points <= 0 || payload.source === "IMPORT") {
     return null;
   }
   const total = await balanceFor(payload.personId, payload.termId);

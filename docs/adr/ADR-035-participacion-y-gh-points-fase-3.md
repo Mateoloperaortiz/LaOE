@@ -1,5 +1,7 @@
 # ADR-035: Participación y GH Points (fase 3)
 
+Enmienda posterior: [ADR-062](ADR-062-importacion-de-asistencias-y-evidencias-gh.md) define la importación administrativa de asistencias históricas, con GH Points para miembros en licencia cuando GH lo confirma en el manifiesto.
+
 - Estado: Aceptada (enmendada por ADR-036, ADR-038, ADR-041 y ADR-058)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-020, ADR-024, ADR-028, ADR-030, ADR-031, ADR-032, ADR-034
