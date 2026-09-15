@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { listRecognitionsByPeople, monthName, type RecognitionView } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
 import { listDirectory, listInternalCommittees } from "@/modules/people";
+import { listTeamParticipations } from "@/modules/permanence";
 import { t, tList } from "@/shared/copy";
 import { cargoEnComite, cargoEtiqueta, PersonaTarjeta } from "../_ui/PersonaTarjeta";
 import { Vacio } from "../_ui/Vacio";
@@ -41,6 +42,12 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
     listInternalCommittees(),
   ]);
   const term = directory.term;
+  const teams = term
+    ? await listTeamParticipations(
+        directory.rows.map((entry) => entry.personId),
+        term.id,
+      )
+    : new Map();
   const pages = Math.max(1, Math.ceil(directory.total / PAGE_SIZE));
   if (pagina > pages) redirect(link(pages));
   const recognitions = term
@@ -110,6 +117,9 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
                 estado={entry.status}
                 comites={entry.committees.map((item) => cargoEnComite(item, item.name))}
                 cargos={entry.appointments.map(cargoEtiqueta)}
+                equipos={(teams.get(entry.personId) ?? []).map(
+                  (item: { label: string }) => item.label,
+                )}
                 insignias={insigniasDe(entry.personId)}
               />
             </li>

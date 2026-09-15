@@ -204,6 +204,13 @@
       "when": 1789425158155,
       "tag": "0028_gestion_macroeventos",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1789435807262,
+      "tag": "0029_areas_gt_gap",
+      "breakpoints": true
     }
   ]
 }

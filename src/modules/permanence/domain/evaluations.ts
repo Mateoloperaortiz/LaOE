@@ -104,13 +104,13 @@ export async function evaluate(
   });
 }
 
-export async function evaluateAs(
+export async function loadEvaluationContext(
   actor: Actor,
-  input: EvaluationInput,
+  groupId: string,
   editor: { isAdmin: boolean },
-): Promise<void> {
+): Promise<EvaluationContext> {
   const db = getDb();
-  const [group] = await db.select().from(workGroup).where(eq(workGroup.id, input.groupId)).limit(1);
+  const [group] = await db.select().from(workGroup).where(eq(workGroup.id, groupId)).limit(1);
   if (!group) {
     throw new DomainError(t("T-032"));
   }
@@ -131,6 +131,15 @@ export async function evaluateAs(
     windowOpen: evaluationWindow(term, config, new Date()).open,
     closed: term.permanenceClosedAt !== null,
   };
+  return context;
+}
+
+export async function evaluateAs(
+  actor: Actor,
+  input: EvaluationInput,
+  editor: { isAdmin: boolean },
+): Promise<void> {
+  const context = await loadEvaluationContext(actor, input.groupId, editor);
   return runCommand(actor, (ctx) => evaluate(ctx, input, context));
 }
 

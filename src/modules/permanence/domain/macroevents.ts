@@ -6,51 +6,59 @@ import { getTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { workGroup } from "../schema";
+export type MacroeventGroupKind = "GT_MACROEVENT" | "GAP";
+
 import { createGroup, setEvaluators, updateGroup } from "./groups";
 
-export async function findMacroeventGroup(eventId: string, termId: string) {
+export async function findMacroeventGroup(
+  eventId: string,
+  termId: string,
+  kind: MacroeventGroupKind = "GT_MACROEVENT",
+) {
   const [row] = await getDb()
     .select()
     .from(workGroup)
     .where(
-      and(
-        eq(workGroup.eventId, eventId),
-        eq(workGroup.termId, termId),
-        eq(workGroup.kind, "GT_MACROEVENT"),
-      ),
+      and(eq(workGroup.eventId, eventId), eq(workGroup.termId, termId), eq(workGroup.kind, kind)),
     );
   return row ?? null;
 }
 
-export async function prepareMacroeventGroup(ctx: CommandContext, eventId: string, termId: string) {
+export async function prepareMacroeventGroup(
+  ctx: CommandContext,
+  eventId: string,
+  termId: string,
+  kind: MacroeventGroupKind = "GT_MACROEVENT",
+) {
   const event = await getEventRef(eventId, ctx.tx);
   const term = await getTerm(termId);
   if (!event || !isMacroeventSlug(event.slug) || !term) throw new DomainError(t("T-2353"));
   if (term.permanenceClosedAt) throw new DomainError(t("T-834"));
   await ctx.tx.execute(
-    sql`select pg_advisory_xact_lock(hashtext(${`macroevent:${eventId}:${termId}`}))`,
+    sql`select pg_advisory_xact_lock(hashtext(${`macroevent:${kind}:${eventId}:${termId}`}))`,
   );
   const [existing] = await ctx.tx
     .select({ id: workGroup.id })
     .from(workGroup)
     .where(
-      and(
-        eq(workGroup.eventId, eventId),
-        eq(workGroup.termId, termId),
-        eq(workGroup.kind, "GT_MACROEVENT"),
-      ),
+      and(eq(workGroup.eventId, eventId), eq(workGroup.termId, termId), eq(workGroup.kind, kind)),
     );
   if (existing) return existing;
   return createGroup(ctx, {
     termId,
     eventId,
-    kind: "GT_MACROEVENT",
-    name: `${event.name} · ${term.code}`,
+    kind,
+    name: `${kind === "GAP" ? "GAP · " : ""}${event.name} · ${term.code}`,
   });
 }
 
-export function prepareMacroeventGroupAs(actor: Actor, eventId: string, termId: string) {
-  return runCommand(actor, (ctx) => prepareMacroeventGroup(ctx, eventId, termId));
+export function prepareMacroeventGroupAs(
+  actor: Actor,
+  eventId: string,
+  termId: string,
+  kind: MacroeventGroupKind = "GT_MACROEVENT",
+) {
+  return runCommand(actor, (ctx) => prepareMacroeventGroup(ctx, eventId, termId, kind));
 }
 
 export function configureMacroeventGroupAs(
@@ -64,7 +72,7 @@ export function configureMacroeventGroupAs(
 ) {
   return runCommand(actor, async (ctx) => {
     const [group] = await ctx.tx.select().from(workGroup).where(eq(workGroup.id, groupId));
-    if (!group || group.kind !== "GT_MACROEVENT" || !group.eventId)
+    if (!group || (group.kind !== "GT_MACROEVENT" && group.kind !== "GAP") || !group.eventId)
       throw new DomainError(t("T-2353"));
     const term = await getTerm(group.termId);
     if (!term || term.permanenceClosedAt) throw new DomainError(t("T-834"));

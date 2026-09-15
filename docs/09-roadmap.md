@@ -4,6 +4,13 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Áreas de GT y GAP · `en curso`
+
+- [x] A1 · Áreas múltiples, grupos GT/GAP separados y acreditación explícita con auditoría.
+- [x] A2 · Equipos y apoyos visibles en Persona 360, Mi OE y directorio.
+- [x] A3 · Pruebas de dominio y E2E de GT/GAP, revisión visual independiente de escritorio y móvil.
+- [ ] A4 · Verificación completa, CI remoto y publicación.
+
 ## Gestión de macroeventos · `lista`
 
 - [x] M1 · Catálogos por macroevento (6/7/9), conservación histórica de Publicidad y validación de especialidades en el dominio.
@@ -406,6 +413,7 @@ La entrega exige CI completo, staging y promoción del mismo SHA a producción c
 
 | Fecha | Fase | Qué cambió |
 | --- | --- | --- |
+| 2026-09-14 | GT/GAP · A1–A3 | [ADR-065](adr/ADR-065-areas-y-participacion-gt-gap.md): GT y GAP separados, áreas múltiples por pertenencia y acreditación explícita atómica con autor y auditoría. Persona 360, inicio de Mi OE y directorio muestran equipos del semestre. Verificación completa: 542 pruebas unitarias, 369 de integración, 11 del extractor, tipos, lint, límites de módulos, código muerto y build en verde; cuatro casos E2E focalizados pasaron; revisión independiente de escritorio 1280 px y móvil 390 px: ship sin correcciones materiales. El detector marcó únicamente el indicador activo de pestaña, aceptado como navegación. Documenter: extensión coherente con marca/tokens, sin alterar archivos de diseño. Se alineó una prueba antigua de sanciones con la fecha de Bogotá para evitar fallos nocturnos por UTC. |
 | 2026-09-14 | Macroeventos · M4 | [PR 28](https://github.com/Mateoloperaortiz/LaOE/pull/28) integrado y SHA `9d0671f063715bcebbae5e406e189230e78ac91e` publicado. CI de PR y main en verde: 542 unitarias, 365 de integración y 176 casos E2E (174 escenarios). Railway staging `bf5bf5fe-1279-45f7-94e8-6a7b6d84ee5a` y producción `39ae0133-3a16-4868-ab6d-55e597ec2cac` SUCCESS; smoke 6/6 en ambos. Catálogos 6/7/9 y cargos especiales comprobados en la UI de producción, índice único presente y ningún GT, edición o nombramiento inventado. Evidencia en el runbook. |
 | 2026-09-14 | Macroeventos · M1–M3 | ADR-064 implementada: sección de administración con catálogos 6/7/9, mesa por edición, GT único por evento y semestre, responsables y evaluación de desempeño. Migración 0028 y 94 índices verificados; `npm run check` completo con 542 unitarias, 365 de integración, 11 del extractor y build; E2E específico 4/4 con accesibilidad de escritorio y móvil. Publicación remota pendiente de M4. |
 | 2026-09-13 | Normativa 2026 · N26-T11 | **Menores** (ADR-060 regla 13). Migración `0025`: `membership_term.academicVerifiedOn/ById` (constancia de la verificación académica desde el panel de condición, sin promedio ni materias), `occasion_category` suma `INDUCTION` (obligatoria para nuevos: la permanencia y Mi OE muestran si asistió, sin proponer expulsión) y `recognition_kind` suma `OE_AWARD` con `award` (las dieciséis categorías de Premios OE, otorgadas por ADMIN desde la Persona 360). El requisito de elección de junta y de segunda vuelta se deriva de que existan las ocasiones en el término, en cualquier semestre. La lista de ocasiones marca las asambleas citadas con menos de tres días hábiles. La Persona 360 muestra la elegibilidad a honorario (cuatro de cinco requisitos del Regl. art. 23, derivados del historial: cargos completos de comité y macroevento, seis semestres, junta completa por año, un año en CT) y los reconocimientos. `/admin/horario-preferencial` lista y exporta junta, mesas (máximo seis por comité) y directores de macroevento con correo (step-up). Pruebas: unitarias (elegibilidad, requisito derivado, citación corta, inducción) e integración (verificación académica, hechos de honorario, Premio OE, horario preferencial). Cierra la serie N26: queda abrir el PR de `feat/normativa-2026`. |

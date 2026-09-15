@@ -1898,7 +1898,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2343 | Importación: evaluación validada | Cumplimiento validado por GH en las evidencias de la importación. | GH | Confirmado |
 
 | T-2344 | Macroeventos: sección | Macroeventos | MATEO | Confirmado |
-| T-2345 | Macroeventos: ayuda | Administrá la mesa directiva por edición y el equipo del GT por semestre. | MATEO | Confirmado |
+| T-2345 | Macroeventos: ayuda | Administrá la mesa directiva por edición y los equipos GT y GAP por semestre. | MATEO | Confirmado |
 | T-2346 | Macroeventos: abrir ficha | Gestionar macroevento | MATEO | Confirmado |
 | T-2347 | Macroeventos: áreas | Mesa directiva · Equipo del GT · Ediciones | MATEO | Confirmado |
 | T-2348 | Macroeventos: GT vacío | Todavía no hay un GT preparado para este semestre. Podés organizar el equipo aunque la fecha del evento esté pendiente. | MATEO | Propuesta |
@@ -1906,13 +1906,13 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2350 | Macroeventos: cargos disponibles | {n} cargos de dirección, con opción de codirección. | MATEO | Confirmado |
 | T-2351 | Macroeventos: cargo inválido | Ese cargo no corresponde a este macroevento. Elegí uno de los cargos disponibles. | MATEO | Propuesta |
 | T-2352 | Macroeventos: GT repetido | Ya existe un GT de este macroevento en el semestre. Usá ese equipo para conservar sus evaluaciones. | MATEO | Propuesta |
-| T-2353 | Macroeventos: vínculo inválido | El macroevento, la edición y el GT deben corresponder. Revisá la selección. | MATEO | Propuesta |
+| T-2353 | Macroeventos: vínculo inválido | El macroevento, la edición y el grupo deben corresponder. Revisá la selección. | MATEO | Propuesta |
 | T-2354 | Macroeventos: sin edición | Todavía no hay ediciones registradas. Registrá una edición con su fecha real para nombrar la mesa directiva. | MATEO | Propuesta |
 | T-2355 | Macroeventos: edición | Edición de la mesa directiva | MATEO | Propuesta |
 | T-2356 | Macroeventos: administrar ediciones | Administrar ediciones | MATEO | Propuesta |
 | T-2357 | Macroeventos: vacante | Sin asignar | MATEO | Propuesta |
 | T-2358 | Macroeventos: responsables | Responsables del GT | MATEO | Propuesta |
-| T-2359 | Macroeventos: equipo, ayuda | Agregá a quienes trabajan en el GT. GH acredita su desempeño para el criterio de macroeventos de permanencia: 4%, 6% u 8% según los macroeventos cumplidos. | GH | Confirmado |
+| T-2359 | Macroeventos: equipo, ayuda | Agregá a quienes trabajan en el GT. El desempeño acreditado suma 4%, 6% u 8% según los macroeventos cumplidos, para integrantes antiguos. | GH | Confirmado |
 | T-2360 | Macroeventos: evaluar | Evaluar desempeño | GH | Propuesta |
 | T-2361 | Macroeventos: observación | Observación (obligatoria si el desempeño es insuficiente) | GH | Propuesta |
 | T-2362 | Macroeventos: guardar evaluación | Guardar evaluación | GH | Propuesta |
@@ -1928,3 +1928,22 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2372 | Macroeventos: historial | Cada edición conserva su propia mesa directiva. Seleccioná una edición para consultar sus cargos. | MATEO | Propuesta |
 | T-2373 | Macroeventos: titular | Titular | MATEO | Propuesta |
 | T-2374 | Macroeventos: operación | Nombrar dirección | MATEO | Propuesta |
+| T-2375 | GT/GAP: Pestañas | Mesa directiva · GT · GAP · Ediciones | GH | Confirmado |
+| T-2376 | GT/GAP: Áreas | General · Publicidad · Logística · Finanzas · Relaciones Públicas · Mercadeo · Gestión Humana · Agenda académica · Seguridad · Carnival · The Games | GH | Confirmado |
+| T-2377 | GT/GAP: Áreas del integrante | Áreas de trabajo (elegí al menos una) | GH | Confirmado |
+| T-2378 | GT/GAP: Ayuda de áreas | Seleccioná una o varias áreas. Cada macroevento cuenta una sola vez para el criterio de GT. | GH | Confirmado |
+| T-2379 | GT/GAP: Editar áreas | Editar áreas | GH | Confirmado |
+| T-2380 | GT/GAP: Guardar áreas | Guardar áreas | GH | Confirmado |
+| T-2381 | GT/GAP: Acreditación al registrar | Registrar y acreditar cumplimiento | GH | Confirmado |
+| T-2382 | GT/GAP: Ayuda de acreditación | Marcá esta opción solo si ya verificaste el desempeño. La acreditación quedará a tu nombre; sin marcarla, la evaluación queda pendiente. | GH | Confirmado |
+| T-2383 | GT/GAP: Equipos y apoyos | Equipos y apoyos | GH | Confirmado |
+| T-2384 | GT/GAP: Área inválida | Seleccioná al menos un área válida para este macroevento. | GH | Confirmado |
+| T-2385 | GT/GAP: GAP: preparar | Preparar GAP del semestre | GH | Confirmado |
+| T-2386 | GT/GAP: GAP: vacío | Todavía no hay un GAP de este macroevento en el semestre. Preparalo para registrar sus integrantes y áreas. | GH | Confirmado |
+| T-2387 | GT/GAP: GAP: ayuda | Agregá a quienes apoyan este macroevento como GAP. El desempeño acreditado suma hasta un 5% en permanencia, sin acumular más por otros GAP. | GH | Confirmado |
+| T-2388 | GT/GAP: Responsables GAP | Responsables del GAP | GH | Confirmado |
+| T-2389 | GT/GAP: Líder GAP | Líder del GAP | GH | Confirmado |
+| T-2390 | GT/GAP: Edición GAP | Edición vinculada al GAP (opcional) | GH | Confirmado |
+| T-2391 | GT/GAP: Área sin especificar | Área por completar | GH | Confirmado |
+| T-2392 | GT/GAP: Sin equipos | Todavía no hay equipos o apoyos registrados en este semestre. | GH | Confirmado |
+| T-2393 | GT/GAP: Ayuda de pertenencia | La participación se muestra en el perfil al registrarla. El porcentaje de permanencia requiere desempeño acreditado por GH. | GH | Confirmado |

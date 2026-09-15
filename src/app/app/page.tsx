@@ -7,9 +7,10 @@ import { findUpcomingEditionsForMembers } from "@/modules/events";
 import { requireActor } from "@/modules/identity";
 import { balanceFor, listMemberAgenda } from "@/modules/participation";
 import { canParticipate, getMyMembership } from "@/modules/people";
-import { getPersonPermanence } from "@/modules/permanence";
+import { getPersonPermanence, listTeamParticipations } from "@/modules/permanence";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo, Insignia, LogoComite, Progreso } from "@/shared/brand";
+import { TeamParticipations } from "@/shared/brand/TeamParticipations";
 import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import { noticeText } from "./_ui/avisos";
@@ -41,6 +42,9 @@ export default async function AppHome() {
   const committeeNames = new Map(
     mine.committees.map((item) => [item.committeeId, item.committeeName]),
   );
+  const teams = mine.term
+    ? await listTeamParticipations([actor.personId], mine.term.id)
+    : new Map();
   const allDone = steps.length > 0 && steps.every((step) => step.doneAt);
   const agenda = agendaItems(ocasiones, editions);
   return (
@@ -57,6 +61,9 @@ export default async function AppHome() {
           </Link>
         ) : null}
       </header>
+      {mine.term && teams.size ? (
+        <TeamParticipations items={teams.get(actor.personId) ?? []} term={mine.term.code} />
+      ) : null}
       <div className="member-home-priority">
         <section id="agenda" aria-labelledby="agenda-title">
           <div className="member-section-heading">

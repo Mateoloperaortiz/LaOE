@@ -24,6 +24,7 @@ import {
 import { manualCredit } from "@/modules/permanence/schema";
 import { closeTermPoints } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
+import { todayKey } from "@/shared/lib/dates";
 import { truncateAll } from "./db";
 import {
   seedCheckIn,
@@ -73,7 +74,7 @@ describe("faltas y sanciones", () => {
     await seedMembership(gh, termId);
     const personId = await member("falta@eafit.edu.co", termId, a3);
     const actor = { personId: gh, ip: null };
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayKey();
 
     const { id } = await recordSanctionAs(actor, personId, {
       termId,

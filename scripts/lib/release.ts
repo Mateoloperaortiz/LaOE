@@ -55,6 +55,7 @@ const REQUIRED_INDEXES = [
   "permanence_table_committee_unique",
   "work_group_code_unique",
   "work_group_macroevent_term_unique",
+  "work_group_gap_macroevent_term_unique",
   "work_group_evaluator_unique",
   "work_group_membership_unique",
   "leader_score_unique",
