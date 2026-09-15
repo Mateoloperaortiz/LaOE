@@ -184,7 +184,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-082 | Niveles (0, 100, 250, 500, 1000 puntos) | Recién llegado · Parchado · De planta · Pilar · Leyenda OE | GH | Propuesta; GH puede renombrar o cambiar los cortes |
 | T-083 | Rankings, pestañas | Nuevos · Veteranos · Comités | GH | Propuesta |
 | T-084 | Ranking de comités, nota de la tasa suavizada | El porcentaje de cada comité es su participación relativa, ajustada para que los comités chicos no dependan de un solo evento. | GH | Propuesta |
-| T-085 | Movimientos, tipos | Asistencia · Ajuste · Reversión · Histórico · Wordle | MATEO | Propuesta |
+| T-085 | Movimientos, tipos | Asistencia · Ajuste · Reversión · Histórico · Wordle · Reto · Impulso | MATEO | Propuesta |
 | T-086 | Sin movimientos | Todavía no tenés puntos. Tu primera asistencia los estrena. | COM | Propuesta |
 
 ### Registro de asistencia (QR)
@@ -819,7 +819,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-664 | Recurso rankings (plural · singular) | Rankings · Puesto | MATEO | Propuesta |
 | T-665 | Recurso cumplimiento de asambleas (plural · singular) | Cumplimiento de asambleas · Persona | MATEO | Propuesta |
 | T-666 | Tarea: falta crear el semestre siguiente | Crear el semestre {codigo}: el actual termina el {fecha} | MATEO | Propuesta |
-| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} | MATEO | Propuesta |
+| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} · Completó el reto {reto} y sumó {n} GH Points · Desbloqueó la insignia {insignia} nivel {nivel} · Recibió un {booster} | MATEO | Propuesta |
 | T-668 | Persona 360, Participación: títulos | Check-ins · Movimientos de GH Points | MATEO | Propuesta |
 | T-669 | Persona 360, Participación: sin check-ins | Todavía no tiene check-ins. | MATEO | Propuesta |
 | T-670 | Persona 360, Resumen: asambleas obligatorias | {n} de {total} obligatorias | MATEO | Propuesta |
@@ -1960,3 +1960,187 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2399 | Historial: semestre sin identificar | Semestre por confirmar | MATEO | Propuesta |
 | T-2400 | Historial: vacío | Sin cargos anteriores registrados. | MATEO | Confirmado |
 | T-2401 | Cargo de macroevento: codirección | {cargo} (codirección) | MATEO | Confirmado |
+
+## Retos, boosters y colección (ADR-067)
+
+Textos de los retos relámpago, los boosters, las campañas de puntos y la colección de insignias en Mi OE → GH Points, y de la sección Gamificación de Administración ([ADR-067](adr/ADR-067-retos-boosters-y-coleccion.md)). Los nombres de familias, niveles y retos son propuestas para GH; el catálogo inicial se siembra en la migración `0030` con estos textos. `T-085` y `T-667` se amplían al final en sus filas originales.
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-2402 | GH Points: subnavegación | Resumen · Retos · Boosters · Colección | MATEO | Propuesta |
+| T-2403 | Admin: grupo de navegación | Gamificación | MATEO | Propuesta |
+| T-2404 | Admin: enlaces de Gamificación | Panel · Retos · Revisión · Campañas · Insignias · Límites | MATEO | Propuesta |
+| T-2405 | Admin: títulos de las páginas de Gamificación | Panel de gamificación · Retos · Revisión de evidencias · Campañas de puntos · Insignias · Límites y activación | MATEO | Propuesta |
+| T-2406 | Retos: título | Retos relámpago | GH | Propuesta |
+| T-2407 | Retos: intro | Retos cortos con premio en GH Points. Elegí uno, hacelo antes de la fecha límite y sumá. | GH | Propuesta |
+| T-2408 | Retos: vacío | Por ahora no hay retos abiertos. Volvé pronto: GH publica nuevos durante el semestre. | MATEO | Propuesta |
+| T-2409 | Retos: formatos | Presencial · Trivia · Misión con evidencia | GH | Propuesta |
+| T-2410 | Retos: estados del miembro | Disponible · Enviado · Pendiente de revisión · Completado · Rechazado · Vencido | MATEO | Propuesta |
+| T-2411 | Retos: públicos | Toda la membresía · Nuevos · Veteranos · Comités seleccionados | MATEO | Propuesta |
+| T-2412 | Reto: fecha límite | Hasta {fecha} | MATEO | Propuesta |
+| T-2413 | Reto: premio | {n} GH Points | MATEO | Propuesta |
+| T-2414 | Reto: admite booster | Podés usar un booster | MATEO | Propuesta |
+| T-2415 | Reto: booster elegido | Vas a usar tu {booster} acá | MATEO | Propuesta |
+| T-2416 | Reto: campaña vigente | +{n} % de campaña hasta {fecha} | MATEO | Propuesta |
+| T-2417 | Reto presencial: acción requerida | Registrá tu asistencia en {actividad} antes de {fecha}. Con eso queda completo. | GH | Propuesta |
+| T-2418 | Trivia: acción requerida | Respondé {n} preguntas. Necesitás al menos el {porcentaje} % de aciertos y tenés un solo envío. | GH | Propuesta |
+| T-2419 | Evidencia: acción requerida | Contanos qué hiciste y subí hasta tres fotos. GH lo revisa y te avisa. | GH | Propuesta |
+| T-2420 | Retos: botones | Participar · Enviar respuestas · Enviar evidencia · Ir a la actividad · Cambiar booster · Quitar booster · Volver a los retos | MATEO | Propuesta |
+| T-2421 | Trivia: progreso | Pregunta {n} de {total} | MATEO | Propuesta |
+| T-2422 | Trivia: aprobada | ¡Acertaste {aciertos} de {total} y sumaste {n} GH Points! ¡OE OE OE! | GH | Propuesta |
+| T-2423 | Trivia: bajo el umbral (motivo automático) | No alcanzaste el {porcentaje} % de aciertos: acertaste {aciertos} de {total}. Este reto no da puntos, pero vienen más. | GH | Propuesta |
+| T-2424 | Trivia: título de respuestas correctas | Respuestas correctas | MATEO | Propuesta |
+| T-2425 | Trivia: respuestas ocultas | Las respuestas correctas se muestran cuando cierre el reto. | MATEO | Propuesta |
+| T-2426 | Trivia: falta responder | Respondé todas las preguntas antes de enviar. | MATEO | Propuesta |
+| T-2427 | Evidencia: instrucciones | Escribí qué hiciste ({min} a {max} caracteres) y subí hasta 3 imágenes JPG, PNG o WebP de máximo 5 MB cada una. | MATEO | Propuesta |
+| T-2428 | Evidencia: campo de texto | Contanos qué hiciste | GH | Propuesta |
+| T-2429 | Evidencia: botón de imagen | Agregar imagen | MATEO | Propuesta |
+| T-2430 | Evidencia: errores de imagen | Ese archivo no es una imagen JPG, PNG o WebP. · Esa imagen pesa más de 5 MB. · Ya subiste tres imágenes. · No pudimos subir la imagen. Probá de nuevo. | MATEO | Propuesta |
+| T-2431 | Evidencia: enviada | Tu evidencia quedó enviada. GH la revisa y te avisamos. | GH | Propuesta |
+| T-2432 | Evidencia: rechazo de GH | GH no aprobó tu evidencia: {motivo} | GH | Propuesta |
+| T-2433 | Reto: pendiente de revisión | Tu participación está en revisión. Reservamos tu premio con las reglas de hoy. | MATEO | Propuesta |
+| T-2434 | Reto: completado | ¡Reto completado! Sumaste {n} GH Points. ¡OE OE OE! | GH | Propuesta |
+| T-2435 | Reto: desglose del premio | {base} de base + {extra} de booster | MATEO | Propuesta |
+| T-2436 | Reto: tope aplicado | El tope de puntos extra redujo este premio. Mañana o la próxima semana volvés a tener cupo. | MATEO | Propuesta |
+| T-2437 | Reto: booster no consumido | Tu booster no alcanzó a sumar puntos, así que sigue disponible. | MATEO | Propuesta |
+| T-2438 | Reto: vencido | Este reto ya cerró. | MATEO | Propuesta |
+| T-2439 | Reto: ya participaste | Ya participaste en este reto. | MATEO | Propuesta |
+| T-2440 | Reto: no elegible | Este reto no es para tu público o tu membresía no está activa. | MATEO | Propuesta |
+| T-2441 | Reto: no encontrado | No encontramos ese reto. | MATEO | Propuesta |
+| T-2442 | Retos: función apagada | Los retos todavía no están activos. Pronto vas a poder participar. | MATEO | Propuesta |
+| T-2443 | Reto: semestre cerrado | El semestre ya cerró sus puntos: este reto no puede recibir participaciones. | MATEO | Propuesta |
+| T-2444 | Reto: envío repetido con otro contenido | Ese envío ya llegó con otro contenido. Recargá para ver tu estado. | MATEO | Propuesta |
+| T-2445 | Inicio de Mi OE: próximo reto | Tu próximo reto | GH | Propuesta |
+| T-2446 | Inicio de Mi OE: botón del próximo reto | Ver el reto | MATEO | Propuesta |
+| T-2447 | Inicio de Mi OE: sin retos | Sin retos abiertos por ahora. | MATEO | Propuesta |
+| T-2448 | Retos: filtros | Abiertos · Míos · Cerrados | MATEO | Propuesta |
+| T-2449 | Reto presencial: asistencia pendiente | Tu asistencia espera aprobación. Cuando la aprueben, el reto queda completo. | MATEO | Propuesta |
+| T-2450 | Reto: actividad vinculada | Actividad: {actividad} | MATEO | Propuesta |
+| T-2451 | Boosters: nombres | Impulso · Superimpulso | GH | Propuesta |
+| T-2452 | Boosters: título | Tus boosters | GH | Propuesta |
+| T-2453 | Boosters: intro | Un Impulso suma +50 % y un Superimpulso +100 % al premio de un reto o de una actividad con puntos. Son de un uso y vencen al terminar el semestre. | GH | Propuesta |
+| T-2454 | Boosters: vacío | Todavía no tenés boosters. Los ganás al subir de nivel en tu colección. | MATEO | Propuesta |
+| T-2455 | Boosters: estados | Disponible · Reservado · Usado · Vencido · Retirado | MATEO | Propuesta |
+| T-2456 | Boosters: vencimiento | Vence el {fecha} | MATEO | Propuesta |
+| T-2457 | Boosters: elegir objetivo | ¿Dónde lo usás? | MATEO | Propuesta |
+| T-2458 | Boosters: tipos de objetivo | Retos abiertos · Actividades próximas | MATEO | Propuesta |
+| T-2459 | Boosters: asignado | Listo: tu {booster} está reservado para {objetivo}. Podés cambiarlo hasta que participes. | MATEO | Propuesta |
+| T-2460 | Boosters: quitar del objetivo | Quitar de {objetivo} | MATEO | Propuesta |
+| T-2461 | Check-in: usar booster | Usar mi {booster} en esta actividad | MATEO | Propuesta |
+| T-2462 | Check-in: booster aplicado | Tu {booster} se aplica a esta asistencia. | MATEO | Propuesta |
+| T-2463 | Boosters: título de campañas | Campañas de puntos | GH | Propuesta |
+| T-2464 | Boosters: campaña vigente | +{n} % en {objetivo} hasta {fecha} | MATEO | Propuesta |
+| T-2465 | Boosters: sin campañas | No hay campañas activas. | MATEO | Propuesta |
+| T-2466 | Boosters: errores | Ya tenés un booster en esa participación. · Ese booster ya venció. · Ese booster ya se usó. · Los boosters no aplican a esa actividad. · Ya participaste ahí: el booster no se puede mover. | MATEO | Propuesta |
+| T-2467 | Boosters: origen por insignia | Por {origen} | MATEO | Propuesta |
+| T-2468 | Boosters: origen manual | Otorgado por GH: {motivo} | MATEO | Propuesta |
+| T-2469 | Ledger: motivo del premio de reto | Reto: {reto} | MATEO | Propuesta |
+| T-2470 | Ledger: motivo del extra de booster | Booster +{porcentaje} % en {origen} | MATEO | Propuesta |
+| T-2471 | Colección: título | Tu colección | GH | Propuesta |
+| T-2472 | Colección: intro | Cada insignia cuenta algo que hiciste en la OE. Suben de nivel con vos y se quedan para siempre. | GH | Propuesta |
+| T-2473 | Colección: familias | En parche · Explorador OE · Relámpago · Palabra a palabra · Ediciones especiales | GH | Propuesta |
+| T-2474 | Insignia En parche: descripción | Asistencias aprobadas a actividades voluntarias | GH | Propuesta |
+| T-2475 | Insignia En parche: niveles | 1 asistencia · 5 asistencias · 15 asistencias | GH | Propuesta |
+| T-2476 | Insignia Explorador OE: descripción | Actividades de comités distintos | GH | Propuesta |
+| T-2477 | Insignia Explorador OE: niveles | 2 comités · 4 comités · 6 comités | GH | Propuesta |
+| T-2478 | Insignia Relámpago: descripción | Retos relámpago completados | GH | Propuesta |
+| T-2479 | Insignia Relámpago: niveles | 1 reto · 5 retos · 15 retos | GH | Propuesta |
+| T-2480 | Insignia Palabra a palabra: descripción | Wordles resueltos | GH | Propuesta |
+| T-2481 | Insignia Palabra a palabra: niveles | 1 Wordle · 10 Wordles · 30 Wordles | GH | Propuesta |
+| T-2482 | Colección: nivel | Nivel {nivel} | MATEO | Propuesta |
+| T-2483 | Colección: progreso | {n} de {total} | MATEO | Propuesta |
+| T-2484 | Colección: bloqueada | Todavía no. {condición} | MATEO | Propuesta |
+| T-2485 | Colección: desbloqueada | Desbloqueada el {fecha} por {origen} | MATEO | Propuesta |
+| T-2486 | Colección: historial de niveles | Niveles anteriores | MATEO | Propuesta |
+| T-2487 | Colección: logro histórico | Reconocida por tu historia en la OE, sin booster | MATEO | Propuesta |
+| T-2488 | Colección: logro revocado | Este nivel se retiró: {motivo} | MATEO | Propuesta; texto sensible |
+| T-2489 | Colección: filtro por semestre | Semestre | MATEO | Propuesta |
+| T-2490 | Colección: todos los semestres | Todos | MATEO | Propuesta |
+| T-2491 | Colección: destacar | Destacar en el directorio | MATEO | Propuesta |
+| T-2492 | Colección: quitar destacada | Quitar del directorio | MATEO | Propuesta |
+| T-2493 | Colección: límite de destacadas | Ya destacaste tres. Quitá una para destacar otra. | MATEO | Propuesta |
+| T-2494 | Colección: explicación de destacadas | Podés destacar hasta tres insignias en tu tarjeta del directorio. | MATEO | Propuesta |
+| T-2495 | Desbloqueo: título | ¡Nueva insignia! | GH | Propuesta |
+| T-2496 | Desbloqueo: texto | Desbloqueaste {insignia} nivel {nivel}. ¡OE OE OE! | GH | Propuesta |
+| T-2497 | Desbloqueo: con booster | Además ganaste un {booster}. Usalo antes de que termine el semestre. | GH | Propuesta |
+| T-2498 | Desbloqueo: botón | Ver mi colección | MATEO | Propuesta |
+| T-2499 | Desbloqueo: alternativa estática | Nueva insignia desbloqueada: {insignia} nivel {nivel}. | MATEO | Propuesta |
+| T-2500 | Colección: vacío | Tu colección arranca con tu primera asistencia, tu primer reto o tu primer Wordle. | GH | Propuesta |
+| T-2501 | Colección: edición especial | Edición especial · {origen} | MATEO | Propuesta |
+| T-2502 | Directorio: insignias destacadas | Insignias destacadas | MATEO | Propuesta |
+| T-2503 | Admin retos: nuevo | Nuevo reto | MATEO | Propuesta |
+| T-2504 | Admin retos: campos del editor | Formato · Título · Descripción · Público · Comités · Abre · Cierra · Premio base · Porcentaje para aprobar · Ocasión vinculada | MATEO | Propuesta |
+| T-2505 | Admin retos: ayuda del premio | Entre 0 y 20 GH Points. Por defecto: trivia {trivia}, presencial {presencial}, evidencia {evidencia}. | MATEO | Propuesta |
+| T-2506 | Admin retos: ayuda del porcentaje | Aciertos necesarios para aprobar la trivia. Por defecto {n} %. | MATEO | Propuesta |
+| T-2507 | Admin retos: título de preguntas | Preguntas | MATEO | Propuesta |
+| T-2508 | Admin retos: campos de pregunta | Pregunta · Opciones · Respuesta correcta · Agregar pregunta · Quitar pregunta · Agregar opción | MATEO | Propuesta |
+| T-2509 | Admin retos: ayuda de preguntas | De 1 a 5 preguntas con 2 a 6 opciones cada una; marcá la correcta. | MATEO | Propuesta |
+| T-2510 | Admin retos: acciones | Guardar borrador · Publicar · Cancelar · Duplicar · Vista previa | MATEO | Propuesta |
+| T-2511 | Admin retos: estados | Borrador · Programado · Abierto · Cerrado · Cancelado | MATEO | Propuesta |
+| T-2512 | Admin retos: aviso al publicar | Al publicar se congelan formato, preguntas, público, premio y ocasión. Después solo podés cambiar título y descripción. | MATEO | Propuesta |
+| T-2513 | Admin retos: aviso al cancelar | Cancelar libera las participaciones pendientes y sus reservas. Los premios ya entregados no se tocan: anulalos uno a uno si hace falta. | MATEO | Propuesta |
+| T-2514 | Admin retos: motivo de cancelación | Motivo de la cancelación | MATEO | Propuesta |
+| T-2515 | Admin retos: cancelar con premios exige step-up | Este reto ya entregó premios. Confirmá tu identidad para cancelarlo. | MATEO | Propuesta |
+| T-2516 | Admin retos: vista previa | Así lo ve un miembro | MATEO | Propuesta |
+| T-2517 | Admin retos: título de participantes | Participantes | MATEO | Propuesta |
+| T-2518 | Admin retos: columnas de participantes | Persona · Estado · Enviado · Premio · Booster · Decidido por | MATEO | Propuesta |
+| T-2519 | Admin retos: sin participantes | Nadie ha participado todavía. | MATEO | Propuesta |
+| T-2520 | Admin retos: errores del editor | La fecha de cierre debe ser posterior a la de apertura. · Elegí al menos un comité. · Una trivia necesita entre 1 y 5 preguntas. · Cada pregunta necesita entre 2 y 6 opciones y una correcta. · Un reto presencial necesita una ocasión con puntos del mismo semestre. · El premio base va de 0 a 20. · Solo se puede publicar un borrador. · Este reto ya no está en borrador: solo cambian título y descripción. | MATEO | Propuesta |
+| T-2521 | Admin retos: duplicado | Borrador creado a partir de «{reto}». | MATEO | Propuesta |
+| T-2522 | Admin retos: resultados | Reto publicado. · Reto cancelado. · Borrador guardado. | MATEO | Propuesta |
+| T-2523 | Admin revisión: título | Evidencias por revisar | MATEO | Propuesta |
+| T-2524 | Admin revisión: vacío | No hay entregas pendientes. | MATEO | Propuesta |
+| T-2525 | Admin revisión: acciones | Aprobar · Rechazar · Anular | MATEO | Propuesta |
+| T-2526 | Admin revisión: motivo de rechazo | Motivo del rechazo (lo ve la persona) | MATEO | Propuesta |
+| T-2527 | Admin revisión: estado de imagen | Imagen en proceso · No se pudo procesar la imagen | MATEO | Propuesta |
+| T-2528 | Admin revisión: premio reservado | Premio reservado: {base} de base + {extra} de booster ({fecha}) | MATEO | Propuesta |
+| T-2529 | Admin revisión: resultados | Entrega aprobada. · Entrega rechazada. · Premio anulado. | MATEO | Propuesta |
+| T-2530 | Admin revisión: anular premio | Anular premio · Revierte los puntos entregados con motivo y devuelve el booster si sigue vigente. No reabre el cupo del día. | MATEO | Propuesta |
+| T-2531 | Admin revisión: filtros | Solo pendientes · Todas | MATEO | Propuesta |
+| T-2532 | Admin campañas: título | Campañas de puntos | MATEO | Propuesta |
+| T-2533 | Admin campañas: campos | Nombre · Porcentaje · Objetivo · Empieza · Termina | MATEO | Propuesta |
+| T-2534 | Admin campañas: porcentajes | +25 % · +50 % · +100 % | MATEO | Propuesta |
+| T-2535 | Admin campañas: tipos de objetivo | Retos · Actividades con puntos | MATEO | Propuesta |
+| T-2536 | Admin campañas: ayuda | Se crea una campaña por cada objetivo elegido. Si varias coinciden aplica la más favorable y el extra total nunca pasa de +100 %. | MATEO | Propuesta |
+| T-2537 | Admin campañas: acciones | Crear campaña · Cancelar campaña | MATEO | Propuesta |
+| T-2538 | Admin campañas: vacío | No hay campañas en este semestre. | MATEO | Propuesta |
+| T-2539 | Admin campañas: errores | Elegí al menos un objetivo. · La campaña debe terminar después de empezar. · El objetivo debe ser del mismo semestre. | MATEO | Propuesta |
+| T-2540 | Admin insignias: título | Catálogo de insignias | MATEO | Propuesta |
+| T-2541 | Admin insignias: columnas | Código · Familia · Nivel · Umbral · Nombre · Activa · Desbloqueos | MATEO | Propuesta |
+| T-2542 | Admin insignias: nueva edición especial | Nueva edición especial | MATEO | Propuesta |
+| T-2543 | Admin insignias: campos de edición especial | Nombre · Descripción · Vinculada a · Ocasión · Reto | MATEO | Propuesta |
+| T-2544 | Admin insignias: ayuda de edición especial | Se otorga a todos los asistentes aprobados de la ocasión o a quienes completen el reto. | MATEO | Propuesta |
+| T-2545 | Admin insignias: otorgar booster | Otorgar booster | MATEO | Propuesta |
+| T-2546 | Admin insignias: campos de otorgar | Persona · Booster · Motivo | MATEO | Propuesta |
+| T-2547 | Admin insignias: retirar booster | Retirar booster · Motivo del retiro | MATEO | Propuesta |
+| T-2548 | Admin insignias: resultados | Edición especial creada. · Booster otorgado. · Booster retirado. | MATEO | Propuesta |
+| T-2549 | Admin insignias: booster usado tras revocar | Este logro se revocó y su booster ya se usó: revisá si hace falta un ajuste. | MATEO | Propuesta |
+| T-2550 | Admin límites: título | Límites y activación | MATEO | Propuesta |
+| T-2551 | Admin límites: campos | Tope diario · Tope semanal · Premio por defecto de trivia · Premio por defecto presencial · Premio por defecto de evidencia · Porcentaje por defecto para aprobar | MATEO | Propuesta |
+| T-2552 | Admin límites: bandera | Retos activos para los miembros | MATEO | Propuesta |
+| T-2553 | Admin límites: ayuda | Los topes suman el premio base de los retos y los extras de boosters; la asistencia normal y el Wordle quedan fuera. Un cambio aplica a las participaciones nuevas. | MATEO | Propuesta |
+| T-2554 | Admin límites: guardado | Límites guardados. | MATEO | Propuesta |
+| T-2555 | Admin panel: indicadores | Participantes únicos · Entregas pendientes · Premios reservados · Premios entregados · Boosters usados · Errores de procesamiento | MATEO | Propuesta |
+| T-2556 | Admin panel: título de conciliación | Conciliación histórica | MATEO | Propuesta |
+| T-2557 | Admin panel: ayuda de conciliación | Reconoce insignias por asistencias aprobadas, retos completados y Wordles resueltos de cualquier semestre. No entrega puntos, boosters ni avisos. Simulá primero. | MATEO | Propuesta |
+| T-2558 | Admin panel: acciones de conciliación | Simular · Aplicar | MATEO | Propuesta |
+| T-2559 | Admin panel: estados de conciliación | En curso · Terminada · Con error | MATEO | Propuesta |
+| T-2560 | Admin panel: cifras de conciliación | {procesadas} personas · {desbloqueadas} desbloqueadas · {revocadas} revocadas | MATEO | Propuesta |
+| T-2561 | Admin panel: conciliación en curso | Ya hay una conciliación en curso. | MATEO | Propuesta |
+| T-2562 | Cierre de puntos: pendientes de retos | Quedan {n} entregas pendientes y {m} premios reservados. Resolvelos antes de cerrar. | MATEO | Propuesta |
+| T-2563 | Admin cierre: filas del resumen | Entregas de retos pendientes · Premios reservados | MATEO | Propuesta |
+| T-2564 | Admin: motivo obligatorio | Escribí un motivo. | MATEO | Propuesta |
+| T-2565 | Admin retos: filtros | Semestre · Estado · Formato | MATEO | Propuesta |
+| T-2566 | Push: reto publicado | Nuevo reto: {reto} · Tenés hasta {fecha}. Entrá y participá. | GH | Propuesta |
+| T-2567 | Push: entrega aprobada | ¡Reto completado! · Sumaste {n} GH Points por {reto}. Ya vas en {total}. | GH | Propuesta |
+| T-2568 | Push: entrega rechazada | Tu reto no fue aprobado · {reto}: {motivo} | GH | Propuesta |
+| T-2569 | Push: insignia desbloqueada | ¡Nueva insignia! · Desbloqueaste {insignia} nivel {nivel}. | GH | Propuesta |
+| T-2570 | Export de retos: cabeceras | Reto · Formato · Semestre · Persona · Correo · Estado · Enviado · Base · Extra · Booster · Decidido | MATEO | Propuesta |
+| T-2571 | Export de insignias: cabeceras | Persona · Correo · Insignia · Nivel · Desbloqueada · Histórica · Revocada | MATEO | Propuesta |
+| T-2572 | Reto: premio reservado (tarjeta) | Premio reservado: {n} GH Points | MATEO | Propuesta |
+| T-2573 | Retos: trivia respondida (lista) | Trivia respondida | MATEO | Propuesta |
+| T-2574 | Admin retos: título de la lista y vacío | Retos del semestre · Todavía no hay retos. Creá el primero. | MATEO | Propuesta |
+| T-2575 | Admin panel: título de errores | Últimos errores de procesamiento | MATEO | Propuesta |
+| T-2576 | Colección: origen de un logro | Asistencia a {actividad} · Reto {reto} · Wordle del {fecha} · Historia de la OE · Edición especial | MATEO | Propuesta |
+| T-2577 | Reto: cuenta para insignia | Cuenta para Relámpago | MATEO | Propuesta |
+| T-2578 | Boosters: cuál usar (selector) | Sin booster · {booster} (vence el {fecha}) | MATEO | Propuesta |

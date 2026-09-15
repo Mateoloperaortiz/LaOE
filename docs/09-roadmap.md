@@ -356,6 +356,21 @@ Alineación con los Estatutos y el Reglamento Interno 2026 según la [revisión 
 - [x] N26-T12 · Revisión de C1–C8 y V1–V15, corrección de regresiones y guardas; [ADR-061](adr/ADR-061-verificacion-y-correcciones-de-normativa-2026.md) y [matriz](19-verificacion-normativa-2026.md).
 La entrega exige CI completo, staging y promoción del mismo SHA a producción con humo verificado, según el runbook. La evidencia local está en la matriz y la remota en los checks de la PR #23 y del SHA promovido.
 
+## Retos, boosters y colección (ADR-067) · `en curso`
+
+Plan aprobado el 2026-09-14 ([ADR-067](adr/ADR-067-retos-boosters-y-coleccion.md)): ocho tramos en la rama `feat/gamificacion`; cada uno cierra con `npm run check` en verde y un commit convencional; PR al final. Activación por `gamification.enabled`, apagada hasta que corra la conciliación histórica y GH tenga sus borradores.
+
+- [x] G-T0 · Docs: ADR-067, arquitectura, modelo de datos, acceso, mapa del sitio, textos T-2402 en adelante (más T-085 y T-667 ampliados al final), verificación, glosario, contenido pendiente, decisiones y este roadmap
+- [ ] G-T1 · Esquema y economía: migración aditiva `0030_gamificacion` (diez tablas, `CHALLENGE` y `BOOST`, `point_entry.rewardId`, catálogo de insignias y claves de configuración), `REQUIRED_INDEXES`, reglas puras de premios (topes por día y semana de Colombia, redondeo, base antes que extra, booster consumido solo si aporta), reservas y confirmaciones con locks, ledger y cierre de puntos bloqueado con pendientes; pruebas unitarias y de integración
+- [ ] G-T2 · Retos, dominio y administración: crear, publicar (congela), cancelar, duplicar; trivia calificada en servidor; misión con evidencia (presign, confirmación, proceso sin metadatos, entrega al autor o ADMIN); presencial completado en la transacción del check-in; revisión; `/admin/gamificacion` (panel, retos, revisión, límites) y export
+- [ ] G-T3 · Retos en Mi OE: layout de GH Points con Resumen · Retos · Boosters · Colección, lista y detalle de retos, trivia por teclado, subidor de evidencia, próximo reto en el inicio; E2E de los tres formatos en móvil y escritorio
+- [ ] G-T4 · Boosters y campañas: inventario con vencimiento, elección del objetivo en Boosters y en `/a/[publicId]`, asistencia impulsada, alta y retiro manual, `/admin/gamificacion/campanas`; pruebas de doble uso, campañas coincidentes y anulación
+- [ ] G-T5 · Colección: progreso por familia, `gamification.badges`, boosters por nivel, ediciones especiales, `/app/gh-points/coleccion` con animación una vez y alternativa estática, destacadas en el directorio, `/admin/gamificacion/insignias`, línea de tiempo y push
+- [ ] G-T6 · Historia y correcciones: conciliación simulable, reanudable y repetible desde el panel; anulaciones con step-up; mis datos, exportes, `/admin/cierre` con pendientes, `stats` del standing, limpieza al anonimizar, seed sintético
+- [ ] G-T7 · Cierre: regresión completa, revisión visual en tres anchos y dos temas con teclado y movimiento reducido, runbook de activación, registro de avances y PR
+
+Listo cuando: GH crea, publica y revisa retos de los tres formatos sin tocar código; un miembro participa desde el celular, ve su premio con desglose bajo los topes, usa un booster y desbloquea una insignia con su historia; la conciliación reconoce la historia verificable sin puntos ni boosters retroactivos; Wordle, asistencias, rankings, exportes y permanencia siguen iguales; `npm run check` y las E2E en verde.
+
 ## Backlog (después de la v1)
 
 - Votación electrónica de la junta con segunda vuelta: cuando la asistencia funcione sin fallas y con las reglas de los estatutos (voto secreto, quórum)
@@ -367,7 +382,7 @@ La entrega exige CI completo, staging y promoción del mismo SHA a producción c
 - Certificados de participación con QR de verificación (no priorizado)
 - Servicio web y APNs de Apple Wallet para actualizar pases sin volver a agregarlos
 - Passkeys como segundo factor o acceso rápido
-- Reto relámpago, boosters y badges persistidos; palabra del día pasa al tramo Wordle (ADR-041)
+- Metas colectivas de retos (fase posterior a [ADR-067](adr/ADR-067-retos-boosters-y-coleccion.md)); la palabra del día pasó al tramo Wordle (ADR-041)
 - Fórmulas alternativas de score de comité (ponderadas)
 - WhatsApp Business API
 - Servicio `worker` separado, solo con uso medido
@@ -413,6 +428,7 @@ La entrega exige CI completo, staging y promoción del mismo SHA a producción c
 
 | Fecha | Fase | Qué cambió |
 | --- | --- | --- |
+| 2026-09-14 | Gamificación · G-T0 | [ADR-067](adr/ADR-067-retos-boosters-y-coleccion.md): retos relámpago (presencial, trivia, misión con evidencia), premios `CHALLENGE`/`BOOST` reservados en servidor bajo topes de 20 diarios y 60 semanales en Colombia, boosters de un uso y campañas con máximo +100 %, colección de insignias derivada de hechos verificables con conciliación histórica, evidencias con almacenamiento y acceso propios, sección de GH exclusiva de ADMIN y bandera de activación. Decisiones confirmadas por Mateo: trivia fallida rechazada sin premio; push al publicar, decidir y desbloquear; GH otorga y retira boosters; actividad voluntaria sin reunión ni inducción; booster elegible en Boosters y en el check-in. Documentación: arquitectura, modelo, acceso, mapa, copy T-2402 en adelante, verificación, glosario, contenido pendiente y decisiones. Sin código todavía. |
 | 2026-09-14 | GT/GAP · A4 | [PR 30](https://github.com/Mateoloperaortiz/LaOE/pull/30) publicado con SHA `275393a63339aee239ed908c567102afd31381f5`. CI de PR, main y promoción en verde; 542 unitarias, 369 de integración y 176 casos E2E. Staging `238d5bc7-c3d4-4e7b-88a7-db3a9a7bdd5f` y producción `1bc42571-965c-420c-a549-27fceca8fca9` SUCCESS, smoke 6/6 en ambos. Migración 0029 y unicidad GAP verificadas por consulta de solo lectura: cero duplicados, 97 pertenencias previas con áreas vacías, sin altas de equipos reales. GT/GAP y entrada a GAP comprobados en la UI publicada. |
 | 2026-09-14 | GT/GAP · A1–A3 | [ADR-065](adr/ADR-065-areas-y-participacion-gt-gap.md): GT y GAP separados, áreas múltiples por pertenencia y acreditación explícita atómica con autor y auditoría. Persona 360, inicio de Mi OE y directorio muestran equipos del semestre. Verificación completa: 542 pruebas unitarias, 369 de integración, 11 del extractor, tipos, lint, límites de módulos, código muerto y build en verde; cuatro casos E2E focalizados pasaron; revisión independiente de escritorio 1280 px y móvil 390 px: ship sin correcciones materiales. El detector marcó únicamente el indicador activo de pestaña, aceptado como navegación. Documenter: extensión coherente con marca/tokens, sin alterar archivos de diseño. Se alineó una prueba antigua de sanciones con la fecha de Bogotá para evitar fallos nocturnos por UTC. |
 | 2026-09-14 | Macroeventos · M4 | [PR 28](https://github.com/Mateoloperaortiz/LaOE/pull/28) integrado y SHA `9d0671f063715bcebbae5e406e189230e78ac91e` publicado. CI de PR y main en verde: 542 unitarias, 365 de integración y 176 casos E2E (174 escenarios). Railway staging `bf5bf5fe-1279-45f7-94e8-6a7b6d84ee5a` y producción `39ae0133-3a16-4868-ab6d-55e597ec2cac` SUCCESS; smoke 6/6 en ambos. Catálogos 6/7/9 y cargos especiales comprobados en la UI de producción, índice único presente y ningún GT, edición o nombramiento inventado. Evidencia en el runbook. |

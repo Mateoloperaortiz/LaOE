@@ -112,3 +112,12 @@ Las pruebas reales y el diagnóstico de los proveedores se registran siguiendo [
 
 - Cargos confirmados e implementados en ADR-064: Inventiva 6, EnFemenino 7, Días EAFIT 9. Los seis comunes incluyen Relaciones Públicas y Mercadeo.
 - Pendientes de datos: fechas y nombres de las ediciones, personas de las mesas, integrantes de los GT y responsables/evaluadores de cada semestre. No se inventan fechas ni se asignan personas al desplegar.
+
+### Retos, boosters y colección · 2026-09-14 ([ADR-067](adr/ADR-067-retos-boosters-y-coleccion.md))
+
+- [ ] Nombres y descripciones definitivas de las cuatro familias de insignias y de sus tres niveles (En parche, Explorador OE, Relámpago, Palabra a palabra); mientras tanto rigen los propuestos en T-2402 y siguientes, sembrados en la migración `0030`
+- [ ] Premios base reales por formato de reto; mientras tanto rigen 5 GH Points para trivia, 10 para presencial y misión con evidencia, y 80 % de aciertos para aprobar una trivia (`gamification.defaults`)
+- [ ] Confirmar los topes de 20 puntos extra diarios y 60 semanales por miembro (`gamification.caps`)
+- [ ] Textos, fechas y públicos de los retos reales del semestre; la primera activación no publica retos inventados: GH deja sus borradores y los publica cuando quiera
+- [ ] Política de ediciones especiales: a qué ocasiones o retos se vinculan y con qué nombre
+- [ ] Activar `gamification.enabled` desde Límites cuando la conciliación histórica haya corrido en producción y los borradores estén listos

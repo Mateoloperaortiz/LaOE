@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [067](adr/ADR-067-retos-boosters-y-coleccion.md) | Retos, boosters y colección | Retos presenciales, trivia y con evidencia dentro de `participation`; premios `CHALLENGE`/`BOOST` calculados y reservados en servidor bajo topes de 20 diarios y 60 semanales en Colombia; boosters de un uso y campañas con máximo +100 %; insignias derivadas de hechos verificables con conciliación histórica sin premios retroactivos; evidencias con almacenamiento y acceso propios; sección de GH exclusiva de ADMIN y activación por bandera | Aceptada |
 | [066](adr/ADR-066-cargos-vigentes-e-historial.md) | Cargos y trayectoria | Vigentes en la cabecera; historial por semestre y ámbito; GH dentro de Junta Directiva; sin cambios de permisos o cálculos | Aceptada; verificada en producción |
 | [063](adr/ADR-063-importacion-de-asambleas.md) | Asambleas históricas | Clasificación explícita, check-in sin ledger, procedencia por hoja y fila, conciliación antes de deduplicar y retención de membresías pendientes | Implementada en local |
 | [062](adr/ADR-062-importacion-de-asistencias-y-evidencias-gh.md) | Asistencias históricas de GH | Manifiesto, evidencia privada por hash, vista previa y carga atómica con ADMIN; reintento sin duplicados y créditos silenciosos | En producción; enmendada por 063 |
