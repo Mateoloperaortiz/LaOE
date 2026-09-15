@@ -623,3 +623,18 @@ Paquete y recibos privados en `outputs/asambleas-20260914/`, fuera del repositor
 - Revisión de escritorio y móvil aprobada; los responsables y la edición del GT se guardan de manera atómica, cada acción vuelve a comprobar ADMIN, y la evaluación conserva el recálculo y la auditoría existentes.
 
 Recibos privados en `/Users/mateo/.codex/private/casa-digital/macroeventos-20260914/`: resultados de CI, logs de comprobación y `production-verification.json`. Para comenzar a registrar mesas hace falta la edición con fecha real; los integrantes del GT pueden organizarse por semestre sin inventar una edición.
+
+
+## Áreas de GT y GAP · producción, 2026-09-14
+
+[PR 30](https://github.com/Mateoloperaortiz/LaOE/pull/30) integrado y publicado con SHA `275393a63339aee239ed908c567102afd31381f5`. La entrega agrega GT y GAP por macroevento y semestre, áreas múltiples en una sola pertenencia, acreditación explícita al registrar y participación visible en Persona 360, inicio de Mi OE y directorio. [ADR-065](adr/ADR-065-areas-y-participacion-gt-gap.md) registra las reglas.
+
+Comprobaciones: `npm run check` completo, 542 unitarias, 369 de integración, 11 del extractor y build; E2E remoto con 176 casos únicos (174 escenarios). CI de PR `34918346187`, main `34918797352` y promoción `34919404964`: success. Revisión visual independiente en 1280 y 390 px: ship, sin correcciones materiales; documentación coherente con el sistema existente.
+
+Railway staging `238d5bc7-c3d4-4e7b-88a7-db3a9a7bdd5f` y producción `1bc42571-965c-420c-a549-27fceca8fca9`: SUCCESS; smoke 6/6 en ambos. Consulta productiva de solo lectura confirma la columna `areas` no nula, índice `work_group_gap_macroevent_term_unique`, cero duplicados y 97 pertenencias previas con áreas vacías. Esta entrega no registra integrantes GT/GAP reales. Las pestañas y la vista GAP se comprobaron en producción.
+
+Operación: desde Macroeventos, seleccioná evento y semestre, abrí GT o GAP y prepará el grupo si todavía no existe. Elegí la persona y al menos un área. La evaluación queda pendiente; usá «Registrar y acreditar cumplimiento» únicamente para trabajo ya verificado. La acreditación queda a nombre del ADMIN que la realiza. Editar áreas conserva el desempeño; reincorporar a alguien retirado vuelve a pendiente. Los evaluadores GH conservan su bandeja y permisos habituales.
+
+Permanencia conserva GT 4/6/8 por macroeventos distintos acreditados para antiguos, GAP con máximo 5% y GAP OE separado. Varias áreas de un macroevento no multiplican el porcentaje. Los registros históricos sin áreas se completan mediante «Editar áreas», conservando su evaluación.
+
+Evidencia privada local: `/Users/mateo/.codex/private/casa-digital/gt-gap-20260914/` (resultados CI, smoke, consulta productiva, revisión y recibo de publicación). El ajuste de la prueba de sanciones al día de Bogotá solo corrige el reloj de la prueba; no altera las reglas de sanciones.

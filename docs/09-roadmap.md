@@ -4,12 +4,12 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## Áreas de GT y GAP · `en curso`
+## Áreas de GT y GAP · `lista`
 
 - [x] A1 · Áreas múltiples, grupos GT/GAP separados y acreditación explícita con auditoría.
 - [x] A2 · Equipos y apoyos visibles en Persona 360, Mi OE y directorio.
 - [x] A3 · Pruebas de dominio y E2E de GT/GAP, revisión visual independiente de escritorio y móvil.
-- [ ] A4 · Verificación completa, CI remoto y publicación.
+- [x] A4 · Verificación completa, CI remoto y publicación.
 
 ## Gestión de macroeventos · `lista`
 
@@ -413,6 +413,7 @@ La entrega exige CI completo, staging y promoción del mismo SHA a producción c
 
 | Fecha | Fase | Qué cambió |
 | --- | --- | --- |
+| 2026-09-14 | GT/GAP · A4 | [PR 30](https://github.com/Mateoloperaortiz/LaOE/pull/30) publicado con SHA `275393a63339aee239ed908c567102afd31381f5`. CI de PR, main y promoción en verde; 542 unitarias, 369 de integración y 176 casos E2E. Staging `238d5bc7-c3d4-4e7b-88a7-db3a9a7bdd5f` y producción `1bc42571-965c-420c-a549-27fceca8fca9` SUCCESS, smoke 6/6 en ambos. Migración 0029 y unicidad GAP verificadas por consulta de solo lectura: cero duplicados, 97 pertenencias previas con áreas vacías, sin altas de equipos reales. GT/GAP y entrada a GAP comprobados en la UI publicada. |
 | 2026-09-14 | GT/GAP · A1–A3 | [ADR-065](adr/ADR-065-areas-y-participacion-gt-gap.md): GT y GAP separados, áreas múltiples por pertenencia y acreditación explícita atómica con autor y auditoría. Persona 360, inicio de Mi OE y directorio muestran equipos del semestre. Verificación completa: 542 pruebas unitarias, 369 de integración, 11 del extractor, tipos, lint, límites de módulos, código muerto y build en verde; cuatro casos E2E focalizados pasaron; revisión independiente de escritorio 1280 px y móvil 390 px: ship sin correcciones materiales. El detector marcó únicamente el indicador activo de pestaña, aceptado como navegación. Documenter: extensión coherente con marca/tokens, sin alterar archivos de diseño. Se alineó una prueba antigua de sanciones con la fecha de Bogotá para evitar fallos nocturnos por UTC. |
 | 2026-09-14 | Macroeventos · M4 | [PR 28](https://github.com/Mateoloperaortiz/LaOE/pull/28) integrado y SHA `9d0671f063715bcebbae5e406e189230e78ac91e` publicado. CI de PR y main en verde: 542 unitarias, 365 de integración y 176 casos E2E (174 escenarios). Railway staging `bf5bf5fe-1279-45f7-94e8-6a7b6d84ee5a` y producción `39ae0133-3a16-4868-ab6d-55e597ec2cac` SUCCESS; smoke 6/6 en ambos. Catálogos 6/7/9 y cargos especiales comprobados en la UI de producción, índice único presente y ningún GT, edición o nombramiento inventado. Evidencia en el runbook. |
 | 2026-09-14 | Macroeventos · M1–M3 | ADR-064 implementada: sección de administración con catálogos 6/7/9, mesa por edición, GT único por evento y semestre, responsables y evaluación de desempeño. Migración 0028 y 94 índices verificados; `npm run check` completo con 542 unitarias, 365 de integración, 11 del extractor y build; E2E específico 4/4 con accesibilidad de escritorio y móvil. Publicación remota pendiente de M4. |
