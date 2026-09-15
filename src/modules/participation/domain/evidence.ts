@@ -239,3 +239,35 @@ export async function deleteEvidenceFor(personId: string): Promise<number> {
     );
   return files.length;
 }
+
+/**
+ * Metadatos de las evidencias de la persona para "Mis datos" (ADR-034 regla 12): nunca
+ * `objectKey`, que es la dirección interna del objeto en el bucket.
+ */
+export async function listEvidenceFilesFor(personId: string): Promise<
+  Array<{
+    id: string;
+    participationId: string;
+    ordinal: number;
+    status: string;
+    byteSize: number;
+    createdAt: Date;
+  }>
+> {
+  const db = getDb();
+  const participations = db
+    .select({ id: challengeParticipation.id })
+    .from(challengeParticipation)
+    .where(eq(challengeParticipation.personId, personId));
+  return db
+    .select({
+      id: challengeEvidenceFile.id,
+      participationId: challengeEvidenceFile.participationId,
+      ordinal: challengeEvidenceFile.ordinal,
+      status: challengeEvidenceFile.status,
+      byteSize: challengeEvidenceFile.byteSize,
+      createdAt: challengeEvidenceFile.createdAt,
+    })
+    .from(challengeEvidenceFile)
+    .where(inArray(challengeEvidenceFile.participationId, participations));
+}

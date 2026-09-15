@@ -33,6 +33,8 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
   const guardado = single(search.guardado) === "1";
   const [resumenAbiertas, resumenPendientes, resumenMiembros, resumenPuntos] = tList("T-645");
   const [topNuevos, topVeteranos, topComites] = tList("T-649");
+  const [resumenRetos, resumenPremios] = tList("T-2563");
+  const [statsRetos, statsBoosters] = tList("T-2594");
   if (!term) {
     return (
       <div className="flex flex-col gap-6">
@@ -54,7 +56,16 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
     [resumenPendientes ?? "", summary.pendingCheckIns],
     [resumenMiembros ?? "", summary.membersWithPoints],
     [resumenPuntos ?? "", summary.pointsAwarded],
+    // Gamificación (ADR-067 regla 13): lo que bloquea el cierre y las cifras del standing.
+    [resumenRetos ?? "", summary.pendingParticipations],
+    [resumenPremios ?? "", summary.reservedRewards],
   ];
+  if (standing?.stats.challengesCompleted !== undefined) {
+    cards.push([statsRetos ?? "", standing.stats.challengesCompleted]);
+  }
+  if (standing?.stats.boostPoints !== undefined) {
+    cards.push([statsBoosters ?? "", standing.stats.boostPoints]);
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -92,7 +103,7 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
         </form>
       </header>
 
-      <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(([label, value]) => (
           <div
             key={label}
@@ -118,6 +129,16 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
           {t("T-646", { n: summary.openOccasions })}{" "}
           <Link href={`/admin/ocasiones?termId=${term.id}&status=OPEN`} className="underline">
             {tList("T-561")[0]}
+          </Link>
+        </p>
+      ) : summary.pendingParticipations > 0 || summary.reservedRewards > 0 ? (
+        <p className="rounded-xl border border-borde bg-fondo px-4 py-3">
+          {t("T-2562", {
+            n: summary.pendingParticipations,
+            m: summary.reservedRewards,
+          })}{" "}
+          <Link href="/admin/gamificacion/revision" className="underline">
+            {tList("T-2404")[2]}
           </Link>
         </p>
       ) : (
@@ -179,7 +200,11 @@ export default async function CierrePage({ searchParams }: PageProps<"/admin/cie
         </div>
       ) : null}
 
-      {accion === "cerrar" && !term.pointsClosedAt && summary.openOccasions === 0 ? (
+      {accion === "cerrar" &&
+      !term.pointsClosedAt &&
+      summary.openOccasions === 0 &&
+      summary.pendingParticipations === 0 &&
+      summary.reservedRewards === 0 ? (
         <ResourcePanel title={t("T-647")} closeHref={base} closeLabel={t("T-291")}>
           <form action={closeTermAction} className="flex flex-col gap-4">
             <AdminFormBody>

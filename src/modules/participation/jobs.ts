@@ -12,9 +12,10 @@ import {
 } from "./domain/badges";
 import { scrubStandingName } from "./domain/closing";
 import { recomputeCommitteeAssembly } from "./domain/committee-assembly";
-import { processEvidenceFile } from "./domain/evidence";
+import { deleteEvidenceFor, processEvidenceFile } from "./domain/evidence";
 import { isAutoCloseDue } from "./domain/occasion-pure";
 import { closeOccasion, getOccasion, listOccasionsForTerm } from "./domain/occasions";
+import { processReconciliationBatch } from "./domain/reconciliation";
 import { runReminders } from "./domain/reminders";
 import { recomputeOccasionScore } from "./domain/scores";
 import { createSurveyInvites, deleteSurveyInvitesFor } from "./domain/surveys";
@@ -173,7 +174,8 @@ registerHandler("person.anonymized", async (payload, ctx) => {
   const changed = await scrubStandingName(personId);
   const invites = await deleteSurveyInvitesFor(personId);
   const featured = await clearFeaturedBadges(personId);
-  ctx.log.info({ personId, changed, invites, featured }, "standings anonimizados");
+  const evidence = await deleteEvidenceFor(personId);
+  ctx.log.info({ personId, changed, invites, featured, evidence }, "standings anonimizados");
 });
 
 const membershipChanged = z.object({
@@ -198,4 +200,15 @@ registerHandler("gamification.evidence-process", async (payload, ctx) => {
   const { fileId } = evidenceFile.parse(payload);
   const outcome = await processEvidenceFile(fileId);
   ctx.log.info({ fileId, outcome }, "evidencia procesada");
+});
+
+// Conciliación histórica (ADR-067 regla 13): cada evento procesa un lote del cursor y encadena el
+// siguiente mientras queden personas; el batch del payload es informativo (la corrida lleva su
+// cursor), así un evento duplicado o tardío no reprocesa nada.
+registerHandler("gamification.reconcile", async (payload, ctx) => {
+  const { runId, batch } = z
+    .object({ runId: z.string().min(1), batch: z.number().int().nonnegative() })
+    .parse(payload);
+  const result = await processReconciliationBatch(runId);
+  ctx.log.info({ runId, batch, ...result }, "lote de conciliación procesado");
 });

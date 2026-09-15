@@ -21,8 +21,10 @@ import {
   updateOccasionAs,
 } from "./domain/commands";
 import {
+  type AchievementExportRow,
   type ChallengeParticipationExportRow,
   type CheckInExportRow,
+  listAchievementsForExport,
   listCheckInsForExport,
   listParticipationsForExport,
 } from "./domain/exports";
@@ -561,6 +563,47 @@ export const challengeParticipationsResource: ResourceDefinition<
     extra: row.extra,
     booster: row.boosterKind,
     decidido: row.decidedAt ? row.decidedAt.toISOString() : null,
+  }),
+};
+
+// Export de insignias (ADR-067 regla 16): una fila por logro; datos personales → step-up.
+
+const achievementColumns = tList("T-2571");
+
+export const achievementsResource: ResourceDefinition<AchievementExportRow, Empty> = {
+  key: "insignias",
+  names: {
+    plural: tList("T-2404")[4] ?? "",
+    singular: tList("T-2404")[4] ?? "",
+  },
+  basePath: "/admin/gamificacion/insignias",
+  columns: [
+    {
+      key: "badgeName",
+      label: achievementColumns[2] ?? "",
+      render: (row) => `${row.badgeName} · ${row.level}`,
+    },
+  ],
+  filters: async () => [await termFilter(tList("T-2565")[0] ?? "")],
+  schema: emptySchema,
+  fields: [],
+  list: (params) =>
+    listAchievementsForExport({
+      termId: params.filters.termId,
+      page: params.page,
+      pageSize: params.pageSize,
+    }),
+  get: () => Promise.resolve(null),
+  toFormValues: () => ({}),
+  personalData: true,
+  exportRow: (row) => ({
+    persona: row.personName,
+    correo: row.email,
+    insignia: row.badgeName,
+    nivel: row.level,
+    desbloqueada: row.unlockedAt.toISOString(),
+    historica: row.historical ? "si" : "no",
+    revocada: row.revokedAt ? row.revokedAt.toISOString() : null,
   }),
 };
 

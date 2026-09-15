@@ -43,6 +43,7 @@ import {
 import { verifyEvidenceObjects } from "./evidence";
 import { loadGamificationSettings, resolveMemberContext } from "./member-context";
 import { getOccasion } from "./occasions";
+import { resumeReconciliation, startReconciliation } from "./reconciliation";
 
 // Comandos de la gamificación (ADR-012): el término, la membresía y los objetos ya subidos se
 // resuelven antes de abrir la transacción; el booster apuntado y la campaña vigente se leen
@@ -288,4 +289,21 @@ export function recomputeBadgesForAs(
   personId: string,
 ): Promise<BadgeDelta> {
   return recomputeBadgesFor(personId, { historical: false, actor });
+}
+
+// Conciliación histórica (ADR-067 regla 13): solo GH; Simular (DRY_RUN) no escribe y Aplicar
+// (APPLY) exige step-up en la acción del panel. Los lotes corren por el outbox.
+
+export function startReconciliationAs(
+  actor: Actor & { personId: string },
+  mode: "DRY_RUN" | "APPLY",
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => startReconciliation(ctx, { mode }));
+}
+
+export function resumeReconciliationAs(
+  actor: Actor & { personId: string },
+  runId: string,
+): Promise<void> {
+  return runCommand(actor, (ctx) => resumeReconciliation(ctx, runId));
 }

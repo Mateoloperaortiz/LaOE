@@ -315,7 +315,7 @@ export default async function RetoDetallePage({
             ) : null}
           </form>
           {boosterSaved ? (
-            <output className="block font-semibold text-oe-blue">{t("T-259")}</output>
+            <output className="block font-semibold text-titulo">{t("T-259")}</output>
           ) : null}
           {boosterError ? (
             <p role="alert" className="font-semibold text-oe-orange">

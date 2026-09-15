@@ -172,6 +172,7 @@ export {
   EVIDENCE_MAX_FILES,
   EVIDENCE_MIN_BYTES,
   EVIDENCE_TYPES,
+  listEvidenceFilesFor,
   type PreparedEvidenceUpload,
   prepareEvidenceUpload,
   resolveEvidenceRedirect,
@@ -197,10 +198,12 @@ export {
   publishChallengeAs,
   type ReviewInput,
   recomputeBadgesForAs,
+  resumeReconciliationAs,
   reviewParticipationAs,
   revokeBoosterAs,
   setBoosterTargetAs,
   setFeaturedAs,
+  startReconciliationAs,
   submitEvidenceAs,
   submitTriviaAs,
   type TriviaSubmitInput,
@@ -291,6 +294,18 @@ export {
   rankCommittees,
   rankPeople,
 } from "./domain/rankings";
+export {
+  getReconciliationRun,
+  listReconciliationRuns,
+  processReconciliationBatch,
+  RECONCILE_BATCH,
+  type ReconciliationReport,
+  type ReconciliationRunRow,
+  type ReportSampleEntry,
+  reconciliationReport,
+  resumeReconciliation,
+  startReconciliation,
+} from "./domain/reconciliation";
 export { type RemindersResult, runReminders } from "./domain/reminders";
 export {
   type DueReminder,
@@ -302,6 +317,7 @@ export {
 export {
   countPendingGamification,
   grantReward,
+  listRewardsForPerson,
   type ReserveRewardInput,
   type RewardRow,
   releaseReward,

@@ -156,6 +156,7 @@ export {
   listAppointmentsForTerm,
   listCommitteeIdsForPersonInTerm,
   listMailingRefs,
+  listMembershipPersonIds,
   listMembershipStatuses,
   listSignInMemberIds,
   listTermCommitteeMembers,

@@ -2152,3 +2152,11 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2584 | Admin retos: ocasión vinculada, ayuda | Elegí una actividad con puntos del mismo semestre; el reto se completa al aprobar su asistencia dentro de la ventana del reto. | MATEO | Propuesta |
 | T-2585 | Admin revisión: texto de la evidencia (título) | Lo que contó | MATEO | Propuesta |
 | T-2586 | Admin: sin sesión reciente para anular | Confirmá tu identidad para anular un premio entregado. | MATEO | Propuesta |
+| T-2587 | Admin panel: reanudar conciliación | Reanudar | MATEO | Propuesta |
+| T-2588 | Admin panel: título de corridas de conciliación | Corridas recientes | MATEO | Propuesta |
+| T-2589 | Admin panel: columnas de corridas | Modo · Estado · Procesadas · Desbloqueadas · Revocadas · Inicio · Fin | MATEO | Propuesta |
+| T-2590 | Admin panel: modos de conciliación | Simulación · Aplicación | MATEO | Propuesta |
+| T-2591 | Admin panel: aplicar exige step-up | Aplicar escribe logros históricos, sin puntos ni boosters. Confirmá tu identidad para seguir. | MATEO | Propuesta |
+| T-2592 | Admin panel: sin corridas | Todavía no se corrió la conciliación. | MATEO | Propuesta |
+| T-2593 | Admin panel: error de la corrida | Error: {mensaje} | MATEO | Propuesta |
+| T-2594 | Admin cierre: estadísticas de gamificación del standing | Retos completados · Puntos de boosters | MATEO | Propuesta |

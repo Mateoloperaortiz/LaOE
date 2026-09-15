@@ -1,7 +1,10 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import sharp from "sharp";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { enqueueEvent } from "@/db/tx";
+import "@/jobs/handlers";
+import { drain } from "@/jobs/poller";
 import {
   EVIDENCE_MAX_BYTES,
   evidenceKey,
@@ -10,8 +13,8 @@ import {
   resolveEvidenceRedirect,
   verifyEvidenceObjects,
 } from "@/modules/participation/domain/evidence";
-import { challengeEvidenceFile } from "@/modules/participation/schema";
-import { deleteObject, getObject, putObject } from "@/shared/adapters/storage";
+import { challengeEvidenceFile, challengeParticipation } from "@/modules/participation/schema";
+import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { tList } from "@/shared/copy";
 import { truncateAll } from "./db";
@@ -162,5 +165,44 @@ describe("evidencias de retos", () => {
     }
     const admin = await resolveEvidenceRedirect(fileId, { personId: otherId, isAdmin: true });
     expect(admin.status).toBe(302);
+  });
+
+  it("la anonimización borra los objetos, las filas y el texto de evidencia", async () => {
+    const personId = await seedMember("evidencia.anon@eafit.edu.co");
+    const termId = await seedTerm();
+    const challengeId = await seedChallenge(termId, { kind: "EVIDENCE", passPercent: null });
+    const participationId = await seedParticipation(challengeId, personId, {
+      status: "COMPLETED",
+      evidenceText: "Relato de prueba.",
+    });
+    const bytes = await syntheticImage();
+    const key = evidenceKey(personId, "image/jpeg", "archivo6prueba");
+    keys.push(key);
+    await putObject(key, bytes, "image/jpeg");
+    await db().insert(challengeEvidenceFile).values({
+      participationId,
+      ordinal: 1,
+      objectKey: key,
+      contentType: "image/jpeg",
+      byteSize: bytes.length,
+    });
+    expect(await headObject(key)).not.toBeNull();
+
+    await enqueueEvent(db(), { type: "person.anonymized", payload: { personId } });
+    await drain(30);
+
+    expect(
+      await db()
+        .select()
+        .from(challengeEvidenceFile)
+        .where(inArray(challengeEvidenceFile.participationId, [participationId])),
+    ).toEqual([]);
+    const [entrega] = await db()
+      .select({ evidenceText: challengeParticipation.evidenceText })
+      .from(challengeParticipation)
+      .where(eq(challengeParticipation.id, participationId));
+    expect(entrega?.evidenceText).toBeNull();
+    // El objeto salió del bucket (deleteObject): headObject ya no lo encuentra.
+    expect(await headObject(key)).toBeNull();
   });
 });

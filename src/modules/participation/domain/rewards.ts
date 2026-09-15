@@ -1,4 +1,5 @@
-import { and, count, eq, inArray, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { getDb } from "@/db/client";
 import type { CommandContext, Executor } from "@/db/tx";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
@@ -469,4 +470,33 @@ export async function countPendingGamification(
     .from(reward)
     .where(and(eq(reward.termId, termId), eq(reward.status, "RESERVED")));
   return { pendingParticipations: pending?.n ?? 0, reservedRewards: reserved?.n ?? 0 };
+}
+
+/** Premios de la persona para "Mis datos" (ADR-034 regla 12), del más reciente al más viejo. */
+export async function listRewardsForPerson(personId: string): Promise<
+  Array<{
+    source: RewardRow["source"];
+    status: RewardRow["status"];
+    basePoints: number;
+    extraPoints: number;
+    dayKey: string;
+    weekKey: string;
+    reservedAt: Date;
+    decidedAt: Date | null;
+  }>
+> {
+  return getDb()
+    .select({
+      source: reward.source,
+      status: reward.status,
+      basePoints: reward.basePoints,
+      extraPoints: reward.extraPoints,
+      dayKey: reward.dayKey,
+      weekKey: reward.weekKey,
+      reservedAt: reward.reservedAt,
+      decidedAt: reward.decidedAt,
+    })
+    .from(reward)
+    .where(eq(reward.personId, personId))
+    .orderBy(desc(reward.reservedAt));
 }

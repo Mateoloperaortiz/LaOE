@@ -98,7 +98,7 @@ export function ChallengeCard({ card }: { card: ChallengeCardData }) {
       <p className="text-sm text-tinta-suave">
         {t("T-2412", { fecha: formatDateTime(card.closesAt) })}
       </p>
-      <p className="font-semibold text-oe-blue">{t("T-2413", { n: points })}</p>
+      <p className="font-semibold text-titulo">{t("T-2413", { n: points })}</p>
       {card.pendingPoints != null && card.status === "PENDING" ? (
         <p className="text-sm font-semibold">{t("T-2572", { n: card.pendingPoints })}</p>
       ) : null}
@@ -106,7 +106,7 @@ export function ChallengeCard({ card }: { card: ChallengeCardData }) {
         <p className="text-sm text-tinta-suave">{t("T-2414")}</p>
       ) : null}
       {card.status && (card.campaignPercent ?? 0) > 0 ? (
-        <p className="text-sm font-semibold text-oe-blue">
+        <p className="text-sm font-semibold text-titulo">
           {t("T-2416", {
             n: card.campaignPercent ?? 0,
             fecha: formatDateTime(card.campaignEndsAt ?? card.closesAt),

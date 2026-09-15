@@ -251,8 +251,10 @@ test("booster: el admin lo otorga, el miembro lo apunta a una trivia y suma el e
   await bloque.getByRole("textbox", { name: "Persona" }).fill(E2E_MEMBER_EMAIL);
   await bloque.getByRole("button", { name: "Buscar", exact: true }).click();
   await bloque.getByRole("link", { name: "Miembro E2E" }).click();
-  await bloque.getByLabel("Booster").selectOption({ label: "Impulso" });
-  await bloque.getByLabel("Motivo").fill("e2e-Reconocimiento de prueba");
+  await bloque.getByRole("combobox", { name: "Booster" }).selectOption({ label: "Impulso" });
+  await bloque
+    .getByRole("textbox", { name: "Motivo", exact: true })
+    .fill("e2e-Reconocimiento de prueba");
   await bloque.getByRole("button", { name: "Otorgar booster", exact: true }).click();
   await expect(admin.getByText("Booster otorgado.")).toBeVisible();
   await admin.context().close();
@@ -395,8 +397,14 @@ test("colección: la insignia abre el diálogo una vez, se destaca y sale en el 
   await expect(dialogo.getByText(/Además ganaste un Impulso/)).toBeVisible();
   await page.screenshot({ path: "test-results/coleccion-dialogo-desktop.png", fullPage: true });
   // dispatchEvent: el router.push de cierre re-renderiza la página y desmonta el diálogo
-  // a mitad del click, y Playwright reintentaría sobre un nodo muerto.
-  await dialogo.getByRole("button", { name: "Ver mi colección" }).dispatchEvent("click");
+  // a mitad del click, y Playwright reintentaría sobre un nodo muerto. La espera del POST
+  // evita que el reload compita con markSeen y reabra el diálogo animado bajo axe.
+  await Promise.all([
+    page.waitForResponse(
+      (res) => res.url().includes("/app/gh-points/coleccion") && res.request().method() === "POST",
+    ),
+    dialogo.getByRole("button", { name: "Ver mi colección" }).dispatchEvent("click"),
+  ]);
   await page.reload();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await sinViolaciones(page);
@@ -464,9 +472,72 @@ test("colección en móvil y movimiento reducido: alternativa estática sin anim
     dialogo.getByText("Nueva insignia desbloqueada: Palabra a palabra nivel 1."),
   ).toBeVisible();
   await page.screenshot({ path: "test-results/coleccion-dialogo-mobile.png", fullPage: true });
-  await dialogo.getByRole("button", { name: "Ver mi colección" }).dispatchEvent("click");
+  await Promise.all([
+    page.waitForResponse(
+      (res) => res.url().includes("/app/gh-points/coleccion") && res.request().method() === "POST",
+    ),
+    dialogo.getByRole("button", { name: "Ver mi colección" }).dispatchEvent("click"),
+  ]);
   await page.reload();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await sinViolaciones(page);
   await page.screenshot({ path: "test-results/coleccion-mobile.png", fullPage: true });
+});
+
+test("conciliación: el admin simula y aplica, y la insignia histórica aparece en la colección", async ({
+  page,
+  browser,
+}) => {
+  // Un hecho viejo del miembro: un Wordle ganado en el término. La conciliación lo recoge
+  // como Palabra a palabra 1 histórica (sin booster ni aviso, ADR-067 regla 11).
+  const miembro = await personId(E2E_MEMBER_EMAIL);
+  const termId = await currentTermId();
+  await getDb()
+    .insert(wordleGame)
+    .values({
+      personId: miembro,
+      day: "2024-11-05",
+      termId,
+      answer: "TESTO",
+      dictionaryVersion: "e2e",
+      rulesVersion: "e2e",
+      status: "WON",
+      completedAt: new Date("2024-11-05T20:00:00Z"),
+    });
+
+  const admin = await adminPage(browser);
+  await admin.goto("/admin/gamificacion");
+  await expect(admin.getByRole("heading", { name: "Conciliación histórica" })).toBeVisible();
+  await admin.getByRole("button", { name: "Simular" }).click();
+  await expect(admin.getByText(/En curso · \d+ personas/)).toBeVisible();
+  await drenarOutbox();
+  await admin.reload();
+  await expect(admin.getByText(/Terminada · \d+ personas · [1-9]\d* desbloqueadas/)).toBeVisible();
+  // El simulacro no escribe logros.
+  await page.goto("/app/gh-points/coleccion");
+  await expect(page.getByText(/Reconocida por tu historia/)).toHaveCount(0);
+
+  await admin.getByRole("link", { name: "Aplicar" }).click();
+  const panel = admin.getByRole("dialog");
+  await expect(panel.getByText(/escribe logros históricos/)).toBeVisible();
+  await panel.getByRole("button", { name: "Aplicar" }).click();
+  await expect(admin.getByText(/En curso · \d+ personas/)).toBeVisible();
+  await drenarOutbox();
+  await admin.reload();
+  await expect(admin.getByText(/Terminada · \d+ personas · [1-9]\d* desbloqueadas/)).toBeVisible();
+  await admin.screenshot({
+    path: "test-results/admin-gamificacion-conciliacion.png",
+    fullPage: true,
+  });
+  await admin.context().close();
+  const logros = await getDb()
+    .select({ historical: achievement.historical })
+    .from(achievement)
+    .where(eq(achievement.personId, miembro));
+  expect(logros.some((logro) => logro.historical)).toBe(true);
+
+  await page.reload();
+  await expect(page.getByText("Palabra a palabra").first()).toBeVisible();
+  await expect(page.getByText(/Reconocida por tu historia/)).toBeVisible();
+  await sinViolaciones(page);
 });

@@ -98,7 +98,7 @@ function BoosterCard({
         ) : null}
       </dl>
       {guardado ? (
-        <output className="block font-semibold text-oe-blue">
+        <output className="block font-semibold text-titulo">
           {t("T-2459", { booster: name, objetivo: booster.target?.title ?? "—" })}
         </output>
       ) : null}

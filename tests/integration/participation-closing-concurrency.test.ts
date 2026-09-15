@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { type CommandContext, runCommand } from "@/db/tx";
+import { reviewParticipation } from "@/modules/participation/domain/challenge-participation";
 import { getTermStanding } from "@/modules/participation/domain/closing";
 import {
   adjustPointsAs,
@@ -13,13 +14,29 @@ import {
   openOccasionAs,
 } from "@/modules/participation/domain/commands";
 import { adjustPoints, balanceFor } from "@/modules/participation/domain/ledger";
+import { loadGamificationSettings } from "@/modules/participation/domain/member-context";
 import { openOccasion } from "@/modules/participation/domain/occasions";
-import { checkIn, occasion, pointEntry, termStanding } from "@/modules/participation/schema";
+import {
+  challengeParticipation,
+  checkIn,
+  occasion,
+  pointEntry,
+  reward,
+  termStanding,
+} from "@/modules/participation/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { closeTermPoints, getTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
-import { seedCheckIn, seedCommittee, seedMember, seedOccasion, seedTerm } from "./factories";
+import {
+  seedChallenge,
+  seedCheckIn,
+  seedCommittee,
+  seedMember,
+  seedOccasion,
+  seedParticipation,
+  seedTerm,
+} from "./factories";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -207,5 +224,66 @@ describe("cierre transaccional de participación", () => {
       expect.objectContaining({ id: pendingId, status: "PENDING" }),
     ]);
     expect(await getDb().select().from(occasion)).toHaveLength(2);
+  });
+
+  it("espera la aprobación de una entrega en curso y congela su premio y el reto", async () => {
+    // ADR-067 regla 13: la aprobación retenida mantiene el SHARE del término (grantReward →
+    // lockOpenTermPoints) y el cierre espera detrás (FOR UPDATE). Al liberar, la entrega queda
+    // COMPLETED con el premio GRANTED, así que countPendingGamification ya no bloquea y el
+    // standing congela sus puntos — este es el orden real, no un cierre rechazado con T-2562.
+    const termId = await seedTerm();
+    const reviewer = await seedMember("cierre-revisor@eafit.edu.co");
+    const member = await seedMember("cierre-entrega@eafit.edu.co");
+    const challengeId = await seedChallenge(termId, {
+      kind: "EVIDENCE",
+      passPercent: null,
+      basePoints: 10,
+    });
+    const participationId = await seedParticipation(challengeId, member, { status: "PENDING" });
+    const [reserved] = await getDb()
+      .insert(reward)
+      .values({
+        personId: member,
+        termId,
+        source: "CHALLENGE",
+        participationId,
+        basePoints: 10,
+        baseGranted: 10,
+        extraPoints: 0,
+        status: "RESERVED",
+        dayKey: "2026-08-10",
+        weekKey: "2026-08-10",
+        capDaily: 20,
+        capWeekly: 60,
+      })
+      .returning();
+    await getDb()
+      .update(challengeParticipation)
+      .set({ rewardId: reserved?.id })
+      .where(eq(challengeParticipation.id, participationId));
+
+    const settings = await loadGamificationSettings();
+    const held = await holdCommand(reviewer, (ctx) =>
+      reviewParticipation(ctx, { participationId, decision: "APPROVE" }, { settings }),
+    );
+    const closing = closeTermPointsAs({ personId: reviewer }, termId);
+    void closing.catch(() => undefined);
+    try {
+      await expect.poll(async () => (await blockedBy(held.pid)).length).toBeGreaterThan(0);
+      held.release();
+      await Promise.all([held.done, closing]);
+      const standing = await getTermStanding(termId);
+      expect(standing?.stats.pointsAwarded).toBe(10);
+      expect(standing?.stats.challengesCompleted).toBe(1);
+      expect(await balanceFor(member, termId)).toBe(10);
+      const [entrega] = await getDb()
+        .select()
+        .from(challengeParticipation)
+        .where(eq(challengeParticipation.id, participationId));
+      expect(entrega?.status).toBe("COMPLETED");
+    } finally {
+      held.release();
+      await Promise.allSettled([held.done, closing]);
+    }
   });
 });

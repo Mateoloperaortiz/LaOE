@@ -7,7 +7,14 @@ import {
   listPermissionsFor,
   listSessionsFor,
 } from "@/modules/identity";
-import { listWordleGamesFor } from "@/modules/participation";
+import {
+  listAchievementsForPerson,
+  listBoostersFor,
+  listEvidenceFilesFor,
+  listParticipationsForPerson,
+  listRewardsForPerson,
+  listWordleGamesFor,
+} from "@/modules/participation";
 import { collectPersonalData } from "@/modules/people";
 import { recordSelfExport } from "@/modules/system";
 import { listPassesFor } from "@/modules/wallet";
@@ -41,6 +48,11 @@ export async function GET(request: Request) {
     carnet,
     passes,
     wordleGames,
+    participations,
+    evidenceFiles,
+    boosters,
+    achievements,
+    rewards,
   ] = await Promise.all([
     listInteractions(actor.personId, "ALL", 1000),
     listTasks({ q: "", personId: actor.personId, page: 1, pageSize: 500 }),
@@ -52,6 +64,11 @@ export async function GET(request: Request) {
     getCarnetMetadata(actor.personId),
     listPassesFor(actor.personId),
     listWordleGamesFor(actor.personId),
+    listParticipationsForPerson(actor.personId),
+    listEvidenceFilesFor(actor.personId),
+    listBoostersFor(actor.personId),
+    listAchievementsForPerson(actor.personId),
+    listRewardsForPerson(actor.personId),
   ]);
   await recordSelfExport(actor.personId);
   const body = {
@@ -71,6 +88,40 @@ export async function GET(request: Request) {
     })),
     permissions,
     wordleGames,
+    // Gamificación (ADR-067): entregas sin `requestId` ni la posición correcta de la trivia;
+    // archivos sin `objectKey` (dirección interna del bucket); premios y logros de la colección.
+    challengeParticipations: participations.map((item) => ({
+      challengeId: item.challengeId,
+      status: item.status,
+      submittedAt: item.submittedAt,
+      answers: item.answers,
+      score: item.score,
+      evidenceText: item.evidenceText,
+      reason: item.reason,
+      decidedAt: item.decidedAt,
+    })),
+    evidenceFiles: evidenceFiles.map((file) => ({
+      id: file.id,
+      participationId: file.participationId,
+      ordinal: file.ordinal,
+      status: file.status,
+      byteSize: file.byteSize,
+      createdAt: file.createdAt,
+    })),
+    boosters,
+    achievements: achievements.map((item) => ({
+      badge: {
+        code: item.badge.code,
+        name: item.badge.name,
+        family: item.badge.family,
+        level: item.badge.level,
+      },
+      unlockedAt: item.unlockedAt,
+      termId: item.termId,
+      historical: item.historical,
+      revokedAt: item.revokedAt,
+    })),
+    rewards,
     carnet: carnet
       ? {
           walletEpoch: carnet.walletEpoch,

@@ -1,5 +1,10 @@
 import Link from "next/link";
 import {
+  type AchievementRow,
+  type BadgeRow,
+  BOOSTER_KINDS,
+  BOOSTER_STATES,
+  type BoosterView,
   CHECK_IN_SOURCES,
   CHECK_IN_STATUSES,
   type CheckInRow,
@@ -20,12 +25,16 @@ export function TabParticipacion({
   occasions,
   entries,
   termCodes,
+  achievements,
+  boosters,
 }: {
   personId: string;
   checkIns: CheckInRow[];
   occasions: Map<string, OccasionRow>;
   entries: LedgerListRow[];
   termCodes: Map<string, string>;
+  achievements: Array<AchievementRow & { badge: BadgeRow }>;
+  boosters: BoosterView[];
 }) {
   const [tituloCheckIns, tituloMovimientos] = tList("T-668") as [string, string];
   const statusLabels = tList("T-597");
@@ -156,6 +165,33 @@ export function TabParticipacion({
           </div>
         )}
       </Bloque>
+      {achievements.length > 0 || boosters.length > 0 ? (
+        <Bloque titulo={tList("T-2404")[4] ?? ""}>
+          <ul className="flex list-none flex-col gap-2 p-0 text-sm">
+            {achievements.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold">{item.badge.name}</span>
+                <span className="tabular-nums">{item.badge.level}</span>
+                <span className="text-tinta-suave">{formatDateTime(item.unlockedAt)}</span>
+                {item.historical ? (
+                  <span className="eyebrow text-xs">{tList("T-2571")[5]}</span>
+                ) : null}
+              </li>
+            ))}
+            {boosters.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold">
+                  {tList("T-2451")[BOOSTER_KINDS.indexOf(item.kind)] ?? item.kind}
+                </span>
+                <span>{tList("T-2455")[BOOSTER_STATES.indexOf(item.state)] ?? item.state}</span>
+                <span className="text-tinta-suave">
+                  {t("T-2456", { fecha: formatDateTime(item.expiresAt) })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Bloque>
+      ) : null}
     </div>
   );
 }

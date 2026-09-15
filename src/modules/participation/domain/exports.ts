@@ -4,6 +4,8 @@ import { getPeopleByIds } from "@/modules/people";
 import { listAllTerms } from "@/modules/terms";
 import type { ChallengeKind, ParticipationStatus } from "../gamification-types";
 import {
+  achievement,
+  badgeDefinition,
   boosterItem,
   challenge,
   challengeParticipation,
@@ -150,6 +152,49 @@ export async function listParticipationsForExport(params: {
       ? (people.get(item.participation.decidedById)?.fullName?.trim() ?? "")
       : null,
     reason: item.participation.reason,
+  }));
+  return { rows: mapped, total: mapped.length };
+}
+
+// Export de insignias (ADR-067 regla 16): cabeceras T-2571, una fila por logro con su persona.
+
+export interface AchievementExportRow {
+  id: string;
+  personName: string;
+  email: string;
+  badgeCode: string;
+  badgeName: string;
+  level: number;
+  unlockedAt: Date;
+  historical: boolean;
+  revokedAt: Date | null;
+}
+
+export async function listAchievementsForExport(params: {
+  termId?: string | undefined;
+  page: number;
+  pageSize: number;
+}): Promise<{ rows: AchievementExportRow[]; total: number }> {
+  const where = params.termId ? eq(achievement.termId, params.termId) : undefined;
+  const rows = await getDb()
+    .select({ achievement, badge: badgeDefinition })
+    .from(achievement)
+    .innerJoin(badgeDefinition, eq(badgeDefinition.id, achievement.badgeId))
+    .where(where)
+    .orderBy(desc(achievement.unlockedAt))
+    .limit(params.pageSize)
+    .offset((params.page - 1) * params.pageSize);
+  const people = await getPeopleByIds(rows.map((item) => item.achievement.personId));
+  const mapped = rows.map((item) => ({
+    id: item.achievement.id,
+    personName: people.get(item.achievement.personId)?.fullName?.trim() ?? "",
+    email: people.get(item.achievement.personId)?.email ?? "",
+    badgeCode: item.badge.code,
+    badgeName: item.badge.name,
+    level: item.badge.level,
+    unlockedAt: item.achievement.unlockedAt,
+    historical: item.achievement.historical,
+    revokedAt: item.achievement.revokedAt,
   }));
   return { rows: mapped, total: mapped.length };
 }
