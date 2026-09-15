@@ -1,6 +1,6 @@
 # ADR-066: Cargos vigentes e historial por semestre y ámbito
 
-- Estado: Aceptada
+- Estado: Aceptada; verificada en producción
 - Fecha: 2026-09-14
 - Relacionadas: ADR-030, ADR-034, ADR-058, ADR-060
 
@@ -20,3 +20,7 @@ La Persona 360 mostraba todos los nombramientos, incluso anteriores, bajo «Junt
 ## Consecuencias
 
 No requiere migraciones ni modificaciones a los nombramientos existentes. La lectura adicional de asignaciones cerradas evita perder cargos al abandonar una pertenencia. Los cálculos de permanencia, honorario, GH Points y las autorizaciones no cambian.
+
+## Verificación
+
+PR 32; SHA publicado `4357cf710fc2c88601ffcca722cea946b6844c66`. CI completo en PR y main: 546 unitarias, 369 de integración, 11 del extractor y 175 escenarios E2E (177 casos únicos con setup). Prueba de interfaz a 1280 y 390 px, sin desbordamiento; detector sin hallazgos. Staging `e8f080dc-34d2-4509-ac56-01f65d66c97f` y producción `77e612f7-a79d-40c2-8ef7-e4a1562829d2` en SUCCESS, smoke 6/6 en ambos. Verificación de lectura de una ficha real en producción: vigentes solo del semestre actual, anteriores por semestre y ámbito, incluidos cargos de comité.
