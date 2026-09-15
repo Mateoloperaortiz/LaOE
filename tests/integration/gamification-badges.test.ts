@@ -35,7 +35,7 @@ import {
   wordleGame,
 } from "@/modules/participation/schema";
 import { membership } from "@/modules/people/schema";
-import { setConfigAs } from "@/modules/system";
+import { setConfig, setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { truncateAll } from "./db";
 import {
@@ -102,7 +102,10 @@ async function seedImportedCheckIn(occasionId: string, personId: string, at: Dat
 }
 
 describe("insignias: hechos", () => {
-  beforeEach(truncateAll);
+  beforeEach(async () => {
+    await truncateAll();
+    await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "gamification.enabled", true));
+  });
   afterAll(closeDb);
 
   it("En parche cuenta actividades voluntarias aprobadas —también importadas— y no reuniones ni asambleas", async () => {
@@ -201,7 +204,10 @@ async function seedTrivia(termId: string): Promise<string> {
 }
 
 describe("insignias: desbloqueo y revocación", () => {
-  beforeEach(truncateAll);
+  beforeEach(async () => {
+    await truncateAll();
+    await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "gamification.enabled", true));
+  });
   afterAll(closeDb);
 
   it("desbloquea En parche 1 con la fecha del hecho, otorga su booster y emite badge.unlocked", async () => {
@@ -357,7 +363,10 @@ describe("insignias: desbloqueo y revocación", () => {
 });
 
 describe("insignias: destacadas, vistas y colección", () => {
-  beforeEach(truncateAll);
+  beforeEach(async () => {
+    await truncateAll();
+    await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "gamification.enabled", true));
+  });
   afterAll(closeDb);
 
   it("destaca hasta tres posiciones y la cuarta responde T-2493", async () => {
@@ -438,7 +447,10 @@ describe("insignias: destacadas, vistas y colección", () => {
 });
 
 describe("ediciones especiales", () => {
-  beforeEach(truncateAll);
+  beforeEach(async () => {
+    await truncateAll();
+    await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "gamification.enabled", true));
+  });
   afterAll(closeDb);
 
   it("vinculada a una ocasión ya cerrada otorga a los asistentes aprobados de inmediato", async () => {
@@ -566,6 +578,7 @@ describe("flujo en vivo por el outbox", () => {
   });
 
   it("un Wordle ganado desbloquea Palabra a palabra 1 al drenar", async () => {
+    await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "gamification.enabled", true));
     const termId = await seedTerm();
     const personId = await seedMember("flujo2@test.dev");
     const [game] = await db()

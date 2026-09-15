@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { getPeopleByIds } from "@/modules/people";
+import { requireConfig } from "@/modules/system";
 import { findTermContaining } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
@@ -228,6 +229,7 @@ export async function recomputeBadgesFor(
 ): Promise<BadgeDelta> {
   const now = options.now ?? new Date();
   const dryRun = options.dryRun === true;
+  const allowUnlocks = options.historical || (await requireConfig("gamification.enabled"));
   return runCommand(options.actor ?? SYSTEM_ACTOR, async (ctx) => {
     await ctx.tx.execute(
       sql`select pg_advisory_xact_lock(hashtextextended(${`badges:${personId}`}, 0))`,
@@ -241,7 +243,9 @@ export async function recomputeBadgesFor(
       .orderBy(asc(badgeDefinition.level));
     const live = await liveAchievementsFor(personId, ctx.tx);
     const facts = await badgeFactsFor(personId, ctx.tx);
-    const { unlocks, revokes } = planDelta(definitions, live, facts);
+    const planned = planDelta(definitions, live, facts);
+    const unlocks = allowUnlocks ? planned.unlocks : [];
+    const revokes = planned.revokes;
 
     const delta: BadgeDelta = { unlocked: [], revoked: [] };
     if (dryRun) {
@@ -342,11 +346,12 @@ export async function recomputeBadgesFor(
         .select()
         .from(boosterItem)
         .where(eq(boosterItem.sourceAchievementId, row.id))
-        .limit(1);
+        .limit(1)
+        .for("update");
       const boosterUsed = booster?.status === "CONSUMED";
       await ctx.tx
         .update(achievement)
-        .set({ revokedAt: now, revokeReason: "SOURCE_REMOVED" })
+        .set({ revokedAt: now, revokeReason: "SOURCE_REMOVED", featuredPosition: null })
         .where(eq(achievement.id, row.id));
       if (booster?.status === "AVAILABLE") {
         await ctx.tx
@@ -477,6 +482,9 @@ export async function awardSpecialBadge(
   personIds: string[],
   source: { sourceKind: "OCCASION" | "CHALLENGE"; sourceRef: string; at: Date },
 ): Promise<number> {
+  if (!(await requireConfig("gamification.enabled"))) {
+    return 0;
+  }
   const [badge] = await ctx.tx
     .select()
     .from(badgeDefinition)
@@ -645,6 +653,9 @@ export async function setFeatured(
   ctx: CommandContext,
   input: { personId: string; achievementId: string; featured: boolean },
 ): Promise<void> {
+  await ctx.tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`badges:${input.personId}`}, 0))`,
+  );
   const [row] = await ctx.tx
     .select()
     .from(achievement)
@@ -654,6 +665,7 @@ export async function setFeatured(
   if (!row || row.personId !== input.personId || row.revokedAt !== null) {
     throw new DomainError(t("T-032"));
   }
+  if (input.featured === (row.featuredPosition !== null)) return;
   const before = row.featuredPosition;
   let position: number | null = null;
   if (input.featured) {

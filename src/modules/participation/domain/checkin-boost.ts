@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import type { CommandContext } from "@/db/tx";
 import { t } from "@/shared/copy";
 import type { CampaignPercent } from "../gamification-types";
-import { type checkIn, reward } from "../schema";
+import { type boosterItem, type checkIn, reward } from "../schema";
 import { activeCampaignFor, findTargetedBooster } from "./challenges";
 import { boosterPercent, isVoluntaryOccasion } from "./gamification-pure";
 import type { GamificationSettings } from "./member-context";
@@ -30,15 +30,14 @@ export async function applyCheckInBoost(
     checkIn: CheckInRow;
     occasion: OccasionRow;
     outcome: CheckInBoostOutcome;
+    /** Selección propia validada por el check-in; conserva lo pedido aunque haya perdido la carrera. */
+    selectedBooster?: Pick<typeof boosterItem.$inferSelect, "id" | "kind"> | undefined;
     reason?: string | null | undefined;
     now?: Date | undefined;
   },
   context: { settings: GamificationSettings },
 ): Promise<void> {
   const { checkIn: current, occasion: row, outcome } = input;
-  if (!context.settings.enabled || !isVoluntaryOccasion(row) || row.points <= 0) {
-    return;
-  }
   const now = input.now ?? new Date();
   const [existing] = await ctx.tx
     .select()
@@ -83,8 +82,13 @@ export async function applyCheckInBoost(
     return;
   }
 
+  // La bandera frena reservas nuevas; confirmar, liberar y revertir una anterior sigue válido.
+  if (!context.settings.enabled || !isVoluntaryOccasion(row) || row.points <= 0) {
+    return;
+  }
   const [booster, campaign] = await Promise.all([
-    findTargetedBooster(ctx.tx, current.personId, { occasionId: row.id }, now),
+    input.selectedBooster ??
+      findTargetedBooster(ctx.tx, current.personId, { occasionId: row.id }, now),
     activeCampaignFor(ctx.tx, { occasionId: row.id }, now),
   ]);
   if (!booster && !campaign) {

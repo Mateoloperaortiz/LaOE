@@ -10,6 +10,7 @@ import {
   evidenceKey,
   prepareEvidenceUpload,
   processEvidenceFile,
+  processedEvidenceKey,
   resolveEvidenceRedirect,
   verifyEvidenceObjects,
 } from "@/modules/participation/domain/evidence";
@@ -107,6 +108,7 @@ describe("evidencias de retos", () => {
     keys.push(key, key.replace(/\.jpg$/, ".webp"));
     await putObject(key, bytes, "image/jpeg");
     const fileId = await seedEvidenceFile(personId, key);
+    keys.push(processedEvidenceKey(fileId));
 
     const outcome = await processEvidenceFile(fileId);
     expect(outcome).toBe("ready");
@@ -115,10 +117,10 @@ describe("evidencias de retos", () => {
       .from(challengeEvidenceFile)
       .where(eq(challengeEvidenceFile.id, fileId));
     expect(file?.status).toBe("READY");
-    expect(file?.objectKey).toMatch(/\.webp$/);
+    expect(file?.objectKey).toBe(key);
     expect(file?.contentType).toBe("image/webp");
 
-    const processed = await getObject(file?.objectKey ?? "");
+    const processed = await getObject(processedEvidenceKey(fileId));
     const meta = await sharp(processed).metadata();
     expect(meta.format).toBe("webp");
     expect(meta.exif).toBeUndefined();
@@ -132,6 +134,7 @@ describe("evidencias de retos", () => {
     keys.push(key);
     await putObject(key, Buffer.alloc(10_000, 7), "image/jpeg");
     const fileId = await seedEvidenceFile(personId, key);
+    keys.push(processedEvidenceKey(fileId));
     expect(await processEvidenceFile(fileId)).toBe("failed");
     const [file] = await db()
       .select()
@@ -149,6 +152,7 @@ describe("evidencias de retos", () => {
     keys.push(key, key.replace(/\.jpg$/, ".webp"));
     await putObject(key, bytes, "image/jpeg");
     const fileId = await seedEvidenceFile(personId, key);
+    keys.push(processedEvidenceKey(fileId));
 
     expect(await resolveEvidenceRedirect(fileId, { personId, isAdmin: false })).toEqual({
       status: 404,

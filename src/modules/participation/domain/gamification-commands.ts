@@ -24,6 +24,7 @@ import {
 } from "./boosters";
 import {
   annulParticipation,
+  replaySubmission,
   reviewParticipation,
   type SubmitResult,
   submitEvidence,
@@ -116,9 +117,6 @@ export async function submitTriviaAs(
   input: TriviaSubmitInput,
 ): Promise<SubmitResult> {
   const settings = await loadGamificationSettings();
-  if (!settings.enabled) {
-    return { ok: false, reason: "DISABLED" };
-  }
   const row = await findChallenge(input.challengeId);
   const member = row ? await resolveMemberContext(actor.personId, row.termId) : null;
   return runCommand(actor, async (ctx) => {
@@ -150,13 +148,25 @@ export async function submitEvidenceAs(
   input: EvidenceSubmitInput,
 ): Promise<SubmitResult> {
   const settings = await loadGamificationSettings();
+  const replay = () =>
+    runCommand(actor, (ctx) => replaySubmission(ctx, { ...input, personId: actor.personId }));
+  const previous = await replay();
+  if (previous) return previous;
   if (!settings.enabled) {
     return { ok: false, reason: "DISABLED" };
   }
   const row = await findChallenge(input.challengeId);
   const member = row ? await resolveMemberContext(actor.personId, row.termId) : null;
   // HEAD de cada objeto antes de la transacción: inválidos se rechazan (y los propios se borran).
-  const files = await verifyEvidenceObjects(actor.personId, input.keys);
+  let files: Awaited<ReturnType<typeof verifyEvidenceObjects>>;
+  try {
+    files = await verifyEvidenceObjects(actor.personId, input.keys);
+  } catch (error) {
+    // Otra copia de esta entrega pudo confirmarse y eliminar el original durante el HEAD.
+    const saved = await replay();
+    if (saved) return saved;
+    throw error;
+  }
   return runCommand(actor, async (ctx) => {
     const now = input.now ?? new Date();
     const [booster, campaign] = row

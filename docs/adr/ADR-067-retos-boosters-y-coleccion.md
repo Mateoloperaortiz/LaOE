@@ -1,6 +1,6 @@
 # ADR-067: Retos relámpago, boosters y colección de insignias
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-068)
 - Fecha: 2026-09-14
 - Relacionadas: ADR-004, ADR-007, ADR-008, ADR-011, ADR-012, ADR-014, ADR-020, ADR-022, ADR-030, ADR-032, ADR-035, ADR-038, ADR-041, ADR-062
 - Enmienda: ADR-007 (tipos `CHALLENGE` y `BOOST` del ledger), ADR-022 (evidencias con almacenamiento y autorización propios, fuera de `/api/media`), ADR-035 (participación en retos, boosters sobre asistencias, cierre de puntos que exige resolver pendientes), ADR-041 (el Wordle alimenta insignias y no admite boosters)
@@ -57,3 +57,7 @@ Precisiones sobre las decisiones, surgidas de la implementación:
 - Regla 15: `challenge.rejected` también produce la interacción de la línea de tiempo con `T-667[11]`, texto nuevo anexado al final de la fila.
 - Regla 11: los lotes de la conciliación se reencolan con `dedupeKey` `reconcile:<runId>:<lote>` (la clave del lote en curso seguiría pendiente y el único parcial del outbox descartaría una repetida); la reanudación usa `reconcile:<runId>:<procesadas>`.
 - La lectura por cursor de personas con membresía (cualquier estado, ADR-030) vive en `people.listMembershipPersonIds`; `participation` no importa el esquema de `people`.
+
+## Enmienda (2026-09-15, ADR-068)
+
+[ADR-068](ADR-068-correcciones-de-gamificacion.md) separa las evidencias subidas de sus resultados protegidos, precisa qué operaciones permite la bandera apagada y corrige las carreras del check-in, las reaprobaciones presenciales, el replay por contenido y la liberación de posiciones destacadas. La migración 0032 repara posiciones revocadas y reencola las evidencias READY anteriores.

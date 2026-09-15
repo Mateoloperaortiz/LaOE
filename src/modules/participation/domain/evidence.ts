@@ -37,6 +37,11 @@ export function evidenceKey(personId: string, contentType: string, id: string): 
   return `${EVIDENCE_KEY_PREFIX}${personId}/${id}.${EVIDENCE_TYPES[contentType] ?? "bin"}`;
 }
 
+/** Esta dirección nunca se firma para una subida del cliente. objectKey conserva la solicitud. */
+export function processedEvidenceKey(fileId: string): string {
+  return `${EVIDENCE_KEY_PREFIX}processed/${fileId}.webp`;
+}
+
 export interface PreparedEvidenceUpload {
   key: string;
   url: string;
@@ -122,59 +127,63 @@ export async function processEvidenceFile(
   now = new Date(),
 ): Promise<EvidenceProcessOutcome> {
   const db = getDb();
-  const [file] = await db
-    .select()
-    .from(challengeEvidenceFile)
-    .where(eq(challengeEvidenceFile.id, fileId))
-    .limit(1);
-  if (!file) {
-    logger.warn({ fileId }, "gamification.evidence-process: la fila no existe");
-    return "skipped";
-  }
-  if (file.status === "READY") {
-    return "skipped";
-  }
-  try {
-    if (!(file.contentType in EVIDENCE_TYPES)) {
-      throw new PermanentEvidenceError(`Tipo no permitido: ${file.contentType}`);
-    }
-    const bytes = await getObject(file.objectKey); // transitorio: relanza
-    let rendered: Buffer;
-    try {
-      rendered = await sharp(bytes).rotate().webp({ quality: WEBP_QUALITY }).toBuffer();
-    } catch (error) {
-      throw new PermanentEvidenceError(
-        `No se pudo decodificar la imagen: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-    const key = file.objectKey.replace(/\.(jpg|png|webp)$/, ".webp");
-    await putObject(key, rendered, "image/webp"); // transitorio: relanza
-    if (key !== file.objectKey) {
-      await deleteObject(file.objectKey).catch(() => undefined);
-    }
-    await db
-      .update(challengeEvidenceFile)
-      .set({
-        objectKey: key,
-        contentType: "image/webp",
-        byteSize: rendered.byteLength,
-        status: "READY",
-        error: null,
-        updatedAt: now,
-      })
-      .where(eq(challengeEvidenceFile.id, file.id));
-    return "ready";
-  } catch (error) {
-    if (error instanceof PermanentEvidenceError) {
-      await db
-        .update(challengeEvidenceFile)
-        .set({ status: "FAILED", error: error.message.slice(0, 500), updatedAt: now })
-        .where(eq(challengeEvidenceFile.id, file.id));
-      logger.warn({ fileId, err: error }, "evidencia que no es una imagen válida");
-      return "failed";
-    }
-    throw error;
-  }
+  const result = await db.transaction(
+    async (tx): Promise<{ outcome: EvidenceProcessOutcome; original?: string }> => {
+      const [file] = await tx
+        .select()
+        .from(challengeEvidenceFile)
+        .where(eq(challengeEvidenceFile.id, fileId))
+        .limit(1)
+        .for("update");
+      if (!file) {
+        logger.warn({ fileId }, "gamification.evidence-process: la fila no existe");
+        return { outcome: "skipped" };
+      }
+      if (file.status === "READY") {
+        return { outcome: "skipped", original: file.objectKey };
+      }
+      try {
+        if (!(file.contentType in EVIDENCE_TYPES)) {
+          throw new PermanentEvidenceError(`Tipo no permitido: ${file.contentType}`);
+        }
+        const bytes = await getObject(file.objectKey); // transitorio: relanza
+        let rendered: Buffer;
+        try {
+          rendered = await sharp(bytes).rotate().webp({ quality: WEBP_QUALITY }).toBuffer();
+        } catch (error) {
+          throw new PermanentEvidenceError(
+            `No se pudo decodificar la imagen: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+        const key = processedEvidenceKey(file.id);
+        await putObject(key, rendered, "image/webp"); // transitorio: relanza
+        await tx
+          .update(challengeEvidenceFile)
+          .set({
+            contentType: "image/webp",
+            byteSize: rendered.byteLength,
+            status: "READY",
+            error: null,
+            updatedAt: now,
+          })
+          .where(eq(challengeEvidenceFile.id, file.id));
+        return { outcome: "ready", original: file.objectKey };
+      } catch (error) {
+        if (error instanceof PermanentEvidenceError) {
+          await tx
+            .update(challengeEvidenceFile)
+            .set({ status: "FAILED", error: error.message.slice(0, 500), updatedAt: now })
+            .where(eq(challengeEvidenceFile.id, file.id));
+          logger.warn({ fileId, err: error }, "evidencia que no es una imagen válida");
+          return { outcome: "failed" };
+        }
+        throw error;
+      }
+    },
+  );
+  // El original se borra después del commit; un fallo reintenta la limpieza sin volver a procesar.
+  if (result.original) await deleteObject(result.original);
+  return result.outcome;
 }
 
 export type EvidenceRedirect =
@@ -208,36 +217,41 @@ export async function resolveEvidenceRedirect(
   if (file.personId !== viewer.personId && !viewer.isAdmin) {
     return { status: 403 };
   }
-  const url = await presignRead(file.objectKey, READ_EXPIRY_SECONDS);
+  const url = await presignRead(processedEvidenceKey(file.id), READ_EXPIRY_SECONDS);
   return { status: 302, url, cacheControl: "private, no-store" };
 }
 
 /** Retiro de datos personales (ADR-067): borra objetos y filas y vacía el texto de evidencia. */
 export async function deleteEvidenceFor(personId: string): Promise<number> {
-  const db = getDb();
-  const participations = await db
-    .select({ id: challengeParticipation.id })
-    .from(challengeParticipation)
-    .where(eq(challengeParticipation.personId, personId));
-  const ids = participations.map((row) => row.id);
-  if (ids.length === 0) {
-    return 0;
-  }
-  const files = await db
-    .select()
-    .from(challengeEvidenceFile)
-    .where(inArray(challengeEvidenceFile.participationId, ids));
-  for (const file of files) {
-    await deleteObject(file.objectKey).catch(() => undefined);
-  }
-  await db.delete(challengeEvidenceFile).where(inArray(challengeEvidenceFile.participationId, ids));
-  await db
-    .update(challengeParticipation)
-    .set({ evidenceText: null })
-    .where(
-      and(eq(challengeParticipation.personId, personId), inArray(challengeParticipation.id, ids)),
-    );
-  return files.length;
+  return getDb().transaction(async (db) => {
+    const participations = await db
+      .select({ id: challengeParticipation.id })
+      .from(challengeParticipation)
+      .where(eq(challengeParticipation.personId, personId));
+    const ids = participations.map((row) => row.id);
+    if (ids.length === 0) {
+      return 0;
+    }
+    const files = await db
+      .select()
+      .from(challengeEvidenceFile)
+      .where(inArray(challengeEvidenceFile.participationId, ids))
+      .for("update");
+    for (const file of files) {
+      await deleteObject(file.objectKey);
+      await deleteObject(processedEvidenceKey(file.id));
+    }
+    await db
+      .delete(challengeEvidenceFile)
+      .where(inArray(challengeEvidenceFile.participationId, ids));
+    await db
+      .update(challengeParticipation)
+      .set({ evidenceText: null })
+      .where(
+        and(eq(challengeParticipation.personId, personId), inArray(challengeParticipation.id, ids)),
+      );
+    return files.length;
+  });
 }
 
 /**

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
@@ -37,6 +37,7 @@ import {
   type ReserveRewardInput,
   type RewardRow,
   releaseReward,
+  rereserveReward,
   reserveAndGrantReward,
   reserveReward,
   reverseReward,
@@ -263,6 +264,48 @@ async function replayResult(
   };
 }
 
+/** El replay compara el contenido guardado, incluso tras cerrar el reto o procesar sus imágenes. */
+export async function replaySubmission(
+  ctx: CommandContext,
+  input: {
+    challengeId: string;
+    personId: string;
+    requestId: string;
+    answers?: number[];
+    text?: string;
+    keys?: string[];
+  },
+): Promise<SubmitResult | null> {
+  const existing = await existingParticipation(ctx, input.challengeId, input.personId);
+  if (!existing) return null;
+  if (existing.requestId !== input.requestId) return { ok: false, reason: "ALREADY" };
+  let matches = false;
+  if (input.answers) {
+    matches = JSON.stringify(existing.answers) === JSON.stringify(input.answers);
+  } else if (input.text !== undefined) {
+    const files = await ctx.tx
+      .select({ key: challengeEvidenceFile.objectKey })
+      .from(challengeEvidenceFile)
+      .where(eq(challengeEvidenceFile.participationId, existing.id))
+      .orderBy(asc(challengeEvidenceFile.ordinal));
+    matches =
+      existing.evidenceText === input.text.trim() &&
+      JSON.stringify(files.map((file) => file.key)) ===
+        JSON.stringify([...new Set(input.keys ?? [])]);
+  }
+  return matches ? replayResult(ctx, existing) : { ok: false, reason: "INVALID_INPUT" };
+}
+
+async function lockSubmission(
+  ctx: CommandContext,
+  challengeId: string,
+  personId: string,
+): Promise<void> {
+  await ctx.tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`submission:${challengeId}:${personId}`}, 0))`,
+  );
+}
+
 export async function submitTrivia(
   ctx: CommandContext,
   input: {
@@ -274,6 +317,9 @@ export async function submitTrivia(
   },
   context: SubmitContext,
 ): Promise<SubmitResult> {
+  await lockSubmission(ctx, input.challengeId, input.personId);
+  const replay = await replaySubmission(ctx, input);
+  if (replay) return replay;
   const gate = await submissionGate(ctx, input, context);
   if (!gate.ok) {
     return gate;
@@ -281,13 +327,6 @@ export async function submitTrivia(
   const { row, now } = gate;
   if (row.kind !== "TRIVIA") {
     return { ok: false, reason: "INVALID_INPUT" };
-  }
-  const existing = await existingParticipation(ctx, row.id, input.personId);
-  if (existing) {
-    if (existing.requestId === input.requestId) {
-      return replayResult(ctx, existing);
-    }
-    return { ok: false, reason: "ALREADY" };
   }
   const questions = await ctx.tx
     .select()
@@ -392,6 +431,12 @@ export async function submitEvidence(
   },
   context: SubmitContext,
 ): Promise<SubmitResult> {
+  await lockSubmission(ctx, input.challengeId, input.personId);
+  const replay = await replaySubmission(ctx, {
+    ...input,
+    keys: input.files.map((file) => file.key),
+  });
+  if (replay) return replay;
   const gate = await submissionGate(ctx, input, context);
   if (!gate.ok) {
     return gate;
@@ -407,13 +452,6 @@ export async function submitEvidence(
     input.files.length > 3
   ) {
     return { ok: false, reason: "INVALID_INPUT" };
-  }
-  const existing = await existingParticipation(ctx, row.id, input.personId);
-  if (existing) {
-    if (existing.requestId === input.requestId) {
-      return replayResult(ctx, existing);
-    }
-    return { ok: false, reason: "ALREADY" };
   }
   let created: ParticipationRow | undefined;
   try {
@@ -489,7 +527,7 @@ export async function submitEvidence(
 /**
  * Gancho del check-in (ADR-067 regla 12): la ocasión vinculada a un reto presencial abierto al
  * momento del registro completa, reserva o anula la participación según el desenlace del check-in.
- * Con la bandera apagada o sin retos vinculados abiertos no hace nada.
+ * Las reservas previas se deciden aunque cambien la bandera, el reto o la membresía.
  */
 export async function applyPresentialCheckIn(
   ctx: CommandContext,
@@ -502,43 +540,39 @@ export async function applyPresentialCheckIn(
   },
   context: { settings: GamificationSettings },
 ): Promise<void> {
-  if (!context.settings.enabled) {
-    return;
-  }
   const now = input.now ?? new Date();
   const rows = await ctx.tx
     .select()
     .from(challenge)
-    .where(
-      and(
-        eq(challenge.occasionId, input.occasion.id),
-        eq(challenge.kind, "PRESENTIAL"),
-        eq(challenge.status, "PUBLISHED"),
-      ),
-    )
+    .where(and(eq(challenge.occasionId, input.occasion.id), eq(challenge.kind, "PRESENTIAL")))
     .for("share");
   for (const row of rows) {
-    // La ventana se evalúa a la hora del check-in, no a la hora de la decisión.
-    if (challengeState(row, input.checkIn.at) !== "OPEN") {
-      continue;
-    }
-    const member = await resolveMemberContext(input.checkIn.personId, row.termId, ctx.tx);
-    if (!audienceIncludes(row, member)) {
-      continue;
-    }
     const existing = await existingParticipation(ctx, row.id, input.checkIn.personId);
+    const correcting = input.outcome === "REJECTED" || input.outcome === "CANCELLED";
+    const confirming = input.outcome === "APPROVED" && existing?.status === "PENDING";
+    if (correcting && !existing) continue;
+    if (!correcting && !confirming) {
+      if (existing?.status === "COMPLETED" || existing?.status === "ANNULLED") continue;
+      // Una reserva nueva requiere activación y un reto publicado cuya ventana incluya el registro.
+      if (!context.settings.enabled || challengeState(row, input.checkIn.at) !== "OPEN") continue;
+      if (!existing) {
+        const member = await resolveMemberContext(input.checkIn.personId, row.termId, ctx.tx);
+        if (!audienceIncludes(row, member)) continue;
+      }
+    }
     // Solo lo apuntado al reto: un booster o campaña sobre la ocasión potencia el premio de la
     // asistencia (reward CHECKIN, G-T4), no el del reto.
     const subContext: SubmitContext = {
-      member,
+      member: null,
       settings: context.settings,
-      booster: await findTargetedBooster(
-        ctx.tx,
-        input.checkIn.personId,
-        { challengeId: row.id },
-        now,
-      ),
-      campaign: await activeCampaignFor(ctx.tx, { challengeId: row.id }, now),
+      booster:
+        correcting || confirming
+          ? null
+          : await findTargetedBooster(ctx.tx, input.checkIn.personId, { challengeId: row.id }, now),
+      campaign:
+        correcting || confirming
+          ? null
+          : await activeCampaignFor(ctx.tx, { challengeId: row.id }, now),
     };
     if (input.outcome === "APPROVED") {
       if (existing?.status === "COMPLETED") {
@@ -568,34 +602,47 @@ export async function applyPresentialCheckIn(
         }
         continue;
       }
-      const [created] = await ctx.tx
-        .insert(challengeParticipation)
-        .values({
-          challengeId: row.id,
-          personId: input.checkIn.personId,
-          requestId: `checkin:${input.checkIn.id}`,
-          status: "COMPLETED",
-          submittedAt: now,
-          checkInId: input.checkIn.id,
-          decidedAt: now,
-          decidedById: ctx.actor.personId,
-        })
-        .returning();
+      const [created] = existing
+        ? [existing]
+        : await ctx.tx
+            .insert(challengeParticipation)
+            .values({
+              challengeId: row.id,
+              personId: input.checkIn.personId,
+              requestId: `checkin:${input.checkIn.id}`,
+              status: "COMPLETED",
+              submittedAt: now,
+              checkInId: input.checkIn.id,
+              decidedAt: now,
+              decidedById: ctx.actor.personId,
+            })
+            .returning();
       if (!created) {
         throw new Error("No se pudo registrar la participación");
       }
-      const { reward: granted } = await reserveAndGrantReward(
-        ctx,
-        rewardInput(row, input.checkIn.personId, subContext, {
-          participationId: created.id,
-          now,
-        }),
-        context.settings.caps,
-        rewardReasons(row, contextPercent(subContext)),
-      );
+      const reserveInput = rewardInput(row, input.checkIn.personId, subContext, {
+        participationId: created.id,
+        now,
+      });
+      const reasons = rewardReasons(row, contextPercent(subContext));
+      let granted: RewardRow;
+      if (existing?.rewardId) {
+        await rereserveReward(ctx, existing.rewardId, reserveInput, context.settings.caps, now);
+        granted = await grantReward(ctx, existing.rewardId, reasons, now);
+      } else {
+        granted = (await reserveAndGrantReward(ctx, reserveInput, context.settings.caps, reasons))
+          .reward;
+      }
       const [updated] = await ctx.tx
         .update(challengeParticipation)
-        .set({ rewardId: granted.id, updatedAt: now })
+        .set({
+          rewardId: granted.id,
+          status: "COMPLETED",
+          reason: null,
+          decidedAt: now,
+          decidedById: ctx.actor.personId,
+          updatedAt: now,
+        })
         .where(eq(challengeParticipation.id, created.id))
         .returning();
       await auditParticipation(ctx, row, updated ?? created, "COMPLETED");

@@ -176,9 +176,15 @@ Una firma de juguete prueba formato e integridad, no confianza de Apple ni distr
 
 **Revisión visual.** Con el seed sintético se recorren a 390, 768 y 1280 px, en claro y oscuro: `/app` (inicio con próximo reto), `/app/gh-points` (resumen con el diálogo de insignia cuando aplica), `/app/gh-points/retos`, `/app/gh-points/retos/[id]` (trivia disponible y respondida, misión con evidencia, presencial), `/app/gh-points/boosters`, `/app/gh-points/coleccion`, `/a/[publicId]` con el selector de booster, `/admin/gamificacion` y sus subpáginas (reto, revisión, campañas, insignias, límites). Se verifican ausencia de desbordamiento — las tablas del admin se desplazan dentro de su región accesible con teclado y el emblema del `Cartel` queda recortado por diseño — contraste AA de textos e `Insignia`s en ambos temas, y teclado: orden de foco en la trivia, `details` y radios de Boosters, y Escape que cierra el diálogo devolviendo el foco. Con `prefers-reduced-motion: reduce` el desbloqueo muestra el texto T-2499 sin animación. Las capturas viven fuera del repositorio.
 
-Comandos: `npm run copy:sync`, `npm run db:generate` (sin diferencias frente a `0030_gamificacion`), `npm run db:migrate`, `npm run check`, `npm run test:e2e -- gamificacion gh-points wordle checkin cierre ledger`. La activación en cada entorno sigue el orden de la ADR: migración, conciliación en seco y aplicada, borradores de GH, `gamification.enabled`.
+Comandos: `npm run copy:sync`, `npm run db:generate` (sin diferencias frente al esquema versionado), `npm run db:migrate`, `npm run check`, `npm run test:e2e -- gamificacion gh-points wordle checkin cierre ledger`. La activación en cada entorno sigue el orden de la ADR: migración, conciliación en seco y aplicada, borradores de GH, `gamification.enabled`.
 
 ## Cierre de fase
+
+### Correcciones de gamificación (ADR-068)
+
+`tests/integration/gamification-regressions.test.ts` conserva los ocho casos detectados en la revisión y verifica además: decidir reservas tras apagar la bandera o cambiar membresía; no revivir premios de retos cancelados; replay concurrente, tras el cierre y después de borrar originales; migración 0032 que libera posiciones revocadas y oculta/reencola evidencias anteriores. La sobrescritura WebP se prueba con dos POST prefirmados reales contra el bucket local y se verifica que el objeto servido no cambia ni vuelve a contener EXIF.
+
+Las pruebas de insignias activan explícitamente la bandera cuando esperan desbloqueos en vivo. Las de evidencia comprueban que `objectKey` conserva la clave original y que solo se sirve `evidence/processed/<fileId>.webp`. Antes de entregar: `npm run db:generate` sin cambios, `npm run check` y `npm run test:e2e` completo; el resultado efectivo queda en el registro de avances.
 
 ### Portal y Mi OE (ADR-044)
 

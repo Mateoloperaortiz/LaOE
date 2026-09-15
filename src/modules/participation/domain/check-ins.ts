@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
@@ -6,7 +6,7 @@ import { lockOpenTermPoints } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
 import { checkIn, occasion } from "../schema";
-import { setBoosterTarget } from "./boosters";
+import { type BoosterRow, setBoosterTarget } from "./boosters";
 import { applyPresentialCheckIn } from "./challenge-participation";
 import {
   CHECK_IN_STATUSES,
@@ -192,15 +192,21 @@ export async function checkInSelf(
       return { ok: false, reason: "BAD_CODE" };
     }
   }
+  let selectedBooster: BoosterRow | undefined;
   if (input.boosterId && context.settings) {
+    // Mismo orden que reserveReward: persona antes que booster, también en carreras con trivia.
+    await ctx.tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`reward:${input.personId}`}, 0))`,
+    );
     try {
-      await setBoosterTarget(
+      selectedBooster = await setBoosterTarget(
         ctx,
         {
           personId: input.personId,
           boosterId: input.boosterId,
           target: { occasionId: row.id },
           now,
+          allowUnavailable: true,
         },
         { member: context.member ?? null, settings: context.settings },
       );
@@ -266,6 +272,7 @@ export async function checkInSelf(
         checkIn: created,
         occasion: row,
         outcome: status === "APPROVED" ? "APPROVED" : "PENDING",
+        selectedBooster,
         now,
       },
       { settings: context.settings },

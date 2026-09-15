@@ -225,6 +225,13 @@
       "when": 1789484810090,
       "tag": "0031_booster_pedido",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1789502330975,
+      "tag": "0032_gamificacion_correcciones",
+      "breakpoints": true
     }
   ]
 }

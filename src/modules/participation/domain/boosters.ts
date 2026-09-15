@@ -201,6 +201,8 @@ export async function setBoosterTarget(
     boosterId: string;
     target: BoosterTarget | null;
     now?: Date | undefined;
+    /** El check-in válido continúa si otra entrega ya reservó o consumió el booster propio. */
+    allowUnavailable?: boolean;
   },
   context: { member: MemberContext | null; settings: GamificationSettings },
 ): Promise<BoosterRow> {
@@ -218,6 +220,9 @@ export async function setBoosterTarget(
     throw new DomainError(t("T-032"));
   }
   const state = boosterState(row, now);
+  if (input.allowUnavailable && (state === "RESERVED" || state === "CONSUMED")) {
+    return row;
+  }
   if (state === "EXPIRED") {
     throw new DomainError(errors[1] ?? "");
   }

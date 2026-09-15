@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { and, count, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { drain } from "@/jobs/poller";
 import "@/jobs/handlers";
 import { message } from "@/modules/comms/schema";
@@ -27,6 +28,7 @@ import {
 import { pointEntry, wordleAttempt, wordleGame } from "@/modules/participation/schema";
 import type { WordleGameView } from "@/modules/participation/wordle-types";
 import { membership, person } from "@/modules/people/schema";
+import { setConfig } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { truncateAll } from "./db";
@@ -151,6 +153,7 @@ describe("Wordle diario persistido", () => {
   });
 
   it("la victoria produce una sola interacción CRM al reentregar el evento y no manda push", async () => {
+    await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "gamification.enabled", true));
     const personId = await seedMember("wordle.crm@eafit.edu.co");
     const game = await started(personId);
     const answer = await answerFor(game.id);

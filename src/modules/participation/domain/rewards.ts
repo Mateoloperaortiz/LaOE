@@ -30,7 +30,7 @@ export interface ReserveRewardInput {
   checkInId?: string | null;
   /** Puntos base pedidos, de 0 a 20. */
   base: number;
-  /** Booster ya validado por el llamador: propio, AVAILABLE o RESERVED, vigente y de kind conocido. */
+  /** Booster propio validado por el llamador; el lock revalida estado, vigencia y objetivo. */
   boosterItemId?: string | null;
   /** Objetivo que el llamador espera del booster: si se re-apuntó a otra cosa, no se consume. */
   expectedTarget?: { challengeId?: string | null; occasionId?: string | null } | undefined;
@@ -173,9 +173,18 @@ export async function rereserveReward(
   caps: RewardCaps,
   now = new Date(),
 ): Promise<void> {
+  await lockOpenTermPoints(ctx.tx, input.termId);
   await ctx.tx.execute(
     sql`select pg_advisory_xact_lock(hashtextextended(${`reward:${input.personId}`}, 0))`,
   );
+  const previous = await rewardForUpdate(ctx, rewardId);
+  if (
+    previous.status !== "RELEASED" ||
+    previous.personId !== input.personId ||
+    previous.termId !== input.termId
+  ) {
+    throw new DomainError(t("T-676", { estado: previous.status }));
+  }
   const dayKey = dayKeyFor(now);
   const weekKey = weekKeyFor(now);
   const used = await usedRewardPoints(ctx.tx, input.personId, dayKey, weekKey);
@@ -216,6 +225,7 @@ export async function rereserveReward(
   await ctx.tx
     .update(reward)
     .set({
+      basePoints: input.base,
       personalPercent: final.personalConsumed ? input.personalPercent : 0,
       requestedPersonalPercent: input.personalPercent,
       campaignPercent: input.campaignPercent,
@@ -402,6 +412,7 @@ export async function reverseReward(
   if (row.status !== "GRANTED") {
     throw new DomainError(t("T-676", { estado: row.status }));
   }
+  await lockOpenTermPoints(ctx.tx, row.termId);
   const reversed = await reverseRewardCredits(ctx, rewardId, reason);
   let boosterReturned = false;
   if (row.boosterItemId) {
