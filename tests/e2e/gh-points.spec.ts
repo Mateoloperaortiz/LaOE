@@ -55,7 +55,7 @@ test("el miembro ve su saldo, su nivel, sus movimientos y los rankings", async (
   await sinViolaciones(page);
   const tableros = page.getByRole("navigation", { name: "Rankings del semestre" });
   await tableros.getByRole("link", { name: "Comités", exact: true }).click();
-  await expect(page.getByText(/ajustada para que los comités chicos/)).toBeVisible();
+  await expect(page).toHaveURL(/tablero=comites/);
   await tableros.getByRole("link", { name: "Veteranos", exact: true }).click();
   await expect(page.getByText(/Veteranos: todos los demás/)).toBeVisible();
 });

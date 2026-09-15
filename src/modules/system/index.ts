@@ -14,6 +14,7 @@ export {
   getConfig,
   requireConfig,
   setConfig,
+  setConfigAs,
 } from "./domain/config";
 export { recordExport, recordSelfExport } from "./domain/exports";
 export { checkDatabase } from "./domain/health";

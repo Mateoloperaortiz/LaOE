@@ -1,4 +1,4 @@
-import { and, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
@@ -93,6 +93,25 @@ export async function getMembershipRef(
     .where(eq(membership.personId, personId))
     .limit(1);
   return row ?? null;
+}
+
+/** Comités de la persona en un término, solo pertenencias vigentes (leftAt nulo). */
+export async function listCommitteeIdsForPersonInTerm(
+  personId: string,
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<string[]> {
+  const rows = await exec
+    .select({ committeeId: committeeMembership.committeeId })
+    .from(committeeMembership)
+    .where(
+      and(
+        eq(committeeMembership.personId, personId),
+        eq(committeeMembership.termId, termId),
+        isNull(committeeMembership.leftAt),
+      ),
+    );
+  return rows.map((row) => row.committeeId);
 }
 
 export interface TermCommitteeMember {
@@ -312,6 +331,23 @@ export async function listAppointmentsForTerm(termId: string): Promise<TermAppoi
     })
     .from(appointment)
     .where(eq(appointment.termId, termId));
+}
+
+/**
+ * Todas las personas con membresía — cualquier estado, la historia de egresados también cuenta
+ * (ADR-030) — paginadas por cursor para la conciliación histórica de insignias (ADR-067).
+ */
+export async function listMembershipPersonIds(
+  cursor: string | null,
+  limit: number,
+): Promise<string[]> {
+  const rows = await getDb()
+    .select({ personId: membership.personId })
+    .from(membership)
+    .where(cursor ? gt(membership.personId, cursor) : undefined)
+    .orderBy(asc(membership.personId))
+    .limit(limit);
+  return rows.map((row) => row.personId);
 }
 
 export interface MembershipStatusRef {

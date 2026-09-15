@@ -467,3 +467,25 @@
     font-size: 2rem;
   }
 }
+
+/* Insignia desbloqueada (ADR-067 regla 10): entrada breve solo si la persona no pidió movimiento
+   reducido; con `reduce` no hay animación y el diálogo muestra la alternativa T-2499. */
+@media (prefers-reduced-motion: no-preference) {
+  .badge-unlock-art {
+    display: inline-flex;
+    animation: badge-unlock-entra 550ms ease-out both;
+  }
+}
+@keyframes badge-unlock-entra {
+  from {
+    opacity: 0;
+    transform: scale(0.4) rotate(-20deg);
+  }
+  60% {
+    transform: scale(1.08) rotate(4deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

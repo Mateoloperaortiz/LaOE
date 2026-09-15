@@ -43,6 +43,21 @@ erDiagram
   Person ||--o{ CheckIn : ""
   CheckIn ||--o| PointEntry : "credito"
   Term ||--o{ PointEntry : "ledger"
+  Term ||--o{ Challenge : "retos"
+  Challenge ||--o{ ChallengeQuestion : "trivia"
+  Challenge ||--o{ ChallengeParticipation : ""
+  Person ||--o{ ChallengeParticipation : ""
+  ChallengeParticipation ||--o{ ChallengeEvidenceFile : "imagenes"
+  ChallengeParticipation ||--o| Reward : "premio"
+  CheckIn ||--o| Reward : "impulsado"
+  Reward ||--o{ PointEntry : "CHALLENGE y BOOST"
+  Person ||--o{ BoosterItem : "inventario"
+  BoosterItem ||--o| Reward : "consumo"
+  Challenge ||--o{ BoostCampaign : ""
+  Occasion ||--o{ BoostCampaign : ""
+  BadgeDefinition ||--o{ Achievement : ""
+  Person ||--o{ Achievement : "coleccion"
+  Achievement ||--o| BoosterItem : "otorga"
   Occasion ||--o{ CommitteeParticipation : "score"
   Term ||--o| TermStanding : "cierre"
   Term ||--o{ AssemblyRequirement : "ajustes"
@@ -153,13 +168,23 @@ Módulo propio desde la fase 5 ([ADR-037](adr/ADR-037-admision-aliados-y-contact
 | `OccasionSurveyInvite` | `occasionId`, `personId`, `tokenHash` único, `sentAt?`, `answeredAt?` | Una por asistente aprobado al cerrar una ocasión con encuesta; única por (ocasión, persona); el token viaja solo en la URL del push; se borra al salir o anonimizarse ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
 | `OccasionSurveyResponse` | `occasionId`, `committeeId?` (copiado de la ocasión), `answers` JSON, `createdAt` | **Sin persona**: la respuesta anónima; los agregados por ocasión y comité muestran textos libres solo con 3 o más respuestas ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
 | `CheckIn` | `occasionId`, `personId`, `status` (`PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`, `EXCUSED`), `source` (`SELF_QR`, `HOST`, `ADMIN`, `IMPORT`), `at`, `decidedById?`, `decidedAt?`, `reason?`, `legacyId?` | Unique por (ocasión, persona); `PENDING → APPROVED \| REJECTED \| EXCUSED`, `REJECTED → APPROVED \| EXCUSED`, `APPROVED → CANCELLED`, `CANCELLED → EXCUSED`; `EXCUSED` es la excusa válida aceptada, sin puntos, terminal ([ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) regla 5); la IP queda en la auditoría, no aquí |
-| `PointEntry` | `personId`, `termId`, `checkInId?`, `wordleGameId?` único, `kind` (`CHECKIN`, `ADJUSTMENT`, `REVERSAL`, `LEGACY`, `WORDLE`), `points` (≠ 0), `reason`, `reversalOfId?` único, `createdById?`, `legacyType?`, `legacyId?` | Append-only; CHECKIN nace junto a la asistencia y WORDLE junto a la victoria (1 a 6 puntos; ADR-041) |
+| `PointEntry` | `personId`, `termId`, `checkInId?`, `wordleGameId?` único, `rewardId?`, `kind` (`CHECKIN`, `ADJUSTMENT`, `REVERSAL`, `LEGACY`, `WORDLE`, `CHALLENGE`, `BOOST`), `points` (≠ 0), `reason`, `reversalOfId?` único, `createdById?`, `legacyType?`, `legacyId?` | Append-only; CHECKIN nace junto a la asistencia, WORDLE junto a la victoria (1 a 6 puntos; ADR-041) y CHALLENGE (base) y BOOST (extra, 1 a 20 cada uno) al confirmar un `Reward` ([ADR-067](adr/ADR-067-retos-boosters-y-coleccion.md)) |
 | `WordleGame` | `personId`, `termId`, `day`, `answer` privada, `dictionaryVersion`, `rulesVersion`, `status` (`IN_PROGRESS`, `WON`, `LOST`, `EXPIRED`), `completedAt?` | Únicas persona/día y respuesta/día de Colombia; no se crea con GET; respuesta visible únicamente al terminar o vencer |
 | `WordleAttempt` | `gameId`, `ordinal` (1 a 6), `requestId`, `guess`, `feedback` JSON | Únicas partida/ordinal y partida/requestId; pistas por letra guardadas en servidor |
 | `CommitteeParticipation` | `occasionId`, `committeeId`, `termId`, `eligible`, `present`, `rate`, `smoothedRate`, `frozenAt?`, `computedAt` | Unique por (ocasión, comité); cruda y suavizada con `k = 5` (ADR-024); solo comités con elegibles; `eligible` se congela al cerrar la ocasión |
 | `TermStanding` | `termId` único, `topNew` JSON, `topVeteran` JSON, `topCommittees` JSON, `stats` JSON | Snapshot al cerrar puntos, con ids y nombre congelado (anonimizar lo reemplaza por T-223) |
 | `AssemblyRequirement` | `termId`, `personId`, `requiredOrdinary`, `requiresBoardElection`, `requiresRunoff`, `adjustedReason`, `adjustedById?` | Unique por (término, persona); **solo se materializa para ajustes** (ADMIN con motivo): el requisito por defecto se deriva del término (una ordinaria; elección y segunda vuelta en segundo semestre); faltar a una obligatoria propone salida de la OE en el cierre |
 | `CommitteeAssemblyAttendance` | `occasionId`, `committeeId`, `termId`, `represented`, `excused`, `representedById?`, `computedAt` | Asistencia de cada comité con miembros activos a una asamblea cerrada: representado si su titular, su suplente o cualquier cargo de dirección vivo registró asistencia; con excusa si alguno de ellos tiene la excusa aceptada. Derivada por outbox al cerrar la asamblea y al decidir un check-in después; unique por (ocasión, comité). La escalera del término (primera falta sin voto, segunda sin voto en dos y falta leve, tercera desactivación; máximo dos con excusa) sale de estas filas (Regl. art. 64; [ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) regla 7) |
+| `Challenge` | `termId`, `kind` (`PRESENTIAL`, `TRIVIA`, `EVIDENCE`), `status` (`DRAFT`, `PUBLISHED`, `CANCELLED`), `title`, `description` Markdown, `audience` (`ALL`, `NEW`, `VETERAN`, `COMMITTEES`), `audienceCommitteeIds` JSON, `opensAt`, `closesAt`, `basePoints` (0 a 20), `passPercent?` (solo trivia), `occasionId?` (solo presencial), `publishedAt?`, `publishedById?`, `cancelledAt?`, `cancelReason?`, `duplicatedFromId?`, `createdById?` | Programado, abierto y vencido se derivan de las fechas; publicar congela formato, preguntas, público, premio, umbral y ocasión; cancelar exige motivo y libera las pendientes ([ADR-067](adr/ADR-067-retos-boosters-y-coleccion.md)) |
+| `ChallengeQuestion` | `challengeId`, `ordinal` (1 a 5), `prompt`, `options` JSON (2 a 6), `correctIndex` | Unique por (reto, ordinal); `correctIndex` es privado: solo sale en la proyección cuando el reto está cerrado o cancelado |
+| `ChallengeParticipation` | `challengeId`, `personId`, `status` (`PENDING`, `COMPLETED`, `REJECTED`, `ANNULLED`), `requestId`, `submittedAt`, `answers?` JSON, `score?`, `passed?`, `evidenceText?`, `checkInId?`, `rewardId?`, `decidedById?`, `decidedAt?`, `reason?` | Unique por (reto, persona) y por (reto, `requestId`); la trivia bajo el umbral queda `REJECTED`; la presencial se completa en la transacción del check-in; la evidencia espera a GH |
+| `ChallengeEvidenceFile` | `participationId`, `ordinal` (1 a 3), `objectKey` único (`evidence/<personId>/…`), `contentType`, `byteSize`, `status` (`PENDING`, `READY`, `FAILED`), `error?` | Fuera de `MediaAsset`; `objectKey` conserva la clave original para idempotencia; el job quita metadatos en `evidence/processed/<fileId>.webp` y deja `READY` (ADR-068); se sirve solo al autor o ADMIN por `/api/retos/evidencia/[id]`; se borra al anonimizar |
+| `Reward` | `personId`, `termId`, `source` (`CHALLENGE`, `CHECKIN`), `participationId?` único, `checkInId?` único, `basePoints`, `personalPercent` (0, 50, 100), `requestedPersonalPercent` (0, 50, 100), `campaignPercent` (0, 25, 50, 100), `campaignId?`, `boosterItemId?`, `baseGranted`, `extraPoints`, `status` (`RESERVED`, `GRANTED`, `RELEASED`, `REVERSED`), `dayKey`, `weekKey`, `capDaily`, `capWeekly`, `reservedAt`, `decidedAt?` | Día y semana de Colombia (lunes) y topes fijados al reservar; el cupo suma `RESERVED`, `GRANTED` y `REVERSED`; exactamente una fuente; `requestedPersonalPercent` guarda el booster pedido aunque no se consuma |
+| `BoosterItem` | `personId`, `termId`, `kind` (`PLUS_50`, `PLUS_100`), `status` (`AVAILABLE`, `RESERVED`, `CONSUMED`, `REVOKED`), `expiresAt`, `sourceAchievementId?` único, `targetChallengeId?`, `targetOccasionId?`, `consumedRewardId?`, `grantedById?`, `grantReason?`, `revokedById?`, `revokedAt?`, `revokeReason?` | Un uso; vence al terminar el término de emisión (derivado); un booster por persona y objetivo mientras no esté `REVOKED`; nace de un nivel de insignia o de GH con motivo |
+| `BoostCampaign` | `termId`, `name`, `percent` (25, 50, 100), `challengeId?` xor `occasionId?`, `startsAt`, `endsAt`, `status` (`ACTIVE`, `CANCELLED`), `createdById?` | Una fila por objetivo; si coinciden varias aplica la de mayor porcentaje vigente al reservar |
+| `BadgeDefinition` | `code` único, `family` (`EN_PARCHE`, `EXPLORADOR`, `RELAMPAGO`, `PALABRA_A_PALABRA`, `SPECIAL`), `level` (1 a 3), `threshold?`, `name`, `description`, `unlockHint`, `active`, `specialChallengeId?`, `specialOccasionId?`, `termId?`, `createdById?` | Catálogo en datos sembrado en `0030`; unique por (familia, nivel) salvo ediciones especiales |
+| `Achievement` | `personId`, `badgeId`, `unlockedAt`, `termId?`, `sourceKind`, `sourceRef?`, `historical`, `seenAt?`, `featuredPosition?` (1 a 3), `revokedAt?`, `revokeReason?` | Unique por (persona, insignia) viva y por (persona, posición destacada); el progreso no se guarda: se deriva de asistencias aprobadas, comités distintos, retos completados y Wordles ganados; `historical` no da booster ni push |
+| `BadgeReconciliationRun` | `mode` (`DRY_RUN`, `APPLY`), `status` (`RUNNING`, `DONE`, `FAILED`), `cursor?`, `processed`, `unlocked`, `revoked`, `report` JSON, `startedById?`, `startedAt`, `finishedAt?`, `error?` | Reanudable por lotes de cien personas; repetible sin duplicar |
 
 ### permanence
 
@@ -242,6 +267,16 @@ Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().
 | `PointEntry(checkInId) WHERE kind = 'CHECKIN'` | Una entrada de crédito por check-in |
 | `PointEntry(reversalOfId)` único | Una reversión por entrada |
 | `PointEntry(wordleGameId)` único | Una acreditación de Wordle por partida; solo WORDLE lleva este vínculo |
+| `PointEntry(rewardId, kind) WHERE rewardId IS NOT NULL` único | Un premio base (CHALLENGE) y un extra (BOOST) por `Reward` (el literal nuevo del enum no se puede usar en la transacción del `ADD VALUE` y el cast a text no es IMMUTABLE); los checks con `kind::text` limitan 1 a 20 puntos y exigen `rewardId` solo en esos tipos ([ADR-067](adr/ADR-067-retos-boosters-y-coleccion.md)) |
+| `ChallengeParticipation(challengeId, personId)` y `(challengeId, requestId)` únicos | Una participación por reto y persona; reintentos idempotentes |
+| `ChallengeQuestion(challengeId, ordinal)` único; check `ordinal` 1 a 5 y 2 a 6 opciones | Preguntas ordenadas y acotadas |
+| `ChallengeEvidenceFile(objectKey)` y `(participationId, ordinal)` únicos; check `ordinal` 1 a 3 | Hasta tres imágenes por entrega, una fila por objeto |
+| `Reward(participationId)` y `Reward(checkInId)` únicos; check exactamente una fuente; checks de rangos (base 0 a 20, porcentajes permitidos) | Un premio por participación o por asistencia impulsada |
+| `BoosterItem(sourceAchievementId)` único; `BoosterItem(personId, targetChallengeId)` y `(personId, targetOccasionId)` únicos `WHERE status <> 'REVOKED'` | Un booster por logro; un booster por persona y participación |
+| `BoostCampaign`: check `(challengeId IS NULL) <> (occasionId IS NULL)` y `percent IN (25, 50, 100)` | Un objetivo por campaña |
+| `BadgeDefinition(code)` único; `(family, level) WHERE family <> 'SPECIAL'` único | Un catálogo sin niveles repetidos |
+| `Achievement(personId, badgeId) WHERE revokedAt IS NULL` y `(personId, featuredPosition)` únicos | Un logro vivo por insignia; hasta tres destacadas sin repetir posición |
+| `Challenge`: checks `kind = 'TRIVIA' ⇔ passPercent IS NOT NULL`, `kind = 'PRESENTIAL' ⇔ occasionId IS NOT NULL`, `audience = 'COMMITTEES' ⇒ comités no vacíos`, `opensAt < closesAt`, `basePoints` 0 a 20 | Formato y público coherentes |
 | `WordleGame(personId, day)` y `WordleGame(answer, day)` únicos | Una partida por integrante y respuestas distintas cada día |
 | `WordleAttempt(gameId, ordinal)` y `WordleAttempt(gameId, requestId)` únicos | Un intento por ordinal y reintentos de red idempotentes |
 | `Membership(personId)` único | Una membresía por persona |
@@ -289,7 +324,7 @@ Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().
 | `Request(personId, kind) WHERE status = 'PENDING' AND kind <> 'EXCUSE'` y `(personId, occasionId) WHERE status = 'PENDING' AND kind = 'EXCUSE'`; check `status <> 'REJECTED' OR reason IS NOT NULL` y `kind <> 'EXCUSE' OR occasionId IS NOT NULL` | Una solicitud pendiente por tipo y una excusa pendiente por ocasión; rechazar exige motivo |
 | `InternalCall`: check `closesAt > opensAt`; `InternalCallEntry(callId, personId)` único | Ventana válida; una inscripción por persona y convocatoria |
 
-Reglas que viven en el dominio y se prueban en integración: tope de 3 comités por término para activos, `APPROVED ⇔ una entrada CHECKIN viva`, término derivado de la fecha, ledger cerrado tras `pointsClosedAt`, transiciones de etapa y de ocasión, `params` válidos por tipo de cálculo, nota obligatoria en evaluaciones insuficientes y puntajes por debajo del peso, motivo obligatorio al cambiar una propuesta, permanencia cerrada tras `permanenceClosedAt`, una respuesta por correo y formulario salvo `allowMultiple`, tope y ventana del formulario, cupo de la convocatoria con `FOR UPDATE`, alta solo de estudiantes con correo institucional y sin membresía.
+Reglas que viven en el dominio y se prueban en integración: tope de 3 comités por término para activos, topes diario y semanal de puntos extra con advisory lock por persona y reserva al enviar, booster consumido solo si aporta puntos, cierre de puntos que exige resolver participaciones y reservas pendientes, `APPROVED ⇔ una entrada CHECKIN viva`, término derivado de la fecha, ledger cerrado tras `pointsClosedAt`, transiciones de etapa y de ocasión, `params` válidos por tipo de cálculo, nota obligatoria en evaluaciones insuficientes y puntajes por debajo del peso, motivo obligatorio al cambiar una propuesta, permanencia cerrada tras `permanenceClosedAt`, una respuesta por correo y formulario salvo `allowMultiple`, tope y ventana del formulario, cupo de la convocatoria con `FOR UPDATE`, alta solo de estudiantes con correo institucional y sin membresía.
 
 ## Excepción del primer acceso (ADR-039)
 

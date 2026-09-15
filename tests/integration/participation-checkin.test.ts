@@ -1,7 +1,7 @@
 import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { SYSTEM_ACTOR } from "@/db/tx";
+import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { drain } from "@/jobs/poller";
 import "@/jobs/handlers";
 import { interaction, onboardingProgress } from "@/modules/crm/schema";
@@ -19,6 +19,7 @@ import { rotatingCodeAt } from "@/modules/participation/domain/rotating-code-pur
 import { listOccasionScores } from "@/modules/participation/domain/scores";
 import { checkIn, committeeParticipation, pointEntry } from "@/modules/participation/schema";
 import { committeeMembership, membership, person } from "@/modules/people/schema";
+import { setConfig } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { DomainError } from "@/shared/admin-kit/DomainError";
@@ -329,6 +330,7 @@ describe("check-in propio", () => {
   });
 
   it("el outbox escribe la línea de tiempo una sola vez y marca la primera integración solo a quien es nuevo", async () => {
+    await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "gamification.enabled", true));
     const termId = await seedTerm(currentTermCode());
     const previousTermId = await seedTerm("2019-1");
     const newbie = await seedMember("nueva@eafit.edu.co");
@@ -353,9 +355,12 @@ describe("check-in propio", () => {
       .select()
       .from(interaction)
       .where(eq(interaction.kind, "PARTICIPATION"));
-    expect(entries).toHaveLength(2);
+    // Cada check-in escribe sus puntos y, desde G-T5, la insignia En parche 1 que la
+    // actividad voluntaria desbloquea en el mismo drenado.
+    const pointEntries = entries.filter((entry) => entry.summary.includes("GH Points por"));
+    expect(pointEntries).toHaveLength(2);
     expect(
-      entries.every(
+      pointEntries.every(
         (entry) =>
           entry.summary ===
           t("T-667")
@@ -364,6 +369,11 @@ describe("check-in propio", () => {
             .replace("{ocasion}", "Integración de nuevos"),
       ),
     ).toBe(true);
+    const badgeEntries = entries.filter((entry) =>
+      entry.summary.includes("Desbloqueó la insignia"),
+    );
+    expect(badgeEntries).toHaveLength(2);
+    expect(badgeEntries.every((entry) => entry.summary.includes("En parche"))).toBe(true);
     const steps = await db().select().from(onboardingProgress);
     expect(steps.map((step) => step.personId)).toEqual([newbie]);
     expect(steps[0]?.source).toBe("AUTO");

@@ -1,0 +1,18 @@
+Use case: ui-mockup.
+Create ONE high-fidelity raster concept, a flat full mobile interface screenshot in portrait 1024x1536 pixels. No phone frame, no perspective, no photograph, no people, no personal data. App: Mi OE, Organización Estudiantil Universidad EAFIT. Concept A: TU SEMESTRE, CLARO.
+
+Input images are BRAND REFERENCES, not interface layouts and not edit targets. Reference 1 marca-07.png contains the official logo variants: preserve the full official navy horizontal institutional logo (circular OE symbol plus Organización Estudiantil and Universidad EAFIT) accurately and keep its identity. Reference 2 marca-16.png provides extremely condensed display typography and graphic language only: do not include or copy the woman, tote bag, starburst composition or any text from this reference.
+
+Visual style: quiet, highly legible and polished institutional mobile product interface. Paper #F6F6F6 background; all text navy #001F3E. Exact supporting palette blue #94B6F0, sky #D4DFF0, yellow #FFD84B, orange #FF881B. Use orange only as an action background with navy text, never orange text on paper. Extremely condensed, tall, heavy display headline resembling Sofia Sans Extra Condensed; geometric body type resembling Plus Jakarta Sans. Minimal institutional grain on the background only, no texture on the logo. Generous breathing room, strong alignment, fine navy/sky dividers, subtle or square corners. No gradients, glass, shadows or cards nested within cards. Only one dominant visual focus: the semester and pending status. The institutional header has a horizontal blue stripe growing outward from the main title; use clear rows for statuses and secondary information.
+
+Layout from top to bottom, fit ALL content inside the image with comfortable margins:
+1. Compact header on paper: complete official navy horizontal logo at left; app name “Mi OE” nearby; simple “Carnet” access at right.
+2. Large extremely condensed navy title “TU SEMESTRE”. Supporting semester “2026-2”. Committee context “GEMIS”. Blue horizontal stripe emerging beside/from the main title as the visual signature.
+3. Dominant central status area: exact heading “Tabla pendiente”. Exact explanation “GH y tu comité todavía están preparando la información.” This is a neutral pending data state, not a failure. Single orange primary button with navy text “Ver qué falta”. No numbers or progress bars, no percentage, no “Vas bien”, no warning, no noncompliance implied by missing data. A very small neutral table/calendar icon is acceptable, but no decorative illustration.
+4. Section title “Tus solicitudes”. One clear row with exact text “Excusa · En revisión” and text link “Ver solicitud”.
+5. Section title “Tu semana”. Exact status “No hay actividades publicadas”. Text link “Ver agenda”.
+6. Secondary simple section “Tus comités” with “GEMIS”.
+7. Bottom navigation with five equal destinations and simple consistent navy line icons, all labels fully visible: “Inicio”, “Agenda”, “Carnet”, “GH Points”, “Más”. Inicio is active with a restrained sky-blue indicator.
+8. Discreet but readable footer inside the mockup: “Propuesta de diseño · Datos ilustrativos”.
+
+All visible interface text must be in Spanish, spelled verbatim with accents as specified. Keep the official logo complete and clean. No extra marketing text, no invented records, no personal names, no numeric metrics. This is an unapproved conceptual design proposal, not a real account.

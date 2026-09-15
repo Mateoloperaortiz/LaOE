@@ -1,12 +1,22 @@
 // Aritmética del ledger y de los tableros (ADR-007, ADR-008, ADR-009, ADR-024): sin I/O.
 
-export type PointEntryKind = "CHECKIN" | "ADJUSTMENT" | "REVERSAL" | "LEGACY" | "WORDLE";
+export type PointEntryKind =
+  | "CHECKIN"
+  | "ADJUSTMENT"
+  | "REVERSAL"
+  | "LEGACY"
+  | "WORDLE"
+  | "CHALLENGE"
+  | "BOOST";
 export const POINT_ENTRY_KINDS: readonly PointEntryKind[] = [
   "CHECKIN",
   "ADJUSTMENT",
   "REVERSAL",
   "LEGACY",
   "WORDLE",
+  // ADR-067: premio base y extra de la gamificación; cierran la lista T-085.
+  "CHALLENGE",
+  "BOOST",
 ];
 
 /** El saldo nunca se persiste: es la suma de las entradas. */

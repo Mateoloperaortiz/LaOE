@@ -1,0 +1,36 @@
+{
+  "concept": "C · Tu semana en la OE",
+  "approved": false,
+  "status": "conceptual",
+  "conceptual": true,
+  "tool": "built-in image_gen",
+  "image": "/Users/mateo/Documents/GitHub/LaOE/casa-digital/.impeccable/mocks/decision/semana.png",
+  "prompt": "/Users/mateo/Documents/GitHub/LaOE/casa-digital/.impeccable/mocks/decision/semana.prompt.txt",
+  "native_source": "/Users/mateo/.codex/generated_images/01a0a09a-ec0d-78c0-8ad6-2384f6a5d44b/exec-470ec937-5a2b-426e-8c4f-e849698ef42b.png",
+  "references": [
+    {
+      "path": "/Users/mateo/Documents/GitHub/LaOE/informes/referencias-diseno/marca-07.png",
+      "role": "Logo oficial completo"
+    },
+    {
+      "path": "/Users/mateo/Documents/GitHub/LaOE/informes/referencias-diseno/marca-16.png",
+      "role": "Lenguaje gráfico institucional; excluir fotografía de persona"
+    }
+  ],
+  "requested_dimensions": {
+    "width": 1024,
+    "height": 1536
+  },
+  "implementation_authorized": false,
+  "generated_count": 1,
+  "visual_inspection": {
+    "completed": true,
+    "count": 1,
+    "result": "Texto principal legible y correcto; agenda vacía, GEMIS pendiente y excusa en revisión visibles; sin actividades inventadas ni personas. Composición temporal dominante. No se detectaron defectos materiales que requieran regeneración.",
+    "dimensions": { "width": 1024, "height": 1536 }
+  },
+  "limitations": [
+    "Imagen conceptual estática; no constituye aprobación ni implementación.",
+    "Las fuentes, reproducción del logo y colores son aproximaciones raster del generador, pendientes de verificar frente a los assets y valores oficiales durante una eventual implementación."
+  ]
+}

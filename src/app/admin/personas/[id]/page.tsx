@@ -22,6 +22,8 @@ import {
   assemblyStatusFor,
   balanceFor,
   getOccasionsByIds,
+  listAchievementsForPerson,
+  listBoostersFor,
   listCheckInsForPerson,
   listEntriesForPerson,
 } from "@/modules/participation";
@@ -158,11 +160,13 @@ export default async function PersonaPage({
   const tasks =
     tab === "tareas" ? (await listTasks({ q: "", personId: id, page: 1, pageSize: 100 })).rows : [];
   const assignees = accion === "tarea" ? await assigneeOptions() : [];
-  const [checkIns, entries, balance, assemblies] = await Promise.all([
+  const [checkIns, entries, balance, assemblies, achievements, boosters] = await Promise.all([
     tab === "participacion" ? listCheckInsForPerson(id) : Promise.resolve([]),
     tab === "participacion" ? listEntriesForPerson(id) : Promise.resolve([]),
     my.term ? balanceFor(id, my.term.id) : Promise.resolve(null),
     my.term && tab === "resumen" ? assemblyStatusFor(id, my.term) : Promise.resolve(null),
+    tab === "participacion" ? listAchievementsForPerson(id) : Promise.resolve([]),
+    tab === "participacion" ? listBoostersFor(id) : Promise.resolve([]),
   ]);
   const occasions = await getOccasionsByIds(checkIns.map((item) => item.occasionId));
   const requests = tab === "solicitudes" ? await listRequestsByPerson(id) : [];
@@ -229,6 +233,8 @@ export default async function PersonaPage({
           occasions={occasions}
           entries={entries}
           termCodes={termCodes}
+          achievements={achievements}
+          boosters={boosters}
         />
       );
       break;

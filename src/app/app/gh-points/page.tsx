@@ -5,14 +5,20 @@ import {
   ASSEMBLY_KINDS,
   assemblyStatusFor,
   balanceFor,
+  collectionFor,
   getTodayWordle,
   levelFor,
   listEntriesFor,
+  loadGamificationSettings,
   myPosition,
+  nextChallengeForMember,
   POINT_ENTRY_KINDS,
   rankCommittees,
   rankPeople,
+  resolveMemberContext,
 } from "@/modules/participation";
+import { BadgeUnlock } from "@/modules/participation/components/BadgeUnlock";
+import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
 import { Wordle } from "@/modules/participation/components/Wordle";
 import { getMembershipRef, listCommitteesByIds } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
@@ -22,6 +28,8 @@ import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { Vacio } from "../_ui/Vacio";
 import { startWordleAction, submitWordleAction } from "./actions";
+import { CommitteePodium, type CommitteePodiumEntry } from "./CommitteePodium";
+import { markSeenAction } from "./coleccion/actions";
 
 // GH Points en Mi OE (06-mapa-del-sitio.md, ADR-035 reglas 9 y 10): saldo, nivel, movimientos y los
 // tableros del semestre (top 10 con nombres más el puesto propio). Las asambleas llegan en F3-T6.
@@ -44,12 +52,13 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   const tablero: BoardKey = BOARDS.includes(tableroParam as BoardKey)
     ? (tableroParam as BoardKey)
     : "nuevos";
-  const [terms, current, membership, cutoffs, wordle] = await Promise.all([
+  const [terms, current, membership, cutoffs, wordle, gamification] = await Promise.all([
     listAllTerms(),
     getCurrentTerm(),
     getMembershipRef(actor.personId),
     requireConfig("points.levels"),
     getTodayWordle(actor.personId),
+    loadGamificationSettings(),
   ]);
   const termParam = single(search.semestre);
   const term = terms.find((item) => item.id === termParam) ?? current;
@@ -90,17 +99,40 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
     (assemblies.requirement.requiresRunoff && assemblies.compliance.runoffAttended ? 1 : 0);
   const level = levelFor(total, cutoffs);
   const nextLabel = level.next === null ? null : (levelLabels[level.index + 1] ?? "");
+  const member = gamification.enabled ? await resolveMemberContext(actor.personId, term.id) : null;
+  const nextChallenge = member
+    ? await nextChallengeForMember(actor.personId, term.id, member)
+    : null;
+  const unseen = gamification.enabled ? (await collectionFor(actor.personId)).unseen : [];
   let board: Array<{ rank: number; name: string; total: string; mine: boolean }> = [];
+  let committeeBoard: CommitteePodiumEntry[] = [];
   if (tablero === "comites") {
     const ranked = await rankCommittees(term.id);
     const committees = await listCommitteesByIds(ranked.map((item) => item.row.committeeId));
     const names = new Map(committees.map((item) => [item.id, item.name]));
-    board = ranked.slice(0, 10).map((item) => ({
-      rank: item.rank,
-      name: names.get(item.row.committeeId) ?? "",
-      total: `${Math.round(item.row.score * 100)} % · ${Math.round(item.row.rawScore * 100)} %`,
-      mine: false,
-    }));
+    const percentage = new Intl.NumberFormat("es-CO", {
+      style: "percent",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const difference = new Intl.NumberFormat("es-CO", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      signDisplay: "exceptZero",
+    });
+    committeeBoard = ranked.slice(0, 10).map((item) => {
+      // La precisión visible coincide con la usada por el dominio para asignar los puestos.
+      const raw = Math.round(item.row.rawScore * 10_000);
+      return {
+        id: item.row.committeeId,
+        rank: item.rank,
+        name: names.get(item.row.committeeId) ?? "",
+        score: percentage.format(item.total / 10_000),
+        rawScore: percentage.format(raw / 10_000),
+        adjustment: t("T-2609", { n: difference.format((item.total - raw) / 100) }),
+        occasions: item.row.occasions,
+      };
+    });
   } else {
     const ranked = await rankPeople(term.id, tablero === "nuevos" ? "NEW" : "VETERAN");
     board = ranked
@@ -122,10 +154,21 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
 
   return (
     <div className="flex flex-col gap-10">
+      <BadgeUnlock
+        unseen={unseen.map((item) => ({
+          achievementId: item.achievement.id,
+          name: item.badge.name,
+          family: item.badge.family,
+          level: item.badge.level,
+          boosterKind: item.boosterKind,
+        }))}
+        onSeen={markSeenAction}
+      />
       <header className="flex flex-col gap-3">
         <h1 className="text-display-lg">{t("T-080")}</h1>
         {terms.length > 1 ? (
           <form action="/app/gh-points" method="get" className="flex items-center gap-2 text-sm">
+            <input type="hidden" name="tablero" value={tablero} />
             <label htmlFor="semestre" className="eyebrow text-xs">
               {t("T-550")}
             </label>
@@ -178,6 +221,24 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
             : t("T-541")}
         </p>
       </Cartel>
+
+      {member ? (
+        <section aria-labelledby="proximo-reto" className="flex flex-col items-start gap-4">
+          <h2 id="proximo-reto" className="text-display-md">
+            {t("T-2445")}
+          </h2>
+          {nextChallenge ? (
+            <>
+              <ChallengeCard card={nextChallenge} />
+              <Link href={`/app/gh-points/retos/${nextChallenge.id}`} className="boton-primario">
+                {t("T-2446")}
+              </Link>
+            </>
+          ) : (
+            <p className="text-sm text-tinta-suave">{t("T-2447")}</p>
+          )}
+        </section>
+      ) : null}
 
       {term.id === current?.id ? (
         <Wordle
@@ -306,10 +367,12 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
             </Link>
           ))}
         </nav>
-        <p className="max-w-prose text-sm text-tinta-suave">
-          {tablero === "comites" ? t("T-084") : t("T-551")}
-        </p>
-        {board.length === 0 ? (
+        {tablero !== "comites" && (
+          <p className="max-w-prose text-sm text-tinta-suave">{t("T-551")}</p>
+        )}
+        {tablero === "comites" && committeeBoard.length > 0 ? (
+          <CommitteePodium key={term.id} entries={committeeBoard} />
+        ) : board.length === 0 ? (
           <Vacio texto={t("T-542")} elemento="bucle" color="text-oe-blue" />
         ) : (
           <ol className="flex list-none flex-col gap-2 p-0">
@@ -329,9 +392,6 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
             ))}
           </ol>
         )}
-        {tablero === "comites" ? (
-          <p className="text-xs text-tinta-suave">{tList("T-543").slice(1).join(" · ")}</p>
-        ) : null}
       </section>
     </div>
   );

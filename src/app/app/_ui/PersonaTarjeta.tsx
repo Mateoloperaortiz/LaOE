@@ -52,6 +52,8 @@ type Props = {
   equipos?: string[];
   /** Reconocimientos publicados ("Destacado de agosto"), solo con consentimiento de directorio. */
   insignias?: string[] | undefined;
+  /** Insignias destacadas de la colección ("En parche · Nivel 1"), máximo tres (ADR-067 regla 9). */
+  destacadas?: string[] | undefined;
 };
 
 export function PersonaTarjeta({
@@ -62,6 +64,7 @@ export function PersonaTarjeta({
   cargos,
   equipos = [],
   insignias = [],
+  destacadas = [],
 }: Props) {
   return (
     <article className="member-directory-card flex flex-col gap-3 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5">
@@ -107,6 +110,15 @@ export function PersonaTarjeta({
           {insignias.map((insignia) => (
             <li key={insignia}>
               <Insignia fondo="naranja">{insignia}</Insignia>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {destacadas.length > 0 ? (
+        <ul aria-label={t("T-2502")} className="flex list-none flex-wrap gap-2 p-0">
+          {destacadas.map((destacada) => (
+            <li key={destacada}>
+              <Insignia fondo="azul">{destacada}</Insignia>
             </li>
           ))}
         </ul>

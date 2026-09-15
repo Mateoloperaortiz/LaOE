@@ -1,12 +1,29 @@
-import { sql } from "drizzle-orm";
+import { and, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import { badgeDefinition } from "@/modules/participation/schema";
+import { clearConfigCache } from "@/modules/system/domain/config";
 import { appConfig } from "@/modules/system/schema";
 
-// Deja las tablas vacías entre pruebas. `cascade` arrastra a app_config (referencia a person), así que
-// los catálogos de las migraciones (cargos y configuración) se restauran después.
+// Deja las tablas vacías entre pruebas. `cascade` arrastra a app_config y badge_definition
+// (referencias a person), así que los catálogos de las migraciones se restauran después.
+// Los valores de la migración 0030: una prueba que activa gamificación no debe filtrarlo a la siguiente.
+const GAMIFICATION_SEED: Record<string, unknown> = {
+  "gamification.enabled": false,
+  "gamification.caps": { daily: 20, weekly: 60 },
+  "gamification.defaults": { trivia: 5, presential: 10, evidence: 10, passPercent: 80 },
+};
+
 export async function truncateAll(): Promise<void> {
   const db = getDb();
   const config = await db.select().from(appConfig);
+  // Solo el catálogo sembrado: las ediciones especiales de una prueba referencian
+  // ocasiones/retos que el truncate borra y no deben sobrevivir.
+  const badges = await db
+    .select()
+    .from(badgeDefinition)
+    .where(
+      and(isNull(badgeDefinition.specialChallengeId), isNull(badgeDefinition.specialOccasionId)),
+    );
   await db.execute(sql`
     truncate table
       budget_transfer, budget_expense, budget_prerequest, event_approval, budget_line, committee_budget,
@@ -32,9 +49,16 @@ export async function truncateAll(): Promise<void> {
       .values(
         config.map((row) => ({
           key: row.key,
-          value: row.key === "privacy.policyVersion" ? "prueba-v1" : row.value,
+          value:
+            row.key === "privacy.policyVersion"
+              ? "prueba-v1"
+              : (GAMIFICATION_SEED[row.key] ?? row.value),
         })),
       )
       .onConflictDoNothing();
   }
+  if (badges.length > 0) {
+    await db.insert(badgeDefinition).values(badges).onConflictDoNothing();
+  }
+  clearConfigCache();
 }

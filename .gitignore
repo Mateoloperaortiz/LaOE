@@ -52,3 +52,6 @@ next-env.d.ts
 
 # Configuración local del panel de vista previa de Claude Code
 .claude/
+
+# Estado temporal del servidor local de preguntas de diseño
+/.impeccable/questions/

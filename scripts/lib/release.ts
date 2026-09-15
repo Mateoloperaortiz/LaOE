@@ -106,6 +106,21 @@ const REQUIRED_INDEXES = [
   "wordle_attempt_game_ordinal_unique",
   "wordle_attempt_game_request_unique",
   "point_entry_wordle_game_unique",
+  // Retos, boosters y colección (ADR-067)
+  "challenge_participation_unique",
+  "challenge_participation_request_unique",
+  "challenge_question_ordinal_unique",
+  "challenge_evidence_object_key_unique",
+  "reward_participation_unique",
+  "reward_check_in_unique",
+  "point_entry_reward_kind_unique",
+  "booster_item_source_achievement_unique",
+  "booster_item_person_challenge_unique",
+  "booster_item_person_occasion_unique",
+  "badge_definition_code_unique",
+  "badge_definition_family_level_unique",
+  "achievement_person_badge_unique",
+  "achievement_featured_unique",
 ];
 
 const REQUIRED_EXTENSIONS = ["pg_trgm"];

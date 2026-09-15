@@ -19,6 +19,7 @@ import {
 } from "./check-ins";
 import { buildStanding, writeTermStanding } from "./closing";
 import { adjustPoints, reverseEntry } from "./ledger";
+import { loadGamificationSettings, resolveMemberContext } from "./member-context";
 import {
   cancelOccasion,
   closeOccasion,
@@ -34,6 +35,7 @@ import {
   setRotatingCode,
   updateOccasion,
 } from "./occasions";
+import { countPendingGamification } from "./rewards";
 
 // Los comandos abren su transacción aquí (ADR-012). Membresía, nombres y config se resuelven antes;
 // el guard público de terms usa ctx.tx para coordinar el cierre sin tomar otra conexión del pool.
@@ -85,9 +87,16 @@ export async function cancelOccasionAs(
   id: string,
   reason: string,
 ): Promise<{ cancelledCheckIns: number }> {
+  const settings = await loadGamificationSettings();
   return runCommand(actor, async (ctx) => {
     const before = await cancelOccasion(ctx, id, reason);
-    const cancelledCheckIns = await cancelOccasionCheckIns(ctx, before, reason.trim());
+    const cancelledCheckIns = await cancelOccasionCheckIns(
+      ctx,
+      before,
+      reason.trim(),
+      new Date(),
+      settings,
+    );
     return { cancelledCheckIns };
   });
 }
@@ -95,19 +104,29 @@ export async function cancelOccasionAs(
 /** Check-in propio: resuelve ocasión y membresía afuera; el cierre se valida dentro. */
 export async function checkInSelfAs(
   actor: Actor & { personId: string },
-  input: { publicId: string; code?: string | null; now?: Date },
+  input: { publicId: string; code?: string | null; boosterId?: string | null; now?: Date },
 ): Promise<SelfCheckInResult> {
   const row = await getOccasionByPublicId(input.publicId);
   if (!row) {
     return { ok: false, reason: "NOT_FOUND" };
   }
-  const membership = await getMembershipRef(actor.personId);
+  const [membership, member, settings] = await Promise.all([
+    getMembershipRef(actor.personId),
+    resolveMemberContext(actor.personId, row.termId),
+    loadGamificationSettings(),
+  ]);
   try {
     return await runCommand(actor, (ctx) =>
       checkInSelf(
         ctx,
-        { occasionId: row.id, personId: actor.personId, code: input.code, now: input.now },
-        { membership },
+        {
+          occasionId: row.id,
+          personId: actor.personId,
+          code: input.code,
+          boosterId: input.boosterId,
+          now: input.now,
+        },
+        { membership, member, settings },
       ),
     );
   } catch (error) {
@@ -127,8 +146,9 @@ export async function hostCheckInAs(
   input: { occasionId: string; personId: string; personName: string; source: "HOST" | "ADMIN" },
 ): Promise<{ checkInId: string; points: number }> {
   const membership = await getMembershipRef(input.personId);
+  const settings = await loadGamificationSettings();
   try {
-    return await runCommand(actor, (ctx) => hostCheckIn(ctx, input, { membership }));
+    return await runCommand(actor, (ctx) => hostCheckIn(ctx, input, { membership, settings }));
   } catch (error) {
     if (error instanceof AlreadyCheckedIn) {
       throw new DomainError(t("T-601", { nombre: input.personName }));
@@ -137,20 +157,22 @@ export async function hostCheckInAs(
   }
 }
 
-export function decideCheckInAs(
+export async function decideCheckInAs(
   actor: Actor & { personId: string },
   input: { checkInId: string; decision: CheckInDecision; reason?: string | null },
 ): Promise<void> {
-  return runCommand(actor, (ctx) => decideCheckIn(ctx, input));
+  const settings = await loadGamificationSettings();
+  return runCommand(actor, (ctx) => decideCheckIn(ctx, input, { settings }));
 }
 
-export function decideManyAs(
+export async function decideManyAs(
   actor: Actor & { personId: string },
   checkInIds: string[],
   decision: CheckInDecision,
   reason?: string | null,
 ): Promise<number> {
-  return runCommand(actor, (ctx) => decideMany(ctx, checkInIds, decision, reason));
+  const settings = await loadGamificationSettings();
+  return runCommand(actor, (ctx) => decideMany(ctx, checkInIds, decision, reason, { settings }));
 }
 
 export function setRotatingCodeAs(actor: Actor, id: string, enabled: boolean): Promise<void> {
@@ -197,6 +219,13 @@ export async function closeTermPointsAs(
     const openOccasions = await countOpenOccasions(termId, ctx.tx);
     if (openOccasions > 0) {
       throw new DomainError(t("T-646", { n: openOccasions }));
+    }
+    // ADR-067 regla 13: entregas de retos pendientes y premios reservados bloquean el cierre.
+    const pending = await countPendingGamification(termId, ctx.tx);
+    if (pending.pendingParticipations > 0 || pending.reservedRewards > 0) {
+      throw new DomainError(
+        t("T-2562", { n: pending.pendingParticipations, m: pending.reservedRewards }),
+      );
     }
     const standing = await buildStanding(termId, { exec: ctx.tx, members, committees });
     return writeTermStanding(ctx, termId, standing, { openOccasions });

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listRecognitionsByPeople, monthName, type RecognitionView } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
+import { listFeaturedBadgesFor, loadGamificationSettings } from "@/modules/participation";
 import { listDirectory, listInternalCommittees } from "@/modules/people";
 import { listTeamParticipations } from "@/modules/permanence";
 import { t, tList } from "@/shared/copy";
@@ -60,6 +61,14 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
     (recognitions.get(personId) ?? [])
       .filter((item) => item.announcementId !== null && item.kind === "MEMBER_OF_MONTH")
       .map((item) => t("T-703", { mes: monthName(item.month) }));
+  const gamification = await loadGamificationSettings();
+  const featured = gamification.enabled
+    ? await listFeaturedBadgesFor(directory.rows.map((entry) => entry.personId))
+    : new Map<string, Array<{ code: string; name: string; level: number }>>();
+  const destacadasDe = (personId: string) =>
+    (featured.get(personId) ?? []).map(
+      (item) => `${item.name} · ${t("T-2482", { nivel: item.level })}`,
+    );
   const [anterior, siguiente] = tList("T-258") as [string, string];
   return (
     <div className="flex flex-col gap-8">
@@ -121,6 +130,7 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
                   (item: { label: string }) => item.label,
                 )}
                 insignias={insigniasDe(entry.personId)}
+                destacadas={destacadasDe(entry.personId)}
               />
             </li>
           ))}
