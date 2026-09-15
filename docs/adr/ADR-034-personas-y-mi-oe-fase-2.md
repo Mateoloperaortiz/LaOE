@@ -80,3 +80,7 @@ Regla 13: `appointment.kind` suma `VP_COMMUNICATIONS` (Vicepresidencia de Comuni
 ## Enmienda (2026-09-12, ADR-058)
 
 Regla 5: el editor de comités de la Persona 360 admite varios cargos por comité, con casilla de codirección junto a cada cargo de dirección. Regla 13: el líder de comité es un cargo asignado `GENERAL` en `committee_role_assignment` (titular o codirección), no `committee_membership.roleCode`, que queda como cargo principal derivado. Ver [ADR-058](ADR-058-direccion-del-comite-por-areas.md).
+
+## Enmienda (2026-09-14, ADR-066)
+
+La presentación de los cargos separa vigentes, próximos e historial por semestre y ámbito. GH se presenta dentro de Junta Directiva; los tipos y autorizaciones no cambian. Ver [ADR-066](ADR-066-cargos-vigentes-e-historial.md).

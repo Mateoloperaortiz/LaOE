@@ -4,7 +4,6 @@ import { channelLabel, kindLabel, statusLabel as messageStatusLabel } from "@/mo
 import type { InteractionView, RecognitionView, TaskRow } from "@/modules/crm";
 import type { ActorPermission } from "@/modules/identity";
 import {
-  appointmentLabel,
   committeeRolesLabel,
   formatBirthDate,
   type HonoraryEligibility,
@@ -22,12 +21,8 @@ import { t, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, formatDateTime } from "@/shared/lib/dates";
 import { Markdown } from "@/shared/ui/Markdown";
 import { IssueGrantPanel } from "../../IssueGrantPanel";
-import {
-  completeTaskAction,
-  consentAction,
-  removeAppointmentAction,
-  revokeCarnetAction,
-} from "../actions";
+import { completeTaskAction, consentAction, revokeCarnetAction } from "../actions";
+import { Cargos } from "./Cargos";
 import { CONSENT_TEXTS, TIMELINE_FILTERS, type TimelineFilterKey } from "./etiquetas";
 
 // Contenido de cada pestaña de la Persona 360. Las de fases siguientes muestran T-240.
@@ -164,7 +159,7 @@ export function TabMembresia({
   honorary: HonoraryEligibility;
   recognitions: RecognitionView[];
 }) {
-  const [historial, comitesPorSemestre, cargos, condicion] = tList("T-443") as [
+  const [historial, comitesPorSemestre, , condicion] = tList("T-443") as [
     string,
     string,
     string,
@@ -177,7 +172,6 @@ export function TabMembresia({
   const [, , , , otorgarPremio] = tList("T-2321");
   const kindLabelOf = (kind: RecognitionView["kind"]) =>
     kind === "MEMBER_OF_MONTH" ? destacado : kind === "OE_AWARD" ? premio : otro;
-  const [agregarCargo, quitar] = tList("T-447") as [string, string];
   const [sancionesTitulo, sinSanciones] = tList("T-2239") as [string, string];
   const [registrarSancion, revocarSancion] = tList("T-2232") as [string, string];
   const base = `/admin/personas/${data.person.id}`;
@@ -250,40 +244,7 @@ export function TabMembresia({
           ))
         )}
       </Bloque>
-      <Bloque titulo={cargos}>
-        <Link
-          href={`${base}?pestana=membresia&accion=cargo`}
-          className="boton-secundario min-h-9 self-start px-4 py-1 text-sm"
-        >
-          {agregarCargo}
-        </Link>
-        {data.appointments.length === 0 ? (
-          <p className="text-sm text-tinta-suave">{t("T-514")}</p>
-        ) : (
-          <ul className="flex list-none flex-col gap-2 p-0 text-sm">
-            {data.appointments.map((item) => (
-              <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
-                <span>
-                  <span className="font-semibold">{appointmentLabel(item)}</span> · {item.termCode}
-                  {item.committeeName ? ` · ${item.committeeName}` : ""}
-                </span>
-                <form action={removeAppointmentAction}>
-                  <AdminFormBody>
-                    <input type="hidden" name="personId" value={data.person.id} />
-                    <input type="hidden" name="appointmentId" value={item.id} />
-                    <AdminSubmitButton
-                      type="submit"
-                      className="boton-secundario min-h-8 px-3 py-1 text-xs"
-                    >
-                      {quitar}
-                    </AdminSubmitButton>
-                  </AdminFormBody>
-                </form>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Bloque>
+      <Cargos data={data} my={my} />
       <Bloque titulo={condicion}>
         {data.membership && data.membership.status !== "INACTIVE" ? (
           <Link

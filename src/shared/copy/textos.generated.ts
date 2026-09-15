@@ -5480,11 +5480,59 @@ export const textos = {
     owner: "GH",
     status: "Confirmado",
   },
+  "T-2394": {
+    where: "Cargos: ámbito institucional, incluidos los cargos de GH",
+    text: "Junta Directiva",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2395": {
+    where: "Cargos históricos: sin ámbito indicado",
+    text: "Otros cargos",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2396": {
+    where: "Cargos: vacío del semestre actual",
+    text: "Sin cargos vigentes en este semestre.",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2397": {
+    where: "Cargos: nombramientos de semestres futuros",
+    text: "Próximos cargos",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2398": {
+    where: "Formulario de nombramiento: tipo",
+    text: "Cargo",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2399": {
+    where: "Historial: semestre sin identificar",
+    text: "Semestre por confirmar",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-240": {
     where: "Admin: aviso de sección aún sin construir",
     text: "Esta sección llega en una fase siguiente.",
     owner: "MATEO",
     status: "Propuesta",
+  },
+  "T-2400": {
+    where: "Historial: vacío",
+    text: "Sin cargos anteriores registrados.",
+    owner: "MATEO",
+    status: "Confirmado",
+  },
+  "T-2401": {
+    where: "Cargo de macroevento: codirección",
+    text: "{cargo} (codirección)",
+    owner: "MATEO",
+    status: "Confirmado",
   },
   "T-241": {
     where: "Admin, sistema: título de la vista del outbox",
@@ -6231,10 +6279,10 @@ export const textos = {
     status: "Propuesta",
   },
   "T-374": {
-    where: "Directorio, ficha y egresados: eyebrow de los cargos de junta y de GH",
-    text: "Junta y GH",
-    owner: "GH",
-    status: "Propuesta",
+    where: "Directorio y ficha: cargos del semestre actual",
+    text: "Cargos vigentes",
+    owner: "MATEO",
+    status: "Confirmado",
   },
   "T-375": {
     where: "Inicio y comités internos, título de los comités propios",
@@ -6646,12 +6694,12 @@ export const textos = {
   },
   "T-443": {
     where: "Membresía: títulos de los bloques",
-    text: "Historial de estados · Comités por semestre · Cargos de junta y de GH · Condición del semestre",
+    text: "Historial de estados · Comités por semestre · Historial de cargos · Condición del semestre",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-444": {
-    where: "Membresía: cargos de junta y de GH (opciones)",
+    where: "Membresía: tipos de cargo (opciones)",
     text: "Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Mercadeo · GH principal · Director de GH · Dirección de macroevento · Otro",
     owner: "JUNTA",
     status:
@@ -7073,7 +7121,7 @@ export const textos = {
   },
   "T-514": {
     where: "Membresía: sin cargos",
-    text: "Sin cargos de junta ni de GH.",
+    text: "Sin cargos registrados.",
     owner: "MATEO",
     status: "Propuesta",
   },

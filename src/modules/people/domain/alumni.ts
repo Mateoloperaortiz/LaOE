@@ -14,6 +14,7 @@ import {
 } from "../schema";
 import { type AppointmentLabelInput, editionLabelsFor } from "./appointments";
 import { liveConsentExists } from "./consents";
+import { appointmentHistoryEntry, type RoleHistoryEntry } from "./role-history";
 
 // Galería de egresados (ADR-030): quienes salieron, con consentimiento MEMORIAL vivo y sin anonimizar,
 // agrupados por el año de salida; la foto solo con consentimiento de directorio.
@@ -25,6 +26,7 @@ export interface AlumniEntry {
   /** "A3 · General", sin repetir comités. */
   committees: string[];
   appointments: Array<AppointmentLabelInput & { termCode: string }>;
+  roleHistory: RoleHistoryEntry[];
   fromTermCode: string | null;
   toTermCode: string | null;
 }
@@ -75,7 +77,9 @@ export async function listAlumniByYear(): Promise<AlumniYear[]> {
       .orderBy(asc(committee.name)),
     db
       .select({
+        id: appointment.id,
         personId: appointment.personId,
+        committeeName: committee.name,
         kind: appointment.kind,
         title: appointment.title,
         termId: appointment.termId,
@@ -85,6 +89,7 @@ export async function listAlumniByYear(): Promise<AlumniYear[]> {
       })
       .from(appointment)
       .leftJoin(macroeventRole, eq(macroeventRole.code, appointment.roleCode))
+      .leftJoin(committee, eq(committee.id, appointment.committeeId))
       .where(inArray(appointment.personId, ids)),
   ]);
   const editions = await editionLabelsFor(appointments.map((item) => item.editionId));
@@ -120,6 +125,15 @@ export async function listAlumniByYear(): Promise<AlumniYear[]> {
           coDirector: a.coDirector,
           termCode: termById.get(a.termId)?.code ?? "",
         })),
+      roleHistory: appointments
+        .filter((a) => a.personId === row.id)
+        .map((a) =>
+          appointmentHistoryEntry({
+            ...a,
+            termCode: termById.get(a.termId)?.code ?? "",
+            editionLabel: a.editionId ? (editions.get(a.editionId) ?? null) : null,
+          }),
+        ),
       fromTermCode: termById.get(row.firstTermId)?.code ?? null,
       toTermCode: lastTerm?.code ?? null,
     };

@@ -202,6 +202,12 @@ describe("salida, reactivación y anonimización", () => {
     });
     expect(data?.membership?.endedAt).toBeInstanceOf(Date);
     expect(data?.committeesByTerm[0]?.items[0]?.leftAt).toBeInstanceOf(Date);
+    // El historial conserva el cargo cerrado; el roster vivo ya no lo devuelve.
+    expect(data?.roleHistory).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ scope: "A3", label: "General", endedAt: expect.any(Date) }),
+      ]),
+    );
     const consents = await listConsents(personId);
     expect(consents.find((item) => item.purpose === "MEMORIAL")?.live).toEqual(expect.anything());
     expect(consents.find((item) => item.purpose === "COMMUNICATIONS")?.live).toBeNull();

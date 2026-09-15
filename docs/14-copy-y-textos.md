@@ -267,7 +267,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-371 | Directorio sin resultados | No encontramos a nadie con ese nombre. Probá con otro o filtrá por comité. | MATEO | Propuesta |
 | T-372 | Directorio, etiqueta del filtro por comité | Comité | MATEO | Propuesta |
 | T-373 | Directorio, opción sin filtro de comité | Todos los comités | MATEO | Propuesta |
-| T-374 | Directorio, ficha y egresados: eyebrow de los cargos de junta y de GH | Junta y GH | GH | Propuesta |
+| T-374 | Directorio y ficha: cargos del semestre actual | Cargos vigentes | MATEO | Confirmado |
 | T-375 | Inicio y comités internos, título de los comités propios | Tus comités | COM | Propuesta |
 | T-376 | Inicio, sin comité en el semestre | Todavía no tenés comité este semestre. GH te ubica en uno. | GH | Propuesta |
 | T-377 | Onboarding, botón para marcar un paso | Marcar como hecho | MATEO | Propuesta |
@@ -630,8 +630,8 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-440 | Anonimizar: texto | Vas a anonimizar a {nombre} por su solicitud del {fecha}. Se borran nombre, contacto, foto, notas y tareas; comités y puntos quedan sin nombre. Esto no se deshace. | JUNTA | Propuesta; texto sensible |
 | T-441 | Anonimizar: botón | Anonimizar | MATEO | Propuesta |
 | T-442 | Anonimizar sin solicitud previa | Solo se anonimiza a quien lo pidió desde Mi OE. | MATEO | Propuesta |
-| T-443 | Membresía: títulos de los bloques | Historial de estados · Comités por semestre · Cargos de junta y de GH · Condición del semestre | MATEO | Propuesta |
-| T-444 | Membresía: cargos de junta y de GH (opciones) | Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Mercadeo · GH principal · Director de GH · Dirección de macroevento · Otro | JUNTA | Propuesta; el nombre es el del cuerpo de los Estatutos 2026 (art. 21 y 27), ADR-060 regla 4; la dirección de macroevento se etiqueta con T-2268 y T-2269 (regla 9) |
+| T-443 | Membresía: títulos de los bloques | Historial de estados · Comités por semestre · Historial de cargos · Condición del semestre | MATEO | Propuesta |
+| T-444 | Membresía: tipos de cargo (opciones) | Presidencia · Vicepresidencia de GH · Vicepresidencia de Relaciones Públicas · Vicepresidencia Administrativa · Vicepresidencia Financiera · Vicepresidencia de Comunicaciones y Mercadeo · GH principal · Director de GH · Dirección de macroevento · Otro | JUNTA | Propuesta; el nombre es el del cuerpo de los Estatutos 2026 (art. 21 y 27), ADR-060 regla 4; la dirección de macroevento se etiqueta con T-2268 y T-2269 (regla 9) |
 | T-445 | Membresía: campo del título cuando el cargo es Otro | Título del cargo | MATEO | Propuesta |
 | T-446 | Membresía: casilla del permiso de junta | Otorgar también el permiso Junta (pide un código nuevo) | MATEO | Propuesta |
 | T-447 | Membresía: botones de cargos | Agregar cargo · Quitar | MATEO | Propuesta |
@@ -701,7 +701,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-511 | Persona 360: cabecera | Correo · Celular · Programa · Ingresó en {término} | MATEO | Propuesta |
 | T-512 | Editar datos: aviso al cambiar el correo | Cambiar el correo cierra sus sesiones: vuelve a entrar con el nuevo. | MATEO | Propuesta |
 | T-513 | Tarea creada | Tarea creada. | MATEO | Propuesta |
-| T-514 | Membresía: sin cargos | Sin cargos de junta ni de GH. | MATEO | Propuesta |
+| T-514 | Membresía: sin cargos | Sin cargos registrados. | MATEO | Propuesta |
 | T-515 | Línea de tiempo: autor del sistema | Sistema | MATEO | Propuesta |
 | T-516 | Propósitos de consentimiento (etiquetas cortas, en el orden del modelo) | Membresía · Comunicaciones · Foto en el directorio · Galería de egresados · Tratamiento de datos | JUNTA | Propuesta |
 | T-517 | Línea de tiempo: nota de otra persona | Solo quien escribió la nota puede editarla. | MATEO | Propuesta |
@@ -1947,3 +1947,16 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2391 | GT/GAP: Área sin especificar | Área por completar | GH | Confirmado |
 | T-2392 | GT/GAP: Sin equipos | Todavía no hay equipos o apoyos registrados en este semestre. | GH | Confirmado |
 | T-2393 | GT/GAP: Ayuda de pertenencia | La participación se muestra en el perfil al registrarla. El porcentaje de permanencia requiere desempeño acreditado por GH. | GH | Confirmado |
+
+### Cargos vigentes e historial (14/09/2026)
+
+| Código | Dónde | Texto | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-2394 | Cargos: ámbito institucional, incluidos los cargos de GH | Junta Directiva | MATEO | Confirmado |
+| T-2395 | Cargos históricos: sin ámbito indicado | Otros cargos | MATEO | Confirmado |
+| T-2396 | Cargos: vacío del semestre actual | Sin cargos vigentes en este semestre. | MATEO | Confirmado |
+| T-2397 | Cargos: nombramientos de semestres futuros | Próximos cargos | MATEO | Confirmado |
+| T-2398 | Formulario de nombramiento: tipo | Cargo | MATEO | Confirmado |
+| T-2399 | Historial: semestre sin identificar | Semestre por confirmar | MATEO | Propuesta |
+| T-2400 | Historial: vacío | Sin cargos anteriores registrados. | MATEO | Confirmado |
+| T-2401 | Cargo de macroevento: codirección | {cargo} (codirección) | MATEO | Confirmado |
