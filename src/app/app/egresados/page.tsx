@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireActor } from "@/modules/identity";
-import { type AlumniEntry, appointmentLabel, listAlumniByYear } from "@/modules/people";
+import { listAlumniByYear } from "@/modules/people";
+import { RoleHistoryList } from "@/modules/people/components/RoleHistoryList";
 import { Cartel, Elemento, feedVariant, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { mediaUrl } from "@/shared/lib/media";
@@ -8,10 +9,6 @@ import { mediaUrl } from "@/shared/lib/media";
 // Galería de egresados (ADR-030): un cartel por año de salida con los nombres y una tarjeta por persona.
 
 export const metadata: Metadata = { title: t("T-074") };
-
-function cargoEtiqueta(entry: AlumniEntry["appointments"][number]): string {
-  return `${appointmentLabel(entry)} · ${entry.termCode}`;
-}
 
 export default async function EgresadosPage() {
   await requireActor("/app/egresados");
@@ -86,14 +83,8 @@ export default async function EgresadosPage() {
                   ) : null}
                   {entry.appointments.length > 0 ? (
                     <div className="flex flex-col gap-1">
-                      <p className="eyebrow text-xs text-tinta-suave">{t("T-374")}</p>
-                      <ul className="flex list-none flex-wrap gap-2 p-0">
-                        {entry.appointments.map((item) => (
-                          <li key={`${item.kind}-${item.termCode}`}>
-                            <Insignia fondo="amarillo">{cargoEtiqueta(item)}</Insignia>
-                          </li>
-                        ))}
-                      </ul>
+                      <p className="eyebrow text-xs text-tinta-suave">{tList("T-443")[2]}</p>
+                      <RoleHistoryList entries={entry.roleHistory} />
                     </div>
                   ) : null}
                 </li>

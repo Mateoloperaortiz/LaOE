@@ -11,6 +11,11 @@ import {
   type MembershipRecord,
 } from "./membership";
 import type { PersonRecord } from "./persons";
+import {
+  appointmentHistoryEntry,
+  listCommitteeRoleHistory,
+  type RoleHistoryEntry,
+} from "./role-history";
 import { listSanctionsForPerson, type SanctionView } from "./sanctions";
 
 // Todo lo que la Persona 360 necesita de `people` en una sola lectura (02-crm.md).
@@ -21,6 +26,7 @@ export interface Person360 {
   events: MembershipEventView[];
   committeesByTerm: TermCommittees[];
   appointments: AppointmentView[];
+  roleHistory: RoleHistoryEntry[];
   consents: ConsentState[];
   sanctions: SanctionView[];
   probation: Array<{
@@ -49,6 +55,7 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
     events,
     committeesByTerm,
     appointments,
+    committeeRoles,
     consents,
     probationRows,
     terms,
@@ -58,6 +65,7 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
     listMembershipEvents(id),
     listCommitteeMembershipsByTerm(id),
     listAppointments(id),
+    listCommitteeRoleHistory(id),
     listConsents(id),
     db
       .select({
@@ -115,6 +123,7 @@ export async function getPerson360(id: string): Promise<Person360 | null> {
     events,
     committeesByTerm,
     appointments,
+    roleHistory: [...appointments.map(appointmentHistoryEntry), ...committeeRoles],
     consents,
     sanctions,
     probation,

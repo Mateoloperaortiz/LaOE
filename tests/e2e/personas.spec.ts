@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
 import { sinViolaciones } from "./axe";
-import { E2E_TERM } from "./calendar";
+import { E2E_CALENDAR, E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
 import { drenarOutbox } from "./outbox";
 
@@ -145,4 +145,51 @@ test("la Persona 360 cambia el estado, deja una nota y crea una tarea", async ({
     .getByRole("button", { name: "Marcar hecha" })
     .click();
   await expect(page.getByText("Guardado.")).toBeVisible();
+});
+
+test("la ficha separa cargos vigentes e históricos y agrupa GH dentro de Junta Directiva", async ({
+  page,
+}) => {
+  await page.goto("/admin/personas?q=prueba.e2e");
+  await page.getByRole("link", { name: "Prueba E2E" }).click();
+  await page.waitForURL(/\/admin\/personas\/[^/?]+$/);
+  const personUrl = page.url();
+  for (const [kind, semester, title] of [
+    ["OTHER", E2E_CALENDAR.previous.code, "Dirección de Publicidad · Evento Histórico"],
+    ["GH_HEAD", E2E_TERM.code, ""],
+  ] as const) {
+    await page.goto(`${personUrl}?pestana=membresia&accion=cargo`);
+    const panel = page.getByRole("dialog", { name: "Agregar cargo" });
+    await panel.getByLabel("Cargo", { exact: true }).selectOption(kind);
+    await panel.getByLabel("Término", { exact: true }).selectOption({ label: semester });
+    if (title) await panel.locator('input[name="title"]').fill(title);
+    await panel.getByRole("button", { name: "Agregar cargo", exact: true }).click();
+    await expect(page.getByText("Guardado.")).toBeVisible();
+  }
+  const header = page.locator("header").filter({ has: page.getByRole("heading", { level: 1 }) });
+  await expect(header.getByRole("heading", { name: "Cargos vigentes", exact: true })).toBeVisible();
+  await expect(header.getByText("Junta Directiva", { exact: true })).toBeVisible();
+  await expect(header.getByText("GH principal", { exact: true })).toBeVisible();
+  await expect(header).not.toContainText("Evento Histórico");
+  const history = page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "Historial de cargos", exact: true }) });
+  await expect(history.getByText(E2E_CALENDAR.previous.code, { exact: true })).toBeVisible();
+  await expect(history.getByText("Evento Histórico", { exact: true })).toBeVisible();
+  await expect(history.getByText("Dirección de Publicidad", { exact: true })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("Junta y GH");
+  await sinViolaciones(page);
+  for (const [name, width] of [
+    ["desktop", 1280],
+    ["mobile", 390],
+  ] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(
+      header.getByRole("heading", { name: "Cargos vigentes", exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`cargos-${name}.png`), fullPage: true });
+  }
 });

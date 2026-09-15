@@ -729,9 +729,9 @@ export function Paneles({
     const kinds = tList("T-444");
     const [agregar] = tList("T-447") as [string, string];
     const [excepcion, excepcionAyuda] = tList("T-2283") as [string, string];
-    const [, , cargosTitulo] = tList("T-443") as [string, string, string, string];
+    const cargosTitulo = t("T-2398");
     return (
-      <ResourcePanel title={cargosTitulo} closeHref={closeHref} closeLabel={t("T-291")}>
+      <ResourcePanel title={agregar} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
         <form action={addAppointmentAction} className="flex flex-col gap-4">
           <AdminFormBody>

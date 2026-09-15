@@ -214,6 +214,11 @@ export {
   representativeRoleLabel,
 } from "./domain/representatives";
 export {
+  groupRoleHistory,
+  partitionRoleHistory,
+  type RoleHistoryEntry,
+} from "./domain/role-history";
+export {
   applyRosterImportAs,
   createRosterPreviewAs,
   discardRosterImportAs,

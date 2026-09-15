@@ -1,13 +1,14 @@
 import Link from "next/link";
 import type { ActorPermission } from "@/modules/identity";
 import {
-  appointmentLabel,
   committeeRolesLabel,
   type MyMembershipView,
   type Person360,
+  partitionRoleHistory,
   type TagRow,
 } from "@/modules/people";
 import { stageCell, statusCell } from "@/modules/people/admin";
+import { RoleHistoryList } from "@/modules/people/components/RoleHistoryList";
 import { AdminActionsMenu } from "@/shared/admin-kit/AdminActionsMenu";
 import { Dato } from "@/shared/admin-kit/AdminFields";
 import { Insignia } from "@/shared/brand";
@@ -23,7 +24,12 @@ type Props = {
 
 // Cabecera de la Persona 360 (02-crm.md): quién es, en qué está y qué se puede hacer con ella.
 export function Cabecera({ data, my, permissions, committeeNames, tags }: Props) {
-  const { person, membership, appointments } = data;
+  const { person, membership } = data;
+  const { current } = partitionRoleHistory(
+    data.roleHistory,
+    my.term,
+    Boolean(membership && membership.status !== "INACTIVE"),
+  );
   const acciones = tList("T-433");
   const [correo, celular, programa, ingreso] = tList("T-511") as [string, string, string, string];
   const [admin, lider, junta] = tList("T-289") as [string, string, string];
@@ -187,19 +193,11 @@ export function Cabecera({ data, my, permissions, committeeNames, tags }: Props)
           )}
         </ul>
       </div>
-      {appointments.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <p className="eyebrow text-xs text-tinta-suave">{t("T-374")}</p>
-          <ul className="flex list-none flex-wrap gap-2 p-0">
-            {appointments.map((item) => (
-              <li key={item.id}>
-                <Insignia fondo="amarillo">
-                  {appointmentLabel(item)} · {item.termCode}
-                </Insignia>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {current.length > 0 ? (
+        <section aria-label={t("T-374")} className="flex flex-col gap-3">
+          <h2 className="text-base font-semibold text-titulo">{t("T-374")}</h2>
+          <RoleHistoryList entries={current} showTerm={false} />
+        </section>
       ) : null}
     </header>
   );
