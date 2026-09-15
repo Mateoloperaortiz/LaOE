@@ -6794,6 +6794,36 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2595": {
+    where: "Comités internos: acción de la ficha",
+    text: "Ver comité",
+    owner: "COM",
+    status: "Propuesta",
+  },
+  "T-2596": {
+    where: "Comités internos: nombre accesible del enlace",
+    text: "Ver comité {comité}",
+    owner: "COM",
+    status: "Propuesta",
+  },
+  "T-2597": {
+    where: "Comités internos: buscador de los demás comités",
+    text: "Buscá entre los demás comités",
+    owner: "COM",
+    status: "Propuesta",
+  },
+  "T-2598": {
+    where: "Comités internos: ejemplo del buscador",
+    text: "Nombre o sigla del comité",
+    owner: "COM",
+    status: "Propuesta",
+  },
+  "T-2599": {
+    where: "Comités internos: sin otros comités activos",
+    text: "No hay otros comités activos para explorar.",
+    owner: "COM",
+    status: "Propuesta",
+  },
   "T-260": {
     where: "Panel: hay errores de validación",
     text: "Revisá los campos marcados.",

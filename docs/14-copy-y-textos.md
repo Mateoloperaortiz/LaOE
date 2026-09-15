@@ -2160,3 +2160,13 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2592 | Admin panel: sin corridas | Todavía no se corrió la conciliación. | MATEO | Propuesta |
 | T-2593 | Admin panel: error de la corrida | Error: {mensaje} | MATEO | Propuesta |
 | T-2594 | Admin cierre: estadísticas de gamificación del standing | Retos completados · Puntos de boosters | MATEO | Propuesta |
+
+## Directorio de comités de Mi OE
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-2595 | Comités internos: acción de la ficha | Ver comité | COM | Propuesta |
+| T-2596 | Comités internos: nombre accesible del enlace | Ver comité {comité} | COM | Propuesta |
+| T-2597 | Comités internos: buscador de los demás comités | Buscá entre los demás comités | COM | Propuesta |
+| T-2598 | Comités internos: ejemplo del buscador | Nombre o sigla del comité | COM | Propuesta |
+| T-2599 | Comités internos: sin otros comités activos | No hay otros comités activos para explorar. | COM | Propuesta |

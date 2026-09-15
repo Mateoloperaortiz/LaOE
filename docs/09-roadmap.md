@@ -850,3 +850,12 @@ Listo cuando: GH crea, publica y revisa retos de los tres formatos sin tocar có
 ### Cierre de cargos y trayectoria
 
 - [x] Publicar y verificar los rótulos y la separación entre cargos vigentes e historial por semestre y ámbito (ADR-066).
+
+### Directorio de comités de Mi OE (ADR-069)
+
+- [x] Rediseñar el directorio interno con fichas compactas, logos destacados, acceso a comités propios y búsqueda de los demás.
+- [x] Verificar búsqueda, enlaces, recuperación, contenido extenso, escritorio/móvil, temas y texto ampliado.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-15 | Directorio de comités, entrega local | `/app/comites` reemplaza los carteles saturados por fichas con superficies del tema, logos sobre acentos institucionales, resúmenes de tres líneas y «Ver comité». Mantiene los comités propios con sus cargos, y agrega búsqueda instantánea de los demás por nombre o sigla, recuento, limpieza con retorno de foco y estados vacíos. CSS Modules, sin dependencias, cambios de dominio ni permisos. `lint`, `typecheck`, `deps:check`, `deadcode` y build aprobados; 5/5 E2E focalizadas (2 preparaciones de sesión y 3 casos), axe sin violaciones en claro/oscuro a 390/1440 px y a 1979 px, además de texto al 200 % y nombres/presentaciones extensos. Capturas con datos sintéticos en `.impeccable/review/comites/`. Sin publicación. |

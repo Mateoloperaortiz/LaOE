@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [069](adr/ADR-069-directorio-de-comites-de-mi-oe.md) | Directorio de comités | Fichas compactas, comités propios prioritarios y búsqueda local por nombre o sigla; conserva permisos y datos editoriales | Implementada en local; publicación pendiente |
 | [068](adr/ADR-068-correcciones-de-gamificacion.md) | Correcciones de gamificación | Evidencias procesadas en clave exclusiva del servidor; bandera compatible con correcciones; check-in válido sin booster en carreras; reaprobación presencial, replay por contenido y liberación de posiciones revocadas; reparación 0032 | Aceptada |
 | [067](adr/ADR-067-retos-boosters-y-coleccion.md) | Retos, boosters y colección | Retos presenciales, trivia y con evidencia dentro de `participation`; premios `CHALLENGE`/`BOOST` calculados y reservados en servidor bajo topes de 20 diarios y 60 semanales en Colombia; boosters de un uso y campañas con máximo +100 %; insignias derivadas de hechos verificables con conciliación histórica sin premios retroactivos; evidencias con almacenamiento y acceso propios; sección de GH exclusiva de ADMIN y activación por bandera | Aceptada; enmendada por ADR-068 |
 | [066](adr/ADR-066-cargos-vigentes-e-historial.md) | Cargos y trayectoria | Vigentes en la cabecera; historial por semestre y ámbito; GH dentro de Junta Directiva; sin cambios de permisos o cálculos | Aceptada; verificada en producción |

@@ -1,0 +1,257 @@
+.directory {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  --committee-surface: color-mix(in oklab, var(--fondo) 96%, var(--titulo));
+}
+.header {
+  display: grid;
+  gap: 0.625rem;
+}
+.header p {
+  max-width: 60ch;
+  color: var(--tinta-suave);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.sectionHeading h2 {
+  font-size: 1.125rem;
+}
+.count {
+  color: var(--tinta-suave);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+.ownGrid,
+.grid {
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+.ownGrid > li,
+.grid > li {
+  min-width: 0;
+}
+.card {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--borde);
+  border-radius: 1rem;
+  background: var(--fondo);
+  color: var(--titulo);
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+.card:hover,
+.card:focus-visible {
+  border-color: var(--titulo);
+  background: var(--committee-surface);
+}
+.card:active {
+  background: var(--fondo-suave);
+}
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+.logoPanel {
+  display: flex;
+  width: 6.5rem;
+  height: 6rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.625rem;
+  background: var(--color-oe-sky);
+  color: var(--color-oe-navy);
+}
+.logoPanel[data-tone="1"] {
+  background: var(--color-oe-yellow-soft);
+}
+.logoPanel[data-tone="2"] {
+  background: var(--color-oe-blue-soft);
+}
+.logoPanel > span {
+  max-width: calc(100% - 1rem);
+}
+.monogram {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+}
+.identity {
+  min-width: 0;
+  flex: 1;
+}
+.card .cardTitle {
+  font-size: 1.125rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.summary {
+  display: -webkit-box;
+  min-height: 4.875em;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  color: var(--tinta-suave);
+  font-size: 0.875rem;
+  line-height: 1.625;
+  overflow-wrap: anywhere;
+}
+.cardAction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: auto;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--borde);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.card:hover .cardAction,
+.card:focus-visible .cardAction {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.ownCard {
+  background: var(--committee-surface);
+}
+.ownCard .logoPanel {
+  width: 5rem;
+  height: 4.5rem;
+}
+.ownCard .logoPanel > span {
+  max-height: 4rem;
+}
+.ownCard svg {
+  flex-shrink: 0;
+}
+.role {
+  margin-top: 0.375rem;
+  color: var(--tinta-suave);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.membershipEmpty {
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  background: var(--committee-surface);
+  color: var(--tinta-suave);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.search {
+  display: grid;
+  gap: 0.5rem;
+  padding-bottom: 0.375rem;
+}
+.searchLabel {
+  color: var(--tinta-suave);
+  font-size: 0.8125rem;
+}
+.searchRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+.searchField {
+  position: relative;
+  width: min(100%, 28rem);
+}
+.searchField svg {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  transform: translateY(-50%);
+  color: var(--tinta-suave);
+  pointer-events: none;
+}
+.searchField input {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.75rem 1rem 0.75rem 2.875rem;
+  border: 1px solid var(--borde);
+  border-radius: 0.75rem;
+  background: var(--fondo);
+  color: var(--tinta);
+  caret-color: var(--titulo);
+}
+.searchField input::placeholder {
+  color: var(--tinta-suave);
+  opacity: 1;
+}
+.resultsCount {
+  color: var(--tinta-suave);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.searchMeta {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+.empty {
+  padding: 2rem 1.5rem;
+  border-radius: 1rem;
+  background: var(--committee-surface);
+  color: var(--tinta-suave);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+.clearSearch {
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--enlace);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+.clearSearch:hover {
+  background: var(--fondo-suave);
+}
+@media (min-width: 40rem) {
+  .grid,
+  .ownGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 70rem) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+}
