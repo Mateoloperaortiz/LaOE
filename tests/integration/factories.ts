@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
@@ -10,7 +11,13 @@ import {
   request,
 } from "@/modules/crm/schema";
 import { form, formSubmission } from "@/modules/forms/schema";
-import { checkIn, occasion } from "@/modules/participation/schema";
+import {
+  boosterItem,
+  challenge,
+  challengeParticipation,
+  checkIn,
+  occasion,
+} from "@/modules/participation/schema";
 import {
   appointment,
   committee,
@@ -586,4 +593,143 @@ export async function seedCallEntry(
 /** Regreso previsto de una licencia dentro de la ventana de un año (ADR-060 regla 10): en `days` días. */
 export function leaveUntilSoon(days = 90): string {
   return new Date(Date.now() + days * 24 * 60 * 60_000).toISOString().slice(0, 10);
+}
+
+// Gamificación (ADR-067): retos, participaciones y boosters.
+
+type ChallengeOverrides = Partial<{
+  kind: "PRESENTIAL" | "TRIVIA" | "EVIDENCE";
+  status: "DRAFT" | "PUBLISHED" | "CANCELLED";
+  title: string;
+  audience: "ALL" | "NEW" | "VETERAN" | "COMMITTEES";
+  audienceCommitteeIds: string[];
+  opensAt: Date;
+  closesAt: Date;
+  basePoints: number;
+  passPercent: number | null;
+  occasionId: string | null;
+}>;
+
+let challengeCounter = 0;
+
+/** Reto publicado y abierto ahora mismo: trivia con umbral 80 % y 5 puntos base, salvo overrides. */
+export async function seedChallenge(
+  termId: string,
+  overrides: ChallengeOverrides = {},
+): Promise<string> {
+  challengeCounter += 1;
+  const now = Date.now();
+  const kind = overrides.kind ?? "TRIVIA";
+  const status = overrides.status ?? "PUBLISHED";
+  const occasionId =
+    overrides.occasionId === undefined
+      ? kind === "PRESENTIAL"
+        ? (await seedOccasion(termId)).id
+        : null
+      : overrides.occasionId;
+  const [row] = await db()
+    .insert(challenge)
+    .values({
+      termId,
+      kind,
+      status,
+      title: overrides.title ?? `Reto de prueba ${challengeCounter}`,
+      audience: overrides.audience ?? "ALL",
+      audienceCommitteeIds: overrides.audienceCommitteeIds ?? [],
+      opensAt: overrides.opensAt ?? new Date(now - 3_600_000),
+      closesAt: overrides.closesAt ?? new Date(now + 86_400_000),
+      basePoints: overrides.basePoints ?? 5,
+      passPercent:
+        overrides.passPercent === undefined
+          ? kind === "TRIVIA"
+            ? 80
+            : null
+          : overrides.passPercent,
+      occasionId,
+      publishedAt: status === "DRAFT" ? null : new Date(now - 3_600_000),
+      cancelledAt: status === "CANCELLED" ? new Date(now) : null,
+      cancelReason: status === "CANCELLED" ? "Cancelación de prueba" : null,
+    })
+    .returning({ id: challenge.id });
+  if (!row) throw new Error("seed challenge");
+  return row.id;
+}
+
+type ParticipationOverrides = Partial<{
+  status: "PENDING" | "COMPLETED" | "REJECTED" | "ANNULLED";
+  requestId: string;
+  submittedAt: Date;
+  answers: number[] | null;
+  score: number | null;
+  passed: boolean | null;
+  evidenceText: string | null;
+  checkInId: string | null;
+  rewardId: string | null;
+  reason: string | null;
+}>;
+
+/** Entrega de una persona a un reto: PENDING con requestId aleatorio, salvo overrides. */
+export async function seedParticipation(
+  challengeId: string,
+  personId: string,
+  overrides: ParticipationOverrides = {},
+): Promise<string> {
+  const status = overrides.status ?? "PENDING";
+  const [row] = await db()
+    .insert(challengeParticipation)
+    .values({
+      challengeId,
+      personId,
+      status,
+      requestId: overrides.requestId ?? randomUUID(),
+      submittedAt: overrides.submittedAt ?? new Date(),
+      answers: overrides.answers ?? null,
+      score: overrides.score ?? null,
+      passed: overrides.passed ?? null,
+      evidenceText: overrides.evidenceText ?? null,
+      checkInId: overrides.checkInId ?? null,
+      rewardId: overrides.rewardId ?? null,
+      reason: overrides.reason ?? (status === "REJECTED" ? "Rechazo de prueba" : null),
+      decidedAt: status === "PENDING" ? null : new Date(),
+    })
+    .returning({ id: challengeParticipation.id });
+  if (!row) throw new Error("seed participation");
+  return row.id;
+}
+
+type BoosterOverrides = Partial<{
+  status: "AVAILABLE" | "RESERVED" | "CONSUMED" | "REVOKED";
+  expiresAt: Date;
+  targetChallengeId: string | null;
+  targetOccasionId: string | null;
+  sourceAchievementId: string | null;
+  consumedRewardId: string | null;
+}>;
+
+/** Booster disponible que vence en 30 días, salvo overrides. */
+export async function seedBooster(
+  personId: string,
+  termId: string,
+  kind: "PLUS_50" | "PLUS_100" = "PLUS_50",
+  overrides: BoosterOverrides = {},
+): Promise<string> {
+  const status = overrides.status ?? "AVAILABLE";
+  const [row] = await db()
+    .insert(boosterItem)
+    .values({
+      personId,
+      termId,
+      kind,
+      status,
+      expiresAt: overrides.expiresAt ?? new Date(Date.now() + 30 * 86_400_000),
+      targetChallengeId: overrides.targetChallengeId ?? null,
+      targetOccasionId: overrides.targetOccasionId ?? null,
+      sourceAchievementId: overrides.sourceAchievementId ?? null,
+      consumedRewardId: overrides.consumedRewardId ?? null,
+      revokedAt: status === "REVOKED" ? new Date() : null,
+      revokeReason: status === "REVOKED" ? "Retiro de prueba" : null,
+    })
+    .returning({ id: boosterItem.id });
+  if (!row) throw new Error("seed booster");
+  return row.id;
 }

@@ -161,6 +161,8 @@ describe("asambleas", () => {
     expect(summary).toEqual({
       openOccasions: 0,
       pendingCheckIns: 0,
+      pendingParticipations: 0,
+      reservedRewards: 0,
       membersWithPoints: 2,
       pointsAwarded: 35,
     });

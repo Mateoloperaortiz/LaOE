@@ -1,4 +1,4 @@
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { lockOpenTermPoints } from "@/modules/terms";
@@ -89,6 +89,97 @@ export async function reverseCheckInCredit(
     createdById: ctx.actor.personId,
   });
   return entry.points;
+}
+
+// Premios de la gamificación (ADR-067 regla 5): la base entra como CHALLENGE y el extra como
+// BOOST, ambos ligados al `Reward` por `rewardId`; la corrección es una REVERSAL por entrada.
+
+export interface CreditRewardInput {
+  rewardId: string;
+  personId: string;
+  termId: string;
+  kind: "CHALLENGE" | "BOOST";
+  points: number;
+  reason: string;
+}
+
+/** La entrada del kind dado de un premio, si existe (el unique parcial garantiza una sola). */
+async function rewardEntry(
+  ctx: CommandContext,
+  rewardId: string,
+  kind: "CHALLENGE" | "BOOST",
+): Promise<PointEntryRow | null> {
+  const [row] = await ctx.tx
+    .select()
+    .from(pointEntry)
+    .where(and(eq(pointEntry.rewardId, rewardId), eq(pointEntry.kind, kind)))
+    .limit(1);
+  return row ?? null;
+}
+
+/** Acredita la base o el extra de un premio; idempotente por (rewardId, kind). Sin puntos, null. */
+export async function creditReward(
+  ctx: CommandContext,
+  input: CreditRewardInput,
+): Promise<PointEntryRow | null> {
+  if (input.points <= 0) {
+    return null;
+  }
+  await lockOpenTermPoints(ctx.tx, input.termId);
+  const existing = await rewardEntry(ctx, input.rewardId, input.kind);
+  if (existing) {
+    return existing;
+  }
+  const [row] = await ctx.tx
+    .insert(pointEntry)
+    .values({
+      personId: input.personId,
+      termId: input.termId,
+      rewardId: input.rewardId,
+      kind: input.kind,
+      points: input.points,
+      reason: input.reason,
+      createdById: ctx.actor.personId,
+    })
+    .returning();
+  return row ?? null;
+}
+
+/** Revierte las entradas vivas (CHALLENGE y BOOST) de un premio. Devuelve los puntos revertidos. */
+export async function reverseRewardCredits(
+  ctx: CommandContext,
+  rewardId: string,
+  reason: string,
+): Promise<number> {
+  const entries = await ctx.tx
+    .select()
+    .from(pointEntry)
+    .where(
+      and(eq(pointEntry.rewardId, rewardId), inArray(pointEntry.kind, ["CHALLENGE", "BOOST"])),
+    );
+  const [first] = entries;
+  if (!first) {
+    return 0;
+  }
+  await lockOpenTermPoints(ctx.tx, first.termId);
+  let reversed = 0;
+  for (const entry of entries) {
+    if (await reversalOf(ctx, entry.id)) {
+      continue;
+    }
+    // La REVERSAL no lleva rewardId: el check lo exige nulo fuera de CHALLENGE y BOOST.
+    await ctx.tx.insert(pointEntry).values({
+      personId: entry.personId,
+      termId: entry.termId,
+      kind: "REVERSAL",
+      points: -entry.points,
+      reason,
+      reversalOfId: entry.id,
+      createdById: ctx.actor.personId,
+    });
+    reversed += entry.points;
+  }
+  return reversed;
 }
 
 /** Saldo del término: `SUM(points)`, nunca persistido. */

@@ -34,6 +34,7 @@ import {
   setRotatingCode,
   updateOccasion,
 } from "./occasions";
+import { countPendingGamification } from "./rewards";
 
 // Los comandos abren su transacción aquí (ADR-012). Membresía, nombres y config se resuelven antes;
 // el guard público de terms usa ctx.tx para coordinar el cierre sin tomar otra conexión del pool.
@@ -197,6 +198,13 @@ export async function closeTermPointsAs(
     const openOccasions = await countOpenOccasions(termId, ctx.tx);
     if (openOccasions > 0) {
       throw new DomainError(t("T-646", { n: openOccasions }));
+    }
+    // ADR-067 regla 13: entregas de retos pendientes y premios reservados bloquean el cierre.
+    const pending = await countPendingGamification(termId, ctx.tx);
+    if (pending.pendingParticipations > 0 || pending.reservedRewards > 0) {
+      throw new DomainError(
+        t("T-2562", { n: pending.pendingParticipations, m: pending.reservedRewards }),
+      );
     }
     const standing = await buildStanding(termId, { exec: ctx.tx, members, committees });
     return writeTermStanding(ctx, termId, standing, { openOccasions });

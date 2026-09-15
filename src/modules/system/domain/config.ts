@@ -64,6 +64,18 @@ export const CONFIG = {
       message: z.string(),
     })
     .nullable(),
+  // ADR-067: bandera, topes y valores por defecto de retos y boosters.
+  "gamification.enabled": z.boolean(),
+  "gamification.caps": z.object({
+    daily: z.number().int().min(0).max(1000),
+    weekly: z.number().int().min(0).max(5000),
+  }),
+  "gamification.defaults": z.object({
+    trivia: z.number().int().min(0).max(20),
+    presential: z.number().int().min(0).max(20),
+    evidence: z.number().int().min(0).max(20),
+    passPercent: z.number().int().min(1).max(100),
+  }),
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG;

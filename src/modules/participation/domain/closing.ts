@@ -5,8 +5,16 @@ import type { CommandContext, Executor } from "@/db/tx";
 import { type ActiveMemberRef, listActiveMemberRefs, listAllCommittees } from "@/modules/people";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
-import { checkIn, occasion, pointEntry, termStanding } from "../schema";
+import {
+  challenge,
+  challengeParticipation,
+  checkIn,
+  occasion,
+  pointEntry,
+  termStanding,
+} from "../schema";
 import { rankCommittees, rankPeopleFromMembers } from "./rankings";
+import { countPendingGamification } from "./rewards";
 
 // Cierre de puntos del término (ADR-004, ADR-035 regla 13): snapshot de los tableros con ids y nombres
 // congelados; el término se estampa en `terms` dentro de la misma transacción.
@@ -32,6 +40,9 @@ const standingStats = z
     occasions: z.number().int(),
     checkIns: z.number().int(),
     pointsAwarded: z.number().int(),
+    // ADR-067: retos completados y puntos entregados por boosters y campañas.
+    challengesCompleted: z.number().int().optional(),
+    boostPoints: z.number().int().optional(),
   })
   .passthrough();
 
@@ -86,6 +97,23 @@ export async function buildStanding(
     .select({ total: sql<number>`coalesce(sum(${pointEntry.points}), 0)::int` })
     .from(pointEntry)
     .where(eq(pointEntry.termId, termId));
+  const termChallenges = db
+    .select({ id: challenge.id })
+    .from(challenge)
+    .where(eq(challenge.termId, termId));
+  const [challengesDone] = await db
+    .select({ n: count() })
+    .from(challengeParticipation)
+    .where(
+      and(
+        inArray(challengeParticipation.challengeId, termChallenges),
+        eq(challengeParticipation.status, "COMPLETED"),
+      ),
+    );
+  const [boost] = await db
+    .select({ total: sql<number>`coalesce(sum(${pointEntry.points}), 0)::int` })
+    .from(pointEntry)
+    .where(and(eq(pointEntry.termId, termId), eq(pointEntry.kind, "BOOST")));
   const top = (rows: typeof nuevos) =>
     rows
       .filter((item) => item.total > 0)
@@ -113,6 +141,8 @@ export async function buildStanding(
       occasions: occasions?.n ?? 0,
       checkIns: approved?.n ?? 0,
       pointsAwarded: points?.total ?? 0,
+      challengesCompleted: challengesDone?.n ?? 0,
+      boostPoints: boost?.total ?? 0,
     },
   };
 }
@@ -204,6 +234,8 @@ export async function scrubStandingName(personId: string): Promise<number> {
 export async function closingSummary(termId: string): Promise<{
   openOccasions: number;
   pendingCheckIns: number;
+  pendingParticipations: number;
+  reservedRewards: number;
   membersWithPoints: number;
   pointsAwarded: number;
 }> {
@@ -228,9 +260,12 @@ export async function closingSummary(termId: string): Promise<{
     .select({ total: sql<number>`coalesce(sum(${pointEntry.points}), 0)::int` })
     .from(pointEntry)
     .where(eq(pointEntry.termId, termId));
+  const gamification = await countPendingGamification(termId, db);
   return {
     openOccasions: open?.n ?? 0,
     pendingCheckIns: pending?.n ?? 0,
+    pendingParticipations: gamification.pendingParticipations,
+    reservedRewards: gamification.reservedRewards,
     membersWithPoints: members?.n ?? 0,
     pointsAwarded: points?.total ?? 0,
   };

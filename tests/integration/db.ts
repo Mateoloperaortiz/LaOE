@@ -1,12 +1,14 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import { badgeDefinition } from "@/modules/participation/schema";
 import { appConfig } from "@/modules/system/schema";
 
-// Deja las tablas vacías entre pruebas. `cascade` arrastra a app_config (referencia a person), así que
-// los catálogos de las migraciones (cargos y configuración) se restauran después.
+// Deja las tablas vacías entre pruebas. `cascade` arrastra a app_config y badge_definition
+// (referencias a person), así que los catálogos de las migraciones se restauran después.
 export async function truncateAll(): Promise<void> {
   const db = getDb();
   const config = await db.select().from(appConfig);
+  const badges = await db.select().from(badgeDefinition);
   await db.execute(sql`
     truncate table
       budget_transfer, budget_expense, budget_prerequest, event_approval, budget_line, committee_budget,
@@ -36,5 +38,8 @@ export async function truncateAll(): Promise<void> {
         })),
       )
       .onConflictDoNothing();
+  }
+  if (badges.length > 0) {
+    await db.insert(badgeDefinition).values(badges).onConflictDoNothing();
   }
 }

@@ -90,6 +90,22 @@ export {
 } from "./domain/committee-viability-pure";
 export { type CheckInExportRow, listCheckInsForExport } from "./domain/exports";
 export {
+  audienceIncludes,
+  badgeProgress,
+  boosterExpiresAt,
+  boosterPercent,
+  boosterState,
+  challengeState,
+  computeReward,
+  dayKeyFor,
+  GAMIFICATION_TIMEZONE,
+  gradeTrivia,
+  isVoluntaryOccasion,
+  memberChallengeStatus,
+  unlockedLevel,
+  weekKeyFor,
+} from "./domain/gamification-pure";
+export {
   balanceFor,
   type LedgerListRow,
   listEntriesFor,
@@ -156,6 +172,17 @@ export {
   type ReminderSlot,
   reminderSlots,
 } from "./domain/reminders-pure";
+export {
+  countPendingGamification,
+  grantReward,
+  type ReserveRewardInput,
+  type RewardRow,
+  releaseReward,
+  reserveAndGrantReward,
+  reserveReward,
+  reverseReward,
+  usedRewardPoints,
+} from "./domain/rewards";
 export { rotatingCodeAt, secondsUntilRotation } from "./domain/rotating-code-pure";
 export {
   type CommitteeOccasionScore,
@@ -187,6 +214,34 @@ export {
   startWordleAs,
   submitWordleGuessAs,
 } from "./domain/wordle";
+export type {
+  BadgeFamily,
+  BoosterKind,
+  BoosterState,
+  BoosterStoredStatus,
+  CampaignPercent,
+  ChallengeAudience,
+  ChallengeKind,
+  ChallengeState,
+  ChallengeStoredStatus,
+  EvidenceFileStatus,
+  MemberChallengeStatus,
+  ParticipationStatus,
+  PersonalPercent,
+  RewardBreakdown,
+  RewardCaps,
+  RewardSource,
+  RewardStatus,
+} from "./gamification-types";
+export {
+  BADGE_FAMILIES,
+  BOOSTER_KINDS,
+  BOOSTER_STATES,
+  CHALLENGE_AUDIENCES,
+  CHALLENGE_KINDS,
+  MEMBER_CHALLENGE_STATUSES,
+  PARTICIPATION_STATUSES,
+} from "./gamification-types";
 export type {
   SubmitWordleInput,
   TodayWordle,

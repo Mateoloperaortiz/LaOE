@@ -267,7 +267,7 @@ Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().
 | `PointEntry(checkInId) WHERE kind = 'CHECKIN'` | Una entrada de crédito por check-in |
 | `PointEntry(reversalOfId)` único | Una reversión por entrada |
 | `PointEntry(wordleGameId)` único | Una acreditación de Wordle por partida; solo WORDLE lleva este vínculo |
-| `PointEntry(rewardId) WHERE kind = 'CHALLENGE'` y `PointEntry(rewardId) WHERE kind = 'BOOST'` | Un premio base y un extra por `Reward`; checks con `kind::text` limitan 1 a 20 puntos y exigen `rewardId` solo en esos tipos ([ADR-067](adr/ADR-067-retos-boosters-y-coleccion.md)) |
+| `PointEntry(rewardId, kind) WHERE rewardId IS NOT NULL` único | Un premio base (CHALLENGE) y un extra (BOOST) por `Reward` (el literal nuevo del enum no se puede usar en la transacción del `ADD VALUE` y el cast a text no es IMMUTABLE); los checks con `kind::text` limitan 1 a 20 puntos y exigen `rewardId` solo en esos tipos ([ADR-067](adr/ADR-067-retos-boosters-y-coleccion.md)) |
 | `ChallengeParticipation(challengeId, personId)` y `(challengeId, requestId)` únicos | Una participación por reto y persona; reintentos idempotentes |
 | `ChallengeQuestion(challengeId, ordinal)` único; check `ordinal` 1 a 5 y 2 a 6 opciones | Preguntas ordenadas y acotadas |
 | `ChallengeEvidenceFile(objectKey)` y `(participationId, ordinal)` únicos; check `ordinal` 1 a 3 | Hasta tres imágenes por entrega, una fila por objeto |

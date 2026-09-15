@@ -54,9 +54,53 @@ export const pointEntryKind = pgEnum("point_entry_kind", [
   "REVERSAL",
   "LEGACY",
   "WORDLE",
+  // ADR-067: premio base de un reto (o asistencia impulsada) y su extra por booster o campaña.
+  "CHALLENGE",
+  "BOOST",
 ]);
 
 export const wordleStatus = pgEnum("wordle_status", ["IN_PROGRESS", "WON", "LOST", "EXPIRED"]);
+
+// Gamificación (ADR-067): retos relámpago, boosters, campañas, premios con topes y colección.
+export const challengeKind = pgEnum("challenge_kind", ["PRESENTIAL", "TRIVIA", "EVIDENCE"]);
+export const challengeAudience = pgEnum("challenge_audience", [
+  "ALL",
+  "NEW",
+  "VETERAN",
+  "COMMITTEES",
+]);
+export const challengeStatus = pgEnum("challenge_status", ["DRAFT", "PUBLISHED", "CANCELLED"]);
+export const challengeParticipationStatus = pgEnum("challenge_participation_status", [
+  "PENDING",
+  "COMPLETED",
+  "REJECTED",
+  "ANNULLED",
+]);
+export const evidenceFileStatus = pgEnum("evidence_file_status", ["PENDING", "READY", "FAILED"]);
+export const boosterKind = pgEnum("booster_kind", ["PLUS_50", "PLUS_100"]);
+export const boosterItemStatus = pgEnum("booster_item_status", [
+  "AVAILABLE",
+  "RESERVED",
+  "CONSUMED",
+  "REVOKED",
+]);
+export const boostCampaignStatus = pgEnum("boost_campaign_status", ["ACTIVE", "CANCELLED"]);
+export const rewardSource = pgEnum("reward_source", ["CHALLENGE", "CHECKIN"]);
+export const rewardStatus = pgEnum("reward_status", [
+  "RESERVED",
+  "GRANTED",
+  "RELEASED",
+  "REVERSED",
+]);
+export const badgeFamily = pgEnum("badge_family", [
+  "EN_PARCHE",
+  "EXPLORADOR",
+  "RELAMPAGO",
+  "PALABRA_A_PALABRA",
+  "SPECIAL",
+]);
+export const reconciliationMode = pgEnum("reconciliation_mode", ["DRY_RUN", "APPLY"]);
+export const reconciliationStatus = pgEnum("reconciliation_status", ["RUNNING", "DONE", "FAILED"]);
 
 // La respuesta es privada: únicamente las proyecciones del dominio pueden salir de este módulo.
 export const wordleGame = pgTable(
@@ -221,6 +265,7 @@ export const pointEntry = pgTable(
       .references(() => term.id),
     checkInId: text().references(() => checkIn.id),
     wordleGameId: text().references(() => wordleGame.id),
+    rewardId: text().references((): AnyPgColumn => reward.id),
     kind: pointEntryKind().notNull(),
     points: integer().notNull(),
     reason: text().notNull(),
@@ -234,6 +279,12 @@ export const pointEntry = pgTable(
     uniqueIndex("point_entry_checkin_unique").on(t.checkInId).where(sql`${t.kind} = 'CHECKIN'`),
     uniqueIndex("point_entry_reversal_of_unique").on(t.reversalOfId),
     uniqueIndex("point_entry_wordle_game_unique").on(t.wordleGameId),
+    // Un (rewardId, kind) por premio: el check de abajo limita rewardId a CHALLENGE y BOOST.
+    // El predicado no compara el enum: un literal nuevo no se puede usar en la transacción del
+    // ADD VALUE y el cast a text no es IMMUTABLE.
+    uniqueIndex("point_entry_reward_kind_unique")
+      .on(t.rewardId, t.kind)
+      .where(sql`${t.rewardId} is not null`),
     uniqueIndex("point_entry_legacy_id_unique")
       .on(t.legacyId)
       .where(sql`${t.legacyId} is not null`),
@@ -251,6 +302,14 @@ export const pointEntry = pgTable(
     check(
       "point_entry_reversal_consistent",
       sql`(${t.kind} = 'REVERSAL') = (${t.reversalOfId} is not null)`,
+    ),
+    check(
+      "point_entry_reward_consistent",
+      sql`(${t.kind}::text in ('CHALLENGE', 'BOOST')) = (${t.rewardId} is not null)`,
+    ),
+    check(
+      "point_entry_reward_range",
+      sql`${t.kind}::text not in ('CHALLENGE', 'BOOST') or ${t.points} between 1 and 20`,
     ),
   ],
 );
@@ -386,3 +445,396 @@ export const committeeAssemblyAttendance = pgTable(
     index("committee_assembly_attendance_term_idx").on(t.termId, t.committeeId),
   ],
 );
+
+// Retos relámpago (ADR-067): `status` persiste DRAFT/PUBLISHED/CANCELLED; programado, abierto y
+// vencido se derivan de `opensAt`/`closesAt`. Publicar congela formato, público, premio y umbral.
+export const challenge = pgTable(
+  "challenge",
+  {
+    id: id(),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    kind: challengeKind().notNull(),
+    status: challengeStatus().notNull().default("DRAFT"),
+    title: text().notNull(),
+    description: text().notNull().default(""), // Markdown
+    audience: challengeAudience().notNull().default("ALL"),
+    audienceCommitteeIds: jsonb().$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    opensAt: timestampTz().notNull(),
+    closesAt: timestampTz().notNull(),
+    basePoints: integer().notNull().default(0),
+    passPercent: integer(),
+    // El reto presencial se completa con el check-in de esta ocasión dentro de la ventana.
+    occasionId: text().references(() => occasion.id, { onDelete: "set null" }),
+    publishedAt: timestampTz(),
+    publishedById: text().references(() => person.id, { onDelete: "set null" }),
+    cancelledAt: timestampTz(),
+    cancelReason: text(),
+    duplicatedFromId: text().references((): AnyPgColumn => challenge.id, {
+      onDelete: "set null",
+    }),
+    createdById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("challenge_term_status_idx").on(t.termId, t.status),
+    index("challenge_occasion_idx").on(t.occasionId),
+    check("challenge_window_ordered", sql`${t.opensAt} < ${t.closesAt}`),
+    check("challenge_base_points_range", sql`${t.basePoints} between 0 and 20`),
+    check(
+      "challenge_pass_percent_range",
+      sql`${t.passPercent} is null or ${t.passPercent} between 1 and 100`,
+    ),
+    check(
+      "challenge_trivia_pass_percent",
+      sql`(${t.kind} = 'TRIVIA') = (${t.passPercent} is not null)`,
+    ),
+    check(
+      "challenge_presential_occasion",
+      sql`(${t.kind} = 'PRESENTIAL') = (${t.occasionId} is not null)`,
+    ),
+    check(
+      "challenge_committees_nonempty",
+      sql`${t.audience} <> 'COMMITTEES' or (jsonb_typeof(${t.audienceCommitteeIds}) = 'array' and jsonb_array_length(${t.audienceCommitteeIds}) > 0)`,
+    ),
+    check(
+      "challenge_cancel_reason",
+      sql`(${t.status} = 'CANCELLED') = (${t.cancelReason} is not null)`,
+    ),
+  ],
+);
+
+// Preguntas de una trivia (ADR-067): `correctIndex` es privado y solo sale en la proyección
+// cuando el reto está cerrado o cancelado.
+export const challengeQuestion = pgTable(
+  "challenge_question",
+  {
+    id: id(),
+    challengeId: text()
+      .notNull()
+      .references(() => challenge.id, { onDelete: "cascade" }),
+    ordinal: integer().notNull(),
+    prompt: text().notNull(),
+    options: jsonb().$type<string[]>().notNull(),
+    correctIndex: integer().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("challenge_question_ordinal_unique").on(t.challengeId, t.ordinal),
+    check("challenge_question_ordinal_range", sql`${t.ordinal} between 1 and 5`),
+    check(
+      "challenge_question_options_range",
+      sql`jsonb_typeof(${t.options}) = 'array' and jsonb_array_length(${t.options}) between 2 and 6`,
+    ),
+    check(
+      "challenge_question_correct_index",
+      sql`${t.correctIndex} >= 0 and ${t.correctIndex} < jsonb_array_length(${t.options})`,
+    ),
+  ],
+);
+
+// Una entrega por reto y persona; `requestId` absorbe reintentos de red (patrón del Wordle).
+export const challengeParticipation = pgTable(
+  "challenge_participation",
+  {
+    id: id(),
+    challengeId: text()
+      .notNull()
+      .references(() => challenge.id, { onDelete: "cascade" }),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    status: challengeParticipationStatus().notNull().default("PENDING"),
+    requestId: text().notNull(),
+    submittedAt: timestampTz().notNull().defaultNow(),
+    answers: jsonb().$type<number[]>(),
+    score: integer(),
+    passed: boolean(),
+    evidenceText: text(),
+    checkInId: text().references(() => checkIn.id, { onDelete: "set null" }),
+    rewardId: text().references((): AnyPgColumn => reward.id),
+    decidedById: text().references(() => person.id, { onDelete: "set null" }),
+    decidedAt: timestampTz(),
+    reason: text(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("challenge_participation_unique").on(t.challengeId, t.personId),
+    uniqueIndex("challenge_participation_request_unique").on(t.challengeId, t.requestId),
+    index("challenge_participation_person_idx").on(t.personId, t.status),
+    check(
+      "challenge_participation_reason",
+      sql`${t.status} <> 'REJECTED' or ${t.reason} is not null`,
+    ),
+  ],
+);
+
+// Imágenes de una misión con evidencia (ADR-067): fuera de `media_asset`; las sirve solo
+// `/api/retos/evidencia/[id]` al autor o a un ADMIN, y solo en READY.
+export const challengeEvidenceFile = pgTable(
+  "challenge_evidence_file",
+  {
+    id: id(),
+    participationId: text()
+      .notNull()
+      .references(() => challengeParticipation.id, { onDelete: "cascade" }),
+    ordinal: integer().notNull(),
+    objectKey: text().notNull(),
+    contentType: text().notNull(),
+    byteSize: integer().notNull(),
+    status: evidenceFileStatus().notNull().default("PENDING"),
+    error: text(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("challenge_evidence_object_key_unique").on(t.objectKey),
+    uniqueIndex("challenge_evidence_ordinal_unique").on(t.participationId, t.ordinal),
+    check("challenge_evidence_ordinal_range", sql`${t.ordinal} between 1 and 3`),
+    check(
+      "challenge_evidence_object_key_format",
+      sql`${t.objectKey} ~ '^evidence/[a-z0-9]{10,40}/[a-z0-9]{10,40}\\.(jpg|png|webp)$'`,
+    ),
+  ],
+);
+
+// Campaña de puntos extra de GH (ADR-067): una fila por objetivo; al reservar aplica la activa
+// de mayor porcentaje vigente sobre ese objetivo.
+export const boostCampaign = pgTable(
+  "boost_campaign",
+  {
+    id: id(),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    name: text().notNull(),
+    percent: integer().notNull(),
+    challengeId: text().references(() => challenge.id, { onDelete: "cascade" }),
+    occasionId: text().references(() => occasion.id, { onDelete: "cascade" }),
+    startsAt: timestampTz().notNull(),
+    endsAt: timestampTz().notNull(),
+    status: boostCampaignStatus().notNull().default("ACTIVE"),
+    createdById: text().references(() => person.id, { onDelete: "set null" }),
+    cancelledAt: timestampTz(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("boost_campaign_challenge_idx").on(t.challengeId),
+    index("boost_campaign_occasion_idx").on(t.occasionId),
+    index("boost_campaign_term_idx").on(t.termId),
+    check("boost_campaign_percent", sql`${t.percent} in (25, 50, 100)`),
+    check(
+      "boost_campaign_single_target",
+      sql`(${t.challengeId} is null) <> (${t.occasionId} is null)`,
+    ),
+    check("boost_campaign_window_ordered", sql`${t.startsAt} < ${t.endsAt}`),
+  ],
+);
+
+// Booster personal de un uso (ADR-067): Impulso (+50 %) o Superimpulso (+100 %); vence al
+// terminar el término de emisión (EXPIRED es derivado) y nace de un nivel de insignia o de GH.
+export const boosterItem = pgTable(
+  "booster_item",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    kind: boosterKind().notNull(),
+    status: boosterItemStatus().notNull().default("AVAILABLE"),
+    expiresAt: timestampTz().notNull(),
+    sourceAchievementId: text().references((): AnyPgColumn => achievement.id, {
+      onDelete: "set null",
+    }),
+    targetChallengeId: text().references(() => challenge.id, { onDelete: "set null" }),
+    targetOccasionId: text().references(() => occasion.id, { onDelete: "set null" }),
+    consumedRewardId: text().references((): AnyPgColumn => reward.id, { onDelete: "set null" }),
+    grantedById: text().references(() => person.id, { onDelete: "set null" }),
+    grantReason: text(),
+    revokedById: text().references(() => person.id, { onDelete: "set null" }),
+    revokedAt: timestampTz(),
+    revokeReason: text(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("booster_item_source_achievement_unique")
+      .on(t.sourceAchievementId)
+      .where(sql`${t.sourceAchievementId} is not null`),
+    uniqueIndex("booster_item_person_challenge_unique")
+      .on(t.personId, t.targetChallengeId)
+      .where(sql`${t.targetChallengeId} is not null and ${t.status} <> 'REVOKED'`),
+    uniqueIndex("booster_item_person_occasion_unique")
+      .on(t.personId, t.targetOccasionId)
+      .where(sql`${t.targetOccasionId} is not null and ${t.status} <> 'REVOKED'`),
+    index("booster_item_person_status_idx").on(t.personId, t.status),
+    check(
+      "booster_item_single_target",
+      sql`not (${t.targetChallengeId} is not null and ${t.targetOccasionId} is not null)`,
+    ),
+    check(
+      "booster_item_revoked_consistent",
+      sql`(${t.status} = 'REVOKED') = (${t.revokedAt} is not null)`,
+    ),
+  ],
+);
+
+// Premio calculado en servidor (ADR-067): día y semana de Colombia (la semana empieza el lunes)
+// y el snapshot de los topes se fijan al reservar. El cupo cuenta RESERVED, GRANTED y REVERSED.
+export const reward = pgTable(
+  "reward",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    source: rewardSource().notNull(),
+    participationId: text().references(() => challengeParticipation.id, {
+      onDelete: "set null",
+    }),
+    checkInId: text().references(() => checkIn.id, { onDelete: "set null" }),
+    basePoints: integer().notNull(),
+    personalPercent: integer().notNull().default(0),
+    campaignPercent: integer().notNull().default(0),
+    campaignId: text().references(() => boostCampaign.id, { onDelete: "set null" }),
+    boosterItemId: text().references(() => boosterItem.id, { onDelete: "set null" }),
+    baseGranted: integer().notNull(),
+    extraPoints: integer().notNull(),
+    status: rewardStatus().notNull().default("RESERVED"),
+    dayKey: date({ mode: "string" }).notNull(),
+    weekKey: date({ mode: "string" }).notNull(),
+    capDaily: integer().notNull(),
+    capWeekly: integer().notNull(),
+    reservedAt: timestampTz().notNull().defaultNow(),
+    decidedAt: timestampTz(),
+    decidedById: text().references(() => person.id, { onDelete: "set null" }),
+    reason: text(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("reward_participation_unique")
+      .on(t.participationId)
+      .where(sql`${t.participationId} is not null`),
+    uniqueIndex("reward_check_in_unique").on(t.checkInId).where(sql`${t.checkInId} is not null`),
+    index("reward_person_day_idx").on(t.personId, t.dayKey),
+    index("reward_person_week_idx").on(t.personId, t.weekKey),
+    index("reward_term_status_idx").on(t.termId, t.status),
+    check(
+      "reward_challenge_source",
+      sql`(${t.source} = 'CHALLENGE') = (${t.participationId} is not null)`,
+    ),
+    check("reward_checkin_source", sql`(${t.source} = 'CHECKIN') = (${t.checkInId} is not null)`),
+    check("reward_base_points_range", sql`${t.basePoints} between 0 and 20`),
+    check("reward_personal_percent", sql`${t.personalPercent} in (0, 50, 100)`),
+    check("reward_campaign_percent", sql`${t.campaignPercent} in (0, 25, 50, 100)`),
+    check("reward_base_granted_range", sql`${t.baseGranted} between 0 and ${t.basePoints}`),
+    check("reward_extra_nonnegative", sql`${t.extraPoints} >= 0`),
+    check("reward_reserved_consistent", sql`(${t.status} = 'RESERVED') = (${t.decidedAt} is null)`),
+  ],
+);
+
+// Catálogo de insignias en datos (ADR-067): la migración siembra las cuatro familias; GH crea
+// ediciones especiales vinculadas a una ocasión o a un reto.
+export const badgeDefinition = pgTable(
+  "badge_definition",
+  {
+    id: id(),
+    code: text().notNull(),
+    family: badgeFamily().notNull(),
+    level: integer().notNull().default(1),
+    threshold: integer(),
+    name: text().notNull(),
+    description: text().notNull().default(""),
+    unlockHint: text().notNull().default(""),
+    active: boolean().notNull().default(true),
+    specialChallengeId: text().references(() => challenge.id, { onDelete: "set null" }),
+    specialOccasionId: text().references(() => occasion.id, { onDelete: "set null" }),
+    termId: text().references(() => term.id),
+    createdById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("badge_definition_code_unique").on(t.code),
+    uniqueIndex("badge_definition_family_level_unique")
+      .on(t.family, t.level)
+      .where(sql`${t.family} <> 'SPECIAL'`),
+    check("badge_definition_level_range", sql`${t.level} between 1 and 3`),
+    check(
+      "badge_definition_special_threshold",
+      sql`(${t.family} = 'SPECIAL') = (${t.threshold} is null)`,
+    ),
+    check(
+      "badge_definition_special_target",
+      sql`${t.family} <> 'SPECIAL' or (${t.specialChallengeId} is not null) <> (${t.specialOccasionId} is not null)`,
+    ),
+  ],
+);
+
+// Insignia desbloqueada por una persona (ADR-067): `historical` viene de la conciliación y no da
+// booster ni push; `featuredPosition` (1 a 3) destaca hasta tres en el directorio.
+export const achievement = pgTable(
+  "achievement",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    badgeId: text()
+      .notNull()
+      .references(() => badgeDefinition.id),
+    unlockedAt: timestampTz().notNull().defaultNow(),
+    termId: text().references(() => term.id),
+    // CHECKIN, CHALLENGE, WORDLE, OCCASION, HISTORICAL o MANUAL; `sourceRef` apunta al hecho.
+    sourceKind: text().notNull(),
+    sourceRef: text(),
+    historical: boolean().notNull().default(false),
+    seenAt: timestampTz(),
+    featuredPosition: integer(),
+    revokedAt: timestampTz(),
+    revokeReason: text(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("achievement_person_badge_unique")
+      .on(t.personId, t.badgeId)
+      .where(sql`${t.revokedAt} is null`),
+    uniqueIndex("achievement_featured_unique")
+      .on(t.personId, t.featuredPosition)
+      .where(sql`${t.featuredPosition} is not null`),
+    index("achievement_person_idx").on(t.personId),
+    check(
+      "achievement_featured_range",
+      sql`${t.featuredPosition} is null or ${t.featuredPosition} between 1 and 3`,
+    ),
+  ],
+);
+
+// Corrida de la conciliación histórica (ADR-067): reanudable por `cursor` (personId) en lotes
+// de cien; DRY_RUN informa sin escribir.
+export const badgeReconciliationRun = pgTable("badge_reconciliation_run", {
+  id: id(),
+  mode: reconciliationMode().notNull(),
+  status: reconciliationStatus().notNull().default("RUNNING"),
+  cursor: text(),
+  processed: integer().notNull().default(0),
+  unlocked: integer().notNull().default(0),
+  revoked: integer().notNull().default(0),
+  report: jsonb().$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  startedById: text().references(() => person.id, { onDelete: "set null" }),
+  startedAt: timestampTz().notNull().defaultNow(),
+  finishedAt: timestampTz(),
+  error: text(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
