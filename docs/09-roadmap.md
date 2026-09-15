@@ -4,6 +4,15 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Preparación de staging · `en curso`
+
+- [x] Integrar gamificación, directorio, podio y evidencias de diseño mediante PR 34, con CI completo aprobado.
+- [ ] Verificar el candidato desplegado en staging y preparar las pruebas de aceptación antes de promover producción.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-15 | Aserción persistente de evidencia | El CI de `main` 35027292665 detectó que el aviso transitorio del uploader desaparecía con `router.refresh()` aunque la entrega y el premio estaban guardados. La prueba pasa a exigir el estado en revisión y la reserva, incluida su persistencia tras recargar; conserva aprobación administrativa, saldo final y drenaje estricto. |
+
 ## Podio de comités en GH Points (ADR-070) · `lista`
 
 - [x] Implementar el podio aprobado: puestos 1–3, empates en el mismo escalón y lista con los demás comités del top diez.

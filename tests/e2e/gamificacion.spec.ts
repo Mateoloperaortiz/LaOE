@@ -174,9 +174,21 @@ test("evidencia: el miembro entrega texto e imagen y el admin la aprueba", async
     .setInputFiles({ name: "e2e-evidencia.png", mimeType: "image/png", buffer: png });
   await expect(page.getByRole("img", { name: "e2e-evidencia.png" })).toBeVisible();
   await page.getByRole("button", { name: "Enviar evidencia" }).click();
+  // router.refresh reemplaza el aviso del uploader por el estado persistido del servidor.
+  // Esperar ese resultado evita depender de cuánto dura el mensaje de confirmación.
   await expect(
-    page.getByText("Tu evidencia quedó enviada. GH la revisa y te avisamos."),
+    page.getByText(
+      "Tu participación está en revisión. Reservamos tu premio con las reglas de hoy.",
+    ),
   ).toBeVisible();
+  await expect(page.getByText("Premio reservado: 10 GH Points", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByText(
+      "Tu participación está en revisión. Reservamos tu premio con las reglas de hoy.",
+    ),
+  ).toBeVisible();
+  await expect(page.getByText("Premio reservado: 10 GH Points", { exact: true })).toBeVisible();
   await sinViolaciones(page);
   await drenarOutbox();
 

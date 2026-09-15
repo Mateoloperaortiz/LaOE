@@ -188,6 +188,8 @@ La revisión visual recorre escritorio a 1440 px, móvil a 390 px, oscuro a 320 
 
 ### Correcciones de gamificación (ADR-068)
 
+La prueba E2E de evidencia espera el estado persistido «Tu participación está en revisión» y el premio reservado, y los vuelve a comprobar tras recargar. El aviso del uploader es transitorio: `router.refresh()` puede reemplazarlo antes de la aserción. La ejecución de `main` 35027292665 detectó esa carrera de la prueba después de aprobar el PR; su captura mostró la entrega correctamente en revisión. No se amplían timeouts ni se permiten reintentos.
+
 `tests/integration/gamification-regressions.test.ts` conserva los ocho casos detectados en la revisión y verifica además: decidir reservas tras apagar la bandera o cambiar membresía; no revivir premios de retos cancelados; replay concurrente, tras el cierre y después de borrar originales; migración 0032 que libera posiciones revocadas y oculta/reencola evidencias anteriores. La sobrescritura WebP se prueba con dos POST prefirmados reales contra el bucket local y se verifica que el objeto servido no cambia ni vuelve a contener EXIF.
 
 Las pruebas de insignias activan explícitamente la bandera cuando esperan desbloqueos en vivo. Las de evidencia comprueban que `objectKey` conserva la clave original y que solo se sirve `evidence/processed/<fileId>.webp`. Antes de entregar: `npm run db:generate` sin cambios, `npm run check` y `npm run test:e2e` completo; el resultado efectivo queda en el registro de avances.
