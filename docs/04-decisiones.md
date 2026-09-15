@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [066](adr/ADR-066-cargos-vigentes-e-historial.md) | Cargos y trayectoria | Vigentes en la cabecera; historial por semestre y ámbito; GH dentro de Junta Directiva; sin cambios de permisos o cálculos | Aceptada; verificada en producción |
 | [063](adr/ADR-063-importacion-de-asambleas.md) | Asambleas históricas | Clasificación explícita, check-in sin ledger, procedencia por hoja y fila, conciliación antes de deduplicar y retención de membresías pendientes | Implementada en local |
 | [062](adr/ADR-062-importacion-de-asistencias-y-evidencias-gh.md) | Asistencias históricas de GH | Manifiesto, evidencia privada por hash, vista previa y carga atómica con ADMIN; reintento sin duplicados y créditos silenciosos | En producción; enmendada por 063 |
 | [061](adr/ADR-061-verificacion-y-correcciones-de-normativa-2026.md) | Verificación normativa | Guardas de beneficios y cargos, plazos de comités, condición al volver de licencia, avales financieros y evidencia de entrega | Aceptada |
