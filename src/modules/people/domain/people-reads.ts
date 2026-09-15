@@ -95,6 +95,25 @@ export async function getMembershipRef(
   return row ?? null;
 }
 
+/** Comités de la persona en un término, solo pertenencias vigentes (leftAt nulo). */
+export async function listCommitteeIdsForPersonInTerm(
+  personId: string,
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<string[]> {
+  const rows = await exec
+    .select({ committeeId: committeeMembership.committeeId })
+    .from(committeeMembership)
+    .where(
+      and(
+        eq(committeeMembership.personId, personId),
+        eq(committeeMembership.termId, termId),
+        isNull(committeeMembership.leftAt),
+      ),
+    );
+  return rows.map((row) => row.committeeId);
+}
+
 export interface TermCommitteeMember {
   personId: string;
   committeeId: string;

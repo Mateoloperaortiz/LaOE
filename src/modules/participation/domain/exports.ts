@@ -1,7 +1,16 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { getPeopleByIds } from "@/modules/people";
-import { checkIn, occasion } from "../schema";
+import { listAllTerms } from "@/modules/terms";
+import type { ChallengeKind, ParticipationStatus } from "../gamification-types";
+import {
+  boosterItem,
+  challenge,
+  challengeParticipation,
+  checkIn,
+  occasion,
+  reward,
+} from "../schema";
 import type { CheckInSource, CheckInStatus } from "./check-in-pure";
 
 // Lecturas planas para los exportes CSV (ADR-035 regla 17): con nombre y correo, solo para ADMIN.
@@ -63,5 +72,84 @@ export async function listCheckInsForExport(params: {
       reason: item.row.reason,
     }))
     .filter((item) => !params.q || item.personName.toLowerCase().includes(params.q.toLowerCase()));
+  return { rows: mapped, total: mapped.length };
+}
+
+// Export de participaciones en retos (ADR-067 regla 16): cabeceras T-2570, con datos personales.
+
+export interface ChallengeParticipationExportRow {
+  id: string;
+  challengeTitle: string;
+  kind: ChallengeKind;
+  termCode: string;
+  personName: string;
+  email: string;
+  status: ParticipationStatus;
+  submittedAt: Date;
+  base: number | null;
+  extra: number | null;
+  boosterKind: string | null;
+  decidedAt: Date | null;
+  decidedByName: string | null;
+  reason: string | null;
+}
+
+export async function listParticipationsForExport(params: {
+  termId?: string | undefined;
+  challengeId?: string | undefined;
+  page: number;
+  pageSize: number;
+}): Promise<{ rows: ChallengeParticipationExportRow[]; total: number }> {
+  const conditions = [];
+  if (params.termId) {
+    conditions.push(eq(challenge.termId, params.termId));
+  }
+  if (params.challengeId) {
+    conditions.push(eq(challengeParticipation.challengeId, params.challengeId));
+  }
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const db = getDb();
+  const [rows, terms] = await Promise.all([
+    db
+      .select({
+        participation: challengeParticipation,
+        challenge,
+        reward,
+        boosterKind: boosterItem.kind,
+      })
+      .from(challengeParticipation)
+      .innerJoin(challenge, eq(challenge.id, challengeParticipation.challengeId))
+      .leftJoin(reward, eq(reward.id, challengeParticipation.rewardId))
+      .leftJoin(boosterItem, eq(boosterItem.id, reward.boosterItemId))
+      .where(where)
+      .orderBy(desc(challengeParticipation.submittedAt))
+      .limit(params.pageSize)
+      .offset((params.page - 1) * params.pageSize),
+    listAllTerms(),
+  ]);
+  const termCode = new Map(terms.map((term) => [term.id, term.code]));
+  const peopleIds = [
+    ...rows.map((item) => item.participation.personId),
+    ...rows.map((item) => item.participation.decidedById).filter((id): id is string => id !== null),
+  ];
+  const people = await getPeopleByIds(peopleIds);
+  const mapped = rows.map((item) => ({
+    id: item.participation.id,
+    challengeTitle: item.challenge.title,
+    kind: item.challenge.kind,
+    termCode: termCode.get(item.challenge.termId) ?? "",
+    personName: people.get(item.participation.personId)?.fullName?.trim() ?? "",
+    email: people.get(item.participation.personId)?.email ?? "",
+    status: item.participation.status,
+    submittedAt: item.participation.submittedAt,
+    base: item.reward?.baseGranted ?? null,
+    extra: item.reward?.extraPoints ?? null,
+    boosterKind: item.boosterKind ?? null,
+    decidedAt: item.participation.decidedAt,
+    decidedByName: item.participation.decidedById
+      ? (people.get(item.participation.decidedById)?.fullName?.trim() ?? "")
+      : null,
+    reason: item.participation.reason,
+  }));
   return { rows: mapped, total: mapped.length };
 }

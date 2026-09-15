@@ -6,6 +6,7 @@ import { requireConfig } from "@/modules/system";
 import { findTermByCode, getCurrentTerm, nextTermCode } from "@/modules/terms";
 import { scrubStandingName } from "./domain/closing";
 import { recomputeCommitteeAssembly } from "./domain/committee-assembly";
+import { processEvidenceFile } from "./domain/evidence";
 import { isAutoCloseDue } from "./domain/occasion-pure";
 import { closeOccasion, getOccasion, listOccasionsForTerm } from "./domain/occasions";
 import { runReminders } from "./domain/reminders";
@@ -145,4 +146,14 @@ registerHandler("membership.changed", async (payload, ctx) => {
   }
   const invites = await deleteSurveyInvitesFor(personId);
   ctx.log.info({ personId, invites }, "invitaciones de encuesta borradas al salir");
+});
+
+// Evidencia de una misión (ADR-067 regla 6): re-encodea a WebP sin metadatos y marca READY; un
+// objeto indecodificable queda FAILED sin reintento y un fallo del bucket reintenta con backoff.
+const evidenceFile = z.object({ fileId: z.string().min(1) });
+
+registerHandler("gamification.evidence-process", async (payload, ctx) => {
+  const { fileId } = evidenceFile.parse(payload);
+  const outcome = await processEvidenceFile(fileId);
+  ctx.log.info({ fileId, outcome }, "evidencia procesada");
 });

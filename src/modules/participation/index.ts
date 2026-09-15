@@ -23,6 +23,32 @@ export {
   requiredTotal,
 } from "./domain/assembly-pure";
 export {
+  listParticipationsForPerson,
+  listPendingReviews,
+  type ParticipationRow,
+  type PendingReviewRow,
+  type SubmitDenial,
+  type SubmitResult,
+} from "./domain/challenge-participation";
+export {
+  type AdminParticipantRow,
+  type ChallengeAdminRow,
+  type ChallengeInput,
+  type ChallengeQuestionRow,
+  type ChallengeRow,
+  challengeInputSchema,
+  type EvidenceFileRow,
+  findChallenge,
+  getChallengeAdmin,
+  getChallengeForMember,
+  hasGrantedRewards,
+  listChallengesAdmin,
+  listChallengesForMember,
+  type MemberChallengeCard,
+  type MemberChallengeDetail,
+  nextChallengeForMember,
+} from "./domain/challenges";
+export {
   CHECK_IN_SOURCES,
   CHECK_IN_STATUSES,
   type CheckInDecision,
@@ -88,7 +114,42 @@ export {
   type ViabilityInput,
   viabilityAlerts,
 } from "./domain/committee-viability-pure";
-export { type CheckInExportRow, listCheckInsForExport } from "./domain/exports";
+export {
+  deleteEvidenceFor,
+  EVIDENCE_KEY_PREFIX,
+  EVIDENCE_MAX_BYTES,
+  EVIDENCE_MAX_FILES,
+  EVIDENCE_MIN_BYTES,
+  EVIDENCE_TYPES,
+  type PreparedEvidenceUpload,
+  prepareEvidenceUpload,
+  resolveEvidenceRedirect,
+  verifyEvidenceObjects,
+} from "./domain/evidence";
+export {
+  type ChallengeParticipationExportRow,
+  type CheckInExportRow,
+  listCheckInsForExport,
+  listParticipationsForExport,
+} from "./domain/exports";
+export {
+  annulParticipationAs,
+  cancelChallengeAs,
+  createChallengeAs,
+  duplicateChallengeAs,
+  type EvidenceSubmitInput,
+  publishChallengeAs,
+  type ReviewInput,
+  reviewParticipationAs,
+  submitEvidenceAs,
+  submitTriviaAs,
+  type TriviaSubmitInput,
+  updateChallengeAs,
+} from "./domain/gamification-commands";
+export {
+  type GamificationOverview,
+  gamificationOverview,
+} from "./domain/gamification-metrics";
 export {
   audienceIncludes,
   badgeProgress,
@@ -123,6 +184,12 @@ export {
   type Ranked,
 } from "./domain/ledger-pure";
 export { buildLiveSnapshot, checkInLink, type LiveCheckIn, type LiveSnapshot } from "./domain/live";
+export {
+  type GamificationSettings,
+  loadGamificationSettings,
+  type MemberContext,
+  resolveMemberContext,
+} from "./domain/member-context";
 export {
   ASSEMBLY_KINDS,
   type AssemblyKind,

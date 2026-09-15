@@ -35,7 +35,7 @@ export interface ReserveRewardInput {
   personalPercent: PersonalPercent;
   campaignId?: string | null;
   campaignPercent: 0 | CampaignPercent;
-  now?: Date;
+  now?: Date | undefined;
 }
 
 /** Puntos extra ya comprometidos en el día y la semana de la reserva: RESERVED + GRANTED + REVERSED. */

@@ -6,6 +6,7 @@ import { lockOpenTermPoints } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
 import { checkIn, occasion } from "../schema";
+import { applyPresentialCheckIn } from "./challenge-participation";
 import {
   CHECK_IN_STATUSES,
   type CheckInDecision,
@@ -17,6 +18,7 @@ import {
   statusForDecision,
 } from "./check-in-pure";
 import { creditCheckIn, reverseCheckInCredit } from "./ledger";
+import type { GamificationSettings } from "./member-context";
 import { windowState } from "./occasion-pure";
 import type { OccasionRow } from "./occasions";
 import { verifyRotatingCode } from "./rotating-code-pure";
@@ -107,6 +109,8 @@ export interface SelfCheckInInput {
 
 export interface SelfCheckInContext {
   membership: MembershipRef | null;
+  /** Sin settings no hay gancho de retos (llamadas antiguas). */
+  settings?: GamificationSettings | undefined;
 }
 
 export type SelfCheckInDenial =
@@ -228,6 +232,19 @@ export async function checkInSelf(
       payload: approvedPayload(row, input.personId, "SELF_QR"),
     });
   }
+  // ADR-067 regla 12: el reto presencial vinculado a la ocasión sigue el desenlace del check-in.
+  if (context.settings) {
+    await applyPresentialCheckIn(
+      ctx,
+      {
+        checkIn: created,
+        occasion: row,
+        outcome: status === "APPROVED" ? "APPROVED" : "PENDING",
+        now,
+      },
+      { settings: context.settings },
+    );
+  }
   return {
     ok: true,
     outcome: outcomeFor(status, row.points),
@@ -251,7 +268,7 @@ export interface HostCheckInInput {
 export async function hostCheckIn(
   ctx: CommandContext,
   input: HostCheckInInput,
-  context: { membership: MembershipRef | null },
+  context: { membership: MembershipRef | null; settings?: GamificationSettings | undefined },
 ): Promise<{ checkInId: string; points: number }> {
   const now = input.now ?? new Date();
   const row = await readOccasion(ctx, input.occasionId);
@@ -275,7 +292,7 @@ export async function hostCheckIn(
     if (!canTransitionCheckIn(existing.status, "APPROVED")) {
       throw new DomainError(t("T-601", { nombre: input.personName }));
     }
-    await decide(ctx, existing, row, "APPROVE", null, now);
+    await decide(ctx, existing, row, "APPROVE", null, now, context.settings);
     return { checkInId: existing.id, points: row.points };
   }
   let created: CheckInRow | undefined;
@@ -320,6 +337,13 @@ export async function hostCheckIn(
     },
   });
   await emitApproved(ctx, row, input.personId, input.source);
+  if (context.settings) {
+    await applyPresentialCheckIn(
+      ctx,
+      { checkIn: created, occasion: row, outcome: "APPROVED", now },
+      { settings: context.settings },
+    );
+  }
   return { checkInId: created.id, points: row.points };
 }
 
@@ -332,6 +356,7 @@ async function decide(
   decision: CheckInDecision,
   reason: string | null,
   now: Date,
+  settings?: GamificationSettings,
 ): Promise<void> {
   await lockOpenTermPoints(ctx.tx, row.termId);
   const target = statusForDecision(decision);
@@ -380,6 +405,22 @@ async function decide(
       });
     }
   }
+  // ADR-067 regla 12: aprobar completa el reto presencial, rechazar lo libera y anular lo revierte.
+  if (settings) {
+    const outcome =
+      decision === "APPROVE" ? "APPROVED" : decision === "REJECT" ? "REJECTED" : "CANCELLED";
+    await applyPresentialCheckIn(
+      ctx,
+      {
+        checkIn: { ...current, status: target },
+        occasion: row,
+        outcome,
+        reason: cleanReason,
+        now,
+      },
+      { settings },
+    );
+  }
 }
 
 export interface DecideInput {
@@ -389,7 +430,11 @@ export interface DecideInput {
   now?: Date | undefined;
 }
 
-export async function decideCheckIn(ctx: CommandContext, input: DecideInput): Promise<void> {
+export async function decideCheckIn(
+  ctx: CommandContext,
+  input: DecideInput,
+  context?: { settings?: GamificationSettings | undefined },
+): Promise<void> {
   const [current] = await ctx.tx.select().from(checkIn).where(eq(checkIn.id, input.checkInId));
   if (!current) {
     throw new DomainError(t("T-032"));
@@ -398,7 +443,15 @@ export async function decideCheckIn(ctx: CommandContext, input: DecideInput): Pr
   if (!row) {
     throw new DomainError(t("T-032"));
   }
-  await decide(ctx, current, row, input.decision, input.reason ?? null, input.now ?? new Date());
+  await decide(
+    ctx,
+    current,
+    row,
+    input.decision,
+    input.reason ?? null,
+    input.now ?? new Date(),
+    context?.settings,
+  );
 }
 
 export async function decideMany(
@@ -406,10 +459,11 @@ export async function decideMany(
   checkInIds: string[],
   decision: CheckInDecision,
   reason?: string | null,
+  context?: { settings?: GamificationSettings | undefined },
 ): Promise<number> {
   const now = new Date();
   for (const checkInId of checkInIds) {
-    await decideCheckIn(ctx, { checkInId, decision, reason, now });
+    await decideCheckIn(ctx, { checkInId, decision, reason, now }, context);
   }
   return checkInIds.length;
 }
@@ -420,6 +474,7 @@ export async function cancelOccasionCheckIns(
   row: OccasionRow,
   reason: string,
   now = new Date(),
+  settings?: GamificationSettings,
 ): Promise<number> {
   await lockOpenTermPoints(ctx.tx, row.termId);
   const rows = await ctx.tx
@@ -438,6 +493,20 @@ export async function cancelOccasionCheckIns(
       type: "checkin.cancelled",
       payload: { ...approvedPayload(row, current.personId, current.source), reason },
     });
+    // ADR-067 regla 12: cancelar la ocasión anula la participación del reto presencial.
+    if (settings) {
+      await applyPresentialCheckIn(
+        ctx,
+        {
+          checkIn: { ...current, status: "CANCELLED" },
+          occasion: row,
+          outcome: "CANCELLED",
+          reason,
+          now,
+        },
+        { settings },
+      );
+    }
   }
   if (rows.length > 0 && row.points > 0) {
     await ctx.emit({

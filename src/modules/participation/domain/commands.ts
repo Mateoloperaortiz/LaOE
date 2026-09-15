@@ -19,6 +19,7 @@ import {
 } from "./check-ins";
 import { buildStanding, writeTermStanding } from "./closing";
 import { adjustPoints, reverseEntry } from "./ledger";
+import { loadGamificationSettings } from "./member-context";
 import {
   cancelOccasion,
   closeOccasion,
@@ -86,9 +87,16 @@ export async function cancelOccasionAs(
   id: string,
   reason: string,
 ): Promise<{ cancelledCheckIns: number }> {
+  const settings = await loadGamificationSettings();
   return runCommand(actor, async (ctx) => {
     const before = await cancelOccasion(ctx, id, reason);
-    const cancelledCheckIns = await cancelOccasionCheckIns(ctx, before, reason.trim());
+    const cancelledCheckIns = await cancelOccasionCheckIns(
+      ctx,
+      before,
+      reason.trim(),
+      new Date(),
+      settings,
+    );
     return { cancelledCheckIns };
   });
 }
@@ -103,12 +111,13 @@ export async function checkInSelfAs(
     return { ok: false, reason: "NOT_FOUND" };
   }
   const membership = await getMembershipRef(actor.personId);
+  const settings = await loadGamificationSettings();
   try {
     return await runCommand(actor, (ctx) =>
       checkInSelf(
         ctx,
         { occasionId: row.id, personId: actor.personId, code: input.code, now: input.now },
-        { membership },
+        { membership, settings },
       ),
     );
   } catch (error) {
@@ -128,8 +137,9 @@ export async function hostCheckInAs(
   input: { occasionId: string; personId: string; personName: string; source: "HOST" | "ADMIN" },
 ): Promise<{ checkInId: string; points: number }> {
   const membership = await getMembershipRef(input.personId);
+  const settings = await loadGamificationSettings();
   try {
-    return await runCommand(actor, (ctx) => hostCheckIn(ctx, input, { membership }));
+    return await runCommand(actor, (ctx) => hostCheckIn(ctx, input, { membership, settings }));
   } catch (error) {
     if (error instanceof AlreadyCheckedIn) {
       throw new DomainError(t("T-601", { nombre: input.personName }));
@@ -138,20 +148,22 @@ export async function hostCheckInAs(
   }
 }
 
-export function decideCheckInAs(
+export async function decideCheckInAs(
   actor: Actor & { personId: string },
   input: { checkInId: string; decision: CheckInDecision; reason?: string | null },
 ): Promise<void> {
-  return runCommand(actor, (ctx) => decideCheckIn(ctx, input));
+  const settings = await loadGamificationSettings();
+  return runCommand(actor, (ctx) => decideCheckIn(ctx, input, { settings }));
 }
 
-export function decideManyAs(
+export async function decideManyAs(
   actor: Actor & { personId: string },
   checkInIds: string[],
   decision: CheckInDecision,
   reason?: string | null,
 ): Promise<number> {
-  return runCommand(actor, (ctx) => decideMany(ctx, checkInIds, decision, reason));
+  const settings = await loadGamificationSettings();
+  return runCommand(actor, (ctx) => decideMany(ctx, checkInIds, decision, reason, { settings }));
 }
 
 export function setRotatingCodeAs(actor: Actor, id: string, enabled: boolean): Promise<void> {

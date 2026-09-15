@@ -2144,3 +2144,11 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2576 | Colección: origen de un logro | Asistencia a {actividad} · Reto {reto} · Wordle del {fecha} · Historia de la OE · Edición especial | MATEO | Propuesta |
 | T-2577 | Reto: cuenta para insignia | Cuenta para Relámpago | MATEO | Propuesta |
 | T-2578 | Boosters: cuál usar (selector) | Sin booster · {booster} (vence el {fecha}) | MATEO | Propuesta |
+| T-2579 | Reto presencial: asistencia rechazada (motivo automático) | Tu asistencia en {actividad} no fue aprobada. | MATEO | Propuesta |
+| T-2580 | Reto presencial: asistencia anulada (motivo automático) | Tu asistencia en {actividad} fue anulada: {motivo} | MATEO | Propuesta |
+| T-2581 | Reto cancelado: motivo automático de la participación | El reto se canceló: {motivo} | MATEO | Propuesta |
+| T-2582 | Admin retos: columnas de la lista | Reto · Formato · Estado · Abre · Cierra · Premio · Participantes · Pendientes | MATEO | Propuesta |
+| T-2583 | Admin panel: enlaces rápidos | Ver jobs · Ver ledger · Ver cierre | MATEO | Propuesta |
+| T-2584 | Admin retos: ocasión vinculada, ayuda | Elegí una actividad con puntos del mismo semestre; el reto se completa al aprobar su asistencia dentro de la ventana del reto. | MATEO | Propuesta |
+| T-2585 | Admin revisión: texto de la evidencia (título) | Lo que contó | MATEO | Propuesta |
+| T-2586 | Admin: sin sesión reciente para anular | Confirmá tu identidad para anular un premio entregado. | MATEO | Propuesta |

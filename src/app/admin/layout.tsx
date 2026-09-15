@@ -102,62 +102,109 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         { href: "/admin/permanencia/cierre", label: cierrePermanencia ?? "" },
         { href: "/admin/junta", label: junta ?? "" },
         { href: "/admin/presupuestos", label: tList("T-2200")[0] ?? "" },
+        { href: "/admin/gamificacion", label: tList("T-2404")[0] ?? "" },
+        { href: "/admin/gamificacion/retos", label: tList("T-2404")[1] ?? "" },
+        { href: "/admin/gamificacion/revision", label: tList("T-2404")[2] ?? "" },
+        { href: "/admin/gamificacion/limites", label: tList("T-2404")[5] ?? "" },
         { href: "/admin/permisos", label: permisos ?? "" },
         { href: "/admin/sistema/importaciones", label: importaciones ?? "" },
         { href: "/admin/sistema/jobs", label: t("T-241") },
         { href: "/admin/sistema/alias", label: alias ?? "" },
       ];
   const groupLabels = tList("T-1400");
-  const groupRoutes = [
-    [
-      "/admin/personas",
-      "/admin/comites",
-      "/admin/macroeventos",
-      "/admin/cargos",
-      "/admin/horario-preferencial",
-      "/admin/terminos",
-      "/admin/etiquetas",
-      "/admin/segmentos",
-      "/admin/personas/importar",
-      "/admin/personas/activacion",
-    ],
-    [
-      "/admin/tareas",
-      "/admin/formularios",
-      "/admin/pipelines",
-      "/admin/organizaciones",
-      "/admin/solicitudes",
-      "/admin/convocatorias",
-    ],
-    ["/admin/paginas", "/admin/cartelera", "/admin/eventos", "/admin/medios", "/admin/documentos"],
-    ["/admin/plantillas", "/admin/campanas", "/admin/mensajes"],
-    ["/admin/ocasiones", "/admin/ledger", "/admin/rankings", "/admin/asambleas", "/admin/cierre"],
-    [
-      "/admin/permanencia/reglas",
-      "/admin/permanencia/grupos",
-      "/admin/permanencia/evaluaciones",
-      "/admin/permanencia/cumplimiento",
-      "/admin/permanencia/cierre",
-      "/admin/presupuestos",
-      "/admin/junta",
-    ],
-    [
-      "/admin/sistema/politica",
-      "/admin/permisos",
-      "/admin/sistema/importaciones",
-      "/admin/sistema/jobs",
-      "/admin/sistema/alias",
-    ],
+  // Grupos en el orden de T-1400; Gamificación (T-2403) va justo después de Participación.
+  const groupDefs: Array<{ label: string; routes: string[] }> = [
+    {
+      label: groupLabels[0] ?? "",
+      routes: [
+        "/admin/personas",
+        "/admin/comites",
+        "/admin/macroeventos",
+        "/admin/cargos",
+        "/admin/horario-preferencial",
+        "/admin/terminos",
+        "/admin/etiquetas",
+        "/admin/segmentos",
+        "/admin/personas/importar",
+        "/admin/personas/activacion",
+      ],
+    },
+    {
+      label: groupLabels[1] ?? "",
+      routes: [
+        "/admin/tareas",
+        "/admin/formularios",
+        "/admin/pipelines",
+        "/admin/organizaciones",
+        "/admin/solicitudes",
+        "/admin/convocatorias",
+      ],
+    },
+    {
+      label: groupLabels[2] ?? "",
+      routes: [
+        "/admin/paginas",
+        "/admin/cartelera",
+        "/admin/eventos",
+        "/admin/medios",
+        "/admin/documentos",
+      ],
+    },
+    {
+      label: groupLabels[3] ?? "",
+      routes: ["/admin/plantillas", "/admin/campanas", "/admin/mensajes"],
+    },
+    {
+      label: groupLabels[4] ?? "",
+      routes: [
+        "/admin/ocasiones",
+        "/admin/ledger",
+        "/admin/rankings",
+        "/admin/asambleas",
+        "/admin/cierre",
+      ],
+    },
+    {
+      label: t("T-2403"),
+      routes: [
+        "/admin/gamificacion",
+        "/admin/gamificacion/retos",
+        "/admin/gamificacion/revision",
+        "/admin/gamificacion/limites",
+      ],
+    },
+    {
+      label: groupLabels[5] ?? "",
+      routes: [
+        "/admin/permanencia/reglas",
+        "/admin/permanencia/grupos",
+        "/admin/permanencia/evaluaciones",
+        "/admin/permanencia/cumplimiento",
+        "/admin/permanencia/cierre",
+        "/admin/presupuestos",
+        "/admin/junta",
+      ],
+    },
+    {
+      label: groupLabels[6] ?? "",
+      routes: [
+        "/admin/sistema/politica",
+        "/admin/permisos",
+        "/admin/sistema/importaciones",
+        "/admin/sistema/jobs",
+        "/admin/sistema/alias",
+      ],
+    },
   ];
   // Solo viajan al cliente los destinos que el actor puede ver.
-  const groups = groupRoutes
-    .map((routes, index) => ({
+  const groups = groupDefs
+    .map((group, index) => ({
       id: `group-${index}`,
-      label: groupLabels[index] ?? "",
+      label: group.label,
       items: actor.isAdmin
-        ? routes.flatMap((href) => enlaces.filter((link) => link.href === href))
+        ? group.routes.flatMap((href) => enlaces.filter((link) => link.href === href))
         : enlaces.filter((link) =>
-            routes.some((href) => link.href === href || link.href.startsWith(`${href}/`)),
+            group.routes.some((href) => link.href === href || link.href.startsWith(`${href}/`)),
           ),
     }))
     .filter((group) => group.items.length > 0);

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import type { CommandContext } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { appConfig } from "../schema";
 
 // Configuración del sistema (03-modelo-de-datos.md, AppConfig): claves conocidas con su esquema,
@@ -132,4 +132,18 @@ export async function setConfig<K extends ConfigKey>(
     after: parsed,
   });
   cache.delete(key);
+}
+
+/** Vacía la caché lectura: la usan las pruebas al truncar la base. */
+export function clearConfigCache(): void {
+  cache.clear();
+}
+
+/** Wrapper de comando para src/app (que no abre transacciones): setConfig auditado. */
+export function setConfigAs<K extends ConfigKey>(
+  actor: Actor & { personId: string },
+  key: K,
+  value: ConfigValue<K>,
+): Promise<void> {
+  return runCommand(actor, (ctx) => setConfig(ctx, key, value));
 }

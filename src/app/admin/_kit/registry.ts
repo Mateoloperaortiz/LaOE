@@ -14,6 +14,7 @@ import { permissionsResource } from "@/modules/identity/admin";
 import {
   aliasesResource,
   assembliesResource,
+  challengeParticipationsResource,
   checkInsResource,
   ledgerResource,
   occasionsResource,
@@ -165,6 +166,7 @@ const resources: Record<string, AnyResource> = {
   [rankingsResource.key]: rankingsResource as unknown as AnyResource,
   [assembliesResource.key]: assembliesResource as unknown as AnyResource,
   [aliasesResource.key]: aliasesResource as unknown as AnyResource,
+  [challengeParticipationsResource.key]: challengeParticipationsResource as unknown as AnyResource,
   [messagesResource.key]: messagesResource as unknown as AnyResource,
   [templatesResource.key]: templatesResource as unknown as AnyResource,
   [campaignsResource.key]: campaignsResource as unknown as AnyResource,

@@ -20,7 +20,12 @@ import {
   openOccasionAs,
   updateOccasionAs,
 } from "./domain/commands";
-import { type CheckInExportRow, listCheckInsForExport } from "./domain/exports";
+import {
+  type ChallengeParticipationExportRow,
+  type CheckInExportRow,
+  listCheckInsForExport,
+  listParticipationsForExport,
+} from "./domain/exports";
 import { type LedgerListRow, listLedger } from "./domain/ledger";
 import { POINT_ENTRY_KINDS } from "./domain/ledger-pure";
 import {
@@ -512,6 +517,50 @@ export const assembliesResource: ResourceDefinition<AssemblyExportRow, Empty> = 
     segunda_vuelta_firmada: row.compliance.runoffAttended ? "si" : "no",
     cumple: row.compliance.compliant ? "si" : "no",
     ajustado: row.requirement.adjusted ? "si" : "no",
+  }),
+};
+
+// Export de participaciones en retos (ADR-067 regla 16, cabeceras T-2570): lleva datos
+// personales, así que pide step-up y audita como los demás exportes.
+
+export const challengeParticipationsResource: ResourceDefinition<
+  ChallengeParticipationExportRow,
+  Empty
+> = {
+  key: "retos",
+  names: {
+    plural: tList("T-2574")[0] ?? "",
+    singular: tList("T-2404")[1] ?? "",
+  },
+  basePath: "/admin/gamificacion/retos",
+  columns: [
+    { key: "challengeTitle", label: tList("T-2570")[0] ?? "", render: (row) => row.challengeTitle },
+  ],
+  filters: async () => [await termFilter(tList("T-2565")[0] ?? "")],
+  schema: emptySchema,
+  fields: [],
+  list: (params) =>
+    listParticipationsForExport({
+      termId: params.filters.termId,
+      challengeId: params.filters.challengeId,
+      page: params.page,
+      pageSize: params.pageSize,
+    }),
+  get: () => Promise.resolve(null),
+  toFormValues: () => ({}),
+  personalData: true,
+  exportRow: (row) => ({
+    reto: row.challengeTitle,
+    formato: row.kind,
+    semestre: row.termCode,
+    persona: row.personName,
+    correo: row.email,
+    estado: row.status,
+    enviado: row.submittedAt.toISOString(),
+    base: row.base,
+    extra: row.extra,
+    booster: row.boosterKind,
+    decidido: row.decidedAt ? row.decidedAt.toISOString() : null,
   }),
 };
 
