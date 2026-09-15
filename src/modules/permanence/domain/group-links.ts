@@ -8,7 +8,7 @@ export async function resolveGroupEvent(
   ctx: CommandContext,
   input: { kind: string; eventId?: string | undefined; editionId?: string | undefined },
 ): Promise<string | undefined> {
-  if (input.kind !== "GT_MACROEVENT") return input.eventId;
+  if (input.kind !== "GT_MACROEVENT" && input.kind !== "GAP") return input.eventId;
   const edition = input.editionId ? await getMacroeventEdition(input.editionId, ctx.tx) : null;
   if (input.editionId && !edition) throw new DomainError(t("T-2353"));
   if (edition && input.eventId && input.eventId !== edition.eventId)

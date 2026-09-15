@@ -146,6 +146,9 @@ export const workGroup = pgTable(
     uniqueIndex("work_group_macroevent_term_unique")
       .on(t.termId, t.eventId)
       .where(sql`${t.kind} = 'GT_MACROEVENT' and ${t.eventId} is not null`),
+    uniqueIndex("work_group_gap_macroevent_term_unique")
+      .on(t.termId, t.eventId)
+      .where(sql`${t.kind} = 'GAP' and ${t.eventId} is not null`),
     index("work_group_term_kind_idx").on(t.termId, t.kind),
     index("work_group_leader_idx").on(t.leaderPersonId),
     check("work_group_code_format", sql`${t.code} is null or ${t.code} ~ '^[A-Z0-9-]{2,20}$'`),
@@ -184,6 +187,7 @@ export const workGroupMembership = pgTable(
       .references(() => person.id, { onDelete: "cascade" }),
     joinedAt: timestampTz().notNull().defaultNow(),
     leftAt: timestampTz(),
+    areas: text().array().notNull().default(sql`'{}'::text[]`),
     evaluation: workGroupEvaluation().notNull().default("PENDING"),
     evaluatedById: text().references(() => person.id, { onDelete: "set null" }),
     evaluatedAt: timestampTz(),

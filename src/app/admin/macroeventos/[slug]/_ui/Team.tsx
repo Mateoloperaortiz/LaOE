@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { getGroupDetail } from "@/modules/permanence";
+import { type getGroupDetail, teamAreaLabel } from "@/modules/permanence";
 import { Campo, inputClass } from "@/shared/admin-kit/AdminFields";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
@@ -7,6 +7,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { macroeventAction } from "../actions";
+import { Areas } from "./Areas";
 import { Fields, type MacroContext, MemberSelect } from "./Fields";
 
 export function Team({
@@ -22,16 +23,17 @@ export function Team({
   editions: Array<{ id: string; name: string }>;
   closed: boolean;
 }) {
+  const gap = context.area === "gap";
   if (!detail)
     return (
       <div className="flex flex-col items-start gap-4">
-        <p className="max-w-prose text-tinta-suave">{t("T-2348")}</p>
+        <p className="max-w-prose text-tinta-suave">{t(gap ? "T-2386" : "T-2348")}</p>
         {!closed ? (
           <form action={macroeventAction}>
             <AdminFormBody>
               <Fields context={context} operation="prepare" />
               <AdminSubmitButton className="boton-primario" type="submit">
-                {t("T-2349")}
+                {t(gap ? "T-2385" : "T-2349")}
               </AdminSubmitButton>
             </AdminFormBody>
           </form>
@@ -47,14 +49,14 @@ export function Team({
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
-        <p className="max-w-prose text-tinta-suave">{t("T-2359")}</p>
+        <p className="max-w-prose text-tinta-suave">{t(gap ? "T-2387" : "T-2359")}</p>
         <p className="font-semibold">
           {t("T-2370", {
             n: live.length,
             m: live.filter((row) => row.evaluation === "PENDING").length,
           })}
         </p>
-        <p className="max-w-prose text-sm text-tinta-suave">{t("T-2368")}</p>
+        <p className="max-w-prose text-sm text-tinta-suave">{t("T-2393")}</p>
       </div>
       {live.length ? (
         <ul className="m-0 list-none divide-y divide-borde border-y border-borde p-0">
@@ -80,6 +82,9 @@ export function Team({
                 </Insignia>
               </div>
               <p className="text-sm text-tinta-suave">{member.committees.join(" · ")}</p>
+              <p className="text-sm font-semibold">
+                {member.areas.length ? member.areas.map(teamAreaLabel).join(" · ") : t("T-2391")}
+              </p>
               {member.evaluatedAt ? (
                 <p className="text-sm text-tinta-suave">
                   {t("T-770", {
@@ -91,6 +96,21 @@ export function Team({
               {member.note ? <p className="max-w-prose text-sm">{member.note}</p> : null}
               {!closed ? (
                 <div className="flex flex-col items-start gap-3">
+                  <details className="w-full max-w-xl">
+                    <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold underline">
+                      {t("T-2379")} · {member.name}
+                    </summary>
+                    <form action={macroeventAction} className="mt-3 flex flex-col gap-3">
+                      <AdminFormBody>
+                        <Fields context={context} operation="set-areas" />
+                        <input type="hidden" name="personId" value={member.personId} />
+                        <Areas slug={context.slug} selected={member.areas} />
+                        <AdminSubmitButton className="boton-secundario self-start" type="submit">
+                          {t("T-2380")}
+                        </AdminSubmitButton>
+                      </AdminFormBody>
+                    </form>
+                  </details>
                   <details className="w-full max-w-xl">
                     <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold underline">
                       {t("T-2360")} · {member.name}
@@ -160,6 +180,13 @@ export function Team({
               name="personId"
               label={agregar ?? ""}
             />
+            <Areas slug={context.slug} />
+            {!gap ? <p className="text-sm text-tinta-suave">{t("T-2378")}</p> : null}
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 py-2 font-semibold">
+              <input type="checkbox" name="credit" className="size-5 shrink-0 accent-oe-navy" />
+              {t("T-2381")}
+            </label>
+            <p className="text-sm text-tinta-suave">{t("T-2382")}</p>
             <AdminSubmitButton className="boton-secundario self-start" type="submit">
               {agregar}
             </AdminSubmitButton>
@@ -168,12 +195,12 @@ export function Team({
       ) : null}
       <section aria-labelledby="responsables" className="flex flex-col gap-4">
         <h2 id="responsables" className="text-display-md">
-          {t("T-2358")}
+          {t(gap ? "T-2388" : "T-2358")}
         </h2>
         {closed ? (
           <>
             <p>
-              {t("T-2364")}: {detail.leaderName || t("T-2357")}
+              {t(gap ? "T-2389" : "T-2364")}: {detail.leaderName || t("T-2357")}
             </p>
             <p>
               {t("T-2365")}: {detail.evaluators.map((row) => row.name).join(" · ") || t("T-2357")}
@@ -186,7 +213,7 @@ export function Team({
               <MemberSelect
                 members={members}
                 name="leaderPersonId"
-                label={t("T-2364")}
+                label={t(gap ? "T-2389" : "T-2364")}
                 optional
                 selected={detail.group.leaderPersonId ?? ""}
               />
@@ -206,7 +233,7 @@ export function Team({
                   ))}
                 </select>
               </Campo>
-              <Campo id="groupEditionId" label={t("T-2366")}>
+              <Campo id="groupEditionId" label={t(gap ? "T-2390" : "T-2366")}>
                 <select
                   id="groupEditionId"
                   name="groupEditionId"

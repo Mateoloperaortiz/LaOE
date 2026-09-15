@@ -106,6 +106,7 @@ export interface GroupMemberView {
   name: string;
   joinedAt: Date;
   leftAt: Date | null;
+  areas: string[];
   evaluation: "PENDING" | "GOOD" | "INSUFFICIENT";
   evaluatedById: string | null;
   evaluatedByName: string;
@@ -160,7 +161,10 @@ export async function createGroup(ctx: CommandContext, input: GroupInput): Promi
     });
     return row;
   } catch (error) {
-    if (isUniqueViolation(error, "work_group_macroevent_term_unique")) {
+    if (
+      isUniqueViolation(error, "work_group_macroevent_term_unique") ||
+      isUniqueViolation(error, "work_group_gap_macroevent_term_unique")
+    ) {
       throw new DomainError(t("T-2352"));
     }
     if (isUniqueViolation(error, "work_group_code_unique")) {
@@ -192,7 +196,10 @@ export async function updateGroup(
       .set({ ...toValues(input), termId: before.termId })
       .where(eq(workGroup.id, id));
   } catch (error) {
-    if (isUniqueViolation(error, "work_group_macroevent_term_unique")) {
+    if (
+      isUniqueViolation(error, "work_group_macroevent_term_unique") ||
+      isUniqueViolation(error, "work_group_gap_macroevent_term_unique")
+    ) {
       throw new DomainError(t("T-2352"));
     }
     if (isUniqueViolation(error, "work_group_code_unique")) {
@@ -520,6 +527,7 @@ export async function getGroupDetail(id: string): Promise<GroupDetail | null> {
       name: name(row.personId),
       joinedAt: row.joinedAt,
       leftAt: row.leftAt,
+      areas: row.areas,
       evaluation: row.evaluation,
       evaluatedById: row.evaluatedById,
       evaluatedByName: name(row.evaluatedById),

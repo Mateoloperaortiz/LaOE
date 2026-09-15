@@ -35,10 +35,11 @@ import {
   listCommitteeRoles,
   listPersonTags,
 } from "@/modules/people";
-import { listWorkCommitteeTermIds } from "@/modules/permanence";
+import { listTeamParticipations, listWorkCommitteeTermIds } from "@/modules/permanence";
 import { getConfig, getPrivacyPolicyState } from "@/modules/system";
 import { listAllTerms } from "@/modules/terms";
 import { listPassesFor } from "@/modules/wallet";
+import { TeamParticipations } from "@/shared/brand/TeamParticipations";
 import { t } from "@/shared/copy";
 import { Cabecera } from "./_ui/Cabecera";
 import { isTab, isTimelineFilter, type Tab, tabLabels } from "./_ui/etiquetas";
@@ -179,40 +180,45 @@ export default async function PersonaPage({
   const committeeNames = new Map(committees.map((item) => [item.id, item.name]));
   const closeHref = `/admin/personas/${id}?pestana=${tab}`;
 
+  const teams =
+    my.term && tab === "resumen" ? await listTeamParticipations([id], my.term.id) : new Map();
   let content: React.ReactNode;
   switch (tab) {
     case "resumen":
       content = (
-        <TabResumen
-          data={data}
-          permissions={permissions}
-          committeeNames={committeeNames}
-          lastContact={lastContact}
-          openTasks={openTasks}
-          balance={balance}
-          assemblies={
-            assemblies
-              ? t("T-670", {
-                  n:
-                    Math.min(
-                      assemblies.compliance.ordinaryAttended,
-                      assemblies.requirement.requiredOrdinary,
-                    ) +
-                    (assemblies.requirement.requiresBoardElection &&
-                    assemblies.compliance.boardElectionAttended
-                      ? 1
-                      : 0) +
-                    (assemblies.requirement.requiresRunoff && assemblies.compliance.runoffAttended
-                      ? 1
-                      : 0),
-                  total:
-                    assemblies.requirement.requiredOrdinary +
-                    (assemblies.requirement.requiresBoardElection ? 1 : 0) +
-                    (assemblies.requirement.requiresRunoff ? 1 : 0),
-                })
-              : null
-          }
-        />
+        <>
+          {my.term ? <TeamParticipations items={teams.get(id) ?? []} term={my.term.code} /> : null}
+          <TabResumen
+            data={data}
+            permissions={permissions}
+            committeeNames={committeeNames}
+            lastContact={lastContact}
+            openTasks={openTasks}
+            balance={balance}
+            assemblies={
+              assemblies
+                ? t("T-670", {
+                    n:
+                      Math.min(
+                        assemblies.compliance.ordinaryAttended,
+                        assemblies.requirement.requiredOrdinary,
+                      ) +
+                      (assemblies.requirement.requiresBoardElection &&
+                      assemblies.compliance.boardElectionAttended
+                        ? 1
+                        : 0) +
+                      (assemblies.requirement.requiresRunoff && assemblies.compliance.runoffAttended
+                        ? 1
+                        : 0),
+                    total:
+                      assemblies.requirement.requiredOrdinary +
+                      (assemblies.requirement.requiresBoardElection ? 1 : 0) +
+                      (assemblies.requirement.requiresRunoff ? 1 : 0),
+                  })
+                : null
+            }
+          />
+        </>
       );
       break;
     case "participacion":

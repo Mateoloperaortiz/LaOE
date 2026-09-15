@@ -33,9 +33,11 @@ test("mesa, GT y evaluación del macroevento desde una ficha", async ({ page }) 
   await page.getByRole("button", { name: "Nombrar dirección", exact: true }).click();
   await expect(page.getByText("Guardado.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: member.fullName ?? "" })).toBeVisible();
-  await page.getByRole("link", { name: "Equipo del GT", exact: true }).click();
+  await page.getByRole("link", { name: "GT", exact: true }).click();
   await page.getByRole("button", { name: "Preparar GT del semestre" }).click();
   await page.getByLabel("Agregar miembro", { exact: true }).selectOption(member.id);
+  await page.getByLabel("Publicidad", { exact: true }).check();
+  await page.getByLabel("Gestión Humana", { exact: true }).check();
   await page.getByRole("button", { name: "Agregar miembro", exact: true }).click();
   await expect(
     page.getByText("Integrantes: 1 · Evaluaciones pendientes: 1", { exact: true }),
@@ -56,6 +58,22 @@ test("mesa, GT y evaluación del macroevento desde una ficha", async ({ page }) 
   await page.getByLabel("Evaluadores de GH", { exact: true }).selectOption([member.id]);
   await page.getByRole("button", { name: "Guardar responsables y edición" }).click();
   await expect(page.getByLabel("Evaluadores de GH", { exact: true })).toHaveValues([member.id]);
+  await page.getByRole("link", { name: "GAP", exact: true }).click();
+  await page.getByRole("button", { name: "Preparar GAP del semestre" }).click();
+  await page.getByLabel("Agregar miembro", { exact: true }).selectOption(member.id);
+  await page.getByLabel("Logística", { exact: true }).check();
+  await page.getByLabel("Registrar y acreditar cumplimiento", { exact: true }).check();
+  await page.getByRole("button", { name: "Agregar miembro", exact: true }).click();
+  await expect(
+    page.getByText("Integrantes: 1 · Evaluaciones pendientes: 0", { exact: true }),
+  ).toBeVisible();
+  const teamUrl = page.url();
+  await page.goto(`/admin/personas/${member.id}`);
+  await expect(page.getByText("GT · Publicidad · EnFemenino", { exact: true })).toBeVisible();
+  await expect(page.getByText("GT · Gestión Humana · EnFemenino", { exact: true })).toBeVisible();
+  await expect(page.getByText("GAP · Logística · EnFemenino", { exact: true })).toBeVisible();
+  await page.goto("/app");
+  await page.goto(teamUrl);
   await sinViolaciones(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("combobox", { name: "Macroeventos", exact: true })).toBeVisible();

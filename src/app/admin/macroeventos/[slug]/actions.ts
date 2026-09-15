@@ -13,13 +13,14 @@ import {
   removeAppointmentAs,
 } from "@/modules/people";
 import {
-  addMembersAs,
   configureMacroeventGroupAs,
   evaluateAs,
   evaluationInputSchema,
   findMacroeventGroup,
   prepareMacroeventGroupAs,
   removeMemberAs,
+  saveMacroeventMemberAs,
+  teamMemberInputSchema,
 } from "@/modules/permanence";
 import { findTermContaining, getTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit";
@@ -31,10 +32,11 @@ const id = z.string().regex(/^[a-z0-9-]{10,40}$/);
 const inputSchema = z.object({
   slug: z.enum(["inventiva", "enfemenino", "dias-eafit"]),
   termId: id,
-  area: z.enum(["mesa", "equipo", "ediciones"]),
+  area: z.enum(["mesa", "equipo", "gap", "ediciones"]),
   operation: z.enum([
     "prepare",
     "add-member",
+    "set-areas",
     "remove-member",
     "configure",
     "evaluate",
@@ -90,12 +92,32 @@ export async function macroeventAction(form: FormData): Promise<void> {
     } else {
       if (term.permanenceClosedAt) throw new DomainError(t("T-834"));
       if (input.operation === "prepare") {
-        await prepareMacroeventGroupAs(actor, event.id, term.id);
+        await prepareMacroeventGroupAs(
+          actor,
+          event.id,
+          term.id,
+          input.area === "gap" ? "GAP" : "GT_MACROEVENT",
+        );
       } else {
-        const group = await findMacroeventGroup(event.id, term.id);
+        const group = await findMacroeventGroup(
+          event.id,
+          term.id,
+          input.area === "gap" ? "GAP" : "GT_MACROEVENT",
+        );
         if (!group) throw new DomainError(t("T-2353"));
-        if (input.operation === "add-member")
-          await addMembersAs(actor, group.id, [id.parse(text(form, "personId"))]);
+        if (input.operation === "add-member" || input.operation === "set-areas") {
+          if (!form.getAll("areas").length) throw new DomainError(t("T-2384"));
+          await saveMacroeventMemberAs(
+            actor,
+            group.id,
+            teamMemberInputSchema.parse({
+              personId: id.parse(text(form, "personId")),
+              areas: form.getAll("areas"),
+              credit: input.operation === "add-member" && form.get("credit") === "on",
+            }),
+            { isAdmin: identity.isAdmin },
+          );
+        }
         if (input.operation === "remove-member")
           await removeMemberAs(actor, group.id, id.parse(text(form, "personId")));
         if (input.operation === "evaluate")
@@ -140,6 +162,8 @@ export async function macroeventAction(form: FormData): Promise<void> {
     }
     throw error;
   }
+  revalidatePath("/admin/personas", "layout");
+  revalidatePath("/app", "layout");
   revalidatePath(base);
   revalidatePath("/admin/macroeventos");
   redirect(`${back}&guardado=1`);

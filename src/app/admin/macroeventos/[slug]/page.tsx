@@ -41,22 +41,22 @@ export default async function MacroeventPage({
   if (!term) return <p>{t("T-650")}</p>;
   const editions = editionsResult.rows.sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime());
   const edition = editions.find((row) => row.id === single(search.editionId)) ?? editions[0];
-  const area = ["mesa", "equipo", "ediciones"].includes(single(search.area))
+  const area = ["mesa", "equipo", "gap", "ediciones"].includes(single(search.area))
     ? single(search.area)
     : "mesa";
   const context = { slug, termId: term.id, area, editionId: edition?.id ?? "" };
   const base = `/admin/macroeventos/${slug}`;
   const href = (target: string, editionId = edition?.id ?? "") =>
     `${base}?${new URLSearchParams({ termId: term.id, area: target, ...(editionId ? { editionId } : {}) })}`;
-  const labels = tList("T-2347");
-  const options = ["mesa", "equipo", "ediciones"].map((value, index) => ({
+  const labels = tList("T-2375");
+  const options = ["mesa", "equipo", "gap", "ediciones"].map((value, index) => ({
     value,
     label: labels[index] ?? "",
     href: href(value),
   }));
   const [board, group] = await Promise.all([
     edition ? listMacroeventBoard(edition.id) : [],
-    findMacroeventGroup(event.id, term.id),
+    findMacroeventGroup(event.id, term.id, area === "gap" ? "GAP" : "GT_MACROEVENT"),
   ]);
   const detail = group ? await getGroupDetail(group.id) : null;
   const members = active
@@ -125,7 +125,7 @@ export default async function MacroeventPage({
               <Link
                 href={option.href}
                 aria-current={area === option.value ? "page" : undefined}
-                className={`inline-block rounded-t-xl px-4 py-3 text-sm font-semibold ${area === option.value ? "bg-oe-navy text-oe-paper" : "text-titulo hover:bg-fondo-suave"}`}
+                className={`inline-block rounded-t-xl border-b-2 px-4 py-3 text-sm font-semibold ${area === option.value ? "border-oe-orange bg-fondo-suave text-titulo" : "border-transparent text-titulo hover:bg-fondo-suave"}`}
               >
                 {option.label}
               </Link>
@@ -143,7 +143,7 @@ export default async function MacroeventPage({
           editionsHref={editionsHref}
         />
       ) : null}
-      {area === "equipo" ? (
+      {area === "equipo" || area === "gap" ? (
         <>
           {term.permanenceClosedAt ? <p className="font-semibold">{t("T-2371")}</p> : null}
           <Team
@@ -157,7 +157,7 @@ export default async function MacroeventPage({
       ) : null}
       {area === "ediciones" ? (
         <section className="flex flex-col items-start gap-4">
-          <h2 className="text-display-md">{labels[2]}</h2>
+          <h2 className="text-display-md">{labels[3]}</h2>
           <p className="max-w-prose text-tinta-suave">{t("T-2372")}</p>
           <Link href={editionsHref} className="boton-secundario">
             {t("T-2356")}

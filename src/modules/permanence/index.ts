@@ -149,4 +149,11 @@ export {
   type SnapshotView,
   snapshotToResult,
 } from "./domain/snapshots";
+export { macroeventAreas, teamAreaLabel } from "./domain/team-areas";
+export {
+  listTeamParticipations,
+  saveMacroeventMemberAs,
+  type TeamParticipation,
+  teamMemberInputSchema,
+} from "./domain/team-members";
 export { referenceCommitteeRules, referenceGeneralRules } from "./domain/templates";
