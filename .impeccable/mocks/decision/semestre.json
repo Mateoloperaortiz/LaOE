@@ -1,0 +1,22 @@
+{
+  "type": "conceptual",
+  "approved": false,
+  "concept": "A — TU SEMESTRE, CLARO",
+  "tool": "built-in image_gen",
+  "image": "semestre.png",
+  "prompt": "semestre.prompt.txt",
+  "dimensions": {
+    "width": 1024,
+    "height": 1536
+  },
+  "references": [
+    "/Users/mateo/Documents/GitHub/LaOE/informes/referencias-diseno/marca-07.png",
+    "/Users/mateo/Documents/GitHub/LaOE/informes/referencias-diseno/marca-16.png"
+  ],
+  "data": "Illustrative only; no personal data",
+  "limitations": [
+    "Raster concept, not an implemented interface.",
+    "The generator used the official logo's blue ring variant instead of the requested single-color navy variant.",
+    "Exact font families and palette values cannot be guaranteed in a generated raster."
+  ]
+}

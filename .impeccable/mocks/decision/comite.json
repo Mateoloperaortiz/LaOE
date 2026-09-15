@@ -1,0 +1,41 @@
+{
+  "name": "Tu comité, cerca",
+  "variant": "B",
+  "approved": false,
+  "tipo": "conceptual",
+  "use_case": "ui-mockup",
+  "tool": "built-in image_gen",
+  "file": "comite.png",
+  "width": 1024,
+  "height": 1536,
+  "references": [
+    {
+      "path": "/Users/mateo/Documents/GitHub/LaOE/informes/referencias-diseno/marca-07.png",
+      "role": "Logo completo oficial horizontal navy"
+    },
+    {
+      "path": "/Users/mateo/Documents/GitHub/LaOE/informes/referencias-diseno/marca-16.png",
+      "role": "Tipografía, paleta y grano institucional; no se usaron fotografías ni personas"
+    }
+  ],
+  "prompts": {
+    "generation": "comite.prompt.txt",
+    "refinement": "comite.refinement.prompt.txt"
+  },
+  "generation_count": 2,
+  "refinement_reason": "Corregir defecto material: variante monocroma navy del logotipo y color del indicador de navegación activa.",
+  "generated_source": "/Users/mateo/.codex/generated_images/01a0a09a-9854-7d21-a22e-45a2550f230d/exec-efb09c6a-2aff-44c7-9b2b-9a91b8da7607.png",
+  "structure": "Contexto GEMIS persistente arriba, secciones locales abiertas, asuntos generales de la OE en banda separada.",
+  "validation": {
+    "visual_inspection": "Revisada visualmente la imagen final devuelta por la herramienta.",
+    "required_content": "Todos los textos y accesos solicitados están presentes. Estado de tabla pendiente, actividad vacía y excusa en revisión.",
+    "no_invented_persons_events_metrics": true,
+    "no_app_code_changes": true
+  },
+  "limitations": [
+    "Es una imagen conceptual, no una interfaz implementada ni interactiva.",
+    "Las fuentes y el logo fueron reproducidos por generación raster; su fidelidad geométrica exacta no queda certificada.",
+    "No demuestra adaptación responsive, accesibilidad real ni comportamiento del contexto persistente al hacer scroll.",
+    "La tipografía ocupa una pantalla conceptual 1024 × 1536; deberá ajustarse al dispositivo objetivo durante implementación."
+  ]
+}

@@ -1,0 +1,7 @@
+Use case: identity-preserve
+Asset type: corrección focalizada de maqueta ui-mockup conceptual.
+Edit target: la primera imagen es la maqueta móvil TU COMITÉ, CERCA que ya está completa. La segunda imagen marca-07.png es la referencia del logo oficial.
+Cambiar ÚNICAMENTE estos dos detalles de marca:
+1. En la esquina superior izquierda de la maqueta, sustituir el logo con aro celeste por la versión oficial HORIZONTAL MONOCROMA AZUL OSCURO que aparece arriba a la derecha en la segunda referencia, en el área “Logotipo en azul oscuro”. El logo final debe estar enteramente en navy #001F3E, con las zonas negativas del color del fondo, sin aro celeste y sin línea celeste. Debe conservar exactamente su isotipo OE, proporciones y la leyenda completa “Organización Estudiantil” y “Universidad EAFIT”. Copiar esa versión oficial; no dibujar un logo nuevo. Mantener ubicación y tamaño del bloque de logo que ya tiene la maqueta.
+2. Cambiar a navy #001F3E la pequeña línea azul brillante que marca Inicio activo en la barra inferior.
+Mantener absolutamente todo lo demás sin cambios: composición, textos, tamaños, ubicaciones, grano, tipografías, controles, espaciado, franja azul, CTA naranja, amarillo y las secciones. Misma captura plana de 1024 × 1536 píxeles, sin marco de teléfono. Ninguna otra modificación.
