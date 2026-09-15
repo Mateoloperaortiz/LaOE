@@ -32,18 +32,23 @@ export function computeReward(input: {
   usedDaily: number;
   usedWeekly: number;
   caps: RewardCaps;
+  /** CHECKIN: la base ya la acredita creditCheckIn fuera del cupo; solo el extra consume tope. */
+  baseCountsTowardCap?: boolean;
 }): RewardBreakdown {
+  const baseCounts = input.baseCountsTowardCap !== false;
   const pct = Math.min(input.personalPercent + input.campaignPercent, 100);
   const extraRequested = Math.floor((input.base * pct) / 100);
   const remaining = Math.max(
     0,
     Math.min(input.caps.daily - input.usedDaily, input.caps.weekly - input.usedWeekly),
   );
-  const baseGranted = Math.min(input.base, remaining);
+  const baseGranted = baseCounts ? Math.min(input.base, remaining) : 0;
   const extraGranted = Math.min(extraRequested, remaining - baseGranted);
   const campaignOnly = Math.floor((input.base * input.campaignPercent) / 100);
   const personalConsumed = input.personalPercent > 0 && extraGranted > campaignOnly;
-  const capped = baseGranted < input.base || extraGranted < extraRequested;
+  const capped = baseCounts
+    ? baseGranted < input.base || extraGranted < extraRequested
+    : extraGranted < extraRequested;
   return {
     base: input.base,
     personalPercent: input.personalPercent,

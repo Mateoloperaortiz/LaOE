@@ -3,11 +3,17 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireActor } from "@/modules/identity";
 import {
+  BOOSTER_KINDS,
+  type BoosterKind,
+  type BoosterView,
   type CheckInRow,
   findCheckIn,
   getOccasion,
   getOccasionByPublicId,
   isPublicId,
+  isVoluntaryOccasion,
+  listBoostersFor,
+  loadGamificationSettings,
   type OccasionRow,
   windowState,
 } from "@/modules/participation";
@@ -43,11 +49,12 @@ const RESULT_CODES: readonly CheckInResultCode[] = [
   "inactivo",
   "sin-semestre",
   "no-existe",
+  "booster",
 ];
 
 type View =
   | { kind: "message"; text: string; success?: boolean; points?: number }
-  | { kind: "form"; needsCode: boolean; codeError: string | null };
+  | { kind: "form"; needsCode: boolean; codeError: string | null; boosterError: string | null };
 
 function existingView(existing: CheckInRow): View {
   switch (existing.status) {
@@ -109,6 +116,7 @@ function occasionView(
     kind: "form",
     needsCode: row.requireRotatingCode,
     codeError: result === "codigo" ? t("T-099") : result === "falta-codigo" ? t("T-098") : null,
+    boosterError: null,
   };
 }
 
@@ -162,6 +170,30 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
           now,
           result,
         ));
+  if (view.kind === "form" && result === "booster") {
+    view.boosterError = single(search.m) || (tList("T-2466")[3] ?? "");
+  }
+
+  // Selector de booster (ADR-067 regla 8): solo en ocasiones voluntarias con puntos y con la
+  // gamificación activa; el `b` del redirect resuelve el nombre para el aviso de aplicado.
+  const boosterEligible =
+    isVoluntaryOccasion(row) && row.points > 0 && (await loadGamificationSettings()).enabled;
+  const appliedBoosterId = result && result !== "booster" ? single(search.b) : "";
+  const boosters: BoosterView[] =
+    boosterEligible && (view.kind === "form" || appliedBoosterId)
+      ? await listBoostersFor(actor.personId)
+      : [];
+  const selectable = boosters.filter((item) => item.state === "AVAILABLE");
+  const targeted = selectable.find(
+    (item) => item.target?.kind === "OCCASION" && item.target.id === row.id,
+  );
+  const applied = boosters.find(
+    (item) =>
+      item.id === appliedBoosterId && item.target?.kind === "OCCASION" && item.target.id === row.id,
+  );
+  const boosterNames = tList("T-2451");
+  const boosterName = (kind: BoosterKind) => boosterNames[BOOSTER_KINDS.indexOf(kind)] ?? kind;
+  const selectorLabels = tList("T-2578");
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10">
@@ -199,6 +231,11 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
               <p className="max-w-prose text-xl font-semibold" data-resultado={result ?? "estado"}>
                 {view.text}
               </p>
+              {applied ? (
+                <p className="text-base font-semibold">
+                  {t("T-2462", { booster: boosterName(applied.kind) })}
+                </p>
+              ) : null}
               {view.success && view.points ? <SelloOE tamano="lg" /> : null}
               {view.success ? (
                 <Link href="/app/gh-points" className="boton-secundario">
@@ -231,6 +268,36 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
                   {view.codeError ? (
                     <span id="codigo-error" className="text-sm font-normal">
                       {view.codeError}
+                    </span>
+                  ) : null}
+                </label>
+              ) : null}
+              {selectable.length > 0 ? (
+                <label className="flex flex-col gap-1 text-base font-semibold">
+                  <span>{t("T-2452")}</span>
+                  <select
+                    name="boosterId"
+                    defaultValue={targeted?.id ?? ""}
+                    aria-describedby={view.boosterError ? "booster-error" : undefined}
+                    className="rounded-xl border border-borde bg-white px-4 py-3 text-oe-navy"
+                  >
+                    <option value="">{selectorLabels[0]}</option>
+                    {selectable.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {(selectorLabels[1] ?? "")
+                          .replace("{booster}", boosterName(item.kind))
+                          .replace("{fecha}", formatDate(item.expiresAt))}
+                      </option>
+                    ))}
+                  </select>
+                  {targeted ? (
+                    <span className="text-sm font-normal">
+                      {t("T-2462", { booster: boosterName(targeted.kind) })}
+                    </span>
+                  ) : null}
+                  {view.boosterError ? (
+                    <span id="booster-error" role="alert" className="text-sm font-normal">
+                      {view.boosterError}
                     </span>
                   ) : null}
                 </label>

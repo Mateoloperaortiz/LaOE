@@ -21,6 +21,12 @@ const inputSchema = z.object({
     .max(12)
     .optional()
     .transform((value) => (value ? value : null)),
+  boosterId: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .transform((value) => (value ? value : null)),
 });
 
 export type CheckInResultCode =
@@ -35,7 +41,8 @@ export type CheckInResultCode =
   | "nuevos"
   | "inactivo"
   | "sin-semestre"
-  | "no-existe";
+  | "no-existe"
+  | "booster";
 
 function codeFor(result: SelfCheckInResult): CheckInResultCode {
   if (result.ok) {
@@ -59,6 +66,8 @@ function codeFor(result: SelfCheckInResult): CheckInResultCode {
       return "sin-semestre";
     case "NOT_FOUND":
       return "no-existe";
+    case "BOOSTER":
+      return "booster";
     default:
       return "cerrado";
   }
@@ -68,19 +77,26 @@ export async function checkInAction(formData: FormData): Promise<void> {
   const parsed = inputSchema.safeParse({
     publicId: formData.get("publicId"),
     code: formData.get("code") ?? undefined,
+    boosterId: formData.get("boosterId") ?? undefined,
   });
   if (!parsed.success) {
     redirect("/app");
   }
-  const { publicId, code } = parsed.data;
+  const { publicId, code, boosterId } = parsed.data;
   const actor = await requireActor(`/a/${publicId}`);
   const result = await checkInSelfAs(
     { personId: actor.personId, ip: await clientIp() },
-    { publicId, code },
+    { publicId, code, boosterId },
   );
   const params = new URLSearchParams({ r: codeFor(result) });
   if (code && result.ok === false && result.reason === "BAD_CODE") {
     params.set("c", code);
+  }
+  if (result.ok === false && result.reason === "BOOSTER" && result.message) {
+    params.set("m", result.message.slice(0, 200));
+  }
+  if (result.ok && boosterId) {
+    params.set("b", boosterId);
   }
   redirect(`/a/${publicId}?${params.toString()}`);
 }

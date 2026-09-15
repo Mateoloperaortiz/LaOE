@@ -6,6 +6,7 @@ import { lockOpenTermPoints } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
 import { checkIn, occasion } from "../schema";
+import { setBoosterTarget } from "./boosters";
 import { applyPresentialCheckIn } from "./challenge-participation";
 import {
   CHECK_IN_STATUSES,
@@ -17,8 +18,9 @@ import {
   outcomeFor,
   statusForDecision,
 } from "./check-in-pure";
+import { applyCheckInBoost } from "./checkin-boost";
 import { creditCheckIn, reverseCheckInCredit } from "./ledger";
-import type { GamificationSettings } from "./member-context";
+import type { GamificationSettings, MemberContext } from "./member-context";
 import { windowState } from "./occasion-pure";
 import type { OccasionRow } from "./occasions";
 import { verifyRotatingCode } from "./rotating-code-pure";
@@ -104,13 +106,17 @@ export interface SelfCheckInInput {
   occasionId: string;
   personId: string;
   code?: string | null | undefined;
+  /** Booster a apuntar a la ocasión dentro de la misma transacción (ADR-067 regla 8). */
+  boosterId?: string | null | undefined;
   now?: Date | undefined;
 }
 
 export interface SelfCheckInContext {
   membership: MembershipRef | null;
-  /** Sin settings no hay gancho de retos (llamadas antiguas). */
+  /** Sin settings no hay gancho de retos ni de boosters (llamadas antiguas). */
   settings?: GamificationSettings | undefined;
+  /** Contexto del miembro para validar el objetivo del booster. */
+  member?: MemberContext | null | undefined;
 }
 
 export type SelfCheckInDenial =
@@ -124,7 +130,8 @@ export type SelfCheckInDenial =
   | "NOT_ELIGIBLE"
   | "NEW_MEMBERS_ONLY"
   | "CODE_REQUIRED"
-  | "BAD_CODE";
+  | "BAD_CODE"
+  | "BOOSTER";
 
 export type SelfCheckInResult =
   | {
@@ -134,7 +141,7 @@ export type SelfCheckInResult =
       points: number;
       checkInId: string;
     }
-  | { ok: false; reason: SelfCheckInDenial; opensAt?: Date }
+  | { ok: false; reason: SelfCheckInDenial; opensAt?: Date; message?: string }
   | { ok: false; reason: "ALREADY"; existing: CheckInRow };
 
 /** Valida en orden: ocasión → estado → término → ventana → membresía → solo nuevos → código. */
@@ -185,6 +192,25 @@ export async function checkInSelf(
       return { ok: false, reason: "BAD_CODE" };
     }
   }
+  if (input.boosterId && context.settings) {
+    try {
+      await setBoosterTarget(
+        ctx,
+        {
+          personId: input.personId,
+          boosterId: input.boosterId,
+          target: { occasionId: row.id },
+          now,
+        },
+        { member: context.member ?? null, settings: context.settings },
+      );
+    } catch (error) {
+      if (error instanceof DomainError) {
+        return { ok: false, reason: "BOOSTER", message: error.message };
+      }
+      throw error;
+    }
+  }
   const status = initialStatus("SELF_QR", row.approval);
   let created: CheckInRow | undefined;
   try {
@@ -232,8 +258,18 @@ export async function checkInSelf(
       payload: approvedPayload(row, input.personId, "SELF_QR"),
     });
   }
-  // ADR-067 regla 12: el reto presencial vinculado a la ocasión sigue el desenlace del check-in.
+  // ADR-067 reglas 8 y 12: el booster de la ocasión se resuelve antes que el reto presencial.
   if (context.settings) {
+    await applyCheckInBoost(
+      ctx,
+      {
+        checkIn: created,
+        occasion: row,
+        outcome: status === "APPROVED" ? "APPROVED" : "PENDING",
+        now,
+      },
+      { settings: context.settings },
+    );
     await applyPresentialCheckIn(
       ctx,
       {
@@ -338,6 +374,11 @@ export async function hostCheckIn(
   });
   await emitApproved(ctx, row, input.personId, input.source);
   if (context.settings) {
+    await applyCheckInBoost(
+      ctx,
+      { checkIn: created, occasion: row, outcome: "APPROVED", now },
+      { settings: context.settings },
+    );
     await applyPresentialCheckIn(
       ctx,
       { checkIn: created, occasion: row, outcome: "APPROVED", now },
@@ -409,6 +450,17 @@ async function decide(
   if (settings) {
     const outcome =
       decision === "APPROVE" ? "APPROVED" : decision === "REJECT" ? "REJECTED" : "CANCELLED";
+    await applyCheckInBoost(
+      ctx,
+      {
+        checkIn: { ...current, status: target },
+        occasion: row,
+        outcome,
+        reason: cleanReason,
+        now,
+      },
+      { settings },
+    );
     await applyPresentialCheckIn(
       ctx,
       {
@@ -495,6 +547,17 @@ export async function cancelOccasionCheckIns(
     });
     // ADR-067 regla 12: cancelar la ocasión anula la participación del reto presencial.
     if (settings) {
+      await applyCheckInBoost(
+        ctx,
+        {
+          checkIn: { ...current, status: "CANCELLED" },
+          occasion: row,
+          outcome: "CANCELLED",
+          reason,
+          now,
+        },
+        { settings },
+      );
       await applyPresentialCheckIn(
         ctx,
         {

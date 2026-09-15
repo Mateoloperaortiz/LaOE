@@ -110,6 +110,40 @@ describe("economía de la gamificación (ADR-067)", () => {
     expect(breakdown).toMatchObject(expected);
   });
 
+  it("computeReward para CHECKIN: la base no consume el cupo, solo el extra", () => {
+    const input = {
+      base: 10,
+      personalPercent: 50 as const,
+      campaignPercent: 0 as const,
+      usedWeekly: 0,
+      caps: CAPS,
+      baseCountsTowardCap: false,
+    };
+    // Queda 1 punto de cupo diario: el extra se recorta a 1 y el booster sí aporta.
+    expect(computeReward({ ...input, usedDaily: 19 })).toMatchObject({
+      baseGranted: 0,
+      extraGranted: 1,
+      extraRequested: 5,
+      personalConsumed: true,
+      capped: true,
+    });
+    // Cupo agotado: el extra es 0 y el booster queda sin consumir.
+    expect(computeReward({ ...input, usedDaily: 20 })).toMatchObject({
+      baseGranted: 0,
+      extraGranted: 0,
+      extraRequested: 5,
+      personalConsumed: false,
+      capped: true,
+    });
+    // Sin cupo consumido: la base no se registra en el premio (va como CHECKIN aparte).
+    expect(computeReward({ ...input, usedDaily: 0 })).toMatchObject({
+      baseGranted: 0,
+      extraGranted: 5,
+      personalConsumed: true,
+      capped: false,
+    });
+  });
+
   it("computeReward con topes en cero no entrega nada", () => {
     const breakdown = computeReward({
       base: 10,

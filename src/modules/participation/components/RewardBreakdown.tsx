@@ -9,6 +9,8 @@ export interface RewardBreakdownData {
   extra: number;
   capped: boolean;
   personalConsumed: boolean;
+  /** Hubo booster pedido y no se consumió (la campaña o el tope lo cubrieron): aviso T-2437. */
+  boosterRequested?: boolean;
 }
 
 export function RewardBreakdown({
@@ -18,7 +20,8 @@ export function RewardBreakdown({
   reward: RewardBreakdownData;
   boosterKind?: BoosterKind | null;
 }) {
-  if (reward.extra <= 0 && !reward.capped && !(boosterKind && !reward.personalConsumed)) {
+  const boosterReturned = reward.boosterRequested ?? (boosterKind && !reward.personalConsumed);
+  if (reward.extra <= 0 && !reward.capped && !boosterReturned) {
     return null;
   }
   return (
@@ -27,9 +30,7 @@ export function RewardBreakdown({
         <p className="font-semibold">{t("T-2435", { base: reward.base, extra: reward.extra })}</p>
       ) : null}
       {reward.capped ? <p className="text-tinta-suave">{t("T-2436")}</p> : null}
-      {boosterKind && !reward.personalConsumed ? (
-        <p className="text-tinta-suave">{t("T-2437")}</p>
-      ) : null}
+      {boosterReturned ? <p className="text-tinta-suave">{t("T-2437")}</p> : null}
     </div>
   );
 }

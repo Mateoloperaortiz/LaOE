@@ -174,6 +174,7 @@ function rewardInput(
     checkInId: null,
     base: row.basePoints,
     boosterItemId: context.booster?.id ?? null,
+    expectedTarget: { challengeId: row.id },
     personalPercent: context.booster ? boosterPercent(context.booster.kind) : 0,
     campaignId: context.campaign?.id ?? null,
     campaignPercent: context.campaign?.percent ?? 0,

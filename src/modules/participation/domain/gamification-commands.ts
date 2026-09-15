@@ -1,8 +1,19 @@
 import { type Actor, runCommand } from "@/db/tx";
-import { findTermContaining } from "@/modules/terms";
+import { findTermContaining, getCurrentTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import type { BoosterKind } from "../gamification-types";
+import {
+  type BoosterRow,
+  type BoosterTarget,
+  type CampaignInput,
+  cancelCampaign,
+  createCampaigns,
+  grantBoosterManually,
+  revokeBooster,
+  setBoosterTarget,
+} from "./boosters";
 import {
   annulParticipation,
   reviewParticipation,
@@ -11,20 +22,23 @@ import {
   submitTrivia,
 } from "./challenge-participation";
 import {
+  activeCampaignFor,
   type ChallengeInput,
   cancelChallenge,
   createChallenge,
   duplicateChallenge,
   findChallenge,
+  findTargetedBooster,
   publishChallenge,
   updateChallenge,
 } from "./challenges";
 import { verifyEvidenceObjects } from "./evidence";
 import { loadGamificationSettings, resolveMemberContext } from "./member-context";
+import { getOccasion } from "./occasions";
 
 // Comandos de la gamificación (ADR-012): el término, la membresía y los objetos ya subidos se
-// resuelven antes de abrir la transacción. En G-T2 aún no hay campañas ni boosters dirigidos:
-// el contexto los pasa en null y `reviewParticipation` los re-resuelve dentro de la tx.
+// resuelven antes de abrir la transacción; el booster apuntado y la campaña vigente se leen
+// dentro de la tx para que la reserva del premio sea atómica con su consumo.
 
 export async function createChallengeAs(
   actor: Actor & { personId: string },
@@ -98,13 +112,20 @@ export async function submitTriviaAs(
   }
   const row = await findChallenge(input.challengeId);
   const member = row ? await resolveMemberContext(actor.personId, row.termId) : null;
-  return runCommand(actor, (ctx) =>
-    submitTrivia(
+  return runCommand(actor, async (ctx) => {
+    const now = input.now ?? new Date();
+    const [booster, campaign] = row
+      ? await Promise.all([
+          findTargetedBooster(ctx.tx, actor.personId, { challengeId: row.id }, now),
+          activeCampaignFor(ctx.tx, { challengeId: row.id }, now),
+        ])
+      : [null, null];
+    return submitTrivia(
       ctx,
-      { ...input, personId: actor.personId },
-      { member, settings, booster: null, campaign: null },
-    ),
-  );
+      { ...input, personId: actor.personId, now },
+      { member, settings, booster, campaign },
+    );
+  });
 }
 
 export interface EvidenceSubmitInput {
@@ -127,13 +148,20 @@ export async function submitEvidenceAs(
   const member = row ? await resolveMemberContext(actor.personId, row.termId) : null;
   // HEAD de cada objeto antes de la transacción: inválidos se rechazan (y los propios se borran).
   const files = await verifyEvidenceObjects(actor.personId, input.keys);
-  return runCommand(actor, (ctx) =>
-    submitEvidence(
+  return runCommand(actor, async (ctx) => {
+    const now = input.now ?? new Date();
+    const [booster, campaign] = row
+      ? await Promise.all([
+          findTargetedBooster(ctx.tx, actor.personId, { challengeId: row.id }, now),
+          activeCampaignFor(ctx.tx, { challengeId: row.id }, now),
+        ])
+      : [null, null];
+    return submitEvidence(
       ctx,
-      { ...input, personId: actor.personId, files },
-      { member, settings, booster: null, campaign: null },
-    ),
-  );
+      { ...input, personId: actor.personId, files, now },
+      { member, settings, booster, campaign },
+    );
+  });
 }
 
 export interface ReviewInput {
@@ -157,4 +185,57 @@ export function annulParticipationAs(
   reason: string,
 ): Promise<void> {
   return runCommand(actor, (ctx) => annulParticipation(ctx, participationId, reason));
+}
+
+// Boosters y campañas (ADR-067 reglas 6 a 9): la membresía se resuelve en el término del objetivo
+// porque el público del reto compara `firstTermId` y los comités vigentes son por término.
+
+export async function setBoosterTargetAs(
+  actor: Actor & { personId: string },
+  input: { boosterId: string; target: BoosterTarget | null; now?: Date },
+): Promise<BoosterRow> {
+  const settings = await loadGamificationSettings();
+  let termId: string | null = null;
+  if (input.target?.challengeId) {
+    termId = (await findChallenge(input.target.challengeId))?.termId ?? null;
+  } else if (input.target?.occasionId) {
+    termId = (await getOccasion(input.target.occasionId))?.termId ?? null;
+  }
+  if (!termId) {
+    termId = (await getCurrentTerm())?.id ?? null;
+  }
+  const member = termId ? await resolveMemberContext(actor.personId, termId) : null;
+  return runCommand(actor, (ctx) =>
+    setBoosterTarget(ctx, { personId: actor.personId, ...input }, { member, settings }),
+  );
+}
+
+export function grantBoosterAs(
+  actor: Actor & { personId: string },
+  input: { personId: string; termId: string; kind: BoosterKind; reason: string },
+): Promise<BoosterRow> {
+  return runCommand(actor, (ctx) => grantBoosterManually(ctx, input));
+}
+
+export function revokeBoosterAs(
+  actor: Actor & { personId: string },
+  input: { boosterId: string; reason: string },
+): Promise<void> {
+  return runCommand(actor, (ctx) => revokeBooster(ctx, input));
+}
+
+/** Una campaña por objetivo; el término sale de la fecha de inicio en día civil de Colombia. */
+export async function createCampaignsAs(
+  actor: Actor & { personId: string },
+  input: CampaignInput,
+): Promise<{ ids: string[] }> {
+  const term = await findTermContaining(todayKey(input.startsAt));
+  if (!term) {
+    throw new DomainError(t("T-675"), "startsAt");
+  }
+  return runCommand(actor, (ctx) => createCampaigns(ctx, input, { termId: term.id }));
+}
+
+export function cancelCampaignAs(actor: Actor & { personId: string }, id: string): Promise<void> {
+  return runCommand(actor, (ctx) => cancelCampaign(ctx, id));
 }

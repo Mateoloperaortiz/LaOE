@@ -1,0 +1,2 @@
+ALTER TABLE "reward" ADD COLUMN "requested_personal_percent" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "reward" ADD CONSTRAINT "reward_requested_personal_percent" CHECK ("reward"."requested_personal_percent" in (0, 50, 100));

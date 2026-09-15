@@ -2,7 +2,7 @@ import { and, count, eq, inArray, sql } from "drizzle-orm";
 import type { CommandContext, Executor } from "@/db/tx";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
-import { t, tList } from "@/shared/copy";
+import { t } from "@/shared/copy";
 import type {
   CampaignPercent,
   PersonalPercent,
@@ -31,6 +31,8 @@ export interface ReserveRewardInput {
   base: number;
   /** Booster ya validado por el llamador: propio, AVAILABLE o RESERVED, vigente y de kind conocido. */
   boosterItemId?: string | null;
+  /** Objetivo que el llamador espera del booster: si se re-apuntó a otra cosa, no se consume. */
+  expectedTarget?: { challengeId?: string | null; occasionId?: string | null } | undefined;
   /** 0 si no hay booster personal. */
   personalPercent: PersonalPercent;
   campaignId?: string | null;
@@ -86,23 +88,32 @@ export async function reserveReward(
     usedDaily: used.daily,
     usedWeekly: used.weekly,
     caps,
+    // ADR-067 regla 4: el cupo cubre la base del reto y los extras; la asistencia (CHECKIN)
+    // ya acredita su base como entrada CHECKIN fuera del cupo y aquí solo pesa el extra.
+    baseCountsTowardCap: input.source === "CHALLENGE",
   });
-  const boosterId = breakdown.personalConsumed ? (input.boosterItemId ?? null) : null;
+  let boosterId = breakdown.personalConsumed ? (input.boosterItemId ?? null) : null;
   let booster: typeof boosterItem.$inferSelect | null = null;
   if (boosterId) {
-    const [row] = await ctx.tx
-      .select()
-      .from(boosterItem)
-      .where(eq(boosterItem.id, boosterId))
-      .for("update");
-    if (!row || row.status !== "AVAILABLE") {
-      throw new DomainError(tList("T-2466")[2] ?? "");
+    booster = await lockConsumableBooster(ctx, boosterId, input.expectedTarget, now);
+    if (!booster) {
+      boosterId = null;
     }
-    if (row.expiresAt <= now) {
-      throw new DomainError(tList("T-2466")[1] ?? "");
-    }
-    booster = row;
   }
+  // Si el booster se fue con otra operación concurrente (o se re-apuntó entre la lectura y el
+  // bloqueo) la acción no aborta: el premio se recalcula sin la parte personal.
+  const final =
+    breakdown.personalConsumed && !booster
+      ? computeReward({
+          base: input.base,
+          personalPercent: 0,
+          campaignPercent: input.campaignPercent,
+          usedDaily: used.daily,
+          usedWeekly: used.weekly,
+          caps,
+          baseCountsTowardCap: input.source === "CHALLENGE",
+        })
+      : breakdown;
   const [row] = await ctx.tx
     .insert(reward)
     .values({
@@ -112,12 +123,13 @@ export async function reserveReward(
       participationId: input.participationId ?? null,
       checkInId: input.checkInId ?? null,
       basePoints: input.base,
-      personalPercent: breakdown.personalConsumed ? input.personalPercent : 0,
+      personalPercent: final.personalConsumed ? input.personalPercent : 0,
+      requestedPersonalPercent: input.personalPercent,
       campaignPercent: input.campaignPercent,
       campaignId: input.campaignId ?? null,
       boosterItemId: boosterId,
-      baseGranted: breakdown.baseGranted,
-      extraPoints: breakdown.extraGranted,
+      baseGranted: final.baseGranted,
+      extraPoints: final.extraGranted,
       dayKey,
       weekKey,
       capDaily: caps.daily,
@@ -138,9 +150,45 @@ export async function reserveReward(
     action: "reward.reserved",
     entityType: "reward",
     entityId: row.id,
-    after: { personId: input.personId, termId: input.termId, source: input.source, breakdown },
+    after: {
+      personId: input.personId,
+      termId: input.termId,
+      source: input.source,
+      breakdown: final,
+    },
   });
-  return { reward: row, breakdown };
+  return { reward: row, breakdown: final };
+}
+
+/**
+ * Bloquea el booster y confirma que sigue siendo consumible para este objetivo: AVAILABLE,
+ * vigente y apuntado donde el llamador espera. Si otra operación se lo llevó o lo re-apuntó,
+ * devuelve null y el premio continúa sin la parte personal (nunca aborta la acción).
+ */
+export async function lockConsumableBooster(
+  ctx: CommandContext,
+  boosterId: string,
+  expectedTarget: { challengeId?: string | null; occasionId?: string | null } | undefined,
+  now: Date,
+): Promise<typeof boosterItem.$inferSelect | null> {
+  const [row] = await ctx.tx
+    .select()
+    .from(boosterItem)
+    .where(eq(boosterItem.id, boosterId))
+    .for("update");
+  if (!row || row.status !== "AVAILABLE" || row.expiresAt <= now) {
+    return null;
+  }
+  if (expectedTarget) {
+    const matches =
+      (expectedTarget.challengeId != null &&
+        row.targetChallengeId === expectedTarget.challengeId) ||
+      (expectedTarget.occasionId != null && row.targetOccasionId === expectedTarget.occasionId);
+    if (!matches) {
+      return null;
+    }
+  }
+  return row;
 }
 
 async function rewardForUpdate(ctx: CommandContext, rewardId: string): Promise<RewardRow> {
@@ -174,14 +222,18 @@ export async function grantReward(
     throw new DomainError(t("T-676", { estado: row.status }));
   }
   await lockOpenTermPoints(ctx.tx, row.termId);
-  await creditReward(ctx, {
-    rewardId: row.id,
-    personId: row.personId,
-    termId: row.termId,
-    kind: "CHALLENGE",
-    points: row.baseGranted,
-    reason: reasons.base,
-  });
+  // La base del CHECKIN ya está en el ledger como entrada CHECKIN (creditCheckIn): el premio
+  // solo materializa el extra BOOST; la entrada CHALLENGE es exclusiva de los retos.
+  if (row.source === "CHALLENGE") {
+    await creditReward(ctx, {
+      rewardId: row.id,
+      personId: row.personId,
+      termId: row.termId,
+      kind: "CHALLENGE",
+      points: row.baseGranted,
+      reason: reasons.base,
+    });
+  }
   await creditReward(ctx, {
     rewardId: row.id,
     personId: row.personId,

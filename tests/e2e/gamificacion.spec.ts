@@ -223,6 +223,112 @@ test("presencial: el check-in de la actividad completa el reto solo", async ({ p
   await sinViolaciones(page);
 });
 
+test("booster: el admin lo otorga, el miembro lo apunta a una trivia y suma el extra", async ({
+  page,
+  browser,
+}) => {
+  const id = await crearReto({
+    kind: "TRIVIA",
+    title: "e2e-Trivia con booster",
+    description: "Una pregunta.",
+    passPercent: 100,
+    questions: [{ prompt: "e2e-¿Cuánto es 4 + 4?", options: ["8", "9"], correctIndex: 0 }],
+    ...ventana(),
+    basePoints: 5,
+  });
+
+  // Alta manual desde el bloque de boosters del panel de gamificación.
+  const admin = await adminPage(browser);
+  await admin.goto("/admin/gamificacion");
+  const bloque = admin.locator("section[aria-labelledby='otorgar-booster-titulo']");
+  await bloque.getByRole("textbox", { name: "Persona" }).fill(E2E_MEMBER_EMAIL);
+  await bloque.getByRole("button", { name: "Buscar", exact: true }).click();
+  await bloque.getByRole("link", { name: "Miembro E2E" }).click();
+  await bloque.getByLabel("Booster").selectOption({ label: "Impulso" });
+  await bloque.getByLabel("Motivo").fill("e2e-Reconocimiento de prueba");
+  await bloque.getByRole("button", { name: "Otorgar booster", exact: true }).click();
+  await expect(admin.getByText("Booster otorgado.")).toBeVisible();
+  await admin.context().close();
+
+  // El miembro lo apunta a la trivia desde su inventario.
+  await page.goto("/app/gh-points/boosters");
+  await expect(page.getByRole("heading", { name: "Tus boosters" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Impulso" })).toBeVisible();
+  await sinViolaciones(page);
+  await page.screenshot({ path: "test-results/boosters-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: "test-results/boosters-mobile.png", fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.getByText("¿Dónde lo usás?").click();
+  await page.getByRole("radio", { name: /e2e-Trivia con booster/ }).check();
+  await page.getByRole("button", { name: "Guardar", exact: true }).click();
+  await expect(
+    page.getByText("Listo: tu Impulso está reservado para e2e-Trivia con booster."),
+  ).toBeVisible();
+
+  // Responde la trivia: base 5 + booster floor(5 × 0.5) = 2.
+  const antes = await saldoMiembro();
+  await page.goto(`/app/gh-points/retos/${id}`);
+  await expect(page.getByText("Vas a usar tu Impulso acá")).toBeVisible();
+  await page.getByRole("radio", { name: "8", exact: true }).press(" ");
+  await page.getByRole("button", { name: "Enviar respuestas" }).press("Enter");
+  await expect(page.getByText("¡Acertaste 1 de 1 y sumaste 7 GH Points!")).toBeVisible();
+  await expect(page.getByText("5 de base + 2 de booster")).toBeVisible();
+  await sinViolaciones(page);
+
+  // El movimiento Impulso queda en su historia.
+  await page.goto("/app/gh-points");
+  await expect(page.getByRole("cell", { name: "Impulso" }).first()).toBeVisible();
+  expect(await saldoMiembro()).toBe(antes + 7);
+});
+
+test("campaña: el admin cubre una actividad y el check-in suma el extra", async ({
+  page,
+  browser,
+}) => {
+  const termId = await currentTermId();
+  const now = Date.now();
+  const [ocasion] = await getDb()
+    .insert(occasion)
+    .values({
+      publicId: "e2eboost01",
+      termId,
+      title: "e2e-Actividad con campaña",
+      category: "INTEGRATION",
+      location: "Bloque 38",
+      points: 10,
+      status: "OPEN",
+      approval: "AUTO",
+      startsAt: new Date(now),
+      checkInOpensAt: new Date(now - 3_600_000),
+      checkInClosesAt: new Date(now + 3_600_000),
+    })
+    .returning({ id: occasion.id });
+  if (!ocasion) throw new Error("sin ocasión");
+
+  // Campaña +50 % por la interfaz admin, con ventana ya vigente.
+  const admin = await adminPage(browser);
+  await admin.goto("/admin/gamificacion/campanas");
+  await admin.getByLabel("Nombre").fill("e2e-Campaña de bienvenida");
+  await admin.getByRole("checkbox", { name: /e2e-Actividad con campaña/ }).check();
+  await admin.getByLabel("Empieza").fill(utcToBogotaInput(new Date(now - 3_600_000)));
+  await admin.getByRole("button", { name: "Crear campaña", exact: true }).click();
+  await expect(admin.getByText("Guardado.")).toBeVisible();
+  await expect(admin.getByRole("cell", { name: "e2e-Campaña de bienvenida" })).toBeVisible();
+  await admin.context().close();
+
+  // Check-in del miembro: 10 de asistencia + floor(10 × 0.5) = 5 de campaña.
+  const antes = await saldoMiembro();
+  await page.goto("/a/e2eboost01");
+  await page.getByRole("button", { name: "Registrar mi asistencia" }).click();
+  await expect(page.getByText("¡Listo! Sumaste 10 GH Points.")).toBeVisible();
+  expect(await saldoMiembro()).toBe(antes + 15);
+
+  await page.goto("/app/gh-points");
+  await expect(page.getByRole("cell", { name: "Impulso" }).first()).toBeVisible();
+  await sinViolaciones(page);
+});
+
 test("trivia en móvil: radios por teclado y sin scroll horizontal", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const id = await crearReto({

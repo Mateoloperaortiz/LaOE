@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireActor } from "@/modules/identity";
 import {
+  BOOSTER_KINDS,
   EVIDENCE_MAX_BYTES,
   EVIDENCE_MAX_FILES,
   EVIDENCE_MIN_BYTES,
@@ -10,6 +11,7 @@ import {
   EVIDENCE_TEXT_MIN,
   EVIDENCE_TYPES,
   getChallengeForMember,
+  listBoostersFor,
   loadGamificationSettings,
   type MemberChallengeDetail,
   resolveMemberContext,
@@ -20,9 +22,10 @@ import { Trivia } from "@/modules/participation/components/Trivia";
 import { getCurrentTerm } from "@/modules/terms";
 import { Cartel, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
-import { formatDateTime } from "@/shared/lib/dates";
+import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { Markdown } from "@/shared/ui/Markdown";
 import { Vacio } from "../../../_ui/Vacio";
+import { setBoosterTargetAction } from "../../boosters/actions";
 import { submitEvidenceAction, submitTriviaAction } from "./actions";
 
 // Detalle de un reto en Mi OE (ADR-067 reglas 3 a 6): la consigna en Markdown, la actividad
@@ -203,13 +206,19 @@ function EvidenceBlock({ challenge }: { challenge: MemberChallengeDetail }) {
   );
 }
 
-export default async function RetoDetallePage({ params }: PageProps<"/app/gh-points/retos/[id]">) {
+export default async function RetoDetallePage({
+  params,
+  searchParams,
+}: PageProps<"/app/gh-points/retos/[id]">) {
   const actor = await requireActor("/app/gh-points/retos");
   const settings = await loadGamificationSettings();
   if (!settings.enabled) {
     redirect("/app/gh-points");
   }
   const { id } = await params;
+  const search = await searchParams;
+  const boosterError = typeof search.error === "string" ? search.error : "";
+  const boosterSaved = typeof search.guardado === "string" ? search.guardado : "";
   const term = await getCurrentTerm();
   if (!term) {
     return (
@@ -226,6 +235,18 @@ export default async function RetoDetallePage({ params }: PageProps<"/app/gh-poi
   }
   const kindLabel = tList("T-2409")[KIND_INDEX[challenge.kind]] ?? challenge.kind;
   const points = challenge.rewardPoints ?? challenge.basePoints;
+  // Selector de booster (ADR-067 regla 8): reto abierto con premio y sin participación.
+  const canBoost =
+    (challenge.state === "OPEN" || challenge.state === "SCHEDULED") &&
+    challenge.basePoints > 0 &&
+    !challenge.participation;
+  const boosters = canBoost ? await listBoostersFor(actor.personId) : [];
+  const available = boosters.filter((item) => item.state === "AVAILABLE");
+  const targeted = available.find(
+    (item) => item.target?.kind === "CHALLENGE" && item.target.id === challenge.id,
+  );
+  const boosterNames = tList("T-2451");
+  const selectorLabels = tList("T-2578");
 
   return (
     <div className="flex flex-col gap-8">
@@ -248,6 +269,61 @@ export default async function RetoDetallePage({ params }: PageProps<"/app/gh-poi
       </Cartel>
 
       {challenge.description ? <Markdown source={challenge.description} /> : null}
+
+      {canBoost && available.length > 0 ? (
+        <section className="flex flex-col gap-3" aria-labelledby="booster-titulo">
+          <h2 id="booster-titulo" className="eyebrow text-xs">
+            {t("T-2452")}
+          </h2>
+          {targeted ? (
+            <p className="text-sm font-semibold">
+              {t("T-2415", {
+                booster: boosterNames[BOOSTER_KINDS.indexOf(targeted.kind)] ?? targeted.kind,
+              })}
+            </p>
+          ) : null}
+          <form action={setBoosterTargetAction} className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="target" value={`challenge:${challenge.id}`} />
+            <input type="hidden" name="back" value={`/app/gh-points/retos/${challenge.id}`} />
+            <input type="hidden" name="currentBoosterId" value={targeted?.id ?? ""} />
+            <label className="flex flex-col gap-1 text-sm font-semibold">
+              <select
+                name="boosterId"
+                defaultValue={targeted?.id ?? ""}
+                className="rounded-xl border border-borde bg-fondo px-3 py-2"
+              >
+                <option value="">{selectorLabels[0]}</option>
+                {available.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {(selectorLabels[1] ?? "")
+                      .replace(
+                        "{booster}",
+                        boosterNames[BOOSTER_KINDS.indexOf(item.kind)] ?? item.kind,
+                      )
+                      .replace("{fecha}", formatDate(item.expiresAt))}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" name="op" value="apuntar" className="boton-secundario">
+              {tList("T-2420")[4]}
+            </button>
+            {targeted ? (
+              <button type="submit" name="op" value="quitar" className="boton-secundario text-sm">
+                {tList("T-2420")[5]}
+              </button>
+            ) : null}
+          </form>
+          {boosterSaved ? (
+            <output className="block font-semibold text-oe-blue">{t("T-259")}</output>
+          ) : null}
+          {boosterError ? (
+            <p role="alert" className="font-semibold text-oe-orange">
+              {boosterError}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       {challenge.kind === "PRESENTIAL" ? (
         <PresentialBlock challenge={challenge} />

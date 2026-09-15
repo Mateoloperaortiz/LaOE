@@ -19,7 +19,7 @@ import {
 } from "./check-ins";
 import { buildStanding, writeTermStanding } from "./closing";
 import { adjustPoints, reverseEntry } from "./ledger";
-import { loadGamificationSettings } from "./member-context";
+import { loadGamificationSettings, resolveMemberContext } from "./member-context";
 import {
   cancelOccasion,
   closeOccasion,
@@ -104,20 +104,29 @@ export async function cancelOccasionAs(
 /** Check-in propio: resuelve ocasión y membresía afuera; el cierre se valida dentro. */
 export async function checkInSelfAs(
   actor: Actor & { personId: string },
-  input: { publicId: string; code?: string | null; now?: Date },
+  input: { publicId: string; code?: string | null; boosterId?: string | null; now?: Date },
 ): Promise<SelfCheckInResult> {
   const row = await getOccasionByPublicId(input.publicId);
   if (!row) {
     return { ok: false, reason: "NOT_FOUND" };
   }
-  const membership = await getMembershipRef(actor.personId);
-  const settings = await loadGamificationSettings();
+  const [membership, member, settings] = await Promise.all([
+    getMembershipRef(actor.personId),
+    resolveMemberContext(actor.personId, row.termId),
+    loadGamificationSettings(),
+  ]);
   try {
     return await runCommand(actor, (ctx) =>
       checkInSelf(
         ctx,
-        { occasionId: row.id, personId: actor.personId, code: input.code, now: input.now },
-        { membership, settings },
+        {
+          occasionId: row.id,
+          personId: actor.personId,
+          code: input.code,
+          boosterId: input.boosterId,
+          now: input.now,
+        },
+        { membership, member, settings },
       ),
     );
   } catch (error) {

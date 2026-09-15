@@ -759,6 +759,8 @@ export interface MemberChallengeDetail extends MemberChallengeCard {
       extra: number;
       capped: boolean;
       personalConsumed: boolean;
+      /** El miembro pidió booster pero la campaña lo cubrió: quedó disponible (T-2437). */
+      boosterRequested: boolean;
       status: RewardStatus;
     } | null;
   } | null;
@@ -1032,6 +1034,8 @@ export async function getChallengeForMember(
                   rewardRow.baseGranted < rewardRow.basePoints ||
                   rewardRow.extraPoints < extraRequested,
                 personalConsumed: rewardRow.boosterItemId !== null,
+                boosterRequested:
+                  rewardRow.requestedPersonalPercent > 0 && rewardRow.boosterItemId === null,
                 status: rewardRow.status,
               }
             : null,
