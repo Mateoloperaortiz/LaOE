@@ -1,25 +1,18 @@
-import { and, eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { CommandContext } from "@/db/tx";
 import { t } from "@/shared/copy";
 import type { CampaignPercent } from "../gamification-types";
-import { boosterItem, type checkIn, reward } from "../schema";
+import { type checkIn, reward } from "../schema";
 import { activeCampaignFor, findTargetedBooster } from "./challenges";
-import {
-  boosterPercent,
-  computeReward,
-  dayKeyFor,
-  isVoluntaryOccasion,
-  weekKeyFor,
-} from "./gamification-pure";
+import { boosterPercent, isVoluntaryOccasion } from "./gamification-pure";
 import type { GamificationSettings } from "./member-context";
 import type { OccasionRow } from "./occasions";
 import {
   grantReward,
-  lockConsumableBooster,
   releaseReward,
+  rereserveReward,
   reserveReward,
   reverseReward,
-  usedRewardPoints,
 } from "./rewards";
 
 // Asistencia impulsada (ADR-067 reglas 4 y 8): el booster apuntado a la ocasión —o la campaña
@@ -125,81 +118,10 @@ export async function applyCheckInBoost(
   if (existing?.status === "RELEASED") {
     // Reaprobación tras un rechazo: el unique por checkInId no admite otra fila, así que la
     // liberada se recalcula contra el cupo de hoy y vuelve a RESERVED antes de confirmar.
-    await reviveReleasedReward(ctx, existing.id, reserveInput, context.settings.caps, now);
+    await rereserveReward(ctx, existing.id, reserveInput, context.settings.caps, now);
     await grantReward(ctx, existing.id, reasons, now);
     return;
   }
   const reserved = await reserveReward(ctx, reserveInput, context.settings.caps);
   await grantReward(ctx, reserved.reward.id, reasons, now);
-}
-
-type ReserveInput = Parameters<typeof reserveReward>[1];
-
-async function reviveReleasedReward(
-  ctx: CommandContext,
-  rewardId: string,
-  input: ReserveInput,
-  caps: GamificationSettings["caps"],
-  now: Date,
-): Promise<void> {
-  await ctx.tx.execute(
-    sql`select pg_advisory_xact_lock(hashtextextended(${`reward:${input.personId}`}, 0))`,
-  );
-  const dayKey = dayKeyFor(now);
-  const weekKey = weekKeyFor(now);
-  const used = await usedRewardPoints(ctx.tx, input.personId, dayKey, weekKey);
-  const breakdown = computeReward({
-    base: input.base,
-    personalPercent: input.personalPercent,
-    campaignPercent: input.campaignPercent,
-    usedDaily: used.daily,
-    usedWeekly: used.weekly,
-    caps,
-    baseCountsTowardCap: false,
-  });
-  let boosterId = breakdown.personalConsumed ? (input.boosterItemId ?? null) : null;
-  if (boosterId) {
-    const locked = await lockConsumableBooster(ctx, boosterId, input.expectedTarget, now);
-    if (locked) {
-      await ctx.tx
-        .update(boosterItem)
-        .set({ status: "RESERVED" })
-        .where(and(eq(boosterItem.id, locked.id), eq(boosterItem.status, "AVAILABLE")));
-    } else {
-      boosterId = null;
-    }
-  }
-  const final =
-    breakdown.personalConsumed && !boosterId
-      ? computeReward({
-          base: input.base,
-          personalPercent: 0,
-          campaignPercent: input.campaignPercent,
-          usedDaily: used.daily,
-          usedWeekly: used.weekly,
-          caps,
-          baseCountsTowardCap: false,
-        })
-      : breakdown;
-  await ctx.tx
-    .update(reward)
-    .set({
-      personalPercent: final.personalConsumed ? input.personalPercent : 0,
-      requestedPersonalPercent: input.personalPercent,
-      campaignPercent: input.campaignPercent,
-      campaignId: input.campaignId ?? null,
-      boosterItemId: boosterId,
-      baseGranted: final.baseGranted,
-      extraPoints: final.extraGranted,
-      status: "RESERVED",
-      dayKey,
-      weekKey,
-      capDaily: caps.daily,
-      capWeekly: caps.weekly,
-      reservedAt: now,
-      decidedAt: null,
-      decidedById: null,
-      reason: null,
-    })
-    .where(eq(reward.id, rewardId));
 }

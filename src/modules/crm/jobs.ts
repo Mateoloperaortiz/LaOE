@@ -52,6 +52,7 @@ function labels(): TimelineLabels {
   return {
     texts: tList("T-458"),
     participationTexts: tList("T-667"),
+    boosterNames: tList("T-2451"),
     permanenceTexts: tList("T-832"),
     crmTexts: tList("T-1046"),
     directionTexts: tList("T-2171"),

@@ -5,6 +5,14 @@ import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import type { BoosterKind } from "../gamification-types";
 import {
+  type BadgeDelta,
+  createSpecialBadge,
+  markSeen,
+  recomputeBadgesFor,
+  type SpecialBadgeInput,
+  setFeatured,
+} from "./badges";
+import {
   type BoosterRow,
   type BoosterTarget,
   type CampaignInput,
@@ -238,4 +246,46 @@ export async function createCampaignsAs(
 
 export function cancelCampaignAs(actor: Actor & { personId: string }, id: string): Promise<void> {
   return runCommand(actor, (ctx) => cancelCampaign(ctx, id));
+}
+
+// Insignias (ADR-067 reglas 9, 10 y 15): la edición especial toma el término de su objetivo;
+// destacar y marcar vistas son comandos del propio miembro; el recompute manual es de GH.
+
+/** Edición especial vinculada a una ocasión o a un reto: el término es el del objetivo. */
+export async function createSpecialBadgeAs(
+  actor: Actor & { personId: string },
+  input: SpecialBadgeInput,
+): Promise<{ id: string }> {
+  let termId: string | null = null;
+  if (input.specialOccasionId) {
+    termId = (await getOccasion(input.specialOccasionId))?.termId ?? null;
+  } else if (input.specialChallengeId) {
+    termId = (await findChallenge(input.specialChallengeId))?.termId ?? null;
+  }
+  if (!termId) {
+    throw new DomainError(t("T-675"));
+  }
+  return runCommand(actor, (ctx) => createSpecialBadge(ctx, input, { termId }));
+}
+
+export function setFeaturedAs(
+  actor: Actor & { personId: string },
+  input: { achievementId: string; featured: boolean },
+): Promise<void> {
+  return runCommand(actor, (ctx) => setFeatured(ctx, { personId: actor.personId, ...input }));
+}
+
+export function markSeenAs(
+  actor: Actor & { personId: string },
+  achievementIds: string[],
+): Promise<void> {
+  return runCommand(actor, (ctx) => markSeen(ctx, actor.personId, achievementIds));
+}
+
+/** Recompute manual desde el panel de GH (la vía normal son los handlers del outbox). */
+export function recomputeBadgesForAs(
+  actor: Actor & { personId: string },
+  personId: string,
+): Promise<BadgeDelta> {
+  return recomputeBadgesFor(personId, { historical: false, actor });
 }

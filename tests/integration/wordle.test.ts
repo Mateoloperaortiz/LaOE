@@ -170,12 +170,16 @@ describe("Wordle diario persistido", () => {
       .select()
       .from(interaction)
       .where(eq(interaction.personId, personId));
-    expect(timeline).toHaveLength(1);
-    expect(timeline[0]).toMatchObject({
+    // La victoria escribe su interacción y, desde G-T5, la de la insignia Palabra a palabra 1
+    // que el mismo evento desbloquea; reentregar el evento no duplica ninguna.
+    expect(timeline).toHaveLength(2);
+    const wordleEntry = timeline.find((item) => item.summary.includes("Wordle"));
+    expect(wordleEntry).toMatchObject({
       kind: "PARTICIPATION",
       metadata: { gameId: game.id, points: 6, attempts: 1 },
     });
-    expect(timeline[0]?.summary).toContain("Wordle");
+    const badgeEntry = timeline.find((item) => item.summary.includes("Desbloqueó la insignia"));
+    expect(badgeEntry?.summary).toContain("Palabra a palabra");
     expect(JSON.stringify(timeline)).not.toContain(answer);
     expect(await db().select().from(message)).toHaveLength(0);
     expect(

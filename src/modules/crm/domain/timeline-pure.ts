@@ -44,6 +44,10 @@ export const TIMELINE_EVENTS = [
   "call-entry.changed",
   "sanction.recorded",
   "sanction.revoked",
+  "challenge.completed",
+  "challenge.rejected",
+  "badge.unlocked",
+  "booster.granted",
 ] as const;
 
 export interface TimelineLabels {
@@ -51,6 +55,8 @@ export interface TimelineLabels {
   texts: string[];
   /** Los textos de participación de T-667, en orden (fase 3). */
   participationTexts: string[];
+  /** Los nombres de booster de T-2451, en orden (ADR-067); los usa booster.granted. */
+  boosterNames?: string[];
   /** Los textos de permanencia de T-832, en orden (fase 4; los dos últimos, ADR-056). */
   permanenceTexts: string[];
   /** Los textos de admisión, aliados y contactos de T-1046, en orden (fase 5). */
@@ -269,6 +275,67 @@ export function summarizeEvent(
         fill(labels.participationTexts[7] ?? "", { ocasion: str(payload, "occasionTitle") }),
         { occasionId: str(payload, "occasionId"), excused: true },
       );
+    case "challenge.completed": {
+      const points = typeof payload.points === "number" ? payload.points : 0;
+      return entry(
+        "PARTICIPATION",
+        fill(labels.participationTexts[8] ?? "", {
+          reto: str(payload, "challengeTitle"),
+          n: String(points),
+        }),
+        {
+          participationId: str(payload, "participationId"),
+          challengeId: str(payload, "challengeId"),
+          termId: str(payload, "termId"),
+          points,
+        },
+      );
+    }
+    case "challenge.rejected":
+      return entry(
+        "PARTICIPATION",
+        fill(labels.participationTexts[11] ?? "", {
+          reto: str(payload, "challengeTitle"),
+          motivo: str(payload, "reason"),
+        }),
+        {
+          participationId: str(payload, "participationId"),
+          challengeId: str(payload, "challengeId"),
+          termId: str(payload, "termId"),
+        },
+      );
+    case "badge.unlocked": {
+      // Los logros de la conciliación histórica no ensucian la línea de tiempo.
+      if (payload.historical === true) {
+        return null;
+      }
+      return entry(
+        "PARTICIPATION",
+        fill(labels.participationTexts[9] ?? "", {
+          insignia: str(payload, "name"),
+          nivel: String(payload.level ?? ""),
+        }),
+        {
+          achievementId: str(payload, "achievementId"),
+          code: str(payload, "code"),
+          level: payload.level ?? null,
+        },
+      );
+    }
+    case "booster.granted": {
+      // El booster por insignia ya lo cuenta badge.unlocked; solo el manual de GH entra acá.
+      if (str(payload, "source") !== "MANUAL") {
+        return null;
+      }
+      const kinds = ["PLUS_50", "PLUS_100"];
+      const kind = str(payload, "kind");
+      const booster =
+        labels.boosterNames?.[kinds.indexOf(kind)] ?? labels.boosterNames?.[0] ?? kind;
+      return entry("PARTICIPATION", fill(labels.participationTexts[10] ?? "", { booster }), {
+        boosterId: str(payload, "boosterId"),
+        kind,
+      });
+    }
     case "sanction.recorded":
       return entry(
         "MEMBERSHIP",

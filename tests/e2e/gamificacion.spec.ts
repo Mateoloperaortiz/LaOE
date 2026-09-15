@@ -3,12 +3,19 @@ import { type Browser, expect, type Page } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import sharp from "sharp";
 import { closeDb, getDb } from "@/db/client";
+import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import {
   challengeInputSchema,
   createChallengeAs,
   publishChallengeAs,
 } from "@/modules/participation";
-import { occasion, pointEntry } from "@/modules/participation/schema";
+import {
+  achievement,
+  boosterItem,
+  occasion,
+  pointEntry,
+  wordleGame,
+} from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { utcToBogotaInput } from "@/shared/lib/dates";
@@ -237,9 +244,9 @@ test("booster: el admin lo otorga, el miembro lo apunta a una trivia y suma el e
     basePoints: 5,
   });
 
-  // Alta manual desde el bloque de boosters del panel de gamificación.
+  // Alta manual desde el bloque de boosters de la página de insignias (se mudó en G-T5).
   const admin = await adminPage(browser);
-  await admin.goto("/admin/gamificacion");
+  await admin.goto("/admin/gamificacion/insignias");
   const bloque = admin.locator("section[aria-labelledby='otorgar-booster-titulo']");
   await bloque.getByRole("textbox", { name: "Persona" }).fill(E2E_MEMBER_EMAIL);
   await bloque.getByRole("button", { name: "Buscar", exact: true }).click();
@@ -354,4 +361,112 @@ test("trivia en móvil: radios por teclado y sin scroll horizontal", async ({ pa
   );
   await sinViolaciones(page);
   await page.screenshot({ path: "test-results/reto-trivia-mobile.png", fullPage: true });
+});
+
+test("colección: la insignia abre el diálogo una vez, se destaca y sale en el directorio", async ({
+  page,
+}) => {
+  // Logros/boosters previos del miembro limpios para que el desbloqueo sea nuevo y no visto.
+  const miembro = await personId(E2E_MEMBER_EMAIL);
+  await getDb().delete(boosterItem).where(eq(boosterItem.personId, miembro));
+  await getDb().delete(achievement).where(eq(achievement.personId, miembro));
+
+  const id = await crearReto({
+    kind: "TRIVIA",
+    title: "e2e-Trivia insignia",
+    description: "Una pregunta.",
+    passPercent: 100,
+    questions: [{ prompt: "e2e-¿Cuánto es 6 + 6?", options: ["12", "13"], correctIndex: 0 }],
+    ...ventana(),
+    basePoints: 5,
+  });
+  await page.goto(`/app/gh-points/retos/${id}`);
+  await page.getByRole("radio", { name: "12", exact: true }).press(" ");
+  await page.getByRole("button", { name: "Enviar respuestas" }).press("Enter");
+  await expect(page.getByText("¡Acertaste 1 de 1")).toBeVisible();
+  await drenarOutbox(); // challenge.completed → recompute → Relámpago 1 + booster
+  await drenarOutbox(); // badge.unlocked
+
+  // El diálogo aparece una sola vez con el nombre, el nivel y el booster ganado.
+  await page.goto("/app/gh-points/coleccion");
+  const dialogo = page.getByRole("dialog");
+  await expect(dialogo.getByText("¡Nueva insignia!")).toBeVisible();
+  await expect(dialogo.getByText("Desbloqueaste Relámpago nivel 1. ¡OE OE OE!")).toBeVisible();
+  await expect(dialogo.getByText(/Además ganaste un Impulso/)).toBeVisible();
+  await page.screenshot({ path: "test-results/coleccion-dialogo-desktop.png", fullPage: true });
+  // dispatchEvent: el router.push de cierre re-renderiza la página y desmonta el diálogo
+  // a mitad del click, y Playwright reintentaría sobre un nodo muerto.
+  await dialogo.getByRole("button", { name: "Ver mi colección" }).dispatchEvent("click");
+  await page.reload();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await sinViolaciones(page);
+  await page.screenshot({ path: "test-results/coleccion-desktop.png", fullPage: true });
+
+  // Destacarla la lleva a la tarjeta del directorio (el botón de la familia Relámpago:
+  // otras familias también pueden estar desbloqueadas por pruebas anteriores).
+  const familia = page
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "Relámpago", exact: true }) });
+  await familia.getByRole("button", { name: "Destacar en el directorio" }).click();
+  await expect(familia.getByText("Insignias destacadas")).toBeVisible();
+  // El directorio pagina alfabéticamente: la búsqueda lo lleva a su tarjeta.
+  await page.goto("/app/personas?q=E2E");
+  const tarjeta = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: "Miembro E2E" }) });
+  await expect(
+    tarjeta.getByRole("list", { name: "Insignias destacadas" }).getByText("Relámpago · Nivel 1"),
+  ).toBeVisible();
+});
+
+test("colección en móvil y movimiento reducido: alternativa estática sin animación", async ({
+  page,
+}) => {
+  const miembro = await personId(E2E_MEMBER_EMAIL);
+  const termId = await currentTermId();
+  await getDb().delete(boosterItem).where(eq(boosterItem.personId, miembro));
+  await getDb().delete(achievement).where(eq(achievement.personId, miembro));
+
+  // Palabra a palabra 1: un Wordle ganado en base + el evento que lo publica.
+  const [game] = await getDb()
+    .insert(wordleGame)
+    .values({
+      personId: miembro,
+      day: "2026-01-15",
+      termId,
+      answer: "PRUEB",
+      dictionaryVersion: "e2e",
+      rulesVersion: "e2e",
+      status: "WON",
+      completedAt: new Date(),
+    })
+    .returning({ id: wordleGame.id });
+  await runCommand(SYSTEM_ACTOR, (ctx) =>
+    ctx.emit({
+      type: "wordle.completed",
+      payload: {
+        personId: miembro,
+        termId,
+        gameId: game?.id ?? "",
+        day: "2026-01-15",
+        attempts: 4,
+        points: 5,
+      },
+    }),
+  );
+  await drenarOutbox();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/app/gh-points/coleccion");
+  const dialogo = page.getByRole("dialog");
+  await expect(
+    dialogo.getByText("Nueva insignia desbloqueada: Palabra a palabra nivel 1."),
+  ).toBeVisible();
+  await page.screenshot({ path: "test-results/coleccion-dialogo-mobile.png", fullPage: true });
+  await dialogo.getByRole("button", { name: "Ver mi colección" }).dispatchEvent("click");
+  await page.reload();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await sinViolaciones(page);
+  await page.screenshot({ path: "test-results/coleccion-mobile.png", fullPage: true });
 });

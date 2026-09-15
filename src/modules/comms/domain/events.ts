@@ -2,11 +2,11 @@ import { z } from "zod";
 import { getEnv } from "@/env";
 import { markAnnouncementPushSent } from "@/modules/content";
 import { balanceFor } from "@/modules/participation";
-import { listMailingRefs } from "@/modules/people";
+import { listActiveMemberRefs, listMailingRefs, listTermCommitteeMembers } from "@/modules/people";
 import { getTerm } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
-import { formatDate } from "@/shared/lib/dates";
+import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { committeeAudience, membersAudience } from "./audiences";
 import { type DeliveryStats, deliverNotification } from "./notify";
 import { type NotificationKind, splitPush } from "./pure";
@@ -221,5 +221,115 @@ export async function emailPermanenceOutcome(raw: unknown): Promise<SendReceipt 
     },
     new Date(),
     { dedupeKey: `permanence-outcome:${payload.termId}` },
+  );
+}
+
+/** Recorta un valor interpolado para que el push quepa en sus límites (título 40, cuerpo 120). */
+function clip(value: string, max = 60): string {
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
+export const challengePublishedPushSchema = z.object({
+  challengeId: z.string().min(1),
+  termId: z.string().min(1),
+  title: z.string().min(1),
+  closesAt: z.string().min(1),
+  audience: z.enum(["ALL", "NEW", "VETERAN", "COMMITTEES"]),
+  audienceCommitteeIds: z.array(z.string()).default([]),
+});
+
+/** Reto publicado (T-2566): a la audiencia del reto — todos, nuevos, veteranos o sus comités. */
+export async function pushChallengePublished(raw: unknown): Promise<DeliveryStats> {
+  const payload = challengePublishedPushSchema.parse(raw);
+  const members = (await listActiveMemberRefs(true)).filter((ref) => !ref.anonymized);
+  let ids: string[];
+  if (payload.audience === "COMMITTEES") {
+    const wanted = new Set(payload.audienceCommitteeIds);
+    const roster = await listTermCommitteeMembers(payload.termId);
+    const inCommittee = new Set(
+      roster.filter((row) => wanted.has(row.committeeId)).map((row) => row.personId),
+    );
+    ids = members.filter((ref) => inCommittee.has(ref.personId)).map((ref) => ref.personId);
+  } else if (payload.audience === "NEW") {
+    ids = members.filter((ref) => ref.firstTermId === payload.termId).map((ref) => ref.personId);
+  } else if (payload.audience === "VETERAN") {
+    ids = members.filter((ref) => ref.firstTermId !== payload.termId).map((ref) => ref.personId);
+  } else {
+    ids = members.map((ref) => ref.personId);
+  }
+  return notify(
+    "POINTS",
+    ids,
+    t("T-2566", {
+      reto: clip(payload.title),
+      fecha: formatDateTime(new Date(payload.closesAt)),
+    }),
+    `/app/gh-points/retos/${payload.challengeId}`,
+    `challenge:${payload.challengeId}`,
+  );
+}
+
+const challengeDecidedPushSchema = z.object({
+  participationId: z.string().min(1),
+  challengeId: z.string().min(1),
+  challengeTitle: z.string().min(1),
+  personId: z.string().min(1),
+  termId: z.string().min(1),
+  reason: z.string().default(""),
+  points: z.number().default(0),
+});
+
+/** Entrega aprobada (T-2567): puntos del premio y saldo actualizado. */
+export async function pushChallengeCompleted(raw: unknown): Promise<DeliveryStats> {
+  const payload = challengeDecidedPushSchema.parse(raw);
+  const total = await balanceFor(payload.personId, payload.termId);
+  return notify(
+    "POINTS",
+    [payload.personId],
+    t("T-2567", {
+      n: payload.points,
+      reto: clip(payload.challengeTitle),
+      total,
+    }),
+    `/app/gh-points/retos/${payload.challengeId}`,
+    `challenge:${payload.participationId}`,
+  );
+}
+
+/** Entrega rechazada (T-2568): la misma clave del reto con sufijo para no tapar una aprobación. */
+export async function pushChallengeRejected(raw: unknown): Promise<DeliveryStats> {
+  const payload = challengeDecidedPushSchema.parse(raw);
+  return notify(
+    "POINTS",
+    [payload.personId],
+    t("T-2568", {
+      reto: clip(payload.challengeTitle),
+      motivo: clip(payload.reason, 80),
+    }),
+    `/app/gh-points/retos/${payload.challengeId}`,
+    `challenge:${payload.participationId}:rejected`,
+  );
+}
+
+const badgeUnlockedPushSchema = z.object({
+  achievementId: z.string().min(1),
+  personId: z.string().min(1),
+  name: z.string().min(1),
+  level: z.number(),
+  historical: z.boolean().default(false),
+});
+
+/** Insignia desbloqueada (T-2569); los logros históricos de la conciliación no notifican. */
+export async function pushBadgeUnlocked(raw: unknown): Promise<DeliveryStats | null> {
+  const payload = badgeUnlockedPushSchema.parse(raw);
+  if (payload.historical) {
+    return null;
+  }
+  return notify(
+    "POINTS",
+    [payload.personId],
+    t("T-2569", { insignia: clip(payload.name), nivel: payload.level }),
+    "/app/gh-points/coleccion",
+    `badge:${payload.achievementId}`,
   );
 }

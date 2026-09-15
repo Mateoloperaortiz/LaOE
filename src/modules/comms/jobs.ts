@@ -8,7 +8,11 @@ import {
   emailPermanenceOutcome,
   pushAccessGrantIssued,
   pushAnnouncement,
+  pushBadgeUnlocked,
   pushCallOpened,
+  pushChallengeCompleted,
+  pushChallengePublished,
+  pushChallengeRejected,
   pushPointsCredited,
   pushRecognition,
   pushRequestDecided,
@@ -57,6 +61,29 @@ registerHandler("access-grant.issued", async (payload, ctx) => {
 registerHandler("recognition.granted", async (payload, ctx) => {
   const stats = await pushRecognition(payload);
   ctx.log.info(stats, "push de reconocimiento entregado");
+});
+
+// Gamificación (ADR-067): reto publicado a su audiencia, decisión de la entrega e insignia nueva.
+registerHandler("challenge.published", async (payload, ctx) => {
+  const stats = await pushChallengePublished(payload);
+  ctx.log.info(stats, "push de reto publicado entregado");
+});
+
+registerHandler("challenge.completed", async (payload, ctx) => {
+  const stats = await pushChallengeCompleted(payload);
+  ctx.log.info(stats, "push de reto completado entregado");
+});
+
+registerHandler("challenge.rejected", async (payload, ctx) => {
+  const stats = await pushChallengeRejected(payload);
+  ctx.log.info(stats, "push de reto rechazado entregado");
+});
+
+registerHandler("badge.unlocked", async (payload, ctx) => {
+  const stats = await pushBadgeUnlocked(payload);
+  if (stats) {
+    ctx.log.info(stats, "push de insignia entregado");
+  }
 });
 
 // Resultado de permanencia (ADR-038 regla 10): correo T-202 a quien cumple; una vez por término.

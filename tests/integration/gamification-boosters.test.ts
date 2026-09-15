@@ -724,9 +724,9 @@ describe("campañas de impulso", () => {
 
     const list = await listCampaignsAdmin(termId, new Date());
     const byName = Object.fromEntries(list.map((c) => [c.name, c.state]));
-    expect(byName["Pasada"]).toBe("ENDED");
-    expect(byName["Vigente"]).toBe("CANCELLED");
-    expect(byName["Futura"]).toBe("SCHEDULED");
+    expect(byName.Pasada).toBe("ENDED");
+    expect(byName.Vigente).toBe("CANCELLED");
+    expect(byName.Futura).toBe("SCHEDULED");
     expect(byName["Vigente menor"]).toBe("ACTIVE");
   });
 });

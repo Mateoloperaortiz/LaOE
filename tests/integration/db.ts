@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { and, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { badgeDefinition } from "@/modules/participation/schema";
 import { clearConfigCache } from "@/modules/system/domain/config";
@@ -16,7 +16,14 @@ const GAMIFICATION_SEED: Record<string, unknown> = {
 export async function truncateAll(): Promise<void> {
   const db = getDb();
   const config = await db.select().from(appConfig);
-  const badges = await db.select().from(badgeDefinition);
+  // Solo el catálogo sembrado: las ediciones especiales de una prueba referencian
+  // ocasiones/retos que el truncate borra y no deben sobrevivir.
+  const badges = await db
+    .select()
+    .from(badgeDefinition)
+    .where(
+      and(isNull(badgeDefinition.specialChallengeId), isNull(badgeDefinition.specialOccasionId)),
+    );
   await db.execute(sql`
     truncate table
       budget_transfer, budget_expense, budget_prerequest, event_approval, budget_line, committee_budget,

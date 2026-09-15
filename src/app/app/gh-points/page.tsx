@@ -5,6 +5,7 @@ import {
   ASSEMBLY_KINDS,
   assemblyStatusFor,
   balanceFor,
+  collectionFor,
   getTodayWordle,
   levelFor,
   listEntriesFor,
@@ -16,6 +17,7 @@ import {
   rankPeople,
   resolveMemberContext,
 } from "@/modules/participation";
+import { BadgeUnlock } from "@/modules/participation/components/BadgeUnlock";
 import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
 import { Wordle } from "@/modules/participation/components/Wordle";
 import { getMembershipRef, listCommitteesByIds } from "@/modules/people";
@@ -26,6 +28,7 @@ import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { Vacio } from "../_ui/Vacio";
 import { startWordleAction, submitWordleAction } from "./actions";
+import { markSeenAction } from "./coleccion/actions";
 
 // GH Points en Mi OE (06-mapa-del-sitio.md, ADR-035 reglas 9 y 10): saldo, nivel, movimientos y los
 // tableros del semestre (top 10 con nombres más el puesto propio). Las asambleas llegan en F3-T6.
@@ -99,6 +102,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   const nextChallenge = member
     ? await nextChallengeForMember(actor.personId, term.id, member)
     : null;
+  const unseen = gamification.enabled ? (await collectionFor(actor.personId)).unseen : [];
   let board: Array<{ rank: number; name: string; total: string; mine: boolean }> = [];
   if (tablero === "comites") {
     const ranked = await rankCommittees(term.id);
@@ -131,6 +135,16 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
 
   return (
     <div className="flex flex-col gap-10">
+      <BadgeUnlock
+        unseen={unseen.map((item) => ({
+          achievementId: item.achievement.id,
+          name: item.badge.name,
+          family: item.badge.family,
+          level: item.badge.level,
+          boosterKind: item.boosterKind,
+        }))}
+        onSeen={markSeenAction}
+      />
       <header className="flex flex-col gap-3">
         <h1 className="text-display-lg">{t("T-080")}</h1>
         {terms.length > 1 ? (

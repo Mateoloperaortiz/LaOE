@@ -9150,7 +9150,7 @@ export const textos = {
   },
   "T-667": {
     where: "Línea de tiempo: textos de las interacciones de participación",
-    text: "Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} · Completó el reto {reto} y sumó {n} GH Points · Desbloqueó la insignia {insignia} nivel {nivel} · Recibió un {booster}",
+    text: "Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} · Completó el reto {reto} y sumó {n} GH Points · Desbloqueó la insignia {insignia} nivel {nivel} · Recibió un {booster} · Entrega del reto {reto} rechazada: {motivo}",
     owner: "MATEO",
     status: "Propuesta",
   },

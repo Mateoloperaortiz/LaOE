@@ -4,6 +4,12 @@ import { registerHandler } from "@/jobs/registry";
 import { listTermCommitteeMembers } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { findTermByCode, getCurrentTerm, nextTermCode } from "@/modules/terms";
+import {
+  awardSpecialBadgesForChallenge,
+  awardSpecialBadgesForOccasion,
+  clearFeaturedBadges,
+  recomputeBadgesFor,
+} from "./domain/badges";
 import { scrubStandingName } from "./domain/closing";
 import { recomputeCommitteeAssembly } from "./domain/committee-assembly";
 import { processEvidenceFile } from "./domain/evidence";
@@ -92,6 +98,37 @@ registerHandler("participation.term-check", async (_payload, ctx) => {
   ctx.log.info({ next, daysLeft }, "falta crear el término siguiente");
 });
 
+// Insignias (ADR-067 reglas 9, 10 y 15): cada hecho que sostiene una familia dispara el recompute
+// de la persona — desbloqueo idempotente con su booster y revocación si el hecho desaparece — y el
+// cierre de una ocasión o un reto completado otorgan las ediciones especiales vinculadas.
+const badgePerson = z.object({ personId: z.string().min(1) });
+
+for (const type of [
+  "checkin.approved",
+  "checkin.cancelled",
+  "wordle.completed",
+  "challenge.completed",
+  "challenge.reward-reversed",
+]) {
+  registerHandler(type, async (payload, ctx) => {
+    const { personId } = badgePerson.parse(payload);
+    const delta = await recomputeBadgesFor(personId, { historical: false });
+    if (delta.unlocked.length > 0 || delta.revoked.length > 0) {
+      ctx.log.info({ personId, event: type, ...delta }, "insignias recalculadas");
+    }
+  });
+}
+
+registerHandler("challenge.completed", async (payload, ctx) => {
+  const { challengeId, personId } = z
+    .object({ challengeId: z.string().min(1), personId: z.string().min(1) })
+    .parse(payload);
+  const awarded = await awardSpecialBadgesForChallenge(challengeId, personId);
+  if (awarded > 0) {
+    ctx.log.info({ challengeId, personId, awarded }, "ediciones especiales otorgadas por el reto");
+  }
+});
+
 // Encuesta tras la ocasión (ADR-038 regla 13): al cerrar, una invitación por asistente aprobado y el
 // push T-191 con la URL propia de cada uno.
 const occasionClosed = z.object({ occasionId: z.string().min(1) });
@@ -109,6 +146,10 @@ registerHandler("occasion.closed", async (payload, ctx) => {
       { occasionId, invited: result.invited, created: result.created.length },
       "invitaciones de encuesta creadas",
     );
+  }
+  const awarded = await awardSpecialBadgesForOccasion(occasionId);
+  if (awarded > 0) {
+    ctx.log.info({ occasionId, awarded }, "ediciones especiales otorgadas por la ocasión");
   }
 });
 
@@ -131,7 +172,8 @@ registerHandler("person.anonymized", async (payload, ctx) => {
   const { personId } = personEvent.parse(payload);
   const changed = await scrubStandingName(personId);
   const invites = await deleteSurveyInvitesFor(personId);
-  ctx.log.info({ personId, changed, invites }, "standings anonimizados");
+  const featured = await clearFeaturedBadges(personId);
+  ctx.log.info({ personId, changed, invites, featured }, "standings anonimizados");
 });
 
 const membershipChanged = z.object({

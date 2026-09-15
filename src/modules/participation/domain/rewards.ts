@@ -161,6 +161,81 @@ export async function reserveReward(
 }
 
 /**
+ * Recalcula una reserva liberada (la reaprobación de un check-in no puede insertar otra fila por
+ * el unique de `checkInId`): mismo cálculo que `reserveReward` — cupo de hoy, booster vigente y
+ * apuntado al objetivo — y la fila vuelve a RESERVED lista para confirmar.
+ */
+export async function rereserveReward(
+  ctx: CommandContext,
+  rewardId: string,
+  input: ReserveRewardInput,
+  caps: RewardCaps,
+  now = new Date(),
+): Promise<void> {
+  await ctx.tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`reward:${input.personId}`}, 0))`,
+  );
+  const dayKey = dayKeyFor(now);
+  const weekKey = weekKeyFor(now);
+  const used = await usedRewardPoints(ctx.tx, input.personId, dayKey, weekKey);
+  const baseCountsTowardCap = input.source === "CHALLENGE";
+  const breakdown = computeReward({
+    base: input.base,
+    personalPercent: input.personalPercent,
+    campaignPercent: input.campaignPercent,
+    usedDaily: used.daily,
+    usedWeekly: used.weekly,
+    caps,
+    baseCountsTowardCap,
+  });
+  let boosterId = breakdown.personalConsumed ? (input.boosterItemId ?? null) : null;
+  if (boosterId) {
+    const locked = await lockConsumableBooster(ctx, boosterId, input.expectedTarget, now);
+    if (locked) {
+      await ctx.tx
+        .update(boosterItem)
+        .set({ status: "RESERVED" })
+        .where(and(eq(boosterItem.id, locked.id), eq(boosterItem.status, "AVAILABLE")));
+    } else {
+      boosterId = null;
+    }
+  }
+  const final =
+    breakdown.personalConsumed && !boosterId
+      ? computeReward({
+          base: input.base,
+          personalPercent: 0,
+          campaignPercent: input.campaignPercent,
+          usedDaily: used.daily,
+          usedWeekly: used.weekly,
+          caps,
+          baseCountsTowardCap,
+        })
+      : breakdown;
+  await ctx.tx
+    .update(reward)
+    .set({
+      personalPercent: final.personalConsumed ? input.personalPercent : 0,
+      requestedPersonalPercent: input.personalPercent,
+      campaignPercent: input.campaignPercent,
+      campaignId: input.campaignId ?? null,
+      boosterItemId: boosterId,
+      baseGranted: final.baseGranted,
+      extraPoints: final.extraGranted,
+      status: "RESERVED",
+      dayKey,
+      weekKey,
+      capDaily: caps.daily,
+      capWeekly: caps.weekly,
+      reservedAt: now,
+      decidedAt: null,
+      decidedById: null,
+      reason: null,
+    })
+    .where(eq(reward.id, rewardId));
+}
+
+/**
  * Bloquea el booster y confirma que sigue siendo consumible para este objetivo: AVAILABLE,
  * vigente y apuntado donde el llamador espera. Si otra operación se lo llevó o lo re-apuntó,
  * devuelve null y el premio continúa sin la parte personal (nunca aborta la acción).

@@ -353,9 +353,12 @@ describe("check-in propio", () => {
       .select()
       .from(interaction)
       .where(eq(interaction.kind, "PARTICIPATION"));
-    expect(entries).toHaveLength(2);
+    // Cada check-in escribe sus puntos y, desde G-T5, la insignia En parche 1 que la
+    // actividad voluntaria desbloquea en el mismo drenado.
+    const pointEntries = entries.filter((entry) => entry.summary.includes("GH Points por"));
+    expect(pointEntries).toHaveLength(2);
     expect(
-      entries.every(
+      pointEntries.every(
         (entry) =>
           entry.summary ===
           t("T-667")
@@ -364,6 +367,11 @@ describe("check-in propio", () => {
             .replace("{ocasion}", "Integración de nuevos"),
       ),
     ).toBe(true);
+    const badgeEntries = entries.filter((entry) =>
+      entry.summary.includes("Desbloqueó la insignia"),
+    );
+    expect(badgeEntries).toHaveLength(2);
+    expect(badgeEntries.every((entry) => entry.summary.includes("En parche"))).toBe(true);
     const steps = await db().select().from(onboardingProgress);
     expect(steps.map((step) => step.personId)).toEqual([newbie]);
     expect(steps[0]?.source).toBe("AUTO");
