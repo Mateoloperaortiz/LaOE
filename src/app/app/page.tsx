@@ -5,7 +5,14 @@ import { excerpt, listMemberAnnouncements } from "@/modules/content";
 import { getOnboarding } from "@/modules/crm";
 import { findUpcomingEditionsForMembers } from "@/modules/events";
 import { requireActor } from "@/modules/identity";
-import { balanceFor, listMemberAgenda } from "@/modules/participation";
+import {
+  balanceFor,
+  listMemberAgenda,
+  loadGamificationSettings,
+  nextChallengeForMember,
+  resolveMemberContext,
+} from "@/modules/participation";
+import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
 import { canParticipate, getMyMembership } from "@/modules/people";
 import { getPersonPermanence, listTeamParticipations } from "@/modules/permanence";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
@@ -25,11 +32,12 @@ import { markStepAction } from "./actions";
 export default async function AppHome() {
   const actor = await requireActor("/app");
   const participationAllowed = canParticipate(actor.membershipStatus);
-  const [mine, editions, announcements, devices] = await Promise.all([
+  const [mine, editions, announcements, devices, gamification] = await Promise.all([
     getMyMembership(actor.personId),
     findUpcomingEditionsForMembers(6),
     listMemberAnnouncements(6),
     countSubscriptionsFor(actor.personId),
+    loadGamificationSettings(),
   ]);
   const [avisoTitulo, avisoTexto, avisoBoton] = tList("T-1092") as [string, string, string];
   const onboardingTermId = participationAllowed && mine.term && mine.isNew ? mine.term.id : null;
@@ -47,6 +55,12 @@ export default async function AppHome() {
     : new Map();
   const allDone = steps.length > 0 && steps.every((step) => step.doneAt);
   const agenda = agendaItems(ocasiones, editions);
+  const member =
+    gamification.enabled && participationAllowed && mine.term
+      ? await resolveMemberContext(actor.personId, mine.term.id)
+      : null;
+  const nextChallenge =
+    member && mine.term ? await nextChallengeForMember(actor.personId, mine.term.id, member) : null;
   return (
     <div className="member-home">
       <header className="member-home-header">
@@ -96,6 +110,23 @@ export default async function AppHome() {
           ) : null}
         </aside>
       </div>
+      {member ? (
+        <section aria-labelledby="proximo-reto" className="flex flex-col items-start gap-4">
+          <BarraTitulo color="azul" className="self-start">
+            <span id="proximo-reto">{t("T-2445")}</span>
+          </BarraTitulo>
+          {nextChallenge ? (
+            <>
+              <ChallengeCard card={nextChallenge} />
+              <Link href={`/app/gh-points/retos/${nextChallenge.id}`} className="boton-primario">
+                {t("T-2446")}
+              </Link>
+            </>
+          ) : (
+            <p className="text-sm text-tinta-suave">{t("T-2447")}</p>
+          )}
+        </section>
+      ) : null}
       {participationAllowed &&
       permanence &&
       (permanence.result.evaluated || permanence.notices.length > 0) ? (

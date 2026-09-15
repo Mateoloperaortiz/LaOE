@@ -4,12 +4,13 @@ import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
-import { t, tList } from "@/shared/copy";
+import { t } from "@/shared/copy";
 import type {
   BoosterKind,
   CampaignPercent,
   ParticipationStatus,
   RewardBreakdown,
+  SubmitDenial,
 } from "../gamification-types";
 import {
   challenge,
@@ -50,16 +51,7 @@ export type { ParticipationRow } from "./challenges";
 // Tipo local (no importar de ./check-ins: sería un ciclo, check-ins llama a applyPresentialCheckIn).
 type CheckInRow = typeof checkIn.$inferSelect;
 
-export type SubmitDenial =
-  | "DISABLED"
-  | "NOT_FOUND"
-  | "NOT_OPEN"
-  | "NOT_ELIGIBLE"
-  | "ALREADY"
-  | "TERM_CLOSED"
-  | "INVALID_INPUT"
-  | "REQUEST_CONFLICT"
-  | "INCOMPLETE";
+export type { SubmitDenial };
 
 export type SubmitResult =
   | {
@@ -728,7 +720,7 @@ export async function reviewParticipation(
     reason?: string | null | undefined;
     now?: Date | undefined;
   },
-  context: { settings: GamificationSettings },
+  _context: { settings: GamificationSettings },
 ): Promise<void> {
   const now = input.now ?? new Date();
   const [participation] = await ctx.tx

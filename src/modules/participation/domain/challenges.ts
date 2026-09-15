@@ -684,7 +684,7 @@ export async function activeCampaignFor(
   exec: Executor,
   target: { challengeId?: string; occasionId?: string },
   now = new Date(),
-): Promise<{ id: string; percent: CampaignPercent } | null> {
+): Promise<{ id: string; percent: CampaignPercent; endsAt: Date } | null> {
   const keys = [
     target.challengeId ? eq(boostCampaign.challengeId, target.challengeId) : undefined,
     target.occasionId ? eq(boostCampaign.occasionId, target.occasionId) : undefined,
@@ -693,7 +693,7 @@ export async function activeCampaignFor(
     return null;
   }
   const rows = await exec
-    .select({ id: boostCampaign.id, percent: boostCampaign.percent })
+    .select({ id: boostCampaign.id, percent: boostCampaign.percent, endsAt: boostCampaign.endsAt })
     .from(boostCampaign)
     .where(
       and(
@@ -703,10 +703,10 @@ export async function activeCampaignFor(
         keys.length === 1 ? keys[0] : or(keys[0], keys[1]),
       ),
     );
-  let best: { id: string; percent: CampaignPercent } | null = null;
+  let best: { id: string; percent: CampaignPercent; endsAt: Date } | null = null;
   for (const row of rows) {
     if (!best || row.percent > best.percent) {
-      best = { id: row.id, percent: row.percent as CampaignPercent };
+      best = { id: row.id, percent: row.percent as CampaignPercent, endsAt: row.endsAt };
     }
   }
   return best;
@@ -726,10 +726,14 @@ export interface MemberChallengeCard {
   status: MemberChallengeStatus;
   occasion: { title: string; publicId: string; startsAt: Date } | null;
   campaignPercent: 0 | CampaignPercent;
+  /** Fin de la campaña vigente, para el aviso "+n % hasta {fecha}". */
+  campaignEndsAt: Date | null;
   /** El booster elegido por el miembro para este reto (G-T4: todavía sin selector). */
   boosterKind: BoosterKind | null;
   /** base + extra entregados, solo cuando la participación está COMPLETED. */
   rewardPoints: number | null;
+  /** base + extra reservados, solo cuando la participación está PENDING. */
+  pendingPoints: number | null;
 }
 
 export interface MemberChallengeDetail extends MemberChallengeCard {
@@ -796,7 +800,7 @@ function toCard(
   item: MemberReadRow,
   personId: string,
   state: ChallengeState,
-  campaigns: Map<string, CampaignPercent>,
+  campaigns: Map<string, { percent: CampaignPercent; endsAt: Date }>,
   boosterKinds: Map<string, BoosterKind>,
 ): MemberChallengeCard {
   const participation =
@@ -820,10 +824,15 @@ function toCard(
             startsAt: item.occasionStartsAt,
           }
         : null,
-    campaignPercent: campaigns.get(item.row.id) ?? 0,
+    campaignPercent: campaigns.get(item.row.id)?.percent ?? 0,
+    campaignEndsAt: campaigns.get(item.row.id)?.endsAt ?? null,
     boosterKind: boosterKinds.get(item.row.id) ?? null,
     rewardPoints:
       participation?.status === "COMPLETED" && rewardRow
+        ? rewardRow.baseGranted + rewardRow.extraPoints
+        : null,
+    pendingPoints:
+      participation?.status === "PENDING" && rewardRow
         ? rewardRow.baseGranted + rewardRow.extraPoints
         : null,
   };
@@ -834,7 +843,7 @@ async function campaignPercentsFor(
   rows: MemberReadRow[],
   now: Date,
   exec: Executor,
-): Promise<Map<string, CampaignPercent>> {
+): Promise<Map<string, { percent: CampaignPercent; endsAt: Date }>> {
   const challengeIds = rows.map((item) => item.row.id);
   const occasionIds = rows
     .map((item) => item.row.occasionId)
@@ -845,6 +854,7 @@ async function campaignPercentsFor(
   const campaigns = await exec
     .select({
       percent: boostCampaign.percent,
+      endsAt: boostCampaign.endsAt,
       challengeId: boostCampaign.challengeId,
       occasionId: boostCampaign.occasionId,
     })
@@ -862,7 +872,7 @@ async function campaignPercentsFor(
           : inArray(boostCampaign.challengeId, challengeIds),
       ),
     );
-  const byChallenge = new Map<string, CampaignPercent>();
+  const byChallenge = new Map<string, { percent: CampaignPercent; endsAt: Date }>();
   const occasionOf = new Map(
     rows
       .filter((item) => item.row.occasionId !== null)
@@ -875,9 +885,12 @@ async function campaignPercentsFor(
     ];
     for (const targetId of targets) {
       if (!targetId) continue;
-      const current = byChallenge.get(targetId) ?? 0;
-      if (campaign.percent > current) {
-        byChallenge.set(targetId, campaign.percent as CampaignPercent);
+      const current = byChallenge.get(targetId);
+      if (!current || campaign.percent > current.percent) {
+        byChallenge.set(targetId, {
+          percent: campaign.percent as CampaignPercent,
+          endsAt: campaign.endsAt,
+        });
       }
     }
   }

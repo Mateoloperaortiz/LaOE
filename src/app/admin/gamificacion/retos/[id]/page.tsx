@@ -62,8 +62,6 @@ export default async function RetoPage({
   }
   const { challenge, questions, occasion, participants } = detail;
   const locked = challenge.status !== "DRAFT";
-  const stateLabels = tList("T-2511");
-  const kindLabels = tList("T-2409");
   const actions = tList("T-2510");
   const participantColumns = tList("T-2518");
   const participationStates = tList("T-2410");

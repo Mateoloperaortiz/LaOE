@@ -23,11 +23,13 @@ export {
   requiredTotal,
 } from "./domain/assembly-pure";
 export {
+  ChallengeAlreadySubmitted,
+  EVIDENCE_TEXT_MAX,
+  EVIDENCE_TEXT_MIN,
   listParticipationsForPerson,
   listPendingReviews,
   type ParticipationRow,
   type PendingReviewRow,
-  type SubmitDenial,
   type SubmitResult,
 } from "./domain/challenge-participation";
 export {
@@ -116,6 +118,7 @@ export {
 } from "./domain/committee-viability-pure";
 export {
   deleteEvidenceFor,
+  EVIDENCE_KEY_PATTERN,
   EVIDENCE_KEY_PREFIX,
   EVIDENCE_MAX_BYTES,
   EVIDENCE_MAX_FILES,
@@ -291,6 +294,7 @@ export type {
   ChallengeKind,
   ChallengeState,
   ChallengeStoredStatus,
+  ChallengeSubmitReply,
   EvidenceFileStatus,
   MemberChallengeStatus,
   ParticipationStatus,
@@ -299,6 +303,7 @@ export type {
   RewardCaps,
   RewardSource,
   RewardStatus,
+  SubmitDenial,
 } from "./gamification-types";
 export {
   BADGE_FAMILIES,

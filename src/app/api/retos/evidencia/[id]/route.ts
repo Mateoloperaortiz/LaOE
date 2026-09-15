@@ -8,7 +8,10 @@ export const dynamic = "force-dynamic";
 
 const ID = /^[a-z0-9]{10,40}$/;
 
-export async function GET(request: Request, { params }: RouteContext<"/api/retos/evidencia/[id]">) {
+export async function GET(
+  _request: Request,
+  { params }: RouteContext<"/api/retos/evidencia/[id]">,
+) {
   const { id } = await params;
   if (!ID.test(id)) {
     return new Response("No existe", { status: 404 });

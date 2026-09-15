@@ -1,11 +1,6 @@
 import { z } from "zod";
 import { getActor } from "@/modules/identity";
-import {
-  EVIDENCE_MAX_BYTES,
-  EVIDENCE_MIN_BYTES,
-  loadGamificationSettings,
-  prepareEvidenceUpload,
-} from "@/modules/participation";
+import { loadGamificationSettings, prepareEvidenceUpload } from "@/modules/participation";
 import { getMembershipRef } from "@/modules/people";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";

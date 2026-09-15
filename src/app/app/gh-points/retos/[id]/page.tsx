@@ -1,0 +1,278 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { requireActor } from "@/modules/identity";
+import {
+  EVIDENCE_MAX_BYTES,
+  EVIDENCE_MAX_FILES,
+  EVIDENCE_MIN_BYTES,
+  EVIDENCE_TEXT_MAX,
+  EVIDENCE_TEXT_MIN,
+  EVIDENCE_TYPES,
+  getChallengeForMember,
+  loadGamificationSettings,
+  type MemberChallengeDetail,
+  resolveMemberContext,
+} from "@/modules/participation";
+import { EvidenceUploader } from "@/modules/participation/components/EvidenceUploader";
+import { RewardBreakdown } from "@/modules/participation/components/RewardBreakdown";
+import { Trivia } from "@/modules/participation/components/Trivia";
+import { getCurrentTerm } from "@/modules/terms";
+import { Cartel, Insignia } from "@/shared/brand";
+import { t, tList } from "@/shared/copy";
+import { formatDateTime } from "@/shared/lib/dates";
+import { Markdown } from "@/shared/ui/Markdown";
+import { Vacio } from "../../../_ui/Vacio";
+import { submitEvidenceAction, submitTriviaAction } from "./actions";
+
+// Detalle de un reto en Mi OE (ADR-067 reglas 3 a 6): la consigna en Markdown, la actividad
+// vinculada de los presenciales y el bloque de acción según formato y estado de la entrega.
+// correctIndex solo se muestra cuando el reto ya cerró.
+
+export const metadata: Metadata = { title: t("T-2406") };
+
+const KIND_INDEX = { PRESENTIAL: 0, TRIVIA: 1, EVIDENCE: 2 } as const;
+
+function PresentialBlock({ challenge }: { challenge: MemberChallengeDetail }) {
+  const participation = challenge.participation;
+  if (participation?.status === "COMPLETED") {
+    return (
+      <section className="flex flex-col gap-2">
+        <p className="font-semibold">
+          {t("T-2434", { n: challenge.rewardPoints ?? challenge.basePoints })}
+        </p>
+        {participation.reward ? (
+          <RewardBreakdown reward={participation.reward} boosterKind={challenge.boosterKind} />
+        ) : null}
+      </section>
+    );
+  }
+  if (participation?.status === "PENDING") {
+    return (
+      <section className="flex flex-col gap-1">
+        <p className="font-semibold">{t("T-2449")}</p>
+        {challenge.pendingPoints != null ? (
+          <p className="text-sm text-tinta-suave">{t("T-2572", { n: challenge.pendingPoints })}</p>
+        ) : null}
+      </section>
+    );
+  }
+  if (participation?.status === "REJECTED" || participation?.status === "ANNULLED") {
+    return <p className="font-semibold">{t("T-2432", { motivo: participation.reason ?? "—" })}</p>;
+  }
+  if (challenge.state !== "OPEN") {
+    // Programado todavía no abre: sin aviso, la ficha ya muestra la fecha límite.
+    return challenge.state === "SCHEDULED" ? null : (
+      <p className="text-sm text-tinta-suave">{t("T-2438")}</p>
+    );
+  }
+  return (
+    <section className="flex flex-col items-start gap-3">
+      <p>
+        {t("T-2417", {
+          actividad: challenge.occasion?.title ?? "",
+          fecha: formatDateTime(challenge.closesAt),
+        })}
+      </p>
+      {challenge.occasion ? (
+        <Link href={`/a/${challenge.occasion.publicId}`} className="boton-primario">
+          {tList("T-2420")[3]}
+        </Link>
+      ) : null}
+    </section>
+  );
+}
+
+function TriviaAnswered({ challenge }: { challenge: MemberChallengeDetail }) {
+  const participation = challenge.participation;
+  if (!participation) {
+    return null;
+  }
+  const answers = participation.answers ?? [];
+  const reveal = challenge.state === "CLOSED" || challenge.state === "CANCELLED";
+  const hasCorrect = challenge.questions.some((question) => question.correctIndex !== null);
+  return (
+    <section className="flex flex-col gap-4" aria-labelledby="trivia-resultado">
+      <h2 id="trivia-resultado" className="text-display-md">
+        {t("T-2573")}
+      </h2>
+      {participation.score !== null && participation.total !== null ? (
+        <p className="font-semibold">
+          {participation.status === "COMPLETED"
+            ? t("T-2422", {
+                aciertos: participation.score,
+                total: participation.total,
+                n: challenge.rewardPoints ?? challenge.basePoints,
+              })
+            : `${participation.score} / ${participation.total}`}
+        </p>
+      ) : null}
+      <ol className="flex list-none flex-col gap-4 p-0">
+        {challenge.questions.map((question, qIndex) => {
+          const chosen = answers[qIndex] ?? null;
+          return (
+            <li key={question.ordinal} className="flex flex-col gap-1">
+              <p className="font-semibold">
+                {t("T-2421", { n: qIndex + 1, total: challenge.questions.length })} ·{" "}
+                {question.prompt}
+              </p>
+              <ul className="flex list-none flex-col gap-1 p-0">
+                {question.options.map((option, oIndex) => {
+                  const isChosen = chosen === oIndex;
+                  const isCorrect = reveal && question.correctIndex === oIndex;
+                  return (
+                    <li
+                      key={`${question.ordinal}-${oIndex + 1}`}
+                      className={`rounded-lg border px-3 py-1 text-sm ${
+                        isCorrect
+                          ? "border-oe-blue bg-oe-blue-soft font-semibold"
+                          : isChosen
+                            ? "border-borde bg-fondo font-semibold"
+                            : "border-borde text-tinta-suave"
+                      }`}
+                    >
+                      {isChosen ? "✓ " : ""}
+                      {option}
+                      {isCorrect ? " ✓" : ""}
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
+          );
+        })}
+      </ol>
+      {reveal && hasCorrect ? (
+        <p className="eyebrow text-xs">{t("T-2424")}</p>
+      ) : (
+        <p className="text-sm text-tinta-suave">{t("T-2425")}</p>
+      )}
+      {participation.status === "COMPLETED" && participation.reward ? (
+        <RewardBreakdown reward={participation.reward} boosterKind={challenge.boosterKind} />
+      ) : null}
+      {participation.status === "REJECTED" ? (
+        <p className="text-sm text-tinta-suave">{participation.reason ?? ""}</p>
+      ) : null}
+    </section>
+  );
+}
+
+function EvidenceBlock({ challenge }: { challenge: MemberChallengeDetail }) {
+  const participation = challenge.participation;
+  if (participation?.status === "COMPLETED") {
+    return (
+      <section className="flex flex-col gap-2">
+        <p className="font-semibold">
+          {t("T-2434", { n: challenge.rewardPoints ?? challenge.basePoints })}
+        </p>
+        {participation.reward ? (
+          <RewardBreakdown reward={participation.reward} boosterKind={challenge.boosterKind} />
+        ) : null}
+      </section>
+    );
+  }
+  if (participation?.status === "PENDING") {
+    return (
+      <section className="flex flex-col gap-1">
+        <p className="font-semibold">{t("T-2433")}</p>
+        {challenge.pendingPoints != null ? (
+          <p className="text-sm text-tinta-suave">{t("T-2572", { n: challenge.pendingPoints })}</p>
+        ) : null}
+      </section>
+    );
+  }
+  if (participation?.status === "REJECTED" || participation?.status === "ANNULLED") {
+    return <p className="font-semibold">{t("T-2432", { motivo: participation.reason ?? "—" })}</p>;
+  }
+  if (challenge.state !== "OPEN") {
+    return challenge.state === "SCHEDULED" ? null : (
+      <p className="text-sm text-tinta-suave">{t("T-2438")}</p>
+    );
+  }
+  return (
+    <EvidenceUploader
+      challengeId={challenge.id}
+      textMin={EVIDENCE_TEXT_MIN}
+      textMax={EVIDENCE_TEXT_MAX}
+      maxFiles={EVIDENCE_MAX_FILES}
+      minBytes={EVIDENCE_MIN_BYTES}
+      maxBytes={EVIDENCE_MAX_BYTES}
+      allowedTypes={Object.keys(EVIDENCE_TYPES)}
+      onSubmit={submitEvidenceAction}
+    />
+  );
+}
+
+export default async function RetoDetallePage({ params }: PageProps<"/app/gh-points/retos/[id]">) {
+  const actor = await requireActor("/app/gh-points/retos");
+  const settings = await loadGamificationSettings();
+  if (!settings.enabled) {
+    redirect("/app/gh-points");
+  }
+  const { id } = await params;
+  const term = await getCurrentTerm();
+  if (!term) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="text-display-lg">{t("T-2406")}</h1>
+        <Vacio texto={t("T-548")} />
+      </div>
+    );
+  }
+  const member = await resolveMemberContext(actor.personId, term.id);
+  const challenge = await getChallengeForMember(id, actor.personId, member);
+  if (!challenge) {
+    notFound();
+  }
+  const kindLabel = tList("T-2409")[KIND_INDEX[challenge.kind]] ?? challenge.kind;
+  const points = challenge.rewardPoints ?? challenge.basePoints;
+
+  return (
+    <div className="flex flex-col gap-8">
+      <Cartel
+        variante="azul"
+        nivel="h1"
+        eyebrow={kindLabel}
+        titulo={challenge.title}
+        subtitulo={`${t("T-2412", { fecha: formatDateTime(challenge.closesAt) })} · ${t("T-2413", { n: points })}`}
+        elemento={null}
+      >
+        <div className="mt-6 flex flex-wrap gap-2">
+          {challenge.occasion ? (
+            <span className="eyebrow text-xs">
+              {t("T-2450", { actividad: challenge.occasion.title })}
+            </span>
+          ) : null}
+          <Insignia fondo="paper">{t("T-2577")}</Insignia>
+        </div>
+      </Cartel>
+
+      {challenge.description ? <Markdown source={challenge.description} /> : null}
+
+      {challenge.kind === "PRESENTIAL" ? (
+        <PresentialBlock challenge={challenge} />
+      ) : challenge.kind === "TRIVIA" ? (
+        challenge.participation ? (
+          <TriviaAnswered challenge={challenge} />
+        ) : challenge.state === "OPEN" ? (
+          <Trivia
+            challengeId={challenge.id}
+            questions={challenge.questions}
+            passPercent={challenge.passPercent ?? 100}
+            onSubmit={submitTriviaAction}
+          />
+        ) : challenge.state === "SCHEDULED" ? null : (
+          <p className="text-sm text-tinta-suave">{t("T-2438")}</p>
+        )
+      ) : (
+        <EvidenceBlock challenge={challenge} />
+      )}
+
+      <p>
+        <Link href="/app/gh-points/retos" className="boton-secundario inline-block">
+          {tList("T-2420")[6]}
+        </Link>
+      </p>
+    </div>
+  );
+}

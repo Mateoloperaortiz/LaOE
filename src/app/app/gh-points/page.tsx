@@ -8,11 +8,15 @@ import {
   getTodayWordle,
   levelFor,
   listEntriesFor,
+  loadGamificationSettings,
   myPosition,
+  nextChallengeForMember,
   POINT_ENTRY_KINDS,
   rankCommittees,
   rankPeople,
+  resolveMemberContext,
 } from "@/modules/participation";
+import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
 import { Wordle } from "@/modules/participation/components/Wordle";
 import { getMembershipRef, listCommitteesByIds } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
@@ -44,12 +48,13 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   const tablero: BoardKey = BOARDS.includes(tableroParam as BoardKey)
     ? (tableroParam as BoardKey)
     : "nuevos";
-  const [terms, current, membership, cutoffs, wordle] = await Promise.all([
+  const [terms, current, membership, cutoffs, wordle, gamification] = await Promise.all([
     listAllTerms(),
     getCurrentTerm(),
     getMembershipRef(actor.personId),
     requireConfig("points.levels"),
     getTodayWordle(actor.personId),
+    loadGamificationSettings(),
   ]);
   const termParam = single(search.semestre);
   const term = terms.find((item) => item.id === termParam) ?? current;
@@ -90,6 +95,10 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
     (assemblies.requirement.requiresRunoff && assemblies.compliance.runoffAttended ? 1 : 0);
   const level = levelFor(total, cutoffs);
   const nextLabel = level.next === null ? null : (levelLabels[level.index + 1] ?? "");
+  const member = gamification.enabled ? await resolveMemberContext(actor.personId, term.id) : null;
+  const nextChallenge = member
+    ? await nextChallengeForMember(actor.personId, term.id, member)
+    : null;
   let board: Array<{ rank: number; name: string; total: string; mine: boolean }> = [];
   if (tablero === "comites") {
     const ranked = await rankCommittees(term.id);
@@ -178,6 +187,24 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
             : t("T-541")}
         </p>
       </Cartel>
+
+      {member ? (
+        <section aria-labelledby="proximo-reto" className="flex flex-col items-start gap-4">
+          <h2 id="proximo-reto" className="text-display-md">
+            {t("T-2445")}
+          </h2>
+          {nextChallenge ? (
+            <>
+              <ChallengeCard card={nextChallenge} />
+              <Link href={`/app/gh-points/retos/${nextChallenge.id}`} className="boton-primario">
+                {t("T-2446")}
+              </Link>
+            </>
+          ) : (
+            <p className="text-sm text-tinta-suave">{t("T-2447")}</p>
+          )}
+        </section>
+      ) : null}
 
       {term.id === current?.id ? (
         <Wordle

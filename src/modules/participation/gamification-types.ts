@@ -14,6 +14,30 @@ export type MemberChallengeStatus =
   | "COMPLETED"
   | "REJECTED"
   | "EXPIRED";
+
+/** Motivo de rechazo de una entrega del miembro (trivia o evidencia). */
+export type SubmitDenial =
+  | "DISABLED"
+  | "NOT_FOUND"
+  | "NOT_OPEN"
+  | "NOT_ELIGIBLE"
+  | "ALREADY"
+  | "TERM_CLOSED"
+  | "INVALID_INPUT"
+  | "REQUEST_CONFLICT"
+  | "INCOMPLETE";
+
+/** Respuesta serializable de las acciones de entrega: nunca la fila cruda de la base. */
+export type ChallengeSubmitReply =
+  | {
+      ok: true;
+      status: MemberChallengeStatus;
+      score?: number;
+      total?: number;
+      points?: number;
+      reason?: string | null;
+    }
+  | { ok: false; reason: SubmitDenial };
 export type BoosterKind = "PLUS_50" | "PLUS_100";
 export type BoosterStoredStatus = "AVAILABLE" | "RESERVED" | "CONSUMED" | "REVOKED";
 /** EXPIRED se deriva: un AVAILABLE con `expiresAt` pasado. Orden de la lista T-2455. */

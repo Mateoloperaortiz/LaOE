@@ -1,4 +1,4 @@
-import { and, count, countDistinct, eq, inArray, sql, sum } from "drizzle-orm";
+import { and, count, countDistinct, eq, sql, sum } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
   boosterItem,
