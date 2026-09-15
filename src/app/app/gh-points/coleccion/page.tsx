@@ -58,7 +58,8 @@ function originText(achievement: AchievementRow, origin: string): string {
     case "CHALLENGE":
       return origins[1]?.replace("{reto}", origin) ?? origin;
     case "WORDLE":
-      return origins[2]?.replace("{fecha}", origin) ?? origin;
+      // El hecho guarda el día civil ("2026-01-15"); mediodía UTC cae en el día correcto en Bogotá.
+      return origins[2]?.replace("{fecha}", formatDate(new Date(`${origin}T12:00:00Z`))) ?? origin;
     case "HISTORICAL":
       return origins[3] ?? "";
     default:

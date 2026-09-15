@@ -128,7 +128,7 @@ function TriviaAnswered({ challenge }: { challenge: MemberChallengeDetail }) {
                       key={`${question.ordinal}-${oIndex + 1}`}
                       className={`rounded-lg border px-3 py-1 text-sm ${
                         isCorrect
-                          ? "border-oe-blue bg-oe-blue-soft font-semibold"
+                          ? "border-oe-blue bg-oe-blue-soft font-semibold text-oe-navy"
                           : isChosen
                             ? "border-borde bg-fondo font-semibold"
                             : "border-borde text-tinta-suave"

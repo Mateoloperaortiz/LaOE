@@ -97,10 +97,12 @@ export function BadgeUnlock({ unseen, onSeen }: Props) {
                   <BadgeArt family={item.family} level={item.level} unlocked />
                 </span>
                 <div className="flex flex-col gap-1">
-                  {reduced ? (
-                    <p>{t("T-2499", { insignia: item.name, nivel: item.level })}</p>
-                  ) : null}
-                  <p>{t("T-2496", { insignia: item.name, nivel: item.level })}</p>
+                  <p>
+                    {t(reduced ? "T-2499" : "T-2496", {
+                      insignia: item.name,
+                      nivel: item.level,
+                    })}
+                  </p>
                   {booster ? (
                     <p className="text-sm text-tinta-suave">{t("T-2497", { booster })}</p>
                   ) : null}

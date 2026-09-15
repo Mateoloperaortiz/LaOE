@@ -122,7 +122,7 @@ export function Trivia({
             {question.options.map((option, oIndex) => (
               <label
                 key={`${groupId}-${qIndex + 1}-${oIndex + 1}`}
-                className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-borde bg-fondo px-3 py-2 text-sm has-checked:border-oe-blue has-checked:bg-oe-blue-soft"
+                className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-borde bg-fondo px-3 py-2 text-sm has-checked:border-oe-blue has-checked:bg-oe-blue-soft has-checked:text-oe-navy"
               >
                 <input
                   type="radio"

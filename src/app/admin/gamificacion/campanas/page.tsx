@@ -105,7 +105,12 @@ export default async function CampanasPage({
       {campaigns.length === 0 ? (
         <p className="text-tinta-suave">{t("T-2538")}</p>
       ) : (
-        <div className="overflow-x-auto">
+        <section
+          aria-label={t("T-2532")}
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: región desplazable que debe poder recorrerse con teclado
+          tabIndex={0}
+          className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-titulo"
+        >
           <table className="w-full min-w-[42rem] border-collapse text-sm">
             <thead>
               <tr className="border-b border-borde text-left">
@@ -147,7 +152,7 @@ export default async function CampanasPage({
               ))}
             </tbody>
           </table>
-        </div>
+        </section>
       )}
 
       <section className="flex max-w-2xl flex-col gap-4" aria-labelledby="campana-nueva">

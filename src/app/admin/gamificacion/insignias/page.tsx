@@ -111,7 +111,11 @@ export default async function InsigniasPage({
         <h2 id="catalogo-titulo" className="text-display-md">
           {t("T-2540")}
         </h2>
-        <div className="overflow-x-auto">
+        <div
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: región desplazable que debe poder recorrerse con teclado
+          tabIndex={0}
+          className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-titulo"
+        >
           <table className="w-full min-w-[48rem] border-collapse text-sm">
             <thead>
               <tr className="border-b border-borde text-left">
@@ -278,7 +282,11 @@ export default async function InsigniasPage({
         ) : null}
 
         {boosters.length > 0 ? (
-          <div className="overflow-x-auto">
+          <div
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: región desplazable que debe poder recorrerse con teclado
+            tabIndex={0}
+            className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-titulo"
+          >
             <table className="w-full min-w-[40rem] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-borde text-left">

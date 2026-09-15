@@ -43,3 +43,17 @@ Pruebas: unitarias de `computeReward` (ejemplo del pedido, redondeo hacia abajo,
 ## Frente a GHPOINTS
 
 GHPOINTS acreditaba `FLASH`, `BOOST` y `BONUS` como transacciones sueltas que el operador escribía a mano, sin premio calculado en servidor, sin tope por día ni por semana, sin reserva al enviar (la demora del revisor cambiaba lo que la persona recibía), sin idempotencia ante reintentos y con insignias que dependían del saldo acumulado. Aquí el premio se calcula y se reserva en la misma transacción del envío con las reglas vigentes en ese momento, los topes se llevan por día civil y semana de Colombia, un `requestId` y los únicos absorben los reintentos y los dobles envíos, el booster se consume bajo bloqueo y solo si aporta, y las insignias se derivan de hechos verificables (asistencias aprobadas, retos completados, Wordles resueltos) que se pueden reconciliar y revocar sin tocar el saldo.
+
+## Estado de la implementación
+
+Tramos G-T0 a G-T7 cerrados en la rama de trabajo con `npm run check` en verde (lint, tipos, dependencias, código muerto, unitarias, integración y build), la suite E2E completa y la revisión visual documentada en [10-verificacion.md](../10-verificacion.md) y [09-roadmap.md](../09-roadmap.md). Queda pendiente el PR, CI, staging y producción; la activación por entorno está en [15-runbook.md](../15-runbook.md#activación-de-retos-boosters-y-colección-adr-067).
+
+Precisiones sobre las decisiones, surgidas de la implementación:
+
+- Regla 5: el único parcial del ledger quedó `(rewardId, kind) WHERE rewardId IS NOT NULL` con los checks comparando `kind::text`, porque el literal nuevo del enum no es usable en la transacción del `ADD VALUE` y el cast a text no es IMMUTABLE.
+- Regla 4: `reward.requestedPersonalPercent` (migración `0031`) guarda el booster pedido aunque no se consuma, para que el aviso T-2437 distinga "no cupo" de "no pidió".
+- Regla 6: en la carrera del booster, quien pierde el bloqueo `FOR UPDATE` completa su acción **sin** la parte personal (`lockConsumableBooster` verifica estado, vigencia y objetivo vigente); el invariante es un solo consumo, no la exclusión del perdedor. La reaprobación tras rechazo revive la fila `RELEASED` con `rereserveReward` en `rewards.ts` (toda la lógica de reserva en un solo archivo).
+- Regla 10: `checkin.excused` no encola `gamification.badges`; no hace falta porque los hechos solo leen `APPROVED` y un check-in aprobado no puede pasar a `EXCUSED` (`canTransitionCheckIn`).
+- Regla 15: `challenge.rejected` también produce la interacción de la línea de tiempo con `T-667[11]`, texto nuevo anexado al final de la fila.
+- Regla 11: los lotes de la conciliación se reencolan con `dedupeKey` `reconcile:<runId>:<lote>` (la clave del lote en curso seguiría pendiente y el único parcial del outbox descartaría una repetida); la reanudación usa `reconcile:<runId>:<procesadas>`.
+- La lectura por cursor de personas con membresía (cualquier estado, ADR-030) vive en `people.listMembershipPersonIds`; `participation` no importa el esquema de `people`.
