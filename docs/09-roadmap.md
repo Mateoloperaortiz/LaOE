@@ -4,6 +4,16 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Podio de comités en GH Points (ADR-070) · `lista`
+
+- [x] Implementar el podio aprobado: puestos 1–3, empates en el mismo escalón y lista con los demás comités del top diez.
+- [x] Presentar dos decimales, detalle con tasa sin ajustar, diferencia y actividades; conservar la pestaña al cambiar de semestre.
+- [x] Verificar teclado, retorno del foco visible, empates, vacío, nombres extensos, escritorio/móvil, temas y texto ampliado.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-15 | Podio de comités, entrega local | `/app/gh-points?tablero=comites` usa el podio con tokens de la OE y los resultados existentes del dominio. Primer puesto central, segundo a la izquierda y tercero a la derecha; empates compartidos y desglose accesible con dos decimales. `lint`, `typecheck`, `deps:check`, `deadcode` y build aprobados; 21 pruebas unitarias y 3 de integración de participación, los 3 escenarios E2E del podio y la regresión de GH Points aprobados. Axe sin violaciones en escritorio, móvil, oscuro y texto al 200 %. Capturas sintéticas en `.impeccable/review/podio/`. Sin publicación. |
+
 ## Áreas de GT y GAP · `lista`
 
 - [x] A1 · Áreas múltiples, grupos GT/GAP separados y acreditación explícita con auditoría.

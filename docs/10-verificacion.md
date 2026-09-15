@@ -180,6 +180,12 @@ Comandos: `npm run copy:sync`, `npm run db:generate` (sin diferencias frente al 
 
 ## Cierre de fase
 
+### Podio de comités en GH Points (ADR-070)
+
+`tests/e2e/committee-podium.spec.ts` comprueba la lectura de snapshots sintéticos en la página: dos actividades cerradas con distinto puntaje y una abierta que no entra; porcentajes con dos decimales, límite de diez, posición de los escalones, detalle con tasa cruda y cantidad de actividades, apertura por teclado y retorno del foco, cambio de semestre conservando la pestaña y estado vacío. Los empates comparten escalón, incluso cuando todos tienen cero y aparece un solo grupo, con nombres extensos.
+
+La revisión visual recorre escritorio a 1440 px, móvil a 390 px, oscuro a 320 px y texto al 200 %. Comprueba desbordamiento del componente y axe WCAG A/AA con las barras de navegación presentes. `PODIUM_REVIEW_DIR` permite guardar capturas del componente sin las barras fijas superpuestas. Se conserva además la prueba de saldo, movimientos y navegación entre los tres tableros en `gh-points.spec.ts`; el dominio se comprueba con `participation-rankings.test.ts` y `participation-pure.test.ts`.
+
 ### Correcciones de gamificación (ADR-068)
 
 `tests/integration/gamification-regressions.test.ts` conserva los ocho casos detectados en la revisión y verifica además: decidir reservas tras apagar la bandera o cambiar membresía; no revivir premios de retos cancelados; replay concurrente, tras el cierre y después de borrar originales; migración 0032 que libera posiciones revocadas y oculta/reencola evidencias anteriores. La sobrescritura WebP se prueba con dos POST prefirmados reales contra el bucket local y se verifica que el objeto servido no cambia ni vuelve a contener EXIF.

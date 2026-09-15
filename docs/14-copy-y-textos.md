@@ -2170,3 +2170,23 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2597 | Comités internos: buscador de los demás comités | Buscá entre los demás comités | COM | Propuesta |
 | T-2598 | Comités internos: ejemplo del buscador | Nombre o sigla del comité | COM | Propuesta |
 | T-2599 | Comités internos: sin otros comités activos | No hay otros comités activos para explorar. | COM | Propuesta |
+
+## Podio de comités en GH Points
+
+| Código | Dónde | Texto | Responsable | Estado |
+| --- | --- | --- | --- | --- |
+| T-2600 | Podio: título | El podio del semestre | GH | Propuesta |
+| T-2601 | Podio: indicador principal | Participación ajustada · Define el puesto | GH | Propuesta |
+| T-2602 | Podio: acción | Ver detalle | GH | Propuesta |
+| T-2603 | Podio: acción accesible | Ver detalle de {comité}, puesto {puesto}, participación ajustada {porcentaje} | GH | Propuesta |
+| T-2604 | Podio: puesto accesible | Puesto {n} | GH | Propuesta |
+| T-2605 | Podio: empate | Puesto compartido | GH | Propuesta |
+| T-2606 | Podio: detalle del comité | {comité} · Puesto {puesto} | GH | Propuesta |
+| T-2607 | Podio: cerrar detalle | Cerrar detalle | GH | Propuesta |
+| T-2608 | Podio: desglose | Participación sin ajustar · Efecto del ajuste · Participación ajustada · Actividades consideradas | GH | Propuesta |
+| T-2609 | Podio: diferencia | {n} puntos porcentuales | GH | Propuesta |
+| T-2610 | Podio: ayuda del detalle | Promedios del semestre. El ajuste acerca la participación de cada actividad al promedio de los comités e influye más en los grupos pequeños. | GH | Propuesta |
+| T-2611 | Podio: lista inferior | Los demás puestos | GH | Propuesta |
+| T-2612 | Podio: ayuda desplegable | Cómo se calcula el ranking | GH | Propuesta |
+| T-2613 | Podio: explicación del cálculo | En cada actividad, se divide la asistencia aprobada entre los miembros elegibles del comité y se aplica el ajuste por tamaño. El ranking usa el promedio de esos porcentajes ajustados. | GH | Propuesta |
+| T-2614 | Podio: actividades y empates | Cuentan las actividades cerradas que otorgan GH Points; todas pesan igual. Los comités con el mismo resultado del ranking comparten puesto. | GH | Propuesta |

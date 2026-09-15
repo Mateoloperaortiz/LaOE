@@ -1,6 +1,6 @@
 # ADR-009: Score de comité por participación relativa
 
-- Estado: Aceptada (enmendada por ADR-024 y ADR-035)
+- Estado: Aceptada (enmendada por ADR-024, ADR-035 y ADR-070)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-005, ADR-006, ADR-012, ADR-024
 
@@ -25,3 +25,7 @@ El ranking usa la tasa **suavizada** `(presentes + k·μ) / (elegibles + k)`, co
 ## Enmienda (2026-09-03, ADR-035)
 
 El handler abre su propia transacción (los handlers del outbox no corren dentro de la del poller) y lee los elegibles antes de tomar el advisory lock; solo escribe filas para comités con elegibles; al cerrar la ocasión el denominador queda congelado y las aprobaciones posteriores solo actualizan los presentes. Ver [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md).
+
+## Enmienda (2026-09-15, ADR-070)
+
+En Mi OE, el ranking presenta los tres primeros puestos como podio y conserva dos decimales del porcentaje ajustado. La tasa sin ajustar queda disponible en el detalle de cada comité. La fórmula permanece igual. Ver [ADR-070](ADR-070-podio-de-comites-en-gh-points.md).
