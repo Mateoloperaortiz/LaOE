@@ -697,3 +697,13 @@ Corrección aplicada el mismo día. Mateo abrió el criterio GAP de 2026-2 en Re
 La tabla general de producción no coincide con la de referencia. Según el admin, «Grupos de trabajo de macroeventos» y «GAP OE» aplican a «Todos», y no solo a veteranos; la tabla muestra «Veteranos 50 · Nuevos 59 · nominal 50», con la advertencia de desvío. Con esa tabla, un nuevo con un GT acreditado pasa de 4 a 9 puntos, no de 0 a 5. Queda que GH confirme si esos dos criterios deben aplicar a los nuevos; se ajusta en «Aplica a» de cada criterio.
 
 En producción, `Failed to find Server Action` apareció tres veces en 17 segundos justo después del arranque, con el mismo identificador, y no volvió a salir: fue una pestaña cargada con la versión anterior invocando una acción del build reemplazado, y se resuelve al recargar la página. La promoción la bloqueó primero el clasificador de permisos de Claude Code y se ejecutó con la autorización explícita de Mateo.
+
+## Editor de retos · producción, 2026-09-16
+
+[PR 42](https://github.com/Mateoloperaortiz/LaOE/pull/42) integrado en `main` y promovido con SHA `8348ecc785765cc2a3cbb7c3c1076f87098177c0` el mismo día en que GH no pudo guardar su primer reto real. Corrige tres defectos del editor: la pregunta de trivia que viajaba oculta, las horas leídas en UTC y los retos publicados que no guardaban título ni descripción. Además, un error al crear ya no descarta lo escrito. El detalle está en el registro de avances del roadmap.
+
+Comprobaciones: CI del PR `35130004852` y CI completo de `main` `35130858920`, ambos success. Railway staging `ec44845a-fced-4c10-8714-94a77544490f` SUCCESS y smoke de staging `35131949407` success, con el healthcheck de staging sirviendo el SHA antes de promover. La promoción reutilizó esa evidencia según ADR-054: CI `35132075163` en modo promoción, y smoke de producción `35132361086` contra `https://oeeafit.com`.
+
+Railway producción `ee649fe9-63f0-41bb-a37a-55b64dff8728`: SUCCESS. No hubo migraciones: `db:release` verificó 109 índices con `pg_trgm`. Tras el arranque, el poller y el scheduler quedaron activos y el outbox se drenó sin fallos. El healthcheck responde el SHA promovido y la portada responde 200.
+
+La promoción no tocó datos ni `gamification.enabled`. Los retos guardados antes de este despliegue conservan la ventana corrida cinco horas; si alguno se creó escribiendo la hora de Colombia más cinco, su instante guardado ya es el correcto. Una pestaña del editor abierta desde antes del despliegue invoca acciones del build anterior (`Failed to find Server Action`): hay que recargarla antes de guardar.
