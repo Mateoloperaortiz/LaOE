@@ -17,7 +17,15 @@ import { listGroupIdsOf } from "@/modules/permanence";
 import { workGroupMembership } from "@/modules/permanence/schema";
 import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
-import { seedCall, seedForm, seedMember, seedPerson, seedTerm, seedWorkGroup } from "./factories";
+import {
+  seedCall,
+  seedCallEntry,
+  seedForm,
+  seedMember,
+  seedPerson,
+  seedTerm,
+  seedWorkGroup,
+} from "./factories";
 
 // Convocatorias internas (ADR-031, ADR-037 regla 10): abierta por estado y ventana, solo activos que
 // no estén en el grupo, orden de llegada con cupo bajo concurrencia y lista de espera, selección
@@ -80,9 +88,9 @@ describe("convocatorias internas", () => {
     const waiting = entries.find((entry) => entry.status === "WAITLISTED");
     const accepted = entries.find((entry) => entry.status === "ACCEPTED");
     if (!waiting || !accepted) throw new Error("entries");
-    await expect(decideEntryAs(admin, waiting.id, "ACCEPTED")).rejects.toThrow(t("T-1024"));
-    await decideEntryAs(admin, accepted.id, "REJECTED", "No cumple el horario");
-    await decideEntryAs(admin, waiting.id, "ACCEPTED");
+    await expect(decideEntryAs(admin, callId, waiting.id, "ACCEPTED")).rejects.toThrow(t("T-1024"));
+    await decideEntryAs(admin, callId, accepted.id, "REJECTED", "No cumple el horario");
+    await decideEntryAs(admin, callId, waiting.id, "ACCEPTED");
     expect((await getCall(callId))?.accepted).toBe(3);
     expect((await listCallEntries(callId)).find((entry) => entry.id === accepted.id)?.note).toBe(
       "No cumple el horario",
@@ -111,7 +119,7 @@ describe("convocatorias internas", () => {
     ).toHaveLength(1);
     await drain(20);
     expect(await listGroupIdsOf(personId)).toEqual([]);
-    await decideEntryAs(admin, entry?.id ?? "", "ACCEPTED");
+    await decideEntryAs(admin, callId, entry?.id ?? "", "ACCEPTED");
     await drain(20);
     expect(await listGroupIdsOf(personId)).toEqual([groupId]);
     const [membershipRow] = await getDb()
@@ -131,5 +139,23 @@ describe("convocatorias internas", () => {
     expect(
       summaries.some((text) => text.startsWith("Convocatoria Convocatoria de prueba: aceptada")),
     ).toBe(true);
+  });
+
+  it("decidir exige que la inscripción sea de la convocatoria operada", async () => {
+    const termId = await seedTerm();
+    const groupA = await seedWorkGroup(termId, "GAP A");
+    const groupB = await seedWorkGroup(termId, "GAP B");
+    const callA = await seedCall(termId, groupA, { selection: "MANUAL" });
+    const callB = await seedCall(termId, groupB, { selection: "MANUAL" });
+    const { personId } = await member("ajena@eafit.edu.co");
+    const entryB = await seedCallEntry(callB, personId, "APPLIED");
+    // Operar la convocatoria A no alcanza para decidir una inscripción de B (ADR-072).
+    await expect(decideEntryAs(admin, callA, entryB, "ACCEPTED")).rejects.toThrow(t("T-032"));
+    await drain(20);
+    expect((await listCallEntries(callB)).map((entry) => entry.status)).toEqual(["APPLIED"]);
+    expect(await listGroupIdsOf(personId)).toEqual([]);
+    await decideEntryAs(admin, callB, entryB, "ACCEPTED");
+    await drain(20);
+    expect(await listGroupIdsOf(personId)).toEqual([groupB]);
   });
 });
