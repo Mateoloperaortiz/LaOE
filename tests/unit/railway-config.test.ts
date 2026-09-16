@@ -40,7 +40,10 @@ describe("infraestructura por entorno (ADR-039)", () => {
     expect(web.networking?.customDomains).toEqual(
       environment === "production" ? { "oeeafit.com": { port: 8080 } } : undefined,
     );
-    expect(web.deploy?.preDeployCommand).toEqual(["npm run db:release"]);
+    // El prefijo vacío neutraliza el NPM_CONFIG_PRODUCTION que Railpack deja en la imagen: npm
+    // deja de advertir por la clave obsoleta y esa línea ya no entra a los registros como error.
+    expect(web.deploy?.preDeployCommand).toEqual(["NPM_CONFIG_PRODUCTION= npm run db:release"]);
+    expect(web.deploy?.startCommand).toEqual("NPM_CONFIG_PRODUCTION= npm run start");
     expect(web.variables?.DATABASE_URL).toEqual({
       type: "reference",
       resource: "database.Postgres",
