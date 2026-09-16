@@ -1,6 +1,6 @@
 # ADR-071: El GT de macroevento cumple el criterio GAP
 
-- Estado: Aceptada; alcance confirmado el 2026-09-16
+- Estado: Aceptada; alcance confirmado el 2026-09-16; en producción desde el 2026-09-16
 - Fecha: 2026-09-15
 - Relacionadas: ADR-025, ADR-036, ADR-064, ADR-065
 - Enmienda: ADR-065 y ADR-036, regla 3.
