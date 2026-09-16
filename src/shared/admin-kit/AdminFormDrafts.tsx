@@ -1,10 +1,10 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { createContext, type ReactNode, useContext, useEffect, useRef } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useMemo, useRef } from "react";
 
 type DraftValue = { name: string; value: string; checked?: boolean; files?: File[] };
-type DraftStore = Map<string, DraftValue[]>;
+type DraftStore = Map<string, unknown>;
 const DraftContext = createContext<DraftStore | null>(null);
 
 /** Memoria de la navegación administrativa: los errores de una acción pueden remontar su formulario.
@@ -59,7 +59,7 @@ export function useAdminFormDraft() {
     },
     restore(form: HTMLFormElement) {
       const key = draftKey(form);
-      const saved = drafts?.get(key);
+      const saved = drafts?.get(key) as DraftValue[] | undefined;
       if (!saved) return;
       const fields = controls(form).filter((input) => input.type !== "hidden");
       for (const [index, input] of fields.entries()) {
@@ -90,4 +90,25 @@ export function useAdminFormDraft() {
       drafts?.delete(draftKey(form));
     },
   };
+}
+
+/** Estado de un editor que decide qué campos existen (formato, preguntas). Sin él, el formulario
+ * remontado tras un error tendría otros campos y su borrador no se podría recuperar. Solo se lee
+ * mientras la página muestra el error; el editor lo consume al montarse. */
+export function useAdminFormState<T>(name: string) {
+  const drafts = useContext(DraftContext);
+  const failed = useSearchParams().has("error");
+  const key = `estado:${usePathname()}:${name}`;
+  return useMemo(
+    () => ({
+      read: () => (failed ? ((drafts?.get(key) as T | undefined) ?? null) : null),
+      write: (value: T) => {
+        drafts?.set(key, value);
+      },
+      clear: () => {
+        drafts?.delete(key);
+      },
+    }),
+    [drafts, failed, key],
+  );
 }

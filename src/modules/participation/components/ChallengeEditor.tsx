@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useAdminFormState } from "@/shared/admin-kit/AdminFormDrafts";
 import { t, tList } from "@/shared/copy";
 import type { ChallengeAudience, ChallengeKind } from "../gamification-types";
 
 // Editor del admin para retos (ADR-067 reglas 2 y 3): serializa las preguntas como JSON en un
 // input oculto y deja solo título y descripción editables cuando el reto ya está publicado.
+// Un control deshabilitado no viaja en el formulario: los congelados van también como ocultos.
 
 export interface ChallengeQuestionDraft {
   prompt: string;
@@ -36,6 +38,13 @@ export interface ChallengeEditorProps {
   defaults: { trivia: number; presential: number; evidence: number; passPercent: number };
 }
 
+interface EditorState {
+  kind: ChallengeKind;
+  audience: ChallengeAudience;
+  committeeIds: string[];
+  questions: ChallengeQuestionDraft[];
+}
+
 const KINDS: ChallengeKind[] = ["PRESENTIAL", "TRIVIA", "EVIDENCE"];
 const AUDIENCES: ChallengeAudience[] = ["ALL", "NEW", "VETERAN", "COMMITTEES"];
 const inputClass =
@@ -51,19 +60,48 @@ export function ChallengeEditor({
   const labels = tList("T-2504");
   const kinds = tList("T-2409");
   const audiences = tList("T-2411");
-  const [kind, setKind] = useState<ChallengeKind>(initial.kind);
-  const [audience, setAudience] = useState<ChallengeAudience>(initial.audience);
-  const [committeeIds, setCommitteeIds] = useState<string[]>(initial.audienceCommitteeIds);
-  const [questions, setQuestions] = useState<ChallengeQuestionDraft[]>(initial.questions);
+  // Tras un error el formulario se remonta: se retoma lo elegido para que el borrador encaje.
+  const memory = useAdminFormState<EditorState>("reto");
+  const [saved] = useState(() => memory.read());
+  const [kind, setKind] = useState<ChallengeKind>(saved?.kind ?? initial.kind);
+  const [audience, setAudience] = useState<ChallengeAudience>(saved?.audience ?? initial.audience);
+  const [committeeIds, setCommitteeIds] = useState<string[]>(
+    saved?.committeeIds ?? initial.audienceCommitteeIds,
+  );
+  const [questions, setQuestions] = useState<ChallengeQuestionDraft[]>(
+    saved?.questions ?? initial.questions,
+  );
+  const fields = useRef<HTMLFieldSetElement>(null);
+  const { write, clear } = memory;
+  // Consumido al montar: un segundo error sin reenviar el editor muestra lo guardado.
+  useEffect(() => clear(), [clear]);
+  useEffect(() => {
+    const form = fields.current?.form;
+    if (!form) return;
+    const capture = () => write({ kind, audience, committeeIds, questions });
+    form.addEventListener("submit", capture, true);
+    return () => form.removeEventListener("submit", capture, true);
+  }, [write, kind, audience, committeeIds, questions]);
 
   const field = (index: number) => labels[index] ?? "";
 
   return (
-    <fieldset className="flex flex-col gap-5">
+    <fieldset ref={fields} className="flex flex-col gap-5">
       <input type="hidden" name="questionsJson" value={JSON.stringify(questions)} />
       {committeeIds.map((id) => (
         <input key={id} type="hidden" name="audienceCommitteeIds" value={id} />
       ))}
+      {locked ? (
+        <>
+          <input type="hidden" name="kind" value={initial.kind} />
+          <input type="hidden" name="audience" value={initial.audience} />
+          <input type="hidden" name="opensAt" value={initial.opensAt} />
+          <input type="hidden" name="closesAt" value={initial.closesAt} />
+          <input type="hidden" name="basePoints" value={initial.basePoints} />
+          <input type="hidden" name="passPercent" value={initial.passPercent ?? ""} />
+          <input type="hidden" name="occasionId" value={initial.occasionId ?? ""} />
+        </>
+      ) : null}
 
       <label className="flex flex-col gap-1">
         <span className="eyebrow text-xs">{field(0)}</span>

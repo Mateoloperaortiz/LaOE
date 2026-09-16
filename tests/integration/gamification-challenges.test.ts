@@ -141,6 +141,38 @@ describe("retos: ciclo de vida", () => {
     expect(await outboxTypes()).toContain("challenge.published");
   });
 
+  it("solo la trivia valida y guarda preguntas, con el mensaje del editor", async () => {
+    await seedTerm();
+    const adminId = await seedMember("retos.formato@eafit.edu.co");
+    // Así llega del editor: abre en trivia y conserva su pregunta vacía al cambiar de formato.
+    const base = {
+      title: "Reto relámpago",
+      description: "Foto con la estatua",
+      audience: "ALL",
+      audienceCommitteeIds: [],
+      opensAt: new Date(Date.now() - 3_600_000),
+      closesAt: new Date(Date.now() + 3_600_000),
+      basePoints: "20",
+      passPercent: "",
+      occasionId: "",
+      questions: [{ prompt: "", options: ["", ""], correctIndex: 0 }],
+    };
+    const evidence = challengeInputSchema.safeParse({ ...base, kind: "EVIDENCE" });
+    if (!evidence.success) throw evidence.error;
+    expect(evidence.data.questions).toEqual([]);
+    const { id } = await createChallengeAs({ personId: adminId }, evidence.data);
+    expect(
+      await db().select().from(challengeQuestion).where(eq(challengeQuestion.challengeId, id)),
+    ).toEqual([]);
+
+    const trivia = challengeInputSchema.safeParse({
+      ...base,
+      kind: "TRIVIA",
+      questions: [{ prompt: "  ", options: ["A", "B"], correctIndex: 0 }],
+    });
+    expect(trivia.error?.issues.map((issue) => issue.message)).toEqual([tList("T-2520")[8]]);
+  });
+
   it("publicar exige ventana futura y trivia con preguntas", async () => {
     const termId = await seedTerm();
     const adminId = await seedMember("retos.publicar@eafit.edu.co");

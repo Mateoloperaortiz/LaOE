@@ -39,6 +39,8 @@ export default async function NuevoRetoPage({
     ? (await listOccasionsForTerm(term.id, ["DRAFT", "OPEN"])).filter((item) => item.points > 0)
     : [];
   const back = `/admin/gamificacion/retos${term ? `?termId=${term.id}` : ""}`;
+  // Un error del servidor vuelve a este formulario, que recupera lo escrito (AdminFormBody).
+  const retry = `/admin/gamificacion/retos/nuevo${term ? `?termId=${term.id}` : ""}`;
   const now = new Date();
   const opensAt = new Date(Math.ceil(now.getTime() / 3_600_000) * 3_600_000);
 
@@ -54,7 +56,7 @@ export default async function NuevoRetoPage({
       </header>
       <form action={saveChallengeAction} className="flex flex-col gap-6">
         <AdminFormBody>
-          <input type="hidden" name="back" value={back} />
+          <input type="hidden" name="back" value={retry} />
           <ChallengeEditor
             initial={{
               kind: "TRIVIA",

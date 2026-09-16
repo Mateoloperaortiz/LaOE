@@ -6304,7 +6304,7 @@ export const textos = {
   },
   "T-2520": {
     where: "Admin retos: errores del editor",
-    text: "La fecha de cierre debe ser posterior a la de apertura. · Elegí al menos un comité. · Una trivia necesita entre 1 y 5 preguntas. · Cada pregunta necesita entre 2 y 6 opciones y una correcta. · Un reto presencial necesita una ocasión con puntos del mismo semestre. · El premio base va de 0 a 20. · Solo se puede publicar un borrador. · Este reto ya no está en borrador: solo cambian título y descripción.",
+    text: "La fecha de cierre debe ser posterior a la de apertura. · Elegí al menos un comité. · Una trivia necesita entre 1 y 5 preguntas. · Cada pregunta necesita entre 2 y 6 opciones y una correcta. · Un reto presencial necesita una ocasión con puntos del mismo semestre. · El premio base va de 0 a 20. · Solo se puede publicar un borrador. · Este reto ya no está en borrador: solo cambian título y descripción. · Cada pregunta y cada opción necesitan texto.",
     owner: "MATEO",
     status: "Propuesta",
   },

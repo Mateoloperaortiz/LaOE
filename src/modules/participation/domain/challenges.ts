@@ -43,10 +43,31 @@ export type EvidenceFileRow = typeof challengeEvidenceFile.$inferSelect;
 const editorErrors = tList("T-2520");
 
 const questionSchema = z.object({
-  prompt: z.string().trim().min(1).max(300),
-  options: z.array(z.string().trim().min(1).max(120)).min(2).max(6),
+  prompt: z
+    .string()
+    .trim()
+    .min(1, editorErrors[8] ?? "")
+    .max(300),
+  options: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1, editorErrors[8] ?? "")
+        .max(120),
+    )
+    .min(2, editorErrors[3] ?? "")
+    .max(6, editorErrors[3] ?? ""),
   correctIndex: z.coerce.number().int().min(0),
 });
+
+/** El editor conserva las preguntas de trivia al cambiar de formato: solo una trivia las valida. */
+function withoutForeignQuestions(raw: unknown): unknown {
+  if (raw && typeof raw === "object" && "kind" in raw && raw.kind !== "TRIVIA") {
+    return { ...raw, questions: [] };
+  }
+  return raw;
+}
 
 const optionalId = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? null : value),
@@ -58,51 +79,54 @@ const optionalPercent = z.preprocess(
   z.coerce.number().int().min(1).max(100).nullable().default(null),
 );
 
-export const challengeInputSchema = z
-  .object({
-    kind: z.enum(["PRESENTIAL", "TRIVIA", "EVIDENCE"]),
-    title: z.string().trim().min(1).max(120),
-    description: z.string().max(4000).default(""),
-    audience: z.enum(["ALL", "NEW", "VETERAN", "COMMITTEES"]).default("ALL"),
-    audienceCommitteeIds: z.array(z.string().trim().min(1).max(80)).max(60).default([]),
-    opensAt: z.coerce.date(),
-    closesAt: z.coerce.date(),
-    basePoints: z.coerce
-      .number()
-      .int()
-      .min(0, editorErrors[5] ?? "")
-      .max(20, editorErrors[5] ?? ""),
-    passPercent: optionalPercent,
-    occasionId: optionalId,
-    questions: z.array(questionSchema).max(5).default([]),
-  })
-  .superRefine((input, ctx) => {
-    if (input.closesAt <= input.opensAt) {
-      ctx.addIssue({ code: "custom", path: ["closesAt"], message: editorErrors[0] ?? "" });
-    }
-    if (input.audience === "COMMITTEES" && input.audienceCommitteeIds.length === 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["audienceCommitteeIds"],
-        message: editorErrors[1] ?? "",
-      });
-    }
-    if (input.kind === "TRIVIA" && input.questions.length === 0) {
-      ctx.addIssue({ code: "custom", path: ["questions"], message: editorErrors[2] ?? "" });
-    }
-    for (const [index, question] of input.questions.entries()) {
-      if (question.correctIndex >= question.options.length) {
+export const challengeInputSchema = z.preprocess(
+  withoutForeignQuestions,
+  z
+    .object({
+      kind: z.enum(["PRESENTIAL", "TRIVIA", "EVIDENCE"]),
+      title: z.string().trim().min(1).max(120),
+      description: z.string().max(4000).default(""),
+      audience: z.enum(["ALL", "NEW", "VETERAN", "COMMITTEES"]).default("ALL"),
+      audienceCommitteeIds: z.array(z.string().trim().min(1).max(80)).max(60).default([]),
+      opensAt: z.coerce.date(),
+      closesAt: z.coerce.date(),
+      basePoints: z.coerce
+        .number()
+        .int()
+        .min(0, editorErrors[5] ?? "")
+        .max(20, editorErrors[5] ?? ""),
+      passPercent: optionalPercent,
+      occasionId: optionalId,
+      questions: z.array(questionSchema).max(5).default([]),
+    })
+    .superRefine((input, ctx) => {
+      if (input.closesAt <= input.opensAt) {
+        ctx.addIssue({ code: "custom", path: ["closesAt"], message: editorErrors[0] ?? "" });
+      }
+      if (input.audience === "COMMITTEES" && input.audienceCommitteeIds.length === 0) {
         ctx.addIssue({
           code: "custom",
-          path: ["questions", index, "correctIndex"],
-          message: editorErrors[3] ?? "",
+          path: ["audienceCommitteeIds"],
+          message: editorErrors[1] ?? "",
         });
       }
-    }
-    if (input.kind === "PRESENTIAL" && !input.occasionId) {
-      ctx.addIssue({ code: "custom", path: ["occasionId"], message: editorErrors[4] ?? "" });
-    }
-  });
+      if (input.kind === "TRIVIA" && input.questions.length === 0) {
+        ctx.addIssue({ code: "custom", path: ["questions"], message: editorErrors[2] ?? "" });
+      }
+      for (const [index, question] of input.questions.entries()) {
+        if (question.correctIndex >= question.options.length) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["questions", index, "correctIndex"],
+            message: editorErrors[3] ?? "",
+          });
+        }
+      }
+      if (input.kind === "PRESENTIAL" && !input.occasionId) {
+        ctx.addIssue({ code: "custom", path: ["occasionId"], message: editorErrors[4] ?? "" });
+      }
+    }),
+);
 
 export type ChallengeInput = z.infer<typeof challengeInputSchema>;
 
