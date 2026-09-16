@@ -344,6 +344,22 @@ describe("tablas de referencia", () => {
     expect(() =>
       parseParams("GROUP_EVALUATED", { groupKind: "GAP_OE", mode: "PER_GROUP" }),
     ).toThrow();
+    // ADR-071: la equivalencia no admite el propio tipo ni repetidos.
+    expect(() =>
+      parseParams("GROUP_EVALUATED", { groupKind: "GAP", alsoCounts: ["GAP"] }),
+    ).toThrow();
+    expect(() =>
+      parseParams("GROUP_EVALUATED", {
+        groupKind: "GAP",
+        alsoCounts: ["GT_MACROEVENT", "GT_MACROEVENT"],
+      }),
+    ).toThrow();
+    expect(
+      parseParams("GROUP_EVALUATED", { groupKind: "GAP", alsoCounts: ["GT_MACROEVENT"] }),
+    ).toEqual({
+      computation: "GROUP_EVALUATED",
+      params: { groupKind: "GAP", mode: "FIXED", alsoCounts: ["GT_MACROEVENT"] },
+    });
     expect(parseParams("CHECKIN_COUNT", { category: "INTEGRATION", perUnit: 2 })).toEqual({
       computation: "CHECKIN_COUNT",
       params: { category: "INTEGRATION", committee: "ANY", newMembersOnly: "ANY", perUnit: 2 },
@@ -867,6 +883,155 @@ describe("lo que aún es posible", () => {
       achieved: 0,
       remaining: 0,
     });
+  });
+
+  // ADR-071: el criterio GAP acepta un GT de macroevento acreditado.
+  const IN_WINDOW = new Date("2026-11-28T15:00:00Z");
+
+  function joined(groupId: string, evaluation: "PENDING" | "GOOD" | "INSUFFICIENT") {
+    return {
+      groupId,
+      evaluation,
+      leftAt: null,
+      evaluatedById: evaluation === "PENDING" ? null : "gh",
+      evaluatedAt: evaluation === "PENDING" ? null : IN_WINDOW,
+      note: null,
+    };
+  }
+
+  function gapRule(params: Record<string, unknown>) {
+    return rule({
+      key: "gap",
+      label: "GAP",
+      weight: 5,
+      computation: "GROUP_EVALUATED",
+      params,
+    });
+  }
+
+  it("un GT de macroevento acreditado cumple el GAP sin pertenencia GAP", () => {
+    const termFacts = facts({
+      rules: [gapRule({ groupKind: "GAP", mode: "FIXED", alsoCounts: ["GT_MACROEVENT"] })],
+      groups: [group("GAP", "gap-1"), group("GT_MACROEVENT", "gt-inventiva")],
+    });
+    const conGt = person({ groupMemberships: [joined("gt-inventiva", "GOOD")] });
+    const criterion = computePerson(termFacts, conGt, IN_WINDOW).general[0];
+    expect(criterion).toMatchObject({ achieved: 5, remaining: 0 });
+    // El desglose dice por qué cuenta un grupo que no es un GAP.
+    expect(criterion?.detail).toMatchObject({
+      type: "GROUP_EVALUATED",
+      goodCount: 1,
+      groups: [{ groupId: "gt-inventiva", equivalentKind: "GT_MACROEVENT" }],
+    });
+  });
+
+  it("un GT pendiente deja el GAP como aún posible y un insuficiente no aporta ni bloquea", () => {
+    const termFacts = facts({
+      rules: [gapRule({ groupKind: "GAP", mode: "FIXED", alsoCounts: ["GT_MACROEVENT"] })],
+      groups: [group("GAP", "gap-1"), group("GT_MACROEVENT", "gt-inventiva")],
+    });
+    const pendiente = person({ groupMemberships: [joined("gt-inventiva", "PENDING")] });
+    expect(computePerson(termFacts, pendiente, IN_WINDOW).general[0]).toMatchObject({
+      achieved: 0,
+      remaining: 5,
+    });
+    const cerrado = facts({
+      ...termFacts,
+      term: { ...TERM, permanenceClosedAt: new Date("2026-12-20T00:00:00Z") },
+    });
+    expect(computePerson(cerrado, pendiente, IN_WINDOW).general[0]).toMatchObject({
+      achieved: 0,
+      remaining: 0,
+    });
+    // Insuficiente en el GT no impide cumplir por el propio GAP.
+    const mixto = person({
+      groupMemberships: [joined("gt-inventiva", "INSUFFICIENT"), joined("gap-1", "GOOD")],
+    });
+    expect(computePerson(termFacts, mixto, IN_WINDOW).general[0]?.achieved).toBe(5);
+  });
+
+  it("el GT y el GAP del mismo macroevento cuentan una vez", () => {
+    const groups: GroupFact[] = [
+      {
+        id: "gt",
+        name: "GT Inventiva",
+        kind: "GT_MACROEVENT",
+        code: null,
+        evaluatorIds: [],
+        macroeventId: "inventiva",
+      },
+      {
+        id: "gap",
+        name: "GAP Inventiva",
+        kind: "GAP",
+        code: null,
+        evaluatorIds: [],
+        macroeventId: "inventiva",
+      },
+      {
+        id: "gap-dias",
+        name: "GAP Días EAFIT",
+        kind: "GAP",
+        code: null,
+        evaluatorIds: [],
+        macroeventId: "dias",
+      },
+    ];
+    const termFacts = facts({
+      rules: [
+        gapRule({
+          groupKind: "GAP",
+          mode: "PER_GROUP",
+          perGroup: 5,
+          alsoCounts: ["GT_MACROEVENT"],
+        }),
+      ],
+      groups,
+    });
+    const unMacroevento = person({
+      groupMemberships: [joined("gt", "GOOD"), joined("gap", "GOOD")],
+    });
+    expect(computePerson(termFacts, unMacroevento, IN_WINDOW).general[0]).toMatchObject({
+      achieved: 5,
+      detail: { goodCount: 1 },
+    });
+    const dos = person({ groupMemberships: [joined("gt", "GOOD"), joined("gap-dias", "GOOD")] });
+    expect(computePerson(termFacts, dos, IN_WINDOW).general[0]?.detail).toMatchObject({
+      goodCount: 2,
+    });
+  });
+
+  it("un criterio fijado a un código ignora la equivalencia", () => {
+    const termFacts = facts({
+      rules: [
+        gapRule({
+          groupKind: "GAP",
+          code: "GAP-VTG",
+          mode: "FIXED",
+          alsoCounts: ["GT_MACROEVENT"],
+        }),
+      ],
+      groups: [
+        { ...group("GAP", "gap-1"), code: "GAP-VTG" },
+        group("GT_MACROEVENT", "gt-inventiva"),
+      ],
+    });
+    const soloGt = person({ groupMemberships: [joined("gt-inventiva", "GOOD")] });
+    expect(computePerson(termFacts, soloGt, IN_WINDOW).general[0]).toMatchObject({
+      achieved: 0,
+      remaining: 0,
+    });
+  });
+
+  it("sin equivalencia el GAP no ve los GT: el resultado no cambia", () => {
+    const termFacts = facts({
+      rules: [gapRule({ groupKind: "GAP", mode: "FIXED" })],
+      groups: [group("GAP", "gap-1"), group("GT_MACROEVENT", "gt-inventiva")],
+    });
+    const soloGt = person({ groupMemberships: [joined("gt-inventiva", "GOOD")] });
+    const criterion = computePerson(termFacts, soloGt, IN_WINDOW).general[0];
+    expect(criterion).toMatchObject({ achieved: 0, remaining: 0 });
+    expect(criterion?.detail).toMatchObject({ type: "GROUP_EVALUATED", groups: [] });
   });
 
   it("GAP OE suma 3 por grupo hasta el peso y la barra brava exige partidos y grupo", () => {

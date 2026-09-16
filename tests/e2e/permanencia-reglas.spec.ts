@@ -75,6 +75,46 @@ test.describe("GH", () => {
     await expect(page.getByRole("dialog")).toContainText("Impacto sobre el roster");
     expect(name).not.toBe("");
   });
+
+  test("un GAP nuevo trae marcado el GT de macroevento y GH lo puede quitar", async ({ page }) => {
+    await page.goto(`/admin/permanencia/reglas?termId=${termId}&accion=nueva`);
+    const panel = page.getByRole("dialog");
+    await panel.getByLabel("Clave").fill("e2e-gap-equivalente");
+    await panel.getByLabel("Nombre").fill("e2e-GAP con GT");
+    await panel.getByLabel("Peso").fill("5");
+    await panel.getByLabel("Cómo se calcula").selectOption("GROUP_EVALUATED");
+    await panel.getByLabel("Tipo de grupo").selectOption("GAP");
+    const equivalencia = panel.getByRole("group", { name: "También cumplen este criterio" });
+    // El propio tipo no se ofrece, y el GT llega marcado porque siempre cumple el GAP (ADR-071).
+    await expect(equivalencia.getByRole("checkbox", { name: "GAP", exact: true })).toHaveCount(0);
+    await expect(equivalencia.getByRole("checkbox", { name: "GT de macroevento" })).toBeChecked();
+    await panel.getByRole("button", { name: "Guardar" }).click();
+    await expect(page.getByText("Guardado.")).toBeVisible();
+
+    const fila = page.getByRole("row", { name: /e2e-GAP con GT/ });
+    await fila.getByRole("link", { name: "Editar" }).click();
+    const gt = page
+      .getByRole("dialog")
+      .getByRole("group", { name: "También cumplen este criterio" })
+      .getByRole("checkbox", { name: "GT de macroevento" });
+    await expect(gt).toBeChecked();
+    await sinViolaciones(page);
+
+    // Quitarla se guarda y se respeta al releer: la marca solo es el punto de partida.
+    await gt.uncheck();
+    await page.getByRole("dialog").getByRole("button", { name: "Guardar" }).click();
+    await expect(page.getByText("Guardado.")).toBeVisible();
+    await page
+      .getByRole("row", { name: /e2e-GAP con GT/ })
+      .getByRole("link", { name: "Editar" })
+      .click();
+    await expect(
+      page
+        .getByRole("dialog")
+        .getByRole("group", { name: "También cumplen este criterio" })
+        .getByRole("checkbox", { name: "GT de macroevento" }),
+    ).not.toBeChecked();
+  });
 });
 
 test.describe("líder", () => {
