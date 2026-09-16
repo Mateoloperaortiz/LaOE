@@ -5,6 +5,8 @@
 export interface FilaRoster {
   personId: string;
   committeeId: string;
+  /** Con fecha, la persona ya salió de ese comité en el término. */
+  leftAt: Date | null;
 }
 
 export interface AvanceComite {
@@ -24,7 +26,10 @@ export interface Avance {
  * honorario o alguien en licencia puede no tener comité este semestre y necesita contraseña igual.
  * Contarlo por pertenencias los dejaría invisibles y la junta creería haber terminado.
  *
- * `filas` trae una fila por pertenencia, así que el conteo de cada comité sí cuenta pertenencias.
+ * `filas` trae una fila por pertenencia del término, también las cerradas. Cada comité cuenta solo
+ * las vigentes de quien puede entrar, que son las personas que muestra su lista: quien se cambió de
+ * comité o salió de la OE no aparece para activarse, y una baja borra la credencial, así que
+ * contarlo dejaría al comité debajo de su total para siempre.
  */
 export function calcularAvance(
   elegibles: readonly string[],
@@ -40,6 +45,9 @@ export function calcularAvance(
   }
   const porComite = new Map<string, AvanceComite>();
   for (const fila of filas) {
+    if (fila.leftAt !== null || !personas.has(fila.personId)) {
+      continue;
+    }
     const actual = porComite.get(fila.committeeId) ?? { activadas: 0, total: 0 };
     porComite.set(fila.committeeId, {
       activadas: actual.activadas + (conClave.has(fila.personId) ? 1 : 0),

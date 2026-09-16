@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { expect } from "@playwright/test";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import {
   committee,
@@ -27,6 +27,7 @@ const CLAVE = "caracol de tinta 91";
 const OTRA = "bulevar sin nombre 77";
 let personId: string;
 let committeeId: string;
+let fuera: string[] = [];
 
 test.beforeEach(async () => {
   const db = getDb();
@@ -57,12 +58,57 @@ test.beforeEach(async () => {
   await db
     .insert(committeeMembership)
     .values({ personId, committeeId, termId: current.id, roleCode: "MIEMBRO" });
+
+  // Dos pertenencias del término que la lista del comité no muestra: quien se cambió de comité y
+  // quien salió de la OE con la pertenencia abierta. Tampoco pueden contar en su chip.
+  const salidas = await db
+    .insert(person)
+    .values([
+      {
+        email: `${prefix}-cambio@eafit.edu.co`,
+        firstName: "Cambio",
+        lastName: "Sintético",
+        stage: "MEMBER",
+        source: "E2E",
+      },
+      {
+        email: `${prefix}-baja@eafit.edu.co`,
+        firstName: "Baja",
+        lastName: "Sintética",
+        stage: "ALUMNI",
+        source: "E2E",
+      },
+    ])
+    .returning();
+  const [cambio, baja] = salidas;
+  if (!cambio || !baja) throw new Error("No se crearon las salidas sintéticas");
+  fuera = [cambio.id, baja.id];
+  await db.insert(membership).values([
+    { personId: cambio.id, status: "ACTIVE", firstTermId: current.id },
+    {
+      personId: baja.id,
+      status: "INACTIVE",
+      firstTermId: current.id,
+      endedAt: new Date(),
+      endReason: "RESIGNATION",
+    },
+  ]);
+  await db.insert(committeeMembership).values([
+    {
+      personId: cambio.id,
+      committeeId,
+      termId: current.id,
+      roleCode: "MIEMBRO",
+      leftAt: new Date(),
+    },
+    { personId: baja.id, committeeId, termId: current.id, roleCode: "MIEMBRO" },
+  ]);
 });
 
 test.afterEach(async () => {
   await drenarOutbox();
   const db = getDb();
-  await db.delete(person).where(eq(person.id, personId));
+  await db.delete(person).where(inArray(person.id, [personId, ...fuera]));
   await db.delete(committee).where(eq(committee.id, committeeId));
   await closeDb();
 });
@@ -75,6 +121,9 @@ test("la junta emite el enlace, la persona elige su contraseña y después la ca
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Jornada de activación");
   const enLista = page.getByRole("listitem").filter({ hasText: "Acceso Sintético" });
   await expect(enLista.getByText("Sin contraseña")).toBeVisible();
+  // El chip cuenta a las mismas personas que la lista, no las pertenencias cerradas ni las bajas.
+  await expect(page.getByRole("listitem").filter({ hasText: "Sintétic" })).toHaveCount(1);
+  await expect(page.locator(`#avance-${committeeId}`)).toHaveText("0/1");
   await enLista.getByRole("link").click();
   await sinViolaciones(page);
 
@@ -126,4 +175,9 @@ test("la junta emite el enlace, la persona elige su contraseña y después la ca
   await expect(suya.getByText("guardamos tu contraseña")).toBeVisible();
 
   await contexto.close();
+
+  // De vuelta en la jornada, la persona ya no lleva la insignia y su comité queda completo.
+  await page.goto(`/admin/personas/activacion?comite=${prefix}`);
+  await expect(page.locator(`#avance-${committeeId}`)).toHaveText("1/1");
+  await expect(enLista.getByText("Sin contraseña")).toHaveCount(0);
 });
