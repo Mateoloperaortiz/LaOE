@@ -70,6 +70,24 @@ Promoción (ADR-054): el push a `production` de un SHA con CI completo aprobado 
 
 La evidencia de activación y las mediciones están en [la implementación del 2026-09-11](ci-cd-2026-09-11.md). Las reglas, el rollout y el comportamiento de la documentación se acreditan allí, no por la existencia de este procedimiento.
 
+## Migraciones que encolan trabajo
+
+Railway corre el pre-deploy (`db:release`) mientras el contenedor anterior sigue atendiendo. Ese contenedor conserva su poller del outbox hasta que el nuevo pasa el healthcheck, que en `web` tiene un timeout de hasta 300 s. Por eso, un job que una migración deja listo para correr lo puede tomar el código anterior. Pasó con `0033` el 2026-09-16: entre 4 y 6 segundos después de la migración, los contenedores viejos de staging y producción recalcularon la permanencia con el código previo, sin la equivalencia nueva, y hubo que volver a encolar el recálculo.
+
+**Regla:** toda migración que inserte en `outbox` difiere el job **diez minutos**, más del doble del timeout del healthcheck. El poller solo toma filas con `next_attempt_at` vencido, así que el job lo procesa el código nuevo:
+
+```sql
+INSERT INTO "outbox" ("id", "event_type", "payload", "dedupe_key", "next_attempt_at")
+SELECT 'migration00NN_' || <id>, '<evento>', jsonb_build_object(<campos>), '<clave>', now() + interval '10 minutes'
+FROM <tabla> WHERE <condición>
+ON CONFLICT DO NOTHING;
+```
+
+- **Comprobación:** pasado el plazo, buscar el job en los logs del despliegue **nuevo**. Si aparece en los logs del anterior, lo procesó el código viejo y hay que reencolarlo.
+- **Job pendiente con la misma `dedupe_key`:** si ya había uno, `ON CONFLICT DO NOTHING` conserva ese y la migración no encola el suyo, así que el pendiente puede tomarlo el contenedor anterior. Revisar los logs después del despliegue y reencolar si hace falta.
+- **Despliegue fallido:** si el despliegue falla después del pre-deploy, Railway mantiene el contenedor anterior y ese código toma el job al vencer el plazo. La migración ya no vuelve a correr, así que al corregir y desplegar hay que reencolar el job a mano o con la acción de la app que lo dispara. Para `permanence.recompute` alcanza con guardar un criterio de la tabla en Reglas.
+- `0032` y `0033` son anteriores a esta regla y encolan sin diferir.
+
 ## T2 y T3: staging y claves
 
 1. Confirmar acceso de Railway al repo privado, presupuesto y proyecto/entorno de destino. En un entorno nuevo, aprovisionar primero Postgres con su región/límites, habilitar PITR y comprobar el bucket que crea Railway. Asignarle el nombre correspondiente al entorno (`Postgres-PITR` en staging, `Postgres-PITR-production` en producción) conservando ID/contenido; comprobar referencias WAL y sonda PITR tras cualquier rename. Solo después aplicar el IaC completo que adopta ese bucket por nombre, y generar el dominio web de Railway; completar `APP_URL`.
