@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [072](adr/ADR-072-alcance-autorizado-en-el-dominio.md) | Alcance en el dominio | Un id elegido por el cliente llega con el alcance que autorizó la página y el dominio lo relee en la transacción: criterios y puntajes de permanencia con su tabla, inscripciones con su convocatoria; lo ajeno responde como inexistente, también para ADMIN; la paleta ⌘K y su ruta son solo de ADMIN | Aceptada; publicación pendiente |
 | [071](adr/ADR-071-gt-de-macroevento-cumple-gap.md) | GT que cumple GAP | Ser GT de un macroevento cumple la función del GAP: una participación acreditada suma el GAP además de sus tramos de GT, también para nuevos y siempre; la equivalencia es el parámetro `alsoCounts` de la regla, marcado por defecto en todo criterio GAP nuevo, y un macroevento cuenta una vez entre GT y GAP | Aceptada; en producción |
 | [070](adr/ADR-070-podio-de-comites-en-gh-points.md) | Podio de comités | Primeros puestos en podio, empates en el mismo escalón, porcentaje ajustado con dos decimales y desglose accesible; conserva fórmula y top diez | Aceptada |
 | [069](adr/ADR-069-directorio-de-comites-de-mi-oe.md) | Directorio de comités | Fichas compactas, comités propios prioritarios y búsqueda local por nombre o sigla; conserva permisos y datos editoriales | Implementada en local; publicación pendiente |
@@ -38,7 +39,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | [008](adr/ADR-008-tableros-derivados.md) | Tableros derivados | Nuevo = primer término igual al actual; sin bandera manual | Aceptada |
 | [009](adr/ADR-009-score-de-comite.md) | Score de comité | Participación relativa por ocasión, recalculada por outbox con clave por ocasión | Enmendada por 024 y 035 |
 | [010](adr/ADR-010-identidad-por-correo-y-otp.md) | Identidad por correo y OTP | El correo del roster es la identidad; OTP verifica el buzón; sesión larga en servidor; step-up para admin | Enmendada por 034, 039 |
-| [011](adr/ADR-011-autorizacion-en-servidor.md) | Autorización en servidor | El proxy solo redirige; `getActor()` decide; permisos técnicos separados de cargos visibles | Enmendada por 051 y 058 |
+| [011](adr/ADR-011-autorizacion-en-servidor.md) | Autorización en servidor | El proxy solo redirige; `getActor()` decide; permisos técnicos separados de cargos visibles | Enmendada por 051, 058 y 072 |
 | [012](adr/ADR-012-outbox-transaccional.md) | Outbox transaccional | Mutación + auditoría + eventos en una transacción; un poller en proceso drena; los efectos nunca revierten | Enmendada por 021 y 038, 040 |
 | [013](adr/ADR-013-formularios-en-la-app.md) | Formularios en la app | Toda respuesta vincula persona por correo y registra consentimiento; nunca crea puntos | Enmendada por 037 |
 | [014](adr/ADR-014-privacidad-por-diseno.md) | Privacidad por diseño | Consentimiento versionado, mínimo en público, exportación y eliminación | Enmendada por 030, 039, 040 |

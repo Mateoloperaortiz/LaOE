@@ -19,6 +19,7 @@ import {
   listManualCredits,
   scoreCriterionAs,
 } from "@/modules/permanence";
+import { leaderScore } from "@/modules/permanence/schema";
 import { closeTermPermanence, closeTermPoints } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
@@ -144,27 +145,31 @@ describe("puntajes del líder y créditos manuales", () => {
       params: { mandatory: true },
     });
     const leader = { personId: null, ip: null };
+    const ref = { termId, scope: "COMMITTEE" as const, committeeId };
     const inCommittee = { inCommittee: true, personName: "M", committeeName: "A3" };
     await expect(
-      scoreCriterionAs(leader, { ruleId, personId: member, value: 6, note: "" }, inCommittee),
+      scoreCriterionAs(leader, ref, { ruleId, personId: member, value: 6, note: "" }, inCommittee),
     ).rejects.toThrow(t("T-774", { peso: 5 }));
     await expect(
-      scoreCriterionAs(leader, { ruleId, personId: member, value: 3, note: "" }, inCommittee),
+      scoreCriterionAs(leader, ref, { ruleId, personId: member, value: 3, note: "" }, inCommittee),
     ).rejects.toThrow(t("T-775"));
     await expect(
       scoreCriterionAs(
         leader,
+        ref,
         { ruleId, personId: member, value: 3, note: "Tarde" },
         { ...inCommittee, inCommittee: false },
       ),
     ).rejects.toThrow(t("T-776", { nombre: "M", comité: "A3" }));
     await scoreCriterionAs(
       leader,
+      ref,
       { ruleId, personId: member, value: 3, note: "Llegó tarde" },
       inCommittee,
     );
     await scoreCriterionAs(
       leader,
+      ref,
       { ruleId, personId: member, value: 4, note: "Mejoró" },
       inCommittee,
     );
@@ -175,6 +180,36 @@ describe("puntajes del líder y créditos manuales", () => {
     expect(live?.result.results[0]?.criteria[0]).toMatchObject({ achieved: 4, remaining: 1 });
     await drain(50);
     expect((await interactionsOf(member))[0]).toBe("convivencia en A3: 4 de 5: Mejoró");
+  });
+
+  it("el líder solo puntúa criterios LEADER_SCORE de la tabla de su comité en el término", async () => {
+    const previous = await seedTerm("2024-1");
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3");
+    const pixel = await seedCommittee("pixel");
+    // La persona está en los dos comités: el roster no la frena y la guarda debe ser la tabla.
+    const member = await seedMember("m@eafit.edu.co");
+    await seedCommitteeMembership(member, a3, termId);
+    await seedCommitteeMembership(member, pixel, termId);
+    const scored = { computation: "LEADER_SCORE" as const, weight: 5, params: { mandatory: true } };
+    const foreign = await seedRule(termId, "convivencia", { committeeId: pixel, ...scored });
+    const general = await seedRule(termId, "actitud", scored);
+    const old = await seedRule(previous, "convivencia", { committeeId: a3, ...scored });
+    const leader = { personId: null, ip: null };
+    const ref = { termId, scope: "COMMITTEE" as const, committeeId: a3 };
+    const inCommittee = { inCommittee: true, personName: "M", committeeName: "A3" };
+    for (const ruleId of [foreign, general, old]) {
+      await expect(
+        scoreCriterionAs(
+          leader,
+          ref,
+          { ruleId, personId: member, value: 5, note: "" },
+          inCommittee,
+        ),
+      ).rejects.toThrow(t("T-777"));
+    }
+    expect(await listLeaderScores(termId, pixel)).toEqual([]);
+    expect(await getDb().select().from(leaderScore)).toEqual([]);
   });
 
   it("el crédito manual solo va en criterios manuales, con motivo, y se refleja en la permanencia", async () => {

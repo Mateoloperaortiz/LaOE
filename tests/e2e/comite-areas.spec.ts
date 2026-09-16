@@ -94,6 +94,9 @@ test("Gestión Humana ve solo Personas, agrega un miembro y pide un retiro a GH"
   const nav = page.locator(".admin-sidebar nav");
   await expect(nav.getByRole("link")).toHaveCount(2);
   await expect(page.getByRole("button", { name: "Buscar (⌘K)" })).toHaveCount(0);
+  // La paleta tampoco responde por su ruta: es solo de ADMIN (ADR-072).
+  const busqueda = await page.request.get("/api/admin/buscar?q=Licencia");
+  expect(busqueda.status()).toBe(403);
   const tabs = page.getByRole("navigation", { name: "Sección" });
   await expect(tabs.getByRole("link", { name: "Personas" })).toBeVisible();
   await expect(tabs.getByRole("link", { name: "Actividades" })).toHaveCount(0);

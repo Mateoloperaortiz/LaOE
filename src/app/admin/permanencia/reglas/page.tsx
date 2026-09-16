@@ -4,7 +4,6 @@ import { requireAdminActor } from "@/modules/identity";
 import { listAllCommittees } from "@/modules/people";
 import {
   deviatesFromNominal,
-  getRule,
   listTableViews,
   previewImpact,
   type TableView,
@@ -98,7 +97,11 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
     : null;
   const base = `/admin/permanencia/reglas?termId=${term.id}${committee ? `&comite=${committee.slug}` : ""}`;
   const focus = selected ?? general;
-  const editing = accion === "editar" ? await getRule(single(search.regla)) : null;
+  // El editor solo abre un criterio de la tabla que se muestra (ADR-072).
+  const editing =
+    accion === "editar"
+      ? (focus.rules.find((rule) => rule.id === single(search.regla)) ?? null)
+      : null;
   const preview = accion === "impacto" ? await previewImpact(term.id, focus.committeeId) : null;
   const labels = reglaFormLabels();
   const [impactoTitulo, personas, enCamino, enRiesgo, noAlcanza, promedio] = tList("T-737");

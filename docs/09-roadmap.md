@@ -18,6 +18,19 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | 2026-09-15 | Promoción a producción | `e430dc1` promovido a `production`: CI completo `35028922963` y smoke de staging `35029880093` sobre el mismo SHA, CI de promoción `35047828457` reutilizando la evidencia y smoke de producción `35047991825` contra `oeeafit.com`. Railway producción `d0c7f388-eab8-490e-9eef-0f4ad83041da` SUCCESS con `0030`, `0031` y `0032` aplicadas, 109 índices y `pg_trgm`. Registro completo en el runbook. |
 | 2026-09-15 | Aserción persistente de evidencia | El CI de `main` 35027292665 detectó que el aviso transitorio del uploader desaparecía con `router.refresh()` aunque la entrega y el premio estaban guardados. La prueba pasa a exigir el estado en revisión y la reserva, incluida su persistencia tras recargar; conserva aprobación administrativa, saldo final y drenaje estricto. |
 
+## Alcance de la autorización (ADR-072) · `en curso`
+
+- [x] AL0 · [ADR-072](adr/ADR-072-alcance-autorizado-en-el-dominio.md), enmienda a ADR-011, índices, acceso, mapa del sitio y verificación.
+- [x] AL1 · Criterios y puntajes de permanencia con la tabla autorizada, editores acotados a la tabla que muestran y auditoría del borrado con su tabla.
+- [x] AL2 · Inscripciones de convocatorias con su convocatoria y paleta ⌘K solo para ADMIN.
+- [x] AL3 · Pruebas de integración con objetos ajenos, unitaria de la ruta y E2E; `npm run check` y E2E afectados en verde.
+- [ ] AL4 · CI remoto, staging y publicación verificada en producción.
+- [ ] AL5 · Opcional: auditoría de solo lectura en producción, solo totales y con autorización, para saber si alguien ya usó los huecos.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-16 | Alcance de la autorización · AL0–AL3 | Al revisar si los cargos de mesa quedan limitados a su área aparecieron cuatro huecos del mismo tipo: la página autorizaba un alcance y el comando recibía un id suelto. (1) Con `PERMANENCE` en un comité se podía editar o borrar un criterio de otro comité o de la tabla general cambiando el id oculto o el parámetro `regla`, que abría cualquier criterio en el editor. (2) El puntaje del líder aceptaba un criterio `LEADER_SCORE` de otra tabla. (3) El líder de un grupo podía decidir inscripciones de otra convocatoria y meter a la persona en ese otro grupo. (4) `GET /api/admin/buscar` respondía a líderes y directores con nombres de toda la tabla de personas y confirmaba correos. [ADR-072](adr/ADR-072-alcance-autorizado-en-el-dominio.md), que enmienda a ADR-011: `updateRuleAs`, `deleteRuleAs` y `scoreCriterionAs` reciben la tabla y `decideEntryAs` la convocatoria; el dominio relee el objeto filtrando por ese alcance dentro de la transacción y lo ajeno responde como inexistente (T-032, o T-777 en puntajes), también para ADMIN. Los editores solo abren criterios de la tabla que muestran, el borrado audita su tabla y la paleta queda solo para ADMIN. Sin migración ni textos nuevos. Pruebas reproducidas en rojo antes del arreglo: sin el filtro fallan las tres de integración nuevas (reglas, puntajes y convocatorias) y con la ruta y la página anteriores fallan las dos aserciones E2E nuevas (el director recibía 200 del buscador y la URL armada abría el editor). Unitaria nueva de la ruta (401, 403 y ADMIN). E2E afectados 18/18 con `next dev` (`comite-areas`, `permanencia-reglas`, `permanencia-evaluaciones`, `convocatorias`, `lider`, `admin` y `organizaciones`). `npm run check` PASS: 576 unitarias, 468 de integración, 11 de Python y build. Sin publicación. |
+
 ## GT que cumple GAP (ADR-071) · `lista`
 
 - [x] GG0 · [ADR-071](adr/ADR-071-gt-de-macroevento-cumple-gap.md), enmienda a ADR-065 e índices, permanencia, modelo y verificación.

@@ -9,7 +9,8 @@ import { DomainError } from "@/shared/admin-kit";
 import { requireGroupOperator } from "../../permanencia/authz";
 
 // Detalle de una convocatoria (ADR-037 regla 10): el líder del grupo o ADMIN acepta, rechaza o promueve
-// inscripciones y abre o cierra la convocatoria.
+// inscripciones y abre o cierra la convocatoria. Decidir recibe la convocatoria autorizada y el dominio
+// rechaza una inscripción de otra (ADR-072).
 
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 
@@ -38,7 +39,7 @@ export async function decideEntryAction(formData: FormData): Promise<void> {
   const status = text(formData, "status") === "ACCEPTED" ? "ACCEPTED" : "REJECTED";
   const { actor } = await operator(callId);
   try {
-    await decideEntryAs(actor, entryId, status, text(formData, "note") || undefined);
+    await decideEntryAs(actor, callId, entryId, status, text(formData, "note") || undefined);
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(back(callId, { error: error.message }));

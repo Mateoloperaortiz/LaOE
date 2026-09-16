@@ -426,9 +426,13 @@ export async function applyToCallAs(
   });
 }
 
-/** El líder del grupo o ADMIN acepta, rechaza o promueve desde la lista de espera; aceptar exige cupo. */
+/**
+ * El líder del grupo o ADMIN acepta, rechaza o promueve desde la lista de espera; aceptar exige cupo.
+ * `callId` es la convocatoria que autorizó la página: una inscripción de otra responde T-032 (ADR-072).
+ */
 export async function decideEntryAs(
   actor: Actor,
+  callId: string,
   entryId: string,
   status: "ACCEPTED" | "REJECTED",
   note?: string,
@@ -437,14 +441,14 @@ export async function decideEntryAs(
     const [entry] = await ctx.tx
       .select()
       .from(internalCallEntry)
-      .where(eq(internalCallEntry.id, entryId));
+      .where(and(eq(internalCallEntry.id, entryId), eq(internalCallEntry.callId, callId)));
     if (!entry) {
       throw new DomainError(t("T-032"));
     }
     const [locked] = await ctx.tx
       .select()
       .from(internalCall)
-      .where(eq(internalCall.id, entry.callId))
+      .where(eq(internalCall.id, callId))
       .for("update");
     if (!locked) {
       throw new DomainError(t("T-032"));

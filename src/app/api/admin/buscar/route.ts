@@ -1,13 +1,14 @@
 import { searchOrganizations } from "@/modules/crm";
 import { getActor } from "@/modules/identity";
 import { searchOccasions } from "@/modules/participation";
-import { listMyCommitteeCapabilities, searchCommittees, searchPeople } from "@/modules/people";
-import { getCurrentTerm } from "@/modules/terms";
+import { searchCommittees, searchPeople } from "@/modules/people";
 import type { PaletteResult } from "@/shared/admin-kit";
 import { tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 
-// Paleta ⌘K: personas, comités, ocasiones y organizaciones por similitud (pg_trgm). Los correos solo los ve ADMIN (02-crm.md).
+// Paleta ⌘K: personas, comités, ocasiones y organizaciones por similitud (pg_trgm). Es solo de ADMIN,
+// como el resto del kit (ADR-035 regla 15, ADR-072): busca en toda la tabla de personas, también por
+// correo, así que otro rol no la usa ni para saber si un correo existe.
 
 export const dynamic = "force-dynamic";
 
@@ -16,12 +17,7 @@ export async function GET(request: Request) {
   if (!actor) {
     return Response.json({ results: [] }, { status: 401 });
   }
-  const term = await getCurrentTerm();
-  const canSearch =
-    actor.isAdmin ||
-    actor.permissions.some((item) => item.code === "COMMITTEE_LEADER") ||
-    (term !== null && (await listMyCommitteeCapabilities(actor.personId, term.id)).length > 0);
-  if (!canSearch) {
+  if (!actor.isAdmin) {
     return Response.json({ results: [] }, { status: 403 });
   }
   const q = new URL(request.url).searchParams.get("q")?.trim() ?? "";
@@ -32,7 +28,7 @@ export async function GET(request: Request) {
     searchPeople(q),
     searchCommittees(q),
     searchOccasions(q),
-    actor.isAdmin ? searchOrganizations(q) : Promise.resolve([]),
+    searchOrganizations(q),
   ]);
   const kindLabels = tList("T-949");
   const results: PaletteResult[] = [
@@ -40,7 +36,7 @@ export async function GET(request: Request) {
       type: "person",
       id: item.id,
       title: item.fullName,
-      subtitle: actor.isAdmin ? item.email : null,
+      subtitle: item.email,
       href: `/admin/personas/${item.id}`,
     })),
     ...committees.map((item) => ({
