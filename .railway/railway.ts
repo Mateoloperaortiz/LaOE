@@ -45,8 +45,12 @@ export default defineRailway((ctx) => {
       // ADR-053: todo cambio desconocido despliega; solo se excluye documentación comprobada.
       watchPatterns: ["**", ...documentationPaths.map((path) => `!/${path}`)],
     },
-    start: "npm run start",
-    preDeploy: "npm run db:release",
+    // Railpack deja NPM_CONFIG_PRODUCTION en la imagen y npm advierte en cada invocación que la
+    // clave está obsoleta; esa línea llega a los registros de Railway con severidad de error.
+    // Vaciarla solo en estos comandos la deja en null sin tocar la instalación del build, que sí
+    // necesita las dependencias de desarrollo.
+    start: "NPM_CONFIG_PRODUCTION= npm run start",
+    preDeploy: "NPM_CONFIG_PRODUCTION= npm run db:release",
     healthcheck: "/api/health",
     healthcheckTimeout: 300,
     replicas: { [REGION]: 1 },
