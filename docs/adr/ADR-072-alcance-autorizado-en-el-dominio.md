@@ -1,6 +1,6 @@
 # ADR-072: El alcance autorizado se verifica en el dominio
 
-- Estado: Aceptada; publicación pendiente
+- Estado: Aceptada; en producción desde el 2026-09-16 (`40e0492`)
 - Fecha: 2026-09-16
 - Enmienda: ADR-011
 - Relacionadas: ADR-017, ADR-035 (regla 15), ADR-036 (reglas 3 y 7), ADR-037 (regla 10), ADR-058 (reglas 4 y 5), ADR-060 (regla 5)
