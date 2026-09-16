@@ -80,6 +80,8 @@ export const groupParamsSchema = z
     mode: z.enum(GROUP_MODES).default("FIXED"),
     perGroup: z.number().positive().optional(),
     tiers: z.array(tierSchema).max(10).optional(),
+    /** Otros tipos de grupo que también cumplen el criterio (ADR-071); un código fijo los ignora. */
+    alsoCounts: z.array(z.enum(WORK_GROUP_KINDS)).max(5).default([]),
   })
   .superRefine((p, ctx) => {
     if (p.mode === "PER_GROUP" && !p.perGroup) {
@@ -87,6 +89,12 @@ export const groupParamsSchema = z
     }
     if (p.mode === "TIERS" && (!p.tiers || p.tiers.length === 0)) {
       ctx.addIssue({ code: "custom", message: "tiers", path: ["tiers"] });
+    }
+    if (p.alsoCounts.includes(p.groupKind)) {
+      ctx.addIssue({ code: "custom", message: "also-counts-propio", path: ["alsoCounts"] });
+    }
+    if (new Set(p.alsoCounts).size !== p.alsoCounts.length) {
+      ctx.addIssue({ code: "custom", message: "also-counts-repetido", path: ["alsoCounts"] });
     }
   });
 

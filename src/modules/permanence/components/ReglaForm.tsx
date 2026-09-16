@@ -42,6 +42,8 @@ export interface ReglaFormLabels {
   groupParams: string[]; // T-723
   groupModes: Array<{ value: string; label: string }>;
   groupKinds: Array<{ value: string; label: string }>;
+  alsoCounts: string; // T-2615
+  alsoCountsHelp: string; // T-2616
   mandatory: string;
   tiersHelp: string;
   expectedHelp: string;
@@ -136,6 +138,17 @@ export function ReglaForm({
 }: Props) {
   const [computation, setComputation] = useState<Computation>(values.computation);
   const [mode, setMode] = useState(values.params.mode ?? "FIXED");
+  const [groupKind, setGroupKind] = useState(values.params.groupKind ?? "GAP");
+  // Un criterio GAP que nace aquí trae marcado el GT de macroevento, porque el GT cumple siempre el
+  // GAP (ADR-071); un criterio guardado conserva lo que GH dejó, aunque sea vacío.
+  const savedAlsoCounts = values.params.alsoCounts;
+  const alsoCounts = new Set(
+    savedAlsoCounts === undefined
+      ? groupKind === "GAP"
+        ? ["GT_MACROEVENT"]
+        : []
+      : savedAlsoCounts.split(",").filter(Boolean),
+  );
   const [clave, nombre, descripcion, peso, aplicaA, calculo, orden] = labels.fields;
   const [categoria, tipo, comite, soloNuevos, , porAsistencia, minimo, esperadas] =
     labels.occasionParams;
@@ -326,12 +339,19 @@ export function ReglaForm({
               {labels.computations.find((c) => c.value === "GROUP_EVALUATED")?.label}
             </legend>
             <Campo id="campo-groupKind" label={tipoGrupo ?? ""}>
-              <Select
+              <select
                 id="campo-groupKind"
                 name="groupKind"
-                value={p.groupKind ?? "GAP"}
-                options={labels.groupKinds}
-              />
+                value={groupKind}
+                onChange={(event) => setGroupKind(event.target.value)}
+                className={inputClass}
+              >
+                {labels.groupKinds.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </Campo>
             <Campo id="campo-code" label={codigo ?? ""}>
               <input
@@ -385,6 +405,26 @@ export function ReglaForm({
                     />
                   </Campo>
                 ) : null}
+                <fieldset className="flex flex-col gap-2">
+                  <legend className="mb-1 block text-sm font-semibold">{labels.alsoCounts}</legend>
+                  <p className="text-sm text-tinta-suave">{labels.alsoCountsHelp}</p>
+                  {labels.groupKinds
+                    .filter((option) => option.value !== groupKind)
+                    .map((option) => (
+                      <label
+                        key={`${groupKind}-${option.value}`}
+                        className="flex items-center gap-2"
+                      >
+                        <input
+                          type="checkbox"
+                          name="alsoCounts"
+                          value={option.value}
+                          defaultChecked={alsoCounts.has(option.value)}
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                </fieldset>
               </>
             ) : null}
           </fieldset>

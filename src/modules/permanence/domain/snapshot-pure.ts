@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { COMPUTATIONS } from "./params";
+import { COMPUTATIONS, WORK_GROUP_KINDS } from "./params";
 import type { CommitteeResult, CriterionResult, MandatoryView } from "./permanence-pure";
 
 // Esquemas de los JSON del snapshot (03-modelo): se validan al leer con `.catch` para que una fila
@@ -16,6 +16,8 @@ const upcoming = z.object({
 const groupRef = z.object({
   groupId: z.string(),
   name: z.string(),
+  // Los snapshots congelados antes de ADR-071 no lo traen: degradan a nulo en vez de romper.
+  equivalentKind: z.enum(WORK_GROUP_KINDS).nullable().default(null).catch(null),
   evaluation,
   evaluatorIds: z.array(z.string()),
 });

@@ -1,19 +1,27 @@
-import { eq } from "drizzle-orm";
+import { readFile } from "node:fs/promises";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { event } from "@/modules/events/schema";
+import { getSnapshot, recomputeSnapshots } from "@/modules/permanence";
 import { getGroupDetail, removeMember } from "@/modules/permanence/domain/groups";
 import { prepareMacroeventGroup } from "@/modules/permanence/domain/macroevents";
 import {
   listTeamParticipations,
   saveMacroeventMemberAs,
 } from "@/modules/permanence/domain/team-members";
-import { workGroup, workGroupMembership } from "@/modules/permanence/schema";
+import { permanenceRule, workGroup, workGroupMembership } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { truncateAll } from "./db";
-import { seedMember, seedTerm } from "./factories";
+import {
+  seedCommittee,
+  seedCommitteeMembership,
+  seedMember,
+  seedRule,
+  seedTerm,
+} from "./factories";
 
 async function setup() {
   const termId = await seedTerm();
@@ -151,5 +159,85 @@ describe("áreas y acreditación de GT/GAP", () => {
       evaluatedById: null,
       areas: ["GESTION_HUMANA"],
     });
+  });
+
+  it("acreditar el GT deja el criterio GAP en su peso completo (ADR-071)", async () => {
+    const { termId, personId, actor, gt } = await setup();
+    // La tabla de permanencia se arma sobre el roster del término: comité y criterio GAP.
+    await seedCommitteeMembership(personId, await seedCommittee("a3"), termId);
+    await seedRule(termId, "gap", {
+      label: "GAP",
+      weight: 5,
+      computation: "GROUP_EVALUATED",
+      params: { groupKind: "GAP", mode: "FIXED", alsoCounts: ["GT_MACROEVENT"] },
+    });
+    // Sin participación acreditada el criterio está en cero.
+    await recomputeSnapshots(termId);
+    const antes = await getSnapshot(personId, termId);
+    expect(antes?.general.find((item) => item.key === "gap")).toMatchObject({ achieved: 0 });
+
+    await saveMacroeventMemberAs(
+      actor,
+      gt,
+      { personId, areas: ["LOGISTICA"], credit: true },
+      admin,
+    );
+    await recomputeSnapshots(termId);
+    const despues = await getSnapshot(personId, termId);
+    const criterio = despues?.general.find((item) => item.key === "gap");
+    expect(criterio).toMatchObject({ achieved: 5, remaining: 0 });
+    // El desglose explica que cuenta por el GT, sin pertenencia GAP.
+    expect(criterio?.detail).toMatchObject({
+      type: "GROUP_EVALUATED",
+      goodCount: 1,
+      groups: [{ groupId: gt, equivalentKind: "GT_MACROEVENT" }],
+    });
+  });
+
+  it("la migración 0033 activa la equivalencia solo en semestres abiertos y respeta lo que GH ya fijó", async () => {
+    const abierto = await seedTerm();
+    const cerrado = await seedTerm("2026-1");
+    await getDb()
+      .update(term)
+      .set({ permanenceClosedAt: new Date("2026-06-20T00:00:00Z") })
+      .where(eq(term.id, cerrado));
+    const gap = { computation: "GROUP_EVALUATED" as const, weight: 5 };
+    const abiertoGap = await seedRule(abierto, "gap", {
+      ...gap,
+      params: { groupKind: "GAP", mode: "FIXED" },
+    });
+    // GH ya quitó la equivalencia en esta fila: la migración no la vuelve a poner.
+    const abiertoSinGt = await seedRule(abierto, "gap-sin-gt", {
+      ...gap,
+      params: { groupKind: "GAP", mode: "FIXED", alsoCounts: [] },
+    });
+    const abiertoOe = await seedRule(abierto, "gap-oe", {
+      ...gap,
+      params: { groupKind: "GAP_OE", mode: "PER_GROUP", perGroup: 3 },
+    });
+    const cerradoGap = await seedRule(cerrado, "gap", {
+      ...gap,
+      params: { groupKind: "GAP", mode: "FIXED" },
+    });
+
+    const migration = await readFile(
+      new URL("../../drizzle/0033_gt_cumple_gap.sql", import.meta.url),
+      "utf8",
+    );
+    await getDb().transaction(async (tx) => {
+      for (const statement of migration.split("--> statement-breakpoint"))
+        await tx.execute(sql.raw(statement));
+    });
+
+    const params = async (id: string) =>
+      (await getDb().select().from(permanenceRule).where(eq(permanenceRule.id, id)))[0]?.params;
+    expect(await params(abiertoGap)).toMatchObject({ alsoCounts: ["GT_MACROEVENT"] });
+    expect(await params(abiertoSinGt)).toMatchObject({ alsoCounts: [] });
+    expect(await params(abiertoOe)).not.toHaveProperty("alsoCounts");
+    expect(await params(cerradoGap)).not.toHaveProperty("alsoCounts");
+    const recalculos = (await getDb().select().from(outbox)).filter(
+      (row) => row.eventType === "permanence.recompute",
+    );
+    expect(recalculos.map((row) => row.payload)).toEqual([{ termId: abierto }]);
   });
 });

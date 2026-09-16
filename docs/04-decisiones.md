@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [071](adr/ADR-071-gt-de-macroevento-cumple-gap.md) | GT que cumple GAP | Ser GT de un macroevento cumple la función del GAP: una participación acreditada suma el GAP además de sus tramos de GT, también para nuevos y siempre; la equivalencia es el parámetro `alsoCounts` de la regla, marcado por defecto en todo criterio GAP nuevo, y un macroevento cuenta una vez entre GT y GAP | Aceptada; alcance confirmado el 2026-09-16 |
 | [070](adr/ADR-070-podio-de-comites-en-gh-points.md) | Podio de comités | Primeros puestos en podio, empates en el mismo escalón, porcentaje ajustado con dos decimales y desglose accesible; conserva fórmula y top diez | Aceptada |
 | [069](adr/ADR-069-directorio-de-comites-de-mi-oe.md) | Directorio de comités | Fichas compactas, comités propios prioritarios y búsqueda local por nombre o sigla; conserva permisos y datos editoriales | Implementada en local; publicación pendiente |
 | [068](adr/ADR-068-correcciones-de-gamificacion.md) | Correcciones de gamificación | Evidencias procesadas en clave exclusiva del servidor; bandera compatible con correcciones; check-in válido sin booster en carreras; reaprobación presencial, replay por contenido y liberación de posiciones revocadas; reparación 0032 | Aceptada |

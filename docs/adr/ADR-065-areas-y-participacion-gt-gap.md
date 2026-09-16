@@ -1,6 +1,6 @@
 # ADR-065: Áreas y participación en GT y GAP
 
-- Estado: Aceptada por Mateo e implementada el 2026-09-14
+- Estado: Aceptada por Mateo e implementada el 2026-09-14 (enmendada por ADR-071)
 - Enmienda: ADR-064 y ADR-036, regla 6
 
 ## Decisión
@@ -18,3 +18,7 @@ Se mantienen los porcentajes vigentes: GT 4/6/8 por 1/2/3 macroeventos distintos
 ## Verificación
 
 Unicidad de GT y GAP por separado; varias áreas con una sola pertenencia; alta pendiente; acreditación atómica y auditada; conservación de evaluación al editar; reincorporación pendiente; rechazo de especialidades ajenas, permisos insuficientes y semestre cerrado; visibilidad por término; recorrido de administración y perfil en escritorio y móvil.
+
+## Enmienda (2026-09-15, ADR-071)
+
+GT y GAP conservan grupos separados, identidad independiente y unicidad por macroevento y semestre, tal como quedó aquí. Lo que cambia es el cómputo de la tabla general: una participación GT acreditada cumple también el criterio GAP, declarado como `alsoCounts` en los parámetros de la regla. El GAP OE conserva su tipo y su cálculo separados y la tabla de nuevos conserva sus sustituciones.

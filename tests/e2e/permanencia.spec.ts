@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { occasion } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
+import { workGroup, workGroupMembership } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -69,6 +70,40 @@ test.describe("miembro", () => {
     await expect(
       page.getByRole("listitem").filter({ hasText: "Integraciones" }).first(),
     ).toContainText(`${Math.min(10, before + 2)} de 10`);
+  });
+
+  test("un GT de macroevento acreditado cumple su GAP y el desglose lo explica", async ({
+    page,
+  }) => {
+    const db = getDb();
+    const [member] = await db
+      .select({ id: person.id })
+      .from(person)
+      .where(eq(person.email, E2E_MEMBER_EMAIL));
+    const [current] = await db
+      .select({ id: term.id })
+      .from(term)
+      .where(eq(term.code, E2E_TERM.code));
+    if (!member || !current) throw new Error("sin miembro o término");
+    const [grupo] = await db
+      .insert(workGroup)
+      .values({ termId: current.id, kind: "GT_MACROEVENT", name: "e2e-GT que cumple el GAP" })
+      .returning({ id: workGroup.id });
+    if (!grupo) throw new Error("sin grupo");
+    await db.insert(workGroupMembership).values({
+      groupId: grupo.id,
+      personId: member.id,
+      evaluation: "GOOD",
+      evaluatedById: member.id,
+      evaluatedAt: new Date(),
+    });
+    await closeDb();
+
+    await page.goto("/app/permanencia");
+    const gap = page.getByRole("listitem").filter({ hasText: "GAP" }).first();
+    await expect(gap).toContainText("e2e-GT que cumple el GAP");
+    await expect(gap).toContainText("Cuenta por tu GT de macroevento");
+    await sinViolaciones(page);
   });
 });
 

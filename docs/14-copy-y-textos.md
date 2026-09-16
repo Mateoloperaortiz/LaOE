@@ -2190,3 +2190,6 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2612 | Podio: ayuda desplegable | Cómo se calcula el ranking | GH | Propuesta |
 | T-2613 | Podio: explicación del cálculo | En cada actividad, se divide la asistencia aprobada entre los miembros elegibles del comité y se aplica el ajuste por tamaño. El ranking usa el promedio de esos porcentajes ajustados. | GH | Propuesta |
 | T-2614 | Podio: actividades y empates | Cuentan las actividades cerradas que otorgan GH Points; todas pesan igual. Los comités con el mismo resultado del ranking comparten puesto. | GH | Propuesta |
+| T-2615 | Reglas: etiqueta del parámetro de equivalencia | También cumplen este criterio | MATEO | Propuesta |
+| T-2616 | Reglas: ayuda de la equivalencia | Otros tipos de grupo cuyo buen desempeño acredita este criterio. No aplica cuando el criterio está fijado a un código. | MATEO | Propuesta |
+| T-2617 | Permanencia: grupo que cumple el criterio por equivalencia | Cuenta por tu {tipo} | GH | Propuesta |

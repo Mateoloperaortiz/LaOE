@@ -232,6 +232,13 @@
       "when": 1789502330975,
       "tag": "0032_gamificacion_correcciones",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1789530060459,
+      "tag": "0033_gt_cumple_gap",
+      "breakpoints": true
     }
   ]
 }

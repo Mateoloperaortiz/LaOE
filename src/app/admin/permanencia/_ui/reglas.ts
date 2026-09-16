@@ -60,6 +60,8 @@ export function reglaFormLabels(): ReglaFormLabels {
     groupParams: tList("T-723"),
     groupModes: options(["FIXED", "PER_GROUP", "TIERS"], "T-724"),
     groupKinds: options(GROUP_KINDS, "T-725"),
+    alsoCounts: t("T-2615"),
+    alsoCountsHelp: t("T-2616"),
     mandatory: t("T-726"),
     tiersHelp: t("T-727"),
     expectedHelp: t("T-728"),
@@ -104,7 +106,9 @@ export function reglaFormValues(rule: Rule | null): ReglaFormValues {
                   `${(tier as { count: number }).count} ${(tier as { value: number }).value}`,
               )
               .join("\n")
-          : str(value);
+          : key === "alsoCounts" && Array.isArray(value)
+            ? value.join(",")
+            : str(value);
     }
   }
   return {
@@ -187,6 +191,9 @@ export function ruleInputFromForm(formData: FormData, committeeScoped: boolean):
         mode,
         perGroup: mode === "PER_GROUP" ? optionalNumber(formData, "perGroup") : undefined,
         tiers: mode === "TIERS" ? tiers(formData) : undefined,
+        alsoCounts: formData
+          .getAll("alsoCounts")
+          .filter((value): value is string => typeof value === "string"),
       };
       break;
     }

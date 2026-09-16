@@ -23,14 +23,14 @@ Cada semestre, Gestión Humana evalúa a cada miembro con **dos tablas de criter
 | Integraciones | Asistir a las actividades de integración de la Vicepresidencia de GH: 2 % por actividad, máximo 10 % (5 de las 10 del semestre) | 10 % | Todos | Check-ins en ocasiones con categoría `INTEGRATION` |
 | Asambleas generales | Tres asambleas en el término: las obligatorias más extras | 10 % | Todos | Check-ins en asambleas del término; las obligatorias se controlan aparte |
 | GT Macroeventos | Grupos de trabajo de Inventiva, Días EAFIT o EnFemenino con buen desempeño: uno 4 %, dos 6 %, tres 8 % | 4 / 6 / 8 % | Veteranos | Grupos `GT_MACROEVENT` evaluados `GOOD`, por cantidad |
-| GAP | Grupo de apoyo de un macroevento o de un evento de otro comité, con buen desempeño | 5 % | Todos | Grupo `GAP` + evaluación |
+| GAP | Grupo de apoyo de un macroevento o de un evento de otro comité, con buen desempeño; ser GT de un macroevento con buen desempeño ya cumple esta función, además de sumar sus tramos de GT ([ADR-071](adr/ADR-071-gt-de-macroevento-cumple-gap.md)) | 5 % | Todos | Grupo `GAP` o `GT_MACROEVENT` evaluado `GOOD` |
 | GAP OE | Grupo de apoyo en eventos de la Junta Directiva: VTG y Assessment | 3 % + 3 % | Veteranos | Un grupo `GAP_OE` por evento + evaluación |
 | Comité de trabajo | Pertenecer a uno de los seis comités de trabajo o al Athletic, con buen desempeño | 6 % | Veteranos | Grupo `WORK_COMMITTEE` + evaluación |
 | Barra brava / Apoyo Athletic OE | Apoyar al Athletic OE en al menos 3 encuentros con involucramiento demostrable (carteleras, porras, implementos) | 5 % | Todos | Al menos 3 check-ins en ocasiones `ATHLETIC_MATCH` y evaluación del grupo `BARRA_BRAVA` |
 | Decoración de oficina | Solo nuevos | 10 % | Nuevos | Grupo `NEW_MEMBER_TASK` evaluado por el GH principal |
 | Integración solo nuevos | Solo nuevos | 5 % | Nuevos | Check-in en la integración marcada `newMembersOnly` |
 
-Los criterios de nuevos reemplazan a GT, comités de trabajo y GAP OE. Máximos: veteranos 50 % (con tres GT) y nuevos 45 %, coherentes con los "unos 50 puntos" de GH. La frase "no solo hacer parte, sino tener un buen desempeño antes, durante y después" aplica a todos los criterios de grupo.
+Los criterios de nuevos reemplazan a GT, comités de trabajo y GAP OE; el GAP aplica a todos, así que un nuevo dentro de un GT acreditado lo cumple igual. Máximos: veteranos 50 % (con tres GT) y nuevos 45 %, coherentes con los "unos 50 puntos" de GH. La frase "no solo hacer parte, sino tener un buen desempeño antes, durante y después" aplica a todos los criterios de grupo.
 
 ## Tabla del comité (ejemplo: A3)
 
@@ -73,7 +73,7 @@ Son distintos de los 27 comités de pertenencia. Se cargan como grupos de trabaj
 | `CHECKIN_COUNT` | filtro de ocasiones (categoría, tipo, comité, solo nuevos: todas, solo o sin las de nuevos, ocasiones concretas, esperadas en el semestre), porcentaje por asistencia; el peso es el tope | Integraciones: `INTEGRATION` sin las de solo nuevos, 2 % cada una, peso 10 %, 10 esperadas |
 | `CHECKIN_THRESHOLD` | filtro de ocasiones, mínimo de check-ins; el peso se da completo al llegar | Asambleas: tipo `ASSEMBLY`, al menos 3 (ordinarias, elección y segunda vuelta cuentan), 10 % |
 | `CHECKIN_RATE` | categoría (reuniones de comité) sobre las ocasiones del propio comité | Reuniones de comité: 15 % multiplicado por asistidas sobre celebradas (las reuniones pasadas y no canceladas en las que la persona ya estaba en el comité, sin las que tienen excusa aceptada) |
-| `GROUP_EVALUATED` | tipo de grupo (y código opcional), modo fijo, por grupo o por tramos | Comité de trabajo fijo 6 %; GAP OE 3 % por grupo con peso 6 %; GT por tramos 1 → 4 %, 2 → 6 %, 3 o más → 8 % |
+| `GROUP_EVALUATED` | tipo de grupo (y código opcional), modo fijo, por grupo o por tramos, y `alsoCounts`: otros tipos de grupo que también cumplen el criterio (se ignora si hay código) | Comité de trabajo fijo 6 %; GAP OE 3 % por grupo con peso 6 %; GT por tramos 1 → 4 %, 2 → 6 %, 3 o más → 8 %; GAP fijo 5 % con `alsoCounts: ["GT_MACROEVENT"]` |
 | `COMPOSITE` | filtro y mínimo de check-ins más tipo de grupo | Barra brava: 3 partidos `ATHLETIC_MATCH` (3 esperados) y un grupo `BARRA_BRAVA` con `GOOD` |
 | `LEADER_SCORE` | obligatorio o no | Subcomité, liderazgo o destacado (0 a 10 %, sin puntaje vale 0); convivencia obligatoria (sin puntaje vale el 5 % completo; observación obligatoria si baja) |
 | `MANUAL` | ninguno; el crédito lleva motivo | Criterios que GH reconoce a mano, hasta el peso |
