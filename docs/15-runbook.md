@@ -660,4 +660,6 @@ Comprobaciones: CI completo de `main` `35028922963` y smoke de staging `35029880
 
 Railway staging `a586cbc4-452a-4d9d-9401-6fa5b046a12c` y producción `d0c7f388-eab8-490e-9eef-0f4ad83041da`: SUCCESS. `db:release` aplicó `0030_gamificacion`, `0031_booster_pedido` y `0032_gamificacion_correcciones` en ambos entornos y verificó 109 índices con `pg_trgm`. El healthcheck de producción responde el SHA promovido con Postgres en 1 ms; la portada pública responde 200.
 
+Cierre del día: `720b58bbf477752c9b9e49d139444a3623f065d2` se promovió después para llevar el arreglo del ruido de npm a producción (CI de `main` `35049467929`, staging `aaab59fc-9722-4899-89b0-2c4716c4645c` con smoke `35049990884`, CI de promoción `35050046444`, producción `a614d596-be92-4b3c-aa41-e6d7eabfc46a` con smoke `35050223140`). El pre-deploy y el arranque de los dos entornos ya no registran `npm warn`; el healthcheck de `oeeafit.com` sirve ese SHA con Postgres en 2 ms y las rutas públicas y privadas responden como antes.
+
 La entrega queda apagada: `gamification.enabled` sigue en falso y nada cambia para los miembros. La conciliación histórica, los borradores de GH y la activación siguen el procedimiento de «Activación de retos, boosters y colección (ADR-067)», más arriba. Esta promoción no ejecutó ninguno de esos pasos.
