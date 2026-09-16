@@ -16,6 +16,19 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | 2026-09-15 | Promoción a producción | `e430dc1` promovido a `production`: CI completo `35028922963` y smoke de staging `35029880093` sobre el mismo SHA, CI de promoción `35047828457` reutilizando la evidencia y smoke de producción `35047991825` contra `oeeafit.com`. Railway producción `d0c7f388-eab8-490e-9eef-0f4ad83041da` SUCCESS con `0030`, `0031` y `0032` aplicadas, 109 índices y `pg_trgm`. Registro completo en el runbook. |
 | 2026-09-15 | Aserción persistente de evidencia | El CI de `main` 35027292665 detectó que el aviso transitorio del uploader desaparecía con `router.refresh()` aunque la entrega y el premio estaban guardados. La prueba pasa a exigir el estado en revisión y la reserva, incluida su persistencia tras recargar; conserva aprobación administrativa, saldo final y drenaje estricto. |
 
+## GT que cumple GAP (ADR-071) · `en curso`
+
+- [x] GG0 · [ADR-071](adr/ADR-071-gt-de-macroevento-cumple-gap.md), enmienda a ADR-065 e índices, permanencia, modelo y verificación.
+- [x] GG1 · `alsoCounts` en los parámetros del criterio, cálculo por tipos equivalentes, un macroevento contado una vez y tabla de referencia.
+- [x] GG2 · Migración de datos para los términos abiertos con recálculo, casillas en el editor de reglas y marca en el desglose.
+- [x] GG3 · Pruebas unitarias, de integración y E2E; `npm run check` y `db:generate` sin diferencias.
+- [ ] GG4 · CI remoto, staging y publicación verificada en producción.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-16 | GT que cumple GAP · alcance | Respuestas a la consulta con GH: una participación GT paga los dos criterios, ser GT ya cumple la función del GAP, el GT le cuenta al nuevo y la regla rige siempre. [ADR-071](adr/ADR-071-gt-de-macroevento-cumple-gap.md) las incorpora; «siempre» rige desde la publicación y no reabre cierres. El editor trae marcada la equivalencia en todo criterio GAP nuevo y respeta lo que quede guardado. Prueba de integración del SQL de `0033`: activa la equivalencia en el término abierto, deja intactos GAP OE, el término cerrado y una regla donde ya estaba fijada, y encola un solo recálculo; sin el filtro de términos abiertos la prueba falla. Se corrigió en 10-verificacion una afirmación sobre la migración que ninguna prueba cubría. `npm run check` en verde (571 unitarias, 464 de integración y build) y los seis escenarios E2E de permanencia aprobados. Sin publicación. |
+| 2026-09-15 | GT que cumple GAP · GG0–GG3 | [ADR-071](adr/ADR-071-gt-de-macroevento-cumple-gap.md), que enmienda a ADR-065: una participación GT de macroevento acreditada cumple el criterio GAP. La equivalencia es el parámetro `alsoCounts` de un criterio `GROUP_EVALUATED`, editable por GH con casillas en el editor de reglas; un criterio fijado a un código la ignora y la identidad de los grupos `GT_MACROEVENT` y `GAP` pasa a ser su macroevento, así que el GT y el GAP del mismo macroevento cuentan una vez. La tabla de referencia trae el GAP con `alsoCounts: ["GT_MACROEVENT"]` y el desglose marca con T-2617 el grupo que cumple por equivalencia. Migración `0033` de solo datos: activa el parámetro en las reglas GAP de los términos con la permanencia abierta y encola un `permanence.recompute` por término; comprobada en local sobre 2026-2 (una regla tocada, una fila de outbox, ningún término cerrado afectado). Copy T-2615 a T-2617. `npm run check` en verde (902 archivos de lint, tipos, 0 violaciones de dependencias, 571 unitarias, 11 del extractor, 463 de integración y build) y `npm run db:generate` sin diferencias de esquema; los escenarios E2E de `permanencia-reglas` y `permanencia` aprobados con axe, incluido el del miembro que ve su GT bajo el criterio GAP. Sin publicación. |
+
 ## Podio de comités en GH Points (ADR-070) · `lista`
 
 - [x] Implementar el podio aprobado: puestos 1–3, empates en el mismo escalón y lista con los demás comités del top diez.
