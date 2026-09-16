@@ -8,9 +8,12 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 
 - [x] Integrar gamificación, directorio, podio y evidencias de diseño mediante PR 34, con CI completo aprobado.
 - [ ] Verificar el candidato desplegado en staging y preparar las pruebas de aceptación antes de promover producción.
+- [x] Promover `e430dc1` a producción con el SHA validado en CI, staging y smoke; la bandera de gamificación sigue apagada.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
+| 2026-09-15 | Ruido de npm en los registros | Railpack deja `NPM_CONFIG_PRODUCTION` en la imagen y npm advierte que la clave está obsoleta en cada invocación; Railway marcaba esa línea como error en el arranque y en el pre-deploy. Los comandos de `web` anteponen `NPM_CONFIG_PRODUCTION=`, que deja la clave en `null` sin tocar la instalación del build. Cambio en `.railway/railway.ts` y en la configuración viva de ambos entornos. |
+| 2026-09-15 | Promoción a producción | `e430dc1` promovido a `production`: CI completo `35028922963` y smoke de staging `35029880093` sobre el mismo SHA, CI de promoción `35047828457` reutilizando la evidencia y smoke de producción `35047991825` contra `oeeafit.com`. Railway producción `d0c7f388-eab8-490e-9eef-0f4ad83041da` SUCCESS con `0030`, `0031` y `0032` aplicadas, 109 índices y `pg_trgm`. Registro completo en el runbook. |
 | 2026-09-15 | Aserción persistente de evidencia | El CI de `main` 35027292665 detectó que el aviso transitorio del uploader desaparecía con `router.refresh()` aunque la entrega y el premio estaban guardados. La prueba pasa a exigir el estado en revisión y la reserva, incluida su persistencia tras recargar; conserva aprobación administrativa, saldo final y drenaje estricto. |
 
 ## Podio de comités en GH Points (ADR-070) · `lista`
