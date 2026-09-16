@@ -148,6 +148,67 @@ test("trivia: el admin la crea por la interfaz y el miembro la responde por tecl
   expect(await saldoMiembro()).toBe(antes + 5);
 });
 
+test("editor: una misión nacida en trivia guarda la hora de Colombia, se publica y se retitula", async ({
+  browser,
+}) => {
+  const admin = await adminPage(browser);
+  await admin.goto("/admin/gamificacion/retos/nuevo");
+  // El formulario abre en trivia con una pregunta vacía que sigue oculta al cambiar de formato.
+  await admin.getByLabel("Formato").selectOption({ label: "Misión con evidencia" });
+  await admin.getByLabel("Título", { exact: true }).fill("e2e-Misión desde el editor");
+  await admin.getByLabel("Descripción", { exact: true }).fill("e2e-Foto con la estatua.");
+  // Una ventana corta: leída como UTC, el cierre quedaría en el pasado y no se podría publicar.
+  const abre = utcToBogotaInput(new Date(Date.now() - 3_600_000));
+  const cierra = utcToBogotaInput(new Date(Date.now() + 2 * 3_600_000));
+  await admin.getByLabel("Abre").fill(abre);
+  await admin.getByLabel("Cierra").fill(cierra);
+  await admin.getByLabel("Premio base").fill("20");
+  await admin.getByRole("button", { name: "Guardar borrador" }).click();
+  await expect(admin).toHaveURL(/\/admin\/gamificacion\/retos\/[a-z0-9]+\?guardado=1$/);
+  await expect(admin.getByLabel("Abre")).toHaveValue(abre);
+  await expect(admin.getByLabel("Cierra")).toHaveValue(cierra);
+  await admin.getByRole("button", { name: "Publicar", exact: true }).click();
+  await expect(admin.getByRole("button", { name: "Publicar", exact: true })).toHaveCount(0);
+
+  // Publicado, los campos congelados van deshabilitados; el título y la descripción se siguen guardando.
+  await admin.getByLabel("Título", { exact: true }).fill("e2e-Misión retitulada");
+  await admin.getByRole("button", { name: "Guardar borrador" }).click();
+  await expect(
+    admin.getByRole("heading", { level: 1, name: "e2e-Misión retitulada" }),
+  ).toBeVisible();
+  await expect(admin.getByLabel("Cierra")).toHaveValue(cierra);
+  await admin.context().close();
+});
+
+test("editor: un error al crear deja el formulario nuevo con lo escrito", async ({ browser }) => {
+  const admin = await adminPage(browser);
+  await admin.goto("/admin/gamificacion/retos/nuevo");
+  const pregunta = admin
+    .getByRole("group", { name: /preguntas con 2 a 6 opciones/i })
+    .locator("input:not([type])")
+    .first();
+  await pregunta.fill("e2e-¿Dónde está la estatua?");
+  await admin.getByLabel("Formato").selectOption({ label: "Misión con evidencia" });
+  await admin.getByLabel("Título", { exact: true }).fill("e2e-Misión con fechas cruzadas");
+  const abre = utcToBogotaInput(new Date(Date.now() + 2 * 3_600_000));
+  await admin.getByLabel("Abre").fill(abre);
+  await admin.getByLabel("Cierra").fill(utcToBogotaInput(new Date(Date.now() + 3_600_000)));
+  await admin.getByRole("button", { name: "Guardar borrador" }).click();
+  await expect(
+    admin.getByText("La fecha de cierre debe ser posterior a la de apertura."),
+  ).toBeVisible();
+  await expect(admin).toHaveURL(/\/admin\/gamificacion\/retos\/nuevo\?/);
+  await expect(admin.getByLabel("Formato")).toHaveValue("EVIDENCE");
+  await expect(admin.getByLabel("Título", { exact: true })).toHaveValue(
+    "e2e-Misión con fechas cruzadas",
+  );
+  await expect(admin.getByLabel("Abre")).toHaveValue(abre);
+  // El formulario se remonta tras el error: el formato y las preguntas vuelven con el borrador.
+  await admin.getByLabel("Formato").selectOption({ label: "Trivia" });
+  await expect(pregunta).toHaveValue("e2e-¿Dónde está la estatua?");
+  await admin.context().close();
+});
+
 test("evidencia: el miembro entrega texto e imagen y el admin la aprueba", async ({
   page,
   browser,

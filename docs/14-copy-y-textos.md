@@ -2085,7 +2085,7 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2517 | Admin retos: título de participantes | Participantes | MATEO | Propuesta |
 | T-2518 | Admin retos: columnas de participantes | Persona · Estado · Enviado · Premio · Booster · Decidido por | MATEO | Propuesta |
 | T-2519 | Admin retos: sin participantes | Nadie ha participado todavía. | MATEO | Propuesta |
-| T-2520 | Admin retos: errores del editor | La fecha de cierre debe ser posterior a la de apertura. · Elegí al menos un comité. · Una trivia necesita entre 1 y 5 preguntas. · Cada pregunta necesita entre 2 y 6 opciones y una correcta. · Un reto presencial necesita una ocasión con puntos del mismo semestre. · El premio base va de 0 a 20. · Solo se puede publicar un borrador. · Este reto ya no está en borrador: solo cambian título y descripción. | MATEO | Propuesta |
+| T-2520 | Admin retos: errores del editor | La fecha de cierre debe ser posterior a la de apertura. · Elegí al menos un comité. · Una trivia necesita entre 1 y 5 preguntas. · Cada pregunta necesita entre 2 y 6 opciones y una correcta. · Un reto presencial necesita una ocasión con puntos del mismo semestre. · El premio base va de 0 a 20. · Solo se puede publicar un borrador. · Este reto ya no está en borrador: solo cambian título y descripción. · Cada pregunta y cada opción necesitan texto. | MATEO | Propuesta |
 | T-2521 | Admin retos: duplicado | Borrador creado a partir de «{reto}». | MATEO | Propuesta |
 | T-2522 | Admin retos: resultados | Reto publicado. · Reto cancelado. · Borrador guardado. | MATEO | Propuesta |
 | T-2523 | Admin revisión: título | Evidencias por revisar | MATEO | Propuesta |

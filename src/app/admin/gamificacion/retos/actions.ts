@@ -15,6 +15,7 @@ import {
   updateChallengeAs,
 } from "@/modules/participation";
 import { DomainError } from "@/shared/admin-kit";
+import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { clientIp } from "@/shared/lib/request";
 
 // Acciones del editor de retos (ADR-067 reglas 2, 3 y 17): solo ADMIN. Cancelar un reto con
@@ -25,6 +26,12 @@ const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 function text(formData: FormData, name: string): string {
   const value = formData.get(name);
   return typeof value === "string" ? value.trim() : "";
+}
+
+/** Un `datetime-local` se escribe en hora de Colombia; el servidor corre en UTC. */
+function bogotaInstant(formData: FormData, name: string): Date | string {
+  const value = text(formData, name);
+  return LOCAL_INPUT.test(value) ? bogotaInputToUtc(value) : value;
 }
 
 function withQuery(base: string, extra: Record<string, string>): string {
@@ -72,8 +79,8 @@ function parseChallenge(formData: FormData) {
     description: text(formData, "description"),
     audience: text(formData, "audience") || "ALL",
     audienceCommitteeIds: formData.getAll("audienceCommitteeIds"),
-    opensAt: text(formData, "opensAt"),
-    closesAt: text(formData, "closesAt"),
+    opensAt: bogotaInstant(formData, "opensAt"),
+    closesAt: bogotaInstant(formData, "closesAt"),
     basePoints: text(formData, "basePoints"),
     passPercent: text(formData, "passPercent"),
     occasionId: text(formData, "occasionId"),

@@ -194,6 +194,10 @@ La prueba E2E de evidencia espera el estado persistido «Tu participación está
 
 Las pruebas de insignias activan explícitamente la bandera cuando esperan desbloqueos en vivo. Las de evidencia comprueban que `objectKey` conserva la clave original y que solo se sirve `evidence/processed/<fileId>.webp`. Antes de entregar: `npm run db:generate` sin cambios, `npm run check` y `npm run test:e2e` completo; el resultado efectivo queda en el registro de avances.
 
+### Editor de retos
+
+Las E2E `editor:` de `tests/e2e/gamificacion.spec.ts` recorren el formulario como lo usa GH. La primera crea una misión con evidencia desde el formulario nuevo, que abre en trivia con una pregunta vacía. Usa una ventana de tres horas para que una lectura en UTC deje el cierre en el pasado, y comprueba que «Abre» y «Cierra» vuelven con la hora escrita. Después la publica y le cambia el título con los campos congelados deshabilitados. La segunda escribe una pregunta, cambia a misión y provoca el error de fechas cruzadas. Comprueba que el error vuelve a `/admin/gamificacion/retos/nuevo` con formato, título, apertura y pregunta recuperados (ADR-043, regla 9). En `gamification-challenges.test.ts`, una misión con la pregunta vacía del editor valida y se guarda sin preguntas, y una trivia con enunciado en blanco responde con T-2520 en lugar del mensaje de Zod.
+
 ### Portal y Mi OE (ADR-044)
 
 `portal-ux`, `member-experience`, `solicitudes-ux` y `ajustes-ux` usan datos sintéticos y recorren los flujos modificados a 360, 390, 768 y 1440 px, claro y oscuro. Verifican navegación activa, Escape, retorno y contención del foco, texto al 200 %, ausencia de desbordamiento y axe WCAG A/AA. Las capturas acompañan la comprobación automática; se revisan también cabeceras, jerarquía, contraste, formularios y menús renderizados.
