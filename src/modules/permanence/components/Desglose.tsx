@@ -1,8 +1,10 @@
-import type {
-  CommitteeResult,
-  CriterionResult,
-  MandatoryView,
-  PersonPermanence,
+import {
+  type CommitteeResult,
+  type CriterionResult,
+  type MandatoryView,
+  type PersonPermanence,
+  WORK_GROUP_KINDS,
+  type WorkGroupKind,
 } from "@/modules/permanence";
 import { Insignia, Progreso } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
@@ -35,6 +37,10 @@ function stateLabel(state: CommitteeResult["state"]): string {
 
 function conditionLabel(condition: CommitteeResult["condition"]): string {
   return tList("T-792")[CONDITIONS.indexOf(condition)] ?? condition;
+}
+
+function kindLabel(kind: WorkGroupKind): string {
+  return tList("T-725")[WORK_GROUP_KINDS.indexOf(kind)] ?? kind;
 }
 
 function stateText(item: CommitteeResult, committee: string, closed: boolean): string {
@@ -156,6 +162,8 @@ function Grupo({
   group: {
     groupId: string;
     name: string;
+    /** Con qué tipo cumple el criterio un grupo que entra por equivalencia (ADR-071). */
+    equivalentKind: WorkGroupKind | null;
     evaluation: "PENDING" | "GOOD" | "INSUFFICIENT";
     evaluatorIds: string[];
   };
@@ -171,6 +179,11 @@ function Grupo({
           evaluacion: labels[EVALUATIONS.indexOf(group.evaluation)] ?? "",
         })}
       </span>
+      {group.equivalentKind ? (
+        <span className="text-sm text-tinta-suave">
+          {t("T-2617", { tipo: kindLabel(group.equivalentKind) })}
+        </span>
+      ) : null}
       {group.evaluation === "PENDING" ? (
         <span className="text-sm text-tinta-suave">
           {t("T-123", { evaluador: evaluators.join(", ") || "GH" })}

@@ -6926,6 +6926,24 @@ export const textos = {
     owner: "GH",
     status: "Propuesta",
   },
+  "T-2615": {
+    where: "Reglas: etiqueta del parámetro de equivalencia",
+    text: "También cumplen este criterio",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2616": {
+    where: "Reglas: ayuda de la equivalencia",
+    text: "Otros tipos de grupo cuyo buen desempeño acredita este criterio. No aplica cuando el criterio está fijado a un código.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2617": {
+    where: "Permanencia: grupo que cumple el criterio por equivalencia",
+    text: "Cuenta por tu {tipo}",
+    owner: "GH",
+    status: "Propuesta",
+  },
   "T-262": {
     where: "Recurso términos (plural · singular)",
     text: "Términos · Término",

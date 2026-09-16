@@ -72,7 +72,8 @@ export function referenceGeneralRules(assembliesForCredit: number): RuleInput[] 
       weight: 5,
       appliesTo: "ALL",
       computation: "GROUP_EVALUATED",
-      params: { groupKind: "GAP", mode: "FIXED" },
+      // Un GT de macroevento acreditado cumple el GAP (ADR-071).
+      params: { groupKind: "GAP", mode: "FIXED", alsoCounts: ["GT_MACROEVENT"] },
       sortOrder: 3,
     },
     {

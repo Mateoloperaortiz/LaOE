@@ -141,6 +141,8 @@ export type CriterionDetail =
       groups: Array<{
         groupId: string;
         name: string;
+        /** Nulo cuando el grupo es del tipo del criterio, y en snapshots anteriores a ADR-071. */
+        equivalentKind: WorkGroupKind | null;
         evaluation: Evaluation;
         evaluatorIds: string[];
       }>;
@@ -156,6 +158,7 @@ export type CriterionDetail =
       group: {
         groupId: string;
         name: string;
+        equivalentKind: WorkGroupKind | null;
         evaluation: Evaluation;
         evaluatorIds: string[];
       } | null;
@@ -403,12 +406,23 @@ function groupsOf(
   facts: TermFacts,
   groupKind: WorkGroupKind,
   code: string | undefined,
+  alsoCounts: readonly WorkGroupKind[],
 ): GroupFact[] {
-  return facts.groups.filter((item) => item.kind === groupKind && (!code || item.code === code));
+  // Un criterio fijado a un grupo concreto se evalúa contra ese grupo: el código ignora la
+  // equivalencia de ADR-071.
+  const kinds: readonly WorkGroupKind[] = code ? [groupKind] : [groupKind, ...alsoCounts];
+  return facts.groups.filter((item) => kinds.includes(item.kind) && (!code || item.code === code));
 }
 
 interface GroupStanding {
-  groups: Array<{ groupId: string; name: string; evaluation: Evaluation; evaluatorIds: string[] }>;
+  groups: Array<{
+    groupId: string;
+    name: string;
+    /** Con qué tipo entra un grupo que cumple el criterio por equivalencia (ADR-071); nulo si es el propio. */
+    equivalentKind: WorkGroupKind | null;
+    evaluation: Evaluation;
+    evaluatorIds: string[];
+  }>;
   goodCount: number;
   pendingCount: number;
 }
@@ -418,8 +432,9 @@ function groupStanding(
   person: PersonFacts,
   groupKind: WorkGroupKind,
   code?: string,
+  alsoCounts: readonly WorkGroupKind[] = [],
 ) {
-  const candidates = groupsOf(facts, groupKind, code);
+  const candidates = groupsOf(facts, groupKind, code, alsoCounts);
   const byId = new Map(candidates.map((item) => [item.id, item]));
   const groups: GroupStanding["groups"] = [];
   for (const membership of person.groupMemberships) {
@@ -433,12 +448,18 @@ function groupStanding(
     groups.push({
       groupId: group.id,
       name: group.name,
+      equivalentKind: group.kind === groupKind ? null : group.kind,
       evaluation: membership.evaluation,
       evaluatorIds: group.evaluatorIds,
     });
   }
-  const identity = (groupId: string) =>
-    groupKind === "GT_MACROEVENT" ? (byId.get(groupId)?.macroeventId ?? groupId) : groupId;
+  // Un macroevento cuenta una vez, ya sea por su GT o por su GAP (ADR-071).
+  const identity = (groupId: string) => {
+    const group = byId.get(groupId);
+    return group && (group.kind === "GT_MACROEVENT" || group.kind === "GAP")
+      ? (group.macroeventId ?? groupId)
+      : groupId;
+  };
   const good = new Set(
     groups.filter((item) => item.evaluation === "GOOD").map((item) => identity(item.groupId)),
   );
@@ -578,7 +599,13 @@ export function computeCriterion(
       };
     }
     case "GROUP_EVALUATED": {
-      const standing = groupStanding(facts, person, rule.params.groupKind, rule.params.code);
+      const standing = groupStanding(
+        facts,
+        person,
+        rule.params.groupKind,
+        rule.params.code,
+        rule.params.alsoCounts,
+      );
       const { achieved: raw, tier } = groupAchieved(rule.params, weight, standing.goodCount);
       const achieved = cap(raw);
       let remaining = 0;
