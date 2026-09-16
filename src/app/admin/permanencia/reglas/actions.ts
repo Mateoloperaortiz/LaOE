@@ -24,6 +24,7 @@ import { clientIp } from "@/shared/lib/request";
 import { ruleInputFromForm } from "../_ui/reglas";
 
 // Editor de reglas de GH (ADR-036 regla 3): ADMIN edita cualquier tabla, salta el bloqueo, comenta y bloquea.
+// Editar y borrar declaran la tabla que muestra la página; un criterio de otra responde T-032 (ADR-072).
 
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 
@@ -89,7 +90,7 @@ export async function saveRuleAction(formData: FormData): Promise<void> {
   }
   try {
     if (id) {
-      await updateRuleAs(actor, idSchema.parse(id), parsed.data, { bypassLock: true });
+      await updateRuleAs(actor, ref, idSchema.parse(id), parsed.data, { bypassLock: true });
     } else {
       await createRuleAs(actor, ref, parsed.data, { bypassLock: true });
     }
@@ -101,10 +102,10 @@ export async function saveRuleAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteRuleAction(formData: FormData): Promise<void> {
-  const { back } = refFrom(formData);
+  const { ref, back } = refFrom(formData);
   const actor = await adminFor(back);
   try {
-    await deleteRuleAs(actor, idSchema.parse(text(formData, "id")), { bypassLock: true });
+    await deleteRuleAs(actor, ref, idSchema.parse(text(formData, "id")), { bypassLock: true });
   } catch (error) {
     failed(back, error);
   }

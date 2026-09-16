@@ -3,7 +3,7 @@ import { and, asc, eq, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
 import { committee, person } from "@/modules/people/schema";
-import { permanenceTable } from "@/modules/permanence/schema";
+import { permanenceRule, permanenceTable } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -12,7 +12,8 @@ import { E2E_CLOSING_TERM, E2E_MEMBER_EMAIL } from "./global-setup";
 import { drenarOutbox } from "./outbox";
 
 // Tablas de permanencia (ADR-036 regla 3): GH carga la referencia sobre el término de pruebas, crea
-// un criterio de comité y bloquea la tabla; el líder edita la suya y respeta el bloqueo.
+// un criterio de comité y bloquea la tabla; el líder edita la suya, no abre un criterio de otra tabla
+// (ADR-072) y respeta el bloqueo.
 
 async function firstCommittee() {
   const db = getDb();
@@ -182,6 +183,34 @@ test.describe("líder", () => {
     await panel.getByRole("button", { name: "Guardar" }).click();
     await expect(page.getByText("Guardado.")).toBeVisible();
     await expect(page.getByRole("cell", { name: "e2e-Evento del comité" })).toBeVisible();
+
+    // Su criterio abre el editor; uno de la tabla general pedido por la URL no se abre (ADR-072).
+    await page
+      .getByRole("row", { name: /e2e-Evento del comité/ })
+      .getByRole("link", { name: "Editar" })
+      .click();
+    await expect(page.getByRole("dialog")).toContainText("e2e-Evento del comité");
+    const [ajena] = await getDb()
+      .insert(permanenceRule)
+      .values({
+        termId: currentTermId,
+        scope: "GENERAL",
+        committeeId: null,
+        key: "e2e-ajena",
+        label: "e2e-Criterio ajeno",
+        description: "",
+        weight: 1,
+        appliesTo: "ALL",
+        computation: "MANUAL",
+        params: {},
+      })
+      .returning({ id: permanenceRule.id });
+    await closeDb();
+    if (!ajena) throw new Error("sin criterio ajeno");
+    await page.goto(`/admin/comites/${slug}/permanencia?accion=editar&regla=${ajena.id}`);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Permanencia de");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByText("e2e-Criterio ajeno")).toHaveCount(0);
 
     // GH bloquea la tabla (por SQL, como lo haría desde /admin/permanencia/reglas).
     const db = getDb();

@@ -30,7 +30,8 @@ import { requireCommitteeCapability } from "../../_kit/capacidades";
 
 // Tabla de permanencia del comité (ADR-026, ADR-036 regla 3, ADR-058): quien tiene la capacidad
 // PERMANENCE (ADMIN, líder técnico o la dirección por su cargo), sobre el término actual; solo ADMIN
-// pasa por encima del bloqueo de GH.
+// pasa por encima del bloqueo de GH. Cada comando recibe la tabla del comité y el dominio rechaza un
+// criterio de otra (ADR-072).
 
 const slugSchema = z.string().regex(/^[a-z0-9-]+$/);
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
@@ -84,7 +85,7 @@ export async function saveCommitteeRuleAction(formData: FormData): Promise<void>
   }
   try {
     if (id) {
-      await updateRuleAs(actor, idSchema.parse(id), parsed.data, editor);
+      await updateRuleAs(actor, ref, idSchema.parse(id), parsed.data, editor);
     } else {
       await createRuleAs(actor, ref, parsed.data, editor);
     }
@@ -97,9 +98,9 @@ export async function saveCommitteeRuleAction(formData: FormData): Promise<void>
 
 export async function deleteCommitteeRuleAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const { actor, editor } = await leaderOf(slug, back(slug));
+  const { actor, editor, ref } = await leaderOf(slug, back(slug));
   try {
-    await deleteRuleAs(actor, idSchema.parse(text(formData, "id")), editor);
+    await deleteRuleAs(actor, ref, idSchema.parse(text(formData, "id")), editor);
   } catch (error) {
     failed(back(slug), error);
   }
@@ -152,7 +153,7 @@ export async function scoreAction(formData: FormData): Promise<void> {
     redirect(`${returnTo}&error=${encodeURIComponent(t("T-260"))}`);
   }
   try {
-    await scoreCriterionAs(actor, parsed.data, {
+    await scoreCriterionAs(actor, ref, parsed.data, {
       inCommittee: member !== undefined && ref.committeeId !== null,
       personName: member?.fullName ?? personId,
       committeeName: roster?.committee.name ?? slug,

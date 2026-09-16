@@ -6,10 +6,11 @@ import { getTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { leaderScore, manualCredit, permanenceRule } from "../schema";
-import { getRule } from "./rules";
+import { getRule, rulesWhere, type TableRef } from "./rules";
 
 // Puntajes del líder (ADR-026) y créditos manuales de GH (ADR-025): siempre acotados al peso del
-// criterio, con observación o motivo, y con recompute de la persona.
+// criterio, con observación o motivo, y con recompute de la persona. El líder solo puntúa criterios de
+// la tabla que autorizó la página (ADR-036 regla 7, ADR-072).
 
 export const leaderScoreInputSchema = z.object({
   ruleId: z.string().min(1),
@@ -37,6 +38,7 @@ function recompute(ctx: CommandContext, termId: string, personId: string) {
 
 export async function scoreCriterion(
   ctx: CommandContext,
+  ref: TableRef,
   input: LeaderScoreInput,
   context: LeaderScoreContext,
   now = new Date(),
@@ -44,10 +46,11 @@ export async function scoreCriterion(
   if (context.closed) {
     throw new DomainError(t("T-834"));
   }
+  // Un criterio de otra tabla o de otro término responde igual que uno inexistente (ADR-072).
   const [rule] = await ctx.tx
     .select()
     .from(permanenceRule)
-    .where(eq(permanenceRule.id, input.ruleId));
+    .where(and(eq(permanenceRule.id, input.ruleId), rulesWhere(ref)));
   if (!rule || rule.computation !== "LEADER_SCORE") {
     throw new DomainError(t("T-777"));
   }
@@ -225,20 +228,18 @@ export async function listManualCredits(
     .where(and(eq(manualCredit.termId, termId), eq(manualCredit.personId, personId)));
 }
 
-// Wrappers: leen la regla, el término y la pertenencia antes de la transacción.
+// Wrappers: leen el término, la pertenencia y, en los créditos de GH, la regla antes de la transacción.
 
+/** `ref` es la tabla del comité que autorizó la página (ADR-072). */
 export async function scoreCriterionAs(
   actor: Actor,
+  ref: TableRef,
   input: LeaderScoreInput,
   membership: { inCommittee: boolean; personName: string; committeeName: string },
 ): Promise<void> {
-  const rule = await getRule(input.ruleId);
-  if (!rule) {
-    throw new DomainError(t("T-777"));
-  }
-  const term = await getTerm(rule.termId);
+  const term = await getTerm(ref.termId);
   const context: LeaderScoreContext = { ...membership, closed: term?.permanenceClosedAt !== null };
-  return runCommand(actor, (ctx) => scoreCriterion(ctx, input, context));
+  return runCommand(actor, (ctx) => scoreCriterion(ctx, ref, input, context));
 }
 
 export async function grantManualCreditAs(actor: Actor, input: ManualCreditInput): Promise<void> {

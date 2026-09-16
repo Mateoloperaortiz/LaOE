@@ -20,7 +20,8 @@ import {
 import { referenceCommitteeRules, referenceGeneralRules } from "./templates";
 
 // Reglas por término y tabla (ADR-036 regla 3): GH edita la general y cada líder la de su comité
-// mientras GH no la bloquee. Cada mutación encola el recompute del término.
+// mientras GH no la bloquee. Cada mutación encola el recompute del término. Editar y borrar reciben la
+// tabla autorizada y solo alcanzan un criterio de ella, también ADMIN (ADR-072).
 
 export type PermanenceTableRow = typeof permanenceTable.$inferSelect;
 
@@ -52,7 +53,8 @@ function tableWhere(ref: TableRef) {
   );
 }
 
-function rulesWhere(ref: TableRef) {
+/** Los criterios de una tabla; también acota un id recibido a la tabla autorizada (ADR-072). */
+export function rulesWhere(ref: TableRef) {
   return and(
     eq(permanenceRule.termId, ref.termId),
     ref.committeeId
@@ -206,17 +208,26 @@ export async function createRule(
   }
 }
 
+/** Un criterio de otra tabla responde igual que uno inexistente (ADR-072). */
+async function ruleOfTable(ctx: CommandContext, ref: TableRef, id: string) {
+  const [row] = await ctx.tx
+    .select()
+    .from(permanenceRule)
+    .where(and(eq(permanenceRule.id, id), rulesWhere(ref)));
+  if (!row) {
+    throw new DomainError(t("T-032"));
+  }
+  return row;
+}
+
 export async function updateRule(
   ctx: CommandContext,
+  ref: TableRef,
   id: string,
   input: RuleInput,
   context: RuleContext,
 ): Promise<void> {
-  const [before] = await ctx.tx.select().from(permanenceRule).where(eq(permanenceRule.id, id));
-  if (!before) {
-    throw new DomainError(t("T-032"));
-  }
-  const ref = { termId: before.termId, scope: before.scope, committeeId: before.committeeId };
+  const before = await ruleOfTable(ctx, ref, id);
   await assertEditable(ctx, ref, context);
   try {
     await ctx.tx.update(permanenceRule).set(toValues(ref, input)).where(eq(permanenceRule.id, id));
@@ -236,12 +247,13 @@ export async function updateRule(
   await recompute(ctx, ref.termId);
 }
 
-export async function deleteRule(ctx: CommandContext, id: string, context: RuleContext) {
-  const [before] = await ctx.tx.select().from(permanenceRule).where(eq(permanenceRule.id, id));
-  if (!before) {
-    throw new DomainError(t("T-032"));
-  }
-  const ref = { termId: before.termId, scope: before.scope, committeeId: before.committeeId };
+export async function deleteRule(
+  ctx: CommandContext,
+  ref: TableRef,
+  id: string,
+  context: RuleContext,
+) {
+  const before = await ruleOfTable(ctx, ref, id);
   await assertEditable(ctx, ref, context);
   const [[scores], [credits]] = [
     await ctx.tx.select({ n: count() }).from(leaderScore).where(eq(leaderScore.ruleId, id)),
@@ -255,7 +267,13 @@ export async function deleteRule(ctx: CommandContext, id: string, context: RuleC
     action: "permanence-rule.deleted",
     entityType: "permanence_rule",
     entityId: id,
-    before: { key: before.key, weight: before.weight },
+    before: {
+      termId: before.termId,
+      scope: before.scope,
+      committeeId: before.committeeId,
+      key: before.key,
+      weight: before.weight,
+    },
   });
   await recompute(ctx, ref.termId);
 }
@@ -459,14 +477,6 @@ async function contextFor(termId: string, editor: EditorContext): Promise<RuleCo
   return { bypassLock: editor.bypassLock, closed: term.permanenceClosedAt !== null };
 }
 
-async function contextForRule(id: string, editor: EditorContext): Promise<RuleContext> {
-  const rule = await getRule(id);
-  if (!rule) {
-    throw new DomainError(t("T-032"));
-  }
-  return contextFor(rule.termId, editor);
-}
-
 export async function createRuleAs(
   actor: Actor,
   ref: TableRef,
@@ -477,19 +487,21 @@ export async function createRuleAs(
   return runCommand(actor, (ctx) => createRule(ctx, ref, input, context));
 }
 
+/** `ref` es la tabla que autorizó la página: un criterio fuera de ella responde T-032 (ADR-072). */
 export async function updateRuleAs(
   actor: Actor,
+  ref: TableRef,
   id: string,
   input: RuleInput,
   editor: EditorContext,
 ) {
-  const context = await contextForRule(id, editor);
-  return runCommand(actor, (ctx) => updateRule(ctx, id, input, context));
+  const context = await contextFor(ref.termId, editor);
+  return runCommand(actor, (ctx) => updateRule(ctx, ref, id, input, context));
 }
 
-export async function deleteRuleAs(actor: Actor, id: string, editor: EditorContext) {
-  const context = await contextForRule(id, editor);
-  return runCommand(actor, (ctx) => deleteRule(ctx, id, context));
+export async function deleteRuleAs(actor: Actor, ref: TableRef, id: string, editor: EditorContext) {
+  const context = await contextFor(ref.termId, editor);
+  return runCommand(actor, (ctx) => deleteRule(ctx, ref, id, context));
 }
 
 /** Copia desde el término anterior por código (2026-2 ← 2026-1). */

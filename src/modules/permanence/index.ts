@@ -128,7 +128,6 @@ export {
   createRuleAs,
   deleteRuleAs,
   type EditorContext,
-  getRule,
   getTableView,
   type ImpactPreview,
   listTableViews,

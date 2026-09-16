@@ -17,7 +17,7 @@ import {
   updateRuleAs,
 } from "@/modules/permanence";
 import { leaderScore } from "@/modules/permanence/schema";
-import { outbox } from "@/modules/system/schema";
+import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
 import {
@@ -31,7 +31,8 @@ import {
 } from "./factories";
 
 // Reglas por término y tabla (ADR-036 regla 3): claves únicas, bloqueo que el líder no salta,
-// copia solo sobre tabla vacía, referencia, borrado restringido y recompute encolado una vez.
+// copia solo sobre tabla vacía, referencia, borrado restringido, recompute encolado una vez y
+// edición acotada a la tabla autorizada (ADR-072).
 
 const admin = { personId: null, ip: null } as typeof SYSTEM_ACTOR;
 
@@ -64,13 +65,66 @@ describe("reglas de permanencia", () => {
     await expect(
       createRuleAs(admin, ref, manual("integraciones"), { bypassLock: true }),
     ).rejects.toThrow(t("T-729"));
-    await updateRuleAs(admin, id, manual("integraciones", 12), { bypassLock: true });
+    await updateRuleAs(admin, ref, id, manual("integraciones", 12), { bypassLock: true });
     const view = await getTableView(ref);
     expect(view.rules.map((rule) => [rule.key, rule.weight])).toEqual([["integraciones", 12]]);
     expect(view.sums).toEqual({ veterans: 12, newcomers: 12 });
     expect(await pendingRecomputes(termId)).toBe(1);
-    await deleteRuleAs(admin, id, { bypassLock: true });
+    await deleteRuleAs(admin, ref, id, { bypassLock: true });
     expect((await getTableView(ref)).rules).toEqual([]);
+  });
+
+  it("editar o borrar exige que el criterio sea de la tabla recibida, también para ADMIN", async () => {
+    const previous = await seedTerm("2024-1");
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3");
+    const pixel = await seedCommittee("pixel");
+    const ref = { termId, scope: "COMMITTEE" as const, committeeId: a3 };
+    const generalRef = { termId, scope: "GENERAL" as const, committeeId: null };
+    const own = await seedRule(termId, "reuniones", { committeeId: a3, weight: 12 });
+    const foreign = await seedRule(termId, "reuniones", { committeeId: pixel, weight: 20 });
+    const general = await seedRule(termId, "integraciones", { weight: 10 });
+    const old = await seedRule(previous, "reuniones", { committeeId: a3, weight: 30 });
+    // Con puntajes, un criterio ajeno tampoco revela que existe: T-032 y no T-732.
+    const personId = await seedMember("puntuada@eafit.edu.co");
+    await getDb().insert(leaderScore).values({ termId, personId, ruleId: foreign, value: 5 });
+    for (const id of [foreign, general, old]) {
+      for (const editor of [{ bypassLock: false }, { bypassLock: true }]) {
+        await expect(updateRuleAs(admin, ref, id, manual("cambiada", 1), editor)).rejects.toThrow(
+          t("T-032"),
+        );
+        await expect(deleteRuleAs(admin, ref, id, editor)).rejects.toThrow(t("T-032"));
+      }
+    }
+    await expect(
+      updateRuleAs(admin, generalRef, own, manual("cambiada", 1), { bypassLock: true }),
+    ).rejects.toThrow(t("T-032"));
+    expect(await pendingRecomputes(termId)).toBe(0);
+    const weights = async (tableRef: Parameters<typeof getTableView>[0]) =>
+      (await getTableView(tableRef)).rules.map((rule) => [rule.key, rule.weight]);
+    expect(await weights({ termId, scope: "COMMITTEE", committeeId: pixel })).toEqual([
+      ["reuniones", 20],
+    ]);
+    expect(await weights(generalRef)).toEqual([["integraciones", 10]]);
+    expect(await weights({ termId: previous, scope: "COMMITTEE", committeeId: a3 })).toEqual([
+      ["reuniones", 30],
+    ]);
+    // El propio sí: se edita, se borra y la auditoría del borrado guarda su tabla.
+    await updateRuleAs(admin, ref, own, manual("reuniones", 14), { bypassLock: false });
+    expect(await weights(ref)).toEqual([["reuniones", 14]]);
+    await deleteRuleAs(admin, ref, own, { bypassLock: false });
+    expect(await weights(ref)).toEqual([]);
+    const [deleted] = await getDb()
+      .select()
+      .from(auditLog)
+      .where(and(eq(auditLog.action, "permanence-rule.deleted"), eq(auditLog.entityId, own)));
+    expect(deleted?.before).toEqual({
+      termId,
+      scope: "COMMITTEE",
+      committeeId: a3,
+      key: "reuniones",
+      weight: 14,
+    });
   });
 
   it("el líder no escribe una tabla bloqueada y ADMIN sí; un criterio con puntajes no se borra", async () => {
@@ -90,7 +144,7 @@ describe("reglas de permanencia", () => {
     expect((await getTableView(ref)).lockedAt).toBeNull();
     const personId = await seedMember("l@eafit.edu.co");
     await getDb().insert(leaderScore).values({ termId, personId, ruleId: id, value: 5 });
-    await expect(deleteRuleAs(admin, id, { bypassLock: false })).rejects.toThrow(t("T-732"));
+    await expect(deleteRuleAs(admin, ref, id, { bypassLock: false })).rejects.toThrow(t("T-732"));
     expect(
       await lockAllCommitteeTablesAs(admin, termId, [committeeId, await seedCommittee("pixel")]),
     ).toBe(2);

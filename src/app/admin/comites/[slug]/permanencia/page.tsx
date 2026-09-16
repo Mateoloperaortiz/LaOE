@@ -9,7 +9,6 @@ import {
 import { listInternalRoster, SANCTION_KINDS } from "@/modules/people";
 import {
   deviatesFromNominal,
-  getRule,
   getTableView,
   listLeaderScores,
   listSnapshots,
@@ -88,7 +87,11 @@ export default async function PermanenciaComitePage({
     committeeId: committee.id,
   });
   const locked = view.lockedAt !== null && !roles.isAdmin;
-  const editing = accion === "editar" ? await getRule(single(search.regla)) : null;
+  // El editor solo abre un criterio de esta tabla (ADR-072).
+  const editing =
+    accion === "editar"
+      ? (view.rules.find((rule) => rule.id === single(search.regla)) ?? null)
+      : null;
   const hidden = { slug };
   const [scores, snapshots, recognitions, excuses] = await Promise.all([
     listLeaderScores(term.id, committee.id),
