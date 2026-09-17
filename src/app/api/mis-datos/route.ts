@@ -148,6 +148,7 @@ export async function GET(request: Request) {
       pushAnnouncements: preferences.pushAnnouncements,
       pushPoints: preferences.pushPoints,
       pushReminders: preferences.pushReminders,
+      pushWordle: preferences.pushWordle,
     },
     pushSubscriptions: subscriptions.map((item) => ({
       id: item.id,

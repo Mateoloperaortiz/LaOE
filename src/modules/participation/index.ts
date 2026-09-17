@@ -358,6 +358,7 @@ export {
   startWordleAs,
   submitWordleGuessAs,
 } from "./domain/wordle";
+export { runWordleReminder, type WordleReminderResult } from "./domain/wordle-reminder";
 export type {
   BadgeFamily,
   BoosterKind,

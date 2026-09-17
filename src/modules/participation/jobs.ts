@@ -19,6 +19,7 @@ import { processReconciliationBatch } from "./domain/reconciliation";
 import { runReminders } from "./domain/reminders";
 import { recomputeOccasionScore } from "./domain/scores";
 import { createSurveyInvites, deleteSurveyInvitesFor } from "./domain/surveys";
+import { runWordleReminder } from "./domain/wordle-reminder";
 
 // Handlers del outbox de participación (ADR-012, ADR-035): el recompute del score corre fuera del
 // request, una vez por ráfaga (clave por ocasión) y bajo advisory lock.
@@ -74,6 +75,16 @@ registerHandler("participation.reminders", async (payload, ctx) => {
   const result = await runReminders(Number.isNaN(at.getTime()) ? new Date() : at);
   if (result.due > 0) {
     ctx.log.info(result, "recordatorios encolados");
+  }
+});
+
+// Aviso diario del Wordle (ADR-074): a las 9:00 de Bogotá, a quien todavía no abrió la partida del
+// día. La hora del tick viaja en `at`, como en los recordatorios.
+registerHandler("participation.wordle-reminder", async (payload, ctx) => {
+  const at = typeof payload.at === "string" ? new Date(payload.at) : new Date();
+  const result = await runWordleReminder(Number.isNaN(at.getTime()) ? new Date() : at);
+  if (result.enqueued > 0) {
+    ctx.log.info(result, "aviso del Wordle encolado");
   }
 });
 

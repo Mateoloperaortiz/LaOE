@@ -25,6 +25,7 @@ export const NOTIFICATION_KINDS = [
   "REMINDER",
   "SURVEY",
   "TRANSACTIONAL",
+  "WORDLE",
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -56,6 +57,7 @@ export interface PreferenceFlags {
   pushAnnouncements: boolean;
   pushPoints: boolean;
   pushReminders: boolean;
+  pushWordle: boolean;
 }
 
 export const DEFAULT_PREFERENCES: PreferenceFlags = {
@@ -63,6 +65,7 @@ export const DEFAULT_PREFERENCES: PreferenceFlags = {
   pushAnnouncements: true,
   pushPoints: true,
   pushReminders: true,
+  pushWordle: true,
 };
 
 /** Qué preferencia gobierna cada tipo de push; lo transaccional llega siempre. */
@@ -75,6 +78,9 @@ export function shouldDeliver(kind: NotificationKind, preferences: PreferenceFla
     case "REMINDER":
     case "SURVEY":
       return preferences.pushReminders;
+    // El único push diario se apaga solo (ADR-074 regla 4).
+    case "WORDLE":
+      return preferences.pushWordle;
     case "TRANSACTIONAL":
       return true;
   }

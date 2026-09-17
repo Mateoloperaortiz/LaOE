@@ -20,6 +20,7 @@ describe("shouldDeliver (ADR-038 regla 2)", () => {
       pushAnnouncements: false,
       pushPoints: false,
       pushReminders: false,
+      pushWordle: false,
     };
     expect(shouldDeliver("ANNOUNCEMENT", DEFAULT_PREFERENCES)).toBe(true);
     expect(shouldDeliver("ANNOUNCEMENT", off)).toBe(false);
@@ -29,6 +30,11 @@ describe("shouldDeliver (ADR-038 regla 2)", () => {
     expect(shouldDeliver("SURVEY", off)).toBe(false);
     expect(shouldDeliver("SURVEY", { ...off, pushReminders: true })).toBe(true);
     expect(shouldDeliver("TRANSACTIONAL", off)).toBe(true);
+    // El Wordle tiene interruptor propio: ni los puntos ni los recordatorios lo encienden (ADR-074).
+    expect(shouldDeliver("WORDLE", DEFAULT_PREFERENCES)).toBe(true);
+    expect(shouldDeliver("WORDLE", off)).toBe(false);
+    expect(shouldDeliver("WORDLE", { ...off, pushPoints: true, pushReminders: true })).toBe(false);
+    expect(shouldDeliver("WORDLE", { ...off, pushWordle: true })).toBe(true);
   });
   it("la preferencia de campañas por correo no gobierna ningún push", () => {
     const onlyMail = { ...DEFAULT_PREFERENCES, emailCampaigns: false };

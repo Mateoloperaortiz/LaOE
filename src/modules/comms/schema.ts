@@ -24,6 +24,7 @@ export const messageKind = pgEnum("message_kind", [
   "REMINDER",
   "SURVEY",
   "CAMPAIGN",
+  "WORDLE",
 ]);
 export const campaignStatus = pgEnum("campaign_status", [
   "DRAFT",
@@ -183,6 +184,8 @@ export const notificationPreference = pgTable(
     pushAnnouncements: boolean().notNull().default(true),
     pushPoints: boolean().notNull().default(true),
     pushReminders: boolean().notNull().default(true),
+    // El Wordle tiene interruptor propio por ser el único push diario (ADR-074 regla 4).
+    pushWordle: boolean().notNull().default(true),
     unsubscribeToken: text().notNull(),
     updatedAt: updatedAt(),
   },

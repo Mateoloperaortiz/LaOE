@@ -185,11 +185,13 @@ async function seedPreferencesAndPushes(members: Member[], db: Db): Promise<void
     pushAnnouncements: true,
     pushPoints: true,
     pushReminders: true,
+    pushWordle: true,
   };
   const variations: Array<[string, Partial<typeof base>]> = [
     ["oe.demo.04", { emailCampaigns: false }],
     ["oe.demo.07", { pushPoints: false }],
     ["oe.demo.08", { pushAnnouncements: false, pushReminders: false }],
+    ["oe.demo.09", { pushWordle: false }],
   ];
   for (const [fragment, change] of variations) {
     const who = byEmail(fragment);

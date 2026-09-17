@@ -92,7 +92,13 @@ describe("campañas", () => {
     await recordConsentAs(SYSTEM_ACTOR, egresadoCon, "COMMUNICATIONS", "SELF");
     await updatePreferencesAs(
       { personId: baja },
-      { emailCampaigns: false, pushAnnouncements: true, pushPoints: true, pushReminders: true },
+      {
+        emailCampaigns: false,
+        pushAnnouncements: true,
+        pushPoints: true,
+        pushReminders: true,
+        pushWordle: true,
+      },
     );
     const segmentId = await seedSegment("todos", {});
     const templateId = await seedTemplate();
