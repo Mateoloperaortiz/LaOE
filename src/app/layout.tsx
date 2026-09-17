@@ -16,7 +16,11 @@ export async function generateMetadata(): Promise<Metadata> {
     // PWA (ADR-038 regla 4): manifest, ícono de iOS y título de la app instalada.
     manifest: "/manifest.webmanifest",
     appleWebApp: { capable: true, title: t("T-1173"), statusBarStyle: "default" },
-    icons: { apple: "/icons/apple-touch-icon.png" },
+    // Con `icons` explícitos Next descarta los íconos por archivo: el favicon de `icon.svg` va aquí.
+    icons: {
+      icon: { url: "/icon.svg", type: "image/svg+xml" },
+      apple: "/icons/apple-touch-icon.png",
+    },
     ...(env.PUBLIC_INDEXING ? {} : { robots: { index: false, follow: false } }),
   };
 }

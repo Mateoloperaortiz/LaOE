@@ -1,4 +1,4 @@
-import { expect } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { test } from "./fixtures";
 
 // SEO e imágenes para compartir (F1-T5): metadata, OG, robots y sitemap. En local y CI
@@ -47,6 +47,48 @@ test("cada página lleva canonical, og:image que responde PNG y noindex mientras
   await page.goto("/eventos/dias-eafit/prueba");
   const jsonLd = await page.locator('script[type="application/ld+json"]').textContent();
   expect(JSON.parse(jsonLd ?? "{}")).toMatchObject({ "@type": "Event", name: /Días EAFIT/ });
+});
+
+// El isotipo vive en `src/app/icon.svg`, pero unos `icons` explícitos en la metadata reemplazan a
+// los íconos por archivo (Next 16, `accumulateMetadata`), así que el layout raíz declara los dos.
+test("la portada, Mi OE y el admin declaran el favicon SVG y el ícono de iOS", async ({
+  page,
+  browser,
+  request,
+}) => {
+  /** Los href de los dos íconos de una ruta, ya comprobada su forma. */
+  async function iconosDe(pagina: Page, ruta: string): Promise<[string, string]> {
+    await pagina.goto(ruta);
+    // Sin sesión, Mi OE y el admin mandan a /ingresar, que también llevaría los íconos.
+    expect(new URL(pagina.url()).pathname, ruta).toBe(ruta);
+    const icono = pagina.locator('link[rel="icon"]');
+    // La convención por archivo agregaría "?hash" al href: las dos formas sirven.
+    await expect(icono, ruta).toHaveAttribute("href", /^\/icon\.svg(\?|$)/);
+    await expect(icono, ruta).toHaveAttribute("type", "image/svg+xml");
+    const apple = pagina.locator('link[rel="apple-touch-icon"]');
+    await expect(apple, ruta).toHaveAttribute("href", /\.png(\?|$)/);
+    return [(await icono.getAttribute("href")) ?? "", (await apple.getAttribute("href")) ?? ""];
+  }
+
+  const [icono, apple] = await iconosDe(page, "/");
+  for (const [ruta, storageState] of [
+    ["/app", "tests/e2e/.auth/member.json"],
+    ["/admin", "tests/e2e/.auth/admin.json"],
+  ] as const) {
+    const context = await browser.newContext({ baseURL: ORIGIN, storageState });
+    try {
+      await iconosDe(await context.newPage(), ruta);
+    } finally {
+      await context.close();
+    }
+  }
+
+  const svg = await request.get(icono);
+  expect(svg.status()).toBe(200);
+  expect(svg.headers()["content-type"]).toContain("image/svg+xml");
+  const png = await request.get(apple);
+  expect(png.status()).toBe(200);
+  expect(png.headers()["content-type"]).toContain("image/png");
 });
 
 test("robots cierra el sitio y el sitemap lista solo lo publicado", async ({ request }) => {
