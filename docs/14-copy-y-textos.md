@@ -454,7 +454,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-1077 | Dispositivos: quitar | Quitar | MATEO | Propuesta |
 | T-1078 | Dispositivos: el actual | Este dispositivo | MATEO | Propuesta |
 | T-1079 | Preferencias: título | Qué querés recibir | MATEO | Propuesta |
-| T-1080 | Preferencias: opciones (en el orden del modelo: anuncios, puntos, recordatorios, campañas por correo) | Anuncios de la cartelera · GH Points acreditados · Recordatorios de actividades, asambleas y permanencia · Campañas por correo | MATEO | Propuesta |
+| T-1080 | Preferencias: opciones (en el orden del modelo: anuncios, puntos, recordatorios, campañas por correo; el Wordle se agregó al final para conservar los índices, ADR-074) | Anuncios de la cartelera · GH Points acreditados · Recordatorios de actividades, asambleas y permanencia · Campañas por correo · Wordle del día | MATEO | Propuesta |
 | T-1081 | Preferencias: ayuda | Los correos sobre tu ingreso, tus solicitudes y tu permanencia llegan siempre. | MATEO | Propuesta |
 | T-1082 | Preferencias: guardadas | Listo, guardamos tus preferencias. | MATEO | Propuesta |
 | T-1083 | Preferencias: botón guardar | Guardar preferencias | MATEO | Propuesta |
@@ -2200,3 +2200,4 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | --- | --- | --- | --- | --- |
 | T-2618 | Asignar a un comité inactivo | {comité} está inactivo: ya no recibe integrantes. | MATEO | Propuesta |
 | T-2619 | Roster: comité inactivo en la fila | {sigla} está inactivo: ya no recibe integrantes. Quitá esa sigla o pedí que la junta lo reactive. | MATEO | Propuesta |
+| T-2620 | Push: Wordle del día (ADR-074) | El Wordle de hoy te espera · Cinco letras, seis intentos y hasta 6 GH Points. | GH | Propuesta |

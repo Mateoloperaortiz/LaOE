@@ -16,6 +16,8 @@ export const SCHEDULE: ScheduleEntry[] = [
     cron: "0 * * * *",
     events: ["participation.auto-close", "participation.term-check", "participation.reminders"],
   },
+  // Aviso diario del Wordle (ADR-074): cuatro horas después de que empiece el día del juego.
+  { name: "wordle", cron: "0 9 * * *", events: ["participation.wordle-reminder"] },
   // Permanencia (ADR-036 regla 5): recalcula el término actual cada día para que "lo posible" envejezca.
   { name: "permanence", cron: "0 6 * * *", events: ["permanence.daily"] },
   // Avisos de permanencia por push (ADR-038 regla 10), a una hora en la que alguien los lee.

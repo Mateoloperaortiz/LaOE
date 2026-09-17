@@ -75,6 +75,21 @@ test("un dispositivo se registra, se ve en Ajustes, las preferencias se guardan 
     page.locator("#notificaciones").getByLabel("Anuncios de la cartelera"),
   ).toBeChecked();
 
+  // El Wordle tiene su propia casilla y se apaga sin tocar las demás (ADR-074 regla 4).
+  const wordle = page.locator("#notificaciones").getByLabel("Wordle del día");
+  await expect(wordle).toBeChecked();
+  await wordle.uncheck();
+  await page
+    .locator("#notificaciones")
+    .getByRole("button", { name: "Guardar preferencias" })
+    .click();
+  await expect(page.getByText("Listo, guardamos tus preferencias.")).toBeVisible();
+  await page.reload();
+  await expect(page.locator("#notificaciones").getByLabel("Wordle del día")).not.toBeChecked();
+  await expect(
+    page.locator("#notificaciones").getByLabel("Anuncios de la cartelera"),
+  ).toBeChecked();
+
   await page.locator("#notificaciones").getByRole("button", { name: "Quitar" }).click();
   await expect(page.getByText("Listo, ese dispositivo ya no recibe notificaciones.")).toBeVisible();
   await expect(page.locator("#notificaciones").locator("tbody")).toHaveCount(0);

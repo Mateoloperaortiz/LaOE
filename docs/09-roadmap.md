@@ -928,3 +928,13 @@ Listo cuando: GH crea, publica y revisa retos de los tres formatos sin tocar có
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-09-15 | Directorio de comités, entrega local | `/app/comites` reemplaza los carteles saturados por fichas con superficies del tema, logos sobre acentos institucionales, resúmenes de tres líneas y «Ver comité». Mantiene los comités propios con sus cargos, y agrega búsqueda instantánea de los demás por nombre o sigla, recuento, limpieza con retorno de foco y estados vacíos. CSS Modules, sin dependencias, cambios de dominio ni permisos. `lint`, `typecheck`, `deps:check`, `deadcode` y build aprobados; 5/5 E2E focalizadas (2 preparaciones de sesión y 3 casos), axe sin violaciones en claro/oscuro a 390/1440 px y a 1979 px, además de texto al 200 % y nombres/presentaciones extensos. Capturas con datos sintéticos en `.impeccable/review/comites/`. Sin publicación. |
+
+### Aviso diario del Wordle (ADR-074)
+
+- [x] Programado `wordle` a las 9:00 de Bogotá que recuerda la partida del día por push, solo con término vigente y puntos abiertos, y solo a quien todavía no la abrió.
+- [x] Preferencia propia `pushWordle` en Ajustes, en «mis datos» y en la Persona 360, encendida por defecto.
+- [ ] Publicar y verificar en producción que el aviso llega un día a las 9:00 y no se repite.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-17 | Aviso del Wordle, entrega local | Mateo pidió que el Wordle avise «tipo 9 am hora de Bogotá». [ADR-074](adr/ADR-074-aviso-diario-del-wordle.md) enmienda ADR-041 (la jugada sigue sin emitir push: avisa el programado) y ADR-038 (tipo `WORDLE` y quinta preferencia). `SCHEDULE` gana `wordle` (`0 9 * * *` → `participation.wordle-reminder`) y `runWordleReminder` encola al bus a los activos y honorarios sin partida del día, en lotes de 1000, con clave `wordle:<día>`, `tag` `wordle`, URL `/app/gh-points` y texto T-2620; sin término vigente o con los puntos cerrados no encola nada. Migración aditiva `0034_aviso_diario_del_wordle` (valor `WORDLE` en `message_kind`, columna `push_wordle` con `default true`). T-1080 se amplía al final para conservar los índices. |

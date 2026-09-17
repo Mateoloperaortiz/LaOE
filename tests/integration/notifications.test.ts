@@ -79,7 +79,13 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
     await subscribe(ana, "https://push.example/ana");
     await updatePreferencesAs(
       { personId: ana },
-      { emailCampaigns: true, pushAnnouncements: false, pushPoints: true, pushReminders: true },
+      {
+        emailCampaigns: true,
+        pushAnnouncements: false,
+        pushPoints: true,
+        pushReminders: true,
+        pushWordle: true,
+      },
     );
     expect((await getPreferences(ana)).pushAnnouncements).toBe(false);
     setPushSenderForTests(async () => ({ ok: true, statusCode: 201 }));
@@ -134,7 +140,13 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
     expect(await listSubscriptionsFor(bruno)).toHaveLength(1);
     await updatePreferencesAs(
       { personId: bruno },
-      { emailCampaigns: false, pushAnnouncements: true, pushPoints: true, pushReminders: true },
+      {
+        emailCampaigns: false,
+        pushAnnouncements: true,
+        pushPoints: true,
+        pushReminders: true,
+        pushWordle: true,
+      },
     );
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       endMembership(ctx, bruno, {

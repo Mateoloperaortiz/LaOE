@@ -1012,8 +1012,8 @@ export const textos = {
   },
   "T-1080": {
     where:
-      "Preferencias: opciones (en el orden del modelo: anuncios, puntos, recordatorios, campañas por correo)",
-    text: "Anuncios de la cartelera · GH Points acreditados · Recordatorios de actividades, asambleas y permanencia · Campañas por correo",
+      "Preferencias: opciones (en el orden del modelo: anuncios, puntos, recordatorios, campañas por correo; el Wordle se agregó al final para conservar los índices, ADR-074)",
+    text: "Anuncios de la cartelera · GH Points acreditados · Recordatorios de actividades, asambleas y permanencia · Campañas por correo · Wordle del día",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6960,6 +6960,12 @@ export const textos = {
     where: "Recurso términos (plural · singular)",
     text: "Términos · Término",
     owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2620": {
+    where: "Push: Wordle del día (ADR-074)",
+    text: "El Wordle de hoy te espera · Cinco letras, seis intentos y hasta 6 GH Points.",
+    owner: "GH",
     status: "Propuesta",
   },
   "T-263": {

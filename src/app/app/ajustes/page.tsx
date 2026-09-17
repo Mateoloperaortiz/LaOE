@@ -77,16 +77,15 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
     ? `${getEnv().APP_URL.replace(/\/$/, "")}/api/ics/mi-agenda.ics?t=${await getOrCreateCalendarToken(actor.personId)}`
     : null;
   const [colDispositivo, colDesde, colUltimoUso] = tList("T-1076");
-  const [prefAnuncios, prefPuntos, prefRecordatorios, prefCampañas] = tList("T-1080") as [
-    string,
-    string,
-    string,
-    string,
-  ];
+  const [prefAnuncios, prefPuntos, prefRecordatorios, prefCampañas, prefWordle] = tList(
+    "T-1080",
+  ) as [string, string, string, string, string];
   const preferencias = [
     { name: "pushAnnouncements", label: prefAnuncios, checked: preferences.pushAnnouncements },
     { name: "pushPoints", label: prefPuntos, checked: preferences.pushPoints },
     { name: "pushReminders", label: prefRecordatorios, checked: preferences.pushReminders },
+    // El Wordle va con los demás push; las campañas, que son correo, cierran la lista (ADR-074).
+    { name: "pushWordle", label: prefWordle, checked: preferences.pushWordle },
     { name: "emailCampaigns", label: prefCampañas, checked: preferences.emailCampaigns },
   ];
   const secciones = tList("T-133");

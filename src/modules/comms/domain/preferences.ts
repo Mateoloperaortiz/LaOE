@@ -14,6 +14,7 @@ export const preferencesInputSchema = z.object({
   pushAnnouncements: z.boolean(),
   pushPoints: z.boolean(),
   pushReminders: z.boolean(),
+  pushWordle: z.boolean(),
 });
 
 export type PreferencesInput = z.infer<typeof preferencesInputSchema>;
@@ -34,6 +35,7 @@ function toFlags(row: typeof notificationPreference.$inferSelect): PreferenceFla
     pushAnnouncements: row.pushAnnouncements,
     pushPoints: row.pushPoints,
     pushReminders: row.pushReminders,
+    pushWordle: row.pushWordle,
   };
 }
 

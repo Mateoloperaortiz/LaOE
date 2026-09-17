@@ -324,6 +324,7 @@ export default async function PersonaPage({
               pushAnnouncements: true,
               pushPoints: true,
               pushReminders: true,
+              pushWordle: true,
               unsubscribeToken: null,
               updatedAt: null,
             }
