@@ -3,7 +3,7 @@ import Link from "next/link";
 import { EXCUSE_CAUSES, excuseDeadline, listRequestsByPerson } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
 import { listCheckInsForPerson, listOccasionsForTerm } from "@/modules/participation";
-import { getMembershipRef, getMyMembership, listAllCommittees } from "@/modules/people";
+import { getMembershipRef, getMyMembership, listCommitteesForSelection } from "@/modules/people";
 import { getPrivacyPolicyState } from "@/modules/system";
 import { PrivacyPolicyNotice } from "@/modules/system/components/PrivacyPolicyNotice";
 import { getCurrentTerm } from "@/modules/terms";
@@ -30,7 +30,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
     listRequestsByPerson(actor.personId),
     getMembershipRef(actor.personId),
     getMyMembership(actor.personId),
-    listAllCommittees(),
+    listCommitteesForSelection(),
     getPrivacyPolicyState(),
     getCurrentTerm(),
   ]);

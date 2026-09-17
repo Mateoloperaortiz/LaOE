@@ -53,7 +53,18 @@ test.beforeEach(async ({ browser }) => {
       })),
     )
     .returning();
-  committeeIds = committees.map((row) => row.id);
+  // ADR-073: uno desactivado, que no se debe ofrecer para entrar.
+  const [desactivado] = await db
+    .insert(committee)
+    .values({
+      name: `${prefix} comité desactivado`,
+      slug: `${prefix}-off`,
+      status: "INACTIVE",
+      deactivatedOn: "2026-06-30",
+    })
+    .returning();
+  if (!desactivado) throw new Error("No se creó el comité desactivado");
+  committeeIds = [...committees.map((row) => row.id), desactivado.id];
   await db.insert(committeeMembership).values({
     personId,
     committeeId: committeeIds[0] as string,
@@ -119,6 +130,9 @@ test("el error de motivo conserva el texto y las casillas del cambio", async ({ 
   await expect(form.getByLabel("Contanos por qué", { exact: true })).toHaveValue("x");
   await expect(chosen).toBeChecked();
   await expect(join.getByRole("searchbox")).toHaveValue(`${prefix} comité 01`);
+  // ADR-073: un comité desactivado no se ofrece para entrar, ni buscándolo por su nombre.
+  await join.getByRole("searchbox").fill(`${prefix} comité desactivado`);
+  await expect(join.getByRole("checkbox")).toHaveCount(0);
   await join.getByRole("searchbox").fill("sin coincidencias");
   await expect(join.getByRole("checkbox")).toHaveCount(0);
   await expect(join.getByText("Seleccionados: 1")).toBeVisible();

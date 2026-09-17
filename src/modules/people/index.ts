@@ -84,7 +84,6 @@ export {
   type TermCommittees,
 } from "./domain/committee-memberships";
 export {
-  type CommitteeOption,
   type CommitteeProfileInput,
   type CommitteeRef,
   committeeProfileSchema,

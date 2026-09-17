@@ -21,7 +21,7 @@ import {
   occasionsResource,
   rankingsResource,
 } from "@/modules/participation/admin";
-import { listAllCommittees } from "@/modules/people";
+import { listCommitteesForSelection } from "@/modules/people";
 import {
   committeesResource,
   peopleResource,
@@ -50,7 +50,10 @@ const carteleraResource = {
       label: t("T-838"),
       type: "select" as const,
       emptyOption: t("T-839"),
-      options: (await listAllCommittees()).map((item) => ({ value: item.id, label: item.name })),
+      options: (await listCommitteesForSelection()).map((item) => ({
+        value: item.id,
+        label: item.name,
+      })),
     },
   ],
   toFormValues: (row: Parameters<typeof announcementsResource.toFormValues>[0]) => ({

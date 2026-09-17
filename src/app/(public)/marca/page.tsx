@@ -45,7 +45,7 @@ const COLORES = [
   ["oe-cream", "bg-oe-cream"],
   ["oe-ink", "bg-oe-ink"],
 ] as const;
-const COMITES = ["a3", "pixel", "cigma", "ius", "eco", "vision"];
+const COMITES = ["a3", "pixel", "cigma", "gemis", "eco", "vision"];
 
 // Muestrario de la línea gráfica para revisar cada pieza contra docs/07-marca.md. Solo en desarrollo.
 export default function MarcaPage() {

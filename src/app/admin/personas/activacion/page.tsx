@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listPeopleWithPassword } from "@/modules/identity";
 import {
-  listAllCommittees,
+  listCommitteesForSelection,
   listInternalRoster,
   listSignInMemberIds,
   listTermRoster,
@@ -32,7 +32,7 @@ export default async function ActivacionPage({
   const comite = typeof params.comite === "string" ? params.comite : "";
   const persona = typeof params.persona === "string" ? params.persona : "";
   const [committees, current, roster] = await Promise.all([
-    listAllCommittees(),
+    listCommitteesForSelection(),
     getCurrentTerm(),
     comite ? listInternalRoster(comite) : Promise.resolve(null),
   ]);

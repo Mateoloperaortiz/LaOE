@@ -113,9 +113,9 @@ export async function listAllCommittees(): Promise<
 }
 
 /** Los estados que siguen recibiendo gente (ADR-073 regla 1); `INACTIVE` queda afuera. */
-export const LIVE_COMMITTEE_STATUSES = ["ACTIVE", "ON_TRIAL"] as const;
+const LIVE_COMMITTEE_STATUSES = ["ACTIVE", "ON_TRIAL"] as const;
 
-export type CommitteeOption = Awaited<ReturnType<typeof listAllCommittees>>[number];
+type CommitteeOption = Awaited<ReturnType<typeof listAllCommittees>>[number];
 
 /**
  * Comités que se pueden elegir (ADR-073 regla 2): los vivos más los ids que el registro que se está

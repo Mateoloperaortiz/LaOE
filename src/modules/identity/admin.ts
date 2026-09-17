@@ -1,5 +1,5 @@
 import { runCommand } from "@/db/tx";
-import { listAllCommittees } from "@/modules/people";
+import { listCommitteesForSelection } from "@/modules/people";
 import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
@@ -24,7 +24,7 @@ const codeLabels: Record<PermissionRow["code"], string> = {
 };
 
 async function fields(): Promise<FieldDefinition[]> {
-  const committees = await listAllCommittees();
+  const committees = await listCommitteesForSelection();
   return [
     { name: "email", label: t("T-269"), type: "email", required: true },
     {

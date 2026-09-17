@@ -1,6 +1,6 @@
 import { runCommand } from "@/db/tx";
 import { listReadyPublicMedia } from "@/modules/content";
-import { listAllCommittees } from "@/modules/people";
+import { listCommitteesForSelection } from "@/modules/people";
 import { MULTI_SEPARATOR } from "@/shared/admin-kit";
 import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
@@ -164,7 +164,7 @@ const [editionsPlural, editionsSingular] = tList("T-333") as [string, string];
 async function editionFields(): Promise<FieldDefinition[]> {
   const [events, committees, cover] = await Promise.all([
     listAllEvents(),
-    listAllCommittees(),
+    listCommitteesForSelection(),
     coverField(),
   ]);
   return [

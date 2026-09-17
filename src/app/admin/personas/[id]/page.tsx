@@ -35,6 +35,7 @@ import {
   listAllCommittees,
   listAllTags,
   listCommitteeRoles,
+  listCommitteesForSelection,
   listPersonTags,
 } from "@/modules/people";
 import { listTeamParticipations, listWorkCommitteeTermIds } from "@/modules/permanence";
@@ -182,6 +183,10 @@ export default async function PersonaPage({
         null)
       : null;
   const committeeNames = new Map(committees.map((item) => [item.id, item.name]));
+  // Para elegir, solo los vivos más los que la persona ya tiene (ADR-073 regla 2).
+  const committeeOptions = accion
+    ? await listCommitteesForSelection(my.committees.map((item) => item.committeeId))
+    : committees;
   const closeHref = `/admin/personas/${id}?pestana=${tab}`;
 
   const teams =
@@ -368,7 +373,7 @@ export default async function PersonaPage({
           accion={accion}
           data={data}
           my={my}
-          committees={committees}
+          committees={committeeOptions}
           roles={roles}
           terms={terms}
           tags={allTags}
