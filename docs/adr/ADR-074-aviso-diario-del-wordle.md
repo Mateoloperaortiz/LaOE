@@ -1,6 +1,6 @@
 # ADR-074: Aviso diario del Wordle
 
-- Estado: Aceptada
+- Estado: Aceptada; en producción desde el 2026-09-17 (`33407ad`)
 - Fecha: 2026-09-17
 - Enmienda: ADR-041 (regla 6: el Wordle no emitía ningún push) y ADR-038 (reglas 2 y 5: un tipo de notificación y una preferencia más)
 - Relacionadas: ADR-012, ADR-020, ADR-030, ADR-035, ADR-038, ADR-041, ADR-067
