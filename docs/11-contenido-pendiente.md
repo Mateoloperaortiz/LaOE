@@ -15,9 +15,10 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 ## Comités
 
-- [ ] Texto de presentación de cada uno de los 27 comités (2 a 4 párrafos)
+- [ ] Texto de presentación de cada uno de los 18 comités activos (2 a 4 párrafos)
 - [ ] Contacto o enlace de cada comité (Instagram, correo, WhatsApp)
-- [ ] Confirmar que la lista de 27 comités con logo sigue vigente (comités nuevos o cerrados)
+- [x] Confirmar que la lista de comités con logo sigue vigente: confirmado por Mateo el 2026-09-16. En la app hay 21 comités: 18 activos y tres inactivos (BIG desde el 2026-06-01; IUS y SOS desde el 2026-06-30). AXOLOT, IGPHI, VIP, COINCI, MERC y CIM nunca existieron en la app y sus logos salieron del repositorio ([ADR-073](adr/ADR-073-un-comite-inactivo-sale-de-la-app.md))
+- [ ] Confirmar con Comunicaciones los textos públicos que cuentan comités (T-003 y T-022): quedaron en 18, que son los activos hoy
 - [ ] Nombre oficial de cada comité: el seed sintético y la primera carga usan la sigla del logo en mayúsculas como nombre provisional
 - [x] Reparto de capacidades por cargo y existencia de Mercadeo: decidido el 2026-09-13 siguiendo los Estatutos 2026 (mesa de seis cargos, Publicidad retirado y traducido a Mercadeo, Logística con roster; [ADR-060](adr/ADR-060-alineacion-con-la-normativa-2026.md) regla 4). Queda para GH revisar el reparto desde `/admin/cargos` si quiere afinarlo
 - [ ] Qué deben ver Relaciones Públicas y Financiero en el área Aliados de su comité: organizaciones y patrocinios ligados al comité, hoy sin comité en la base ([ADR-058](adr/ADR-058-direccion-del-comite-por-areas.md))
@@ -48,7 +49,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 
 ## Marca
 
-- [x] Logos de los 27 comités en SVG monocromo: ya están en `LaOE/public/logos/committees` (pasan al repositorio en la fase 0)
+- [x] Logos de los comités en SVG monocromo: están en `LaOE/public/logos/committees`; desde [ADR-073](adr/ADR-073-un-comite-inactivo-sale-de-la-app.md) quedan solo los 21 que existen en la app
 - [x] Logo vertical de la OE como máscara monocroma (`oe.svg`): sirve para las variantes navy y blanca
 - [x] Fuentes: la OE no tiene licencias; se usan Sofia Sans Extra Condensed y Plus Jakarta Sans (decisión cerrada el 2026-09-02)
 - [x] Isotipo como favicon e ícono de PWA: aprobado
@@ -62,7 +63,7 @@ Sin esto el sitio queda bonito y vacío. Se marca cuando el material está en ma
 - [x] Reparto entre tablas y regla para varios comités (general ≈ 50, comité ≈ 60, resultado por comité)
 - [x] Lista de comités de trabajo con su significado y sus líderes (falta el Athletic)
 - [x] Quién evalúa cada grupo (directores de GH; nuevos, el GH principal)
-- [ ] Tablas de permanencia de los 27 comités del término (ejemplo recibido: A3, con los eventos 1 y 2 aún sin peso)
+- [ ] Tablas de permanencia de los 18 comités activos del término (ejemplo recibido: A3, con los eventos 1 y 2 aún sin peso)
 - [ ] Lista de directores de GH por frente (GH la envía cuando termine de limpiar su base)
 - [ ] Nombres del capitán y el DT del Athletic
 - [ ] Calendario de integraciones y de partidos del Athletic del término (mientras no esté, las reglas usan 10 integraciones y 3 partidos esperados, como dijo GH)

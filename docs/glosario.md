@@ -59,7 +59,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Tabla de permanencia | `PermanenceTable` | La general de GH o la de un comité en un término; GH la comenta y la bloquea |
 | Lo que aún es posible | `remaining` | Cuánto puede sumar todavía la persona en un criterio con las ocasiones que faltan, los grupos abiertos, los puntajes y los créditos pendientes |
 | Grupo de trabajo | `WorkGroup` | Equipo por término: comité de trabajo, GT de macroevento, GAP, GAP OE, barra brava o tarea de nuevos |
-| Comité de trabajo | `WorkGroup.kind=WORK_COMMITTEE` | CAP (Acompañamiento Presidencial), CGH (Gestión Humana), CCM (Creatividad y Mercadeo), CAE (Alianzas Estratégicas), CML (Mejoramiento Logístico), CAF (Acompañamiento Financiero) o Athletic; distintos de los 27 comités de pertenencia |
+| Comité de trabajo | `WorkGroup.kind=WORK_COMMITTEE` | CAP (Acompañamiento Presidencial), CGH (Gestión Humana), CCM (Creatividad y Mercadeo), CAE (Alianzas Estratégicas), CML (Mejoramiento Logístico), CAF (Acompañamiento Financiero) o Athletic; distintos de los comités de pertenencia |
 | GT de macroevento | `WorkGroup.kind=GT_MACROEVENT` | Grupo de trabajo de una edición de Inventiva, Días EAFIT o EnFemenino |
 | GAP | `WorkGroup.kind=GAP` | Grupo de apoyo a un evento de un comité distinto al propio o a un macroevento |
 | GAP OE | `WorkGroup.kind=GAP_OE` | Grupo de apoyo a eventos de la Junta Directiva (VTG, Assessment) |

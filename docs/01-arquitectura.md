@@ -147,7 +147,7 @@ casa-digital/
   src/shared/                   brand, ui (shadcn base), admin-kit, adapters, copy, log, lib
   src/db/                       cliente Drizzle sobre pg, tx + auditoría + outbox, errores unique
   src/jobs/                     poller, scheduler, registro de handlers
-  public/logos/                 oe.svg + 27 comités
+  public/logos/                 oe.svg + 21 comités
   public/icons/                 iconos PNG de la PWA generados desde el isotipo
   public/sw.js                  service worker: push, clic y resuscripción; sin caché
   scripts/                      db-release.ts, db-reset.ts, seed.ts, copy-sync.ts, storage-init.ts, og-fonts.py, pwa-icons.ts, normativa-extract.py, migrate-ghpoints.ts, verify-migration.ts, backup.ts (el roster entra solo por el asistente del admin)

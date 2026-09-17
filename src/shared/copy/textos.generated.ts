@@ -14,7 +14,7 @@ export const textos = {
   },
   "T-003": {
     where: "Inicio, texto bajo el titular",
-    text: "Desde 1987 somos el grupo estudiantil más grande de EAFIT: 27 comités, cuatro macroeventos y una comunidad que se organiza para hacer que las cosas pasen.",
+    text: "Desde 1987 somos el grupo estudiantil más grande de EAFIT: 18 comités, cuatro macroeventos y una comunidad que se organiza para hacer que las cosas pasen.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -128,7 +128,7 @@ export const textos = {
   },
   "T-022": {
     where: "Comités, intro",
-    text: "27 comités, 27 formas de vivir la OE. Encontrá el tuyo.",
+    text: "18 comités, 18 formas de vivir la OE. Encontrá el tuyo.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -6942,6 +6942,18 @@ export const textos = {
     where: "Permanencia: grupo que cumple el criterio por equivalencia",
     text: "Cuenta por tu {tipo}",
     owner: "GH",
+    status: "Propuesta",
+  },
+  "T-2618": {
+    where: "Asignar a un comité inactivo",
+    text: "{comité} está inactivo: ya no recibe integrantes.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2619": {
+    where: "Roster: comité inactivo en la fila",
+    text: "{sigla} está inactivo: ya no recibe integrantes. Quitá esa sigla o pedí que la junta lo reactive.",
+    owner: "MATEO",
     status: "Propuesta",
   },
   "T-262": {

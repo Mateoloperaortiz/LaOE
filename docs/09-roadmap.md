@@ -19,6 +19,16 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | 2026-09-15 | Promoción a producción | `e430dc1` promovido a `production`: CI completo `35028922963` y smoke de staging `35029880093` sobre el mismo SHA, CI de promoción `35047828457` reutilizando la evidencia y smoke de producción `35047991825` contra `oeeafit.com`. Railway producción `d0c7f388-eab8-490e-9eef-0f4ad83041da` SUCCESS con `0030`, `0031` y `0032` aplicadas, 109 índices y `pg_trgm`. Registro completo en el runbook. |
 | 2026-09-15 | Aserción persistente de evidencia | El CI de `main` 35027292665 detectó que el aviso transitorio del uploader desaparecía con `router.refresh()` aunque la entrega y el premio estaban guardados. La prueba pasa a exigir el estado en revisión y la reserva, incluida su persistencia tras recargar; conserva aprobación administrativa, saldo final y drenaje estricto. |
 
+## Comités inactivos (ADR-073) · `en curso`
+
+- [x] IN0 · [ADR-073](adr/ADR-073-un-comite-inactivo-sale-de-la-app.md), enmienda a ADR-060, copy, catálogo confirmado en contenido pendiente y textos públicos con el número de comités activos.
+- [ ] IN1 · Dominio: lectura de selección, rechazo al asignar a un comité inactivo y cálculos (ranking, escalera de asambleas y participación) sin los inactivos, con pruebas.
+- [ ] IN2 · Superficies: selectores de Mi OE y del admin, seed con el catálogo real y salida de los logos sin uso.
+- [ ] IN3 · `npm run check` y E2E afectados en verde; PR.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+
 ## Alcance de la autorización (ADR-072) · `lista`
 
 - [x] AL0 · [ADR-072](adr/ADR-072-alcance-autorizado-en-el-dominio.md), enmienda a ADR-011, índices, acceso, mapa del sitio y verificación.
