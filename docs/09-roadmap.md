@@ -22,12 +22,13 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 ## Comités inactivos (ADR-073) · `en curso`
 
 - [x] IN0 · [ADR-073](adr/ADR-073-un-comite-inactivo-sale-de-la-app.md), enmienda a ADR-060, copy, catálogo confirmado en contenido pendiente y textos públicos con el número de comités activos.
-- [ ] IN1 · Dominio: lectura de selección, rechazo al asignar a un comité inactivo y cálculos (ranking, escalera de asambleas y participación) sin los inactivos, con pruebas.
-- [ ] IN2 · Superficies: selectores de Mi OE y del admin, seed con el catálogo real y salida de los logos sin uso.
-- [ ] IN3 · `npm run check` y E2E afectados en verde; PR.
+- [x] IN1 · Dominio: lectura de selección, rechazo al asignar a un comité inactivo y cálculos (ranking, escalera de asambleas y participación) sin los inactivos, con pruebas.
+- [x] IN2 · Superficies: selectores de Mi OE y del admin, seed con el catálogo real y salida de los logos sin uso.
+- [x] IN3 · `npm run check` y E2E afectados en verde; PR.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
+| 2026-09-17 | Comités inactivos · IN0–IN3 | Mateo pidió revisar que nueve comités que ya no funcionan (AXOLOT, IUS, IGPHI, SOS, BIG, VIP, COINCI, MERC y CIM) no aparecieran en la app. Seis nunca se crearon; BIG está `INACTIVE` desde el 2026-06-01 e IUS y SOS desde el 2026-06-30, y el portal ya los ocultaba. Adentro seguían: **SOS iba 7.º y BIG 18.º en el ranking de comités de 2026-2** (el podio que ve cualquier miembro; SOS con 0 % de asistencia real quedaba sobre once comités activos por el suavizado), **SOS sumaba cinco faltas sin excusa** en `/admin/asambleas`, y los selectores —incluido el de cambio de comité de Mi OE— ofrecían los tres. Verificado con una consulta de solo lectura a producción, con totales. [ADR-073](adr/ADR-073-un-comite-inactivo-sale-de-la-app.md), que enmienda a ADR-060 (reglas 7 y 8): un comité desactivado no se ofrece para elegir (`listCommitteesForSelection`, con los ids que el registro ya tiene), no recibe pertenencias nuevas (T-2618 en `setCommitteeMemberships`, T-2619 en la vista previa del roster, comprobación del id en la solicitud de transferencia), no compite en el ranking, no acumula faltas de asamblea y no recibe cálculos nuevos; lo ya calculado queda como historia y salir nunca se bloquea. `listAllCommittees` se queda para nombres, filtros y el recurso Comités. El seed pasa al catálogo real (18 activos y 3 inactivos, sin nadie adentro) y salen los logos de los seis comités que nunca existieron. Sin migración ni dependencias nuevas. Pruebas reproducidas en rojo antes del arreglo: una unitaria del roster y las cuatro nuevas de `committee-inactive`. `npm run check` PASS: 577 unitarias, 473 de integración y build. E2E afectados 64/65 en 18 archivos; el único fallo (`gamificacion.spec.ts`, la imagen de la evidencia) se reprodujo igual en un worktree limpio de `origin/main`, así que es previo y ajeno a este cambio. Sin publicación. |
 
 ## Alcance de la autorización (ADR-072) · `lista`
 
