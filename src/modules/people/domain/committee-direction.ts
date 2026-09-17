@@ -103,6 +103,8 @@ export const listMyCommitteeCapabilities = cache(
             name: row.name,
             logoKey: row.logoKey,
             isPublished: row.publicationStatus === "PUBLISHED",
+            // La consulta ya exige ACTIVE u ON_TRIAL: acá solo hay comités vivos.
+            live: true,
           },
           roles: [],
           capabilities: [],
@@ -190,6 +192,8 @@ export async function listCommitteesMissingRequiredRoles(
           name: row.name,
           logoKey: row.logoKey,
           isPublished: row.publicationStatus === "PUBLISHED",
+          // La consulta ya exige ACTIVE u ON_TRIAL: acá solo hay comités vivos.
+          live: true,
         },
         missing,
       });

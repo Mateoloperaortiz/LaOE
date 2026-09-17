@@ -1,7 +1,8 @@
 import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
-  listAllCommittees,
+  listCommitteesForSelection,
+  listLiveCommitteeIds,
   listLiveDirectionForTerm,
   listRepresentatives,
   listTermCommitteeMembers,
@@ -47,7 +48,7 @@ export async function recomputeCommitteeAssembly(occasionId: string): Promise<nu
   if (!row || row.kind !== "ASSEMBLY" || row.status !== "CLOSED") {
     return 0;
   }
-  const [members, representatives, direction, checkIns] = await Promise.all([
+  const [members, representatives, direction, checkIns, alive] = await Promise.all([
     listTermCommitteeMembers(row.termId),
     listRepresentatives(row.termId),
     listLiveDirectionForTerm(row.termId),
@@ -57,11 +58,15 @@ export async function recomputeCommitteeAssembly(occasionId: string): Promise<nu
       .where(
         and(eq(checkIn.occasionId, occasionId), inArray(checkIn.status, ["APPROVED", "EXCUSED"])),
       ),
+    listLiveCommitteeIds(),
   ]);
   const statusOf = new Map(checkIns.map((item) => [item.personId, item.status]));
+  // Un comité desactivado no acumula faltas aunque le quede alguien activo (ADR-073 regla 4).
   const committees = new Set(
     members
-      .filter((item) => item.leftAt === null && item.status === "ACTIVE")
+      .filter(
+        (item) => item.leftAt === null && item.status === "ACTIVE" && alive.has(item.committeeId),
+      )
       .map((item) => item.committeeId),
   );
   const candidates = new Map<string, string[]>();
@@ -172,7 +177,7 @@ export async function listCommitteeRepresentation(
   termId: string,
 ): Promise<CommitteeRepresentationSummary[]> {
   const [committees, representatives, rows] = await Promise.all([
-    listAllCommittees(),
+    listCommitteesForSelection(),
     listRepresentatives(termId),
     getDb()
       .select()

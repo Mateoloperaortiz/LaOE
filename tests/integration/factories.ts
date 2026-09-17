@@ -127,13 +127,33 @@ export async function seedVeteran(email: string, overrides: PersonOverrides = {}
   return seedMember(email, { entryTermCode: "2025-1", ...overrides });
 }
 
-export async function seedCommittee(slug: string, name = slug.toUpperCase()): Promise<string> {
+export async function seedCommittee(
+  slug: string,
+  name = slug.toUpperCase(),
+  /** Un comité desactivado (ADR-073) necesita su fecha, como exige `committeeLifecycleError`. */
+  overrides: Partial<{ status: "ACTIVE" | "INACTIVE" | "ON_TRIAL"; deactivatedOn: string }> = {},
+): Promise<string> {
+  const status = overrides.status ?? "ACTIVE";
   const [row] = await db()
     .insert(committee)
-    .values({ slug, name, status: "ACTIVE", publicationStatus: "PUBLISHED" })
+    .values({
+      slug,
+      name,
+      status,
+      publicationStatus: "PUBLISHED",
+      deactivatedOn:
+        overrides.deactivatedOn ?? (status === "INACTIVE" ? conventionalDeactivation() : null),
+    })
     .returning({ id: committee.id });
   if (!row) throw new Error("seed committee");
   return row.id;
+}
+
+/** Una fecha de desactivación en el pasado, para que el comité quede fuera sin depender del reloj. */
+function conventionalDeactivation(): string {
+  const date = new Date();
+  date.setUTCFullYear(date.getUTCFullYear() - 1);
+  return date.toISOString().slice(0, 10);
 }
 
 /**
