@@ -1,6 +1,6 @@
 # ADR-041: Wordle diario y cierre transaccional de puntos
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-074)
 - Fecha: 2026-09-07
 - Relacionadas: ADR-007, ADR-008, ADR-011, ADR-012, ADR-020, ADR-030, ADR-032, ADR-035
 - Enmienda: ADR-035 (palabra del día, ledger y coordinación de escrituras con el cierre); ADR-007 (tipo WORDLE).
@@ -28,3 +28,7 @@ El cierre calculaba el standing antes de su transacción y los comandos de punto
 La migración `0010_wordle_diario` es aditiva. Los checks del tipo nuevo comparan `kind::text` para que PostgreSQL permita aplicar la incorporación del enum y sus tablas en la transacción del migrador. `db:release` exige los nuevos índices únicos. La generación del diccionario no se ejecuta en build ni en producción.
 
 Pruebas unitarias de normalización, pistas, seis premios y corpus; integración de unicidad, concurrencia, rollback, cierre, vencimiento, autorizaciones y replay; E2E de UI, exportación segura, crédito, reanudación y móvil/axe. Verificación completa con `npm run check`, `npm run wordle:check` y E2E de GH Points, Wordle y cierre. El despliegue sigue la promoción habitual de la fase 7.
+
+## Enmienda (2026-09-17, ADR-074)
+
+La regla 6 sigue igual para la jugada: `wordle.completed` no emite push. Lo que avisa es un programado nuevo a las 9:00 de Bogotá, que le recuerda la partida del día a los activos y honorarios que todavía no la abrieron, solo mientras haya término vigente con los puntos abiertos. Ver [ADR-074](ADR-074-aviso-diario-del-wordle.md).
