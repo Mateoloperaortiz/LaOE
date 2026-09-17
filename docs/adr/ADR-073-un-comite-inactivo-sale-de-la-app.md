@@ -1,6 +1,6 @@
 # ADR-073: Un comité inactivo sale de la app
 
-- Estado: Aceptada; implementada en local, publicación pendiente
+- Estado: Aceptada; en producción desde el 2026-09-17 (`8343855`)
 - Fecha: 2026-09-17
 - Enmienda: ADR-060 (reglas 7 y 8)
 - Relacionadas: ADR-005, ADR-009, ADR-029, ADR-034, ADR-036, ADR-037, ADR-058, ADR-070, ADR-072

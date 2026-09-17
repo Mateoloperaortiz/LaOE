@@ -13,7 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-073](ADR-073-un-comite-inactivo-sale-de-la-app.md) | Un comité inactivo sale de la app | Aceptada; implementada en local |
+| [ADR-073](ADR-073-un-comite-inactivo-sale-de-la-app.md) | Un comité inactivo sale de la app | Aceptada; en producción |
 | [ADR-072](ADR-072-alcance-autorizado-en-el-dominio.md) | El alcance autorizado se verifica en el dominio | Aceptada; en producción |
 | [ADR-071](ADR-071-gt-de-macroevento-cumple-gap.md) | El GT de macroevento cumple el criterio GAP | Aceptada; en producción |
 | [ADR-070](ADR-070-podio-de-comites-en-gh-points.md) | Podio de comités en GH Points | Aceptada |
