@@ -93,6 +93,8 @@ export {
   listAllCommittees,
   listCommittees,
   listCommitteesByIds,
+  listCommitteesForSelection,
+  listLiveCommitteeIds,
   listPublishedCommittees,
   type PublicCommittee,
   searchCommittees,

@@ -21,7 +21,7 @@ Términos fijos en la interfaz (los usa el código tal cual):
 | Ocasión | Solo en el admin; para el miembro se dice actividad, asamblea, reunión o partido | |
 | Check-in | Registrar asistencia | Propuesta para el miembro: "Registrá tu asistencia" |
 | Egresados | Galería de quienes salieron | Mateo lo llama "memorial"; en la interfaz va "Egresados" |
-| Comité | Los 27 comités | Comité de trabajo se escribe completo para no confundir |
+| Comité | Los comités de pertenencia | Comité de trabajo se escribe completo para no confundir |
 | Término | Solo en el admin; para el miembro se dice semestre | |
 
 Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de correo hasta 60; botones de una a tres palabras; mensajes de error que digan qué pasó y qué hacer.
@@ -32,7 +32,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | --- | --- | --- | --- | --- |
 | T-001 | Nombre del sitio (pestaña, buscadores) | Organización Estudiantil EAFIT | COM | Propuesta |
 | T-002 | Inicio, titular del hero | Lo hacemos por vos | COM | Propuesta |
-| T-003 | Inicio, texto bajo el titular | Desde 1987 somos el grupo estudiantil más grande de EAFIT: 27 comités, cuatro macroeventos y una comunidad que se organiza para hacer que las cosas pasen. | COM | Propuesta |
+| T-003 | Inicio, texto bajo el titular | Desde 1987 somos el grupo estudiantil más grande de EAFIT: 18 comités, cuatro macroeventos y una comunidad que se organiza para hacer que las cosas pasen. | COM | Propuesta |
 | T-004 | Inicio, botón principal | Entrá a Mi OE | COM | Propuesta |
 | T-005 | Inicio, botón secundario | Conocé los comités | COM | Propuesta |
 | T-006 | Inicio, título de la sección de macroeventos | Nuestros macroeventos | COM | Propuesta |
@@ -51,7 +51,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-019 | Edición, botón de inscripción propia | Inscribite | COM | Propuesta |
 | T-020 | Edición, botón de inscripción externa | Inscribite (te lleva a otro sitio) | MATEO | Propuesta |
 | T-021 | Edición sin fecha confirmada | Fecha por confirmar | MATEO | Propuesta |
-| T-022 | Comités, intro | 27 comités, 27 formas de vivir la OE. Encontrá el tuyo. | COM | Propuesta |
+| T-022 | Comités, intro | 18 comités, 18 formas de vivir la OE. Encontrá el tuyo. | COM | Propuesta |
 | T-023 | Comité, presentación (uno por comité) | Por escribir: 2 a 4 párrafos, qué hacen, cómo trabajan, cómo entrar | COMITÉ | Pendiente ×27 |
 | T-024 | Comité, botón de contacto | Escribiles | COM | Propuesta |
 | T-025 | Unirse, título | ¿Querés ser parte de la OE? | GH | Propuesta |
@@ -2193,3 +2193,10 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2615 | Reglas: etiqueta del parámetro de equivalencia | También cumplen este criterio | MATEO | Propuesta |
 | T-2616 | Reglas: ayuda de la equivalencia | Otros tipos de grupo cuyo buen desempeño acredita este criterio. No aplica cuando el criterio está fijado a un código. | MATEO | Propuesta |
 | T-2617 | Permanencia: grupo que cumple el criterio por equivalencia | Cuenta por tu {tipo} | GH | Propuesta |
+
+## Comité inactivo (ADR-073)
+
+| Código | Dónde | Texto | Fuente | Estado |
+| --- | --- | --- | --- | --- |
+| T-2618 | Asignar a un comité inactivo | {comité} está inactivo: ya no recibe integrantes. | MATEO | Propuesta |
+| T-2619 | Roster: comité inactivo en la fila | {sigla} está inactivo: ya no recibe integrantes. Quitá esa sigla o pedí que la junta lo reactive. | MATEO | Propuesta |

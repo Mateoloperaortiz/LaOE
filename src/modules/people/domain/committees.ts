@@ -112,6 +112,45 @@ export async function listAllCommittees(): Promise<
     .orderBy(asc(committee.name));
 }
 
+/** Los estados que siguen recibiendo gente (ADR-073 regla 1); `INACTIVE` queda afuera. */
+const LIVE_COMMITTEE_STATUSES = ["ACTIVE", "ON_TRIAL"] as const;
+
+type CommitteeOption = Awaited<ReturnType<typeof listAllCommittees>>[number];
+
+/**
+ * Comités que se pueden elegir (ADR-073 regla 2): los vivos más los ids que el registro que se está
+ * editando ya tiene, para que un valor guardado en un comité desactivado no se pierda al guardar.
+ */
+export async function listCommitteesForSelection(
+  includeIds: ReadonlyArray<string> = [],
+): Promise<CommitteeOption[]> {
+  const ids = [...new Set(includeIds)];
+  return getDb()
+    .select({
+      id: committee.id,
+      slug: committee.slug,
+      name: committee.name,
+      status: committee.status,
+      trialEndsOn: committee.trialEndsOn,
+    })
+    .from(committee)
+    .where(
+      ids.length > 0
+        ? or(inArray(committee.status, LIVE_COMMITTEE_STATUSES), inArray(committee.id, ids))
+        : inArray(committee.status, LIVE_COMMITTEE_STATUSES),
+    )
+    .orderBy(asc(committee.name));
+}
+
+/** Ids de los comités vivos, para los cálculos que no pueden leer la tabla de `people`. */
+export async function listLiveCommitteeIds(): Promise<Set<string>> {
+  const rows = await getDb()
+    .select({ id: committee.id })
+    .from(committee)
+    .where(inArray(committee.status, LIVE_COMMITTEE_STATUSES));
+  return new Set(rows.map((row) => row.id));
+}
+
 /** Búsqueda por similitud (pg_trgm) para la paleta ⌘K. */
 export async function searchCommittees(
   q: string,
@@ -169,6 +208,8 @@ export interface CommitteeRef {
   name: string;
   logoKey: string | null;
   isPublished: boolean;
+  /** Sigue recibiendo gente (ADR-073 regla 1); un desactivado se nombra, pero no se elige. */
+  live: boolean;
 }
 
 export const listCommitteesByIds = cache(async (ids: string[]): Promise<CommitteeRef[]> => {
@@ -193,6 +234,7 @@ export const listCommitteesByIds = cache(async (ids: string[]): Promise<Committe
     name: row.name,
     logoKey: row.logoKey,
     isPublished: row.status !== "INACTIVE" && row.publicationStatus === "PUBLISHED",
+    live: row.status !== "INACTIVE",
   }));
 });
 

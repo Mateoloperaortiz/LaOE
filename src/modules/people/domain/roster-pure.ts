@@ -205,6 +205,8 @@ export interface RosterCommittee {
   id: string;
   slug: string;
   name: string;
+  /** Un comité desactivado se reconoce por su sigla, pero no recibe gente (ADR-073 regla 3). */
+  status: "ACTIVE" | "INACTIVE" | "ON_TRIAL";
 }
 
 export interface RosterRole {
@@ -385,7 +387,10 @@ export function validateRoster(
   }
   const titulars = new Map<string, number>();
   const unknownRoles = new Set<string>();
-  const siglas = catalog.committees.map((item) => item.slug);
+  // Una sigla mal escrita se sugiere solo contra comités vivos (ADR-073 regla 1).
+  const siglas = catalog.committees
+    .filter((item) => item.status !== "INACTIVE")
+    .map((item) => item.slug);
 
   const rows: ValidatedRow[] = inputs.map((input) => {
     const errors: string[] = [];
@@ -504,6 +509,8 @@ export function validateRoster(
           const target = findCommittee(sigla, catalog.committees);
           if (!target) {
             errors.push(text(2, { sigla, sugerencia: suggestCommittee(sigla, siglas) ?? "—" }));
+          } else if (target.status === "INACTIVE") {
+            errors.push(t("T-2619", { sigla: target.name }));
           } else if (!parsed.some((item) => item.id === target.id)) {
             parsed.push(target);
           }

@@ -1,4 +1,3 @@
-import { readdirSync } from "node:fs";
 import { and, count, eq, sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
@@ -37,8 +36,9 @@ import { seedFase6 } from "./lib/seed-fase6";
 import { seedGamificacion } from "./lib/seed-gamificacion";
 
 // Datos sintéticos para desarrollo y staging: nombres inventados, correos oe.demo.NN@eafit.edu.co,
-// los 27 comités por su sigla, publicados para ver el portal (el nombre oficial y la presentación
-// los aporta la OE y en producción se publican desde el admin). Idempotente. Nunca corre en producción.
+// el catálogo real de comités por su sigla, publicados para ver el portal (el nombre oficial y la
+// presentación los aporta la OE y en producción se publican desde el admin). Los tres desactivados
+// se siembran sin nadie adentro (ADR-073). Idempotente. Nunca corre en producción.
 
 const env = getEnv();
 if (env.NODE_ENV === "production") {
@@ -123,25 +123,59 @@ async function seedTerms(): Promise<Map<string, string>> {
   return ids;
 }
 
+// Catálogo real de la OE (ADR-073 regla 6): dieciocho comités activos y tres que la junta desactivó.
+// El nombre provisional sigue siendo la sigla en mayúsculas (11-contenido-pendiente).
+const COMMITTEES: Array<{ slug: string; deactivatedOn?: string }> = [
+  { slug: "a3" },
+  { slug: "agro" },
+  { slug: "cas" },
+  { slug: "ccp" },
+  { slug: "cep" },
+  { slug: "cigma" },
+  { slug: "ciip" },
+  { slug: "cimec" },
+  { slug: "conexion" },
+  { slug: "cpf" },
+  { slug: "eco" },
+  { slug: "epic" },
+  { slug: "gemis" },
+  { slug: "geo" },
+  { slug: "hox" },
+  { slug: "pixel" },
+  { slug: "tda" },
+  { slug: "vision" },
+  { slug: "big", deactivatedOn: "2026-06-01" },
+  { slug: "ius", deactivatedOn: "2026-06-30" },
+  { slug: "sos", deactivatedOn: "2026-06-30" },
+];
+
+/** Devuelve solo los comités vivos: nadie se siembra en uno desactivado. */
 async function seedCommittees(): Promise<Array<{ id: string; slug: string }>> {
-  const slugs = readdirSync("public/logos/committees")
-    .filter((file) => file.endsWith(".svg"))
-    .map((file) => file.replace(/\.svg$/, ""))
-    .sort();
   const rows: Array<{ id: string; slug: string }> = [];
-  for (const slug of slugs) {
+  for (const item of [...COMMITTEES].sort((a, b) => a.slug.localeCompare(b.slug))) {
+    const values = {
+      slug: item.slug,
+      name: item.slug.toUpperCase(),
+      logoKey: item.slug,
+      status: item.deactivatedOn ? ("INACTIVE" as const) : ("ACTIVE" as const),
+      publicationStatus: "PUBLISHED" as const,
+      deactivatedOn: item.deactivatedOn ?? null,
+    };
     const [row] = await db
       .insert(committee)
-      .values({
-        slug,
-        name: slug.toUpperCase(),
-        logoKey: slug,
-        status: "ACTIVE",
-        publicationStatus: "PUBLISHED",
+      .values(values)
+      .onConflictDoUpdate({
+        target: committee.slug,
+        set: {
+          logoKey: values.logoKey,
+          status: values.status,
+          deactivatedOn: values.deactivatedOn,
+        },
       })
-      .onConflictDoUpdate({ target: committee.slug, set: { logoKey: slug } })
       .returning({ id: committee.id, slug: committee.slug });
-    if (row) rows.push(row);
+    if (row && !item.deactivatedOn) {
+      rows.push(row);
+    }
   }
   return rows;
 }

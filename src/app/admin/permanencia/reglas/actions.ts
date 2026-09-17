@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
-import { listAllCommittees } from "@/modules/people";
+import { listCommitteesForSelection } from "@/modules/people";
 import {
   applyTemplateAs,
   commentTableAs,
@@ -167,7 +167,7 @@ export async function lockAllAction(formData: FormData): Promise<void> {
   const termId = idSchema.parse(text(formData, "termId"));
   const back = base(termId, "");
   const actor = await adminFor(back);
-  const committees = await listAllCommittees();
+  const committees = await listCommitteesForSelection();
   let n = 0;
   try {
     n = await lockAllCommitteeTablesAs(

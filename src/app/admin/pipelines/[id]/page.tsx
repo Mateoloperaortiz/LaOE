@@ -19,7 +19,7 @@ import { requireAdminActor } from "@/modules/identity";
 import {
   getMembershipRef,
   getPersonRecord,
-  listAllCommittees,
+  listCommitteesForSelection,
   searchPeople,
 } from "@/modules/people";
 import { getPrivacyPolicyState } from "@/modules/system";
@@ -141,7 +141,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
       card || nueva ? assigneeOptions() : Promise.resolve([]),
       card?.personId ? getPersonRecord(card.personId) : Promise.resolve(null),
       card?.personId ? getMembershipRef(card.personId) : Promise.resolve(null),
-      alta === "1" ? listAllCommittees() : Promise.resolve([]),
+      alta === "1" ? listCommitteesForSelection() : Promise.resolve([]),
       alta === "1" ? getCurrentTerm(now) : Promise.resolve(null),
     ]);
   const formView = submission ? await getFormView(submission.formId) : null;

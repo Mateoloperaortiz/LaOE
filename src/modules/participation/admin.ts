@@ -2,7 +2,7 @@ import { z } from "zod";
 import { runCommand } from "@/db/tx";
 import { listEditionOptions } from "@/modules/events";
 import { listSurveyFormOptions } from "@/modules/forms";
-import { getPeopleByIds, listAllCommittees } from "@/modules/people";
+import { getPeopleByIds, listAllCommittees, listCommitteesForSelection } from "@/modules/people";
 import { createAlias, getAlias, type LegacyAliasRow, listAliases } from "@/modules/system";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import type {
@@ -137,7 +137,7 @@ async function filters(): Promise<FilterDefinition[]> {
 
 async function fields(): Promise<FieldDefinition[]> {
   const [committees, editions, surveys] = await Promise.all([
-    listAllCommittees(),
+    listCommitteesForSelection(),
     listEditionOptions(),
     listSurveyFormOptions(),
   ]);

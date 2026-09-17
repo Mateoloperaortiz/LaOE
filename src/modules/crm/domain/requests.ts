@@ -244,6 +244,14 @@ export async function createRequestAs(
       const limits = await committeeLimits();
       throw new DomainError(t(change.error, limits), "joinCommitteeIds");
     }
+    // El id llega del cliente (ADR-072 regla 1): un comité desactivado no recibe a nadie (ADR-073).
+    const joining = (payload as TransferPayload).joinCommitteeIds ?? [];
+    if (joining.length > 0) {
+      const inactive = (await listCommitteesByIds(joining)).find((item) => !item.live);
+      if (inactive) {
+        throw new DomainError(t("T-2618", { comité: inactive.name }), "joinCommitteeIds");
+      }
+    }
   }
   const [term, days, who] = await Promise.all([
     getCurrentTerm(),

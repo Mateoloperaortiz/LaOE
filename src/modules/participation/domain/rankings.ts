@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
-import { type ActiveMemberRef, listActiveMemberRefs } from "@/modules/people";
+import { type ActiveMemberRef, listActiveMemberRefs, listLiveCommitteeIds } from "@/modules/people";
 import { committeeParticipation, occasion, pointEntry } from "../schema";
 import { competitionRanks, type Ranked, termCommitteeScore } from "./ledger-pure";
 
@@ -101,11 +101,18 @@ export interface CommitteeScore {
   occasions: number;
 }
 
-/** Score del término por comité: promedio simple sobre las ocasiones cerradas con puntos. */
+/**
+ * Score del término por comité: promedio simple sobre las ocasiones cerradas con puntos. Un comité
+ * desactivado no compite (ADR-073 regla 4): sus filas quedan como historia y no entran al ranking,
+ * así que tampoco corren los puestos de los demás. Dentro de una transacción el llamador pasa los
+ * comités vivos que ya leyó; afuera se resuelven acá.
+ */
 export async function rankCommittees(
   termId: string,
   exec: Executor = getDb(),
+  live?: ReadonlySet<string>,
 ): Promise<Ranked<CommitteeScore>[]> {
+  const alive = live ?? (await listLiveCommitteeIds());
   const rows = await exec
     .select({
       committeeId: committeeParticipation.committeeId,
@@ -123,6 +130,9 @@ export async function rankCommittees(
     );
   const byCommittee = new Map<string, { smoothed: number[]; raw: number[] }>();
   for (const row of rows) {
+    if (!alive.has(row.committeeId)) {
+      continue;
+    }
     const bucket = byCommittee.get(row.committeeId) ?? { smoothed: [], raw: [] };
     bucket.smoothed.push(row.smoothedRate);
     bucket.raw.push(row.rate);

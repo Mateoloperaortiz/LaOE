@@ -46,7 +46,7 @@ La tabla de cada comité vale unos 60 puntos; A3 tiene 30 definidos y dos evento
 
 ## Comités de trabajo
 
-Son distintos de los 27 comités de pertenencia. Se cargan como grupos de trabajo `WORK_COMMITTEE` con su líder de junta:
+Son distintos de los comités de pertenencia. Se cargan como grupos de trabajo `WORK_COMMITTEE` con su líder de junta:
 
 | Sigla | Nombre | Lo lidera |
 | --- | --- | --- |

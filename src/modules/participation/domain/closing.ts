@@ -67,7 +67,7 @@ export async function buildStanding(
   context?: {
     exec: Executor;
     members: readonly ActiveMemberRef[];
-    committees: readonly { id: string; name: string }[];
+    committees: readonly { id: string; name: string; status: "ACTIVE" | "INACTIVE" | "ON_TRIAL" }[];
   },
 ): Promise<Omit<TermStandingView, "termId" | "createdAt">> {
   // La migración histórica también consume esta lectura fuera de un comando. El cierre siempre
@@ -79,7 +79,12 @@ export async function buildStanding(
   const { exec: db, members, committees } = context;
   const nuevos = await rankPeopleFromMembers(db, termId, "NEW", members);
   const veteranos = await rankPeopleFromMembers(db, termId, "VETERAN", members);
-  const comites = await rankCommittees(termId, db);
+  // Los comités llegan leídos fuera de la transacción del cierre; de ahí salen los vivos (ADR-073).
+  const comites = await rankCommittees(
+    termId,
+    db,
+    new Set(committees.filter((item) => item.status !== "INACTIVE").map((item) => item.id)),
+  );
   const committeeName = new Map(committees.map((item) => [item.id, item.name]));
   const [occasions] = await db
     .select({ n: count() })

@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext, Executor } from "@/db/tx";
@@ -252,6 +252,23 @@ export async function setCommitteeMemberships(
     .select()
     .from(committeeMembership)
     .where(and(eq(committeeMembership.personId, personId), eq(committeeMembership.termId, termId)));
+  // ADR-073 regla 3: un comité desactivado no recibe pertenencias nuevas ni reabre una cerrada.
+  // Salir nunca se bloquea, así que lo que ya está vivo se puede conservar y cerrar.
+  const opening = [...wanted.keys()].filter((committeeId) => {
+    const row = existing.find((item) => item.committeeId === committeeId);
+    return !row || row.leftAt !== null;
+  });
+  if (opening.length > 0) {
+    const [inactive] = await ctx.tx
+      .select({ name: committee.name })
+      .from(committee)
+      .where(and(inArray(committee.id, opening), eq(committee.status, "INACTIVE")))
+      .orderBy(asc(committee.name))
+      .limit(1);
+    if (inactive) {
+      throw new DomainError(t("T-2618", { comité: inactive.name }), "committeeId");
+    }
+  }
   const before = await liveCommitteesPayload(ctx.tx, personId, termId);
   // Primero se cierran las que sobran, con sus cargos: así un cargo que pasa a otra pertenencia no
   // choca con el anterior dentro de la misma transacción.

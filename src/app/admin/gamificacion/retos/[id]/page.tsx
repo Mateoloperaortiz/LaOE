@@ -10,7 +10,7 @@ import {
 } from "@/modules/participation";
 import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
 import { ChallengeEditor } from "@/modules/participation/components/ChallengeEditor";
-import { getPeopleByIds, listAllCommittees } from "@/modules/people";
+import { getPeopleByIds, listCommitteesForSelection } from "@/modules/people";
 import { ResourcePanel } from "@/shared/admin-kit";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
@@ -52,14 +52,12 @@ export default async function RetoPage({
   const guardado = single(search.guardado) === "1";
   const back = `/admin/gamificacion/retos/${id}`;
 
-  const [detail, settings, committees] = await Promise.all([
-    getChallengeAdmin(id),
-    loadGamificationSettings(),
-    listAllCommittees(),
-  ]);
+  const [detail, settings] = await Promise.all([getChallengeAdmin(id), loadGamificationSettings()]);
   if (!detail) {
     notFound();
   }
+  // Un comité desactivado después de publicar el reto sigue visible en su audiencia.
+  const committees = await listCommitteesForSelection(detail.challenge.audienceCommitteeIds);
   const { challenge, questions, occasion, participants } = detail;
   const locked = challenge.status !== "DRAFT";
   const actions = tList("T-2510");

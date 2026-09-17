@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireAdminActor } from "@/modules/identity";
 import { listOccasionsForTerm, loadGamificationSettings } from "@/modules/participation";
 import { ChallengeEditor } from "@/modules/participation/components/ChallengeEditor";
-import { listAllCommittees } from "@/modules/people";
+import { listCommitteesForSelection } from "@/modules/people";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
@@ -30,7 +30,7 @@ export default async function NuevoRetoPage({
   const error = single(search.error);
   const [settings, committees, current] = await Promise.all([
     loadGamificationSettings(),
-    listAllCommittees(),
+    listCommitteesForSelection(),
     getCurrentTerm(),
   ]);
   const terms = await listAllTerms();

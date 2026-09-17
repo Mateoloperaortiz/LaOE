@@ -1,4 +1,4 @@
-import { listAllCommittees } from "@/modules/people";
+import { listAllCommittees, listCommitteesForSelection } from "@/modules/people";
 import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
 import { formatMoney } from "@/shared/lib/money";
@@ -37,7 +37,7 @@ function statusCell(status: BudgetListRow["status"]) {
 }
 
 async function fields(): Promise<FieldDefinition[]> {
-  const committees = await listAllCommittees();
+  const committees = await listCommitteesForSelection();
   return [
     {
       name: "committeeId",

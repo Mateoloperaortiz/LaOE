@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { registerHandler } from "@/jobs/registry";
-import { listTermCommitteeMembers } from "@/modules/people";
+import { listLiveCommitteeIds, listTermCommitteeMembers } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { findTermByCode, getCurrentTerm, nextTermCode } from "@/modules/terms";
 import {
@@ -32,11 +32,17 @@ registerHandler("score.recompute", async (payload, ctx) => {
     ctx.log.warn({ occasionId }, "recompute de una ocasión que no existe");
     return;
   }
-  const [roster, shrinkK] = await Promise.all([
+  const [roster, shrinkK, alive] = await Promise.all([
     listTermCommitteeMembers(row.termId),
     requireConfig("score.shrinkK"),
+    listLiveCommitteeIds(),
   ]);
-  const rows = await recomputeOccasionScore(occasionId, roster, shrinkK);
+  // Un comité desactivado no compite, así que tampoco se le calculan filas nuevas (ADR-073 regla 4).
+  const rows = await recomputeOccasionScore(
+    occasionId,
+    roster.filter((item) => alive.has(item.committeeId)),
+    shrinkK,
+  );
   ctx.log.info({ occasionId, rows }, "score de comité recalculado");
 });
 

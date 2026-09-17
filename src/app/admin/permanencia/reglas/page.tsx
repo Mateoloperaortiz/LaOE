@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdminActor } from "@/modules/identity";
-import { listAllCommittees } from "@/modules/people";
+import { listCommitteesForSelection } from "@/modules/people";
 import {
   deviatesFromNominal,
   listTableViews,
@@ -61,7 +61,7 @@ export default async function ReglasPage({ searchParams }: PageProps<"/admin/per
   const [terms, current, committees] = await Promise.all([
     listAllTerms(),
     getCurrentTerm(),
-    listAllCommittees(),
+    listCommitteesForSelection(),
   ]);
   const term = terms.find((item) => item.id === single(search.termId)) ?? current ?? terms[0];
   const [

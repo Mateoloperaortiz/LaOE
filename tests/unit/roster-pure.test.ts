@@ -8,16 +8,19 @@ import {
   parseRoleAssignments,
   parseStatus,
   type RosterCatalog,
+  type RosterCommittee,
   rowsFromCells,
   suggestCommittee,
   validateRoster,
 } from "@/modules/people/domain/roster-pure";
 
-const committees = [
-  { id: "c-a3", slug: "a3", name: "A3" },
-  { id: "c-pixel", slug: "pixel", name: "PIXEL" },
-  { id: "c-ius", slug: "ius", name: "IUS" },
-  { id: "c-eco", slug: "eco", name: "ECO" },
+const committees: RosterCommittee[] = [
+  { id: "c-a3", slug: "a3", name: "A3", status: "ACTIVE" },
+  { id: "c-pixel", slug: "pixel", name: "PIXEL", status: "ACTIVE" },
+  { id: "c-ius", slug: "ius", name: "IUS", status: "ACTIVE" },
+  { id: "c-eco", slug: "eco", name: "ECO", status: "ON_TRIAL" },
+  // Desactivado (ADR-073): se reconoce por su sigla, pero ninguna fila lo puede usar.
+  { id: "c-sos", slug: "sos", name: "SOS", status: "INACTIVE" },
 ];
 
 const catalog: RosterCatalog = {
@@ -229,6 +232,26 @@ describe("validación por fila", () => {
     const result = validateRoster(rowsFromCells(cells, mapping), mapping, { ...catalog, existing });
     expect(diffRoster(result.rows, existing)[0]?.group).toBe("ERROR");
     expect(result.rows[0]?.errors[0]).toContain("semestre de ingreso");
+  });
+
+  // ADR-073 regla 3: la sigla de un comité desactivado se reconoce, pero la fila queda en error.
+  it("rechaza la fila que manda a alguien a un comité desactivado y no lo sugiere", () => {
+    const result = validate([
+      "Ana;Arango;ana@eafit.edu.co;;Derecho;SOS;2026-2;Activo;",
+      "Bruno;Betancur;bruno@eafit.edu.co;;Derecho;A3, SOS;2026-2;Activo;",
+      "Cami;Cadavid;cami@eafit.edu.co;;Derecho;SOSS;2026-2;Activo;",
+    ]);
+    const byEmail = (email: string) => result.rows.find((row) => row.email === email);
+    expect(byEmail("ana@eafit.edu.co")?.errors[0]).toBe(
+      "SOS está inactivo: ya no recibe integrantes. Quitá esa sigla o pedí que la junta lo reactive.",
+    );
+    // Sin ningún comité vivo, la fila queda además sin el mínimo de uno.
+    expect(byEmail("ana@eafit.edu.co")?.errors).toHaveLength(2);
+    expect(byEmail("ana@eafit.edu.co")?.committees).toEqual([]);
+    expect(byEmail("bruno@eafit.edu.co")?.errors[0]).toContain("SOS está inactivo");
+    expect(byEmail("bruno@eafit.edu.co")?.committees?.map((item) => item.slug)).toEqual(["a3"]);
+    // Una sigla mal escrita no se sugiere contra un comité desactivado.
+    expect(byEmail("cami@eafit.edu.co")?.errors[0]).toContain("—");
   });
 
   it("señala cada regla de 13-importacion con su texto", () => {
