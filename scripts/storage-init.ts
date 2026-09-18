@@ -1,23 +1,13 @@
-import {
-  CreateBucketCommand,
-  GetBucketCorsCommand,
-  HeadBucketCommand,
-  PutBucketCorsCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+import { CreateBucketCommand, HeadBucketCommand, PutBucketCorsCommand } from "@aws-sdk/client-s3";
 import { getEnv } from "@/env";
 import { logger } from "@/shared/log";
+import { bucketClient, corsRule, readCorsRules } from "./lib/bucket-cors";
 
 // Prepara el bucket de medios: existe y tiene el CORS que exige la subida directa (ADR-022).
 // El mismo script sirve para Garage en local y para el bucket de Railway en staging o producción.
 
 const env = getEnv();
-const s3 = new S3Client({
-  endpoint: env.S3_ENDPOINT,
-  region: env.S3_REGION,
-  forcePathStyle: env.S3_FORCE_PATH_STYLE,
-  credentials: { accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_SECRET_ACCESS_KEY },
-});
+const s3 = bucketClient(env);
 
 async function ensureBucket(): Promise<void> {
   try {
@@ -29,28 +19,17 @@ async function ensureBucket(): Promise<void> {
   }
 }
 
+// Declara la lista completa: un origen que ya no esté en el entorno deja de estar permitido.
 async function applyCors(): Promise<void> {
   const origins = [new URL(env.APP_URL).origin, ...env.MEDIA_CORS_ORIGINS];
   await s3.send(
     new PutBucketCorsCommand({
       Bucket: env.S3_BUCKET,
-      CORSConfiguration: {
-        // Garage debe responder con un solo origen; una regla por origen evita cabeceras múltiples.
-        CORSRules: [...new Set(origins)].map((origin) => ({
-          AllowedOrigins: [origin],
-          AllowedMethods: ["GET", "HEAD", "PUT", "POST"],
-          AllowedHeaders: ["*"],
-          ExposeHeaders: ["ETag"],
-          MaxAgeSeconds: 3600,
-        })),
-      },
+      CORSConfiguration: { CORSRules: [...new Set(origins)].map(corsRule) },
     }),
   );
-  const current = await s3.send(new GetBucketCorsCommand({ Bucket: env.S3_BUCKET }));
-  logger.info(
-    { origins: current.CORSRules?.flatMap((rule) => rule.AllowedOrigins ?? []) },
-    "CORS aplicado",
-  );
+  const current = await readCorsRules(s3, env.S3_BUCKET);
+  logger.info({ origins: current.flatMap((rule) => rule.AllowedOrigins ?? []) }, "CORS aplicado");
 }
 
 await ensureBucket();
