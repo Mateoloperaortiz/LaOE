@@ -33,3 +33,7 @@ Mateo decidió el 2026-09-17, sobre dos alternativas planteadas: interruptor pro
 - Un semestre sin término vigente, o con los puntos cerrados, deja de avisar solo: no hay que apagar el programado a mano entre semestres.
 - Queda fuera, por decisión: recordar por correo, una segunda insistencia en el día, avisar a quien empezó la partida y no la terminó, y hacer configurable la hora. Cambiarla es editar el cron de `SCHEDULE`.
 - Pruebas: unitaria de `shouldDeliver` con el tipo nuevo y de las preferencias por defecto; integración del programado (sin término, con los puntos cerrados, salta a quien ya jugó, respeta la preferencia apagada y no repite en el mismo día); E2E de la casilla en Ajustes.
+
+## Enmienda (2026-09-17, ADR-075)
+
+La regla 5 mantiene la clave, el texto y la etiqueta; cambia la URL: el aviso lleva a `/app/juegos/wordle`, la ruta nueva del tablero. Los push ya entregados abren `/app/gh-points`, que conserva el enlace a la biblioteca, así que no hace falta redirección. Ver [ADR-075](ADR-075-biblioteca-de-juegos-y-2048.md).
