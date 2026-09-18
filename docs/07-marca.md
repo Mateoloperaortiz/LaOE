@@ -224,3 +224,44 @@ En Mi OE, el título principal usa Sofia Sans Extra Condensed en 36 px desde esc
 Los accesos cotidianos Inicio, Agenda, Carnet, GH Points y Más se sitúan en una barra inferior móvil y en la cabecera de escritorio. Los iconos se acompañan de texto, los destinos activos tienen una señal adicional al color y las áreas táctiles miden al menos 44 px. La barra reserva espacio para el área segura del dispositivo y no debe ocultar acciones o contenido. Los menús admiten teclado, Escape y retorno del foco.
 
 Los estilos de este tramo están confinados a `.portal-shell` y `.member-shell`, sin cambios en los tokens globales. La revisión visual, los temas, el texto ampliado y la accesibilidad se verificaron localmente a 360, 390, 768 y 1440 px. Los resultados de las pruebas y el cierre de este tramo están registrados en el roadmap.
+
+## Iconografía (2026-09-18, ADR-076)
+
+El manual de marca no habla de iconos de interfaz, así que esto es una **extensión**. [ADR-076](adr/ADR-076-biblioteca-de-iconos.md) adopta **Tabler Icons** (MIT, más de 6 000 iconos) y reemplaza los SVG dibujados a mano y los glifos Unicode (`↗`, `✓`, `×`, `⌄`) que hacían de icono. El trazo redondeado sobre una retícula de 24 continúa el lenguaje que ya tenía la app y acompaña las formas geométricas de Plus Jakarta Sans.
+
+Un icono de interfaz no es un elemento gráfico de marca (§5) ni un logo (§2): no llama la atención, orienta. Por eso va siempre en la tinta del texto que acompaña y nunca se usa para decorar.
+
+| Regla | Valor |
+| --- | --- |
+| De dónde sale | Solo de `src/shared/ui/icons/`, un archivo por icono importado por su ruta (`@/shared/ui/icons/HomeIcon`); nada más importa la biblioteca (`npm run lint` lo exige) |
+| Familia | De trazo. La rellena solo marca el destino activo de una barra de navegación |
+| Lado | `1.25em`: escala con el texto y con el texto ampliado. En píxeles solo en barras de navegación (22 px) y botones de menú (20 px) |
+| Trazo | 1,75; más grueso solo en iconos diminutos (las marcas de 10 a 14 px del Wordle) |
+| Color | `currentColor`: hereda la tinta del contenedor, así que siguen mandando las combinaciones de §3 |
+| Texto | El icono acompaña al texto de un botón o enlace, no lo reemplaza; si no cabe, el control lleva `aria-label` del catálogo |
+| Significado | Decorativo por defecto (`aria-hidden`). Si representa un valor sin texto al lado, lleva `label` del catálogo y pasa a `role="img"` |
+| Dónde no | Sobre el título de un `Cartel`, dentro del logo ni como viñeta de un párrafo |
+
+Una flecha dentro de un rango o de una oración (`apertura → cierre`) y el atajo `⌘K` siguen siendo texto.
+
+**Un concepto, un icono.** Antes de sumar uno nuevo se revisa esta tabla; si el concepto ya tiene icono, se usa ese. Los nombres son los de los archivos de la fachada:
+
+| Concepto | Icono |
+| --- | --- |
+| Inicio · Agenda · Carnet · GH Points · Juegos | `HomeIcon` · `CalendarEventIcon` · `IdIcon` · `StarIcon` · `DeviceGamepad2Icon`, cada uno con su par relleno para la pestaña activa |
+| Abrir el menú | `Menu2Icon` |
+| Desplegar un menú de cuenta | `ChevronDownIcon` |
+| Abrir o cerrar un grupo de navegación; desplegar una actividad | `PlusIcon` · `MinusIcon` |
+| Lleva a otra pantalla | `ArrowUpRightIcon` |
+| Ver el detalle | `ArrowRightIcon` |
+| Buscar | `SearchIcon` |
+| Tema claro · oscuro | `SunIcon` · `MoonIcon` |
+| Sí, cumple, en su lugar · No, no aparece, quitar | `CheckIcon` · `XIcon` |
+| No cumple (requisito sin alcanzar) | `MinusIcon` |
+| Agregar | `PlusIcon` |
+| En otro lugar (Wordle) | `ArrowsHorizontalIcon` |
+| Llegó por transferencia | `TransferIcon` |
+| Tu respuesta · Respuesta correcta (trivia) | `CircleDotIcon` · `CircleCheckIcon` |
+| Mover el tablero (2048) | `ArrowUpIcon` · `ArrowDownIcon` · `ArrowLeftIcon` · `ArrowRightIcon` |
+
+Para sumar un icono: buscarlo en [tabler.io/icons](https://tabler.io/icons), crear su archivo en `src/shared/ui/icons/` como los demás, con el nombre de su forma y sufijo `Icon`, y agregar su fila acá. knip avisa cuando un archivo deja de usarse.
