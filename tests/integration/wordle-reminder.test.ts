@@ -12,6 +12,7 @@ import {
 import { message } from "@/modules/comms/schema";
 import { runWordleReminder, startWordleAs } from "@/modules/participation";
 import { wordleDay } from "@/modules/participation/domain/wordle-pure";
+import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { truncateAll } from "./db";
 import { seedMember, seedTerm } from "./factories";
@@ -76,6 +77,10 @@ describe("aviso diario del Wordle", () => {
       subject: "El Wordle de hoy te espera",
     });
     expect(delivered).toEqual(["https://push.example/juega"]);
+    // El aviso lleva al tablero, que desde ADR-075 vive en la biblioteca de juegos.
+    const encolados = await db().select().from(outbox);
+    const aviso = encolados.find((row) => row.eventType === "notification.requested");
+    expect((aviso?.payload as { url?: string } | null)?.url).toBe("/app/juegos/wordle");
 
     // El mismo día otra vez: el outbox no duplica y comms descarta la clave ya entregada.
     expect((await runWordleReminder()).enqueued).toBe(1);
