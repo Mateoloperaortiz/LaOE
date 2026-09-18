@@ -5,6 +5,8 @@ import { OCCASION_CATEGORIES, type OccasionRow, windowState } from "@/modules/pa
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateRange, formatDateTime } from "@/shared/lib/dates";
+import { ArrowUpRightIcon } from "@/shared/ui/icons/ArrowUpRightIcon";
+import { PlusIcon } from "@/shared/ui/icons/PlusIcon";
 import { Markdown } from "@/shared/ui/Markdown";
 import { Vacio } from "./Vacio";
 
@@ -91,7 +93,7 @@ export async function MemberAgenda({
                     {item.location ? ` · ${item.location}` : ""}
                   </small>
                 </span>
-                <span aria-hidden="true">{preview ? "↗" : "+"}</span>
+                {preview ? <ArrowUpRightIcon /> : <PlusIcon />}
               </>
             );
             return (

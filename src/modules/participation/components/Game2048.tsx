@@ -3,6 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { type CopyCode, t, tList } from "@/shared/copy";
+import { ArrowDownIcon } from "@/shared/ui/icons/ArrowDownIcon";
+import { ArrowLeftIcon } from "@/shared/ui/icons/ArrowLeftIcon";
+import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
+import { ArrowUpIcon } from "@/shared/ui/icons/ArrowUpIcon";
 import {
   applyGame2048Move,
   GAME2048_MAX_MOVES,
@@ -42,7 +46,12 @@ const KEYS: Record<string, Game2048Move> = {
   A: "L",
   D: "R",
 };
-const ARROWS: Record<Game2048Move, string> = { U: "↑", D: "↓", L: "←", R: "→" };
+const ARROWS: Record<Game2048Move, typeof ArrowUpIcon> = {
+  U: ArrowUpIcon,
+  D: ArrowDownIcon,
+  L: ArrowLeftIcon,
+  R: ArrowRightIcon,
+};
 const SWIPE = 30;
 const STORAGE = "oe-2048";
 const EMPTY: number[] = new Array(16).fill(0);
@@ -295,17 +304,20 @@ export function Game2048({ initial, onStart, onFinish }: Props) {
       {playing ? (
         <fieldset className="mx-auto grid w-full max-w-sm grid-cols-4 gap-2 border-0 p-0">
           <legend className="sr-only">{t("T-2638")}</legend>
-          {DIRECTIONS.map((direction, index) => (
-            <button
-              key={direction}
-              type="button"
-              onClick={() => move(direction)}
-              className="boton-secundario justify-center text-lg"
-            >
-              <span aria-hidden="true">{ARROWS[direction]}</span>
-              <span className="sr-only">{tList("T-2639")[index] ?? direction}</span>
-            </button>
-          ))}
+          {DIRECTIONS.map((direction, index) => {
+            const Arrow = ARROWS[direction];
+            return (
+              <button
+                key={direction}
+                type="button"
+                onClick={() => move(direction)}
+                className="boton-secundario justify-center text-lg"
+              >
+                <Arrow />
+                <span className="sr-only">{tList("T-2639")[index] ?? direction}</span>
+              </button>
+            );
+          })}
         </fieldset>
       ) : null}
 

@@ -37,6 +37,19 @@
       "recommended": true,
       "suspicious": {
         "noConsole": "error"
+      },
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["@tabler/**"],
+                "message": "Los iconos se importan desde @/shared/ui/icons, la única puerta a Tabler Icons (ADR-076)."
+              }
+            ]
+          }
+        }
       }
     },
     "domains": {
@@ -58,6 +71,16 @@
         "rules": {
           "suspicious": {
             "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/shared/ui/icons/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": "off"
           }
         }
       }

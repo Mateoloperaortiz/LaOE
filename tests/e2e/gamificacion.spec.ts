@@ -107,7 +107,7 @@ test("trivia: el admin la crea por la interfaz y el miembro la responde por tecl
   await admin.getByLabel("Abre").fill(utcToBogotaInput(new Date(Date.now() - 3_600_000)));
   await admin.getByLabel("Cierra").fill(utcToBogotaInput(new Date(Date.now() + 86_400_000)));
   const grupo = admin.getByRole("group", { name: /preguntas con 2 a 6 opciones/i });
-  await grupo.getByRole("button", { name: "+", exact: true }).last().click();
+  await grupo.getByRole("button", { name: "Agregar pregunta", exact: true }).click();
   const bloques = grupo.locator("div.rounded-xl");
   await expect(bloques).toHaveCount(2);
   const preguntas = [

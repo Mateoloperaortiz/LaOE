@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { type CopyCode, t, tList } from "@/shared/copy";
+import { XIcon } from "@/shared/ui/icons/XIcon";
 import type { ChallengeSubmitReply, SubmitDenial } from "../gamification-types";
 
 // Evidencia de una misión (ADR-067 reglas 5 y 6): texto acotado y hasta tres imágenes que suben
@@ -236,10 +237,11 @@ export function EvidenceUploader({
                 <Preview src={file.preview} name={file.name} />
                 <button
                   type="button"
-                  className="text-xs font-semibold underline"
+                  className="inline-flex items-center gap-1 text-xs font-semibold underline"
                   onClick={() => setFiles((current) => current.filter((_, i) => i !== index))}
                 >
-                  ×
+                  <XIcon />
+                  {t("T-1489")}
                 </button>
               </li>
             ))}

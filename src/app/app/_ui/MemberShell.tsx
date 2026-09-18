@@ -6,35 +6,14 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { LogoOE } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { AreaSwitch } from "@/shared/ui/AreaSwitch";
+import { ArrowUpRightIcon } from "@/shared/ui/icons/ArrowUpRightIcon";
+import { Menu2Icon } from "@/shared/ui/icons/Menu2Icon";
 
 type Destination = { href: string; label: string };
+// El layout de servidor entrega cada pestaña con su icono ya renderizado (ADR-076 regla 5): el
+// relleno marca la pestaña activa, como señal adicional al color.
+type Tab = Destination & { icon: ReactNode; iconActive: ReactNode };
 type Group = { label: string; items: Destination[] };
-
-function Icon({ kind }: { kind: number }) {
-  const paths = [
-    "M3 10 12 3l9 7v11h-6v-7H9v7H3Z",
-    "M5 5h14v16H5ZM8 2v6m8-6v6M5 10h14",
-    "M3 5h18v14H3Zm4 4h4v4H7Zm8 0h3m-3 4h3M7 16h11",
-    "m12 3 3 6 6 1-4 5 1 6-6-3-6 3 1-6-4-5 6-1Z",
-    "M8 10v4M6 12h4M15 11h.01M17.5 13h.01M7 8h10a4 4 0 0 1 0 8h-1l-1.6-2H8.6L7 16a4 4 0 0 1 0-8Z",
-    "M4 6h16M4 12h16M4 18h16",
-  ];
-  return (
-    <svg
-      aria-hidden="true"
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d={paths[kind]} />
-    </svg>
-  );
-}
 
 export function MemberShell({
   children,
@@ -45,7 +24,7 @@ export function MemberShell({
   canAccessAdmin,
 }: {
   children: ReactNode;
-  primary: Destination[];
+  primary: Tab[];
   groups: Group[];
   theme: ReactNode;
   account: ReactNode;
@@ -80,13 +59,13 @@ export function MemberShell({
             <span>{t("T-1660")}</span>
           </Link>
           <nav className="member-primary-nav" aria-label={t("T-1663")}>
-            {primary.map((item, index) => (
+            {primary.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={active(item.href) ? "page" : undefined}
               >
-                <Icon kind={index} />
+                {active(item.href) ? item.iconActive : item.icon}
                 <span>{item.label}</span>
               </Link>
             ))}
@@ -106,7 +85,7 @@ export function MemberShell({
                 setOpen(true);
               }}
             >
-              <Icon kind={5} />
+              <Menu2Icon size={22} />
               <span>{t("T-1662")}</span>
             </button>
           </nav>
@@ -169,7 +148,7 @@ export function MemberShell({
                       onClick={() => drawer.current?.close()}
                     >
                       {item.label}
-                      <span aria-hidden="true">↗</span>
+                      <ArrowUpRightIcon />
                     </Link>
                   </li>
                 ))}

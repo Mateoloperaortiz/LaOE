@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useId, useRef, useState } from "react";
 import { LogoComite } from "@/shared/brand/LogoComite";
 import { t } from "@/shared/copy";
+import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
+import { SearchIcon } from "@/shared/ui/icons/SearchIcon";
 import styles from "./committees.module.css";
 
 type Committee = {
@@ -16,24 +18,6 @@ type Committee = {
 
 function normalize(value: string) {
   return value.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("es");
-}
-
-function Arrow() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M4 12h16m-6-6 6 6-6 6" />
-    </svg>
-  );
 }
 
 function CommitteeCard({ item, own = false }: { item: Committee; own?: boolean }) {
@@ -58,14 +42,14 @@ function CommitteeCard({ item, own = false }: { item: Committee; own?: boolean }
             <h3 className={styles.cardTitle}>{item.name}</h3>
             {own ? <p className={styles.role}>{item.summary}</p> : null}
           </div>
-          {own ? <Arrow /> : null}
+          {own ? <ArrowRightIcon size={20} /> : null}
         </div>
         {!own ? (
           <>
             <p className={styles.summary}>{item.summary || t("T-310")}</p>
             <span className={styles.cardAction}>
               {t("T-2595")}
-              <Arrow />
+              <ArrowRightIcon size={20} />
             </span>
           </>
         ) : null}
@@ -118,19 +102,7 @@ export function CommitteeDirectory({ mine, others }: { mine: Committee[]; others
               </label>
               <div className={styles.searchRow}>
                 <div className={styles.searchField}>
-                  <svg
-                    aria-hidden="true"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                  >
-                    <circle cx="10.5" cy="10.5" r="6.5" />
-                    <path d="m16 16 4 4" />
-                  </svg>
+                  <SearchIcon size={20} />
                   <input
                     ref={input}
                     id={searchId}

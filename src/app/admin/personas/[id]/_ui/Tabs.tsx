@@ -19,6 +19,9 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, formatDateTime } from "@/shared/lib/dates";
+import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
+import { MinusIcon } from "@/shared/ui/icons/MinusIcon";
+import { TransferIcon } from "@/shared/ui/icons/TransferIcon";
 import { Markdown } from "@/shared/ui/Markdown";
 import { IssueGrantPanel } from "../../IssueGrantPanel";
 import { completeTaskAction, consentAction, revokeCarnetAction } from "../actions";
@@ -168,6 +171,7 @@ export function TabMembresia({
   const [honorarioTitulo, honorarioAyuda] = tList("T-2315");
   const requisitos = tList("T-2316");
   const [, elegible, noElegible] = tList("T-2317");
+  const [cumple, noCumple] = tList("T-2671") as [string, string];
   const [reconocimientosTitulo, sinReconocimientos, destacado, otro, premio] = tList("T-2322");
   const [, , , , otorgarPremio] = tList("T-2321");
   const kindLabelOf = (kind: RecognitionView["kind"]) =>
@@ -234,7 +238,7 @@ export function TabMembresia({
                   <li key={item.id}>
                     <Insignia fondo={item.leftAt ? "paper" : item.isLeadership ? "naranja" : "sky"}>
                       {item.committeeName} · {committeeRolesLabel(item.roles, item.roleLabel)}
-                      {item.transferredIn ? " · ↔" : ""}
+                      {item.transferredIn ? <TransferIcon label={t("T-2672")} /> : null}
                       {item.leftAt ? ` · ${formatDate(item.leftAt)}` : ""}
                     </Insignia>
                   </li>
@@ -292,7 +296,13 @@ export function TabMembresia({
         <ul className="flex list-none flex-col gap-1 p-0 text-sm">
           {honorary.items.map((item, index) => (
             <li key={item.code} className="flex items-center gap-2">
-              <Insignia fondo={item.met ? "azul" : "paper"}>{item.met ? "✓" : "—"}</Insignia>
+              <Insignia fondo={item.met ? "azul" : "paper"}>
+                {item.met ? (
+                  <CheckIcon label={cumple} stroke={2.5} />
+                ) : (
+                  <MinusIcon label={noCumple} stroke={2.5} />
+                )}
+              </Insignia>
               <span>
                 {requisitos[index] ?? item.code} · {item.count}
               </span>

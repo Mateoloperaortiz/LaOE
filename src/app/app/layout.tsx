@@ -6,6 +6,16 @@ import { signOutAction } from "@/modules/identity/actions";
 import { hasLiveConsent } from "@/modules/people";
 import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
+import { CalendarEventFilledIcon } from "@/shared/ui/icons/CalendarEventFilledIcon";
+import { CalendarEventIcon } from "@/shared/ui/icons/CalendarEventIcon";
+import { DeviceGamepad2FilledIcon } from "@/shared/ui/icons/DeviceGamepad2FilledIcon";
+import { DeviceGamepad2Icon } from "@/shared/ui/icons/DeviceGamepad2Icon";
+import { HomeFilledIcon } from "@/shared/ui/icons/HomeFilledIcon";
+import { HomeIcon } from "@/shared/ui/icons/HomeIcon";
+import { IdFilledIcon } from "@/shared/ui/icons/IdFilledIcon";
+import { IdIcon } from "@/shared/ui/icons/IdIcon";
+import { StarFilledIcon } from "@/shared/ui/icons/StarFilledIcon";
+import { StarIcon } from "@/shared/ui/icons/StarIcon";
 import { adminAreaRoles } from "../admin/_kit/acceso";
 import { MemberShell } from "./_ui/MemberShell";
 import "./member.css";
@@ -25,6 +35,9 @@ const RUTAS: Record<string, string> = {
   Ajustes: "/app/ajustes",
   Juegos: "/app/juegos",
 };
+
+// Lado de los iconos de la barra: no acompañan a una línea de texto, van sobre ella (ADR-076 regla 3).
+const TAB_ICON = 22;
 
 export default async function AppLayout({ children }: LayoutProps<"/app">) {
   const actor = await requireActor("/app");
@@ -54,14 +67,36 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
       <MemberShell
         canAccessAdmin={roles.any}
         primary={[
-          { href: "/app", label: pestañas[0] ?? "" },
-          { href: "/app/agenda", label: t("T-1661") },
+          {
+            href: "/app",
+            label: pestañas[0] ?? "",
+            icon: <HomeIcon size={TAB_ICON} />,
+            iconActive: <HomeFilledIcon size={TAB_ICON} />,
+          },
+          {
+            href: "/app/agenda",
+            label: t("T-1661"),
+            icon: <CalendarEventIcon size={TAB_ICON} />,
+            iconActive: <CalendarEventFilledIcon size={TAB_ICON} />,
+          },
           {
             href: "/app/carnet",
             label: pestañas.find((name) => RUTAS[name] === "/app/carnet") ?? t("T-131"),
+            icon: <IdIcon size={TAB_ICON} />,
+            iconActive: <IdFilledIcon size={TAB_ICON} />,
           },
-          { href: "/app/gh-points", label: t("T-080") },
-          { href: "/app/juegos", label: t("T-2621") },
+          {
+            href: "/app/gh-points",
+            label: t("T-080"),
+            icon: <StarIcon size={TAB_ICON} />,
+            iconActive: <StarFilledIcon size={TAB_ICON} />,
+          },
+          {
+            href: "/app/juegos",
+            label: t("T-2621"),
+            icon: <DeviceGamepad2Icon size={TAB_ICON} />,
+            iconActive: <DeviceGamepad2FilledIcon size={TAB_ICON} />,
+          },
         ]}
         groups={groups}
         theme={<ThemeToggle etiquetas={[temaOscuro, temaClaro]} />}

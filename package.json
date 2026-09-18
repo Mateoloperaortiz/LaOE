@@ -48,6 +48,7 @@
     "@aws-sdk/s3-presigned-post": "^3.1125.0",
     "@aws-sdk/s3-request-presigner": "^3.1125.0",
     "@paralleldrive/cuid2": "^3.3.0",
+    "@tabler/icons-react": "^3.46.0",
     "croner": "^10.0.1",
     "drizzle-orm": "^0.45.2",
     "exceljs": "^4.4.0",
