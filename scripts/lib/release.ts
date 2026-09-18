@@ -106,6 +106,12 @@ const REQUIRED_INDEXES = [
   "wordle_attempt_game_ordinal_unique",
   "wordle_attempt_game_request_unique",
   "point_entry_wordle_game_unique",
+  // Biblioteca de juegos y 2048 (ADR-075)
+  "game2048_run_person_day_credited_unique",
+  "game2048_run_person_open_unique",
+  "game2048_run_start_request_unique",
+  "game2048_run_finish_request_unique",
+  "point_entry_game2048_run_unique",
   // Retos, boosters y colección (ADR-067)
   "challenge_participation_unique",
   "challenge_participation_request_unique",

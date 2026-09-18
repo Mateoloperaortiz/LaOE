@@ -7,7 +7,8 @@ export type PointEntryKind =
   | "LEGACY"
   | "WORDLE"
   | "CHALLENGE"
-  | "BOOST";
+  | "BOOST"
+  | "GAME2048";
 export const POINT_ENTRY_KINDS: readonly PointEntryKind[] = [
   "CHECKIN",
   "ADJUSTMENT",
@@ -17,6 +18,8 @@ export const POINT_ENTRY_KINDS: readonly PointEntryKind[] = [
   // ADR-067: premio base y extra de la gamificación; cierran la lista T-085.
   "CHALLENGE",
   "BOOST",
+  // ADR-075: premio del 2048; cierra la lista T-085.
+  "GAME2048",
 ];
 
 /** El saldo nunca se persiste: es la suma de las entradas. */

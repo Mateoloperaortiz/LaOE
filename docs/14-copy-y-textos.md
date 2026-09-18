@@ -2230,7 +2230,7 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2642 | 2048: aviso de ficha nueva | Llegaste a la ficha {n}. | MATEO | Propuesta |
 | T-2643 | 2048: aviso de umbral | Ya asegurás {n} GH Points con este puntaje. | MATEO | Propuesta |
 | T-2644 | 2048: fin de la partida | No quedan jugadas. Hiciste {puntaje} puntos. | MATEO | Propuesta |
-| T-2645 | 2048: tope de movimientos | Llegaste a los 2.000 movimientos y cerramos la partida ahí. Empezá otra cuando quieras. | MATEO | Propuesta |
+| T-2645 | 2048: tope de movimientos | Llegaste a los 4.000 movimientos y cerramos la partida ahí. Empezá otra cuando quieras. | MATEO | Propuesta |
 | T-2646 | 2048: partida guardada | Tenés una partida a medias. ¿La seguís? | MATEO | Propuesta |
 | T-2647 | 2048: retomar la partida guardada | Seguir la partida | MATEO | Propuesta |
 | T-2648 | 2048: descartar la partida guardada | Empezar de cero | MATEO | Propuesta |

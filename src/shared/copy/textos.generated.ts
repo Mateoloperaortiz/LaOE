@@ -7126,7 +7126,7 @@ export const textos = {
   },
   "T-2645": {
     where: "2048: tope de movimientos",
-    text: "Llegaste a los 2.000 movimientos y cerramos la partida ahí. Empezá otra cuando quieras.",
+    text: "Llegaste a los 4.000 movimientos y cerramos la partida ahí. Empezá otra cuando quieras.",
     owner: "MATEO",
     status: "Propuesta",
   },
