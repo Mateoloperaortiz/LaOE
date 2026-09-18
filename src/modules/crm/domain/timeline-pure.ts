@@ -26,6 +26,7 @@ export const TIMELINE_EVENTS = [
   "points.adjusted",
   "points.reversed",
   "wordle.completed",
+  "game2048.completed",
   "evaluation.recorded",
   "leader-score.recorded",
   "manual-credit.granted",
@@ -354,6 +355,25 @@ export function summarizeEvent(
         }),
         { sanctionId: str(payload, "sanctionId"), kind: str(payload, "kind") },
       );
+    case "game2048.completed": {
+      const points = typeof payload.points === "number" ? payload.points : 0;
+      const score = typeof payload.score === "number" ? payload.score : 0;
+      return entry(
+        "PARTICIPATION",
+        fill(labels.participationTexts[12] ?? "", {
+          fecha: str(payload, "day"),
+          puntaje: String(score),
+          n: String(points),
+        }),
+        {
+          runId: str(payload, "runId"),
+          termId: str(payload, "termId"),
+          day: str(payload, "day"),
+          score,
+          points,
+        },
+      );
+    }
     case "wordle.completed": {
       const points = typeof payload.points === "number" ? payload.points : 0;
       const attempts = typeof payload.attempts === "number" ? payload.attempts : 0;

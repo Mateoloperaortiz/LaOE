@@ -2,6 +2,10 @@ import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { drain } from "@/jobs/poller";
+import "@/jobs/handlers";
+import { message } from "@/modules/comms/schema";
+import { interaction } from "@/modules/crm/schema";
 import {
   finishGame2048As,
   getTodayGame2048,
@@ -341,6 +345,34 @@ describe("2048 con replay verificado", () => {
     );
     expect(result).toEqual({ ok: false, reason: "NOT_FOUND" });
     expect(await db().select().from(pointEntry)).toHaveLength(0);
+  });
+
+  it("acreditar produce una sola interacción CRM al reentregar el evento y no manda push", async () => {
+    const personId = await seedMember("g2048.crm@eafit.edu.co");
+    const { result } = await playAndFinish(personId);
+    if (!result.ok) throw new Error(result.reason);
+    expect((await drain(20)).failed).toBe(0);
+
+    const [event] = await db()
+      .select()
+      .from(outbox)
+      .where(eq(outbox.eventType, "game2048.completed"));
+    if (!event) throw new Error("Evento de prueba ausente");
+    await db()
+      .update(outbox)
+      .set({ processedAt: null, nextAttemptAt: new Date() })
+      .where(eq(outbox.id, event.id));
+    expect((await drain(20)).failed).toBe(0);
+
+    const timeline = await db()
+      .select()
+      .from(interaction)
+      .where(eq(interaction.personId, personId));
+    expect(timeline).toHaveLength(1);
+    expect(timeline[0]?.kind).toBe("PARTICIPATION");
+    expect(timeline[0]?.summary).toContain("2048");
+    // El juego no manda push: el único aviso diario de la casa es el del Wordle (ADR-074).
+    expect(await db().select().from(message)).toHaveLength(0);
   });
 
   it("el mejor puntaje del semestre acompaña la lectura del día", async () => {

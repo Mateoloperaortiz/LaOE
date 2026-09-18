@@ -11,6 +11,7 @@ import {
   listAchievementsForPerson,
   listBoostersFor,
   listEvidenceFilesFor,
+  listGame2048RunsFor,
   listParticipationsForPerson,
   listRewardsForPerson,
   listWordleGamesFor,
@@ -48,6 +49,7 @@ export async function GET(request: Request) {
     carnet,
     passes,
     wordleGames,
+    game2048Runs,
     participations,
     evidenceFiles,
     boosters,
@@ -64,6 +66,7 @@ export async function GET(request: Request) {
     getCarnetMetadata(actor.personId),
     listPassesFor(actor.personId),
     listWordleGamesFor(actor.personId),
+    listGame2048RunsFor(actor.personId),
     listParticipationsForPerson(actor.personId),
     listEvidenceFilesFor(actor.personId),
     listBoostersFor(actor.personId),
@@ -88,6 +91,7 @@ export async function GET(request: Request) {
     })),
     permissions,
     wordleGames,
+    game2048Runs,
     // Gamificación (ADR-067): entregas sin `requestId` ni la posición correcta de la trivia;
     // archivos sin `objectKey` (dirección interna del bucket); premios y logros de la colección.
     challengeParticipations: participations.map((item) => ({
