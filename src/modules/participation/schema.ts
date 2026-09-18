@@ -57,9 +57,13 @@ export const pointEntryKind = pgEnum("point_entry_kind", [
   // ADR-067: premio base de un reto (o asistencia impulsada) y su extra por booster o campaña.
   "CHALLENGE",
   "BOOST",
+  // ADR-075: premio del 2048, de 1 a 6 puntos y uno por día.
+  "GAME2048",
 ]);
 
 export const wordleStatus = pgEnum("wordle_status", ["IN_PROGRESS", "WON", "LOST", "EXPIRED"]);
+
+export const game2048Status = pgEnum("game2048_status", ["IN_PROGRESS", "FINISHED", "EXPIRED"]);
 
 // Gamificación (ADR-067): retos relámpago, boosters, campañas, premios con topes y colección.
 export const challengeKind = pgEnum("challenge_kind", ["PRESENTIAL", "TRIVIA", "EVIDENCE"]);
@@ -155,6 +159,79 @@ export const wordleAttempt = pgTable(
     check(
       "wordle_attempt_feedback_length",
       sql`jsonb_typeof(${t.feedback}) = 'array' and jsonb_array_length(${t.feedback}) = 5`,
+    ),
+  ],
+);
+
+// Partida de 2048 (ADR-075). La semilla la reparte el servidor y solo la ve su dueño; `moves` es la
+// evidencia con la que el servidor rejuega la partida para calcular `score`. Se juega sin límite:
+// el único parcial sobre `creditedAt` es lo que garantiza un solo crédito por día.
+export const game2048Run = pgTable(
+  "game2048_run",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    day: date({ mode: "string" }).notNull(),
+    seed: text().notNull(),
+    rulesVersion: text().notNull(),
+    status: game2048Status().notNull().default("IN_PROGRESS"),
+    startRequestId: text().notNull(),
+    finishRequestId: text(),
+    moves: text(),
+    moveCount: integer().notNull().default(0),
+    score: integer().notNull().default(0),
+    maxTile: integer().notNull().default(0),
+    creditedAt: timestampTz(),
+    creditedPoints: integer(),
+    finishedAt: timestampTz(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    // Un solo crédito por persona y día, aunque dos pestañas cierren a la vez.
+    uniqueIndex("game2048_run_person_day_credited_unique")
+      .on(t.personId, t.day)
+      .where(sql`${t.creditedAt} is not null`),
+    // Una sola partida abierta por persona: pedir otra devuelve la que está a medias.
+    uniqueIndex("game2048_run_person_open_unique")
+      .on(t.personId)
+      .where(sql`${t.status} = 'IN_PROGRESS'`),
+    uniqueIndex("game2048_run_start_request_unique").on(t.personId, t.startRequestId),
+    uniqueIndex("game2048_run_finish_request_unique")
+      .on(t.personId, t.finishRequestId)
+      .where(sql`${t.finishRequestId} is not null`),
+    index("game2048_run_person_day_idx").on(t.personId, t.day),
+    index("game2048_run_term_idx").on(t.termId),
+    check("game2048_run_seed_format", sql`${t.seed} ~ '^[0-9a-f]{16}$'`),
+    // PostgreSQL limita el contador de repetición de una regex a 255, así que el largo va aparte.
+    check(
+      "game2048_run_moves_format",
+      sql`${t.moves} is null or (${t.moves} ~ '^[UDLR]+$' and length(${t.moves}) <= 4000)`,
+    ),
+    check("game2048_run_move_count_range", sql`${t.moveCount} between 0 and 4000`),
+    // El contador no puede separarse de la evidencia que lo sostiene.
+    check(
+      "game2048_run_move_count_matches",
+      sql`${t.moves} is null or ${t.moveCount} = length(${t.moves})`,
+    ),
+    check("game2048_run_score_range", sql`${t.score} >= 0 and ${t.maxTile} >= 0`),
+    check(
+      "game2048_run_finished_consistent",
+      sql`(${t.status} = 'IN_PROGRESS') = (${t.finishedAt} is null)`,
+    ),
+    check(
+      "game2048_run_credit_consistent",
+      sql`(${t.creditedAt} is null) = (${t.creditedPoints} is null)`,
+    ),
+    check("game2048_run_credit_finished", sql`${t.creditedAt} is null or ${t.status} = 'FINISHED'`),
+    check(
+      "game2048_run_credit_range",
+      sql`${t.creditedPoints} is null or ${t.creditedPoints} between 1 and 6`,
     ),
   ],
 );
@@ -265,6 +342,7 @@ export const pointEntry = pgTable(
       .references(() => term.id),
     checkInId: text().references(() => checkIn.id),
     wordleGameId: text().references(() => wordleGame.id),
+    game2048RunId: text().references(() => game2048Run.id),
     rewardId: text().references((): AnyPgColumn => reward.id),
     kind: pointEntryKind().notNull(),
     points: integer().notNull(),
@@ -279,6 +357,7 @@ export const pointEntry = pgTable(
     uniqueIndex("point_entry_checkin_unique").on(t.checkInId).where(sql`${t.kind} = 'CHECKIN'`),
     uniqueIndex("point_entry_reversal_of_unique").on(t.reversalOfId),
     uniqueIndex("point_entry_wordle_game_unique").on(t.wordleGameId),
+    uniqueIndex("point_entry_game2048_run_unique").on(t.game2048RunId),
     // Un (rewardId, kind) por premio: el check de abajo limita rewardId a CHALLENGE y BOOST.
     // El predicado no compara el enum: un literal nuevo no se puede usar en la transacción del
     // ADD VALUE y el cast a text no es IMMUTABLE.
@@ -298,6 +377,14 @@ export const pointEntry = pgTable(
     check(
       "point_entry_wordle_reward",
       sql`${t.kind}::text <> 'WORDLE' or ${t.points} between 1 and 6`,
+    ),
+    check(
+      "point_entry_game2048_consistent",
+      sql`(${t.kind}::text = 'GAME2048') = (${t.game2048RunId} is not null)`,
+    ),
+    check(
+      "point_entry_game2048_reward",
+      sql`${t.kind}::text <> 'GAME2048' or ${t.points} between 1 and 6`,
     ),
     check(
       "point_entry_reversal_consistent",

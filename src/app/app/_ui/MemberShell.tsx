@@ -16,6 +16,7 @@ function Icon({ kind }: { kind: number }) {
     "M5 5h14v16H5ZM8 2v6m8-6v6M5 10h14",
     "M3 5h18v14H3Zm4 4h4v4H7Zm8 0h3m-3 4h3M7 16h11",
     "m12 3 3 6 6 1-4 5 1 6-6-3-6 3 1-6-4-5 6-1Z",
+    "M8 10v4M6 12h4M15 11h.01M17.5 13h.01M7 8h10a4 4 0 0 1 0 8h-1l-1.6-2H8.6L7 16a4 4 0 0 1 0-8Z",
     "M4 6h16M4 12h16M4 18h16",
   ];
   return (
@@ -105,7 +106,7 @@ export function MemberShell({
                 setOpen(true);
               }}
             >
-              <Icon kind={4} />
+              <Icon kind={5} />
               <span>{t("T-1662")}</span>
             </button>
           </nav>

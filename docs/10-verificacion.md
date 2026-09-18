@@ -180,6 +180,20 @@ Una firma de juguete prueba formato e integridad, no confianza de Apple ni distr
 
 Comandos: `npm run copy:sync`, `npm run db:generate` (sin diferencias frente al esquema versionado), `npm run db:migrate`, `npm run check`, `npm run test:e2e -- gamificacion gh-points wordle checkin cierre ledger`. La activación en cada entorno sigue el orden de la ADR: migración, conciliación en seco y aplicada, borradores de GH, `gamification.enabled`.
 
+### Biblioteca de juegos y 2048 (ADR-075)
+
+`tests/unit/game2048-engine.test.ts` es el corazón de la garantía: determinismo de la misma semilla en partidas completas, divergencia entre semillas, ausencia de coma flotante, las reglas de fusión (`2 2 4 4 → L` da `4 8 0 0` sumando 12; `4 4 4 4 → L` da `8 8 0 0`, no `16`), el movimiento inerte que devuelve `null`, el reparto de fichas de 4 alrededor del 10 %, y el replay que rechaza la lista entera si trae un movimiento inerte, un carácter ajeno, una semilla mal formada o más movimientos que el tope. Comprueba además que un puntaje inventado no se reproduce y que cada umbral de premio queda por debajo del costo de fusiones de su ficha.
+
+`tests/integration/game2048.test.ts` cubre el comando: leer no crea partidas, la semilla sale a su dueño con la partida abierta y nunca al historial ni a la auditoría, repetir el inicio devuelve la misma partida (veinte inicios concurrentes dejan una sola), el cierre acredita el puntaje del servidor con su entrada de ledger y su evento, reenviar el mismo `requestId` no acredita dos veces y con otro contenido se rechaza, dos cierres concurrentes de la misma partida dejan un solo premio, la segunda partida del día se guarda sin acreditar, la base rechaza un segundo crédito forzado, una partida bajo el primer umbral no consume el crédito del día, la medianoche y el cierre de puntos vencen la partida sin acreditar, quien no es activo ni honorario no juega y una partida ajena responde como inexistente.
+
+`tests/e2e/juegos.spec.ts` juega **de verdad**: elige cada dirección con el mismo motor, juega bien hasta cruzar el primer umbral —así el premio no depende de la suerte— y después llena el tablero para terminar. Comprueba la biblioteca desde el resumen de GH Points, una partida completa que acredita una sola entrada con el puntaje que guardó la base, la segunda del día que se guarda sin sumar, retomar tras recargar con el tablero y el puntaje exactos, y el móvil a 390 px con los cuatro botones de dirección, sin desborde horizontal y con axe WCAG A/AA en claro y oscuro. La mudanza del tablero del Wordle se comprueba en `wordle.spec.ts`, que ahora navega a `/app/juegos/wordle` e intercepta esa ruta para el replay por `requestId`.
+
+Comandos: `npm run check` y `npm run test:e2e -- juegos wordle gh-points mi-oe member-experience pwa gamificacion ledger cierre`.
+
+Revisión visual: biblioteca a 1280 px y tablero a 390 px en claro y oscuro; la barra inferior de Mi OE con sus seis pestañas (medida: 61 px cada una a 390 px, sin desborde ni etiquetas cortadas).
+
+`scripts/ci/e2e-durations.json` **no** se edita a mano: lleva la huella de la corrida de CI que lo generó y el repartidor le da peso mediano a un archivo que no conoce, así que `juegos.spec.ts` se equilibra solo hasta la próxima regeneración.
+
 ## Cierre de fase
 
 ### Podio de comités en GH Points (ADR-070)

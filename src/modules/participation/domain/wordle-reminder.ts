@@ -51,7 +51,7 @@ export async function runWordleReminder(now = new Date()): Promise<WordleReminde
           .map((personId) => ({ personId })),
         title,
         body,
-        url: "/app/gh-points",
+        url: "/app/juegos/wordle",
         tag: "wordle",
         dedupeKey: `wordle:${day}`,
       },
