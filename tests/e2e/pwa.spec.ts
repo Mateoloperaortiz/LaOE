@@ -1,4 +1,4 @@
-import { expect } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 
@@ -8,6 +8,21 @@ import { test } from "./fixtures";
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
 const ENDPOINT = "https://push.example.invalid/e2e-dispositivo";
+
+// El aviso T-1082 del guardado anterior sigue en pantalla mientras corre el siguiente, así que no
+// sirve de espera: una recarga en ese momento lee las preferencias de antes. Next responde la acción
+// cuando esta ya terminó.
+async function guardarPreferencias(page: Page) {
+  await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        new URL(response.url()).pathname === "/app/ajustes",
+    ),
+    page.locator("#notificaciones").getByRole("button", { name: "Guardar preferencias" }).click(),
+  ]);
+  await expect(page.getByText("Listo, guardamos tus preferencias.")).toBeVisible();
+}
 
 test("el manifest lista iconos que responden PNG y el service worker se sirve como JavaScript", async ({
   page,
@@ -60,17 +75,12 @@ test("un dispositivo se registra, se ve en Ajustes, las preferencias se guardan 
   const anuncios = notificaciones.getByLabel("Anuncios de la cartelera");
   await expect(anuncios).toBeChecked();
   await anuncios.uncheck();
-  await notificaciones.getByRole("button", { name: "Guardar preferencias" }).click();
-  await expect(page.getByText("Listo, guardamos tus preferencias.")).toBeVisible();
+  await guardarPreferencias(page);
   await expect(
     page.locator("#notificaciones").getByLabel("Anuncios de la cartelera"),
   ).not.toBeChecked();
   await page.locator("#notificaciones").getByLabel("Anuncios de la cartelera").check();
-  await page
-    .locator("#notificaciones")
-    .getByRole("button", { name: "Guardar preferencias" })
-    .click();
-  await expect(page.getByText("Listo, guardamos tus preferencias.")).toBeVisible();
+  await guardarPreferencias(page);
   await expect(
     page.locator("#notificaciones").getByLabel("Anuncios de la cartelera"),
   ).toBeChecked();
@@ -79,16 +89,17 @@ test("un dispositivo se registra, se ve en Ajustes, las preferencias se guardan 
   const wordle = page.locator("#notificaciones").getByLabel("Wordle del día");
   await expect(wordle).toBeChecked();
   await wordle.uncheck();
-  await page
-    .locator("#notificaciones")
-    .getByRole("button", { name: "Guardar preferencias" })
-    .click();
-  await expect(page.getByText("Listo, guardamos tus preferencias.")).toBeVisible();
+  await guardarPreferencias(page);
   await page.reload();
   await expect(page.locator("#notificaciones").getByLabel("Wordle del día")).not.toBeChecked();
-  await expect(
-    page.locator("#notificaciones").getByLabel("Anuncios de la cartelera"),
-  ).toBeChecked();
+  for (const otra of [
+    "Anuncios de la cartelera",
+    "GH Points acreditados",
+    "Recordatorios de actividades, asambleas y permanencia",
+    "Campañas por correo",
+  ]) {
+    await expect(page.locator("#notificaciones").getByLabel(otra)).toBeChecked();
+  }
 
   await page.locator("#notificaciones").getByRole("button", { name: "Quitar" }).click();
   await expect(page.getByText("Listo, ese dispositivo ya no recibe notificaciones.")).toBeVisible();

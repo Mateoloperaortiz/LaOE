@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { isUniqueViolation } from "@/db/errors";
 import { drain } from "@/jobs/poller";
 import "@/jobs/handlers";
 import { message } from "@/modules/comms/schema";
@@ -29,6 +30,12 @@ import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
 const db = () => getDb();
 const ORDER: Game2048Move[] = ["L", "U", "R", "D"];
+/**
+ * Semilla con la que `playOut` pasa el primer umbral de premio. Con la semilla aleatoria del
+ * servidor, la heurística se queda bajo 1.000 puntos en el 2,5 % de las partidas (50.000 semillas,
+ * medido el 2026-09-18) y esa partida no acredita: las pruebas que necesitan un crédito usan esta.
+ */
+const SEED_OVER_THRESHOLD = "36e7e815ffd7e027";
 
 /** Juega de verdad con una heurística simple: las listas de prueba son siempre reproducibles. */
 function playOut(seed: string): { state: Game2048State; moves: string } {
@@ -63,10 +70,23 @@ function prefixUnder(seed: string, limit: number): { moves: string; score: numbe
   return { moves: kept.join(""), score: state.score };
 }
 
-async function openRun(personId: string) {
+/**
+ * Abre la partida del día. Con `overThreshold` le pone la semilla fija —el cierre rejuega con la
+ * guardada— después de comprobar que `playOut` la lleva sobre el primer umbral: si un cambio del
+ * motor o de la heurística la deja debajo, la prueba falla aquí y no con un síntoma más adelante.
+ */
+async function openRun(personId: string, { overThreshold = false } = {}) {
   const result = await startGame2048As({ personId }, { requestId: randomUUID() });
   if (!result.ok) throw new Error(result.reason);
-  return result.run;
+  if (!overThreshold) return result.run;
+  if (game2048Reward(playOut(SEED_OVER_THRESHOLD).state.score) === 0) {
+    throw new Error("La semilla fija ya no pasa el primer umbral");
+  }
+  await db()
+    .update(game2048Run)
+    .set({ seed: SEED_OVER_THRESHOLD })
+    .where(eq(game2048Run.id, result.run.id));
+  return { ...result.run, seed: SEED_OVER_THRESHOLD };
 }
 
 async function seedOf(runId: string): Promise<string> {
@@ -79,9 +99,10 @@ async function seedOf(runId: string): Promise<string> {
 }
 
 /** Una partida completa de punta a punta; devuelve la partida guardada y lo que el motor calculó. */
-async function playAndFinish(personId: string, requestId = randomUUID()) {
-  const run = await openRun(personId);
+async function playAndFinish(personId: string, options: { overThreshold?: boolean } = {}) {
+  const run = await openRun(personId, options);
   const { state, moves } = playOut(run.seed);
+  const requestId = randomUUID();
   const result = await finishGame2048As({ personId }, { runId: run.id, moves, requestId });
   return { run, state, moves, result, requestId };
 }
@@ -142,7 +163,7 @@ describe("2048 con replay verificado", () => {
 
   it("acredita el puntaje que calcula el servidor, no el que manda el cliente", async () => {
     const personId = await seedMember("g2048.credito@eafit.edu.co");
-    const { run, state, result } = await playAndFinish(personId);
+    const { run, state, result } = await playAndFinish(personId, { overThreshold: true });
     if (!result.ok) throw new Error(result.reason);
     const esperado = game2048Reward(state.score);
     expect(esperado).toBeGreaterThan(0);
@@ -193,7 +214,9 @@ describe("2048 con replay verificado", () => {
 
   it("reenviar el mismo cierre devuelve lo guardado y no acredita dos veces", async () => {
     const personId = await seedMember("g2048.replay@eafit.edu.co");
-    const { run, moves, result, requestId } = await playAndFinish(personId);
+    const { run, moves, result, requestId } = await playAndFinish(personId, {
+      overThreshold: true,
+    });
     if (!result.ok) throw new Error(result.reason);
     const otra = await finishGame2048As({ personId }, { runId: run.id, moves, requestId });
     expect(otra).toEqual(result);
@@ -211,7 +234,7 @@ describe("2048 con replay verificado", () => {
 
   it("cerrar dos veces la misma partida con envíos distintos no duplica el premio", async () => {
     const personId = await seedMember("g2048.doble-cierre@eafit.edu.co");
-    const run = await openRun(personId);
+    const run = await openRun(personId, { overThreshold: true });
     const { moves } = playOut(run.seed);
     const [uno, dos] = await Promise.all([
       finishGame2048As({ personId }, { runId: run.id, moves, requestId: randomUUID() }),
@@ -225,14 +248,15 @@ describe("2048 con replay verificado", () => {
 
   it("la segunda partida del día se guarda pero no acredita", async () => {
     const personId = await seedMember("g2048.una-por-dia@eafit.edu.co");
-    const primera = await playAndFinish(personId);
+    const primera = await playAndFinish(personId, { overThreshold: true });
     if (!primera.result.ok) throw new Error(primera.result.reason);
     expect(primera.result.run.points).toBeGreaterThan(0);
 
-    const segunda = await playAndFinish(personId);
+    // La segunda también pasa el umbral: si no acredita, es por el crédito del día.
+    const segunda = await playAndFinish(personId, { overThreshold: true });
     if (!segunda.result.ok) throw new Error(segunda.result.reason);
     expect(segunda.result.run.status).toBe("FINISHED");
-    expect(segunda.result.run.score).toBeGreaterThan(0);
+    expect(game2048Reward(segunda.result.run.score)).toBeGreaterThan(0);
     expect(segunda.result.run.points).toBe(0);
 
     expect(await db().select().from(pointEntry)).toHaveLength(1);
@@ -245,10 +269,12 @@ describe("2048 con replay verificado", () => {
 
   it("la base rechaza un segundo crédito del mismo día aunque se fuerce", async () => {
     const personId = await seedMember("g2048.unico@eafit.edu.co");
-    const { run, result } = await playAndFinish(personId);
+    const { run, result } = await playAndFinish(personId, { overThreshold: true });
     if (!result.ok) throw new Error(result.reason);
     const [fila] = await db().select().from(game2048Run).where(eq(game2048Run.id, run.id));
     if (!fila) throw new Error("partida ausente");
+    // Sin una fila acreditada ese día el índice no tiene contra qué chocar y el INSERT pasaría.
+    expect(fila.creditedAt).not.toBeNull();
     await expect(
       db().insert(game2048Run).values({
         personId,
@@ -262,7 +288,9 @@ describe("2048 con replay verificado", () => {
         creditedAt: new Date(),
         creditedPoints: 3,
       }),
-    ).rejects.toThrow();
+    ).rejects.toSatisfy((error) =>
+      isUniqueViolation(error, "game2048_run_person_day_credited_unique"),
+    );
   });
 
   it("una partida bajo el primer umbral no consume el crédito del día", async () => {
@@ -279,7 +307,7 @@ describe("2048 con replay verificado", () => {
     expect(await db().select().from(pointEntry)).toHaveLength(0);
 
     // El crédito del día sigue libre: la siguiente partida sí acredita.
-    const buena = await playAndFinish(personId);
+    const buena = await playAndFinish(personId, { overThreshold: true });
     if (!buena.result.ok) throw new Error(buena.result.reason);
     expect(buena.result.run.points).toBeGreaterThan(0);
     expect(await db().select().from(pointEntry)).toHaveLength(1);
@@ -349,7 +377,7 @@ describe("2048 con replay verificado", () => {
 
   it("acreditar produce una sola interacción CRM al reentregar el evento y no manda push", async () => {
     const personId = await seedMember("g2048.crm@eafit.edu.co");
-    const { result } = await playAndFinish(personId);
+    const { result } = await playAndFinish(personId, { overThreshold: true });
     if (!result.ok) throw new Error(result.reason);
     expect((await drain(20)).failed).toBe(0);
 

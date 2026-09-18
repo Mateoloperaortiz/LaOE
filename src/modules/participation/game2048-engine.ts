@@ -5,8 +5,8 @@ import type { Game2048Move, Game2048State } from "./game2048-types";
 // dominio. Es la pieza que hace verificable el juego: el servidor reparte la semilla, recibe la
 // lista de movimientos y rejuega la partida entera, así que el puntaje nunca lo pone el cliente.
 //
-// Todo es aritmética entera de 32 bits (Math.imul, xor, desplazamientos y módulo): sin coma
-// flotante, dos motores de JavaScript distintos no pueden divergir.
+// Todo es aritmética entera de 32 bits (sumas truncadas con `| 0`, xor, desplazamientos, una
+// rotación y módulo): sin coma flotante, dos motores de JavaScript distintos no pueden divergir.
 
 export const GAME2048_RULES_VERSION = "4x4-sfc32-v1";
 export const GAME2048_MAX_MOVES = 4000;
