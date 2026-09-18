@@ -1,6 +1,6 @@
 # ADR-052: Aislamiento, calendario y fallos de las pruebas E2E
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-077)
 - Fecha: 2026-09-11
 - Relacionadas: ADR-004, ADR-012, ADR-020, ADR-023, ADR-032
 
@@ -23,3 +23,7 @@ La auditoría encontró una corrida verde con 15 trabajos fallidos: la limpieza 
 Cada caso parte del mismo estado autenticado, sin heredar permisos, licencias, trabajos o contenido de otro. Un efecto fallido deja de ser compatible con un resultado E2E verde. La base se prepara automáticamente, con un pequeño costo de restauración por escenario.
 
 La suite admite ejecución secuencial; no admite `--workers` mayor que uno. El almacenamiento S3 sigue siendo el emulador local compartido y no se vacía indiscriminadamente. No cambian el calendario de la OE, el seed de desarrollo, la política de reintentos del outbox en producción ni sus handlers.
+
+## Enmienda (2026-09-18, ADR-077)
+
+La regla 2 exigía un bucket local y no decía nada de su CORS, que solo admitía el origen de `APP_URL`: en un `E2E_PORT` distinto de 3000 el navegador no podía subir archivos. El lanzador ahora suma `http://localhost:<E2E_PORT>` al CORS del bucket local antes de crear la base, sin quitar los orígenes de otras sesiones, sin reescribir uno que ya esté y bajo un candado consultivo de PostgreSQL. El bucket sigue compartido y sin vaciarse. Ver [ADR-077](ADR-077-el-lanzador-e2e-suma-su-origen-al-cors-del-bucket.md).
