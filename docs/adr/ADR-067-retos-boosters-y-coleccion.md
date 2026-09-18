@@ -1,6 +1,6 @@
 # ADR-067: Retos relámpago, boosters y colección de insignias
 
-- Estado: Aceptada (enmendada por ADR-068)
+- Estado: Aceptada (enmendada por ADR-068 y ADR-075)
 - Fecha: 2026-09-14
 - Relacionadas: ADR-004, ADR-007, ADR-008, ADR-011, ADR-012, ADR-014, ADR-020, ADR-022, ADR-030, ADR-032, ADR-035, ADR-038, ADR-041, ADR-062
 - Enmienda: ADR-007 (tipos `CHALLENGE` y `BOOST` del ledger), ADR-022 (evidencias con almacenamiento y autorización propios, fuera de `/api/media`), ADR-035 (participación en retos, boosters sobre asistencias, cierre de puntos que exige resolver pendientes), ADR-041 (el Wordle alimenta insignias y no admite boosters)
@@ -61,3 +61,7 @@ Precisiones sobre las decisiones, surgidas de la implementación:
 ## Enmienda (2026-09-15, ADR-068)
 
 [ADR-068](ADR-068-correcciones-de-gamificacion.md) separa las evidencias subidas de sus resultados protegidos, precisa qué operaciones permite la bandera apagada y corrige las carreras del check-in, las reaprobaciones presenciales, el replay por contenido y la liberación de posiciones destacadas. La migración 0032 repara posiciones revocadas y reencola las evidencias READY anteriores.
+
+## Enmienda (2026-09-17, ADR-075)
+
+La regla 17 decía que el Wordle, los movimientos, las asambleas y los rankings siguen en Resumen. El Wordle sale: se muda a `/app/juegos/wordle` y Resumen conserva un enlace. La subnavegación Resumen · Retos · Boosters · Colección no cambia. La regla 4 se amplía: el 2048 también queda fuera de los topes diario y semanal, por la misma razón que el Wordle —un juego con techo duro de 6 puntos por día no necesita cupo— y tampoco admite boosters. Ver [ADR-075](ADR-075-biblioteca-de-juegos-y-2048.md).

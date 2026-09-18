@@ -16,13 +16,21 @@ const inputSchema = z.object({
 });
 
 async function ownActor() {
-  const actor = await requireActor("/app/gh-points");
+  const actor = await requireActor("/app/juegos/wordle");
   return { personId: actor.personId, ip: await clientIp() };
+}
+
+/** Revalida también el resumen y la biblioteca: los dos muestran el estado del juego. */
+function revalidateGame(won = false) {
+  revalidatePath("/app/juegos/wordle");
+  revalidatePath("/app/juegos");
+  revalidatePath("/app/gh-points");
+  if (won) revalidatePath("/app");
 }
 
 export async function startWordleAction(): Promise<WordleResult> {
   const result = await startWordleAs(await ownActor());
-  if (result.ok) revalidatePath("/app/gh-points");
+  if (result.ok) revalidateGame();
   return result;
 }
 
@@ -31,7 +39,6 @@ export async function submitWordleAction(input: unknown): Promise<WordleResult> 
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "INVALID_INPUT" };
   const result = await submitWordleGuessAs(actor, parsed.data);
-  if (result.ok || result.game) revalidatePath("/app/gh-points");
-  if (result.ok && result.game.status === "WON") revalidatePath("/app");
+  if (result.ok || result.game) revalidateGame(result.ok && result.game.status === "WON");
   return result;
 }

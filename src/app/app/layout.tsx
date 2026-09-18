@@ -23,6 +23,7 @@ const RUTAS: Record<string, string> = {
   Normativa: "/app/normativa",
   Carnet: "/app/carnet",
   Ajustes: "/app/ajustes",
+  Juegos: "/app/juegos",
 };
 
 export default async function AppLayout({ children }: LayoutProps<"/app">) {
@@ -60,6 +61,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
             label: pestañas.find((name) => RUTAS[name] === "/app/carnet") ?? t("T-131"),
           },
           { href: "/app/gh-points", label: t("T-080") },
+          { href: "/app/juegos", label: t("T-2621") },
         ]}
         groups={groups}
         theme={<ThemeToggle etiquetas={[temaOscuro, temaClaro]} />}

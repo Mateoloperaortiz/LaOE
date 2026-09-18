@@ -44,7 +44,7 @@ test.afterEach(async () => {
 test("inicia sin filtrar la respuesta, rechaza palabras ausentes y acredita una sola victoria", async ({
   page,
 }) => {
-  await page.goto("/app/gh-points");
+  await page.goto("/app/juegos/wordle");
   const game = page.locator("#wordle");
   await game.getByRole("button", { name: "Jugar el Wordle de hoy" }).click();
   const word = game.getByRole("textbox", { name: "Tu palabra de cinco letras" });
@@ -63,8 +63,10 @@ test("inicia sin filtrar la respuesta, rechaza palabras ausentes y acredita una 
   await word.press("Enter");
   await expect(game.getByRole("status")).toContainText("Sumaste 6 GH Points");
   await expect(game.getByText(`La palabra era ${saved.answer}.`)).toBeVisible();
+  // El movimiento se ve en el resumen, que es donde quedó la tabla del ledger.
+  await page.goto("/app/gh-points");
   await expect(page.getByText(`Wordle del ${saved.day}: intento 1/6`)).toBeVisible();
-  await page.reload();
+  await page.goto("/app/juegos/wordle");
   await expect(game.getByRole("status")).toContainText("Sumaste 6 GH Points");
   await expect(game.getByRole("button", { name: "Jugar el Wordle de hoy" })).toHaveCount(0);
   const credits = await getDb()
@@ -82,7 +84,7 @@ test("retoma los intentos en otra pestaña y funciona en móvil con teclado tác
   context,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/app/gh-points");
+  await page.goto("/app/juegos/wordle");
   const panel = page.locator("#wordle");
   await panel.getByRole("button", { name: "Jugar el Wordle de hoy" }).click();
   await expect(panel.getByRole("textbox")).toBeVisible();
@@ -98,7 +100,7 @@ test("retoma los intentos en otra pestaña y funciona en móvil con teclado tác
   await page.keyboard.press("Enter");
   await expect(panel.getByRole("status")).toContainText("Podés sumar 4 GH Points");
   const second = await context.newPage();
-  await second.goto("/app/gh-points");
+  await second.goto("/app/juegos/wordle");
   await expect(second.locator("#wordle").getByRole("status")).toContainText(
     "Podés sumar 4 GH Points",
   );
@@ -115,13 +117,13 @@ test("retoma los intentos en otra pestaña y funciona en móvil con teclado tác
 test("recupera una victoria cuya respuesta de red se perdió sin duplicar el premio", async ({
   page,
 }) => {
-  await page.goto("/app/gh-points");
+  await page.goto("/app/juegos/wordle");
   const panel = page.locator("#wordle");
   await panel.getByRole("button", { name: "Jugar el Wordle de hoy" }).click();
   await expect(panel.getByRole("textbox")).toBeFocused();
   const saved = await savedGame();
   let dropped = false;
-  await page.route("**/app/gh-points", async (route) => {
+  await page.route("**/app/juegos/wordle", async (route) => {
     if (!dropped && route.request().method() === "POST") {
       dropped = true;
       await route.fetch(); // El servidor confirma la transacción, pero el navegador pierde la respuesta.
@@ -142,15 +144,13 @@ test("recupera una victoria cuya respuesta de red se perdió sin duplicar el pre
   expect(credits).toHaveLength(1);
 });
 
-test("un semestre anterior enlaza al reto vigente", async ({ page }) => {
+test("el resumen de GH Points lleva a la biblioteca y al Wordle del día", async ({ page }) => {
+  // El tablero ya no vive en el resumen (ADR-075 regla 1): quedan los dos caminos de ida.
   await page.goto("/app/gh-points");
-  const select = page.getByLabel("Semestre", { exact: true });
-  const old = select.locator("option").filter({ hasText: "2019-2" });
-  const id = await old.getAttribute("value");
-  expect(id).toBeTruthy();
-  await page.goto(`/app/gh-points?semestre=${id}`);
-  await expect(page.getByRole("link", { name: "Ir al Wordle de hoy" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Jugar el Wordle de hoy" })).toHaveCount(0);
+  await expect(page.locator("#wordle")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Ver todos los juegos" })).toBeVisible();
   await page.getByRole("link", { name: "Ir al Wordle de hoy" }).click();
+  await expect(page).toHaveURL(/\/app\/juegos\/wordle$/);
   await expect(page.locator("#wordle")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Jugar el Wordle de hoy" })).toBeVisible();
 });

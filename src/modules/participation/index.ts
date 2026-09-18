@@ -185,6 +185,12 @@ export {
   listParticipationsForExport,
 } from "./domain/exports";
 export {
+  finishGame2048As,
+  getTodayGame2048,
+  listGame2048RunsFor,
+  startGame2048As,
+} from "./domain/game2048";
+export {
   annulParticipationAs,
   cancelCampaignAs,
   cancelChallengeAs,
@@ -359,6 +365,29 @@ export {
   submitWordleGuessAs,
 } from "./domain/wordle";
 export { runWordleReminder, type WordleReminderResult } from "./domain/wordle-reminder";
+export {
+  applyGame2048Move,
+  GAME2048_MAX_MOVES,
+  GAME2048_REWARDS,
+  GAME2048_RULES_VERSION,
+  game2048Reward,
+  isGame2048Moves,
+  newGame2048,
+  replayGame2048,
+} from "./game2048-engine";
+export type {
+  FinishGame2048Input,
+  Game2048Denial,
+  Game2048Move,
+  Game2048Result,
+  Game2048RunView,
+  Game2048StartedView,
+  Game2048StartResult,
+  Game2048State,
+  Game2048Status,
+  StartGame2048Input,
+  TodayGame2048,
+} from "./game2048-types";
 export type {
   BadgeFamily,
   BoosterKind,

@@ -155,7 +155,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-060 | Saludo | Hola, {nombre preferido} | MATEO | Propuesta |
-| T-061 | Pestañas de navegación | Inicio · Eventos · Comités · Personas · Egresados · GH Points · Permanencia · Solicitudes · Convocatorias · Normativa · Carnet · Ajustes | COM | Propuesta |
+| T-061 | Pestañas de navegación | Inicio · Eventos · Comités · Personas · Egresados · GH Points · Permanencia · Solicitudes · Convocatorias · Normativa · Carnet · Ajustes · Juegos | COM | Propuesta |
 | T-062 | Agenda, título | Tu semana | MATEO | Propuesta |
 | T-063 | Agenda vacía | No tenés nada esta semana. Mirá los eventos o pasá por tu comité. | MATEO | Propuesta |
 | T-064 | Barra de permanencia en el inicio | Permanencia en {comité}: {n} % de {umbral} % | GH | Propuesta |
@@ -184,7 +184,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-082 | Niveles (0, 100, 250, 500, 1000 puntos) | Recién llegado · Parchado · De planta · Pilar · Leyenda OE | GH | Propuesta; GH puede renombrar o cambiar los cortes |
 | T-083 | Rankings, pestañas | Nuevos · Veteranos · Comités | GH | Propuesta |
 | T-084 | Ranking de comités, nota de la tasa suavizada | El porcentaje de cada comité es su participación relativa, ajustada para que los comités chicos no dependan de un solo evento. | GH | Propuesta |
-| T-085 | Movimientos, tipos | Asistencia · Ajuste · Reversión · Histórico · Wordle · Reto · Impulso | MATEO | Propuesta |
+| T-085 | Movimientos, tipos | Asistencia · Ajuste · Reversión · Histórico · Wordle · Reto · Impulso · 2048 | MATEO | Propuesta |
 | T-086 | Sin movimientos | Todavía no tenés puntos. Tu primera asistencia los estrena. | COM | Propuesta |
 
 ### Registro de asistencia (QR)
@@ -819,7 +819,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-664 | Recurso rankings (plural · singular) | Rankings · Puesto | MATEO | Propuesta |
 | T-665 | Recurso cumplimiento de asambleas (plural · singular) | Cumplimiento de asambleas · Persona | MATEO | Propuesta |
 | T-666 | Tarea: falta crear el semestre siguiente | Crear el semestre {codigo}: el actual termina el {fecha} | MATEO | Propuesta |
-| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} · Completó el reto {reto} y sumó {n} GH Points · Desbloqueó la insignia {insignia} nivel {nivel} · Recibió un {booster} · Entrega del reto {reto} rechazada: {motivo} | MATEO | Propuesta |
+| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} · Completó el reto {reto} y sumó {n} GH Points · Desbloqueó la insignia {insignia} nivel {nivel} · Recibió un {booster} · Entrega del reto {reto} rechazada: {motivo} · Hizo {puntaje} puntos en el 2048 del {fecha} y sumó {n} GH Points | MATEO | Propuesta |
 | T-668 | Persona 360, Participación: títulos | Check-ins · Movimientos de GH Points | MATEO | Propuesta |
 | T-669 | Persona 360, Participación: sin check-ins | Todavía no tiene check-ins. | MATEO | Propuesta |
 | T-670 | Persona 360, Resumen: asambleas obligatorias | {n} de {total} obligatorias | MATEO | Propuesta |
@@ -1344,7 +1344,7 @@ Reglas aprobadas por Mateo el 2026-09-07: una partida diaria, cinco letras, seis
 
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
-| T-1230 | GH Points: título del juego | Wordle de hoy | MATEO | Propuesta |
+| T-1230 | Juegos: título del Wordle | Wordle de hoy | MATEO | Propuesta |
 | T-1231 | Wordle: introducción | Una palabra distinta para vos cada día. Resolvela y sumá GH Points. | MATEO | Propuesta |
 | T-1232 | Wordle: iniciar partida | Jugar el Wordle de hoy | MATEO | Propuesta |
 | T-1233 | Wordle: reglas | Adiviná una palabra de 5 letras en 6 intentos. Podés escribir con o sin tilde; la Ñ es distinta de la N. Cada intento válido queda guardado para que sigás en otro dispositivo. | MATEO | Propuesta |
@@ -2201,3 +2201,52 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2618 | Asignar a un comité inactivo | {comité} está inactivo: ya no recibe integrantes. | MATEO | Propuesta |
 | T-2619 | Roster: comité inactivo en la fila | {sigla} está inactivo: ya no recibe integrantes. Quitá esa sigla o pedí que la junta lo reactive. | MATEO | Propuesta |
 | T-2620 | Push: Wordle del día (ADR-074) | El Wordle de hoy te espera · Cinco letras, seis intentos y hasta 6 GH Points. | GH | Propuesta |
+
+## Biblioteca de juegos y 2048 (ADR-075)
+
+| Código | Dónde | Texto | Fuente | Estado |
+| --- | --- | --- | --- | --- |
+| T-2621 | Juegos: título de la sección | Juegos | MATEO | Propuesta |
+| T-2622 | Juegos: introducción | Despejá la cabeza un rato y sumá GH Points mientras tanto. | MATEO | Propuesta |
+| T-2623 | Juegos: estado de la tarjeta | Disponible hoy · Ya sumaste hoy · No disponible ahora | MATEO | Propuesta |
+| T-2624 | Juegos: botón de la tarjeta | Jugar | MATEO | Propuesta |
+| T-2625 | GH Points: enlace a la biblioteca | Ver todos los juegos | MATEO | Propuesta |
+| T-2626 | Juegos: nombre del Wordle en la tarjeta | Wordle | MATEO | Propuesta |
+| T-2627 | Juegos: de qué va el Wordle | Una palabra distinta para vos cada día. Cinco letras, seis intentos y hasta 6 GH Points. | MATEO | Propuesta |
+| T-2628 | Juegos: nombre del 2048 en la tarjeta | 2048 | MATEO | Propuesta |
+| T-2629 | Juegos: de qué va el 2048 | Juntá fichas iguales hasta armar el 2048. Jugá las veces que quieras; la primera partida del día es la que suma. | MATEO | Propuesta |
+| T-2630 | 2048: título | 2048 | MATEO | Propuesta |
+| T-2631 | 2048: introducción | Deslizá las fichas: dos iguales se juntan en una. Cuanto más alto el puntaje, más GH Points. | MATEO | Propuesta |
+| T-2632 | 2048: cómo se juega | Movés todo el tablero de una vez, con las flechas, con los botones de abajo o deslizando el dedo. Dos fichas iguales que chocan se juntan y suman su valor. Después de cada movimiento aparece una ficha nueva. Se acaba cuando ya no queda ninguna jugada. | MATEO | Propuesta |
+| T-2633 | 2048: empezar partida | Empezar una partida | MATEO | Propuesta |
+| T-2634 | 2048: envío pendiente | Guardando tu partida… | MATEO | Propuesta |
+| T-2635 | 2048: nombre accesible del tablero | Tablero de cuatro por cuatro | MATEO | Propuesta |
+| T-2636 | 2048: celda vacía | Vacía | MATEO | Propuesta |
+| T-2637 | 2048: ficha del tablero | Ficha {n} | MATEO | Propuesta |
+| T-2638 | 2048: nombre accesible de los controles | Mover el tablero | MATEO | Propuesta |
+| T-2639 | 2048: direcciones | Arriba · Abajo · Izquierda · Derecha | MATEO | Propuesta |
+| T-2640 | 2048: puntaje de la partida | Puntaje: {puntaje} | MATEO | Propuesta |
+| T-2641 | 2048: ficha más alta | Tu ficha más alta: {n} | MATEO | Propuesta |
+| T-2642 | 2048: aviso de ficha nueva | Llegaste a la ficha {n}. | MATEO | Propuesta |
+| T-2643 | 2048: aviso de umbral | Ya asegurás {n} GH Points con este puntaje. | MATEO | Propuesta |
+| T-2644 | 2048: fin de la partida | No quedan jugadas. Hiciste {puntaje} puntos. | MATEO | Propuesta |
+| T-2645 | 2048: tope de movimientos | Llegaste a los 4.000 movimientos y cerramos la partida ahí. Empezá otra cuando quieras. | MATEO | Propuesta |
+| T-2646 | 2048: partida guardada | Tenés una partida a medias. ¿La seguís? | MATEO | Propuesta |
+| T-2647 | 2048: retomar la partida guardada | Seguir la partida | MATEO | Propuesta |
+| T-2648 | 2048: descartar la partida guardada | Empezar de cero | MATEO | Propuesta |
+| T-2649 | 2048: título de premios | Tus puntos por puntaje | MATEO | Propuesta |
+| T-2650 | 2048: escala de premios | Puntaje · GH Points | MATEO | Propuesta |
+| T-2651 | 2048: premio acreditado | Sumaste {n} GH Points. ¡OE OE OE! | MATEO | Propuesta |
+| T-2652 | 2048: sin premio por puntaje bajo | Con este puntaje todavía no sumás. Probá otra partida: el crédito del día sigue libre. | MATEO | Propuesta |
+| T-2653 | 2048: ya acreditaste hoy | Hoy ya sumaste tus GH Points del 2048. Podés seguir jugando por gusto y mañana vuelve a contar. | MATEO | Propuesta |
+| T-2654 | Ledger: motivo del premio 2048 | 2048 del {fecha}: {puntaje} puntos | MATEO | Propuesta |
+| T-2655 | 2048: partida vencida | Terminó el día de esta partida. No sumaste puntos; empezá una nueva. | MATEO | Propuesta |
+| T-2656 | 2048: partida cerrada | Esa partida ya terminó. | MATEO | Propuesta |
+| T-2657 | 2048: día nuevo | Ya cambió el día en Colombia. Actualizá para que tu partida cuente. | MATEO | Propuesta |
+| T-2658 | 2048: no hay semestre con puntos abiertos | El 2048 suma puntos mientras el semestre esté abierto. Volvé cuando arranque el próximo. | MATEO | Propuesta |
+| T-2659 | 2048: no elegible | El 2048 es para miembros activos y honorarios. | MATEO | Propuesta |
+| T-2660 | 2048: partida no encontrada o solicitud inválida | No pudimos recuperar esa partida. Empezá una nueva para seguir. | MATEO | Propuesta |
+| T-2661 | 2048: partida ilegible | No pudimos reconstruir esa partida, así que no la guardamos. Empezá otra: el crédito del día sigue libre. | MATEO | Propuesta |
+| T-2662 | 2048: respuesta de red incierta | No recibimos la confirmación. Reintentá el mismo envío: si ya se guardó, no contará dos veces. | MATEO | Propuesta |
+| T-2663 | 2048: reintentar envío incierto | Reintentar envío | MATEO | Propuesta |
+| T-2664 | 2048: mejor puntaje del semestre | Tu mejor puntaje del semestre: {puntaje} | MATEO | Propuesta |

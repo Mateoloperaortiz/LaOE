@@ -6,7 +6,6 @@ import {
   assemblyStatusFor,
   balanceFor,
   collectionFor,
-  getTodayWordle,
   levelFor,
   listEntriesFor,
   loadGamificationSettings,
@@ -19,7 +18,6 @@ import {
 } from "@/modules/participation";
 import { BadgeUnlock } from "@/modules/participation/components/BadgeUnlock";
 import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
-import { Wordle } from "@/modules/participation/components/Wordle";
 import { getMembershipRef, listCommitteesByIds } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -27,7 +25,6 @@ import { Cartel, Insignia, Numeral, SelloOE } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { Vacio } from "../_ui/Vacio";
-import { startWordleAction, submitWordleAction } from "./actions";
 import { CommitteePodium, type CommitteePodiumEntry } from "./CommitteePodium";
 import { markSeenAction } from "./coleccion/actions";
 
@@ -52,12 +49,11 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   const tablero: BoardKey = BOARDS.includes(tableroParam as BoardKey)
     ? (tableroParam as BoardKey)
     : "nuevos";
-  const [terms, current, membership, cutoffs, wordle, gamification] = await Promise.all([
+  const [terms, current, membership, cutoffs, gamification] = await Promise.all([
     listAllTerms(),
     getCurrentTerm(),
     getMembershipRef(actor.personId),
     requireConfig("points.levels"),
-    getTodayWordle(actor.personId),
     loadGamificationSettings(),
   ]);
   const termParam = single(search.semestre);
@@ -72,7 +68,9 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
       <div className="flex flex-col gap-6">
         <h1 className="text-display-lg">{t("T-080")}</h1>
         <Vacio texto={t("T-548")} />
-        <Wordle initial={wordle} onStart={startWordleAction} onGuess={submitWordleAction} />
+        <Link href="/app/juegos" className="boton-secundario">
+          {t("T-2625")}
+        </Link>
       </div>
     );
   }
@@ -240,24 +238,21 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
         </section>
       ) : null}
 
-      {term.id === current?.id ? (
-        <Wordle
-          key={`${wordle.day}:${wordle.availability}:${wordle.game?.id ?? "new"}:${wordle.game?.attempts.length ?? 0}:${wordle.game?.status ?? "new"}`}
-          initial={wordle}
-          onStart={startWordleAction}
-          onGuess={submitWordleAction}
-        />
-      ) : (
-        <section aria-labelledby="wordle-history" className="flex flex-col items-start gap-3">
-          <h2 id="wordle-history" className="text-display-md">
-            {t("T-1230")}
-          </h2>
-          <p>{t("T-1258")}</p>
-          <Link href="/app/gh-points#wordle" className="boton-secundario">
+      {/* Los juegos viven en su propia sección (ADR-075 regla 1); aquí queda el camino de vuelta. */}
+      <section aria-labelledby="juegos" className="flex flex-col items-start gap-3">
+        <h2 id="juegos" className="text-display-md">
+          {t("T-2621")}
+        </h2>
+        <p>{term.id === current?.id ? t("T-2622") : t("T-1258")}</p>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/app/juegos" className="boton-secundario">
+            {t("T-2625")}
+          </Link>
+          <Link href="/app/juegos/wordle" className="boton-secundario">
             {t("T-1257")}
           </Link>
-        </section>
-      )}
+        </div>
+      </section>
 
       <section aria-labelledby="movimientos" className="flex flex-col gap-4">
         <h2 id="movimientos" className="text-display-md">
