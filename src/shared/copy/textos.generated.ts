@@ -7250,6 +7250,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2664": {
+    where: "2048: mejor puntaje del semestre",
+    text: "Tu mejor puntaje del semestre: {puntaje}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-267": {
     where: "Permisos: correo sin persona en el roster",
     text: "Ese correo no está en el roster.",

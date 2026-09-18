@@ -2249,3 +2249,4 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2661 | 2048: partida ilegible | No pudimos reconstruir esa partida, así que no la guardamos. Empezá otra: el crédito del día sigue libre. | MATEO | Propuesta |
 | T-2662 | 2048: respuesta de red incierta | No recibimos la confirmación. Reintentá el mismo envío: si ya se guardó, no contará dos veces. | MATEO | Propuesta |
 | T-2663 | 2048: reintentar envío incierto | Reintentar envío | MATEO | Propuesta |
+| T-2664 | 2048: mejor puntaje del semestre | Tu mejor puntaje del semestre: {puntaje} | MATEO | Propuesta |
