@@ -8,6 +8,10 @@ import { type AdminNavGroup, activeAdminHref } from "@/shared/admin-kit/navigati
 import { LogoOE } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { AreaSwitch } from "@/shared/ui/AreaSwitch";
+import { ChevronDownIcon } from "@/shared/ui/icons/ChevronDownIcon";
+import { Menu2Icon } from "@/shared/ui/icons/Menu2Icon";
+import { MinusIcon } from "@/shared/ui/icons/MinusIcon";
+import { PlusIcon } from "@/shared/ui/icons/PlusIcon";
 
 function Navigation({
   groups,
@@ -51,7 +55,7 @@ function Navigation({
               onClick={() => setExpanded({ ...expanded, [group.id]: !open })}
             >
               {group.label}
-              <span aria-hidden="true">{open ? "−" : "+"}</span>
+              {open ? <MinusIcon /> : <PlusIcon />}
             </button>
             <ul id={`${id}-${group.id}`} hidden={!open} className="admin-nav-items">
               {group.items.map((item) => (
@@ -157,17 +161,7 @@ export function AdminShell({
                 setMenuOpen(true);
               }}
             >
-              <svg
-                aria-hidden="true"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+              <Menu2Icon size={20} />
               {t("T-1402")}
             </button>
             <span className="admin-topbar-label">{t("T-236")}</span>
@@ -178,7 +172,7 @@ export function AdminShell({
               <details className="admin-account" ref={accountMenu}>
                 <summary>
                   {t("T-1403")}
-                  <span aria-hidden="true">⌄</span>
+                  <ChevronDownIcon />
                 </summary>
                 <div className="admin-account-menu">{account}</div>
               </details>

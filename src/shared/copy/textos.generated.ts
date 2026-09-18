@@ -7262,6 +7262,36 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-2670": {
+    where: "Iconos: valor de sí o no en una celda o un resumen del admin",
+    text: "Sí · No",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2671": {
+    where: "Iconos: requisito cumplido o sin cumplir",
+    text: "Cumple · No cumple",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2672": {
+    where: "Iconos: pertenencia que llegó por transferencia",
+    text: "Llegó por transferencia",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2673": {
+    where: "Iconos: marcas de una trivia resuelta",
+    text: "Tu respuesta · Respuesta correcta",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2674": {
+    where: "Admin retos: quitar una opción de una pregunta (nombre accesible del botón con icono)",
+    text: "Quitar opción",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-268": {
     where: "Permisos: duplicado",
     text: "Ya tiene ese permiso.",

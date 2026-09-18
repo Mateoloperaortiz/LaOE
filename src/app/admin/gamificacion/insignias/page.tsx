@@ -15,6 +15,8 @@ import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
+import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
+import { XIcon } from "@/shared/ui/icons/XIcon";
 import { createSpecialBadgeAction, grantBoosterAction, revokeBoosterAction } from "./actions";
 
 // Insignias (ADR-067 reglas 9, 15 y 16): catálogo con desbloqueos, alta de ediciones especiales
@@ -73,6 +75,7 @@ export default async function InsigniasPage({
   const boosterNames = tList("T-2451");
   const boosterStates = tList("T-2455");
   const results = tList("T-2548");
+  const [si, no] = tList("T-2670") as [string, string];
   const revokeLabels = tList("T-2547");
   const stateLabels = tList("T-2518");
 
@@ -136,7 +139,9 @@ export default async function InsigniasPage({
                   <td className="py-2 pr-4">{badge.level}</td>
                   <td className="py-2 pr-4">{badge.threshold ?? "—"}</td>
                   <td className="py-2 pr-4 font-semibold">{badge.name}</td>
-                  <td className="py-2 pr-4">{badge.active ? "✓" : "×"}</td>
+                  <td className="py-2 pr-4">
+                    {badge.active ? <CheckIcon label={si} /> : <XIcon label={no} />}
+                  </td>
                   <td className="py-2">{badge.unlocks}</td>
                 </tr>
               ))}

@@ -23,6 +23,8 @@ import { getCurrentTerm } from "@/modules/terms";
 import { Cartel, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
+import { CircleCheckIcon } from "@/shared/ui/icons/CircleCheckIcon";
+import { CircleDotIcon } from "@/shared/ui/icons/CircleDotIcon";
 import { Markdown } from "@/shared/ui/Markdown";
 import { Vacio } from "../../../_ui/Vacio";
 import { setBoosterTargetAction } from "../../boosters/actions";
@@ -94,6 +96,7 @@ function TriviaAnswered({ challenge }: { challenge: MemberChallengeDetail }) {
   const answers = participation.answers ?? [];
   const reveal = challenge.state === "CLOSED" || challenge.state === "CANCELLED";
   const hasCorrect = challenge.questions.some((question) => question.correctIndex !== null);
+  const [tuRespuesta, respuestaCorrecta] = tList("T-2673") as [string, string];
   return (
     <section className="flex flex-col gap-4" aria-labelledby="trivia-resultado">
       <h2 id="trivia-resultado" className="text-display-md">
@@ -126,7 +129,7 @@ function TriviaAnswered({ challenge }: { challenge: MemberChallengeDetail }) {
                   return (
                     <li
                       key={`${question.ordinal}-${oIndex + 1}`}
-                      className={`rounded-lg border px-3 py-1 text-sm ${
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-1 text-sm ${
                         isCorrect
                           ? "border-oe-blue bg-oe-blue-soft font-semibold text-oe-navy"
                           : isChosen
@@ -134,9 +137,9 @@ function TriviaAnswered({ challenge }: { challenge: MemberChallengeDetail }) {
                             : "border-borde text-tinta-suave"
                       }`}
                     >
-                      {isChosen ? "✓ " : ""}
-                      {option}
-                      {isCorrect ? " ✓" : ""}
+                      {isChosen ? <CircleDotIcon label={tuRespuesta} /> : null}
+                      <span className="min-w-0 flex-1">{option}</span>
+                      {isCorrect ? <CircleCheckIcon label={respuestaCorrecta} /> : null}
                     </li>
                   );
                 })}

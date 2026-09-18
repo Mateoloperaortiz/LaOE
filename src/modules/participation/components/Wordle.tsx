@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { type CopyCode, t, tList } from "@/shared/copy";
+import { ArrowsHorizontalIcon } from "@/shared/ui/icons/ArrowsHorizontalIcon";
+import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
+import { XIcon } from "@/shared/ui/icons/XIcon";
 import type {
   SubmitWordleInput,
   TodayWordle,
@@ -19,7 +22,13 @@ const COLORS: Record<WordleLetterState, string> = {
   present: "border-oe-yellow bg-oe-yellow text-oe-navy",
   absent: "border-oe-navy bg-oe-navy text-oe-paper",
 };
-const SYMBOLS = { correct: "✓", present: "↔", absent: "×" } as const;
+// La marca acompaña al color para que el estado no dependa solo de él; va con trazo grueso porque
+// mide 10 a 14 px. El estado que se anuncia es el texto `sr-only` de cada celda.
+const MARKS: Record<WordleLetterState, typeof CheckIcon> = {
+  correct: CheckIcon,
+  present: ArrowsHorizontalIcon,
+  absent: XIcon,
+};
 const WEIGHT = { absent: 1, present: 2, correct: 3 } as const;
 const ERROR_COPY: Record<WordleDenial, CopyCode> = {
   INVALID_INPUT: "T-1243",
@@ -185,16 +194,15 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
                   {COLUMNS.map((column) => {
                     const letter = letters[column] ?? "";
                     const state = attempt?.feedback[column];
+                    const Mark = state ? MARKS[state] : null;
                     return (
                       <span
                         key={column}
                         className={`relative flex aspect-square items-center justify-center rounded-lg border-2 text-2xl font-bold sm:text-3xl ${state ? COLORS[state] : "border-borde bg-fondo text-tinta"}`}
                       >
                         <span aria-hidden="true">{letter}</span>
-                        {state ? (
-                          <span aria-hidden="true" className="absolute right-1 bottom-0 text-xs">
-                            {SYMBOLS[state]}
-                          </span>
+                        {Mark ? (
+                          <Mark size={12} stroke={3} className="absolute right-1 bottom-1" />
                         ) : null}
                         <span className="sr-only">
                           {letter
@@ -260,6 +268,7 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
                   <div key={keys} className="flex justify-center gap-1">
                     {Array.from(keys).map((letter) => {
                       const state = letterStates.get(letter);
+                      const Mark = state ? MARKS[state] : null;
                       return (
                         <button
                           key={letter}
@@ -272,13 +281,8 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
                           className={`relative flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-md border text-sm font-bold disabled:opacity-60 ${state ? COLORS[state] : "border-borde bg-fondo text-tinta"}`}
                         >
                           <span>{letter}</span>
-                          {state ? (
-                            <span
-                              aria-hidden="true"
-                              className="absolute right-0.5 bottom-0 text-[10px]"
-                            >
-                              {SYMBOLS[state]}
-                            </span>
+                          {Mark ? (
+                            <Mark size={10} stroke={3} className="absolute right-0.5 bottom-0.5" />
                           ) : null}
                         </button>
                       );
@@ -347,17 +351,19 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
           className="flex flex-col gap-5 border-borde lg:border-l lg:pl-8"
         >
           <div className="flex flex-wrap gap-3 text-xs font-semibold">
-            {(["correct", "present", "absent"] as const).map((state) => (
-              <span key={state} className="flex items-center gap-1.5">
-                <span
-                  aria-hidden="true"
-                  className={`flex size-6 items-center justify-center rounded border ${COLORS[state]}`}
-                >
-                  {SYMBOLS[state]}
+            {(["correct", "present", "absent"] as const).map((state) => {
+              const Mark = MARKS[state];
+              return (
+                <span key={state} className="flex items-center gap-1.5">
+                  <span
+                    className={`flex size-6 items-center justify-center rounded border ${COLORS[state]}`}
+                  >
+                    <Mark size={14} stroke={2.5} />
+                  </span>
+                  {labels[state]}
                 </span>
-                {labels[state]}
-              </span>
-            ))}
+              );
+            })}
           </div>
           <details>
             <summary className="cursor-pointer font-semibold">{t("T-1260")}</summary>

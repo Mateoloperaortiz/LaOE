@@ -10,6 +10,7 @@ import { getCurrentTerm } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { ArrowUpRightIcon } from "@/shared/ui/icons/ArrowUpRightIcon";
 import { Vacio } from "../_ui/Vacio";
 import { requestTypes } from "./form-state";
 import { RequestForm, RequestResult, WithdrawRequest } from "./RequestForm";
@@ -170,7 +171,7 @@ export default async function SolicitudesPage({ searchParams }: PageProps<"/app/
                 >
                   <span className="flex items-start justify-between gap-3 text-base font-semibold">
                     <span>{option.title}</span>
-                    <span aria-hidden="true">↗</span>
+                    <ArrowUpRightIcon />
                   </span>
                   {option.kind !== "EXCUSE" && pending.has(option.kind) ? (
                     <span className="text-sm text-tinta-suave">

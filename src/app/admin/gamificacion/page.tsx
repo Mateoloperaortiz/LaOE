@@ -15,6 +15,8 @@ import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
+import { XIcon } from "@/shared/ui/icons/XIcon";
 import { resumeReconciliationAction, startReconciliationAction } from "./actions";
 
 // Panel de la gamificación (ADR-067 reglas 13 y 16): indicadores del término y enlaces rápidos.
@@ -62,6 +64,7 @@ export default async function GamificacionPage({ searchParams }: PageProps<"/adm
   const statusLabels = tList("T-2559");
   const modeLabels = tList("T-2590");
   const actionLabels = tList("T-2558");
+  const [si, no] = tList("T-2670") as [string, string];
   const runColumns = tList("T-2589");
   const exportColumns = tList("T-2571");
   const statusLabel = (status: string) =>
@@ -88,7 +91,8 @@ export default async function GamificacionPage({ searchParams }: PageProps<"/adm
         <div className="flex flex-col gap-2">
           <h1 className="text-display-lg">{tList("T-2405")[0] ?? ""}</h1>
           <p className="text-sm text-tinta-suave">
-            {t("T-2552")}: {settings.enabled ? "✓" : "×"} · {term.code}
+            {t("T-2552")}: {settings.enabled ? <CheckIcon label={si} /> : <XIcon label={no} />} ·{" "}
+            {term.code}
           </p>
         </div>
         <form action="/admin/gamificacion" method="get" className="flex items-center gap-2 text-sm">

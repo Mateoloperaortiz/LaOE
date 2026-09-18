@@ -2250,3 +2250,15 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2662 | 2048: respuesta de red incierta | No recibimos la confirmación. Reintentá el mismo envío: si ya se guardó, no contará dos veces. | MATEO | Propuesta |
 | T-2663 | 2048: reintentar envío incierto | Reintentar envío | MATEO | Propuesta |
 | T-2664 | 2048: mejor puntaje del semestre | Tu mejor puntaje del semestre: {puntaje} | MATEO | Propuesta |
+
+## Biblioteca de iconos (ADR-076)
+
+Nombres accesibles de los iconos que representan un valor sin texto visible al lado. No se ven en pantalla: los lee el lector de pantalla en lugar de los glifos `✓`, `×` y `↔` que había antes.
+
+| Código | Dónde | Texto | Fuente | Estado |
+| --- | --- | --- | --- | --- |
+| T-2670 | Iconos: valor de sí o no en una celda o un resumen del admin | Sí · No | MATEO | Propuesta |
+| T-2671 | Iconos: requisito cumplido o sin cumplir | Cumple · No cumple | MATEO | Propuesta |
+| T-2672 | Iconos: pertenencia que llegó por transferencia | Llegó por transferencia | MATEO | Propuesta |
+| T-2673 | Iconos: marcas de una trivia resuelta | Tu respuesta · Respuesta correcta | MATEO | Propuesta |
+| T-2674 | Admin retos: quitar una opción de una pregunta (nombre accesible del botón con icono) | Quitar opción | MATEO | Propuesta |

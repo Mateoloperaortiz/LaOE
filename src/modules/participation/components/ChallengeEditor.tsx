@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useAdminFormState } from "@/shared/admin-kit/AdminFormDrafts";
 import { t, tList } from "@/shared/copy";
+import { PlusIcon } from "@/shared/ui/icons/PlusIcon";
+import { XIcon } from "@/shared/ui/icons/XIcon";
 import type { ChallengeAudience, ChallengeKind } from "../gamification-types";
 
 // Editor del admin para retos (ADR-067 reglas 2 y 3): serializa las preguntas como JSON en un
@@ -58,6 +60,7 @@ export function ChallengeEditor({
   defaults,
 }: ChallengeEditorProps) {
   const labels = tList("T-2504");
+  const [, , , agregarPregunta, quitarPregunta, agregarOpcion] = tList("T-2508");
   const kinds = tList("T-2409");
   const audiences = tList("T-2411");
   // Tras un error el formulario se remonta: se retoma lo elegido para que el borrador encaje.
@@ -332,7 +335,9 @@ export function ChallengeEditor({
                   {question.options.length > 2 && !locked ? (
                     <button
                       type="button"
-                      className="text-xs underline"
+                      aria-label={t("T-2674")}
+                      title={t("T-2674")}
+                      className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-tinta-suave hover:bg-fondo-suave hover:text-tinta"
                       onClick={() =>
                         setQuestions(
                           questions.map((item, i) =>
@@ -350,7 +355,7 @@ export function ChallengeEditor({
                         )
                       }
                     >
-                      ×
+                      <XIcon />
                     </button>
                   ) : null}
                 </div>
@@ -358,7 +363,7 @@ export function ChallengeEditor({
               {question.options.length < 6 && !locked ? (
                 <button
                   type="button"
-                  className="self-start text-xs underline"
+                  className="inline-flex items-center gap-1 self-start text-xs underline"
                   onClick={() =>
                     setQuestions(
                       questions.map((item, i) =>
@@ -367,16 +372,18 @@ export function ChallengeEditor({
                     )
                   }
                 >
-                  +
+                  <PlusIcon />
+                  {agregarOpcion}
                 </button>
               ) : null}
               {questions.length > 1 && !locked ? (
                 <button
                   type="button"
-                  className="self-start text-xs text-oe-orange underline"
+                  className="inline-flex items-center gap-1 self-start text-xs text-oe-orange underline"
                   onClick={() => setQuestions(questions.filter((_, i) => i !== qIndex))}
                 >
-                  ×
+                  <XIcon />
+                  {quitarPregunta}
                 </button>
               ) : null}
             </div>
@@ -389,7 +396,8 @@ export function ChallengeEditor({
                 setQuestions([...questions, { prompt: "", options: ["", ""], correctIndex: 0 }])
               }
             >
-              +
+              <PlusIcon />
+              {agregarPregunta}
             </button>
           ) : null}
         </fieldset>
