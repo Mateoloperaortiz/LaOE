@@ -1,6 +1,6 @@
 # ADR-075: Biblioteca de juegos y 2048 con replay verificado
 
-- Estado: Aceptada; implementada en local, publicación pendiente
+- Estado: Aceptada; en producción desde el 2026-09-18 (`b3226a5`)
 - Fecha: 2026-09-17
 - Enmienda: ADR-041 (regla 1: el tablero deja `/app/gh-points` y sí hay ruta de juego; regla 6: el ledger gana un tipo más), ADR-067 (regla 17: el Wordle deja de estar en Resumen; regla 4: el 2048 también queda fuera de los topes), ADR-074 (regla 5: la URL del aviso), ADR-007 (tipo `GAME2048`)
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-020, ADR-030, ADR-032, ADR-035, ADR-038
