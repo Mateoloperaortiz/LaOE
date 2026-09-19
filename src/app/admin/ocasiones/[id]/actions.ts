@@ -20,8 +20,8 @@ import {
   setRotatingCodeAs,
 } from "@/modules/participation";
 import { getPeopleByIds } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { requireOperator } from "./authz";
 
 // Acciones de la consola y del modo anfitrión (ADR-035): viven en src/app porque componen identity

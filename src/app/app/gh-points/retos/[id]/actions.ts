@@ -14,7 +14,7 @@ import {
   submitEvidenceAs,
   submitTriviaAs,
 } from "@/modules/participation";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Entregas del miembro (ADR-067 reglas 4 y 5): validación zod, sesión propia y respuesta
 // serializable sin filas de la base. El requestId hace el replay idempotente.

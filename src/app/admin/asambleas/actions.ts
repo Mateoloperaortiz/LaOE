@@ -7,7 +7,7 @@ import { z } from "zod";
 import { actorContext } from "@/app/_lib/actor";
 import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
 import { adjustRequirementAs, recomputeCommitteeAssembly } from "@/modules/participation";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Ajuste individual del requisito de asambleas (ADR-024, ADR-035 regla 12): ADMIN con motivo.
 

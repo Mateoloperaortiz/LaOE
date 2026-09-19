@@ -4,8 +4,8 @@ import { getDb } from "@/db/client";
 import type { CommandContext, Executor } from "@/db/tx";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm, listAllTerms, type TermRow } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { committee, committeeMembership, committeeRole, membership } from "../schema";
 import type { RoleView } from "./committee-direction-pure";
 import {

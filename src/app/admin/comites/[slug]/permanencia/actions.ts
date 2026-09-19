@@ -25,8 +25,8 @@ import {
   updateRuleAs,
 } from "@/modules/permanence";
 import { getCurrentTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { ruleInputFromForm } from "../../../permanencia/_ui/reglas";
 import { requireCommitteeCapability } from "../../_kit/capacidades";
 

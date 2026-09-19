@@ -6,8 +6,8 @@ import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { deleteObject, headObject, presignRead, presignUpload } from "@/shared/adapters/storage";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { type MediaVariants, mediaAsset } from "../schema";
 import {
   DELIVERY,

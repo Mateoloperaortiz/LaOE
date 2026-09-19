@@ -2,8 +2,8 @@ import { count, desc, eq, ilike } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { legacyAlias } from "../schema";
 
 // Alias legados (ADR-018, ADR-035 regla 3): /asamblea/{publicId} y los publicId retirados de GHPOINTS

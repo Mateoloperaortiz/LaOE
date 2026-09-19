@@ -2,8 +2,8 @@ import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { isUniqueViolation } from "@/db/errors";
 import type { Executor } from "@/db/tx";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { committee, committeeMembership, committeeRole, committeeRoleAssignment } from "../schema";
 
 // Cargos asignados de una pertenencia (ADR-058): una fila por cargo, titular o codirección, con

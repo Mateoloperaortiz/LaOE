@@ -12,13 +12,13 @@ import {
   safeNextPath,
 } from "@/modules/identity";
 import {
-  DomainError,
   type FormState,
   formDataToInput,
   formDataToValues,
   withLockedFormValues,
 } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { getResource } from "./registry";
 
 // Acción genérica del admin kit: valida con Zod, resuelve el actor, exige ADMIN (y step-up si el

@@ -13,8 +13,8 @@ import {
 } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
 import { campaign, campaignRecipient, emailTemplate } from "../schema";
 import { ensurePreferencesFor, listPreferencesFor } from "./preferences";

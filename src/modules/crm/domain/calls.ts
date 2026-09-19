@@ -12,9 +12,9 @@ import {
   validateAnswers,
 } from "@/modules/forms";
 import { getMembershipRef, getPeopleByIds, getPersonRecord } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { internalCall, internalCallEntry } from "../schema";
 import {
   CALL_SELECTIONS,

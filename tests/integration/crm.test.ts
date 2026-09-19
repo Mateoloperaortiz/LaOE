@@ -24,7 +24,7 @@ import {
   segmentFilterSchema,
 } from "@/modules/people/domain/segments";
 import { createTag, listPersonTags, setPersonTags } from "@/modules/people/domain/tags";
-import { DomainError } from "@/shared/admin-kit/DomainError";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import { leaveUntilSoon, seedCommittee, seedMember, seedTerm } from "./factories";
 

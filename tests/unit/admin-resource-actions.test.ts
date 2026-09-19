@@ -24,10 +24,7 @@ vi.mock("@/modules/identity", async () => ({
   ...(await import("@/modules/identity/domain/pure")),
   getActor: state.actor,
 }));
-vi.mock("@/shared/admin-kit", async () => ({
-  ...(await import("@/shared/admin-kit/types")),
-  ...(await import("@/shared/admin-kit/DomainError")),
-}));
+vi.mock("@/shared/admin-kit", async () => await import("@/shared/admin-kit/types"));
 vi.mock("@/app/admin/_kit/registry", () => ({ getResource: state.resource }));
 const initial: FormState = { ok: false, message: null, errors: {}, values: {} };
 function form() {

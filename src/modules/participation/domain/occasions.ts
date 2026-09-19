@@ -4,9 +4,9 @@ import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext, Executor } from "@/db/tx";
 import { lockOpenTermPoints } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { checkIn, occasion } from "../schema";
 import {
   canTransitionOccasion,

@@ -18,8 +18,8 @@ import {
 import { myPosition, rankCommittees, rankPeople } from "@/modules/participation/domain/rankings";
 import { membership } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
   currentTermCode,

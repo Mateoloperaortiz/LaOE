@@ -23,8 +23,8 @@ import { getPerson360 } from "@/modules/people/domain/person-360";
 import { listPeople, updatePerson } from "@/modules/people/domain/persons";
 import { committeeMembership, membership, membershipTerm, person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
   seedCommittee,

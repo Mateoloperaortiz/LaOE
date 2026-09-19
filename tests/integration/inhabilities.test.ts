@@ -13,9 +13,9 @@ import {
 } from "@/modules/people";
 import { membershipTerm } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
   seedCommittee,

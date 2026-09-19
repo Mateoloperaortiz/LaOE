@@ -12,8 +12,8 @@ import {
   unpublishDocumentAs,
 } from "@/modules/content";
 import { requireAdminActor } from "@/modules/identity";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 
 // Acciones de /admin/documentos: publicar, despublicar y cargar los artículos desde el JSON del extractor.
 

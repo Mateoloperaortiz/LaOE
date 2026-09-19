@@ -11,9 +11,9 @@ import {
   getPersonRecord,
   markApplicant,
 } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { card, organization, pipeline, pipelineStage, task } from "../schema";
 import { closedAtAfterMove } from "./pipelines-pure";
 

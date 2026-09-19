@@ -7,7 +7,7 @@ import { z } from "zod";
 import { actorContext } from "@/app/_lib/actor";
 import { assertAdmin, ForbiddenError, getActor, hasRecentStepUp } from "@/modules/identity";
 import { closeTermPointsAs } from "@/modules/participation";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Cierre de puntos del término (ADR-004, ADR-035 regla 13): ADMIN con step-up; sin reapertura.
 

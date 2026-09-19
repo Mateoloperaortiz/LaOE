@@ -1,7 +1,7 @@
 import { actorContext } from "@/app/_lib/actor";
 import { confirmUploadAs, confirmUploadSchema } from "@/modules/content";
 import { getActor } from "@/modules/identity";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Paso 2 de la subida directa (ADR-022): comprueba el objeto, registra el medio y encola las variantes.
 

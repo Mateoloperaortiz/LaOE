@@ -23,9 +23,9 @@ import {
 import { occasion } from "@/modules/participation/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import { currentTermCode, seedOccasion, seedTerm } from "./factories";
 

@@ -15,8 +15,8 @@ import {
 } from "@/modules/participation/domain/reconciliation";
 import { achievement, boosterItem, checkIn, wordleGame } from "@/modules/participation/schema";
 import { outbox } from "@/modules/system/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import { seedMember, seedOccasion, seedTerm } from "./factories";
 

@@ -1,9 +1,9 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { formatMoney } from "@/shared/lib/money";
 import {
   budgetExpense,

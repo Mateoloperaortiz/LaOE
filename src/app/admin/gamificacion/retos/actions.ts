@@ -17,8 +17,8 @@ import {
   publishChallengeAs,
   updateChallengeAs,
 } from "@/modules/participation";
-import { DomainError } from "@/shared/admin-kit";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 
 // Acciones del editor de retos (ADR-067 reglas 2, 3 y 17): solo ADMIN. Cancelar un reto con
 // premios entregados exige step-up (T-2515).

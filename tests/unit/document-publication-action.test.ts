@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { publicationAction } from "@/app/admin/documentos/actions";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 
 const state = vi.hoisted(() => ({
   actor: vi.fn(),
@@ -31,7 +31,6 @@ vi.mock("@/modules/identity/domain/session", () => ({
   findSessionByToken: vi.fn().mockResolvedValue(null),
   touchSession: vi.fn(),
 }));
-vi.mock("@/shared/admin-kit", async () => await import("@/shared/admin-kit/DomainError"));
 
 const documentId = "documentosintetico123";
 const actor = {

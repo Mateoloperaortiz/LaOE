@@ -19,7 +19,7 @@ import { changeMembershipStatus } from "@/modules/people/domain/membership";
 import { updateOwnContact } from "@/modules/people/domain/own-data";
 import { person } from "@/modules/people/schema";
 import { requireConfig } from "@/modules/system";
-import { DomainError } from "@/shared/admin-kit/DomainError";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
   leaveUntilSoon,

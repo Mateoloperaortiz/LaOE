@@ -9,7 +9,7 @@ import { formText } from "@/app/_lib/form";
 import { safeBack, withQuery } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { adjustPointsAs, reverseEntryAs } from "@/modules/participation";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Ajustes y reversiones del ledger (ADR-007, ADR-035 regla 9): solo ADMIN, siempre con motivo; vuelven
 // al ledger (o a la Persona 360 si se abrió desde ahí) con `guardado=1` o con el error del dominio.

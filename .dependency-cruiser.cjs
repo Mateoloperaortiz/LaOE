@@ -108,6 +108,14 @@ module.exports = {
       to: { path: "^src/(db/|env\\.ts$|modules/[^/]+/(domain/|schema\\.ts$))" },
     },
     {
+      name: "dominio-sin-admin-kit",
+      comment:
+        "El dominio, los jobs y el esquema no conocen la UI del admin: DomainError vive en src/shared/lib/errors (ADR-083).",
+      severity: "error",
+      from: { path: "^src/modules/[^/]+/(domain/|jobs\\.ts$|schema\\.ts$)" },
+      to: { path: "^src/shared/admin-kit/" },
+    },
+    {
       name: "shared-sin-negocio",
       comment: "src/shared no conoce los módulos: lo que necesite lo recibe por parámetros.",
       severity: "error",

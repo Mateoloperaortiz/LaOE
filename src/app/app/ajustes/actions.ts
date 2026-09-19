@@ -24,8 +24,8 @@ import {
   updateOwnContactAs,
 } from "@/modules/people";
 import { PrivacyPolicyPendingError } from "@/modules/system";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 
 // Acciones de Ajustes (ADR-034 reglas 6, 8 y 12): la persona sobre sus propios datos. Cada una vuelve
 // a su sección con `guardado=<sección>` o con el error del dominio.

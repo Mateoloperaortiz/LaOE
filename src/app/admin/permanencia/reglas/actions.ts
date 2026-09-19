@@ -19,8 +19,8 @@ import {
   type TableRef,
   updateRuleAs,
 } from "@/modules/permanence";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { ruleInputFromForm } from "../_ui/reglas";
 
 // Editor de reglas de GH (ADR-036 regla 3): ADMIN edita cualquier tabla, salta el bloqueo, comenta y bloquea.

@@ -2,8 +2,8 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type CommandContext, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { listMembershipPersonIds } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { badgeReconciliationRun } from "../schema";
 import { recomputeBadgesFor } from "./badges";
 

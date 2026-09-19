@@ -10,8 +10,8 @@ import {
   listAllTags,
   normalizePhone,
 } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { organization, organizationContact, organizationTag } from "../schema";
 
 // Organizaciones y contactos (02-crm.md, ADR-037 regla 6): empresas, unidades de EAFIT, grupos

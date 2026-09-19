@@ -9,7 +9,7 @@ import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { createSpecialBadgeAs, grantBoosterAs, revokeBoosterAs } from "@/modules/participation";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Insignias (ADR-067 reglas 6, 9 y 15): alta de ediciones especiales y otorgamiento/retiro manual
 // de boosters — todo con motivo obligatorio y solo ADMIN.

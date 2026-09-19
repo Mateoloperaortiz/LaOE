@@ -9,8 +9,8 @@ import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
 import { cancelCampaignAs, scheduleCampaignAs, sendTemplateTestAs } from "@/modules/comms";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
-import { DomainError } from "@/shared/admin-kit";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 
 // Detalle de una campaña (ADR-038 regla 8): programar y enviar ahora exigen ADMIN con step-up;
 // cancelar y la prueba al propio correo solo ADMIN.

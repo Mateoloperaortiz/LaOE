@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
 import { readRosterCells } from "@/modules/people/domain/roster-file";
-import { DomainError } from "@/shared/admin-kit/DomainError";
+import { DomainError } from "@/shared/lib/errors";
 
 describe("lectura de fechas en roster", () => {
   it("informa el formato incorrecto de un celular sin convertirlo ni abortar con RangeError", async () => {

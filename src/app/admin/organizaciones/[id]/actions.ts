@@ -19,7 +19,7 @@ import {
   taskInputSchema,
 } from "@/modules/crm";
 import { requireAdminActor } from "@/modules/identity";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Detalle de una organización (ADR-037 regla 6): contactos externos, notas, tareas y etiquetas.
 

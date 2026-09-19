@@ -10,8 +10,8 @@ import {
   presignUpload,
   putObject,
 } from "@/shared/adapters/storage";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { tList } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
 import { challengeEvidenceFile, challengeParticipation } from "../schema";
 

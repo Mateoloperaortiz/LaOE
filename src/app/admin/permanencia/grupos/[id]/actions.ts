@@ -15,8 +15,8 @@ import {
   setEvaluatorsAs,
 } from "@/modules/permanence";
 import type { ImportState } from "@/modules/permanence/components/ImportadorGrupo";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { requireGroupOperator } from "../../authz";
 
 // Operar un grupo (ADR-036 regla 6): el líder del grupo o ADMIN agrega y quita miembros e importa

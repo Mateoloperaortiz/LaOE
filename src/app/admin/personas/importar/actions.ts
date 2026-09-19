@@ -15,8 +15,8 @@ import {
   recordLeaderGrantsAs,
   remapRosterPreviewAs,
 } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { parseProposalIndexes, proposalSelectionVersion } from "./selection";
 
 // Acciones del asistente del roster (ADR-034): corregir el mapeo, aplicar con step-up y descartar. Los

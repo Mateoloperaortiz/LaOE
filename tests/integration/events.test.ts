@@ -24,7 +24,7 @@ import {
 import { editionCommittee } from "@/modules/events/schema";
 import { createCommittee } from "@/modules/people/domain/committees";
 import { auditLog } from "@/modules/system/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 
 const day = 24 * 60 * 60_000;

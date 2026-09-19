@@ -3,8 +3,8 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { getTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { leaderScore, manualCredit, permanenceRule } from "../schema";
 import { getRule, rulesWhere, type TableRef } from "./rules";
 

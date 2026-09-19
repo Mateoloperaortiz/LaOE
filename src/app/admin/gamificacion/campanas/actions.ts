@@ -9,8 +9,8 @@ import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { campaignInputSchema, cancelCampaignAs, createCampaignsAs } from "@/modules/participation";
-import { DomainError } from "@/shared/admin-kit";
 import { bogotaInputToUtc } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 
 // Campañas de puntos (ADR-067 regla 9): una fila por objetivo, ventana en hora de Bogotá.
 

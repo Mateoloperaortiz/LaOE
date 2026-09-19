@@ -9,7 +9,7 @@ import { applyToCallAs, getCall } from "@/modules/crm";
 import { answersFromFormData, getFormView } from "@/modules/forms";
 import { getActor } from "@/modules/identity";
 import { listGroupIdsOf } from "@/modules/permanence";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // "Me apunto" (ADR-037 regla 10): valida las respuestas del formulario de la convocatoria si lo tiene y
 // entra por orden de llegada o queda pendiente del líder. Si la persona ya está en el grupo, no aplica.

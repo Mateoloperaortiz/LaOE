@@ -21,8 +21,8 @@ import {
 } from "@/modules/people/domain/own-data";
 import { person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { addBusinessDays } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
   seedCommittee,

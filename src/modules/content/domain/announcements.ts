@@ -3,8 +3,8 @@ import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { announcement } from "../schema";
 import { excerpt } from "./markdown-pure";
 

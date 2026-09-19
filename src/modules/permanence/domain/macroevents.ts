@@ -3,8 +3,8 @@ import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { getEventRef, isMacroeventSlug } from "@/modules/events";
 import { getTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { workGroup } from "../schema";
 export type MacroeventGroupKind = "GT_MACROEVENT" | "GAP";
 

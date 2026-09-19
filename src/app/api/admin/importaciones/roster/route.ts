@@ -1,8 +1,8 @@
 import { actorContext } from "@/app/_lib/actor";
 import { getActor } from "@/modules/identity";
 import { createRosterPreviewAs, ROSTER_MAX_BYTES } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 
 // Paso 1 del asistente del roster (ADR-034): el archivo (menos de 5 MB) llega al servidor, que lo guarda
 // en el bucket privado, lo lee y deja la vista previa en un ImportJob.

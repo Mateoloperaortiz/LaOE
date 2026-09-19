@@ -15,7 +15,7 @@ import { processMedia } from "@/modules/content/domain/media-process";
 import { mediaAsset } from "@/modules/content/schema";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
-import { DomainError } from "@/shared/admin-kit/DomainError";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 
 // Contra Garage en local: la subida directa se simula con fetch y FormData, como hace el navegador.

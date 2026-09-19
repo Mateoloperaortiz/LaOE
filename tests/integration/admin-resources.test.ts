@@ -20,7 +20,7 @@ import { searchPeople } from "@/modules/people/domain/people-reads";
 import { auditLog } from "@/modules/system/schema";
 import { createTerm, findTermContaining, updateTerm } from "@/modules/terms/domain/terms";
 import { term } from "@/modules/terms/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
 

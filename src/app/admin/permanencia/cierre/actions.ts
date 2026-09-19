@@ -12,7 +12,7 @@ import {
   confirmDecisionsAs,
   decisionInputSchema,
 } from "@/modules/permanence";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Cierre de permanencia (ADR-036 regla 9): confirmar por persona, confirmar en bloque y aplicar;
 // las dos últimas con step-up. Solo ADMIN.

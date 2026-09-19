@@ -14,8 +14,8 @@ import {
   withdrawRequestAs,
 } from "@/modules/crm";
 import { getActor } from "@/modules/identity";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import type { RequestActionState } from "./form-state";
 
 const LOGIN = "/ingresar?next=%2Fapp%2Fsolicitudes";

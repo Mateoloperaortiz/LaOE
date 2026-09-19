@@ -17,7 +17,7 @@ import {
 import { getMyMembership } from "@/modules/people/domain/committee-memberships";
 import { committeeMembership, committeeRoleAssignment } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
   seedCommittee,

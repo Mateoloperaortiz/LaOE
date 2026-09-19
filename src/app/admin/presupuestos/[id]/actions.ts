@@ -17,7 +17,7 @@ import {
   sanctionBudgetSchema,
   setBudgetLinesAs,
 } from "@/modules/finance";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Detalle de un presupuesto (ADR-059 regla 2, ADR-060 regla 12): ADMIN fija rubros, registra las
 // aprobaciones, abre, cierra, anota la sanción y decide los avales como Presidencia.

@@ -14,7 +14,7 @@ import { committeeRole, consent, person } from "@/modules/people/schema";
 import { PrivacyPolicyPendingError } from "@/modules/system";
 import { appConfig, auditLog, importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import { currentTermCode, seedCommittee, seedMember, seedTerm } from "./factories";
 

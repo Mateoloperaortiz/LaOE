@@ -21,7 +21,7 @@ import {
   listLiveCommitteeIds,
   setCommitteeMemberships,
 } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit/DomainError";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
   currentTermCode,

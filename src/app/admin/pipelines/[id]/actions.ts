@@ -26,8 +26,8 @@ import {
 } from "@/modules/crm";
 import { requireAdminActor, safeNextPath } from "@/modules/identity";
 import { admitInputSchema } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 
 // Kanban de un pipeline (ADR-037 reglas 7 y 8): mover (selector o arrastre), tarjeta nueva, datos de
 // la tarjeta, notas y tareas sobre el sujeto, etapas y "dar de alta" en admisión.

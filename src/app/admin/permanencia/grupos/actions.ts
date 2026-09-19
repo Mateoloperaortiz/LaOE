@@ -8,7 +8,7 @@ import { actorContext } from "@/app/_lib/actor";
 import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
 import { seedWorkCommitteesAs } from "@/modules/permanence";
 import { getTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Sembrar los comités de trabajo del término (ADR-036 regla 6): ADMIN; idempotente por código.
 

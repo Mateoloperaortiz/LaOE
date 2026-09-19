@@ -13,7 +13,7 @@ import {
 import { createPage, findPublicPage, listPages, updatePage } from "@/modules/content/domain/pages";
 import { announcement } from "@/modules/content/schema";
 import { auditLog } from "@/modules/system/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 
 describe("páginas", () => {

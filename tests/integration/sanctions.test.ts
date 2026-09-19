@@ -23,8 +23,8 @@ import {
 } from "@/modules/permanence";
 import { manualCredit } from "@/modules/permanence/schema";
 import { closeTermPoints } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
   seedCheckIn,

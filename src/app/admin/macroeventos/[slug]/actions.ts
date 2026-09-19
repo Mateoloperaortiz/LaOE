@@ -24,9 +24,9 @@ import {
   teamMemberInputSchema,
 } from "@/modules/permanence";
 import { findTermContaining, getTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 import { dateKeyIn } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 
 const id = z.string().regex(/^[a-z0-9-]{10,40}$/);
 const inputSchema = z.object({

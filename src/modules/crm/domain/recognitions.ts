@@ -10,8 +10,8 @@ import {
   hasLiveConsent,
   listCommitteesByIds,
 } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { interaction, recognition } from "../schema";
 
 // Reconocimientos (ADR-031, ADR-036 regla 7): el destacado del mes que nombra el líder desde su tabla.

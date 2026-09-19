@@ -2,9 +2,9 @@ import { type Actor, runCommand } from "@/db/tx";
 import { getMembershipRef, listActiveMemberRefs, listAllCommittees } from "@/modules/people";
 import { getConfig, requireConfig } from "@/modules/system";
 import { closeTermPoints, findTermContaining, getTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { type AdjustRequirementInput, adjustRequirement } from "./assemblies";
 import type { CheckInDecision } from "./check-in-pure";
 import {

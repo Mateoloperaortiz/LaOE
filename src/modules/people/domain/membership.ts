@@ -6,9 +6,9 @@ import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
 import { redactAuditEntries } from "@/modules/system";
 import { getCurrentTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import {
   committeeMembership,
   type LeaveCondition,
