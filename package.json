@@ -10,7 +10,7 @@
     "lint": "biome check && bash -n scripts/backup.sh tests/backup/run.sh",
     "format": "biome check --write",
     "typecheck": "next typegen && tsc --noEmit",
-    "deps:check": "depcruise src scripts tests --config .dependency-cruiser.cjs",
+    "deps:check": "depcruise src scripts tests --config .dependency-cruiser.cjs && depcruise src --config .dependency-cruiser.runtime.cjs",
     "deadcode": "knip",
     "audit:metrics": "node --import tsx scripts/audit-metrics.ts",
     "test": "vitest run --project unit",

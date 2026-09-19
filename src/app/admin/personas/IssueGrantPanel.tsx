@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { APP_TIME_ZONE } from "@/shared/lib/dates-pure";
 import { issueGrantAction } from "./acceso-actions";
 import { type IssueGrantState, initialIssueGrantState } from "./acceso-state";
 
@@ -31,7 +32,7 @@ function Emitido({ state, labels }: { state: IssueGrantState; labels: IssueGrant
     ? new Intl.DateTimeFormat("es-CO", {
         hour: "2-digit",
         minute: "2-digit",
-        timeZone: "America/Bogota",
+        timeZone: APP_TIME_ZONE,
       }).format(new Date(state.expiresAt))
     : "";
   return (

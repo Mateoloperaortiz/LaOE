@@ -1,4 +1,16 @@
 import { getEnv } from "@/env";
+import { dateKeyIn, utcToZonedInput, zonedInputToUtc } from "./dates-pure";
+
+export {
+  APP_TIME_ZONE,
+  addBusinessDays,
+  dateKeyIn,
+  hourIn,
+  LOCAL_INPUT,
+  startOfTodayIn,
+  utcToZonedInput,
+  zonedInputToUtc,
+} from "./dates-pure";
 
 // Presentación en America/Bogota; la base y el proceso viven en UTC (ADR-020).
 
@@ -38,93 +50,9 @@ export function formatDateRange(start: Date, end: Date | null): string {
   return `${formatDateTime(start)} a ${formatDateTime(end)}`;
 }
 
-/** Suma días hábiles (lunes a viernes, sin festivos) a partir de un instante: el plazo de la eliminación. */
-export function addBusinessDays(from: Date, days: number): Date {
-  const result = new Date(from.getTime());
-  let remaining = days;
-  while (remaining > 0) {
-    result.setUTCDate(result.getUTCDate() + 1);
-    const weekday = result.getUTCDay();
-    if (weekday !== 0 && weekday !== 6) {
-      remaining -= 1;
-    }
-  }
-  return result;
-}
-
 /** "AAAA-MM-DD" de hoy en la zona de la app: la fecha con la que se deriva el término actual (ADR-004). */
 export function todayKey(now = new Date()): string {
   return dateKeyIn(getEnv().APP_TIMEZONE, now);
-}
-
-/** "AAAA-MM-DD" de un instante en la zona dada. */
-export function dateKeyIn(timeZone: string, at: Date): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(at);
-  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-}
-
-/** Hora (0 a 23) de un instante en la zona dada. */
-export function hourIn(timeZone: string, at: Date): number {
-  const value = new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", hour: "2-digit" })
-    .formatToParts(at)
-    .find((part) => part.type === "hour")?.value;
-  return Number(value ?? "0");
-}
-
-/** Medianoche de hoy en la zona dada, como instante UTC. Colombia no tiene horario de verano. */
-export function startOfTodayIn(timeZone: string, now = new Date()): Date {
-  const local = new Date(`${dateKeyIn(timeZone, now)}T00:00:00Z`);
-  // Desfase de la zona en ese momento: diferencia entre la hora local y la UTC del mismo instante.
-  const offsetMinutes = zoneOffsetMinutes(timeZone, local);
-  return new Date(local.getTime() - offsetMinutes * 60_000);
-}
-
-function zoneOffsetMinutes(timeZone: string, at: Date): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).formatToParts(at);
-  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? "0");
-  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"));
-  return Math.round((asUtc - at.getTime()) / 60_000);
-}
-
-export const LOCAL_INPUT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
-
-/** "AAAA-MM-DDTHH:mm" escrito en la zona dada (un `datetime-local`) → instante UTC. */
-export function zonedInputToUtc(value: string, timeZone: string): Date {
-  if (!LOCAL_INPUT.test(value)) {
-    throw new Error(`Fecha y hora inválidas: ${value}`);
-  }
-  const naive = new Date(`${value}:00Z`); // como si fuera UTC
-  const offsetMinutes = zoneOffsetMinutes(timeZone, naive);
-  return new Date(naive.getTime() - offsetMinutes * 60_000);
-}
-
-/** Instante UTC → "AAAA-MM-DDTHH:mm" en la zona dada, para rellenar un `datetime-local`. */
-export function utcToZonedInput(date: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).formatToParts(date);
-  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
-  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
 }
 
 export function bogotaInputToUtc(value: string): Date {

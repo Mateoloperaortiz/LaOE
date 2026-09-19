@@ -1,4 +1,4 @@
-import { dateKeyIn, hourIn } from "@/shared/lib/dates";
+import { dateKeyIn, hourIn } from "@/shared/lib/dates-pure";
 import type { OccasionCategory, OccasionKind, OccasionStatus } from "./occasion-pure";
 
 // Recordatorios de participación sin I/O (ADR-038 regla 9): qué ocasiones abiertas merecen aviso en
