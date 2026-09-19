@@ -1,11 +1,14 @@
+import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { finishSudokuAs, startSudokuAs } from "@/modules/participation/domain/sudoku";
 import {
   achievement,
   badgeDefinition,
   challengeEvidenceFile,
   reward,
+  sudokuRun,
 } from "@/modules/participation/schema";
 import { truncateAll } from "./db";
 import { seedBooster, seedChallenge, seedMember, seedParticipation, seedTerm } from "./factories";
@@ -136,5 +139,54 @@ describe("mis datos: gamificación", () => {
     expect(serialized).not.toContain('"objectKey"');
     expect(serialized).not.toContain('"correctIndex"');
     expect(serialized).not.toContain("evidence/");
+  });
+
+  it("incluye las partidas de Sudoku sin semilla, dadas ni solución (ADR-078 regla 17)", async () => {
+    const personId = await seedMember("misdatos.sudoku@test.dev");
+    currentPerson = personId;
+    // Una resuelta con ayudas y otra abierta: ni la abierta lleva su tablero a la exportación.
+    const resuelta = await startSudokuAs(
+      { personId },
+      { requestId: randomUUID(), difficulty: "EASY", assisted: true },
+    );
+    if (!resuelta.ok) throw new Error(resuelta.reason);
+    const [fila] = await db().select().from(sudokuRun).where(eq(sudokuRun.id, resuelta.run.id));
+    if (!fila) throw new Error("Partida de prueba ausente");
+    const cierre = await finishSudokuAs(
+      { personId },
+      { runId: fila.id, grid: fila.solution, requestId: randomUUID() },
+    );
+    expect(cierre.ok).toBe(true);
+    const abierta = await startSudokuAs(
+      { personId },
+      { requestId: randomUUID(), difficulty: "HARD", assisted: true },
+    );
+    if (!abierta.ok) throw new Error(abierta.reason);
+
+    const response = await GET(new Request("https://test.local/api/mis-datos"));
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { sudokuRuns: Array<Record<string, unknown>> };
+    expect(body.sudokuRuns).toHaveLength(2);
+    expect(body.sudokuRuns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: "SOLVED",
+          difficulty: "EASY",
+          assisted: true,
+          points: 1,
+        }),
+        expect.objectContaining({ status: "IN_PROGRESS", difficulty: "HARD", points: 0 }),
+      ]),
+    );
+    expect(Object.keys(body.sudokuRuns[0] ?? {}).sort()).toEqual(
+      ["assisted", "day", "difficulty", "id", "points", "status"].sort(),
+    );
+    const partidas = await db().select().from(sudokuRun);
+    const serialized = JSON.stringify(body);
+    for (const partida of partidas) {
+      expect(serialized).not.toContain(partida.seed);
+      expect(serialized).not.toContain(partida.givens);
+      expect(serialized).not.toContain(partida.solution);
+    }
   });
 });

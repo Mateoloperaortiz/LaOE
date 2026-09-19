@@ -92,14 +92,15 @@ async function creditos() {
   return getDb().select().from(pointEntry).where(eq(pointEntry.kind, "GAME2048"));
 }
 
-test("la biblioteca muestra los dos juegos y se llega desde GH Points", async ({ page }) => {
+test("la biblioteca muestra los juegos y se llega desde GH Points", async ({ page }) => {
   await page.goto("/app/gh-points");
   await page.getByRole("link", { name: "Ver todos los juegos" }).click();
   await expect(page).toHaveURL(/\/app\/juegos$/);
   await expect(page.getByRole("heading", { name: "Juegos", level: 1 })).toBeVisible();
   await expect(page.getByRole("link", { name: /Wordle/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /2048/ })).toBeVisible();
-  await expect(page.getByText("Disponible hoy")).toHaveCount(2);
+  // Wordle, 2048 y Sudoku (ADR-078): la tarjeta del Sudoku se prueba en `sudoku.spec.ts`.
+  await expect(page.getByText("Disponible hoy")).toHaveCount(3);
   await sinViolaciones(page);
 
   await page.getByRole("link", { name: /2048/ }).click();

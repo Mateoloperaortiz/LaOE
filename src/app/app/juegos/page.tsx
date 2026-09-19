@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireActor } from "@/modules/identity";
-import { getTodayGame2048, getTodayWordle } from "@/modules/participation";
+import { getTodayGame2048, getTodaySudoku, getTodayWordle } from "@/modules/participation";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 
-// Biblioteca de juegos de Mi OE (ADR-075 regla 1): una tarjeta por juego con su estado del día.
+// Biblioteca de juegos de Mi OE (ADR-075 regla 1, ADR-078): una tarjeta por juego con su estado del día.
 // El tablero de cada juego vive en su propia ruta; aquí no se juega ni se reparte ninguna semilla.
 
 export const metadata: Metadata = { title: t("T-2621") };
@@ -14,9 +14,10 @@ type Estado = 0 | 1 | 2; // T-2623: disponible hoy · ya sumaste hoy · no dispo
 
 export default async function JuegosPage() {
   const actor = await requireActor("/app/juegos");
-  const [wordle, game2048] = await Promise.all([
+  const [wordle, game2048, sudoku] = await Promise.all([
     getTodayWordle(actor.personId),
     getTodayGame2048(actor.personId),
+    getTodaySudoku(actor.personId),
   ]);
   const estados = tList("T-2623");
   const juegos: { href: string; nombre: string; resumen: string; estado: Estado }[] = [
@@ -32,6 +33,12 @@ export default async function JuegosPage() {
       resumen: t("T-2629"),
       estado: game2048.availability !== "AVAILABLE" ? 2 : game2048.credited ? 1 : 0,
     },
+    {
+      href: "/app/juegos/sudoku",
+      nombre: t("T-2675"),
+      resumen: t("T-2676"),
+      estado: sudoku.availability !== "AVAILABLE" ? 2 : sudoku.credited ? 1 : 0,
+    },
   ];
 
   return (
@@ -41,7 +48,7 @@ export default async function JuegosPage() {
         <p className="max-w-prose text-sm text-tinta-suave">{t("T-2622")}</p>
       </header>
 
-      <ul className="grid list-none gap-4 p-0 sm:grid-cols-2">
+      <ul className="grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
         {juegos.map((juego) => (
           <li key={juego.href}>
             <Link
