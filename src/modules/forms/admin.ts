@@ -23,7 +23,7 @@ import { getSubmission, listSubmissions, type SubmissionListRow } from "./domain
 const emptySchema = z.object({});
 type Empty = z.infer<typeof emptySchema>;
 
-const [formsSingular, formsPlural] = tList("T-909") as [string, string];
+const [formsSingular, formsPlural] = tList("T-909");
 const [
   identificador,
   titulo,
@@ -38,9 +38,9 @@ const [
   gracias,
   respuestas,
 ] = tList("T-910");
-const [publico, miembros] = tList("T-911") as [string, string];
-const [borrador, abierto, cerrado] = tList("T-912") as [string, string, string];
-const [abrir, cerrar] = tList("T-913") as [string, string];
+const [publico, miembros] = tList("T-911");
+const [borrador, abierto, cerrado] = tList("T-912");
+const [abrir, cerrar] = tList("T-913");
 
 const audienceOptions = [
   { value: "PUBLIC", label: publico },
@@ -194,9 +194,9 @@ export const formsResource: ResourceDefinition<FormListRow, FormInput> = {
 
 // Respuestas: solo lectura, anidadas bajo /admin/formularios/[id]/respuestas con el formulario fijado.
 
-const [submissionSingular, submissionPlural] = tList("T-935") as [string, string];
+const [submissionSingular, submissionPlural] = tList("T-935");
 const [fecha, nombre, correo, persona, , consentimientoCol, ip] = tList("T-936");
-const [si, no] = tList("T-1058") as [string, string];
+const [si, no] = tList("T-1058");
 
 function answersCells(answers: Record<string, unknown>): Record<string, string | number | null> {
   const out: Record<string, string | number | null> = {};
@@ -271,9 +271,9 @@ export const submissionsResource: ResourceDefinition<SubmissionListRow, Empty> =
 
 // Inscritos de una edición: solo lectura, anidados bajo /admin/eventos/[id]/ediciones/[edicionId]/inscritos.
 
-const [registrationSingular, registrationPlural] = tList("T-940") as [string, string];
+const [registrationSingular, registrationPlural] = tList("T-940");
 const [regNombre, regCorreo, regEstado, inscritoEl] = tList("T-941");
-const [inscrito, cancelada] = tList("T-942") as [string, string];
+const [inscrito, cancelada] = tList("T-942");
 
 export const registrationsResource: ResourceDefinition<RegistrationRow, Empty> = {
   key: "inscritos",

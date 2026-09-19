@@ -27,8 +27,8 @@ import {
 
 // Recursos del admin de Contenido (ADR-017, ADR-033).
 
-const [borrador, publicado] = tList("T-288") as [string, string];
-const [publico, soloMiembros] = tList("T-339") as [string, string];
+const [borrador, publicado] = tList("T-288");
+const [publico, soloMiembros] = tList("T-339");
 
 const statusOptions = [
   { value: "DRAFT", label: borrador },
@@ -47,7 +47,7 @@ function audienceCell(audience: "PUBLIC" | "MEMBERS") {
 
 // Páginas fijas (La OE, Unirse, Privacidad y las que se creen).
 
-const [pagesPlural, pagesSingular] = tList("T-330") as [string, string];
+const [pagesPlural, pagesSingular] = tList("T-330");
 
 const pageFields: FieldDefinition[] = [
   {
@@ -131,8 +131,8 @@ export const pagesResource: ResourceDefinition<PageRow, PageInput> = {
 
 // Cartelera: se publica, se avisa por push y se despublica con acciones de fila (ADR-038 regla 6).
 
-const [carteleraPlural, carteleraSingular] = tList("T-331") as [string, string];
-const [pushNone, pushSending, pushSent] = tList("T-1114") as [string, string, string];
+const [carteleraPlural, carteleraSingular] = tList("T-331");
+const [pushNone, pushSending, pushSent] = tList("T-1114");
 
 const announcementFields: FieldDefinition[] = [
   { name: "title", label: t("T-335"), type: "text", required: true },

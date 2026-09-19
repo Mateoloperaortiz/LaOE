@@ -69,7 +69,7 @@ export default async function PersonasPage({ searchParams }: PageProps<"/app/per
     (featured.get(personId) ?? []).map(
       (item) => `${item.name} · ${t("T-2482", { nivel: item.level })}`,
     );
-  const [anterior, siguiente] = tList("T-258") as [string, string];
+  const [anterior, siguiente] = tList("T-258");
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-display-lg">{t("T-070")}</h1>

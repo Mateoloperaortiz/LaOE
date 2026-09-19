@@ -62,7 +62,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
       : listRecipients(id),
     requireConfig("campaigns.perMinute"),
   ]);
-  const [campoProgramar, botonProgramar] = tList("T-1129") as [string, string];
+  const [campoProgramar, botonProgramar] = tList("T-1129");
   const [, colPlantilla, colSegmento, , colProgramada, colEnviados] = tList("T-1125");
   const [colPersona, colEstado, colMotivo, colEnviado] = tList("T-1134");
   const recipientLabels = tList("T-1135");

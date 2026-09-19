@@ -60,7 +60,7 @@ export default async function FormularioPage({ params, searchParams }: PageProps
   if (formulario.audience === "MEMBERS" && !actor) {
     redirect(`/ingresar?next=${encodeURIComponent(`/f/${slug}`)}`);
   }
-  const [firstName, lastName, email] = tList("T-851") as [string, string, string];
+  const [firstName, lastName, email] = tList("T-851");
   const enviado = search.ok === "1";
   const edicion =
     enviado && search.inscrito === "1" && formulario.parsedActions.editionId

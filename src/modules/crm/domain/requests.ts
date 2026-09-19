@@ -91,7 +91,7 @@ async function describe(
   }
   if (kind === "LEAVE") {
     const parsed = REQUEST_PAYLOAD_SCHEMAS.LEAVE.safeParse(payload);
-    const [conFecha, sinFecha] = tList("T-1010") as [string, string];
+    const [conFecha, sinFecha] = tList("T-1010");
     return parsed.success && parsed.data.until
       ? conFecha.replace("{fecha}", formatDate(new Date(`${parsed.data.until}T12:00:00Z`)))
       : sinFecha;

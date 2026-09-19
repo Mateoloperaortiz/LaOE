@@ -94,7 +94,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
   const [respuestaTitulo, notasTitulo, tareasTitulo, datosTitulo] = tList("T-975");
   const [monto, contraprestacion] = tList("T-976");
   const [nombreEtapa, ganada, perdida] = tList("T-978");
-  const [subir, bajar, borrar] = tList("T-929") as [string, string, string];
+  const [subir, bajar, borrar] = tList("T-929");
   const [nPersona, nOrganizacion, nEdicion, nTitulo, nResponsable, nVence] = tList("T-973");
   const [tTitulo, tResponsable, tVence] = tList("T-459");
 

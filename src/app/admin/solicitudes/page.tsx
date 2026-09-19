@@ -83,7 +83,7 @@ export default async function Page({ searchParams }: PageProps<"/admin/solicitud
   const columns = tList("T-998");
   const statusFilters = tList("T-999");
   const kindFilters = tList("T-1057");
-  const [previous, next] = tList("T-258") as [string, string];
+  const [previous, next] = tList("T-258");
   const statusValues = [...REQUEST_STATUSES, "ALL"];
   const decidedLabel = decidida
     ? t("T-1008", { estado: (tList("T-876")[decidida === "APPROVED" ? 1 : 2] ?? "").toLowerCase() })

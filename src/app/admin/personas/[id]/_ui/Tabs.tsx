@@ -49,15 +49,8 @@ export function TabResumen({
   /** Asambleas obligatorias firmadas ("n de total"), o null sin término. */
   assemblies: string | null;
 }) {
-  const [contacto, tareas, consentimientos, permisos, puntos, asambleas] = tList("T-453") as [
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-  ];
-  const [admin, lider, junta] = tList("T-289") as [string, string, string];
+  const [contacto, tareas, consentimientos, permisos, puntos, asambleas] = tList("T-453");
+  const [admin, lider, junta] = tList("T-289");
   const vivos = data.consents.filter((item) => item.live !== null).length;
   return (
     <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -98,7 +91,7 @@ export function TabLinea({
   actorId: string;
 }) {
   const filtros = tList("T-454");
-  const [, editar, editada] = tList("T-456") as [string, string, string];
+  const [, editar, editada] = tList("T-456");
   const base = `/admin/personas/${personId}?pestana=linea`;
   return (
     <div className="flex flex-col gap-4">
@@ -162,22 +155,17 @@ export function TabMembresia({
   honorary: HonoraryEligibility;
   recognitions: RecognitionView[];
 }) {
-  const [historial, comitesPorSemestre, , condicion] = tList("T-443") as [
-    string,
-    string,
-    string,
-    string,
-  ];
+  const [historial, comitesPorSemestre, , condicion] = tList("T-443");
   const [honorarioTitulo, honorarioAyuda] = tList("T-2315");
   const requisitos = tList("T-2316");
   const [, elegible, noElegible] = tList("T-2317");
-  const [cumple, noCumple] = tList("T-2671") as [string, string];
+  const [cumple, noCumple] = tList("T-2671");
   const [reconocimientosTitulo, sinReconocimientos, destacado, otro, premio] = tList("T-2322");
   const [, , , , otorgarPremio] = tList("T-2321");
   const kindLabelOf = (kind: RecognitionView["kind"]) =>
     kind === "MEMBER_OF_MONTH" ? destacado : kind === "OE_AWARD" ? premio : otro;
-  const [sancionesTitulo, sinSanciones] = tList("T-2239") as [string, string];
-  const [registrarSancion, revocarSancion] = tList("T-2232") as [string, string];
+  const [sancionesTitulo, sinSanciones] = tList("T-2239");
+  const [registrarSancion, revocarSancion] = tList("T-2232");
   const base = `/admin/personas/${data.person.id}`;
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -406,15 +394,9 @@ export function TabComunicaciones({
   preferences: PreferencesView;
   devices: { devices: number; lastSeenAt: Date | null };
 }) {
-  const [fecha, canal, tipo, asunto, estado] = tList("T-1155") as [
-    string,
-    string,
-    string,
-    string,
-    string,
-  ];
+  const [fecha, canal, tipo, asunto, estado] = tList("T-1155");
   const prefLabels = tList("T-1080");
-  const [sí, no] = tList("T-1058") as [string, string];
+  const [sí, no] = tList("T-1058");
   const flags: Array<[string, boolean]> = [
     [prefLabels[0] ?? "", preferences.pushAnnouncements],
     [prefLabels[1] ?? "", preferences.pushPoints],
@@ -566,9 +548,9 @@ export function TabComunicaciones({
 }
 
 export function TabTareas({ personId, tasks }: { personId: string; tasks: TaskRow[] }) {
-  const [titulo, responsable, vence, estado] = tList("T-459") as [string, string, string, string];
-  const [abierta, hecha] = tList("T-460") as [string, string];
-  const [, sinAsignar] = tList("T-463") as [string, string, string];
+  const [titulo, responsable, vence, estado] = tList("T-459");
+  const [abierta, hecha] = tList("T-460");
+  const [, sinAsignar] = tList("T-463");
   const [, nuevaTarea] = [null, tList("T-433")[6] ?? ""];
   return (
     <div className="flex flex-col gap-4">
@@ -654,10 +636,10 @@ export function TabDatos({
   deletionDays: number;
   policyReady: boolean;
 }) {
-  const [datos, consentimientos, eliminacion] = tList("T-502") as [string, string, string, string];
+  const [datos, consentimientos, eliminacion] = tList("T-502");
   const campos = tList("T-427");
-  const [estudiante, externo] = tList("T-428") as [string, string];
-  const [registrar, retirar] = tList("T-503") as [string, string];
+  const [estudiante, externo] = tList("T-428");
+  const [registrar, retirar] = tList("T-503");
   const { person } = data;
   const base = `/admin/personas/${person.id}`;
   return (

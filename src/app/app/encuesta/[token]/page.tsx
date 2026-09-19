@@ -22,7 +22,7 @@ export default async function EncuestaPage({ params }: PageProps<"/app/encuesta/
     );
   }
   const invite = await getSurveyInviteForActor(actor.personId, token);
-  const [ratingLow, ratingHigh] = tList("T-1102") as [string, string];
+  const [ratingLow, ratingHigh] = tList("T-1102");
   const title =
     invite.state === "NOT_FOUND" ? t("T-1161") : t("T-1095", { actividad: invite.occasionTitle });
   return (

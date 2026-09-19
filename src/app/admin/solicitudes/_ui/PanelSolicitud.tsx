@@ -25,7 +25,7 @@ export function PanelSolicitud({
   error: string;
   nextTermCode: string | null;
 }) {
-  const [aprobar, rechazar] = tList("T-1001") as [string, string];
+  const [aprobar, rechazar] = tList("T-1001");
   const [, , , pedidaEl, estado, decididaPor] = tList("T-998");
   const explanation =
     request.kind === "LEAVE"

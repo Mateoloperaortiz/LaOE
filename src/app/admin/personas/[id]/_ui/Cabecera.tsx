@@ -31,8 +31,8 @@ export function Cabecera({ data, my, permissions, committeeNames, tags }: Props)
     Boolean(membership && membership.status !== "INACTIVE"),
   );
   const acciones = tList("T-433");
-  const [correo, celular, programa, ingreso] = tList("T-511") as [string, string, string, string];
-  const [admin, lider, junta] = tList("T-289") as [string, string, string];
+  const [correo, celular, programa, ingreso] = tList("T-511");
+  const [admin, lider, junta] = tList("T-289");
   const anonymized = person.anonymizedAt !== null;
   const active = membership !== null && membership.status !== "INACTIVE";
   // Estudiante sin membresía: "dar de alta" es su siguiente paso (ADR-037 regla 8, ADR-056).

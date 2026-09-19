@@ -12,7 +12,7 @@ import { mediaUrl } from "@/shared/lib/media";
 
 // Medios: UI a medida (ADR-017): subidor directo al bucket y listado con el estado de cada medio.
 
-const [plural] = tList("T-334") as [string, string];
+const [plural] = tList("T-334");
 
 export const metadata: Metadata = { title: plural };
 const PAGE_SIZE = 20;
@@ -26,14 +26,8 @@ function formatBytes(bytes: number): string {
 }
 
 function columns(): Column<MediaRow>[] {
-  const [archivo, tamano, dimensiones, estado, subido] = tList("T-364") as [
-    string,
-    string,
-    string,
-    string,
-    string,
-  ];
-  const [procesando, lista, fallo] = tList("T-358") as [string, string, string];
+  const [archivo, tamano, dimensiones, estado, subido] = tList("T-364");
+  const [procesando, lista, fallo] = tList("T-358");
   return [
     {
       key: "file",
@@ -78,8 +72,8 @@ export default async function MediosPage({ searchParams }: PageProps<"/admin/med
     return `${BASE}${query.size ? `?${query}` : ""}`;
   };
   if (page > totalPages) redirect(hrefFor(totalPages, params.nuevo === "1" ? { nuevo: "1" } : {}));
-  const [previous, next] = tList("T-258") as [string, string];
-  const [publica, privada] = tList("T-366") as [string, string];
+  const [previous, next] = tList("T-258");
+  const [publica, privada] = tList("T-366");
   return (
     <div className="admin-page flex min-w-0 flex-col gap-6">
       <div className="admin-page-header flex flex-wrap items-start justify-between gap-4">

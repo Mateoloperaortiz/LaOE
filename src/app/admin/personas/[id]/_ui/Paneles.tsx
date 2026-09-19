@@ -110,7 +110,7 @@ export function Paneles({
   const { person, membership } = data;
   const acciones = tList("T-433");
   const campos = tList("T-427");
-  const [estudiante, externo] = tList("T-428") as [string, string];
+  const [estudiante, externo] = tList("T-428");
   const alerta = error ? (
     <p
       role="alert"
@@ -283,7 +283,7 @@ export function Paneles({
 
   if (accion === "baja" && membership && membership.status !== "INACTIVE") {
     const motivos = tList("T-436");
-    const [galeria, contacto] = tList("T-437") as [string, string];
+    const [galeria, contacto] = tList("T-437");
     return (
       <ResourcePanel title={acciones[2] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
@@ -418,8 +418,8 @@ export function Paneles({
   }
 
   if (accion === "comites" && my.term) {
-    const [comite, cargo, transferencia] = tList("T-450") as [string, string, string];
-    const [excepcion, excepcionAyuda] = tList("T-2283") as [string, string];
+    const [comite, cargo, transferencia] = tList("T-450");
+    const [excepcion, excepcionAyuda] = tList("T-2283");
     const rows = Array.from({ length: MAX_ROWS }, (_, index) => my.committees[index] ?? null);
     return (
       <ResourcePanel
@@ -509,8 +509,8 @@ export function Paneles({
 
   // Condición del semestre (ADR-056): periodo de prueba por término, con motivo, sobre una membresía viva.
   if (accion === "condicion" && membership && membership.status !== "INACTIVE") {
-    const [, , , condicion] = tList("T-443") as [string, string, string, string];
-    const [, término] = tList("T-262") as [string, string];
+    const [, , , condicion] = tList("T-443");
+    const [, término] = tList("T-262");
     const selected = terms.find((item) => item.id === semestreId) ?? my.term ?? terms[0] ?? null;
     const onProbation = selected
       ? data.probation.some(
@@ -532,7 +532,7 @@ export function Paneles({
         )
       : false;
     // Los comités en que la persona estuvo o está, para fijar la prueba solo en uno (ADR-060 regla 2).
-    const [, comitéLabel] = tList("T-449") as [string, string];
+    const [, comitéLabel] = tList("T-449");
     const personCommittees = [
       ...new Map(
         data.committeesByTerm
@@ -613,10 +613,10 @@ export function Paneles({
 
   // Faltas y sanciones (ADR-060 regla 6): registrar sobre una membresía viva y revocar con motivo.
   if (accion === "sancion" && membership && membership.status !== "INACTIVE") {
-    const [sancionesTitulo] = tList("T-2239") as [string, string];
+    const [sancionesTitulo] = tList("T-2239");
     const [campoTipo, campoCausal, campoReferencia, campoFecha, campoHasta, campoComite] =
       tList("T-2230");
-    const [registrar] = tList("T-2232") as [string, string];
+    const [registrar] = tList("T-2232");
     const kinds = tList("T-2229");
     const selectedTerm = my.term ?? terms[0] ?? null;
     const personCommittees = [
@@ -701,7 +701,7 @@ export function Paneles({
   }
 
   if (accion === "revocar-sancion" && sancionId) {
-    const [, revocar] = tList("T-2232") as [string, string];
+    const [, revocar] = tList("T-2232");
     return (
       <ResourcePanel title={revocar} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
@@ -727,8 +727,8 @@ export function Paneles({
 
   if (accion === "cargo") {
     const kinds = tList("T-444");
-    const [agregar] = tList("T-447") as [string, string];
-    const [excepcion, excepcionAyuda] = tList("T-2283") as [string, string];
+    const [agregar] = tList("T-447");
+    const [excepcion, excepcionAyuda] = tList("T-2283");
     const cargosTitulo = t("T-2398");
     return (
       <ResourcePanel title={agregar} closeHref={closeHref} closeLabel={t("T-291")}>
@@ -840,7 +840,7 @@ export function Paneles({
   }
 
   if (accion === "nota") {
-    const [guardarNota] = tList("T-456") as [string, string, string];
+    const [guardarNota] = tList("T-456");
     return (
       <ResourcePanel title={acciones[5] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}
@@ -866,15 +866,8 @@ export function Paneles({
   }
 
   if (accion === "tarea") {
-    const [titulo, responsable, vence, , , tipo] = tList("T-459") as [
-      string,
-      string,
-      string,
-      string,
-      string,
-      string,
-    ];
-    const [general, eliminacion] = tList("T-461") as [string, string];
+    const [titulo, responsable, vence, , , tipo] = tList("T-459");
+    const [general, eliminacion] = tList("T-461");
     return (
       <ResourcePanel title={acciones[6] ?? ""} closeHref={closeHref} closeLabel={t("T-291")}>
         {alerta}

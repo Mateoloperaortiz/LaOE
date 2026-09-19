@@ -51,7 +51,7 @@ export default async function ConvocatoriaPage({
     getPrivacyPolicyState(),
   ]);
   const policyBlocked = form?.consentRequired === true && !policy.ready;
-  const [porOrden, manual] = tList("T-905") as [string, string];
+  const [porOrden, manual] = tList("T-905");
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-3">

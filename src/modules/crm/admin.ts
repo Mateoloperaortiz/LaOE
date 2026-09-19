@@ -49,24 +49,11 @@ import {
 
 // Recurso "Tareas" del admin kit (ADR-017): las de la persona se crean desde la Persona 360.
 
-const [plural, singular] = tList("T-423") as [string, string];
-const [titulo, responsable, vence, estado, persona, tipo] = tList("T-459") as [
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-];
-const [abierta, hecha] = tList("T-460") as [string, string];
-const [general, eliminacion, solicitud, retiroComite, licenciaVencida] = tList("T-461") as [
-  string,
-  string,
-  string,
-  string,
-  string,
-];
-const [mias, sinAsignar, todas] = tList("T-463") as [string, string, string];
+const [plural, singular] = tList("T-423");
+const [titulo, responsable, vence, estado, persona, tipo] = tList("T-459");
+const [abierta, hecha] = tList("T-460");
+const [general, eliminacion, solicitud, retiroComite, licenciaVencida] = tList("T-461");
+const [mias, sinAsignar, todas] = tList("T-463");
 
 /** Las tareas se asignan a quien tiene permiso ADMIN. */
 export async function assigneeOptions(): Promise<Array<{ value: string; label: string }>> {
@@ -206,7 +193,7 @@ export const tasksResource: ResourceDefinition<TaskRow, TaskInput> = {
 // Organizaciones (ADR-037 regla 6): el kit lista, crea y edita; el detalle a medida lleva contactos,
 // notas, tareas, etiquetas y tarjetas.
 
-const [orgSingular, orgPlural] = tList("T-947") as [string, string];
+const [orgSingular, orgPlural] = tList("T-947");
 const [orgNombre, orgTipo, orgSitio, orgNotas, orgContactos, orgEtiquetas] = tList("T-948");
 const orgKindLabels = tList("T-949");
 const kindOptions = ORGANIZATION_KINDS.map((value, index) => ({
@@ -281,11 +268,11 @@ export const organizationsResource: ResourceDefinition<OrganizationListRow, Orga
 
 // Pipelines (ADR-037 regla 7): crear siembra la plantilla de su tipo; el kanban es a medida.
 
-const [pipeSingular, pipePlural] = tList("T-962") as [string, string];
+const [pipeSingular, pipePlural] = tList("T-962");
 const [pipeNombre, pipeTipo, pipeArchivado, pipeAbiertas, pipeTablero] = tList("T-963");
 const pipeKindLabels = tList("T-964");
-const [archivar, desarchivar] = tList("T-969") as [string, string];
-const [si, no] = tList("T-1058") as [string, string];
+const [archivar, desarchivar] = tList("T-969");
+const [si, no] = tList("T-1058");
 const pipeKindOptions = PIPELINE_KINDS.map((value, index) => ({
   value,
   label: pipeKindLabels[index] ?? value,
@@ -380,7 +367,7 @@ export const pipelinesResource: ResourceDefinition<PipelineListRow, PipelineInpu
 // Convocatorias internas (ADR-037 regla 10): el kit lista, crea, edita, abre y cierra; el selector de
 // grupos lo compone el registro de la app (crm no importa permanence); el detalle es a medida.
 
-const [callSingular, callPlural] = tList("T-1016") as [string, string];
+const [callSingular, callPlural] = tList("T-1016");
 const [
   cTitulo,
   cGrupo,
@@ -395,7 +382,7 @@ const [
 ] = tList("T-1017");
 const selectionLabels = tList("T-1018");
 const callStatusLabels = tList("T-1019");
-const [cAbrir, cCerrar] = tList("T-1020") as [string, string];
+const [cAbrir, cCerrar] = tList("T-1020");
 
 function callStatusCell(status: CallListRow["status"]) {
   const label = callStatusLabels[CALL_STATUSES.indexOf(status)] ?? status;

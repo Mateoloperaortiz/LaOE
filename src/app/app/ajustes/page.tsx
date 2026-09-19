@@ -94,7 +94,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
     label: secciones[index] ?? id,
   })).filter((section) => section.id !== "calendario" || calendarUrl !== null);
   const purposeLabels = tList("T-516");
-  const [autorizar, retirar] = tList("T-413") as [string, string];
+  const [autorizar, retirar] = tList("T-413");
   const aviso = (seccion: string) =>
     guardado === seccion ? (
       <output className="block text-sm font-semibold text-titulo">{t("T-259")}</output>

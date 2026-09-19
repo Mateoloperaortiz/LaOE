@@ -34,7 +34,7 @@ import {
 type Empty = Record<string, never>;
 const emptySchema = z.object({}) as z.ZodType<Empty, unknown>;
 
-const [mensajesPlural] = tList("T-1142") as [string];
+const [mensajesPlural] = tList("T-1142");
 const [colFecha, colPersona, colCanal, colTipo, colAsunto, colEstado, colProveedor, colCampaña] =
   tList("T-1144");
 const [fCanal, fTipo, fEstado, fCampaña] = tList("T-1148");
@@ -164,7 +164,7 @@ export const messagesResource: ResourceDefinition<MessageAdminRow, Empty> = {
 // Plantillas de correo (regla 8): identificador, nombre, asunto y cuerpo Markdown; el nombre enlaza a
 // la vista previa con "Enviarme una prueba".
 
-const [plantillasPlural] = tList("T-1115") as [string];
+const [plantillasPlural] = tList("T-1115");
 const [tColIdentificador, tColNombre, tColAsunto, tColActualizada] = tList("T-1116");
 const [fieldSlug, fieldName, fieldSubject, fieldBody] = tList("T-1117");
 
@@ -224,7 +224,7 @@ export const templatesResource: ResourceDefinition<TemplateRow, TemplateInput> =
 
 // Campañas (regla 8): nombre, plantilla y segmento; el nombre enlaza al detalle a medida.
 
-const [campañasPlural] = tList("T-1123") as [string];
+const [campañasPlural] = tList("T-1123");
 const [cNombre, cPlantilla, cSegmento, cEstado, cProgramada, cEnviados] = tList("T-1125");
 const [fNombre, fPlantilla, fSegmento] = tList("T-1126");
 const campaignStatusLabels = tList("T-1127");

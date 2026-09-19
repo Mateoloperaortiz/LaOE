@@ -39,7 +39,7 @@ export default async function AppHome() {
     countSubscriptionsFor(actor.personId),
     loadGamificationSettings(),
   ]);
-  const [avisoTitulo, avisoTexto, avisoBoton] = tList("T-1092") as [string, string, string];
+  const [avisoTitulo, avisoTexto, avisoBoton] = tList("T-1092");
   const onboardingTermId = participationAllowed && mine.term && mine.isNew ? mine.term.id : null;
   const [steps, saldo, ocasiones, permanence] = await Promise.all([
     onboardingTermId ? getOnboarding(actor.personId, onboardingTermId) : Promise.resolve([]),
