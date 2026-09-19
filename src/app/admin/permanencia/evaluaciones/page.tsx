@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireEvaluator } from "@/app/_authz/group";
 import { single } from "@/app/_lib/search";
 import { evaluationWindow, listEvaluationTray, loadPermanenceConfig } from "@/modules/permanence";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -7,7 +8,6 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
-import { requireEvaluator } from "../authz";
 import { evaluateAction } from "./actions";
 
 // Bandeja de evaluaciones (12-permanencia, "Lo que ve el director de GH"): los grupos que evalúa el

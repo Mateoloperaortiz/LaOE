@@ -4,11 +4,11 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { requireGroupOperator } from "@/app/_authz/group";
 import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
 import { decideEntryAs, getCall, setCallStatusAs } from "@/modules/crm";
 import { DomainError } from "@/shared/lib/errors";
-import { requireGroupOperator } from "../../permanencia/authz";
 
 // Detalle de una convocatoria (ADR-037 regla 10): el líder del grupo o ADMIN acepta, rechaza o promueve
 // inscripciones y abre o cierra la convocatoria. Decidir recibe la convocatoria autorizada y el dominio

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requireOperator } from "@/app/_authz/occasion";
 import { single } from "@/app/_lib/search";
 import { getOccasion, listCheckIns } from "@/modules/participation";
 import { LectorCarnet } from "@/modules/participation/components/LectorCarnet";
@@ -10,7 +11,6 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
 import { formatTime } from "@/shared/lib/dates";
 import { registerAction, scanAction } from "../actions";
-import { requireOperator } from "../authz";
 
 // Modo anfitrión (ADR-035 regla 8): móvil primero, buscar por nombre o escanear el carnet; el token
 // oe1 u oe2 lo valida el servidor con readCarnet. No hace falta abrir una sesión en el celular.

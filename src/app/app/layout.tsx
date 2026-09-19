@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { adminAreaRoles } from "@/app/_authz/admin-area";
 import { listSubscriptionsFor } from "@/modules/comms";
 import { PwaRegistrar } from "@/modules/comms/components/PwaRegistrar";
 import { requireActor } from "@/modules/identity";
@@ -16,7 +17,6 @@ import { IdFilledIcon } from "@/shared/ui/icons/IdFilledIcon";
 import { IdIcon } from "@/shared/ui/icons/IdIcon";
 import { StarFilledIcon } from "@/shared/ui/icons/StarFilledIcon";
 import { StarIcon } from "@/shared/ui/icons/StarIcon";
-import { adminAreaRoles } from "../admin/_kit/acceso";
 import { MemberShell } from "./_ui/MemberShell";
 import "./member.css";
 

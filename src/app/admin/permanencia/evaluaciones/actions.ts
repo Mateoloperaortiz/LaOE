@@ -4,10 +4,10 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { requireEvaluator } from "@/app/_authz/group";
 import { formText } from "@/app/_lib/form";
 import { evaluateAs, evaluationInputSchema, getGroup } from "@/modules/permanence";
 import { DomainError } from "@/shared/lib/errors";
-import { requireEvaluator } from "../authz";
 
 // Evaluar a un miembro de un grupo (ADR-028, ADR-036 regla 6): evaluador dentro de la ventana o ADMIN.
 

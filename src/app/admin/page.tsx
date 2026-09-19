@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { listActiveCampaigns } from "@/modules/comms";
 import { campaignStatusLabel } from "@/modules/comms/admin";
 import { dashboardForAdmin, type TaskRow } from "@/modules/crm";
@@ -13,7 +14,6 @@ import { getCurrentTerm } from "@/modules/terms";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
-import { requireAdminAreaRoles } from "./_kit/acceso";
 
 // Inicio del admin (ADR-037 regla 11): las secciones de T-160 y el tablero de pendientes de ADMIN
 // (tareas propias, vencidas del equipo, solicitudes, respuestas de la semana, pipelines, convocatorias,

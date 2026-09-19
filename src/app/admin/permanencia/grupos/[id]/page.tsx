@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requireGroupOperator } from "@/app/_authz/group";
 import { single } from "@/app/_lib/search";
 import { searchMembersByName } from "@/modules/people";
 import { getGroupDetail } from "@/modules/permanence";
@@ -11,7 +12,6 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
-import { requireGroupOperator } from "../../authz";
 import { addMemberAction, importAction, removeMemberAction, setEvaluatorsAction } from "./actions";
 
 // Detalle de un grupo de trabajo (ADR-036 regla 6): miembros por nombre o por CSV, evaluadores

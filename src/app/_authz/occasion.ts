@@ -1,6 +1,6 @@
 import "server-only";
 import { redirect } from "next/navigation";
-import { committeeCapabilities } from "@/app/admin/comites/_kit/capacidades";
+import { committeeCapabilities } from "@/app/_authz/committee";
 import { type Actor, getActor } from "@/modules/identity";
 import { getOccasion, type OccasionListRow } from "@/modules/participation";
 

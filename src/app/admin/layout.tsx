@@ -1,11 +1,11 @@
 import Link from "next/link";
 import "./admin.css";
+import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { signOutAction } from "@/modules/identity/actions";
 import { CommandPalette } from "@/shared/admin-kit";
 import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { AdminShell } from "./_components/AdminShell";
-import { requireAdminAreaRoles } from "./_kit/acceso";
 import { adminNavGroups } from "./_kit/nav";
 
 // Administración: ADMIN completo; un líder de comité, la dirección de un comité por sus cargos

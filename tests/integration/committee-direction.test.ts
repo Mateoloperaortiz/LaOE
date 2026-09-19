@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { adminAreaRoles } from "@/app/admin/_kit/acceso";
+import { adminAreaRoles } from "@/app/_authz/admin-area";
 import { closeDb, getDb } from "@/db/client";
 import "@/jobs/handlers";
 import { drain } from "@/jobs/poller";
