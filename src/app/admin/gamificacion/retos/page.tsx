@@ -39,7 +39,7 @@ export default async function RetosPage({ searchParams }: PageProps<"/admin/gami
   const filters = tList("T-2565");
   const kindLabels = tList("T-2409");
   const stateLabels = tList("T-2511");
-  const [title, empty] = tList("T-2574") as [string, string];
+  const [title, empty] = tList("T-2574");
 
   const result = term
     ? await listChallengesAdmin({

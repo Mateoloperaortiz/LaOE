@@ -131,8 +131,8 @@ export default async function AdminHome() {
   const viabilityLabels = tList("T-2264");
   const grupos = await listGroupRefs(tablero.openCalls.map((call) => call.groupId));
   const [bPendientes, bVencidas, bSolicitudes, bRespuestas, bPipelines, bConvocatorias, bSistema] =
-    tList("T-1033") as [string, string, string, string, string, string, string];
-  const [conCopia, sinCopias] = tList("T-1040") as [string, string];
+    tList("T-1033");
+  const [conCopia, sinCopias] = tList("T-1040");
 
   return (
     <div className="admin-dashboard flex flex-col gap-6">

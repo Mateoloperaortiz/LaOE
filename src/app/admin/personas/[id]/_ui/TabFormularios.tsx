@@ -34,9 +34,9 @@ export function TabFormularios({
   registrations: RegistrationLine[];
   cards: CardLine[];
 }) {
-  const [respuestas, inscripciones, tarjetas] = tList("T-944") as [string, string, string];
-  const [sinRespuestas, sinInscripciones, sinTarjetas] = tList("T-945") as [string, string, string];
-  const [inscrito, cancelada] = tList("T-942") as [string, string];
+  const [respuestas, inscripciones, tarjetas] = tList("T-944");
+  const [sinRespuestas, sinInscripciones, sinTarjetas] = tList("T-945");
+  const [inscrito, cancelada] = tList("T-942");
   return (
     <div className="flex flex-col gap-6">
       <Bloque titulo={respuestas}>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 
 export interface PaletteResult {
   type: string;

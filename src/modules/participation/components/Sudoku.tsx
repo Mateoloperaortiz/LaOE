@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { type KeyboardEvent, useEffect, useRef, useState, useTransition } from "react";
-import { type CopyCode, t, tList } from "@/shared/copy";
+import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
 import {
   looksSolved,
   SUDOKU_DIFFICULTIES,
@@ -41,7 +41,7 @@ import { SudokuBoard } from "./SudokuBoard";
 const STORAGE = "oe-sudoku";
 const NONE: ReadonlySet<number> = new Set();
 
-const ERROR_COPY: Record<SudokuDenial, CopyCode> = {
+const ERROR_COPY: Record<SudokuDenial, ClientCopyCode> = {
   INVALID_INPUT: "T-2717",
   NOT_FOUND: "T-2717",
   NOT_ELIGIBLE: "T-2716",
@@ -118,7 +118,7 @@ export function Sudoku({ initial, onStart, onFinish, onAbandon }: Props) {
   const modes = tList("T-2683");
   const modeNotes = tList("T-2684");
   const headers = tList("T-2690");
-  const [confirmar, seguir] = tList("T-2695") as [string, string];
+  const [confirmar, seguir] = tList("T-2695");
 
   // Retoma la partida abierta con lo que guardó este navegador, o desde las dadas si no hay nada.
   // `adopted` evita que un refresco del servidor reabra el aviso sobre la partida que se está jugando.

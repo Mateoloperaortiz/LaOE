@@ -61,12 +61,12 @@ export default async function Page({
     call.formId ? getFormView(call.formId) : Promise.resolve(null),
   ]);
   const [tInscritos, tAceptados, tEspera, tPendientes, tNoAceptados] = tList("T-1022");
-  const [aceptar, rechazar, promover] = tList("T-1023") as [string, string, string];
+  const [aceptar, rechazar, promover] = tList("T-1023");
   const entryLabels = tList("T-899");
-  const [abrir, cerrar] = tList("T-1020") as [string, string];
+  const [abrir, cerrar] = tList("T-1020");
   const selectionLabels = tList("T-1018");
   const statusLabels = tList("T-1019");
-  const [porOrden, manual] = tList("T-905") as [string, string];
+  const [porOrden, manual] = tList("T-905");
   const accepted = entries.filter((entry) => entry.status === "ACCEPTED");
   const sections: Array<{ title: string; status: (typeof CALL_ENTRY_STATUSES)[number] }> = [
     { title: tPendientes ?? "", status: "APPLIED" },

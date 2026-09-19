@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useId, useRef, useState } from "react";
 import { LogoComite } from "@/shared/brand/LogoComite";
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
 import { SearchIcon } from "@/shared/ui/icons/SearchIcon";
 import styles from "./committees.module.css";

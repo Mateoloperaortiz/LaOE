@@ -12,7 +12,7 @@ import {
   updateTerm,
 } from "./domain/terms";
 
-const [plural, singular] = tList("T-262") as [string, string];
+const [plural, singular] = tList("T-262");
 
 const fields: FieldDefinition[] = [
   { name: "code", label: t("T-280"), type: "text", required: true, placeholder: "2026-2" },

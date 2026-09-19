@@ -51,14 +51,14 @@ import { type Board, rankPeople } from "./domain/rankings";
 // Recurso del admin para las ocasiones (ADR-017, ADR-035): listado con filtros y acciones Abrir y
 // Cerrar; la consola y el modo anfitrión son pantallas a medida.
 
-const [plural, singular] = tList("T-562") as [string, string];
+const [plural, singular] = tList("T-562");
 const fieldLabels = tList("T-563");
 const kindLabels = tList("T-564");
 const assemblyLabels = tList("T-565");
 const categoryLabels = tList("T-566");
 const approvalLabels = tList("T-567");
 const statusLabels = tList("T-568");
-const [abrir, cerrar, consola] = tList("T-569") as [string, string, string];
+const [abrir, cerrar, consola] = tList("T-569");
 const filterLabels = tList("T-570");
 const columnLabels = tList("T-571");
 const shortCategoryLabels = tList("T-521");
@@ -310,7 +310,7 @@ async function termFilter(label: string): Promise<FilterDefinition> {
   };
 }
 
-const [checkInsPlural, checkInsSingular] = tList("T-662") as [string, string];
+const [checkInsPlural, checkInsSingular] = tList("T-662");
 
 export const checkInsResource: ResourceDefinition<CheckInExportRow, Empty> = {
   key: "check-ins",
@@ -345,7 +345,7 @@ export const checkInsResource: ResourceDefinition<CheckInExportRow, Empty> = {
   }),
 };
 
-const [ledgerPlural, ledgerSingular] = tList("T-663") as [string, string];
+const [ledgerPlural, ledgerSingular] = tList("T-663");
 const kindLabelsForLedger = tList("T-085");
 
 interface LedgerExportRow extends LedgerListRow {
@@ -411,7 +411,7 @@ export const ledgerResource: ResourceDefinition<LedgerExportRow, Empty> = {
   }),
 };
 
-const [rankingsPlural, rankingsSingular] = tList("T-664") as [string, string];
+const [rankingsPlural, rankingsSingular] = tList("T-664");
 const [tabNuevos, tabVeteranos] = tList("T-083");
 
 interface RankingExportRow {
@@ -482,7 +482,7 @@ export const rankingsResource: ResourceDefinition<RankingExportRow, Empty> = {
   }),
 };
 
-const [assembliesPlural, assembliesSingular] = tList("T-665") as [string, string];
+const [assembliesPlural, assembliesSingular] = tList("T-665");
 
 type AssemblyExportRow = AssemblyOverviewRow & { id: string };
 
@@ -609,7 +609,7 @@ export const achievementsResource: ResourceDefinition<AchievementExportRow, Empt
 
 // Alias legados (ADR-018, ADR-035 regla 3): vive aquí porque el destino es una ocasión.
 
-const [aliasesPlural, aliasesSingular] = tList("T-658") as [string, string];
+const [aliasesPlural, aliasesSingular] = tList("T-658");
 const aliasColumns = tList("T-659");
 
 export const aliasInputSchema = z.object({

@@ -45,15 +45,15 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/f
   const campo = single(search.campo);
   const guardado = single(search.guardado);
   const error = single(search.error);
-  const [publico, miembros] = tList("T-911") as [string, string];
-  const [borrador, abierto, cerrado] = tList("T-912") as [string, string, string];
-  const [enlacePublico, verComoLaGente] = tList("T-920") as [string, string];
+  const [publico, miembros] = tList("T-911");
+  const [borrador, abierto, cerrado] = tList("T-912");
+  const [enlacePublico, verComoLaGente] = tList("T-920");
   const [clave, etiqueta, tipo, obligatorio, ayuda, opciones] = tList("T-923");
   const tipos = tList("T-924");
-  const [subir, bajar, borrar] = tList("T-929") as [string, string, string];
+  const [subir, bajar, borrar] = tList("T-929");
   const [crearPersona, entrarPipeline, inscribirEdicion, etiquetarCon] = tList("T-930");
-  const [ninguno, ninguna] = tList("T-932") as [string, string];
-  const [camposGuardados, accionesGuardadas] = tList("T-933") as [string, string];
+  const [ninguno, ninguna] = tList("T-932");
+  const [camposGuardados, accionesGuardadas] = tList("T-933");
   const [pipelines, editions, tags] = await Promise.all([
     listPipelineOptions(),
     listEditionOptions(),

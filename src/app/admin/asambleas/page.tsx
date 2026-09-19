@@ -71,7 +71,7 @@ export default async function AsambleasPage({ searchParams }: PageProps<"/admin/
   ]);
   const representationColumns = tList("T-2249");
   const ladderLabels = tList("T-2250");
-  const [sinRepresentante, sinAsambleas] = tList("T-2257") as [string, string];
+  const [sinRepresentante, sinAsambleas] = tList("T-2257");
   const rows = overview.filter((row) =>
     filter === "cumplen"
       ? row.compliance.compliant

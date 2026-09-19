@@ -1,4 +1,4 @@
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 
 type Props = {
   tamano?: "sm" | "md" | "lg";

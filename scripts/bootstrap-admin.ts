@@ -9,9 +9,7 @@ import { BootstrapAdminError, bootstrapAdmin } from "./lib/bootstrap-admin";
 try {
   const { values } = parseArgs({ options: { input: { type: "string" } }, allowPositionals: false });
   if (!values.input) {
-    throw new BootstrapAdminError(
-      "Uso: node --import tsx scripts/bootstrap-admin.ts --input <JSON privado>",
-    );
+    throw new BootstrapAdminError("Uso: npm run bootstrap:admin -- --input <JSON privado>");
   }
   const input: unknown = JSON.parse(await readFile(values.input, "utf8"));
   const result = await bootstrapAdmin(input);

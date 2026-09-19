@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 
 /** Formularios sin campos editables: conserva las acciones y bloquea dobles envíos. */
 export function SettingsFormBody({ children }: { children: ReactNode }) {

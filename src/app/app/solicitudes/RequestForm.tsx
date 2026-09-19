@@ -4,7 +4,7 @@ import Link from "next/link";
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { type ReactNode, useActionState, useEffect, useRef, useState } from "react";
 import type { RequestKind } from "@/modules/crm";
-import { t, tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy/client";
 import { createRequestAction, withdrawRequestAction } from "./actions";
 import type {
   CauseOption,
@@ -149,7 +149,7 @@ export function RequestForm({
     evidence: "",
     lateSubmission: false,
   });
-  const [ocasionLabel, causalLabel, soporteLabel] = tList("T-2218") as [string, string, string];
+  const [ocasionLabel, causalLabel, soporteLabel] = tList("T-2218");
   const [consents, setConsents] = useState({ memorial: false, contact: false, confirm: false });
   const [leaveIds, setLeaveIds] = useState<string[]>([]);
   const [joinIds, setJoinIds] = useState<string[]>([]);

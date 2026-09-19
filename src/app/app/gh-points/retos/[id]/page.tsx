@@ -96,7 +96,7 @@ function TriviaAnswered({ challenge }: { challenge: MemberChallengeDetail }) {
   const answers = participation.answers ?? [];
   const reveal = challenge.state === "CLOSED" || challenge.state === "CANCELLED";
   const hasCorrect = challenge.questions.some((question) => question.correctIndex !== null);
-  const [tuRespuesta, respuestaCorrecta] = tList("T-2673") as [string, string];
+  const [tuRespuesta, respuestaCorrecta] = tList("T-2673");
   return (
     <section className="flex flex-col gap-4" aria-labelledby="trivia-resultado">
       <h2 id="trivia-resultado" className="text-display-md">

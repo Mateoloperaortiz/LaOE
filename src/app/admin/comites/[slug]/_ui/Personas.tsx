@@ -120,8 +120,8 @@ export function Personas({
   const [, rosterTitulo] = tList("T-651");
   const columnas = tList("T-2152");
   const closeHref = `${base}?area=personas`;
-  const [titularLabel, suplenteLabel] = tList("T-2246") as [string, string];
-  const [sinRepresentante] = tList("T-2257") as [string, string];
+  const [titularLabel, suplenteLabel] = tList("T-2246");
+  const [sinRepresentante] = tList("T-2257");
   const ladderLabels = tList("T-2250");
   const titular = representatives.find((item) => item.role === "TITULAR") ?? null;
   const suplente = representatives.find((item) => item.role === "SUPLENTE") ?? null;

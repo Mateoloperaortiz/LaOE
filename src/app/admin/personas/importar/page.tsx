@@ -262,7 +262,7 @@ function Confirmacion({
   policyReady: boolean;
   selectedIndexes: number[];
 }) {
-  const [, , aplicar, descartar] = tList("T-479") as [string, string, string, string];
+  const [, , aplicar, descartar] = tList("T-479");
   const canApply = preview.rows.some((row) => row.group === "NEW" || row.group === "CHANGED");
   return (
     <div className="flex flex-col gap-5">
@@ -333,7 +333,7 @@ function Aplicada({ preview }: { preview: RosterPreview }) {
     skipped?: number;
     leaders?: { granted?: string[]; failed?: string[] };
   };
-  const [personas] = tList("T-420") as [string, string];
+  const [personas] = tList("T-420");
   return (
     <div className="flex flex-col gap-4">
       <p className="text-lg font-semibold">
@@ -373,7 +373,7 @@ export default async function ImportarPage({
   let error = single(params.error);
   const policy = await getPrivacyPolicyState();
   const pasos = tList("T-1487");
-  const [subir] = tList("T-479") as [string, string, string, string];
+  const [subir] = tList("T-479");
   const [, , , estados] = [null, null, null, tList("T-493")];
 
   let content: React.ReactNode;

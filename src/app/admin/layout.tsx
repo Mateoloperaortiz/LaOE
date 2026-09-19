@@ -13,7 +13,7 @@ import { requireAdminAreaRoles } from "./_kit/acceso";
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const roles = await requireAdminAreaRoles("/admin");
   const actor = roles.actor;
-  const [temaOscuro, temaClaro] = tList("T-034") as [string, string];
+  const [temaOscuro, temaClaro] = tList("T-034");
   const [comites] = tList("T-261");
   const [terminos] = tList("T-262");
   const [permisos] = tList("T-263");
@@ -21,12 +21,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [cartelera] = tList("T-331");
   const [medios] = tList("T-334");
   const [eventos] = tList("T-332");
-  const [persona, comite, ocasion, organizacion] = tList("T-290") as [
-    string,
-    string,
-    string,
-    string,
-  ];
+  const [persona, comite, ocasion, organizacion] = tList("T-290");
   const [personas, importar, cargos, etiquetas, tareas, segmentos, documentos, importaciones] =
     tList("T-509");
   const [ocasiones, ledger, rankings, asambleas, cierre, alias] = tList("T-561");

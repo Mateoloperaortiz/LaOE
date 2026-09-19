@@ -42,7 +42,7 @@ import {
 // No carga .env automáticamente: el operador elige el entorno y sus variables explícitamente.
 // --apply solo carga borradores; --apply --publish solo publica cargas previas idénticas.
 
-const HELP = `Uso: node --import tsx scripts/normativa-import.ts --input <manifiesto privado> [--actor-id <ADMIN>] [--apply [--publish]]
+const HELP = `Uso: npm run normativa:import -- --input <manifiesto privado> [--actor-id <ADMIN>] [--apply [--publish]]
 Sin --apply: valida todos los archivos, consulta el entorno y muestra los cambios sin escribir.
 --apply: carga o actualiza borradores; las cargas idénticas se conservan.
 --apply --publish: publica exclusivamente documentos ya cargados e idénticos; no sube ni reemplaza.

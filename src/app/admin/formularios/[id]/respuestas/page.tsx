@@ -30,7 +30,7 @@ export async function generateMetadata({
 }
 
 function renderAnswer(value: unknown): string {
-  const [si, no] = tList("T-1058") as [string, string];
+  const [si, no] = tList("T-1058");
   if (Array.isArray(value)) {
     return value.join(", ");
   }

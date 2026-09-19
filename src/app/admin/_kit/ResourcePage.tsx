@@ -84,7 +84,7 @@ export async function ResourcePage({
   const listParams = { q, pagina: page > 1 ? String(page) : "", ...filters };
   const listHref = buildHref(basePath, listParams);
   const createHref = buildHref(basePath, { ...listParams, nuevo: "1" });
-  const [previous, next] = tList("T-258") as [string, string];
+  const [previous, next] = tList("T-258");
   const filtered = Boolean(q || Object.keys(filters).length);
 
   let panel: React.ReactNode = null;

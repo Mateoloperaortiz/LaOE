@@ -75,7 +75,7 @@ export default async function InsigniasPage({
   const boosterNames = tList("T-2451");
   const boosterStates = tList("T-2455");
   const results = tList("T-2548");
-  const [si, no] = tList("T-2670") as [string, string];
+  const [si, no] = tList("T-2670");
   const revokeLabels = tList("T-2547");
   const stateLabels = tList("T-2518");
 

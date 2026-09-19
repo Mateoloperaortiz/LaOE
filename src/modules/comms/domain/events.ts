@@ -107,7 +107,7 @@ export const requestDecidedPushSchema = z.object({
 /** Solicitud respondida (T-189): además del correo T-205, siempre (transaccional). */
 export async function pushRequestDecided(raw: unknown): Promise<DeliveryStats> {
   const payload = requestDecidedPushSchema.parse(raw);
-  const [aprobada, rechazada] = tList("T-195") as [string, string];
+  const [aprobada, rechazada] = tList("T-195");
   return notify(
     "TRANSACTIONAL",
     [payload.personId],

@@ -27,8 +27,8 @@ import {
 
 // Recursos del admin de eventos y ediciones (ADR-017, ADR-033).
 
-const [borrador, publicado] = tList("T-288") as [string, string];
-const [publico, soloMiembros] = tList("T-339") as [string, string];
+const [borrador, publicado] = tList("T-288");
+const [publico, soloMiembros] = tList("T-339");
 
 const statusOptions = [
   { value: "DRAFT", label: borrador },
@@ -58,7 +58,7 @@ async function coverField(): Promise<FieldDefinition> {
 
 // Eventos permanentes.
 
-const [eventsPlural, eventsSingular] = tList("T-332") as [string, string];
+const [eventsPlural, eventsSingular] = tList("T-332");
 
 async function eventFields(): Promise<FieldDefinition[]> {
   return [
@@ -159,7 +159,7 @@ export const eventsResource: ResourceDefinition<EventListRow, EventInput> = {
 
 // Ediciones: se montan bajo /admin/eventos/[id]/ediciones con el evento como filtro fijo.
 
-const [editionsPlural, editionsSingular] = tList("T-333") as [string, string];
+const [editionsPlural, editionsSingular] = tList("T-333");
 
 async function editionFields(): Promise<FieldDefinition[]> {
   const [events, committees, cover] = await Promise.all([
