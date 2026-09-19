@@ -4,6 +4,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import { getEnv } from "@/env";
 import {
   assertBoard,
@@ -53,7 +54,7 @@ export async function issueGrantAction(
     return { personId: null, url: null, qrSvg: null, expiresAt: null, error: t("T-2127") };
   }
   try {
-    const { token, expiresAt } = await issueAccessGrantAs(actor, parsed.data);
+    const { token, expiresAt } = await issueAccessGrantAs(await actorContext(actor), parsed.data);
     const url = `${getEnv().APP_URL}/activar/${token}`;
     // El QR se dibuja en el servidor, en el mismo paso: así el enlace no viaja por ningún otro lado.
     const qrSvg = await QRCode.toString(url, { type: "svg", margin: 1, errorCorrectionLevel: "M" });

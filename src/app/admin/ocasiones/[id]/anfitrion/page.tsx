@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { getOccasion, listCheckIns } from "@/modules/participation";
 import { LectorCarnet } from "@/modules/participation/components/LectorCarnet";
 import { getPeopleByIds, searchMembersByName } from "@/modules/people";
@@ -15,10 +16,6 @@ import { requireOperator } from "../authz";
 // oe1 u oe2 lo valida el servidor con readCarnet. No hace falta abrir una sesión en el celular.
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 export async function generateMetadata({
   params,

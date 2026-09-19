@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { getEdition } from "@/modules/events";
 import { requireAdminActor } from "@/modules/identity";
 import { listActiveMemberRefs, listMacroeventBoard, listMacroeventRoles } from "@/modules/people";
@@ -19,10 +20,6 @@ import { addDirectorAction, removeDirectorAction } from "./actions";
 const ID = /^[a-z0-9-]{10,40}$/;
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 /** Los errores llegan como el código T-260 (validación) o como el texto del dominio. */
 function errorText(value: string): string {

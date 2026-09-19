@@ -67,7 +67,7 @@ Cada módulo vive en `src/modules/<módulo>/` con `schema.ts` (sus tablas Drizzl
 | Páginas RSC | `src/app/**` | Leer por las lecturas exportadas de cada módulo y renderizar | Consultar la base directamente |
 | Componentes client | `src/modules/*/components`, `src/shared/ui` | Enviar `FormData` a server actions, transiciones de UI | Autorizar o calcular puntos |
 | Proxy | `src/proxy.ts` | Redirigir rutas protegidas sin cookie, emitir CSP con nonce | Decidir roles o estados |
-| Server actions | `src/app/**/actions.ts` (y `actions.ts` de `identity` y `system`) | Parsear con Zod, resolver el actor, llamar a comandos `*As` de los módulos, revalidar | Reimplementar reglas |
+| Server actions | `src/app/**/actions.ts` (y `actions.ts` de `identity` y `system`), con el kit de `src/app/_lib/` ([ADR-082](adr/ADR-082-un-kit-para-las-server-actions-y-auditoria-con-ip.md)) | Parsear con Zod, resolver el actor, llamar a comandos `*As` de los módulos con `actorContext(actor)`, revalidar | Reimplementar reglas; armar el actor a mano (deja la auditoría sin IP) |
 | Dominio | `src/modules/*/domain` | Invariantes, transacciones, auditoría, outbox | Conocer cookies o Tailwind |
 | Jobs | `src/modules/*/jobs.ts`, `src/jobs/` | Handlers idempotentes de outbox y programados | Tocar la base sin transacción o sin lock |
 | Compartido | `src/shared/**`, `src/db/**` | Marca, UI base, admin kit, cliente de base de datos, helpers puros | Lógica de negocio |

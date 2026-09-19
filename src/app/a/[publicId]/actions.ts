@@ -3,9 +3,9 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import { requireActor } from "@/modules/identity";
 import { checkInSelfAs, type SelfCheckInResult } from "@/modules/participation";
-import { clientIp } from "@/shared/lib/request";
 
 // Check-in propio (ADR-035 regla 5): la acción llama al dominio y vuelve a la página con un código
 // de resultado; la página lo traduce a los textos T-092 a T-099 y T-523 a T-533.
@@ -84,10 +84,7 @@ export async function checkInAction(formData: FormData): Promise<void> {
   }
   const { publicId, code, boosterId } = parsed.data;
   const actor = await requireActor(`/a/${publicId}`);
-  const result = await checkInSelfAs(
-    { personId: actor.personId, ip: await clientIp() },
-    { publicId, code, boosterId },
-  );
+  const result = await checkInSelfAs(await actorContext(actor), { publicId, code, boosterId });
   const params = new URLSearchParams({ r: codeFor(result) });
   if (code && result.ok === false && result.reason === "BAD_CODE") {
     params.set("c", code);

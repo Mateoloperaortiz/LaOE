@@ -4,9 +4,9 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
 import { requestRecomputeAs } from "@/modules/permanence";
-import { clientIp } from "@/shared/lib/request";
 
 // Recalcular ahora (ADR-036 regla 5): encola el recompute del término con su clave; el poller lo corre.
 
@@ -27,7 +27,7 @@ export async function recomputeAction(formData: FormData): Promise<void> {
     }
     throw error;
   }
-  await requestRecomputeAs({ personId: actor.personId, ip: await clientIp() }, termId);
+  await requestRecomputeAs(await actorContext(actor), termId);
   revalidatePath("/admin/permanencia/cumplimiento");
   redirect(`${back}&recalculando=1`);
 }

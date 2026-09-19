@@ -4,6 +4,8 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { formText } from "@/app/_lib/form";
+import { withQuery } from "@/app/_lib/search";
 import { decideEntryAs, getCall, setCallStatusAs } from "@/modules/crm";
 import { DomainError } from "@/shared/admin-kit";
 import { requireGroupOperator } from "../../permanencia/authz";
@@ -14,14 +16,8 @@ import { requireGroupOperator } from "../../permanencia/authz";
 
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
-
 function back(callId: string, extra: Record<string, string> = {}): string {
-  const query = new URLSearchParams(extra).toString();
-  return `/admin/convocatorias/${callId}${query ? `?${query}` : ""}`;
+  return withQuery(`/admin/convocatorias/${callId}`, extra);
 }
 
 async function operator(callId: string) {
@@ -36,10 +32,10 @@ async function operator(callId: string) {
 export async function decideEntryAction(formData: FormData): Promise<void> {
   const callId = idSchema.parse(formData.get("callId"));
   const entryId = idSchema.parse(formData.get("entryId"));
-  const status = text(formData, "status") === "ACCEPTED" ? "ACCEPTED" : "REJECTED";
+  const status = formText(formData, "status") === "ACCEPTED" ? "ACCEPTED" : "REJECTED";
   const { actor } = await operator(callId);
   try {
-    await decideEntryAs(actor, callId, entryId, status, text(formData, "note") || undefined);
+    await decideEntryAs(actor, callId, entryId, status, formText(formData, "note") || undefined);
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(back(callId, { error: error.message }));
@@ -52,7 +48,7 @@ export async function decideEntryAction(formData: FormData): Promise<void> {
 
 export async function setStatusAction(formData: FormData): Promise<void> {
   const callId = idSchema.parse(formData.get("callId"));
-  const status = text(formData, "status") === "OPEN" ? "OPEN" : "CLOSED";
+  const status = formText(formData, "status") === "OPEN" ? "OPEN" : "CLOSED";
   const { actor } = await operator(callId);
   await setCallStatusAs(actor, callId, status);
   revalidatePath(`/admin/convocatorias/${callId}`);

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { actorContext } from "@/app/_lib/actor";
 import { getActor } from "@/modules/identity";
 import { recordConsentAs } from "@/modules/people";
 import { PrivacyPolicyPendingError } from "@/modules/system";
@@ -14,7 +15,7 @@ export async function autorizarAction(): Promise<void> {
   }
   let registrado = true;
   try {
-    await recordConsentAs(actor, actor.personId, "MEMBERSHIP", "SELF");
+    await recordConsentAs(await actorContext(actor), actor.personId, "MEMBERSHIP", "SELF");
   } catch (error) {
     if (!(error instanceof PrivacyPolicyPendingError)) {
       throw error;

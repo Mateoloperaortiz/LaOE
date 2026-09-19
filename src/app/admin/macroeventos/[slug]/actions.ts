@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import { getMacroeventEdition, listMacroevents } from "@/modules/events";
 import { assertAdmin, requireAdminActor } from "@/modules/identity";
 import {
@@ -26,7 +27,6 @@ import { findTermContaining, getTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 import { dateKeyIn } from "@/shared/lib/dates";
-import { clientIp } from "@/shared/lib/request";
 
 const id = z.string().regex(/^[a-z0-9-]{10,40}$/);
 const inputSchema = z.object({
@@ -61,7 +61,7 @@ export async function macroeventAction(form: FormData): Promise<void> {
   if (id.safeParse(editionId).success) query.set("editionId", editionId);
   const base = `/admin/macroeventos/${event.slug}`;
   const back = `${base}?${query}`;
-  const actor = { personId: identity.personId, ip: await clientIp() };
+  const actor = await actorContext(identity);
   try {
     if (input.operation === "add-director" || input.operation === "remove-director") {
       const edition = await getMacroeventEdition(id.parse(editionId));

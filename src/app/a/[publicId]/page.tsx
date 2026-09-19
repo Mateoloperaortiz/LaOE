@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { requireActor } from "@/modules/identity";
 import {
   BOOSTER_KINDS,
@@ -31,10 +32,6 @@ import { type CheckInResultCode, checkInAction } from "./actions";
 export const metadata: Metadata = { title: t("T-558"), robots: { index: false } };
 
 type Params = { publicId: string };
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const RESULT_CODES: readonly CheckInResultCode[] = [
   "puntos",

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import {
   getOrganization,
   listCardsByOrganization,
@@ -41,10 +42,6 @@ import {
 const ID = /^[a-z0-9-]{10,40}$/;
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 export async function generateMetadata({
   params,

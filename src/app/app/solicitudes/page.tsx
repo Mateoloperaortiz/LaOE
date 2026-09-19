@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { single } from "@/app/_lib/search";
 import { EXCUSE_CAUSES, excuseDeadline, listRequestsByPerson } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
 import { listCheckInsForPerson, listOccasionsForTerm } from "@/modules/participation";
@@ -18,9 +19,6 @@ import { RequestForm, RequestResult, WithdrawRequest } from "./RequestForm";
 export const metadata: Metadata = { title: t("T-138") };
 
 type Search = Record<string, string | string[] | undefined>;
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 export default async function SolicitudesPage({ searchParams }: PageProps<"/app/solicitudes">) {
   const actor = await requireActor("/app/solicitudes");

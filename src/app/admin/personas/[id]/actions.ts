@@ -4,6 +4,8 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext, sessionActorContext } from "@/app/_lib/actor";
+import { formOptional, formText } from "@/app/_lib/form";
 import {
   addNoteAs,
   completeTaskAs,
@@ -14,11 +16,10 @@ import {
   taskInputSchema,
 } from "@/modules/crm";
 import {
-  assertAdmin,
   ForbiddenError,
-  getActor,
   grantPermissionAs,
   hasRecentStepUp,
+  requireAdminActor,
   rotateCarnetTokenAs,
 } from "@/modules/identity";
 import {
@@ -72,31 +73,6 @@ async function personUrl(
   return `/admin/personas/${id}?${query.toString()}`;
 }
 
-async function requireAdmin(returnTo: string) {
-  const actor = await getActor();
-  if (!actor) {
-    redirect(`/ingresar?next=${encodeURIComponent(returnTo)}`);
-  }
-  try {
-    assertAdmin(actor);
-  } catch (error) {
-    if (error instanceof ForbiddenError) {
-      redirect("/app");
-    }
-    throw error;
-  }
-  return actor;
-}
-
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function optional(formData: FormData, name: string): string | undefined {
-  return text(formData, name) || undefined;
-}
-
 function checked(formData: FormData, name: string): boolean {
   const value = formData.get(name);
   return value === "on" || value === "true";
@@ -127,35 +103,37 @@ async function run(
 
 export async function updatePersonAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "datos"));
+  const actor = await requireAdminActor(await personUrl(id, "datos"));
   const parsed = personInputSchema.safeParse({
-    firstName: text(formData, "firstName"),
-    lastName: text(formData, "lastName"),
-    email: text(formData, "email"),
-    kind: text(formData, "kind") || "STUDENT",
-    preferredName: optional(formData, "preferredName"),
-    phone: optional(formData, "phone"),
-    personalEmail: optional(formData, "personalEmail"),
-    program: optional(formData, "program"),
-    ...(formData.has("documentType") ? { documentType: text(formData, "documentType") } : {}),
-    ...(formData.has("documentNumber") ? { documentNumber: text(formData, "documentNumber") } : {}),
-    ...(formData.has("epikId") ? { epikId: text(formData, "epikId") } : {}),
-    ...(formData.has("birthDate") ? { birthDate: text(formData, "birthDate") } : {}),
+    firstName: formText(formData, "firstName"),
+    lastName: formText(formData, "lastName"),
+    email: formText(formData, "email"),
+    kind: formText(formData, "kind") || "STUDENT",
+    preferredName: formOptional(formData, "preferredName"),
+    phone: formOptional(formData, "phone"),
+    personalEmail: formOptional(formData, "personalEmail"),
+    program: formOptional(formData, "program"),
+    ...(formData.has("documentType") ? { documentType: formText(formData, "documentType") } : {}),
+    ...(formData.has("documentNumber")
+      ? { documentNumber: formText(formData, "documentNumber") }
+      : {}),
+    ...(formData.has("epikId") ? { epikId: formText(formData, "epikId") } : {}),
+    ...(formData.has("birthDate") ? { birthDate: formText(formData, "birthDate") } : {}),
   });
   if (!parsed.success) {
     await fail(id, "datos", "editar", t("T-260"));
     return;
   }
-  await run(id, "datos", "editar", () =>
-    updatePersonAs({ personId: actor.personId, ip: null }, id, parsed.data),
+  await run(id, "datos", "editar", async () =>
+    updatePersonAs(await actorContext(actor), id, parsed.data),
   );
 }
 
 export async function admitAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "membresia"));
+  const actor = await requireAdminActor(await personUrl(id, "membresia"));
   const parsed = admitInputSchema.safeParse({
-    termId: text(formData, "termId"),
+    termId: formText(formData, "termId"),
     committeeIds: formData
       .getAll("committeeIds")
       .filter((item): item is string => typeof item === "string" && item !== ""),
@@ -165,36 +143,36 @@ export async function admitAction(formData: FormData): Promise<void> {
     return;
   }
   await run(id, "membresia", "alta", async () => {
-    await admitPersonAs(actor, id, parsed.data);
+    await admitPersonAs(await actorContext(actor), id, parsed.data);
   });
 }
 
 export async function changeStatusAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "membresia"));
+  const actor = await requireAdminActor(await personUrl(id, "membresia"));
   const parsed = changeStatusSchema.safeParse({
-    to: text(formData, "to"),
-    reason: text(formData, "reason"),
-    leaveUntil: optional(formData, "leaveUntil"),
+    to: formText(formData, "to"),
+    reason: formText(formData, "reason"),
+    leaveUntil: formOptional(formData, "leaveUntil"),
   });
   if (!parsed.success) {
     await fail(id, "membresia", "estado", t("T-260"));
     return;
   }
-  await run(id, "membresia", "estado", () =>
-    changeMembershipStatusAs({ personId: actor.personId }, id, parsed.data),
+  await run(id, "membresia", "estado", async () =>
+    changeMembershipStatusAs(await actorContext(actor), id, parsed.data),
   );
 }
 
 export async function endMembershipAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "membresia"));
+  const actor = await requireAdminActor(await personUrl(id, "membresia"));
   const parsed = endMembershipSchema.safeParse({
-    endReason: text(formData, "endReason"),
-    note: optional(formData, "note"),
+    endReason: formText(formData, "endReason"),
+    note: formOptional(formData, "note"),
     memorialConsent: checked(formData, "memorialConsent"),
     contactConsent: checked(formData, "contactConsent"),
-    personalEmail: optional(formData, "personalEmail"),
+    personalEmail: formOptional(formData, "personalEmail"),
   });
   if (!parsed.success) {
     await fail(id, "membresia", "baja", t("T-260"));
@@ -208,17 +186,17 @@ export async function endMembershipAction(formData: FormData): Promise<void> {
 
 export async function reactivateAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "membresia"));
+  const actor = await requireAdminActor(await personUrl(id, "membresia"));
   const parsed = reactivateSchema.safeParse({
-    email: optional(formData, "email"),
-    reason: optional(formData, "reason"),
+    email: formOptional(formData, "email"),
+    reason: formOptional(formData, "reason"),
   });
   if (!parsed.success) {
     await fail(id, "membresia", "reactivar", t("T-260"));
     return;
   }
-  await run(id, "membresia", "reactivar", () =>
-    reactivateMembershipAs({ personId: actor.personId }, id, parsed.data),
+  await run(id, "membresia", "reactivar", async () =>
+    reactivateMembershipAs(await actorContext(actor), id, parsed.data),
   );
 }
 
@@ -226,21 +204,23 @@ export async function reactivateAction(formData: FormData): Promise<void> {
 export async function anonymizeAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const returnTo = await personUrl(id, "datos", { accion: "anonimizar" });
-  const actor = await requireAdmin(returnTo);
+  const actor = await requireAdminActor(returnTo);
   if (!hasRecentStepUp(actor)) {
     redirect(`/ingresar/paso?next=${encodeURIComponent(returnTo)}`);
   }
-  await run(id, "datos", "anonimizar", () => anonymizePersonAs({ personId: actor.personId }, id));
+  await run(id, "datos", "anonimizar", async () =>
+    anonymizePersonAs(await actorContext(actor), id),
+  );
 }
 
 export async function setCommitteesAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "membresia"));
-  const termId = text(formData, "termId");
+  const actor = await requireAdminActor(await personUrl(id, "membresia"));
+  const termId = formText(formData, "termId");
   const catalog = await listCommitteeRoles();
   const rows: CommitteeMembershipInput[] = [];
   for (let index = 1; index <= MAX_ROWS; index += 1) {
-    const committeeId = text(formData, `committeeId${index}`);
+    const committeeId = formText(formData, `committeeId${index}`);
     if (!committeeId) {
       continue;
     }
@@ -265,10 +245,10 @@ export async function setCommitteesAction(formData: FormData): Promise<void> {
     await fail(id, "membresia", "comites", t("T-260"));
     return;
   }
-  const overrideReason = optional(formData, "overrideReason");
-  await run(id, "membresia", "comites", () =>
+  const overrideReason = formOptional(formData, "overrideReason");
+  await run(id, "membresia", "comites", async () =>
     setCommitteeMembershipsAs(
-      { personId: actor.personId },
+      await actorContext(actor),
       id,
       termId,
       rows,
@@ -280,12 +260,12 @@ export async function setCommitteesAction(formData: FormData): Promise<void> {
 // Condición del semestre (ADR-056): ADMIN marca o retira el periodo de prueba de un término con motivo.
 export async function setProbationAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "membresia"));
-  const termId = text(formData, "termId");
+  const actor = await requireAdminActor(await personUrl(id, "membresia"));
+  const termId = formText(formData, "termId");
   const parsed = probationInputSchema.safeParse({
     probation: checked(formData, "probation"),
-    reason: text(formData, "reason"),
-    committeeId: text(formData, "committeeId") || null,
+    reason: formText(formData, "reason"),
+    committeeId: formText(formData, "committeeId") || null,
     reportAsVeteran: checked(formData, "reportAsVeteran"),
     academicVerified: checked(formData, "academicVerified"),
   });
@@ -293,33 +273,33 @@ export async function setProbationAction(formData: FormData): Promise<void> {
     await fail(id, "membresia", "condicion", t("T-260"));
     return;
   }
-  await run(id, "membresia", "condicion", () =>
-    setProbationAs({ personId: actor.personId }, id, termId, parsed.data),
+  await run(id, "membresia", "condicion", async () =>
+    setProbationAs(await actorContext(actor), id, termId, parsed.data),
   );
 }
 
 export async function addAppointmentAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const returnTo = await personUrl(id, "membresia", { accion: "cargo" });
-  const actor = await requireAdmin(returnTo);
+  const actor = await requireAdminActor(returnTo);
   const grantBoard = checked(formData, "grantBoard");
   if (grantBoard && !hasRecentStepUp(actor)) {
     redirect(`/ingresar/paso?next=${encodeURIComponent(returnTo)}`);
   }
   const parsed = appointmentInputSchema.safeParse({
-    kind: text(formData, "kind"),
-    termId: text(formData, "termId"),
-    committeeId: optional(formData, "committeeId"),
-    title: optional(formData, "title"),
+    kind: formText(formData, "kind"),
+    termId: formText(formData, "termId"),
+    committeeId: formOptional(formData, "committeeId"),
+    title: formOptional(formData, "title"),
   });
   if (!parsed.success) {
     await fail(id, "membresia", "cargo", t("T-260"));
     return;
   }
-  const overrideReason = optional(formData, "overrideReason");
+  const overrideReason = formOptional(formData, "overrideReason");
   await run(id, "membresia", "cargo", async () => {
     await addAppointmentAs(
-      { personId: actor.personId },
+      await actorContext(actor),
       id,
       parsed.data,
       overrideReason ? { reason: overrideReason } : undefined,
@@ -328,10 +308,7 @@ export async function addAppointmentAction(formData: FormData): Promise<void> {
       const who = await getPersonRecord(id);
       if (who) {
         try {
-          await grantPermissionAs(
-            { personId: actor.personId },
-            { email: who.email, code: "BOARD" },
-          );
+          await grantPermissionAs(await actorContext(actor), { email: who.email, code: "BOARD" });
         } catch (error) {
           // Ya tenía el permiso: el cargo quedó igual.
           if (!(error instanceof DomainError)) {
@@ -346,9 +323,9 @@ export async function addAppointmentAction(formData: FormData): Promise<void> {
 export async function removeAppointmentAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const appointmentId = idSchema.parse(formData.get("appointmentId"));
-  const actor = await requireAdmin(await personUrl(id, "membresia"));
-  await run(id, "membresia", "cargo", () =>
-    removeAppointmentAs({ personId: actor.personId }, appointmentId),
+  const actor = await requireAdminActor(await personUrl(id, "membresia"));
+  await run(id, "membresia", "cargo", async () =>
+    removeAppointmentAs(await actorContext(actor), appointmentId),
   );
 }
 
@@ -360,10 +337,10 @@ const consentSchema = z.object({
 /** Consentimiento dado en persona (fuente ADMIN) o retirado desde la ficha. */
 export async function consentAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "datos"));
+  const actor = await requireAdminActor(await personUrl(id, "datos"));
   const parsed = consentSchema.safeParse({
-    purpose: text(formData, "purpose"),
-    intent: text(formData, "intent"),
+    purpose: formText(formData, "purpose"),
+    intent: formText(formData, "intent"),
   });
   if (!parsed.success) {
     await fail(id, "datos", "", t("T-260"));
@@ -383,39 +360,39 @@ const bodySchema = z.string().trim().min(1).max(5_000);
 
 export async function addNoteAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "linea"));
-  const parsed = bodySchema.safeParse(text(formData, "body"));
+  const actor = await requireAdminActor(await personUrl(id, "linea"));
+  const parsed = bodySchema.safeParse(formText(formData, "body"));
   if (!parsed.success) {
     await fail(id, "linea", "nota", t("T-260"));
     return;
   }
   await run(id, "linea", "nota", async () => {
-    await addNoteAs({ personId: actor.personId }, id, parsed.data);
+    await addNoteAs(await actorContext(actor), id, parsed.data);
   });
 }
 
 export async function editNoteAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const noteId = idSchema.parse(formData.get("noteId"));
-  const actor = await requireAdmin(await personUrl(id, "linea"));
-  const parsed = bodySchema.safeParse(text(formData, "body"));
+  const actor = await requireAdminActor(await personUrl(id, "linea"));
+  const parsed = bodySchema.safeParse(formText(formData, "body"));
   if (!parsed.success) {
     await fail(id, "linea", "nota", t("T-260"));
     return;
   }
-  await run(id, "linea", "nota", () =>
-    editNoteAs({ personId: actor.personId }, noteId, parsed.data),
+  await run(id, "linea", "nota", async () =>
+    editNoteAs(await actorContext(actor), noteId, parsed.data),
   );
 }
 
 export async function createTaskAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "tareas"));
+  const actor = await requireAdminActor(await personUrl(id, "tareas"));
   const parsed = taskInputSchema.safeParse({
-    title: text(formData, "title"),
-    assigneeId: optional(formData, "assigneeId"),
-    dueAt: optional(formData, "dueAt"),
-    kind: text(formData, "kind") || "GENERAL",
+    title: formText(formData, "title"),
+    assigneeId: formOptional(formData, "assigneeId"),
+    dueAt: formOptional(formData, "dueAt"),
+    kind: formText(formData, "kind") || "GENERAL",
     personId: id,
   });
   if (!parsed.success) {
@@ -423,37 +400,37 @@ export async function createTaskAction(formData: FormData): Promise<void> {
     return;
   }
   await run(id, "tareas", "tarea", async () => {
-    await createTaskAs({ personId: actor.personId }, parsed.data);
+    await createTaskAs(await actorContext(actor), parsed.data);
   });
 }
 
 export async function completeTaskAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const taskId = idSchema.parse(formData.get("taskId"));
-  const actor = await requireAdmin(await personUrl(id, "tareas"));
-  await run(id, "tareas", "", () => completeTaskAs({ personId: actor.personId }, taskId));
+  const actor = await requireAdminActor(await personUrl(id, "tareas"));
+  await run(id, "tareas", "", async () => completeTaskAs(await actorContext(actor), taskId));
 }
 
 export async function setTagsAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "resumen"));
+  const actor = await requireAdminActor(await personUrl(id, "resumen"));
   const tagIds = formData
     .getAll("tagIds")
     .filter((item): item is string => typeof item === "string" && idSchema.safeParse(item).success);
-  await run(id, "resumen", "etiquetas", () =>
-    setPersonTagsAs({ personId: actor.personId }, id, tagIds),
+  await run(id, "resumen", "etiquetas", async () =>
+    setPersonTagsAs(await actorContext(actor), id, tagIds),
   );
 }
 
 // Crédito manual de permanencia (ADR-036 regla 8): ADMIN, solo criterios manuales, con motivo.
 export async function grantCreditAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "permanencia", { accion: "credito" }));
+  const actor = await requireAdminActor(await personUrl(id, "permanencia", { accion: "credito" }));
   const parsed = manualCreditInputSchema.safeParse({
-    ruleId: text(formData, "ruleId"),
+    ruleId: formText(formData, "ruleId"),
     personId: id,
-    value: Number(text(formData, "value")),
-    reason: text(formData, "reason"),
+    value: Number(formText(formData, "value")),
+    reason: formText(formData, "reason"),
   });
   if (!parsed.success) {
     return fail(id, "permanencia", "credito", t("T-260"));
@@ -469,12 +446,12 @@ export async function grantCreditAction(formData: FormData): Promise<void> {
 export async function revokeCarnetAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const returnTo = await personUrl(id, "comunicaciones");
-  const actor = await requireAdmin(returnTo);
+  const actor = await requireAdminActor(returnTo);
   if (formData.get("confirm") !== "1") {
     redirect(returnTo);
   }
   try {
-    await rotateCarnetTokenAs(actor, id);
+    await rotateCarnetTokenAs(await sessionActorContext(actor), id);
   } catch (error) {
     if (error instanceof ForbiddenError) {
       redirect(await personUrl(id, "comunicaciones", { error: t("T-032") }));
@@ -492,49 +469,49 @@ export async function revokeCarnetAction(formData: FormData): Promise<void> {
 // Faltas y sanciones (ADR-060 regla 6): ADMIN registra sobre una membresía viva y revoca con motivo.
 export async function recordSanctionAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "membresia"));
+  const actor = await requireAdminActor(await personUrl(id, "membresia"));
   const parsed = sanctionInputSchema.safeParse({
-    termId: text(formData, "termId"),
-    kind: text(formData, "kind"),
-    cause: text(formData, "cause"),
-    reference: text(formData, "reference") || null,
-    occurredOn: text(formData, "occurredOn"),
-    suspendedUntil: text(formData, "suspendedUntil") || null,
-    committeeId: text(formData, "committeeId") || null,
+    termId: formText(formData, "termId"),
+    kind: formText(formData, "kind"),
+    cause: formText(formData, "cause"),
+    reference: formText(formData, "reference") || null,
+    occurredOn: formText(formData, "occurredOn"),
+    suspendedUntil: formText(formData, "suspendedUntil") || null,
+    committeeId: formText(formData, "committeeId") || null,
   });
   if (!parsed.success || !(await getTerm(parsed.data.termId))) {
     await fail(id, "membresia", "sancion", t("T-260"));
     return;
   }
   await run(id, "membresia", "sancion", async () => {
-    await recordSanctionAs({ personId: actor.personId }, id, parsed.data);
+    await recordSanctionAs(await actorContext(actor), id, parsed.data);
   });
 }
 
 export async function revokeSanctionAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const sanctionId = idSchema.parse(formData.get("sanctionId"));
-  const actor = await requireAdmin(await personUrl(id, "membresia"));
-  await run(id, "membresia", "revocar-sancion", () =>
-    revokeSanctionAs({ personId: actor.personId }, sanctionId, text(formData, "reason")),
+  const actor = await requireAdminActor(await personUrl(id, "membresia"));
+  await run(id, "membresia", "revocar-sancion", async () =>
+    revokeSanctionAs(await actorContext(actor), sanctionId, formText(formData, "reason")),
   );
 }
 
 // Premios OE (Regl. art. 71; ADR-060 regla 13): ADMIN registra la categoría del año como reconocimiento.
 export async function grantAwardAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
-  const actor = await requireAdmin(await personUrl(id, "membresia"));
+  const actor = await requireAdminActor(await personUrl(id, "membresia"));
   const parsed = recognitionInputSchema.safeParse({
     personId: id,
     kind: "OE_AWARD",
-    termId: text(formData, "termId"),
-    award: text(formData, "award"),
+    termId: formText(formData, "termId"),
+    award: formText(formData, "award"),
   });
   if (!parsed.success) {
     await fail(id, "membresia", "premio", t("T-260"));
     return;
   }
   await run(id, "membresia", "premio", async () => {
-    await grantRecognitionAs({ personId: actor.personId }, parsed.data);
+    await grantRecognitionAs(await actorContext(actor), parsed.data);
   });
 }

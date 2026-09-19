@@ -1,6 +1,6 @@
 # ADR-011: Autorización en servidor
 
-- Estado: Aceptada (enmendada por ADR-051, ADR-058 y ADR-072)
+- Estado: Aceptada (enmendada por ADR-051, ADR-058, ADR-072 y ADR-082)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-010, ADR-017
 
@@ -28,3 +28,7 @@ Los cargos de la OE siguen sin ser permisos técnicos, pero un cargo de direcci�
 ## Enmienda (2026-09-16, ADR-072)
 
 Que la página autorice un alcance no basta si el comando recibe un id suelto. Toda orden que recibe el id de un objeto elegido por el cliente recibe también el alcance autorizado (una tabla de permanencia, una convocatoria), y el dominio comprueba dentro de la transacción que el objeto pertenezca a él; uno ajeno se responde como inexistente, sin mutación, auditoría ni evento. ADMIN también declara el alcance. La paleta ⌘K y `GET /api/admin/buscar` son solo de ADMIN. Ver [ADR-072](ADR-072-alcance-autorizado-en-el-dominio.md).
+
+## Enmienda (2026-09-19, ADR-082)
+
+`requireAdminActor` aplica la misma regla que `assertAdmin`: ADMIN y en condición de operar; una concesión guardada no habilita el área de administración mientras la persona está en licencia. Las server actions dejan de tener su propia copia del guard. El actor que una action entrega a un comando se arma con `actorContext(actor)`, que lleva la IP del request a la auditoría. Detalle en [ADR-082](ADR-082-un-kit-para-las-server-actions-y-auditoria-con-ip.md).

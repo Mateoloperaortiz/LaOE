@@ -4,6 +4,8 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
+import { formRaw } from "@/app/_lib/form";
 import { removeSubscriptionAs, updatePreferencesAs } from "@/modules/comms";
 import {
   findPasswordHash,
@@ -24,7 +26,6 @@ import {
 import { PrivacyPolicyPendingError } from "@/modules/system";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
-import { clientIp } from "@/shared/lib/request";
 
 // Acciones de Ajustes (ADR-034 reglas 6, 8 y 12): la persona sobre sus propios datos. Cada una vuelve
 // a su sección con `guardado=<sección>` o con el error del dominio.
@@ -45,11 +46,6 @@ function back(section: string, extra: Record<string, string> = {}): never {
   redirect(`/app/ajustes${qs ? `?${qs}` : ""}#${section}`);
 }
 
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value : "";
-}
-
 export type ContactState = {
   status: "idle" | "done" | "error";
   message?: string;
@@ -63,8 +59,8 @@ export async function updateContactAction(
 ): Promise<ContactState> {
   const actor = await requireOwnActor();
   const parsed = ownContactSchema.safeParse({
-    phone: text(formData, "phone"),
-    personalEmail: text(formData, "personalEmail"),
+    phone: formRaw(formData, "phone"),
+    personalEmail: formRaw(formData, "personalEmail"),
   });
   if (!parsed.success) {
     return {
@@ -76,7 +72,7 @@ export async function updateContactAction(
     };
   }
   try {
-    await updateOwnContactAs(actor, parsed.data);
+    await updateOwnContactAs(await actorContext(actor), parsed.data);
   } catch (error) {
     if (error instanceof DomainError) {
       return {
@@ -110,7 +106,7 @@ export async function setPhotoAction(
     return { ok: false };
   }
   try {
-    await setOwnPhotoAs(actor, parsed.data);
+    await setOwnPhotoAs(await actorContext(actor), parsed.data);
   } catch (error) {
     if (error instanceof DomainError) {
       return { ok: false, error: error.message };
@@ -129,20 +125,15 @@ const consentSchema = z.object({
 export async function consentAction(formData: FormData): Promise<void> {
   const actor = await requireOwnActor();
   const parsed = consentSchema.safeParse({
-    purpose: text(formData, "purpose"),
-    intent: text(formData, "intent"),
+    purpose: formRaw(formData, "purpose"),
+    intent: formRaw(formData, "intent"),
   });
   if (!parsed.success) {
     back("consentimientos");
   }
   if (parsed.data.intent === "grant") {
     try {
-      await recordConsentAs(
-        { personId: actor.personId, ip: await clientIp() },
-        actor.personId,
-        parsed.data.purpose,
-        "SELF",
-      );
+      await recordConsentAs(await actorContext(actor), actor.personId, parsed.data.purpose, "SELF");
     } catch (error) {
       if (error instanceof PrivacyPolicyPendingError) {
         back("consentimientos", { error: "policy-pending" });
@@ -150,7 +141,7 @@ export async function consentAction(formData: FormData): Promise<void> {
       throw error;
     }
   } else {
-    await revokeConsentAs(actor, actor.personId, parsed.data.purpose);
+    await revokeConsentAs(await actorContext(actor), actor.personId, parsed.data.purpose);
   }
   revalidatePath("/app/ajustes");
   back("consentimientos", { guardado: "consentimientos" });
@@ -158,7 +149,7 @@ export async function consentAction(formData: FormData): Promise<void> {
 
 export async function requestDeletionAction(): Promise<void> {
   const actor = await requireOwnActor();
-  await requestDeletionAs(actor);
+  await requestDeletionAs(await actorContext(actor));
   revalidatePath("/app/ajustes");
   back("privacidad", { guardado: "privacidad" });
 }
@@ -172,7 +163,7 @@ export async function updatePreferencesAction(
   formData: FormData,
 ): Promise<PreferencesState> {
   const actor = await requireOwnActor();
-  await updatePreferencesAs(actor, {
+  await updatePreferencesAs(await actorContext(actor), {
     pushAnnouncements: formData.get("pushAnnouncements") === "on",
     pushPoints: formData.get("pushPoints") === "on",
     pushReminders: formData.get("pushReminders") === "on",
@@ -188,9 +179,9 @@ export async function removeDeviceAction(formData: FormData): Promise<void> {
   const parsed = z
     .string()
     .regex(/^[a-z0-9]+$/)
-    .safeParse(text(formData, "id"));
+    .safeParse(formRaw(formData, "id"));
   if (parsed.success) {
-    await removeSubscriptionAs(actor, { id: parsed.data });
+    await removeSubscriptionAs(await actorContext(actor), { id: parsed.data });
   }
   revalidatePath("/app/ajustes");
   revalidatePath("/app");
@@ -201,7 +192,7 @@ export async function removeDeviceAction(formData: FormData): Promise<void> {
 
 export async function rotateCalendarAction(): Promise<void> {
   const actor = await requireOwnActor();
-  await rotateCalendarTokenAs(actor);
+  await rotateCalendarTokenAs(await actorContext(actor));
   revalidatePath("/app/ajustes");
   back("calendario", { guardado: "calendario" });
 }
@@ -225,9 +216,9 @@ export async function changePasswordAction(
   if (!tiene && !hasRecentStepUp(actor)) {
     redirect("/ingresar/paso?next=%2Fapp%2Fajustes");
   }
-  const current = text(formData, "current");
-  const password = text(formData, "password");
-  const confirmation = text(formData, "confirmation");
+  const current = formRaw(formData, "current");
+  const password = formRaw(formData, "password");
+  const confirmation = formRaw(formData, "confirmation");
   if (password !== confirmation) {
     return { status: "error", message: t("T-2109") };
   }

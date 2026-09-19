@@ -4,7 +4,8 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
+import { requireAdminContext } from "@/app/_lib/actor";
+import { formText } from "@/app/_lib/form";
 import { listCommitteesForSelection } from "@/modules/people";
 import {
   applyTemplateAs,
@@ -20,18 +21,12 @@ import {
 } from "@/modules/permanence";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
-import { clientIp } from "@/shared/lib/request";
 import { ruleInputFromForm } from "../_ui/reglas";
 
 // Editor de reglas de GH (ADR-036 regla 3): ADMIN edita cualquier tabla, salta el bloqueo, comenta y bloquea.
 // Editar y borrar declaran la tabla que muestra la página; un criterio de otra responde T-032 (ADR-072).
 
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
-
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
 
 function base(termId: string, committeeSlug: string): string {
   const query = new URLSearchParams({ termId });
@@ -41,26 +36,10 @@ function base(termId: string, committeeSlug: string): string {
   return `/admin/permanencia/reglas?${query.toString()}`;
 }
 
-async function adminFor(returnTo: string) {
-  const actor = await getActor();
-  if (!actor) {
-    redirect(`/ingresar?next=${encodeURIComponent(returnTo)}`);
-  }
-  try {
-    assertAdmin(actor);
-  } catch (error) {
-    if (error instanceof ForbiddenError) {
-      redirect("/app");
-    }
-    throw error;
-  }
-  return { personId: actor.personId, ip: await clientIp() };
-}
-
 function refFrom(formData: FormData): { ref: TableRef; back: string } {
-  const termId = idSchema.parse(text(formData, "termId"));
-  const committeeId = text(formData, "committeeId");
-  const slug = text(formData, "comite");
+  const termId = idSchema.parse(formText(formData, "termId"));
+  const committeeId = formText(formData, "committeeId");
+  const slug = formText(formData, "comite");
   return {
     ref: {
       termId,
@@ -80,9 +59,9 @@ function failed(back: string, error: unknown, extra = ""): never {
 
 export async function saveRuleAction(formData: FormData): Promise<void> {
   const { ref, back } = refFrom(formData);
-  const id = text(formData, "id");
+  const id = formText(formData, "id");
   const panel = id ? `&accion=editar&regla=${id}` : "&accion=nueva";
-  const actor = await adminFor(back);
+  const actor = await requireAdminContext(back);
   const parsed = ruleInputSchema.safeParse(ruleInputFromForm(formData, ref.committeeId !== null));
   if (!parsed.success) {
     const detail = parsed.error.issues.map((issue) => issue.path.join(".")).join(", ");
@@ -103,9 +82,9 @@ export async function saveRuleAction(formData: FormData): Promise<void> {
 
 export async function deleteRuleAction(formData: FormData): Promise<void> {
   const { ref, back } = refFrom(formData);
-  const actor = await adminFor(back);
+  const actor = await requireAdminContext(back);
   try {
-    await deleteRuleAs(actor, ref, idSchema.parse(text(formData, "id")), { bypassLock: true });
+    await deleteRuleAs(actor, ref, idSchema.parse(formText(formData, "id")), { bypassLock: true });
   } catch (error) {
     failed(back, error);
   }
@@ -115,7 +94,7 @@ export async function deleteRuleAction(formData: FormData): Promise<void> {
 
 export async function copyPreviousAction(formData: FormData): Promise<void> {
   const { ref, back } = refFrom(formData);
-  const actor = await adminFor(back);
+  const actor = await requireAdminContext(back);
   try {
     await copyFromPreviousTermAs(actor, ref, { bypassLock: true });
   } catch (error) {
@@ -127,7 +106,7 @@ export async function copyPreviousAction(formData: FormData): Promise<void> {
 
 export async function applyTemplateAction(formData: FormData): Promise<void> {
   const { ref, back } = refFrom(formData);
-  const actor = await adminFor(back);
+  const actor = await requireAdminContext(back);
   let n = 0;
   try {
     n = await applyTemplateAs(actor, ref, { bypassLock: true });
@@ -140,8 +119,8 @@ export async function applyTemplateAction(formData: FormData): Promise<void> {
 
 export async function lockTableAction(formData: FormData): Promise<void> {
   const { ref, back } = refFrom(formData);
-  const actor = await adminFor(back);
-  const locked = text(formData, "locked") === "1";
+  const actor = await requireAdminContext(back);
+  const locked = formText(formData, "locked") === "1";
   try {
     await setTableLockAs(actor, ref, locked);
   } catch (error) {
@@ -153,9 +132,9 @@ export async function lockTableAction(formData: FormData): Promise<void> {
 
 export async function commentTableAction(formData: FormData): Promise<void> {
   const { ref, back } = refFrom(formData);
-  const actor = await adminFor(back);
+  const actor = await requireAdminContext(back);
   try {
-    await commentTableAs(actor, ref, text(formData, "comment").slice(0, 1000));
+    await commentTableAs(actor, ref, formText(formData, "comment").slice(0, 1000));
   } catch (error) {
     failed(back, error, "&accion=comentar");
   }
@@ -164,9 +143,9 @@ export async function commentTableAction(formData: FormData): Promise<void> {
 }
 
 export async function lockAllAction(formData: FormData): Promise<void> {
-  const termId = idSchema.parse(text(formData, "termId"));
+  const termId = idSchema.parse(formText(formData, "termId"));
   const back = base(termId, "");
-  const actor = await adminFor(back);
+  const actor = await requireAdminContext(back);
   const committees = await listCommitteesForSelection();
   let n = 0;
   try {

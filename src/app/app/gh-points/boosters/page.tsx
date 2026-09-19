@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { requireActor } from "@/modules/identity";
 import {
   BOOSTER_KINDS,
@@ -26,10 +27,6 @@ import { setBoosterTargetAction } from "./actions";
 export const metadata: Metadata = { title: t("T-2452") };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const STATE_FONDO: Record<BoosterState, "sky" | "naranja" | "cream"> = {
   AVAILABLE: "sky",

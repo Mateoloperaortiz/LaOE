@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { listOccasionsForTerm, loadGamificationSettings } from "@/modules/participation";
 import { ChallengeEditor } from "@/modules/participation/components/ChallengeEditor";
@@ -17,10 +18,6 @@ import { saveChallengeAction } from "../actions";
 export const metadata: Metadata = { title: t("T-2503") };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 export default async function NuevoRetoPage({
   searchParams,

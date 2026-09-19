@@ -4,6 +4,9 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
+import { formText } from "@/app/_lib/form";
+import { withQuery } from "@/app/_lib/search";
 import { FIELD_TYPES, getFormView, setFormActionsAs, setFormFieldsAs } from "@/modules/forms";
 import { requireAdminActor } from "@/modules/identity";
 import { DomainError } from "@/shared/admin-kit";
@@ -15,14 +18,8 @@ import { t } from "@/shared/copy";
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 const keySchema = z.string().regex(/^[a-z0-9_]{1,40}$/);
 
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
-
 function back(formId: string, extra: Record<string, string> = {}): string {
-  const query = new URLSearchParams(extra).toString();
-  return `/admin/formularios/${formId}${query ? `?${query}` : ""}`;
+  return withQuery(`/admin/formularios/${formId}`, extra);
 }
 
 function failed(formId: string, error: unknown, extra: Record<string, string> = {}): never {
@@ -48,7 +45,7 @@ async function persistFields(
   extra: Record<string, string> = {},
 ): Promise<never> {
   try {
-    await setFormFieldsAs({ personId: actor.personId }, formId, fields);
+    await setFormFieldsAs(await actorContext(actor), formId, fields);
   } catch (error) {
     failed(formId, error, extra);
   }
@@ -59,20 +56,20 @@ async function persistFields(
 export async function saveFieldAction(formData: FormData): Promise<void> {
   const formId = idSchema.parse(formData.get("formId"));
   const { actor, view } = await load(formId);
-  const original = text(formData, "originalKey");
-  const key = text(formData, "key");
+  const original = formText(formData, "originalKey");
+  const key = formText(formData, "key");
   const parsedKey = keySchema.safeParse(key);
   if (!parsedKey.success) {
     redirect(back(formId, { campo: original || "nuevo", error: t("T-925") }));
   }
-  const type = text(formData, "type");
+  const type = formText(formData, "type");
   const field = {
     key: parsedKey.data,
-    label: text(formData, "label"),
+    label: formText(formData, "label"),
     type: (FIELD_TYPES as readonly string[]).includes(type) ? type : "TEXT",
     required: formData.get("required") === "on",
-    help: text(formData, "help") || undefined,
-    options: text(formData, "options")
+    help: formText(formData, "help") || undefined,
+    options: formText(formData, "options")
       .split("\n")
       .map((option) => option.trim())
       .filter(Boolean),
@@ -86,7 +83,7 @@ export async function saveFieldAction(formData: FormData): Promise<void> {
 
 export async function deleteFieldAction(formData: FormData): Promise<void> {
   const formId = idSchema.parse(formData.get("formId"));
-  const key = text(formData, "key");
+  const key = formText(formData, "key");
   const { actor, view } = await load(formId);
   await persistFields(
     actor,
@@ -97,8 +94,8 @@ export async function deleteFieldAction(formData: FormData): Promise<void> {
 
 export async function moveFieldAction(formData: FormData): Promise<void> {
   const formId = idSchema.parse(formData.get("formId"));
-  const key = text(formData, "key");
-  const direction = text(formData, "direction") === "up" ? -1 : 1;
+  const key = formText(formData, "key");
+  const direction = formText(formData, "direction") === "up" ? -1 : 1;
   const { actor, view } = await load(formId);
   const fields = [...view.parsedFields];
   const index = fields.findIndex((item) => item.key === key);
@@ -118,14 +115,14 @@ export async function saveActionsAction(formData: FormData): Promise<void> {
   const { actor } = await load(formId);
   const actions = {
     createPerson: formData.get("createPerson") === "on",
-    pipelineId: text(formData, "pipelineId") || undefined,
-    editionId: text(formData, "editionId") || undefined,
+    pipelineId: formText(formData, "pipelineId") || undefined,
+    editionId: formText(formData, "editionId") || undefined,
     tagIds: formData
       .getAll("tagIds")
       .filter((item): item is string => typeof item === "string" && item !== ""),
   };
   try {
-    await setFormActionsAs({ personId: actor.personId }, formId, actions);
+    await setFormActionsAs(await actorContext(actor), formId, actions);
   } catch (error) {
     failed(formId, error);
   }

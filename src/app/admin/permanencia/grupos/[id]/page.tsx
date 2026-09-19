@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { searchMembersByName } from "@/modules/people";
 import { getGroupDetail } from "@/modules/permanence";
 import { ImportadorGrupo } from "@/modules/permanence/components/ImportadorGrupo";
@@ -17,10 +18,6 @@ import { addMemberAction, importAction, removeMemberAction, setEvaluatorsAction 
 // (solo ADMIN) y el estado de cada evaluación. El líder del grupo lo opera sin ver correos.
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const inputClass =
   "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { single } from "@/app/_lib/search";
 import { CALL_ENTRY_STATUSES, getCall, listMyEntries, listOpenCalls } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
 import { listGroupIdsOf, listGroupRefs } from "@/modules/permanence";
@@ -15,10 +16,6 @@ import { Vacio } from "../_ui/Vacio";
 export const metadata: Metadata = { title: t("T-144") };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 export default async function ConvocatoriasPage({ searchParams }: PageProps<"/app/convocatorias">) {
   const actor = await requireActor("/app/convocatorias");

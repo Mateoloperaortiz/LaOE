@@ -3,6 +3,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import { sendTemplateTestAs } from "@/modules/comms";
 import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
 
@@ -26,6 +27,6 @@ export async function sendTestAction(formData: FormData): Promise<void> {
     }
     throw error;
   }
-  const result = await sendTemplateTestAs({ personId: actor.personId }, templateId);
+  const result = await sendTemplateTestAs(await actorContext(actor), templateId);
   redirect(result ? `${back}?prueba=${encodeURIComponent(result.to)}` : back);
 }

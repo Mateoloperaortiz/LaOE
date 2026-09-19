@@ -21,10 +21,15 @@ vi.mock("@/modules/content", () => ({
   parseArticlesJson: vi.fn(),
   replaceArticlesAs: vi.fn(),
 }));
-vi.mock("@/modules/identity", async () => ({
-  ...(await import("@/modules/identity/domain/guards")),
-  ...(await import("@/modules/identity/domain/errors")),
-  getActor: state.actor,
+// Se simula la sesión, no el guard: `requireAdminActor` corre de verdad, con su regla de licencia.
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => ({ value: "token-sintetico" }) }),
+  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }),
+}));
+vi.mock("@/modules/identity/domain/session", () => ({
+  resolveActor: state.actor,
+  findSessionByToken: vi.fn().mockResolvedValue(null),
+  touchSession: vi.fn(),
 }));
 vi.mock("@/shared/admin-kit", async () => await import("@/shared/admin-kit/DomainError"));
 
@@ -35,6 +40,8 @@ const actor = {
   isAdmin: true,
   permissions: [{ code: "ADMIN", committeeId: null }],
 };
+// La action entrega al dominio quién ejecuta y desde dónde (ADR-082), no el actor de sesión.
+const commandActor = { personId: actor.personId, ip: "203.0.113.7" };
 function publication(checksum: string | null) {
   const form = new FormData();
   form.set("id", documentId);
@@ -65,7 +72,7 @@ describe("huella revisada en la publicación administrativa", () => {
     await expect(publication(checksum)).rejects.toThrow(
       `redirect:/admin/documentos/${documentId}?estado=publicado`,
     );
-    expect(state.publish).toHaveBeenCalledWith(actor, documentId, null);
+    expect(state.publish).toHaveBeenCalledWith(commandActor, documentId, null);
   });
 
   it("conserva la huella de contenido que se revisó", async () => {
@@ -73,7 +80,7 @@ describe("huella revisada en la publicación administrativa", () => {
     await expect(publication(checksum)).rejects.toThrow(
       `redirect:/admin/documentos/${documentId}?estado=publicado`,
     );
-    expect(state.publish).toHaveBeenCalledWith(actor, documentId, checksum);
+    expect(state.publish).toHaveBeenCalledWith(commandActor, documentId, checksum);
   });
 
   it("vuelve al documento con el error de revisión obsoleta", async () => {

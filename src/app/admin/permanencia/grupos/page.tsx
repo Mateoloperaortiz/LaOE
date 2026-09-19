@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { workGroupsResource } from "@/modules/permanence/admin";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -13,10 +14,6 @@ import { seedWorkCommitteesAction } from "./actions";
 export const metadata: Metadata = { title: workGroupsResource.names.plural };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 export default async function Page({ searchParams }: PageProps<"/admin/permanencia/grupos">) {
   await requireAdminActor("/admin/permanencia/grupos");

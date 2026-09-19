@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { single } from "@/app/_lib/search";
 import { requireActor } from "@/modules/identity";
 import {
   ASSEMBLY_KINDS,
@@ -34,10 +35,6 @@ import { markSeenAction } from "./coleccion/actions";
 export const metadata: Metadata = { title: t("T-080") };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const BOARDS = ["nuevos", "veteranos", "comites"] as const;
 type BoardKey = (typeof BOARDS)[number];

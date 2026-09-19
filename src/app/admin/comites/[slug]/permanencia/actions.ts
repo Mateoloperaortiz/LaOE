@@ -4,6 +4,9 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
+import { formText } from "@/app/_lib/form";
+import { withQuery } from "@/app/_lib/search";
 import {
   decideExcuseForCommitteeAs,
   grantRecognitionAs,
@@ -24,7 +27,6 @@ import {
 import { getCurrentTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
-import { clientIp } from "@/shared/lib/request";
 import { ruleInputFromForm } from "../../../permanencia/_ui/reglas";
 import { requireCommitteeCapability } from "../../_kit/capacidades";
 
@@ -36,14 +38,8 @@ import { requireCommitteeCapability } from "../../_kit/capacidades";
 const slugSchema = z.string().regex(/^[a-z0-9-]+$/);
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
-
 function back(slug: string, extra: Record<string, string> = {}): string {
-  const query = new URLSearchParams(extra).toString();
-  return `/admin/comites/${slug}/permanencia${query ? `?${query}` : ""}`;
+  return withQuery(`/admin/comites/${slug}/permanencia`, extra);
 }
 
 async function leaderOf(slug: string, returnTo: string) {
@@ -58,7 +54,7 @@ async function leaderOf(slug: string, returnTo: string) {
     committeeId: access.roster.committee.id,
   };
   return {
-    actor: { personId: access.actor.personId, ip: await clientIp() },
+    actor: await actorContext(access.actor),
     editor: { bypassLock: access.isAdmin },
     ref,
   };
@@ -74,7 +70,7 @@ function failed(returnTo: string, error: unknown): never {
 
 export async function saveCommitteeRuleAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const id = text(formData, "id");
+  const id = formText(formData, "id");
   const panel = id ? { accion: "editar", regla: id } : { accion: "nueva" };
   const returnTo = back(slug, panel);
   const { actor, editor, ref } = await leaderOf(slug, returnTo);
@@ -100,7 +96,7 @@ export async function deleteCommitteeRuleAction(formData: FormData): Promise<voi
   const slug = slugSchema.parse(formData.get("slug"));
   const { actor, editor, ref } = await leaderOf(slug, back(slug));
   try {
-    await deleteRuleAs(actor, ref, idSchema.parse(text(formData, "id")), editor);
+    await deleteRuleAs(actor, ref, idSchema.parse(formText(formData, "id")), editor);
   } catch (error) {
     failed(back(slug), error);
   }
@@ -146,8 +142,8 @@ export async function scoreAction(formData: FormData): Promise<void> {
   const parsed = leaderScoreInputSchema.safeParse({
     ruleId,
     personId,
-    value: Number(text(formData, "value")),
-    note: text(formData, "note"),
+    value: Number(formText(formData, "value")),
+    note: formText(formData, "note"),
   });
   if (!parsed.success) {
     redirect(`${returnTo}&error=${encodeURIComponent(t("T-260"))}`);
@@ -171,11 +167,11 @@ export async function recognizeAction(formData: FormData): Promise<void> {
   const { actor, ref } = await leaderOf(slug, returnTo);
   const roster = await listInternalRoster(slug);
   const parsed = recognitionInputSchema.safeParse({
-    personId: text(formData, "personId"),
+    personId: formText(formData, "personId"),
     kind: "MEMBER_OF_MONTH",
     committeeId: ref.committeeId ?? undefined,
     termId: ref.termId,
-    month: text(formData, "month"),
+    month: formText(formData, "month"),
   });
   if (!parsed.success || !roster?.members.some((item) => item.personId === parsed.data.personId)) {
     redirect(`${returnTo}&error=${encodeURIComponent(t("T-260"))}`);
@@ -202,15 +198,15 @@ export async function recognizeAction(formData: FormData): Promise<void> {
 export async function decideExcuseAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
   const requestId = idSchema.parse(formData.get("requestId"));
-  const decision = text(formData, "decision") === "APPROVED" ? "APPROVED" : "REJECTED";
+  const decision = formText(formData, "decision") === "APPROVED" ? "APPROVED" : "REJECTED";
   const returnTo = back(slug);
   const access = await requireCommitteeCapability(slug, "PERMANENCE", returnTo);
   try {
     await decideExcuseForCommitteeAs(
-      { personId: access.actor.personId, ip: await clientIp() },
+      await actorContext(access.actor),
       requestId,
       access.roster.committee.id,
-      { decision, reason: text(formData, "reason") || undefined },
+      { decision, reason: formText(formData, "reason") || undefined },
     );
   } catch (error) {
     if (error instanceof DomainError) {
@@ -236,10 +232,10 @@ export async function recordCommitteeSanctionAction(formData: FormData): Promise
   }
   const parsed = sanctionInputSchema.safeParse({
     termId: term.id,
-    kind: text(formData, "kind"),
-    cause: text(formData, "cause"),
-    reference: text(formData, "reference") || null,
-    occurredOn: text(formData, "occurredOn"),
+    kind: formText(formData, "kind"),
+    cause: formText(formData, "cause"),
+    reference: formText(formData, "reference") || null,
+    occurredOn: formText(formData, "occurredOn"),
     suspendedUntil: null,
     committeeId: access.roster.committee.id,
   });
@@ -247,11 +243,7 @@ export async function recordCommitteeSanctionAction(formData: FormData): Promise
     redirect(back(slug, { error: t("T-260") }));
   }
   try {
-    await recordSanctionAs(
-      { personId: access.actor.personId, ip: await clientIp() },
-      personId,
-      parsed.data,
-    );
+    await recordSanctionAs(await actorContext(access.actor), personId, parsed.data);
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(back(slug, { error: error.message }));

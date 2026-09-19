@@ -1,4 +1,5 @@
 import "server-only";
+import { formText } from "@/app/_lib/form";
 import type { Computation, Rule, RuleInputValues } from "@/modules/permanence";
 import type { ReglaFormLabels, ReglaFormValues } from "@/modules/permanence/components/ReglaForm";
 import { t, tList } from "@/shared/copy";
@@ -124,18 +125,13 @@ export function reglaFormValues(rule: Rule | null): ReglaFormValues {
   };
 }
 
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
-
 function optionalNumber(formData: FormData, name: string): number | undefined {
-  const value = text(formData, name);
+  const value = formText(formData, name);
   return value === "" ? undefined : Number(value);
 }
 
 function optionalText(formData: FormData, name: string): string | undefined {
-  const value = text(formData, name);
+  const value = formText(formData, name);
   return value === "" ? undefined : value;
 }
 
@@ -150,7 +146,7 @@ function occasionFilter(formData: FormData, committeeScoped: boolean) {
 }
 
 function tiers(formData: FormData) {
-  return text(formData, "tiers")
+  return formText(formData, "tiers")
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
@@ -162,7 +158,7 @@ function tiers(formData: FormData) {
 
 /** Arma la entrada de la regla desde el formulario; la validación final es de `ruleInputSchema`. */
 export function ruleInputFromForm(formData: FormData, committeeScoped: boolean): RuleInputValues {
-  const computation = text(formData, "computation") as Computation;
+  const computation = formText(formData, "computation") as Computation;
   let params: Record<string, unknown> = {};
   switch (computation) {
     case "CHECKIN_COUNT":
@@ -217,13 +213,13 @@ export function ruleInputFromForm(formData: FormData, committeeScoped: boolean):
   }
   const cleaned = JSON.parse(JSON.stringify(params)) as Record<string, unknown>;
   return {
-    key: text(formData, "key"),
-    label: text(formData, "label"),
-    description: text(formData, "description"),
-    weight: Number(text(formData, "weight")),
+    key: formText(formData, "key"),
+    label: formText(formData, "label"),
+    description: formText(formData, "description"),
+    weight: Number(formText(formData, "weight")),
     appliesTo: (optionalText(formData, "appliesTo") ?? "ALL") as RuleInputValues["appliesTo"],
     computation,
     params: cleaned,
-    sortOrder: Number(text(formData, "sortOrder") || "0"),
+    sortOrder: Number(formText(formData, "sortOrder") || "0"),
   };
 }

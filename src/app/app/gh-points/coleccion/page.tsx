@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { requireActor } from "@/modules/identity";
 import {
   type AchievementRow,
@@ -44,10 +45,6 @@ const FAMILY_CONDITIONS: Record<FactFamily, CopyCode> = {
   RELAMPAGO: "T-2479",
   PALABRA_A_PALABRA: "T-2481",
 };
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 /** El origen del logro con los textos de T-2576 según `sourceKind`. */
 function originText(achievement: AchievementRow, origin: string): string {

@@ -321,6 +321,27 @@ Las mide `npm run audit:metrics` (`scripts/audit-metrics.ts`, solo lectura, [ADR
 
 Lo que movieron: R1-A quitó cuatro funciones de más de 100 líneas y un archivo de más de 1.000 (el ensayo de GHPOINTS); R2-A dejó en cero los componentes cliente que importan el catálogo completo. El chunk de textos en el navegador, medido en el build, pasó de 286 KB (64 KB gzip) a 29 KB (11,6 KB gzip).
 
+### Tras R3-A · 2026-09-19
+
+| Métrica | Valor |
+| --- | --- |
+| Archivos y líneas en `src` (sin el catálogo de textos) | 651 · 98806 |
+| Líneas en `src/app` · `src/modules` | 34381 · 59547 |
+| Funciones de más de 100 · 200 · 300 líneas (`src` y `scripts`) | 155 · 51 · 23 |
+| Funciones con complejidad mayor a 30 | 61 |
+| Archivos de más de 500 · 1000 líneas | 39 · 5 |
+| Exports de `participation` · `people` · `crm` (`index.ts`) | 380 · 232 · 150 |
+| Nombres de función de nivel superior declarados en 2 o más archivos de `src` | 78 |
+| Copias locales de helpers de actions en `src/app` | requireAdmin 0 · text 0 · withQuery 0 · safeBack 0 · back 10 · single 0 |
+| `as unknown as` en `src` | 37 |
+| `tList(` · accesos posicionales `[n] ?? ""` en `src` | 741 · 338 |
+| Componentes cliente · los que importan `@/shared/copy` | 56 · 0 |
+| `throw new Error(` en `src` | 134 |
+| `getDb()` en `src/modules` | 413 |
+| Elementos crudos en `src` (input · select · table · button) | 509 · 99 · 45 · 118 |
+
+Lo que movió: las copias de ayudantes de actions quedaron en cero salvo las diez `back`, que siguen declaradas como una línea por ruta; los nombres de función repetidos bajaron de 83 a 78. El script dejó de contar como copia la definición del propio kit.
+
 Dos cifras de la sección 4 no las mide el script y quedan como referencia de la auditoría: el chunk de textos en el navegador (286 KB, 64 KB gzip, en un build del 2026-09-18) y las 2.024 líneas muertas de la migración de GHPOINTS.
 
 ## 9. Hipótesis sin verificar
@@ -338,6 +359,6 @@ Dos cifras de la sección 4 no las mide el script y quedan como referencia de la
 
 | Fecha | Hipótesis | Resultado |
 | --- | --- | --- |
-| 2026-09-19 | La auditoría queda sin IP cuando la action pasa solo `{ personId }` | **Confirmada.** `runCommand` escribe `ip: actor.ip ?? null` (`src/db/tx.ts`) y 30 sitios de `src/app/**/actions.ts` arman el actor sin IP; por ejemplo, toda la ficha de organizaciones (`admin/organizaciones/[id]/actions.ts`, `actorFor`). Se corrige en R3 con un único `actorContext()`. |
+| 2026-09-19 | La auditoría queda sin IP cuando la action pasa solo `{ personId }` | **Confirmada, y era mayor: corregida en R3-A** ([ADR-082](adr/ADR-082-un-kit-para-las-server-actions-y-auditoria-con-ip.md)). Medido por tipos, 64 de 178 llamadas a comandos iban sin IP, porque también la pierde pasar el actor de sesión entero. Primera lectura: `runCommand` escribe `ip: actor.ip ?? null` (`src/db/tx.ts`) y 30 sitios de `src/app/**/actions.ts` arman el actor sin IP; por ejemplo, toda la ficha de organizaciones (`admin/organizaciones/[id]/actions.ts`, `actorFor`). Se corrige en R3 con un único `actorContext()`. |
 | 2026-09-19 | Unos 25 tipos de evento emitidos no tienen handler | **Descartada.** Los 64 tipos emitidos tienen consumidor: los 20 que no aparecen como literal en ningún `jobs.ts` están en `TIMELINE_EVENTS` (`crm/domain/timeline-pure.ts`) y se registran en bucle desde `crm/jobs.ts`. El riesgo de fondo sigue: un nombre mal escrito se descarta con un `warn`, y eso lo cierra el catálogo tipado de R4. |
 | 2026-09-19 | El chunk de textos llega al navegador con el catálogo completo | **Confirmada y corregida** en R2-A ([ADR-081](adr/ADR-081-el-catalogo-de-textos-no-viaja-entero-al-navegador.md)). El grafo real del bundle, cortando en los archivos `"use server"`, tenía 28 archivos que importaban `@/shared/copy`. Tras el cambio, ningún chunk de `.next/static` contiene metadatos editoriales ni textos de solo servidor. |

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import { listPendingReviews } from "@/modules/participation";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -17,10 +18,6 @@ import { annulAction, reviewAction } from "./actions";
 export const metadata: Metadata = { title: tList("T-2405")[2] ?? "" };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const inputClass =
   "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";

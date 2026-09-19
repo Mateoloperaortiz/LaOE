@@ -4,13 +4,14 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import {
   parseArticlesJson,
   publishDocumentAs,
   replaceArticlesAs,
   unpublishDocumentAs,
 } from "@/modules/content";
-import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
+import { requireAdminActor } from "@/modules/identity";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 
@@ -18,29 +19,13 @@ import { t } from "@/shared/copy";
 
 const idSchema = z.string().regex(/^[a-z0-9]{10,40}$/);
 
-async function requireAdmin() {
-  const actor = await getActor();
-  if (!actor) {
-    redirect("/ingresar?next=%2Fadmin%2Fdocumentos");
-  }
-  try {
-    assertAdmin(actor);
-  } catch (error) {
-    if (error instanceof ForbiddenError) {
-      redirect("/app");
-    }
-    throw error;
-  }
-  return actor;
-}
-
 function back(id?: string, extra: Record<string, string> = {}): never {
   const qs = new URLSearchParams(extra).toString();
   redirect(`/admin/documentos${id ? `/${id}` : ""}${qs ? `?${qs}` : ""}`);
 }
 
 export async function publicationAction(formData: FormData): Promise<void> {
-  const actor = await requireAdmin();
+  const actor = await requireAdminActor("/admin/documentos");
   const id = idSchema.safeParse(formData.get("id"));
   const intent = formData.get("intent");
   const checksum = z
@@ -53,9 +38,9 @@ export async function publicationAction(formData: FormData): Promise<void> {
   }
   try {
     if (intent === "publish") {
-      await publishDocumentAs(actor, id.data, checksum.data);
+      await publishDocumentAs(await actorContext(actor), id.data, checksum.data);
     } else {
-      await unpublishDocumentAs(actor, id.data);
+      await unpublishDocumentAs(await actorContext(actor), id.data);
     }
   } catch (error) {
     if (error instanceof DomainError) {
@@ -71,7 +56,7 @@ export async function publicationAction(formData: FormData): Promise<void> {
 }
 
 export async function loadArticlesAction(formData: FormData): Promise<void> {
-  const actor = await requireAdmin();
+  const actor = await requireAdminActor("/admin/documentos");
   const id = idSchema.safeParse(formData.get("id"));
   const file = formData.get("json");
   if (!id.success || !(file instanceof File)) {
@@ -82,7 +67,7 @@ export async function loadArticlesAction(formData: FormData): Promise<void> {
     back(id.data, { error: t("T-499", { detalle: parsed.detail }) });
   }
   try {
-    const loaded = await replaceArticlesAs(actor, id.data, parsed.data);
+    const loaded = await replaceArticlesAs(await actorContext(actor), id.data, parsed.data);
     revalidatePath("/admin/documentos");
     revalidatePath(`/admin/documentos/${id.data}`);
     revalidatePath("/app/normativa");

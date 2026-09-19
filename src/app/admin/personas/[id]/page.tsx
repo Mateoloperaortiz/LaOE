@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { getPreferences, listMessagesFor, subscriptionSummaryFor } from "@/modules/comms";
 import {
   countOpenTasksFor,
@@ -64,10 +65,6 @@ import {
 // Persona 360 (02-crm.md, ADR-034): UI a medida con pestañas por URL y acciones en panel lateral.
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const MAIN_KINDS = [
   "NOTE",

@@ -1,7 +1,7 @@
+import { actorContext } from "@/app/_lib/actor";
 import { confirmUploadAs, confirmUploadSchema } from "@/modules/content";
 import { getActor } from "@/modules/identity";
 import { DomainError } from "@/shared/admin-kit";
-import { clientIp } from "@/shared/lib/request";
 
 // Paso 2 de la subida directa (ADR-022): comprueba el objeto, registra el medio y encola las variantes.
 
@@ -20,10 +20,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Solo ADMIN" }, { status: 403 });
   }
   try {
-    const result = await confirmUploadAs(
-      { personId: actor.personId, ip: await clientIp() },
-      parsed.data,
-    );
+    const result = await confirmUploadAs(await actorContext(actor), parsed.data);
     return Response.json(result, { status: 201, headers: { "cache-control": "no-store" } });
   } catch (error) {
     if (error instanceof DomainError) {

@@ -4,6 +4,9 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
+import { formText } from "@/app/_lib/form";
+import { withQuery } from "@/app/_lib/search";
 import { committeeAnnouncementSchema, createCommitteeAnnouncementAs } from "@/modules/content";
 import {
   approvalRequestSchema,
@@ -39,7 +42,6 @@ import { getCurrentTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
-import { clientIp } from "@/shared/lib/request";
 import { requireCommitteeCapability } from "../_kit/capacidades";
 
 // Acciones de ocasiones de la vista del comité (ADR-035 regla 15, ADR-058): quien tiene la capacidad
@@ -48,19 +50,13 @@ import { requireCommitteeCapability } from "../_kit/capacidades";
 
 const slugSchema = z.string().regex(/^[a-z0-9-]+$/);
 
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
-
 async function leaderOf(slug: string, returnTo: string) {
   const access = await requireCommitteeCapability(slug, "OCCASIONS", returnTo);
   return { actor: access.actor, committee: access.roster.committee };
 }
 
 function back(slug: string, extra: Record<string, string> = {}): string {
-  const query = new URLSearchParams(extra).toString();
-  return `/admin/comites/${slug}${query ? `?${query}` : ""}`;
+  return withQuery(`/admin/comites/${slug}`, extra);
 }
 
 const actividades = { area: "actividades" };
@@ -72,15 +68,15 @@ export async function proposeOccasionAction(formData: FormData): Promise<void> {
     back(slug, { ...actividades, accion: "nueva" }),
   );
   const parsed = occasionInputSchema.safeParse({
-    title: text(formData, "title"),
+    title: formText(formData, "title"),
     kind: "ACTIVITY",
-    category: text(formData, "category") || "OTHER",
-    description: text(formData, "description"),
-    location: text(formData, "location"),
-    startsAt: text(formData, "startsAt"),
-    endsAt: text(formData, "endsAt") || undefined,
-    points: text(formData, "points") || "0",
-    approval: text(formData, "approval") || "AUTO",
+    category: formText(formData, "category") || "OTHER",
+    description: formText(formData, "description"),
+    location: formText(formData, "location"),
+    startsAt: formText(formData, "startsAt"),
+    endsAt: formText(formData, "endsAt") || undefined,
+    points: formText(formData, "points") || "0",
+    approval: formText(formData, "approval") || "AUTO",
     committeeId: committee.id,
   });
   if (!parsed.success) {
@@ -93,7 +89,7 @@ export async function proposeOccasionAction(formData: FormData): Promise<void> {
     );
   }
   try {
-    await createOccasionAs({ personId: actor.personId, ip: await clientIp() }, parsed.data);
+    await createOccasionAs(await actorContext(actor), parsed.data);
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(back(slug, { ...actividades, accion: "nueva", error: error.message }));
@@ -119,27 +115,24 @@ export async function createSeriesAction(formData: FormData): Promise<void> {
     back(slug, { ...actividades, accion: "serie" }),
   );
   const parsed = seriesSchema.safeParse({
-    title: text(formData, "title"),
-    firstDate: text(formData, "firstDate"),
-    time: text(formData, "time"),
-    durationMinutes: text(formData, "durationMinutes") || "90",
-    location: text(formData, "location"),
+    title: formText(formData, "title"),
+    firstDate: formText(formData, "firstDate"),
+    time: formText(formData, "time"),
+    durationMinutes: formText(formData, "durationMinutes") || "90",
+    location: formText(formData, "location"),
   });
   const local = parsed.success ? `${parsed.data.firstDate}T${parsed.data.time}` : "";
   if (!parsed.success || !LOCAL_INPUT.test(local)) {
     redirect(back(slug, { ...actividades, accion: "serie", error: t("T-260") }));
   }
   try {
-    const result = await createOccasionSeriesAs(
-      { personId: actor.personId, ip: await clientIp() },
-      {
-        committeeId: committee.id,
-        title: parsed.data.title,
-        firstStartsAt: bogotaInputToUtc(local),
-        durationMinutes: parsed.data.durationMinutes,
-        location: parsed.data.location,
-      },
-    );
+    const result = await createOccasionSeriesAs(await actorContext(actor), {
+      committeeId: committee.id,
+      title: parsed.data.title,
+      firstStartsAt: bogotaInputToUtc(local),
+      durationMinutes: parsed.data.durationMinutes,
+      location: parsed.data.location,
+    });
     revalidatePath(back(slug));
     redirect(
       back(slug, {
@@ -189,7 +182,7 @@ function rolesFromForm(
 
 export async function addMemberAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const q = text(formData, "q");
+  const q = formText(formData, "q");
   const panel = { ...personas, accion: "agregar", ...(q ? { q } : {}) };
   const access = await requireCommitteeCapability(slug, "ROSTER", back(slug, panel));
   const term = access.roster.term;
@@ -198,7 +191,7 @@ export async function addMemberAction(formData: FormData): Promise<void> {
   }
   const catalog = await listCommitteeRoles();
   const parsed = rosterChangeSchema.safeParse({
-    personId: text(formData, "personId"),
+    personId: formText(formData, "personId"),
     roles: rolesFromForm(formData, catalog, [], access.capabilities.has("DIRECTION")),
   });
   if (!parsed.success) {
@@ -206,7 +199,7 @@ export async function addMemberAction(formData: FormData): Promise<void> {
   }
   try {
     await addCommitteeMemberAs(
-      { personId: access.actor.personId, ip: await clientIp() },
+      await actorContext(access.actor),
       { committeeId: access.roster.committee.id, termId: term.id },
       access.context,
       parsed.data,
@@ -229,7 +222,7 @@ export async function addMemberAction(formData: FormData): Promise<void> {
 
 export async function setRolesAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const personId = text(formData, "personId");
+  const personId = formText(formData, "personId");
   const panel = { ...personas, accion: "cargos", persona: personId };
   const access = await requireCommitteeCapability(slug, "ROSTER", back(slug, panel));
   const term = access.roster.term;
@@ -252,7 +245,7 @@ export async function setRolesAction(formData: FormData): Promise<void> {
   }
   try {
     await setMemberRolesAs(
-      { personId: access.actor.personId, ip: await clientIp() },
+      await actorContext(access.actor),
       { committeeId: access.roster.committee.id, termId: term.id },
       access.context,
       parsed.data,
@@ -269,20 +262,20 @@ export async function setRolesAction(formData: FormData): Promise<void> {
 
 export async function requestRemovalAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const personId = text(formData, "personId");
+  const personId = formText(formData, "personId");
   const panel = { ...personas, accion: "retiro", persona: personId };
   const access = await requireCommitteeCapability(slug, "ROSTER", back(slug, panel));
   const term = access.roster.term;
   if (!term) {
     redirect(back(slug, { ...personas, error: t("T-2140") }));
   }
-  const parsed = removalRequestSchema.safeParse({ personId, reason: text(formData, "reason") });
+  const parsed = removalRequestSchema.safeParse({ personId, reason: formText(formData, "reason") });
   if (!parsed.success) {
     redirect(back(slug, { ...panel, error: t("T-260") }));
   }
   try {
     await requestCommitteeRemovalAs(
-      { personId: access.actor.personId, ip: await clientIp() },
+      await actorContext(access.actor),
       { committeeId: access.roster.committee.id, termId: term.id },
       access.context,
       parsed.data,
@@ -306,7 +299,7 @@ export async function createCommitteeAnnouncementAction(formData: FormData): Pro
   const panel = { ...comunicacion, accion: "anuncio" };
   const access = await requireCommitteeCapability(slug, "BOARD", back(slug, panel));
   const parsed = committeeAnnouncementSchema.safeParse({
-    title: text(formData, "title"),
+    title: formText(formData, "title"),
     body: typeof formData.get("body") === "string" ? formData.get("body") : "",
     push: formData.get("push") === "on",
   });
@@ -315,7 +308,7 @@ export async function createCommitteeAnnouncementAction(formData: FormData): Pro
   }
   try {
     await createCommitteeAnnouncementAs(
-      { personId: access.actor.personId, ip: await clientIp() },
+      await actorContext(access.actor),
       access.roster.committee.id,
       parsed.data,
     );
@@ -335,14 +328,14 @@ export async function updateProfileAction(formData: FormData): Promise<void> {
   const parsed = committeeProfileSchema.safeParse({
     presentation:
       typeof formData.get("presentation") === "string" ? formData.get("presentation") : "",
-    contactUrl: text(formData, "contactUrl"),
+    contactUrl: formText(formData, "contactUrl"),
   });
   if (!parsed.success) {
     redirect(back(slug, { ...comunicacion, error: t("T-260") }));
   }
   try {
     await updateCommitteeProfileAs(
-      { personId: access.actor.personId, ip: await clientIp() },
+      await actorContext(access.actor),
       access.roster.committee.id,
       parsed.data,
     );
@@ -368,14 +361,14 @@ export async function setRepresentativesAction(formData: FormData): Promise<void
   if (!term) {
     redirect(back(slug, { area: "personas", error: t("T-260") }));
   }
-  const actor = { personId: access.actor.personId, ip: await clientIp() };
+  const actor = await actorContext(access.actor);
   try {
     for (const role of ["TITULAR", "SUPLENTE"] as const) {
       await setRepresentativeAs(actor, {
         committeeId: access.roster.committee.id,
         termId: term.id,
         role,
-        personId: representativeIdSchema.parse(text(formData, role.toLowerCase())) || null,
+        personId: representativeIdSchema.parse(formText(formData, role.toLowerCase())) || null,
       });
     }
   } catch (error) {
@@ -400,7 +393,7 @@ async function financeOf(slug: string, budgetId: string) {
     redirect(back(slug, { ...finanzas, error: t("T-032") }));
   }
   return {
-    actor: { personId: access.actor.personId, ip: await clientIp() },
+    actor: await actorContext(access.actor),
     committee: access.roster.committee,
   };
 }
@@ -424,12 +417,12 @@ async function runFinance(
 
 export async function submitPrerequestAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const budgetId = text(formData, "budgetId");
+  const budgetId = formText(formData, "budgetId");
   const { actor } = await financeOf(slug, budgetId);
   const parsed = prerequestInputSchema.safeParse({
     budgetId,
-    month: text(formData, "month"),
-    notes: text(formData, "notes"),
+    month: formText(formData, "month"),
+    notes: formText(formData, "notes"),
   });
   if (!parsed.success) {
     redirect(back(slug, { ...finanzas, error: t("T-260") }));
@@ -439,16 +432,16 @@ export async function submitPrerequestAction(formData: FormData): Promise<void> 
 
 export async function recordExpenseAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const budgetId = text(formData, "budgetId");
+  const budgetId = formText(formData, "budgetId");
   const { actor } = await financeOf(slug, budgetId);
   const parsed = expenseInputSchema.safeParse({
     budgetId,
-    lineId: text(formData, "lineId"),
-    spentOn: text(formData, "spentOn"),
-    amount: text(formData, "amount"),
-    description: text(formData, "description"),
-    supplier: text(formData, "supplier"),
-    approvalId: text(formData, "approvalId") || undefined,
+    lineId: formText(formData, "lineId"),
+    spentOn: formText(formData, "spentOn"),
+    amount: formText(formData, "amount"),
+    description: formText(formData, "description"),
+    supplier: formText(formData, "supplier"),
+    approvalId: formText(formData, "approvalId") || undefined,
   });
   if (!parsed.success) {
     redirect(back(slug, { ...finanzas, error: t("T-260") }));
@@ -458,15 +451,15 @@ export async function recordExpenseAction(formData: FormData): Promise<void> {
 
 export async function recordTransferAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const budgetId = text(formData, "budgetId");
+  const budgetId = formText(formData, "budgetId");
   const { actor } = await financeOf(slug, budgetId);
   const parsed = transferInputSchema.safeParse({
     budgetId,
-    fromLineId: text(formData, "fromLineId"),
-    toLineId: text(formData, "toLineId"),
-    amount: text(formData, "amount"),
-    reason: text(formData, "reason"),
-    approvalId: text(formData, "approvalId") || undefined,
+    fromLineId: formText(formData, "fromLineId"),
+    toLineId: formText(formData, "toLineId"),
+    amount: formText(formData, "amount"),
+    reason: formText(formData, "reason"),
+    approvalId: formText(formData, "approvalId") || undefined,
   });
   if (!parsed.success) {
     redirect(back(slug, { ...finanzas, error: t("T-260") }));
@@ -476,15 +469,15 @@ export async function recordTransferAction(formData: FormData): Promise<void> {
 
 export async function requestApprovalAction(formData: FormData): Promise<void> {
   const slug = slugSchema.parse(formData.get("slug"));
-  const budgetId = text(formData, "budgetId");
+  const budgetId = formText(formData, "budgetId");
   const { actor, committee } = await financeOf(slug, budgetId);
   const parsed = approvalRequestSchema.safeParse({
     committeeId: committee.id,
     budgetId: budgetId || undefined,
-    editionId: text(formData, "editionId") || undefined,
-    title: text(formData, "title"),
-    description: text(formData, "description"),
-    eventOn: text(formData, "eventOn"),
+    editionId: formText(formData, "editionId") || undefined,
+    title: formText(formData, "title"),
+    description: formText(formData, "description"),
+    eventOn: formText(formData, "eventOn"),
   });
   if (!parsed.success) {
     redirect(back(slug, { ...finanzas, error: t("T-260") }));

@@ -4,6 +4,9 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
+import { formText } from "@/app/_lib/form";
+import { withQuery } from "@/app/_lib/search";
 import {
   addContactAs,
   addOrganizationNoteAs,
@@ -22,18 +25,12 @@ import { DomainError } from "@/shared/admin-kit";
 
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
-
 function blankToUndefined(value: string): string | undefined {
   return value === "" ? undefined : value;
 }
 
 function back(id: string, extra: Record<string, string> = {}): string {
-  const query = new URLSearchParams(extra).toString();
-  return `/admin/organizaciones/${id}${query ? `?${query}` : ""}`;
+  return withQuery(`/admin/organizaciones/${id}`, extra);
 }
 
 function failed(id: string, error: unknown, extra: Record<string, string> = {}): never {
@@ -45,7 +42,7 @@ function failed(id: string, error: unknown, extra: Record<string, string> = {}):
 
 async function actorFor(id: string) {
   const actor = await requireAdminActor(back(id));
-  return { personId: actor.personId };
+  return actorContext(actor);
 }
 
 function done(id: string): never {
@@ -57,11 +54,11 @@ export async function createContactAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("organizationId"));
   const actor = await actorFor(id);
   const parsed = externalContactSchema.safeParse({
-    firstName: text(formData, "firstName"),
-    lastName: text(formData, "lastName"),
-    email: text(formData, "email"),
-    phone: blankToUndefined(text(formData, "phone")),
-    role: blankToUndefined(text(formData, "role")),
+    firstName: formText(formData, "firstName"),
+    lastName: formText(formData, "lastName"),
+    email: formText(formData, "email"),
+    phone: blankToUndefined(formText(formData, "phone")),
+    role: blankToUndefined(formText(formData, "role")),
     isPrimary: formData.get("isPrimary") === "on",
   });
   if (!parsed.success) {
@@ -82,7 +79,7 @@ export async function linkContactAction(formData: FormData): Promise<void> {
   try {
     await addContactAs(actor, id, {
       personId,
-      role: blankToUndefined(text(formData, "role")),
+      role: blankToUndefined(formText(formData, "role")),
       isPrimary: formData.get("isPrimary") === "on",
     });
   } catch (error) {
@@ -110,7 +107,7 @@ export async function setPrimaryAction(formData: FormData): Promise<void> {
 export async function addNoteAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("organizationId"));
   const actor = await actorFor(id);
-  const body = text(formData, "body");
+  const body = formText(formData, "body");
   if (body.length < 2) {
     redirect(back(id, { accion: "nota" }));
   }
@@ -122,9 +119,9 @@ export async function createTaskAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("organizationId"));
   const actor = await actorFor(id);
   const parsed = taskInputSchema.safeParse({
-    title: text(formData, "title"),
-    assigneeId: blankToUndefined(text(formData, "assigneeId")),
-    dueAt: blankToUndefined(text(formData, "dueAt")),
+    title: formText(formData, "title"),
+    assigneeId: blankToUndefined(formText(formData, "assigneeId")),
+    dueAt: blankToUndefined(formText(formData, "dueAt")),
     organizationId: id,
   });
   if (!parsed.success) {

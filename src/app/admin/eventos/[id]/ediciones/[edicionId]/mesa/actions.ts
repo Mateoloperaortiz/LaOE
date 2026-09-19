@@ -4,8 +4,9 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { requireAdminContext } from "@/app/_lib/actor";
+import { formRaw } from "@/app/_lib/form";
 import { getEdition } from "@/modules/events";
-import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
 import {
   addMacroeventDirectorAs,
   MACROEVENT_ROLE_CODES,
@@ -14,7 +15,6 @@ import {
 import { findTermContaining, getCurrentTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit";
 import { dateKeyIn } from "@/shared/lib/dates";
-import { clientIp } from "@/shared/lib/request";
 
 // Mesa directiva de una edición (ADR-060 regla 9): ADMIN registra el resultado de la elección de la
 // Asamblea; el cargo queda en el término que contiene la fecha de la edición (o el vigente).
@@ -40,37 +40,16 @@ function base(eventId: string, editionId: string): string {
   return `/admin/eventos/${eventId}/ediciones/${editionId}/mesa`;
 }
 
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value : "";
-}
-
-async function requireAdmin(returnTo: string) {
-  const actor = await getActor();
-  if (!actor) {
-    redirect(`/ingresar?next=${encodeURIComponent(returnTo)}`);
-  }
-  try {
-    assertAdmin(actor);
-  } catch (error) {
-    if (error instanceof ForbiddenError) {
-      redirect("/app");
-    }
-    throw error;
-  }
-  return { personId: actor.personId, ip: await clientIp() };
-}
-
 export async function addDirectorAction(formData: FormData): Promise<void> {
-  const eventId = text(formData, "eventId");
-  const editionId = text(formData, "editionId");
+  const eventId = formRaw(formData, "eventId");
+  const editionId = formRaw(formData, "editionId");
   const back = base(eventId, editionId);
-  const actor = await requireAdmin(back);
+  const actor = await requireAdminContext(back);
   const parsed = addSchema.safeParse({
     eventId,
     editionId,
-    personId: text(formData, "personId"),
-    roleCode: text(formData, "roleCode"),
+    personId: formRaw(formData, "personId"),
+    roleCode: formRaw(formData, "roleCode"),
     coDirector: formData.get("coDirector") === "on",
   });
   if (!parsed.success) {
@@ -86,7 +65,7 @@ export async function addDirectorAction(formData: FormData): Promise<void> {
   if (!term) {
     redirect(`${back}?error=${encodeURIComponent("T-260")}`);
   }
-  const overrideReason = text(formData, "overrideReason").trim();
+  const overrideReason = formRaw(formData, "overrideReason").trim();
   try {
     await addMacroeventDirectorAs(
       actor,
@@ -110,14 +89,14 @@ export async function addDirectorAction(formData: FormData): Promise<void> {
 }
 
 export async function removeDirectorAction(formData: FormData): Promise<void> {
-  const eventId = text(formData, "eventId");
-  const editionId = text(formData, "editionId");
+  const eventId = formRaw(formData, "eventId");
+  const editionId = formRaw(formData, "editionId");
   const back = base(eventId, editionId);
-  const actor = await requireAdmin(back);
+  const actor = await requireAdminContext(back);
   const parsed = removeSchema.safeParse({
     eventId,
     editionId,
-    appointmentId: text(formData, "appointmentId"),
+    appointmentId: formRaw(formData, "appointmentId"),
   });
   if (!parsed.success) {
     redirect(`${back}?error=${encodeURIComponent("T-260")}`);
