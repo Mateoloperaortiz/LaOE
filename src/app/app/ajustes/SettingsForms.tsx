@@ -2,7 +2,7 @@
 
 import { unstable_rethrow } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 import {
   type ContactState,
   type PreferencesState,

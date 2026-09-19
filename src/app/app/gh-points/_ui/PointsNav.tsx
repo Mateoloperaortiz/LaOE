@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { t, tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy/client";
 
 // Pestañas de GH Points (T-2402): Resumen, Retos, Boosters, Colección. Las dos últimas llegan en
 // G-T4/G-T5: el enlace queda y responde 404 hasta entonces. Con la bandera apagada no hay

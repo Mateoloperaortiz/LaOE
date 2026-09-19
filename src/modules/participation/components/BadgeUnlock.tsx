@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
-import { t, tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy/client";
 import { BOOSTER_KINDS, type BoosterKind } from "../gamification-types";
 import { BadgeArt } from "./BadgeArt";
 

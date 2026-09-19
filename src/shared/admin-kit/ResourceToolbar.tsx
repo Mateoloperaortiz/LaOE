@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef } from "react";
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 import type { FilterDefinition } from "./types";
 
 type Props = {

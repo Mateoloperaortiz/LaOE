@@ -68,7 +68,16 @@ async function runCli(manifest: string, args: string[] = []) {
   try {
     const result = await runFile(
       process.execPath,
-      ["--import", "tsx", "scripts/normativa-import.ts", "--input", manifest, ...args],
+      // Igual que `npm run normativa:import`: el script llega al catálogo de textos, que es solo de servidor (ADR-081).
+      [
+        "--conditions=react-server",
+        "--import",
+        "tsx",
+        "scripts/normativa-import.ts",
+        "--input",
+        manifest,
+        ...args,
+      ],
       { cwd: root, env: childEnvironment(), timeout: 15_000, maxBuffer: 1024 * 1024 },
     );
     return { code: 0, stdout: result.stdout, stderr: result.stderr };

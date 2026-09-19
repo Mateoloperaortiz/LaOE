@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { t, tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy/client";
 import styles from "./committee-podium.module.css";
 
 /** Valores ya calculados y formateados por el servidor; el cliente solo abre el detalle. */

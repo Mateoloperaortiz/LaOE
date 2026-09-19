@@ -6,7 +6,7 @@ import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { AdminFormDrafts } from "@/shared/admin-kit/AdminFormDrafts";
 import { type AdminNavGroup, activeAdminHref } from "@/shared/admin-kit/navigation";
 import { LogoOE } from "@/shared/brand";
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 import { AreaSwitch } from "@/shared/ui/AreaSwitch";
 import { ChevronDownIcon } from "@/shared/ui/icons/ChevronDownIcon";
 import { Menu2Icon } from "@/shared/ui/icons/Menu2Icon";

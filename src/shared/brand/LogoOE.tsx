@@ -1,4 +1,4 @@
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 
 type Props = {
   /** Alto en píxeles CSS; el ancho sale de la proporción del logo vertical (565 × 770). */

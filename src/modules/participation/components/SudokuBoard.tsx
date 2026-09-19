@@ -1,7 +1,7 @@
 "use client";
 
 import { type KeyboardEvent, useRef } from "react";
-import { t, tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy/client";
 import { ArrowBackUpIcon } from "@/shared/ui/icons/ArrowBackUpIcon";
 import { BulbIcon } from "@/shared/ui/icons/BulbIcon";
 import { EraserIcon } from "@/shared/ui/icons/EraserIcon";
@@ -60,7 +60,7 @@ export function SudokuBoard({
 }: Props) {
   const cells = useRef<(HTMLDivElement | null)[]>([]);
   const states = tList("T-2698");
-  const [borrar, lapiz, deshacer, pista] = tList("T-2701") as [string, string, string, string];
+  const [borrar, lapiz, deshacer, pista] = tList("T-2701");
   const related = new Set(SUDOKU_PEERS[selected]);
   const selectedDigit = play.values[selected] ?? "0";
 

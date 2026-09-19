@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
-import { type CopyCode, t, tList } from "@/shared/copy";
+import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
 import { ArrowsHorizontalIcon } from "@/shared/ui/icons/ArrowsHorizontalIcon";
 import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
 import { XIcon } from "@/shared/ui/icons/XIcon";
@@ -30,7 +30,7 @@ const MARKS: Record<WordleLetterState, typeof CheckIcon> = {
   absent: XIcon,
 };
 const WEIGHT = { absent: 1, present: 2, correct: 3 } as const;
-const ERROR_COPY: Record<WordleDenial, CopyCode> = {
+const ERROR_COPY: Record<WordleDenial, ClientCopyCode> = {
   INVALID_INPUT: "T-1243",
   NOT_FOUND: "T-1255",
   NOT_ELIGIBLE: "T-1250",

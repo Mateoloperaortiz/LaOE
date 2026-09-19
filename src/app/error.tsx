@@ -1,6 +1,6 @@
 "use client";
 
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 
 type Props = { reset: () => void };
 

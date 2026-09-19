@@ -2,13 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, useTransition } from "react";
-import { type CopyCode, t, tList } from "@/shared/copy";
+import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
 import type { ChallengeSubmitReply, SubmitDenial } from "../gamification-types";
 
 // Trivia de un reto en Mi OE (ADR-067 regla 4): un envío, radios accesibles por pregunta y
 // requestId estable en sessionStorage para que un reintento sea replay y no doble entrega.
 
-const ERROR_COPY: Record<SubmitDenial, CopyCode> = {
+const ERROR_COPY: Record<SubmitDenial, ClientCopyCode> = {
   DISABLED: "T-2442",
   NOT_FOUND: "T-2441",
   NOT_OPEN: "T-2438",

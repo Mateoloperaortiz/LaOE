@@ -2,7 +2,7 @@
 
 import type { ButtonHTMLAttributes } from "react";
 import { useFormStatus } from "react-dom";
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & { pendingLabel?: string };
 

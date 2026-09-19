@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 
 export function AreaSwitch({ to }: { to: "admin" | "member" }) {
   return (
