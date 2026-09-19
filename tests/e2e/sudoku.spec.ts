@@ -24,6 +24,19 @@ function opcion(page: Page, nombre: Dificultad | Modo) {
   return page.locator("#sudoku label").filter({ hasText: new RegExp(`^${nombre}`) });
 }
 
+/**
+ * Abre el juego y espera a que React tome el formulario. Los radios son controlados: un clic que
+ * llega antes de la hidratación se pierde cuando React repone su estado inicial, y la prueba
+ * empezaría un Fácil creyendo que pidió un Difícil. La marca es la que React deja en el nodo.
+ */
+async function abrir(page: Page) {
+  await page.goto("/app/juegos/sudoku");
+  await page.waitForFunction(() => {
+    const nodo = document.querySelector("#sudoku form, #sudoku button");
+    return nodo !== null && Object.keys(nodo).some((key) => key.startsWith("__reactProps$"));
+  });
+}
+
 function casilla(page: Page, cell: number) {
   const fila = Math.floor(cell / 9) + 1;
   const columna = (cell % 9) + 1;
@@ -82,12 +95,25 @@ test("la biblioteca suma la tarjeta del Sudoku", async ({ page }) => {
 test("un Difícil sin ayudas acredita 6 sin que la solución llegue al navegador", async ({
   page,
 }) => {
+  // Los cuerpos se leen desde Node con `route.fetch`: `response.text()` depende del búfer del
+  // navegador y en el runner de CI devolvió vacío para las acciones, lo que dejaba esta prueba
+  // comprobando nada. Por eso también se exige abajo que el inicio haya traído las dadas.
   const cuerpos: string[] = [];
-  page.on("response", async (response) => {
-    if (!response.url().includes("/app/juegos/sudoku")) return;
-    cuerpos.push(await response.text().catch(() => ""));
-  });
-  await page.goto("/app/juegos/sudoku");
+  // Solo los POST de las acciones del juego. La página y sus refrescos siguen su camino: retenerlos
+  // retrasa la hidratación y confunde al cliente de Next; lo que mandan se lee aparte, más abajo.
+  await page.route(
+    (url) => url.pathname === "/app/juegos/sudoku",
+    async (route) => {
+      if (route.request().method() !== "POST") {
+        await route.continue();
+        return;
+      }
+      const response = await route.fetch();
+      cuerpos.push(await response.text());
+      await route.fulfill({ response });
+    },
+  );
+  await abrir(page);
   const juego = page.locator("#sudoku");
   await expect(juego.getByText("El primer Sudoku que resuelvas hoy es el que suma")).toBeVisible();
   await opcion(page, "Difícil").click();
@@ -109,16 +135,29 @@ test("un Difícil sin ayudas acredita 6 sin que la solución llegue al navegador
     juego.getByText(`El ${repetido} ya está en esa fila, columna o caja.`),
   ).toBeVisible();
 
+  // Con la partida abierta, lo que el servidor manda para pintar la página trae las dadas y nada
+  // más. Se lee del DOM tras recargar: ahí quedan los datos que Next incrusta para hidratar.
+  await page.reload();
+  await expect(juego.getByRole("button", { name: "Seguir el tablero" })).toBeVisible();
+  const pagina = await page.content();
+  expect(pagina).toContain(run.givens);
+  expect(pagina).not.toContain(run.solution);
+  expect(pagina).not.toContain(run.seed);
+  await juego.getByRole("button", { name: "Seguir el tablero" }).click();
+
   await resolver(page, run);
   await expect(juego.getByText("¡Resuelto! Sumaste 6 GH Points.")).toBeVisible({ timeout: 15_000 });
   const [guardada] = await partidas();
   expect(guardada).toMatchObject({ status: "SOLVED", creditedPoints: 6 });
   expect(await creditos()).toHaveLength(1);
 
-  // Ni el HTML ni ninguna respuesta de la ruta trajeron la solución ni la semilla.
+  // Ni el HTML ni las respuestas de las acciones trajeron la solución ni la semilla.
+  await page.unrouteAll({ behavior: "ignoreErrors" });
   const visto = [await page.content(), ...cuerpos].join("\n");
-  expect(cuerpos.length).toBeGreaterThan(1);
-  expect(visto).toContain(run.givens);
+  // El inicio y el cierre, como mínimo, y ninguno vacío: la comprobación no pasa en vacío.
+  expect(cuerpos.length).toBeGreaterThanOrEqual(2);
+  expect(cuerpos.every((cuerpo) => cuerpo.length > 0)).toBe(true);
+  expect(cuerpos.some((cuerpo) => cuerpo.includes(run.givens))).toBe(true);
   expect(visto).not.toContain(run.solution);
   expect(visto).not.toContain(run.seed);
 
@@ -134,7 +173,7 @@ test("un Difícil sin ayudas acredita 6 sin que la solución llegue al navegador
 });
 
 test("con ayudas marca el error al instante, da pistas y paga la mitad", async ({ page }) => {
-  await page.goto("/app/juegos/sudoku");
+  await abrir(page);
   const juego = page.locator("#sudoku");
   await opcion(page, "Con ayudas").click();
   await expect(juego.getByText("Este tablero paga 1 GH Points.")).toBeVisible();
@@ -173,7 +212,7 @@ test("con ayudas marca el error al instante, da pistas y paga la mitad", async (
 test("recargar conserva dígitos y notas, y abandonar deja elegir otra dificultad", async ({
   page,
 }) => {
-  await page.goto("/app/juegos/sudoku");
+  await abrir(page);
   const juego = page.locator("#sudoku");
   const run = await empezar(page, "Medio", "Sin ayudas");
   const [una, otra] = vacias(run.givens);
@@ -213,7 +252,7 @@ test("recargar conserva dígitos y notas, y abandonar deja elegir otra dificulta
 
 test("en móvil se juega con el teclado en pantalla y sin desbordar", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/app/juegos/sudoku");
+  await abrir(page);
   const juego = page.locator("#sudoku");
   await sinViolaciones(page);
   const run = await empezar(page, "Fácil", "Con ayudas");
