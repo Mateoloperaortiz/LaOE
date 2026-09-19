@@ -4,6 +4,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import { markOnboardingStepAs } from "@/modules/crm";
 import { getActor } from "@/modules/identity";
 import { DomainError } from "@/shared/admin-kit";
@@ -26,7 +27,11 @@ export async function markStepAction(formData: FormData): Promise<void> {
   });
   if (parsed.success) {
     try {
-      await markOnboardingStepAs(actor, parsed.data.termId, parsed.data.stepKey);
+      await markOnboardingStepAs(
+        await actorContext(actor),
+        parsed.data.termId,
+        parsed.data.stepKey,
+      );
     } catch (error) {
       if (!(error instanceof DomainError)) {
         throw error;

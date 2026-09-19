@@ -1,8 +1,8 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { actorContext } from "@/app/_lib/actor";
 import { canOperate, getActor } from "@/modules/identity";
 import { getGroup, listMyGroupRoles, type WorkGroupRow } from "@/modules/permanence";
-import { clientIp } from "@/shared/lib/request";
 
 // Guards de las páginas de permanencia (ADR-036 regla 10): el líder de un grupo lo opera y el
 // evaluador de un grupo entra a la bandeja; ambos derivados de los datos, sin permiso técnico.
@@ -31,7 +31,7 @@ export async function requireGroupOperator(
     redirect("/app");
   }
   return {
-    actor: { personId: actor.personId, ip: await clientIp() },
+    actor: await actorContext(actor),
     isAdmin: actor.isAdmin,
     group,
   };
@@ -54,7 +54,7 @@ export async function requireEvaluator(
     redirect(`/ingresar?next=${encodeURIComponent(returnTo)}`);
   }
   if (!canOperate(actor)) redirect("/app");
-  const base = { personId: actor.personId, ip: await clientIp() };
+  const base = await actorContext(actor);
   if (actor.isAdmin) {
     return { actor: base, isAdmin: true, groupIds: null };
   }

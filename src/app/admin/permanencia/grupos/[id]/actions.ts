@@ -4,6 +4,8 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { formText } from "@/app/_lib/form";
+import { withQuery } from "@/app/_lib/search";
 import { findMembersByEmails } from "@/modules/people";
 import {
   addMembersAs,
@@ -23,14 +25,8 @@ import { requireGroupOperator } from "../../authz";
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 const MAX_CSV_BYTES = 1024 * 1024;
 
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
-
 function back(groupId: string, extra: Record<string, string> = {}): string {
-  const query = new URLSearchParams(extra).toString();
-  return `/admin/permanencia/grupos/${groupId}${query ? `?${query}` : ""}`;
+  return withQuery(`/admin/permanencia/grupos/${groupId}`, extra);
 }
 
 function failed(groupId: string, error: unknown): never {
@@ -72,7 +68,7 @@ export async function setEvaluatorsAction(formData: FormData): Promise<void> {
   if (!isAdmin) {
     redirect("/app");
   }
-  const emails = text(formData, "emails")
+  const emails = formText(formData, "emails")
     .split(/[\s,;]+/)
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
@@ -101,7 +97,7 @@ export async function importAction(
 ): Promise<ImportState> {
   const groupId = idSchema.parse(formData.get("groupId"));
   const { actor } = await requireGroupOperator(groupId, back(groupId));
-  const step = text(formData, "step");
+  const step = formText(formData, "step");
   const outcomes = (state: Awaited<ReturnType<typeof previewMemberImport>>) => ({
     csv: "",
     rows: state.rows.map((row) => ({ email: row.email, name: row.name, outcome: row.outcome })),
@@ -124,7 +120,7 @@ export async function importAction(
       const preview = await previewMemberImport(groupId, csv);
       return { ...outcomes(preview), csv };
     }
-    const csv = text(formData, "csv");
+    const csv = formText(formData, "csv");
     const result = await applyMemberImportAs(actor, groupId, csv);
     revalidatePath(`/admin/permanencia/grupos/${groupId}`);
     return { ...outcomes(result), applied: result.added };

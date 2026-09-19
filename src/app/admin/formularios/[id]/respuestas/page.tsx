@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { getFormView, getSubmission } from "@/modules/forms";
 import { submissionsResource } from "@/modules/forms/admin";
 import { ResourcePanel } from "@/shared/admin-kit";
@@ -12,10 +13,6 @@ import { ResourcePage } from "../../../_kit/ResourcePage";
 // panel de solo lectura con las respuestas de cada envío (?ver=<id>).
 
 const ID = /^[a-z0-9-]{10,40}$/;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 export async function generateMetadata({
   params,

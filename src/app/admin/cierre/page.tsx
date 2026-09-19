@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import { closingSummary, getTermStanding } from "@/modules/participation";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -18,10 +19,6 @@ import { closeTermAction } from "./actions";
 export const metadata: Metadata = { title: tList("T-561")[4] ?? "" };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 export default async function CierrePage({ searchParams }: PageProps<"/admin/cierre">) {
   const actor = await requireAdminActor("/admin/cierre");

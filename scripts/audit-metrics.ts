@@ -158,7 +158,10 @@ const { functions, topLevelNames } = analyze([...src, ...scripts]);
 const longer = (limit: number) => functions.filter((fn) => fn.length > limit).length;
 const bigger = (limit: number) => [...src, ...scripts].filter((file) => file.lines > limit).length;
 const helperCopies = ACTION_HELPERS.map((name) => {
-  const owners = [...(topLevelNames.get(name) ?? [])].filter((path) => path.startsWith("src/app/"));
+  // El kit de `src/app/_lib` es la definición; se cuentan las copias fuera de él.
+  const owners = [...(topLevelNames.get(name) ?? [])].filter(
+    (path) => path.startsWith("src/app/") && !path.startsWith("src/app/_lib/"),
+  );
   return `${name} ${owners.length}`;
 }).join(" · ");
 

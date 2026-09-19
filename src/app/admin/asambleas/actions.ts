@@ -4,10 +4,10 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
 import { adjustRequirementAs, recomputeCommitteeAssembly } from "@/modules/participation";
 import { DomainError } from "@/shared/admin-kit";
-import { clientIp } from "@/shared/lib/request";
 
 // Ajuste individual del requisito de asambleas (ADR-024, ADR-035 regla 12): ADMIN con motivo.
 
@@ -52,7 +52,7 @@ export async function adjustRequirementAction(formData: FormData): Promise<void>
     redirect(`${back}&error=${encodeURIComponent("T-260")}`);
   }
   try {
-    await adjustRequirementAs({ personId: actor.personId, ip: await clientIp() }, parsed.data);
+    await adjustRequirementAs(await actorContext(actor), parsed.data);
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(

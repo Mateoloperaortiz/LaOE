@@ -4,11 +4,11 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
 import { seedWorkCommitteesAs } from "@/modules/permanence";
 import { getTerm } from "@/modules/terms";
 import { DomainError } from "@/shared/admin-kit";
-import { clientIp } from "@/shared/lib/request";
 
 // Sembrar los comités de trabajo del término (ADR-036 regla 6): ADMIN; idempotente por código.
 
@@ -31,10 +31,7 @@ export async function seedWorkCommitteesAction(formData: FormData): Promise<void
   }
   let created = 0;
   try {
-    created = await seedWorkCommitteesAs(
-      { personId: actor.personId, ip: await clientIp() },
-      termId,
-    );
+    created = await seedWorkCommitteesAs(await actorContext(actor), termId);
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(`${back}&error=${encodeURIComponent(error.message)}`);

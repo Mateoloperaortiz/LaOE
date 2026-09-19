@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { CHALLENGE_KINDS, type ChallengeState, listChallengesAdmin } from "@/modules/participation";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -14,10 +15,6 @@ import { formatDateTime } from "@/shared/lib/dates";
 export const metadata: Metadata = { title: tList("T-2405")[1] ?? "" };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const PAGE_SIZE = 50;
 const inputClass =

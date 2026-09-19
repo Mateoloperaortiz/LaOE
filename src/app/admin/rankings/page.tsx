@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { rankCommittees, rankPeople } from "@/modules/participation";
 import { listCommitteesByIds } from "@/modules/people";
@@ -14,10 +15,6 @@ import { t, tList } from "@/shared/copy";
 export const metadata: Metadata = { title: tList("T-664")[0] ?? "" };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 export default async function RankingsPage({ searchParams }: PageProps<"/admin/rankings">) {
   await requireAdminActor("/admin/rankings");

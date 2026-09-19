@@ -3,10 +3,10 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import { requireActor } from "@/modules/identity";
 import { startWordleAs, submitWordleGuessAs } from "@/modules/participation";
 import type { WordleResult } from "@/modules/participation/wordle-types";
-import { clientIp } from "@/shared/lib/request";
 
 const inputSchema = z.object({
   gameId: z.string().min(1).max(128),
@@ -17,7 +17,7 @@ const inputSchema = z.object({
 
 async function ownActor() {
   const actor = await requireActor("/app/juegos/wordle");
-  return { personId: actor.personId, ip: await clientIp() };
+  return await actorContext(actor);
 }
 
 /** Revalida también el resumen y la biblioteca: los dos muestran el estado del juego. */

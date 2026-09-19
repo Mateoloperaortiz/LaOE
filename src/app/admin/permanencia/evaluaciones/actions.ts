@@ -4,6 +4,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { formText } from "@/app/_lib/form";
 import { evaluateAs, evaluationInputSchema, getGroup } from "@/modules/permanence";
 import { DomainError } from "@/shared/admin-kit";
 import { requireEvaluator } from "../authz";
@@ -11,11 +12,6 @@ import { requireEvaluator } from "../authz";
 // Evaluar a un miembro de un grupo (ADR-028, ADR-036 regla 6): evaluador dentro de la ventana o ADMIN.
 
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
-
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
 
 export async function evaluateAction(formData: FormData): Promise<void> {
   const groupId = idSchema.parse(formData.get("groupId"));
@@ -25,9 +21,9 @@ export async function evaluateAction(formData: FormData): Promise<void> {
   const { actor, isAdmin } = await requireEvaluator(termId, back);
   const parsed = evaluationInputSchema.safeParse({
     groupId,
-    personId: text(formData, "personId"),
-    evaluation: text(formData, "evaluation"),
-    note: text(formData, "note"),
+    personId: formText(formData, "personId"),
+    evaluation: formText(formData, "evaluation"),
+    note: formText(formData, "note"),
   });
   if (!parsed.success) {
     redirect(`${back}&error=${encodeURIComponent("T-260")}`);

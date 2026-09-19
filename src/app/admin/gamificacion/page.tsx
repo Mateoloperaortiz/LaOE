@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import {
   gamificationOverview,
@@ -25,10 +26,6 @@ import { resumeReconciliationAction, startReconciliationAction } from "./actions
 export const metadata: Metadata = { title: tList("T-2405")[0] ?? "" };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 export default async function GamificacionPage({ searchParams }: PageProps<"/admin/gamificacion">) {
   const actor = await requireAdminActor("/admin/gamificacion");

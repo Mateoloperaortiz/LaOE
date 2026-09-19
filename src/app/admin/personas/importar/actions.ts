@@ -4,13 +4,8 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import {
-  assertAdmin,
-  ForbiddenError,
-  getActor,
-  grantPermissionAs,
-  hasRecentStepUp,
-} from "@/modules/identity";
+import { actorContext } from "@/app/_lib/actor";
+import { grantPermissionAs, hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import {
   applyRosterImportAs,
   discardRosterImportAs,
@@ -29,22 +24,6 @@ import { parseProposalIndexes, proposalSelectionVersion } from "./selection";
 
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 
-async function requireAdmin(returnTo: string) {
-  const actor = await getActor();
-  if (!actor) {
-    redirect(`/ingresar?next=${encodeURIComponent(returnTo)}`);
-  }
-  try {
-    assertAdmin(actor);
-  } catch (error) {
-    if (error instanceof ForbiddenError) {
-      redirect("/app");
-    }
-    throw error;
-  }
-  return actor;
-}
-
 function jobUrl(jobId: string, extra: Record<string, string> = {}): string {
   const query = new URLSearchParams({ job: jobId, ...extra });
   return `/admin/personas/importar?${query.toString()}`;
@@ -56,7 +35,7 @@ function isColumn(value: string): value is RosterColumn {
 
 export async function remapAction(formData: FormData): Promise<void> {
   const jobId = idSchema.parse(formData.get("jobId"));
-  const actor = await requireAdmin(jobUrl(jobId));
+  const actor = await requireAdminActor(jobUrl(jobId));
   const count = Number.parseInt(String(formData.get("columns") ?? "0"), 10) || 0;
   const mapping: Array<RosterColumn | null> = [];
   for (let index = 0; index < count; index += 1) {
@@ -64,7 +43,7 @@ export async function remapAction(formData: FormData): Promise<void> {
     mapping.push(isColumn(value) ? value : null);
   }
   try {
-    await remapRosterPreviewAs({ personId: actor.personId }, jobId, mapping);
+    await remapRosterPreviewAs(await actorContext(actor), jobId, mapping);
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(jobUrl(jobId, { paso: "columnas", error: error.message }));
@@ -77,9 +56,9 @@ export async function remapAction(formData: FormData): Promise<void> {
 
 export async function discardAction(formData: FormData): Promise<void> {
   const jobId = idSchema.parse(formData.get("jobId"));
-  const actor = await requireAdmin(jobUrl(jobId));
+  const actor = await requireAdminActor(jobUrl(jobId));
   try {
-    await discardRosterImportAs({ personId: actor.personId }, jobId);
+    await discardRosterImportAs(await actorContext(actor), jobId);
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(jobUrl(jobId, { error: error.message }));
@@ -101,7 +80,7 @@ export async function applyAction(formData: FormData): Promise<void> {
     revision: /^[a-f0-9]{64}$/.test(submittedVersion) ? submittedVersion : "",
   };
   const returnTo = jobUrl(jobId, selectionParams);
-  const actor = await requireAdmin(returnTo);
+  const actor = await requireAdminActor(returnTo);
   if (!hasRecentStepUp(actor)) {
     redirect(`/ingresar/paso?next=${encodeURIComponent(returnTo)}`);
   }
@@ -117,7 +96,7 @@ export async function applyAction(formData: FormData): Promise<void> {
   );
   let summary: Awaited<ReturnType<typeof applyRosterImportAs>>;
   try {
-    summary = await applyRosterImportAs({ personId: actor.personId }, jobId);
+    summary = await applyRosterImportAs(await actorContext(actor), jobId);
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(jobUrl(jobId, { ...selectionParams, error: error.message }));
@@ -132,10 +111,11 @@ export async function applyAction(formData: FormData): Promise<void> {
       continue;
     }
     try {
-      await grantPermissionAs(
-        { personId: actor.personId },
-        { email: proposal.email, code: "COMMITTEE_LEADER", committeeId: proposal.committeeId },
-      );
+      await grantPermissionAs(await actorContext(actor), {
+        email: proposal.email,
+        code: "COMMITTEE_LEADER",
+        committeeId: proposal.committeeId,
+      });
       granted.push(`${proposal.personName} · ${proposal.committeeName}`);
     } catch (error) {
       if (error instanceof DomainError) {
@@ -145,7 +125,7 @@ export async function applyAction(formData: FormData): Promise<void> {
       }
     }
   }
-  await recordLeaderGrantsAs({ personId: actor.personId }, jobId, { granted, failed });
+  await recordLeaderGrantsAs(await actorContext(actor), jobId, { granted, failed });
   revalidatePath("/admin/personas");
   revalidatePath("/admin/personas/importar");
   redirect(jobUrl(jobId, { aplicada: "1" }));

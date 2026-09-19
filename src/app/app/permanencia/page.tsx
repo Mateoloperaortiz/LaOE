@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { single } from "@/app/_lib/search";
 import { getOnboarding, listInteractions } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
 import { getPeopleByIds, listCommitteesByIds, listSanctionsForPerson } from "@/modules/people";
@@ -19,10 +20,6 @@ import { Vacio } from "../_ui/Vacio";
 export const metadata: Metadata = { title: t("T-110") };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 export default async function PermanenciaPage({ searchParams }: PageProps<"/app/permanencia">) {
   const actor = await requireActor("/app/permanencia");

@@ -3,6 +3,7 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import { requireActor } from "@/modules/identity";
 import {
   ChallengeAlreadySubmitted,
@@ -14,7 +15,6 @@ import {
   submitTriviaAs,
 } from "@/modules/participation";
 import { DomainError } from "@/shared/admin-kit";
-import { clientIp } from "@/shared/lib/request";
 
 // Entregas del miembro (ADR-067 reglas 4 y 5): validación zod, sesión propia y respuesta
 // serializable sin filas de la base. El requestId hace el replay idempotente.
@@ -75,10 +75,7 @@ export async function submitTriviaAction(input: unknown): Promise<ChallengeSubmi
     return { ok: false, reason: "INVALID_INPUT" };
   }
   try {
-    const result = await submitTriviaAs(
-      { personId: actor.personId, ip: await clientIp() },
-      parsed.data,
-    );
+    const result = await submitTriviaAs(await actorContext(actor), parsed.data);
     if (result.ok) {
       revalidate(parsed.data.challengeId);
     }
@@ -101,10 +98,7 @@ export async function submitEvidenceAction(input: unknown): Promise<ChallengeSub
     return { ok: false, reason: "INVALID_INPUT" };
   }
   try {
-    const result = await submitEvidenceAs(
-      { personId: actor.personId, ip: await clientIp() },
-      parsed.data,
-    );
+    const result = await submitEvidenceAs(await actorContext(actor), parsed.data);
     if (result.ok) {
       revalidate(parsed.data.challengeId);
     }

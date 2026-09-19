@@ -4,6 +4,8 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
+import { formText } from "@/app/_lib/form";
 import { hasRecentStepUp, readCarnet } from "@/modules/identity";
 import {
   cancelOccasionAs,
@@ -20,7 +22,6 @@ import {
 import { getPeopleByIds } from "@/modules/people";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
-import { clientIp } from "@/shared/lib/request";
 import { requireOperator } from "./authz";
 
 // Acciones de la consola y del modo anfitrión (ADR-035): viven en src/app porque componen identity
@@ -34,11 +35,6 @@ function pageUrl(id: string, back: "consola" | "anfitrion", extra: Record<string
   const base = back === "anfitrion" ? `/admin/ocasiones/${id}/anfitrion` : `/admin/ocasiones/${id}`;
   const query = new URLSearchParams(extra).toString();
   return query ? `${base}?${query}` : base;
-}
-
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
 }
 
 async function operator(id: string, back: "consola" | "anfitrion") {
@@ -71,9 +67,9 @@ async function run(
 
 export async function lifecycleAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("occasionId"));
-  const op = text(formData, "op");
+  const op = formText(formData, "op");
   const { actor, occasion } = await operator(id, "consola");
-  const who = { personId: actor.personId, ip: await clientIp() };
+  const who = await actorContext(actor);
   await run(id, "consola", async () => {
     if (op === "open") {
       if (!canOpenOccasion(actor, occasion)) {
@@ -97,12 +93,12 @@ export async function cancelAction(formData: FormData): Promise<void> {
   if (occasion.points > 0 && occasion.approvedCount > 0 && !hasRecentStepUp(actor)) {
     redirect(`/ingresar/paso?next=${encodeURIComponent(returnTo)}`);
   }
-  const reason = text(formData, "reason");
+  const reason = formText(formData, "reason");
   await run(
     id,
     "consola",
     async () => {
-      await cancelOccasionAs({ personId: actor.personId, ip: await clientIp() }, id, reason);
+      await cancelOccasionAs(await actorContext(actor), id, reason);
       return undefined;
     },
     { accion: "cancelar" },
@@ -119,15 +115,12 @@ export async function decideAction(formData: FormData): Promise<void> {
   if (!actor.isAdmin) {
     redirect("/app");
   }
-  const reason = text(formData, "reason") || null;
+  const reason = formText(formData, "reason") || null;
   await run(
     id,
     "consola",
     async () => {
-      await decideCheckInAs(
-        { personId: actor.personId, ip: await clientIp() },
-        { checkInId, decision, reason },
-      );
+      await decideCheckInAs(await actorContext(actor), { checkInId, decision, reason });
       return undefined;
     },
     decision === "CANCEL" ? { accion: "anular", checkIn: checkInId } : {},
@@ -143,7 +136,7 @@ export async function approveAllAction(formData: FormData): Promise<void> {
   await run(id, "consola", async () => {
     const pending = await listCheckIns(id, ["PENDING"]);
     await decideManyAs(
-      { personId: actor.personId, ip: await clientIp() },
+      await actorContext(actor),
       pending.map((item) => item.id),
       "APPROVE",
     );
@@ -154,24 +147,26 @@ export async function approveAllAction(formData: FormData): Promise<void> {
 export async function registerAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("occasionId"));
   const personId = idSchema.parse(formData.get("personId"));
-  const back = backSchema.parse(text(formData, "back"));
+  const back = backSchema.parse(formText(formData, "back"));
   const { actor } = await operator(id, back);
   const people = await getPeopleByIds([personId]);
   const personName = people.get(personId)?.fullName?.trim() ?? "";
   await run(id, back, async () => {
-    await hostCheckInAs(
-      { personId: actor.personId, ip: await clientIp() },
-      { occasionId: id, personId, personName, source: actor.isAdmin ? "ADMIN" : "HOST" },
-    );
+    await hostCheckInAs(await actorContext(actor), {
+      occasionId: id,
+      personId,
+      personName,
+      source: actor.isAdmin ? "ADMIN" : "HOST",
+    });
     return { nombre: personName };
   });
 }
 
 export async function rotatingAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("occasionId"));
-  const op = text(formData, "op");
+  const op = formText(formData, "op");
   const { actor } = await operator(id, "consola");
-  const who = { personId: actor.personId, ip: await clientIp() };
+  const who = await actorContext(actor);
   await run(id, "consola", async () => {
     if (op === "enable") {
       await setRotatingCodeAs(who, id, true);
@@ -206,15 +201,12 @@ export async function scanAction(
   const people = await getPeopleByIds([carnet.personId]);
   const personName = people.get(carnet.personId)?.fullName?.trim() ?? "";
   try {
-    await hostCheckInAs(
-      { personId: actor.personId, ip: await clientIp() },
-      {
-        occasionId: id,
-        personId: carnet.personId,
-        personName,
-        source: actor.isAdmin ? "ADMIN" : "HOST",
-      },
-    );
+    await hostCheckInAs(await actorContext(actor), {
+      occasionId: id,
+      personId: carnet.personId,
+      personName,
+      source: actor.isAdmin ? "ADMIN" : "HOST",
+    });
   } catch (error) {
     if (error instanceof DomainError) {
       return { ok: false, message: error.message };

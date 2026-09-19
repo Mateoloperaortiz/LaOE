@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { loadGamificationSettings } from "@/modules/participation";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
@@ -12,10 +13,6 @@ import { saveLimitsAction } from "./actions";
 export const metadata: Metadata = { title: tList("T-2405")[5] ?? "" };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const inputClass =
   "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";

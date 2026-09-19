@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import {
   CLOSING_FILTERS,
@@ -24,10 +25,6 @@ import { applyAction, confirmAction, confirmAllAction } from "./actions";
 export const metadata: Metadata = { title: t("T-798") };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const DECISIONS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"] as const;
 const COMMITTEE_DECISIONS = ["CONTINUES", "PROBATION", "EXIT_COMMITTEE"] as const;

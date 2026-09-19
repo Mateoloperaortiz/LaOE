@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { single } from "@/app/_lib/search";
 import { requireBoardActor } from "@/modules/identity";
 import { boardIndicators } from "@/modules/permanence";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -13,10 +14,6 @@ import { formatDateTime } from "@/shared/lib/dates";
 export const metadata: Metadata = { title: t("T-821") };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 function pct(value: number | null): string {
   return value === null ? "—" : `${value} %`;

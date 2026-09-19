@@ -4,10 +4,10 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import { assertAdmin, ForbiddenError, getActor, hasRecentStepUp } from "@/modules/identity";
 import { closeTermPointsAs } from "@/modules/participation";
 import { DomainError } from "@/shared/admin-kit";
-import { clientIp } from "@/shared/lib/request";
 
 // Cierre de puntos del término (ADR-004, ADR-035 regla 13): ADMIN con step-up; sin reapertura.
 
@@ -32,7 +32,7 @@ export async function closeTermAction(formData: FormData): Promise<void> {
     redirect(`/ingresar/paso?next=${encodeURIComponent(`${back}&accion=cerrar`)}`);
   }
   try {
-    await closeTermPointsAs({ personId: actor.personId, ip: await clientIp() }, termId);
+    await closeTermPointsAs(await actorContext(actor), termId);
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(`${back}&error=${encodeURIComponent(error.message)}`);

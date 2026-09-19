@@ -2,6 +2,7 @@
 
 import "server-only";
 import { revalidatePath } from "next/cache";
+import { actorContext } from "@/app/_lib/actor";
 import { requireActor } from "@/modules/identity";
 import {
   abandonSudokuAs,
@@ -10,13 +11,12 @@ import {
   type SudokuStartResult,
   startSudokuAs,
 } from "@/modules/participation";
-import { clientIp } from "@/shared/lib/request";
 
 // El navegador manda partida, cuadrícula y requestId; el dominio compara con la solución que guarda.
 
 async function ownActor() {
   const actor = await requireActor("/app/juegos/sudoku");
-  return { personId: actor.personId, ip: await clientIp() };
+  return await actorContext(actor);
 }
 
 export async function startSudokuAction(input: unknown): Promise<SudokuStartResult> {

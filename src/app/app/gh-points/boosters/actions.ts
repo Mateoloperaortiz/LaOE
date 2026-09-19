@@ -4,10 +4,11 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
+import { safeBack, withQuery } from "@/app/_lib/search";
 import { requireActor } from "@/modules/identity";
 import { type BoosterTarget, setBoosterTargetAs } from "@/modules/participation";
 import { DomainError } from "@/shared/admin-kit";
-import { clientIp } from "@/shared/lib/request";
 
 // Apuntar o soltar un booster (ADR-067 regla 8): la acción traduce el objetivo del formulario
 // ("challenge:<id>" / "occasion:<id>" / vacío para soltar) y vuelve a la página de origen.
@@ -19,19 +20,6 @@ const inputSchema = z.object({
   op: z.string().trim().max(20).default(""),
   back: z.string().trim().max(300).default(""),
 });
-
-/** Solo rutas propias de Mi OE como destino de vuelta. */
-function safeBack(value: string, fallback: string): string {
-  return /^\/app(\/|$)/.test(value) ? value : fallback;
-}
-
-function withQuery(base: string, extra: Record<string, string>): string {
-  const url = new URL(base, "http://local");
-  for (const [key, value] of Object.entries(extra)) {
-    url.searchParams.set(key, value);
-  }
-  return `${url.pathname}${url.search}`;
-}
 
 export async function setBoosterTargetAction(formData: FormData): Promise<void> {
   const parsed = inputSchema.safeParse({
@@ -46,7 +34,7 @@ export async function setBoosterTargetAction(formData: FormData): Promise<void> 
     redirect(fallback);
   }
   const { op } = parsed.data;
-  const back = safeBack(parsed.data.back, fallback);
+  const back = safeBack(parsed.data.back, "/app", fallback);
   const actor = await requireActor(back);
   const raw = parsed.data.target;
   let boosterId = parsed.data.boosterId;
@@ -74,10 +62,7 @@ export async function setBoosterTargetAction(formData: FormData): Promise<void> 
     redirect(back);
   }
   try {
-    await setBoosterTargetAs(
-      { personId: actor.personId, ip: await clientIp() },
-      { boosterId, target },
-    );
+    await setBoosterTargetAs(await actorContext(actor), { boosterId, target });
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(withQuery(back, { error: error.message, booster: boosterId }));

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import {
   ASSEMBLY_KINDS,
@@ -26,10 +27,6 @@ import { adjustRequirementAction, recomputeRepresentationAction } from "./action
 export const metadata: Metadata = { title: tList("T-665")[0] ?? "" };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const FILTERS = ["todos", "cumplen", "no-cumplen", "ajustados"] as const;
 type Filter = (typeof FILTERS)[number];

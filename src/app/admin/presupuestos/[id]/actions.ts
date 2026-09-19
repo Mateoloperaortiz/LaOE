@@ -4,6 +4,8 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { requireAdminContext } from "@/app/_lib/actor";
+import { formText } from "@/app/_lib/form";
 import {
   approveBudgetAs,
   approveBudgetSchema,
@@ -15,9 +17,7 @@ import {
   sanctionBudgetSchema,
   setBudgetLinesAs,
 } from "@/modules/finance";
-import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
 import { DomainError } from "@/shared/admin-kit";
-import { clientIp } from "@/shared/lib/request";
 
 // Detalle de un presupuesto (ADR-059 regla 2, ADR-060 regla 12): ADMIN fija rubros, registra las
 // aprobaciones, abre, cierra, anota la sanción y decide los avales como Presidencia.
@@ -25,29 +25,8 @@ import { clientIp } from "@/shared/lib/request";
 const ID = /^[a-z0-9-]{10,40}$/;
 const MAX_LINES = 40;
 
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
-
 function base(id: string): string {
   return `/admin/presupuestos/${id}`;
-}
-
-async function requireAdmin(returnTo: string) {
-  const actor = await getActor();
-  if (!actor) {
-    redirect(`/ingresar?next=${encodeURIComponent(returnTo)}`);
-  }
-  try {
-    assertAdmin(actor);
-  } catch (error) {
-    if (error instanceof ForbiddenError) {
-      redirect("/app");
-    }
-    throw error;
-  }
-  return { personId: actor.personId, ip: await clientIp() };
 }
 
 async function run(id: string, work: () => Promise<void>): Promise<void> {
@@ -65,7 +44,7 @@ async function run(id: string, work: () => Promise<void>): Promise<void> {
 }
 
 function budgetId(formData: FormData): string {
-  const id = text(formData, "budgetId");
+  const id = formText(formData, "budgetId");
   if (!ID.test(id)) {
     redirect("/admin/presupuestos");
   }
@@ -74,18 +53,18 @@ function budgetId(formData: FormData): string {
 
 export async function setLinesAction(formData: FormData): Promise<void> {
   const id = budgetId(formData);
-  const actor = await requireAdmin(base(id));
+  const actor = await requireAdminContext(base(id));
   const lines = [];
   for (let index = 0; index < MAX_LINES; index += 1) {
-    const name = text(formData, `line-${index}-name`);
+    const name = formText(formData, `line-${index}-name`);
     if (!name) {
       continue;
     }
     lines.push({
-      id: text(formData, `line-${index}-id`) || undefined,
+      id: formText(formData, `line-${index}-id`) || undefined,
       name,
-      assigned: text(formData, `line-${index}-assigned`) || "0",
-      sortOrder: text(formData, `line-${index}-sortOrder`) || String(index),
+      assigned: formText(formData, `line-${index}-assigned`) || "0",
+      sortOrder: formText(formData, `line-${index}-sortOrder`) || String(index),
     });
   }
   const parsed = budgetLinesInputSchema.safeParse({ lines });
@@ -97,10 +76,10 @@ export async function setLinesAction(formData: FormData): Promise<void> {
 
 export async function approveAction(formData: FormData): Promise<void> {
   const id = budgetId(formData);
-  const actor = await requireAdmin(base(id));
+  const actor = await requireAdminContext(base(id));
   const parsed = approveBudgetSchema.safeParse({
-    approver: text(formData, "approver"),
-    on: text(formData, "on"),
+    approver: formText(formData, "approver"),
+    on: formText(formData, "on"),
   });
   if (!parsed.success) {
     redirect(`${base(id)}?error=${encodeURIComponent("T-260")}`);
@@ -110,22 +89,22 @@ export async function approveAction(formData: FormData): Promise<void> {
 
 export async function openAction(formData: FormData): Promise<void> {
   const id = budgetId(formData);
-  const actor = await requireAdmin(base(id));
+  const actor = await requireAdminContext(base(id));
   await run(id, () => openBudgetAs(actor, id));
 }
 
 export async function closeAction(formData: FormData): Promise<void> {
   const id = budgetId(formData);
-  const actor = await requireAdmin(base(id));
+  const actor = await requireAdminContext(base(id));
   await run(id, () => closeBudgetAs(actor, id));
 }
 
 export async function sanctionAction(formData: FormData): Promise<void> {
   const id = budgetId(formData);
-  const actor = await requireAdmin(base(id));
+  const actor = await requireAdminContext(base(id));
   const parsed = sanctionBudgetSchema.safeParse({
-    percent: text(formData, "percent"),
-    reason: text(formData, "reason"),
+    percent: formText(formData, "percent"),
+    reason: formText(formData, "reason"),
   });
   if (!parsed.success) {
     redirect(`${base(id)}?error=${encodeURIComponent("T-260")}`);
@@ -141,11 +120,11 @@ const decisionSchema = z.object({
 
 export async function decideApprovalAction(formData: FormData): Promise<void> {
   const id = budgetId(formData);
-  const actor = await requireAdmin(base(id));
+  const actor = await requireAdminContext(base(id));
   const parsed = decisionSchema.safeParse({
-    approvalId: text(formData, "approvalId"),
-    decision: text(formData, "decision"),
-    note: text(formData, "note"),
+    approvalId: formText(formData, "approvalId"),
+    decision: formText(formData, "decision"),
+    note: formText(formData, "note"),
   });
   if (!parsed.success) {
     redirect(`${base(id)}?error=${encodeURIComponent("T-260")}`);

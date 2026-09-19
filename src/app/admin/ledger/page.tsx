@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import { listLedger, POINT_ENTRY_KINDS, type PointEntryKind } from "@/modules/participation";
 import { getPeopleByIds, searchPeople } from "@/modules/people";
@@ -17,10 +18,6 @@ import { adjustAction, reverseAction } from "./actions";
 export const metadata: Metadata = { title: t("T-622") };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const PAGE_SIZE = 50;
 const inputClass =

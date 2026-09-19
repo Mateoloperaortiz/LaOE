@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { single } from "@/app/_lib/search";
 import { requireAdminActor } from "@/modules/identity";
 import {
   COMPLIANCE_FILTERS,
@@ -22,10 +23,6 @@ import { recomputeAction } from "./actions";
 export const metadata: Metadata = { title: t("T-788") };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const STATES = ["EN_CAMINO", "EN_RIESGO", "NO_ALCANZA", "CUMPLE", "PRUEBA", "NO_CUMPLE"];
 const CONDITIONS = ["ACTIVE", "NEW", "PROBATION", "TRANSFER"];

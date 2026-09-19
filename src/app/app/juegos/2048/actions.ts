@@ -2,6 +2,7 @@
 
 import "server-only";
 import { revalidatePath } from "next/cache";
+import { actorContext } from "@/app/_lib/actor";
 import { requireActor } from "@/modules/identity";
 import {
   finishGame2048As,
@@ -9,13 +10,12 @@ import {
   type Game2048StartResult,
   startGame2048As,
 } from "@/modules/participation";
-import { clientIp } from "@/shared/lib/request";
 
 // El navegador manda partida, movimientos y requestId; nunca un puntaje. El dominio rejuega.
 
 async function ownActor() {
   const actor = await requireActor("/app/juegos/2048");
-  return { personId: actor.personId, ip: await clientIp() };
+  return await actorContext(actor);
 }
 
 export async function startGame2048Action(input: unknown): Promise<Game2048StartResult> {

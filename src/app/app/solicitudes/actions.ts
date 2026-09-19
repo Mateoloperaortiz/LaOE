@@ -4,6 +4,8 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
+import { formText } from "@/app/_lib/form";
 import {
   createRequestAs,
   REQUEST_KINDS,
@@ -14,7 +16,6 @@ import {
 import { getActor } from "@/modules/identity";
 import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
-import { clientIp } from "@/shared/lib/request";
 import type { RequestActionState } from "./form-state";
 
 const LOGIN = "/ingresar?next=%2Fapp%2Fsolicitudes";
@@ -23,12 +24,7 @@ const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 async function requireOwnActor() {
   const actor = await getActor();
   if (!actor) redirect(LOGIN);
-  return { personId: actor.personId, ip: await clientIp() };
-}
-
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
+  return await actorContext(actor);
 }
 
 export async function createRequestAction(
@@ -36,30 +32,30 @@ export async function createRequestAction(
   formData: FormData,
 ): Promise<RequestActionState> {
   const actor = await requireOwnActor();
-  const kind = text(formData, "kind");
+  const kind = formText(formData, "kind");
   if (!(REQUEST_KINDS as readonly string[]).includes(kind)) {
     return { error: t("T-1581") };
   }
   const payload =
     kind === "LEAVE"
-      ? { reason: text(formData, "reason"), until: text(formData, "until") || undefined }
+      ? { reason: formText(formData, "reason"), until: formText(formData, "until") || undefined }
       : kind === "EXCUSE"
         ? {
-            occasionId: text(formData, "occasionId"),
-            cause: text(formData, "cause"),
-            reason: text(formData, "reason"),
-            evidence: text(formData, "evidence") || undefined,
+            occasionId: formText(formData, "occasionId"),
+            cause: formText(formData, "cause"),
+            reason: formText(formData, "reason"),
+            evidence: formText(formData, "evidence") || undefined,
             lateSubmission: formData.get("lateSubmission") === "on",
           }
         : kind === "RESIGNATION"
           ? {
-              reason: text(formData, "reason"),
+              reason: formText(formData, "reason"),
               memorialConsent: formData.get("memorialConsent") === "on",
               contactConsent: formData.get("contactConsent") === "on",
-              personalEmail: text(formData, "personalEmail") || undefined,
+              personalEmail: formText(formData, "personalEmail") || undefined,
             }
           : {
-              reason: text(formData, "reason"),
+              reason: formText(formData, "reason"),
               leaveCommitteeIds: formData
                 .getAll("leaveCommitteeIds")
                 .filter((item): item is string => typeof item === "string" && item !== ""),

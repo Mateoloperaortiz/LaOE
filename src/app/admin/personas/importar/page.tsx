@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import {
   committeeRolesLabel,
@@ -30,10 +31,6 @@ const [, importar] = tList("T-509");
 export const metadata: Metadata = { title: importar ?? "" };
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const inputClass =
   "min-w-0 w-full rounded-xl border border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";

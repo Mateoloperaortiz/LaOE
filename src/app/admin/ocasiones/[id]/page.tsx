@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { single } from "@/app/_lib/search";
 import { getEnv } from "@/env";
 import { hasRecentStepUp } from "@/modules/identity";
 import {
@@ -44,10 +45,6 @@ import { requireOperator } from "./authz";
 // pendientes, alta manual, ciclo de vida y score por comité. UI a medida sobre el mismo kit visual.
 
 type Search = Record<string, string | string[] | undefined>;
-
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
-}
 
 const inputClass =
   "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";

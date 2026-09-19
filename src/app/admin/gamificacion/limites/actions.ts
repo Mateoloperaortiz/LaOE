@@ -4,9 +4,9 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
 import { assertAdmin, ForbiddenError, getActor } from "@/modules/identity";
 import { setConfigAs } from "@/modules/system";
-import { clientIp } from "@/shared/lib/request";
 
 // Guardado de límites y activación (ADR-067 regla 15): solo ADMIN; cada clave es un comando
 // auditado por separado.
@@ -50,7 +50,7 @@ export async function saveLimitsAction(formData: FormData): Promise<void> {
   if (!caps.success || !defaults.success) {
     redirect(`${BACK}?error=T-260`);
   }
-  const me = { personId: actor.personId, ip: await clientIp() };
+  const me = await actorContext(actor);
   await setConfigAs(me, "gamification.caps", caps.data);
   await setConfigAs(me, "gamification.defaults", defaults.data);
   await setConfigAs(me, "gamification.enabled", formData.get("enabled") === "1");

@@ -3,6 +3,7 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { actorContext } from "@/app/_lib/actor";
 import { findPublicPage } from "@/modules/content";
 import { assertAdmin, ForbiddenError, getActor, hasRecentStepUp } from "@/modules/identity";
 import {
@@ -12,7 +13,6 @@ import {
 } from "@/modules/system";
 import type { FormState } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
-import { clientIp } from "@/shared/lib/request";
 
 const PATH = "/admin/sistema/politica";
 
@@ -46,7 +46,7 @@ export async function savePrivacyPolicyVersionAction(
       return { ok: false, message: t("T-1187"), errors: {}, values };
     }
   }
-  await setPrivacyPolicyVersionAs({ personId: actor.personId, ip: await clientIp() }, parsed.data);
+  await setPrivacyPolicyVersionAs(await actorContext(actor), parsed.data);
   revalidatePath(PATH);
   revalidatePath("/app/ajustes");
   revalidatePath("/admin/personas/importar");

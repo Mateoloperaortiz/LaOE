@@ -4,7 +4,8 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { assertAdmin, ForbiddenError, getActor, hasRecentStepUp } from "@/modules/identity";
+import { actorContext } from "@/app/_lib/actor";
+import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import {
   closeTermPermanenceAs,
   confirmAllProposedAs,
@@ -12,28 +13,11 @@ import {
   decisionInputSchema,
 } from "@/modules/permanence";
 import { DomainError } from "@/shared/admin-kit";
-import { clientIp } from "@/shared/lib/request";
 
 // Cierre de permanencia (ADR-036 regla 9): confirmar por persona, confirmar en bloque y aplicar;
 // las dos últimas con step-up. Solo ADMIN.
 
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
-
-async function requireAdmin(back: string) {
-  const actor = await getActor();
-  if (!actor) {
-    redirect(`/ingresar?next=${encodeURIComponent(back)}`);
-  }
-  try {
-    assertAdmin(actor);
-  } catch (error) {
-    if (error instanceof ForbiddenError) {
-      redirect("/app");
-    }
-    throw error;
-  }
-  return actor;
-}
 
 function baseFor(termId: string, filtro: string): string {
   return `/admin/permanencia/cierre?termId=${termId}${filtro ? `&filtro=${filtro}` : ""}`;
@@ -51,7 +35,7 @@ export async function confirmAction(formData: FormData): Promise<void> {
   const termId = idSchema.parse(formData.get("termId"));
   const filtro = String(formData.get("filtro") ?? "");
   const back = baseFor(termId, filtro);
-  const actor = await requireAdmin(back);
+  const actor = await requireAdminActor(back);
   const personId = idSchema.parse(formData.get("personId"));
   const committees: Array<{ committeeId: string; decision: string }> = [];
   for (const [key, value] of formData.entries()) {
@@ -71,11 +55,7 @@ export async function confirmAction(formData: FormData): Promise<void> {
     redirect(`${back}${extra}&error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "")}`);
   }
   try {
-    await confirmDecisionsAs(
-      { personId: actor.personId, ip: await clientIp() },
-      termId,
-      parsed.data,
-    );
+    await confirmDecisionsAs(await actorContext(actor), termId, parsed.data);
   } catch (error) {
     fail(back, error, extra);
   }
@@ -86,13 +66,13 @@ export async function confirmAction(formData: FormData): Promise<void> {
 export async function confirmAllAction(formData: FormData): Promise<void> {
   const termId = idSchema.parse(formData.get("termId"));
   const back = baseFor(termId, "");
-  const actor = await requireAdmin(back);
+  const actor = await requireAdminActor(back);
   if (!hasRecentStepUp(actor)) {
     redirect(`/ingresar/paso?next=${encodeURIComponent(`${back}&accion=bloque`)}`);
   }
   let count = 0;
   try {
-    count = await confirmAllProposedAs({ personId: actor.personId, ip: await clientIp() }, termId);
+    count = await confirmAllProposedAs(await actorContext(actor), termId);
   } catch (error) {
     fail(back, error);
   }
@@ -103,12 +83,12 @@ export async function confirmAllAction(formData: FormData): Promise<void> {
 export async function applyAction(formData: FormData): Promise<void> {
   const termId = idSchema.parse(formData.get("termId"));
   const back = baseFor(termId, "");
-  const actor = await requireAdmin(back);
+  const actor = await requireAdminActor(back);
   if (!hasRecentStepUp(actor)) {
     redirect(`/ingresar/paso?next=${encodeURIComponent(`${back}&accion=aplicar`)}`);
   }
   try {
-    await closeTermPermanenceAs({ personId: actor.personId, ip: await clientIp() }, termId);
+    await closeTermPermanenceAs(await actorContext(actor), termId);
   } catch (error) {
     fail(back, error);
   }

@@ -4,6 +4,9 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { actorContext } from "@/app/_lib/actor";
+import { formText } from "@/app/_lib/form";
+import { withQuery } from "@/app/_lib/search";
 import {
   addNoteAs,
   addOrganizationNoteAs,
@@ -31,18 +34,12 @@ import { t } from "@/shared/copy";
 
 const idSchema = z.string().regex(/^[a-z0-9-]+$/);
 
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
-
 function blank(value: string): string | undefined {
   return value === "" ? undefined : value;
 }
 
 function back(pipelineId: string, extra: Record<string, string> = {}): string {
-  const query = new URLSearchParams(extra).toString();
-  return `/admin/pipelines/${pipelineId}${query ? `?${query}` : ""}`;
+  return withQuery(`/admin/pipelines/${pipelineId}`, extra);
 }
 
 function failed(pipelineId: string, error: unknown, extra: Record<string, string> = {}): never {
@@ -54,7 +51,7 @@ function failed(pipelineId: string, error: unknown, extra: Record<string, string
 
 async function actorFor(pipelineId: string) {
   const actor = await requireAdminActor(back(pipelineId));
-  return { personId: actor.personId };
+  return actorContext(actor);
 }
 
 function done(pipelineId: string, extra: Record<string, string> = {}): never {
@@ -88,15 +85,15 @@ export async function moveCardAction(formData: FormData): Promise<void> {
 export async function createCardAction(formData: FormData): Promise<void> {
   const pipelineId = idSchema.parse(formData.get("pipelineId"));
   const actor = await actorFor(pipelineId);
-  const subject = text(formData, "subject"); // "person:<id>" u "organization:<id>"
+  const subject = formText(formData, "subject"); // "person:<id>" u "organization:<id>"
   const [kind, subjectId] = subject.split(":");
   const parsed = cardInputSchema.safeParse({
     personId: kind === "person" ? subjectId : undefined,
     organizationId: kind === "organization" ? subjectId : undefined,
-    editionId: blank(text(formData, "editionId")),
-    title: blank(text(formData, "title")),
-    ownerId: blank(text(formData, "ownerId")),
-    dueAt: blank(text(formData, "dueAt")),
+    editionId: blank(formText(formData, "editionId")),
+    title: blank(formText(formData, "title")),
+    ownerId: blank(formText(formData, "ownerId")),
+    dueAt: blank(formText(formData, "dueAt")),
   });
   if (!parsed.success) {
     redirect(
@@ -116,11 +113,11 @@ export async function updateCardAction(formData: FormData): Promise<void> {
   const cardId = idSchema.parse(formData.get("cardId"));
   const actor = await actorFor(pipelineId);
   const parsed = cardUpdateSchema.safeParse({
-    title: text(formData, "title"),
-    ownerId: blank(text(formData, "ownerId")),
-    dueAt: blank(text(formData, "dueAt")),
-    amount: blank(text(formData, "amount")),
-    counterpart: formData.has("counterpart") ? text(formData, "counterpart") : undefined,
+    title: formText(formData, "title"),
+    ownerId: blank(formText(formData, "ownerId")),
+    dueAt: blank(formText(formData, "dueAt")),
+    amount: blank(formText(formData, "amount")),
+    counterpart: formData.has("counterpart") ? formText(formData, "counterpart") : undefined,
   });
   if (!parsed.success) {
     redirect(back(pipelineId, { tarjeta: cardId, error: parsed.error.issues[0]?.message ?? "" }));
@@ -137,7 +134,7 @@ export async function addCardNoteAction(formData: FormData): Promise<void> {
   const pipelineId = idSchema.parse(formData.get("pipelineId"));
   const cardId = idSchema.parse(formData.get("cardId"));
   const actor = await actorFor(pipelineId);
-  const body = text(formData, "body").slice(0, 4000);
+  const body = formText(formData, "body").slice(0, 4000);
   const card = await getCard(cardId);
   if (!card || body.length < 2) {
     redirect(back(pipelineId, { tarjeta: cardId }));
@@ -159,9 +156,9 @@ export async function createCardTaskAction(formData: FormData): Promise<void> {
     redirect(back(pipelineId));
   }
   const parsed = taskInputSchema.safeParse({
-    title: text(formData, "title"),
-    assigneeId: blank(text(formData, "assigneeId")),
-    dueAt: blank(text(formData, "dueAt")),
+    title: formText(formData, "title"),
+    assigneeId: blank(formText(formData, "assigneeId")),
+    dueAt: blank(formText(formData, "dueAt")),
     personId: card.personId ?? undefined,
     organizationId: card.organizationId ?? undefined,
     cardId,
@@ -178,7 +175,7 @@ export async function admitFromCardAction(formData: FormData): Promise<void> {
   const cardId = idSchema.parse(formData.get("cardId"));
   const actor = await actorFor(pipelineId);
   const parsed = admitInputSchema.safeParse({
-    termId: text(formData, "termId"),
+    termId: formText(formData, "termId"),
     committeeIds: formData
       .getAll("committeeIds")
       .filter((item): item is string => typeof item === "string" && item !== ""),
@@ -199,9 +196,9 @@ export async function admitFromCardAction(formData: FormData): Promise<void> {
 export async function saveStageAction(formData: FormData): Promise<void> {
   const pipelineId = idSchema.parse(formData.get("pipelineId"));
   const actor = await actorFor(pipelineId);
-  const stageId = blank(text(formData, "stageId")) ?? null;
+  const stageId = blank(formText(formData, "stageId")) ?? null;
   const parsed = stageInputSchema.safeParse({
-    name: text(formData, "name"),
+    name: formText(formData, "name"),
     isWon: formData.get("isWon") === "on",
     isLost: formData.get("isLost") === "on",
   });
@@ -224,7 +221,7 @@ export async function saveStageAction(formData: FormData): Promise<void> {
 export async function moveStageAction(formData: FormData): Promise<void> {
   const pipelineId = idSchema.parse(formData.get("pipelineId"));
   const stageId = idSchema.parse(formData.get("stageId"));
-  const direction = text(formData, "direction") === "up" ? "up" : "down";
+  const direction = formText(formData, "direction") === "up" ? "up" : "down";
   const actor = await actorFor(pipelineId);
   await moveStageAs(actor, stageId, direction);
   done(pipelineId, { etapas: "1" });
