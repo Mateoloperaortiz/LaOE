@@ -1,6 +1,6 @@
 # ADR-007: Ledger append-only por término
 
-- Estado: Aceptada (enmendada por ADR-041)
+- Estado: Aceptada (enmendada por ADR-041 y ADR-078)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-004, ADR-006, ADR-018
 
@@ -21,3 +21,7 @@ Los puntos son el activo más sensible de GH: cualquier edición silenciosa dest
 ## Enmienda (2026-09-07, ADR-041)
 
 El tipo WORDLE acredita de 1 a 6 puntos junto a la victoria de la partida, con `wordleGameId` único. Los históricos siguen LEGACY y las correcciones del Wordle usan ajustes administrativos con motivo. Las escrituras de puntos y el cierre se coordinan dentro de la transacción mediante la fila del término. Ver [ADR-041](ADR-041-wordle-diario-y-cierre-de-puntos.md).
+
+## Enmienda (2026-09-19, ADR-078)
+
+El tipo SUDOKU acredita 2, 4 o 6 puntos según la dificultad del tablero, o la mitad si la partida se jugó con ayudas, junto al primer Sudoku resuelto del día y con `sudokuRunId` único. Es hermano de WORDLE y de GAME2048 (ADR-075): una entrada por partida, check de 1 a 6 y correcciones por ajuste administrativo con motivo. Ver [ADR-078](ADR-078-sudoku-con-solucion-en-el-servidor.md).

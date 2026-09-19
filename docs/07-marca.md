@@ -260,6 +260,8 @@ Una flecha dentro de un rango o de una oración (`apertura → cierre`) y el ata
 | No cumple (requisito sin alcanzar) | `MinusIcon` |
 | Agregar | `PlusIcon` |
 | En otro lugar (Wordle) | `ArrowsHorizontalIcon` |
+| Notas a lápiz · Borrar una casilla · Deshacer · Pista (Sudoku) | `PencilIcon` · `EraserIcon` · `ArrowBackUpIcon` · `BulbIcon` |
+| Repetido en su fila, columna o caja (Sudoku) | `ExclamationMarkIcon`; el dígito que no va ahí usa `XIcon`, el «No» de esta tabla |
 | Llegó por transferencia | `TransferIcon` |
 | Tu respuesta · Respuesta correcta (trivia) | `CircleDotIcon` · `CircleCheckIcon` |
 | Mover el tablero (2048) | `ArrowUpIcon` · `ArrowDownIcon` · `ArrowLeftIcon` · `ArrowRightIcon` |

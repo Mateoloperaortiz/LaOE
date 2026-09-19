@@ -341,6 +341,13 @@ export {
   listOccasionScores,
 } from "./domain/scores";
 export {
+  abandonSudokuAs,
+  finishSudokuAs,
+  getTodaySudoku,
+  listSudokuRunsFor,
+  startSudokuAs,
+} from "./domain/sudoku";
+export {
   type AnswerSurveyResult,
   answerSurveyAs,
   type CommitteeSurveys,
@@ -418,6 +425,20 @@ export {
   MEMBER_CHALLENGE_STATUSES,
   PARTICIPATION_STATUSES,
 } from "./gamification-types";
+export type {
+  AbandonSudokuInput,
+  FinishSudokuInput,
+  StartSudokuInput,
+  SudokuDenial,
+  SudokuDifficulty,
+  SudokuPlay,
+  SudokuResult,
+  SudokuRunView,
+  SudokuStartedView,
+  SudokuStartResult,
+  SudokuStatus,
+  TodaySudoku,
+} from "./sudoku-types";
 export type {
   SubmitWordleInput,
   TodayWordle,

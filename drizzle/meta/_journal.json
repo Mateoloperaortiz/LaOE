@@ -253,6 +253,13 @@
       "when": 1789690701448,
       "tag": "0035_biblioteca_de_juegos",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1789822008469,
+      "tag": "0036_sudoku",
+      "breakpoints": true
     }
   ]
 }

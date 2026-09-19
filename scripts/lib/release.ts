@@ -112,6 +112,12 @@ const REQUIRED_INDEXES = [
   "game2048_run_start_request_unique",
   "game2048_run_finish_request_unique",
   "point_entry_game2048_run_unique",
+  // Sudoku (ADR-078)
+  "sudoku_run_person_day_credited_unique",
+  "sudoku_run_person_open_unique",
+  "sudoku_run_start_request_unique",
+  "sudoku_run_finish_request_unique",
+  "point_entry_sudoku_run_unique",
   // Retos, boosters y colección (ADR-067)
   "challenge_participation_unique",
   "challenge_participation_request_unique",

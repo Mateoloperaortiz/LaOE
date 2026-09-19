@@ -184,7 +184,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-082 | Niveles (0, 100, 250, 500, 1000 puntos) | Recién llegado · Parchado · De planta · Pilar · Leyenda OE | GH | Propuesta; GH puede renombrar o cambiar los cortes |
 | T-083 | Rankings, pestañas | Nuevos · Veteranos · Comités | GH | Propuesta |
 | T-084 | Ranking de comités, nota de la tasa suavizada | El porcentaje de cada comité es su participación relativa, ajustada para que los comités chicos no dependan de un solo evento. | GH | Propuesta |
-| T-085 | Movimientos, tipos | Asistencia · Ajuste · Reversión · Histórico · Wordle · Reto · Impulso · 2048 | MATEO | Propuesta |
+| T-085 | Movimientos, tipos | Asistencia · Ajuste · Reversión · Histórico · Wordle · Reto · Impulso · 2048 · Sudoku | MATEO | Propuesta |
 | T-086 | Sin movimientos | Todavía no tenés puntos. Tu primera asistencia los estrena. | COM | Propuesta |
 
 ### Registro de asistencia (QR)
@@ -819,7 +819,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-664 | Recurso rankings (plural · singular) | Rankings · Puesto | MATEO | Propuesta |
 | T-665 | Recurso cumplimiento de asambleas (plural · singular) | Cumplimiento de asambleas · Persona | MATEO | Propuesta |
 | T-666 | Tarea: falta crear el semestre siguiente | Crear el semestre {codigo}: el actual termina el {fecha} | MATEO | Propuesta |
-| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} · Completó el reto {reto} y sumó {n} GH Points · Desbloqueó la insignia {insignia} nivel {nivel} · Recibió un {booster} · Entrega del reto {reto} rechazada: {motivo} · Hizo {puntaje} puntos en el 2048 del {fecha} y sumó {n} GH Points | MATEO | Propuesta |
+| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} · Completó el reto {reto} y sumó {n} GH Points · Desbloqueó la insignia {insignia} nivel {nivel} · Recibió un {booster} · Entrega del reto {reto} rechazada: {motivo} · Hizo {puntaje} puntos en el 2048 del {fecha} y sumó {n} GH Points · Resolvió un Sudoku el {fecha} y sumó {n} GH Points | MATEO | Propuesta |
 | T-668 | Persona 360, Participación: títulos | Check-ins · Movimientos de GH Points | MATEO | Propuesta |
 | T-669 | Persona 360, Participación: sin check-ins | Todavía no tiene check-ins. | MATEO | Propuesta |
 | T-670 | Persona 360, Resumen: asambleas obligatorias | {n} de {total} obligatorias | MATEO | Propuesta |
@@ -2242,13 +2242,13 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2654 | Ledger: motivo del premio 2048 | 2048 del {fecha}: {puntaje} puntos | MATEO | Propuesta |
 | T-2655 | 2048: partida vencida | Terminó el día de esta partida. No sumaste puntos; empezá una nueva. | MATEO | Propuesta |
 | T-2656 | 2048: partida cerrada | Esa partida ya terminó. | MATEO | Propuesta |
-| T-2657 | 2048: día nuevo | Ya cambió el día en Colombia. Actualizá para que tu partida cuente. | MATEO | Propuesta |
+| T-2657 | 2048 y Sudoku: día nuevo | Ya cambió el día en Colombia. Actualizá para que tu partida cuente. | MATEO | Propuesta |
 | T-2658 | 2048: no hay semestre con puntos abiertos | El 2048 suma puntos mientras el semestre esté abierto. Volvé cuando arranque el próximo. | MATEO | Propuesta |
 | T-2659 | 2048: no elegible | El 2048 es para miembros activos y honorarios. | MATEO | Propuesta |
 | T-2660 | 2048: partida no encontrada o solicitud inválida | No pudimos recuperar esa partida. Empezá una nueva para seguir. | MATEO | Propuesta |
 | T-2661 | 2048: partida ilegible | No pudimos reconstruir esa partida, así que no la guardamos. Empezá otra: el crédito del día sigue libre. | MATEO | Propuesta |
-| T-2662 | 2048: respuesta de red incierta | No recibimos la confirmación. Reintentá el mismo envío: si ya se guardó, no contará dos veces. | MATEO | Propuesta |
-| T-2663 | 2048: reintentar envío incierto | Reintentar envío | MATEO | Propuesta |
+| T-2662 | 2048 y Sudoku: respuesta de red incierta | No recibimos la confirmación. Reintentá el mismo envío: si ya se guardó, no contará dos veces. | MATEO | Propuesta |
+| T-2663 | 2048 y Sudoku: reintentar envío incierto | Reintentar envío | MATEO | Propuesta |
 | T-2664 | 2048: mejor puntaje del semestre | Tu mejor puntaje del semestre: {puntaje} | MATEO | Propuesta |
 
 ## Biblioteca de iconos (ADR-076)
@@ -2262,3 +2262,56 @@ Nombres accesibles de los iconos que representan un valor sin texto visible al l
 | T-2672 | Iconos: pertenencia que llegó por transferencia | Llegó por transferencia | MATEO | Propuesta |
 | T-2673 | Iconos: marcas de una trivia resuelta | Tu respuesta · Respuesta correcta | MATEO | Propuesta |
 | T-2674 | Admin retos: quitar una opción de una pregunta (nombre accesible del botón con icono) | Quitar opción | MATEO | Propuesta |
+
+## Sudoku (ADR-078)
+
+Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-solucion-en-el-servidor.md)). `T-085` y `T-667` se amplían al final en sus filas originales; `T-2657`, `T-2662` y `T-2663` se comparten con el 2048.
+
+| Código | Dónde | Texto | Fuente | Estado |
+| --- | --- | --- | --- | --- |
+| T-2675 | Juegos: nombre del Sudoku en la tarjeta | Sudoku | MATEO | Propuesta |
+| T-2676 | Juegos: de qué va el Sudoku | Completá la cuadrícula del 1 al 9 sin repetir. Vos elegís la dificultad; el primer tablero que resuelvas en el día es el que suma. | MATEO | Propuesta |
+| T-2677 | Sudoku: título | Sudoku | MATEO | Propuesta |
+| T-2678 | Sudoku: introducción | Llená cada fila, cada columna y cada caja con los números del 1 al 9, sin repetir ninguno. Cuanto más difícil el tablero, más GH Points. | MATEO | Propuesta |
+| T-2679 | Sudoku: cómo se juega | Elegí una casilla y después un número, con el teclado de abajo o con el tuyo. Con el lápiz anotás candidatos sin comprometerte. Un número repetido en su fila, columna o caja se marca solo. Cada tablero tiene una sola solución y sale con pura lógica: nunca hace falta adivinar. | MATEO | Propuesta |
+| T-2680 | Sudoku: leyenda del selector de dificultad | Dificultad | MATEO | Propuesta |
+| T-2681 | Sudoku: dificultades | Fácil · Medio · Difícil | MATEO | Propuesta |
+| T-2682 | Sudoku: leyenda del selector de modo | Modo | MATEO | Propuesta |
+| T-2683 | Sudoku: modos | Sin ayudas · Con ayudas | MATEO | Propuesta |
+| T-2684 | Sudoku: qué trae cada modo | Notas a lápiz y repetidos marcados. Paga el premio completo. · Además te marca los errores al instante y te da pistas. Paga la mitad. | MATEO | Propuesta |
+| T-2685 | Sudoku: aviso antes de empezar | El primer Sudoku que resuelvas hoy es el que suma, sea cual sea. Elegí bien antes de empezar: después podés seguir jugando por gusto. | MATEO | Propuesta |
+| T-2686 | Sudoku: premio de la combinación elegida | Este tablero paga {n} GH Points. | MATEO | Propuesta |
+| T-2687 | Sudoku: empezar | Empezar el tablero | MATEO | Propuesta |
+| T-2688 | Sudoku: tablero en camino | Armando tu tablero… | MATEO | Propuesta |
+| T-2689 | Sudoku: título de premios | Tus puntos por dificultad | MATEO | Propuesta |
+| T-2690 | Sudoku: encabezados de la tabla de premios | Dificultad · Sin ayudas · Con ayudas | MATEO | Propuesta |
+| T-2691 | Sudoku: tablero a medias | Tenés un Sudoku a medias: {dificultad}, {modo}. ¿Lo seguís? | MATEO | Propuesta |
+| T-2692 | Sudoku: retomar el tablero | Seguir el tablero | MATEO | Propuesta |
+| T-2693 | Sudoku: abandonar el tablero | Abandonar el tablero | MATEO | Propuesta |
+| T-2694 | Sudoku: confirmar el abandono | ¿Abandonás este tablero? Se pierde lo que llevás escrito. Abandonar no cuesta puntos. | MATEO | Propuesta |
+| T-2695 | Sudoku: botones de la confirmación | Sí, abandonar · Seguir jugando | MATEO | Propuesta |
+| T-2696 | Sudoku: nombre accesible de la grilla | Tablero de Sudoku de nueve por nueve | MATEO | Propuesta |
+| T-2697 | Sudoku: nombre accesible de una casilla | Fila {fila}, columna {columna}: {contenido} | MATEO | Propuesta |
+| T-2698 | Sudoku: estados de una casilla | vacía · fija · repetido · no va ahí · pista | MATEO | Propuesta |
+| T-2699 | Sudoku: notas de una casilla | notas {notas} | MATEO | Propuesta |
+| T-2700 | Sudoku: nombre accesible del teclado | Teclado numérico | MATEO | Propuesta |
+| T-2701 | Sudoku: controles del teclado | Borrar · Lápiz · Deshacer · Pista | MATEO | Propuesta |
+| T-2702 | Sudoku: casillas por llenar | Te faltan {n} casillas. | MATEO | Propuesta |
+| T-2703 | Sudoku: aviso de número repetido | El {n} ya está en esa fila, columna o caja. | MATEO | Propuesta |
+| T-2704 | Sudoku: aviso de error, con ayudas | El {n} no va en esa casilla. | MATEO | Propuesta |
+| T-2705 | Sudoku: aviso de pista | Pista: en la fila {fila}, columna {columna} va un {n}. | MATEO | Propuesta |
+| T-2706 | Sudoku: pista sin casilla vacía elegida | Elegí una casilla vacía para pedir la pista. | MATEO | Propuesta |
+| T-2707 | Sudoku: envío pendiente | Revisando tu tablero… | MATEO | Propuesta |
+| T-2708 | Sudoku: resuelto con premio | ¡Resuelto! Sumaste {n} GH Points. ¡OE OE OE! | MATEO | Propuesta |
+| T-2709 | Sudoku: resuelto sin premio | ¡Resuelto! Hoy ya habías sumado con el Sudoku, así que este fue por gusto. | MATEO | Propuesta |
+| T-2710 | Sudoku: ya acreditaste hoy | Hoy ya sumaste tus GH Points del Sudoku. Podés seguir jugando por gusto y mañana vuelve a contar. | MATEO | Propuesta |
+| T-2711 | Sudoku: jugar otro | Jugar otro tablero | MATEO | Propuesta |
+| T-2712 | Ledger: motivo del premio del Sudoku, por modo | Sudoku del {fecha}: {dificultad}, sin ayudas · Sudoku del {fecha}: {dificultad}, con ayudas | MATEO | Propuesta |
+| T-2713 | Sudoku: tablero vencido | Terminó el día de este tablero. No sumaste puntos; empezá uno nuevo. | MATEO | Propuesta |
+| T-2714 | Sudoku: tablero cerrado | Ese tablero ya está cerrado. | MATEO | Propuesta |
+| T-2715 | Sudoku: no hay semestre con puntos abiertos | El Sudoku suma puntos mientras el semestre esté abierto. Volvé cuando arranque el próximo. | MATEO | Propuesta |
+| T-2716 | Sudoku: no elegible | El Sudoku es para miembros activos y honorarios. | MATEO | Propuesta |
+| T-2717 | Sudoku: tablero no encontrado o solicitud inválida | No pudimos recuperar ese tablero. Empezá uno nuevo para seguir. | MATEO | Propuesta |
+| T-2718 | Sudoku: cuadrícula que no es la solución | Ese tablero todavía no está resuelto. Revisá las casillas y volvé a intentarlo. | MATEO | Propuesta |
+| T-2719 | Sudoku: ya hay otro tablero abierto | Ya tenés otro tablero abierto. Seguilo o abandonalo antes de empezar uno nuevo. | MATEO | Propuesta |
+| T-2720 | Sudoku: resueltos del semestre | Resueltos este semestre | MATEO | Propuesta |

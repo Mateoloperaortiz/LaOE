@@ -123,6 +123,28 @@ describe("línea de tiempo", () => {
     expect(summarizeEvent("media.process", { assetId: "x" }, labels, lookup)).toBeNull();
     expect(summarizeEvent("person.updated", {}, labels, lookup)).toBeNull();
   });
+
+  it("un Sudoku acreditado entra como participación con su dificultad y su modo (ADR-078)", () => {
+    const entry = summarizeEvent(
+      "sudoku.completed",
+      {
+        personId: "p",
+        termId: "t1",
+        runId: "r1",
+        day: "2026-09-19",
+        difficulty: "HARD",
+        assisted: false,
+        points: 6,
+      },
+      labels,
+      lookup,
+    );
+    expect(entry).toMatchObject({
+      kind: "PARTICIPATION",
+      summary: "Resolvió un Sudoku el 2026-09-19 y sumó 6 GH Points",
+      metadata: { runId: "r1", difficulty: "HARD", assisted: false, points: 6 },
+    });
+  });
 });
 
 describe("segmentos", () => {
