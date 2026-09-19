@@ -1,9 +1,13 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { type CreateEmailOptions, type CreateEmailResponse, Resend } from "resend";
+import { withTimeout } from "@/shared/lib/timeout";
 import { logger } from "@/shared/log";
 
 // Transportes de correo (ADR-023). Sin reglas de negocio: quién elige el transporte es el módulo comms.
+
+/** Límite por llamada al proveedor (ADR-079): un envío colgado falla en vez de frenar el outbox. */
+export const MAIL_REQUEST_TIMEOUT_MS = 30_000;
 
 export interface MailMessage {
   to: string;
@@ -78,7 +82,11 @@ export class ResendTransport implements MailTransport {
     };
     // ADR-039: cuatro llamadas como máximo; respetar Retry-After sin repetir entregas ambiguas.
     for (let attempt = 0; ; attempt++) {
-      const { data, error, headers } = await this.sendEmail(payload);
+      const { data, error, headers } = await withTimeout(
+        this.sendEmail(payload),
+        MAIL_REQUEST_TIMEOUT_MS,
+        "Resend",
+      );
       if (!error) {
         return { id: data?.id ?? null };
       }
@@ -117,7 +125,10 @@ export class SesTransport implements MailTransport {
     region: string,
     private readonly from: string,
   ) {
-    this.client = new SESv2Client({ region });
+    this.client = new SESv2Client({
+      region,
+      requestHandler: { connectionTimeout: 5_000, requestTimeout: MAIL_REQUEST_TIMEOUT_MS },
+    });
   }
 
   async send(message: MailMessage): Promise<{ id: string | null }> {

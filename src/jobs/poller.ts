@@ -1,16 +1,24 @@
 import { and, asc, eq, isNull, lte } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { outbox } from "@/modules/system/schema";
+import { withTimeout } from "@/shared/lib/timeout";
 import { logger } from "@/shared/log";
 import { backoffFor, isDeadAfter } from "./backoff";
 import { getHandlers } from "./registry";
 
-// Poller del outbox (ADR-012, ADR-021): toma una fila pendiente con FOR UPDATE SKIP LOCKED,
-// corre su handler dentro de la misma transacción y la marca. Dos pollers nunca procesan la misma fila.
+// Poller del outbox (ADR-012, ADR-021): toma una fila pendiente con FOR UPDATE SKIP LOCKED, corre sus
+// handlers y la marca. La transacción del poller solo sostiene el bloqueo de la fila: los handlers
+// trabajan con sus propias conexiones (getDb, runCommand), no dentro de ella. Dos pollers nunca
+// procesan la misma fila.
 
 export type ProcessOutcome = "idle" | "processed" | "failed";
 
-export async function processOne(now = new Date()): Promise<ProcessOutcome> {
+/**
+ * `handlerTimeoutMs` es el último recurso de ADR-079 y cubre todos los handlers del evento: pasado ese
+ * tiempo el intento se registra como fallido y la cola sigue. El handler abandonado termina solo,
+ * acotado por los límites de red y de base.
+ */
+export async function processOne(now = new Date(), handlerTimeoutMs = 0): Promise<ProcessOutcome> {
   return getDb().transaction(async (tx) => {
     const [row] = await tx
       .select()
@@ -31,14 +39,22 @@ export async function processOne(now = new Date()): Promise<ProcessOutcome> {
     const attempt = row.attempts + 1;
     const log = logger.child({ job: row.eventType, outboxId: row.id, attempt });
     const handlers = getHandlers(row.eventType);
+    // Tras un límite vencido, la cadena abandonada no arranca los handlers que le faltaban.
+    let abandoned = false;
     try {
       if (handlers.length === 0) {
         // Un evento de dominio sin suscriptores todavía (ADR-034) se da por procesado: no es un error.
         log.warn("sin handler: evento descartado");
       }
-      for (const handler of handlers) {
-        await handler(row.payload, { id: row.id, attempt, log });
-      }
+      const runHandlers = async () => {
+        for (const handler of handlers) {
+          if (abandoned) {
+            return;
+          }
+          await handler(row.payload, { id: row.id, attempt, log });
+        }
+      };
+      await withTimeout(runHandlers(), handlerTimeoutMs, `El evento ${row.eventType}`);
       await tx
         .update(outbox)
         .set({ processedAt: now, attempts: attempt, lastError: null })
@@ -46,6 +62,7 @@ export async function processOne(now = new Date()): Promise<ProcessOutcome> {
       log.debug("procesado");
       return "processed";
     } catch (error) {
+      abandoned = true;
       const message = error instanceof Error ? error.message : String(error);
       const dead = isDeadAfter(attempt);
       await tx
@@ -69,10 +86,14 @@ export interface DrainResult {
 }
 
 /** Procesa hasta `batchSize` filas listas. */
-export async function drain(batchSize: number, now = new Date()): Promise<DrainResult> {
+export async function drain(
+  batchSize: number,
+  now = new Date(),
+  handlerTimeoutMs = 0,
+): Promise<DrainResult> {
   const result: DrainResult = { processed: 0, failed: 0 };
   for (let i = 0; i < batchSize; i += 1) {
-    const outcome = await processOne(now);
+    const outcome = await processOne(now, handlerTimeoutMs);
     if (outcome === "idle") {
       break;
     }
@@ -84,6 +105,7 @@ export async function drain(batchSize: number, now = new Date()): Promise<DrainR
 export interface PollerOptions {
   intervalMs: number;
   batchSize: number;
+  handlerTimeoutMs: number;
 }
 
 export interface Poller {
@@ -100,7 +122,7 @@ export function startPoller(options: PollerOptions): Poller {
       return;
     }
     try {
-      const result = await drain(options.batchSize);
+      const result = await drain(options.batchSize, new Date(), options.handlerTimeoutMs);
       if (result.processed + result.failed > 0) {
         logger.info(result, "outbox drenado");
       }

@@ -49,6 +49,10 @@ const envSchema = z
     DATABASE_URL: z.url().refine((url) => url.startsWith("postgres"), {
       message: "DATABASE_URL debe ser una URL postgresql://",
     }),
+    // Límites del pool (ADR-079): ninguna espera contra la base es indefinida. 0 desactiva el límite.
+    DB_CONNECTION_TIMEOUT_MS: z.coerce.number().int().min(0).default(10_000),
+    DB_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(0).default(60_000),
+    DB_IDLE_IN_TRANSACTION_TIMEOUT_MS: z.coerce.number().int().min(0).default(900_000),
 
     SESSION_SECRET: z.string().min(32, "SESSION_SECRET necesita al menos 32 caracteres"),
     INSTITUTIONAL_EMAIL_DOMAINS: commaSeparatedList.pipe(z.array(z.string().min(3)).min(1)),
@@ -80,6 +84,8 @@ const envSchema = z
     JOBS_ENABLED: booleanString.default(false),
     JOBS_POLL_INTERVAL_MS: z.coerce.number().int().min(250).default(3000),
     JOBS_BATCH_SIZE: z.coerce.number().int().min(1).max(500).default(50),
+    // Último recurso del poller (ADR-079): un handler que no vuelve deja de frenar la cola.
+    JOBS_HANDLER_TIMEOUT_MS: z.coerce.number().int().min(0).default(600_000),
 
     VAPID_PUBLIC_KEY: z.string().optional(),
     VAPID_PRIVATE_KEY: z.string().optional(),
@@ -110,6 +116,19 @@ const envSchema = z
         code: "custom",
         path: ["OTP_FIXED_CODE"],
         message: "OTP_FIXED_CODE no puede existir en producción (05-acceso.md)",
+      });
+    }
+    // La fila del outbox queda «idle in transaction» mientras corre su handler: si la base cortara
+    // antes que el poller, el intento no se registraría y la fila se reintentaría sin backoff.
+    if (
+      env.DB_IDLE_IN_TRANSACTION_TIMEOUT_MS > 0 &&
+      env.JOBS_HANDLER_TIMEOUT_MS > 0 &&
+      env.DB_IDLE_IN_TRANSACTION_TIMEOUT_MS <= env.JOBS_HANDLER_TIMEOUT_MS
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["DB_IDLE_IN_TRANSACTION_TIMEOUT_MS"],
+        message: "Debe ser mayor que JOBS_HANDLER_TIMEOUT_MS (ADR-079)",
       });
     }
     if (env.MAILER === "resend" && !env.RESEND_API_KEY) {

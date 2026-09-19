@@ -1,6 +1,10 @@
 import type { CreateEmailResponse, ErrorResponse } from "resend";
 import { describe, expect, it, vi } from "vitest";
-import { QuotaExceededError, ResendTransport } from "@/shared/adapters/mail";
+import {
+  MAIL_REQUEST_TIMEOUT_MS,
+  QuotaExceededError,
+  ResendTransport,
+} from "@/shared/adapters/mail";
 
 const message = {
   to: "persona@example.test",
@@ -25,6 +29,24 @@ function transport() {
     mail: new ResendTransport("re_prueba", "OE <noreply@example.test>", { send, wait }),
   };
 }
+
+describe("Resend: límite por llamada", () => {
+  it("un envío que no responde falla a los 30 s en vez de colgar a quien llama", async () => {
+    vi.useFakeTimers();
+    try {
+      const { mail, send } = transport();
+      send.mockReturnValueOnce(new Promise<CreateEmailResponse>(() => {}));
+      const assertion = expect(mail.send(message)).rejects.toThrow(
+        `Resend superó ${MAIL_REQUEST_TIMEOUT_MS} ms`,
+      );
+      await vi.advanceTimersByTimeAsync(MAIL_REQUEST_TIMEOUT_MS);
+      await assertion;
+      expect(send).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
 
 describe("Resend: reintentos de ráfaga", () => {
   it("entrega una vez sin esperar si no hubo error", async () => {

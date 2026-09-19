@@ -1,8 +1,8 @@
 import type pino from "pino";
 
 // Registro de handlers del outbox. Cada módulo registra los suyos en su jobs.ts. Un evento puede
-// tener varios handlers (uno por módulo interesado, ADR-034): el poller los corre en orden dentro de
-// la misma transacción, así que cada uno es idempotente por su cuenta.
+// tener varios handlers (uno por módulo interesado, ADR-034): el poller los corre en orden y, si uno
+// falla, el evento entero se reintenta, así que cada uno es idempotente por su cuenta.
 
 export interface JobContext {
   id: string;

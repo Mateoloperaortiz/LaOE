@@ -44,6 +44,8 @@ function s3(): S3Client {
     region: env.S3_REGION,
     forcePathStyle: env.S3_FORCE_PATH_STYLE,
     credentials: { accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_SECRET_ACCESS_KEY },
+    // ADR-079: conectar y cada tramo sin datos tienen límite; un bucket mudo no cuelga a quien llama.
+    requestHandler: { connectionTimeout: 5_000, requestTimeout: 30_000 },
   });
   return client;
 }

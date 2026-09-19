@@ -22,6 +22,7 @@ export function startJobs(): void {
   const poller = startPoller({
     intervalMs: env.JOBS_POLL_INTERVAL_MS,
     batchSize: env.JOBS_BATCH_SIZE,
+    handlerTimeoutMs: env.JOBS_HANDLER_TIMEOUT_MS,
   });
   const scheduler = startScheduler(SCHEDULE, env.APP_TIMEZONE);
   globalRef.__casaDigitalJobs = { poller, scheduler };
