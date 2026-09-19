@@ -2,9 +2,11 @@ import type { KnipConfig } from "knip";
 
 // knip no lee CSS: este compilador extrae los @import (Tailwind) para que cuenten como uso.
 const config: KnipConfig = {
+  // Los scripts entran por `package.json` y los de CI por el workflow: uno que nadie invoque aparece
+  // como archivo sin uso. Las excepciones se nombran una por una.
   entry: [
-    "scripts/*.ts",
-    "scripts/ci/run.mjs",
+    // Medición del generador que cita ADR-078; se corre a mano.
+    "scripts/sudoku-bench.ts",
     "src/modules/*/index.ts",
     "tests/e2e/auth.setup.ts",
     ".railway/**/*.ts",

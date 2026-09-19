@@ -1,6 +1,51 @@
+const { readdirSync } = require("node:fs");
+
+// Grafo permitido entre módulos (ADR-080): de qué otros módulos importa cada uno por su index.ts. Es la
+// única fuente: 01-arquitectura remite aquí. Una dependencia nueva se decide agregándola a esta tabla;
+// sin eso, `npm run deps:check` falla. Las claves foráneas entre schema.ts quedan fuera (regla
+// schema-solo-importa-schema).
+const MODULE_DEPS = {
+  comms: ["content", "participation", "people", "system", "terms"],
+  content: [],
+  crm: ["content", "events", "forms", "identity", "participation", "people", "system", "terms"],
+  events: ["content", "people"],
+  finance: ["people", "terms"],
+  forms: ["events", "people", "system"],
+  identity: ["comms", "people"],
+  participation: ["events", "forms", "people", "system", "terms"],
+  people: ["content", "events", "system", "terms"],
+  permanence: ["events", "participation", "people", "system", "terms"],
+  system: ["identity"],
+  terms: [],
+  wallet: ["identity", "people", "terms"],
+};
+
+const moduleDirs = readdirSync("src/modules", { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name);
+const undeclared = moduleDirs.filter((name) => !(name in MODULE_DEPS));
+const orphaned = Object.keys(MODULE_DEPS).filter((name) => !moduleDirs.includes(name));
+if (undeclared.length > 0 || orphaned.length > 0) {
+  throw new Error(
+    `MODULE_DEPS no coincide con src/modules. Sin declarar: ${undeclared.join(", ") || "ninguno"}. Sobran: ${orphaned.join(", ") || "ninguno"}.`,
+  );
+}
+
+const moduleDependencyRules = Object.entries(MODULE_DEPS).map(([name, allowed]) => ({
+  name: `dependencias-de-${name}`,
+  comment: `${name} solo importa de: ${allowed.join(", ") || "ningún otro módulo"} (MODULE_DEPS, ADR-080).`,
+  severity: "error",
+  from: { path: `^src/modules/${name}/`, pathNot: "/schema\\.ts$" },
+  to: {
+    path: "^src/modules/[^/]+/",
+    pathNot: `^src/modules/(${[name, ...allowed].join("|")})/`,
+  },
+}));
+
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
+    ...moduleDependencyRules,
     {
       name: "sin-ciclos",
       comment:

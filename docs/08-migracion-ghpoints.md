@@ -4,6 +4,8 @@ La fase 7 **no migra datos de GHPOINTS**. Mateo confirmó el 2026-09-06 que aque
 
 Las secciones siguientes conservan el trabajo de migración ensayado en las fases 2 y 3. No son instrucciones de lanzamiento ni autorizan su ejecución sobre producción.
 
+Los scripts del ensayo (`scripts/migrate-ghpoints.ts`, `scripts/verify-migration.ts`, `scripts/lib/migrate-ghpoints.ts`, `scripts/lib/migrate-participation.ts`), su prueba de integración y los comandos `migrate:ghpoints` y `migrate:verify` se retiraron del repositorio el 2026-09-19 (tramo R1 de la [auditoría de código](auditoria-codigo-2026-09-19.md)): GHPOINTS se eliminó el 2026-09-08 y ya no había contra qué correrlos. Quedan en el historial de git; el último commit que los contiene es `0316c07`. La importación histórica que sí se usó en producción, `npm run ghpoints:import` ([ADR-062](adr/ADR-062-importacion-de-asistencias-y-evidencias-gh.md)), es otro código y sigue vigente.
+
 ## Origen
 
 `pg_dump` de la base de GHPOINTS tomado con `railway run pg_dump` desde el proyecto viejo, o un respaldo nativo restaurado en un servicio Postgres temporal. Se restaura en un PostgreSQL local para trabajar sin tocar producción. Los objetos del bucket `oe-media` se listan y copian al bucket `media` del proyecto nuevo.
