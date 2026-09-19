@@ -86,11 +86,11 @@ export async function applyCheckInBoost(
   if (!context.settings.enabled || !isVoluntaryOccasion(row) || row.points <= 0) {
     return;
   }
-  const [booster, campaign] = await Promise.all([
+  // En serie: una transacción es una sola conexión y pg no admite consultas simultáneas sobre ella.
+  const booster =
     input.selectedBooster ??
-      findTargetedBooster(ctx.tx, current.personId, { occasionId: row.id }, now),
-    activeCampaignFor(ctx.tx, { occasionId: row.id }, now),
-  ]);
+    (await findTargetedBooster(ctx.tx, current.personId, { occasionId: row.id }, now));
+  const campaign = await activeCampaignFor(ctx.tx, { occasionId: row.id }, now);
   if (!booster && !campaign) {
     return;
   }

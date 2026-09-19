@@ -5,6 +5,8 @@ import { logger } from "@/shared/log";
 import { applyMigrationsAndVerify } from "./lib/release";
 
 // Esquema desde cero para desarrollo y pruebas. Se niega a correr en producción.
+// Como en db:release, las migraciones corren sin límite por sentencia (ADR-079).
+process.env.DB_STATEMENT_TIMEOUT_MS ??= "0";
 const env = getEnv();
 if (env.NODE_ENV === "production") {
   throw new Error("db:reset no corre en producción");

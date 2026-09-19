@@ -23,11 +23,6 @@ export function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
 }
 
-export function isInstitutionalEmail(email: string, domains: readonly string[]): boolean {
-  const domain = email.split("@")[1];
-  return domain !== undefined && domains.includes(domain);
-}
-
 /** Seis dígitos aleatorios; fuera de producción puede fijarse con OTP_FIXED_CODE. */
 export function generateCode(fixed?: string): string {
   return fixed ?? String(randomInt(0, 1_000_000)).padStart(6, "0");

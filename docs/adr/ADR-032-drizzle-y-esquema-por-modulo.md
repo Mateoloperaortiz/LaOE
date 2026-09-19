@@ -1,6 +1,6 @@
 # ADR-032: Drizzle como capa de datos y esquema por módulo en TypeScript
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-079)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-001, ADR-007, ADR-012, ADR-017, ADR-021
 - Enmienda: ADR-001 (esquema y layout), ADR-021 (pre-deploy `db:release`)
@@ -32,3 +32,7 @@ La documentación asumía Prisma "en modo carpeta" (`prisma/schema/*.prisma` con
 | Prisma 8 (rc.12, el de GHPOINTS) | Contrato único | Script aparte; `$queryRaw` | RC etiquetado `latest` | Descartada: la API sigue en movimiento |
 | Prisma 7 (7.10) | Carpeta `prisma/schema/` | SQL a mano; `$queryRaw` | Línea previa | Descartada: obliga a reescribir al pasar a 8 |
 | Kysely 0.29 | Sin esquema; tipos por introspección | SQL tipado | Estable | Descartada: el esquema no sería la fuente de verdad |
+
+## Enmienda (2026-09-19, ADR-079)
+
+`db:release` ya no verifica una lista escrita a mano. Exige todo índice único y todo índice GIN que declaren los `schema.ts` de los módulos, leídos del propio esquema, más los tres GIN de `pg_trgm` de la migración custom. Una migración nueva no toca `scripts/lib/release.ts`. Las migraciones corren sin límite por sentencia. Detalle en [ADR-079](ADR-079-limites-de-espera-y-esquema-verificado-desde-el-esquema.md).

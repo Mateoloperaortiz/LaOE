@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   documentTypeSchema,
   formatBirthDate,
+  hasInstitutionalDomain,
   parseBirthDate,
 } from "@/modules/people/domain/person-pure";
 import { personInputSchema } from "@/modules/people/domain/persons";
@@ -13,6 +14,17 @@ const person = {
 };
 
 afterEach(() => vi.useRealTimers());
+
+describe("correo institucional", () => {
+  it("admite el dominio exacto y sus subdominios, y nada que solo se le parezca", () => {
+    const domains = ["eafit.edu.co"];
+    expect(hasInstitutionalDomain("a@eafit.edu.co", domains)).toBe(true);
+    expect(hasInstitutionalDomain("a@correo.eafit.edu.co", domains)).toBe(true);
+    expect(hasInstitutionalDomain("a@gmail.com", domains)).toBe(false);
+    expect(hasInstitutionalDomain("a@noeafit.edu.co", domains)).toBe(false);
+    expect(hasInstitutionalDomain("sin-arroba", domains)).toBe(false);
+  });
+});
 
 describe("identificación y fecha de nacimiento", () => {
   it("conserva ceros iniciales y distingue campos omitidos de borrado explícito", () => {

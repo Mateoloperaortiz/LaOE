@@ -38,6 +38,33 @@ describe("poller del outbox", () => {
     expect(pending?.n).toBe(0);
   });
 
+  it("un handler que no vuelve deja de frenar la cola: falla con backoff y no arranca los que le seguían", async () => {
+    let release: () => void = () => {};
+    let second = 0;
+    registerHandler(
+      "test.hang",
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    registerHandler("test.hang", async () => {
+      second += 1;
+    });
+    await enqueueEvent(db(), { type: "test.hang", payload: {} });
+    const now = new Date();
+    expect(await processOne(now, 50)).toBe("failed");
+    const [row] = await db().select().from(outbox);
+    expect(row?.attempts).toBe(1);
+    expect(row?.lastError).toBe("El evento test.hang superó 50 ms");
+    expect(row?.processedAt).toBeNull();
+    expect((row?.nextAttemptAt.getTime() ?? 0) - now.getTime()).toBe(60_000);
+    // El handler abandonado termina tarde: la cadena no sigue con el segundo.
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(second).toBe(0);
+  });
+
   it("un handler que falla reintenta con backoff y muere al quinto fallo; reintentar lo revive", async () => {
     registerHandler("test.fail", async () => {
       throw new Error("no hoy");

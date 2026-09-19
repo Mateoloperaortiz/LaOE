@@ -65,6 +65,8 @@ export async function sendPush(
       JSON.stringify(buildPushPayload(payload)),
       {
         TTL: 60 * 60,
+        // ADR-079: un servicio de push que no responde cuenta como envío fallido.
+        timeout: 10_000,
       },
     );
     return { ok: true, statusCode: result.statusCode };

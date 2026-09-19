@@ -26,6 +26,24 @@ describe("parseEnv", () => {
     expect(env.MEDIA_CORS_ORIGINS).toEqual([]);
     expect(env.RESEND_DAILY_LIMIT).toBe(95);
     expect(env.JOBS_POLL_INTERVAL_MS).toBe(3000);
+    expect(env.DB_CONNECTION_TIMEOUT_MS).toBe(10_000);
+    expect(env.DB_STATEMENT_TIMEOUT_MS).toBe(60_000);
+    expect(env.DB_IDLE_IN_TRANSACTION_TIMEOUT_MS).toBe(900_000);
+    expect(env.JOBS_HANDLER_TIMEOUT_MS).toBe(600_000);
+  });
+
+  it("exige que la base espere más que el poller, salvo que alguno esté desactivado (ADR-079)", () => {
+    expect(() =>
+      parseEnv({
+        ...baseEnv,
+        DB_IDLE_IN_TRANSACTION_TIMEOUT_MS: "600000",
+        JOBS_HANDLER_TIMEOUT_MS: "600000",
+      }),
+    ).toThrow("DB_IDLE_IN_TRANSACTION_TIMEOUT_MS");
+    expect(
+      parseEnv({ ...baseEnv, DB_IDLE_IN_TRANSACTION_TIMEOUT_MS: "0" })
+        .DB_IDLE_IN_TRANSACTION_TIMEOUT_MS,
+    ).toBe(0);
   });
 
   it("normaliza los dominios institucionales en minúsculas y sin vacíos", () => {

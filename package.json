@@ -12,6 +12,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "deps:check": "depcruise src scripts tests --config .dependency-cruiser.cjs",
     "deadcode": "knip",
+    "audit:metrics": "node --import tsx scripts/audit-metrics.ts",
     "test": "vitest run --project unit",
     "test:watch": "vitest --project unit",
     "test:integration": "vitest run --project integration",

@@ -580,20 +580,18 @@ export async function createCampaigns(
   if (!(input.startsAt < input.endsAt)) {
     throw new DomainError(errors[1] ?? "", "endsAt");
   }
-  const [challenges, occasions] = await Promise.all([
-    challengeIds.length
-      ? ctx.tx
-          .select({ id: challenge.id, termId: challenge.termId, status: challenge.status })
-          .from(challenge)
-          .where(inArray(challenge.id, challengeIds))
-      : Promise.resolve([]),
-    occasionIds.length
-      ? ctx.tx
-          .select({ id: occasion.id, termId: occasion.termId, status: occasion.status })
-          .from(occasion)
-          .where(inArray(occasion.id, occasionIds))
-      : Promise.resolve([]),
-  ]);
+  const challenges = challengeIds.length
+    ? await ctx.tx
+        .select({ id: challenge.id, termId: challenge.termId, status: challenge.status })
+        .from(challenge)
+        .where(inArray(challenge.id, challengeIds))
+    : [];
+  const occasions = occasionIds.length
+    ? await ctx.tx
+        .select({ id: occasion.id, termId: occasion.termId, status: occasion.status })
+        .from(occasion)
+        .where(inArray(occasion.id, occasionIds))
+    : [];
   const invalidChallenge =
     challenges.length !== challengeIds.length ||
     challenges.some((row) => row.termId !== context.termId || row.status === "CANCELLED");
