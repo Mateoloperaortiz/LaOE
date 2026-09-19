@@ -1,6 +1,6 @@
 # ADR-067: Retos relámpago, boosters y colección de insignias
 
-- Estado: Aceptada (enmendada por ADR-068 y ADR-075)
+- Estado: Aceptada (enmendada por ADR-068, ADR-075 y ADR-078)
 - Fecha: 2026-09-14
 - Relacionadas: ADR-004, ADR-007, ADR-008, ADR-011, ADR-012, ADR-014, ADR-020, ADR-022, ADR-030, ADR-032, ADR-035, ADR-038, ADR-041, ADR-062
 - Enmienda: ADR-007 (tipos `CHALLENGE` y `BOOST` del ledger), ADR-022 (evidencias con almacenamiento y autorización propios, fuera de `/api/media`), ADR-035 (participación en retos, boosters sobre asistencias, cierre de puntos que exige resolver pendientes), ADR-041 (el Wordle alimenta insignias y no admite boosters)
@@ -65,3 +65,7 @@ Precisiones sobre las decisiones, surgidas de la implementación:
 ## Enmienda (2026-09-17, ADR-075)
 
 La regla 17 decía que el Wordle, los movimientos, las asambleas y los rankings siguen en Resumen. El Wordle sale: se muda a `/app/juegos/wordle` y Resumen conserva un enlace. La subnavegación Resumen · Retos · Boosters · Colección no cambia. La regla 4 se amplía: el 2048 también queda fuera de los topes diario y semanal, por la misma razón que el Wordle —un juego con techo duro de 6 puntos por día no necesita cupo— y tampoco admite boosters. Ver [ADR-075](ADR-075-biblioteca-de-juegos-y-2048.md).
+
+## Enmienda (2026-09-19, ADR-078)
+
+La regla 4 se amplía otra vez: el Sudoku también queda fuera de los topes diario y semanal y tampoco admite boosters, por la misma razón que el Wordle y el 2048 —un techo duro de 6 puntos por día no necesita cupo—. Con tres juegos son hasta 18 GH Points diarios fuera de los topes. Ver [ADR-078](ADR-078-sudoku-con-solucion-en-el-servidor.md).

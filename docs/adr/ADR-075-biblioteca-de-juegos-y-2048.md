@@ -1,6 +1,6 @@
 # ADR-075: Biblioteca de juegos y 2048 con replay verificado
 
-- Estado: Aceptada; en producción desde el 2026-09-18 (`b3226a5`)
+- Estado: Aceptada (enmendada por ADR-078); en producción desde el 2026-09-18 (`b3226a5`)
 - Fecha: 2026-09-17
 - Enmienda: ADR-041 (regla 1: el tablero deja `/app/gh-points` y sí hay ruta de juego; regla 6: el ledger gana un tipo más), ADR-067 (regla 17: el Wordle deja de estar en Resumen; regla 4: el 2048 también queda fuera de los topes), ADR-074 (regla 5: la URL del aviso), ADR-007 (tipo `GAME2048`)
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-020, ADR-030, ADR-032, ADR-035, ADR-038
@@ -81,3 +81,7 @@ El sembrado real: `seedRng` parte la semilla en sus dos mitades de ocho dígitos
 Tampoco es exacta la lista de operaciones: la multiplicación entera era de SplitMix32. sfc32 no multiplica; suma, hace `xor`, desplaza y rota, con cada suma truncada a 32 bits (`| 0`). La propiedad que protege la regla sigue intacta: ninguna operación es fraccionaria.
 
 El resto de la regla 3 sigue vigente tal cual: solo enteros, primero la casilla y después el valor, un 4 una de cada diez veces, dos apariciones al nacer el tablero y la versión de reglas estampada en cada partida. Se corrige el texto y no el motor porque, por esa misma regla, cambiar el generador invalidaría el replay de todas las partidas guardadas. Y como el motor nunca tuvo otro generador, ninguna partida —tampoco las de producción, que corre `b3226a5`— se jugó con SplitMix32: no hay nada que rejugar ni migrar, y la versión de reglas no cambia.
+
+## Enmienda (2026-09-19, ADR-078)
+
+La regla 1 suma una tercera tarjeta: `/app/juegos/sudoku`. La barra de Mi OE no cambia. La regla 12 se amplía: la disponibilidad que muestra la biblioteca es la misma proyección para los **tres** juegos. Todo lo demás de esta ADR sigue vigente, y el motor del 2048 no se toca: el Sudoku lleva su propia copia del generador sfc32 para no atar las dos versiones de reglas. El Sudoku no hereda el replay —una lista de jugadas no prueba nada en un juego que cualquier programa resuelve—: el servidor guarda la solución y compara. Ver [ADR-078](ADR-078-sudoku-con-solucion-en-el-servidor.md).
