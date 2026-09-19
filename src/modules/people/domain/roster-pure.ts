@@ -1,6 +1,11 @@
 import { t, tList } from "@/shared/copy";
 import { parseCsv } from "@/shared/lib/csv";
-import { documentTypeSchema, normalizePhone, parseBirthDate } from "./person-pure";
+import {
+  documentTypeSchema,
+  hasInstitutionalDomain,
+  normalizePhone,
+  parseBirthDate,
+} from "./person-pure";
 
 // Reglas puras del roster (13-importacion-del-roster.md, ADR-029, ADR-034): lectura del CSV, mapeo de
 // columnas, validación fila por fila y diff contra lo existente. Sin I/O.
@@ -357,8 +362,7 @@ export function parseRoleAssignments(
 
 function isInstitutional(email: string, domains: string[]): boolean {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return false;
-  const domain = email.split("@")[1] ?? "";
-  return domains.some((allowed) => domain === allowed || domain.endsWith(`.${allowed}`));
+  return hasInstitutionalDomain(email, domains);
 }
 
 function shouted(name: string): boolean {

@@ -9,6 +9,7 @@ import { t } from "@/shared/copy";
 import { committee, membership, membershipEvent, person } from "../schema";
 import { setCommitteeMemberships } from "./committee-memberships";
 import { recordConsent } from "./consents";
+import { hasInstitutionalDomain } from "./person-pure";
 
 // "Dar de alta" (ADR-002, ADR-003, ADR-037): junto con el roster, el único camino a la membresía. Crea la
 // membresía activa con su primer término, pone la etapa en miembro, escribe de 1 a 3 comités con cargo
@@ -26,8 +27,7 @@ export function isInstitutionalEmail(
   email: string,
   domains = getEnv().INSTITUTIONAL_EMAIL_DOMAINS,
 ) {
-  const domain = email.split("@")[1] ?? "";
-  return domains.some((allowed) => domain === allowed || domain.endsWith(`.${allowed}`));
+  return hasInstitutionalDomain(email, domains);
 }
 
 export async function admitPerson(

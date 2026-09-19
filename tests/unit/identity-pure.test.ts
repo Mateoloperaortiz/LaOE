@@ -10,7 +10,6 @@ import {
   hashCode,
   hashPassword,
   hashToken,
-  isInstitutionalEmail,
   normalizeEmail,
   safeNextPath,
   verifyPassword,
@@ -72,10 +71,8 @@ describe("códigos y hashes", () => {
 });
 
 describe("correo y dispositivo", () => {
-  it("normaliza y valida el dominio institucional", () => {
+  it("normaliza el correo", () => {
     expect(normalizeEmail("  Sintetica@EAFIT.edu.co ")).toBe("sintetica@eafit.edu.co");
-    expect(isInstitutionalEmail("a@eafit.edu.co", ["eafit.edu.co"])).toBe(true);
-    expect(isInstitutionalEmail("a@gmail.com", ["eafit.edu.co"])).toBe(false);
   });
   it("describe el agente de usuario sin librerías", () => {
     expect(

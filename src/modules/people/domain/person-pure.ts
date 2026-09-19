@@ -3,6 +3,12 @@ import { dateKeyIn } from "@/shared/lib/dates";
 
 // Reglas puras sobre datos de la persona (sin I/O).
 
+/** Dominio institucional exacto o cualquiera de sus subdominios. Única definición de la regla. */
+export function hasInstitutionalDomain(email: string, domains: readonly string[]): boolean {
+  const domain = email.split("@")[1] ?? "";
+  return domains.some((allowed) => domain === allowed || domain.endsWith(`.${allowed}`));
+}
+
 export const DOCUMENT_TYPE_CODES = ["CC", "TI", "CE", "PPT"] as const;
 export const documentTypeSchema = z.enum(DOCUMENT_TYPE_CODES);
 
