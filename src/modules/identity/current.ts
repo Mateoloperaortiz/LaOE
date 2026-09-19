@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { SESSION_COOKIE } from "./cookie";
 import type { Actor } from "./domain/actor";
+import { canOperate } from "./domain/guards";
 import { findSessionByToken, resolveActor, touchSession } from "./domain/session";
 
 // El actor del request, resuelto una sola vez (ADR-011). Aquí sí se leen cookies; el dominio nunca.
@@ -40,10 +41,13 @@ export async function requireActor(nextPath: string): Promise<Actor> {
   return actor;
 }
 
-/** Para el área de administración: sin permiso ADMIN, a Mi OE. */
+/**
+ * Para el área de administración: sin permiso ADMIN, a Mi OE. Misma regla que `assertAdmin`: una
+ * concesión guardada no habilita operaciones mientras la persona está en licencia (ADR-082).
+ */
 export async function requireAdminActor(nextPath = "/admin"): Promise<Actor> {
   const actor = await requireActor(nextPath);
-  if (!actor.isAdmin) {
+  if (!canOperate(actor) || !actor.isAdmin) {
     return redirectRequest("/app");
   }
   return actor;
