@@ -74,6 +74,16 @@ async function jugarHastaElFinal(page: Page, umbral = 1_500, limite = 1_500): Pr
   await expect(empezar).toBeVisible({ timeout: 15_000 });
 }
 
+/**
+ * La partida nace en una transición: el botón responde antes de que llegue el tablero. Leerlo en
+ * ese hueco da dieciséis ceros, `elegir` no encuentra jugada y la prueba sigue sin haber jugado.
+ */
+async function empezarPartida(page: Page): Promise<void> {
+  const juego = page.locator("#game2048");
+  await juego.getByRole("button", { name: "Empezar una partida" }).click();
+  await expect(juego.getByRole("button", { name: "Arriba" })).toBeVisible();
+}
+
 async function partidas() {
   return getDb().select().from(game2048Run);
 }
@@ -130,12 +140,16 @@ test("una partida real acredita una sola vez y la segunda del día ya no suma", 
 test("recargar a mitad de partida la retoma donde iba", async ({ page }) => {
   await page.goto("/app/juegos/2048");
   const juego = page.locator("#game2048");
-  await juego.getByRole("button", { name: "Empezar una partida" }).click();
+  await empezarPartida(page);
+  let jugadas = 0;
   for (let paso = 0; paso < 12; paso += 1) {
     const move = elegir(await tablero(page), true);
     if (!move) break;
     await page.keyboard.press(TECLAS[move]);
+    jugadas += 1;
   }
+  // Sin jugadas la comparación de abajo no probaría la retoma: un tablero vacío contra otro.
+  expect(jugadas).toBe(12);
   const antes = await tablero(page);
   const puntaje = await juego.getByText(/^Puntaje: /).innerText();
 
@@ -151,7 +165,7 @@ test("en móvil se juega con los botones de dirección y sin desbordar", async (
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/app/juegos/2048");
   const juego = page.locator("#game2048");
-  await juego.getByRole("button", { name: "Empezar una partida" }).click();
+  await empezarPartida(page);
   const antes = await tablero(page);
   for (const nombre of ["Izquierda", "Arriba", "Derecha", "Abajo"]) {
     await juego.getByRole("button", { name: nombre }).click();
