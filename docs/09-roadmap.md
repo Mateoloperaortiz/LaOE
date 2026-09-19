@@ -568,7 +568,7 @@ Serie R:
   - [x] Prueba unitaria que compara `docs/14` con el catálogo generado.
   - [x] Una sola regla de correo institucional; consultas en serie sobre una transacción en seis sitios: el aviso de `pg` en la suite de integración pasó de 14 a 0.
   - [ ] IP del cliente detrás de Cloudflare y Railway (espera a V1).
-  - [ ] Sacar `LaOE/outputs/` de la carpeta de repositorios: 162 archivos con datos personales junto al repo, fuera de git. Es una carpeta de Mateo; decide él el destino.
+  - [x] `LaOE/outputs/` fuera de la carpeta de repositorios: los 162 archivos (paquetes y comprobantes privados de las importaciones de GH Points y de asambleas, con datos personales) pasaron el 2026-09-19 a `~/Documents/OE-operacion/`, con los mismos nombres de subcarpeta y permisos solo del dueño. Conteo y bytes idénticos antes y después. Son la única copia: el respaldo cifrado y qué intermedios de `_trabajo` se conservan los decide Mateo.
 - [ ] R1 · Limpieza y documentos.
   - [x] R1-A · Retirado el ensayo de migración desde GHPOINTS (cuatro scripts y su prueba, 2.024 líneas; quedan en el historial, último commit `0316c07`). `ghpoints:import` (ADR-062) no se toca.
   - [x] R1-A · knip deja de tratar `scripts/*.ts` como entradas: los reconoce por `package.json` y un script que nadie invoque aparece como archivo sin uso.
