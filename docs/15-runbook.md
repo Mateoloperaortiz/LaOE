@@ -611,7 +611,7 @@ Verificación de solo lectura final a las 20:47:10 UTC:
 - 222 auditorías de asistencia enlazadas con archivo y fila original. Los 21 archivos fuente y el manifiesto en el bucket privado coinciden por contenido y SHA-256 con el paquete revisado.
 - Cola del término vacía, sin eventos fallidos ni avisos históricos de puntos. Reconsulta del mismo manifiesto: 222 asistencias existentes, cero por añadir, cero retenidas, 17 actividades reutilizadas y las nueve reglas ya existentes.
 
-Paquete y comprobante privados: `outputs/gh-points-20260914/`, fuera del repositorio de la aplicación. `COMPROBANTE_PRODUCCION.md` y `estado_produccion.json` registran el estado posterior; el Excel, los CSV y el plan revisado permanecen como evidencia de la propuesta previa. Las evidencias del bucket se conservan con sus claves deterministas.
+Paquete y comprobante privados: `~/Documents/OE-operacion/gh-points-20260914/`, en la máquina de Mateo y fuera del árbol de repositorios (hasta el 2026-09-19 estuvo en `LaOE/outputs/`, junto al repo). `COMPROBANTE_PRODUCCION.md` y `estado_produccion.json` registran el estado posterior; el Excel, los CSV y el plan revisado permanecen como evidencia de la propuesta previa. Las evidencias del bucket se conservan con sus claves deterministas.
 
 
 ## Carga parcial de asambleas · 2026-09-14
@@ -630,7 +630,7 @@ Importación `czwh3bv146xic194kjo8sjp4`, APPLIED en `2026-09-14T21:38:20.431Z`. 
 - 400 auditorías de asistencia enlazan archivo, hoja y fila; cinco auditorías de ocasión guardan fecha y tipo ordinario. Original y manifiesto aplicado verificados por contenido y SHA-256 en el bucket privado.
 - Reconsulta del parcial: 400 existentes, cero altas, cero retenciones; cinco ocasiones reutilizadas. Reconsulta de solo lectura del manifiesto completo: 400 existentes y exactamente los diez registros reservados restantes. Sin cola pendiente, eventos fallidos ni avisos históricos de puntos.
 
-Paquete y recibos privados en `outputs/asambleas-20260914/`, fuera del repositorio. `COMPROBANTE_PRODUCCION.md` y `estado_produccion.json` registran el resultado posterior. El Excel, los CSV y las vistas previas originales se conservan como propuesta previa; `manifiesto_carga_parcial.json` contiene la selección aplicada. Antes de cargar las diez restantes, confirmar identidades/membresías y revisar otra vista previa del lote con los mismos IDs; no inferir autorización de que una membresía ya exista.
+Paquete y recibos privados en `~/Documents/OE-operacion/asambleas-20260914/`, en la máquina de Mateo y fuera del árbol de repositorios (hasta el 2026-09-19 estuvo en `LaOE/outputs/`). `COMPROBANTE_PRODUCCION.md` y `estado_produccion.json` registran el resultado posterior. El Excel, los CSV y las vistas previas originales se conservan como propuesta previa; `manifiesto_carga_parcial.json` contiene la selección aplicada. Antes de cargar las diez restantes, confirmar identidades/membresías y revisar otra vista previa del lote con los mismos IDs; no inferir autorización de que una membresía ya exista.
 
 ## Gestión de macroeventos · producción, 2026-09-14
 
