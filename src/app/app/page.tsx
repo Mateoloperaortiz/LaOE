@@ -15,9 +15,9 @@ import {
 import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
 import { canParticipate, getMyMembership } from "@/modules/people";
 import { getPersonPermanence, listTeamParticipations } from "@/modules/permanence";
+import { TeamParticipations } from "@/modules/permanence/components/TeamParticipations";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo, Insignia, LogoComite, Progreso } from "@/shared/brand";
-import { TeamParticipations } from "@/shared/brand/TeamParticipations";
 import { t, tList } from "@/shared/copy";
 import { formatDate } from "@/shared/lib/dates";
 import { noticeText } from "./_ui/avisos";

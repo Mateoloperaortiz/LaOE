@@ -39,10 +39,10 @@ import {
   listPersonTags,
 } from "@/modules/people";
 import { listTeamParticipations, listWorkCommitteeTermIds } from "@/modules/permanence";
+import { TeamParticipations } from "@/modules/permanence/components/TeamParticipations";
 import { getConfig, getPrivacyPolicyState } from "@/modules/system";
 import { listAllTerms } from "@/modules/terms";
 import { listPassesFor } from "@/modules/wallet";
-import { TeamParticipations } from "@/shared/brand/TeamParticipations";
 import { t } from "@/shared/copy";
 import { Cabecera } from "./_ui/Cabecera";
 import { isTab, isTimelineFilter, type Tab, tabLabels } from "./_ui/etiquetas";
