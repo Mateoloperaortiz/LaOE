@@ -1,6 +1,6 @@
 # ADR-017: Admin kit declarativo
 
-- Estado: Aceptada (enmendada por ADR-080)
+- Estado: Aceptada (enmendada por ADR-080 y ADR-083)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-001, ADR-011
 
@@ -20,3 +20,7 @@ Hay cerca de treinta entidades administrables. Hacer treinta pantallas a mano es
 ## Enmienda (2026-09-19, ADR-080)
 
 `defineResource(...)` no existe. Un recurso es un objeto tipado `ResourceDefinition` que cada módulo exporta desde su `admin.ts` y que `src/app/admin/_kit/registry.ts` registra. Detalle en [ADR-080](ADR-080-la-arquitectura-documentada-es-la-del-codigo.md).
+
+## Enmienda (2026-09-19, ADR-083)
+
+Los recursos entran al registro por `erased(recurso)`, que comprueba el tipo y concentra el único cast; una clave repetida impide cargar. La navegación del área es una sola tabla, `adminNavGroups()`, y `DomainError` deja de vivir en el kit. Detalle en [ADR-083](ADR-083-lo-compartido-no-vive-en-la-carpeta-de-una-pantalla.md).

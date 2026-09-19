@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-083](ADR-083-lo-compartido-no-vive-en-la-carpeta-de-una-pantalla.md) | Lo compartido no vive en la carpeta de una pantalla | Aceptada |
 | [ADR-082](ADR-082-un-kit-para-las-server-actions-y-auditoria-con-ip.md) | Un kit para las server actions, y la auditoría siempre con IP | Aceptada |
 | [ADR-081](ADR-081-el-catalogo-de-textos-no-viaja-entero-al-navegador.md) | El catálogo de textos no viaja entero al navegador | Aceptada |
 | [ADR-080](ADR-080-la-arquitectura-documentada-es-la-del-codigo.md) | La arquitectura documentada es la del código | Aceptada |
@@ -66,7 +67,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-014](ADR-014-privacidad-por-diseno.md) | Privacidad por diseño (Ley 1581 de 2012) | Aceptada (enmendada por ADR-030, ADR-039, ADR-040, ADR-047 y ADR-048) |
 | [ADR-015](ADR-015-canales.md) | Canales de comunicación | Aceptada (enmendada por ADR-023 y ADR-038) |
 | [ADR-016](ADR-016-medios-en-r2.md) | Medios en un bucket privado sin cargar la app | Reemplazada por ADR-022 |
-| [ADR-017](ADR-017-admin-kit.md) | Admin kit declarativo | Aceptada (enmendada por ADR-080) |
+| [ADR-017](ADR-017-admin-kit.md) | Admin kit declarativo | Aceptada (enmendada por ADR-080 y ADR-083) |
 | [ADR-018](ADR-018-migracion-desde-ghpoints.md) | Migración desde GHPOINTS por script sobre dump | Aceptada (enmendada por ADR-034, ADR-039, ADR-050) |
 | [ADR-019](ADR-019-infraestructura-vercel-neon-r2.md) | Infraestructura: Vercel Pro + Neon + R2 + Resend | Reemplazada por ADR-021 |
 | [ADR-020](ADR-020-zona-horaria.md) | UTC en base, America/Bogota en presentación | Aceptada |
