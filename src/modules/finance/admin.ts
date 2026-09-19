@@ -17,8 +17,8 @@ import { createBudgetAs, updateBudgetAs } from "./domain/commands";
 // Recurso Presupuestos del kit (ADR-059 regla 2): ADMIN crea el ordinario del año y los extraordinarios;
 // los rubros, aprobaciones, apertura, cierre y sanción viven en /admin/presupuestos/[id].
 
-const [plural, singular] = tList("T-2200") as [string, string];
-const [comite, año, estado, notas] = tList("T-2201") as [string, string, string, string];
+const [plural, singular] = tList("T-2200");
+const [comite, año, estado, notas] = tList("T-2201");
 const [tipo, actividad, presentadoEl] = tList("T-2288");
 
 const statusOptions = BUDGET_STATUSES.map((value) => ({ value, label: budgetStatusLabel(value) }));

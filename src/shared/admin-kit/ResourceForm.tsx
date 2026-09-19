@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useId, useRef, useState } from "react";
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 import { ResourceMultiSelect } from "./AdminMultiSelect";
 import type { FieldDefinition, FormState } from "./types";
 

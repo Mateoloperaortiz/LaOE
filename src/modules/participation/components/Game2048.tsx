@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { type CopyCode, t, tList } from "@/shared/copy";
+import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
 import { ArrowDownIcon } from "@/shared/ui/icons/ArrowDownIcon";
 import { ArrowLeftIcon } from "@/shared/ui/icons/ArrowLeftIcon";
 import { ArrowRightIcon } from "@/shared/ui/icons/ArrowRightIcon";
@@ -71,7 +71,7 @@ const TILES: [limit: number, className: string][] = [
 ];
 const TOP_TILE = "border-oe-yellow bg-oe-navy text-oe-yellow";
 
-const ERROR_COPY: Record<Game2048Denial, CopyCode> = {
+const ERROR_COPY: Record<Game2048Denial, ClientCopyCode> = {
   INVALID_INPUT: "T-2660",
   INVALID_MOVES: "T-2661",
   NOT_FOUND: "T-2660",

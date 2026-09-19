@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
-import { t, tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy/client";
 
 // Kanban de un pipeline (ADR-037 regla 7): columnas por etapa; cada tarjeta se mueve con "Mover a…"
 // (selector y botón, sin JS) o arrastrándola a otra columna con la API nativa del navegador. Las dos
@@ -40,8 +40,8 @@ export function Kanban({ columns, returnTo, moveAction }: KanbanProps) {
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const [moverA, mover] = tList("T-971") as [string, string];
-  const [ganada, perdida, cerrada] = tList("T-981") as [string, string, string];
+  const [moverA, mover] = tList("T-971");
+  const [ganada, perdida, cerrada] = tList("T-981");
 
   function drop(stageId: string) {
     const cardId = dragging;

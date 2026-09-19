@@ -45,7 +45,7 @@ export default async function HomePage() {
     ),
     proximo?.coverAssetId ? getPublicMediaRef(proximo.coverAssetId) : Promise.resolve(null),
   ]);
-  const [cuando, donde] = tList("T-307") as [string, string];
+  const [cuando, donde] = tList("T-307");
   return (
     <div className="portal-home mx-auto flex max-w-6xl flex-col px-4 sm:px-6">
       <Cartel

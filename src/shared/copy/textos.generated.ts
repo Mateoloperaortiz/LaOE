@@ -1,4 +1,7 @@
 // Generado por scripts/copy-sync.ts desde docs/14-copy-y-textos.md. No editar a mano: corré npm run copy:sync.
+// Catálogo completo, con sus metadatos editoriales: solo servidor (ADR-081).
+import "server-only";
+
 export const textos = {
   "T-001": {
     where: "Nombre del sitio (pestaña, buscadores)",

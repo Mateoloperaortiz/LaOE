@@ -108,7 +108,7 @@ export const complianceResource: ResourceDefinition<ComplianceRow, Empty> = {
 
 // ── Grupos de trabajo (F4-T4) ───────────────────────────────────────────────────────────────
 
-const [groupsPlural, groupsSingular] = tList("T-742") as [string, string];
+const [groupsPlural, groupsSingular] = tList("T-742");
 const groupFieldLabels = tList("T-743");
 const groupColumnLabels = tList("T-744");
 const groupFilterLabels = tList("T-745");

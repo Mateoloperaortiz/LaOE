@@ -37,7 +37,7 @@ export default async function ConvocatoriasPage({ searchParams }: PageProps<"/ap
   ]);
   const justApplied = inscrita && convocatoriaId ? await getCall(convocatoriaId) : null;
   const entryLabels = tList("T-899");
-  const [porOrden, manual] = tList("T-905") as [string, string];
+  const [porOrden, manual] = tList("T-905");
   const appliedIds = new Set(mine.map((entry) => entry.callId));
   const groupName = (id: string) => groups.get(id)?.name ?? "";
   const mensaje =

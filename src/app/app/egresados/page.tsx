@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: t("T-074") };
 export default async function EgresadosPage() {
   await requireActor("/app/egresados");
   const years = await listAlumniByYear();
-  const [tituloCartel, nombres] = tList("T-222") as [string, string];
+  const [tituloCartel, nombres] = tList("T-222");
   return (
     <div className="flex flex-col gap-10">
       <header className="flex flex-col gap-3">

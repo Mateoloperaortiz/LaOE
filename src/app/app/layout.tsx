@@ -49,7 +49,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
     listSubscriptionsFor(actor.personId),
     adminAreaRoles(actor),
   ]);
-  const [temaOscuro, temaClaro] = tList("T-034") as [string, string];
+  const [temaOscuro, temaClaro] = tList("T-034");
   const pestañas = tList("T-061").filter((nombre) => nombre in RUTAS);
   const groups = [
     { label: t("T-1664"), names: ["Comités", "Personas", "Egresados"] },

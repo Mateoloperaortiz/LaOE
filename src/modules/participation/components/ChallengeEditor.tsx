@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAdminFormState } from "@/shared/admin-kit/AdminFormDrafts";
-import { t, tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy/client";
 import { PlusIcon } from "@/shared/ui/icons/PlusIcon";
 import { XIcon } from "@/shared/ui/icons/XIcon";
 import type { ChallengeAudience, ChallengeKind } from "../gamification-types";

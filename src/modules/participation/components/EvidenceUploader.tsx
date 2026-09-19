@@ -2,14 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
-import { type CopyCode, t, tList } from "@/shared/copy";
+import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
 import { XIcon } from "@/shared/ui/icons/XIcon";
 import type { ChallengeSubmitReply, SubmitDenial } from "../gamification-types";
 
 // Evidencia de una misión (ADR-067 reglas 5 y 6): texto acotado y hasta tres imágenes que suben
 // directo al bucket con presign; el requestId de sessionStorage hace el envío idempotente.
 
-const ERROR_COPY: Record<SubmitDenial, CopyCode> = {
+const ERROR_COPY: Record<SubmitDenial, ClientCopyCode> = {
   DISABLED: "T-2442",
   NOT_FOUND: "T-2441",
   NOT_OPEN: "T-2438",

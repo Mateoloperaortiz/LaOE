@@ -195,7 +195,7 @@ const decided = z.object({
 
 registerHandler("request.decided", async (payload, ctx) => {
   const { personId, email, firstName, kindLabel, status, reason } = decided.parse(payload);
-  const [aprobó, noAprobó] = tList("T-1061") as [string, string];
+  const [aprobó, noAprobó] = tList("T-1061");
   const receipt = await send(personId, email, "T-205", {
     nombre: firstName || t("T-1056"),
     tipo: kindLabel,

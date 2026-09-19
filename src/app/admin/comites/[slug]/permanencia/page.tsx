@@ -100,9 +100,9 @@ export default async function PermanenciaComitePage({
     listPendingExcusesForCommittee(committee.id, term.id),
   ]);
   const excusa = single(search.excusa);
-  const [aprobarExcusa, rechazarExcusa] = tList("T-1001") as [string, string];
+  const [aprobarExcusa, rechazarExcusa] = tList("T-1001");
   const [campoTipo, campoCausal, campoReferencia, campoFecha, , , campoMiembro] = tList("T-2230");
-  const [registrarSancion] = tList("T-2232") as [string, string];
+  const [registrarSancion] = tList("T-2232");
   const kindLabels = tList("T-2229");
   // Desde el comité solo se registran llamados, faltas leves y graves; la suspensión y la
   // inhabilidad las decide GH (Regl. art. 58, 62 y 63).

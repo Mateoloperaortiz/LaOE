@@ -13,9 +13,9 @@ import {
   revokePermission,
 } from "./domain/permissions";
 
-const [plural, singular] = tList("T-263") as [string, string];
-const [admin, leader, board] = tList("T-289") as [string, string, string];
-const [grantedAt, grantedBy] = tList("T-295") as [string, string];
+const [plural, singular] = tList("T-263");
+const [admin, leader, board] = tList("T-289");
+const [grantedAt, grantedBy] = tList("T-295");
 
 const codeLabels: Record<PermissionRow["code"], string> = {
   ADMIN: admin,

@@ -80,8 +80,8 @@ export default async function ConsolaPage({
   }
   const { actor, occasion } = found;
   const survey = occasion.status === "CLOSED" ? await surveySummary(id) : null;
-  const [ratingLow, ratingHigh] = tList("T-1102") as [string, string];
-  const [siLabel, noLabel] = tList("T-1058") as [string, string];
+  const [ratingLow, ratingHigh] = tList("T-1102");
+  const [siLabel, noLabel] = tList("T-1058");
   const liveCredits = occasion.points > 0 && occasion.approvedCount > 0;
   if (accion === "cancelar" && liveCredits && !hasRecentStepUp(actor)) {
     redirect(`/ingresar/paso?next=${encodeURIComponent(`${base}?accion=cancelar`)}`);

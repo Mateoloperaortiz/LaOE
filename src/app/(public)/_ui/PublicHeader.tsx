@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { LogoOE, ThemeToggle } from "@/shared/brand";
-import { t, tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy/client";
 import { Menu2Icon } from "@/shared/ui/icons/Menu2Icon";
 
 type Destination = { name: string; href: string };
@@ -16,7 +16,7 @@ export function PublicHeader({ destinations }: { destinations: Destination[] }) 
   const [open, setOpen] = useState(false);
   const dialogId = useId();
   const titleId = useId();
-  const themes = tList("T-034") as [string, string];
+  const themes = tList("T-034");
   const active = destinations
     .filter(({ href }) => pathname === href || (href !== "/" && pathname.startsWith(`${href}/`)))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;

@@ -14,7 +14,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 
-const [plural] = tList("T-425") as [string, string];
+const [plural] = tList("T-425");
 const PAGE_SIZE = 20;
 const BASE = "/admin/documentos";
 
@@ -37,10 +37,10 @@ export default async function DocumentosPage({ searchParams }: PageProps<"/admin
   };
   if (page > totalPages) redirect(hrefFor(totalPages, params.nuevo === "1"));
   const columnas = tList("T-500");
-  const [borrador, publicado] = tList("T-288") as [string, string];
+  const [borrador, publicado] = tList("T-288");
   const kinds = tList("T-394");
-  const [publico, soloMiembros] = tList("T-339") as [string, string];
-  const [previous, next] = tList("T-258") as [string, string];
+  const [publico, soloMiembros] = tList("T-339");
+  const [previous, next] = tList("T-258");
   return (
     <div className="admin-page flex min-w-0 flex-col gap-6">
       <div className="admin-page-header flex flex-wrap items-start justify-between gap-4">

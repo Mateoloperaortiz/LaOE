@@ -36,7 +36,7 @@ export function TabParticipacion({
   achievements: Array<AchievementRow & { badge: BadgeRow }>;
   boosters: BoosterView[];
 }) {
-  const [tituloCheckIns, tituloMovimientos] = tList("T-668") as [string, string];
+  const [tituloCheckIns, tituloMovimientos] = tList("T-668");
   const statusLabels = tList("T-597");
   const sourceLabels = tList("T-596");
   const kindLabels = tList("T-085");

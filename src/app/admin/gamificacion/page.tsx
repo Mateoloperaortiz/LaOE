@@ -64,7 +64,7 @@ export default async function GamificacionPage({ searchParams }: PageProps<"/adm
   const statusLabels = tList("T-2559");
   const modeLabels = tList("T-2590");
   const actionLabels = tList("T-2558");
-  const [si, no] = tList("T-2670") as [string, string];
+  const [si, no] = tList("T-2670");
   const runColumns = tList("T-2589");
   const exportColumns = tList("T-2571");
   const statusLabel = (status: string) =>

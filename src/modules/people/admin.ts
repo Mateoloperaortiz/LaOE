@@ -64,10 +64,10 @@ import {
 // Recursos del admin kit (ADR-017): Comités, Personas (el listado; la ficha es la Persona 360), Cargos,
 // Etiquetas y Segmentos.
 
-const [plural, singular] = tList("T-261") as [string, string];
-const [activo, inactivo, enPrueba] = tList("T-287") as [string, string, string];
-const [pruebaDesde, pruebaHasta, desactivadoEl] = tList("T-2259") as [string, string, string];
-const [borrador, publicado] = tList("T-288") as [string, string];
+const [plural, singular] = tList("T-261");
+const [activo, inactivo, enPrueba] = tList("T-287");
+const [pruebaDesde, pruebaHasta, desactivadoEl] = tList("T-2259");
+const [borrador, publicado] = tList("T-288");
 
 function logoOptions(): Array<{ value: string; label: string }> {
   try {
@@ -208,17 +208,12 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
 // Personas: el kit lista, filtra, crea (alta manual de prospectos y externos) y exporta con step-up;
 // editar y todo lo demás pasa por la Persona 360 (02-crm.md).
 
-const [personasPlural, personaSingular] = tList("T-420") as [string, string];
+const [personasPlural, personaSingular] = tList("T-420");
 const campos = tList("T-427");
-const [estudiante, externo] = tList("T-428") as [string, string];
+const [estudiante, externo] = tList("T-428");
 const etapas = tList("T-429");
 const estados = tList("T-381");
-const [filtroEtapa, filtroEstado, filtroComite, filtroSegmento] = tList("T-508") as [
-  string,
-  string,
-  string,
-  string,
-];
+const [filtroEtapa, filtroEstado, filtroComite, filtroSegmento] = tList("T-508");
 
 export const STAGE_CODES = ["PROSPECT", "APPLICANT", "MEMBER", "ALUMNI"] as const;
 export const STATUS_CODES = ["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"] as const;
@@ -366,15 +361,8 @@ export const peopleResource: ResourceDefinition<PersonRow, PersonInput> = {
 // Cargos de comité: catálogo editable (ADR-029), sembrado por la migración 0001; desde ADR-058
 // (migración 0015) cada cargo dice si es dirección, si es obligatorio y qué capacidades habilita.
 
-const [cargosPlural, cargoSingular] = tList("T-421") as [string, string];
-const [codigo, nombreCargo, esDireccion, obligatorio, capacidades, orden] = tList("T-473") as [
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-];
+const [cargosPlural, cargoSingular] = tList("T-421");
+const [codigo, nombreCargo, esDireccion, obligatorio, capacidades, orden] = tList("T-473");
 const capacidadLabels = tList("T-2179");
 const capabilityOptions = COMMITTEE_CAPABILITIES.map((value, index) => ({
   value,
@@ -388,7 +376,7 @@ function capabilityLabels(codes: string[]): string {
     .join(" · ");
 }
 
-const [retirado, reemplazo] = tList("T-2209") as [string, string];
+const [retirado, reemplazo] = tList("T-2209");
 
 const roleFields: FieldDefinition[] = [
   { name: "code", label: codigo, type: "text", required: true, lockedOnEdit: true },
@@ -469,8 +457,8 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
 
 // Etiquetas: marcas libres sobre personas (02-crm.md).
 
-const [etiquetasPlural, etiquetaSingular] = tList("T-422") as [string, string];
-const [nombreEtiqueta, colorEtiqueta] = tList("T-465") as [string, string];
+const [etiquetasPlural, etiquetaSingular] = tList("T-422");
+const [nombreEtiqueta, colorEtiqueta] = tList("T-465");
 
 export const tagsResource: ResourceDefinition<TagRow, TagInput> = {
   key: "etiquetas",
@@ -497,7 +485,7 @@ export const tagsResource: ResourceDefinition<TagRow, TagInput> = {
 
 // Segmentos: filtros guardados con conteo y export de personas (con step-up, por /api/export/personas).
 
-const [segmentosPlural, segmentoSingular] = tList("T-424") as [string, string];
+const [segmentosPlural, segmentoSingular] = tList("T-424");
 const segmentoCampos = tList("T-468");
 const ingresoOpciones = tList("T-469");
 const consentimientoOpciones = tList("T-470");

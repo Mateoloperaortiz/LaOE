@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { t } from "@/shared/copy";
+import { t } from "@/shared/copy/client";
 import { type FieldDefinition, MULTI_SEPARATOR } from "./types";
 
 const inputClass =
