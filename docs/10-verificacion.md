@@ -7,7 +7,7 @@ La [auditoría del 2026-09-11](auditoria-pruebas-2026-09-11.md) revisa todos los
 ## Local
 
 - OrbStack como runtime de contenedores: `docker compose up -d` levanta Postgres 18 en `127.0.0.1:5433` (el 5432 lo usa GHPOINTS) y Garage como bucket S3 en `127.0.0.1:3900`; `npm run storage:init` aplica el CORS del bucket con el mismo comando que se usa contra Railway. Mailer de consola.
-- `npm run db:reset`: esquema desde cero con las migraciones SQL de Drizzle, verificación de índices parciales y extensiones, y datos sintéticos sin información real.
+- `npm run db:reset`: esquema desde cero con las migraciones SQL de Drizzle, verificación de los índices únicos y GIN que declara el esquema (ADR-079) y de las extensiones, y datos sintéticos sin información real.
 - `npm test`: solo unitarias. `npm run check` añade Biome, sintaxis Bash, tipos, dependency-cruiser, knip, el extractor Python, integración y `next build`. No incluye E2E ni la restauración de respaldos.
 - `npm run test:extractor`: once pruebas Python del extractor con PDFs sintéticos, también incluidas en `check`.
 - `npm run test:integration`: PostgreSQL local en una base con sufijo `_test` (la crea y migra `tests/integration/global-setup.ts`). El helper rechaza destinos remotos, protocolos distintos de PostgreSQL y nombres de base ausentes. El setup fija correo de consola, jobs deshabilitados y OTP sintético, independientemente del `.env` de desarrollo.

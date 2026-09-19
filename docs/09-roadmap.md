@@ -546,6 +546,42 @@ Listo cuando: GH crea, publica y revisa retos de los tres formatos sin tocar có
 - [x] Implementar y medir [ADR-055](adr/ADR-055-cuatro-particiones-e2e-integracion-en-dos-runners-y-lista-documental.md): lista documental con `docs/04-decisiones.md` y `docs/10-verificacion.md` aplicada también a los watch patterns de `web` en ambos entornos, cuatro particiones E2E e integración en dos runners con reparto por archivo verificado por el gate. Estimado: CI completo cerca de 5:45 a 6:00. Medido: [PR 9](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34639520138) en **5:41** (E2E 4:38 a 5:16 con 213, 215, 180 y 221 s de Playwright; integración 2:17 y 2:26 con 31 y 34 archivos; 27,5 minutos de runner) y [`main`](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34640068295) en **5:54**; gate en verde con 473 unitarias, 309 de integración en dos particiones y 169 casos E2E. Watch paths aplicados y releídos en `web` de staging y producción con `update-service`, sin cambios escalonados. Promoción de `67dfcf2` a `production` en modo `promotion`: check `CI` en 0:28, Railway `SUCCESS` en 2:36 desde el push y smoke aprobado con `oeeafit.com` sirviendo `67dfcf2`.
 - [x] Quinta partición E2E, el ajuste que ADR-055 deja previsto: `E2E_SHARDS` a 5 y matriz `1/5` a `5/5`, sin cambios en el reparto ni en el gate. Estimado: runners E2E cerca de 4:50 y CI completo cerca de 5:10, con unos 2 minutos de runner más. Medido: [PR 11](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34642440913) en **5:25** (runners E2E de 3:42 a 4:42 con 119 a 182 s de Playwright; 29,1 minutos de runner) y [`main`](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34642950398) en **5:33** (30,1 minutos). Promoción de `6878340` en modo `promotion`: check `CI` en 0:45 desde el push, Railway `SUCCESS` en 2:26 y [smoke](https://github.com/Mateoloperaortiz/LaOE/actions/runs/34643997050) aprobado con `oeeafit.com` sirviendo `6878340`. Con cinco runners la partición más lenta ya depende más de la varianza del runner que del reparto.
 
+## Auditoría de código y plataforma · 2026-09-19
+
+[Informe completo](auditoria-codigo-2026-09-19.md): seis frentes de solo lectura sobre `7edf50e`, con los hallazgos que sostienen decisiones comprobados a mano. El código está sano para su velocidad; la deuda es de robustez operativa, registros centrales que chocan entre sesiones, presentación sin piezas base y restos. El plan va en dos series: **V** verifica y mide lo que la auditoría no alcanzó, **R** es el trabajo sobre el código. Cada tramo entra con su ADR cuando decide algo nuevo, va en rama desde `origin/main` con PR y cierra con `npm run check` en verde y la tabla de `npm run audit:metrics` anotada en el informe.
+
+Serie V:
+
+- [x] V0 · Línea base: `npm run audit:metrics` (`scripts/audit-metrics.ts`), primera medición anotada en la sección 8 del informe.
+- [ ] V1 · Hipótesis que condicionan decisiones: cabecera de IP en el despliegue real, fijación de sesión entre subdominios, prueba de concepto del rewrite por host con Server Actions, chunk de textos medido en navegador, auditoría sin IP, eventos emitidos sin handler.
+- [ ] V2 · Seguridad: `npm audit`, que cada guard sea el correcto, alcance por comité (ADR-072) caso por caso, tokens de carnet, ICS y baja.
+- [ ] V3 · Base de datos en producción, solo lectura y con autorización explícita del túnel: tamaños, consultas lentas, índices faltantes, lecturas que crecen sin `limit`.
+- [ ] V4 · Módulos poco cubiertos (`comms`, `content`, `identity`, `wallet`, `forms`, `finance`) y cobertura de pruebas medida.
+- [ ] V5 · Decisiones de producto: las diez preguntas de la sección 6 del informe, si SES vuelve y el gasto real de Railway.
+
+Serie R:
+
+- [ ] R0 · Robustez ([ADR-079](adr/ADR-079-limites-de-espera-y-esquema-verificado-desde-el-esquema.md)).
+  - [x] Límites del pool y listener de `error`; migraciones sin límite por sentencia.
+  - [x] Límite de red en Resend, S3, SES y push; último recurso del poller por evento, con la invariante «la base espera más que el poller» validada al arrancar.
+  - [x] Índices exigidos por `db:release` derivados del esquema: 123 en lugar de los 119 de la lista a mano, que había dejado atrás cuatro.
+  - [x] Prueba unitaria que compara `docs/14` con el catálogo generado.
+  - [x] Una sola regla de correo institucional; consultas en serie sobre una transacción en seis sitios: el aviso de `pg` en la suite de integración pasó de 14 a 0.
+  - [ ] IP del cliente detrás de Cloudflare y Railway (espera a V1).
+  - [ ] Sacar `LaOE/outputs/` de la carpeta de repositorios: 162 archivos con datos personales junto al repo, fuera de git. Es una carpeta de Mateo; decide él el destino.
+- [ ] R1 · Limpieza y documentos: código muerto de la migración de GHPOINTS (2.024 líneas), `.impeccable/` y los informes fechados fuera de `docs/`, ADR de enmienda de la arquitectura (las actions viven en `src/app`; no existen `events.ts`, «shadcn base» ni `defineResource`), bitácora aparte del roadmap y del runbook, mudanzas mecánicas entre módulos.
+- [ ] R2 · Copy: mapa de runtime por sección sin metadatos editoriales, regla de lint que lo prohíba en componentes cliente, `tList` como tuplas de largo fijo.
+- [ ] R3 · Kit de actions y navegación: `src/app/_lib`, `src/app/_authz`, `actorContext`, una sola tabla de navegación del admin, `register<T>` en el kit, `DomainError` fuera del admin-kit, `dates-pure`, convención de carpetas de `src/app`.
+- [ ] R4 · Eventos y poller: catálogo tipado por módulo productor, línea de tiempo como registro por tipo, reserva de la fila con `lockedUntil` y fila por par evento-handler, recuperación de programados perdidos, salud del outbox en `/api/health`.
+- [ ] R5 · `participation`: `creditPoints` en el ledger y `dailyRun` para los juegos, `checkin-hooks`, subcarpetas `core/` y `gamification/`, módulo `games`, `internal.ts` y `testing.ts` en los módulos grandes, partición de los archivos gigantes.
+- [ ] R6 · UI base y páginas gordas: primitives en `src/shared/ui`, CSS del kit junto al kit, partición de `Paneles`, `pipelines`, `ocasiones` y `comités`, opciones y etiquetas desde los módulos, errores por código en la URL, `loading.tsx` y `error.tsx` por área.
+- [ ] R7 · Pruebas y CI: `tests/support` compartido, seeds por módulo, duraciones de partición que se refrescan solas, un solo build por corrida, `check:fast`, `db-release` compilado, N+1 y paginación con los números de V3.
+- [ ] R8 · Plataforma: cookie `__Host-` con su ADR de sesión, ADR «sitios por host» para los macroeventos, `APP_ROOT` en `scripts/ci/*`, `src/shared` con forma de paquete.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-19 | Auditoría, V0 y R0 | Informe de la auditoría en `docs/`, plan en series V y R, y [ADR-079](adr/ADR-079-limites-de-espera-y-esquema-verificado-desde-el-esquema.md). V0: `npm run audit:metrics` reproduce los conteos de la auditoría (159, 54 y 25 funciones de más de 100, 200 y 300 líneas; 380, 232 y 150 exports; 13 copias de `requireAdmin`). R0 sin cambios de esquema, textos ni pantallas: límites en el pool, en Resend, S3, SES y push, y último recurso del poller por evento; `db:release` deriva del esquema 123 índices exigidos; prueba que compara `docs/14` con el catálogo generado; una regla de correo institucional; seis `Promise.all` sobre una transacción pasados a serie. V1 parcial: confirmada la auditoría sin IP en 30 actions (va a R3) y descartados los eventos sin handler (los 64 tipos emitidos tienen consumidor). `npm run check` PASS: 672 unitarias, 11 de Python, 525 de integración y build; a este checkout le faltaba `npm ci` para `@tabler/icons-react`. Quedan de R0 la IP del cliente (espera a V1) y sacar `LaOE/outputs/` de la carpeta de repositorios. |
+
 ## Registro de avances
 
 | Fecha | Fase | Qué cambió |
