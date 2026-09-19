@@ -59,11 +59,21 @@ export const pointEntryKind = pgEnum("point_entry_kind", [
   "BOOST",
   // ADR-075: premio del 2048, de 1 a 6 puntos y uno por día.
   "GAME2048",
+  // ADR-078: premio del Sudoku, 2, 4 o 6 puntos por dificultad (la mitad con ayudas) y uno por día.
+  "SUDOKU",
 ]);
 
 export const wordleStatus = pgEnum("wordle_status", ["IN_PROGRESS", "WON", "LOST", "EXPIRED"]);
 
 export const game2048Status = pgEnum("game2048_status", ["IN_PROGRESS", "FINISHED", "EXPIRED"]);
+
+export const sudokuStatus = pgEnum("sudoku_status", [
+  "IN_PROGRESS",
+  "SOLVED",
+  "ABANDONED",
+  "EXPIRED",
+]);
+export const sudokuDifficulty = pgEnum("sudoku_difficulty", ["EASY", "MEDIUM", "HARD"]);
 
 // Gamificación (ADR-067): retos relámpago, boosters, campañas, premios con topes y colección.
 export const challengeKind = pgEnum("challenge_kind", ["PRESENTIAL", "TRIVIA", "EVIDENCE"]);
@@ -236,6 +246,80 @@ export const game2048Run = pgTable(
   ],
 );
 
+// Partida de Sudoku (ADR-078). El servidor genera el tablero desde `seed`, que nunca sale de él, y
+// guarda `solution`: al cerrar compara la cuadrícula enviada, sin replay. `assisted` se fija al crear
+// la partida y decide si la solución viaja al navegador y si el premio es la mitad. Se juega sin
+// límite: el único parcial sobre `creditedAt` es lo que garantiza un solo crédito por día.
+export const sudokuRun = pgTable(
+  "sudoku_run",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    day: date({ mode: "string" }).notNull(),
+    seed: text().notNull(),
+    rulesVersion: text().notNull(),
+    difficulty: sudokuDifficulty().notNull(),
+    assisted: boolean().notNull(),
+    givens: text().notNull(),
+    solution: text().notNull(),
+    status: sudokuStatus().notNull().default("IN_PROGRESS"),
+    startRequestId: text().notNull(),
+    finishRequestId: text(),
+    creditedAt: timestampTz(),
+    creditedPoints: integer(),
+    finishedAt: timestampTz(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    // Un solo crédito por persona y día, aunque dos pestañas cierren a la vez.
+    uniqueIndex("sudoku_run_person_day_credited_unique")
+      .on(t.personId, t.day)
+      .where(sql`${t.creditedAt} is not null`),
+    // Una sola partida abierta por persona.
+    uniqueIndex("sudoku_run_person_open_unique")
+      .on(t.personId)
+      .where(sql`${t.status} = 'IN_PROGRESS'`),
+    uniqueIndex("sudoku_run_start_request_unique").on(t.personId, t.startRequestId),
+    uniqueIndex("sudoku_run_finish_request_unique")
+      .on(t.personId, t.finishRequestId)
+      .where(sql`${t.finishRequestId} is not null`),
+    index("sudoku_run_person_day_idx").on(t.personId, t.day),
+    index("sudoku_run_term_idx").on(t.termId),
+    check("sudoku_run_seed_format", sql`${t.seed} ~ '^[0-9a-f]{16}$'`),
+    check("sudoku_run_givens_format", sql`${t.givens} ~ '^[0-9]{81}$'`),
+    check("sudoku_run_solution_format", sql`${t.solution} ~ '^[1-9]{81}$'`),
+    check(
+      "sudoku_run_finished_consistent",
+      sql`(${t.status} = 'IN_PROGRESS') = (${t.finishedAt} is null)`,
+    ),
+    // Solo una partida resuelta lleva la solicitud de cierre: abandonar no tiene `requestId`.
+    check(
+      "sudoku_run_finish_request_consistent",
+      sql`(${t.status} = 'SOLVED') = (${t.finishRequestId} is not null)`,
+    ),
+    check(
+      "sudoku_run_credit_consistent",
+      sql`(${t.creditedAt} is null) = (${t.creditedPoints} is null)`,
+    ),
+    check("sudoku_run_credit_solved", sql`${t.creditedAt} is null or ${t.status} = 'SOLVED'`),
+    check(
+      "sudoku_run_credit_range",
+      sql`${t.creditedPoints} is null or ${t.creditedPoints} between 1 and 6`,
+    ),
+    // El modo con ayudas nunca paga más de la mitad, aunque el comando se equivoque.
+    check(
+      "sudoku_run_credit_assisted_cap",
+      sql`${t.creditedPoints} is null or not ${t.assisted} or ${t.creditedPoints} <= 3`,
+    ),
+  ],
+);
+
 // Momento con check-in: actividad, asamblea o sesión de una edición. `publicId` va en la URL y el QR.
 export const occasion = pgTable(
   "occasion",
@@ -343,6 +427,7 @@ export const pointEntry = pgTable(
     checkInId: text().references(() => checkIn.id),
     wordleGameId: text().references(() => wordleGame.id),
     game2048RunId: text().references(() => game2048Run.id),
+    sudokuRunId: text().references(() => sudokuRun.id),
     rewardId: text().references((): AnyPgColumn => reward.id),
     kind: pointEntryKind().notNull(),
     points: integer().notNull(),
@@ -358,6 +443,7 @@ export const pointEntry = pgTable(
     uniqueIndex("point_entry_reversal_of_unique").on(t.reversalOfId),
     uniqueIndex("point_entry_wordle_game_unique").on(t.wordleGameId),
     uniqueIndex("point_entry_game2048_run_unique").on(t.game2048RunId),
+    uniqueIndex("point_entry_sudoku_run_unique").on(t.sudokuRunId),
     // Un (rewardId, kind) por premio: el check de abajo limita rewardId a CHALLENGE y BOOST.
     // El predicado no compara el enum: un literal nuevo no se puede usar en la transacción del
     // ADD VALUE y el cast a text no es IMMUTABLE.
@@ -385,6 +471,14 @@ export const pointEntry = pgTable(
     check(
       "point_entry_game2048_reward",
       sql`${t.kind}::text <> 'GAME2048' or ${t.points} between 1 and 6`,
+    ),
+    check(
+      "point_entry_sudoku_consistent",
+      sql`(${t.kind}::text = 'SUDOKU') = (${t.sudokuRunId} is not null)`,
+    ),
+    check(
+      "point_entry_sudoku_reward",
+      sql`${t.kind}::text <> 'SUDOKU' or ${t.points} between 1 and 6`,
     ),
     check(
       "point_entry_reversal_consistent",

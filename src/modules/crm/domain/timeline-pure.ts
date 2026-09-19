@@ -27,6 +27,7 @@ export const TIMELINE_EVENTS = [
   "points.reversed",
   "wordle.completed",
   "game2048.completed",
+  "sudoku.completed",
   "evaluation.recorded",
   "leader-score.recorded",
   "manual-credit.granted",
@@ -370,6 +371,24 @@ export function summarizeEvent(
           termId: str(payload, "termId"),
           day: str(payload, "day"),
           score,
+          points,
+        },
+      );
+    }
+    case "sudoku.completed": {
+      const points = typeof payload.points === "number" ? payload.points : 0;
+      return entry(
+        "PARTICIPATION",
+        fill(labels.participationTexts[13] ?? "", {
+          fecha: str(payload, "day"),
+          n: String(points),
+        }),
+        {
+          runId: str(payload, "runId"),
+          termId: str(payload, "termId"),
+          day: str(payload, "day"),
+          difficulty: str(payload, "difficulty"),
+          assisted: payload.assisted === true,
           points,
         },
       );
