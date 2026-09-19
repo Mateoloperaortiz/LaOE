@@ -28,7 +28,6 @@
     "tests/integration/identity-prune.test.ts": 0.8,
     "tests/integration/leave-access.test.ts": 0.9,
     "tests/integration/media.test.ts": 1.2,
-    "tests/integration/migrate-ghpoints.test.ts": 0.8,
     "tests/integration/normativa-import.test.ts": 18.9,
     "tests/integration/notifications.test.ts": 1.5,
     "tests/integration/organizations.test.ts": 0.9,
