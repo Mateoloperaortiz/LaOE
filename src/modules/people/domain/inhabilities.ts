@@ -49,53 +49,53 @@ export async function leadershipContext(
   termId: string,
   now = new Date(),
 ): Promise<LeadershipContext> {
-  const [committeeRoles, appointments, [member], veteran, sanctions] = await Promise.all([
-    exec
-      .select({
-        committeeId: committeeRoleAssignment.committeeId,
-        roleCode: committeeRoleAssignment.roleCode,
-        coDirector: committeeRoleAssignment.coDirector,
-      })
-      .from(committeeRoleAssignment)
-      .innerJoin(committeeRole, eq(committeeRole.code, committeeRoleAssignment.roleCode))
-      .where(
-        and(
-          eq(committeeRoleAssignment.personId, personId),
-          eq(committeeRoleAssignment.termId, termId),
-          isNull(committeeRoleAssignment.endedAt),
-          eq(committeeRole.isLeadership, true),
-        ),
+  // En serie: `exec` puede ser una transacción, que es una sola conexión, y pg no admite consultas
+  // simultáneas sobre ella (ADR-079 regla 10).
+  const committeeRoles = await exec
+    .select({
+      committeeId: committeeRoleAssignment.committeeId,
+      roleCode: committeeRoleAssignment.roleCode,
+      coDirector: committeeRoleAssignment.coDirector,
+    })
+    .from(committeeRoleAssignment)
+    .innerJoin(committeeRole, eq(committeeRole.code, committeeRoleAssignment.roleCode))
+    .where(
+      and(
+        eq(committeeRoleAssignment.personId, personId),
+        eq(committeeRoleAssignment.termId, termId),
+        isNull(committeeRoleAssignment.endedAt),
+        eq(committeeRole.isLeadership, true),
       ),
-    exec
-      .select({
-        kind: appointment.kind,
-        editionId: appointment.editionId,
-        roleCode: appointment.roleCode,
-        coDirector: appointment.coDirector,
-      })
-      .from(appointment)
-      .where(and(eq(appointment.personId, personId), eq(appointment.termId, termId))),
-    exec
-      .select({ firstTermId: membership.firstTermId })
-      .from(membership)
-      .where(eq(membership.personId, personId))
-      .limit(1),
-    exec
-      .select({
-        reportAsVeteran: membershipTerm.reportAsVeteran,
-        resumedNew: membershipTerm.resumedNew,
-      })
-      .from(membershipTerm)
-      .where(
-        and(
-          eq(membershipTerm.personId, personId),
-          eq(membershipTerm.termId, termId),
-          isNull(membershipTerm.committeeId),
-        ),
-      )
-      .limit(1),
-    sanctionStateFor(personId, now, exec),
-  ]);
+    );
+  const appointments = await exec
+    .select({
+      kind: appointment.kind,
+      editionId: appointment.editionId,
+      roleCode: appointment.roleCode,
+      coDirector: appointment.coDirector,
+    })
+    .from(appointment)
+    .where(and(eq(appointment.personId, personId), eq(appointment.termId, termId)));
+  const [member] = await exec
+    .select({ firstTermId: membership.firstTermId })
+    .from(membership)
+    .where(eq(membership.personId, personId))
+    .limit(1);
+  const veteran = await exec
+    .select({
+      reportAsVeteran: membershipTerm.reportAsVeteran,
+      resumedNew: membershipTerm.resumedNew,
+    })
+    .from(membershipTerm)
+    .where(
+      and(
+        eq(membershipTerm.personId, personId),
+        eq(membershipTerm.termId, termId),
+        isNull(membershipTerm.committeeId),
+      ),
+    )
+    .limit(1);
+  const sanctions = await sanctionStateFor(personId, now, exec);
   const existing: HeldRole[] = [
     ...committeeRoles.map((row) => ({
       kind: "COMMITTEE" as const,

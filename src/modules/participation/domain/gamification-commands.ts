@@ -121,12 +121,10 @@ export async function submitTriviaAs(
   const member = row ? await resolveMemberContext(actor.personId, row.termId) : null;
   return runCommand(actor, async (ctx) => {
     const now = input.now ?? new Date();
-    const [booster, campaign] = row
-      ? await Promise.all([
-          findTargetedBooster(ctx.tx, actor.personId, { challengeId: row.id }, now),
-          activeCampaignFor(ctx.tx, { challengeId: row.id }, now),
-        ])
-      : [null, null];
+    const booster = row
+      ? await findTargetedBooster(ctx.tx, actor.personId, { challengeId: row.id }, now)
+      : null;
+    const campaign = row ? await activeCampaignFor(ctx.tx, { challengeId: row.id }, now) : null;
     return submitTrivia(
       ctx,
       { ...input, personId: actor.personId, now },
@@ -169,12 +167,10 @@ export async function submitEvidenceAs(
   }
   return runCommand(actor, async (ctx) => {
     const now = input.now ?? new Date();
-    const [booster, campaign] = row
-      ? await Promise.all([
-          findTargetedBooster(ctx.tx, actor.personId, { challengeId: row.id }, now),
-          activeCampaignFor(ctx.tx, { challengeId: row.id }, now),
-        ])
-      : [null, null];
+    const booster = row
+      ? await findTargetedBooster(ctx.tx, actor.personId, { challengeId: row.id }, now)
+      : null;
+    const campaign = row ? await activeCampaignFor(ctx.tx, { challengeId: row.id }, now) : null;
     return submitEvidence(
       ctx,
       { ...input, personId: actor.personId, files, now },

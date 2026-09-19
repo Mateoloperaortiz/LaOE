@@ -92,11 +92,15 @@ async function approvedApproval(
 }
 
 async function movementsOf(ctx: CommandContext, budgetId: string) {
-  const [lines, expenses, transfers] = await Promise.all([
-    ctx.tx.select().from(budgetLine).where(eq(budgetLine.budgetId, budgetId)),
-    ctx.tx.select().from(budgetExpense).where(eq(budgetExpense.budgetId, budgetId)),
-    ctx.tx.select().from(budgetTransfer).where(eq(budgetTransfer.budgetId, budgetId)),
-  ]);
+  const lines = await ctx.tx.select().from(budgetLine).where(eq(budgetLine.budgetId, budgetId));
+  const expenses = await ctx.tx
+    .select()
+    .from(budgetExpense)
+    .where(eq(budgetExpense.budgetId, budgetId));
+  const transfers = await ctx.tx
+    .select()
+    .from(budgetTransfer)
+    .where(eq(budgetTransfer.budgetId, budgetId));
   return { lines, expenses, transfers };
 }
 
