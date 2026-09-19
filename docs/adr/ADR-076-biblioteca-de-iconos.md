@@ -1,6 +1,6 @@
 # ADR-076: Biblioteca de iconos detrás de una fachada propia
 
-- Estado: Aceptada; implementada en local, publicación pendiente
+- Estado: Aceptada; en producción desde el 2026-09-19 (`ea15713`)
 - Fecha: 2026-09-18
 - Relacionadas: ADR-043, ADR-044, ADR-069, ADR-075; extiende [07-marca.md](../07-marca.md) §9 y §10 sin cambiar ninguna regla anterior
 
