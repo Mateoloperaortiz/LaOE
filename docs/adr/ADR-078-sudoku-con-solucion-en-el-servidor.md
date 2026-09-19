@@ -1,6 +1,6 @@
 # ADR-078: Sudoku con la solución en el servidor
 
-- Estado: Aceptada
+- Estado: Aceptada; en producción desde el 2026-09-19 (`4ac5920`)
 - Fecha: 2026-09-19
 - Enmienda: ADR-075 (regla 1: la biblioteca tiene un tercer juego; regla 12: la disponibilidad compartida vale para los tres), ADR-067 (regla 4: el Sudoku también queda fuera de los topes y no admite boosters), ADR-007 (tipo `SUDOKU`)
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-020, ADR-030, ADR-032, ADR-035, ADR-038, ADR-041, ADR-076
