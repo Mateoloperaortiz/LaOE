@@ -2,7 +2,13 @@ import { and, asc, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
-import { type JobContext, registerHandler } from "@/jobs/registry";
+import {
+  committeeMembershipChanged,
+  membershipChanged,
+  personAnonymized,
+  personUpdated,
+} from "@/domain-events/people";
+import { type JobContext, onEvent, onEvents, registerHandler } from "@/jobs/registry";
 import { refreshGooglePass } from "./domain/google";
 import { walletPass } from "./schema";
 
@@ -29,25 +35,23 @@ async function queueSync(personId: string, context: JobContext, scrubApple = fal
   });
 }
 
-for (const event of [
-  "carnet-token.rotated",
-  "committee-membership.changed",
-  "membership.changed",
-]) {
-  registerHandler(event, async (payload, context) => {
-    await queueSync(personEvent.parse(payload).personId, context);
-  });
-}
+onEvents([committeeMembershipChanged, membershipChanged], async ({ personId }, context) => {
+  await queueSync(personId, context);
+});
 
-registerHandler("person.updated", async (payload, context) => {
-  const event = personEvent.extend({ fields: z.array(z.string()) }).parse(payload);
-  if (event.fields.some((field) => ["firstName", "lastName", "preferredName"].includes(field))) {
-    await queueSync(event.personId, context);
+// `identity` todavía no está en el catálogo de eventos (ADR-084): sigue por nombre.
+registerHandler("carnet-token.rotated", async (payload, context) => {
+  await queueSync(personEvent.parse(payload).personId, context);
+});
+
+onEvent(personUpdated, async ({ personId, fields }, context) => {
+  if (fields.some((field) => ["firstName", "lastName", "preferredName"].includes(field))) {
+    await queueSync(personId, context);
   }
 });
 
-registerHandler("person.anonymized", async (payload, context) => {
-  await queueSync(personEvent.parse(payload).personId, context, true);
+onEvent(personAnonymized, async ({ personId }, context) => {
+  await queueSync(personId, context, true);
 });
 
 registerHandler("wallet.sync", async (payload) => {

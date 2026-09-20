@@ -3,6 +3,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import "@/jobs/handlers";
+import { eventOf } from "@/domain-events/define";
+import { membershipChanged, personAnonymized } from "@/domain-events/people";
 import { drain } from "@/jobs/poller";
 import { issueAccessGrantAs } from "@/modules/identity/domain/access-grant";
 import { findPasswordHash } from "@/modules/identity/domain/password";
@@ -64,10 +66,16 @@ describe("retiro y anonimización retiran la credencial", () => {
       ip: null,
     });
 
-    await enqueueEvent(db(), {
-      type: "membership.changed",
-      payload: { personId, to: "INACTIVE" },
-    });
+    await enqueueEvent(
+      db(),
+      eventOf(membershipChanged, {
+        actorId: null,
+        personId,
+        from: "ACTIVE",
+        to: "INACTIVE",
+        reason: null,
+      }),
+    );
     await drenar();
 
     expect(await findPasswordHash(personId)).toBeNull();
@@ -84,7 +92,7 @@ describe("retiro y anonimización retiran la credencial", () => {
     const personId = await seedMember("se-borra@eafit.edu.co");
     await issueAccessGrantAs({ personId: emisor }, { personId, kind: "ACTIVATION" });
 
-    await enqueueEvent(db(), { type: "person.anonymized", payload: { personId } });
+    await enqueueEvent(db(), eventOf(personAnonymized, { actorId: null, personId }));
     await drenar();
 
     expect(await findPasswordHash(personId)).toBeNull();
@@ -96,10 +104,16 @@ describe("retiro y anonimización retiran la credencial", () => {
   it("una licencia no toca la credencial: la persona vuelve", async () => {
     const personId = await seedMember("en-licencia@eafit.edu.co");
 
-    await enqueueEvent(db(), {
-      type: "membership.changed",
-      payload: { personId, to: "ON_LEAVE" },
-    });
+    await enqueueEvent(
+      db(),
+      eventOf(membershipChanged, {
+        actorId: null,
+        personId,
+        from: "ACTIVE",
+        to: "ON_LEAVE",
+        reason: null,
+      }),
+    );
     await drenar();
 
     expect(await findPasswordHash(personId)).not.toBeNull();

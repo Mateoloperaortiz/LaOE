@@ -6,6 +6,7 @@ import {
   checkinExcused,
   scoreRecompute,
 } from "@/domain-events/participation";
+import { membershipChanged, personAnonymized } from "@/domain-events/people";
 import { type JobContext, onEvent, onEvents, registerHandler } from "@/jobs/registry";
 import { listLiveCommitteeIds, listTermCommitteeMembers } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
@@ -186,10 +187,7 @@ onEvents([checkinApproved, checkinCancelled, checkinExcused], async ({ occasionI
 
 // Al anonimizar, el nombre congelado en los standings pasa a T-223 (ADR-030): people no toca
 // tablas de participation. Las invitaciones de encuesta tampoco son historia.
-const personEvent = z.object({ personId: z.string().min(1) });
-
-registerHandler("person.anonymized", async (payload, ctx) => {
-  const { personId } = personEvent.parse(payload);
+onEvent(personAnonymized, async ({ personId }, ctx) => {
   const changed = await scrubStandingName(personId);
   const invites = await deleteSurveyInvitesFor(personId);
   const featured = await clearFeaturedBadges(personId);
@@ -197,13 +195,7 @@ registerHandler("person.anonymized", async (payload, ctx) => {
   ctx.log.info({ personId, changed, invites, featured, evidence }, "standings anonimizados");
 });
 
-const membershipChanged = z.object({
-  personId: z.string().min(1),
-  to: z.enum(["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"]),
-});
-
-registerHandler("membership.changed", async (payload, ctx) => {
-  const { personId, to } = membershipChanged.parse(payload);
+onEvent(membershipChanged, async ({ personId, to }, ctx) => {
   if (to !== "INACTIVE") {
     return;
   }
