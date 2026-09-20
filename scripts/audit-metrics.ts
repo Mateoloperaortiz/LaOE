@@ -205,6 +205,16 @@ const rows: [string, string | number][] = [
   ["`throw new Error(` en `src`", count(src, /throw new Error\(/g)],
   ["`getDb()` en `src/modules`", count(modules, /\bgetDb\(\)/g)],
   [
+    "Eventos de dominio: en el catálogo · todavía emitidos como cadena suelta",
+    `${count(load("src/domain-events"), /\bdefineEvent\(/g)} · ${
+      new Set(
+        [...src, ...scripts].flatMap((file) =>
+          [...file.text.matchAll(/\btype: "([a-z0-9-]+\.[a-z0-9.-]+)"/g)].map((match) => match[1]),
+        ),
+      ).size
+    }`,
+  ],
+  [
     `Elementos crudos en \`src\` (${RAW_ELEMENTS.join(" · ")})`,
     RAW_ELEMENTS.map((tag) => count(src, new RegExp(`<${tag}[\\s>]`, "g"))).join(" · "),
   ],

@@ -1,6 +1,6 @@
 # ADR-012: Outbox transaccional; efectos fuera del commit
 
-- Estado: Aceptada (enmendada por ADR-021, ADR-038, ADR-040 y ADR-079)
+- Estado: Aceptada (enmendada por ADR-021, ADR-038, ADR-040, ADR-079 y ADR-084)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-001, ADR-009, ADR-021
 
@@ -34,3 +34,7 @@ Wallet traduce cada evento fuente de nombre, comités, membresía, rotación o a
 ## Enmienda (2026-09-19, ADR-079)
 
 La transacción del poller solo sostiene el bloqueo de la fila: los handlers trabajan con sus propias conexiones, no dentro de ella. Todos los handlers de un evento comparten un límite de último recurso (`JOBS_HANDLER_TIMEOUT_MS`, 10 minutos): al vencer, el intento se registra como fallido con su backoff, la cola sigue y la cadena abandonada no arranca los handlers que le faltaban. Cada adaptador de red tiene su propio límite, y la base espera más que el poller para que el intento siempre quede registrado. Detalle en [ADR-079](ADR-079-limites-de-espera-y-esquema-verificado-desde-el-esquema.md).
+
+## Enmienda (2026-09-19, ADR-084)
+
+Un evento de dominio tiene contrato: nombre y esquema del payload en `src/domain-events/`, un archivo por módulo productor. El productor emite con `eventOf(contrato, payload)` y el compilador comprueba el payload; el consumidor escucha con `onEvent(contrato, handler)` y recibe el payload validado y tipado. La migración va por familias. Detalle en [ADR-084](ADR-084-catalogo-tipado-de-eventos-de-dominio.md).
