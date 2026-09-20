@@ -88,6 +88,32 @@ Lo que enseñó el contrato en estricto:
 
 `comms` validaba `decision` contra sus cuatro valores; ahora viaja como texto y el correo sigue saliendo solo cuando es `CONTINUES` en la fila por persona, así que un valor desconocido no envía nada.
 
+## Quinta familia: lo que faltaba
+
+Veintiún tipos y 32 emisiones, con los que el catálogo queda completo: **64 de 64, ninguno como cadena suelta**.
+
+- `crm` (8): `call.opened`, `call-entry.changed`, `card.created`, `card.moved`, `recognition.granted`, `request.created`, `request.withdrawn` y `request.decided`.
+- `identity` (4): `access-grant.issued`, `carnet-token.rotated`, `permission.granted` y `permission.revoked`.
+- `content` (2): `announcement.push-requested` y `media.process`. `forms` (2): `registration.created` y `submission.received`. `wallet` (2): `wallet.sync` y `wallet.reconcile`. `comms` (1): `campaign.start`. `system` (1): `person.data-exported`.
+- `participation` (1): `game2048.completed`, que el inventario de las familias anteriores no vio porque su expresión regular no admitía dígitos en el nombre.
+
+Salen once esquemas parciales de `comms`, `permanence`, `wallet`, `content` y `crm`. Con esto `registerHandler` queda para dos cosas: los programados, que no llevan payload (regla 7), y la línea de tiempo de `crm`, que migra en su propio tramo.
+
+Lo que enseñó el contrato en estricto:
+
+- **`actorId` es anulable en todas las familias que lo llevan.** El sistema otorga el primer ADMIN (`scripts/lib/bootstrap-admin.ts`), un formulario público lo responde alguien sin sesión, y un enlace de acceso lo puede emitir `scripts/lib/bootstrap-access.ts` con el actor del sistema.
+- **Una tarjeta es de una persona o de una organización, nunca de las dos**: `personId` y `organizationId` de `card.created` y `card.moved` son anulables, como ya decía la restricción `card_one_subject` de la base.
+- Una convocatoria puede no tener cupo (`capacity`), un permiso global y un anuncio para todos no tienen comité (`committeeId`), una solicitud puede decidirse sin motivo (`reason`) y una respuesta puede no estar asociada a una persona (`personId` de `submission.received`).
+- **`actions` de `submission.received` es un objeto abierto**: el contrato nombra las dos acciones que alguien escucha (`pipelineId`, `editionId`) y deja pasar las demás. `forms` puede sumar acciones sin tocar el contrato.
+
+Tres casos que pedían una decisión:
+
+- **`wallet.reconcile` es programado y también trabajo encadenado.** El scheduler lo encola a las 00:05 con su payload de reloj (`scheduled`, `at`) y el handler se lo vuelve a encolar con un `cursor` mientras queden páginas. Es el único programado que está en el catálogo: su contrato tiene solo `cursor`, opcional, y el payload del scheduler se descarta al validar. `src/jobs/schedule.ts` usa `walletReconcile.type` en lugar de la cadena.
+- **`campaign.start` comparte rutina con el programado `comms.campaign-tick`.** Antes se registraban en un bucle sobre los dos nombres; ahora la rutina es una función y cada uno se registra por su vía.
+- **Una decisión de solicitud desconocida no se comunica.** `comms` validaba `status` contra `APPROVED` y `REJECTED`; como texto (regla 5), cualquier otro valor habría caído en la rama de «no aprobada» y le habría llegado un correo equivocado a la persona. Ahora deja una advertencia en el log y no envía nada. Es el tercer caso del mismo criterio, después de las sesiones de `identity` y la audiencia de los retos: ante lo desconocido, la opción que no hace daño.
+
+Una observación que el tipado dejó a la vista y que este tramo no cambia: `request.decided` lleva el correo y el nombre de la persona en el payload, así que viven en el outbox hasta que el programado `prune` lo depura, treinta días después de procesado. Es deliberado —la respuesta sale por correo aunque la persona ya no esté activa—, pero conviene tenerlo presente cuando R4-B toque la retención del outbox y cuando se escriba la política de datos de Subsidios-OE.
+
 ## Consecuencias
 
 - 20 de 64 tipos en el catálogo tras las dos primeras familias. Quedan 44: el resto de `participation` (retos, insignias, juegos, cierre), `permanence`, `forms`, `crm`, `identity`, `content` y `system`.

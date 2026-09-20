@@ -2,6 +2,8 @@
 // trabajo. Horas en America/Bogota. `reminders` cierra ocasiones vencidas y avisa si falta el término
 // siguiente (fase 3); `campaigns` arranca las campañas vencidas y manda un lote por minuto (fase 6).
 
+import { walletReconcile } from "@/domain-events/wallet";
+
 export interface ScheduleEntry {
   name: string;
   cron: string;
@@ -9,7 +11,8 @@ export interface ScheduleEntry {
 }
 
 export const SCHEDULE: ScheduleEntry[] = [
-  { name: "wallet", cron: "5 0 * * *", events: ["wallet.reconcile"] },
+  // Es el único programado que también está en el catálogo: el mismo evento se encadena con cursor.
+  { name: "wallet", cron: "5 0 * * *", events: [walletReconcile.type] },
   { name: "campaigns", cron: "* * * * *", events: ["comms.campaign-tick"] },
   {
     name: "reminders",

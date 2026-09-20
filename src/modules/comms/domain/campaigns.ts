@@ -2,6 +2,8 @@ import { and, asc, count, desc, eq, ilike, inArray, isNull, lte, sql } from "dri
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { campaignStart } from "@/domain-events/comms";
+import { eventOf } from "@/domain-events/define";
 import { getEnv } from "@/env";
 import {
   findPeopleByFilter,
@@ -208,11 +210,13 @@ export async function scheduleCampaign(
     after: { status: "SCHEDULED", scheduledAt: scheduledAt.toISOString() },
   });
   if (scheduledAt.getTime() <= now.getTime()) {
-    await ctx.emit({
-      type: "campaign.start",
-      payload: { campaignId: id, actorId: ctx.actor.personId },
-      dedupeKey: `campaign-start:${id}`,
-    });
+    await ctx.emit(
+      eventOf(
+        campaignStart,
+        { campaignId: id, actorId: ctx.actor.personId },
+        { dedupeKey: `campaign-start:${id}` },
+      ),
+    );
   }
 }
 

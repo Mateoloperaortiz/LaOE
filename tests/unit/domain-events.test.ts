@@ -217,3 +217,85 @@ describe("contratos de permanence", () => {
     ).not.toThrow();
   });
 });
+
+describe("contratos de crm, identity, content, forms, wallet, comms y system", () => {
+  it("el programado de la billetera llega sin cursor y su payload de scheduler se descarta", async () => {
+    const { walletReconcile } = await import("@/domain-events/wallet");
+    expect(
+      walletReconcile.schema.parse({ scheduled: "wallet", at: "2026-09-20T05:05:00.000Z" }),
+    ).toEqual({});
+    expect(walletReconcile.schema.parse({ cursor: "pase-100" })).toEqual({ cursor: "pase-100" });
+  });
+
+  it("una tarjeta es de una persona o de una organización", async () => {
+    const { cardCreated } = await import("@/domain-events/crm");
+    const base = {
+      actorId: "admin",
+      cardId: "c1",
+      pipelineId: "p1",
+      pipelineName: "Aliados",
+      stageName: "Contacto",
+    };
+    expect(() =>
+      cardCreated.schema.parse({ ...base, personId: null, organizationId: "o1" }),
+    ).not.toThrow();
+    expect(() =>
+      cardCreated.schema.parse({ ...base, personId: "x", organizationId: null }),
+    ).not.toThrow();
+    expect(() => cardCreated.schema.parse(base)).toThrow();
+  });
+
+  it("una respuesta puede venir de alguien sin sesión y deja pasar las acciones que no conoce", async () => {
+    const { submissionReceived } = await import("@/domain-events/forms");
+    const parsed = submissionReceived.schema.parse({
+      actorId: null,
+      submissionId: "s1",
+      formId: "f1",
+      formTitle: "Inscripción",
+      formSlug: "inscripcion",
+      personId: null,
+      email: "alguien@example.com",
+      actions: { createPerson: true, tagIds: ["t1"], editionId: "e1" },
+    });
+    expect(parsed.actions).toMatchObject({ editionId: "e1", tagIds: ["t1"] });
+  });
+
+  it("el primer ADMIN lo otorga el sistema y un permiso global no tiene comité", async () => {
+    const { permissionGranted } = await import("@/domain-events/identity");
+    expect(() =>
+      permissionGranted.schema.parse({
+        actorId: null,
+        personId: "p1",
+        code: "ADMIN",
+        committeeId: null,
+      }),
+    ).not.toThrow();
+  });
+
+  it("una convocatoria puede no tener cupo y un anuncio puede no tener comité", async () => {
+    const { callOpened } = await import("@/domain-events/crm");
+    const { announcementPushRequested } = await import("@/domain-events/content");
+    expect(() =>
+      callOpened.schema.parse({
+        callId: "c1",
+        termId: "t1",
+        groupId: "g1",
+        title: "Barra",
+        closesAt: "2026-10-01T00:00:00.000Z",
+        capacity: null,
+        actorId: "admin",
+      }),
+    ).not.toThrow();
+    expect(() =>
+      announcementPushRequested.schema.parse({
+        announcementId: "a1",
+        title: "Anuncio",
+        excerpt: "",
+        audience: "MEMBERS",
+        committeeId: null,
+        url: "/app/cartelera/a1",
+        actorId: "admin",
+      }),
+    ).not.toThrow();
+  });
+});

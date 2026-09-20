@@ -1,6 +1,8 @@
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { permissionGranted } from "@/domain-events/identity";
 import { getEnv } from "@/env";
 import { permission } from "@/modules/identity/schema";
 import { isInstitutionalEmail, personInputSchema } from "@/modules/people";
@@ -150,7 +152,7 @@ export async function bootstrapAdmin(raw: unknown): Promise<BootstrapAdminResult
       entityId: createdPermission.id,
       after: grant,
     });
-    await ctx.emit({ type: "permission.granted", payload: { actorId: null, ...grant } });
+    await ctx.emit(eventOf(permissionGranted, { actorId: null, ...grant }));
 
     return { status: "created", personId: createdPerson.id };
   });

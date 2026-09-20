@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { permissionGranted, permissionRevoked } from "@/domain-events/identity";
 import {
   findMemberByEmail,
   getPeopleByIds,
@@ -156,15 +158,14 @@ export async function grantPermission(
       entityId: row.id,
       after: { personId: member.id, code: input.code, committeeId: input.committeeId ?? null },
     });
-    await ctx.emit({
-      type: "permission.granted",
-      payload: {
+    await ctx.emit(
+      eventOf(permissionGranted, {
         actorId: ctx.actor.personId,
         personId: member.id,
         code: input.code,
         committeeId: input.committeeId ?? null,
-      },
-    });
+      }),
+    );
     return row;
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -201,15 +202,14 @@ export async function revokePermission(ctx: CommandContext, id: string): Promise
     entityId: id,
     before: row,
   });
-  await ctx.emit({
-    type: "permission.revoked",
-    payload: {
+  await ctx.emit(
+    eventOf(permissionRevoked, {
       actorId: ctx.actor.personId,
       personId: row.personId,
       code: row.code,
       committeeId: row.committeeId,
-    },
-  });
+    }),
+  );
 }
 
 /**
@@ -241,15 +241,14 @@ export async function revokeAllPermissionsFor(
       entityId: row.id,
       before: row,
     });
-    await ctx.emit({
-      type: "permission.revoked",
-      payload: {
+    await ctx.emit(
+      eventOf(permissionRevoked, {
         actorId: ctx.actor.personId,
         personId,
         code: row.code,
         committeeId: row.committeeId,
-      },
-    });
+      }),
+    );
     revoked += 1;
   }
   return { revoked, keptLastAdmin };

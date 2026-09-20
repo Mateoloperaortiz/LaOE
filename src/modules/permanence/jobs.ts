@@ -1,6 +1,6 @@
-import { z } from "zod";
 import { getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
+import { callEntryChanged } from "@/domain-events/crm";
 import { eventOf } from "@/domain-events/define";
 import {
   checkinApproved,
@@ -110,18 +110,10 @@ onEvent(permanenceClosed, async ({ termId, nextTermId }, ctx) => {
 
 // Una inscripción aceptada a una convocatoria interna entra al grupo (ADR-037 regla 10): idempotente
 // ("quien ya está, se queda") y solo activos; `addMembers` encola el recompute de la persona.
-const callEntryChanged = z.object({
-  groupId: z.string().min(1),
-  personId: z.string().min(1),
-  status: z.string(),
-  actorId: z.string().nullable().optional(),
-});
-
-registerHandler("call-entry.changed", async (payload, ctx) => {
-  const { groupId, personId, status, actorId } = callEntryChanged.parse(payload);
+onEvent(callEntryChanged, async ({ groupId, personId, status, actorId }, ctx) => {
   if (status !== "ACCEPTED") {
     return;
   }
-  const added = await addMembersAs({ personId: actorId ?? null }, groupId, [personId]);
+  const added = await addMembersAs({ personId: actorId }, groupId, [personId]);
   ctx.log.info({ groupId, personId, added }, "inscripción aceptada al grupo");
 });

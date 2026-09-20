@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
-import { z } from "zod";
 import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { submissionReceived } from "@/domain-events/forms";
 import { checkinApproved, termSuccessorMissing } from "@/domain-events/participation";
 import {
   committeeRemovalRequested,
@@ -239,15 +239,7 @@ onEvent(termSuccessorMissing, async ({ next, endsOn }, ctx) => {
 
 // Una respuesta con la acción "entrar al pipeline" crea su tarjeta (ADR-037 regla 7); idempotente por
 // `card_submission_unique`, así que procesar dos veces el mismo evento no duplica.
-const submissionReceived = z.object({
-  submissionId: z.string().min(1),
-  personId: z.string().min(1).nullable(),
-  actorId: z.string().nullable().optional(),
-  actions: z.object({ pipelineId: z.string().min(1).optional() }).loose(),
-});
-
-registerHandler("submission.received", async (payload, ctx) => {
-  const { submissionId, personId, actorId, actions } = submissionReceived.parse(payload);
+onEvent(submissionReceived, async ({ submissionId, personId, actorId, actions }, ctx) => {
   if (!actions.pipelineId || !personId) {
     return;
   }

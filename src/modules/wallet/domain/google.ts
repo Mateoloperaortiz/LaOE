@@ -1,6 +1,8 @@
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { enqueueEvent, type Tx } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { walletSync } from "@/domain-events/wallet";
 import { getEnv } from "@/env";
 import { getCarnetCredential, getOrCreateCarnetCredential } from "@/modules/identity";
 import { getWalletMemberState } from "@/modules/people";
@@ -96,7 +98,7 @@ async function currentSnapshot(tx: Tx, data: CarnetData): Promise<boolean> {
 async function resyncIfChanged(tx: Tx, data: CarnetData): Promise<boolean> {
   const current = await currentSnapshot(tx, data);
   if (!current) {
-    await enqueueEvent(tx, { type: "wallet.sync", payload: { personId: data.personId } });
+    await enqueueEvent(tx, eventOf(walletSync, { personId: data.personId }));
   }
   return current;
 }
@@ -234,7 +236,7 @@ export async function refreshGooglePass(personId: string): Promise<void> {
       token?.revision !== data.revision ||
       token.walletEpoch !== data.walletEpoch
     ) {
-      await enqueueEvent(tx, { type: "wallet.sync", payload: { personId } });
+      await enqueueEvent(tx, eventOf(walletSync, { personId }));
     }
   });
 }

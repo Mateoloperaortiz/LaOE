@@ -5,6 +5,8 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { mediaProcess } from "@/domain-events/content";
+import { eventOf } from "@/domain-events/define";
 import { deleteObject, headObject, presignRead, presignUpload } from "@/shared/adapters/storage";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -146,11 +148,9 @@ export async function confirmUpload(
         visibility,
       },
     });
-    await ctx.emit({
-      type: "media.process",
-      payload: { assetId: row.id },
-      dedupeKey: `media.process:${row.id}`,
-    });
+    await ctx.emit(
+      eventOf(mediaProcess, { assetId: row.id }, { dedupeKey: `media.process:${row.id}` }),
+    );
     return row;
   } catch (error) {
     if (isUniqueViolation(error, "media_asset_object_key_unique")) {

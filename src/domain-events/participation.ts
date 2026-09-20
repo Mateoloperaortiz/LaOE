@@ -148,6 +148,19 @@ export const wordleCompleted = defineEvent(
   }),
 );
 
+export const game2048Completed = defineEvent(
+  "game2048.completed",
+  z.object({
+    personId: id,
+    termId: id,
+    runId: id,
+    day: z.string(),
+    score: z.number().int(),
+    maxTile: z.number().int(),
+    points: z.number().int(),
+  }),
+);
+
 export const sudokuCompleted = defineEvent(
   "sudoku.completed",
   z.object({

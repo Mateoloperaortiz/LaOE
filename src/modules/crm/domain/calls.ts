@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { callEntryChanged, callOpened } from "@/domain-events/crm";
+import { eventOf } from "@/domain-events/define";
 import {
   createSubmission,
   type FormView,
@@ -239,19 +241,21 @@ async function emitCallOpened(
     capacity?: number | undefined;
   },
 ): Promise<void> {
-  await ctx.emit({
-    type: "call.opened",
-    payload: {
-      callId: id,
-      termId: values.termId,
-      groupId: values.groupId,
-      title: values.title,
-      closesAt: values.closesAt.toISOString(),
-      capacity: values.capacity ?? null,
-      actorId: ctx.actor.personId,
-    },
-    dedupeKey: `call-opened:${id}`,
-  });
+  await ctx.emit(
+    eventOf(
+      callOpened,
+      {
+        callId: id,
+        termId: values.termId,
+        groupId: values.groupId,
+        title: values.title,
+        closesAt: values.closesAt.toISOString(),
+        capacity: values.capacity ?? null,
+        actorId: ctx.actor.personId,
+      },
+      { dedupeKey: `call-opened:${id}` },
+    ),
+  );
 }
 
 export async function updateCall(ctx: CommandContext, id: string, input: CallInput): Promise<void> {
@@ -411,17 +415,16 @@ export async function applyToCallAs(
       entityId: callId,
       after: { personId: actor.personId, status, submissionId },
     });
-    await ctx.emit({
-      type: "call-entry.changed",
-      payload: {
+    await ctx.emit(
+      eventOf(callEntryChanged, {
         actorId: actor.personId,
         personId: actor.personId,
         callId,
         callTitle: locked.title,
         groupId: locked.groupId,
         status,
-      },
-    });
+      }),
+    );
     return { status, entryId: entry.id };
   });
 }
@@ -483,17 +486,16 @@ export async function decideEntryAs(
       before: { personId: entry.personId, status: entry.status },
       after: { personId: entry.personId, status, note: note ?? null },
     });
-    await ctx.emit({
-      type: "call-entry.changed",
-      payload: {
+    await ctx.emit(
+      eventOf(callEntryChanged, {
         actorId: ctx.actor.personId,
         personId: entry.personId,
         callId: entry.callId,
         callTitle: locked.title,
         groupId: locked.groupId,
         status,
-      },
-    });
+      }),
+    );
   });
 }
 

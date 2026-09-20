@@ -1,5 +1,7 @@
-import { z } from "zod";
-import { notificationRequested } from "@/domain-events/comms";
+import { campaignStart, notificationRequested } from "@/domain-events/comms";
+import { announcementPushRequested } from "@/domain-events/content";
+import { callOpened, recognitionGranted, requestDecided } from "@/domain-events/crm";
+import { accessGrantIssued } from "@/domain-events/identity";
 import {
   badgeUnlocked,
   challengeCompleted,
@@ -10,7 +12,7 @@ import {
 import { membershipChanged, personAdmitted, personAnonymized } from "@/domain-events/people";
 import { permanenceDecided } from "@/domain-events/permanence";
 import { getEnv } from "@/env";
-import { onEvent, registerHandler } from "@/jobs/registry";
+import { type JobContext, onEvent, registerHandler } from "@/jobs/registry";
 import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
 import { runCampaignTick } from "./domain/campaigns";
@@ -44,7 +46,7 @@ onEvent(notificationRequested, async (payload, ctx) => {
 });
 
 // Push por evento (ADR-038 reglas 6 y 7).
-registerHandler("announcement.push-requested", async (payload, ctx) => {
+onEvent(announcementPushRequested, async (payload, ctx) => {
   const stats = await pushAnnouncement(payload);
   ctx.log.info(stats, "push del anuncio entregado");
 });
@@ -56,19 +58,19 @@ onEvent(checkinApproved, async (payload, ctx) => {
   }
 });
 
-registerHandler("call.opened", async (payload, ctx) => {
+onEvent(callOpened, async (payload, ctx) => {
   const stats = await pushCallOpened(payload);
   ctx.log.info(stats, "push de convocatoria entregado");
 });
 
 // La titular se entera de que se emitió un enlace para su cuenta aunque el enlace se lo hayan
 // entregado a otra persona (ADR-051, amenaza aceptada).
-registerHandler("access-grant.issued", async (payload, ctx) => {
+onEvent(accessGrantIssued, async (payload, ctx) => {
   const stats = await pushAccessGrantIssued(payload);
   ctx.log.info(stats, "push del enlace de acceso entregado");
 });
 
-registerHandler("recognition.granted", async (payload, ctx) => {
+onEvent(recognitionGranted, async (payload, ctx) => {
   const stats = await pushRecognition(payload);
   ctx.log.info(stats, "push de reconocimiento entregado");
 });
@@ -109,14 +111,15 @@ onEvent(permanenceDecided, async (payload, ctx) => {
 
 // Campañas (ADR-038 regla 8): el programado `campaigns` encola un tick por minuto; "Enviar ahora"
 // emite `campaign.start` para no esperar al minuto. Los dos corren la misma rutina.
-for (const type of ["comms.campaign-tick", "campaign.start"]) {
-  registerHandler(type, async (_payload, ctx) => {
-    const result = await runCampaignTick();
-    if (result.started > 0 || result.sent > 0) {
-      ctx.log.info(result, "campañas procesadas");
-    }
-  });
+async function campaignTick(ctx: JobContext): Promise<void> {
+  const result = await runCampaignTick();
+  if (result.started > 0 || result.sent > 0) {
+    ctx.log.info(result, "campañas procesadas");
+  }
 }
+
+registerHandler("comms.campaign-tick", (_payload, ctx) => campaignTick(ctx));
+onEvent(campaignStart, (_payload, ctx) => campaignTick(ctx));
 
 // Al salir de la OE se borran suscripciones y preferencias (ADR-030, ADR-038 regla 5).
 onEvent(membershipChanged, async ({ personId, to }, ctx) => {
@@ -177,17 +180,14 @@ onEvent(personAdmitted, async ({ personId, email, firstName, committees }, ctx) 
   );
 });
 
-const decided = z.object({
-  personId: z.string().min(1),
-  email: z.string().min(3),
-  firstName: z.string(),
-  kindLabel: z.string(),
-  status: z.enum(["APPROVED", "REJECTED"]),
-  reason: z.string().nullable().optional(),
-});
-
-registerHandler("request.decided", async (payload, ctx) => {
-  const { personId, email, firstName, kindLabel, status, reason } = decided.parse(payload);
+onEvent(requestDecided, async (payload, ctx) => {
+  const { personId, email, firstName, kindLabel, status, reason } = payload;
+  // El estado viaja como texto (ADR-084 regla 5). Una decisión que este código no conozca no se le
+  // comunica a nadie como «no aprobada»: se deja constancia y no se envía nada.
+  if (status !== "APPROVED" && status !== "REJECTED") {
+    ctx.log.warn({ personId, status }, "solicitud decidida con un estado desconocido; no se avisa");
+    return;
+  }
   const [aprobó, noAprobó] = tList("T-1061");
   const receipt = await send(personId, email, "T-205", {
     nombre: firstName || t("T-1056"),
