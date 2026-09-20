@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-085](ADR-085-plataforma-oe-digital-un-backend-y-frontends-delgados.md) | Plataforma OE Digital: un backend y frontends delgados | Aceptada |
 | [ADR-084](ADR-084-catalogo-tipado-de-eventos-de-dominio.md) | Catálogo tipado de eventos de dominio | Aceptada |
 | [ADR-083](ADR-083-lo-compartido-no-vive-en-la-carpeta-de-una-pantalla.md) | Lo compartido no vive en la carpeta de una pantalla | Aceptada |
 | [ADR-082](ADR-082-un-kit-para-las-server-actions-y-auditoria-con-ip.md) | Un kit para las server actions, y la auditoría siempre con IP | Aceptada |
@@ -52,7 +53,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-048](ADR-048-autorizacion-en-el-primer-ingreso.md) | La autorización de membresía se da en el primer ingreso | Aceptada; implementada y verificada en local |
 | [ADR-047](ADR-047-politica-de-datos-y-habilitacion.md) | Política de datos, su versión y el respaldo de las autorizaciones | Aceptada; borrador entregado, publicación pendiente |
 | [ADR-046](ADR-046-integracion-roster-y-acceso-en-licencia.md) | Integración del roster y acceso de consulta en licencia | Implementada y verificada; carga pendiente por política (enmendada por ADR-047) |
-| [ADR-001](ADR-001-monolito-modular-serverless.md) | Monolito modular con un solo Postgres | Aceptada (enmendada por ADR-021, ADR-032 y ADR-080) |
+| [ADR-001](ADR-001-monolito-modular-serverless.md) | Monolito modular con un solo Postgres | Aceptada (enmendada por ADR-021, ADR-032, ADR-080 y ADR-085) |
 | [ADR-002](ADR-002-persona-como-eje.md) | La persona es el eje; la membresía es un ciclo de vida | Aceptada |
 | [ADR-003](ADR-003-etapas-por-comando.md) | Etapas explícitas por comando | Aceptada (enmendada por ADR-039) |
 | [ADR-004](ADR-004-termino-como-reloj.md) | El término académico es el reloj universal | Aceptada |
@@ -72,7 +73,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-018](ADR-018-migracion-desde-ghpoints.md) | Migración desde GHPOINTS por script sobre dump | Aceptada (enmendada por ADR-034, ADR-039, ADR-050) |
 | [ADR-019](ADR-019-infraestructura-vercel-neon-r2.md) | Infraestructura: Vercel Pro + Neon + R2 + Resend | Reemplazada por ADR-021 |
 | [ADR-020](ADR-020-zona-horaria.md) | UTC en base, America/Bogota en presentación | Aceptada |
-| [ADR-021](ADR-021-infraestructura-railway.md) | Infraestructura: Railway en el workspace Pro existente | Aceptada (enmendada por ADR-022, ADR-023 y ADR-032, ADR-039, ADR-040) |
+| [ADR-021](ADR-021-infraestructura-railway.md) | Infraestructura: Railway en el workspace Pro existente | Aceptada (enmendada por ADR-022, ADR-023 y ADR-032, ADR-039, ADR-040, ADR-085) |
 | [ADR-022](ADR-022-medios-prefirmados.md) | Medios: subida directa y entrega por URL prefirmada | Aceptada (enmendada por ADR-034, ADR-039, ADR-050) |
 | [ADR-023](ADR-023-operacion-entornos-respaldo-correo.md) | Operación: entorno de pruebas, copia externa y correo con desbordamiento | Aceptada (enmendada por ADR-038, ADR-039, ADR-050) |
 | [ADR-024](ADR-024-reglas-de-participacion.md) | Reglas de participación confirmadas por la OE | Aceptada (enmendada por ADR-027, ADR-028, ADR-030 y ADR-035) |

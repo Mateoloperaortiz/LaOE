@@ -1,6 +1,6 @@
 # ADR-021: Infraestructura: Railway en el workspace Pro existente
 
-- Estado: Aceptada (enmendada por ADR-022 en "Medios", por ADR-023 en "Entornos", "Respaldos" y "Presupuesto", y por ADR-032 en el pre-deploy, ADR-039, ADR-040)
+- Estado: Aceptada (enmendada por ADR-022 en "Medios", por ADR-023 en "Entornos", "Respaldos" y "Presupuesto", y por ADR-032 en el pre-deploy, ADR-039, ADR-040, y por ADR-085 en el número de desplegables)
 - Fecha: 2026-09-02
 - Reemplaza: ADR-019
 - Enmienda: ADR-001, ADR-012, ADR-016
@@ -51,3 +51,7 @@ La configuración declarativa pasa de `railway.json` a `.railway/railway.ts` (pa
 ## Enmienda (2026-09-06, ADR-040)
 
 Apple Wallet y Google Wallet son proveedores opcionales por entorno, sin otro servicio ni cambio al presupuesto de Railway. La inscripción eventual al Apple Developer Program y su renovación son un gasto aparte, pendiente de decisión sobre pago y titular. Los certificados y claves se cargan de forma privada en una línea base64; el IaC preserva las variables opcionales adoptadas y distingue el sufijo Google de staging. El código se entrega con proveedores apagados; activar exige credenciales, política y comprobación en dispositivo, como hitos propios de la fase 8. Ver [ADR-040](ADR-040-carnet-en-billeteras-fase-8.md).
+
+## Enmienda (2026-09-19, ADR-085)
+
+El proyecto deja de tener un solo desplegable de aplicación. El servicio `web` sigue siendo el único backend permanente y el único que llega a Postgres por la red privada. Los frontends de los macroeventos y de Subsidios-OE son estáticos o se regeneran detrás de una CDN, o duermen fuera de temporada; dónde se alojan se decide con el piloto y con el gasto medido, sin subir el tope. Detalle en [ADR-085](ADR-085-plataforma-oe-digital-un-backend-y-frontends-delgados.md).
