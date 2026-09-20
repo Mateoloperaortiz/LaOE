@@ -1,6 +1,6 @@
 # ADR-001: Monolito modular con un solo Postgres
 
-- Estado: Aceptada (enmendada por ADR-021, ADR-032 y ADR-080)
+- Estado: Aceptada (enmendada por ADR-021, ADR-032, ADR-080 y ADR-085)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-012, ADR-017, ADR-021
 
@@ -33,3 +33,7 @@ El esquema de cada módulo es un archivo TypeScript (`src/modules/<módulo>/sche
 ## Enmienda (2026-09-19, ADR-080)
 
 La estructura de un módulo es `schema.ts`, `domain/`, `index.ts`, `admin.ts`, `jobs.ts` y `components/`. Las server actions viven en `src/app/**/actions.ts`, junto a su ruta, porque componen los guards de `identity` con comandos de uno o varios módulos; solo `identity` y `system` tienen `actions.ts` propio. No hay `events.ts` hasta que exista el catálogo tipado de eventos. El grafo permitido entre módulos es la tabla `MODULE_DEPS` de `.dependency-cruiser.cjs`, y `npm run deps:check` la verifica. Detalle en [ADR-080](ADR-080-la-arquitectura-documentada-es-la-del-codigo.md).
+
+## Enmienda (2026-09-19, ADR-085)
+
+El monolito modular se conserva entero y pasa a ser el **backend de varias aplicaciones**: es el único desplegable que toca la base, y suma una API. DÍAS, Inventiva, Enfemenino y Subsidios-OE son frontends delgados que la consumen, sin acceso a la base ni al dominio, en un monorepo de `apps/` y `packages/`. El dominio no se extrae a paquetes. Detalle en [ADR-085](ADR-085-plataforma-oe-digital-un-backend-y-frontends-delgados.md).
