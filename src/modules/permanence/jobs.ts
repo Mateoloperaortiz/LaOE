@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
 import {
   checkinApproved,
   checkinCancelled,
@@ -16,6 +17,7 @@ import {
   sanctionRecorded,
   sanctionRevoked,
 } from "@/domain-events/people";
+import { permanenceClosed, permanenceRecompute } from "@/domain-events/permanence";
 import { onEvent, onEvents, registerHandler } from "@/jobs/registry";
 import { findTermByCode, getCurrentTerm } from "@/modules/terms";
 import { applyDecisions } from "./domain/closing";
@@ -26,21 +28,16 @@ import { recomputeSnapshots } from "./domain/snapshots";
 // Handlers del outbox de permanencia (ADR-012, ADR-036 regla 5): el recompute corre fuera del
 // request con clave por término o por persona; los eventos de otros módulos solo lo encolan.
 
-const recomputeEvent = z.object({
-  termId: z.string().min(1),
-  personId: z.string().min(1).optional(),
-});
-
 export async function enqueueRecompute(termId: string, personId: string | null = null) {
-  await enqueueEvent(getDb(), {
-    type: "permanence.recompute",
-    payload: personId ? { termId, personId } : { termId },
-    dedupeKey: `permanence:${termId}:${personId ?? "*"}`,
-  });
+  await enqueueEvent(
+    getDb(),
+    eventOf(permanenceRecompute, personId ? { termId, personId } : { termId }, {
+      dedupeKey: `permanence:${termId}:${personId ?? "*"}`,
+    }),
+  );
 }
 
-registerHandler("permanence.recompute", async (payload, ctx) => {
-  const { termId, personId } = recomputeEvent.parse(payload);
+onEvent(permanenceRecompute, async ({ termId, personId }, ctx) => {
   const rows = await recomputeSnapshots(termId, personId ?? null);
   ctx.log.info({ termId, personId: personId ?? null, rows }, "permanencia recalculada");
 });
@@ -106,9 +103,7 @@ registerHandler("permanence.notices", async (payload, ctx) => {
 
 // Cierre aplicado (ADR-036 regla 9): el job ejecuta las decisiones confirmadas que falten, con el
 // actor que confirmó cada una; si falla a mitad, el reintento retoma por `appliedAt`.
-const closedEvent = z.object({ termId: z.string().min(1), nextTermId: z.string().min(1) });
-registerHandler("permanence.closed", async (payload, ctx) => {
-  const { termId, nextTermId } = closedEvent.parse(payload);
+onEvent(permanenceClosed, async ({ termId, nextTermId }, ctx) => {
   const applied = await applyDecisions(termId, nextTermId);
   ctx.log.info({ termId, nextTermId, applied }, "decisiones de permanencia aplicadas");
 });

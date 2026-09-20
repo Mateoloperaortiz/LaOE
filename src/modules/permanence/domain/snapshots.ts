@@ -1,6 +1,8 @@
 import { and, eq, isNull, notInArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { permanenceRecompute } from "@/domain-events/permanence";
 import { permanenceSnapshot } from "../schema";
 import { loadPeopleFacts, loadTermFacts } from "./facts";
 import {
@@ -165,10 +167,6 @@ export async function freezeSnapshots(ctx: CommandContext, termId: string, at = 
 /** Recalcular ahora desde el admin: encola el recompute del término con su clave (ADR-036 regla 5). */
 export function requestRecomputeAs(actor: Actor, termId: string): Promise<void> {
   return runCommand(actor, (ctx) =>
-    ctx.emit({
-      type: "permanence.recompute",
-      payload: { termId },
-      dedupeKey: `permanence:${termId}:*`,
-    }),
+    ctx.emit(eventOf(permanenceRecompute, { termId }, { dedupeKey: `permanence:${termId}:*` })),
   );
 }

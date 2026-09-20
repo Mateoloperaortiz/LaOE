@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { permanenceRecompute, workGroupMembershipChanged } from "@/domain-events/permanence";
 import {
   findMembersByEmails,
   getPeopleByIds,
@@ -124,11 +126,13 @@ export interface GroupDetail {
 }
 
 function recompute(ctx: CommandContext, termId: string, personId: string) {
-  return ctx.emit({
-    type: "permanence.recompute",
-    payload: { termId, personId },
-    dedupeKey: `permanence:${termId}:${personId}`,
-  });
+  return ctx.emit(
+    eventOf(
+      permanenceRecompute,
+      { termId, personId },
+      { dedupeKey: `permanence:${termId}:${personId}` },
+    ),
+  );
 }
 
 function toValues(input: GroupInput) {
@@ -296,9 +300,8 @@ export async function addMembers(
       entityId: row.id,
       after: { groupId, personId },
     });
-    await ctx.emit({
-      type: "work-group-membership.changed",
-      payload: {
+    await ctx.emit(
+      eventOf(workGroupMembershipChanged, {
         actorId: ctx.actor.personId,
         personId,
         termId: group.termId,
@@ -306,8 +309,8 @@ export async function addMembers(
         groupName: group.name,
         kind: group.kind,
         change: "JOINED",
-      },
-    });
+      }),
+    );
     await recompute(ctx, group.termId, personId);
   }
   return added;
@@ -343,9 +346,8 @@ export async function removeMember(
     entityId: row.id,
     after: { groupId, personId },
   });
-  await ctx.emit({
-    type: "work-group-membership.changed",
-    payload: {
+  await ctx.emit(
+    eventOf(workGroupMembershipChanged, {
       actorId: ctx.actor.personId,
       personId,
       termId: group.termId,
@@ -353,8 +355,8 @@ export async function removeMember(
       groupName: group.name,
       kind: group.kind,
       change: "LEFT",
-    },
-  });
+    }),
+  );
   await recompute(ctx, group.termId, personId);
   return true;
 }

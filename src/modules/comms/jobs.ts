@@ -8,6 +8,7 @@ import {
   checkinApproved,
 } from "@/domain-events/participation";
 import { membershipChanged, personAdmitted, personAnonymized } from "@/domain-events/people";
+import { permanenceDecided } from "@/domain-events/permanence";
 import { getEnv } from "@/env";
 import { onEvent, registerHandler } from "@/jobs/registry";
 import { t, tList } from "@/shared/copy";
@@ -96,7 +97,7 @@ onEvent(badgeUnlocked, async (payload, ctx) => {
 });
 
 // Resultado de permanencia (ADR-038 regla 10): correo T-202 a quien cumple; una vez por término.
-registerHandler("permanence.decided", async (payload, ctx) => {
+onEvent(permanenceDecided, async (payload, ctx) => {
   const receipt = await emailPermanenceOutcome(payload);
   if (receipt) {
     ctx.log.info(
