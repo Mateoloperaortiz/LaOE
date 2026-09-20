@@ -1,6 +1,8 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Executor, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { checkinApproved, scoreRecompute } from "@/domain-events/participation";
 import { permission } from "@/modules/identity/schema";
 import { creditCheckIn } from "@/modules/participation/domain/ledger";
 import { newPublicId } from "@/modules/participation/domain/public-id-pure";
@@ -353,9 +355,8 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
             entityId: created.id,
             after: { ...evidence, personId: row.personId, occasionId, points: row.points },
           });
-          await ctx.emit({
-            type: "checkin.approved",
-            payload: {
+          await ctx.emit(
+            eventOf(checkinApproved, {
               personId: row.personId,
               occasionId,
               occasionTitle: activity.title,
@@ -364,8 +365,8 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
               kind: kindFor(activity.type),
               points: row.points,
               source: "IMPORT",
-            },
-          });
+            }),
+          );
         }
         const ref = evidenceGroup(activity);
         if (ref && row.evidenceAction !== "NONE") {
@@ -449,11 +450,9 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
         }
       }
       if (rows.some((r) => r.action === "ADD"))
-        await ctx.emit({
-          type: "score.recompute",
-          payload: { occasionId },
-          dedupeKey: `score:${occasionId}`,
-        });
+        await ctx.emit(
+          eventOf(scoreRecompute, { occasionId }, { dedupeKey: `score:${occasionId}` }),
+        );
     }
     await ctx.emit({
       type: "permanence.recompute",

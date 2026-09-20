@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
-import { registerHandler } from "@/jobs/registry";
+import { checkinApproved, checkinCancelled, checkinExcused } from "@/domain-events/participation";
+import { onEvents, registerHandler } from "@/jobs/registry";
 import { findTermByCode, getCurrentTerm } from "@/modules/terms";
 import { applyDecisions } from "./domain/closing";
 import { addMembersAs } from "./domain/groups";
@@ -31,13 +32,9 @@ registerHandler("permanence.recompute", async (payload, ctx) => {
 });
 
 // Check-ins aprobados o anulados: la persona en el término de la ocasión.
-const checkInEvent = z.object({ personId: z.string().min(1), termId: z.string().min(1) });
-for (const type of ["checkin.approved", "checkin.cancelled", "checkin.excused"]) {
-  registerHandler(type, async (payload) => {
-    const { personId, termId } = checkInEvent.parse(payload);
-    await enqueueRecompute(termId, personId);
-  });
-}
+onEvents([checkinApproved, checkinCancelled, checkinExcused], async ({ personId, termId }) => {
+  await enqueueRecompute(termId, personId);
+});
 
 // Cambio de comités en un término.
 const committeeEvent = z.object({ personId: z.string().min(1), termId: z.string().min(1) });

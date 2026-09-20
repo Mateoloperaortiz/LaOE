@@ -1,6 +1,8 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { getDb } from "@/db/client";
 import { enqueueEvent, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { scoreRecompute } from "@/domain-events/participation";
 import { createTemplate, updatePreferencesAs } from "@/modules/comms";
 import { campaign, campaignRecipient, emailTemplate, message } from "@/modules/comms/schema";
 import { form } from "@/modules/forms/schema";
@@ -315,11 +317,10 @@ async function seedSurvey(db: Db, admin: string, termId: string, members: Member
       createdAt: at,
     });
   }
-  await enqueueEvent(db, {
-    type: "score.recompute",
-    payload: { occasionId: closed.id },
-    dedupeKey: `score:${closed.id}`,
-  });
+  await enqueueEvent(
+    db,
+    eventOf(scoreRecompute, { occasionId: closed.id }, { dedupeKey: `score:${closed.id}` }),
+  );
 
   // Invitaciones para los asistentes y seis respuestas anónimas (suficientes para ver los textos).
   const { created } = await createSurveyInvites(closed.id);

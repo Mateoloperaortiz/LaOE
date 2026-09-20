@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { registerHandler } from "@/jobs/registry";
+import {
+  checkinApproved,
+  checkinCancelled,
+  checkinExcused,
+  scoreRecompute,
+} from "@/domain-events/participation";
+import { type JobContext, onEvent, onEvents, registerHandler } from "@/jobs/registry";
 import { listLiveCommitteeIds, listTermCommitteeMembers } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { findTermByCode, getCurrentTerm, nextTermCode } from "@/modules/terms";
@@ -24,10 +30,7 @@ import { runWordleReminder } from "./domain/wordle-reminder";
 // Handlers del outbox de participación (ADR-012, ADR-035): el recompute del score corre fuera del
 // request, una vez por ráfaga (clave por ocasión) y bajo advisory lock.
 
-const scoreEvent = z.object({ occasionId: z.string().min(1) });
-
-registerHandler("score.recompute", async (payload, ctx) => {
-  const { occasionId } = scoreEvent.parse(payload);
+onEvent(scoreRecompute, async ({ occasionId }, ctx) => {
   const row = await getOccasion(occasionId);
   if (!row) {
     ctx.log.warn({ occasionId }, "recompute de una ocasión que no existe");
@@ -121,19 +124,22 @@ registerHandler("participation.term-check", async (_payload, ctx) => {
 // cierre de una ocasión o un reto completado otorgan las ediciones especiales vinculadas.
 const badgePerson = z.object({ personId: z.string().min(1) });
 
-for (const type of [
-  "checkin.approved",
-  "checkin.cancelled",
-  "wordle.completed",
-  "challenge.completed",
-  "challenge.reward-reversed",
-]) {
+async function recomputeBadges(personId: string, event: string, ctx: JobContext): Promise<void> {
+  const delta = await recomputeBadgesFor(personId, { historical: false });
+  if (delta.unlocked.length > 0 || delta.revoked.length > 0) {
+    ctx.log.info({ personId, event, ...delta }, "insignias recalculadas");
+  }
+}
+
+onEvents([checkinApproved, checkinCancelled], ({ personId }, ctx, type) =>
+  recomputeBadges(personId, type, ctx),
+);
+
+// Las familias que todavía no están en el catálogo de eventos (ADR-084) siguen por nombre.
+for (const type of ["wordle.completed", "challenge.completed", "challenge.reward-reversed"]) {
   registerHandler(type, async (payload, ctx) => {
     const { personId } = badgePerson.parse(payload);
-    const delta = await recomputeBadgesFor(personId, { historical: false });
-    if (delta.unlocked.length > 0 || delta.revoked.length > 0) {
-      ctx.log.info({ personId, event: type, ...delta }, "insignias recalculadas");
-    }
+    await recomputeBadges(personId, type, ctx);
   });
 }
 
@@ -172,15 +178,11 @@ registerHandler("occasion.closed", async (payload, ctx) => {
 });
 
 // Un check-in decidido después de cerrar una asamblea cambia qué comités estuvieron representados.
-const assemblyCheckIn = z.object({ occasionId: z.string().min(1), kind: z.string() });
-for (const type of ["checkin.approved", "checkin.cancelled", "checkin.excused"]) {
-  registerHandler(type, async (payload) => {
-    const { occasionId, kind } = assemblyCheckIn.parse(payload);
-    if (kind === "ASSEMBLY") {
-      await recomputeCommitteeAssembly(occasionId);
-    }
-  });
-}
+onEvents([checkinApproved, checkinCancelled, checkinExcused], async ({ occasionId, kind }) => {
+  if (kind === "ASSEMBLY") {
+    await recomputeCommitteeAssembly(occasionId);
+  }
+});
 
 // Al anonimizar, el nombre congelado en los standings pasa a T-223 (ADR-030): people no toca
 // tablas de participation. Las invitaciones de encuesta tampoco son historia.

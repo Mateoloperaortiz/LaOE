@@ -1,6 +1,8 @@
 import { and, count, eq, sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { scoreRecompute } from "@/domain-events/participation";
 import { getEnv } from "@/env";
 import { announcement } from "@/modules/content/schema";
 import { recognition } from "@/modules/crm/schema";
@@ -959,11 +961,10 @@ async function seedOccasions(
       createdAt: at,
     });
   }
-  await enqueueEvent(db, {
-    type: "score.recompute",
-    payload: { occasionId: closed.id },
-    dedupeKey: `score:${closed.id}`,
-  });
+  await enqueueEvent(
+    db,
+    eventOf(scoreRecompute, { occasionId: closed.id }, { dedupeKey: `score:${closed.id}` }),
+  );
 }
 
 try {

@@ -259,8 +259,11 @@ describe("importación administrativa de GH Points", () => {
     await expect(
       pushPointsCredited({
         occasionId: "synthetic",
+        occasionTitle: "Actividad sintética",
         personId,
         termId,
+        category: "OTHER",
+        kind: "ACTIVITY",
         points: 30,
         source: "IMPORT",
       }),

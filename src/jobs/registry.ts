@@ -1,4 +1,5 @@
 import type pino from "pino";
+import type { DomainEventDefinition, EventPayload } from "@/domain-events/define";
 
 // Registro de handlers del outbox. Cada módulo registra los suyos en su jobs.ts. Un evento puede
 // tener varios handlers (uno por módulo interesado, ADR-034): el poller los corre en orden y, si uno
@@ -21,6 +22,40 @@ export function registerHandler(eventType: string, handler: JobHandler): void {
   }
   list.push(handler);
   handlers.set(eventType, list);
+}
+
+/**
+ * Handler de un evento del catálogo (ADR-084): recibe el payload ya validado contra su contrato. Un payload
+ * que no lo cumple hace fallar el intento, igual que antes lo hacía el `parse` escrito en cada handler.
+ */
+export function onEvent<Definition extends DomainEventDefinition>(
+  definition: Definition,
+  handler: (payload: EventPayload<Definition>, ctx: JobContext) => Promise<void>,
+): void {
+  registerHandler(definition.type, (raw, ctx) =>
+    // `parse` devuelve la salida del esquema: TypeScript no la relaciona con el genérico, pero lo es.
+    handler(definition.schema.parse(raw) as EventPayload<Definition>, ctx),
+  );
+}
+
+/** El mismo handler para varios eventos: recibe la unión de sus payloads y el tipo que lo disparó. */
+export function onEvents<const Definitions extends readonly DomainEventDefinition[]>(
+  definitions: Definitions,
+  handler: (
+    payload: EventPayload<Definitions[number]>,
+    ctx: JobContext,
+    type: Definitions[number]["type"],
+  ) => Promise<void>,
+): void {
+  for (const definition of definitions) {
+    registerHandler(definition.type, (raw, ctx) =>
+      handler(
+        definition.schema.parse(raw) as EventPayload<Definitions[number]>,
+        ctx,
+        definition.type,
+      ),
+    );
+  }
 }
 
 export function getHandlers(eventType: string): JobHandler[] {

@@ -2,6 +2,14 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import {
+  checkinApproved,
+  checkinCancelled,
+  checkinExcused,
+  checkinPending,
+  scoreRecompute,
+} from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -90,13 +98,11 @@ async function emitApproved(
   personId: string,
   source: string,
 ) {
-  await ctx.emit({ type: "checkin.approved", payload: approvedPayload(row, personId, source) });
+  await ctx.emit(eventOf(checkinApproved, approvedPayload(row, personId, source)));
   if (row.points > 0) {
-    await ctx.emit({
-      type: "score.recompute",
-      payload: { occasionId: row.id },
-      dedupeKey: `score:${row.id}`,
-    });
+    await ctx.emit(
+      eventOf(scoreRecompute, { occasionId: row.id }, { dedupeKey: `score:${row.id}` }),
+    );
   }
 }
 
@@ -259,10 +265,7 @@ export async function checkInSelf(
   if (status === "APPROVED") {
     await emitApproved(ctx, row, input.personId, "SELF_QR");
   } else {
-    await ctx.emit({
-      type: "checkin.pending",
-      payload: approvedPayload(row, input.personId, "SELF_QR"),
-    });
+    await ctx.emit(eventOf(checkinPending, approvedPayload(row, input.personId, "SELF_QR")));
   }
   // ADR-067 reglas 8 y 12: el booster de la ocasión se resuelve antes que el reto presencial.
   if (context.settings) {
@@ -441,16 +444,16 @@ async function decide(
   if (decision === "APPROVE") {
     await emitApproved(ctx, row, current.personId, current.source);
   } else if (decision === "CANCEL") {
-    await ctx.emit({
-      type: "checkin.cancelled",
-      payload: { ...approvedPayload(row, current.personId, current.source), reason: cleanReason },
-    });
+    await ctx.emit(
+      eventOf(checkinCancelled, {
+        ...approvedPayload(row, current.personId, current.source),
+        reason: cleanReason,
+      }),
+    );
     if (row.points > 0) {
-      await ctx.emit({
-        type: "score.recompute",
-        payload: { occasionId: row.id },
-        dedupeKey: `score:${row.id}`,
-      });
+      await ctx.emit(
+        eventOf(scoreRecompute, { occasionId: row.id }, { dedupeKey: `score:${row.id}` }),
+      );
     }
   }
   // ADR-067 regla 12: aprobar completa el reto presencial, rechazar lo libera y anular lo revierte.
@@ -548,10 +551,12 @@ export async function cancelOccasionCheckIns(
     if (current.status === "APPROVED") {
       await reverseCheckInCredit(ctx, current.id, reason);
     }
-    await ctx.emit({
-      type: "checkin.cancelled",
-      payload: { ...approvedPayload(row, current.personId, current.source), reason },
-    });
+    await ctx.emit(
+      eventOf(checkinCancelled, {
+        ...approvedPayload(row, current.personId, current.source),
+        reason,
+      }),
+    );
     // ADR-067 regla 12: cancelar la ocasión anula la participación del reto presencial.
     if (settings) {
       await applyCheckInBoost(
@@ -579,11 +584,9 @@ export async function cancelOccasionCheckIns(
     }
   }
   if (rows.length > 0 && row.points > 0) {
-    await ctx.emit({
-      type: "score.recompute",
-      payload: { occasionId: row.id },
-      dedupeKey: `score:${row.id}`,
-    });
+    await ctx.emit(
+      eventOf(scoreRecompute, { occasionId: row.id }, { dedupeKey: `score:${row.id}` }),
+    );
   }
   return rows.length;
 }
@@ -636,10 +639,9 @@ export async function excuseCheckIn(ctx: CommandContext, input: ExcuseInput): Pr
     before: current ? { status: current.status } : null,
     after: { status: "EXCUSED", reason },
   });
-  await ctx.emit({
-    type: "checkin.excused",
-    payload: { ...approvedPayload(row, input.personId, "ADMIN"), reason },
-  });
+  await ctx.emit(
+    eventOf(checkinExcused, { ...approvedPayload(row, input.personId, "ADMIN"), reason }),
+  );
 }
 
 // Lecturas.
