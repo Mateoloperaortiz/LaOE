@@ -51,10 +51,11 @@ describe("catálogo de eventos de dominio", () => {
     const loose: string[] = [];
     for (const file of [...sourceFiles("src"), ...sourceFiles("scripts")]) {
       if (file.startsWith(CATALOG_DIR) || STILL_BY_NAME.has(file)) continue;
-      // Una acción de auditoría puede llamarse igual que un evento: es otro espacio de nombres.
+      // Una acción de auditoría puede llamarse igual que un evento: es otro espacio de nombres. La
+      // línea puede traer el valor directo o elegirlo con un condicional (`action: won ? "…" : "…"`).
       const lines = readFileSync(file, "utf8")
         .split("\n")
-        .filter((line) => !/\baction:\s*"/.test(line));
+        .filter((line) => !/\baction:\s/.test(line));
       for (const type of types) {
         if (lines.some((line) => line.includes(`"${type}"`))) loose.push(`${file}: "${type}"`);
       }
@@ -98,5 +99,75 @@ describe("eventOf, onEvent y onEvents", () => {
     await getHandlers("test.ping")[0]?.({ id: "a", n: 1 }, jobContext);
     await getHandlers("test.pong")[0]?.({ id: "b" }, jobContext);
     expect(seen).toEqual(["test.ping:a", "test.pong:b"]);
+  });
+});
+
+describe("contratos de participation y de comms", () => {
+  it("un logro puede no tener término ni traer booster", async () => {
+    const { badgeUnlocked } = await import("@/domain-events/participation");
+    const base = {
+      achievementId: "a1",
+      personId: "p1",
+      badgeId: "b1",
+      code: "EDICION-ESPECIAL",
+      family: "SPECIAL",
+      level: 2,
+      name: "Edición especial",
+      historical: false,
+    };
+    expect(badgeUnlocked.schema.parse({ ...base, termId: null, boosterKind: null })).toMatchObject({
+      termId: null,
+      boosterKind: null,
+    });
+    expect(() => badgeUnlocked.schema.parse(base)).toThrow();
+  });
+
+  it("un premio revertido viene de una entrega o de un check-in, y el otro va en null", async () => {
+    const { challengeRewardReversed } = await import("@/domain-events/participation");
+    const base = { personId: "p1", termId: "t1", rewardId: "r1" };
+    expect(() =>
+      challengeRewardReversed.schema.parse({ ...base, participationId: "x", checkInId: null }),
+    ).not.toThrow();
+    expect(() =>
+      challengeRewardReversed.schema.parse({ ...base, participationId: null, checkInId: "c" }),
+    ).not.toThrow();
+    expect(() => challengeRewardReversed.schema.parse(base)).toThrow();
+  });
+
+  it("la audiencia de un reto viaja como texto: un valor nuevo no manda el evento a dead letter", async () => {
+    const { challengePublished } = await import("@/domain-events/participation");
+    expect(() =>
+      challengePublished.schema.parse({
+        challengeId: "c1",
+        termId: "t1",
+        title: "Reto",
+        kind: "MISSION",
+        closesAt: "2026-10-01T00:00:00.000Z",
+        audience: "AUDIENCIA_FUTURA",
+        audienceCommitteeIds: [],
+        basePoints: 10,
+      }),
+    ).not.toThrow();
+  });
+
+  it("el pedido de notificación es de comms: su tipo sí es un enumerado y el tope es compartido", async () => {
+    const { notificationRequested, NOTIFICATION_MAX_RECIPIENTS } = await import(
+      "@/domain-events/comms"
+    );
+    const pedido = {
+      kind: "REMINDER",
+      recipients: [{ personId: "p1" }],
+      title: "Hoy",
+      url: "/app",
+      dedupeKey: "k",
+    };
+    expect(notificationRequested.schema.parse(pedido)).toMatchObject({ body: "" });
+    expect(() => notificationRequested.schema.parse({ ...pedido, kind: "OTRO" })).toThrow();
+    const demasiados = Array.from({ length: NOTIFICATION_MAX_RECIPIENTS + 1 }, (_, n) => ({
+      personId: `p${n}`,
+    }));
+    expect(() =>
+      notificationRequested.schema.parse({ ...pedido, recipients: demasiados }),
+    ).toThrow();
   });
 });
