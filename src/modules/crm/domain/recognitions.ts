@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { recognitionGranted } from "@/domain-events/crm";
+import { eventOf } from "@/domain-events/define";
 import { createAnnouncement, publishAnnouncement } from "@/modules/content";
 import {
   assertBenefitsAvailable,
@@ -168,25 +170,27 @@ export async function grantRecognition(
     refId: row.id,
     summary:
       input.kind === "MEMBER_OF_MONTH" ? t("T-833", { mes, comité: context.committeeName }) : title,
-    metadata: { event: "recognition.granted", recognitionId: row.id, announcementId },
+    metadata: { event: recognitionGranted.type, recognitionId: row.id, announcementId },
   });
   // Publicado: comms manda T-192 a los miembros del comité (ADR-038 regla 7).
   if (announcementId && input.committeeId) {
-    await ctx.emit({
-      type: "recognition.granted",
-      payload: {
-        recognitionId: row.id,
-        personId: input.personId,
-        personName: context.personName,
-        committeeId: input.committeeId,
-        committeeName: context.committeeName,
-        committeeSlug: context.committeeSlug,
-        termId: input.termId,
-        announcementId,
-        actorId: ctx.actor.personId,
-      },
-      dedupeKey: `recognition:${row.id}`,
-    });
+    await ctx.emit(
+      eventOf(
+        recognitionGranted,
+        {
+          recognitionId: row.id,
+          personId: input.personId,
+          personName: context.personName,
+          committeeId: input.committeeId,
+          committeeName: context.committeeName,
+          committeeSlug: context.committeeSlug,
+          termId: input.termId,
+          announcementId,
+          actorId: ctx.actor.personId,
+        },
+        { dedupeKey: `recognition:${row.id}` },
+      ),
+    );
   }
   return { id: row.id, announcementId };
 }

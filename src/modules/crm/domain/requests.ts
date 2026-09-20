@@ -2,6 +2,8 @@ import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { requestCreated, requestDecided, requestWithdrawn } from "@/domain-events/crm";
+import { eventOf } from "@/domain-events/define";
 import {
   excuseCheckIn,
   findCheckIn,
@@ -323,16 +325,15 @@ export async function createRequestAs(
       entityId: created.id,
       after: { kind, payload },
     });
-    await ctx.emit({
-      type: "request.created",
-      payload: {
+    await ctx.emit(
+      eventOf(requestCreated, {
         actorId: actor.personId,
         personId: actor.personId,
         requestId: created.id,
         kind,
         kindLabel,
-      },
-    });
+      }),
+    );
     return { id: created.id };
   });
 }
@@ -368,16 +369,15 @@ export async function withdrawRequestAs(
       before: { status: row.status },
       after: { status: "WITHDRAWN" },
     });
-    await ctx.emit({
-      type: "request.withdrawn",
-      payload: {
+    await ctx.emit(
+      eventOf(requestWithdrawn, {
         actorId: actor.personId,
         personId: row.personId,
         requestId,
         kind: row.kind,
         kindLabel: requestKindLabel(row.kind),
-      },
-    });
+      }),
+    );
   });
 }
 
@@ -459,9 +459,8 @@ export async function decideRequestAs(
         appliedTermId: appliedTerm?.id ?? null,
       },
     });
-    await ctx.emit({
-      type: "request.decided",
-      payload: {
+    await ctx.emit(
+      eventOf(requestDecided, {
         actorId: ctx.actor.personId,
         personId: row.personId,
         requestId,
@@ -471,8 +470,8 @@ export async function decideRequestAs(
         reason: reason || null,
         email: who.email,
         firstName: who.preferredName || who.firstName,
-      },
-    });
+      }),
+    );
   });
 }
 

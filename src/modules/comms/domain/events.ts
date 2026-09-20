@@ -1,5 +1,7 @@
-import { z } from "zod";
+import type { announcementPushRequested } from "@/domain-events/content";
+import type { callOpened, recognitionGranted, requestDecided } from "@/domain-events/crm";
 import type { EventPayload } from "@/domain-events/define";
+import type { accessGrantIssued } from "@/domain-events/identity";
 import type {
   badgeUnlocked,
   challengeCompleted,
@@ -54,18 +56,10 @@ async function notify(
   });
 }
 
-export const announcementPushSchema = z.object({
-  announcementId: z.string().min(1),
-  title: z.string().min(1),
-  excerpt: z.string().default(""),
-  audience: z.enum(["PUBLIC", "MEMBERS"]),
-  committeeId: z.string().nullable().optional(),
-  url: z.string().min(1),
-});
-
 /** Anuncio con push (regla 6): a los miembros del comité si lo tiene, si no a activos y honorarios. */
-export async function pushAnnouncement(raw: unknown): Promise<DeliveryStats> {
-  const payload = announcementPushSchema.parse(raw);
+export async function pushAnnouncement(
+  payload: EventPayload<typeof announcementPushRequested>,
+): Promise<DeliveryStats> {
   const audience = payload.committeeId
     ? await committeeAudience(payload.committeeId)
     : await membersAudience();
@@ -98,16 +92,10 @@ export async function pushPointsCredited(
   );
 }
 
-export const requestDecidedPushSchema = z.object({
-  personId: z.string().min(1),
-  requestId: z.string().min(1),
-  kindLabel: z.string(),
-  status: z.enum(["APPROVED", "REJECTED"]),
-});
-
 /** Solicitud respondida (T-189): además del correo T-205, siempre (transaccional). */
-export async function pushRequestDecided(raw: unknown): Promise<DeliveryStats> {
-  const payload = requestDecidedPushSchema.parse(raw);
+export async function pushRequestDecided(
+  payload: EventPayload<typeof requestDecided>,
+): Promise<DeliveryStats> {
   const [aprobada, rechazada] = tList("T-195");
   return notify(
     "TRANSACTIONAL",
@@ -121,18 +109,14 @@ export async function pushRequestDecided(raw: unknown): Promise<DeliveryStats> {
   );
 }
 
-export const accessGrantIssuedSchema = z.object({
-  personId: z.string().min(1),
-  kind: z.enum(["ACTIVATION", "RECOVERY"]),
-});
-
 /**
  * Se emitió un enlace de acceso para esta persona (T-2132, ADR-051). Transaccional: llega aunque
  * la persona haya apagado las notificaciones, porque es la única forma de que se entere si el
  * enlace lo pidió alguien más. La clave incluye el instante: cada emisión avisa.
  */
-export async function pushAccessGrantIssued(raw: unknown): Promise<DeliveryStats> {
-  const payload = accessGrantIssuedSchema.parse(raw);
+export async function pushAccessGrantIssued(
+  payload: EventPayload<typeof accessGrantIssued>,
+): Promise<DeliveryStats> {
   return notify(
     "TRANSACTIONAL",
     [payload.personId],
@@ -142,16 +126,10 @@ export async function pushAccessGrantIssued(raw: unknown): Promise<DeliveryStats
   );
 }
 
-export const callOpenedSchema = z.object({
-  callId: z.string().min(1),
-  title: z.string().min(1),
-  closesAt: z.string().min(1),
-  capacity: z.number().int().nullable().optional(),
-});
-
 /** Convocatoria abierta (T-190, o T-194 sin cupo) a activos y honorarios. */
-export async function pushCallOpened(raw: unknown): Promise<DeliveryStats> {
-  const payload = callOpenedSchema.parse(raw);
+export async function pushCallOpened(
+  payload: EventPayload<typeof callOpened>,
+): Promise<DeliveryStats> {
   const fecha = formatDate(new Date(payload.closesAt));
   const text =
     payload.capacity && payload.capacity > 0
@@ -166,17 +144,10 @@ export async function pushCallOpened(raw: unknown): Promise<DeliveryStats> {
   );
 }
 
-export const recognitionGrantedSchema = z.object({
-  recognitionId: z.string().min(1),
-  personName: z.string().default(""),
-  committeeId: z.string().min(1),
-  committeeName: z.string().default(""),
-  committeeSlug: z.string().default(""),
-});
-
 /** Reconocimiento publicado (T-192) a los miembros del comité. */
-export async function pushRecognition(raw: unknown): Promise<DeliveryStats> {
-  const payload = recognitionGrantedSchema.parse(raw);
+export async function pushRecognition(
+  payload: EventPayload<typeof recognitionGranted>,
+): Promise<DeliveryStats> {
   return notify(
     "ANNOUNCEMENT",
     await committeeAudience(payload.committeeId),

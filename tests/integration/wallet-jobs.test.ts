@@ -31,6 +31,7 @@ import {
   membershipChanged,
   personUpdated,
 } from "@/domain-events/people";
+import { walletReconcile, walletSync } from "@/domain-events/wallet";
 import { walletPass } from "@/modules/wallet/schema";
 import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
@@ -248,7 +249,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
     for (const field of ["barcode", "textModulesData", "subheader", "linksModuleData"])
       expect(tombstone).not.toHaveProperty(field);
     const count = server.calls.length;
-    await enqueueEvent(getDb(), { type: "wallet.sync", payload: { personId } });
+    await enqueueEvent(getDb(), eventOf(walletSync, { personId }));
     await drainWallet();
     expect(server.calls).toHaveLength(count);
   });
@@ -265,7 +266,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
     expect((await drainWallet()).failed).toBe(1);
     expect(await listPassesFor(personId)).toHaveLength(1);
     Object.assign(getEnv(), original);
-    await enqueueEvent(getDb(), { type: "wallet.reconcile", payload: {} });
+    await enqueueEvent(getDb(), eventOf(walletReconcile, {}));
     expect((await drainWallet()).failed).toBe(0);
     expect(await listPassesFor(personId)).toEqual([]);
   });
@@ -286,7 +287,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
     expect((await drainWallet()).failed).toBe(0);
     expect((await listPassesFor(personId))[0]?.renderedTermId).toBe(firstTerm);
     vi.setSystemTime(new Date("2026-07-01T05:05:00Z"));
-    await enqueueEvent(getDb(), { type: "wallet.reconcile", payload: {} });
+    await enqueueEvent(getDb(), eventOf(walletReconcile, {}));
     expect((await drainWallet()).failed).toBe(0);
     const [pass] = await listPassesFor(personId);
     expect(pass?.renderedTermId).toBe(nextTerm);
@@ -296,7 +297,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
     expect(JSON.stringify(remote)).not.toContain("Comité anterior");
     const credential = await getCarnetCredential(personId);
     server.calls.length = 0;
-    await enqueueEvent(getDb(), { type: "wallet.reconcile", payload: {} });
+    await enqueueEvent(getDb(), eventOf(walletReconcile, {}));
     expect((await drainWallet()).failed).toBe(0);
     // La diaria también recupera cambios de nombre/comités cuyos eventos no llegaron al proveedor.
     expect(server.writes()).toHaveLength(1);
@@ -350,7 +351,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
         state: "ACTIVE",
       });
     }
-    await enqueueEvent(getDb(), { type: "wallet.reconcile", payload: {} });
+    await enqueueEvent(getDb(), eventOf(walletReconcile, {}));
     expect((await drainWallet()).failed).toBe(0);
     const jobs = await getDb().select().from(outbox);
     expect(jobs.filter((job) => job.eventType === "wallet.reconcile")).toHaveLength(2);

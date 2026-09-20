@@ -1,6 +1,9 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { requestDecided } from "@/domain-events/crm";
+import { eventOf } from "@/domain-events/define";
 import "@/jobs/handlers";
 import { drain } from "@/jobs/poller";
 import { setMailTransportsForTests } from "@/modules/comms";
@@ -55,6 +58,34 @@ describe("solicitudes", () => {
   afterAll(async () => {
     setMailTransportsForTests(undefined);
     await closeDb();
+  });
+
+  it("una decisión con un estado que comms no conoce no se comunica como «no aprobada»", async () => {
+    setMailTransportsForTests({ primary: fakeTransport(), overflow: null });
+    const { personId } = await activeMember("estado.futuro@eafit.edu.co");
+    const evento = (status: string, requestId: string) =>
+      eventOf(requestDecided, {
+        actorId: null,
+        personId,
+        requestId,
+        kind: "LEAVE",
+        kindLabel: "licencia",
+        status,
+        reason: null,
+        email: "estado.futuro@eafit.edu.co",
+        firstName: "Ana",
+      });
+
+    await runCommand(SYSTEM_ACTOR, (ctx) => ctx.emit(evento("ESTADO_FUTURO", "solicitud-1")));
+    expect(await drain(10)).toMatchObject({ failed: 0 });
+    expect(await getDb().select().from(message).where(eq(message.personId, personId))).toHaveLength(
+      0,
+    );
+
+    await runCommand(SYSTEM_ACTOR, (ctx) => ctx.emit(evento("REJECTED", "solicitud-2")));
+    await drain(10);
+    const enviados = await getDb().select().from(message).where(eq(message.personId, personId));
+    expect(enviados.length).toBeGreaterThan(0);
   });
 
   it("solo un miembro activo, una pendiente por tipo, con tarea para GH y retirable", async () => {

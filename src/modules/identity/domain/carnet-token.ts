@@ -1,6 +1,8 @@
 import { and, eq, lt } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Executor, runCommand, SYSTEM_ACTOR, type Tx } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { carnetTokenRotated } from "@/domain-events/identity";
 import {
   canParticipate,
   getWalletMemberState,
@@ -145,10 +147,13 @@ export async function rotateCarnetTokenAs(
       after: { walletEpoch: credential.walletEpoch, revision: credential.revision },
     });
     // Cada rotación conserva su evento: una clave solo por persona perdería cambios en vuelo.
-    await ctx.emit({
-      type: "carnet-token.rotated",
-      payload: { personId, walletEpoch: credential.walletEpoch, revision: credential.revision },
-    });
+    await ctx.emit(
+      eventOf(carnetTokenRotated, {
+        personId,
+        walletEpoch: credential.walletEpoch,
+        revision: credential.revision,
+      }),
+    );
     return credential.token;
   });
 }

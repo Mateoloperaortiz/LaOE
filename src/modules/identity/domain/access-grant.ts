@@ -1,6 +1,8 @@
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { accessGrantIssued } from "@/domain-events/identity";
 import { getMemberSummary } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -79,14 +81,13 @@ export async function issueAccessGrant(
     entityId: row.id,
     after: { personId: input.personId, kind: input.kind, expiresAt: expiresAt.toISOString() },
   });
-  await ctx.emit({
-    type: "access-grant.issued",
-    payload: {
+  await ctx.emit(
+    eventOf(accessGrantIssued, {
       personId: input.personId,
       kind: input.kind,
       issuedById: ctx.actor.personId,
-    },
-  });
+    }),
+  );
   return { token, expiresAt };
 }
 

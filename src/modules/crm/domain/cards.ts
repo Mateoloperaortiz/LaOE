@@ -2,6 +2,8 @@ import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { cardCreated, cardMoved } from "@/domain-events/crm";
+import { eventOf } from "@/domain-events/define";
 import { getEdition, listEditionOptions } from "@/modules/events";
 import {
   type AdmitInput,
@@ -316,9 +318,8 @@ async function insertCard(
       organizationId: input.organizationId ?? null,
     },
   });
-  await ctx.emit({
-    type: "card.created",
-    payload: {
+  await ctx.emit(
+    eventOf(cardCreated, {
       actorId: ctx.actor.personId,
       cardId: row.id,
       pipelineId: own.id,
@@ -326,8 +327,8 @@ async function insertCard(
       stageName: stage.name,
       personId: input.personId ?? null,
       organizationId: input.organizationId ?? null,
-    },
-  });
+    }),
+  );
   return { id: row.id, created: true };
 }
 
@@ -425,9 +426,8 @@ export async function moveCard(
     before: { stageId: row.stageId },
     after: { stageId: target.id, closedAt: closedAtAfterMove(target, now) },
   });
-  await ctx.emit({
-    type: "card.moved",
-    payload: {
+  await ctx.emit(
+    eventOf(cardMoved, {
       actorId: ctx.actor.personId,
       cardId,
       pipelineId: own.id,
@@ -438,8 +438,8 @@ export async function moveCard(
       lost: target.isLost,
       personId: row.personId,
       organizationId: row.organizationId,
-    },
-  });
+    }),
+  );
 }
 
 export async function updateCard(

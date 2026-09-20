@@ -1,4 +1,6 @@
 import { runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { personDataExported } from "@/domain-events/system";
 
 // Auditoría de exportes con datos personales (05-acceso.md: step-up y registro).
 export async function recordExport(
@@ -25,9 +27,6 @@ export async function recordSelfExport(personId: string): Promise<void> {
       entityId: personId,
       after: { format: "json" },
     });
-    await ctx.emit({
-      type: "person.data-exported",
-      payload: { actorId: personId, personId },
-    });
+    await ctx.emit(eventOf(personDataExported, { actorId: personId, personId }));
   });
 }

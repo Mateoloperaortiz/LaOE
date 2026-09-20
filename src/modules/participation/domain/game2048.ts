@@ -3,6 +3,8 @@ import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { game2048Completed } from "@/domain-events/participation";
 import { getMembershipRef } from "@/modules/people";
 import { findTermContaining, getTerm, lockOpenTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
@@ -325,9 +327,8 @@ export async function finishGame2048As(
         reason: t("T-2654", { fecha: row.day, puntaje: replay.score }),
         createdById: actor.personId,
       });
-      await ctx.emit({
-        type: "game2048.completed",
-        payload: {
+      await ctx.emit(
+        eventOf(game2048Completed, {
           personId: actor.personId,
           termId: row.termId,
           runId: row.id,
@@ -335,8 +336,8 @@ export async function finishGame2048As(
           score: replay.score,
           maxTile: replay.maxTile,
           points,
-        },
-      });
+        }),
+      );
     }
     await ctx.audit({
       action: points > 0 ? "game2048.credited" : "game2048.finished",

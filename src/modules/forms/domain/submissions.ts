@@ -1,6 +1,8 @@
 import { and, count, desc, eq, gt, ilike, inArray, or } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { registrationCreated, submissionReceived } from "@/domain-events/forms";
 import { getEdition } from "@/modules/events";
 import {
   addPersonTags,
@@ -115,16 +117,15 @@ export async function createSubmission(
       registered = inserted.length > 0;
       if (registered) {
         const edition = await getEdition(actions.editionId);
-        await ctx.emit({
-          type: "registration.created",
-          payload: {
+        await ctx.emit(
+          eventOf(registrationCreated, {
             actorId: ctx.actor.personId,
             personId: input.personId,
             editionId: actions.editionId,
             editionName: edition?.name ?? "",
             submissionId: row.id,
-          },
-        });
+          }),
+        );
       }
     }
   }
@@ -134,9 +135,8 @@ export async function createSubmission(
     entityId: input.form.id,
     after: { submissionId: row.id, personId: input.personId, email: input.email },
   });
-  await ctx.emit({
-    type: "submission.received",
-    payload: {
+  await ctx.emit(
+    eventOf(submissionReceived, {
       actorId: ctx.actor.personId,
       submissionId: row.id,
       formId: input.form.id,
@@ -145,8 +145,8 @@ export async function createSubmission(
       personId: input.personId,
       email: input.email,
       actions,
-    },
-  });
+    }),
+  );
   return { id: row.id, registered };
 }
 

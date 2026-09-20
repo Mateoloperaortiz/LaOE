@@ -3,6 +3,8 @@ import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { announcementPushRequested } from "@/domain-events/content";
+import { eventOf } from "@/domain-events/define";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { announcement } from "../schema";
@@ -183,11 +185,13 @@ export async function requestAnnouncementPush(
     entityId: id,
     after: { pushRequestedAt: now.toISOString() },
   });
-  await ctx.emit({
-    type: "announcement.push-requested",
-    payload: { ...pushPayloadFor(row), actorId: ctx.actor.personId },
-    dedupeKey: `announcement-push:${id}`,
-  });
+  await ctx.emit(
+    eventOf(
+      announcementPushRequested,
+      { ...pushPayloadFor(row), actorId: ctx.actor.personId },
+      { dedupeKey: `announcement-push:${id}` },
+    ),
+  );
 }
 
 /** Publica y pide el push en la misma transacción ("Publicar y avisar por push"). */
