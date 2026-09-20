@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { checkinApproved } from "@/domain-events/participation";
+import { notificationRequested } from "@/domain-events/comms";
+import {
+  badgeUnlocked,
+  challengeCompleted,
+  challengePublished,
+  challengeRejected,
+  checkinApproved,
+} from "@/domain-events/participation";
 import { membershipChanged, personAdmitted, personAnonymized } from "@/domain-events/people";
 import { getEnv } from "@/env";
 import { onEvent, registerHandler } from "@/jobs/registry";
@@ -30,7 +37,7 @@ import { deleteSubscriptionsFor } from "./domain/subscriptions";
 
 // Bus de notificaciones (ADR-038 regla 2): cualquier módulo emite `notification.requested` con
 // destinatarios, textos, URL y clave; aquí se entrega por push respetando la preferencia de cada quien.
-registerHandler("notification.requested", async (payload, ctx) => {
+onEvent(notificationRequested, async (payload, ctx) => {
   const stats = await deliverNotification(payload);
   ctx.log.info(stats, "notificación entregada");
 });
@@ -66,22 +73,22 @@ registerHandler("recognition.granted", async (payload, ctx) => {
 });
 
 // Gamificación (ADR-067): reto publicado a su audiencia, decisión de la entrega e insignia nueva.
-registerHandler("challenge.published", async (payload, ctx) => {
+onEvent(challengePublished, async (payload, ctx) => {
   const stats = await pushChallengePublished(payload);
   ctx.log.info(stats, "push de reto publicado entregado");
 });
 
-registerHandler("challenge.completed", async (payload, ctx) => {
+onEvent(challengeCompleted, async (payload, ctx) => {
   const stats = await pushChallengeCompleted(payload);
   ctx.log.info(stats, "push de reto completado entregado");
 });
 
-registerHandler("challenge.rejected", async (payload, ctx) => {
+onEvent(challengeRejected, async (payload, ctx) => {
   const stats = await pushChallengeRejected(payload);
   ctx.log.info(stats, "push de reto rechazado entregado");
 });
 
-registerHandler("badge.unlocked", async (payload, ctx) => {
+onEvent(badgeUnlocked, async (payload, ctx) => {
   const stats = await pushBadgeUnlocked(payload);
   if (stats) {
     ctx.log.info(stats, "push de insignia entregado");

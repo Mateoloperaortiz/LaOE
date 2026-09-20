@@ -2,6 +2,12 @@ import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import {
+  challengeCompleted,
+  challengeRejected,
+  evidenceProcess,
+} from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -189,9 +195,8 @@ async function emitCompleted(
   participation: ParticipationRow,
   granted: RewardRow,
 ): Promise<void> {
-  await ctx.emit({
-    type: "challenge.completed",
-    payload: {
+  await ctx.emit(
+    eventOf(challengeCompleted, {
       participationId: participation.id,
       challengeId: row.id,
       challengeTitle: row.title,
@@ -201,8 +206,8 @@ async function emitCompleted(
       base: granted.baseGranted,
       extra: granted.extraPoints,
       points: granted.baseGranted + granted.extraPoints,
-    },
-  });
+    }),
+  );
 }
 
 async function emitRejected(
@@ -211,17 +216,16 @@ async function emitRejected(
   participation: ParticipationRow,
   reason: string,
 ): Promise<void> {
-  await ctx.emit({
-    type: "challenge.rejected",
-    payload: {
+  await ctx.emit(
+    eventOf(challengeRejected, {
       participationId: participation.id,
       challengeId: row.id,
       challengeTitle: row.title,
       personId: participation.personId,
       termId: row.termId,
       reason,
-    },
-  });
+    }),
+  );
 }
 
 /** Guardas comunes a las entregas del miembro, en el orden del flujo. */
@@ -492,11 +496,9 @@ export async function submitEvidence(
       )
       .returning({ id: challengeEvidenceFile.id });
     for (const file of files) {
-      await ctx.emit({
-        type: "gamification.evidence-process",
-        payload: { fileId: file.id },
-        dedupeKey: `evidence:${file.id}`,
-      });
+      await ctx.emit(
+        eventOf(evidenceProcess, { fileId: file.id }, { dedupeKey: `evidence:${file.id}` }),
+      );
     }
   }
   const { reward: reserved, breakdown } = await reserveReward(

@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
+import { notificationRequested } from "@/domain-events/comms";
+import { eventOf } from "@/domain-events/define";
 import { listCommitteesByIds, listTermRoster } from "@/modules/people";
 import { getCurrentTerm } from "@/modules/terms";
 import { splitTitleBody } from "@/shared/copy/render";
@@ -81,18 +83,21 @@ export async function runNotices(now = new Date()): Promise<NoticesResult> {
           continue;
         }
         const { title, body } = splitTitleBody(push.text);
-        await enqueueEvent(getDb(), {
-          type: "notification.requested",
-          payload: {
-            kind: "REMINDER",
-            recipients: [{ personId: person.personId }],
-            title,
-            body,
-            url: push.url,
-            dedupeKey: push.dedupeKey,
-          },
-          dedupeKey: push.dedupeKey,
-        });
+        await enqueueEvent(
+          getDb(),
+          eventOf(
+            notificationRequested,
+            {
+              kind: "REMINDER",
+              recipients: [{ personId: person.personId }],
+              title,
+              body,
+              url: push.url,
+              dedupeKey: push.dedupeKey,
+            },
+            { dedupeKey: push.dedupeKey },
+          ),
+        );
         enqueued += 1;
       }
     }

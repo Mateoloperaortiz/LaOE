@@ -3,6 +3,8 @@ import { and, desc, eq, isNotNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { sudokuCompleted } from "@/domain-events/participation";
 import { getMembershipRef } from "@/modules/people";
 import { findTermContaining, getTerm, lockOpenTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
@@ -399,9 +401,8 @@ export async function finishSudokuAs(actor: MemberActor, input: unknown): Promis
         reason: creditReason(row),
         createdById: actor.personId,
       });
-      await ctx.emit({
-        type: "sudoku.completed",
-        payload: {
+      await ctx.emit(
+        eventOf(sudokuCompleted, {
           personId: actor.personId,
           termId: row.termId,
           runId: row.id,
@@ -409,8 +410,8 @@ export async function finishSudokuAs(actor: MemberActor, input: unknown): Promis
           difficulty: row.difficulty,
           assisted: row.assisted,
           points,
-        },
-      });
+        }),
+      );
     }
     await ctx.audit({
       action: points > 0 ? "sudoku.credited" : "sudoku.solved",

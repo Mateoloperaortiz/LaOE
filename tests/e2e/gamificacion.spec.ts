@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm";
 import sharp from "sharp";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { wordleCompleted } from "@/domain-events/participation";
 import {
   challengeInputSchema,
   createChallengeAs,
@@ -525,17 +527,16 @@ test("colección en móvil y movimiento reducido: alternativa estática sin anim
     })
     .returning({ id: wordleGame.id });
   await runCommand(SYSTEM_ACTOR, (ctx) =>
-    ctx.emit({
-      type: "wordle.completed",
-      payload: {
+    ctx.emit(
+      eventOf(wordleCompleted, {
         personId: miembro,
         termId,
         gameId: game?.id ?? "",
         day: "2026-01-15",
         attempts: 4,
         points: 5,
-      },
-    }),
+      }),
+    ),
   );
   await drenarOutbox();
 

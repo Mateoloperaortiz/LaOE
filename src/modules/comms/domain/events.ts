@@ -1,6 +1,12 @@
 import { z } from "zod";
 import type { EventPayload } from "@/domain-events/define";
-import type { checkinApproved } from "@/domain-events/participation";
+import type {
+  badgeUnlocked,
+  challengeCompleted,
+  challengePublished,
+  challengeRejected,
+  checkinApproved,
+} from "@/domain-events/participation";
 import { getEnv } from "@/env";
 import { markAnnouncementPushSent } from "@/modules/content";
 import { balanceFor } from "@/modules/participation";
@@ -223,18 +229,13 @@ function clip(value: string, max = 60): string {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
 
-export const challengePublishedPushSchema = z.object({
-  challengeId: z.string().min(1),
-  termId: z.string().min(1),
-  title: z.string().min(1),
-  closesAt: z.string().min(1),
-  audience: z.enum(["ALL", "NEW", "VETERAN", "COMMITTEES"]),
-  audienceCommitteeIds: z.array(z.string()).default([]),
-});
-
-/** Reto publicado (T-2566): a la audiencia del reto — todos, nuevos, veteranos o sus comités. */
-export async function pushChallengePublished(raw: unknown): Promise<DeliveryStats> {
-  const payload = challengePublishedPushSchema.parse(raw);
+/**
+ * Reto publicado (T-2566): a la audiencia del reto — todos, nuevos, veteranos o sus comités. Una
+ * audiencia que este código no conozca no le llega a nadie: es preferible a avisarle a toda la OE.
+ */
+export async function pushChallengePublished(
+  payload: EventPayload<typeof challengePublished>,
+): Promise<DeliveryStats> {
   const members = (await listActiveMemberRefs(true)).filter((ref) => !ref.anonymized);
   let ids: string[];
   if (payload.audience === "COMMITTEES") {
@@ -248,8 +249,10 @@ export async function pushChallengePublished(raw: unknown): Promise<DeliveryStat
     ids = members.filter((ref) => ref.firstTermId === payload.termId).map((ref) => ref.personId);
   } else if (payload.audience === "VETERAN") {
     ids = members.filter((ref) => ref.firstTermId !== payload.termId).map((ref) => ref.personId);
-  } else {
+  } else if (payload.audience === "ALL") {
     ids = members.map((ref) => ref.personId);
+  } else {
+    ids = [];
   }
   return notify(
     "POINTS",
@@ -263,19 +266,10 @@ export async function pushChallengePublished(raw: unknown): Promise<DeliveryStat
   );
 }
 
-const challengeDecidedPushSchema = z.object({
-  participationId: z.string().min(1),
-  challengeId: z.string().min(1),
-  challengeTitle: z.string().min(1),
-  personId: z.string().min(1),
-  termId: z.string().min(1),
-  reason: z.string().default(""),
-  points: z.number().default(0),
-});
-
 /** Entrega aprobada (T-2567): puntos del premio y saldo actualizado. */
-export async function pushChallengeCompleted(raw: unknown): Promise<DeliveryStats> {
-  const payload = challengeDecidedPushSchema.parse(raw);
+export async function pushChallengeCompleted(
+  payload: EventPayload<typeof challengeCompleted>,
+): Promise<DeliveryStats> {
   const total = await balanceFor(payload.personId, payload.termId);
   return notify(
     "POINTS",
@@ -291,8 +285,9 @@ export async function pushChallengeCompleted(raw: unknown): Promise<DeliveryStat
 }
 
 /** Entrega rechazada (T-2568): la misma clave del reto con sufijo para no tapar una aprobación. */
-export async function pushChallengeRejected(raw: unknown): Promise<DeliveryStats> {
-  const payload = challengeDecidedPushSchema.parse(raw);
+export async function pushChallengeRejected(
+  payload: EventPayload<typeof challengeRejected>,
+): Promise<DeliveryStats> {
   return notify(
     "POINTS",
     [payload.personId],
@@ -305,17 +300,10 @@ export async function pushChallengeRejected(raw: unknown): Promise<DeliveryStats
   );
 }
 
-const badgeUnlockedPushSchema = z.object({
-  achievementId: z.string().min(1),
-  personId: z.string().min(1),
-  name: z.string().min(1),
-  level: z.number(),
-  historical: z.boolean().default(false),
-});
-
 /** Insignia desbloqueada (T-2569); los logros históricos de la conciliación no notifican. */
-export async function pushBadgeUnlocked(raw: unknown): Promise<DeliveryStats | null> {
-  const payload = badgeUnlockedPushSchema.parse(raw);
+export async function pushBadgeUnlocked(
+  payload: EventPayload<typeof badgeUnlocked>,
+): Promise<DeliveryStats | null> {
   if (payload.historical) {
     return null;
   }

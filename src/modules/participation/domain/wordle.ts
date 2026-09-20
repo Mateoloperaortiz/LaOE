@@ -3,6 +3,8 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { wordleCompleted } from "@/domain-events/participation";
 import { getMembershipRef } from "@/modules/people";
 import { findTermContaining, getTerm, lockOpenTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
@@ -278,17 +280,16 @@ export async function submitWordleGuessAs(
         reason: t("T-1261", { fecha: row.day, intento: ordinal }),
         createdById: actor.personId,
       });
-      await ctx.emit({
-        type: "wordle.completed",
-        payload: {
+      await ctx.emit(
+        eventOf(wordleCompleted, {
           personId: actor.personId,
           termId: row.termId,
           gameId: row.id,
           day: row.day,
           attempts: ordinal,
           points,
-        },
-      });
+        }),
+      );
     }
     await ctx.audit({
       action: won ? "wordle.completed" : "wordle.attempted",

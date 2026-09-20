@@ -2,6 +2,8 @@ import { createHash, randomBytes } from "node:crypto";
 import { and, asc, count, eq, inArray, isNotNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, enqueueEvent, runCommand } from "@/db/tx";
+import { NOTIFICATION_MAX_RECIPIENTS, notificationRequested } from "@/domain-events/comms";
+import { eventOf } from "@/domain-events/define";
 import { type FormField, getForm, parseFields, validateAnswers } from "@/modules/forms";
 import { canParticipate, getMembershipRef } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
@@ -13,8 +15,6 @@ import { type SurveySummary, summarizeAnswers } from "./surveys-pure";
 // Encuesta anónima tras la ocasión (ADR-038 regla 13): al cerrar, una invitación con token por
 // asistente aprobado; la respuesta se guarda sin persona y la invitación queda marcada como
 // respondida. Los agregados salen por ocasión y por comité.
-
-const MAX_RECIPIENTS = 1000;
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -70,24 +70,27 @@ export async function createSurveyInvites(
     }
   }
   const { title, body } = splitTitleBody(t("T-191", { actividad: row.title }));
-  for (let start = 0; start < created.length; start += MAX_RECIPIENTS) {
-    const chunk = created.slice(start, start + MAX_RECIPIENTS);
-    await enqueueEvent(db, {
-      type: "notification.requested",
-      payload: {
-        kind: "SURVEY",
-        recipients: chunk.map((item) => ({
-          personId: item.personId,
-          url: `/app/encuesta/${item.token}`,
-        })),
-        title,
-        body,
-        url: "/app",
-        tag: `survey-${occasionId}`,
-        dedupeKey: `survey:${occasionId}`,
-      },
-      dedupeKey: `survey:${occasionId}:${start / MAX_RECIPIENTS}`,
-    });
+  for (let start = 0; start < created.length; start += NOTIFICATION_MAX_RECIPIENTS) {
+    const chunk = created.slice(start, start + NOTIFICATION_MAX_RECIPIENTS);
+    await enqueueEvent(
+      db,
+      eventOf(
+        notificationRequested,
+        {
+          kind: "SURVEY",
+          recipients: chunk.map((item) => ({
+            personId: item.personId,
+            url: `/app/encuesta/${item.token}`,
+          })),
+          title,
+          body,
+          url: "/app",
+          tag: `survey-${occasionId}`,
+          dedupeKey: `survey:${occasionId}`,
+        },
+        { dedupeKey: `survey:${occasionId}:${start / NOTIFICATION_MAX_RECIPIENTS}` },
+      ),
+    );
   }
   return { created, invited: approved.length };
 }

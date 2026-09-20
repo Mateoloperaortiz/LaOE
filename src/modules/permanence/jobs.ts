@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
-import { checkinApproved, checkinCancelled, checkinExcused } from "@/domain-events/participation";
+import {
+  checkinApproved,
+  checkinCancelled,
+  checkinExcused,
+  occasionClosed,
+  termPointsClosed,
+} from "@/domain-events/participation";
 import {
   committeeMembershipChanged,
   membershipChanged,
@@ -77,13 +83,9 @@ onEvent(personImported, async ({ termCode }) => {
 });
 
 // Una ocasión cerrada o los puntos cerrados cambian "lo que aún es posible" de todos.
-const termEvent = z.object({ termId: z.string().min(1) });
-for (const type of ["occasion.closed", "term.points-closed"]) {
-  registerHandler(type, async (payload) => {
-    const { termId } = termEvent.parse(payload);
-    await enqueueRecompute(termId);
-  });
-}
+onEvents([occasionClosed, termPointsClosed], async ({ termId }) => {
+  await enqueueRecompute(termId);
+});
 
 // Programado diario: el término actual, para que lo posible envejezca aunque no pase nada.
 registerHandler("permanence.daily", async (_payload, ctx) => {

@@ -1,6 +1,8 @@
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext, Executor } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { challengeRewardReversed } from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -445,16 +447,15 @@ export async function reverseReward(
     before: { status: "GRANTED", baseGranted: row.baseGranted, extraPoints: row.extraPoints },
     after: { status: "REVERSED", reason, reversed, boosterReturned },
   });
-  await ctx.emit({
-    type: "challenge.reward-reversed",
-    payload: {
+  await ctx.emit(
+    eventOf(challengeRewardReversed, {
       personId: row.personId,
       termId: row.termId,
       rewardId: row.id,
       participationId: row.participationId,
       checkInId: row.checkInId,
-    },
-  });
+    }),
+  );
   return { reversed };
 }
 

@@ -4,6 +4,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import "@/jobs/handlers";
+import { eventOf } from "@/domain-events/define";
+import { occasionClosed, wordleCompleted } from "@/domain-events/participation";
 import { drain } from "@/jobs/poller";
 import { saveSubscriptionAs, setPushSenderForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
@@ -511,10 +513,7 @@ describe("ediciones especiales", () => {
 
     // El mismo payload que emite closeOccasion (occasionId + termId + points).
     await runCommand(SYSTEM_ACTOR, (ctx) =>
-      ctx.emit({
-        type: "occasion.closed",
-        payload: { occasionId: occ.id, termId, points: 10 },
-      }),
+      ctx.emit(eventOf(occasionClosed, { occasionId: occ.id, termId, points: 10 })),
     );
     await drain(30);
     const logros = await liveAchievementsOf(asistente);
@@ -595,17 +594,16 @@ describe("flujo en vivo por el outbox", () => {
       })
       .returning();
     await runCommand(SYSTEM_ACTOR, (ctx) =>
-      ctx.emit({
-        type: "wordle.completed",
-        payload: {
+      ctx.emit(
+        eventOf(wordleCompleted, {
           personId,
           termId,
           gameId: game?.id ?? "",
           day: "2024-06-01",
           attempts: 3,
           points: 5,
-        },
-      }),
+        }),
+      ),
     );
     await drain(30);
     const logros = await liveAchievementsOf(personId);

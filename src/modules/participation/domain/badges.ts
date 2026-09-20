@@ -3,6 +3,8 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { badgeUnlocked } from "@/domain-events/participation";
 import { getPeopleByIds } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { findTermContaining } from "@/modules/terms";
@@ -299,9 +301,8 @@ export async function recomputeBadgesFor(
           level: definition.level,
         });
         boosterKind = booster?.kind ?? null;
-        await ctx.emit({
-          type: "badge.unlocked",
-          payload: {
+        await ctx.emit(
+          eventOf(badgeUnlocked, {
             achievementId: inserted.id,
             personId,
             badgeId: definition.id,
@@ -312,8 +313,8 @@ export async function recomputeBadgesFor(
             termId: inserted.termId,
             historical: false,
             boosterKind,
-          },
-        });
+          }),
+        );
       }
       await ctx.audit({
         action: "achievement.unlocked",
@@ -541,9 +542,8 @@ export async function awardSpecialBadge(
           level: badge.level,
         })
       : null;
-    await ctx.emit({
-      type: "badge.unlocked",
-      payload: {
+    await ctx.emit(
+      eventOf(badgeUnlocked, {
         achievementId: inserted.id,
         personId,
         badgeId: badge.id,
@@ -554,8 +554,8 @@ export async function awardSpecialBadge(
         termId,
         historical: false,
         boosterKind: booster?.kind ?? null,
-      },
-    });
+      }),
+    );
     await ctx.audit({
       action: "achievement.unlocked",
       entityType: "achievement",

@@ -2,6 +2,8 @@ import { and, count, eq, inArray, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext, Executor } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { termPointsClosed } from "@/domain-events/participation";
 import { type ActiveMemberRef, listActiveMemberRefs, listAllCommittees } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -181,7 +183,7 @@ export async function writeTermStanding(
     entityId: row.id,
     after: { termId, stats: standing.stats },
   });
-  await ctx.emit({ type: "term.points-closed", payload: { termId } });
+  await ctx.emit(eventOf(termPointsClosed, { termId }));
   return row;
 }
 
