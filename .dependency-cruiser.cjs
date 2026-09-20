@@ -108,6 +108,14 @@ module.exports = {
       to: { path: "^src/(db/|env\\.ts$|modules/[^/]+/(domain/|schema\\.ts$))" },
     },
     {
+      name: "contratos-de-eventos-neutrales",
+      comment:
+        "src/domain-events solo declara contratos (nombre y esquema): no conoce módulos, base, entorno ni lo compartido (ADR-084).",
+      severity: "error",
+      from: { path: "^src/domain-events/" },
+      to: { path: "^src/", pathNot: "^src/domain-events/" },
+    },
+    {
       name: "dominio-sin-admin-kit",
       comment:
         "El dominio, los jobs y el esquema no conocen la UI del admin: DomainError vive en src/shared/lib/errors (ADR-083).",
