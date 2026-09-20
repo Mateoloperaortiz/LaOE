@@ -29,7 +29,12 @@ import { createCardFromSubmission } from "./domain/cards";
 import { deleteNotesFor, recordAutomaticInteraction } from "./domain/interactions";
 import { recordOnboardingEvidence } from "./domain/onboarding";
 import { createTask, deleteTasksFor } from "./domain/tasks";
-import { summarizeEvent, TIMELINE_EVENTS, type TimelineLabels } from "./domain/timeline-pure";
+import {
+  entryFor,
+  TIMELINE_RULES,
+  type TimelineLabels,
+  type TimelineRule,
+} from "./domain/timeline-pure";
 import { task } from "./schema";
 
 // La línea de tiempo se alimenta sola (01-arquitectura.md): cada evento de dominio produce una
@@ -78,7 +83,7 @@ function labels(): TimelineLabels {
   };
 }
 
-async function timeline(payload: Record<string, unknown>, ctx: { id: string }, type: string) {
+async function timeline(rule: TimelineRule, payload: unknown, ctx: { id: string }) {
   const [terms, committees, roles] = await Promise.all([
     listAllTerms(),
     listAllCommittees(),
@@ -87,7 +92,7 @@ async function timeline(payload: Record<string, unknown>, ctx: { id: string }, t
   const termById = new Map(terms.map((item) => [item.id, item.code]));
   const committeeById = new Map(committees.map((item) => [item.id, item.name]));
   const roleByCode = new Map(roles.map((item) => [item.code, item.label]));
-  const entry = summarizeEvent(type, payload, labels(), {
+  const entry = entryFor(rule, payload, labels(), {
     termCode: (id) => termById.get(id) ?? "",
     committeeName: (id) => committeeById.get(id) ?? "",
     roleLabel: (code) => roleByCode.get(code) ?? code,
@@ -98,9 +103,10 @@ async function timeline(payload: Record<string, unknown>, ctx: { id: string }, t
   return recordAutomaticInteraction(entry, { refType: "outbox", refId: ctx.id });
 }
 
-for (const type of TIMELINE_EVENTS) {
-  registerHandler(type, async (payload, ctx) => {
-    const written = await timeline(payload, ctx, type);
+// Una regla por tipo de evento, cada una con su contrato: `onEvent` valida el payload antes de contarlo.
+for (const rule of TIMELINE_RULES) {
+  onEvent(rule.definition, async (payload, ctx) => {
+    const written = await timeline(rule, payload, ctx);
     ctx.log.debug({ written }, "línea de tiempo");
   });
 }

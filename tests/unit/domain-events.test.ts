@@ -6,8 +6,6 @@ import { type DomainEventDefinition, defineEvent, eventOf } from "@/domain-event
 import { getHandlers, onEvent, onEvents, resetHandlersForTests } from "@/jobs/registry";
 
 const CATALOG_DIR = "src/domain-events";
-// La línea de tiempo de crm todavía lista los eventos por nombre; migra en su propio tramo (ADR-084).
-const STILL_BY_NAME = new Set(["src/modules/crm/domain/timeline-pure.ts"]);
 
 async function catalog(): Promise<DomainEventDefinition[]> {
   const definitions: DomainEventDefinition[] = [];
@@ -50,7 +48,7 @@ describe("catálogo de eventos de dominio", () => {
     const types = (await catalog()).map((definition) => definition.type);
     const loose: string[] = [];
     for (const file of [...sourceFiles("src"), ...sourceFiles("scripts")]) {
-      if (file.startsWith(CATALOG_DIR) || STILL_BY_NAME.has(file)) continue;
+      if (file.startsWith(CATALOG_DIR)) continue;
       // Una acción de auditoría puede llamarse igual que un evento: es otro espacio de nombres. La
       // línea puede traer el valor directo o elegirlo con un condicional (`action: won ? "…" : "…"`).
       const lines = readFileSync(file, "utf8")
