@@ -3,6 +3,8 @@ import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { Actor, CommandContext } from "@/db/tx";
 import { runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { permanenceRecompute } from "@/domain-events/permanence";
 import { requireConfig } from "@/modules/system";
 import { findTermByCode, getTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
@@ -154,11 +156,9 @@ async function assertEditable(ctx: CommandContext, ref: TableRef, context: RuleC
 }
 
 function recompute(ctx: CommandContext, termId: string) {
-  return ctx.emit({
-    type: "permanence.recompute",
-    payload: { termId },
-    dedupeKey: `permanence:${termId}:*`,
-  });
+  return ctx.emit(
+    eventOf(permanenceRecompute, { termId }, { dedupeKey: `permanence:${termId}:*` }),
+  );
 }
 
 function toValues(ref: TableRef, input: RuleInput) {

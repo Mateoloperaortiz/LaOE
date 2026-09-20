@@ -171,3 +171,49 @@ describe("contratos de participation y de comms", () => {
     ).toThrow();
   });
 });
+
+describe("contratos de permanence", () => {
+  it("el recálculo es de un término y, si viene, de una sola persona", async () => {
+    const { permanenceRecompute } = await import("@/domain-events/permanence");
+    expect(permanenceRecompute.schema.parse({ termId: "t1" })).toEqual({ termId: "t1" });
+    expect(permanenceRecompute.schema.parse({ termId: "t1", personId: "p1" })).toEqual({
+      termId: "t1",
+      personId: "p1",
+    });
+    expect(() => permanenceRecompute.schema.parse({ personId: "p1" })).toThrow();
+  });
+
+  it("la decisión por persona no tiene comité y la puede tomar el sistema", async () => {
+    const { permanenceDecided } = await import("@/domain-events/permanence");
+    const fila = {
+      actorId: null,
+      personId: "p1",
+      termId: "t1",
+      committeeId: null,
+      decision: "CONTINUES",
+      reason: "",
+    };
+    expect(() => permanenceDecided.schema.parse(fila)).not.toThrow();
+    expect(() =>
+      permanenceDecided.schema.parse({ ...fila, decision: "DECISION_FUTURA" }),
+    ).not.toThrow();
+    const { committeeId: _sinComite, ...incompleta } = fila;
+    expect(() => permanenceDecided.schema.parse(incompleta)).toThrow();
+  });
+
+  it("la importación histórica registra una evaluación sin saber quién evaluó", async () => {
+    const { evaluationRecorded } = await import("@/domain-events/permanence");
+    expect(() =>
+      evaluationRecorded.schema.parse({
+        actorId: "admin",
+        personId: "p1",
+        termId: "t1",
+        groupId: "g1",
+        groupName: "Tarea de nuevos",
+        kind: "NEW_MEMBER_TASK",
+        evaluation: "GOOD",
+        note: "Importado",
+      }),
+    ).not.toThrow();
+  });
+});

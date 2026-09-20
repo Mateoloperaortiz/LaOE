@@ -2,6 +2,8 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { permanenceClosed, permanenceDecided } from "@/domain-events/permanence";
 import {
   endMembershipAs,
   getPeopleByIds,
@@ -443,11 +445,13 @@ export async function closeTermPermanenceAs(
     const nextTermId = (await ensureNextTerm(ctx, term)).id;
     await closeTermPermanence(ctx, termId);
     await freezeSnapshots(ctx, termId);
-    await ctx.emit({
-      type: "permanence.closed",
-      payload: { termId, nextTermId, actorId: ctx.actor.personId },
-      dedupeKey: `permanence-apply:${termId}`,
-    });
+    await ctx.emit(
+      eventOf(
+        permanenceClosed,
+        { termId, nextTermId, actorId: ctx.actor.personId },
+        { dedupeKey: `permanence-apply:${termId}` },
+      ),
+    );
     return { nextTermId };
   });
 }
@@ -508,17 +512,16 @@ export async function applyDecisions(termId: string, nextTermId: string): Promis
           .update(permanenceDecision)
           .set({ appliedAt: now })
           .where(eq(permanenceDecision.id, row.id));
-        await ctx.emit({
-          type: "permanence.decided",
-          payload: {
+        await ctx.emit(
+          eventOf(permanenceDecided, {
             actorId: actor.personId,
             personId,
             termId,
             committeeId: row.committeeId,
             decision: row.decision,
             reason: row.reason ?? "",
-          },
-        });
+          }),
+        );
       }
       await ctx.audit({
         action: "permanence-decision.applied",

@@ -73,6 +73,21 @@ Dos decisiones de consumidor:
 
 La prueba que impide retroceder ignoraba las líneas `action: "…"`; ahora ignora también las que eligen la acción con un condicional (`action: won ? "wordle.completed" : "wordle.attempted"`).
 
+## Cuarta familia: `permanence`
+
+Siete tipos y 23 emisiones, tres de ellas en la importación histórica y el seed: `permanence.recompute`, `permanence.closed`, `permanence.decided`, `evaluation.recorded`, `leader-score.recorded`, `manual-credit.granted` y `work-group-membership.changed`. Consumidores en `comms` (el correo del resultado), `crm` (la evidencia de la tarea de nuevos) y el propio `permanence`; salen cuatro esquemas parciales.
+
+`permanence.recompute` es trabajo interno: lo encola y lo atiende `permanence`, así que se queda en su archivo. No es un pedido de la regla 8, que es para los que cruzan módulos.
+
+Lo que enseñó el contrato en estricto:
+
+- **Quien actúa puede ser el sistema**: `actorId` es anulable en toda la familia, porque el job que aplica el cierre y la importación no tienen persona.
+- **`committeeId` distingue la fila**: en `permanence.decided` va en `null` para la decisión por persona (continuar o salir de la OE) y con valor para la de un comité; en `leader-score.recorded` va en `null` cuando la regla es de alcance OE.
+- **La importación histórica no sabe quién evaluó**: `evaluatorName` de `evaluation.recorded` es opcional porque `scripts/lib/ghpoints-db.ts` no lo manda. El contrato lo dice en lugar de que el importador invente un nombre.
+- `personId` de `permanence.recompute` es opcional: sin él, recalcula el término entero.
+
+`comms` validaba `decision` contra sus cuatro valores; ahora viaja como texto y el correo sigue saliendo solo cuando es `CONTINUES` en la fila por persona, así que un valor desconocido no envía nada.
+
 ## Consecuencias
 
 - 20 de 64 tipos en el catálogo tras las dos primeras familias. Quedan 44: el resto de `participation` (retos, insignias, juegos, cierre), `permanence`, `forms`, `crm`, `identity`, `content` y `system`.

@@ -2,6 +2,8 @@ import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { permanenceRecompute, workGroupMembershipChanged } from "@/domain-events/permanence";
 import { getEventRef, isMacroeventSlug, listMacroevents } from "@/modules/events";
 import { listMembershipStatuses } from "@/modules/people";
 import { getTerm } from "@/modules/terms";
@@ -73,9 +75,8 @@ export async function saveMacroeventMemberAs(
           note: null,
         })
         .where(match);
-      await ctx.emit({
-        type: "work-group-membership.changed",
-        payload: {
+      await ctx.emit(
+        eventOf(workGroupMembershipChanged, {
           actorId: actor.personId,
           personId: input.personId,
           termId: group.termId,
@@ -83,8 +84,8 @@ export async function saveMacroeventMemberAs(
           groupName: group.name,
           kind: group.kind,
           change: "JOINED",
-        },
-      });
+        }),
+      );
     } else if (!before) await addMembers(ctx, groupId, [input.personId], { statuses });
     const [saved] = await ctx.tx
       .update(workGroupMembership)
@@ -107,11 +108,13 @@ export async function saveMacroeventMemberAs(
         { groupId, personId: input.personId, evaluation: "GOOD", note: "" },
         evaluation,
       );
-    await ctx.emit({
-      type: "permanence.recompute",
-      payload: { termId: group.termId, personId: input.personId },
-      dedupeKey: `permanence:${group.termId}:${input.personId}`,
-    });
+    await ctx.emit(
+      eventOf(
+        permanenceRecompute,
+        { termId: group.termId, personId: input.personId },
+        { dedupeKey: `permanence:${group.termId}:${input.personId}` },
+      ),
+    );
   });
 }
 

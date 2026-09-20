@@ -3,6 +3,7 @@ import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { scoreRecompute } from "@/domain-events/participation";
+import { permanenceRecompute } from "@/domain-events/permanence";
 import { getEnv } from "@/env";
 import { announcement } from "@/modules/content/schema";
 import { recognition } from "@/modules/crm/schema";
@@ -524,11 +525,10 @@ async function seedPermanenceConditions(terms: Map<string, string>): Promise<voi
         .where(eq(committeeMembership.id, row.id));
     }
   }
-  await enqueueEvent(db, {
-    type: "permanence.recompute",
-    payload: { termId: current },
-    dedupeKey: `permanence:${current}:*`,
-  });
+  await enqueueEvent(
+    db,
+    eventOf(permanenceRecompute, { termId: current }, { dedupeKey: `permanence:${current}:*` }),
+  );
 }
 
 // Grupos de trabajo sintéticos (ADR-036 regla 6): los siete comités de trabajo con el líder de su

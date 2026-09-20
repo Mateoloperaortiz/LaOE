@@ -2,6 +2,8 @@ import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { evaluationRecorded, permanenceRecompute } from "@/domain-events/permanence";
 import { getPeopleByIds } from "@/modules/people";
 import { getTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
@@ -83,9 +85,8 @@ export async function evaluate(
     before: { evaluation: before.evaluation, note: before.note },
     after: { evaluation: input.evaluation, note: input.note },
   });
-  await ctx.emit({
-    type: "evaluation.recorded",
-    payload: {
+  await ctx.emit(
+    eventOf(evaluationRecorded, {
       actorId: ctx.actor.personId,
       personId: input.personId,
       termId: group.termId,
@@ -95,13 +96,15 @@ export async function evaluate(
       evaluation: input.evaluation,
       note: input.note,
       evaluatorName: context.evaluatorName,
-    },
-  });
-  await ctx.emit({
-    type: "permanence.recompute",
-    payload: { termId: group.termId, personId: input.personId },
-    dedupeKey: `permanence:${group.termId}:${input.personId}`,
-  });
+    }),
+  );
+  await ctx.emit(
+    eventOf(
+      permanenceRecompute,
+      { termId: group.termId, personId: input.personId },
+      { dedupeKey: `permanence:${group.termId}:${input.personId}` },
+    ),
+  );
 }
 
 export async function loadEvaluationContext(

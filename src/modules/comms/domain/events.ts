@@ -7,6 +7,7 @@ import type {
   challengeRejected,
   checkinApproved,
 } from "@/domain-events/participation";
+import type { permanenceDecided } from "@/domain-events/permanence";
 import { getEnv } from "@/env";
 import { markAnnouncementPushSent } from "@/modules/content";
 import { balanceFor } from "@/modules/participation";
@@ -185,19 +186,13 @@ export async function pushRecognition(raw: unknown): Promise<DeliveryStats> {
   );
 }
 
-export const permanenceDecidedSchema = z.object({
-  personId: z.string().min(1),
-  termId: z.string().min(1),
-  committeeId: z.string().nullable().optional(),
-  decision: z.enum(["CONTINUES", "PROBATION", "EXIT_COMMITTEE", "EXIT_OE"]),
-});
-
 /**
  * Resultado de permanencia por correo (ADR-038 regla 10): solo la fila por persona y solo cuando
  * cumple (T-202). Prueba (T-203) y salida (T-204) esperan el texto de GH. Idempotente por clave.
  */
-export async function emailPermanenceOutcome(raw: unknown): Promise<SendReceipt | null> {
-  const payload = permanenceDecidedSchema.parse(raw);
+export async function emailPermanenceOutcome(
+  payload: EventPayload<typeof permanenceDecided>,
+): Promise<SendReceipt | null> {
   if (payload.committeeId || payload.decision !== "CONTINUES") {
     return null;
   }

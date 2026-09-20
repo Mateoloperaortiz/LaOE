@@ -3,6 +3,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import "@/jobs/handlers";
+import { eventOf } from "@/domain-events/define";
+import { permanenceDecided } from "@/domain-events/permanence";
 import { drain } from "@/jobs/poller";
 import {
   saveSubscriptionAs,
@@ -158,10 +160,10 @@ describe("resultado de permanencia por correo (T-202)", () => {
       decision,
       reason: "",
     });
-    await enqueueEvent(db(), { type: "permanence.decided", payload: payload("CONTINUES", "c1") });
-    await enqueueEvent(db(), { type: "permanence.decided", payload: payload("PROBATION", null) });
-    await enqueueEvent(db(), { type: "permanence.decided", payload: payload("CONTINUES", null) });
-    await enqueueEvent(db(), { type: "permanence.decided", payload: payload("CONTINUES", null) });
+    await enqueueEvent(db(), eventOf(permanenceDecided, payload("CONTINUES", "c1")));
+    await enqueueEvent(db(), eventOf(permanenceDecided, payload("PROBATION", null)));
+    await enqueueEvent(db(), eventOf(permanenceDecided, payload("CONTINUES", null)));
+    await enqueueEvent(db(), eventOf(permanenceDecided, payload("CONTINUES", null)));
     const result = await drain(20);
     expect(result.failed).toBe(0);
     expect(sent).toHaveLength(1);

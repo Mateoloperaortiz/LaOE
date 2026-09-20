@@ -9,6 +9,7 @@ import {
   personAnonymized,
   personDeletionRequested,
 } from "@/domain-events/people";
+import { evaluationRecorded } from "@/domain-events/permanence";
 import { onEvent, registerHandler } from "@/jobs/registry";
 import {
   APPOINTMENT_KINDS,
@@ -104,7 +105,6 @@ for (const type of TIMELINE_EVENTS) {
   });
 }
 
-const personEvent = z.object({ personId: z.string().min(1) });
 onEvent(membershipChanged, async ({ personId, to }, ctx) => {
   if (to === "INACTIVE") {
     const tasks = await deleteTasksFor(personId);
@@ -201,10 +201,7 @@ onEvent(committeeRemovalRequested, async (event, ctx) => {
 // La primera integración marca sola el paso del onboarding (ADR-031, ADR-034 regla 15).
 
 // Una tarea de nuevos con buen desempeño marca el paso de decoración del onboarding (ADR-036).
-const evaluationRecorded = personEvent.extend({ kind: z.string(), evaluation: z.string() });
-
-registerHandler("evaluation.recorded", async (payload, ctx) => {
-  const { personId, kind, evaluation } = evaluationRecorded.parse(payload);
+onEvent(evaluationRecorded, async ({ personId, kind, evaluation }, ctx) => {
   if (kind !== "NEW_MEMBER_TASK" || evaluation !== "GOOD") {
     return;
   }

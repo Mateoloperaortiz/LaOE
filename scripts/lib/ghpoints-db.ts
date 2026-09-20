@@ -3,6 +3,11 @@ import { getDb } from "@/db/client";
 import { type Executor, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { checkinApproved, scoreRecompute } from "@/domain-events/participation";
+import {
+  evaluationRecorded,
+  permanenceRecompute,
+  workGroupMembershipChanged,
+} from "@/domain-events/permanence";
 import { permission } from "@/modules/identity/schema";
 import { creditCheckIn } from "@/modules/participation/domain/ledger";
 import { newPublicId } from "@/modules/participation/domain/public-id-pure";
@@ -398,9 +403,8 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
               left_at: null,
             };
             memberships.set(mk, gm);
-            await ctx.emit({
-              type: "work-group-membership.changed",
-              payload: {
+            await ctx.emit(
+              eventOf(workGroupMembershipChanged, {
                 actorId: options.actorId,
                 personId: row.personId,
                 termId: plan.termId,
@@ -408,8 +412,8 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
                 groupName: t(ref.kind === "NEW_MEMBER_TASK" ? "T-2341" : "T-2342"),
                 kind: ref.kind,
                 change: "JOINED",
-              },
-            });
+              }),
+            );
           }
           await ctx.audit({
             action: "work-group.evidence-imported",
@@ -433,9 +437,8 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
               })
               .where(eq(workGroupMembership.id, gm.id));
             gm.evaluation = "GOOD";
-            await ctx.emit({
-              type: "evaluation.recorded",
-              payload: {
+            await ctx.emit(
+              eventOf(evaluationRecorded, {
                 actorId: options.actorId,
                 personId: row.personId,
                 termId: plan.termId,
@@ -444,8 +447,8 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
                 kind: ref.kind,
                 evaluation: "GOOD",
                 note: t("T-2343"),
-              },
-            });
+              }),
+            );
           }
         }
       }
@@ -454,11 +457,13 @@ export async function applyGhImport(manifest: GhManifest, options: GhApplyOption
           eventOf(scoreRecompute, { occasionId }, { dedupeKey: `score:${occasionId}` }),
         );
     }
-    await ctx.emit({
-      type: "permanence.recompute",
-      payload: { termId: plan.termId },
-      dedupeKey: `permanence:${plan.termId}:*`,
-    });
+    await ctx.emit(
+      eventOf(
+        permanenceRecompute,
+        { termId: plan.termId },
+        { dedupeKey: `permanence:${plan.termId}:*` },
+      ),
+    );
     await updateImportJob(ctx, job.id, {
       status: "APPLIED",
       appliedAt: now,

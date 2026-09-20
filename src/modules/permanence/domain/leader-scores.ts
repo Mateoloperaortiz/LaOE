@@ -2,6 +2,12 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import {
+  leaderScoreRecorded,
+  manualCreditGranted,
+  permanenceRecompute,
+} from "@/domain-events/permanence";
 import { getTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -29,11 +35,13 @@ export interface LeaderScoreContext {
 }
 
 function recompute(ctx: CommandContext, termId: string, personId: string) {
-  return ctx.emit({
-    type: "permanence.recompute",
-    payload: { termId, personId },
-    dedupeKey: `permanence:${termId}:${personId}`,
-  });
+  return ctx.emit(
+    eventOf(
+      permanenceRecompute,
+      { termId, personId },
+      { dedupeKey: `permanence:${termId}:${personId}` },
+    ),
+  );
 }
 
 export async function scoreCriterion(
@@ -84,9 +92,8 @@ export async function scoreCriterion(
     entityId: `${rule.id}:${input.personId}`,
     after: { value: input.value, note: input.note },
   });
-  await ctx.emit({
-    type: "leader-score.recorded",
-    payload: {
+  await ctx.emit(
+    eventOf(leaderScoreRecorded, {
       actorId: ctx.actor.personId,
       personId: input.personId,
       termId: rule.termId,
@@ -96,8 +103,8 @@ export async function scoreCriterion(
       value: input.value,
       weight: rule.weight,
       note: input.note,
-    },
-  });
+    }),
+  );
   await recompute(ctx, rule.termId, input.personId);
 }
 
@@ -148,9 +155,8 @@ export async function grantManualCredit(
     entityId: `${rule.id}:${input.personId}`,
     after: { value: input.value, reason: input.reason },
   });
-  await ctx.emit({
-    type: "manual-credit.granted",
-    payload: {
+  await ctx.emit(
+    eventOf(manualCreditGranted, {
       actorId: ctx.actor.personId,
       personId: input.personId,
       termId: rule.termId,
@@ -159,8 +165,8 @@ export async function grantManualCredit(
       value: input.value,
       weight: rule.weight,
       reason: input.reason,
-    },
-  });
+    }),
+  );
   await recompute(ctx, rule.termId, input.personId);
 }
 
