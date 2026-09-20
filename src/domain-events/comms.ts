@@ -45,3 +45,11 @@ export const notificationRequested = defineEvent(
   "notification.requested",
   notificationRequestedSchema,
 );
+
+// Trabajo interno de `comms`.
+
+/** «Enviar ahora»: corre el tick de campañas sin esperar al programado de cada minuto. */
+export const campaignStart = defineEvent(
+  "campaign.start",
+  z.object({ campaignId: z.string().min(1), actorId: z.string().nullable() }),
+);
