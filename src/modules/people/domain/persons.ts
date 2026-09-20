@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext, Executor } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { personEmailChanged, personUpdated } from "@/domain-events/people";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -204,15 +206,11 @@ export async function updatePerson(
     before: Object.fromEntries(changed.map((field) => [field, before[field]])),
     after: Object.fromEntries(changed.map((field) => [field, values[field]])),
   });
-  await ctx.emit({
-    type: "person.updated",
-    payload: { actorId: ctx.actor.personId, personId: id, fields: changed },
-  });
+  await ctx.emit(
+    eventOf(personUpdated, { actorId: ctx.actor.personId, personId: id, fields: changed }),
+  );
   if (emailChanged) {
-    await ctx.emit({
-      type: "person.email-changed",
-      payload: { actorId: ctx.actor.personId, personId: id },
-    });
+    await ctx.emit(eventOf(personEmailChanged, { actorId: ctx.actor.personId, personId: id }));
   }
 }
 

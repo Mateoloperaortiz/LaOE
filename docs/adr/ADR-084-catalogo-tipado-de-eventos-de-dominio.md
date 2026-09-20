@@ -44,9 +44,20 @@ El tipado ya enseñó dos cosas que no estaban escritas en ningún lado:
 - En `checkin.cancelled` y `checkin.excused` **el motivo puede ser `null`**. Ningún consumidor lo decía; el contrato ahora sí.
 - Una prueba de integración llamaba al push de puntos con un payload a medias que en producción no existe. Ahora pasa el payload completo.
 
+## Segunda familia: `people`
+
+Quince tipos (`person.updated`, `person.email-changed`, `person.anonymized`, `person.deletion-requested`, `person.imported`, `person.admitted`, `stage.changed`, `membership.changed`, `membership-term.changed`, `committee-membership.changed`, `committee-removal.requested`, `appointment.changed`, `consent.changed`, `sanction.recorded` y `sanction.revoked`), 27 emisiones en doce archivos y consumidores en siete módulos: `identity`, `wallet`, `permanence`, `forms`, `participation`, `comms` y `crm`. Con ella salen los esquemas `personEvent` y `membershipChanged` que cada `jobs.ts` se había escrito.
+
+Cómo se fijó cada contrato: primero se escribió con lo que parecía, y después se probó **en estricto** —sin ningún `nullable` ni `optional`— para que el compilador señalara, emisión por emisión, qué campos el productor de verdad deja en `null` o no manda. Salieron dos que se habían supuesto de más (`expiresOn` de una sanción siempre es texto; `roleCode` de un cargo es opcional pero nunca `null`) y el resto se confirmó: `from` y `reason` de `membership.changed`, `leaveUntil` solo al entrar en licencia, `endReason` solo en la baja, `source` de `consent.changed` solo al otorgar, `editionId` en `null` al quitar un cargo que no es de macroevento.
+
+Dos cosas que conviene saber:
+
+- **Cinco pruebas de integración armaban estos eventos a mano con payloads a medias** (`{ personId }`, sin `actorId`), que el productor nunca emite, y dejaron de pasar cuando el consumidor empezó a validar el contrato completo. No se aflojó el contrato: las pruebas emiten ahora con `eventOf`, y el compilador las comprueba igual que al productor.
+- **`identity` conserva la sesión solo si reconoce el estado.** Su handler de `membership.changed` validaba `to` contra los cuatro estados conocidos; un estado desconocido fallaba el intento y la sesión quedaba viva. Con `to` como texto (regla 5), un estado que ese código no conozca **cierra** las sesiones. Hoy no existe tal estado; si apareciera uno, la opción segura es la que queda.
+
 ## Consecuencias
 
-- 5 de 64 tipos en el catálogo. Quedan 59, y el orden natural es por tamaño de la familia: `people` (19 tipos que escucha `crm`), `participation` (el resto: retos, insignias, juegos), `permanence`, `forms`, `crm`, `identity`, `content` y `system`.
+- 20 de 64 tipos en el catálogo tras las dos primeras familias. Quedan 44: el resto de `participation` (retos, insignias, juegos, cierre), `permanence`, `forms`, `crm`, `identity`, `content` y `system`.
 - **La línea de tiempo de `crm` sigue por nombre.** `TIMELINE_EVENTS` y el `switch` de 44 casos de `summarizeEvent` son su propio tramo: pasar a un registro por tipo, con el payload tipado, es lo que de verdad elimina el `str(payload, clave)` que devuelve `""`. Es la única excepción que la prueba del catálogo admite.
 - El catálogo **no** resuelve el evento sin handler: un contrato sin nadie que lo escuche sigue siendo válido (ADR-034). Lo que sí elimina es el nombre mal escrito, porque ya no se escribe.
 - El modelo de ejecución del poller (reservar la fila en lugar de sostener la transacción, una fila por par evento-handler, recuperar programados perdidos, salud del outbox) es el tramo R4-B, con migración y ensayo en staging.

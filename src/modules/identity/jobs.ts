@@ -1,7 +1,7 @@
-import { z } from "zod";
 import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { registerHandler } from "@/jobs/registry";
+import { membershipChanged, personAnonymized, personEmailChanged } from "@/domain-events/people";
+import { onEvent, registerHandler } from "@/jobs/registry";
 import { SIGN_IN_STATUSES } from "@/modules/people";
 import { deleteAccessGrantsFor } from "./domain/access-grant";
 import { deleteCarnetTokenFor } from "./domain/carnet-token";
@@ -18,14 +18,9 @@ registerHandler("identity.prune", async (_payload, ctx) => {
   ctx.log.info(result, "identity depurado");
 });
 
-const membershipChanged = z.object({
-  personId: z.string().min(1),
-  to: z.enum(["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"]),
-});
-
-registerHandler("membership.changed", async (payload, ctx) => {
-  const { personId, to } = membershipChanged.parse(payload);
-  if (!SIGN_IN_STATUSES.includes(to)) {
+onEvent(membershipChanged, async ({ personId, to }, ctx) => {
+  // Un estado que este código no conozca tampoco conserva la sesión: ante la duda, se cierra.
+  if (!(SIGN_IN_STATUSES as readonly string[]).includes(to)) {
     const sessions = await destroySessionsFor(getDb(), personId);
     ctx.log.info({ personId, sessions }, "sesiones cerradas por cambio de estado");
   }
@@ -45,16 +40,12 @@ registerHandler("membership.changed", async (payload, ctx) => {
   }
 });
 
-const personEvent = z.object({ personId: z.string().min(1) });
-
-registerHandler("person.email-changed", async (payload, ctx) => {
-  const { personId } = personEvent.parse(payload);
+onEvent(personEmailChanged, async ({ personId }, ctx) => {
   const sessions = await destroySessionsFor(getDb(), personId);
   ctx.log.info({ personId, sessions }, "sesiones cerradas por cambio de correo");
 });
 
-registerHandler("person.anonymized", async (payload, ctx) => {
-  const { personId } = personEvent.parse(payload);
+onEvent(personAnonymized, async ({ personId }, ctx) => {
   await deleteCarnetTokenFor(personId);
   await deleteCredentialFor(personId);
   await deleteAccessGrantsFor(personId);

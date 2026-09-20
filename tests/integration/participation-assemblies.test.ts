@@ -4,6 +4,8 @@ import { closeDb, getDb } from "@/db/client";
 import { drain } from "@/jobs/poller";
 import "@/jobs/handlers";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { personAnonymized } from "@/domain-events/people";
 import { task } from "@/modules/crm/schema";
 import {
   adjustRequirement,
@@ -201,7 +203,7 @@ describe("asambleas", () => {
     // Al anonimizar, el nombre congelado pasa a "Egresado" por el handler de participation.
     await db().update(person).set({ anonymizedAt: new Date() }).where(eq(person.id, nueva));
     await runCommand(SYSTEM_ACTOR, (ctx) =>
-      ctx.emit({ type: "person.anonymized", payload: { personId: nueva } }),
+      ctx.emit(eventOf(personAnonymized, { actorId: null, personId: nueva })),
     );
     await drain(50);
     const scrubbed = await getTermStanding(termId);

@@ -1,6 +1,8 @@
 import { and, desc, eq, exists, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { consentChanged } from "@/domain-events/people";
 import { requirePrivacyPolicyVersion } from "@/modules/system";
 import { consent, person } from "../schema";
 
@@ -140,16 +142,15 @@ export async function recordConsent(
     entityId: row.id,
     after: { personId, purpose: input.purpose, source: input.source, policyVersion },
   });
-  await ctx.emit({
-    type: "consent.changed",
-    payload: {
+  await ctx.emit(
+    eventOf(consentChanged, {
       actorId: ctx.actor.personId,
       personId,
       purpose: input.purpose,
       action: "GRANTED",
       source: input.source,
-    },
-  });
+    }),
+  );
   return { id: row.id, created: true };
 }
 
@@ -177,10 +178,9 @@ export async function revokeConsent(
     entityId: row.id,
     after: { personId, purpose },
   });
-  await ctx.emit({
-    type: "consent.changed",
-    payload: { actorId: ctx.actor.personId, personId, purpose, action: "REVOKED" },
-  });
+  await ctx.emit(
+    eventOf(consentChanged, { actorId: ctx.actor.personId, personId, purpose, action: "REVOKED" }),
+  );
   return true;
 }
 

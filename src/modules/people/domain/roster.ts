@@ -3,6 +3,8 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { personImported } from "@/domain-events/people";
 import { getEnv } from "@/env";
 import {
   createImportJob,
@@ -723,9 +725,8 @@ async function applyRow(
     entityId: personId,
     after: { jobId, termCode, outcome, changes: row.changes },
   });
-  await ctx.emit({
-    type: "person.imported",
-    payload: {
+  await ctx.emit(
+    eventOf(personImported, {
       actorId: ctx.actor.personId,
       personId,
       termCode,
@@ -733,8 +734,8 @@ async function applyRow(
       outcome,
       changes: row.changes,
       notes: row.notes ?? null,
-    },
-  });
+    }),
+  );
   return outcome;
 }
 

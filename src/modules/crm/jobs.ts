@@ -3,6 +3,12 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { checkinApproved } from "@/domain-events/participation";
+import {
+  committeeRemovalRequested,
+  membershipChanged,
+  personAnonymized,
+  personDeletionRequested,
+} from "@/domain-events/people";
 import { onEvent, registerHandler } from "@/jobs/registry";
 import {
   APPOINTMENT_KINDS,
@@ -99,18 +105,14 @@ for (const type of TIMELINE_EVENTS) {
 }
 
 const personEvent = z.object({ personId: z.string().min(1) });
-const membershipChanged = personEvent.extend({ to: z.string() });
-
-registerHandler("membership.changed", async (payload, ctx) => {
-  const { personId, to } = membershipChanged.parse(payload);
+onEvent(membershipChanged, async ({ personId, to }, ctx) => {
   if (to === "INACTIVE") {
     const tasks = await deleteTasksFor(personId);
     ctx.log.info({ personId, tasks }, "tareas borradas al salir");
   }
 });
 
-registerHandler("person.anonymized", async (payload, ctx) => {
-  const { personId } = personEvent.parse(payload);
+onEvent(personAnonymized, async ({ personId }, ctx) => {
   const tasks = await deleteTasksFor(personId);
   const notes = await deleteNotesFor(personId);
   ctx.log.info({ personId, tasks, notes }, "tareas y notas borradas por anonimización");
@@ -118,8 +120,7 @@ registerHandler("person.anonymized", async (payload, ctx) => {
 
 // La solicitud de eliminación (ADR-030, ADR-034 regla 12) abre una tarea sin asignar que ven todos
 // los ADMIN, con vencimiento a `privacy.deletionDays` días hábiles; no se duplica mientras siga abierta.
-registerHandler("person.deletion-requested", async (payload, ctx) => {
-  const { personId } = personEvent.parse(payload);
+onEvent(personDeletionRequested, async ({ personId }, ctx) => {
   const [open] = await getDb()
     .select({ id: task.id })
     .from(task)
@@ -151,14 +152,7 @@ registerHandler("person.deletion-requested", async (payload, ctx) => {
 // Pedido de retiro de un comité por su dirección (ADR-058): una tarea sin responsable para GH con el
 // vencimiento de las solicitudes; idempotente por la tarea abierta con el mismo título. La pertenencia
 // no se toca: GH decide desde la Persona 360.
-const removalEvent = z.object({
-  actorId: z.string().nullable().optional(),
-  personId: z.string().min(1),
-  committeeId: z.string().min(1),
-  reason: z.string().default(""),
-});
-registerHandler("committee-removal.requested", async (payload, ctx) => {
-  const event = removalEvent.parse(payload);
+onEvent(committeeRemovalRequested, async (event, ctx) => {
   const [people, committees, days] = await Promise.all([
     getPeopleByIds([event.personId]),
     listAllCommittees(),
