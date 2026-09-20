@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { EventPayload } from "@/domain-events/define";
+import type { checkinApproved } from "@/domain-events/participation";
 import { getEnv } from "@/env";
 import { markAnnouncementPushSent } from "@/modules/content";
 import { balanceFor } from "@/modules/participation";
@@ -72,18 +74,10 @@ export async function pushAnnouncement(raw: unknown): Promise<DeliveryStats> {
   return stats;
 }
 
-export const checkInApprovedSchema = z.object({
-  occasionId: z.string().min(1),
-  occasionTitle: z.string().default(""),
-  personId: z.string().min(1),
-  termId: z.string().min(1),
-  points: z.number().int().default(0),
-  source: z.string().optional(),
-});
-
 /** Puntos acreditados (T-181), solo cuando la ocasión da puntos. */
-export async function pushPointsCredited(raw: unknown): Promise<DeliveryStats | null> {
-  const payload = checkInApprovedSchema.parse(raw);
+export async function pushPointsCredited(
+  payload: EventPayload<typeof checkinApproved>,
+): Promise<DeliveryStats | null> {
   if (payload.points <= 0 || payload.source === "IMPORT") {
     return null;
   }

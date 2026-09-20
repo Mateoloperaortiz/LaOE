@@ -2,7 +2,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { registerHandler } from "@/jobs/registry";
+import { checkinApproved } from "@/domain-events/participation";
+import { onEvent, registerHandler } from "@/jobs/registry";
 import {
   APPOINTMENT_KINDS,
   CONSENT_PURPOSES,
@@ -204,7 +205,6 @@ registerHandler("committee-removal.requested", async (payload, ctx) => {
 });
 
 // La primera integración marca sola el paso del onboarding (ADR-031, ADR-034 regla 15).
-const checkInApproved = personEvent.extend({ category: z.string() });
 
 // Una tarea de nuevos con buen desempeño marca el paso de decoración del onboarding (ADR-036).
 const evaluationRecorded = personEvent.extend({ kind: z.string(), evaluation: z.string() });
@@ -218,8 +218,7 @@ registerHandler("evaluation.recorded", async (payload, ctx) => {
   ctx.log.debug({ personId, changed }, "evidencia de la tarea de nuevos");
 });
 
-registerHandler("checkin.approved", async (payload, ctx) => {
-  const { personId, category } = checkInApproved.parse(payload);
+onEvent(checkinApproved, async ({ personId, category }, ctx) => {
   if (category !== "INTEGRATION") {
     return;
   }

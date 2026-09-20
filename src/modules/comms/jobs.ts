@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { checkinApproved } from "@/domain-events/participation";
 import { getEnv } from "@/env";
-import { registerHandler } from "@/jobs/registry";
+import { onEvent, registerHandler } from "@/jobs/registry";
 import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
 import { runCampaignTick } from "./domain/campaigns";
@@ -39,7 +40,7 @@ registerHandler("announcement.push-requested", async (payload, ctx) => {
   ctx.log.info(stats, "push del anuncio entregado");
 });
 
-registerHandler("checkin.approved", async (payload, ctx) => {
+onEvent(checkinApproved, async (payload, ctx) => {
   const stats = await pushPointsCredited(payload);
   if (stats) {
     ctx.log.info(stats, "push de puntos entregado");

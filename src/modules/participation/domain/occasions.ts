@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext, Executor } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { scoreRecompute } from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
@@ -327,11 +329,7 @@ export async function closeOccasion(
     payload: { occasionId: id, termId: before.termId, points: before.points },
   });
   if (before.points > 0) {
-    await ctx.emit({
-      type: "score.recompute",
-      payload: { occasionId: id },
-      dedupeKey: `score:${id}`,
-    });
+    await ctx.emit(eventOf(scoreRecompute, { occasionId: id }, { dedupeKey: `score:${id}` }));
   }
 }
 
