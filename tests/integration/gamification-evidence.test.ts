@@ -4,6 +4,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import "@/jobs/handlers";
+import { eventOf } from "@/domain-events/define";
+import { personAnonymized } from "@/domain-events/people";
 import { drain } from "@/jobs/poller";
 import {
   EVIDENCE_MAX_BYTES,
@@ -192,7 +194,7 @@ describe("evidencias de retos", () => {
     });
     expect(await headObject(key)).not.toBeNull();
 
-    await enqueueEvent(db(), { type: "person.anonymized", payload: { personId } });
+    await enqueueEvent(db(), eventOf(personAnonymized, { actorId: null, personId }));
     await drain(30);
 
     expect(

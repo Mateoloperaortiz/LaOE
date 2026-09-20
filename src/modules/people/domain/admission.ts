@@ -1,6 +1,8 @@
 import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { membershipChanged, personAdmitted, stageChanged } from "@/domain-events/people";
 import { getEnv } from "@/env";
 import { requirePrivacyPolicyVersion } from "@/modules/system";
 import { getTerm } from "@/modules/terms";
@@ -95,17 +97,20 @@ export async function admitPerson(
     before: { stage: who.stage },
     after: { status: "ACTIVE", firstTermId: when.id, committeeIds },
   });
-  await ctx.emit({
-    type: "membership.changed",
-    payload: { actorId: ctx.actor.personId, personId, from: null, to: "ACTIVE", reason: null },
-  });
-  await ctx.emit({
-    type: "stage.changed",
-    payload: { actorId: ctx.actor.personId, personId, from: who.stage, to: "MEMBER" },
-  });
-  await ctx.emit({
-    type: "person.admitted",
-    payload: {
+  await ctx.emit(
+    eventOf(membershipChanged, {
+      actorId: ctx.actor.personId,
+      personId,
+      from: null,
+      to: "ACTIVE",
+      reason: null,
+    }),
+  );
+  await ctx.emit(
+    eventOf(stageChanged, { actorId: ctx.actor.personId, personId, from: who.stage, to: "MEMBER" }),
+  );
+  await ctx.emit(
+    eventOf(personAdmitted, {
       actorId: ctx.actor.personId,
       personId,
       termId: when.id,
@@ -113,7 +118,7 @@ export async function admitPerson(
       email: who.email,
       firstName: who.preferredName || who.firstName,
       committees: committees.map((row) => row.name),
-    },
-  });
+    }),
+  );
   return { membershipId: created.id };
 }

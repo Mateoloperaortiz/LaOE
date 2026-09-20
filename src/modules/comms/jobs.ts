@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { checkinApproved } from "@/domain-events/participation";
+import { membershipChanged, personAdmitted, personAnonymized } from "@/domain-events/people";
 import { getEnv } from "@/env";
 import { onEvent, registerHandler } from "@/jobs/registry";
 import { t, tList } from "@/shared/copy";
@@ -109,14 +110,8 @@ for (const type of ["comms.campaign-tick", "campaign.start"]) {
   });
 }
 
-const membershipChanged = z.object({
-  personId: z.string().min(1),
-  to: z.enum(["ACTIVE", "ON_LEAVE", "HONORARY", "INACTIVE"]),
-});
-
 // Al salir de la OE se borran suscripciones y preferencias (ADR-030, ADR-038 regla 5).
-registerHandler("membership.changed", async (payload, ctx) => {
-  const { personId, to } = membershipChanged.parse(payload);
+onEvent(membershipChanged, async ({ personId, to }, ctx) => {
   if (to !== "INACTIVE") {
     return;
   }
@@ -125,11 +120,8 @@ registerHandler("membership.changed", async (payload, ctx) => {
   ctx.log.info({ personId, subscriptions, preferences }, "comunicaciones depuradas al salir");
 });
 
-const personEvent = z.object({ personId: z.string().min(1) });
-
 // Anonimizar borra además los mensajes: no son historia institucional (ADR-030).
-registerHandler("person.anonymized", async (payload, ctx) => {
-  const { personId } = personEvent.parse(payload);
+onEvent(personAnonymized, async ({ personId }, ctx) => {
   const subscriptions = await deleteSubscriptionsFor(personId);
   const preferences = await deletePreferencesFor(personId);
   const messages = await deleteMessagesFor(personId);
@@ -165,15 +157,7 @@ async function send(
   });
 }
 
-const admitted = z.object({
-  personId: z.string().min(1),
-  email: z.string().min(3),
-  firstName: z.string(),
-  committees: z.array(z.string()).default([]),
-});
-
-registerHandler("person.admitted", async (payload, ctx) => {
-  const { personId, email, firstName, committees } = admitted.parse(payload);
+onEvent(personAdmitted, async ({ personId, email, firstName, committees }, ctx) => {
   const receipt = await send(personId, email, "T-200", {
     nombre: firstName || t("T-1056"),
     url: `${getEnv().APP_URL}/ingresar`,

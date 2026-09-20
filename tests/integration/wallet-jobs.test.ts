@@ -25,6 +25,12 @@ import {
 } from "@/modules/wallet/domain/google";
 import { listPassesFor, recordPassIssued } from "@/modules/wallet/domain/passes";
 import "@/modules/wallet/jobs";
+import { eventOf } from "@/domain-events/define";
+import {
+  committeeMembershipChanged,
+  membershipChanged,
+  personUpdated,
+} from "@/domain-events/people";
 import { walletPass } from "@/modules/wallet/schema";
 import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
@@ -115,18 +121,29 @@ describe("wallet por outbox y reconciliación diaria", () => {
     const emptyId = await seedMember("wallet-sin-pase@eafit.edu.co");
     await issueGoogleSaveUrl(issuedId);
     server.calls.length = 0;
-    await enqueueEvent(getDb(), {
-      type: "person.updated",
-      payload: { personId: issuedId, fields: ["phone"] },
-    });
-    await enqueueEvent(getDb(), {
-      type: "committee-membership.changed",
-      payload: { personId: emptyId },
-    });
-    await enqueueEvent(getDb(), {
-      type: "membership.changed",
-      payload: { personId: emptyId, to: "ACTIVE" },
-    });
+    await enqueueEvent(
+      getDb(),
+      eventOf(personUpdated, { actorId: null, personId: issuedId, fields: ["phone"] }),
+    );
+    await enqueueEvent(
+      getDb(),
+      eventOf(committeeMembershipChanged, {
+        actorId: null,
+        personId: emptyId,
+        termId: "termino-sintetico",
+        committees: [],
+      }),
+    );
+    await enqueueEvent(
+      getDb(),
+      eventOf(membershipChanged, {
+        actorId: null,
+        personId: emptyId,
+        from: null,
+        to: "ACTIVE",
+        reason: null,
+      }),
+    );
     expect((await drainWallet()).failed).toBe(0);
     expect(server.calls).toEqual([]);
     expect(await getCarnetCredential(emptyId)).toBeNull();

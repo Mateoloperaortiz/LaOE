@@ -4,6 +4,8 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { membershipChanged, personAnonymized, personEmailChanged } from "@/domain-events/people";
 import { redactAuditEntries } from "@/modules/system";
 import { getCurrentTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
@@ -247,17 +249,16 @@ export async function changeMembershipStatus(
     before: { status: current.status, leaveUntil: current.leaveUntil },
     after: { status: input.to, reason: input.reason, leaveUntil },
   });
-  await ctx.emit({
-    type: "membership.changed",
-    payload: {
+  await ctx.emit(
+    eventOf(membershipChanged, {
       actorId: ctx.actor.personId,
       personId,
       from: current.status,
       to: input.to,
       reason: input.reason,
       leaveUntil,
-    },
-  });
+    }),
+  );
 }
 
 export interface ExpiredLeave {
@@ -344,17 +345,16 @@ export async function endMembership(
       contactConsent: input.contactConsent,
     },
   });
-  await ctx.emit({
-    type: "membership.changed",
-    payload: {
+  await ctx.emit(
+    eventOf(membershipChanged, {
       actorId: ctx.actor.personId,
       personId,
       from: current.status,
       to: "INACTIVE",
       endReason: input.endReason,
       reason: input.note ?? null,
-    },
-  });
+    }),
+  );
   return true;
 }
 
@@ -414,21 +414,17 @@ export async function reactivateMembership(
     before: { status: "INACTIVE", endReason: current.endReason },
     after: { status: "ACTIVE", emailChanged },
   });
-  await ctx.emit({
-    type: "membership.changed",
-    payload: {
+  await ctx.emit(
+    eventOf(membershipChanged, {
       actorId: ctx.actor.personId,
       personId,
       from: "INACTIVE",
       to: "ACTIVE",
       reason: input.reason ?? null,
-    },
-  });
+    }),
+  );
   if (emailChanged) {
-    await ctx.emit({
-      type: "person.email-changed",
-      payload: { actorId: ctx.actor.personId, personId },
-    });
+    await ctx.emit(eventOf(personEmailChanged, { actorId: ctx.actor.personId, personId }));
   }
 }
 
@@ -512,7 +508,7 @@ export async function anonymizePerson(
     entityId: personId,
     after: { anonymizedAt: now.toISOString() },
   });
-  await ctx.emit({ type: "person.anonymized", payload: { actorId: ctx.actor.personId, personId } });
+  await ctx.emit(eventOf(personAnonymized, { actorId: ctx.actor.personId, personId }));
 }
 
 export interface MembershipEventView {

@@ -2,7 +2,15 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import { checkinApproved, checkinCancelled, checkinExcused } from "@/domain-events/participation";
-import { onEvents, registerHandler } from "@/jobs/registry";
+import {
+  committeeMembershipChanged,
+  membershipChanged,
+  membershipTermChanged,
+  personImported,
+  sanctionRecorded,
+  sanctionRevoked,
+} from "@/domain-events/people";
+import { onEvent, onEvents, registerHandler } from "@/jobs/registry";
 import { findTermByCode, getCurrentTerm } from "@/modules/terms";
 import { applyDecisions } from "./domain/closing";
 import { addMembersAs } from "./domain/groups";
@@ -37,32 +45,23 @@ onEvents([checkinApproved, checkinCancelled, checkinExcused], async ({ personId,
 });
 
 // Cambio de comités en un término.
-const committeeEvent = z.object({ personId: z.string().min(1), termId: z.string().min(1) });
-registerHandler("committee-membership.changed", async (payload) => {
-  const { personId, termId } = committeeEvent.parse(payload);
+onEvent(committeeMembershipChanged, async ({ personId, termId }) => {
   await enqueueRecompute(termId, personId);
 });
 
 // Condición de prueba fijada por el cierre o por ADMIN desde la Persona 360 (ADR-056): la persona en
 // ese término, para que el umbral nuevo se vea sin esperar al programado diario.
-registerHandler("membership-term.changed", async (payload) => {
-  const { personId, termId } = committeeEvent.parse(payload);
+onEvent(membershipTermChanged, async ({ personId, termId }) => {
   await enqueueRecompute(termId, personId);
 });
 
 // Sanciones registradas o revocadas (ADR-060 regla 6): la persona en el término de la sanción.
-const sanctionEvent = z.object({ personId: z.string().min(1), termId: z.string().min(1) });
-for (const type of ["sanction.recorded", "sanction.revoked"]) {
-  registerHandler(type, async (payload) => {
-    const { personId, termId } = sanctionEvent.parse(payload);
-    await enqueueRecompute(termId, personId);
-  });
-}
+onEvents([sanctionRecorded, sanctionRevoked], async ({ personId, termId }) => {
+  await enqueueRecompute(termId, personId);
+});
 
 // Cambio de estado de la membresía: el término actual.
-const personEvent = z.object({ personId: z.string().min(1) });
-registerHandler("membership.changed", async (payload) => {
-  const { personId } = personEvent.parse(payload);
+onEvent(membershipChanged, async ({ personId }) => {
   const term = await getCurrentTerm();
   if (term) {
     await enqueueRecompute(term.id, personId);
@@ -70,9 +69,7 @@ registerHandler("membership.changed", async (payload) => {
 });
 
 // Importación del roster: el término del archivo, una vez por término.
-const importedEvent = z.object({ termCode: z.string().min(1) });
-registerHandler("person.imported", async (payload) => {
-  const { termCode } = importedEvent.parse(payload);
+onEvent(personImported, async ({ termCode }) => {
   const term = await findTermByCode(termCode);
   if (term) {
     await enqueueRecompute(term.id);

@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { personDeletionRequested, personUpdated } from "@/domain-events/people";
 import { getMedia } from "@/modules/content";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -63,10 +65,9 @@ export async function updateOwnContact(
     before: Object.fromEntries(changed.map((field) => [field, before[field]])),
     after: Object.fromEntries(changed.map((field) => [field, after[field]])),
   });
-  await ctx.emit({
-    type: "person.updated",
-    payload: { actorId: ctx.actor.personId, personId, fields: changed },
-  });
+  await ctx.emit(
+    eventOf(personUpdated, { actorId: ctx.actor.personId, personId, fields: changed }),
+  );
 }
 
 /** La foto propia: solo un medio privado que la misma persona subió a `photos/<personId>/`. */
@@ -118,10 +119,13 @@ export async function requestDeletion(
     entityId: personId,
     after: { requestedAt: now.toISOString() },
   });
-  await ctx.emit({
-    type: "person.deletion-requested",
-    payload: { actorId: ctx.actor.personId, personId, requestedAt: now.toISOString() },
-  });
+  await ctx.emit(
+    eventOf(personDeletionRequested, {
+      actorId: ctx.actor.personId,
+      personId,
+      requestedAt: now.toISOString(),
+    }),
+  );
   return { created: true, requestedAt: now };
 }
 

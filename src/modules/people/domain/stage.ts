@@ -1,5 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { CommandContext } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { stageChanged } from "@/domain-events/people";
 import { person } from "../schema";
 
 // Etapas por comando (ADR-003, ADR-037 regla 7): un prospecto pasa a postulante cuando entra a un
@@ -23,9 +25,13 @@ export async function markApplicant(ctx: CommandContext, personId: string): Prom
     before: { stage: "PROSPECT" },
     after: { stage: "APPLICANT" },
   });
-  await ctx.emit({
-    type: "stage.changed",
-    payload: { actorId: ctx.actor.personId, personId, from: "PROSPECT", to: "APPLICANT" },
-  });
+  await ctx.emit(
+    eventOf(stageChanged, {
+      actorId: ctx.actor.personId,
+      personId,
+      from: "PROSPECT",
+      to: "APPLICANT",
+    }),
+  );
   return true;
 }
