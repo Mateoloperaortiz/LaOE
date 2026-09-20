@@ -1,4 +1,4 @@
-import { z } from "zod";
+import type { NotificationKind } from "@/domain-events/comms";
 import { splitTitleBody } from "@/shared/copy/render";
 
 // Reglas de comunicaciones sin I/O (ADR-023, ADR-038).
@@ -19,38 +19,14 @@ export function chooseRoute(
 
 // Bus de notificaciones (ADR-038 regla 2): un evento, destinatarios, textos y clave de deduplicación.
 
-export const NOTIFICATION_KINDS = [
-  "ANNOUNCEMENT",
-  "POINTS",
-  "REMINDER",
-  "SURVEY",
-  "TRANSACTIONAL",
-  "WORDLE",
-] as const;
-
-export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
-
-export const NOTIFICATION_MAX_RECIPIENTS = 1000;
-
-export const notificationRequestedSchema = z.object({
-  kind: z.enum(NOTIFICATION_KINDS),
-  recipients: z
-    .array(
-      z.object({
-        personId: z.string().min(1),
-        url: z.string().min(1).optional(),
-      }),
-    )
-    .min(1)
-    .max(NOTIFICATION_MAX_RECIPIENTS),
-  title: z.string().min(1),
-  body: z.string().default(""),
-  url: z.string().min(1),
-  tag: z.string().min(1).optional(),
-  dedupeKey: z.string().min(1).max(200),
-});
-
-export type NotificationRequested = z.infer<typeof notificationRequestedSchema>;
+// El contrato del pedido vive en la capa neutral de eventos (ADR-084): lo emiten otros módulos.
+export {
+  NOTIFICATION_KINDS,
+  NOTIFICATION_MAX_RECIPIENTS,
+  type NotificationKind,
+  type NotificationRequested,
+  notificationRequestedSchema,
+} from "@/domain-events/comms";
 
 export interface PreferenceFlags {
   emailCampaigns: boolean;

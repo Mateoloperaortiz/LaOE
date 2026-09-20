@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { scoreRecompute } from "@/domain-events/participation";
 import { permission } from "@/modules/identity/schema";
 import {
   committee,
@@ -257,16 +259,8 @@ describe("runCommand", () => {
   it("colapsa eventos pendientes con la misma clave y admite otro cuando el anterior se procesó", async () => {
     const emitTwice = () =>
       runCommand(SYSTEM_ACTOR, async (ctx) => {
-        await ctx.emit({
-          type: "score.recompute",
-          payload: { occasionId: "o1" },
-          dedupeKey: "score:o1",
-        });
-        await ctx.emit({
-          type: "score.recompute",
-          payload: { occasionId: "o1" },
-          dedupeKey: "score:o1",
-        });
+        await ctx.emit(eventOf(scoreRecompute, { occasionId: "o1" }, { dedupeKey: "score:o1" }));
+        await ctx.emit(eventOf(scoreRecompute, { occasionId: "o1" }, { dedupeKey: "score:o1" }));
       });
     await emitTwice();
     let [pending] = await db().select({ n: count() }).from(outbox);

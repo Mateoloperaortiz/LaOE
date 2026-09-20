@@ -2,6 +2,8 @@ import { and, asc, count, desc, eq, gt, inArray, lte, or, type SQL, sql } from "
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext, Executor } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { challengePublished, challengeRejected } from "@/domain-events/participation";
 import { getPeopleByIds } from "@/modules/people";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
@@ -322,9 +324,8 @@ export async function publishChallenge(
     before: { status: "DRAFT" },
     after: { status: "PUBLISHED", opensAt: row.opensAt, closesAt: row.closesAt },
   });
-  await ctx.emit({
-    type: "challenge.published",
-    payload: {
+  await ctx.emit(
+    eventOf(challengePublished, {
       challengeId: row.id,
       termId: row.termId,
       title: row.title,
@@ -333,8 +334,8 @@ export async function publishChallenge(
       audience: row.audience,
       audienceCommitteeIds: row.audienceCommitteeIds,
       basePoints: row.basePoints,
-    },
-  });
+    }),
+  );
 }
 
 /**
@@ -382,17 +383,16 @@ export async function cancelChallenge(
         updatedAt: now,
       })
       .where(eq(challengeParticipation.id, part.id));
-    await ctx.emit({
-      type: "challenge.rejected",
-      payload: {
+    await ctx.emit(
+      eventOf(challengeRejected, {
         participationId: part.id,
         challengeId: row.id,
         challengeTitle: row.title,
         personId: part.personId,
         termId: row.termId,
         reason: autoReason,
-      },
-    });
+      }),
+    );
   }
   const [granted] = await ctx.tx
     .select({ n: count() })

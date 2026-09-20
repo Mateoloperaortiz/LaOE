@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { checkinApproved } from "@/domain-events/participation";
+import { checkinApproved, termSuccessorMissing } from "@/domain-events/participation";
 import {
   committeeRemovalRequested,
   membershipChanged,
@@ -222,10 +222,7 @@ onEvent(checkinApproved, async ({ personId, category }, ctx) => {
 
 // Falta crear el término siguiente (ADR-004, ADR-035 regla 14): una tarea sin asignar que ven todos los
 // ADMIN; no se duplica mientras siga abierta una con el mismo título.
-const successorMissing = z.object({ next: z.string().min(1), endsOn: z.string().min(1) });
-
-registerHandler("term.successor-missing", async (payload, ctx) => {
-  const { next, endsOn } = successorMissing.parse(payload);
+onEvent(termSuccessorMissing, async ({ next, endsOn }, ctx) => {
   const title = t("T-666", { codigo: next, fecha: endsOn });
   const [open] = await getDb()
     .select({ id: task.id })

@@ -34,6 +34,7 @@ wallet ← people
 5. **Los campos de tipo enumerado viajan como texto** (`category`, `kind`, `source`). Un valor nuevo en un enum de la base no debe mandar eventos a dead letter por un contrato desactualizado; el consumidor compara contra el valor que le importa.
 6. **La migración va por familias, y una prueba impide retroceder**: `tests/unit/domain-events.test.ts` falla si un tipo que ya está en el catálogo aparece como cadena suelta en `src` o en `scripts`, o si el catálogo repite un tipo. Se comprobó en rojo. Ignora las líneas `action: "…"`: una acción de auditoría puede llamarse igual que un evento y es otro espacio de nombres.
 7. **`registerHandler` y `ctx.emit({ type, payload })` siguen existiendo** para las familias sin migrar y para los programados, que no llevan payload. `npm run audit:metrics` cuenta cuántos tipos están en el catálogo y cuántos siguen como cadena.
+8. **Un pedido vive con quien lo atiende.** `notification.requested` no es un hecho de un productor sino un encargo: lo emiten `participation` y `permanence`, y lo atiende `comms`. Un tipo con varios productores y un solo módulo que lo atiende va en el archivo de ese módulo (`src/domain-events/comms.ts`), y ahí la regla 5 se invierte: el vocabulario lo fija quien atiende, así que `kind` sí es un enumerado y un valor que `comms` no conoce es un error de quien pide. Los límites del pedido (el tope de destinatarios) viven junto al contrato, para que quien pide no los copie.
 
 ## Primera familia: el check-in
 
@@ -54,6 +55,23 @@ Dos cosas que conviene saber:
 
 - **Cinco pruebas de integración armaban estos eventos a mano con payloads a medias** (`{ personId }`, sin `actorId`), que el productor nunca emite, y dejaron de pasar cuando el consumidor empezó a validar el contrato completo. No se aflojó el contrato: las pruebas emiten ahora con `eventOf`, y el compilador las comprueba igual que al productor.
 - **`identity` conserva la sesión solo si reconoce el estado.** Su handler de `membership.changed` validaba `to` contra los cuatro estados conocidos; un estado desconocido fallaba el intento y la sesión quedaba viva. Con `to` como texto (regla 5), un estado que ese código no conozca **cierra** las sesiones. Hoy no existe tal estado; si apareciera uno, la opción segura es la que queda.
+
+## Tercera familia: el resto de `participation` y el pedido de notificación
+
+Dieciséis tipos y 24 emisiones. Quince son de `participation`: ocasiones y cierre (`occasion.closed`, `term.points-closed`, `term.successor-missing`), libro de puntos (`points.adjusted`, `points.reversed`), retos (`challenge.published`, `challenge.completed`, `challenge.rejected`, `challenge.reward-reversed`), insignias y boosters (`badge.unlocked`, `booster.granted`), juegos (`wordle.completed`, `sudoku.completed`) y el trabajo interno de la gamificación (`gamification.evidence-process`, `gamification.reconcile`). El decimosexto es `notification.requested`, que estrena la regla 8. Consumidores en `comms`, `permanence`, `crm` y el propio `participation`; salen seis esquemas parciales que cada `jobs.ts` y `comms/domain/events.ts` se escribían.
+
+Lo que enseñó el contrato en estricto:
+
+- **Una insignia puede no tener término ni booster**: el logro toma el término de la definición de la insignia o, si no lo tiene, el de la ocasión o el reto que lo origina, y puede no haber ninguno; `boosterKind` va en `null` cuando el logro no trae premio.
+- **Un premio revertido viene de una entrega o de un check-in, nunca de los dos**: `participationId` y `checkInId` de `challenge.reward-reversed` son anulables, y el que no aplica viaja en `null`.
+- El resto se confirmó tal como se supuso: el motivo de `challenge.rejected` siempre es texto, también en el rechazo automático de las entregas pendientes al cancelar un reto.
+
+Dos decisiones de consumidor:
+
+- **Una audiencia de reto desconocida no le llega a nadie.** `comms` validaba `audience` contra sus cuatro valores y cualquier otro caía en la rama final, que es «toda la OE». Con `audience` como texto (regla 5), la rama final quedó explícita para `ALL` y un valor que ese código no conozca no notifica. Es el mismo criterio que con las sesiones de `identity`: ante lo desconocido, la opción segura.
+- **El tope de destinatarios dejó de estar copiado.** `reminders`, `surveys` y `wordle-reminder` declaraban cada uno su `MAX_RECIPIENTS = 1000`, que tenía que coincidir con el máximo del esquema de `comms` sin que nada lo dijera. Ahora los tres importan `NOTIFICATION_MAX_RECIPIENTS` del contrato.
+
+La prueba que impide retroceder ignoraba las líneas `action: "…"`; ahora ignora también las que eligen la acción con un condicional (`action: won ? "wordle.completed" : "wordle.attempted"`).
 
 ## Consecuencias
 

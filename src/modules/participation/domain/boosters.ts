@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { boosterGranted } from "@/domain-events/participation";
 import { getTerm } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -443,16 +445,15 @@ export async function grantBoosterManually(
       reason,
     },
   });
-  await ctx.emit({
-    type: "booster.granted",
-    payload: {
+  await ctx.emit(
+    eventOf(boosterGranted, {
       boosterId: row.id,
       personId: input.personId,
       termId: input.termId,
       kind: input.kind,
       source: "MANUAL",
-    },
-  });
+    }),
+  );
   return row;
 }
 
@@ -495,16 +496,15 @@ export async function grantBoosterForAchievement(
       achievementId: input.achievementId,
     },
   });
-  await ctx.emit({
-    type: "booster.granted",
-    payload: {
+  await ctx.emit(
+    eventOf(boosterGranted, {
       boosterId: row.id,
       personId: input.personId,
       termId: input.termId,
       kind,
       source: "ACHIEVEMENT",
-    },
-  });
+    }),
+  );
   return row;
 }
 

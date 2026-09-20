@@ -1,10 +1,17 @@
-import { z } from "zod";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
 import {
+  challengeCompleted,
+  challengeRewardReversed,
   checkinApproved,
   checkinCancelled,
   checkinExcused,
+  evidenceProcess,
+  gamificationReconcile,
+  occasionClosed,
   scoreRecompute,
+  termSuccessorMissing,
+  wordleCompleted,
 } from "@/domain-events/participation";
 import { membershipChanged, personAnonymized } from "@/domain-events/people";
 import { type JobContext, onEvent, onEvents, registerHandler } from "@/jobs/registry";
@@ -111,11 +118,13 @@ registerHandler("participation.term-check", async (_payload, ctx) => {
     return;
   }
   await runCommand(SYSTEM_ACTOR, (tx) =>
-    tx.emit({
-      type: "term.successor-missing",
-      payload: { termId: term.id, code: term.code, next, endsOn: term.endsOn },
-      dedupeKey: `term-successor:${next}`,
-    }),
+    tx.emit(
+      eventOf(
+        termSuccessorMissing,
+        { termId: term.id, code: term.code, next, endsOn: term.endsOn },
+        { dedupeKey: `term-successor:${next}` },
+      ),
+    ),
   );
   ctx.log.info({ next, daysLeft }, "falta crear el término siguiente");
 });
@@ -123,8 +132,6 @@ registerHandler("participation.term-check", async (_payload, ctx) => {
 // Insignias (ADR-067 reglas 9, 10 y 15): cada hecho que sostiene una familia dispara el recompute
 // de la persona — desbloqueo idempotente con su booster y revocación si el hecho desaparece — y el
 // cierre de una ocasión o un reto completado otorgan las ediciones especiales vinculadas.
-const badgePerson = z.object({ personId: z.string().min(1) });
-
 async function recomputeBadges(personId: string, event: string, ctx: JobContext): Promise<void> {
   const delta = await recomputeBadgesFor(personId, { historical: false });
   if (delta.unlocked.length > 0 || delta.revoked.length > 0) {
@@ -132,22 +139,12 @@ async function recomputeBadges(personId: string, event: string, ctx: JobContext)
   }
 }
 
-onEvents([checkinApproved, checkinCancelled], ({ personId }, ctx, type) =>
-  recomputeBadges(personId, type, ctx),
+onEvents(
+  [checkinApproved, checkinCancelled, wordleCompleted, challengeCompleted, challengeRewardReversed],
+  ({ personId }, ctx, type) => recomputeBadges(personId, type, ctx),
 );
 
-// Las familias que todavía no están en el catálogo de eventos (ADR-084) siguen por nombre.
-for (const type of ["wordle.completed", "challenge.completed", "challenge.reward-reversed"]) {
-  registerHandler(type, async (payload, ctx) => {
-    const { personId } = badgePerson.parse(payload);
-    await recomputeBadges(personId, type, ctx);
-  });
-}
-
-registerHandler("challenge.completed", async (payload, ctx) => {
-  const { challengeId, personId } = z
-    .object({ challengeId: z.string().min(1), personId: z.string().min(1) })
-    .parse(payload);
+onEvent(challengeCompleted, async ({ challengeId, personId }, ctx) => {
   const awarded = await awardSpecialBadgesForChallenge(challengeId, personId);
   if (awarded > 0) {
     ctx.log.info({ challengeId, personId, awarded }, "ediciones especiales otorgadas por el reto");
@@ -156,10 +153,7 @@ registerHandler("challenge.completed", async (payload, ctx) => {
 
 // Encuesta tras la ocasión (ADR-038 regla 13): al cerrar, una invitación por asistente aprobado y el
 // push T-191 con la URL propia de cada uno.
-const occasionClosed = z.object({ occasionId: z.string().min(1) });
-
-registerHandler("occasion.closed", async (payload, ctx) => {
-  const { occasionId } = occasionClosed.parse(payload);
+onEvent(occasionClosed, async ({ occasionId }, ctx) => {
   // Representación de los comités en una asamblea cerrada (ADR-060 regla 7).
   const represented = await recomputeCommitteeAssembly(occasionId);
   if (represented > 0) {
@@ -205,10 +199,7 @@ onEvent(membershipChanged, async ({ personId, to }, ctx) => {
 
 // Evidencia de una misión (ADR-067 regla 6): re-encodea a WebP sin metadatos y marca READY; un
 // objeto indecodificable queda FAILED sin reintento y un fallo del bucket reintenta con backoff.
-const evidenceFile = z.object({ fileId: z.string().min(1) });
-
-registerHandler("gamification.evidence-process", async (payload, ctx) => {
-  const { fileId } = evidenceFile.parse(payload);
+onEvent(evidenceProcess, async ({ fileId }, ctx) => {
   const outcome = await processEvidenceFile(fileId);
   ctx.log.info({ fileId, outcome }, "evidencia procesada");
 });
@@ -216,10 +207,7 @@ registerHandler("gamification.evidence-process", async (payload, ctx) => {
 // Conciliación histórica (ADR-067 regla 13): cada evento procesa un lote del cursor y encadena el
 // siguiente mientras queden personas; el batch del payload es informativo (la corrida lleva su
 // cursor), así un evento duplicado o tardío no reprocesa nada.
-registerHandler("gamification.reconcile", async (payload, ctx) => {
-  const { runId, batch } = z
-    .object({ runId: z.string().min(1), batch: z.number().int().nonnegative() })
-    .parse(payload);
+onEvent(gamificationReconcile, async ({ runId, batch }, ctx) => {
   const result = await processReconciliationBatch(runId);
   ctx.log.info({ runId, batch, ...result }, "lote de conciliación procesado");
 });

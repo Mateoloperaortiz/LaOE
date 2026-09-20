@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
+import { NOTIFICATION_MAX_RECIPIENTS, notificationRequested } from "@/domain-events/comms";
+import { eventOf } from "@/domain-events/define";
 import { listActiveMemberRefs } from "@/modules/people";
 import { findTermContaining } from "@/modules/terms";
 import { t } from "@/shared/copy";
@@ -12,8 +14,6 @@ import { wordleDay } from "./wordle-pure";
 // y honorarios que todavía no la abrieron, y solo mientras el término vigente tenga los puntos
 // abiertos. comms entrega por push con la preferencia `pushWordle` y descarta a quien ya recibió la
 // clave del día; la clave del outbox evita encolar dos veces el mismo aviso.
-
-const MAX_RECIPIENTS = 1000;
 
 export interface WordleReminderResult {
   day: string;
@@ -41,22 +41,25 @@ export async function runWordleReminder(now = new Date()): Promise<WordleReminde
     .map((ref) => ref.personId);
   const { title, body } = splitTitleBody(t("T-2620"));
   let enqueued = 0;
-  for (let start = 0; start < recipients.length; start += MAX_RECIPIENTS) {
-    await enqueueEvent(db, {
-      type: "notification.requested",
-      payload: {
-        kind: "WORDLE",
-        recipients: recipients
-          .slice(start, start + MAX_RECIPIENTS)
-          .map((personId) => ({ personId })),
-        title,
-        body,
-        url: "/app/juegos/wordle",
-        tag: "wordle",
-        dedupeKey: `wordle:${day}`,
-      },
-      dedupeKey: `wordle-reminder:${day}:${start / MAX_RECIPIENTS}`,
-    });
+  for (let start = 0; start < recipients.length; start += NOTIFICATION_MAX_RECIPIENTS) {
+    await enqueueEvent(
+      db,
+      eventOf(
+        notificationRequested,
+        {
+          kind: "WORDLE",
+          recipients: recipients
+            .slice(start, start + NOTIFICATION_MAX_RECIPIENTS)
+            .map((personId) => ({ personId })),
+          title,
+          body,
+          url: "/app/juegos/wordle",
+          tag: "wordle",
+          dedupeKey: `wordle:${day}`,
+        },
+        { dedupeKey: `wordle-reminder:${day}:${start / NOTIFICATION_MAX_RECIPIENTS}` },
+      ),
+    );
     enqueued += 1;
   }
   return { day, audience: recipients.length, enqueued };

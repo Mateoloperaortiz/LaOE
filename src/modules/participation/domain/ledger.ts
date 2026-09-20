@@ -1,6 +1,8 @@
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { pointsAdjusted, pointsReversed } from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -242,10 +244,14 @@ export async function adjustPoints(
     entityId: row.id,
     after: { personId: input.personId, termId: input.termId, points: input.points, reason },
   });
-  await ctx.emit({
-    type: "points.adjusted",
-    payload: { personId: input.personId, termId: input.termId, points: input.points, reason },
-  });
+  await ctx.emit(
+    eventOf(pointsAdjusted, {
+      personId: input.personId,
+      termId: input.termId,
+      points: input.points,
+      reason,
+    }),
+  );
   return row;
 }
 
@@ -292,15 +298,14 @@ export async function reverseEntry(
     before: { entryId: entry.id, points: entry.points },
     after: { points: row.points, reason: cleanReason },
   });
-  await ctx.emit({
-    type: "points.reversed",
-    payload: {
+  await ctx.emit(
+    eventOf(pointsReversed, {
       personId: entry.personId,
       termId: entry.termId,
       points: entry.points,
       reason: cleanReason,
-    },
-  });
+    }),
+  );
   return row;
 }
 

@@ -3,6 +3,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import "@/jobs/handlers";
+import { type NotificationRequested, notificationRequested } from "@/domain-events/comms";
+import { eventOf } from "@/domain-events/define";
 import { drain } from "@/jobs/poller";
 import {
   deliverNotification,
@@ -12,6 +14,7 @@ import {
   setPushSenderForTests,
   updatePreferencesAs,
 } from "@/modules/comms";
+import { pushChallengePublished } from "@/modules/comms/domain/events";
 import { message, notificationPreference, pushSubscription } from "@/modules/comms/schema";
 import { endMembership } from "@/modules/people";
 import { truncateAll } from "./db";
@@ -27,9 +30,9 @@ async function subscribe(personId: string, endpoint: string) {
   return saveSubscriptionAs({ personId }, { endpoint, keys: keys() }, "Chrome/140 Android");
 }
 
-function request(personIds: string[], overrides: Record<string, unknown> = {}) {
+function request(personIds: string[], overrides: Partial<NotificationRequested> = {}) {
   return {
-    kind: "ANNOUNCEMENT",
+    kind: "ANNOUNCEMENT" as const,
     recipients: personIds.map((personId) => ({ personId })),
     title: "Anuncio nuevo",
     body: "Primera línea",
@@ -122,11 +125,31 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
   it("sin VAPID el proveedor es console y el mensaje queda SENT; el handler del outbox lo entrega", async () => {
     const ana = await seedMember("ana.console@eafit.edu.co");
     await subscribe(ana, "https://push.example/consola");
-    await enqueueEvent(db(), { type: "notification.requested", payload: request([ana]) });
+    await enqueueEvent(db(), eventOf(notificationRequested, request([ana])));
     const result = await drain(10);
     expect(result).toEqual({ processed: 1, failed: 0 });
     const [row] = await db().select().from(message);
     expect(row).toMatchObject({ personId: ana, provider: "console", status: "SENT" });
+  });
+
+  it("un reto con una audiencia que comms no conoce no le llega a nadie; con ALL llega a los miembros", async () => {
+    const ana = await seedMember("ana.audiencia@eafit.edu.co");
+    await subscribe(ana, "https://push.example/audiencia");
+    const reto = {
+      challengeId: "reto-1",
+      termId: "termino-1",
+      title: "Reto de prueba",
+      kind: "MISSION",
+      closesAt: "2026-10-01T00:00:00.000Z",
+      audienceCommitteeIds: [],
+      basePoints: 10,
+    };
+    const desconocida = await pushChallengePublished({ ...reto, audience: "AUDIENCIA_FUTURA" });
+    expect(desconocida.sent).toBe(0);
+    expect(await db().select().from(message)).toHaveLength(0);
+
+    const todos = await pushChallengePublished({ ...reto, audience: "ALL" });
+    expect(todos.sent).toBe(1);
   });
 
   it("el upsert por endpoint reasigna la persona y salir de la OE borra suscripciones y preferencias", async () => {

@@ -1,6 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type CommandContext, runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { gamificationReconcile } from "@/domain-events/participation";
 import { listMembershipPersonIds } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -58,11 +60,13 @@ export async function startReconciliation(
     before: null,
     after: { mode: input.mode },
   });
-  await ctx.emit({
-    type: "gamification.reconcile",
-    payload: { runId: row.id, batch: 0 },
-    dedupeKey: `reconcile:${row.id}:0`,
-  });
+  await ctx.emit(
+    eventOf(
+      gamificationReconcile,
+      { runId: row.id, batch: 0 },
+      { dedupeKey: `reconcile:${row.id}:0` },
+    ),
+  );
   return row;
 }
 
@@ -91,11 +95,13 @@ export async function resumeReconciliation(ctx: CommandContext, runId: string): 
   });
   // La clave lleva `processed` (no el índice del lote): las claves de lotes ya despachados quedan
   // libres al marcarse processedAt, pero un índice repetido podría chocar con un lote pendiente.
-  await ctx.emit({
-    type: "gamification.reconcile",
-    payload: { runId, batch: reconciliationReport(row).batches },
-    dedupeKey: `reconcile:${runId}:${row.processed}`,
-  });
+  await ctx.emit(
+    eventOf(
+      gamificationReconcile,
+      { runId, batch: reconciliationReport(row).batches },
+      { dedupeKey: `reconcile:${runId}:${row.processed}` },
+    ),
+  );
 }
 
 /**
@@ -191,11 +197,13 @@ export async function processReconciliationBatch(
     if (full) {
       // Clave distinta por lote: el evento en curso sigue pendiente y el dedupeKey del único
       // parcial descartaría uno repetido.
-      await ctx.emit({
-        type: "gamification.reconcile",
-        payload: { runId, batch: batches },
-        dedupeKey: `reconcile:${runId}:${batches}`,
-      });
+      await ctx.emit(
+        eventOf(
+          gamificationReconcile,
+          { runId, batch: batches },
+          { dedupeKey: `reconcile:${runId}:${batches}` },
+        ),
+      );
     }
   });
   return { processed: people.length, done: !full };

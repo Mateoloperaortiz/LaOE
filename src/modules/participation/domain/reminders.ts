@@ -1,5 +1,7 @@
 import { getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
+import { NOTIFICATION_MAX_RECIPIENTS, notificationRequested } from "@/domain-events/comms";
+import { eventOf } from "@/domain-events/define";
 import { getEnv } from "@/env";
 import { listActiveMemberRefs, listCommitteesByIds, listTermRoster } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
@@ -14,8 +16,6 @@ import { type DueReminder, reminderSlots } from "./reminders-pure";
 // bus de notificaciones con su audiencia (el comité, los nuevos o todos los activos y honorarios).
 // comms entrega por push y descarta a quien ya recibió esa clave; la clave del outbox evita repetir
 // un envío pendiente dentro de la misma hora.
-
-const MAX_RECIPIENTS = 1000;
 
 interface Audience {
   all: string[];
@@ -111,21 +111,24 @@ export async function runReminders(now = new Date()): Promise<RemindersResult> {
       ),
     );
     const dedupeKey = `reminder:${item.slot}:${occasion.id}`;
-    for (let start = 0; start < recipients.length; start += MAX_RECIPIENTS) {
-      const chunk = recipients.slice(start, start + MAX_RECIPIENTS);
-      await enqueueEvent(getDb(), {
-        type: "notification.requested",
-        payload: {
-          kind: "REMINDER",
-          recipients: chunk.map((personId) => ({ personId })),
-          title,
-          body,
-          url: `/a/${occasion.publicId}`,
-          tag: `occasion-${occasion.id}`,
-          dedupeKey,
-        },
-        dedupeKey: `${dedupeKey}:${start / MAX_RECIPIENTS}`,
-      });
+    for (let start = 0; start < recipients.length; start += NOTIFICATION_MAX_RECIPIENTS) {
+      const chunk = recipients.slice(start, start + NOTIFICATION_MAX_RECIPIENTS);
+      await enqueueEvent(
+        getDb(),
+        eventOf(
+          notificationRequested,
+          {
+            kind: "REMINDER",
+            recipients: chunk.map((personId) => ({ personId })),
+            title,
+            body,
+            url: `/a/${occasion.publicId}`,
+            tag: `occasion-${occasion.id}`,
+            dedupeKey,
+          },
+          { dedupeKey: `${dedupeKey}:${start / NOTIFICATION_MAX_RECIPIENTS}` },
+        ),
+      );
       enqueued += 1;
     }
   }
