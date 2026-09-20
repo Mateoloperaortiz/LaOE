@@ -15,8 +15,8 @@ import { interaction, request, task } from "@/modules/crm/schema";
 import { checkIn, occasion } from "@/modules/participation/schema";
 import { getSnapshot, recomputeSnapshots } from "@/modules/permanence";
 import { closeTermPoints } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
   seedCheckIn,

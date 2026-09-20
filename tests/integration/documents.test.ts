@@ -20,8 +20,8 @@ import {
 import { type DocumentKind, parseArticlesJson } from "@/modules/content/domain/documents-pure";
 import { documentArticle, mediaAsset } from "@/modules/content/schema";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { sampleArticlesJson, sampleNormativaPdf } from "../helpers/pdf";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { adminAreaRoles } from "@/app/admin/_kit/acceso";
+import { adminAreaRoles } from "@/app/_authz/admin-area";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { markOnboardingStepAs } from "@/modules/crm";
@@ -19,7 +19,7 @@ import { changeMembershipStatus } from "@/modules/people/domain/membership";
 import { updateOwnContact } from "@/modules/people/domain/own-data";
 import { person } from "@/modules/people/schema";
 import { requireConfig } from "@/modules/system";
-import { DomainError } from "@/shared/admin-kit/DomainError";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
   leaveUntilSoon,

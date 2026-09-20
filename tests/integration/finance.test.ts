@@ -18,8 +18,8 @@ import {
   submitPrerequestAs,
 } from "@/modules/finance/domain/commands";
 import { auditLog } from "@/modules/system/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import { seedCommittee, seedMember } from "./factories";
 

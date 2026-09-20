@@ -13,8 +13,8 @@ import {
   hasRecentStepUp,
   issueAccessGrantAs,
 } from "@/modules/identity";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import type { IssueGrantState } from "./acceso-state";
 
 // Emisión del enlace de acceso (ADR-051). Vive en src/app porque compone identity —actor, guard y

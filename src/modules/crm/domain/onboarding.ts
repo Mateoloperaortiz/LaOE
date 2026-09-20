@@ -4,8 +4,8 @@ import { type CommandContext, runCommand } from "@/db/tx";
 import { canParticipate, getMembershipRef, getMyMembership } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { onboardingProgress } from "../schema";
 
 // Onboarding de nuevos (02-crm.md): los pasos salen de `onboarding.steps`; cada uno se marca a mano

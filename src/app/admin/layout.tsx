@@ -1,11 +1,12 @@
 import Link from "next/link";
 import "./admin.css";
+import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { signOutAction } from "@/modules/identity/actions";
 import { CommandPalette } from "@/shared/admin-kit";
 import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { AdminShell } from "./_components/AdminShell";
-import { requireAdminAreaRoles } from "./_kit/acceso";
+import { adminNavGroups } from "./_kit/nav";
 
 // Administración: ADMIN completo; un líder de comité, la dirección de un comité por sus cargos
 // (ADR-058), un líder o evaluador de grupo y la junta entran con la navegación recortada a lo suyo
@@ -14,22 +15,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const roles = await requireAdminAreaRoles("/admin");
   const actor = roles.actor;
   const [temaOscuro, temaClaro] = tList("T-034");
-  const [comites] = tList("T-261");
-  const [terminos] = tList("T-262");
-  const [permisos] = tList("T-263");
-  const [paginas] = tList("T-330");
-  const [cartelera] = tList("T-331");
-  const [medios] = tList("T-334");
-  const [eventos] = tList("T-332");
   const [persona, comite, ocasion, organizacion] = tList("T-290");
-  const [personas, importar, cargos, etiquetas, tareas, segmentos, documentos, importaciones] =
-    tList("T-509");
-  const [ocasiones, ledger, rankings, asambleas, cierre, alias] = tList("T-561");
-  const [reglas, grupos, evaluaciones, cumplimiento, cierrePermanencia, junta] = tList("T-708");
+  const junta = tList("T-708")[5];
   const [permanenciaDe, misGrupos, misEvaluaciones] = tList("T-709");
-  const [formularios, pipelines, organizaciones, solicitudes, convocatorias] = tList("T-908");
-  const [plantillas, campanas, mensajes] = tList("T-1172");
-  const enlaces = !actor.isAdmin
+  // Destinos propios de quien no es ADMIN: sus comités, sus grupos, sus evaluaciones y la junta.
+  const ownLinks = !actor.isAdmin
     ? [
         ...roles.committees.flatMap((item) => [
           { href: `/admin/comites/${item.committee.slug}`, label: item.committee.name },
@@ -59,151 +49,19 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             ]
           : []),
       ]
-    : [
-        { href: "/admin/personas", label: personas ?? "" },
-        { href: "/admin/personas/importar", label: importar ?? "" },
-        { href: "/admin/personas/activacion", label: t("T-2128") },
-        { href: "/admin/tareas", label: tareas ?? "" },
-        { href: "/admin/formularios", label: formularios ?? "" },
-        { href: "/admin/pipelines", label: pipelines ?? "" },
-        { href: "/admin/organizaciones", label: organizaciones ?? "" },
-        { href: "/admin/solicitudes", label: solicitudes ?? "" },
-        { href: "/admin/convocatorias", label: convocatorias ?? "" },
-        { href: "/admin/segmentos", label: segmentos ?? "" },
-        { href: "/admin/etiquetas", label: etiquetas ?? "" },
-        { href: "/admin/paginas", label: paginas ?? "" },
-        { href: "/admin/sistema/politica", label: t("T-1180") },
-        { href: "/admin/cartelera", label: cartelera ?? "" },
-        { href: "/admin/eventos", label: eventos ?? "" },
-        { href: "/admin/medios", label: medios ?? "" },
-        { href: "/admin/documentos", label: documentos ?? "" },
-        { href: "/admin/plantillas", label: plantillas ?? "" },
-        { href: "/admin/campanas", label: campanas ?? "" },
-        { href: "/admin/mensajes", label: mensajes ?? "" },
-        { href: "/admin/comites", label: comites ?? "" },
-        { href: "/admin/macroeventos", label: t("T-2344") },
-        { href: "/admin/cargos", label: cargos ?? "" },
-        { href: "/admin/horario-preferencial", label: tList("T-2323")[0] ?? "" },
-        { href: "/admin/terminos", label: terminos ?? "" },
-        { href: "/admin/ocasiones", label: ocasiones ?? "" },
-        { href: "/admin/ledger", label: ledger ?? "" },
-        { href: "/admin/rankings", label: rankings ?? "" },
-        { href: "/admin/asambleas", label: asambleas ?? "" },
-        { href: "/admin/cierre", label: cierre ?? "" },
-        { href: "/admin/permanencia/reglas", label: reglas ?? "" },
-        { href: "/admin/permanencia/grupos", label: grupos ?? "" },
-        { href: "/admin/permanencia/evaluaciones", label: evaluaciones ?? "" },
-        { href: "/admin/permanencia/cumplimiento", label: cumplimiento ?? "" },
-        { href: "/admin/permanencia/cierre", label: cierrePermanencia ?? "" },
-        { href: "/admin/junta", label: junta ?? "" },
-        { href: "/admin/presupuestos", label: tList("T-2200")[0] ?? "" },
-        { href: "/admin/gamificacion", label: tList("T-2404")[0] ?? "" },
-        { href: "/admin/gamificacion/retos", label: tList("T-2404")[1] ?? "" },
-        { href: "/admin/gamificacion/revision", label: tList("T-2404")[2] ?? "" },
-        { href: "/admin/gamificacion/campanas", label: tList("T-2404")[3] ?? "" },
-        { href: "/admin/gamificacion/insignias", label: tList("T-2404")[4] ?? "" },
-        { href: "/admin/gamificacion/limites", label: tList("T-2404")[5] ?? "" },
-        { href: "/admin/permisos", label: permisos ?? "" },
-        { href: "/admin/sistema/importaciones", label: importaciones ?? "" },
-        { href: "/admin/sistema/jobs", label: t("T-241") },
-        { href: "/admin/sistema/alias", label: alias ?? "" },
-      ];
-  const groupLabels = tList("T-1400");
-  // Grupos en el orden de T-1400; Gamificación (T-2403) va justo después de Participación.
-  const groupDefs: Array<{ label: string; routes: string[] }> = [
-    {
-      label: groupLabels[0] ?? "",
-      routes: [
-        "/admin/personas",
-        "/admin/comites",
-        "/admin/macroeventos",
-        "/admin/cargos",
-        "/admin/horario-preferencial",
-        "/admin/terminos",
-        "/admin/etiquetas",
-        "/admin/segmentos",
-        "/admin/personas/importar",
-        "/admin/personas/activacion",
-      ],
-    },
-    {
-      label: groupLabels[1] ?? "",
-      routes: [
-        "/admin/tareas",
-        "/admin/formularios",
-        "/admin/pipelines",
-        "/admin/organizaciones",
-        "/admin/solicitudes",
-        "/admin/convocatorias",
-      ],
-    },
-    {
-      label: groupLabels[2] ?? "",
-      routes: [
-        "/admin/paginas",
-        "/admin/cartelera",
-        "/admin/eventos",
-        "/admin/medios",
-        "/admin/documentos",
-      ],
-    },
-    {
-      label: groupLabels[3] ?? "",
-      routes: ["/admin/plantillas", "/admin/campanas", "/admin/mensajes"],
-    },
-    {
-      label: groupLabels[4] ?? "",
-      routes: [
-        "/admin/ocasiones",
-        "/admin/ledger",
-        "/admin/rankings",
-        "/admin/asambleas",
-        "/admin/cierre",
-      ],
-    },
-    {
-      label: t("T-2403"),
-      routes: [
-        "/admin/gamificacion",
-        "/admin/gamificacion/retos",
-        "/admin/gamificacion/revision",
-        "/admin/gamificacion/campanas",
-        "/admin/gamificacion/insignias",
-        "/admin/gamificacion/limites",
-      ],
-    },
-    {
-      label: groupLabels[5] ?? "",
-      routes: [
-        "/admin/permanencia/reglas",
-        "/admin/permanencia/grupos",
-        "/admin/permanencia/evaluaciones",
-        "/admin/permanencia/cumplimiento",
-        "/admin/permanencia/cierre",
-        "/admin/presupuestos",
-        "/admin/junta",
-      ],
-    },
-    {
-      label: groupLabels[6] ?? "",
-      routes: [
-        "/admin/sistema/politica",
-        "/admin/permisos",
-        "/admin/sistema/importaciones",
-        "/admin/sistema/jobs",
-        "/admin/sistema/alias",
-      ],
-    },
-  ];
+    : [];
+  const navGroups = adminNavGroups();
   // Solo viajan al cliente los destinos que el actor puede ver.
-  const groups = groupDefs
+  const groups = navGroups
     .map((group, index) => ({
       id: `group-${index}`,
       label: group.label,
       items: actor.isAdmin
-        ? group.routes.flatMap((href) => enlaces.filter((link) => link.href === href))
-        : enlaces.filter((link) =>
-            group.routes.some((href) => link.href === href || link.href.startsWith(`${href}/`)),
+        ? group.items
+        : ownLinks.filter((link) =>
+            group.items.some(
+              (item) => link.href === item.href || link.href.startsWith(`${item.href}/`),
+            ),
           ),
     }))
     .filter((group) => group.items.length > 0);

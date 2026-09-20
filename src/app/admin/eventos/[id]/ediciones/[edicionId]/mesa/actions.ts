@@ -13,8 +13,8 @@ import {
   removeAppointmentAs,
 } from "@/modules/people";
 import { findTermContaining, getCurrentTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit";
-import { dateKeyIn } from "@/shared/lib/dates";
+import { APP_TIME_ZONE, dateKeyIn } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 
 // Mesa directiva de una edición (ADR-060 regla 9): ADMIN registra el resultado de la elección de la
 // Asamblea; el cargo queda en el término que contiene la fecha de la edición (o el vigente).
@@ -60,7 +60,7 @@ export async function addDirectorAction(formData: FormData): Promise<void> {
     redirect(`${back}?error=${encodeURIComponent("T-260")}`);
   }
   const term =
-    (await findTermContaining(dateKeyIn("America/Bogota", edition.startsAt))) ??
+    (await findTermContaining(dateKeyIn(APP_TIME_ZONE, edition.startsAt))) ??
     (await getCurrentTerm());
   if (!term) {
     redirect(`${back}?error=${encodeURIComponent("T-260")}`);

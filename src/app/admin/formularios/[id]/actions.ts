@@ -9,8 +9,8 @@ import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
 import { FIELD_TYPES, getFormView, setFormActionsAs, setFormFieldsAs } from "@/modules/forms";
 import { requireAdminActor } from "@/modules/identity";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 
 // Constructor de formularios (ADR-037 regla 3): campos y acciones se guardan completos en cada
 // escritura; el dominio valida claves únicas, opciones y las acciones que exigen crear la persona.

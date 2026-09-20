@@ -13,9 +13,9 @@ import {
 } from "@/modules/system";
 import { conventionalTermDates, createTerm, getTerm, listAllTerms } from "@/modules/terms";
 import { getObject, putObject } from "@/shared/adapters/storage";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import {
   committee,
   committeeMembership,

@@ -22,8 +22,8 @@ import { committeeMembership, membership, person } from "@/modules/people/schema
 import { setConfig } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
   currentTermCode,

@@ -4,8 +4,8 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { page } from "../schema";
 
 // Páginas fijas del portal (La OE, Unirse, Privacidad): cuerpo en Markdown, publicación y audiencia (ADR-033).

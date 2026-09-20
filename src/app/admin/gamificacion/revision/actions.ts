@@ -9,7 +9,7 @@ import { formText } from "@/app/_lib/form";
 import { safeBack, withQuery } from "@/app/_lib/search";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import { annulParticipationAs, reviewParticipationAs } from "@/modules/participation";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Revisión de evidencias y anulación de premios (ADR-067 reglas 5 y 17): solo ADMIN; anular un
 // premio entregado exige step-up (T-2586).

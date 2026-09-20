@@ -2,8 +2,8 @@ import { and, desc, eq, max, type SQL } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { getPeopleByIds } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { type InteractionKind, interaction } from "../schema";
 import type { TimelineEntry } from "./timeline-pure";
 

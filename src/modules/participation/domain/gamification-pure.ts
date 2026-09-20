@@ -1,4 +1,4 @@
-import { dateKeyIn, zonedInputToUtc } from "@/shared/lib/dates";
+import { APP_TIME_ZONE, dateKeyIn, zonedInputToUtc } from "@/shared/lib/dates-pure";
 import type {
   BoosterKind,
   BoosterState,
@@ -18,7 +18,7 @@ import type { OccasionCategory, OccasionKind } from "./occasion-pure";
 // Reglas puras de la gamificación (ADR-067): sin I/O. Las claves de día y semana usan el día civil
 // de Colombia; la zona llega por parámetro para que el archivo no lea configuración.
 
-export const GAMIFICATION_TIMEZONE = "America/Bogota";
+export const GAMIFICATION_TIMEZONE = APP_TIME_ZONE;
 
 /**
  * Premio de una participación o de un check-in impulsado: `pct` se topa en +100 %, el extra se

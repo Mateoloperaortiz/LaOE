@@ -6,8 +6,8 @@ import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { getEnv } from "@/env";
 import { listCommitteesByIds, listMailingRefs, listTermCommitteeMembers } from "@/modules/people";
 import { getCurrentTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { emailTemplate } from "../schema";
 import { sendTransactionalEmail } from "./send";
 import {

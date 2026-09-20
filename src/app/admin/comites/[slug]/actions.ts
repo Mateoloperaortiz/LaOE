@@ -4,6 +4,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { requireCommitteeCapability } from "@/app/_authz/committee";
 import { actorContext } from "@/app/_lib/actor";
 import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
@@ -39,10 +40,9 @@ import {
   updateCommitteeProfileAs,
 } from "@/modules/people";
 import { getCurrentTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
-import { requireCommitteeCapability } from "../_kit/capacidades";
+import { DomainError } from "@/shared/lib/errors";
 
 // Acciones de ocasiones de la vista del comité (ADR-035 regla 15, ADR-058): quien tiene la capacidad
 // OCCASIONS (ADMIN, líder técnico o la dirección por su cargo); una ocasión nueva nace en borrador con

@@ -2,8 +2,8 @@ import { and, asc, count, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { card, pipeline, pipelineStage } from "../schema";
 import { PIPELINE_KINDS, type PipelineKind, templateStages } from "./pipelines-pure";
 

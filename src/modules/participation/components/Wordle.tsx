@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
+import { APP_TIME_ZONE } from "@/shared/lib/dates-pure";
 import { ArrowsHorizontalIcon } from "@/shared/ui/icons/ArrowsHorizontalIcon";
 import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
 import { XIcon } from "@/shared/ui/icons/XIcon";
@@ -59,7 +60,7 @@ function keyboardWord(value: string): string {
 
 function displayDay(instant: string): string {
   return new Intl.DateTimeFormat("es-CO", {
-    timeZone: "America/Bogota",
+    timeZone: APP_TIME_ZONE,
     day: "numeric",
     month: "long",
   }).format(new Date(instant));

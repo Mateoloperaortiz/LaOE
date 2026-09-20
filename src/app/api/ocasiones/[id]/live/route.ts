@@ -1,4 +1,4 @@
-import { canOperateOccasion } from "@/app/admin/ocasiones/[id]/authz";
+import { canOperateOccasion } from "@/app/_authz/occasion";
 import { getActor } from "@/modules/identity";
 import { buildLiveSnapshot, getOccasion } from "@/modules/participation";
 

@@ -4,6 +4,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { requireGroupOperator } from "@/app/_authz/group";
 import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
 import { findMembersByEmails } from "@/modules/people";
@@ -15,9 +16,8 @@ import {
   setEvaluatorsAs,
 } from "@/modules/permanence";
 import type { ImportState } from "@/modules/permanence/components/ImportadorGrupo";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
-import { requireGroupOperator } from "../../authz";
+import { DomainError } from "@/shared/lib/errors";
 
 // Operar un grupo (ADR-036 regla 6): el líder del grupo o ADMIN agrega y quita miembros e importa
 // desde CSV; los evaluadores los fija ADMIN.

@@ -4,6 +4,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { requireCommitteeCapability } from "@/app/_authz/committee";
 import { actorContext } from "@/app/_lib/actor";
 import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
@@ -25,10 +26,9 @@ import {
   updateRuleAs,
 } from "@/modules/permanence";
 import { getCurrentTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { ruleInputFromForm } from "../../../permanencia/_ui/reglas";
-import { requireCommitteeCapability } from "../../_kit/capacidades";
 
 // Tabla de permanencia del comité (ADR-026, ADR-036 regla 3, ADR-058): quien tiene la capacidad
 // PERMANENCE (ADMIN, líder técnico o la dirección por su cargo), sobre el término actual; solo ADMIN

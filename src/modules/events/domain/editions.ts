@@ -4,9 +4,9 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { editionCommittee, event, eventEdition } from "../schema";
 import { SLUG_PATTERN } from "./events";
 

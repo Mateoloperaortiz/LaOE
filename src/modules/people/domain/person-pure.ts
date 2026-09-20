@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { dateKeyIn } from "@/shared/lib/dates";
+import { APP_TIME_ZONE, dateKeyIn } from "@/shared/lib/dates-pure";
 
 // Reglas puras sobre datos de la persona (sin I/O).
 
@@ -15,7 +15,7 @@ export const documentTypeSchema = z.enum(DOCUMENT_TYPE_CODES);
 /** Fecha civil ISO real y no futura; no convierte el nacimiento a un instante en Bogotá. */
 export function parseBirthDate(
   value: string,
-  today = dateKeyIn("America/Bogota", new Date()),
+  today = dateKeyIn(APP_TIME_ZONE, new Date()),
 ): string | null {
   const date = value.trim();
   if (!z.iso.date().safeParse(date).success || date.startsWith("0000-") || date > today) {

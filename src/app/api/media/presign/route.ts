@@ -1,6 +1,6 @@
 import { prepareUpload, prepareUploadSchema } from "@/modules/content";
 import { getActor } from "@/modules/identity";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Paso 1 de la subida directa (ADR-022): ADMIN pide un POST prefirmado con tipo y tamaño acotados.
 

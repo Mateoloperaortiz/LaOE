@@ -24,9 +24,9 @@ import {
   teamMemberInputSchema,
 } from "@/modules/permanence";
 import { findTermContaining, getTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
-import { dateKeyIn } from "@/shared/lib/dates";
+import { APP_TIME_ZONE, dateKeyIn } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 
 const id = z.string().regex(/^[a-z0-9-]{10,40}$/);
 const inputSchema = z.object({
@@ -68,7 +68,7 @@ export async function macroeventAction(form: FormData): Promise<void> {
       if (!edition || edition.eventId !== event.id) throw new DomainError(t("T-2353"));
       if (input.operation === "add-director") {
         const roleCode = z.enum(MACROEVENT_ROLE_CODES).parse(text(form, "roleCode"));
-        const editionTerm = await findTermContaining(dateKeyIn("America/Bogota", edition.startsAt));
+        const editionTerm = await findTermContaining(dateKeyIn(APP_TIME_ZONE, edition.startsAt));
         if (!editionTerm) throw new DomainError(t("T-650"));
         const reason = text(form, "overrideReason");
         await addMacroeventDirectorAs(

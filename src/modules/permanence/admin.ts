@@ -2,9 +2,9 @@ import { z } from "zod";
 import { listEditionOptions } from "@/modules/events";
 import { findMembersByEmails } from "@/modules/people";
 import { listAllTerms } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import type { FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { type BoardExportRow, boardExportRows, boardIndicators } from "./domain/board";
 import {
   COMPLIANCE_FILTERS,

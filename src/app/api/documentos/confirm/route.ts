@@ -1,7 +1,7 @@
 import { actorContext } from "@/app/_lib/actor";
 import { confirmDocumentAs, confirmDocumentSchema } from "@/modules/content";
 import { getActor } from "@/modules/identity";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Paso 2 de la subida de un PDF: comprueba el objeto, calcula el sha256 y registra el documento.
 

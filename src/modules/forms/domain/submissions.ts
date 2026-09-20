@@ -12,8 +12,8 @@ import {
   recordConsent,
 } from "@/modules/people";
 import { PrivacyPolicyPendingError, requirePrivacyPolicyVersion } from "@/modules/system";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
 import { editionRegistration, form, formSubmission } from "../schema";
 import type { FormView, PublicForm } from "./forms";

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { requireAdminAreaRoles } from "@/app/_authz/admin-area";
 import { listPeopleWithPassword } from "@/modules/identity";
 import {
   listCommitteesForSelection,
@@ -11,7 +12,6 @@ import {
 import { getCurrentTerm } from "@/modules/terms";
 import { Insignia, Progreso } from "@/shared/brand";
 import { t } from "@/shared/copy";
-import { requireAdminAreaRoles } from "../../_kit/acceso";
 import { IssueGrantPanel } from "../IssueGrantPanel";
 import { calcularAvance } from "./progreso";
 

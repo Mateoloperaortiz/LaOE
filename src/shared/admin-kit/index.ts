@@ -1,6 +1,5 @@
 export { CommandPalette, type PaletteResult } from "./CommandPalette";
 export { toCsv } from "./csv";
-export { DomainError } from "./DomainError";
 export { Pagination } from "./Pagination";
 export { ResourceForm } from "./ResourceForm";
 export { ResourcePanel } from "./ResourcePanel";

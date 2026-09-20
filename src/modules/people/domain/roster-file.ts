@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { parseCsv } from "./roster-pure";
 
 // Lee el archivo del roster (CSV o la primera hoja de un XLSX) como celdas de texto.

@@ -35,6 +35,7 @@ import { boardResource, complianceResource, workGroupsResource } from "@/modules
 import { listAllTerms } from "@/modules/terms";
 import { termsResource } from "@/modules/terms/admin";
 import type { AnyResource } from "@/shared/admin-kit";
+import { indexResources, type ResourceDefinition } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
 
 // La cartelera gana el comité de su cartelera interna (ADR-036): `content` no importa `people`, así que
@@ -140,43 +141,57 @@ export const convocatoriasResource = {
 };
 
 // Recursos administrables por clave (ADR-017). Cada módulo declara los suyos en su admin.ts.
-const resources: Record<string, AnyResource> = {
-  [committeesResource.key]: committeesResource as unknown as AnyResource,
-  [peopleResource.key]: peopleResource as unknown as AnyResource,
-  [rolesResource.key]: rolesResource as unknown as AnyResource,
-  [tagsResource.key]: tagsResource as unknown as AnyResource,
-  [segmentsResource.key]: segmentsResource as unknown as AnyResource,
-  [tasksResource.key]: tasksResource as unknown as AnyResource,
-  [organizationsResource.key]: organizationsResource as unknown as AnyResource,
-  [pipelinesResource.key]: pipelinesResource as unknown as AnyResource,
-  [callsResource.key]: convocatoriasResource as unknown as AnyResource,
-  [termsResource.key]: termsResource as unknown as AnyResource,
-  [complianceResource.key]: complianceResource as unknown as AnyResource,
-  [workGroupsResource.key]: workGroupsResource as unknown as AnyResource,
-  [boardResource.key]: boardResource as unknown as AnyResource,
-  [budgetsResource.key]: budgetsResource as unknown as AnyResource,
-  [preferentialScheduleResource.key]: preferentialScheduleResource as unknown as AnyResource,
-  [permissionsResource.key]: permissionsResource as unknown as AnyResource,
-  [pagesResource.key]: pagesResource as unknown as AnyResource,
-  [announcementsResource.key]: carteleraResource as unknown as AnyResource,
-  [eventsResource.key]: eventsResource as unknown as AnyResource,
-  [editionsResource.key]: edicionesResource as unknown as AnyResource,
-  [formsResource.key]: formsResource as unknown as AnyResource,
-  [submissionsResource.key]: submissionsResource as unknown as AnyResource,
-  [registrationsResource.key]: registrationsResource as unknown as AnyResource,
-  [occasionsResource.key]: occasionsResource as unknown as AnyResource,
-  [checkInsResource.key]: checkInsResource as unknown as AnyResource,
-  [ledgerResource.key]: ledgerResource as unknown as AnyResource,
-  [rankingsResource.key]: rankingsResource as unknown as AnyResource,
-  [assembliesResource.key]: assembliesResource as unknown as AnyResource,
-  [aliasesResource.key]: aliasesResource as unknown as AnyResource,
-  [challengeParticipationsResource.key]: challengeParticipationsResource as unknown as AnyResource,
-  [achievementsResource.key]: achievementsResource as unknown as AnyResource,
-  [messagesResource.key]: messagesResource as unknown as AnyResource,
-  [templatesResource.key]: templatesResource as unknown as AnyResource,
-  [campaignsResource.key]: campaignsResource as unknown as AnyResource,
-};
+
+/**
+ * El registro guarda recursos de filas distintas bajo un mismo tipo. `ResourceDefinition` es invariante
+ * en su fila (la recibe `render` y la devuelve `list`), así que borrarla exige un cast: vive solo aquí,
+ * y a cambio el compilador comprueba que lo que entra es un recurso bien formado (ADR-083).
+ */
+function erased<Row extends { id: string }, Input>(
+  resource: ResourceDefinition<Row, Input>,
+): AnyResource {
+  return resource as unknown as AnyResource;
+}
+
+const registered: AnyResource[] = [
+  erased(committeesResource),
+  erased(peopleResource),
+  erased(rolesResource),
+  erased(tagsResource),
+  erased(segmentsResource),
+  erased(tasksResource),
+  erased(organizationsResource),
+  erased(pipelinesResource),
+  erased(convocatoriasResource),
+  erased(termsResource),
+  erased(complianceResource),
+  erased(workGroupsResource),
+  erased(boardResource),
+  erased(budgetsResource),
+  erased(preferentialScheduleResource),
+  erased(permissionsResource),
+  erased(pagesResource),
+  erased(carteleraResource),
+  erased(eventsResource),
+  erased(edicionesResource),
+  erased(formsResource),
+  erased(submissionsResource),
+  erased(registrationsResource),
+  erased(occasionsResource),
+  erased(checkInsResource),
+  erased(ledgerResource),
+  erased(rankingsResource),
+  erased(assembliesResource),
+  erased(aliasesResource),
+  erased(challengeParticipationsResource),
+  erased(achievementsResource),
+  erased(messagesResource),
+  erased(templatesResource),
+  erased(campaignsResource),
+];
+
+const resources = indexResources(registered);
 
 export function getResource(key: string): AnyResource | null {
-  return resources[key] ?? null;
+  return resources.get(key) ?? null;
 }

@@ -7,7 +7,7 @@ import { z } from "zod";
 import { actorContext } from "@/app/_lib/actor";
 import { markOnboardingStepAs } from "@/modules/crm";
 import { getActor } from "@/modules/identity";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Acciones del inicio de Mi OE: marcar un paso del onboarding como hecho.
 

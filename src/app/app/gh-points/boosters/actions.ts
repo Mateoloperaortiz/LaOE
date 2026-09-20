@@ -8,7 +8,7 @@ import { actorContext } from "@/app/_lib/actor";
 import { safeBack, withQuery } from "@/app/_lib/search";
 import { requireActor } from "@/modules/identity";
 import { type BoosterTarget, setBoosterTargetAs } from "@/modules/participation";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Apuntar o soltar un booster (ADR-067 regla 8): la acción traduce el objetivo del formulario
 // ("challenge:<id>" / "occasion:<id>" / vacío para soltar) y vuelve a la página de origen.

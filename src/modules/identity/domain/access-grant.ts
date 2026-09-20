@@ -2,8 +2,8 @@ import { and, eq, gt, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { getMemberSummary } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
 import { accessGrant, credential } from "../schema";
 import {

@@ -53,8 +53,8 @@ import {
 } from "@/modules/people";
 import { grantManualCreditAs, manualCreditInputSchema } from "@/modules/permanence";
 import { getTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { clientIp } from "@/shared/lib/request";
 
 // Acciones de la Persona 360 (ADR-034): viven en src/app porque componen identity (actor, step-up,

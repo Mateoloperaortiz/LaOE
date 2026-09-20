@@ -4,8 +4,8 @@ import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { getMacroeventEdition, listEditionRefs, macroeventRoleCodes } from "@/modules/events";
 import { listAllTerms } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { appointment, committee, macroeventRole, membership, person } from "../schema";
 import { assertNoInhabilities, BOARD_KINDS, type Override } from "./inhabilities";
 

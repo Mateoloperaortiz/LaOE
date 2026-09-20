@@ -3,9 +3,9 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext, Executor, Tx } from "@/db/tx";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { term } from "../schema";
 
 // El término es el reloj universal (ADR-004): el actual se deriva de la fecha; el cierre de puntos es explícito.

@@ -6,9 +6,9 @@ import { type Actor, type CommandContext, type Executor, runCommand, SYSTEM_ACTO
 import { getPeopleByIds } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { findTermContaining } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import type { BadgeFamily, BoosterKind } from "../gamification-types";
 import {
   achievement,

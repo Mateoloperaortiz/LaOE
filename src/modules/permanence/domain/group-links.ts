@@ -1,7 +1,7 @@
 import type { CommandContext } from "@/db/tx";
 import { getEventRef, getMacroeventEdition } from "@/modules/events";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 
 /** Resuelve la identidad del macroevento incluso si el formulario solo recibió su edición. */
 export async function resolveGroupEvent(

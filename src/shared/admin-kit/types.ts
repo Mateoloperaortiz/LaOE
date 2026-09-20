@@ -124,6 +124,18 @@ export interface ResourceDefinition<Row extends { id: string }, Input> {
 // Solo las claves que existen en el inventario de textos.
 export type AnyResource = ResourceDefinition<{ id: string }, unknown>;
 
+/** Recursos por clave. Dos con la misma clave es un error de registro: el segundo taparía al primero. */
+export function indexResources(resources: readonly AnyResource[]): Map<string, AnyResource> {
+  const byKey = new Map<string, AnyResource>();
+  for (const resource of resources) {
+    if (byKey.has(resource.key)) {
+      throw new Error(`Recurso del admin registrado dos veces: ${resource.key}`);
+    }
+    byKey.set(resource.key, resource);
+  }
+  return byKey;
+}
+
 export async function resolveFilters(resource: AnyResource): Promise<FilterDefinition[]> {
   return typeof resource.filters === "function" ? resource.filters() : (resource.filters ?? []);
 }

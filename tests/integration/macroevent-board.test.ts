@@ -14,8 +14,8 @@ import {
   removeAppointment,
 } from "@/modules/people/domain/appointments";
 import { appointment } from "@/modules/people/schema";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { tList } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import { seedMember, seedPerson, seedTerm } from "./factories";
 

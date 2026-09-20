@@ -8,7 +8,7 @@ import { actorContext } from "@/app/_lib/actor";
 import { withQuery } from "@/app/_lib/search";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import { resumeReconciliationAs, startReconciliationAs } from "@/modules/participation";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Conciliación histórica (ADR-067 reglas 13 y 16): Simular no escribe; Aplicar escribe logros
 // históricos y por eso exige step-up — como el cierre de puntos, la confirmación vive en la

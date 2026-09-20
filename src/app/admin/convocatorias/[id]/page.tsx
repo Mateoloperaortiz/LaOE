@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requireGroupOperator } from "@/app/_authz/group";
 import { single } from "@/app/_lib/search";
 import {
   CALL_ENTRY_STATUSES,
@@ -18,7 +19,6 @@ import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { Markdown } from "@/shared/ui/Markdown";
-import { requireGroupOperator } from "../../permanencia/authz";
 import { decideEntryAction, setStatusAction } from "./actions";
 
 // Detalle de una convocatoria interna (06-mapa-del-sitio.md, ADR-037 regla 10): inscritos por estado

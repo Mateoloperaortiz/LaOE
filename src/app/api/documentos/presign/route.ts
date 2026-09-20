@@ -1,6 +1,6 @@
 import { prepareDocumentSchema, prepareDocumentUpload } from "@/modules/content";
 import { getActor } from "@/modules/identity";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Paso 1 de la subida de un PDF de normativa (ADR-034 regla 9): ADMIN pide un POST prefirmado.
 

@@ -2,8 +2,8 @@ import { z } from "zod";
 import { getActor } from "@/modules/identity";
 import { loadGamificationSettings, prepareEvidenceUpload } from "@/modules/participation";
 import { getMembershipRef } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 
 // Subida de evidencia de una misión (ADR-067 regla 6): sesión, gamificación activa y membresía
 // elegible; el POST prefirmado apunta a `evidence/<personId>/` con tipo y tamaño acotados.

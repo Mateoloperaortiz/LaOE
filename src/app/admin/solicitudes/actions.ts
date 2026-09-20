@@ -9,7 +9,7 @@ import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
 import { decideRequestAs } from "@/modules/crm";
 import { requireAdminActor, safeNextPath } from "@/modules/identity";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 // Bandeja de solicitudes (ADR-037 regla 9): aprobar ejecuta el comando en la misma transacción;
 // rechazar exige motivo. Vuelve a donde estaba (la bandeja o la Persona 360).

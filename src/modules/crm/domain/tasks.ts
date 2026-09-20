@@ -3,9 +3,9 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { getPeopleByIds } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { organization, task } from "../schema";
 
 // Tareas (02-crm.md): pendiente con responsable y vencimiento sobre una persona; sin responsable la ven

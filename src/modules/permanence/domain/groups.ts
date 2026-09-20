@@ -11,8 +11,8 @@ import {
   listMembershipStatuses,
   listTermRoster,
 } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { workGroup, workGroupEvaluator, workGroupMembership } from "../schema";
 import { resolveGroupEvent } from "./group-links";
 import { parseGroupCsv } from "./groups-pure";

@@ -1,9 +1,9 @@
 import { and, eq, gte, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { membershipTerm, sanction } from "../schema";
 import { suspendedUntil } from "./sanction-pure";
 

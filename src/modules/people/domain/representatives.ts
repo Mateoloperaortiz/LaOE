@@ -2,8 +2,8 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import {
   committeeMembership,
   committeeRepresentative,

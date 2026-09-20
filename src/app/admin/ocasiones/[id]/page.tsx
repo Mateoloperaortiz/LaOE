@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { requireOperator } from "@/app/_authz/occasion";
 import { single } from "@/app/_lib/search";
 import { getEnv } from "@/env";
 import { hasRecentStepUp } from "@/modules/identity";
@@ -39,7 +40,6 @@ import {
   registerAction,
   rotatingAction,
 } from "./actions";
-import { requireOperator } from "./authz";
 
 // Consola de la ocasión (ADR-035 reglas 4, 6, 7, 15 y 16): QR con el código rotativo, contador en vivo,
 // pendientes, alta manual, ciclo de vida y score por comité. UI a medida sobre el mismo kit visual.

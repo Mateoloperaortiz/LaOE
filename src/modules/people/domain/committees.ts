@@ -4,9 +4,9 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { committee } from "../schema";
 import { committeeLifecycleError } from "./committee-lifecycle-pure";
 

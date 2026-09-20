@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { requireCommitteeAccess } from "@/app/_authz/committee";
 import { single } from "@/app/_lib/search";
 import { listCommitteeAnnouncements } from "@/modules/content";
 import { listEditionsByCommittee } from "@/modules/events";
@@ -33,7 +34,6 @@ import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { Insignia, LogoComite } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
-import { requireCommitteeAccess } from "../_kit/capacidades";
 import { Areas } from "./_ui/Areas";
 import { Comunicacion } from "./_ui/Comunicacion";
 import { Finanzas } from "./_ui/Finanzas";

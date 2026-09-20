@@ -8,7 +8,7 @@ import { actorContext } from "@/app/_lib/actor";
 import { safeBack } from "@/app/_lib/search";
 import { requireActor } from "@/modules/identity";
 import { markSeenAs, setFeaturedAs } from "@/modules/participation";
-import { DomainError } from "@/shared/admin-kit";
+import { DomainError } from "@/shared/lib/errors";
 
 const COLLECTION = "/app/gh-points/coleccion";
 

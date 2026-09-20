@@ -4,6 +4,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { requireOperator } from "@/app/_authz/occasion";
 import { actorContext } from "@/app/_lib/actor";
 import { formText } from "@/app/_lib/form";
 import { hasRecentStepUp, readCarnet } from "@/modules/identity";
@@ -20,9 +21,8 @@ import {
   setRotatingCodeAs,
 } from "@/modules/participation";
 import { getPeopleByIds } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit";
 import { t } from "@/shared/copy";
-import { requireOperator } from "./authz";
+import { DomainError } from "@/shared/lib/errors";
 
 // Acciones de la consola y del modo anfitrión (ADR-035): viven en src/app porque componen identity
 // (actor, permisos, step-up, carnet) y participation. Aprobar, rechazar, anular y cancelar son de

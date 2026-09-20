@@ -1,8 +1,8 @@
 import { type Actor, runCommand } from "@/db/tx";
 import { findTermContaining, getCurrentTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import type { BoosterKind } from "../gamification-types";
 import {
   type BadgeDelta,

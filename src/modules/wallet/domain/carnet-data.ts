@@ -9,8 +9,8 @@ import {
   getWalletMemberState,
 } from "@/modules/people";
 import { getTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import type { CarnetData } from "./pass-pure";
 
 /** Solo lee: ni un refresco ni una visita al carnet crean credenciales o pases. */

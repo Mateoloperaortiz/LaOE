@@ -9,8 +9,8 @@ import {
   listAllCommittees,
   searchPeople,
 } from "@/modules/people";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { permission } from "../schema";
 import { normalizeEmail } from "./pure";
 

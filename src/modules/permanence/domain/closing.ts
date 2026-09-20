@@ -10,8 +10,8 @@ import {
   setProbationAs,
 } from "@/modules/people";
 import { closeTermPermanence, ensureNextTerm, getTerm } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { permanenceDecision } from "../schema";
 import {
   type CommitteeDecision,

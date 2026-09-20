@@ -22,9 +22,9 @@ import {
 } from "@/modules/people";
 import { requireConfig, requirePrivacyPolicyVersion } from "@/modules/system";
 import { ensureNextTerm, getCurrentTerm, type TermRow } from "@/modules/terms";
-import { DomainError } from "@/shared/admin-kit/DomainError";
 import { t, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, todayKey } from "@/shared/lib/dates";
+import { DomainError } from "@/shared/lib/errors";
 import { request, task } from "../schema";
 import {
   EXCUSE_BUSINESS_DAYS,
