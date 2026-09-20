@@ -129,7 +129,9 @@ test("trivia: el admin la crea por la interfaz y el miembro la responde por tecl
   await admin.getByRole("button", { name: "Guardar borrador" }).click();
   await expect(admin).toHaveURL(/\/admin\/gamificacion\/retos\/[a-z0-9]+\?guardado=1$/);
   await admin.getByRole("button", { name: "Publicar", exact: true }).click();
-  await expect(admin).toHaveURL(/guardado=1/);
+  // La URL ya traía `guardado=1` del borrador: no prueba que se publicó. El botón solo existe en
+  // borrador, así que su ausencia sí; cerrar antes el contexto abortaba la publicación en vuelo.
+  await expect(admin.getByRole("button", { name: "Publicar", exact: true })).toHaveCount(0);
   await admin.context().close();
 
   const antes = await saldoMiembro();
