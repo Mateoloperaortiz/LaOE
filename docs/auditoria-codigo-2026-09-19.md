@@ -385,6 +385,28 @@ Lo que movió: `as unknown as` de 37 a 4 (el registro de recursos concentraba 34
 
 Métrica nueva: eventos de dominio en el catálogo y todavía emitidos como cadena suelta.
 
+### Tras R4-A, familia de `people` · 2026-09-19
+
+| Métrica | Valor |
+| --- | --- |
+| Archivos y líneas en `src` (sin el catálogo de textos) | 656 · 99054 |
+| Líneas en `src/app` · `src/modules` | 34378 · 59517 |
+| Funciones de más de 100 · 200 · 300 líneas (`src` y `scripts`) | 155 · 50 · 23 |
+| Funciones con complejidad mayor a 30 | 60 |
+| Archivos de más de 500 · 1000 líneas | 39 · 5 |
+| Exports de `participation` · `people` · `crm` (`index.ts`) | 380 · 232 · 150 |
+| Nombres de función de nivel superior declarados en 2 o más archivos de `src` | 78 |
+| Copias locales de helpers de actions en `src/app` | requireAdmin 0 · text 0 · withQuery 0 · safeBack 0 · back 10 · single 0 |
+| `as unknown as` en `src` | 4 |
+| `tList(` · accesos posicionales `[n] ?? ""` en `src` | 742 · 323 |
+| Componentes cliente · los que importan `@/shared/copy` | 56 · 0 |
+| `throw new Error(` en `src` | 135 |
+| `getDb()` en `src/modules` | 413 |
+| Eventos de dominio: en el catálogo · todavía emitidos como cadena suelta | 20 · 44 |
+| Elementos crudos en `src` (input · select · table · button) | 509 · 99 · 45 · 118 |
+
+Lo que movió: eventos en el catálogo de 5 a 20; emitidos como cadena suelta de 59 a 44.
+
 Dos cifras de la sección 4 no las mide el script y quedan como referencia de la auditoría: el chunk de textos en el navegador (286 KB, 64 KB gzip, en un build del 2026-09-18) y las 2.024 líneas muertas de la migración de GHPOINTS.
 
 ## 9. Hipótesis sin verificar
