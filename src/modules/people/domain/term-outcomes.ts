@@ -1,6 +1,8 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { committeeMembershipChanged, membershipTermChanged } from "@/domain-events/people";
 import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
@@ -105,9 +107,8 @@ export async function setProbation(
       : null,
     after: { termId, committeeId, ...values },
   });
-  await ctx.emit({
-    type: "membership-term.changed",
-    payload: {
+  await ctx.emit(
+    eventOf(membershipTermChanged, {
       actorId: ctx.actor.personId,
       personId,
       termId,
@@ -115,8 +116,8 @@ export async function setProbation(
       probation: input.probation,
       reportAsVeteran,
       reason: values.reason,
-    },
-  });
+    }),
+  );
 }
 
 /** Estampa `leftAt` en la pertenencia viva de la persona en ese comité y término; idempotente. */
@@ -157,8 +158,12 @@ export async function leaveCommittee(
     before: { committeeId, leftAt: null },
     after: { committeeId, termId, leftAt: now.toISOString(), reason },
   });
-  await ctx.emit({
-    type: "committee-membership.changed",
-    payload: { actorId: ctx.actor.personId, personId, termId, committees: live },
-  });
+  await ctx.emit(
+    eventOf(committeeMembershipChanged, {
+      actorId: ctx.actor.personId,
+      personId,
+      termId,
+      committees: live,
+    }),
+  );
 }

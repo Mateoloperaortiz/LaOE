@@ -3,6 +3,8 @@ import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext, Executor } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { committeeMembershipChanged, committeeRemovalRequested } from "@/domain-events/people";
 import { requireConfig } from "@/modules/system";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -498,15 +500,14 @@ export async function addCommitteeMember(
       revived: existing !== null,
     },
   });
-  await ctx.emit({
-    type: "committee-membership.changed",
-    payload: {
+  await ctx.emit(
+    eventOf(committeeMembershipChanged, {
       actorId: ctx.actor.personId,
       personId: who.id,
       termId: scope.termId,
       committees: await liveCommitteesPayload(ctx.tx, who.id, scope.termId),
-    },
-  });
+    }),
+  );
   return { membershipId, revived: existing !== null };
 }
 
@@ -565,15 +566,14 @@ export async function setMemberRoles(
     before: { committeeId: scope.committeeId, termId: scope.termId, roles: change.before },
     after: { committeeId: scope.committeeId, termId: scope.termId, roles: change.after },
   });
-  await ctx.emit({
-    type: "committee-membership.changed",
-    payload: {
+  await ctx.emit(
+    eventOf(committeeMembershipChanged, {
       actorId: ctx.actor.personId,
       personId: who.id,
       termId: scope.termId,
       committees: await liveCommitteesPayload(ctx.tx, who.id, scope.termId),
-    },
-  });
+    }),
+  );
   return { changed: true };
 }
 
@@ -602,14 +602,13 @@ export async function requestCommitteeRemoval(
     entityId: who.id,
     after: { committeeId: scope.committeeId, termId: scope.termId, reason: input.reason },
   });
-  await ctx.emit({
-    type: "committee-removal.requested",
-    payload: {
+  await ctx.emit(
+    eventOf(committeeRemovalRequested, {
       actorId: ctx.actor.personId,
       personId: who.id,
       committeeId: scope.committeeId,
       termId: scope.termId,
       reason: input.reason,
-    },
-  });
+    }),
+  );
 }

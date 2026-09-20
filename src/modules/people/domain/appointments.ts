@@ -2,6 +2,8 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { appointmentChanged } from "@/domain-events/people";
 import { getMacroeventEdition, listEditionRefs, macroeventRoleCodes } from "@/modules/events";
 import { listAllTerms } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
@@ -202,16 +204,15 @@ export async function addAppointment(
     entityId: row.id,
     after: values,
   });
-  await ctx.emit({
-    type: "appointment.changed",
-    payload: {
+  await ctx.emit(
+    eventOf(appointmentChanged, {
       actorId: ctx.actor.personId,
       personId,
       action: "ADDED",
       kind: input.kind,
       termId: input.termId,
-    },
-  });
+    }),
+  );
   return row;
 }
 
@@ -227,17 +228,16 @@ export async function removeAppointment(ctx: CommandContext, id: string): Promis
     entityId: id,
     before: row,
   });
-  await ctx.emit({
-    type: "appointment.changed",
-    payload: {
+  await ctx.emit(
+    eventOf(appointmentChanged, {
       actorId: ctx.actor.personId,
       personId: row.personId,
       action: "REMOVED",
       kind: row.kind,
       termId: row.termId,
       editionId: row.editionId,
-    },
-  });
+    }),
+  );
 }
 
 // Mesa directiva de un macroevento (ADR-060 regla 9).
@@ -361,9 +361,8 @@ export async function addMacroeventDirector(
     entityId: row.id,
     after: values,
   });
-  await ctx.emit({
-    type: "appointment.changed",
-    payload: {
+  await ctx.emit(
+    eventOf(appointmentChanged, {
       actorId: ctx.actor.personId,
       personId: input.personId,
       action: "ADDED",
@@ -372,8 +371,8 @@ export async function addMacroeventDirector(
       editionId: input.editionId,
       roleCode: input.roleCode,
       coDirector: input.coDirector,
-    },
-  });
+    }),
+  );
   return row;
 }
 

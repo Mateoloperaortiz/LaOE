@@ -2,6 +2,8 @@ import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext, Executor } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { committeeMembershipChanged } from "@/domain-events/people";
 import { requireConfig } from "@/modules/system";
 import { getCurrentTerm, listAllTerms, type TermRow } from "@/modules/terms";
 import { t } from "@/shared/copy";
@@ -327,10 +329,14 @@ export async function setCommitteeMemberships(
     before: { termId, committees: before },
     after: { termId, committees: after },
   });
-  await ctx.emit({
-    type: "committee-membership.changed",
-    payload: { actorId: ctx.actor.personId, personId, termId, committees: after },
-  });
+  await ctx.emit(
+    eventOf(committeeMembershipChanged, {
+      actorId: ctx.actor.personId,
+      personId,
+      termId,
+      committees: after,
+    }),
+  );
 }
 
 export interface CommitteeRoleRow {

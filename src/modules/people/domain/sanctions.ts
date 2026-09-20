@@ -2,6 +2,8 @@ import { and, desc, eq, gte, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext, Executor } from "@/db/tx";
+import { eventOf } from "@/domain-events/define";
+import { sanctionRecorded, sanctionRevoked } from "@/domain-events/people";
 import { t, tList } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
@@ -122,9 +124,8 @@ export async function recordSanction(
     entityId: created.id,
     after: { personId, ...input, ...dates },
   });
-  await ctx.emit({
-    type: "sanction.recorded",
-    payload: {
+  await ctx.emit(
+    eventOf(sanctionRecorded, {
       actorId: ctx.actor.personId,
       personId,
       sanctionId: created.id,
@@ -135,8 +136,8 @@ export async function recordSanction(
       occurredOn: input.occurredOn,
       suspendedUntil: dates.suspendedUntil,
       expiresOn: dates.expiresOn,
-    },
-  });
+    }),
+  );
   return { id: created.id };
 }
 
@@ -173,17 +174,16 @@ export async function revokeSanction(
     before: { revokedAt: null },
     after: { revokedAt: now.toISOString(), reason: cleanReason },
   });
-  await ctx.emit({
-    type: "sanction.revoked",
-    payload: {
+  await ctx.emit(
+    eventOf(sanctionRevoked, {
       actorId: ctx.actor.personId,
       personId: row.personId,
       sanctionId,
       termId: row.termId,
       kind: row.kind,
       reason: cleanReason,
-    },
-  });
+    }),
+  );
 }
 
 // Lecturas.
