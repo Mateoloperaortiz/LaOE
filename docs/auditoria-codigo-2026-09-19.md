@@ -385,6 +385,28 @@ Lo que movió: `as unknown as` de 37 a 4 (el registro de recursos concentraba 34
 
 Métrica nueva: eventos de dominio en el catálogo y todavía emitidos como cadena suelta.
 
+### Tras R4-A, línea de tiempo de `crm` como registro · 2026-09-20
+
+| Métrica | Valor |
+| --- | --- |
+| Archivos y líneas en `src` (sin el catálogo de textos) | 669 · 99600 |
+| Líneas en `src/app` · `src/modules` | 34378 · 59533 |
+| Funciones de más de 100 · 200 · 300 líneas (`src` y `scripts`) | 154 · 49 · 22 |
+| Funciones con complejidad mayor a 30 | 59 |
+| Archivos de más de 500 · 1000 líneas | 38 · 5 |
+| Exports de `participation` · `people` · `crm` (`index.ts`) | 380 · 232 · 150 |
+| Nombres de función de nivel superior declarados en 2 o más archivos de `src` | 77 |
+| Copias locales de helpers de actions en `src/app` | requireAdmin 0 · text 0 · withQuery 0 · safeBack 0 · back 10 · single 0 |
+| `as unknown as` en `src` | 4 |
+| `tList(` · accesos posicionales `[n] ?? ""` en `src` | 742 · 341 |
+| Componentes cliente · los que importan `@/shared/copy` | 56 · 0 |
+| `throw new Error(` en `src` | 134 |
+| `getDb()` en `src/modules` | 413 |
+| Eventos de dominio: en el catálogo · todavía emitidos como cadena suelta | 64 · 0 |
+| Elementos crudos en `src` (input · select · table · button) | 509 · 99 · 45 · 118 |
+
+Lo que movió: funciones de más de 100, 200 y 300 líneas de 155, 50 y 23 a 154, 49 y 22; funciones con complejidad mayor a 30 de 60 a 59; archivos de más de 500 líneas de 39 a 38. Es una sola función la que sale de las cuatro listas: `summarizeEvent`.
+
 ### Tras R4-A, catálogo completo · 2026-09-20
 
 | Métrica | Valor |

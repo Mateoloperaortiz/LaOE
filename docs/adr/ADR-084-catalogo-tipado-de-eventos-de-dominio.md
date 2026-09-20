@@ -114,6 +114,18 @@ Tres casos que pedían una decisión:
 
 Una observación que el tipado dejó a la vista y que este tramo no cambia: `request.decided` lleva el correo y el nombre de la persona en el payload, así que viven en el outbox hasta que el programado `prune` lo depura, treinta días después de procesado. Es deliberado —la respuesta sale por correo aunque la persona ya no esté activa—, pero conviene tenerlo presente cuando R4-B toque la retención del outbox y cuando se escriba la política de datos de Subsidios-OE.
 
+## La línea de tiempo de `crm` como registro
+
+Era la última excepción. `crm/domain/timeline-pure.ts` listaba 44 tipos por nombre en `TIMELINE_EVENTS` y los contaba con un `switch` de 470 líneas que recibía `Record<string, unknown>` y sacaba cada campo con un `str(payload, "campo")` defensivo. Era la función más larga del módulo y una de las de mayor complejidad del repo, y no le debía nada al contrato: si un productor renombraba un campo, la línea de tiempo empezaba a escribir textos con huecos sin que nada fallara.
+
+Ahora es un **registro: una regla por tipo de evento**, atada a su contrato con `rule(contrato, (payload, herramientas) => borrador)`. Dentro de la regla el payload tiene el tipo del evento, así que renombrar un campo en el contrato rompe la compilación de su regla. Las reglas viven por familia en `crm/domain/timeline/` (`people.ts`, con `identity` y `system`; `participation.ts`; `permanence.ts`; `crm.ts`, con `forms`), las piezas comunes en `kit.ts`, y `timeline-pure.ts` queda como fachada: junta las reglas, arma la entrada (sujeto, actor y `metadata.event`) y conserva la regla de siempre: un evento sin persona ni organización no deja rastro.
+
+`crm/jobs.ts` registra cada regla con `onEvent(regla.contrato, …)`. Consecuencia que conviene tener presente: **la línea de tiempo ahora valida el payload** antes de contarlo. Antes aceptaba cualquier cosa y nunca fallaba; ahora un payload que no cumpla su contrato hace fallar ese intento, igual que en cualquier otro consumidor (regla 3). Para los tipos que ya tenían un consumidor que validaba no cambia nada; para los que solo escuchaba la línea de tiempo (`points.adjusted`, `card.created`, `request.created`, los juegos…) es la primera vez que algo comprueba el payload en ejecución. La suite de integración y la E2E completa cierran sin un solo error de contrato.
+
+`summarizeEvent` recibe ahora el contrato y un payload que el compilador comprueba, y lo valida antes de contarlo. Las pruebas unitarias pasaban el tipo como cadena y payloads a medias (`{ personId: "p", code: "ADMIN" }`); se reescribieron con payloads completos, y se sumaron las que el `switch` no tenía: una sola regla por tipo, la tarjeta de una organización, la solicitud respondida sin motivo, y que un payload que no cumple falla en lugar de contarse a medias. Salió la rama del «payload viejo» de `committee-membership.changed` sin `roles`: el contrato exige `roles` desde la segunda familia, y una pertenencia sin cargos registrados se sigue contando por su cargo principal.
+
+Con esto la prueba que impide volver a las cadenas sueltas ya no tiene excepciones.
+
 ## Consecuencias
 
 - 20 de 64 tipos en el catálogo tras las dos primeras familias. Quedan 44: el resto de `participation` (retos, insignias, juegos, cierre), `permanence`, `forms`, `crm`, `identity`, `content` y `system`.
