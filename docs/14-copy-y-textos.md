@@ -8,6 +8,8 @@ Dueños: **GH** (Gestión Humana), **COM** (comunicaciones y relaciones pública
 
 Según el manual de marca ([07-marca.md](07-marca.md)): cercana y "parchada", con **voseo**, lenguaje cotidiano; personalidad servicial, fraternal y versátil; cierre **¡OE OE OE!** en éxitos y celebraciones, nunca en errores ni en mensajes sensibles (permanencia, salida, expulsión). Frases cortas. Sin jerga administrativa donde lo lee un miembro.
 
+Toque paisa ([ADR-086](adr/ADR-086-copy-paisa-y-parchado.md), 2026-09-22): sutil, uno por texto y no en todos. Permitido: de una, hágale, listo pues, pues, bacano, qué nota, pilas, parce/parcero (solo saludos y celebraciones), parche, camellar, severo, a lo bien, ratico, pegarse, berraco (admiración). Vetado: chimba, gonorrea, marica, huevón y cualquier grosería. En botones, formularios y errores manda la claridad; el admin lleva el mismo toque, más sobrio; permanencia, salida, expulsión y lo marcado "texto sensible" siguen serios. Las filas "Confirmado" y "Aprobado por el manual" no se reescriben. Los `{variables}`, las piezas separadas por " · " y el `**negrito**` de cada texto no cambian.
+
 Términos fijos en la interfaz (los usa el código tal cual):
 
 | Término | Uso | Alternativa que hay que descartar o confirmar |

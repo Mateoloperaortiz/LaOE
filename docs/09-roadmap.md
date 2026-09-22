@@ -632,6 +632,23 @@ Decidido el 2026-09-19 con las respuestas de Mateo a las diez preguntas de produ
 | --- | --- | --- |
 | 2026-09-19 | Decisión | [ADR-085](adr/ADR-085-plataforma-oe-digital-un-backend-y-frontends-delgados.md). Se descartó repartir el dominio en paquetes que cada aplicación importe: cada comando escribe mutación, auditoría y eventos en una sola transacción, Postgres vive en la red privada de Railway, habría un migrador para cinco desplegables y un expediente de subsidio debe tener un solo camino a sus datos. Queda reemplazada la recomendación de la sección 6 de la auditoría («micrositios por host, sin monorepo todavía»), que suponía sitios de contenido. Piloto: DÍAS; después Inventiva y Enfemenino; Subsidios-OE al final. |
 
+## Copy paisa y parchado · ADR-086
+
+Mateo pidió el 2026-09-22 que todo el copy suene más paisa y parchado: toque sutil, administración incluida, sin tocar lo que ya aprobó su dueño ni los mensajes sensibles, y la E2E primero. Detalle en [ADR-086](adr/ADR-086-copy-paisa-y-parchado.md). Rama `feat/copy-paisa`, un PR por tramo.
+
+- [x] CP-0 · Documentar: ADR-086, voz en 07-marca §1, 14-copy §1 y PRODUCT.md.
+- [ ] CP-1 · Las pruebas piden el copy al catálogo con `t("T-…")` en lugar de literales (E2E, unitarias e integración).
+- [ ] CP-2 · Reescribir portal público, acceso y navegación del portal.
+- [ ] CP-3 · Reescribir Mi OE.
+- [ ] CP-4 · Reescribir juegos, retos, colección, podio y directorio de comités.
+- [ ] CP-5 · Reescribir notificaciones, correos y documentos generados (billetera incluida).
+- [ ] CP-6 · Reescribir la administración.
+- [ ] CP-7 · Reescribir sistema y pasar al catálogo los textos visibles que viven en el código.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-22 | CP-0 · Decisión | [ADR-086](adr/ADR-086-copy-paisa-y-parchado.md): voseo paisa con toque sutil, vocabulario permitido y vetado, admin más sobrio, sensibles serios, aprobados intactos, invariantes de variables y piezas, y pruebas sin copy literal. |
+
 ## Registro de avances
 
 | Fecha | Fase | Qué cambió |
