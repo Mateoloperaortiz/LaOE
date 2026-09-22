@@ -35,6 +35,15 @@ El 2026-09-22 Mateo pidió que todo el copy suene más colombiano, paisa y parch
 - Un script compara el antes y el después de cada código y rechaza cualquier cambio de variables o de piezas; es lo que impide que una etiqueta quede vacía o un placeholder sin llenar.
 - La lista de textos aprobados que no se tocaron queda en el PR para consultarla con sus dueños.
 
+## Cómo quedó (2026-09-22)
+
+- **86 textos reescritos de 1.985.** El nivel sutil se tradujo en eso: saludos («¿Qué más, {nombre preferido}?»), éxitos («¡De una! Sumaste {n} GH Points»), estados vacíos y celebraciones de juegos y retos. Pocos en el admin (18) y ninguno en permanencia, salidas, datos personales, contraseñas, finanzas ni normativa.
+- **El 404 tiene código propio, T-2721** («Uy, esta página no existe. Volvé al inicio.»). T-032 sigue siendo el error genérico «no encontrado» que lanzan más de cien acciones y comandos de dominio, y ahí no cabe un toque.
+- **Dos correcciones de término fijo** que salieron en la revisión: «integrante» pasa a «miembro» en T-1250 y T-2091, como pide §1.
+- **Los errores escritos en el código no llegan a la pantalla.** Los de la billetera (`google.ts`, `apple.ts`) y los `error` de `src/app/api/**` se atrapan y la interfaz muestra un texto del catálogo (por ejemplo T-1208), así que no se movieron.
+- **Dos listas no se pueden reescribir sin tocar código**: T-038 (navegación del portal, `src/app/(public)/layout.tsx`) y T-061 (menú de Mi OE, `src/app/app/layout.tsx`) se comparan con nombres escritos a mano. Esta vez no se tocaron.
+- Las propuestas se escribieron por sección, pasaron un validador de invariantes (variables, piezas « · », negritas, límites de push y asunto, filas protegidas, palabras vetadas) y una revisión de conjunto que emparejó el tono y quitó repeticiones.
+
 ## Lo que queda fuera
 
 - **El contenido editable desde el admin** (páginas del CMS, plantillas y campañas de correo, normativa importada): es de sus dueños y vive en la base.

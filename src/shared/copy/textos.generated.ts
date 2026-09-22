@@ -17,7 +17,7 @@ export const textos = {
   },
   "T-003": {
     where: "Inicio, texto bajo el titular",
-    text: "Desde 1987 somos el grupo estudiantil más grande de EAFIT: 18 comités, cuatro macroeventos y una comunidad que se organiza para hacer que las cosas pasen.",
+    text: "Desde 1987 somos el grupo estudiantil más grande de EAFIT: 18 comités, cuatro macroeventos y una comunidad que se organiza y se pone a camellar para que las cosas pasen.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -53,7 +53,7 @@ export const textos = {
   },
   "T-009": {
     where: "Inicio, cuando no hay anuncios ni encuentros",
-    text: "Por ahora no hay nada programado. Volvé pronto.",
+    text: "Por ahora no hay nada programado. Volvé pronto, pues.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -131,7 +131,7 @@ export const textos = {
   },
   "T-022": {
     where: "Comités, intro",
-    text: "18 comités, 18 formas de vivir la OE. Encontrá el tuyo.",
+    text: "18 comités, 18 formas de vivir la OE. Encontrá tu parche.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -149,7 +149,7 @@ export const textos = {
   },
   "T-025": {
     where: "Unirse, título",
-    text: "¿Querés ser parte de la OE?",
+    text: "¿Te querés pegar a la OE?",
     owner: "GH",
     status: "Propuesta",
   },
@@ -167,7 +167,7 @@ export const textos = {
   },
   "T-028": {
     where: "Unirse, cuando no hay convocatoria abierta",
-    text: "Ahora no hay convocatoria abierta. Dejanos tu correo y te avisamos cuando abra.",
+    text: "Ahora no hay convocatoria abierta, pero dejanos tu correo y te avisamos de una cuando abra.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -190,14 +190,14 @@ export const textos = {
     status: "Propuesta",
   },
   "T-032": {
-    where: "Página no encontrada",
+    where: 'Error genérico "no encontrado" de acciones y dominio (el 404 usa T-2721)',
     text: "Esta página no existe. Volvé al inicio.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-033": {
     where: "Error del servidor",
-    text: "Algo falló de nuestro lado. Ya nos enteramos; intentá de nuevo en un rato.",
+    text: "Algo se nos dañó de este lado. Ya nos dimos cuenta; intentá otra vez en un ratico.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -335,7 +335,7 @@ export const textos = {
   },
   "T-060": {
     where: "Saludo",
-    text: "Hola, {nombre preferido}",
+    text: "¿Qué más, {nombre preferido}?",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -353,7 +353,7 @@ export const textos = {
   },
   "T-063": {
     where: "Agenda vacía",
-    text: "No tenés nada esta semana. Mirá los eventos o pasá por tu comité.",
+    text: "No tenés nada esta semana. Pegate a un evento o pasá por tu comité.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -377,13 +377,13 @@ export const textos = {
   },
   "T-067": {
     where: "Onboarding, pasos",
-    text: "1. Leé los estatutos y el reglamento · 2. Conocé a tu comité · 3. Andá a tu primera integración · 4. Activá las notificaciones · 5. Decorá la oficina con los nuevos",
+    text: "1. Leé los estatutos y el reglamento · 2. Conocé a tu comité · 3. Pegate a tu primera integración · 4. Activá las notificaciones · 5. Decorá la oficina con los nuevos",
     owner: "GH",
     status: "Propuesta; GH define los pasos",
   },
   "T-068": {
     where: "Onboarding completado",
-    text: "Ya sos parte de esto. ¡OE OE OE!",
+    text: "Ya sos parte de este parche. ¡OE OE OE!",
     owner: "COM",
     status: "Propuesta",
   },
@@ -479,13 +479,13 @@ export const textos = {
   },
   "T-092": {
     where: "Éxito con puntos",
-    text: "¡Listo! Sumaste {n} GH Points. ¡OE OE OE!",
+    text: "¡De una! Sumaste {n} GH Points. ¡OE OE OE!",
     owner: "COM",
     status: "Propuesta",
   },
   "T-093": {
     where: "Éxito sin puntos (asamblea, reunión)",
-    text: "¡Listo! Quedaste registrado.",
+    text: "¡Listo pues! Quedaste registrado.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -533,7 +533,7 @@ export const textos = {
   },
   "T-1000": {
     where: "Solicitudes (admin): sin solicitudes",
-    text: "No hay solicitudes en esta lista.",
+    text: "Nada por acá: no hay solicitudes en esta lista.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -737,7 +737,7 @@ export const textos = {
   },
   "T-1034": {
     where: "Tablero: sin pendientes",
-    text: "No tenés tareas pendientes.",
+    text: "No tenés tareas pendientes. Todo al día, pues.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -913,7 +913,7 @@ export const textos = {
   },
   "T-1063": {
     where: "Notificaciones: intro",
-    text: "Recibí en tu celular los anuncios, tus GH Points y los recordatorios de la OE. Activalas en cada dispositivo que uses.",
+    text: "Recibí en tu celular los anuncios, tus GH Points y los recordatorios de la OE, y no te perdés de ningún parche. Activalas en cada dispositivo que uses.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -967,7 +967,7 @@ export const textos = {
   },
   "T-1072": {
     where: "Instalar: ya instalada",
-    text: "Mi OE ya está instalada en este dispositivo.",
+    text: "Listo pues: Mi OE ya está instalada en este dispositivo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1028,7 +1028,7 @@ export const textos = {
   },
   "T-1082": {
     where: "Preferencias: guardadas",
-    text: "Listo, guardamos tus preferencias.",
+    text: "Listo pues, guardamos tus preferencias.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1040,7 +1040,7 @@ export const textos = {
   },
   "T-1084": {
     where: "Calendario: intro",
-    text: "Suscribite a tu agenda de la OE desde el calendario de tu celular o computador: las ediciones de los eventos, las asambleas y las actividades de tus comités.",
+    text: "Tené tu agenda de la OE a la mano: suscribite desde el calendario de tu celular o computador y ves las ediciones de los eventos, las asambleas y las actividades de tus comités.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1088,7 +1088,7 @@ export const textos = {
   },
   "T-1092": {
     where: "Inicio: aviso de instalar y activar (título · texto · botón)",
-    text: "Llevá Mi OE en el celular · Instalá la app y activá las notificaciones para no perderte anuncios ni recordatorios. · Activar",
+    text: "Llevá Mi OE en el celular · Hágale: instalá la app y activá las notificaciones para no perderte anuncios ni recordatorios. · Activar",
     owner: "COM",
     status: "Propuesta",
   },
@@ -1124,13 +1124,13 @@ export const textos = {
   },
   "T-1098": {
     where: "Encuesta: gracias",
-    text: "¡Gracias! Tus respuestas ayudan a que la próxima salga mejor. ¡OE OE OE!",
+    text: "¡Gracias, parce! Tus respuestas ayudan a que la próxima salga mejor. ¡OE OE OE!",
     owner: "COM",
     status: "Propuesta",
   },
   "T-1099": {
     where: "Encuesta: ya respondida",
-    text: "Ya respondiste esta encuesta. ¡Gracias!",
+    text: "Ya respondiste esta encuesta. ¡Qué nota, gracias!",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1190,13 +1190,13 @@ export const textos = {
   },
   "T-1108": {
     where: "Notificaciones: activadas ahora",
-    text: "Listo: este dispositivo ya recibe notificaciones.",
+    text: "¡De una! Este dispositivo ya recibe notificaciones.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1109": {
     where: "Notificaciones: falló activar",
-    text: "No pudimos activar las notificaciones. Intentá de nuevo.",
+    text: "No pudimos activar las notificaciones. Intentá otra vez en un ratico.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1280,7 +1280,7 @@ export const textos = {
   },
   "T-1121": {
     where: "Plantillas: prueba enviada",
-    text: "Te mandamos la prueba a {correo}.",
+    text: "De una: te mandamos la prueba a {correo}.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1406,7 +1406,7 @@ export const textos = {
   },
   "T-1140": {
     where: "Campaña: en camino (aviso tras enviar ahora)",
-    text: "En camino. El primer lote sale en menos de un minuto.",
+    text: "Hágale, ya va en camino. El primer lote sale en menos de un minuto.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1845,7 +1845,7 @@ export const textos = {
   },
   "T-1208": {
     where: "Carnet: Google Wallet no respondió",
-    text: "Google Wallet no respondió. Probá de nuevo en un rato.",
+    text: "Google Wallet no respondió. Probá de nuevo en un ratico.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -1947,7 +1947,7 @@ export const textos = {
   },
   "T-1231": {
     where: "Wordle: introducción",
-    text: "Una palabra distinta para vos cada día. Resolvela y sumá GH Points.",
+    text: "Una palabra distinta para vos cada día. Hágale: resolvela y sumá GH Points.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2037,13 +2037,13 @@ export const textos = {
   },
   "T-1245": {
     where: "Wordle: victoria",
-    text: "¡La resolviste en {n}/6! Sumaste {puntos} GH Points. ¡OE OE OE!",
+    text: "¡Qué nota, la resolviste en {n}/6! Sumaste {puntos} GH Points. ¡OE OE OE!",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1246": {
     where: "Wordle: derrota",
-    text: "Se acabaron los intentos. Hoy no sumaste puntos; mañana hay otra palabra.",
+    text: "Se acabaron los intentos. Hoy no sumaste puntos; mañana hay otra palabra, pues.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2073,13 +2073,13 @@ export const textos = {
   },
   "T-1250": {
     where: "Wordle: miembro no elegible",
-    text: "El Wordle está disponible para integrantes activos y honorarios.",
+    text: "El Wordle está disponible para miembros activos y honorarios.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1251": {
     where: "Wordle: catálogo no disponible",
-    text: "No pudimos preparar tu palabra. Probá de nuevo en un rato.",
+    text: "No pudimos preparar tu palabra. Probá otra vez en un ratico.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2253,7 +2253,7 @@ export const textos = {
   },
   "T-1290": {
     where: "Documentos: confirmación de carga de contenido",
-    text: "{n} unidades de contenido cargadas",
+    text: "Listo: {n} unidades de contenido cargadas",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -2554,13 +2554,13 @@ export const textos = {
   },
   "T-145": {
     where: "Convocatorias, intro",
-    text: "Grupos de trabajo, GAP y barra brava que están buscando gente. Inscribite desde acá.",
+    text: "Grupos de trabajo, GAP y barra brava que están buscando gente. Pegate a uno desde acá.",
     owner: "GH",
     status: "Propuesta",
   },
   "T-146": {
     where: "Convocatoria, botón",
-    text: "Me apunto",
+    text: "Me pego",
     owner: "COM",
     status: "Propuesta",
   },
@@ -2692,7 +2692,7 @@ export const textos = {
   },
   "T-148": {
     where: "Inscripción aceptada",
-    text: "Quedaste en {grupo}. ¡OE OE OE!",
+    text: "¡Qué nota! Quedaste en {grupo}. ¡OE OE OE!",
     owner: "COM",
     status: "Propuesta",
   },
@@ -2860,7 +2860,7 @@ export const textos = {
   },
   "T-1548": {
     where: "Unirse: convocatoria cerrada sin lista de interés",
-    text: "Ahora no hay convocatoria abierta. Cuando haya una nueva, vas a encontrarla acá. Mientras tanto, conocé nuestros eventos.",
+    text: "Ahora no hay convocatoria abierta. Cuando haya una nueva, vas a encontrarla acá. Mientras tanto, date una vuelta por nuestros eventos.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -3058,7 +3058,7 @@ export const textos = {
   },
   "T-1627": {
     where: "Foto propia, eliminación confirmada",
-    text: "Listo, quitamos tu foto.",
+    text: "De una, ya quitamos tu foto.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3202,7 +3202,7 @@ export const textos = {
   },
   "T-1672": {
     where: "Introducción de Agenda",
-    text: "Consultá las próximas actividades y sus detalles. Cuando abra el registro, podés marcar tu asistencia desde acá.",
+    text: "Mirá qué se viene y pegate al plan. Cuando abra el registro, marcás tu asistencia desde acá.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3214,7 +3214,7 @@ export const textos = {
   },
   "T-1674": {
     where: "Ayuda de carnet en Inicio",
-    text: "Tené tu código a mano para registrar tu asistencia.",
+    text: "Pilas: tené tu código a mano para registrar tu asistencia.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3262,13 +3262,13 @@ export const textos = {
   },
   "T-1681": {
     where: "Agenda sin actividades",
-    text: "Todavía no hay actividades programadas. Podés consultar la cartelera y volver más adelante.",
+    text: "Todavía no hay actividades programadas. Mientras tanto, mirá la cartelera y volvé pronto, pues.",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-1682": {
     where: "Onboarding terminado",
-    text: "Ya completaste tus primeros pasos.",
+    text: "¡Listo pues! Ya completaste tus primeros pasos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -3322,7 +3322,7 @@ export const textos = {
   },
   "T-181": {
     where: "Puntos acreditados",
-    text: "¡Sumaste {n} GH Points! · Por {actividad}. Ya vas en {total}.",
+    text: "¡Qué nota! Sumaste {n} GH Points · Por {actividad}. Ya vas en {total}.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -3376,19 +3376,19 @@ export const textos = {
   },
   "T-190": {
     where: "Convocatoria abierta",
-    text: "Se abrió {convocatoria} · {cupo} cupos, cierra el {fecha}.",
+    text: "Se abrió {convocatoria} · {cupo} cupos, cierra el {fecha}. ¡Pilas!",
     owner: "GH",
     status: "Propuesta",
   },
   "T-191": {
     where: "Encuesta tras la actividad",
-    text: "¿Cómo estuvo {actividad}? · Contanos en un minuto.",
+    text: "¿Cómo estuvo {actividad}? · Contanos en un ratico.",
     owner: "COM",
     status: "Propuesta",
   },
   "T-192": {
     where: "Reconocimiento",
-    text: "¡Destacado del mes! · {nombre} es el destacado de {comité}.",
+    text: "¡Destacado del mes! · {nombre} es el destacado de {comité}. ¡Qué berraco!",
     owner: "COM",
     status: "Propuesta",
   },
@@ -3412,7 +3412,7 @@ export const textos = {
   },
   "T-200": {
     where: "Bienvenida al dar de alta",
-    text: "Bienvenido a la OE, {nombre} · Ya estás en el roster y tus comités son: {comités}. Para entrar a Mi OE en {url} necesitás tu contraseña: pedile tu enlace de acceso a Gestión Humana o a cualquier persona de la junta. Lo hacemos por vos. ¡OE OE OE!",
+    text: "Bienvenido a la OE, {nombre} · ¡Qué nota tenerte! Ya estás en el roster y tus comités son: {comités}. Para entrar a Mi OE en {url} necesitás tu contraseña: pedile tu enlace de acceso a Gestión Humana o a cualquier persona de la junta. Lo hacemos por vos. ¡OE OE OE!",
     owner: "GH",
     status: "Propuesta",
   },
@@ -3599,7 +3599,7 @@ export const textos = {
   },
   "T-2091": {
     where: "Cambio de área: enlace a Mi OE",
-    text: "Cambiar a Mi OE (vista de integrante)",
+    text: "Cambiar a Mi OE (vista de miembro)",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4027,7 +4027,7 @@ export const textos = {
   },
   "T-2161": {
     where: "Agregar miembro: confirmación",
-    text: "{nombre} ya hace parte del comité. ¡OE OE OE!",
+    text: "¡Qué nota! {nombre} ya hace parte del comité. ¡OE OE OE!",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -4705,7 +4705,7 @@ export const textos = {
   },
   "T-2273": {
     where: "Mesa directiva: confirmación",
-    text: "Mesa directiva actualizada.",
+    text: "Listo, mesa directiva actualizada.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5575,7 +5575,7 @@ export const textos = {
   },
   "T-2408": {
     where: "Retos: vacío",
-    text: "Por ahora no hay retos abiertos. Volvé pronto: GH publica nuevos durante el semestre.",
+    text: "Por ahora no hay retos abiertos. Volvé pronto, pues: GH publica nuevos durante el semestre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5671,7 +5671,7 @@ export const textos = {
   },
   "T-2422": {
     where: "Trivia: aprobada",
-    text: "¡Acertaste {aciertos} de {total} y sumaste {n} GH Points! ¡OE OE OE!",
+    text: "¡Qué berraco! Acertaste {aciertos} de {total} y sumaste {n} GH Points. ¡OE OE OE!",
     owner: "GH",
     status: "Propuesta",
   },
@@ -5731,7 +5731,7 @@ export const textos = {
   },
   "T-2431": {
     where: "Evidencia: enviada",
-    text: "Tu evidencia quedó enviada. GH la revisa y te avisamos.",
+    text: "¡Listo pues! Tu evidencia quedó enviada. GH la revisa y te avisamos.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -5749,7 +5749,7 @@ export const textos = {
   },
   "T-2434": {
     where: "Reto: completado",
-    text: "¡Reto completado! Sumaste {n} GH Points. ¡OE OE OE!",
+    text: "¡Reto completado, parce! Sumaste {n} GH Points. ¡OE OE OE!",
     owner: "GH",
     status: "Propuesta",
   },
@@ -5911,7 +5911,7 @@ export const textos = {
   },
   "T-2459": {
     where: "Boosters: asignado",
-    text: "Listo: tu {booster} está reservado para {objetivo}. Podés cambiarlo hasta que participes.",
+    text: "¡De una! Tu {booster} está reservado para {objetivo}. Podés cambiarlo hasta que participes.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -5983,7 +5983,7 @@ export const textos = {
   },
   "T-247": {
     where: "Admin, sistema: lista vacía",
-    text: "No hay trabajos en esta lista.",
+    text: "Nada por acá en esta lista.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6145,13 +6145,13 @@ export const textos = {
   },
   "T-2496": {
     where: "Desbloqueo: texto",
-    text: "Desbloqueaste {insignia} nivel {nivel}. ¡OE OE OE!",
+    text: "¡Bacano! Desbloqueaste {insignia} nivel {nivel}. ¡OE OE OE!",
     owner: "GH",
     status: "Propuesta",
   },
   "T-2497": {
     where: "Desbloqueo: con booster",
-    text: "Además ganaste un {booster}. Usalo antes de que termine el semestre.",
+    text: "Además ganaste un {booster}. Pilas: usalo antes de que termine el semestre.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -6331,7 +6331,7 @@ export const textos = {
   },
   "T-2524": {
     where: "Admin revisión: vacío",
-    text: "No hay entregas pendientes.",
+    text: "Nada por revisar por acá: todo al día.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6565,7 +6565,7 @@ export const textos = {
   },
   "T-256": {
     where: "Listados y paleta: sin resultados",
-    text: "Sin resultados para esta búsqueda.",
+    text: "Nada por acá con esa búsqueda.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -6607,7 +6607,7 @@ export const textos = {
   },
   "T-2566": {
     where: "Push: reto publicado",
-    text: "Nuevo reto: {reto} · Tenés hasta {fecha}. Entrá y participá.",
+    text: "Nuevo reto: {reto} · Tenés hasta {fecha}. De una: entrá y participá.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -6625,7 +6625,7 @@ export const textos = {
   },
   "T-2569": {
     where: "Push: insignia desbloqueada",
-    text: "¡Nueva insignia! · Desbloqueaste {insignia} nivel {nivel}.",
+    text: "¡Nueva insignia! · Qué nota: desbloqueaste {insignia} nivel {nivel}.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -6967,7 +6967,7 @@ export const textos = {
   },
   "T-2620": {
     where: "Push: Wordle del día (ADR-074)",
-    text: "El Wordle de hoy te espera · Cinco letras, seis intentos y hasta 6 GH Points.",
+    text: "¿Qué más? El Wordle de hoy te espera · Cinco letras, seis intentos y hasta 6 GH Points.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -6979,7 +6979,7 @@ export const textos = {
   },
   "T-2622": {
     where: "Juegos: introducción",
-    text: "Despejá la cabeza un rato y sumá GH Points mientras tanto.",
+    text: "Despejá la cabeza un ratico y sumá GH Points mientras tanto.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7171,13 +7171,13 @@ export const textos = {
   },
   "T-2651": {
     where: "2048: premio acreditado",
-    text: "Sumaste {n} GH Points. ¡OE OE OE!",
+    text: "¡Severo! Sumaste {n} GH Points. ¡OE OE OE!",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2652": {
     where: "2048: sin premio por puntaje bajo",
-    text: "Con este puntaje todavía no sumás. Probá otra partida: el crédito del día sigue libre.",
+    text: "Con este puntaje todavía no sumás. Hágale a otra partida: el crédito del día sigue libre.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7513,13 +7513,13 @@ export const textos = {
   },
   "T-2708": {
     where: "Sudoku: resuelto con premio",
-    text: "¡Resuelto! Sumaste {n} GH Points. ¡OE OE OE!",
+    text: "¡Resuelto, parce! Sumaste {n} GH Points. ¡OE OE OE!",
     owner: "MATEO",
     status: "Propuesta",
   },
   "T-2709": {
     where: "Sudoku: resuelto sin premio",
-    text: "¡Resuelto! Hoy ya habías sumado con el Sudoku, así que este fue por gusto.",
+    text: "¡Resuelto! Hoy ya habías sumado con el Sudoku, así que este fue por puro gusto.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7598,6 +7598,12 @@ export const textos = {
   "T-2720": {
     where: "Sudoku: resueltos del semestre",
     text: "Resueltos este semestre",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-2721": {
+    where: "Página no encontrada (404); el primer punto separa el título del botón",
+    text: "Uy, esta página no existe. Volvé al inicio.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7765,7 +7771,7 @@ export const textos = {
   },
   "T-300": {
     where: "La OE, Unirse o Privacidad sin publicar todavía",
-    text: "Este contenido está en preparación. Volvé pronto.",
+    text: "Estamos camellando en este contenido. Volvé pronto.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -7777,7 +7783,7 @@ export const textos = {
   },
   "T-302": {
     where: "Cartelera sin anuncios",
-    text: "Todavía no hay anuncios. Volvé pronto.",
+    text: "La cartelera está quieta por ahora. Volvé pronto.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8083,7 +8089,7 @@ export const textos = {
   },
   "T-360": {
     where: "Medios: subida confirmada",
-    text: "Listo: la imagen queda disponible en unos segundos.",
+    text: "Listo: la imagen queda disponible en un ratico.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -8666,7 +8672,7 @@ export const textos = {
   },
   "T-457": {
     where: "Línea de tiempo vacía",
-    text: "Todavía no hay nada en la línea de tiempo.",
+    text: "Todavía no hay nada por acá en la línea de tiempo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9002,7 +9008,7 @@ export const textos = {
   },
   "T-513": {
     where: "Tarea creada",
-    text: "Tarea creada.",
+    text: "Listo, tarea creada.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9044,7 +9050,7 @@ export const textos = {
   },
   "T-520": {
     where: "Documentos: subida confirmada",
-    text: "Listo: el PDF quedó guardado. Ahora cargá los artículos.",
+    text: "De una: el PDF quedó guardado. Ahora cargá los artículos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9147,7 +9153,7 @@ export const textos = {
   },
   "T-537": {
     where: "GH Points: nivel máximo alcanzado",
-    text: "Llegaste al nivel más alto. ¡OE OE OE!",
+    text: "Llegaste al nivel más alto. ¡Qué berraco! ¡OE OE OE!",
     owner: "COM",
     status: "Propuesta",
   },
@@ -9213,7 +9219,7 @@ export const textos = {
   },
   "T-548": {
     where: "GH Points: sin semestre activo",
-    text: "No hay un semestre activo. Cuando GH lo abra, acá ves tus puntos.",
+    text: "No hay un semestre activo. Apenas GH lo abra, acá ves tus puntos.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9537,7 +9543,7 @@ export const textos = {
   },
   "T-602": {
     where: "Consola y anfitrión: registro hecho",
-    text: "Listo: {nombre} quedó registrado.",
+    text: "De una: {nombre} quedó registrado.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9855,7 +9861,7 @@ export const textos = {
   },
   "T-655": {
     where: "Serie semanal: creada",
-    text: "Listo: {n} reuniones creadas hasta el {fecha}.",
+    text: "Listo pues: {n} reuniones creadas hasta el {fecha}.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10137,7 +10143,7 @@ export const textos = {
   },
   "T-702": {
     where: "Comité interno: cartelera vacía",
-    text: "{comité} no tiene anuncios todavía.",
+    text: "{comité} no tiene anuncios todavía. Volvé en un ratico.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -10611,7 +10617,7 @@ export const textos = {
   },
   "T-781": {
     where: "Destacado del mes: publicado",
-    text: "{nombre} quedó como destacado de {mes}. Se publicó en la cartelera del comité.",
+    text: "Listo pues: {nombre} quedó como destacado de {mes}. Se publicó en la cartelera del comité.",
     owner: "COM",
     status: "Propuesta",
   },
@@ -10629,7 +10635,7 @@ export const textos = {
   },
   "T-784": {
     where: "Destacado del mes: cuerpo del anuncio",
-    text: "{comité} reconoce a {nombre} como destacado del mes de {mes}. ¡OE OE OE!",
+    text: "{comité} reconoce a {nombre} como destacado del mes de {mes}. ¡Qué berraco! ¡OE OE OE!",
     owner: "COM",
     status: "Propuesta",
   },
@@ -10997,7 +11003,7 @@ export const textos = {
   },
   "T-845": {
     where: "Grupo: importación aplicada",
-    text: "{n} personas agregadas al grupo.",
+    text: "Listo: {n} personas agregadas al grupo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -11082,7 +11088,7 @@ export const textos = {
   },
   "T-859": {
     where: "Formulario: gracias por defecto (si el formulario no trae el suyo)",
-    text: "¡Listo! Recibimos tu respuesta. ¡OE OE OE!",
+    text: "¡De una! Recibimos tu respuesta. ¡OE OE OE!",
     owner: "COM",
     status: "Propuesta",
   },
@@ -11106,7 +11112,7 @@ export const textos = {
   },
   "T-863": {
     where: "Formulario: demasiados envíos desde la misma red",
-    text: "Recibimos muchos envíos desde tu red. Esperá unos minutos e intentá de nuevo.",
+    text: "Recibimos muchos envíos desde tu red. Esperá un ratico e intentá de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -11305,7 +11311,7 @@ export const textos = {
   },
   "T-896": {
     where: "Convocatorias: sin convocatorias abiertas",
-    text: "No hay convocatorias abiertas ahora. Cuando se abra una, la vas a ver acá.",
+    text: "No hay convocatorias abiertas ahora. Pilas: cuando se abra una, la vas a ver acá.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -11335,7 +11341,7 @@ export const textos = {
   },
   "T-901": {
     where: "Convocatoria: inscripción pendiente (selección manual)",
-    text: "Te anotaste en {grupo}. El líder revisa las inscripciones y te avisamos.",
+    text: "¡De una! Te anotaste en {grupo}. El líder revisa las inscripciones y te avisamos.",
     owner: "GH",
     status: "Propuesta",
   },
@@ -11871,7 +11877,7 @@ export const textos = {
   },
   "T-990": {
     where: "Dar de alta: listo",
-    text: "{nombre} ya es miembro. Falta emitirle su enlace de acceso para que pueda entrar.",
+    text: "De una: {nombre} ya es miembro. Falta emitirle su enlace de acceso para que pueda entrar.",
     owner: "GH",
     status: "Propuesta",
   },

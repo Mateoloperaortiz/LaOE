@@ -22,7 +22,7 @@ test("las páginas fijas nacen de la migración, responden con su título y pasa
   }
   await page.goto("/no-existe-esta-pagina");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    t("T-032").split(". ")[0] ?? "",
+    t("T-2721").split(". ")[0] ?? "",
   );
 });
 

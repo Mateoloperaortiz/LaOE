@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Casa digital de la OE
 
-- Idioma: la interfaz, los docs y los commits van en español (voseo en lo que ve un miembro); los identificadores del código en inglés, según [docs/glosario.md](docs/glosario.md).
+- Idioma: la interfaz, los docs y los commits van en español (voseo paisa en lo que ve un miembro, con el toque sutil de [ADR-086](docs/adr/ADR-086-copy-paisa-y-parchado.md)); los identificadores del código en inglés, según [docs/glosario.md](docs/glosario.md).
 - Antes de tocar código leé [docs/01-arquitectura.md](docs/01-arquitectura.md) (módulos, capas, layout) y la ADR que aplique en [docs/adr/](docs/adr/README.md). Una decisión nueva es una ADR nueva; una regla vieja no se edita, se enmienda.
 - El seguimiento vive en [docs/09-roadmap.md](docs/09-roadmap.md): al cerrar un tramo se marca la casilla y se agrega una fila al registro de avances.
 - El código no inventa textos: todo copy sale de [docs/14-copy-y-textos.md](docs/14-copy-y-textos.md) por su código `T-…`. Lo que corre en el navegador (un archivo `"use client"` o un componente que se use desde uno) importa `t` y `tList` de `@/shared/copy/client` y después se corre `npm run copy:sync`; `@/shared/copy` es solo de servidor y el build falla si llega al cliente ([ADR-081](docs/adr/ADR-081-el-catalogo-de-textos-no-viaja-entero-al-navegador.md)). Tampoco inventa fechas ni datos de la OE: lo que falte va a [docs/11-contenido-pendiente.md](docs/11-contenido-pendiente.md).

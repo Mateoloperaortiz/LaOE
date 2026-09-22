@@ -2,7 +2,7 @@
 // No editar a mano: corré npm run copy:sync.
 export const textosCliente = {
   "T-004": "Entrá a Mi OE",
-  "T-033": "Algo falló de nuestro lado. Ya nos enteramos; intentá de nuevo en un rato.",
+  "T-033": "Algo se nos dañó de este lado. Ya nos dimos cuenta; intentá otra vez en un ratico.",
   "T-034": "Cambiar a tema oscuro · Cambiar a tema claro",
   "T-035": "Saltar al contenido",
   "T-036": "Organización Estudiantil, Universidad EAFIT",
@@ -12,10 +12,10 @@ export const textosCliente = {
   "T-1060": "Sin responsable",
   "T-1079": "Qué querés recibir",
   "T-1081": "Los correos sobre tu ingreso, tus solicitudes y tu permanencia llegan siempre.",
-  "T-1082": "Listo, guardamos tus preferencias.",
+  "T-1082": "Listo pues, guardamos tus preferencias.",
   "T-1083": "Guardar preferencias",
   "T-1230": "Wordle de hoy",
-  "T-1231": "Una palabra distinta para vos cada día. Resolvela y sumá GH Points.",
+  "T-1231": "Una palabra distinta para vos cada día. Hágale: resolvela y sumá GH Points.",
   "T-1232": "Jugar el Wordle de hoy",
   "T-1233":
     "Adiviná una palabra de 5 letras en 6 intentos. Podés escribir con o sin tilde; la Ñ es distinta de la N. Cada intento válido queda guardado para que sigás en otro dispositivo.",
@@ -30,13 +30,13 @@ export const textosCliente = {
   "T-1242": "{letra}: {estado}",
   "T-1243": "Escribí una palabra de cinco letras.",
   "T-1244": "No la encontré en el diccionario. Probá otra; no perdiste un intento.",
-  "T-1245": "¡La resolviste en {n}/6! Sumaste {puntos} GH Points. ¡OE OE OE!",
-  "T-1246": "Se acabaron los intentos. Hoy no sumaste puntos; mañana hay otra palabra.",
+  "T-1245": "¡Qué nota, la resolviste en {n}/6! Sumaste {puntos} GH Points. ¡OE OE OE!",
+  "T-1246": "Se acabaron los intentos. Hoy no sumaste puntos; mañana hay otra palabra, pues.",
   "T-1247": "La palabra era {palabra}.",
   "T-1248": "Próxima palabra: {fecha}, a las 12:00 a. m. de Colombia.",
   "T-1249": "El Wordle estará disponible cuando haya un semestre vigente con los puntos abiertos.",
-  "T-1250": "El Wordle está disponible para integrantes activos y honorarios.",
-  "T-1251": "No pudimos preparar tu palabra. Probá de nuevo en un rato.",
+  "T-1250": "El Wordle está disponible para miembros activos y honorarios.",
+  "T-1251": "No pudimos preparar tu palabra. Probá otra vez en un ratico.",
   "T-1252": "Terminó el día de esta partida. No sumaste puntos; ya podés consultar el reto de hoy.",
   "T-1253":
     "Tu partida cambió en otro dispositivo. Ya trajimos los intentos guardados; revisalos antes de seguir.",
@@ -104,7 +104,7 @@ export const textosCliente = {
   "T-1663": "Navegación de Mi OE",
   "T-1683": "Todas las secciones de Mi OE",
   "T-2090": "Cambiar a Administración",
-  "T-2091": "Cambiar a Mi OE (vista de integrante)",
+  "T-2091": "Cambiar a Mi OE (vista de miembro)",
   "T-2218": "Ocasión · Causal (Anexo 1 del Reglamento) · Soporte: enlace o descripción (opcional)",
   "T-2224": "No hay ocasiones recientes ni próximas para excusar.",
   "T-230": "Intentar de nuevo",
@@ -120,7 +120,7 @@ export const textosCliente = {
   "T-2420":
     "Participar · Enviar respuestas · Enviar evidencia · Ir a la actividad · Cambiar booster · Quitar booster · Volver a los retos",
   "T-2421": "Pregunta {n} de {total}",
-  "T-2422": "¡Acertaste {aciertos} de {total} y sumaste {n} GH Points! ¡OE OE OE!",
+  "T-2422": "¡Qué berraco! Acertaste {aciertos} de {total} y sumaste {n} GH Points. ¡OE OE OE!",
   "T-2426": "Respondé todas las preguntas antes de enviar.",
   "T-2427":
     "Escribí qué hiciste ({min} a {max} caracteres) y subí hasta 3 imágenes JPG, PNG o WebP de máximo 5 MB cada una.",
@@ -128,7 +128,7 @@ export const textosCliente = {
   "T-2429": "Agregar imagen",
   "T-2430":
     "Ese archivo no es una imagen JPG, PNG o WebP. · Esa imagen pesa más de 5 MB. · Ya subiste tres imágenes. · No pudimos subir la imagen. Probá de nuevo.",
-  "T-2431": "Tu evidencia quedó enviada. GH la revisa y te avisamos.",
+  "T-2431": "¡Listo pues! Tu evidencia quedó enviada. GH la revisa y te avisamos.",
   "T-2438": "Este reto ya cerró.",
   "T-2439": "Ya participaste en este reto.",
   "T-2440": "Este reto no es para tu público o tu membresía no está activa.",
@@ -138,8 +138,8 @@ export const textosCliente = {
   "T-2444": "Ese envío ya llegó con otro contenido. Recargá para ver tu estado.",
   "T-2451": "Impulso · Superimpulso",
   "T-2495": "¡Nueva insignia!",
-  "T-2496": "Desbloqueaste {insignia} nivel {nivel}. ¡OE OE OE!",
-  "T-2497": "Además ganaste un {booster}. Usalo antes de que termine el semestre.",
+  "T-2496": "¡Bacano! Desbloqueaste {insignia} nivel {nivel}. ¡OE OE OE!",
+  "T-2497": "Además ganaste un {booster}. Pilas: usalo antes de que termine el semestre.",
   "T-2498": "Ver mi colección",
   "T-2499": "Nueva insignia desbloqueada: {insignia} nivel {nivel}.",
   "T-2504":
@@ -201,9 +201,9 @@ export const textosCliente = {
   "T-2648": "Empezar de cero",
   "T-2649": "Tus puntos por puntaje",
   "T-2650": "Puntaje · GH Points",
-  "T-2651": "Sumaste {n} GH Points. ¡OE OE OE!",
+  "T-2651": "¡Severo! Sumaste {n} GH Points. ¡OE OE OE!",
   "T-2652":
-    "Con este puntaje todavía no sumás. Probá otra partida: el crédito del día sigue libre.",
+    "Con este puntaje todavía no sumás. Hágale a otra partida: el crédito del día sigue libre.",
   "T-2653":
     "Hoy ya sumaste tus GH Points del 2048. Podés seguir jugando por gusto y mañana vuelve a contar.",
   "T-2655": "Terminó el día de esta partida. No sumaste puntos; empezá una nueva.",
@@ -254,8 +254,8 @@ export const textosCliente = {
   "T-2705": "Pista: en la fila {fila}, columna {columna} va un {n}.",
   "T-2706": "Elegí una casilla vacía para pedir la pista.",
   "T-2707": "Revisando tu tablero…",
-  "T-2708": "¡Resuelto! Sumaste {n} GH Points. ¡OE OE OE!",
-  "T-2709": "¡Resuelto! Hoy ya habías sumado con el Sudoku, así que este fue por gusto.",
+  "T-2708": "¡Resuelto, parce! Sumaste {n} GH Points. ¡OE OE OE!",
+  "T-2709": "¡Resuelto! Hoy ya habías sumado con el Sudoku, así que este fue por puro gusto.",
   "T-2710":
     "Hoy ya sumaste tus GH Points del Sudoku. Podés seguir jugando por gusto y mañana vuelve a contar.",
   "T-2711": "Jugar otro tablero",

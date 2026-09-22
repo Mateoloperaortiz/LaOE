@@ -4,7 +4,7 @@ import { t, tList } from "@/shared/copy";
 
 export default function NotFound() {
   const [inicio] = tList("T-038");
-  const [mensaje, accion] = t("T-032").split(". ");
+  const [mensaje, accion] = t("T-2721").split(". ");
   return (
     <main className="mx-auto flex max-w-2xl flex-1 flex-col items-start justify-center gap-6 px-4 py-16">
       <Elemento tipo="destello" className="size-16 text-oe-orange" />
