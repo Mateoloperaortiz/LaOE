@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -42,46 +44,46 @@ test("la consola muestra el QR y el contador, y el modo anfitrión registra por 
 }) => {
   await page.goto(`/admin/ocasiones/${occasionId}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Consola · e2e-Consola de prueba",
+    t("T-584", { título: "e2e-Consola de prueba" }),
   );
-  await expect(
-    page.getByRole("img", { name: "Escaneá para registrar tu asistencia" }),
-  ).toBeVisible();
+  await expect(page.getByRole("img", { name: t("T-586") })).toBeVisible();
   await expect(page.locator("[data-contador='APPROVED']")).toHaveText("0");
-  await expect(page.getByText(`Enlace: ${process.env.APP_URL}/a/e2econsol1`)).toBeVisible();
+  await expect(
+    page.getByText(t("T-611", { url: `${process.env.APP_URL}/a/e2econsol1` })),
+  ).toBeVisible();
   await sinViolaciones(page);
 
   // Anfitrión: buscar por nombre y registrar a una persona sin sesión.
   await page.goto(`/admin/ocasiones/${occasionId}/anfitrion`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Modo anfitrión · e2e-Consola de prueba",
+    t("T-614", { título: "e2e-Consola de prueba" }),
   );
-  await expect(page.getByRole("button", { name: "Escanear carnet" })).toBeVisible();
-  await page.getByRole("textbox", { name: "Buscá por nombre" }).fill("Miembro E2E");
-  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await expect(page.getByRole("button", { name: tList("T-616")[0] })).toBeVisible();
+  await page.getByRole("textbox", { name: t("T-599") }).fill("Miembro E2E");
+  await page.getByRole("button", { name: t("T-250"), exact: true }).click();
   await page
     .getByRole("listitem")
     .filter({ hasText: "Miembro E2E" })
-    .getByRole("button", { name: "Registrar", exact: true })
+    .getByRole("button", { name: tList("T-598")[1], exact: true })
     .click();
-  await expect(page.getByText("Listo: Miembro E2E quedó registrado.")).toBeVisible();
+  await expect(page.getByText(t("T-602", { nombre: "Miembro E2E" }))).toBeVisible();
   await expect(page.locator("main")).not.toContainText("@eafit.edu.co");
   await sinViolaciones(page);
 
   // Otra vez: ya estaba registrado.
-  await page.getByRole("textbox", { name: "Buscá por nombre" }).fill("Miembro E2E");
-  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await page.getByRole("textbox", { name: t("T-599") }).fill("Miembro E2E");
+  await page.getByRole("button", { name: t("T-250"), exact: true }).click();
   await page
     .getByRole("listitem")
     .filter({ hasText: "Miembro E2E" })
-    .getByRole("button", { name: "Registrar", exact: true })
+    .getByRole("button", { name: tList("T-598")[1], exact: true })
     .click();
-  await expect(page.getByText("Miembro E2E ya estaba registrado.")).toBeVisible();
+  await expect(page.getByText(t("T-601", { nombre: "Miembro E2E" }))).toBeVisible();
 
   // La consola refleja el registro y el código rotativo se activa desde ahí.
   await page.goto(`/admin/ocasiones/${occasionId}`);
   await expect(page.locator("[data-contador='APPROVED']")).toHaveText("1");
-  await page.getByRole("button", { name: "Activar código rotativo" }).click();
-  await expect(page.getByText(/Código [0-9]{6} · cambia en/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Rotar secreto" })).toBeVisible();
+  await page.getByRole("button", { name: tList("T-588")[0] }).click();
+  await expect(page.getByText(copyPattern("T-587"))).toBeVisible();
+  await expect(page.getByRole("button", { name: tList("T-588")[1] })).toBeVisible();
 });

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
+import { itemPattern } from "../helpers/copy";
 import "@/jobs/handlers";
 import { eventOf } from "@/domain-events/define";
 import { permanenceDecided } from "@/domain-events/permanence";
@@ -11,12 +12,14 @@ import {
   setMailTransportsForTests,
   setPushSenderForTests,
 } from "@/modules/comms";
+
 import { message } from "@/modules/comms/schema";
 import { runReminders } from "@/modules/participation";
 import { membership } from "@/modules/people/schema";
 import { runNotices } from "@/modules/permanence";
 import { outbox } from "@/modules/system/schema";
 import type { MailMessage, MailTransport } from "@/shared/adapters/mail";
+import { tList } from "@/shared/copy";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
@@ -30,6 +33,8 @@ import {
 // nuevos, una vez por ocasión y slot, y el correo T-202 solo a quien cumple.
 
 const db = () => getDb();
+
+/** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 const keys = () => ({ p256dh: "p".repeat(32), auth: "a".repeat(16) });
 
 async function subscribe(personId: string, endpoint: string) {
@@ -102,9 +107,11 @@ describe("recordatorios de participación", () => {
       rows.filter((row) => row.dedupeKey === key).map((row) => row.personId);
     expect(byKey(`reminder:TODAY:${deComite.id}`)).toEqual([dentro]);
     expect(byKey(`reminder:TODAY:${soloNuevos.id}`).sort()).toEqual([dentro, fuera].sort());
-    expect(rows.every((row) => row.kind === "REMINDER" && row.subject.startsWith("Hoy: "))).toBe(
-      true,
-    );
+    expect(
+      rows.every(
+        (row) => row.kind === "REMINDER" && itemPattern(tList("T-182")[0]).test(row.subject),
+      ),
+    ).toBe(true);
     expect(
       rows.find((row) => row.dedupeKey === `reminder:TODAY:${deComite.id}`)?.subject,
     ).toContain("Reunión general de Pixel");
@@ -168,7 +175,7 @@ describe("resultado de permanencia por correo (T-202)", () => {
     expect(result.failed).toBe(0);
     expect(sent).toHaveLength(1);
     expect(sent[0]?.to).toBe("ana.cierre@eafit.edu.co");
-    expect(sent[0]?.subject).toMatch(/^Cerró /);
+    expect(sent[0]?.subject).toMatch(itemPattern(tList("T-202")[0]));
     expect(sent[0]?.text).toContain("/app/permanencia");
     const rows = await db().select().from(message).where(eq(message.personId, ana));
     expect(rows).toHaveLength(1);

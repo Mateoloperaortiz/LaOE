@@ -3,6 +3,8 @@ import { and, asc, eq, notLike } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
 import { committee, person } from "@/modules/people/schema";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
@@ -57,28 +59,28 @@ test("el líder entra a su comité, crea la serie semanal y no ve el resto del a
   await page.goto("/admin");
   await expect(page).toHaveURL(new RegExp(`/admin/comites/${slug}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
-  await expect(page.getByText("Tu comité")).toBeVisible();
+  await expect(page.getByText(tList("T-651")[0])).toBeVisible();
   await expect(page.locator("main")).not.toContainText("@eafit.edu.co");
   await sinViolaciones(page);
 
   // Las ocasiones viven en el área Actividades de la vista por áreas (ADR-058).
-  await page.getByRole("link", { name: "Actividades" }).click();
-  await page.getByRole("link", { name: "Crear serie semanal" }).click();
+  await page.getByRole("link", { name: tList("T-2174")[1] }).click();
+  await page.getByRole("link", { name: tList("T-652")[1] }).click();
   const panel = page.getByRole("dialog");
-  await panel.getByLabel("Título").fill("e2e-Reunión semanal");
+  await panel.getByLabel(tList("T-654")[0]).fill("e2e-Reunión semanal");
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
-  await panel.getByLabel("Primera reunión").fill(today);
-  await panel.getByLabel("Hora").fill("18:00");
-  await panel.getByRole("button", { name: "Crear serie semanal" }).click();
-  await expect(page.getByText(/reuniones creadas hasta el/)).toBeVisible();
+  await panel.getByLabel(tList("T-654")[5]).fill(today);
+  await panel.getByLabel(tList("T-654")[2]).fill("18:00");
+  await panel.getByRole("button", { name: tList("T-652")[1] }).click();
+  await expect(page.getByText(copyPattern("T-655"))).toBeVisible();
   await expect(page.getByRole("link", { name: "e2e-Reunión semanal" }).first()).toBeVisible();
 
   await page.getByRole("link", { name: "e2e-Reunión semanal" }).first().click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Consola · e2e-Reunión semanal",
+    t("T-584", { título: "e2e-Reunión semanal" }),
   );
-  await expect(page.getByRole("link", { name: "Modo anfitrión" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Aprobar todos los pendientes" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: t("T-607") })).toBeVisible();
+  await expect(page.getByRole("button", { name: t("T-593") })).toHaveCount(0);
   await sinViolaciones(page);
 
   await page.goto("/admin/personas");

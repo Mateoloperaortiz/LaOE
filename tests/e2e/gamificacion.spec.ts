@@ -20,7 +20,9 @@ import {
 } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import { t, tList } from "@/shared/copy";
 import { utcToBogotaInput } from "@/shared/lib/dates";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -49,6 +51,22 @@ async function currentTermId(): Promise<string> {
   return row.id;
 }
 
+/** Lo que muestra el check-in: el sello de marca ya dice «¡OE OE OE!», así que el texto no lo repite. */
+function checkInOk(n: number): string {
+  return t("T-092", { n }).replace(/\s*¡OE OE OE!$/, "");
+}
+
+/** Estado de la última corrida de conciliación seguido de sus conteos (T-2559 · T-2560). */
+function corrida(estado: 0 | 1, desbloqueadas = "\\d+"): RegExp {
+  const conteos = copyPattern("T-2560", {
+    procesadas: "PROCESADAS",
+    desbloqueadas: "DESBLOQUEADAS",
+  })
+    .source.replace("PROCESADAS", "\\d+")
+    .replace("DESBLOQUEADAS", desbloqueadas);
+  return new RegExp(`${tList("T-2559")[estado]} · ${conteos}`);
+}
+
 async function adminPage(browser: Browser): Promise<Page> {
   const context = await browser.newContext({ storageState: ADMIN_STATE });
   return context.newPage();
@@ -57,12 +75,12 @@ async function adminPage(browser: Browser): Promise<Page> {
 /** Prende `gamification.enabled` desde la pantalla de límites, como lo haría GH. */
 async function activarRetos(admin: Page): Promise<void> {
   await admin.goto("/admin/gamificacion/limites");
-  const bandera = admin.getByLabel("Retos activos para los miembros");
+  const bandera = admin.getByLabel(t("T-2552"));
   if (!(await bandera.isChecked())) {
     await bandera.check();
   }
-  await admin.getByRole("button", { name: "Guardar", exact: true }).click();
-  await expect(admin.getByText("Límites guardados.")).toBeVisible();
+  await admin.getByRole("button", { name: t("T-253"), exact: true }).click();
+  await expect(admin.getByText(t("T-2554"))).toBeVisible();
 }
 
 /** Reto publicado por la vía auditada (las mismas funciones que llaman las acciones del admin). */
@@ -104,12 +122,16 @@ test("trivia: el admin la crea por la interfaz y el miembro la responde por tecl
 }) => {
   const admin = await adminPage(browser);
   await admin.goto("/admin/gamificacion/retos/nuevo");
-  await admin.getByLabel("Formato").selectOption({ label: "Trivia" });
-  await admin.getByLabel("Título", { exact: true }).fill("e2e-Trivia relámpago");
-  await admin.getByLabel("Abre").fill(utcToBogotaInput(new Date(Date.now() - 3_600_000)));
-  await admin.getByLabel("Cierra").fill(utcToBogotaInput(new Date(Date.now() + 86_400_000)));
-  const grupo = admin.getByRole("group", { name: /preguntas con 2 a 6 opciones/i });
-  await grupo.getByRole("button", { name: "Agregar pregunta", exact: true }).click();
+  await admin.getByLabel(tList("T-2504")[0]).selectOption({ label: tList("T-2409")[1] });
+  await admin.getByLabel(tList("T-2504")[1], { exact: true }).fill("e2e-Trivia relámpago");
+  await admin
+    .getByLabel(tList("T-2504")[5])
+    .fill(utcToBogotaInput(new Date(Date.now() - 3_600_000)));
+  await admin
+    .getByLabel(tList("T-2504")[6])
+    .fill(utcToBogotaInput(new Date(Date.now() + 86_400_000)));
+  const grupo = admin.getByRole("group", { name: copyPattern("T-2509", {}, "i") });
+  await grupo.getByRole("button", { name: tList("T-2508")[3], exact: true }).click();
   const bloques = grupo.locator("div.rounded-xl");
   await expect(bloques).toHaveCount(2);
   const preguntas = [
@@ -128,12 +150,12 @@ test("trivia: el admin la crea por la interfaz y el miembro la responde por tecl
       .nth(2)
       .fill(pregunta.opciones[1] ?? "");
   }
-  await admin.getByRole("button", { name: "Guardar borrador" }).click();
+  await admin.getByRole("button", { name: tList("T-2510")[0] }).click();
   await expect(admin).toHaveURL(/\/admin\/gamificacion\/retos\/[a-z0-9]+\?guardado=1$/);
-  await admin.getByRole("button", { name: "Publicar", exact: true }).click();
+  await admin.getByRole("button", { name: tList("T-2510")[1], exact: true }).click();
   // La URL ya traía `guardado=1` del borrador: no prueba que se publicó. El botón solo existe en
   // borrador, así que su ausencia sí; cerrar antes el contexto abortaba la publicación en vuelo.
-  await expect(admin.getByRole("button", { name: "Publicar", exact: true })).toHaveCount(0);
+  await expect(admin.getByRole("button", { name: tList("T-2510")[1], exact: true })).toHaveCount(0);
   await admin.context().close();
 
   const antes = await saldoMiembro();
@@ -141,14 +163,14 @@ test("trivia: el admin la crea por la interfaz y el miembro la responde por tecl
   await page.getByRole("link", { name: /e2e-Trivia relámpago/ }).click();
   await page.getByRole("radio", { name: "4", exact: true }).press(" ");
   await page.getByRole("radio", { name: "6", exact: true }).press(" ");
-  await page.getByRole("button", { name: "Enviar respuestas" }).press("Enter");
-  await expect(page.getByText("¡Acertaste 2 de 2 y sumaste 5 GH Points!")).toBeVisible();
+  await page.getByRole("button", { name: tList("T-2420")[1] }).press("Enter");
+  await expect(page.getByText(t("T-2422", { aciertos: 2, total: 2, n: 5 }))).toBeVisible();
   await sinViolaciones(page);
   await page.screenshot({ path: "test-results/reto-trivia-desktop.png", fullPage: true });
 
   await page.goto("/app/gh-points");
-  await expect(page.getByText("Reto: e2e-Trivia relámpago")).toBeVisible();
-  await expect(page.getByRole("cell", { name: "Reto" }).first()).toBeVisible();
+  await expect(page.getByText(t("T-2469", { reto: "e2e-Trivia relámpago" }))).toBeVisible();
+  await expect(page.getByRole("cell", { name: tList("T-085")[5] }).first()).toBeVisible();
   expect(await saldoMiembro()).toBe(antes + 5);
 });
 
@@ -158,29 +180,29 @@ test("editor: una misión nacida en trivia guarda la hora de Colombia, se public
   const admin = await adminPage(browser);
   await admin.goto("/admin/gamificacion/retos/nuevo");
   // El formulario abre en trivia con una pregunta vacía que sigue oculta al cambiar de formato.
-  await admin.getByLabel("Formato").selectOption({ label: "Misión con evidencia" });
-  await admin.getByLabel("Título", { exact: true }).fill("e2e-Misión desde el editor");
-  await admin.getByLabel("Descripción", { exact: true }).fill("e2e-Foto con la estatua.");
+  await admin.getByLabel(tList("T-2504")[0]).selectOption({ label: tList("T-2409")[2] });
+  await admin.getByLabel(tList("T-2504")[1], { exact: true }).fill("e2e-Misión desde el editor");
+  await admin.getByLabel(tList("T-2504")[2], { exact: true }).fill("e2e-Foto con la estatua.");
   // Una ventana corta: leída como UTC, el cierre quedaría en el pasado y no se podría publicar.
   const abre = utcToBogotaInput(new Date(Date.now() - 3_600_000));
   const cierra = utcToBogotaInput(new Date(Date.now() + 2 * 3_600_000));
-  await admin.getByLabel("Abre").fill(abre);
-  await admin.getByLabel("Cierra").fill(cierra);
-  await admin.getByLabel("Premio base").fill("20");
-  await admin.getByRole("button", { name: "Guardar borrador" }).click();
+  await admin.getByLabel(tList("T-2504")[5]).fill(abre);
+  await admin.getByLabel(tList("T-2504")[6]).fill(cierra);
+  await admin.getByLabel(tList("T-2504")[7]).fill("20");
+  await admin.getByRole("button", { name: tList("T-2510")[0] }).click();
   await expect(admin).toHaveURL(/\/admin\/gamificacion\/retos\/[a-z0-9]+\?guardado=1$/);
-  await expect(admin.getByLabel("Abre")).toHaveValue(abre);
-  await expect(admin.getByLabel("Cierra")).toHaveValue(cierra);
-  await admin.getByRole("button", { name: "Publicar", exact: true }).click();
-  await expect(admin.getByRole("button", { name: "Publicar", exact: true })).toHaveCount(0);
+  await expect(admin.getByLabel(tList("T-2504")[5])).toHaveValue(abre);
+  await expect(admin.getByLabel(tList("T-2504")[6])).toHaveValue(cierra);
+  await admin.getByRole("button", { name: tList("T-2510")[1], exact: true }).click();
+  await expect(admin.getByRole("button", { name: tList("T-2510")[1], exact: true })).toHaveCount(0);
 
   // Publicado, los campos congelados van deshabilitados; el título y la descripción se siguen guardando.
-  await admin.getByLabel("Título", { exact: true }).fill("e2e-Misión retitulada");
-  await admin.getByRole("button", { name: "Guardar borrador" }).click();
+  await admin.getByLabel(tList("T-2504")[1], { exact: true }).fill("e2e-Misión retitulada");
+  await admin.getByRole("button", { name: tList("T-2510")[0] }).click();
   await expect(
     admin.getByRole("heading", { level: 1, name: "e2e-Misión retitulada" }),
   ).toBeVisible();
-  await expect(admin.getByLabel("Cierra")).toHaveValue(cierra);
+  await expect(admin.getByLabel(tList("T-2504")[6])).toHaveValue(cierra);
   await admin.context().close();
 });
 
@@ -188,27 +210,29 @@ test("editor: un error al crear deja el formulario nuevo con lo escrito", async 
   const admin = await adminPage(browser);
   await admin.goto("/admin/gamificacion/retos/nuevo");
   const pregunta = admin
-    .getByRole("group", { name: /preguntas con 2 a 6 opciones/i })
+    .getByRole("group", { name: copyPattern("T-2509", {}, "i") })
     .locator("input:not([type])")
     .first();
   await pregunta.fill("e2e-¿Dónde está la estatua?");
-  await admin.getByLabel("Formato").selectOption({ label: "Misión con evidencia" });
-  await admin.getByLabel("Título", { exact: true }).fill("e2e-Misión con fechas cruzadas");
+  await admin.getByLabel(tList("T-2504")[0]).selectOption({ label: tList("T-2409")[2] });
+  await admin
+    .getByLabel(tList("T-2504")[1], { exact: true })
+    .fill("e2e-Misión con fechas cruzadas");
   const abre = utcToBogotaInput(new Date(Date.now() + 2 * 3_600_000));
-  await admin.getByLabel("Abre").fill(abre);
-  await admin.getByLabel("Cierra").fill(utcToBogotaInput(new Date(Date.now() + 3_600_000)));
-  await admin.getByRole("button", { name: "Guardar borrador" }).click();
-  await expect(
-    admin.getByText("La fecha de cierre debe ser posterior a la de apertura."),
-  ).toBeVisible();
+  await admin.getByLabel(tList("T-2504")[5]).fill(abre);
+  await admin
+    .getByLabel(tList("T-2504")[6])
+    .fill(utcToBogotaInput(new Date(Date.now() + 3_600_000)));
+  await admin.getByRole("button", { name: tList("T-2510")[0] }).click();
+  await expect(admin.getByText(tList("T-2520")[0])).toBeVisible();
   await expect(admin).toHaveURL(/\/admin\/gamificacion\/retos\/nuevo\?/);
-  await expect(admin.getByLabel("Formato")).toHaveValue("EVIDENCE");
-  await expect(admin.getByLabel("Título", { exact: true })).toHaveValue(
+  await expect(admin.getByLabel(tList("T-2504")[0])).toHaveValue("EVIDENCE");
+  await expect(admin.getByLabel(tList("T-2504")[1], { exact: true })).toHaveValue(
     "e2e-Misión con fechas cruzadas",
   );
-  await expect(admin.getByLabel("Abre")).toHaveValue(abre);
+  await expect(admin.getByLabel(tList("T-2504")[5])).toHaveValue(abre);
   // El formulario se remonta tras el error: el formato y las preguntas vuelven con el borrador.
-  await admin.getByLabel("Formato").selectOption({ label: "Trivia" });
+  await admin.getByLabel(tList("T-2504")[0]).selectOption({ label: tList("T-2409")[1] });
   await expect(pregunta).toHaveValue("e2e-¿Dónde está la estatua?");
   await admin.context().close();
 });
@@ -227,7 +251,7 @@ test("evidencia: el miembro entrega texto e imagen y el admin la aprueba", async
 
   await page.goto(`/app/gh-points/retos/${id}`);
   await page
-    .getByLabel("Contanos qué hiciste")
+    .getByLabel(t("T-2428"))
     .fill("e2e-Organicé el puesto de bienvenida con dos compañeros del comité.");
   const png = await sharp(randomBytes(640 * 360 * 3), {
     raw: { width: 640, height: 360, channels: 3 },
@@ -235,37 +259,29 @@ test("evidencia: el miembro entrega texto e imagen y el admin la aprueba", async
     .png({ compressionLevel: 0 })
     .toBuffer();
   await page
-    .getByLabel("Agregar imagen")
+    .getByLabel(t("T-2429"))
     .setInputFiles({ name: "e2e-evidencia.png", mimeType: "image/png", buffer: png });
   await expect(page.getByRole("img", { name: "e2e-evidencia.png" })).toBeVisible();
-  await page.getByRole("button", { name: "Enviar evidencia" }).click();
+  await page.getByRole("button", { name: tList("T-2420")[2] }).click();
   // router.refresh reemplaza el aviso del uploader por el estado persistido del servidor.
   // Esperar ese resultado evita depender de cuánto dura el mensaje de confirmación.
-  await expect(
-    page.getByText(
-      "Tu participación está en revisión. Reservamos tu premio con las reglas de hoy.",
-    ),
-  ).toBeVisible();
-  await expect(page.getByText("Premio reservado: 10 GH Points", { exact: true })).toBeVisible();
+  await expect(page.getByText(t("T-2433"))).toBeVisible();
+  await expect(page.getByText(t("T-2572", { n: 10 }), { exact: true })).toBeVisible();
   await page.reload();
-  await expect(
-    page.getByText(
-      "Tu participación está en revisión. Reservamos tu premio con las reglas de hoy.",
-    ),
-  ).toBeVisible();
-  await expect(page.getByText("Premio reservado: 10 GH Points", { exact: true })).toBeVisible();
+  await expect(page.getByText(t("T-2433"))).toBeVisible();
+  await expect(page.getByText(t("T-2572", { n: 10 }), { exact: true })).toBeVisible();
   await sinViolaciones(page);
   await drenarOutbox();
 
   const admin = await adminPage(browser);
   await admin.goto("/admin/gamificacion/revision");
   const entrega = admin.getByRole("listitem").filter({ hasText: "e2e-Misión de la semana" });
-  await entrega.getByRole("button", { name: "Aprobar", exact: true }).click();
-  await expect(admin.getByText("Guardado.")).toBeVisible();
+  await entrega.getByRole("button", { name: tList("T-2525")[0], exact: true }).click();
+  await expect(admin.getByText(t("T-259"))).toBeVisible();
   await admin.context().close();
 
   await page.goto(`/app/gh-points/retos/${id}`);
-  await expect(page.getByText("¡Reto completado! Sumaste 10 GH Points.")).toBeVisible();
+  await expect(page.getByText(t("T-2434", { n: 10 }))).toBeVisible();
   await sinViolaciones(page);
 });
 
@@ -299,11 +315,11 @@ test("presencial: el check-in de la actividad completa el reto solo", async ({ p
   });
 
   await page.goto("/a/e2ereto001");
-  await page.getByRole("button", { name: "Registrar mi asistencia" }).click();
-  await expect(page.getByText("¡Listo! Sumaste 20 GH Points.")).toBeVisible();
+  await page.getByRole("button", { name: t("T-091") }).click();
+  await expect(page.getByText(checkInOk(20))).toBeVisible();
 
   await page.goto(`/app/gh-points/retos/${id}`);
-  await expect(page.getByText("¡Reto completado! Sumaste 10 GH Points.")).toBeVisible();
+  await expect(page.getByText(t("T-2434", { n: 10 }))).toBeVisible();
   await sinViolaciones(page);
 });
 
@@ -325,46 +341,50 @@ test("booster: el admin lo otorga, el miembro lo apunta a una trivia y suma el e
   const admin = await adminPage(browser);
   await admin.goto("/admin/gamificacion/insignias");
   const bloque = admin.locator("section[aria-labelledby='otorgar-booster-titulo']");
-  await bloque.getByRole("textbox", { name: "Persona" }).fill(E2E_MEMBER_EMAIL);
-  await bloque.getByRole("button", { name: "Buscar", exact: true }).click();
+  await bloque.getByRole("textbox", { name: tList("T-2546")[0] }).fill(E2E_MEMBER_EMAIL);
+  await bloque.getByRole("button", { name: t("T-250"), exact: true }).click();
   await bloque.getByRole("link", { name: "Miembro E2E" }).click();
-  await bloque.getByRole("combobox", { name: "Booster" }).selectOption({ label: "Impulso" });
   await bloque
-    .getByRole("textbox", { name: "Motivo", exact: true })
+    .getByRole("combobox", { name: tList("T-2546")[1] })
+    .selectOption({ label: tList("T-2451")[0] });
+  await bloque
+    .getByRole("textbox", { name: tList("T-2546")[2], exact: true })
     .fill("e2e-Reconocimiento de prueba");
-  await bloque.getByRole("button", { name: "Otorgar booster", exact: true }).click();
-  await expect(admin.getByText("Booster otorgado.")).toBeVisible();
+  await bloque.getByRole("button", { name: t("T-2545"), exact: true }).click();
+  await expect(admin.getByText(tList("T-2548")[1])).toBeVisible();
   await admin.context().close();
 
   // El miembro lo apunta a la trivia desde su inventario.
   await page.goto("/app/gh-points/boosters");
-  await expect(page.getByRole("heading", { name: "Tus boosters" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Impulso" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: t("T-2452") })).toBeVisible();
+  await expect(page.getByRole("heading", { name: tList("T-2451")[0] })).toBeVisible();
   await sinViolaciones(page);
   await page.screenshot({ path: "test-results/boosters-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: "test-results/boosters-mobile.png", fullPage: true });
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.getByText("¿Dónde lo usás?").click();
+  await page.getByText(t("T-2457")).click();
   await page.getByRole("radio", { name: /e2e-Trivia con booster/ }).check();
-  await page.getByRole("button", { name: "Guardar", exact: true }).click();
+  await page.getByRole("button", { name: t("T-253"), exact: true }).click();
   await expect(
-    page.getByText("Listo: tu Impulso está reservado para e2e-Trivia con booster."),
+    page.getByText(
+      t("T-2459", { booster: tList("T-2451")[0], objetivo: "e2e-Trivia con booster" }),
+    ),
   ).toBeVisible();
 
   // Responde la trivia: base 5 + booster floor(5 × 0.5) = 2.
   const antes = await saldoMiembro();
   await page.goto(`/app/gh-points/retos/${id}`);
-  await expect(page.getByText("Vas a usar tu Impulso acá")).toBeVisible();
+  await expect(page.getByText(t("T-2415", { booster: tList("T-2451")[0] }))).toBeVisible();
   await page.getByRole("radio", { name: "8", exact: true }).press(" ");
-  await page.getByRole("button", { name: "Enviar respuestas" }).press("Enter");
-  await expect(page.getByText("¡Acertaste 1 de 1 y sumaste 7 GH Points!")).toBeVisible();
-  await expect(page.getByText("5 de base + 2 de booster")).toBeVisible();
+  await page.getByRole("button", { name: tList("T-2420")[1] }).press("Enter");
+  await expect(page.getByText(t("T-2422", { aciertos: 1, total: 1, n: 7 }))).toBeVisible();
+  await expect(page.getByText(t("T-2435", { base: 5, extra: 2 }))).toBeVisible();
   await sinViolaciones(page);
 
   // El movimiento Impulso queda en su historia.
   await page.goto("/app/gh-points");
-  await expect(page.getByRole("cell", { name: "Impulso" }).first()).toBeVisible();
+  await expect(page.getByRole("cell", { name: tList("T-085")[6] }).first()).toBeVisible();
   expect(await saldoMiembro()).toBe(antes + 7);
 });
 
@@ -395,23 +415,23 @@ test("campaña: el admin cubre una actividad y el check-in suma el extra", async
   // Campaña +50 % por la interfaz admin, con ventana ya vigente.
   const admin = await adminPage(browser);
   await admin.goto("/admin/gamificacion/campanas");
-  await admin.getByLabel("Nombre").fill("e2e-Campaña de bienvenida");
+  await admin.getByLabel(tList("T-2533")[0]).fill("e2e-Campaña de bienvenida");
   await admin.getByRole("checkbox", { name: /e2e-Actividad con campaña/ }).check();
-  await admin.getByLabel("Empieza").fill(utcToBogotaInput(new Date(now - 3_600_000)));
-  await admin.getByRole("button", { name: "Crear campaña", exact: true }).click();
-  await expect(admin.getByText("Guardado.")).toBeVisible();
+  await admin.getByLabel(tList("T-2533")[3]).fill(utcToBogotaInput(new Date(now - 3_600_000)));
+  await admin.getByRole("button", { name: tList("T-2537")[0], exact: true }).click();
+  await expect(admin.getByText(t("T-259"))).toBeVisible();
   await expect(admin.getByRole("cell", { name: "e2e-Campaña de bienvenida" })).toBeVisible();
   await admin.context().close();
 
   // Check-in del miembro: 10 de asistencia + floor(10 × 0.5) = 5 de campaña.
   const antes = await saldoMiembro();
   await page.goto("/a/e2eboost01");
-  await page.getByRole("button", { name: "Registrar mi asistencia" }).click();
-  await expect(page.getByText("¡Listo! Sumaste 10 GH Points.")).toBeVisible();
+  await page.getByRole("button", { name: t("T-091") }).click();
+  await expect(page.getByText(checkInOk(10))).toBeVisible();
   expect(await saldoMiembro()).toBe(antes + 15);
 
   await page.goto("/app/gh-points");
-  await expect(page.getByRole("cell", { name: "Impulso" }).first()).toBeVisible();
+  await expect(page.getByRole("cell", { name: tList("T-085")[6] }).first()).toBeVisible();
   await sinViolaciones(page);
 });
 
@@ -433,8 +453,8 @@ test("trivia en móvil: radios por teclado y sin scroll horizontal", async ({ pa
   await page.goto(`/app/gh-points/retos/${id}`);
   await page.getByRole("radio", { name: "10", exact: true }).press(" ");
   await page.getByRole("radio", { name: "2", exact: true }).press(" ");
-  await page.getByRole("button", { name: "Enviar respuestas" }).press("Enter");
-  await expect(page.getByText("¡Acertaste 2 de 2 y sumaste 5 GH Points!")).toBeVisible();
+  await page.getByRole("button", { name: tList("T-2420")[1] }).press("Enter");
+  await expect(page.getByText(t("T-2422", { aciertos: 2, total: 2, n: 5 }))).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );
@@ -461,17 +481,19 @@ test("colección: la insignia abre el diálogo una vez, se destaca y sale en el 
   });
   await page.goto(`/app/gh-points/retos/${id}`);
   await page.getByRole("radio", { name: "12", exact: true }).press(" ");
-  await page.getByRole("button", { name: "Enviar respuestas" }).press("Enter");
-  await expect(page.getByText("¡Acertaste 1 de 1")).toBeVisible();
+  await page.getByRole("button", { name: tList("T-2420")[1] }).press("Enter");
+  await expect(page.getByText(copyPattern("T-2422", { aciertos: 1, total: 1 }))).toBeVisible();
   await drenarOutbox(); // challenge.completed → recompute → Relámpago 1 + booster
   await drenarOutbox(); // badge.unlocked
 
   // El diálogo aparece una sola vez con el nombre, el nivel y el booster ganado.
   await page.goto("/app/gh-points/coleccion");
   const dialogo = page.getByRole("dialog");
-  await expect(dialogo.getByText("¡Nueva insignia!")).toBeVisible();
-  await expect(dialogo.getByText("Desbloqueaste Relámpago nivel 1. ¡OE OE OE!")).toBeVisible();
-  await expect(dialogo.getByText(/Además ganaste un Impulso/)).toBeVisible();
+  await expect(dialogo.getByText(t("T-2495"))).toBeVisible();
+  await expect(dialogo.getByText(t("T-2496", { insignia: "Relámpago", nivel: 1 }))).toBeVisible();
+  await expect(
+    dialogo.getByText(copyPattern("T-2497", { booster: tList("T-2451")[0] })),
+  ).toBeVisible();
   await page.screenshot({ path: "test-results/coleccion-dialogo-desktop.png", fullPage: true });
   // dispatchEvent: el router.push de cierre re-renderiza la página y desmonta el diálogo
   // a mitad del click, y Playwright reintentaría sobre un nodo muerto. La espera del POST
@@ -480,7 +502,7 @@ test("colección: la insignia abre el diálogo una vez, se destaca y sale en el 
     page.waitForResponse(
       (res) => res.url().includes("/app/gh-points/coleccion") && res.request().method() === "POST",
     ),
-    dialogo.getByRole("button", { name: "Ver mi colección" }).dispatchEvent("click"),
+    dialogo.getByRole("button", { name: t("T-2498") }).dispatchEvent("click"),
   ]);
   await page.reload();
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -491,16 +513,18 @@ test("colección: la insignia abre el diálogo una vez, se destaca y sale en el 
   // otras familias también pueden estar desbloqueadas por pruebas anteriores).
   const familia = page
     .locator("section")
-    .filter({ has: page.getByRole("heading", { name: "Relámpago", exact: true }) });
-  await familia.getByRole("button", { name: "Destacar en el directorio" }).click();
-  await expect(familia.getByText("Insignias destacadas")).toBeVisible();
+    .filter({ has: page.getByRole("heading", { name: tList("T-2473")[2], exact: true }) });
+  await familia.getByRole("button", { name: t("T-2491") }).click();
+  await expect(familia.getByText(t("T-2502"))).toBeVisible();
   // El directorio pagina alfabéticamente: la búsqueda lo lleva a su tarjeta.
   await page.goto("/app/personas?q=E2E");
   const tarjeta = page
     .getByRole("article")
     .filter({ has: page.getByRole("heading", { name: "Miembro E2E" }) });
   await expect(
-    tarjeta.getByRole("list", { name: "Insignias destacadas" }).getByText("Relámpago · Nivel 1"),
+    tarjeta
+      .getByRole("list", { name: t("T-2502") })
+      .getByText(`Relámpago · ${t("T-2482", { nivel: 1 })}`),
   ).toBeVisible();
 });
 
@@ -545,14 +569,14 @@ test("colección en móvil y movimiento reducido: alternativa estática sin anim
   await page.goto("/app/gh-points/coleccion");
   const dialogo = page.getByRole("dialog");
   await expect(
-    dialogo.getByText("Nueva insignia desbloqueada: Palabra a palabra nivel 1."),
+    dialogo.getByText(t("T-2499", { insignia: "Palabra a palabra", nivel: 1 })),
   ).toBeVisible();
   await page.screenshot({ path: "test-results/coleccion-dialogo-mobile.png", fullPage: true });
   await Promise.all([
     page.waitForResponse(
       (res) => res.url().includes("/app/gh-points/coleccion") && res.request().method() === "POST",
     ),
-    dialogo.getByRole("button", { name: "Ver mi colección" }).dispatchEvent("click"),
+    dialogo.getByRole("button", { name: t("T-2498") }).dispatchEvent("click"),
   ]);
   await page.reload();
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -583,24 +607,24 @@ test("conciliación: el admin simula y aplica, y la insignia histórica aparece 
 
   const admin = await adminPage(browser);
   await admin.goto("/admin/gamificacion");
-  await expect(admin.getByRole("heading", { name: "Conciliación histórica" })).toBeVisible();
-  await admin.getByRole("button", { name: "Simular" }).click();
-  await expect(admin.getByText(/En curso · \d+ personas/)).toBeVisible();
+  await expect(admin.getByRole("heading", { name: t("T-2556") })).toBeVisible();
+  await admin.getByRole("button", { name: tList("T-2558")[0] }).click();
+  await expect(admin.getByText(corrida(0))).toBeVisible();
   await drenarOutbox();
   await admin.reload();
-  await expect(admin.getByText(/Terminada · \d+ personas · [1-9]\d* desbloqueadas/)).toBeVisible();
+  await expect(admin.getByText(corrida(1, "[1-9]\\d*"))).toBeVisible();
   // El simulacro no escribe logros.
   await page.goto("/app/gh-points/coleccion");
-  await expect(page.getByText(/Reconocida por tu historia/)).toHaveCount(0);
+  await expect(page.getByText(copyPattern("T-2487"))).toHaveCount(0);
 
-  await admin.getByRole("link", { name: "Aplicar" }).click();
+  await admin.getByRole("link", { name: tList("T-2558")[1] }).click();
   const panel = admin.getByRole("dialog");
-  await expect(panel.getByText(/escribe logros históricos/)).toBeVisible();
-  await panel.getByRole("button", { name: "Aplicar" }).click();
-  await expect(admin.getByText(/En curso · \d+ personas/)).toBeVisible();
+  await expect(panel.getByText(copyPattern("T-2591"))).toBeVisible();
+  await panel.getByRole("button", { name: tList("T-2558")[1] }).click();
+  await expect(admin.getByText(corrida(0))).toBeVisible();
   await drenarOutbox();
   await admin.reload();
-  await expect(admin.getByText(/Terminada · \d+ personas · [1-9]\d* desbloqueadas/)).toBeVisible();
+  await expect(admin.getByText(corrida(1, "[1-9]\\d*"))).toBeVisible();
   await admin.screenshot({
     path: "test-results/admin-gamificacion-conciliacion.png",
     fullPage: true,
@@ -613,7 +637,7 @@ test("conciliación: el admin simula y aplica, y la insignia histórica aparece 
   expect(logros.some((logro) => logro.historical)).toBe(true);
 
   await page.reload();
-  await expect(page.getByText("Palabra a palabra").first()).toBeVisible();
-  await expect(page.getByText(/Reconocida por tu historia/)).toBeVisible();
+  await expect(page.getByText(tList("T-2473")[3]).first()).toBeVisible();
+  await expect(page.getByText(copyPattern("T-2487"))).toBeVisible();
   await sinViolaciones(page);
 });

@@ -2,6 +2,8 @@ import { mkdir } from "node:fs/promises";
 import { expect } from "@playwright/test";
 import { getDb } from "@/db/client";
 import { committee } from "@/modules/people/schema";
+import { t } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 
@@ -17,23 +19,26 @@ test("busca sin tildes, conserva los comités propios y permite recuperar la lis
     presentation: null,
   });
   await page.goto("/app/comites");
-  const own = page.getByRole("region", { name: "Tus comités", exact: true });
-  const others = page.getByRole("region", { name: "Los demás comités", exact: true });
+  const own = page.getByRole("region", { name: t("T-375"), exact: true });
+  const others = page.getByRole("region", { name: t("T-382"), exact: true });
   const ownLinks = await own.getByRole("link").allTextContents();
   expect(ownLinks.length).toBeGreaterThan(0);
-  const search = page.getByRole("searchbox", { name: "Buscá entre los demás comités" });
+  const search = page.getByRole("searchbox", { name: t("T-2597") });
   await search.fill("AGORA");
   await expect(others.getByRole("link")).toHaveCount(1);
-  const match = others.getByRole("link", { name: "Ver comité Ágora de prueba", exact: true });
+  const match = others.getByRole("link", {
+    name: t("T-2596", { comité: "Ágora de prueba" }),
+    exact: true,
+  });
   await expect(match).toBeVisible();
-  await expect(match).toContainText("Este comité todavía no publicó su presentación.");
+  await expect(match).toContainText(t("T-310"));
   expect(await own.getByRole("link").allTextContents()).toEqual(ownLinks);
   await search.fill("e2e-agora");
   await expect(match).toBeVisible();
   await search.fill("no-existe-este-comite");
   await expect(others.getByRole("link")).toHaveCount(0);
-  await expect(others.getByText(/No encontramos comités/)).toBeVisible();
-  await page.getByRole("button", { name: "Limpiar búsqueda", exact: true }).click();
+  await expect(others.getByText(copyPattern("T-1550"))).toBeVisible();
+  await page.getByRole("button", { name: t("T-1474"), exact: true }).click();
   await expect(search).toBeFocused();
   await expect(search).toHaveValue("");
   await expect(match).toBeVisible();
@@ -60,7 +65,7 @@ test("directorio legible en escritorio, móvil y ambos temas", async ({ page }) 
       document.documentElement.dataset.theme = value;
       window.scrollTo(0, 0);
     }, theme);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Comités");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-309"));
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       width,
     );
@@ -99,12 +104,12 @@ test("nombres extensos y presentaciones largas conservan la acción y el conteni
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/app/comites");
   await page.getByRole("searchbox").fill("e2e-contenido-extenso");
-  const card = page.getByRole("link", { name: `Ver comité ${name}`, exact: true });
+  const card = page.getByRole("link", { name: t("T-2596", { comité: name }), exact: true });
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 });
     await expect(card).toBeVisible();
     await expect(card.getByRole("heading")).toHaveText(name);
-    await expect(card.getByText("Ver comité", { exact: true })).toBeVisible();
+    await expect(card.getByText(t("T-2595"), { exact: true })).toBeVisible();
     const bounds = await card.boundingBox();
     expect(bounds).not.toBeNull();
     expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(width);

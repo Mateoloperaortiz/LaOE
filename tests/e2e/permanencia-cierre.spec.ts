@@ -5,6 +5,8 @@ import { committeeMembership, membership, person } from "@/modules/people/schema
 import { applyDecisions, recomputeSnapshots } from "@/modules/permanence";
 import { permanenceDecision, permanenceSnapshot } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { E2E_CLOSING_EMAIL, E2E_PERMANENCE_TERM } from "./global-setup";
@@ -59,32 +61,34 @@ test("GH cambia una propuesta con motivo, aplica el cierre con step-up y la deci
   page,
 }) => {
   await page.goto(`/admin/permanencia/cierre?termId=${termId}`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Cierre de permanencia");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-798"));
   const fila = page.getByRole("listitem").filter({ hasText: "Cierre E2E" }).first();
-  await expect(fila.getByText(/Propuesta: Sale de la OE\. Motivo automático:/)).toBeVisible();
+  await expect(fila.getByText(copyPattern("T-164", { estado: tList("T-802")[3] }))).toBeVisible();
   await sinViolaciones(page);
 
   // Cambiar sin motivo se rechaza; con motivo queda confirmada y marcada por quién.
-  await fila.getByRole("link", { name: "Cambiar" }).click();
+  await fila.getByRole("link", { name: tList("T-803")[1] }).click();
   const panel = page.getByRole("dialog");
-  await panel.getByLabel(/^Decisión · (?!Cierre E2E)/).selectOption("PROBATION");
-  await panel.getByRole("button", { name: "Confirmar propuesta" }).click();
-  await expect(page.getByText("Cambiar la propuesta exige un motivo.").first()).toBeVisible();
+  await panel
+    .getByLabel(new RegExp(`^${tList("T-804")[0]} · (?!Cierre E2E)`))
+    .selectOption("PROBATION");
+  await panel.getByRole("button", { name: tList("T-803")[0] }).click();
+  await expect(page.getByText(t("T-805")).first()).toBeVisible();
   await page.waitForURL((url) => url.searchParams.has("error"));
   // La validación redirige y reinicia los controles no gestionados por React. Abrimos el documento
   // ya redirigido antes de editar: un mensaje visible aún puede preceder al reset del formulario.
   await page.reload();
   const correccion = page.getByRole("dialog");
-  const decision = correccion.getByLabel(/^Decisión · (?!Cierre E2E)/);
-  const motivo = correccion.getByLabel("Motivo");
+  const decision = correccion.getByLabel(new RegExp(`^${tList("T-804")[0]} · (?!Cierre E2E)`));
+  const motivo = correccion.getByLabel(tList("T-804")[1]);
   await decision.selectOption("PROBATION");
   await motivo.fill("e2e: se queda en prueba");
   await expect(decision).toHaveValue("PROBATION");
   await expect(motivo).toHaveValue("e2e: se queda en prueba");
-  await correccion.getByRole("button", { name: "Confirmar propuesta" }).click();
-  await expect(page.getByText("Guardado.")).toBeVisible();
-  await expect(page.getByText(/Confirmada por .* el /)).toBeVisible();
-  await expect(page.getByRole("link", { name: "Confirmar todas las propuestas" })).toHaveCount(0);
+  await correccion.getByRole("button", { name: tList("T-803")[0] }).click();
+  await expect(page.getByText(t("T-259"))).toBeVisible();
+  await expect(page.getByText(copyPattern("T-817"))).toBeVisible();
+  await expect(page.getByRole("link", { name: tList("T-803")[2] })).toHaveCount(0);
   const decisions = await getDb()
     .select({ decision: permanenceDecision.decision, reason: permanenceDecision.reason })
     .from(permanenceDecision)
@@ -98,24 +102,31 @@ test("GH cambia una propuesta con motivo, aplica el cierre con step-up y la deci
   await closeDb();
 
   // Aplicar: el panel resume las salidas y el cierre queda estampado; el job aplica las decisiones.
-  await page.getByRole("link", { name: "Aplicar cierre" }).click();
+  await page.getByRole("link", { name: tList("T-803")[3] }).click();
   await expect(
-    page.getByRole("dialog").getByText(/Vas a aplicar el cierre de 2019-1/),
+    page.getByRole("dialog").getByText(copyPattern("T-809", { término: "2019-1" })),
   ).toBeVisible();
-  await page.getByRole("dialog").getByRole("button", { name: "Aplicar cierre" }).click();
-  await expect(page.getByText("Cierre aplicado.")).toBeVisible();
-  await expect(page.getByText("0 de 2 decisiones aplicadas")).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: tList("T-803")[3] })
+    .click();
+  await expect(page.getByText(t("T-811"))).toBeVisible();
+  await expect(page.getByText(t("T-810", { n: 0, m: 2 }))).toBeVisible();
   expect(await applyDecisions(termId, nextTermId)).toBe(2);
   await closeDb();
   await page.reload();
-  await expect(page.getByText("2 de 2 decisiones aplicadas")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Aplicar cierre" })).toHaveCount(0);
+  await expect(page.getByText(t("T-810", { n: 2, m: 2 }))).toBeVisible();
+  await expect(page.getByRole("link", { name: tList("T-803")[3] })).toHaveCount(0);
   await sinViolaciones(page);
 
   // La Persona 360 muestra la decisión confirmada y la baja por permanencia.
   await page.goto(`/admin/personas/${personId}?pestana=permanencia&semestre=${termId}`);
-  await expect(page.getByRole("heading", { name: "Decisiones del cierre" })).toBeVisible();
-  await expect(page.getByText(/Sale de la OE: e2e: se queda en prueba/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: tList("T-829")[2] })).toBeVisible();
+  await expect(
+    page.getByText(
+      copyPattern("T-831", { decisión: tList("T-802")[3], motivo: "e2e: se queda en prueba" }),
+    ),
+  ).toBeVisible();
   await page.goto(`/admin/personas/${personId}`);
-  await expect(page.getByText("Retirado").first()).toBeVisible();
+  await expect(page.getByText(tList("T-381")[3]).first()).toBeVisible();
 });

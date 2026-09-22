@@ -5,7 +5,7 @@ import { page as contentPage } from "@/modules/content/schema";
 import { session } from "@/modules/identity/schema";
 import { person } from "@/modules/people/schema";
 import { appConfig } from "@/modules/system/schema";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { test } from "./fixtures";
 import { E2E_EMAIL } from "./global-setup";
 import { drenarOutbox } from "./outbox";
@@ -104,7 +104,7 @@ test("publica primero, habilita desde el control y vuelve a bloquear de inmediat
   await page.goto("/admin");
   await page
     .getByRole("navigation", { name: t("T-236") })
-    .getByRole("button", { name: "Sistema" })
+    .getByRole("button", { name: tList("T-1400")[6] })
     .click();
   await page
     .getByRole("navigation", { name: t("T-236") })

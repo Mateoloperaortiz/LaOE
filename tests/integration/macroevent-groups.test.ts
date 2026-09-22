@@ -11,6 +11,7 @@ import {
 } from "@/modules/permanence/domain/macroevents";
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
+import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
 import { seedMember, seedTerm } from "./factories";
 
@@ -72,7 +73,7 @@ describe("equipo del macroevento por semestre", () => {
       runCommand(SYSTEM_ACTOR, (ctx) =>
         createGroup(ctx, { name: "Duplicado", kind: "GT_MACROEVENT", termId, eventId }),
       ),
-    ).rejects.toThrow("Ya existe un GT");
+    ).rejects.toThrow(t("T-2352"));
   });
 
   it("guarda responsables juntos y revierte si la edición pertenece a otro evento", async () => {
@@ -103,7 +104,7 @@ describe("equipo del macroevento por semestre", () => {
         evaluatorIds: [],
         editionId: edition.id,
       }),
-    ).rejects.toThrow("deben corresponder");
+    ).rejects.toThrow(t("T-2353"));
     const detail = await getGroupDetail(group.id);
     expect(detail?.group.leaderPersonId).toBe(leader);
     expect(detail?.evaluators.map((row) => row.personId)).toEqual([evaluator]);

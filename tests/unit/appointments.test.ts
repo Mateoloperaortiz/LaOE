@@ -7,7 +7,7 @@ import {
   MACROEVENT_ROLE_CODES,
   macroeventDirectorInputSchema,
 } from "@/modules/people/domain/appointments";
-import { tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 
 // Cargos de junta y de GH (ADR-034 regla 13, ADR-057) y de macroevento (ADR-060 regla 9): las
 // etiquetas de T-444 se resuelven por índice.
@@ -16,13 +16,9 @@ describe("cargos de junta y de GH", () => {
   it("tiene una etiqueta de T-444 por cada tipo, en el mismo orden", () => {
     const labels = tList("T-444");
     expect(labels).toHaveLength(APPOINTMENT_KINDS.length);
-    expect(labels[APPOINTMENT_KINDS.indexOf("VP_COMMUNICATIONS")]).toBe(
-      "Vicepresidencia de Comunicaciones y Mercadeo",
-    );
-    expect(labels[APPOINTMENT_KINDS.indexOf("MACROEVENT_DIRECTOR")]).toBe(
-      "Dirección de macroevento",
-    );
-    expect(labels[APPOINTMENT_KINDS.indexOf("OTHER")]).toBe("Otro");
+    expect(labels[APPOINTMENT_KINDS.indexOf("VP_COMMUNICATIONS")]).toBe(tList("T-444")[5]);
+    expect(labels[APPOINTMENT_KINDS.indexOf("MACROEVENT_DIRECTOR")]).toBe(tList("T-444")[8]);
+    expect(labels[APPOINTMENT_KINDS.indexOf("OTHER")]).toBe(tList("T-444")[9]);
   });
 
   it("acepta la vicepresidencia nueva sin título y sigue exigiéndolo para Otro", () => {
@@ -63,11 +59,13 @@ describe("mesa directiva de macroevento", () => {
       roleLabel: "Dirección de Logística",
       editionLabel: "Inventiva · 2026",
     };
-    expect(appointmentLabel(titular)).toBe("Dirección de Logística · Inventiva · 2026");
+    expect(appointmentLabel(titular)).toBe(
+      t("T-2268", { cargo: "Dirección de Logística", edición: "Inventiva · 2026" }),
+    );
     expect(appointmentLabel({ ...titular, coDirector: true })).toBe(
-      "Dirección de Logística (codirección) · Inventiva · 2026",
+      t("T-2269", { cargo: "Dirección de Logística", edición: "Inventiva · 2026" }),
     );
     expect(appointmentLabel({ kind: "OTHER", title: "Tesorería" })).toBe("Tesorería");
-    expect(appointmentLabel({ kind: "GH_HEAD", title: null })).toBe("GH principal");
+    expect(appointmentLabel({ kind: "GH_HEAD", title: null })).toBe(tList("T-444")[6]);
   });
 });

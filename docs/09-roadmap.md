@@ -632,6 +632,25 @@ Decidido el 2026-09-19 con las respuestas de Mateo a las diez preguntas de produ
 | --- | --- | --- |
 | 2026-09-19 | Decisión | [ADR-085](adr/ADR-085-plataforma-oe-digital-un-backend-y-frontends-delgados.md). Se descartó repartir el dominio en paquetes que cada aplicación importe: cada comando escribe mutación, auditoría y eventos en una sola transacción, Postgres vive en la red privada de Railway, habría un migrador para cinco desplegables y un expediente de subsidio debe tener un solo camino a sus datos. Queda reemplazada la recomendación de la sección 6 de la auditoría («micrositios por host, sin monorepo todavía»), que suponía sitios de contenido. Piloto: DÍAS; después Inventiva y Enfemenino; Subsidios-OE al final. |
 
+## Copy paisa y parchado · ADR-086
+
+Mateo pidió el 2026-09-22 que todo el copy suene más paisa y parchado: toque sutil, administración incluida, sin tocar lo que ya aprobó su dueño ni los mensajes sensibles, y la E2E primero. Detalle en [ADR-086](adr/ADR-086-copy-paisa-y-parchado.md). Rama `feat/copy-paisa`, un PR por tramo.
+
+- [x] CP-0 · Documentar: ADR-086, voz en 07-marca §1, 14-copy §1 y PRODUCT.md.
+- [x] CP-1 · Las pruebas piden el copy al catálogo con `t("T-…")` en lugar de literales (E2E, unitarias e integración).
+- [x] CP-2 · Reescribir portal público, acceso y navegación del portal.
+- [x] CP-3 · Reescribir Mi OE.
+- [x] CP-4 · Reescribir juegos, retos, colección, podio y directorio de comités.
+- [x] CP-5 · Reescribir notificaciones, correos y documentos generados (billetera incluida).
+- [x] CP-6 · Reescribir la administración.
+- [x] CP-7 · Reescribir sistema y pasar al catálogo los textos visibles que viven en el código.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-22 | CP-0 · Decisión | [ADR-086](adr/ADR-086-copy-paisa-y-parchado.md): voseo paisa con toque sutil, vocabulario permitido y vetado, admin más sobrio, sensibles serios, aprobados intactos, invariantes de variables y piezas, y pruebas sin copy literal. |
+| 2026-09-22 | CP-1 · Pruebas sin copy literal | Unos 1.100 literales de interfaz de 71 archivos E2E y 40 de unitarias e integración pasan a `t`/`tList` del catálogo, más el helper `tests/helpers/copy.ts` (`tPlain`, `copyPattern`, `copyExact`, `itemPattern`). Cada reemplazo se comprobó contra su literal con el copy sin cambiar. Quedan literales los datos de prueba, lo que viene de la base y lo que no está en el catálogo. `npm run check` en verde (714 unitarias, 525 de integración, build) y E2E completa 206/206 tras corregir dos patrones demasiado amplios (`admin-inicio`, `permanencia-avisos`). Riesgo anotado para CP-2+: `src/app/(public)/layout.tsx` y `src/app/app/layout.tsx` comparan T-038 y T-061 con nombres escritos a mano, así que esos dos no se reescriben sin tocar el código. |
+| 2026-09-22 | CP-2 a CP-7 · Reescritura | 86 textos de `docs/14` con toque paisa sutil: 17 de portal, acceso y notificaciones; 33 de Mi OE; 20 de juegos y retos; 18 del admin. Los sensibles, confirmados, aprobados y transcripciones de normativa quedan intactos. El 404 pasa a su propio código T-2721 porque T-032 es también el error genérico del dominio. Invariantes en cero (variables, piezas « · », negritas, límites). Los errores escritos en el código (billetera, API) no llegan a la pantalla y no se movieron. Por el nivel sutil, los seis tramos van en un solo commit. |
+
 ## Registro de avances
 
 | Fecha | Fase | Qué cambió |

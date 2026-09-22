@@ -15,7 +15,8 @@ import { interaction, request, task } from "@/modules/crm/schema";
 import { checkIn, occasion } from "@/modules/participation/schema";
 import { getSnapshot, recomputeSnapshots } from "@/modules/permanence";
 import { closeTermPoints } from "@/modules/terms";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
@@ -160,7 +161,7 @@ describe("excusas válidas", () => {
     expect(first.id).not.toBe(second.id);
     const mine = await listRequestsByPerson(f.personId);
     expect(mine.map((row) => row.kind)).toEqual(["EXCUSE", "EXCUSE"]);
-    expect(mine.find((row) => row.id === first.id)?.detail).toContain("Incapacidad médica");
+    expect(mine.find((row) => row.id === first.id)?.detail).toContain(tList("T-2215")[2]);
     const tasks = await db().select().from(task).where(eq(task.personId, f.personId));
     expect(tasks).toHaveLength(2);
     // Con asistencia registrada no hace falta excusa.
@@ -200,7 +201,7 @@ describe("excusas válidas", () => {
       .from(interaction)
       .where(and(eq(interaction.personId, f.personId), eq(interaction.kind, "PARTICIPATION")));
     expect(timeline.map((item) => item.summary)).toContain(
-      "Excusa aceptada para Elección de junta",
+      fillCopy(tList("T-667")[7], { ocasion: "Elección de junta" }),
     );
     // Repetir la excusa sobre esa ocasión ya no tiene sentido.
     await expect(

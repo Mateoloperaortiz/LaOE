@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { t } from "@/shared/copy";
 import { test } from "./fixtures";
 
 // SEO e imágenes para compartir (F1-T5): metadata, OG, robots y sitemap. En local y CI
@@ -30,7 +31,7 @@ test("cada página lleva canonical, og:image que responde PNG y noindex mientras
     );
     await expect(page.locator('meta[property="og:site_name"]'), ruta).toHaveAttribute(
       "content",
-      "Organización Estudiantil EAFIT",
+      t("T-001"),
     );
     await expect(page.locator('meta[name="robots"]').first(), ruta).toHaveAttribute(
       "content",

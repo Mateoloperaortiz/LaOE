@@ -17,6 +17,7 @@ import { createCall } from "@/modules/crm/domain/calls";
 import { checkInSelfAs } from "@/modules/participation";
 import { recordConsentAs } from "@/modules/people";
 import { membership } from "@/modules/people/schema";
+import { t, tList } from "@/shared/copy";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
@@ -154,7 +155,7 @@ describe("push por evento", () => {
     expect(result.failed).toBe(0);
     const rows = (await messagesOf(ana)).filter((row) => row.kind === "POINTS");
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.subject).toBe("¡Sumaste 10 GH Points!");
+    expect(rows[0]?.subject).toBe(t("T-181", { n: 10 }).split(" · ")[0]);
     expect(rows[0]?.dedupeKey).toBe(`points:${conPuntos.id}:${ana}`);
   });
 
@@ -188,7 +189,7 @@ describe("push por evento", () => {
       .from(message)
       .where(eq(message.dedupeKey, `call:${callId}`));
     expect(call).toHaveLength(2);
-    expect(call[0]?.subject).toBe("Se abrió GT de pruebas");
+    expect(call[0]?.subject).toBe(t("T-190", { convocatoria: "GT de pruebas" }).split(" · ")[0]);
 
     await recordConsentAs(SYSTEM_ACTOR, miembro, "DIRECTORY_PHOTO", "SELF");
     const result = await grantRecognitionAs(SYSTEM_ACTOR, {
@@ -207,6 +208,6 @@ describe("push por evento", () => {
       .where(eq(message.dedupeKey, `recognition:${result.id}`));
     expect(recog).toHaveLength(1);
     expect(recog[0]?.personId).toBe(miembro);
-    expect(recog[0]?.subject).toBe("¡Destacado del mes!");
+    expect(recog[0]?.subject).toBe(tList("T-192")[0]);
   });
 });

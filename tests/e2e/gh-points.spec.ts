@@ -4,6 +4,8 @@ import { closeDb, getDb } from "@/db/client";
 import { pointEntry } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -42,20 +44,18 @@ test.beforeEach(async () => {
 
 test("el miembro ve su saldo, su nivel, sus movimientos y los rankings", async ({ page }) => {
   await page.goto("/app");
-  await expect(page.getByText(/[0-9]+ GH Points este semestre/)).toBeVisible();
-  await page.getByRole("link", { name: "Ver GH Points" }).click();
+  await expect(page.getByText(copyPattern("T-065"))).toBeVisible();
+  await page.getByRole("link", { name: t("T-555") }).click();
   await page.waitForURL(/\/app\/gh-points$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("GH Points");
-  await expect(
-    page.getByRole("heading", { name: /Tenés [0-9]+ puntos este semestre/ }),
-  ).toBeVisible();
-  await expect(page.getByText(/Nivel: /)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-080"));
+  await expect(page.getByRole("heading", { name: copyPattern("T-081") })).toBeVisible();
+  await expect(page.getByText(copyPattern("T-535"))).toBeVisible();
   await expect(page.getByText("e2e-Ajuste de prueba")).toBeVisible();
-  await expect(page.getByText("Tu puesto")).toBeVisible();
+  await expect(page.getByText(t("T-559"))).toBeVisible();
   await sinViolaciones(page);
-  const tableros = page.getByRole("navigation", { name: "Rankings del semestre" });
-  await tableros.getByRole("link", { name: "Comités", exact: true }).click();
+  const tableros = page.getByRole("navigation", { name: t("T-539") });
+  await tableros.getByRole("link", { name: tList("T-083")[2], exact: true }).click();
   await expect(page).toHaveURL(/tablero=comites/);
-  await tableros.getByRole("link", { name: "Veteranos", exact: true }).click();
-  await expect(page.getByText(/Veteranos: todos los demás/)).toBeVisible();
+  await tableros.getByRole("link", { name: tList("T-083")[1], exact: true }).click();
+  await expect(page.getByText(copyPattern("T-551"))).toBeVisible();
 });

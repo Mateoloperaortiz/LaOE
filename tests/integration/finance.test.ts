@@ -20,6 +20,7 @@ import {
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { copyPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
 import { seedCommittee, seedMember } from "./factories";
 
@@ -124,7 +125,7 @@ describe("presupuesto del comité", () => {
         amount: 901,
         description: "Demasiado",
       }),
-    ).rejects.toThrow(/No hay disponible en Logística/);
+    ).rejects.toThrow(copyPattern("T-2196", { rubro: "Logística" }));
     await expect(
       recordTransferAs(actor, {
         budgetId: id,
@@ -307,7 +308,7 @@ describe("presupuesto del comité", () => {
         reason: "Tarde",
         approvalId: pasado,
       }),
-    ).rejects.toThrow(/antes del evento/);
+    ).rejects.toThrow(copyPattern("T-2295"));
     await recordTransferAs(actor, {
       budgetId: id,
       fromLineId: logistica,

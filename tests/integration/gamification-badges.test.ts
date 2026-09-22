@@ -3,6 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { itemPattern } from "../helpers/copy";
 import "@/jobs/handlers";
 import { eventOf } from "@/domain-events/define";
 import { occasionClosed, wordleCompleted } from "@/domain-events/participation";
@@ -19,6 +20,7 @@ import {
   recomputeBadgesFor,
   setFeatured,
 } from "@/modules/participation/domain/badges";
+
 import { checkInSelfAs, decideCheckInAs } from "@/modules/participation/domain/commands";
 import {
   createSpecialBadgeAs,
@@ -39,6 +41,8 @@ import {
 import { membership } from "@/modules/people/schema";
 import { setConfig, setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
+import { t, tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
 import { truncateAll } from "./db";
 import {
   seedChallenge,
@@ -55,6 +59,8 @@ import {
 // ediciones especiales y el flujo completo por el outbox (push + línea de tiempo).
 
 const db = () => getDb();
+
+/** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 
 async function enableGamification(personId: string): Promise<void> {
   await setConfigAs({ personId }, "gamification.enabled", true);
@@ -413,7 +419,7 @@ describe("insignias: destacadas, vistas y colección", () => {
       runCommand({ personId }, (ctx) =>
         setFeatured(ctx, { personId, achievementId: logros[3]?.id ?? "", featured: true }),
       ),
-    ).rejects.toMatchObject({ message: expect.stringContaining("Ya destacaste tres") });
+    ).rejects.toMatchObject({ message: expect.stringContaining(t("T-2493")) });
 
     // Quitar una libera su posición y la cuarta la puede ocupar.
     await runCommand({ personId }, (ctx) =>
@@ -567,10 +573,10 @@ describe("flujo en vivo por el outbox", () => {
     const messages = await messagesOf(personId);
     // Puntos del check-in + insignia desbloqueada.
     const badgePush = messages.find((item) => item.dedupeKey?.startsWith("badge:"));
-    expect(badgePush?.subject).toContain("insignia");
+    expect(badgePush?.subject).toContain(tList("T-2569")[0]);
     const interacciones = await interactionsOf(personId);
     const badgeInteraction = interacciones.find((item) =>
-      item.summary.includes("Desbloqueó la insignia"),
+      item.summary.includes(fillCopy(tList("T-667")[9], { insignia: "En parche", nivel: 1 })),
     );
     expect(badgeInteraction?.kind).toBe("PARTICIPATION");
     expect(badgeInteraction?.summary).toContain("En parche");
@@ -651,7 +657,7 @@ describe("flujo en vivo por el outbox", () => {
       (item) => item.dedupeKey === `challenge:${challengeId}`,
     );
     expect(pushNuevo).toBeTruthy();
-    expect(pushNuevo?.subject).toContain("Nuevo reto");
+    expect(pushNuevo?.subject).toMatch(itemPattern(tList("T-2566")[0]));
     expect(
       (await messagesOf(veterano)).filter((item) => item.dedupeKey === `challenge:${challengeId}`),
     ).toHaveLength(0);
@@ -680,7 +686,9 @@ describe("flujo en vivo por el outbox", () => {
     );
     expect(pushCompleto).toBeTruthy();
     const interacciones = await interactionsOf(nuevo);
-    expect(interacciones.some((item) => item.summary.includes("Completó el reto"))).toBe(true);
+    expect(interacciones.some((item) => itemPattern(tList("T-667")[8]).test(item.summary))).toBe(
+      true,
+    );
     const relampago = (await liveAchievementsOf(nuevo)).map((item) => item.badgeId);
     const relampagoBadge = await badgeOf("RELAMPAGO_1");
     expect(relampago).toContain(relampagoBadge.id);
@@ -727,7 +735,14 @@ describe("flujo en vivo por el outbox", () => {
     const interacciones = await interactionsOf(personId);
     expect(
       interacciones.some(
-        (item) => item.kind === "PARTICIPATION" && item.summary.includes("rechazada"),
+        (item) =>
+          item.kind === "PARTICIPATION" &&
+          item.summary.includes(
+            fillCopy(tList("T-667")[11], {
+              reto: "Reto evidencia",
+              motivo: "No se ve la actividad",
+            }),
+          ),
       ),
     ).toBe(true);
   });

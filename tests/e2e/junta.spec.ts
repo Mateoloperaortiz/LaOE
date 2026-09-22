@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { permission } from "@/modules/identity/schema";
 import { person } from "@/modules/people/schema";
+import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
@@ -42,24 +43,24 @@ test("la junta ve agregados sin nombres, exporta el CSV y no entra al resto del 
 }) => {
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/admin\/junta$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Panel de la junta");
-  await expect(page.getByText("Retención por semestre")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-821"));
+  await expect(page.getByText(tList("T-824")[0])).toBeVisible();
   await expect(page.locator("main")).not.toContainText("@eafit.edu.co");
   await expect(page.locator("main")).not.toContainText("Miembro E2E");
-  await expect(page.getByRole("link", { name: "Personas", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: tList("T-509")[0], exact: true })).toHaveCount(0);
   // La junta sí emite enlaces de acceso, y su superficie es la jornada (ADR-051, regla 4):
   // la ficha de la persona exige ADMIN. Los grupos de la navegación nacen plegados.
   const navegacion = page.locator(".admin-sidebar nav");
   while (await navegacion.getByRole("button", { expanded: false }).count()) {
     await navegacion.getByRole("button", { expanded: false }).first().click();
   }
-  await expect(navegacion.getByRole("link", { name: "Jornada de activación" })).toBeVisible();
+  await expect(navegacion.getByRole("link", { name: t("T-2128") })).toBeVisible();
   await sinViolaciones(page);
 
   const csv = await page.request.get("/api/export/junta");
   expect(csv.status()).toBe(200);
   expect(csv.headers()["content-type"]).toContain("text/csv");
-  expect(await csv.text()).toContain("Indicador");
+  expect(await csv.text()).toContain(tList("T-837")[0]);
   const forbidden = await page.request.get("/api/export/personas");
   expect(forbidden.status()).toBe(403);
 

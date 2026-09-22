@@ -4,6 +4,7 @@ import { closeDb, getDb } from "@/db/client";
 import { occasion } from "@/modules/participation/schema";
 import { legacyAlias } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { t } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -55,30 +56,28 @@ test("sin sesión el QR lleva a entrar, vuelve solo y acredita los puntos una so
 }) => {
   await page.goto(`/a/${PUBLIC_ID}`);
   await expect(page).toHaveURL(/\/ingresar\?next=%2Fa%2Fe2eqr00001$/);
-  await expect(
-    page.getByText("Para registrarte primero entrá a Mi OE. Volvés aquí solo."),
-  ).toBeVisible();
-  await page.getByRole("link", { name: "Entrar con un código al correo institucional" }).click();
+  await expect(page.getByText(t("T-100"))).toBeVisible();
+  await page.getByRole("link", { name: t("T-2099") }).click();
   await expect(page).toHaveURL(/\/ingresar\/codigo\?next=%2Fa%2Fe2eqr00001$/);
-  await page.getByLabel("Correo @eafit.edu.co").fill(E2E_MEMBER_EMAIL);
-  await page.getByRole("button", { name: "Enviame el código" }).click();
-  await page.getByLabel("Código de seis dígitos").fill(CODE);
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.getByLabel(t("T-042")).fill(E2E_MEMBER_EMAIL);
+  await page.getByRole("button", { name: t("T-043") }).click();
+  await page.getByLabel(t("T-238")).fill(CODE);
+  await page.getByRole("button", { name: t("T-046") }).click();
   await expect(page).toHaveURL(new RegExp(`/a/${PUBLIC_ID}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("e2e-Integración por QR");
-  await expect(page.getByText("Da 20 GH Points")).toBeVisible();
+  await expect(page.getByText(t("T-529", { n: 20 }))).toBeVisible();
   await sinViolaciones(page);
 
-  await page.getByRole("button", { name: "Registrar mi asistencia" }).click();
+  await page.getByRole("button", { name: t("T-091") }).click();
   await expect(page).toHaveURL(new RegExp(`/a/${PUBLIC_ID}\\?r=puntos$`));
-  await expect(page.getByText("¡Listo! Sumaste 20 GH Points.")).toBeVisible();
-  await expect(page.getByText("¡OE OE OE!")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Ver mis GH Points" })).toBeVisible();
+  await expect(page.getByText(t("T-092", { n: 20 }).replace(t("T-037"), "").trim())).toBeVisible();
+  await expect(page.getByText(t("T-037"))).toBeVisible();
+  await expect(page.getByRole("link", { name: t("T-531") })).toBeVisible();
   await sinViolaciones(page);
 
   // El mismo enlace otra vez: ya registrado, sin segundo crédito.
   await page.goto(`/a/${PUBLIC_ID}`);
-  await expect(page.getByText("Ya te habías registrado en esta actividad.")).toBeVisible();
+  await expect(page.getByText(t("T-095"))).toBeVisible();
 
   // El alias legado de una asamblea vieja redirige al check-in nuevo.
   await page.goto(`/asamblea/${LEGACY_ID}`);
@@ -86,5 +85,5 @@ test("sin sesión el QR lleva a entrar, vuelve solo y acredita los puntos una so
 
   // Un publicId que no existe explica qué hacer.
   await page.goto("/a/zzzzzzzzzz");
-  await expect(page.getByText("Este enlace no corresponde a ninguna actividad.")).toBeVisible();
+  await expect(page.getByText(t("T-527"))).toBeVisible();
 });

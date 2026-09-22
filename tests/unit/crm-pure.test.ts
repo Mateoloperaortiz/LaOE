@@ -27,7 +27,8 @@ import {
 } from "@/modules/crm/domain/timeline-pure";
 import { normalizePhone } from "@/modules/people/domain/person-pure";
 import { segmentFilterSchema } from "@/modules/people/domain/segments";
-import { tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
 
 const labels: TimelineLabels = {
   texts: tList("T-458"),
@@ -66,7 +67,11 @@ describe("línea de tiempo", () => {
     ).toMatchObject({
       kind: "MEMBERSHIP",
       actorId: "a",
-      summary: "Estado cambió de Activo a En licencia: Semestre afuera",
+      summary: fillCopy(tList("T-458")[1], {
+        de: "Activo",
+        a: "En licencia",
+        motivo: "Semestre afuera",
+      }),
     });
     expect(
       summarizeEvent(
@@ -75,7 +80,7 @@ describe("línea de tiempo", () => {
         labels,
         lookup,
       )?.summary,
-    ).toBe("Dado de baja: GRADUATION");
+    ).toBe(fillCopy(tList("T-458")[2], { motivo: "GRADUATION" }));
     // El alta la cuenta person.admitted: aquí no deja entrada.
     expect(
       summarizeEvent(
@@ -100,7 +105,9 @@ describe("línea de tiempo", () => {
         labels,
         lookup,
       )?.summary,
-    ).toBe("Comités de 2026-2: A3 · General, PIXEL · Miembro");
+    ).toBe(
+      fillCopy(tList("T-458")[4], { término: "2026-2", comités: "A3 · General, PIXEL · Miembro" }),
+    );
     expect(
       summarizeEvent(
         committeeMembershipChanged,
@@ -122,7 +129,12 @@ describe("línea de tiempo", () => {
         labels,
         lookup,
       )?.summary,
-    ).toBe("Comités de 2026-2: A3 · Codirección de General y Miembro");
+    ).toBe(
+      fillCopy(tList("T-458")[4], {
+        término: "2026-2",
+        comités: `A3 · ${t("T-2178", { lista: t("T-2144", { cargo: "General" }), último: "Miembro" })}`,
+      }),
+    );
     expect(
       summarizeEvent(
         committeeRemovalRequested,
@@ -130,7 +142,10 @@ describe("línea de tiempo", () => {
         labels,
         lookup,
       ),
-    ).toMatchObject({ kind: "COMMITTEES", summary: "Pidieron a GH su retiro de A3: No volvió" });
+    ).toMatchObject({
+      kind: "COMMITTEES",
+      summary: t("T-2171", { comité: "A3", motivo: "No volvió" }),
+    });
     expect(
       summarizeEvent(
         appointmentChanged,
@@ -138,7 +153,7 @@ describe("línea de tiempo", () => {
         labels,
         lookup,
       )?.summary,
-    ).toBe("Cargo Vicepresidencia de GH desde 2026-2");
+    ).toBe(fillCopy(tList("T-458")[5], { cargo: "Vicepresidencia de GH", término: "2026-2" }));
     expect(
       summarizeEvent(
         consentChanged,
@@ -146,11 +161,11 @@ describe("línea de tiempo", () => {
         labels,
         lookup,
       )?.summary,
-    ).toBe("Consentimiento de Foto en el directorio retirado");
+    ).toBe(fillCopy(tList("T-458")[8], { propósito: "Foto en el directorio" }));
     expect(
       summarizeEvent(personUpdated, { ...persona, fields: ["phone", "program"] }, labels, lookup)
         ?.summary,
-    ).toBe("Datos actualizados: Celular, Programa");
+    ).toBe(fillCopy(tList("T-458")[9], { campos: "Celular, Programa" }));
     expect(
       summarizeEvent(
         permissionGranted,
@@ -160,7 +175,7 @@ describe("línea de tiempo", () => {
       ),
     ).toMatchObject({
       kind: "PERMISSION",
-      summary: "Permiso ADMIN otorgado",
+      summary: fillCopy(tList("T-458")[14], { permiso: "ADMIN" }),
       metadata: { event: "permission.granted", code: "ADMIN", committeeId: null },
     });
   });
@@ -261,7 +276,7 @@ describe("línea de tiempo", () => {
     );
     expect(entry).toMatchObject({
       kind: "PARTICIPATION",
-      summary: "Resolvió un Sudoku el 2026-09-19 y sumó 6 GH Points",
+      summary: fillCopy(tList("T-667")[13], { fecha: "2026-09-19", n: 6 }),
       metadata: { runId: "r1", difficulty: "HARD", assisted: false, points: 6 },
     });
   });
@@ -313,7 +328,7 @@ describe("línea de tiempo de permanencia (fase 4)", () => {
       ),
     ).toMatchObject({
       kind: "PERMANENCE",
-      summary: "Buen desempeño en GAP Días EAFIT, evaluado por Miguel",
+      summary: fillCopy(tList("T-832")[0], { grupo: "GAP Días EAFIT", evaluador: "Miguel" }),
     });
     // La importación histórica no sabe quién evaluó: se cuenta como GH.
     expect(
@@ -323,7 +338,7 @@ describe("línea de tiempo de permanencia (fase 4)", () => {
         labels,
         lookup,
       )?.summary,
-    ).toBe("Desempeño insuficiente en GT, evaluado por GH: No fue");
+    ).toBe(fillCopy(tList("T-832")[1], { grupo: "GT", evaluador: "GH", nota: "No fue" }));
     const puntaje = { ...persona, termId: "t1", ruleId: "r1" };
     expect(
       summarizeEvent(
@@ -339,7 +354,9 @@ describe("línea de tiempo de permanencia (fase 4)", () => {
         labels,
         lookup,
       )?.summary,
-    ).toBe("Convivencia en A3: 3 de 5: Llegó tarde");
+    ).toBe(
+      `${fillCopy(tList("T-832")[2], { criterio: "Convivencia", comité: "A3", valor: 3, peso: 5 })}: Llegó tarde`,
+    );
     expect(
       summarizeEvent(
         manualCreditGranted,
@@ -347,7 +364,7 @@ describe("línea de tiempo de permanencia (fase 4)", () => {
         labels,
         lookup,
       )?.summary,
-    ).toBe("Crédito manual en Extra: 4 (Apoyo)");
+    ).toBe(fillCopy(tList("T-832")[3], { criterio: "Extra", valor: 4, motivo: "Apoyo" }));
     // Condición del semestre (ADR-056): marcada o retirada, con el término y el motivo.
     const condicion = { personId: "p", termId: "t1", committeeId: null, reportAsVeteran: false };
     expect(
@@ -360,7 +377,7 @@ describe("línea de tiempo de permanencia (fase 4)", () => {
     ).toMatchObject({
       kind: "PERMANENCE",
       actorId: "a",
-      summary: "En periodo de prueba en 2026-2: Roster mal cargado",
+      summary: fillCopy(tList("T-832")[7], { término: "2026-2", motivo: "Roster mal cargado" }),
       metadata: { event: "membership-term.changed", termId: "t1", probation: true },
     });
     expect(
@@ -370,7 +387,7 @@ describe("línea de tiempo de permanencia (fase 4)", () => {
         labels,
         lookup,
       )?.summary,
-    ).toBe("Sin periodo de prueba en 2026-2: —");
+    ).toBe(fillCopy(tList("T-832")[8], { término: "2026-2", motivo: "—" }));
     expect(
       summarizeEvent(
         workGroupMembershipChanged,
@@ -378,7 +395,7 @@ describe("línea de tiempo de permanencia (fase 4)", () => {
         labels,
         lookup,
       )?.summary,
-    ).toBe("Salió del grupo CGH");
+    ).toBe(fillCopy(tList("T-832")[5], { grupo: "CGH" }));
     expect(
       summarizeEvent(
         permanenceDecided,
@@ -386,6 +403,6 @@ describe("línea de tiempo de permanencia (fase 4)", () => {
         labels,
         lookup,
       )?.summary,
-    ).toBe("Cierre de 2026-2: Periodo de prueba (A3)");
+    ).toBe(fillCopy(tList("T-832")[6], { término: "2026-2", decisión: "Periodo de prueba (A3)" }));
   });
 });

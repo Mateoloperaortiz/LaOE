@@ -32,7 +32,7 @@ const macro = (scopeId: string, coDirector = false): HeldRole => ({
 describe("inhabilidades para cargos", () => {
   it("tiene una etiqueta de T-2281 por código, en orden", () => {
     expect(tList("T-2281")).toHaveLength(INHABILITY_CODES.length);
-    expect(inhabilityLabels(["BOARD"], tList("T-2281"))[0]).toContain("Junta Directiva");
+    expect(inhabilityLabels(["BOARD"], tList("T-2281"))[0]).toContain(tList("T-2281")[1]);
   });
 
   it("no impide quitar cargos ni un cargo único a un activo sin sanción", () => {

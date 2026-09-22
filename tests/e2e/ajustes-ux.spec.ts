@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import sharp from "sharp";
+import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 
@@ -37,20 +38,18 @@ test("la foto se revisa antes de subir, bloquea dobles envíos y conserva el arc
   expect(selected.buffer.byteLength).toBeGreaterThanOrEqual(5 * 1024);
   expect(selected.buffer.byteLength).toBeLessThanOrEqual(5 * 1024 * 1024);
   await picker.setInputFiles(selected);
-  await expect(photo.getByAltText("Vista previa de la foto seleccionada")).toBeVisible();
+  await expect(photo.getByAltText(t("T-1625"))).toBeVisible();
   await expect(photo.getByText(/e2e-foto-seleccionada\.png · .* KB/)).toBeVisible();
   expect(presigns).toBe(0);
-  await photo.getByRole("button", { name: "Quitar selección", exact: true }).click();
-  await expect(photo.getByRole("button", { name: "Guardar foto", exact: true })).toBeDisabled();
+  await photo.getByRole("button", { name: t("T-1623"), exact: true }).click();
+  await expect(photo.getByRole("button", { name: t("T-1620"), exact: true })).toBeDisabled();
   await picker.setInputFiles(await sample("e2e-foto-reemplazada.png"));
-  await photo.getByRole("button", { name: "Guardar foto", exact: true }).click();
+  await photo.getByRole("button", { name: t("T-1620"), exact: true }).click();
   await expect.poll(() => presigns).toBe(1);
   await expect(picker).toBeDisabled();
-  await expect(
-    photo.getByRole("button", { name: "Reemplazar selección", exact: true }),
-  ).toBeDisabled();
-  await expect(photo.getByRole("button", { name: "Quitar selección", exact: true })).toBeDisabled();
-  await expect(photo.getByRole("button", { name: "Guardar foto", exact: true })).toBeDisabled();
+  await expect(photo.getByRole("button", { name: t("T-1622"), exact: true })).toBeDisabled();
+  await expect(photo.getByRole("button", { name: t("T-1623"), exact: true })).toBeDisabled();
+  await expect(photo.getByRole("button", { name: t("T-1620"), exact: true })).toBeDisabled();
   await photo.evaluate((form) => (form as HTMLFormElement).requestSubmit());
   release();
   await expect(photo.getByRole("alert")).toHaveText("Fallo temporal de prueba");
@@ -63,14 +62,12 @@ test("la foto se revisa antes de subir, bloquea dobles envíos y conserva el arc
   const confirmed = page.waitForResponse(
     (response) => response.url().includes("/api/media/confirm") && response.status() === 201,
   );
-  await photo.getByRole("button", { name: "Guardar foto", exact: true }).click();
+  await photo.getByRole("button", { name: t("T-1620"), exact: true }).click();
   await confirmed;
-  await expect(
-    photo.getByText("Listo: la imagen queda disponible en unos segundos."),
-  ).toBeVisible();
-  await expect(photo.getByRole("button", { name: "Guardar foto", exact: true })).toBeDisabled();
-  await photo.getByRole("button", { name: "Quitar foto", exact: true }).click();
-  await expect(photo.getByText("Listo, quitamos tu foto.")).toBeVisible();
+  await expect(photo.getByText(t("T-360"))).toBeVisible();
+  await expect(photo.getByRole("button", { name: t("T-1620"), exact: true })).toBeDisabled();
+  await photo.getByRole("button", { name: t("T-409"), exact: true }).click();
+  await expect(photo.getByText(t("T-1627"))).toBeVisible();
 });
 
 test("una foto inválida no puede enviarse", async ({ page }) => {
@@ -85,10 +82,8 @@ test("una foto inválida no puede enviarse", async ({ page }) => {
     mimeType: "text/plain",
     buffer: Buffer.from("No es una imagen"),
   });
-  await expect(photo.getByRole("alert")).toHaveText(
-    "La foto debe ser JPG, PNG o WebP de entre 5 KB y 5 MB.",
-  );
-  await expect(photo.getByRole("button", { name: "Guardar foto", exact: true })).toBeDisabled();
+  await expect(photo.getByRole("alert")).toHaveText(t("T-419"));
+  await expect(photo.getByRole("button", { name: t("T-1620"), exact: true })).toBeDisabled();
   expect(uploads).toBe(0);
 });
 
@@ -108,10 +103,8 @@ test("una foto de menos de 5 KB se valida antes de transferir", async ({ page })
   await photo
     .locator('input[type="file"]')
     .setInputFiles({ name: "e2e-foto-pequena.png", mimeType: "image/png", buffer });
-  await expect(photo.getByRole("alert")).toHaveText(
-    "La foto debe ser JPG, PNG o WebP de entre 5 KB y 5 MB.",
-  );
-  await expect(photo.getByRole("button", { name: "Guardar foto", exact: true })).toBeDisabled();
+  await expect(photo.getByRole("alert")).toHaveText(t("T-419"));
+  await expect(photo.getByRole("button", { name: t("T-1620"), exact: true })).toBeDisabled();
   expect(uploads).toBe(0);
 });
 
@@ -119,18 +112,18 @@ test("un error de contacto conserva los dos campos, enfoca el inválido y permit
   page,
 }) => {
   await page.goto("/app/ajustes");
-  const phone = page.getByLabel("Celular", { exact: true });
-  const personalEmail = page.getByLabel("Correo personal", { exact: true });
+  const phone = page.getByLabel(t("T-404"), { exact: true });
+  const personalEmail = page.getByLabel(t("T-405"), { exact: true });
   await phone.fill("celular-no-valido");
   await personalEmail.fill("reintento-ux@example.invalid");
-  await page.getByRole("button", { name: "Guardar", exact: true }).click();
+  await page.getByRole("button", { name: t("T-253"), exact: true }).click();
   await expect(phone).toHaveAttribute("aria-invalid", "true");
   await expect(phone).toBeFocused();
   await expect(phone).toHaveValue("celular-no-valido");
   await expect(personalEmail).toHaveValue("reintento-ux@example.invalid");
   await phone.fill("3005551234");
-  await page.getByRole("button", { name: "Guardar", exact: true }).click();
-  await expect(page.getByText("Guardado.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: t("T-253"), exact: true }).click();
+  await expect(page.getByText(t("T-259"), { exact: true })).toBeVisible();
   await expect(phone).toHaveValue("+573005551234");
   await expect(personalEmail).toHaveValue("reintento-ux@example.invalid");
 });
@@ -140,7 +133,7 @@ test("las preferencias conservan casillas tras error y guardado sin reinicio aut
 }) => {
   await page.goto("/app/ajustes#notificaciones");
   const notifications = page.locator("#notificaciones");
-  const announcements = notifications.getByLabel("Anuncios de la cartelera", { exact: true });
+  const announcements = notifications.getByLabel(tList("T-1080")[0], { exact: true });
   const points = notifications.locator('input[name="pushPoints"]');
   const originalAnnouncements = await announcements.isChecked();
   const originalPoints = await points.isChecked();
@@ -161,21 +154,19 @@ test("las preferencias conservan casillas tras error y guardado sin reinicio aut
       body: "Fallo temporal de prueba",
     });
   });
-  await notifications.getByRole("button", { name: "Guardar preferencias", exact: true }).click();
+  await notifications.getByRole("button", { name: t("T-1083"), exact: true }).click();
   await expect.poll(() => attempts).toBe(1);
   await expect(announcements).toBeDisabled();
   await expect(points).toBeDisabled();
   release();
   const error = notifications.getByRole("alert");
-  await expect(error).toHaveText(
-    "No pudimos guardar. Conservamos tus cambios para que lo intentés de nuevo.",
-  );
+  await expect(error).toHaveText(t("T-1629"));
   await expect(error).toBeFocused();
   await expect(announcements).toBeChecked({ checked: !originalAnnouncements });
   await expect(points).toBeChecked({ checked: !originalPoints });
   await page.unroute("**/app/ajustes*");
-  await notifications.getByRole("button", { name: "Guardar preferencias", exact: true }).click();
-  await expect(notifications.getByText("Listo, guardamos tus preferencias.")).toBeVisible();
+  await notifications.getByRole("button", { name: t("T-1083"), exact: true }).click();
+  await expect(notifications.getByText(t("T-1082"))).toBeVisible();
   await expect(announcements).toBeChecked({ checked: !originalAnnouncements });
   await expect(points).toBeChecked({ checked: !originalPoints });
   await page.reload();
@@ -183,8 +174,8 @@ test("las preferencias conservan casillas tras error y guardado sin reinicio aut
   await expect(points).toBeChecked({ checked: !originalPoints });
   await announcements.setChecked(originalAnnouncements);
   await points.setChecked(originalPoints);
-  await notifications.getByRole("button", { name: "Guardar preferencias", exact: true }).click();
-  await expect(notifications.getByText("Listo, guardamos tus preferencias.")).toBeVisible();
+  await notifications.getByRole("button", { name: t("T-1083"), exact: true }).click();
+  await expect(notifications.getByText(t("T-1082"))).toBeVisible();
 });
 
 for (const width of [360, 390, 768, 1440]) {
@@ -195,17 +186,14 @@ for (const width of [360, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme: theme });
       await page.goto("/app/ajustes#sesiones");
-      const sections = page.getByRole("navigation", { name: "Ajustes", exact: true });
+      const sections = page.getByRole("navigation", { name: t("T-418"), exact: true });
       const sessions = page.locator("#sesiones");
       await expect(sessions).toBeVisible();
       await expect(page.locator("#mis-datos")).toBeHidden();
-      await expect(sections.getByRole("link", { name: "Sesiones", exact: true })).toHaveAttribute(
-        "aria-current",
-        "location",
-      );
       await expect(
-        sessions.getByRole("cell", { name: "Este dispositivo", exact: true }),
-      ).toBeVisible();
+        sections.getByRole("link", { name: tList("T-133")[3], exact: true }),
+      ).toHaveAttribute("aria-current", "location");
+      await expect(sessions.getByRole("cell", { name: t("T-232"), exact: true })).toBeVisible();
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
@@ -217,7 +205,7 @@ for (const width of [360, 390, 768, 1440]) {
         path: testInfo.outputPath(`ajustes-sesiones-${width}-${theme}.png`),
         fullPage: true,
       });
-      const notifications = sections.getByRole("link", { name: "Notificaciones", exact: true });
+      const notifications = sections.getByRole("link", { name: tList("T-133")[1], exact: true });
       await notifications.focus();
       await page.keyboard.press("Enter");
       await expect(page.locator("#notificaciones")).toBeVisible();
@@ -226,14 +214,14 @@ for (const width of [360, 390, 768, 1440]) {
       await sinViolaciones(page);
       await page.reload();
       await expect(page.locator("#notificaciones")).toBeVisible();
-      await sections.getByRole("link", { name: "Mis datos", exact: true }).click();
+      await sections.getByRole("link", { name: tList("T-133")[0], exact: true }).click();
       await expect(page.locator("#mis-datos")).toBeVisible();
       await sinViolaciones(page);
       await page.screenshot({
         path: testInfo.outputPath(`ajustes-foto-${width}-${theme}.png`),
         fullPage: true,
       });
-      for (const label of ["Calendario", "Consentimientos", "Mis datos y privacidad"]) {
+      for (const label of [tList("T-133")[2], tList("T-133")[4], tList("T-133")[5]]) {
         await sections.getByRole("link", { name: label, exact: true }).click();
         await expect(page.getByRole("heading", { name: label, exact: true })).toBeVisible();
         expect(

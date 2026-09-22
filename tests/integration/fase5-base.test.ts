@@ -18,6 +18,7 @@ import { consent, membership, person, personTag, tag } from "@/modules/people/sc
 import { outbox } from "@/modules/system/schema";
 import { ensureNextTerm, findTermByCode, getTerm, nextTermCode } from "@/modules/terms";
 import { t } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
 import {
   seedCall,
@@ -149,7 +150,7 @@ describe("dar de alta", () => {
     const a3 = await seedCommittee("a3", "A3");
     const member = await seedMember("activa@eafit.edu.co");
     await expect(admitPersonAs(admin, member, { termId, committeeIds: [a3] })).rejects.toThrow(
-      "ya tiene membresía",
+      copyPattern("T-986"),
     );
     const external = await seedPerson("contacto@empresa.com", { kind: "EXTERNAL" });
     await expect(admitPersonAs(admin, external, { termId, committeeIds: [a3] })).rejects.toThrow(
@@ -166,7 +167,7 @@ describe("dar de alta", () => {
       contactConsent: false,
     });
     await expect(admitPersonAs(admin, retired, { termId, committeeIds: [a3] })).rejects.toThrow(
-      "ya tiene membresía",
+      copyPattern("T-986"),
     );
     const memberships = await getDb().select().from(membership);
     expect(memberships).toHaveLength(2);

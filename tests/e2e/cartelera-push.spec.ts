@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { drenarOutbox } from "./outbox";
@@ -38,33 +39,33 @@ test("registrar dispositivo, publicar con push y leer el anuncio", async ({ brow
       const page = await context.newPage();
 
       await page.goto("/admin/cartelera");
-      await page.getByRole("link", { name: "Nuevo" }).click();
+      await page.getByRole("link", { name: t("T-251") }).click();
       const panel = page.getByRole("dialog");
-      await panel.getByLabel("Título").fill(TITULO);
-      await panel
-        .getByLabel("Cuerpo (Markdown)")
-        .fill("Primera línea del anuncio.\n\nSegunda línea.");
-      await panel.getByLabel("Audiencia").selectOption("MEMBERS");
-      await panel.getByRole("button", { name: "Guardar" }).click();
-      await expect(page.getByText("Guardado.")).toBeVisible();
+      await panel.getByLabel(t("T-335")).fill(TITULO);
+      await panel.getByLabel(t("T-336")).fill("Primera línea del anuncio.\n\nSegunda línea.");
+      await panel.getByLabel(t("T-338")).selectOption("MEMBERS");
+      await panel.getByRole("button", { name: t("T-253") }).click();
+      await expect(page.getByText(t("T-259"))).toBeVisible();
 
       const fila = page.getByRole("row", { name: new RegExp(TITULO) });
-      await expect(fila.locator('td[data-label="Push"]')).toHaveText("—");
-      await fila.locator("summary", { hasText: "Acciones" }).click();
-      await fila.getByRole("button", { name: "Publicar y avisar por push", exact: true }).click();
-      await expect(fila.getByText("Enviando")).toBeVisible();
+      await expect(fila.locator(`td[data-label="${t("T-1113")}"]`)).toHaveText(tList("T-1114")[0]);
+      await fila.locator("summary", { hasText: t("T-1426") }).click();
+      await fila.getByRole("button", { name: t("T-1111"), exact: true }).click();
+      await expect(fila.getByText(tList("T-1114")[1])).toBeVisible();
       await drenarOutbox();
       await page.reload();
       await expect(
-        page.getByRole("row", { name: new RegExp(TITULO) }).getByText(/Enviado a \d+/),
+        page
+          .getByRole("row", { name: new RegExp(TITULO) })
+          .getByText(new RegExp(tList("T-1114")[2].replace("{n}", "\\d+"))),
       ).toBeVisible();
 
       await page.goto("/admin/mensajes?kind=ANNOUNCEMENT");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mensajes");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-1142"));
       const mensaje = page.getByRole("row", { name: new RegExp(`Miembro E2E.*${TITULO}`) }).first();
       await expect(mensaje).toContainText("Miembro E2E");
-      await expect(mensaje).toContainText("Push");
-      await expect(mensaje).toContainText("Enviado");
+      await expect(mensaje).toContainText(tList("T-1145")[1]);
+      await expect(mensaje).toContainText(tList("T-1147")[0]);
       await sinViolaciones(page);
     } finally {
       await context.close();

@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { createSurveyInvites } from "@/modules/participation";
 import { occasion } from "@/modules/participation/schema";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { drenarOutbox } from "./outbox";
@@ -30,44 +32,44 @@ test("la encuesta de una ocasión cerrada llega a su asistente y el agregado apa
 }) => {
   // 1. ADMIN: el formulario de miembros con calificación y comentario.
   await page.goto("/admin/formularios");
-  await page.getByRole("link", { name: "Nuevo" }).click();
+  await page.getByRole("link", { name: t("T-251") }).click();
   const panel = page.getByRole("dialog");
-  await panel.getByLabel(/Identificador/).fill(FORM_SLUG);
-  await panel.getByLabel("Título", { exact: true }).fill(`e2e Encuesta ${marca}`);
-  await panel.getByLabel("Audiencia").selectOption("MEMBERS");
-  await panel.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Guardado.")).toBeVisible();
+  await panel.getByLabel(new RegExp(tList("T-910")[0])).fill(FORM_SLUG);
+  await panel.getByLabel(tList("T-910")[1], { exact: true }).fill(`e2e Encuesta ${marca}`);
+  await panel.getByLabel(tList("T-910")[3]).selectOption("MEMBERS");
+  await panel.getByRole("button", { name: t("T-253") }).click();
+  await expect(page.getByText(t("T-259"))).toBeVisible();
   await page.getByRole("link", { name: `e2e Encuesta ${marca}` }).click();
-  await page.getByRole("link", { name: "Agregar campo" }).click();
+  await page.getByRole("link", { name: t("T-922") }).click();
   const campo = page.getByRole("dialog");
-  await campo.getByLabel("Clave").fill("calif");
-  await campo.getByLabel("Etiqueta").fill("¿Cómo estuvo?");
-  await campo.getByLabel("Tipo").selectOption("RATING");
-  await campo.getByLabel("Obligatorio").check();
-  await campo.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Campos guardados.")).toBeVisible();
-  await page.getByRole("link", { name: "Agregar campo" }).click();
+  await campo.getByLabel(tList("T-923")[0]).fill("calif");
+  await campo.getByLabel(tList("T-923")[1]).fill("¿Cómo estuvo?");
+  await campo.getByLabel(tList("T-923")[2]).selectOption("RATING");
+  await campo.getByLabel(tList("T-923")[3]).check();
+  await campo.getByRole("button", { name: t("T-253") }).click();
+  await expect(page.getByText(tList("T-933")[0])).toBeVisible();
+  await page.getByRole("link", { name: t("T-922") }).click();
   const segundo = page.getByRole("dialog");
-  await segundo.getByLabel("Clave").fill("comentario");
-  await segundo.getByLabel("Etiqueta").fill("Comentario");
-  await segundo.getByLabel("Tipo").selectOption("TEXTAREA");
-  await segundo.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Campos guardados.")).toBeVisible();
+  await segundo.getByLabel(tList("T-923")[0]).fill("comentario");
+  await segundo.getByLabel(tList("T-923")[1]).fill("Comentario");
+  await segundo.getByLabel(tList("T-923")[2]).selectOption("TEXTAREA");
+  await segundo.getByRole("button", { name: t("T-253") }).click();
+  await expect(page.getByText(tList("T-933")[0])).toBeVisible();
 
   // 2. ADMIN: la ocasión con esa encuesta, abierta y con el registro en ventana.
   await page.goto("/admin/ocasiones");
-  await page.getByRole("link", { name: "Nuevo" }).click();
+  await page.getByRole("link", { name: t("T-251") }).click();
   const ocasion = page.getByRole("dialog");
-  await ocasion.getByLabel("Título").fill(OCASION);
-  await ocasion.getByLabel("Empieza").fill(haceUnaHora());
+  await ocasion.getByLabel(tList("T-563")[0]).fill(OCASION);
+  await ocasion.getByLabel(tList("T-563")[7]).fill(haceUnaHora());
   await ocasion
-    .getByLabel("Encuesta al cerrar")
+    .getByLabel(t("T-1158"))
     .selectOption({ label: `e2e Encuesta ${marca} (${FORM_SLUG})` });
-  await ocasion.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Guardado.")).toBeVisible();
+  await ocasion.getByRole("button", { name: t("T-253") }).click();
+  await expect(page.getByText(t("T-259"))).toBeVisible();
   const fila = page.getByRole("row", { name: new RegExp(OCASION) });
-  await fila.getByRole("button", { name: "Abrir", exact: true }).click();
-  await expect(fila.getByText("Abierta")).toBeVisible();
+  await fila.getByRole("button", { name: tList("T-569")[0], exact: true }).click();
+  await expect(fila.getByText(tList("T-568")[1])).toBeVisible();
   const [row] = await getDb()
     .select({ id: occasion.id, publicId: occasion.publicId })
     .from(occasion)
@@ -80,14 +82,28 @@ test("la encuesta de una ocasión cerrada llega a su asistente y el agregado apa
   });
   const miembro = await contextoMiembro.newPage();
   await miembro.goto(`/a/${row?.publicId}`);
-  await miembro.getByRole("button", { name: "Registrar mi asistencia" }).click();
-  await expect(miembro.getByText(/GH Points|Listo|registrad/i).first()).toBeVisible();
+  await miembro.getByRole("button", { name: t("T-091") }).click();
+  await expect(
+    miembro
+      .getByText(
+        new RegExp(
+          [
+            copyPattern("T-092").source.split(".+?")[0],
+            copyPattern("T-093").source,
+            copyPattern("T-094").source,
+            copyPattern("T-095").source,
+          ].join("|"),
+          "i",
+        ),
+      )
+      .first(),
+  ).toBeVisible();
 
   // 4. ADMIN cierra; la invitación con token en claro sale de la prueba; el outbox manda el push.
   await page.goto("/admin/ocasiones");
   const cerrar = page.getByRole("row", { name: new RegExp(OCASION) });
-  await cerrar.getByRole("button", { name: "Cerrar", exact: true }).click();
-  await expect(cerrar.getByText("Cerrada")).toBeVisible();
+  await cerrar.getByRole("button", { name: tList("T-569")[1], exact: true }).click();
+  await expect(cerrar.getByText(tList("T-568")[2])).toBeVisible();
   const invites = await createSurveyInvites(row?.id ?? "");
   const token = invites.created[0]?.token ?? "";
   expect(token).not.toBe("");
@@ -96,25 +112,25 @@ test("la encuesta de una ocasión cerrada llega a su asistente y el agregado apa
 
   // 5. El miembro responde: 5 y un comentario; una segunda visita dice que ya respondió.
   await miembro.goto(`/app/encuesta/${token}`);
-  await expect(miembro.getByRole("heading", { level: 1 })).toHaveText(`¿Cómo estuvo ${OCASION}?`);
+  await expect(miembro.getByRole("heading", { level: 1 })).toHaveText(
+    t("T-1095", { actividad: OCASION }),
+  );
   await sinViolaciones(miembro);
   await miembro.getByLabel("5", { exact: true }).check();
   await miembro.getByLabel("Comentario").fill("Muy bien");
-  await miembro.getByRole("button", { name: "Enviar respuestas" }).click();
-  await expect(miembro.getByText(/¡Gracias! Tus respuestas ayudan/)).toBeVisible();
+  await miembro.getByRole("button", { name: t("T-1097") }).click();
+  await expect(miembro.getByText(copyPattern("T-1098"))).toBeVisible();
   await miembro.goto(`/app/encuesta/${token}`);
-  await expect(miembro.getByText("Ya respondiste esta encuesta. ¡Gracias!")).toBeVisible();
+  await expect(miembro.getByText(t("T-1099"))).toBeVisible();
   await contextoMiembro.close();
 
   // 6. ADMIN: la consola muestra el agregado y esconde el comentario por pocas respuestas.
   await page.goto(`/admin/ocasiones/${row?.id}`);
-  const encuesta = page.getByRole("region", { name: "Encuesta" });
+  const encuesta = page.getByRole("region", { name: t("T-1161") });
   await encuesta.locator("summary").click();
-  await expect(encuesta.getByText("1 de 1 respondieron")).toBeVisible();
-  await expect(encuesta.getByText("Promedio 5.0 de 5")).toBeVisible();
-  await expect(
-    encuesta.getByText(/Los comentarios se muestran cuando hay al menos 3/),
-  ).toBeVisible();
+  await expect(encuesta.getByText(t("T-1162", { respondieron: 1, invitados: 1 }))).toBeVisible();
+  await expect(encuesta.getByText(t("T-1164", { promedio: "5.0" }))).toBeVisible();
+  await expect(encuesta.getByText(copyPattern("T-1165", { n: 3 }))).toBeVisible();
   await expect(encuesta.getByText("Muy bien")).toHaveCount(0);
   await sinViolaciones(page);
 });

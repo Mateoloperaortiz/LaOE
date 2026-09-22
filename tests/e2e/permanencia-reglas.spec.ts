@@ -5,6 +5,8 @@ import { permission } from "@/modules/identity/schema";
 import { committee, person } from "@/modules/people/schema";
 import { permanenceRule, permanenceTable } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -50,70 +52,77 @@ test.describe("GH", () => {
 
   test("carga la referencia, crea un criterio de comité y bloquea la tabla", async ({ page }) => {
     await page.goto(`/admin/permanencia/reglas?termId=${termId}`);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tablas de permanencia");
-    await page.getByRole("button", { name: "Cargar tabla de referencia" }).click();
-    await expect(page.getByText("Tabla de referencia cargada: 9 criterios.")).toBeVisible();
-    await expect(page.getByText("Veteranos 50 · Nuevos 45 · nominal 50")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-710"));
+    await page.getByRole("button", { name: tList("T-715")[2] }).click();
+    await expect(page.getByText(t("T-735", { n: 9 }))).toBeVisible();
+    await expect(page.getByText(t("T-713", { v: 50, n: 45, nominal: 50 }))).toBeVisible();
     await sinViolaciones(page);
 
     await page.goto(`/admin/permanencia/reglas?termId=${termId}&comite=${slug}&accion=nueva`);
     const panel = page.getByRole("dialog");
-    await panel.getByLabel("Clave").fill("e2e-reuniones");
-    await panel.getByLabel("Nombre").fill("e2e-Asistencia a reuniones");
-    await panel.getByLabel("Peso").fill("15");
-    await panel.getByLabel("Cómo se calcula").selectOption("CHECKIN_RATE");
-    await panel.getByRole("button", { name: "Guardar" }).click();
-    await expect(page.getByText("Guardado.")).toBeVisible();
+    await panel.getByLabel(tList("T-716")[0]).fill("e2e-reuniones");
+    await panel.getByLabel(tList("T-716")[1]).fill("e2e-Asistencia a reuniones");
+    await panel.getByLabel(tList("T-716")[3]).fill("15");
+    await panel.getByLabel(tList("T-716")[5]).selectOption("CHECKIN_RATE");
+    await panel.getByRole("button", { name: t("T-253") }).click();
+    await expect(page.getByText(t("T-259"))).toBeVisible();
     await expect(page.getByRole("cell", { name: "e2e-Asistencia a reuniones" })).toBeVisible();
-    await expect(page.getByText("Veteranos 15 · Nuevos 15 · nominal 60")).toBeVisible();
+    await expect(page.getByText(t("T-713", { v: 15, n: 15, nominal: 60 }))).toBeVisible();
 
-    await page.getByRole("button", { name: "Bloquear", exact: true }).click();
-    await expect(page.getByText(/Bloqueada el/)).toBeVisible();
-    await expect(page.getByRole("button", { name: "Desbloquear" })).toBeVisible();
+    await page.getByRole("button", { name: tList("T-715")[4], exact: true }).click();
+    await expect(
+      page.getByText(new RegExp(tList("T-738")[2].split(" {fecha}")[0] ?? "")),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: tList("T-715")[5] })).toBeVisible();
     await sinViolaciones(page);
 
-    await page.getByRole("link", { name: "Vista previa del impacto" }).click();
-    await expect(page.getByRole("dialog")).toContainText("Impacto sobre el roster");
+    await page.getByRole("link", { name: tList("T-715")[3] }).click();
+    await expect(page.getByRole("dialog")).toContainText(tList("T-737")[0]);
     expect(name).not.toBe("");
   });
 
   test("un GAP nuevo trae marcado el GT de macroevento y GH lo puede quitar", async ({ page }) => {
     await page.goto(`/admin/permanencia/reglas?termId=${termId}&accion=nueva`);
     const panel = page.getByRole("dialog");
-    await panel.getByLabel("Clave").fill("e2e-gap-equivalente");
-    await panel.getByLabel("Nombre").fill("e2e-GAP con GT");
-    await panel.getByLabel("Peso").fill("5");
-    await panel.getByLabel("Cómo se calcula").selectOption("GROUP_EVALUATED");
-    await panel.getByLabel("Tipo de grupo").selectOption("GAP");
-    const equivalencia = panel.getByRole("group", { name: "También cumplen este criterio" });
+    await panel.getByLabel(tList("T-716")[0]).fill("e2e-gap-equivalente");
+    await panel.getByLabel(tList("T-716")[1]).fill("e2e-GAP con GT");
+    await panel.getByLabel(tList("T-716")[3]).fill("5");
+    await panel.getByLabel(tList("T-716")[5]).selectOption("GROUP_EVALUATED");
+    await panel.getByLabel(tList("T-723")[0]).selectOption("GAP");
+    const equivalencia = panel.getByRole("group", { name: t("T-2615") });
     // El propio tipo no se ofrece, y el GT llega marcado porque siempre cumple el GAP (ADR-071).
-    await expect(equivalencia.getByRole("checkbox", { name: "GAP", exact: true })).toHaveCount(0);
-    await expect(equivalencia.getByRole("checkbox", { name: "GT de macroevento" })).toBeChecked();
-    await panel.getByRole("button", { name: "Guardar" }).click();
-    await expect(page.getByText("Guardado.")).toBeVisible();
+    await expect(
+      equivalencia.getByRole("checkbox", { name: tList("T-725")[2], exact: true }),
+    ).toHaveCount(0);
+    await expect(equivalencia.getByRole("checkbox", { name: tList("T-725")[1] })).toBeChecked();
+    await panel.getByRole("button", { name: t("T-253") }).click();
+    await expect(page.getByText(t("T-259"))).toBeVisible();
 
     const fila = page.getByRole("row", { name: /e2e-GAP con GT/ });
-    await fila.getByRole("link", { name: "Editar" }).click();
+    await fila.getByRole("link", { name: t("T-252") }).click();
     const gt = page
       .getByRole("dialog")
-      .getByRole("group", { name: "También cumplen este criterio" })
-      .getByRole("checkbox", { name: "GT de macroevento" });
+      .getByRole("group", { name: t("T-2615") })
+      .getByRole("checkbox", { name: tList("T-725")[1] });
     await expect(gt).toBeChecked();
     await sinViolaciones(page);
 
     // Quitarla se guarda y se respeta al releer: la marca solo es el punto de partida.
     await gt.uncheck();
-    await page.getByRole("dialog").getByRole("button", { name: "Guardar" }).click();
-    await expect(page.getByText("Guardado.")).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: t("T-253") })
+      .click();
+    await expect(page.getByText(t("T-259"))).toBeVisible();
     await page
       .getByRole("row", { name: /e2e-GAP con GT/ })
-      .getByRole("link", { name: "Editar" })
+      .getByRole("link", { name: t("T-252") })
       .click();
     await expect(
       page
         .getByRole("dialog")
-        .getByRole("group", { name: "También cumplen este criterio" })
-        .getByRole("checkbox", { name: "GT de macroevento" }),
+        .getByRole("group", { name: t("T-2615") })
+        .getByRole("checkbox", { name: tList("T-725")[1] }),
     ).not.toBeChecked();
   });
 });
@@ -170,24 +179,24 @@ test.describe("líder", () => {
 
   test("edita la tabla de su comité y respeta el bloqueo de GH", async ({ page }) => {
     await page.goto(`/admin/comites/${slug}/permanencia`);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Permanencia de");
-    await expect(page.getByRole("link", { name: "Nuevo criterio" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(copyPattern("T-818"));
+    await expect(page.getByRole("link", { name: tList("T-715")[0] })).toBeVisible();
     await sinViolaciones(page);
 
-    await page.getByRole("link", { name: "Nuevo criterio" }).click();
+    await page.getByRole("link", { name: tList("T-715")[0] }).click();
     const panel = page.getByRole("dialog");
-    await panel.getByLabel("Clave").fill("e2e-evento");
-    await panel.getByLabel("Nombre").fill("e2e-Evento del comité");
-    await panel.getByLabel("Peso").fill("10");
-    await panel.getByLabel("Cómo se calcula").selectOption("MANUAL");
-    await panel.getByRole("button", { name: "Guardar" }).click();
-    await expect(page.getByText("Guardado.")).toBeVisible();
+    await panel.getByLabel(tList("T-716")[0]).fill("e2e-evento");
+    await panel.getByLabel(tList("T-716")[1]).fill("e2e-Evento del comité");
+    await panel.getByLabel(tList("T-716")[3]).fill("10");
+    await panel.getByLabel(tList("T-716")[5]).selectOption("MANUAL");
+    await panel.getByRole("button", { name: t("T-253") }).click();
+    await expect(page.getByText(t("T-259"))).toBeVisible();
     await expect(page.getByRole("cell", { name: "e2e-Evento del comité" })).toBeVisible();
 
     // Su criterio abre el editor; uno de la tabla general pedido por la URL no se abre (ADR-072).
     await page
       .getByRole("row", { name: /e2e-Evento del comité/ })
-      .getByRole("link", { name: "Editar" })
+      .getByRole("link", { name: t("T-252") })
       .click();
     await expect(page.getByRole("dialog")).toContainText("e2e-Evento del comité");
     const [ajena] = await getDb()
@@ -208,7 +217,7 @@ test.describe("líder", () => {
     await closeDb();
     if (!ajena) throw new Error("sin criterio ajeno");
     await page.goto(`/admin/comites/${slug}/permanencia?accion=editar&regla=${ajena.id}`);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Permanencia de");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(copyPattern("T-818"));
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByText("e2e-Criterio ajeno")).toHaveCount(0);
 
@@ -223,8 +232,8 @@ test.describe("líder", () => {
     });
     await closeDb();
     await page.reload();
-    await expect(page.getByText(/GH bloqueó la tabla de/)).toBeVisible();
-    await expect(page.getByRole("link", { name: "Nuevo criterio" })).toHaveCount(0);
+    await expect(page.getByText(copyPattern("T-731"))).toBeVisible();
+    await expect(page.getByRole("link", { name: tList("T-715")[0] })).toHaveCount(0);
 
     await page.goto("/admin/permanencia/reglas");
     await expect(page).toHaveURL(/\/app$/);

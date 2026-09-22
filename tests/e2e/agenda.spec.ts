@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
 import { withinTermInput } from "./calendar";
 import { test } from "./fixtures";
@@ -28,16 +29,16 @@ test("crear actividad y suscribirse, descargar y regenerar el calendario", async
       const page = await context.newPage();
 
       await page.goto("/admin/ocasiones");
-      await page.getByRole("link", { name: "Nuevo" }).click();
+      await page.getByRole("link", { name: t("T-251") }).click();
       const panel = page.getByRole("dialog");
-      await panel.getByLabel("Título").fill(TITULO);
-      await panel.getByLabel("Empieza").fill(manana());
-      await panel.getByLabel("Lugar").fill("Bloque 29");
-      await panel.getByRole("button", { name: "Guardar" }).click();
-      await expect(page.getByText("Guardado.")).toBeVisible();
+      await panel.getByLabel(tList("T-563")[0]).fill(TITULO);
+      await panel.getByLabel(tList("T-563")[7]).fill(manana());
+      await panel.getByLabel(tList("T-563")[6]).fill("Bloque 29");
+      await panel.getByRole("button", { name: t("T-253") }).click();
+      await expect(page.getByText(t("T-259"))).toBeVisible();
       const fila = page.getByRole("row", { name: new RegExp(TITULO) });
-      await fila.getByRole("button", { name: "Abrir", exact: true }).click();
-      await expect(fila.getByText("Abierta")).toBeVisible();
+      await fila.getByRole("button", { name: tList("T-569")[0], exact: true }).click();
+      await expect(fila.getByText(tList("T-568")[1])).toBeVisible();
     } finally {
       await context.close();
     }
@@ -52,25 +53,26 @@ test("crear actividad y suscribirse, descargar y regenerar el calendario", async
 
       await page.goto("/app/ajustes#calendario");
       const calendario = page.locator("#calendario");
-      await expect(calendario.getByRole("heading", { name: "Calendario" })).toBeVisible();
-      const url = await calendario.getByLabel("Mi agenda OE").inputValue();
+      await expect(calendario.getByRole("heading", { name: tList("T-133")[2] })).toBeVisible();
+      const url = await calendario.getByLabel(t("T-1085")).inputValue();
       expect(url).toMatch(/\/api\/ics\/mi-agenda\.ics\?t=[A-Za-z0-9_-]{24,}$/);
-      await expect(
-        calendario.getByRole("link", { name: "Abrir en mi calendario" }),
-      ).toHaveAttribute("href", /^webcal:\/\//);
+      await expect(calendario.getByRole("link", { name: t("T-1088") })).toHaveAttribute(
+        "href",
+        /^webcal:\/\//,
+      );
       await sinViolaciones(page);
 
       const ics = await page.request.get(url, { headers: { cookie: "" } });
       expect(ics.status()).toBe(200);
       expect(ics.headers()["content-type"]).toContain("text/calendar");
       const cuerpo = await ics.text();
-      expect(cuerpo).toContain("X-WR-CALNAME:Mi agenda OE");
+      expect(cuerpo).toContain(`X-WR-CALNAME:${t("T-1085")}`);
       expect(cuerpo).toContain(`SUMMARY:${TITULO}`);
       expect(cuerpo).toContain("UID:ocasion-");
 
-      await calendario.getByRole("button", { name: "Regenerar enlace" }).click();
-      await expect(page.getByText("Listo. El enlace anterior dejó de funcionar.")).toBeVisible();
-      const nueva = await page.locator("#calendario").getByLabel("Mi agenda OE").inputValue();
+      await calendario.getByRole("button", { name: t("T-1089") }).click();
+      await expect(page.getByText(t("T-1090"))).toBeVisible();
+      const nueva = await page.locator("#calendario").getByLabel(t("T-1085")).inputValue();
       expect(nueva).not.toBe(url);
       const vieja = await page.request.get(url);
       expect(vieja.status()).toBe(404);

@@ -4,6 +4,7 @@ import {
   reminderSlots,
 } from "@/modules/participation/domain/reminders-pure";
 import { isoWeek, noticePush } from "@/modules/permanence/domain/notices-push-pure";
+import { t } from "@/shared/copy";
 import { hourIn } from "@/shared/lib/dates";
 
 // Recordatorios (ADR-038 regla 9) con relojes fijos de Bogotá (UTC-5) y avisos de permanencia (regla 10).
@@ -103,7 +104,7 @@ describe("noticePush", () => {
       context,
     );
     expect(mid).toEqual({
-      text: "Vas en 45 % en Pixel · Necesitás 60 %. Mirá qué podés sumar.",
+      text: t("T-184", { n: 45, umbral: 60, comité: "Pixel" }),
       url: "/app/permanencia",
       dedupeKey: "notice:t1:p1:MID_TERM:c1",
     });
@@ -116,9 +117,9 @@ describe("noticePush", () => {
         },
         context,
       )?.text,
-    ).toBe("Hablá con GH · Con lo que queda del semestre no llegás al mínimo en Pixel.");
+    ).toBe(t("T-186", { comité: "Pixel" }));
     expect(noticePush({ kind: "TERM_CLOSED", values: { término: "2026-2" } }, context)).toEqual({
-      text: "Cerró 2026-2 · Entrá a ver tu resultado en cada comité.",
+      text: t("T-187", { término: "2026-2" }),
       url: "/app/permanencia",
       dedupeKey: "notice:t1:p1:TERM_CLOSED",
     });
@@ -128,7 +129,7 @@ describe("noticePush", () => {
     );
     expect(evaluations?.url).toBe("/admin/permanencia/evaluaciones");
     expect(evaluations?.dedupeKey).toBe("notice:t1:p1:EVALUATIONS:2026-W37");
-    expect(evaluations?.text).toContain("3 evaluaciones pendientes");
+    expect(evaluations?.text).toContain(t("T-188", { n: 3, fecha: "2026-12-05" }));
     expect(
       noticePush(
         {

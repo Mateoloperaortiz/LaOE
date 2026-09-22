@@ -2,6 +2,7 @@ import { and, count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { drain } from "@/jobs/poller";
+import { itemPattern } from "../helpers/copy";
 import "@/jobs/handlers";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { listCommitteeAnnouncements, listMemberAnnouncements } from "@/modules/content";
@@ -19,10 +20,12 @@ import {
   listManualCredits,
   scoreCriterionAs,
 } from "@/modules/permanence";
+
 import { leaderScore } from "@/modules/permanence/schema";
 import { closeTermPermanence, closeTermPoints } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
@@ -35,6 +38,8 @@ import {
 } from "./factories";
 
 // Evaluaciones, puntajes, créditos y reconocimientos (ADR-026, ADR-028, ADR-036 reglas 6 a 8).
+
+/** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 
 async function interactionsOf(personId: string) {
   return (await listInteractions(personId, "PERMANENCE")).map((item) => item.summary);
@@ -101,8 +106,10 @@ describe("evaluaciones", () => {
     await drain(50);
     const summaries = await interactionsOf(member);
     expect(summaries).toHaveLength(2);
-    expect(summaries[1]).toContain("Desempeño insuficiente en GAP Días");
-    expect(summaries[0]).toContain("Buen desempeño en GAP Días");
+    expect(summaries[1]).toMatch(
+      itemPattern(fillCopy(tList("T-832")[1], { grupo: "GAP Días", nota: "Faltó" })),
+    );
+    expect(summaries[0]).toMatch(itemPattern(fillCopy(tList("T-832")[0], { grupo: "GAP Días" })));
   });
 
   it("una tarea de nuevos con buen desempeño marca el paso de decoración del onboarding", async () => {
@@ -179,7 +186,9 @@ describe("puntajes del líder y créditos manuales", () => {
     const live = await getPersonPermanence(member, termId);
     expect(live?.result.results[0]?.criteria[0]).toMatchObject({ achieved: 4, remaining: 1 });
     await drain(50);
-    expect((await interactionsOf(member))[0]).toBe("convivencia en A3: 4 de 5: Mejoró");
+    expect((await interactionsOf(member))[0]).toBe(
+      `${fillCopy(tList("T-832")[2], { criterio: "convivencia", comité: "A3", valor: 4, peso: 5 })}: Mejoró`,
+    );
   });
 
   it("el líder solo puntúa criterios LEADER_SCORE de la tabla de su comité en el término", async () => {
@@ -279,7 +288,7 @@ describe("reconocimientos", () => {
     expect(published.published).toBe(true);
     const board = await listCommitteeAnnouncements(committeeId);
     expect(board).toHaveLength(1);
-    expect(board[0]?.title).toBe("Destacado de agosto: Persona Sintética");
+    expect(board[0]?.title).toBe(t("T-783", { mes: "agosto", nombre: "Persona Sintética" }));
     expect(await listMemberAnnouncements(12)).toHaveLength(0);
     const registered = await grantRecognitionAs(leader, {
       personId: without,
@@ -303,7 +312,9 @@ describe("reconocimientos", () => {
     const byPerson = await listRecognitionsByPeople([withConsent, without], termId);
     expect(byPerson.get(withConsent)?.[0]?.announcementId).toEqual(expect.any(String));
     expect(byPerson.get(without)?.[0]?.announcementId).toBeNull();
-    expect((await interactionsOf(withConsent))[0]).toBe("Destacado de agosto en A3");
+    expect((await interactionsOf(withConsent))[0]).toBe(
+      t("T-833", { mes: "agosto", comité: "A3" }),
+    );
     const [rows] = await getDb().select({ n: count() }).from(announcement);
     expect(rows?.n).toBe(1);
   });

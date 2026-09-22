@@ -18,7 +18,8 @@ import {
 import { myPosition, rankCommittees, rankPeople } from "@/modules/participation/domain/rankings";
 import { membership } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
@@ -128,8 +129,8 @@ describe("tableros y ledger manual", () => {
       .from(interaction)
       .where(eq(interaction.personId, personId));
     const summaries = timeline.map((item) => item.summary);
-    expect(summaries).toContain("Ajuste de -5 GH Points: penalización");
-    expect(summaries).toContain("Reversión de -5 GH Points: fue un error");
+    expect(summaries).toContain(fillCopy(tList("T-667")[4], { n: -5, motivo: "penalización" }));
+    expect(summaries).toContain(fillCopy(tList("T-667")[5], { n: -5, motivo: "fue un error" }));
     await db().update(term).set({ pointsClosedAt: new Date() }).where(eq(term.id, termId));
     await expect(
       adjustPointsAs({ personId: admin }, { personId, termId, points: 5, reason: "tarde" }),

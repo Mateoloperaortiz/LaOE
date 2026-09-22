@@ -10,6 +10,8 @@ import {
   person,
 } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import { t } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -118,22 +120,22 @@ test("la junta emite el enlace, la persona elige su contraseña y después la ca
   browser,
 }) => {
   await page.goto(`/admin/personas/activacion?comite=${prefix}`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Jornada de activación");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-2128"));
   const enLista = page.getByRole("listitem").filter({ hasText: "Acceso Sintético" });
-  await expect(enLista.getByText("Sin contraseña")).toBeVisible();
+  await expect(enLista.getByText(t("T-2137"))).toBeVisible();
   // El chip cuenta a las mismas personas que la lista, no las pertenencias cerradas ni las bajas.
   await expect(page.getByRole("listitem").filter({ hasText: "Sintétic" })).toHaveCount(1);
   await expect(page.locator(`#avance-${committeeId}`)).toHaveText("0/1");
   await enLista.getByRole("link").click();
   await sinViolaciones(page);
 
-  await page.getByRole("button", { name: "Emitir enlace de acceso" }).click();
+  await page.getByRole("button", { name: t("T-2119") }).click();
   await pasarStepUpSiHaceFalta(page);
   if (!page.url().includes("/activacion")) {
     await page.goto(`/admin/personas/activacion?comite=${prefix}&persona=${personId}`);
-    await page.getByRole("button", { name: "Emitir enlace de acceso" }).click();
+    await page.getByRole("button", { name: t("T-2119") }).click();
   }
-  await expect(page.getByText("Copialo ahora")).toBeVisible();
+  await expect(page.getByText(copyPattern("T-2122"))).toBeVisible();
   const enlace = (await page.locator("code").first().textContent())?.trim() ?? "";
   expect(enlace).toContain("/activar/");
 
@@ -144,40 +146,42 @@ test("la junta emite el enlace, la persona elige su contraseña y después la ca
   });
   const suya = await contexto.newPage();
   await suya.goto(enlace);
-  await expect(suya.getByRole("heading", { level: 1 })).toHaveText("Elegí tu contraseña");
-  await expect(suya.getByText("Hola, Acceso.")).toBeVisible();
+  await expect(suya.getByRole("heading", { level: 1 })).toHaveText(t("T-2101"));
+  await expect(suya.getByText(t("T-2102", { nombre: "Acceso" }))).toBeVisible();
   await sinViolaciones(suya);
 
   // Las reglas de contraseña se aplican antes de consumir el enlace.
-  await suya.getByLabel("Contraseña nueva").fill("corta");
-  await suya.getByLabel("Repetí la contraseña").fill("corta");
-  await suya.getByRole("button", { name: "Guardar y entrar" }).click();
-  await expect(suya.locator("#activar-error")).toContainText("al menos 10 caracteres");
+  await suya.getByLabel(t("T-2103")).fill("corta");
+  await suya.getByLabel(t("T-2104")).fill("corta");
+  await suya.getByRole("button", { name: t("T-2106") }).click();
+  await expect(suya.locator("#activar-error")).toContainText(t("T-2108"));
 
-  await suya.getByLabel("Contraseña nueva").fill(CLAVE);
-  await suya.getByLabel("Repetí la contraseña").fill(CLAVE);
-  await suya.getByRole("button", { name: "Guardar y entrar" }).click();
+  await suya.getByLabel(t("T-2103")).fill(CLAVE);
+  await suya.getByLabel(t("T-2104")).fill(CLAVE);
+  await suya.getByRole("button", { name: t("T-2106") }).click();
   await expect(suya).toHaveURL(/\/app$/);
-  await expect(suya.getByRole("heading", { level: 1 })).toContainText("Hola, Acceso");
+  await expect(suya.getByRole("heading", { level: 1 })).toContainText(
+    t("T-060", { "nombre preferido": "Acceso" }),
+  );
 
   // El enlace ya no sirve.
   const otra = await contexto.newPage();
   await otra.goto(enlace);
-  await expect(otra.getByText("Este enlace ya no sirve")).toBeVisible();
+  await expect(otra.getByText(t("T-2107"))).toBeVisible();
   await otra.close();
 
   // Y la contraseña se cambia desde Ajustes, que cierra las demás sesiones.
   await suya.goto("/app/ajustes#sesiones");
-  await suya.getByLabel("Contraseña actual").fill(CLAVE);
-  await suya.getByLabel("Contraseña nueva").fill(OTRA);
-  await suya.getByLabel("Repetí la contraseña").fill(OTRA);
-  await suya.getByRole("button", { name: "Guardar", exact: true }).click();
-  await expect(suya.getByText("guardamos tu contraseña")).toBeVisible();
+  await suya.getByLabel(t("T-2114")).fill(CLAVE);
+  await suya.getByLabel(t("T-2103")).fill(OTRA);
+  await suya.getByLabel(t("T-2104")).fill(OTRA);
+  await suya.getByRole("button", { name: t("T-253"), exact: true }).click();
+  await expect(suya.getByText(t("T-2116"))).toBeVisible();
 
   await contexto.close();
 
   // De vuelta en la jornada, la persona ya no lleva la insignia y su comité queda completo.
   await page.goto(`/admin/personas/activacion?comite=${prefix}`);
   await expect(page.locator(`#avance-${committeeId}`)).toHaveText("1/1");
-  await expect(enLista.getByText("Sin contraseña")).toHaveCount(0);
+  await expect(enLista.getByText(t("T-2137"))).toHaveCount(0);
 });

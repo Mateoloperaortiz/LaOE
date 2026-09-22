@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { pointEntry, wordleGame } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
+import { t } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
@@ -46,8 +48,8 @@ test("inicia sin filtrar la respuesta, rechaza palabras ausentes y acredita una 
 }) => {
   await page.goto("/app/juegos/wordle");
   const game = page.locator("#wordle");
-  await game.getByRole("button", { name: "Jugar el Wordle de hoy" }).click();
-  const word = game.getByRole("textbox", { name: "Tu palabra de cinco letras" });
+  await game.getByRole("button", { name: t("T-1232") }).click();
+  const word = game.getByRole("textbox", { name: t("T-1236") });
   await expect(word).toBeVisible();
   const saved = await savedGame();
   expect(await page.content()).not.toContain(`"answer":"${saved.answer}"`);
@@ -56,19 +58,19 @@ test("inicia sin filtrar la respuesta, rechaza palabras ausentes y acredita una 
     exported.wordleGames.find((item: { id: string }) => item.id === saved.id).answer,
   ).toBeNull();
   await word.fill("ZZZZZ");
-  await game.getByRole("button", { name: "Probar palabra" }).click();
-  await expect(game.getByRole("status")).toContainText("No la encontré en el diccionario");
+  await game.getByRole("button", { name: t("T-1237") }).click();
+  await expect(game.getByRole("status")).toContainText(t("T-1244"));
   await expect(word).toBeFocused();
   await word.fill(saved.answer.toLowerCase());
   await word.press("Enter");
-  await expect(game.getByRole("status")).toContainText("Sumaste 6 GH Points");
-  await expect(game.getByText(`La palabra era ${saved.answer}.`)).toBeVisible();
+  await expect(game.getByRole("status")).toContainText(copyPattern("T-1245", { puntos: 6 }));
+  await expect(game.getByText(t("T-1247", { palabra: saved.answer }))).toBeVisible();
   // El movimiento se ve en el resumen, que es donde quedó la tabla del ledger.
   await page.goto("/app/gh-points");
-  await expect(page.getByText(`Wordle del ${saved.day}: intento 1/6`)).toBeVisible();
+  await expect(page.getByText(t("T-1261", { fecha: saved.day, intento: 1 }))).toBeVisible();
   await page.goto("/app/juegos/wordle");
-  await expect(game.getByRole("status")).toContainText("Sumaste 6 GH Points");
-  await expect(game.getByRole("button", { name: "Jugar el Wordle de hoy" })).toHaveCount(0);
+  await expect(game.getByRole("status")).toContainText(copyPattern("T-1245", { puntos: 6 }));
+  await expect(game.getByRole("button", { name: t("T-1232") })).toHaveCount(0);
   const credits = await getDb()
     .select()
     .from(pointEntry)
@@ -86,24 +88,22 @@ test("retoma los intentos en otra pestaña y funciona en móvil con teclado tác
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/app/juegos/wordle");
   const panel = page.locator("#wordle");
-  await panel.getByRole("button", { name: "Jugar el Wordle de hoy" }).click();
+  await panel.getByRole("button", { name: t("T-1232") }).click();
   await expect(panel.getByRole("textbox")).toBeVisible();
   const saved = await savedGame();
   const wrong = saved.answer === "NIÑAS" ? "NIÑOS" : "NIÑAS";
-  const keyboard = panel.getByRole("group", { name: "Teclado del Wordle" });
+  const keyboard = panel.getByRole("group", { name: t("T-1259") });
   for (const letter of wrong)
     await keyboard.getByRole("button", { name: letter, exact: true }).click();
-  await panel.getByRole("button", { name: "Probar palabra" }).click();
-  await expect(panel.getByRole("status")).toContainText("Podés sumar 5 GH Points");
+  await panel.getByRole("button", { name: t("T-1237") }).click();
+  await expect(panel.getByRole("status")).toContainText(t("T-1264", { n: 5 }));
   await expect(panel.getByRole("textbox")).toBeFocused();
   await page.keyboard.type(saved.answer === "AREPA" ? "TIGRE" : "AREPA");
   await page.keyboard.press("Enter");
-  await expect(panel.getByRole("status")).toContainText("Podés sumar 4 GH Points");
+  await expect(panel.getByRole("status")).toContainText(t("T-1264", { n: 4 }));
   const second = await context.newPage();
   await second.goto("/app/juegos/wordle");
-  await expect(second.locator("#wordle").getByRole("status")).toContainText(
-    "Podés sumar 4 GH Points",
-  );
+  await expect(second.locator("#wordle").getByRole("status")).toContainText(t("T-1264", { n: 4 }));
   await expect(second.locator("#wordle").getByRole("listitem").first()).toContainText("Ñ");
   await second.close();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
@@ -119,7 +119,7 @@ test("recupera una victoria cuya respuesta de red se perdió sin duplicar el pre
 }) => {
   await page.goto("/app/juegos/wordle");
   const panel = page.locator("#wordle");
-  await panel.getByRole("button", { name: "Jugar el Wordle de hoy" }).click();
+  await panel.getByRole("button", { name: t("T-1232") }).click();
   await expect(panel.getByRole("textbox")).toBeFocused();
   const saved = await savedGame();
   let dropped = false;
@@ -134,9 +134,9 @@ test("recupera una victoria cuya respuesta de red se perdió sin duplicar el pre
   });
   await page.keyboard.type(saved.answer);
   await page.keyboard.press("Enter");
-  await expect(panel.getByRole("status")).toContainText("No recibimos la confirmación");
-  await panel.getByRole("button", { name: "Reintentar jugada" }).click();
-  await expect(panel.getByRole("status")).toContainText("Sumaste 6 GH Points");
+  await expect(panel.getByRole("status")).toContainText(t("T-1254"));
+  await panel.getByRole("button", { name: t("T-1268") }).click();
+  await expect(panel.getByRole("status")).toContainText(copyPattern("T-1245", { puntos: 6 }));
   const credits = await getDb()
     .select()
     .from(pointEntry)
@@ -148,9 +148,9 @@ test("el resumen de GH Points lleva a la biblioteca y al Wordle del día", async
   // El tablero ya no vive en el resumen (ADR-075 regla 1): quedan los dos caminos de ida.
   await page.goto("/app/gh-points");
   await expect(page.locator("#wordle")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Ver todos los juegos" })).toBeVisible();
-  await page.getByRole("link", { name: "Ir al Wordle de hoy" }).click();
+  await expect(page.getByRole("link", { name: t("T-2625") })).toBeVisible();
+  await page.getByRole("link", { name: t("T-1257") }).click();
   await expect(page).toHaveURL(/\/app\/juegos\/wordle$/);
   await expect(page.locator("#wordle")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Jugar el Wordle de hoy" })).toBeVisible();
+  await expect(page.getByRole("button", { name: t("T-1232") })).toBeVisible();
 });

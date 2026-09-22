@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { t } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 
@@ -12,7 +13,7 @@ test.describe("cambio de área con la misma cuenta", () => {
         await page.emulateMedia({ colorScheme: theme });
         await page.goto("/admin/personas");
         const member = page.locator(".admin-topbar").getByRole("link", {
-          name: "Cambiar a Mi OE (vista de integrante)",
+          name: t("T-2091"),
           exact: true,
         });
         await expect(member).toBeVisible();
@@ -26,7 +27,7 @@ test.describe("cambio de área con la misma cuenta", () => {
         // El enlace permanece en todas las páginas, incluso fuera de Inicio.
         await page.goto("/app/agenda");
         const admin = page.locator(".member-topbar").getByRole("link", {
-          name: "Cambiar a Administración",
+          name: t("T-2090"),
           exact: true,
         });
         await expect(admin).toBeVisible();
@@ -38,9 +39,7 @@ test.describe("cambio de área con la misma cuenta", () => {
         await admin.focus();
         await page.keyboard.press("Enter");
         await expect(page).toHaveURL(/\/admin$/);
-        await expect(
-          page.getByRole("heading", { name: "Administración", exact: true }),
-        ).toBeVisible();
+        await expect(page.getByRole("heading", { name: t("T-236"), exact: true })).toBeVisible();
       }
     });
   }
@@ -51,14 +50,12 @@ test.describe("cambio de área con la misma cuenta", () => {
     await page.evaluate(() => {
       document.documentElement.style.fontSize = "200%";
     });
-    await page.getByRole("link", { name: "Cambiar a Administración", exact: true }).click();
+    await page.getByRole("link", { name: t("T-2090"), exact: true }).click();
     await expect(page).toHaveURL(/\/admin$/);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
-    await page
-      .getByRole("link", { name: "Cambiar a Mi OE (vista de integrante)", exact: true })
-      .click();
+    await page.getByRole("link", { name: t("T-2091"), exact: true }).click();
     await expect(page).toHaveURL(/\/app$/);
     const header = page.locator(".member-topbar");
     await header.screenshot({ path: testInfo.outputPath("mi-oe-texto-200.png") });
@@ -71,7 +68,7 @@ test.describe("integrante sin permisos de gestión", () => {
 
   test("no recibe el acceso a Administración ni puede entrar por URL", async ({ page }) => {
     await page.goto("/app");
-    await expect(page.getByRole("link", { name: "Cambiar a Administración" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: t("T-2090") })).toHaveCount(0);
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/app$/);
   });

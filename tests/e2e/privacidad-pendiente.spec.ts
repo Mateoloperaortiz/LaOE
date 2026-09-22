@@ -4,7 +4,7 @@ import { closeDb, getDb } from "@/db/client";
 import { form, formSubmission } from "@/modules/forms/schema";
 import { person } from "@/modules/people/schema";
 import { appConfig } from "@/modules/system/schema";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { test } from "./fixtures";
 import { drenarOutbox } from "./outbox";
 
@@ -55,15 +55,17 @@ test("la política pendiente mantiene Mi OE y deshabilita nuevas autorizaciones 
 }) => {
   await policy("pendiente");
   await page.goto("/app");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Hola, Miembro");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    t("T-060", { "nombre preferido": "Miembro" }),
+  );
   await page.goto("/app/ajustes#consentimientos");
   const consents = page.locator("#consentimientos");
   await expect(consents.getByText(t("T-1178"), { exact: false })).toBeVisible();
-  const grants = consents.getByRole("button", { name: "Autorizar", exact: true });
+  const grants = consents.getByRole("button", { name: tList("T-413")[0], exact: true });
   expect(await grants.count()).toBeGreaterThan(0);
   for (const button of await grants.all()) await expect(button).toBeDisabled();
   for (const button of await consents
-    .getByRole("button", { name: "Retirar la autorización", exact: true })
+    .getByRole("button", { name: tList("T-413")[1], exact: true })
     .all())
     await expect(button).toBeEnabled();
   await page.goto(`/f/${slug}`);
@@ -80,9 +82,9 @@ test("una página abierta antes de bloquear la política no puede guardar una ac
   await policy("prueba-v1");
   await page.goto(`/f/${slug}`);
   const email = "e2e-politica-bloqueada@example.com";
-  await page.getByRole("textbox", { name: "Nombre", exact: true }).fill("Persona");
-  await page.getByRole("textbox", { name: "Apellido", exact: true }).fill("Sintética");
-  await page.getByRole("textbox", { name: "Correo", exact: true }).fill(email);
+  await page.getByRole("textbox", { name: tList("T-851")[0], exact: true }).fill("Persona");
+  await page.getByRole("textbox", { name: tList("T-851")[1], exact: true }).fill("Sintética");
+  await page.getByRole("textbox", { name: tList("T-851")[2], exact: true }).fill(email);
   await page.getByRole("checkbox").check();
   await policy("pendiente");
   await page.getByRole("button", { name: t("T-852"), exact: true }).click();

@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
 import { drain } from "@/jobs/poller";
+import { itemPattern } from "../helpers/copy";
 import "@/jobs/handlers";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
@@ -16,6 +17,7 @@ import {
   listSudokuRunsFor,
   startSudokuAs,
 } from "@/modules/participation/domain/sudoku";
+
 import { countSolutions, logicSolve } from "@/modules/participation/domain/sudoku-generator";
 import { pointEntry, sudokuRun } from "@/modules/participation/schema";
 import {
@@ -27,10 +29,14 @@ import {
 import type { SudokuDifficulty } from "@/modules/participation/sudoku-types";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
 import { truncateAll } from "./db";
 import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
 const db = () => getDb();
+
+/** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 
 interface Options {
   difficulty?: SudokuDifficulty;
@@ -196,8 +202,8 @@ describe("Sudoku con la solución en el servidor", () => {
     const entries = await db().select().from(pointEntry);
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ kind: "SUDOKU", sudokuRunId: run.id, points: esperado });
-    expect(entries[0]?.reason).toContain("Sudoku del");
-    expect(entries[0]?.reason).toContain(assisted ? "con ayudas" : "sin ayudas");
+    expect(entries[0]?.reason).toMatch(itemPattern(tList("T-2712")[assisted ? 1 : 0]));
+    expect(entries[0]?.reason).not.toMatch(itemPattern(tList("T-2712")[assisted ? 0 : 1]));
     expect(entries[0]?.reason).not.toContain("·");
     expect(await balanceFor(personId, entries[0]?.termId ?? "")).toBe(esperado);
 
@@ -594,8 +600,8 @@ describe("Sudoku con la solución en el servidor", () => {
       .where(eq(interaction.personId, personId));
     expect(timeline).toHaveLength(1);
     expect(timeline[0]?.kind).toBe("PARTICIPATION");
-    expect(timeline[0]?.summary).toContain("Sudoku");
-    expect(timeline[0]?.summary).toContain("6 GH Points");
+    expect(timeline[0]?.summary).toMatch(itemPattern(tList("T-667")[13]));
+    expect(timeline[0]?.summary).toMatch(itemPattern(fillCopy(tList("T-667")[13], { n: 6 })));
     // El juego no manda push: el único aviso diario de la casa es el del Wordle (ADR-074).
     expect(await db().select().from(message)).toHaveLength(0);
   });

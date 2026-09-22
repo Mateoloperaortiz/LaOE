@@ -31,10 +31,14 @@ import { membership, person } from "@/modules/people/schema";
 import { setConfig } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { tList } from "@/shared/copy";
+import { itemPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
 import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
 const db = () => getDb();
+
+/** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 
 async function started(personId: string): Promise<WordleGameView> {
   const result = await startWordleAs({ personId });
@@ -176,12 +180,12 @@ describe("Wordle diario persistido", () => {
     // La victoria escribe su interacción y, desde G-T5, la de la insignia Palabra a palabra 1
     // que el mismo evento desbloquea; reentregar el evento no duplica ninguna.
     expect(timeline).toHaveLength(2);
-    const wordleEntry = timeline.find((item) => item.summary.includes("Wordle"));
+    const wordleEntry = timeline.find((item) => itemPattern(tList("T-667")[6]).test(item.summary));
     expect(wordleEntry).toMatchObject({
       kind: "PARTICIPATION",
       metadata: { gameId: game.id, points: 6, attempts: 1 },
     });
-    const badgeEntry = timeline.find((item) => item.summary.includes("Desbloqueó la insignia"));
+    const badgeEntry = timeline.find((item) => itemPattern(tList("T-667")[9]).test(item.summary));
     expect(badgeEntry?.summary).toContain("Palabra a palabra");
     expect(JSON.stringify(timeline)).not.toContain(answer);
     expect(await db().select().from(message)).toHaveLength(0);

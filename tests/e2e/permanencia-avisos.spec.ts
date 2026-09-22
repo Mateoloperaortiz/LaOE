@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
+import { t } from "@/shared/copy";
+import { copyPattern, itemPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -37,17 +39,15 @@ test.beforeEach(async () => {
 test("el miembro ve el aviso de la asamblea obligatoria en el inicio y en su permanencia", async ({
   page,
 }) => {
+  // En Mi OE el aviso une título y cuerpo con un punto (noticeText en src/app/app/_ui/avisos.ts).
+  const aviso = itemPattern(t("T-183", { lugar: "Auditorio e2e" }).replace(" · ", ". "));
   await page.goto("/app");
-  const barra = page.getByRole("region", { name: "Permanencia" });
-  await expect(
-    barra.getByText(
-      /Asamblea obligatoria .* en Auditorio e2e\. Recordá que faltar implica salir de la OE/,
-    ),
-  ).toBeVisible();
+  const barra = page.getByRole("region", { name: t("T-110") });
+  await expect(barra.getByText(aviso)).toBeVisible();
   await sinViolaciones(page);
 
   await page.goto("/app/permanencia");
-  await expect(page.getByText(/Asamblea obligatoria .* en Auditorio e2e/)).toBeVisible();
-  await expect(page.getByText(/Asambleas obligatorias: \d+ de \d+/)).toBeVisible();
+  await expect(page.getByText(aviso)).toBeVisible();
+  await expect(page.getByText(copyPattern("T-124"))).toBeVisible();
   await sinViolaciones(page);
 });

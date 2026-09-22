@@ -4,6 +4,7 @@ import { closeDb, getDb } from "@/db/client";
 import { person } from "@/modules/people/schema";
 import { workGroup, workGroupEvaluator } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
+import { t } from "@/shared/copy";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
@@ -33,18 +34,18 @@ test("líder y evaluador de grupo reciben solo sus destinos, con un único activ
   try {
     await db.insert(workGroupEvaluator).values({ groupId: group.id, personId: member.id });
     await page.goto("/app");
-    await page.getByRole("link", { name: "Cambiar a Administración", exact: true }).click();
+    await page.getByRole("link", { name: t("T-2090"), exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/admin/permanencia/grupos/${group.id}$`));
     const nav = page.locator(".admin-sidebar nav");
     await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
     await expect(nav.getByRole("link")).toHaveCount(2);
-    await expect(page.getByRole("button", { name: "Buscar (⌘K)" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: t("T-299") })).toHaveCount(0);
     await expect(nav.locator('a[href="/admin/personas"]')).toHaveCount(0);
     await page.goto("/admin/personas");
     await expect(page).toHaveURL(/\/app$/);
     await db.update(workGroup).set({ leaderPersonId: null }).where(eq(workGroup.id, group.id));
     await page.goto("/app");
-    await page.getByRole("link", { name: "Cambiar a Administración", exact: true }).click();
+    await page.getByRole("link", { name: t("T-2090"), exact: true }).click();
     await expect(page).toHaveURL(/\/admin\/permanencia\/evaluaciones$/);
     await expect(nav.getByRole("link")).toHaveCount(1);
     await expect(nav.locator('a[aria-current="page"]')).toHaveAttribute(

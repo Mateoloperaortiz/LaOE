@@ -6,6 +6,7 @@ import {
   partitionRoleHistory,
   type RoleHistoryEntry,
 } from "@/modules/people/domain/role-history";
+import { t } from "@/shared/copy";
 
 const role = (
   id: string,
@@ -76,7 +77,7 @@ describe("cargos vigentes e historial", () => {
 
   it("rotula GH dentro de Junta, conserva el comité explícito y la edición del macroevento", () => {
     for (const kind of ["VP_GH", "GH_HEAD", "GH_DIRECTOR"] as const) {
-      expect(appointmentHistoryEntry(appointment({ kind })).scope).toBe("Junta Directiva");
+      expect(appointmentHistoryEntry(appointment({ kind })).scope).toBe(t("T-2394"));
     }
     expect(
       appointmentHistoryEntry(appointment({ kind: "GH_DIRECTOR", committeeName: "Comité Alfa" }))
@@ -91,7 +92,10 @@ describe("cargos vigentes e historial", () => {
           coDirector: true,
         }),
       ),
-    ).toMatchObject({ scope: "Evento Uno · 2026", label: "Dirección de Logística (codirección)" });
+    ).toMatchObject({
+      scope: "Evento Uno · 2026",
+      label: t("T-2401", { cargo: "Dirección de Logística" }),
+    });
   });
 
   it("ordena un título histórico con ámbito sin convertirlo en un nombramiento de macroevento", () => {
@@ -105,6 +109,6 @@ describe("cargos vigentes e historial", () => {
     expect(raw.editionId).toBeNull();
     expect(
       appointmentHistoryEntry(appointment({ kind: "OTHER", title: "Representante especial" })),
-    ).toMatchObject({ scope: "Otros cargos", label: "Representante especial" });
+    ).toMatchObject({ scope: t("T-2395"), label: "Representante especial" });
   });
 });

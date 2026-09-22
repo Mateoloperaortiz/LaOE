@@ -15,7 +15,9 @@ import { interaction } from "@/modules/crm/schema";
 import { formSubmission } from "@/modules/forms/schema";
 import { listGroupIdsOf } from "@/modules/permanence";
 import { workGroupMembership } from "@/modules/permanence/schema";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
+import { copyPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
 import {
   seedCall,
@@ -60,7 +62,9 @@ describe("convocatorias internas", () => {
     await expect(
       applyToCallAs({ personId: prospect, ip: null }, open, {}, notInGroup),
     ).rejects.toThrow(t("T-907"));
-    await expect(applyToCallAs(actor, open, {}, { inGroup: true })).rejects.toThrow("Ya estás en");
+    await expect(applyToCallAs(actor, open, {}, { inGroup: true })).rejects.toThrow(
+      copyPattern("T-900"),
+    );
     const first = await applyToCallAs(actor, open, {}, notInGroup);
     expect(first.status).toBe("ACCEPTED");
     await expect(applyToCallAs(actor, open, {}, notInGroup)).rejects.toThrow(t("T-903"));
@@ -134,10 +138,24 @@ describe("convocatorias internas", () => {
       .where(eq(interaction.personId, personId));
     const summaries = timeline.map((item) => item.summary);
     expect(
-      summaries.some((text) => text.startsWith("Convocatoria Convocatoria de prueba: pendiente")),
+      summaries.some((text) =>
+        text.startsWith(
+          fillCopy(tList("T-1046")[8], {
+            convocatoria: "Convocatoria de prueba",
+            estado: tList("T-899")[0].toLowerCase(),
+          }),
+        ),
+      ),
     ).toBe(true);
     expect(
-      summaries.some((text) => text.startsWith("Convocatoria Convocatoria de prueba: aceptada")),
+      summaries.some((text) =>
+        text.startsWith(
+          fillCopy(tList("T-1046")[8], {
+            convocatoria: "Convocatoria de prueba",
+            estado: tList("T-899")[1].toLowerCase(),
+          }),
+        ),
+      ),
     ).toBe(true);
   });
 

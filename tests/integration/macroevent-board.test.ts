@@ -14,7 +14,7 @@ import {
   removeAppointment,
 } from "@/modules/people/domain/appointments";
 import { appointment } from "@/modules/people/schema";
-import { tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import { seedMember, seedPerson, seedTerm } from "./factories";
@@ -69,7 +69,7 @@ describe("mesa directiva de macroevento", () => {
           roleCode: "THE_GAMES",
         }),
       ),
-    ).rejects.toThrow("Ese cargo no corresponde");
+    ).rejects.toThrow(t("T-2351"));
     const enFemenino = await seedEdition("enfemenino");
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       addMacroeventDirector(ctx, {
@@ -137,7 +137,7 @@ describe("mesa directiva de macroevento", () => {
       coDirector: true,
     });
     expect(appointmentLabel(cargo as NonNullable<typeof cargo>)).toBe(
-      "Dirección General (codirección) · Inventiva · 2026",
+      t("T-2269", { cargo: "Dirección General", edición: "Inventiva · 2026" }),
     );
 
     const vivos = await listMacroeventDirectorsForTerm(termId, [general, co, "nadie"]);

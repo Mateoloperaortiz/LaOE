@@ -8,6 +8,8 @@ Dueños: **GH** (Gestión Humana), **COM** (comunicaciones y relaciones pública
 
 Según el manual de marca ([07-marca.md](07-marca.md)): cercana y "parchada", con **voseo**, lenguaje cotidiano; personalidad servicial, fraternal y versátil; cierre **¡OE OE OE!** en éxitos y celebraciones, nunca en errores ni en mensajes sensibles (permanencia, salida, expulsión). Frases cortas. Sin jerga administrativa donde lo lee un miembro.
 
+Toque paisa ([ADR-086](adr/ADR-086-copy-paisa-y-parchado.md), 2026-09-22): sutil, uno por texto y no en todos. Permitido: de una, hágale, listo pues, pues, bacano, qué nota, pilas, parce/parcero (solo saludos y celebraciones), parche, camellar, severo, a lo bien, ratico, pegarse, berraco (admiración). Vetado: chimba, gonorrea, marica, huevón y cualquier grosería. En botones, formularios y errores manda la claridad; el admin lleva el mismo toque, más sobrio; permanencia, salida, expulsión y lo marcado "texto sensible" siguen serios. Las filas "Confirmado" y "Aprobado por el manual" no se reescriben. Los `{variables}`, las piezas separadas por " · " y el `**negrito**` de cada texto no cambian.
+
 Términos fijos en la interfaz (los usa el código tal cual):
 
 | Término | Uso | Alternativa que hay que descartar o confirmar |
@@ -32,13 +34,13 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | --- | --- | --- | --- | --- |
 | T-001 | Nombre del sitio (pestaña, buscadores) | Organización Estudiantil EAFIT | COM | Propuesta |
 | T-002 | Inicio, titular del hero | Lo hacemos por vos | COM | Propuesta |
-| T-003 | Inicio, texto bajo el titular | Desde 1987 somos el grupo estudiantil más grande de EAFIT: 18 comités, cuatro macroeventos y una comunidad que se organiza para hacer que las cosas pasen. | COM | Propuesta |
+| T-003 | Inicio, texto bajo el titular | Desde 1987 somos el grupo estudiantil más grande de EAFIT: 18 comités, cuatro macroeventos y una comunidad que se organiza y se pone a camellar para que las cosas pasen. | COM | Propuesta |
 | T-004 | Inicio, botón principal | Entrá a Mi OE | COM | Propuesta |
 | T-005 | Inicio, botón secundario | Conocé los comités | COM | Propuesta |
 | T-006 | Inicio, título de la sección de macroeventos | Nuestros macroeventos | COM | Propuesta |
 | T-007 | Inicio, título de la cartelera | Qué está pasando | COM | Propuesta |
 | T-008 | Inicio, título del próximo encuentro | Próximo encuentro | COM | Propuesta |
-| T-009 | Inicio, cuando no hay anuncios ni encuentros | Por ahora no hay nada programado. Volvé pronto. | MATEO | Propuesta |
+| T-009 | Inicio, cuando no hay anuncios ni encuentros | Por ahora no hay nada programado. Volvé pronto, pues. | MATEO | Propuesta |
 | T-010 | La OE, historia | Texto del manual, sección "Nuestra historia": comienza en 1987… (transcrito en la migración `0003`, cuerpo de la página `la-oe`; se edita desde el admin) | COM | Aprobado por el manual |
 | T-011 | La OE, misión | Texto del manual, sección "Identidad" (transcrito en la migración `0003`, cuerpo de la página `la-oe`) | JUNTA | Aprobado por el manual |
 | T-012 | La OE, visión | Texto del manual, sección "Identidad" (transcrito en la migración `0003`, cuerpo de la página `la-oe`) | JUNTA | Aprobado por el manual |
@@ -51,18 +53,18 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-019 | Edición, botón de inscripción propia | Inscribite | COM | Propuesta |
 | T-020 | Edición, botón de inscripción externa | Inscribite (te lleva a otro sitio) | MATEO | Propuesta |
 | T-021 | Edición sin fecha confirmada | Fecha por confirmar | MATEO | Propuesta |
-| T-022 | Comités, intro | 18 comités, 18 formas de vivir la OE. Encontrá el tuyo. | COM | Propuesta |
+| T-022 | Comités, intro | 18 comités, 18 formas de vivir la OE. Encontrá tu parche. | COM | Propuesta |
 | T-023 | Comité, presentación (uno por comité) | Por escribir: 2 a 4 párrafos, qué hacen, cómo trabajan, cómo entrar | COMITÉ | Pendiente ×27 |
 | T-024 | Comité, botón de contacto | Escribiles | COM | Propuesta |
-| T-025 | Unirse, título | ¿Querés ser parte de la OE? | GH | Propuesta |
+| T-025 | Unirse, título | ¿Te querés pegar a la OE? | GH | Propuesta |
 | T-026 | Unirse, texto del proceso | Por escribir: requisitos, fechas de convocatoria, qué pasa después de postularse | GH | Pendiente |
 | T-027 | Unirse, botón | Postulate | GH | Propuesta |
-| T-028 | Unirse, cuando no hay convocatoria abierta | Ahora no hay convocatoria abierta. Dejanos tu correo y te avisamos cuando abra. | GH | Propuesta |
+| T-028 | Unirse, cuando no hay convocatoria abierta | Ahora no hay convocatoria abierta, pero dejanos tu correo y te avisamos de una cuando abra. | GH | Propuesta |
 | T-029 | Privacidad, título | Tratamiento de datos personales | JUNTA | Propuesta |
 | T-030 | Privacidad, texto | Texto completo en docs/17-politica-de-datos.md; se publica en la página privacidad y su versión es la fecha de aprobación | JUNTA | Borrador entregado; falta aprobación de la junta |
 | T-031 | Pie de página | Organización Estudiantil · Universidad EAFIT · desde 1987 | COM | Propuesta |
-| T-032 | Página no encontrada | Esta página no existe. Volvé al inicio. | MATEO | Propuesta |
-| T-033 | Error del servidor | Algo falló de nuestro lado. Ya nos enteramos; intentá de nuevo en un rato. | MATEO | Propuesta |
+| T-032 | Error genérico "no encontrado" de acciones y dominio (el 404 usa T-2721) | Esta página no existe. Volvé al inicio. | MATEO | Propuesta |
+| T-033 | Error del servidor | Algo se nos dañó de este lado. Ya nos dimos cuenta; intentá otra vez en un ratico. | MATEO | Propuesta |
 | T-034 | Botón de tema (etiqueta accesible), según el tema al que cambia | Cambiar a tema oscuro · Cambiar a tema claro | MATEO | Propuesta |
 | T-035 | Enlace para saltar la navegación (lectores de pantalla y teclado) | Saltar al contenido | MATEO | Propuesta |
 | T-036 | Nombre accesible del logotipo en cabecera y pie | Organización Estudiantil, Universidad EAFIT | COM | Propuesta |
@@ -74,9 +76,9 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
-| T-300 | La OE, Unirse o Privacidad sin publicar todavía | Este contenido está en preparación. Volvé pronto. | MATEO | Propuesta |
+| T-300 | La OE, Unirse o Privacidad sin publicar todavía | Estamos camellando en este contenido. Volvé pronto. | MATEO | Propuesta |
 | T-301 | Cartelera, título de la página | Cartelera | COM | Propuesta |
-| T-302 | Cartelera sin anuncios | Todavía no hay anuncios. Volvé pronto. | MATEO | Propuesta |
+| T-302 | Cartelera sin anuncios | La cartelera está quieta por ahora. Volvé pronto. | MATEO | Propuesta |
 | T-303 | Cartelera, insignia de un anuncio fijado | Fijado | MATEO | Propuesta |
 | T-304 | Eventos, título de la página | Eventos | COM | Propuesta |
 | T-305 | Evento, título de la lista de ediciones | Ediciones | COM | Propuesta |
@@ -110,11 +112,11 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-856 | Formulario: opción fuera de la lista | Elegí una opción de la lista. | MATEO | Propuesta |
 | T-857 | Formulario: fecha inválida | Esa fecha no es válida. | MATEO | Propuesta |
 | T-858 | Formulario: consentimiento sin marcar | Para enviar tenés que aceptar la política de tratamiento de datos. | JUNTA | Propuesta |
-| T-859 | Formulario: gracias por defecto (si el formulario no trae el suyo) | ¡Listo! Recibimos tu respuesta. ¡OE OE OE! | COM | Propuesta |
+| T-859 | Formulario: gracias por defecto (si el formulario no trae el suyo) | ¡De una! Recibimos tu respuesta. ¡OE OE OE! | COM | Propuesta |
 | T-860 | Formulario cerrado o todavía no abierto | Este formulario no está recibiendo respuestas ahora. | MATEO | Propuesta |
 | T-861 | Formulario con el tope de respuestas alcanzado | Este formulario ya alcanzó su tope de respuestas. | MATEO | Propuesta |
 | T-862 | Formulario: segunda respuesta con el mismo correo | Ya recibimos una respuesta con ese correo. | MATEO | Propuesta |
-| T-863 | Formulario: demasiados envíos desde la misma red | Recibimos muchos envíos desde tu red. Esperá unos minutos e intentá de nuevo. | MATEO | Propuesta |
+| T-863 | Formulario: demasiados envíos desde la misma red | Recibimos muchos envíos desde tu red. Esperá un ratico e intentá de nuevo. | MATEO | Propuesta |
 | T-864 | Ingresar: aviso cuando se llega desde un formulario de miembros | Entrá con tu correo institucional para responder el formulario. | MATEO | Propuesta |
 | T-865 | Formulario: enlace a la política junto a la casilla | Leé la política de datos | JUNTA | Propuesta |
 | T-866 | Formulario: aviso de campos obligatorios | Los campos con * son obligatorios. | MATEO | Propuesta |
@@ -154,15 +156,15 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
-| T-060 | Saludo | Hola, {nombre preferido} | MATEO | Propuesta |
+| T-060 | Saludo | ¿Qué más, {nombre preferido}? | MATEO | Propuesta |
 | T-061 | Pestañas de navegación | Inicio · Eventos · Comités · Personas · Egresados · GH Points · Permanencia · Solicitudes · Convocatorias · Normativa · Carnet · Ajustes · Juegos | COM | Propuesta |
 | T-062 | Agenda, título | Tu semana | MATEO | Propuesta |
-| T-063 | Agenda vacía | No tenés nada esta semana. Mirá los eventos o pasá por tu comité. | MATEO | Propuesta |
+| T-063 | Agenda vacía | No tenés nada esta semana. Pegate a un evento o pasá por tu comité. | MATEO | Propuesta |
 | T-064 | Barra de permanencia en el inicio | Permanencia en {comité}: {n} % de {umbral} % | GH | Propuesta |
 | T-065 | Saldo compacto de GH Points | {n} GH Points este semestre | GH | Propuesta |
 | T-066 | Onboarding, título (solo nuevos) | Tu primera semana en la OE | GH | Propuesta |
-| T-067 | Onboarding, pasos | 1. Leé los estatutos y el reglamento · 2. Conocé a tu comité · 3. Andá a tu primera integración · 4. Activá las notificaciones · 5. Decorá la oficina con los nuevos | GH | Propuesta; GH define los pasos |
-| T-068 | Onboarding completado | Ya sos parte de esto. ¡OE OE OE! | COM | Propuesta |
+| T-067 | Onboarding, pasos | 1. Leé los estatutos y el reglamento · 2. Conocé a tu comité · 3. Pegate a tu primera integración · 4. Activá las notificaciones · 5. Decorá la oficina con los nuevos | GH | Propuesta; GH define los pasos |
+| T-068 | Onboarding completado | Ya sos parte de este parche. ¡OE OE OE! | COM | Propuesta |
 
 ### Personas y comités
 
@@ -193,8 +195,8 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | --- | --- | --- | --- | --- |
 | T-090 | Página del QR, título | {nombre de la actividad} | MATEO | Propuesta |
 | T-091 | Botón | Registrar mi asistencia | GH | Propuesta |
-| T-092 | Éxito con puntos | ¡Listo! Sumaste {n} GH Points. ¡OE OE OE! | COM | Propuesta |
-| T-093 | Éxito sin puntos (asamblea, reunión) | ¡Listo! Quedaste registrado. | MATEO | Propuesta |
+| T-092 | Éxito con puntos | ¡De una! Sumaste {n} GH Points. ¡OE OE OE! | COM | Propuesta |
+| T-093 | Éxito sin puntos (asamblea, reunión) | ¡Listo pues! Quedaste registrado. | MATEO | Propuesta |
 | T-094 | Pendiente de aprobación | Quedó registrado. GH lo revisa y te avisamos. | GH | Propuesta |
 | T-095 | Ya registrado | Ya te habías registrado en esta actividad. | MATEO | Propuesta |
 | T-096 | Ventana cerrada | El registro de esta actividad ya cerró. Si estuviste, hablá con quien la organizó. | GH | Propuesta |
@@ -244,10 +246,10 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-142 | Solicitud rechazada | GH no aprobó tu solicitud de {tipo}: {motivo}. Si querés hablarlo, escribiles. | GH | Propuesta |
 | T-143 | Retiro voluntario, confirmación | ¿Seguro querés retirarte de la OE? Tu historia se conserva, pero no vas a poder volver a entrar a Mi OE. | GH | Propuesta; texto sensible |
 | T-144 | Convocatorias, título | Convocatorias | GH | Propuesta |
-| T-145 | Convocatorias, intro | Grupos de trabajo, GAP y barra brava que están buscando gente. Inscribite desde acá. | GH | Propuesta |
-| T-146 | Convocatoria, botón | Me apunto | COM | Propuesta |
+| T-145 | Convocatorias, intro | Grupos de trabajo, GAP y barra brava que están buscando gente. Pegate a uno desde acá. | GH | Propuesta |
+| T-146 | Convocatoria, botón | Me pego | COM | Propuesta |
 | T-147 | Convocatoria con cupo lleno | Ya se llenó, pero podés quedar en lista de espera. | GH | Propuesta |
-| T-148 | Inscripción aceptada | Quedaste en {grupo}. ¡OE OE OE! | COM | Propuesta |
+| T-148 | Inscripción aceptada | ¡Qué nota! Quedaste en {grupo}. ¡OE OE OE! | COM | Propuesta |
 
 ### Consentimientos (se muestran al importar, al entrar por primera vez o en Ajustes)
 
@@ -334,7 +336,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-534 | Check-in: eyebrow sobre el título | Registrá tu asistencia | GH | Propuesta |
 | T-535 | GH Points: nivel actual | Nivel: {nivel} | GH | Propuesta |
 | T-536 | GH Points: puntos para el siguiente nivel | Te faltan {n} para {nivel} | GH | Propuesta |
-| T-537 | GH Points: nivel máximo alcanzado | Llegaste al nivel más alto. ¡OE OE OE! | COM | Propuesta |
+| T-537 | GH Points: nivel máximo alcanzado | Llegaste al nivel más alto. ¡Qué berraco! ¡OE OE OE! | COM | Propuesta |
 | T-538 | GH Points: título de los movimientos | Tus movimientos | MATEO | Propuesta |
 | T-539 | GH Points: título de los rankings | Rankings del semestre | GH | Propuesta |
 | T-540 | GH Points: tu puesto | Vas de {puesto} entre {total} | GH | Propuesta |
@@ -345,7 +347,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-545 | GH Points: asambleas obligatorias firmadas | Firmaste {n} de {total} asambleas obligatorias | GH | Propuesta; texto sensible |
 | T-546 | GH Points y admin: etiquetas de las asambleas obligatorias | Ordinaria · Elección de junta · Segunda vuelta | GH | Propuesta |
 | T-547 | GH Points: estado de cada asamblea en tu lista | Firmada · Pendiente · No fuiste | GH | Propuesta |
-| T-548 | GH Points: sin semestre activo | No hay un semestre activo. Cuando GH lo abra, acá ves tus puntos. | MATEO | Propuesta |
+| T-548 | GH Points: sin semestre activo | No hay un semestre activo. Apenas GH lo abra, acá ves tus puntos. | MATEO | Propuesta |
 | T-549 | GH Points: semestre con los puntos cerrados | Semestre cerrado el {fecha}: los puntos quedaron congelados. | MATEO | Propuesta |
 | T-550 | GH Points: selector de semestre | Semestre | MATEO | Propuesta |
 | T-551 | GH Points: descripción de los tableros de personas | Nuevos: quienes entraron este semestre. Veteranos: todos los demás. Solo miembros activos. | GH | Propuesta |
@@ -387,7 +389,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-699 | Inicio: enlace a permanencia | Ver tu permanencia | MATEO | Propuesta |
 | T-700 | Inicio: enlace del aviso para evaluadores | Ir a evaluar | MATEO | Propuesta |
 | T-701 | Comité interno: cartelera del comité, título | Cartelera de {comité} | COM | Propuesta |
-| T-702 | Comité interno: cartelera vacía | {comité} no tiene anuncios todavía. | COM | Propuesta |
+| T-702 | Comité interno: cartelera vacía | {comité} no tiene anuncios todavía. Volvé en un ratico. | COM | Propuesta |
 | T-703 | Directorio y comité: insignia de destacado del mes | Destacado de {mes} | COM | Propuesta |
 | T-704 | Permanencia: umbral que aplica en el comité | Necesitás {umbral} % | GH | Propuesta |
 | T-705 | Permanencia: parte general más parte del comité | General {g} + {comité} {c} | MATEO | Propuesta |
@@ -420,12 +422,12 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-893 | Solicitud: botón de enviar | Enviar solicitud | MATEO | Propuesta |
 | T-894 | Solicitud: tipos en singular para los mensajes (en el orden del modelo: licencia, retiro, cambio de comité, excusa) | licencia · retiro · cambio de comité · excusa | MATEO | Propuesta |
 | T-895 | Solicitud: respuesta de GH, título | Respuesta de GH | GH | Propuesta |
-| T-896 | Convocatorias: sin convocatorias abiertas | No hay convocatorias abiertas ahora. Cuando se abra una, la vas a ver acá. | GH | Propuesta |
+| T-896 | Convocatorias: sin convocatorias abiertas | No hay convocatorias abiertas ahora. Pilas: cuando se abra una, la vas a ver acá. | GH | Propuesta |
 | T-897 | Convocatoria: cupo y cierre | {cupo} cupos · cierra el {fecha} | MATEO | Propuesta |
 | T-898 | Convocatoria: sin cupo fijo | Sin cupo fijo · cierra el {fecha} | MATEO | Propuesta |
 | T-899 | Convocatoria: estados de mi inscripción (en el orden del modelo) | Pendiente · Aceptada · En lista de espera · No aceptada | MATEO | Propuesta |
 | T-900 | Convocatoria: ya estás en el grupo | Ya estás en {grupo}. | MATEO | Propuesta |
-| T-901 | Convocatoria: inscripción pendiente (selección manual) | Te anotaste en {grupo}. El líder revisa las inscripciones y te avisamos. | GH | Propuesta |
+| T-901 | Convocatoria: inscripción pendiente (selección manual) | ¡De una! Te anotaste en {grupo}. El líder revisa las inscripciones y te avisamos. | GH | Propuesta |
 | T-902 | Convocatoria: título de mis inscripciones | Tus inscripciones | MATEO | Propuesta |
 | T-903 | Convocatoria: ya te anotaste | Ya te anotaste a esta convocatoria. | MATEO | Propuesta |
 | T-904 | Convocatoria cerrada | Esta convocatoria ya cerró. | MATEO | Propuesta |
@@ -437,7 +439,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
-| T-1063 | Notificaciones: intro | Recibí en tu celular los anuncios, tus GH Points y los recordatorios de la OE. Activalas en cada dispositivo que uses. | MATEO | Propuesta |
+| T-1063 | Notificaciones: intro | Recibí en tu celular los anuncios, tus GH Points y los recordatorios de la OE, y no te perdés de ningún parche. Activalas en cada dispositivo que uses. | MATEO | Propuesta |
 | T-1064 | Notificaciones: botón para activar en este dispositivo | Activar en este dispositivo | MATEO | Propuesta |
 | T-1065 | Notificaciones: este dispositivo ya recibe | Este dispositivo recibe notificaciones. | MATEO | Propuesta |
 | T-1066 | Notificaciones: botón para desactivar en este dispositivo | Desactivar en este dispositivo | MATEO | Propuesta |
@@ -446,7 +448,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-1069 | Notificaciones: no configuradas en este entorno (sin claves VAPID) | Las notificaciones no están configuradas en este entorno. | MATEO | Propuesta |
 | T-1070 | Notificaciones: iPhone o iPad sin la app instalada | En iPhone o iPad primero instalá Mi OE: tocá Compartir y después "Agregar a pantalla de inicio". Desde la app instalada podés activar las notificaciones. | MATEO | Propuesta |
 | T-1071 | Instalar: botón | Instalar Mi OE | MATEO | Propuesta |
-| T-1072 | Instalar: ya instalada | Mi OE ya está instalada en este dispositivo. | MATEO | Propuesta |
+| T-1072 | Instalar: ya instalada | Listo pues: Mi OE ya está instalada en este dispositivo. | MATEO | Propuesta |
 | T-1073 | Instalar: instrucciones cuando el navegador no ofrece el botón | Para instalar Mi OE, abrí el menú del navegador y elegí "Instalar" o "Agregar a pantalla de inicio". | MATEO | Propuesta |
 | T-1074 | Dispositivos: título | Tus dispositivos | MATEO | Propuesta |
 | T-1075 | Dispositivos: ninguno | Todavía no activaste las notificaciones en ningún dispositivo. | MATEO | Propuesta |
@@ -456,9 +458,9 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-1079 | Preferencias: título | Qué querés recibir | MATEO | Propuesta |
 | T-1080 | Preferencias: opciones (en el orden del modelo: anuncios, puntos, recordatorios, campañas por correo; el Wordle se agregó al final para conservar los índices, ADR-074) | Anuncios de la cartelera · GH Points acreditados · Recordatorios de actividades, asambleas y permanencia · Campañas por correo · Wordle del día | MATEO | Propuesta |
 | T-1081 | Preferencias: ayuda | Los correos sobre tu ingreso, tus solicitudes y tu permanencia llegan siempre. | MATEO | Propuesta |
-| T-1082 | Preferencias: guardadas | Listo, guardamos tus preferencias. | MATEO | Propuesta |
+| T-1082 | Preferencias: guardadas | Listo pues, guardamos tus preferencias. | MATEO | Propuesta |
 | T-1083 | Preferencias: botón guardar | Guardar preferencias | MATEO | Propuesta |
-| T-1084 | Calendario: intro | Suscribite a tu agenda de la OE desde el calendario de tu celular o computador: las ediciones de los eventos, las asambleas y las actividades de tus comités. | MATEO | Propuesta |
+| T-1084 | Calendario: intro | Tené tu agenda de la OE a la mano: suscribite desde el calendario de tu celular o computador y ves las ediciones de los eventos, las asambleas y las actividades de tus comités. | MATEO | Propuesta |
 | T-1085 | Calendario: nombre del calendario (dentro del ICS) | Mi agenda OE | COM | Propuesta |
 | T-1086 | Calendario: copiar enlace | Copiar enlace | MATEO | Propuesta |
 | T-1087 | Calendario: copiado | Enlace copiado. | MATEO | Propuesta |
@@ -466,14 +468,14 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-1089 | Calendario: regenerar | Regenerar enlace | MATEO | Propuesta |
 | T-1090 | Calendario: regenerado | Listo. El enlace anterior dejó de funcionar. | MATEO | Propuesta |
 | T-1091 | Calendario: advertencia | Este enlace es personal: quien lo tenga ve tu agenda. Si lo compartiste por error, regeneralo. | MATEO | Propuesta |
-| T-1092 | Inicio: aviso de instalar y activar (título · texto · botón) | Llevá Mi OE en el celular · Instalá la app y activá las notificaciones para no perderte anuncios ni recordatorios. · Activar | COM | Propuesta |
+| T-1092 | Inicio: aviso de instalar y activar (título · texto · botón) | Llevá Mi OE en el celular · Hágale: instalá la app y activá las notificaciones para no perderte anuncios ni recordatorios. · Activar | COM | Propuesta |
 | T-1093 | Inicio: cerrar el aviso | Ahora no | MATEO | Propuesta |
 | T-1094 | Anuncio interno: volver | Volver a Mi OE | MATEO | Propuesta |
 | T-1095 | Encuesta: título | ¿Cómo estuvo {actividad}? | COM | Propuesta |
 | T-1096 | Encuesta: intro | Tus respuestas son anónimas: quedan agregadas con las de los demás asistentes y nadie ve quién dijo qué. Te toma un minuto. | COM | Propuesta |
 | T-1097 | Encuesta: enviar | Enviar respuestas | MATEO | Propuesta |
-| T-1098 | Encuesta: gracias | ¡Gracias! Tus respuestas ayudan a que la próxima salga mejor. ¡OE OE OE! | COM | Propuesta |
-| T-1099 | Encuesta: ya respondida | Ya respondiste esta encuesta. ¡Gracias! | MATEO | Propuesta |
+| T-1098 | Encuesta: gracias | ¡Gracias, parce! Tus respuestas ayudan a que la próxima salga mejor. ¡OE OE OE! | COM | Propuesta |
+| T-1099 | Encuesta: ya respondida | Ya respondiste esta encuesta. ¡Qué nota, gracias! | MATEO | Propuesta |
 | T-1100 | Encuesta: vencida | Esta encuesta ya cerró. | MATEO | Propuesta |
 | T-1101 | Encuesta: no encontrada | No encontramos esta encuesta. Revisá el enlace de la notificación. | MATEO | Propuesta |
 | T-1102 | Encuesta y formularios: extremos de una calificación de 1 a 5 | Muy mal · Excelente | COM | Propuesta |
@@ -482,8 +484,8 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-1105 | Baja: botón | Confirmar la baja | MATEO | Propuesta |
 | T-1106 | Baja: confirmada | Listo. No te mandamos más campañas por correo. | MATEO | Propuesta |
 | T-1107 | Baja: enlace inválido | Este enlace no es válido o ya venció. | MATEO | Propuesta |
-| T-1108 | Notificaciones: activadas ahora | Listo: este dispositivo ya recibe notificaciones. | MATEO | Propuesta |
-| T-1109 | Notificaciones: falló activar | No pudimos activar las notificaciones. Intentá de nuevo. | MATEO | Propuesta |
+| T-1108 | Notificaciones: activadas ahora | ¡De una! Este dispositivo ya recibe notificaciones. | MATEO | Propuesta |
+| T-1109 | Notificaciones: falló activar | No pudimos activar las notificaciones. Intentá otra vez en un ratico. | MATEO | Propuesta |
 | T-1110 | Dispositivos: quitado | Listo, ese dispositivo ya no recibe notificaciones. | MATEO | Propuesta |
 
 ## 5. Administración
@@ -513,7 +515,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-253 | Panel: guardar | Guardar | MATEO | Propuesta |
 | T-254 | Panel: cerrar sin guardar | Cancelar | MATEO | Propuesta |
 | T-255 | Listados: descargar el listado | Exportar CSV | MATEO | Propuesta |
-| T-256 | Listados y paleta: sin resultados | Sin resultados para esta búsqueda. | MATEO | Propuesta |
+| T-256 | Listados y paleta: sin resultados | Nada por acá con esa búsqueda. | MATEO | Propuesta |
 | T-257 | Listados: paginación | Página {n} de {total} | MATEO | Propuesta |
 | T-258 | Listados: navegación entre páginas | Anterior · Siguiente | MATEO | Propuesta |
 | T-259 | Panel: confirmación tras guardar | Guardado. | MATEO | Propuesta |
@@ -592,7 +594,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-357 | Medios: ayuda del subidor | JPG, PNG o WebP de 5 KB a 20 MB. Solo imágenes con permiso de uso; nada de fotos de personas sin consentimiento. | MATEO | Propuesta |
 | T-358 | Medios: estados de un medio | Procesando · Lista · Falló | MATEO | Propuesta |
 | T-359 | Medios: subida en curso | Subiendo {nombre}… | MATEO | Propuesta |
-| T-360 | Medios: subida confirmada | Listo: la imagen queda disponible en unos segundos. | MATEO | Propuesta |
+| T-360 | Medios: subida confirmada | Listo: la imagen queda disponible en un ratico. | MATEO | Propuesta |
 | T-361 | Medios: archivo de otro tipo | Ese archivo no es una imagen JPG, PNG o WebP. | MATEO | Propuesta |
 | T-362 | Medios: archivo fuera de tamaño | La imagen debe pesar entre 5 KB y 20 MB. | MATEO | Propuesta |
 | T-363 | Medios: error de subida | No se pudo subir la imagen. Intentá de nuevo. | MATEO | Propuesta |
@@ -644,7 +646,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-454 | Línea de tiempo: filtro por tipo | Todo · Notas · Membresía · Comités · Consentimientos · Datos · Importaciones · Otros · Participación · Formularios · Pipelines · Solicitudes · Convocatorias | MATEO | Propuesta |
 | T-455 | Línea de tiempo: ayuda del compositor de notas | Escribí una nota para el equipo. La persona puede pedir verla. | MATEO | Propuesta |
 | T-456 | Línea de tiempo: botones y marca de nota | Guardar nota · Editar · Editada el {fecha} | MATEO | Propuesta |
-| T-457 | Línea de tiempo vacía | Todavía no hay nada en la línea de tiempo. | MATEO | Propuesta |
+| T-457 | Línea de tiempo vacía | Todavía no hay nada por acá en la línea de tiempo. | MATEO | Propuesta |
 | T-458 | Línea de tiempo: textos de las interacciones automáticas | Importado desde el roster {término} · Estado cambió de {de} a {a}: {motivo} · Dado de baja: {motivo} · Reactivado · Comités de {término}: {comités} · Cargo {cargo} desde {término} · Cargo {cargo} retirado · Consentimiento de {propósito} autorizado · Consentimiento de {propósito} retirado · Datos actualizados: {campos} · Correo institucional cambiado · Pidió la eliminación de sus datos · Descargó sus datos · Datos anonimizados · Permiso {permiso} otorgado · Permiso {permiso} revocado | MATEO | Propuesta |
 | T-459 | Tareas: campos y columnas | Título · Responsable · Vence · Estado · Persona · Tipo | MATEO | Propuesta |
 | T-460 | Tareas: opciones de estado | Abierta · Hecha | MATEO | Propuesta |
@@ -700,14 +702,14 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-510 | Cambiar estado: aviso de sesiones | Al salir de activo u honorario se cierran sus sesiones. | MATEO | Propuesta |
 | T-511 | Persona 360: cabecera | Correo · Celular · Programa · Ingresó en {término} | MATEO | Propuesta |
 | T-512 | Editar datos: aviso al cambiar el correo | Cambiar el correo cierra sus sesiones: vuelve a entrar con el nuevo. | MATEO | Propuesta |
-| T-513 | Tarea creada | Tarea creada. | MATEO | Propuesta |
+| T-513 | Tarea creada | Listo, tarea creada. | MATEO | Propuesta |
 | T-514 | Membresía: sin cargos | Sin cargos registrados. | MATEO | Propuesta |
 | T-515 | Línea de tiempo: autor del sistema | Sistema | MATEO | Propuesta |
 | T-516 | Propósitos de consentimiento (etiquetas cortas, en el orden del modelo) | Membresía · Comunicaciones · Foto en el directorio · Galería de egresados · Tratamiento de datos | JUNTA | Propuesta |
 | T-517 | Línea de tiempo: nota de otra persona | Solo quien escribió la nota puede editarla. | MATEO | Propuesta |
 | T-518 | Documentos: error de subida | No se pudo subir el PDF. Intentá de nuevo. | MATEO | Propuesta |
 | T-519 | Documentos: archivo fuera de tamaño | El PDF debe pesar entre 1 KB y 20 MB. | MATEO | Propuesta |
-| T-520 | Documentos: subida confirmada | Listo: el PDF quedó guardado. Ahora cargá los artículos. | MATEO | Propuesta |
+| T-520 | Documentos: subida confirmada | De una: el PDF quedó guardado. Ahora cargá los artículos. | MATEO | Propuesta |
 
 ### Admin de Participación (fase 3: ocasiones, consola, anfitrión, ledger, rankings, asambleas, cierre, vista de líder, alias)
 
@@ -754,7 +756,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-599 | Consola y anfitrión: campo de búsqueda | Buscá por nombre | MATEO | Propuesta |
 | T-600 | Consola y anfitrión: sin resultados | No encontramos a nadie con ese nombre. | MATEO | Propuesta |
 | T-601 | Consola y anfitrión: ya estaba registrado | {nombre} ya estaba registrado. | MATEO | Propuesta |
-| T-602 | Consola y anfitrión: registro hecho | Listo: {nombre} quedó registrado. | MATEO | Propuesta |
+| T-602 | Consola y anfitrión: registro hecho | De una: {nombre} quedó registrado. | MATEO | Propuesta |
 | T-603 | Consola: últimos registros | Últimos registros | MATEO | Propuesta |
 | T-604 | Consola: participación por comité, título | Participación por comité | GH | Propuesta |
 | T-605 | Consola y vista de líder: columnas de participación | Comité · Presentes · Elegibles · Tasa · Ajustada | MATEO | Propuesta |
@@ -807,7 +809,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-652 | Vista de líder: botones | Nueva ocasión · Crear serie semanal | GH | Propuesta |
 | T-653 | Vista de líder: aviso de apertura | Las ocasiones con GH Points las abre GH. Las reuniones (0 puntos) las abrís vos. | GH | Propuesta |
 | T-654 | Serie semanal: campos | Título · Día de la semana · Hora · Duración (minutos) · Lugar · Primera reunión | MATEO | Propuesta |
-| T-655 | Serie semanal: creada | Listo: {n} reuniones creadas hasta el {fecha}. | MATEO | Propuesta |
+| T-655 | Serie semanal: creada | Listo pues: {n} reuniones creadas hasta el {fecha}. | MATEO | Propuesta |
 | T-656 | Vista de líder: sin permiso sobre este comité | No sos líder de este comité. | MATEO | Propuesta |
 | T-657 | Vista de líder: columnas de la participación por ocasión | Ocasión · Fecha · Presentes · Elegibles · Tasa | MATEO | Propuesta |
 | T-658 | Recurso alias legados (plural · singular) | Alias legados · Alias legado | MATEO | Propuesta |
@@ -908,10 +910,10 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-778 | Destacado del mes: título y botón | Destacado del mes · Nombrar destacado | COM | Propuesta |
 | T-779 | Destacado del mes: campos | Mes · Persona | MATEO | Propuesta |
 | T-780 | Destacado del mes: ya hay uno ese mes | {comité} ya tiene destacado de {mes}. | MATEO | Propuesta |
-| T-781 | Destacado del mes: publicado | {nombre} quedó como destacado de {mes}. Se publicó en la cartelera del comité. | COM | Propuesta |
+| T-781 | Destacado del mes: publicado | Listo pues: {nombre} quedó como destacado de {mes}. Se publicó en la cartelera del comité. | COM | Propuesta |
 | T-782 | Destacado del mes: sin consentimiento de directorio | {nombre} quedó registrado como destacado de {mes}, pero no autorizó aparecer en el directorio: no se publica. | JUNTA | Propuesta |
 | T-783 | Destacado del mes: título del anuncio | Destacado de {mes}: {nombre} | COM | Propuesta |
-| T-784 | Destacado del mes: cuerpo del anuncio | {comité} reconoce a {nombre} como destacado del mes de {mes}. ¡OE OE OE! | COM | Propuesta |
+| T-784 | Destacado del mes: cuerpo del anuncio | {comité} reconoce a {nombre} como destacado del mes de {mes}. ¡Qué berraco! ¡OE OE OE! | COM | Propuesta |
 | T-785 | Créditos manuales: título y botón | Crédito manual · Reconocer | GH | Propuesta |
 | T-786 | Créditos manuales: campos | Criterio · Valor · Motivo | MATEO | Propuesta |
 | T-787 | Créditos manuales: solo criterios manuales | Solo se reconocen a mano los criterios de tipo manual. | MATEO | Propuesta |
@@ -972,7 +974,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-842 | Reglas: claves de la tabla de referencia general (mismo orden que T-125) | integraciones · asambleas · gt-macroeventos · gap · gap-oe · comite-de-trabajo · barra-brava · decoracion-de-oficina · integracion-de-nuevos | MATEO | Propuesta |
 | T-843 | Reglas: borrar un criterio | Borrar criterio | MATEO | Propuesta |
 | T-844 | Grupo: sin miembros | Todavía nadie entró a este grupo. | MATEO | Propuesta |
-| T-845 | Grupo: importación aplicada | {n} personas agregadas al grupo. | MATEO | Propuesta |
+| T-845 | Grupo: importación aplicada | Listo: {n} personas agregadas al grupo. | MATEO | Propuesta |
 | T-846 | Grupo: resultado de cada fila de la importación (agregar, ya estaba, sin membresía activa, desconocido) | Para agregar · Ya estaba · Sin membresía activa · Correo desconocido | MATEO | Propuesta |
 | T-847 | Grupo: campo de correos de los evaluadores | Correos de los evaluadores (uno por línea) | MATEO | Propuesta |
 | T-848 | Junta: ocasiones celebradas (unidad) | celebradas | MATEO | Propuesta |
@@ -1065,7 +1067,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-987 | Dar de alta: correo fuera del dominio institucional | Para dar de alta necesita un correo institucional. Editá la persona primero. | MATEO | Propuesta |
 | T-988 | Dar de alta: contacto externo | Un contacto externo no se da de alta. | MATEO | Propuesta |
 | T-989 | Dar de alta: sin semestre vigente | No hay un semestre vigente: crealo en Términos. | MATEO | Propuesta |
-| T-990 | Dar de alta: listo | {nombre} ya es miembro. Falta emitirle su enlace de acceso para que pueda entrar. | GH | Propuesta |
+| T-990 | Dar de alta: listo | De una: {nombre} ya es miembro. Falta emitirle su enlace de acceso para que pueda entrar. | GH | Propuesta |
 | T-991 | Kanban: mover a la etapa ganada de admisión sin membresía | Para pasar a {etapa} primero da de alta a la persona. | MATEO | Propuesta |
 | T-992 | Kanban: tarjeta movida | Tarjeta movida a {etapa}. | MATEO | Propuesta |
 | T-993 | Kanban: ayuda accesible para arrastrar | Arrastrá la tarjeta a otra columna o usá "Mover a…". | MATEO | Propuesta |
@@ -1075,7 +1077,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-997 | Solicitudes (admin): título | Solicitudes | MATEO | Propuesta |
 | T-998 | Solicitudes (admin): columnas | Persona · Tipo · Detalle · Pedida el · Estado · Decidida por | MATEO | Propuesta |
 | T-999 | Solicitudes (admin): filtros por estado | Pendientes · Aprobadas · Rechazadas · Retiradas · Todas | MATEO | Propuesta |
-| T-1000 | Solicitudes (admin): sin solicitudes | No hay solicitudes en esta lista. | MATEO | Propuesta |
+| T-1000 | Solicitudes (admin): sin solicitudes | Nada por acá: no hay solicitudes en esta lista. | MATEO | Propuesta |
 | T-1001 | Solicitudes (admin): botones | Aprobar · Rechazar | MATEO | Propuesta |
 | T-1002 | Solicitudes (admin): rechazo, campo del motivo | Motivo del rechazo (la persona lo va a leer) | GH | Propuesta |
 | T-1003 | Solicitudes (admin): rechazo sin motivo | Para rechazar tenés que escribir el motivo. | MATEO | Propuesta |
@@ -1109,7 +1111,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1031 | Convocatoria: nota de la decisión | Nota (opcional) | MATEO | Propuesta |
 | T-1032 | Convocatoria: el grupo no es del término | El grupo tiene que ser del mismo semestre que la convocatoria. | MATEO | Propuesta |
 | T-1033 | Tablero: títulos de los bloques | Tus pendientes · Vencidas del equipo · Solicitudes pendientes · Respuestas de la última semana · Pipelines · Convocatorias abiertas · Sistema | MATEO | Propuesta |
-| T-1034 | Tablero: sin pendientes | No tenés tareas pendientes. | MATEO | Propuesta |
+| T-1034 | Tablero: sin pendientes | No tenés tareas pendientes. Todo al día, pues. | MATEO | Propuesta |
 | T-1035 | Tablero: sin vencidas | Nada vencido. | MATEO | Propuesta |
 | T-1036 | Tablero: sin respuestas recientes | Sin respuestas nuevas esta semana. | MATEO | Propuesta |
 | T-1037 | Tablero: sin pipelines abiertos | No hay pipelines abiertos. | MATEO | Propuesta |
@@ -1153,7 +1155,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1118 | Plantillas: ayuda de variables | Variables: {nombre}, {apellido}, {correo}, {comités}, {semestre} y {url}. Se reemplazan por los datos de cada persona. | MATEO | Propuesta |
 | T-1119 | Plantillas: acción vista previa | Vista previa | MATEO | Propuesta |
 | T-1120 | Plantillas: acción enviarme una prueba | Enviarme una prueba | MATEO | Propuesta |
-| T-1121 | Plantillas: prueba enviada | Te mandamos la prueba a {correo}. | MATEO | Propuesta |
+| T-1121 | Plantillas: prueba enviada | De una: te mandamos la prueba a {correo}. | MATEO | Propuesta |
 | T-1122 | Plantillas: identificador repetido | Ya existe una plantilla con ese identificador. | MATEO | Propuesta |
 | T-1123 | Campañas: título | Campañas | MATEO | Propuesta |
 | T-1124 | Campañas: intro | Una campaña manda una plantilla a un segmento, en lotes de {n} correos por minuto y siempre con enlace de baja. | MATEO | Propuesta |
@@ -1172,7 +1174,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1137 | Campaña: solo se edita en borrador | Una campaña programada o enviada no se edita. Creá otra. | MATEO | Propuesta |
 | T-1138 | Campaña: sin destinatarios | El segmento no tiene destinatarios con correo. | MATEO | Propuesta |
 | T-1139 | Campaña: programada (aviso) | Programada para el {fecha}. Los lotes salen desde esa hora. | MATEO | Propuesta |
-| T-1140 | Campaña: en camino (aviso tras enviar ahora) | En camino. El primer lote sale en menos de un minuto. | MATEO | Propuesta |
+| T-1140 | Campaña: en camino (aviso tras enviar ahora) | Hágale, ya va en camino. El primer lote sale en menos de un minuto. | MATEO | Propuesta |
 | T-1141 | Campaña: cancelada (aviso) | Campaña cancelada. Lo pendiente quedó omitido. | MATEO | Propuesta |
 | T-1142 | Mensajes: título | Mensajes | MATEO | Propuesta |
 | T-1143 | Mensajes: intro | Todo lo que la OE mandó por correo o push, persona por persona. | MATEO | Propuesta |
@@ -1235,7 +1237,7 @@ Los badges conservan sus textos oficiales; el resto de la interfaz usa voseo. Re
 | T-1205 | Pase: dorso, cómo actualizarlo | Si cambian tus comités o tu semestre, volvé a agregar el carnet desde Mi OE: reemplaza a este. | MATEO | Propuesta |
 | T-1206 | Pase de Google: texto bajo el QR | Carnet OE {semestre} | MATEO | Propuesta |
 | T-1207 | Anfitrión: carnet revocado o desconocido | Ese carnet ya no vale. Pedile que abra Mi OE y muestre el carnet, o que lo vuelva a agregar a su billetera. | MATEO | Propuesta |
-| T-1208 | Carnet: Google Wallet no respondió | Google Wallet no respondió. Probá de nuevo en un rato. | MATEO | Propuesta |
+| T-1208 | Carnet: Google Wallet no respondió | Google Wallet no respondió. Probá de nuevo en un ratico. | MATEO | Propuesta |
 | T-1209 | Persona 360: sección del carnet, título | Carnet en billeteras | MATEO | Propuesta |
 | T-1210 | Persona 360: pase emitido | {plataforma}: emitido el {fecha} | MATEO | Propuesta |
 | T-1211 | Persona 360: sin pases | Sin pases emitidos | MATEO | Propuesta |
@@ -1256,7 +1258,7 @@ Los badges conservan sus textos oficiales; el resto de la interfaz usa voseo. Re
 | Código | Cuándo | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-180 | Anuncio nuevo | {título del anuncio} · {primera línea} | COM | Propuesta |
-| T-181 | Puntos acreditados | ¡Sumaste {n} GH Points! · Por {actividad}. Ya vas en {total}. | GH | Propuesta |
+| T-181 | Puntos acreditados | ¡Qué nota! Sumaste {n} GH Points · Por {actividad}. Ya vas en {total}. | GH | Propuesta |
 | T-182 | Actividad hoy | Hoy: {actividad} · {hora} en {lugar}. El registro abre a las {apertura}. | GH | Propuesta |
 | T-183 | Asamblea obligatoria (día anterior y dos horas antes) | Asamblea obligatoria {día} · {hora} en {lugar}. Recordá que faltar implica salir de la OE. | GH | Propuesta; texto sensible, confirmar tono |
 | T-184 | Permanencia, mitad de semestre | Vas en {n} % en {comité} · Necesitás {umbral} %. Mirá qué podés sumar. | GH | Propuesta |
@@ -1265,9 +1267,9 @@ Los badges conservan sus textos oficiales; el resto de la interfaz usa voseo. Re
 | T-187 | Cierre de semestre | Cerró {término} · Entrá a ver tu resultado en cada comité. | GH | Propuesta |
 | T-188 | Evaluación pendiente (a evaluadores) | Tenés {n} evaluaciones pendientes · La ventana cierra el {fecha}. | GH | Propuesta |
 | T-189 | Solicitud respondida | Tu solicitud de {tipo} fue {aprobada/rechazada} · Entrá a ver la respuesta. | GH | Propuesta |
-| T-190 | Convocatoria abierta | Se abrió {convocatoria} · {cupo} cupos, cierra el {fecha}. | GH | Propuesta |
-| T-191 | Encuesta tras la actividad | ¿Cómo estuvo {actividad}? · Contanos en un minuto. | COM | Propuesta |
-| T-192 | Reconocimiento | ¡Destacado del mes! · {nombre} es el destacado de {comité}. | COM | Propuesta |
+| T-190 | Convocatoria abierta | Se abrió {convocatoria} · {cupo} cupos, cierra el {fecha}. ¡Pilas! | GH | Propuesta |
+| T-191 | Encuesta tras la actividad | ¿Cómo estuvo {actividad}? · Contanos en un ratico. | COM | Propuesta |
+| T-192 | Reconocimiento | ¡Destacado del mes! · {nombre} es el destacado de {comité}. ¡Qué berraco! | COM | Propuesta |
 | T-193 | Reunión de comité mañana | Mañana reunión de {comité} · {hora} en {lugar}. | COMITÉ | Propuesta |
 | T-194 | Convocatoria abierta sin cupo | Se abrió {convocatoria} · Cierra el {fecha}. | GH | Propuesta |
 | T-195 | Solicitud respondida: la decisión dentro de T-189 (aprobada · rechazada) | aprobada · rechazada | GH | Propuesta |
@@ -1276,7 +1278,7 @@ Los badges conservan sus textos oficiales; el resto de la interfaz usa voseo. Re
 
 | Código | Cuándo | Asunto · cuerpo | Dueño | Estado |
 | --- | --- | --- | --- | --- |
-| T-200 | Bienvenida al dar de alta | Bienvenido a la OE, {nombre} · Ya estás en el roster y tus comités son: {comités}. Para entrar a Mi OE en {url} necesitás tu contraseña: pedile tu enlace de acceso a Gestión Humana o a cualquier persona de la junta. Lo hacemos por vos. ¡OE OE OE! | GH | Propuesta |
+| T-200 | Bienvenida al dar de alta | Bienvenido a la OE, {nombre} · ¡Qué nota tenerte! Ya estás en el roster y tus comités son: {comités}. Para entrar a Mi OE en {url} necesitás tu contraseña: pedile tu enlace de acceso a Gestión Humana o a cualquier persona de la junta. Lo hacemos por vos. ¡OE OE OE! | GH | Propuesta |
 | T-201 | Roster importado (primer semestre de la app) | Ya tenés tu Mi OE · Explica qué es Mi OE, cómo entrar y qué va a encontrar | COM | Propuesta; se escribe con la campaña de lanzamiento |
 | T-202 | Resultado de permanencia (cumple) | Cerró {término} · Tu resultado en cada comité y tus puntos del semestre | GH | Propuesta |
 | T-203 | Resultado de permanencia (prueba) | Sobre tu permanencia en la OE · Texto por escribir: qué significa el periodo de prueba, qué se espera y con quién hablar | GH | Pendiente; texto sensible |
@@ -1336,7 +1338,7 @@ Avisos de arranque con política pendiente (ADR-039; excepción del primer ADMIN
 | T-244 | Admin, sistema: lista de fallidos (dead letter) | Con error | MATEO | Propuesta |
 | T-245 | Admin, sistema: botón para reencolar un fallido | Reintentar | MATEO | Propuesta |
 | T-246 | Admin, sistema: columnas de la tabla del outbox | Evento · Intentos · Próximo intento · Último error · Procesado · Creado | MATEO | Propuesta |
-| T-247 | Admin, sistema: lista vacía | No hay trabajos en esta lista. | MATEO | Propuesta |
+| T-247 | Admin, sistema: lista vacía | Nada por acá en esta lista. | MATEO | Propuesta |
 
 ## Wordle diario (ADR-041)
 
@@ -1345,7 +1347,7 @@ Reglas aprobadas por Mateo el 2026-09-07: una partida diaria, cinco letras, seis
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-1230 | Juegos: título del Wordle | Wordle de hoy | MATEO | Propuesta |
-| T-1231 | Wordle: introducción | Una palabra distinta para vos cada día. Resolvela y sumá GH Points. | MATEO | Propuesta |
+| T-1231 | Wordle: introducción | Una palabra distinta para vos cada día. Hágale: resolvela y sumá GH Points. | MATEO | Propuesta |
 | T-1232 | Wordle: iniciar partida | Jugar el Wordle de hoy | MATEO | Propuesta |
 | T-1233 | Wordle: reglas | Adiviná una palabra de 5 letras en 6 intentos. Podés escribir con o sin tilde; la Ñ es distinta de la N. Cada intento válido queda guardado para que sigás en otro dispositivo. | MATEO | Propuesta |
 | T-1234 | Wordle: título de premios | Tus puntos por acertar | MATEO | Propuesta |
@@ -1359,13 +1361,13 @@ Reglas aprobadas por Mateo el 2026-09-07: una partida diaria, cinco letras, seis
 | T-1242 | Wordle: celda accesible | {letra}: {estado} | MATEO | Propuesta |
 | T-1243 | Wordle: longitud o caracteres incorrectos | Escribí una palabra de cinco letras. | MATEO | Propuesta |
 | T-1244 | Wordle: palabra ausente del diccionario | No la encontré en el diccionario. Probá otra; no perdiste un intento. | MATEO | Propuesta |
-| T-1245 | Wordle: victoria | ¡La resolviste en {n}/6! Sumaste {puntos} GH Points. ¡OE OE OE! | MATEO | Propuesta |
-| T-1246 | Wordle: derrota | Se acabaron los intentos. Hoy no sumaste puntos; mañana hay otra palabra. | MATEO | Propuesta |
+| T-1245 | Wordle: victoria | ¡Qué nota, la resolviste en {n}/6! Sumaste {puntos} GH Points. ¡OE OE OE! | MATEO | Propuesta |
+| T-1246 | Wordle: derrota | Se acabaron los intentos. Hoy no sumaste puntos; mañana hay otra palabra, pues. | MATEO | Propuesta |
 | T-1247 | Wordle: respuesta al terminar | La palabra era {palabra}. | MATEO | Propuesta |
 | T-1248 | Wordle: próximo reto | Próxima palabra: {fecha}, a las 12:00 a. m. de Colombia. | MATEO | Propuesta |
 | T-1249 | Wordle: sin semestre o puntos cerrados | El Wordle estará disponible cuando haya un semestre vigente con los puntos abiertos. | MATEO | Propuesta |
-| T-1250 | Wordle: miembro no elegible | El Wordle está disponible para integrantes activos y honorarios. | MATEO | Propuesta |
-| T-1251 | Wordle: catálogo no disponible | No pudimos preparar tu palabra. Probá de nuevo en un rato. | MATEO | Propuesta |
+| T-1250 | Wordle: miembro no elegible | El Wordle está disponible para miembros activos y honorarios. | MATEO | Propuesta |
+| T-1251 | Wordle: catálogo no disponible | No pudimos preparar tu palabra. Probá otra vez en un ratico. | MATEO | Propuesta |
 | T-1252 | Wordle: partida vencida | Terminó el día de esta partida. No sumaste puntos; ya podés consultar el reto de hoy. | MATEO | Propuesta |
 | T-1253 | Wordle: otro dispositivo avanzó | Tu partida cambió en otro dispositivo. Ya trajimos los intentos guardados; revisalos antes de seguir. | MATEO | Propuesta |
 | T-1254 | Wordle: respuesta de red incierta | No recibimos la confirmación. Reintentá la misma jugada: si ya se guardó, no contará dos veces. | MATEO | Propuesta |
@@ -1398,7 +1400,7 @@ Reglas aprobadas por Mateo el 2026-09-07: una partida diaria, cinco letras, seis
 | T-1287 | Documentos: título de la pestaña de vista previa | Vista previa · {titulo} | MATEO | Propuesta |
 | T-1288 | Normativa: imagen no disponible | La imagen no está disponible. Podés consultarla en el PDF original. | MATEO | Propuesta |
 | T-1289 | Normativa: nombre accesible de una tabla | Tabla de {seccion} | MATEO | Propuesta |
-| T-1290 | Documentos: confirmación de carga de contenido | {n} unidades de contenido cargadas | MATEO | Propuesta |
+| T-1290 | Documentos: confirmación de carga de contenido | Listo: {n} unidades de contenido cargadas | MATEO | Propuesta |
 | T-1291 | Documentos: cargar el JSON del extractor | Cargar contenido (JSON) | MATEO | Propuesta |
 | T-1292 | Documentos: PDF confirmado | Listo: el PDF quedó guardado. Ahora cargá el contenido revisado. | MATEO | Propuesta |
 
@@ -1524,7 +1526,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-1545 | Portal: aplicar búsqueda | Buscar | COM | Propuesta |
 | T-1546 | Portal: ayuda de búsqueda de comités | Escribí el nombre o la sigla del comité. | COM | Propuesta |
 | T-1547 | Portal: recuento de comités | Comités: {n} de {total} | COM | Propuesta |
-| T-1548 | Unirse: convocatoria cerrada sin lista de interés | Ahora no hay convocatoria abierta. Cuando haya una nueva, vas a encontrarla acá. Mientras tanto, conocé nuestros eventos. | GH | Propuesta |
+| T-1548 | Unirse: convocatoria cerrada sin lista de interés | Ahora no hay convocatoria abierta. Cuando haya una nueva, vas a encontrarla acá. Mientras tanto, date una vuelta por nuestros eventos. | GH | Propuesta |
 | T-1549 | Portal: acceso breve de miembros | Mi OE | COM | Propuesta |
 | T-1550 | Portal: búsqueda sin coincidencias | No encontramos comités con ese nombre o sigla. Probá otra búsqueda o limpiala para verlos todos. | COM | Propuesta |
 | T-1551 | Portal: colección de comités vacía | Todavía no hay comités publicados. | COM | Propuesta |
@@ -1535,7 +1537,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | --- | --- | --- | --- | --- |
 | T-1660 | Marca de la aplicación | Mi OE | MATEO | Propuesta |
 | T-2090 | Cambio de área: enlace a Administración | Cambiar a Administración | MATEO | Propuesta |
-| T-2091 | Cambio de área: enlace a Mi OE | Cambiar a Mi OE (vista de integrante) | MATEO | Propuesta |
+| T-2091 | Cambio de área: enlace a Mi OE | Cambiar a Mi OE (vista de miembro) | MATEO | Propuesta |
 | T-1661 | Navegación y página | Agenda | MATEO | Propuesta |
 | T-1662 | Menú secundario | Más | MATEO | Propuesta |
 | T-1663 | Nombre accesible de navegación | Navegación de Mi OE | MATEO | Propuesta |
@@ -1547,17 +1549,17 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-1669 | Detalle de actividad | Detalles de la actividad | MATEO | Propuesta |
 | T-1670 | Actividad con registro abierto | Registrar asistencia | MATEO | Propuesta |
 | T-1671 | Actividad próxima | El registro abre el {fecha}. | MATEO | Propuesta |
-| T-1672 | Introducción de Agenda | Consultá las próximas actividades y sus detalles. Cuando abra el registro, podés marcar tu asistencia desde acá. | MATEO | Propuesta |
+| T-1672 | Introducción de Agenda | Mirá qué se viene y pegate al plan. Cuando abra el registro, marcás tu asistencia desde acá. | MATEO | Propuesta |
 | T-1673 | Acceso al carnet | Abrir mi carnet | MATEO | Propuesta |
-| T-1674 | Ayuda de carnet en Inicio | Tené tu código a mano para registrar tu asistencia. | MATEO | Propuesta |
+| T-1674 | Ayuda de carnet en Inicio | Pilas: tené tu código a mano para registrar tu asistencia. | MATEO | Propuesta |
 | T-1675 | Avisos de permanencia plegables | Ver avisos de permanencia ({n}) | MATEO | Propuesta |
 | T-1676 | Onboarding resumido | Tus primeros pasos · {n} pendientes | MATEO | Propuesta |
 | T-1677 | Onboarding secundario | Pasos completados ({n}) | MATEO | Propuesta |
 | T-1678 | Recuento del directorio | {n} personas | MATEO | Propuesta |
 | T-1679 | Directorio sin personas | Todavía no hay personas disponibles en el directorio. | MATEO | Propuesta |
 | T-1680 | Directorio: retirar consulta | Limpiar filtros | MATEO | Propuesta |
-| T-1681 | Agenda sin actividades | Todavía no hay actividades programadas. Podés consultar la cartelera y volver más adelante. | MATEO | Propuesta |
-| T-1682 | Onboarding terminado | Ya completaste tus primeros pasos. | MATEO | Propuesta |
+| T-1681 | Agenda sin actividades | Todavía no hay actividades programadas. Mientras tanto, mirá la cartelera y volvé pronto, pues. | MATEO | Propuesta |
+| T-1682 | Onboarding terminado | ¡Listo pues! Ya completaste tus primeros pasos. | MATEO | Propuesta |
 | T-1683 | Nombre accesible de menú | Todas las secciones de Mi OE | MATEO | Propuesta |
 | T-1684 | Detalle: ventana de registro | Registro de asistencia | MATEO | Propuesta |
 | T-1685 | Enlace de agenda | Ver actividad | MATEO | Propuesta |
@@ -1576,7 +1578,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-1624 | Foto propia, antes de seleccionar | Seleccioná una imagen para revisarla antes de guardar. | MATEO | Propuesta |
 | T-1625 | Foto propia, alternativa de vista previa | Vista previa de la foto seleccionada | MATEO | Propuesta |
 | T-1626 | Foto propia, eliminación en curso | Quitando tu foto… | MATEO | Propuesta |
-| T-1627 | Foto propia, eliminación confirmada | Listo, quitamos tu foto. | MATEO | Propuesta |
+| T-1627 | Foto propia, eliminación confirmada | De una, ya quitamos tu foto. | MATEO | Propuesta |
 | T-1628 | Ajustes, envío en curso | Guardando… | MATEO | Propuesta |
 | T-1629 | Ajustes, error de envío | No pudimos guardar. Conservamos tus cambios para que lo intentés de nuevo. | MATEO | Propuesta |
 | T-1630 | Ajustes, grupo de datos de contacto | Datos de contacto | MATEO | Propuesta |
@@ -1707,7 +1709,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2158 | Pedir retiro: campo del motivo | Motivo | MATEO | Propuesta |
 | T-2159 | Pedir retiro: botón | Enviar el pedido | MATEO | Propuesta |
 | T-2160 | Pedir retiro: confirmación | Listo: GH ya tiene tu pedido. | MATEO | Propuesta |
-| T-2161 | Agregar miembro: confirmación | {nombre} ya hace parte del comité. ¡OE OE OE! | MATEO | Propuesta |
+| T-2161 | Agregar miembro: confirmación | ¡Qué nota! {nombre} ya hace parte del comité. ¡OE OE OE! | MATEO | Propuesta |
 | T-2162 | Guarda: sin esa capacidad en el comité | No tenés a cargo esta área de {comité}. | MATEO | Propuesta |
 | T-2163 | Guarda: la propia pertenencia | Tu propia pertenencia la cambia GH. | MATEO | Propuesta |
 | T-2164 | Guarda: la persona no está activa | Solo podés agregar a miembros activos de la OE. | MATEO | Propuesta |
@@ -1824,7 +1826,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2270 | Mesa directiva: campos y botones | Cargo · Persona · Agregar a la mesa · Quitar | MATEO | Propuesta |
 | T-2271 | Mesa directiva: guardas | Ese cargo ya tiene titular en esta edición. · Ese cargo ya tiene codirección en esta edición. · Solo un miembro activo puede tener un cargo de macroevento. · Esa persona ya tiene un cargo en esta edición. | MATEO | Propuesta |
 | T-2272 | Mesa directiva: sin cargos | Esta edición no tiene cargos registrados. | MATEO | Propuesta |
-| T-2273 | Mesa directiva: confirmación | Mesa directiva actualizada. | MATEO | Propuesta |
+| T-2273 | Mesa directiva: confirmación | Listo, mesa directiva actualizada. | MATEO | Propuesta |
 | T-2274 | Licencia: guarda sin fecha de regreso | La licencia necesita una fecha de regreso. | MATEO | Propuesta |
 | T-2275 | Licencia: guarda de la ventana de regreso | La licencia empieza mañana y dura máximo un año (Estatutos, art. 5.4): el regreso puede ser hasta el {fecha}. | MATEO | Propuesta |
 | T-2276 | Condición retomada al volver de licencia (motivo automático) | Retoma la condición que tenía al salir a licencia (Estatutos, art. 5 par. 2). | MATEO | Propuesta |
@@ -1973,7 +1975,7 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2405 | Admin: títulos de las páginas de Gamificación | Panel de gamificación · Retos · Revisión de evidencias · Campañas de puntos · Insignias · Límites y activación | MATEO | Propuesta |
 | T-2406 | Retos: título | Retos relámpago | GH | Propuesta |
 | T-2407 | Retos: intro | Retos cortos con premio en GH Points. Elegí uno, hacelo antes de la fecha límite y sumá. | GH | Propuesta |
-| T-2408 | Retos: vacío | Por ahora no hay retos abiertos. Volvé pronto: GH publica nuevos durante el semestre. | MATEO | Propuesta |
+| T-2408 | Retos: vacío | Por ahora no hay retos abiertos. Volvé pronto, pues: GH publica nuevos durante el semestre. | MATEO | Propuesta |
 | T-2409 | Retos: formatos | Presencial · Trivia · Misión con evidencia | GH | Propuesta |
 | T-2410 | Retos: estados del miembro | Disponible · Enviado · Pendiente de revisión · Completado · Rechazado · Vencido | MATEO | Propuesta |
 | T-2411 | Retos: públicos | Toda la membresía · Nuevos · Veteranos · Comités seleccionados | MATEO | Propuesta |
@@ -1987,7 +1989,7 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2419 | Evidencia: acción requerida | Contanos qué hiciste y subí hasta tres fotos. GH lo revisa y te avisa. | GH | Propuesta |
 | T-2420 | Retos: botones | Participar · Enviar respuestas · Enviar evidencia · Ir a la actividad · Cambiar booster · Quitar booster · Volver a los retos | MATEO | Propuesta |
 | T-2421 | Trivia: progreso | Pregunta {n} de {total} | MATEO | Propuesta |
-| T-2422 | Trivia: aprobada | ¡Acertaste {aciertos} de {total} y sumaste {n} GH Points! ¡OE OE OE! | GH | Propuesta |
+| T-2422 | Trivia: aprobada | ¡Qué berraco! Acertaste {aciertos} de {total} y sumaste {n} GH Points. ¡OE OE OE! | GH | Propuesta |
 | T-2423 | Trivia: bajo el umbral (motivo automático) | No alcanzaste el {porcentaje} % de aciertos: acertaste {aciertos} de {total}. Este reto no da puntos, pero vienen más. | GH | Propuesta |
 | T-2424 | Trivia: título de respuestas correctas | Respuestas correctas | MATEO | Propuesta |
 | T-2425 | Trivia: respuestas ocultas | Las respuestas correctas se muestran cuando cierre el reto. | MATEO | Propuesta |
@@ -1996,10 +1998,10 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2428 | Evidencia: campo de texto | Contanos qué hiciste | GH | Propuesta |
 | T-2429 | Evidencia: botón de imagen | Agregar imagen | MATEO | Propuesta |
 | T-2430 | Evidencia: errores de imagen | Ese archivo no es una imagen JPG, PNG o WebP. · Esa imagen pesa más de 5 MB. · Ya subiste tres imágenes. · No pudimos subir la imagen. Probá de nuevo. | MATEO | Propuesta |
-| T-2431 | Evidencia: enviada | Tu evidencia quedó enviada. GH la revisa y te avisamos. | GH | Propuesta |
+| T-2431 | Evidencia: enviada | ¡Listo pues! Tu evidencia quedó enviada. GH la revisa y te avisamos. | GH | Propuesta |
 | T-2432 | Evidencia: rechazo de GH | GH no aprobó tu evidencia: {motivo} | GH | Propuesta |
 | T-2433 | Reto: pendiente de revisión | Tu participación está en revisión. Reservamos tu premio con las reglas de hoy. | MATEO | Propuesta |
-| T-2434 | Reto: completado | ¡Reto completado! Sumaste {n} GH Points. ¡OE OE OE! | GH | Propuesta |
+| T-2434 | Reto: completado | ¡Reto completado, parce! Sumaste {n} GH Points. ¡OE OE OE! | GH | Propuesta |
 | T-2435 | Reto: desglose del premio | {base} de base + {extra} de booster | MATEO | Propuesta |
 | T-2436 | Reto: tope aplicado | El tope de puntos extra redujo este premio. Mañana o la próxima semana volvés a tener cupo. | MATEO | Propuesta |
 | T-2437 | Reto: booster no consumido | Tu booster no alcanzó a sumar puntos, así que sigue disponible. | MATEO | Propuesta |
@@ -2024,7 +2026,7 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2456 | Boosters: vencimiento | Vence el {fecha} | MATEO | Propuesta |
 | T-2457 | Boosters: elegir objetivo | ¿Dónde lo usás? | MATEO | Propuesta |
 | T-2458 | Boosters: tipos de objetivo | Retos abiertos · Actividades próximas | MATEO | Propuesta |
-| T-2459 | Boosters: asignado | Listo: tu {booster} está reservado para {objetivo}. Podés cambiarlo hasta que participes. | MATEO | Propuesta |
+| T-2459 | Boosters: asignado | ¡De una! Tu {booster} está reservado para {objetivo}. Podés cambiarlo hasta que participes. | MATEO | Propuesta |
 | T-2460 | Boosters: quitar del objetivo | Quitar de {objetivo} | MATEO | Propuesta |
 | T-2461 | Check-in: usar booster | Usar mi {booster} en esta actividad | MATEO | Propuesta |
 | T-2462 | Check-in: booster aplicado | Tu {booster} se aplica a esta asistencia. | MATEO | Propuesta |
@@ -2061,8 +2063,8 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2493 | Colección: límite de destacadas | Ya destacaste tres. Quitá una para destacar otra. | MATEO | Propuesta |
 | T-2494 | Colección: explicación de destacadas | Podés destacar hasta tres insignias en tu tarjeta del directorio. | MATEO | Propuesta |
 | T-2495 | Desbloqueo: título | ¡Nueva insignia! | GH | Propuesta |
-| T-2496 | Desbloqueo: texto | Desbloqueaste {insignia} nivel {nivel}. ¡OE OE OE! | GH | Propuesta |
-| T-2497 | Desbloqueo: con booster | Además ganaste un {booster}. Usalo antes de que termine el semestre. | GH | Propuesta |
+| T-2496 | Desbloqueo: texto | ¡Bacano! Desbloqueaste {insignia} nivel {nivel}. ¡OE OE OE! | GH | Propuesta |
+| T-2497 | Desbloqueo: con booster | Además ganaste un {booster}. Pilas: usalo antes de que termine el semestre. | GH | Propuesta |
 | T-2498 | Desbloqueo: botón | Ver mi colección | MATEO | Propuesta |
 | T-2499 | Desbloqueo: alternativa estática | Nueva insignia desbloqueada: {insignia} nivel {nivel}. | MATEO | Propuesta |
 | T-2500 | Colección: vacío | Tu colección arranca con tu primera asistencia, tu primer reto o tu primer Wordle. | GH | Propuesta |
@@ -2089,7 +2091,7 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2521 | Admin retos: duplicado | Borrador creado a partir de «{reto}». | MATEO | Propuesta |
 | T-2522 | Admin retos: resultados | Reto publicado. · Reto cancelado. · Borrador guardado. | MATEO | Propuesta |
 | T-2523 | Admin revisión: título | Evidencias por revisar | MATEO | Propuesta |
-| T-2524 | Admin revisión: vacío | No hay entregas pendientes. | MATEO | Propuesta |
+| T-2524 | Admin revisión: vacío | Nada por revisar por acá: todo al día. | MATEO | Propuesta |
 | T-2525 | Admin revisión: acciones | Aprobar · Rechazar · Anular | MATEO | Propuesta |
 | T-2526 | Admin revisión: motivo de rechazo | Motivo del rechazo (lo ve la persona) | MATEO | Propuesta |
 | T-2527 | Admin revisión: estado de imagen | Imagen en proceso · No se pudo procesar la imagen | MATEO | Propuesta |
@@ -2131,10 +2133,10 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2563 | Admin cierre: filas del resumen | Entregas de retos pendientes · Premios reservados | MATEO | Propuesta |
 | T-2564 | Admin: motivo obligatorio | Escribí un motivo. | MATEO | Propuesta |
 | T-2565 | Admin retos: filtros | Semestre · Estado · Formato | MATEO | Propuesta |
-| T-2566 | Push: reto publicado | Nuevo reto: {reto} · Tenés hasta {fecha}. Entrá y participá. | GH | Propuesta |
+| T-2566 | Push: reto publicado | Nuevo reto: {reto} · Tenés hasta {fecha}. De una: entrá y participá. | GH | Propuesta |
 | T-2567 | Push: entrega aprobada | ¡Reto completado! · Sumaste {n} GH Points por {reto}. Ya vas en {total}. | GH | Propuesta |
 | T-2568 | Push: entrega rechazada | Tu reto no fue aprobado · {reto}: {motivo} | GH | Propuesta |
-| T-2569 | Push: insignia desbloqueada | ¡Nueva insignia! · Desbloqueaste {insignia} nivel {nivel}. | GH | Propuesta |
+| T-2569 | Push: insignia desbloqueada | ¡Nueva insignia! · Qué nota: desbloqueaste {insignia} nivel {nivel}. | GH | Propuesta |
 | T-2570 | Export de retos: cabeceras | Reto · Formato · Semestre · Persona · Correo · Estado · Enviado · Base · Extra · Booster · Decidido | MATEO | Propuesta |
 | T-2571 | Export de insignias: cabeceras | Persona · Correo · Insignia · Nivel · Desbloqueada · Histórica · Revocada | MATEO | Propuesta |
 | T-2572 | Reto: premio reservado (tarjeta) | Premio reservado: {n} GH Points | MATEO | Propuesta |
@@ -2200,14 +2202,14 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | --- | --- | --- | --- | --- |
 | T-2618 | Asignar a un comité inactivo | {comité} está inactivo: ya no recibe integrantes. | MATEO | Propuesta |
 | T-2619 | Roster: comité inactivo en la fila | {sigla} está inactivo: ya no recibe integrantes. Quitá esa sigla o pedí que la junta lo reactive. | MATEO | Propuesta |
-| T-2620 | Push: Wordle del día (ADR-074) | El Wordle de hoy te espera · Cinco letras, seis intentos y hasta 6 GH Points. | GH | Propuesta |
+| T-2620 | Push: Wordle del día (ADR-074) | ¿Qué más? El Wordle de hoy te espera · Cinco letras, seis intentos y hasta 6 GH Points. | GH | Propuesta |
 
 ## Biblioteca de juegos y 2048 (ADR-075)
 
 | Código | Dónde | Texto | Fuente | Estado |
 | --- | --- | --- | --- | --- |
 | T-2621 | Juegos: título de la sección | Juegos | MATEO | Propuesta |
-| T-2622 | Juegos: introducción | Despejá la cabeza un rato y sumá GH Points mientras tanto. | MATEO | Propuesta |
+| T-2622 | Juegos: introducción | Despejá la cabeza un ratico y sumá GH Points mientras tanto. | MATEO | Propuesta |
 | T-2623 | Juegos: estado de la tarjeta | Disponible hoy · Ya sumaste hoy · No disponible ahora | MATEO | Propuesta |
 | T-2624 | Juegos: botón de la tarjeta | Jugar | MATEO | Propuesta |
 | T-2625 | GH Points: enlace a la biblioteca | Ver todos los juegos | MATEO | Propuesta |
@@ -2236,8 +2238,8 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2648 | 2048: descartar la partida guardada | Empezar de cero | MATEO | Propuesta |
 | T-2649 | 2048: título de premios | Tus puntos por puntaje | MATEO | Propuesta |
 | T-2650 | 2048: escala de premios | Puntaje · GH Points | MATEO | Propuesta |
-| T-2651 | 2048: premio acreditado | Sumaste {n} GH Points. ¡OE OE OE! | MATEO | Propuesta |
-| T-2652 | 2048: sin premio por puntaje bajo | Con este puntaje todavía no sumás. Probá otra partida: el crédito del día sigue libre. | MATEO | Propuesta |
+| T-2651 | 2048: premio acreditado | ¡Severo! Sumaste {n} GH Points. ¡OE OE OE! | MATEO | Propuesta |
+| T-2652 | 2048: sin premio por puntaje bajo | Con este puntaje todavía no sumás. Hágale a otra partida: el crédito del día sigue libre. | MATEO | Propuesta |
 | T-2653 | 2048: ya acreditaste hoy | Hoy ya sumaste tus GH Points del 2048. Podés seguir jugando por gusto y mañana vuelve a contar. | MATEO | Propuesta |
 | T-2654 | Ledger: motivo del premio 2048 | 2048 del {fecha}: {puntaje} puntos | MATEO | Propuesta |
 | T-2655 | 2048: partida vencida | Terminó el día de esta partida. No sumaste puntos; empezá una nueva. | MATEO | Propuesta |
@@ -2302,8 +2304,8 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2705 | Sudoku: aviso de pista | Pista: en la fila {fila}, columna {columna} va un {n}. | MATEO | Propuesta |
 | T-2706 | Sudoku: pista sin casilla vacía elegida | Elegí una casilla vacía para pedir la pista. | MATEO | Propuesta |
 | T-2707 | Sudoku: envío pendiente | Revisando tu tablero… | MATEO | Propuesta |
-| T-2708 | Sudoku: resuelto con premio | ¡Resuelto! Sumaste {n} GH Points. ¡OE OE OE! | MATEO | Propuesta |
-| T-2709 | Sudoku: resuelto sin premio | ¡Resuelto! Hoy ya habías sumado con el Sudoku, así que este fue por gusto. | MATEO | Propuesta |
+| T-2708 | Sudoku: resuelto con premio | ¡Resuelto, parce! Sumaste {n} GH Points. ¡OE OE OE! | MATEO | Propuesta |
+| T-2709 | Sudoku: resuelto sin premio | ¡Resuelto! Hoy ya habías sumado con el Sudoku, así que este fue por puro gusto. | MATEO | Propuesta |
 | T-2710 | Sudoku: ya acreditaste hoy | Hoy ya sumaste tus GH Points del Sudoku. Podés seguir jugando por gusto y mañana vuelve a contar. | MATEO | Propuesta |
 | T-2711 | Sudoku: jugar otro | Jugar otro tablero | MATEO | Propuesta |
 | T-2712 | Ledger: motivo del premio del Sudoku, por modo | Sudoku del {fecha}: {dificultad}, sin ayudas · Sudoku del {fecha}: {dificultad}, con ayudas | MATEO | Propuesta |
@@ -2315,3 +2317,9 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2718 | Sudoku: cuadrícula que no es la solución | Ese tablero todavía no está resuelto. Revisá las casillas y volvé a intentarlo. | MATEO | Propuesta |
 | T-2719 | Sudoku: ya hay otro tablero abierto | Ya tenés otro tablero abierto. Seguilo o abandonalo antes de empezar uno nuevo. | MATEO | Propuesta |
 | T-2720 | Sudoku: resueltos del semestre | Resueltos este semestre | MATEO | Propuesta |
+
+## Copy paisa (ADR-086)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-2721 | Página no encontrada (404); el primer punto separa el título del botón | Uy, esta página no existe. Volvé al inicio. | MATEO | Propuesta |

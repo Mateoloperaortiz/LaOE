@@ -22,7 +22,9 @@ import { getMembershipRef, getMyMembership, hasLiveConsent, listConsents } from 
 import { committeeMembership, membership, person } from "@/modules/people/schema";
 import { findTermByCode, nextTermCode } from "@/modules/terms";
 import type { MailTransport } from "@/shared/adapters/mail";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
+import { copyPattern, itemPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
@@ -40,6 +42,9 @@ const _admin = { personId: null, ip: null };
 
 // Regreso previsto dentro de la ventana (ADR-060 regla 10): en dos meses.
 const until = new Date(Date.now() + 60 * 24 * 60 * 60_000).toISOString().slice(0, 10);
+const tipoLicencia = tList("T-894")[0];
+
+/** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 
 function fakeTransport(): MailTransport {
   return { name: "resend", send: async () => ({ id: "re_ok" }) };
@@ -99,23 +104,23 @@ describe("solicitudes", () => {
     await expect(createRequestAs(actor, "LEAVE", { reason: "Sin fecha" })).rejects.toThrow();
     await expect(
       createRequestAs(actor, "LEAVE", { reason: "Muy larga", until: "2099-01-01" }),
-    ).rejects.toThrow(/máximo un año/);
+    ).rejects.toThrow(copyPattern("T-2275"));
     const created = await createRequestAs(actor, "LEAVE", {
       reason: "Intercambio",
       until,
     });
     const view = await getRequest(created.id);
     expect(view).toMatchObject({ status: "PENDING", kind: "LEAVE", personId });
-    expect(view?.detail).toContain("Licencia hasta el");
+    expect(view?.detail).toMatch(itemPattern(tList("T-1010")[0]));
     const [opened] = await getDb().select().from(task).where(eq(task.personId, personId));
     expect(opened).toMatchObject({
       kind: "REQUEST",
       status: "OPEN",
-      title: t("T-1009", { nombre: "Persona Sintética", tipo: "licencia" }),
+      title: t("T-1009", { nombre: "Persona Sintética", tipo: tipoLicencia }),
     });
     expect(view?.taskId).toBe(opened?.id);
     await expect(createRequestAs(actor, "LEAVE", { reason: "Otra vez", until })).rejects.toThrow(
-      t("T-891", { tipo: "licencia" }),
+      t("T-891", { tipo: tipoLicencia }),
     );
     expect(await countPendingRequests()).toBe(1);
     await withdrawRequestAs(actor, created.id);
@@ -164,14 +169,24 @@ describe("solicitudes", () => {
     await drain(30);
     const mails = await getDb().select().from(message).where(eq(message.personId, personId));
     expect(mails).toHaveLength(1);
-    expect(mails[0]?.subject).toBe("Respuesta a tu solicitud de licencia");
+    expect(mails[0]?.subject).toBe(t("T-205", { tipo: tipoLicencia }).split(" · ")[0]);
     const timeline = await getDb()
       .select()
       .from(interaction)
       .where(eq(interaction.personId, personId));
     const summaries = timeline.map((item) => item.summary);
-    expect(summaries).toContain("Pidió licencia");
-    expect(summaries.some((text) => text.startsWith("Solicitud de licencia aprobada"))).toBe(true);
+    expect(summaries).toContain(fillCopy(tList("T-1046")[6], { tipo: tipoLicencia }));
+    expect(
+      summaries.some((text) =>
+        text.startsWith(
+          fillCopy(tList("T-1046")[7], {
+            tipo: tipoLicencia,
+            estado: tList("T-876")[1].toLowerCase(),
+            motivo: "",
+          }).replace(/:\s*$/, ""),
+        ),
+      ),
+    ).toBe(true);
     expect(await countPendingRequests()).toBe(0);
     expect((await listRequests({ status: "APPROVED", page: 1, pageSize: 10 })).total).toBe(1);
   });
@@ -236,7 +251,9 @@ describe("solicitudes", () => {
       leaveCommitteeIds: [a3],
       joinCommitteeIds: [cigma],
     });
-    expect((await getRequest(created.id))?.detail).toBe("Deja A3 · Entra a CIGMA");
+    expect((await getRequest(created.id))?.detail).toBe(
+      t("T-1011", { deja: "A3", entra: "CIGMA" }),
+    );
     await decideRequestAs({ personId: gh, ip: null }, created.id, { decision: "APPROVED" });
     const next = await findTermByCode(nextTermCode(currentTermCode()));
     expect(next).not.toBeNull();

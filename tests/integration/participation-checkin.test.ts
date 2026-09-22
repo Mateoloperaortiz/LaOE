@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { drain } from "@/jobs/poller";
+import { itemPattern } from "../helpers/copy";
 import "@/jobs/handlers";
 import { interaction, onboardingProgress } from "@/modules/crm/schema";
 import { findCheckIn } from "@/modules/participation/domain/check-ins";
@@ -12,6 +13,7 @@ import {
   decideCheckInAs,
   hostCheckInAs,
 } from "@/modules/participation/domain/commands";
+
 import { balanceFor, listEntriesFor } from "@/modules/participation/domain/ledger";
 import { rawRate, round4, smoothedRate } from "@/modules/participation/domain/ledger-pure";
 import { getOccasion } from "@/modules/participation/domain/occasions";
@@ -22,7 +24,7 @@ import { committeeMembership, membership, person } from "@/modules/people/schema
 import { setConfig } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
@@ -35,6 +37,8 @@ import {
 } from "./factories";
 
 const db = () => getDb();
+
+/** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 
 /** Personas activas en lote, repartidas entre comités; devuelve sus ids. */
 async function seedMembersBulk(
@@ -357,7 +361,9 @@ describe("check-in propio", () => {
       .where(eq(interaction.kind, "PARTICIPATION"));
     // Cada check-in escribe sus puntos y, desde G-T5, la insignia En parche 1 que la
     // actividad voluntaria desbloquea en el mismo drenado.
-    const pointEntries = entries.filter((entry) => entry.summary.includes("GH Points por"));
+    const pointEntries = entries.filter((entry) =>
+      itemPattern(tList("T-667")[1]).test(entry.summary),
+    );
     expect(pointEntries).toHaveLength(2);
     expect(
       pointEntries.every(
@@ -370,7 +376,7 @@ describe("check-in propio", () => {
       ),
     ).toBe(true);
     const badgeEntries = entries.filter((entry) =>
-      entry.summary.includes("Desbloqueó la insignia"),
+      itemPattern(tList("T-667")[9]).test(entry.summary),
     );
     expect(badgeEntries).toHaveLength(2);
     expect(badgeEntries.every((entry) => entry.summary.includes("En parche"))).toBe(true);

@@ -1,4 +1,6 @@
 import { expect } from "@playwright/test";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
@@ -26,38 +28,41 @@ test("crear formulario público, responderlo y revisar la respuesta", async ({
 
       await page.goto("/admin/formularios?nuevo=1");
       const panel = page.getByRole("dialog");
-      await panel.getByLabel("Identificador").fill(SLUG);
-      await panel.getByLabel("Título").fill("e2e Postulación");
-      await panel.getByLabel("Descripción").fill("Contanos de vos.");
-      await panel.getByLabel("Estado").selectOption("OPEN");
-      await panel.getByRole("button", { name: "Guardar" }).click();
-      await expect(page.getByText("Guardado.")).toBeVisible();
+      await panel.getByLabel(tList("T-910")[0]).fill(SLUG);
+      await panel.getByLabel(tList("T-910")[1]).fill("e2e Postulación");
+      await panel.getByLabel(tList("T-910")[2]).fill("Contanos de vos.");
+      await panel.getByLabel(tList("T-910")[4]).selectOption("OPEN");
+      await panel.getByRole("button", { name: t("T-253") }).click();
+      await expect(page.getByText(t("T-259"))).toBeVisible();
       await sinViolaciones(page);
 
       await page.getByRole("link", { name: "e2e Postulación" }).click();
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("e2e Postulación");
-      await expect(page.getByText(/Este formulario todavía no tiene campos/)).toBeVisible();
-      await page.getByRole("link", { name: "Agregar campo" }).click();
+      await expect(page.getByText(copyPattern("T-921"))).toBeVisible();
+      await page.getByRole("link", { name: t("T-922") }).click();
       const campo = page.getByRole("dialog");
-      await campo.getByLabel("Clave").fill("motivo");
-      await campo.getByLabel("Etiqueta").fill("¿Por qué querés entrar?");
-      await campo.getByLabel("Tipo").selectOption("TEXTAREA");
-      await campo.getByLabel("Obligatorio").check();
-      await campo.getByRole("button", { name: "Guardar" }).click();
-      await expect(page.getByText("Campos guardados.")).toBeVisible();
-      await page.getByRole("link", { name: "Agregar campo" }).click();
+      await campo.getByLabel(tList("T-923")[0]).fill("motivo");
+      await campo.getByLabel(tList("T-923")[1]).fill("¿Por qué querés entrar?");
+      await campo.getByLabel(tList("T-923")[2]).selectOption("TEXTAREA");
+      await campo.getByLabel(tList("T-923")[3]).check();
+      await campo.getByRole("button", { name: t("T-253") }).click();
+      await expect(page.getByText(tList("T-933")[0])).toBeVisible();
+      await page.getByRole("link", { name: t("T-922") }).click();
       const segundo = page.getByRole("dialog");
-      await segundo.getByLabel("Clave").fill("comite");
-      await segundo.getByLabel("Etiqueta").fill("Comité que te interesa");
-      await segundo.getByLabel("Tipo").selectOption("SELECT");
-      await segundo.getByLabel("Opciones (una por línea)").fill("A3\nPIXEL");
-      await segundo.getByRole("button", { name: "Guardar" }).click();
-      await expect(page.getByText("Campos guardados.")).toBeVisible();
+      await segundo.getByLabel(tList("T-923")[0]).fill("comite");
+      await segundo.getByLabel(tList("T-923")[1]).fill("Comité que te interesa");
+      await segundo.getByLabel(tList("T-923")[2]).selectOption("SELECT");
+      await segundo.getByLabel(tList("T-923")[5]).fill("A3\nPIXEL");
+      await segundo.getByRole("button", { name: t("T-253") }).click();
+      await expect(page.getByText(tList("T-933")[0])).toBeVisible();
       await expect(page.getByRole("cell", { name: "Comité que te interesa" })).toBeVisible();
       // Las acciones: crear la persona como prospecto.
-      await page.getByLabel("Crear la persona como prospecto si no existe").check();
-      await page.getByRole("button", { name: "Guardar" }).last().click();
-      await expect(page.getByText("Acciones guardadas.")).toBeVisible();
+      await page.getByLabel(tList("T-930")[0]).check();
+      await page
+        .getByRole("button", { name: t("T-253") })
+        .last()
+        .click();
+      await expect(page.getByText(tList("T-933")[1])).toBeVisible();
       await sinViolaciones(page);
     } finally {
       await context.close();
@@ -75,42 +80,40 @@ test("crear formulario público, responderlo y revisar la respuesta", async ({
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("e2e Postulación");
       await sinViolaciones(page);
       // Sin consentimiento ni motivo: errores por campo.
-      await page.getByLabel("Nombre").fill("Lu");
-      await page.getByLabel("Apellido").fill("Prueba");
-      await page.getByLabel("Correo").fill(EMAIL);
-      await page.getByRole("button", { name: "Enviar" }).click();
-      await expect(page.getByText("Este campo es obligatorio.").first()).toBeVisible();
+      await page.getByLabel(tList("T-851")[0]).fill("Lu");
+      await page.getByLabel(tList("T-851")[1]).fill("Prueba");
+      await page.getByLabel(tList("T-851")[2]).fill(EMAIL);
+      await page.getByRole("button", { name: t("T-852") }).click();
+      await expect(page.getByText(t("T-853")).first()).toBeVisible();
       await page.getByLabel("¿Por qué querés entrar?").fill("Quiero aportar en logística.");
       await page.getByLabel("Comité que te interesa").selectOption("A3");
-      await page.getByRole("button", { name: "Enviar" }).click();
-      await expect(
-        page.getByText("Para enviar tenés que aceptar la política de tratamiento de datos."),
-      ).toBeVisible();
-      await page.getByLabel(/Acepto la política de tratamiento de datos/).check();
-      await page.getByRole("button", { name: "Enviar" }).click();
-      await expect(page.getByText("¡Listo! Recibimos tu respuesta. ¡OE OE OE!")).toBeVisible();
+      await page.getByRole("button", { name: t("T-852") }).click();
+      await expect(page.getByText(t("T-858"))).toBeVisible();
+      await page.getByLabel(copyPattern("T-154")).check();
+      await page.getByRole("button", { name: t("T-852") }).click();
+      await expect(page.getByText(t("T-859"))).toBeVisible();
       await sinViolaciones(page);
 
       // Segunda respuesta con el mismo correo.
       await page.goto(`/f/${SLUG}`);
-      await page.getByLabel("Nombre").fill("Lu");
-      await page.getByLabel("Apellido").fill("Prueba");
-      await page.getByLabel("Correo").fill(EMAIL);
+      await page.getByLabel(tList("T-851")[0]).fill("Lu");
+      await page.getByLabel(tList("T-851")[1]).fill("Prueba");
+      await page.getByLabel(tList("T-851")[2]).fill(EMAIL);
       await page.getByLabel("¿Por qué querés entrar?").fill("Otra vez.");
-      await page.getByLabel(/Acepto la política/).check();
-      await page.getByRole("button", { name: "Enviar" }).click();
-      await expect(page.getByText("Ya recibimos una respuesta con ese correo.")).toBeVisible();
+      await page.getByLabel(copyPattern("T-154")).check();
+      await page.getByRole("button", { name: t("T-852") }).click();
+      await expect(page.getByText(t("T-862"))).toBeVisible();
 
       // El campo trampa lleno responde "gracias" sin guardar.
       await page.goto(`/f/${SLUG}`);
-      await page.getByLabel("Nombre").fill("Bot");
-      await page.getByLabel("Apellido").fill("Spam");
-      await page.getByLabel("Correo").fill("e2e-bot@spam.test");
+      await page.getByLabel(tList("T-851")[0]).fill("Bot");
+      await page.getByLabel(tList("T-851")[1]).fill("Spam");
+      await page.getByLabel(tList("T-851")[2]).fill("e2e-bot@spam.test");
       await page.getByLabel("¿Por qué querés entrar?").fill("spam");
-      await page.getByLabel(/Acepto la política/).check();
+      await page.getByLabel(copyPattern("T-154")).check();
       await page.locator('input[name="sitio_web"]').fill("http://spam", { force: true });
-      await page.getByRole("button", { name: "Enviar" }).click();
-      await expect(page.getByText("¡Listo! Recibimos tu respuesta. ¡OE OE OE!")).toBeVisible();
+      await page.getByRole("button", { name: t("T-852") }).click();
+      await expect(page.getByText(t("T-859"))).toBeVisible();
     } finally {
       await context.close();
     }
@@ -125,10 +128,10 @@ test("crear formulario público, responderlo y revisar la respuesta", async ({
 
       await page.goto("/admin/formularios");
       await page.getByRole("link", { name: "e2e Postulación" }).click();
-      await page.getByRole("link", { name: /Respuestas \(1\)/ }).click();
+      await page.getByRole("link", { name: new RegExp(`${tList("T-910")[11]} \\(1\\)`) }).click();
       await page.waitForURL(/\/admin\/formularios\/[^/]+\/respuestas$/);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-        /Respuestas · e2e Postulación/,
+        new RegExp(`${tList("T-935")[1]} · e2e Postulación`),
       );
       await expect(page.getByRole("cell", { name: EMAIL })).toBeVisible();
       await expect(page.getByRole("cell", { name: "e2e-bot@spam.test" })).toHaveCount(0);
@@ -144,9 +147,14 @@ test("crear formulario público, responderlo y revisar la respuesta", async ({
       const cabecera = page.locator("header").filter({
         has: page.getByRole("heading", { name: "Lu Prueba", level: 1 }),
       });
-      await expect(cabecera.getByText("Prospecto", { exact: true })).toBeVisible();
-      await page.getByRole("link", { name: "Formularios", exact: true }).last().click();
-      await expect(page.getByRole("link", { name: "Respuesta a e2e Postulación" })).toBeVisible();
+      await expect(cabecera.getByText(tList("T-429")[0], { exact: true })).toBeVisible();
+      await page
+        .getByRole("link", { name: tList("T-432")[5], exact: true })
+        .last()
+        .click();
+      await expect(
+        page.getByRole("link", { name: t("T-946", { formulario: "e2e Postulación" }) }),
+      ).toBeVisible();
       await sinViolaciones(page);
     } finally {
       await context.close();
@@ -171,32 +179,35 @@ test("inscribirse a una edición mediante un formulario de miembros", async ({
       // Un formulario de miembros ligado a la primera edición publicada.
       await page.goto("/admin/formularios?nuevo=1");
       const panel = page.getByRole("dialog");
-      await panel.getByLabel("Identificador").fill("e2e-inscripcion");
-      await panel.getByLabel("Título").fill("e2e Inscripción");
-      await panel.getByLabel("Audiencia").selectOption("MEMBERS");
-      await panel.getByLabel("Estado").selectOption("OPEN");
-      await panel.getByRole("button", { name: "Guardar" }).click();
-      await expect(page.getByText("Guardado.")).toBeVisible();
+      await panel.getByLabel(tList("T-910")[0]).fill("e2e-inscripcion");
+      await panel.getByLabel(tList("T-910")[1]).fill("e2e Inscripción");
+      await panel.getByLabel(tList("T-910")[3]).selectOption("MEMBERS");
+      await panel.getByLabel(tList("T-910")[4]).selectOption("OPEN");
+      await panel.getByRole("button", { name: t("T-253") }).click();
+      await expect(page.getByText(t("T-259"))).toBeVisible();
       await page.getByRole("link", { name: "e2e Inscripción" }).click();
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("e2e Inscripción");
-      const edicion = page.getByLabel("Inscribir a la edición");
+      const edicion = page.getByLabel(tList("T-930")[2]);
       await expect(edicion.locator("option").nth(1)).toBeAttached();
       const opciones = await edicion.locator("option").allTextContents();
-      const primera = opciones.find((label) => label !== "Ninguna");
+      const primera = opciones.find((label) => label !== tList("T-932")[1]);
       if (!primera) throw new Error("sin ediciones en el seed");
       await edicion.selectOption({ label: primera });
-      await page.getByRole("button", { name: "Guardar" }).last().click();
-      await expect(page.getByText("Acciones guardadas.")).toBeVisible();
+      await page
+        .getByRole("button", { name: t("T-253") })
+        .last()
+        .click();
+      await expect(page.getByText(tList("T-933")[1])).toBeVisible();
 
       // Con sesión de ADMIN (también miembro): responde y queda inscrito.
       await page.goto("/f/e2e-inscripcion");
-      await expect(page.getByText(/Respondés como/)).toBeVisible();
-      await page.getByRole("button", { name: "Enviar" }).click();
-      await expect(page.getByText("¡Listo! Recibimos tu respuesta. ¡OE OE OE!")).toBeVisible();
-      await expect(page.getByText(/Quedaste inscrito a/)).toBeVisible();
+      await expect(page.getByText(copyPattern("T-872"))).toBeVisible();
+      await page.getByRole("button", { name: t("T-852") }).click();
+      await expect(page.getByText(t("T-859"))).toBeVisible();
+      await expect(page.getByText(copyPattern("T-867"))).toBeVisible();
       await page.goto("/f/e2e-inscripcion");
-      await page.getByRole("button", { name: "Enviar" }).click();
-      await expect(page.getByText("Ya recibimos una respuesta con ese correo.")).toBeVisible();
+      await page.getByRole("button", { name: t("T-852") }).click();
+      await expect(page.getByText(t("T-862"))).toBeVisible();
       void E2E_MEMBER_EMAIL;
     } finally {
       await context.close();

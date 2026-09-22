@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
 import { readRosterCells } from "@/modules/people/domain/roster-file";
+import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 
 describe("lectura de fechas en roster", () => {
@@ -14,7 +15,7 @@ describe("lectura de fechas en roster", () => {
     await expect(readRosterCells(new Uint8Array(bytes), "xlsx")).rejects.toBeInstanceOf(
       DomainError,
     );
-    await expect(readRosterCells(new Uint8Array(bytes), "xlsx")).rejects.toThrow("copia CSV");
+    await expect(readRosterCells(new Uint8Array(bytes), "xlsx")).rejects.toThrow(t("T-2082"));
     const csv = new TextEncoder().encode(
       "CORREO;CELULAR;FECHA DE NACIMIENTO\nsintetica@eafit.edu.co;3001234567;2004-02-29\n",
     );

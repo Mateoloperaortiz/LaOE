@@ -5,6 +5,8 @@ import { pipeline } from "@/modules/crm/schema";
 import { form } from "@/modules/forms/schema";
 import { otpChallenge } from "@/modules/identity/schema";
 import { person } from "@/modules/people/schema";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { drenarOutbox } from "./outbox";
@@ -49,35 +51,38 @@ test("crear convocatoria, recibir postulación, admitir y entrar a Mi OE", async
 
       await page.goto("/admin/pipelines?nuevo=1");
       const panel = page.getByRole("dialog");
-      await panel.getByLabel("Nombre").fill(PIPELINE);
-      await panel.getByLabel("Tipo").selectOption("ADMISSION");
-      await panel.getByRole("button", { name: "Guardar" }).click();
-      await expect(page.getByText("Guardado.")).toBeVisible();
+      await panel.getByLabel(tList("T-963")[0]).fill(PIPELINE);
+      await panel.getByLabel(tList("T-963")[1]).selectOption("ADMISSION");
+      await panel.getByRole("button", { name: t("T-253") }).click();
+      await expect(page.getByText(t("T-259"))).toBeVisible();
       await page.getByRole("link", { name: PIPELINE }).click();
       await page.waitForURL(/\/admin\/pipelines\/[^/?]+$/);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(PIPELINE);
-      for (const etapa of ["Recibida", "Entrevista", "Admitida", "Alta", "No admitida"]) {
+      for (const etapa of tList("T-965")) {
         await expect(page.getByRole("region", { name: etapa, exact: true })).toBeVisible();
       }
       await sinViolaciones(page);
 
       await page.goto("/admin/formularios?nuevo=1");
       const formulario = page.getByRole("dialog");
-      await formulario.getByLabel("Identificador").fill(FORM);
-      await formulario.getByLabel("Título").fill("e2e Convocatoria de admisión");
-      await formulario.getByLabel("Estado").selectOption("OPEN");
-      await formulario.getByRole("button", { name: "Guardar" }).click();
-      await expect(page.getByText("Guardado.")).toBeVisible();
+      await formulario.getByLabel(tList("T-910")[0]).fill(FORM);
+      await formulario.getByLabel(tList("T-910")[1]).fill("e2e Convocatoria de admisión");
+      await formulario.getByLabel(tList("T-910")[4]).selectOption("OPEN");
+      await formulario.getByRole("button", { name: t("T-253") }).click();
+      await expect(page.getByText(t("T-259"))).toBeVisible();
       await page.getByRole("link", { name: "e2e Convocatoria de admisión" }).click();
       await page.waitForURL(/\/admin\/formularios\/[^/?]+$/);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(
         "e2e Convocatoria de admisión",
       );
-      await page.getByLabel("Entrar al pipeline").selectOption({ label: PIPELINE });
-      await page.getByRole("button", { name: "Guardar" }).last().click();
-      await expect(page.getByText("Acciones guardadas.")).toBeVisible();
+      await page.getByLabel(tList("T-930")[1]).selectOption({ label: PIPELINE });
+      await page
+        .getByRole("button", { name: t("T-253") })
+        .last()
+        .click();
+      await expect(page.getByText(tList("T-933")[1])).toBeVisible();
       // Entrar a un pipeline exige crear la persona: la casilla queda marcada sola.
-      await expect(page.getByLabel("Crear la persona como prospecto si no existe")).toBeChecked();
+      await expect(page.getByLabel(tList("T-930")[0])).toBeChecked();
     } finally {
       await context.close();
     }
@@ -91,14 +96,14 @@ test("crear convocatoria, recibir postulación, admitir y entrar a Mi OE", async
       const page = await context.newPage();
 
       await page.goto("/unirse");
-      await page.getByRole("link", { name: "Postulate" }).click();
+      await page.getByRole("link", { name: t("T-027") }).click();
       await page.waitForURL(new RegExp(`/f/${FORM}$`));
-      await page.getByLabel("Nombre").fill("Postulante");
-      await page.getByLabel("Apellido").fill("E2E");
-      await page.getByLabel("Correo").fill(EMAIL);
-      await page.getByLabel(/Acepto la política/).check();
-      await page.getByRole("button", { name: "Enviar" }).click();
-      await expect(page.getByText("¡Listo! Recibimos tu respuesta. ¡OE OE OE!")).toBeVisible();
+      await page.getByLabel(tList("T-851")[0]).fill("Postulante");
+      await page.getByLabel(tList("T-851")[1]).fill("E2E");
+      await page.getByLabel(tList("T-851")[2]).fill(EMAIL);
+      await page.getByLabel(copyPattern("T-154")).check();
+      await page.getByRole("button", { name: t("T-852") }).click();
+      await expect(page.getByText(t("T-859"))).toBeVisible();
       await drenarOutbox();
     } finally {
       await context.close();
@@ -114,32 +119,33 @@ test("crear convocatoria, recibir postulación, admitir y entrar a Mi OE", async
 
       await page.goto("/admin/pipelines");
       await page.getByRole("link", { name: PIPELINE }).click();
-      const recibida = page.getByRole("region", { name: "Recibida", exact: true });
+      const recibida = page.getByRole("region", { name: tList("T-965")[0], exact: true });
       await expect(recibida.getByRole("link", { name: "Postulante E2E" })).toBeVisible();
       // Mover con el selector y el botón.
-      await recibida.locator("summary").filter({ hasText: "Mover a…" }).click();
-      await recibida.getByLabel("Mover a…").selectOption("Entrevista");
-      await recibida.getByRole("button", { name: "Mover" }).click();
-      await expect(page.getByText("Tarjeta movida a Entrevista.")).toBeVisible();
-      const entrevista = page.getByRole("region", { name: "Entrevista", exact: true });
+      await recibida
+        .locator("summary")
+        .filter({ hasText: tList("T-971")[0] })
+        .click();
+      await recibida.getByLabel(tList("T-971")[0]).selectOption(tList("T-965")[1]);
+      await recibida.getByRole("button", { name: tList("T-971")[1] }).click();
+      await expect(page.getByText(t("T-992", { etapa: tList("T-965")[1] }))).toBeVisible();
+      const entrevista = page.getByRole("region", { name: tList("T-965")[1], exact: true });
       await entrevista.getByRole("link", { name: "Postulante E2E" }).click();
       const panel = page.getByRole("dialog");
       await expect(panel.getByRole("heading", { level: 2 })).toHaveText("Postulante E2E");
       await sinViolaciones(page);
-      await panel.getByRole("link", { name: "Dar de alta" }).click();
+      await panel.getByRole("link", { name: t("T-983") }).click();
       const alta = page.getByRole("dialog");
-      await expect(alta.getByText(/Vas a dar de alta a Postulante E2E/)).toBeVisible();
+      await expect(
+        alta.getByText(copyPattern("T-984", { nombre: "Postulante E2E" })),
+      ).toBeVisible();
       const primera = "A3";
       await alta.getByRole("checkbox", { name: primera, exact: true }).check();
-      await alta.getByRole("button", { name: "Dar de alta" }).click();
-      await expect(
-        page.getByText(
-          "Postulante E2E ya es miembro. Falta emitirle su enlace de acceso para que pueda entrar.",
-        ),
-      ).toBeVisible();
+      await alta.getByRole("button", { name: t("T-983") }).click();
+      await expect(page.getByText(t("T-990", { nombre: "Postulante E2E" }))).toBeVisible();
       await expect(
         page
-          .getByRole("region", { name: "Alta", exact: true })
+          .getByRole("region", { name: tList("T-965")[3], exact: true })
           .getByRole("link", { name: "Postulante E2E" }),
       ).toBeVisible();
 
@@ -150,8 +156,11 @@ test("crear convocatoria, recibir postulación, admitir y entrar a Mi OE", async
       const cabecera = page.locator("header").filter({
         has: page.getByRole("heading", { name: "Postulante E2E", level: 1 }),
       });
-      await expect(cabecera.getByText("Miembro", { exact: true })).toBeVisible();
-      await page.getByRole("link", { name: "Membresía", exact: true }).last().click();
+      await expect(cabecera.getByText(tList("T-429")[2], { exact: true })).toBeVisible();
+      await page
+        .getByRole("link", { name: tList("T-432")[2], exact: true })
+        .last()
+        .click();
       await expect(page.getByText(new RegExp(`${primera} · Miembro`))).toBeVisible();
       await drenarOutbox();
     } finally {
@@ -167,13 +176,15 @@ test("crear convocatoria, recibir postulación, admitir y entrar a Mi OE", async
       const page = await context.newPage();
 
       await page.goto("/ingresar/codigo");
-      await page.getByLabel("Correo @eafit.edu.co").fill(EMAIL);
-      await page.getByRole("button", { name: "Enviame el código" }).click();
-      await page.getByLabel("Código de seis dígitos").fill(CODE);
-      await page.getByRole("button", { name: "Entrar" }).click();
+      await page.getByLabel(t("T-042")).fill(EMAIL);
+      await page.getByRole("button", { name: t("T-043") }).click();
+      await page.getByLabel(t("T-238")).fill(CODE);
+      await page.getByRole("button", { name: t("T-046") }).click();
       await expect(page).toHaveURL(/\/app$/);
-      await expect(page.getByRole("heading", { level: 1 })).toContainText("Hola, Postulante");
-      await expect(page.getByText("Tu primera semana en la OE")).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 })).toContainText(
+        t("T-060", { "nombre preferido": "Postulante" }),
+      );
+      await expect(page.getByText(t("T-066"))).toBeVisible();
       await sinViolaciones(page);
     } finally {
       await context.close();

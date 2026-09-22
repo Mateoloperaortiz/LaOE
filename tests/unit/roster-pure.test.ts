@@ -13,6 +13,8 @@ import {
   suggestCommittee,
   validateRoster,
 } from "@/modules/people/domain/roster-pure";
+import { t, tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
 
 const committees: RosterCommittee[] = [
   { id: "c-a3", slug: "a3", name: "A3", status: "ACTIVE" },
@@ -217,7 +219,7 @@ describe("validación por fila", () => {
     expect(
       validate(["Nueva;Persona;nueva@eafit.edu.co;;Derecho;A3;2026-2;GRADUADO;"]).rows[0]
         ?.errors[0],
-    ).toContain("pendiente");
+    ).toContain(t("T-2083"));
     const existing = new Map(catalog.existing);
     const original = catalog.existing.get("ana@eafit.edu.co");
     if (!original) throw new Error("Falta la persona sintética");
@@ -231,7 +233,7 @@ describe("validación por fila", () => {
     const mapping = detectMapping(cells[0] ?? []);
     const result = validateRoster(rowsFromCells(cells, mapping), mapping, { ...catalog, existing });
     expect(diffRoster(result.rows, existing)[0]?.group).toBe("ERROR");
-    expect(result.rows[0]?.errors[0]).toContain("semestre de ingreso");
+    expect(result.rows[0]?.errors[0]).toContain(t("T-2084"));
   });
 
   // ADR-073 regla 3: la sigla de un comité desactivado se reconoce, pero la fila queda en error.
@@ -242,13 +244,11 @@ describe("validación por fila", () => {
       "Cami;Cadavid;cami@eafit.edu.co;;Derecho;SOSS;2026-2;Activo;",
     ]);
     const byEmail = (email: string) => result.rows.find((row) => row.email === email);
-    expect(byEmail("ana@eafit.edu.co")?.errors[0]).toBe(
-      "SOS está inactivo: ya no recibe integrantes. Quitá esa sigla o pedí que la junta lo reactive.",
-    );
+    expect(byEmail("ana@eafit.edu.co")?.errors[0]).toBe(t("T-2619", { sigla: "SOS" }));
     // Sin ningún comité vivo, la fila queda además sin el mínimo de uno.
     expect(byEmail("ana@eafit.edu.co")?.errors).toHaveLength(2);
     expect(byEmail("ana@eafit.edu.co")?.committees).toEqual([]);
-    expect(byEmail("bruno@eafit.edu.co")?.errors[0]).toContain("SOS está inactivo");
+    expect(byEmail("bruno@eafit.edu.co")?.errors[0]).toContain(t("T-2619", { sigla: "SOS" }));
     expect(byEmail("bruno@eafit.edu.co")?.committees?.map((item) => item.slug)).toEqual(["a3"]);
     // Una sigla mal escrita no se sugiere contra un comité desactivado.
     expect(byEmail("cami@eafit.edu.co")?.errors[0]).toContain("—");
@@ -268,21 +268,21 @@ describe("validación por fila", () => {
       "Repe;Tido;ana@eafit.edu.co;;Derecho;A3;2026-2;Activo;",
     ]);
     const byEmail = (email: string) => result.rows.find((row) => row.email === email);
-    expect(byEmail("bruno@gmail.com")?.errors).toEqual(["Correo fuera del dominio institucional"]);
-    expect(byEmail("cami@eafit.edu.co")?.errors[0]).toContain('"pixel"');
-    expect(byEmail("dani@eafit.edu.co")?.errors).toEqual(["Más de 3 comités"]);
-    expect(byEmail("elena@eafit.edu.co")?.errors).toEqual([
-      "Semestre de ingreso vacío o inexistente",
+    expect(byEmail("bruno@gmail.com")?.errors).toEqual([tList("T-165")[1]]);
+    expect(byEmail("cami@eafit.edu.co")?.errors[0]).toContain(
+      fillCopy(tList("T-165")[2], { sigla: "PIXL", sugerencia: "pixel" }),
+    );
+    expect(byEmail("dani@eafit.edu.co")?.errors).toEqual([tList("T-165")[3]]);
+    expect(byEmail("elena@eafit.edu.co")?.errors).toEqual([tList("T-165")[4]]);
+    expect(byEmail("felipe@eafit.edu.co")?.errors).toEqual([tList("T-165")[5]]);
+    expect(byEmail("gabi@eafit.edu.co")?.errors).toEqual([
+      fillCopy(tList("T-165")[8], { cargo: "General", comité: "A3" }),
     ]);
-    expect(byEmail("felipe@eafit.edu.co")?.errors).toEqual(["Estado fuera de la lista"]);
-    expect(byEmail("gabi@eafit.edu.co")?.errors).toEqual(["Dos titulares de General en A3"]);
-    expect(byEmail("hugo@eafit.edu.co")?.errors).toEqual([
-      "Cargo sin comité (la persona tiene varios)",
-    ]);
+    expect(byEmail("hugo@eafit.edu.co")?.errors).toEqual([tList("T-165")[7]]);
     expect(
       result.rows
         .filter((row) => row.email === "ana@eafit.edu.co")
-        .every((row) => row.errors.includes("Correo repetido en el archivo")),
+        .every((row) => row.errors.includes(tList("T-165")[0])),
     ).toBe(true);
     const isa = byEmail("isa@eafit.edu.co");
     expect(isa?.errors).toEqual([]);
@@ -319,13 +319,9 @@ describe("validación por fila", () => {
     const ana = result.rows.find((row) => row.email === "ana@eafit.edu.co");
     expect(ana?.errors).toEqual([]);
     expect(ana?.committees?.[0]?.roles).toEqual([{ roleCode: "MERCADEO", coDirector: false }]);
-    expect(ana?.warnings).toEqual([
-      "Publicidad ya no existe en los comités desde los Estatutos 2026: se carga como Mercadeo.",
-    ]);
+    expect(ana?.warnings).toEqual([t("T-2213", { cargo: "Publicidad", nuevo: "Mercadeo" })]);
     const beto = result.rows.find((row) => row.email === "beto@eafit.edu.co");
-    expect(beto?.errors).toEqual([
-      "El cargo Tesorería está retirado del catálogo y no tiene reemplazo.",
-    ]);
+    expect(beto?.errors).toEqual([t("T-2214", { cargo: "Tesorería" })]);
     expect(result.unknownRoles).toEqual([]);
   });
 
@@ -337,7 +333,7 @@ describe("validación por fila", () => {
     expect(result.updateMode).toBe(true);
     expect(result.missingRequired).toContain("committees");
     expect(result.rows[0]?.errors).toEqual([]);
-    expect(result.rows[1]?.errors).toEqual(["Faltan columnas obligatorias para una persona nueva"]);
+    expect(result.rows[1]?.errors).toEqual([tList("T-165")[9]]);
   });
 
   it("el diff distingue nuevas, con cambios y sin cambios por las columnas presentes", () => {

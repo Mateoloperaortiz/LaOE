@@ -1,5 +1,7 @@
 import { expect } from "@playwright/test";
 import { closeDb } from "@/db/client";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { subirPortada } from "./media-helper";
@@ -22,32 +24,36 @@ test("un ADMIN crea una edición con portada y organizadores y el visitante la v
   await page.goto("/admin/eventos");
   await page
     .getByRole("row", { name: /Días EAFIT/ })
-    .getByRole("link", { name: /Ediciones/ })
+    .getByRole("link", { name: copyPattern("T-369") })
     .click();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Ediciones · Días EAFIT");
-  await page.getByRole("link", { name: "Nuevo" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    `${tList("T-333")[0]} · Días EAFIT`,
+  );
+  await page.getByRole("link", { name: t("T-251") }).click();
   const panel = page.getByRole("dialog");
   // El evento viene fijado por la ruta.
-  await expect(panel.getByLabel("Evento")).toHaveValue(/.+/);
-  await page.getByLabel("Nombre de la edición (por ejemplo 2026-2)").fill(nombre);
-  await panel.getByLabel("Identificador en la URL (minúsculas y guiones)").fill(slug);
+  await expect(panel.getByLabel(t("T-347"))).toHaveValue(/.+/);
+  await page.getByLabel(t("T-348")).fill(nombre);
+  await panel.getByLabel(t("T-349")).fill(slug);
   const year = new Date().getFullYear() + 1;
-  await panel.getByLabel("Empieza").fill(`${year}-03-10T18:00`);
-  await panel.getByLabel("Termina").fill(`${year}-03-10T21:00`);
-  await panel.getByLabel("Lugar").fill("Auditorio de prueba");
-  const opcionPortada = panel.getByLabel("Portada").locator("option", { hasText: portada });
-  await panel.getByLabel("Portada").selectOption((await opcionPortada.getAttribute("value")) ?? "");
+  await panel.getByLabel(t("T-350")).fill(`${year}-03-10T18:00`);
+  await panel.getByLabel(t("T-351")).fill(`${year}-03-10T21:00`);
+  await panel.getByLabel(t("T-352")).fill("Auditorio de prueba");
+  const opcionPortada = panel.getByLabel(t("T-346")).locator("option", { hasText: portada });
+  await panel
+    .getByLabel(t("T-346"))
+    .selectOption((await opcionPortada.getAttribute("value")) ?? "");
   await panel.getByRole("checkbox", { name: "A3", exact: true }).check();
   await panel.getByRole("checkbox", { name: "AGRO", exact: true }).check();
-  await panel.getByLabel("Publicación").selectOption("PUBLISHED");
-  await panel.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Guardado.")).toBeVisible();
+  await panel.getByLabel(t("T-279")).selectOption("PUBLISHED");
+  await panel.getByRole("button", { name: t("T-253") }).click();
+  await expect(page.getByText(t("T-259"))).toBeVisible();
   await expect(page.getByRole("cell", { name: nombre, exact: true })).toBeVisible();
 
   await page.goto(`/eventos/dias-eafit/${slug}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(nombre);
   await expect(page.getByText("Auditorio de prueba")).toBeVisible();
-  await expect(page.getByText("Próxima edición")).toBeVisible();
+  await expect(page.getByText(t("T-311"))).toBeVisible();
   await expect(page.getByRole("link", { name: /A3/ })).toBeVisible();
   const imagen = page.locator('img[src^="/api/media/"]').first();
   await expect(imagen).toBeVisible();
@@ -61,12 +67,12 @@ test("un ADMIN crea una edición con portada y organizadores y el visitante la v
   await sinViolaciones(page);
 
   await page.goto("/eventos");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Eventos");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-304"));
   await expect(page.getByRole("link", { name: /Días EAFIT/ })).toBeVisible();
   await sinViolaciones(page);
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Próximo encuentro" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: t("T-008") })).toBeVisible();
   await sinViolaciones(page);
 
   const ics = await page.request.get("/api/ics/publico.ics");

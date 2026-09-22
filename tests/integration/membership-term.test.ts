@@ -9,6 +9,8 @@ import { membershipTerm } from "@/modules/people/schema";
 import { getSnapshot, recomputeSnapshots } from "@/modules/permanence";
 import { permanenceSnapshot } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
+import { tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
@@ -118,7 +120,7 @@ describe("condición del semestre (ADR-056)", () => {
           .where(and(eq(interaction.personId, personId), eq(interaction.kind, "PERMANENCE")))
       ).map((row) => row.summary);
     expect(await summaries()).toEqual([
-      `En periodo de prueba en ${currentTermCode()}: Roster mal cargado`,
+      fillCopy(tList("T-832")[7], { término: currentTermCode(), motivo: "Roster mal cargado" }),
     ]);
 
     await setProbationAs(actor, personId, termId, {
@@ -137,8 +139,8 @@ describe("condición del semestre (ADR-056)", () => {
       .where(and(eq(permanenceSnapshot.personId, personId), eq(permanenceSnapshot.termId, termId)));
     expect(cleared).toEqual({ probation: false });
     expect(await summaries()).toEqual([
-      `En periodo de prueba en ${currentTermCode()}: Roster mal cargado`,
-      `Sin periodo de prueba en ${currentTermCode()}: GH la levantó`,
+      fillCopy(tList("T-832")[7], { término: currentTermCode(), motivo: "Roster mal cargado" }),
+      fillCopy(tList("T-832")[8], { término: currentTermCode(), motivo: "GH la levantó" }),
     ]);
   });
 
@@ -181,9 +183,15 @@ describe("condición del semestre (ADR-056)", () => {
         .where(and(eq(interaction.personId, personId), eq(interaction.kind, "PERMANENCE")))
     ).map((row) => row.summary);
     expect(summaries).toContain(
-      `En periodo de prueba en A3 en ${currentTermCode()}: Quedó en la banda en A3`,
+      fillCopy(tList("T-832")[9], {
+        comité: "A3",
+        término: currentTermCode(),
+        motivo: "Quedó en la banda en A3",
+      }),
     );
-    expect(summaries).toContain(`En periodo de prueba en ${currentTermCode()}: Roster`);
+    expect(summaries).toContain(
+      fillCopy(tList("T-832")[7], { término: currentTermCode(), motivo: "Roster" }),
+    );
   });
 
   it("la mesa de un comité nuevo se reporta como activa aunque sea nueva (Est. art. 5 par. 1)", async () => {
