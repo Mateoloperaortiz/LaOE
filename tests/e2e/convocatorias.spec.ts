@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { t, tList } from "@/shared/copy";
 import { utcToBogotaInput } from "@/shared/lib/dates";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -31,25 +32,29 @@ test("abrir convocatoria, llenar el cupo y comprobar la lista de espera", async 
 
       await page.goto("/admin/permanencia/grupos?nuevo=1");
       const grupo = page.getByRole("dialog");
-      await grupo.getByLabel("Semestre").selectOption({ label: E2E_TERM.code });
-      await grupo.getByLabel("Nombre").fill(GROUP);
-      await grupo.getByLabel("Tipo").selectOption("GT_MACROEVENT");
-      await grupo.getByRole("button", { name: "Guardar" }).click();
-      await expect(page.getByText("Guardado.")).toBeVisible();
+      await grupo.getByLabel(tList("T-743")[0]).selectOption({ label: E2E_TERM.code });
+      await grupo.getByLabel(tList("T-743")[2]).fill(GROUP);
+      await grupo.getByLabel(tList("T-743")[1]).selectOption("GT_MACROEVENT");
+      await grupo.getByRole("button", { name: t("T-253") }).click();
+      await expect(page.getByText(t("T-259"))).toBeVisible();
 
       await page.goto("/admin/convocatorias?nuevo=1");
       const panel = page.getByRole("dialog");
-      await panel.getByLabel("Término").selectOption({ label: E2E_TERM.code });
-      await panel.getByLabel("Grupo").selectOption({ label: `${E2E_TERM.code} · ${GROUP}` });
-      await panel.getByLabel("Título").fill(CALL);
+      await panel.getByLabel(tList("T-262")[1]).selectOption({ label: E2E_TERM.code });
+      await panel
+        .getByLabel(tList("T-1017")[1])
+        .selectOption({ label: `${E2E_TERM.code} · ${GROUP}` });
+      await panel.getByLabel(tList("T-1017")[0]).fill(CALL);
       // Los campos son hora de Bogotá: se convierten desde UTC como hace el kit.
       const now = Date.now();
-      await panel.getByLabel("Abre").fill(utcToBogotaInput(new Date(now - 3_600_000)));
-      await panel.getByLabel("Cierra").fill(utcToBogotaInput(new Date(now + 7 * 86_400_000)));
-      await panel.getByLabel("Cupo").fill("1");
-      await panel.getByLabel("Estado").selectOption("OPEN");
-      await panel.getByRole("button", { name: "Guardar" }).click();
-      await expect(page.getByText("Guardado.")).toBeVisible();
+      await panel.getByLabel(tList("T-1017")[3]).fill(utcToBogotaInput(new Date(now - 3_600_000)));
+      await panel
+        .getByLabel(tList("T-1017")[4])
+        .fill(utcToBogotaInput(new Date(now + 7 * 86_400_000)));
+      await panel.getByLabel(tList("T-1017")[5]).fill("1");
+      await panel.getByLabel(tList("T-1017")[7]).selectOption("OPEN");
+      await panel.getByRole("button", { name: t("T-253") }).click();
+      await expect(page.getByText(t("T-259"))).toBeVisible();
       await expect(page.getByRole("link", { name: CALL })).toBeVisible();
       await sinViolaciones(page);
     } finally {
@@ -65,17 +70,17 @@ test("abrir convocatoria, llenar el cupo y comprobar la lista de espera", async 
       const page = await context.newPage();
 
       await page.goto("/app/convocatorias");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Convocatorias");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-144"));
       await sinViolaciones(page);
       await page
         .getByRole("listitem")
         .filter({ hasText: CALL })
-        .getByRole("link", { name: "Me apunto" })
+        .getByRole("link", { name: t("T-146") })
         .click();
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(CALL);
-      await page.getByRole("button", { name: "Me apunto" }).click();
-      await expect(page.getByText(`Quedaste en ${GROUP}. ¡OE OE OE!`)).toBeVisible();
-      await expect(page.getByText("Aceptada").first()).toBeVisible();
+      await page.getByRole("button", { name: t("T-146") }).click();
+      await expect(page.getByText(t("T-148", { grupo: GROUP }))).toBeVisible();
+      await expect(page.getByText(tList("T-899")[1]).first()).toBeVisible();
       await sinViolaciones(page);
     } finally {
       await context.close();
@@ -90,22 +95,20 @@ test("abrir convocatoria, llenar el cupo y comprobar la lista de espera", async 
       const page = await context.newPage();
 
       await page.goto("/ingresar/codigo");
-      await page.getByLabel("Correo @eafit.edu.co").fill(E2E_LEAVE_EMAIL);
-      await page.getByRole("button", { name: "Enviame el código" }).click();
-      await page.getByLabel("Código de seis dígitos").fill(CODE);
-      await page.getByRole("button", { name: "Entrar" }).click();
+      await page.getByLabel(t("T-042")).fill(E2E_LEAVE_EMAIL);
+      await page.getByRole("button", { name: t("T-043") }).click();
+      await page.getByLabel(t("T-238")).fill(CODE);
+      await page.getByRole("button", { name: t("T-046") }).click();
       await expect(page).toHaveURL(/\/app$/);
       await page.goto("/app/convocatorias");
       await page
         .getByRole("listitem")
         .filter({ hasText: CALL })
-        .getByRole("link", { name: "Me apunto" })
+        .getByRole("link", { name: t("T-146") })
         .click();
-      await page.getByRole("button", { name: "Me apunto" }).click();
-      await expect(
-        page.getByText("Ya se llenó, pero podés quedar en lista de espera."),
-      ).toBeVisible();
-      await expect(page.getByText("En lista de espera").first()).toBeVisible();
+      await page.getByRole("button", { name: t("T-146") }).click();
+      await expect(page.getByText(t("T-147"))).toBeVisible();
+      await expect(page.getByText(tList("T-899")[2]).first()).toBeVisible();
       await drenarOutbox();
     } finally {
       await context.close();
@@ -122,7 +125,7 @@ test("abrir convocatoria, llenar el cupo y comprobar la lista de espera", async 
       await page.goto("/admin/convocatorias");
       await page.getByRole("link", { name: CALL }).click();
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(CALL);
-      await expect(page.getByText("1 de 1 cupos")).toBeVisible();
+      await expect(page.getByText(t("T-1027", { aceptados: 1, cupo: 1 }))).toBeVisible();
       await expect(page.getByText("Miembro E2E")).toBeVisible();
       await expect(page.getByText("Licencia E2E")).toBeVisible();
       await sinViolaciones(page);

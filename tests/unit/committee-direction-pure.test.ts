@@ -7,6 +7,7 @@ import {
   rolesChangeMessage,
   vacatedRequiredRole,
 } from "@/modules/people/domain/committee-direction-pure";
+import { t } from "@/shared/copy";
 
 // Reglas puras de la dirección del comité (ADR-058): etiquetas de varios cargos y guardas de cambio.
 
@@ -44,7 +45,9 @@ describe("etiqueta de los cargos", () => {
   it("compone uno, dos o varios cargos y marca la codirección", () => {
     expect(committeeRolesLabel([], "Miembro")).toBe("Miembro");
     expect(committeeRolesLabel([general], "Miembro")).toBe("General");
-    expect(committeeRolesLabel([general, logistica], "Miembro")).toBe("General y Logística");
+    expect(committeeRolesLabel([general, logistica], "Miembro")).toBe(
+      t("T-2178", { lista: "General", último: "Logística" }),
+    );
     expect(
       committeeRolesLabel(
         [
@@ -54,7 +57,12 @@ describe("etiqueta de los cargos", () => {
         ],
         "Miembro",
       ),
-    ).toBe("Financiero, Publicidad y Codirección de Relaciones Públicas");
+    ).toBe(
+      t("T-2178", {
+        lista: "Financiero, Publicidad",
+        último: t("T-2144", { cargo: "Relaciones Públicas" }),
+      }),
+    );
   });
 });
 
@@ -138,7 +146,9 @@ describe("guardas de un cambio de cargos", () => {
   it("nombra el cargo obligatorio que quedaría vacante en el texto del error", () => {
     expect(vacatedRequiredRole([financiero], [logistica])?.roleCode).toBe("FINANCIERO");
     expect(vacatedRequiredRole([coGeneral], [])).toBeNull();
-    expect(rolesChangeMessage("T-2168", [financiero], [])).toContain("sin Financiero titular");
-    expect(rolesChangeMessage("T-2167", [], [logistica])).toContain("General del comité");
+    expect(rolesChangeMessage("T-2168", [financiero], [])).toContain(
+      t("T-2168", { cargo: "Financiero" }),
+    );
+    expect(rolesChangeMessage("T-2167", [], [logistica])).toContain(t("T-2167"));
   });
 });

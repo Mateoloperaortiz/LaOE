@@ -6,6 +6,8 @@ import { processMedia } from "@/modules/content/domain/media-process";
 import { document as documentTable, mediaAsset } from "@/modules/content/schema";
 import { onboardingProgress } from "@/modules/crm/schema";
 import { person } from "@/modules/people/schema";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import {
   SAMPLE_LONG_ARTICLE_TITLE,
   sampleArticlesJson,
@@ -57,110 +59,110 @@ test.describe("como admin", () => {
       await route.fulfill({ status: 503, json: { error: "Subida de prueba interrumpida." } });
     });
     await page.goto("/admin/documentos?q=conservar");
-    await page.getByRole("link", { name: "Subir PDF", exact: true }).click();
+    await page.getByRole("link", { name: t("T-1460"), exact: true }).click();
     const panel = page.getByRole("dialog");
-    await panel.getByLabel("Archivo PDF").setInputFiles({
+    await panel.getByLabel(tList("T-494")[4]).setInputFiles({
       name: "conservar.pdf",
       mimeType: "application/pdf",
       buffer: sampleNormativaPdf(),
     });
     expect(attempts).toBe(0);
-    await panel.getByLabel("Título").fill("e2e-Conservar documento");
-    await panel.getByLabel("Versión (fecha de la reforma)").fill("2026-09-08");
-    await panel.getByLabel("Audiencia").selectOption("PUBLIC");
-    const submit = panel.getByRole("button", { name: "Subir PDF", exact: true });
+    await panel.getByLabel(tList("T-494")[0]).fill("e2e-Conservar documento");
+    await panel.getByLabel(tList("T-494")[2]).fill("2026-09-08");
+    await panel.getByLabel(tList("T-494")[3]).selectOption("PUBLIC");
+    const submit = panel.getByRole("button", { name: t("T-1460"), exact: true });
     try {
       await submit.click();
-      await expect(panel.getByLabel("Título")).toBeDisabled();
-      await expect(panel.getByLabel("Audiencia")).toBeDisabled();
+      await expect(panel.getByLabel(tList("T-494")[0])).toBeDisabled();
+      await expect(panel.getByLabel(tList("T-494")[3])).toBeDisabled();
       await expect(submit).toBeDisabled();
     } finally {
       finishFirst();
     }
     await expect(panel.getByRole("alert")).toHaveText("Subida de prueba interrumpida.");
-    await expect(panel.getByLabel("Título")).toHaveValue("e2e-Conservar documento");
-    await expect(panel.getByLabel("Versión (fecha de la reforma)")).toHaveValue("2026-09-08");
-    await expect(panel.getByLabel("Audiencia")).toHaveValue("PUBLIC");
+    await expect(panel.getByLabel(tList("T-494")[0])).toHaveValue("e2e-Conservar documento");
+    await expect(panel.getByLabel(tList("T-494")[2])).toHaveValue("2026-09-08");
+    await expect(panel.getByLabel(tList("T-494")[3])).toHaveValue("PUBLIC");
     expect(
       await panel
-        .getByLabel("Archivo PDF")
+        .getByLabel(tList("T-494")[4])
         .evaluate((input: HTMLInputElement) => input.files?.[0]?.name),
     ).toBe("conservar.pdf");
     await submit.click();
     await expect.poll(() => attempts).toBe(2);
     await expect(panel.getByRole("alert")).toBeVisible();
     await sinViolaciones(page);
-    await panel.getByRole("button", { name: "Cerrar", exact: true }).click();
+    await panel.getByRole("button", { name: t("T-291"), exact: true }).click();
     await expect(page).toHaveURL(/\/admin\/documentos\?q=conservar$/);
   });
 
   test("sube un PDF, carga los artículos desde el JSON y lo publica", async ({ page }) => {
     await getDb().delete(documentTable).where(eq(documentTable.title, titulo));
     await page.goto("/admin/documentos");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Documentos");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(tList("T-425")[0]);
     await sinViolaciones(page);
-    await page.getByRole("link", { name: "Subir PDF", exact: true }).click();
-    await page.getByRole("dialog").getByLabel("Título").fill(titulo);
-    await page.getByRole("dialog").getByLabel("Tipo").selectOption("ESTATUTOS");
-    await page.getByRole("dialog").getByLabel("Versión (fecha de la reforma)").fill("2026-05-08");
-    await page.getByRole("dialog").getByLabel("Audiencia").selectOption("MEMBERS");
+    await page.getByRole("link", { name: t("T-1460"), exact: true }).click();
+    await page.getByRole("dialog").getByLabel(tList("T-494")[0]).fill(titulo);
+    await page.getByRole("dialog").getByLabel(tList("T-494")[1]).selectOption("ESTATUTOS");
+    await page.getByRole("dialog").getByLabel(tList("T-494")[2]).fill("2026-05-08");
+    await page.getByRole("dialog").getByLabel(tList("T-494")[3]).selectOption("MEMBERS");
     const confirmado = page.waitForResponse(
       (response) => response.url().includes("/api/documentos/confirm") && response.status() === 201,
     );
-    await page.getByRole("dialog").getByLabel("Archivo PDF").setInputFiles({
+    await page.getByRole("dialog").getByLabel(tList("T-494")[4]).setInputFiles({
       name: "estatutos-prueba.pdf",
       mimeType: "application/pdf",
       buffer: sampleNormativaPdf(),
     });
-    await page.getByRole("dialog").getByRole("button", { name: "Subir PDF", exact: true }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: t("T-1460"), exact: true })
+      .click();
     await confirmado;
     await expect(page).toHaveURL(/\/admin\/documentos\/[a-z0-9]+\?subido=1$/);
-    await expect(
-      page.getByText("Listo: el PDF quedó guardado. Ahora cargá el contenido revisado."),
-    ).toBeVisible();
-    const fila = page.getByRole("region", { name: "Contenido y publicación" });
+    await expect(page.getByText(t("T-1292"))).toBeVisible();
+    const fila = page.getByRole("region", { name: t("T-1467") });
     await expect(fila).toBeVisible();
-    await expect(page.getByRole("main").getByText("Borrador", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("main").getByText(tList("T-288")[0], { exact: true }),
+    ).toBeVisible();
 
-    await fila.getByRole("button", { name: "Publicar", exact: true }).click();
-    await expect(page).toHaveURL(
-      (url) =>
-        url.searchParams.get("error") === "Cargá el contenido del documento antes de publicarlo.",
-    );
+    await fila.getByRole("button", { name: t("T-342"), exact: true }).click();
+    await expect(page).toHaveURL((url) => url.searchParams.get("error") === t("T-1300"));
     // El anunciador de rutas de Next también tiene role=alert; no indica que terminó el redirect.
-    await expect(page.getByRole("main").getByRole("alert")).toHaveText(
-      "Cargá el contenido del documento antes de publicarlo.",
-    );
-    await expect(page.getByRole("main").getByText("Borrador", { exact: true })).toBeVisible();
+    await expect(page.getByRole("main").getByRole("alert")).toHaveText(t("T-1300"));
+    await expect(
+      page.getByRole("main").getByText(tList("T-288")[0], { exact: true }),
+    ).toBeVisible();
 
-    await fila.getByLabel("Cargar contenido (JSON)").setInputFiles({
+    await fila.getByLabel(t("T-1291")).setInputFiles({
       name: "contenido-invalido.json",
       mimeType: "application/json",
       buffer: Buffer.from("{contenido incompleto"),
     });
-    await fila.locator('button[type="submit"]', { hasText: "Cargar contenido (JSON)" }).click();
+    await fila.locator('button[type="submit"]', { hasText: t("T-1291") }).click();
     await expect(page).toHaveURL((url) => Boolean(url.searchParams.get("error")?.includes("JSON")));
     expect(
       await fila
-        .getByLabel("Cargar contenido (JSON)")
+        .getByLabel(t("T-1291"))
         .evaluate((input: HTMLInputElement) => input.files?.[0]?.name),
     ).toBe("contenido-invalido.json");
 
-    await fila.getByLabel("Cargar contenido (JSON)").setInputFiles({
+    await fila.getByLabel(t("T-1291")).setInputFiles({
       name: "estatutos.json",
       mimeType: "application/json",
       buffer: Buffer.from(sampleArticlesJson()),
     });
     // El input de archivo también expone rol de botón con el mismo nombre: se busca el <button>.
-    await fila.locator('button[type="submit"]', { hasText: "Cargar contenido (JSON)" }).click();
-    await expect(page.getByText("3 unidades de contenido cargadas")).toBeVisible();
+    await fila.locator('button[type="submit"]', { hasText: t("T-1291") }).click();
+    await expect(page.getByText(t("T-1290", { n: 3 }))).toBeVisible();
 
-    const filaCargada = page.getByRole("region", { name: "Contenido y publicación" });
-    await filaCargada.getByRole("button", { name: "Publicar", exact: true }).click();
+    const filaCargada = page.getByRole("region", { name: t("T-1467") });
+    await filaCargada.getByRole("button", { name: t("T-342"), exact: true }).click();
     await expect(
       page
-        .getByRole("region", { name: "Contenido y publicación" })
-        .getByRole("button", { name: "Despublicar", exact: true }),
+        .getByRole("region", { name: t("T-1467") })
+        .getByRole("button", { name: t("T-343"), exact: true }),
     ).toBeVisible();
   });
 
@@ -171,8 +173,8 @@ test.describe("como admin", () => {
     test.setTimeout(120_000);
     await getDb().delete(documentTable).where(eq(documentTable.title, tituloV2));
     await page.goto("/admin/medios");
-    await page.getByRole("link", { name: "Subir imagen", exact: true }).click();
-    await page.getByLabel("Visibilidad").selectOption("PRIVATE");
+    await page.getByRole("link", { name: t("T-356"), exact: true }).click();
+    await page.getByLabel(t("T-365")).selectOption("PRIVATE");
     const image = await sharp(
       Buffer.from(
         '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="360"><rect width="800" height="360" fill="white"/><path d="M400 105V180H200V230M400 180H600V230" stroke="#10264c" stroke-width="6" fill="none"/><g fill="#10264c"><rect x="260" y="20" width="280" height="85"/><rect x="60" y="230" width="280" height="85"/><rect x="460" y="230" width="280" height="85"/></g><g fill="white" font-family="sans-serif" font-size="28" text-anchor="middle"><text x="400" y="74">Coordinación</text><text x="200" y="284">Equipo A</text><text x="600" y="284">Equipo B</text></g></svg>',
@@ -184,14 +186,14 @@ test.describe("como admin", () => {
       (response) => response.url().includes("/api/media/confirm") && response.status() === 201,
     );
     const imageFilename = `e2e-organigrama-normativa-${Date.now().toString(36)}.png`;
-    await page.getByRole("dialog").getByLabel("Subir imagen").setInputFiles({
+    await page.getByRole("dialog").getByLabel(t("T-356")).setInputFiles({
       name: imageFilename,
       mimeType: "image/png",
       buffer: image,
     });
     await page
       .getByRole("dialog")
-      .locator('button[type="submit"]', { hasText: "Subir imagen" })
+      .locator('button[type="submit"]', { hasText: t("T-356") })
       .click();
     await imageConfirmed;
     // router.refresh puede cerrar la respuesta del navegador; la confirmación ya persistió el medio.
@@ -204,35 +206,38 @@ test.describe("como admin", () => {
     await processMedia(assetId);
 
     await page.goto("/admin/documentos");
-    await page.getByRole("link", { name: "Subir PDF", exact: true }).click();
-    await page.getByRole("dialog").getByLabel("Título").fill(tituloV2);
-    await page.getByRole("dialog").getByLabel("Tipo").selectOption("ESTATUTOS");
-    await page.getByRole("dialog").getByLabel("Versión (fecha de la reforma)").fill("2026-05-08");
-    await page.getByRole("dialog").getByLabel("Audiencia").selectOption("MEMBERS");
+    await page.getByRole("link", { name: t("T-1460"), exact: true }).click();
+    await page.getByRole("dialog").getByLabel(tList("T-494")[0]).fill(tituloV2);
+    await page.getByRole("dialog").getByLabel(tList("T-494")[1]).selectOption("ESTATUTOS");
+    await page.getByRole("dialog").getByLabel(tList("T-494")[2]).fill("2026-05-08");
+    await page.getByRole("dialog").getByLabel(tList("T-494")[3]).selectOption("MEMBERS");
     const confirmed = page.waitForResponse(
       (response) => response.url().includes("/api/documentos/confirm") && response.status() === 201,
     );
-    await page.getByRole("dialog").getByLabel("Archivo PDF").setInputFiles({
+    await page.getByRole("dialog").getByLabel(tList("T-494")[4]).setInputFiles({
       name: "estatutos-v2-prueba.pdf",
       mimeType: "application/pdf",
       buffer: sampleNormativaV2Pdf(),
     });
-    await page.getByRole("dialog").getByRole("button", { name: "Subir PDF", exact: true }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: t("T-1460"), exact: true })
+      .click();
     await confirmed;
     await expect(page).toHaveURL(/\/admin\/documentos\/[a-z0-9]+\?subido=1$/);
-    const row = page.getByRole("region", { name: "Contenido y publicación" });
+    const row = page.getByRole("region", { name: t("T-1467") });
     const id = new URL(page.url()).pathname.split("/").at(-1) ?? "";
-    await row.getByLabel("Cargar contenido (JSON)").setInputFiles({
+    await row.getByLabel(t("T-1291")).setInputFiles({
       name: "estatutos-v2.json",
       mimeType: "application/json",
       buffer: Buffer.from(sampleNormativaV2Json(assetId)),
     });
-    await row.locator('button[type="submit"]', { hasText: "Cargar contenido (JSON)" }).click();
-    await expect(page.getByText("5 unidades de contenido cargadas")).toBeVisible();
+    await row.locator('button[type="submit"]', { hasText: t("T-1291") }).click();
+    await expect(page.getByText(t("T-1290", { n: 5 }))).toBeVisible();
     const before = await adminOnboarding();
     await page.goto(`/admin/documentos/${id}`);
     await expect(page).toHaveURL(`/admin/documentos/${id}`);
-    await expect(page.getByText("3 artículos · 2 secciones")).toBeVisible();
+    await expect(page.getByText(t("T-1281", { articulos: 3, secciones: 2 }))).toBeVisible();
     await expect(page.getByRole("heading", { name: "Presentación", exact: true })).toBeVisible();
     await expect(page.getByRole("table").getByRole("row")).toHaveCount(5);
     await expect(
@@ -269,8 +274,10 @@ test.describe("como admin", () => {
       await anonymous.close();
     }
     // Publica la misma versión que se acaba de revisar, con su checksum oculto.
-    await page.getByRole("button", { name: "Publicar", exact: true }).click();
-    await expect(page.getByRole("main").getByText("Publicado", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: t("T-342"), exact: true }).click();
+    await expect(
+      page.getByRole("main").getByText(tList("T-288")[1], { exact: true }),
+    ).toBeVisible();
   });
 });
 
@@ -280,25 +287,25 @@ test.describe("como miembro", () => {
 
   test("busca un artículo, lo abre y el PDF original redirige al bucket", async ({ page }) => {
     await page.goto("/app/normativa");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Normativa");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-389"));
     await expect(page.getByRole("link", { name: new RegExp(titulo) })).toBeVisible();
     await sinViolaciones(page);
 
-    await page.getByLabel("Buscá en los estatutos y el reglamento").fill("asamblea");
-    await page.getByRole("button", { name: "Buscar" }).click();
-    const resultado = page.getByRole("link", { name: new RegExp(`${titulo} · Artículo 3`) });
+    await page.getByLabel(t("T-390")).fill("asamblea");
+    await page.getByRole("button", { name: t("T-250") }).click();
+    const resultado = page.getByRole("link", {
+      name: new RegExp(`${titulo} · ${t("T-397", { n: 3 })}`),
+    });
     await expect(resultado).toBeVisible();
     await expect(page.locator("mark").first()).toContainText(/asamblea/i);
     await resultado.click();
     await page.waitForURL(/\/app\/normativa\/[a-z0-9]+#art-3$/);
-    await expect(page.getByRole("heading", { name: /Artículo 3/ })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Índice" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: copyPattern("T-397", { n: 3 }) })).toBeVisible();
+    await expect(page.getByRole("heading", { name: t("T-398") })).toBeVisible();
     await expect(page).toHaveTitle(new RegExp(titulo));
     await sinViolaciones(page);
 
-    const href = await page
-      .getByRole("link", { name: "Abrir el PDF original" })
-      .getAttribute("href");
+    const href = await page.getByRole("link", { name: t("T-396") }).getAttribute("href");
     expect(href).toMatch(/^\/api\/documentos\/[a-z0-9]+\/pdf$/);
     const respuesta = await page.request.get(href ?? "", { maxRedirects: 0 });
     expect(respuesta.status()).toBe(302);
@@ -316,7 +323,7 @@ test.describe("normativa completa como miembro", () => {
     await page.goto("/app/normativa?q=luciérnagas");
     const section = page.getByRole("link", { name: `${tituloV2} · Anexo de prueba`, exact: true });
     await expect(section).toBeVisible();
-    await expect(section).not.toContainText("Artículo");
+    await expect(section).not.toContainText(copyPattern("T-397"));
     await section.click();
     await expect(page).toHaveURL(/#sec-anexo$/);
     await expect(page.getByRole("heading", { name: "Anexo de prueba", exact: true })).toBeVisible();
@@ -327,11 +334,13 @@ test.describe("normativa completa como miembro", () => {
       .poll(() => diagram.evaluate((node: HTMLImageElement) => node.naturalWidth))
       .toBeGreaterThan(0);
     await expect(page.locator("#art-3").getByRole("heading")).toHaveText(
-      `Artículo 3 · ${SAMPLE_LONG_ARTICLE_TITLE}`,
+      `${t("T-397", { n: 3 })} · ${SAMPLE_LONG_ARTICLE_TITLE}`,
     );
-    await expect(page.locator("#art-3").getByText("Páginas del PDF: 2")).toBeVisible();
+    await expect(page.locator("#art-3").getByText(t("T-1280", { paginas: 2 }))).toBeVisible();
     await page.goto("/app/normativa?q=almuerzo");
-    await page.getByRole("link", { name: new RegExp(`${tituloV2} · Artículo 2`) }).click();
+    await page
+      .getByRole("link", { name: new RegExp(`${tituloV2} · ${t("T-397", { n: 2 })}`) })
+      .click();
     await expect(page).toHaveURL(/#art-2$/);
     await expect(page.getByRole("table").getByRole("columnheader")).toHaveText([
       "Turno",
@@ -353,7 +362,7 @@ test.describe("normativa completa como miembro", () => {
         await page.getByRole("link", { name: new RegExp(tituloV2) }).click();
         await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
         await expect(page.locator("#art-3").getByRole("heading")).toHaveText(
-          `Artículo 3 · ${SAMPLE_LONG_ARTICLE_TITLE}`,
+          `${t("T-397", { n: 3 })} · ${SAMPLE_LONG_ARTICLE_TITLE}`,
         );
         await page.evaluate(() => document.fonts.ready.then(() => undefined));
         const overflow = await page.evaluate(

@@ -25,6 +25,7 @@ import { committeeMembership, membership, membershipTerm, person } from "@/modul
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { copyPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
@@ -129,7 +130,7 @@ describe("salida, reactivación y anonimización", () => {
           hoy,
         ),
       ),
-    ).rejects.toThrow(/máximo un año/);
+    ).rejects.toThrow(copyPattern("T-2275"));
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       changeMembershipStatus(
         ctx,
@@ -293,7 +294,7 @@ describe("salida, reactivación y anonimización", () => {
     await runCommand(SYSTEM_ACTOR, (ctx) => anonymizePerson(ctx, personId));
 
     const [who] = await db().select().from(person).where(eq(person.id, personId));
-    expect(who?.firstName).toBe("Egresado");
+    expect(who?.firstName).toBe(t("T-223"));
     expect(who?.email).toBe(`eliminado.${personId}@anonimo.invalid`);
     expect(who?.phone).toBeNull();
     expect(who?.program).toBeNull();
@@ -330,7 +331,7 @@ describe("comités del término", () => {
 
     await expect(
       runCommand(SYSTEM_ACTOR, (ctx) => setCommitteeMemberships(ctx, personId, termId, [])),
-    ).rejects.toMatchObject({ message: expect.stringContaining("entre 1 y 3") });
+    ).rejects.toMatchObject({ message: expect.stringContaining(t("T-451", { min: 1, max: 3 })) });
     await expect(
       runCommand(SYSTEM_ACTOR, (ctx) =>
         setCommitteeMemberships(

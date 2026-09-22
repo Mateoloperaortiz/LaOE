@@ -1,4 +1,5 @@
 import { expect, test as setup } from "@playwright/test";
+import { t } from "@/shared/copy";
 import { saveBaseline } from "./database";
 import { E2E_EMAIL, E2E_MEMBER_EMAIL, E2E_PASSWORD } from "./global-setup";
 import { drenarOutbox } from "./outbox";
@@ -17,12 +18,12 @@ async function entrar(
   recordar: boolean,
 ): Promise<void> {
   await page.goto(`/ingresar?next=${encodeURIComponent(destino)}`);
-  await page.getByLabel("Correo @eafit.edu.co").fill(email);
-  await page.getByLabel("Contraseña", { exact: true }).fill(E2E_PASSWORD);
+  await page.getByLabel(t("T-042")).fill(email);
+  await page.getByLabel(t("T-2094"), { exact: true }).fill(E2E_PASSWORD);
   if (recordar) {
-    await page.getByLabel("Recordar este dispositivo por 90 días").check();
+    await page.getByLabel(t("T-047")).check();
   }
-  await page.getByRole("button", { name: "Entrar", exact: true }).click();
+  await page.getByRole("button", { name: t("T-2095"), exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`${destino.replace("/", "\\/")}$`));
 }
 

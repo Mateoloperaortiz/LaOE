@@ -1,5 +1,7 @@
 import { expect } from "@playwright/test";
 import { verifyCarnet } from "@/modules/identity/domain/carnet-pure";
+import { t } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 
@@ -8,13 +10,13 @@ test.use({ storageState: "tests/e2e/.auth/member.json" });
 
 test("el carnet muestra un QR con un token firmado de 24 horas", async ({ page }) => {
   await page.goto("/app/carnet");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tu carnet OE");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-131"));
   await expect(
     page.getByRole("heading", { level: 2, name: "Miembro E2E", exact: true }),
   ).toHaveText("Miembro E2E");
   const figura = page.locator("figure[data-token]");
   await expect(figura.locator("svg")).toBeVisible();
-  await expect(figura.getByText(/Vence el/)).toBeVisible();
+  await expect(figura.getByText(copyPattern("T-401"))).toBeVisible();
   const token = (await figura.getAttribute("data-token")) ?? "";
   const result = verifyCarnet(token, { secret: process.env.SESSION_SECRET ?? "" });
   expect(result.ok).toBe(true);
@@ -33,15 +35,11 @@ interface CarnetExport {
 // El servidor de la suite siempre tiene Apple de juguete y Google apagado (ADR-040).
 test("ofrece el pase Apple y explica sus datos; Google apagado no se ofrece", async ({ page }) => {
   await page.goto("/app/carnet");
-  const apple = page.getByRole("link", { name: "Agregar a Apple Wallet", exact: true });
+  const apple = page.getByRole("link", { name: t("T-1191"), exact: true });
   await expect(apple).toBeVisible();
   await expect(apple).toHaveAttribute("target", "_blank");
-  await expect(
-    page.getByText(/su almacenamiento y sincronización dependen de tu configuración de Apple/),
-  ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Añadir a Google Wallet", exact: true })).toHaveCount(
-    0,
-  );
+  await expect(page.getByText(copyPattern("T-1215"))).toBeVisible();
+  await expect(page.getByRole("link", { name: t("T-1192"), exact: true })).toHaveCount(0);
   const google = await page.request.get("/api/wallet/google");
   expect(google.status()).toBe(404);
 
@@ -71,7 +69,7 @@ for (const standalone of [false, true]) {
       }),
     );
     await page.goto("/app/carnet");
-    const apple = page.getByRole("link", { name: "Agregar a Apple Wallet", exact: true });
+    const apple = page.getByRole("link", { name: t("T-1191"), exact: true });
     if (standalone) {
       const before = context.pages().length;
       await apple.click();
@@ -94,11 +92,14 @@ test("revoca el QR de billetera y conserva el carnet de Mi OE", async ({ page })
   expect((await page.request.get("/api/wallet/apple")).status()).toBe(200);
   const before = (await (await page.request.get("/api/mis-datos")).json()) as CarnetExport;
   await page.goto("/app/carnet");
-  await page.locator("summary").filter({ hasText: "Revocar y volver a emitir" }).click();
-  await expect(page.getByText(/El carnet de Mi OE sigue funcionando/)).toBeVisible();
-  await page.getByRole("button", { name: "Revocar y volver a emitir", exact: true }).click();
+  await page
+    .locator("summary")
+    .filter({ hasText: t("T-1193") })
+    .click();
+  await expect(page.getByText(copyPattern("T-1194"))).toBeVisible();
+  await page.getByRole("button", { name: t("T-1193"), exact: true }).click();
   await expect(page).toHaveURL(/guardado=carnet/);
-  await expect(page.getByText(/Listo: el QR anterior de tus billeteras ya no vale/)).toBeVisible();
+  await expect(page.getByText(copyPattern("T-1195"))).toBeVisible();
   const token = (await page.locator("figure[data-token]").getAttribute("data-token")) ?? "";
   expect(token).toMatch(/^oe1\./);
   expect(verifyCarnet(token, { secret: process.env.SESSION_SECRET ?? "" }).ok).toBe(true);
@@ -108,15 +109,11 @@ test("revoca el QR de billetera y conserva el carnet de Mi OE", async ({ page })
   expect(JSON.stringify(after.walletPasses)).not.toContain("oe2.");
 
   await page.goto("/app/carnet");
-  await expect(
-    page.getByText(/Agregalo de nuevo para que muestre el QR y tus datos actuales/),
-  ).toBeVisible();
+  await expect(page.getByText(copyPattern("T-1196"))).toBeVisible();
   await sinViolaciones(page);
   expect((await page.request.get("/api/wallet/apple")).status()).toBe(200);
   await page.reload();
-  await expect(
-    page.getByText(/Agregalo de nuevo para que muestre el QR y tus datos actuales/),
-  ).toHaveCount(0);
+  await expect(page.getByText(copyPattern("T-1196"))).toHaveCount(0);
 });
 
 test("ADMIN revoca desde Comunicaciones de la 360 y el miembro ve el aviso", async ({
@@ -129,17 +126,18 @@ test("ADMIN revoca desde Comunicaciones de la 360 y el miembro ve el aviso", asy
   try {
     const adminPage = await admin.newPage();
     await adminPage.goto(`/admin/personas/${before.person.id}?pestana=comunicaciones`);
+    await expect(adminPage.getByRole("heading", { name: t("T-1209"), exact: true })).toBeVisible();
     await expect(
-      adminPage.getByRole("heading", { name: "Carnet en billeteras", exact: true }),
+      adminPage.getByText(copyPattern("T-1210", { plataforma: "Apple Wallet" })),
     ).toBeVisible();
-    await expect(adminPage.getByText(/Apple Wallet: emitido el/)).toBeVisible();
-    await adminPage.locator("summary").filter({ hasText: "Revocar el carnet" }).click();
-    await expect(
-      adminPage.getByText(/El QR anterior de las billeteras de esta persona dejará de servir/),
-    ).toBeVisible();
-    await adminPage.getByRole("button", { name: "Revocar el carnet", exact: true }).click();
+    await adminPage
+      .locator("summary")
+      .filter({ hasText: t("T-1212") })
+      .click();
+    await expect(adminPage.getByText(copyPattern("T-1220"))).toBeVisible();
+    await adminPage.getByRole("button", { name: t("T-1212"), exact: true }).click();
     await expect(adminPage).toHaveURL(/guardado=carnet/);
-    await expect(adminPage.getByText(/El QR anterior de las billeteras ya no vale/)).toBeVisible();
+    await expect(adminPage.getByText(copyPattern("T-1213"))).toBeVisible();
     await sinViolaciones(adminPage);
   } finally {
     await admin.close();
@@ -147,9 +145,7 @@ test("ADMIN revoca desde Comunicaciones de la 360 y el miembro ve el aviso", asy
   const after = (await (await page.request.get("/api/mis-datos")).json()) as CarnetExport;
   expect(after.carnet.revision).toBe(before.carnet.revision + 1);
   await page.goto("/app/carnet");
-  await expect(
-    page.getByText(/Agregalo de nuevo para que muestre el QR y tus datos actuales/),
-  ).toBeVisible();
+  await expect(page.getByText(copyPattern("T-1196"))).toBeVisible();
   await expect(page.locator("figure[data-token]")).toHaveAttribute("data-token", /^oe1\./);
 });
 

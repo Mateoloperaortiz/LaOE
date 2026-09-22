@@ -11,6 +11,8 @@ import {
   workGroupMembership,
 } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -72,13 +74,13 @@ test.describe("director de GH", () => {
 
   test("evalúa buen desempeño en el GAP desde la bandeja", async ({ page }) => {
     await page.goto("/admin/permanencia/evaluaciones");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Evaluaciones de desempeño");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-761"));
     const group = page.getByRole("region", { name: "e2e-GAP evaluado" });
     await expect(group).toBeVisible();
-    await group.getByRole("button", { name: "Buen desempeño" }).click();
-    await expect(page.getByText("Guardado.")).toBeVisible();
+    await group.getByRole("button", { name: tList("T-167")[0] }).click();
+    await expect(page.getByText(t("T-259"))).toBeVisible();
     await expect(page.getByRole("region", { name: "e2e-GAP evaluado" })).toContainText(
-      "Buen desempeño",
+      tList("T-750")[1],
     );
     await sinViolaciones(page);
   });
@@ -104,12 +106,12 @@ test.describe("director de GH", () => {
     await page.goto(`/admin/personas/${member.id}?pestana=permanencia&accion=credito`);
     const panel = page.getByRole("dialog");
     await panel
-      .getByLabel("Criterio")
+      .getByLabel(tList("T-786")[0])
       .selectOption({ label: `${home.name} · e2e-Apoyo especial · 6` });
-    await panel.getByLabel("Valor").fill("4");
-    await panel.getByLabel("Motivo").fill("e2e-Organizó la integración");
-    await panel.getByRole("button", { name: "Reconocer" }).click();
-    await expect(page.getByText("Guardado.")).toBeVisible();
+    await panel.getByLabel(tList("T-786")[1]).fill("4");
+    await panel.getByLabel(tList("T-786")[2]).fill("e2e-Organizó la integración");
+    await panel.getByRole("button", { name: tList("T-785")[1] }).click();
+    await expect(page.getByText(t("T-259"))).toBeVisible();
     await expect(page.getByText("4 / 6 · e2e-Organizó la integración")).toBeVisible();
     await sinViolaciones(page);
   });
@@ -160,10 +162,21 @@ test.describe("miembro", () => {
     // El historial lo materializa evaluation.recorded; CI no arranca jobs de fondo.
     await drenarOutbox();
     await page.goto("/app/permanencia");
-    const gap = page.getByRole("listitem").filter({ hasText: "e2e-GAP evaluado: Buen desempeño" });
-    await expect(gap.first()).toContainText("5 de 5");
-    await expect(page.getByText("GH te reconoció 4 de 6.")).toBeVisible();
-    await expect(page.getByText(/Buen desempeño en e2e-GAP evaluado/).first()).toBeVisible();
+    const gap = page.getByRole("listitem").filter({
+      hasText: t("T-689", { grupo: "e2e-GAP evaluado", evaluacion: tList("T-750")[1] }),
+    });
+    await expect(gap.first()).toContainText(t("T-682", { logrado: 5, peso: 5 }));
+    await expect(page.getByText(t("T-692", { valor: 4, peso: 6 }))).toBeVisible();
+    await expect(
+      page
+        .getByText(
+          tList("T-832")[0]
+            .replace(/\{evaluador\}.*$/, "")
+            .replace("{grupo}", "e2e-GAP evaluado")
+            .trim(),
+        )
+        .first(),
+    ).toBeVisible();
   });
 });
 
@@ -193,23 +206,28 @@ test.describe("líder", () => {
 
   test("pone un puntaje con observación y nombra al destacado del mes", async ({ page }) => {
     await page.goto(`/admin/comites/${slug}/permanencia`);
-    await expect(page.getByRole("heading", { name: "Puntajes" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: tList("T-819")[1] })).toBeVisible();
     const row = page.getByRole("row").filter({ hasText: "Miembro E2E" }).first();
-    await row.getByRole("link", { name: "Editar" }).first().click();
+    await row
+      .getByRole("link", { name: t("T-252") })
+      .first()
+      .click();
     const panel = page.getByRole("dialog");
-    await panel.getByLabel(/Valor/).fill("3");
-    await panel.getByLabel("Observación").fill("e2e-Faltó a dos reuniones");
-    await panel.getByRole("button", { name: "Guardar" }).click();
-    await expect(page.getByText("Guardado.")).toBeVisible();
+    await panel.getByLabel(new RegExp(tList("T-773")[0])).fill("3");
+    await panel.getByLabel(tList("T-773")[1]).fill("e2e-Faltó a dos reuniones");
+    await panel.getByRole("button", { name: t("T-253") }).click();
+    await expect(page.getByText(t("T-259"))).toBeVisible();
     await expect(page.getByRole("row").filter({ hasText: "Miembro E2E" }).first()).toContainText(
       "3 /",
     );
 
-    await page.getByRole("link", { name: "Nombrar destacado" }).click();
+    await page.getByRole("link", { name: tList("T-778")[1] }).click();
     const destacado = page.getByRole("dialog");
-    await destacado.getByLabel("Persona").selectOption({ label: "Miembro E2E" });
-    await destacado.getByRole("button", { name: "Nombrar destacado" }).click();
-    await expect(page.getByText(/quedó (como destacado|registrado como destacado)/)).toBeVisible();
+    await destacado.getByLabel(tList("T-779")[1]).selectOption({ label: "Miembro E2E" });
+    await destacado.getByRole("button", { name: tList("T-778")[1] }).click();
+    await expect(
+      page.getByText(new RegExp(`${copyPattern("T-781").source}|${copyPattern("T-782").source}`)),
+    ).toBeVisible();
     await sinViolaciones(page);
   });
 });

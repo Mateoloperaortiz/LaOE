@@ -19,7 +19,8 @@ import {
 } from "@/modules/permanence";
 import { manualCredit } from "@/modules/permanence/schema";
 import { closeTermPoints, findTermByCode, getTerm } from "@/modules/terms";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
+import { copyPattern, itemPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
 import {
   seedCheckIn,
@@ -36,6 +37,8 @@ import {
 // confirmación en bloque y aplicación reanudable por el job con comandos de `people`.
 
 const GH = { personId: null as string | null, ip: null };
+
+/** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 
 /**
  * Un término ya vencido (2024-2) con tres personas en A3 y una tabla del comité de 60 puntos por
@@ -151,9 +154,9 @@ describe("cierre de permanencia", () => {
         committees: [],
         reason: "",
       }),
-    ).rejects.toThrow(/Primero cerrá los puntos/);
-    await expect(confirmAllProposedAs(GH, termId)).rejects.toThrow(/Primero cerrá los puntos/);
-    await expect(closeTermPermanenceAs(GH, termId)).rejects.toThrow(/Primero cerrá los puntos/);
+    ).rejects.toThrow(copyPattern("T-799"));
+    await expect(confirmAllProposedAs(GH, termId)).rejects.toThrow(copyPattern("T-799"));
+    await expect(closeTermPermanenceAs(GH, termId)).rejects.toThrow(copyPattern("T-799"));
   });
 
   it("cambiar la propuesta exige motivo; rige la confirmada y el bloque cubre a quienes faltan", async () => {
@@ -166,7 +169,7 @@ describe("cierre de permanencia", () => {
         committees: [{ committeeId: a3, decision: "PROBATION" }],
         reason: "",
       }),
-    ).rejects.toThrow(/exige un motivo/);
+    ).rejects.toThrow(t("T-805"));
     await confirmDecisionsAs(GH, termId, {
       personId: people.prueba,
       person: "CONTINUES",
@@ -201,7 +204,7 @@ describe("cierre de permanencia", () => {
     const snapshots = await listSnapshots(termId);
     expect(snapshots).toHaveLength(3);
     for (const snapshot of snapshots) expect(snapshot.frozenAt).toBeInstanceOf(Date);
-    await expect(closeTermPermanenceAs(GH, termId)).rejects.toThrow(/ya cerró su permanencia/);
+    await expect(closeTermPermanenceAs(GH, termId)).rejects.toThrow(copyPattern("T-808"));
   });
 
   it("el job aplica cada decisión con comandos de people, es reanudable y no repite efectos", async () => {
@@ -288,8 +291,8 @@ describe("cierre de permanencia", () => {
       .where(and(eq(interaction.personId, people.sale), eq(interaction.kind, "PERMANENCE")));
     // Una por decisión más la condición de prueba fijada en el término siguiente (ADR-056).
     expect(timeline.length).toBe(4);
-    expect(timeline.some((row) => row.summary.includes("Sale del comité"))).toBe(true);
-    expect(timeline.some((row) => row.summary.startsWith("En periodo de prueba en "))).toBe(true);
+    expect(timeline.some((row) => row.summary.includes(tList("T-802")[2]))).toBe(true);
+    expect(timeline.some((row) => itemPattern(tList("T-832")[7]).test(row.summary))).toBe(true);
     // El término cerrado no recalcula ni descongela.
     expect(await recomputeSnapshots(termId)).toBe(0);
   });

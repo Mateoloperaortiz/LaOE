@@ -637,7 +637,7 @@ Decidido el 2026-09-19 con las respuestas de Mateo a las diez preguntas de produ
 Mateo pidió el 2026-09-22 que todo el copy suene más paisa y parchado: toque sutil, administración incluida, sin tocar lo que ya aprobó su dueño ni los mensajes sensibles, y la E2E primero. Detalle en [ADR-086](adr/ADR-086-copy-paisa-y-parchado.md). Rama `feat/copy-paisa`, un PR por tramo.
 
 - [x] CP-0 · Documentar: ADR-086, voz en 07-marca §1, 14-copy §1 y PRODUCT.md.
-- [ ] CP-1 · Las pruebas piden el copy al catálogo con `t("T-…")` en lugar de literales (E2E, unitarias e integración).
+- [x] CP-1 · Las pruebas piden el copy al catálogo con `t("T-…")` en lugar de literales (E2E, unitarias e integración).
 - [ ] CP-2 · Reescribir portal público, acceso y navegación del portal.
 - [ ] CP-3 · Reescribir Mi OE.
 - [ ] CP-4 · Reescribir juegos, retos, colección, podio y directorio de comités.
@@ -648,6 +648,7 @@ Mateo pidió el 2026-09-22 que todo el copy suene más paisa y parchado: toque s
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-09-22 | CP-0 · Decisión | [ADR-086](adr/ADR-086-copy-paisa-y-parchado.md): voseo paisa con toque sutil, vocabulario permitido y vetado, admin más sobrio, sensibles serios, aprobados intactos, invariantes de variables y piezas, y pruebas sin copy literal. |
+| 2026-09-22 | CP-1 · Pruebas sin copy literal | Unos 1.100 literales de interfaz de 71 archivos E2E y 40 de unitarias e integración pasan a `t`/`tList` del catálogo, más el helper `tests/helpers/copy.ts` (`tPlain`, `copyPattern`, `copyExact`, `itemPattern`). Cada reemplazo se comprobó contra su literal con el copy sin cambiar. Quedan literales los datos de prueba, lo que viene de la base y lo que no está en el catálogo. `npm run check` en verde (714 unitarias, 525 de integración, build) y E2E completa 206/206 tras corregir dos patrones demasiado amplios (`admin-inicio`, `permanencia-avisos`). Riesgo anotado para CP-2+: `src/app/(public)/layout.tsx` y `src/app/app/layout.tsx` comparan T-038 y T-061 con nombres escritos a mano, así que esos dos no se reescriben sin tocar el código. |
 
 ## Registro de avances
 

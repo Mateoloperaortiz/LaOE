@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { event, eventEdition } from "@/modules/events/schema";
 import { person } from "@/modules/people/schema";
+import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
 import { withinTermInput } from "./calendar";
 import { test } from "./fixtures";
@@ -22,61 +23,61 @@ test("mesa, GT y evaluación del macroevento desde una ficha", async ({ page }) 
     startsAt: new Date(`${withinTermInput()}-05:00`),
   });
   await page.goto("/admin/macroeventos");
-  await page.getByRole("link", { name: "Gestionar macroevento · EnFemenino" }).click();
+  await page.getByRole("link", { name: `${t("T-2346")} · EnFemenino` }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("EnFemenino");
-  await expect(page.getByLabel("Cargo", { exact: true }).locator("option")).toHaveCount(8);
-  await page.getByLabel("Cargo", { exact: true }).selectOption("AGENDA_ACADEMICA");
-  await page.getByLabel("Persona", { exact: true }).selectOption(member.id);
-  await page
-    .getByLabel("Excepción registrada (motivo)")
-    .fill("Aval sintético de GH para esta prueba");
-  await page.getByRole("button", { name: "Nombrar dirección", exact: true }).click();
-  await expect(page.getByText("Guardado.", { exact: true })).toBeVisible();
+  await expect(page.getByLabel(tList("T-2270")[0], { exact: true }).locator("option")).toHaveCount(
+    8,
+  );
+  await page.getByLabel(tList("T-2270")[0], { exact: true }).selectOption("AGENDA_ACADEMICA");
+  await page.getByLabel(tList("T-2270")[1], { exact: true }).selectOption(member.id);
+  await page.getByLabel(tList("T-2283")[0]).fill("Aval sintético de GH para esta prueba");
+  await page.getByRole("button", { name: t("T-2374"), exact: true }).click();
+  await expect(page.getByText(t("T-259"), { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: member.fullName ?? "" })).toBeVisible();
-  await page.getByRole("link", { name: "GT", exact: true }).click();
-  await page.getByRole("button", { name: "Preparar GT del semestre" }).click();
-  await page.getByLabel("Agregar miembro", { exact: true }).selectOption(member.id);
-  await page.getByLabel("Publicidad", { exact: true }).check();
-  await page.getByLabel("Gestión Humana", { exact: true }).check();
-  await page.getByRole("button", { name: "Agregar miembro", exact: true }).click();
-  await expect(
-    page.getByText("Integrantes: 1 · Evaluaciones pendientes: 1", { exact: true }),
-  ).toBeVisible();
-  await page.getByText(`Evaluar desempeño · ${member.fullName}`, { exact: true }).click();
-  await page.getByLabel("Evaluar desempeño", { exact: true }).selectOption("INSUFFICIENT");
-  await page.getByRole("button", { name: "Guardar evaluación" }).click();
+  await page.getByRole("link", { name: tList("T-2375")[1], exact: true }).click();
+  await page.getByRole("button", { name: t("T-2349") }).click();
+  await page.getByLabel(tList("T-748")[0], { exact: true }).selectOption(member.id);
+  await page.getByLabel(tList("T-2376")[1], { exact: true }).check();
+  await page.getByLabel(tList("T-2376")[6], { exact: true }).check();
+  await page.getByRole("button", { name: tList("T-748")[0], exact: true }).click();
+  await expect(page.getByText(t("T-2370", { n: 1, m: 1 }), { exact: true })).toBeVisible();
+  await page.getByText(`${t("T-2360")} · ${member.fullName}`, { exact: true }).click();
+  await page.getByLabel(t("T-2360"), { exact: true }).selectOption("INSUFFICIENT");
+  await page.getByRole("button", { name: t("T-2362") }).click();
   await expect(page).toHaveURL(/error=/);
-  if (!(await page.getByLabel("Evaluar desempeño", { exact: true }).isVisible())) {
-    await page.getByText(`Evaluar desempeño · ${member.fullName}`, { exact: true }).click();
+  if (!(await page.getByLabel(t("T-2360"), { exact: true }).isVisible())) {
+    await page.getByText(`${t("T-2360")} · ${member.fullName}`, { exact: true }).click();
   }
-  await page.getByLabel("Evaluar desempeño", { exact: true }).selectOption("GOOD");
-  await page.getByRole("button", { name: "Guardar evaluación" }).click();
-  await expect(
-    page.getByText("Integrantes: 1 · Evaluaciones pendientes: 0", { exact: true }),
-  ).toBeVisible();
-  await page.getByLabel("Líder del GT", { exact: true }).selectOption(member.id);
-  await page.getByLabel("Evaluadores de GH", { exact: true }).selectOption([member.id]);
-  await page.getByRole("button", { name: "Guardar responsables y edición" }).click();
-  await expect(page.getByLabel("Evaluadores de GH", { exact: true })).toHaveValues([member.id]);
-  await page.getByRole("link", { name: "GAP", exact: true }).click();
-  await page.getByRole("button", { name: "Preparar GAP del semestre" }).click();
-  await page.getByLabel("Agregar miembro", { exact: true }).selectOption(member.id);
-  await page.getByLabel("Logística", { exact: true }).check();
-  await page.getByLabel("Registrar y acreditar cumplimiento", { exact: true }).check();
-  await page.getByRole("button", { name: "Agregar miembro", exact: true }).click();
-  await expect(
-    page.getByText("Integrantes: 1 · Evaluaciones pendientes: 0", { exact: true }),
-  ).toBeVisible();
+  await page.getByLabel(t("T-2360"), { exact: true }).selectOption("GOOD");
+  await page.getByRole("button", { name: t("T-2362") }).click();
+  await expect(page.getByText(t("T-2370", { n: 1, m: 0 }), { exact: true })).toBeVisible();
+  await page.getByLabel(t("T-2364"), { exact: true }).selectOption(member.id);
+  await page.getByLabel(t("T-2365"), { exact: true }).selectOption([member.id]);
+  await page.getByRole("button", { name: t("T-2363") }).click();
+  await expect(page.getByLabel(t("T-2365"), { exact: true })).toHaveValues([member.id]);
+  await page.getByRole("link", { name: tList("T-2375")[2], exact: true }).click();
+  await page.getByRole("button", { name: t("T-2385") }).click();
+  await page.getByLabel(tList("T-748")[0], { exact: true }).selectOption(member.id);
+  await page.getByLabel(tList("T-2376")[2], { exact: true }).check();
+  await page.getByLabel(t("T-2381"), { exact: true }).check();
+  await page.getByRole("button", { name: tList("T-748")[0], exact: true }).click();
+  await expect(page.getByText(t("T-2370", { n: 1, m: 0 }), { exact: true })).toBeVisible();
   const teamUrl = page.url();
   await page.goto(`/admin/personas/${member.id}`);
-  await expect(page.getByText("GT · Publicidad · EnFemenino", { exact: true })).toBeVisible();
-  await expect(page.getByText("GT · Gestión Humana · EnFemenino", { exact: true })).toBeVisible();
-  await expect(page.getByText("GAP · Logística · EnFemenino", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(`GT · ${tList("T-2376")[1]} · EnFemenino`, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(`GT · ${tList("T-2376")[6]} · EnFemenino`, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(`GAP · ${tList("T-2376")[2]} · EnFemenino`, { exact: true }),
+  ).toBeVisible();
   await page.goto("/app");
   await page.goto(teamUrl);
   await sinViolaciones(page);
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("combobox", { name: "Macroeventos", exact: true })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: t("T-2344"), exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );

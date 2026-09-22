@@ -21,6 +21,7 @@ import {
   listLiveCommitteeIds,
   setCommitteeMemberships,
 } from "@/modules/people";
+import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import {
@@ -102,7 +103,7 @@ describe("comité desactivado", () => {
           { committeeId: sos, roleCode: "MIEMBRO", transferredIn: false },
         ]),
       ),
-    ).rejects.toMatchObject({ message: expect.stringContaining("SOS está inactivo") });
+    ).rejects.toMatchObject({ message: expect.stringContaining(t("T-2618", { comité: "SOS" })) });
 
     // Y nadie nuevo entra.
     const otra = await seedVeteran("otra@eafit.edu.co");
@@ -188,6 +189,6 @@ describe("comité desactivado", () => {
         joinCommitteeIds: [sos],
         reason: "Me interesa más ese comité",
       }),
-    ).rejects.toMatchObject({ message: expect.stringContaining("SOS está inactivo") });
+    ).rejects.toMatchObject({ message: expect.stringContaining(t("T-2618", { comité: "SOS" })) });
   });
 });

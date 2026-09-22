@@ -2,14 +2,18 @@ import { expect, type Page } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { pointEntry, sudokuRun } from "@/modules/participation/schema";
+import { t, tList } from "@/shared/copy";
+import { copyExact, copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 test.afterAll(() => closeDb());
 
-type Dificultad = "Fácil" | "Medio" | "Difícil";
-type Modo = "Sin ayudas" | "Con ayudas";
+const [FACIL, MEDIO, DIFICIL] = tList("T-2681");
+const [SIN_AYUDAS, CON_AYUDAS] = tList("T-2683");
+type Dificultad = typeof FACIL | typeof MEDIO | typeof DIFICIL;
+type Modo = typeof SIN_AYUDAS | typeof CON_AYUDAS;
 
 async function partidas() {
   return getDb().select().from(sudokuRun).orderBy(sudokuRun.createdAt);
@@ -40,7 +44,7 @@ async function abrir(page: Page) {
 function casilla(page: Page, cell: number) {
   const fila = Math.floor(cell / 9) + 1;
   const columna = (cell % 9) + 1;
-  return page.getByRole("gridcell", { name: new RegExp(`^Fila ${fila}, columna ${columna}:`) });
+  return page.getByRole("gridcell", { name: copyExact("T-2697", { fila, columna }) });
 }
 
 /**
@@ -52,10 +56,12 @@ async function empezar(page: Page, dificultad: Dificultad, modo: Modo) {
   const juego = page.locator("#sudoku");
   await opcion(page, dificultad).click();
   await opcion(page, modo).click();
-  await juego.getByRole("button", { name: /^(Empezar el tablero|Jugar otro tablero)$/ }).click();
-  await expect(
-    page.getByRole("grid", { name: "Tablero de Sudoku de nueve por nueve" }),
-  ).toBeVisible();
+  await juego
+    .getByRole("button", {
+      name: new RegExp(`${copyExact("T-2687").source}|${copyExact("T-2711").source}`),
+    })
+    .click();
+  await expect(page.getByRole("grid", { name: t("T-2696") })).toBeVisible();
   const run = (await partidas()).at(-1);
   if (!run || run.status !== "IN_PROGRESS") throw new Error("La partida no nació");
   return run;
@@ -82,12 +88,12 @@ function vacias(givens: string): number[] {
 
 test("la biblioteca suma la tarjeta del Sudoku", async ({ page }) => {
   await page.goto("/app/juegos");
-  await expect(page.getByRole("link", { name: /Sudoku/ })).toBeVisible();
-  await expect(page.getByText("Disponible hoy")).toHaveCount(3);
+  await expect(page.getByRole("link", { name: copyPattern("T-2675") })).toBeVisible();
+  await expect(page.getByText(tList("T-2623")[0])).toHaveCount(3);
   await sinViolaciones(page);
-  await page.getByRole("link", { name: /Sudoku/ }).click();
+  await page.getByRole("link", { name: copyPattern("T-2675") }).click();
   await expect(page).toHaveURL(/\/app\/juegos\/sudoku$/);
-  await expect(page.getByRole("heading", { name: "Sudoku", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: t("T-2675"), level: 1 })).toBeVisible();
   // Leer no reparte tableros: la partida nace al pulsar.
   expect(await partidas()).toHaveLength(0);
 });
@@ -115,13 +121,13 @@ test("un Difícil sin ayudas acredita 6 sin que la solución llegue al navegador
   );
   await abrir(page);
   const juego = page.locator("#sudoku");
-  await expect(juego.getByText("El primer Sudoku que resuelvas hoy es el que suma")).toBeVisible();
-  await opcion(page, "Difícil").click();
-  await expect(juego.getByText("Este tablero paga 6 GH Points.")).toBeVisible();
-  const run = await empezar(page, "Difícil", "Sin ayudas");
+  await expect(juego.getByText(t("T-2685"))).toBeVisible();
+  await opcion(page, DIFICIL).click();
+  await expect(juego.getByText(t("T-2686", { n: 6 }))).toBeVisible();
+  const run = await empezar(page, DIFICIL, SIN_AYUDAS);
   expect(run).toMatchObject({ difficulty: "HARD", assisted: false });
   // Sin ayudas no hay botón de pista ni marca de error.
-  await expect(juego.getByRole("button", { name: "Pista" })).toHaveCount(0);
+  await expect(juego.getByRole("button", { name: tList("T-2701")[3] })).toHaveCount(0);
 
   // Un repetido se marca solo: son las reglas, no la solución.
   const [primera] = vacias(run.givens);
@@ -130,7 +136,7 @@ test("un Difícil sin ayudas acredita 6 sin que la solución llegue al navegador
   const repetido = Array.from({ length: 9 }, (_, i) => run.givens[fila + i]).find((d) => d !== "0");
   await casilla(page, primera).click();
   await page.keyboard.press(repetido as string);
-  await expect(casilla(page, primera)).toHaveAccessibleName(/repetido$/);
+  await expect(casilla(page, primera)).toHaveAccessibleName(new RegExp(`${tList("T-2698")[2]}$`));
   await expect(
     juego.getByText(`El ${repetido} ya está en esa fila, columna o caja.`),
   ).toBeVisible();
@@ -138,15 +144,15 @@ test("un Difícil sin ayudas acredita 6 sin que la solución llegue al navegador
   // Con la partida abierta, lo que el servidor manda para pintar la página trae las dadas y nada
   // más. Se lee del DOM tras recargar: ahí quedan los datos que Next incrusta para hidratar.
   await page.reload();
-  await expect(juego.getByRole("button", { name: "Seguir el tablero" })).toBeVisible();
+  await expect(juego.getByRole("button", { name: t("T-2692") })).toBeVisible();
   const pagina = await page.content();
   expect(pagina).toContain(run.givens);
   expect(pagina).not.toContain(run.solution);
   expect(pagina).not.toContain(run.seed);
-  await juego.getByRole("button", { name: "Seguir el tablero" }).click();
+  await juego.getByRole("button", { name: t("T-2692") }).click();
 
   await resolver(page, run);
-  await expect(juego.getByText("¡Resuelto! Sumaste 6 GH Points.")).toBeVisible({ timeout: 15_000 });
+  await expect(juego.getByText(t("T-2708", { n: 6 }))).toBeVisible({ timeout: 15_000 });
   const [guardada] = await partidas();
   expect(guardada).toMatchObject({ status: "SOLVED", creditedPoints: 6 });
   expect(await creditos()).toHaveLength(1);
@@ -162,22 +168,22 @@ test("un Difícil sin ayudas acredita 6 sin que la solución llegue al navegador
   expect(visto).not.toContain(run.seed);
 
   // El segundo tablero del día se resuelve igual y se guarda, pero no acredita otra vez.
-  const segunda = await empezar(page, "Fácil", "Sin ayudas");
+  const segunda = await empezar(page, FACIL, SIN_AYUDAS);
   await resolver(page, segunda);
-  await expect(juego.getByText("Hoy ya habías sumado con el Sudoku")).toBeVisible({
+  await expect(juego.getByText(t("T-2709"))).toBeVisible({
     timeout: 15_000,
   });
   expect(await partidas()).toHaveLength(2);
   expect(await creditos()).toHaveLength(1);
-  await expect(juego.getByText("Resueltos este semestre")).toBeVisible();
+  await expect(juego.getByText(t("T-2720"))).toBeVisible();
 });
 
 test("con ayudas marca el error al instante, da pistas y paga la mitad", async ({ page }) => {
   await abrir(page);
   const juego = page.locator("#sudoku");
-  await opcion(page, "Con ayudas").click();
-  await expect(juego.getByText("Este tablero paga 1 GH Points.")).toBeVisible();
-  const run = await empezar(page, "Fácil", "Con ayudas");
+  await opcion(page, CON_AYUDAS).click();
+  await expect(juego.getByText(t("T-2686", { n: 1 }))).toBeVisible();
+  const run = await empezar(page, FACIL, CON_AYUDAS);
   expect(run).toMatchObject({ difficulty: "EASY", assisted: true });
   const [una, otra] = vacias(run.givens);
   if (una === undefined || otra === undefined) throw new Error("Tablero sin casillas vacías");
@@ -186,15 +192,15 @@ test("con ayudas marca el error al instante, da pistas y paga la mitad", async (
   const malo = String((Number(run.solution[una]) % 9) + 1);
   await casilla(page, una).click();
   await page.keyboard.press(malo);
-  await expect(casilla(page, una)).toHaveAccessibleName(/no va ahí$/);
+  await expect(casilla(page, una)).toHaveAccessibleName(new RegExp(`${tList("T-2698")[3]}$`));
   await expect(casilla(page, una)).toHaveAttribute("aria-invalid", "true");
   // Borrarlo deja la casilla vacía: si se quedara, podría chocar con la pista de al lado.
   await page.keyboard.press("Backspace");
-  await expect(casilla(page, una)).toHaveAccessibleName(/vacía$/);
+  await expect(casilla(page, una)).toHaveAccessibleName(new RegExp(`${tList("T-2698")[0]}$`));
 
   // La pista revela la casilla elegida y la deja fija.
   await casilla(page, otra).click();
-  await juego.getByRole("button", { name: "Pista" }).click();
+  await juego.getByRole("button", { name: tList("T-2701")[3] }).click();
   await expect(casilla(page, otra)).toHaveAccessibleName(
     new RegExp(`: ${run.solution[otra]}, pista$`),
   );
@@ -205,7 +211,7 @@ test("con ayudas marca el error al instante, da pistas y paga la mitad", async (
   );
 
   await resolver(page, run, [otra]);
-  await expect(juego.getByText("¡Resuelto! Sumaste 1 GH Points.")).toBeVisible({ timeout: 15_000 });
+  await expect(juego.getByText(t("T-2708", { n: 1 }))).toBeVisible({ timeout: 15_000 });
   expect((await partidas())[0]).toMatchObject({ status: "SOLVED", creditedPoints: 1 });
 });
 
@@ -214,7 +220,7 @@ test("recargar conserva dígitos y notas, y abandonar deja elegir otra dificulta
 }) => {
   await abrir(page);
   const juego = page.locator("#sudoku");
-  const run = await empezar(page, "Medio", "Sin ayudas");
+  const run = await empezar(page, MEDIO, SIN_AYUDAS);
   const [una, otra] = vacias(run.givens);
   if (una === undefined || otra === undefined) throw new Error("Tablero sin casillas vacías");
   await casilla(page, una).click();
@@ -225,9 +231,13 @@ test("recargar conserva dígitos y notas, y abandonar deja elegir otra dificulta
   await page.keyboard.press("1");
   await page.keyboard.press("5");
   await page.keyboard.press("9");
-  await expect(casilla(page, otra)).toHaveAccessibleName(/notas 1, 5, 9$/);
+  await expect(casilla(page, otra)).toHaveAccessibleName(
+    new RegExp(`${copyPattern("T-2699", { notas: "1, 5, 9" }).source}$`),
+  );
   await page.keyboard.press("ControlOrMeta+z");
-  await expect(casilla(page, otra)).toHaveAccessibleName(/notas 1, 5$/);
+  await expect(casilla(page, otra)).toHaveAccessibleName(
+    new RegExp(`${copyPattern("T-2699", { notas: "1, 5" }).source}$`),
+  );
   // Las flechas mueven la selección dentro de la grilla.
   await casilla(page, 40).click();
   await page.keyboard.press("ArrowRight");
@@ -235,17 +245,19 @@ test("recargar conserva dígitos y notas, y abandonar deja elegir otra dificulta
   await expect(casilla(page, 41)).toHaveAttribute("aria-selected", "true");
 
   await page.reload();
-  await expect(juego.getByText("Tenés un Sudoku a medias: Medio, Sin ayudas.")).toBeVisible();
-  await juego.getByRole("button", { name: "Seguir el tablero" }).click();
+  await expect(juego.getByText(t("T-2691", { dificultad: MEDIO, modo: SIN_AYUDAS }))).toBeVisible();
+  await juego.getByRole("button", { name: t("T-2692") }).click();
   await expect(casilla(page, una)).toHaveAccessibleName(new RegExp(`: ${run.solution[una]}$`));
-  await expect(casilla(page, otra)).toHaveAccessibleName(/notas 1, 5$/);
+  await expect(casilla(page, otra)).toHaveAccessibleName(
+    new RegExp(`${copyPattern("T-2699", { notas: "1, 5" }).source}$`),
+  );
   expect(await partidas()).toHaveLength(1);
 
-  await juego.getByRole("button", { name: "Abandonar el tablero" }).click();
-  await juego.getByRole("button", { name: "Sí, abandonar" }).click();
-  await expect(juego.getByRole("button", { name: "Empezar el tablero" })).toBeVisible();
+  await juego.getByRole("button", { name: t("T-2693") }).click();
+  await juego.getByRole("button", { name: tList("T-2695")[0] }).click();
+  await expect(juego.getByRole("button", { name: t("T-2687") })).toBeVisible();
   expect((await partidas())[0]?.status).toBe("ABANDONED");
-  const nueva = await empezar(page, "Fácil", "Sin ayudas");
+  const nueva = await empezar(page, FACIL, SIN_AYUDAS);
   expect(nueva.id).not.toBe(run.id);
   expect(await creditos()).toHaveLength(0);
 });
@@ -255,12 +267,12 @@ test("en móvil se juega con el teclado en pantalla y sin desbordar", async ({ p
   await abrir(page);
   const juego = page.locator("#sudoku");
   await sinViolaciones(page);
-  const run = await empezar(page, "Fácil", "Con ayudas");
+  const run = await empezar(page, FACIL, CON_AYUDAS);
   const [una, otra, tercera] = vacias(run.givens);
   if (una === undefined || otra === undefined || tercera === undefined) {
     throw new Error("Tablero sin casillas vacías");
   }
-  const teclado = juego.getByRole("group", { name: "Teclado numérico" });
+  const teclado = juego.getByRole("group", { name: t("T-2700") });
   await casilla(page, una).click();
   await teclado.getByRole("button", { name: run.solution[una] as string, exact: true }).click();
   await expect(casilla(page, una)).toHaveAccessibleName(new RegExp(`: ${run.solution[una]}$`));
@@ -269,10 +281,12 @@ test("en móvil se juega con el teclado en pantalla y sin desbordar", async ({ p
   const malo = String((Number(run.solution[otra]) % 9) + 1);
   await teclado.getByRole("button", { name: malo, exact: true }).click();
   await casilla(page, tercera).click();
-  await teclado.getByRole("button", { name: "Lápiz" }).click();
+  await teclado.getByRole("button", { name: tList("T-2701")[1] }).click();
   await teclado.getByRole("button", { name: "3", exact: true }).click();
   await teclado.getByRole("button", { name: "7", exact: true }).click();
-  await expect(casilla(page, tercera)).toHaveAccessibleName(/notas 3, 7$/);
+  await expect(casilla(page, tercera)).toHaveAccessibleName(
+    new RegExp(`${copyPattern("T-2699", { notas: "3, 7" }).source}$`),
+  );
 
   const lado = await casilla(page, 0).evaluate((node) => node.getBoundingClientRect().width);
   expect(lado).toBeGreaterThanOrEqual(34);

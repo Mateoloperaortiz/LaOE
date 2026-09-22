@@ -4,6 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import sharp from "sharp";
 import { closeDb, getDb } from "@/db/client";
 import { mediaAsset } from "@/modules/content/schema";
+import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 
@@ -27,20 +28,20 @@ test("un ADMIN sube una portada de 5 MB directo al bucket y se sirve con 302 al 
 
   await page.goto("/admin/medios");
   await sinViolaciones(page);
-  await page.getByRole("link", { name: "Subir imagen", exact: true }).click();
+  await page.getByRole("link", { name: t("T-356"), exact: true }).click();
   const subidas = page.waitForResponse(
     (response) => response.url().includes("/api/media/confirm") && response.status() === 201,
   );
   await page
     .getByRole("dialog")
-    .getByLabel("Subir imagen")
+    .getByLabel(t("T-356"))
     .setInputFiles({ name: nombre, mimeType: "image/png", buffer });
   await page
     .getByRole("dialog")
-    .locator('button[type="submit"]', { hasText: "Subir imagen" })
+    .locator('button[type="submit"]', { hasText: t("T-356") })
     .click();
   await subidas;
-  await expect(page.getByText("Listo: la imagen queda disponible en unos segundos.")).toBeVisible();
+  await expect(page.getByText(t("T-360"))).toBeVisible();
 
   // Genera las variantes aquí mismo (en local el poller también puede haberlo hecho ya).
   const buscar = () =>
@@ -62,7 +63,7 @@ test("un ADMIN sube una portada de 5 MB directo al bucket y se sirve con 302 al 
 
   await page.reload();
   const fila = page.getByRole("row", { name: new RegExp(nombre) });
-  await expect(fila.getByText("Lista")).toBeVisible();
+  await expect(fila.getByText(tList("T-358")[1])).toBeVisible();
   await expect(fila.getByText("1400 × 1400")).toBeVisible();
 
   const redirect = await page.request.get(`/api/media/${asset?.id}?w=960`, {
@@ -84,7 +85,7 @@ test("la imagen y su visibilidad se conservan después de un fallo", async ({ pa
     await route.fulfill({ status: 503, json: { error: "Subida de prueba interrumpida." } });
   });
   await page.goto("/admin/medios");
-  await page.getByRole("link", { name: "Subir imagen", exact: true }).click();
+  await page.getByRole("link", { name: t("T-356"), exact: true }).click();
   const panel = page.getByRole("dialog");
   const image = await sharp({
     create: { width: 800, height: 800, channels: 3, background: "#94b6f0" },
@@ -92,17 +93,17 @@ test("la imagen y su visibilidad se conservan después de un fallo", async ({ pa
     .png({ compressionLevel: 0 })
     .toBuffer();
   await panel
-    .getByLabel("Subir imagen")
+    .getByLabel(t("T-356"))
     .setInputFiles({ name: "conservar.png", mimeType: "image/png", buffer: image });
   expect(attempts).toBe(0);
-  await panel.getByLabel("Visibilidad").selectOption("PRIVATE");
-  const submit = panel.locator('button[type="submit"]', { hasText: "Subir imagen" });
+  await panel.getByLabel(t("T-365")).selectOption("PRIVATE");
+  const submit = panel.locator('button[type="submit"]', { hasText: t("T-356") });
   await submit.click();
   await expect(panel.getByRole("alert")).toHaveText("Subida de prueba interrumpida.");
-  await expect(panel.getByLabel("Visibilidad")).toHaveValue("PRIVATE");
+  await expect(panel.getByLabel(t("T-365"))).toHaveValue("PRIVATE");
   expect(
     await panel
-      .getByLabel("Subir imagen")
+      .getByLabel(t("T-356"))
       .evaluate((input: HTMLInputElement) => input.files?.[0]?.name),
   ).toBe("conservar.png");
   await submit.click();

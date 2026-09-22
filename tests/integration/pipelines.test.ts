@@ -25,6 +25,7 @@ import { person } from "@/modules/people/schema";
 import { outbox } from "@/modules/system/schema";
 import type { MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
+import { copyPattern, itemPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
@@ -40,6 +41,8 @@ import {
 // transacción, patrocinio ganado con tarea y correo de bienvenida al drenar.
 
 const admin = { personId: null, ip: null };
+
+/** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 
 function fakeTransport(): MailTransport {
   return { name: "resend", send: async () => ({ id: "re_ok" }) };
@@ -76,7 +79,7 @@ describe("pipelines y tarjetas", () => {
       [false, true],
     ]);
     const custom = await pipelineWithTemplate("CUSTOM", "Alianzas");
-    expect(custom.stages.map((stage) => stage.name)).toEqual(["Nueva"]);
+    expect(custom.stages.map((stage) => stage.name)).toEqual(tList("T-967"));
     await expect(
       saveStageAs(admin, id, null, { name: "Rara", isWon: true, isLost: true }),
     ).rejects.toThrow(t("T-979"));
@@ -89,12 +92,9 @@ describe("pipelines y tarjetas", () => {
     await moveStageAs(admin, added.id, "up");
     const reordered = await listStages(id);
     expect(reordered.map((stage) => stage.name)).toEqual([
-      "Recibida",
-      "Entrevista",
-      "Admitida",
+      ...tList("T-965").slice(0, 3),
       "Prueba técnica",
-      "Alta",
-      "No admitida",
+      ...tList("T-965").slice(3),
     ]);
     await deleteStageAs(admin, added.id);
     expect((await listStages(id)).map((stage) => stage.name)).toEqual(tList("T-965"));
@@ -110,7 +110,11 @@ describe("pipelines y tarjetas", () => {
       title: "Postobón · Días EAFIT",
     });
     let view = await getCard(created.id);
-    expect(view).toMatchObject({ stageName: "Contacto", closedAt: null, subjectName: "Postobón" });
+    expect(view).toMatchObject({
+      stageName: tList("T-966")[0],
+      closedAt: null,
+      subjectName: "Postobón",
+    });
     const won = stages.find((stage) => stage.isWon);
     const lost = stages.find((stage) => stage.isLost);
     if (!won || !lost) throw new Error("stages");
@@ -135,7 +139,7 @@ describe("pipelines y tarjetas", () => {
       .where(eq(interaction.organizationId, organizationId));
     expect(timeline.map((item) => item.kind)).toEqual(["PIPELINE", "PIPELINE", "PIPELINE"]);
     expect(timeline[0]?.summary).toBe(
-      (tList("T-1046")[2] ?? "").replace("{pipeline}", "P").replace("{etapa}", "Contacto"),
+      (tList("T-1046")[2] ?? "").replace("{pipeline}", "P").replace("{etapa}", tList("T-966")[0]),
     );
   });
 
@@ -160,7 +164,11 @@ describe("pipelines y tarjetas", () => {
     expect(who.stage).toBe("APPLICANT");
     const cards = await listCardsByPerson(who.id);
     expect(cards).toHaveLength(1);
-    expect(cards[0]).toMatchObject({ stageName: "Recibida", title: "Lu Gómez", pipelineId: id });
+    expect(cards[0]).toMatchObject({
+      stageName: tList("T-965")[0],
+      title: "Lu Gómez",
+      pipelineId: id,
+    });
     // El mismo evento otra vez no duplica (idempotente por la respuesta).
     const [event] = await getDb()
       .select()
@@ -189,7 +197,9 @@ describe("pipelines y tarjetas", () => {
     const won = stages.find((stage) => stage.isWon);
     if (!won) throw new Error("won");
     // Mover a mano a la etapa ganada sin membresía se rechaza.
-    await expect(moveCardAs(admin, created.id, won.id)).rejects.toThrow("primero da de alta");
+    await expect(moveCardAs(admin, created.id, won.id)).rejects.toThrow(
+      t("T-991", { etapa: tList("T-965")[3] }),
+    );
     const result = await admitFromCardAs(admin, created.id, { termId, committeeIds: [a3] });
     expect(result.membershipId).toBeTruthy();
     expect(await getMembershipRef(personId)).toMatchObject({
@@ -197,7 +207,7 @@ describe("pipelines y tarjetas", () => {
       firstTermId: termId,
     });
     const view = await getCard(created.id);
-    expect(view).toMatchObject({ stageName: "Alta", stageIsWon: true });
+    expect(view).toMatchObject({ stageName: tList("T-965")[3], stageIsWon: true });
     expect(view?.closedAt).toBeInstanceOf(Date);
     expect((await getMyMembership(personId)).committees.map((row) => row.committeeSlug)).toEqual([
       "a3",
@@ -205,7 +215,7 @@ describe("pipelines y tarjetas", () => {
     // Una segunda alta se rechaza (ya tiene membresía) y un externo o un correo ajeno también.
     await expect(
       admitFromCardAs(admin, created.id, { termId, committeeIds: [a3] }),
-    ).rejects.toThrow("ya tiene membresía");
+    ).rejects.toThrow(copyPattern("T-986"));
     const external = await seedPerson("contacto@empresa.com", { kind: "EXTERNAL" });
     const externalCard = await createCardAs(admin, id, { personId: external });
     await expect(
@@ -216,13 +226,13 @@ describe("pipelines y tarjetas", () => {
     const mails = await getDb().select().from(message).where(eq(message.personId, personId));
     expect(mails).toHaveLength(1);
     expect(mails[0]).toMatchObject({ status: "SENT", provider: "resend" });
-    expect(mails[0]?.subject).toContain("Bienvenido a la OE");
+    expect(mails[0]?.subject).toMatch(itemPattern(tList("T-200")[0]));
     const timeline = await getDb()
       .select()
       .from(interaction)
       .where(eq(interaction.personId, personId));
     const summaries = timeline.map((item) => item.summary);
-    expect(summaries.some((text) => text.startsWith("Dado de alta en"))).toBe(true);
-    expect(summaries.some((text) => text.startsWith("Estado cambió"))).toBe(false);
+    expect(summaries.some((text) => itemPattern(tList("T-1046")[5]).test(text))).toBe(true);
+    expect(summaries.some((text) => itemPattern(tList("T-458")[1]).test(text))).toBe(false);
   });
 });

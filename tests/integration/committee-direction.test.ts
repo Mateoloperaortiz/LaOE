@@ -17,7 +17,9 @@ import {
 import { getMyMembership } from "@/modules/people/domain/committee-memberships";
 import { committeeMembership, committeeRoleAssignment } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
+import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { copyPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
@@ -146,13 +148,13 @@ describe("agregar, cargos y pedido de retiro", () => {
     const scope = { committeeId: f.a3, termId: f.termId };
     await expect(
       addCommitteeMemberAs(actor(f.member), scope, director, { personId: f.newbie, roles: [] }),
-    ).rejects.toMatchObject({ message: expect.stringContaining("No tenés a cargo") });
+    ).rejects.toMatchObject({ message: expect.stringMatching(copyPattern("T-2162")) });
     await expect(
       addCommitteeMemberAs(actor(f.gh), scope, director, {
         personId: f.newbie,
         roles: [{ roleCode: "LOGISTICA", coDirector: false }],
       }),
-    ).rejects.toMatchObject({ message: expect.stringContaining("General del comité") });
+    ).rejects.toMatchObject({ message: expect.stringContaining(t("T-2167")) });
 
     const added = await addCommitteeMemberAs(actor(f.gh), scope, director, {
       personId: f.newbie,
@@ -161,13 +163,13 @@ describe("agregar, cargos y pedido de retiro", () => {
     expect(added.revived).toBe(false);
     await expect(
       addCommitteeMemberAs(actor(f.gh), scope, director, { personId: f.newbie, roles: [] }),
-    ).rejects.toMatchObject({ message: expect.stringContaining("ya está en este comité") });
+    ).rejects.toMatchObject({ message: expect.stringMatching(copyPattern("T-2165")) });
 
     const onLeave = await seedPerson("licencia@eafit.edu.co");
     await seedMembership(onLeave, f.termId, "ON_LEAVE");
     await expect(
       addCommitteeMemberAs(actor(f.gh), scope, director, { personId: onLeave, roles: [] }),
-    ).rejects.toMatchObject({ message: expect.stringContaining("activos") });
+    ).rejects.toMatchObject({ message: expect.stringContaining(t("T-2164")) });
 
     const full = await seedMember("lleno@eafit.edu.co", { firstName: "Lleno", lastName: "Total" });
     for (const id of [f.pixel, await seedCommittee("cigma"), await seedCommittee("eco")]) {
@@ -175,7 +177,7 @@ describe("agregar, cargos y pedido de retiro", () => {
     }
     await expect(
       addCommitteeMemberAs(actor(f.gh), scope, director, { personId: full, roles: [] }),
-    ).rejects.toMatchObject({ message: expect.stringContaining("3 comités") });
+    ).rejects.toMatchObject({ message: expect.stringMatching(copyPattern("T-2166", { max: 3 })) });
 
     // El General nombra con cargos, y el cargo principal derivado queda en la pertenencia.
     const co = await seedVeteran("co@eafit.edu.co", { firstName: "Cora", lastName: "Codi" });
@@ -194,7 +196,9 @@ describe("agregar, cargos y pedido de retiro", () => {
         personId: co,
         roles: [{ roleCode: "PUBLICIDAD", coDirector: false }],
       }),
-    ).rejects.toMatchObject({ message: expect.stringContaining("Mercadeo") });
+    ).rejects.toMatchObject({
+      message: expect.stringMatching(copyPattern("T-2212", { nuevo: "Mercadeo" })),
+    });
     const [audit] = await db()
       .select()
       .from(auditLog)
@@ -215,18 +219,20 @@ describe("agregar, cargos y pedido de retiro", () => {
     const logistica = [{ roleCode: "LOGISTICA", coDirector: false }];
     await expect(
       setMemberRolesAs(actor(f.gh), scope, director, { personId: f.member, roles: logistica }),
-    ).rejects.toMatchObject({ message: expect.stringContaining("General del comité") });
+    ).rejects.toMatchObject({ message: expect.stringContaining(t("T-2167")) });
     await expect(
       setMemberRolesAs(actor(f.general), scope, director, { personId: f.general, roles: [] }),
-    ).rejects.toMatchObject({ message: expect.stringContaining("propia pertenencia") });
+    ).rejects.toMatchObject({ message: expect.stringContaining(t("T-2163")) });
     await expect(
       setMemberRolesAs(actor(f.general), scope, director, { personId: f.newbie, roles: [] }),
-    ).rejects.toMatchObject({ message: expect.stringContaining("ya no está en el comité") });
+    ).rejects.toMatchObject({ message: expect.stringContaining(t("T-2173")) });
 
     // Un segundo titular de Logística choca; la codirección convive.
     await expect(
       setMemberRolesAs(actor(f.general), scope, director, { personId: f.member, roles: logistica }),
-    ).rejects.toMatchObject({ message: expect.stringContaining("A3 ya tiene Logística") });
+    ).rejects.toMatchObject({
+      message: expect.stringContaining(t("T-452", { comité: "A3", cargo: "Logística" })),
+    });
     const changed = await setMemberRolesAs(actor(f.general), scope, director, {
       personId: f.member,
       roles: [{ roleCode: "LOGISTICA", coDirector: true }],
@@ -254,7 +260,9 @@ describe("agregar, cargos y pedido de retiro", () => {
     ]);
     await expect(
       setMemberRolesAs(actor(f.general), scope, director, { personId: f.member, roles: [] }),
-    ).rejects.toMatchObject({ message: expect.stringContaining("sin Financiero titular") });
+    ).rejects.toMatchObject({
+      message: expect.stringContaining(t("T-2168", { cargo: "Financiero" })),
+    });
     await setMemberRolesAs(actor(f.general), scope, admin, { personId: f.member, roles: [] });
     const rows = await db()
       .select({ roleCode: committeeMembership.roleCode })
@@ -308,7 +316,11 @@ describe("agregar, cargos y pedido de retiro", () => {
       .select({ summary: interaction.summary })
       .from(interaction)
       .where(eq(interaction.personId, f.member));
-    expect(notes.some((row) => row.summary.includes("Pidieron a GH su retiro de A3"))).toBe(true);
+    expect(
+      notes.some((row) =>
+        row.summary.includes(t("T-2171", { comité: "A3", motivo: "No volvió a las reuniones" })),
+      ),
+    ).toBe(true);
     const still = await db()
       .select({ leftAt: committeeMembership.leftAt })
       .from(committeeMembership)

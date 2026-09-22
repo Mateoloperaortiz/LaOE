@@ -27,6 +27,7 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { getTerm } from "@/modules/terms/domain/terms";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
+import { copyExact } from "../helpers/copy";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
@@ -242,7 +243,7 @@ describe("asambleas", () => {
     }
     const tasks = await db().select().from(task).where(eq(task.kind, "GENERAL"));
     expect(tasks).toHaveLength(1);
-    expect(tasks[0]?.title).toContain("Crear el semestre");
+    expect(tasks[0]?.title).toMatch(copyExact("T-666"));
     const [occasions] = await db().select({ n: count() }).from(occasion);
     expect(occasions?.n).toBe(2);
   });

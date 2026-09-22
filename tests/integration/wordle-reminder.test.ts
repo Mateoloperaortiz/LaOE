@@ -14,6 +14,7 @@ import { runWordleReminder, startWordleAs } from "@/modules/participation";
 import { wordleDay } from "@/modules/participation/domain/wordle-pure";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { tList } from "@/shared/copy";
 import { truncateAll } from "./db";
 import { seedMember, seedTerm } from "./factories";
 
@@ -74,7 +75,7 @@ describe("aviso diario del Wordle", () => {
       kind: "WORDLE",
       status: "SENT",
       dedupeKey: `wordle:${day}`,
-      subject: "El Wordle de hoy te espera",
+      subject: tList("T-2620")[0],
     });
     expect(delivered).toEqual(["https://push.example/juega"]);
     // El aviso lleva al tablero, que desde ADR-075 vive en la biblioteca de juegos.

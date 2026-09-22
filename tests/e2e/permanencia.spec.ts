@@ -5,6 +5,8 @@ import { occasion } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { workGroup, workGroupMembership } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -48,28 +50,38 @@ test.describe("miembro", () => {
 
   test("ve su permanencia y el criterio sube tras un check-in de integración", async ({ page }) => {
     await page.goto("/app");
-    const barra = page.getByRole("region", { name: "Permanencia" });
+    const barra = page.getByRole("region", { name: t("T-110") });
     await expect(barra).toBeVisible();
     await expect(barra.getByRole("progressbar").first()).toBeVisible();
-    await expect(barra.getByRole("link", { name: "Ver tu permanencia" })).toBeVisible();
+    await expect(barra.getByRole("link", { name: t("T-699") })).toBeVisible();
 
     await page.goto("/app/permanencia");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Permanencia");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-110"));
     // Otras suites ya pudieron registrar al miembro en integraciones e2e: se compara contra lo que había.
-    const integraciones = page.getByRole("listitem").filter({ hasText: "Integraciones" }).first();
-    await expect(integraciones).toContainText(/\d+ de 10/);
-    const before = Number((await integraciones.innerText()).match(/(\d+) de 10/)?.[1] ?? "0");
-    await expect(page.getByText(/Asambleas obligatorias:/)).toBeVisible();
+    const integraciones = page
+      .getByRole("listitem")
+      .filter({ hasText: tList("T-125")[0] })
+      .first();
+    await expect(integraciones).toContainText(copyPattern("T-682", { peso: 10 }));
+    const before = Number(
+      (await integraciones.innerText()).match(
+        new RegExp(t("T-682", { logrado: "(\\d+)", peso: 10 })),
+      )?.[1] ?? "0",
+    );
+    await expect(page.getByText(copyPattern("T-124"))).toBeVisible();
     await sinViolaciones(page);
 
     await page.goto(`/a/${publicId}`);
-    await page.getByRole("button", { name: "Registrar mi asistencia" }).click();
-    await expect(page.getByText("¡Listo! Quedaste registrado.")).toBeVisible();
+    await page.getByRole("button", { name: t("T-091") }).click();
+    await expect(page.getByText(t("T-093"))).toBeVisible();
 
     await page.goto("/app/permanencia");
     await expect(
-      page.getByRole("listitem").filter({ hasText: "Integraciones" }).first(),
-    ).toContainText(`${Math.min(10, before + 2)} de 10`);
+      page
+        .getByRole("listitem")
+        .filter({ hasText: tList("T-125")[0] })
+        .first(),
+    ).toContainText(t("T-682", { logrado: Math.min(10, before + 2), peso: 10 }));
   });
 
   test("un GT de macroevento acreditado cumple su GAP y el desglose lo explica", async ({
@@ -100,9 +112,12 @@ test.describe("miembro", () => {
     await closeDb();
 
     await page.goto("/app/permanencia");
-    const gap = page.getByRole("listitem").filter({ hasText: "GAP" }).first();
+    const gap = page
+      .getByRole("listitem")
+      .filter({ hasText: tList("T-125")[3] })
+      .first();
     await expect(gap).toContainText("e2e-GT que cumple el GAP");
-    await expect(gap).toContainText("Cuenta por tu GT de macroevento");
+    await expect(gap).toContainText(t("T-2617", { tipo: tList("T-725")[1] }));
     await sinViolaciones(page);
   });
 });
@@ -122,16 +137,16 @@ test.describe("GH", () => {
     if (!member) throw new Error("sin miembro");
 
     await page.goto("/admin/permanencia/cumplimiento");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Cumplimiento de permanencia");
-    await page.getByRole("button", { name: "Recalcular ahora" }).click();
-    await expect(page.getByText("Recalculando: refrescá en unos segundos.")).toBeVisible();
-    await page.getByRole("link", { name: "Exentos" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-788"));
+    await page.getByRole("button", { name: t("T-794") }).click();
+    await expect(page.getByText(t("T-795"))).toBeVisible();
+    await page.getByRole("link", { name: tList("T-789")[5] }).click();
     await expect(page).toHaveURL(/filtro=exentos/);
     await sinViolaciones(page);
 
     await page.goto(`/admin/personas/${member.id}?pestana=permanencia`);
-    await expect(page.getByText("Resultado por comité")).toBeVisible();
-    await expect(page.getByText("Tabla general")).toBeVisible();
+    await expect(page.getByText(tList("T-829")[0])).toBeVisible();
+    await expect(page.getByText(t("T-120"))).toBeVisible();
     await sinViolaciones(page);
   });
 });

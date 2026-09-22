@@ -24,6 +24,8 @@ import {
   segmentFilterSchema,
 } from "@/modules/people/domain/segments";
 import { createTag, listPersonTags, setPersonTags } from "@/modules/people/domain/tags";
+import { tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import { leaveUntilSoon, seedCommittee, seedMember, seedTerm } from "./factories";
@@ -51,7 +53,11 @@ describe("línea de tiempo por outbox", () => {
     expect(timeline[0]).toMatchObject({
       kind: "MEMBERSHIP",
       actorName: "Ada Admin",
-      summary: "Estado cambió de Activo a En licencia: Intercambio",
+      summary: fillCopy(tList("T-458")[1], {
+        de: tList("T-381")[0],
+        a: tList("T-381")[1],
+        motivo: "Intercambio",
+      }),
     });
     // Misma referencia del outbox, otra vez: no duplica.
     const [row] = await db().select().from(interaction);

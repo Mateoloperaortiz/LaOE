@@ -14,11 +14,16 @@ import { committeeRole, consent, person } from "@/modules/people/schema";
 import { PrivacyPolicyPendingError } from "@/modules/system";
 import { appConfig, auditLog, importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
+import { itemPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
 import { currentTermCode, seedCommittee, seedMember, seedTerm } from "./factories";
 
 const db = () => getDb();
+
+/** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 const HEADER = "NOMBRE;APELLIDO;CORREO;CELULAR;PREGRADO;COMITES;ENTRADA A LA OE;ESTADO;CARGO";
 
 function csv(lines: string[], header = HEADER): Uint8Array {
@@ -280,7 +285,9 @@ describe("importación del roster", () => {
       ]),
     );
     expect(wrong.counts.ERROR).toBe(3);
-    expect(wrong.rows[2]?.errors[0]).toContain("no existe");
+    expect(wrong.rows[2]?.errors[0]).toMatch(
+      itemPattern(fillCopy(tList("T-165")[2], { sigla: "PIXL" })),
+    );
     expect(wrong.proposals).toEqual([]);
 
     // Un archivo con otra cabecera: el admin la mapea a mano.

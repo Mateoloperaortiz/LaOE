@@ -23,6 +23,8 @@ import {
 } from "@/modules/permanence";
 import { manualCredit } from "@/modules/permanence/schema";
 import { closeTermPoints } from "@/modules/terms";
+import { tList } from "@/shared/copy";
+import { fillCopy } from "@/shared/copy/format";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
@@ -114,7 +116,11 @@ describe("faltas y sanciones", () => {
           .where(and(eq(interaction.personId, personId), eq(interaction.kind, "MEMBERSHIP")))
       ).map((item) => item.summary);
     expect(await timeline()).toContain(
-      "Sanción registrada: Llamado de atención (Faltó a la reunión del 3 de septiembre sin excusa; en descargos reconoció la falta)",
+      fillCopy(tList("T-2234")[0], {
+        tipo: tList("T-2229")[0],
+        causal:
+          "Faltó a la reunión del 3 de septiembre sin excusa; en descargos reconoció la falta",
+      }),
     );
 
     await expect(revokeSanctionAs(actor, id, " ")).rejects.toBeInstanceOf(DomainError);
@@ -124,14 +130,17 @@ describe("faltas y sanciones", () => {
     expect(views).toHaveLength(1);
     expect(views[0]).toMatchObject({
       state: "REVOKED",
-      kindLabel: "Llamado de atención",
+      kindLabel: tList("T-2229")[0],
       committeeName: "A3",
       revokeReason: "La junta aceptó la revisión de los descargos",
     });
     expect((await sanctionStateFor(personId)).suspendedUntil).toBeNull();
     await drenar();
     expect(await timeline()).toContain(
-      "Sanción revocada: Llamado de atención (La junta aceptó la revisión de los descargos)",
+      fillCopy(tList("T-2234")[1], {
+        tipo: tList("T-2229")[0],
+        motivo: "La junta aceptó la revisión de los descargos",
+      }),
     );
     // Ahora sí se puede reconocer.
     const granted = await grantRecognitionAs(actor, {

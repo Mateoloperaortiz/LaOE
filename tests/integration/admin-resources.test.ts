@@ -20,6 +20,7 @@ import { searchPeople } from "@/modules/people/domain/people-reads";
 import { auditLog } from "@/modules/system/schema";
 import { createTerm, findTermContaining, updateTerm } from "@/modules/terms/domain/terms";
 import { term } from "@/modules/terms/schema";
+import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
@@ -147,16 +148,16 @@ describe("permisos", () => {
       runCommand(actor, (ctx) =>
         grantPermission(ctx, { email: "admin@eafit.edu.co", code: "ADMIN" }),
       ),
-    ).rejects.toMatchObject({ message: expect.stringContaining("Ya tiene") });
+    ).rejects.toMatchObject({ message: expect.stringContaining(t("T-268")) });
     await expect(
       runCommand(actor, (ctx) =>
         grantPermission(ctx, { email: "nadie@eafit.edu.co", code: "BOARD" }),
       ),
-    ).rejects.toMatchObject({ message: expect.stringContaining("roster") });
+    ).rejects.toMatchObject({ message: expect.stringContaining(t("T-267")) });
 
     await expect(runCommand(actor, (ctx) => revokePermission(ctx, first.id))).rejects.toMatchObject(
       {
-        message: expect.stringContaining("último ADMIN"),
+        message: expect.stringContaining(t("T-266")),
       },
     );
     const second = await runCommand(actor, (ctx) =>

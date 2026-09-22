@@ -21,6 +21,7 @@ import {
   occasionSurveyResponse,
 } from "@/modules/participation/schema";
 import { auditLog } from "@/modules/system/schema";
+import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
 import {
   seedCheckIn,
@@ -94,7 +95,10 @@ describe("encuesta tras la ocasión", () => {
     expect(pushed).toHaveLength(1);
     expect(pushed[0]?.url).toMatch(/^\/app\/encuesta\/[A-Za-z0-9_-]{24,}$/);
     const rows = await db().select().from(message).where(eq(message.personId, ana));
-    expect(rows[0]).toMatchObject({ kind: "SURVEY", subject: "¿Cómo estuvo Integración?" });
+    expect(rows[0]).toMatchObject({
+      kind: "SURVEY",
+      subject: t("T-191", { actividad: "Integración" }).split(" · ")[0],
+    });
     // Un segundo cierre o reintento no crea ni manda nada más.
     const again = await createSurveyInvites(id);
     expect(again.created).toHaveLength(0);

@@ -20,6 +20,7 @@ import {
 } from "@/modules/people/domain/persons";
 import { person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
+import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
 import { seedCommittee, seedCommitteeMembership, seedMember, seedTerm } from "./factories";
 
@@ -100,10 +101,10 @@ describe("datos privados del integrante", () => {
     expect(row).toBeDefined();
     if (!row) throw new Error("No se encontró la persona sintética");
     expect(peopleResource.exportRow(row)).toMatchObject({
-      "Tipo de documento": "CC",
-      "Número de documento": "0012345678",
-      "ID EPIK": "00087654",
-      "Fecha de nacimiento": "2004-03-21",
+      [t("T-2010")]: "CC",
+      [t("T-2011")]: "0012345678",
+      [t("T-2012")]: "00087654",
+      [t("T-2013")]: "2004-03-21",
     });
     const directory = await listDirectory({ q: "", committeeId: null, page: 1, pageSize: 10 });
     const roster = await listInternalRoster("privado");

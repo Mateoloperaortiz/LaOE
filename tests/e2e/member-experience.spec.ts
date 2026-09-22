@@ -5,6 +5,8 @@ import { closeDb, getDb } from "@/db/client";
 import { event, eventEdition } from "@/modules/events/schema";
 import { occasion } from "@/modules/participation/schema";
 import { term } from "@/modules/terms/schema";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -72,8 +74,8 @@ test("la agenda da detalles de miembros y de una actividad antes de abrir el reg
   await expect(
     details.getByText("Podés consultar la actividad antes de que abra la asistencia."),
   ).toBeVisible();
-  await expect(details.getByText(/El registro abre el/)).toBeVisible();
-  await expect(details.getByRole("link", { name: "Registrar asistencia" })).toHaveCount(0);
+  await expect(details.getByText(copyPattern("T-1671"))).toBeVisible();
+  await expect(details.getByRole("link", { name: t("T-1670") })).toHaveCount(0);
   await sinViolaciones(page);
   // El runner hereda test.use en contextos manuales; sobrescribirlo garantiza una visita anónima.
   const anonymous = await page
@@ -106,12 +108,12 @@ test("el directorio corrige páginas inexistentes y conserva filtros", async ({ 
     (url) => url.searchParams.get("q") === "Miembro" && !url.searchParams.has("pagina"),
   );
   await expect(page.getByRole("heading", { name: "Miembro E2E", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Limpiar filtros", exact: true }).click();
+  await page.getByRole("link", { name: t("T-1680"), exact: true }).click();
   await expect(page).toHaveURL(/\/app\/personas$/);
-  await page.getByLabel("Buscá por nombre o comité").fill("zzz-no-hay-nadie-ux");
-  await page.getByRole("button", { name: "Buscar", exact: true }).click();
-  await expect(page.getByText("0 personas", { exact: true })).toBeVisible();
-  await expect(page.getByText(/No encontramos a nadie/)).toBeVisible();
+  await page.getByLabel(t("T-071")).fill("zzz-no-hay-nadie-ux");
+  await page.getByRole("button", { name: t("T-250"), exact: true }).click();
+  await expect(page.getByText(t("T-1678", { n: 0 }), { exact: true })).toBeVisible();
+  await expect(page.getByText(copyPattern("T-371"))).toBeVisible();
 });
 
 for (const width of [360, 390, 768, 1440])
@@ -124,27 +126,26 @@ for (const width of [360, 390, 768, 1440])
       expect(
         await page.locator(".member-topbar").evaluate((el) => el.getBoundingClientRect().height),
       ).toBeLessThanOrEqual(80);
-      const week = page.getByRole("heading", { name: "Tu semana", exact: true });
+      const week = page.getByRole("heading", { name: t("T-062"), exact: true });
       expect((await week.boundingBox())?.y).toBeLessThan(300);
       await page.screenshot({ path: testInfo.outputPath(`inicio-${width}-${theme}.png`) });
-      const more = page.getByRole("button", { name: "Más", exact: true });
+      const more = page.getByRole("button", { name: t("T-1662"), exact: true });
       await more.click();
-      const menu = page.getByRole("dialog", { name: "Mi OE", exact: true });
+      const menu = page.getByRole("dialog", { name: t("T-1660"), exact: true });
       await expect(menu).toBeVisible();
       await sinViolaciones(page);
       await page.keyboard.press("Escape");
       await expect(menu).toBeHidden();
       await expect(more).toBeFocused();
       await more.click();
-      await menu.getByRole("link", { name: "Personas", exact: true }).click();
+      await menu.getByRole("link", { name: tList("T-061")[3], exact: true }).click();
       await expect(menu).toBeHidden();
       // La navegación es de cliente: sin esperar el destino, el menú se reabre sobre la página vieja.
       await expect(page).toHaveURL(/\/app\/personas$/);
       await more.click();
-      await expect(menu.getByRole("link", { name: "Personas", exact: true })).toHaveAttribute(
-        "aria-current",
-        "page",
-      );
+      await expect(
+        menu.getByRole("link", { name: tList("T-061")[3], exact: true }),
+      ).toHaveAttribute("aria-current", "page");
       await page.keyboard.press("Escape");
       for (const path of [
         "/app",
@@ -173,13 +174,13 @@ test("Mi OE mantiene acceso con texto al 200 % y foco dentro del menú", async (
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "200%";
   });
-  await page.getByRole("button", { name: "Más", exact: true }).click();
-  const menu = page.getByRole("dialog", { name: "Mi OE", exact: true });
+  await page.getByRole("button", { name: t("T-1662"), exact: true }).click();
+  const menu = page.getByRole("dialog", { name: t("T-1660"), exact: true });
   for (let i = 0; i < 14; i++) {
     await page.keyboard.press("Tab");
     expect(await menu.evaluate((el) => el.contains(document.activeElement))).toBe(true);
   }
-  await expect(menu.getByRole("button", { name: "Cerrar", exact: true })).toBeVisible();
+  await expect(menu.getByRole("button", { name: t("T-291"), exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await sinViolaciones(page);
 });

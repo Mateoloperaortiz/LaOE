@@ -1,6 +1,7 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { getDb } from "@/db/client";
 import { message } from "@/modules/comms/schema";
+import { t } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 
@@ -52,11 +53,11 @@ for (const width of [375, 768, 1440]) {
       await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
       await page.addInitScript((savedTheme) => localStorage.setItem("oe-tema", savedTheme), theme);
       await page.goto("/app/carnet");
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tu carnet OE");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-131"));
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       const name = page.locator(".cartel h2");
       await expect(name).toHaveText("Miembro E2E");
-      const apple = page.getByRole("link", { name: "Agregar a Apple Wallet", exact: true });
+      const apple = page.getByRole("link", { name: t("T-1191"), exact: true });
       await expect(apple).toBeVisible();
       await expect(apple).toHaveAttribute("href", "/api/wallet/apple");
       await expect
@@ -64,9 +65,7 @@ for (const width of [375, 768, 1440]) {
         .toBeGreaterThan(0);
       // La suite usa Apple de juguete y Google apagado: se captura el diseño real,
       // sin insertar un badge ficticio ni abrir enlaces que emitan un pase.
-      await expect(
-        page.getByRole("link", { name: "Añadir a Google Wallet", exact: true }),
-      ).toHaveCount(0);
+      await expect(page.getByRole("link", { name: t("T-1192"), exact: true })).toHaveCount(0);
       await page.evaluate(() => document.fonts.ready.then(() => undefined));
 
       // La vuelta con Tab comprueba el foco de teclado sin activar el enlace.
@@ -132,15 +131,15 @@ for (const width of [375, 768, 1440]) {
         await adminPage.goto(`/admin/personas/${exported.person.id}?pestana=comunicaciones`);
         await expect(adminPage.locator("html")).toHaveAttribute("data-theme", theme);
         await expect(
-          adminPage.getByRole("heading", { name: "Carnet en billeteras", exact: true }),
+          adminPage.getByRole("heading", { name: t("T-1209"), exact: true }),
         ).toBeVisible();
         await adminPage.evaluate(() => document.fonts.ready.then(() => undefined));
         await adminPage
-          .getByRole("heading", { name: "Carnet en billeteras", exact: true })
+          .getByRole("heading", { name: t("T-1209"), exact: true })
           .scrollIntoViewIfNeeded();
         await capture(adminPage, testInfo, `wallet-360-${width}-${theme}`, false);
         if (width === 375) {
-          const messages = adminPage.getByRole("region", { name: "Mensajes", exact: true });
+          const messages = adminPage.getByRole("region", { name: t("T-1142"), exact: true });
           await messages.focus();
           await expect(messages).toBeFocused();
           expect(

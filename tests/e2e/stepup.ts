@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { t } from "@/shared/copy";
 import { E2E_PASSWORD } from "./global-setup";
 
 /**
@@ -6,8 +7,8 @@ import { E2E_PASSWORD } from "./global-setup";
  * detrás del enlace "Entrar con un código al correo institucional".
  */
 export async function pasarStepUp(page: Page, password = E2E_PASSWORD): Promise<void> {
-  await page.getByLabel("Contraseña", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Entrar", exact: true }).click();
+  await page.getByLabel(t("T-2094"), { exact: true }).fill(password);
+  await page.getByRole("button", { name: t("T-2095"), exact: true }).click();
 }
 
 /** Igual, pero solo si la página actual es la del step-up. */

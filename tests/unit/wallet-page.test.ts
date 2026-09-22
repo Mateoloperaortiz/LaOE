@@ -6,6 +6,7 @@ import type { CarnetMetadata } from "@/modules/identity";
 import type { WalletPassRecord } from "@/modules/wallet";
 import { t } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { copyPattern } from "../helpers/copy";
 
 const state = vi.hoisted(() => ({
   actor: vi.fn(),
@@ -133,7 +134,7 @@ describe("HTML del carnet y sus billeteras", () => {
 
   it("oculta billeteras sin configuración ni historial y conserva el carnet de Mi OE", async () => {
     const html = await render();
-    expect(html).toMatch(/<h1\b[^>]*>Tu carnet OE<\/h1>/);
+    expect(html).toMatch(new RegExp(`<h1\\b[^>]*>${copyPattern("T-131").source}<\\/h1>`));
     expect(html).toMatch(/<h2\b[^>]*>Miembro Sintético<\/h2>/);
     expect(html).toContain('data-token="oe1.carnet-sintetico-de-la-app"');
     expect(html).not.toContain('id="billeteras"');
@@ -147,9 +148,13 @@ describe("HTML del carnet y sus billeteras", () => {
     const html = await render();
     expect(html).toMatch(/<section\b[^>]*aria-labelledby="billeteras-titulo"/);
     expect(walletLinks(html)).toEqual([]);
-    expect(html).toMatch(/<summary\b[^>]*>Revocar y volver a emitir<\/summary>/);
+    expect(html).toMatch(
+      new RegExp(`<summary\\b[^>]*>${copyPattern("T-1193").source}<\\/summary>`),
+    );
     expect(html).toMatch(/<input\b[^>]*name="confirm"[^>]*value="1"/);
-    expect(html).toMatch(/<button\b[^>]*type="submit"[^>]*>Revocar y volver a emitir<\/button>/);
+    expect(html).toMatch(
+      new RegExp(`<button\\b[^>]*type="submit"[^>]*>${copyPattern("T-1193").source}<\\/button>`),
+    );
     expect(html).toContain(t("T-1194"));
     expect(outputs(html)).toContain(t("T-1196", { fecha: formatDateTime(issuedAt) }));
     expect(outputs(html)).not.toContain(t("T-1195"));

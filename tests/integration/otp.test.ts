@@ -14,6 +14,7 @@ import { otpChallenge, permission, session } from "@/modules/identity/schema";
 import { membership, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import type { MailMessage } from "@/shared/adapters/mail";
+import { tList } from "@/shared/copy";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
@@ -117,8 +118,10 @@ describe("requestOtp", () => {
     expect(correo?.html ?? "").toContain("<!doctype html>");
     expect(correo?.html ?? "").toContain(CODE);
     // El pie de campañas invita a darse de baja: en un transaccional lo clasifica como masivo.
-    expect(correo?.text ?? "").not.toContain("roster de la OE");
-    expect(correo?.text ?? "").toContain("mensaje automático de seguridad");
+    expect(correo?.text ?? "").not.toContain(
+      tList("T-208")[3].replace("{enlace de baja si aplica}", "").trim(),
+    );
+    expect(correo?.text ?? "").toContain(tList("T-2092")[3]);
     expect(correo?.headers).toMatchObject({
       "Auto-Submitted": "auto-generated",
       "X-Auto-Response-Suppress": "All",

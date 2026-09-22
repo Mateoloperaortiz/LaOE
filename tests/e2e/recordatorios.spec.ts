@@ -1,6 +1,8 @@
 import { expect } from "@playwright/test";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { test } from "./fixtures";
 import { drenarOutbox } from "./outbox";
 
@@ -48,16 +50,16 @@ test("registrar dispositivo y recibir el recordatorio de la actividad", async ({
       const page = await context.newPage();
 
       await page.goto("/admin/ocasiones");
-      await page.getByRole("link", { name: "Nuevo" }).click();
+      await page.getByRole("link", { name: t("T-251") }).click();
       const panel = page.getByRole("dialog");
-      await panel.getByLabel("Título").fill(TITULO);
-      await panel.getByLabel("Empieza").fill(hoyBogota(23));
-      await panel.getByLabel("Lugar").fill("Bloque 29");
-      await panel.getByRole("button", { name: "Guardar" }).click();
-      await expect(page.getByText("Guardado.")).toBeVisible();
+      await panel.getByLabel(tList("T-563")[0]).fill(TITULO);
+      await panel.getByLabel(tList("T-563")[7]).fill(hoyBogota(23));
+      await panel.getByLabel(tList("T-563")[6]).fill("Bloque 29");
+      await panel.getByRole("button", { name: t("T-253") }).click();
+      await expect(page.getByText(t("T-259"))).toBeVisible();
       const fila = page.getByRole("row", { name: new RegExp(TITULO) });
-      await fila.getByRole("button", { name: "Abrir", exact: true }).click();
-      await expect(fila.getByText("Abierta")).toBeVisible();
+      await fila.getByRole("button", { name: tList("T-569")[0], exact: true }).click();
+      await expect(fila.getByText(tList("T-568")[1])).toBeVisible();
 
       const at = new Date(`${hoyBogota(7)}:00-05:00`).toISOString();
       await enqueueEvent(getDb(), { type: "participation.reminders", payload: { at } });
@@ -66,12 +68,16 @@ test("registrar dispositivo y recibir el recordatorio de la actividad", async ({
 
       await page.goto("/admin/mensajes?kind=REMINDER");
       const mensaje = page
-        .getByRole("row", { name: new RegExp(`Miembro E2E.*Hoy: ${TITULO}`) })
+        .getByRole("row", {
+          name: new RegExp(
+            `Miembro E2E.*${copyPattern("T-182", { actividad: TITULO }).source.split(" · ")[0]}`,
+          ),
+        })
         .first();
       await expect(mensaje).toBeVisible();
       await expect(mensaje).toContainText("Miembro E2E");
-      await expect(mensaje).toContainText("Recordatorio");
-      await expect(mensaje).toContainText("Enviado");
+      await expect(mensaje).toContainText(tList("T-1146")[3]);
+      await expect(mensaje).toContainText(tList("T-1147")[0]);
     } finally {
       await context.close();
     }

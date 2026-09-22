@@ -2,6 +2,8 @@ import { expect } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { person } from "@/modules/people/schema";
+import { t, tList } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -27,32 +29,37 @@ test("GH ajusta puntos desde la 360, los ve en el ledger, los revierte y el rank
   page,
 }) => {
   await page.goto(`/admin/personas/${memberId}?pestana=participacion`);
-  await expect(page.getByRole("heading", { name: "Movimientos de GH Points" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: tList("T-668")[1] })).toBeVisible();
   await sinViolaciones(page);
-  await page.getByRole("link", { name: "Ajustar puntos" }).first().click();
+  await page
+    .getByRole("link", { name: t("T-625") })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/admin\/ledger\?personId=.*accion=ajustar/);
-  await page.getByLabel("Puntos (positivos o negativos)").fill("7");
-  await page.getByLabel("Motivo").fill("e2e-Ajuste desde el ledger");
-  await page.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Guardado.")).toBeVisible();
+  await page.getByLabel(tList("T-626")[2]).fill("7");
+  await page.getByLabel(tList("T-626")[3]).fill("e2e-Ajuste desde el ledger");
+  await page.getByRole("button", { name: t("T-253") }).click();
+  await expect(page.getByText(t("T-259"))).toBeVisible();
   await expect(page.getByText("e2e-Ajuste desde el ledger")).toBeVisible();
   await sinViolaciones(page);
 
   await page
     .getByRole("row")
     .filter({ hasText: "e2e-Ajuste desde el ledger" })
-    .getByRole("link", { name: "Revertir" })
+    .getByRole("link", { name: t("T-630") })
     .click();
-  await expect(page.getByText(/Vas a revertir 7 puntos de Miembro E2E/)).toBeVisible();
-  await page.getByLabel("Motivo").fill("e2e-Reversión");
-  await page.getByRole("button", { name: "Revertir" }).click();
-  await expect(page.getByText("Guardado.")).toBeVisible();
+  await expect(
+    page.getByText(copyPattern("T-631", { puntos: 7, nombre: "Miembro E2E" })),
+  ).toBeVisible();
+  await page.getByLabel(tList("T-626")[3]).fill("e2e-Reversión");
+  await page.getByRole("button", { name: t("T-630") }).click();
+  await expect(page.getByText(t("T-259"))).toBeVisible();
   await expect(page.getByText("e2e-Reversión")).toBeVisible();
 
   await page.goto("/admin/rankings");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    `Rankings de ${E2E_TERM.code}`,
+    t("T-635", { término: E2E_TERM.code }),
   );
-  await expect(page.getByRole("heading", { name: "Nuevos" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: tList("T-083")[0] })).toBeVisible();
   await sinViolaciones(page);
 });

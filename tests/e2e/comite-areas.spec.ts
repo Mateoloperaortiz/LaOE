@@ -10,6 +10,7 @@ import {
   person,
 } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_CALENDAR, E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -22,6 +23,7 @@ import { drenarOutbox } from "./outbox";
 test.use({ storageState: "tests/e2e/.auth/member.json" });
 
 const NEW_EMAIL = "e2e-director-nuevo@eafit.edu.co";
+const [personas, actividades, comunicacion, aliados, finanzas] = tList("T-2174");
 
 let slug = "";
 
@@ -90,37 +92,43 @@ test("Gestión Humana ve solo Personas, agrega un miembro y pide un retiro a GH"
   await direct("GESTION_HUMANA");
   await page.goto("/admin");
   await expect(page).toHaveURL(new RegExp(`/admin/comites/${slug}$`));
-  await expect(page.getByText("Tu comité")).toBeVisible();
+  await expect(page.getByText(tList("T-651")[0])).toBeVisible();
   const nav = page.locator(".admin-sidebar nav");
   await expect(nav.getByRole("link")).toHaveCount(2);
-  await expect(page.getByRole("button", { name: "Buscar (⌘K)" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: t("T-299") })).toHaveCount(0);
   // La paleta tampoco responde por su ruta: es solo de ADMIN (ADR-072).
   const busqueda = await page.request.get("/api/admin/buscar?q=Licencia");
   expect(busqueda.status()).toBe(403);
-  const tabs = page.getByRole("navigation", { name: "Sección" });
-  await expect(tabs.getByRole("link", { name: "Personas" })).toBeVisible();
-  await expect(tabs.getByRole("link", { name: "Actividades" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Gestión del roster" })).toBeVisible();
-  await expect(page.getByText("Tu cargo lo cambia GH.")).toBeVisible();
+  const tabs = page.getByRole("navigation", { name: t("T-1502") });
+  await expect(tabs.getByRole("link", { name: personas })).toBeVisible();
+  await expect(tabs.getByRole("link", { name: actividades })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: t("T-2145") })).toBeVisible();
+  await expect(page.getByText(t("T-2154"))).toBeVisible();
   await expect(page.locator("main")).not.toContainText("@eafit.edu.co");
   await sinViolaciones(page);
 
-  await page.getByRole("link", { name: "Agregar miembro" }).click();
+  await page.getByRole("link", { name: t("T-2147") }).click();
   const panel = page.getByRole("dialog");
-  await panel.getByLabel("Buscá por nombre").fill("Director Nuevo");
-  await panel.getByRole("button", { name: "Buscar" }).click();
+  await panel.getByLabel(t("T-2148")).fill("Director Nuevo");
+  await panel.getByRole("button", { name: t("T-2149") }).click();
   await expect(page.getByRole("dialog").getByText("Director Nuevo")).toBeVisible();
-  await page.getByRole("dialog").getByRole("button", { name: "Agregar miembro" }).click();
-  await expect(page.getByText("Director Nuevo ya hace parte del comité.")).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: t("T-2147") })
+    .click();
+  await expect(page.getByText(t("T-2161", { nombre: "Director Nuevo" }))).toBeVisible();
   await expect(page.getByRole("row", { name: /Director Nuevo/ })).toBeVisible();
 
   await page
     .getByRole("row", { name: /Licencia E2E/ })
-    .getByRole("link", { name: "Pedir retiro a GH" })
+    .getByRole("link", { name: t("T-2155") })
     .click();
-  await page.getByRole("dialog").getByLabel("Motivo").fill("e2e: no volvió a las reuniones");
-  await page.getByRole("dialog").getByRole("button", { name: "Enviar el pedido" }).click();
-  await expect(page.getByText("Listo: GH ya tiene tu pedido.")).toBeVisible();
+  await page.getByRole("dialog").getByLabel(t("T-2158")).fill("e2e: no volvió a las reuniones");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: t("T-2159") })
+    .click();
+  await expect(page.getByText(t("T-2160"))).toBeVisible();
   await drenarOutbox();
   const db = getDb();
   const [leaver] = await db
@@ -143,16 +151,16 @@ test("Logística ve Personas y Actividades, sin las otras áreas", async ({ page
   await expect(page).toHaveURL(new RegExp(`/admin/comites/${slug}$`));
   const nav = page.locator(".admin-sidebar nav");
   await expect(nav.getByRole("link")).toHaveCount(1);
-  const tabs = page.getByRole("navigation", { name: "Sección" });
-  await expect(tabs.getByRole("link", { name: "Actividades" })).toBeVisible();
-  await expect(tabs.getByRole("link", { name: "Personas" })).toBeVisible();
-  for (const name of ["Comunicación", "Aliados", "Finanzas"]) {
+  const tabs = page.getByRole("navigation", { name: t("T-1502") });
+  await expect(tabs.getByRole("link", { name: actividades })).toBeVisible();
+  await expect(tabs.getByRole("link", { name: personas })).toBeVisible();
+  for (const name of [comunicacion, aliados, finanzas]) {
     await expect(tabs.getByRole("link", { name })).toHaveCount(0);
   }
-  await tabs.getByRole("link", { name: "Actividades" }).click();
-  await expect(page.getByRole("link", { name: "Crear serie semanal" })).toBeVisible();
-  await tabs.getByRole("link", { name: "Personas" }).click();
-  await expect(page.getByRole("heading", { name: "Gestión del roster" })).toBeVisible();
+  await tabs.getByRole("link", { name: actividades }).click();
+  await expect(page.getByRole("link", { name: tList("T-652")[1] })).toBeVisible();
+  await tabs.getByRole("link", { name: personas }).click();
+  await expect(page.getByRole("heading", { name: t("T-2145") })).toBeVisible();
   await sinViolaciones(page);
 });
 
@@ -162,18 +170,16 @@ test("la codirección del General ve las cinco áreas y no deja un cargo obligat
   await direct("GENERAL", true);
   await page.goto("/admin");
   await expect(page).toHaveURL(new RegExp(`/admin/comites/${slug}$`));
-  const tabs = page.getByRole("navigation", { name: "Sección" });
-  for (const name of ["Personas", "Actividades", "Comunicación", "Aliados", "Finanzas"]) {
+  const tabs = page.getByRole("navigation", { name: t("T-1502") });
+  for (const name of tList("T-2174")) {
     await expect(tabs.getByRole("link", { name })).toBeVisible();
   }
   const fila = page.getByRole("row", { name: /Licencia E2E/ });
-  await fila.getByRole("link", { name: "Cargos" }).click();
+  await fila.getByRole("link", { name: tList("T-2152")[1] }).click();
   const panel = page.getByRole("dialog");
   await panel.getByLabel("Financiero", { exact: true }).check();
-  await panel.getByRole("button", { name: "Guardar" }).click();
-  await expect(panel.getByRole("alert")).toContainText(
-    "Es nuevo: un cargo de mesa necesita el aval",
-  );
+  await panel.getByRole("button", { name: t("T-253") }).click();
+  await expect(panel.getByRole("alert")).toContainText(tList("T-2281")[2]);
   // La guarda sigue vigente. Para el camino permitido, la misma identidad sintética es veterana.
   const db = getDb();
   const [previous] = await db.select().from(term).where(eq(term.code, E2E_CALENDAR.previous.code));
@@ -184,16 +190,21 @@ test("la codirección del General ve las cinco áreas y no deja un cargo obligat
     .set({ firstTermId: previous.id })
     .where(eq(membership.personId, target.id));
   await closeDb();
-  await panel.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Guardado.")).toBeVisible();
+  await panel.getByRole("button", { name: t("T-253") }).click();
+  await expect(page.getByText(t("T-259"))).toBeVisible();
   await expect(page.getByRole("row", { name: /Licencia E2E/ })).toContainText("Financiero");
 
   await page
     .getByRole("row", { name: /Licencia E2E/ })
-    .getByRole("link", { name: "Cargos" })
+    .getByRole("link", { name: tList("T-2152")[1] })
     .click();
   await page.getByRole("dialog").getByLabel("Financiero", { exact: true }).uncheck();
-  await page.getByRole("dialog").getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("sin Financiero titular");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: t("T-253") })
+    .click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
+    t("T-2168", { cargo: "Financiero" }),
+  );
   await sinViolaciones(page);
 });

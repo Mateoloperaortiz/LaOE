@@ -22,13 +22,7 @@ import { tList } from "@/shared/copy";
 describe("plantillas de pipeline", () => {
   it("la admisión y el patrocinio marcan las dos últimas etapas como ganada y perdida", () => {
     const admission = templateStages("ADMISSION", tList("T-965"));
-    expect(admission.map((s) => s.name)).toEqual([
-      "Recibida",
-      "Entrevista",
-      "Admitida",
-      "Alta",
-      "No admitida",
-    ]);
+    expect(admission.map((s) => s.name)).toEqual(tList("T-965"));
     expect(admission.map((s) => [s.isWon, s.isLost])).toEqual([
       [false, false],
       [false, false],
@@ -37,13 +31,13 @@ describe("plantillas de pipeline", () => {
       [false, true],
     ]);
     const sponsorship = templateStages("SPONSORSHIP", tList("T-966"));
-    expect(sponsorship[3]).toMatchObject({ name: "Cerrado", isWon: true, sortOrder: 3 });
-    expect(sponsorship[4]).toMatchObject({ name: "Sin acuerdo", isLost: true });
+    expect(sponsorship[3]).toMatchObject({ name: tList("T-966")[3], isWon: true, sortOrder: 3 });
+    expect(sponsorship[4]).toMatchObject({ name: tList("T-966")[4], isLost: true });
   });
 
   it("un pipeline personalizado nace con una sola etapa abierta", () => {
     expect(templateStages("CUSTOM", tList("T-967"))).toEqual([
-      { name: "Nueva", sortOrder: 0, isWon: false, isLost: false },
+      { name: tList("T-967")[0], sortOrder: 0, isWon: false, isLost: false },
     ]);
   });
 

@@ -5,6 +5,8 @@ import { getDb } from "@/db/client";
 import { committeeParticipation, occasion } from "@/modules/participation/schema";
 import { committee } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import { t } from "@/shared/copy";
+import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -80,11 +82,11 @@ test("porcentajes calculados del semestre, top diez, detalle por teclado y cambi
     0.0418, 0.0143, 0.0127, 0.0116, 0.0107, 0.0096, 0.0076, 0.0067, 0.0056, 0.0052, 0.004,
   ]);
   await page.goto(`/app/gh-points?tablero=comites&semestre=${current.id}`);
-  const podium = page.getByRole("region", { name: "El podio del semestre", exact: true });
-  await expect(podium.getByRole("button", { name: /Ver detalle de/ })).toHaveCount(10);
-  const first = podium.getByRole("group", { name: "Puesto 1", exact: true });
-  const second = podium.getByRole("group", { name: "Puesto 2", exact: true });
-  const third = podium.getByRole("group", { name: "Puesto 3", exact: true });
+  const podium = page.getByRole("region", { name: t("T-2600"), exact: true });
+  await expect(podium.getByRole("button", { name: copyPattern("T-2603") })).toHaveCount(10);
+  const first = podium.getByRole("group", { name: t("T-2604", { n: 1 }), exact: true });
+  const second = podium.getByRole("group", { name: t("T-2604", { n: 2 }), exact: true });
+  const third = podium.getByRole("group", { name: t("T-2604", { n: 3 }), exact: true });
   await expect(first).toContainText(/4,18\s*%/);
   await expect(second).toContainText(/1,43\s*%/);
   await expect(third).toContainText(/1,27\s*%/);
@@ -99,21 +101,25 @@ test("porcentajes calculados del semestre, top diez, detalle por teclado y cambi
   const trigger = first.getByRole("button");
   await trigger.focus();
   await page.keyboard.press("Enter");
-  await expect(podium.getByRole("heading", { name: "ALFA · Puesto 1" })).toBeFocused();
-  const detail = podium.getByRole("region", { name: "ALFA · Puesto 1" });
+  await expect(
+    podium.getByRole("heading", { name: t("T-2606", { comité: "ALFA", puesto: 1 }) }),
+  ).toBeFocused();
+  const detail = podium.getByRole("region", { name: t("T-2606", { comité: "ALFA", puesto: 1 }) });
   await expect(detail).toContainText(/4,30\s*%/);
-  await expect(detail).toContainText(/-0,12 puntos porcentuales/);
+  await expect(detail).toContainText(copyPattern("T-2609", { n: "-0,12" }));
   await expect(detail.locator("dd").last()).toHaveText("2");
-  await detail.getByRole("button", { name: "Cerrar detalle" }).click();
+  await detail.getByRole("button", { name: t("T-2607") }).click();
   await expect(trigger).toBeFocused();
   await expect(detail).toBeHidden();
-  await podium.getByRole("button", { name: /Ver detalle de DELTA,/ }).click();
-  await expect(podium.getByRole("heading", { name: "DELTA · Puesto 4" })).toBeFocused();
-  await podium.getByText("Cómo se calcula el ranking", { exact: true }).click();
-  await expect(podium.getByText(/Cuentan las actividades cerradas/)).toBeVisible();
-  const last = podium.getByRole("button", { name: /Ver detalle de KAPPA,/ });
+  await podium.getByRole("button", { name: copyPattern("T-2603", { comité: "DELTA" }) }).click();
+  await expect(
+    podium.getByRole("heading", { name: t("T-2606", { comité: "DELTA", puesto: 4 }) }),
+  ).toBeFocused();
+  await podium.getByText(t("T-2612"), { exact: true }).click();
+  await expect(podium.getByText(copyPattern("T-2614"))).toBeVisible();
+  const last = podium.getByRole("button", { name: copyPattern("T-2603", { comité: "KAPPA" }) });
   await last.click();
-  await podium.getByRole("button", { name: "Cerrar detalle" }).click();
+  await podium.getByRole("button", { name: t("T-2607") }).click();
   await expect(last).toBeFocused();
   await expect(last).toBeInViewport();
   await sinViolaciones(page);
@@ -123,25 +129,31 @@ test("porcentajes calculados del semestre, top diez, detalle por teclado y cambi
     .returning();
   if (!empty) throw new Error("sin término vacío");
   await page.reload();
-  await page.getByLabel("Semestre", { exact: true }).selectOption(empty.id);
-  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await page.getByLabel(t("T-550"), { exact: true }).selectOption(empty.id);
+  await page.getByRole("button", { name: t("T-250"), exact: true }).click();
   await expect(page).toHaveURL(/tablero=comites/);
   await expect(podium).toHaveCount(0);
-  await page.getByLabel("Semestre", { exact: true }).selectOption(current.id);
-  await page.getByRole("button", { name: "Buscar", exact: true }).click();
+  await page.getByLabel(t("T-550"), { exact: true }).selectOption(current.id);
+  await page.getByRole("button", { name: t("T-250"), exact: true }).click();
   await expect(first).toBeVisible();
-  await expect(podium.getByRole("heading", { name: "DELTA · Puesto 4" })).toHaveCount(0);
+  await expect(
+    podium.getByRole("heading", { name: t("T-2606", { comité: "DELTA", puesto: 4 }) }),
+  ).toHaveCount(0);
 });
 
 test("empates en el mismo escalón y un único grupo con nombres extensos", async ({ page }) => {
   const { committees } = await seedRanking([0.02, 0.02, 0.01, 0.001]);
   await page.goto("/app/gh-points?tablero=comites");
-  const podium = page.getByRole("region", { name: "El podio del semestre", exact: true });
-  const first = podium.getByRole("group", { name: "Puesto 1", exact: true });
+  const podium = page.getByRole("region", { name: t("T-2600"), exact: true });
+  const first = podium.getByRole("group", { name: t("T-2604", { n: 1 }), exact: true });
   await expect(first.getByRole("button")).toHaveCount(2);
-  await expect(first).toContainText("Puesto compartido");
-  await expect(podium.getByRole("group", { name: "Puesto 2", exact: true })).toHaveCount(0);
-  await expect(podium.getByRole("group", { name: "Puesto 3", exact: true })).toContainText("GAMMA");
+  await expect(first).toContainText(t("T-2605"));
+  await expect(podium.getByRole("group", { name: t("T-2604", { n: 2 }), exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    podium.getByRole("group", { name: t("T-2604", { n: 3 }), exact: true }),
+  ).toContainText("GAMMA");
   await getDb().update(committeeParticipation).set({ rate: 0, smoothedRate: 0, present: 0 });
   await getDb()
     .update(committee)
@@ -161,7 +173,7 @@ test("podio legible en escritorio, celular, tema oscuro y texto ampliado", async
   ]);
   await page.goto("/app/gh-points?tablero=comites");
   await page.evaluate(() => document.fonts.ready);
-  const podium = page.getByRole("region", { name: "El podio del semestre", exact: true });
+  const podium = page.getByRole("region", { name: t("T-2600"), exact: true });
   const directory = process.env.PODIUM_REVIEW_DIR;
   if (directory) await mkdir(directory, { recursive: true });
   for (const [width, theme, scale, name] of [

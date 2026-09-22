@@ -11,6 +11,7 @@ import { occasion } from "@/modules/participation/schema";
 import { committee, person, segment } from "@/modules/people/schema";
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
+import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -191,10 +192,10 @@ test("la edición conserva el tipo bloqueado, los filtros y una página válida"
   const record = first(await getDb().select().from(pipeline).where(eq(pipeline.id, id)));
   await page.goto(`/admin/pipelines?q=${record.name}&editar=${id}`);
   const panel = page.getByRole("dialog");
-  await expect(panel.getByLabel("Tipo", { exact: true })).toBeDisabled();
-  await expect(panel.getByLabel("Tipo", { exact: true })).toHaveValue("CUSTOM");
-  await panel.getByLabel("Nombre", { exact: true }).fill(`${record.name} editado`);
-  await panel.getByRole("button", { name: "Guardar", exact: true }).click();
+  await expect(panel.getByLabel(tList("T-963")[1], { exact: true })).toBeDisabled();
+  await expect(panel.getByLabel(tList("T-963")[1], { exact: true })).toHaveValue("CUSTOM");
+  await panel.getByLabel(tList("T-963")[0], { exact: true }).fill(`${record.name} editado`);
+  await panel.getByRole("button", { name: t("T-253"), exact: true }).click();
   await expect(page).toHaveURL(
     (url) => url.searchParams.get("q") === record.name && url.searchParams.get("guardado") === "1",
   );

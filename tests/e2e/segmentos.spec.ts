@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test";
 import { sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
+import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { E2E_EMAIL } from "./global-setup";
@@ -13,16 +14,16 @@ test("un segmento se crea con filtros, cuenta personas y su export exige step-up
 }) => {
   const stamp = Date.now().toString(36);
   await page.goto("/admin/segmentos");
-  await page.getByRole("link", { name: "Nuevo" }).click();
+  await page.getByRole("link", { name: t("T-251") }).click();
   const panel = page.getByRole("dialog");
-  await panel.getByLabel("Nombre", { exact: true }).fill(`e2e-${stamp}`);
-  await panel.getByRole("checkbox", { name: "Activo", exact: true }).check();
-  await panel.getByRole("button", { name: "Guardar" }).click();
-  await expect(page.getByText("Guardado.")).toBeVisible();
+  await panel.getByLabel(tList("T-468")[0], { exact: true }).fill(`e2e-${stamp}`);
+  await panel.getByRole("checkbox", { name: tList("T-381")[0], exact: true }).check();
+  await panel.getByRole("button", { name: t("T-253") }).click();
+  await expect(page.getByText(t("T-259"))).toBeVisible();
   const row = page.getByRole("row", { name: new RegExp(`e2e-${stamp}`) });
   await expect(row).toBeVisible();
   await sinViolaciones(page);
-  const href = await row.getByRole("link", { name: "Exportar personas" }).getAttribute("href");
+  const href = await row.getByRole("link", { name: t("T-472") }).getAttribute("href");
   expect(href).toMatch(/^\/api\/export\/personas\?segmento=/);
 
   // El OTP del ingreso cuenta como step-up 15 minutos: se envejece para forzar el código nuevo.
