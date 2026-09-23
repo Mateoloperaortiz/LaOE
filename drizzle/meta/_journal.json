@@ -260,6 +260,13 @@
       "when": 1789822008469,
       "tag": "0036_sudoku",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1790121259222,
+      "tag": "0037_boosters_asistencias",
+      "breakpoints": true
     }
   ]
 }

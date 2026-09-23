@@ -1,6 +1,6 @@
 # ADR-067: Retos relámpago, boosters y colección de insignias
 
-- Estado: Aceptada (enmendada por ADR-068, ADR-075 y ADR-078)
+- Estado: Aceptada (enmendada por ADR-068, ADR-075, ADR-078 y ADR-087)
 - Fecha: 2026-09-14
 - Relacionadas: ADR-004, ADR-007, ADR-008, ADR-011, ADR-012, ADR-014, ADR-020, ADR-022, ADR-030, ADR-032, ADR-035, ADR-038, ADR-041, ADR-062
 - Enmienda: ADR-007 (tipos `CHALLENGE` y `BOOST` del ledger), ADR-022 (evidencias con almacenamiento y autorización propios, fuera de `/api/media`), ADR-035 (participación en retos, boosters sobre asistencias, cierre de puntos que exige resolver pendientes), ADR-041 (el Wordle alimenta insignias y no admite boosters)
@@ -69,3 +69,7 @@ La regla 17 decía que el Wordle, los movimientos, las asambleas y los rankings 
 ## Enmienda (2026-09-19, ADR-078)
 
 La regla 4 se amplía otra vez: el Sudoku también queda fuera de los topes diario y semanal y tampoco admite boosters, por la misma razón que el Wordle y el 2048 —un techo duro de 6 puntos por día no necesita cupo—. Con tres juegos son hasta 18 GH Points diarios fuera de los topes. Ver [ADR-078](ADR-078-sudoku-con-solucion-en-el-servidor.md).
+
+## Enmienda (2026-09-22, ADR-087)
+
+Las reglas 4 y 5 distinguen la base del reto de la asistencia: solo `CHALLENGE` conserva el máximo de 20; `CHECKIN` toma la base de la ocasión. El ledger permite `BOOST` de hasta 1000, siempre calculado contra el cupo diario y semanal vigente. Ver [ADR-087](ADR-087-boosters-sobre-puntos-de-asistencia.md).

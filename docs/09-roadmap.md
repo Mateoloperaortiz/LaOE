@@ -4,6 +4,16 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Boosters sobre asistencias de más de 20 puntos (ADR-087) · `en curso`
+
+- [x] Reproducir el error de producción con datos sintéticos por QR, anfitrión y administración.
+- [x] Separar el límite de los retos de la base de asistencia y del BOOST, con migración `0037` y pruebas de regresión.
+- [ ] Publicar la corrección y verificar el reintento por el flujo normal de GH.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-22 | Corrección local de boosters en asistencias | Un registro de 30 puntos con booster reventaba por `reward_base_points_range`; el error en el modo anfitrión devolvía HTTP 500 y la transacción revertía toda la asistencia. [ADR-087](adr/ADR-087-boosters-sobre-puntos-de-asistencia.md) y `0037_boosters_asistencias` conservan 0–20 para la base de retos, aceptan la base no negativa de la ocasión y permiten BOOST hasta el máximo configurable de 1000. No se alteran los topes vigentes ni se acreditan puntos por fuera del flujo normal. Siete regresiones de 30 puntos fallaron antes de la corrección; después, 44/44 pruebas de integración de boosters, premios y check-ins aprobadas, junto con lint, typecheck y deps:check. Pendiente publicación; producción solo se consultó. |
+
 ## Preparación de staging · `en curso`
 
 - [x] Integrar gamificación, directorio, podio y evidencias de diseño mediante PR 34, con CI completo aprobado.

@@ -30,7 +30,7 @@ export interface ReserveRewardInput {
   source: RewardSource;
   participationId?: string | null;
   checkInId?: string | null;
-  /** Puntos base pedidos, de 0 a 20. */
+  /** Base del reto (0 a 20) o puntos de la ocasión para CHECKIN (ADR-087). */
   base: number;
   /** Booster propio validado por el llamador; el lock revalida estado, vigencia y objetivo. */
   boosterItemId?: string | null;
