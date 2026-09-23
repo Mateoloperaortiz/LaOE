@@ -4,17 +4,18 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## Panal diario en español (ADR-088) · `lista` (local; publicación pendiente)
+## Panal diario en español (ADR-088) · `lista`
 
 - [x] Documentar reglas, español, reto diario y premio de 6 GH Points al llegar a Genio.
 - [x] Implementar catálogo reproducible, progreso persistido y crédito único.
 - [x] Integrar biblioteca, tablero accesible, Mis datos y línea de tiempo.
 - [x] Verificar pruebas, migración y build.
-- [ ] Publicar y verificar en producción.
+- [x] Publicar y verificar en producción.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-09-23 | Panal, implementación local | [ADR-088](adr/ADR-088-panal-diario-en-espanol.md), cuarta tarjeta y `/app/juegos/panal`; 326 tableros reproducibles de RLA-ES, español con Ñ y tildes opcionales, progreso por palabra en servidor y 6 GH Points al rango Genio (70 %), confirmados por Mateo. Migración aditiva `0038` aplicada en local, verificada con 126 índices; idempotencia, propiedad, concurrencia, medianoche, cierre y evento CRM cubiertos. Mis datos incluye el progreso propio; las respuestas pendientes no viajan al cliente. `npm run check` aprobado: 719 unitarias, 546 de integración, 11 del extractor y build. Tres flujos E2E de Panal más biblioteca y axe claro/oscuro aprobados; tras los ajustes visuales se repitieron los tres flujos, typecheck, lint y build. `panal:check` reproduce el catálogo. Capturas y revisión en `.impeccable/review/panal/`. Pendiente publicación, sin cambios en producción. |
+| 2026-09-23 | Panal, publicado | PR [#83](https://github.com/Mateoloperaortiz/LaOE/pull/83), SHA `246356984b79a8db7b14de73af7e645fbcd61a7d`. CI completo de main `35885202939` y ejecución adicional `35887289054` aprobados: 719 unitarias, 546 de integración y 207 escenarios E2E. Promoción `35889429855` aprobada; staging `5c6c6721-5212-42d4-8dad-1b39c0082402` y producción `f5a340c0-d662-4897-8ddb-6b8e886bf7a1` SUCCESS, con migraciones verificadas, SHA correcto y smoke 6/6. Smoke remoto de producción `35890576473` aprobado. [Evidencia y resolución de los informes duplicados del reintento de CI](ci-cd-panal-2026-09-23.md). |
 
 ## Boosters sobre asistencias de más de 20 puntos (ADR-087) · `en curso`
 

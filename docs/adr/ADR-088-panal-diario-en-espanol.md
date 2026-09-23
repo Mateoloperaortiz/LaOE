@@ -1,6 +1,6 @@
 # ADR-088: Panal diario en español
 
-- Estado: Aceptada; implementación local, publicación pendiente
+- Estado: Aceptada; publicada y verificada en producción el 2026-09-23
 - Fecha: 2026-09-23
 - Relacionadas: ADR-041, ADR-075, ADR-078, ADR-081, ADR-084, ADR-086
 - Enmienda: ADR-075 (biblioteca y disponibilidad), ADR-007 (tipo de crédito)
@@ -24,3 +24,5 @@ Mateo pidió incorporar a los juegos una versión en español del juego de forma
 ## Consecuencias
 
 Migración aditiva de partida, palabras encontradas y crédito `PANAL`. Pruebas de reglas, catálogo, concurrencia, crédito único, propiedad, cierre, medianoche y flujo de navegador. No se cambia el comportamiento de los otros juegos.
+
+Publicación del PR #83 y comprobaciones de CI, migración y despliegue en [la evidencia del 2026-09-23](../ci-cd-panal-2026-09-23.md).
