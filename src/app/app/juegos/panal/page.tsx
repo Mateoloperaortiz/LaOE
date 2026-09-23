@@ -18,7 +18,9 @@ export default async function PanalPage() {
       </Link>
       <header className="flex flex-col gap-2">
         <h1 className="text-display-lg">{t("T-2722")}</h1>
-        <p className="text-sm text-tinta-suave">{t("T-2724")}</p>
+        <p className="text-sm text-tinta-suave">
+          {t(today.checkpointsEnabled ? "T-3014" : "T-2724")}
+        </p>
       </header>
       <Panal
         key={`${today.day}:${today.availability}`}

@@ -5,9 +5,28 @@ import { fileURLToPath } from "node:url";
 import nspell from "nspell";
 
 // Generación editorial, nunca importada por la app. No usa la red.
-const VERSION = "rla-es-2.9-panal-v1";
+const versions = [
+  {
+    version: "rla-es-2.9-panal-v1",
+    frequencyLimit: 20000,
+    min: 25,
+    max: 80,
+    target: 45,
+    minimumPuzzles: 180,
+    orderedCheckpoints: false,
+  },
+  {
+    version: "rla-es-2.9-panal-v2",
+    frequencyLimit: 50000,
+    min: 20,
+    max: 30,
+    target: 25,
+    minimumPuzzles: 120,
+    orderedCheckpoints: true,
+  },
+];
 const root = new URL("../src/modules/participation/data/wordle/", import.meta.url);
-const output = new URL(`../panal/versions/${VERSION}/`, root);
+
 const check = process.argv.includes("--check");
 const require = createRequire(import.meta.url);
 const hash = (value) => createHash("sha256").update(value).digest("hex");
@@ -78,65 +97,80 @@ for (const word of allowed) {
   if (!byLetters.has(key)) byLetters.set(key, []);
   byLetters.get(key).push(word);
 }
-const frequent = sourceFiles
-  .get("sources/frequencywords-es-2018-50k.txt")
-  .trim()
-  .split("\n")
-  .slice(0, 20000)
-  .map((line) => normalize(line.split(" ")[0]));
-const candidates = [
-  ...new Set(
-    frequent
-      .filter((word) => allowed.has(word) && word.length <= 12 && signature(word).length === 7)
-      .map(signature),
-  ),
-];
-const puzzles = [];
-for (const letters of candidates) {
-  const words = [];
-  // Las 127 combinaciones no vacías de las siete letras; evita recorrer el corpus por tablero.
-  for (let bits = 1; bits < 128; bits += 1) {
-    const key = [...letters].filter((_, index) => bits & (1 << index)).join("");
-    words.push(...(byLetters.get(key) ?? []));
+const wordScore = (word) =>
+  (word.length === 4 ? 1 : word.length) + (signature(word).length === 7 ? 7 : 0);
+for (const config of versions) {
+  const VERSION = config.version;
+  const output = new URL(`../panal/versions/${VERSION}/`, root);
+  const frequent = sourceFiles
+    .get("sources/frequencywords-es-2018-50k.txt")
+    .trim()
+    .split("\n")
+    .slice(0, config.frequencyLimit)
+    .map((line) => normalize(line.split(" ")[0]));
+  const candidates = [
+    ...new Set(
+      frequent
+        .filter((word) => allowed.has(word) && word.length <= 12 && signature(word).length === 7)
+        .map(signature),
+    ),
+  ];
+  const puzzles = [];
+  for (const letters of candidates) {
+    const words = [];
+    // Las 127 combinaciones no vacías de las siete letras; evita recorrer el corpus por tablero.
+    for (let bits = 1; bits < 128; bits += 1) {
+      const key = [...letters].filter((_, index) => bits & (1 << index)).join("");
+      words.push(...(byLetters.get(key) ?? []));
+    }
+    const options = [...letters]
+      .map((center) => ({ center, words: words.filter((word) => word.includes(center)).sort() }))
+      .filter((option) => option.words.length >= config.min && option.words.length <= config.max)
+      .filter((option) => {
+        if (!config.orderedCheckpoints) return true;
+        const scores = option.words.map(wordScore).sort((a, b) => b - a);
+        return (
+          scores.slice(0, 9).reduce((sum, n) => sum + n, 0) <
+          Math.ceil(scores.reduce((sum, n) => sum + n, 0) * 0.7)
+        );
+      });
+    // Un único centro por conjunto evita repetir las mismas letras en días cercanos.
+    options.sort(
+      (a, b) =>
+        Math.abs(a.words.length - config.target) - Math.abs(b.words.length - config.target) ||
+        a.center.localeCompare(b.center, "es"),
+    );
+    const selected = options[0];
+    if (selected) puzzles.push({ id: `${letters}-${selected.center}`, letters, ...selected });
   }
-  const options = [...letters]
-    .map((center) => ({ center, words: words.filter((word) => word.includes(center)).sort() }))
-    .filter((option) => option.words.length >= 25 && option.words.length <= 80);
-  // Un único centro por conjunto evita repetir las mismas letras en días cercanos.
-  options.sort(
-    (a, b) =>
-      Math.abs(a.words.length - 45) - Math.abs(b.words.length - 45) ||
-      a.center.localeCompare(b.center, "es"),
+  puzzles.sort((a, b) => hash(VERSION + a.id).localeCompare(hash(VERSION + b.id)));
+  if (puzzles.length < config.minimumPuzzles)
+    throw new Error(`Catálogo insuficiente: ${puzzles.length}`);
+  const serialize = (value) => `${JSON.stringify(value, null, 2)}\n`;
+  const data = serialize(puzzles);
+  const manifest = {
+    version: VERSION,
+    generator: "scripts/generate-panal-dictionary.mjs",
+    engine: "nspell@2.1.5",
+    puzzleCount: puzzles.length,
+    dictionaryWords: allowed.size,
+    normalization: "NFC; ÁÉÍÓÚÜ → AEIOUU; Ñ distinta de N; 4–32 letras; flexiones permitidas",
+    sourceManifest: hash(await readFile(new URL("source-manifest.json", root))),
+    sources,
+    outputs: { "puzzles.json": hash(data) },
+  };
+  if (!check) await mkdir(output, { recursive: true });
+  for (const [name, content] of [
+    ["puzzles.json", data],
+    ["manifest.json", serialize(manifest)],
+  ]) {
+    const path = new URL(name, output);
+    if (check) {
+      if ((await readFile(path, "utf8")) !== content)
+        throw new Error(`Dataset desactualizado: ${fileURLToPath(path)}`);
+    } else await writeFile(path, content);
+  }
+  process.stdout.write(
+    `${check ? "Verificado" : "Generado"} ${VERSION}: ${puzzles.length} tableros.\n`,
   );
-  const selected = options[0];
-  if (selected) puzzles.push({ id: `${letters}-${selected.center}`, letters, ...selected });
 }
-puzzles.sort((a, b) => hash(VERSION + a.id).localeCompare(hash(VERSION + b.id)));
-if (puzzles.length < 180) throw new Error(`Catálogo insuficiente: ${puzzles.length}`);
-const serialize = (value) => `${JSON.stringify(value, null, 2)}\n`;
-const data = serialize(puzzles);
-const manifest = {
-  version: VERSION,
-  generator: "scripts/generate-panal-dictionary.mjs",
-  engine: "nspell@2.1.5",
-  puzzleCount: puzzles.length,
-  dictionaryWords: allowed.size,
-  normalization: "NFC; ÁÉÍÓÚÜ → AEIOUU; Ñ distinta de N; 4–32 letras; flexiones permitidas",
-  sourceManifest: hash(await readFile(new URL("source-manifest.json", root))),
-  sources,
-  outputs: { "puzzles.json": hash(data) },
-};
-if (!check) await mkdir(output, { recursive: true });
-for (const [name, content] of [
-  ["puzzles.json", data],
-  ["manifest.json", serialize(manifest)],
-]) {
-  const path = new URL(name, output);
-  if (check) {
-    if ((await readFile(path, "utf8")) !== content)
-      throw new Error(`Dataset desactualizado: ${fileURLToPath(path)}`);
-  } else await writeFile(path, content);
-}
-process.stdout.write(
-  `${check ? "Verificado" : "Generado"} ${VERSION}: ${puzzles.length} tableros.\n`,
-);

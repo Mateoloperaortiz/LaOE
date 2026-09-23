@@ -186,6 +186,19 @@ export const panalCompleted = defineEvent(
   }),
 );
 
+export const panalCheckpointReached = defineEvent(
+  "panal.checkpoint-reached",
+  z.object({
+    personId: id,
+    termId: id,
+    gameId: id,
+    day: z.string(),
+    checkpoint: z.number().int().min(1).max(2),
+    words: z.number().int(),
+    points: z.number().int(),
+  }),
+);
+
 // Trabajo interno de la gamificación: lo emite y lo atiende participation.
 
 /** Procesa el archivo de una evidencia; se emite con `dedupeKey` por archivo. */

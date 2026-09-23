@@ -8,6 +8,7 @@ import {
   checkinExcused,
   checkinPending,
   game2048Completed,
+  panalCheckpointReached,
   panalCompleted,
   pointsAdjusted,
   pointsReversed,
@@ -116,6 +117,19 @@ export const PARTICIPATION_RULES: readonly TimelineRule[] = [
     summary: fill(labels.participationTexts[13] ?? "", { fecha: day, n: String(points) }),
     metadata: { runId, termId, day, difficulty, assisted, points },
   })),
+
+  rule(
+    panalCheckpointReached,
+    ({ gameId, termId, day, checkpoint, words, points }, { labels }) => ({
+      kind: "PARTICIPATION",
+      summary: fill(labels.participationTexts[15] ?? "", {
+        fecha: day,
+        palabras: String(checkpoint === 1 ? 5 : 10),
+        n: String(points),
+      }),
+      metadata: { gameId, termId, day, checkpoint, words, points },
+    }),
+  ),
 
   rule(panalCompleted, ({ gameId, termId, day, score, points }, { labels }) => ({
     kind: "PARTICIPATION",

@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [092](adr/ADR-092-panal-corto-y-premios-por-avance.md) | Panal corto y premios por avance | Desde el 24 de septiembre de 2026 en Colombia: 20–30 palabras y premios 1 + 2 + 3; el 23 conserva tablero y premio originales | Aceptada; publicación pendiente |
 | [088](adr/ADR-088-panal-diario-en-espanol.md) | Panal | Cuarto juego: reto diario compartido, siete letras con central obligatoria, diccionario español versionado y 6 GH Points una vez al llegar a Genio; progreso validado en servidor | Aceptada; publicación pendiente |
 | [087](adr/ADR-087-boosters-sobre-puntos-de-asistencia.md) | Boosters en asistencias | La base de `CHECKIN` viene de la ocasión; el máximo 20 se conserva para retos y el BOOST respeta el cupo configurado, con máximo estructural 1000 | Aceptada |
 | [078](adr/ADR-078-sudoku-con-solucion-en-el-servidor.md) | Sudoku | Tercer juego de `/app/juegos`: paga 2, 4 o 6 GH Points por dificultad —la técnica más cara que el tablero exige, nunca adivinar— y la mitad si se juega con ayudas (errores al instante y pistas), con partidas ilimitadas y un solo crédito por día para el primer tablero resuelto; sin replay, porque un Sudoku lo resuelve cualquier programa: el servidor genera el tablero desde una semilla que nunca sale de él, guarda la solución y compara la cuadrícula enviada; la solución solo viaja al navegador en modo con ayudas | Aceptada; en producción |

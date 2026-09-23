@@ -821,7 +821,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-664 | Recurso rankings (plural · singular) | Rankings · Puesto | MATEO | Propuesta |
 | T-665 | Recurso cumplimiento de asambleas (plural · singular) | Cumplimiento de asambleas · Persona | MATEO | Propuesta |
 | T-666 | Tarea: falta crear el semestre siguiente | Crear el semestre {codigo}: el actual termina el {fecha} | MATEO | Propuesta |
-| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} · Completó el reto {reto} y sumó {n} GH Points · Desbloqueó la insignia {insignia} nivel {nivel} · Recibió un {booster} · Entrega del reto {reto} rechazada: {motivo} · Hizo {puntaje} puntos en el 2048 del {fecha} y sumó {n} GH Points · Resolvió un Sudoku el {fecha} y sumó {n} GH Points · Llegó a Genio en Panal el {fecha} y sumó {n} GH Points | MATEO | Propuesta |
+| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} · Completó el reto {reto} y sumó {n} GH Points · Desbloqueó la insignia {insignia} nivel {nivel} · Recibió un {booster} · Entrega del reto {reto} rechazada: {motivo} · Hizo {puntaje} puntos en el 2048 del {fecha} y sumó {n} GH Points · Resolvió un Sudoku el {fecha} y sumó {n} GH Points · Llegó a Genio en Panal el {fecha} y sumó {n} GH Points · Encontró {palabras} palabras en Panal el {fecha} y sumó {n} GH Points | MATEO | Propuesta |
 | T-668 | Persona 360, Participación: títulos | Check-ins · Movimientos de GH Points | MATEO | Propuesta |
 | T-669 | Persona 360, Participación: sin check-ins | Todavía no tiene check-ins. | MATEO | Propuesta |
 | T-670 | Persona 360, Resumen: asambleas obligatorias | {n} de {total} obligatorias | MATEO | Propuesta |
@@ -2369,3 +2369,23 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2760 | Panal: Centro visible | La {letra} siempre va | MATEO | Propuesta |
 | T-2761 | Panal: Completado biblioteca | Panal completo | MATEO | Propuesta |
 | T-2762 | Panal: Rango | Rango: {rango} | MATEO | Propuesta |
+
+## Panal: premios por avance desde el 24 de septiembre de 2026 (ADR-092)
+
+| Código | Uso | Texto | Responsable | Estado |
+|---|---|---|---|---|
+| T-3000 | Panal: premios | Tus premios de hoy | MATEO | Aprobado |
+| T-3001 | Panal: total acreditado | {n} de 6 GH Points | MATEO | Aprobado |
+| T-3002 | Panal: meta de palabras | {n} palabras | MATEO | Aprobado |
+| T-3003 | Panal: meta final | Genio | MATEO | Aprobado |
+| T-3004 | Panal: importe por meta | +{n} GH Points | MATEO | Aprobado |
+| T-3005 | Panal: meta acreditada | Guardado | MATEO | Aprobado |
+| T-3006 | Panal: próxima meta | Próximo premio: {meta} · +{n} GH Points | MATEO | Aprobado |
+| T-3007 | Panal: salir | Volver a Juegos | MATEO | Aprobado |
+| T-3008 | Panal: guardado | Cada palabra y premio se guarda al instante. Podés salir y volver hoy cuando querás. | MATEO | Aprobado |
+| T-3009 | Panal: anuncio de premio | ¡Sumaste {n} GH Points! | MATEO | Aprobado |
+| T-3010 | Ledger: premio de Panal por avance | Panal del {fecha}: {meta} | MATEO | Aprobado |
+| T-3011 | Panal: reglas de premios | Ganás 1 GH Point con 5 palabras, 2 más con 10 y 3 más al llegar a Genio ({n} puntos de juego). Hasta 6 GH Points al día; vos elegís hasta dónde llegar. | MATEO | Aprobado |
+| T-3012 | Panal: recuperar premio pendiente | Guardar premios de este avance | MATEO | Aprobado |
+| T-3013 | Panal: premio pendiente | Ya alcanzaste una meta. Guardá su premio para sumarlo a tus GH Points. | MATEO | Aprobado |
+| T-3014 | Panal: introducción corta | Siete letras. Tres metas. Vos elegís hasta dónde llegar. | MATEO | Aprobado |

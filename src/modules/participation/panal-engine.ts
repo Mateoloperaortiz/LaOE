@@ -1,7 +1,32 @@
 // Reglas compartidas sin diccionario ni I/O. Las palabras válidas viven solo en el servidor.
-export const PANAL_RULES_VERSION = "es-7-v1";
+import type { PanalCheckpointId } from "./panal-types";
+
+export const PANAL_RULES_VERSION = "es-7-v2";
 export const PANAL_REWARD = 6;
+// Día civil de Colombia; antes del corte se conservan catálogo, reglas y premio originales.
+export const PANAL_CHECKPOINTS_START_DAY = "2026-09-24";
+export function hasPanalCheckpoints(day: string): boolean {
+  return day >= PANAL_CHECKPOINTS_START_DAY;
+}
 export const PANAL_RANK_PERCENTAGES = [0, 2, 5, 8, 15, 25, 40, 50, 70] as const;
+
+export function isSupportedPanalRules(version: string): boolean {
+  return version === "es-7-v1" || version === PANAL_RULES_VERSION;
+}
+
+export function panalCheckpoints(geniusScore: number) {
+  return [
+    { id: 1 as PanalCheckpointId, points: 1, words: 5, score: 0 },
+    { id: 2 as PanalCheckpointId, points: 2, words: 10, score: 0 },
+    { id: 3 as PanalCheckpointId, points: 3, words: 0, score: geniusScore },
+  ];
+}
+
+export function reachedPanalCheckpoints(words: number, score: number, geniusScore: number) {
+  return panalCheckpoints(geniusScore).filter(
+    (checkpoint) => words >= checkpoint.words && score >= checkpoint.score,
+  );
+}
 
 export function normalizePanalWord(value: string): string {
   return value
