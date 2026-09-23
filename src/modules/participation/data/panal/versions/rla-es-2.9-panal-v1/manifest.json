@@ -1,0 +1,80 @@
+{
+  "version": "rla-es-2.9-panal-v1",
+  "generator": "scripts/generate-panal-dictionary.mjs",
+  "engine": "nspell@2.1.5",
+  "puzzleCount": 326,
+  "dictionaryWords": 618466,
+  "normalization": "NFC; ÁÉÍÓÚÜ → AEIOUU; Ñ distinta de N; 4–32 letras; flexiones permitidas",
+  "sourceManifest": "16b5c66e13369de6e7a6664001bf9df98181d3becfbf584e228641814600f59c",
+  "sources": {
+    "rlaEs": {
+      "version": "v2.9",
+      "release": "https://github.com/sbosio/rla-es/releases/download/v2.9/es.xpi",
+      "archiveSha256": "95f9e3f59f99d17f32414ac9aa6b488d6b0673e5334c67bbca3cba4909e91ad5",
+      "selectedLicense": "MPL-1.1",
+      "attribution": "Recursos Lingüísticos Abiertos del Español; autores y colaboradores de RLA-ES."
+    },
+    "frequencyWords": {
+      "version": "2018",
+      "commit": "525f9b560de45753a5ea01069454e72e9aa541c6",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Hermit Dave, FrequencyWords; corpus OPUS OpenSubtitles 2018 / OpenSubtitles. Usado para orientar la revisión editorial, no como validador."
+    },
+    "files": [
+      {
+        "file": "sources/rla-es-2.9.aff",
+        "url": "https://github.com/sbosio/rla-es/releases/download/v2.9/es.xpi",
+        "sha256": "674c5a4b4d39fd3b4452f045a4e6e0649db4a2ce23f5903df8c311e21f1a757c",
+        "license": "MPL-1.1",
+        "archiveEntry": "dictionaries/es.aff"
+      },
+      {
+        "file": "sources/rla-es-2.9.dic",
+        "url": "https://github.com/sbosio/rla-es/releases/download/v2.9/es.xpi",
+        "sha256": "0a788c01b1447915c7721e96a6e2183700e9b5f9ee8974320295188ed24822e3",
+        "license": "MPL-1.1",
+        "archiveEntry": "dictionaries/es.dic"
+      },
+      {
+        "file": "sources/RLA-ES-LICENSE.md",
+        "url": "https://raw.githubusercontent.com/sbosio/rla-es/v2.9/LICENSE.md",
+        "sha256": "2b70fd5cb8d3b34cc6ae322c969557a2270b99017594addb2531ef5ffd9e1b17",
+        "license": "MPL-1.1"
+      },
+      {
+        "file": "sources/RLA-ES-README.txt",
+        "url": "https://github.com/sbosio/rla-es/releases/download/v2.9/es.xpi",
+        "sha256": "ab128ee22fb347cb866ec2a287264de2f9ff9b6583919d5e7cf8e5ba6b5be744",
+        "license": "MPL-1.1",
+        "archiveEntry": "dictionaries/README.txt"
+      },
+      {
+        "file": "sources/MPL-1.1.txt",
+        "url": "https://raw.githubusercontent.com/sbosio/rla-es/v2.9/LICENSE/MPL-1.1.txt",
+        "sha256": "53692a2ed6c6a2c6ec9b32dd0b820dfae91e0a1fcdf625ca9ed0bdf8705fcc4f",
+        "license": "MPL-1.1"
+      },
+      {
+        "file": "sources/frequencywords-es-2018-50k.txt",
+        "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/525f9b560de45753a5ea01069454e72e9aa541c6/content/2018/es/es_50k.txt",
+        "sha256": "dcff3ad4316192f4dc4ff7d26e637c6ff314ef1ca0f3f720c5649018a71056c0",
+        "license": "CC-BY-SA-4.0"
+      },
+      {
+        "file": "sources/FREQUENCYWORDS-README.md",
+        "url": "https://raw.githubusercontent.com/hermitdave/FrequencyWords/525f9b560de45753a5ea01069454e72e9aa541c6/README.md",
+        "sha256": "a92fcc50e27f7b2d5860ec1c1ce794dc4c892d945bfa4c8c3136cdfd213ee710",
+        "license": "CC-BY-SA-4.0"
+      },
+      {
+        "file": "sources/CC-BY-SA-4.0.txt",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode.txt",
+        "sha256": "a0bd498de6b7991f563789715e3cf9f9a77860b6bb5b2c2b072fb3bb36361008",
+        "license": "CC-BY-SA-4.0"
+      }
+    ]
+  },
+  "outputs": {
+    "puzzles.json": "a39e9629908771084ce388d29c7c31ece9900b149593214489788e4d151be467"
+  }
+}

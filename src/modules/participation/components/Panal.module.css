@@ -1,0 +1,204 @@
+.game {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+}
+.input {
+  min-height: 3.5rem;
+  width: 100%;
+  border: 2px solid var(--color-borde);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-fondo);
+  color: var(--color-tinta);
+  caret-color: var(--color-enlace);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+}
+.hive {
+  position: relative;
+  width: min(100%, 18rem);
+  height: 17rem;
+  margin: 0 auto;
+  border: 0;
+  padding: 0;
+}
+.cell {
+  position: absolute;
+  width: 5.2rem;
+  height: 5.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
+  background: var(--color-oe-blue);
+  color: var(--color-oe-navy);
+  font-size: 2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cell:hover:enabled {
+  background: var(--color-oe-sky);
+}
+.cell:active:enabled {
+  transform: scale(0.94);
+}
+.cell:focus-visible {
+  outline: none;
+  background: var(--color-oe-navy);
+  color: var(--color-oe-paper);
+  box-shadow: inset 0 0 0 0.45rem var(--color-oe-yellow);
+}
+.cell:disabled {
+  cursor: default;
+}
+.cell:nth-child(1) {
+  top: 5.8rem;
+  left: calc(50% - 2.6rem);
+}
+.cell:nth-child(2) {
+  top: 0.5rem;
+  left: calc(50% - 2.6rem);
+}
+.cell:nth-child(3) {
+  top: 3.15rem;
+  left: calc(50% + 1.6rem);
+}
+.cell:nth-child(4) {
+  top: 8.45rem;
+  left: calc(50% + 1.6rem);
+}
+.cell:nth-child(5) {
+  top: 11.1rem;
+  left: calc(50% - 2.6rem);
+}
+.cell:nth-child(6) {
+  top: 8.45rem;
+  left: calc(50% - 6.8rem);
+}
+.cell:nth-child(7) {
+  top: 3.15rem;
+  left: calc(50% - 6.8rem);
+}
+.center {
+  background: var(--color-oe-yellow);
+  text-decoration: underline;
+  text-underline-offset: 0.3rem;
+}
+.center:hover:enabled {
+  background: var(--color-oe-yellow-soft);
+}
+.progress {
+  appearance: none;
+  width: 100%;
+  height: 0.6rem;
+  overflow: hidden;
+  border: 0;
+  border-radius: 1rem;
+  background: var(--color-fondo-suave);
+}
+.progress::-webkit-progress-bar {
+  background: var(--color-fondo-suave);
+}
+.progress::-webkit-progress-value {
+  background: var(--color-enlace);
+}
+.progress::-moz-progress-bar {
+  background: var(--color-enlace);
+}
+.words {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem 1rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  scrollbar-color: var(--color-borde) var(--color-fondo);
+}
+.words li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.3rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-borde);
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+}
+.pangram {
+  font-weight: 700;
+}
+.pangram > :last-child {
+  color: var(--color-enlace);
+}
+@media (max-width: 39.99rem) {
+  .game {
+    gap: 1rem;
+  }
+  .hive {
+    height: 14.75rem;
+    width: min(100%, 16rem);
+  }
+  .cell {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+  .cell:nth-child(1) {
+    top: 5.1rem;
+    left: calc(50% - 2.25rem);
+  }
+  .cell:nth-child(2) {
+    top: 0.5rem;
+    left: calc(50% - 2.25rem);
+  }
+  .cell:nth-child(3) {
+    top: 2.8rem;
+    left: calc(50% + 1.4rem);
+  }
+  .cell:nth-child(4) {
+    top: 7.4rem;
+    left: calc(50% + 1.4rem);
+  }
+  .cell:nth-child(5) {
+    top: 9.7rem;
+    left: calc(50% - 2.25rem);
+  }
+  .cell:nth-child(6) {
+    top: 7.4rem;
+    left: calc(50% - 5.9rem);
+  }
+  .cell:nth-child(7) {
+    top: 2.8rem;
+    left: calc(50% - 5.9rem);
+  }
+}
+@media (min-width: 64rem) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.8fr);
+    gap: 3rem;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cell {
+    transition:
+      transform 120ms ease-out,
+      background-color 120ms ease-out;
+  }
+}
+@media (forced-colors: active) {
+  .cell {
+    border: 2px solid ButtonText;
+    clip-path: none;
+  }
+  .center {
+    border-width: 4px;
+  }
+}

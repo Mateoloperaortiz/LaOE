@@ -61,6 +61,7 @@ export const pointEntryKind = pgEnum("point_entry_kind", [
   "GAME2048",
   // ADR-078: premio del Sudoku, 2, 4 o 6 puntos por dificultad (la mitad con ayudas) y uno por día.
   "SUDOKU",
+  "PANAL",
 ]);
 
 export const wordleStatus = pgEnum("wordle_status", ["IN_PROGRESS", "WON", "LOST", "EXPIRED"]);
@@ -117,6 +118,46 @@ export const reconciliationMode = pgEnum("reconciliation_mode", ["DRY_RUN", "APP
 export const reconciliationStatus = pgEnum("reconciliation_status", ["RUNNING", "DONE", "FAILED"]);
 
 // La respuesta es privada: únicamente las proyecciones del dominio pueden salir de este módulo.
+// Panal diario: el catálogo privado se conserva por versión, el progreso por palabra.
+export const panalGame = pgTable(
+  "panal_game",
+  {
+    id: id(),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    termId: text()
+      .notNull()
+      .references(() => term.id),
+    day: date({ mode: "string" }).notNull(),
+    puzzleId: text().notNull(),
+    dictionaryVersion: text().notNull(),
+    rulesVersion: text().notNull(),
+    creditedAt: timestampTz(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("panal_game_person_day_unique").on(t.personId, t.day),
+    index("panal_game_term_idx").on(t.termId),
+  ],
+);
+
+export const panalWord = pgTable(
+  "panal_word",
+  {
+    id: id(),
+    gameId: text()
+      .notNull()
+      .references(() => panalGame.id, { onDelete: "cascade" }),
+    word: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("panal_word_game_word_unique").on(t.gameId, t.word),
+    check("panal_word_format", sql`${t.word} ~ '^[A-ZÑ]{4,32}$'`),
+  ],
+);
+
 export const wordleGame = pgTable(
   "wordle_game",
   {
@@ -428,6 +469,7 @@ export const pointEntry = pgTable(
     wordleGameId: text().references(() => wordleGame.id),
     game2048RunId: text().references(() => game2048Run.id),
     sudokuRunId: text().references(() => sudokuRun.id),
+    panalGameId: text().references(() => panalGame.id),
     rewardId: text().references((): AnyPgColumn => reward.id),
     kind: pointEntryKind().notNull(),
     points: integer().notNull(),
@@ -444,6 +486,12 @@ export const pointEntry = pgTable(
     uniqueIndex("point_entry_wordle_game_unique").on(t.wordleGameId),
     uniqueIndex("point_entry_game2048_run_unique").on(t.game2048RunId),
     uniqueIndex("point_entry_sudoku_run_unique").on(t.sudokuRunId),
+    uniqueIndex("point_entry_panal_game_unique").on(t.panalGameId),
+    check(
+      "point_entry_panal_consistent",
+      sql`(${t.kind}::text = 'PANAL') = (${t.panalGameId} is not null)`,
+    ),
+    check("point_entry_panal_reward", sql`${t.kind}::text <> 'PANAL' or ${t.points} = 6`),
     // Un (rewardId, kind) por premio: el check de abajo limita rewardId a CHALLENGE y BOOST.
     // El predicado no compara el enum: un literal nuevo no se puede usar en la transacción del
     // ADD VALUE y el cast a text no es IMMUTABLE.

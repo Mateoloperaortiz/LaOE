@@ -4,6 +4,18 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Panal diario en español (ADR-088) · `lista` (local; publicación pendiente)
+
+- [x] Documentar reglas, español, reto diario y premio de 6 GH Points al llegar a Genio.
+- [x] Implementar catálogo reproducible, progreso persistido y crédito único.
+- [x] Integrar biblioteca, tablero accesible, Mis datos y línea de tiempo.
+- [x] Verificar pruebas, migración y build.
+- [ ] Publicar y verificar en producción.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-23 | Panal, implementación local | [ADR-088](adr/ADR-088-panal-diario-en-espanol.md), cuarta tarjeta y `/app/juegos/panal`; 326 tableros reproducibles de RLA-ES, español con Ñ y tildes opcionales, progreso por palabra en servidor y 6 GH Points al rango Genio (70 %), confirmados por Mateo. Migración aditiva `0038` aplicada en local, verificada con 126 índices; idempotencia, propiedad, concurrencia, medianoche, cierre y evento CRM cubiertos. Mis datos incluye el progreso propio; las respuestas pendientes no viajan al cliente. `npm run check` aprobado: 719 unitarias, 546 de integración, 11 del extractor y build. Tres flujos E2E de Panal más biblioteca y axe claro/oscuro aprobados; tras los ajustes visuales se repitieron los tres flujos, typecheck, lint y build. `panal:check` reproduce el catálogo. Capturas y revisión en `.impeccable/review/panal/`. Pendiente publicación, sin cambios en producción. |
+
 ## Boosters sobre asistencias de más de 20 puntos (ADR-087) · `en curso`
 
 - [x] Reproducir el error de producción con datos sintéticos por QR, anfitrión y administración.

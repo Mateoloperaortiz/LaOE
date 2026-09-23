@@ -186,7 +186,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-082 | Niveles (0, 100, 250, 500, 1000 puntos) | Recién llegado · Parchado · De planta · Pilar · Leyenda OE | GH | Propuesta; GH puede renombrar o cambiar los cortes |
 | T-083 | Rankings, pestañas | Nuevos · Veteranos · Comités | GH | Propuesta |
 | T-084 | Ranking de comités, nota de la tasa suavizada | El porcentaje de cada comité es su participación relativa, ajustada para que los comités chicos no dependan de un solo evento. | GH | Propuesta |
-| T-085 | Movimientos, tipos | Asistencia · Ajuste · Reversión · Histórico · Wordle · Reto · Impulso · 2048 · Sudoku | MATEO | Propuesta |
+| T-085 | Movimientos, tipos | Asistencia · Ajuste · Reversión · Histórico · Wordle · Reto · Impulso · 2048 · Sudoku · Panal | MATEO | Propuesta |
 | T-086 | Sin movimientos | Todavía no tenés puntos. Tu primera asistencia los estrena. | COM | Propuesta |
 
 ### Registro de asistencia (QR)
@@ -821,7 +821,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-664 | Recurso rankings (plural · singular) | Rankings · Puesto | MATEO | Propuesta |
 | T-665 | Recurso cumplimiento de asambleas (plural · singular) | Cumplimiento de asambleas · Persona | MATEO | Propuesta |
 | T-666 | Tarea: falta crear el semestre siguiente | Crear el semestre {codigo}: el actual termina el {fecha} | MATEO | Propuesta |
-| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} · Completó el reto {reto} y sumó {n} GH Points · Desbloqueó la insignia {insignia} nivel {nivel} · Recibió un {booster} · Entrega del reto {reto} rechazada: {motivo} · Hizo {puntaje} puntos en el 2048 del {fecha} y sumó {n} GH Points · Resolvió un Sudoku el {fecha} y sumó {n} GH Points | MATEO | Propuesta |
+| T-667 | Línea de tiempo: textos de las interacciones de participación | Asistió a {ocasion} · Sumó {n} GH Points por {ocasion} · Registro en {ocasion} pendiente de aprobación · Registro en {ocasion} anulado: {motivo} · Ajuste de {n} GH Points: {motivo} · Reversión de {n} GH Points: {motivo} · Resolvió el Wordle del {fecha} en {intentos}/6 y sumó {n} GH Points · Excusa aceptada para {ocasion} · Completó el reto {reto} y sumó {n} GH Points · Desbloqueó la insignia {insignia} nivel {nivel} · Recibió un {booster} · Entrega del reto {reto} rechazada: {motivo} · Hizo {puntaje} puntos en el 2048 del {fecha} y sumó {n} GH Points · Resolvió un Sudoku el {fecha} y sumó {n} GH Points · Llegó a Genio en Panal el {fecha} y sumó {n} GH Points | MATEO | Propuesta |
 | T-668 | Persona 360, Participación: títulos | Check-ins · Movimientos de GH Points | MATEO | Propuesta |
 | T-669 | Persona 360, Participación: sin check-ins | Todavía no tiene check-ins. | MATEO | Propuesta |
 | T-670 | Persona 360, Resumen: asambleas obligatorias | {n} de {total} obligatorias | MATEO | Propuesta |
@@ -2323,3 +2323,49 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-2721 | Página no encontrada (404); el primer punto separa el título del botón | Uy, esta página no existe. Volvé al inicio. | MATEO | Propuesta |
+
+## Panal diario (ADR-088)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-2722 | Panal: Nombre | Panal | MATEO | Propuesta |
+| T-2723 | Panal: Biblioteca | Encontrá palabras con siete letras y una central obligatoria. Un panal nuevo cada día. | MATEO | Propuesta |
+| T-2724 | Panal: Introducción | Siete letras, muchas palabras. ¿Hasta dónde llegás hoy? | MATEO | Propuesta |
+| T-2725 | Panal: Empezar | Jugar Panal | MATEO | Propuesta |
+| T-2726 | Panal: Entrada | Tu palabra | MATEO | Propuesta |
+| T-2727 | Panal: Acción | Enviar | MATEO | Propuesta |
+| T-2728 | Panal: Acción | Borrar | MATEO | Propuesta |
+| T-2729 | Panal: Acción | Mezclar letras | MATEO | Propuesta |
+| T-2730 | Panal: Centro accesible | {letra}, letra central obligatoria | MATEO | Propuesta |
+| T-2731 | Panal: Letras accesible | Letras del panal | MATEO | Propuesta |
+| T-2732 | Panal: Puntaje | {n} puntos de juego | MATEO | Propuesta |
+| T-2733 | Panal: Conteo | {n} de {total} palabras | MATEO | Propuesta |
+| T-2734 | Panal: Palabras | Tus palabras | MATEO | Propuesta |
+| T-2735 | Panal: Vacío | Tu primera palabra abre el panal. Usá siempre la letra del centro. | MATEO | Propuesta |
+| T-2736 | Panal: Reglas | Cómo jugar | MATEO | Propuesta |
+| T-2737 | Panal: Reglas lista | Formá palabras de al menos cuatro letras con las siete del panal. · Incluí siempre la letra del centro; podés repetir letras. · Las tildes y la diéresis son opcionales. La ñ es distinta de la n. · Se aceptan plurales y conjugaciones del diccionario del juego. · Cuatro letras dan 1 punto; desde cinco, un punto por letra. · Usar las siete letras en una palabra es un pangrama y suma 7 puntos extra. | MATEO | Propuesta |
+| T-2738 | Panal: Premio | Llegá a Genio con {n} puntos de juego y ganá 6 GH Points. Un solo premio al día; después podés seguir buscando. | MATEO | Propuesta |
+| T-2739 | Panal: Rangos | Principiante · Buen comienzo · En camino · Bien · Muy bien · Genial · Excelente · Brillante · Genio · Panal completo | MATEO | Propuesta |
+| T-2740 | Panal: Meta | Te faltan {n} puntos para Genio | MATEO | Propuesta |
+| T-2741 | Panal: Premio recibido | ¡Qué nota! Llegaste a Genio y sumaste 6 GH Points. ¡OE OE OE! | MATEO | Propuesta |
+| T-2742 | Panal: Completado | ¡Encontraste todas las palabras! Volvé mañana por otro panal. ¡OE OE OE! | MATEO | Propuesta |
+| T-2743 | Panal: Palabra aceptada | {palabra}: +{n} puntos | MATEO | Propuesta |
+| T-2744 | Panal: Pangrama | ¡Pangrama! {palabra}: +{n} puntos | MATEO | Propuesta |
+| T-2745 | Panal: Repetida | Ya encontraste esa palabra. Probá otra. | MATEO | Propuesta |
+| T-2746 | Panal: Corta | Escribí al menos cuatro letras. | MATEO | Propuesta |
+| T-2747 | Panal: Falta centro | Incluí la letra del centro. | MATEO | Propuesta |
+| T-2748 | Panal: Letras ajenas | Usá solo las siete letras del panal. | MATEO | Propuesta |
+| T-2749 | Panal: Desconocida | Esa palabra no está en el diccionario del juego. Probá otra. | MATEO | Propuesta |
+| T-2750 | Panal: Envío | Guardando palabra… | MATEO | Propuesta |
+| T-2751 | Panal: Red | No pudimos confirmar el envío. Reintentá la misma palabra; no se contará dos veces. | MATEO | Propuesta |
+| T-2752 | Panal: Ledger | Panal del {fecha}: rango Genio | MATEO | Propuesta |
+| T-2753 | Panal: Nuevo día | Ya hay un nuevo panal. Actualizá para jugar el de hoy. | MATEO | Propuesta |
+| T-2754 | Panal: Actualizar | Actualizar panal | MATEO | Propuesta |
+| T-2755 | Panal: No disponible | El panal no está disponible ahora. Actualizá para volver a intentarlo. | MATEO | Propuesta |
+| T-2756 | Panal: Datos incorrectos | Escribí una palabra de hasta 32 letras, sin espacios ni signos. | MATEO | Propuesta |
+| T-2757 | Panal: Reintento | Reintentar envío | MATEO | Propuesta |
+| T-2758 | Panal: Palabra pangrama | {palabra}, pangrama | MATEO | Propuesta |
+| T-2759 | Panal: Fecha | Panal del {fecha} | MATEO | Propuesta |
+| T-2760 | Panal: Centro visible | La {letra} siempre va | MATEO | Propuesta |
+| T-2761 | Panal: Completado biblioteca | Panal completo | MATEO | Propuesta |
+| T-2762 | Panal: Rango | Rango: {rango} | MATEO | Propuesta |

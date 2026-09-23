@@ -174,6 +174,18 @@ export const sudokuCompleted = defineEvent(
   }),
 );
 
+export const panalCompleted = defineEvent(
+  "panal.completed",
+  z.object({
+    personId: id,
+    termId: id,
+    gameId: id,
+    day: z.string(),
+    score: z.number().int(),
+    points: z.number().int(),
+  }),
+);
+
 // Trabajo interno de la gamificación: lo emite y lo atiende participation.
 
 /** Procesa el archivo de una evidencia; se emite con `dedupeKey` por archivo. */
