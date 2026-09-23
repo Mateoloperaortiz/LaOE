@@ -3,23 +3,26 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
-import { panalCompleted } from "@/domain-events/participation";
+import { panalCheckpointReached, panalCompleted } from "@/domain-events/participation";
 import { getMembershipRef } from "@/modules/people";
 import { findTermContaining, getTerm, lockOpenTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
+  hasPanalCheckpoints,
+  isSupportedPanalRules,
   normalizePanalWord,
   PANAL_REWARD,
   PANAL_RULES_VERSION,
   panalWordError,
   panalWordScore,
+  reachedPanalCheckpoints,
 } from "../panal-engine";
-import type { PanalGameView, PanalResult, TodayPanal } from "../panal-types";
+import type { PanalCheckpointId, PanalGameView, PanalResult, TodayPanal } from "../panal-types";
 import { panalGame, panalWord, pointEntry } from "../schema";
 import {
   getPanalPuzzle,
-  PANAL_DICTIONARY_VERSION,
+  panalDictionaryVersion,
   panalPuzzleForDay,
   panalPuzzleView,
 } from "./panal-dictionary";
@@ -45,13 +48,22 @@ async function gameView(row: Row, db: Executor): Promise<PanalGameView> {
       .where(eq(panalWord.gameId, row.id))
       .orderBy(asc(panalWord.createdAt), asc(panalWord.word))
   ).map((item) => item.word);
+  const entries = await db
+    .select({ points: pointEntry.points, checkpoint: pointEntry.panalCheckpoint })
+    .from(pointEntry)
+    .where(eq(pointEntry.panalGameId, row.id));
+  const legacyReward = entries.some((entry) => entry.checkpoint === null);
+  const awardedCheckpoints: PanalCheckpointId[] = legacyReward
+    ? [1, 2, 3]
+    : entries.map((entry) => entry.checkpoint as PanalCheckpointId).sort();
   const puzzle = getPanalPuzzle(row.dictionaryVersion, row.puzzleId);
   return {
     id: row.id,
     day: row.day,
     words,
     score: words.reduce((sum, word) => sum + panalWordScore(word), 0),
-    points: row.creditedAt ? PANAL_REWARD : 0,
+    points: entries.reduce((sum, entry) => sum + entry.points, 0),
+    awardedCheckpoints,
     complete: Boolean(puzzle && words.length === puzzle.words.length),
   };
 }
@@ -76,12 +88,13 @@ export async function getTodayPanal(personId: string): Promise<TodayPanal> {
           ? "NO_TERM"
           : current.pointsClosedAt || (row && row.termId !== current.id)
             ? "TERM_CLOSED"
-            : !puzzle || (row && row.rulesVersion !== PANAL_RULES_VERSION)
+            : !puzzle || (row && !isSupportedPanalRules(row.rulesVersion))
               ? "DICTIONARY_UNAVAILABLE"
               : "AVAILABLE";
       return {
         day,
         nextAvailableAt: nextWordleAt(day),
+        checkpointsEnabled: hasPanalCheckpoints(day),
         availability,
         puzzle: puzzle ? panalPuzzleView(puzzle) : null,
         game: row ? await gameView(row, db) : null,
@@ -108,6 +121,94 @@ async function lockPerson(ctx: CommandContext, personId: string) {
   );
 }
 
+/** Se llama bajo locks de semestre, persona y partida; el ledger es la fuente del premio. */
+async function grantRewards(
+  ctx: CommandContext,
+  row: Row,
+  game: PanalGameView,
+  geniusScore: number,
+  now: Date,
+): Promise<PanalGameView> {
+  if (game.points >= PANAL_REWARD) return game;
+  const checkpoints = hasPanalCheckpoints(row.day)
+    ? reachedPanalCheckpoints(game.words.length, game.score, geniusScore).filter(
+        (checkpoint) => !game.awardedCheckpoints.includes(checkpoint.id),
+      )
+    : game.score >= geniusScore
+      ? [{ id: null, points: PANAL_REWARD }]
+      : [];
+  if (!checkpoints.length) return game;
+  const delta = checkpoints.reduce((sum, checkpoint) => sum + checkpoint.points, 0);
+  if (game.points + delta > PANAL_REWARD) throw new Error("Premio de Panal inconsistente");
+  for (const checkpoint of checkpoints) {
+    await ctx.tx.insert(pointEntry).values({
+      personId: row.personId,
+      termId: row.termId,
+      panalGameId: row.id,
+      panalCheckpoint: checkpoint.id,
+      kind: "PANAL",
+      points: checkpoint.points,
+      reason:
+        checkpoint.id === null
+          ? t("T-2752", { fecha: row.day })
+          : t("T-3010", {
+              fecha: row.day,
+              meta:
+                checkpoint.id === 3
+                  ? t("T-3003")
+                  : t("T-3002", { n: checkpoint.id === 1 ? 5 : 10 }),
+            }),
+      createdById: row.personId,
+    });
+    const payload = {
+      personId: row.personId,
+      termId: row.termId,
+      gameId: row.id,
+      day: row.day,
+      points: checkpoint.points,
+    };
+    await ctx.emit(
+      checkpoint.id === null || checkpoint.id === 3
+        ? eventOf(panalCompleted, { ...payload, score: game.score })
+        : eventOf(panalCheckpointReached, {
+            ...payload,
+            checkpoint: checkpoint.id,
+            words: game.words.length,
+          }),
+    );
+  }
+  const points = game.points + delta;
+  await ctx.tx
+    .update(panalGame)
+    .set({
+      creditedAt: points === PANAL_REWARD ? now : null,
+      rulesVersion: hasPanalCheckpoints(row.day) ? PANAL_RULES_VERSION : row.rulesVersion,
+    })
+    .where(eq(panalGame.id, row.id));
+  await ctx.audit({
+    action: "panal.credited",
+    entityType: "panal_game",
+    entityId: row.id,
+    after: {
+      day: row.day,
+      score: game.score,
+      words: game.words.length,
+      points: delta,
+      checkpoints: checkpoints.map((checkpoint) => checkpoint.id),
+    },
+  });
+  return {
+    ...game,
+    points,
+    awardedCheckpoints: checkpoints.some((checkpoint) => checkpoint.id === null)
+      ? [1, 2, 3]
+      : [
+          ...game.awardedCheckpoints,
+          ...checkpoints.flatMap((checkpoint) => (checkpoint.id === null ? [] : [checkpoint.id])),
+        ].sort(),
+  };
+}
+
 export async function startPanalAs(actor: MemberActor, expectedDay: string): Promise<PanalResult> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(expectedDay)) return { ok: false, reason: "INVALID_INPUT" };
   return runCommand(actor, async (ctx): Promise<PanalResult> => {
@@ -122,8 +223,19 @@ export async function startPanalAs(actor: MemberActor, expectedDay: string): Pro
     const [existing] = await ctx.tx
       .select()
       .from(panalGame)
-      .where(and(eq(panalGame.personId, actor.personId), eq(panalGame.day, day)));
-    if (existing) return { ok: true, game: await gameView(existing, ctx.tx), added: false };
+      .where(and(eq(panalGame.personId, actor.personId), eq(panalGame.day, day)))
+      .for("update");
+    if (existing) {
+      if (existing.termId !== current.id) return { ok: false, reason: "TERM_CLOSED" };
+      const puzzle = getPanalPuzzle(existing.dictionaryVersion, existing.puzzleId);
+      if (!puzzle || !isSupportedPanalRules(existing.rulesVersion))
+        return { ok: false, reason: "DICTIONARY_UNAVAILABLE" };
+      const saved = await gameView(existing, ctx.tx);
+      const game = hasPanalCheckpoints(day)
+        ? await grantRewards(ctx, existing, saved, panalPuzzleView(puzzle).geniusScore, new Date())
+        : saved;
+      return { ok: true, game, added: false };
+    }
     const puzzle = panalPuzzleForDay(day);
     const [row] = await ctx.tx
       .insert(panalGame)
@@ -132,8 +244,8 @@ export async function startPanalAs(actor: MemberActor, expectedDay: string): Pro
         termId: current.id,
         day,
         puzzleId: puzzle.id,
-        dictionaryVersion: PANAL_DICTIONARY_VERSION,
-        rulesVersion: PANAL_RULES_VERSION,
+        dictionaryVersion: panalDictionaryVersion(day),
+        rulesVersion: hasPanalCheckpoints(day) ? PANAL_RULES_VERSION : "es-7-v1",
       })
       .returning();
     if (!row) throw new Error("No se pudo crear Panal");
@@ -177,58 +289,32 @@ export async function submitPanalWordAs(actor: MemberActor, raw: unknown): Promi
     if (!(await eligible(actor.personId, ctx.tx)))
       return { ok: false, reason: "NOT_ELIGIBLE", game };
     const puzzle = getPanalPuzzle(row.dictionaryVersion, row.puzzleId);
-    if (!puzzle || row.rulesVersion !== PANAL_RULES_VERSION)
+    if (!puzzle || !isSupportedPanalRules(row.rulesVersion))
       return { ok: false, reason: "DICTIONARY_UNAVAILABLE", game };
     const error = panalWordError(word, puzzle.letters, puzzle.center);
     if (error) return { ok: false, reason: error, game };
     if (!puzzle.words.includes(word)) return { ok: false, reason: "UNKNOWN_WORD", game };
     await ctx.tx.insert(panalWord).values({ gameId: row.id, word });
     const score = game.score + panalWordScore(word);
-    const credit = !row.creditedAt && score >= panalPuzzleView(puzzle).geniusScore;
-    if (credit) {
-      await ctx.tx.update(panalGame).set({ creditedAt: now }).where(eq(panalGame.id, row.id));
-      await ctx.tx.insert(pointEntry).values({
-        personId: actor.personId,
-        termId: row.termId,
-        panalGameId: row.id,
-        kind: "PANAL",
-        points: PANAL_REWARD,
-        reason: t("T-2752", { fecha: row.day }),
-        createdById: actor.personId,
-      });
-      await ctx.emit(
-        eventOf(panalCompleted, {
-          personId: actor.personId,
-          termId: row.termId,
-          gameId: row.id,
-          day: row.day,
-          score,
-          points: PANAL_REWARD,
-        }),
-      );
-    }
-    await ctx.audit({
-      action: credit ? "panal.credited" : "panal.word-found",
-      entityType: "panal_game",
-      entityId: row.id,
-      after: {
-        day: row.day,
-        score,
-        words: game.words.length + 1,
-        points: credit ? PANAL_REWARD : 0,
-      },
-    });
-    return {
-      ok: true,
-      added: true,
-      game: {
+    const updated = await grantRewards(
+      ctx,
+      row,
+      {
         ...game,
         words: [...game.words, word],
         score,
-        points: credit ? PANAL_REWARD : game.points,
         complete: game.words.length + 1 === puzzle.words.length,
       },
-    };
+      panalPuzzleView(puzzle).geniusScore,
+      now,
+    );
+    await ctx.audit({
+      action: "panal.word-found",
+      entityType: "panal_game",
+      entityId: row.id,
+      after: { day: row.day, score, words: updated.words.length },
+    });
+    return { ok: true, added: true, game: updated };
   });
 }
 

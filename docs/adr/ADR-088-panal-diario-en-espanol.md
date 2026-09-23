@@ -1,6 +1,6 @@
 # ADR-088: Panal diario en español
 
-- Estado: Aceptada; publicada y verificada en producción el 2026-09-23
+- Estado: Aceptada (enmendada por ADR-092); publicada y verificada en producción el 2026-09-23
 - Fecha: 2026-09-23
 - Relacionadas: ADR-041, ADR-075, ADR-078, ADR-081, ADR-084, ADR-086
 - Enmienda: ADR-075 (biblioteca y disponibilidad), ADR-007 (tipo de crédito)
@@ -26,3 +26,7 @@ Mateo pidió incorporar a los juegos una versión en español del juego de forma
 Migración aditiva de partida, palabras encontradas y crédito `PANAL`. Pruebas de reglas, catálogo, concurrencia, crédito único, propiedad, cierre, medianoche y flujo de navegador. No se cambia el comportamiento de los otros juegos.
 
 Publicación del PR #83 y comprobaciones de CI, migración y despliegue en [la evidencia del 2026-09-23](../ci-cd-panal-2026-09-23.md).
+
+## Enmienda (2026-09-23, ADR-092)
+
+[ADR-092](ADR-092-panal-corto-y-premios-por-avance.md) reduce el catálogo a 20–30 palabras y reparte el premio en 1 + 2 + 3 desde el 24 de septiembre de 2026, día civil de Colombia. El 23 conserva las reglas originales.

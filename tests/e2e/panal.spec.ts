@@ -3,7 +3,11 @@ import { expect, type Page } from "@playwright/test";
 import { eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { getPanalPuzzle, panalPuzzleView } from "@/modules/participation/domain/panal-dictionary";
-import { isPanalPangram, panalWordScore } from "@/modules/participation/panal-engine";
+import {
+  hasPanalCheckpoints,
+  isPanalPangram,
+  panalWordScore,
+} from "@/modules/participation/panal-engine";
 import { panalGame, pointEntry } from "@/modules/participation/schema";
 import { t } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
@@ -30,7 +34,7 @@ async function start(page: Page) {
 async function send(page: Page, word: string) {
   await page.getByLabel(t("T-2726"), { exact: true }).fill(word);
   await page.getByRole("button", { name: t("T-2727"), exact: true }).click();
-  await expect(page.locator("#panal output")).toHaveText(
+  await expect(page.locator("#panal output")).toContainText(
     t(isPanalPangram(word) ? "T-2744" : "T-2743", { palabra: word, n: panalWordScore(word) }),
   );
 }
@@ -42,7 +46,10 @@ async function capture(page: Page, name: string) {
     window.scrollTo({ top: 0, behavior: "instant" });
   });
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-  await page.screenshot({ path: `.impeccable/review/panal/${name}.png`, fullPage: true });
+  await page.screenshot({
+    path: `.impeccable/review/panal-checkpoints/${name}.png`,
+    fullPage: true,
+  });
 }
 
 test("biblioteca, teclado, guardado, pangrama y premio único hasta completar", async ({ page }) => {
@@ -62,17 +69,31 @@ test("biblioteca, teclado, guardado, pangrama y premio único hasta completar", 
   await page.keyboard.press("Enter");
   await expect(page.locator("#panal output")).toHaveText(t("T-2745"));
   let score = panalWordScore(first);
+  let found = 1;
   for (const word of puzzle.words.filter((word) => word !== first)) {
     await send(page, word);
     score += panalWordScore(word);
+    found += 1;
+    if (
+      hasPanalCheckpoints(new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10)) &&
+      found === 5
+    ) {
+      await expect(page.getByText(t("T-3001", { n: 1 }))).toBeVisible();
+      await page.getByRole("link", { name: t("T-3007"), exact: true }).click();
+      await expect(page).toHaveURL(/\/app\/juegos$/);
+      await page.goto("/app/juegos/panal");
+      await expect(page.getByText(t("T-3001", { n: 1 }))).toBeVisible();
+    }
     if (score >= panalPuzzleView(puzzle).geniusScore && score < panalPuzzleView(puzzle).maxScore) {
       await expect(page.getByText(t("T-2741"))).toBeVisible();
     }
   }
   await expect(page.getByText(t("T-2742"))).toBeVisible();
   const credits = await getDb().select().from(pointEntry).where(eq(pointEntry.kind, "PANAL"));
-  expect(credits).toHaveLength(1);
-  expect(credits[0]?.points).toBe(6);
+  const [game] = await getDb().select().from(panalGame);
+  const checkpointsEnabled = hasPanalCheckpoints(game?.day ?? "");
+  expect(credits).toHaveLength(checkpointsEnabled ? 3 : 1);
+  expect(credits.reduce((sum, entry) => sum + entry.points, 0)).toBe(6);
 });
 
 test("celular, botones, mezclar sin cambiar la central y temas accesibles", async ({ page }) => {
@@ -97,13 +118,24 @@ test("celular, botones, mezclar sin cambiar la central y temas accesibles", asyn
   await expect(page.getByLabel(t("T-2726"), { exact: true })).toHaveValue(word);
   await page.getByRole("button", { name: t("T-2727"), exact: true }).click();
   await expect(page.getByText(t("T-2733", { n: 1, total: puzzle.words.length }))).toBeVisible();
+  const [game] = await getDb().select().from(panalGame);
+  if (hasPanalCheckpoints(game?.day ?? "")) {
+    for (const additional of puzzle.words.filter((item) => item !== word).slice(0, 4))
+      await send(page, additional);
+    await expect(page.getByText(t("T-3001", { n: 1 }))).toBeVisible();
+  } else {
+    await expect(page.getByText(t("T-3000"))).toHaveCount(0);
+    await expect(
+      page.getByText(t("T-2738", { n: panalPuzzleView(puzzle).geniusScore })),
+    ).toBeVisible();
+  }
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     ),
   ).toBe(0);
   await sinViolaciones(page);
-  await mkdir(".impeccable/review/panal", { recursive: true });
+  await mkdir(".impeccable/review/panal-checkpoints", { recursive: true });
   await capture(page, "mobile");
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
   await sinViolaciones(page);

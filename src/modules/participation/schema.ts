@@ -470,6 +470,7 @@ export const pointEntry = pgTable(
     game2048RunId: text().references(() => game2048Run.id),
     sudokuRunId: text().references(() => sudokuRun.id),
     panalGameId: text().references(() => panalGame.id),
+    panalCheckpoint: integer(),
     rewardId: text().references((): AnyPgColumn => reward.id),
     kind: pointEntryKind().notNull(),
     points: integer().notNull(),
@@ -486,12 +487,22 @@ export const pointEntry = pgTable(
     uniqueIndex("point_entry_wordle_game_unique").on(t.wordleGameId),
     uniqueIndex("point_entry_game2048_run_unique").on(t.game2048RunId),
     uniqueIndex("point_entry_sudoku_run_unique").on(t.sudokuRunId),
-    uniqueIndex("point_entry_panal_game_unique").on(t.panalGameId),
+    uniqueIndex("point_entry_panal_game_unique")
+      .on(t.panalGameId)
+      .where(sql`${t.panalCheckpoint} is null`),
+    uniqueIndex("point_entry_panal_checkpoint_unique").on(t.panalGameId, t.panalCheckpoint),
     check(
       "point_entry_panal_consistent",
       sql`(${t.kind}::text = 'PANAL') = (${t.panalGameId} is not null)`,
     ),
-    check("point_entry_panal_reward", sql`${t.kind}::text <> 'PANAL' or ${t.points} = 6`),
+    check(
+      "point_entry_panal_checkpoint_consistent",
+      sql`${t.panalCheckpoint} is null or (${t.kind}::text = 'PANAL' and ${t.panalCheckpoint} between 1 and 3)`,
+    ),
+    check(
+      "point_entry_panal_reward",
+      sql`${t.kind}::text <> 'PANAL' or (${t.panalCheckpoint} is null and ${t.points} = 6) or (${t.panalCheckpoint} is not null and ${t.points} = ${t.panalCheckpoint})`,
+    ),
     // Un (rewardId, kind) por premio: el check de abajo limita rewardId a CHALLENGE y BOOST.
     // El predicado no compara el enum: un literal nuevo no se puede usar en la transacción del
     // ADD VALUE y el cast a text no es IMMUTABLE.

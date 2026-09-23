@@ -1,3 +1,5 @@
+export type PanalCheckpointId = 1 | 2 | 3;
+
 export interface PanalPuzzleView {
   letters: string;
   center: string;
@@ -12,10 +14,12 @@ export interface PanalGameView {
   words: string[];
   score: number;
   points: number;
+  awardedCheckpoints: PanalCheckpointId[];
   complete: boolean;
 }
 
 export interface TodayPanal {
+  checkpointsEnabled: boolean;
   day: string;
   nextAvailableAt: string;
   availability: "AVAILABLE" | "NO_TERM" | "TERM_CLOSED" | "NOT_ELIGIBLE" | "DICTIONARY_UNAVAILABLE";
