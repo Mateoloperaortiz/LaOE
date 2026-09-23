@@ -1,6 +1,6 @@
 # ADR-075: Biblioteca de juegos y 2048 con replay verificado
 
-- Estado: Aceptada (enmendada por ADR-078); en producción desde el 2026-09-18 (`b3226a5`)
+- Estado: Aceptada (enmendada por ADR-078 y ADR-088); en producción desde el 2026-09-18 (`b3226a5`)
 - Fecha: 2026-09-17
 - Enmienda: ADR-041 (regla 1: el tablero deja `/app/gh-points` y sí hay ruta de juego; regla 6: el ledger gana un tipo más), ADR-067 (regla 17: el Wordle deja de estar en Resumen; regla 4: el 2048 también queda fuera de los topes), ADR-074 (regla 5: la URL del aviso), ADR-007 (tipo `GAME2048`)
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-020, ADR-030, ADR-032, ADR-035, ADR-038
@@ -85,3 +85,7 @@ El resto de la regla 3 sigue vigente tal cual: solo enteros, primero la casilla 
 ## Enmienda (2026-09-19, ADR-078)
 
 La regla 1 suma una tercera tarjeta: `/app/juegos/sudoku`. La barra de Mi OE no cambia. La regla 12 se amplía: la disponibilidad que muestra la biblioteca es la misma proyección para los **tres** juegos. Todo lo demás de esta ADR sigue vigente, y el motor del 2048 no se toca: el Sudoku lleva su propia copia del generador sfc32 para no atar las dos versiones de reglas. El Sudoku no hereda el replay —una lista de jugadas no prueba nada en un juego que cualquier programa resuelve—: el servidor guarda la solución y compara. Ver [ADR-078](ADR-078-sudoku-con-solucion-en-el-servidor.md).
+
+## Enmienda (2026-09-23, ADR-088)
+
+La biblioteca suma `/app/juegos/panal` como cuarto juego y su disponibilidad sigue los mismos criterios de elegibilidad y semestre abierto. Sus reglas, catálogo y crédito único de 6 GH Points al llegar a Genio se documentan en [ADR-088](ADR-088-panal-diario-en-espanol.md). No cambian los premios de los otros juegos.

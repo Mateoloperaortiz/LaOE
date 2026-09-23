@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireActor } from "@/modules/identity";
-import { getTodayGame2048, getTodaySudoku, getTodayWordle } from "@/modules/participation";
+import {
+  getTodayGame2048,
+  getTodayPanal,
+  getTodaySudoku,
+  getTodayWordle,
+} from "@/modules/participation";
 import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 
@@ -14,10 +19,11 @@ type Estado = 0 | 1 | 2; // T-2623: disponible hoy · ya sumaste hoy · no dispo
 
 export default async function JuegosPage() {
   const actor = await requireActor("/app/juegos");
-  const [wordle, game2048, sudoku] = await Promise.all([
+  const [wordle, game2048, sudoku, panal] = await Promise.all([
     getTodayWordle(actor.personId),
     getTodayGame2048(actor.personId),
     getTodaySudoku(actor.personId),
+    getTodayPanal(actor.personId),
   ]);
   const estados = tList("T-2623");
   const juegos: { href: string; nombre: string; resumen: string; estado: Estado }[] = [
@@ -39,6 +45,12 @@ export default async function JuegosPage() {
       resumen: t("T-2676"),
       estado: sudoku.availability !== "AVAILABLE" ? 2 : sudoku.credited ? 1 : 0,
     },
+    {
+      href: "/app/juegos/panal",
+      nombre: t("T-2722"),
+      resumen: t("T-2723"),
+      estado: panal.availability !== "AVAILABLE" ? 2 : panal.game?.points ? 1 : 0,
+    },
   ];
 
   return (
@@ -48,7 +60,7 @@ export default async function JuegosPage() {
         <p className="max-w-prose text-sm text-tinta-suave">{t("T-2622")}</p>
       </header>
 
-      <ul className="grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid list-none gap-4 p-0 sm:grid-cols-2">
         {juegos.map((juego) => (
           <li key={juego.href}>
             <Link

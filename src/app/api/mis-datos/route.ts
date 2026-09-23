@@ -12,6 +12,7 @@ import {
   listBoostersFor,
   listEvidenceFilesFor,
   listGame2048RunsFor,
+  listPanalGamesFor,
   listParticipationsForPerson,
   listRewardsForPerson,
   listSudokuRunsFor,
@@ -52,6 +53,7 @@ export async function GET(request: Request) {
     wordleGames,
     game2048Runs,
     sudokuRuns,
+    panalGames,
     participations,
     evidenceFiles,
     boosters,
@@ -70,6 +72,7 @@ export async function GET(request: Request) {
     listWordleGamesFor(actor.personId),
     listGame2048RunsFor(actor.personId),
     listSudokuRunsFor(actor.personId),
+    listPanalGamesFor(actor.personId),
     listParticipationsForPerson(actor.personId),
     listEvidenceFilesFor(actor.personId),
     listBoostersFor(actor.personId),
@@ -97,6 +100,7 @@ export async function GET(request: Request) {
     game2048Runs,
     // Sudoku (ADR-078): dificultad, modo, estado y puntos; sin semilla, dadas ni solución.
     sudokuRuns,
+    panalGames,
     // Gamificación (ADR-067): entregas sin `requestId` ni la posición correcta de la trivia;
     // archivos sin `objectKey` (dirección interna del bucket); premios y logros de la colección.
     challengeParticipations: participations.map((item) => ({

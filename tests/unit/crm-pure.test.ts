@@ -210,7 +210,8 @@ describe("línea de tiempo", () => {
   it("cada tipo de evento tiene una sola regla", () => {
     const types = TIMELINE_RULES.map((rule) => rule.definition.type);
     expect(new Set(types).size).toBe(types.length);
-    expect(types.length).toBe(44);
+    expect(types.length).toBe(45);
+    expect(types).toContain("panal.completed");
   });
 
   it("la tarjeta de una organización entra a la línea de tiempo de la organización", () => {

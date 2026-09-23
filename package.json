@@ -36,6 +36,8 @@
     "test:e2e": "node --conditions=react-server --env-file-if-exists=.env --import tsx scripts/test-e2e.ts",
     "wallet:assets": "node --import tsx scripts/wallet-assets.ts",
     "wallet:check": "node --env-file-if-exists=.env --import tsx scripts/wallet-check.ts",
+    "panal:generate": "node scripts/generate-panal-dictionary.mjs",
+    "panal:check": "node scripts/generate-panal-dictionary.mjs --check",
     "wordle:generate": "node scripts/generate-wordle-dictionary.mjs",
     "wordle:check": "node scripts/generate-wordle-dictionary.mjs --check",
     "test:extractor": "uv run --python 3.12 --with-requirements scripts/requirements-normativa.txt python -m unittest discover -s tests/python -v",

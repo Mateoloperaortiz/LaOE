@@ -98,8 +98,8 @@ test("la biblioteca muestra los juegos y se llega desde GH Points", async ({ pag
   await expect(page.getByRole("heading", { name: t("T-2621"), level: 1 })).toBeVisible();
   await expect(page.getByRole("link", { name: copyPattern("T-2626") })).toBeVisible();
   await expect(page.getByRole("link", { name: copyPattern("T-2628") })).toBeVisible();
-  // Wordle, 2048 y Sudoku (ADR-078): la tarjeta del Sudoku se prueba en `sudoku.spec.ts`.
-  await expect(page.getByText(tList("T-2623")[0])).toHaveCount(3);
+  // Biblioteca completa; cada juego nuevo tiene su flujo en su propio spec.
+  await expect(page.getByText(tList("T-2623")[0])).toHaveCount(4);
   await sinViolaciones(page);
 
   await page.getByRole("link", { name: copyPattern("T-2628") }).click();

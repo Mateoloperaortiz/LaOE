@@ -290,6 +290,7 @@ export {
   searchOccasions,
   weeklyDates,
 } from "./domain/occasions";
+export { getTodayPanal, listPanalGamesFor, startPanalAs, submitPanalWordAs } from "./domain/panal";
 export { isPublicId, PUBLIC_ID } from "./domain/public-id-pure";
 export {
   type Board,

@@ -9,7 +9,8 @@ export type PointEntryKind =
   | "CHALLENGE"
   | "BOOST"
   | "GAME2048"
-  | "SUDOKU";
+  | "SUDOKU"
+  | "PANAL";
 export const POINT_ENTRY_KINDS: readonly PointEntryKind[] = [
   "CHECKIN",
   "ADJUSTMENT",
@@ -23,6 +24,7 @@ export const POINT_ENTRY_KINDS: readonly PointEntryKind[] = [
   "GAME2048",
   // ADR-078: premio del Sudoku; cierra la lista T-085.
   "SUDOKU",
+  "PANAL",
 ];
 
 /** El saldo nunca se persiste: es la suma de las entradas. */

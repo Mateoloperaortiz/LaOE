@@ -8,6 +8,7 @@ import {
   checkinExcused,
   checkinPending,
   game2048Completed,
+  panalCompleted,
   pointsAdjusted,
   pointsReversed,
   sudokuCompleted,
@@ -114,6 +115,12 @@ export const PARTICIPATION_RULES: readonly TimelineRule[] = [
     kind: "PARTICIPATION",
     summary: fill(labels.participationTexts[13] ?? "", { fecha: day, n: String(points) }),
     metadata: { runId, termId, day, difficulty, assisted, points },
+  })),
+
+  rule(panalCompleted, ({ gameId, termId, day, score, points }, { labels }) => ({
+    kind: "PARTICIPATION",
+    summary: fill(labels.participationTexts[14] ?? "", { fecha: day, n: String(points) }),
+    metadata: { gameId, termId, day, score, points },
   })),
 
   rule(pointsAdjusted, ({ termId, points, reason }, { labels }) => ({
