@@ -70,6 +70,35 @@ describe("premios de la gamificación", () => {
   beforeEach(truncateAll);
   afterAll(closeDb);
 
+  it("el límite de 20 en la base sigue vigente para los retos", async () => {
+    const termId = await seedTerm();
+    const personId = await seedMember("gamificacion.limite.base@eafit.edu.co");
+    await expect(reserve(personId, termId, { base: 21 })).rejects.toSatisfy((error) =>
+      isCheckViolation(error, "reward_base_points_range"),
+    );
+    expect(await db().select().from(reward)).toHaveLength(0);
+  });
+
+  it.each([
+    { kind: "CHALLENGE", points: 21 },
+    { kind: "BOOST", points: -1 },
+    { kind: "BOOST", points: 1001 },
+  ] as const)("el ledger rechaza $kind de $points puntos", async ({ kind, points }) => {
+    const termId = await seedTerm();
+    const personId = await seedMember("gamificacion.limite.ledger@eafit.edu.co");
+    const held = await reserve(personId, termId);
+    await expect(
+      db().insert(pointEntry).values({
+        personId,
+        termId,
+        kind,
+        points,
+        reason: "Inserción sintética fuera del rango",
+        rewardId: held.reward.id,
+      }),
+    ).rejects.toSatisfy((error) => isCheckViolation(error, "point_entry_reward_range"));
+  });
+
   it("reservar y conceder acredita CHALLENGE y BOOST del mismo reward y audita ambos pasos", async () => {
     const termId = await seedTerm();
     const personId = await seedMember("gamificacion.ciclo@eafit.edu.co");

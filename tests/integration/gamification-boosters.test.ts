@@ -8,7 +8,11 @@ import {
   grantBoosterForAchievement,
   listCampaignsAdmin,
 } from "@/modules/participation/domain/boosters";
-import { checkInSelfAs, decideCheckInAs } from "@/modules/participation/domain/commands";
+import {
+  checkInSelfAs,
+  decideCheckInAs,
+  hostCheckInAs,
+} from "@/modules/participation/domain/commands";
 import {
   cancelCampaignAs,
   createCampaignsAs,
@@ -367,6 +371,60 @@ describe("boosters: economía del impulso en retos", () => {
 describe("boosters: asistencia impulsada (check-in)", () => {
   beforeEach(truncateAll);
   afterAll(closeDb);
+
+  it.each([
+    { source: "SELF_QR", kind: "PLUS_50", daily: 100, extra: 15 },
+    { source: "SELF_QR", kind: "PLUS_100", daily: 100, extra: 30 },
+    { source: "HOST", kind: "PLUS_50", daily: 100, extra: 15 },
+    { source: "HOST", kind: "PLUS_100", daily: 100, extra: 30 },
+    { source: "ADMIN", kind: "PLUS_50", daily: 100, extra: 15 },
+    { source: "ADMIN", kind: "PLUS_100", daily: 100, extra: 30 },
+    { source: "HOST", kind: "PLUS_100", daily: 20, extra: 20 },
+  ] as const)("asistencia de 30 puntos por $source con $kind y tope diario $daily acredita base y extra una sola vez", async ({
+    source,
+    kind,
+    daily,
+    extra,
+  }) => {
+    const termId = await seedTerm();
+    const adminId = await seedMember("boost.base.alta.admin@eafit.edu.co");
+    const personId = await seedMember("boost.base.alta@eafit.edu.co");
+    await enableGamification(adminId);
+    await setConfigAs({ personId: adminId }, "gamification.caps", { daily, weekly: 500 });
+    const occasion = await seedOccasion(termId, { points: 30, approval: "AUTO" });
+    const boosterId = await seedBooster(personId, termId, kind);
+    await setBoosterTargetAs({ personId }, { boosterId, target: { occasionId: occasion.id } });
+
+    const result =
+      source === "SELF_QR"
+        ? await checkInSelfAs({ personId }, { publicId: occasion.publicId })
+        : await hostCheckInAs(
+            { personId: adminId },
+            { occasionId: occasion.id, personId, personName: "Persona sintética", source },
+          );
+    if (!("checkInId" in result)) throw new Error("check-in falló");
+    expect((await rewardsFor(result.checkInId))[0]).toMatchObject({
+      source: "CHECKIN",
+      basePoints: 30,
+      baseGranted: 0,
+      extraPoints: extra,
+      status: "GRANTED",
+    });
+    expect((await boosterOf(boosterId))?.status).toBe("CONSUMED");
+    const [attendance] = await db().select().from(checkIn).where(eq(checkIn.id, result.checkInId));
+    expect(attendance).toMatchObject({ status: "APPROVED", source });
+
+    // Reintentar desde el QR no duplica ni el registro ni sus puntos.
+    expect(await checkInSelfAs({ personId }, { publicId: occasion.publicId })).toMatchObject({
+      ok: false,
+      reason: "ALREADY",
+    });
+    const entries = await entriesOf(personId, termId);
+    expect(entries).toHaveLength(2);
+    expect(entries.find((entry) => entry.kind === "CHECKIN")?.points).toBe(30);
+    expect(entries.find((entry) => entry.kind === "BOOST")?.points).toBe(extra);
+    expect(await balanceFor(personId, termId)).toBe(30 + extra);
+  });
 
   it("check-in AUTO con booster apuntado: CHECKIN + BOOST y el cupo solo cuenta el extra", async () => {
     const termId = await seedTerm();

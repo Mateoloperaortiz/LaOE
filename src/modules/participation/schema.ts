@@ -490,7 +490,8 @@ export const pointEntry = pgTable(
     ),
     check(
       "point_entry_reward_range",
-      sql`${t.kind}::text not in ('CHALLENGE', 'BOOST') or ${t.points} between 1 and 20`,
+      sql`(${t.kind}::text <> 'CHALLENGE' or ${t.points} between 1 and 20)
+        and (${t.kind}::text <> 'BOOST' or ${t.points} between 1 and 1000)`,
     ),
   ],
 );
@@ -916,7 +917,11 @@ export const reward = pgTable(
       sql`(${t.source} = 'CHALLENGE') = (${t.participationId} is not null)`,
     ),
     check("reward_checkin_source", sql`(${t.source} = 'CHECKIN') = (${t.checkInId} is not null)`),
-    check("reward_base_points_range", sql`${t.basePoints} between 0 and 20`),
+    // ADR-087: la base de una asistencia viene de la ocasión; el máximo 20 es de los retos.
+    check(
+      "reward_base_points_range",
+      sql`${t.basePoints} >= 0 and (${t.source} <> 'CHALLENGE' or ${t.basePoints} <= 20)`,
+    ),
     check("reward_personal_percent", sql`${t.personalPercent} in (0, 50, 100)`),
     check("reward_requested_personal_percent", sql`${t.requestedPersonalPercent} in (0, 50, 100)`),
     check("reward_campaign_percent", sql`${t.campaignPercent} in (0, 25, 50, 100)`),
