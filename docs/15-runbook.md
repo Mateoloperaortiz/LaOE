@@ -788,6 +788,14 @@ Ensayo sintético (desarrollo y staging, nunca producción):
 - En local, la vitrina de DÍAS se prueba con `NEXT_PUBLIC_THE_GAMES_API=http://localhost:3000/api/v1/the-games/ npm run dev` en `dias` y `http://localhost:3100/the-games/?c=ensayo-the-games`. La casa necesita `PUBLIC_API_ORIGINS=http://localhost:3100,http://localhost:3101`, igual que staging.
 - En staging se siembra con el mismo `npm run db:seed`, por el túnel al Postgres de staging descrito arriba (`railway run --no-local … -e staging` con `DATABASE_URL` del túnel y `NODE_ENV=development` solo en ese proceso local).
 
+Ensayo en producción (ADR-089 regla 2; se opera igual que la competencia real y se archiva después):
+
+- Se corre con el túnel al Postgres de producción y las variables de Railway, sin `.env` ni cambiar `NODE_ENV`: `railway run --no-local -p <project-id> -s web -e production -- env DATABASE_URL=<URL del túnel> npm run the-games:ensayo -- --admin <correo del ADMIN>`.
+- Si falta, crea la edición 2026 de Días EAFIT en **borrador**, del lunes 28 de septiembre a las 8:00 al viernes 2 de octubre a las 20:00, en la Universidad EAFIT.
+- Sobre esa edición crea `ensayo-2026`, igual al ensayo sintético pero sin personas inventadas. El ADMIN que lo corre queda como juez de la base 1 del jueves. Queda en vivo solo para `dias.oeeafit.com/the-games/?c=ensayo-2026`: la portada de DÍAS no tiene el slug y sigue en «Por anunciar».
+- Los códigos de equipo salen una sola vez en la salida del comando. Es idempotente: si `ensayo-2026` ya existe, no toca nada.
+- Terminado el ensayo, se archiva desde Resumen. Las respuestas de formulario y los equipos reales van en la competencia `the-games-2026`.
+
 Antes de promover:
 
 1. `PUBLIC_API_ORIGINS` queda declarada en `.railway/railway.ts`: `https://dias.oeeafit.com` en producción; en staging, el sitio de DÍAS en local. Se carga **antes** de promover.

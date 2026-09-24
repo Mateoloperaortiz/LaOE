@@ -48,6 +48,92 @@ async function demoStaff(db: Db, count: number): Promise<string[]> {
   return rows.map((row) => row.id);
 }
 
+export interface RehearsalInput {
+  editionId: string;
+  actor: CompetitionActor;
+  slug: string;
+  name: string;
+  rotationsPerDay?: number;
+  operatorId?: string | null;
+  /** El juez i va a la base 1 de la jornada i+1. */
+  judgeIds?: ReadonlyArray<string | undefined>;
+}
+
+/** Arma una competencia de ensayo completa y en vivo, con los comandos del dominio. Devuelve su id y
+ *  los códigos de los equipos, que solo se ven esta vez. */
+export async function buildTheGamesRehearsal(
+  input: RehearsalInput,
+): Promise<{ id: string; codes: string[] }> {
+  const { actor } = input;
+  const { id } = await createCompetitionAs(actor, {
+    editionId: input.editionId,
+    slug: input.slug,
+    name: input.name,
+    isRehearsal: true,
+  });
+  await updateCompetitionSettingsAs(actor, id, {
+    name: input.name,
+    firstDayOn: "2026-10-01",
+    secondDayOn: "2026-10-02",
+    bettingEnabled: true,
+    startingCredits: 1000,
+  });
+  for (let number = 1; number <= 30; number++) {
+    await createTeamAs(actor, id, {
+      number,
+      name: `Equipo de ensayo ${number}`,
+      color: COLORS[number % COLORS.length] ?? null,
+    });
+  }
+  const bases: Record<1 | 2, string[]> = { 1: [], 2: [] };
+  for (const day of [1, 2] as const) {
+    for (let orderIndex = 0; orderIndex < 15; orderIndex++) {
+      const macro = MACRO_ORDERS.has(orderIndex);
+      const base = await saveBaseAs(actor, id, null, {
+        day,
+        orderIndex,
+        name: macro ? `Inflable ${orderIndex + 1}` : `Base ${orderIndex + 1}`,
+        kind: macro ? "MACRO" : "NORMAL",
+      });
+      bases[day].push(base.id);
+    }
+  }
+  if (input.operatorId) {
+    await assignStaffAs(actor, id, { personId: input.operatorId, role: "OPERATOR" });
+  }
+  for (const [index, judgeId] of (input.judgeIds ?? []).entries()) {
+    const baseId = bases[index === 0 ? 1 : 2][0];
+    if (judgeId && baseId && index < 2) {
+      await assignStaffAs(actor, id, { personId: judgeId, role: "JUDGE", baseId });
+    }
+  }
+  await createExtraAs(actor, id, {
+    name: "Competencia de talentos",
+    day: 1,
+    kind: "THE_CHALLENGE_RUBRIC",
+  });
+  await createAnnouncementAs(actor, id, {
+    message: "Esto es un ensayo de The Games: los equipos y los resultados son de prueba.",
+    level: "INFO",
+  });
+  const rotations = input.rotationsPerDay ?? 15;
+  await generateDayScheduleAs(actor, id, { day: 1, rotations, plannedMinutes: 20 });
+  await generateDayScheduleAs(actor, id, { day: 2, rotations, plannedMinutes: 45 });
+  await grantStartingCreditsAs(actor, id);
+  const { next } = await getLiveRotations(id);
+  const inflable = next?.matchups.find((matchup) => matchup.base.kind === "MACRO");
+  if (inflable) {
+    const market = await createMarketAs(actor, id, {
+      title: `¿Quién gana ${inflable.base.name} en la rotación 1?`,
+      teamIds: [inflable.teamA.id, inflable.teamB.id],
+    });
+    await setMarketOpenAs(actor, id, market.id, true);
+  }
+  await setCompetitionStatusAs(actor, id, "LIVE");
+  const issued = await issueTeamCodesAs(actor, id, false);
+  return { id, codes: issued.map((item) => `${item.number}: ${formatTeamCode(item.code)}`) };
+}
+
 /** Siembra el ensayo; si ya existe, no toca nada. Devuelve el id de la competencia. */
 export async function seedTheGames(
   db: Db,
@@ -75,85 +161,19 @@ export async function seedTheGames(
     );
     return null;
   }
-  const actor: CompetitionActor = { personId: admin.id, isAdmin: true, ip: null };
-  const { id } = await createCompetitionAs(actor, {
+  const [operatorId, judgeOne, judgeTwo] = await demoStaff(db, 3);
+  const { id, codes } = await buildTheGamesRehearsal({
     editionId: edition.id,
+    actor: { personId: admin.id, isAdmin: true, ip: null },
     slug: THE_GAMES_REHEARSAL_SLUG,
     name: "Ensayo de The Games",
-    isRehearsal: true,
+    rotationsPerDay: options.rotationsPerDay ?? 15,
+    operatorId: operatorId ?? null,
+    judgeIds: [judgeOne, judgeTwo],
   });
-  await updateCompetitionSettingsAs(actor, id, {
-    name: "Ensayo de The Games",
-    firstDayOn: "2026-10-01",
-    secondDayOn: "2026-10-02",
-    bettingEnabled: true,
-    startingCredits: 1000,
-  });
-
-  for (let number = 1; number <= 30; number++) {
-    await createTeamAs(actor, id, {
-      number,
-      name: `Equipo de ensayo ${number}`,
-      color: COLORS[number % COLORS.length] ?? null,
-    });
-  }
-  const bases: Record<1 | 2, string[]> = { 1: [], 2: [] };
-  for (const day of [1, 2] as const) {
-    for (let orderIndex = 0; orderIndex < 15; orderIndex++) {
-      const macro = MACRO_ORDERS.has(orderIndex);
-      const base = await saveBaseAs(actor, id, null, {
-        day,
-        orderIndex,
-        name: macro ? `Inflable ${orderIndex + 1}` : `Base ${orderIndex + 1}`,
-        kind: macro ? "MACRO" : "NORMAL",
-      });
-      bases[day].push(base.id);
-    }
-  }
-
-  const [operator, judgeOne, judgeTwo] = await demoStaff(db, 3);
-  if (operator) await assignStaffAs(actor, id, { personId: operator, role: "OPERATOR" });
-  if (judgeOne) {
-    await assignStaffAs(actor, id, { personId: judgeOne, role: "JUDGE", baseId: bases[1][0] });
-  }
-  if (judgeTwo) {
-    await assignStaffAs(actor, id, { personId: judgeTwo, role: "JUDGE", baseId: bases[2][0] });
-  }
-
-  await createExtraAs(actor, id, {
-    name: "Competencia de talentos",
-    day: 1,
-    kind: "THE_CHALLENGE_RUBRIC",
-  });
-  await createAnnouncementAs(actor, id, {
-    message: "Esto es un ensayo de The Games: los equipos y los resultados son de prueba.",
-    level: "INFO",
-  });
-
-  const rotations = options.rotationsPerDay ?? 15;
-  await generateDayScheduleAs(actor, id, { day: 1, rotations, plannedMinutes: 20 });
-  await generateDayScheduleAs(actor, id, { day: 2, rotations, plannedMinutes: 45 });
-
-  await grantStartingCreditsAs(actor, id);
-  const { next } = await getLiveRotations(id);
-  const inflable = next?.matchups.find((matchup) => matchup.base.kind === "MACRO");
-  if (inflable) {
-    const market = await createMarketAs(actor, id, {
-      title: `¿Quién gana ${inflable.base.name} en la rotación 1?`,
-      teamIds: [inflable.teamA.id, inflable.teamB.id],
-    });
-    await setMarketOpenAs(actor, id, market.id, true);
-  }
-  await setCompetitionStatusAs(actor, id, "LIVE");
-
   // Los códigos se muestran una sola vez, también aquí: son de ensayo y sirven para probar apuestas.
-  const codes = await issueTeamCodesAs(actor, id, false);
   logger.info(
-    {
-      slug: THE_GAMES_REHEARSAL_SLUG,
-      competitionId: id,
-      codes: codes.map((item) => `${item.number}: ${formatTeamCode(item.code)}`),
-    },
+    { slug: THE_GAMES_REHEARSAL_SLUG, competitionId: id, codes },
     "ensayo de The Games sembrado",
   );
   return id;

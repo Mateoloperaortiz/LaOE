@@ -14,8 +14,11 @@ import {
 } from "@/modules/competition";
 import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
+import { eventEdition } from "@/modules/events/schema";
+import { permission } from "@/modules/identity/schema";
 import { person } from "@/modules/people/schema";
 import { seedTheGames, THE_GAMES_REHEARSAL_SLUG } from "../../scripts/lib/seed-the-games";
+import { prepareTheGamesRehearsal, RehearsalError } from "../../scripts/lib/the-games-ensayo";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
 
@@ -90,5 +93,58 @@ describe("ensayo sintético de The Games", () => {
       .from(person)
       .where(eq(person.email, "oe.demo.admin@eafit.edu.co"));
     expect(admin).toBeUndefined();
+  });
+
+  it("en producción: crea la edición 2026 en borrador y el ensayo, con el ADMIN como juez", async () => {
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      createEvent(ctx, {
+        slug: "dias-eafit",
+        name: "Días EAFIT",
+        summary: "",
+        description: "",
+        audience: "PUBLIC",
+        publicationStatus: "PUBLISHED",
+        sortOrder: 1,
+      }),
+    );
+    const adminId = await seedMember("admin.real@eafit.edu.co");
+    await getDb().insert(permission).values({ personId: adminId, code: "ADMIN" });
+    const plainId = await seedMember("sin.permiso@eafit.edu.co");
+    void plainId;
+    await expect(
+      prepareTheGamesRehearsal({ adminEmail: "sin.permiso@eafit.edu.co", slug: "ensayo-2026" }),
+    ).rejects.toThrow(RehearsalError);
+
+    const first = await prepareTheGamesRehearsal({
+      adminEmail: "Admin.Real@eafit.edu.co",
+      slug: "ensayo-2026",
+      rotationsPerDay: 1,
+    });
+    expect(first).toMatchObject({ editionCreated: true, created: true });
+    expect(first.codes).toHaveLength(30);
+    const [edition] = await getDb().select().from(eventEdition);
+    expect(edition).toMatchObject({
+      slug: "2026",
+      publicationStatus: "DRAFT",
+      startsAt: new Date("2026-09-28T13:00:00Z"),
+      endsAt: new Date("2026-10-03T01:00:00Z"),
+    });
+    expect(await getCompetition(first.competitionId)).toMatchObject({
+      status: "LIVE",
+      isRehearsal: true,
+    });
+    const staff = await listStaff(first.competitionId);
+    expect(staff).toEqual([expect.objectContaining({ personId: adminId, role: "JUDGE" })]);
+
+    const again = await prepareTheGamesRehearsal({
+      adminEmail: "admin.real@eafit.edu.co",
+      slug: "ensayo-2026",
+    });
+    expect(again).toEqual({
+      competitionId: first.competitionId,
+      editionCreated: false,
+      created: false,
+      codes: [],
+    });
   });
 });
