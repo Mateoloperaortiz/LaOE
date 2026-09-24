@@ -14,10 +14,13 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | ADR | Título | Estado |
 | --- | --- | --- |
 | [ADR-092](ADR-092-panal-corto-y-premios-por-avance.md) | Panal corto y premios por avance desde el 24 de septiembre | Aceptada; en producción desde el 24 a las 08:30 de Colombia |
+| [ADR-091](ADR-091-apuestas-de-the-games.md) | Apuestas de The Games con puntos virtuales | Aceptada; implementación en curso |
+| [ADR-090](ADR-090-api-publica-v1-vitrina-de-the-games.md) | API pública v1: la vitrina de The Games para DÍAS | Aceptada; implementación en curso |
+| [ADR-089](ADR-089-the-games-competencia-por-equipos.md) | The Games: competencia por equipos de Días EAFIT | Aceptada; implementación en curso |
 | [ADR-088](ADR-088-panal-diario-en-espanol.md) | Panal diario en español y premio por rango Genio | Aceptada; publicación pendiente |
 | [ADR-087](ADR-087-boosters-sobre-puntos-de-asistencia.md) | Boosters sobre los puntos de la asistencia | Aceptada |
 | [ADR-086](ADR-086-copy-paisa-y-parchado.md) | Copy paisa y parchado | Aceptada |
-| [ADR-085](ADR-085-plataforma-oe-digital-un-backend-y-frontends-delgados.md) | Plataforma OE Digital: un backend y frontends delgados | Aceptada |
+| [ADR-085](ADR-085-plataforma-oe-digital-un-backend-y-frontends-delgados.md) | Plataforma OE Digital: un backend y frontends delgados | Aceptada (enmendada por ADR-090) |
 | [ADR-084](ADR-084-catalogo-tipado-de-eventos-de-dominio.md) | Catálogo tipado de eventos de dominio | Aceptada |
 | [ADR-083](ADR-083-lo-compartido-no-vive-en-la-carpeta-de-una-pantalla.md) | Lo compartido no vive en la carpeta de una pantalla | Aceptada |
 | [ADR-082](ADR-082-un-kit-para-las-server-actions-y-auditoria-con-ip.md) | Un kit para las server actions, y la auditoría siempre con IP | Aceptada |
@@ -39,7 +42,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-061](ADR-061-verificacion-y-correcciones-de-normativa-2026.md) | Verificación y correcciones de normativa 2026 | Aceptada |
 | [ADR-062](ADR-062-importacion-de-asistencias-y-evidencias-gh.md) | Importación histórica de asistencias y evidencias de GH | En producción; enmendada por ADR-063 |
 | [ADR-063](ADR-063-importacion-de-asambleas.md) | Importación de asistencias a asambleas | Implementada en local; altas pendientes |
-| [ADR-064](ADR-064-gestion-de-macroeventos.md) | Gestión de macroeventos, cargos y GT por semestre | Implementación y verificación |
+| [ADR-064](ADR-064-gestion-de-macroeventos.md) | Gestión de macroeventos, cargos y GT por semestre | Implementación y verificación (enmendada por ADR-089) |
 | [ADR-066](ADR-066-cargos-vigentes-e-historial.md) | Cargos vigentes e historial por semestre y ámbito | Aceptada; verificada en producción |
 | [ADR-065](ADR-065-areas-y-participacion-gt-gap.md) | Áreas y participación en GT y GAP | Aceptada; enmendada por ADR-071 |
 | [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) | Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026 | Aceptada; en curso por tramos |
@@ -67,7 +70,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-008](ADR-008-tableros-derivados.md) | Tableros nuevos/veteranos derivados | Aceptada |
 | [ADR-009](ADR-009-score-de-comite.md) | Score de comité por participación relativa | Aceptada (enmendada por ADR-024, ADR-035 y ADR-070) |
 | [ADR-010](ADR-010-identidad-por-correo-y-otp.md) | Identidad por correo del roster con OTP | Aceptada (enmendada por ADR-034, ADR-039, ADR-050, ADR-051) |
-| [ADR-011](ADR-011-autorizacion-en-servidor.md) | Autorización en servidor | Aceptada (enmendada por ADR-051, ADR-058, ADR-072 y ADR-082) |
+| [ADR-011](ADR-011-autorizacion-en-servidor.md) | Autorización en servidor | Aceptada (enmendada por ADR-051, ADR-058, ADR-072, ADR-082 y ADR-089) |
 | [ADR-012](ADR-012-outbox-transaccional.md) | Outbox transaccional; efectos fuera del commit | Aceptada (enmendada por ADR-021, ADR-038, ADR-040, ADR-079 y ADR-084) |
 | [ADR-013](ADR-013-formularios-en-la-app.md) | Todo formulario vive en la app | Aceptada (enmendada por ADR-037) |
 | [ADR-014](ADR-014-privacidad-por-diseno.md) | Privacidad por diseño (Ley 1581 de 2012) | Aceptada (enmendada por ADR-030, ADR-039, ADR-040, ADR-047 y ADR-048) |

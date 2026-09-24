@@ -48,6 +48,13 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               { href: "/admin/personas/activacion", label: t("T-2128") },
             ]
           : []),
+        // The Games (ADR-089): el operador entra a su panel y el juez, a su base.
+        ...roles.competitions.map((item) => ({
+          href: item.operator
+            ? `/admin/the-games/${item.competitionId}`
+            : `/admin/the-games/${item.competitionId}/juez`,
+          label: item.name,
+        })),
       ]
     : [];
   const navGroups = adminNavGroups();

@@ -70,6 +70,13 @@ describe("infraestructura por entorno (ADR-039)", () => {
       type: "literal",
       value: environment === "production" ? "true" : "false",
     });
+    expect(web.variables?.PUBLIC_API_ORIGINS).toEqual({
+      type: "literal",
+      value:
+        environment === "production"
+          ? "https://dias.oeeafit.com"
+          : "http://localhost:3100,http://localhost:3101",
+    });
     expect(db.deploy?.multiRegionConfig).toEqual({ "us-east4-eqdc4a": { numReplicas: 1 } });
     expect(db.deploy?.limitOverride?.containers?.memoryBytes).toBe(1_000_000_000);
     expect(resources.some((resource) => resource.name === "backup")).toBe(

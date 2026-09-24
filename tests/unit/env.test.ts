@@ -24,6 +24,7 @@ describe("parseEnv", () => {
     expect(env.MAILER).toBe("console");
     expect(env.S3_FORCE_PATH_STYLE).toBe(true);
     expect(env.MEDIA_CORS_ORIGINS).toEqual([]);
+    expect(env.PUBLIC_API_ORIGINS).toEqual([]);
     expect(env.RESEND_DAILY_LIMIT).toBe(95);
     expect(env.JOBS_POLL_INTERVAL_MS).toBe(3000);
     expect(env.DB_CONNECTION_TIMEOUT_MS).toBe(10_000);

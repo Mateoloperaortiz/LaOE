@@ -1,0 +1,71 @@
+// API pública del módulo competition (ADR-089, ADR-090, ADR-091): The Games, la competencia por
+// equipos de Días EAFIT, y sus apuestas. Lo usan src/app y nadie más.
+export {
+  type CompetitionActor,
+  type CompetitionRoles,
+  competitionRoles,
+  listMyCompetitionRoles,
+  type MyCompetitionRole,
+  THE_GAMES_ROLE_CODE,
+} from "./domain/access";
+export { MARKET_STATUSES, type MarketStatus } from "./domain/betting-pure";
+export { formatTeamCode, normalizeTeamCode, TEAM_CODE_LENGTH } from "./domain/codes-pure";
+export * from "./domain/commands";
+export type { PlaceBetResult } from "./domain/markets";
+export type { RotationMatchupsResult } from "./domain/play";
+export {
+  type AnnouncementRow,
+  type BaseRow,
+  type CompetitionRow,
+  creditBalances,
+  type ExtraRubricTeam,
+  type ExtraView,
+  getCompetition,
+  getCompetitionBySlug,
+  getLiveRotations,
+  getRotation,
+  getScheduleForValidation,
+  judgeView,
+  listAnnouncements,
+  listBases,
+  listCompetitions,
+  listExtras,
+  listLedger,
+  listMarkets,
+  listPendingMatchups,
+  listRegistrationCandidates,
+  listRotations,
+  listStaff,
+  listStaffFor,
+  listStandings,
+  listTeams,
+  type MarketView,
+  type MatchupView,
+  type RegistrationCandidate,
+  type RotationSummary,
+  type RotationView,
+  type StaffRow,
+  type Standings,
+  TEAM_NAME_FIELD,
+  type TeamRow,
+} from "./domain/reads";
+export { RUBRIC_MAX_SCORE, RUBRIC_MIN_SCORE, type RubricLevel } from "./domain/rubric-pure";
+export {
+  type Day,
+  pairCountKey,
+  pairCounts,
+  SCHEDULE_ERROR_KINDS,
+  type ScheduleIssue,
+  type ScheduleReport,
+  validateSchedule,
+} from "./domain/schedule-pure";
+export { BASE_KINDS, type BaseKind, OUTCOMES, type Outcome, POINTS } from "./domain/scoring-pure";
+export {
+  COMPETITION_STATUSES,
+  type CompetitionStatus,
+  EXTRA_KINDS,
+  type IssuedCode,
+} from "./domain/setup";
+export { clearShowcaseMemo, getShowcase } from "./domain/showcase";
+export { SHOWCASE_VERSION, type Showcase, showcaseSchema } from "./domain/showcase-pure";
+export type { StandingRow } from "./domain/standings-pure";

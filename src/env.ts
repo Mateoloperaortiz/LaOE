@@ -37,6 +37,11 @@ const commaSeparatedList = z.string().transform((value) =>
     .filter((item) => item.length > 0),
 );
 
+/** Un origen web sin ruta: esquema, host y puerto opcional (ADR-090). */
+const webOrigin = z
+  .string()
+  .regex(/^https?:\/\/[a-z0-9.-]+(:\d{1,5})?$/, "Debe ser un origen como https://dias.oeeafit.com");
+
 const envSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -77,6 +82,8 @@ const envSchema = z
     S3_SECRET_ACCESS_KEY: z.string().min(1),
     S3_FORCE_PATH_STYLE: booleanString.default(true),
     MEDIA_CORS_ORIGINS: commaSeparatedList.default([]),
+    // Orígenes que leen la API pública v1 (ADR-090). En producción, uno solo y fijo.
+    PUBLIC_API_ORIGINS: commaSeparatedList.pipe(z.array(webOrigin)).default([]),
 
     // Solo producción indexa (ADR-023, ADR-033): staging y local llevan noindex y robots cerrado.
     PUBLIC_INDEXING: booleanString.default(false),

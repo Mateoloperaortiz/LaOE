@@ -122,3 +122,16 @@ Las pruebas reales y el diagnóstico de los proveedores se registran siguiendo [
 - [ ] Textos, fechas y públicos de los retos reales del semestre; la primera activación no publica retos inventados: GH deja sus borradores y los publica cuando quiera
 - [ ] Política de ediciones especiales: a qué ocasiones o retos se vinculan y con qué nombre
 - [ ] Activar `gamification.enabled` desde Límites cuando la conciliación histórica haya corrido en producción y los borradores estén listos
+
+### The Games · 2026-09-23 ([ADR-089](adr/ADR-089-the-games-competencia-por-equipos.md), [ADR-091](adr/ADR-091-apuestas-de-the-games.md))
+
+Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da 1000, empatar 500 y perder 0; las bases de inflables son macro y dan 2000, 1000 y 0. No hay desempate. Cada equipo arranca con 1000 puntos de apuestas, que no cuentan para el ganador, y se apuesta en las apuestas que abre el operador.
+
+- [x] La rúbrica de la competencia de talentos y cómo se vuelve puntos: la de The Challenge (2026-09-24), con los pesos de su hoja Instrucciones llevados a 100 y el total × 10. Conviene avisarle a la OE que su hoja Consolidado tiene otros pesos y fórmulas con `#REF!`: la que vale es la de la casa
+- [ ] La duración de cada rotación y la hora de inicio de la jornada 1 (jueves en la tarde)
+- [ ] Los nombres, lugares y tipo (normal o inflable) de las 15 bases de cada jornada
+- [ ] Cómo se asignan los números del 1 al 30 y qué pasa si un equipo no se presenta
+- [ ] Si un equipo puede apostar por sí mismo (mientras tanto, no)
+- [ ] Qué jueces están en el roster con @eafit.edu.co; por los demás registra el operador
+- [ ] Los campos del formulario de inscripción, quién ve los contactos de los capitanes y cuánto tiempo se guardan las respuestas
+- [ ] Crear en producción la edición de Días EAFIT 2026 y registrar la Dirección de The Games en su mesa

@@ -1,6 +1,6 @@
 # ADR-011: Autorización en servidor
 
-- Estado: Aceptada (enmendada por ADR-051, ADR-058, ADR-072 y ADR-082)
+- Estado: Aceptada (enmendada por ADR-051, ADR-058, ADR-072, ADR-082 y ADR-089)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-010, ADR-017
 
@@ -32,3 +32,7 @@ Que la página autorice un alcance no basta si el comando recibe un id suelto. T
 ## Enmienda (2026-09-19, ADR-082)
 
 `requireAdminActor` aplica la misma regla que `assertAdmin`: ADMIN y en condición de operar; una concesión guardada no habilita el área de administración mientras la persona está en licencia. Las server actions dejan de tener su propia copia del guard. El actor que una action entrega a un comando se arma con `actorContext(actor)`, que lleva la IP del request a la auditoría. Detalle en [ADR-082](ADR-082-un-kit-para-las-server-actions-y-auditoria-con-ip.md).
+
+## Enmienda (2026-09-23, ADR-089)
+
+Por datos y solo sobre la competencia The Games de su edición, el cargo de Dirección de The Games (`MACROEVENT_DIRECTOR` con `roleCode='THE_GAMES'`, titular o codirección) habilita lo mismo que un operador: equipos, bases, calendario, rotaciones, resultados, anuncios y apuestas. También la tienen las personas asignadas como operador o juez en `competition_staff`; el juez, solo en su base. Ninguno de esos roles da acceso a datos personales. `Permission` no gana códigos, y el cargo sigue sin ser un permiso técnico. El guard vive en `src/app/_authz/competition.ts`, y el dominio de `competition` relee el alcance dentro de la transacción. Ver [ADR-089](ADR-089-the-games-competencia-por-equipos.md).

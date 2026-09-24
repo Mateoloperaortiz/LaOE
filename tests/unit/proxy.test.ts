@@ -40,4 +40,12 @@ describe("proxy y autenticación de Mi OE", () => {
     expect(target.pathname).toBe("/ingresar");
     expect(target.searchParams.get("next")).toBe(path);
   });
+
+  it("la API pública v1 no pide sesión (ADR-090)", () => {
+    const response = proxy(
+      new NextRequest("http://localhost:3105/api/v1/the-games/the-games-2026"),
+    );
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.headers.get("location")).toBeNull();
+  });
 });
