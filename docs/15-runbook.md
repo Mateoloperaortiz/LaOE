@@ -776,6 +776,18 @@ Una cosa para la próxima: **cuando un E2E inestable deja el gate en rojo, el or
 
 ## The Games · preparación y operación (ADR-089 a ADR-091)
 
+Ensayo sintético (desarrollo y staging, nunca producción):
+
+- `npm run db:seed` siembra, sobre la edición «prueba» de Días EAFIT, la competencia `ensayo-the-games`. Es idempotente y se crea con los comandos del dominio, así que queda auditada:
+  - 30 equipos y 15 bases por jornada, con la 5 y la 10 inflables.
+  - Las dos jornadas generadas, con 15 rotaciones de 20 y 45 minutos.
+  - La rúbrica de The Challenge, apuestas con 1000 puntos y una apuesta abierta, y un anuncio.
+  - El personal: operador, `oe.demo` activo más bajo; jueces, los dos siguientes, en la base 1 de cada jornada.
+  - La competencia queda en vivo.
+- Entra como `oe.demo.admin@eafit.edu.co` a `/admin/the-games`. Los códigos de equipo salen en el log del seed. Si se pierden, se vuelven a emitir en Equipos, y los anteriores dejan de valer.
+- En local, la vitrina de DÍAS se prueba con `NEXT_PUBLIC_THE_GAMES_API=http://localhost:3000/api/v1/the-games/ npm run dev` en `dias` y `http://localhost:3100/the-games/?c=ensayo-the-games`. La casa necesita `PUBLIC_API_ORIGINS=http://localhost:3100,http://localhost:3101`, igual que staging.
+- En staging se siembra con el mismo `npm run db:seed`, por el túnel al Postgres de staging descrito arriba (`railway run --no-local … -e staging` con `DATABASE_URL` del túnel y `NODE_ENV=development` solo en ese proceso local).
+
 Antes de promover:
 
 1. `PUBLIC_API_ORIGINS` queda declarada en `.railway/railway.ts`: `https://dias.oeeafit.com` en producción; en staging, el sitio de DÍAS en local. Se carga **antes** de promover.
