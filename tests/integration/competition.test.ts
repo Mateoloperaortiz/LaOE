@@ -233,7 +233,7 @@ describe("The Games", () => {
       const schedule = await getScheduleForValidation(id);
       const report = validateSchedule(schedule.rotations, schedule.teams, schedule.bases);
       expect(report.errors).toEqual([]);
-      expect(report.warnings.filter((w) => w.kind === "BASE_REPEATED_IN_DAY")).toEqual([]);
+      expect(report.errors.filter((e) => e.kind === "BASE_REPEATED_IN_DAY")).toEqual([]);
       expect(report.warnings.filter((w) => w.kind === "REPEATED_PAIR")).toHaveLength(15);
       const first = schedule.rotations.find((r) => r.day === 1 && r.number === 1);
       const opponentOfOne = first?.matchups.find(
@@ -276,7 +276,7 @@ describe("The Games", () => {
       expect(after.current).toBeNull();
     });
 
-    it("editar una rotación: los errores bloquean y las advertencias nuevas piden confirmar", async () => {
+    it("editar una rotación: los errores bloquean, también repetir base en la jornada", async () => {
       const { id, adminId } = await seedCompetition();
       const { teams, bases } = await seedField(id, adminId);
       await generateDayScheduleAs(admin(adminId), id, { day: 1, rotations: 2, plannedMinutes: 20 });
@@ -295,13 +295,27 @@ describe("The Games", () => {
       });
       expect(refused.saved).toBe(false);
       expect(refused.report.errors.map((e) => e.kind)).toContain("SELF_MATCH");
-      // Intercambiar las bases de dos enfrentamientos no deja errores.
-      const [a, b] = rows;
-      if (!a || !b) throw new Error("pocos enfrentamientos");
-      const swapped = [{ ...a, baseId: b.baseId }, { ...b, baseId: a.baseId }, ...rows.slice(2)];
+      // Las bases 1 y 2: los equipos de la base 1 juegan la rotación 2 en la base 2, así que
+      // intercambiarlas los haría repetir base. Es error y no se guarda ni confirmando (ADR-093).
+      const [a, b, c] = rows;
+      if (!a || !b || !c) throw new Error("pocos enfrentamientos");
+      const repeating = [{ ...a, baseId: b.baseId }, { ...b, baseId: a.baseId }, ...rows.slice(2)];
+      const blocked = await saveRotationMatchupsAs(admin(adminId), id, next.id, {
+        matchups: repeating,
+        confirmWarnings: true,
+      });
+      expect(blocked.saved).toBe(false);
+      expect(blocked.report.errors.map((e) => e.kind)).toContain("BASE_REPEATED_IN_DAY");
+      // Las bases 1 y 3 sí se pueden intercambiar: nadie repite.
+      const swapped = rows.map((row, index) =>
+        index === 0
+          ? { ...row, baseId: c.baseId }
+          : index === 2
+            ? { ...row, baseId: a.baseId }
+            : row,
+      );
       const saved = await saveRotationMatchupsAs(admin(adminId), id, next.id, {
         matchups: swapped,
-        confirmWarnings: true,
       });
       expect(saved.saved).toBe(true);
       expect(saved.report.errors).toEqual([]);

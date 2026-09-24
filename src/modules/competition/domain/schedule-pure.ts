@@ -237,7 +237,8 @@ export interface ScheduleRotation {
   matchups: readonly ScheduleMatchup[];
 }
 
-/** Los errores bloquean guardar; las advertencias piden confirmar (ADR-089 regla 8). */
+/** Los errores bloquean guardar; las advertencias piden confirmar (ADR-089 regla 8). Un equipo que
+ *  repite base en la jornada es error: cada equipo juega todas las bases (ADR-093). */
 export type ScheduleIssue =
   | { kind: "SELF_MATCH"; rotation: number; day: Day; teamId: string }
   | { kind: "TEAM_TWICE_IN_ROTATION"; rotation: number; day: Day; teamId: string }
@@ -256,6 +257,7 @@ export const SCHEDULE_ERROR_KINDS = [
   "BASE_OF_OTHER_DAY",
   "UNKNOWN_TEAM",
   "WITHDRAWN_TEAM",
+  "BASE_REPEATED_IN_DAY",
 ] as const satisfies ReadonlyArray<ScheduleIssue["kind"]>;
 
 export interface ScheduleReport {
@@ -334,7 +336,7 @@ export function validateSchedule(
   for (const [key, times] of visits) {
     if (times < 2) continue;
     const [day = "1", teamId = "", baseId = ""] = key.split("|");
-    warnings.push({ kind: "BASE_REPEATED_IN_DAY", day: Number(day) as Day, teamId, baseId, times });
+    errors.push({ kind: "BASE_REPEATED_IN_DAY", day: Number(day) as Day, teamId, baseId, times });
   }
   return { errors, warnings };
 }
