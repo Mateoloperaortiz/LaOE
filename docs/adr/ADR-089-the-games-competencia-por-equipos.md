@@ -1,6 +1,6 @@
 # ADR-089: The Games: competencia por equipos de Días EAFIT
 
-- Estado: Aceptada (enmendada por ADR-093); implementación en curso
+- Estado: Aceptada (enmendada por ADR-093 y ADR-094); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-002, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014, ADR-020, ADR-036, ADR-047, ADR-058, ADR-064, ADR-072, ADR-075, ADR-082, ADR-085, ADR-090, ADR-091
 - Enmienda: ADR-011 (el cargo de Dirección de The Games habilita, por datos, la operación de la competencia de su edición), ADR-064 (esa entrega no ampliaba permisos por cargo: este lo hace, con alcance cerrado)
@@ -81,3 +81,7 @@ Datos que la OE confirmó a Mateo el 2026-09-23:
 ## Enmienda (2026-09-24, ADR-093)
 
 Regla 8: un equipo que repite base en la jornada deja de ser advertencia y pasa a ser **error** del validador, porque cada equipo tiene que jugar todas las bases. Un cambio a mano que lo provoque no se guarda, ni siquiera confirmando las advertencias. Quedan como advertencias el cruce repetido y el equipo que no juega en una rotación. Ver [ADR-093](ADR-093-cada-equipo-juega-todas-las-bases.md).
+
+## Enmienda (2026-09-24, ADR-094)
+
+Regla 8: además de generarse, el calendario de una jornada sin rotaciones se puede **importar** pegando la hoja de la OE, con las columnas Equipo, Rotación, Base y Rival. La hoja tiene que ser coherente y pasa por el mismo validador, y la jornada entra completa o no entra. Regla 3: si la competencia no tiene equipos, la importación crea los de la hoja, numerados en su orden. Si ya tiene, los nombres tienen que coincidir. Las bases que falten se crean como «Base N», normales. Ver [ADR-094](ADR-094-calendario-de-the-games-desde-la-hoja-de-la-oe.md).

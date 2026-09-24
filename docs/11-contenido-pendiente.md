@@ -130,7 +130,9 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
 - [x] La rúbrica de la competencia de talentos y cómo se vuelve puntos: la de The Challenge (2026-09-24), con los pesos de su hoja Instrucciones llevados a 100 y el total × 10. Conviene avisarle a la OE que su hoja Consolidado tiene otros pesos y fórmulas con `#REF!`: la que vale es la de la casa
 - [ ] La duración de cada rotación y la hora de inicio de la jornada 1 (jueves en la tarde)
 - [ ] Los nombres, lugares y tipo (normal o inflable) de las 15 bases de cada jornada
-- [ ] Cómo se asignan los números del 1 al 30 y qué pasa si un equipo no se presenta
+- [x] El calendario del jueves con los nombres de los 30 equipos: `Rotaciones_TheGames.xlsx` (2026-09-24), que se importa desde la hoja (ADR-094). Sus números son el orden de la hoja
+- [ ] El calendario del viernes
+- [ ] Qué pasa si un equipo no se presenta
 - [ ] Si un equipo puede apostar por sí mismo (mientras tanto, no)
 - [ ] Qué jueces están en el roster con @eafit.edu.co; por los demás registra el operador
 - [ ] Los campos del formulario de inscripción, quién ve los contactos de los capitanes y cuánto tiempo se guardan las respuestas

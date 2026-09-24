@@ -4,19 +4,21 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## The Games (ADR-089 a ADR-091) · `en curso`
+## The Games (ADR-089 a ADR-091 y ADR-094) · `en curso`
 
 - [x] Documentar la competencia, la API pública v1 y las apuestas (ADR-089, ADR-090 y ADR-091), con D-037 en `dias`.
 - [x] Módulo `competition`: esquema y migración `0040`, calendario verificado, puntos en libro, rotaciones, acceso por datos y apuestas.
 - [x] Panel del operador y pantalla del juez en `/admin/the-games`, y la vitrina `GET /api/v1/the-games/<slug>` con CORS.
 - [x] Página `/the-games/` en `dias` que lee la vitrina.
 - [x] Rúbrica de The Challenge para la competencia de talentos: pesos 20/20/20/15/10 llevados a 100, total × 10, en la jornada 1.
+- [x] Importar una jornada desde la hoja de rotaciones de la OE (ADR-094).
 - [ ] Publicar, preparar la edición, la mesa, el formulario y la competencia en producción, y hacer el simulacro con la OE.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-09-23 | The Games, implementación local | [ADR-089](adr/ADR-089-the-games-competencia-por-equipos.md), [ADR-090](adr/ADR-090-api-publica-v1-vitrina-de-the-games.md) y [ADR-091](adr/ADR-091-apuestas-de-the-games.md). Reemplazan el prototipo de Lovable sobre Supabase, que no cumplía ADR-085. Migración aditiva `0040` con 16 tablas, incluida la rúbrica de The Challenge (total llevado a 100 × 10, en la jornada 1). Calendario de 30 equipos y 15 bases verificado: cada equipo pasa una vez por cada base de cada jornada y hay exactamente una revancha por equipo, la inevitable. Puntos 1000/500/0 y 2000/1000/0 calculados en el servidor y guardados en libro, con reversiones. Apuestas con 1000 puntos virtuales que no cuentan para el ganador y un solo pago por apuesta. Pruebas unitarias, de integración (acceso, concurrencia, idempotencia y vitrina) y dos flujos E2E con axe (operador y juez en celular). Pendiente publicación; producción no se tocó. |
 | 2026-09-24 | The Games, publicado | PR [#87](https://github.com/Mateoloperaortiz/LaOE/pull/87), SHA `8275438cb8b1ba3db7ad24712127062af83a8150`. CI completo de main `36020922527` y CI de promoción `36030796314` aprobados. Staging `c8dac4e5-04b3-45a1-bc6e-257d1e34cc6e` y producción `ad782966-e6c5-43ef-a963-36f215317db5` en SUCCESS, con `0040` aplicada y los smokes `36022452721` y `36031442050` aprobados. `PUBLIC_API_ORIGINS=https://dias.oeeafit.com` quedó cargada en el `web` de producción; en staging falta. `GET /api/v1/the-games/<slug>` responde 404 en JSON con el CORS esperado. La vitrina de DÍAS salió por [dias#1](https://github.com/Mateoloperaortiz/dias/pull/1). Siguen pendientes los datos en producción (edición, mesa, formulario y competencia) y el simulacro. |
+| 2026-09-24 | Calendario desde la hoja de la OE | [ADR-094](adr/ADR-094-calendario-de-the-games-desde-la-hoja-de-la-oe.md): la Dirección de The Games entregó `Rotaciones_TheGames.xlsx` con el calendario del jueves. Se revisó que cumpla todo: 30 equipos, 15 rotaciones de 15 enfrentamientos, cada equipo una vez por base y 225 cruces distintos. En Rotaciones, una jornada vacía se importa pegando las columnas Equipo, Rotación, Base y Rival. Si faltan equipos o bases, los crea, en el orden de la hoja y como «Base N». Pasa por el validador, y la jornada entra completa o no entra. Sin migración. Pruebas unitarias del lector, integración de la importación y un E2E con axe. La hoja real del jueves se importó en local por la pantalla sin errores del validador. |
 | 2026-09-24 | Bases sin repetir | [ADR-093](adr/ADR-093-cada-equipo-juega-todas-las-bases.md): un equipo que repite base en la jornada pasa a ser error del validador, y un cambio a mano que lo provoque no se guarda. El calendario generado ya lo cumplía: con 15 rotaciones, los 30 equipos pasan una vez por cada base en las dos jornadas. |
 | 2026-09-24 | Ensayo sintético | `npm run db:seed` siembra `ensayo-the-games` en desarrollo y staging, sobre la edición «prueba» de Días EAFIT. Trae 30 equipos, 15 bases por jornada con inflables, las dos jornadas generadas, la rúbrica, apuestas con 1000 puntos, un anuncio, operador y jueces demo, y queda en vivo. `PUBLIC_API_ORIGINS` quedó cargada en staging. Local: base migrada con `0040` y ensayo sembrado; la vitrina lo lee. |
 

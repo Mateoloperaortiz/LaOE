@@ -807,9 +807,11 @@ En producción, sin código:
 1. Crear la edición de Días EAFIT 2026 en `/admin/eventos` y registrar la Dirección de The Games en su mesa (`/admin/macroeventos/dias-eafit`).
 2. Crear el formulario público de inscripción en `/admin/formularios`: audiencia pública, consentimiento, acción `createPerson=false`, sin embudo ni edición, con un campo de clave `equipo`.
 3. En `/admin/the-games`, ADMIN crea la competencia (`the-games-2026`, en borrador) y la de ensayo. En Resumen se liga el formulario, se fijan los 1000 puntos iniciales de apuestas y se encienden las apuestas cuando la OE lo pida.
-4. Equipos (desde las inscripciones), bases por jornada (las de inflables, macro) y personal (operadores y jueces del roster).
+4. Equipos (desde las inscripciones, o desde la hoja de rotaciones en el paso 6), bases por jornada (las de inflables, macro) y personal (operadores y jueces del roster).
 5. Emitir los códigos e imprimir las tarjetas antes de salir de la pantalla: no se vuelven a mostrar.
-6. Generar cada jornada con 15 rotaciones y la duración que dé la OE. El validador debe decir que no hay errores.
+6. Cargar el calendario de cada jornada con la duración que dé la OE. El validador debe decir que no hay errores.
+   - Si la OE entrega su hoja de rotaciones, como la del jueves 2026-10-01, se importa (ADR-094). En Rotaciones, «Importar la jornada N desde la hoja»: en la hoja «Equipo-Rotacion-Base» se seleccionan las columnas A a D, se copian y se pegan. Si la competencia todavía no tiene equipos, los crea en el orden de la hoja. Si faltan las bases de esa jornada, las crea como «Base 1» a «Base 15»; después, en Bases, se les pone nombre y se marcan como macro las de inflables. Si la hoja tiene errores, no se guarda nada y la pantalla dice en qué línea están.
+   - Si no, se genera con 15 rotaciones. Si la jornada 1 se importó, la 2 también se importa: el generador de la 2 supone su propia jornada 1.
 
 Durante el evento:
 
