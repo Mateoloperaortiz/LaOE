@@ -36,6 +36,7 @@
     "test:e2e": "node --conditions=react-server --env-file-if-exists=.env --import tsx scripts/test-e2e.ts",
     "wallet:assets": "node --import tsx scripts/wallet-assets.ts",
     "wallet:check": "node --env-file-if-exists=.env --import tsx scripts/wallet-check.ts",
+    "the-games:ensayo": "node --conditions=react-server --import tsx scripts/the-games-ensayo.ts",
     "panal:generate": "node scripts/generate-panal-dictionary.mjs",
     "panal:check": "node scripts/generate-panal-dictionary.mjs --check",
     "wordle:generate": "node scripts/generate-wordle-dictionary.mjs",
