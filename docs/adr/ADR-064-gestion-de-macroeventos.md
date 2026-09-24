@@ -1,6 +1,6 @@
 # ADR-064: Gestión de macroeventos y sus equipos
 
-- Estado: Aceptada por Mateo e implementada el 2026-09-14
+- Estado: Aceptada por Mateo e implementada el 2026-09-14 (enmendada por ADR-089)
 - Enmienda: ADR-060, regla 9; ADR-036, regla 6
 
 ## Decisión
@@ -18,3 +18,7 @@ La nueva ficha administrativa reúne mesa, equipo, evaluadores y edición. Los l
 ## Verificación requerida
 
 Catálogos 6/7/9, rechazo de especialidades cruzadas, conservación de cargos históricos, reutilización y unicidad de GT, aislamiento entre eventos y términos, cálculos sin duplicar un macroevento, autorización de acciones y flujo completo en escritorio y móvil.
+
+## Enmienda (2026-09-23, ADR-089)
+
+Esta entrega no ampliaba permisos por el nombre de un cargo. Desde ADR-089, el cargo The Games de la mesa de una edición de Días EAFIT sí habilita, por datos, la operación de la competencia de esa edición y solo de ella. Quitar el nombramiento quita el acceso. Los demás cargos de la mesa no cambian. Ver [ADR-089](ADR-089-the-games-competencia-por-equipos.md).

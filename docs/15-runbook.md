@@ -773,3 +773,28 @@ Dos cosas para la próxima:
 Sin migraciones: el pre-deploy registró «migraciones aplicadas y esquema verificado» con los mismos 114 índices. El scheduler arrancó a las 02:28:48 UTC con `wordle` entre sus entradas, en huso `America/Bogota`. Se promovió a las 21:28 de Bogotá, lejos de las 9:00 del aviso del Wordle (ver el apartado anterior).
 
 Una cosa para la próxima: **cuando un E2E inestable deja el gate en rojo, el orden importa.** Borrar primero el artefacto `ci-e2e-N` del intento fallido (`gh api -X DELETE .../actions/artifacts/<id>`) y después `gh run rerun <id> --failed` deja una sola copia del artefacto, y el gate, que corre al final del relanzamiento, sale en verde sin relanzarlo aparte. Así se destrabó el primer intento del PR 62.
+
+## The Games · preparación y operación (ADR-089 a ADR-091)
+
+Antes de promover:
+
+1. `PUBLIC_API_ORIGINS` queda declarada en `.railway/railway.ts`: `https://dias.oeeafit.com` en producción; en staging, el sitio de DÍAS en local. Se carga **antes** de promover.
+2. La migración `0040_the_games` es aditiva: solo crea tablas. `db:release` la aplica y verifica sus índices.
+3. Smoke manual: `GET /api/v1/the-games/__smoke__` responde 404 en JSON con `Access-Control-Allow-Origin: https://dias.oeeafit.com`.
+
+En producción, sin código:
+
+1. Crear la edición de Días EAFIT 2026 en `/admin/eventos` y registrar la Dirección de The Games en su mesa (`/admin/macroeventos/dias-eafit`).
+2. Crear el formulario público de inscripción en `/admin/formularios`: audiencia pública, consentimiento, acción `createPerson=false`, sin embudo ni edición, con un campo de clave `equipo`.
+3. En `/admin/the-games`, ADMIN crea la competencia (`the-games-2026`, en borrador) y la de ensayo. En Resumen se liga el formulario, se fijan los 1000 puntos iniciales de apuestas y se encienden las apuestas cuando la OE lo pida.
+4. Equipos (desde las inscripciones), bases por jornada (las de inflables, macro) y personal (operadores y jueces del roster).
+5. Emitir los códigos e imprimir las tarjetas antes de salir de la pantalla: no se vuelven a mostrar.
+6. Generar cada jornada con 15 rotaciones y la duración que dé la OE. El validador debe decir que no hay errores.
+
+Durante el evento:
+
+- El operador avanza las rotaciones desde Rotaciones; los jueces registran desde `/admin/the-games/<id>/juez`, que se actualiza sola. Lo que quede sin resultado al cerrar aparece en la mesa de control como pendiente.
+- Para abrir la vitrina se pasa la competencia a `LIVE` y se pone su slug en `edition.theGames.slug` de `dias`, que se vuelve a desplegar. Mientras tanto, `dias.oeeafit.com/the-games/?c=<slug>` abre cualquier competencia pública, como el ensayo.
+- Si la casa se cae, la vitrina muestra lo último que recibió con la hora. Respaldo: la tabla de Posiciones y el libro de puntos.
+- Si la carga pesa, se agrega una Cache Rule de Cloudflare para `/api/v1/*`. No hay límite por IP: el campus sale por NAT.
+

@@ -166,3 +166,10 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Logro | `Achievement` | Nivel de insignia desbloqueado por una persona, con fecha, origen, semestre y si fue reconocido por la conciliación histórica; hasta tres se destacan en el directorio |
 | Conciliación histórica | `BadgeReconciliationRun` | Corrida simulable, reanudable y repetible que reconoce logros a partir de asistencias aprobadas, retos completados y Wordles resueltos de cualquier semestre, sin puntos, boosters ni notificaciones retroactivas |
 | Actividad voluntaria | `isVoluntaryOccasion()` | Ocasión `ACTIVITY` o `EDITION_SESSION` cuya categoría no es reunión de comité ni inducción; cuenta para En parche aunque no dé puntos y admite boosters solo si da puntos |
+| Competencia (The Games) | `Competition` | La competencia por equipos de una edición de Días EAFIT; la de ensayo se opera igual y se archiva ([ADR-089](adr/ADR-089-the-games-competencia-por-equipos.md)) |
+| Base (The Games) | `CompetitionBase` | Una estación de una jornada donde se enfrentan dos equipos por rotación; las de inflables son macro y valen doble |
+| Rotación | `CompetitionRotation` | Una ronda de una jornada: cada base con un enfrentamiento y todos los equipos jugando, con su reloj |
+| Enfrentamiento | `CompetitionMatchup` | Dos equipos en una base durante una rotación; su desenlace da los puntos |
+| Código del equipo | `CompetitionTeam.codeHash` | Ocho caracteres que el capitán lleva impresos y que el operador pide para actuar en nombre del equipo; la casa guarda solo el hash |
+| Apuesta (The Games) | `CompetitionMarket`, `CompetitionBet` | Una pregunta que abre el operador con dos o más equipos; cada equipo apuesta puntos virtuales por un ganador y la bolsa se reparte entre los que aciertan ([ADR-091](adr/ADR-091-apuestas-de-the-games.md)) |
+| Vitrina | `getShowcase()` | El JSON público de una competencia que lee dias.oeeafit.com/the-games ([ADR-090](adr/ADR-090-api-publica-v1-vitrina-de-the-games.md)) |

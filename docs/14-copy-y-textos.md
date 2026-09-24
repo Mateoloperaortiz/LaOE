@@ -2389,3 +2389,147 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-3012 | Panal: recuperar premio pendiente | Guardar premios de este avance | MATEO | Aprobado |
 | T-3013 | Panal: premio pendiente | Ya alcanzaste una meta. Guardá su premio para sumarlo a tus GH Points. | MATEO | Aprobado |
 | T-3014 | Panal: introducción corta | Siete letras. Tres metas. Vos elegís hasta dónde llegar. | MATEO | Aprobado |
+
+## The Games (ADR-089 a ADR-091)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-2763 | The Games: Nombre | The Games | MATEO | Propuesta |
+| T-2764 | The Games: No existe | Esa competencia no existe o no está a tu cargo. | MATEO | Propuesta |
+| T-2765 | The Games: Sin permiso | No tenés permiso para operar esta competencia. | MATEO | Propuesta |
+| T-2766 | The Games: Número repetido | Ya hay un equipo con el número {n}. | MATEO | Propuesta |
+| T-2767 | The Games: Nombre repetido | Ya hay un equipo que se llama «{nombre}». | MATEO | Propuesta |
+| T-2768 | The Games: Inscripción ajena | Esa inscripción no es del formulario de esta competencia o ya tiene equipo. | MATEO | Propuesta |
+| T-2769 | The Games: Base repetida | Ya hay una base con ese nombre o ese orden en la jornada {dia}. | MATEO | Propuesta |
+| T-2770 | The Games: Calendario incompleto | Para generar la jornada {dia} hacen falta un número impar de bases (3 o más), el doble de equipos activos y no más rotaciones que bases. Hoy hay {hayBases} bases y {hayEquipos} equipos; con {bases} bases hacen falta {equipos} equipos. | MATEO | Propuesta |
+| T-2771 | The Games: Calendario existente | La jornada {dia} ya tiene rotaciones. Borralas antes de generarla otra vez. | MATEO | Propuesta |
+| T-2772 | The Games: Calendario con resultados | La jornada {dia} ya tiene resultados: su calendario no se puede borrar. | MATEO | Propuesta |
+| T-2773 | The Games: Rotación en curso | Ya hay una rotación en curso. Cerrala antes de iniciar otra. | MATEO | Propuesta |
+| T-2774 | The Games: Rotación no en curso | Esa rotación no está en curso. | MATEO | Propuesta |
+| T-2775 | The Games: Juez fuera de base | Solo podés registrar resultados de tu base, en la rotación en curso. | MATEO | Propuesta |
+| T-2776 | The Games: Validador bloquea | El cambio deja el calendario con errores. Revisá los equipos y la base. | MATEO | Propuesta |
+| T-2777 | The Games: Duración | La duración va de 1 a 240 minutos. | MATEO | Propuesta |
+| T-2778 | The Games: Código incorrecto | El código del equipo no coincide. | MATEO | Propuesta |
+| T-2779 | The Games: Código bloqueado | El código de este equipo quedó bloqueado por intentos fallidos. Probá otra vez a las {hora}. | MATEO | Propuesta |
+| T-2780 | The Games: Sin código | Este equipo todavía no tiene código. Emitilo desde Equipos. | MATEO | Propuesta |
+| T-2781 | The Games: Apuesta cerrada | Esta apuesta ya no recibe apuestas. | MATEO | Propuesta |
+| T-2782 | The Games: Saldo insuficiente | Al equipo no le alcanzan los puntos: tiene {saldo}. | MATEO | Propuesta |
+| T-2783 | The Games: Ya apostó | Este equipo ya apostó en esta apuesta. | MATEO | Propuesta |
+| T-2784 | The Games: Opción inválida | Elegí uno de los equipos de la apuesta. | MATEO | Propuesta |
+| T-2785 | The Games: Por sí mismo | Un equipo no puede apostar por sí mismo. | MATEO | Propuesta |
+| T-2786 | The Games: Apuestas apagadas | Las apuestas están apagadas en esta competencia. | MATEO | Propuesta |
+| T-2787 | The Games: Pocas opciones | Una apuesta necesita al menos dos equipos. | MATEO | Propuesta |
+| T-2788 | The Games: Ganador fuera | El ganador tiene que ser uno de los equipos de la apuesta. | MATEO | Propuesta |
+| T-2789 | The Games: Motivo | Escribí el motivo. | MATEO | Propuesta |
+| T-2790 | The Games: Sin puntos iniciales | Definí los puntos iniciales de apuestas antes de repartirlos. | MATEO | Propuesta |
+| T-2791 | The Games: Enfrentamiento con resultado | Ese enfrentamiento ya tiene resultado. Anulalo antes de cambiarlo. | MATEO | Propuesta |
+| T-2792 | The Games: Estado de la apuesta | La apuesta no está en un estado que permita esto. | MATEO | Propuesta |
+| T-2793 | The Games: Competencia cerrada | La competencia está cerrada: ya no se registran cambios. | MATEO | Propuesta |
+| T-2794 | The Games: Libro corrección | Corrección del resultado | MATEO | Propuesta |
+| T-2795 | The Games: Libro anulación | Resultado anulado | MATEO | Propuesta |
+| T-2796 | The Games: Personal no miembro | Solo se asigna a miembros activos u honorarios de la OE. | MATEO | Propuesta |
+| T-2797 | The Games: Personal repetido | Esa persona ya tiene ese rol. | MATEO | Propuesta |
+| T-2798 | The Games: Dirección repetida | Ya hay una competencia con esa dirección. | MATEO | Propuesta |
+| T-2799 | The Games: Descripción del panel | La competencia por equipos de Días EAFIT: equipos, bases, rotaciones, resultados y apuestas. Lo que se publica sale en dias.oeeafit.com/the-games. | MATEO | Propuesta |
+| T-2800 | The Games: Sin competencias | Todavía no hay competencias. ADMIN crea la de la edición. | MATEO | Propuesta |
+| T-2801 | The Games: Nueva competencia | Nueva competencia | MATEO | Propuesta |
+| T-2802 | The Games: Campos de la competencia | Edición · Dirección (por ejemplo, the-games-2026) · Nombre · Es de ensayo | MATEO | Propuesta |
+| T-2803 | The Games: Crear competencia | Crear competencia | MATEO | Propuesta |
+| T-2804 | The Games: Estados | Borrador · En vivo · Terminada · Archivada | MATEO | Propuesta |
+| T-2805 | The Games: Pestañas | Resumen · Equipos · Bases · Personal · Rotaciones · Resultados · Posiciones · Extras · Anuncios · Apuestas | MATEO | Propuesta |
+| T-2806 | The Games: Campos de ajustes | Nombre · Fecha de la jornada 1 · Fecha de la jornada 2 · Formulario de inscripción · Apuestas activas · Puntos iniciales de apuestas · Un equipo puede apostar por sí mismo | MATEO | Propuesta |
+| T-2807 | The Games: Guardar ajustes | Guardar ajustes | MATEO | Propuesta |
+| T-2808 | The Games: Cambiar estado | Volver a borrador · Poner en vivo · Terminar · Archivar | MATEO | Propuesta |
+| T-2809 | The Games: Ver vitrina | Ver la vitrina pública | MATEO | Propuesta |
+| T-2810 | The Games: Resumen | Estado: {estado}. {equipos} equipos, {bases} bases y {rotaciones} rotaciones. | MATEO | Propuesta |
+| T-2811 | The Games: Columnas de equipos | Número · Nombre · Color · Estado · Código | MATEO | Propuesta |
+| T-2812 | The Games: Estados de equipo | Activo · Retirado | MATEO | Propuesta |
+| T-2813 | The Games: Agregar equipo | Agregar equipo | MATEO | Propuesta |
+| T-2814 | The Games: Inscripciones | Inscripciones sin equipo | MATEO | Propuesta |
+| T-2815 | The Games: Crear desde inscripción | Crear equipo | MATEO | Propuesta |
+| T-2816 | The Games: Sin formulario | Ligá el formulario de inscripción en Resumen para ver aquí las respuestas. | MATEO | Propuesta |
+| T-2817 | The Games: Estado del código | Emitido · Sin código · Bloqueado | MATEO | Propuesta |
+| T-2818 | The Games: Emitir códigos | Emitir los que faltan · Volver a emitir todos | MATEO | Propuesta |
+| T-2819 | The Games: Aviso de códigos | Los códigos se muestran una sola vez. Imprimí las tarjetas antes de salir de esta pantalla; si se pierden, volvé a emitirlos. | MATEO | Propuesta |
+| T-2820 | The Games: Tarjeta de código | Equipo {n} · {nombre} | MATEO | Propuesta |
+| T-2821 | The Games: Imprimir tarjetas | Imprimir tarjetas | MATEO | Propuesta |
+| T-2822 | The Games: Retirar equipo | Retirar · Reactivar | MATEO | Propuesta |
+| T-2823 | The Games: Columnas de bases | Orden · Nombre · Tipo · Lugar | MATEO | Propuesta |
+| T-2824 | The Games: Tipos de base | Normal · Inflable (macro) | MATEO | Propuesta |
+| T-2825 | The Games: Jornada | Jornada {dia} | MATEO | Propuesta |
+| T-2826 | The Games: Agregar base | Agregar base | MATEO | Propuesta |
+| T-2827 | The Games: Roles del personal | Operador · Juez | MATEO | Propuesta |
+| T-2828 | The Games: Asignar | Asignar | MATEO | Propuesta |
+| T-2829 | The Games: Campos del personal | Persona · Rol · Base | MATEO | Propuesta |
+| T-2830 | The Games: Quitar | Quitar | MATEO | Propuesta |
+| T-2831 | The Games: Generar jornada | Generar la jornada {dia} | MATEO | Propuesta |
+| T-2832 | The Games: Campos de generar | Rotaciones · Minutos por rotación | MATEO | Propuesta |
+| T-2833 | The Games: Borrar calendario | Borrar el calendario de la jornada {dia} | MATEO | Propuesta |
+| T-2834 | The Games: Estados de rotación | Pendiente · En curso · Cerrada | MATEO | Propuesta |
+| T-2835 | The Games: Acciones de rotación | Iniciar · Cerrar · Reabrir · Avanzar a la siguiente | MATEO | Propuesta |
+| T-2836 | The Games: Reloj | +1 min · +5 min · −1 min | MATEO | Propuesta |
+| T-2837 | The Games: Rotación | Rotación {n} · jornada {dia} | MATEO | Propuesta |
+| T-2838 | The Games: Avance de rotación | {resultados} de {enfrentamientos} resultados | MATEO | Propuesta |
+| T-2839 | The Games: Editar enfrentamientos | Editar enfrentamientos | MATEO | Propuesta |
+| T-2840 | The Games: Validador | Errores · Advertencias | MATEO | Propuesta |
+| T-2841 | The Games: Tipos de problema | Un equipo juega contra sí mismo · Un equipo aparece dos veces en la rotación · Una base se usa dos veces en la rotación · Una base es de otra jornada · Equipo desconocido · Equipo retirado · Cruce repetido · Un equipo repite base en la jornada · Un equipo no juega en la rotación | MATEO | Propuesta |
+| T-2842 | The Games: Confirmar advertencias | Guardar aunque haya advertencias | MATEO | Propuesta |
+| T-2843 | The Games: Calendario limpio | El calendario no tiene errores. | MATEO | Propuesta |
+| T-2844 | The Games: Mapa de cruces | Cruces por equipo | MATEO | Propuesta |
+| T-2845 | The Games: Mesa de control | Mesa de control | MATEO | Propuesta |
+| T-2846 | The Games: Ganó | Ganó {equipo} | MATEO | Propuesta |
+| T-2847 | The Games: Empate | Empate | MATEO | Propuesta |
+| T-2848 | The Games: Anular | Anular | MATEO | Propuesta |
+| T-2849 | The Games: Pendientes | Pendientes de rotaciones cerradas | MATEO | Propuesta |
+| T-2850 | The Games: Sin rotación | No hay una rotación en curso. | MATEO | Propuesta |
+| T-2851 | The Games: Alcances | General · Jornada 1 · Jornada 2 | MATEO | Propuesta |
+| T-2852 | The Games: Columnas de posiciones | Puesto · Equipo · Puntos · Jugados · Ganados · Empatados · Perdidos | MATEO | Propuesta |
+| T-2853 | The Games: Descargar CSV | Descargar CSV | MATEO | Propuesta |
+| T-2854 | The Games: Nueva extra | Nueva competencia extra | MATEO | Propuesta |
+| T-2855 | The Games: Campos de extra | Nombre · Jornada | MATEO | Propuesta |
+| T-2856 | The Games: Total del equipo | Total del equipo | MATEO | Propuesta |
+| T-2857 | The Games: Ajuste manual | Ajuste manual | MATEO | Propuesta |
+| T-2858 | The Games: Campos de ajuste | Equipo · Jornada · Puntos · Motivo | MATEO | Propuesta |
+| T-2859 | The Games: Libro de puntos | Libro de puntos | MATEO | Propuesta |
+| T-2860 | The Games: Niveles de anuncio | Información · Aviso · Urgente | MATEO | Propuesta |
+| T-2861 | The Games: Publicar anuncio | Publicar anuncio | MATEO | Propuesta |
+| T-2862 | The Games: Mostrar anuncio | Ocultar · Mostrar | MATEO | Propuesta |
+| T-2863 | The Games: Apuestas apagadas aviso | Las apuestas están apagadas. Activalas en Resumen. | MATEO | Propuesta |
+| T-2864 | The Games: Repartir puntos iniciales | Repartir {n} puntos iniciales | MATEO | Propuesta |
+| T-2865 | The Games: Nueva apuesta | Nueva apuesta | MATEO | Propuesta |
+| T-2866 | The Games: Campos de apuesta | Título · Equipos · Cierra a las | MATEO | Propuesta |
+| T-2867 | The Games: Estados de apuesta | Borrador · Abierta · Cerrada · Resuelta · Cancelada | MATEO | Propuesta |
+| T-2868 | The Games: Acciones de apuesta | Abrir · Cerrar · Cancelar | MATEO | Propuesta |
+| T-2869 | The Games: Declarar ganador | Declarar ganador | MATEO | Propuesta |
+| T-2870 | The Games: Registrar apuesta | Registrar apuesta | MATEO | Propuesta |
+| T-2871 | The Games: Campos de registrar | Equipo que apuesta · Código del equipo · Por quién apuesta · Puntos | MATEO | Propuesta |
+| T-2872 | The Games: Saldos | Saldos | MATEO | Propuesta |
+| T-2873 | The Games: Bolsa | Bolsa: {n} puntos | MATEO | Propuesta |
+| T-2874 | The Games: Apuesta registrada | Apuesta registrada. Al equipo le quedan {saldo} puntos. | MATEO | Propuesta |
+| T-2875 | The Games: Tu base | Tu base | MATEO | Propuesta |
+| T-2876 | The Games: Sin base | No tenés una base asignada en esta competencia. | MATEO | Propuesta |
+| T-2877 | The Games: Esperando | Esperando la próxima rotación. | MATEO | Propuesta |
+| T-2878 | The Games: Siguiente | Después: {a} contra {b} | MATEO | Propuesta |
+| T-2879 | The Games: Resultado guardado | Resultado guardado: {resultado} | MATEO | Propuesta |
+| T-2880 | The Games: Se actualiza | Se actualiza sola cada pocos segundos. | MATEO | Propuesta |
+| T-2881 | The Games: Reloj de la rotación | Quedan · Tiempo cumplido | MATEO | Propuesta |
+| T-2882 | The Games: Pantalla del juez | Pantalla del juez | MATEO | Propuesta |
+| T-2883 | The Games: Contra | {a} contra {b} | MATEO | Propuesta |
+| T-2884 | The Games: Intercambiar bases | Intercambiar las bases de dos enfrentamientos | MATEO | Propuesta |
+| T-2885 | The Games: Cambiar enfrentamiento | Cambiar un enfrentamiento | MATEO | Propuesta |
+| T-2886 | The Games: Campos de edición | Enfrentamiento · Otro enfrentamiento · Base · Equipo A · Equipo B | MATEO | Propuesta |
+| T-2887 | The Games: Sin personal | Todavía no hay personal asignado. | MATEO | Propuesta |
+| T-2888 | The Games: Sin equipos | Todavía no hay equipos. | MATEO | Propuesta |
+| T-2889 | The Games: Sin bases | Todavía no hay bases en esta jornada. | MATEO | Propuesta |
+| T-2890 | The Games: Sin apuestas | Todavía no hay apuestas. | MATEO | Propuesta |
+| T-2891 | The Games: Sin anuncios | Todavía no hay anuncios. | MATEO | Propuesta |
+| T-2892 | The Games: Ensayo | Ensayo | MATEO | Propuesta |
+| T-2893 | The Games: Sin construcción | No hay un calendario automático para {bases} bases en la jornada {dia}. Con 15 bases sí lo hay; con otro número, consultá antes de generar. | MATEO | Propuesta |
+| T-2894 | The Games: Tipos de extra | Puntos directos · Rúbrica de The Challenge (5 criterios, total × 10) | MATEO | Propuesta |
+| T-2895 | The Games: Niveles de la rúbrica | Excelente · Bueno · Regular · Por mejorar | MATEO | Propuesta |
+| T-2896 | The Games: Resumen de la rúbrica | Total {total} de 100 · {nivel} · {puntos} puntos | MATEO | Propuesta |
+| T-2897 | The Games: Rúbrica sin calificar | Sin calificar | MATEO | Propuesta |
+| T-2898 | The Games: Nota fuera de rango | Cada criterio va del 1 al 10, y hacen falta todos. | MATEO | Propuesta |
+| T-2899 | The Games: Extra con rúbrica | Esta competencia se califica con la rúbrica. | MATEO | Propuesta |
+| T-2900 | The Games: Tipo de extra | Tipo | MATEO | Propuesta |
+| T-2901 | The Games: Criterio con peso | {criterio} ({peso} %) | MATEO | Propuesta |

@@ -1,6 +1,6 @@
 # ADR-085: Plataforma OE Digital: un backend y frontends delgados
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-090)
 - Fecha: 2026-09-19
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-021, ADR-039, ADR-047, ADR-051, ADR-080, ADR-084
 - Enmienda: ADR-001 (el monolito modular pasa a ser el backend de varias aplicaciones), ADR-021 (un proyecto de Railway con más de un desplegable)
@@ -72,3 +72,7 @@ Queda una decisión de fondo, que Mateo tomó el mismo día: **cómo comparten l
 - Si los datos de Subsidios-OE viven en un esquema propio de Postgres, con su propio prefijo en el bucket.
 - La fecha de DÍAS y el alcance mínimo de su primera edición en la plataforma: es un dato de la OE y fija el plazo del piloto.
 - El modelo de permisos por rol de Subsidios-OE en detalle.
+
+## Enmienda (2026-09-23, ADR-090)
+
+La primera porción de la API se adelanta al monorepo: es la lectura pública `GET /api/v1/the-games/<slug>`, con caché corta y CORS de origen fijo para `dias.oeeafit.com`, que consume la vitrina de The Games de DÍAS. El cliente queda copiado en `dias` hasta que exista `packages/`. Las demás reglas y el resto del orden de trabajo no cambian. Ver [ADR-090](ADR-090-api-publica-v1-vitrina-de-the-games.md).

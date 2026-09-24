@@ -260,6 +260,28 @@ Presupuesto del comité ([ADR-059](adr/ADR-059-presupuesto-del-comite.md) con la
 | `BudgetExpense` | `budgetId`, `lineId`, `approvalId?`, `spentOn`, `amount`, `description`, `supplier`, `registeredById?` | Gasto contra un rubro de un presupuesto abierto; no supera el disponible; el proveedor es dato (Regl. art. 51); nunca se edita ni se borra |
 | `BudgetTransfer` | `budgetId`, `fromLineId`, `toLineId`, `approvalId?`, `amount`, `reason`, `registeredById?` | Traslado de disponible entre rubros del mismo presupuesto, con motivo; con aval solo antes del evento (Est. art. 38 par. 2) |
 
+### competition
+
+The Games, la competencia por equipos de Días EAFIT ([ADR-089](adr/ADR-089-the-games-competencia-por-equipos.md)), su rúbrica y sus apuestas ([ADR-091](adr/ADR-091-apuestas-de-the-games.md)); migración `0040`, 16 tablas. Importa `events`, `forms` y `people` por esquema y por API; nadie lo importa salvo `src/app`. Ninguna tabla guarda datos personales de los capitanes; los puntos de aquí no son GH Points.
+
+| Modelo | Campos clave | Notas |
+| --- | --- | --- |
+| `Competition` | `editionId`, `slug` (único), `name`, `status` (`DRAFT`, `LIVE`, `FINISHED`, `ARCHIVED`), `isRehearsal`, `firstDayOn?`, `secondDayOn?`, `registrationFormId?`, `bettingEnabled`, `startingCredits?`, `allowSelfBet` | Una por edición (más la de ensayo); en `DRAFT` no sale en la vitrina; cerrada no admite cambios |
+| `CompetitionTeam` | `competitionId`, `number` (1 a 99, único), `name` (único sin mayúsculas), `color?`, `status` (`ACTIVE`, `WITHDRAWN`), `submissionId?`, `codeHash?`, `codeIssuedAt?`, `codeFailures`, `codeLockedUntil?` | El capitán no es usuario; el código del equipo se guarda solo como hash con secreto y se bloquea 15 minutos tras cinco fallos |
+| `CompetitionBase` | `competitionId`, `day` (1 o 2), `orderIndex`, `name`, `kind` (`NORMAL`, `MACRO`), `location?` | Las de inflables son `MACRO` (2000/1000/0) |
+| `CompetitionStaff` | `competitionId`, `personId`, `role` (`OPERATOR`, `JUDGE`), `baseId?` | El juez va ligado a una base (check); se incluye en Mis datos |
+| `CompetitionRotation` | `competitionId`, `day`, `number`, `status` (`PENDING`, `ACTIVE`, `CLOSED`), `plannedSeconds`, `startsAt?`, `endsAt?`, `closedAt?` | Una sola `ACTIVE` por competencia (unique parcial); cerrar no completa enfrentamientos |
+| `CompetitionMatchup` | `rotationId`, `baseId`, `teamAId`, `teamBId`, `source` (`GENERATED`, `MANUAL`) | Únicos por rotación y base y por rotación y equipo; A ≠ B |
+| `CompetitionResult` | `matchupId`, `outcome` (`A_WIN`, `B_WIN`, `DRAW`), `notes`, `recordedById?`, `supersededAt?`, `supersedeReason?` | Uno vigente por enfrentamiento (unique parcial); corregir lo reemplaza |
+| `CompetitionExtra` | `competitionId`, `name`, `day`, `rubricScale?` | Competencia extra, como la de talentos; fijar el total inserta la diferencia. Con `rubricScale`, los puntos salen de la rúbrica: total llevado a 100 × escala |
+| `CompetitionExtraCriterion` | `extraId`, `name`, `weight` (1 a 100), `orderIndex` | Criterio de la rúbrica; The Challenge: 20/20/20/15/10 |
+| `CompetitionExtraScore` | `criterionId`, `teamId`, `score` (1 a 10), `recordedById?` | Nota consolidada de un equipo en un criterio (única por criterio y equipo) |
+| `CompetitionPointEntry` | `competitionId`, `teamId`, `day`, `kind` (`MATCH`, `EXTRA`, `ADJUSTMENT`, `REVERSAL`), `points`, `reason`, `resultId?`, `extraId?`, `reversalOfId?` | Libro append-only; las posiciones se suman de aquí y nunca se guardan |
+| `CompetitionAnnouncement` | `competitionId`, `message` (1 a 280), `level` (`INFO`, `WARNING`, `URGENT`), `active` | Lo publica la vitrina |
+| `CompetitionMarket` / `CompetitionMarketOption` | `competitionId`, `title`, `status` (`DRAFT`, `OPEN`, `CLOSED`, `RESOLVED`, `CANCELLED`), `matchupId?`, `closesAt?`, `winnerTeamId?`, `resolvedAt?`; opciones por equipo | La apuesta abierta cuyo `closesAt` pasó se lee cerrada |
+| `CompetitionBet` | `marketId`, `teamId`, `pickTeamId`, `stake` | Una por equipo y apuesta (unique) |
+| `CompetitionCreditEntry` | `competitionId`, `teamId`, `kind` (`GRANT`, `STAKE`, `PAYOUT`, `REFUND`, `ADJUSTMENT`, `REVERSAL`), `amount`, `betId?`, `reversalOfId?` | Libro de puntos de apuestas; único por (apuesta, tipo): resolver dos veces no paga dos veces |
+
 ## Restricciones que no negocia el esquema
 
 Uniques parciales declarados en el esquema de cada módulo (`uniqueIndex().on().where(sql)`), de modo que salen en la migración SQL y `db:release` verifica que existan:

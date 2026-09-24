@@ -4,6 +4,19 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## The Games (ADR-089 a ADR-091) · `en curso`
+
+- [x] Documentar la competencia, la API pública v1 y las apuestas (ADR-089, ADR-090 y ADR-091), con D-037 en `dias`.
+- [x] Módulo `competition`: esquema y migración `0040`, calendario verificado, puntos en libro, rotaciones, acceso por datos y apuestas.
+- [x] Panel del operador y pantalla del juez en `/admin/the-games`, y la vitrina `GET /api/v1/the-games/<slug>` con CORS.
+- [x] Página `/the-games/` en `dias` que lee la vitrina.
+- [x] Rúbrica de The Challenge para la competencia de talentos: pesos 20/20/20/15/10 llevados a 100, total × 10, en la jornada 1.
+- [ ] Publicar, preparar la edición, la mesa, el formulario y la competencia en producción, y hacer el simulacro con la OE.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-23 | The Games, implementación local | [ADR-089](adr/ADR-089-the-games-competencia-por-equipos.md), [ADR-090](adr/ADR-090-api-publica-v1-vitrina-de-the-games.md) y [ADR-091](adr/ADR-091-apuestas-de-the-games.md). Reemplazan el prototipo de Lovable sobre Supabase, que no cumplía ADR-085. Migración aditiva `0040` con 16 tablas, incluida la rúbrica de The Challenge (total llevado a 100 × 10, en la jornada 1). Calendario de 30 equipos y 15 bases verificado: cada equipo pasa una vez por cada base de cada jornada y hay exactamente una revancha por equipo, la inevitable. Puntos 1000/500/0 y 2000/1000/0 calculados en el servidor y guardados en libro, con reversiones. Apuestas con 1000 puntos virtuales que no cuentan para el ganador y un solo pago por apuesta. Pruebas unitarias, de integración (acceso, concurrencia, idempotencia y vitrina) y dos flujos E2E con axe (operador y juez en celular). Pendiente publicación; producción no se tocó. |
+
 ## Panal corto y premios por avance (ADR-092) · `lista`
 
 - [x] Confirmar 1 + 2 + 3 GH Points y documentar la conservación de partidas previas.
