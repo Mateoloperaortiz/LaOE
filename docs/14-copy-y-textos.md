@@ -2534,7 +2534,7 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2900 | The Games: Tipo de extra | Tipo | MATEO | Propuesta |
 | T-2901 | The Games: Criterio con peso | {criterio} ({peso} %) | MATEO | Propuesta |
 | T-2902 | The Games: Importar jornada | Importar la jornada {dia} desde la hoja | MATEO | Propuesta |
-| T-2903 | The Games: Ayuda de importar | Copiá de la hoja de cálculo las columnas Equipo, Rotación, Base y Rival, con o sin encabezado, y pegalas acá. Va una fila por equipo y rotación. Si la competencia no tiene equipos, se crean en el orden de la hoja; si ya tiene, los nombres tienen que coincidir. Si la jornada no tiene bases, se crean como «Base 1», «Base 2», y así. | MATEO | Propuesta |
+| T-2903 | The Games: Ayuda de importar | Copiá de la hoja de cálculo las columnas Equipo, Rotación, Base y Rival, con o sin encabezado, y pegalas acá. Va una fila por equipo y rotación. Si la competencia no tiene equipos, se crean en el orden de la hoja; si ya tiene, los nombres tienen que coincidir. Si la jornada no tiene bases, se crean con el número que trae la hoja: «Base 1», «Base 16», etc. | MATEO | Propuesta |
 | T-2904 | The Games: Campos de importar | Hoja pegada · Minutos por rotación | MATEO | Propuesta |
 | T-2905 | The Games: Botón importar | Importar la jornada {dia} | MATEO | Propuesta |
 | T-2906 | The Games: Importando | Importando… | MATEO | Propuesta |

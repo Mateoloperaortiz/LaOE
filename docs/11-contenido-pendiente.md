@@ -131,7 +131,8 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
 - [ ] La duración de cada rotación y la hora de inicio de la jornada 1 (jueves en la tarde)
 - [ ] Los nombres, lugares y tipo (normal o inflable) de las 15 bases de cada jornada
 - [x] El calendario del jueves con los nombres de los 30 equipos: `Rotaciones_TheGames.xlsx` (2026-09-24), que se importa desde la hoja (ADR-094). Sus números son el orden de la hoja
-- [ ] El calendario del viernes
+- [x] El calendario del viernes: `Rotaciones_TheGames dia viernes.xlsx` (2026-09-24), con las bases 16 a 30
+- [ ] Si el viernes repite a propósito los 225 cruces del jueves en el mismo orden. La alternativa es la propuesta de la casa: cada equipo enfrenta a los 14 de su grupo y repite un solo rival, y entre los dos días se juegan los 435 cruces posibles
 - [ ] Qué pasa si un equipo no se presenta
 - [ ] Si un equipo puede apostar por sí mismo (mientras tanto, no)
 - [ ] Qué jueces están en el roster con @eafit.edu.co; por los demás registra el operador

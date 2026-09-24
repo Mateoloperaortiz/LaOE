@@ -18,6 +18,8 @@ Ese calendario es el que se va a jugar, pero no sale del generador de ADR-089 re
 
 Cumple ADR-093. Cargarlo a mano serían 30 equipos y 225 enfrentamientos, uno por uno.
 
+Ese mismo día llegó la hoja del viernes, en el mismo formato. Tiene las bases 16 a 30 y es coherente, pero repite los 225 cruces del jueves en el mismo orden: cada equipo enfrenta a los mismos 15 rivales. El validador lo muestra como 225 cruces repetidos, que hay que confirmar. Sin repetir, el mínimo es una revancha por equipo, porque los 225 cruces entre grupos ya se jugaron el jueves y dentro de cada grupo quedan 14 rivales para 15 partidos.
+
 ## Decisión
 
 1. **Se importa una jornada pegando la hoja.** En Rotaciones, una jornada sin rotaciones se puede generar (ADR-089 regla 8) o importar.
@@ -33,7 +35,7 @@ Cumple ADR-093. Cargarlo a mano serían 30 equipos y 225 enfrentamientos, uno po
    Cada problema de la hoja se informa con su línea, y no se guarda nada.
 3. **Equipos.** Si la competencia no tiene equipos, la importación crea los de la hoja, numerados en el orden en que aparecen en la columna Equipo. Si ya tiene, los nombres de la hoja tienen que coincidir con los suyos, sin distinguir mayúsculas, tildes ni espacios de más. Un nombre desconocido es error: un error de tipeo no crea un equipo 31.
 4. **Bases.** La base N de la hoja es la base en el puesto N de la jornada.
-   - Si la jornada no tiene bases, se crean como «Base N», todas normales. Después el operador les pone su nombre y marca como macro las de inflables.
+   - Si la jornada no tiene bases, se crean como «Base N» con el número de la hoja, todas normales. En la hoja del viernes, que numera sus bases del 16 al 30, quedan «Base 16» a «Base 30». Después el operador les pone su nombre y marca como macro las de inflables.
    - Si ya tiene bases, la hoja solo puede usar las que existen.
 5. **El validador manda.** El calendario importado pasa por el mismo validador que un cambio a mano (ADR-089 regla 8 y ADR-093):
    - Los errores bloquean.
