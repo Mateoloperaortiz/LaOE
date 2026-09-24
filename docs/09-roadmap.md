@@ -44,15 +44,16 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | 2026-09-23 | Panal, implementación local | [ADR-088](adr/ADR-088-panal-diario-en-espanol.md), cuarta tarjeta y `/app/juegos/panal`; 326 tableros reproducibles de RLA-ES, español con Ñ y tildes opcionales, progreso por palabra en servidor y 6 GH Points al rango Genio (70 %), confirmados por Mateo. Migración aditiva `0038` aplicada en local, verificada con 126 índices; idempotencia, propiedad, concurrencia, medianoche, cierre y evento CRM cubiertos. Mis datos incluye el progreso propio; las respuestas pendientes no viajan al cliente. `npm run check` aprobado: 719 unitarias, 546 de integración, 11 del extractor y build. Tres flujos E2E de Panal más biblioteca y axe claro/oscuro aprobados; tras los ajustes visuales se repitieron los tres flujos, typecheck, lint y build. `panal:check` reproduce el catálogo. Capturas y revisión en `.impeccable/review/panal/`. Pendiente publicación, sin cambios en producción. |
 | 2026-09-23 | Panal, publicado | PR [#83](https://github.com/Mateoloperaortiz/LaOE/pull/83), SHA `246356984b79a8db7b14de73af7e645fbcd61a7d`. CI completo de main `35885202939` y ejecución adicional `35887289054` aprobados: 719 unitarias, 546 de integración y 207 escenarios E2E. Promoción `35889429855` aprobada; staging `5c6c6721-5212-42d4-8dad-1b39c0082402` y producción `f5a340c0-d662-4897-8ddb-6b8e886bf7a1` SUCCESS, con migraciones verificadas, SHA correcto y smoke 6/6. Smoke remoto de producción `35890576473` aprobado. [Evidencia y resolución de los informes duplicados del reintento de CI](ci-cd-panal-2026-09-23.md). |
 
-## Boosters sobre asistencias de más de 20 puntos (ADR-087) · `en curso`
+## Boosters sobre asistencias de más de 20 puntos (ADR-087) · `lista`
 
 - [x] Reproducir el error de producción con datos sintéticos por QR, anfitrión y administración.
 - [x] Separar el límite de los retos de la base de asistencia y del BOOST, con migración `0037` y pruebas de regresión.
-- [ ] Publicar la corrección y verificar el reintento por el flujo normal de GH.
+- [x] Publicar la corrección y verificar en producción el esquema, la migración y la salud del sitio.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-09-22 | Corrección local de boosters en asistencias | Un registro de 30 puntos con booster reventaba por `reward_base_points_range`; el error en el modo anfitrión devolvía HTTP 500 y la transacción revertía toda la asistencia. [ADR-087](adr/ADR-087-boosters-sobre-puntos-de-asistencia.md) y `0037_boosters_asistencias` conservan 0–20 para la base de retos, aceptan la base no negativa de la ocasión y permiten BOOST hasta el máximo configurable de 1000. No se alteran los topes vigentes ni se acreditan puntos por fuera del flujo normal. Siete regresiones de 30 puntos fallaron antes de la corrección; después, 44/44 pruebas de integración de boosters, premios y check-ins aprobadas, junto con lint, typecheck y deps:check. Pendiente publicación; producción solo se consultó. |
+| 2026-09-22 | Boosters en asistencias, publicado | PR [#82](https://github.com/Mateoloperaortiz/LaOE/pull/82), SHA `31367eb5f19470f572012f2c03ae523b46e6f5d0`. `npm run check` completo: 714 unitarias, 536 de integración, 11 del extractor y build. CI de main `35801288160` y promoción `35802215212` aprobados; staging `0faf5ac1-c0f3-4164-bd4b-78c782d15ad0` y producción `730eedd9-ee89-4d81-b886-5d1fb3c129ee` SUCCESS, smoke 6/6 en ambos y smoke remoto de producción `35802505826` aprobado. Producción sirve el SHA y contiene el hash de `0037` y los dos checks corregidos, comprobados en una transacción de solo lectura. Los registros fallidos deben reintentarse desde GH; no se acreditaron asistencias ni puntos por esta publicación. |
 
 ## Preparación de staging · `en curso`
 
