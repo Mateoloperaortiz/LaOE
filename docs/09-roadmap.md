@@ -4,16 +4,17 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## Panal corto y premios por avance (ADR-092) · `en curso`
+## Panal corto y premios por avance (ADR-092) · `lista`
 
 - [x] Confirmar 1 + 2 + 3 GH Points y documentar la conservación de partidas previas.
 - [x] Generar tableros de 20–30 palabras y acreditar las tres metas una sola vez.
 - [x] Mostrar avances, premios y salida anticipada; verificar migración y pruebas.
-- [ ] Publicar con activación el 24 de septiembre a las 00:00 de Colombia; el 23 queda igual.
+- [x] Publicar la política del 24, conservando el 23: despliegue completado el 24 a las 08:30 de Colombia; no se alcanzó la activación en producción a medianoche.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
 | 2026-09-23 | Panal corto y premios parciales, implementación | [ADR-092](adr/ADR-092-panal-corto-y-premios-por-avance.md): 1 GH Point a las 5 palabras, +2 a las 10 y +3 en Genio, máximo 6. Activación por día civil desde el 24 a las 00:00 de Colombia; el 23 mantiene tablero, premio y copy originales. V2 reúne 126 tableros de 20–30 palabras (promedio 25,42), el del 24 tiene 26; V1 permanece idéntico y ambos son reproducibles. Migración aditiva `0039`, ledger por meta, CRM y guardado bajo locks existentes. `npm run check` PASS: 721 unitarias, 552 de integración, 11 del extractor y build. Tres flujos E2E aprobados con fecha real y simulando el día siguiente, con axe claro/oscuro y salida/retorno conservando el premio. Revisión independiente `ship` para la extensión; evidencia en `.impeccable/review/panal-checkpoints/`. Pendiente publicación. |
+| 2026-09-24 | Panal corto y premios parciales, publicado | PR [#85](https://github.com/Mateoloperaortiz/LaOE/pull/85), SHA `6a35b5f39a0ed20b7d17efd85d76998c8f808a3f`. CI completo aprobado (721 unitarias, 552 de integración, 207 escenarios E2E), staging y producción SUCCESS, migración con 127 índices y smoke 6/6. Activación real a las 08:30 de Colombia del 24; la promoción había quedado pendiente después de staging y no se ejecutó a medianoche. Verificación autenticada en producción: 26 palabras y premios 1 + 2 + 3. Las partidas del 23 y las ya iniciadas se conservan. [Evidencia](ci-cd-panal-checkpoints-2026-09-24.md). |
 
 ## Panal diario en español (ADR-088) · `lista`
 

@@ -1,6 +1,6 @@
 # ADR-092: Panal corto y premios por avance
 
-- Estado: Aceptada; implementada en local, publicación pendiente
+- Estado: Aceptada; en producción desde el 24 de septiembre de 2026 a las 08:30 de Colombia
 - Fecha: 2026-09-23
 - Enmienda: ADR-088 (catálogo y acreditación), ADR-007 (créditos de Panal)
 
@@ -21,3 +21,7 @@ Mateo pidió partidas de unas 25 palabras y checkpoints para poder salir antes c
 ## Verificación
 
 Verificar el corte exacto a las 05:00 UTC y la invariancia del tablero/premio/interfaz del 23. Cubrir límites 4/5 y 9/10, salto de varias metas, crédito único con concurrencia/reintentos, salida y regreso, semestre cerrado, medianoche, crédito histórico de 6, recuperación explícita de avances previos, catálogo reproducible y ausencia de respuestas pendientes en el cliente. Verificar la interfaz móvil, escritorio y tema oscuro dentro de la identidad existente.
+
+## Publicación
+
+El corte lógico sigue siendo el 24 a las 00:00, pero la promoción efectiva terminó a las 08:30 de Colombia de ese día. Las partidas iniciadas antes del despliegue conservan V1; las nuevas usan V2. Ver [evidencia](../ci-cd-panal-checkpoints-2026-09-24.md).
