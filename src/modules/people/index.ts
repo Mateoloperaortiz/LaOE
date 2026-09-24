@@ -16,6 +16,8 @@ export {
   appointmentInputSchema,
   appointmentLabel,
   BOARD_APPOINTMENT_KINDS,
+  isMacroeventDirector,
+  listDirectedEditionIds,
   listMacroeventBoard,
   listMacroeventRoles,
   MACROEVENT_ROLE_CODES,

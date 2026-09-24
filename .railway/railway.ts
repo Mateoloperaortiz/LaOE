@@ -91,6 +91,10 @@ export default defineRailway((ctx) => {
       GOOGLE_WALLET_CLASS_SUFFIX: production ? "carnet-oe" : "carnet-oe-staging",
       JOBS_ENABLED: "true",
       PUBLIC_INDEXING: production ? "true" : "false",
+      // ADR-090: la vitrina de The Games en DÍAS; staging acepta el sitio en local.
+      PUBLIC_API_ORIGINS: production
+        ? "https://dias.oeeafit.com"
+        : "http://localhost:3100,http://localhost:3101",
     },
   });
   const resources: ResourceNode[] = [db, media, pitr, web];

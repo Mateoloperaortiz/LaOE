@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { appointmentChanged } from "@/domain-events/people";
 import { getMacroeventEdition, listEditionRefs, macroeventRoleCodes } from "@/modules/events";
@@ -286,6 +286,41 @@ export async function listMacroeventBoard(editionId: string): Promise<Macroevent
     .where(eq(appointment.editionId, editionId))
     .orderBy(asc(macroeventRole.sortOrder), asc(appointment.coDirector));
   return rows.map((row) => ({ ...row, fullName: row.fullName ?? "" }));
+}
+
+/** Si la persona es titular o codirección de un cargo en la mesa de una edición. Lo relee el dominio
+ *  de `competition` dentro de su transacción (ADR-089 regla 10). */
+export async function isMacroeventDirector(
+  personId: string,
+  editionId: string,
+  roleCode: string,
+  exec: Executor = getDb(),
+): Promise<boolean> {
+  const [row] = await exec
+    .select({ id: appointment.id })
+    .from(appointment)
+    .where(
+      and(
+        eq(appointment.personId, personId),
+        eq(appointment.editionId, editionId),
+        eq(appointment.roleCode, roleCode),
+      ),
+    )
+    .limit(1);
+  return row !== undefined;
+}
+
+/** Las ediciones en cuya mesa la persona tiene un cargo dado (ADR-089 regla 10). */
+export async function listDirectedEditionIds(
+  personId: string,
+  roleCode: string,
+  exec: Executor = getDb(),
+): Promise<string[]> {
+  const rows = await exec
+    .select({ editionId: appointment.editionId })
+    .from(appointment)
+    .where(and(eq(appointment.personId, personId), eq(appointment.roleCode, roleCode)));
+  return rows.flatMap((row) => (row.editionId ? [row.editionId] : []));
 }
 
 /**

@@ -26,6 +26,10 @@ export async function truncateAll(): Promise<void> {
     );
   await db.execute(sql`
     truncate table
+      competition_credit_entry, competition_bet, competition_market_option, competition_market,
+      competition_announcement, competition_point_entry, competition_extra, competition_result,
+      competition_matchup, competition_rotation, competition_staff, competition_base,
+      competition_team, competition,
       budget_transfer, budget_expense, budget_prerequest, event_approval, budget_line, committee_budget,
       audit_log, outbox, campaign_recipient, message, campaign, email_template,
       push_subscription, notification_preference, calendar_token, carnet_token, wallet_pass,

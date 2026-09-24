@@ -1,5 +1,6 @@
 import { getEnv } from "@/env";
 import { getPreferences, listMessagesFor, listSubscriptionsFor } from "@/modules/comms";
+import { listStaffFor } from "@/modules/competition";
 import { listInteractions, listTasks } from "@/modules/crm";
 import {
   getActor,
@@ -59,6 +60,7 @@ export async function GET(request: Request) {
     boosters,
     achievements,
     rewards,
+    competitionStaff,
   ] = await Promise.all([
     listInteractions(actor.personId, "ALL", 1000),
     listTasks({ q: "", personId: actor.personId, page: 1, pageSize: 500 }),
@@ -78,6 +80,7 @@ export async function GET(request: Request) {
     listBoostersFor(actor.personId),
     listAchievementsForPerson(actor.personId),
     listRewardsForPerson(actor.personId),
+    listStaffFor(actor.personId),
   ]);
   await recordSelfExport(actor.personId);
   const body = {
@@ -101,6 +104,8 @@ export async function GET(request: Request) {
     // Sudoku (ADR-078): dificultad, modo, estado y puntos; sin semilla, dadas ni solución.
     sudokuRuns,
     panalGames,
+    // The Games (ADR-089): dónde está asignada la persona como operadora o jueza.
+    competitionStaff,
     // Gamificación (ADR-067): entregas sin `requestId` ni la posición correcta de la trivia;
     // archivos sin `objectKey` (dirección interna del bucket); premios y logros de la colección.
     challengeParticipations: participations.map((item) => ({

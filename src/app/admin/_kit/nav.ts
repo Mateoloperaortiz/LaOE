@@ -37,6 +37,7 @@ export function adminNavGroups(): AdminNavGroup[] {
         { href: "/admin/personas", label: personas },
         { href: "/admin/comites", label: comites },
         { href: "/admin/macroeventos", label: t("T-2344") },
+        { href: "/admin/the-games", label: t("T-2763") },
         { href: "/admin/cargos", label: cargos },
         { href: "/admin/horario-preferencial", label: tList("T-2323")[0] },
         { href: "/admin/terminos", label: terminos },

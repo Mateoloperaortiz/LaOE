@@ -1,0 +1,642 @@
+import { eq } from "drizzle-orm";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { closeDb, getDb } from "@/db/client";
+import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import {
+  addAdjustmentAs,
+  advanceRotationAs,
+  assignStaffAs,
+  type CompetitionActor,
+  cancelMarketAs,
+  clearShowcaseMemo,
+  closeRotationAs,
+  competitionRoles,
+  createCompetitionAs,
+  createExtraAs,
+  createMarketAs,
+  createTeamAs,
+  creditBalances,
+  generateDayScheduleAs,
+  getLiveRotations,
+  getScheduleForValidation,
+  getShowcase,
+  grantStartingCreditsAs,
+  issueTeamCodesAs,
+  listExtras,
+  listMyCompetitionRoles,
+  listRegistrationCandidates,
+  listStandings,
+  placeBetAs,
+  recordResultAs,
+  resolveMarketAs,
+  saveBaseAs,
+  saveRotationMatchupsAs,
+  setCompetitionStatusAs,
+  setExtraPointsAs,
+  setMarketOpenAs,
+  setRubricScoresAs,
+  startRotationAs,
+  updateCompetitionSettingsAs,
+  validateSchedule,
+  voidResultAs,
+} from "@/modules/competition";
+import { competitionCreditEntry, competitionTeam } from "@/modules/competition/schema";
+import { createEdition } from "@/modules/events/domain/editions";
+import { createEvent } from "@/modules/events/domain/events";
+import { addMacroeventDirector } from "@/modules/people/domain/appointments";
+import { membership } from "@/modules/people/schema";
+import { t } from "@/shared/copy";
+import { truncateAll } from "./db";
+import { seedForm, seedMember, seedSubmission, seedTerm, seedVeteran } from "./factories";
+
+// The Games (ADR-089, ADR-091): acceso por datos, calendario de 30 equipos y 15 bases, rotaciones,
+// resultados con reversión, extras idempotentes y apuestas que no pagan dos veces.
+
+let diasEventId: string | null = null;
+
+/** Una edición de Días EAFIT; las dos de la prueba cuelgan del mismo evento `dias-eafit`. */
+async function seedDiasEdition(slug = "2026"): Promise<string> {
+  if (!diasEventId) {
+    const evento = await runCommand(SYSTEM_ACTOR, (ctx) =>
+      createEvent(ctx, {
+        slug: "dias-eafit",
+        name: "Días EAFIT",
+        summary: "",
+        description: "",
+        audience: "PUBLIC",
+        publicationStatus: "PUBLISHED",
+        sortOrder: 1,
+      }),
+    );
+    diasEventId = evento.id;
+  }
+  const eventId = diasEventId;
+  const edicion = await runCommand(SYSTEM_ACTOR, (ctx) =>
+    createEdition(ctx, {
+      eventId,
+      slug,
+      name: slug,
+      description: "",
+      startsAt: new Date(`${slug}-09-28T13:00:00Z`),
+      location: "",
+      publicationStatus: "DRAFT",
+      committeeIds: [],
+    }),
+  );
+  return edicion.id;
+}
+
+const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true });
+const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false });
+
+async function seedCompetition() {
+  const termId = await seedTerm();
+  const editionId = await seedDiasEdition();
+  const adminId = await seedMember("admin-games@example.com");
+  const { id } = await createCompetitionAs(admin(adminId), {
+    editionId,
+    slug: "the-games-2026",
+    name: "The Games 2026",
+  });
+  return { id, editionId, termId, adminId };
+}
+
+/** 30 equipos y 15 bases por jornada; las bases 5 y 10 de cada día son de inflables. */
+async function seedField(competitionId: string, adminId: string) {
+  const actor = admin(adminId);
+  const teams: string[] = [];
+  for (let n = 1; n <= 30; n++) {
+    const { id } = await createTeamAs(actor, competitionId, { number: n, name: `Equipo ${n}` });
+    teams.push(id);
+  }
+  const bases: Record<1 | 2, string[]> = { 1: [], 2: [] };
+  for (const day of [1, 2] as const) {
+    for (let i = 0; i < 15; i++) {
+      const { id } = await saveBaseAs(actor, competitionId, null, {
+        day,
+        orderIndex: i,
+        name: `Base ${day}-${i + 1}`,
+        kind: i === 4 || i === 9 ? "MACRO" : "NORMAL",
+      });
+      bases[day].push(id);
+    }
+  }
+  return { teams, bases };
+}
+
+describe("The Games", () => {
+  beforeEach(async () => {
+    await truncateAll();
+    diasEventId = null;
+  });
+  afterAll(() => closeDb());
+
+  describe("acceso", () => {
+    it("opera ADMIN, la Dirección de The Games de la edición y el operador asignado; nadie más", async () => {
+      const { id, editionId, termId, adminId } = await seedCompetition();
+      const directorId = await seedVeteran("direccion-games@example.com");
+      await runCommand(SYSTEM_ACTOR, (ctx) =>
+        addMacroeventDirector(ctx, {
+          editionId,
+          termId,
+          personId: directorId,
+          roleCode: "THE_GAMES",
+        }),
+      );
+      const otherEdition = await seedDiasEdition("2027");
+      const outsiderId = await seedVeteran("otra-edicion@example.com");
+      await runCommand(SYSTEM_ACTOR, (ctx) =>
+        addMacroeventDirector(ctx, {
+          editionId: otherEdition,
+          termId,
+          personId: outsiderId,
+          roleCode: "THE_GAMES",
+        }),
+      );
+      const plainId = await seedMember("sin-rol@example.com");
+
+      expect((await competitionRoles(admin(adminId), id)).operator).toBe(true);
+      expect((await competitionRoles(member(directorId), id)).operator).toBe(true);
+      expect((await competitionRoles(member(outsiderId), id)).operator).toBe(false);
+      expect((await competitionRoles(member(plainId), id)).operator).toBe(false);
+      await expect(
+        createTeamAs(member(outsiderId), id, { number: 1, name: "Intruso" }),
+      ).rejects.toThrow(t("T-2764"));
+
+      // La Dirección asigna un operador; el operador no puede asignar otros operadores.
+      await assignStaffAs(member(directorId), id, { personId: plainId, role: "OPERATOR" });
+      expect((await competitionRoles(member(plainId), id)).operator).toBe(true);
+      const anotherId = await seedMember("otro@example.com");
+      await expect(
+        assignStaffAs(member(plainId), id, { personId: anotherId, role: "OPERATOR" }),
+      ).rejects.toThrow(t("T-2765"));
+
+      // En licencia no opera, aunque tenga el cargo.
+      await getDb()
+        .update(membership)
+        .set({ status: "ON_LEAVE" })
+        .where(eq(membership.personId, directorId));
+      expect((await competitionRoles(member(directorId), id)).operator).toBe(false);
+
+      const mine = await listMyCompetitionRoles(member(plainId));
+      expect(mine.map((row) => row.slug)).toEqual(["the-games-2026"]);
+      expect(await listMyCompetitionRoles(member(anotherId))).toEqual([]);
+    });
+
+    it("el juez registra solo en su base y en la rotación en curso", async () => {
+      const { id, adminId } = await seedCompetition();
+      const { bases } = await seedField(id, adminId);
+      const judgeId = await seedMember("juez@example.com");
+      await assignStaffAs(admin(adminId), id, {
+        personId: judgeId,
+        role: "JUDGE",
+        baseId: bases[1][0],
+      });
+      await generateDayScheduleAs(admin(adminId), id, {
+        day: 1,
+        rotations: 15,
+        plannedMinutes: 20,
+      });
+      const pending = await getLiveRotations(id);
+      const first = pending.next?.matchups.find((m) => m.base.id === bases[1][0]);
+      if (!first || !pending.next) throw new Error("sin calendario");
+      await expect(
+        recordResultAs(member(judgeId), id, { matchupId: first.id, outcome: "A_WIN" }),
+      ).rejects.toThrow(t("T-2775"));
+      await startRotationAs(admin(adminId), id, pending.next.id);
+      await recordResultAs(member(judgeId), id, { matchupId: first.id, outcome: "A_WIN" });
+      const other = pending.next.matchups.find((m) => m.base.id !== bases[1][0]);
+      if (!other) throw new Error("sin otra base");
+      await expect(
+        recordResultAs(member(judgeId), id, { matchupId: other.id, outcome: "DRAW" }),
+      ).rejects.toThrow(t("T-2764"));
+      expect((await competitionRoles(member(judgeId), id)).judgeBaseIds).toEqual([bases[1][0]]);
+    });
+  });
+
+  describe("calendario y rotaciones", () => {
+    it("genera las dos jornadas: 1 contra 30 primero, sin errores y una revancha por equipo", async () => {
+      const { id, adminId } = await seedCompetition();
+      const { teams } = await seedField(id, adminId);
+      const day1 = await generateDayScheduleAs(admin(adminId), id, {
+        day: 1,
+        rotations: 15,
+        plannedMinutes: 20,
+      });
+      const day2 = await generateDayScheduleAs(admin(adminId), id, {
+        day: 2,
+        rotations: 15,
+        plannedMinutes: 45,
+      });
+      expect(day1).toEqual({ rotations: 15, matchups: 225 });
+      expect(day2).toEqual({ rotations: 15, matchups: 225 });
+      const schedule = await getScheduleForValidation(id);
+      const report = validateSchedule(schedule.rotations, schedule.teams, schedule.bases);
+      expect(report.errors).toEqual([]);
+      expect(report.warnings.filter((w) => w.kind === "BASE_REPEATED_IN_DAY")).toEqual([]);
+      expect(report.warnings.filter((w) => w.kind === "REPEATED_PAIR")).toHaveLength(15);
+      const first = schedule.rotations.find((r) => r.day === 1 && r.number === 1);
+      const opponentOfOne = first?.matchups.find(
+        (m) => m.teamAId === teams[0] || m.teamBId === teams[0],
+      );
+      expect([opponentOfOne?.teamAId, opponentOfOne?.teamBId]).toContain(teams[29]);
+      await expect(
+        generateDayScheduleAs(admin(adminId), id, { day: 1, rotations: 15, plannedMinutes: 20 }),
+      ).rejects.toThrow(t("T-2771", { dia: 1 }));
+    });
+
+    it("pide el doble de equipos que de bases", async () => {
+      const { id, adminId } = await seedCompetition();
+      await createTeamAs(admin(adminId), id, { number: 1, name: "Solo" });
+      await saveBaseAs(admin(adminId), id, null, { day: 1, orderIndex: 0, name: "A" });
+      await expect(
+        generateDayScheduleAs(admin(adminId), id, { day: 1, rotations: 1, plannedMinutes: 10 }),
+      ).rejects.toThrow();
+    });
+
+    it("una sola rotación en curso; cerrar deja pendientes y avanzar inicia la siguiente", async () => {
+      const { id, adminId } = await seedCompetition();
+      await seedField(id, adminId);
+      await generateDayScheduleAs(admin(adminId), id, { day: 1, rotations: 3, plannedMinutes: 20 });
+      const { next } = await getLiveRotations(id);
+      if (!next) throw new Error("sin rotación");
+      await startRotationAs(admin(adminId), id, next.id);
+      const again = await getLiveRotations(id);
+      if (!again.next) throw new Error("sin siguiente");
+      await expect(startRotationAs(admin(adminId), id, again.next.id)).rejects.toThrow(t("T-2773"));
+      const results = await Promise.allSettled([
+        advanceRotationAs(admin(adminId), id),
+        advanceRotationAs(admin(adminId), id),
+      ]);
+      expect(results.every((r) => r.status === "fulfilled")).toBe(true);
+      const live = await getLiveRotations(id);
+      expect(live.current?.number).toBe(3);
+      await closeRotationAs(admin(adminId), id, live.current?.id ?? "");
+      const after = await getLiveRotations(id);
+      expect(after.current).toBeNull();
+    });
+
+    it("editar una rotación: los errores bloquean y las advertencias nuevas piden confirmar", async () => {
+      const { id, adminId } = await seedCompetition();
+      const { teams, bases } = await seedField(id, adminId);
+      await generateDayScheduleAs(admin(adminId), id, { day: 1, rotations: 2, plannedMinutes: 20 });
+      const { next } = await getLiveRotations(id);
+      if (!next) throw new Error("sin rotación");
+      const rows = next.matchups.map((m) => ({
+        baseId: m.base.id,
+        teamAId: m.teamA.id,
+        teamBId: m.teamB.id,
+      }));
+      const broken = rows.map((row, index) =>
+        index === 0 ? { ...row, teamBId: row.teamAId } : row,
+      );
+      const refused = await saveRotationMatchupsAs(admin(adminId), id, next.id, {
+        matchups: broken,
+      });
+      expect(refused.saved).toBe(false);
+      expect(refused.report.errors.map((e) => e.kind)).toContain("SELF_MATCH");
+      // Intercambiar las bases de dos enfrentamientos no deja errores.
+      const [a, b] = rows;
+      if (!a || !b) throw new Error("pocos enfrentamientos");
+      const swapped = [{ ...a, baseId: b.baseId }, { ...b, baseId: a.baseId }, ...rows.slice(2)];
+      const saved = await saveRotationMatchupsAs(admin(adminId), id, next.id, {
+        matchups: swapped,
+        confirmWarnings: true,
+      });
+      expect(saved.saved).toBe(true);
+      expect(saved.report.errors).toEqual([]);
+      void teams;
+      void bases;
+    });
+  });
+
+  describe("resultados y posiciones", () => {
+    it("puntos del servidor por tipo de base, repetir no suma y corregir revierte", async () => {
+      const { id, adminId } = await seedCompetition();
+      await seedField(id, adminId);
+      await generateDayScheduleAs(admin(adminId), id, { day: 1, rotations: 1, plannedMinutes: 20 });
+      const { next } = await getLiveRotations(id);
+      if (!next) throw new Error("sin rotación");
+      await startRotationAs(admin(adminId), id, next.id);
+      const normal = next.matchups.find((m) => m.base.kind === "NORMAL");
+      const macro = next.matchups.find((m) => m.base.kind === "MACRO");
+      if (!normal || !macro) throw new Error("faltan bases");
+      const actor = admin(adminId);
+      await recordResultAs(actor, id, { matchupId: normal.id, outcome: "A_WIN" });
+      expect(
+        (await recordResultAs(actor, id, { matchupId: normal.id, outcome: "A_WIN" })).changed,
+      ).toBe(false);
+      await recordResultAs(actor, id, { matchupId: macro.id, outcome: "DRAW" });
+      let standings = await listStandings(id);
+      const points = (teamId: string) =>
+        standings.overall.find((row) => row.teamId === teamId)?.points ?? 0;
+      expect(points(normal.teamA.id)).toBe(1000);
+      expect(points(normal.teamB.id)).toBe(0);
+      expect(points(macro.teamA.id)).toBe(1000);
+      expect(points(macro.teamB.id)).toBe(1000);
+
+      await recordResultAs(actor, id, { matchupId: normal.id, outcome: "B_WIN" });
+      standings = await listStandings(id);
+      expect(points(normal.teamA.id)).toBe(0);
+      expect(points(normal.teamB.id)).toBe(1000);
+      expect(standings.day1.find((row) => row.teamId === normal.teamB.id)?.wins).toBe(1);
+      expect(standings.day2.every((row) => row.points === 0)).toBe(true);
+
+      await voidResultAs(actor, id, normal.id);
+      standings = await listStandings(id);
+      expect(points(normal.teamB.id)).toBe(0);
+      expect(standings.overall.find((row) => row.teamId === normal.teamB.id)?.played).toBe(0);
+    });
+
+    it("las competencias extra dejan el total pedido y el ajuste pide motivo", async () => {
+      const { id, adminId } = await seedCompetition();
+      const { teams } = await seedField(id, adminId);
+      const actor = admin(adminId);
+      const extra = await createExtraAs(actor, id, { name: "Competencia de talentos", day: 1 });
+      const team = teams[0] ?? "";
+      await setExtraPointsAs(actor, id, { extraId: extra.id, teamId: team, total: 800 });
+      await setExtraPointsAs(actor, id, { extraId: extra.id, teamId: team, total: 800 });
+      await setExtraPointsAs(actor, id, { extraId: extra.id, teamId: team, total: 600 });
+      const standings = await listStandings(id);
+      expect(standings.day1.find((row) => row.teamId === team)?.points).toBe(600);
+      await expect(
+        addAdjustmentAs(actor, id, { teamId: team, day: 1, points: 50, reason: "" }),
+      ).rejects.toThrow(t("T-2789"));
+      await addAdjustmentAs(actor, id, {
+        teamId: team,
+        day: 2,
+        points: 50,
+        reason: "Juego limpio",
+      });
+      expect((await listStandings(id)).overall.find((row) => row.teamId === team)?.points).toBe(
+        650,
+      );
+    });
+
+    it("la rúbrica de The Challenge da el total × 10 en el jueves y repetir no suma", async () => {
+      const { id, adminId } = await seedCompetition();
+      const { teams } = await seedField(id, adminId);
+      const actor = admin(adminId);
+      const extra = await createExtraAs(actor, id, {
+        name: "Competencia de talentos",
+        day: 1,
+        kind: "THE_CHALLENGE_RUBRIC",
+      });
+      const team = teams[0] ?? "";
+      await expect(
+        setExtraPointsAs(actor, id, { extraId: extra.id, teamId: team, total: 500 }),
+      ).rejects.toThrow(t("T-2899"));
+      await expect(
+        setRubricScoresAs(actor, id, { extraId: extra.id, teamId: team, scores: [10, 10, 10] }),
+      ).rejects.toThrow(t("T-2898"));
+      await expect(
+        setRubricScoresAs(actor, id, {
+          extraId: extra.id,
+          teamId: team,
+          scores: [10, 10, 10, 10, 11],
+        }),
+      ).rejects.toThrow(t("T-2898"));
+      const first = await setRubricScoresAs(actor, id, {
+        extraId: extra.id,
+        teamId: team,
+        scores: [8, 6, 10, 5, 10],
+      });
+      expect(first).toMatchObject({ points: 771, delta: 771 });
+      const again = await setRubricScoresAs(actor, id, {
+        extraId: extra.id,
+        teamId: team,
+        scores: [8, 6, 10, 5, 10],
+      });
+      expect(again.delta).toBe(0);
+      const corrected = await setRubricScoresAs(actor, id, {
+        extraId: extra.id,
+        teamId: team,
+        scores: [10, 10, 10, 10, 10],
+      });
+      expect(corrected).toMatchObject({ total: 100, points: 1000, delta: 229 });
+      const standings = await listStandings(id);
+      expect(standings.day1.find((row) => row.teamId === team)?.points).toBe(1000);
+      expect(standings.overall.find((row) => row.teamId === team)?.points).toBe(1000);
+      expect(standings.day2.find((row) => row.teamId === team)?.points).toBe(0);
+      const [view] = await listExtras(id);
+      expect(view?.rubric?.criteria.map((criterion) => criterion.weight)).toEqual([
+        20, 20, 20, 15, 10,
+      ]);
+      expect(view?.rubric?.teams.get(team)).toMatchObject({
+        scores: [10, 10, 10, 10, 10],
+        total: 100,
+        level: "EXCELLENT",
+      });
+    });
+
+    it("un equipo sale de una respuesta del formulario ligado, una sola vez", async () => {
+      const { id, adminId } = await seedCompetition();
+      const formId = await seedForm("the-games-2026", {
+        actions: { createPerson: false },
+        fields: [{ key: "equipo", label: "Nombre del equipo", type: "TEXT", required: true }],
+      });
+      const otherForm = await seedForm("otro-formulario");
+      const submission = await seedSubmission(formId, "capitan@example.com", {
+        answers: { equipo: "Los Titanes" },
+      });
+      const foreign = await seedSubmission(otherForm, "ajeno@example.com");
+      const actor = admin(adminId);
+      await updateCompetitionSettingsAs(actor, id, {
+        name: "The Games 2026",
+        registrationFormId: formId,
+      });
+      await createTeamAs(actor, id, { number: 1, name: "Los Titanes", submissionId: submission });
+      await expect(
+        createTeamAs(actor, id, { number: 2, name: "Otro", submissionId: submission }),
+      ).rejects.toThrow(t("T-2768"));
+      await expect(
+        createTeamAs(actor, id, { number: 3, name: "Ajeno", submissionId: foreign }),
+      ).rejects.toThrow(t("T-2768"));
+      await expect(createTeamAs(actor, id, { number: 1, name: "Repetido" })).rejects.toThrow(
+        t("T-2766", { n: 1 }),
+      );
+      const candidates = await listRegistrationCandidates(id);
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0]).toMatchObject({ teamName: "Los Titanes" });
+      expect(JSON.stringify(candidates)).not.toContain("@");
+    });
+  });
+
+  describe("apuestas", () => {
+    async function seedBetting() {
+      const base = await seedCompetition();
+      const actor = admin(base.adminId);
+      const teamIds: string[] = [];
+      for (let n = 1; n <= 3; n++) {
+        teamIds.push((await createTeamAs(actor, base.id, { number: n, name: `E${n}` })).id);
+      }
+      await updateCompetitionSettingsAs(actor, base.id, {
+        name: "The Games 2026",
+        bettingEnabled: true,
+        startingCredits: 1000,
+      });
+      await grantStartingCreditsAs(actor, base.id);
+      expect((await grantStartingCreditsAs(actor, base.id)).granted).toBe(0);
+      const codes = await issueTeamCodesAs(actor, base.id, false);
+      const code = (teamId: string) => codes.find((c) => c.teamId === teamId)?.code ?? "";
+      const market = await createMarketAs(actor, base.id, {
+        title: "¿Quién gana la base de inflables?",
+        teamIds: [teamIds[0] ?? "", teamIds[1] ?? ""],
+      });
+      await setMarketOpenAs(actor, base.id, market.id, true);
+      return { ...base, actor, teamIds, code, marketId: market.id };
+    }
+
+    it("apuesta con código, descuenta el saldo, no duplica y paga una sola vez", async () => {
+      const { id, actor, teamIds, code, marketId } = await seedBetting();
+      const [t1 = "", t2 = "", t3 = ""] = teamIds;
+      const first = await placeBetAs(actor, id, {
+        marketId,
+        teamId: t3,
+        pickTeamId: t1,
+        stake: 300,
+        code: code(t3),
+      });
+      expect(first).toMatchObject({ ok: true, balance: 700 });
+      await expect(
+        placeBetAs(actor, id, { marketId, teamId: t3, pickTeamId: t2, stake: 1, code: code(t3) }),
+      ).rejects.toThrow(t("T-2783"));
+      await expect(
+        placeBetAs(actor, id, { marketId, teamId: t1, pickTeamId: t1, stake: 1, code: code(t1) }),
+      ).rejects.toThrow(t("T-2785"));
+      await expect(
+        placeBetAs(actor, id, {
+          marketId,
+          teamId: t2,
+          pickTeamId: t1,
+          stake: 5000,
+          code: code(t2),
+        }),
+      ).rejects.toThrow(t("T-2782", { saldo: 1000 }));
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t2,
+        pickTeamId: t1,
+        stake: 100,
+        code: code(t2),
+      });
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t1,
+        pickTeamId: t2,
+        stake: 200,
+        code: code(t1),
+      });
+
+      const [a, b] = await Promise.all([
+        resolveMarketAs(actor, id, marketId, t1),
+        resolveMarketAs(actor, id, marketId, t1),
+      ]);
+      expect(a.paid + b.paid).toBe(600);
+      const balances = await creditBalances(id);
+      // t3 apostó 300 y t2 100 por t1, que ganó; la bolsa perdedora (200) se reparte 3:1.
+      expect(balances.get(t3)).toBe(700 + 450);
+      expect(balances.get(t2)).toBe(900 + 150);
+      expect(balances.get(t1)).toBe(800);
+      const total = [...balances.values()].reduce((sum, value) => sum + value, 0);
+      expect(total).toBe(3000);
+    });
+
+    it("un código errado queda contado y a los cinco se bloquea", async () => {
+      const { id, actor, teamIds, marketId } = await seedBetting();
+      const [t1 = "", t2 = ""] = teamIds;
+      for (let i = 0; i < 4; i++) {
+        const result = await placeBetAs(actor, id, {
+          marketId,
+          teamId: t2,
+          pickTeamId: t1,
+          stake: 10,
+          code: "0000-0000",
+        });
+        expect(result).toEqual({ ok: false, message: t("T-2778") });
+      }
+      const fifth = await placeBetAs(actor, id, {
+        marketId,
+        teamId: t2,
+        pickTeamId: t1,
+        stake: 10,
+        code: "0000-0000",
+      });
+      expect(fifth.ok).toBe(false);
+      const [team] = await getDb().select().from(competitionTeam).where(eq(competitionTeam.id, t2));
+      expect(team?.codeLockedUntil).not.toBeNull();
+    });
+
+    it("dos apuestas simultáneas del mismo equipo no gastan más que el saldo", async () => {
+      const { id, actor, teamIds, code } = await seedBetting();
+      const [t1 = "", t2 = "", t3 = ""] = teamIds;
+      const other = await createMarketAs(actor, id, { title: "Otra", teamIds: [t1, t2] });
+      await setMarketOpenAs(actor, id, other.id, true);
+      const markets = await createMarketAs(actor, id, { title: "Tercera", teamIds: [t1, t2] });
+      await setMarketOpenAs(actor, id, markets.id, true);
+      const results = await Promise.allSettled([
+        placeBetAs(actor, id, {
+          marketId: other.id,
+          teamId: t3,
+          pickTeamId: t1,
+          stake: 700,
+          code: code(t3),
+        }),
+        placeBetAs(actor, id, {
+          marketId: markets.id,
+          teamId: t3,
+          pickTeamId: t1,
+          stake: 700,
+          code: code(t3),
+        }),
+      ]);
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      expect((await creditBalances(id)).get(t3)).toBe(300);
+    });
+
+    it("cancelar devuelve todo y una apuesta cerrada no recibe más", async () => {
+      const { id, actor, teamIds, code, marketId } = await seedBetting();
+      const [t1 = "", t2 = "", t3 = ""] = teamIds;
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t3,
+        pickTeamId: t1,
+        stake: 400,
+        code: code(t3),
+      });
+      await setMarketOpenAs(actor, id, marketId, false);
+      await expect(
+        placeBetAs(actor, id, { marketId, teamId: t2, pickTeamId: t1, stake: 1, code: code(t2) }),
+      ).rejects.toThrow(t("T-2781"));
+      await cancelMarketAs(actor, id, marketId);
+      await cancelMarketAs(actor, id, marketId);
+      expect((await creditBalances(id)).get(t3)).toBe(1000);
+      const refunds = await getDb()
+        .select()
+        .from(competitionCreditEntry)
+        .where(eq(competitionCreditEntry.kind, "REFUND"));
+      expect(refunds).toHaveLength(1);
+    });
+  });
+
+  describe("vitrina", () => {
+    it("un borrador no es público; en vivo sale la rotación en curso sin datos personales", async () => {
+      const { id, adminId } = await seedCompetition();
+      await seedField(id, adminId);
+      clearShowcaseMemo();
+      expect(await getShowcase("the-games-2026")).toBeNull();
+      await generateDayScheduleAs(admin(adminId), id, { day: 1, rotations: 2, plannedMinutes: 20 });
+      await setCompetitionStatusAs(admin(adminId), id, "LIVE");
+      await advanceRotationAs(admin(adminId), id);
+      clearShowcaseMemo();
+      const showcase = await getShowcase("the-games-2026", new Date());
+      expect(showcase?.competition.status).toBe("LIVE");
+      expect(showcase?.currentRotation?.matchups).toHaveLength(15);
+      expect(showcase?.nextRotation?.number).toBe(2);
+      expect(showcase?.standings.overall).toHaveLength(30);
+      const json = JSON.stringify(showcase);
+      expect(json).not.toContain("@example.com");
+      expect(json).not.toContain(adminId);
+    });
+  });
+});

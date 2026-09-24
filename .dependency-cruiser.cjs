@@ -6,6 +6,7 @@ const { readdirSync } = require("node:fs");
 // schema-solo-importa-schema).
 const MODULE_DEPS = {
   comms: ["content", "participation", "people", "system", "terms"],
+  competition: ["events", "forms", "people"],
   content: [],
   crm: ["content", "events", "forms", "identity", "participation", "people", "system", "terms"],
   events: ["content", "people"],

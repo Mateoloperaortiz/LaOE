@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { listMyCompetitionRoles, type MyCompetitionRole } from "@/modules/competition";
 import { type Actor, canOperate, hasPermission, requireActor } from "@/modules/identity";
 import {
   COMMITTEE_CAPABILITIES,
@@ -10,9 +11,9 @@ import {
 import { type GroupRef, listMyGroupRoles } from "@/modules/permanence";
 import { getCurrentTerm } from "@/modules/terms";
 
-// Roles del área de administración (ADR-036 regla 10, ADR-058): ADMIN, líder de comité, junta y,
-// derivados de los datos, líder o evaluador de un grupo de trabajo del término actual y la dirección
-// de un comité por sus cargos. `identity` no conoce grupos ni cargos, así que la composición vive
+// Roles del área de administración (ADR-036 regla 10, ADR-058, ADR-089): ADMIN, líder de comité, junta
+// y, derivados de los datos, líder o evaluador de un grupo de trabajo del término actual, la dirección
+// de un comité por sus cargos y el personal de The Games (Dirección, operadores y jueces). `identity` no conoce grupos ni cargos, así que la composición vive
 // aquí y no en un guard del módulo.
 
 export interface CommitteeAccessRef {
@@ -32,6 +33,8 @@ export interface AdminAreaRoles {
   committees: CommitteeAccessRef[];
   ledGroups: GroupRef[];
   evaluatedGroups: GroupRef[];
+  /** Competencias de The Games donde opera o juzga (ADR-089 regla 10). */
+  competitions: MyCompetitionRole[];
   /** Alguna razón para estar en el admin. */
   any: boolean;
 }
@@ -49,6 +52,7 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
       committees: [],
       ledGroups: [],
       evaluatedGroups: [],
+      competitions: [],
       any: false,
     };
   }
@@ -68,6 +72,8 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
         listMyCommitteeCapabilities(actor.personId, term.id),
       ])
     : [{ leads: [], evaluates: [] }, []];
+  // ADMIN ya ve todo; en licencia no se opera The Games (ADR-089 regla 10).
+  const competitions = isAdmin || onLeave ? [] : await listMyCompetitionRoles(actor);
   const byId = new Map<string, CommitteeAccessRef>();
   for (const committee of ledCommittees) {
     byId.set(committee.id, {
@@ -96,12 +102,14 @@ export async function adminAreaRoles(actor: Actor): Promise<AdminAreaRoles> {
     committees,
     ledGroups: groups.leads,
     evaluatedGroups: groups.evaluates,
+    competitions,
     any:
       isAdmin ||
       isBoard ||
       committees.length > 0 ||
       groups.leads.length > 0 ||
-      groups.evaluates.length > 0,
+      groups.evaluates.length > 0 ||
+      competitions.length > 0,
   };
 }
 

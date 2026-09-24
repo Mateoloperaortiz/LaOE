@@ -95,6 +95,7 @@ export default async function AdminHome() {
     // Quien no es ADMIN entra derecho a lo suyo (ADR-035 regla 15, ADR-036 regla 10).
     const committee = roles.committees[0]?.committee;
     const group = roles.ledGroups[0];
+    const competition = roles.competitions[0];
     redirect(
       committee
         ? `/admin/comites/${committee.slug}`
@@ -104,7 +105,11 @@ export default async function AdminHome() {
             ? "/admin/permanencia/evaluaciones"
             : roles.isBoard
               ? "/admin/junta"
-              : "/app",
+              : competition
+                ? competition.operator
+                  ? `/admin/the-games/${competition.competitionId}`
+                  : `/admin/the-games/${competition.competitionId}/juez`
+                : "/app",
     );
   }
   const term = await getCurrentTerm();
