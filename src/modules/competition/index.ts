@@ -50,11 +50,13 @@ export {
   type TeamRow,
 } from "./domain/reads";
 export { RUBRIC_MAX_SCORE, RUBRIC_MIN_SCORE, type RubricLevel } from "./domain/rubric-pure";
+export type { ImportDayResult } from "./domain/schedule-import";
 export {
   type Day,
   pairCountKey,
   pairCounts,
   SCHEDULE_ERROR_KINDS,
+  SCHEDULE_ISSUE_KINDS,
   type ScheduleIssue,
   type ScheduleReport,
   validateSchedule,
