@@ -182,17 +182,29 @@ describe("validador", () => {
     );
   });
 
-  it("advierte revanchas, bases repetidas en la jornada y equipos sin jugar", () => {
+  it("advierte revanchas y equipos sin jugar", () => {
     const rotations: ScheduleRotation[] = [
       { day: 1, number: 1, matchups: [{ baseId: "b1", teamAId: "t1", teamBId: "t2" }] },
-      { day: 1, number: 2, matchups: [{ baseId: "b1", teamAId: "t2", teamBId: "t1" }] },
+      { day: 1, number: 2, matchups: [{ baseId: "b2", teamAId: "t2", teamBId: "t1" }] },
     ];
     const report = validateSchedule(rotations, teams.slice(0, 3), bases);
     expect(report.errors).toEqual([]);
     const kinds = report.warnings.map((issue) => issue.kind);
     expect(kinds.filter((kind) => kind === "TEAM_IDLE")).toHaveLength(2);
     expect(kinds).toContain("REPEATED_PAIR");
-    expect(kinds.filter((kind) => kind === "BASE_REPEATED_IN_DAY")).toHaveLength(2);
     expect(pairCounts(rotations).get(pairCountKey("t2", "t1"))).toBe(2);
+  });
+
+  it("un equipo que repite base en la jornada es error: todos juegan todas las bases (ADR-093)", () => {
+    const rotations: ScheduleRotation[] = [
+      { day: 1, number: 1, matchups: [{ baseId: "b1", teamAId: "t1", teamBId: "t2" }] },
+      { day: 1, number: 2, matchups: [{ baseId: "b1", teamAId: "t3", teamBId: "t1" }] },
+    ];
+    const report = validateSchedule(rotations, teams.slice(0, 3), bases);
+    const repeated = report.errors.filter((issue) => issue.kind === "BASE_REPEATED_IN_DAY");
+    expect(repeated).toEqual([
+      { kind: "BASE_REPEATED_IN_DAY", day: 1, teamId: "t1", baseId: "b1", times: 2 },
+    ]);
+    expect(report.warnings.some((issue) => issue.kind === "BASE_REPEATED_IN_DAY")).toBe(false);
   });
 });

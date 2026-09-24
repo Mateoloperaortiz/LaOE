@@ -1,6 +1,6 @@
 # ADR-089: The Games: competencia por equipos de Días EAFIT
 
-- Estado: Aceptada; implementación en curso
+- Estado: Aceptada (enmendada por ADR-093); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-002, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014, ADR-020, ADR-036, ADR-047, ADR-058, ADR-064, ADR-072, ADR-075, ADR-082, ADR-085, ADR-090, ADR-091
 - Enmienda: ADR-011 (el cargo de Dirección de The Games habilita, por datos, la operación de la competencia de su edición), ADR-064 (esa entrega no ampliaba permisos por cargo: este lo hace, con alcance cerrado)
@@ -77,3 +77,7 @@ Datos que la OE confirmó a Mateo el 2026-09-23:
 - Extras idempotentes, también con la rúbrica.
 
 **E2E:** operador y juez en celular, con axe.
+
+## Enmienda (2026-09-24, ADR-093)
+
+Regla 8: un equipo que repite base en la jornada deja de ser advertencia y pasa a ser **error** del validador, porque cada equipo tiene que jugar todas las bases. Un cambio a mano que lo provoque no se guarda, ni siquiera confirmando las advertencias. Quedan como advertencias el cruce repetido y el equipo que no juega en una rotación. Ver [ADR-093](ADR-093-cada-equipo-juega-todas-las-bases.md).
