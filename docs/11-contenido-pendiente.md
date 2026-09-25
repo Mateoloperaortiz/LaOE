@@ -133,11 +133,12 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
   - como macro, las inflables: 14 Túnel Interactivo, 15 Tiki Island, 29 Coliseo Romano y 30 Bolas inflables;
   - las del viernes, como «Base 16» a «Base 30»;
   - el lugar donde el PDF lo nombra.
-- [ ] Las inconsistencias del PDF:
-  - los círculos del mapa de las bases 10 y 11 están cruzados;
-  - la base 13 aparece sobre la pista y en el recuadro de Vivo;
-  - la base 15 aparece en la zona azul y en Tiki Island;
-  - la base 30 trae como material «Pelotas de diferentes colores», que parece copiado de la 29.
+- [x] Los mapas por zonas del jueves y del viernes (2026-09-25). Resolvieron el mapa anterior: la 10 está en la cancha, la 11 y la 13 (Vivo) en la zona 5 y la 15 en Tiki Island. Cada jornada tiene cinco zonas, y cada base lleva en `the-games-2026` su zona como lugar, por ejemplo «Zona 2 · Túnel Interactivo (inflable)»
+- [ ] Que la OE confirme las zonas, que salen de trazos a mano:
+  - jueves: 1 = 1, 3 y 15; 2 = 9, 12 y 14; 3 = 2, 4 y 10; 4 = 5, 6, 7 y 8; 5 = 11 y 13;
+  - viernes: 1 = 21, 27 y 29; 2 = 23, 25 y 30; 3 = 17, 18 y 26; 4 = 16, 24 y 28; 5 = 19, 20 y 22.
+- [ ] El material de la base 30: su ficha trae «Pelotas de diferentes colores», que parece copiado de la 29
+- [ ] Qué son las cuatro columnas de personas de cada zona en los mapas y si alguna es de jueces de la casa (en Personal, con cuenta del roster)
 - [x] El calendario del jueves con los nombres de los 30 equipos: `Rotaciones_TheGames.xlsx` (2026-09-24), que se importa desde la hoja (ADR-094). Sus números son el orden de la hoja
 - [x] El calendario del viernes: `Rotaciones_TheGames dia viernes.xlsx` (2026-09-24), con las bases 16 a 30
 - [x] Qué viernes se juega: Mateo eligió el 2026-09-25 la propuesta de la casa, con las rotaciones 16 a 30 y las bases 1 a 15. Repite 15 cruces, uno por equipo, que es el mínimo. Las otras dos versiones de la OE repetían 225 y 113.
