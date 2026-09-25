@@ -154,9 +154,19 @@ export async function importDaySchedule(
       baseIds.set(number, tempId);
     }
   } else {
+    // Primero la que se llama «Base N» (sin ambigüedad) y si no, la del puesto N.
     const byPosition = new Map(dayBases.map((base) => [base.orderIndex + 1, base.id]));
+    const named = dayBases.flatMap((base) => {
+      const match = /^base\s+(\d+)(?:$|\s)/i.exec(base.name.trim());
+      return match?.[1] ? [{ number: Number(match[1]), id: base.id }] : [];
+    });
+    const byName = new Map(
+      named
+        .filter((item) => named.filter((other) => other.number === item.number).length === 1)
+        .map((item) => [item.number, item.id]),
+    );
     for (const number of sheet.bases) {
-      const id = byPosition.get(number);
+      const id = byName.get(number) ?? byPosition.get(number);
       if (id) baseIds.set(number, id);
       else errors.push(t("T-2918", { dia: day, base: number }));
     }

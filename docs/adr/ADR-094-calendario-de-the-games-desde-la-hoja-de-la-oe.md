@@ -37,7 +37,7 @@ Ese mismo día llegó la hoja del viernes, en el mismo formato. Tiene las bases 
 3. **Equipos.** Si la competencia no tiene equipos, la importación crea los de la hoja, numerados en el orden en que aparecen en la columna Equipo. Si ya tiene, los nombres de la hoja tienen que coincidir con los suyos, sin distinguir mayúsculas, tildes ni espacios de más. Un nombre desconocido es error: un error de tipeo no crea un equipo 31.
 4. **Bases.** La base N de la hoja es la base en el puesto N de la jornada.
    - Si la jornada no tiene bases, se crean como «Base N» con el número de la hoja, todas normales. En la hoja del viernes, que numera sus bases del 16 al 30, quedan «Base 16» a «Base 30». Después el operador les pone su nombre y marca como macro las de inflables.
-   - Si ya tiene bases, la hoja solo puede usar las que existen.
+   - Si ya tiene bases, la hoja solo puede usar las que existen. La base N de la hoja es la que se llama «Base N» (si hay una sola con ese número) y, si no, la del puesto N. Así, una jornada con las bases renombradas «Base 16» a «Base 30» acepta tanto una hoja numerada del 16 al 30 como una del 1 al 15.
 5. **El validador manda.** El calendario importado pasa por el mismo validador que un cambio a mano (ADR-089 regla 8 y ADR-093):
    - Los errores bloquean.
    - Las advertencias nuevas piden confirmar: un cruce repetido con la otra jornada o un equipo que no juega.
