@@ -53,7 +53,12 @@ test("mesa, GT y evaluación del macroevento desde una ficha", async ({ page }) 
   await expect(page.getByText(t("T-2370", { n: 1, m: 0 }), { exact: true })).toBeVisible();
   await page.getByLabel(t("T-2364"), { exact: true }).selectOption(member.id);
   await page.getByLabel(t("T-2365"), { exact: true }).selectOption([member.id]);
-  await page.getByRole("button", { name: t("T-2363") }).click();
+  const saveLeads = page.getByRole("button", { name: t("T-2363") });
+  await saveLeads.click();
+  // Los evaluadores muestran lo que la prueba eligió y la URL ya trae `guardado=1` de la
+  // evaluación: ninguno espera la acción. Mientras corre, el botón dice «Procesando…»; clicar GAP
+  // en ese hueco cruza la navegación con el redirect de la acción y el router puede quedarse en GT.
+  await expect(saveLeads).toBeEnabled();
   await expect(page.getByLabel(t("T-2365"), { exact: true })).toHaveValues([member.id]);
   await page.getByRole("link", { name: tList("T-2375")[2], exact: true }).click();
   await page.getByRole("button", { name: t("T-2385") }).click();
