@@ -96,6 +96,13 @@ export interface RowAction<Row> {
   applies?(row: Row): boolean;
 }
 
+export interface RowLink<Row> {
+  key: string;
+  label: string;
+  href(row: Row): string;
+  ariaLabel?(row: Row): string;
+}
+
 export interface ResourceDefinition<Row extends { id: string }, Input> {
   key: string;
   names: { singular: string; plural: string };
@@ -111,6 +118,8 @@ export interface ResourceDefinition<Row extends { id: string }, Input> {
   create?(actor: KitActor, input: Input): Promise<{ id: string }>;
   update?(actor: KitActor, id: string, input: Input): Promise<void>;
   rowActions?: RowAction<Row>[];
+  /** Accesos visibles a las vistas del registro, junto a Editar. */
+  rowLinks?: RowLink<Row>[];
   runRowAction?(actor: KitActor, actionKey: string, id: string): Promise<void>;
   /** Las escrituras exigen un OTP reciente (ADR-010, step-up). */
   stepUp?: boolean;

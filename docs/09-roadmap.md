@@ -4,6 +4,16 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Acceso a permanencia desde Comités · `lista en local`
+
+- [x] Mostrar «Permanencia» junto a «Editar» en cada fila y enlazar el nombre al panel del comité.
+- [x] Verificar el acceso en navegador, en escritorio y celular; lint, tipos y pruebas existentes del admin kit.
+- [ ] Publicar el cambio.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-09-25 | Acceso a permanencia | El listado `/admin/comites` solo ofrecía «Editar» y dejaba la asignación de puntajes sin acceso directo. Cada fila muestra ahora «Permanencia», con el nombre del comité en su etiqueta accesible, y el nombre abre su panel. El admin kit admite enlaces de navegación visibles por fila mediante `rowLinks`; reutiliza T-110 y T-818 y conserva las guardas de las rutas. Verificación local en 390 px y escritorio, 15 pruebas existentes del admin kit, lint, tipos y fronteras de módulos en verde. Sin publicación. |
+
 ## The Games (ADR-089 a ADR-091 y ADR-094) · `en curso`
 
 - [x] Documentar la competencia, la API pública v1 y las apuestas (ADR-089, ADR-090 y ADR-091), con D-037 en `dias`.

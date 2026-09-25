@@ -127,8 +127,20 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
   key: "comites",
   names: { plural, singular },
   basePath: "/admin/comites",
+  rowLinks: [
+    {
+      key: "permanence",
+      label: t("T-110"),
+      href: (row) => `/admin/comites/${row.slug}/permanencia`,
+      ariaLabel: (row) => t("T-818", { comité: row.name }),
+    },
+  ],
   columns: [
-    { key: "name", label: t("T-273"), render: (row) => row.name },
+    {
+      key: "name",
+      label: t("T-273"),
+      render: (row) => ({ text: row.name, href: `/admin/comites/${row.slug}` }),
+    },
     { key: "slug", label: t("T-272"), render: (row) => row.slug },
     {
       key: "status",

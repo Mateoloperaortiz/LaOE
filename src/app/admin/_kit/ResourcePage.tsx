@@ -176,6 +176,7 @@ export async function ResourcePage({
         }}
         emptyAction={filtered ? { href: basePath, label: t("T-1422") } : undefined}
         rowActions={resource.rowActions ?? []}
+        rowLinks={resource.rowLinks ?? []}
         rowActionForm={(row, action) => (
           <form action={rowActionAction}>
             <input type="hidden" name="__resource" value={resource.key} />

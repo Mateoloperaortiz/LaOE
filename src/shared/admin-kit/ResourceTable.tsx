@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Insignia } from "@/shared/brand";
 import { t } from "@/shared/copy";
 import { ResourceActionMenu } from "./ResourceActionMenu";
-import type { CellValue, Column, RowAction } from "./types";
+import type { CellValue, Column, RowAction, RowLink } from "./types";
 
 type Props<Row extends { id: string }> = {
   columns: Column<Row>[];
@@ -13,6 +13,7 @@ type Props<Row extends { id: string }> = {
   caption?: string;
   emptyAction?: { href: string; label: string } | undefined;
   rowActions?: RowAction<Row>[];
+  rowLinks?: RowLink<Row>[];
   rowActionForm?: (row: Row, action: RowAction<Row>) => React.ReactNode;
 };
 
@@ -43,6 +44,7 @@ export function ResourceTable<Row extends { id: string }>({
   caption = t("T-1432"),
   emptyAction,
   rowActions = [],
+  rowLinks = [],
   rowActionForm,
 }: Props<Row>) {
   if (rows.length === 0) {
@@ -58,7 +60,7 @@ export function ResourceTable<Row extends { id: string }>({
       </div>
     );
   }
-  const hasActions = Boolean(editHref || (rowActionForm && rowActions.length));
+  const hasActions = Boolean(editHref || rowLinks.length || (rowActionForm && rowActions.length));
   return (
     <section
       aria-label={caption}
@@ -106,6 +108,16 @@ export function ResourceTable<Row extends { id: string }>({
                 {hasActions ? (
                   <td data-label={t("T-1426")} className="admin-table-actions px-4 py-3">
                     <div className="flex flex-wrap items-start gap-2">
+                      {rowLinks.map((link) => (
+                        <Link
+                          key={link.key}
+                          href={link.href(row)}
+                          aria-label={link.ariaLabel?.(row)}
+                          className="boton-secundario min-h-11 px-4 py-2 text-sm"
+                        >
+                          {link.label}
+                        </Link>
+                      ))}
                       {editHref ? (
                         <Link
                           href={editHref(row)}
