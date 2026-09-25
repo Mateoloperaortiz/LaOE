@@ -16,11 +16,13 @@ import {
   createMarketAs,
   createTeamAs,
   creditBalances,
+  deleteDayScheduleAs,
   generateDayScheduleAs,
   getLiveRotations,
   getScheduleForValidation,
   getShowcase,
   grantStartingCreditsAs,
+  importDayScheduleAs,
   issueTeamCodesAs,
   listExtras,
   listMyCompetitionRoles,
@@ -40,7 +42,13 @@ import {
   validateSchedule,
   voidResultAs,
 } from "@/modules/competition";
-import { competitionCreditEntry, competitionTeam } from "@/modules/competition/schema";
+import { dayOneRounds } from "@/modules/competition/domain/schedule-pure";
+import {
+  competitionBase,
+  competitionCreditEntry,
+  competitionRotation,
+  competitionTeam,
+} from "@/modules/competition/schema";
 import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
 import { addMacroeventDirector } from "@/modules/people/domain/appointments";
@@ -630,6 +638,193 @@ describe("The Games", () => {
         .from(competitionCreditEntry)
         .where(eq(competitionCreditEntry.kind, "REFUND"));
       expect(refunds).toHaveLength(1);
+    });
+  });
+
+  describe("importar la hoja de la OE", () => {
+    /** Una jornada como la hoja de la OE: una fila por equipo y rotación, con encabezado. */
+    function sheet(
+      nameOf: (seed: number) => string = (seed) => `Equipo ${seed}`,
+      firstRotation = 1,
+      firstBase = 1,
+    ): string {
+      const lines = ["Equipo\tRotacion\tBase\tRival"];
+      for (const [index, round] of dayOneRounds(15).entries()) {
+        const rotation = firstRotation + index;
+        for (const { base, a, b } of round) {
+          const number = firstBase + base;
+          lines.push(`${nameOf(a)}\t${rotation}\t${number}\t${nameOf(b)}`);
+          lines.push(`${nameOf(b)}\t${rotation}\t${number}\t${nameOf(a)}`);
+        }
+      }
+      return lines.join("\r\n");
+    }
+
+    it("crea los equipos, las bases y las 15 rotaciones de una competencia vacía", async () => {
+      const { id, adminId } = await seedCompetition();
+      const result = await importDayScheduleAs(admin(adminId), id, {
+        day: 1,
+        plannedMinutes: 18,
+        text: sheet((seed) => `Equipo de la hoja ${seed}`),
+      });
+      expect(result).toMatchObject({
+        saved: true,
+        rotations: 15,
+        matchups: 225,
+        teamsCreated: 30,
+        basesCreated: 15,
+      });
+      const teams = await getDb()
+        .select()
+        .from(competitionTeam)
+        .where(eq(competitionTeam.competitionId, id));
+      expect(teams).toHaveLength(30);
+      // Numerados en el orden de la columna Equipo: la hoja empieza por la rotación 1, base 1.
+      expect(teams.find((team) => team.number === 1)?.name).toBe("Equipo de la hoja 1");
+      const bases = await getDb()
+        .select()
+        .from(competitionBase)
+        .where(eq(competitionBase.competitionId, id));
+      expect(bases.map((base) => base.name).sort()).toContain("Base 15");
+      expect(bases.every((base) => base.day === 1 && base.kind === "NORMAL")).toBe(true);
+      const rotations = await getDb()
+        .select()
+        .from(competitionRotation)
+        .where(eq(competitionRotation.competitionId, id));
+      expect(rotations).toHaveLength(15);
+      expect(rotations.every((rotation) => rotation.plannedSeconds === 18 * 60)).toBe(true);
+      const loaded = await getScheduleForValidation(id);
+      expect(validateSchedule(loaded.rotations, loaded.teams, loaded.bases).errors).toEqual([]);
+
+      await expect(
+        importDayScheduleAs(admin(adminId), id, { day: 1, plannedMinutes: 18, text: sheet() }),
+      ).rejects.toThrow(t("T-2921", { dia: 1 }));
+    });
+
+    it("una hoja con errores o con un equipo desconocido no guarda nada", async () => {
+      const { id, adminId } = await seedCompetition();
+      const broken = `${sheet()}\r\nEquipo 1\t1\t2\tEquipo 2`;
+      const first = await importDayScheduleAs(admin(adminId), id, {
+        day: 1,
+        plannedMinutes: 20,
+        text: broken,
+      });
+      expect(first.saved).toBe(false);
+      expect(first.errors[0]).toContain("Línea 452");
+      expect(
+        await getDb().select().from(competitionTeam).where(eq(competitionTeam.competitionId, id)),
+      ).toHaveLength(0);
+
+      await seedField(id, adminId);
+      const unknown = await importDayScheduleAs(admin(adminId), id, {
+        day: 1,
+        plannedMinutes: 20,
+        text: sheet((seed) => (seed === 7 ? "Equipo siete" : `equipo  ${seed}`)),
+      });
+      expect(unknown).toMatchObject({
+        saved: false,
+        errors: [t("T-2917", { nombre: "Equipo siete" })],
+      });
+      expect(
+        await getDb()
+          .select()
+          .from(competitionRotation)
+          .where(eq(competitionRotation.competitionId, id)),
+      ).toHaveLength(0);
+
+      // Con los nombres de la competencia, aunque cambien mayúsculas y espacios, entra en sus bases.
+      const matched = await importDayScheduleAs(admin(adminId), id, {
+        day: 1,
+        plannedMinutes: 20,
+        text: sheet((seed) => `equipo  ${seed}`),
+      });
+      expect(matched).toMatchObject({ saved: true, teamsCreated: 0, basesCreated: 0 });
+    });
+
+    it("si la jornada ya tiene bases, la hoja las busca por su número y si no, por su puesto", async () => {
+      const { id, adminId } = await seedCompetition();
+      await importDayScheduleAs(admin(adminId), id, { day: 1, plannedMinutes: 20, text: sheet() });
+      // El viernes numera sus bases del 16 al 30, en ese orden.
+      const friday: string[] = [];
+      for (let i = 0; i < 15; i++) {
+        const base = await saveBaseAs(admin(adminId), id, null, {
+          day: 2,
+          orderIndex: i,
+          name: `Base ${16 + i}`,
+        });
+        friday.push(base.id);
+      }
+      const byNumber = await importDayScheduleAs(admin(adminId), id, {
+        day: 2,
+        plannedMinutes: 45,
+        text: sheet(undefined, 16, 16),
+        confirmWarnings: true,
+      });
+      expect(byNumber).toMatchObject({ saved: true, basesCreated: 0 });
+      const loaded = await getScheduleForValidation(id);
+      const first = loaded.rotations.find(
+        (rotation) => rotation.day === 2 && rotation.number === 16,
+      );
+      // En la rotación 1 del generador, la base 0 enfrenta al 1 con el 30: aquí es la «Base 16».
+      const opening = first?.matchups.find((matchup) => matchup.baseId === friday[0]);
+      const names = new Map(
+        (
+          await getDb()
+            .select({ id: competitionTeam.id, name: competitionTeam.name })
+            .from(competitionTeam)
+            .where(eq(competitionTeam.competitionId, id))
+        ).map((team) => [team.id, team.name]),
+      );
+      expect([names.get(opening?.teamAId ?? ""), names.get(opening?.teamBId ?? "")].sort()).toEqual(
+        ["Equipo 1", "Equipo 30"],
+      );
+
+      // La misma hoja con las bases del 1 al 15 entra por puesto.
+      await deleteDayScheduleAs(admin(adminId), id, 2);
+      const byPosition = await importDayScheduleAs(admin(adminId), id, {
+        day: 2,
+        plannedMinutes: 45,
+        text: sheet(undefined, 16),
+        confirmWarnings: true,
+      });
+      expect(byPosition).toMatchObject({ saved: true, basesCreated: 0 });
+    });
+
+    it("los cruces repetidos con la otra jornada piden confirmar", async () => {
+      const { id, adminId } = await seedCompetition();
+      await importDayScheduleAs(admin(adminId), id, {
+        day: 1,
+        plannedMinutes: 20,
+        text: sheet(),
+      });
+      // La hoja del viernes sigue la numeración del jueves: de la 16 a la 30.
+      const friday = sheet(undefined, 16);
+      const again = await importDayScheduleAs(admin(adminId), id, {
+        day: 2,
+        plannedMinutes: 45,
+        text: friday,
+      });
+      expect(again.saved).toBe(false);
+      expect(again.errors).toEqual([]);
+      expect(again.warnings).toHaveLength(225);
+      expect(again.warnings[0]).toContain(t("T-2841").split(" · ")[6] ?? "");
+      const confirmed = await importDayScheduleAs(admin(adminId), id, {
+        day: 2,
+        plannedMinutes: 45,
+        text: friday,
+        confirmWarnings: true,
+      });
+      expect(confirmed).toMatchObject({ saved: true, teamsCreated: 0, basesCreated: 15 });
+      const numbers = (
+        await getDb()
+          .select({ day: competitionRotation.day, number: competitionRotation.number })
+          .from(competitionRotation)
+          .where(eq(competitionRotation.competitionId, id))
+      )
+        .filter((rotation) => rotation.day === 2)
+        .map((rotation) => rotation.number)
+        .sort((x, y) => x - y);
+      expect(numbers).toEqual(Array.from({ length: 15 }, (_, i) => i + 16));
     });
   });
 

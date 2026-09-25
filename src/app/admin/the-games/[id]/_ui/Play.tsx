@@ -9,27 +9,33 @@ import type {
   Standings,
   TeamRow,
 } from "@/modules/competition";
-import { RUBRIC_MAX_SCORE, RUBRIC_MIN_SCORE } from "@/modules/competition";
+import { RUBRIC_MAX_SCORE, RUBRIC_MIN_SCORE, SCHEDULE_ISSUE_KINDS } from "@/modules/competition";
 import { Cronometro } from "@/modules/competition/components/Cronometro";
+import { ImportarJornada } from "@/modules/competition/components/ImportarJornada";
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { importDayAction } from "../actions";
 import { OperationForm, type PanelContext, Section, Submit, TeamChip } from "./shared";
 
 // El juego en vivo (ADR-089 reglas 6 a 9): calendario y rotaciones, la mesa de control de resultados,
 // las posiciones y las competencias extra con los ajustes. Los puntos los calcula el servidor.
 
-const ISSUE_ORDER = [
-  "SELF_MATCH",
-  "TEAM_TWICE_IN_ROTATION",
-  "BASE_TWICE_IN_ROTATION",
-  "BASE_OF_OTHER_DAY",
-  "UNKNOWN_TEAM",
-  "WITHDRAWN_TEAM",
-  "REPEATED_PAIR",
-  "BASE_REPEATED_IN_DAY",
-  "TEAM_IDLE",
-];
+function importLabels(day: 1 | 2) {
+  const [sheet, minutes] = tList("T-2904");
+  return {
+    title: t("T-2902", { dia: day }),
+    help: t("T-2903"),
+    sheet: sheet ?? "",
+    minutes: minutes ?? "",
+    submit: t("T-2905", { dia: day }),
+    pending: t("T-2906"),
+    confirm: t("T-2907"),
+    blocked: t("T-2924"),
+    warned: t("T-2925"),
+    more: t("T-2922"),
+  };
+}
 
 function rotationStatus(status: RotationSummary["status"]): string {
   return tList("T-2834")[["PENDING", "ACTIVE", "CLOSED"].indexOf(status)] ?? status;
@@ -65,7 +71,7 @@ export function Rotaciones({
   };
   const baseName = (id: string) => bases.find((item) => item.id === id)?.name ?? id;
   const describe = (issue: ScheduleReport["errors"][number]) => {
-    const label = issueLabels[ISSUE_ORDER.indexOf(issue.kind)] ?? issue.kind;
+    const label = issueLabels[SCHEDULE_ISSUE_KINDS.indexOf(issue.kind)] ?? issue.kind;
     if ("teamAId" in issue)
       return `${label}: ${teamName(issue.teamAId)} · ${teamName(issue.teamBId)}`;
     const parts = [
@@ -152,6 +158,14 @@ export function Rotaciones({
                 </Campo>
                 <Submit variant="primario">{t("T-2831", { dia: day })}</Submit>
               </OperationForm>
+            ) : null}
+            {own.length === 0 ? (
+              <ImportarJornada
+                competitionId={context.competitionId}
+                day={day}
+                action={importDayAction}
+                labels={importLabels(day)}
+              />
             ) : (
               <>
                 <ul className="m-0 flex list-none flex-col divide-y divide-borde p-0">

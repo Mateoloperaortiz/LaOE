@@ -26,6 +26,7 @@ import {
   startRotation,
   voidResult,
 } from "./play";
+import { type ImportDayInput, type ImportDayResult, importDaySchedule } from "./schedule-import";
 import {
   type AdjustmentInput,
   type AnnouncementInput,
@@ -116,6 +117,11 @@ export const addAdjustmentAs = (actor: A, id: string, input: AdjustmentInput) =>
 
 export const generateDayScheduleAs = (actor: A, id: string, input: GenerateDayInput) =>
   runCommand(actor, (ctx) => generateDaySchedule(ctx, actor, id, input));
+export const importDayScheduleAs = (
+  actor: A,
+  id: string,
+  input: ImportDayInput,
+): Promise<ImportDayResult> => runCommand(actor, (ctx) => importDaySchedule(ctx, actor, id, input));
 export const deleteDayScheduleAs = (actor: A, id: string, day: number) =>
   runCommand(actor, (ctx) => deleteDaySchedule(ctx, actor, id, day));
 export const saveRotationMatchupsAs = (

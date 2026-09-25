@@ -11,6 +11,7 @@ import {
   generateDayScheduleAs,
   saveBaseAs,
 } from "@/modules/competition";
+import { dayOneRounds } from "@/modules/competition/domain/schedule-pure";
 import { event, eventEdition } from "@/modules/events/schema";
 import { person } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
@@ -115,6 +116,52 @@ test.describe("operador", () => {
     expect(body.version).toBe(1);
     expect(body.currentRotation.matchups).toHaveLength(3);
     expect(JSON.stringify(body)).not.toContain("@");
+  });
+});
+
+test.describe("importar", () => {
+  test.use({ storageState: "tests/e2e/.auth/admin.json" });
+
+  test("importa la jornada pegando la hoja y conserva la hoja si hay que corregirla", async ({
+    page,
+  }) => {
+    const { id } = await seedCompetition("the-games-importar");
+    const sheet = (nameOf: (seed: number) => string) => {
+      const lines = ["Equipo\tRotacion\tBase\tRival"];
+      for (const [index, round] of dayOneRounds(3).entries()) {
+        for (const { base, a, b } of round) {
+          lines.push(`${nameOf(a)}\t${index + 1}\t${base + 1}\t${nameOf(b)}`);
+          lines.push(`${nameOf(b)}\t${index + 1}\t${base + 1}\t${nameOf(a)}`);
+        }
+      }
+      return lines.join("\n");
+    };
+    await page.goto(`/admin/the-games/${id}?area=rotaciones`);
+    const importer = page.locator("details").filter({ hasText: t("T-2902", { dia: 1 }) });
+    await importer.getByText(t("T-2902", { dia: 1 })).click();
+    const [hoja, minutos] = tList("T-2904");
+    const typo = sheet((seed) =>
+      seed === 4 ? "Equipo sintetico cuatro" : `Equipo sintético ${seed}`,
+    );
+    await importer.getByLabel(hoja ?? "").fill(typo);
+    await importer.getByLabel(minutos ?? "").fill("15");
+    await importer.getByRole("button", { name: t("T-2905", { dia: 1 }) }).click();
+    await expect(importer.getByText(t("T-2924"))).toBeVisible();
+    await expect(
+      importer.getByText(t("T-2917", { nombre: "Equipo sintetico cuatro" })),
+    ).toBeVisible();
+    await expect(importer.getByLabel(hoja ?? "")).toHaveValue(typo);
+    await sinViolaciones(page);
+
+    await importer.getByLabel(hoja ?? "").fill(sheet((seed) => `equipo sintético ${seed}`));
+    await importer.getByRole("button", { name: t("T-2905", { dia: 1 }) }).click();
+    await expect(
+      page.getByText(
+        t("T-2908", { dia: 1, rotaciones: 3, enfrentamientos: 9, equipos: 0, bases: 0 }),
+      ),
+    ).toBeVisible();
+    await expect(page.getByText(t("T-2837", { n: 3, dia: 1 })).first()).toBeVisible();
+    await expect(page.getByText(t("T-2843"))).toBeVisible();
   });
 });
 

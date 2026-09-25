@@ -4,6 +4,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 
 | ADR | Regla | Decisión en una línea | Estado |
 | --- | --- | --- | --- |
+| [094](adr/ADR-094-calendario-de-the-games-desde-la-hoja-de-la-oe.md) | Calendario desde la hoja | En The Games, una jornada se importa pegando la hoja Equipo, Rotación, Base y Rival de la OE: crea los equipos y las bases que falten, pasa por el validador y entra completa o no entra | Aceptada |
 | [093](adr/ADR-093-cada-equipo-juega-todas-las-bases.md) | Todas las bases | En The Games, un equipo que repite base en la jornada es error del validador y el cambio a mano no se guarda | Aceptada |
 | [092](adr/ADR-092-panal-corto-y-premios-por-avance.md) | Panal corto y premios por avance | Desde el 24 de septiembre de 2026 en Colombia: 20–30 palabras y premios 1 + 2 + 3; el 23 conserva tablero y premio originales | Aceptada; en producción desde el 24 a las 08:30 de Colombia |
 | [091](adr/ADR-091-apuestas-de-the-games.md) | Apuestas de The Games | 1000 puntos virtuales por equipo en un libro propio, que no cuentan para el ganador; apuestas que abre el operador y registra con el código del equipo; reparto por bolsa que conserva el total, devolución si nadie acierta y un solo pago por apuesta | Aceptada; implementación en curso |

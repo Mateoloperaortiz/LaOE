@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireCompetitionOperator, requireCompetitionStaff } from "@/app/_authz/competition";
-import { formOptional, formText } from "@/app/_lib/form";
+import { formOptional, formRaw, formText } from "@/app/_lib/form";
 import {
   addAdjustmentAs,
   adjustRotationTimerAs,
@@ -22,11 +22,13 @@ import {
   getRotation,
   grantStartingCreditsAs,
   type IssuedCode,
+  importDayScheduleAs,
   issueTeamCodesAs,
   placeBetAs,
   recordResultAs,
   removeStaffAs,
   resolveMarketAs,
+  SCHEDULE_ISSUE_KINDS,
   type ScheduleIssue,
   saveBaseAs,
   saveRotationMatchupsAs,
@@ -40,6 +42,7 @@ import {
   updateCompetitionSettingsAs,
   voidResultAs,
 } from "@/modules/competition";
+import type { ImportDayState } from "@/modules/competition/components/ImportarJornada";
 import { t, tList } from "@/shared/copy";
 import { bogotaInputToUtc } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
@@ -107,19 +110,8 @@ const nullable = (form: FormData, name: string) => formOptional(form, name) ?? n
 /** Un resumen legible de los problemas del validador, para la vuelta con `?error=`. */
 function describeIssues(issues: readonly ScheduleIssue[]): string {
   const labels = tList("T-2841");
-  const order = [
-    "SELF_MATCH",
-    "TEAM_TWICE_IN_ROTATION",
-    "BASE_TWICE_IN_ROTATION",
-    "BASE_OF_OTHER_DAY",
-    "UNKNOWN_TEAM",
-    "WITHDRAWN_TEAM",
-    "REPEATED_PAIR",
-    "BASE_REPEATED_IN_DAY",
-    "TEAM_IDLE",
-  ];
   const kinds = [...new Set(issues.map((issue) => issue.kind))];
-  return kinds.map((kind) => labels[order.indexOf(kind)] ?? kind).join(" · ");
+  return kinds.map((kind) => labels[SCHEDULE_ISSUE_KINDS.indexOf(kind)] ?? kind).join(" · ");
 }
 
 async function run(
@@ -420,4 +412,48 @@ export async function issueCodesAction(
     if (error instanceof DomainError) return { codes: [], error: error.message };
     throw error;
   }
+}
+
+/** Importa una jornada desde la hoja pegada (ADR-094). Si no se guarda, devuelve los problemas y la
+ *  hoja para corregirla; si se guarda, vuelve a Rotaciones con el resumen. */
+export async function importDayAction(
+  previous: ImportDayState,
+  form: FormData,
+): Promise<ImportDayState> {
+  const competitionId = cuid.safeParse(formText(form, "competitionId"));
+  if (!competitionId.success) return { ...previous, errors: [t("T-2764")], warnings: [] };
+  const base = `/admin/the-games/${competitionId.data}`;
+  const access = await requireCompetitionOperator(competitionId.data, `${base}?area=rotaciones`);
+  const day = Number(formText(form, "day"));
+  const state = {
+    text: formRaw(form, "text"),
+    minutes: formText(form, "plannedMinutes"),
+    attempt: previous.attempt + 1,
+  };
+  let result: Awaited<ReturnType<typeof importDayScheduleAs>>;
+  try {
+    result = await importDayScheduleAs(await access.commandActor(), competitionId.data, {
+      day,
+      plannedMinutes: Number(state.minutes),
+      text: state.text,
+      confirmWarnings: checkbox(form, "confirmWarnings"),
+    });
+  } catch (error) {
+    if (error instanceof DomainError) return { ...state, errors: [error.message], warnings: [] };
+    if (error instanceof z.ZodError) return { ...state, errors: [t("T-260")], warnings: [] };
+    throw error;
+  }
+  if (!result.saved) return { ...state, errors: result.errors, warnings: result.warnings };
+  revalidatePath(base);
+  const query = new URLSearchParams({
+    area: "rotaciones",
+    aviso: t("T-2908", {
+      dia: day,
+      rotaciones: result.rotations,
+      enfrentamientos: result.matchups,
+      equipos: result.teamsCreated,
+      bases: result.basesCreated,
+    }),
+  });
+  redirect(`${base}?${query}`);
 }

@@ -2390,7 +2390,7 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-3013 | Panal: premio pendiente | Ya alcanzaste una meta. Guardá su premio para sumarlo a tus GH Points. | MATEO | Aprobado |
 | T-3014 | Panal: introducción corta | Siete letras. Tres metas. Vos elegís hasta dónde llegar. | MATEO | Aprobado |
 
-## The Games (ADR-089 a ADR-091)
+## The Games (ADR-089 a ADR-091 y ADR-094)
 
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
@@ -2533,3 +2533,27 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2899 | The Games: Extra con rúbrica | Esta competencia se califica con la rúbrica. | MATEO | Propuesta |
 | T-2900 | The Games: Tipo de extra | Tipo | MATEO | Propuesta |
 | T-2901 | The Games: Criterio con peso | {criterio} ({peso} %) | MATEO | Propuesta |
+| T-2902 | The Games: Importar jornada | Importar la jornada {dia} desde la hoja | MATEO | Propuesta |
+| T-2903 | The Games: Ayuda de importar | Copiá de la hoja de cálculo las columnas Equipo, Rotación, Base y Rival, con o sin encabezado, y pegalas acá. Va una fila por equipo y rotación, y las rotaciones conservan el número de la hoja. Si la competencia no tiene equipos, se crean en el orden de la hoja; si ya tiene, los nombres tienen que coincidir. Si la jornada no tiene bases, se crean con el número que trae la hoja: «Base 1», «Base 16», etc. | MATEO | Propuesta |
+| T-2904 | The Games: Campos de importar | Hoja pegada · Minutos por rotación | MATEO | Propuesta |
+| T-2905 | The Games: Botón importar | Importar la jornada {dia} | MATEO | Propuesta |
+| T-2906 | The Games: Importando | Importando… | MATEO | Propuesta |
+| T-2907 | The Games: Importar con advertencias | Importar aunque haya advertencias | MATEO | Propuesta |
+| T-2908 | The Games: Jornada importada | Listo: la jornada {dia} quedó con {rotaciones} rotaciones y {enfrentamientos} enfrentamientos. Equipos nuevos: {equipos}. Bases nuevas: {bases}. | MATEO | Propuesta |
+| T-2909 | The Games: Hoja sin columnas | Línea {linea}: faltan columnas. Van Equipo, Rotación, Base y Rival. | MATEO | Propuesta |
+| T-2910 | The Games: Hoja con rotación inválida | Línea {linea}: la rotación tiene que ser un número del 1 al 99. | MATEO | Propuesta |
+| T-2911 | The Games: Hoja con base inválida | Línea {linea}: la base tiene que ser un número del 1 al 99, como 3 o «Base 3». | MATEO | Propuesta |
+| T-2912 | The Games: Hoja con equipo contra sí mismo | Línea {linea}: {equipo} juega contra sí mismo. | MATEO | Propuesta |
+| T-2913 | The Games: Hoja con equipo dos veces | Línea {linea}: {equipo} ya tiene otro enfrentamiento en la rotación {n}. | MATEO | Propuesta |
+| T-2914 | The Games: Hoja con base dos veces | Línea {linea}: la base {base} ya tiene otro enfrentamiento en la rotación {n}. | MATEO | Propuesta |
+| T-2915 | The Games: Hoja con rotación faltante | Falta la rotación {n}: las rotaciones van seguidas, sin saltos. | MATEO | Propuesta |
+| T-2916 | The Games: Hoja vacía | La hoja pegada no tiene filas. | MATEO | Propuesta |
+| T-2917 | The Games: Hoja con equipo desconocido | No hay un equipo llamado «{nombre}» en esta competencia. | MATEO | Propuesta |
+| T-2918 | The Games: Hoja con base desconocida | La jornada {dia} no tiene base {base}. | MATEO | Propuesta |
+| T-2919 | The Games: Hoja con demasiados equipos | La hoja tiene {equipos} equipos; el máximo es 99. | MATEO | Propuesta |
+| T-2920 | The Games: Base importada | Base {n} | MATEO | Propuesta |
+| T-2921 | The Games: Jornada ya cargada | La jornada {dia} ya tiene rotaciones. Borralas antes de importarla. | MATEO | Propuesta |
+| T-2922 | The Games: Más problemas | Y {n} más. | MATEO | Propuesta |
+| T-2923 | The Games: Hoja muy larga | La hoja pegada es demasiado larga. Pegá solo las cuatro columnas de una jornada. | MATEO | Propuesta |
+| T-2924 | The Games: Importación bloqueada | No se importó nada. Corregí la hoja y volvé a importarla. | MATEO | Propuesta |
+| T-2925 | The Games: Importación con advertencias | La hoja no tiene errores, pero sí advertencias. Revisalas y, si están bien, confirmá para importarla. | MATEO | Propuesta |

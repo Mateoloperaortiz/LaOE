@@ -43,7 +43,8 @@ export const generateDayInputSchema = z.object({
 });
 export type GenerateDayInput = z.input<typeof generateDayInputSchema>;
 
-async function dayRotations(ctx: CommandContext, competitionId: string, dayNumber: Day) {
+/** Las rotaciones de una jornada, en orden. */
+export async function dayRotations(ctx: CommandContext, competitionId: string, dayNumber: Day) {
   return ctx.tx
     .select()
     .from(competitionRotation)
@@ -172,7 +173,7 @@ export async function deleteDaySchedule(
 }
 
 /** El calendario completo como lo lee el validador. */
-async function scheduleOf(ctx: CommandContext, competitionId: string) {
+export async function scheduleOf(ctx: CommandContext, competitionId: string) {
   const rotations = await ctx.tx
     .select()
     .from(competitionRotation)
@@ -219,7 +220,7 @@ async function scheduleOf(ctx: CommandContext, competitionId: string) {
   };
 }
 
-function issueKey(issue: ScheduleIssue): string {
+export function issueKey(issue: ScheduleIssue): string {
   return JSON.stringify(issue);
 }
 

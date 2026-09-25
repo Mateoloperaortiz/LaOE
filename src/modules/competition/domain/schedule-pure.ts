@@ -260,6 +260,19 @@ export const SCHEDULE_ERROR_KINDS = [
   "BASE_REPEATED_IN_DAY",
 ] as const satisfies ReadonlyArray<ScheduleIssue["kind"]>;
 
+/** Todos los tipos, en el orden de sus textos (T-2841). */
+export const SCHEDULE_ISSUE_KINDS = [
+  "SELF_MATCH",
+  "TEAM_TWICE_IN_ROTATION",
+  "BASE_TWICE_IN_ROTATION",
+  "BASE_OF_OTHER_DAY",
+  "UNKNOWN_TEAM",
+  "WITHDRAWN_TEAM",
+  "REPEATED_PAIR",
+  "BASE_REPEATED_IN_DAY",
+  "TEAM_IDLE",
+] as const satisfies ReadonlyArray<ScheduleIssue["kind"]>;
+
 export interface ScheduleReport {
   errors: ScheduleIssue[];
   warnings: ScheduleIssue[];
