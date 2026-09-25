@@ -4,14 +4,15 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
-## Acceso a permanencia desde Comités · `lista en local`
+## Acceso a permanencia desde Comités · `lista`
 
 - [x] Mostrar «Permanencia» junto a «Editar» en cada fila y enlazar el nombre al panel del comité.
 - [x] Verificar el acceso en navegador, en escritorio y celular; lint, tipos y pruebas existentes del admin kit.
-- [ ] Publicar el cambio.
+- [x] Publicar el cambio.
 
 | Fecha | Tramo | Qué cambió |
 | --- | --- | --- |
+| 2026-09-25 | Acceso a permanencia, publicado | PR [#92](https://github.com/Mateoloperaortiz/LaOE/pull/92), SHA `450114eaf07adcc420014d2acd84b688f0d9418f`. El E2E de macroeventos falló una vez por inestabilidad, sin relación con el cambio, y pasó al volver a correrlo; el CI completo de main quedó aprobado. Staging y producción sirven `450114e`, con los smokes de Railway en verde. |
 | 2026-09-25 | Acceso a permanencia | El listado `/admin/comites` solo ofrecía «Editar» y dejaba la asignación de puntajes sin acceso directo. Cada fila muestra ahora «Permanencia», con el nombre del comité en su etiqueta accesible, y el nombre abre su panel. El admin kit admite enlaces de navegación visibles por fila mediante `rowLinks`; reutiliza T-110 y T-818 y conserva las guardas de las rutas. Verificación local en 390 px y escritorio, 15 pruebas existentes del admin kit, lint, tipos y fronteras de módulos en verde. Sin publicación. |
 
 ## The Games (ADR-089 a ADR-091 y ADR-094) · `en curso`
@@ -28,6 +29,7 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | --- | --- | --- |
 | 2026-09-23 | The Games, implementación local | [ADR-089](adr/ADR-089-the-games-competencia-por-equipos.md), [ADR-090](adr/ADR-090-api-publica-v1-vitrina-de-the-games.md) y [ADR-091](adr/ADR-091-apuestas-de-the-games.md). Reemplazan el prototipo de Lovable sobre Supabase, que no cumplía ADR-085. Migración aditiva `0040` con 16 tablas, incluida la rúbrica de The Challenge (total llevado a 100 × 10, en la jornada 1). Calendario de 30 equipos y 15 bases verificado: cada equipo pasa una vez por cada base de cada jornada y hay exactamente una revancha por equipo, la inevitable. Puntos 1000/500/0 y 2000/1000/0 calculados en el servidor y guardados en libro, con reversiones. Apuestas con 1000 puntos virtuales que no cuentan para el ganador y un solo pago por apuesta. Pruebas unitarias, de integración (acceso, concurrencia, idempotencia y vitrina) y dos flujos E2E con axe (operador y juez en celular). Pendiente publicación; producción no se tocó. |
 | 2026-09-24 | The Games, publicado | PR [#87](https://github.com/Mateoloperaortiz/LaOE/pull/87), SHA `8275438cb8b1ba3db7ad24712127062af83a8150`. CI completo de main `36020922527` y CI de promoción `36030796314` aprobados. Staging `c8dac4e5-04b3-45a1-bc6e-257d1e34cc6e` y producción `ad782966-e6c5-43ef-a963-36f215317db5` en SUCCESS, con `0040` aplicada y los smokes `36022452721` y `36031442050` aprobados. `PUBLIC_API_ORIGINS=https://dias.oeeafit.com` quedó cargada en el `web` de producción; en staging falta. `GET /api/v1/the-games/<slug>` responde 404 en JSON con el CORS esperado. La vitrina de DÍAS salió por [dias#1](https://github.com/Mateoloperaortiz/dias/pull/1). Siguen pendientes los datos en producción (edición, mesa, formulario y competencia) y el simulacro. |
+| 2026-09-25 | Calendario desde la hoja, publicado | PR [#91](https://github.com/Mateoloperaortiz/LaOE/pull/91), SHA `432dc0612717bbf509aa5b5e3a29675fea9a2b49`, sin migración. CI completo de main aprobado. Staging y producción sirven `432dc06`, con los smokes de Railway en verde. La vitrina de `ensayo-2026` responde 200 con el CORS de `dias.oeeafit.com`, y `the-games-2026`, 404 porque está en borrador. Después se promovió `450114e` (#92), que la contiene. |
 | 2026-09-25 | Zonas de las bases | Llegaron los mapas por zonas de cada jornada. Cada base de `the-games-2026` quedó con su zona como lugar, más el sitio cuando el mapa lo nombra: Vivo, Riders club y los inflables. Ese lugar sale en la vitrina y en la mesa de control. Se cargó con `saveBase` y auditoría; nombres y tipos no cambiaron. |
 | 2026-09-25 | Bases de `the-games-2026` | Se cargaron desde las fichas en PDF de la OE, con `saveBase` y auditoría:
 
