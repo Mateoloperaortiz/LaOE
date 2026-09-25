@@ -129,11 +129,19 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
 
 - [x] La rúbrica de la competencia de talentos y cómo se vuelve puntos: la de The Challenge (2026-09-24), con los pesos de su hoja Instrucciones llevados a 100 y el total × 10. Conviene avisarle a la OE que su hoja Consolidado tiene otros pesos y fórmulas con `#REF!`: la que vale es la de la casa
 - [ ] La duración de cada rotación y la hora de inicio de la jornada 1 (jueves en la tarde). `the-games-2026` tiene 20 minutos provisionales el jueves y 50 el viernes
-- [ ] Los nombres, lugares y tipo (normal o inflable) de las 15 bases de cada jornada
+- [x] Las fichas de las 30 bases y 6 de repuesto: `Copia de plantilla the gays.pdf` (2026-09-25). Cada ficha trae objetivo, explicación, restricciones, calificación, materiales, grupo de apoyo y mapa. Se pasaron a una hoja de cálculo. En `the-games-2026` quedaron:
+  - como macro, las inflables: 14 Túnel Interactivo, 15 Tiki Island, 29 Coliseo Romano y 30 Bolas inflables;
+  - las del viernes, como «Base 16» a «Base 30»;
+  - el lugar donde el PDF lo nombra.
+- [ ] Las inconsistencias del PDF:
+  - los círculos del mapa de las bases 10 y 11 están cruzados;
+  - la base 13 aparece sobre la pista y en el recuadro de Vivo;
+  - la base 15 aparece en la zona azul y en Tiki Island;
+  - la base 30 trae como material «Pelotas de diferentes colores», que parece copiado de la 29.
 - [x] El calendario del jueves con los nombres de los 30 equipos: `Rotaciones_TheGames.xlsx` (2026-09-24), que se importa desde la hoja (ADR-094). Sus números son el orden de la hoja
 - [x] El calendario del viernes: `Rotaciones_TheGames dia viernes.xlsx` (2026-09-24), con las bases 16 a 30
 - [x] Qué viernes se juega: Mateo eligió el 2026-09-25 la propuesta de la casa, con las rotaciones 16 a 30 y las bases 1 a 15. Repite 15 cruces, uno por equipo, que es el mínimo. Las otras dos versiones de la OE repetían 225 y 113.
-- [ ] Si las bases del viernes son las mismas del jueves: la primera versión las numeraba del 16 al 30 y la versión 2, del 1 al 15
+- [x] Las bases del viernes son otras: el PDF de fichas las numera del 16 al 30
 - [ ] Qué pasa si un equipo no se presenta
 - [ ] Si un equipo puede apostar por sí mismo (mientras tanto, no)
 - [ ] Qué jueces están en el roster con @eafit.edu.co; por los demás registra el operador
