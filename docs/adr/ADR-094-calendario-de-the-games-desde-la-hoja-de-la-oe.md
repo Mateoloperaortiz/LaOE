@@ -18,7 +18,7 @@ Ese calendario es el que se va a jugar, pero no sale del generador de ADR-089 re
 
 Cumple ADR-093. Cargarlo a mano serían 30 equipos y 225 enfrentamientos, uno por uno.
 
-Ese mismo día llegó la hoja del viernes, en el mismo formato. Tiene las bases 16 a 30 y es coherente, pero repite los 225 cruces del jueves en el mismo orden: cada equipo enfrenta a los mismos 15 rivales. El validador lo muestra como 225 cruces repetidos, que hay que confirmar. Sin repetir, el mínimo es una revancha por equipo, porque los 225 cruces entre grupos ya se jugaron el jueves y dentro de cada grupo quedan 14 rivales para 15 partidos.
+Ese mismo día llegó la hoja del viernes, en el mismo formato. Tiene las bases 16 a 30 y es coherente, pero repite los 225 cruces del jueves en el mismo orden: cada equipo enfrenta a los mismos 15 rivales. El validador lo muestra como 225 cruces repetidos, que hay que confirmar. Sin repetir, el mínimo es una revancha por equipo, porque los 225 cruces entre grupos ya se jugaron el jueves y dentro de cada grupo quedan 14 rivales para 15 partidos. El 2026-09-25 llegó una versión 2 del viernes, `Rotaciones_TheGames_16-30_v2.xlsx`. Numera las rotaciones del 16 al 30, usa las bases 1 a 15, trae una quinta columna «Enfrentamiento repetido» y es coherente. Repite 113 cruces del jueves: 7 u 8 por equipo.
 
 ## Decisión
 
@@ -26,11 +26,12 @@ Ese mismo día llegó la hoja del viernes, en el mismo formato. Tiene las bases 
    - El operador copia de la hoja de cálculo las columnas Equipo, Rotación, Base y Rival, con o sin encabezado, y las pega.
    - Se aceptan tabuladores, que es lo que da copiar desde la hoja, y también comas o punto y coma.
    - La base puede venir como «3» o como «Base 3».
+   - Las columnas de más, como «Enfrentamiento repetido», se ignoran.
    - La casa no lee archivos `.xlsx`. Pegar evita una dependencia nueva y una subida de archivos.
 2. **La hoja tiene que ser coherente para entrar.** Cada fila dice que el equipo juega contra el rival en esa base y esa rotación. Por eso:
    - Si también está la fila del rival, tiene que decir lo mismo.
    - Un equipo no puede tener dos enfrentamientos en una rotación, ni una base dos enfrentamientos.
-   - Las rotaciones van de 1 en adelante, sin saltos.
+   - Las rotaciones van seguidas, sin saltos, y **conservan el número de la hoja**. Si el viernes sigue la numeración del jueves, la jornada 2 va de la rotación 16 a la 30, igual que en las hojas de la OE. El orden de avance es jornada y número.
 
    Cada problema de la hoja se informa con su línea, y no se guarda nada.
 3. **Equipos.** Si la competencia no tiene equipos, la importación crea los de la hoja, numerados en el orden en que aparecen en la columna Equipo. Si ya tiene, los nombres de la hoja tienen que coincidir con los suyos, sin distinguir mayúsculas, tildes ni espacios de más. Un nombre desconocido es error: un error de tipeo no crea un equipo 31.

@@ -2534,7 +2534,7 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2900 | The Games: Tipo de extra | Tipo | MATEO | Propuesta |
 | T-2901 | The Games: Criterio con peso | {criterio} ({peso} %) | MATEO | Propuesta |
 | T-2902 | The Games: Importar jornada | Importar la jornada {dia} desde la hoja | MATEO | Propuesta |
-| T-2903 | The Games: Ayuda de importar | Copiá de la hoja de cálculo las columnas Equipo, Rotación, Base y Rival, con o sin encabezado, y pegalas acá. Va una fila por equipo y rotación. Si la competencia no tiene equipos, se crean en el orden de la hoja; si ya tiene, los nombres tienen que coincidir. Si la jornada no tiene bases, se crean con el número que trae la hoja: «Base 1», «Base 16», etc. | MATEO | Propuesta |
+| T-2903 | The Games: Ayuda de importar | Copiá de la hoja de cálculo las columnas Equipo, Rotación, Base y Rival, con o sin encabezado, y pegalas acá. Va una fila por equipo y rotación, y las rotaciones conservan el número de la hoja. Si la competencia no tiene equipos, se crean en el orden de la hoja; si ya tiene, los nombres tienen que coincidir. Si la jornada no tiene bases, se crean con el número que trae la hoja: «Base 1», «Base 16», etc. | MATEO | Propuesta |
 | T-2904 | The Games: Campos de importar | Hoja pegada · Minutos por rotación | MATEO | Propuesta |
 | T-2905 | The Games: Botón importar | Importar la jornada {dia} | MATEO | Propuesta |
 | T-2906 | The Games: Importando | Importando… | MATEO | Propuesta |
@@ -2546,7 +2546,7 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2912 | The Games: Hoja con equipo contra sí mismo | Línea {linea}: {equipo} juega contra sí mismo. | MATEO | Propuesta |
 | T-2913 | The Games: Hoja con equipo dos veces | Línea {linea}: {equipo} ya tiene otro enfrentamiento en la rotación {n}. | MATEO | Propuesta |
 | T-2914 | The Games: Hoja con base dos veces | Línea {linea}: la base {base} ya tiene otro enfrentamiento en la rotación {n}. | MATEO | Propuesta |
-| T-2915 | The Games: Hoja con rotación faltante | Falta la rotación {n}: las rotaciones van de 1 en adelante, sin saltos. | MATEO | Propuesta |
+| T-2915 | The Games: Hoja con rotación faltante | Falta la rotación {n}: las rotaciones van seguidas, sin saltos. | MATEO | Propuesta |
 | T-2916 | The Games: Hoja vacía | La hoja pegada no tiene filas. | MATEO | Propuesta |
 | T-2917 | The Games: Hoja con equipo desconocido | No hay un equipo llamado «{nombre}» en esta competencia. | MATEO | Propuesta |
 | T-2918 | The Games: Hoja con base desconocida | La jornada {dia} no tiene base {base}. | MATEO | Propuesta |

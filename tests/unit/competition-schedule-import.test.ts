@@ -46,6 +46,7 @@ describe("lector de la hoja de rotaciones", () => {
     expect(sheet?.teams[0]?.name).toBe(name(1));
     expect(sheet?.teams[29]?.name).toBe(name(30));
     expect(sheet?.bases).toEqual(Array.from({ length: 15 }, (_, i) => i + 1));
+    expect(sheet?.firstRotation).toBe(1);
     expect(sheet?.rotations).toHaveLength(15);
     for (const rotation of sheet?.rotations ?? []) {
       expect(rotation).toHaveLength(15);
@@ -126,6 +127,24 @@ describe("lector de la hoja de rotaciones", () => {
       { kind: "BASE", line: 4 },
       { kind: "SELF_MATCH", line: 5, team: "Alfa" },
       { kind: "ROTATION", line: 6 },
+    ]);
+  });
+
+  it("conserva la numeración de la hoja cuando sigue a la jornada anterior", () => {
+    const text = [
+      "Equipo\tRotacion\tBase\tRival\tEnfrentamiento repetido",
+      "Alfa\t16\t1\tBeta\tNo (nuevo)",
+      "Gama\t16\t2\tDelta\tNo (nuevo)",
+      "Alfa\t17\t2\tGama\tSi (ya jugaron)",
+      "Beta\t17\t1\tDelta\tNo (nuevo)",
+    ].join("\n");
+    const { sheet, problems } = parseScheduleSheet(text);
+    expect(problems).toEqual([]);
+    expect(sheet?.firstRotation).toBe(16);
+    expect(sheet?.rotations).toHaveLength(2);
+    expect(sheet?.rotations[1]).toEqual([
+      { base: 1, a: "beta", b: "delta" },
+      { base: 2, a: "alfa", b: "gama" },
     ]);
   });
 

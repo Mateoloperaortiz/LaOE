@@ -30,7 +30,9 @@ export interface SheetMatchup {
 export interface ScheduleSheet {
   /** En el orden en que aparecen: primero la columna Equipo y después los que solo son rivales. */
   teams: SheetTeam[];
-  /** La rotación r está en la posición r − 1. */
+  /** El número de la primera rotación: la hoja puede seguir la numeración de la jornada anterior. */
+  firstRotation: number;
+  /** La rotación `firstRotation + i` está en la posición i. */
   rotations: SheetMatchup[][];
   /** Los números de base que usa la hoja, de menor a mayor. */
   bases: number[];
@@ -78,15 +80,15 @@ export function parseScheduleSheet(text: string): {
   const problems: SheetProblem[] = [];
   const rows: Row[] = [];
   const names = new Map<string, string>();
-  let first = true;
+  let firstLine = true;
   for (const [index, raw] of text.split(/\r?\n/).entries()) {
     if (raw.trim() === "") continue;
     const line = index + 1;
     const cells = splitLine(raw);
     const [team = "", rotationCell = "", baseCell = "", rival = ""] = cells.map(cleanTeamName);
     const rotation = numberIn(rotationCell, /^(\d+)$/);
-    const isFirst = first;
-    first = false;
+    const isFirst = firstLine;
+    firstLine = false;
     // La primera fila puede ser el encabezado: no trae número de rotación.
     if (isFirst && rotation === null && !/\d/.test(rotationCell)) continue;
     if (cells.length < 4 || team === "" || rival === "") {
@@ -151,8 +153,10 @@ export function parseScheduleSheet(text: string): {
     if (!current) bases.set(row.base, { base: row.base, a: team, b: rival });
   }
 
-  const last = Math.max(0, ...rows.map((row) => row.rotation));
-  for (let rotation = 1; rotation <= last; rotation++) {
+  const numbers = rows.map((row) => row.rotation);
+  const first = numbers.length > 0 ? Math.min(...numbers) : 1;
+  const last = Math.max(0, ...numbers);
+  for (let rotation = first; rotation <= last; rotation++) {
     if (!rows.some((row) => row.rotation === rotation)) {
       problems.push({ kind: "MISSING_ROTATION", rotation });
     }
@@ -161,8 +165,8 @@ export function parseScheduleSheet(text: string): {
 
   const order = [...names.keys()];
   const rank = (key: string) => order.indexOf(key);
-  const rotations = Array.from({ length: last }, (_, index) =>
-    [...(byBase.get(index + 1)?.values() ?? [])]
+  const rotations = Array.from({ length: last - first + 1 }, (_, index) =>
+    [...(byBase.get(first + index)?.values() ?? [])]
       .map((matchup) =>
         rank(matchup.a) <= rank(matchup.b)
           ? matchup
@@ -174,6 +178,7 @@ export function parseScheduleSheet(text: string): {
   return {
     sheet: {
       teams: order.map((key) => ({ key, name: names.get(key) ?? key })),
+      firstRotation: first,
       rotations,
       bases,
     },

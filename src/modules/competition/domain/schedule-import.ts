@@ -165,7 +165,7 @@ export async function importDaySchedule(
 
   const proposed: ScheduleRotation[] = sheet.rotations.map((matchups, index) => ({
     day,
-    number: index + 1,
+    number: sheet.firstRotation + index,
     matchups: matchups.map((matchup) => ({
       baseId: baseIds.get(matchup.base) ?? "",
       teamAId: teamIds.get(matchup.a) ?? "",

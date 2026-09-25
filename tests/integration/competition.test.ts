@@ -642,12 +642,16 @@ describe("The Games", () => {
 
   describe("importar la hoja de la OE", () => {
     /** Una jornada como la hoja de la OE: una fila por equipo y rotación, con encabezado. */
-    function sheet(nameOf: (seed: number) => string = (seed) => `Equipo ${seed}`): string {
+    function sheet(
+      nameOf: (seed: number) => string = (seed) => `Equipo ${seed}`,
+      firstRotation = 1,
+    ): string {
       const lines = ["Equipo\tRotacion\tBase\tRival"];
       for (const [index, round] of dayOneRounds(15).entries()) {
+        const rotation = firstRotation + index;
         for (const { base, a, b } of round) {
-          lines.push(`${nameOf(a)}\t${index + 1}\t${base + 1}\t${nameOf(b)}`);
-          lines.push(`${nameOf(b)}\t${index + 1}\t${base + 1}\t${nameOf(a)}`);
+          lines.push(`${nameOf(a)}\t${rotation}\t${base + 1}\t${nameOf(b)}`);
+          lines.push(`${nameOf(b)}\t${rotation}\t${base + 1}\t${nameOf(a)}`);
         }
       }
       return lines.join("\r\n");
@@ -741,10 +745,12 @@ describe("The Games", () => {
         plannedMinutes: 20,
         text: sheet(),
       });
+      // La hoja del viernes sigue la numeración del jueves: de la 16 a la 30.
+      const friday = sheet(undefined, 16);
       const again = await importDayScheduleAs(admin(adminId), id, {
         day: 2,
         plannedMinutes: 45,
-        text: sheet(),
+        text: friday,
       });
       expect(again.saved).toBe(false);
       expect(again.errors).toEqual([]);
@@ -753,10 +759,20 @@ describe("The Games", () => {
       const confirmed = await importDayScheduleAs(admin(adminId), id, {
         day: 2,
         plannedMinutes: 45,
-        text: sheet(),
+        text: friday,
         confirmWarnings: true,
       });
       expect(confirmed).toMatchObject({ saved: true, teamsCreated: 0, basesCreated: 15 });
+      const numbers = (
+        await getDb()
+          .select({ day: competitionRotation.day, number: competitionRotation.number })
+          .from(competitionRotation)
+          .where(eq(competitionRotation.competitionId, id))
+      )
+        .filter((rotation) => rotation.day === 2)
+        .map((rotation) => rotation.number)
+        .sort((x, y) => x - y);
+      expect(numbers).toEqual(Array.from({ length: 15 }, (_, i) => i + 16));
     });
   });
 
