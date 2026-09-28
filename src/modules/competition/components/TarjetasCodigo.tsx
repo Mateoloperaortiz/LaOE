@@ -24,6 +24,8 @@ type Props = {
     card: string; // con {n} y {nombre}
     print: string;
     pending: string;
+    /** Dónde apuesta el capitán con este código (ADR-096), impreso en cada tarjeta. */
+    hub?: string;
   };
 };
 
@@ -81,6 +83,7 @@ export function TarjetasCodigo({ competitionId, action, labels }: Props) {
                   {labels.card.replace("{n}", String(item.number)).replace("{nombre}", item.name)}
                 </span>
                 <span className="font-mono text-2xl tracking-widest">{formatCode(item.code)}</span>
+                {labels.hub ? <span className="text-sm">{labels.hub}</span> : null}
               </li>
             ))}
           </ul>

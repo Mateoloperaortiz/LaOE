@@ -686,6 +686,35 @@ export async function listMarkets(competitionId: string, now = new Date()): Prom
   });
 }
 
+/** Lo que recibió cada apuesta de un equipo: el pago si acertó o la devolución (ADR-091). Para el hub
+ *  de capitanes (ADR-096), que solo muestra las apuestas del propio equipo. */
+export async function listTeamBetReturns(
+  competitionId: string,
+  teamId: string,
+): Promise<Map<string, { kind: "PAYOUT" | "REFUND"; amount: number }>> {
+  const rows = await getDb()
+    .select({
+      betId: competitionCreditEntry.betId,
+      kind: competitionCreditEntry.kind,
+      amount: competitionCreditEntry.amount,
+    })
+    .from(competitionCreditEntry)
+    .where(
+      and(
+        eq(competitionCreditEntry.competitionId, competitionId),
+        eq(competitionCreditEntry.teamId, teamId),
+        inArray(competitionCreditEntry.kind, ["PAYOUT", "REFUND"]),
+      ),
+    );
+  const returns = new Map<string, { kind: "PAYOUT" | "REFUND"; amount: number }>();
+  for (const row of rows) {
+    if (row.betId && (row.kind === "PAYOUT" || row.kind === "REFUND")) {
+      returns.set(row.betId, { kind: row.kind, amount: row.amount });
+    }
+  }
+  return returns;
+}
+
 export async function creditBalances(competitionId: string): Promise<Map<string, number>> {
   const rows = await getDb()
     .select({

@@ -7,10 +7,16 @@ import {
   type CompetitionActor,
   createCompetitionAs,
   createExtraAs,
+  createMarketAs,
   createTeamAs,
+  formatTeamCode,
   generateDayScheduleAs,
+  grantStartingCreditsAs,
+  issueTeamCodesAs,
   saveBaseAs,
   setCompetitionStatusAs,
+  setMarketOpenAs,
+  updateCompetitionSettingsAs,
 } from "@/modules/competition";
 import { dayOneRounds } from "@/modules/competition/domain/schedule-pure";
 import { event, eventEdition } from "@/modules/events/schema";
@@ -272,5 +278,95 @@ test.describe("capitanes", () => {
       { number: 2, names: ["Sara Sintética"] },
     ]);
     expect(JSON.stringify(body)).not.toMatch(/300000000\d/);
+  });
+});
+
+test.describe("hub de capitanes", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("la API del hub: entrar con el código del equipo, apostar, ver la apuesta y salir", async ({
+    request,
+  }) => {
+    const { id, admin } = await seedCompetition("the-games-hub");
+    await updateCompetitionSettingsAs(admin, id, {
+      name: "The Games de prueba",
+      bettingEnabled: true,
+      startingCredits: 1000,
+    });
+    await setCompetitionStatusAs(admin, id, "LIVE");
+    await grantStartingCreditsAs(admin, id);
+    const codes = await issueTeamCodesAs(admin, id, false);
+    const team = (n: number) => {
+      const item = codes.find((code) => code.number === n);
+      if (!item) throw new Error(`Falta el código del equipo ${n}`);
+      return item;
+    };
+    const market = await createMarketAs(admin, id, {
+      title: "¿Quién gana la base 1?",
+      teamIds: [team(2).teamId, team(3).teamId],
+    });
+    await setMarketOpenAs(admin, id, market.id, true);
+
+    // DÍAS en local; la casa de las pruebas lo tiene en PUBLIC_API_ORIGINS.
+    const origin = "http://localhost:3101";
+    const json = { origin, "content-type": "application/json" };
+    const hub = "/api/v1/the-games/hub";
+
+    const anon = await request.get(hub, { headers: { origin } });
+    expect(anon.status()).toBe(401);
+    expect(anon.headers()["access-control-allow-origin"]).toBe(origin);
+    expect(anon.headers()["access-control-allow-credentials"]).toBe("true");
+    expect(anon.headers()["cache-control"]).toBe("no-store");
+
+    const foreign = await request.post(`${hub}/sesion`, {
+      headers: { origin: "https://otro.example", "content-type": "application/json" },
+      data: { code: team(1).code },
+    });
+    expect(foreign.status()).toBe(403);
+
+    const wrong = await request.post(`${hub}/sesion`, {
+      headers: json,
+      data: { code: "ZZZZ-ZZZZ" },
+    });
+    expect(wrong.status()).toBe(400);
+    expect((await wrong.json()).error).toBe(t("T-3036"));
+
+    const entered = await request.post(`${hub}/sesion`, {
+      headers: json,
+      data: { code: formatTeamCode(team(1).code).toLowerCase() },
+    });
+    expect(entered.status()).toBe(200);
+    expect(entered.headers()["set-cookie"]).toContain("HttpOnly");
+    expect(await entered.json()).toMatchObject({
+      version: 1,
+      team: { number: 1, name: "Equipo sintético 1" },
+      balance: 1000,
+      markets: [{ id: market.id, myBet: null }],
+    });
+
+    const bet = await request.post(`${hub}/apuestas`, {
+      headers: json,
+      data: { marketId: market.id, pick: 2, stake: 300 },
+    });
+    expect(bet.status()).toBe(200);
+    expect(await bet.json()).toMatchObject({
+      balance: 700,
+      markets: [{ myBet: { pick: 2, stake: 300 } }],
+      bets: [{ pick: { number: 2 }, stake: 300, result: "PENDING" }],
+    });
+    const again = await request.post(`${hub}/apuestas`, {
+      headers: json,
+      data: { marketId: market.id, pick: 3, stake: 100 },
+    });
+    expect(again.status()).toBe(400);
+    expect((await again.json()).error).toBe(t("T-2783"));
+
+    const state = await request.get(hub, { headers: { origin } });
+    expect(state.status()).toBe(200);
+    expect(JSON.stringify(await state.json())).not.toContain(team(1).teamId);
+
+    const out = await request.delete(`${hub}/sesion`, { headers: { origin } });
+    expect(out.status()).toBe(200);
+    expect((await request.get(hub, { headers: { origin } })).status()).toBe(401);
   });
 });

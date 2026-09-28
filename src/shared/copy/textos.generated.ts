@@ -9233,6 +9233,30 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3036": {
+    where: "Hub de capitanes: código que no corresponde",
+    text: "Ese código no corresponde a ningún equipo en competencia. Revisalo en la tarjeta.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3037": {
+    where: "Hub de capitanes: demasiados intentos",
+    text: "Hubo demasiados intentos desde esta conexión. Esperá 15 minutos o pedile al operador que registre la apuesta.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3038": {
+    where: "Hub de capitanes: sesión vencida",
+    text: "Tu sesión venció o el código de tu equipo cambió. Escribí el código otra vez.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3039": {
+    where: "The Games: dirección del hub en la tarjeta",
+    text: "Apostá en {direccion}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-304": {
     where: "Eventos, título de la página",
     text: "Eventos",

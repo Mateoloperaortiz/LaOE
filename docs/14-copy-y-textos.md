@@ -2583,3 +2583,14 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-3033 | The Games: Capitanes solo ADMIN | Solo ADMIN carga, publica o borra los capitanes. | MATEO | Propuesta |
 | T-3034 | The Games: Ayuda de la vitrina de capitanes | Prendela solo con la autorización de la inscripción confirmada. Archivar la competencia borra los capitanes. | MATEO | Propuesta |
 | T-3035 | The Games: Llamar al capitán | Llamar a {nombre} | MATEO | Propuesta |
+
+## Hub de capitanes de The Games (ADR-096)
+
+La página es de DÍAS (D-039 de `dias`); aquí van los mensajes que devuelve la API de la casa.
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-3036 | Hub de capitanes: código que no corresponde | Ese código no corresponde a ningún equipo en competencia. Revisalo en la tarjeta. | MATEO | Propuesta |
+| T-3037 | Hub de capitanes: demasiados intentos | Hubo demasiados intentos desde esta conexión. Esperá 15 minutos o pedile al operador que registre la apuesta. | MATEO | Propuesta |
+| T-3038 | Hub de capitanes: sesión vencida | Tu sesión venció o el código de tu equipo cambió. Escribí el código otra vez. | MATEO | Propuesta |
+| T-3039 | The Games: dirección del hub en la tarjeta | Apostá en {direccion} | MATEO | Propuesta |

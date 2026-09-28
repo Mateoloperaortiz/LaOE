@@ -17,11 +17,13 @@ import {
 import type { CompetitionActor } from "./access";
 import { marketState, settleParimutuel } from "./betting-pure";
 import { lockAfterFailure, teamCodeMatches } from "./codes-pure";
-import { openCompetition } from "./setup";
+import type { HubSession } from "./hub-pure";
+import { openCompetition, writableCompetition } from "./setup";
 
 // Apuestas de The Games (ADR-091): puntos virtuales en un libro propio que no cuentan para el
 // ganador, apuestas que abre el operador y registra con el código del equipo, reparto por bolsa y un
-// solo pago por apuesta.
+// solo pago por apuesta. El capitán también apuesta desde el hub con su sesión (ADR-096), con el
+// mismo núcleo.
 
 async function lockedMarket(ctx: CommandContext, competitionId: string, marketId: string) {
   const [row] = await ctx.tx
@@ -252,39 +254,15 @@ export async function placeBet(
       message: lockedUntil ? t("T-2779", { hora: formatTime(lockedUntil) }) : t("T-2778"),
     };
   }
-  const options = await optionsOf(ctx, market.id);
-  if (!options.includes(input.pickTeamId)) throw new DomainError(t("T-2784"), "pickTeamId");
-  if (!row.allowSelfBet && input.pickTeamId === input.teamId) {
-    throw new DomainError(t("T-2785"), "pickTeamId");
-  }
-  const [already] = await ctx.tx
-    .select({ id: competitionBet.id })
-    .from(competitionBet)
-    .where(and(eq(competitionBet.marketId, market.id), eq(competitionBet.teamId, team.id)))
-    .limit(1);
-  if (already) throw new DomainError(t("T-2783"));
-  const available = await balance(ctx, competitionId, team.id);
-  if (available < input.stake) {
-    throw new DomainError(t("T-2782", { saldo: available }), "stake");
-  }
-  const [bet] = await ctx.tx
-    .insert(competitionBet)
-    .values({
-      marketId: market.id,
-      teamId: team.id,
-      pickTeamId: input.pickTeamId,
-      stake: input.stake,
-      createdById: actor.personId,
-    })
-    .returning({ id: competitionBet.id });
-  if (!bet) throw new Error("bet insert");
-  await ctx.tx.insert(competitionCreditEntry).values({
+  const placed = await recordBet(ctx, {
     competitionId,
+    allowSelfBet: row.allowSelfBet,
+    marketId: market.id,
     teamId: team.id,
-    kind: "STAKE",
-    amount: -input.stake,
-    betId: bet.id,
+    pickTeamId: input.pickTeamId,
+    stake: input.stake,
     createdById: actor.personId,
+    via: "OPERATOR",
   });
   if (team.codeFailures > 0) {
     await ctx.tx
@@ -292,18 +270,136 @@ export async function placeBet(
       .set({ codeFailures: 0 })
       .where(eq(competitionTeam.id, team.id));
   }
+  return { ok: true, ...placed };
+}
+
+/** El núcleo de una apuesta (ADR-091), una vez que se sabe qué equipo apuesta: el operador con el
+ *  código o el hub de capitanes con su sesión (ADR-096). El mercado y el saldo ya están bloqueados. */
+async function recordBet(
+  ctx: CommandContext,
+  input: {
+    competitionId: string;
+    allowSelfBet: boolean;
+    marketId: string;
+    teamId: string;
+    pickTeamId: string;
+    stake: number;
+    createdById: string | null;
+    via: "OPERATOR" | "HUB";
+  },
+): Promise<{ betId: string; balance: number }> {
+  const options = await optionsOf(ctx, input.marketId);
+  if (!options.includes(input.pickTeamId)) throw new DomainError(t("T-2784"), "pickTeamId");
+  if (!input.allowSelfBet && input.pickTeamId === input.teamId) {
+    throw new DomainError(t("T-2785"), "pickTeamId");
+  }
+  const [already] = await ctx.tx
+    .select({ id: competitionBet.id })
+    .from(competitionBet)
+    .where(
+      and(eq(competitionBet.marketId, input.marketId), eq(competitionBet.teamId, input.teamId)),
+    )
+    .limit(1);
+  if (already) throw new DomainError(t("T-2783"));
+  const available = await balance(ctx, input.competitionId, input.teamId);
+  if (available < input.stake) {
+    throw new DomainError(t("T-2782", { saldo: available }), "stake");
+  }
+  const [bet] = await ctx.tx
+    .insert(competitionBet)
+    .values({
+      marketId: input.marketId,
+      teamId: input.teamId,
+      pickTeamId: input.pickTeamId,
+      stake: input.stake,
+      createdById: input.createdById,
+    })
+    .returning({ id: competitionBet.id });
+  if (!bet) throw new Error("bet insert");
+  await ctx.tx.insert(competitionCreditEntry).values({
+    competitionId: input.competitionId,
+    teamId: input.teamId,
+    kind: "STAKE",
+    amount: -input.stake,
+    betId: bet.id,
+    createdById: input.createdById,
+  });
   await ctx.audit({
     action: "competition.bet.place",
     entityType: "competition_bet",
     entityId: bet.id,
     after: {
-      marketId: market.id,
-      teamId: team.id,
+      marketId: input.marketId,
+      teamId: input.teamId,
       pickTeamId: input.pickTeamId,
       stake: input.stake,
+      via: input.via,
     },
   });
-  return { ok: true, betId: bet.id, balance: available - input.stake };
+  return { betId: bet.id, balance: available - input.stake };
+}
+
+export const hubBetInputSchema = z.object({
+  marketId: z.string().trim().min(1),
+  /** El número del equipo elegido: el hub no conoce ids de equipo. */
+  pick: z.coerce.number().int().min(1).max(99),
+  stake: betInputSchema.shape.stake,
+});
+export type HubBetInput = z.input<typeof hubBetInputSchema>;
+
+/** La apuesta que registra el capitán desde el hub (ADR-096). La sesión ya probó el código, pero
+ *  todo se vuelve a leer aquí dentro de la transacción: el equipo sigue activo, su código no cambió,
+ *  la competencia sigue en vivo con apuestas y la apuesta sigue abierta. */
+export async function placeHubBet(
+  ctx: CommandContext,
+  session: HubSession,
+  raw: HubBetInput,
+  now = new Date(),
+): Promise<{ betId: string; balance: number }> {
+  const row = await writableCompetition(ctx, session.competitionId);
+  if (row.status !== "LIVE") throw new DomainError(t("T-3038"));
+  if (!row.bettingEnabled) throw new DomainError(t("T-2786"));
+  const input = hubBetInputSchema.parse(raw);
+  const market = await lockedMarket(ctx, session.competitionId, input.marketId);
+  if (marketState(market, now) !== "OPEN") throw new DomainError(t("T-2781"));
+  await ctx.tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`competition-credits:${session.teamId}`}, 0))`,
+  );
+  const [team] = await ctx.tx
+    .select({ id: competitionTeam.id, codeIssuedAt: competitionTeam.codeIssuedAt })
+    .from(competitionTeam)
+    .where(
+      and(
+        eq(competitionTeam.id, session.teamId),
+        eq(competitionTeam.competitionId, session.competitionId),
+        eq(competitionTeam.status, "ACTIVE"),
+      ),
+    )
+    .for("update");
+  if (!team || team.codeIssuedAt?.getTime() !== session.codeIssuedAt) {
+    throw new DomainError(t("T-3038"));
+  }
+  const [pick] = await ctx.tx
+    .select({ id: competitionTeam.id })
+    .from(competitionTeam)
+    .where(
+      and(
+        eq(competitionTeam.competitionId, session.competitionId),
+        eq(competitionTeam.number, input.pick),
+      ),
+    )
+    .limit(1);
+  if (!pick) throw new DomainError(t("T-2784"), "pick");
+  return recordBet(ctx, {
+    competitionId: session.competitionId,
+    allowSelfBet: row.allowSelfBet,
+    marketId: market.id,
+    teamId: team.id,
+    pickTeamId: pick.id,
+    stake: input.stake,
+    createdById: null,
+    via: "HUB",
+  });
 }
 
 async function settle(

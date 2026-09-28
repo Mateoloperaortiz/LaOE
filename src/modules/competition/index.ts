@@ -11,6 +11,22 @@ export {
 export { MARKET_STATUSES, type MarketStatus } from "./domain/betting-pure";
 export { formatTeamCode, normalizeTeamCode, TEAM_CODE_LENGTH } from "./domain/codes-pure";
 export * from "./domain/commands";
+export {
+  type EnterHubResult,
+  getHubState,
+  getHubTeam,
+  type HubTeam,
+  hubAddress,
+  hubCookieValue,
+  hubSessionFromCookie,
+} from "./domain/hub";
+export {
+  HUB_API_PATH,
+  HUB_COOKIE,
+  type HubSession,
+  type HubState,
+  hubStateSchema,
+} from "./domain/hub-pure";
 export type { PlaceBetResult } from "./domain/markets";
 export type { RotationMatchupsResult } from "./domain/play";
 export {
@@ -40,6 +56,7 @@ export {
   listStaff,
   listStaffFor,
   listStandings,
+  listTeamBetReturns,
   listTeams,
   type MarketView,
   type MatchupView,

@@ -24,6 +24,7 @@ describe("entorno desechable E2E", () => {
       JOBS_ENABLED: "false",
       VAPID_PRIVATE_KEY: "",
       GOOGLE_WALLET_ISSUER_ID: "",
+      PUBLIC_API_ORIGINS: "http://localhost:3100,http://localhost:3101",
     });
   });
   it.each([
