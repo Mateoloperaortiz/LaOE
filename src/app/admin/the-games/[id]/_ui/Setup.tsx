@@ -1,19 +1,52 @@
 import Link from "next/link";
 import type {
   BaseRow,
+  CaptainRow,
   CompetitionRow,
   RegistrationCandidate,
   StaffRow,
   TeamRow,
 } from "@/modules/competition";
+import { ImportarCapitanes } from "@/modules/competition/components/ImportarCapitanes";
 import { TarjetasCodigo } from "@/modules/competition/components/TarjetasCodigo";
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { t, tList } from "@/shared/copy";
-import { issueCodesAction } from "../actions";
+import { importCaptainsAction, issueCodesAction } from "../actions";
 import { OperationForm, type PanelContext, Section, Submit, TeamChip } from "./shared";
 
-// Preparación de The Games (ADR-089): ajustes y estado, equipos con sus códigos, bases por jornada y
-// personal. Sin datos personales de los capitanes: de la inscripción solo se ve el nombre del equipo.
+// Preparación de The Games (ADR-089): ajustes y estado, equipos con sus códigos y capitanes, bases por
+// jornada y personal. De la inscripción solo se ve el nombre del equipo. De los capitanes, la
+// operación ve el nombre y el celular; cargarlos, publicarlos y borrarlos es de ADMIN (ADR-095).
+
+/** El celular como se lee en voz alta: 300 123 4567. */
+function phoneLabel(phone: string): string {
+  return `${phone.slice(0, 3)} ${phone.slice(3, 6)} ${phone.slice(6)}`;
+}
+
+function Capitanes({ list }: { list: CaptainRow[] }) {
+  if (list.length === 0) return <>—</>;
+  return (
+    <ul className="m-0 flex list-none flex-col gap-1 p-0">
+      {list.map((captain) => (
+        <li key={captain.position}>
+          <span>{captain.name}</span>
+          {captain.phone ? (
+            <>
+              {" · "}
+              <a
+                href={`tel:+57${captain.phone}`}
+                className="whitespace-nowrap tabular-nums underline"
+              >
+                <span className="sr-only">{t("T-3035", { nombre: captain.name })} </span>
+                {phoneLabel(captain.phone)}
+              </a>
+            </>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function Resumen({
   context,
@@ -139,19 +172,29 @@ export function Equipos({
   teams,
   candidates,
   hasForm,
+  captains,
+  showCaptains,
+  isAdmin,
 }: {
   context: PanelContext;
   teams: TeamRow[];
   candidates: RegistrationCandidate[];
   hasForm: boolean;
+  captains: CaptainRow[];
+  showCaptains: boolean;
+  isAdmin: boolean;
 }) {
   const columns = tList("T-2811");
   const states = tList("T-2812");
   const codeStates = tList("T-2817");
   const [retirar, reactivar] = tList("T-2822");
   const [emitirFaltantes, emitirTodos] = tList("T-2818");
+  const [publicada, oculta] = tList("T-3030");
+  const [mostrar, ocultar] = tList("T-3031");
   const nextNumber = Math.max(0, ...teams.map((team) => team.number)) + 1;
   const pending = candidates.filter((candidate) => candidate.teamId === null);
+  const captainsOf = (teamId: string) => captains.filter((captain) => captain.teamId === teamId);
+  const captainTeams = new Set(captains.map((captain) => captain.teamId)).size;
   return (
     <Section title={tList("T-2805")[1] ?? ""}>
       {teams.length === 0 ? (
@@ -165,6 +208,9 @@ export function Equipos({
                   {column}
                 </th>
               ))}
+              <th scope="col" className="py-2">
+                {t("T-3015")}
+              </th>
               <th scope="col" className="py-2">
                 <span className="sr-only">{retirar}</span>
               </th>
@@ -183,6 +229,9 @@ export function Equipos({
                   {team.codeLocked ? codeStates[2] : team.hasCode ? codeStates[0] : codeStates[1]}
                 </td>
                 <td className="py-2">
+                  <Capitanes list={captainsOf(team.id)} />
+                </td>
+                <td className="py-2">
                   <OperationForm
                     context={context}
                     operation="team-status"
@@ -199,6 +248,48 @@ export function Equipos({
           </tbody>
         </table>
       )}
+
+      {isAdmin && teams.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <h3 className="text-titulo-md">{t("T-3015")}</h3>
+          {captains.length > 0 ? (
+            <p>{t("T-3028", { capitanes: captains.length, equipos: captainTeams })}</p>
+          ) : null}
+          <p className="max-w-prose">
+            {showCaptains ? publicada : oculta}{" "}
+            <span className="text-tinta-suave">{t("T-3034")}</span>
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <OperationForm
+              context={context}
+              operation="captains-visibility"
+              hidden={{ visible: showCaptains ? "0" : "1" }}
+            >
+              <Submit variant={showCaptains ? "secundario" : "primario"}>
+                {showCaptains ? ocultar : mostrar}
+              </Submit>
+            </OperationForm>
+            {captains.length > 0 ? (
+              <OperationForm context={context} operation="clear-captains">
+                <Submit variant="calido">{t("T-3032")}</Submit>
+              </OperationForm>
+            ) : null}
+          </div>
+          <ImportarCapitanes
+            competitionId={context.competitionId}
+            action={importCaptainsAction}
+            labels={{
+              title: t("T-3017"),
+              help: t("T-3016"),
+              sheet: t("T-3018"),
+              submit: t("T-3019"),
+              pending: t("T-3020"),
+              blocked: t("T-2924"),
+              more: t("T-2922"),
+            }}
+          />
+        </div>
+      ) : null}
 
       <h3 className="text-titulo-md">{t("T-2813")}</h3>
       <OperationForm

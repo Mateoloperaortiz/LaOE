@@ -8,6 +8,7 @@ import {
   getScheduleForValidation,
   listAnnouncements,
   listBases,
+  listCaptains,
   listExtras,
   listLedger,
   listMarkets,
@@ -91,13 +92,20 @@ export default async function CompetitionPage({
       />
     );
   } else if (area === "equipos") {
-    const [teams, candidates] = await Promise.all([listTeams(id), listRegistrationCandidates(id)]);
+    const [teams, candidates, captains] = await Promise.all([
+      listTeams(id),
+      listRegistrationCandidates(id),
+      listCaptains(id),
+    ]);
     body = (
       <Equipos
         context={context}
         teams={teams}
         candidates={candidates}
         hasForm={competition.registrationFormId !== null}
+        captains={captains}
+        showCaptains={competition.showCaptains}
+        isAdmin={actor.isAdmin}
       />
     );
   } else if (area === "bases") {

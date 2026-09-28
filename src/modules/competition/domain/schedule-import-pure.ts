@@ -52,7 +52,8 @@ export function teamKey(value: string): string {
   return cleanTeamName(value).normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 }
 
-function splitLine(line: string): string[] {
+/** Las celdas de una fila pegada: por tabulador, que es lo que da la hoja, o por `;` o `,`. */
+export function splitLine(line: string): string[] {
   const separator = line.includes("\t") ? "\t" : line.includes(";") ? ";" : ",";
   return line.split(separator).map((cell) => cell.trim());
 }

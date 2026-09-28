@@ -1,6 +1,13 @@
 import { runCommand } from "@/db/tx";
 import type { CompetitionActor } from "./access";
 import {
+  clearCaptains,
+  type ImportCaptainsInput,
+  type ImportCaptainsResult,
+  importCaptains,
+  setCaptainsVisibility,
+} from "./captains";
+import {
   type BetInput,
   cancelMarket,
   createMarket,
@@ -89,6 +96,17 @@ export const issueTeamCodesAs = (
   id: string,
   onlyMissing: boolean,
 ): Promise<IssuedCode[]> => runCommand(actor, (ctx) => issueTeamCodes(ctx, actor, id, onlyMissing));
+
+export const importCaptainsAs = (
+  actor: A,
+  id: string,
+  input: ImportCaptainsInput,
+): Promise<ImportCaptainsResult> =>
+  runCommand(actor, (ctx) => importCaptains(ctx, actor, id, input));
+export const setCaptainsVisibilityAs = (actor: A, id: string, visible: boolean) =>
+  runCommand(actor, (ctx) => setCaptainsVisibility(ctx, actor, id, visible));
+export const clearCaptainsAs = (actor: A, id: string) =>
+  runCommand(actor, (ctx) => clearCaptains(ctx, actor, id));
 
 export const saveBaseAs = (actor: A, id: string, baseId: string | null, input: BaseInput) =>
   runCommand(actor, (ctx) => saveBase(ctx, actor, id, baseId, input));

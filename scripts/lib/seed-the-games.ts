@@ -13,8 +13,10 @@ import {
   getCompetitionBySlug,
   getLiveRotations,
   grantStartingCreditsAs,
+  importCaptainsAs,
   issueTeamCodesAs,
   saveBaseAs,
+  setCaptainsVisibilityAs,
   setCompetitionStatusAs,
   setMarketOpenAs,
   updateCompetitionSettingsAs,
@@ -24,9 +26,10 @@ import { membership, person } from "@/modules/people/schema";
 import { logger } from "@/shared/log";
 
 // Ensayo sintético de The Games (ADR-089 y ADR-091) para desarrollo y staging, sobre la edición
-// «prueba» de Días EAFIT que siembra el seed. Tiene 30 equipos, 15 bases por jornada (la 5 y la 10
-// son inflables), las dos jornadas generadas, la rúbrica de The Challenge, apuestas con 1000 puntos,
-// un anuncio, un operador y dos jueces demo. Queda en vivo para verse en la vitrina con
+// «prueba» de Días EAFIT que siembra el seed. Tiene 30 equipos con dos capitanes sintéticos cada uno,
+// publicados en la vitrina (ADR-095), 15 bases por jornada (la 5 y la 10 son inflables), las dos
+// jornadas generadas, la rúbrica de The Challenge, apuestas con 1000 puntos, un anuncio, un operador
+// y dos jueces demo. El ensayo de producción usa el mismo armado sin capitanes. Queda en vivo para verse en la vitrina con
 // `?c=ensayo-the-games`. Se crea con los comandos del dominio, así que todo queda auditado.
 // Idempotente por slug; nunca corre en producción.
 
@@ -57,6 +60,9 @@ export interface RehearsalInput {
   operatorId?: string | null;
   /** El juez i va a la base 1 de la jornada i+1. */
   judgeIds?: ReadonlyArray<string | undefined>;
+  /** Dos capitanes sintéticos por equipo, publicados (ADR-095). Solo en desarrollo y staging: el
+   *  ensayo de producción no lleva personas inventadas. */
+  captains?: boolean;
 }
 
 /** Arma una competencia de ensayo completa y en vivo, con los comandos del dominio. Devuelve su id y
@@ -78,12 +84,23 @@ export async function buildTheGamesRehearsal(
     bettingEnabled: true,
     startingCredits: 1000,
   });
+  const captains: string[] = [];
   for (let number = 1; number <= 30; number++) {
     await createTeamAs(actor, id, {
       number,
       name: `Equipo de ensayo ${number}`,
       color: COLORS[number % COLORS.length] ?? null,
     });
+    // Capitanes sintéticos, pegados como la hoja de la OE: Equipo, Nombre y Celular.
+    if (input.captains) {
+      const phone = `300000${String(number).padStart(2, "0")}`;
+      captains.push(`${number}\tAna de ensayo ${number}\t${phone}01`);
+      captains.push(`${number}\tLuis de ensayo ${number}\t${phone}02`);
+    }
+  }
+  if (captains.length > 0) {
+    await importCaptainsAs(actor, id, { text: captains.join("\n") });
+    await setCaptainsVisibilityAs(actor, id, true);
   }
   const bases: Record<1 | 2, string[]> = { 1: [], 2: [] };
   for (const day of [1, 2] as const) {
@@ -170,6 +187,7 @@ export async function seedTheGames(
     rotationsPerDay: options.rotationsPerDay ?? 15,
     operatorId: operatorId ?? null,
     judgeIds: [judgeOne, judgeTwo],
+    captains: true,
   });
   // Los códigos se muestran una sola vez, también aquí: son de ensayo y sirven para probar apuestas.
   logger.info(

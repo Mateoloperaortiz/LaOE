@@ -11,6 +11,7 @@ import {
   advanceRotationAs,
   assignStaffAs,
   cancelMarketAs,
+  clearCaptainsAs,
   closeRotationAs,
   createAnnouncementAs,
   createExtraAs,
@@ -22,6 +23,7 @@ import {
   getRotation,
   grantStartingCreditsAs,
   type IssuedCode,
+  importCaptainsAs,
   importDayScheduleAs,
   issueTeamCodesAs,
   placeBetAs,
@@ -33,6 +35,7 @@ import {
   saveBaseAs,
   saveRotationMatchupsAs,
   setAnnouncementActiveAs,
+  setCaptainsVisibilityAs,
   setCompetitionStatusAs,
   setExtraPointsAs,
   setMarketOpenAs,
@@ -42,6 +45,7 @@ import {
   updateCompetitionSettingsAs,
   voidResultAs,
 } from "@/modules/competition";
+import type { ImportCaptainsState } from "@/modules/competition/components/ImportarCapitanes";
 import type { ImportDayState } from "@/modules/competition/components/ImportarJornada";
 import { t, tList } from "@/shared/copy";
 import { bogotaInputToUtc } from "@/shared/lib/dates";
@@ -69,6 +73,8 @@ const OPERATIONS = [
   "status",
   "create-team",
   "team-status",
+  "captains-visibility",
+  "clear-captains",
   "save-base",
   "assign-staff",
   "remove-staff",
@@ -157,6 +163,12 @@ async function run(
         cuid.parse(formText(form, "teamId")),
         z.enum(["ACTIVE", "WITHDRAWN"]).parse(formText(form, "status")),
       );
+      return null;
+    case "captains-visibility":
+      await setCaptainsVisibilityAs(actor, id, formText(form, "visible") === "1");
+      return null;
+    case "clear-captains":
+      await clearCaptainsAs(actor, id);
       return null;
     case "save-base":
       await saveBaseAs(actor, id, nullable(form, "baseId"), {
@@ -454,6 +466,37 @@ export async function importDayAction(
       equipos: result.teamsCreated,
       bases: result.basesCreated,
     }),
+  });
+  redirect(`${base}?${query}`);
+}
+
+/** Carga los capitanes pegando tres columnas de la hoja de la OE (ADR-095). Si no se guarda, devuelve
+ *  los problemas y lo pegado para corregirlo; si se guarda, vuelve a Equipos con el resumen, que solo
+ *  lleva conteos. */
+export async function importCaptainsAction(
+  previous: ImportCaptainsState,
+  form: FormData,
+): Promise<ImportCaptainsState> {
+  const competitionId = cuid.safeParse(formText(form, "competitionId"));
+  if (!competitionId.success) return { ...previous, errors: [t("T-2764")] };
+  const base = `/admin/the-games/${competitionId.data}`;
+  const access = await requireCompetitionOperator(competitionId.data, `${base}?area=equipos`);
+  const state = { text: formRaw(form, "text"), attempt: previous.attempt + 1 };
+  let result: Awaited<ReturnType<typeof importCaptainsAs>>;
+  try {
+    result = await importCaptainsAs(await access.commandActor(), competitionId.data, {
+      text: state.text,
+    });
+  } catch (error) {
+    if (error instanceof DomainError) return { ...state, errors: [error.message] };
+    if (error instanceof z.ZodError) return { ...state, errors: [t("T-260")] };
+    throw error;
+  }
+  if (!result.saved) return { ...state, errors: result.errors };
+  revalidatePath(base);
+  const query = new URLSearchParams({
+    area: "equipos",
+    aviso: t("T-3021", { capitanes: result.captains, equipos: result.teams }),
   });
   redirect(`${base}?${query}`);
 }

@@ -10,6 +10,7 @@ import {
   createTeamAs,
   generateDayScheduleAs,
   saveBaseAs,
+  setCompetitionStatusAs,
 } from "@/modules/competition";
 import { dayOneRounds } from "@/modules/competition/domain/schedule-pure";
 import { event, eventEdition } from "@/modules/events/schema";
@@ -217,5 +218,59 @@ test.describe("juez", () => {
     await sinViolaciones(page);
     await page.getByRole("button", { name: t("T-2847") }).click();
     await expect(page.getByText(t("T-2879", { resultado: t("T-2847") }))).toBeVisible();
+  });
+});
+
+test.describe("capitanes", () => {
+  test.use({ storageState: "tests/e2e/.auth/admin.json" });
+
+  test("el ADMIN pega tres columnas, la operación los ve y la vitrina lleva solo los nombres", async ({
+    page,
+    request,
+  }) => {
+    const { id, admin } = await seedCompetition("the-games-capitanes");
+    await page.goto(`/admin/the-games/${id}?area=equipos`);
+    const importer = page.locator("details").filter({ hasText: t("T-3017") });
+    await importer.getByText(t("T-3017")).click();
+    const campo = importer.getByLabel(t("T-3018"));
+    // La fila completa de la hoja (sintética) no entra: trae más de tres columnas.
+    const completa = "Equipo 1\tAna Sintética\t3000000001\t1000000000\tO+";
+    await campo.fill(completa);
+    await importer.getByRole("button", { name: t("T-3019") }).click();
+    await expect(importer.getByText(t("T-3023", { linea: 1 }))).toBeVisible();
+    await expect(campo).toHaveValue(completa);
+    await sinViolaciones(page);
+
+    await campo.fill(
+      [
+        "Equipo\tNombre\tCelular",
+        "Equipo 1\tAna Sintética\t300 000 0001",
+        "1\tLuis Sintético\t3000000002",
+        "Equipo sintético 2\tSara Sintética\t",
+      ].join("\n"),
+    );
+    await importer.getByRole("button", { name: t("T-3019") }).click();
+    await expect(page.getByText(t("T-3021", { capitanes: 3, equipos: 2 }))).toBeVisible();
+    const fila = page.getByRole("row").filter({ hasText: "Equipo sintético 1" });
+    await expect(fila).toContainText("Luis Sintético");
+    await expect(
+      fila.getByRole("link", { name: `${t("T-3035", { nombre: "Ana Sintética" })} 300 000 0001` }),
+    ).toHaveAttribute("href", "tel:+573000000001");
+    await sinViolaciones(page);
+
+    await page.getByRole("button", { name: tList("T-3031")[0] }).click();
+    await expect(page.getByText(t("T-259"), { exact: true })).toBeVisible();
+    await expect(page.getByText(tList("T-3030")[0] ?? "")).toBeVisible();
+    await setCompetitionStatusAs(admin, id, "LIVE");
+    const response = await request.get("/api/v1/the-games/the-games-capitanes", {
+      headers: { origin: "http://localhost:3101" },
+    });
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.captains).toEqual([
+      { number: 1, names: ["Ana Sintética", "Luis Sintético"] },
+      { number: 2, names: ["Sara Sintética"] },
+    ]);
+    expect(JSON.stringify(body)).not.toMatch(/300000000\d/);
   });
 });

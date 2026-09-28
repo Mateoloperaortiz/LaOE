@@ -3,6 +3,7 @@ import {
   getCompetitionBySlug,
   getLiveRotations,
   listAnnouncements,
+  listCaptainNames,
   listMarkets,
   listStandings,
   listTeams,
@@ -24,14 +25,17 @@ const memo = new Map<string, Entry>();
 async function build(slug: string): Promise<ShowcaseBody | null> {
   const row = await getCompetitionBySlug(slug);
   if (!row || row.status === "DRAFT") return null;
-  const [teams, standings, rotations, announcements, markets, balances] = await Promise.all([
-    listTeams(row.id),
-    listStandings(row.id),
-    getLiveRotations(row.id),
-    listAnnouncements(row.id, true),
-    row.bettingEnabled ? listMarkets(row.id) : Promise.resolve([]),
-    row.bettingEnabled ? creditBalances(row.id) : Promise.resolve(new Map<string, number>()),
-  ]);
+  const [teams, standings, rotations, announcements, markets, balances, captains] =
+    await Promise.all([
+      listTeams(row.id),
+      listStandings(row.id),
+      getLiveRotations(row.id),
+      listAnnouncements(row.id, true),
+      row.bettingEnabled ? listMarkets(row.id) : Promise.resolve([]),
+      row.bettingEnabled ? creditBalances(row.id) : Promise.resolve(new Map<string, number>()),
+      // Los nombres de los capitanes solo se leen si están publicados (ADR-095).
+      row.showCaptains ? listCaptainNames(row.id) : Promise.resolve([]),
+    ]);
   return toShowcase({
     competition: row,
     teams,
@@ -40,6 +44,7 @@ async function build(slug: string): Promise<ShowcaseBody | null> {
     announcements,
     markets,
     balances,
+    captains,
   });
 }
 

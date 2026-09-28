@@ -16,10 +16,10 @@ import { eventEdition } from "@/modules/events/schema";
 import { form, formSubmission } from "@/modules/forms/schema";
 import { person } from "@/modules/people/schema";
 
-// The Games, la competencia por equipos de Días EAFIT (ADR-089) y sus apuestas (ADR-091). Ninguna
-// tabla guarda datos personales: los capitanes no son usuarios y sus datos se quedan en la respuesta
-// del formulario. Las únicas personas son el personal asignado y quien firma cada escritura. Los
-// puntos de aquí no son GH Points y no tocan `point_entry`.
+// The Games, la competencia por equipos de Días EAFIT (ADR-089) y sus apuestas (ADR-091). Los
+// capitanes no son usuarios: de ellos se guarda solo el nombre y el celular (ADR-095), que se borran
+// al archivar la competencia. Las demás personas son el personal asignado y quien firma cada
+// escritura. Los puntos de aquí no son GH Points y no tocan `point_entry`.
 
 export const competitionStatus = pgEnum("competition_status", [
   "DRAFT",
@@ -88,6 +88,8 @@ export const competition = pgTable(
     startingCredits: integer(),
     /** Si un equipo puede apostar por sí mismo; apagado hasta que la OE lo confirme. */
     allowSelfBet: boolean().notNull().default(false),
+    /** Si la vitrina muestra los nombres de los capitanes (ADR-095); lo prende solo ADMIN. */
+    showCaptains: boolean().notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -136,6 +138,32 @@ export const competitionTeam = pgTable(
       sql`${t.color} is null or ${t.color} ~ '^#[0-9a-f]{6}$'`,
     ),
     check("competition_team_code_failures", sql`${t.codeFailures} >= 0`),
+  ],
+);
+
+/** Un capitán de un equipo (ADR-095): solo nombre y celular, pegados de la hoja de la OE. */
+export const competitionTeamCaptain = pgTable(
+  "competition_team_captain",
+  {
+    id: id(),
+    teamId: text()
+      .notNull()
+      .references(() => competitionTeam.id, { onDelete: "cascade" }),
+    /** 1 o 2, en el orden de la hoja. */
+    position: integer().notNull(),
+    name: text().notNull(),
+    /** Diez dígitos, sin el 57 del país; nulo si la hoja no lo trae. */
+    phone: text(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("competition_team_captain_position_unique").on(t.teamId, t.position),
+    check("competition_team_captain_position_range", sql`${t.position} between 1 and 2`),
+    check("competition_team_captain_name_length", sql`char_length(${t.name}) between 1 and 80`),
+    check(
+      "competition_team_captain_phone_format",
+      sql`${t.phone} is null or ${t.phone} ~ '^[0-9]{10}$'`,
+    ),
   ],
 );
 

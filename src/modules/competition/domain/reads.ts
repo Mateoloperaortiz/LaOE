@@ -19,6 +19,7 @@ import {
   competitionRotation,
   competitionStaff,
   competitionTeam,
+  competitionTeamCaptain,
 } from "../schema";
 import { marketState, poolByOption } from "./betting-pure";
 import { type RubricLevel, rubricLevel, rubricTotal } from "./rubric-pure";
@@ -27,7 +28,8 @@ import type { BaseKind, Outcome } from "./scoring-pure";
 import { computeStandings, type StandingRow } from "./standings-pure";
 
 // Lecturas de The Games para el área de administración y la vitrina. Quién puede leer qué lo decide
-// src/app; aquí no hay datos personales salvo el nombre del personal asignado.
+// src/app; aquí no hay datos personales salvo el nombre del personal asignado y el nombre y el
+// celular de los capitanes (ADR-095).
 
 /** La clave del campo del formulario de inscripción que lleva el nombre del equipo. */
 export const TEAM_NAME_FIELD = "equipo";
@@ -75,6 +77,45 @@ export async function listTeams(competitionId: string, now = new Date()): Promis
     hasCode: row.codeHash !== null,
     codeLocked: row.codeLockedUntil !== null && row.codeLockedUntil > now,
   }));
+}
+
+export interface CaptainRow {
+  teamId: string;
+  position: number;
+  name: string;
+  phone: string | null;
+}
+
+/** Los capitanes con su celular (ADR-095), por número de equipo y puesto. Solo para la operación de
+ *  la competencia: nunca para la vitrina. */
+export async function listCaptains(competitionId: string): Promise<CaptainRow[]> {
+  return getDb()
+    .select({
+      teamId: competitionTeamCaptain.teamId,
+      position: competitionTeamCaptain.position,
+      name: competitionTeamCaptain.name,
+      phone: competitionTeamCaptain.phone,
+    })
+    .from(competitionTeamCaptain)
+    .innerJoin(competitionTeam, eq(competitionTeam.id, competitionTeamCaptain.teamId))
+    .where(eq(competitionTeam.competitionId, competitionId))
+    .orderBy(asc(competitionTeam.number), asc(competitionTeamCaptain.position));
+}
+
+/** Solo los nombres de los capitanes, para la vitrina: el celular no se lee. */
+export async function listCaptainNames(
+  competitionId: string,
+): Promise<Array<Omit<CaptainRow, "phone">>> {
+  return getDb()
+    .select({
+      teamId: competitionTeamCaptain.teamId,
+      position: competitionTeamCaptain.position,
+      name: competitionTeamCaptain.name,
+    })
+    .from(competitionTeamCaptain)
+    .innerJoin(competitionTeam, eq(competitionTeam.id, competitionTeamCaptain.teamId))
+    .where(eq(competitionTeam.competitionId, competitionId))
+    .orderBy(asc(competitionTeam.number), asc(competitionTeamCaptain.position));
 }
 
 export interface RegistrationCandidate {

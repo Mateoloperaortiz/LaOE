@@ -1,7 +1,9 @@
 import { z } from "zod";
 
 // La vitrina pública de The Games (ADR-090): lo que lee dias.oeeafit.com. JSON versionado, sin datos
-// personales ni ids de persona, validado antes de salir. Un cambio incompatible sube `version`.
+// personales ni ids de persona, validado antes de salir. La única excepción son los nombres de los
+// capitanes, cuando el ADMIN los publica (ADR-095); su celular nunca. Un cambio incompatible sube
+// `version`.
 
 export const SHOWCASE_VERSION = 1;
 
@@ -80,6 +82,8 @@ export const showcaseSchema = z.object({
     ),
     balances: z.array(team.extend({ balance: z.number().int() })),
   }),
+  /** Vacío mientras el ADMIN no publique los capitanes (ADR-095). */
+  captains: z.array(z.object({ number: z.number().int(), names: z.array(z.string()) })),
 });
 
 export type Showcase = z.infer<typeof showcaseSchema>;
@@ -101,6 +105,7 @@ export interface ShowcaseSource {
     firstDayOn: string | null;
     secondDayOn: string | null;
     bettingEnabled: boolean;
+    showCaptains: boolean;
   };
   teams: readonly ShowcaseTeam[];
   standings: Record<
@@ -148,6 +153,24 @@ export interface ShowcaseSource {
     pools: ReadonlyMap<string, number>;
   }>;
   balances: ReadonlyMap<string, number>;
+  /** Solo nombres: la vitrina nunca recibe el celular. */
+  captains: ReadonlyArray<{ teamId: string; position: number; name: string }>;
+}
+
+/** Los nombres de los capitanes por número de equipo, en el orden de la hoja. */
+function captainsOf(source: ShowcaseSource, numberOf: (id: string) => number | undefined) {
+  const byTeam = new Map<number, { position: number; name: string }[]>();
+  for (const captain of source.captains) {
+    const number = numberOf(captain.teamId);
+    if (number === undefined) continue;
+    byTeam.set(number, [...(byTeam.get(number) ?? []), captain]);
+  }
+  return [...byTeam]
+    .sort(([x], [y]) => x - y)
+    .map(([number, list]) => ({
+      number,
+      names: [...list].sort((x, y) => x.position - y.position).map((item) => item.name),
+    }));
 }
 
 /** Arma la vitrina sin `serverNow`, que se estampa en cada respuesta. `null` si no es pública. */
@@ -227,5 +250,6 @@ export function toShowcase(source: ShowcaseSource): ShowcaseBody | null {
             .sort((x, y) => y.balance - x.balance || x.number - y.number)
         : [],
     },
+    captains: competition.showCaptains ? captainsOf(source, (id) => byId.get(id)?.number) : [],
   };
 }

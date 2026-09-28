@@ -44,7 +44,8 @@ type Props = {
 
 const SHOWN = 20;
 
-function Issues({ items, more }: { items: string[]; more: string }) {
+/** La lista de problemas de una hoja pegada, con las primeras 20 y cuántas más hay. */
+export function Issues({ items, more }: { items: string[]; more: string }) {
   return (
     <ul className="m-0 flex list-disc flex-col gap-1 pl-5 text-sm">
       {items.slice(0, SHOWN).map((item) => (
