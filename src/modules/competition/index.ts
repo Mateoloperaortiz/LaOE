@@ -68,6 +68,8 @@ export {
   TEAM_NAME_FIELD,
   type TeamRow,
 } from "./domain/reads";
+export { clearRouteMemo, getTeamRoute } from "./domain/route";
+export { type RouteStop, type TeamRoute, teamRouteSchema } from "./domain/route-pure";
 export { RUBRIC_MAX_SCORE, RUBRIC_MIN_SCORE, type RubricLevel } from "./domain/rubric-pure";
 export type { ImportDayResult } from "./domain/schedule-import";
 export {

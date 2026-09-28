@@ -1,6 +1,6 @@
 # ADR-096: Hub de capitanes en DÍAS con la API de la casa
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-097)
 - Fecha: 2026-09-28
 - Relacionadas: ADR-011, ADR-012, ADR-014, ADR-072, ADR-082, ADR-085, ADR-089, ADR-090, ADR-091, ADR-095
 - Enmienda:
@@ -90,3 +90,7 @@ El 2026-09-28 Mateo decidió tres cosas:
     - rechaza una competencia que no está en vivo.
   - La auditoría no lleva datos personales.
 - **E2E:** la API con el origen de DÍAS. Entrar con un código errado y con uno bueno, apostar, ver la apuesta y salir.
+
+## Enmienda (2026-09-28, ADR-097)
+
+Regla 1: el estado del hub suma `route`, el recorrido del equipo de la sesión en las dos jornadas: base, rival y resultado de cada rotación. El hub sigue en `version: 1`. Ver [ADR-097](ADR-097-recorrido-de-cada-equipo.md).

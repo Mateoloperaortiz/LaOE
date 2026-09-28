@@ -17,7 +17,13 @@ import {
   signHubSession,
   toHubState,
 } from "./hub-pure";
-import { creditBalances, listMarkets, listTeamBetReturns, listTeams } from "./reads";
+import {
+  creditBalances,
+  listMarkets,
+  listRouteStops,
+  listTeamBetReturns,
+  listTeams,
+} from "./reads";
 
 // El hub de capitanes (ADR-096): el capitán entra con el código de su equipo, sin cuenta, y solo ve y
 // hace las apuestas de su equipo. La página es de DÍAS y esto es lo que sirve su API. Los fallos se
@@ -198,11 +204,12 @@ export async function getHubState(
 ): Promise<HubState | null> {
   const team = await getHubTeam(session);
   if (!team) return null;
-  const [teams, markets, balances, returns] = await Promise.all([
+  const [teams, markets, balances, returns, route] = await Promise.all([
     listTeams(team.competitionId),
     listMarkets(team.competitionId, now),
     creditBalances(team.competitionId),
     listTeamBetReturns(team.competitionId, team.teamId),
+    listRouteStops(team.competitionId, team.teamId),
   ]);
   const body = toHubState({
     competition: {
@@ -215,6 +222,7 @@ export async function getHubState(
     balance: balances.get(team.teamId) ?? 0,
     markets,
     returns,
+    route,
   });
   return hubStateSchema.parse({ ...body, serverNow: now.toISOString() });
 }

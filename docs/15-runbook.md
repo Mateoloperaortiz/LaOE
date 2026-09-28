@@ -821,6 +821,7 @@ Durante el evento:
 - Para abrir la vitrina se pasa la competencia a `LIVE` y se pone su slug en `edition.theGames.slug` de `dias`, que se vuelve a desplegar. Mientras tanto, `dias.oeeafit.com/the-games/?c=<slug>` abre cualquier competencia pública, como el ensayo.
 - Si la casa se cae, la vitrina muestra lo último que recibió con la hora. Respaldo: la tabla de Posiciones y el libro de puntos.
 - Si la carga pesa, se agrega una Cache Rule de Cloudflare para `/api/v1/*`. No hay límite por IP: el campus sale por NAT.
+- Cada equipo ve su recorrido del día en `dias.oeeafit.com/the-games/` con «Buscá tu equipo», o directo con `?equipo=N` (ADR-097). Los capitanes también lo ven en el hub.
 - Los capitanes apuestan en `dias.oeeafit.com/capitanes` con el código de la tarjeta (ADR-096), por la API `/api/v1/the-games/hub` de la casa: ven el saldo del equipo y las apuestas abiertas, y apuestan. Si un capitán no tiene celular, el operador registra la apuesta desde Apuestas con el mismo código. Si una tarjeta se pierde, «Volver a emitir todos» invalida las viejas y cierra las sesiones del hub: hay que imprimir y repartir las 30 otra vez.
 - Si un capitán objeta que su nombre salga en la vitrina, «Dejar de mostrarlos» la apaga para todos. Después se vuelve a cargar la hoja sin esa fila y se prende de nuevo.
 

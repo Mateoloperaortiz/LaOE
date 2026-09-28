@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { MarketStatus } from "./betting-pure";
+import { type RouteStop, routeStopSchema } from "./route-pure";
 
 // El hub de capitanes (ADR-096), sin I/O: la sesión es una cookie firmada del equipo, no de una
 // persona, con la competencia, el equipo, cuándo se emitió su código y cuándo vence. Volver a emitir
@@ -92,6 +93,8 @@ export const hubStateSchema = z.object({
       myBet: z.object({ pick: z.number().int(), stake: z.number().int() }).nullable(),
     }),
   ),
+  /** El recorrido del equipo en las dos jornadas (ADR-097). */
+  route: z.array(routeStopSchema),
   /** Las apuestas del equipo, de la más nueva a la más vieja. */
   bets: z.array(
     z.object({
@@ -123,6 +126,7 @@ export interface HubSource {
     bets: ReadonlyArray<{ id: string; teamId: string; pickTeamId: string; stake: number }>;
   }>;
   returns: ReadonlyMap<string, { kind: "PAYOUT" | "REFUND"; amount: number }>;
+  route: readonly RouteStop[];
 }
 
 /** Arma el estado del hub para el equipo de la sesión, sin `serverNow`. */
@@ -146,6 +150,7 @@ export function toHubState(source: HubSource): Omit<HubState, "serverNow"> {
     },
     team: { number: own?.number ?? 0, name: own?.name ?? "", color: own?.color ?? null },
     balance: source.balance,
+    route: [...source.route],
     markets: source.markets
       .filter((market) => market.status === "OPEN")
       .map((market) => {

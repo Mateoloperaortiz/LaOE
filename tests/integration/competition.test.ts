@@ -9,6 +9,7 @@ import {
   type CompetitionActor,
   cancelMarketAs,
   clearCaptainsAs,
+  clearRouteMemo,
   clearShowcaseMemo,
   closeRotationAs,
   competitionRoles,
@@ -26,6 +27,7 @@ import {
   getLiveRotations,
   getScheduleForValidation,
   getShowcase,
+  getTeamRoute,
   grantStartingCreditsAs,
   importCaptainsAs,
   importDayScheduleAs,
@@ -687,6 +689,7 @@ describe("The Games", () => {
         expect(await bet(2, 300)).toMatchObject({ balance: 700 });
         await expect(bet(2, 100)).rejects.toThrow(t("T-2783"));
         const state = await getHubState(entered.session);
+        expect(state?.route).toEqual([]);
         expect(state).toMatchObject({
           team: { number: 1, name: "E1" },
           balance: 700,
@@ -978,6 +981,55 @@ describe("The Games", () => {
       const json = JSON.stringify(showcase);
       expect(json).not.toContain("@example.com");
       expect(json).not.toContain(adminId);
+    });
+  });
+
+  describe("recorrido (ADR-097)", () => {
+    it("cada equipo ve sus bases, su rival y cómo le fue, sin ids", async () => {
+      const { id, adminId } = await seedCompetition();
+      const { teams } = await seedField(id, adminId);
+      await generateDayScheduleAs(admin(adminId), id, { day: 1, rotations: 2, plannedMinutes: 20 });
+      clearRouteMemo();
+      expect(await getTeamRoute("the-games-2026", 1)).toBeNull();
+      await setCompetitionStatusAs(admin(adminId), id, "LIVE");
+      await advanceRotationAs(admin(adminId), id);
+
+      clearRouteMemo();
+      const route = await getTeamRoute("the-games-2026", 1);
+      expect(route?.team).toMatchObject({ number: 1, name: "Equipo 1" });
+      expect(route?.stops.map(({ day, rotation, status }) => ({ day, rotation, status }))).toEqual([
+        { day: 1, rotation: 1, status: "ACTIVE" },
+        { day: 1, rotation: 2, status: "PENDING" },
+      ]);
+      expect(route?.stops[0]).toMatchObject({ result: null, points: null });
+
+      const { current } = await getLiveRotations(id);
+      const mine = current?.matchups.find(
+        (matchup) => matchup.teamA.number === 1 || matchup.teamB.number === 1,
+      );
+      if (!mine) throw new Error("sin enfrentamiento del equipo 1");
+      const rival = mine.teamA.number === 1 ? mine.teamB : mine.teamA;
+      expect(route?.stops[0]).toMatchObject({
+        base: { name: mine.base.name, kind: mine.base.kind },
+        rival: { number: rival.number, name: rival.name },
+      });
+      await recordResultAs(admin(adminId), id, {
+        matchupId: mine.id,
+        outcome: mine.teamA.number === 1 ? "A_WIN" : "B_WIN",
+      });
+      clearRouteMemo();
+      const after = await getTeamRoute("the-games-2026", 1);
+      expect(after?.stops[0]).toMatchObject({
+        result: "WIN",
+        points: mine.base.kind === "MACRO" ? 2000 : 1000,
+      });
+      clearRouteMemo();
+      expect((await getTeamRoute("the-games-2026", rival.number))?.stops[0]).toMatchObject({
+        result: "LOSS",
+        points: 0,
+      });
+      expect(JSON.stringify(after)).not.toContain(teams[0] ?? "sin-id");
+      expect(await getTeamRoute("the-games-2026", 99)).toBeNull();
     });
   });
 
