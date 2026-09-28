@@ -288,6 +288,13 @@
       "when": 1790263101521,
       "tag": "0040_the_games",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1790605860182,
+      "tag": "0041_the_games_capitanes",
+      "breakpoints": true
     }
   ]
 }

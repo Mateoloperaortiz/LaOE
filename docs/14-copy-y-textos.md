@@ -2557,3 +2557,29 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2923 | The Games: Hoja muy larga | La hoja pegada es demasiado larga. Pegá solo las cuatro columnas de una jornada. | MATEO | Propuesta |
 | T-2924 | The Games: Importación bloqueada | No se importó nada. Corregí la hoja y volvé a importarla. | MATEO | Propuesta |
 | T-2925 | The Games: Importación con advertencias | La hoja no tiene errores, pero sí advertencias. Revisalas y, si están bien, confirmá para importarla. | MATEO | Propuesta |
+
+## Capitanes de The Games (ADR-095)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-3015 | The Games: Columna de capitanes | Capitanes | MATEO | Propuesta |
+| T-3016 | The Games: Ayuda de capitanes | Copiá de la hoja de la OE tres columnas, Equipo, Nombre y Celular, con o sin encabezado, y pegalas acá. El equipo va por su número («Equipo 7» o «7») o por su nombre. Una fila con más columnas se rechaza: no pegués la fila completa, que trae la cédula y datos de salud. Cada carga reemplaza a todos los capitanes. | MATEO | Propuesta |
+| T-3017 | The Games: Cargar capitanes | Cargar los capitanes desde la hoja | MATEO | Propuesta |
+| T-3018 | The Games: Campo de capitanes | Tres columnas pegadas | MATEO | Propuesta |
+| T-3019 | The Games: Botón de capitanes | Cargar capitanes | MATEO | Propuesta |
+| T-3020 | The Games: Cargando capitanes | Cargando… | MATEO | Propuesta |
+| T-3021 | The Games: Capitanes cargados | Listo: quedaron {capitanes} capitanes en {equipos} equipos. | MATEO | Propuesta |
+| T-3022 | The Games: Capitanes sin columnas | Línea {linea}: faltan columnas. Van Equipo, Nombre y Celular. | MATEO | Propuesta |
+| T-3023 | The Games: Capitanes con columnas de más | Línea {linea}: sobran columnas. Pegá solo Equipo, Nombre y Celular, no la fila completa de la hoja. | MATEO | Propuesta |
+| T-3024 | The Games: Capitán sin equipo | Línea {linea}: no hay un equipo «{equipo}» en esta competencia. | MATEO | Propuesta |
+| T-3025 | The Games: Nombre de capitán largo | Línea {linea}: el nombre pasa de 80 caracteres. | MATEO | Propuesta |
+| T-3026 | The Games: Celular inválido | Línea {linea}: el celular no tiene 10 dígitos. | MATEO | Propuesta |
+| T-3027 | The Games: Demasiados capitanes | Línea {linea}: el equipo {equipo} ya tiene dos capitanes. | MATEO | Propuesta |
+| T-3028 | The Games: Resumen de capitanes | Hay {capitanes} capitanes cargados en {equipos} equipos. | MATEO | Propuesta |
+| T-3029 | The Games: Hoja de capitanes muy larga | La hoja pegada es demasiado larga. Pegá solo las tres columnas de los capitanes. | MATEO | Propuesta |
+| T-3030 | The Games: Vitrina de capitanes | La vitrina muestra los nombres de los capitanes; el celular nunca. · La vitrina no muestra los capitanes. | MATEO | Propuesta |
+| T-3031 | The Games: Publicar capitanes | Mostrar los nombres en la vitrina · Dejar de mostrarlos | MATEO | Propuesta |
+| T-3032 | The Games: Borrar capitanes | Borrar los capitanes | MATEO | Propuesta |
+| T-3033 | The Games: Capitanes solo ADMIN | Solo ADMIN carga, publica o borra los capitanes. | MATEO | Propuesta |
+| T-3034 | The Games: Ayuda de la vitrina de capitanes | Prendela solo con la autorización de la inscripción confirmada. Archivar la competencia borra los capitanes. | MATEO | Propuesta |
+| T-3035 | The Games: Llamar al capitán | Llamar a {nombre} | MATEO | Propuesta |

@@ -6,6 +6,7 @@ import {
   getCompetition,
   getLiveRotations,
   listBases,
+  listCaptains,
   listExtras,
   listMarkets,
   listRotations,
@@ -67,9 +68,13 @@ describe("ensayo sintético de The Games", () => {
       isRehearsal: true,
       bettingEnabled: true,
       startingCredits: 1000,
+      showCaptains: true,
     });
     const teams = await listTeams(id);
     expect(teams).toHaveLength(30);
+    const captains = await listCaptains(id);
+    expect(captains).toHaveLength(60);
+    expect(captains[0]).toMatchObject({ name: "Ana de ensayo 1", phone: "3000000101" });
     expect(teams.every((team) => team.hasCode)).toBe(true);
     const bases = await listBases(id);
     expect(bases).toHaveLength(30);
@@ -132,7 +137,10 @@ describe("ensayo sintético de The Games", () => {
     expect(await getCompetition(first.competitionId)).toMatchObject({
       status: "LIVE",
       isRehearsal: true,
+      showCaptains: false,
     });
+    // El ensayo de producción no lleva personas inventadas: tampoco capitanes.
+    expect(await listCaptains(first.competitionId)).toEqual([]);
     const staff = await listStaff(first.competitionId);
     expect(staff).toEqual([expect.objectContaining({ personId: adminId, role: "JUDGE" })]);
 

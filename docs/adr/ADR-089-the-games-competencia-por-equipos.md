@@ -1,6 +1,6 @@
 # ADR-089: The Games: competencia por equipos de Días EAFIT
 
-- Estado: Aceptada (enmendada por ADR-093 y ADR-094); implementación en curso
+- Estado: Aceptada (enmendada por ADR-093, ADR-094 y ADR-095); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-002, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014, ADR-020, ADR-036, ADR-047, ADR-058, ADR-064, ADR-072, ADR-075, ADR-082, ADR-085, ADR-090, ADR-091
 - Enmienda: ADR-011 (el cargo de Dirección de The Games habilita, por datos, la operación de la competencia de su edición), ADR-064 (esa entrega no ampliaba permisos por cargo: este lo hace, con alcance cerrado)
@@ -85,3 +85,7 @@ Regla 8: un equipo que repite base en la jornada deja de ser advertencia y pasa 
 ## Enmienda (2026-09-24, ADR-094)
 
 Regla 8: además de generarse, el calendario de una jornada sin rotaciones se puede **importar** pegando la hoja de la OE, con las columnas Equipo, Rotación, Base y Rival. La hoja tiene que ser coherente y pasa por el mismo validador, y la jornada entra completa o no entra. Regla 3: si la competencia no tiene equipos, la importación crea los de la hoja, numerados en su orden. Si ya tiene, los nombres tienen que coincidir. Las bases que falten se crean como «Base N», normales. Ver [ADR-094](ADR-094-calendario-de-the-games-desde-la-hoja-de-la-oe.md).
+
+## Enmienda (2026-09-28, ADR-095)
+
+Reglas 3 y 4: en 2026 los capitanes no se inscriben por formulario. La OE los inscribió en Epik y entregó su hoja. El ADMIN pega de esa hoja tres columnas (Equipo, Nombre y Celular), y cada equipo guarda hasta dos capitanes con su nombre y su celular, sin ningún otro dato de la hoja. La operación de la competencia ve ese contacto en Equipos; los jueces no. Archivar la competencia lo borra. Ver [ADR-095](ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md).

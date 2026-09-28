@@ -262,12 +262,13 @@ Presupuesto del comité ([ADR-059](adr/ADR-059-presupuesto-del-comite.md) con la
 
 ### competition
 
-The Games, la competencia por equipos de Días EAFIT ([ADR-089](adr/ADR-089-the-games-competencia-por-equipos.md)), su rúbrica y sus apuestas ([ADR-091](adr/ADR-091-apuestas-de-the-games.md)); migración `0040`, 16 tablas. Importa `events`, `forms` y `people` por esquema y por API; nadie lo importa salvo `src/app`. Ninguna tabla guarda datos personales de los capitanes; los puntos de aquí no son GH Points.
+The Games, la competencia por equipos de Días EAFIT ([ADR-089](adr/ADR-089-the-games-competencia-por-equipos.md)), su rúbrica, sus apuestas ([ADR-091](adr/ADR-091-apuestas-de-the-games.md)) y sus capitanes ([ADR-095](adr/ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md)); migraciones `0040` y `0041`, 17 tablas. Importa `events`, `forms` y `people` por esquema y por API; nadie lo importa salvo `src/app`. De los capitanes se guarda solo el nombre y el celular, que se borran al archivar la competencia; los puntos de aquí no son GH Points.
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
-| `Competition` | `editionId`, `slug` (único), `name`, `status` (`DRAFT`, `LIVE`, `FINISHED`, `ARCHIVED`), `isRehearsal`, `firstDayOn?`, `secondDayOn?`, `registrationFormId?`, `bettingEnabled`, `startingCredits?`, `allowSelfBet` | Una por edición (más la de ensayo); en `DRAFT` no sale en la vitrina; cerrada no admite cambios |
+| `Competition` | `editionId`, `slug` (único), `name`, `status` (`DRAFT`, `LIVE`, `FINISHED`, `ARCHIVED`), `isRehearsal`, `firstDayOn?`, `secondDayOn?`, `registrationFormId?`, `bettingEnabled`, `startingCredits?`, `allowSelfBet`, `showCaptains` | Una por edición (más la de ensayo); en `DRAFT` no sale en la vitrina; cerrada no admite cambios; `showCaptains` lo prende solo ADMIN y archivar lo apaga |
 | `CompetitionTeam` | `competitionId`, `number` (1 a 99, único), `name` (único sin mayúsculas), `color?`, `status` (`ACTIVE`, `WITHDRAWN`), `submissionId?`, `codeHash?`, `codeIssuedAt?`, `codeFailures`, `codeLockedUntil?` | El capitán no es usuario; el código del equipo se guarda solo como hash con secreto y se bloquea 15 minutos tras cinco fallos |
+| `CompetitionTeamCaptain` | `teamId`, `position` (1 o 2, único por equipo), `name` (1 a 80), `phone?` (10 dígitos) | Solo nombre y celular, pegados de la hoja de la OE por ADMIN; el celular lo ve la operación y nunca la vitrina; archivar la competencia los borra |
 | `CompetitionBase` | `competitionId`, `day` (1 o 2), `orderIndex`, `name`, `kind` (`NORMAL`, `MACRO`), `location?` | Las de inflables son `MACRO` (2000/1000/0) |
 | `CompetitionStaff` | `competitionId`, `personId`, `role` (`OPERATOR`, `JUDGE`), `baseId?` | El juez va ligado a una base (check); se incluye en Mis datos |
 | `CompetitionRotation` | `competitionId`, `day`, `number`, `status` (`PENDING`, `ACTIVE`, `CLOSED`), `plannedSeconds`, `startsAt?`, `endsAt?`, `closedAt?` | Una sola `ACTIVE` por competencia (unique parcial); cerrar no completa enfrentamientos |

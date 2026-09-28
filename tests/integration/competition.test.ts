@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -8,6 +8,7 @@ import {
   assignStaffAs,
   type CompetitionActor,
   cancelMarketAs,
+  clearCaptainsAs,
   clearShowcaseMemo,
   closeRotationAs,
   competitionRoles,
@@ -18,12 +19,15 @@ import {
   creditBalances,
   deleteDayScheduleAs,
   generateDayScheduleAs,
+  getCompetition,
   getLiveRotations,
   getScheduleForValidation,
   getShowcase,
   grantStartingCreditsAs,
+  importCaptainsAs,
   importDayScheduleAs,
   issueTeamCodesAs,
+  listCaptains,
   listExtras,
   listMyCompetitionRoles,
   listRegistrationCandidates,
@@ -33,6 +37,7 @@ import {
   resolveMarketAs,
   saveBaseAs,
   saveRotationMatchupsAs,
+  setCaptainsVisibilityAs,
   setCompetitionStatusAs,
   setExtraPointsAs,
   setMarketOpenAs,
@@ -53,6 +58,7 @@ import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
 import { addMacroeventDirector } from "@/modules/people/domain/appointments";
 import { membership } from "@/modules/people/schema";
+import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
 import { seedForm, seedMember, seedSubmission, seedTerm, seedVeteran } from "./factories";
@@ -846,6 +852,116 @@ describe("The Games", () => {
       const json = JSON.stringify(showcase);
       expect(json).not.toContain("@example.com");
       expect(json).not.toContain(adminId);
+    });
+  });
+
+  describe("capitanes (ADR-095)", () => {
+    // Nombres y celulares sintéticos, pegados como vienen de la hoja: con encabezado y con signos.
+    const sheet = [
+      "Equipo\tNombre\tCelular",
+      "Equipo 1\tAna de Ensayo\t300 000 0001",
+      "Equipo 1\tLuis de Ensayo\t3000000002",
+      "Equipo 30\tSara de Ensayo\t+57 3000000030",
+    ].join("\n");
+
+    it("el ADMIN carga, cada carga reemplaza y una hoja con problemas no guarda nada", async () => {
+      const { id, adminId } = await seedCompetition();
+      await seedField(id, adminId);
+      expect(await importCaptainsAs(admin(adminId), id, { text: sheet })).toMatchObject({
+        saved: true,
+        captains: 3,
+        teams: 2,
+      });
+      expect(
+        (await listCaptains(id)).map(({ position, name, phone }) => ({ position, name, phone })),
+      ).toEqual([
+        { position: 1, name: "Ana de Ensayo", phone: "3000000001" },
+        { position: 2, name: "Luis de Ensayo", phone: "3000000002" },
+        { position: 1, name: "Sara de Ensayo", phone: "3000000030" },
+      ]);
+
+      const blocked = await importCaptainsAs(admin(adminId), id, {
+        text: "Equipo 2\tTomás de Ensayo\t3000000003\nEquipo 31\tNadie de Ensayo\t3000000031",
+      });
+      expect(blocked).toMatchObject({ saved: false, captains: 0 });
+      expect(blocked.errors).toEqual([t("T-3024", { linea: 2, equipo: "Equipo 31" })]);
+      expect(await listCaptains(id)).toHaveLength(3);
+
+      await importCaptainsAs(admin(adminId), id, { text: "2\tTomás de Ensayo\t" });
+      expect((await listCaptains(id)).map(({ name, phone }) => ({ name, phone }))).toEqual([
+        { name: "Tomás de Ensayo", phone: null },
+      ]);
+
+      // La auditoría solo cuenta: ni nombres ni celulares.
+      const rows = await getDb()
+        .select({ action: auditLog.action, before: auditLog.before, after: auditLog.after })
+        .from(auditLog)
+        .where(like(auditLog.action, "competition.captains.%"));
+      expect(rows.map((row) => row.after)).toEqual([
+        { captains: 3, teams: 2 },
+        { captains: 1, teams: 1 },
+      ]);
+      const audited = JSON.stringify(rows);
+      expect(audited).not.toContain("Ensayo");
+      expect(audited).not.toMatch(/30000000\d\d/);
+    });
+
+    it("la Dirección opera la competencia y ve los capitanes, pero no carga, publica ni borra", async () => {
+      const { id, editionId, termId, adminId } = await seedCompetition();
+      await seedField(id, adminId);
+      await importCaptainsAs(admin(adminId), id, { text: sheet });
+      const directorId = await seedVeteran("direccion-games@example.com");
+      await runCommand(SYSTEM_ACTOR, (ctx) =>
+        addMacroeventDirector(ctx, {
+          editionId,
+          termId,
+          personId: directorId,
+          roleCode: "THE_GAMES",
+        }),
+      );
+      expect((await competitionRoles(member(directorId), id)).operator).toBe(true);
+      await expect(importCaptainsAs(member(directorId), id, { text: sheet })).rejects.toThrow(
+        t("T-3033"),
+      );
+      await expect(setCaptainsVisibilityAs(member(directorId), id, true)).rejects.toThrow(
+        t("T-3033"),
+      );
+      await expect(clearCaptainsAs(member(directorId), id)).rejects.toThrow(t("T-3033"));
+      expect(await listCaptains(id)).toHaveLength(3);
+      expect((await getCompetition(id))?.showCaptains).toBe(false);
+    });
+
+    it("la vitrina lleva los nombres solo publicada y nunca el celular; archivar los borra", async () => {
+      const { id, adminId } = await seedCompetition();
+      await seedField(id, adminId);
+      await generateDayScheduleAs(admin(adminId), id, { day: 1, rotations: 1, plannedMinutes: 20 });
+      await setCompetitionStatusAs(admin(adminId), id, "LIVE");
+      await importCaptainsAs(admin(adminId), id, { text: sheet });
+
+      clearShowcaseMemo();
+      const hidden = await getShowcase("the-games-2026");
+      expect(hidden?.captains).toEqual([]);
+      expect(JSON.stringify(hidden)).not.toContain("Ensayo");
+
+      await setCaptainsVisibilityAs(admin(adminId), id, true);
+      clearShowcaseMemo();
+      const shown = await getShowcase("the-games-2026");
+      expect(shown?.captains).toEqual([
+        { number: 1, names: ["Ana de Ensayo", "Luis de Ensayo"] },
+        { number: 30, names: ["Sara de Ensayo"] },
+      ]);
+      expect(JSON.stringify(shown)).not.toMatch(/30000000\d\d/);
+
+      await setCompetitionStatusAs(admin(adminId), id, "ARCHIVED");
+      expect(await listCaptains(id)).toEqual([]);
+      expect((await getCompetition(id))?.showCaptains).toBe(false);
+      clearShowcaseMemo();
+      expect((await getShowcase("the-games-2026"))?.captains).toEqual([]);
+      const [purge] = await getDb()
+        .select({ after: auditLog.after })
+        .from(auditLog)
+        .where(eq(auditLog.action, "competition.captains.clear"));
+      expect(purge?.after).toEqual({ captains: 3, showCaptains: false, reason: "ARCHIVED" });
     });
   });
 });

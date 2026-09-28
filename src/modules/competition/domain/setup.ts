@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext, Executor } from "@/db/tx";
@@ -19,6 +19,7 @@ import {
   competitionPointEntry,
   competitionStaff,
   competitionTeam,
+  competitionTeamCaptain,
 } from "../schema";
 import { assertOperator, type CompetitionActor, THE_GAMES_ROLE_CODE } from "./access";
 import { generateTeamCode, hashTeamCode } from "./codes-pure";
@@ -41,7 +42,8 @@ const day = z.coerce
   .pipe(z.union([z.literal(1), z.literal(2)]));
 const idField = z.string().trim().min(1);
 
-async function lockedCompetition(ctx: CommandContext, competitionId: string) {
+/** Bloquea la competencia sin mirar su estado. */
+export async function lockedCompetition(ctx: CommandContext, competitionId: string) {
   const [row] = await ctx.tx
     .select()
     .from(competition)
@@ -49,6 +51,19 @@ async function lockedCompetition(ctx: CommandContext, competitionId: string) {
     .for("update");
   if (!row) throw new DomainError(t("T-2764"));
   return row;
+}
+
+/** Borra los capitanes de todos los equipos de la competencia (ADR-095) y dice cuántos había. */
+export async function purgeCaptains(ctx: CommandContext, competitionId: string): Promise<number> {
+  const teams = ctx.tx
+    .select({ id: competitionTeam.id })
+    .from(competitionTeam)
+    .where(eq(competitionTeam.competitionId, competitionId));
+  const removed = await ctx.tx
+    .delete(competitionTeamCaptain)
+    .where(inArray(competitionTeamCaptain.teamId, teams))
+    .returning({ id: competitionTeamCaptain.id });
+  return removed.length;
 }
 
 /** Bloquea la competencia y comprueba que todavía admite cambios. Todos los comandos la bloquean
@@ -169,7 +184,11 @@ export async function setCompetitionStatus(
     throw new DomainError(t("T-2793"));
   }
   if (row.status === status) return;
-  await ctx.tx.update(competition).set({ status }).where(eq(competition.id, competitionId));
+  const archiving = status === "ARCHIVED";
+  await ctx.tx
+    .update(competition)
+    .set(archiving ? { status, showCaptains: false } : { status })
+    .where(eq(competition.id, competitionId));
   await ctx.audit({
     action: "competition.status",
     entityType: "competition",
@@ -177,6 +196,19 @@ export async function setCompetitionStatus(
     before: { status: row.status },
     after: { status },
   });
+  // Archivar borra los capitanes y apaga su vitrina (ADR-095 regla 5); la auditoría solo cuenta.
+  if (archiving) {
+    const removed = await purgeCaptains(ctx, competitionId);
+    if (removed > 0 || row.showCaptains) {
+      await ctx.audit({
+        action: "competition.captains.clear",
+        entityType: "competition",
+        entityId: competitionId,
+        before: { showCaptains: row.showCaptains },
+        after: { captains: removed, showCaptains: false, reason: "ARCHIVED" },
+      });
+    }
+  }
 }
 
 // --- Equipos -------------------------------------------------------------------------------------

@@ -12,7 +12,15 @@ const competition = {
   firstDayOn: "2026-10-01",
   secondDayOn: null,
   bettingEnabled: true,
+  showCaptains: false,
 };
+// El celular va de más a propósito: la vitrina no lo tiene que copiar aunque le llegue.
+const captains = [
+  { teamId: "team-b", position: 1, name: "Sara de Ensayo", phone: "3000000030" },
+  { teamId: "team-a", position: 2, name: "Luis de Ensayo", phone: "3000000002" },
+  { teamId: "team-a", position: 1, name: "Ana de Ensayo", phone: "3000000001" },
+  { teamId: "team-x", position: 1, name: "Sin equipo", phone: null },
+];
 const teams = [
   { id: "team-a", number: 1, name: "Titanes", color: "#a53420" },
   { id: "team-b", number: 30, name: "Olímpicos", color: null },
@@ -87,6 +95,7 @@ function source(overrides: Partial<Parameters<typeof toShowcase>[0]> = {}) {
       ["team-a", 700],
       ["team-b", 1000],
     ]),
+    captains,
     ...overrides,
   };
 }
@@ -118,6 +127,24 @@ describe("vitrina", () => {
     expect(toShowcase(source({ competition: { ...competition, status: "DRAFT" } }))).toBeNull();
     const body = toShowcase(source({ competition: { ...competition, bettingEnabled: false } }));
     expect(body?.betting).toEqual({ enabled: false, markets: [], balances: [] });
+  });
+
+  it("los capitanes solo salen publicados, por número de equipo y sin celular (ADR-095)", () => {
+    const hidden = toShowcase(source());
+    expect(hidden?.captains).toEqual([]);
+    expect(JSON.stringify(hidden)).not.toContain("Ensayo");
+
+    const body = toShowcase(source({ competition: { ...competition, showCaptains: true } }));
+    if (!body) throw new Error("sin vitrina");
+    const parsed = showcaseSchema.parse({ ...body, serverNow: "2026-10-01T18:16:00.000Z" });
+    expect(parsed.captains).toEqual([
+      { number: 1, names: ["Ana de Ensayo", "Luis de Ensayo"] },
+      { number: 30, names: ["Sara de Ensayo"] },
+    ]);
+    const json = JSON.stringify(parsed);
+    expect(json).not.toMatch(/300000000\d|3000000030/);
+    expect(json).not.toContain("team-a");
+    expect(json).not.toContain("Sin equipo");
   });
 });
 
