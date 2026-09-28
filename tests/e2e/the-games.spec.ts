@@ -123,6 +123,16 @@ test.describe("operador", () => {
     expect(body.version).toBe(1);
     expect(body.currentRotation.matchups).toHaveLength(3);
     expect(JSON.stringify(body)).not.toContain("@");
+
+    // El recorrido del equipo 1 (ADR-097): tres rotaciones y ganó la primera.
+    const route = await request.get("/api/v1/the-games/the-games-e2e/equipos/1", {
+      headers: { origin: "http://localhost:3101" },
+    });
+    expect(route.status()).toBe(200);
+    const recorrido = await route.json();
+    expect(recorrido.team).toMatchObject({ number: 1, name: "Equipo sintético 1" });
+    expect(recorrido.stops).toHaveLength(3);
+    expect(recorrido.stops[0]).toMatchObject({ day: 1, rotation: 1, result: "WIN" });
   });
 });
 

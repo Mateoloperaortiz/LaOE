@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { listSubmissions } from "@/modules/forms";
 import { getPeopleByIds } from "@/modules/people";
@@ -22,6 +22,7 @@ import {
   competitionTeamCaptain,
 } from "../schema";
 import { marketState, poolByOption } from "./betting-pure";
+import { type RouteStop, toRouteStops } from "./route-pure";
 import { type RubricLevel, rubricLevel, rubricTotal } from "./rubric-pure";
 import type { Day, ScheduleRotation } from "./schedule-pure";
 import type { BaseKind, Outcome } from "./scoring-pure";
@@ -276,6 +277,64 @@ async function matchupsOf(rotationIds: string[]): Promise<MatchupView[]> {
       outcome: result?.outcome ?? null,
       notes: result?.notes ?? "",
     };
+  });
+}
+
+/** Las paradas de un equipo en las dos jornadas (ADR-097): solo sus enfrentamientos, con el rival y
+ *  el resultado vigente. */
+export async function listRouteStops(competitionId: string, teamId: string): Promise<RouteStop[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      matchup: competitionMatchup,
+      base: competitionBase,
+      rotation: {
+        id: competitionRotation.id,
+        day: competitionRotation.day,
+        number: competitionRotation.number,
+        status: competitionRotation.status,
+      },
+    })
+    .from(competitionMatchup)
+    .innerJoin(competitionRotation, eq(competitionRotation.id, competitionMatchup.rotationId))
+    .innerJoin(competitionBase, eq(competitionBase.id, competitionMatchup.baseId))
+    .where(
+      and(
+        eq(competitionRotation.competitionId, competitionId),
+        or(eq(competitionMatchup.teamAId, teamId), eq(competitionMatchup.teamBId, teamId)),
+      ),
+    );
+  if (rows.length === 0) return [];
+  const teamIds = [...new Set(rows.flatMap((row) => [row.matchup.teamAId, row.matchup.teamBId]))];
+  const teams = await db.select().from(competitionTeam).where(inArray(competitionTeam.id, teamIds));
+  const teamById = new Map(teams.map((team) => [team.id, team]));
+  const results = await db
+    .select({ matchupId: competitionResult.matchupId, outcome: competitionResult.outcome })
+    .from(competitionResult)
+    .where(
+      and(
+        inArray(
+          competitionResult.matchupId,
+          rows.map((row) => row.matchup.id),
+        ),
+        isNull(competitionResult.supersededAt),
+      ),
+    );
+  const outcomeOf = new Map(results.map((result) => [result.matchupId, result.outcome]));
+  const teamView = (id: string) => {
+    const team = teamById.get(id);
+    return { id, number: team?.number ?? 0, name: team?.name ?? "", color: team?.color ?? null };
+  };
+  return toRouteStops({
+    teamId,
+    rotations: rows.map((row) => row.rotation),
+    matchups: rows.map(({ matchup, base }) => ({
+      rotationId: matchup.rotationId,
+      base: { name: base.name, kind: base.kind, location: base.location },
+      teamA: teamView(matchup.teamAId),
+      teamB: teamView(matchup.teamBId),
+      outcome: outcomeOf.get(matchup.id) ?? null,
+    })),
   });
 }
 
