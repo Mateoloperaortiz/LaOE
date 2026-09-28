@@ -92,4 +92,4 @@ Reglas 3 y 4: en 2026 los capitanes no se inscriben por formulario. La OE los in
 
 ## Enmienda (2026-09-28, ADR-096)
 
-Regla 3: el código del equipo también abre el hub de apuestas en `oeeafit.com/capitanes`. Ahí el capitán ve el saldo de su equipo y las apuestas abiertas, y apuesta. El hub respeta el bloqueo del código, y volver a emitirlo cierra las sesiones del hub. Ver [ADR-096](ADR-096-hub-de-apuestas-de-los-capitanes.md).
+Regla 3: el código del equipo también abre el hub de apuestas en `dias.oeeafit.com/capitanes`, que usa la API de la casa. Ahí el capitán ve el saldo de su equipo y las apuestas abiertas, y apuesta. El hub respeta el bloqueo del código, y volver a emitirlo cierra las sesiones del hub. Ver [ADR-096](ADR-096-hub-de-apuestas-de-los-capitanes.md).

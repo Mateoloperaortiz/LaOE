@@ -47,4 +47,4 @@ Regla 2: la vitrina puede llevar los nombres de los capitanes de cada equipo, en
 
 ## Enmienda (2026-09-28, ADR-096)
 
-Regla 7: hay una escritura pública fuera de `/admin`, la apuesta del equipo en el hub de capitanes. La autoriza el código del equipo, que abre una sesión firmada del equipo, no una cuenta ni la sesión de una persona. La API de lectura de la vitrina no cambia. Ver [ADR-096](ADR-096-hub-de-apuestas-de-los-capitanes.md).
+Regla 7: la primera escritura de la API v1 es el hub de capitanes, en `/api/v1/the-games/hub`. Sirve para entrar con el código del equipo, apostar y salir. La autoriza una sesión firmada del equipo, no una cuenta ni la sesión de una persona. Usa CORS con credenciales solo para el origen de DÍAS, y las escrituras desde otro origen responden 403. La vitrina no cambia: sigue sin credenciales. Ver [ADR-096](ADR-096-hub-de-apuestas-de-los-capitanes.md).
