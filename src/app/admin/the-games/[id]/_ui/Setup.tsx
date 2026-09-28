@@ -196,6 +196,7 @@ export function Equipos({
   const pending = candidates.filter((candidate) => candidate.teamId === null);
   const captainsOf = (teamId: string) => captains.filter((captain) => captain.teamId === teamId);
   const captainTeams = new Set(captains.map((captain) => captain.teamId)).size;
+  const hub = hubAddress();
   return (
     <Section title={tList("T-2805")[1] ?? ""}>
       {teams.length === 0 ? (
@@ -374,7 +375,7 @@ export function Equipos({
           card: t("T-2820", { n: "{n}", nombre: "{nombre}" }),
           print: t("T-2821"),
           pending: t("T-1501"),
-          hub: t("T-3058", { direccion: hubAddress() }),
+          ...(hub ? { hub: t("T-3039", { direccion: hub }) } : {}),
         }}
       />
     </Section>

@@ -282,9 +282,11 @@ test.describe("capitanes", () => {
 });
 
 test.describe("hub de capitanes", () => {
-  test.use({ storageState: { cookies: [], origins: [] }, viewport: { width: 390, height: 844 } });
+  test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("el capitán entra con el código del equipo, apuesta y sale", async ({ page }) => {
+  test("la API del hub: entrar con el código del equipo, apostar, ver la apuesta y salir", async ({
+    request,
+  }) => {
     const { id, admin } = await seedCompetition("the-games-hub");
     await updateCompetitionSettingsAs(admin, id, {
       name: "The Games de prueba",
@@ -305,29 +307,66 @@ test.describe("hub de capitanes", () => {
     });
     await setMarketOpenAs(admin, id, market.id, true);
 
-    await page.goto("/capitanes");
-    const campo = page.getByLabel(t("T-3038"));
-    await campo.fill("ZZZZ-ZZZZ");
-    await page.getByRole("button", { name: t("T-3039") }).click();
-    await expect(page.getByText(t("T-3040"))).toBeVisible();
-    await sinViolaciones(page);
+    // DÍAS en local; la casa de las pruebas lo tiene en PUBLIC_API_ORIGINS.
+    const origin = "http://localhost:3101";
+    const json = { origin, "content-type": "application/json" };
+    const hub = "/api/v1/the-games/hub";
 
-    await page.getByLabel(t("T-3038")).fill(formatTeamCode(team(1).code).toLowerCase());
-    await page.getByRole("button", { name: t("T-3039") }).click();
-    await expect(page.getByText(t("T-3042", { n: 1, nombre: "Equipo sintético 1" }))).toBeVisible();
-    await expect(page.getByText(t("T-3043", { saldo: 1000 }))).toBeVisible();
-    await sinViolaciones(page);
+    const anon = await request.get(hub, { headers: { origin } });
+    expect(anon.status()).toBe(401);
+    expect(anon.headers()["access-control-allow-origin"]).toBe(origin);
+    expect(anon.headers()["access-control-allow-credentials"]).toBe("true");
+    expect(anon.headers()["cache-control"]).toBe("no-store");
 
-    await page.getByRole("radio", { name: /Equipo sintético 2/ }).check();
-    await page.getByLabel(tList("T-3047")[1] ?? "", { exact: true }).fill("300");
-    await page.getByRole("button", { name: t("T-3048") }).click();
-    await expect(page.getByText(t("T-3051", { puntos: 300, saldo: 700 }))).toBeVisible();
-    await expect(
-      page.getByText(t("T-3052", { puntos: 300, equipo: "2 Equipo sintético 2" })).first(),
-    ).toBeVisible();
-    await sinViolaciones(page);
+    const foreign = await request.post(`${hub}/sesion`, {
+      headers: { origin: "https://otro.example", "content-type": "application/json" },
+      data: { code: team(1).code },
+    });
+    expect(foreign.status()).toBe(403);
 
-    await page.getByRole("button", { name: t("T-3055") }).click();
-    await expect(page.getByLabel(t("T-3038"))).toBeVisible();
+    const wrong = await request.post(`${hub}/sesion`, {
+      headers: json,
+      data: { code: "ZZZZ-ZZZZ" },
+    });
+    expect(wrong.status()).toBe(400);
+    expect((await wrong.json()).error).toBe(t("T-3036"));
+
+    const entered = await request.post(`${hub}/sesion`, {
+      headers: json,
+      data: { code: formatTeamCode(team(1).code).toLowerCase() },
+    });
+    expect(entered.status()).toBe(200);
+    expect(entered.headers()["set-cookie"]).toContain("HttpOnly");
+    expect(await entered.json()).toMatchObject({
+      version: 1,
+      team: { number: 1, name: "Equipo sintético 1" },
+      balance: 1000,
+      markets: [{ id: market.id, myBet: null }],
+    });
+
+    const bet = await request.post(`${hub}/apuestas`, {
+      headers: json,
+      data: { marketId: market.id, pick: 2, stake: 300 },
+    });
+    expect(bet.status()).toBe(200);
+    expect(await bet.json()).toMatchObject({
+      balance: 700,
+      markets: [{ myBet: { pick: 2, stake: 300 } }],
+      bets: [{ pick: { number: 2 }, stake: 300, result: "PENDING" }],
+    });
+    const again = await request.post(`${hub}/apuestas`, {
+      headers: json,
+      data: { marketId: market.id, pick: 3, stake: 100 },
+    });
+    expect(again.status()).toBe(400);
+    expect((await again.json()).error).toBe(t("T-2783"));
+
+    const state = await request.get(hub, { headers: { origin } });
+    expect(state.status()).toBe(200);
+    expect(JSON.stringify(await state.json())).not.toContain(team(1).teamId);
+
+    const out = await request.delete(`${hub}/sesion`, { headers: { origin } });
+    expect(out.status()).toBe(200);
+    expect((await request.get(hub, { headers: { origin } })).status()).toBe(401);
   });
 });

@@ -8,17 +8,21 @@ import { competition, competitionTeam } from "../schema";
 import { normalizeTeamCode, teamCodeMatches } from "./codes-pure";
 import {
   HUB_MAX_FAILURES_PER_IP,
-  HUB_PATH,
   HUB_SESSION_MS,
   type HubSession,
+  type HubState,
+  hubStateSchema,
   readHubSession,
   recentFailures,
   signHubSession,
+  toHubState,
 } from "./hub-pure";
+import { creditBalances, listMarkets, listTeamBetReturns, listTeams } from "./reads";
 
 // El hub de capitanes (ADR-096): el capitán entra con el código de su equipo, sin cuenta, y solo ve y
-// hace las apuestas de su equipo. Los fallos se cuentan por IP en memoria: la casa corre en un solo
-// proceso (ADR-021) y un reinicio solo los olvida antes de tiempo.
+// hace las apuestas de su equipo. La página es de DÍAS y esto es lo que sirve su API. Los fallos se
+// cuentan por IP en memoria: la casa corre en un solo proceso (ADR-021) y un reinicio solo los olvida
+// antes de tiempo.
 
 const failuresByIp = new Map<string, number[]>();
 
@@ -40,7 +44,9 @@ function countFailure(ip: string | null | undefined, now: Date): void {
   failuresByIp.set(ip, [...recentFailures(failuresByIp.get(ip) ?? [], now), now.getTime()]);
 }
 
-export type EnterHubResult = { ok: true; session: HubSession } | { ok: false; message: string };
+export type EnterHubResult =
+  | { ok: true; session: HubSession }
+  | { ok: false; reason: "INVALID" | "LOCKED" | "RATE_LIMITED"; message: string };
 
 /** Busca el equipo del código entre las competencias en vivo con apuestas. El capitán no elige su
  *  equipo: así nadie bloquea el código de otro a punta de intentos. */
@@ -50,7 +56,7 @@ export async function enterHub(
   now = new Date(),
 ): Promise<EnterHubResult> {
   const ip = ctx.actor.ip;
-  if (tooManyFailures(ip, now)) return { ok: false, message: t("T-3041") };
+  if (tooManyFailures(ip, now)) return { ok: false, reason: "RATE_LIMITED", message: t("T-3037") };
   const code = normalizeTeamCode(rawCode);
   const candidates = code
     ? await ctx.tx
@@ -85,10 +91,14 @@ export async function enterHub(
       entityType: "competition_hub",
       entityId: "ingreso",
     });
-    return { ok: false, message: t("T-3040") };
+    return { ok: false, reason: "INVALID", message: t("T-3036") };
   }
   if (team.codeLockedUntil && team.codeLockedUntil > now) {
-    return { ok: false, message: t("T-2779", { hora: formatTime(team.codeLockedUntil) }) };
+    return {
+      ok: false,
+      reason: "LOCKED",
+      message: t("T-2779", { hora: formatTime(team.codeLockedUntil) }),
+    };
   }
   await ctx.audit({
     action: "competition.hub.enter",
@@ -180,7 +190,38 @@ export function hubSessionFromCookie(value: string | undefined, now = new Date()
   return readHubSession(getEnv().SESSION_SECRET, value, now);
 }
 
-/** La dirección del hub para las tarjetas, sin protocolo: oeeafit.com/capitanes. */
-export function hubAddress(): string {
-  return `${new URL(getEnv().APP_URL).host}${HUB_PATH}`;
+/** El estado del hub para el equipo de la sesión, validado antes de salir; `null` si la sesión ya no
+ *  vale. */
+export async function getHubState(
+  session: HubSession | null,
+  now = new Date(),
+): Promise<HubState | null> {
+  const team = await getHubTeam(session);
+  if (!team) return null;
+  const [teams, markets, balances, returns] = await Promise.all([
+    listTeams(team.competitionId),
+    listMarkets(team.competitionId, now),
+    creditBalances(team.competitionId),
+    listTeamBetReturns(team.competitionId, team.teamId),
+  ]);
+  const body = toHubState({
+    competition: {
+      name: team.competitionName,
+      isRehearsal: team.isRehearsal,
+      allowSelfBet: team.allowSelfBet,
+    },
+    teamId: team.teamId,
+    teams,
+    balance: balances.get(team.teamId) ?? 0,
+    markets,
+    returns,
+  });
+  return hubStateSchema.parse({ ...body, serverNow: now.toISOString() });
+}
+
+/** La dirección del hub para las tarjetas, sin protocolo: dias.oeeafit.com/capitanes. Sale del origen
+ *  de DÍAS; sin origen configurado, `null` y la tarjeta no la imprime. */
+export function hubAddress(): string | null {
+  const [origin] = getEnv().PUBLIC_API_ORIGINS;
+  return origin ? `${new URL(origin).host}/capitanes` : null;
 }

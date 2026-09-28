@@ -21,6 +21,7 @@ import {
   enterHubAs,
   generateDayScheduleAs,
   getCompetition,
+  getHubState,
   getHubTeam,
   getLiveRotations,
   getScheduleForValidation,
@@ -660,7 +661,11 @@ describe("The Games", () => {
         const { id, actor, teamIds, code, marketId } = await seedBetting();
         const [e1 = "", e2 = "", e3 = ""] = teamIds;
         // Mientras la competencia no esté en vivo, el código no abre el hub.
-        expect(await enterHubAs(hub(), code(e1))).toEqual({ ok: false, message: t("T-3040") });
+        expect(await enterHubAs(hub(), code(e1))).toEqual({
+          ok: false,
+          reason: "INVALID",
+          message: t("T-3036"),
+        });
         await setCompetitionStatusAs(actor, id, "LIVE");
         const raw = code(e1);
         const entered = await enterHubAs(hub(), `${raw.slice(0, 4).toLowerCase()}-${raw.slice(4)}`);
@@ -672,13 +677,24 @@ describe("The Games", () => {
           name: "E1",
         });
 
-        const bet = (pickTeamId: string, stake: number) =>
-          placeHubBetAs(hub(), entered.session, { marketId, pickTeamId, stake });
-        await expect(bet(e1, 100)).rejects.toThrow(t("T-2785"));
-        await expect(bet(e2, 5000)).rejects.toThrow(t("T-2782", { saldo: 1000 }));
-        await expect(bet(e3, 100)).rejects.toThrow(t("T-2784"));
-        expect(await bet(e2, 300)).toMatchObject({ balance: 700 });
-        await expect(bet(e2, 100)).rejects.toThrow(t("T-2783"));
+        // El hub elige por número de equipo: 1 es el propio, 3 no es opción y 99 no existe.
+        const bet = (pick: number, stake: number) =>
+          placeHubBetAs(hub(), entered.session, { marketId, pick, stake });
+        await expect(bet(1, 100)).rejects.toThrow(t("T-2785"));
+        await expect(bet(2, 5000)).rejects.toThrow(t("T-2782", { saldo: 1000 }));
+        await expect(bet(3, 100)).rejects.toThrow(t("T-2784"));
+        await expect(bet(99, 100)).rejects.toThrow(t("T-2784"));
+        expect(await bet(2, 300)).toMatchObject({ balance: 700 });
+        await expect(bet(2, 100)).rejects.toThrow(t("T-2783"));
+        const state = await getHubState(entered.session);
+        expect(state).toMatchObject({
+          team: { number: 1, name: "E1" },
+          balance: 700,
+          markets: [{ id: marketId, myBet: { pick: 2, stake: 300 } }],
+          bets: [{ marketId, pick: { number: 2 }, stake: 300, result: "PENDING", amount: 0 }],
+        });
+        expect(JSON.stringify(state)).not.toContain(e1);
+        expect(JSON.stringify(state)).not.toContain(e3);
         // El operador ve la misma apuesta: el equipo ya apostó en esta.
         await expect(
           placeBetAs(actor, id, { marketId, teamId: e1, pickTeamId: e2, stake: 100, code: raw }),
@@ -704,25 +720,28 @@ describe("The Games", () => {
         const other = await enterHubAs(hub(), code(e2));
         if (!other.ok) throw new Error(other.message);
         await expect(
-          placeHubBetAs(hub(), other.session, { marketId, pickTeamId: e1, stake: 50 }),
+          placeHubBetAs(hub(), other.session, { marketId, pick: 1, stake: 50 }),
         ).rejects.toThrow(t("T-2781"));
+        expect((await getHubState(other.session))?.markets).toEqual([]);
       });
 
       it("los fallos cuentan por IP, respeta el bloqueo y volver a emitir cierra las sesiones", async () => {
         const { id, actor, teamIds, code, marketId } = await seedBetting();
-        const [e1 = "", e2 = ""] = teamIds;
+        const [e1 = ""] = teamIds;
         await setCompetitionStatusAs(actor, id, "LIVE");
         const entered = await enterHubAs(hub(), code(e1));
         if (!entered.ok) throw new Error(entered.message);
         for (let i = 0; i < HUB_MAX_FAILURES_PER_IP; i++) {
           expect(await enterHubAs(hub("10.9.9.9"), "ZZZZ-ZZZZ")).toEqual({
             ok: false,
-            message: t("T-3040"),
+            reason: "INVALID",
+            message: t("T-3036"),
           });
         }
         expect(await enterHubAs(hub("10.9.9.9"), code(e1))).toEqual({
           ok: false,
-          message: t("T-3041"),
+          reason: "RATE_LIMITED",
+          message: t("T-3037"),
         });
         expect((await enterHubAs(hub("10.8.8.8"), code(e1))).ok).toBe(true);
         const failed = await getDb()
@@ -737,7 +756,7 @@ describe("The Games", () => {
           .update(competitionTeam)
           .set({ codeLockedUntil: new Date(Date.now() + 60_000) })
           .where(eq(competitionTeam.id, e1));
-        expect((await enterHubAs(hub(), code(e1))).ok).toBe(false);
+        expect(await enterHubAs(hub(), code(e1))).toMatchObject({ ok: false, reason: "LOCKED" });
         await getDb()
           .update(competitionTeam)
           .set({ codeLockedUntil: null })
@@ -747,8 +766,9 @@ describe("The Games", () => {
         await issueTeamCodesAs(actor, id, false);
         expect(await getHubTeam(entered.session)).toBeNull();
         await expect(
-          placeHubBetAs(hub(), entered.session, { marketId, pickTeamId: e2, stake: 10 }),
-        ).rejects.toThrow(t("T-3056"));
+          placeHubBetAs(hub(), entered.session, { marketId, pick: 2, stake: 10 }),
+        ).rejects.toThrow(t("T-3038"));
+        expect(await getHubState(entered.session)).toBeNull();
       });
     });
   });

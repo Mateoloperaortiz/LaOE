@@ -339,10 +339,11 @@ async function recordBet(
   return { betId: bet.id, balance: available - input.stake };
 }
 
-export const hubBetInputSchema = betInputSchema.pick({
-  marketId: true,
-  pickTeamId: true,
-  stake: true,
+export const hubBetInputSchema = z.object({
+  marketId: z.string().trim().min(1),
+  /** El número del equipo elegido: el hub no conoce ids de equipo. */
+  pick: z.coerce.number().int().min(1).max(99),
+  stake: betInputSchema.shape.stake,
 });
 export type HubBetInput = z.input<typeof hubBetInputSchema>;
 
@@ -356,7 +357,7 @@ export async function placeHubBet(
   now = new Date(),
 ): Promise<{ betId: string; balance: number }> {
   const row = await writableCompetition(ctx, session.competitionId);
-  if (row.status !== "LIVE") throw new DomainError(t("T-3056"));
+  if (row.status !== "LIVE") throw new DomainError(t("T-3038"));
   if (!row.bettingEnabled) throw new DomainError(t("T-2786"));
   const input = hubBetInputSchema.parse(raw);
   const market = await lockedMarket(ctx, session.competitionId, input.marketId);
@@ -376,14 +377,25 @@ export async function placeHubBet(
     )
     .for("update");
   if (!team || team.codeIssuedAt?.getTime() !== session.codeIssuedAt) {
-    throw new DomainError(t("T-3056"));
+    throw new DomainError(t("T-3038"));
   }
+  const [pick] = await ctx.tx
+    .select({ id: competitionTeam.id })
+    .from(competitionTeam)
+    .where(
+      and(
+        eq(competitionTeam.competitionId, session.competitionId),
+        eq(competitionTeam.number, input.pick),
+      ),
+    )
+    .limit(1);
+  if (!pick) throw new DomainError(t("T-2784"), "pick");
   return recordBet(ctx, {
     competitionId: session.competitionId,
     allowSelfBet: row.allowSelfBet,
     marketId: market.id,
     teamId: team.id,
-    pickTeamId: input.pickTeamId,
+    pickTeamId: pick.id,
     stake: input.stake,
     createdById: null,
     via: "HUB",
