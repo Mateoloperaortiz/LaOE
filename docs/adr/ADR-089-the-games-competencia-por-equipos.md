@@ -1,6 +1,6 @@
 # ADR-089: The Games: competencia por equipos de Días EAFIT
 
-- Estado: Aceptada (enmendada por ADR-093, ADR-094 y ADR-095); implementación en curso
+- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095 y ADR-096); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-002, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014, ADR-020, ADR-036, ADR-047, ADR-058, ADR-064, ADR-072, ADR-075, ADR-082, ADR-085, ADR-090, ADR-091
 - Enmienda: ADR-011 (el cargo de Dirección de The Games habilita, por datos, la operación de la competencia de su edición), ADR-064 (esa entrega no ampliaba permisos por cargo: este lo hace, con alcance cerrado)
@@ -89,3 +89,7 @@ Regla 8: además de generarse, el calendario de una jornada sin rotaciones se pu
 ## Enmienda (2026-09-28, ADR-095)
 
 Reglas 3 y 4: en 2026 los capitanes no se inscriben por formulario. La OE los inscribió en Epik y entregó su hoja. El ADMIN pega de esa hoja tres columnas (Equipo, Nombre y Celular), y cada equipo guarda hasta dos capitanes con su nombre y su celular, sin ningún otro dato de la hoja. La operación de la competencia ve ese contacto en Equipos; los jueces no. Archivar la competencia lo borra. Ver [ADR-095](ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md).
+
+## Enmienda (2026-09-28, ADR-096)
+
+Regla 3: el código del equipo también abre el hub de apuestas en `oeeafit.com/capitanes`. Ahí el capitán ve el saldo de su equipo y las apuestas abiertas, y apuesta. El hub respeta el bloqueo del código, y volver a emitirlo cierra las sesiones del hub. Ver [ADR-096](ADR-096-hub-de-apuestas-de-los-capitanes.md).

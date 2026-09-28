@@ -774,7 +774,7 @@ Sin migraciones: el pre-deploy registró «migraciones aplicadas y esquema verif
 
 Una cosa para la próxima: **cuando un E2E inestable deja el gate en rojo, el orden importa.** Borrar primero el artefacto `ci-e2e-N` del intento fallido (`gh api -X DELETE .../actions/artifacts/<id>`) y después `gh run rerun <id> --failed` deja una sola copia del artefacto, y el gate, que corre al final del relanzamiento, sale en verde sin relanzarlo aparte. Así se destrabó el primer intento del PR 62.
 
-## The Games · preparación y operación (ADR-089 a ADR-091 y ADR-095)
+## The Games · preparación y operación (ADR-089 a ADR-091, ADR-095 y ADR-096)
 
 Ensayo sintético (desarrollo y staging, nunca producción):
 
@@ -809,7 +809,7 @@ En producción, sin código:
 2. Crear el formulario público de inscripción en `/admin/formularios`: audiencia pública, consentimiento, acción `createPerson=false`, sin embudo ni edición, con un campo de clave `equipo`. En 2026 no hace falta: los capitanes salen de la hoja de inscripción de la OE (paso 7).
 3. En `/admin/the-games`, ADMIN crea la competencia (`the-games-2026`, en borrador) y la de ensayo. En Resumen se liga el formulario, se fijan los 1000 puntos iniciales de apuestas y se encienden las apuestas cuando la OE lo pida.
 4. Equipos (desde las inscripciones, o desde la hoja de rotaciones en el paso 6), bases por jornada (las de inflables, macro) y personal (operadores y jueces del roster).
-5. Emitir los códigos e imprimir las tarjetas antes de salir de la pantalla: no se vuelven a mostrar.
+5. Emitir los códigos e imprimir las tarjetas antes de salir de la pantalla: no se vuelven a mostrar. Cada tarjeta trae la dirección del hub de capitanes (`oeeafit.com/capitanes`, ADR-096) y se entrega en mano a los capitanes del equipo.
 6. Cargar el calendario de cada jornada con la duración que dé la OE. El validador debe decir que no hay errores.
    - Si la OE entrega su hoja de rotaciones, como la del jueves 2026-10-01, se importa (ADR-094). En Rotaciones, «Importar la jornada N desde la hoja»: en la hoja «Equipo-Rotacion-Base» se seleccionan las columnas A a D, se copian y se pegan. Si la competencia todavía no tiene equipos, los crea en el orden de la hoja. Si faltan las bases de esa jornada, las crea como «Base 1» a «Base 15»; después, en Bases, se les pone nombre y se marcan como macro las de inflables. Si la hoja tiene errores, no se guarda nada y la pantalla dice en qué línea están.
    - Si no, se genera con 15 rotaciones. Si la jornada 1 se importó, la 2 también se importa: el generador de la 2 supone su propia jornada 1.
@@ -821,6 +821,7 @@ Durante el evento:
 - Para abrir la vitrina se pasa la competencia a `LIVE` y se pone su slug en `edition.theGames.slug` de `dias`, que se vuelve a desplegar. Mientras tanto, `dias.oeeafit.com/the-games/?c=<slug>` abre cualquier competencia pública, como el ensayo.
 - Si la casa se cae, la vitrina muestra lo último que recibió con la hora. Respaldo: la tabla de Posiciones y el libro de puntos.
 - Si la carga pesa, se agrega una Cache Rule de Cloudflare para `/api/v1/*`. No hay límite por IP: el campus sale por NAT.
+- Los capitanes apuestan en `oeeafit.com/capitanes` con el código de la tarjeta (ADR-096): ven el saldo del equipo y las apuestas abiertas, y apuestan. Si un capitán no tiene celular, el operador registra la apuesta desde Apuestas con el mismo código. Si una tarjeta se pierde, «Volver a emitir todos» invalida las viejas y cierra las sesiones del hub: hay que imprimir y repartir las 30 otra vez.
 - Si un capitán objeta que su nombre salga en la vitrina, «Dejar de mostrarlos» la apaga para todos. Después se vuelve a cargar la hoja sin esa fila y se prende de nuevo.
 
 Después del evento: archivar `the-games-2026` (a más tardar el 2026-10-16) y `ensayo-2026` desde Resumen. Archivar borra los capitanes y apaga su vitrina (ADR-095).

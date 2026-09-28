@@ -2583,3 +2583,38 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-3033 | The Games: Capitanes solo ADMIN | Solo ADMIN carga, publica o borra los capitanes. | MATEO | Propuesta |
 | T-3034 | The Games: Ayuda de la vitrina de capitanes | Prendela solo con la autorización de la inscripción confirmada. Archivar la competencia borra los capitanes. | MATEO | Propuesta |
 | T-3035 | The Games: Llamar al capitán | Llamar a {nombre} | MATEO | Propuesta |
+
+## Hub de capitanes de The Games (ADR-096)
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-3036 | Hub de capitanes: título | Apuestas de The Games | MATEO | Propuesta |
+| T-3037 | Hub de capitanes: entrada | Si sos capitán, escribí el código de tu equipo. Está en la tarjeta que te dio la Dirección de The Games. | MATEO | Propuesta |
+| T-3038 | Hub de capitanes: campo del código | Código del equipo | MATEO | Propuesta |
+| T-3039 | Hub de capitanes: entrar | Entrar | MATEO | Propuesta |
+| T-3040 | Hub de capitanes: código que no corresponde | Ese código no corresponde a ningún equipo en competencia. Revisalo en la tarjeta. | MATEO | Propuesta |
+| T-3041 | Hub de capitanes: demasiados intentos | Hubo demasiados intentos desde esta conexión. Esperá 15 minutos o pedile al operador que registre la apuesta. | MATEO | Propuesta |
+| T-3042 | Hub de capitanes: equipo | Equipo {n} · {nombre} | MATEO | Propuesta |
+| T-3043 | Hub de capitanes: saldo | Te quedan {saldo} puntos de apuestas. | MATEO | Propuesta |
+| T-3044 | Hub de capitanes: puntos aparte | Los puntos de apuestas son aparte: no cuentan para la tabla de The Games. | MATEO | Propuesta |
+| T-3045 | Hub de capitanes: apuestas abiertas | Apuestas abiertas | MATEO | Propuesta |
+| T-3046 | Hub de capitanes: sin apuestas abiertas | Todavía no hay apuestas abiertas. Esta página se actualiza sola. | MATEO | Propuesta |
+| T-3047 | Hub de capitanes: campos de la apuesta | ¿Quién gana? · Puntos | MATEO | Propuesta |
+| T-3048 | Hub de capitanes: apostar | Apostar | MATEO | Propuesta |
+| T-3049 | Hub de capitanes: cierre | Cierra a las {hora} | MATEO | Propuesta |
+| T-3050 | Hub de capitanes: bolsa | Bolsa: {puntos} | MATEO | Propuesta |
+| T-3051 | Hub de capitanes: apuesta registrada | Listo: apostaste {puntos} puntos. Te quedan {saldo}. | MATEO | Propuesta |
+| T-3052 | Hub de capitanes: tu apuesta | Apostaste {puntos} a {equipo}. | MATEO | Propuesta |
+| T-3053 | Hub de capitanes: tus apuestas | Tus apuestas | MATEO | Propuesta |
+| T-3054 | Hub de capitanes: apuesta en juego | En juego. | MATEO | Propuesta |
+| T-3055 | Hub de capitanes: salir | Salir | MATEO | Propuesta |
+| T-3056 | Hub de capitanes: sesión vencida | Tu sesión venció o el código de tu equipo cambió. Escribí el código otra vez. | MATEO | Propuesta |
+| T-3057 | Hub de capitanes: ayuda del operador | ¿Sin celular o con problemas? El operador de The Games también puede registrar la apuesta de tu equipo. | MATEO | Propuesta |
+| T-3058 | The Games: dirección del hub en la tarjeta | Apostá en {direccion} | MATEO | Propuesta |
+| T-3059 | Hub de capitanes: sin puntos | Tu equipo no tiene puntos para apostar. | MATEO | Propuesta |
+| T-3060 | Hub de capitanes: el propio equipo | (tu equipo) | MATEO | Propuesta |
+| T-3061 | Hub de capitanes: ensayo | Ensayo: las apuestas son de prueba. | MATEO | Propuesta |
+| T-3062 | Hub de capitanes: acertó | Acertaste: recibiste {puntos}. | MATEO | Propuesta |
+| T-3063 | Hub de capitanes: no acertó | No acertaste. | MATEO | Propuesta |
+| T-3064 | Hub de capitanes: nadie acertó | Nadie acertó: te devolvieron {puntos}. | MATEO | Propuesta |
+| T-3065 | Hub de capitanes: cancelada | Cancelada: te devolvieron {puntos}. | MATEO | Propuesta |

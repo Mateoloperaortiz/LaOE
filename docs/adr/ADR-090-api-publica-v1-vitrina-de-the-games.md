@@ -1,6 +1,6 @@
 # ADR-090: API pública v1: la vitrina de The Games para DÍAS
 
-- Estado: Aceptada (enmendada por ADR-095); implementación en curso
+- Estado: Aceptada (enmendada por ADR-095 y ADR-096); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-014, ADR-020, ADR-021, ADR-080, ADR-085, ADR-089, ADR-091
 - Enmienda: ADR-085 (regla 5 y «Orden de trabajo»: la primera porción de la API llega antes del monorepo, como piloto de DÍAS)
@@ -44,3 +44,7 @@ Lo que la vitrina necesita es poco y todo es público: posiciones, enfrentamient
 ## Enmienda (2026-09-28, ADR-095)
 
 Regla 2: la vitrina puede llevar los nombres de los capitanes de cada equipo, en `captains: [{ number, names }]`, solo cuando el ADMIN prende la publicación de la competencia. Mateo confirmó que la inscripción autorizó publicarlos. Apagada, lleva `captains: []`. Sigue sin llevar correos, celulares, ids de persona ni respuestas de formulario, y una prueba lo verifica. Es un campo nuevo, así que la vitrina sigue en `version: 1`. Ver [ADR-095](ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md).
+
+## Enmienda (2026-09-28, ADR-096)
+
+Regla 7: hay una escritura pública fuera de `/admin`, la apuesta del equipo en el hub de capitanes. La autoriza el código del equipo, que abre una sesión firmada del equipo, no una cuenta ni la sesión de una persona. La API de lectura de la vitrina no cambia. Ver [ADR-096](ADR-096-hub-de-apuestas-de-los-capitanes.md).
