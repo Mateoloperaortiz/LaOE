@@ -1,6 +1,6 @@
 # ADR-014: Privacidad por diseño (Ley 1581 de 2012)
 
-- Estado: Aceptada (enmendada por ADR-030, ADR-039, ADR-040, ADR-047, ADR-048)
+- Estado: Aceptada (enmendada por ADR-030, ADR-039, ADR-040, ADR-047, ADR-048, ADR-095)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-002, ADR-013, ADR-015
 
@@ -40,3 +40,7 @@ El texto publicado en `/privacidad` tiene fuente de verdad versionada en el repo
 ## Enmienda (2026-09-08, ADR-048)
 
 El roster importado ya no registra consentimiento con fuente `IMPORT`. Quien no tenga una autorización viva de membresía pasa, al entrar a Mi OE, por una pantalla que le muestra la política publicada y la acepta con fuente `SELF`, su versión, su fecha y su IP. Ver [ADR-048](ADR-048-autorizacion-en-el-primer-ingreso.md).
+
+## Enmienda (2026-09-28, ADR-095)
+
+Dos excepciones acotadas a The Games. La vitrina pública puede mostrar el nombre de los capitanes de cada equipo cuando el ADMIN lo publica; la inscripción de Días EAFIT lo autorizó. El celular de los capitanes lo ve la operación de su competencia (ADMIN, la Dirección de The Games y el personal OPERATOR), no solo ADMIN, y se borra al archivarla. Ver [ADR-095](ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md).

@@ -146,5 +146,6 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
 - [ ] Qué pasa si un equipo no se presenta
 - [ ] Si un equipo puede apostar por sí mismo (mientras tanto, no)
 - [ ] Qué jueces están en el roster con @eafit.edu.co; por los demás registra el operador
-- [ ] Los campos del formulario de inscripción, quién ve los contactos de los capitanes y cuánto tiempo se guardan las respuestas
+- [x] Los campos del formulario de inscripción, quién ve los contactos de los capitanes y cuánto tiempo se guardan las respuestas. Resuelto el 2026-09-28 por [ADR-095](adr/ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md): en 2026 no hay formulario. Los capitanes salen de la hoja de inscripción de la OE, solo con nombre y celular. Los ve la operación de la competencia, y se borran al archivarla, a más tardar el 2026-10-16. «Equipo N» es el equipo N de la hoja de rotaciones; en el Equipo 11, Mateo confirmó el segundo capitán, y la inscripción autorizó publicar los nombres
+- [ ] Que la próxima versión de la política de datos mencione a los capitanes de The Games: nombre y celular tomados de la inscripción de Días EAFIT, el celular visible para la operación, el nombre en la vitrina y el borrado al archivar la competencia (ADR-095)
 - [ ] Crear en producción la edición de Días EAFIT 2026 y registrar la Dirección de The Games en su mesa

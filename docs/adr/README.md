@@ -13,12 +13,13 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-095](ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md) | Capitanes de The Games desde la hoja de la OE | Aceptada |
 | [ADR-094](ADR-094-calendario-de-the-games-desde-la-hoja-de-la-oe.md) | El calendario de The Games se importa desde la hoja de la OE | Aceptada |
 | [ADR-093](ADR-093-cada-equipo-juega-todas-las-bases.md) | En The Games, cada equipo juega todas las bases de la jornada | Aceptada |
 | [ADR-092](ADR-092-panal-corto-y-premios-por-avance.md) | Panal corto y premios por avance desde el 24 de septiembre | Aceptada; en producción desde el 24 a las 08:30 de Colombia |
 | [ADR-091](ADR-091-apuestas-de-the-games.md) | Apuestas de The Games con puntos virtuales | Aceptada; implementación en curso |
-| [ADR-090](ADR-090-api-publica-v1-vitrina-de-the-games.md) | API pública v1: la vitrina de The Games para DÍAS | Aceptada; implementación en curso |
-| [ADR-089](ADR-089-the-games-competencia-por-equipos.md) | The Games: competencia por equipos de Días EAFIT | Aceptada (enmendada por ADR-093 y ADR-094); implementación en curso |
+| [ADR-090](ADR-090-api-publica-v1-vitrina-de-the-games.md) | API pública v1: la vitrina de The Games para DÍAS | Aceptada (enmendada por ADR-095); implementación en curso |
+| [ADR-089](ADR-089-the-games-competencia-por-equipos.md) | The Games: competencia por equipos de Días EAFIT | Aceptada (enmendada por ADR-093, ADR-094 y ADR-095); implementación en curso |
 | [ADR-088](ADR-088-panal-diario-en-espanol.md) | Panal diario en español y premio por rango Genio | Aceptada; publicación pendiente |
 | [ADR-087](ADR-087-boosters-sobre-puntos-de-asistencia.md) | Boosters sobre los puntos de la asistencia | Aceptada |
 | [ADR-086](ADR-086-copy-paisa-y-parchado.md) | Copy paisa y parchado | Aceptada |
@@ -75,7 +76,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-011](ADR-011-autorizacion-en-servidor.md) | Autorización en servidor | Aceptada (enmendada por ADR-051, ADR-058, ADR-072, ADR-082 y ADR-089) |
 | [ADR-012](ADR-012-outbox-transaccional.md) | Outbox transaccional; efectos fuera del commit | Aceptada (enmendada por ADR-021, ADR-038, ADR-040, ADR-079 y ADR-084) |
 | [ADR-013](ADR-013-formularios-en-la-app.md) | Todo formulario vive en la app | Aceptada (enmendada por ADR-037) |
-| [ADR-014](ADR-014-privacidad-por-diseno.md) | Privacidad por diseño (Ley 1581 de 2012) | Aceptada (enmendada por ADR-030, ADR-039, ADR-040, ADR-047 y ADR-048) |
+| [ADR-014](ADR-014-privacidad-por-diseno.md) | Privacidad por diseño (Ley 1581 de 2012) | Aceptada (enmendada por ADR-030, ADR-039, ADR-040, ADR-047, ADR-048 y ADR-095) |
 | [ADR-015](ADR-015-canales.md) | Canales de comunicación | Aceptada (enmendada por ADR-023 y ADR-038) |
 | [ADR-016](ADR-016-medios-en-r2.md) | Medios en un bucket privado sin cargar la app | Reemplazada por ADR-022 |
 | [ADR-017](ADR-017-admin-kit.md) | Admin kit declarativo | Aceptada (enmendada por ADR-080 y ADR-083) |

@@ -774,7 +774,7 @@ Sin migraciones: el pre-deploy registró «migraciones aplicadas y esquema verif
 
 Una cosa para la próxima: **cuando un E2E inestable deja el gate en rojo, el orden importa.** Borrar primero el artefacto `ci-e2e-N` del intento fallido (`gh api -X DELETE .../actions/artifacts/<id>`) y después `gh run rerun <id> --failed` deja una sola copia del artefacto, y el gate, que corre al final del relanzamiento, sale en verde sin relanzarlo aparte. Así se destrabó el primer intento del PR 62.
 
-## The Games · preparación y operación (ADR-089 a ADR-091)
+## The Games · preparación y operación (ADR-089 a ADR-091 y ADR-095)
 
 Ensayo sintético (desarrollo y staging, nunca producción):
 
@@ -783,6 +783,7 @@ Ensayo sintético (desarrollo y staging, nunca producción):
   - Las dos jornadas generadas, con 15 rotaciones de 20 y 45 minutos.
   - La rúbrica de The Challenge, apuestas con 1000 puntos y una apuesta abierta, y un anuncio.
   - El personal: operador, `oe.demo` activo más bajo; jueces, los dos siguientes, en la base 1 de cada jornada.
+  - Dos capitanes sintéticos por equipo, con los nombres publicados en la vitrina (ADR-095).
   - La competencia queda en vivo.
 - Entra como `oe.demo.admin@eafit.edu.co` a `/admin/the-games`. Los códigos de equipo salen en el log del seed. Si se pierden, se vuelven a emitir en Equipos, y los anteriores dejan de valer.
 - En local, la vitrina de DÍAS se prueba con `NEXT_PUBLIC_THE_GAMES_API=http://localhost:3000/api/v1/the-games/ npm run dev` en `dias` y `http://localhost:3100/the-games/?c=ensayo-the-games`. La casa necesita `PUBLIC_API_ORIGINS=http://localhost:3100,http://localhost:3101`, igual que staging.
@@ -792,26 +793,27 @@ Ensayo en producción (ADR-089 regla 2; se opera igual que la competencia real y
 
 - Se corre con el túnel al Postgres de producción y las variables de Railway, sin `.env` ni cambiar `NODE_ENV`: `railway run --no-local -p <project-id> -s web -e production -- env DATABASE_URL=<URL del túnel> npm run the-games:ensayo -- --admin <correo del ADMIN>`.
 - Si falta, crea la edición 2026 de Días EAFIT en **borrador**, del lunes 28 de septiembre a las 8:00 al viernes 2 de octubre a las 20:00, en la Universidad EAFIT.
-- Sobre esa edición crea `ensayo-2026`, igual al ensayo sintético pero sin personas inventadas. El ADMIN que lo corre queda como juez de la base 1 del jueves. Queda en vivo solo para `dias.oeeafit.com/the-games/?c=ensayo-2026`: la portada de DÍAS no tiene el slug y sigue en «Por anunciar».
+- Sobre esa edición crea `ensayo-2026`, igual al ensayo sintético pero sin personas inventadas: sin capitanes. El ADMIN que lo corre queda como juez de la base 1 del jueves. Queda en vivo solo para `dias.oeeafit.com/the-games/?c=ensayo-2026`: la portada de DÍAS no tiene el slug y sigue en «Por anunciar».
 - Los códigos de equipo salen una sola vez en la salida del comando. Es idempotente: si `ensayo-2026` ya existe, no toca nada.
 - Terminado el ensayo, se archiva desde Resumen. Las respuestas de formulario y los equipos reales van en la competencia `the-games-2026`.
 
 Antes de promover:
 
 1. `PUBLIC_API_ORIGINS` queda declarada en `.railway/railway.ts`: `https://dias.oeeafit.com` en producción; en staging, el sitio de DÍAS en local. Se carga **antes** de promover.
-2. La migración `0040_the_games` es aditiva: solo crea tablas. `db:release` la aplica y verifica sus índices.
+2. La migración `0040_the_games` es aditiva: solo crea tablas. `db:release` la aplica y verifica sus índices. La `0041_the_games_capitanes` también: crea `competition_team_captain` y la columna `show_captains`, apagada.
 3. Smoke manual: `GET /api/v1/the-games/__smoke__` responde 404 en JSON con `Access-Control-Allow-Origin: https://dias.oeeafit.com`.
 
 En producción, sin código:
 
 1. Crear la edición de Días EAFIT 2026 en `/admin/eventos` y registrar la Dirección de The Games en su mesa (`/admin/macroeventos/dias-eafit`).
-2. Crear el formulario público de inscripción en `/admin/formularios`: audiencia pública, consentimiento, acción `createPerson=false`, sin embudo ni edición, con un campo de clave `equipo`.
+2. Crear el formulario público de inscripción en `/admin/formularios`: audiencia pública, consentimiento, acción `createPerson=false`, sin embudo ni edición, con un campo de clave `equipo`. En 2026 no hace falta: los capitanes salen de la hoja de inscripción de la OE (paso 7).
 3. En `/admin/the-games`, ADMIN crea la competencia (`the-games-2026`, en borrador) y la de ensayo. En Resumen se liga el formulario, se fijan los 1000 puntos iniciales de apuestas y se encienden las apuestas cuando la OE lo pida.
 4. Equipos (desde las inscripciones, o desde la hoja de rotaciones en el paso 6), bases por jornada (las de inflables, macro) y personal (operadores y jueces del roster).
 5. Emitir los códigos e imprimir las tarjetas antes de salir de la pantalla: no se vuelven a mostrar.
 6. Cargar el calendario de cada jornada con la duración que dé la OE. El validador debe decir que no hay errores.
    - Si la OE entrega su hoja de rotaciones, como la del jueves 2026-10-01, se importa (ADR-094). En Rotaciones, «Importar la jornada N desde la hoja»: en la hoja «Equipo-Rotacion-Base» se seleccionan las columnas A a D, se copian y se pegan. Si la competencia todavía no tiene equipos, los crea en el orden de la hoja. Si faltan las bases de esa jornada, las crea como «Base 1» a «Base 15»; después, en Bases, se les pone nombre y se marcan como macro las de inflables. Si la hoja tiene errores, no se guarda nada y la pantalla dice en qué línea están.
    - Si no, se genera con 15 rotaciones. Si la jornada 1 se importó, la 2 también se importa: el generador de la 2 supone su propia jornada 1.
+7. Cargar los capitanes (ADR-095), solo ADMIN. De la hoja de inscripción de la OE se toman las filas de los capitanes y se arman **tres columnas, en este orden: Equipo, Nombre y Celular**. Nada más: la hoja trae cédula, datos de salud y contactos de emergencia, y la casa rechaza una fila con más columnas. «Equipo N» es el equipo N de la casa. En Equipos, «Cargar los capitanes desde la hoja» y pegar. Cada carga reemplaza a todos los capitanes. La Dirección revisa equipo por equipo en la columna Capitanes. Con la autorización de la inscripción confirmada, «Mostrar los nombres en la vitrina». El texto armado no se guarda en ningún repositorio y se borra después de cargarlo.
 
 Durante el evento:
 
@@ -819,4 +821,7 @@ Durante el evento:
 - Para abrir la vitrina se pasa la competencia a `LIVE` y se pone su slug en `edition.theGames.slug` de `dias`, que se vuelve a desplegar. Mientras tanto, `dias.oeeafit.com/the-games/?c=<slug>` abre cualquier competencia pública, como el ensayo.
 - Si la casa se cae, la vitrina muestra lo último que recibió con la hora. Respaldo: la tabla de Posiciones y el libro de puntos.
 - Si la carga pesa, se agrega una Cache Rule de Cloudflare para `/api/v1/*`. No hay límite por IP: el campus sale por NAT.
+- Si un capitán objeta que su nombre salga en la vitrina, «Dejar de mostrarlos» la apaga para todos. Después se vuelve a cargar la hoja sin esa fila y se prende de nuevo.
+
+Después del evento: archivar `the-games-2026` (a más tardar el 2026-10-16) y `ensayo-2026` desde Resumen. Archivar borra los capitanes y apaga su vitrina (ADR-095).
 
