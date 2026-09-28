@@ -7,10 +7,16 @@ import {
   type CompetitionActor,
   createCompetitionAs,
   createExtraAs,
+  createMarketAs,
   createTeamAs,
+  formatTeamCode,
   generateDayScheduleAs,
+  grantStartingCreditsAs,
+  issueTeamCodesAs,
   saveBaseAs,
   setCompetitionStatusAs,
+  setMarketOpenAs,
+  updateCompetitionSettingsAs,
 } from "@/modules/competition";
 import { dayOneRounds } from "@/modules/competition/domain/schedule-pure";
 import { event, eventEdition } from "@/modules/events/schema";
@@ -272,5 +278,56 @@ test.describe("capitanes", () => {
       { number: 2, names: ["Sara Sintética"] },
     ]);
     expect(JSON.stringify(body)).not.toMatch(/300000000\d/);
+  });
+});
+
+test.describe("hub de capitanes", () => {
+  test.use({ storageState: { cookies: [], origins: [] }, viewport: { width: 390, height: 844 } });
+
+  test("el capitán entra con el código del equipo, apuesta y sale", async ({ page }) => {
+    const { id, admin } = await seedCompetition("the-games-hub");
+    await updateCompetitionSettingsAs(admin, id, {
+      name: "The Games de prueba",
+      bettingEnabled: true,
+      startingCredits: 1000,
+    });
+    await setCompetitionStatusAs(admin, id, "LIVE");
+    await grantStartingCreditsAs(admin, id);
+    const codes = await issueTeamCodesAs(admin, id, false);
+    const team = (n: number) => {
+      const item = codes.find((code) => code.number === n);
+      if (!item) throw new Error(`Falta el código del equipo ${n}`);
+      return item;
+    };
+    const market = await createMarketAs(admin, id, {
+      title: "¿Quién gana la base 1?",
+      teamIds: [team(2).teamId, team(3).teamId],
+    });
+    await setMarketOpenAs(admin, id, market.id, true);
+
+    await page.goto("/capitanes");
+    const campo = page.getByLabel(t("T-3038"));
+    await campo.fill("ZZZZ-ZZZZ");
+    await page.getByRole("button", { name: t("T-3039") }).click();
+    await expect(page.getByText(t("T-3040"))).toBeVisible();
+    await sinViolaciones(page);
+
+    await page.getByLabel(t("T-3038")).fill(formatTeamCode(team(1).code).toLowerCase());
+    await page.getByRole("button", { name: t("T-3039") }).click();
+    await expect(page.getByText(t("T-3042", { n: 1, nombre: "Equipo sintético 1" }))).toBeVisible();
+    await expect(page.getByText(t("T-3043", { saldo: 1000 }))).toBeVisible();
+    await sinViolaciones(page);
+
+    await page.getByRole("radio", { name: /Equipo sintético 2/ }).check();
+    await page.getByLabel(tList("T-3047")[1] ?? "", { exact: true }).fill("300");
+    await page.getByRole("button", { name: t("T-3048") }).click();
+    await expect(page.getByText(t("T-3051", { puntos: 300, saldo: 700 }))).toBeVisible();
+    await expect(
+      page.getByText(t("T-3052", { puntos: 300, equipo: "2 Equipo sintético 2" })).first(),
+    ).toBeVisible();
+    await sinViolaciones(page);
+
+    await page.getByRole("button", { name: t("T-3055") }).click();
+    await expect(page.getByLabel(t("T-3038"))).toBeVisible();
   });
 });

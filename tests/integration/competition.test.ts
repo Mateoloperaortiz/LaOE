@@ -18,8 +18,10 @@ import {
   createTeamAs,
   creditBalances,
   deleteDayScheduleAs,
+  enterHubAs,
   generateDayScheduleAs,
   getCompetition,
+  getHubTeam,
   getLiveRotations,
   getScheduleForValidation,
   getShowcase,
@@ -33,6 +35,7 @@ import {
   listRegistrationCandidates,
   listStandings,
   placeBetAs,
+  placeHubBetAs,
   recordResultAs,
   resolveMarketAs,
   saveBaseAs,
@@ -47,9 +50,12 @@ import {
   validateSchedule,
   voidResultAs,
 } from "@/modules/competition";
+import { clearHubFailures } from "@/modules/competition/domain/hub";
+import { HUB_MAX_FAILURES_PER_IP } from "@/modules/competition/domain/hub-pure";
 import { dayOneRounds } from "@/modules/competition/domain/schedule-pure";
 import {
   competitionBase,
+  competitionBet,
   competitionCreditEntry,
   competitionRotation,
   competitionTeam,
@@ -644,6 +650,106 @@ describe("The Games", () => {
         .from(competitionCreditEntry)
         .where(eq(competitionCreditEntry.kind, "REFUND"));
       expect(refunds).toHaveLength(1);
+    });
+
+    describe("hub de capitanes (ADR-096)", () => {
+      beforeEach(() => clearHubFailures());
+      const hub = (ip = "10.1.2.3") => ({ personId: null, ip });
+
+      it("entra con el código del equipo y apuesta con el mismo núcleo del operador", async () => {
+        const { id, actor, teamIds, code, marketId } = await seedBetting();
+        const [e1 = "", e2 = "", e3 = ""] = teamIds;
+        // Mientras la competencia no esté en vivo, el código no abre el hub.
+        expect(await enterHubAs(hub(), code(e1))).toEqual({ ok: false, message: t("T-3040") });
+        await setCompetitionStatusAs(actor, id, "LIVE");
+        const raw = code(e1);
+        const entered = await enterHubAs(hub(), `${raw.slice(0, 4).toLowerCase()}-${raw.slice(4)}`);
+        if (!entered.ok) throw new Error(entered.message);
+        expect(entered.session).toMatchObject({ competitionId: id, teamId: e1 });
+        expect(await getHubTeam(entered.session)).toMatchObject({
+          teamId: e1,
+          number: 1,
+          name: "E1",
+        });
+
+        const bet = (pickTeamId: string, stake: number) =>
+          placeHubBetAs(hub(), entered.session, { marketId, pickTeamId, stake });
+        await expect(bet(e1, 100)).rejects.toThrow(t("T-2785"));
+        await expect(bet(e2, 5000)).rejects.toThrow(t("T-2782", { saldo: 1000 }));
+        await expect(bet(e3, 100)).rejects.toThrow(t("T-2784"));
+        expect(await bet(e2, 300)).toMatchObject({ balance: 700 });
+        await expect(bet(e2, 100)).rejects.toThrow(t("T-2783"));
+        // El operador ve la misma apuesta: el equipo ya apostó en esta.
+        await expect(
+          placeBetAs(actor, id, { marketId, teamId: e1, pickTeamId: e2, stake: 100, code: raw }),
+        ).rejects.toThrow(t("T-2783"));
+        const [placed] = await getDb()
+          .select()
+          .from(competitionBet)
+          .where(eq(competitionBet.teamId, e1));
+        expect(placed?.createdById).toBeNull();
+        const [audit] = await getDb()
+          .select({ after: auditLog.after, ip: auditLog.ip, actorId: auditLog.actorId })
+          .from(auditLog)
+          .where(eq(auditLog.action, "competition.bet.place"));
+        expect(audit).toMatchObject({ ip: "10.1.2.3", actorId: null, after: { via: "HUB" } });
+        const [entry] = await getDb()
+          .select({ ip: auditLog.ip })
+          .from(auditLog)
+          .where(eq(auditLog.action, "competition.hub.enter"));
+        expect(entry?.ip).toBe("10.1.2.3");
+
+        // Una apuesta cerrada ya no recibe apuestas desde el hub.
+        await setMarketOpenAs(actor, id, marketId, false);
+        const other = await enterHubAs(hub(), code(e2));
+        if (!other.ok) throw new Error(other.message);
+        await expect(
+          placeHubBetAs(hub(), other.session, { marketId, pickTeamId: e1, stake: 50 }),
+        ).rejects.toThrow(t("T-2781"));
+      });
+
+      it("los fallos cuentan por IP, respeta el bloqueo y volver a emitir cierra las sesiones", async () => {
+        const { id, actor, teamIds, code, marketId } = await seedBetting();
+        const [e1 = "", e2 = ""] = teamIds;
+        await setCompetitionStatusAs(actor, id, "LIVE");
+        const entered = await enterHubAs(hub(), code(e1));
+        if (!entered.ok) throw new Error(entered.message);
+        for (let i = 0; i < HUB_MAX_FAILURES_PER_IP; i++) {
+          expect(await enterHubAs(hub("10.9.9.9"), "ZZZZ-ZZZZ")).toEqual({
+            ok: false,
+            message: t("T-3040"),
+          });
+        }
+        expect(await enterHubAs(hub("10.9.9.9"), code(e1))).toEqual({
+          ok: false,
+          message: t("T-3041"),
+        });
+        expect((await enterHubAs(hub("10.8.8.8"), code(e1))).ok).toBe(true);
+        const failed = await getDb()
+          .select({ entityId: auditLog.entityId, after: auditLog.after })
+          .from(auditLog)
+          .where(eq(auditLog.action, "competition.hub.code-failed"));
+        expect(failed).toHaveLength(HUB_MAX_FAILURES_PER_IP);
+        expect(JSON.stringify(failed)).not.toContain("ZZZZ");
+
+        // El bloqueo del código por fallos ante el operador también cierra el hub.
+        await getDb()
+          .update(competitionTeam)
+          .set({ codeLockedUntil: new Date(Date.now() + 60_000) })
+          .where(eq(competitionTeam.id, e1));
+        expect((await enterHubAs(hub(), code(e1))).ok).toBe(false);
+        await getDb()
+          .update(competitionTeam)
+          .set({ codeLockedUntil: null })
+          .where(eq(competitionTeam.id, e1));
+
+        // Volver a emitir los códigos deja sin valor la sesión abierta.
+        await issueTeamCodesAs(actor, id, false);
+        expect(await getHubTeam(entered.session)).toBeNull();
+        await expect(
+          placeHubBetAs(hub(), entered.session, { marketId, pickTeamId: e2, stake: 10 }),
+        ).rejects.toThrow(t("T-3056"));
+      });
     });
   });
 

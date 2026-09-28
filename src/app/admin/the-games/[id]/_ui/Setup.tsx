@@ -1,11 +1,12 @@
 import Link from "next/link";
-import type {
-  BaseRow,
-  CaptainRow,
-  CompetitionRow,
-  RegistrationCandidate,
-  StaffRow,
-  TeamRow,
+import {
+  type BaseRow,
+  type CaptainRow,
+  type CompetitionRow,
+  hubAddress,
+  type RegistrationCandidate,
+  type StaffRow,
+  type TeamRow,
 } from "@/modules/competition";
 import { ImportarCapitanes } from "@/modules/competition/components/ImportarCapitanes";
 import { TarjetasCodigo } from "@/modules/competition/components/TarjetasCodigo";
@@ -373,6 +374,7 @@ export function Equipos({
           card: t("T-2820", { n: "{n}", nombre: "{nombre}" }),
           print: t("T-2821"),
           pending: t("T-1501"),
+          hub: t("T-3058", { direccion: hubAddress() }),
         }}
       />
     </Section>

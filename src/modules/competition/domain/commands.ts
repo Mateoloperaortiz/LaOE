@@ -1,4 +1,4 @@
-import { runCommand } from "@/db/tx";
+import { type Actor, runCommand } from "@/db/tx";
 import type { CompetitionActor } from "./access";
 import {
   clearCaptains,
@@ -7,14 +7,18 @@ import {
   importCaptains,
   setCaptainsVisibility,
 } from "./captains";
+import { type EnterHubResult, enterHub } from "./hub";
+import type { HubSession } from "./hub-pure";
 import {
   type BetInput,
   cancelMarket,
   createMarket,
   grantStartingCredits,
+  type HubBetInput,
   type MarketInput,
   type PlaceBetResult,
   placeBet,
+  placeHubBet,
   resolveMarket,
   setMarketOpen,
 } from "./markets";
@@ -175,3 +179,9 @@ export const resolveMarketAs = (actor: A, id: string, marketId: string, winnerTe
   runCommand(actor, (ctx) => resolveMarket(ctx, actor, id, marketId, winnerTeamId));
 export const cancelMarketAs = (actor: A, id: string, marketId: string) =>
   runCommand(actor, (ctx) => cancelMarket(ctx, actor, id, marketId));
+
+// Hub de capitanes (ADR-096): el actor no es una persona, solo lleva la IP para la auditoría.
+export const enterHubAs = (actor: Actor, code: string): Promise<EnterHubResult> =>
+  runCommand(actor, (ctx) => enterHub(ctx, code));
+export const placeHubBetAs = (actor: Actor, session: HubSession, input: HubBetInput) =>
+  runCommand(actor, (ctx) => placeHubBet(ctx, session, input));
