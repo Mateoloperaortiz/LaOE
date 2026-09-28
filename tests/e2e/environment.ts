@@ -46,6 +46,9 @@ export function createE2eEnvironment(
     JOBS_ENABLED: "false",
     LOG_LEVEL: "warn",
     PUBLIC_INDEXING: "false",
+    // DÍAS en local (ADR-090 y ADR-096): la vitrina y el hub de capitanes aceptan estos orígenes,
+    // igual que staging, sin depender del .env de quien corre las pruebas.
+    PUBLIC_API_ORIGINS: "http://localhost:3100,http://localhost:3101",
     VAPID_PUBLIC_KEY: "",
     VAPID_PRIVATE_KEY: "",
     VAPID_SUBJECT: "",
