@@ -15,7 +15,7 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | 2026-09-25 | Acceso a permanencia, publicado | PR [#92](https://github.com/Mateoloperaortiz/LaOE/pull/92), SHA `450114eaf07adcc420014d2acd84b688f0d9418f`. El E2E de macroeventos falló una vez por inestabilidad, sin relación con el cambio, y pasó al volver a correrlo; el CI completo de main quedó aprobado. Staging y producción sirven `450114e`, con los smokes de Railway en verde. |
 | 2026-09-25 | Acceso a permanencia | El listado `/admin/comites` solo ofrecía «Editar» y dejaba la asignación de puntajes sin acceso directo. Cada fila muestra ahora «Permanencia», con el nombre del comité en su etiqueta accesible, y el nombre abre su panel. El admin kit admite enlaces de navegación visibles por fila mediante `rowLinks`; reutiliza T-110 y T-818 y conserva las guardas de las rutas. Verificación local en 390 px y escritorio, 15 pruebas existentes del admin kit, lint, tipos y fronteras de módulos en verde. Sin publicación. |
 
-## The Games (ADR-089 a ADR-091 y ADR-094 a ADR-098) · `en curso`
+## The Games (ADR-089 a ADR-091 y ADR-094 a ADR-099) · `en curso`
 
 - [x] Documentar la competencia, la API pública v1 y las apuestas (ADR-089, ADR-090 y ADR-091), con D-037 en `dias`.
 - [x] Módulo `competition`: esquema y migración `0040`, calendario verificado, puntos en libro, rotaciones, acceso por datos y apuestas.
@@ -26,6 +26,7 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 - [x] Capitanes desde la hoja de inscripción de la OE (ADR-095): nombre y celular para la operación y nombres en la vitrina, con D-038 en `dias`.
 - [x] Hub de capitanes (ADR-096): el capitán apuesta en `dias.oeeafit.com/capitanes` con el código del equipo, sin cuenta, por la API `/api/v1/the-games/hub`; D-039 en `dias`.
 - [x] Recorrido de cada equipo (ADR-097): «Buscá tu equipo» en `/the-games/` y «Tu recorrido» en el hub; D-040 en `dias`.
+- [ ] Instrucciones del hub (ADR-099): el primer ingreso de cada equipo pide aceptarlas y la casa guarda la versión y la fecha; D-042 en `dias`.
 - [ ] Poderes (ADR-098): reparto y entrega de las tarjetas, declaración en la pantalla del líder, resultado oficial en el libro, la vitrina y el recorrido, y «Tus poderes» en el hub; D-041 en `dias`.
 - [ ] Publicar, preparar la edición, la mesa y la competencia en producción, cargar los capitanes y hacer el simulacro con la OE.
 
