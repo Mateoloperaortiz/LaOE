@@ -22,6 +22,8 @@ import {
   competitionTeamCaptain,
 } from "../schema";
 import { marketState, poolByOption } from "./betting-pure";
+import type { PowerDetail } from "./powers-pure";
+import { type JudgeMatchupPowers, judgePowers } from "./powers-reads";
 import { type RouteStop, toRouteStops } from "./route-pure";
 import { type RubricLevel, rubricLevel, rubricTotal } from "./rubric-pure";
 import type { Day, ScheduleRotation } from "./schedule-pure";
@@ -214,7 +216,14 @@ export interface MatchupView {
   base: { id: string; name: string; kind: BaseKind; location: string | null; orderIndex: number };
   teamA: { id: string; number: number; name: string; color: string | null };
   teamB: { id: string; number: number; name: string; color: string | null };
+  /** El resultado de la cancha. */
   outcome: Outcome | null;
+  /** El resultado oficial: con poderes puede diferir del de la cancha (ADR-098). */
+  official: Outcome | null;
+  /** Con poderes, el desglose del resultado vigente. */
+  powerDetail: PowerDetail | null;
+  /** Cuándo empezó la base (ADR-098 regla 4). */
+  startedAt: Date | null;
   notes: string;
 }
 
@@ -275,6 +284,9 @@ async function matchupsOf(rotationIds: string[]): Promise<MatchupView[]> {
       teamA: teamView(matchup.teamAId),
       teamB: teamView(matchup.teamBId),
       outcome: result?.outcome ?? null,
+      official: result ? (result.officialOutcome ?? result.outcome) : null,
+      powerDetail: result?.powerDetail ?? null,
+      startedAt: matchup.startedAt,
       notes: result?.notes ?? "",
     };
   });
@@ -309,7 +321,12 @@ export async function listRouteStops(competitionId: string, teamId: string): Pro
   const teams = await db.select().from(competitionTeam).where(inArray(competitionTeam.id, teamIds));
   const teamById = new Map(teams.map((team) => [team.id, team]));
   const results = await db
-    .select({ matchupId: competitionResult.matchupId, outcome: competitionResult.outcome })
+    .select({
+      matchupId: competitionResult.matchupId,
+      outcome: competitionResult.outcome,
+      official: competitionResult.officialOutcome,
+      detail: competitionResult.powerDetail,
+    })
     .from(competitionResult)
     .where(
       and(
@@ -320,7 +337,7 @@ export async function listRouteStops(competitionId: string, teamId: string): Pro
         isNull(competitionResult.supersededAt),
       ),
     );
-  const outcomeOf = new Map(results.map((result) => [result.matchupId, result.outcome]));
+  const resultOf = new Map(results.map((result) => [result.matchupId, result]));
   const teamView = (id: string) => {
     const team = teamById.get(id);
     return { id, number: team?.number ?? 0, name: team?.name ?? "", color: team?.color ?? null };
@@ -333,7 +350,12 @@ export async function listRouteStops(competitionId: string, teamId: string): Pro
       base: { name: base.name, kind: base.kind, location: base.location },
       teamA: teamView(matchup.teamAId),
       teamB: teamView(matchup.teamBId),
-      outcome: outcomeOf.get(matchup.id) ?? null,
+      outcome: resultOf.get(matchup.id)?.outcome ?? null,
+      official: resultOf.get(matchup.id)?.official ?? null,
+      points: (() => {
+        const detail = resultOf.get(matchup.id)?.detail;
+        return detail ? { a: detail.teams.A.total, b: detail.teams.B.total } : null;
+      })(),
     })),
   });
 }
@@ -511,7 +533,8 @@ export async function listStandings(competitionId: string): Promise<Standings> {
       day: competitionRotation.day,
       teamAId: competitionMatchup.teamAId,
       teamBId: competitionMatchup.teamBId,
-      outcome: competitionResult.outcome,
+      // Ganados, empatados y perdidos cuentan con el resultado oficial (ADR-098 regla 5).
+      outcome: sql<Outcome>`coalesce(${competitionResult.officialOutcome}, ${competitionResult.outcome})`,
     })
     .from(competitionResult)
     .innerJoin(competitionMatchup, eq(competitionMatchup.id, competitionResult.matchupId))
@@ -673,7 +696,8 @@ export async function listAnnouncements(
 
 // --- Juez ----------------------------------------------------------------------------------------
 
-/** Lo que ve un juez: sus bases y los enfrentamientos de la rotación en curso en ellas. */
+/** Lo que ve un juez: sus bases, los enfrentamientos de la rotación en curso en ellas y, en cada uno,
+ *  los poderes registrados y las tarjetas disponibles (ADR-098). */
 export async function judgeView(competitionId: string, personId: string) {
   const db = getDb();
   const own = await db
@@ -692,7 +716,19 @@ export async function judgeView(competitionId: string, personId: string) {
   const { current, next } = await getLiveRotations(competitionId);
   const mine = (rotation: RotationView | null) =>
     rotation ? rotation.matchups.filter((matchup) => baseIds.includes(matchup.base.id)) : [];
-  return { bases, current, next, currentMatchups: mine(current), nextMatchups: mine(next) };
+  const currentMatchups = mine(current);
+  const powers: Map<string, JudgeMatchupPowers> = current
+    ? await judgePowers(
+        current,
+        currentMatchups.map((matchup) => ({
+          id: matchup.id,
+          baseKind: matchup.base.kind,
+          teamAId: matchup.teamA.id,
+          teamBId: matchup.teamB.id,
+        })),
+      )
+    : new Map();
+  return { bases, current, next, currentMatchups, nextMatchups: mine(next), powers };
 }
 
 // --- Apuestas ------------------------------------------------------------------------------------

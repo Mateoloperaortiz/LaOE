@@ -17,6 +17,7 @@ import {
   competitionExtraScore,
   competitionMatchup,
   competitionPointEntry,
+  competitionPowerUse,
   competitionStaff,
   competitionTeam,
   competitionTeamCaptain,
@@ -409,6 +410,18 @@ export async function saveBase(
           .where(eq(competitionMatchup.baseId, baseId))
           .limit(1);
         if (used) throw new DomainError(t("T-2791"), "day");
+      }
+      // En una inflable no se usan poderes (ADR-098 regla 2): una base con poderes registrados no pasa
+      // a serlo, porque cambiaría el efecto de lo que ya se declaró.
+      if (before.kind === "NORMAL" && input.kind === "MACRO") {
+        const [withPower] = await ctx.tx
+          .select({ id: competitionPowerUse.id })
+          .from(competitionPowerUse)
+          .where(
+            and(eq(competitionPowerUse.baseId, baseId), eq(competitionPowerUse.status, "ACTIVE")),
+          )
+          .limit(1);
+        if (withPower) throw new DomainError(t("T-3059"), "kind");
       }
       await ctx.tx.update(competitionBase).set(input).where(eq(competitionBase.id, baseId));
       await ctx.audit({

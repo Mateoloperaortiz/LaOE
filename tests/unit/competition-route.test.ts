@@ -97,6 +97,37 @@ describe("recorrido de un equipo", () => {
     );
     expect(json).not.toMatch(/"t\d+"|r16|"id"/);
   });
+
+  it("con poderes, el resultado y los puntos son los oficiales (ADR-098)", () => {
+    const stops = toRouteStops({
+      teamId: "t7",
+      rotations,
+      matchups: [
+        {
+          rotationId: "r1",
+          base: base("Base 1"),
+          teamA: team("t7", 7),
+          teamB: team("t9", 9),
+          outcome: "A_WIN",
+          official: "A_WIN",
+          points: { a: 2000, b: 0 },
+        },
+        {
+          rotationId: "r2",
+          base: base("Base 2"),
+          teamA: team("t7", 7),
+          teamB: team("t3", 3),
+          outcome: "A_WIN",
+          official: "B_WIN",
+          points: { a: 0, b: 1000 },
+        },
+      ],
+    });
+    expect(stops.map(({ result, points }) => ({ result, points }))).toEqual([
+      { result: "WIN", points: 2000 },
+      { result: "LOSS", points: 0 },
+    ]);
+  });
 });
 
 const competitionModule = vi.hoisted(() => ({ getTeamRoute: vi.fn() }));

@@ -2436,7 +2436,7 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2802 | The Games: Campos de la competencia | Edición · Dirección (por ejemplo, the-games-2026) · Nombre · Es de ensayo | MATEO | Propuesta |
 | T-2803 | The Games: Crear competencia | Crear competencia | MATEO | Propuesta |
 | T-2804 | The Games: Estados | Borrador · En vivo · Terminada · Archivada | MATEO | Propuesta |
-| T-2805 | The Games: Pestañas | Resumen · Equipos · Bases · Personal · Rotaciones · Resultados · Posiciones · Extras · Anuncios · Apuestas | MATEO | Propuesta |
+| T-2805 | The Games: Pestañas | Resumen · Equipos · Bases · Personal · Rotaciones · Resultados · Posiciones · Extras · Anuncios · Apuestas · Poderes | MATEO | Propuesta |
 | T-2806 | The Games: Campos de ajustes | Nombre · Fecha de la jornada 1 · Fecha de la jornada 2 · Formulario de inscripción · Apuestas activas · Puntos iniciales de apuestas · Un equipo puede apostar por sí mismo | MATEO | Propuesta |
 | T-2807 | The Games: Guardar ajustes | Guardar ajustes | MATEO | Propuesta |
 | T-2808 | The Games: Cambiar estado | Volver a borrador · Poner en vivo · Terminar · Archivar | MATEO | Propuesta |
@@ -2594,3 +2594,89 @@ La página es de DÍAS (D-039 de `dias`); aquí van los mensajes que devuelve la
 | T-3037 | Hub de capitanes: demasiados intentos | Hubo demasiados intentos desde esta conexión. Esperá 15 minutos o pedile al operador que registre la apuesta. | MATEO | Propuesta |
 | T-3038 | Hub de capitanes: sesión vencida | Tu sesión venció o el código de tu equipo cambió. Escribí el código otra vez. | MATEO | Propuesta |
 | T-3039 | The Games: dirección del hub en la tarjeta | Apostá en {direccion} | MATEO | Propuesta |
+
+## Poderes de The Games (ADR-098)
+
+Los textos del reparto, la pantalla del líder de base y el panel de Poderes. Los nombres y las descripciones de las tarjetas también los usa DÍAS (D-041 de `dias`), con su propia copia.
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-3040 | The Games: Nombres de los poderes | Cambio de resultados · Multiplicador x2 · Cancelar poder · El adversario empieza 1 min tarde · Un jugador menos | MATEO | Propuesta |
+| T-3041 | The Games: Cambio de resultados | Invierte el resultado de la base: si perdés, ganás; si ganás, perdés. Si empatás, ganás. | MATEO | Propuesta |
+| T-3042 | The Games: Multiplicador x2 | Duplica tus puntos en la base: 2.000 si ganás y 1.000 si empatás. Si perdés, no suma. | MATEO | Propuesta |
+| T-3043 | The Games: Cancelar poder | Anula el poder que use el rival en esta base. Si el rival no usa ninguno, la tarjeta se gasta sin efecto. | MATEO | Propuesta |
+| T-3044 | The Games: El adversario empieza 1 min tarde | El equipo rival empieza la base un minuto después. | MATEO | Propuesta |
+| T-3045 | The Games: Un jugador menos | El rival juega toda la base con una persona menos. | MATEO | Propuesta |
+| T-3046 | The Games: Estados de una tarjeta | Por entregar · Entregada · Usada · No se usó · Anulada | MATEO | Propuesta |
+| T-3047 | The Games: Efectos de un poder | Tuvo efecto · Lo anuló un Cancelar poder · Sin efecto · Se anuló con el del rival | MATEO | Propuesta |
+| T-3048 | The Games: Jornadas | Jueves · Viernes | MATEO | Propuesta |
+| T-3049 | The Games: Poderes en inflables | En las bases inflables no se usan poderes. | MATEO | Propuesta |
+| T-3050 | The Games: Poder con la base empezada | Esta base ya empezó: los poderes se registran antes. | MATEO | Propuesta |
+| T-3051 | The Games: Poder fuera de la rotación | Los poderes se registran con la rotación en curso. | MATEO | Propuesta |
+| T-3052 | The Games: Un poder por base | {equipo} ya usó {poder} en esta base: va una tarjeta por equipo en cada base. | MATEO | Propuesta |
+| T-3053 | The Games: Tarjeta sin entregar | {equipo} no tiene esa tarjeta entregada para hoy. Si la tiene en la mano, pedile a la operación que registre la entrega. | MATEO | Propuesta |
+| T-3054 | The Games: Poder de equipo retirado | Ese equipo está retirado de la competencia. | MATEO | Propuesta |
+| T-3055 | The Games: Anular tarjeta usada | Esa tarjeta ya se usó: primero revertí el uso. | MATEO | Propuesta |
+| T-3056 | The Games: Revertir después de empezar | Después de empezar la base, solo la operación revierte un poder. | MATEO | Propuesta |
+| T-3057 | The Games: Motivo del poder | Escribí el motivo, de 2 a 200 caracteres. | MATEO | Propuesta |
+| T-3058 | The Games: Rotación con poderes | Esta rotación tiene poderes registrados o bases empezadas: ya no se puede editar. | MATEO | Propuesta |
+| T-3059 | The Games: Base con poderes a inflable | Esta base tiene poderes registrados: no puede pasar a inflable. | MATEO | Propuesta |
+| T-3060 | The Games: Empezar fuera de la rotación | La base solo puede empezar con la rotación en curso. | MATEO | Propuesta |
+| T-3061 | The Games: Libro con poderes | Con poderes: {poderes} | MATEO | Propuesta |
+| T-3062 | The Games: Libro poder revertido | Poder revertido: {motivo} | MATEO | Propuesta |
+| T-3063 | The Games: Poder quitado antes de empezar | Quitado antes de empezar | MATEO | Propuesta |
+| T-3064 | The Games: Pegar el reparto | Cargar el reparto de poderes desde la hoja | MATEO | Propuesta |
+| T-3065 | The Games: Ayuda del reparto | Pegá tres columnas, Equipo, Poder y Jornada, con o sin encabezado. El equipo va por su número o su nombre; el poder, por el nombre de la tarjeta («Multiplicador x2», «Cambio de resultados», «Cancelar poder», «1 min tarde» o «Un jugador menos»); la jornada, «jueves» o «viernes». Cada equipo lleva 5 tarjetas, 2 un día y 3 el otro, y se pueden repetir. Entra todo o nada, y las tarjetas quedan por entregar. | MATEO | Propuesta |
+| T-3066 | The Games: Campo del reparto | Reparto (Equipo, Poder, Jornada) | MATEO | Propuesta |
+| T-3067 | The Games: Botón del reparto | Cargar el reparto | MATEO | Propuesta |
+| T-3068 | The Games: Reparto cargado | Listo: se asignaron {tarjetas} tarjetas a {equipos} equipos. Falta marcarlas entregadas. | MATEO | Propuesta |
+| T-3069 | The Games: Reparto sin columnas | Línea {linea}: faltan columnas. Van Equipo, Poder y Jornada. | MATEO | Propuesta |
+| T-3070 | The Games: Reparto con columnas de más | Línea {linea}: sobran columnas. Pegá solo Equipo, Poder y Jornada. | MATEO | Propuesta |
+| T-3071 | The Games: Reparto con poder desconocido | Línea {linea}: «{poder}» no es un poder. Van Cambio de resultados, Multiplicador x2, Cancelar poder, 1 min tarde o Un jugador menos. | MATEO | Propuesta |
+| T-3072 | The Games: Reparto con jornada inválida | Línea {linea}: «{dia}» no es una jornada. Va «jueves» o «viernes». | MATEO | Propuesta |
+| T-3073 | The Games: Reparto de más de 5 | {equipo} pasaría de 5 tarjetas. | MATEO | Propuesta |
+| T-3074 | The Games: Reparto de más de 3 en un día | {equipo} pasaría de 3 tarjetas el {dia}. | MATEO | Propuesta |
+| T-3075 | The Games: Reparto muy largo | El reparto pegado es demasiado largo. Pegá solo las tres columnas. | MATEO | Propuesta |
+| T-3076 | The Games: Sección de reparto | Reparto y entregas | MATEO | Propuesta |
+| T-3077 | The Games: Resumen del reparto | {entregadas} de {total} tarjetas entregadas · {completos} de {equipos} equipos con el reparto completo | MATEO | Propuesta |
+| T-3078 | The Games: Columnas del reparto | Equipo · Jueves · Viernes · Entregadas | MATEO | Propuesta |
+| T-3079 | The Games: Entregar las de un equipo | Entregar las del {dia} | MATEO | Propuesta |
+| T-3080 | The Games: Entregar las de todos | Entregar todas las del {dia} | MATEO | Propuesta |
+| T-3081 | The Games: Anular tarjeta | Anular | MATEO | Propuesta |
+| T-3082 | The Games: Motivo | Motivo | MATEO | Propuesta |
+| T-3083 | The Games: Agregar tarjeta | Agregar una tarjeta | MATEO | Propuesta |
+| T-3084 | The Games: Agregar entregada | Ya está entregada | MATEO | Propuesta |
+| T-3085 | The Games: Botón agregar tarjeta | Agregar | MATEO | Propuesta |
+| T-3086 | The Games: Reparto de un equipo | Reparto completo · Reparto incompleto | MATEO | Propuesta |
+| T-3087 | The Games: Sección de usos | Poderes registrados | MATEO | Propuesta |
+| T-3088 | The Games: Columnas de usos | Rotación · Base · Equipo · Poder · Recibida · Efecto | MATEO | Propuesta |
+| T-3089 | The Games: Revertir poder | Revertir | MATEO | Propuesta |
+| T-3090 | The Games: Ayuda de revertir | Revertir anula el uso de la tarjeta. Si la base ya tiene resultado, se vuelve a calcular con reversiones en el libro. | MATEO | Propuesta |
+| T-3091 | The Games: Uso revertido | Revertido: {motivo} | MATEO | Propuesta |
+| T-3092 | The Games: Título de reglas | Reglas de los poderes (versión {version}, confirmadas el {fecha}) | MATEO | Propuesta |
+| T-3093 | The Games: Reglas de los poderes | Cada equipo recibe 5 tarjetas, 2/3 o 3/2 entre jueves y viernes, y los tipos se pueden repetir. · Una tarjeta se usa una vez y solo en su jornada. · Solo en bases normales, nunca en las inflables. · Una tarjeta por equipo en cada base, entregada al líder antes de empezar. · x2 duplica los puntos de quien lo usa: 2.000 si gana, 1.000 si empata y 0 si pierde. · Cambio de resultados invierte el enfrentamiento; en un empate gana quien lo usó, y dos Cambios se anulan. · Cancelar poder anula el poder del rival en esa base; sin poder del rival se gasta sin efecto, y dos Cancelar se anulan. · 1 min tarde y Un jugador menos no tocan los puntos. · Se resuelven en este orden: Cancelar, Cambio y x2. | MATEO | Propuesta |
+| T-3094 | The Games: Sin reparto | Todavía no hay reparto. Pegalo arriba. | MATEO | Propuesta |
+| T-3095 | The Games: Sin poderes registrados | Todavía no se registró ningún poder. | MATEO | Propuesta |
+| T-3096 | The Games: Poderes del juez | Poderes | MATEO | Propuesta |
+| T-3097 | The Games: Sin tarjetas para hoy | Sin tarjetas entregadas para hoy. | MATEO | Propuesta |
+| T-3098 | The Games: Tipo con cantidad | {poder} · {n} | MATEO | Propuesta |
+| T-3099 | The Games: Confirmar tarjeta | ¿Recibiste la tarjeta «{poder}» de {equipo}? | MATEO | Propuesta |
+| T-3100 | The Games: Ayuda de confirmar tarjeta | Registrala solo con la tarjeta física en la mano. Después de empezar la base ya no se puede. | MATEO | Propuesta |
+| T-3101 | The Games: Sí, la recibí | Sí, la recibí | MATEO | Propuesta |
+| T-3102 | The Games: Tarjeta recibida | Recibida a las {hora} | MATEO | Propuesta |
+| T-3103 | The Games: Quitar poder | Quitar | MATEO | Propuesta |
+| T-3104 | The Games: Empezar la base | Empezar la base | MATEO | Propuesta |
+| T-3105 | The Games: Confirmar empezar | Después de empezar no se registran más poderes en esta base. | MATEO | Propuesta |
+| T-3106 | The Games: Sí, empezar | Sí, empezar | MATEO | Propuesta |
+| T-3107 | The Games: En juego | En juego desde las {hora} | MATEO | Propuesta |
+| T-3108 | The Games: Cuenta del minuto | {equipo} empieza en | MATEO | Propuesta |
+| T-3109 | The Games: Fin del minuto | {equipo} ya puede empezar | MATEO | Propuesta |
+| T-3110 | The Games: Un jugador menos en la base | {equipo} juega toda la base con una persona menos. | MATEO | Propuesta |
+| T-3111 | The Games: Vista previa oficial | Oficial: {resultado} · {puntosA} a {puntosB} | MATEO | Propuesta |
+| T-3112 | The Games: Resultado con poderes | En la cancha: {cancha} · Oficial: {oficial} | MATEO | Propuesta |
+| T-3113 | The Games: Puntos con x2 | {equipo}: {total} ({base} + {bono} del x2) | MATEO | Propuesta |
+| T-3114 | The Games: Puntos | {equipo}: {total} | MATEO | Propuesta |
+| T-3115 | The Games: Poder registrado | Poder registrado: {poder} de {equipo}. | MATEO | Propuesta |
+| T-3116 | The Games: Poder quitado | Poder quitado. | MATEO | Propuesta |
+| T-3117 | The Games: Base empezada | La base empezó. | MATEO | Propuesta |
+| T-3118 | The Games: Poder de un equipo | {poder} de {equipo} | MATEO | Propuesta |

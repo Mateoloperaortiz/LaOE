@@ -134,6 +134,8 @@ export interface ShowcaseSource {
         teamA: { id: string };
         teamB: { id: string };
         outcome: "A_WIN" | "B_WIN" | "DRAW" | null;
+        /** Con poderes, el resultado oficial (ADR-098); la vitrina publica este. */
+        official?: "A_WIN" | "B_WIN" | "DRAW" | null;
       }>;
     } | null
   >;
@@ -197,7 +199,7 @@ export function toShowcase(source: ShowcaseSource): ShowcaseBody | null {
             base: matchup.base,
             teamA: teamOf(matchup.teamA.id),
             teamB: teamOf(matchup.teamB.id),
-            outcome: matchup.outcome,
+            outcome: matchup.outcome === null ? null : (matchup.official ?? matchup.outcome),
           })),
         }
       : null;

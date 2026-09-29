@@ -1,18 +1,21 @@
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { CommandContext } from "@/db/tx";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import {
   competitionBase,
   competitionMarket,
   competitionMatchup,
   competitionPointEntry,
+  competitionPowerGrant,
+  competitionPowerUse,
   competitionResult,
   competitionRotation,
   competitionTeam,
 } from "../schema";
 import { assertCanRecordAt, type CompetitionActor } from "./access";
+import { POWER_TYPES, type PowerUseInput, resolvePowers } from "./powers-pure";
 import {
   type Day,
   dayOneRounds,
@@ -22,12 +25,13 @@ import {
   type ScheduleRotation,
   validateSchedule,
 } from "./schedule-pure";
-import { pointsFor } from "./scoring-pure";
+import { type Outcome, pointsFor } from "./scoring-pure";
 import { openCompetition, writableCompetition } from "./setup";
 
 // El juego en vivo de The Games (ADR-089 reglas 6, 8 y 9): el calendario de cada jornada, las
 // rotaciones con su reloj y los resultados. Los puntos los calcula el servidor desde el desenlace y
-// quedan en el libro; corregir un resultado lo reemplaza y revierte sus filas.
+// quedan en el libro; corregir un resultado lo reemplaza y revierte sus filas. Con poderes (ADR-098),
+// cada base tiene su inicio y el resultado guarda también el oficial.
 
 const day = z.coerce
   .number()
@@ -277,6 +281,26 @@ export async function saveRotationMatchups(
       )
       .limit(1);
     if (withResult) throw new DomainError(t("T-2791"));
+    // Los poderes van por rotación y equipo: cambiar los cruces cambiaría la base de un poder ya
+    // registrado (ADR-098 regla 3).
+    const [withPower] = await ctx.tx
+      .select({ id: competitionPowerUse.id })
+      .from(competitionPowerUse)
+      .where(
+        and(
+          eq(competitionPowerUse.rotationId, rotationId),
+          eq(competitionPowerUse.status, "ACTIVE"),
+        ),
+      )
+      .limit(1);
+    const [started] = await ctx.tx
+      .select({ id: competitionMatchup.id })
+      .from(competitionMatchup)
+      .where(
+        and(eq(competitionMatchup.rotationId, rotationId), isNotNull(competitionMatchup.startedAt)),
+      )
+      .limit(1);
+    if (withPower || started) throw new DomainError(t("T-3058"));
   }
   const before = validateSchedule(current.schedule, current.teams, current.bases);
   const proposed = current.schedule.map((item) =>
@@ -467,7 +491,9 @@ export const resultInputSchema = z.object({
 });
 export type ResultInput = z.input<typeof resultInputSchema>;
 
-async function lockedMatchup(ctx: CommandContext, competitionId: string, matchupId: string) {
+/** El enfrentamiento con su rotación y el tipo de base, bloqueado para escribir. Uno de otra
+ *  competencia se responde como inexistente (ADR-072). */
+export async function lockedMatchup(ctx: CommandContext, competitionId: string, matchupId: string) {
   const [row] = await ctx.tx
     .select({
       matchup: competitionMatchup,
@@ -487,6 +513,8 @@ async function lockedMatchup(ctx: CommandContext, competitionId: string, matchup
   if (!row) throw new DomainError(t("T-2764"));
   return row;
 }
+
+type LockedMatchup = Awaited<ReturnType<typeof lockedMatchup>>;
 
 /** Reemplaza el resultado vigente, si lo hay, y revierte sus filas del libro. */
 async function supersede(
@@ -528,8 +556,90 @@ async function supersede(
   return current;
 }
 
-/** Registra el desenlace. El mismo desenlace otra vez no cambia nada; uno distinto corrige. El juez
- *  registra solo en su base y en la rotación en curso (ADR-089 regla 10). */
+/** Los poderes activos de los dos equipos de un enfrentamiento (ADR-098), con su lado, en el orden en
+ *  que se recibieron las tarjetas. */
+async function matchupPowerUses(
+  ctx: CommandContext,
+  matchup: { rotationId: string; teamAId: string; teamBId: string },
+): Promise<PowerUseInput[]> {
+  const rows = await ctx.tx
+    .select({
+      id: competitionPowerUse.id,
+      teamId: competitionPowerUse.teamId,
+      power: competitionPowerGrant.power,
+    })
+    .from(competitionPowerUse)
+    .innerJoin(competitionPowerGrant, eq(competitionPowerGrant.id, competitionPowerUse.grantId))
+    .where(
+      and(
+        eq(competitionPowerUse.rotationId, matchup.rotationId),
+        eq(competitionPowerUse.status, "ACTIVE"),
+        inArray(competitionPowerUse.teamId, [matchup.teamAId, matchup.teamBId]),
+      ),
+    )
+    .orderBy(asc(competitionPowerUse.createdAt), asc(competitionPowerUse.id));
+  return rows.map((row) => ({
+    id: row.id,
+    side: row.teamId === matchup.teamAId ? ("A" as const) : ("B" as const),
+    power: row.power,
+  }));
+}
+
+/** Inserta el resultado y sus filas del libro con los puntos oficiales. Con poderes, el resolvedor de
+ *  ADR-098 fija el resultado oficial y su desglose; sin poderes, son los de la cancha. */
+async function writeResult(
+  ctx: CommandContext,
+  actor: CompetitionActor,
+  competitionId: string,
+  { matchup, rotation, baseKind }: LockedMatchup,
+  outcome: Outcome,
+  notes: string,
+) {
+  const uses = await matchupPowerUses(ctx, matchup);
+  const resolution = uses.length > 0 ? resolvePowers({ baseKind, outcome, uses }) : null;
+  const points = resolution?.points ?? pointsFor(baseKind, outcome);
+  const [result] = await ctx.tx
+    .insert(competitionResult)
+    .values({
+      matchupId: matchup.id,
+      outcome,
+      notes,
+      recordedById: actor.personId,
+      officialOutcome: resolution?.official ?? null,
+      powerDetail: resolution?.detail ?? null,
+    })
+    .returning({ id: competitionResult.id });
+  if (!result) throw new Error("result insert");
+  const names = tList("T-3040");
+  const reason = resolution
+    ? t("T-3061", {
+        poderes: uses.map((use) => names[POWER_TYPES.indexOf(use.power)] ?? use.power).join(", "),
+      })
+    : "";
+  const entries = [
+    { teamId: matchup.teamAId, points: points.a },
+    { teamId: matchup.teamBId, points: points.b },
+  ].filter((entry) => entry.points !== 0);
+  if (entries.length > 0) {
+    await ctx.tx.insert(competitionPointEntry).values(
+      entries.map((entry) => ({
+        competitionId,
+        teamId: entry.teamId,
+        day: rotation.day,
+        kind: "MATCH" as const,
+        points: entry.points,
+        reason,
+        resultId: result.id,
+        createdById: actor.personId,
+      })),
+    );
+  }
+  return { resultId: result.id, points, resolution };
+}
+
+/** Registra el desenlace de la cancha. El mismo desenlace otra vez no cambia nada; uno distinto
+ *  corrige. El juez registra solo en su base y en la rotación en curso (ADR-089 regla 10), y registrar
+ *  también marca el inicio de la base, que cierra la declaración de poderes (ADR-098 regla 4). */
 export async function recordResult(
   ctx: CommandContext,
   actor: CompetitionActor,
@@ -539,9 +649,16 @@ export async function recordResult(
 ): Promise<{ changed: boolean; resultId: string }> {
   const input = resultInputSchema.parse(raw);
   await writableCompetition(ctx, competitionId);
-  const { matchup, rotation, baseKind } = await lockedMatchup(ctx, competitionId, input.matchupId);
+  const locked = await lockedMatchup(ctx, competitionId, input.matchupId);
+  const { matchup, rotation } = locked;
   const { operator } = await assertCanRecordAt(actor, competitionId, matchup.baseId, ctx.tx);
   if (!operator && rotation.status !== "ACTIVE") throw new DomainError(t("T-2775"));
+  if (!matchup.startedAt) {
+    await ctx.tx
+      .update(competitionMatchup)
+      .set({ startedAt: now, startedById: actor.personId })
+      .where(eq(competitionMatchup.id, matchup.id));
+  }
   const [current] = await ctx.tx
     .select()
     .from(competitionResult)
@@ -557,43 +674,86 @@ export async function recordResult(
     return { changed: false, resultId: current.id };
   }
   const previous = await supersede(ctx, actor, competitionId, matchup.id, t("T-2794"), now);
-  const [result] = await ctx.tx
-    .insert(competitionResult)
-    .values({
-      matchupId: matchup.id,
-      outcome: input.outcome,
-      notes: input.notes,
-      recordedById: actor.personId,
-    })
-    .returning({ id: competitionResult.id });
-  if (!result) throw new Error("result insert");
-  const points = pointsFor(baseKind, input.outcome);
-  const entries = [
-    { teamId: matchup.teamAId, points: points.a },
-    { teamId: matchup.teamBId, points: points.b },
-  ].filter((entry) => entry.points !== 0);
-  if (entries.length > 0) {
-    await ctx.tx.insert(competitionPointEntry).values(
-      entries.map((entry) => ({
-        competitionId,
-        teamId: entry.teamId,
-        day: rotation.day,
-        kind: "MATCH" as const,
-        points: entry.points,
-        reason: "",
-        resultId: result.id,
-        createdById: actor.personId,
-      })),
-    );
-  }
+  const written = await writeResult(ctx, actor, competitionId, locked, input.outcome, input.notes);
   await ctx.audit({
     action: previous ? "competition.result.correct" : "competition.result.record",
     entityType: "competition_matchup",
     entityId: matchup.id,
-    before: previous ? { outcome: previous.outcome } : undefined,
-    after: { outcome: input.outcome, points },
+    before: previous
+      ? { outcome: previous.outcome, official: previous.officialOutcome ?? previous.outcome }
+      : undefined,
+    after: {
+      outcome: input.outcome,
+      points: written.points,
+      ...(written.resolution
+        ? { official: written.resolution.official, powers: written.resolution.detail.uses }
+        : {}),
+    },
   });
-  return { changed: true, resultId: result.id };
+  return { changed: true, resultId: written.resultId };
+}
+
+/** El líder empieza su base (ADR-098 regla 4). Desde ahí no se registran poderes, y la cuenta de «El
+ *  adversario empieza 1 min tarde» sale de esta hora. Empezar dos veces conserva la primera. */
+export async function startMatchup(
+  ctx: CommandContext,
+  actor: CompetitionActor,
+  competitionId: string,
+  matchupId: string,
+  now = new Date(),
+): Promise<{ changed: boolean }> {
+  await writableCompetition(ctx, competitionId);
+  const { matchup, rotation } = await lockedMatchup(ctx, competitionId, matchupId);
+  await assertCanRecordAt(actor, competitionId, matchup.baseId, ctx.tx);
+  if (matchup.startedAt) return { changed: false };
+  if (rotation.status !== "ACTIVE") throw new DomainError(t("T-3060"));
+  await ctx.tx
+    .update(competitionMatchup)
+    .set({ startedAt: now, startedById: actor.personId })
+    .where(eq(competitionMatchup.id, matchup.id));
+  await ctx.audit({
+    action: "competition.matchup.start",
+    entityType: "competition_matchup",
+    entityId: matchup.id,
+    after: { startedAt: now },
+  });
+  return { changed: true };
+}
+
+/** Vuelve a calcular el resultado vigente con los poderes de ahora (ADR-098): lo reemplaza por el mismo
+ *  desenlace y revierte sus filas del libro. Sin resultado no hace nada. Quien lo llama ya comprobó el
+ *  permiso. */
+export async function rescoreMatchup(
+  ctx: CommandContext,
+  actor: CompetitionActor,
+  competitionId: string,
+  matchupId: string,
+  reason: string,
+  now = new Date(),
+): Promise<boolean> {
+  const locked = await lockedMatchup(ctx, competitionId, matchupId);
+  const previous = await supersede(ctx, actor, competitionId, matchupId, reason, now);
+  if (!previous) return false;
+  const written = await writeResult(
+    ctx,
+    actor,
+    competitionId,
+    locked,
+    previous.outcome,
+    previous.notes,
+  );
+  await ctx.audit({
+    action: "competition.result.rescore",
+    entityType: "competition_matchup",
+    entityId: matchupId,
+    before: { official: previous.officialOutcome ?? previous.outcome },
+    after: {
+      official: written.resolution?.official ?? previous.outcome,
+      points: written.points,
+      reason,
+    },
+  });
+  return true;
 }
 
 /** Anula el resultado vigente: el enfrentamiento vuelve a quedar pendiente. Solo un operador. */
