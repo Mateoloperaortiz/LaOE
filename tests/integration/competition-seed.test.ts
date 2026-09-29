@@ -9,6 +9,7 @@ import {
   listCaptains,
   listExtras,
   listMarkets,
+  listPowerBoard,
   listRotations,
   listStaff,
   listTeams,
@@ -87,6 +88,13 @@ describe("ensayo sintético de The Games", () => {
     expect(extra?.rubric?.criteria).toHaveLength(5);
     const [market] = await listMarkets(id);
     expect(market?.status).toBe("OPEN");
+    // El reparto de poderes: 150 tarjetas, 75 del jueves, entregadas (ADR-098).
+    expect((await listPowerBoard(id)).totals).toEqual({
+      grants: 150,
+      delivered: 75,
+      completeTeams: 30,
+      teams: 30,
+    });
     expect(await seedTheGames(getDb(), { rotationsPerDay: 2 })).toBe(id);
     expect(await listTeams(id)).toHaveLength(30);
   });

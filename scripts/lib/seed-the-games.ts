@@ -8,13 +8,16 @@ import {
   createExtraAs,
   createMarketAs,
   createTeamAs,
+  deliverPowerGrantsAs,
   formatTeamCode,
   generateDayScheduleAs,
   getCompetitionBySlug,
   getLiveRotations,
   grantStartingCreditsAs,
   importCaptainsAs,
+  importPowerGrantsAs,
   issueTeamCodesAs,
+  POWER_TYPES,
   saveBaseAs,
   setCaptainsVisibilityAs,
   setCompetitionStatusAs,
@@ -28,8 +31,9 @@ import { logger } from "@/shared/log";
 // Ensayo sintético de The Games (ADR-089 y ADR-091) para desarrollo y staging, sobre la edición
 // «prueba» de Días EAFIT que siembra el seed. Tiene 30 equipos con dos capitanes sintéticos cada uno,
 // publicados en la vitrina (ADR-095), 15 bases por jornada (la 5 y la 10 son inflables), las dos
-// jornadas generadas, la rúbrica de The Challenge, apuestas con 1000 puntos, un anuncio, un operador
-// y dos jueces demo. El ensayo de producción usa el mismo armado sin capitanes. Queda en vivo para verse en la vitrina con
+// jornadas generadas, la rúbrica de The Challenge, apuestas con 1000 puntos, un anuncio, el reparto de
+// poderes (ADR-098), un operador y dos jueces demo. El ensayo de producción usa el mismo armado sin
+// capitanes. Queda en vivo para verse en la vitrina con
 // `?c=ensayo-the-games`. Se crea con los comandos del dominio, así que todo queda auditado.
 // Idempotente por slug; nunca corre en producción.
 
@@ -136,6 +140,18 @@ export async function buildTheGamesRehearsal(
   const rotations = input.rotationsPerDay ?? 15;
   await generateDayScheduleAs(actor, id, { day: 1, rotations, plannedMinutes: 20 });
   await generateDayScheduleAs(actor, id, { day: 2, rotations, plannedMinutes: 45 });
+  // El reparto de poderes (ADR-098), pegado como la hoja de los líderes: 5 tarjetas por equipo, 3/2 en
+  // los impares y 2/3 en los pares, con los tipos rotando. Las del jueves quedan entregadas.
+  const reparto: string[] = [];
+  for (let number = 1; number <= 30; number++) {
+    const dayOne = number % 2 === 1 ? 3 : 2;
+    for (let card = 0; card < 5; card++) {
+      const power = POWER_TYPES[(number + card) % POWER_TYPES.length] ?? "DOUBLE_POINTS";
+      reparto.push(`${number}\t${power}\t${card < dayOne ? "jueves" : "viernes"}`);
+    }
+  }
+  await importPowerGrantsAs(actor, id, { text: reparto.join("\n") });
+  await deliverPowerGrantsAs(actor, id, { day: 1 });
   await grantStartingCreditsAs(actor, id);
   const { next } = await getLiveRotations(id);
   const inflable = next?.matchups.find((matchup) => matchup.base.kind === "MACRO");

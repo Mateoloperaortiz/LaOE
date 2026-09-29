@@ -3,7 +3,8 @@ import type { BaseKind, Outcome } from "./scoring-pure";
 import { pointsFor } from "./scoring-pure";
 
 // El recorrido de un equipo (ADR-097), sin I/O: una parada por rotación en la que juega, con la base,
-// el rival y cómo le fue. Público como la vitrina: por número de equipo, sin ids ni personas.
+// el rival y cómo le fue. Público como la vitrina: por número de equipo, sin ids ni personas. Con
+// poderes, el resultado y los puntos son los oficiales (ADR-098).
 
 export const ROUTE_VERSION = 1;
 
@@ -55,7 +56,11 @@ export interface RouteSource {
     base: { name: string; kind: BaseKind; location: string | null };
     teamA: { id: string; number: number; name: string; color: string | null };
     teamB: { id: string; number: number; name: string; color: string | null };
+    /** El resultado de la cancha. */
     outcome: Outcome | null;
+    /** Con poderes: el resultado oficial y los puntos de cada lado (ADR-098). */
+    official?: Outcome | null;
+    points?: { a: number; b: number } | null;
   }>;
 }
 
@@ -69,14 +74,15 @@ export function toRouteStops(source: RouteSource): RouteStop[] {
     const rotation = byRotation.get(matchup.rotationId);
     if (!rotation) continue;
     const rival = isA ? matchup.teamB : matchup.teamA;
-    const side = matchup.outcome ? pointsFor(matchup.base.kind, matchup.outcome) : null;
+    const outcome = matchup.outcome === null ? null : (matchup.official ?? matchup.outcome);
+    const side = outcome ? (matchup.points ?? pointsFor(matchup.base.kind, outcome)) : null;
     const points = side ? (isA ? side.a : side.b) : null;
     const result =
-      matchup.outcome === null
+      outcome === null
         ? null
-        : matchup.outcome === "DRAW"
+        : outcome === "DRAW"
           ? ("DRAW" as const)
-          : (matchup.outcome === "A_WIN") === isA
+          : (outcome === "A_WIN") === isA
             ? ("WIN" as const)
             : ("LOSS" as const);
     stops.push({

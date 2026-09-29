@@ -34,9 +34,25 @@ import {
   type RotationMatchupsResult,
   recordResult,
   saveRotationMatchups,
+  startMatchup,
   startRotation,
   voidResult,
 } from "./play";
+import {
+  type AddPowerInput,
+  addPowerGrant,
+  type DeclarePowerInput,
+  type DeliverPowersInput,
+  declarePower,
+  deliverPowerGrants,
+  type ImportPowersInput,
+  type ImportPowersResult,
+  importPowerGrants,
+  type RevertPowerInput,
+  revertPowerUse,
+  type VoidPowerInput,
+  voidPowerGrant,
+} from "./powers";
 import { type ImportDayInput, type ImportDayResult, importDaySchedule } from "./schedule-import";
 import {
   type AdjustmentInput,
@@ -164,6 +180,8 @@ export const advanceRotationAs = (actor: A, id: string) =>
 
 export const recordResultAs = (actor: A, id: string, input: ResultInput) =>
   runCommand(actor, (ctx) => recordResult(ctx, actor, id, input));
+export const startMatchupAs = (actor: A, id: string, matchupId: string) =>
+  runCommand(actor, (ctx) => startMatchup(ctx, actor, id, matchupId));
 export const voidResultAs = (actor: A, id: string, matchupId: string) =>
   runCommand(actor, (ctx) => voidResult(ctx, actor, id, matchupId));
 
@@ -185,3 +203,21 @@ export const enterHubAs = (actor: Actor, code: string): Promise<EnterHubResult> 
   runCommand(actor, (ctx) => enterHub(ctx, code));
 export const placeHubBetAs = (actor: Actor, session: HubSession, input: HubBetInput) =>
   runCommand(actor, (ctx) => placeHubBet(ctx, session, input));
+
+// Poderes (ADR-098).
+export const importPowerGrantsAs = (
+  actor: A,
+  id: string,
+  input: ImportPowersInput,
+): Promise<ImportPowersResult> =>
+  runCommand(actor, (ctx) => importPowerGrants(ctx, actor, id, input));
+export const addPowerGrantAs = (actor: A, id: string, input: AddPowerInput) =>
+  runCommand(actor, (ctx) => addPowerGrant(ctx, actor, id, input));
+export const deliverPowerGrantsAs = (actor: A, id: string, input: DeliverPowersInput) =>
+  runCommand(actor, (ctx) => deliverPowerGrants(ctx, actor, id, input));
+export const voidPowerGrantAs = (actor: A, id: string, input: VoidPowerInput) =>
+  runCommand(actor, (ctx) => voidPowerGrant(ctx, actor, id, input));
+export const declarePowerAs = (actor: A, id: string, input: DeclarePowerInput) =>
+  runCommand(actor, (ctx) => declarePower(ctx, actor, id, input));
+export const revertPowerUseAs = (actor: A, id: string, input: RevertPowerInput) =>
+  runCommand(actor, (ctx) => revertPowerUse(ctx, actor, id, input));

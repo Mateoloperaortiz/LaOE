@@ -91,6 +91,7 @@ describe("estado del hub", () => {
         market("cerrada", "CLOSED", []),
       ],
       route: [],
+      powers: [],
       returns: new Map([
         ["b2", { kind: "PAYOUT" as const, amount: 250 }],
         ["b4", { kind: "REFUND" as const, amount: 80 }],

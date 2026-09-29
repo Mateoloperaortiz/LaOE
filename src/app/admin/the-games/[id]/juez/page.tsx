@@ -1,32 +1,18 @@
 import Link from "next/link";
 import { requireCompetitionStaff } from "@/app/_authz/competition";
 import { single } from "@/app/_lib/search";
-import { judgeView, type MatchupView } from "@/modules/competition";
+import { judgeView } from "@/modules/competition";
 import { Actualizador } from "@/modules/competition/components/Actualizador";
 import { Cronometro } from "@/modules/competition/components/Cronometro";
-import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { t, tList } from "@/shared/copy";
-import { judgeResultAction } from "../actions";
+import { JudgeMatchup } from "../_ui/Judge";
 
 // Pantalla del juez (ADR-089 regla 10): primero celular. Su base, el enfrentamiento de la rotación en
-// curso y tres botones grandes. Se actualiza sola cada pocos segundos con la pestaña visible.
+// curso y tres botones grandes. Antes de empezar, registra las tarjetas de poder que le entregan y
+// empieza la base (ADR-098). Se actualiza sola cada pocos segundos con la pestaña visible.
 
 export async function generateMetadata() {
   return { title: t("T-2882") };
-}
-
-function Team({ team }: { team: MatchupView["teamA"] }) {
-  return (
-    <span className="flex items-center gap-3">
-      <span
-        aria-hidden="true"
-        className="inline-block size-5 shrink-0 rounded-full border border-borde"
-        style={team.color ? { backgroundColor: team.color } : undefined}
-      />
-      <span className="tabular-nums text-tinta-suave">{team.number}</span>
-      <span className="text-xl font-semibold">{team.name}</span>
-    </span>
-  );
 }
 
 export default async function JudgePage({
@@ -42,6 +28,7 @@ export default async function JudgePage({
   const [quedan, cumplido] = tList("T-2881");
   const kinds = tList("T-2824");
   const saved = single(search.guardado);
+  const notice = single(search.aviso);
   const error = single(search.error);
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-6">
@@ -62,6 +49,11 @@ export default async function JudgePage({
       {saved ? (
         <output className="block rounded-xl bg-oe-yellow-soft px-4 py-3 font-semibold text-oe-navy">
           {t("T-2879", { resultado: saved })}
+        </output>
+      ) : null}
+      {notice ? (
+        <output className="block rounded-xl bg-oe-yellow-soft px-4 py-3 font-semibold text-oe-navy">
+          {notice}
         </output>
       ) : null}
       {error ? (
@@ -86,41 +78,16 @@ export default async function JudgePage({
               />
             ) : null}
           </section>
-          {view.currentMatchups.map((matchup) => {
-            const options = [
-              { outcome: "A_WIN", label: t("T-2846", { equipo: matchup.teamA.name }) },
-              { outcome: "DRAW", label: t("T-2847") },
-              { outcome: "B_WIN", label: t("T-2846", { equipo: matchup.teamB.name }) },
-            ];
-            return (
-              <section
-                key={matchup.id}
-                className="flex flex-col gap-4 rounded-xl border-2 border-borde bg-fondo p-4"
-              >
-                <p className="text-sm text-tinta-suave">
-                  {matchup.base.name}
-                  {matchup.base.kind === "MACRO" ? ` · ${kinds[1]}` : ""}
-                </p>
-                <Team team={matchup.teamA} />
-                <Team team={matchup.teamB} />
-                <div className="flex flex-col gap-3">
-                  {options.map((option) => (
-                    <form key={option.outcome} action={judgeResultAction}>
-                      <input type="hidden" name="competitionId" value={id} />
-                      <input type="hidden" name="matchupId" value={matchup.id} />
-                      <input type="hidden" name="outcome" value={option.outcome} />
-                      <input type="hidden" name="label" value={option.label} />
-                      <AdminSubmitButton
-                        className={`${matchup.outcome === option.outcome ? "boton-primario" : "boton-secundario"} min-h-14 w-full text-lg`}
-                      >
-                        {option.label}
-                      </AdminSubmitButton>
-                    </form>
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+          {view.currentMatchups.map((matchup) => (
+            <JudgeMatchup
+              key={matchup.id}
+              competitionId={id}
+              matchup={matchup}
+              powers={view.powers.get(matchup.id)}
+              serverNow={serverNow}
+              macroLabel={kinds[1] ?? ""}
+            />
+          ))}
         </>
       ) : (
         <p className="rounded-xl border border-borde bg-fondo px-4 py-3">{t("T-2877")}</p>

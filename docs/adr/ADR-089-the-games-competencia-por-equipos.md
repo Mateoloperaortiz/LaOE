@@ -1,6 +1,6 @@
 # ADR-089: The Games: competencia por equipos de Días EAFIT
 
-- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095 y ADR-096); implementación en curso
+- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096 y ADR-098); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-002, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014, ADR-020, ADR-036, ADR-047, ADR-058, ADR-064, ADR-072, ADR-075, ADR-082, ADR-085, ADR-090, ADR-091
 - Enmienda: ADR-011 (el cargo de Dirección de The Games habilita, por datos, la operación de la competencia de su edición), ADR-064 (esa entrega no ampliaba permisos por cargo: este lo hace, con alcance cerrado)
@@ -93,3 +93,11 @@ Reglas 3 y 4: en 2026 los capitanes no se inscriben por formulario. La OE los in
 ## Enmienda (2026-09-28, ADR-096)
 
 Regla 3: el código del equipo también abre el hub de apuestas en `dias.oeeafit.com/capitanes`, que usa la API de la casa. Ahí el capitán ve el saldo de su equipo y las apuestas abiertas, y apuesta. El hub respeta el bloqueo del código, y volver a emitirlo cierra las sesiones del hub. Ver [ADR-096](ADR-096-hub-de-apuestas-de-los-capitanes.md).
+
+## Enmienda (2026-09-29, ADR-098)
+
+- **Regla 6:** con poderes, el resultado guarda también el resultado oficial (`officialOutcome`) y su desglose (`powerDetail`), y `outcome` sigue siendo el de la cancha. Las filas `MATCH` llevan el total oficial, por ejemplo 2000 con Multiplicador x2, así que las reversiones de siempre lo deshacen exacto. Las posiciones cuentan ganados, empatados y perdidos con el resultado oficial.
+- **Regla 9:** cada enfrentamiento tiene su propio inicio (`startedAt`). Lo marca el líder con «Empezar la base»; registrar el resultado también lo marca. La cuenta regresiva de «1 min tarde» sale de ahí.
+- **Regla 10:** el juez registra en su base los poderes que le entregan antes de empezarla. Después del inicio, solo un operador revierte, con motivo.
+
+Ver [ADR-098](ADR-098-poderes-de-the-games.md).

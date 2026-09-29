@@ -26,6 +26,7 @@ export async function truncateAll(): Promise<void> {
     );
   await db.execute(sql`
     truncate table
+      competition_power_use, competition_power_grant,
       competition_credit_entry, competition_bet, competition_market_option, competition_market,
       competition_announcement, competition_point_entry, competition_extra, competition_result,
       competition_matchup, competition_rotation, competition_staff, competition_base,

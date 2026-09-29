@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { MarketStatus } from "./betting-pure";
+import { POWER_EFFECTS, POWER_TYPES } from "./powers-pure";
 import { type RouteStop, routeStopSchema } from "./route-pure";
 
 // El hub de capitanes (ADR-096), sin I/O: la sesión es una cookie firmada del equipo, no de una
@@ -95,6 +96,23 @@ export const hubStateSchema = z.object({
   ),
   /** El recorrido del equipo en las dos jornadas (ADR-097). */
   route: z.array(routeStopSchema),
+  /** Las tarjetas de poder del equipo (ADR-098), sin las anuladas: jornada, estado y, si se usó, dónde
+   *  y con qué efecto. El capitán solo consulta. */
+  powers: z.array(
+    z.object({
+      power: z.enum(POWER_TYPES),
+      day: z.union([z.literal(1), z.literal(2)]),
+      status: z.enum(["ASSIGNED", "DELIVERED", "USED", "EXPIRED"]),
+      use: z
+        .object({
+          rotation: z.number().int(),
+          base: z.string(),
+          rival: z.object({ number: z.number().int(), name: z.string() }),
+          effect: z.enum(["PENDING", ...POWER_EFFECTS]),
+        })
+        .nullable(),
+    }),
+  ),
   /** Las apuestas del equipo, de la más nueva a la más vieja. */
   bets: z.array(
     z.object({
@@ -127,6 +145,7 @@ export interface HubSource {
   }>;
   returns: ReadonlyMap<string, { kind: "PAYOUT" | "REFUND"; amount: number }>;
   route: readonly RouteStop[];
+  powers: HubState["powers"];
 }
 
 /** Arma el estado del hub para el equipo de la sesión, sin `serverNow`. */
@@ -151,6 +170,7 @@ export function toHubState(source: HubSource): Omit<HubState, "serverNow"> {
     team: { number: own?.number ?? 0, name: own?.name ?? "", color: own?.color ?? null },
     balance: source.balance,
     route: [...source.route],
+    powers: [...source.powers],
     markets: source.markets
       .filter((market) => market.status === "OPEN")
       .map((market) => {

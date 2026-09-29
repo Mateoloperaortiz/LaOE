@@ -123,6 +123,31 @@ describe("vitrina", () => {
     expect(json).not.toContain("@");
   });
 
+  it("con poderes, publica el resultado oficial (ADR-098)", () => {
+    const base = source();
+    const current = base.rotations.current;
+    if (!current) throw new Error("sin rotación");
+    const body = toShowcase({
+      ...base,
+      rotations: {
+        current: {
+          ...current,
+          matchups: [
+            {
+              base: { name: "Base 3", kind: "NORMAL" as const, location: null },
+              teamA: { id: "team-a" },
+              teamB: { id: "team-b" },
+              outcome: "A_WIN" as const,
+              official: "B_WIN" as const,
+            },
+          ],
+        },
+        next: null,
+      },
+    });
+    expect(body?.currentRotation?.matchups[0]?.outcome).toBe("B_WIN");
+  });
+
   it("una competencia en borrador no es pública y sin apuestas no se muestran", () => {
     expect(toShowcase(source({ competition: { ...competition, status: "DRAFT" } }))).toBeNull();
     const body = toShowcase(source({ competition: { ...competition, bettingEnabled: false } }));

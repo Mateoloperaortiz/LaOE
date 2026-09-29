@@ -6,6 +6,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -15,11 +16,12 @@ import { createdAt, id, timestampTz, updatedAt } from "@/db/columns";
 import { eventEdition } from "@/modules/events/schema";
 import { form, formSubmission } from "@/modules/forms/schema";
 import { person } from "@/modules/people/schema";
+import type { PowerDetail } from "./domain/powers-pure";
 
-// The Games, la competencia por equipos de Días EAFIT (ADR-089) y sus apuestas (ADR-091). Los
-// capitanes no son usuarios: de ellos se guarda solo el nombre y el celular (ADR-095), que se borran
-// al archivar la competencia. Las demás personas son el personal asignado y quien firma cada
-// escritura. Los puntos de aquí no son GH Points y no tocan `point_entry`.
+// The Games, la competencia por equipos de Días EAFIT (ADR-089), sus apuestas (ADR-091) y sus poderes
+// (ADR-098). Los capitanes no son usuarios: de ellos se guarda solo el nombre y el celular (ADR-095),
+// que se borran al archivar la competencia. Las demás personas son el personal asignado y quien firma
+// cada escritura. Los puntos de aquí no son GH Points y no tocan `point_entry`.
 
 export const competitionStatus = pgEnum("competition_status", [
   "DRAFT",
@@ -65,6 +67,23 @@ export const competitionCreditKind = pgEnum("competition_credit_kind", [
   "REFUND",
   "ADJUSTMENT",
   "REVERSAL",
+]);
+/** Los poderes de ADR-098; los mismos de `POWER_TYPES` en powers-pure.ts. */
+export const competitionPower = pgEnum("competition_power", [
+  "RESULT_SWAP",
+  "DOUBLE_POINTS",
+  "CANCEL_POWER",
+  "LATE_START",
+  "ONE_PLAYER_DOWN",
+]);
+export const competitionPowerGrantStatus = pgEnum("competition_power_grant_status", [
+  "ASSIGNED",
+  "DELIVERED",
+  "VOIDED",
+]);
+export const competitionPowerUseStatus = pgEnum("competition_power_use_status", [
+  "ACTIVE",
+  "REVERTED",
 ]);
 
 /** Una competencia por edición de Días EAFIT; la de ensayo se opera igual y se archiva. */
@@ -275,6 +294,10 @@ export const competitionMatchup = pgTable(
       .notNull()
       .references(() => competitionTeam.id),
     source: competitionMatchupSource().notNull().default("GENERATED"),
+    /** Cuándo empezó la base (ADR-098 regla 4): lo marca el líder o el registro del resultado, y
+     *  desde ahí no se declaran poderes. */
+    startedAt: timestampTz(),
+    startedById: text().references(() => person.id, { onDelete: "set null" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -301,6 +324,10 @@ export const competitionResult = pgTable(
     recordedById: text().references(() => person.id, { onDelete: "set null" }),
     supersededAt: timestampTz(),
     supersedeReason: text(),
+    /** Con poderes (ADR-098 regla 5): el resultado oficial y su desglose. `outcome` sigue siendo el de
+     *  la cancha; sin poderes, los dos van nulos y el oficial es el de la cancha. */
+    officialOutcome: competitionOutcome(),
+    powerDetail: jsonb().$type<PowerDetail>(),
     createdAt: createdAt(),
   },
   (t) => [
@@ -308,6 +335,10 @@ export const competitionResult = pgTable(
       .on(t.matchupId)
       .where(sql`${t.supersededAt} is null`),
     index("competition_result_matchup_idx").on(t.matchupId, t.createdAt),
+    check(
+      "competition_result_power_detail",
+      sql`(${t.officialOutcome} is null) = (${t.powerDetail} is null)`,
+    ),
   ],
 );
 
@@ -555,6 +586,97 @@ export const competitionCreditEntry = pgTable(
     check(
       "competition_credit_entry_reversal",
       sql`(${t.kind}::text = 'REVERSAL') = (${t.reversalOfId} is not null)`,
+    ),
+  ],
+);
+
+/** Una tarjeta física de poder de un equipo para una jornada (ADR-098 regla 3). Se asigna, se entrega
+ *  y se usa una vez; anularla exige motivo. */
+export const competitionPowerGrant = pgTable(
+  "competition_power_grant",
+  {
+    id: id(),
+    competitionId: text()
+      .notNull()
+      .references(() => competition.id, { onDelete: "cascade" }),
+    teamId: text()
+      .notNull()
+      .references(() => competitionTeam.id, { onDelete: "cascade" }),
+    power: competitionPower().notNull(),
+    day: integer().notNull(),
+    status: competitionPowerGrantStatus().notNull().default("ASSIGNED"),
+    deliveredAt: timestampTz(),
+    deliveredById: text().references(() => person.id, { onDelete: "set null" }),
+    voidedAt: timestampTz(),
+    voidedById: text().references(() => person.id, { onDelete: "set null" }),
+    voidReason: text(),
+    createdById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("competition_power_grant_team_idx").on(t.competitionId, t.teamId, t.day),
+    check("competition_power_grant_day", sql`${t.day} in (1, 2)`),
+    check(
+      "competition_power_grant_delivered",
+      sql`${t.status}::text <> 'DELIVERED' or ${t.deliveredAt} is not null`,
+    ),
+    check(
+      "competition_power_grant_voided",
+      sql`(${t.status}::text = 'VOIDED') = (${t.voidedAt} is not null)`,
+    ),
+    check(
+      "competition_power_grant_void_reason",
+      sql`${t.status}::text <> 'VOIDED' or char_length(${t.voidReason}) between 2 and 200`,
+    ),
+  ],
+);
+
+/** La declaración de una tarjeta en una rotación (ADR-098 regla 3): va por rotación y equipo, porque
+ *  editar una rotación reescribe sus enfrentamientos. Un uso activo por tarjeta y uno por equipo en
+ *  cada rotación; revertirlo exige motivo. */
+export const competitionPowerUse = pgTable(
+  "competition_power_use",
+  {
+    id: id(),
+    competitionId: text()
+      .notNull()
+      .references(() => competition.id, { onDelete: "cascade" }),
+    grantId: text()
+      .notNull()
+      .references(() => competitionPowerGrant.id, { onDelete: "cascade" }),
+    rotationId: text()
+      .notNull()
+      .references(() => competitionRotation.id, { onDelete: "cascade" }),
+    teamId: text()
+      .notNull()
+      .references(() => competitionTeam.id, { onDelete: "cascade" }),
+    baseId: text()
+      .notNull()
+      .references(() => competitionBase.id, { onDelete: "cascade" }),
+    status: competitionPowerUseStatus().notNull().default("ACTIVE"),
+    /** Quién recibió la tarjeta física; `createdAt` es cuándo. */
+    receivedById: text().references(() => person.id, { onDelete: "set null" }),
+    revertedAt: timestampTz(),
+    revertedById: text().references(() => person.id, { onDelete: "set null" }),
+    revertReason: text(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("competition_power_use_grant_unique")
+      .on(t.grantId)
+      .where(sql`${t.status} = 'ACTIVE'`),
+    uniqueIndex("competition_power_use_team_unique")
+      .on(t.rotationId, t.teamId)
+      .where(sql`${t.status} = 'ACTIVE'`),
+    index("competition_power_use_team_idx").on(t.competitionId, t.teamId),
+    check(
+      "competition_power_use_reverted",
+      sql`(${t.status}::text = 'REVERTED') = (${t.revertedAt} is not null)`,
+    ),
+    check(
+      "competition_power_use_revert_reason",
+      sql`${t.status}::text <> 'REVERTED' or char_length(${t.revertReason}) between 2 and 200`,
     ),
   ],
 );

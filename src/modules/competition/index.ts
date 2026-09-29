@@ -1,5 +1,6 @@
-// API pública del módulo competition (ADR-089, ADR-090, ADR-091 y ADR-095): The Games, la
-// competencia por equipos de Días EAFIT, sus apuestas y sus capitanes. Lo usan src/app y nadie más.
+// API pública del módulo competition (ADR-089 a ADR-091, ADR-095 y ADR-098): The Games, la
+// competencia por equipos de Días EAFIT, sus apuestas, sus capitanes y sus poderes. Lo usan src/app y
+// nadie más.
 export {
   type CompetitionActor,
   type CompetitionRoles,
@@ -29,6 +30,26 @@ export {
 } from "./domain/hub-pure";
 export type { PlaceBetResult } from "./domain/markets";
 export type { RotationMatchupsResult } from "./domain/play";
+export type { ImportPowersResult } from "./domain/powers";
+export {
+  LATE_START_SECONDS,
+  POWER_EFFECTS,
+  POWER_RULES,
+  POWER_SLUGS,
+  POWER_TYPES,
+  type Power,
+  type PowerDetail,
+  type PowerEffect,
+  type PowerSide,
+} from "./domain/powers-pure";
+export {
+  type JudgeMatchupPowers,
+  listPowerBoard,
+  type PowerBoard,
+  type PowerBoardGrant,
+  type PowerBoardTeam,
+  type PowerBoardUse,
+} from "./domain/powers-reads";
 export {
   type AnnouncementRow,
   type BaseRow,

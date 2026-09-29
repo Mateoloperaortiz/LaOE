@@ -17,6 +17,7 @@ import {
   signHubSession,
   toHubState,
 } from "./hub-pure";
+import { listTeamPowers } from "./powers-reads";
 import {
   creditBalances,
   listMarkets,
@@ -204,12 +205,13 @@ export async function getHubState(
 ): Promise<HubState | null> {
   const team = await getHubTeam(session);
   if (!team) return null;
-  const [teams, markets, balances, returns, route] = await Promise.all([
+  const [teams, markets, balances, returns, route, powers] = await Promise.all([
     listTeams(team.competitionId),
     listMarkets(team.competitionId, now),
     creditBalances(team.competitionId),
     listTeamBetReturns(team.competitionId, team.teamId),
     listRouteStops(team.competitionId, team.teamId),
+    listTeamPowers(team.competitionId, team.teamId),
   ]);
   const body = toHubState({
     competition: {
@@ -223,6 +225,7 @@ export async function getHubState(
     markets,
     returns,
     route,
+    powers,
   });
   return hubStateSchema.parse({ ...body, serverNow: now.toISOString() });
 }

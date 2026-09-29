@@ -262,7 +262,7 @@ Presupuesto del comité ([ADR-059](adr/ADR-059-presupuesto-del-comite.md) con la
 
 ### competition
 
-The Games, la competencia por equipos de Días EAFIT ([ADR-089](adr/ADR-089-the-games-competencia-por-equipos.md)), su rúbrica, sus apuestas ([ADR-091](adr/ADR-091-apuestas-de-the-games.md)) y sus capitanes ([ADR-095](adr/ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md)); migraciones `0040` y `0041`, 17 tablas. Importa `events`, `forms` y `people` por esquema y por API; nadie lo importa salvo `src/app`. De los capitanes se guarda solo el nombre y el celular, que se borran al archivar la competencia; los puntos de aquí no son GH Points.
+The Games, la competencia por equipos de Días EAFIT ([ADR-089](adr/ADR-089-the-games-competencia-por-equipos.md)), su rúbrica, sus apuestas ([ADR-091](adr/ADR-091-apuestas-de-the-games.md)), sus capitanes ([ADR-095](adr/ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md)) y sus poderes ([ADR-098](adr/ADR-098-poderes-de-the-games.md)); migraciones `0040` a `0042`, 19 tablas. Importa `events`, `forms` y `people` por esquema y por API; nadie lo importa salvo `src/app`. De los capitanes se guarda solo el nombre y el celular, que se borran al archivar la competencia; los puntos de aquí no son GH Points.
 
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
@@ -272,8 +272,10 @@ The Games, la competencia por equipos de Días EAFIT ([ADR-089](adr/ADR-089-the-
 | `CompetitionBase` | `competitionId`, `day` (1 o 2), `orderIndex`, `name`, `kind` (`NORMAL`, `MACRO`), `location?` | Las de inflables son `MACRO` (2000/1000/0) |
 | `CompetitionStaff` | `competitionId`, `personId`, `role` (`OPERATOR`, `JUDGE`), `baseId?` | El juez va ligado a una base (check); se incluye en Mis datos |
 | `CompetitionRotation` | `competitionId`, `day`, `number`, `status` (`PENDING`, `ACTIVE`, `CLOSED`), `plannedSeconds`, `startsAt?`, `endsAt?`, `closedAt?` | Una sola `ACTIVE` por competencia (unique parcial); cerrar no completa enfrentamientos |
-| `CompetitionMatchup` | `rotationId`, `baseId`, `teamAId`, `teamBId`, `source` (`GENERATED`, `MANUAL`) | Únicos por rotación y base y por rotación y equipo; A ≠ B |
-| `CompetitionResult` | `matchupId`, `outcome` (`A_WIN`, `B_WIN`, `DRAW`), `notes`, `recordedById?`, `supersededAt?`, `supersedeReason?` | Uno vigente por enfrentamiento (unique parcial); corregir lo reemplaza |
+| `CompetitionMatchup` | `rotationId`, `baseId`, `teamAId`, `teamBId`, `source` (`GENERATED`, `MANUAL`), `startedAt?`, `startedById?` | Únicos por rotación y base y por rotación y equipo; A ≠ B. `startedAt` lo marca el líder con «Empezar la base» o el registro del resultado, y cierra la declaración de poderes |
+| `CompetitionResult` | `matchupId`, `outcome` (`A_WIN`, `B_WIN`, `DRAW`), `notes`, `recordedById?`, `supersededAt?`, `supersedeReason?`, `officialOutcome?`, `powerDetail?` | Uno vigente por enfrentamiento (unique parcial); corregir lo reemplaza. `outcome` es el de la cancha; con poderes, `officialOutcome` y `powerDetail` guardan el oficial y su desglose (check: los dos o ninguno) |
+| `CompetitionPowerGrant` | `competitionId`, `teamId`, `power` (`RESULT_SWAP`, `DOUBLE_POINTS`, `CANCEL_POWER`, `LATE_START`, `ONE_PLAYER_DOWN`), `day`, `status` (`ASSIGNED`, `DELIVERED`, `VOIDED`), `deliveredAt?`, `deliveredById?`, `voidedAt?`, `voidedById?`, `voidReason?` | Una tarjeta física de poder; máximo 5 activas por equipo y 3 por jornada; solo una entregada se puede usar; anular exige motivo |
+| `CompetitionPowerUse` | `competitionId`, `grantId`, `rotationId`, `teamId`, `baseId`, `status` (`ACTIVE`, `REVERTED`), `receivedById?`, `createdAt`, `revertedAt?`, `revertedById?`, `revertReason?` | La declaración de una tarjeta en una rotación; un uso activo por tarjeta y uno por equipo y rotación (uniques parciales); revertir exige motivo |
 | `CompetitionExtra` | `competitionId`, `name`, `day`, `rubricScale?` | Competencia extra, como la de talentos; fijar el total inserta la diferencia. Con `rubricScale`, los puntos salen de la rúbrica: total llevado a 100 × escala |
 | `CompetitionExtraCriterion` | `extraId`, `name`, `weight` (1 a 100), `orderIndex` | Criterio de la rúbrica; The Challenge: 20/20/20/15/10 |
 | `CompetitionExtraScore` | `criterionId`, `teamId`, `score` (1 a 10), `recordedById?` | Nota consolidada de un equipo en un criterio (única por criterio y equipo) |

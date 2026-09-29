@@ -43,7 +43,10 @@ export function normalizePhone(value: string): string | null | undefined {
 }
 
 /** El equipo de una celda: por número («7» o «Equipo 7») o por nombre. */
-function resolveTeam(cell: string, teams: readonly CaptainsTeam[]): CaptainsTeam | undefined {
+export function resolveTeam(
+  cell: string,
+  teams: readonly CaptainsTeam[],
+): CaptainsTeam | undefined {
   const match = /^(?:equipo\s*)?(\d{1,2})$/i.exec(cleanTeamName(cell));
   if (match?.[1]) return teams.find((team) => team.number === Number(match[1]));
   const key = teamKey(cell);
