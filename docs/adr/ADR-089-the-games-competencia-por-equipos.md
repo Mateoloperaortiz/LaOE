@@ -1,6 +1,6 @@
 # ADR-089: The Games: competencia por equipos de Días EAFIT
 
-- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096 y ADR-098); implementación en curso
+- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098 y ADR-100); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-002, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014, ADR-020, ADR-036, ADR-047, ADR-058, ADR-064, ADR-072, ADR-075, ADR-082, ADR-085, ADR-090, ADR-091
 - Enmienda: ADR-011 (el cargo de Dirección de The Games habilita, por datos, la operación de la competencia de su edición), ADR-064 (esa entrega no ampliaba permisos por cargo: este lo hace, con alcance cerrado)
@@ -101,3 +101,7 @@ Regla 3: el código del equipo también abre el hub de apuestas en `dias.oeeafit
 - **Regla 10:** el juez registra en su base los poderes que le entregan antes de empezarla. Después del inicio, solo un operador revierte, con motivo.
 
 Ver [ADR-098](ADR-098-poderes-de-the-games.md).
+
+## Enmienda (2026-09-29, ADR-100)
+
+Regla 7: The Challenge ya no suma por rúbrica. La OE confirmó el 2026-09-29 que da puntos por puesto: 2000 al primero, 1000 al segundo y 500 al tercero. El Macro reto es otra competencia entre todos los equipos, con un solo ganador que suma 2000. Los dos se registran como competencias extra de puntos directos, en la jornada en que se juegan. La rúbrica sigue en el código, pero no se usa en `the-games-2026`. Ver [ADR-100](ADR-100-puntos-de-the-challenge-y-del-macro-reto.md).
