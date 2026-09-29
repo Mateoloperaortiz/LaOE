@@ -62,6 +62,9 @@ export interface TeamRow {
   submissionId: string | null;
   hasCode: boolean;
   codeLocked: boolean;
+  /** La versión de las instrucciones del hub que aceptó el equipo, y cuándo (ADR-099). */
+  hubTermsVersion: number | null;
+  hubTermsAcceptedAt: Date | null;
 }
 
 export async function listTeams(competitionId: string, now = new Date()): Promise<TeamRow[]> {
@@ -79,6 +82,8 @@ export async function listTeams(competitionId: string, now = new Date()): Promis
     submissionId: row.submissionId,
     hasCode: row.codeHash !== null,
     codeLocked: row.codeLockedUntil !== null && row.codeLockedUntil > now,
+    hubTermsVersion: row.hubTermsVersion,
+    hubTermsAcceptedAt: row.hubTermsAcceptedAt,
   }));
 }
 

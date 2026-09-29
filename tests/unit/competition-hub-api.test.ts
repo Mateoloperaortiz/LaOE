@@ -106,12 +106,31 @@ describe("rutas del hub", async () => {
     );
     expect(limited.status).toBe(429);
 
+    // Sin aceptar las instrucciones vigentes (ADR-099): 409 con la versión, sin cookie.
+    competitionModule.enterHubAs.mockResolvedValueOnce({
+      ok: false,
+      reason: "TERMS",
+      version: 1,
+      message: t("T-3120"),
+    });
+    const terms = await sesion.POST(
+      call("/sesion", { method: "POST", origin: DIAS, json: { code: "ABCD-EFGH" } }),
+    );
+    expect(terms.status).toBe(409);
+    expect(await terms.json()).toEqual({ error: t("T-3120"), terms: 1 });
+    expect(terms.headers.get("set-cookie")).toBeNull();
+
     competitionModule.enterHubAs.mockResolvedValueOnce({ ok: true, session });
     competitionModule.getHubState.mockResolvedValueOnce({ version: 1, balance: 1000 });
     const ok = await sesion.POST(
-      call("/sesion", { method: "POST", origin: DIAS, json: { code: "ABCD-EFGH" } }),
+      call("/sesion", { method: "POST", origin: DIAS, json: { code: "ABCD-EFGH", accept: 1 } }),
     );
     expect(ok.status).toBe(200);
+    expect(competitionModule.enterHubAs).toHaveBeenLastCalledWith(
+      expect.objectContaining({ personId: null }),
+      "ABCD-EFGH",
+      1,
+    );
     expect(await ok.json()).toEqual({ version: 1, balance: 1000 });
     const cookie = ok.headers.get("set-cookie") ?? "";
     expect(cookie).toContain("oe_capitanes=sesion-firmada");

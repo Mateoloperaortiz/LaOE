@@ -9791,6 +9791,30 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3120": {
+    where: "Hub de capitanes: instrucciones sin aceptar",
+    text: "Antes de entrar, leé y aceptá las instrucciones del hub.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3121": {
+    where: "The Games: Columna de instrucciones",
+    text: "Instrucciones",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3122": {
+    where: "The Games: Instrucciones aceptadas",
+    text: "Versión {version} · {fecha}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3123": {
+    where: "The Games: Instrucciones sin aceptar",
+    text: "Sin aceptar",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-313": {
     where: "Anuncio, fecha de publicación",
     text: "Publicado el {fecha}",

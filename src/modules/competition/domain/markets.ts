@@ -17,7 +17,7 @@ import {
 import type { CompetitionActor } from "./access";
 import { marketState, settleParimutuel } from "./betting-pure";
 import { lockAfterFailure, teamCodeMatches } from "./codes-pure";
-import type { HubSession } from "./hub-pure";
+import { HUB_TERMS_VERSION, type HubSession } from "./hub-pure";
 import { openCompetition, writableCompetition } from "./setup";
 
 // Apuestas de The Games (ADR-091): puntos virtuales en un libro propio que no cuentan para el
@@ -366,7 +366,11 @@ export async function placeHubBet(
     sql`select pg_advisory_xact_lock(hashtextextended(${`competition-credits:${session.teamId}`}, 0))`,
   );
   const [team] = await ctx.tx
-    .select({ id: competitionTeam.id, codeIssuedAt: competitionTeam.codeIssuedAt })
+    .select({
+      id: competitionTeam.id,
+      codeIssuedAt: competitionTeam.codeIssuedAt,
+      hubTermsVersion: competitionTeam.hubTermsVersion,
+    })
     .from(competitionTeam)
     .where(
       and(
@@ -376,7 +380,11 @@ export async function placeHubBet(
       ),
     )
     .for("update");
-  if (!team || team.codeIssuedAt?.getTime() !== session.codeIssuedAt) {
+  if (
+    !team ||
+    team.codeIssuedAt?.getTime() !== session.codeIssuedAt ||
+    (team.hubTermsVersion ?? 0) < HUB_TERMS_VERSION
+  ) {
     throw new DomainError(t("T-3038"));
   }
   const [pick] = await ctx.tx

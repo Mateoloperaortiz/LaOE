@@ -12,6 +12,7 @@ import { ImportarCapitanes } from "@/modules/competition/components/ImportarCapi
 import { TarjetasCodigo } from "@/modules/competition/components/TarjetasCodigo";
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { t, tList } from "@/shared/copy";
+import { formatDateTime } from "@/shared/lib/dates";
 import { importCaptainsAction, issueCodesAction } from "../actions";
 import { OperationForm, type PanelContext, Section, Submit, TeamChip } from "./shared";
 
@@ -214,6 +215,9 @@ export function Equipos({
                 {t("T-3015")}
               </th>
               <th scope="col" className="py-2">
+                {t("T-3121")}
+              </th>
+              <th scope="col" className="py-2">
                 <span className="sr-only">{retirar}</span>
               </th>
             </tr>
@@ -232,6 +236,14 @@ export function Equipos({
                 </td>
                 <td className="py-2">
                   <Capitanes list={captainsOf(team.id)} />
+                </td>
+                <td className="py-2 text-xs">
+                  {team.hubTermsVersion && team.hubTermsAcceptedAt
+                    ? t("T-3122", {
+                        version: team.hubTermsVersion,
+                        fecha: formatDateTime(team.hubTermsAcceptedAt),
+                      })
+                    : t("T-3123")}
                 </td>
                 <td className="py-2">
                   <OperationForm

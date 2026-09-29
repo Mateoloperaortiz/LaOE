@@ -141,6 +141,9 @@ export const competitionTeam = pgTable(
     codeIssuedAt: timestampTz(),
     codeFailures: integer().notNull().default(0),
     codeLockedUntil: timestampTz(),
+    /** La última versión de las instrucciones del hub que aceptó el equipo, y cuándo (ADR-099). */
+    hubTermsVersion: integer(),
+    hubTermsAcceptedAt: timestampTz(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
