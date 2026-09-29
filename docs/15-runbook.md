@@ -832,8 +832,8 @@ Durante el evento:
 
 The Challenge y Macro reto (ADR-100):
 
-- **The Challenge (jueves):** en Extras se crea «The Challenge» como **puntos directos**, jornada 1. Cuando la organización decide el podio, se fija 2000 al primero, 1000 al segundo y 500 al tercero. Los demás no suman.
-- **Macro reto:** otra extra de puntos directos, en la jornada en que se juegue, con 2000 al único ganador.
+- **The Challenge (jueves en la mañana):** en Extras se crea «The Challenge» como **puntos directos**, jornada 1. Cuando la organización decide el podio, se fija 2000 al primero, 1000 al segundo y 500 al tercero. Los demás no suman.
+- **Macro reto (dos veces al día, los dos días):** en Extras se crean cuatro de puntos directos: «Macro reto 1» y «Macro reto 2» en la jornada 1, y «Macro reto 3» y «Macro reto 4» en la jornada 2. Se pueden crear antes del evento, porque sin puntos no mueven la tabla. Al terminar cada uno, se fija 2000 al ganador en su extra. No son las bases macro (inflables), y los poderes no valen en ellos.
 - **La rúbrica no se usa en `the-games-2026`.** Si existe una extra con rúbrica, no se le cargan notas: cada equipo sumaría hasta 1000.
 - **Corregir:** si hay un error, se fija el total correcto. La casa inserta solo la diferencia.
 

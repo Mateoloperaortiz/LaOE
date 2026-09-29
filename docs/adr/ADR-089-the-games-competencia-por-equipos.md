@@ -104,4 +104,4 @@ Ver [ADR-098](ADR-098-poderes-de-the-games.md).
 
 ## Enmienda (2026-09-29, ADR-100)
 
-Regla 7: The Challenge ya no suma por rúbrica. La OE confirmó el 2026-09-29 que da puntos por puesto: 2000 al primero, 1000 al segundo y 500 al tercero. El Macro reto es otra competencia entre todos los equipos, con un solo ganador que suma 2000. Los dos se registran como competencias extra de puntos directos, en la jornada en que se juegan. La rúbrica sigue en el código, pero no se usa en `the-games-2026`. Ver [ADR-100](ADR-100-puntos-de-the-challenge-y-del-macro-reto.md).
+Regla 7: The Challenge ya no suma por rúbrica. La OE confirmó el 2026-09-29 que da puntos por puesto: 2000 al primero, 1000 al segundo y 500 al tercero. El Macro reto es otra competencia entre todos los equipos y se juega dos veces en cada jornada; cada uno tiene un solo ganador, que suma 2000. Se registran como competencias extra de puntos directos, en la jornada en que se juegan. La rúbrica sigue en el código, pero no se usa en `the-games-2026`. Ver [ADR-100](ADR-100-puntos-de-the-challenge-y-del-macro-reto.md).

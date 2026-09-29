@@ -16,17 +16,21 @@ El 2026-09-29, Mateo le preguntó a la OE y esto fue lo que respondió:
 - **The Challenge:** el primer puesto suma 2.000, el segundo 1.000 y el tercero 500.
 - **Macro reto:** es otra competencia, entre todos los equipos, y la gana un solo equipo.
 
+Ese mismo día, Mateo precisó cuándo se juega cada uno: The Challenge es el jueves en la mañana, y el Macro reto se juega los dos días, dos veces al día.
+
 ## Decisión
 
 1. **The Challenge da puntos por puesto:** 2000 al primero, 1000 al segundo y 500 al tercero. Los demás equipos no suman. El podio lo decide la organización. Si hay empates, también los resuelve ella: la casa no aplica ninguna regla de desempate propia.
-2. **El Macro reto** suma 2000 al único equipo que lo gana, según el instructivo.
-3. **Los dos se registran como competencias extra de puntos directos** (ADR-089, regla 7), en la jornada en que se juegan. Cuando se conoce el resultado, la Dirección fija el total de cada equipo del podio o del ganador. Fijar un total inserta solo la diferencia, así que repetir la orden no suma dos veces. No hay cambio de código.
-4. **La rúbrica no se usa en `the-games-2026`.** Sigue en el código y en el ensayo, pero si se cargaran notas ahí, cada equipo sumaría hasta 1000: eso ya no es la regla. Si la organización quiere usar la rúbrica para ordenar el podio, la consolida en su hoja.
+2. **El Macro reto se juega cuatro veces:** dos el jueves y dos el viernes. Cada uno lo gana un solo equipo, que suma 2000 (el instructivo dice «Macro reto 2.000»).
+3. **Se registran como competencias extra de puntos directos** (ADR-089, regla 7), en la jornada en que se juegan. Cuando se conoce el resultado, la Dirección fija el total de cada equipo del podio o del ganador. Fijar un total inserta solo la diferencia, así que repetir la orden no suma dos veces. No hay cambio de código.
+4. **Cada Macro reto es una extra aparte:** «Macro reto 1» y «Macro reto 2» en la jornada 1, y «Macro reto 3» y «Macro reto 4» en la jornada 2. Van numeradas porque el nombre de una extra no se repite en la competencia. En cada una, la Dirección solo fija 2000 al ganador. Con una sola extra por jornada tendría que sumar a mano, por ejemplo 4000 si el mismo equipo gana los dos.
+5. **La rúbrica no se usa en `the-games-2026`.** Sigue en el código y en el ensayo, pero si se cargaran notas ahí, cada equipo sumaría hasta 1000: eso ya no es la regla. Si la organización quiere usar la rúbrica para ordenar el podio, la consolida en su hoja.
 
 ## Consecuencias
 
-- **Operación, el jueves:** en Extras, crear «The Challenge» (puntos directos, jornada 1) y registrar el podio cuando se decida.
-- **Operación, el día que se juegue:** crear «Macro reto» (puntos directos, en esa jornada) y registrar al ganador.
+- **Operación, el jueves en la mañana:** en Extras, crear «The Challenge» (puntos directos, jornada 1) y registrar el podio cuando se decida.
+- **Operación, en cada Macro reto:** fijar 2000 al ganador en su extra. Las cuatro extras se pueden crear antes del evento: solo se ven en la administración, y sin puntos no mueven la tabla.
+- **No son las bases `MACRO`:** las inflables siguen siendo enfrentamientos de la rotación, con 2000, 1000 y 0. Los poderes no valen ni en las inflables ni en los macro retos (ADR-098).
 - **Queda sin decidir:** si la organización quisiera que la casa arme el podio sola a partir de la rúbrica, haría falta código y una regla de empates. Hoy no se pide.
 
 ## Verificación requerida
