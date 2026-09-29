@@ -9,9 +9,11 @@ import {
   createExtraAs,
   createMarketAs,
   createTeamAs,
+  deliverPowerGrantsAs,
   formatTeamCode,
   generateDayScheduleAs,
   grantStartingCreditsAs,
+  importPowerGrantsAs,
   issueTeamCodesAs,
   saveBaseAs,
   setCompetitionStatusAs,
@@ -28,7 +30,8 @@ import { test } from "./fixtures";
 import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
 
 // The Games (ADR-089, ADR-090): el operador genera la jornada, avanza y registra un resultado; el juez
-// registra desde el celular en su base; la vitrina sale con CORS y sin datos personales.
+// registra desde el celular en su base; la vitrina sale con CORS y sin datos personales. Con poderes
+// (ADR-098), el líder registra las tarjetas, empieza la base y ve el resultado oficial.
 
 async function personId(email: string): Promise<string> {
   const [row] = await getDb().select({ id: person.id }).from(person).where(eq(person.email, email));
@@ -234,6 +237,101 @@ test.describe("juez", () => {
     await sinViolaciones(page);
     await page.getByRole("button", { name: t("T-2847") }).click();
     await expect(page.getByText(t("T-2879", { resultado: t("T-2847") }))).toBeVisible();
+  });
+});
+
+test.describe("poderes", () => {
+  test.describe("líder de base", () => {
+    test.use({
+      storageState: "tests/e2e/.auth/member.json",
+      viewport: { width: 390, height: 844 },
+    });
+
+    test("registra las tarjetas, empieza la base y la cuenta del minuto sigue al recargar", async ({
+      page,
+    }) => {
+      const { id, admin, bases } = await seedCompetition("the-games-poderes");
+      await assignStaffAs(admin, id, {
+        personId: await personId(E2E_MEMBER_EMAIL),
+        role: "JUDGE",
+        baseId: bases[0] ?? "",
+      });
+      await generateDayScheduleAs(admin, id, { day: 1, rotations: 3, plannedMinutes: 15 });
+      // En la rotación 1, la base 1 la juegan el equipo 1 y el 6.
+      await importPowerGrantsAs(admin, id, {
+        text: "1\tMultiplicador x2\tjueves\n6\t1 min tarde\tjueves",
+      });
+      await deliverPowerGrantsAs(admin, id, { day: 1 });
+      await advanceRotationAs(admin, id);
+      const [x2, tarde] = tList("T-3040").filter((_, index) => index === 1 || index === 3);
+
+      await page.goto("/admin");
+      await expect(page).toHaveURL(new RegExp(`/admin/the-games/${id}/juez`));
+      await sinViolaciones(page);
+      await page.getByText(t("T-3098", { poder: x2 ?? "", n: 1 }), { exact: true }).click();
+      await page.getByRole("button", { name: t("T-3101") }).click();
+      await expect(
+        page.getByText(t("T-3115", { poder: x2 ?? "", equipo: "Equipo sintético 1" })),
+      ).toBeVisible();
+      await page.getByText(t("T-3098", { poder: tarde ?? "", n: 1 }), { exact: true }).click();
+      await page.getByRole("button", { name: t("T-3101") }).click();
+      await page.getByText(t("T-3104"), { exact: true }).click();
+      await page.getByRole("button", { name: t("T-3106") }).click();
+      await expect(page.getByText(t("T-3117"))).toBeVisible();
+
+      const waiting = page.getByText(t("T-3108", { equipo: "Equipo sintético 1" }));
+      await expect(waiting).toBeVisible();
+      const clock = page.getByText(/^0:\d\d$/);
+      const seconds = async () => Number((await clock.textContent())?.split(":")[1] ?? "99");
+      const before = await seconds();
+      await page.reload();
+      await expect(waiting).toBeVisible();
+      expect(await seconds()).toBeLessThanOrEqual(before);
+      await sinViolaciones(page);
+
+      await page
+        .getByRole("button", { name: t("T-2846", { equipo: "Equipo sintético 1" }) })
+        .click();
+      await expect(
+        page.getByText(
+          t("T-3113", {
+            equipo: "Equipo sintético 1",
+            total: "2.000",
+            base: "1.000",
+            bono: "1.000",
+          }),
+        ),
+      ).toBeVisible();
+    });
+  });
+
+  test.describe("operación", () => {
+    test.use({ storageState: "tests/e2e/.auth/admin.json" });
+
+    test("pega el reparto, corrige una línea mala y entrega las tarjetas del jueves", async ({
+      page,
+    }) => {
+      const { id } = await seedCompetition("the-games-reparto");
+      await page.goto(`/admin/the-games/${id}?area=poderes`);
+      await expect(page.getByRole("heading", { name: t("T-3076") })).toBeVisible();
+      const sheet = page.getByLabel(t("T-3066"));
+      await sheet.fill("1\tMultiplicador x2\tjueves\n2\tSúper poder\tjueves");
+      await page.getByRole("button", { name: t("T-3067") }).click();
+      await expect(page.getByText(t("T-3071", { linea: 2, poder: "Súper poder" }))).toBeVisible();
+      await sinViolaciones(page);
+      await sheet.fill("1\tMultiplicador x2\tjueves\n2\tCambio de resultados\tjueves");
+      await page.getByRole("button", { name: t("T-3067") }).click();
+      await expect(page.getByText(t("T-3068", { tarjetas: 2, equipos: 2 }))).toBeVisible();
+      await page
+        .getByRole("button", {
+          name: t("T-3080", { dia: tList("T-3048")[0]?.toLowerCase() ?? "" }),
+        })
+        .click();
+      await expect(
+        page.getByText(t("T-3077", { entregadas: 2, total: 2, completos: 0, equipos: 6 })),
+      ).toBeVisible();
+      await sinViolaciones(page);
+    });
   });
 });
 

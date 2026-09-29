@@ -9779,6 +9779,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3119": {
+    where: "The Games: Campos de agregar tarjeta",
+    text: "Equipo · Poder · Jornada",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-312": {
     where: "Edición que ya ocurrió, insignia",
     text: "Ya pasó",

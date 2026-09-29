@@ -2680,3 +2680,4 @@ Los textos del reparto, la pantalla del líder de base y el panel de Poderes. Lo
 | T-3116 | The Games: Poder quitado | Poder quitado. | MATEO | Propuesta |
 | T-3117 | The Games: Base empezada | La base empezó. | MATEO | Propuesta |
 | T-3118 | The Games: Poder de un equipo | {poder} de {equipo} | MATEO | Propuesta |
+| T-3119 | The Games: Campos de agregar tarjeta | Equipo · Poder · Jornada | MATEO | Propuesta |

@@ -13,6 +13,7 @@ import {
   listLedger,
   listMarkets,
   listPendingMatchups,
+  listPowerBoard,
   listRegistrationCandidates,
   listRotations,
   listStaff,
@@ -27,6 +28,7 @@ import { AdminSectionSelect } from "@/shared/admin-kit/AdminSectionSelect";
 import { t, tList } from "@/shared/copy";
 import { Anuncios, Apuestas } from "./_ui/Community";
 import { Extras, Posiciones, Resultados, Rotaciones } from "./_ui/Play";
+import { Poderes } from "./_ui/Powers";
 import { Bases, Equipos, Personal, Resumen } from "./_ui/Setup";
 
 // Panel del operador de The Games (ADR-089, ADR-091): una pestaña por área, como la ficha de un
@@ -43,6 +45,7 @@ const AREAS = [
   "extras",
   "anuncios",
   "apuestas",
+  "poderes",
 ] as const;
 type Area = (typeof AREAS)[number];
 
@@ -168,6 +171,8 @@ export default async function CompetitionPage({
     body = <Extras context={context} extras={extras} teams={teams} ledger={ledger} />;
   } else if (area === "anuncios") {
     body = <Anuncios context={context} announcements={await listAnnouncements(id)} />;
+  } else if (area === "poderes") {
+    body = <Poderes context={context} board={await listPowerBoard(id)} />;
   } else {
     const [markets, teams, balances] = await Promise.all([
       listMarkets(id),

@@ -7,6 +7,7 @@ import { requireCompetitionOperator, requireCompetitionStaff } from "@/app/_auth
 import { formOptional, formRaw, formText } from "@/app/_lib/form";
 import {
   addAdjustmentAs,
+  addPowerGrantAs,
   adjustRotationTimerAs,
   advanceRotationAs,
   assignStaffAs,
@@ -17,7 +18,9 @@ import {
   createExtraAs,
   createMarketAs,
   createTeamAs,
+  declarePowerAs,
   deleteDayScheduleAs,
+  deliverPowerGrantsAs,
   EXTRA_KINDS,
   generateDayScheduleAs,
   getRotation,
@@ -25,11 +28,14 @@ import {
   type IssuedCode,
   importCaptainsAs,
   importDayScheduleAs,
+  importPowerGrantsAs,
   issueTeamCodesAs,
+  POWER_TYPES,
   placeBetAs,
   recordResultAs,
   removeStaffAs,
   resolveMarketAs,
+  revertPowerUseAs,
   SCHEDULE_ISSUE_KINDS,
   type ScheduleIssue,
   saveBaseAs,
@@ -41,12 +47,15 @@ import {
   setMarketOpenAs,
   setRubricScoresAs,
   setTeamStatusAs,
+  startMatchupAs,
   startRotationAs,
   updateCompetitionSettingsAs,
+  voidPowerGrantAs,
   voidResultAs,
 } from "@/modules/competition";
 import type { ImportCaptainsState } from "@/modules/competition/components/ImportarCapitanes";
 import type { ImportDayState } from "@/modules/competition/components/ImportarJornada";
+import type { ImportPowersState } from "@/modules/competition/components/ImportarPoderes";
 import { t, tList } from "@/shared/copy";
 import { bogotaInputToUtc } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
@@ -66,6 +75,7 @@ const AREAS = [
   "extras",
   "anuncios",
   "apuestas",
+  "poderes",
 ] as const;
 
 const OPERATIONS = [
@@ -101,6 +111,10 @@ const OPERATIONS = [
   "market-cancel",
   "market-resolve",
   "place-bet",
+  "add-power",
+  "deliver-powers",
+  "void-power",
+  "revert-power-use",
 ] as const;
 
 const cuid = z.string().regex(/^[a-z0-9]{10,40}$/);
@@ -345,6 +359,34 @@ async function run(
       if (!result.ok) return result.message;
       return `ok:${t("T-2874", { saldo: result.balance })}`;
     }
+    case "add-power":
+      await addPowerGrantAs(actor, id, {
+        teamId: formText(form, "teamId"),
+        power: z.enum(POWER_TYPES).parse(formText(form, "power")),
+        day: Number(formText(form, "day")),
+        delivered: checkbox(form, "delivered"),
+      });
+      return null;
+    case "deliver-powers":
+      // Repetir la orden no cambia nada: solo se entregan las que faltaban.
+      await deliverPowerGrantsAs(actor, id, {
+        day: Number(formText(form, "day")),
+        teamId: formOptional(form, "teamId"),
+        grantId: formOptional(form, "grantId"),
+      });
+      return null;
+    case "void-power":
+      await voidPowerGrantAs(actor, id, {
+        grantId: formText(form, "grantId"),
+        reason: formText(form, "reason"),
+      });
+      return null;
+    case "revert-power-use":
+      await revertPowerUseAs(actor, id, {
+        useId: formText(form, "useId"),
+        reason: formText(form, "reason"),
+      });
+      return null;
   }
 }
 
@@ -398,6 +440,51 @@ export async function judgeResultAction(form: FormData): Promise<void> {
     else throw error;
   }
   redirect(`${base}?${query}`);
+}
+
+const JUDGE_POWER_OPERATIONS = ["declare", "withdraw", "start"] as const;
+
+/** Poderes en la pantalla del juez (ADR-098): registrar la tarjeta que le entregan, quitarla antes de
+ *  empezar y empezar la base. El dominio limita a su base y comprueba cada regla; la vuelta es a su
+ *  pantalla, al enfrentamiento. */
+export async function judgePowerAction(form: FormData): Promise<void> {
+  const competitionId = cuid.safeParse(formText(form, "competitionId"));
+  if (!competitionId.success) redirect("/admin");
+  const base = `/admin/the-games/${competitionId.data}/juez`;
+  const access = await requireCompetitionStaff(competitionId.data, base);
+  const matchupId = formText(form, "matchupId");
+  const query = new URLSearchParams();
+  try {
+    const operation = z.enum(JUDGE_POWER_OPERATIONS).parse(formText(form, "operation"));
+    const actor = await access.commandActor();
+    if (operation === "declare") {
+      const power = z.enum(POWER_TYPES).parse(formText(form, "power"));
+      await declarePowerAs(actor, competitionId.data, {
+        matchupId,
+        teamId: formText(form, "teamId"),
+        power,
+      });
+      query.set(
+        "aviso",
+        t("T-3115", {
+          poder: tList("T-3040")[POWER_TYPES.indexOf(power)] ?? power,
+          equipo: formText(form, "teamName"),
+        }),
+      );
+    } else if (operation === "withdraw") {
+      await revertPowerUseAs(actor, competitionId.data, { useId: formText(form, "useId") });
+      query.set("aviso", t("T-3116"));
+    } else {
+      await startMatchupAs(actor, competitionId.data, matchupId);
+      query.set("aviso", t("T-3117"));
+    }
+  } catch (error) {
+    if (error instanceof DomainError) query.set("error", error.message);
+    else if (error instanceof z.ZodError) query.set("error", t("T-260"));
+    else throw error;
+  }
+  const anchor = cuid.safeParse(matchupId).success ? `#m-${matchupId}` : "";
+  redirect(`${base}?${query}${anchor}`);
 }
 
 /** Emite los códigos de equipo y los devuelve una sola vez al navegador, que arma las tarjetas: nunca
@@ -497,6 +584,36 @@ export async function importCaptainsAction(
   const query = new URLSearchParams({
     area: "equipos",
     aviso: t("T-3021", { capitanes: result.captains, equipos: result.teams }),
+  });
+  redirect(`${base}?${query}`);
+}
+
+/** Carga el reparto de poderes pegando tres columnas (ADR-098). Si no se guarda, devuelve los problemas
+ *  y lo pegado para corregirlo; si se guarda, vuelve a Poderes con el resumen. */
+export async function importPowersAction(
+  previous: ImportPowersState,
+  form: FormData,
+): Promise<ImportPowersState> {
+  const competitionId = cuid.safeParse(formText(form, "competitionId"));
+  if (!competitionId.success) return { ...previous, errors: [t("T-2764")] };
+  const base = `/admin/the-games/${competitionId.data}`;
+  const access = await requireCompetitionOperator(competitionId.data, `${base}?area=poderes`);
+  const state = { text: formRaw(form, "text"), attempt: previous.attempt + 1 };
+  let result: Awaited<ReturnType<typeof importPowerGrantsAs>>;
+  try {
+    result = await importPowerGrantsAs(await access.commandActor(), competitionId.data, {
+      text: state.text,
+    });
+  } catch (error) {
+    if (error instanceof DomainError) return { ...state, errors: [error.message] };
+    if (error instanceof z.ZodError) return { ...state, errors: [t("T-260")] };
+    throw error;
+  }
+  if (!result.saved) return { ...state, errors: result.errors };
+  revalidatePath(base);
+  const query = new URLSearchParams({
+    area: "poderes",
+    aviso: t("T-3068", { tarjetas: result.grants, equipos: result.teams }),
   });
   redirect(`${base}?${query}`);
 }

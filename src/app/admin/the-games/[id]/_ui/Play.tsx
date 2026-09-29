@@ -407,7 +407,29 @@ function MatchupRow({ context, matchup }: { context: PanelContext; matchup: Matc
         <TeamChip team={matchup.teamB} />
       </span>
       <ResultButtons context={context} matchup={matchup} />
+      {matchup.powerDetail ? <OfficialResult matchup={matchup} /> : null}
     </li>
+  );
+}
+
+/** Con poderes (ADR-098), el resultado de la cancha y el oficial, con los puntos de cada equipo. */
+function OfficialResult({ matchup }: { matchup: MatchupView }) {
+  const detail = matchup.powerDetail;
+  if (!detail) return null;
+  const label = (outcome: "A_WIN" | "B_WIN" | "DRAW") => {
+    const text =
+      outcome === "DRAW"
+        ? t("T-2847")
+        : t("T-2846", { equipo: outcome === "A_WIN" ? matchup.teamA.name : matchup.teamB.name });
+    return text.charAt(0).toLowerCase() + text.slice(1);
+  };
+  const points = (value: number) => value.toLocaleString("es-CO");
+  return (
+    <p className="text-sm">
+      {t("T-3112", { cancha: label(detail.sporting), oficial: label(detail.official) })} ·{" "}
+      {t("T-3114", { equipo: matchup.teamA.name, total: points(detail.teams.A.total) })} ·{" "}
+      {t("T-3114", { equipo: matchup.teamB.name, total: points(detail.teams.B.total) })}
+    </p>
   );
 }
 
