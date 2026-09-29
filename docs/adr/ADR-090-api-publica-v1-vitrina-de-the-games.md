@@ -1,6 +1,6 @@
 # ADR-090: API pública v1: la vitrina de The Games para DÍAS
 
-- Estado: Aceptada (enmendada por ADR-095, ADR-096 y ADR-097); implementación en curso
+- Estado: Aceptada (enmendada por ADR-095, ADR-096, ADR-097 y ADR-098); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-014, ADR-020, ADR-021, ADR-080, ADR-085, ADR-089, ADR-091
 - Enmienda: ADR-085 (regla 5 y «Orden de trabajo»: la primera porción de la API llega antes del monorepo, como piloto de DÍAS)
@@ -52,3 +52,7 @@ Regla 7: la primera escritura de la API v1 es el hub de capitanes, en `/api/v1/t
 ## Enmienda (2026-09-28, ADR-097)
 
 Regla 1: la API pública suma `GET /api/v1/the-games/<slug>/equipos/<número>`, el recorrido de un equipo en las dos jornadas: base, rival y resultado de cada rotación. Tiene la misma caché y el mismo CORS que la vitrina, y tampoco lleva ids ni datos personales. Ver [ADR-097](ADR-097-recorrido-de-cada-equipo.md).
+
+## Enmienda (2026-09-29, ADR-098)
+
+Regla 1: con poderes, el `outcome` de cada enfrentamiento de la vitrina es el resultado oficial, no el de la cancha, y las posiciones cuentan con él. La forma no cambia: la vitrina sigue en `version: 1`. Ver [ADR-098](ADR-098-poderes-de-the-games.md).

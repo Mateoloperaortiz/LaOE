@@ -1,6 +1,6 @@
 # ADR-097: Recorrido de cada equipo en la vitrina y en el hub
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-098)
 - Fecha: 2026-09-28
 - Relacionadas: ADR-089, ADR-090, ADR-094, ADR-096
 - Enmienda:
@@ -45,3 +45,7 @@ El 2026-09-28 Mateo pidió que cada equipo vea su recorrido: las bases que le to
   - el recorrido de un equipo con el calendario generado y un resultado registrado;
   - el hub incluye el recorrido.
 - **E2E:** la ruta pública con el origen de DÍAS.
+
+## Enmienda (2026-09-29, ADR-098)
+
+Regla 1: el resultado y los puntos de cada parada son los oficiales. Por ejemplo, ganar con Multiplicador x2 da «WIN» y 2000, y un Cambio de resultados del rival invierte el resultado. La forma no cambia. Ver [ADR-098](ADR-098-poderes-de-the-games.md).

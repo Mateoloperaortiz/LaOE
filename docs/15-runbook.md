@@ -774,7 +774,7 @@ Sin migraciones: el pre-deploy registró «migraciones aplicadas y esquema verif
 
 Una cosa para la próxima: **cuando un E2E inestable deja el gate en rojo, el orden importa.** Borrar primero el artefacto `ci-e2e-N` del intento fallido (`gh api -X DELETE .../actions/artifacts/<id>`) y después `gh run rerun <id> --failed` deja una sola copia del artefacto, y el gate, que corre al final del relanzamiento, sale en verde sin relanzarlo aparte. Así se destrabó el primer intento del PR 62.
 
-## The Games · preparación y operación (ADR-089 a ADR-091, ADR-095 y ADR-096)
+## The Games · preparación y operación (ADR-089 a ADR-091 y ADR-095 a ADR-098)
 
 Ensayo sintético (desarrollo y staging, nunca producción):
 
@@ -784,6 +784,7 @@ Ensayo sintético (desarrollo y staging, nunca producción):
   - La rúbrica de The Challenge, apuestas con 1000 puntos y una apuesta abierta, y un anuncio.
   - El personal: operador, `oe.demo` activo más bajo; jueces, los dos siguientes, en la base 1 de cada jornada.
   - Dos capitanes sintéticos por equipo, con los nombres publicados en la vitrina (ADR-095).
+  - El reparto de poderes: 5 tarjetas por equipo, 2/3 en los impares y 3/2 en los pares, con las del jueves entregadas (ADR-098).
   - La competencia queda en vivo.
 - Entra como `oe.demo.admin@eafit.edu.co` a `/admin/the-games`. Los códigos de equipo salen en el log del seed. Si se pierden, se vuelven a emitir en Equipos, y los anteriores dejan de valer.
 - En local, la vitrina de DÍAS se prueba con `NEXT_PUBLIC_THE_GAMES_API=http://localhost:3000/api/v1/the-games/ npm run dev` en `dias` y `http://localhost:3100/the-games/?c=ensayo-the-games`. La casa necesita `PUBLIC_API_ORIGINS=http://localhost:3100,http://localhost:3101`, igual que staging.
@@ -797,11 +798,14 @@ Ensayo en producción (ADR-089 regla 2; se opera igual que la competencia real y
 - Los códigos de equipo salen una sola vez en la salida del comando. Es idempotente: si `ensayo-2026` ya existe, no toca nada.
 - Terminado el ensayo, se archiva desde Resumen. Las respuestas de formulario y los equipos reales van en la competencia `the-games-2026`.
 
+Los ensayos que ya existían no reciben tarjetas con el seed, porque es idempotente: se les pega el reparto en Poderes.
+
 Antes de promover:
 
 1. `PUBLIC_API_ORIGINS` queda declarada en `.railway/railway.ts`: `https://dias.oeeafit.com` en producción; en staging, el sitio de DÍAS en local. Se carga **antes** de promover.
 2. La migración `0040_the_games` es aditiva: solo crea tablas. `db:release` la aplica y verifica sus índices. La `0041_the_games_capitanes` también: crea `competition_team_captain` y la columna `show_captains`, apagada.
 3. Smoke manual: `GET /api/v1/the-games/__smoke__` responde 404 en JSON con `Access-Control-Allow-Origin: https://dias.oeeafit.com`.
+4. La migración `0042_the_games_poderes` es aditiva: crea las tablas de poderes y cuatro columnas que admiten nulos (el inicio de cada base y el resultado oficial). Antes de promoverla en pleno evento, confirmar en Resultados qué enfrentamientos ya tienen resultado: los que no tienen poderes no cambian.
 
 En producción, sin código:
 
@@ -824,6 +828,20 @@ Durante el evento:
 - Cada equipo ve su recorrido del día en `dias.oeeafit.com/the-games/` con «Buscá tu equipo», o directo con `?equipo=N` (ADR-097). Los capitanes también lo ven en el hub.
 - Los capitanes apuestan en `dias.oeeafit.com/capitanes` con el código de la tarjeta (ADR-096), por la API `/api/v1/the-games/hub` de la casa: ven el saldo del equipo y las apuestas abiertas, y apuestan. Si un capitán no tiene celular, el operador registra la apuesta desde Apuestas con el mismo código. Si una tarjeta se pierde, «Volver a emitir todos» invalida las viejas y cierra las sesiones del hub: hay que imprimir y repartir las 30 otra vez.
 - Si un capitán objeta que su nombre salga en la vitrina, «Dejar de mostrarlos» la apaga para todos. Después se vuelve a cargar la hoja sin esa fila y se prende de nuevo.
+
+Poderes (ADR-098):
+
+- **Reparto.** Antes de la rotación 1 del jueves, en Poderes, se pega el reparto de los líderes en **tres columnas: Equipo, Poder y Jornada**. El poder va por su nombre («Multiplicador x2», «Cambio de resultados», «Cancelar poder», «1 min tarde», «Un jugador menos») y la jornada como «jueves» o «viernes». Es todo o nada. Cada equipo lleva 5 tarjetas, 2/3 o 3/2 entre las jornadas, y los tipos se pueden repetir.
+- **Entrega.** Cuando los líderes entregan las tarjetas físicas, se marcan con «Entregar las del jueves», por equipo o para todos. Una tarjeta sin entregar no se puede usar, y el líder de base lo ve como «Sin tarjetas entregadas para hoy».
+- **En la base.** El equipo le entrega la tarjeta al líder antes de empezar. El líder la registra en su pantalla («¿Recibiste la tarjeta?»), toca «Empezar la base» y al final registra el resultado. Cada botón de resultado muestra el oficial que va a quedar. Con «1 min tarde», la pantalla muestra la cuenta regresiva del rival.
+- **Reglas:** están en el panel de Poderes y en ADR-098. Hay una tarjeta por equipo en cada base, y solo en bases normales. Las del jueves no pasan al viernes.
+- **Correcciones:**
+  - Un poder mal registrado antes de empezar lo quita el mismo líder.
+  - Después de empezar, solo lo revierte un operador, con motivo, en Poderes. Si ya hay resultado, lo vuelve a calcular con reversiones en el libro.
+  - Una tarjeta mal asignada se anula con motivo, si no se usó.
+- **Si se cae el celular de un líder:** un operador se asigna como juez de esa base en Personal y sigue desde la pantalla de juez.
+- **Si algo no cuadra:** se registra un ajuste en Extras (`ADJUSTMENT`, con motivo). Nunca se edita el libro.
+- **Apuestas atadas a un enfrentamiento:** se resuelven con el resultado oficial, que es el que muestra la pantalla pública.
 
 Después del evento: archivar `the-games-2026` (a más tardar el 2026-10-16) y `ensayo-2026` desde Resumen. Archivar borra los capitanes y apaga su vitrina (ADR-095).
 

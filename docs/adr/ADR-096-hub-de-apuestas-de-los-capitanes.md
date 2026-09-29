@@ -1,6 +1,6 @@
 # ADR-096: Hub de capitanes en DÍAS con la API de la casa
 
-- Estado: Aceptada (enmendada por ADR-097)
+- Estado: Aceptada (enmendada por ADR-097 y ADR-098)
 - Fecha: 2026-09-28
 - Relacionadas: ADR-011, ADR-012, ADR-014, ADR-072, ADR-082, ADR-085, ADR-089, ADR-090, ADR-091, ADR-095
 - Enmienda:
@@ -94,3 +94,7 @@ El 2026-09-28 Mateo decidió tres cosas:
 ## Enmienda (2026-09-28, ADR-097)
 
 Regla 1: el estado del hub suma `route`, el recorrido del equipo de la sesión en las dos jornadas: base, rival y resultado de cada rotación. El hub sigue en `version: 1`. Ver [ADR-097](ADR-097-recorrido-de-cada-equipo.md).
+
+## Enmienda (2026-09-29, ADR-098)
+
+Regla 1: el estado del hub suma `powers`: las tarjetas del equipo, cada una con su poder, su jornada y su estado. Si ya se usó, también trae la rotación, la base, el rival y el efecto. No lleva ids, y el hub sigue en `version: 1`. El capitán solo consulta: la tarjeta física es la declaración. Ver [ADR-098](ADR-098-poderes-de-the-games.md).
