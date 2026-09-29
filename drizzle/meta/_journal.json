@@ -302,6 +302,13 @@
       "when": 1790660225468,
       "tag": "0042_the_games_poderes",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1790696760334,
+      "tag": "0043_the_games_instrucciones_hub",
+      "breakpoints": true
     }
   ]
 }

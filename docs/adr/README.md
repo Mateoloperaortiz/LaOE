@@ -13,9 +13,10 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-099](ADR-099-instrucciones-del-hub-de-capitanes.md) | Instrucciones del hub de capitanes | Aceptada |
 | [ADR-098](ADR-098-poderes-de-the-games.md) | Poderes de The Games | Aceptada |
 | [ADR-097](ADR-097-recorrido-de-cada-equipo.md) | Recorrido de cada equipo en la vitrina y en el hub | Aceptada (enmendada por ADR-098) |
-| [ADR-096](ADR-096-hub-de-apuestas-de-los-capitanes.md) | Hub de capitanes en DÍAS con la API de la casa | Aceptada (enmendada por ADR-097 y ADR-098) |
+| [ADR-096](ADR-096-hub-de-apuestas-de-los-capitanes.md) | Hub de capitanes en DÍAS con la API de la casa | Aceptada (enmendada por ADR-097, ADR-098 y ADR-099) |
 | [ADR-095](ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md) | Capitanes de The Games desde la hoja de la OE | Aceptada |
 | [ADR-094](ADR-094-calendario-de-the-games-desde-la-hoja-de-la-oe.md) | El calendario de The Games se importa desde la hoja de la OE | Aceptada |
 | [ADR-093](ADR-093-cada-equipo-juega-todas-las-bases.md) | En The Games, cada equipo juega todas las bases de la jornada | Aceptada |

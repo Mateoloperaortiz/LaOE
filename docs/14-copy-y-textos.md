@@ -2681,3 +2681,14 @@ Los textos del reparto, la pantalla del líder de base y el panel de Poderes. Lo
 | T-3117 | The Games: Base empezada | La base empezó. | MATEO | Propuesta |
 | T-3118 | The Games: Poder de un equipo | {poder} de {equipo} | MATEO | Propuesta |
 | T-3119 | The Games: Campos de agregar tarjeta | Equipo · Poder · Jornada | MATEO | Propuesta |
+
+## Instrucciones del hub de capitanes (ADR-099)
+
+El texto de las instrucciones vive en DÍAS (D-042 de `dias`); aquí van el mensaje de la API y lo que ve la operación.
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-3120 | Hub de capitanes: instrucciones sin aceptar | Antes de entrar, leé y aceptá las instrucciones del hub. | MATEO | Propuesta |
+| T-3121 | The Games: Columna de instrucciones | Instrucciones | MATEO | Propuesta |
+| T-3122 | The Games: Instrucciones aceptadas | Versión {version} · {fecha} | MATEO | Propuesta |
+| T-3123 | The Games: Instrucciones sin aceptar | Sin aceptar | MATEO | Propuesta |

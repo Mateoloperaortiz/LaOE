@@ -15,6 +15,9 @@ export const HUB_SESSION_MS = 12 * 60 * 60_000;
 export const HUB_MAX_FAILURES_PER_IP = 30;
 export const HUB_FAILURE_WINDOW_MS = 15 * 60_000;
 export const HUB_VERSION = 1;
+/** La versión vigente de las instrucciones del hub (ADR-099). El texto vive en DÍAS (D-042);
+ *  cambiarlo sube la versión en los dos repos y cada equipo vuelve a aceptar. */
+export const HUB_TERMS_VERSION = 1;
 
 export interface HubSession {
   competitionId: string;

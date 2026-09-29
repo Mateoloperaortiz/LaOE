@@ -774,7 +774,7 @@ Sin migraciones: el pre-deploy registró «migraciones aplicadas y esquema verif
 
 Una cosa para la próxima: **cuando un E2E inestable deja el gate en rojo, el orden importa.** Borrar primero el artefacto `ci-e2e-N` del intento fallido (`gh api -X DELETE .../actions/artifacts/<id>`) y después `gh run rerun <id> --failed` deja una sola copia del artefacto, y el gate, que corre al final del relanzamiento, sale en verde sin relanzarlo aparte. Así se destrabó el primer intento del PR 62.
 
-## The Games · preparación y operación (ADR-089 a ADR-091 y ADR-095 a ADR-098)
+## The Games · preparación y operación (ADR-089 a ADR-091 y ADR-095 a ADR-099)
 
 Ensayo sintético (desarrollo y staging, nunca producción):
 
@@ -827,6 +827,7 @@ Durante el evento:
 - Si la carga pesa, se agrega una Cache Rule de Cloudflare para `/api/v1/*`. No hay límite por IP: el campus sale por NAT.
 - Cada equipo ve su recorrido del día en `dias.oeeafit.com/the-games/` con «Buscá tu equipo», o directo con `?equipo=N` (ADR-097). Los capitanes también lo ven en el hub.
 - Los capitanes apuestan en `dias.oeeafit.com/capitanes` con el código de la tarjeta (ADR-096), por la API `/api/v1/the-games/hub` de la casa: ven el saldo del equipo y las apuestas abiertas, y apuestan. Si un capitán no tiene celular, el operador registra la apuesta desde Apuestas con el mismo código. Si una tarjeta se pierde, «Volver a emitir todos» invalida las viejas y cierra las sesiones del hub: hay que imprimir y repartir las 30 otra vez.
+- La primera vez que un equipo entra al hub, el capitán tiene que leer y aceptar las instrucciones (ADR-099). En Equipos se ve qué equipos las aceptaron y cuándo. Si se cambia el texto en DÍAS, se sube `HUB_TERMS_VERSION` en los dos repos y cada equipo vuelve a aceptar.
 - Si un capitán objeta que su nombre salga en la vitrina, «Dejar de mostrarlos» la apaga para todos. Después se vuelve a cargar la hoja sin esa fila y se prende de nuevo.
 
 Poderes (ADR-098):

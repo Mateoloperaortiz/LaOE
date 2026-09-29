@@ -670,8 +670,34 @@ describe("The Games", () => {
         });
         await setCompetitionStatusAs(actor, id, "LIVE");
         const raw = code(e1);
-        const entered = await enterHubAs(hub(), `${raw.slice(0, 4).toLowerCase()}-${raw.slice(4)}`);
+        // La primera vez, el equipo tiene que aceptar las instrucciones (ADR-099): sin aceptarlas no
+        // hay sesión, y no cuenta como fallo.
+        expect(await enterHubAs(hub(), raw)).toEqual({
+          ok: false,
+          reason: "TERMS",
+          version: 1,
+          message: t("T-3120"),
+        });
+        const entered = await enterHubAs(
+          hub(),
+          `${raw.slice(0, 4).toLowerCase()}-${raw.slice(4)}`,
+          1,
+        );
         if (!entered.ok) throw new Error(entered.message);
+        const [accepted] = await getDb()
+          .select({
+            version: competitionTeam.hubTermsVersion,
+            at: competitionTeam.hubTermsAcceptedAt,
+          })
+          .from(competitionTeam)
+          .where(eq(competitionTeam.id, e1));
+        expect(accepted?.version).toBe(1);
+        expect(accepted?.at).toBeInstanceOf(Date);
+        const [terms] = await getDb()
+          .select({ entityId: auditLog.entityId, ip: auditLog.ip })
+          .from(auditLog)
+          .where(eq(auditLog.action, "competition.hub.terms"));
+        expect(terms).toEqual({ entityId: e1, ip: "10.1.2.3" });
         expect(entered.session).toMatchObject({ competitionId: id, teamId: e1 });
         expect(await getHubTeam(entered.session)).toMatchObject({
           teamId: e1,
@@ -720,7 +746,7 @@ describe("The Games", () => {
 
         // Una apuesta cerrada ya no recibe apuestas desde el hub.
         await setMarketOpenAs(actor, id, marketId, false);
-        const other = await enterHubAs(hub(), code(e2));
+        const other = await enterHubAs(hub(), code(e2), 1);
         if (!other.ok) throw new Error(other.message);
         await expect(
           placeHubBetAs(hub(), other.session, { marketId, pick: 1, stake: 50 }),
@@ -728,11 +754,32 @@ describe("The Games", () => {
         expect((await getHubState(other.session))?.markets).toEqual([]);
       });
 
+      it("las instrucciones se aceptan una vez por equipo y la sesión exige la versión vigente", async () => {
+        const { id, actor, teamIds, code, marketId } = await seedBetting();
+        const [e1 = ""] = teamIds;
+        await setCompetitionStatusAs(actor, id, "LIVE");
+        const first = await enterHubAs(hub(), code(e1), 1);
+        if (!first.ok) throw new Error(first.message);
+        // El otro capitán entra con el mismo código sin volver a aceptar.
+        const second = await enterHubAs(hub("10.7.7.7"), code(e1));
+        if (!second.ok) throw new Error(second.message);
+        // Si la versión vigente sube, las sesiones abiertas dejan de valer y el hub vuelve a pedirla.
+        await getDb()
+          .update(competitionTeam)
+          .set({ hubTermsVersion: 0 })
+          .where(eq(competitionTeam.id, e1));
+        expect(await getHubTeam(second.session)).toBeNull();
+        await expect(
+          placeHubBetAs(hub(), second.session, { marketId, pick: 2, stake: 50 }),
+        ).rejects.toThrow(t("T-3038"));
+        expect(await enterHubAs(hub(), code(e1))).toMatchObject({ ok: false, reason: "TERMS" });
+      });
+
       it("los fallos cuentan por IP, respeta el bloqueo y volver a emitir cierra las sesiones", async () => {
         const { id, actor, teamIds, code, marketId } = await seedBetting();
         const [e1 = ""] = teamIds;
         await setCompetitionStatusAs(actor, id, "LIVE");
-        const entered = await enterHubAs(hub(), code(e1));
+        const entered = await enterHubAs(hub(), code(e1), 1);
         if (!entered.ok) throw new Error(entered.message);
         for (let i = 0; i < HUB_MAX_FAILURES_PER_IP; i++) {
           expect(await enterHubAs(hub("10.9.9.9"), "ZZZZ-ZZZZ")).toEqual({

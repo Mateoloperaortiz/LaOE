@@ -199,8 +199,11 @@ export const cancelMarketAs = (actor: A, id: string, marketId: string) =>
   runCommand(actor, (ctx) => cancelMarket(ctx, actor, id, marketId));
 
 // Hub de capitanes (ADR-096): el actor no es una persona, solo lleva la IP para la auditoría.
-export const enterHubAs = (actor: Actor, code: string): Promise<EnterHubResult> =>
-  runCommand(actor, (ctx) => enterHub(ctx, code));
+export const enterHubAs = (
+  actor: Actor,
+  code: string,
+  accept: number | null = null,
+): Promise<EnterHubResult> => runCommand(actor, (ctx) => enterHub(ctx, code, accept));
 export const placeHubBetAs = (actor: Actor, session: HubSession, input: HubBetInput) =>
   runCommand(actor, (ctx) => placeHubBet(ctx, session, input));
 

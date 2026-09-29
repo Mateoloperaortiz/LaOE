@@ -513,7 +513,7 @@ describe("poderes de The Games (ADR-098)", () => {
     await setCompetitionStatusAs(actor, id, "LIVE");
     const codes = await issueTeamCodesAs(actor, id, false);
     const code = codes.find((item) => item.teamId === team(1))?.code ?? "";
-    const entered = await enterHubAs({ personId: null, ip: "10.9.9.9" }, code);
+    const entered = await enterHubAs({ personId: null, ip: "10.9.9.9" }, code, 1);
     if (!entered.ok) throw new Error(entered.message);
 
     await startRotationAs(actor, id, first.id);

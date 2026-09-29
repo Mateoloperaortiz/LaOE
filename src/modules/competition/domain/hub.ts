@@ -9,6 +9,7 @@ import { normalizeTeamCode, teamCodeMatches } from "./codes-pure";
 import {
   HUB_MAX_FAILURES_PER_IP,
   HUB_SESSION_MS,
+  HUB_TERMS_VERSION,
   type HubSession,
   type HubState,
   hubStateSchema,
@@ -53,13 +54,18 @@ function countFailure(ip: string | null | undefined, now: Date): void {
 
 export type EnterHubResult =
   | { ok: true; session: HubSession }
-  | { ok: false; reason: "INVALID" | "LOCKED" | "RATE_LIMITED"; message: string };
+  | { ok: false; reason: "INVALID" | "LOCKED" | "RATE_LIMITED"; message: string }
+  /** El equipo no ha aceptado las instrucciones vigentes (ADR-099): no se abre sesión ni cuenta
+   *  como fallo. */
+  | { ok: false; reason: "TERMS"; version: number; message: string };
 
 /** Busca el equipo del código entre las competencias en vivo con apuestas. El capitán no elige su
- *  equipo: así nadie bloquea el código de otro a punta de intentos. */
+ *  equipo: así nadie bloquea el código de otro a punta de intentos. La primera vez, el equipo tiene
+ *  que aceptar las instrucciones del hub: `accept` trae la versión que leyó (ADR-099). */
 export async function enterHub(
   ctx: CommandContext,
   rawCode: string,
+  accept: number | null = null,
   now = new Date(),
 ): Promise<EnterHubResult> {
   const ip = ctx.actor.ip;
@@ -73,6 +79,7 @@ export async function enterHub(
           codeHash: competitionTeam.codeHash,
           codeIssuedAt: competitionTeam.codeIssuedAt,
           codeLockedUntil: competitionTeam.codeLockedUntil,
+          hubTermsVersion: competitionTeam.hubTermsVersion,
           isRehearsal: competition.isRehearsal,
         })
         .from(competitionTeam)
@@ -107,6 +114,21 @@ export async function enterHub(
       message: t("T-2779", { hora: formatTime(team.codeLockedUntil) }),
     };
   }
+  if ((team.hubTermsVersion ?? 0) < HUB_TERMS_VERSION) {
+    if (accept !== HUB_TERMS_VERSION) {
+      return { ok: false, reason: "TERMS", version: HUB_TERMS_VERSION, message: t("T-3120") };
+    }
+    await ctx.tx
+      .update(competitionTeam)
+      .set({ hubTermsVersion: HUB_TERMS_VERSION, hubTermsAcceptedAt: now })
+      .where(eq(competitionTeam.id, team.id));
+    await ctx.audit({
+      action: "competition.hub.terms",
+      entityType: "competition_team",
+      entityId: team.id,
+      after: { competitionId: team.competitionId, version: HUB_TERMS_VERSION },
+    });
+  }
   await ctx.audit({
     action: "competition.hub.enter",
     entityType: "competition_team",
@@ -135,8 +157,9 @@ export interface HubTeam {
   color: string | null;
 }
 
-/** El equipo de la sesión, si todavía vale: equipo activo, mismo código y competencia en vivo con
- *  apuestas. Si no, `null` y el hub vuelve a pedir el código. */
+/** El equipo de la sesión, si todavía vale: equipo activo, mismo código, instrucciones vigentes
+ *  aceptadas (ADR-099) y competencia en vivo con apuestas. Si no, `null` y el hub vuelve a pedir el
+ *  código. */
 export async function getHubTeam(
   session: HubSession | null,
   exec: Executor = getDb(),
@@ -156,6 +179,7 @@ export async function getHubTeam(
       name: competitionTeam.name,
       color: competitionTeam.color,
       codeIssuedAt: competitionTeam.codeIssuedAt,
+      hubTermsVersion: competitionTeam.hubTermsVersion,
     })
     .from(competitionTeam)
     .innerJoin(competition, eq(competition.id, competitionTeam.competitionId))
@@ -171,7 +195,8 @@ export async function getHubTeam(
     row.status !== "LIVE" ||
     !row.bettingEnabled ||
     row.teamStatus !== "ACTIVE" ||
-    row.codeIssuedAt?.getTime() !== session.codeIssuedAt
+    row.codeIssuedAt?.getTime() !== session.codeIssuedAt ||
+    (row.hubTermsVersion ?? 0) < HUB_TERMS_VERSION
   ) {
     return null;
   }

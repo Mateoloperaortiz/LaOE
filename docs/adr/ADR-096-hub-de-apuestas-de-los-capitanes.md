@@ -1,6 +1,6 @@
 # ADR-096: Hub de capitanes en DÍAS con la API de la casa
 
-- Estado: Aceptada (enmendada por ADR-097 y ADR-098)
+- Estado: Aceptada (enmendada por ADR-097, ADR-098 y ADR-099)
 - Fecha: 2026-09-28
 - Relacionadas: ADR-011, ADR-012, ADR-014, ADR-072, ADR-082, ADR-085, ADR-089, ADR-090, ADR-091, ADR-095
 - Enmienda:
@@ -98,3 +98,7 @@ Regla 1: el estado del hub suma `route`, el recorrido del equipo de la sesión e
 ## Enmienda (2026-09-29, ADR-098)
 
 Regla 1: el estado del hub suma `powers`: las tarjetas del equipo, cada una con su poder, su jornada y su estado. Si ya se usó, también trae la rotación, la base, el rival y el efecto. No lleva ids, y el hub sigue en `version: 1`. El capitán solo consulta: la tarjeta física es la declaración. Ver [ADR-098](ADR-098-poderes-de-the-games.md).
+
+## Enmienda (2026-09-29, ADR-099)
+
+Regla 1: el primer ingreso de cada equipo pide aceptar las instrucciones vigentes del hub. Si falta la aceptación, `POST /sesion` responde 409 con la versión, sin abrir sesión y sin contar un fallo. Con `accept`, la casa guarda la versión y la fecha en el equipo y en la auditoría. La sesión de un equipo que no aceptó la versión vigente no vale. Ver [ADR-099](ADR-099-instrucciones-del-hub-de-capitanes.md).

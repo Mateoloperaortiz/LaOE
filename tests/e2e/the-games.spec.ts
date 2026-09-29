@@ -439,9 +439,17 @@ test.describe("hub de capitanes", () => {
     expect(wrong.status()).toBe(400);
     expect((await wrong.json()).error).toBe(t("T-3036"));
 
-    const entered = await request.post(`${hub}/sesion`, {
+    // La primera vez hay que aceptar las instrucciones del hub (ADR-099).
+    const terms = await request.post(`${hub}/sesion`, {
       headers: json,
       data: { code: formatTeamCode(team(1).code).toLowerCase() },
+    });
+    expect(terms.status()).toBe(409);
+    expect(await terms.json()).toEqual({ error: t("T-3120"), terms: 1 });
+
+    const entered = await request.post(`${hub}/sesion`, {
+      headers: json,
+      data: { code: formatTeamCode(team(1).code).toLowerCase(), accept: 1 },
     });
     expect(entered.status()).toBe(200);
     expect(entered.headers()["set-cookie"]).toContain("HttpOnly");
