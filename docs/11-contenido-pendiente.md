@@ -139,14 +139,15 @@ Confirmado por la OE: 30 equipos, 15 bases y 15 rotaciones por jornada. Ganar da
   - jueves: 1 = 1, 3 y 15; 2 = 9, 12 y 14; 3 = 2, 4 y 10; 4 = 5, 6, 7 y 8; 5 = 11 y 13;
   - viernes: 1 = 21, 27 y 29; 2 = 23, 25 y 30; 3 = 17, 18 y 26; 4 = 16, 24 y 28; 5 = 19, 20 y 22.
 - [ ] El material de la base 30: su ficha trae «Pelotas de diferentes colores», que parece copiado de la 29
-- [ ] Qué son las cuatro columnas de personas de cada zona en los mapas y si alguna es de jueces de la casa (en Personal, con cuenta del roster)
+- [ ] Qué son las cuatro columnas de personas de cada zona en los mapas y si alguna es de jueces de la casa (en Personal, con cuenta del roster). El personal de cada base ya salió de la hoja del GAP ([ADR-101](adr/ADR-101-personal-de-the-games-desde-la-hoja-del-gap.md))
 - [x] El calendario del jueves con los nombres de los 30 equipos: `Rotaciones_TheGames.xlsx` (2026-09-24), que se importa desde la hoja (ADR-094). Sus números son el orden de la hoja
 - [x] El calendario del viernes: `Rotaciones_TheGames dia viernes.xlsx` (2026-09-24), con las bases 16 a 30
 - [x] Qué viernes se juega: Mateo eligió el 2026-09-25 la propuesta de la casa, con las rotaciones 16 a 30 y las bases 1 a 15. Repite 15 cruces, uno por equipo, que es el mínimo. Las otras dos versiones de la OE repetían 225 y 113.
 - [x] Las bases del viernes son otras: el PDF de fichas las numera del 16 al 30
 - [ ] Qué pasa si un equipo no se presenta
 - [ ] Si un equipo puede apostar por sí mismo (mientras tanto, no)
-- [ ] Qué jueces están en el roster con @eafit.edu.co; por los demás registra el operador
+- [x] Qué jueces están en el roster con @eafit.edu.co; por los demás registra el operador. Resuelto el 2026-09-29 por [ADR-101](adr/ADR-101-personal-de-the-games-desde-la-hoja-del-gap.md): los líderes de base salen de la hoja del GAP y la carga los busca entre los miembros; quien no aparezca no queda como juez, y por esa base registra la operación
+- [ ] Que la OE confirme la hoja del GAP (2026-09-29): la tabla por base, que es la que se carga, no coincide con las listas de la derecha en los líderes de la base 13 del jueves y de las bases 17 y 21 del viernes, y las listas del viernes nombran a dos personas sin base
 - [x] Los campos del formulario de inscripción, quién ve los contactos de los capitanes y cuánto tiempo se guardan las respuestas. Resuelto el 2026-09-28 por [ADR-095](adr/ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md): en 2026 no hay formulario. Los capitanes salen de la hoja de inscripción de la OE, solo con nombre y celular. Los ve la operación de la competencia, y se borran al archivarla, a más tardar el 2026-10-16. «Equipo N» es el equipo N de la hoja de rotaciones; en el Equipo 11, Mateo confirmó el segundo capitán, y la inscripción autorizó publicar los nombres
 - [ ] Que la próxima versión de la política de datos mencione a los capitanes de The Games: nombre y celular tomados de la inscripción de Días EAFIT, el celular visible para la operación, el nombre en la vitrina y el borrado al archivar la competencia (ADR-095)
 - [ ] Crear en producción la edición de Días EAFIT 2026 y registrar la Dirección de The Games en su mesa

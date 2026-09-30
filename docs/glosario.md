@@ -168,6 +168,8 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Actividad voluntaria | `isVoluntaryOccasion()` | Ocasión `ACTIVITY` o `EDITION_SESSION` cuya categoría no es reunión de comité ni inducción; cuenta para En parche aunque no dé puntos y admite boosters solo si da puntos |
 | Competencia (The Games) | `Competition` | La competencia por equipos de una edición de Días EAFIT; la de ensayo se opera igual y se archiva ([ADR-089](adr/ADR-089-the-games-competencia-por-equipos.md)) |
 | Base (The Games) | `CompetitionBase` | Una estación de una jornada donde se enfrentan dos equipos por rotación; las de inflables son macro y valen doble |
+| Líder de base | `CompetitionStaff` con rol `JUDGE` | Quien dirige una base en su jornada: registra los poderes, empieza la base y pone el resultado desde la pantalla del juez ([ADR-098](adr/ADR-098-poderes-de-the-games.md), [ADR-101](adr/ADR-101-personal-de-the-games-desde-la-hoja-del-gap.md)) |
+| Apoyo de la base | `CompetitionSupport` | El calificador, los veedores y el VAR de una base, que salen de la hoja del GAP; se ven en Personal y en la pantalla del líder y no tienen acceso ([ADR-101](adr/ADR-101-personal-de-the-games-desde-la-hoja-del-gap.md)) |
 | Rotación | `CompetitionRotation` | Una ronda de una jornada: cada base con un enfrentamiento y todos los equipos jugando, con su reloj |
 | Enfrentamiento | `CompetitionMatchup` | Dos equipos en una base durante una rotación; su desenlace da los puntos |
 | Código del equipo | `CompetitionTeam.codeHash` | Ocho caracteres que el capitán lleva impresos y que el operador pide para actuar en nombre del equipo; la casa guarda solo el hash |
