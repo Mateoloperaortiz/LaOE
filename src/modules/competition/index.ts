@@ -1,6 +1,6 @@
-// API pública del módulo competition (ADR-089 a ADR-091, ADR-095 y ADR-098): The Games, la
-// competencia por equipos de Días EAFIT, sus apuestas, sus capitanes y sus poderes. Lo usan src/app y
-// nadie más.
+// API pública del módulo competition (ADR-089 a ADR-091, ADR-095, ADR-098 y ADR-101): The Games, la
+// competencia por equipos de Días EAFIT, sus apuestas, sus capitanes, sus poderes y el personal de
+// cada base. Lo usan src/app y nadie más.
 export {
   type CompetitionActor,
   type CompetitionRoles,
@@ -77,6 +77,7 @@ export {
   listStaff,
   listStaffFor,
   listStandings,
+  listSupport,
   listTeamBetReturns,
   listTeams,
   type MarketView,
@@ -86,6 +87,7 @@ export {
   type RotationView,
   type StaffRow,
   type Standings,
+  type SupportRow,
   TEAM_NAME_FIELD,
   type TeamRow,
 } from "./domain/reads";
@@ -112,4 +114,5 @@ export {
 } from "./domain/setup";
 export { clearShowcaseMemo, getShowcase } from "./domain/showcase";
 export { SHOWCASE_VERSION, type Showcase, showcaseSchema } from "./domain/showcase-pure";
+export { dayName, type ImportStaffResult, type StaffPreviewBase } from "./domain/staff-import";
 export type { StandingRow } from "./domain/standings-pure";

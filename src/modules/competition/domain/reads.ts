@@ -18,6 +18,7 @@ import {
   competitionResult,
   competitionRotation,
   competitionStaff,
+  competitionSupport,
   competitionTeam,
   competitionTeamCaptain,
 } from "../schema";
@@ -196,19 +197,60 @@ export async function listStaff(competitionId: string): Promise<StaffRow[]> {
   }));
 }
 
-/** Para «Mis datos»: dónde está asignada una persona (ADR-089, consecuencias). */
+export interface SupportRow {
+  id: string;
+  baseId: string;
+  personId: string;
+  fullName: string;
+  role: (typeof competitionSupport.$inferSelect)["role"];
+}
+
+/** El apoyo de las bases: calificador, veedores y VAR (ADR-101). */
+export async function listSupport(competitionId: string): Promise<SupportRow[]> {
+  const rows = await getDb()
+    .select()
+    .from(competitionSupport)
+    .where(eq(competitionSupport.competitionId, competitionId))
+    .orderBy(asc(competitionSupport.createdAt));
+  const people = await getPeopleByIds(rows.map((row) => row.personId));
+  return rows.map((row) => ({
+    id: row.id,
+    baseId: row.baseId,
+    personId: row.personId,
+    fullName: people.get(row.personId)?.fullName ?? "",
+    role: row.role,
+  }));
+}
+
+/** Para «Mis datos»: dónde está asignada una persona, como personal o como apoyo de una base
+ *  (ADR-089, consecuencias; ADR-101). */
 export async function listStaffFor(personId: string) {
-  return getDb()
-    .select({
-      competition: competition.name,
-      role: competitionStaff.role,
-      base: competitionBase.name,
-      createdAt: competitionStaff.createdAt,
-    })
-    .from(competitionStaff)
-    .innerJoin(competition, eq(competition.id, competitionStaff.competitionId))
-    .leftJoin(competitionBase, eq(competitionBase.id, competitionStaff.baseId))
-    .where(eq(competitionStaff.personId, personId));
+  const db = getDb();
+  const [staff, support] = await Promise.all([
+    db
+      .select({
+        competition: competition.name,
+        role: competitionStaff.role,
+        base: competitionBase.name,
+        createdAt: competitionStaff.createdAt,
+      })
+      .from(competitionStaff)
+      .innerJoin(competition, eq(competition.id, competitionStaff.competitionId))
+      .leftJoin(competitionBase, eq(competitionBase.id, competitionStaff.baseId))
+      .where(eq(competitionStaff.personId, personId)),
+    db
+      .select({
+        competition: competition.name,
+        role: competitionSupport.role,
+        base: competitionBase.name,
+        createdAt: competitionSupport.createdAt,
+      })
+      .from(competitionSupport)
+      .innerJoin(competition, eq(competition.id, competitionSupport.competitionId))
+      .innerJoin(competitionBase, eq(competitionBase.id, competitionSupport.baseId))
+      .where(eq(competitionSupport.personId, personId)),
+  ]);
+  return [...staff, ...support];
 }
 
 // --- Rotaciones y enfrentamientos ----------------------------------------------------------------
@@ -718,6 +760,7 @@ export async function judgeView(competitionId: string, personId: string) {
   const bases = baseIds.length
     ? await db.select().from(competitionBase).where(inArray(competitionBase.id, baseIds))
     : [];
+  const crew = await baseCrew(baseIds);
   const { current, next } = await getLiveRotations(competitionId);
   const mine = (rotation: RotationView | null) =>
     rotation ? rotation.matchups.filter((matchup) => baseIds.includes(matchup.base.id)) : [];
@@ -733,7 +776,36 @@ export async function judgeView(competitionId: string, personId: string) {
         })),
       )
     : new Map();
-  return { bases, current, next, currentMatchups, nextMatchups: mine(next), powers };
+  return { bases, current, next, currentMatchups, nextMatchups: mine(next), powers, crew };
+}
+
+export interface BaseCrew {
+  GRADER: string[];
+  OVERSEER: string[];
+  VAR: string[];
+}
+
+/** El apoyo de unas bases, solo con nombres, para la pantalla del líder (ADR-101). Las bases salen
+ *  de las filas de juez de quien mira: el apoyo nunca decide qué se ve. */
+async function baseCrew(baseIds: string[]): Promise<Map<string, BaseCrew>> {
+  if (baseIds.length === 0) return new Map();
+  const rows = await getDb()
+    .select({
+      baseId: competitionSupport.baseId,
+      personId: competitionSupport.personId,
+      role: competitionSupport.role,
+    })
+    .from(competitionSupport)
+    .where(inArray(competitionSupport.baseId, baseIds))
+    .orderBy(asc(competitionSupport.createdAt));
+  const people = await getPeopleByIds(rows.map((row) => row.personId));
+  const crew = new Map<string, BaseCrew>();
+  for (const row of rows) {
+    const entry = crew.get(row.baseId) ?? { GRADER: [], OVERSEER: [], VAR: [] };
+    entry[row.role].push(people.get(row.personId)?.fullName ?? "");
+    crew.set(row.baseId, entry);
+  }
+  return crew;
 }
 
 // --- Apuestas ------------------------------------------------------------------------------------

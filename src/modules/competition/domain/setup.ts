@@ -19,6 +19,7 @@ import {
   competitionPointEntry,
   competitionPowerUse,
   competitionStaff,
+  competitionSupport,
   competitionTeam,
   competitionTeamCaptain,
 } from "../schema";
@@ -553,6 +554,35 @@ export async function removeStaff(
     action: "competition.staff.remove",
     entityType: "competition_staff",
     entityId: staffId,
+    before,
+  });
+}
+
+/** Quita a alguien del apoyo de una base (ADR-101). Lo hace cualquier operador: el apoyo no da
+ *  acceso a nada. */
+export async function removeSupport(
+  ctx: CommandContext,
+  actor: CompetitionActor,
+  competitionId: string,
+  supportId: string,
+): Promise<void> {
+  await openCompetition(ctx, actor, competitionId);
+  const [before] = await ctx.tx
+    .select()
+    .from(competitionSupport)
+    .where(
+      and(
+        eq(competitionSupport.id, supportId),
+        eq(competitionSupport.competitionId, competitionId),
+      ),
+    )
+    .limit(1);
+  if (!before) throw new DomainError(t("T-2764"));
+  await ctx.tx.delete(competitionSupport).where(eq(competitionSupport.id, supportId));
+  await ctx.audit({
+    action: "competition.support.remove",
+    entityType: "competition_support",
+    entityId: supportId,
     before,
   });
 }
