@@ -1,5 +1,5 @@
 import { type Actor, runCommand } from "@/db/tx";
-import { findMembersByEmails, listActiveMemberRefs } from "@/modules/people";
+import { findMembersByEmails, listMemberRefsByStatus } from "@/modules/people";
 import type { CompetitionActor } from "./access";
 import {
   clearCaptains,
@@ -93,7 +93,7 @@ import {
   importStaffSheet,
   staffSheetEmails,
 } from "./staff-import";
-import type { StaffDirectory } from "./staff-import-pure";
+import { type StaffDirectory, SUPPORT_STATUSES } from "./staff-import-pure";
 
 // Comandos de The Games (ADR-089, ADR-091): cada uno corre en runCommand con auditoría e IP. Quién
 // puede llamarlos lo decide src/app, y el dominio lo relee dentro de la transacción (ADR-072).
@@ -154,13 +154,13 @@ export async function importStaffSheetAs(
   input: ImportStaffInput,
 ): Promise<ImportStaffResult> {
   const [members, byEmail] = await Promise.all([
-    listActiveMemberRefs(true),
+    listMemberRefsByStatus(SUPPORT_STATUSES),
     findMembersByEmails(staffSheetEmails(typeof input.text === "string" ? input.text : "")),
   ]);
   const directory: StaffDirectory = {
     members: members
       .filter((member) => !member.anonymized)
-      .map((member) => ({ id: member.personId, fullName: member.fullName })),
+      .map((member) => ({ id: member.personId, fullName: member.fullName, status: member.status })),
     byEmail,
   };
   return runCommand(actor, (ctx) => importStaffSheet(ctx, actor, id, input, directory));

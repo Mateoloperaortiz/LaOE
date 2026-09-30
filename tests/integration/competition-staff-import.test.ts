@@ -29,6 +29,7 @@ import {
 import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
 import { addMacroeventDirector } from "@/modules/people/domain/appointments";
+import { membership } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
@@ -375,6 +376,30 @@ describe("personal desde la hoja del GAP", () => {
     ).rejects.toThrow(t("T-2764"));
     expect(await points()).toBe(1000);
     await recordResultAs(member(people.nico), id, { matchupId: matchup.id, outcome: "DRAW" });
+  });
+
+  it("el apoyo puede estar en licencia, sin acceso; un líder en licencia no pasa", async () => {
+    const { id, adminId, people } = await seedGames();
+    await getDb()
+      .update(membership)
+      .set({ status: "ON_LEAVE" })
+      .where(eq(membership.personId, people.sara));
+    // Sara, en licencia, es veedora de la base 1: se guarda y no gana ningún acceso.
+    await load(admin(adminId), id, 1, THURSDAY);
+    expect((await listSupport(id)).find((row) => row.personId === people.sara)?.role).toBe(
+      "OVERSEER",
+    );
+    expect(await listMyCompetitionRoles(member(people.sara))).toEqual([]);
+
+    // Como líder no: tiene que poder entrar a registrar.
+    const asLeader = THURSDAY.replace(
+      "TOMÁS PRUEBA\t2\tLIDER DE BASE ",
+      "SARA ENSAYO SANCHEZ\t2\tLIDER",
+    ).replace("SARA ENSAYO SANCHEZ\t\tVEEDORES\n", "");
+    const result = await importStaffSheetAs(admin(adminId), id, { day: 1, text: asLeader });
+    expect(result.saved).toBe(false);
+    expect(result.errors).toEqual([t("T-3162", { linea: 4, nombre: "Sara Ensayo Sánchez" })]);
+    expect((await listStaff(id)).some((row) => row.personId === people.sara)).toBe(false);
   });
 
   it("Mis datos incluye el apoyo, y cualquier operador quita a alguien del apoyo", async () => {
