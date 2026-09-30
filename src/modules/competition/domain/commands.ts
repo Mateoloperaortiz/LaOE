@@ -1,4 +1,5 @@
 import { type Actor, runCommand } from "@/db/tx";
+import { findMembersByEmails, listActiveMemberRefs } from "@/modules/people";
 import type { CompetitionActor } from "./access";
 import {
   clearCaptains,
@@ -73,6 +74,7 @@ import {
   issueTeamCodes,
   type RubricScoresInput,
   removeStaff,
+  removeSupport,
   type StaffInput,
   saveBase,
   setAnnouncementActive,
@@ -85,6 +87,13 @@ import {
   updateCompetitionSettings,
   updateTeam,
 } from "./setup";
+import {
+  type ImportStaffInput,
+  type ImportStaffResult,
+  importStaffSheet,
+  staffSheetEmails,
+} from "./staff-import";
+import type { StaffDirectory } from "./staff-import-pure";
 
 // Comandos de The Games (ADR-089, ADR-091): cada uno corre en runCommand con auditoría e IP. Quién
 // puede llamarlos lo decide src/app, y el dominio lo relee dentro de la transacción (ADR-072).
@@ -134,6 +143,28 @@ export const assignStaffAs = (actor: A, id: string, input: StaffInput) =>
   runCommand(actor, (ctx) => assignStaff(ctx, actor, id, input));
 export const removeStaffAs = (actor: A, id: string, staffId: string) =>
   runCommand(actor, (ctx) => removeStaff(ctx, actor, id, staffId));
+export const removeSupportAs = (actor: A, id: string, supportId: string) =>
+  runCommand(actor, (ctx) => removeSupport(ctx, actor, id, supportId));
+
+/** Revisa o guarda el personal de una jornada desde la hoja del GAP (ADR-101). Los miembros que
+ *  pueden quedar se leen antes de la transacción; dentro, el dominio relee la membresía de quien entra. */
+export async function importStaffSheetAs(
+  actor: A,
+  id: string,
+  input: ImportStaffInput,
+): Promise<ImportStaffResult> {
+  const [members, byEmail] = await Promise.all([
+    listActiveMemberRefs(true),
+    findMembersByEmails(staffSheetEmails(typeof input.text === "string" ? input.text : "")),
+  ]);
+  const directory: StaffDirectory = {
+    members: members
+      .filter((member) => !member.anonymized)
+      .map((member) => ({ id: member.personId, fullName: member.fullName })),
+    byEmail,
+  };
+  return runCommand(actor, (ctx) => importStaffSheet(ctx, actor, id, input, directory));
+}
 
 export const createAnnouncementAs = (actor: A, id: string, input: AnnouncementInput) =>
   runCommand(actor, (ctx) => createAnnouncement(ctx, actor, id, input));

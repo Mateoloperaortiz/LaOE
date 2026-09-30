@@ -20,8 +20,8 @@ import type { PowerDetail } from "./domain/powers-pure";
 
 // The Games, la competencia por equipos de Días EAFIT (ADR-089), sus apuestas (ADR-091) y sus poderes
 // (ADR-098). Los capitanes no son usuarios: de ellos se guarda solo el nombre y el celular (ADR-095),
-// que se borran al archivar la competencia. Las demás personas son el personal asignado y quien firma
-// cada escritura. Los puntos de aquí no son GH Points y no tocan `point_entry`.
+// que se borran al archivar la competencia. Las demás personas son el personal asignado, el apoyo de
+// cada base (ADR-101) y quien firma cada escritura. Los puntos de aquí no son GH Points y no tocan `point_entry`.
 
 export const competitionStatus = pgEnum("competition_status", [
   "DRAFT",
@@ -32,6 +32,11 @@ export const competitionStatus = pgEnum("competition_status", [
 export const competitionTeamStatus = pgEnum("competition_team_status", ["ACTIVE", "WITHDRAWN"]);
 export const competitionBaseKind = pgEnum("competition_base_kind", ["NORMAL", "MACRO"]);
 export const competitionStaffRole = pgEnum("competition_staff_role", ["OPERATOR", "JUDGE"]);
+export const competitionSupportRole = pgEnum("competition_support_role", [
+  "GRADER",
+  "OVERSEER",
+  "VAR",
+]);
 export const competitionRotationStatus = pgEnum("competition_rotation_status", [
   "PENDING",
   "ACTIVE",
@@ -241,6 +246,31 @@ export const competitionStaff = pgTable(
       "competition_staff_judge_base",
       sql`(${t.role}::text = 'JUDGE') = (${t.baseId} is not null)`,
     ),
+  ],
+);
+
+/** El apoyo de una base: calificador, veedores y VAR, desde la hoja del GAP (ADR-101). No da ningún
+ *  acceso: el acceso a la competencia sale solo de `competition_staff`. */
+export const competitionSupport = pgTable(
+  "competition_support",
+  {
+    id: id(),
+    competitionId: text()
+      .notNull()
+      .references(() => competition.id, { onDelete: "cascade" }),
+    baseId: text()
+      .notNull()
+      .references(() => competitionBase.id, { onDelete: "cascade" }),
+    personId: text()
+      .notNull()
+      .references(() => person.id, { onDelete: "cascade" }),
+    role: competitionSupportRole().notNull(),
+    createdById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("competition_support_base_person_unique").on(t.baseId, t.personId),
+    index("competition_support_person_idx").on(t.personId),
   ],
 );
 

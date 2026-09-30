@@ -18,10 +18,12 @@ import { runReminders } from "@/modules/participation";
 import { membership } from "@/modules/people/schema";
 import { runNotices } from "@/modules/permanence";
 import { outbox } from "@/modules/system/schema";
+import { conventionalTermDates } from "@/modules/terms";
 import type { MailMessage, MailTransport } from "@/shared/adapters/mail";
 import { tList } from "@/shared/copy";
 import { truncateAll } from "./db";
 import {
+  currentTermCode,
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
@@ -131,7 +133,10 @@ describe("recordatorios de participación", () => {
     const termId = await seedTerm();
     const activa = await seedMember("activa@eafit.edu.co");
     await seedCommitteeMembership(activa, await seedCommittee("e2e-a3", "A3"), termId);
-    const result = await runNotices();
+    // Un mes después del inicio del término: antes de la mitad, cuando empieza el aviso MID_TERM.
+    const now = new Date(`${conventionalTermDates(currentTermCode()).startsOn}T17:00:00Z`);
+    now.setUTCDate(now.getUTCDate() + 30);
+    const result = await runNotices(now);
     expect(result.people).toBe(1);
     expect(result.enqueued).toBe(0);
   });

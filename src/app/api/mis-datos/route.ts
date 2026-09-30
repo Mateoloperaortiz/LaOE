@@ -104,7 +104,8 @@ export async function GET(request: Request) {
     // Sudoku (ADR-078): dificultad, modo, estado y puntos; sin semilla, dadas ni solución.
     sudokuRuns,
     panalGames,
-    // The Games (ADR-089): dónde está asignada la persona como operadora o jueza.
+    // The Games (ADR-089, ADR-101): dónde está asignada la persona como operadora, líder de base
+    // (jueza) o apoyo de una base (calificadora, veedora o VAR).
     competitionStaff,
     // Gamificación (ADR-067): entregas sin `requestId` ni la posición correcta de la trivia;
     // archivos sin `objectKey` (dirección interna del bucket); premios y logros de la colección.

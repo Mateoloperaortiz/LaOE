@@ -9,7 +9,8 @@ import { JudgeMatchup } from "../_ui/Judge";
 
 // Pantalla del juez (ADR-089 regla 10): primero celular. Su base, el enfrentamiento de la rotación en
 // curso y tres botones grandes. Antes de empezar, registra las tarjetas de poder que le entregan y
-// empieza la base (ADR-098). Se actualiza sola cada pocos segundos con la pestaña visible.
+// empieza la base (ADR-098). Arriba ve quién lo acompaña en la base (ADR-101). Se actualiza sola cada
+// pocos segundos con la pestaña visible.
 
 export async function generateMetadata() {
   return { title: t("T-2882") };
@@ -27,6 +28,7 @@ export default async function JudgePage({
   const serverNow = new Date().toISOString();
   const [quedan, cumplido] = tList("T-2881");
   const kinds = tList("T-2824");
+  const crewLabels = tList("T-3155");
   const saved = single(search.guardado);
   const notice = single(search.aviso);
   const error = single(search.error);
@@ -46,6 +48,26 @@ export default async function JudgePage({
         </p>
         <p className="text-sm text-tinta-suave">{t("T-2880")}</p>
       </header>
+      {view.bases.map((base) => {
+        const crew = view.crew.get(base.id);
+        if (!crew) return null;
+        const parts = (
+          [
+            [crewLabels[1], crew.GRADER],
+            [crewLabels[2], crew.OVERSEER],
+            [crewLabels[3], crew.VAR],
+          ] as const
+        ).flatMap(([label, names]) => (names.length > 0 ? [`${label}: ${names.join(", ")}`] : []));
+        return (
+          <section
+            key={base.id}
+            className="flex flex-col gap-1 rounded-xl border border-borde px-4 py-3"
+          >
+            <h2 className="font-semibold">{t("T-3161", { base: base.name })}</h2>
+            <p className="text-sm">{parts.join(" · ")}</p>
+          </section>
+        );
+      })}
       {saved ? (
         <output className="block rounded-xl bg-oe-yellow-soft px-4 py-3 font-semibold text-oe-navy">
           {t("T-2879", { resultado: saved })}

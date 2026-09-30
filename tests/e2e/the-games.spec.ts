@@ -14,6 +14,7 @@ import {
   generateDayScheduleAs,
   grantStartingCreditsAs,
   importPowerGrantsAs,
+  importStaffSheetAs,
   issueTeamCodesAs,
   saveBaseAs,
   setCompetitionStatusAs,
@@ -22,16 +23,18 @@ import {
 } from "@/modules/competition";
 import { dayOneRounds } from "@/modules/competition/domain/schedule-pure";
 import { event, eventEdition } from "@/modules/events/schema";
-import { person } from "@/modules/people/schema";
+import { membership, person } from "@/modules/people/schema";
+import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
-import { withinTermInput } from "./calendar";
+import { E2E_TERM, withinTermInput } from "./calendar";
 import { test } from "./fixtures";
 import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
 
 // The Games (ADR-089, ADR-090): el operador genera la jornada, avanza y registra un resultado; el juez
 // registra desde el celular en su base; la vitrina sale con CORS y sin datos personales. Con poderes
-// (ADR-098), el líder registra las tarjetas, empieza la base y ve el resultado oficial.
+// (ADR-098), el líder registra las tarjetas, empieza la base y ve el resultado oficial. El personal de
+// cada base sale de la hoja del GAP (ADR-101), con nombres sintéticos.
 
 async function personId(email: string): Promise<string> {
   const [row] = await getDb().select({ id: person.id }).from(person).where(eq(person.email, email));
@@ -484,5 +487,96 @@ test.describe("hub de capitanes", () => {
     const out = await request.delete(`${hub}/sesion`, { headers: { origin } });
     expect(out.status()).toBe(200);
     expect((await request.get(hub, { headers: { origin } })).status()).toBe(401);
+  });
+});
+
+/** Un miembro activo sintético para la hoja del GAP; el escenario restaura la base al terminar. */
+async function seedHelper(email: string, firstName: string, lastName: string): Promise<void> {
+  const db = getDb();
+  const [current] = await db.select({ id: term.id }).from(term).where(eq(term.code, E2E_TERM.code));
+  const [row] = await db
+    .insert(person)
+    .values({ email, firstName, lastName, stage: "MEMBER", source: "E2E" })
+    .returning({ id: person.id });
+  if (!current || !row) throw new Error("No se creó el miembro sintético");
+  await db
+    .insert(membership)
+    .values({ personId: row.id, status: "ACTIVE", firstTermId: current.id });
+}
+
+test.describe("personal desde la hoja del GAP", () => {
+  test.describe("operación", () => {
+    test.use({ storageState: "tests/e2e/.auth/admin.json" });
+
+    test("revisa la hoja, corrige una línea, guarda y ve cada base con su gente", async ({
+      page,
+    }) => {
+      const { id } = await seedCompetition("the-games-personal");
+      await seedHelper("calificadora.personal@eafit.edu.co", "Calificadora", "Personal Sintética");
+      await seedHelper("veedor.personal@eafit.edu.co", "Veedor", "Personal Sintético");
+
+      await page.goto(`/admin/the-games/${id}?area=personal`);
+      await page.getByText(t("T-3124"), { exact: true }).click();
+      const sheet = page.getByLabel(t("T-3126"));
+      const lines = [
+        "PERSONA\tBASE\tFUNCION",
+        "MIEMBRO E2E\t1\tLIDER DE BASE",
+        "CALIFICADORA PERSONAL\t\tCALIFICADOR",
+      ];
+      await sheet.fill([...lines, "XQZ WVK\t\tVEEDORES"].join("\n"));
+      await page.getByRole("button", { name: t("T-3128") }).click();
+      const missing = t("T-3147", { linea: 4, nombre: "XQZ WVK" }).split(" entre")[0] ?? "";
+      await expect(page.getByText(missing)).toBeVisible();
+      await sinViolaciones(page);
+
+      await sheet.fill([...lines, "VEEDOR PERSONAL SINTETICO\t\tVEEDORES"].join("\n"));
+      await page.getByRole("button", { name: t("T-3128") }).click();
+      await expect(
+        page.getByText(
+          t("T-3133", {
+            linea: 3,
+            hoja: "CALIFICADORA PERSONAL",
+            nombre: "Calificadora Personal Sintética",
+          }),
+        ),
+      ).toBeVisible();
+      await sinViolaciones(page);
+      await page.getByRole("button", { name: t("T-3129", { dia: "jueves" }) }).click();
+      await expect(
+        page.getByText(t("T-3139", { dia: "jueves", lideres: 1, apoyo: 2, bases: 1 })),
+      ).toBeVisible();
+      const base = page.getByRole("listitem").filter({ hasText: "Base sintética 1" });
+      await expect(base.getByText("Miembro E2E", { exact: true })).toBeVisible();
+      await expect(
+        base.getByText("Calificadora Personal Sintética", { exact: true }),
+      ).toBeVisible();
+      await expect(base.getByText("Veedor Personal Sintético", { exact: true })).toBeVisible();
+      await sinViolaciones(page);
+    });
+  });
+
+  test.describe("líder de base", () => {
+    test.use({
+      storageState: "tests/e2e/.auth/member.json",
+      viewport: { width: 390, height: 844 },
+    });
+
+    test("ve con quién está en su base", async ({ page }) => {
+      const { id, admin } = await seedCompetition("the-games-equipo");
+      await seedHelper("calificadora.equipo@eafit.edu.co", "Calificadora", "Equipo Sintética");
+      const text = "MIEMBRO E2E\t1\tLIDER DE BASE\nCALIFICADORA EQUIPO SINTETICA\t\tCALIFICADOR";
+      const preview = await importStaffSheetAs(admin, id, { day: 1, text });
+      await importStaffSheetAs(admin, id, { day: 1, text, fingerprint: preview.fingerprint });
+
+      await page.goto("/admin");
+      await expect(page).toHaveURL(new RegExp(`/admin/the-games/${id}/juez`));
+      await expect(
+        page.getByRole("heading", { name: t("T-3161", { base: "Base sintética 1" }) }),
+      ).toBeVisible();
+      await expect(
+        page.getByText(`${tList("T-3155")[1]}: Calificadora Equipo Sintética`),
+      ).toBeVisible();
+      await sinViolaciones(page);
+    });
   });
 });

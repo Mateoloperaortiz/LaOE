@@ -774,7 +774,7 @@ Sin migraciones: el pre-deploy registró «migraciones aplicadas y esquema verif
 
 Una cosa para la próxima: **cuando un E2E inestable deja el gate en rojo, el orden importa.** Borrar primero el artefacto `ci-e2e-N` del intento fallido (`gh api -X DELETE .../actions/artifacts/<id>`) y después `gh run rerun <id> --failed` deja una sola copia del artefacto, y el gate, que corre al final del relanzamiento, sale en verde sin relanzarlo aparte. Así se destrabó el primer intento del PR 62.
 
-## The Games · preparación y operación (ADR-089 a ADR-091 y ADR-095 a ADR-100)
+## The Games · preparación y operación (ADR-089 a ADR-091 y ADR-095 a ADR-101)
 
 Ensayo sintético (desarrollo y staging, nunca producción):
 
@@ -806,13 +806,14 @@ Antes de promover:
 2. La migración `0040_the_games` es aditiva: solo crea tablas. `db:release` la aplica y verifica sus índices. La `0041_the_games_capitanes` también: crea `competition_team_captain` y la columna `show_captains`, apagada.
 3. Smoke manual: `GET /api/v1/the-games/__smoke__` responde 404 en JSON con `Access-Control-Allow-Origin: https://dias.oeeafit.com`.
 4. La migración `0042_the_games_poderes` es aditiva: crea las tablas de poderes y cuatro columnas que admiten nulos (el inicio de cada base y el resultado oficial). Antes de promoverla en pleno evento, confirmar en Resultados qué enfrentamientos ya tienen resultado: los que no tienen poderes no cambian.
+5. La migración `0044_the_games_personal_gap` es aditiva: crea el enum y la tabla del apoyo de las bases (ADR-101). Se puede promover en pleno evento.
 
 En producción, sin código:
 
 1. Crear la edición de Días EAFIT 2026 en `/admin/eventos` y registrar la Dirección de The Games en su mesa (`/admin/macroeventos/dias-eafit`).
 2. Crear el formulario público de inscripción en `/admin/formularios`: audiencia pública, consentimiento, acción `createPerson=false`, sin embudo ni edición, con un campo de clave `equipo`. En 2026 no hace falta: los capitanes salen de la hoja de inscripción de la OE (paso 7).
 3. En `/admin/the-games`, ADMIN crea la competencia (`the-games-2026`, en borrador) y la de ensayo. En Resumen se liga el formulario, se fijan los 1000 puntos iniciales de apuestas y se encienden las apuestas cuando la OE lo pida.
-4. Equipos (desde las inscripciones, o desde la hoja de rotaciones en el paso 6), bases por jornada (las de inflables, macro) y personal (operadores y jueces del roster).
+4. Equipos (desde las inscripciones, o desde la hoja de rotaciones en el paso 6), bases por jornada (las de inflables, macro) y personal: los operadores de a uno, y los líderes y el apoyo de cada base desde la hoja del GAP (ver «Personal desde la hoja del GAP»).
 5. Emitir los códigos e imprimir las tarjetas antes de salir de la pantalla: no se vuelven a mostrar. Cada tarjeta trae la dirección del hub de capitanes (`dias.oeeafit.com/capitanes`, ADR-096) y se entrega en mano a los capitanes del equipo.
 6. Cargar el calendario de cada jornada con la duración que dé la OE. El validador debe decir que no hay errores.
    - Si la OE entrega su hoja de rotaciones, como la del jueves 2026-10-01, se importa (ADR-094). En Rotaciones, «Importar la jornada N desde la hoja»: en la hoja «Equipo-Rotacion-Base» se seleccionan las columnas A a D, se copian y se pegan. Si la competencia todavía no tiene equipos, los crea en el orden de la hoja. Si faltan las bases de esa jornada, las crea como «Base 1» a «Base 15»; después, en Bases, se les pone nombre y se marcan como macro las de inflables. Si la hoja tiene errores, no se guarda nada y la pantalla dice en qué línea están.
@@ -836,6 +837,34 @@ The Challenge y Macro reto (ADR-100):
 - **Macro reto (dos veces al día, los dos días):** en Extras se crean cuatro de puntos directos: «Macro reto 1» y «Macro reto 2» en la jornada 1, y «Macro reto 3» y «Macro reto 4» en la jornada 2. Se pueden crear antes del evento, porque sin puntos no mueven la tabla. Al terminar cada uno, se fija 2000 al ganador en su extra. No son las bases macro (inflables), y los poderes no valen en ellos.
 - **La rúbrica no se usa en `the-games-2026`.** Si existe una extra con rúbrica, no se le cargan notas: cada equipo sumaría hasta 1000.
 - **Corregir:** si hay un error, se fija el total correcto. La casa inserta solo la diferencia.
+
+Personal desde la hoja del GAP (ADR-101):
+
+- **Dónde.** Solo en `the-games-2026`, nunca en `ensayo-2026`: los líderes quedarían como jueces del ensayo. El ensayo se prueba con miembros sintéticos.
+- **Cargar.** ADMIN o la Dirección, en Personal, «Cargar el personal desde la hoja del GAP»:
+  1. Elegir la jornada.
+  2. En la hoja «GAP JUEVES» (o «GAP VIERNES»), seleccionar las columnas A a C, desde el encabezado hasta la última persona, copiar y pegar.
+  3. Tocar «Revisar».
+  - La base va en la fila del líder y vale para las de abajo.
+  - El viernes vale la numeración de la hoja, del 16 al 30.
+  - Se saltan el encabezado, las filas vacías y la de totales.
+- **Corregir los errores.** Cada error dice su línea, y no se guarda nada hasta que no quede ninguno.
+  - **Nombre que no aparece o que puede ser varias personas:** se reemplaza en lo pegado por el nombre como está en la casa (la pantalla sugiere hasta tres) o por el correo institucional, y se vuelve a revisar.
+  - **Persona que no es miembro activo ni honorario:** se quita su fila. Esa persona no puede ser jueza ni apoyo.
+- **Revisar.** Antes de guardar hay que mirar cuatro cosas:
+  - los nombres parciales («hoja → casa»);
+  - que cada base tenga su líder;
+  - quiénes salen;
+  - los avisos.
+
+  Después, «Guardar el personal del jueves». Guardar reemplaza a los líderes y al apoyo de esa jornada. Los operadores y la otra jornada no cambian. Si algo cambió desde la revisión, la pantalla muestra la nueva y hay que guardar otra vez.
+- **Activar a los líderes antes de las rotaciones.** Personal marca «Sin contraseña» a los líderes que todavía no pueden entrar. Esos pasan por la jornada de activación (`/admin/personas/activacion`, un QR por persona, en persona). Cada líder entra una vez y comprueba que `/admin` lo lleva a su pantalla, con su base y con quién está.
+- **Cambios durante el evento.**
+  - Se corrige la hoja y se vuelve a cargar la jornada, o se asigna un juez de a uno.
+  - Quien sale de una base deja de registrar ahí, pero sus resultados y poderes quedan.
+  - A alguien del apoyo lo quita cualquier operador con «Quitar».
+- **El texto pegado** no se guarda en ningún lado. No se deja la hoja en un repositorio ni en una carpeta compartida.
+- **Después del evento:** sumar al personal al GAP de Días EAFIT, con el área The Games (ADR-101, regla 10). La evaluación la hace GH.
 
 Poderes (ADR-098):
 

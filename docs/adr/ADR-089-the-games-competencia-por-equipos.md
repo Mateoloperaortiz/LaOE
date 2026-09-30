@@ -1,6 +1,6 @@
 # ADR-089: The Games: competencia por equipos de Días EAFIT
 
-- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098 y ADR-100); implementación en curso
+- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098, ADR-100 y ADR-101); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-002, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014, ADR-020, ADR-036, ADR-047, ADR-058, ADR-064, ADR-072, ADR-075, ADR-082, ADR-085, ADR-090, ADR-091
 - Enmienda: ADR-011 (el cargo de Dirección de The Games habilita, por datos, la operación de la competencia de su edición), ADR-064 (esa entrega no ampliaba permisos por cargo: este lo hace, con alcance cerrado)
@@ -105,3 +105,7 @@ Ver [ADR-098](ADR-098-poderes-de-the-games.md).
 ## Enmienda (2026-09-29, ADR-100)
 
 Regla 7: The Challenge ya no suma por rúbrica. La OE confirmó el 2026-09-29 que da puntos por puesto: 2000 al primero, 1000 al segundo y 500 al tercero. El Macro reto es otra competencia entre todos los equipos y se juega dos veces en cada jornada; cada uno tiene un solo ganador, que suma 2000. Se registran como competencias extra de puntos directos, en la jornada en que se juegan. La rúbrica sigue en el código, pero no se usa en `the-games-2026`. Ver [ADR-100](ADR-100-puntos-de-the-challenge-y-del-macro-reto.md).
+
+## Enmienda (2026-09-29, ADR-101)
+
+Regla 10: el personal de cada jornada también se carga desde la hoja del GAP de la OE. ADMIN o la Dirección pegan las columnas Persona, Base y Función; cada líder de base queda como `JUDGE` de su base, y el calificador, los veedores y el VAR quedan como apoyo de la base en `competition_support`, que no da ningún acceso. La carga reemplaza solo los jueces y el apoyo de esa jornada; los operadores no cambian. Ver [ADR-101](ADR-101-personal-de-the-games-desde-la-hoja-del-gap.md).
