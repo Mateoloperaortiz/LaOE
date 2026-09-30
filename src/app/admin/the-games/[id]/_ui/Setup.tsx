@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   type BaseRow,
   type CaptainRow,
@@ -6,18 +7,20 @@ import {
   hubAddress,
   type RegistrationCandidate,
   type StaffRow,
+  type SupportRow,
   type TeamRow,
 } from "@/modules/competition";
 import { ImportarCapitanes } from "@/modules/competition/components/ImportarCapitanes";
+import { ImportarPersonal } from "@/modules/competition/components/ImportarPersonal";
 import { TarjetasCodigo } from "@/modules/competition/components/TarjetasCodigo";
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
-import { importCaptainsAction, issueCodesAction } from "../actions";
+import { importCaptainsAction, importStaffAction, issueCodesAction } from "../actions";
 import { OperationForm, type PanelContext, Section, Submit, TeamChip } from "./shared";
 
 // Preparación de The Games (ADR-089): ajustes y estado, equipos con sus códigos y capitanes, bases por
-// jornada y personal. De la inscripción solo se ve el nombre del equipo. De los capitanes, la
+// jornada y personal, con los líderes y el apoyo de cada base desde la hoja del GAP (ADR-101). De la inscripción solo se ve el nombre del equipo. De los capitanes, la
 // operación ve el nombre y el celular; cargarlos, publicarlos y borrarlos es de ADMIN (ADR-095).
 
 /** El celular como se lee en voz alta: 300 123 4567. */
@@ -498,49 +501,209 @@ export function Bases({ context, bases }: { context: PanelContext; bases: BaseRo
   );
 }
 
+/** Una persona del personal con su botón para quitarla; el nombre va en el botón para el lector de
+ *  pantalla. */
+function PersonaQuitable({
+  context,
+  name,
+  operation,
+  hidden,
+  badge,
+}: {
+  context: PanelContext;
+  name: string;
+  operation: "remove-staff" | "remove-support";
+  hidden: Record<string, string>;
+  badge?: string | null;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-2">
+      <span>{name}</span>
+      {badge ? (
+        <span className="rounded-full bg-oe-yellow-soft px-2 py-0.5 text-xs font-semibold text-oe-navy">
+          {badge}
+        </span>
+      ) : null}
+      <OperationForm context={context} operation={operation} hidden={hidden}>
+        <Submit>
+          <span aria-hidden="true">{t("T-2830")}</span>
+          <span className="sr-only">{t("T-3158", { nombre: name })}</span>
+        </Submit>
+      </OperationForm>
+    </li>
+  );
+}
+
 export function Personal({
   context,
   staff,
+  support,
   bases,
   members,
+  canImport,
+  isAdmin,
+  withPassword,
 }: {
   context: PanelContext;
   staff: StaffRow[];
+  support: SupportRow[];
   bases: BaseRow[];
   members: Array<{ personId: string; fullName: string }>;
+  /** ADMIN o la Dirección cargan la hoja del GAP (ADR-101). */
+  canImport: boolean;
+  isAdmin: boolean;
+  /** Los líderes que ya eligieron contraseña. */
+  withPassword: ReadonlySet<string>;
 }) {
   const [operador, juez] = tList("T-2827");
   const [persona, rol, base] = tList("T-2829");
+  const [lider, calificador, veedores, vars] = tList("T-3155");
+  const days = tList("T-3048");
   const baseLabel = (id: string | null) => {
     const found = bases.find((item) => item.id === id);
     return found ? `${t("T-2825", { dia: found.day })} · ${found.name}` : "";
   };
+  const operators = staff.filter((row) => row.role === "OPERATOR");
+  const hasPeople = staff.length > 0 || support.length > 0;
   return (
     <Section title={tList("T-2805")[3] ?? ""}>
-      {staff.length === 0 ? (
-        <p className="text-tinta-suave">{t("T-2887")}</p>
-      ) : (
-        <ul className="m-0 flex list-none flex-col divide-y divide-borde p-0">
-          {staff.map((row) => (
-            <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-              <span>
-                <span className="font-semibold">{row.fullName}</span>
-                <span className="text-tinta-suave">
-                  {" · "}
-                  {row.role === "OPERATOR" ? operador : `${juez} · ${baseLabel(row.baseId)}`}
-                </span>
-              </span>
-              <OperationForm
+      {canImport ? (
+        <ImportarPersonal
+          competitionId={context.competitionId}
+          action={importStaffAction}
+          labels={{
+            title: t("T-3124"),
+            help: t("T-3125"),
+            sheet: t("T-3126"),
+            day: t("T-3127"),
+            days,
+            review: t("T-3128"),
+            pending: t("T-3020"),
+            blocked: t("T-2924"),
+            more: t("T-2922"),
+            partial: t("T-3132"),
+            removals: t("T-3134"),
+          }}
+        />
+      ) : null}
+      {hasPeople ? null : <p className="text-tinta-suave">{t("T-2887")}</p>}
+      {operators.length > 0 ? (
+        <section className="flex flex-col gap-2">
+          <h3 className="font-semibold">{t("T-3154")}</h3>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">
+            {operators.map((row) => (
+              <PersonaQuitable
+                key={row.id}
                 context={context}
+                name={row.fullName}
                 operation="remove-staff"
                 hidden={{ staffId: row.id }}
-              >
-                <Submit>{t("T-2830")}</Submit>
-              </OperationForm>
-            </li>
-          ))}
-        </ul>
-      )}
+              />
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {([1, 2] as const).map((day) => {
+        const dayBases = bases.filter((item) => item.day === day);
+        const ids = new Set(dayBases.map((item) => item.id));
+        const leaders = staff.filter(
+          (row) => row.role === "JUDGE" && row.baseId !== null && ids.has(row.baseId),
+        );
+        const helpers = support.filter((row) => ids.has(row.baseId));
+        if (dayBases.length === 0 || (leaders.length === 0 && helpers.length === 0)) return null;
+        const withoutPassword = new Set(
+          leaders.filter((row) => !withPassword.has(row.personId)).map((row) => row.personId),
+        ).size;
+        return (
+          <section key={day} className="flex flex-col gap-3">
+            <h3 className="font-semibold">
+              {t("T-2825", { dia: day })} · {days[day - 1]}
+            </h3>
+            <p className="text-sm text-tinta-suave">
+              {t("T-3160", {
+                lideres: leaders.length,
+                sinClave: withoutPassword,
+                apoyo: helpers.length,
+              })}
+              {isAdmin && withoutPassword > 0 ? (
+                <>
+                  {" · "}
+                  <Link href="/admin/personas/activacion" className="underline">
+                    {t("T-3157")}
+                  </Link>
+                </>
+              ) : null}
+            </p>
+            <ol className="m-0 flex list-none flex-col divide-y divide-borde p-0">
+              {dayBases.map((item) => {
+                const roles: Array<{ label: string; people: ReactNode[] }> = [
+                  {
+                    label: lider ?? "",
+                    people: leaders
+                      .filter((row) => row.baseId === item.id)
+                      .map((row) => (
+                        <PersonaQuitable
+                          key={row.id}
+                          context={context}
+                          name={row.fullName}
+                          operation="remove-staff"
+                          hidden={{ staffId: row.id }}
+                          badge={withPassword.has(row.personId) ? null : t("T-3156")}
+                        />
+                      )),
+                  },
+                  ...(
+                    [
+                      ["GRADER", calificador],
+                      ["OVERSEER", veedores],
+                      ["VAR", vars],
+                    ] as const
+                  ).map(([role, label]) => ({
+                    label: label ?? "",
+                    people: helpers
+                      .filter((row) => row.baseId === item.id && row.role === role)
+                      .map((row) => (
+                        <PersonaQuitable
+                          key={row.id}
+                          context={context}
+                          name={row.fullName}
+                          operation="remove-support"
+                          hidden={{ supportId: row.id }}
+                        />
+                      )),
+                  })),
+                ];
+                return (
+                  <li key={item.id} className="flex flex-col gap-2 py-3">
+                    <p className="font-semibold">
+                      {item.name}
+                      {item.location ? (
+                        <span className="font-normal text-tinta-suave"> · {item.location}</span>
+                      ) : null}
+                    </p>
+                    <dl className="m-0 grid grid-cols-1 gap-2 sm:grid-cols-[8rem_1fr]">
+                      {roles.map((entry) => (
+                        <div key={entry.label} className="contents">
+                          <dt className="text-sm text-tinta-suave">{entry.label}</dt>
+                          <dd className="m-0">
+                            {entry.people.length > 0 ? (
+                              <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                                {entry.people}
+                              </ul>
+                            ) : (
+                              <span className="text-tinta-suave">{t("T-3159")}</span>
+                            )}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        );
+      })}
       <OperationForm
         context={context}
         operation="assign-staff"

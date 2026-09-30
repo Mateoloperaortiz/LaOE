@@ -18,6 +18,7 @@ import {
   createExtraAs,
   createMarketAs,
   createTeamAs,
+  dayName,
   declarePowerAs,
   deleteDayScheduleAs,
   deliverPowerGrantsAs,
@@ -29,11 +30,13 @@ import {
   importCaptainsAs,
   importDayScheduleAs,
   importPowerGrantsAs,
+  importStaffSheetAs,
   issueTeamCodesAs,
   POWER_TYPES,
   placeBetAs,
   recordResultAs,
   removeStaffAs,
+  removeSupportAs,
   resolveMarketAs,
   revertPowerUseAs,
   SCHEDULE_ISSUE_KINDS,
@@ -55,6 +58,10 @@ import {
 } from "@/modules/competition";
 import type { ImportCaptainsState } from "@/modules/competition/components/ImportarCapitanes";
 import type { ImportDayState } from "@/modules/competition/components/ImportarJornada";
+import type {
+  ImportStaffState,
+  StaffPreviewState,
+} from "@/modules/competition/components/ImportarPersonal";
 import type { ImportPowersState } from "@/modules/competition/components/ImportarPoderes";
 import { t, tList } from "@/shared/copy";
 import { bogotaInputToUtc } from "@/shared/lib/dates";
@@ -88,6 +95,7 @@ const OPERATIONS = [
   "save-base",
   "assign-staff",
   "remove-staff",
+  "remove-support",
   "generate-day",
   "delete-day",
   "start-rotation",
@@ -203,6 +211,9 @@ async function run(
       return null;
     case "remove-staff":
       await removeStaffAs(actor, id, cuid.parse(formText(form, "staffId")));
+      return null;
+    case "remove-support":
+      await removeSupportAs(actor, id, cuid.parse(formText(form, "supportId")));
       return null;
     case "generate-day":
       await generateDayScheduleAs(actor, id, {
@@ -616,4 +627,96 @@ export async function importPowersAction(
     aviso: t("T-3068", { tarjetas: result.grants, equipos: result.teams }),
   });
   redirect(`${base}?${query}`);
+}
+
+/** La revisión del personal como la muestra la pantalla: cada base con sus cuatro funciones. */
+function staffPreviewState(
+  result: Awaited<ReturnType<typeof importStaffSheetAs>>,
+  day: 1 | 2,
+): StaffPreviewState | null {
+  if (!result.preview) return null;
+  const [lider, calificador, veedores, vars] = tList("T-3155");
+  const empty = t("T-3159");
+  const names = (items: string[]) => (items.length > 0 ? items.join(", ") : empty);
+  const { summary } = result;
+  return {
+    summary: t("T-3130", {
+      bases: summary.bases,
+      lideres: summary.leaders,
+      calificadores: summary.graders,
+      veedores: summary.overseers,
+      var: summary.vars,
+    }),
+    changes: t("T-3131", { entran: summary.added, salen: summary.removed, siguen: summary.kept }),
+    warnings: result.preview.warnings,
+    partial: result.preview.partial,
+    removals: result.preview.removals,
+    bases: result.preview.bases.map((base) => ({
+      name: base.name,
+      location: base.location,
+      roles: [
+        { label: lider ?? "", names: names(base.leaders) },
+        { label: calificador ?? "", names: names(base.graders) },
+        { label: veedores ?? "", names: names(base.overseers) },
+        { label: vars ?? "", names: names(base.vars) },
+      ],
+    })),
+    canSave: summary.added > 0 || summary.removed > 0,
+    save: t("T-3129", { dia: dayName(day) }),
+  };
+}
+
+/** Revisa o guarda el personal de una jornada desde la hoja del GAP (ADR-101). Revisar devuelve la
+ *  revisión con su huella; guardar la exige y vuelve a Personal con el resumen, sin nombres en la
+ *  dirección. */
+export async function importStaffAction(
+  previous: ImportStaffState,
+  form: FormData,
+): Promise<ImportStaffState> {
+  const competitionId = cuid.safeParse(formText(form, "competitionId"));
+  if (!competitionId.success) return { ...previous, errors: [t("T-2764")] };
+  const base = `/admin/the-games/${competitionId.data}`;
+  const access = await requireCompetitionOperator(competitionId.data, `${base}?area=personal`);
+  const day = formText(form, "day") === "2" ? 2 : 1;
+  const apply = formText(form, "intent") === "apply";
+  const state: ImportStaffState = {
+    attempt: previous.attempt + 1,
+    day: day === 2 ? "2" : "1",
+    text: formRaw(form, "text"),
+    errors: [],
+    notice: null,
+    fingerprint: null,
+    preview: null,
+  };
+  let result: Awaited<ReturnType<typeof importStaffSheetAs>>;
+  try {
+    result = await importStaffSheetAs(await access.commandActor(), competitionId.data, {
+      day,
+      text: state.text,
+      fingerprint: apply ? formText(form, "fingerprint") || null : null,
+    });
+  } catch (error) {
+    if (error instanceof DomainError) return { ...state, errors: [error.message] };
+    if (error instanceof z.ZodError) return { ...state, errors: [t("T-260")] };
+    throw error;
+  }
+  if (result.errors.length > 0) return { ...state, errors: result.errors };
+  if (result.saved) {
+    revalidatePath(base);
+    const aviso = result.unchanged
+      ? t("T-3140")
+      : t("T-3139", {
+          dia: dayName(day),
+          lideres: result.summary.leaders,
+          apoyo: result.summary.graders + result.summary.overseers + result.summary.vars,
+          bases: result.summary.bases,
+        });
+    redirect(`${base}?${new URLSearchParams({ area: "personal", aviso })}`);
+  }
+  return {
+    ...state,
+    fingerprint: result.fingerprint,
+    notice: result.stale ? t("T-3138") : null,
+    preview: staffPreviewState(result, day),
+  };
 }

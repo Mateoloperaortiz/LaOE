@@ -342,12 +342,12 @@ describe("personal desde la hoja del GAP", () => {
 
     const view = await judgeView(id, people.ana);
     expect(view.bases.map((base) => base.id)).toEqual([bases[1][0]]);
-    expect(view.crew.get(bases[1][0])).toEqual({
+    expect(view.crew.get(bases[1][0] ?? "")).toEqual({
       GRADER: ["Luis Felipe Prueba Gómez"],
       OVERSEER: ["Sara Ensayo Sánchez"],
       VAR: [],
     });
-    expect(view.crew.has(bases[1][1])).toBe(false);
+    expect(view.crew.has(bases[1][1] ?? "")).toBe(false);
     expect((await judgeView(id, people.luis)).bases).toEqual([]);
 
     await recordResultAs(member(people.ana), id, { matchupId: matchup.id, outcome: "A_WIN" });

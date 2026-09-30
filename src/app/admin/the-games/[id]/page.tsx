@@ -18,12 +18,15 @@ import {
   listRotations,
   listStaff,
   listStandings,
+  listSupport,
   listTeams,
+  THE_GAMES_ROLE_CODE,
   validateSchedule,
 } from "@/modules/competition";
 import { Actualizador } from "@/modules/competition/components/Actualizador";
 import { listFormOptions } from "@/modules/forms";
-import { listActiveMemberRefs } from "@/modules/people";
+import { listPeopleWithPassword } from "@/modules/identity";
+import { isMacroeventDirector, listActiveMemberRefs } from "@/modules/people";
 import { AdminSectionSelect } from "@/shared/admin-kit/AdminSectionSelect";
 import { t, tList } from "@/shared/copy";
 import { Anuncios, Apuestas } from "./_ui/Community";
@@ -114,19 +117,31 @@ export default async function CompetitionPage({
   } else if (area === "bases") {
     body = <Bases context={context} bases={await listBases(id)} />;
   } else if (area === "personal") {
-    const [staff, bases, members] = await Promise.all([
+    const [staff, support, bases, members, director] = await Promise.all([
       listStaff(id),
+      listSupport(id),
       listBases(id),
       listActiveMemberRefs(true),
+      actor.isAdmin
+        ? Promise.resolve(false)
+        : isMacroeventDirector(actor.personId, competition.editionId, THE_GAMES_ROLE_CODE),
+    ]);
+    // Quién de los líderes todavía no puede entrar: sin contraseña no registra (ADR-051, ADR-101).
+    const withPassword = await listPeopleWithPassword([
+      ...new Set(staff.filter((row) => row.role === "JUDGE").map((row) => row.personId)),
     ]);
     body = (
       <Personal
         context={context}
         staff={staff}
+        support={support}
         bases={bases}
         members={members
           .filter((member) => !member.anonymized)
           .sort((a, b) => a.fullName.localeCompare(b.fullName, "es"))}
+        canImport={actor.isAdmin || director}
+        isAdmin={actor.isAdmin}
+        withPassword={withPassword}
       />
     );
   } else if (area === "rotaciones") {
