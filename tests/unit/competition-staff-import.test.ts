@@ -207,6 +207,21 @@ describe("hoja de una jornada", () => {
     });
   });
 
+  it("una celda con tabuladores escondidos y sin comillas no corre la fila", () => {
+    const text = [
+      "ANA MARIA DE ENSAYO PEREZ\t\t\t1\tLIDER DE BASE",
+      "LUIS PRUEBA GOMEZ\t\t\t\tCALIFICADOR",
+      "SARA ENSAYO SANCHEZ\t\tVEEDORES",
+    ].join("\n");
+    const { rows, problems } = parseStaffSheet(text, 1, bases, directory);
+    expect(problems).toEqual([]);
+    expect(rows?.map((row) => [row.baseId, row.role, row.personId])).toEqual([
+      ["j1", "LEADER", "p1"],
+      ["j1", "GRADER", "p2"],
+      ["j1", "OVERSEER", "p3"],
+    ]);
+  });
+
   it("una fila sin persona y sin número corta la base que bajaba", () => {
     const text = [
       "ANA MARIA DE ENSAYO PEREZ\t1\tLIDER",

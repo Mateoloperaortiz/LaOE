@@ -225,6 +225,21 @@ export function resolveDayBase(bases: readonly StaffBase[], day: Day, n: number)
   return other ? { kind: "OTHER_DAY" } : { kind: "MISSING" };
 }
 
+/** Una celda con tabuladores escondidos que la hoja copia sin comillas corre la fila: el nombre queda
+ *  seguido de celdas vacías antes de la base o la función. Si lo que sobra está vacío y la fila
+ *  termina en una función, se vuelve a armar como Persona, Base y Función. */
+function realign(cells: readonly string[]): readonly string[] {
+  if (cells.length <= 3) return cells;
+  const [person = "", ...rest] = cells;
+  const role = rest[rest.length - 1] ?? "";
+  if (person === "" || !parseStaffRole(role)) return cells;
+  const filled = rest.filter((cell) => cell !== "");
+  if (filled.length === 1) return [person, "", role];
+  const [base = ""] = filled;
+  if (filled.length === 2 && baseNumber(base) !== undefined) return [person, base, role];
+  return cells;
+}
+
 // --- Personas ------------------------------------------------------------------------------------
 
 /** Las palabras de un nombre para comparar: sin mayúsculas, tildes, signos ni espacios de más. */
@@ -360,7 +375,8 @@ export function parseStaffSheet(
   const all = splitStaffText(text);
   const header = headerIndex(all);
   let carried: number | null = null;
-  for (const { line, cells } of all.slice(header + 1)) {
+  for (const { line, cells: raw } of all.slice(header + 1)) {
+    const cells = realign(raw);
     const [personCell = "", baseCell = "", roleCell = ""] = cells;
     const person = cleanTeamName(personCell);
     const baseValue = baseNumber(baseCell);
