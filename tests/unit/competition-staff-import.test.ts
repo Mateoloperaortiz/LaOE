@@ -33,16 +33,17 @@ const bases = [...thursday, ...friday];
 
 const directory: StaffDirectory = {
   members: [
-    { id: "p1", fullName: "Ana María de Ensayo Pérez" },
-    { id: "p2", fullName: "Luis Felipe Prueba Gómez" },
-    { id: "p3", fullName: "Sara Ensayo Sánchez" },
-    { id: "p4", fullName: "Tomás Prueba" },
-    { id: "p5", fullName: "Juana Ensayo Ríos" },
-    { id: "p6", fullName: "Camila Prueba Soto" },
-    { id: "p7", fullName: "Camila Prueba Suárez" },
-    { id: "p8", fullName: "Mateo Ensayo Díaz" },
-    { id: "p9", fullName: "Mateo Ensayo Díaz" },
-    { id: "p10", fullName: "Valentina Muestra Arango" },
+    { id: "p1", fullName: "Ana María de Ensayo Pérez", status: "ACTIVE" },
+    { id: "p2", fullName: "Luis Felipe Prueba Gómez", status: "ACTIVE" },
+    { id: "p3", fullName: "Sara Ensayo Sánchez", status: "ACTIVE" },
+    { id: "p4", fullName: "Tomás Prueba", status: "ACTIVE" },
+    { id: "p5", fullName: "Juana Ensayo Ríos", status: "ACTIVE" },
+    { id: "p6", fullName: "Camila Prueba Soto", status: "ACTIVE" },
+    { id: "p7", fullName: "Camila Prueba Suárez", status: "ACTIVE" },
+    { id: "p8", fullName: "Mateo Ensayo Díaz", status: "ACTIVE" },
+    { id: "p9", fullName: "Mateo Ensayo Díaz", status: "ACTIVE" },
+    { id: "p10", fullName: "Valentina Muestra Arango", status: "ACTIVE" },
+    { id: "p12", fullName: "Lucía En Licencia Ensayo", status: "ON_LEAVE" },
   ],
   byEmail: new Map([
     [
@@ -52,6 +53,10 @@ const directory: StaffDirectory = {
     [
       "retirada.ensayo@eafit.edu.co",
       { id: "p11", fullName: "Retirada de Ensayo", status: "INACTIVE" },
+    ],
+    [
+      "lucia.licencia@eafit.edu.co",
+      { id: "p12", fullName: "Lucía En Licencia Ensayo", status: "ON_LEAVE" },
     ],
   ]),
 };
@@ -122,7 +127,7 @@ describe("persona", () => {
   it("encuentra el nombre exacto sin mayúsculas, tildes ni espacios de más", () => {
     expect(resolvePerson("  ANA MARIA DE ENSAYO  PEREZ ", directory)).toEqual({
       kind: "EXACT",
-      member: { id: "p1", fullName: "Ana María de Ensayo Pérez" },
+      member: { id: "p1", fullName: "Ana María de Ensayo Pérez", status: "ACTIVE" },
     });
   });
 
@@ -265,6 +270,34 @@ describe("hoja de una jornada", () => {
       { kind: "INACTIVE", line: 9, name: "Retirada de Ensayo" },
       { kind: "TWICE", line: 10, name: "Ana María de Ensayo Pérez", other: 3 },
       { kind: "COLUMNS", line: 11 },
+    ]);
+  });
+
+  it("el apoyo puede estar en licencia; el líder no", () => {
+    const text = [
+      "ANA MARIA DE ENSAYO PEREZ\t1\tLIDER DE BASE",
+      "LUCIA EN LICENCIA ENSAYO\t\tCALIFICADOR",
+      "TOMÁS PRUEBA\t2\tLIDER DE BASE",
+      "lucia.licencia@eafit.edu.co\t\tVEEDOR",
+    ].join("\n");
+    // Por nombre como calificadora y por correo como veedora de otra base: es la misma persona.
+    expect(parseStaffSheet(text, 1, bases, directory).problems).toEqual([
+      { kind: "TWICE", line: 4, name: "Lucía En Licencia Ensayo", other: 2 },
+    ]);
+    const support = parseStaffSheet(text.split("\n").slice(0, 3).join("\n"), 1, bases, directory);
+    expect(support.problems).toEqual([]);
+    expect(support.rows?.[1]).toMatchObject({ role: "GRADER", personId: "p12", match: "EXACT" });
+    const byEmail = parseStaffSheet("lucia.licencia@eafit.edu.co\t3\tVAR", 1, bases, directory);
+    expect(byEmail.rows?.[0]).toMatchObject({ role: "VAR", personId: "p12", match: "EMAIL" });
+
+    const leader = parseStaffSheet(
+      "LUCIA EN LICENCIA ENSAYO\t3\tLIDER DE BASE",
+      1,
+      bases,
+      directory,
+    );
+    expect(leader.problems).toEqual([
+      { kind: "LEADER_ON_LEAVE", line: 1, name: "Lucía En Licencia Ensayo" },
     ]);
   });
 

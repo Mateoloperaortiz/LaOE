@@ -199,6 +199,39 @@ export async function listActiveMemberRefs(includeHonorary = false): Promise<Act
   }));
 }
 
+export interface MemberStatusRef {
+  personId: string;
+  fullName: string;
+  status: (typeof membership.$inferSelect)["status"];
+  anonymized: boolean;
+}
+
+/** Los miembros con alguno de estos estados, con su estado: la carga del personal de The Games
+ *  busca también a quien está en licencia, que puede ser apoyo de una base (ADR-102). */
+export async function listMemberRefsByStatus(
+  statuses: ReadonlyArray<(typeof membership.$inferSelect)["status"]>,
+): Promise<MemberStatusRef[]> {
+  if (statuses.length === 0) {
+    return [];
+  }
+  const rows = await getDb()
+    .select({
+      personId: person.id,
+      fullName: person.fullName,
+      status: membership.status,
+      anonymizedAt: person.anonymizedAt,
+    })
+    .from(membership)
+    .innerJoin(person, eq(person.id, membership.personId))
+    .where(inArray(membership.status, [...statuses]));
+  return rows.map((row) => ({
+    personId: row.personId,
+    fullName: row.fullName ?? "",
+    status: row.status,
+    anonymized: row.anonymizedAt !== null,
+  }));
+}
+
 // Lecturas para permanencia (ADR-036): el roster del término con la condición de cada persona.
 
 export interface TermRosterRow {

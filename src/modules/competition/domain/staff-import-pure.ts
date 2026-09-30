@@ -29,6 +29,7 @@ export type StaffSheetProblem =
   | { kind: "NOT_FOUND"; line: number; name: string; suggestions: string[] }
   | { kind: "AMBIGUOUS"; line: number; name: string; options: string[] }
   | { kind: "INACTIVE"; line: number; name: string }
+  | { kind: "LEADER_ON_LEAVE"; line: number; name: string }
   | { kind: "TWICE"; line: number; name: string; other: number }
   | { kind: "EMPTY" };
 
@@ -39,21 +40,19 @@ export interface StaffBase {
   name: string;
 }
 
-/** Un miembro que puede quedar en el personal: `ACTIVE` u `HONORARY`. */
+/** Un miembro con el estado de su membresía: el líder tiene que ser `ACTIVE` u `HONORARY`; el apoyo
+ *  puede estar además `ON_LEAVE` (ADR-102). */
 export interface StaffMember {
   id: string;
   fullName: string;
-}
-
-/** Un miembro buscado por su correo, con su estado, para decir por qué no entra. */
-export interface StaffEmailMember extends StaffMember {
   status: string;
 }
 
 export interface StaffDirectory {
+  /** Los miembros que pueden quedar en el personal: activos, honorarios o en licencia. */
   members: readonly StaffMember[];
-  /** Por correo institucional en minúsculas. */
-  byEmail: ReadonlyMap<string, StaffEmailMember>;
+  /** Por correo institucional en minúsculas, con cualquier estado, para decir por qué no entra. */
+  byEmail: ReadonlyMap<string, StaffMember>;
 }
 
 export type MatchKind = "EXACT" | "PARTIAL" | "EMAIL";
@@ -70,7 +69,11 @@ export interface ParsedStaffRow {
   match: MatchKind;
 }
 
-const ELIGIBLE = new Set(["ACTIVE", "HONORARY"]);
+/** Quién puede ser líder: tiene que poder entrar a registrar (ADR-051). */
+const LEADER_STATUSES = new Set(["ACTIVE", "HONORARY"]);
+/** Quién puede ser apoyo: el apoyo no da acceso, así que la licencia no estorba (ADR-102). */
+export const SUPPORT_STATUSES = ["ACTIVE", "HONORARY", "ON_LEAVE"] as const;
+const SUPPORT = new Set<string>(SUPPORT_STATUSES);
 
 // --- Lectura del texto ---------------------------------------------------------------------------
 
@@ -313,8 +316,8 @@ export function resolvePerson(cell: string, directory: StaffDirectory): PersonMa
   if (value.includes("@")) {
     const member = directory.byEmail.get(value.toLowerCase());
     if (!member) return { kind: "NOT_FOUND", suggestions: [] };
-    if (!ELIGIBLE.has(member.status)) return { kind: "INACTIVE", name: member.fullName };
-    return { kind: "EMAIL", member: { id: member.id, fullName: member.fullName } };
+    if (!SUPPORT.has(member.status)) return { kind: "INACTIVE", name: member.fullName };
+    return { kind: "EMAIL", member };
   }
   const sheet = nameWords(value);
   const key = sheet.join(" ");
@@ -429,6 +432,10 @@ export function parseStaffSheet(
     }
     if (match.kind === "INACTIVE") {
       problems.push({ kind: "INACTIVE", line, name: match.name });
+      continue;
+    }
+    if (role === "LEADER" && !LEADER_STATUSES.has(match.member.status)) {
+      problems.push({ kind: "LEADER_ON_LEAVE", line, name: match.member.fullName });
       continue;
     }
     const other = seen.get(match.member.id);

@@ -13,7 +13,8 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
-| [ADR-101](ADR-101-personal-de-the-games-desde-la-hoja-del-gap.md) | Personal de The Games desde la hoja del GAP | Aceptada |
+| [ADR-102](ADR-102-apoyo-de-la-base-en-licencia.md) | El apoyo de la base puede estar en licencia | Aceptada |
+| [ADR-101](ADR-101-personal-de-the-games-desde-la-hoja-del-gap.md) | Personal de The Games desde la hoja del GAP | Aceptada (enmendada por ADR-102) |
 | [ADR-100](ADR-100-puntos-de-the-challenge-y-del-macro-reto.md) | Puntos de The Challenge y del Macro reto | Aceptada |
 | [ADR-099](ADR-099-instrucciones-del-hub-de-capitanes.md) | Instrucciones del hub de capitanes | Aceptada |
 | [ADR-098](ADR-098-poderes-de-the-games.md) | Poderes de The Games | Aceptada |

@@ -26,6 +26,7 @@ import {
   type StaffDirectory,
   type StaffSheetProblem,
   type StaffSheetRole,
+  SUPPORT_STATUSES,
   type SupportRole,
   staffPlanFingerprint,
 } from "./staff-import-pure";
@@ -145,6 +146,8 @@ function describeProblem(problem: StaffSheetProblem, day: Day): string {
       });
     case "INACTIVE":
       return t("T-3151", { linea: problem.line, nombre: problem.name });
+    case "LEADER_ON_LEAVE":
+      return t("T-3162", { linea: problem.line, nombre: problem.name });
     case "TWICE":
       return t("T-3150", { linea: problem.line, nombre: problem.name, otra: problem.other });
     case "EMPTY":
@@ -259,9 +262,13 @@ export async function importStaffSheet(
     };
   }
 
-  for (const personId of new Set(plan.add.map((item) => item.personId))) {
-    const membership = await getMembershipRef(personId, ctx.tx);
-    if (!membership || !["ACTIVE", "HONORARY"].includes(membership.status)) {
+  // La membresía se vuelve a mirar dentro de la transacción, con la regla de cada función: el líder
+  // activo u honorario, y el apoyo además en licencia (ADR-102).
+  for (const item of plan.add) {
+    const membership = await getMembershipRef(item.personId, ctx.tx);
+    const allowed: readonly string[] =
+      item.role === "LEADER" ? ["ACTIVE", "HONORARY"] : SUPPORT_STATUSES;
+    if (!membership || !allowed.includes(membership.status)) {
       throw new DomainError(t("T-2796"));
     }
   }

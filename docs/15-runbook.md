@@ -850,7 +850,8 @@ Personal desde la hoja del GAP (ADR-101):
   - Se saltan el encabezado, las filas vacías y la de totales.
 - **Corregir los errores.** Cada error dice su línea, y no se guarda nada hasta que no quede ninguno.
   - **Nombre que no aparece o que puede ser varias personas:** se reemplaza en lo pegado por el nombre como está en la casa (la pantalla sugiere hasta tres) o por el correo institucional, y se vuelve a revisar.
-  - **Persona que no es miembro activo ni honorario:** se quita su fila. Esa persona no puede ser jueza ni apoyo.
+  - **Persona en licencia:** puede ser apoyo (calificador, veedor o VAR), pero no líder, porque el líder tiene que poder entrar a registrar (ADR-102). Si un líder está en licencia, GH lo reactiva o la OE pone otro líder.
+  - **Persona que ya no es miembro:** se quita su fila.
 - **Revisar.** Antes de guardar hay que mirar cuatro cosas:
   - los nombres parciales («hoja → casa»);
   - que cada base tenga su líder;

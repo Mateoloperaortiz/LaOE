@@ -1,6 +1,6 @@
 # ADR-101: Personal de The Games desde la hoja del GAP
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-102)
 - Fecha: 2026-09-29
 - Relacionadas: ADR-014, ADR-034, ADR-051, ADR-065, ADR-071, ADR-072, ADR-089, ADR-095, ADR-098
 - Enmienda: ADR-089, regla 10: la operación carga desde la hoja del GAP a los líderes de base como jueces y al apoyo de cada base, que no tiene acceso.
@@ -122,3 +122,7 @@ El GAP es el grupo de apoyo de un macroevento, un criterio de permanencia (`docs
   - Mis datos;
   - quitar a alguien del apoyo.
 - **E2E:** la carga con una línea mala y un nombre parcial, la vista por base y la pantalla del líder, con axe.
+
+## Enmienda (2026-09-29, ADR-102)
+
+Regla 3 (Persona): el calificador, los veedores y el VAR se buscan también entre los miembros en licencia y pueden quedar como apoyo. El líder sigue exigiendo un miembro activo u honorario, porque es quien registra. Ver [ADR-102](ADR-102-apoyo-de-la-base-en-licencia.md).
