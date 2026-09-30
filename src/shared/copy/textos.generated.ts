@@ -9823,7 +9823,7 @@ export const textos = {
   },
   "T-3125": {
     where: "The Games: Ayuda del personal",
-    text: "Elegí la jornada y pegá las columnas A a C de la hoja del GAP: Persona, Base y Función, con o sin encabezado. La base va en la fila del líder y vale para las filas de abajo. Si un nombre no aparece, escribilo como está en la casa o poné su correo institucional. Guardar reemplaza a los líderes y al apoyo de esa jornada; los operadores no cambian.",
+    text: "Elegí la jornada y pegá las columnas A a C de la hoja del GAP: Persona, Base y Función, con o sin encabezado. La base va en la fila del líder y vale para las filas de abajo. Si un nombre no aparece, escribilo como está en la casa o poné su correo institucional. El calificador, los veedores y el VAR pueden estar en licencia; el líder no, porque es quien registra. Guardar reemplaza a los líderes y al apoyo de esa jornada; los operadores no cambian.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9967,7 +9967,7 @@ export const textos = {
   },
   "T-3147": {
     where: "The Games: Persona no encontrada",
-    text: "Línea {linea}: no encontramos a «{nombre}» entre los miembros activos u honorarios.",
+    text: "Línea {linea}: no encontramos a «{nombre}» entre los miembros activos, honorarios o en licencia.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -9997,7 +9997,7 @@ export const textos = {
   },
   "T-3151": {
     where: "The Games: Persona sin membresía",
-    text: "Línea {linea}: {nombre} no es miembro activo ni honorario.",
+    text: "Línea {linea}: {nombre} ya no es miembro de la OE.",
     owner: "MATEO",
     status: "Propuesta",
   },
@@ -10064,6 +10064,12 @@ export const textos = {
   "T-3161": {
     where: "The Games: Equipo de la base",
     text: "Con vos en {base}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3162": {
+    where: "The Games: Líder en licencia",
+    text: "Línea {linea}: {nombre} está en licencia. Puede ser calificador, veedor o VAR, pero no líder: el líder tiene que poder entrar a registrar.",
     owner: "MATEO",
     status: "Propuesta",
   },

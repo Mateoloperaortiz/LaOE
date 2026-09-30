@@ -2700,7 +2700,7 @@ La carga del personal por jornada, la vista por base de Personal y el equipo de 
 | Código | Dónde | Propuesta | Dueño | Estado |
 | --- | --- | --- | --- | --- |
 | T-3124 | The Games: Cargar el personal | Cargar el personal desde la hoja del GAP | MATEO | Propuesta |
-| T-3125 | The Games: Ayuda del personal | Elegí la jornada y pegá las columnas A a C de la hoja del GAP: Persona, Base y Función, con o sin encabezado. La base va en la fila del líder y vale para las filas de abajo. Si un nombre no aparece, escribilo como está en la casa o poné su correo institucional. Guardar reemplaza a los líderes y al apoyo de esa jornada; los operadores no cambian. | MATEO | Propuesta |
+| T-3125 | The Games: Ayuda del personal | Elegí la jornada y pegá las columnas A a C de la hoja del GAP: Persona, Base y Función, con o sin encabezado. La base va en la fila del líder y vale para las filas de abajo. Si un nombre no aparece, escribilo como está en la casa o poné su correo institucional. El calificador, los veedores y el VAR pueden estar en licencia; el líder no, porque es quien registra. Guardar reemplaza a los líderes y al apoyo de esa jornada; los operadores no cambian. | MATEO | Propuesta |
 | T-3126 | The Games: Campo del personal | Columnas A a C pegadas | MATEO | Propuesta |
 | T-3127 | The Games: Campo de jornada | Jornada | MATEO | Propuesta |
 | T-3128 | The Games: Revisar el personal | Revisar | MATEO | Propuesta |
@@ -2722,11 +2722,11 @@ La carga del personal por jornada, la vista por base de Personal y el equipo de 
 | T-3144 | The Games: Base que no existe | Línea {linea}: el {dia} no tiene la base {base}. | MATEO | Propuesta |
 | T-3145 | The Games: Base de otra jornada | Línea {linea}: la base {base} no es del {dia}. | MATEO | Propuesta |
 | T-3146 | The Games: Función desconocida | Línea {linea}: «{funcion}» no es una función. Van Líder de base, Calificador, Veedor o VAR. | MATEO | Propuesta |
-| T-3147 | The Games: Persona no encontrada | Línea {linea}: no encontramos a «{nombre}» entre los miembros activos u honorarios. | MATEO | Propuesta |
+| T-3147 | The Games: Persona no encontrada | Línea {linea}: no encontramos a «{nombre}» entre los miembros activos, honorarios o en licencia. | MATEO | Propuesta |
 | T-3148 | The Games: Persona con sugerencias | Línea {linea}: no encontramos a «{nombre}». ¿Es {opciones}? | MATEO | Propuesta |
 | T-3149 | The Games: Persona ambigua | Línea {linea}: «{nombre}» puede ser {opciones}. Escribí el nombre completo o el correo institucional. | MATEO | Propuesta |
 | T-3150 | The Games: Persona repetida | Línea {linea}: {nombre} ya está en la línea {otra}. | MATEO | Propuesta |
-| T-3151 | The Games: Persona sin membresía | Línea {linea}: {nombre} no es miembro activo ni honorario. | MATEO | Propuesta |
+| T-3151 | The Games: Persona sin membresía | Línea {linea}: {nombre} ya no es miembro de la OE. | MATEO | Propuesta |
 | T-3152 | The Games: Hoja de personal muy larga | La hoja pegada es demasiado larga. Pegá solo las columnas A a C de una jornada. | MATEO | Propuesta |
 | T-3153 | The Games: Jornada sin bases | El {dia} no tiene bases. Crealas en Bases antes de cargar el personal. | MATEO | Propuesta |
 | T-3154 | The Games: Operadores | Operadores | MATEO | Propuesta |
@@ -2737,3 +2737,4 @@ La carga del personal por jornada, la vista por base de Personal y el equipo de 
 | T-3159 | The Games: Función sin asignar | Sin asignar | MATEO | Propuesta |
 | T-3160 | The Games: Resumen de la jornada | {lideres} líderes ({sinClave} sin contraseña) · {apoyo} de apoyo | MATEO | Propuesta |
 | T-3161 | The Games: Equipo de la base | Con vos en {base} | MATEO | Propuesta |
+| T-3162 | The Games: Líder en licencia | Línea {linea}: {nombre} está en licencia. Puede ser calificador, veedor o VAR, pero no líder: el líder tiene que poder entrar a registrar. | MATEO | Propuesta |
