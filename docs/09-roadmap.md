@@ -15,7 +15,7 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 | 2026-09-25 | Acceso a permanencia, publicado | PR [#92](https://github.com/Mateoloperaortiz/LaOE/pull/92), SHA `450114eaf07adcc420014d2acd84b688f0d9418f`. El E2E de macroeventos falló una vez por inestabilidad, sin relación con el cambio, y pasó al volver a correrlo; el CI completo de main quedó aprobado. Staging y producción sirven `450114e`, con los smokes de Railway en verde. |
 | 2026-09-25 | Acceso a permanencia | El listado `/admin/comites` solo ofrecía «Editar» y dejaba la asignación de puntajes sin acceso directo. Cada fila muestra ahora «Permanencia», con el nombre del comité en su etiqueta accesible, y el nombre abre su panel. El admin kit admite enlaces de navegación visibles por fila mediante `rowLinks`; reutiliza T-110 y T-818 y conserva las guardas de las rutas. Verificación local en 390 px y escritorio, 15 pruebas existentes del admin kit, lint, tipos y fronteras de módulos en verde. Sin publicación. |
 
-## The Games (ADR-089 a ADR-091 y ADR-094 a ADR-101) · `en curso`
+## The Games (ADR-089 a ADR-091 y ADR-094 a ADR-103) · `en curso`
 
 - [x] Documentar la competencia, la API pública v1 y las apuestas (ADR-089, ADR-090 y ADR-091), con D-037 en `dias`.
 - [x] Módulo `competition`: esquema y migración `0040`, calendario verificado, puntos en libro, rotaciones, acceso por datos y apuestas.
@@ -29,6 +29,7 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 - [x] Instrucciones del hub (ADR-099): el primer ingreso de cada equipo pide aceptarlas y la casa guarda la versión y la fecha; D-042 en `dias`.
 - [x] Poderes (ADR-098): reparto y entrega de las tarjetas, declaración en la pantalla del líder, resultado oficial en el libro, la vitrina y el recorrido, y «Tus poderes» en el hub; D-041 en `dias`.
 - [ ] Personal desde la hoja del GAP (ADR-101): los líderes de base como jueces, el apoyo de cada base en Personal y en la pantalla del líder, y después el GAP de Días EAFIT.
+- [ ] Jurados de The Challenge (ADR-103): cada jurado califica por aparte, la casa ordena con el promedio y la Dirección pone el podio.
 - [ ] Publicar, preparar la edición, la mesa y la competencia en producción, cargar los capitanes y hacer el simulacro con la OE.
 
 | Fecha | Tramo | Qué cambió |

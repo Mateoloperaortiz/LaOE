@@ -2738,3 +2738,28 @@ La carga del personal por jornada, la vista por base de Personal y el equipo de 
 | T-3160 | The Games: Resumen de la jornada | {lideres} líderes ({sinClave} sin contraseña) · {apoyo} de apoyo | MATEO | Propuesta |
 | T-3161 | The Games: Equipo de la base | Con vos en {base} | MATEO | Propuesta |
 | T-3162 | The Games: Líder en licencia | Línea {linea}: {nombre} está en licencia. Puede ser calificador, veedor o VAR, pero no líder: el líder tiene que poder entrar a registrar. | MATEO | Propuesta |
+
+## Jurados de The Challenge (ADR-103)
+
+La calificación de los jurados dentro de una extra de puntos directos. Las notas no dan puntos: ordenan a los equipos para que la Dirección ponga el podio.
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-3163 | The Games: Calificación de los jurados | Calificación de los jurados | MATEO | Propuesta |
+| T-3164 | The Games: Ayuda de los jurados | Escribí el nombre del jurado y pegá su tabla, desde el encabezado hasta el último equipo: sirve la plantilla de jurado o la hoja Consolidado de la OE. Cada equipo va con sus 5 notas del 1 al 10, en el orden de la rúbrica; el total y el nivel se ignoran. Volver a cargar un jurado reemplaza solo sus notas. Las notas no dan puntos: el podio se pone abajo, en los puntos de cada equipo. | MATEO | Propuesta |
+| T-3165 | The Games: Campo del jurado | Jurado | MATEO | Propuesta |
+| T-3166 | The Games: Campo de las notas | Tabla del jurado pegada | MATEO | Propuesta |
+| T-3167 | The Games: Cargar las notas | Cargar las notas de este jurado | MATEO | Propuesta |
+| T-3168 | The Games: Notas cargadas | Listo: {jurado} calificó {equipos} equipos. | MATEO | Propuesta |
+| T-3169 | The Games: Faltan notas | Línea {linea}: faltan notas. Van las 5 de la rúbrica, del 1 al 10. | MATEO | Propuesta |
+| T-3170 | The Games: Nota inválida | Línea {linea}: «{nota}» no es una nota entera del 1 al 10. | MATEO | Propuesta |
+| T-3171 | The Games: Equipo repetido en las notas | Línea {linea}: el equipo {equipo} ya está en la línea {otra}. | MATEO | Propuesta |
+| T-3172 | The Games: Tabla de notas muy larga | La hoja pegada es demasiado larga. Pegá solo la tabla de un jurado. | MATEO | Propuesta |
+| T-3173 | The Games: Nombre del jurado | Escribí el nombre del jurado, hasta 60 caracteres. | MATEO | Propuesta |
+| T-3174 | The Games: Jurado cargado | {jurado} · {equipos} equipos | MATEO | Propuesta |
+| T-3175 | The Games: Columnas del orden | Puesto · Equipo · Impacto · Integración · Estructura · Producción · Normas · Total · Nivel · Jurados | MATEO | Propuesta |
+| T-3176 | The Games: Empate | Empate | MATEO | Propuesta |
+| T-3177 | The Games: Podio sugerido | Podio: {puntos} | MATEO | Propuesta |
+| T-3178 | The Games: Empate en el podio | Hay un empate en el podio: lo decide la organización. | MATEO | Propuesta |
+| T-3179 | The Games: Sin notas de jurados | Todavía no hay notas de jurados. | MATEO | Propuesta |
+| T-3180 | The Games: Orden de los jurados | Orden con el promedio de los jurados | MATEO | Propuesta |

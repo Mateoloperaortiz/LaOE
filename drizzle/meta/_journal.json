@@ -316,6 +316,13 @@
       "when": 1790727100515,
       "tag": "0044_the_games_personal_gap",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790861493960,
+      "tag": "0045_the_games_jurados",
+      "breakpoints": true
     }
   ]
 }

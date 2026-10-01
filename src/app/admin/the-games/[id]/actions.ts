@@ -29,12 +29,14 @@ import {
   type IssuedCode,
   importCaptainsAs,
   importDayScheduleAs,
+  importJuryScoresAs,
   importPowerGrantsAs,
   importStaffSheetAs,
   issueTeamCodesAs,
   POWER_TYPES,
   placeBetAs,
   recordResultAs,
+  removeJuryScoresAs,
   removeStaffAs,
   removeSupportAs,
   resolveMarketAs,
@@ -58,6 +60,7 @@ import {
 } from "@/modules/competition";
 import type { ImportCaptainsState } from "@/modules/competition/components/ImportarCapitanes";
 import type { ImportDayState } from "@/modules/competition/components/ImportarJornada";
+import type { ImportJuryState } from "@/modules/competition/components/ImportarJurado";
 import type {
   ImportStaffState,
   StaffPreviewState,
@@ -108,6 +111,7 @@ const OPERATIONS = [
   "void-result",
   "create-extra",
   "extra-points",
+  "remove-jury",
   "rubric-scores",
   "adjustment",
   "announce",
@@ -289,6 +293,12 @@ async function run(
         name: formText(form, "name"),
         day: Number(formText(form, "day")),
         kind: z.enum(EXTRA_KINDS).parse(formText(form, "kind") || "DIRECT"),
+      });
+      return null;
+    case "remove-jury":
+      await removeJuryScoresAs(actor, id, {
+        extraId: formText(form, "extraId"),
+        judge: formText(form, "judge"),
       });
       return null;
     case "rubric-scores":
@@ -719,4 +729,40 @@ export async function importStaffAction(
     notice: result.stale ? t("T-3138") : null,
     preview: staffPreviewState(result, day),
   };
+}
+
+/** Carga las notas de un jurado de The Challenge (ADR-103). Si no se guarda, devuelve los problemas
+ *  y lo pegado para corregirlo; si se guarda, vuelve a Extras con el resumen. */
+export async function importJuryAction(
+  previous: ImportJuryState,
+  form: FormData,
+): Promise<ImportJuryState> {
+  const competitionId = cuid.safeParse(formText(form, "competitionId"));
+  if (!competitionId.success) return { ...previous, errors: [t("T-2764")] };
+  const base = `/admin/the-games/${competitionId.data}`;
+  const access = await requireCompetitionOperator(competitionId.data, `${base}?area=extras`);
+  const state = {
+    judge: formText(form, "judge"),
+    text: formRaw(form, "text"),
+    attempt: previous.attempt + 1,
+  };
+  let result: Awaited<ReturnType<typeof importJuryScoresAs>>;
+  try {
+    result = await importJuryScoresAs(await access.commandActor(), competitionId.data, {
+      extraId: formText(form, "extraId"),
+      judge: state.judge,
+      text: state.text,
+    });
+  } catch (error) {
+    if (error instanceof DomainError) return { ...state, errors: [error.message] };
+    if (error instanceof z.ZodError) return { ...state, errors: [t("T-260")] };
+    throw error;
+  }
+  if (!result.saved) return { ...state, errors: result.errors };
+  revalidatePath(base);
+  const query = new URLSearchParams({
+    area: "extras",
+    aviso: t("T-3168", { jurado: result.judge, equipos: result.teams }),
+  });
+  redirect(`${base}?${query}`);
 }

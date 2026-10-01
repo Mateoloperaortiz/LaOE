@@ -419,6 +419,39 @@ export const competitionExtraCriterion = pgTable(
   ],
 );
 
+/** Las notas de un jurado a un equipo en una extra de puntos directos, como The Challenge (ADR-103):
+ *  las 5 de la rúbrica, del 1 al 10. No tocan el libro: ordenan a los equipos para el podio. */
+export const competitionExtraJuryScore = pgTable(
+  "competition_extra_jury_score",
+  {
+    id: id(),
+    extraId: text()
+      .notNull()
+      .references(() => competitionExtra.id, { onDelete: "cascade" }),
+    teamId: text()
+      .notNull()
+      .references(() => competitionTeam.id, { onDelete: "cascade" }),
+    judge: text().notNull(),
+    scores: integer().array().notNull(),
+    recordedById: text().references(() => person.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("competition_extra_jury_score_unique").on(
+      t.extraId,
+      sql`lower(${t.judge})`,
+      t.teamId,
+    ),
+    index("competition_extra_jury_score_team_idx").on(t.teamId),
+    check(
+      "competition_extra_jury_score_scores",
+      sql`cardinality(${t.scores}) = 5 and 1 <= all(${t.scores}) and 10 >= all(${t.scores})`,
+    ),
+    check("competition_extra_jury_score_judge", sql`char_length(${t.judge}) between 1 and 60`),
+  ],
+);
+
 /** La calificación consolidada de un equipo en un criterio, del 1 al 10. */
 export const competitionExtraScore = pgTable(
   "competition_extra_score",

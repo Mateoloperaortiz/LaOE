@@ -833,7 +833,11 @@ Durante el evento:
 
 The Challenge y Macro reto (ADR-100):
 
-- **The Challenge (jueves en la mañana):** en Extras se crea «The Challenge» como **puntos directos**, jornada 1. Cuando la organización decide el podio, se fija 2000 al primero, 1000 al segundo y 500 al tercero. Los demás no suman.
+- **The Challenge (jueves en la mañana):** en Extras se crea «The Challenge» como **puntos directos**, jornada 1.
+  - Cada jurado califica por aparte en la plantilla de jurado, o en la hoja «Consolidado» de la OE.
+  - En la extra, «Calificación de los jurados»: se escribe el nombre del jurado, se pega su tabla desde el encabezado hasta el último equipo y se cargan las notas. Volver a cargar un jurado reemplaza solo sus notas; uno mal cargado se quita (ADR-103).
+  - La casa ordena a los equipos con el promedio de los jurados y marca el podio sugerido y los empates. Las notas no dan puntos.
+  - Con el podio decidido (los empates los resuelve la organización), en los puntos de la misma extra se fija 2000 al primero, 1000 al segundo y 500 al tercero. Los demás no suman.
 - **Macro reto (dos veces al día, los dos días):** en Extras se crean cuatro de puntos directos: «Macro reto 1» y «Macro reto 2» en la jornada 1, y «Macro reto 3» y «Macro reto 4» en la jornada 2. Se pueden crear antes del evento, porque sin puntos no mueven la tabla. Al terminar cada uno, se fija 2000 al ganador en su extra. No son las bases macro (inflables), y los poderes no valen en ellos.
 - **La rúbrica no se usa en `the-games-2026`.** Si existe una extra con rúbrica, no se le cargan notas: cada equipo sumaría hasta 1000.
 - **Corregir:** si hay un error, se fija el total correcto. La casa inserta solo la diferencia.

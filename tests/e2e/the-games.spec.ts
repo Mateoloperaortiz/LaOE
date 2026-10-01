@@ -580,3 +580,42 @@ test.describe("personal desde la hoja del GAP", () => {
     });
   });
 });
+
+test.describe("jurados de The Challenge", () => {
+  test.use({ storageState: "tests/e2e/.auth/admin.json" });
+
+  test("carga las notas de un jurado y ve el orden con el podio sugerido", async ({ page }) => {
+    const { id, admin } = await seedCompetition("the-games-jurados");
+    await createExtraAs(admin, id, { name: "The Challenge", day: 1 });
+    await page.goto(`/admin/the-games/${id}?area=extras`);
+    const extra = t("T-2825", { dia: 1 });
+    await page.getByText(`The Challenge · ${extra}`).click();
+    await page.getByText(t("T-3163"), { exact: true }).click();
+    await page.getByLabel(t("T-3165"), { exact: true }).fill("Jurado sintético");
+    await page
+      .getByLabel(t("T-3166"))
+      .fill(
+        [
+          "#\tEquipo\tTalento\tImpacto\tIntegración\tEstructura\tProducción\tNormas\tTotal\tNivel",
+          "1\tEquipo sintético 1\tBaile\t9\t9\t9\t9\t9\t#REF!\t",
+          "2\tEquipo sintético 2\tTeatro\t10\t10\t10\t10\t10\t#REF!\t",
+          "3\tEquipo sintético 3\tCanto\t7\t7\t7\t7\t7\t#REF!\t",
+        ].join("\n"),
+      );
+    await sinViolaciones(page);
+    await page.getByRole("button", { name: t("T-3167") }).click();
+    await expect(
+      page.getByText(t("T-3168", { jurado: "Jurado sintético", equipos: 3 })),
+    ).toBeVisible();
+    await page.getByText(`The Challenge · ${extra}`).click();
+    const table = page.getByRole("table", { name: t("T-3180") });
+    await expect(table).toBeVisible();
+    const first = table.getByRole("row").nth(1);
+    await expect(first).toContainText("2 Equipo sintético 2");
+    await expect(first).toContainText(t("T-3177", { puntos: (2000).toLocaleString("es-CO") }));
+    await sinViolaciones(page);
+    // En el celular la tabla se desplaza: su región tiene que admitir el teclado.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await sinViolaciones(page);
+  });
+});
