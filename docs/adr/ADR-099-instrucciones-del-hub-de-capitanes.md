@@ -44,4 +44,4 @@ Mateo decidió tres cosas:
 
 ## Enmienda (2026-10-01, ADR-104)
 
-El texto de las apuestas cambia (ahora suman a la tabla general) y `HUB_TERMS_VERSION` pasa a 2: cada equipo vuelve a aceptar. Ver [ADR-104](ADR-104-las-apuestas-suman-a-la-tabla-general.md).
+El texto de las apuestas cambia (ahora suman a la tabla general) y `HUB_TERMS_VERSION` pasa a 2: cada equipo vuelve a aceptar. Mientras la casa siga en la versión 1, DÍAS acepta la versión que pida la casa. Ver [ADR-104](ADR-104-las-apuestas-suman-a-la-tabla-general.md).

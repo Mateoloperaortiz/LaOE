@@ -52,4 +52,4 @@ Regla 3: el capitán puede registrar la apuesta de su equipo en el hub (`dias.oe
 
 ## Enmienda (2026-10-01, ADR-104)
 
-Regla 1: los puntos de apuestas siguen en su libro propio, pero la tabla general de The Games suma el saldo de cada equipo mientras `bettingEnabled` esté prendido. Las tablas de cada jornada no lo suman. Ver [ADR-104](ADR-104-las-apuestas-suman-a-la-tabla-general.md).
+Regla 1: los puntos de apuestas siguen en su libro propio, pero la tabla general de The Games suma el saldo de cada equipo mientras `bettingEnabled` esté prendido, sin descontar lo apostado en apuestas que siguen sin resolver. Las tablas de cada jornada no lo suman. Ver [ADR-104](ADR-104-las-apuestas-suman-a-la-tabla-general.md).
