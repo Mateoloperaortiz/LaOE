@@ -20,6 +20,7 @@ import { Cronometro } from "@/modules/competition/components/Cronometro";
 import { ImportarJornada } from "@/modules/competition/components/ImportarJornada";
 import { ImportarJurado } from "@/modules/competition/components/ImportarJurado";
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
+import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
 import { importDayAction, importJuryAction } from "../actions";
@@ -673,7 +674,7 @@ function JuryBlock({
             {podiumTie(jury.ranking) ? (
               <output className="block font-semibold text-oe-orange">{t("T-3178")}</output>
             ) : null}
-            <div className="overflow-x-auto">
+            <AdminTableRegion label={t("T-3180")}>
               <table className="w-full min-w-[44rem] border-collapse text-sm">
                 <caption className="mb-2 text-left font-semibold">{t("T-3180")}</caption>
                 <thead>
@@ -734,7 +735,7 @@ function JuryBlock({
                   })}
                 </tbody>
               </table>
-            </div>
+            </AdminTableRegion>
           </>
         ) : (
           <p className="text-tinta-suave">{t("T-3179")}</p>

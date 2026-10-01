@@ -614,5 +614,8 @@ test.describe("jurados de The Challenge", () => {
     await expect(first).toContainText("2 Equipo sintético 2");
     await expect(first).toContainText(t("T-3177", { puntos: (2000).toLocaleString("es-CO") }));
     await sinViolaciones(page);
+    // En el celular la tabla se desplaza: su región tiene que admitir el teclado.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await sinViolaciones(page);
   });
 });
