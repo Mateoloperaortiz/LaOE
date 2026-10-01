@@ -1,6 +1,6 @@
 # ADR-099: Instrucciones del hub de capitanes
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-104)
 - Fecha: 2026-09-29
 - Relacionadas: ADR-012, ADR-082, ADR-091, ADR-096, ADR-098
 - Enmienda: ADR-096, regla 1: el primer ingreso de cada equipo pide aceptar las instrucciones vigentes del hub.
@@ -41,3 +41,7 @@ Mateo decidió tres cosas:
   - con una versión anterior, la sesión no vale y la apuesta se rechaza.
 - **Unitarias de la ruta:** 409 con `terms`, y `accept` en el cuerpo.
 - **E2E de la API:** entrar aceptando las instrucciones.
+
+## Enmienda (2026-10-01, ADR-104)
+
+El texto de las apuestas cambia (ahora suman a la tabla general) y `HUB_TERMS_VERSION` pasa a 2: cada equipo vuelve a aceptar. Mientras la casa siga en la versión 1, DÍAS acepta la versión que pida la casa. Ver [ADR-104](ADR-104-las-apuestas-suman-a-la-tabla-general.md).

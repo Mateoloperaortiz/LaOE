@@ -1,6 +1,6 @@
 # ADR-089: The Games: competencia por equipos de Días EAFIT
 
-- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098, ADR-100 y ADR-101); implementación en curso
+- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098, ADR-100, ADR-101 y ADR-104); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-002, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014, ADR-020, ADR-036, ADR-047, ADR-058, ADR-064, ADR-072, ADR-075, ADR-082, ADR-085, ADR-090, ADR-091
 - Enmienda: ADR-011 (el cargo de Dirección de The Games habilita, por datos, la operación de la competencia de su edición), ADR-064 (esa entrega no ampliaba permisos por cargo: este lo hace, con alcance cerrado)
@@ -109,3 +109,7 @@ Regla 7: The Challenge ya no suma por rúbrica. La OE confirmó el 2026-09-29 qu
 ## Enmienda (2026-09-29, ADR-101)
 
 Regla 10: el personal de cada jornada también se carga desde la hoja del GAP de la OE. ADMIN o la Dirección pegan las columnas Persona, Base y Función; cada líder de base queda como `JUDGE` de su base, y el calificador, los veedores y el VAR quedan como apoyo de la base en `competition_support`, que no da ningún acceso. La carga reemplaza solo los jueces y el apoyo de esa jornada; los operadores no cambian. Ver [ADR-101](ADR-101-personal-de-the-games-desde-la-hoja-del-gap.md).
+
+## Enmienda (2026-10-01, ADR-104)
+
+El ganador ya no sale solo de los enfrentamientos y de las competencias extra: la tabla general también suma el saldo de apuestas de cada equipo (ADR-091). Ver [ADR-104](ADR-104-las-apuestas-suman-a-la-tabla-general.md).

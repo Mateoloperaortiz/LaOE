@@ -31,6 +31,7 @@ import {
   voidPowerGrantAs,
 } from "@/modules/competition";
 import { clearHubFailures } from "@/modules/competition/domain/hub";
+import { HUB_TERMS_VERSION } from "@/modules/competition/domain/hub-pure";
 import {
   competitionBase,
   competitionMatchup,
@@ -513,7 +514,7 @@ describe("poderes de The Games (ADR-098)", () => {
     await setCompetitionStatusAs(actor, id, "LIVE");
     const codes = await issueTeamCodesAs(actor, id, false);
     const code = codes.find((item) => item.teamId === team(1))?.code ?? "";
-    const entered = await enterHubAs({ personId: null, ip: "10.9.9.9" }, code, 1);
+    const entered = await enterHubAs({ personId: null, ip: "10.9.9.9" }, code, HUB_TERMS_VERSION);
     if (!entered.ok) throw new Error(entered.message);
 
     await startRotationAs(actor, id, first.id);

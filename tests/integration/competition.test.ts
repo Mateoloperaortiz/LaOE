@@ -54,7 +54,7 @@ import {
   voidResultAs,
 } from "@/modules/competition";
 import { clearHubFailures } from "@/modules/competition/domain/hub";
-import { HUB_MAX_FAILURES_PER_IP } from "@/modules/competition/domain/hub-pure";
+import { HUB_MAX_FAILURES_PER_IP, HUB_TERMS_VERSION } from "@/modules/competition/domain/hub-pure";
 import { dayOneRounds } from "@/modules/competition/domain/schedule-pure";
 import {
   competitionBase,
@@ -655,6 +655,45 @@ describe("The Games", () => {
       expect(refunds).toHaveLength(1);
     });
 
+    it("la general suma los puntos de apuestas sin descontar las que siguen abiertas (ADR-104)", async () => {
+      const { id, actor, teamIds, code, marketId } = await seedBetting();
+      const [t1 = "", t2 = "", t3 = ""] = teamIds;
+      const overall = async (teamId: string) =>
+        (await listStandings(id)).overall.find((row) => row.teamId === teamId)?.points;
+      expect(await overall(t1)).toBe(1000);
+      // Lo apostado sigue contando mientras la apuesta no se resuelva, aunque ya esté cerrada.
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t3,
+        pickTeamId: t1,
+        stake: 300,
+        code: code(t3),
+      });
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t1,
+        pickTeamId: t2,
+        stake: 200,
+        code: code(t1),
+      });
+      expect((await creditBalances(id)).get(t3)).toBe(700);
+      expect(await overall(t3)).toBe(1000);
+      await setMarketOpenAs(actor, id, marketId, false);
+      expect(await overall(t1)).toBe(1000);
+      // Al resolver, la general queda en el saldo: t1 acertó y se lleva la bolsa de t3.
+      await resolveMarketAs(actor, id, marketId, t2);
+      expect(await overall(t1)).toBe(1300);
+      expect(await overall(t2)).toBe(1000);
+      expect(await overall(t3)).toBe(700);
+      expect((await listStandings(id)).day1.every((row) => row.points === 0)).toBe(true);
+      await updateCompetitionSettingsAs(actor, id, {
+        name: "The Games 2026",
+        bettingEnabled: false,
+        startingCredits: 1000,
+      });
+      expect(await overall(t1)).toBe(0);
+    });
+
     describe("hub de capitanes (ADR-096)", () => {
       beforeEach(() => clearHubFailures());
       const hub = (ip = "10.1.2.3") => ({ personId: null, ip });
@@ -675,13 +714,13 @@ describe("The Games", () => {
         expect(await enterHubAs(hub(), raw)).toEqual({
           ok: false,
           reason: "TERMS",
-          version: 1,
+          version: HUB_TERMS_VERSION,
           message: t("T-3120"),
         });
         const entered = await enterHubAs(
           hub(),
           `${raw.slice(0, 4).toLowerCase()}-${raw.slice(4)}`,
-          1,
+          HUB_TERMS_VERSION,
         );
         if (!entered.ok) throw new Error(entered.message);
         const [accepted] = await getDb()
@@ -691,7 +730,7 @@ describe("The Games", () => {
           })
           .from(competitionTeam)
           .where(eq(competitionTeam.id, e1));
-        expect(accepted?.version).toBe(1);
+        expect(accepted?.version).toBe(HUB_TERMS_VERSION);
         expect(accepted?.at).toBeInstanceOf(Date);
         const [terms] = await getDb()
           .select({ entityId: auditLog.entityId, ip: auditLog.ip })
@@ -746,7 +785,7 @@ describe("The Games", () => {
 
         // Una apuesta cerrada ya no recibe apuestas desde el hub.
         await setMarketOpenAs(actor, id, marketId, false);
-        const other = await enterHubAs(hub(), code(e2), 1);
+        const other = await enterHubAs(hub(), code(e2), HUB_TERMS_VERSION);
         if (!other.ok) throw new Error(other.message);
         await expect(
           placeHubBetAs(hub(), other.session, { marketId, pick: 1, stake: 50 }),
@@ -758,7 +797,7 @@ describe("The Games", () => {
         const { id, actor, teamIds, code, marketId } = await seedBetting();
         const [e1 = ""] = teamIds;
         await setCompetitionStatusAs(actor, id, "LIVE");
-        const first = await enterHubAs(hub(), code(e1), 1);
+        const first = await enterHubAs(hub(), code(e1), HUB_TERMS_VERSION);
         if (!first.ok) throw new Error(first.message);
         // El otro capitán entra con el mismo código sin volver a aceptar.
         const second = await enterHubAs(hub("10.7.7.7"), code(e1));
@@ -779,7 +818,7 @@ describe("The Games", () => {
         const { id, actor, teamIds, code, marketId } = await seedBetting();
         const [e1 = ""] = teamIds;
         await setCompetitionStatusAs(actor, id, "LIVE");
-        const entered = await enterHubAs(hub(), code(e1), 1);
+        const entered = await enterHubAs(hub(), code(e1), HUB_TERMS_VERSION);
         if (!entered.ok) throw new Error(entered.message);
         for (let i = 0; i < HUB_MAX_FAILURES_PER_IP; i++) {
           expect(await enterHubAs(hub("10.9.9.9"), "ZZZZ-ZZZZ")).toEqual({

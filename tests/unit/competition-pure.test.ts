@@ -66,6 +66,23 @@ describe("posiciones", () => {
     ]);
   });
 
+  it("la general suma el saldo de apuestas y las jornadas no (ADR-104)", () => {
+    const credits = new Map([
+      ["a", 1000],
+      ["b", 1300],
+      ["c", 700],
+      ["d", 1000],
+    ]);
+    const overall = computeStandings(teams, points, results, "overall", credits);
+    expect(overall.map((row) => [row.rank, row.teamId, row.points])).toEqual([
+      [1, "c", 2200],
+      [2, "a", 2000],
+      [3, "b", 1800],
+    ]);
+    const day1 = computeStandings(teams, points, results, 1, credits);
+    expect(day1.map((row) => row.points)).toEqual([1000, 500, 500]);
+  });
+
   it("la general suma las dos jornadas y cuenta victorias, empates y derrotas", () => {
     const overall = computeStandings(teams, points, results, "overall");
     expect(overall.map((row) => [row.rank, row.teamId, row.points])).toEqual([
