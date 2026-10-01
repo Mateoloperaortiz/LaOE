@@ -28,7 +28,8 @@ export async function truncateAll(): Promise<void> {
     truncate table
       competition_power_use, competition_power_grant,
       competition_credit_entry, competition_bet, competition_market_option, competition_market,
-      competition_announcement, competition_point_entry, competition_extra, competition_result,
+      competition_announcement, competition_point_entry, competition_extra_jury_score,
+      competition_extra, competition_result,
       competition_matchup, competition_rotation, competition_support, competition_staff,
       competition_base, competition_team_captain, competition_team, competition,
       budget_transfer, budget_expense, budget_prerequest, event_approval, budget_line, committee_budget,

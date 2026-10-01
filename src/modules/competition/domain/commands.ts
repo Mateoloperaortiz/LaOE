@@ -11,6 +11,13 @@ import {
 import { type EnterHubResult, enterHub } from "./hub";
 import type { HubSession } from "./hub-pure";
 import {
+  type ImportJuryInput,
+  type ImportJuryResult,
+  importJuryScores,
+  type RemoveJuryInput,
+  removeJuryScores,
+} from "./jury";
+import {
   type BetInput,
   cancelMarket,
   createMarket,
@@ -179,6 +186,13 @@ export const createExtraAs = (actor: A, id: string, input: ExtraInput) =>
   runCommand(actor, (ctx) => createExtra(ctx, actor, id, input));
 export const setExtraPointsAs = (actor: A, id: string, input: ExtraPointsInput) =>
   runCommand(actor, (ctx) => setExtraPoints(ctx, actor, id, input));
+export const importJuryScoresAs = (
+  actor: A,
+  id: string,
+  input: ImportJuryInput,
+): Promise<ImportJuryResult> => runCommand(actor, (ctx) => importJuryScores(ctx, actor, id, input));
+export const removeJuryScoresAs = (actor: A, id: string, input: RemoveJuryInput) =>
+  runCommand(actor, (ctx) => removeJuryScores(ctx, actor, id, input));
 export const setRubricScoresAs = (actor: A, id: string, input: RubricScoresInput) =>
   runCommand(actor, (ctx) => setRubricScores(ctx, actor, id, input));
 export const addAdjustmentAs = (actor: A, id: string, input: AdjustmentInput) =>

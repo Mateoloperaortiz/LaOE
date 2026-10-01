@@ -10,6 +10,7 @@ import {
   competitionCreditEntry,
   competitionExtra,
   competitionExtraCriterion,
+  competitionExtraJuryScore,
   competitionExtraScore,
   competitionMarket,
   competitionMarketOption,
@@ -23,10 +24,11 @@ import {
   competitionTeamCaptain,
 } from "../schema";
 import { marketState, poolByOption } from "./betting-pure";
+import { type JuryTeamResult, juryRanking } from "./jury-pure";
 import type { PowerDetail } from "./powers-pure";
 import { type JudgeMatchupPowers, judgePowers } from "./powers-reads";
 import { type RouteStop, toRouteStops } from "./route-pure";
-import { type RubricLevel, rubricLevel, rubricTotal } from "./rubric-pure";
+import { type RubricLevel, rubricLevel, rubricTotal, THE_CHALLENGE_RUBRIC } from "./rubric-pure";
 import type { Day, ScheduleRotation } from "./schedule-pure";
 import type { BaseKind, Outcome } from "./scoring-pure";
 import { computeStandings, type StandingRow } from "./standings-pure";
@@ -626,6 +628,11 @@ export interface ExtraView {
     criteria: Array<{ id: string; name: string; weight: number }>;
     teams: Map<string, ExtraRubricTeam>;
   } | null;
+  /** De puntos directos: las notas de los jurados y el orden que dan (ADR-103), o `null` sin notas. */
+  jury: {
+    judges: Array<{ name: string; teams: number }>;
+    ranking: JuryTeamResult[];
+  } | null;
 }
 
 export async function listExtras(competitionId: string): Promise<ExtraView[]> {
@@ -651,6 +658,30 @@ export async function listExtras(competitionId: string): Promise<ExtraView[]> {
     .from(competitionExtraCriterion)
     .where(inArray(competitionExtraCriterion.extraId, ids))
     .orderBy(asc(competitionExtraCriterion.orderIndex));
+  const jurySheets = await db
+    .select({
+      extraId: competitionExtraJuryScore.extraId,
+      teamId: competitionExtraJuryScore.teamId,
+      judge: competitionExtraJuryScore.judge,
+      scores: competitionExtraJuryScore.scores,
+    })
+    .from(competitionExtraJuryScore)
+    .where(inArray(competitionExtraJuryScore.extraId, ids))
+    .orderBy(asc(competitionExtraJuryScore.createdAt));
+  const activeTeamIds = jurySheets.length
+    ? (
+        await db
+          .select({ id: competitionTeam.id })
+          .from(competitionTeam)
+          .where(
+            and(
+              eq(competitionTeam.competitionId, competitionId),
+              eq(competitionTeam.status, "ACTIVE"),
+            ),
+          )
+          .orderBy(asc(competitionTeam.number))
+      ).map((team) => team.id)
+    : [];
   const scores = criteria.length
     ? await db
         .select()
@@ -691,6 +722,21 @@ export async function listExtras(competitionId: string): Promise<ExtraView[]> {
         teams,
       };
     }
+    const juryRows = jurySheets.filter((row) => row.extraId === extra.id);
+    let jury: ExtraView["jury"] = null;
+    if (extra.rubricScale === null && juryRows.length > 0) {
+      const judges = new Map<string, { name: string; teams: number }>();
+      for (const row of juryRows) {
+        const key = row.judge.toLowerCase();
+        const entry = judges.get(key) ?? { name: row.judge, teams: 0 };
+        entry.teams += 1;
+        judges.set(key, entry);
+      }
+      jury = {
+        judges: [...judges.values()].sort((a, b) => a.name.localeCompare(b.name, "es")),
+        ranking: juryRanking(THE_CHALLENGE_RUBRIC.criteria, activeTeamIds, juryRows),
+      };
+    }
     return {
       id: extra.id,
       name: extra.name,
@@ -699,6 +745,7 @@ export async function listExtras(competitionId: string): Promise<ExtraView[]> {
         totals.filter((row) => row.extraId === extra.id).map((row) => [row.teamId, row.total]),
       ),
       rubric,
+      jury,
     };
   });
 }

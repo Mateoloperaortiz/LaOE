@@ -28,6 +28,7 @@ export {
   type HubState,
   hubStateSchema,
 } from "./domain/hub-pure";
+export { type JuryTeamResult, PODIUM_POINTS, podiumTie } from "./domain/jury-pure";
 export type { PlaceBetResult } from "./domain/markets";
 export type { RotationMatchupsResult } from "./domain/play";
 export type { ImportPowersResult } from "./domain/powers";
