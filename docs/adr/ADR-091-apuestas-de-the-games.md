@@ -1,6 +1,6 @@
 # ADR-091: Apuestas de The Games con puntos virtuales
 
-- Estado: Aceptada (enmendada por ADR-096); implementación en curso
+- Estado: Aceptada (enmendada por ADR-096 y ADR-104); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-007, ADR-012, ADR-072, ADR-085, ADR-089, ADR-090
 
@@ -49,3 +49,7 @@ En el prototipo el saldo nunca se descontaba, porque su RLS bloqueaba la escritu
 ## Enmienda (2026-09-28, ADR-096)
 
 Regla 3: el capitán puede registrar la apuesta de su equipo en el hub (`dias.oeeafit.com/capitanes`, con la API de la casa), entrando con el código de la tarjeta. Las reglas y el núcleo de la apuesta son los mismos, y el operador sigue pudiendo registrarla con el código. La apuesta del hub no tiene persona y su auditoría lleva `via: "HUB"`. Ver [ADR-096](ADR-096-hub-de-apuestas-de-los-capitanes.md).
+
+## Enmienda (2026-10-01, ADR-104)
+
+Regla 1: los puntos de apuestas siguen en su libro propio, pero la tabla general de The Games suma el saldo de cada equipo mientras `bettingEnabled` esté prendido. Las tablas de cada jornada no lo suman. Ver [ADR-104](ADR-104-las-apuestas-suman-a-la-tabla-general.md).
