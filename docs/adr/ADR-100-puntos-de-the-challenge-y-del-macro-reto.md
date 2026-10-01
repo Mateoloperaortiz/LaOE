@@ -1,6 +1,6 @@
 # ADR-100: Puntos de The Challenge y del Macro reto
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-103)
 - Fecha: 2026-09-29
 - Relacionadas: ADR-089, ADR-098
 - Enmienda: ADR-089, regla 7: The Challenge da puntos por puesto, no por rúbrica, y se suma el Macro reto.
@@ -36,3 +36,7 @@ Ese mismo día, Mateo precisó cuándo se juega cada uno: The Challenge es el ju
 ## Verificación requerida
 
 No hay código nuevo. Los puntos directos ya tienen pruebas de integración: fijar el total inserta la diferencia y no duplica.
+
+## Enmienda (2026-10-01, ADR-103)
+
+Regla 1: el podio sigue siendo de la organización, pero ahora la casa ordena a los equipos con las notas de los jurados, cargadas junto a la extra «The Challenge». Cada jurado califica por aparte con la rúbrica; cada criterio es el promedio de los jurados y el total se lleva a 100. Las notas no dan puntos: la Dirección pone 2000, 1000 y 500 al podio en la misma extra. Ver [ADR-103](ADR-103-calificacion-de-the-challenge-por-jurados.md).
