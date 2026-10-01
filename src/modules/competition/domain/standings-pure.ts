@@ -1,5 +1,5 @@
 // Posiciones de The Games sin I/O (ADR-089 regla 6): se suman desde el libro de puntos y nunca se
-// guardan. No hay desempate: quien empata en el total comparte el puesto (1, 2, 2, 4) y el orden
+// guardan. La general suma además el saldo de apuestas de cada equipo (ADR-104). No hay desempate: quien empata en el total comparte el puesto (1, 2, 2, 4) y el orden
 // visual sigue el número del equipo.
 
 import type { Day } from "./schedule-pure";
@@ -45,12 +45,14 @@ function inScope(day: Day, scope: StandingsScope): boolean {
   return scope === "overall" || scope === day;
 }
 
-/** Tabla de un alcance: general, jornada 1 o jornada 2. Los equipos retirados no aparecen. */
+/** Tabla de un alcance: general, jornada 1 o jornada 2. Los equipos retirados no aparecen.
+ *  `credits` es el saldo de apuestas por equipo, y solo cuenta en la general (ADR-104). */
 export function computeStandings(
   teams: readonly StandingsTeam[],
   points: readonly PointRow[],
   results: readonly ResultRow[],
   scope: StandingsScope,
+  credits: ReadonlyMap<string, number> = new Map(),
 ): StandingRow[] {
   const rows = new Map<string, StandingRow>();
   for (const team of teams) {
@@ -72,6 +74,12 @@ export function computeStandings(
     if (!inScope(entry.day, scope)) continue;
     const row = rows.get(entry.teamId);
     if (row) row.points += entry.points;
+  }
+  if (scope === "overall") {
+    for (const [teamId, balance] of credits) {
+      const row = rows.get(teamId);
+      if (row) row.points += balance;
+    }
   }
   for (const result of results) {
     if (!inScope(result.day, scope)) continue;

@@ -20,8 +20,8 @@ import { lockAfterFailure, teamCodeMatches } from "./codes-pure";
 import { HUB_TERMS_VERSION, type HubSession } from "./hub-pure";
 import { openCompetition, writableCompetition } from "./setup";
 
-// Apuestas de The Games (ADR-091): puntos virtuales en un libro propio que no cuentan para el
-// ganador, apuestas que abre el operador y registra con el código del equipo, reparto por bolsa y un
+// Apuestas de The Games (ADR-091): puntos virtuales en un libro propio, cuyo saldo suma a la tabla
+// general (ADR-104), apuestas que abre el operador y registra con el código del equipo, reparto por bolsa y un
 // solo pago por apuesta. El capitán también apuesta desde el hub con su sesión (ADR-096), con el
 // mismo núcleo.
 

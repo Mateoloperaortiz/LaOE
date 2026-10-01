@@ -21,6 +21,7 @@ import {
   setMarketOpenAs,
   updateCompetitionSettingsAs,
 } from "@/modules/competition";
+import { HUB_TERMS_VERSION } from "@/modules/competition/domain/hub-pure";
 import { dayOneRounds } from "@/modules/competition/domain/schedule-pure";
 import { event, eventEdition } from "@/modules/events/schema";
 import { membership, person } from "@/modules/people/schema";
@@ -448,11 +449,11 @@ test.describe("hub de capitanes", () => {
       data: { code: formatTeamCode(team(1).code).toLowerCase() },
     });
     expect(terms.status()).toBe(409);
-    expect(await terms.json()).toEqual({ error: t("T-3120"), terms: 1 });
+    expect(await terms.json()).toEqual({ error: t("T-3120"), terms: HUB_TERMS_VERSION });
 
     const entered = await request.post(`${hub}/sesion`, {
       headers: json,
-      data: { code: formatTeamCode(team(1).code).toLowerCase(), accept: 1 },
+      data: { code: formatTeamCode(team(1).code).toLowerCase(), accept: HUB_TERMS_VERSION },
     });
     expect(entered.status()).toBe(200);
     expect(entered.headers()["set-cookie"]).toContain("HttpOnly");

@@ -568,6 +568,11 @@ export interface Standings {
 export async function listStandings(competitionId: string): Promise<Standings> {
   const db = getDb();
   const teams = await listTeams(competitionId);
+  // La general suma el saldo de apuestas mientras las apuestas estén prendidas (ADR-104).
+  const competition = await getCompetition(competitionId);
+  const credits = competition?.bettingEnabled
+    ? await creditBalances(competitionId)
+    : new Map<string, number>();
   const points = await db
     .select({
       teamId: competitionPointEntry.teamId,
@@ -604,7 +609,7 @@ export async function listStandings(competitionId: string): Promise<Standings> {
   const pointRows = points.map((row) => ({ ...row, day: row.day as Day }));
   const resultRows = results.map((row) => ({ ...row, day: row.day as Day }));
   return {
-    overall: computeStandings(standingsTeams, pointRows, resultRows, "overall"),
+    overall: computeStandings(standingsTeams, pointRows, resultRows, "overall", credits),
     day1: computeStandings(standingsTeams, pointRows, resultRows, 1),
     day2: computeStandings(standingsTeams, pointRows, resultRows, 2),
   };
