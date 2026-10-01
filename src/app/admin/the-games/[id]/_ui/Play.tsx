@@ -9,13 +9,20 @@ import type {
   Standings,
   TeamRow,
 } from "@/modules/competition";
-import { RUBRIC_MAX_SCORE, RUBRIC_MIN_SCORE, SCHEDULE_ISSUE_KINDS } from "@/modules/competition";
+import {
+  PODIUM_POINTS,
+  podiumTie,
+  RUBRIC_MAX_SCORE,
+  RUBRIC_MIN_SCORE,
+  SCHEDULE_ISSUE_KINDS,
+} from "@/modules/competition";
 import { Cronometro } from "@/modules/competition/components/Cronometro";
 import { ImportarJornada } from "@/modules/competition/components/ImportarJornada";
+import { ImportarJurado } from "@/modules/competition/components/ImportarJurado";
 import { Campo, Casilla, inputClass } from "@/shared/admin-kit/AdminFields";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
-import { importDayAction } from "../actions";
+import { importDayAction, importJuryAction } from "../actions";
 import { OperationForm, type PanelContext, Section, Submit, TeamChip } from "./shared";
 
 // El juego en vivo (ADR-089 reglas 6 a 9): calendario y rotaciones, la mesa de control de resultados,
@@ -609,6 +616,134 @@ function RubricTeams({
   );
 }
 
+/** Las notas de los jurados de una extra de puntos directos y el orden que dan (ADR-103). Las notas
+ *  no dan puntos: el podio lo pone la Dirección en los puntos de la extra, abajo. */
+function JuryBlock({
+  context,
+  extra,
+  teams,
+}: {
+  context: PanelContext;
+  extra: ExtraView;
+  teams: TeamRow[];
+}) {
+  const jury = extra.jury;
+  const levels = tList("T-2895");
+  const columns = tList("T-3175");
+  const byId = new Map(teams.map((team) => [team.id, team]));
+  const decimal = (value: number, digits: number) =>
+    value.toLocaleString("es-CO", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return (
+    <details className="mt-3 rounded-xl border border-borde p-3" open={jury !== null}>
+      <summary className="cursor-pointer font-semibold">{t("T-3163")}</summary>
+      <div className="mt-3 flex flex-col gap-4">
+        <ImportarJurado
+          competitionId={context.competitionId}
+          extraId={extra.id}
+          action={importJuryAction}
+          labels={{
+            help: t("T-3164"),
+            judge: t("T-3165"),
+            sheet: t("T-3166"),
+            submit: t("T-3167"),
+            pending: t("T-3020"),
+            blocked: t("T-2924"),
+            more: t("T-2922"),
+          }}
+        />
+        {jury ? (
+          <>
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              {jury.judges.map((judge) => (
+                <li key={judge.name} className="flex flex-wrap items-center gap-2">
+                  <span>{t("T-3174", { jurado: judge.name, equipos: judge.teams })}</span>
+                  <OperationForm
+                    context={context}
+                    operation="remove-jury"
+                    hidden={{ extraId: extra.id, judge: judge.name }}
+                  >
+                    <Submit>
+                      <span aria-hidden="true">{t("T-2830")}</span>
+                      <span className="sr-only">{t("T-3158", { nombre: judge.name })}</span>
+                    </Submit>
+                  </OperationForm>
+                </li>
+              ))}
+            </ul>
+            {podiumTie(jury.ranking) ? (
+              <output className="block font-semibold text-oe-orange">{t("T-3178")}</output>
+            ) : null}
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[44rem] border-collapse text-sm">
+                <caption className="mb-2 text-left font-semibold">{t("T-3180")}</caption>
+                <thead>
+                  <tr className="border-b border-borde text-left">
+                    {columns.map((column) => (
+                      <th key={column} scope="col" className="px-2 py-1 font-semibold">
+                        {column}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {jury.ranking.map((row) => {
+                    const team = byId.get(row.teamId);
+                    const podium =
+                      row.rank !== null && row.rank <= PODIUM_POINTS.length
+                        ? PODIUM_POINTS[row.rank - 1]
+                        : undefined;
+                    return (
+                      <tr key={row.teamId} className="border-b border-borde align-top">
+                        <td className="whitespace-nowrap px-2 py-1 tabular-nums">
+                          {row.rank ?? "—"}
+                          {row.tied ? (
+                            <span className="ml-1 rounded-full bg-oe-yellow-soft px-2 text-xs font-semibold text-oe-navy">
+                              {t("T-3176")}
+                            </span>
+                          ) : null}
+                        </td>
+                        <th
+                          scope="row"
+                          className="whitespace-nowrap px-2 py-1 text-left font-normal"
+                        >
+                          {team ? `${team.number} ${team.name}` : ""}
+                          {podium !== undefined ? (
+                            <span className="ml-1 block text-xs font-semibold">
+                              {t("T-3177", { puntos: podium.toLocaleString("es-CO") })}
+                            </span>
+                          ) : null}
+                        </th>
+                        {(row.averages ?? [null, null, null, null, null]).map((value, index) => (
+                          <td
+                            // biome-ignore lint/suspicious/noArrayIndexKey: los criterios van en orden fijo.
+                            key={index}
+                            className="px-2 py-1 tabular-nums"
+                          >
+                            {value === null ? "—" : decimal(value, 1)}
+                          </td>
+                        ))}
+                        <td className="whitespace-nowrap px-2 py-1 font-semibold tabular-nums">
+                          {row.total === null ? "—" : decimal(row.total, 2)}
+                        </td>
+                        <td className="whitespace-nowrap px-2 py-1">
+                          {row.level ? (levels[LEVEL_ORDER.indexOf(row.level)] ?? "") : "—"}
+                        </td>
+                        <td className="px-2 py-1 tabular-nums">{row.judges}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <p className="text-tinta-suave">{t("T-3179")}</p>
+        )}
+      </div>
+    </details>
+  );
+}
+
 export function Extras({
   context,
   extras,
@@ -642,32 +777,35 @@ export function Extras({
           {extra.rubric ? (
             <RubricTeams context={context} extra={extra} teams={active} />
           ) : (
-            <ul className="m-0 mt-3 flex list-none flex-col divide-y divide-borde p-0">
-              {active.map((team) => (
-                <li key={team.id} className="py-2">
-                  <OperationForm
-                    context={context}
-                    operation="extra-points"
-                    hidden={{ extraId: extra.id, teamId: team.id }}
-                    className="flex flex-wrap items-end gap-3"
-                  >
-                    <span className="min-w-48">
-                      <TeamChip team={team} />
-                    </span>
-                    <Campo id={`extra-${extra.id}-${team.id}`} label={t("T-2856")}>
-                      <input
-                        id={`extra-${extra.id}-${team.id}`}
-                        name="total"
-                        type="number"
-                        className={`${inputClass} w-32`}
-                        defaultValue={extra.totals.get(team.id) ?? 0}
-                      />
-                    </Campo>
-                    <Submit>{t("T-253")}</Submit>
-                  </OperationForm>
-                </li>
-              ))}
-            </ul>
+            <>
+              <JuryBlock context={context} extra={extra} teams={active} />
+              <ul className="m-0 mt-3 flex list-none flex-col divide-y divide-borde p-0">
+                {active.map((team) => (
+                  <li key={team.id} className="py-2">
+                    <OperationForm
+                      context={context}
+                      operation="extra-points"
+                      hidden={{ extraId: extra.id, teamId: team.id }}
+                      className="flex flex-wrap items-end gap-3"
+                    >
+                      <span className="min-w-48">
+                        <TeamChip team={team} />
+                      </span>
+                      <Campo id={`extra-${extra.id}-${team.id}`} label={t("T-2856")}>
+                        <input
+                          id={`extra-${extra.id}-${team.id}`}
+                          name="total"
+                          type="number"
+                          className={`${inputClass} w-32`}
+                          defaultValue={extra.totals.get(team.id) ?? 0}
+                        />
+                      </Campo>
+                      <Submit>{t("T-253")}</Submit>
+                    </OperationForm>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </details>
       ))}
