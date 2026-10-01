@@ -1,5 +1,5 @@
 // Posiciones de The Games sin I/O (ADR-089 regla 6): se suman desde el libro de puntos y nunca se
-// guardan. La general suma además el saldo de apuestas de cada equipo (ADR-104). No hay desempate: quien empata en el total comparte el puesto (1, 2, 2, 4) y el orden
+// guardan. La general suma además los puntos de apuestas de cada equipo (ADR-104). No hay desempate: quien empata en el total comparte el puesto (1, 2, 2, 4) y el orden
 // visual sigue el número del equipo.
 
 import type { Day } from "./schedule-pure";
@@ -46,7 +46,7 @@ function inScope(day: Day, scope: StandingsScope): boolean {
 }
 
 /** Tabla de un alcance: general, jornada 1 o jornada 2. Los equipos retirados no aparecen.
- *  `credits` es el saldo de apuestas por equipo, y solo cuenta en la general (ADR-104). */
+ *  `credits` son los puntos de apuestas de cada equipo, y solo cuentan en la general (ADR-104). */
 export function computeStandings(
   teams: readonly StandingsTeam[],
   points: readonly PointRow[],

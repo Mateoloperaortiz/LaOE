@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, ne, notInArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { listSubmissions } from "@/modules/forms";
 import { getPeopleByIds } from "@/modules/people";
@@ -568,10 +568,10 @@ export interface Standings {
 export async function listStandings(competitionId: string): Promise<Standings> {
   const db = getDb();
   const teams = await listTeams(competitionId);
-  // La general suma el saldo de apuestas mientras las apuestas estén prendidas (ADR-104).
+  // La general suma los puntos de apuestas mientras las apuestas estén prendidas (ADR-104).
   const competition = await getCompetition(competitionId);
   const credits = competition?.bettingEnabled
-    ? await creditBalances(competitionId)
+    ? await standingCredits(competitionId)
     : new Map<string, number>();
   const points = await db
     .select({
@@ -947,6 +947,32 @@ export async function creditBalances(competitionId: string): Promise<Map<string,
     })
     .from(competitionCreditEntry)
     .where(eq(competitionCreditEntry.competitionId, competitionId))
+    .groupBy(competitionCreditEntry.teamId);
+  return new Map(rows.map((row) => [row.teamId, row.total]));
+}
+
+/** Los puntos de apuestas que cada equipo suma a la general (ADR-104): el saldo, sin descontar lo
+ *  apostado en apuestas que todavía no se resuelven ni se cancelan. Va en una sola consulta para que
+ *  una apuesta que entra durante la lectura no se cuente a medias. */
+async function standingCredits(competitionId: string): Promise<Map<string, number>> {
+  const rows = await getDb()
+    .select({
+      teamId: competitionCreditEntry.teamId,
+      total: sql<number>`sum(${competitionCreditEntry.amount})::int`,
+    })
+    .from(competitionCreditEntry)
+    .leftJoin(competitionBet, eq(competitionBet.id, competitionCreditEntry.betId))
+    .leftJoin(competitionMarket, eq(competitionMarket.id, competitionBet.marketId))
+    .where(
+      and(
+        eq(competitionCreditEntry.competitionId, competitionId),
+        or(
+          ne(competitionCreditEntry.kind, "STAKE"),
+          isNull(competitionMarket.status),
+          notInArray(competitionMarket.status, ["OPEN", "CLOSED"]),
+        ),
+      ),
+    )
     .groupBy(competitionCreditEntry.teamId);
   return new Map(rows.map((row) => [row.teamId, row.total]));
 }

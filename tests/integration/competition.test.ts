@@ -655,12 +655,13 @@ describe("The Games", () => {
       expect(refunds).toHaveLength(1);
     });
 
-    it("la general suma el saldo de apuestas mientras estén prendidas (ADR-104)", async () => {
+    it("la general suma los puntos de apuestas sin descontar las que siguen abiertas (ADR-104)", async () => {
       const { id, actor, teamIds, code, marketId } = await seedBetting();
-      const [t1 = "", , t3 = ""] = teamIds;
+      const [t1 = "", t2 = "", t3 = ""] = teamIds;
       const overall = async (teamId: string) =>
         (await listStandings(id)).overall.find((row) => row.teamId === teamId)?.points;
       expect(await overall(t1)).toBe(1000);
+      // Lo apostado sigue contando mientras la apuesta no se resuelva, aunque ya esté cerrada.
       await placeBetAs(actor, id, {
         marketId,
         teamId: t3,
@@ -668,6 +669,21 @@ describe("The Games", () => {
         stake: 300,
         code: code(t3),
       });
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t1,
+        pickTeamId: t2,
+        stake: 200,
+        code: code(t1),
+      });
+      expect((await creditBalances(id)).get(t3)).toBe(700);
+      expect(await overall(t3)).toBe(1000);
+      await setMarketOpenAs(actor, id, marketId, false);
+      expect(await overall(t1)).toBe(1000);
+      // Al resolver, la general queda en el saldo: t1 acertó y se lleva la bolsa de t3.
+      await resolveMarketAs(actor, id, marketId, t2);
+      expect(await overall(t1)).toBe(1300);
+      expect(await overall(t2)).toBe(1000);
       expect(await overall(t3)).toBe(700);
       expect((await listStandings(id)).day1.every((row) => row.points === 0)).toBe(true);
       await updateCompetitionSettingsAs(actor, id, {
@@ -675,7 +691,7 @@ describe("The Games", () => {
         bettingEnabled: false,
         startingCredits: 1000,
       });
-      expect(await overall(t3)).toBe(0);
+      expect(await overall(t1)).toBe(0);
     });
 
     describe("hub de capitanes (ADR-096)", () => {
