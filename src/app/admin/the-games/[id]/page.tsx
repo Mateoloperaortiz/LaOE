@@ -4,6 +4,7 @@ import { single } from "@/app/_lib/search";
 import {
   creditBalances,
   getLiveRotations,
+  getRecordingTracker,
   getRotation,
   getScheduleForValidation,
   listAnnouncements,
@@ -33,9 +34,10 @@ import { Anuncios, Apuestas } from "./_ui/Community";
 import { Extras, Posiciones, Resultados, Rotaciones } from "./_ui/Play";
 import { Poderes } from "./_ui/Powers";
 import { Bases, Equipos, Personal, Resumen } from "./_ui/Setup";
+import { Seguimiento } from "./_ui/Tracking";
 
 // Panel del operador de The Games (ADR-089, ADR-091): una pestaña por área, como la ficha de un
-// macroevento. Solo se leen los datos de la pestaña abierta.
+// macroevento. Solo se leen los datos de la pestaña abierta. Seguimiento va de última (ADR-105).
 
 const AREAS = [
   "resumen",
@@ -49,6 +51,7 @@ const AREAS = [
   "anuncios",
   "apuestas",
   "poderes",
+  "seguimiento",
 ] as const;
 type Area = (typeof AREAS)[number];
 
@@ -188,6 +191,15 @@ export default async function CompetitionPage({
     body = <Anuncios context={context} announcements={await listAnnouncements(id)} />;
   } else if (area === "poderes") {
     body = <Poderes context={context} board={await listPowerBoard(id)} />;
+  } else if (area === "seguimiento") {
+    const jornada = single(search.jornada);
+    const day = jornada === "1" ? 1 : jornada === "2" ? 2 : null;
+    body = (
+      <>
+        <Actualizador intervalMs={15_000} />
+        <Seguimiento tracker={await getRecordingTracker(id, day)} />
+      </>
+    );
   } else {
     const [markets, teams, balances] = await Promise.all([
       listMarkets(id),

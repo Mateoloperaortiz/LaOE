@@ -1,6 +1,6 @@
 # ADR-089: The Games: competencia por equipos de Días EAFIT
 
-- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098, ADR-100, ADR-101 y ADR-104); implementación en curso
+- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098, ADR-100, ADR-101, ADR-104 y ADR-106); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-002, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014, ADR-020, ADR-036, ADR-047, ADR-058, ADR-064, ADR-072, ADR-075, ADR-082, ADR-085, ADR-090, ADR-091
 - Enmienda: ADR-011 (el cargo de Dirección de The Games habilita, por datos, la operación de la competencia de su edición), ADR-064 (esa entrega no ampliaba permisos por cargo: este lo hace, con alcance cerrado)
@@ -113,3 +113,7 @@ Regla 10: el personal de cada jornada también se carga desde la hoja del GAP de
 ## Enmienda (2026-10-01, ADR-104)
 
 El ganador ya no sale solo de los enfrentamientos y de las competencias extra: la tabla general también suma el saldo de apuestas de cada equipo (ADR-091). Ver [ADR-104](ADR-104-las-apuestas-suman-a-la-tabla-general.md).
+
+## Enmienda (2026-10-02, ADR-106)
+
+Regla 10: el juez registra el resultado de su base una sola vez, después de confirmarlo en un aviso. Si repite el mismo resultado no cambia nada, y otro se rechaza: cambiarlo es de la operación, que lo corrige o lo anula en la mesa de control. Ver [ADR-106](ADR-106-la-base-empieza-con-la-rotacion.md).

@@ -465,9 +465,9 @@ export async function judgeResultAction(form: FormData): Promise<void> {
 
 const JUDGE_POWER_OPERATIONS = ["declare", "withdraw", "start"] as const;
 
-/** Poderes en la pantalla del juez (ADR-098): registrar la tarjeta que le entregan, quitarla antes de
- *  empezar y empezar la base. El dominio limita a su base y comprueba cada regla; la vuelta es a su
- *  pantalla, al enfrentamiento. */
+/** Poderes en la pantalla del juez (ADR-098, ADR-106): registrar la tarjeta que le entregan, quitarla
+ *  antes de confirmar y confirmar los poderes (la operación `start`). El dominio limita a su base y
+ *  comprueba cada regla; la vuelta es a su pantalla, al enfrentamiento. */
 export async function judgePowerAction(form: FormData): Promise<void> {
   const competitionId = cuid.safeParse(formText(form, "competitionId"));
   if (!competitionId.success) redirect("/admin");

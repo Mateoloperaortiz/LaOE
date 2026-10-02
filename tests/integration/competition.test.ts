@@ -235,6 +235,47 @@ describe("The Games", () => {
       ).rejects.toThrow(t("T-2764"));
       expect((await competitionRoles(member(judgeId), id)).judgeBaseIds).toEqual([bases[1][0]]);
     });
+
+    it("el juez registra una sola vez y cambiarlo es de la operación (ADR-106)", async () => {
+      const { id, adminId } = await seedCompetition();
+      const { bases } = await seedField(id, adminId);
+      const judgeId = await seedMember("juez-bloqueo@example.com");
+      await assignStaffAs(admin(adminId), id, {
+        personId: judgeId,
+        role: "JUDGE",
+        baseId: bases[1][0],
+      });
+      await generateDayScheduleAs(admin(adminId), id, {
+        day: 1,
+        rotations: 15,
+        plannedMinutes: 20,
+      });
+      const pending = await getLiveRotations(id);
+      const own = pending.next?.matchups.find((m) => m.base.id === bases[1][0]);
+      if (!own || !pending.next) throw new Error("sin calendario");
+      await startRotationAs(admin(adminId), id, pending.next.id);
+      const judge = member(judgeId);
+
+      const first = await recordResultAs(judge, id, { matchupId: own.id, outcome: "A_WIN" });
+      // Un doble toque no falla ni cambia nada; otro resultado se rechaza.
+      expect(await recordResultAs(judge, id, { matchupId: own.id, outcome: "A_WIN" })).toEqual({
+        changed: false,
+        resultId: first.resultId,
+      });
+      await expect(
+        recordResultAs(judge, id, { matchupId: own.id, outcome: "DRAW" }),
+      ).rejects.toThrow(t("T-3200"));
+      const corrected = await recordResultAs(admin(adminId), id, {
+        matchupId: own.id,
+        outcome: "DRAW",
+      });
+      expect(corrected.changed).toBe(true);
+
+      // Si la operación lo anula con la rotación en curso, el líder lo vuelve a registrar.
+      await voidResultAs(admin(adminId), id, own.id);
+      const again = await recordResultAs(judge, id, { matchupId: own.id, outcome: "B_WIN" });
+      expect(again.changed).toBe(true);
+    });
   });
 
   describe("calendario y rotaciones", () => {

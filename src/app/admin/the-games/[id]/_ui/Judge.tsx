@@ -1,5 +1,6 @@
 import {
   type JudgeMatchupPowers,
+  judgeStage,
   LATE_START_SECONDS,
   type MatchupView,
   type Outcome,
@@ -16,10 +17,10 @@ import { t, tList } from "@/shared/copy";
 import { formatTime } from "@/shared/lib/dates";
 import { judgePowerAction, judgeResultAction } from "../actions";
 
-// Un enfrentamiento en la pantalla del líder de base (ADR-089 regla 10 y ADR-098). Antes de empezar:
-// las tarjetas que recibe y «Empezar la base». En juego: los avisos de los poderes y los botones de
-// resultado, cada uno con el resultado oficial que dejaría. Con resultado: la cancha, el oficial y los
-// puntos. En una inflable, o si nadie tiene tarjetas, los botones salen de una vez.
+// Un enfrentamiento en la pantalla del líder de base (ADR-089 regla 10, ADR-098 y ADR-106). La base
+// empieza con la rotación: mientras los poderes sigan abiertos, el líder registra las tarjetas que
+// recibe y los confirma con un aviso. Cada resultado pide confirmar, con el oficial que dejaría, y queda
+// bloqueado para el líder. Si alguien registró un poder, se confirma antes del resultado.
 
 const points = (value: number) => value.toLocaleString("es-CO");
 const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
@@ -82,9 +83,13 @@ export function JudgeMatchup({
   const rivalOf = (side: PowerSide) => (side === "A" ? matchup.teamB : matchup.teamA);
   const uses = powers?.uses ?? [];
   const normal = matchup.base.kind === "NORMAL";
-  const started = matchup.startedAt !== null || matchup.outcome !== null;
-  const anyAvailable = (powers?.available.A.length ?? 0) + (powers?.available.B.length ?? 0) > 0;
-  const beforeStart = normal && !started && (uses.length > 0 || anyAvailable);
+  const stage = judgeStage({
+    normal,
+    powersClosed: matchup.startedAt !== null,
+    recorded: matchup.outcome !== null,
+    declared: uses.length,
+    available: (powers?.available.A.length ?? 0) + (powers?.available.B.length ?? 0),
+  });
   const resultOf = (outcome: Outcome) =>
     lowerFirst(
       outcome === "DRAW"
@@ -96,6 +101,7 @@ export function JudgeMatchup({
     { outcome: "DRAW" as const, label: t("T-2847") },
     { outcome: "B_WIN" as const, label: t("T-2846", { equipo: matchup.teamB.name }) },
   ];
+  const recorded = options.find((option) => option.outcome === matchup.outcome);
   const base = { competitionId, matchupId: matchup.id };
   const detail = matchup.powerDetail;
   return (
@@ -111,7 +117,7 @@ export function JudgeMatchup({
       <Team team={matchup.teamA} />
       <Team team={matchup.teamB} />
 
-      {beforeStart ? (
+      {stage.powers ? (
         <>
           <section className="flex flex-col gap-4" aria-labelledby={`poderes-${matchup.id}`}>
             <h3 id={`poderes-${matchup.id}`} className="font-semibold">
@@ -188,7 +194,7 @@ export function JudgeMatchup({
               {t("T-3104")}
             </summary>
             <div className="mt-3 flex flex-col gap-3">
-              <p>{t("T-3105")}</p>
+              <p className="font-semibold">{t("T-3105")}</p>
               <form action={judgePowerAction}>
                 <Hidden values={{ ...base, operation: "start" }} />
                 <AdminSubmitButton className="boton-primario min-h-11 w-full">
@@ -200,7 +206,7 @@ export function JudgeMatchup({
         </>
       ) : (
         <>
-          {matchup.startedAt ? (
+          {matchup.startedAt && !matchup.outcome ? (
             <p className="text-sm text-tinta-suave">
               {t("T-3107", { hora: formatTime(matchup.startedAt) })}
             </p>
@@ -249,23 +255,26 @@ export function JudgeMatchup({
                 {t("T-3110", { equipo: rivalOf(use.side).name })}
               </p>
             ))}
-          <div className="flex flex-col gap-3">
-            {options.map((option) => {
-              const preview = powers?.preview?.[option.outcome];
-              return (
-                <form
-                  key={option.outcome}
-                  action={judgeResultAction}
-                  className="flex flex-col gap-1"
-                >
-                  <Hidden values={{ ...base, outcome: option.outcome, label: option.label }} />
-                  <AdminSubmitButton
-                    className={`${matchup.outcome === option.outcome ? "boton-primario" : "boton-secundario"} min-h-14 w-full text-lg`}
-                  >
-                    {option.label}
-                  </AdminSubmitButton>
+        </>
+      )}
+
+      {stage.confirmFirst ? <p className="font-semibold">{t("T-3201")}</p> : null}
+
+      {stage.results ? (
+        <div className="flex flex-col gap-3">
+          {options.map((option) => {
+            const preview = powers?.preview?.[option.outcome];
+            return (
+              <details key={option.outcome} name={`resultado-${matchup.id}`}>
+                <summary className="boton-secundario flex min-h-14 w-full cursor-pointer items-center justify-center text-lg">
+                  {option.label}
+                </summary>
+                <div className="mt-2 flex flex-col gap-3 rounded-lg border-2 border-oe-orange p-3">
+                  <p className="font-semibold">
+                    {t("T-3196", { resultado: resultOf(option.outcome) })}
+                  </p>
                   {preview ? (
-                    <p className="text-sm text-tinta-suave">
+                    <p className="text-sm">
                       {t("T-3111", {
                         resultado: resultOf(preview.official),
                         puntosA: points(preview.points.a),
@@ -273,37 +282,51 @@ export function JudgeMatchup({
                       })}
                     </p>
                   ) : null}
-                </form>
-              );
+                  {stage.powers ? <p className="text-sm">{t("T-3197")}</p> : null}
+                  <form action={judgeResultAction}>
+                    <Hidden values={{ ...base, outcome: option.outcome, label: option.label }} />
+                    <AdminSubmitButton className="boton-primario min-h-14 w-full text-lg">
+                      {t("T-3198")}
+                    </AdminSubmitButton>
+                  </form>
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {stage.locked && recorded ? (
+        <p className="rounded-lg border-2 border-titulo px-3 py-2 font-semibold">
+          {t("T-3199", { resultado: recorded.label })}
+        </p>
+      ) : null}
+
+      {detail ? (
+        <div className="flex flex-col gap-1 rounded-lg bg-oe-yellow-soft px-3 py-2 text-oe-navy">
+          <p className="font-semibold">
+            {t("T-3112", {
+              cancha: resultOf(detail.sporting),
+              oficial: resultOf(detail.official),
             })}
-          </div>
-          {detail ? (
-            <div className="flex flex-col gap-1 rounded-lg bg-oe-yellow-soft px-3 py-2 text-oe-navy">
-              <p className="font-semibold">
-                {t("T-3112", {
-                  cancha: resultOf(detail.sporting),
-                  oficial: resultOf(detail.official),
-                })}
+          </p>
+          {(["A", "B"] as const).map((side) => {
+            const row = detail.teams[side];
+            return (
+              <p key={side}>
+                {row.bonus > 0
+                  ? t("T-3113", {
+                      equipo: teams[side].name,
+                      total: points(row.total),
+                      base: points(row.base),
+                      bono: points(row.bonus),
+                    })
+                  : t("T-3114", { equipo: teams[side].name, total: points(row.total) })}
               </p>
-              {(["A", "B"] as const).map((side) => {
-                const row = detail.teams[side];
-                return (
-                  <p key={side}>
-                    {row.bonus > 0
-                      ? t("T-3113", {
-                          equipo: teams[side].name,
-                          total: points(row.total),
-                          base: points(row.base),
-                          bono: points(row.bonus),
-                        })
-                      : t("T-3114", { equipo: teams[side].name, total: points(row.total) })}
-                  </p>
-                );
-              })}
-            </div>
-          ) : null}
-        </>
-      )}
+            );
+          })}
+        </div>
+      ) : null}
     </section>
   );
 }

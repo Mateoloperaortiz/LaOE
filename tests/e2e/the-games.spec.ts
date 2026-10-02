@@ -140,6 +140,18 @@ test.describe("operador", () => {
     expect(recorrido.team).toMatchObject({ number: 1, name: "Equipo sintético 1" });
     expect(recorrido.stops).toHaveLength(3);
     expect(recorrido.stops[0]).toMatchObject({ day: 1, rotation: 1, result: "WIN" });
+
+    // Seguimiento (ADR-105): la rotación en curso con una base registrada por la operación, en celular.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/admin/the-games/${id}?area=seguimiento`);
+    await expect(page.getByText(t("T-3182", { registradas: 1, total: 3 }))).toBeVisible();
+    await expect(page.getByText(t("T-3183")).first()).toBeVisible();
+    await expect(page.getByText(tList("T-3187")[1] ?? "").first()).toBeVisible();
+    await expect(page.getByText(t("T-3189"))).toBeVisible();
+    await expect(
+      page.getByRole("table", { name: `${t("T-3190")} · ${t("T-2825", { dia: 1 })}` }),
+    ).toBeVisible();
+    await sinViolaciones(page);
   });
 });
 
@@ -239,8 +251,14 @@ test.describe("juez", () => {
     await expect(page).toHaveURL(new RegExp(`/admin/the-games/${id}/juez`));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("T-2875"));
     await sinViolaciones(page);
-    await page.getByRole("button", { name: t("T-2847") }).click();
+    // ADR-106: cada resultado pide confirmar y después queda bloqueado para el líder.
+    await page.getByText(t("T-2847"), { exact: true }).click();
+    await expect(page.getByText(t("T-3196", { resultado: "empate" }))).toBeVisible();
+    await sinViolaciones(page);
+    await page.getByRole("button", { name: t("T-3198") }).click();
     await expect(page.getByText(t("T-2879", { resultado: t("T-2847") }))).toBeVisible();
+    await expect(page.getByText(t("T-3199", { resultado: t("T-2847") }))).toBeVisible();
+    await expect(page.getByText(t("T-2847"), { exact: true })).toHaveCount(0);
   });
 });
 
@@ -251,7 +269,7 @@ test.describe("poderes", () => {
       viewport: { width: 390, height: 844 },
     });
 
-    test("registra las tarjetas, empieza la base y la cuenta del minuto sigue al recargar", async ({
+    test("registra las tarjetas, confirma los poderes y la cuenta del minuto sigue al recargar", async ({
       page,
     }) => {
       const { id, admin, bases } = await seedCompetition("the-games-poderes");
@@ -277,6 +295,8 @@ test.describe("poderes", () => {
       await expect(
         page.getByText(t("T-3115", { poder: x2 ?? "", equipo: "Equipo sintético 1" })),
       ).toBeVisible();
+      // Con un poder registrado, el resultado espera a que se confirmen los poderes (ADR-106).
+      await expect(page.getByText(t("T-3201"))).toBeVisible();
       await page.getByText(t("T-3098", { poder: tarde ?? "", n: 1 }), { exact: true }).click();
       await page.getByRole("button", { name: t("T-3101") }).click();
       await page.getByText(t("T-3104"), { exact: true }).click();
@@ -293,9 +313,8 @@ test.describe("poderes", () => {
       expect(await seconds()).toBeLessThanOrEqual(before);
       await sinViolaciones(page);
 
-      await page
-        .getByRole("button", { name: t("T-2846", { equipo: "Equipo sintético 1" }) })
-        .click();
+      await page.getByText(t("T-2846", { equipo: "Equipo sintético 1" }), { exact: true }).click();
+      await page.getByRole("button", { name: t("T-3198") }).click();
       await expect(
         page.getByText(
           t("T-3113", {

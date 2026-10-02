@@ -1,6 +1,6 @@
-// API pública del módulo competition (ADR-089 a ADR-091, ADR-095, ADR-098 y ADR-101): The Games, la
-// competencia por equipos de Días EAFIT, sus apuestas, sus capitanes, sus poderes y el personal de
-// cada base. Lo usan src/app y nadie más.
+// API pública del módulo competition (ADR-089 a ADR-091, ADR-095, ADR-098, ADR-101 y ADR-105): The
+// Games, la competencia por equipos de Días EAFIT, sus apuestas, sus capitanes, sus poderes, el
+// personal de cada base y el seguimiento del registro. Lo usan src/app y nadie más.
 export {
   type CompetitionActor,
   type CompetitionRoles,
@@ -28,6 +28,7 @@ export {
   type HubState,
   hubStateSchema,
 } from "./domain/hub-pure";
+export { type JudgeStage, judgeStage } from "./domain/judge-pure";
 export { type JuryTeamResult, PODIUM_POINTS, podiumTie } from "./domain/jury-pure";
 export type { PlaceBetResult } from "./domain/markets";
 export type { RotationMatchupsResult } from "./domain/play";
@@ -117,3 +118,5 @@ export { clearShowcaseMemo, getShowcase } from "./domain/showcase";
 export { SHOWCASE_VERSION, type Showcase, showcaseSchema } from "./domain/showcase-pure";
 export { dayName, type ImportStaffResult, type StaffPreviewBase } from "./domain/staff-import";
 export type { StandingRow } from "./domain/standings-pure";
+export { getRecordingTracker, type RecordingTracker, type TrackerBase } from "./domain/tracking";
+export type { BaseState, DelayRow, JudgeNudge, RecordedBy } from "./domain/tracking-pure";

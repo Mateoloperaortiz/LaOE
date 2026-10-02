@@ -2436,7 +2436,7 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2802 | The Games: Campos de la competencia | Edición · Dirección (por ejemplo, the-games-2026) · Nombre · Es de ensayo | MATEO | Propuesta |
 | T-2803 | The Games: Crear competencia | Crear competencia | MATEO | Propuesta |
 | T-2804 | The Games: Estados | Borrador · En vivo · Terminada · Archivada | MATEO | Propuesta |
-| T-2805 | The Games: Pestañas | Resumen · Equipos · Bases · Personal · Rotaciones · Resultados · Posiciones · Extras · Anuncios · Apuestas · Poderes | MATEO | Propuesta |
+| T-2805 | The Games: Pestañas | Resumen · Equipos · Bases · Personal · Rotaciones · Resultados · Posiciones · Extras · Anuncios · Apuestas · Poderes · Seguimiento | MATEO | Propuesta |
 | T-2806 | The Games: Campos de ajustes | Nombre · Fecha de la jornada 1 · Fecha de la jornada 2 · Formulario de inscripción · Apuestas activas · Puntos iniciales de apuestas · Un equipo puede apostar por sí mismo | MATEO | Propuesta |
 | T-2807 | The Games: Guardar ajustes | Guardar ajustes | MATEO | Propuesta |
 | T-2808 | The Games: Cambiar estado | Volver a borrador · Poner en vivo · Terminar · Archivar | MATEO | Propuesta |
@@ -2611,20 +2611,20 @@ Los textos del reparto, la pantalla del líder de base y el panel de Poderes. Lo
 | T-3047 | The Games: Efectos de un poder | Tuvo efecto · Lo anuló un Cancelar poder · Sin efecto · Se anuló con el del rival | MATEO | Propuesta |
 | T-3048 | The Games: Jornadas | Jueves · Viernes | MATEO | Propuesta |
 | T-3049 | The Games: Poderes en inflables | En las bases inflables no se usan poderes. | MATEO | Propuesta |
-| T-3050 | The Games: Poder con la base empezada | Esta base ya empezó: los poderes se registran antes. | MATEO | Propuesta |
+| T-3050 | The Games: Poderes cerrados | Los poderes de esta base ya están cerrados. | MATEO | Propuesta |
 | T-3051 | The Games: Poder fuera de la rotación | Los poderes se registran con la rotación en curso. | MATEO | Propuesta |
 | T-3052 | The Games: Un poder por base | {equipo} ya usó {poder} en esta base: va una tarjeta por equipo en cada base. | MATEO | Propuesta |
 | T-3053 | The Games: Tarjeta sin entregar | {equipo} no tiene esa tarjeta entregada para hoy. Si la tiene en la mano, pedile a la operación que registre la entrega. | MATEO | Propuesta |
 | T-3054 | The Games: Poder de equipo retirado | Ese equipo está retirado de la competencia. | MATEO | Propuesta |
 | T-3055 | The Games: Anular tarjeta usada | Esa tarjeta ya se usó: primero revertí el uso. | MATEO | Propuesta |
-| T-3056 | The Games: Revertir después de empezar | Después de empezar la base, solo la operación revierte un poder. | MATEO | Propuesta |
+| T-3056 | The Games: Quitar con los poderes cerrados | Con los poderes cerrados, solo la operación quita un poder. | MATEO | Propuesta |
 | T-3057 | The Games: Motivo del poder | Escribí el motivo, de 2 a 200 caracteres. | MATEO | Propuesta |
-| T-3058 | The Games: Rotación con poderes | Esta rotación tiene poderes registrados o bases empezadas: ya no se puede editar. | MATEO | Propuesta |
+| T-3058 | The Games: Rotación con poderes | Esta rotación tiene poderes registrados o confirmados: ya no se puede editar. | MATEO | Propuesta |
 | T-3059 | The Games: Base con poderes a inflable | Esta base tiene poderes registrados: no puede pasar a inflable. | MATEO | Propuesta |
-| T-3060 | The Games: Empezar fuera de la rotación | La base solo puede empezar con la rotación en curso. | MATEO | Propuesta |
+| T-3060 | The Games: Confirmar fuera de la rotación | Los poderes solo se confirman con la rotación en curso. | MATEO | Propuesta |
 | T-3061 | The Games: Libro con poderes | Con poderes: {poderes} | MATEO | Propuesta |
 | T-3062 | The Games: Libro poder revertido | Poder revertido: {motivo} | MATEO | Propuesta |
-| T-3063 | The Games: Poder quitado antes de empezar | Quitado antes de empezar | MATEO | Propuesta |
+| T-3063 | The Games: Poder quitado antes de confirmar | Quitado antes de confirmar | MATEO | Propuesta |
 | T-3064 | The Games: Pegar el reparto | Cargar el reparto de poderes desde la hoja | MATEO | Propuesta |
 | T-3065 | The Games: Ayuda del reparto | Pegá tres columnas, Equipo, Poder y Jornada, con o sin encabezado. El equipo va por su número o su nombre; el poder, por el nombre de la tarjeta («Multiplicador x2», «Cambio de resultados», «Cancelar poder», «1 min tarde» o «Un jugador menos»); la jornada, «jueves» o «viernes». Cada equipo lleva 5 tarjetas, 2 un día y 3 el otro, y se pueden repetir. Entra todo o nada, y las tarjetas quedan por entregar. | MATEO | Propuesta |
 | T-3066 | The Games: Campo del reparto | Reparto (Equipo, Poder, Jornada) | MATEO | Propuesta |
@@ -2661,14 +2661,14 @@ Los textos del reparto, la pantalla del líder de base y el panel de Poderes. Lo
 | T-3097 | The Games: Sin tarjetas para hoy | Sin tarjetas entregadas para hoy. | MATEO | Propuesta |
 | T-3098 | The Games: Tipo con cantidad | {poder} · {n} | MATEO | Propuesta |
 | T-3099 | The Games: Confirmar tarjeta | ¿Recibiste la tarjeta «{poder}» de {equipo}? | MATEO | Propuesta |
-| T-3100 | The Games: Ayuda de confirmar tarjeta | Registrala solo con la tarjeta física en la mano. Después de empezar la base ya no se puede. | MATEO | Propuesta |
+| T-3100 | The Games: Ayuda de confirmar tarjeta | Registrala solo con la tarjeta física en la mano. Después de confirmar los poderes ya no se puede. | MATEO | Propuesta |
 | T-3101 | The Games: Sí, la recibí | Sí, la recibí | MATEO | Propuesta |
 | T-3102 | The Games: Tarjeta recibida | Recibida a las {hora} | MATEO | Propuesta |
 | T-3103 | The Games: Quitar poder | Quitar | MATEO | Propuesta |
-| T-3104 | The Games: Empezar la base | Empezar la base | MATEO | Propuesta |
-| T-3105 | The Games: Confirmar empezar | Después de empezar no se registran más poderes en esta base. | MATEO | Propuesta |
-| T-3106 | The Games: Sí, empezar | Sí, empezar | MATEO | Propuesta |
-| T-3107 | The Games: En juego | En juego desde las {hora} | MATEO | Propuesta |
+| T-3104 | The Games: Confirmar poderes | Confirmar poderes | MATEO | Propuesta |
+| T-3105 | The Games: Aviso de confirmar poderes | ¿Seguro? Después de confirmar no se pueden agregar ni quitar poderes en esta base. Si hay un error, llamá a la operación. | MATEO | Propuesta |
+| T-3106 | The Games: Sí, confirmar los poderes | Sí, confirmar los poderes | MATEO | Propuesta |
+| T-3107 | The Games: Poderes confirmados a las | Poderes confirmados a las {hora} | MATEO | Propuesta |
 | T-3108 | The Games: Cuenta del minuto | {equipo} empieza en | MATEO | Propuesta |
 | T-3109 | The Games: Fin del minuto | {equipo} ya puede empezar | MATEO | Propuesta |
 | T-3110 | The Games: Un jugador menos en la base | {equipo} juega toda la base con una persona menos. | MATEO | Propuesta |
@@ -2678,7 +2678,7 @@ Los textos del reparto, la pantalla del líder de base y el panel de Poderes. Lo
 | T-3114 | The Games: Puntos | {equipo}: {total} | MATEO | Propuesta |
 | T-3115 | The Games: Poder registrado | Poder registrado: {poder} de {equipo}. | MATEO | Propuesta |
 | T-3116 | The Games: Poder quitado | Poder quitado. | MATEO | Propuesta |
-| T-3117 | The Games: Base empezada | La base empezó. | MATEO | Propuesta |
+| T-3117 | The Games: Poderes confirmados | Poderes confirmados. | MATEO | Propuesta |
 | T-3118 | The Games: Poder de un equipo | {poder} de {equipo} | MATEO | Propuesta |
 | T-3119 | The Games: Campos de agregar tarjeta | Equipo · Poder · Jornada | MATEO | Propuesta |
 
@@ -2763,3 +2763,38 @@ La calificación de los jurados dentro de una extra de puntos directos. Las nota
 | T-3178 | The Games: Empate en el podio | Hay un empate en el podio: lo decide la organización. | MATEO | Propuesta |
 | T-3179 | The Games: Sin notas de jurados | Todavía no hay notas de jurados. | MATEO | Propuesta |
 | T-3180 | The Games: Orden de los jurados | Orden con el promedio de los jurados | MATEO | Propuesta |
+
+## Seguimiento del registro (ADR-105)
+
+Qué bases ya registraron, qué resultados se deben y quién se demora más, para la operación; y el aviso al líder cuando le falta registrar.
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-3181 | The Games: Ayuda del seguimiento | Qué bases ya registraron la rotación en curso, qué resultados se deben y quién se demora más. Se actualiza sola cada 15 segundos. | MATEO | Propuesta |
+| T-3182 | The Games: Bases que registraron | Registraron {registradas} de {total} bases | MATEO | Propuesta |
+| T-3183 | The Games: Base sin resultado | Falta | MATEO | Propuesta |
+| T-3184 | The Games: Base con poderes confirmados | Falta: poderes confirmados a las {hora} | MATEO | Propuesta |
+| T-3185 | The Games: Base registrada | Registrada a las {hora} | MATEO | Propuesta |
+| T-3186 | The Games: Minutos desde el inicio | a los {minutos} min | MATEO | Propuesta |
+| T-3187 | The Games: Quién registró | Lo registró el líder · Lo registró la operación | MATEO | Propuesta |
+| T-3188 | The Games: Resultados que se deben | Resultados que se deben | MATEO | Propuesta |
+| T-3189 | The Games: Sin deudas | No se debe ningún resultado de las rotaciones cerradas. | MATEO | Propuesta |
+| T-3190 | The Games: Quién se demora más | Quién se demora más | MATEO | Propuesta |
+| T-3191 | The Games: Cómo se mide la demora | Cuenta el primer registro de cada resultado, en minutos desde que empezó la rotación, y la base que registró de última en cada rotación cerrada. No separa un juego largo de un líder lento: sirve para saber a quién llamar. | MATEO | Propuesta |
+| T-3192 | The Games: Columnas de la demora | Base · Líder · Calificador · Por el líder · Por la operación · Deben · Mediana (min) · Veces última | MATEO | Propuesta |
+| T-3193 | The Games: Jornada sin rotaciones jugadas | La jornada {dia} todavía no tiene rotaciones jugadas. | MATEO | Propuesta |
+| T-3194 | The Games: Aviso al líder | Ya registraron {registradas} de {total} bases. Falta el resultado de {base}: registralo apenas termine el juego. | MATEO | Propuesta |
+| T-3195 | The Games: Deuda del líder | La rotación {n} se cerró sin el resultado de {base}. Pasáselo a la operación para que lo registre. | MATEO | Propuesta |
+
+## Base, poderes y resultado (ADR-106)
+
+La base empieza con la rotación; el líder confirma los poderes y el resultado con un aviso, y cambiar el resultado es de la operación. Los textos de «Empezar la base» (T-3104 a T-3107 y T-3117) pasaron a ser los de «Confirmar poderes».
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-3196 | The Games: Aviso de confirmar el resultado | ¿Seguro? Queda «{resultado}» y después no lo podés cambiar. Si hay un error, llamá a la operación. | MATEO | Propuesta |
+| T-3197 | The Games: El resultado cierra los poderes | Registrarlo también cierra los poderes de esta base. | MATEO | Propuesta |
+| T-3198 | The Games: Sí, registrar | Sí, registrar | MATEO | Propuesta |
+| T-3199 | The Games: Resultado bloqueado | Resultado registrado: {resultado}. Si hay un error, llamá a la operación. | MATEO | Propuesta |
+| T-3200 | The Games: El líder ya registró | El resultado de esta base ya está registrado. Si hay que cambiarlo, llamá a la operación. | MATEO | Propuesta |
+| T-3201 | The Games: Confirmar antes del resultado | Hay poderes registrados: confirmalos antes de registrar el resultado. | MATEO | Propuesta |

@@ -638,8 +638,8 @@ async function writeResult(
 }
 
 /** Registra el desenlace de la cancha. El mismo desenlace otra vez no cambia nada; uno distinto
- *  corrige. El juez registra solo en su base y en la rotación en curso (ADR-089 regla 10), y registrar
- *  también marca el inicio de la base, que cierra la declaración de poderes (ADR-098 regla 4). */
+ *  corrige, pero solo la operación: el juez registra una sola vez, en su base y en la rotación en curso
+ *  (ADR-089 regla 10, ADR-106). Registrar también cierra la declaración de poderes (ADR-098 regla 4). */
 export async function recordResult(
   ctx: CommandContext,
   actor: CompetitionActor,
@@ -664,6 +664,12 @@ export async function recordResult(
     .from(competitionResult)
     .where(and(eq(competitionResult.matchupId, matchup.id), isNull(competitionResult.supersededAt)))
     .limit(1);
+  // Registrado, el resultado queda bloqueado para el juez (ADR-106): repetirlo no hace nada (un doble
+  // toque) y cambiarlo es de la operación. Tampoco toca las notas que haya puesto la operación.
+  if (current && !operator) {
+    if (current.outcome === input.outcome) return { changed: false, resultId: current.id };
+    throw new DomainError(t("T-3200"));
+  }
   if (current && current.outcome === input.outcome) {
     if (current.notes !== input.notes) {
       await ctx.tx
@@ -693,8 +699,9 @@ export async function recordResult(
   return { changed: true, resultId: written.resultId };
 }
 
-/** El líder empieza su base (ADR-098 regla 4). Desde ahí no se registran poderes, y la cuenta de «El
- *  adversario empieza 1 min tarde» sale de esta hora. Empezar dos veces conserva la primera. */
+/** El líder confirma los poderes de su base (ADR-098 regla 4, ADR-106): la base ya empezó con la
+ *  rotación, y desde aquí no se registran poderes. La cuenta de «El adversario empieza 1 min tarde» sale
+ *  de esta hora. Confirmar dos veces conserva la primera. */
 export async function startMatchup(
   ctx: CommandContext,
   actor: CompetitionActor,
