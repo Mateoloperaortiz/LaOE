@@ -1,0 +1,1 @@
+ALTER TABLE "competition" ADD COLUMN "show_standings" boolean DEFAULT true NOT NULL;

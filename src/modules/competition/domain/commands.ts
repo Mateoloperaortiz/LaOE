@@ -88,6 +88,7 @@ import {
   setCompetitionStatus,
   setExtraPoints,
   setRubricScores,
+  setStandingsVisibility,
   setTeamStatus,
   type TeamInput,
   type TeamUpdateInput,
@@ -143,6 +144,8 @@ export const setCaptainsVisibilityAs = (actor: A, id: string, visible: boolean) 
   runCommand(actor, (ctx) => setCaptainsVisibility(ctx, actor, id, visible));
 export const clearCaptainsAs = (actor: A, id: string) =>
   runCommand(actor, (ctx) => clearCaptains(ctx, actor, id));
+export const setStandingsVisibilityAs = (actor: A, id: string, visible: boolean) =>
+  runCommand(actor, (ctx) => setStandingsVisibility(ctx, actor, id, visible));
 
 export const saveBaseAs = (actor: A, id: string, baseId: string | null, input: BaseInput) =>
   runCommand(actor, (ctx) => saveBase(ctx, actor, id, baseId, input));
