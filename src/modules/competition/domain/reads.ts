@@ -32,6 +32,8 @@ import { type RubricLevel, rubricLevel, rubricTotal, THE_CHALLENGE_RUBRIC } from
 import type { Day, ScheduleRotation } from "./schedule-pure";
 import type { BaseKind, Outcome } from "./scoring-pure";
 import { computeStandings, type StandingRow } from "./standings-pure";
+import { listJudgeDebts } from "./tracking";
+import { judgeNudges } from "./tracking-pure";
 
 // Lecturas de The Games para el área de administración y la vitrina. Quién puede leer qué lo decide
 // src/app; aquí no hay datos personales salvo el nombre del personal asignado y el nombre y el
@@ -796,7 +798,8 @@ export async function listAnnouncements(
 // --- Juez ----------------------------------------------------------------------------------------
 
 /** Lo que ve un juez: sus bases, los enfrentamientos de la rotación en curso en ellas y, en cada uno,
- *  los poderes registrados y las tarjetas disponibles (ADR-098). */
+ *  los poderes registrados y las tarjetas disponibles (ADR-098). También el aviso cuando le falta
+ *  registrar y las rotaciones cerradas que quedaron sin su resultado (ADR-105). */
 export async function judgeView(competitionId: string, personId: string) {
   const db = getDb();
   const own = await db
@@ -828,7 +831,28 @@ export async function judgeView(competitionId: string, personId: string) {
         })),
       )
     : new Map();
-  return { bases, current, next, currentMatchups, nextMatchups: mine(next), powers, crew };
+  const nudges = current
+    ? judgeNudges(
+        current.matchups.map((matchup) => ({
+          id: matchup.id,
+          baseId: matchup.base.id,
+          recorded: matchup.outcome !== null,
+        })),
+        baseIds,
+      )
+    : [];
+  const debts = await listJudgeDebts(baseIds);
+  return {
+    bases,
+    current,
+    next,
+    currentMatchups,
+    nextMatchups: mine(next),
+    powers,
+    crew,
+    nudges,
+    debts,
+  };
 }
 
 export interface BaseCrew {
