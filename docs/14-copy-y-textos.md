@@ -2436,7 +2436,7 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2802 | The Games: Campos de la competencia | Edición · Dirección (por ejemplo, the-games-2026) · Nombre · Es de ensayo | MATEO | Propuesta |
 | T-2803 | The Games: Crear competencia | Crear competencia | MATEO | Propuesta |
 | T-2804 | The Games: Estados | Borrador · En vivo · Terminada · Archivada | MATEO | Propuesta |
-| T-2805 | The Games: Pestañas | Resumen · Equipos · Bases · Personal · Rotaciones · Resultados · Posiciones · Extras · Anuncios · Apuestas · Poderes | MATEO | Propuesta |
+| T-2805 | The Games: Pestañas | Resumen · Equipos · Bases · Personal · Rotaciones · Resultados · Posiciones · Extras · Anuncios · Apuestas · Poderes · Seguimiento | MATEO | Propuesta |
 | T-2806 | The Games: Campos de ajustes | Nombre · Fecha de la jornada 1 · Fecha de la jornada 2 · Formulario de inscripción · Apuestas activas · Puntos iniciales de apuestas · Un equipo puede apostar por sí mismo | MATEO | Propuesta |
 | T-2807 | The Games: Guardar ajustes | Guardar ajustes | MATEO | Propuesta |
 | T-2808 | The Games: Cambiar estado | Volver a borrador · Poner en vivo · Terminar · Archivar | MATEO | Propuesta |
@@ -2763,3 +2763,25 @@ La calificación de los jurados dentro de una extra de puntos directos. Las nota
 | T-3178 | The Games: Empate en el podio | Hay un empate en el podio: lo decide la organización. | MATEO | Propuesta |
 | T-3179 | The Games: Sin notas de jurados | Todavía no hay notas de jurados. | MATEO | Propuesta |
 | T-3180 | The Games: Orden de los jurados | Orden con el promedio de los jurados | MATEO | Propuesta |
+
+## Seguimiento del registro (ADR-105)
+
+Qué bases ya registraron, qué resultados se deben y quién se demora más, para la operación; y el aviso al líder cuando le falta registrar.
+
+| Código | Dónde | Propuesta | Dueño | Estado |
+| --- | --- | --- | --- | --- |
+| T-3181 | The Games: Ayuda del seguimiento | Qué bases ya registraron la rotación en curso, qué resultados se deben y quién se demora más. Se actualiza sola cada 15 segundos. | MATEO | Propuesta |
+| T-3182 | The Games: Bases que registraron | Registraron {registradas} de {total} bases | MATEO | Propuesta |
+| T-3183 | The Games: Base sin empezar | Falta: sin empezar | MATEO | Propuesta |
+| T-3184 | The Games: Base en juego | Falta: en juego desde las {hora} | MATEO | Propuesta |
+| T-3185 | The Games: Base registrada | Registrada a las {hora} | MATEO | Propuesta |
+| T-3186 | The Games: Minutos desde el inicio | a los {minutos} min | MATEO | Propuesta |
+| T-3187 | The Games: Quién registró | Lo registró el líder · Lo registró la operación | MATEO | Propuesta |
+| T-3188 | The Games: Resultados que se deben | Resultados que se deben | MATEO | Propuesta |
+| T-3189 | The Games: Sin deudas | No se debe ningún resultado de las rotaciones cerradas. | MATEO | Propuesta |
+| T-3190 | The Games: Quién se demora más | Quién se demora más | MATEO | Propuesta |
+| T-3191 | The Games: Cómo se mide la demora | Cuenta el primer registro de cada resultado, en minutos desde que empezó la rotación, y la base que registró de última en cada rotación cerrada. No separa un juego largo de un líder lento: sirve para saber a quién llamar. | MATEO | Propuesta |
+| T-3192 | The Games: Columnas de la demora | Base · Líder · Calificador · Por el líder · Por la operación · Deben · Mediana (min) · Veces última | MATEO | Propuesta |
+| T-3193 | The Games: Jornada sin rotaciones jugadas | La jornada {dia} todavía no tiene rotaciones jugadas. | MATEO | Propuesta |
+| T-3194 | The Games: Aviso al líder | Ya registraron {registradas} de {total} bases. Falta el resultado de {base}: registralo apenas termine el juego. | MATEO | Propuesta |
+| T-3195 | The Games: Deuda del líder | La rotación {n} se cerró sin el resultado de {base}. Pasáselo a la operación para que lo registre. | MATEO | Propuesta |

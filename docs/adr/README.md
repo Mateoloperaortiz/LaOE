@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-105](ADR-105-seguimiento-del-registro-de-resultados.md) | Seguimiento del registro de resultados de The Games | Aceptada |
 | [ADR-104](ADR-104-las-apuestas-suman-a-la-tabla-general.md) | Los puntos de apuestas suman a la tabla general de The Games | Aceptada |
 | [ADR-103](ADR-103-calificacion-de-the-challenge-por-jurados.md) | Calificación de The Challenge por jurados | Aceptada |
 | [ADR-102](ADR-102-apoyo-de-la-base-en-licencia.md) | El apoyo de la base puede estar en licencia | Aceptada |
