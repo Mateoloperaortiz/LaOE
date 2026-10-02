@@ -327,8 +327,9 @@ export const competitionMatchup = pgTable(
       .notNull()
       .references(() => competitionTeam.id),
     source: competitionMatchupSource().notNull().default("GENERATED"),
-    /** Cuándo empezó la base (ADR-098 regla 4): lo marca el líder o el registro del resultado, y
-     *  desde ahí no se declaran poderes. */
+    /** Cuándo se cerraron los poderes de la base (ADR-098 regla 4, ADR-106): lo marca el líder al
+     *  confirmarlos o el registro del resultado, y desde ahí no se declaran poderes. La base en sí
+     *  empieza con la rotación. */
     startedAt: timestampTz(),
     startedById: text().references(() => person.id, { onDelete: "set null" }),
     createdAt: createdAt(),

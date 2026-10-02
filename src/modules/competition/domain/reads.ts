@@ -273,7 +273,7 @@ export interface MatchupView {
   official: Outcome | null;
   /** Con poderes, el desglose del resultado vigente. */
   powerDetail: PowerDetail | null;
-  /** Cuándo empezó la base (ADR-098 regla 4). */
+  /** Cuándo se cerraron los poderes (ADR-098 regla 4, ADR-106). */
   startedAt: Date | null;
   notes: string;
 }

@@ -19,7 +19,7 @@ export interface TrackingMatchup {
   id: string;
   rotationId: string;
   baseId: string;
-  /** Cuándo empezó la base (ADR-098 regla 4). */
+  /** Cuándo se cerraron los poderes (ADR-098 regla 4, ADR-106). */
   startedAt: Date | null;
   /** Si tiene un resultado vigente. */
   recorded: boolean;

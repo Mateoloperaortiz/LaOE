@@ -375,7 +375,16 @@ describe("personal desde la hoja del GAP", () => {
       recordResultAs(member(people.ana), id, { matchupId: matchup.id, outcome: "DRAW" }),
     ).rejects.toThrow(t("T-2764"));
     expect(await points()).toBe(1000);
-    await recordResultAs(member(people.nico), id, { matchupId: matchup.id, outcome: "DRAW" });
+    // El líder nuevo sí entra, pero tampoco cambia el resultado del anterior: eso es de la operación
+    // (ADR-106).
+    await expect(
+      recordResultAs(member(people.nico), id, { matchupId: matchup.id, outcome: "DRAW" }),
+    ).rejects.toThrow(t("T-3200"));
+    const again = await recordResultAs(member(people.nico), id, {
+      matchupId: matchup.id,
+      outcome: "A_WIN",
+    });
+    expect(again.changed).toBe(false);
   });
 
   it("el apoyo puede estar en licencia, sin acceso; un líder en licencia no pasa", async () => {
