@@ -1,6 +1,6 @@
 # ADR-098: Poderes de The Games
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-106)
 - Fecha: 2026-09-29
 - Relacionadas: ADR-012, ADR-072, ADR-082, ADR-089, ADR-090, ADR-091, ADR-096, ADR-097
 - Enmienda:
@@ -112,3 +112,7 @@ Todo sin un sistema de puntos paralelo y sin inventar reglas. Las reglas las con
 - **E2E:**
   - el líder declara, empieza la base, recarga sin perder la cuenta regresiva y registra el resultado;
   - la operación pega el reparto y lo entrega.
+
+## Enmienda (2026-10-02, ADR-106)
+
+Regla 4: el líder ya no empieza la base, porque la base empieza con la rotación. Los poderes se registran con la rotación en curso hasta que el líder toca «Confirmar poderes» y acepta el aviso, o hasta que registra el resultado; `startedAt` guarda ese momento, y de ahí sale la cuenta de «1 min tarde». Si algún equipo registró un poder, el líder lo confirma antes de ver el resultado. Ver [ADR-106](ADR-106-la-base-empieza-con-la-rotacion.md).

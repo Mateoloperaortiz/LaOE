@@ -2,7 +2,7 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-02
-- Relacionadas: ADR-014, ADR-089, ADR-090, ADR-098, ADR-101
+- Relacionadas: ADR-014, ADR-089, ADR-090, ADR-098, ADR-101, ADR-106
 
 ## Contexto
 
@@ -33,8 +33,8 @@ El viernes 2026-10-02, día de la jornada 2, Mateo pidió una lista de qué base
    - Se actualiza sola cada 15 segundos, como la mesa de control.
 
 2. **La rotación en curso.** Una fila por base: primero las que faltan y después en el orden de las bases. Arriba va cuántas bases ya registraron.
-   - **Falta, sin empezar:** la base no tiene resultado y el líder no la empezó.
-   - **Falta, en juego:** el líder la empezó, a tal hora, y todavía no hay resultado.
+   - **Falta:** la base no tiene resultado.
+   - **Falta, con poderes confirmados:** el líder confirmó los poderes, a tal hora, y todavía no hay resultado (ADR-106).
    - **Registrada:** la hora del primer registro, los minutos desde el inicio de la rotación y quién registró: el líder o la operación.
    - Cada fila trae el líder y el calificador de la base, **solo con nombres**. El celular sigue siendo solo de ADMIN (ADR-014).
 

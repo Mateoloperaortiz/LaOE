@@ -823,6 +823,7 @@ En producción, sin código:
 Durante el evento:
 
 - El operador avanza las rotaciones desde Rotaciones; los jueces registran desde `/admin/the-games/<id>/juez`, que se actualiza sola. Lo que quede sin resultado al cerrar aparece en la mesa de control como pendiente.
+- Desde ADR-106 la base empieza con la rotación: el líder no la empieza. Si recibe tarjetas, las registra y toca «Confirmar poderes»; si algún equipo registró un poder, lo confirma antes de ver el resultado. Cada resultado pide confirmar y queda bloqueado para el líder: si hay un error, llama a la operación, que lo corrige o lo anula en la mesa de control.
 - Para saber a quién llamar, la pestaña Seguimiento (ADR-105) muestra qué bases ya registraron la rotación en curso, los resultados que se deben de rotaciones cerradas y quién se demora más en cada jornada, con el líder y el calificador de cada base. No trae celulares. El líder que todavía no registra ve en su pantalla cuántas bases ya lo hicieron, y si una rotación cerrada quedó sin su resultado, que se lo pase a la operación.
 - Si un líder no registra nunca, revisar en Personal si sale «Sin contraseña»: sin ella no puede entrar, y todo lo de su base lo termina registrando la operación.
 - Para abrir la vitrina se pasa la competencia a `LIVE` y se pone su slug en `edition.theGames.slug` de `dias`, que se vuelve a desplegar. Mientras tanto, `dias.oeeafit.com/the-games/?c=<slug>` abre cualquier competencia pública, como el ensayo.

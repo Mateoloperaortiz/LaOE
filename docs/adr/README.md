@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-106](ADR-106-la-base-empieza-con-la-rotacion.md) | La base empieza con la rotación y el líder confirma poderes y resultado | Aceptada |
 | [ADR-105](ADR-105-seguimiento-del-registro-de-resultados.md) | Seguimiento del registro de resultados de The Games | Aceptada |
 | [ADR-104](ADR-104-las-apuestas-suman-a-la-tabla-general.md) | Los puntos de apuestas suman a la tabla general de The Games | Aceptada |
 | [ADR-103](ADR-103-calificacion-de-the-challenge-por-jurados.md) | Calificación de The Challenge por jurados | Aceptada |
@@ -20,7 +21,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-101](ADR-101-personal-de-the-games-desde-la-hoja-del-gap.md) | Personal de The Games desde la hoja del GAP | Aceptada (enmendada por ADR-102) |
 | [ADR-100](ADR-100-puntos-de-the-challenge-y-del-macro-reto.md) | Puntos de The Challenge y del Macro reto | Aceptada (enmendada por ADR-103) |
 | [ADR-099](ADR-099-instrucciones-del-hub-de-capitanes.md) | Instrucciones del hub de capitanes | Aceptada (enmendada por ADR-104) |
-| [ADR-098](ADR-098-poderes-de-the-games.md) | Poderes de The Games | Aceptada |
+| [ADR-098](ADR-098-poderes-de-the-games.md) | Poderes de The Games | Aceptada (enmendada por ADR-106) |
 | [ADR-097](ADR-097-recorrido-de-cada-equipo.md) | Recorrido de cada equipo en la vitrina y en el hub | Aceptada (enmendada por ADR-098) |
 | [ADR-096](ADR-096-hub-de-apuestas-de-los-capitanes.md) | Hub de capitanes en DÍAS con la API de la casa | Aceptada (enmendada por ADR-097, ADR-098 y ADR-099) |
 | [ADR-095](ADR-095-capitanes-de-the-games-desde-la-hoja-de-la-oe.md) | Capitanes de The Games desde la hoja de la OE | Aceptada |
@@ -29,7 +30,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-092](ADR-092-panal-corto-y-premios-por-avance.md) | Panal corto y premios por avance desde el 24 de septiembre | Aceptada; en producción desde el 24 a las 08:30 de Colombia |
 | [ADR-091](ADR-091-apuestas-de-the-games.md) | Apuestas de The Games con puntos virtuales | Aceptada (enmendada por ADR-096 y ADR-104); implementación en curso |
 | [ADR-090](ADR-090-api-publica-v1-vitrina-de-the-games.md) | API pública v1: la vitrina de The Games para DÍAS | Aceptada (enmendada por ADR-095, ADR-096, ADR-097 y ADR-098); implementación en curso |
-| [ADR-089](ADR-089-the-games-competencia-por-equipos.md) | The Games: competencia por equipos de Días EAFIT | Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098, ADR-100, ADR-101 y ADR-104); implementación en curso |
+| [ADR-089](ADR-089-the-games-competencia-por-equipos.md) | The Games: competencia por equipos de Días EAFIT | Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098, ADR-100, ADR-101, ADR-104 y ADR-106); implementación en curso |
 | [ADR-088](ADR-088-panal-diario-en-espanol.md) | Panal diario en español y premio por rango Genio | Aceptada; publicación pendiente |
 | [ADR-087](ADR-087-boosters-sobre-puntos-de-asistencia.md) | Boosters sobre los puntos de la asistencia | Aceptada |
 | [ADR-086](ADR-086-copy-paisa-y-parchado.md) | Copy paisa y parchado | Aceptada |
