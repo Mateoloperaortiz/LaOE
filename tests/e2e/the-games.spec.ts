@@ -140,6 +140,18 @@ test.describe("operador", () => {
     expect(recorrido.team).toMatchObject({ number: 1, name: "Equipo sintético 1" });
     expect(recorrido.stops).toHaveLength(3);
     expect(recorrido.stops[0]).toMatchObject({ day: 1, rotation: 1, result: "WIN" });
+
+    // Seguimiento (ADR-105): la rotación en curso con una base registrada por la operación, en celular.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/admin/the-games/${id}?area=seguimiento`);
+    await expect(page.getByText(t("T-3182", { registradas: 1, total: 3 }))).toBeVisible();
+    await expect(page.getByText(t("T-3183")).first()).toBeVisible();
+    await expect(page.getByText(tList("T-3187")[1] ?? "").first()).toBeVisible();
+    await expect(page.getByText(t("T-3189"))).toBeVisible();
+    await expect(
+      page.getByRole("table", { name: `${t("T-3190")} · ${t("T-2825", { dia: 1 })}` }),
+    ).toBeVisible();
+    await sinViolaciones(page);
   });
 });
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { requireCompetitionStaff } from "@/app/_authz/competition";
 import { single } from "@/app/_lib/search";
 import { judgeView } from "@/modules/competition";
@@ -9,8 +10,9 @@ import { JudgeMatchup } from "../_ui/Judge";
 
 // Pantalla del juez (ADR-089 regla 10): primero celular. Su base, el enfrentamiento de la rotación en
 // curso y tres botones grandes. Antes de empezar, registra las tarjetas de poder que le entregan y
-// empieza la base (ADR-098). Arriba ve quién lo acompaña en la base (ADR-101). Se actualiza sola cada
-// pocos segundos con la pestaña visible.
+// empieza la base (ADR-098). Arriba ve quién lo acompaña en la base (ADR-101). Si le falta registrar, el
+// aviso dice cuántas bases ya lo hicieron, y una rotación cerrada sin su resultado le pide pasárselo a
+// la operación (ADR-105). Se actualiza sola cada pocos segundos con la pestaña visible.
 
 export async function generateMetadata() {
   return { title: t("T-2882") };
@@ -83,6 +85,14 @@ export default async function JudgePage({
           {error}
         </p>
       ) : null}
+      {view.debts.map((debt) => (
+        <p
+          key={debt.matchupId}
+          className="rounded-xl border-2 border-oe-orange px-4 py-3 font-semibold"
+        >
+          {t("T-3195", { n: debt.number, base: debt.baseName })}
+        </p>
+      ))}
       {view.bases.length === 0 ? (
         <p className="rounded-xl border border-borde bg-fondo px-4 py-3">{t("T-2876")}</p>
       ) : view.current && view.currentMatchups.length > 0 ? (
@@ -100,16 +110,29 @@ export default async function JudgePage({
               />
             ) : null}
           </section>
-          {view.currentMatchups.map((matchup) => (
-            <JudgeMatchup
-              key={matchup.id}
-              competitionId={id}
-              matchup={matchup}
-              powers={view.powers.get(matchup.id)}
-              serverNow={serverNow}
-              macroLabel={kinds[1] ?? ""}
-            />
-          ))}
+          {view.currentMatchups.map((matchup) => {
+            const nudge = view.nudges.find((item) => item.matchupId === matchup.id);
+            return (
+              <Fragment key={matchup.id}>
+                {nudge ? (
+                  <p className="rounded-xl border-2 border-oe-orange px-4 py-3 font-semibold">
+                    {t("T-3194", {
+                      registradas: nudge.recorded,
+                      total: nudge.total,
+                      base: matchup.base.name,
+                    })}
+                  </p>
+                ) : null}
+                <JudgeMatchup
+                  competitionId={id}
+                  matchup={matchup}
+                  powers={view.powers.get(matchup.id)}
+                  serverNow={serverNow}
+                  macroLabel={kinds[1] ?? ""}
+                />
+              </Fragment>
+            );
+          })}
         </>
       ) : (
         <p className="rounded-xl border border-borde bg-fondo px-4 py-3">{t("T-2877")}</p>
