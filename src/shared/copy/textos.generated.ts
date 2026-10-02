@@ -10331,6 +10331,24 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3202": {
+    where: "The Games: Vitrina de la tabla",
+    text: "La vitrina muestra la tabla de posiciones y el podio. · La vitrina no muestra la tabla ni el podio; la rotación, sus resultados y el recorrido de cada equipo siguen a la vista.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3203": {
+    where: "The Games: Publicar la tabla",
+    text: "Mostrar la tabla · Ocultar la tabla",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3204": {
+    where: "The Games: Ayuda de la vitrina de la tabla",
+    text: "Ocultala mientras se juega para que los equipos compitan sin estar pendientes de la tabla. El podio se oculta con ella: para proyectarlo, mostrala antes.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-321": {
     where: "La OE, título del bloque de contacto",
     text: "Contacto",
