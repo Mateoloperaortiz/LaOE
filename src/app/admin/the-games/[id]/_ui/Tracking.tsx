@@ -132,8 +132,12 @@ export function Seguimiento({ tracker }: { tracker: RecordingTracker }) {
                     <th scope="row" className="whitespace-nowrap px-2 py-1 text-left font-semibold">
                       {row.base.name}
                     </th>
-                    <td className="px-2 py-1">{row.base.judges.join(", ") || t("T-3159")}</td>
-                    <td className="px-2 py-1">{row.base.graders.join(", ") || t("T-3159")}</td>
+                    <td className="whitespace-nowrap px-2 py-1">
+                      {row.base.judges.join(", ") || t("T-3159")}
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-1">
+                      {row.base.graders.join(", ") || t("T-3159")}
+                    </td>
                     <td className="px-2 py-1 tabular-nums">{row.byJudge}</td>
                     <td className="px-2 py-1 tabular-nums">{row.byOperation}</td>
                     <td
