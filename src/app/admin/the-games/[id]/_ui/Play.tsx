@@ -493,8 +493,20 @@ export function Resultados({
   );
 }
 
-export function Posiciones({ standings, scope }: { standings: Standings; scope: string }) {
+export function Posiciones({
+  context,
+  standings,
+  scope,
+  showStandings,
+}: {
+  context: PanelContext;
+  standings: Standings;
+  scope: string;
+  showStandings: boolean;
+}) {
   const scopes = tList("T-2851");
+  const [publicada, oculta] = tList("T-3202");
+  const [mostrar, ocultar] = tList("T-3203");
   const columns = tList("T-2852");
   const keys = ["overall", "day1", "day2"] as const;
   const selected = keys.includes(scope as (typeof keys)[number])
@@ -503,6 +515,23 @@ export function Posiciones({ standings, scope }: { standings: Standings; scope: 
   const rows = standings[selected];
   return (
     <Section title={tList("T-2805")[6] ?? ""}>
+      <div className="flex flex-col gap-3">
+        <p className="max-w-prose">
+          {showStandings ? publicada : oculta}{" "}
+          <span className="text-tinta-suave">{t("T-3204")}</span>
+        </p>
+        <div>
+          <OperationForm
+            context={context}
+            operation="standings-visibility"
+            hidden={{ visible: showStandings ? "0" : "1" }}
+          >
+            <Submit variant={showStandings ? "secundario" : "primario"}>
+              {showStandings ? ocultar : mostrar}
+            </Submit>
+          </OperationForm>
+        </div>
+      </div>
       <nav className="flex flex-wrap gap-2" aria-label={tList("T-2805")[6] ?? ""}>
         {keys.map((key, index) => (
           <Link

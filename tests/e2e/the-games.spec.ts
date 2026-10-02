@@ -639,3 +639,37 @@ test.describe("jurados de The Challenge", () => {
     await sinViolaciones(page);
   });
 });
+
+test.describe("tabla oculta", () => {
+  test.use({ storageState: "tests/e2e/.auth/admin.json" });
+
+  test("la operación oculta la tabla en Posiciones y la vitrina deja de mandar posiciones", async ({
+    page,
+    request,
+  }) => {
+    const { id, admin } = await seedCompetition("the-games-tabla");
+    await setCompetitionStatusAs(admin, id, "LIVE");
+    const [publicada, oculta] = tList("T-3202");
+    const [mostrar, ocultar] = tList("T-3203");
+
+    await page.goto(`/admin/the-games/${id}?area=posiciones`);
+    await expect(page.getByText(publicada ?? "")).toBeVisible();
+    await page.getByRole("button", { name: ocultar }).click();
+    await expect(page.getByText(t("T-259"), { exact: true })).toBeVisible();
+    await expect(page.getByText(oculta ?? "")).toBeVisible();
+    await sinViolaciones(page);
+
+    // ADR-107: las posiciones no salen de la casa, pero los equipos sí, para «Buscá tu equipo».
+    const response = await request.get("/api/v1/the-games/the-games-tabla", {
+      headers: { origin: "http://localhost:3101" },
+    });
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.standingsHidden).toBe(true);
+    expect(body.standings).toEqual({ overall: [], day1: [], day2: [] });
+    expect(body.teams).toHaveLength(6);
+
+    await page.getByRole("button", { name: mostrar }).click();
+    await expect(page.getByText(publicada ?? "")).toBeVisible();
+  });
+});

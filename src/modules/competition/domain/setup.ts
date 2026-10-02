@@ -213,6 +213,29 @@ export async function setCompetitionStatus(
   }
 }
 
+/** ADR-107: la Dirección oculta la tabla pública mientras se juega y la vuelve a mostrar. */
+export async function setStandingsVisibility(
+  ctx: CommandContext,
+  actor: CompetitionActor,
+  competitionId: string,
+  visible: boolean,
+): Promise<void> {
+  const row = await lockedCompetition(ctx, competitionId);
+  await assertOperator(actor, competitionId, ctx.tx);
+  if (row.showStandings === visible) return;
+  await ctx.tx
+    .update(competition)
+    .set({ showStandings: visible })
+    .where(eq(competition.id, competitionId));
+  await ctx.audit({
+    action: "competition.standings.visibility",
+    entityType: "competition",
+    entityId: competitionId,
+    before: { showStandings: row.showStandings },
+    after: { showStandings: visible },
+  });
+}
+
 // --- Equipos -------------------------------------------------------------------------------------
 
 export const teamInputSchema = z.object({

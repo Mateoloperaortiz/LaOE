@@ -114,6 +114,8 @@ export const competition = pgTable(
     allowSelfBet: boolean().notNull().default(false),
     /** Si la vitrina muestra los nombres de los capitanes (ADR-095); lo prende solo ADMIN. */
     showCaptains: boolean().notNull().default(false),
+    /** Si la vitrina publica la tabla de posiciones (ADR-107); la Dirección la oculta mientras se juega. */
+    showStandings: boolean().notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
