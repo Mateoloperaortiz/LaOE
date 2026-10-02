@@ -2798,3 +2798,6 @@ La base empieza con la rotación; el líder confirma los poderes y el resultado 
 | T-3199 | The Games: Resultado bloqueado | Resultado registrado: {resultado}. Si hay un error, llamá a la operación. | MATEO | Propuesta |
 | T-3200 | The Games: El líder ya registró | El resultado de esta base ya está registrado. Si hay que cambiarlo, llamá a la operación. | MATEO | Propuesta |
 | T-3201 | The Games: Confirmar antes del resultado | Hay poderes registrados: confirmalos antes de registrar el resultado. | MATEO | Propuesta |
+| T-3202 | The Games: Vitrina de la tabla | La vitrina muestra la tabla de posiciones y el podio. · La vitrina no muestra la tabla ni el podio; la rotación, sus resultados y el recorrido de cada equipo siguen a la vista. | MATEO | Propuesta |
+| T-3203 | The Games: Publicar la tabla | Mostrar la tabla · Ocultar la tabla | MATEO | Propuesta |
+| T-3204 | The Games: Ayuda de la vitrina de la tabla | Ocultala mientras se juega para que los equipos compitan sin estar pendientes de la tabla. El podio se oculta con ella: para proyectarlo, mostrala antes. | MATEO | Propuesta |

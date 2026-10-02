@@ -833,6 +833,7 @@ Durante el evento:
 - Los capitanes apuestan en `dias.oeeafit.com/capitanes` con el código de la tarjeta (ADR-096), por la API `/api/v1/the-games/hub` de la casa: ven el saldo del equipo y las apuestas abiertas, y apuestan. Si un capitán no tiene celular, el operador registra la apuesta desde Apuestas con el mismo código. Si una tarjeta se pierde, «Volver a emitir todos» invalida las viejas y cierra las sesiones del hub: hay que imprimir y repartir las 30 otra vez.
 - La primera vez que un equipo entra al hub, el capitán tiene que leer y aceptar las instrucciones (ADR-099). En Equipos se ve qué equipos las aceptaron y cuándo. Si se cambia el texto en DÍAS, se sube `HUB_TERMS_VERSION` en los dos repos y cada equipo vuelve a aceptar.
 - Si un capitán objeta que su nombre salga en la vitrina, «Dejar de mostrarlos» la apaga para todos. Después se vuelve a cargar la hoja sin esa fila y se prende de nuevo.
+- Para que los equipos compitan sin estar pendientes de las posiciones, la operación oculta la tabla en Posiciones con «Ocultar la tabla» (ADR-107). La vitrina deja de mandar las posiciones y `dias` muestra un aviso en la tabla y en el podio. La rotación, sus resultados, «Buscá tu equipo», las apuestas y el hub siguen igual. «Mostrar la tabla» la vuelve a publicar, y las pantallas la toman en unos 15 segundos. Para proyectar el podio hay que mostrarla antes: mientras está a la vista, también se ve en `dias.oeeafit.com/the-games/`.
 
 The Challenge y Macro reto (ADR-100):
 
