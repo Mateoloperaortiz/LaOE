@@ -48,6 +48,7 @@ import {
   setExtraPointsAs,
   setMarketOpenAs,
   setRubricScoresAs,
+  setStandingsVisibilityAs,
   startRotationAs,
   updateCompetitionSettingsAs,
   validateSchedule,
@@ -1267,6 +1268,49 @@ describe("The Games", () => {
         .from(auditLog)
         .where(eq(auditLog.action, "competition.captains.clear"));
       expect(purge?.after).toEqual({ captains: 3, showCaptains: false, reason: "ARCHIVED" });
+    });
+  });
+
+  describe("tabla oculta (ADR-107)", () => {
+    it("la Dirección oculta la tabla: la vitrina no trae posiciones pero sí los equipos, y queda auditado", async () => {
+      const { id, editionId, termId, adminId } = await seedCompetition();
+      await seedField(id, adminId);
+      await generateDayScheduleAs(admin(adminId), id, { day: 1, rotations: 1, plannedMinutes: 20 });
+      await setCompetitionStatusAs(admin(adminId), id, "LIVE");
+      const directorId = await seedVeteran("direccion-tabla@example.com");
+      await runCommand(SYSTEM_ACTOR, (ctx) =>
+        addMacroeventDirector(ctx, {
+          editionId,
+          termId,
+          personId: directorId,
+          roleCode: "THE_GAMES",
+        }),
+      );
+      clearShowcaseMemo();
+      const shown = await getShowcase("the-games-2026");
+      expect(shown?.standingsHidden).toBe(false);
+      expect(shown?.standings.overall.length).toBeGreaterThan(0);
+
+      await setStandingsVisibilityAs(member(directorId), id, false);
+      expect((await getCompetition(id))?.showStandings).toBe(false);
+      clearShowcaseMemo();
+      const hidden = await getShowcase("the-games-2026");
+      expect(hidden?.standingsHidden).toBe(true);
+      expect(hidden?.standings).toEqual({ overall: [], day1: [], day2: [] });
+      expect(hidden?.teams.length).toBe(shown?.standings.overall.length);
+
+      await setStandingsVisibilityAs(member(directorId), id, true);
+      clearShowcaseMemo();
+      expect((await getShowcase("the-games-2026"))?.standingsHidden).toBe(false);
+
+      const rows = await getDb()
+        .select({ after: auditLog.after })
+        .from(auditLog)
+        .where(eq(auditLog.action, "competition.standings.visibility"));
+      expect(rows.map((row) => row.after)).toEqual([
+        { showStandings: false },
+        { showStandings: true },
+      ]);
     });
   });
 });

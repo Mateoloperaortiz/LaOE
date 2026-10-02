@@ -51,6 +51,7 @@ import {
   setExtraPointsAs,
   setMarketOpenAs,
   setRubricScoresAs,
+  setStandingsVisibilityAs,
   setTeamStatusAs,
   startMatchupAs,
   startRotationAs,
@@ -95,6 +96,7 @@ const OPERATIONS = [
   "team-status",
   "captains-visibility",
   "clear-captains",
+  "standings-visibility",
   "save-base",
   "assign-staff",
   "remove-staff",
@@ -195,6 +197,9 @@ async function run(
       return null;
     case "clear-captains":
       await clearCaptainsAs(actor, id);
+      return null;
+    case "standings-visibility":
+      await setStandingsVisibilityAs(actor, id, formText(form, "visible") === "1");
       return null;
     case "save-base":
       await saveBaseAs(actor, id, nullable(form, "baseId"), {

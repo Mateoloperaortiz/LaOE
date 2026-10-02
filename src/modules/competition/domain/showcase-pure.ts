@@ -84,6 +84,10 @@ export const showcaseSchema = z.object({
   }),
   /** Vacío mientras el ADMIN no publique los capitanes (ADR-095). */
   captains: z.array(z.object({ number: z.number().int(), names: z.array(z.string()) })),
+  /** ADR-107: la Dirección ocultó la tabla mientras se juega; las tres tablas van vacías. */
+  standingsHidden: z.boolean(),
+  /** ADR-107: los equipos, por número, para nombrarlos aunque la tabla esté oculta. */
+  teams: z.array(team),
 });
 
 export type Showcase = z.infer<typeof showcaseSchema>;
@@ -106,6 +110,7 @@ export interface ShowcaseSource {
     secondDayOn: string | null;
     bettingEnabled: boolean;
     showCaptains: boolean;
+    showStandings: boolean;
   };
   teams: readonly ShowcaseTeam[];
   standings: Record<
@@ -212,11 +217,13 @@ export function toShowcase(source: ShowcaseSource): ShowcaseBody | null {
       rehearsal: competition.isRehearsal,
       days: { 1: competition.firstDayOn, 2: competition.secondDayOn },
     },
-    standings: {
-      overall: rows(source.standings.overall),
-      day1: rows(source.standings.day1),
-      day2: rows(source.standings.day2),
-    },
+    standings: competition.showStandings
+      ? {
+          overall: rows(source.standings.overall),
+          day1: rows(source.standings.day1),
+          day2: rows(source.standings.day2),
+        }
+      : { overall: [], day1: [], day2: [] },
     currentRotation: rotationOf(source.rotations.current),
     nextRotation: rotationOf(source.rotations.next),
     announcements: source.announcements.map((item) => ({
@@ -253,5 +260,9 @@ export function toShowcase(source: ShowcaseSource): ShowcaseBody | null {
         : [],
     },
     captains: competition.showCaptains ? captainsOf(source, (id) => byId.get(id)?.number) : [],
+    standingsHidden: !competition.showStandings,
+    teams: [...source.teams]
+      .sort((x, y) => x.number - y.number)
+      .map(({ number, name, color }) => ({ number, name, color })),
   };
 }

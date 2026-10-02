@@ -179,7 +179,14 @@ export default async function CompetitionPage({
       </>
     );
   } else if (area === "posiciones") {
-    body = <Posiciones standings={await listStandings(id)} scope={single(search.alcance)} />;
+    body = (
+      <Posiciones
+        context={context}
+        standings={await listStandings(id)}
+        scope={single(search.alcance)}
+        showStandings={competition.showStandings}
+      />
+    );
   } else if (area === "extras") {
     const [extras, teams, ledger] = await Promise.all([
       listExtras(id),

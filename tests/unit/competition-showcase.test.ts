@@ -13,6 +13,7 @@ const competition = {
   secondDayOn: null,
   bettingEnabled: true,
   showCaptains: false,
+  showStandings: true,
 };
 // El celular va de más a propósito: la vitrina no lo tiene que copiar aunque le llegue.
 const captains = [
@@ -239,5 +240,21 @@ describe("ruta GET /api/v1/the-games/[slug]", async () => {
     );
     expect(preflight.status).toBe(204);
     expect(preflight.headers.get("access-control-allow-methods")).toBe("GET, OPTIONS");
+  });
+
+  it("con la tabla oculta no salen posiciones, pero sí los equipos (ADR-107)", () => {
+    const shown = toShowcase(source());
+    expect(shown?.standingsHidden).toBe(false);
+    expect(shown?.teams).toEqual([
+      { number: 1, name: "Titanes", color: "#a53420" },
+      { number: 30, name: "Olímpicos", color: null },
+    ]);
+    const hidden = toShowcase(source({ competition: { ...competition, showStandings: false } }));
+    if (!hidden) throw new Error("sin vitrina");
+    expect(hidden.standingsHidden).toBe(true);
+    expect(hidden.standings).toEqual({ overall: [], day1: [], day2: [] });
+    expect(hidden.teams).toHaveLength(2);
+    expect(JSON.stringify(hidden)).not.toContain("team-a");
+    showcaseSchema.parse({ ...hidden, serverNow: "2026-10-02T14:00:00.000Z" });
   });
 });
