@@ -18,3 +18,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Nada de datos personales reales en seeds, pruebas ni fixtures.
 - `npm run check` debe quedar en verde antes de cada commit de cierre de tramo; commits convencionales con alcance en español (`feat(identity): …`, `docs: …`).
 
+## Agent skills
+
+### Issue tracker
+
+Los issues y las specs viven en GitHub Issues de `Mateoloperaortiz/LaOE`; el registro de lo entregado sigue en `docs/09-roadmap.md`. Mirá `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Los cinco roles de triage usan las etiquetas por defecto (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). Mirá `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Un solo contexto: el glosario es `docs/glosario.md` y las decisiones son las ADR de `docs/adr/`. Mirá `docs/agents/domain.md`.

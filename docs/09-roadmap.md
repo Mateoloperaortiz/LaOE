@@ -4,6 +4,17 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Skills de ingeniería para agentes (ADR-108) · `en curso`
+
+- [x] Documentar la decisión ([ADR-108](adr/ADR-108-los-issues-de-github-son-la-cola-de-trabajo.md)).
+- [x] Configurar las skills de ingeniería con `/setup-matt-pocock-skills`: bloque `## Agent skills` en `AGENTS.md` y los tres archivos de `docs/agents/` (tracker, etiquetas de triage y documentación de dominio).
+- [x] Crear en GitHub las cuatro etiquetas de triage que faltaban.
+- [ ] Hacer la primera corrida real de `/to-tickets` y de `/triage` contra el tracker.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-06 | Skills de ingeniería | Las skills que usan los agentes (`to-spec`, `to-tickets`, `triage`, `wayfinder`, `domain-modeling`) ya saben dónde vive cada cosa. **Tracker:** GitHub Issues de `Mateoloperaortiz/LaOE`, que hasta hoy no tenía ningún issue; son la cola de trabajo y este archivo sigue siendo el registro de lo entregado. **Etiquetas:** las cinco de triage por defecto; `needs-triage`, `needs-info`, `ready-for-agent` y `ready-for-human` se crearon con `gh label create`. **Dominio:** las skills esperan un `GLOSSARY.md` o un `CONTEXT.md` en la raíz y ADR numeradas `0001-…`; `docs/agents/domain.md` las manda a `docs/glosario.md` y a `docs/adr/ADR-NNN-…`, con la regla de enmendar. **Cierre:** un ticket de implementación se cierra cuando su cambio está en producción, no al mezclar el PR; el PR lo nombra con `Refs #N`, sin `Closes`. Queda como [ADR-108](adr/ADR-108-los-issues-de-github-son-la-cola-de-trabajo.md). Solo documentación: sin código y sin migración. Las cinco etiquetas `wayfinder:*` no se crearon: van antes del primer mapa. La misma configuración quedó en `dias` (D-051). |
+
 ## Acceso a permanencia desde Comités · `lista`
 
 - [x] Mostrar «Permanencia» junto a «Editar» en cada fila y enlazar el nombre al panel del comité.

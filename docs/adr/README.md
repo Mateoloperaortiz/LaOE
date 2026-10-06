@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-108](ADR-108-los-issues-de-github-son-la-cola-de-trabajo.md) | Los issues de GitHub son la cola de trabajo de las skills de ingeniería | Aceptada |
 | [ADR-107](ADR-107-la-tabla-se-puede-ocultar-mientras-se-juega.md) | La tabla de posiciones se puede ocultar mientras se juega | Aceptada |
 | [ADR-106](ADR-106-la-base-empieza-con-la-rotacion.md) | La base empieza con la rotación y el líder confirma poderes y resultado | Aceptada |
 | [ADR-105](ADR-105-seguimiento-del-registro-de-resultados.md) | Seguimiento del registro de resultados de The Games | Aceptada |
