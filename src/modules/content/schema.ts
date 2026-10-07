@@ -29,7 +29,10 @@ const tsvector = customType<{ data: string }>({
   },
 });
 
-/** Una variante generada por `media.process`; la clave del mapa es `w<ancho>`. */
+/**
+ * Una variante generada por `media.process`. En el mapa, la clave es `w<ancho>` para las de ancho y
+ * `full` para la completa, la que se entrega en lugar del original (ADR-114 regla 8).
+ */
 export interface MediaVariant {
   key: string;
   width: number;

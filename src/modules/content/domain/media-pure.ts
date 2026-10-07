@@ -1,4 +1,4 @@
-import { FULL_VARIANT, widthVariants } from "@/shared/lib/media";
+import { FULL_VARIANT, widthVariants } from "../media-variants";
 import type { MediaVariant, MediaVariants } from "../schema";
 
 // Reglas puras de medios (ADR-022, ADR-033): tipos y tamaños, claves del bucket, variantes.
@@ -117,6 +117,14 @@ export function variantName(width: number): string {
   return `w${width}`;
 }
 
+/**
+ * Clave de deduplicación de `media.process` (ADR-114 regla 8): un medio no tiene dos procesos
+ * pendientes. La usan la confirmación y el relleno; si no fuera la misma, el relleno duplicaría trabajo.
+ */
+export function mediaProcessDedupeKey(assetId: string): string {
+  return `media.process:${assetId}`;
+}
+
 /** Anchos a generar para un original: solo los que no lo agrandan. */
 export function variantWidthsFor(originalWidth: number): number[] {
   return VARIANT_WIDTHS.filter((width) => width <= originalWidth);
@@ -136,11 +144,17 @@ export function fullVariantKey(assetId: string): string {
 }
 
 /**
- * Lo mismo que mira `pickVariant` para entregar y la consulta del relleno para elegir: una variante
- * completa anotada en nulo no es una variante, y ese medio se sigue sirviendo desde su original.
+ * La variante completa de un medio, o null si no la tiene. Es la única lectura de «tiene la completa»
+ * y dice lo mismo que la consulta del relleno: una completa anotada en nulo no es una variante, y ese
+ * medio se sigue sirviendo desde su original.
  */
+function fullVariantOf(variants: MediaVariants): MediaVariant | null {
+  return variants[FULL_VARIANT] ?? null;
+}
+
+/** Lo que pregunta quien procesa; quien entrega (`pickVariant`) lee la misma. */
 export function hasFullVariant(variants: MediaVariants): boolean {
-  return (variants[FULL_VARIANT] ?? null) !== null;
+  return fullVariantOf(variants) !== null;
 }
 
 /**
@@ -153,7 +167,7 @@ export function pickVariant(
   variants: MediaVariants,
   requestedWidth: number | null,
 ): MediaVariant | null {
-  const full = variants[FULL_VARIANT] ?? null;
+  const full = fullVariantOf(variants);
   const ladder = widthVariants(variants);
   if (requestedWidth === null || ladder.length === 0) {
     return full;

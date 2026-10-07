@@ -11,20 +11,3 @@ export function mediaSrcSet(assetId: string, widths: number[]): string {
     .map((width) => `${mediaUrl(assetId, width)} ${width}w`)
     .join(", ");
 }
-
-/**
- * Nombre en `variants` de la variante completa (ADR-114 regla 8): el original recodificado a WebP, sin
- * metadatos y entero hasta 2560 px de lado. Es lo que se entrega en lugar del original; no es una de las
- * de ancho.
- */
-export const FULL_VARIANT = "full";
-
-/** Las variantes por ancho, de menor a mayor: las que arman el `srcset`. La completa no entra. */
-export function widthVariants<Variant extends { width: number }>(
-  variants: Record<string, Variant>,
-): Variant[] {
-  return Object.entries(variants)
-    .filter(([name]) => name !== FULL_VARIANT)
-    .map(([, variant]) => variant)
-    .sort((a, b) => a.width - b.width);
-}

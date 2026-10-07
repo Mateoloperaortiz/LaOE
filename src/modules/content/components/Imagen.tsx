@@ -1,4 +1,5 @@
-import { mediaSrcSet, mediaUrl, widthVariants } from "@/shared/lib/media";
+import { mediaSrcSet, mediaUrl } from "@/shared/lib/media";
+import { widthVariants } from "../media-variants";
 
 type Props = {
   asset: {

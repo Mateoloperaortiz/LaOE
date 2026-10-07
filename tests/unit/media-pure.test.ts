@@ -10,6 +10,7 @@ import {
   isAllowedSize,
   isAllowedType,
   keyPurpose,
+  mediaProcessDedupeKey,
   photoKey,
   pickVariant,
   UPLOAD_KEY_PATTERN,
@@ -17,7 +18,8 @@ import {
   variantKey,
   variantWidthsFor,
 } from "@/modules/content/domain/media-pure";
-import { mediaSrcSet, mediaUrl, widthVariants } from "@/shared/lib/media";
+import { widthVariants } from "@/modules/content/media-variants";
+import { mediaSrcSet, mediaUrl } from "@/shared/lib/media";
 
 describe("medios (reglas puras)", () => {
   it("acepta solo JPG, PNG y WebP entre 5 KB y 20 MB", () => {
@@ -67,6 +69,8 @@ describe("medios (reglas puras)", () => {
       w960: { key: "v/w960.webp", width: 960, ...webp },
     };
     expect(fullVariantKey("abc")).toBe("variants/abc/full.webp");
+    // La clave con la que el outbox no admite dos procesos del mismo medio: cambiarla es a propósito.
+    expect(mediaProcessDedupeKey("abc")).toBe("media.process:abc");
     expect(hasFullVariant({ ...ladder, full })).toBe(true);
     expect(hasFullVariant(ladder)).toBe(false);
     // Sin ancho, la completa; con ancho, la escalera de siempre: la completa no es un peldaño.

@@ -3,8 +3,9 @@ import { getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import { mediaBackfill, mediaProcess } from "@/domain-events/content";
 import { eventOf } from "@/domain-events/define";
-import { FULL_VARIANT } from "@/shared/lib/media";
+import { FULL_VARIANT } from "../media-variants";
 import { mediaAsset } from "../schema";
+import { mediaProcessDedupeKey } from "./media-pure";
 
 // Relleno de la variante completa (ADR-114 regla 8). Los medios que quedaron READY antes de esa regla no
 // la tienen y se siguen sirviendo desde su original. Cada hora el scheduler arranca una pasada: recorre
@@ -43,7 +44,7 @@ export async function queueFullVariantBackfill(
     for (const row of rows) {
       await enqueueEvent(
         tx,
-        eventOf(mediaProcess, { assetId: row.id }, { dedupeKey: `media.process:${row.id}` }),
+        eventOf(mediaProcess, { assetId: row.id }, { dedupeKey: mediaProcessDedupeKey(row.id) }),
         now,
       );
     }

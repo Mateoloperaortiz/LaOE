@@ -18,6 +18,7 @@ import {
   isAllowedType,
   MEDIA_MAX_BYTES,
   MEDIA_MIN_BYTES,
+  mediaProcessDedupeKey,
   PHOTO_MAX_BYTES,
   photoKey,
   pickVariant,
@@ -163,7 +164,7 @@ export async function confirmUpload(
       },
     });
     await ctx.emit(
-      eventOf(mediaProcess, { assetId: row.id }, { dedupeKey: `media.process:${row.id}` }),
+      eventOf(mediaProcess, { assetId: row.id }, { dedupeKey: mediaProcessDedupeKey(row.id) }),
     );
     return row;
   } catch (error) {

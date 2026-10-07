@@ -2,8 +2,8 @@ import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { getObject, headObject, putObject } from "@/shared/adapters/storage";
 import { decodeImage, ImageRejectedError } from "@/shared/lib/image-decoder";
-import { FULL_VARIANT } from "@/shared/lib/media";
 import { logger } from "@/shared/log";
+import { FULL_VARIANT } from "../media-variants";
 import { type MediaVariant, type MediaVariants, mediaAsset } from "../schema";
 import {
   FULL_VARIANT_MAX_SIDE,
