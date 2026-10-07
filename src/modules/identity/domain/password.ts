@@ -1,4 +1,4 @@
-import { and, count, eq, gt, inArray } from "drizzle-orm";
+import { and, count, eq, gt, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { findEligibleMemberByEmail } from "@/modules/people";
 import { logger } from "@/shared/log";
@@ -12,6 +12,9 @@ import {
   normalizeEmail,
   OTP_WINDOW_MS,
   type PasswordProblem,
+  PERSON_PASSWORD_MAX_FAILED,
+  PERSON_PASSWORD_WINDOW_MS,
+  personAttemptKey,
   verifyPassword,
 } from "./pure";
 import { createSession, destroySessionsFor, markStepUp } from "./session";
@@ -129,11 +132,83 @@ export async function deleteCredentialFor(personId: string): Promise<number> {
   return rows.length;
 }
 
+// Quien ya tiene sesión cuenta sus contraseñas equivocadas aparte (ADR-114, regla 2). El paso de
+// seguridad y el cambio de contraseña gastan un mismo contador, que es de la persona: el ingreso sin
+// sesión no lo lee ni lo escribe, y ellos no miran los contadores del ingreso, ni el del correo ni
+// el de la IP, que cualquiera mueve desde afuera.
+
+/**
+ * Anota el intento de una persona con sesión antes de comparar la contraseña y devuelve su fila, o
+ * null si ya gastó los de la ventana. Contar y anotar van juntos bajo un candado por persona: los
+ * intentos que llegan a la vez hacen fila y ninguno cae entre la cuenta y la escritura. El intento
+ * nace como fallo y `settlePersonAttempt` lo corrige si la contraseña era la buena, así que uno que
+ * queda a medias cuenta en contra. Uno bloqueado no se anota: insistir no alarga el bloqueo.
+ */
+async function openPersonAttempt(
+  personId: string,
+  ip: string | null,
+  now: Date,
+): Promise<string | null> {
+  const key = personAttemptKey(personId);
+  const since = new Date(now.getTime() - PERSON_PASSWORD_WINDOW_MS);
+  return getDb().transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`password:${key}`}, 0))`);
+    const [row] = await tx
+      .select({ n: count() })
+      .from(loginAttempt)
+      .where(
+        and(
+          eq(loginAttempt.email, key),
+          eq(loginAttempt.succeeded, false),
+          gt(loginAttempt.createdAt, since),
+        ),
+      );
+    // Negado a propósito: sin cuenta, o con una que no es un número, no hay intento.
+    if (!row || !(row.n < PERSON_PASSWORD_MAX_FAILED)) {
+      logger.warn({ personId }, "contraseña con sesión: límite por persona");
+      return null;
+    }
+    const [attempt] = await tx
+      .insert(loginAttempt)
+      .values({ email: key, ip, succeeded: false, createdAt: now })
+      .returning({ id: loginAttempt.id });
+    return attempt?.id ?? null;
+  });
+}
+
+async function settlePersonAttempt(attemptId: string): Promise<void> {
+  await getDb().update(loginAttempt).set({ succeeded: true }).where(eq(loginAttempt.id, attemptId));
+}
+
+/**
+ * Compara la contraseña de quien tiene sesión gastando el contador de la persona. Sin credencial
+ * gasta el mismo tiempo y cuenta como fallo.
+ */
+async function checkOwnPassword(
+  personId: string,
+  stored: string | null,
+  password: string,
+  ip: string | null,
+  now: Date,
+): Promise<"OK" | "INVALID" | "LOCKED"> {
+  const attemptId = await openPersonAttempt(personId, ip, now);
+  if (attemptId === null) {
+    return "LOCKED";
+  }
+  const matches = stored
+    ? await verifyPassword(stored, password)
+    : await burnPasswordTime().then(() => false);
+  if (!matches) {
+    return "INVALID";
+  }
+  await settlePersonAttempt(attemptId);
+  return "OK";
+}
+
 export type StepUpResult = { ok: true } | { ok: false; reason: "INVALID" | "LOCKED" };
 
 export interface StepUpPasswordInput {
   personId: string;
-  email: string;
   password: string;
   sessionId: string;
   ip: string | null;
@@ -142,27 +217,16 @@ export interface StepUpPasswordInput {
 
 /**
  * Step-up con la contraseña propia (ADR-051, regla 7). Estampa la misma marca de sesión que
- * estampaba el código, así que la ventana de 15 minutos y los guards no cambian.
+ * estampaba el código, así que la ventana de 15 minutos y los guards no cambian. Los fallos se
+ * cuentan por persona (ADR-114, regla 2).
  */
 export async function verifyStepUpPassword(input: StepUpPasswordInput): Promise<StepUpResult> {
   const now = input.now ?? new Date();
-  const email = normalizeEmail(input.email);
-  const since = new Date(now.getTime() - OTP_WINDOW_MS);
-  if ((await countFailures("email", email, since)) >= LOGIN_MAX_PER_EMAIL) {
-    return { ok: false, reason: "LOCKED" };
-  }
-  if (input.ip && (await countFailures("ip", input.ip, since)) >= LOGIN_MAX_PER_IP) {
-    return { ok: false, reason: "LOCKED" };
-  }
   const stored = await findPasswordHash(input.personId);
-  const matches = stored
-    ? await verifyPassword(stored, input.password)
-    : await burnPasswordTime().then(() => false);
-  if (!matches) {
-    await recordAttempt(email, input.ip, false);
-    return { ok: false, reason: "INVALID" };
+  const check = await checkOwnPassword(input.personId, stored, input.password, input.ip, now);
+  if (check !== "OK") {
+    return { ok: false, reason: check };
   }
-  await recordAttempt(email, input.ip, true);
   await markStepUp(input.sessionId, now);
   return { ok: true };
 }

@@ -13,6 +13,7 @@ import {
   hashToken,
   normalizeEmail,
   otpAttemptBudget,
+  personAttemptKey,
   safeNextPath,
   verifyPassword,
 } from "@/modules/identity/domain/pure";
@@ -217,5 +218,17 @@ describe("generateAccessToken", () => {
     const uno = generateAccessToken();
     expect(uno).not.toBe(generateAccessToken());
     expect(uno).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  });
+});
+
+describe("personAttemptKey", () => {
+  it("da una clave por persona que ningún correo normalizado iguala", () => {
+    const key = personAttemptKey("p4k2n9x0q1w3e5r7t8y6u1i0");
+
+    expect(key).not.toBe(personAttemptKey("otra"));
+    // Lo que el ingreso sin sesión escribe y cuenta pasa siempre por `normalizeEmail`.
+    for (const escrito of [key, ` ${key} `, key.toUpperCase(), key.toLowerCase()]) {
+      expect(normalizeEmail(escrito)).not.toBe(key);
+    }
   });
 });

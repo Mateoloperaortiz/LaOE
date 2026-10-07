@@ -1,6 +1,6 @@
 # ADR-010: Identidad por correo del roster con OTP
 
-- Estado: Aceptada (enmendada por ADR-034, ADR-039, ADR-050, ADR-051, ADR-113)
+- Estado: Aceptada (enmendada por ADR-034, ADR-039, ADR-050, ADR-051, ADR-113, ADR-114)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-002, ADR-011, ADR-015
 
@@ -39,3 +39,7 @@ El asunto del correo del código deja de incluirlo: guardarlo en `message.subjec
 **Pedir un código deja siempre un reto.** «La respuesta nunca enumera el roster» se cumplía al pedir el código y no al verificarlo: sin reto, un correo de afuera respondía «vencido» donde uno del roster respondía «no es, te quedan 4 intentos». Ahora un correo de afuera deja un reto señuelo, con un hash al azar que ningún código cumple y sin envío, que cuenta intentos y gasta límites como uno real. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 2.
 
 **Tope acumulado de códigos equivocados.** Los límites de esta ADR contaban códigos pedidos, no códigos equivocados: repitiendo pedir y probar salían unos 2.400 intentos al día por cuenta. Se suma un tope de 15 códigos equivocados por correo en 24 horas. Al llegar, ese correo no recibe códigos nuevos hasta que la ventana corra, y el código que llega cerca del tope trae solo los intentos que quedan. Pedir y probar un código del mismo correo corren bajo un candado por correo y el tope se cumple también al verificar, así que no se supera con solicitudes y fallos simultáneos. Los demás límites no cambian, y el paso de seguridad por código queda fuera del tope. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 3.
+
+## Enmienda (2026-10-07, ADR-114)
+
+**El paso de seguridad cuenta sus fallos por persona.** El step-up de esta ADR pasó con ADR-051 a ser una credencial propia verificada hace menos de 15 minutos, y su contraseña compartía los contadores del ingreso: diez contraseñas falladas sin sesión con el correo de una persona, o treinta desde su misma IP, la dejaban sin paso de seguridad aunque tuviera la sesión abierta. Ahora el paso de seguridad con contraseña y la contraseña actual del cambio de contraseña gastan un contador de la persona, 10 fallos en 15 minutos contados y anotados bajo un candado por persona, que solo se mueve con una sesión suya; no miran los contadores por correo ni por IP. Los límites del código y los del ingreso sin sesión no cambian, y el paso de seguridad por código sigue fuera del tope acumulado. Ver [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md), regla 2.

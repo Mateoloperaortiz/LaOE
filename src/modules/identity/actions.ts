@@ -242,7 +242,6 @@ export async function stepUpAction(
   }
   const result = await verifyStepUpPassword({
     personId: actor.personId,
-    email: actor.email,
     password,
     sessionId: actor.sessionId,
     ip: await clientIp(),

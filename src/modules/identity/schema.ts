@@ -103,7 +103,9 @@ export const accessGrant = pgTable(
 );
 
 // Límite de intentos del ingreso y del step-up (ADR-051). Tabla propia y no una columna de
-// `credential` porque el límite tiene que funcionar también para correos que no existen.
+// `credential` porque el límite tiene que funcionar también para correos que no existen. Quien ya
+// tiene sesión cuenta aparte (ADR-114, regla 2): en sus filas `email` no lleva un correo sino la
+// clave de la persona (`personAttemptKey`), que ningún correo normalizado puede igualar.
 export const loginAttempt = pgTable(
   "login_attempt",
   {

@@ -21,9 +21,22 @@ export const PASSWORD_MIN_LENGTH = 10;
 export const ACCESS_GRANT_TTL_MS = 60 * 60_000;
 export const LOGIN_MAX_PER_EMAIL = 10;
 export const LOGIN_MAX_PER_IP = 30;
+// Contraseñas equivocadas de quien ya tiene sesión (ADR-114, regla 2): los números del ingreso,
+// en una cuenta aparte.
+export const PERSON_PASSWORD_MAX_FAILED = 10;
+export const PERSON_PASSWORD_WINDOW_MS = 15 * 60_000;
 
 export function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
+}
+
+/**
+ * Clave del contador de contraseñas equivocadas de quien tiene sesión (ADR-114, regla 2). Se guarda
+ * donde el ingreso sin sesión guarda el correo y no puede ser uno: `normalizeEmail` nunca devuelve
+ * una mayúscula, así que nadie sin sesión escribe ni cuenta esta clave.
+ */
+export function personAttemptKey(personId: string): string {
+  return `PERSON:${personId}`;
 }
 
 /** Seis dígitos aleatorios; fuera de producción puede fijarse con OTP_FIXED_CODE. */

@@ -10,7 +10,7 @@ import { announcement, document, mediaAsset } from "@/modules/content/schema";
 import { internalCall, organization, pipeline, recognition, task } from "@/modules/crm/schema";
 import { eventEdition } from "@/modules/events/schema";
 import { editionRegistration, form } from "@/modules/forms/schema";
-import { hashPassword } from "@/modules/identity/domain/pure";
+import { hashPassword, personAttemptKey } from "@/modules/identity/domain/pure";
 import {
   accessGrant,
   carnetToken,
@@ -66,7 +66,9 @@ export const E2E_LEAVE_EMAIL = "e2e-licencia@eafit.edu.co";
  */
 async function setE2ePassword(personId: string, email: string): Promise<void> {
   const db = getDb();
-  await db.delete(loginAttempt).where(eq(loginAttempt.email, email));
+  await db
+    .delete(loginAttempt)
+    .where(inArray(loginAttempt.email, [email, personAttemptKey(personId)]));
   await db.delete(accessGrant).where(eq(accessGrant.personId, personId));
   await db
     .insert(credential)

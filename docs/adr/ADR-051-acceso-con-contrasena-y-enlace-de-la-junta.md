@@ -1,6 +1,6 @@
 # ADR-051: Acceso con contraseña propia y enlace de un solo uso de la junta
 
-- Estado: Aceptada (enmendada por ADR-113)
+- Estado: Aceptada (enmendada por ADR-113, ADR-114)
 - Fecha: 2026-09-10
 - Enmienda: ADR-010, ADR-011, ADR-014 (seguridad), ADR-050
 - Relacionadas: ADR-012, ADR-023, ADR-034, ADR-038, ADR-047, ADR-048
@@ -69,3 +69,7 @@ GHPOINTS llegó a tener tres canales de login (Clerk, OTP, Entra) y ADR-010 naci
 ## Enmienda (2026-10-07, ADR-113)
 
 La regla 4 decía quién emite un enlace, no para quién. [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md) regla 1 lo acota: si el destinatario tiene algún permiso técnico que quien emite no tiene, solo ADMIN emite. La junta sigue emitiendo para los miembros sin permisos y para quien tiene los mismos que ella. La comprobación vive en `issueAccessGrant`, que relee los permisos en la transacción y responde T-3206. La amenaza aceptada queda como estaba escrita: quien emite puede entrar como esa persona, pero ya no con más permisos que los suyos. El arranque de la regla 16 no cambia.
+
+## Enmienda (2026-10-07, ADR-114)
+
+La regla 9 puso un solo par de contadores, por correo y por IP, y el paso de seguridad de la regla 7 los compartía con el ingreso; la regla 8 comparaba la contraseña actual sin contar nada. [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 2 separa a quien ya tiene sesión: el paso de seguridad con contraseña y la contraseña actual del cambio gastan un contador de la persona, 10 fallos en 15 minutos, que vive en `login_attempt` con la clave de la persona en lugar del correo y se cuenta y se anota bajo un candado por persona. Ninguno de los dos mira ya los contadores por correo ni por IP, y con el tope gastado responden T-2097. El ingreso sin sesión conserva la regla 9 como estaba escrita.
