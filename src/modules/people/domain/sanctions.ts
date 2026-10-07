@@ -124,6 +124,11 @@ export async function recordSanction(
   raw: SanctionInput,
   scope: SanctionScope,
 ): Promise<{ id: string }> {
+  // Un alcance que no se reconoce se rechaza: nunca cae en el de ADMIN, que es el más amplio.
+  const by: unknown = (scope as { by?: unknown } | undefined)?.by;
+  if (by !== "ADMIN" && by !== "COMMITTEE") {
+    throw new DomainError(t("T-032"));
+  }
   const parsed = sanctionInputSchema.parse(raw);
   const input =
     scope.by === "COMMITTEE"

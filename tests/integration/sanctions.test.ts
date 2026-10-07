@@ -341,6 +341,20 @@ describe("faltas y sanciones", () => {
     const forgotten = recordSanctionAs(actor, personId, suspension);
     await expect(forgotten).rejects.toThrow();
     expect(await listSanctionsForPerson(personId)).toEqual([]);
+
+    // Un alcance que el comando no reconoce se rechaza: no cae en el de ADMIN, que es el más amplio.
+    const unknownScope = recordSanctionAs(
+      actor,
+      personId,
+      suspension,
+      // @ts-expect-error La forma anterior del alcance, sin decir desde dónde se sanciona.
+      { committeeId: a3, termId },
+    );
+    await expect(unknownScope).rejects.toMatchObject({
+      name: "DomainError",
+      message: t("T-032"),
+    });
+    expect(await listSanctionsForPerson(personId)).toEqual([]);
   });
 
   // El alcance de un comité (ADR-060 regla 6 y ADR-072 regla 1): la dirección registra llamados,

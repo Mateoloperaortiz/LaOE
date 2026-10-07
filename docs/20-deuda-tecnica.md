@@ -109,6 +109,9 @@ Orígenes: **A19** es la [auditoría del 2026-09-19](auditoria-codigo-2026-09-19
 | DT-092 | `recordLeaderGrantsAs` lee el resumen de una importación aplicada fuera de la transacción y lo reescribe, y `updateImportJob` no tiene condición de estado | C2, leído | integridad | OPEN | Residuo de DT-072: dos registros de permisos a la vez se pueden pisar el resumen. La guarda de estado la pone quien toma el trabajo (`takeImportJobInPreview`) |
 | DT-093 | Ninguna E2E vence la sesión en la pantalla que origina una descarga y hace clic: que el enlace de Mis datos navegue al ingreso y vuelva con el aviso solo está probado por la ruta y por el árbol de la pantalla | C2, leído | testabilidad | OPEN | Residuo de DT-061. Lo que hace el navegador con y sin el atributo `download` está leído en la norma de HTML, no ejecutado |
 | DT-094 | Los demás «queda abierto» de ADR-113 viven solo en la ADR y en la nota de filas ya `RESOLVED`: no tienen fila ni estado | C2 | mantenibilidad | OPEN | Por regla: 1 (un enlace vivo sobrevive a la concesión de un permiso; el arranque se reconoce por el actor sin persona), 3 (el candado no cubre los límites de solicitudes; T-050 promete 15 minutos), 4 (libvips le pasa la cabecera a cargadores de formatos que después se rechazan; el original de una evidencia fallida se queda en el bucket), 5 (la firma recibe el propósito opcional), 6 (el tope cuenta dispositivos que ya no existen; Ajustes no muestra T-3209; el 409 dice que un endpoint está registrado), 8 (dos reintentos simultáneos dejan dos auditorías; el pendiente conserva su backoff) y 9 (entre procesos vale el TTL de 30 s; `setConfig` sigue exportado). Al cierre: una fila por cada uno que no se acepte, o `ACCEPTED` con su razón |
+| DT-095 | La E2E del 2048 juega una partida al azar y da por hecho que siempre alcanza para premio: falla cuando el puntaje no llega | C1, ejecutado | testabilidad | OPEN | Falló una vez en la E2E completa del ciclo 1 (`juegos.spec.ts`, premio 0). Misma familia que las pruebas de integración que se fijaron con semilla |
+| DT-096 | La semana ISO de la clave de deduplicación del aviso de evaluaciones se calcula en UTC | C1, leído | corrección | ACCEPTED | Latente: el programado corre a las 9:00 de Colombia, cuando los dos días coinciden. Cambiarla altera una clave de deduplicación ya usada en producción |
+| DT-097 | La Persona 360 también pinta «suspendido hasta» y no se revisó de dónde saca la fecha | C1 | corrección | OPEN | La página de Mi OE ya la lee de `people` (DT-085) |
 
 ## Métricas
 
@@ -131,5 +134,25 @@ Las mide `npm run audit:metrics`. Al cerrar cada ciclo se agrega su tabla debajo
 | `getDb()` en `src/modules` | 458 |
 | Eventos de dominio: en el catálogo · todavía emitidos como cadena suelta | 66 · 0 |
 | Elementos crudos en `src` (input · select · table · button) | 558 · 123 · 51 · 134 |
+
+### Tras el ciclo 1 · 2026-10-07 · `refactor/ciclo-1`
+
+| Métrica | Valor |
+| --- | --- |
+| Archivos y líneas en `src` (sin el catálogo de textos) | 740 · 116644 |
+| Líneas en `src/app` · `src/modules` | 39088 · 71643 |
+| Funciones de más de 100 · 200 · 300 líneas (`src` y `scripts`) | 179 · 59 · 23 |
+| Funciones con complejidad mayor a 30 | 64 |
+| Archivos de más de 500 · 1000 líneas | 46 · 6 |
+| Exports de `participation` · `people` · `crm` (`index.ts`) | 384 · 237 · 150 |
+| Nombres de función de nivel superior declarados en 2 o más archivos de `src` | 99 |
+| `as unknown as` en `src` | 4 |
+| `tList(` · accesos posicionales `[n] ?? ""` en `src` | 828 · 374 |
+| `throw new Error(` en `src` | 158 |
+| `getDb()` en `src/modules` | 458 |
+| Eventos de dominio: en el catálogo · todavía emitidos como cadena suelta | 66 · 0 |
+| Elementos crudos en `src` (input · select · table · button) | 558 · 123 · 51 · 134 |
+
+Lo que movió el ciclo 1: módulos de dominio en una componente circular, de 7 a 0, y `npm run deps:check` rechaza un ciclo nuevo; maneras de drenar el outbox en las pruebas, de 8 bucles locales a una operación; pruebas de integración, de 603 a 634, y unitarias, de 855 a 864. El ciclo fue de corrección y de red de pruebas, así que las métricas de tamaño casi no se mueven: `src` crece 210 líneas (el drenado vive ahora junto al poller y suma cuatro `throw new Error`), baja una función de más de 200 líneas y `people` exporta dos símbolos más (el alcance de la sanción).
 
 Medidas que el script no trae y que salen de la revisión del 2026-10-06: módulos de dominio en una componente circular, 7; archivos de prueba que insertan filas a mano, 82; transacciones fuera de `runCommand`, 28 en 18 archivos.
