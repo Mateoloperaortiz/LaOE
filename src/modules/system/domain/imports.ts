@@ -55,23 +55,46 @@ export async function listImportJobs(limit = 50): Promise<ImportJobRow[]> {
 }
 
 /**
- * Toma un trabajo que sigue en vista previa (ADR-113 regla 7): bloquea su fila hasta el commit y exige
- * `PREVIEW`. Quien lo saca de la vista previa o le cambia las columnas empieza por acá, así que una
- * segunda llamada espera a la primera, lee el estado que dejó y se rechaza antes de escribir nada.
- * Devuelve la fila tomada: lo que dice ya no cambia hasta el commit.
+ * Toma un trabajo en el estado que su operación exige: bloquea la fila hasta el commit y rechaza
+ * cualquier otro estado con el texto de quien lo pide. Quien escribe un trabajo empieza por una de las
+ * dos tomas de abajo, así que una segunda llamada espera a la primera y lee lo que dejó. Devuelve la
+ * fila tomada: lo que dice ya no cambia hasta el commit.
  */
-export async function takeImportJobInPreview(
+async function takeImportJob(
   ctx: CommandContext,
   id: string,
+  status: ImportJobStatus,
+  otherwise: string,
 ): Promise<ImportJobRow> {
   const [row] = await ctx.tx.select().from(importJob).where(eq(importJob.id, id)).for("update");
   if (!row) {
     throw new DomainError(t("T-032"));
   }
-  if (row.status !== "PREVIEW") {
-    throw new DomainError(t("T-3210"));
+  if (row.status !== status) {
+    throw new DomainError(otherwise);
   }
   return row;
+}
+
+/**
+ * Toma un trabajo que sigue en vista previa (ADR-113 regla 7) y exige `PREVIEW`. Quien lo saca de la
+ * vista previa o le cambia las columnas empieza por acá: la segunda llamada se rechaza antes de
+ * escribir nada.
+ */
+export async function takeImportJobInPreview(
+  ctx: CommandContext,
+  id: string,
+): Promise<ImportJobRow> {
+  return takeImportJob(ctx, id, "PREVIEW", t("T-3210"));
+}
+
+/**
+ * Toma un trabajo ya aplicado (ADR-114 regla 7) y exige `APPLIED`. Quien completa el resumen de una
+ * importación aplicada empieza por acá: lee el resumen de la fila tomada, que es el que la aplicación
+ * dejó.
+ */
+export async function takeAppliedImportJob(ctx: CommandContext, id: string): Promise<ImportJobRow> {
+  return takeImportJob(ctx, id, "APPLIED", t("T-3212"));
 }
 
 export interface ImportJobPatch {

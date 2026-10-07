@@ -8,6 +8,7 @@ import {
   discardRosterImportAs,
   getRosterPreview,
   type RosterColumn,
+  recordLeaderGrantsAs,
   remapRosterPreviewAs,
 } from "@/modules/people";
 import { person } from "@/modules/people/schema";
@@ -17,12 +18,19 @@ import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import { currentTermCode, seedCommittee, seedMember, seedTerm } from "./factories";
 
-// Una importación del roster sale de la vista previa una sola vez (ADR-113 regla 7), por la interfaz
-// pública de `people`.
+// Una importación del roster sale de la vista previa una sola vez (ADR-113 regla 7) y los permisos de
+// líder se registran sobre la importación ya aplicada (ADR-114 regla 7), por la interfaz pública de
+// `people`.
 
 const HEADER = "NOMBRE;APELLIDO;CORREO;CELULAR;PREGRADO;COMITES;ENTRADA A LA OE;ESTADO;CARGO";
 const ANA = "prueba.ana@eafit.edu.co";
 const JUAN = "prueba.juan@eafit.edu.co";
+
+/** Lo que la página registra después de otorgar los permisos, uno por uno. */
+const GRANTS = {
+  granted: ["Ana Sintética · A3"],
+  failed: ["Juan Sintética · A3: motivo de prueba"],
+};
 
 /** Las columnas del archivo con NOMBRE y APELLIDO cruzadas: un cambio que se nota en lo aplicado. */
 const SWAPPED: Array<RosterColumn | null> = [
@@ -79,6 +87,15 @@ async function importedBy(jobId: string): Promise<{ audits: number; events: numb
 
 async function statusOf(jobId: string): Promise<string | undefined> {
   return (await getRosterPreview(jobId))?.status;
+}
+
+/** Cuántas veces se reescribió el trabajo: cada escritura deja su auditoría. */
+async function rewritesOf(jobId: string): Promise<number> {
+  const [found] = await db()
+    .select({ n: count() })
+    .from(auditLog)
+    .where(and(eq(auditLog.action, "import.updated"), eq(auditLog.entityId, jobId)));
+  return found?.n ?? 0;
 }
 
 /** Cómo quedó todo tras unas llamadas: quién se rechazó y con qué texto, el estado y lo aplicado. */
@@ -164,9 +181,10 @@ async function blockedBy(pid: number): Promise<number[]> {
   return result.rows.map((found) => found.pid);
 }
 
+afterAll(() => closeDb());
+
 describe("una importación del roster se aplica o se descarta una sola vez", () => {
   beforeEach(truncateAll);
-  afterAll(() => closeDb());
 
   it("aplicarla otra vez se rechaza y no vuelve a auditar ni a emitir", async () => {
     await seedMember(ANA);
@@ -384,5 +402,124 @@ describe("una importación del roster se aplica o se descarta una sola vez", () 
     ]);
 
     expect(rejections(results)).toEqual([t("T-032"), t("T-032")]);
+  });
+});
+
+describe("los permisos de líder se registran sobre la importación ya aplicada", () => {
+  beforeEach(truncateAll);
+
+  it("quedan en el resumen de la importación aplicada, que conserva lo demás", async () => {
+    await seedMember(ANA);
+    const { admin, jobId } = await previewOf([row("Ana", ANA), row("Juan", JUAN)]);
+    const applied = await applyRosterImportAs(admin, jobId);
+
+    await recordLeaderGrantsAs(admin, jobId, GRANTS);
+
+    const after = await getRosterPreview(jobId);
+    expect(after?.status).toBe("APPLIED");
+    expect(after?.summary).toEqual({ ...applied, leaders: GRANTS });
+  });
+
+  it("registrarlos mientras la importación se está aplicando espera a que cierre y conserva el resumen de lo aplicado", async () => {
+    await seedMember(ANA);
+    const { admin, jobId } = await previewOf([row("Ana", ANA)]);
+    const held = await holdPerson(ANA);
+    const applying = settled(applyRosterImportAs(admin, jobId));
+    let recording: Promise<PromiseSettledResult<void>> | undefined;
+    try {
+      // La aplicación ya va a medias: espera la fila de Ana detrás de quien la retiene.
+      await expect.poll(async () => blockedBy(held.pid), { timeout: 10_000 }).toHaveLength(1);
+      const [applyingPid = 0] = await blockedBy(held.pid);
+      let over = false;
+      recording = settled(recordLeaderGrantsAs(admin, jobId, GRANTS)).finally(() => {
+        over = true;
+      });
+      // El registro termina o se queda esperando detrás de la aplicación.
+      await expect
+        .poll(async () => over || (await blockedBy(applyingPid)).length > 0, { timeout: 10_000 })
+        .toBe(true);
+    } finally {
+      await held.release();
+    }
+
+    const applied = await applying;
+    expect(rejections([applied, await recording])).toEqual([]);
+    const after = await getRosterPreview(jobId);
+    expect(after?.status).toBe("APPLIED");
+    // El resumen es el que dejó la aplicación más los permisos, no el de la vista previa que había
+    // cuando el registro llegó.
+    expect(after?.summary).toEqual({
+      ...(applied.status === "fulfilled" ? applied.value : {}),
+      leaders: GRANTS,
+    });
+  });
+
+  it("no se registran en una importación que sigue en revisión: su resumen no cambia", async () => {
+    const { admin, jobId } = await previewOf([row("Ana", ANA)]);
+    const reviewed = await getRosterPreview(jobId);
+
+    const recorded = await Promise.allSettled([recordLeaderGrantsAs(admin, jobId, GRANTS)]);
+
+    expect(rejections(recorded)).toEqual([t("T-3212")]);
+    expect(await getRosterPreview(jobId)).toEqual(reviewed);
+    expect(await rewritesOf(jobId)).toBe(0);
+  });
+
+  it("no se registran en una importación descartada", async () => {
+    const { admin, jobId } = await previewOf([row("Ana", ANA)]);
+    await discardRosterImportAs(admin, jobId);
+    const discarded = await getRosterPreview(jobId);
+
+    const recorded = await Promise.allSettled([recordLeaderGrantsAs(admin, jobId, GRANTS)]);
+
+    expect(rejections(recorded)).toEqual([t("T-3212")]);
+    expect(await getRosterPreview(jobId)).toEqual(discarded);
+    // La única escritura del trabajo es la del descarte.
+    expect(await rewritesOf(jobId)).toBe(1);
+  });
+
+  it("no se registran en una importación fallida", async () => {
+    const { admin, jobId } = await previewOf([row("Ana", ANA)]);
+    // Ningún comando deja hoy un trabajo en `FAILED`: el estado se pone a mano.
+    await db().update(importJob).set({ status: "FAILED" }).where(eq(importJob.id, jobId));
+    const failed = await getRosterPreview(jobId);
+
+    const recorded = await Promise.allSettled([recordLeaderGrantsAs(admin, jobId, GRANTS)]);
+
+    expect(rejections(recorded)).toEqual([t("T-3212")]);
+    expect(failed?.status).toBe("FAILED");
+    expect(await getRosterPreview(jobId)).toEqual(failed);
+    expect(await rewritesOf(jobId)).toBe(0);
+  });
+
+  it("no se registran en una importación que no existe", async () => {
+    const { admin } = await previewOf([row("Ana", ANA)]);
+
+    const recorded = await Promise.allSettled([recordLeaderGrantsAs(admin, "no-existe", GRANTS)]);
+
+    expect(rejections(recorded)).toEqual([t("T-032")]);
+    expect(await rewritesOf("no-existe")).toBe(0);
+  });
+
+  it("ocho registros a la vez: queda el de uno de los ocho, entero, y lo demás del resumen no cambia", async () => {
+    await seedMember(ANA);
+    const { admin, jobId } = await previewOf([row("Ana", ANA)]);
+    const applied = await applyRosterImportAs(admin, jobId);
+    await warmUp(jobId);
+    const each = Array.from({ length: 8 }, (_, index) => ({
+      granted: [`Persona ${index} · A3`],
+      failed: [`Persona ${index} · A3: motivo de prueba`],
+    }));
+
+    const results = await Promise.allSettled(
+      each.map((result) => recordLeaderGrantsAs(admin, jobId, result)),
+    );
+
+    expect(rejections(results)).toEqual([]);
+    const after = await getRosterPreview(jobId);
+    expect(after?.status).toBe("APPLIED");
+    expect(each.map((result) => ({ ...applied, leaders: result }))).toContainEqual(after?.summary);
+    // La aplicación y los ocho registros: cada escritura con su auditoría.
+    expect(await rewritesOf(jobId)).toBe(9);
   });
 });

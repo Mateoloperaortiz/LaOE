@@ -10400,6 +10400,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3212": {
+    where: "Importación: registrar los permisos de líder de una que no está aplicada (ADR-114)",
+    text: "Esta importación no está aplicada, así que no hay permisos de líder que registrar.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-322": {
     where: "Calendario público (ICS), nombre del calendario",
     text: "Eventos de la Organización Estudiantil EAFIT",

@@ -715,6 +715,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-519 | Documentos: archivo fuera de tamaño | El PDF debe pesar entre 1 KB y 20 MB. | MATEO | Propuesta |
 | T-520 | Documentos: subida confirmada | De una: el PDF quedó guardado. Ahora cargá los artículos. | MATEO | Propuesta |
 | T-3210 | Importación: aplicar, descartar o cambiar las columnas de una que ya se aplicó o se descartó (ADR-113) | Esta importación ya no está en revisión. Para repetirla, subí el archivo de nuevo. | MATEO | Propuesta |
+| T-3212 | Importación: registrar los permisos de líder de una que no está aplicada (ADR-114) | Esta importación no está aplicada, así que no hay permisos de líder que registrar. | MATEO | Propuesta |
 
 ### Admin de Participación (fase 3: ocasiones, consola, anfitrión, ledger, rankings, asambleas, cierre, vista de líder, alias)
 

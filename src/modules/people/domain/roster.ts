@@ -11,6 +11,7 @@ import {
   getImportJob,
   type ImportJobRow,
   requirePrivacyPolicyVersion,
+  takeAppliedImportJob,
   takeImportJobInPreview,
   updateImportJob,
 } from "@/modules/system";
@@ -813,17 +814,18 @@ export async function discardRosterImportAs(actor: Actor, jobId: string): Promis
   });
 }
 
-/** Los permisos de líder se otorgan después del commit, uno por uno; el resultado queda en el resumen. */
+/**
+ * Los permisos de líder se otorgan después del commit, uno por uno; el resultado queda en el resumen.
+ * El resumen que se completa es el del trabajo tomado en la transacción, que tiene que estar aplicado
+ * (ADR-114 regla 7): no se lee antes ni se escribe sobre una importación en otro estado.
+ */
 export async function recordLeaderGrantsAs(
   actor: Actor,
   jobId: string,
   result: { granted: string[]; failed: string[] },
 ): Promise<void> {
-  const job = await getImportJob(jobId);
-  if (!job) {
-    return;
-  }
-  await runCommand(actor, (ctx) =>
-    updateImportJob(ctx, jobId, { summary: { ...job.summary, leaders: result } }),
-  );
+  await runCommand(actor, async (ctx) => {
+    const job = await takeAppliedImportJob(ctx, jobId);
+    await updateImportJob(ctx, jobId, { summary: { ...job.summary, leaders: result } });
+  });
 }
