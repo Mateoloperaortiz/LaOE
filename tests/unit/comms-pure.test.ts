@@ -13,6 +13,7 @@ import {
   markdownToMailHtml,
   markdownToPlain,
   renderTemplate,
+  sendEligibility,
 } from "@/modules/comms/domain/templates-pure";
 
 describe("withoutAddresses (ADR-114 regla 5)", () => {
@@ -204,5 +205,50 @@ describe("plantillas de correo (ADR-038 regla 8)", () => {
       ok: false,
       reason: "NO_EMAIL",
     });
+  });
+});
+
+describe("elegibilidad al enviar (ADR-115 regla 7)", () => {
+  const member = {
+    anonymized: false,
+    email: "a@eafit.edu.co",
+    personalEmail: "a@example.com",
+    membershipStatus: "ACTIVE",
+    hasCommunicationsConsent: false,
+  };
+
+  it("quien sigue en el roster recibe en su correo institucional, con o sin consentimiento", () => {
+    expect(sendEligibility(member)).toEqual({ ok: true, address: "a@eafit.edu.co" });
+    expect(sendEligibility({ ...member, membershipStatus: "ON_LEAVE" }).ok).toBe(true);
+  });
+
+  it("quien se anonimizó no recibe, tenga los datos que tenga", () => {
+    expect(sendEligibility({ ...member, anonymized: true })).toEqual({
+      ok: false,
+      reason: "ANONYMIZED",
+    });
+    expect(
+      sendEligibility({ ...member, anonymized: true, hasCommunicationsConsent: true }),
+    ).toEqual({ ok: false, reason: "ANONYMIZED" });
+  });
+
+  it("quien salió del roster solo recibe con consentimiento vivo, y en su correo personal si lo tiene", () => {
+    const left = { ...member, membershipStatus: "INACTIVE" };
+    expect(sendEligibility(left)).toEqual({ ok: false, reason: "NO_CONSENT" });
+    expect(sendEligibility({ ...left, hasCommunicationsConsent: true })).toEqual({
+      ok: true,
+      address: "a@example.com",
+    });
+    expect(
+      sendEligibility({ ...left, hasCommunicationsConsent: true, personalEmail: null }),
+    ).toEqual({ ok: true, address: "a@eafit.edu.co" });
+    expect(sendEligibility({ ...left, membershipStatus: null })).toEqual({
+      ok: false,
+      reason: "NO_CONSENT",
+    });
+  });
+
+  it("sin ningún correo no hay a dónde escribirle", () => {
+    expect(sendEligibility({ ...member, email: null })).toEqual({ ok: false, reason: "NO_EMAIL" });
   });
 });

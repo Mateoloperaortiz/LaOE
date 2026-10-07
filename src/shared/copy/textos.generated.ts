@@ -1375,8 +1375,9 @@ export const textos = {
     status: "Propuesta",
   },
   "T-1136": {
-    where: "Campaña: motivos de omisión (sin correo, baja, sin consentimiento, cancelada)",
-    text: "Sin correo · Se dio de baja · Sin consentimiento de comunicaciones · Campaña cancelada",
+    where:
+      "Campaña: motivos de omisión (sin correo, baja, sin consentimiento, cancelada, anonimizada)",
+    text: "Sin correo · Se dio de baja · Sin consentimiento de comunicaciones · Campaña cancelada · Datos eliminados",
     owner: "MATEO",
     status: "Propuesta",
   },

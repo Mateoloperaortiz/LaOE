@@ -3,7 +3,7 @@
 - Estado: Aceptada
 - Fecha: 2026-10-07
 - Relacionadas: ADR-012, ADR-023, ADR-038, ADR-039, ADR-079, ADR-109
-- Enmienda: ADR-038 (regla 8: el lote de una campaña, su cancelación y su cupo) y ADR-023 (regla 3: las campañas que salen por Resend)
+- Enmienda: ADR-038 (regla 8: el lote de una campaña, su cancelación, su cupo y la elegibilidad al enviar) y ADR-023 (regla 3: las campañas que salen por Resend)
 
 ## Contexto
 
@@ -21,6 +21,14 @@ El cuarto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
 
 - Una campaña a más personas que el cupo se lo gastaba entero, y ese día no salía ni un código de ingreso.
 - El proveedor rechazaba el resto por cuota, y cada rechazo quedaba `FAILED`, con su registro y la clave de la regla 2: nadie lo reintentaba y la campaña cerraba como enviada. Se reprodujo: con cupo para un correo y tres destinatarios quedaban uno enviado y dos fallidos para siempre.
+
+**La persona que cambió después de congelar la audiencia (DT-069).** ADR-038 regla 8 congela la audiencia al arrancar, con la elegibilidad de ese momento. Después el lote solo buscaba la dirección: le pasaba a la regla de elegibilidad el consentimiento dado por bueno y, si la regla no daba dirección, usaba el correo institucional.
+
+- A quien se anonimizaba entre el arranque y su lote le salía el correo, a su dirección de reemplazo (`eliminado.<id>@anonimo.invalid`).
+- A quien salía de la OE sin dejar consentimiento de contacto le llegaba igual.
+- Con el cupo de la regla 5 una campaña puede durar días, así que esa ventana dejó de ser de minutos.
+
+Se reprodujo con las dos personas: el lote les enviaba.
 
 ## Decisión
 
@@ -57,6 +65,14 @@ El cuarto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
    - El lote suelta lo que tenía reclamado y sin enviar, empezando por ese correo: quedan `PENDING` y sin reclamo.
    - La hora del rechazo queda en `campaigns.quotaExhaustedAt` (`AppConfig`, sin siembra, escrita por el sistema y auditada como toda la configuración). Mientras esa hora sea de hoy en Colombia, ningún lote reclama ni le pide nada al proveedor. Al otro día la campaña sigue donde quedó.
    - Los demás errores del proveedor siguen como antes: `FAILED`, con su registro y sin reintento.
+7. **Antes de cada correo el lote vuelve a mirar a la persona, y a quien ya no puede recibir lo omite con su motivo.** Después de comprobar el reclamo (regla 1) y justo antes de enviar, el lote lee a la persona como está en ese momento y le aplica la regla con la que se congeló la audiencia (`sendEligibility`, pura).
+   - Quien se anonimizó no recibe nada, tenga los datos que tenga: queda `SKIPPED · ANONYMIZED`, un motivo nuevo de `skip_reason`.
+   - Quien ya no está en el roster (`ACTIVE`, `ON_LEAVE`, `HONORARY`) solo recibe con consentimiento `COMMUNICATIONS` vivo, y en su correo personal si lo tiene. Sin consentimiento queda `SKIPPED · NO_CONSENT`, y sin ningún correo, `SKIPPED · NO_EMAIL`: son los motivos que la misma regla da al congelar. El motivo dice la causa, no el momento.
+   - Quien salió dejando consentimiento de contacto sigue recibiendo esa campaña, ahora en su correo personal: es lo que la regla diría si la audiencia se congelara en ese instante. Si eso es lo que se quiere es la decisión abierta 14 de [decisiones-abiertas.md](../decisiones-abiertas.md).
+   - La preferencia de campañas no se vuelve a mirar: una baja a mitad de campaña rige en la siguiente, como decidió ADR-038.
+   - Se lee por destinatario y no una vez por lote, porque un lote puede durar minutos. Queda fuera lo mismo que en la regla 1: el correo que ya iba en vuelo.
+   - Una omisión solo se escribe si el destinatario sigue pendiente, así que no pisa una cancelación. Y si el correo de esa persona ya había salido y quedó registrado (regla 2), manda el registro: queda `SENT`.
+   - A quien le faltan sus datos o su plantilla le sigue pasando lo de la regla 4.
 
 ## Consecuencias
 
@@ -79,3 +95,8 @@ El cuarto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
 - El contador del día (`sentTodayVia`, que también usa el camino transaccional) pasó de contar por `createdAt` a contar por `sentAt`. En producción son la misma hora; con un reloj inyectado no, y por `createdAt` el cupo no se podía probar. `message` no tiene índice por `sentAt`: la cuenta entra por `message_provider_idx` y filtra la fecha.
 - Las reglas 5 y 6 no traen migración: las dos claves se leen sin exigir fila.
 - Sus pruebas están en el mismo archivo: el defecto de DT-066, ya como prueba corriente; el tope contando transaccionales y campañas del día de Colombia y no del de UTC; el margen que cambia; las campañas por SES, que no tienen tope; el rechazo por cuota que corta hasta el otro día, y dos lotes a la vez. Las cuentas puras están en `tests/unit/jobs-pure.test.ts`.
+- Migración aditiva `0048_campana_motivo_anonimizado`: un valor nuevo en el enum `skip_reason`, sin backfill. Sin ella no hay cómo dejar un motivo propio: la columna es de ese enum y un `SKIPPED` exige motivo (`campaign_recipient_skip_reason`). Su texto es el quinto de T-1136, «Datos eliminados»; la pantalla de la campaña ya busca el texto por la posición del motivo y no cambió.
+- Con la regla 7 el lote hace otras dos lecturas por correo, la persona y su consentimiento, y ya no lee a todas las personas del lote de una vez.
+- Revocar el consentimiento a mitad de una campaña sí saca a la persona de lo que falta, a diferencia de la baja de campañas: lo primero es de la ley de datos, lo segundo es una preferencia.
+- `skippedCount` ya puede subir después del arranque sin que nadie cancele, y una campaña puede cerrar con menos enviados de los que estimó.
+- Las pruebas de la regla 7 están en el mismo archivo: la persona que se anonimizó entre dos lotes, la que salió sin consentimiento y la que salió dejándolo, la que se anonimiza mientras el lote le escribe a otra y la que ya tenía su correo registrado. La regla pura está en `tests/unit/comms-pure.test.ts`.

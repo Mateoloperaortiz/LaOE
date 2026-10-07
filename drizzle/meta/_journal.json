@@ -337,6 +337,13 @@
       "when": 1791411542117,
       "tag": "0047_campana_reclamo_del_lote",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1791415548540,
+      "tag": "0048_campana_motivo_anonimizado",
+      "breakpoints": true
     }
   ]
 }

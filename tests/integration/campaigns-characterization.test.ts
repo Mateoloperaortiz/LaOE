@@ -18,6 +18,7 @@ import {
   updatePreferencesAs,
 } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
+import { anonymizePersonAs, endMembershipAs, requestDeletionAs } from "@/modules/people";
 import { segment } from "@/modules/people/schema";
 import { requireConfig, setConfig } from "@/modules/system";
 import {
@@ -1269,5 +1270,153 @@ describe("cancelar con un lote en curso (ADR-115 regla 4)", () => {
       });
       expect(await recipientStatuses(id)).toEqual({ SENT: accepted, SKIPPED: 6 - accepted });
     }
+  });
+});
+
+/** Anonimiza a pedido, como lo hace GH: primero la solicitud de la persona y después el comando. */
+async function anonymize(personId: string): Promise<void> {
+  await requestDeletionAs({ personId });
+  await anonymizePersonAs(SYSTEM_ACTOR, personId);
+}
+
+/** Quienes siguen pendientes en la campaña, en el orden de la prueba. */
+async function waitingMembers(campaignId: string, roster: Member[]): Promise<Member[]> {
+  const pending = new Set(
+    (await listRecipients(campaignId)).rows
+      .filter((row) => row.status === "PENDING")
+      .map((row) => row.personId),
+  );
+  return roster.filter((member) => pending.has(member.id));
+}
+
+async function recipientOf(campaignId: string, personId: string) {
+  return (await listRecipients(campaignId)).rows.find((row) => row.personId === personId);
+}
+
+describe("antes de cada envío el lote vuelve a mirar a la persona (ADR-115 regla 7)", () => {
+  it("a quien se anonimizó después de congelar la audiencia lo omite con su motivo y no le escribe", async () => {
+    const roster = await seedRoster(4);
+    const id = await scheduleCampaign(2);
+    await runCampaignTick(minute(0));
+    const [gone] = await waitingMembers(id, roster);
+    if (!gone) throw new Error("Tras el primer lote tenía que quedar alguien pendiente");
+
+    await anonymize(gone.id);
+
+    expect(await runCampaignTick(minute(1))).toEqual({ started: 0, sent: 1 });
+    expect(await recipientOf(id, gone.id)).toMatchObject({
+      status: "SKIPPED",
+      skipReason: "ANONYMIZED",
+      messageId: null,
+      sentAt: null,
+    });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENT",
+      totalCount: 4,
+      sentCount: 3,
+      failedCount: 0,
+      skippedCount: 1,
+    });
+    expect(addresses(delivered.overflow)).toEqual(
+      emails(roster.filter((member) => member !== gone)),
+    );
+  });
+
+  it("a quien salió sin dejar consentimiento lo omite por eso, y a quien salió pidiendo seguir en contacto le escribe a su correo personal", async () => {
+    const roster = await seedRoster(4);
+    const id = await scheduleCampaign(2);
+    await runCampaignTick(minute(0));
+    const [left, keeps] = await waitingMembers(id, roster);
+    if (!left || !keeps) throw new Error("Tras el primer lote tenían que quedar dos pendientes");
+
+    await endMembershipAs(SYSTEM_ACTOR, left.id, {
+      endReason: "RESIGNATION",
+      memorialConsent: false,
+      contactConsent: false,
+    });
+    await endMembershipAs(SYSTEM_ACTOR, keeps.id, {
+      endReason: "GRADUATION",
+      memorialConsent: false,
+      contactConsent: true,
+      personalEmail: "egresada@example.com",
+    });
+
+    expect(await runCampaignTick(minute(1))).toEqual({ started: 0, sent: 1 });
+    expect(await recipientOf(id, left.id)).toMatchObject({
+      status: "SKIPPED",
+      skipReason: "NO_CONSENT",
+      messageId: null,
+      sentAt: null,
+    });
+    expect(await recipientOf(id, keeps.id)).toMatchObject({ status: "SENT", skipReason: null });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENT",
+      sentCount: 3,
+      failedCount: 0,
+      skippedCount: 1,
+    });
+    const received = delivered.overflow.map((mail) => mail.to);
+    expect(received).toContain("egresada@example.com");
+    expect(received).not.toContain(keeps.email);
+    expect(received).not.toContain(left.email);
+  });
+
+  it("a quien se anonimiza mientras el lote le escribe a otro tampoco le llega: el lote lo mira justo antes de su correo", async () => {
+    const roster = await seedRoster(3);
+    const id = await scheduleCampaign(3);
+    const gate = mailGate();
+    let firstTo = "";
+    useTransports({
+      overflow: async (mail, call) => {
+        if (call === 1) {
+          firstTo = mail.to;
+          await gate.hold();
+        }
+        return `ses_${call}`;
+      },
+    });
+
+    const tick = runCampaignTick(minute(0));
+    await untilHeld(gate, tick);
+    const gone = roster.find((member) => member.email !== firstTo);
+    if (!gone) throw new Error("seed roster");
+    await anonymize(gone.id);
+    gate.release();
+
+    expect(await tick).toEqual({ started: 1, sent: 2 });
+    expect(await recipientOf(id, gone.id)).toMatchObject({
+      status: "SKIPPED",
+      skipReason: "ANONYMIZED",
+    });
+    expect(await getCampaign(id)).toMatchObject({ status: "SENT", sentCount: 2, skippedCount: 1 });
+    expect(addresses(delivered.overflow)).toEqual(
+      emails(roster.filter((member) => member !== gone)),
+    );
+  });
+
+  it("si su correo ya había salido y quedado registrado, cuenta como enviado aunque después se haya anonimizado", async () => {
+    await seedRoster(3);
+    const id = await scheduleCampaign(3);
+    const interrupted = interruptionBeforeMarking(id, (call) => `ses_${call}`);
+    useTransports({ overflow: interrupted.accept });
+    expect(await interrupted.run()).toEqual(expect.any(String));
+    const [record] = await db().select().from(message).where(eq(message.campaignId, id));
+    if (!record) throw new Error("El primer correo tenía que quedar registrado");
+
+    await anonymize(record.personId);
+
+    expect(await runCampaignTick(minute(CLAIM_MINUTES))).toEqual({ started: 0, sent: 2 });
+    expect(await recipientOf(id, record.personId)).toMatchObject({
+      status: "SENT",
+      skipReason: null,
+      messageId: record.id,
+    });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENT",
+      sentCount: 3,
+      failedCount: 0,
+      skippedCount: 0,
+    });
+    expect(delivered.overflow).toHaveLength(3);
   });
 });

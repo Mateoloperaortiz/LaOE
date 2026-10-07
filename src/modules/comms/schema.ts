@@ -39,6 +39,8 @@ export const skipReason = pgEnum("skip_reason", [
   "OPTED_OUT",
   "NO_CONSENT",
   "CANCELLED",
+  // Se anonimizó después de congelar la audiencia: el lote la omite antes de su correo (ADR-115 regla 7).
+  "ANONYMIZED",
 ]);
 
 // Plantilla de correo: Markdown con variables por persona (ADR-038 regla 8).

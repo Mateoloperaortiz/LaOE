@@ -1176,7 +1176,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1133 | Campaña: progreso | {enviados} de {total} enviados · {fallidos} fallidos · {omitidos} omitidos | MATEO | Propuesta |
 | T-1134 | Campaña: destinatarios, columnas | Persona · Estado · Motivo · Enviado | MATEO | Propuesta |
 | T-1135 | Campaña: estados de destinatario (pendiente, enviado, fallido, omitido) | Pendiente · Enviado · Fallido · Omitido | MATEO | Propuesta |
-| T-1136 | Campaña: motivos de omisión (sin correo, baja, sin consentimiento, cancelada) | Sin correo · Se dio de baja · Sin consentimiento de comunicaciones · Campaña cancelada | MATEO | Propuesta |
+| T-1136 | Campaña: motivos de omisión (sin correo, baja, sin consentimiento, cancelada, anonimizada) | Sin correo · Se dio de baja · Sin consentimiento de comunicaciones · Campaña cancelada · Datos eliminados | MATEO | Propuesta |
 | T-1137 | Campaña: solo se edita en borrador | Una campaña programada o enviada no se edita. Creá otra. | MATEO | Propuesta |
 | T-1138 | Campaña: sin destinatarios | El segmento no tiene destinatarios con correo. | MATEO | Propuesta |
 | T-1139 | Campaña: programada (aviso) | Programada para el {fecha}. Los lotes salen desde esa hora. | MATEO | Propuesta |

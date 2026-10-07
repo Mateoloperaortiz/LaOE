@@ -247,6 +247,15 @@ function receiptOf(record: RecordedMessage): CampaignReceipt {
   };
 }
 
+/** Lo que ya quedó registrado de esa campaña para esa persona, si su correo ya salió o fue rechazado. */
+export async function recordedCampaignEmail(
+  personId: string,
+  campaignId: string,
+): Promise<CampaignReceipt | null> {
+  const record = await findRecordedMessage(personId, campaignDedupeKey(campaignId));
+  return record ? receiptOf(record) : null;
+}
+
 /**
  * Envía el correo de una campaña a una persona y lo registra. Si ya hay un registro de esa campaña
  * para esa persona no envía nada y responde con él, sea de un envío o de un rechazo. Si el proveedor lo
@@ -258,9 +267,9 @@ export async function sendCampaignEmail(
   now = new Date(),
 ): Promise<CampaignReceipt | CampaignDeferral> {
   const dedupeKey = campaignDedupeKey(email.campaignId);
-  const before = await findRecordedMessage(email.personId, dedupeKey);
+  const before = await recordedCampaignEmail(email.personId, email.campaignId);
   if (before) {
-    return receiptOf(before);
+    return before;
   }
   const transport = campaignTransport();
   let receipt: SendReceipt;

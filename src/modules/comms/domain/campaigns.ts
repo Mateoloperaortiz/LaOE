@@ -26,6 +26,7 @@ import {
   type CampaignReceipt,
   campaignQuota,
   markCampaignQuotaExhausted,
+  recordedCampaignEmail,
   sendCampaignEmail,
   sentTodayVia,
 } from "./send";
@@ -36,14 +37,20 @@ import {
   renderEmail,
   valuesFor,
 } from "./templates";
-import { campaignEligibility, type SkipReason } from "./templates-pure";
+import {
+  campaignEligibility,
+  type SendSkipReason,
+  type SkipReason,
+  sendEligibility,
+} from "./templates-pure";
 
 // Campañas (ADR-038 regla 8): una plantilla a un segmento. Al arrancar se congela la audiencia en
 // `campaign_recipient` con la elegibilidad de cada persona; el programado `campaigns` manda un lote
 // por minuto; cancelar deja lo pendiente omitido. El lote reclama, envía sin transacción abierta y
 // marca a cada destinatario en la suya, y todo lo que escribe sobre una campaña toma primero su fila.
 // Cuando sale por el proveedor de lo transaccional no reclama más de lo que cabe hoy en el cupo, y lo
-// que no cabe sigue pendiente hasta el otro día (ADR-115).
+// que no cabe sigue pendiente hasta el otro día. Antes de cada correo vuelve a mirar a la persona y omite
+// a quien se anonimizó o ya no puede recibir (ADR-115).
 
 export type CampaignRow = typeof campaign.$inferSelect;
 export type CampaignStatus = CampaignRow["status"];
@@ -51,7 +58,13 @@ export type RecipientRow = typeof campaignRecipient.$inferSelect;
 
 export const CAMPAIGN_STATUSES = ["DRAFT", "SCHEDULED", "SENDING", "SENT", "CANCELLED"] as const;
 export const RECIPIENT_STATUSES = ["PENDING", "SENT", "FAILED", "SKIPPED"] as const;
-export const SKIP_REASONS = ["NO_EMAIL", "OPTED_OUT", "NO_CONSENT", "CANCELLED"] as const;
+export const SKIP_REASONS = [
+  "NO_EMAIL",
+  "OPTED_OUT",
+  "NO_CONSENT",
+  "CANCELLED",
+  "ANONYMIZED",
+] as const;
 
 export const campaignInputSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -524,22 +537,31 @@ async function holdsClaim(item: BatchItem, claimedAt: Date): Promise<boolean> {
   return row !== undefined;
 }
 
+/** Cómo queda un destinatario: lo que respondió el envío, por qué se omite, o `null` si no se pudo intentar. */
+type Settlement = CampaignReceipt | { skip: SendSkipReason } | null;
+
 /**
  * Deja el resultado de un destinatario en su propia transacción, con la fila de la campaña tomada
- * primero: bajo ese candado se escribe su estado y se recuentan los contadores. `receipt` es lo que
- * respondió el envío; `null`, que no se llegó a intentar porque faltan sus datos o su plantilla.
+ * primero: bajo ese candado se escribe su estado y se recuentan los contadores. `outcome` es lo que
+ * respondió el envío; el motivo por el que la persona ya no recibe (ADR-115 regla 7); o `null`, que no
+ * se llegó a intentar porque faltan sus datos o su plantilla.
  */
-async function settleRecipient(
-  item: BatchItem,
-  receipt: CampaignReceipt | null,
-  now: Date,
-): Promise<void> {
+async function settleRecipient(item: BatchItem, outcome: Settlement, now: Date): Promise<void> {
   await getDb().transaction(async (tx) => {
     const row = await lockCampaignRow(tx, item.campaignId);
     if (!row) {
       return;
     }
-    if (receipt) {
+    if (outcome && "skip" in outcome) {
+      // Solo si sigue pendiente: una omisión del lote no pisa una cancelación.
+      await tx
+        .update(campaignRecipient)
+        .set({ status: "SKIPPED", skipReason: outcome.skip })
+        .where(
+          and(eq(campaignRecipient.id, item.recipientId), eq(campaignRecipient.status, "PENDING")),
+        );
+    } else if (outcome) {
+      const receipt = outcome;
       // Lo que respondió el proveedor manda, también sobre una cancelación que llegó con el correo en
       // vuelo y ya había dejado omitido a su destinatario.
       await tx
@@ -621,8 +643,7 @@ export async function processCampaignBatch(limit: number, now = new Date()): Pro
   }
   const personIds = [...new Set(batch.map((item) => item.personId))];
   const campaignIds = [...new Set(batch.map((item) => item.campaignId))];
-  const [refs, tokens, committees, term, campaigns] = await Promise.all([
-    listMailingRefs(personIds),
+  const [tokens, committees, term, campaigns] = await Promise.all([
     ensurePreferencesFor(personIds),
     loadCommitteeIndex(personIds),
     getCurrentTerm(),
@@ -638,20 +659,31 @@ export async function processCampaignBatch(limit: number, now = new Date()): Pro
     if (!(await holdsClaim(item, now))) {
       continue;
     }
+    // La persona como está ahora y no como estaba al reclamar: un lote puede durar minutos.
+    const [refs, consents] = await Promise.all([
+      listMailingRefs([item.personId]),
+      listLiveConsentHolders([item.personId], "COMMUNICATIONS"),
+    ]);
     const ref = refs.get(item.personId);
     const template = templates.get(item.campaignId);
     if (!ref || !template) {
       await settleRecipient(item, null, now);
       continue;
     }
-    const eligibility = campaignEligibility({
+    const eligibility = sendEligibility({
+      anonymized: ref.anonymized,
       email: ref.email,
       personalEmail: ref.personalEmail,
       membershipStatus: ref.membershipStatus,
-      emailCampaigns: true,
-      hasCommunicationsConsent: true,
+      hasCommunicationsConsent: consents.has(item.personId),
     });
-    const address = eligibility.ok ? eligibility.address : ref.email;
+    if (!eligibility.ok) {
+      // Si su correo ya había salido y quedó registrado, manda ese registro (regla 2).
+      const recorded = await recordedCampaignEmail(item.personId, item.campaignId);
+      await settleRecipient(item, recorded ?? { skip: eligibility.reason }, now);
+      continue;
+    }
+    const address = eligibility.address;
     const token = tokens.get(item.personId);
     const unsubscribeUrl = token ? `${base}/baja/${token}` : null;
     const rendered = renderEmail(
