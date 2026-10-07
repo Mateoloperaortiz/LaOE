@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { single } from "@/app/_lib/search";
+import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import { requireBoardActor } from "@/modules/identity";
 import { boardIndicators } from "@/modules/permanence";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -96,6 +97,7 @@ export default async function JuntaPage({ searchParams }: PageProps<"/admin/junt
         </div>
       </header>
 
+      <DownloadNotice searchParams={search} />
       {empty ? <p className="text-tinta-suave">{t("T-827")}</p> : null}
 
       <dl className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">

@@ -1,4 +1,4 @@
-import { getEnv } from "@/env";
+import { redirectFromDownload } from "@/app/_lib/download";
 import { getPreferences, listMessagesFor, listSubscriptionsFor } from "@/modules/comms";
 import { listStaffFor } from "@/modules/competition";
 import { listInteractions, listTasks } from "@/modules/crm";
@@ -28,14 +28,11 @@ import { listPassesFor } from "@/modules/wallet";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
+export async function GET(_request: Request) {
   const actor = await getActor();
   if (!actor) {
-    return Response.redirect(
-      new URL(`/ingresar?next=${encodeURIComponent(url.pathname)}`, getEnv().APP_URL),
-      302,
-    );
+    // La descarga sale de la sección de privacidad de Ajustes (ADR-113, regla 10).
+    return redirectFromDownload("SIGN_IN", "/app/ajustes");
   }
   const data = await collectPersonalData(actor.personId);
   if (!data) {

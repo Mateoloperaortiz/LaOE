@@ -1,7 +1,11 @@
+import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import { ResourcePage } from "@/app/admin/_kit/ResourcePage";
+import { ResourceToolbar } from "@/shared/admin-kit";
 import type { AnyResource } from "@/shared/admin-kit/types";
+import { t } from "@/shared/copy";
 
 const state = vi.hoisted(() => ({
   actor: vi.fn(),
@@ -53,6 +57,28 @@ function resource(overrides: Partial<AnyResource> = {}): AnyResource {
     exportRow: () => ({}),
     ...overrides,
   };
+}
+
+type AnyElement = ReactElement<Record<string, unknown>>;
+
+/** Los elementos del árbol que devuelve la página, sin ejecutar sus componentes. */
+function elements(node: ReactNode): AnyElement[] {
+  if (Array.isArray(node)) {
+    return node.flatMap(elements);
+  }
+  if (!isValidElement<Record<string, unknown>>(node)) {
+    return [];
+  }
+  return [node, ...elements(node.props.children as ReactNode)];
+}
+
+/** Lo que pinta el aviso de descarga de la página, o `null` si no pinta nada. */
+function downloadNotice(page: ReactNode): AnyElement | null {
+  const notice = elements(page).find((element) => element.type === DownloadNotice);
+  if (!notice) {
+    throw new Error("la página no monta el aviso de descarga");
+  }
+  return DownloadNotice(notice.props as Parameters<typeof DownloadNotice>[0]) as AnyElement | null;
 }
 
 beforeEach(() => {
@@ -127,5 +153,38 @@ describe("navegación y capacidades de un recurso administrativo", () => {
     expect(state.list).toHaveBeenCalledWith(
       expect.objectContaining({ filters: { eventId: "original" } }),
     );
+  });
+
+  it("el enlace del exporte nombra la pantalla donde está montado el recurso, con su búsqueda y su página", async () => {
+    state.list.mockResolvedValue({ rows: [], total: 60 });
+    const page = await ResourcePage({
+      resource: resource({
+        filters: [{ key: "editionId", label: "Edición", options: [] }],
+      }),
+      searchParams: { q: "ana maría", pagina: "2", descarga: "1" },
+      basePath: "/admin/eventos/evento1/ediciones/edicion1/inscritos",
+      fixedFilters: { editionId: "edicion1" },
+    });
+    const toolbar = elements(page).find((element) => element.type === ResourceToolbar);
+    const href = new URL(String(toolbar?.props.exportHref), "http://local");
+    expect(href.pathname).toBe("/api/export/ejemplo");
+    expect(href.searchParams.get("q")).toBe("ana maría");
+    expect(href.searchParams.get("editionId")).toBe("edicion1");
+    expect(href.searchParams.get("pantalla")).toBe(
+      "/admin/eventos/evento1/ediciones/edicion1/inscritos?q=ana+mar%C3%ADa&pagina=2",
+    );
+  });
+
+  it("al volver de una descarga que no salió avisa que hay que pedirla otra vez", async () => {
+    const page = await ResourcePage({ resource: resource(), searchParams: { descarga: "1" } });
+    const notice = downloadNotice(page);
+    expect(notice?.type).toBe("output");
+    expect(notice?.props.children).toBe(t("T-3211"));
+  });
+
+  it("sin la marca de descarga, o con un valor que no reconoce, no avisa", async () => {
+    for (const searchParams of [{}, { descarga: "" }, { descarga: "0" }, { descarga: "si" }]) {
+      expect(downloadNotice(await ResourcePage({ resource: resource(), searchParams }))).toBeNull();
+    }
   });
 });

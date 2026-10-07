@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { single } from "@/app/_lib/search";
+import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import { requireAdminActor } from "@/modules/identity";
 import {
   COMPLIANCE_FILTERS,
@@ -116,6 +117,7 @@ export default async function CumplimientoPage({
         </div>
       </header>
 
+      <DownloadNotice searchParams={search} />
       <nav aria-label={filterLabels[0] ?? ""} className="flex flex-wrap gap-2">
         {COMPLIANCE_FILTERS.map((key, index) => (
           <Link

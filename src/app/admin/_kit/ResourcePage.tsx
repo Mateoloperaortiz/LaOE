@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { DOWNLOAD_SCREEN_PARAM } from "@/app/_lib/download";
 import { single } from "@/app/_lib/search";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/shared/admin-kit";
 import { t, tList } from "@/shared/copy";
 import { rowActionAction, saveResourceAction } from "./actions";
+import { DownloadNotice } from "./DownloadNotice";
 
 const PAGE_SIZE = 25;
 type Search = Record<string, string | string[] | undefined>;
@@ -142,6 +144,7 @@ export async function ResourcePage({
           {t("T-259")}
         </output>
       ) : null}
+      <DownloadNotice searchParams={searchParams} />
       {rowError ? (
         <p
           role="alert"
@@ -157,7 +160,13 @@ export async function ResourcePage({
         filterValues={filters}
         labels={{ search: t("T-250"), create: t("T-251"), exportCsv: t("T-255"), all: t("T-1434") }}
         createHref={createHref}
-        exportHref={buildHref(`/api/export/${resource.key}`, { q, ...filters, ...fixedFilters })}
+        exportHref={buildHref(`/api/export/${resource.key}`, {
+          q,
+          ...filters,
+          ...fixedFilters,
+          // El exporte vuelve a esta pantalla si pide sesión o paso de seguridad (ADR-113, regla 10).
+          [DOWNLOAD_SCREEN_PARAM]: listHref,
+        })}
         canCreate={false}
       />
       <ResourceTable

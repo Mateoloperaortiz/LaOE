@@ -149,6 +149,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-054 | Correo del código, cuerpo | Hola, {nombre}. Tu código es **{código}** y vence en 10 minutos. Si no fuiste vos, ignorá este correo. | MATEO | Propuesta |
 | T-2092 | Correo del código, pie | Organización Estudiantil · Universidad EAFIT · Bloque 29 of. 525 · Este es un mensaje automático de seguridad: te llega porque alguien pidió un código para entrar a Mi OE con tu dirección. | MATEO | Propuesta |
 | T-055 | Step-up (acción sensible de admin) | Esta acción pide un código nuevo. Te lo mandamos al correo. | MATEO | Propuesta |
+| T-3211 | Pantalla a la que se vuelve tras el ingreso o el paso de seguridad que pidió una descarga (exportes del admin y Mis datos; ADR-113) | La descarga quedó pendiente porque primero había que confirmar que sos vos. Pedila otra vez desde acá. | MATEO | Propuesta |
 
 ## 4. Mi OE
 

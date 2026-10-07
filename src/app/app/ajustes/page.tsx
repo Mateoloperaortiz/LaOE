@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { isDownloadPending } from "@/app/_lib/download";
 import { getEnv } from "@/env";
 import { getPreferences, listSubscriptionsFor } from "@/modules/comms";
 import { DeviceMark } from "@/modules/comms/components/DeviceMark";
@@ -60,6 +61,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
   const guardado = typeof params.guardado === "string" ? params.guardado : "";
   const error = typeof params.error === "string" ? params.error : "";
   const confirmar = params.confirmar === "1";
+  const descargaPendiente = isDownloadPending(params);
   const [who, consents, sessions, deletionDays, policy, devices, preferences, tieneClave] =
     await Promise.all([
       getPersonRecord(actor.personId),
@@ -109,7 +111,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
         label={t("T-418")}
         sections={availableSections}
         initialSection={
-          confirmar
+          confirmar || descargaPendiente
             ? "privacidad"
             : error === "policy-pending"
               ? "consentimientos"
@@ -436,6 +438,9 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
           <a href="/api/mis-datos" download className="boton-secundario self-start">
             {t("T-135")}
           </a>
+          {descargaPendiente ? (
+            <output className="block text-sm font-semibold text-titulo">{t("T-3211")}</output>
+          ) : null}
           {who?.deletionRequestedAt ? (
             <p className="max-w-prose font-semibold">
               {t("T-416", { fecha: formatDate(who.deletionRequestedAt), n: deletionDays })}

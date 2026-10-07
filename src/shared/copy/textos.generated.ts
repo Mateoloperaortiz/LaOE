@@ -10392,6 +10392,13 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3211": {
+    where:
+      "Pantalla a la que se vuelve tras el ingreso o el paso de seguridad que pidió una descarga (exportes del admin y Mis datos; ADR-113)",
+    text: "La descarga quedó pendiente porque primero había que confirmar que sos vos. Pedila otra vez desde acá.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-322": {
     where: "Calendario público (ICS), nombre del calendario",
     text: "Eventos de la Organización Estudiantil EAFIT",
