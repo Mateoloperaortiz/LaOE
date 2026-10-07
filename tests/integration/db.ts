@@ -13,9 +13,13 @@ const GAMIFICATION_SEED: Record<string, unknown> = {
   "gamification.defaults": { trivia: 5, presential: 10, evidence: 10, passPercent: 80 },
 };
 
+// Claves que ninguna migración siembra y que una prueba puede dejar escritas (ADR-115 reglas 5 y 6):
+// no se restauran, o el margen o el corte por cuota de una prueba le quedarían a la siguiente.
+const UNSEEDED = new Set(["campaigns.transactionalReserve", "campaigns.quotaExhaustedAt"]);
+
 export async function truncateAll(): Promise<void> {
   const db = getDb();
-  const config = await db.select().from(appConfig);
+  const config = (await db.select().from(appConfig)).filter((row) => !UNSEEDED.has(row.key));
   // Solo el catálogo sembrado: las ediciones especiales de una prueba referencian
   // ocasiones/retos que el truncate borra y no deben sobrevivir.
   const badges = await db

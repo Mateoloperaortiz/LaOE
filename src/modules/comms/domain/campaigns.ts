@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
@@ -20,7 +20,15 @@ import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
 import { campaign, campaignRecipient, emailTemplate } from "../schema";
 import { ensurePreferencesFor, listPreferencesFor } from "./preferences";
-import { type CampaignReceipt, sendCampaignEmail } from "./send";
+import { campaignRoom } from "./pure";
+import {
+  type CampaignQuota,
+  type CampaignReceipt,
+  campaignQuota,
+  markCampaignQuotaExhausted,
+  sendCampaignEmail,
+  sentTodayVia,
+} from "./send";
 import {
   getTemplate,
   listTemplateOptions,
@@ -33,8 +41,9 @@ import { campaignEligibility, type SkipReason } from "./templates-pure";
 // Campañas (ADR-038 regla 8): una plantilla a un segmento. Al arrancar se congela la audiencia en
 // `campaign_recipient` con la elegibilidad de cada persona; el programado `campaigns` manda un lote
 // por minuto; cancelar deja lo pendiente omitido. El lote reclama, envía sin transacción abierta y
-// marca a cada destinatario en la suya, y todo lo que escribe sobre una campaña toma primero su fila
-// (ADR-115).
+// marca a cada destinatario en la suya, y todo lo que escribe sobre una campaña toma primero su fila.
+// Cuando sale por el proveedor de lo transaccional no reclama más de lo que cabe hoy en el cupo, y lo
+// que no cabe sigue pendiente hasta el otro día (ADR-115).
 
 export type CampaignRow = typeof campaign.$inferSelect;
 export type CampaignStatus = CampaignRow["status"];
@@ -421,15 +430,53 @@ interface BatchItem {
  */
 const CLAIM_LEASE_MS = 15 * 60_000;
 
+/** El candado bajo el que se cuenta el cupo del día y se reclama contra él (ADR-115 regla 5). */
+const QUOTA_LOCK = "campaigns:quota";
+
+/**
+ * Cuántos correos de campaña caben todavía hoy en el cupo (ADR-115 regla 5). Toma el candado del cupo,
+ * que dura lo que la transacción del reclamo: así se cuenta y se reclama de a un lote, y lo que este
+ * reclame ya lo cuenta el siguiente. Gastado es lo que el proveedor aceptó hoy, transaccional o de
+ * campaña, más lo que algún lote tiene reclamado y sin resultado.
+ */
+async function quotaRoom(tx: Tx, quota: CampaignQuota, now: Date): Promise<number> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${QUOTA_LOCK}))`);
+  const sent = await sentTodayVia(quota.provider, now, tx);
+  const [claimed] = await tx
+    .select({ n: count() })
+    .from(campaignRecipient)
+    .where(
+      and(
+        eq(campaignRecipient.status, "PENDING"),
+        gt(campaignRecipient.claimedAt, new Date(now.getTime() - CLAIM_LEASE_MS)),
+        inArray(
+          campaignRecipient.campaignId,
+          tx.select({ id: campaign.id }).from(campaign).where(eq(campaign.status, "SENDING")),
+        ),
+      ),
+    );
+  return campaignRoom(quota.ceiling, sent, claimed?.n ?? 0);
+}
+
 /**
  * Reclama hasta `limit` destinatarios libres de una campaña en curso, en una transacción corta. Libre
- * es pendiente y sin reclamo vigente; el reclamo es la hora del lote, que también lo identifica.
+ * es pendiente y sin reclamo vigente; el reclamo es la hora del lote, que también lo identifica. Con
+ * cupo, no reclama más de lo que cabe hoy: el reclamo es también la reserva de ese cupo.
  */
-async function claimRecipients(campaignId: string, limit: number, now: Date): Promise<BatchItem[]> {
+async function claimRecipients(
+  campaignId: string,
+  limit: number,
+  now: Date,
+  quota: CampaignQuota | null,
+): Promise<BatchItem[]> {
   const expired = new Date(now.getTime() - CLAIM_LEASE_MS);
   return getDb().transaction(async (tx) => {
     const row = await lockCampaignRow(tx, campaignId);
     if (row?.status !== "SENDING") {
+      return [];
+    }
+    const room = quota ? Math.min(limit, await quotaRoom(tx, quota, now)) : limit;
+    if (room <= 0) {
       return [];
     }
     const free = tx
@@ -443,7 +490,7 @@ async function claimRecipients(campaignId: string, limit: number, now: Date): Pr
         ),
       )
       .orderBy(asc(campaignRecipient.createdAt))
-      .limit(limit);
+      .limit(room);
     return tx
       .update(campaignRecipient)
       .set({ claimedAt: now })
@@ -517,12 +564,46 @@ async function settleRecipient(
 }
 
 /**
+ * El proveedor rechazó un correo por cuota (ADR-115 regla 6): deja escrito que hoy no acepta más y
+ * suelta lo que el lote tenía reclamado y sin enviar, empezando por ese correo. Siguen pendientes y
+ * libres para el primer lote de mañana. Cada campaña en su transacción y con su fila tomada primero.
+ */
+async function cutBatchForToday(rest: BatchItem[], claimedAt: Date): Promise<void> {
+  await markCampaignQuotaExhausted(claimedAt);
+  const byCampaign = new Map<string, string[]>();
+  for (const item of rest) {
+    byCampaign.set(item.campaignId, [...(byCampaign.get(item.campaignId) ?? []), item.recipientId]);
+  }
+  for (const [campaignId, recipientIds] of byCampaign) {
+    await getDb().transaction(async (tx) => {
+      await lockCampaignRow(tx, campaignId);
+      await tx
+        .update(campaignRecipient)
+        .set({ claimedAt: null })
+        .where(
+          and(
+            inArray(campaignRecipient.id, recipientIds),
+            eq(campaignRecipient.status, "PENDING"),
+            eq(campaignRecipient.claimedAt, claimedAt),
+          ),
+        );
+    });
+  }
+}
+
+/**
  * Manda hasta `limit` correos pendientes entre las campañas en curso, las más antiguas primero
  * (ADR-115). Reclama a sus destinatarios en una transacción corta por campaña, envía sin ninguna
  * transacción abierta y deja el resultado de cada uno en la suya: un lote que se cae no deshace lo que
  * ya marcó, y mientras un correo viaja no retiene una conexión del pool ni un candado que otro espere.
+ * Con cupo diario no reclama más de lo que cabe hoy, y si el proveedor rechaza por cuota se corta: lo
+ * que falta sigue pendiente y ningún lote sale hasta el otro día.
  */
 export async function processCampaignBatch(limit: number, now = new Date()): Promise<number> {
+  const quota = await campaignQuota(now);
+  if (quota?.exhausted) {
+    return 0;
+  }
   const sending = await getDb()
     .select({ id: campaign.id })
     .from(campaign)
@@ -533,7 +614,7 @@ export async function processCampaignBatch(limit: number, now = new Date()): Pro
     if (batch.length >= limit) {
       break;
     }
-    batch.push(...(await claimRecipients(row.id, limit - batch.length, now)));
+    batch.push(...(await claimRecipients(row.id, limit - batch.length, now, quota)));
   }
   if (batch.length === 0) {
     return 0;
@@ -553,7 +634,7 @@ export async function processCampaignBatch(limit: number, now = new Date()): Pro
   }
   const base = getEnv().APP_URL.replace(/\/$/, "");
   let sent = 0;
-  for (const item of batch) {
+  for (const [position, item] of batch.entries()) {
     if (!(await holdsClaim(item, now))) {
       continue;
     }
@@ -598,6 +679,15 @@ export async function processCampaignBatch(limit: number, now = new Date()): Pro
       },
       now,
     );
+    if (receipt.status === "DEFERRED") {
+      const rest = batch.slice(position);
+      logger.warn(
+        { provider: receipt.provider, error: receipt.error, released: rest.length },
+        "campañas: el proveedor rechazó por cuota, lo pendiente sigue mañana",
+      );
+      await cutBatchForToday(rest, now);
+      break;
+    }
     await settleRecipient(item, receipt, now);
     if (receipt.status === "SENT" && !receipt.recovered) {
       sent += 1;

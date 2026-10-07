@@ -1,6 +1,8 @@
 import { and, count, eq, gte } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import { type Executor, SYSTEM_ACTOR } from "@/db/tx";
 import { getEnv } from "@/env";
+import { getConfig, writeConfig } from "@/modules/system";
 import {
   createMailTransports,
   type MailMessage,
@@ -8,7 +10,7 @@ import {
   type MailTransports,
   QuotaExceededError,
 } from "@/shared/adapters/mail";
-import { startOfTodayIn } from "@/shared/lib/dates";
+import { dateKeyIn, startOfTodayIn } from "@/shared/lib/dates";
 import { logger } from "@/shared/log";
 import { message } from "../schema";
 import {
@@ -17,7 +19,7 @@ import {
   type RecordedMessage,
   recordMessage,
 } from "./messages";
-import { chooseRoute, withoutAddresses } from "./pure";
+import { campaignCeiling, chooseRoute, withoutAddresses } from "./pure";
 
 // Correo transaccional (OTP, puntos, recordatorios): Resend con desbordamiento automático a SES,
 // y cada envío queda registrado en `message` con el proveedor por el que salió (ADR-023).
@@ -53,17 +55,21 @@ export function setMailTransportsForTests(replacement: MailTransports | undefine
   transports = replacement;
 }
 
-async function sentTodayVia(provider: string, now: Date): Promise<number> {
+/**
+ * Correos que ese proveedor aceptó hoy, transaccionales y de campaña por igual. «Hoy» es el día civil de
+ * la zona de la app, y un correo es del día en que salió: `sentAt`, la hora que le dio quien lo envió.
+ */
+export async function sentTodayVia(
+  provider: string,
+  now: Date,
+  db: Executor = getDb(),
+): Promise<number> {
   const since = startOfTodayIn(getEnv().APP_TIMEZONE, now);
-  const [row] = await getDb()
+  const [row] = await db
     .select({ n: count() })
     .from(message)
     .where(
-      and(
-        eq(message.provider, provider),
-        eq(message.status, "SENT"),
-        gte(message.createdAt, since),
-      ),
+      and(eq(message.provider, provider), eq(message.status, "SENT"), gte(message.sentAt, since)),
     );
   return row?.n ?? 0;
 }
@@ -153,7 +159,56 @@ function failed(provider: string, error: unknown): SendReceipt {
 
 // Campañas (ADR-023, ADR-038 regla 8): siempre por el transporte de desbordamiento (SES) cuando existe;
 // si no, por el primario (consola en local). Cada envío queda en `message` con su campaña y con una
-// clave por campaña y persona, y quien ya la tiene no recibe otro (ADR-115 regla 2).
+// clave por campaña y persona, y quien ya la tiene no recibe otro (ADR-115 regla 2). Cuando salen por
+// Resend comparten su cupo diario con lo transaccional y le dejan un margen (ADR-115 reglas 5 y 6).
+
+/** El transporte por el que sale una campaña. */
+function campaignTransport(): MailTransport {
+  const { primary, overflow } = getTransports();
+  return overflow ?? primary;
+}
+
+/** De los transportes, solo Resend tiene un cupo diario que cuidar acá: `RESEND_DAILY_LIMIT`. */
+function hasDailyQuota(transport: MailTransport): boolean {
+  return transport.name === "resend";
+}
+
+export interface CampaignQuota {
+  /** El proveedor por el que salen las campañas, que es el del cupo. */
+  provider: string;
+  /** Con cuántos correos salidos hoy por ese proveedor una campaña ya no manda otro. */
+  ceiling: number;
+  /** Ese proveedor ya rechazó hoy un correo por cuota: hasta mañana no se le pide otro. */
+  exhausted: boolean;
+}
+
+/**
+ * El cupo que rige hoy para las campañas (ADR-115 reglas 5 y 6), o `null` si salen por un transporte sin
+ * cupo diario. El tope es `RESEND_DAILY_LIMIT` menos el margen de `campaigns.transactionalReserve`.
+ */
+export async function campaignQuota(now: Date): Promise<CampaignQuota | null> {
+  const transport = campaignTransport();
+  if (!hasDailyQuota(transport)) {
+    return null;
+  }
+  const env = getEnv();
+  const [reserve, exhaustedAt] = await Promise.all([
+    getConfig("campaigns.transactionalReserve"),
+    getConfig("campaigns.quotaExhaustedAt"),
+  ]);
+  return {
+    provider: transport.name,
+    ceiling: campaignCeiling(env.RESEND_DAILY_LIMIT, reserve),
+    exhausted:
+      exhaustedAt !== null &&
+      dateKeyIn(env.APP_TIMEZONE, new Date(exhaustedAt)) === dateKeyIn(env.APP_TIMEZONE, now),
+  };
+}
+
+/** Deja escrito que el proveedor rechazó un correo de campaña por cuota a esa hora (ADR-115 regla 6). */
+export function markCampaignQuotaExhausted(at: Date): Promise<void> {
+  return writeConfig(SYSTEM_ACTOR, "campaigns.quotaExhaustedAt", at.toISOString());
+}
 
 export interface CampaignEmail extends MailMessage {
   personId: string;
@@ -165,6 +220,17 @@ export interface CampaignReceipt extends SendReceipt {
   sentAt: Date | null;
   /** El resultado sale de un registro que ya existía: el lote no lo cuenta como enviado por él. */
   recovered: boolean;
+}
+
+/**
+ * El proveedor no aceptó el correo por cuota (ADR-115 regla 6). No es un rechazo de ese correo: no deja
+ * registro, porque uno con la clave de la campaña dejaría a la persona sin él, y su destinatario sigue
+ * pendiente.
+ */
+export interface CampaignDeferral {
+  status: "DEFERRED";
+  provider: string;
+  error: string;
 }
 
 const campaignDedupeKey = (campaignId: string): string => `campaign:${campaignId}`;
@@ -183,24 +249,27 @@ function receiptOf(record: RecordedMessage): CampaignReceipt {
 
 /**
  * Envía el correo de una campaña a una persona y lo registra. Si ya hay un registro de esa campaña
- * para esa persona no envía nada y responde con él, sea de un envío o de un rechazo. No corre dentro
- * de una transacción: mientras el proveedor responde no hay conexión ocupada.
+ * para esa persona no envía nada y responde con él, sea de un envío o de un rechazo. Si el proveedor lo
+ * rechaza por cuota no registra nada y responde que queda para después. No corre dentro de una
+ * transacción: mientras el proveedor responde no hay conexión ocupada.
  */
 export async function sendCampaignEmail(
   email: CampaignEmail,
   now = new Date(),
-): Promise<CampaignReceipt> {
+): Promise<CampaignReceipt | CampaignDeferral> {
   const dedupeKey = campaignDedupeKey(email.campaignId);
   const before = await findRecordedMessage(email.personId, dedupeKey);
   if (before) {
     return receiptOf(before);
   }
-  const { primary, overflow } = getTransports();
-  const transport = overflow ?? primary;
+  const transport = campaignTransport();
   let receipt: SendReceipt;
   try {
     receipt = await attempt(transport, email);
   } catch (error) {
+    if (error instanceof QuotaExceededError) {
+      return { status: "DEFERRED", provider: transport.name, error: providerErrorText(error) };
+    }
     receipt = failed(transport.name, error);
   }
   const sentAt = receipt.status === "SENT" ? now : null;

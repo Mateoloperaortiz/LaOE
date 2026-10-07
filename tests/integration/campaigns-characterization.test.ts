@@ -34,9 +34,8 @@ import { seedMember } from "./factories";
 
 // Caracterización del lote de una campaña (ADR-038 regla 8) antes de tocarlo (ADR-109, DT-077): lo que
 // hoy funciona queda fijado en verde, por el tick que exporta `comms` y con el transporte de pruebas; los
-// defectos quedan después, cada uno con su fila del ledger y su ticket: los que siguen abiertos fallan a
-// propósito (`knownDefect`) y los ya corregidos son pruebas corrientes (`fixedDefect`). Al final, lo que
-// el lote hace desde ADR-115.
+// defectos quedan después, cada uno con su fila del ledger y su ticket, ya corregidos y como pruebas
+// corrientes (`fixedDefect`). Al final, lo que el lote hace desde ADR-115.
 
 const db = () => getDb();
 
@@ -447,32 +446,9 @@ const settle = (work: Promise<unknown>): Promise<string | null> => work.then(() 
 const SCENARIO_DEADLINE_MS = 15_000;
 
 /**
- * Un defecto conocido del lote, escrito como la conducta correcta que hoy no se cumple (`it.fails`):
- * `observe` arma el escenario y devuelve lo que pasó; `expectFixed` afirma lo que debería pasar. Si el
- * escenario no se arma o no termina, la prueba no lanza y vitest la da por rota: un escenario caído no
- * cuenta como defecto reproducido. Cuando entre el ticket que lo corrige, vitest avisa que la prueba ya
- * pasa y la llamada se vuelve un `fixedDefect`.
- */
-function knownDefect<T>(
-  title: string,
-  observe: () => Promise<T>,
-  expectFixed: (seen: T) => void,
-): void {
-  it.fails(title, async () => {
-    let seen: T;
-    try {
-      seen = await withTimeout(observe(), SCENARIO_DEADLINE_MS, "el escenario del defecto");
-    } catch (error) {
-      console.error("No se pudo armar el escenario del defecto:", error);
-      return;
-    }
-    expectFixed(seen);
-  });
-}
-
-/**
- * Un defecto que ya se corrigió: el mismo escenario y la misma afirmación que tuvo como `knownDefect`,
- * ahora como prueba corriente. Acá el escenario sí tiene que armarse y terminar.
+ * Un defecto que la caracterización dejó escrito en rojo (`it.fails`) y que ya se corrigió: el mismo
+ * escenario y la misma afirmación, ahora como prueba corriente. `observe` arma el escenario y devuelve
+ * lo que pasó; `expectFixed` afirma lo que tiene que pasar. El escenario tiene que armarse y terminar.
  */
 function fixedDefect<T>(
   title: string,
@@ -632,8 +608,9 @@ describe("los defectos que la caracterización le encontró al lote", () => {
     },
   );
 
-  // DT-066, lo corrige #146: una campaña no mira la cuota y trata su rechazo como uno definitivo.
-  knownDefect(
+  // DT-066, corregido en #146 (ADR-115 regla 6): una campaña trataba el rechazo por cuota como uno
+  // definitivo y dejaba fallido para siempre a quien le faltaba el correo.
+  fixedDefect(
     "con la cuota del proveedor agotada, a quien le faltaba el correo queda pendiente y lo recibe cuando vuelve el cupo",
     async () => {
       const roster = await seedRoster(3);
@@ -706,6 +683,218 @@ describe("los defectos que la caracterización le encontró al lote", () => {
       expect(seen).toEqual({ status: "SENT", sentCount: 6, recipients: { SENT: 6 }, accepted: 6 });
     },
   );
+});
+
+// El cupo es el de Resend (`RESEND_DAILY_LIMIT`) y, mientras nadie fije el margen, un tercio queda
+// reservado para los correos transaccionales.
+const DAILY_LIMIT = Number(process.env.RESEND_DAILY_LIMIT ?? 95);
+const CAMPAIGN_CEILING = DAILY_LIMIT - Math.ceil(DAILY_LIMIT / 3);
+
+// Un día fijo y lejano para contar el cupo: son las 22:00 del 9 de marzo en Colombia y ya es 10 en UTC.
+const NIGHT = new Date("2031-03-10T03:00:00.000Z");
+const MORNING = new Date("2031-03-09T12:00:00.000Z");
+const night = (minutes: number): Date => new Date(NIGHT.getTime() + minutes * 60_000);
+/** Los minutos que le faltan a `NIGHT` para la medianoche de Colombia. */
+const TO_MIDNIGHT = 120;
+
+/** Correos que ya salieron a esa hora, sin pasar por el transporte: lo que cuenta el cupo. */
+async function seedSent(
+  personId: string,
+  kind: "TRANSACTIONAL" | "CAMPAIGN",
+  amount: number,
+  sentAt: Date,
+  provider: MailProvider = "resend",
+): Promise<void> {
+  if (amount === 0) return;
+  await db()
+    .insert(message)
+    .values(
+      Array.from({ length: amount }, (_, index) => ({
+        personId,
+        channel: "EMAIL" as const,
+        kind,
+        subject: `Previo ${index}`,
+        status: "SENT" as const,
+        provider,
+        sentAt,
+      })),
+    );
+}
+
+function setReserve(value: number): Promise<void> {
+  return runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "campaigns.transactionalReserve", value));
+}
+
+/** Una campaña a todas las personas de la prueba, programada para `NIGHT`, con ese lote por minuto. */
+async function scheduleForNight(perMinute: number): Promise<string> {
+  await setPerMinute(perMinute);
+  return scheduleNew(await seedParts(), "Novedades", NIGHT);
+}
+
+describe("el cupo del día y el margen para los correos transaccionales (ADR-115 reglas 5 y 6)", () => {
+  it("con el cupo de campañas casi lleno, el lote manda lo que cabe contando lo transaccional y lo de campañas que salió hoy en Colombia, y lo demás sigue al otro día", async () => {
+    const roster = await seedRoster(5);
+    const [ana] = roster;
+    if (!ana) throw new Error("seed roster");
+    const id = await scheduleForNight(10);
+    // Hoy en Colombia ya salieron todos los que caben menos dos, entre transaccionales y de campaña:
+    // los de la mañana son de ayer para UTC, y el de la medianoche en punto ya es de hoy.
+    await seedSent(ana.id, "TRANSACTIONAL", CAMPAIGN_CEILING - 5, MORNING);
+    await seedSent(ana.id, "CAMPAIGN", 3, new Date("2031-03-09T05:00:00.000Z"));
+    // No cuentan: lo de ayer en Colombia, por un segundo, ni lo que salió por otro proveedor.
+    await seedSent(ana.id, "TRANSACTIONAL", 40, new Date("2031-03-09T04:59:59.000Z"));
+    await seedSent(ana.id, "TRANSACTIONAL", 40, MORNING, "ses");
+    useTransports({ overflow: null });
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 2 });
+
+    expect(await recipientStatuses(id)).toEqual({ SENT: 2, PENDING: 3 });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENDING",
+      sentCount: 2,
+      failedCount: 0,
+      skippedCount: 0,
+    });
+    const waiting = (await listRecipients(id)).rows.filter((row) => row.status === "PENDING");
+    expect(waiting.map((row) => [row.claimedAt, row.messageId])).toEqual(
+      waiting.map(() => [null, null]),
+    );
+
+    // Lo que queda del día no sale nada más.
+    expect(await runCampaignTick(night(1))).toEqual({ started: 0, sent: 0 });
+    expect(await runCampaignTick(night(TO_MIDNIGHT - 1))).toEqual({ started: 0, sent: 0 });
+    expect(delivered.primary).toHaveLength(2);
+
+    // A la medianoche de Colombia el cupo es otro: la campaña sigue donde quedó y termina.
+    expect(await runCampaignTick(night(TO_MIDNIGHT))).toEqual({ started: 0, sent: 3 });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENT",
+      finishedAt: night(TO_MIDNIGHT),
+      sentCount: 5,
+      failedCount: 0,
+    });
+    expect(addresses(delivered.primary)).toEqual(emails(roster));
+  });
+
+  it("el margen reservado se puede cambiar, y el lote siguiente ya cuenta con el nuevo", async () => {
+    await seedRoster(4);
+    const id = await scheduleForNight(10);
+    useTransports({ overflow: null });
+
+    await setReserve(DAILY_LIMIT - 1);
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
+
+    // Con tres correos del cupo para campañas, y uno ya gastado, caben dos más.
+    await setReserve(DAILY_LIMIT - 3);
+    expect(await runCampaignTick(night(1))).toEqual({ started: 0, sent: 2 });
+    expect(await recipientStatuses(id)).toEqual({ SENT: 3, PENDING: 1 });
+
+    // Un margen igual o mayor que el cupo no deja salir ninguna campaña.
+    await setReserve(DAILY_LIMIT + 10);
+    expect(await runCampaignTick(night(2))).toEqual({ started: 0, sent: 0 });
+    expect(delivered.primary).toHaveLength(3);
+  });
+
+  it("cuando las campañas salen por el desbordamiento, el cupo del primario no las frena", async () => {
+    const roster = await seedRoster(3);
+    const [ana] = roster;
+    if (!ana) throw new Error("seed roster");
+    const id = await scheduleForNight(10);
+    await seedSent(ana.id, "TRANSACTIONAL", DAILY_LIMIT, MORNING);
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 3 });
+
+    expect(await getCampaign(id)).toMatchObject({ status: "SENT", sentCount: 3 });
+    expect(addresses(delivered.overflow)).toEqual(emails(roster));
+  });
+
+  it("un rechazo por cuota del proveedor deja al destinatario pendiente y sin registro, y corta los lotes hasta el otro día aunque el proveedor ya acepte", async () => {
+    const roster = await seedRoster(4);
+    const id = await scheduleForNight(10);
+    let quota = 1;
+    let calls = 0;
+    useTransports({
+      overflow: null,
+      primary: (_mail, call) => {
+        calls = call;
+        if (quota === 0) {
+          throw new QuotaExceededError("daily_quota_exceeded: se acabó el cupo de hoy");
+        }
+        quota -= 1;
+        return `resend_${call}`;
+      },
+    });
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
+
+    // Uno salió, al segundo lo rechazaron por cuota y a los otros dos ya no se les intentó.
+    expect(calls).toBe(2);
+    expect(await recipientStatuses(id)).toEqual({ SENT: 1, PENDING: 3 });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENDING",
+      sentCount: 1,
+      failedCount: 0,
+    });
+    const waiting = (await listRecipients(id)).rows.filter((row) => row.status === "PENDING");
+    expect(waiting.map((row) => [row.claimedAt, row.messageId])).toEqual(
+      waiting.map(() => [null, null]),
+    );
+    expect(await db().select().from(message).where(eq(message.status, "FAILED"))).toEqual([]);
+
+    // El proveedor ya aceptaría, pero hoy no se le vuelve a preguntar.
+    quota = 10;
+    expect(await runCampaignTick(night(1))).toEqual({ started: 0, sent: 0 });
+    expect(await runCampaignTick(night(TO_MIDNIGHT - 1))).toEqual({ started: 0, sent: 0 });
+    expect(calls).toBe(2);
+
+    expect(await runCampaignTick(night(TO_MIDNIGHT))).toEqual({ started: 0, sent: 3 });
+    expect(await getCampaign(id)).toMatchObject({ status: "SENT", sentCount: 4, failedCount: 0 });
+    expect(addresses(delivered.primary)).toEqual(emails(roster));
+  });
+
+  it("dos lotes a la vez no gastan más de lo que cabe: lo que uno reclamó ya cuenta para el otro", async () => {
+    const roster = await seedRoster(6);
+    const [ana] = roster;
+    if (!ana) throw new Error("seed roster");
+    const id = await scheduleForNight(3);
+    await seedSent(ana.id, "TRANSACTIONAL", CAMPAIGN_CEILING - 2, MORNING);
+    // El proveedor no responde hasta que los dos lotes reclamaron lo suyo: ninguno ve todavía un
+    // correo enviado por el otro, solo lo que el otro reclamó.
+    let waiting = 0;
+    let finished = 0;
+    let release = (): void => {};
+    const released = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    useTransports({
+      overflow: null,
+      primary: async (_mail, call) => {
+        waiting += 1;
+        await released;
+        return `resend_${call}`;
+      },
+    });
+
+    const ticks = [runCampaignTick(NIGHT), runCampaignTick(NIGHT)].map((tick) =>
+      tick.finally(() => {
+        finished += 1;
+      }),
+    );
+    for (let attempt = 0; attempt < 400 && waiting + finished < 2; attempt += 1) {
+      await sleep(25);
+    }
+    release();
+    const results = await Promise.all(ticks);
+
+    expect(results.reduce((sum, tick) => sum + tick.sent, 0)).toBe(2);
+    expect(delivered.primary).toHaveLength(2);
+    expect(await recipientStatuses(id)).toEqual({ SENT: 2, PENDING: 4 });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENDING",
+      sentCount: 2,
+      failedCount: 0,
+    });
+  });
 });
 
 /** Lo que dura el reclamo de un lote sobre sus destinatarios, en minutos (ADR-115 regla 1). */

@@ -2,8 +2,8 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-07
-- Relacionadas: ADR-012, ADR-023, ADR-038, ADR-079, ADR-109
-- Enmienda: ADR-038 (regla 8: el lote de una campaña y su cancelación)
+- Relacionadas: ADR-012, ADR-023, ADR-038, ADR-039, ADR-079, ADR-109
+- Enmienda: ADR-038 (regla 8: el lote de una campaña, su cancelación y su cupo) y ADR-023 (regla 3: las campañas que salen por Resend)
 
 ## Contexto
 
@@ -16,6 +16,11 @@ El cuarto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
 - Cada lote recontaba sin ver lo que otro lote todavía no había confirmado. Dos a la vez dejaban la campaña `SENDING` para siempre y con los contadores a medias, y ningún tick posterior lo corregía, porque sin pendientes el lote salía antes de recontar.
 
 **Cancelar con un lote en curso (DT-068).** La cancelación tomaba la fila de la campaña con `FOR UPDATE` y después esperaba a los destinatarios que el lote tenía tomados. El lote, por su lado, registraba cada `message` por otra conexión, y esa inserción pedía la fila de la campaña por su llave foránea: quedaba esperando a la cancelación desde Node, donde Postgres no ve ningún ciclo ni aborta a nadie. Los dos se quedaban quietos hasta que el `statement_timeout` (60 segundos por omisión) cancelaba la sentencia de la cancelación, que fallaba con un error que no es de dominio mientras la campaña seguía enviando. Se reprodujo siempre que la cancelación llegaba con un envío en curso.
+
+**El cupo del día (DT-066).** [ADR-023](ADR-023-operacion-entornos-respaldo-correo.md) regla 3 mandaba las campañas por SES para no gastar el cupo de Resend, y [ADR-039](ADR-039-arranque-limpio-fase-7.md) dejó SES apagado: desde entonces las campañas salen por Resend, el mismo proveedor del código de ingreso y de los avisos de admisión, que acepta 100 correos al día (`RESEND_DAILY_LIMIT` vale 95). El camino transaccional contaba lo enviado hoy para decidir el desborde; el de campañas no contaba nada.
+
+- Una campaña a más personas que el cupo se lo gastaba entero, y ese día no salía ni un código de ingreso.
+- El proveedor rechazaba el resto por cuota, y cada rechazo quedaba `FAILED`, con su registro y la clave de la regla 2: nadie lo reintentaba y la campaña cerraba como enviada. Se reprodujo: con cupo para un correo y tres destinatarios quedaban uno enviado y dos fallidos para siempre.
 
 ## Decisión
 
@@ -39,6 +44,19 @@ El cuarto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
    - El lote ve la cancelación en la comprobación previa a su siguiente envío y no manda lo que le quedaba, que ya quedó omitido por cancelación.
    - El correo que iba en vuelo cuando se canceló sí salió. Cuando el proveedor responde, su destinatario pasa de omitido a `SENT`, o a `FAILED` si lo rechazó, con su mensaje, y los contadores de la campaña se recuentan aunque ya esté cancelada, sin tocarle el estado ni `finishedAt`. Así `sentCount` coincide con lo que recibió el transporte.
    - Lo que no llegó a intentarse nunca pisa una cancelación: un destinatario al que le faltan sus datos o su plantilla solo queda `FAILED` si sigue pendiente.
+5. **Una campaña que sale por Resend no pasa del cupo del día menos un margen para lo transaccional.** Cuando las campañas salen por el proveedor de lo transaccional, que hoy es siempre porque sin `AWS_REGION` no hay desbordamiento, el lote no reclama más destinatarios de los que caben hoy.
+   - Caben `RESEND_DAILY_LIMIT` menos el margen, menos lo que ese proveedor aceptó hoy (los `message` en `SENT` con ese `provider`, transaccionales y de campaña por igual), menos lo que algún lote tiene reclamado y sin resultado.
+   - «Hoy» es el día civil de Colombia (`APP_TIMEZONE`), no el de UTC, y un correo es del día de su `sentAt`.
+   - El margen es `campaigns.transactionalReserve` en `AppConfig`: un entero, los correos del cupo que una campaña no toca. No se siembra: sin fila vale un tercio del cupo, hacia arriba. Con el cupo de 95 son 32, y caben 63 correos de campaña al día. Un margen igual o mayor que el cupo no deja salir ninguna campaña.
+   - Se cuenta y se reclama bajo un mismo candado: `pg_advisory_xact_lock` sobre `campaigns:quota`, que se toma en la transacción del reclamo, después de la fila de la campaña (regla 3), y dura lo que ella. El reclamo de la regla 1 es también la reserva del cupo, así que dos lotes a la vez no gastan entre los dos más de lo que cabe.
+   - Lo que no cabe no se reclama: sigue `PENDING` y sin reclamo, y la campaña sigue `SENDING`. El primer lote del otro día sigue donde quedó.
+   - No tiene cupo lo que sale por SES, que lleva el suyo, ni por la consola.
+   - Lo transaccional no se frena por esta regla: puede gastar el margen y también lo que una campaña no usó.
+6. **Un rechazo por cuota no es un rechazo del correo: su destinatario sigue pendiente y ningún lote sale hasta el otro día.** Si el proveedor responde con un error de cuota (`QuotaExceededError`: el cupo diario, el mensual o una ráfaga que no cedió con los reintentos de ADR-039), `sendCampaignEmail` no registra nada y el lote se corta ahí.
+   - No hay registro porque uno con la clave de la regla 2 dejaría a esa persona sin su correo. Nadie queda `FAILED` por cuota.
+   - El lote suelta lo que tenía reclamado y sin enviar, empezando por ese correo: quedan `PENDING` y sin reclamo.
+   - La hora del rechazo queda en `campaigns.quotaExhaustedAt` (`AppConfig`, sin siembra, escrita por el sistema y auditada como toda la configuración). Mientras esa hora sea de hoy en Colombia, ningún lote reclama ni le pide nada al proveedor. Al otro día la campaña sigue donde quedó.
+   - Los demás errores del proveedor siguen como antes: `FAILED`, con su registro y sin reintento.
 
 ## Consecuencias
 
@@ -47,8 +65,17 @@ El cuarto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
   - El que un lote tenía en vuelo cuando venció su reclamo, si a los 15 minutos seguía vivo: el lote que lo releva también lo envía, y de los dos envíos queda un solo registro (regla 2). Un lote de 200, el tope de `campaigns.perMinute`, pasa de 15 minutos si cada correo tarda más de unos 4,5 segundos.
 - Cerrar esas ventanas sin perder correos pide una clave de idempotencia del lado del proveedor, que SES no ofrece. La otra salida es registrar la intención antes de enviar, que cambia el correo repetido por uno que puede no salir: es la decisión abierta 13 de [decisiones-abiertas.md](../decisiones-abiertas.md), y mientras no se decida vale lo que dice la regla 1.
 - Tras una interrupción, lo que el lote tenía reclamado espera hasta 15 minutos. La campaña sigue mientras tanto con los demás destinatarios.
-- Un rechazo del proveedor deja su registro con la clave, así que nadie lo reintenta, como antes. Cuando DT-066 decida reintentar los rechazos por cuota, ese intento no puede dejar un registro con la clave, o tiene que poder reemplazarlo.
+- Un rechazo del proveedor que no es por cuota deja su registro con la clave, así que nadie lo reintenta, como antes. El de cuota no deja registro (regla 6).
 - Una campaña cancelada puede mover sus contadores una vez más después de cancelada, cuando responde el proveedor por el correo que iba en vuelo: a lo sumo uno por lote en curso. Si el proceso muere justo ahí, ese destinatario queda omitido aunque su correo salió y está en `message`.
 - Migración aditiva `0047_campana_reclamo_del_lote`: una columna anulable, sin backfill. Una campaña que esté `SENDING` al desplegar sigue su curso: sus pendientes no tienen reclamo, sus mensajes viejos no tienen clave y sus destinatarios ya enviados están marcados.
 - El lote hace dos lecturas más por correo (el reclamo y el registro) y una transacción corta por destinatario. Con el tope de 200 por minuto de `campaigns.perMinute` son cientos de sentencias cortas por minuto, a cambio de no tener ninguna transacción abierta mientras responde el proveedor.
 - Las pruebas están en `tests/integration/campaigns-characterization.test.ts`: los defectos reproducidos, ya como pruebas corrientes, y las del reclamo, su vencimiento, el lote que sigue vivo cuando vence su reclamo, el destinatario recuperado (con su correo enviado o rechazado), la transacción que no queda abierta y la cancelación con un correo en vuelo y repetida a la par del lote.
+- Una campaña a más personas de las que caben dura varios días. Con el cupo de 95 y el margen por omisión salen hasta 63 correos de campaña al día, menos los transaccionales de ese día: una campaña a 300 personas tarda cinco días o más. Mientras tanto se ve `Enviando`, con sus destinatarios en `Pendiente`; la pantalla no dice todavía que esperan cupo (DT-115).
+- El margen no tiene pantalla (DT-115): `campaigns.transactionalReserve` se escribe en `app_config` y rige a los 30 segundos, lo que dura la caché de configuración. Borrar la fila de `campaigns.quotaExhaustedAt` levanta el corte del día.
+- La cuenta propia va por el día civil de Colombia y el proveedor lleva su propia ventana. Si no coinciden, o si la cuenta de Resend la usa algo más, el proveedor puede rechazar antes de que la cuenta propia llegue al tope: para eso está la regla 6, y el margen amortigua lo demás.
+- Con una campaña en curso, lo transaccional puede dejar el total del día por encima del tope de campañas: gasta su margen, que es para eso. Si el cupo entero se acaba, un correo transaccional queda `FAILED` como antes de este ciclo, porque sin SES no tiene por dónde más salir.
+- El corte por cuota dura hasta el otro día aunque el rechazo haya sido por una ráfaga, que cedería antes, o por el cupo mensual, que no cede: en ese caso el lote prueba un correo por día hasta que cambie el mes. Los lotes que ya habían empezado cuando llegó el rechazo prueban un correo cada uno; después, ninguno.
+- Un lote que se cae conserva su reserva hasta que vence su reclamo (regla 1): durante esos minutos caben menos correos, nunca más.
+- El contador del día (`sentTodayVia`, que también usa el camino transaccional) pasó de contar por `createdAt` a contar por `sentAt`. En producción son la misma hora; con un reloj inyectado no, y por `createdAt` el cupo no se podía probar. `message` no tiene índice por `sentAt`: la cuenta entra por `message_provider_idx` y filtra la fecha.
+- Las reglas 5 y 6 no traen migración: las dos claves se leen sin exigir fila.
+- Sus pruebas están en el mismo archivo: el defecto de DT-066, ya como prueba corriente; el tope contando transaccionales y campañas del día de Colombia y no del de UTC; el margen que cambia; las campañas por SES, que no tienen tope; el rechazo por cuota que corta hasta el otro día, y dos lotes a la vez. Las cuentas puras están en `tests/unit/jobs-pure.test.ts`.

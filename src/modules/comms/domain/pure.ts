@@ -17,6 +17,20 @@ export function chooseRoute(
   return sentTodayViaPrimary >= dailyLimit ? "overflow" : "primary";
 }
 
+/**
+ * Cuántos correos pueden haber salido hoy por el proveedor para que una campaña todavía mande otro
+ * (ADR-115 regla 5): el cupo diario menos el margen reservado para lo transaccional. Sin margen fijado
+ * es un tercio del cupo, hacia arriba; un margen mayor que el cupo no deja salir ninguna.
+ */
+export function campaignCeiling(dailyLimit: number, reserve: number | null): number {
+  return Math.max(0, dailyLimit - (reserve ?? Math.ceil(dailyLimit / 3)));
+}
+
+/** Cuántos correos de campaña caben todavía hoy: lo que un lote reclamó y no ha enviado ya cuenta. */
+export function campaignRoom(ceiling: number, sentToday: number, claimed: number): number {
+  return Math.max(0, ceiling - sentToday - claimed);
+}
+
 /** Lo que queda donde un texto traía una dirección de correo. */
 export const ADDRESS_MARK = "[correo]";
 

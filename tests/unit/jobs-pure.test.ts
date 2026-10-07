@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BACKOFF_MS, backoffFor, isDeadAfter, MAX_ATTEMPTS } from "@/jobs/backoff";
-import { chooseRoute } from "@/modules/comms/domain/pure";
+import { campaignCeiling, campaignRoom, chooseRoute } from "@/modules/comms/domain/pure";
 import { buildPushPayload, PUSH_BODY_MAX, PUSH_TITLE_MAX } from "@/shared/adapters/pusher";
 import { startOfTodayIn } from "@/shared/lib/dates";
 
@@ -24,6 +24,28 @@ describe("enrutamiento del correo", () => {
     expect(chooseRoute(94, 95, true)).toBe("primary");
     expect(chooseRoute(95, 95, true)).toBe("overflow");
     expect(chooseRoute(500, 95, false)).toBe("primary");
+  });
+});
+
+describe("el cupo diario de las campañas (ADR-115 regla 5)", () => {
+  it("sin margen fijado reserva un tercio del cupo, hacia arriba, para lo transaccional", () => {
+    expect(campaignCeiling(95, null)).toBe(63);
+    expect(campaignCeiling(90, null)).toBe(60);
+    expect(campaignCeiling(1, null)).toBe(0);
+  });
+
+  it("con margen fijado el tope es el cupo menos ese margen, y nunca baja de cero", () => {
+    expect(campaignCeiling(95, 0)).toBe(95);
+    expect(campaignCeiling(95, 20)).toBe(75);
+    expect(campaignCeiling(95, 95)).toBe(0);
+    expect(campaignCeiling(95, 200)).toBe(0);
+  });
+
+  it("cabe lo que falta para el tope, contando lo enviado hoy y lo que otro lote ya reclamó", () => {
+    expect(campaignRoom(63, 0, 0)).toBe(63);
+    expect(campaignRoom(63, 60, 1)).toBe(2);
+    expect(campaignRoom(63, 61, 2)).toBe(0);
+    expect(campaignRoom(63, 80, 0)).toBe(0);
   });
 });
 
