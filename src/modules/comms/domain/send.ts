@@ -11,7 +11,12 @@ import {
 import { startOfTodayIn } from "@/shared/lib/dates";
 import { logger } from "@/shared/log";
 import { message } from "../schema";
-import { listAlreadyNotified, recordMessage } from "./messages";
+import {
+  findRecordedMessage,
+  listAlreadyNotified,
+  type RecordedMessage,
+  recordMessage,
+} from "./messages";
 import { chooseRoute, withoutAddresses } from "./pure";
 
 // Correo transaccional (OTP, puntos, recordatorios): Resend con desbordamiento automático a SES,
@@ -147,17 +152,49 @@ function failed(provider: string, error: unknown): SendReceipt {
 }
 
 // Campañas (ADR-023, ADR-038 regla 8): siempre por el transporte de desbordamiento (SES) cuando existe;
-// si no, por el primario (consola en local). Cada envío queda en `message` con su campaña.
+// si no, por el primario (consola en local). Cada envío queda en `message` con su campaña y con una
+// clave por campaña y persona, y quien ya la tiene no recibe otro (ADR-115 regla 2).
 
 export interface CampaignEmail extends MailMessage {
   personId: string;
   campaignId: string;
 }
 
+export interface CampaignReceipt extends SendReceipt {
+  messageId: string | null;
+  sentAt: Date | null;
+  /** El resultado sale de un registro que ya existía: el lote no lo cuenta como enviado por él. */
+  recovered: boolean;
+}
+
+const campaignDedupeKey = (campaignId: string): string => `campaign:${campaignId}`;
+
+function receiptOf(record: RecordedMessage): CampaignReceipt {
+  return {
+    status: record.status,
+    provider: record.provider,
+    providerId: record.providerId,
+    error: record.error,
+    messageId: record.id,
+    sentAt: record.sentAt,
+    recovered: true,
+  };
+}
+
+/**
+ * Envía el correo de una campaña a una persona y lo registra. Si ya hay un registro de esa campaña
+ * para esa persona no envía nada y responde con él, sea de un envío o de un rechazo. No corre dentro
+ * de una transacción: mientras el proveedor responde no hay conexión ocupada.
+ */
 export async function sendCampaignEmail(
   email: CampaignEmail,
   now = new Date(),
-): Promise<SendReceipt & { messageId: string | null }> {
+): Promise<CampaignReceipt> {
+  const dedupeKey = campaignDedupeKey(email.campaignId);
+  const before = await findRecordedMessage(email.personId, dedupeKey);
+  if (before) {
+    return receiptOf(before);
+  }
   const { primary, overflow } = getTransports();
   const transport = overflow ?? primary;
   let receipt: SendReceipt;
@@ -166,6 +203,7 @@ export async function sendCampaignEmail(
   } catch (error) {
     receipt = failed(transport.name, error);
   }
+  const sentAt = receipt.status === "SENT" ? now : null;
   const messageId = await recordMessage({
     personId: email.personId,
     channel: "EMAIL",
@@ -176,7 +214,8 @@ export async function sendCampaignEmail(
     provider: receipt.provider,
     providerId: receipt.providerId,
     error: receipt.error,
-    sentAt: receipt.status === "SENT" ? now : null,
+    dedupeKey,
+    sentAt,
   });
   if (receipt.status === "FAILED") {
     logger.error(
@@ -184,5 +223,12 @@ export async function sendCampaignEmail(
       "correo de campaña no enviado",
     );
   }
-  return { ...receipt, messageId };
+  if (messageId === null) {
+    // Otro lote lo registró mientras este enviaba: el registro es uno solo y de él sale el resultado.
+    const winner = await findRecordedMessage(email.personId, dedupeKey);
+    if (winner) {
+      return receiptOf(winner);
+    }
+  }
+  return { ...receipt, messageId, sentAt, recovered: false };
 }

@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, ilike, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
@@ -32,7 +32,9 @@ import { campaignEligibility, type SkipReason } from "./templates-pure";
 
 // Campañas (ADR-038 regla 8): una plantilla a un segmento. Al arrancar se congela la audiencia en
 // `campaign_recipient` con la elegibilidad de cada persona; el programado `campaigns` manda un lote
-// por minuto; cancelar deja lo pendiente omitido.
+// por minuto; cancelar deja lo pendiente omitido. El lote reclama, envía sin transacción abierta y
+// marca a cada destinatario en la suya, y todo lo que escribe sobre una campaña toma primero su fila
+// (ADR-115).
 
 export type CampaignRow = typeof campaign.$inferSelect;
 export type CampaignStatus = CampaignRow["status"];
@@ -158,8 +160,19 @@ export async function createCampaign(
   return row;
 }
 
+type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
+
+/**
+ * La fila de la campaña con `FOR UPDATE`: el candado que toman primero, y en ese orden, los comandos
+ * del admin, la cancelación y el lote (ADR-115 regla 3).
+ */
+async function lockCampaignRow(tx: Tx, id: string): Promise<CampaignRow | undefined> {
+  const [row] = await tx.select().from(campaign).where(eq(campaign.id, id)).for("update");
+  return row;
+}
+
 async function lockCampaign(ctx: CommandContext, id: string): Promise<CampaignRow> {
-  const [row] = await ctx.tx.select().from(campaign).where(eq(campaign.id, id)).for("update");
+  const row = await lockCampaignRow(ctx.tx, id);
   if (!row) {
     throw new DomainError(t("T-032"));
   }
@@ -395,136 +408,209 @@ interface BatchItem {
   personId: string;
 }
 
-type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
+/**
+ * Cuánto dura el reclamo de un lote sobre sus destinatarios (ADR-115 regla 1). Es más de lo que el
+ * poller espera a un handler (`JOBS_HANDLER_TIMEOUT_MS`, 10 minutos por omisión): nadie retoma lo de un
+ * lote que sigue vivo, y lo que dejó reclamado uno que se cayó vuelve a salir cuando vence.
+ */
+const CLAIM_LEASE_MS = 15 * 60_000;
 
 /**
- * Manda hasta `limit` correos pendientes entre las campañas en curso, las más antiguas primero. Los
- * destinatarios quedan bloqueados (`FOR UPDATE SKIP LOCKED`) mientras se envían, así dos procesos no
- * repiten un correo; el registro en `message` va por su propia conexión.
+ * Reclama hasta `limit` destinatarios libres de una campaña en curso, en una transacción corta. Libre
+ * es pendiente y sin reclamo vigente; el reclamo es la hora del lote, que también lo identifica.
  */
-export async function processCampaignBatch(limit: number, now = new Date()): Promise<number> {
+async function claimRecipients(campaignId: string, limit: number, now: Date): Promise<BatchItem[]> {
+  const expired = new Date(now.getTime() - CLAIM_LEASE_MS);
   return getDb().transaction(async (tx) => {
-    const batch: BatchItem[] = await tx
-      .select({
+    const row = await lockCampaignRow(tx, campaignId);
+    if (row?.status !== "SENDING") {
+      return [];
+    }
+    const free = tx
+      .select({ id: campaignRecipient.id })
+      .from(campaignRecipient)
+      .where(
+        and(
+          eq(campaignRecipient.campaignId, campaignId),
+          eq(campaignRecipient.status, "PENDING"),
+          or(isNull(campaignRecipient.claimedAt), lte(campaignRecipient.claimedAt, expired)),
+        ),
+      )
+      .orderBy(asc(campaignRecipient.createdAt))
+      .limit(limit);
+    return tx
+      .update(campaignRecipient)
+      .set({ claimedAt: now })
+      .where(inArray(campaignRecipient.id, free))
+      .returning({
         recipientId: campaignRecipient.id,
         campaignId: campaignRecipient.campaignId,
         personId: campaignRecipient.personId,
-      })
-      .from(campaignRecipient)
-      .innerJoin(campaign, eq(campaign.id, campaignRecipient.campaignId))
-      .where(and(eq(campaignRecipient.status, "PENDING"), eq(campaign.status, "SENDING")))
-      .orderBy(asc(campaign.startedAt), asc(campaignRecipient.createdAt))
-      .limit(limit)
-      .for("update", { of: campaignRecipient, skipLocked: true });
-    if (batch.length === 0) {
-      return 0;
-    }
-    const personIds = [...new Set(batch.map((item) => item.personId))];
-    const campaignIds = [...new Set(batch.map((item) => item.campaignId))];
-    const [refs, tokens, committees, term, campaigns] = await Promise.all([
-      listMailingRefs(personIds),
-      ensurePreferencesFor(personIds),
-      loadCommitteeIndex(personIds),
-      getCurrentTerm(),
-      getDb().select().from(campaign).where(inArray(campaign.id, campaignIds)),
-    ]);
-    const templates = new Map<string, Awaited<ReturnType<typeof getTemplate>>>();
-    for (const row of campaigns) {
-      templates.set(row.id, await getTemplate(row.templateId));
-    }
-    const base = getEnv().APP_URL.replace(/\/$/, "");
-    let sent = 0;
-    for (const item of batch) {
-      const ref = refs.get(item.personId);
-      const template = templates.get(item.campaignId);
-      if (!ref || !template) {
-        await markRecipient(tx, item.recipientId, "FAILED", null, now);
-        continue;
-      }
-      const eligibility = campaignEligibility({
-        email: ref.email,
-        personalEmail: ref.personalEmail,
-        membershipStatus: ref.membershipStatus,
-        emailCampaigns: true,
-        hasCommunicationsConsent: true,
       });
-      const address = eligibility.ok ? eligibility.address : ref.email;
-      const token = tokens.get(item.personId);
-      const unsubscribeUrl = token ? `${base}/baja/${token}` : null;
-      const rendered = renderEmail(
-        template,
-        valuesFor(ref, committees.byPerson.get(item.personId) ?? [], term?.code ?? ""),
-        unsubscribeUrl,
-      );
-      const receipt = await sendCampaignEmail(
-        {
-          personId: item.personId,
-          campaignId: item.campaignId,
-          to: address,
-          subject: rendered.subject,
-          text: rendered.text,
-          html: rendered.html,
-          ...(unsubscribeUrl
-            ? {
-                headers: {
-                  "List-Unsubscribe": `<${base}/api/baja/${token}>`,
-                  "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-                },
-              }
-            : {}),
-        },
-        now,
-      );
-      await markRecipient(
-        tx,
-        item.recipientId,
-        receipt.status === "SENT" ? "SENT" : "FAILED",
-        receipt.messageId,
-        now,
-      );
-      if (receipt.status === "SENT") {
-        sent += 1;
-      }
-    }
-    await refreshCounters(tx, campaignIds, now);
-    return sent;
   });
 }
 
-async function markRecipient(
-  tx: Tx,
-  recipientId: string,
-  status: "SENT" | "FAILED",
-  messageId: string | null,
-  now: Date,
-): Promise<void> {
-  await tx
-    .update(campaignRecipient)
-    .set({ status, messageId, sentAt: status === "SENT" ? now : null })
-    .where(eq(campaignRecipient.id, recipientId));
+/**
+ * Antes de cada envío, sin candado: el destinatario sigue pendiente, su reclamo sigue siendo el de este
+ * lote y su campaña sigue en curso. Si la cancelaron o el reclamo venció y lo tomó otro, no se envía.
+ */
+async function holdsClaim(item: BatchItem, claimedAt: Date): Promise<boolean> {
+  const [row] = await getDb()
+    .select({ id: campaignRecipient.id })
+    .from(campaignRecipient)
+    .innerJoin(campaign, eq(campaign.id, campaignRecipient.campaignId))
+    .where(
+      and(
+        eq(campaignRecipient.id, item.recipientId),
+        eq(campaignRecipient.status, "PENDING"),
+        eq(campaignRecipient.claimedAt, claimedAt),
+        eq(campaign.status, "SENDING"),
+      ),
+    )
+    .limit(1);
+  return row !== undefined;
 }
 
-/** Recalcula los contadores desde los destinatarios y cierra la campaña cuando no queda nada pendiente. */
-async function refreshCounters(tx: Tx, campaignIds: string[], now: Date): Promise<void> {
-  for (const id of campaignIds) {
-    const rows = await tx
-      .select({ status: campaignRecipient.status, n: count() })
-      .from(campaignRecipient)
-      .where(eq(campaignRecipient.campaignId, id))
-      .groupBy(campaignRecipient.status);
-    const by = (status: RecipientRow["status"]) =>
-      rows.find((row) => row.status === status)?.n ?? 0;
-    const pending = by("PENDING");
+interface Outcome {
+  status: "SENT" | "FAILED";
+  messageId: string | null;
+  sentAt: Date | null;
+}
+
+/**
+ * Deja el resultado de un destinatario en su propia transacción, con la fila de la campaña tomada
+ * primero: bajo ese candado se escribe su estado y se recuentan los contadores.
+ */
+async function settleRecipient(item: BatchItem, outcome: Outcome, now: Date): Promise<void> {
+  await getDb().transaction(async (tx) => {
+    const row = await lockCampaignRow(tx, item.campaignId);
+    if (!row) {
+      return;
+    }
     await tx
-      .update(campaign)
-      .set({
-        sentCount: by("SENT"),
-        failedCount: by("FAILED"),
-        skippedCount: by("SKIPPED"),
-        ...(pending === 0 ? { status: "SENT" as const, finishedAt: now } : {}),
-      })
-      .where(and(eq(campaign.id, id), eq(campaign.status, "SENDING")));
+      .update(campaignRecipient)
+      .set({ status: outcome.status, messageId: outcome.messageId, sentAt: outcome.sentAt })
+      .where(
+        and(eq(campaignRecipient.id, item.recipientId), eq(campaignRecipient.status, "PENDING")),
+      );
+    await refreshCounters(tx, row, now);
+  });
+}
+
+/**
+ * Manda hasta `limit` correos pendientes entre las campañas en curso, las más antiguas primero
+ * (ADR-115). Reclama a sus destinatarios en una transacción corta por campaña, envía sin ninguna
+ * transacción abierta y deja el resultado de cada uno en la suya: un lote que se cae no deshace lo que
+ * ya marcó, y mientras un correo viaja no retiene una conexión del pool ni un candado que otro espere.
+ */
+export async function processCampaignBatch(limit: number, now = new Date()): Promise<number> {
+  const sending = await getDb()
+    .select({ id: campaign.id })
+    .from(campaign)
+    .where(eq(campaign.status, "SENDING"))
+    .orderBy(asc(campaign.startedAt), asc(campaign.id));
+  const batch: BatchItem[] = [];
+  for (const row of sending) {
+    if (batch.length >= limit) {
+      break;
+    }
+    batch.push(...(await claimRecipients(row.id, limit - batch.length, now)));
   }
+  if (batch.length === 0) {
+    return 0;
+  }
+  const personIds = [...new Set(batch.map((item) => item.personId))];
+  const campaignIds = [...new Set(batch.map((item) => item.campaignId))];
+  const [refs, tokens, committees, term, campaigns] = await Promise.all([
+    listMailingRefs(personIds),
+    ensurePreferencesFor(personIds),
+    loadCommitteeIndex(personIds),
+    getCurrentTerm(),
+    getDb().select().from(campaign).where(inArray(campaign.id, campaignIds)),
+  ]);
+  const templates = new Map<string, Awaited<ReturnType<typeof getTemplate>>>();
+  for (const row of campaigns) {
+    templates.set(row.id, await getTemplate(row.templateId));
+  }
+  const base = getEnv().APP_URL.replace(/\/$/, "");
+  let sent = 0;
+  for (const item of batch) {
+    if (!(await holdsClaim(item, now))) {
+      continue;
+    }
+    const ref = refs.get(item.personId);
+    const template = templates.get(item.campaignId);
+    if (!ref || !template) {
+      await settleRecipient(item, { status: "FAILED", messageId: null, sentAt: null }, now);
+      continue;
+    }
+    const eligibility = campaignEligibility({
+      email: ref.email,
+      personalEmail: ref.personalEmail,
+      membershipStatus: ref.membershipStatus,
+      emailCampaigns: true,
+      hasCommunicationsConsent: true,
+    });
+    const address = eligibility.ok ? eligibility.address : ref.email;
+    const token = tokens.get(item.personId);
+    const unsubscribeUrl = token ? `${base}/baja/${token}` : null;
+    const rendered = renderEmail(
+      template,
+      valuesFor(ref, committees.byPerson.get(item.personId) ?? [], term?.code ?? ""),
+      unsubscribeUrl,
+    );
+    // Si el envío no se puede registrar, el lote se detiene acá: seguir sería mandar a ciegas.
+    const receipt = await sendCampaignEmail(
+      {
+        personId: item.personId,
+        campaignId: item.campaignId,
+        to: address,
+        subject: rendered.subject,
+        text: rendered.text,
+        html: rendered.html,
+        ...(unsubscribeUrl
+          ? {
+              headers: {
+                "List-Unsubscribe": `<${base}/api/baja/${token}>`,
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              },
+            }
+          : {}),
+      },
+      now,
+    );
+    await settleRecipient(item, receipt, now);
+    if (receipt.status === "SENT" && !receipt.recovered) {
+      sent += 1;
+    }
+  }
+  return sent;
+}
+
+/**
+ * Recalcula los contadores de una campaña en curso desde sus destinatarios y la cierra cuando no queda
+ * nadie pendiente. Pide la fila de la campaña ya tomada: así dos lotes no recuentan a la vez.
+ */
+async function refreshCounters(tx: Tx, row: CampaignRow, now: Date): Promise<void> {
+  if (row.status !== "SENDING") {
+    return;
+  }
+  const rows = await tx
+    .select({ status: campaignRecipient.status, n: count() })
+    .from(campaignRecipient)
+    .where(eq(campaignRecipient.campaignId, row.id))
+    .groupBy(campaignRecipient.status);
+  const by = (status: RecipientRow["status"]) =>
+    rows.find((item) => item.status === status)?.n ?? 0;
+  await tx
+    .update(campaign)
+    .set({
+      sentCount: by("SENT"),
+      failedCount: by("FAILED"),
+      skippedCount: by("SKIPPED"),
+      ...(by("PENDING") === 0 ? { status: "SENT" as const, finishedAt: now } : {}),
+    })
+    .where(eq(campaign.id, row.id));
 }
 
 /** Un tick del programado `campaigns`: arranca las vencidas y manda un lote. */

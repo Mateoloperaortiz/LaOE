@@ -77,6 +77,35 @@ export async function recordMessage(input: MessageInsert): Promise<string | null
   return rows[0]?.id ?? null;
 }
 
+export interface RecordedMessage {
+  id: string;
+  status: MessageStatus;
+  provider: string;
+  providerId: string | null;
+  error: string | null;
+  sentAt: Date | null;
+}
+
+/** El mensaje que ya quedó registrado para esa persona con esa clave, si existe. */
+export async function findRecordedMessage(
+  personId: string,
+  dedupeKey: string,
+): Promise<RecordedMessage | null> {
+  const [row] = await getDb()
+    .select({
+      id: message.id,
+      status: message.status,
+      provider: message.provider,
+      providerId: message.providerId,
+      error: message.error,
+      sentAt: message.sentAt,
+    })
+    .from(message)
+    .where(and(eq(message.personId, personId), eq(message.dedupeKey, dedupeKey)))
+    .limit(1);
+  return row ?? null;
+}
+
 /** Personas que ya tienen un mensaje con esa clave: el bus las salta (idempotencia por persona). */
 export async function listAlreadyNotified(
   personIds: string[],

@@ -34,8 +34,9 @@ import { seedMember } from "./factories";
 
 // Caracterización del lote de una campaña (ADR-038 regla 8) antes de tocarlo (ADR-109, DT-077): lo que
 // hoy funciona queda fijado en verde, por el tick que exporta `comms` y con el transporte de pruebas; los
-// defectos quedan al final como pruebas que hoy fallan a propósito, cada una con su fila del ledger y
-// el ticket que la corrige.
+// defectos quedan después, cada uno con su fila del ledger y su ticket: los que siguen abiertos fallan a
+// propósito (`knownDefect`) y los ya corregidos son pruebas corrientes (`fixedDefect`). Al final, lo que
+// el lote hace desde ADR-115.
 
 const db = () => getDb();
 
@@ -450,7 +451,7 @@ const SCENARIO_DEADLINE_MS = 15_000;
  * `observe` arma el escenario y devuelve lo que pasó; `expectFixed` afirma lo que debería pasar. Si el
  * escenario no se arma o no termina, la prueba no lanza y vitest la da por rota: un escenario caído no
  * cuenta como defecto reproducido. Cuando entre el ticket que lo corrige, vitest avisa que la prueba ya
- * pasa y la llamada se vuelve un `it` corriente: `it(title, async () => expectFixed(await observe()))`.
+ * pasa y la llamada se vuelve un `fixedDefect`.
  */
 function knownDefect<T>(
   title: string,
@@ -466,6 +467,20 @@ function knownDefect<T>(
       return;
     }
     expectFixed(seen);
+  });
+}
+
+/**
+ * Un defecto que ya se corrigió: el mismo escenario y la misma afirmación que tuvo como `knownDefect`,
+ * ahora como prueba corriente. Acá el escenario sí tiene que armarse y terminar.
+ */
+function fixedDefect<T>(
+  title: string,
+  observe: () => Promise<T>,
+  expectFixed: (seen: T) => void,
+): void {
+  it(title, async () => {
+    expectFixed(await withTimeout(observe(), SCENARIO_DEADLINE_MS, "el escenario del defecto"));
   });
 }
 
@@ -522,9 +537,10 @@ async function deadlockTimeoutMs(): Promise<number> {
   return result.rows[0]?.ms ?? 1000;
 }
 
-describe("defectos del lote que hoy fallan a propósito", () => {
-  // DT-067, lo corrige #145: el lote marca los enviados en la misma transacción en la que envía.
-  knownDefect(
+describe("los defectos que la caracterización le encontró al lote", () => {
+  // DT-067, corregido en #145 (ADR-115 reglas 1 y 2): el lote marcaba a los enviados en la misma
+  // transacción en la que enviaba, y al caerse la transacción los correos ya habían salido.
+  fixedDefect(
     "un lote que se cae después de enviar no les repite el correo a quienes ya lo recibieron",
     async () => {
       await seedRoster(5);
@@ -656,8 +672,8 @@ describe("defectos del lote que hoy fallan a propósito", () => {
     },
   );
 
-  // DT-112, sin ticket todavía (es el mismo lote que toca #145): cada lote recuenta sin ver al otro.
-  knownDefect(
+  // DT-112, corregido en #145 (ADR-115 regla 3): cada lote recontaba sin ver al otro.
+  fixedDefect(
     "dos lotes a la vez dejan la campaña cerrada y con los contadores de lo que salió",
     async () => {
       await seedRoster(6);
@@ -689,4 +705,118 @@ describe("defectos del lote que hoy fallan a propósito", () => {
       expect(seen).toEqual({ status: "SENT", sentCount: 6, recipients: { SENT: 6 }, accepted: 6 });
     },
   );
+});
+
+/** Lo que dura el reclamo de un lote sobre sus destinatarios, en minutos (ADR-115 regla 1). */
+const CLAIM_MINUTES = 15;
+
+describe("el lote reclama, envía sin transacción abierta y marca a cada destinatario (ADR-115)", () => {
+  it("mientras un correo viaja, el lote no tiene ninguna transacción abierta", async () => {
+    await seedRoster(2);
+    await scheduleCampaign(2);
+    const openWhileSending: number[] = [];
+    useTransports({
+      overflow: async (_mail, call) => {
+        const result = await db().execute<{ n: number }>(sql`
+          select count(*)::int as n from pg_stat_activity
+          where datname = current_database() and state like 'idle in transaction%'
+        `);
+        openWhileSending.push(result.rows[0]?.n ?? -1);
+        return `ses_${call}`;
+      },
+    });
+
+    expect(await runCampaignTick(minute(0))).toEqual({ started: 1, sent: 2 });
+
+    expect(openWhileSending).toEqual([0, 0]);
+  });
+
+  it("lo que un lote interrumpido dejó reclamado no sale antes de que venza el reclamo, y al vencer sale", async () => {
+    const roster = await seedRoster(5);
+    const id = await scheduleCampaign(5);
+    // Como en DT-067: el proveedor acepta el tercer correo y su registro falla, así que el lote se cae.
+    useTransports({ overflow: (_mail, call) => (call === 3 ? "ses_\u0000" : `ses_${call}`) });
+
+    expect(await settle(runCampaignTick(minute(0)))).toEqual(expect.any(String));
+    expect(await recipientStatuses(id)).toEqual({ SENT: 2, PENDING: 3 });
+    expect(await getCampaign(id)).toMatchObject({ status: "SENDING", sentCount: 2 });
+
+    expect(await runCampaignTick(minute(1))).toEqual({ started: 0, sent: 0 });
+    expect(await runCampaignTick(minute(CLAIM_MINUTES - 1))).toEqual({ started: 0, sent: 0 });
+    expect(delivered.overflow).toHaveLength(3);
+
+    expect(await runCampaignTick(minute(CLAIM_MINUTES))).toEqual({ started: 0, sent: 3 });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENT",
+      finishedAt: minute(CLAIM_MINUTES),
+      sentCount: 5,
+      failedCount: 0,
+      skippedCount: 0,
+    });
+    // Solo se repite el correo que salió sin poderse registrar: de ese nadie supo que había salido.
+    const copies = roster.map(
+      (member) => delivered.overflow.filter((mail) => mail.to === member.email).length,
+    );
+    expect(copies.sort()).toEqual([1, 1, 1, 1, 2]);
+    const records = await db()
+      .select({ personId: message.personId })
+      .from(message)
+      .where(eq(message.campaignId, id));
+    expect(records.map((row) => row.personId).sort()).toEqual(
+      roster.map((member) => member.id).sort(),
+    );
+  });
+
+  it("un destinatario reclamado cuyo correo ya quedó registrado se recupera como enviado, sin reenviárselo", async () => {
+    const roster = await seedRoster(3);
+    const id = await scheduleCampaign(3);
+    // El lote se cae entre registrar el primer correo y marcar a su destinatario: mientras el correo
+    // viaja la prueba toma la fila de la campaña, sin estorbar el registro del mensaje, y después
+    // cancela la sentencia con la que el lote la espera para marcar.
+    let letGo = (): void => {};
+    const untilLetGo = new Promise<void>((resolve) => {
+      letGo = resolve;
+    });
+    let hold: Promise<void> = Promise.resolve();
+    useTransports({
+      overflow: async (_mail, call) => {
+        if (call === 1) {
+          await new Promise<void>((taken) => {
+            hold = db().transaction(async (tx) => {
+              await tx.execute(sql`select id from campaign where id = ${id} for no key update`);
+              taken();
+              await untilLetGo;
+            });
+          });
+        }
+        return `ses_${call}`;
+      },
+    });
+
+    const tick = settle(runCampaignTick(minute(0)));
+    await untilLockWaiters(1, tick);
+    for (const waiter of await lockWaiters()) {
+      await db().execute(sql`select pg_cancel_backend(${waiter.pid})`);
+    }
+    const interruption = await tick;
+    letGo();
+    await hold;
+
+    expect(interruption).toEqual(expect.any(String));
+    expect(await recipientStatuses(id)).toEqual({ PENDING: 3 });
+    expect(delivered.overflow).toHaveLength(1);
+    const [record] = await db().select().from(message).where(eq(message.campaignId, id));
+    const firstTo = delivered.overflow[0]?.to;
+    const first = roster.find((member) => member.email === firstTo);
+    expect(record).toMatchObject({ personId: first?.id, status: "SENT", sentAt: minute(0) });
+
+    expect(await runCampaignTick(minute(1))).toEqual({ started: 0, sent: 0 });
+    expect(await runCampaignTick(minute(CLAIM_MINUTES))).toEqual({ started: 0, sent: 2 });
+
+    expect(addresses(delivered.overflow)).toEqual(emails(roster));
+    expect(await getCampaign(id)).toMatchObject({ status: "SENT", sentCount: 3, failedCount: 0 });
+    const recovered = (await listRecipients(id)).rows.find((row) => row.personId === first?.id);
+    expect(recovered).toMatchObject({ status: "SENT", messageId: record?.id, sentAt: minute(0) });
+    expect(await db().select().from(message).where(eq(message.campaignId, id))).toHaveLength(3);
+  });
 });
