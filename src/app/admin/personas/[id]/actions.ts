@@ -494,7 +494,7 @@ export async function revokeSanctionAction(formData: FormData): Promise<void> {
   const sanctionId = idSchema.parse(formData.get("sanctionId"));
   const actor = await requireAdminActor(await personUrl(id, "membresia"));
   await run(id, "membresia", "revocar-sancion", async () =>
-    revokeSanctionAs(await actorContext(actor), sanctionId, formText(formData, "reason")),
+    revokeSanctionAs(await actorContext(actor), id, sanctionId, formText(formData, "reason")),
   );
 }
 

@@ -217,6 +217,7 @@ export function requestCommitteeRemovalAs(
 
 // Faltas y sanciones (ADR-060 regla 6). `scope` dice desde dónde se sanciona y es obligatorio, también
 // para ADMIN (ADR-072 regla 1; ADR-112): la dirección de un comité o ADMIN desde la Persona 360.
+// Revocar dice de quién es la sanción: la persona de la ficha desde la que se revoca (ADR-114 regla 3).
 
 export function recordSanctionAs(
   actor: Actor,
@@ -227,8 +228,13 @@ export function recordSanctionAs(
   return runCommand(actor, (ctx) => recordSanction(ctx, personId, input, scope));
 }
 
-export function revokeSanctionAs(actor: Actor, sanctionId: string, reason: string): Promise<void> {
-  return runCommand(actor, (ctx) => revokeSanction(ctx, sanctionId, reason));
+export function revokeSanctionAs(
+  actor: Actor,
+  personId: string,
+  sanctionId: string,
+  reason: string,
+): Promise<void> {
+  return runCommand(actor, (ctx) => revokeSanction(ctx, personId, sanctionId, reason));
 }
 
 // Representación ante la Asamblea Directiva (ADR-060 regla 7).

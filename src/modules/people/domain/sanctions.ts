@@ -193,21 +193,27 @@ export async function recordSanction(
   return { id: created.id };
 }
 
-/** Revoca una sanción (descargos o revisión de la junta, Regl. art. 56 par. 1); idempotente. */
+/**
+ * Revoca una sanción de una persona (descargos o revisión de la junta, Regl. art. 56 par. 1);
+ * idempotente. La persona es obligatoria (ADR-114 regla 3): es la de la ficha desde la que se revoca,
+ * y una sanción que no es suya se trata como inexistente, también si ya estaba revocada.
+ */
 export async function revokeSanction(
   ctx: CommandContext,
+  personId: string,
   sanctionId: string,
   reason: string,
 ): Promise<void> {
+  // Sin una persona que se reconozca no se busca: nunca cae en «la sanción de cualquiera».
+  if (typeof personId !== "string" || personId.length === 0) {
+    throw new DomainError(t("T-032"));
+  }
   const cleanReason = reason.trim();
   if (cleanReason.length < 2) {
     throw new DomainError(t("T-1003"), "reason");
   }
-  const [row] = await ctx.tx
-    .select()
-    .from(sanction)
-    .where(eq(sanction.id, sanctionId))
-    .for("update");
+  const own = and(eq(sanction.id, sanctionId), eq(sanction.personId, personId));
+  const [row] = await ctx.tx.select().from(sanction).where(own).for("update");
   if (!row) {
     throw new DomainError(t("T-032"));
   }
@@ -218,7 +224,7 @@ export async function revokeSanction(
   await ctx.tx
     .update(sanction)
     .set({ revokedAt: now, revokedById: ctx.actor.personId, revokeReason: cleanReason })
-    .where(eq(sanction.id, sanctionId));
+    .where(own);
   await ctx.audit({
     action: "sanction.revoked",
     entityType: "sanction",

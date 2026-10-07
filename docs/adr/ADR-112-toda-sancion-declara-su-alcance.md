@@ -1,6 +1,6 @@
 # ADR-112: Toda sanción se registra con su alcance declarado
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-114)
 - Fecha: 2026-10-07
 - Relacionadas: ADR-011, ADR-058, ADR-109
 - Enmienda: ADR-060 (regla 6), ADR-072 (regla 1)
@@ -29,3 +29,7 @@ El ciclo 1 llevó la comprobación al comando con un alcance opcional: con él s
 - Un formulario viejo o armado desde un comité responde T-032 o T-260 en lugar de sancionar a alguien ajeno o con un tipo de GH.
 - **Queda abierto (DT-084).** Revocar una sanción recibe solo el id de la sanción: `revokeSanctionAs` no comprueba que sea de la persona de la página desde la que se revoca. Hoy la única action que lo llama exige ADMIN. Ni el formulario de faltas del comité ni las sanciones de la Persona 360 tienen E2E.
 - Pruebas: `tests/integration/sanctions.test.ts` (los dos alcances; sin alcance no se registra nada; desde un comité, tipo de GH, persona de otro comité, persona que ya salió, persona de otro término, y el comité y el término que quedan escritos) y `tests/integration/inhabilities.test.ts`.
+
+## Enmienda (2026-10-07, ADR-114)
+
+Las consecuencias dejaban abierto (DT-084) que revocar una sanción recibía solo su id. [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 3 lo cierra: `revokeSanctionAs` recibe la persona de la ficha desde la que se revoca y comprueba en la transacción que la sanción sea suya; una ajena responde T-032, como una que no existe, y no escribe nada. Sigue abierto de DT-084 que ni el formulario de faltas del comité ni las sanciones de la Persona 360 tienen E2E.

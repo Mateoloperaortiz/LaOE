@@ -21,6 +21,7 @@ import {
   recomputeSnapshots,
 } from "@/modules/permanence";
 import { manualCredit } from "@/modules/permanence/schema";
+import { auditLog, outbox } from "@/modules/system/schema";
 import { closeTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
@@ -119,9 +120,9 @@ describe("faltas y sanciones", () => {
       }),
     );
 
-    await expect(revokeSanctionAs(actor, id, " ")).rejects.toBeInstanceOf(DomainError);
-    await revokeSanctionAs(actor, id, "La junta aceptó la revisión de los descargos");
-    await revokeSanctionAs(actor, id, "Repetida: no hace nada");
+    await expect(revokeSanctionAs(actor, personId, id, " ")).rejects.toBeInstanceOf(DomainError);
+    await revokeSanctionAs(actor, personId, id, "La junta aceptó la revisión de los descargos");
+    await revokeSanctionAs(actor, personId, id, "Repetida: no hace nada");
     const views = await listSanctionsForPerson(personId);
     expect(views).toHaveLength(1);
     expect(views[0]).toMatchObject({
@@ -497,5 +498,132 @@ describe("faltas y sanciones", () => {
     for (const view of views) {
       expect(view).toMatchObject({ committeeName: "A3", termId });
     }
+  });
+
+  // Revocar comprueba la persona (ADR-114 regla 3): la ficha desde la que se revoca manda, y una
+  // sanción que no es de esa persona se trata como inexistente.
+
+  /** Lo que deja una revocación: la entrada de auditoría y el evento que escribe la línea de tiempo. */
+  async function revocationTraces(sanctionId: string) {
+    const audits = await db()
+      .select({ id: auditLog.id })
+      .from(auditLog)
+      .where(and(eq(auditLog.action, "sanction.revoked"), eq(auditLog.entityId, sanctionId)));
+    const events = (
+      await db()
+        .select({ payload: outbox.payload })
+        .from(outbox)
+        .where(eq(outbox.eventType, "sanction.revoked"))
+    ).filter((event) => event.payload.sanctionId === sanctionId);
+    return { audits: audits.length, events: events.length };
+  }
+
+  async function sanctionedAndBystander() {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const gh = await seedPerson("gh@eafit.edu.co");
+    await seedMembership(gh, termId);
+    const sanctioned = await member("sancionada@eafit.edu.co", termId, a3);
+    const bystander = await member("otra-ficha@eafit.edu.co", termId, a3);
+    const actor = { personId: gh, ip: null };
+    const { id } = await recordSanctionAs(
+      actor,
+      sanctioned,
+      {
+        termId,
+        kind: "WARNING",
+        cause: "Faltó a la reunión del 3 de septiembre sin excusa; en descargos reconoció la falta",
+        occurredOn: todayKey(),
+        committeeId: a3,
+      },
+      asAdmin,
+    );
+    return { actor, sanctioned, bystander, id };
+  }
+
+  it("una sanción no se revoca desde la ficha de otra persona: responde como inexistente y no escribe", async () => {
+    const { actor, sanctioned, bystander, id } = await sanctionedAndBystander();
+    const missing = { name: "DomainError", message: t("T-032") };
+
+    await expect(
+      revokeSanctionAs(actor, bystander, id, "Motivo escrito en la ficha de otra persona"),
+    ).rejects.toMatchObject(missing);
+    // La misma respuesta que da una sanción que no existe.
+    await expect(
+      revokeSanctionAs(
+        actor,
+        bystander,
+        "sancion-que-no-existe",
+        "Motivo de una sanción inventada",
+      ),
+    ).rejects.toMatchObject(missing);
+    expect(await listSanctionsForPerson(sanctioned)).toMatchObject([
+      { id, state: "LIVE", revokedAt: null, revokedById: null, revokeReason: null },
+    ]);
+    expect((await sanctionStateFor(sanctioned)).suspendedUntil).not.toBeNull();
+    expect(await revocationTraces(id)).toEqual({ audits: 0, events: 0 });
+
+    // Desde la ficha de la persona sancionada sí se revoca.
+    await revokeSanctionAs(actor, sanctioned, id, "La junta aceptó la revisión de los descargos");
+    expect(await listSanctionsForPerson(sanctioned)).toMatchObject([
+      { id, state: "REVOKED", revokeReason: "La junta aceptó la revisión de los descargos" },
+    ]);
+    expect(await revocationTraces(id)).toEqual({ audits: 1, events: 1 });
+
+    // Ya revocada, desde la ficha ajena sigue sin existir: no es un éxito silencioso.
+    await expect(
+      revokeSanctionAs(actor, bystander, id, "Segundo intento desde la ficha ajena"),
+    ).rejects.toMatchObject(missing);
+    expect((await listSanctionsForPerson(sanctioned))[0]?.revokeReason).toBe(
+      "La junta aceptó la revisión de los descargos",
+    );
+    expect(await revocationTraces(id)).toEqual({ audits: 1, events: 1 });
+  });
+
+  it("revocar sin decir de quién es la sanción no compila, y una persona que no se reconoce responde como inexistente", async () => {
+    const { actor, sanctioned, id } = await sanctionedAndBystander();
+
+    // @ts-expect-error La persona es obligatoria (ADR-114 regla 3): la firma anterior no compila.
+    const forgotten = revokeSanctionAs(actor, id, "La junta aceptó la revisión de los descargos");
+    await expect(forgotten).rejects.toThrow();
+
+    for (const nobody of [undefined, null, "", id]) {
+      await expect(
+        revokeSanctionAs(actor, nobody as unknown as string, id, "Motivo sin persona reconocible"),
+      ).rejects.toMatchObject({ name: "DomainError", message: t("T-032") });
+    }
+    expect(await listSanctionsForPerson(sanctioned)).toMatchObject([
+      { id, state: "LIVE", revokedAt: null, revokeReason: null },
+    ]);
+    expect(await revocationTraces(id)).toEqual({ audits: 0, events: 0 });
+  });
+
+  it("revocaciones simultáneas desde la ficha propia y desde una ajena dejan una sola, la de la propia", async () => {
+    const { actor, sanctioned, bystander, id } = await sanctionedAndBystander();
+
+    const attempts = await Promise.allSettled(
+      Array.from({ length: 8 }, (_, index) =>
+        revokeSanctionAs(
+          actor,
+          index % 2 === 0 ? sanctioned : bystander,
+          id,
+          index % 2 === 0 ? `Revisión de la junta ${index}` : `Desde la ficha ajena ${index}`,
+        ),
+      ),
+    );
+
+    expect(attempts.filter((_, index) => index % 2 === 0).map((item) => item.status)).toEqual(
+      Array.from({ length: 4 }, () => "fulfilled"),
+    );
+    for (const attempt of attempts.filter((_, index) => index % 2 === 1)) {
+      expect(attempt).toMatchObject({
+        status: "rejected",
+        reason: { name: "DomainError", message: t("T-032") },
+      });
+    }
+    const [view] = await listSanctionsForPerson(sanctioned);
+    expect(view?.state).toBe("REVOKED");
+    expect(view?.revokeReason).toMatch(/^Revisión de la junta [0246]$/);
+    expect(await revocationTraces(id)).toEqual({ audits: 1, events: 1 });
   });
 });
