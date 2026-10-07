@@ -20,6 +20,7 @@ import {
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { formatMoney } from "@/shared/lib/money";
 import { copyPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
 import { seedCommittee, seedMember } from "./factories";
@@ -327,5 +328,43 @@ describe("presupuesto del comité", () => {
       decision: "APPROVED",
     }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(DomainError);
+  });
+
+  it("dos gastos a la vez que juntos superan el disponible de un rubro: entra uno y el otro recibe el error de dominio", async () => {
+    const a3 = await seedCommittee("a3", "A3");
+    const financiero = await seedMember("fin@eafit.edu.co");
+    const actor = { personId: financiero, ip: null };
+    const id = await openBudgetFor(a3);
+    const { logistica } = await lineIds(id);
+    await submitPrerequestAs(actor, { budgetId: id, month: "2026-09" });
+    const spend = (description: string) =>
+      recordExpenseAs(actor, {
+        budgetId: id,
+        lineId: logistica,
+        spentOn: "2026-09-13",
+        amount: 600,
+        description,
+      });
+
+    // Logística tiene 1000: cada gasto de 600 cabe solo, los dos juntos no.
+    const outcomes = await Promise.allSettled([spend("Carpas"), spend("Sonido")]);
+
+    expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
+    const rejections = outcomes.filter(
+      (outcome): outcome is PromiseRejectedResult => outcome.status === "rejected",
+    );
+    expect(rejections).toHaveLength(1);
+    // El que esperó el candado del presupuesto ya vio el gasto del otro: el error dice lo que queda.
+    expect(rejections[0]?.reason).toBeInstanceOf(DomainError);
+    expect(rejections[0]?.reason).toMatchObject({
+      message: t("T-2196", { rubro: "Logística", monto: formatMoney(400) }),
+      field: "amount",
+    });
+    const summary = await getBudgetSummary(id);
+    expect(summary?.expenses).toHaveLength(1);
+    expect(summary?.lines.find((line) => line.name === "Logística")).toMatchObject({
+      spent: 600,
+      available: 400,
+    });
   });
 });
