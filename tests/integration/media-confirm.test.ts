@@ -1,10 +1,9 @@
-import { randomBytes } from "node:crypto";
-import sharp from "sharp";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb } from "@/db/client";
 import { confirmUploadAs, getMedia, listMedia, prepareUpload } from "@/modules/content";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
 import { t } from "@/shared/copy";
+import { noisePng, uploadAsBrowser } from "../helpers/media";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
@@ -18,15 +17,9 @@ type Scope = Parameters<typeof confirmUploadAs>[2];
 const ADMIN: Scope = { by: "ADMIN" };
 const SELF: Scope = { by: "SELF" };
 
-async function png(): Promise<Buffer> {
-  return sharp(randomBytes(80 * 80 * 3), { raw: { width: 80, height: 80, channels: 3 } })
-    .png({ compressionLevel: 0 })
-    .toBuffer();
-}
-
 /** Sube el objeto al bucket como hace el navegador y devuelve su clave, sin confirmarla. */
 async function store(purpose: "media" | "photo", ownerId: string): Promise<string> {
-  const bytes = await png();
+  const bytes = await noisePng(80, 80);
   const prepared = await prepareUpload(
     {
       filename: "imagen.png",
@@ -38,13 +31,7 @@ async function store(purpose: "media" | "photo", ownerId: string): Promise<strin
     { personId: ownerId },
   );
   keys.push(prepared.key);
-  const form = new FormData();
-  for (const [name, value] of Object.entries(prepared.fields)) {
-    form.append(name, value);
-  }
-  form.append("file", new Blob([Uint8Array.from(bytes)], { type: "image/png" }), "imagen.png");
-  const response = await fetch(prepared.url, { method: "POST", body: form });
-  expect([200, 201, 204]).toContain(response.status);
+  await uploadAsBrowser(prepared, { bytes, contentType: "image/png", filename: "imagen.png" });
   return prepared.key;
 }
 

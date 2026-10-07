@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import sharp from "sharp";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
@@ -17,18 +16,13 @@ import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
 import { tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { noisePng, uploadAsBrowser } from "../helpers/media";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
 // Contra Garage en local: la subida directa se simula con fetch y FormData, como hace el navegador.
 
 const keys: string[] = [];
-
-async function noisePng(width: number, height: number): Promise<Buffer> {
-  return sharp(randomBytes(width * height * 3), { raw: { width, height, channels: 3 } })
-    .png({ compressionLevel: 0 })
-    .toBuffer();
-}
 
 async function uploadDirect(
   bytes: Buffer | string,
@@ -38,14 +32,7 @@ async function uploadDirect(
 ) {
   const prepared = await prepareUpload({ filename, contentType, byteSize, visibility: "PUBLIC" });
   keys.push(prepared.key);
-  const form = new FormData();
-  for (const [name, value] of Object.entries(prepared.fields)) {
-    form.append(name, value);
-  }
-  const part = typeof bytes === "string" ? bytes : Uint8Array.from(bytes);
-  form.append("file", new Blob([part], { type: contentType }), filename);
-  const response = await fetch(prepared.url, { method: "POST", body: form });
-  expect([200, 201, 204]).toContain(response.status);
+  await uploadAsBrowser(prepared, { bytes, contentType, filename });
   return prepared.key;
 }
 

@@ -18,6 +18,7 @@ import { processMedia } from "@/modules/content/domain/media-process";
 import { mediaAsset } from "@/modules/content/schema";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject, putObject } from "@/shared/adapters/storage";
+import { noisePng, uploadAsBrowser } from "../helpers/media";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
@@ -46,12 +47,6 @@ async function phonePhoto(width: number, height: number): Promise<Buffer> {
     .toBuffer();
 }
 
-async function noisePng(width: number, height: number): Promise<Buffer> {
-  return sharp(randomBytes(width * height * 3), { raw: { width, height, channels: 3 } })
-    .png({ compressionLevel: 0 })
-    .toBuffer();
-}
-
 /** Sube como hace el navegador, confirma y procesa por el outbox. Devuelve el id del medio. */
 async function upload(
   personId: string,
@@ -65,13 +60,7 @@ async function upload(
     { personId },
   );
   keys.push(prepared.key);
-  const form = new FormData();
-  for (const [name, value] of Object.entries(prepared.fields)) {
-    form.append(name, value);
-  }
-  form.append("file", new Blob([Uint8Array.from(bytes)], { type: contentType }), "imagen");
-  const response = await fetch(prepared.url, { method: "POST", body: form });
-  expect([200, 201, 204]).toContain(response.status);
+  await uploadAsBrowser(prepared, { bytes, contentType, filename: "imagen" });
   const { id } = await confirmUploadAs(
     { personId },
     { key: prepared.key, filename: "imagen", visibility, purpose },
