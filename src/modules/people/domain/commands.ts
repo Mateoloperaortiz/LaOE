@@ -32,6 +32,7 @@ import {
 import { type OwnContactInput, requestDeletion, setOwnPhoto, updateOwnContact } from "./own-data";
 import { createPerson, type PersonInput, updatePerson } from "./persons";
 import { type RepresentativeInput, setRepresentative } from "./representatives";
+import type { SanctionScope } from "./sanction-pure";
 import { recordSanction, revokeSanction, type SanctionInput } from "./sanctions";
 import { setPersonTags } from "./tags";
 import { leaveCommittee, type ProbationInput, setProbation } from "./term-outcomes";
@@ -214,14 +215,16 @@ export function requestCommitteeRemovalAs(
   return runCommand(actor, (ctx) => requestCommitteeRemoval(ctx, scope, who, input));
 }
 
-// Faltas y sanciones (ADR-060 regla 6).
+// Faltas y sanciones (ADR-060 regla 6). `scope` es el comité desde el que sanciona su dirección
+// (ADR-072 regla 1); sin él sanciona GH, sin restricción de tipo ni de comité.
 
 export function recordSanctionAs(
   actor: Actor,
   personId: string,
   input: SanctionInput,
+  scope?: SanctionScope,
 ): Promise<{ id: string }> {
-  return runCommand(actor, (ctx) => recordSanction(ctx, personId, input));
+  return runCommand(actor, (ctx) => recordSanction(ctx, personId, input, scope));
 }
 
 export function revokeSanctionAs(actor: Actor, sanctionId: string, reason: string): Promise<void> {

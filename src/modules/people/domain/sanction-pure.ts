@@ -11,6 +11,18 @@ export const SANCTION_KINDS: readonly SanctionKind[] = [
   "OFFICE_BAN",
 ];
 
+/**
+ * Lo que registra la dirección de un comité (Regl. art. 69 par. 2; ADR-060 regla 6): la suspensión y
+ * la inhabilidad las decide GH (Regl. art. 58, 62 y 63).
+ */
+export const COMMITTEE_SANCTION_KINDS: readonly SanctionKind[] = ["WARNING", "MINOR", "MAJOR"];
+
+/** Desde qué comité y término sanciona su dirección: el alcance que autorizó `src/app` (ADR-072). */
+export interface SanctionScope {
+  committeeId: string;
+  termId: string;
+}
+
 /** Días calendario de suspensión de derechos y beneficios (Regl. art. 69.1 y 69.2). */
 export const SUSPENSION_DAYS: Partial<Record<SanctionKind, number>> = { WARNING: 7, MINOR: 20 };
 

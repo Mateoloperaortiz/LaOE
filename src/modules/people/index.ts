@@ -240,11 +240,13 @@ export { ROSTER_MAX_BYTES } from "./domain/roster-file";
 export { HEADER_ALIASES, ROSTER_COLUMNS, type RosterColumn } from "./domain/roster-pure";
 export {
   addDays as addDaysToKey,
+  COMMITTEE_SANCTION_KINDS,
   dayKeyOf,
   expulsionWarning,
   SANCTION_KINDS,
   type SanctionKind,
   type SanctionLike,
+  type SanctionScope,
   type SanctionState,
 } from "./domain/sanction-pure";
 export {

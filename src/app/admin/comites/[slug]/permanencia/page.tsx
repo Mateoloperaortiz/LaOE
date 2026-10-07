@@ -8,7 +8,7 @@ import {
   MONTHS,
   monthName,
 } from "@/modules/crm";
-import { listInternalRoster, SANCTION_KINDS } from "@/modules/people";
+import { COMMITTEE_SANCTION_KINDS, listInternalRoster, SANCTION_KINDS } from "@/modules/people";
 import {
   deviatesFromNominal,
   getTableView,
@@ -101,11 +101,6 @@ export default async function PermanenciaComitePage({
   const [campoTipo, campoCausal, campoReferencia, campoFecha, , , campoMiembro] = tList("T-2230");
   const [registrarSancion] = tList("T-2232");
   const kindLabels = tList("T-2229");
-  // Desde el comité solo se registran llamados, faltas leves y graves; la suspensión y la
-  // inhabilidad las decide GH (Regl. art. 58, 62 y 63).
-  const committeeKinds = SANCTION_KINDS.filter((kind) =>
-    ["WARNING", "MINOR", "MAJOR"].includes(kind),
-  );
   const scoreRules = view.rules.filter((rule) => rule.computation === "LEADER_SCORE");
   const scoreOf = (ruleId: string, personId: string) =>
     scores.find((item) => item.ruleId === ruleId && item.personId === personId) ?? null;
@@ -254,7 +249,8 @@ export default async function PermanenciaComitePage({
               <label className="flex flex-col gap-1 text-sm" htmlFor="falta-tipo">
                 {campoTipo}
                 <select id="falta-tipo" name="kind" required className={inputClass}>
-                  {committeeKinds.map((kind) => (
+                  {/* Lo que el comando admite desde el comité: la misma lista (ADR-060 regla 6). */}
+                  {COMMITTEE_SANCTION_KINDS.map((kind) => (
                     <option key={kind} value={kind}>
                       {kindLabels[SANCTION_KINDS.indexOf(kind)] ?? kind}
                     </option>

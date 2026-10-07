@@ -5,6 +5,7 @@ import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { grantRecognitionAs } from "@/modules/crm";
 import { interaction } from "@/modules/crm/schema";
 import {
+  leaveCommitteeAs,
   listSanctionsForPerson,
   recordSanctionAs,
   revokeSanctionAs,
@@ -21,7 +22,7 @@ import {
 } from "@/modules/permanence";
 import { manualCredit } from "@/modules/permanence/schema";
 import { closeTermPoints } from "@/modules/terms";
-import { tList } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
@@ -255,5 +256,114 @@ describe("faltas y sanciones", () => {
     await applyDecisions(termId, nextTermId);
     const [row] = await db().select().from(membership).where(eq(membership.personId, personId));
     expect(row).toMatchObject({ status: "INACTIVE", endReason: "EXPULSION" });
+  });
+
+  // El alcance de un comité (ADR-060 regla 6 y ADR-072 regla 1): la dirección registra llamados,
+  // leves y graves, y solo a miembros de su comité; sin alcance, GH sigue sin restricción.
+
+  it("desde el alcance de un comité no se registra una suspensión ni una inhabilidad", async () => {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const director = await seedPerson("direccion@eafit.edu.co");
+    await seedMembership(director, termId);
+    const personId = await member("propia@eafit.edu.co", termId, a3);
+    const actor = { personId: director, ip: null };
+    const scope = { committeeId: a3, termId };
+    const suspension = {
+      termId,
+      kind: "SUSPENSION",
+      cause: "Uso indebido de la oficina, con descargos el 5 de septiembre",
+      occurredOn: "2026-09-01",
+      suspendedUntil: "2026-09-20",
+      committeeId: a3,
+    } as const;
+
+    await expect(recordSanctionAs(actor, personId, suspension, scope)).rejects.toMatchObject({
+      name: "DomainError",
+      message: t("T-260"),
+    });
+    await expect(
+      recordSanctionAs(
+        actor,
+        personId,
+        { ...suspension, kind: "OFFICE_BAN", suspendedUntil: null },
+        scope,
+      ),
+    ).rejects.toMatchObject({ name: "DomainError", message: t("T-260") });
+    expect(await listSanctionsForPerson(personId)).toEqual([]);
+
+    // Sin alcance, como GH desde la Persona 360, la misma suspensión sí se registra.
+    await recordSanctionAs(actor, personId, suspension);
+    expect((await listSanctionsForPerson(personId)).map((view) => view.kind)).toEqual([
+      "SUSPENSION",
+    ]);
+  });
+
+  it("desde el alcance de un comité no se sanciona a quien es de otro comité ni a quien ya salió del suyo", async () => {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const nexos = await seedCommittee("nexos", "NEXOS");
+    const director = await seedPerson("direccion@eafit.edu.co");
+    await seedMembership(director, termId);
+    const outsider = await member("ajena@eafit.edu.co", termId, nexos);
+    const former = await member("salio@eafit.edu.co", termId, a3);
+    const actor = { personId: director, ip: null };
+    await leaveCommitteeAs(actor, former, a3, termId, "Pidió salir del comité");
+    const scope = { committeeId: a3, termId };
+    const warning = {
+      termId,
+      kind: "WARNING",
+      cause: "Faltó a la reunión del 3 de septiembre sin excusa; en descargos reconoció la falta",
+      occurredOn: todayKey(),
+      committeeId: a3,
+    } as const;
+
+    for (const personId of [outsider, former]) {
+      // Uno ajeno se trata como inexistente: el mismo texto y nada escrito.
+      await expect(recordSanctionAs(actor, personId, warning, scope)).rejects.toMatchObject({
+        name: "DomainError",
+        message: t("T-032"),
+      });
+      expect(await listSanctionsForPerson(personId)).toEqual([]);
+      expect((await sanctionStateFor(personId)).suspendedUntil).toBeNull();
+    }
+
+    // Sin alcance, GH sí sanciona a cualquier miembro vivo.
+    await recordSanctionAs(actor, outsider, { ...warning, committeeId: null });
+    expect(await listSanctionsForPerson(outsider)).toHaveLength(1);
+  });
+
+  it("desde el alcance de un comité, la falta de un miembro suyo queda a nombre de ese comité y de su término", async () => {
+    const termId = await seedTerm();
+    const previous = await seedTerm("2024-1");
+    const a3 = await seedCommittee("a3", "A3");
+    const nexos = await seedCommittee("nexos", "NEXOS");
+    const director = await seedPerson("direccion@eafit.edu.co");
+    await seedMembership(director, termId);
+    const personId = await member("propia@eafit.edu.co", termId, a3);
+    const actor = { personId: director, ip: null };
+    const scope = { committeeId: a3, termId };
+
+    for (const kind of ["WARNING", "MINOR", "MAJOR"] as const) {
+      // El término y el comité que traiga el formulario no mandan: manda el alcance autorizado.
+      await recordSanctionAs(
+        actor,
+        personId,
+        {
+          termId: previous,
+          kind,
+          cause: "Llegada tarde al turno de GAP del 20 de octubre, con descargos",
+          occurredOn: todayKey(),
+          committeeId: nexos,
+        },
+        scope,
+      );
+    }
+
+    const views = await listSanctionsForPerson(personId);
+    expect(views.map((view) => view.kind).sort()).toEqual(["MAJOR", "MINOR", "WARNING"]);
+    for (const view of views) {
+      expect(view).toMatchObject({ committeeName: "A3", termId });
+    }
   });
 });
