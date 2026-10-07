@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
+import { APP_SCREEN, internalPath } from "@/shared/lib/internal-path";
 import { COMMON_PASSWORDS } from "../data/common-passwords";
 
 // Reglas de acceso sin I/O (ADR-010, ADR-051): códigos, contraseñas, hashes, tokens, destino
@@ -176,23 +177,15 @@ export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-/** Solo rutas del mismo origen; nunca /ingresar ni /api (05-acceso.md). */
+/**
+ * Destino después del ingreso o de un paso de seguridad: solo una pantalla de la aplicación, nunca
+ * /ingresar ni /api (05-acceso.md). La ruta la decide `internalPath` (ADR-114, regla 1).
+ */
 export function safeNextPath(input: unknown, fallback = "/app"): string {
-  if (typeof input !== "string" || input.length === 0 || input.length > 2_000) {
+  if (typeof input !== "string" || input.length > 2_000) {
     return fallback;
   }
-  if (!input.startsWith("/") || input.startsWith("//") || input.startsWith("/\\")) {
-    return fallback;
-  }
-  if (/\s/.test(input)) {
-    return fallback;
-  }
-  const path = input.split(/[?#]/)[0] ?? "";
-  const blocked = ["/ingresar", "/api"];
-  if (blocked.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) {
-    return fallback;
-  }
-  return input;
+  return internalPath(input, APP_SCREEN) ?? fallback;
 }
 
 export interface DeviceDescription {

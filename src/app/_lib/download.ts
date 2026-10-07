@@ -1,4 +1,5 @@
 import { getEnv } from "@/env";
+import { APP_SCREEN, internalPath } from "@/shared/lib/internal-path";
 import { single, withQuery } from "./search";
 
 // Descargas que piden sesión o paso de seguridad (ADR-113, regla 10). El ingreso nunca vuelve a una
@@ -14,12 +15,13 @@ export function downloadHref(route: string, screen: string): string {
 }
 
 /**
- * La pantalla que nombra el enlace, solo si la ruta la reconoce como una de las que la originan;
- * cualquier otro valor se descarta y vale `fallback`.
+ * La pantalla que nombra el enlace, solo si es una pantalla de la aplicación (`internalPath`, ADR-114
+ * regla 1) y la ruta la reconoce como una de las que la originan; cualquier otro valor se descarta y
+ * vale `fallback`.
  */
 export function namedScreen(params: URLSearchParams, recognized: RegExp, fallback: string): string {
-  const named = params.get(DOWNLOAD_SCREEN_PARAM) ?? "";
-  return recognized.test(named) ? named : fallback;
+  const named = internalPath(params.get(DOWNLOAD_SCREEN_PARAM), APP_SCREEN);
+  return named !== null && recognized.test(named) ? named : fallback;
 }
 
 const DOWNLOAD_MARK = "descarga";

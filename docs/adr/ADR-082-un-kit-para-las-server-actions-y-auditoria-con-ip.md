@@ -1,6 +1,6 @@
 # ADR-082: Un kit para las server actions, y la auditoría siempre con IP
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-114)
 - Fecha: 2026-09-19
 - Relacionadas: ADR-011, ADR-012, ADR-072, ADR-080
 - Enmienda: ADR-011 (el guard de ADMIN aplica la regla de licencia)
@@ -42,3 +42,7 @@ Y apareció un defecto de verdad. `runCommand` escribe en la auditoría `actor.i
 ## Lo que queda de R3
 
 Este es el tramo R3-A. Siguen en R3-B, porque tocan otros archivos y otro riesgo: la tabla única de navegación del admin, `register<T>` en el registro del kit, `DomainError` fuera del admin-kit, `dates-pure`, reunir la autorización compuesta en `src/app/_authz/` y los bloques `try/catch DomainError` repetidos, que van con el paso de mensajes a códigos de error en la URL (R6).
+
+## Enmienda (2026-10-07, ADR-114)
+
+La regla 4 decía que `safeBack` acepta una ruta propia, de caracteres seguros, sin `//` y dentro del área. «Dentro del área» se comprobaba sobre el texto, y una ruta que empieza por el área y sube con `..` o con `%2e%2e` pasaba: `/admin/../api/mis-datos` salía del filtro y `withQuery` la dejaba en `/api/mis-datos`. [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 1 lo cierra: la ruta la decide `internalPath`, la regla que `safeBack` comparte con el destino del ingreso y con la pantalla que nombra una descarga, y que rechaza los segmentos `.` y `..`, también codificados, sobre la ruta que el navegador va a pedir. Los caracteres seguros y el `//` quedan como estaban, y ni la firma ni los llamadores cambian.
