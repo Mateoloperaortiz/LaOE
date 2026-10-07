@@ -1,6 +1,6 @@
 # ADR-012: Outbox transaccional; efectos fuera del commit
 
-- Estado: Aceptada (enmendada por ADR-021, ADR-038, ADR-040, ADR-079 y ADR-084)
+- Estado: Aceptada (enmendada por ADR-021, ADR-038, ADR-040, ADR-079, ADR-084 y ADR-113)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-001, ADR-009, ADR-021
 
@@ -38,3 +38,7 @@ La transacción del poller solo sostiene el bloqueo de la fila: los handlers tra
 ## Enmienda (2026-09-19, ADR-084)
 
 Un evento de dominio tiene contrato: nombre y esquema del payload en `src/domain-events/`, un archivo por módulo productor. El productor emite con `eventOf(contrato, payload)` y el compilador comprueba el payload; el consumidor escucha con `onEvent(contrato, handler)` y recibe el payload validado y tipado. La migración va por familias. Detalle en [ADR-084](ADR-084-catalogo-tipado-de-eventos-de-dominio.md).
+
+## Enmienda (2026-10-07, ADR-113)
+
+La decisión dejaba los dead letters «con opción de reintentar» y un solo pendiente por `dedupeKey`, sin decir qué pasa cuando las dos cosas se cruzan: un dead letter deja libre su clave, el mismo trabajo se vuelve a encolar, y reintentar el dead letter chocaba con el índice único y respondía con el error de la base. Ahora ese reintento da el dead letter por atendido: lo marca procesado sin correrlo, deja el pendiente como está y lo nombra en la auditoría del reintento. Lo decide el índice dentro de la transacción del comando, así que vale también si el mismo trabajo se encola mientras corre el reintento. El reintento de un dead letter sin clave, o cuya clave no tiene pendiente, no cambia. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 8.
