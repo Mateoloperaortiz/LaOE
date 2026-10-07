@@ -89,7 +89,8 @@ export async function saveSubscriptionAs(
       .select({ n: count() })
       .from(pushSubscription)
       .where(eq(pushSubscription.personId, personId));
-    if ((devices?.n ?? MAX_DEVICES_PER_PERSON) >= MAX_DEVICES_PER_PERSON) {
+    // Sin cuenta no se registra: el tope falla cerrado.
+    if (!devices || devices.n >= MAX_DEVICES_PER_PERSON) {
       throw new DomainError(t("T-3209"), "endpoint");
     }
     const [row] = await ctx.tx

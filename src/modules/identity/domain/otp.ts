@@ -58,7 +58,7 @@ async function lockEmail(tx: Tx, email: string): Promise<void> {
  * equivocados de sus retos del último día. Se llama con el candado del correo tomado. El paso de
  * seguridad queda afuera: lo pide una sesión viva y sus fallos no suman.
  */
-async function attemptBudget(
+async function remainingAttemptsForEmail(
   tx: Tx,
   email: string,
   purpose: OtpPurpose,
@@ -79,7 +79,10 @@ async function attemptBudget(
       ),
     );
   // Sin fila no hay cuenta, y sin cuenta no hay intentos.
-  return otpAttemptBudget(row?.n ?? Number.NaN);
+  if (!row) {
+    return 0;
+  }
+  return otpAttemptBudget(row.n);
 }
 
 /**
@@ -115,7 +118,7 @@ export async function requestOtp(input: RequestOtpInput): Promise<void> {
   // candado del correo: un código equivocado que llega a la vez espera, y no se cuela en el medio.
   const issued = await getDb().transaction(async (tx) => {
     await lockEmail(tx, email);
-    const maxAttempts = await attemptBudget(tx, email, purpose, now);
+    const maxAttempts = await remainingAttemptsForEmail(tx, email, purpose, now);
     if (maxAttempts === 0) {
       return false;
     }
@@ -225,8 +228,9 @@ async function checkChallenge(
   // no trae de vuelta intentos que el correo ya gastó.
   const left = Math.min(
     challenge.maxAttempts - challenge.attempts,
-    await attemptBudget(tx, email, purpose, now),
+    await remainingAttemptsForEmail(tx, email, purpose, now),
   );
+  // Negado a propósito: una cuenta que no sea un número tampoco deja probar.
   if (!(left >= 1)) {
     return { ok: false, reason: "LOCKED", attemptsLeft: 0 };
   }
