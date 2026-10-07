@@ -131,7 +131,26 @@ export async function setConfig<K extends ConfigKey>(
     before: before?.value ?? null,
     after: parsed,
   });
+  // Adelanta la invalidación, pero no alcanza: hasta el commit la base sigue mostrando el valor anterior
+  // y otra lectura lo vuelve a guardar. La que vale es la de `writeConfig`.
   cache.delete(key);
+}
+
+/**
+ * Cambia una clave en su propio comando y suelta su entrada de la caché cuando la transacción ya terminó
+ * (ADR-113 regla 9): una lectura que cayó antes del commit no deja el valor anterior guardado. Suelta
+ * la entrada también si el comando falla: de más solo cuesta una lectura.
+ */
+export async function writeConfig<K extends ConfigKey>(
+  actor: Actor,
+  key: K,
+  value: ConfigValue<K>,
+): Promise<void> {
+  try {
+    await runCommand(actor, (ctx) => setConfig(ctx, key, value));
+  } finally {
+    cache.delete(key);
+  }
 }
 
 /** Vacía la caché lectura: la usan las pruebas al truncar la base. */
@@ -145,5 +164,5 @@ export function setConfigAs<K extends ConfigKey>(
   key: K,
   value: ConfigValue<K>,
 ): Promise<void> {
-  return runCommand(actor, (ctx) => setConfig(ctx, key, value));
+  return writeConfig(actor, key, value);
 }

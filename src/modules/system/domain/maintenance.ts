@@ -1,8 +1,8 @@
 import { and, eq, isNotNull, lt } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { SYSTEM_ACTOR } from "@/db/tx";
 import { appConfig, outbox } from "../schema";
-import { CONFIG, setConfig } from "./config";
+import { CONFIG, writeConfig } from "./config";
 
 // Depuración del outbox procesado y verificación de la copia externa (ADR-023).
 
@@ -53,6 +53,6 @@ export async function getBackupStatus(now = new Date()): Promise<BackupStatus> {
 /** Control diario auditado: conserva su snapshot sin condicionar la lectura del tablero. */
 export async function checkBackup(now = new Date()): Promise<BackupStatus> {
   const status = await getBackupStatus(now);
-  await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "backup.status", status));
+  await writeConfig(SYSTEM_ACTOR, "backup.status", status);
   return status;
 }
