@@ -2,7 +2,6 @@ import { count, eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
 import type { Actor } from "@/modules/identity/domain/actor";
 import { issueCarnet, readCarnet } from "@/modules/identity/domain/carnet";
 import {
@@ -15,6 +14,7 @@ import {
   rotateCarnetTokenAs,
 } from "@/modules/identity/domain/carnet-token";
 import { ForbiddenError } from "@/modules/identity/domain/errors";
+import { drainOutbox } from "../helpers/outbox";
 import "@/modules/identity/jobs";
 import { carnetToken } from "@/modules/identity/schema";
 import {
@@ -175,7 +175,7 @@ describe("credenciales del carnet de billetera", () => {
     await expect(rotateCarnetTokenAs(actorFor(personId))).rejects.toBeInstanceOf(ForbiddenError);
     expect(await resolveCarnetToken(token)).toBe(personId);
     expect((await getWalletMemberState(getDb(), personId))?.walletEpoch).toBe(0);
-    await drain(20);
+    await drainOutbox();
     expect((await getCarnetCredential(personId))?.token).toBe(token);
   });
 
@@ -198,7 +198,7 @@ describe("credenciales del carnet de billetera", () => {
     const current = await getOrCreateCarnetToken(personId);
     expect(current).not.toBe(original);
     expect(await getCarnetMetadata(personId)).toMatchObject({ walletEpoch: 1, revision: 1 });
-    expect((await drain(30)).failed).toBe(0);
+    await drainOutbox();
     expect(await deleteCarnetTokenFor(personId)).toBe(0);
     expect(await resolveCarnetToken(current)).toBe(personId);
   });
@@ -228,7 +228,7 @@ describe("credenciales del carnet de billetera", () => {
     await expect(
       runCommand(SYSTEM_ACTOR, (ctx) => reactivateMembership(ctx, personId, {})),
     ).rejects.toThrow();
-    expect((await drain(30)).failed).toBe(0);
+    await drainOutbox();
     expect(await getCarnetCredential(personId)).toBeNull();
   });
 

@@ -2,8 +2,6 @@ import { and, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
 import * as badges from "@/modules/participation/domain/badges";
@@ -17,6 +15,7 @@ import { achievement, boosterItem, checkIn, wordleGame } from "@/modules/partici
 import { outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember, seedOccasion, seedTerm } from "./factories";
 
@@ -77,7 +76,7 @@ describe("conciliación histórica", () => {
   it("DRY_RUN no escribe logros y termina DONE con las cifras", async () => {
     await seedUniverse();
     const runId = await startRun("DRY_RUN");
-    await drain(30);
+    await drainOutbox();
 
     const run = await getReconciliationRun(runId);
     expect(run?.status).toBe("DONE");
@@ -91,7 +90,7 @@ describe("conciliación histórica", () => {
   it("APPLY inserta logros históricos sin booster, sin push y sin línea de tiempo", async () => {
     const { asistente, wordlero, fact, wordleAt } = await seedUniverse();
     const runId = await startRun("APPLY");
-    await drain(30);
+    await drainOutbox();
 
     const run = await getReconciliationRun(runId);
     expect(run?.status).toBe("DONE");
@@ -116,9 +115,9 @@ describe("conciliación histórica", () => {
   it("una segunda APPLY no desbloquea nada ni duplica logros", async () => {
     await seedUniverse();
     await startRun("APPLY");
-    await drain(30);
+    await drainOutbox();
     const segundo = await startRun("APPLY");
-    await drain(30);
+    await drainOutbox();
 
     const run = await getReconciliationRun(segundo);
     expect(run?.status).toBe("DONE");
@@ -130,11 +129,11 @@ describe("conciliación histórica", () => {
   it("revoca el logro cuando el hecho desaparece", async () => {
     const { asistente, fact } = await seedUniverse();
     await startRun("APPLY");
-    await drain(30);
+    await drainOutbox();
 
     await db().update(checkIn).set({ status: "CANCELLED" }).where(eq(checkIn.id, fact.id));
     const runId = await startRun("APPLY");
-    await drain(30);
+    await drainOutbox();
 
     const run = await getReconciliationRun(runId);
     expect(run?.status).toBe("DONE");
@@ -152,7 +151,7 @@ describe("conciliación histórica", () => {
     await expect(startRun("APPLY")).rejects.toSatisfy(
       (error) => error instanceof DomainError && error.message === t("T-2561"),
     );
-    await drain(30);
+    await drainOutbox();
     // Una vez DONE vuelve a poder arrancar.
     await expect(startRun("APPLY")).resolves.toBeTypeOf("string");
   });
@@ -174,7 +173,7 @@ describe("conciliación histórica", () => {
       `reconcile:${runId}:1`,
     ]);
 
-    await drain(30);
+    await drainOutbox();
     const run = await getReconciliationRun(runId);
     expect(run?.status).toBe("DONE");
     expect(run?.processed).toBe(3);
@@ -193,7 +192,7 @@ describe("conciliación histórica", () => {
     const spy = vi
       .spyOn(badges, "recomputeBadgesFor")
       .mockRejectedValueOnce(new Error("fallo sintético"));
-    await drain(30);
+    await drainOutbox();
     spy.mockRestore();
 
     let run = await getReconciliationRun(runId);
@@ -201,7 +200,7 @@ describe("conciliación histórica", () => {
     expect(run?.error).toContain("fallo sintético");
 
     await runCommand(SYSTEM_ACTOR, (ctx) => resumeReconciliation(ctx, runId));
-    await drain(30);
+    await drainOutbox();
 
     run = await getReconciliationRun(runId);
     expect(run?.status).toBe("DONE");

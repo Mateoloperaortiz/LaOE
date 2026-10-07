@@ -1,8 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { setMailTransportsForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import {
@@ -26,6 +24,7 @@ import { outbox } from "@/modules/system/schema";
 import type { MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
 import { copyPattern, itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
@@ -132,7 +131,7 @@ describe("pipelines y tarjetas", () => {
     expect(view?.closedAt).toBeNull();
     const board = await getBoard(id);
     expect(board.map((column) => column.cards.length)).toEqual([0, 1, 0, 0, 0]);
-    await drain(20);
+    await drainOutbox();
     const timeline = await getDb()
       .select()
       .from(interaction)
@@ -158,7 +157,7 @@ describe("pipelines y tarjetas", () => {
       ip: "10.0.0.9",
     });
     expect(result.ok).toBe(true);
-    await drain(20);
+    await drainOutbox();
     const [who] = await getDb().select().from(person).where(eq(person.email, "lu@eafit.edu.co"));
     if (!who) throw new Error("person");
     expect(who.stage).toBe("APPLICANT");
@@ -176,7 +175,7 @@ describe("pipelines y tarjetas", () => {
       .where(eq(outbox.eventType, "submission.received"));
     if (!event) throw new Error("event");
     await getDb().update(outbox).set({ processedAt: null }).where(eq(outbox.id, event.id));
-    await drain(20);
+    await drainOutbox();
     expect(await listCardsByPerson(who.id)).toHaveLength(1);
     expect(
       await getDb()
@@ -222,7 +221,7 @@ describe("pipelines y tarjetas", () => {
       admitFromCardAs(admin, externalCard.id, { termId, committeeIds: [a3] }),
     ).rejects.toThrow(t("T-988"));
     // Al drenar: la bienvenida sale por el mailer y queda en `message`; la línea de tiempo anota el alta.
-    await drain(30);
+    await drainOutbox();
     const mails = await getDb().select().from(message).where(eq(message.personId, personId));
     expect(mails).toHaveLength(1);
     expect(mails[0]).toMatchObject({ status: "SENT", provider: "resend" });

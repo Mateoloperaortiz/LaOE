@@ -3,10 +3,8 @@ import sharp from "sharp";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
-import "@/jobs/handlers";
 import { eventOf } from "@/domain-events/define";
 import { personAnonymized } from "@/domain-events/people";
-import { drain } from "@/jobs/poller";
 import {
   EVIDENCE_MAX_BYTES,
   evidenceKey,
@@ -20,6 +18,7 @@ import { challengeEvidenceFile, challengeParticipation } from "@/modules/partici
 import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
 import { tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedChallenge, seedMember, seedParticipation, seedTerm } from "./factories";
 
@@ -195,7 +194,7 @@ describe("evidencias de retos", () => {
     expect(await headObject(key)).not.toBeNull();
 
     await enqueueEvent(db(), eventOf(personAnonymized, { actorId: null, personId }));
-    await drain(30);
+    await drainOutbox();
 
     expect(
       await db()

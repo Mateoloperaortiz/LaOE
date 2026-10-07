@@ -4,10 +4,11 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { type Env, getEnv } from "@/env";
-import { drain, processOne } from "@/jobs/poller";
+import { processOne } from "@/jobs/poller";
 import { SCHEDULE } from "@/jobs/schedule";
 import { getCarnetCredential, readCarnet } from "@/modules/identity";
 import { createWalletCarnetToken } from "@/modules/identity/domain/carnet-pure";
+import { drainOutbox } from "../helpers/outbox";
 import "@/modules/identity/jobs";
 import { carnetToken } from "@/modules/identity/schema";
 import { setCommitteeMembershipsAs, updatePersonAs } from "@/modules/people";
@@ -43,18 +44,6 @@ import {
   seedTerm,
 } from "./factories";
 import { FakeGoogleWallet } from "./wallet-fixtures";
-
-async function drainWallet() {
-  const total = { processed: 0, failed: 0 };
-  for (let round = 0; round < 20; round++) {
-    // El tick ve también hijos encolados unos milisegundos después, sin adelantar el backoff de un minuto.
-    const result = await drain(100, new Date(Date.now() + 1000));
-    total.processed += result.processed;
-    total.failed += result.failed;
-    if (result.processed + result.failed === 0) return total;
-  }
-  throw new Error("El outbox no terminó de drenar en veinte lotes");
-}
 
 const endInput = { endReason: "OTHER" as const, memorialConsent: false, contactConsent: false };
 
@@ -105,7 +94,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
     const queued = await getDb().select().from(outbox).where(eq(outbox.eventType, "wallet.sync"));
     expect(queued).toHaveLength(1);
     expect(queued[0]?.dedupeKey).toMatch(/^wallet-sync:/);
-    expect((await drainWallet()).failed).toBe(0);
+    await drainOutbox();
     const [pass] = await listPassesFor(personId);
     expect(server.objects.get(pass?.externalId ?? "")).toMatchObject({
       textModulesData: expect.arrayContaining([
@@ -145,7 +134,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
         reason: null,
       }),
     );
-    expect((await drainWallet()).failed).toBe(0);
+    await drainOutbox();
     expect(server.calls).toEqual([]);
     expect(await getCarnetCredential(emptyId)).toBeNull();
     expect(await listPassesFor(emptyId)).toEqual([]);
@@ -164,7 +153,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
     expect(server.calls).toEqual([]);
     expect(await processOne(new Date(Date.now() + 1000))).toBe("processed");
     expect(server.calls).toEqual([]);
-    expect((await drainWallet()).failed).toBe(0);
+    await drainOutbox();
     const [pass] = await listPassesFor(personId);
     expect(server.objects.get(pass?.externalId ?? "")).toMatchObject({
       header: { defaultValue: { value: "Nombre Actualizado" } },
@@ -182,7 +171,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
     const fresh = await getCarnetCredential(personId);
     expect(fresh?.walletEpoch).toBe(1);
     server.calls.length = 0;
-    expect((await drainWallet()).failed).toBe(0);
+    await drainOutbox();
     const [pass] = await listPassesFor(personId);
     expect(pass).toMatchObject({ walletEpoch: 1, revokedAt: null });
     expect(server.objects.get(pass?.externalId ?? "")).toMatchObject({
@@ -197,14 +186,14 @@ describe("wallet por outbox y reconciliación diaria", () => {
     const personId = await seedMember("wallet-baja@eafit.edu.co");
     await issueGoogleSaveUrl(personId);
     await runCommand(SYSTEM_ACTOR, (ctx) => endMembership(ctx, personId, endInput));
-    expect((await drainWallet()).failed).toBe(0);
+    await drainOutbox();
     const [pass] = await listPassesFor(personId);
     expect(pass?.revokedAt).toBeInstanceOf(Date);
     expect(server.objects.get(pass?.externalId ?? "")?.state).toBe("EXPIRED");
     expect(await getCarnetCredential(personId)).toBeNull();
     server.calls.length = 0;
     await runCommand(SYSTEM_ACTOR, (ctx) => reactivateMembership(ctx, personId, {}));
-    expect((await drainWallet()).failed).toBe(0);
+    await drainOutbox();
     expect(server.calls).toEqual([]);
     expect(await getCarnetCredential(personId)).toBeNull();
     expect((await listPassesFor(personId))[0]?.revokedAt).toEqual(pass?.revokedAt);
@@ -228,18 +217,15 @@ describe("wallet por outbox y reconciliación diaria", () => {
       .set({ deletionRequestedAt: new Date() })
       .where(eq(person.id, personId));
     await runCommand(SYSTEM_ACTOR, (ctx) => anonymizePerson(ctx, personId));
-    expect((await drainWallet()).failed).toBe(1);
+    await drainOutbox({ expectFailures: ["wallet.sync"] });
     expect(await getCarnetCredential(personId)).toBeNull();
     expect(await listPassesFor(personId)).toEqual([
       expect.objectContaining({ id: google?.id, externalId: google?.externalId }),
     ]);
     expect(server.objects.get(google?.externalId ?? "")).toHaveProperty("barcode");
     fail = false;
-    await getDb()
-      .update(outbox)
-      .set({ nextAttemptAt: new Date() })
-      .where(eq(outbox.eventType, "wallet.sync"));
-    expect((await drainWallet()).failed).toBe(0);
+    // El reintento espera un minuto de backoff: el reloj adelantado lo alcanza.
+    await drainOutbox({ now: new Date(Date.now() + 2 * 60_000) });
     expect(await listPassesFor(personId)).toEqual([]);
     const tombstone = server.objects.get(google?.externalId ?? "");
     expect(tombstone).toMatchObject({
@@ -250,7 +236,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
       expect(tombstone).not.toHaveProperty(field);
     const count = server.calls.length;
     await enqueueEvent(getDb(), eventOf(walletSync, { personId }));
-    await drainWallet();
+    await drainOutbox();
     expect(server.calls).toHaveLength(count);
   });
 
@@ -263,11 +249,12 @@ describe("wallet por outbox y reconciliación diaria", () => {
       .set({ deletionRequestedAt: new Date() })
       .where(eq(person.id, personId));
     await runCommand(SYSTEM_ACTOR, (ctx) => anonymizePerson(ctx, personId));
-    expect((await drainWallet()).failed).toBe(1);
+    await drainOutbox({ expectFailures: ["wallet.sync"] });
     expect(await listPassesFor(personId)).toHaveLength(1);
     Object.assign(getEnv(), original);
     await enqueueEvent(getDb(), eventOf(walletReconcile, {}));
-    expect((await drainWallet()).failed).toBe(0);
+    // La diaria encola su propio wallet.sync; el que falló sigue esperando su reintento.
+    await drainOutbox({ expectFailures: ["wallet.sync"] });
     expect(await listPassesFor(personId)).toEqual([]);
   });
 
@@ -284,11 +271,11 @@ describe("wallet por outbox y reconciliación diaria", () => {
     await setCommitteeMembershipsAs({ personId }, personId, nextTerm, [
       { committeeId: futureCommittee, roleCode: "MIEMBRO", transferredIn: false },
     ]);
-    expect((await drainWallet()).failed).toBe(0);
+    await drainOutbox();
     expect((await listPassesFor(personId))[0]?.renderedTermId).toBe(firstTerm);
     vi.setSystemTime(new Date("2026-07-01T05:05:00Z"));
     await enqueueEvent(getDb(), eventOf(walletReconcile, {}));
-    expect((await drainWallet()).failed).toBe(0);
+    await drainOutbox();
     const [pass] = await listPassesFor(personId);
     expect(pass?.renderedTermId).toBe(nextTerm);
     const remote = server.objects.get(pass?.externalId ?? "");
@@ -298,7 +285,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
     const credential = await getCarnetCredential(personId);
     server.calls.length = 0;
     await enqueueEvent(getDb(), eventOf(walletReconcile, {}));
-    expect((await drainWallet()).failed).toBe(0);
+    await drainOutbox();
     // La diaria también recupera cambios de nombre/comités cuyos eventos no llegaron al proveedor.
     expect(server.writes()).toHaveLength(1);
     expect(server.writes()[0]?.method).toBe("PUT");
@@ -352,7 +339,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
       });
     }
     await enqueueEvent(getDb(), eventOf(walletReconcile, {}));
-    expect((await drainWallet()).failed).toBe(0);
+    await drainOutbox();
     const jobs = await getDb().select().from(outbox);
     expect(jobs.filter((job) => job.eventType === "wallet.reconcile")).toHaveLength(2);
     expect(jobs.filter((job) => job.eventType === "wallet.sync")).toHaveLength(101);

@@ -2,8 +2,6 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import {
   listAssemblyRepresentation,
   listCommitteeRepresentation,
@@ -13,6 +11,7 @@ import { closeOccasion } from "@/modules/participation/domain/occasions";
 import { checkIn, committeeAssemblyAttendance } from "@/modules/participation/schema";
 import { listRepresentatives, setRepresentativeAs } from "@/modules/people";
 import { DomainError } from "@/shared/lib/errors";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   seedCheckIn,
@@ -30,17 +29,6 @@ import {
 // cualquier cargo de dirección), excusa aceptada y la escalera del término.
 
 const db = () => getDb();
-
-async function drenar(): Promise<void> {
-  for (let batch = 0; batch < 20; batch += 1) {
-    const result = await drain(50);
-    expect(result.failed).toBe(0);
-    if (result.processed === 0) {
-      return;
-    }
-  }
-  throw new Error("El outbox no terminó");
-}
 
 async function assembly(termId: string, title: string, daysAgo: number) {
   const startsAt = new Date(Date.now() - daysAgo * 86_400_000);
@@ -132,7 +120,7 @@ describe("representación en la asamblea", () => {
     await seedCheckIn(first.id, miembroIus);
     expect(await recomputeCommitteeAssembly(first.id)).toBe(0); // abierta todavía
     await runCommand(SYSTEM_ACTOR, (ctx) => closeOccasion(ctx, first.id));
-    await drenar();
+    await drainOutbox();
     const rows = await db()
       .select()
       .from(committeeAssemblyAttendance)
@@ -158,7 +146,7 @@ describe("representación en la asamblea", () => {
       source: "ADMIN",
     });
     await runCommand(SYSTEM_ACTOR, (ctx) => closeOccasion(ctx, second.id));
-    await drenar();
+    await drainOutbox();
     const summary = await listCommitteeRepresentation(termId);
     const of = (id: string) => summary.find((row) => row.committeeId === id);
     expect(of(a3)).toMatchObject({

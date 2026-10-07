@@ -2,12 +2,11 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import { task } from "@/modules/crm/schema";
 import { listExpiredLeaves } from "@/modules/people/domain/membership";
 import { membership } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
 
@@ -36,7 +35,7 @@ describe("licencias vencidas", () => {
     expect((await listExpiredLeaves("2026-09-13")).map((row) => row.personId)).toEqual([vencida]);
 
     await enqueueEvent(getDb(), { type: "membership.leave-check", payload: {} });
-    await drain(20);
+    await drainOutbox();
     const abiertas = () =>
       getDb()
         .select()
@@ -50,7 +49,7 @@ describe("licencias vencidas", () => {
     });
 
     await enqueueEvent(getDb(), { type: "membership.leave-check", payload: {} });
-    await drain(20);
+    await drainOutbox();
     expect(await abiertas()).toHaveLength(1);
   });
 });

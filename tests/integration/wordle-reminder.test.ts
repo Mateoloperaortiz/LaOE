@@ -1,8 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import {
   DEFAULT_PREFERENCES,
   saveSubscriptionAs,
@@ -15,6 +13,7 @@ import { wordleDay } from "@/modules/participation/domain/wordle-pure";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember, seedTerm } from "./factories";
 
@@ -67,7 +66,7 @@ describe("aviso diario del Wordle", () => {
 
     const day = wordleDay();
     expect(await runWordleReminder()).toEqual({ day, audience: 2, enqueued: 1 });
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
     const rows = await db().select().from(message);
     expect(rows.map((row) => row.personId)).toEqual([juega]);
     expect(rows[0]).toMatchObject({
@@ -85,7 +84,7 @@ describe("aviso diario del Wordle", () => {
 
     // El mismo día otra vez: el outbox no duplica y comms descarta la clave ya entregada.
     expect((await runWordleReminder()).enqueued).toBe(1);
-    await drain(20);
+    await drainOutbox();
     expect(await db().select().from(message)).toHaveLength(1);
     expect(delivered).toHaveLength(1);
   });
@@ -99,7 +98,7 @@ describe("aviso diario del Wordle", () => {
     await db().update(term).set({ pointsClosedAt: new Date() }).where(eq(term.id, termId));
 
     expect(await runWordleReminder()).toEqual({ day: wordleDay(), audience: 0, enqueued: 0 });
-    await drain(20);
+    await drainOutbox();
     expect(await db().select().from(message)).toHaveLength(0);
     expect(delivered).toHaveLength(0);
   });

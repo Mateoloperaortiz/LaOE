@@ -2,8 +2,6 @@ import { and, desc, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { adminAreaRoles } from "@/app/_authz/admin-area";
 import { closeDb, getDb } from "@/db/client";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { interaction, task } from "@/modules/crm/schema";
 import type { Actor } from "@/modules/identity";
 import {
@@ -20,6 +18,7 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { copyPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
@@ -35,17 +34,6 @@ import {
 // obligatorios, elegibles para entrar, y los comandos con eje comité con cada una de sus guardas.
 
 const db = () => getDb();
-
-async function drenar(): Promise<void> {
-  for (let batch = 0; batch < 20; batch += 1) {
-    const result = await drain(50);
-    expect(result.failed).toBe(0);
-    if (result.processed === 0) {
-      return;
-    }
-  }
-  throw new Error("El outbox no terminó");
-}
 
 interface Fixture {
   termId: string;
@@ -298,7 +286,7 @@ describe("agregar, cargos y pedido de retiro", () => {
       personId: f.member,
       reason: "No volvió a las reuniones",
     });
-    await drenar();
+    await drainOutbox();
     const tasks = await db().select().from(task).where(eq(task.personId, f.member));
     expect(tasks).toHaveLength(1);
     expect(tasks[0]).toMatchObject({ kind: "COMMITTEE_REMOVAL", status: "OPEN", assigneeId: null });
@@ -310,7 +298,7 @@ describe("agregar, cargos y pedido de retiro", () => {
       personId: f.member,
       reason: "No volvió a las reuniones",
     });
-    await drenar();
+    await drainOutbox();
     expect(await db().select().from(task).where(eq(task.personId, f.member))).toHaveLength(1);
     const notes = await db()
       .select({ summary: interaction.summary })

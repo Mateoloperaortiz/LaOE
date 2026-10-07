@@ -2,8 +2,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { saveSubscriptionAs, setPushSenderForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import {
@@ -18,6 +16,7 @@ import { checkInSelfAs } from "@/modules/participation";
 import { recordConsentAs } from "@/modules/people";
 import { membership } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
@@ -81,8 +80,7 @@ describe("push por evento", () => {
     expect(row?.pushRequestedAt).toBeInstanceOf(Date);
     expect(row?.pushSentAt).toBeNull();
 
-    const result = await drain(20);
-    expect(result.failed).toBe(0);
+    await drainOutbox();
     expect(delivered).toEqual(["https://push.example/dentro"]);
     row = await getAnnouncement(id);
     expect(row?.pushSentAt).toBeInstanceOf(Date);
@@ -98,7 +96,7 @@ describe("push por evento", () => {
 
     // Pedirlo otra vez no hace nada: una sola vez por anuncio.
     await runCommand(SYSTEM_ACTOR, (ctx) => requestAnnouncementPush(ctx, id));
-    await drain(20);
+    await drainOutbox();
     expect(delivered).toHaveLength(1);
   });
 
@@ -131,7 +129,7 @@ describe("push por evento", () => {
       }),
     );
     await runCommand(SYSTEM_ACTOR, (ctx) => publishAndPushAnnouncement(ctx, id));
-    await drain(20);
+    await drainOutbox();
     expect(delivered.sort()).toEqual([
       "https://push.example/activo",
       "https://push.example/honorario",
@@ -151,8 +149,7 @@ describe("push por evento", () => {
     expect((await checkInSelfAs({ personId: ana }, { publicId: sinPuntos.publicId })).ok).toBe(
       true,
     );
-    const result = await drain(50);
-    expect(result.failed).toBe(0);
+    await drainOutbox();
     const rows = (await messagesOf(ana)).filter((row) => row.kind === "POINTS");
     expect(rows).toHaveLength(1);
     expect(rows[0]?.subject).toBe(t("T-181", { n: 10 }).split(" · ")[0]);
@@ -183,7 +180,7 @@ describe("push por evento", () => {
       }),
     );
     await setCallStatusAs(SYSTEM_ACTOR, callId, "OPEN");
-    await drain(50);
+    await drainOutbox();
     const call = await db()
       .select()
       .from(message)
@@ -201,7 +198,7 @@ describe("push por evento", () => {
       title: "",
     });
     expect(result.published).toBe(true);
-    await drain(50);
+    await drainOutbox();
     const recog = await db()
       .select()
       .from(message)

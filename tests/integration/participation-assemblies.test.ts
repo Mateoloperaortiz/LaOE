@@ -1,8 +1,6 @@
 import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { personAnonymized } from "@/domain-events/people";
@@ -28,6 +26,7 @@ import { getTerm } from "@/modules/terms/domain/terms";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { copyExact } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
@@ -159,7 +158,7 @@ describe("asambleas", () => {
       t("T-646", { n: 1 }),
     );
     await closeOccasionAs({ personId: admin }, open.id);
-    await drain(50);
+    await drainOutbox();
     const summary = await closingSummary(termId);
     expect(summary).toEqual({
       openOccasions: 0,
@@ -206,7 +205,7 @@ describe("asambleas", () => {
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       ctx.emit(eventOf(personAnonymized, { actorId: null, personId: nueva })),
     );
-    await drain(50);
+    await drainOutbox();
     const scrubbed = await getTermStanding(termId);
     expect(scrubbed?.topNew[0]?.name).toBe(t("T-223"));
     expect(scrubbed?.topVeteran[0]?.name).toBe("Vete Rano");
@@ -227,7 +226,7 @@ describe("asambleas", () => {
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       ctx.emit({ type: "participation.auto-close", payload: {} }),
     );
-    await drain(50);
+    await drainOutbox();
     expect((await getOccasion(stale.id))?.status).toBe("CLOSED");
     expect((await getOccasion(recent.id))?.status).toBe("OPEN");
 
@@ -238,8 +237,7 @@ describe("asambleas", () => {
       await runCommand(SYSTEM_ACTOR, (ctx) =>
         ctx.emit({ type: "participation.term-check", payload: { run } }),
       );
-      await drain(50);
-      await drain(50);
+      await drainOutbox();
     }
     const tasks = await db().select().from(task).where(eq(task.kind, "GENERAL"));
     expect(tasks).toHaveLength(1);

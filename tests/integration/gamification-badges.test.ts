@@ -3,11 +3,8 @@ import { and, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { itemPattern } from "../helpers/copy";
-import "@/jobs/handlers";
 import { eventOf } from "@/domain-events/define";
 import { occasionClosed, wordleCompleted } from "@/domain-events/participation";
-import { drain } from "@/jobs/poller";
 import { saveSubscriptionAs, setPushSenderForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
@@ -20,7 +17,6 @@ import {
   recomputeBadgesFor,
   setFeatured,
 } from "@/modules/participation/domain/badges";
-
 import { checkInSelfAs, decideCheckInAs } from "@/modules/participation/domain/commands";
 import {
   createSpecialBadgeAs,
@@ -43,6 +39,8 @@ import { setConfig, setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
+import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   seedChallenge,
@@ -521,7 +519,7 @@ describe("ediciones especiales", () => {
     await runCommand(SYSTEM_ACTOR, (ctx) =>
       ctx.emit(eventOf(occasionClosed, { occasionId: occ.id, termId, points: 10 })),
     );
-    await drain(30);
+    await drainOutbox();
     const logros = await liveAchievementsOf(asistente);
     expect(logros).toHaveLength(1);
   });
@@ -558,8 +556,7 @@ describe("flujo en vivo por el outbox", () => {
 
     const result = await checkInSelfAs({ personId }, { publicId: occ.publicId });
     expect(result.ok).toBe(true);
-    await drain(40);
-    await drain(40); // badge.unlocked se emite durante el primer drenado
+    await drainOutbox();
 
     const logros = await liveAchievementsOf(personId);
     expect(logros).toHaveLength(1);
@@ -611,7 +608,7 @@ describe("flujo en vivo por el outbox", () => {
         }),
       ),
     );
-    await drain(30);
+    await drainOutbox();
     const logros = await liveAchievementsOf(personId);
     expect(logros).toHaveLength(1);
     const [badge] = await db()
@@ -651,7 +648,7 @@ describe("flujo en vivo por el outbox", () => {
       .set({ status: "DRAFT", publishedAt: null, audience: "NEW" })
       .where(eq(challengeTable.id, challengeId));
     await publishChallengeAs({ personId: adminId }, challengeId);
-    await drain(30);
+    await drainOutbox();
 
     const pushNuevo = (await messagesOf(nuevo)).find(
       (item) => item.dedupeKey === `challenge:${challengeId}`,
@@ -668,8 +665,7 @@ describe("flujo en vivo por el outbox", () => {
       { challengeId, requestId: randomUUID(), answers: [0] },
     );
     expect(result.ok).toBe(true);
-    await drain(40);
-    await drain(40);
+    await drainOutbox();
 
     const completed = await db()
       .select()
@@ -726,7 +722,7 @@ describe("flujo en vivo por el outbox", () => {
         reason: "No se ve la actividad",
       },
     );
-    await drain(30);
+    await drainOutbox();
 
     const pushRechazo = (await messagesOf(personId)).find((item) =>
       item.dedupeKey?.endsWith(":rejected"),

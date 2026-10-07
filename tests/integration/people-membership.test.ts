@@ -2,9 +2,9 @@ import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
 import { grantPermission } from "@/modules/identity/domain/permissions";
 import { createSession, resolveActor } from "@/modules/identity/domain/session";
+import { drainOutbox } from "../helpers/outbox";
 import "@/modules/identity/jobs";
 import { permission, session } from "@/modules/identity/schema";
 import {
@@ -70,7 +70,7 @@ describe("acceso al cambiar estado o correo", () => {
     expect(events.map((event) => event.toStatus)).toEqual(["ON_LEAVE"]);
 
     // La licencia conserva la sesión, también después del outbox.
-    await drain(20);
+    await drainOutbox();
     const [sessions] = await db()
       .select({ n: count() })
       .from(session)
@@ -224,7 +224,7 @@ describe("salida, reactivación y anonimización", () => {
     ).toBe(false);
 
     // El outbox revoca los permisos de quien salió y respeta al último ADMIN.
-    await drain(20);
+    await drainOutbox();
     const remaining = await db().select().from(permission);
     expect(remaining.map((row) => row.code)).toEqual(["ADMIN"]);
 

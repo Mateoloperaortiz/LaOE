@@ -1,9 +1,6 @@
 import { and, count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { drain } from "@/jobs/poller";
-import { itemPattern } from "../helpers/copy";
-import "@/jobs/handlers";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { listCommitteeAnnouncements, listMemberAnnouncements } from "@/modules/content";
 import { announcement } from "@/modules/content/schema";
@@ -20,12 +17,13 @@ import {
   listManualCredits,
   scoreCriterionAs,
 } from "@/modules/permanence";
-
 import { leaderScore } from "@/modules/permanence/schema";
 import { closeTermPermanence, closeTermPoints } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
+import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
@@ -102,8 +100,7 @@ describe("evaluaciones", () => {
     expect(await countPendingFor(evaluator, termId)).toBe(0);
     const [tray] = await listEvaluationTray(termId, [groupId]);
     expect(tray?.members[0]).toMatchObject({ personId: member, evaluation: "GOOD", note: null });
-    await drain(50);
-    await drain(50);
+    await drainOutbox();
     const summaries = await interactionsOf(member);
     expect(summaries).toHaveLength(2);
     expect(summaries[1]).toMatch(
@@ -122,7 +119,7 @@ describe("evaluaciones", () => {
       { groupId, personId: newcomer, evaluation: "GOOD", note: "" },
       { isAdmin: true },
     );
-    await drain(50);
+    await drainOutbox();
     const [row] = await getDb()
       .select({ n: count() })
       .from(onboardingProgress)
@@ -185,7 +182,7 @@ describe("puntajes del líder y créditos manuales", () => {
     expect(scores[0]).toMatchObject({ value: 4, note: "Mejoró" });
     const live = await getPersonPermanence(member, termId);
     expect(live?.result.results[0]?.criteria[0]).toMatchObject({ achieved: 4, remaining: 1 });
-    await drain(50);
+    await drainOutbox();
     expect((await interactionsOf(member))[0]).toBe(
       `${fillCopy(tList("T-832")[2], { criterio: "convivencia", comité: "A3", valor: 4, peso: 5 })}: Mejoró`,
     );

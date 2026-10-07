@@ -1,8 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import {
   applyToCallAs,
   decideEntryAs,
@@ -18,6 +16,7 @@ import { workGroupMembership } from "@/modules/permanence/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { copyPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   seedCall,
@@ -121,10 +120,10 @@ describe("convocatorias internas", () => {
     expect(
       await getDb().select().from(formSubmission).where(eq(formSubmission.personId, personId)),
     ).toHaveLength(1);
-    await drain(20);
+    await drainOutbox();
     expect(await listGroupIdsOf(personId)).toEqual([]);
     await decideEntryAs(admin, callId, entry?.id ?? "", "ACCEPTED");
-    await drain(20);
+    await drainOutbox();
     expect(await listGroupIdsOf(personId)).toEqual([groupId]);
     const [membershipRow] = await getDb()
       .select()
@@ -169,11 +168,11 @@ describe("convocatorias internas", () => {
     const entryB = await seedCallEntry(callB, personId, "APPLIED");
     // Operar la convocatoria A no alcanza para decidir una inscripción de B (ADR-072).
     await expect(decideEntryAs(admin, callA, entryB, "ACCEPTED")).rejects.toThrow(t("T-032"));
-    await drain(20);
+    await drainOutbox();
     expect((await listCallEntries(callB)).map((entry) => entry.status)).toEqual(["APPLIED"]);
     expect(await listGroupIdsOf(personId)).toEqual([]);
     await decideEntryAs(admin, callB, entryB, "ACCEPTED");
-    await drain(20);
+    await drainOutbox();
     expect(await listGroupIdsOf(personId)).toEqual([groupB]);
   });
 });

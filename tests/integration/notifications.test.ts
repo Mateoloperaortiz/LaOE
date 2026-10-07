@@ -2,10 +2,8 @@ import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
 import { type NotificationRequested, notificationRequested } from "@/domain-events/comms";
 import { eventOf } from "@/domain-events/define";
-import { drain } from "@/jobs/poller";
 import {
   deliverNotification,
   getPreferences,
@@ -17,6 +15,7 @@ import {
 import { pushChallengePublished } from "@/modules/comms/domain/events";
 import { message, notificationPreference, pushSubscription } from "@/modules/comms/schema";
 import { endMembership } from "@/modules/people";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
 
@@ -126,8 +125,7 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
     const ana = await seedMember("ana.console@eafit.edu.co");
     await subscribe(ana, "https://push.example/consola");
     await enqueueEvent(db(), eventOf(notificationRequested, request([ana])));
-    const result = await drain(10);
-    expect(result).toEqual({ processed: 1, failed: 0 });
+    expect(await drainOutbox()).toEqual({ processed: 1, failed: 0 });
     const [row] = await db().select().from(message);
     expect(row).toMatchObject({ personId: ana, provider: "console", status: "SENT" });
   });
@@ -178,7 +176,7 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
         contactConsent: false,
       }),
     );
-    await drain(20);
+    await drainOutbox();
     const [subs] = await db()
       .select({ n: count() })
       .from(pushSubscription)

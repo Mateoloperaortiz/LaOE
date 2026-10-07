@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
-import { drain } from "@/jobs/poller";
+import { drainOutbox } from "../helpers/outbox";
 import "@/modules/crm/jobs";
 import { mediaAsset } from "@/modules/content/schema";
 import { listInteractions } from "@/modules/crm/domain/interactions";
@@ -48,7 +48,7 @@ describe("datos propios desde Ajustes", () => {
     expect(row).toMatchObject({ phone: "+573001234567", personalEmail: "yo@gmail.com" });
     const audits = await db().select().from(auditLog).where(eq(auditLog.entityId, me));
     expect(audits.map((entry) => entry.action)).toContain("person.updated");
-    await drain(20);
+    await drainOutbox();
     const timeline = await listInteractions(me);
     expect(timeline.length).toBeGreaterThanOrEqual(1);
     await expect(
@@ -109,8 +109,7 @@ describe("datos propios desde Ajustes", () => {
     const second = await runCommand({ personId: me }, (ctx) => requestDeletion(ctx, me));
     expect(second.created).toBe(false);
     expect(second.requestedAt.getTime()).toBe(first.requestedAt.getTime());
-    await drain(20);
-    await drain(20);
+    await drainOutbox();
     const tasks = await db()
       .select()
       .from(task)

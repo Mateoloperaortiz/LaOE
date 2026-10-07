@@ -2,8 +2,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import {
   cancelCampaignAs,
   createCampaignAs,
@@ -24,6 +22,7 @@ import { campaignRecipient, message } from "@/modules/comms/schema";
 import { recordConsentAs } from "@/modules/people";
 import { membership, person, segment } from "@/modules/people/schema";
 import type { MailMessage, MailTransport } from "@/shared/adapters/mail";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember, seedTerm } from "./factories";
 
@@ -113,8 +112,7 @@ describe("campañas", () => {
 
     await scheduleCampaignAs(SYSTEM_ACTOR, id, new Date());
     expect((await getCampaign(id))?.status).toBe("SCHEDULED");
-    const result = await drain(20); // campaign.start
-    expect(result.failed).toBe(0);
+    await drainOutbox(); // campaign.start
     const campaign = await getCampaign(id);
     expect(campaign).toMatchObject({
       status: "SENT",

@@ -3,8 +3,6 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
 import {
@@ -25,6 +23,7 @@ import type { Game2048Move, Game2048State } from "@/modules/participation/game20
 import { game2048Run, pointEntry } from "@/modules/participation/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
@@ -379,7 +378,7 @@ describe("2048 con replay verificado", () => {
     const personId = await seedMember("g2048.crm@eafit.edu.co");
     const { result } = await playAndFinish(personId, { overThreshold: true });
     if (!result.ok) throw new Error(result.reason);
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
 
     const [event] = await db()
       .select()
@@ -390,7 +389,7 @@ describe("2048 con replay verificado", () => {
       .update(outbox)
       .set({ processedAt: null, nextAttemptAt: new Date() })
       .where(eq(outbox.id, event.id));
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
 
     const timeline = await db()
       .select()

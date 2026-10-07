@@ -2,8 +2,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { createRequestAs } from "@/modules/crm";
 import {
   checkInSelfAs,
@@ -23,6 +21,7 @@ import {
 } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
@@ -38,17 +37,6 @@ import {
 // nuevas, no compite en el ranking y no acumula faltas de asamblea; lo que ya existe se puede cerrar.
 
 const db = () => getDb();
-
-async function drenar(): Promise<void> {
-  for (let batch = 0; batch < 20; batch += 1) {
-    const result = await drain(50);
-    expect(result.failed).toBe(0);
-    if (result.processed === 0) {
-      return;
-    }
-  }
-  throw new Error("El outbox no terminó");
-}
 
 describe("comité desactivado", () => {
   beforeEach(truncateAll);
@@ -131,7 +119,7 @@ describe("comité desactivado", () => {
     const ocasion = await seedOccasion(termId, { points: 10 });
     await checkInSelfAs({ personId: uno }, { publicId: ocasion.publicId });
     await closeOccasionAs({ personId: uno }, ocasion.id);
-    await drenar();
+    await drainOutbox();
 
     const filas = await db()
       .select()

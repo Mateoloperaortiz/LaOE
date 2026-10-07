@@ -4,8 +4,6 @@ import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { requestDecided } from "@/domain-events/crm";
 import { eventOf } from "@/domain-events/define";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { setMailTransportsForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import {
@@ -25,6 +23,7 @@ import type { MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { copyPattern, itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
@@ -82,13 +81,13 @@ describe("solicitudes", () => {
       });
 
     await runCommand(SYSTEM_ACTOR, (ctx) => ctx.emit(evento("ESTADO_FUTURO", "solicitud-1")));
-    expect(await drain(10)).toMatchObject({ failed: 0 });
+    await drainOutbox();
     expect(await getDb().select().from(message).where(eq(message.personId, personId))).toHaveLength(
       0,
     );
 
     await runCommand(SYSTEM_ACTOR, (ctx) => ctx.emit(evento("REJECTED", "solicitud-2")));
-    await drain(10);
+    await drainOutbox();
     const enviados = await getDb().select().from(message).where(eq(message.personId, personId));
     expect(enviados.length).toBeGreaterThan(0);
   });
@@ -166,7 +165,7 @@ describe("solicitudes", () => {
         reason: "Tarde",
       }),
     ).rejects.toThrow(t("T-1007"));
-    await drain(30);
+    await drainOutbox();
     const mails = await getDb().select().from(message).where(eq(message.personId, personId));
     expect(mails).toHaveLength(1);
     expect(mails[0]?.subject).toBe(t("T-205", { tipo: tipoLicencia }).split(" · ")[0]);
@@ -220,7 +219,7 @@ describe("solicitudes", () => {
       reason: "Hablemos primero",
     });
     expect(await getMembershipRef(other.personId)).toMatchObject({ status: "ACTIVE" });
-    await drain(30);
+    await drainOutbox();
     const mails = await getDb().select().from(message).where(eq(message.personId, other.personId));
     expect(mails).toHaveLength(1);
   });

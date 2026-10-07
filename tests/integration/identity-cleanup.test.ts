@@ -2,10 +2,8 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
-import "@/jobs/handlers";
 import { eventOf } from "@/domain-events/define";
 import { membershipChanged, personAnonymized } from "@/domain-events/people";
-import { drain } from "@/jobs/poller";
 import { issueAccessGrantAs } from "@/modules/identity/domain/access-grant";
 import { findPasswordHash } from "@/modules/identity/domain/password";
 import { hashPassword } from "@/modules/identity/domain/pure";
@@ -13,6 +11,7 @@ import { createSession, resolveActor } from "@/modules/identity/domain/session";
 import { accessGrant, credential } from "@/modules/identity/schema";
 import { membership, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
 // Salir de la OE también retira la credencial (ADR-030, ADR-051): un hash de contraseña no es
@@ -20,14 +19,6 @@ import { truncateAll } from "./db";
 
 const db = () => getDb();
 const CLAVE = "trapecio verde 41";
-
-async function drenar(): Promise<void> {
-  for (let ronda = 0; ronda < 20; ronda += 1) {
-    const result = await drain(100, new Date(Date.now() + 1000));
-    if (result.processed + result.failed === 0) return;
-  }
-  throw new Error("El outbox no terminó de drenar");
-}
 
 async function seedMember(email: string): Promise<string> {
   let [current] = await db().select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
@@ -76,7 +67,7 @@ describe("retiro y anonimización retiran la credencial", () => {
         reason: null,
       }),
     );
-    await drenar();
+    await drainOutbox();
 
     expect(await findPasswordHash(personId)).toBeNull();
     expect(await db().select().from(accessGrant).where(eq(accessGrant.personId, personId))).toEqual(
@@ -93,7 +84,7 @@ describe("retiro y anonimización retiran la credencial", () => {
     await issueAccessGrantAs({ personId: emisor }, { personId, kind: "ACTIVATION" });
 
     await enqueueEvent(db(), eventOf(personAnonymized, { actorId: null, personId }));
-    await drenar();
+    await drainOutbox();
 
     expect(await findPasswordHash(personId)).toBeNull();
     expect(await db().select().from(accessGrant).where(eq(accessGrant.personId, personId))).toEqual(
@@ -114,7 +105,7 @@ describe("retiro y anonimización retiran la credencial", () => {
         reason: null,
       }),
     );
-    await drenar();
+    await drainOutbox();
 
     expect(await findPasswordHash(personId)).not.toBeNull();
   });

@@ -2,8 +2,6 @@ import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import {
   aliasesResource,
   assembliesResource,
@@ -23,6 +21,7 @@ import { occasion } from "@/modules/participation/schema";
 import { createAlias, resolveAlias } from "@/modules/system/domain/aliases";
 import { getTerm } from "@/modules/terms/domain/terms";
 import { t } from "@/shared/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
@@ -110,7 +109,7 @@ describe("vista de líder, exportes y alias", () => {
     const { id, publicId } = await seedOccasion(termId, { points: 10, title: "Integración" });
     await checkInSelfAs({ personId: a }, { publicId });
     await closeOccasionAs({ personId: a }, id);
-    await drain(50);
+    await drainOutbox();
     const scores = await listCommitteeScores(committeeId, termId);
     expect(
       scores.map((row) => [row.occasionTitle, row.present, row.eligible, row.occasionStatus]),

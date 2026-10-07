@@ -2,8 +2,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { saveSubscriptionAs, setPushSenderForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import {
@@ -22,6 +20,7 @@ import {
 } from "@/modules/participation/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   seedCheckIn,
@@ -83,10 +82,8 @@ describe("encuesta tras la ocasión", () => {
     await seedCheckIn(id, bruno, "APPROVED");
     await seedCheckIn(id, pendiente, "PENDING");
     await closeOccasionAs(SYSTEM_ACTOR, id);
-    // El cierre encola la invitación y esta encola el push: dos pasadas con reloj fresco.
-    const first = await drain(30);
-    const second = await drain(30);
-    expect(first.failed + second.failed).toBe(0);
+    // El cierre encola la invitación y esta encola el push.
+    await drainOutbox();
     const invites = await db()
       .select()
       .from(occasionSurveyInvite)
@@ -102,7 +99,7 @@ describe("encuesta tras la ocasión", () => {
     // Un segundo cierre o reintento no crea ni manda nada más.
     const again = await createSurveyInvites(id);
     expect(again.created).toHaveLength(0);
-    await drain(30);
+    await drainOutbox();
     expect(pushed).toHaveLength(1);
   });
 

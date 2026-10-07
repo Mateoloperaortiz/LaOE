@@ -2,8 +2,6 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { grantRecognitionAs } from "@/modules/crm";
 import { interaction } from "@/modules/crm/schema";
 import {
@@ -27,6 +25,7 @@ import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   seedCheckIn,
@@ -44,17 +43,6 @@ import {
 // cierre convierte en expulsión.
 
 const db = () => getDb();
-
-async function drenar(): Promise<void> {
-  for (let batch = 0; batch < 20; batch += 1) {
-    const result = await drain(50);
-    expect(result.failed).toBe(0);
-    if (result.processed === 0) {
-      return;
-    }
-  }
-  throw new Error("El outbox no terminó");
-}
 
 async function member(email: string, termId: string, committeeId: string) {
   const personId = await seedPerson(email);
@@ -107,7 +95,7 @@ describe("faltas y sanciones", () => {
         title: "",
       }),
     ).rejects.toBeInstanceOf(DomainError);
-    await drenar();
+    await drainOutbox();
     const timeline = async () =>
       (
         await db()
@@ -135,7 +123,7 @@ describe("faltas y sanciones", () => {
       revokeReason: "La junta aceptó la revisión de los descargos",
     });
     expect((await sanctionStateFor(personId)).suspendedUntil).toBeNull();
-    await drenar();
+    await drainOutbox();
     expect(await timeline()).toContain(
       fillCopy(tList("T-2234")[1], {
         tipo: tList("T-2229")[0],
@@ -253,7 +241,7 @@ describe("faltas y sanciones", () => {
       cause: "Llegada tarde al turno de GAP del 20 de octubre",
       occurredOn: "2024-10-20",
     });
-    await drenar();
+    await drainOutbox();
     expect((await getSnapshot(personId, termId))?.expulsionWarning).toBe(true);
     await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
     const { rows } = await listClosingRows(termId);

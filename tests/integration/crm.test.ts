@@ -2,7 +2,7 @@ import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
+import { drainOutbox } from "../helpers/outbox";
 import "@/modules/crm/jobs";
 import "@/modules/identity/jobs";
 import {
@@ -46,8 +46,7 @@ describe("línea de tiempo por outbox", () => {
         leaveUntil: leaveUntilSoon(),
       }),
     );
-    await drain(20);
-    await drain(20);
+    await drainOutbox();
     const timeline = await listInteractions(personId);
     expect(timeline).toHaveLength(1);
     expect(timeline[0]).toMatchObject({
@@ -120,7 +119,7 @@ describe("línea de tiempo por outbox", () => {
         contactConsent: false,
       }),
     );
-    await drain(20);
+    await drainOutbox();
     const [remaining] = await db()
       .select({ n: count() })
       .from(task)

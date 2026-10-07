@@ -3,9 +3,6 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
-import { drain } from "@/jobs/poller";
-import { itemPattern } from "../helpers/copy";
-import "@/jobs/handlers";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
 import { dayKeyFor } from "@/modules/participation/domain/gamification-pure";
@@ -17,7 +14,6 @@ import {
   listSudokuRunsFor,
   startSudokuAs,
 } from "@/modules/participation/domain/sudoku";
-
 import { countSolutions, logicSolve } from "@/modules/participation/domain/sudoku-generator";
 import { pointEntry, sudokuRun } from "@/modules/participation/schema";
 import {
@@ -31,6 +27,8 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
+import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
@@ -581,7 +579,7 @@ describe("Sudoku con la solución en el servidor", () => {
     const personId = await seedMember("sudoku.crm@eafit.edu.co");
     const { result } = await solveAndFinish(personId, { difficulty: "HARD" });
     if (!result.ok) throw new Error(result.reason);
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
 
     const [event] = await db()
       .select()
@@ -592,7 +590,7 @@ describe("Sudoku con la solución en el servidor", () => {
       .update(outbox)
       .set({ processedAt: null, nextAttemptAt: new Date() })
       .where(eq(outbox.id, event.id));
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
 
     const timeline = await db()
       .select()

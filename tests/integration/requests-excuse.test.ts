@@ -1,9 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import "@/jobs/handlers";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
 import {
   createRequestAs,
   decideExcuseForCommitteeAs,
@@ -18,6 +16,7 @@ import { closeTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   seedCheckIn,
@@ -35,17 +34,6 @@ import {
 const db = () => getDb();
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
-
-async function drenar(): Promise<void> {
-  for (let batch = 0; batch < 20; batch += 1) {
-    const result = await drain(50);
-    expect(result.failed).toBe(0);
-    if (result.processed === 0) {
-      return;
-    }
-  }
-  throw new Error("El outbox no terminó");
-}
 
 async function setup() {
   const termId = await seedTerm();
@@ -193,7 +181,7 @@ describe("excusas válidas", () => {
       .where(and(eq(checkIn.occasionId, f.election.id), eq(checkIn.personId, f.personId)));
     expect(row).toMatchObject({ status: "EXCUSED", source: "ADMIN", decidedById: f.gh });
     expect(row?.reason).toContain("Accidente de un familiar");
-    await drenar();
+    await drainOutbox();
     const after = await getSnapshot(f.personId, f.termId);
     expect(after?.mandatory).toMatchObject({ lost: [], excused: ["BOARD_ELECTION"], met: false });
     const timeline = await db()

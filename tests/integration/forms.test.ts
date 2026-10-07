@@ -2,8 +2,6 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { interaction } from "@/modules/crm/schema";
 import {
   createForm,
@@ -21,6 +19,7 @@ import { editionRegistration, formSubmission } from "@/modules/forms/schema";
 import { endMembershipAs, hasLiveConsent } from "@/modules/people";
 import { consent, person, personTag, tag } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedForm, seedMember, seedSubmission, seedTerm } from "./factories";
 
@@ -77,7 +76,7 @@ describe("envío de un formulario público", () => {
       ip: "10.0.0.1",
     });
     expect(stored?.consentAcceptedAt).toBeInstanceOf(Date);
-    await drain(10);
+    await drainOutbox();
     const timeline = await getDb()
       .select()
       .from(interaction)
@@ -250,7 +249,7 @@ describe("envío de un formulario público", () => {
       memorialConsent: false,
       contactConsent: false,
     });
-    await drain(20);
+    await drainOutbox();
     expect(await getDb().select().from(formSubmission)).toHaveLength(0);
   });
 });

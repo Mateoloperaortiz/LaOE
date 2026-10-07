@@ -2,9 +2,6 @@ import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
-import { itemPattern } from "../helpers/copy";
-import "@/jobs/handlers";
 import { interaction, onboardingProgress } from "@/modules/crm/schema";
 import { findCheckIn } from "@/modules/participation/domain/check-ins";
 import {
@@ -13,7 +10,6 @@ import {
   decideCheckInAs,
   hostCheckInAs,
 } from "@/modules/participation/domain/commands";
-
 import { balanceFor, listEntriesFor } from "@/modules/participation/domain/ledger";
 import { rawRate, round4, smoothedRate } from "@/modules/participation/domain/ledger-pure";
 import { getOccasion } from "@/modules/participation/domain/occasions";
@@ -26,6 +22,8 @@ import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
@@ -143,7 +141,7 @@ describe("check-in propio", () => {
       expect(await pendingRecomputes()).toBe(1);
 
       // El recompute deja una fila por comité con elegibles, igual a la función pura.
-      await drain(50);
+      await drainOutbox();
       expect(await pendingRecomputes()).toBe(0);
       const scores = await listOccasionScores(id);
       expect(scores).toHaveLength(4);
@@ -353,8 +351,7 @@ describe("check-in propio", () => {
     });
     await checkInSelfAs({ personId: newbie }, { publicId });
     await checkInSelfAs({ personId: veteran }, { publicId });
-    await drain(50);
-    await drain(50);
+    await drainOutbox();
     const entries = await db()
       .select()
       .from(interaction)

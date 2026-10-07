@@ -2,8 +2,6 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import { interaction } from "@/modules/crm/schema";
 import { reactivateMembershipAs } from "@/modules/people";
 import { committeeMembership, membership, membershipTerm } from "@/modules/people/schema";
@@ -21,6 +19,7 @@ import { manualCredit } from "@/modules/permanence/schema";
 import { closeTermPoints, findTermByCode, getTerm } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { copyPattern, itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   seedCheckIn,
@@ -278,7 +277,7 @@ describe("cierre de permanencia", () => {
     expect(stays?.leftAt).toBeNull();
     // El evento del outbox (`permanence.closed`) ya se aplicó a mano: el drain no repite nada
     // y la línea de tiempo recibe una interacción por decisión.
-    await drain(50);
+    await drainOutbox();
     expect(await applyDecisions(termId, nextTermId)).toBe(0);
     const decisions = await listPersonDecisions(people.sale, termId);
     expect(decisions.every((row) => row.appliedAt !== null)).toBe(true);

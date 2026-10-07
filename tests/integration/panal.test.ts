@@ -1,8 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import { interaction } from "@/modules/crm/schema";
 import { getTermStanding } from "@/modules/participation/domain/closing";
 import { closeTermPointsAs } from "@/modules/participation/domain/commands";
@@ -22,6 +20,7 @@ import { panalGame, panalWord, pointEntry } from "@/modules/participation/schema
 import { membership } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember, seedPerson } from "./factories";
 
@@ -133,7 +132,7 @@ describe("Panal diario persistido", () => {
     expect(
       await db().select().from(outbox).where(eq(outbox.eventType, "panal.completed")),
     ).toHaveLength(1);
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
     const timeline = await db().select().from(interaction).where(eq(interaction.personId, id));
     expect(timeline.some((row) => JSON.stringify(row.metadata).includes(game.id))).toBe(true);
     await submit(id, game.id, puzzle.words[0] ?? "");
@@ -326,7 +325,7 @@ describe("Panal diario persistido", () => {
     const results = await Promise.all(Array.from({ length: 5 }, () => start(id)));
     expect(results.every((result) => result.points === 6)).toBe(true);
     expect(await credits()).toHaveLength(3);
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
     const timeline = await db().select().from(interaction).where(eq(interaction.personId, id));
     expect(
       timeline.filter((entry) => JSON.stringify(entry.metadata).includes(game.id)),

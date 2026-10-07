@@ -3,8 +3,6 @@ import { and, count, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
 import { getTermStanding } from "@/modules/participation/domain/closing";
@@ -33,6 +31,7 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
 import { itemPattern } from "../helpers/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
@@ -162,7 +161,7 @@ describe("Wordle diario persistido", () => {
     const game = await started(personId);
     const answer = await answerFor(game.id);
     await submit(personId, game.id, answer);
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
     const [event] = await db()
       .select()
       .from(outbox)
@@ -172,7 +171,7 @@ describe("Wordle diario persistido", () => {
       .update(outbox)
       .set({ processedAt: null, nextAttemptAt: new Date() })
       .where(eq(outbox.id, event.id));
-    expect((await drain(20)).failed).toBe(0);
+    await drainOutbox();
     const timeline = await db()
       .select()
       .from(interaction)

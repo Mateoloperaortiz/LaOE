@@ -4,8 +4,6 @@ import { eq, sql } from "drizzle-orm";
 import sharp from "sharp";
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import "@/jobs/handlers";
-import { drain } from "@/jobs/poller";
 import { recomputeBadgesFor } from "@/modules/participation/domain/badges";
 import { checkInSelfAs, decideCheckInAs } from "@/modules/participation/domain/commands";
 import {
@@ -34,6 +32,7 @@ import { membership } from "@/modules/people/schema";
 import { setConfigAs } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   seedBooster,
@@ -250,7 +249,7 @@ it("revisión: con la bandera apagada no emite boosters por un check-in ordinari
   const personId = await seedMember("revision.badges@eafit.edu.co");
   const occasion = await seedOccasion(termId, { points: 10, approval: "AUTO" });
   await checkInSelfAs({ personId }, { publicId: occasion.publicId });
-  await drain(100);
+  await drainOutbox();
   const boosters = await getDb()
     .select()
     .from(boosterItem)

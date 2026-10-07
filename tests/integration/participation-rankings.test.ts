@@ -1,8 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { drain } from "@/jobs/poller";
-import "@/jobs/handlers";
 import { interaction } from "@/modules/crm/schema";
 import {
   adjustPointsAs,
@@ -21,6 +19,7 @@ import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
@@ -123,7 +122,7 @@ describe("tableros y ledger manual", () => {
     const ledger = await listLedger({ personId, page: 1, pageSize: 10 });
     expect(ledger.total).toBe(3);
     expect(ledger.rows.find((row) => row.id === adjustment.id)?.reversedById).toBeTruthy();
-    await drain(50);
+    await drainOutbox();
     const timeline = await db()
       .select()
       .from(interaction)
@@ -156,7 +155,7 @@ describe("tableros y ledger manual", () => {
     await checkInSelfAs({ personId: c }, { publicId: closed.publicId });
     await checkInSelfAs({ personId: c }, { publicId: open.publicId });
     await closeOccasionAs({ personId: a }, closed.id);
-    await drain(50);
+    await drainOutbox();
     const ranking = await rankCommittees(termId);
     expect(ranking.map((item) => [item.rank, item.row.committeeId, item.row.occasions])).toEqual([
       [1, c2, 1],
