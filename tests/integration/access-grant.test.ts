@@ -314,6 +314,28 @@ describe("enlace de acceso", () => {
       await expectNoPrivilegeGain(junta, lider);
     });
 
+    // Basta un permiso de más: que quien emite cubra alguno de los del destinatario no alcanza, los
+    // tiene que cubrir todos. Una persona de la junta que además es ADMIN es el caso de DT-055.
+    it("la junta no emite para quien además de ser de la junta es ADMIN", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const juntaYAdmin = await seedMemberWith("admin@eafit.edu.co", "BOARD", "ADMIN");
+
+      await expectNoPrivilegeGain(junta, juntaYAdmin);
+    });
+
+    it("la junta que lidera un comité no emite para quien lidera ese y otro más", async () => {
+      const gemis = await seedCommittee("gemis");
+      const nexos = await seedCommittee("nexos");
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD", { leaderOf: gemis });
+      const lider = await seedMemberWith(
+        "lider@eafit.edu.co",
+        { leaderOf: nexos },
+        { leaderOf: gemis },
+      );
+
+      await expectNoPrivilegeGain(junta, lider);
+    });
+
     it("quien no tiene permisos no emite para una persona de la junta", async () => {
       const miembro = await seedMember("miembro@eafit.edu.co");
       const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
