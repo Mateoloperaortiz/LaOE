@@ -583,6 +583,9 @@ describe("faltas y sanciones", () => {
   it("revocar sin decir de quién es la sanción no compila, y una persona que no se reconoce responde como inexistente", async () => {
     const { actor, sanctioned, id } = await sanctionedAndBystander();
 
+    // Que la firma anterior no compila lo sostiene `tsc` con la marca de abajo. En ejecución esa
+    // llamada falla por su forma, con el motivo ausente, y no por la comprobación de la persona: la
+    // persona que no se reconoce se prueba después, con todos los argumentos en su lugar.
     // @ts-expect-error La persona es obligatoria (ADR-114 regla 3): la firma anterior no compila.
     const forgotten = revokeSanctionAs(actor, id, "La junta aceptó la revisión de los descargos");
     await expect(forgotten).rejects.toThrow();
