@@ -120,8 +120,10 @@ export async function sendTransactionalEmail(
     })
     .onConflictDoNothing();
   if (receipt.status === "FAILED") {
+    // A la persona se la nombra por su id, no por su dirección: este aviso también lo dispara quien
+    // pide un código sin sesión con el correo de un miembro (ADR-114, regla 5).
     logger.error(
-      { to: email.to, provider: receipt.provider, error: receipt.error },
+      { personId: email.personId, provider: receipt.provider, error: receipt.error },
       "correo no enviado",
     );
   }

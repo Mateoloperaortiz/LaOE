@@ -30,7 +30,12 @@ import {
 import { otpChallenge, permission, session } from "@/modules/identity/schema";
 import { membership, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
-import type { MailMessage } from "@/shared/adapters/mail";
+import {
+  type MailMessage,
+  type MailTransport,
+  type MailTransports,
+  QuotaExceededError,
+} from "@/shared/adapters/mail";
 import { tList } from "@/shared/copy";
 import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
 import { truncateAll } from "./db";
@@ -88,6 +93,16 @@ function captureMail() {
     },
     overflow: null,
   });
+}
+
+/** Un transporte que no logra enviar: lanza el error que le den. */
+function failing(name: MailTransport["name"], error: Error): MailTransport {
+  return {
+    name,
+    async send() {
+      throw error;
+    },
+  };
 }
 
 const MINUTE = 60_000;
@@ -636,6 +651,40 @@ describe("registros del ingreso por código", () => {
     expectNoEmail(lines, email);
     expect(recordsOf(lines, "otp: tope acumulado de códigos equivocados")).toEqual([
       expect.objectContaining({ emailDigest: resumen(email) }),
+    ]);
+  });
+
+  // El aviso de un correo que no salió es de `comms`, y también lo dispara quien pide un código sin
+  // sesión con el correo de un miembro: nombra a la persona por su id, no por su dirección.
+  it.each<[string, MailTransports, string]>([
+    [
+      "el proveedor está caído",
+      { primary: failing("resend", new Error("proveedor caído")), overflow: null },
+      "resend",
+    ],
+    [
+      "la cuota se agotó y el respaldo también falla",
+      {
+        primary: failing("resend", new QuotaExceededError("daily_quota_exceeded")),
+        overflow: failing("ses", new Error("respaldo caído")),
+      },
+      "ses",
+    ],
+  ])("si el correo del código no sale porque %s, el registro nombra a la persona y nunca el correo", async (_caso, transports, provider) => {
+    const email = "sinsalida.h5t1@eafit.edu.co";
+    const personId = await seedMember(email);
+    setMailTransportsForTests(transports);
+
+    const { lines } = await captureLogs(() =>
+      requestOtp({ email: " SinSalida.H5T1@Eafit.Edu.Co", ip: null }),
+    );
+
+    expectNoEmail(lines, email);
+    const avisos = recordsOf(lines, "correo no enviado");
+    expect(avisos).toEqual([expect.objectContaining({ personId, provider })]);
+    expect(avisos[0]).not.toHaveProperty("to");
+    expect(recordsOf(lines, "otp: correo del código")).toEqual([
+      expect.objectContaining({ personId, status: "FAILED", provider }),
     ]);
   });
 
