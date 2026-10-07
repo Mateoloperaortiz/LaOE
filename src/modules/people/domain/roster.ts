@@ -460,14 +460,17 @@ export async function getRosterPreview(jobId: string): Promise<RosterPreview | n
   };
 }
 
-/** Paso 2: el admin corrige el mapeo de columnas; se relee el archivo del bucket y se vuelve a validar. */
+/**
+ * Paso 2: el admin corrige el mapeo de columnas; se relee el archivo del bucket y se vuelve a validar.
+ * Que el trabajo siga en vista previa lo decide la transacción, que lo toma antes de escribir.
+ */
 export async function remapRosterPreviewAs(
   actor: Actor,
   jobId: string,
   mapping: Array<RosterColumn | null>,
 ): Promise<void> {
   const job = await getImportJob(jobId);
-  if (!job || job.status !== "PREVIEW" || !job.fileKey || !job.termId) {
+  if (!job?.fileKey || !job.termId) {
     throw new DomainError(t("T-032"));
   }
   const current = previewPayloadSchema.safeParse(job.payload);
@@ -477,13 +480,14 @@ export async function remapRosterPreviewAs(
   const bytes = await getObject(job.fileKey);
   const cells = await readRosterCells(bytes, current.data.format);
   const built = await buildPreview(cells, mapping, job.termId);
-  await runCommand(actor, (ctx) =>
-    updateImportJob(ctx, jobId, {
+  await runCommand(actor, async (ctx) => {
+    await takeImportJobInPreview(ctx, jobId);
+    await updateImportJob(ctx, jobId, {
       mapping: { columns: built.mapping },
       payload: payloadOf(built, current.data.format),
       summary: countGroups(built.rows),
-    }),
-  );
+    });
+  });
 }
 
 export interface ApplySummary {
@@ -742,7 +746,8 @@ async function applyRow(
 
 /**
  * Paso 3: relee el archivo, vuelve a validar contra la base de hoy y aplica todo en una transacción.
- * Que el trabajo siga en vista previa lo decide la transacción, que lo toma antes de escribir.
+ * Que el trabajo siga en vista previa lo decide la transacción, que lo toma antes de escribir; de la
+ * fila tomada salen las columnas que se aplican.
  */
 export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<ApplySummary> {
   const job = await getImportJob(jobId);
@@ -757,10 +762,17 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
   const termCode = terms.find((term) => term.id === job.termId)?.code ?? "";
   const bytes = await getObject(job.fileKey);
   const cells = await readRosterCells(bytes, current.data.format);
-  const built = await buildPreview(cells, current.data.mapping, job.termId);
   const termId = job.termId;
   return runCommand(actor, async (ctx) => {
-    await takeImportJobInPreview(ctx, jobId);
+    // Las columnas son las del trabajo ya tomado y no las de la lectura de arriba: un cambio de
+    // columnas que confirmó entre las dos es el que vale.
+    const taken = previewPayloadSchema.safeParse(
+      (await takeImportJobInPreview(ctx, jobId)).payload,
+    );
+    if (!taken.success) {
+      throw new DomainError(t("T-032"));
+    }
+    const built = await buildPreview(cells, taken.data.mapping, termId);
     await requirePrivacyPolicyVersion(ctx, "admin");
     const termsByCode = await ensureTerms(ctx, built.validation.missingTerms);
     for (const term of terms) {

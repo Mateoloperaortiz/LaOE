@@ -7,9 +7,11 @@ import {
   createRosterPreviewAs,
   discardRosterImportAs,
   getRosterPreview,
+  type RosterColumn,
+  remapRosterPreviewAs,
 } from "@/modules/people";
 import { person } from "@/modules/people/schema";
-import { auditLog, outbox } from "@/modules/system/schema";
+import { auditLog, importJob, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
@@ -22,7 +24,22 @@ const HEADER = "NOMBRE;APELLIDO;CORREO;CELULAR;PREGRADO;COMITES;ENTRADA A LA OE;
 const ANA = "prueba.ana@eafit.edu.co";
 const JUAN = "prueba.juan@eafit.edu.co";
 
+/** Las columnas del archivo con NOMBRE y APELLIDO cruzadas: un cambio que se nota en lo aplicado. */
+const SWAPPED: Array<RosterColumn | null> = [
+  "lastName",
+  "firstName",
+  "email",
+  "phone",
+  "program",
+  "committees",
+  "entry",
+  "status",
+  "role",
+];
+
 const db = () => getDb();
+
+type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 
 function row(firstName: string, email: string): string {
   return `${firstName};Sintética;${email};;Derecho;A3;${currentTermCode()};Activo;`;
@@ -94,11 +111,10 @@ function settled<T>(promise: Promise<T>): Promise<PromiseSettledResult<T>> {
   return Promise.allSettled([promise]).then(([result]) => result);
 }
 
-/**
- * Otra transacción retiene la fila de una persona: la aplicación que llegue a esa fila se queda ahí,
- * a medias y con el trabajo ya tomado, hasta que se suelte.
- */
-async function holdPerson(email: string): Promise<{ pid: number; release: () => Promise<void> }> {
+/** Otra transacción retiene la fila que bloquea `lock` hasta que se suelte. */
+async function hold(
+  lock: (tx: Tx) => Promise<unknown>,
+): Promise<{ pid: number; release: () => Promise<void> }> {
   let ready: (pid: number) => void = () => {};
   let release: () => void = () => {};
   const taken = new Promise<number>((resolve) => {
@@ -108,7 +124,7 @@ async function holdPerson(email: string): Promise<{ pid: number; release: () => 
     release = resolve;
   });
   const done = db().transaction(async (tx) => {
-    await tx.select({ id: person.id }).from(person).where(eq(person.email, email)).for("update");
+    await lock(tx);
     const result = await tx.execute<{ pid: number }>(sql`select pg_backend_pid() as pid`);
     ready(result.rows[0]?.pid ?? 0);
     await freed;
@@ -120,6 +136,23 @@ async function holdPerson(email: string): Promise<{ pid: number; release: () => 
       await done;
     },
   };
+}
+
+/**
+ * Retiene la fila de una persona: la aplicación que llegue a esa fila se queda ahí, a medias y con el
+ * trabajo ya tomado, hasta que se suelte.
+ */
+function holdPerson(email: string) {
+  return hold((tx) =>
+    tx.select({ id: person.id }).from(person).where(eq(person.email, email)).for("update"),
+  );
+}
+
+/** Retiene el trabajo: quien lo quiera tomar hace fila detrás, en el orden en que llegó. */
+function holdJob(jobId: string) {
+  return hold((tx) =>
+    tx.select({ id: importJob.id }).from(importJob).where(eq(importJob.id, jobId)).for("update"),
+  );
 }
 
 /** Evidencia de PostgreSQL de quién espera detrás de una transacción: se espera un hecho, no un tiempo. */
@@ -267,6 +300,79 @@ describe("una importación del roster se aplica o se descarta una sola vez", () 
       audits: 0,
       events: 0,
     });
+  });
+
+  it("a una importación ya aplicada no se le cambian las columnas", async () => {
+    await seedMember(ANA);
+    const { admin, jobId } = await previewOf([row("Ana", ANA)]);
+    await applyRosterImportAs(admin, jobId);
+    const applied = await getRosterPreview(jobId);
+
+    const remapped = await Promise.allSettled([remapRosterPreviewAs(admin, jobId, SWAPPED)]);
+
+    expect(rejections(remapped)).toEqual([t("T-3210")]);
+    expect(await getRosterPreview(jobId)).toEqual(applied);
+  });
+
+  it("cambiar las columnas de una importación que se está aplicando espera y se rechaza: lo aplicado conserva su resumen", async () => {
+    await seedMember(ANA);
+    const { admin, jobId } = await previewOf([row("Ana", ANA)]);
+    const reviewed = await getRosterPreview(jobId);
+    const held = await holdPerson(ANA);
+    const applying = settled(applyRosterImportAs(admin, jobId));
+    let remapping: Promise<PromiseSettledResult<void>> | undefined;
+    try {
+      // La aplicación ya va a medias: espera la fila de Ana detrás de quien la retiene.
+      await expect.poll(async () => blockedBy(held.pid), { timeout: 10_000 }).toHaveLength(1);
+      const [applyingPid = 0] = await blockedBy(held.pid);
+      let over = false;
+      remapping = settled(remapRosterPreviewAs(admin, jobId, SWAPPED)).finally(() => {
+        over = true;
+      });
+      // El cambio de columnas termina o se queda esperando detrás de la aplicación.
+      await expect
+        .poll(async () => over || (await blockedBy(applyingPid)).length > 0, { timeout: 10_000 })
+        .toBe(true);
+    } finally {
+      await held.release();
+    }
+
+    const applied = await applying;
+    expect(rejections([applied, await remapping])).toEqual([t("T-3210")]);
+    const after = await getRosterPreview(jobId);
+    expect(after).toMatchObject({ status: "APPLIED", mapping: reviewed?.mapping });
+    expect(after?.summary).toEqual({
+      ...(applied.status === "fulfilled" ? applied.value : {}),
+      leaders: { granted: [], failed: [] },
+    });
+  });
+
+  it("aplica con las columnas del trabajo que toma: un cambio que confirma justo antes es el que vale", async () => {
+    const { admin, jobId } = await previewOf([row("Ana", ANA)]);
+    const held = await holdJob(jobId);
+    let remapping: Promise<PromiseSettledResult<void>> | undefined;
+    let applying: Promise<PromiseSettledResult<unknown>> | undefined;
+    try {
+      // El cambio de columnas llega primero y hace fila detrás de quien retiene el trabajo.
+      remapping = settled(remapRosterPreviewAs(admin, jobId, SWAPPED));
+      await expect.poll(async () => blockedBy(held.pid), { timeout: 10_000 }).toHaveLength(1);
+      const [remappingPid = 0] = await blockedBy(held.pid);
+      // La aplicación lee el trabajo, todavía con las columnas de antes, y queda detrás del cambio.
+      applying = settled(applyRosterImportAs(admin, jobId));
+      await expect.poll(async () => blockedBy(remappingPid), { timeout: 10_000 }).toHaveLength(1);
+    } finally {
+      await held.release();
+    }
+
+    expect(rejections([await remapping, await applying])).toEqual([]);
+    const applied = await getRosterPreview(jobId);
+    expect(applied).toMatchObject({ status: "APPLIED", mapping: SWAPPED });
+    // Las columnas cruzadas dicen que el nombre viene de APELLIDO: eso es lo que quedó en la persona.
+    const [ana] = await db()
+      .select({ firstName: person.firstName, lastName: person.lastName })
+      .from(person)
+      .where(eq(person.email, ANA));
+    expect(ana).toEqual({ firstName: "Sintética", lastName: "Ana" });
   });
 
   it("una importación que no existe ni se aplica ni se descarta", async () => {

@@ -56,21 +56,22 @@ export async function listImportJobs(limit = 50): Promise<ImportJobRow[]> {
 
 /**
  * Toma un trabajo que sigue en vista previa (ADR-113 regla 7): bloquea su fila hasta el commit y exige
- * `PREVIEW`. Quien lo saca de la vista previa empieza por acá, así que una segunda llamada espera a
- * la primera, lee el estado que dejó y se rechaza antes de escribir nada.
+ * `PREVIEW`. Quien lo saca de la vista previa o le cambia las columnas empieza por acá, así que una
+ * segunda llamada espera a la primera, lee el estado que dejó y se rechaza antes de escribir nada.
+ * Devuelve la fila tomada: lo que dice ya no cambia hasta el commit.
  */
-export async function takeImportJobInPreview(ctx: CommandContext, id: string): Promise<void> {
-  const [row] = await ctx.tx
-    .select({ status: importJob.status })
-    .from(importJob)
-    .where(eq(importJob.id, id))
-    .for("update");
+export async function takeImportJobInPreview(
+  ctx: CommandContext,
+  id: string,
+): Promise<ImportJobRow> {
+  const [row] = await ctx.tx.select().from(importJob).where(eq(importJob.id, id)).for("update");
   if (!row) {
     throw new DomainError(t("T-032"));
   }
   if (row.status !== "PREVIEW") {
     throw new DomainError(t("T-3210"));
   }
+  return row;
 }
 
 export interface ImportJobPatch {
