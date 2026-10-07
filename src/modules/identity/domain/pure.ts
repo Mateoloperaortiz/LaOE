@@ -10,6 +10,8 @@ export const OTP_MAX_ATTEMPTS = 5;
 export const OTP_WINDOW_MS = 15 * 60_000;
 export const OTP_MAX_PER_EMAIL = 5;
 export const OTP_MAX_PER_IP = 12;
+export const OTP_FAILED_WINDOW_MS = 24 * 60 * 60_000;
+export const OTP_MAX_FAILED_PER_EMAIL = 15;
 export const SESSION_REMEMBERED_MS = 90 * 24 * 60 * 60_000;
 export const SESSION_SHORT_MS = 24 * 60 * 60_000;
 export const SESSION_TOUCH_INTERVAL_MS = 10 * 60_000;
@@ -41,6 +43,16 @@ export function codeMatches(
   const actual = Buffer.from(hashCode(secret, email, code), "hex");
   const expected = Buffer.from(expectedHash, "hex");
   return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+/**
+ * Intentos que trae un código nuevo sin pasar el tope acumulado del correo (ADR-113, regla 3): los
+ * de siempre o, si son menos, los que le quedan al correo en la ventana. Cero es no emitir, y una
+ * cuenta que no es un número no da intentos: el tope falla cerrado.
+ */
+export function otpAttemptBudget(failedInWindow: number): number {
+  const left = OTP_MAX_FAILED_PER_EMAIL - failedInWindow;
+  return left >= 1 ? Math.min(OTP_MAX_ATTEMPTS, Math.floor(left)) : 0;
 }
 
 /**

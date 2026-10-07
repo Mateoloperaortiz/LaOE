@@ -92,7 +92,7 @@ erDiagram
 | Modelo | Campos clave | Notas |
 | --- | --- | --- |
 | `Session` | `personId`, `tokenHash` único, `expiresAt`, `userAgent`, `ip`, `lastSeenAt` | 90 días, renovable; se destruye al cambiar estado o correo |
-| `OtpChallenge` | `email`, `codeHash`, `expiresAt`, `attempts`, `maxAttempts`, `consumedAt`, `ip` | 10 minutos, 5 intentos; rate limit contando filas; un correo de afuera deja un reto señuelo (ADR-113) |
+| `OtpChallenge` | `email`, `codeHash`, `expiresAt`, `attempts`, `maxAttempts`, `consumedAt`, `ip` | 10 minutos, 5 intentos; rate limit contando filas y tope acumulado sumando `attempts`; un correo de afuera deja un reto señuelo (ADR-113) |
 | `Permission` | `personId`, `code` (`ADMIN`, `COMMITTEE_LEADER`, `BOARD`), `committeeId?`, `grantedById` | Unique parcial por (persona, código, comité); `BOARD` se otorga con los cargos de junta y da acceso al panel de la junta |
 | `CalendarToken` | `personId` único, `token` único (24 bytes aleatorios en base64url, en claro), `createdAt`, `lastUsedAt?` | Capacidad de solo lectura sobre la agenda propia para `GET /api/ics/mi-agenda.ics?t=…`; regenerarlo invalida el anterior ([ADR-038](adr/ADR-038-comunicaciones-y-pwa-fase-6.md)) |
 | `CarnetToken` | `personId` único (cascade), `token` único (`oe2.` + 24 bytes aleatorios base64url, en claro), `walletEpoch`, `revision` desde 1, `createdAt`, `lastUsedAt?` | QR persistente de billetera. La generación debe coincidir con `Membership.walletEpoch`; rotar cambia token/revisión y audita sin guardar el secreto en el evento. Lectura asíncrona por `readCarnet` ([ADR-040](adr/ADR-040-carnet-en-billeteras-fase-8.md)) |

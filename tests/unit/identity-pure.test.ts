@@ -12,6 +12,7 @@ import {
   hashPassword,
   hashToken,
   normalizeEmail,
+  otpAttemptBudget,
   safeNextPath,
   verifyPassword,
 } from "@/modules/identity/domain/pure";
@@ -74,6 +75,23 @@ describe("códigos y hashes", () => {
       "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
     );
     expect(hashToken("abd")).not.toBe(hashToken("abc"));
+  });
+});
+
+describe("tope acumulado del código (ADR-113)", () => {
+  it("lejos del tope un código nuevo trae sus cinco intentos", () => {
+    expect(otpAttemptBudget(0)).toBe(5);
+    expect(otpAttemptBudget(10)).toBe(5);
+  });
+  it("cerca del tope trae solo los que le quedan al correo, y con quince fallos ninguno", () => {
+    expect(otpAttemptBudget(11)).toBe(4);
+    expect(otpAttemptBudget(14)).toBe(1);
+    expect(otpAttemptBudget(15)).toBe(0);
+    expect(otpAttemptBudget(40)).toBe(0);
+  });
+  it("una cuenta que no es un número no da intentos", () => {
+    expect(otpAttemptBudget(Number.NaN)).toBe(0);
+    expect(otpAttemptBudget(Number.POSITIVE_INFINITY)).toBe(0);
   });
 });
 

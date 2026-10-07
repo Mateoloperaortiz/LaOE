@@ -37,3 +37,5 @@ El asunto del correo del código deja de incluirlo: guardarlo en `message.subjec
 ## Enmienda (2026-10-07, ADR-113)
 
 **Pedir un código deja siempre un reto.** «La respuesta nunca enumera el roster» se cumplía al pedir el código y no al verificarlo: sin reto, un correo de afuera respondía «vencido» donde uno del roster respondía «no es, te quedan 4 intentos». Ahora un correo de afuera deja un reto señuelo, con un hash al azar que ningún código cumple y sin envío, que cuenta intentos y gasta límites como uno real. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 2.
+
+**Tope acumulado de códigos equivocados.** Los límites de esta ADR contaban códigos pedidos, no códigos equivocados: repitiendo pedir y probar salían unos 2.400 intentos al día por cuenta. Se suma un tope de 15 códigos equivocados por correo en 24 horas. Al llegar, ese correo no recibe códigos nuevos hasta que la ventana corra, y el código que llega cerca del tope trae solo los intentos que quedan. Los demás límites no cambian, y el paso de seguridad por código queda fuera del tope. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 3.

@@ -1,9 +1,16 @@
-import { count, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+import { count, eq, sum } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { setMailTransportsForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
-import { requestOtp, type VerifyOtpResult, verifyOtp } from "@/modules/identity/domain/otp";
+import { pruneIdentity } from "@/modules/identity/domain/maintenance";
+import {
+  requestOtp,
+  type VerifyOtpResult,
+  verifyOtp,
+  verifyStepUp,
+} from "@/modules/identity/domain/otp";
 import { hashCode, OTP_MAX_PER_EMAIL, OTP_MAX_PER_IP } from "@/modules/identity/domain/pure";
 import {
   destroySessionsFor,
@@ -49,6 +56,15 @@ async function challengesFor(email: string) {
   return row?.n ?? 0;
 }
 
+/** Lo que el correo lleva fallado: la suma de los intentos de sus retos. */
+async function failedAttemptsFor(email: string) {
+  const [row] = await db()
+    .select({ n: sum(otpChallenge.attempts) })
+    .from(otpChallenge)
+    .where(eq(otpChallenge.email, email));
+  return Number(row?.n ?? 0);
+}
+
 function captureMail() {
   sent.length = 0;
   setMailTransportsForTests({
@@ -63,6 +79,8 @@ function captureMail() {
   });
 }
 
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
 const WRONG = "000000";
 
 function attempt(email: string, code: string, now = new Date()): Promise<VerifyOtpResult> {
@@ -366,5 +384,142 @@ describe("reto señuelo del ingreso por código (ADR-113)", () => {
     expect(await attempt("tercera@eafit.edu.co", WRONG)).toMatchObject({ attemptsLeft: 4 });
     expect(await attempt("tercera@eafit.edu.co", WRONG)).toMatchObject({ attemptsLeft: 3 });
     expect(await attempt("tercera@eafit.edu.co", CODE)).toMatchObject({ ok: true, personId });
+  });
+});
+
+// ADR-113, regla 3: quince códigos equivocados en veinticuatro horas dejan al correo sin códigos
+// nuevos hasta que la ventana corra. Pedir responde lo de siempre.
+describe("tope acumulado del ingreso por código (ADR-113)", () => {
+  beforeEach(async () => {
+    await truncateAll();
+    captureMail();
+  });
+
+  async function failRounds(email: string, rounds: number, perRound: number) {
+    const respuestas: VerifyOtpResult[] = [];
+    for (let round = 0; round < rounds; round += 1) {
+      await expect(requestOtp({ email, ip: null })).resolves.toBeUndefined();
+      for (let i = 0; i < perRound; i += 1) {
+        respuestas.push(await attempt(email, WRONG));
+      }
+    }
+    return respuestas;
+  }
+
+  it("tras quince códigos equivocados en un día deja de emitir códigos para ese correo", async () => {
+    await seedMember("tope@eafit.edu.co");
+    // Cinco solicitudes caben en el límite de quince minutos: sin tope son veinticinco intentos.
+    await failRounds("tope@eafit.edu.co", OTP_MAX_PER_EMAIL, 5);
+    expect(await failedAttemptsFor("tope@eafit.edu.co")).toBe(15);
+    expect(sent).toHaveLength(3);
+  });
+
+  it("el código que llega cerca del tope trae solo los intentos que le quedan al correo", async () => {
+    await seedMember("cerca@eafit.edu.co");
+    await failRounds("cerca@eafit.edu.co", 3, 4);
+    expect(await failedAttemptsFor("cerca@eafit.edu.co")).toBe(12);
+
+    await requestOtp({ email: "cerca@eafit.edu.co", ip: null });
+    expect(await attempt("cerca@eafit.edu.co", WRONG)).toEqual({
+      ok: false,
+      reason: "INVALID",
+      attemptsLeft: 2,
+    });
+    expect(await attempt("cerca@eafit.edu.co", WRONG)).toMatchObject({ attemptsLeft: 1 });
+    expect(await attempt("cerca@eafit.edu.co", WRONG)).toEqual({
+      ok: false,
+      reason: "LOCKED",
+      attemptsLeft: 0,
+    });
+    expect(await attempt("cerca@eafit.edu.co", CODE)).toMatchObject({ ok: false });
+
+    // La quinta solicitud cabe en el límite de quince minutos, pero el tope ya no deja emitir.
+    await requestOtp({ email: "cerca@eafit.edu.co", ip: null });
+    expect(sent).toHaveLength(4);
+    expect(await failedAttemptsFor("cerca@eafit.edu.co")).toBe(15);
+  });
+
+  it("cerca del tope el código correcto sigue abriendo la sesión", async () => {
+    const personId = await seedMember("justo@eafit.edu.co");
+    await failRounds("justo@eafit.edu.co", 3, 4);
+    await requestOtp({ email: "justo@eafit.edu.co", ip: null });
+    expect(await attempt("justo@eafit.edu.co", WRONG)).toMatchObject({ attemptsLeft: 2 });
+    expect(await attempt("justo@eafit.edu.co", CODE)).toMatchObject({ ok: true, personId });
+  });
+
+  it("el tope corre con la ventana y responde igual para un correo del roster y para uno de afuera", async () => {
+    await seedMember("adentro@eafit.edu.co");
+    const recorridos: VerifyOtpResult[][] = [];
+    for (const email of ["adentro@eafit.edu.co", "afuera@eafit.edu.co"]) {
+      const start = Date.now();
+      const respuestas = await failRounds(email, 3, 5);
+      // Casi un día después el tope sigue: no hay reto nuevo y el último ya venció.
+      const casi = new Date(start + 24 * HOUR - 5 * MINUTE);
+      await requestOtp({ email, ip: null, now: casi });
+      respuestas.push(await attempt(email, WRONG, casi));
+      // Corrida la ventana, el correo vuelve a recibir códigos con sus cinco intentos.
+      const despues = new Date(start + 24 * HOUR + 5 * MINUTE);
+      await requestOtp({ email, ip: null, now: despues });
+      respuestas.push(await attempt(email, WRONG, despues));
+      recorridos.push(respuestas);
+    }
+    const [adentro, afuera] = recorridos;
+
+    expect(adentro?.at(-2)).toEqual({ ok: false, reason: "EXPIRED", attemptsLeft: 0 });
+    expect(adentro?.at(-1)).toEqual({ ok: false, reason: "INVALID", attemptsLeft: 4 });
+    expect(afuera).toEqual(adentro);
+    expect(sent.map((mail) => mail.to)).toEqual(Array(4).fill("adentro@eafit.edu.co"));
+  });
+
+  it("la depuración diaria no levanta el tope antes de que corra la ventana", async () => {
+    await seedMember("depurada@eafit.edu.co");
+    const start = Date.now();
+    await failRounds("depurada@eafit.edu.co", 3, 5);
+    const casi = new Date(start + 24 * HOUR - 5 * MINUTE);
+
+    await pruneIdentity(casi);
+    await requestOtp({ email: "depurada@eafit.edu.co", ip: null, now: casi });
+
+    expect(sent).toHaveLength(3);
+  });
+
+  it("el tope no toca el paso de seguridad: sus códigos se siguen emitiendo y sus fallos no suman al ingreso", async () => {
+    const stepUp = (email: string) => verifyStepUp({ email, code: WRONG, sessionId: randomUUID() });
+
+    // Con el ingreso frenado, el paso de seguridad recibe su código.
+    await seedMember("frenada@eafit.edu.co");
+    await failRounds("frenada@eafit.edu.co", 3, 5);
+    await requestOtp({ email: "frenada@eafit.edu.co", ip: null, purpose: "STEP_UP" });
+    expect(sent).toHaveLength(4);
+    expect(await stepUp("frenada@eafit.edu.co")).toEqual({
+      ok: false,
+      reason: "INVALID",
+      attemptsLeft: 4,
+    });
+
+    // Quince fallos del paso de seguridad no lo frenan ni le quitan intentos al ingreso.
+    await seedMember("segura@eafit.edu.co");
+    for (let round = 0; round < 3; round += 1) {
+      await requestOtp({ email: "segura@eafit.edu.co", ip: null, purpose: "STEP_UP" });
+      for (let i = 0; i < 5; i += 1) {
+        await stepUp("segura@eafit.edu.co");
+      }
+    }
+    await requestOtp({ email: "segura@eafit.edu.co", ip: null, purpose: "STEP_UP" });
+    expect(await stepUp("segura@eafit.edu.co")).toMatchObject({
+      reason: "INVALID",
+      attemptsLeft: 4,
+    });
+    await requestOtp({ email: "segura@eafit.edu.co", ip: null });
+    expect(await attempt("segura@eafit.edu.co", WRONG)).toMatchObject({ attemptsLeft: 4 });
+  });
+
+  it("los fallos de un correo no le quitan códigos a otro", async () => {
+    await seedMember("atacada@eafit.edu.co");
+    await seedMember("tranquila@eafit.edu.co");
+    await failRounds("atacada@eafit.edu.co", 3, 5);
+
+    await requestOtp({ email: "tranquila@eafit.edu.co", ip: null });
+    expect(await attempt("tranquila@eafit.edu.co", CODE)).toMatchObject({ ok: true });
   });
 });

@@ -14,17 +14,19 @@ import {
   generateCode,
   hashCode,
   normalizeEmail,
+  OTP_FAILED_WINDOW_MS,
   OTP_MAX_ATTEMPTS,
   OTP_MAX_PER_EMAIL,
   OTP_MAX_PER_IP,
   OTP_TTL_MS,
   OTP_WINDOW_MS,
+  otpAttemptBudget,
 } from "./pure";
 import { createSession, markStepUp } from "./session";
 
 // Identidad por correo del roster con OTP (ADR-010, 05-acceso.md). La respuesta a "pedir código"
 // es siempre la misma y verificarlo responde igual para un correo de afuera: nunca se enumera el
-// roster (ADR-113, regla 2).
+// roster (ADR-113, regla 2). Los códigos equivocados de un correo tienen tope acumulado (regla 3).
 
 export type OtpPurpose = "LOGIN" | "STEP_UP";
 
@@ -42,6 +44,26 @@ async function countRecent(column: "email" | "ip", value: string, since: Date): 
     .from(otpChallenge)
     .where(and(eq(target, value), gt(otpChallenge.createdAt, since)));
   return row?.n ?? 0;
+}
+
+/** Códigos equivocados de un correo desde `since`: la suma de los intentos de sus retos. */
+async function countFailedAttempts(
+  email: string,
+  purpose: OtpPurpose,
+  since: Date,
+): Promise<number> {
+  const [row] = await getDb()
+    .select({ n: sql<number>`coalesce(sum(${otpChallenge.attempts}), 0)::int` })
+    .from(otpChallenge)
+    .where(
+      and(
+        eq(otpChallenge.email, email),
+        eq(otpChallenge.purpose, purpose),
+        gt(otpChallenge.createdAt, since),
+      ),
+    );
+  // Sin fila no hay cuenta, y sin cuenta no se emite.
+  return row?.n ?? Number.NaN;
 }
 
 /**
@@ -64,11 +86,26 @@ export async function requestOtp(input: RequestOtpInput): Promise<void> {
     return;
   }
 
+  // Tope acumulado (ADR-113, regla 3): con quince códigos equivocados en un día el correo no
+  // recibe más, y el que llega cerca del tope trae solo los intentos que quedan. Se mira antes de
+  // buscar la membresía, así que el señuelo cumple el mismo tope. El paso de seguridad queda
+  // afuera: lo pide una sesión viva y sus fallos no suman.
+  const maxAttempts =
+    purpose === "STEP_UP"
+      ? OTP_MAX_ATTEMPTS
+      : otpAttemptBudget(
+          await countFailedAttempts(email, purpose, new Date(now.getTime() - OTP_FAILED_WINDOW_MS)),
+        );
+  if (maxAttempts === 0) {
+    logger.warn({ email }, "otp: tope acumulado de códigos equivocados");
+    return;
+  }
+
   const challenge = {
     email,
     purpose,
     expiresAt: new Date(now.getTime() + OTP_TTL_MS),
-    maxAttempts: OTP_MAX_ATTEMPTS,
+    maxAttempts,
     ip: input.ip,
   };
 
