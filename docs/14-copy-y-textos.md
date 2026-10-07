@@ -715,7 +715,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-519 | Documentos: archivo fuera de tamaño | El PDF debe pesar entre 1 KB y 20 MB. | MATEO | Propuesta |
 | T-520 | Documentos: subida confirmada | De una: el PDF quedó guardado. Ahora cargá los artículos. | MATEO | Propuesta |
 | T-3210 | Importación: aplicar, descartar o cambiar las columnas de una que ya se aplicó o se descartó (ADR-113) | Esta importación ya no está en revisión. Para repetirla, subí el archivo de nuevo. | MATEO | Propuesta |
-| T-3212 | Importación: registrar los permisos de líder de una que no está aplicada (ADR-114) | Esta importación no está aplicada, así que no hay permisos de líder que registrar. | MATEO | Propuesta |
+| T-3212 | Importación: registrar los permisos de líder de una que no está aplicada (ADR-114) | Esta importación no está aplicada, así que no hay permisos de líder que registrar. Aplicala primero o, si se descartó o falló, subí el archivo de nuevo. | MATEO | Propuesta |
 
 ### Admin de Participación (fase 3: ocasiones, consola, anfitrión, ledger, rankings, asambleas, cierre, vista de líder, alias)
 
@@ -1641,7 +1641,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2094 | Ingresar, campo de contraseña | Contraseña | MATEO | Propuesta |
 | T-2095 | Ingresar, botón | Entrar | MATEO | Propuesta |
 | T-2096 | Ingresar, error de credenciales (igual si el correo no existe, si no tiene contraseña o si está equivocada) | Correo o contraseña incorrectos. | MATEO | Propuesta |
-| T-2097 | Ingresar, bloqueo temporal por intentos | Demasiados intentos. Esperá 15 minutos y volvé a probar. | MATEO | Propuesta |
+| T-2097 | Ingresar, paso de seguridad con contraseña y cambio de contraseña en Ajustes: bloqueo temporal por intentos (ADR-051, ADR-114) | Demasiados intentos. Esperá 15 minutos y volvé a probar. | MATEO | Propuesta |
 | T-2098 | Ingresar, ayuda fija de primer ingreso y olvido (nunca depende del correo tecleado) | ¿Primera vez acá o perdiste la contraseña? Pedile tu enlace de acceso a Gestión Humana o a cualquier persona de la junta. | MATEO | Propuesta |
 | T-2099 | Ingresar, enlace al método alterno | Entrar con un código al correo institucional | MATEO | Propuesta |
 | T-2100 | Ingresar por código, aviso del filtro de EAFIT | El correo de EAFIT está reteniendo nuestros mensajes, así que el código puede no llegarte. Si no llega, pedile tu enlace de acceso a la junta. | MATEO | Propuesta |

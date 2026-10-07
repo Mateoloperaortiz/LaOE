@@ -3635,7 +3635,8 @@ export const textos = {
     status: "Propuesta",
   },
   "T-2097": {
-    where: "Ingresar, bloqueo temporal por intentos",
+    where:
+      "Ingresar, paso de seguridad con contraseña y cambio de contraseña en Ajustes: bloqueo temporal por intentos (ADR-051, ADR-114)",
     text: "Demasiados intentos. Esperá 15 minutos y volvé a probar.",
     owner: "MATEO",
     status: "Propuesta",
@@ -10402,7 +10403,7 @@ export const textos = {
   },
   "T-3212": {
     where: "Importación: registrar los permisos de líder de una que no está aplicada (ADR-114)",
-    text: "Esta importación no está aplicada, así que no hay permisos de líder que registrar.",
+    text: "Esta importación no está aplicada, así que no hay permisos de líder que registrar. Aplicala primero o, si se descartó o falló, subí el archivo de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },
