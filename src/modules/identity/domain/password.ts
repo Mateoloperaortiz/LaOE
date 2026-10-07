@@ -1,5 +1,6 @@
 import { and, count, eq, gt, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import type { Executor } from "@/db/tx";
 import { getEnv } from "@/env";
 import { findEligibleMemberByEmail } from "@/modules/people";
 import { logger } from "@/shared/log";
@@ -25,15 +26,29 @@ import { createSession, destroySessionsFor, markStepUp } from "./session";
 // existe, persona sin contraseña y contraseña equivocada no se distinguen, ni por texto ni por
 // tiempo. Los límites se cuentan en Postgres, igual que los del OTP.
 
-async function countFailures(column: "email" | "ip", value: string, since: Date): Promise<number> {
+/**
+ * Fallos de la ventana en `login_attempt`, por la columna del correo (un correo, o la clave de una
+ * persona con sesión) o por la IP. Recibe con qué consulta, sin valor por omisión: el ingreso cuenta
+ * suelto y el contador de la persona cuenta dentro de su transacción, bajo su candado. Sin cuenta no
+ * hay número que comparar, y falla cerrado para los dos.
+ */
+async function countFailures(
+  executor: Executor,
+  column: "email" | "ip",
+  value: string,
+  since: Date,
+): Promise<number> {
   const target = column === "email" ? loginAttempt.email : loginAttempt.ip;
-  const [row] = await getDb()
+  const [row] = await executor
     .select({ n: count() })
     .from(loginAttempt)
     .where(
       and(eq(target, value), eq(loginAttempt.succeeded, false), gt(loginAttempt.createdAt, since)),
     );
-  return row?.n ?? 0;
+  if (!row) {
+    throw new Error("login_attempt: la cuenta de fallos no devolvió ninguna fila");
+  }
+  return row.n;
 }
 
 async function recordAttempt(email: string, ip: string | null, succeeded: boolean): Promise<void> {
@@ -88,11 +103,11 @@ export async function signInWithPassword(input: SignInInput): Promise<SignInResu
 
   // Un intento bloqueado no se registra: si lo hiciera, insistir mantendría el bloqueo abierto
   // para siempre y cualquiera podría dejar afuera a una persona a voluntad.
-  if ((await countFailures("email", email, since)) >= LOGIN_MAX_PER_EMAIL) {
+  if ((await countFailures(getDb(), "email", email, since)) >= LOGIN_MAX_PER_EMAIL) {
     logger.warn({ emailDigest }, "ingreso: límite por correo");
     return { ok: false, reason: "LOCKED" };
   }
-  if (input.ip && (await countFailures("ip", input.ip, since)) >= LOGIN_MAX_PER_IP) {
+  if (input.ip && (await countFailures(getDb(), "ip", input.ip, since)) >= LOGIN_MAX_PER_IP) {
     logger.warn({ ip: input.ip }, "ingreso: límite por IP");
     return { ok: false, reason: "LOCKED" };
   }
@@ -144,6 +159,13 @@ export async function deleteCredentialFor(personId: string): Promise<number> {
 // sesión no lo lee ni lo escribe, y ellos no miran los contadores del ingreso, ni el del correo ni
 // el de la IP, que cualquiera mueve desde afuera.
 
+/** Quién prueba su contraseña, desde dónde y a qué hora: lo que identifica un intento en el contador. */
+interface OwnAttempt {
+  personId: string;
+  ip: string | null;
+  now: Date;
+}
+
 /**
  * Anota el intento de una persona con sesión antes de comparar la contraseña y devuelve su fila, o
  * null si ya gastó los de la ventana. Contar y anotar van juntos bajo un candado por persona: los
@@ -151,27 +173,14 @@ export async function deleteCredentialFor(personId: string): Promise<number> {
  * nace como fallo y `settlePersonAttempt` lo corrige si la contraseña era la buena, así que uno que
  * queda a medias cuenta en contra. Uno bloqueado no se anota: insistir no alarga el bloqueo.
  */
-async function openPersonAttempt(
-  personId: string,
-  ip: string | null,
-  now: Date,
-): Promise<string | null> {
+async function openPersonAttempt({ personId, ip, now }: OwnAttempt): Promise<string | null> {
   const key = personAttemptKey(personId);
   const since = new Date(now.getTime() - PERSON_PASSWORD_WINDOW_MS);
   return getDb().transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`password:${key}`}, 0))`);
-    const [row] = await tx
-      .select({ n: count() })
-      .from(loginAttempt)
-      .where(
-        and(
-          eq(loginAttempt.email, key),
-          eq(loginAttempt.succeeded, false),
-          gt(loginAttempt.createdAt, since),
-        ),
-      );
-    // Negado a propósito: sin cuenta, o con una que no es un número, no hay intento.
-    if (!row || !(row.n < PERSON_PASSWORD_MAX_FAILED)) {
+    const failures = await countFailures(tx, "email", key, since);
+    // Negado a propósito: con una cuenta que no es un número no hay intento.
+    if (!(failures < PERSON_PASSWORD_MAX_FAILED)) {
       logger.warn({ personId }, "contraseña con sesión: límite por persona");
       return null;
     }
@@ -192,18 +201,15 @@ async function settlePersonAttempt(attemptId: string): Promise<void> {
  * gasta el mismo tiempo y cuenta como fallo.
  */
 async function checkOwnPassword(
-  personId: string,
-  stored: string | null,
-  password: string,
-  ip: string | null,
-  now: Date,
+  attempt: OwnAttempt,
+  secret: { stored: string | null; given: string },
 ): Promise<"OK" | "INVALID" | "LOCKED"> {
-  const attemptId = await openPersonAttempt(personId, ip, now);
+  const attemptId = await openPersonAttempt(attempt);
   if (attemptId === null) {
     return "LOCKED";
   }
-  const matches = stored
-    ? await verifyPassword(stored, password)
+  const matches = secret.stored
+    ? await verifyPassword(secret.stored, secret.given)
     : await burnPasswordTime().then(() => false);
   if (!matches) {
     return "INVALID";
@@ -230,7 +236,10 @@ export interface StepUpPasswordInput {
 export async function verifyStepUpPassword(input: StepUpPasswordInput): Promise<StepUpResult> {
   const now = input.now ?? new Date();
   const stored = await findPasswordHash(input.personId);
-  const check = await checkOwnPassword(input.personId, stored, input.password, input.ip, now);
+  const check = await checkOwnPassword(
+    { personId: input.personId, ip: input.ip, now },
+    { stored, given: input.password },
+  );
   if (check !== "OK") {
     return { ok: false, reason: check };
   }
@@ -267,7 +276,10 @@ export async function setOwnPassword(input: SetOwnPasswordInput): Promise<SetPas
   const now = input.now ?? new Date();
   const stored = await findPasswordHash(input.personId);
   if (stored) {
-    const check = await checkOwnPassword(input.personId, stored, input.current, input.ip, now);
+    const check = await checkOwnPassword(
+      { personId: input.personId, ip: input.ip, now },
+      { stored, given: input.current },
+    );
     if (check !== "OK") {
       return { ok: false, reason: check === "LOCKED" ? "LOCKED" : "CURRENT" };
     }
