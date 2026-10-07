@@ -158,6 +158,7 @@ describe("setOwnPassword", () => {
       current: CLAVE,
       password: NUEVA,
       keepSessionId: esta.sessionId,
+      ip: null,
     });
 
     expect(result).toEqual({ ok: true, closed: 1 });
@@ -186,6 +187,7 @@ describe("setOwnPassword", () => {
         current: "la equivocada larga",
         password: NUEVA,
         keepSessionId: esta.sessionId,
+        ip: null,
       }),
     ).toEqual({ ok: false, reason: "CURRENT" });
     expect(await verifyPassword((await findPasswordHash(personId)) ?? "", CLAVE)).toBe(true);
@@ -207,6 +209,7 @@ describe("setOwnPassword", () => {
       current: "",
       password: NUEVA,
       keepSessionId: esta.sessionId,
+      ip: null,
     });
 
     expect(result).toEqual({ ok: true, closed: 0 });
@@ -231,6 +234,7 @@ describe("setOwnPassword", () => {
         current: CLAVE,
         password,
         keepSessionId: esta.sessionId,
+        ip: null,
       });
 
     expect(await cambiar("corta")).toEqual({ ok: false, reason: "PASSWORD", problem: "SHORT" });
@@ -270,6 +274,21 @@ describe("fallos de contraseña de quien tiene sesión", () => {
   const paso = (quien: { personId: string; sessionId: string }, password: string, now?: Date) =>
     verifyStepUpPassword({ ...quien, password, ip: RED, ...(now ? { now } : {}) });
 
+  const cambiar = (
+    quien: { personId: string; sessionId: string },
+    current: string,
+    password = NUEVA,
+  ) =>
+    setOwnPassword({
+      personId: quien.personId,
+      email: EMAIL,
+      names: ["Rosa", "Sintética"],
+      current,
+      password,
+      keepSessionId: quien.sessionId,
+      ip: RED,
+    });
+
   const ingresar = (email: string, password: string) =>
     signInWithPassword({ email, password, ip: RED, userAgent: "vitest", remember: false });
 
@@ -284,6 +303,7 @@ describe("fallos de contraseña de quien tiene sesión", () => {
     expect(await ingresar(EMAIL, CLAVE)).toEqual({ ok: false, reason: "LOCKED" });
 
     expect(await paso(quien, CLAVE)).toEqual({ ok: true });
+    expect(await cambiar(quien, CLAVE)).toEqual({ ok: true, closed: 0 });
   });
 
   it("treinta ingresos fallidos sin sesión desde su misma red tampoco", async () => {
@@ -359,6 +379,61 @@ describe("fallos de contraseña de quien tiene sesión", () => {
     );
 
     expect(juntos.filter((r) => !r.ok && r.reason === "INVALID")).toHaveLength(1);
+    expect(juntos.filter((r) => !r.ok && r.reason === "LOCKED")).toHaveLength(19);
+    expect(await fallos()).toHaveLength(PERSON_PASSWORD_MAX_FAILED);
+  });
+
+  it("la contraseña actual se puede probar diez veces al cambiarla, y no más", async () => {
+    const quien = await conSesion();
+    for (let i = 0; i < PERSON_PASSWORD_MAX_FAILED; i += 1) {
+      expect(await cambiar(quien, mala(i))).toEqual({ ok: false, reason: "CURRENT" });
+    }
+
+    expect(await cambiar(quien, CLAVE)).toEqual({ ok: false, reason: "LOCKED" });
+    expect(await verifyPassword((await findPasswordHash(quien.personId)) ?? "", CLAVE)).toBe(true);
+    expect(await fallos()).toHaveLength(PERSON_PASSWORD_MAX_FAILED);
+  });
+
+  it("el cambio de contraseña y el paso de seguridad gastan el mismo contador", async () => {
+    const quien = await conSesion();
+    for (let i = 0; i < 6; i += 1) {
+      await paso(quien, mala(i));
+    }
+    for (let i = 6; i < PERSON_PASSWORD_MAX_FAILED; i += 1) {
+      await cambiar(quien, mala(i));
+    }
+
+    expect(await paso(quien, CLAVE)).toEqual({ ok: false, reason: "LOCKED" });
+    expect(await cambiar(quien, CLAVE)).toEqual({ ok: false, reason: "LOCKED" });
+  });
+
+  it("equivocarse dos veces no estorba, y una contraseña nueva rechazada no cuenta como fallo", async () => {
+    const quien = await conSesion();
+    expect(await cambiar(quien, mala(1))).toEqual({ ok: false, reason: "CURRENT" });
+    expect(await cambiar(quien, mala(2))).toEqual({ ok: false, reason: "CURRENT" });
+    for (let i = 0; i < PERSON_PASSWORD_MAX_FAILED; i += 1) {
+      expect(await cambiar(quien, CLAVE, "corta")).toEqual({
+        ok: false,
+        reason: "PASSWORD",
+        problem: "SHORT",
+      });
+    }
+
+    expect(await cambiar(quien, CLAVE)).toEqual({ ok: true, closed: 0 });
+    expect(await fallos()).toHaveLength(2);
+  });
+
+  it("con nueve fallos, veinte cambios a la vez prueban la contraseña actual una sola vez", async () => {
+    const quien = await conSesion();
+    for (let i = 0; i < PERSON_PASSWORD_MAX_FAILED - 1; i += 1) {
+      await cambiar(quien, mala(i));
+    }
+
+    const juntos = await Promise.all(
+      Array.from({ length: 20 }, (_, i) => cambiar(quien, mala(100 + i))),
+    );
+
+    expect(juntos.filter((r) => !r.ok && r.reason === "CURRENT")).toHaveLength(1);
     expect(juntos.filter((r) => !r.ok && r.reason === "LOCKED")).toHaveLength(19);
     expect(await fallos()).toHaveLength(PERSON_PASSWORD_MAX_FAILED);
   });

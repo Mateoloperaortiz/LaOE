@@ -234,6 +234,7 @@ export async function verifyStepUpPassword(input: StepUpPasswordInput): Promise<
 export type SetPasswordResult =
   | { ok: true; closed: number }
   | { ok: false; reason: "CURRENT" }
+  | { ok: false; reason: "LOCKED" }
   | { ok: false; reason: "PASSWORD"; problem: PasswordProblem };
 
 export interface SetOwnPasswordInput {
@@ -244,18 +245,25 @@ export interface SetOwnPasswordInput {
   current: string;
   password: string;
   keepSessionId: string;
+  /** Queda en la fila del intento cuando se compara la contraseña actual. */
+  ip: string | null;
   now?: Date;
 }
 
 /**
  * Crear o cambiar la contraseña propia desde Ajustes (ADR-051, regla 8). Cierra las demás sesiones:
- * cambiarla es lo que hace alguien que sospecha que su acceso quedó en otro lado.
+ * cambiarla es lo que hace alguien que sospecha que su acceso quedó en otro lado. La contraseña
+ * actual se prueba contra el contador de la persona (ADR-114, regla 2): quien tenga la sesión no la
+ * adivina acá sin tope.
  */
 export async function setOwnPassword(input: SetOwnPasswordInput): Promise<SetPasswordResult> {
   const now = input.now ?? new Date();
   const stored = await findPasswordHash(input.personId);
-  if (stored && !(await verifyPassword(stored, input.current))) {
-    return { ok: false, reason: "CURRENT" };
+  if (stored) {
+    const check = await checkOwnPassword(input.personId, stored, input.current, input.ip, now);
+    if (check !== "OK") {
+      return { ok: false, reason: check === "LOCKED" ? "LOCKED" : "CURRENT" };
+    }
   }
   const problem = checkPassword(input.password, { email: input.email, names: input.names });
   if (problem) {
