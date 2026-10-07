@@ -49,31 +49,24 @@ export async function retryDeadLetter(
   if (!row || row.deadLetterAt === null) {
     return false;
   }
-  const before = { attempts: row.attempts, lastError: row.lastError };
-  if (await requeue(ctx.tx, id, now)) {
-    await ctx.audit({
-      action: "outbox.retried",
-      entityType: "outbox",
-      entityId: id,
-      before,
-      after: { attempts: 0 },
-    });
-    return true;
+  let after: { attempts: number } | { supersededBy: string | null } = { attempts: 0 };
+  if (!(await requeue(ctx.tx, id, now))) {
+    // Solo una fila con clave choca con el índice.
+    const supersededBy =
+      row.dedupeKey === null ? null : await pendingIdWithKey(ctx.tx, row.dedupeKey);
+    // Sale de dead letter sin correr: conserva sus intentos y, como todo lo procesado, queda sin error.
+    await ctx.tx
+      .update(outbox)
+      .set({ processedAt: now, deadLetterAt: null, lastError: null })
+      .where(eq(outbox.id, id));
+    after = { supersededBy };
   }
-  // Solo una fila con clave choca con el índice.
-  const supersededBy =
-    row.dedupeKey === null ? null : await pendingIdWithKey(ctx.tx, row.dedupeKey);
-  // Sale de dead letter sin correr: conserva sus intentos y, como todo lo procesado, queda sin error.
-  await ctx.tx
-    .update(outbox)
-    .set({ processedAt: now, deadLetterAt: null, lastError: null })
-    .where(eq(outbox.id, id));
   await ctx.audit({
     action: "outbox.retried",
     entityType: "outbox",
     entityId: id,
-    before,
-    after: { supersededBy },
+    before: { attempts: row.attempts, lastError: row.lastError },
+    after,
   });
   return true;
 }
