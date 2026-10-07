@@ -1,6 +1,6 @@
 # ADR-067: Retos relámpago, boosters y colección de insignias
 
-- Estado: Aceptada (enmendada por ADR-068, ADR-075, ADR-078, ADR-087 y ADR-111)
+- Estado: Aceptada (enmendada por ADR-068, ADR-075, ADR-078, ADR-087, ADR-111 y ADR-113)
 - Fecha: 2026-09-14
 - Relacionadas: ADR-004, ADR-007, ADR-008, ADR-011, ADR-012, ADR-014, ADR-020, ADR-022, ADR-030, ADR-032, ADR-035, ADR-038, ADR-041, ADR-062
 - Enmienda: ADR-007 (tipos `CHALLENGE` y `BOOST` del ledger), ADR-022 (evidencias con almacenamiento y autorización propios, fuera de `/api/media`), ADR-035 (participación en retos, boosters sobre asistencias, cierre de puntos que exige resolver pendientes), ADR-041 (el Wordle alimenta insignias y no admite boosters)
@@ -77,3 +77,7 @@ Las reglas 4 y 5 distinguen la base del reto de la asistencia: solo `CHALLENGE` 
 ## Enmienda (2026-10-07, ADR-111)
 
 La regla 3 decía qué hace el reto presencial cuando el check-in de la ocasión se aprueba, queda pendiente, se rechaza o se anula, y callaba la excusa. Una excusa aceptada sobre una asistencia pendiente hace lo mismo que un rechazo: libera el premio reservado del booster de la ocasión y cierra como rechazada la participación presencial pendiente, con el motivo automático de una asistencia excusada (T-3205) y su reserva liberada. El motivo del premio liberado es el estado «Excusado», no el texto de la excusa. Ver [ADR-111](ADR-111-una-excusa-aceptada-libera-el-premio-reservado.md).
+
+## Enmienda (2026-10-07, ADR-113)
+
+La regla 12 decía que el job de evidencias re-codifica con `sharp`, y no decía qué imágenes admite: miraba el tipo declarado en la subida y le pasaba el contenido a `sharp` tal cual. Ahora el job abre la imagen por el decodificador compartido con medios, que admite solo JPEG, PNG y WebP por el contenido, rechaza la que pase de 40 megapíxeles y la guarda reducida a 2560 px de lado, en WebP y sin metadatos como antes. La que no pasa queda `FAILED` con su motivo (T-3207) y sin reintento. La entrega no cambia: sigue `PENDING` con su premio reservado hasta que GH la revise. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 4.

@@ -1,6 +1,6 @@
 # ADR-033: Contenido editable y medios del portal público (fase 1)
 
-- Estado: Aceptada (enmendada por ADR-036, ADR-037 y ADR-038, ADR-039)
+- Estado: Aceptada (enmendada por ADR-036, ADR-037 y ADR-038, ADR-039, ADR-113)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-014, ADR-017, ADR-020, ADR-022, ADR-023, ADR-032
 
@@ -54,3 +54,7 @@ GHPOINTS guarda `MediaAsset` sin variantes y sirve las portadas por su propia ru
 ## Enmienda (2026-09-06, ADR-039)
 
 El arranque de producción mantiene páginas y catálogos base de las migraciones, sin contenidos sintéticos ni medios de GHPOINTS. No se agregan redirecciones ni datos de alias para compatibilidad con GHPOINTS. Cloudflare conserva su proxy; la CSP incorpora el origen virtual-hosted del bucket (ADR-039). Ver [ADR-039](ADR-039-arranque-limpio-fase-7.md).
+
+## Enmienda (2026-10-07, ADR-113)
+
+La regla 5 dejaba en el handler de `media.process` la lectura de dimensiones y la lista de formatos. Las dos pasan al decodificador compartido con las evidencias de retos, que además rechaza la imagen de más de 40 megapíxeles: antes valía el tope de `sharp`, 268. Las variantes, sus anchos y sus claves no cambian. El motivo de un medio `FAILED` sale de T-3207 y ya no lleva el mensaje de libvips, que va al log. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 4.

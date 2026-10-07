@@ -15,7 +15,9 @@ import { processMedia } from "@/modules/content/domain/media-process";
 import { mediaAsset } from "@/modules/content/schema";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
+import { tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
 // Contra Garage en local: la subida directa se simula con fetch y FormData, como hace el navegador.
@@ -160,5 +162,28 @@ describe("medios", () => {
     }
     // Sin variantes (300 px de ancho no admite ninguna) se sirve el original y no es pública.
     expect(await getPublicMediaRef(created.id)).toBeNull();
+  });
+
+  it("un medio de más píxeles que el tope queda fallido con su motivo y sin variantes", async () => {
+    // 40.008.000 píxeles de un solo color: 0,5 MB, dentro del tamaño que admite la subida.
+    const png = await sharp({
+      create: { width: 8000, height: 5001, channels: 3, background: { r: 10, g: 120, b: 200 } },
+    })
+      .png()
+      .toBuffer();
+    const key = await uploadDirect(png, "image/png", "enorme.png", png.byteLength);
+    const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
+      confirmUpload(ctx, { key, filename: "enorme.png", visibility: "PUBLIC" }),
+    );
+
+    // El job corre por el outbox y termina: un fallo del handler rompería el drenado.
+    await drainOutbox();
+
+    const [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
+    expect(asset).toMatchObject({ status: "FAILED", error: tList("T-3207")[2] });
+    expect(asset?.variants).toEqual({});
+    expect(await headObject(`variants/${id}/w480.webp`)).toBeNull();
+    expect(await resolveMediaRedirect(id, 480, { authenticated: false })).toEqual({ status: 404 });
+    expect(await drainOutbox()).toEqual({ processed: 0, failed: 0 });
   });
 });

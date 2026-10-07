@@ -1,6 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
 import { and, eq, inArray } from "drizzle-orm";
-import sharp from "sharp";
 import { getDb } from "@/db/client";
 import {
   deleteObject,
@@ -12,12 +11,14 @@ import {
 } from "@/shared/adapters/storage";
 import { tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { decodeImage, ImageRejectedError } from "@/shared/lib/image-decoder";
 import { logger } from "@/shared/log";
 import { challengeEvidenceFile, challengeParticipation } from "../schema";
 
 // Evidencias de las misiones (ADR-067 regla 6): subida directa al bucket bajo
 // `evidence/<personId>/`, fuera de `media_asset`; el job re-encodea a WebP sin metadatos y solo
-// entonces `/api/retos/evidencia/[id]` redirige al autor o a un ADMIN.
+// entonces `/api/retos/evidencia/[id]` redirige al autor o a un ADMIN. La imagen se abre por el
+// decodificador compartido (ADR-113 regla 4), que decide por el contenido y no por el tipo declarado.
 
 export const EVIDENCE_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -31,7 +32,8 @@ export const EVIDENCE_KEY_PREFIX = "evidence/";
 export const EVIDENCE_KEY_PATTERN = /^evidence\/[a-z0-9]{10,40}\/[a-z0-9]{10,40}\.(jpg|png|webp)$/;
 const UPLOAD_EXPIRY_SECONDS = 600;
 const READ_EXPIRY_SECONDS = 300;
-const WEBP_QUALITY = 82;
+/** El lado más largo de la evidencia guardada; una imagen más grande se reduce. */
+export const EVIDENCE_MAX_SIDE = 2560;
 
 export function evidenceKey(personId: string, contentType: string, id: string): string {
   return `${EVIDENCE_KEY_PREFIX}${personId}/${id}.${EVIDENCE_TYPES[contentType] ?? "bin"}`;
@@ -119,8 +121,8 @@ class PermanentEvidenceError extends Error {
 export type EvidenceProcessOutcome = "ready" | "failed" | "skipped";
 
 /**
- * Re-encodea la imagen a WebP sin metadatos (sharp no copia EXIF si no se pide `withMetadata`).
- * Un original indecodificable queda FAILED sin reintento; un fallo del bucket relanza.
+ * Re-encodea la imagen a WebP sin metadatos, reducida a `EVIDENCE_MAX_SIDE`. Un original que el
+ * decodificador rechaza queda FAILED con su motivo y sin reintento; un fallo del bucket relanza.
  */
 export async function processEvidenceFile(
   fileId: string,
@@ -147,21 +149,15 @@ export async function processEvidenceFile(
           throw new PermanentEvidenceError(`Tipo no permitido: ${file.contentType}`);
         }
         const bytes = await getObject(file.objectKey); // transitorio: relanza
-        let rendered: Buffer;
-        try {
-          rendered = await sharp(bytes).rotate().webp({ quality: WEBP_QUALITY }).toBuffer();
-        } catch (error) {
-          throw new PermanentEvidenceError(
-            `No se pudo decodificar la imagen: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
+        const image = await decodeImage(bytes);
+        const rendered = await image.toWebp({ side: EVIDENCE_MAX_SIDE });
         const key = processedEvidenceKey(file.id);
-        await putObject(key, rendered, "image/webp"); // transitorio: relanza
+        await putObject(key, rendered.data, "image/webp"); // transitorio: relanza
         await tx
           .update(challengeEvidenceFile)
           .set({
             contentType: "image/webp",
-            byteSize: rendered.byteLength,
+            byteSize: rendered.data.byteLength,
             status: "READY",
             error: null,
             updatedAt: now,
@@ -169,7 +165,7 @@ export async function processEvidenceFile(
           .where(eq(challengeEvidenceFile.id, file.id));
         return { outcome: "ready", original: file.objectKey };
       } catch (error) {
-        if (error instanceof PermanentEvidenceError) {
+        if (error instanceof PermanentEvidenceError || error instanceof ImageRejectedError) {
           await tx
             .update(challengeEvidenceFile)
             .set({ status: "FAILED", error: error.message.slice(0, 500), updatedAt: now })

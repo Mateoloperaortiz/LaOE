@@ -1,12 +1,16 @@
+import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import sharp from "sharp";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
+import { evidenceProcess } from "@/domain-events/participation";
 import { personAnonymized } from "@/domain-events/people";
+import { submitEvidenceAs } from "@/modules/participation";
 import {
   EVIDENCE_MAX_BYTES,
+  EVIDENCE_MAX_SIDE,
   evidenceKey,
   prepareEvidenceUpload,
   processEvidenceFile,
@@ -14,7 +18,13 @@ import {
   resolveEvidenceRedirect,
   verifyEvidenceObjects,
 } from "@/modules/participation/domain/evidence";
-import { challengeEvidenceFile, challengeParticipation } from "@/modules/participation/schema";
+import {
+  challengeEvidenceFile,
+  challengeParticipation,
+  reward,
+} from "@/modules/participation/schema";
+import { setConfigAs } from "@/modules/system";
+import { outbox } from "@/modules/system/schema";
 import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
 import { tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -42,6 +52,65 @@ async function syntheticImage(): Promise<Buffer> {
     .jpeg()
     .withMetadata({ exif: { IFD0: { Copyright: "prueba" } } })
     .toBuffer();
+}
+
+/** Un SVG de más de 5 KB: libvips lo sabe dibujar, pero no es un formato admitido. */
+function syntheticSvg(): Buffer {
+  const rects = Array.from(
+    { length: 200 },
+    (_, i) => `<rect x="${i}" y="${i}" width="40" height="30" fill="#f60"/>`,
+  ).join("");
+  return Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">${rects}</svg>`,
+  );
+}
+
+/** PNG de un solo color: pesa poco en el bucket y ocupa `width × height` píxeles al decodificarse. */
+async function flatImage(width: number, height: number, format: "png" | "jpeg"): Promise<Buffer> {
+  return sharp({ create: { width, height, channels: 3, background: { r: 10, g: 120, b: 200 } } })
+    [format]()
+    .toBuffer();
+}
+
+/**
+ * La entrega de una misión con una imagen ya subida, por el comando del miembro, y su job por el
+ * outbox: el camino de producción. Devuelve cómo quedó todo al llegar el outbox al reposo.
+ */
+async function submitAndProcess(
+  input: { email: string; fileName: string; bytes: Buffer; declaredType: string },
+  keys: string[],
+) {
+  const termId = await seedTerm();
+  const personId = await seedMember(input.email);
+  await setConfigAs({ personId }, "gamification.enabled", true);
+  const challengeId = await seedChallenge(termId, { kind: "EVIDENCE" });
+  const key = evidenceKey(personId, input.declaredType, input.fileName);
+  keys.push(key);
+  await putObject(key, input.bytes, input.declaredType);
+  const sent = await submitEvidenceAs(
+    { personId },
+    { challengeId, requestId: randomUUID(), text: "Relato sintético de la misión.", keys: [key] },
+  );
+  expect(sent.ok).toBe(true);
+  await drainOutbox();
+
+  const [file] = await db().select().from(challengeEvidenceFile);
+  if (!file) throw new Error("la entrega no dejó evidencia");
+  keys.push(processedEvidenceKey(file.id));
+  const [participation] = await db()
+    .select({ status: challengeParticipation.status })
+    .from(challengeParticipation)
+    .where(eq(challengeParticipation.id, file.participationId));
+  const rewards = await db().select({ status: reward.status }).from(reward);
+  const jobs = await db()
+    .select({
+      attempts: outbox.attempts,
+      processedAt: outbox.processedAt,
+      deadLetterAt: outbox.deadLetterAt,
+    })
+    .from(outbox)
+    .where(eq(outbox.eventType, evidenceProcess.type));
+  return { personId, file, participation, rewards, jobs };
 }
 
 async function seedEvidenceFile(personId: string, key: string, contentType = "image/jpeg") {
@@ -143,6 +212,75 @@ describe("evidencias de retos", () => {
       .where(eq(challengeEvidenceFile.id, fileId));
     expect(file?.status).toBe("FAILED");
     expect(file?.error).toBeTruthy();
+  });
+
+  it("una evidencia que declara ser PNG y es otra cosa queda fallida con su motivo", async () => {
+    const { personId, file, participation, rewards, jobs } = await submitAndProcess(
+      {
+        email: "evidencia.disfraz@eafit.edu.co",
+        fileName: "archivo7prueba",
+        bytes: syntheticSvg(),
+        declaredType: "image/png",
+      },
+      keys,
+    );
+
+    expect(file.status).toBe("FAILED");
+    expect(file.error).toBe(tList("T-3207")[1]);
+    // No hay resultado que servir: ni objeto protegido ni redirección.
+    expect(await headObject(processedEvidenceKey(file.id))).toBeNull();
+    expect(await resolveEvidenceRedirect(file.id, { personId, isAdmin: true })).toEqual({
+      status: 404,
+    });
+    // El job terminó en su primer intento y nada lo vuelve a encolar.
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({ attempts: 1, deadLetterAt: null });
+    expect(jobs[0]?.processedAt).not.toBeNull();
+    expect(await drainOutbox()).toEqual({ processed: 0, failed: 0 });
+    // ADR-067: la entrega sigue pendiente con su premio reservado hasta que GH la revise.
+    expect(participation?.status).toBe("PENDING");
+    expect(rewards).toEqual([{ status: "RESERVED" }]);
+  });
+
+  it("una evidencia de más píxeles que el tope queda fallida sin codificarse", async () => {
+    // 40.008.000 píxeles en 0,5 MB: pasa el HEAD de tipo y tamaño de la entrega.
+    const { file, participation, rewards, jobs } = await submitAndProcess(
+      {
+        email: "evidencia.enorme@eafit.edu.co",
+        fileName: "archivo8prueba",
+        bytes: await flatImage(8000, 5001, "png"),
+        declaredType: "image/png",
+      },
+      keys,
+    );
+
+    expect(file.status).toBe("FAILED");
+    expect(file.error).toBe(tList("T-3207")[2]);
+    expect(await headObject(processedEvidenceKey(file.id))).toBeNull();
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({ attempts: 1, deadLetterAt: null });
+    expect(jobs[0]?.processedAt).not.toBeNull();
+    expect(participation?.status).toBe("PENDING");
+    expect(rewards).toEqual([{ status: "RESERVED" }]);
+  });
+
+  it("una evidencia válida más grande que el lado máximo se guarda reducida", async () => {
+    const { file } = await submitAndProcess(
+      {
+        email: "evidencia.grande@eafit.edu.co",
+        fileName: "archivo9prueba",
+        bytes: await flatImage(3900, 2600, "jpeg"),
+        declaredType: "image/jpeg",
+      },
+      keys,
+    );
+
+    expect(file.status).toBe("READY");
+    const meta = await sharp(await getObject(processedEvidenceKey(file.id))).metadata();
+    expect(meta.format).toBe("webp");
+    expect(Math.max(meta.width, meta.height)).toBe(EVIDENCE_MAX_SIDE);
+    // Conserva la proporción de 3:2.
+    expect(meta.width / meta.height).toBeCloseTo(1.5, 2);
   });
 
   it("entrega 404 en PENDING, 403 a otra persona y 302 al autor y al admin", async () => {
