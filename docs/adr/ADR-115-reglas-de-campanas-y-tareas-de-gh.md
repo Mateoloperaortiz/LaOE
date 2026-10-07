@@ -3,7 +3,7 @@
 - Estado: Aceptada
 - Fecha: 2026-10-07
 - Relacionadas: ADR-012, ADR-023, ADR-038, ADR-079, ADR-109
-- Enmienda: ADR-038 (regla 8: el lote de una campaña)
+- Enmienda: ADR-038 (regla 8: el lote de una campaña y su cancelación)
 
 ## Contexto
 
@@ -14,6 +14,8 @@ El cuarto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
 - Los correos salían antes del commit. Si la transacción se revertía (el registro de un mensaje que falla, un `statement_timeout`, el proceso que muere), los destinatarios volvían a `PENDING` con el correo ya entregado y el tick siguiente se lo repetía a todo el lote. Se reprodujo: en un lote de cinco en el que falla el registro del tercer correo, los dos primeros recibieron dos correos cada uno.
 - La transacción quedaba abierta mientras el proveedor respondía, con una conexión del pool y los candados de sus destinatarios, y el tick corre en el mismo proceso que la web.
 - Cada lote recontaba sin ver lo que otro lote todavía no había confirmado. Dos a la vez dejaban la campaña `SENDING` para siempre y con los contadores a medias, y ningún tick posterior lo corregía, porque sin pendientes el lote salía antes de recontar.
+
+**Cancelar con un lote en curso (DT-068).** La cancelación tomaba la fila de la campaña con `FOR UPDATE` y después esperaba a los destinatarios que el lote tenía tomados. El lote, por su lado, registraba cada `message` por otra conexión, y esa inserción pedía la fila de la campaña por su llave foránea: quedaba esperando a la cancelación desde Node, donde Postgres no ve ningún ciclo ni aborta a nadie. Los dos se quedaban quietos hasta que el `statement_timeout` (60 segundos por omisión) cancelaba la sentencia de la cancelación, que fallaba con un error que no es de dominio mientras la campaña seguía enviando. Se reprodujo siempre que la cancelación llegaba con un envío en curso.
 
 ## Decisión
 
@@ -33,12 +35,17 @@ El cuarto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
    - Con un solo orden no hay ciclo de espera entre el lote y un comando del admin.
    - Los contadores se cuentan y se escriben bajo ese candado: dos lotes a la vez recuentan uno después del otro, y el que marca al último pendiente cierra la campaña.
    - `startCampaign` conserva su advisory lock `campaign:<id>`, que toma antes de la fila y que nadie más toma.
+4. **Cancelar no espera al lote, y lo que el proveedor ya respondió manda sobre la cancelación.** `cancelCampaign` toma la fila de la campaña, deja `SKIPPED · CANCELLED` todo lo `PENDING`, lo tenga reclamado un lote o no, y pasa la campaña a `CANCELLED`. No espera a nadie: el lote no retiene candados mientras envía (regla 1) y los dos toman la fila en el mismo orden (regla 3).
+   - El lote ve la cancelación en la comprobación previa a su siguiente envío y no manda lo que le quedaba, que ya quedó omitido por cancelación.
+   - El correo que iba en vuelo cuando se canceló sí salió. Cuando el proveedor responde, su destinatario pasa de omitido a `SENT`, o a `FAILED` si lo rechazó, con su mensaje, y los contadores de la campaña se recuentan aunque ya esté cancelada, sin tocarle el estado ni `finishedAt`. Así `sentCount` coincide con lo que recibió el transporte.
+   - Lo que no llegó a intentarse nunca pisa una cancelación: un destinatario al que le faltan sus datos o su plantilla solo queda `FAILED` si sigue pendiente.
 
 ## Consecuencias
 
 - La entrega sigue siendo «al menos una vez», con la ventana reducida a un correo. Se repite solo el que el proveedor aceptó y cuyo registro no llegó a guardarse, porque el proceso murió o la base no respondió en ese instante; y se repite una vez, cuando vence el reclamo. Antes se repetía el lote entero. Cerrar esa ventana pide una clave de idempotencia del lado del proveedor, que SES no ofrece (DT-113).
 - Tras una interrupción, lo que el lote tenía reclamado espera hasta 15 minutos. La campaña sigue mientras tanto con los demás destinatarios.
 - Un rechazo del proveedor deja su registro con la clave, así que nadie lo reintenta, como antes. Cuando DT-066 decida reintentar los rechazos por cuota, ese intento no puede dejar un registro con la clave, o tiene que poder reemplazarlo.
+- Una campaña cancelada puede mover sus contadores una vez más después de cancelada, cuando responde el proveedor por el correo que iba en vuelo: a lo sumo uno por lote en curso. Si el proceso muere justo ahí, ese destinatario queda omitido aunque su correo salió y está en `message`.
 - Migración aditiva `0047_campana_reclamo_del_lote`: una columna anulable, sin backfill. Una campaña que esté `SENDING` al desplegar sigue su curso: sus pendientes no tienen reclamo, sus mensajes viejos no tienen clave y sus destinatarios ya enviados están marcados.
 - El lote hace dos lecturas más por correo (el reclamo y el registro) y una transacción corta por destinatario. Con el tope de 200 por minuto de `campaigns.perMinute` son cientos de sentencias cortas por minuto, a cambio de no tener ninguna transacción abierta mientras responde el proveedor.
-- Las pruebas están en `tests/integration/campaigns-characterization.test.ts`: los defectos reproducidos, ya como pruebas corrientes, y las del reclamo, su vencimiento, el destinatario recuperado y la transacción que no queda abierta.
+- Las pruebas están en `tests/integration/campaigns-characterization.test.ts`: los defectos reproducidos, ya como pruebas corrientes, y las del reclamo, su vencimiento, el destinatario recuperado, la transacción que no queda abierta y la cancelación con un correo en vuelo y repetida a la par del lote.

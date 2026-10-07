@@ -20,7 +20,7 @@ import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
 import { campaign, campaignRecipient, emailTemplate } from "../schema";
 import { ensurePreferencesFor, listPreferencesFor } from "./preferences";
-import { sendCampaignEmail } from "./send";
+import { type CampaignReceipt, sendCampaignEmail } from "./send";
 import {
   getTemplate,
   listTemplateOptions,
@@ -233,7 +233,11 @@ export async function scheduleCampaign(
   }
 }
 
-/** Cancela: programada vuelve atrás; en curso deja lo pendiente omitido. */
+/**
+ * Cancela: programada vuelve atrás; en curso deja omitido todo lo pendiente, lo tenga reclamado un lote
+ * o no. No espera a ningún lote, que no retiene candados mientras envía; el correo que iba en vuelo lo
+ * anota el lote cuando el proveedor responde (ADR-115 regla 4).
+ */
 export async function cancelCampaign(
   ctx: CommandContext,
   id: string,
@@ -471,28 +475,41 @@ async function holdsClaim(item: BatchItem, claimedAt: Date): Promise<boolean> {
   return row !== undefined;
 }
 
-interface Outcome {
-  status: "SENT" | "FAILED";
-  messageId: string | null;
-  sentAt: Date | null;
-}
-
 /**
  * Deja el resultado de un destinatario en su propia transacción, con la fila de la campaña tomada
- * primero: bajo ese candado se escribe su estado y se recuentan los contadores.
+ * primero: bajo ese candado se escribe su estado y se recuentan los contadores. `receipt` es lo que
+ * respondió el envío; `null`, que no se llegó a intentar porque faltan sus datos o su plantilla.
  */
-async function settleRecipient(item: BatchItem, outcome: Outcome, now: Date): Promise<void> {
+async function settleRecipient(
+  item: BatchItem,
+  receipt: CampaignReceipt | null,
+  now: Date,
+): Promise<void> {
   await getDb().transaction(async (tx) => {
     const row = await lockCampaignRow(tx, item.campaignId);
     if (!row) {
       return;
     }
-    await tx
-      .update(campaignRecipient)
-      .set({ status: outcome.status, messageId: outcome.messageId, sentAt: outcome.sentAt })
-      .where(
-        and(eq(campaignRecipient.id, item.recipientId), eq(campaignRecipient.status, "PENDING")),
-      );
+    if (receipt) {
+      // Lo que respondió el proveedor manda, también sobre una cancelación que llegó con el correo en
+      // vuelo y ya había dejado omitido a su destinatario.
+      await tx
+        .update(campaignRecipient)
+        .set({
+          status: receipt.status,
+          skipReason: null,
+          messageId: receipt.messageId,
+          sentAt: receipt.sentAt,
+        })
+        .where(eq(campaignRecipient.id, item.recipientId));
+    } else {
+      await tx
+        .update(campaignRecipient)
+        .set({ status: "FAILED" })
+        .where(
+          and(eq(campaignRecipient.id, item.recipientId), eq(campaignRecipient.status, "PENDING")),
+        );
+    }
     await refreshCounters(tx, row, now);
   });
 }
@@ -541,7 +558,7 @@ export async function processCampaignBatch(limit: number, now = new Date()): Pro
     const ref = refs.get(item.personId);
     const template = templates.get(item.campaignId);
     if (!ref || !template) {
-      await settleRecipient(item, { status: "FAILED", messageId: null, sentAt: null }, now);
+      await settleRecipient(item, null, now);
       continue;
     }
     const eligibility = campaignEligibility({
@@ -588,13 +605,12 @@ export async function processCampaignBatch(limit: number, now = new Date()): Pro
 }
 
 /**
- * Recalcula los contadores de una campaña en curso desde sus destinatarios y la cierra cuando no queda
- * nadie pendiente. Pide la fila de la campaña ya tomada: así dos lotes no recuentan a la vez.
+ * Recalcula los contadores de una campaña desde sus destinatarios y, si está en curso y no queda nadie
+ * pendiente, la cierra. A la cancelada también la recuenta, sin tocarle el estado: el correo que iba
+ * en vuelo al cancelar cuenta como lo que fue. Pide la fila de la campaña ya tomada: así dos lotes no
+ * recuentan a la vez.
  */
 async function refreshCounters(tx: Tx, row: CampaignRow, now: Date): Promise<void> {
-  if (row.status !== "SENDING") {
-    return;
-  }
   const rows = await tx
     .select({ status: campaignRecipient.status, n: count() })
     .from(campaignRecipient)
@@ -602,13 +618,14 @@ async function refreshCounters(tx: Tx, row: CampaignRow, now: Date): Promise<voi
     .groupBy(campaignRecipient.status);
   const by = (status: RecipientRow["status"]) =>
     rows.find((item) => item.status === status)?.n ?? 0;
+  const closes = row.status === "SENDING" && by("PENDING") === 0;
   await tx
     .update(campaign)
     .set({
       sentCount: by("SENT"),
       failedCount: by("FAILED"),
       skippedCount: by("SKIPPED"),
-      ...(by("PENDING") === 0 ? { status: "SENT" as const, finishedAt: now } : {}),
+      ...(closes ? { status: "SENT" as const, finishedAt: now } : {}),
     })
     .where(eq(campaign.id, row.id));
 }

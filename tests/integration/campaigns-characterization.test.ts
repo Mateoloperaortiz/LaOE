@@ -563,8 +563,9 @@ describe("los defectos que la caracterización le encontró al lote", () => {
     },
   );
 
-  // DT-068, lo corrige #145: cancelar toma la campaña y espera al lote, que la necesita para registrar su mensaje.
-  knownDefect(
+  // DT-068, corregido en #145 (ADR-115 reglas 3 y 4): cancelar tomaba la campaña y esperaba al lote,
+  // que la necesitaba para registrar su mensaje.
+  fixedDefect(
     "cancelar con un lote en curso no los deja esperándose: la campaña queda cancelada y los contadores dicen lo que salió",
     async () => {
       await seedRoster(4);
@@ -818,5 +819,116 @@ describe("el lote reclama, envía sin transacción abierta y marca a cada destin
     const recovered = (await listRecipients(id)).rows.find((row) => row.personId === first?.id);
     expect(recovered).toMatchObject({ status: "SENT", messageId: record?.id, sentAt: minute(0) });
     expect(await db().select().from(message).where(eq(message.campaignId, id))).toHaveLength(3);
+  });
+});
+
+describe("cancelar con un lote en curso (ADR-115 regla 4)", () => {
+  it("cancelar con un correo en vuelo: ese correo cuenta como enviado y el lote no manda lo que le quedaba", async () => {
+    await seedRoster(4);
+    const id = await scheduleCampaign(3);
+    let reached = (): void => {};
+    const inFlight = new Promise<void>((resolve) => {
+      reached = resolve;
+    });
+    let release = (): void => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    useTransports({
+      overflow: async (_mail, call) => {
+        if (call === 1) {
+          reached();
+          await gate;
+        }
+        return `ses_${call}`;
+      },
+    });
+
+    const tick = runCampaignTick(minute(0));
+    await Promise.race([
+      inFlight,
+      tick.then(() => {
+        throw new Error("El lote terminó sin llegar al transporte");
+      }),
+    ]);
+    await cancelCampaignAs(SYSTEM_ACTOR, id);
+    // Todo lo pendiente quedó omitido, también los tres que el lote tenía reclamados.
+    expect(await recipientStatuses(id)).toEqual({ SKIPPED: 4 });
+    const cancelledAt = (await getCampaign(id))?.finishedAt;
+    release();
+
+    expect(await tick).toEqual({ started: 1, sent: 1 });
+    expect(delivered.overflow).toHaveLength(1);
+    expect(await getCampaign(id)).toMatchObject({
+      status: "CANCELLED",
+      finishedAt: cancelledAt,
+      totalCount: 4,
+      sentCount: 1,
+      failedCount: 0,
+      skippedCount: 3,
+    });
+    const { rows } = await listRecipients(id);
+    const flown = rows.find((row) => row.email === delivered.overflow[0]?.to);
+    expect(flown).toMatchObject({
+      status: "SENT",
+      skipReason: null,
+      messageId: expect.any(String),
+      sentAt: minute(0),
+    });
+    expect(rows.filter((row) => row.skipReason === "CANCELLED")).toHaveLength(3);
+  });
+
+  it("cancelar y correr el lote a la vez, una y otra vez, no falla y deja los contadores en lo que recibió el transporte", async () => {
+    await seedRoster(6);
+    await setPerMinute(2);
+    const parts = await seedParts();
+    // Qué pasa cuando un correo llega al proveedor lo decide cada ronda.
+    let onMail = (): void => {};
+    useTransports({
+      overflow: (_mail, call) => {
+        onMail();
+        return `ses_${call}`;
+      },
+    });
+
+    for (let round = 0; round < 9; round += 1) {
+      onMail = () => {};
+      const startsAt = minute(round * 10);
+      const id = await scheduleNew(parts, `Ronda ${round}`, startsAt);
+      expect(await runCampaignTick(startsAt)).toEqual({ started: 1, sent: 2 });
+      const before = delivered.overflow.length;
+
+      // La cancelación arranca junto con el lote (0) o con su primer o su segundo correo en vuelo, y
+      // nadie la espera: corre a la par de lo que al lote le falte.
+      const cancelOn = round % 3;
+      let cancel: Promise<string | null> | null = null;
+      const startCancel = (): Promise<string | null> => {
+        cancel ??= settle(cancelCampaignAs(SYSTEM_ACTOR, id));
+        return cancel;
+      };
+      let mails = 0;
+      onMail = () => {
+        mails += 1;
+        if (mails === cancelOn) {
+          void startCancel();
+        }
+      };
+      const tick = settle(runCampaignTick(minute(round * 10 + 1)));
+      if (cancelOn === 0) {
+        void startCancel();
+      }
+      const errors = { tick: await tick, cancel: await startCancel() };
+
+      const accepted = 2 + delivered.overflow.length - before;
+      expect(errors).toEqual({ tick: null, cancel: null });
+      expect(await getCampaign(id)).toMatchObject({
+        status: "CANCELLED",
+        totalCount: 6,
+        sentCount: accepted,
+        failedCount: 0,
+        skippedCount: 6 - accepted,
+      });
+      expect(await recipientStatuses(id)).toEqual({ SENT: accepted, SKIPPED: 6 - accepted });
+    }
   });
 });
