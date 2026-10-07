@@ -1,4 +1,4 @@
-import { getEnv } from "@/env";
+import { namedScreen, redirectFromDownload } from "@/app/_lib/download";
 import { resolveDocumentRedirect } from "@/modules/content";
 import { getActor } from "@/modules/identity";
 
@@ -17,9 +17,12 @@ export async function GET(request: Request, { params }: RouteContext<"/api/docum
   const url = new URL(request.url);
   const actor = await getActor();
   if (!actor) {
-    return Response.redirect(
-      new URL(`/ingresar?next=${encodeURIComponent(url.pathname)}`, getEnv().APP_URL),
-      302,
+    // Sale del lector de Mi OE y del lector del admin de ese documento: vale el que nombre el
+    // enlace y, si no nombra ninguno de los dos, el de Mi OE (ADR-113, regla 10).
+    const readers = new RegExp(`^/(app/normativa|admin/documentos)/${id}$`);
+    return redirectFromDownload(
+      "SIGN_IN",
+      namedScreen(url.searchParams, readers, `/app/normativa/${id}`),
     );
   }
   const result = await resolveDocumentRedirect(id, {

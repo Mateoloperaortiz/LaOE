@@ -28,7 +28,7 @@ import { listPassesFor } from "@/modules/wallet";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: Request) {
+export async function GET() {
   const actor = await getActor();
   if (!actor) {
     // La descarga sale de la sección de privacidad de Ajustes (ADR-113, regla 10).

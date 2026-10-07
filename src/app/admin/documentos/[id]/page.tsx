@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { downloadHref, isDownloadPending } from "@/app/_lib/download";
 import { DOCUMENT_KINDS, getDocumentWithArticles } from "@/modules/content";
 import { DocumentReader } from "@/modules/content/components/DocumentReader";
 import { requireAdminActor } from "@/modules/identity";
@@ -143,6 +144,11 @@ export default async function DocumentPreviewPage({
         detail={detail}
         backHref="/admin/documentos"
         backLabel={t("T-1284")}
+        pdfHref={downloadHref(
+          `/api/documentos/${document.id}/pdf`,
+          `/admin/documentos/${document.id}`,
+        )}
+        downloadPending={isDownloadPending(search)}
         showHeader={false}
       />
     </div>

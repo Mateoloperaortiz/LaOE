@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { downloadHref } from "@/app/_lib/download";
 import { single } from "@/app/_lib/search";
+import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import { listPendingReviews } from "@/modules/participation";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
@@ -66,6 +68,7 @@ export default async function RevisionPage({
         ) : null}
       </header>
 
+      <DownloadNotice searchParams={search} />
       <form
         action="/admin/gamificacion/revision"
         method="get"
@@ -140,7 +143,10 @@ export default async function RevisionPage({
                   {row.files.map((file) => (
                     <li key={file.id}>
                       {file.status === "READY" ? (
-                        <Link href={`/api/retos/evidencia/${file.id}`} className="underline">
+                        <Link
+                          href={downloadHref(`/api/retos/evidencia/${file.id}`, base)}
+                          className="underline"
+                        >
                           {file.objectKey.split("/").pop()}
                         </Link>
                       ) : (

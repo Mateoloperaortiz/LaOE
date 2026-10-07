@@ -112,6 +112,14 @@ beforeEach(() => {
 });
 
 describe("HTML del carnet y sus billeteras", () => {
+  it("al volver de un pase que pidió sesión avisa en las billeteras que hay que pedirlo otra vez, y solo con la marca", async () => {
+    state.available.mockReturnValue({ apple: true, google: true });
+    expect(outputs(await render({ descarga: "1" }))).toContain(t("T-3211"));
+    for (const search of [{}, { descarga: "0" }, { descarga: "si" }]) {
+      expect(outputs(await render(search))).not.toContain(t("T-3211"));
+    }
+  });
+
   it("la licencia muestra su aviso sin generar QR ni ofrecer emisión o rotación de billeteras", async () => {
     state.actor.mockResolvedValue({
       personId: credential.personId,

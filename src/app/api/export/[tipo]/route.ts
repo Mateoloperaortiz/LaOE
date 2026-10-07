@@ -1,4 +1,4 @@
-import { DOWNLOAD_SCREEN_PARAM, redirectFromDownload } from "@/app/_lib/download";
+import { DOWNLOAD_SCREEN_PARAM, namedScreen, redirectFromDownload } from "@/app/_lib/download";
 import { getActor, hasPermission, hasRecentStepUp } from "@/modules/identity";
 import { recordExport } from "@/modules/system";
 import { resolveFilters, toCsv } from "@/shared/admin-kit";
@@ -18,13 +18,9 @@ const ADMIN_SCREEN = /^\/admin(\/[A-Za-z0-9_-]+)*(\?[A-Za-z0-9\-._~*=&%+]*)?$/;
  * misma búsqueda del exporte.
  */
 function exportScreen(basePath: string, params: URLSearchParams): string {
-  const named = params.get(DOWNLOAD_SCREEN_PARAM) ?? "";
-  if (ADMIN_SCREEN.test(named)) {
-    return named;
-  }
   const query = new URLSearchParams(params);
   query.delete(DOWNLOAD_SCREEN_PARAM);
-  return query.size ? `${basePath}?${query}` : basePath;
+  return namedScreen(params, ADMIN_SCREEN, query.size ? `${basePath}?${query}` : basePath);
 }
 
 export async function GET(request: Request, { params }: RouteContext<"/api/export/[tipo]">) {

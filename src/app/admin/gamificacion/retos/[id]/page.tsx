@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { downloadHref } from "@/app/_lib/download";
 import { single } from "@/app/_lib/search";
+import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import {
   getChallengeAdmin,
@@ -103,6 +105,7 @@ export default async function RetoPage({
         </div>
       </header>
 
+      <DownloadNotice searchParams={search} />
       <form action={saveChallengeAction} className="flex flex-col gap-6">
         <AdminFormBody>
           <input type="hidden" name="id" value={id} />
@@ -296,7 +299,7 @@ export default async function RetoPage({
                             <li key={file.id}>
                               {file.status === "READY" ? (
                                 <Link
-                                  href={`/api/retos/evidencia/${file.id}`}
+                                  href={downloadHref(`/api/retos/evidencia/${file.id}`, back)}
                                   className="underline"
                                 >
                                   {file.objectKey}

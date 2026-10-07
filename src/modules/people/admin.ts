@@ -574,7 +574,12 @@ export const segmentsResource: ResourceDefinition<SegmentRow, SegmentInput> = {
     {
       key: "export",
       label: t("T-472"),
-      render: (row) => ({ text: t("T-472"), href: `/api/export/personas?segmento=${row.id}` }),
+      // El exporte nombra en `pantalla` la lista que lo origina, para volver a ella si pide el
+      // paso de seguridad (ADR-113, regla 10).
+      render: (row) => ({
+        text: t("T-472"),
+        href: `/api/export/personas?segmento=${row.id}&pantalla=%2Fadmin%2Fsegmentos`,
+      }),
     },
     {
       key: "createdAt",

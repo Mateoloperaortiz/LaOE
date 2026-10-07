@@ -149,7 +149,7 @@ test("ADMIN revoca desde Comunicaciones de la 360 y el miembro ve el aviso", asy
   await expect(page.locator("figure[data-token]")).toHaveAttribute("data-token", /^oe1\./);
 });
 
-test("las rutas Wallet usan redirecciones locales y no guardan respuestas sensibles en caché", async ({
+test("las rutas Wallet vuelven al carnet tras el ingreso y no guardan respuestas sensibles en caché", async ({
   browser,
 }) => {
   const anonymous = await browser.newContext({
@@ -159,9 +159,12 @@ test("las rutas Wallet usan redirecciones locales y no guardan respuestas sensib
   try {
     const apple = await anonymous.request.get("/api/wallet/apple", { maxRedirects: 0 });
     expect(apple.status()).toBe(302);
-    expect(apple.headers().location).toBe("/ingresar?next=%2Fapi%2Fwallet%2Fapple");
+    // El ingreso no vuelve a una ruta de API: el pase nombra el carnet (ADR-113, regla 10).
+    const gate = new URL(apple.headers().location ?? "");
+    const gatePath = `${gate.pathname}${gate.search}`;
+    expect(gatePath).toBe("/ingresar?next=%2Fapp%2Fcarnet%3Fdescarga%3D1");
     expect(apple.headers()["cache-control"]).toContain("no-store");
-    expect((await anonymous.request.get(apple.headers().location ?? "")).status()).toBe(200);
+    expect((await anonymous.request.get(gatePath)).status()).toBe(200);
     const google = await anonymous.request.get("/api/wallet/google", { maxRedirects: 0 });
     expect(google.status()).toBe(404);
     expect(google.headers()["cache-control"]).toContain("no-store");

@@ -1,3 +1,4 @@
+import { redirectFromDownload } from "@/app/_lib/download";
 import { getActor } from "@/modules/identity";
 import { buildApplePass, walletAvailability } from "@/modules/wallet";
 import { logger } from "@/shared/log";
@@ -9,14 +10,8 @@ const noStore = { "cache-control": "no-store" };
 export async function GET() {
   if (!walletAvailability().apple) return new Response(null, { status: 404, headers: noStore });
   const actor = await getActor();
-  if (!actor)
-    return new Response(null, {
-      status: 302,
-      headers: {
-        ...noStore,
-        location: "/ingresar?next=%2Fapi%2Fwallet%2Fapple",
-      },
-    });
+  // El pase se pide desde el carnet (ADR-113, regla 10).
+  if (!actor) return redirectFromDownload("SIGN_IN", "/app/carnet");
   try {
     const pass = await buildApplePass(actor.personId);
     return new Response(new Uint8Array(pass), {

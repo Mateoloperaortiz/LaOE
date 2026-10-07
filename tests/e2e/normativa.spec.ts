@@ -306,7 +306,10 @@ test.describe("como miembro", () => {
     await sinViolaciones(page);
 
     const href = await page.getByRole("link", { name: t("T-396") }).getAttribute("href");
-    expect(href).toMatch(/^\/api\/documentos\/[a-z0-9]+\/pdf$/);
+    // El enlace nombra el lector donde está, para volver a él si el PDF pide sesión (ADR-113).
+    expect(href).toMatch(
+      /^\/api\/documentos\/[a-z0-9]+\/pdf\?pantalla=%2Fapp%2Fnormativa%2F[a-z0-9]+$/,
+    );
     const respuesta = await page.request.get(href ?? "", { maxRedirects: 0 });
     expect(respuesta.status()).toBe(302);
     expect(respuesta.headers().location).toContain("documents/");

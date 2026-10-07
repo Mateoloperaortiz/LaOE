@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/wallet/google/route";
+import { safeNextPath } from "@/modules/identity/domain/pure";
 
 const state = vi.hoisted(() => ({
   available: vi.fn(),
@@ -7,6 +8,7 @@ const state = vi.hoisted(() => ({
   issue: vi.fn(),
   warn: vi.fn(),
 }));
+vi.mock("@/env", () => ({ getEnv: () => ({ APP_URL: "https://oe-sintetica.example" }) }));
 vi.mock("@/modules/identity", () => ({ getActor: state.actor }));
 vi.mock("@/modules/wallet", () => ({
   walletAvailability: state.available,
@@ -29,11 +31,16 @@ describe("ruta Wallet google", () => {
     expect(state.actor).not.toHaveBeenCalled();
     expect(state.issue).not.toHaveBeenCalled();
   });
-  it("sin sesión redirige al ingreso conservando el destino y sin caché", async () => {
+  it("sin sesión manda al ingreso en el origen público y vuelve al carnet con la marca de descarga, sin caché", async () => {
     state.actor.mockResolvedValue(null);
     const response = await GET();
     expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toBe("/ingresar?next=%2Fapi%2Fwallet%2Fgoogle");
+    const location = new URL(response.headers.get("location") ?? "http://sin-redireccion.invalid");
+    expect(`${location.origin}${location.pathname}`).toBe("https://oe-sintetica.example/ingresar");
+    const next = location.searchParams.get("next") ?? "";
+    expect(next).toBe("/app/carnet?descarga=1");
+    // El ingreso filtra su destino con `safeNextPath`: el carnet lo pasa; la ruta del pase no.
+    expect(safeNextPath(next)).toBe(next);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(state.issue).not.toHaveBeenCalled();
   });

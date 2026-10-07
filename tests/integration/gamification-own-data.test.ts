@@ -98,7 +98,7 @@ describe("mis datos: gamificación", () => {
         historical: true,
       });
 
-    const response = await GET(new Request("https://test.local/api/mis-datos"));
+    const response = await GET();
     expect(response.status).toBe(200);
     const body = (await response.json()) as Record<string, unknown>;
     const serialized = JSON.stringify(body);
@@ -163,7 +163,7 @@ describe("mis datos: gamificación", () => {
     );
     if (!abierta.ok) throw new Error(abierta.reason);
 
-    const response = await GET(new Request("https://test.local/api/mis-datos"));
+    const response = await GET();
     expect(response.status).toBe(200);
     const body = (await response.json()) as { sudokuRuns: Array<Record<string, unknown>> };
     expect(body.sudokuRuns).toHaveLength(2);

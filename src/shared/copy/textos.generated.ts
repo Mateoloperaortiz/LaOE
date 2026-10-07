@@ -10394,7 +10394,7 @@ export const textos = {
   },
   "T-3211": {
     where:
-      "Pantalla a la que se vuelve tras el ingreso o el paso de seguridad que pidió una descarga (exportes del admin y Mis datos; ADR-113)",
+      "Pantalla a la que se vuelve tras el ingreso o el paso de seguridad que pidió una descarga (exportes del admin, Mis datos, PDF de normativa, evidencia de un reto y pases de billetera; ADR-113)",
     text: "La descarga quedó pendiente porque primero había que confirmar que sos vos. Pedila otra vez desde acá.",
     owner: "MATEO",
     status: "Propuesta",

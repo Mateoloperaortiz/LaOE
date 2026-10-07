@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
+import { downloadHref, isDownloadPending } from "@/app/_lib/download";
 import { getPublishedDocumentWithArticles } from "@/modules/content";
 import { DocumentReader } from "@/modules/content/components/DocumentReader";
 import { recordOnboardingEvidence } from "@/modules/crm";
@@ -25,7 +26,10 @@ export async function generateMetadata({
   return { title: detail?.document.title ?? t("T-389") };
 }
 
-export default async function DocumentoPage({ params }: PageProps<"/app/normativa/[id]">) {
+export default async function DocumentoPage({
+  params,
+  searchParams,
+}: PageProps<"/app/normativa/[id]">) {
   const { id } = await params;
   const actor = await requireActor(`/app/normativa/${id}`);
   const detail = await cargar(id);
@@ -33,5 +37,14 @@ export default async function DocumentoPage({ params }: PageProps<"/app/normativ
     notFound();
   }
   after(() => recordOnboardingEvidence(actor.personId, "NORMATIVA_READ"));
-  return <DocumentReader detail={detail} backHref="/app/normativa" backLabel={t("T-399")} />;
+  const documentId = detail.document.id;
+  return (
+    <DocumentReader
+      detail={detail}
+      backHref="/app/normativa"
+      backLabel={t("T-399")}
+      pdfHref={downloadHref(`/api/documentos/${documentId}/pdf`, `/app/normativa/${documentId}`)}
+      downloadPending={isDownloadPending(await searchParams)}
+    />
+  );
 }

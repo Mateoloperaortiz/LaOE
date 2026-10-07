@@ -19,6 +19,10 @@ type Props = {
   };
   backHref: string;
   backLabel: string;
+  /** Enlace al PDF original; nombra la pantalla donde está montado el lector (ADR-113, regla 10). */
+  pdfHref: string;
+  /** Se volvió a esta pantalla porque el PDF pidió sesión: el lector avisa junto al enlace. */
+  downloadPending: boolean;
   showHeader?: boolean;
 };
 
@@ -33,7 +37,14 @@ function unitTitle(unit: ArticleRow): string {
 }
 
 /** Lector único de normativa: quien lo compone ya resolvió el acceso y el onboarding. */
-export async function DocumentReader({ detail, backHref, backLabel, showHeader = true }: Props) {
+export async function DocumentReader({
+  detail,
+  backHref,
+  backLabel,
+  pdfHref,
+  downloadPending,
+  showHeader = true,
+}: Props) {
   const kinds = tList("T-394");
   const chapters = chaptersOf(detail.articles);
   const imageIds = [
@@ -60,12 +71,7 @@ export async function DocumentReader({ detail, backHref, backLabel, showHeader =
         />
       ) : null}
       <div className="flex flex-wrap items-center gap-4">
-        <a
-          href={`/api/documentos/${detail.document.id}/pdf`}
-          target="_blank"
-          rel="noreferrer"
-          className="boton-secundario"
-        >
+        <a href={pdfHref} target="_blank" rel="noreferrer" className="boton-secundario">
           {t("T-396")}
         </a>
         <p className="text-sm text-tinta-suave">
@@ -74,6 +80,9 @@ export async function DocumentReader({ detail, backHref, backLabel, showHeader =
             secciones: detail.articles.length - articleCount,
           })}
         </p>
+        {downloadPending ? (
+          <output className="block w-full text-sm font-semibold text-titulo">{t("T-3211")}</output>
+        ) : null}
       </div>
       {chapters.length === 0 ? <p>{t("T-1286")}</p> : null}
       {chapters.length > 0 ? (
