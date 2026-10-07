@@ -159,12 +159,17 @@ describe("inhabilidades y topes de cargos", () => {
     ]);
 
     const sancionada = await veteran("sancionada@eafit.edu.co");
-    await recordSanctionAs(admin, sancionada, {
-      termId,
-      kind: "OFFICE_BAN",
-      cause: "Inhabilidad de prueba",
-      occurredOn: todayKey(),
-    });
+    await recordSanctionAs(
+      admin,
+      sancionada,
+      {
+        termId,
+        kind: "OFFICE_BAN",
+        cause: "Inhabilidad de prueba",
+        occurredOn: todayKey(),
+      },
+      { by: "ADMIN" },
+    );
     await expect(
       addAppointmentAs(admin, sancionada, { kind: "VP_FINANCE", termId }),
     ).rejects.toThrow(motivos[0] ?? "x");

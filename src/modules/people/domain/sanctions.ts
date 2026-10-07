@@ -23,10 +23,10 @@ import {
 } from "./sanction-pure";
 
 // Faltas y sanciones (Regl. cap. 9 y Anexo 1; ADR-060 regla 6): las registra ADMIN desde la Persona
-// 360 o quien tiene PERMANENCE en el comité, que llega con su alcance y el comando lo comprueba
-// (ADR-072 regla 1); cada una audita, emite `sanction.recorded` y deja en la línea de tiempo la
-// causal con los descargos. Los efectos (beneficios, cargos, cierre) los leen crm, people y
-// permanence por estas lecturas.
+// 360 o quien tiene PERMANENCE en el comité. Los dos declaran su alcance y el comando lo comprueba
+// (ADR-072 regla 1; ADR-112); cada una audita, emite `sanction.recorded` y deja en la línea de
+// tiempo la causal con los descargos. Los efectos (beneficios, cargos, cierre) los leen crm, people
+// y permanence por estas lecturas.
 
 export type SanctionRecord = typeof sanction.$inferSelect;
 
@@ -81,15 +81,17 @@ function toView(row: SanctionRecord, committeeName: string | null, onKey: string
   };
 }
 
+type CommitteeSanctionScope = Extract<SanctionScope, { by: "COMMITTEE" }>;
+
 /**
- * Lo que la dirección de un comité puede sancionar (ADR-072 regla 1): a un miembro vivo de su
- * comité en ese término, que si es ajeno se trata como inexistente, y con un tipo de los suyos.
+ * Lo que la dirección de un comité puede sancionar (ADR-112): a un miembro vivo de su comité en ese
+ * término, que si es ajeno se trata como inexistente, y con un tipo de los suyos.
  */
 async function assertCommitteeScope(
   exec: Executor,
   personId: string,
   kind: SanctionKind,
-  scope: SanctionScope,
+  scope: CommitteeSanctionScope,
 ): Promise<void> {
   const [own] = await exec
     .select({ id: committeeMembership.id })
@@ -111,21 +113,23 @@ async function assertCommitteeScope(
 }
 
 /**
- * Registra una sanción sobre una membresía viva y deriva sus fechas; devuelve el id. Con `scope`
- * la registra la dirección de un comité: pasa por `assertCommitteeScope` y queda a nombre de ese
- * comité y de ese término, traiga lo que traiga la entrada. Sin `scope` es GH, sin restricción.
+ * Registra una sanción sobre una membresía viva y deriva sus fechas; devuelve el id. El alcance es
+ * obligatorio (ADR-112). Desde un comité pasa por `assertCommitteeScope` y queda a nombre de ese
+ * comité y de ese término, traiga lo que traiga la entrada; ADMIN no tiene restricción de tipo ni
+ * de comité.
  */
 export async function recordSanction(
   ctx: CommandContext,
   personId: string,
   raw: SanctionInput,
-  scope?: SanctionScope,
+  scope: SanctionScope,
 ): Promise<{ id: string }> {
   const parsed = sanctionInputSchema.parse(raw);
-  const input = scope
-    ? { ...parsed, termId: scope.termId, committeeId: scope.committeeId }
-    : parsed;
-  if (scope) {
+  const input =
+    scope.by === "COMMITTEE"
+      ? { ...parsed, termId: scope.termId, committeeId: scope.committeeId }
+      : parsed;
+  if (scope.by === "COMMITTEE") {
     await assertCommitteeScope(ctx.tx, personId, input.kind, scope);
   }
   const [current] = await ctx.tx

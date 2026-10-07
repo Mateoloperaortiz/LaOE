@@ -17,11 +17,14 @@ export const SANCTION_KINDS: readonly SanctionKind[] = [
  */
 export const COMMITTEE_SANCTION_KINDS: readonly SanctionKind[] = ["WARNING", "MINOR", "MAJOR"];
 
-/** Desde qué comité y término sanciona su dirección: el alcance que autorizó `src/app` (ADR-072). */
-export interface SanctionScope {
-  committeeId: string;
-  termId: string;
-}
+/**
+ * Desde dónde se registra una sanción: el alcance que autorizó `src/app` y que todo llamador declara
+ * (ADR-072 regla 1; ADR-112). ADMIN, desde la Persona 360, sin restricción de tipo ni de comité; o la
+ * dirección de un comité en un término.
+ */
+export type SanctionScope =
+  | { by: "ADMIN" }
+  | { by: "COMMITTEE"; committeeId: string; termId: string };
 
 /** Días calendario de suspensión de derechos y beneficios (Regl. art. 69.1 y 69.2). */
 export const SUSPENSION_DAYS: Partial<Record<SanctionKind, number>> = { WARNING: 7, MINOR: 20 };

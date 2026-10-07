@@ -44,6 +44,8 @@ import {
 // cierre convierte en expulsión.
 
 const db = () => getDb();
+/** ADMIN desde la Persona 360: declara su alcance, sin restricción de tipo ni de comité. */
+const asAdmin = { by: "ADMIN" } as const;
 
 async function member(email: string, termId: string, committeeId: string) {
   const personId = await seedPerson(email);
@@ -67,14 +69,19 @@ describe("faltas y sanciones", () => {
     const actor = { personId: gh, ip: null };
     const today = todayKey();
 
-    const { id } = await recordSanctionAs(actor, personId, {
-      termId,
-      kind: "WARNING",
-      cause: "Faltó a la reunión del 3 de septiembre sin excusa; en descargos reconoció la falta",
-      reference: "Anexo 1, llamado de atención 1",
-      occurredOn: today,
-      committeeId: a3,
-    });
+    const { id } = await recordSanctionAs(
+      actor,
+      personId,
+      {
+        termId,
+        kind: "WARNING",
+        cause: "Faltó a la reunión del 3 de septiembre sin excusa; en descargos reconoció la falta",
+        reference: "Anexo 1, llamado de atención 1",
+        occurredOn: today,
+        committeeId: a3,
+      },
+      asAdmin,
+    );
     const [row] = await db().select().from(sanction).where(eq(sanction.id, id));
     expect(row).toMatchObject({ kind: "WARNING", suspendedFrom: today, issuedById: gh });
     expect(row?.suspendedUntil).not.toBeNull();
@@ -153,33 +160,48 @@ describe("faltas y sanciones", () => {
     await seedMembership(retired, termId, "INACTIVE");
     const actor = { personId: gh, ip: null };
     await expect(
-      recordSanctionAs(actor, personId, {
+      recordSanctionAs(
+        actor,
+        personId,
+        {
+          termId,
+          kind: "SUSPENSION",
+          cause: "Uso indebido de la oficina, con descargos el 5 de septiembre",
+          occurredOn: "2026-09-01",
+          suspendedUntil: "2026-10-15",
+        },
+        asAdmin,
+      ),
+    ).rejects.toBeInstanceOf(DomainError);
+    await recordSanctionAs(
+      actor,
+      personId,
+      {
         termId,
         kind: "SUSPENSION",
         cause: "Uso indebido de la oficina, con descargos el 5 de septiembre",
         occurredOn: "2026-09-01",
-        suspendedUntil: "2026-10-15",
-      }),
-    ).rejects.toBeInstanceOf(DomainError);
-    await recordSanctionAs(actor, personId, {
-      termId,
-      kind: "SUSPENSION",
-      cause: "Uso indebido de la oficina, con descargos el 5 de septiembre",
-      occurredOn: "2026-09-01",
-      suspendedUntil: "2026-09-28",
-    });
+        suspendedUntil: "2026-09-28",
+      },
+      asAdmin,
+    );
     expect((await listSanctionsForPerson(personId))[0]).toMatchObject({
       suspendedFrom: "2026-09-01",
       suspendedUntil: "2026-09-28",
       expiresOn: "2027-09-01",
     });
     await expect(
-      recordSanctionAs(actor, retired, {
-        termId,
-        kind: "WARNING",
-        cause: "No aplica: ya no es miembro",
-        occurredOn: "2026-09-01",
-      }),
+      recordSanctionAs(
+        actor,
+        retired,
+        {
+          termId,
+          kind: "WARNING",
+          cause: "No aplica: ya no es miembro",
+          occurredOn: "2026-09-01",
+        },
+        asAdmin,
+      ),
     ).rejects.toBeInstanceOf(DomainError);
   });
 
@@ -190,13 +212,18 @@ describe("faltas y sanciones", () => {
     await seedMembership(gh, termId);
     const personId = await member("ultimo-dia@eafit.edu.co", termId, a3);
     // Llamado de atención del 25 de agosto: suspende siete días (hasta el 1 de septiembre) y vence al año.
-    await recordSanctionAs({ personId: gh, ip: null }, personId, {
-      termId,
-      kind: "WARNING",
-      cause: "Faltó a la reunión sin excusa; en descargos reconoció la falta",
-      occurredOn: "2026-08-25",
-      committeeId: a3,
-    });
+    await recordSanctionAs(
+      { personId: gh, ip: null },
+      personId,
+      {
+        termId,
+        kind: "WARNING",
+        cause: "Faltó a la reunión sin excusa; en descargos reconoció la falta",
+        occurredOn: "2026-08-25",
+        committeeId: a3,
+      },
+      asAdmin,
+    );
 
     // 1 de septiembre a las 9 p. m. de Colombia: en UTC ya es 2 de septiembre (ADR-020).
     const lastEvening = await sanctionStateFor(personId, new Date("2026-09-02T02:00:00Z"));
@@ -255,20 +282,30 @@ describe("faltas y sanciones", () => {
     });
     await seedCheckIn(induction.id, personId);
     const actor = { personId: gh, ip: null };
-    await recordSanctionAs(actor, personId, {
-      termId,
-      kind: "MAJOR",
-      cause: "Consumo de alcohol con la camiseta de la OE; descargos del 2 de octubre",
-      occurredOn: "2024-10-01",
-    });
+    await recordSanctionAs(
+      actor,
+      personId,
+      {
+        termId,
+        kind: "MAJOR",
+        cause: "Consumo de alcohol con la camiseta de la OE; descargos del 2 de octubre",
+        occurredOn: "2024-10-01",
+      },
+      asAdmin,
+    );
     await recomputeSnapshots(termId);
     expect((await getSnapshot(personId, termId))?.expulsionWarning).toBe(false);
-    await recordSanctionAs(actor, personId, {
-      termId,
-      kind: "WARNING",
-      cause: "Llegada tarde al turno de GAP del 20 de octubre",
-      occurredOn: "2024-10-20",
-    });
+    await recordSanctionAs(
+      actor,
+      personId,
+      {
+        termId,
+        kind: "WARNING",
+        cause: "Llegada tarde al turno de GAP del 20 de octubre",
+        occurredOn: "2024-10-20",
+      },
+      asAdmin,
+    );
     await drainOutbox();
     expect((await getSnapshot(personId, termId))?.expulsionWarning).toBe(true);
     await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
@@ -285,8 +322,29 @@ describe("faltas y sanciones", () => {
     expect(row).toMatchObject({ status: "INACTIVE", endReason: "EXPULSION" });
   });
 
+  it("quien no declara desde dónde sanciona no registra nada", async () => {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const gh = await seedPerson("gh@eafit.edu.co");
+    await seedMembership(gh, termId);
+    const personId = await member("sin-alcance@eafit.edu.co", termId, a3);
+    const actor = { personId: gh, ip: null };
+    const suspension = {
+      termId,
+      kind: "SUSPENSION",
+      cause: "Uso indebido de la oficina, con descargos el 5 de septiembre",
+      occurredOn: "2026-09-01",
+      suspendedUntil: "2026-09-20",
+    } as const;
+
+    // @ts-expect-error El alcance es obligatorio (ADR-072 regla 1 y ADR-112): olvidarlo no compila.
+    const forgotten = recordSanctionAs(actor, personId, suspension);
+    await expect(forgotten).rejects.toThrow();
+    expect(await listSanctionsForPerson(personId)).toEqual([]);
+  });
+
   // El alcance de un comité (ADR-060 regla 6 y ADR-072 regla 1): la dirección registra llamados,
-  // leves y graves, y solo a miembros de su comité; sin alcance, GH sigue sin restricción.
+  // leves y graves, y solo a miembros de su comité; con el alcance de ADMIN no hay restricción.
 
   it("desde el alcance de un comité no se registra una suspensión ni una inhabilidad", async () => {
     const termId = await seedTerm();
@@ -295,7 +353,7 @@ describe("faltas y sanciones", () => {
     await seedMembership(director, termId);
     const personId = await member("propia@eafit.edu.co", termId, a3);
     const actor = { personId: director, ip: null };
-    const scope = { committeeId: a3, termId };
+    const scope = { by: "COMMITTEE", committeeId: a3, termId } as const;
     const suspension = {
       termId,
       kind: "SUSPENSION",
@@ -319,8 +377,8 @@ describe("faltas y sanciones", () => {
     ).rejects.toMatchObject({ name: "DomainError", message: t("T-260") });
     expect(await listSanctionsForPerson(personId)).toEqual([]);
 
-    // Sin alcance, como GH desde la Persona 360, la misma suspensión sí se registra.
-    await recordSanctionAs(actor, personId, suspension);
+    // Con el alcance de ADMIN, desde la Persona 360, la misma suspensión sí se registra.
+    await recordSanctionAs(actor, personId, suspension, asAdmin);
     expect((await listSanctionsForPerson(personId)).map((view) => view.kind)).toEqual([
       "SUSPENSION",
     ]);
@@ -336,7 +394,7 @@ describe("faltas y sanciones", () => {
     const former = await member("salio@eafit.edu.co", termId, a3);
     const actor = { personId: director, ip: null };
     await leaveCommitteeAs(actor, former, a3, termId, "Pidió salir del comité");
-    const scope = { committeeId: a3, termId };
+    const scope = { by: "COMMITTEE", committeeId: a3, termId } as const;
     const warning = {
       termId,
       kind: "WARNING",
@@ -355,8 +413,8 @@ describe("faltas y sanciones", () => {
       expect((await sanctionStateFor(personId)).suspendedUntil).toBeNull();
     }
 
-    // Sin alcance, GH sí sanciona a cualquier miembro vivo.
-    await recordSanctionAs(actor, outsider, { ...warning, committeeId: null });
+    // Con el alcance de ADMIN sí se sanciona a cualquier miembro vivo.
+    await recordSanctionAs(actor, outsider, { ...warning, committeeId: null }, asAdmin);
     expect(await listSanctionsForPerson(outsider)).toHaveLength(1);
   });
 
@@ -378,12 +436,16 @@ describe("faltas y sanciones", () => {
     } as const;
 
     await expect(
-      recordSanctionAs(actor, personId, warning, { committeeId: a3, termId }),
+      recordSanctionAs(actor, personId, warning, { by: "COMMITTEE", committeeId: a3, termId }),
     ).rejects.toMatchObject({ name: "DomainError", message: t("T-032") });
     expect(await listSanctionsForPerson(personId)).toEqual([]);
 
     // Desde el alcance del término en que sí fue del comité, la misma falta se registra.
-    await recordSanctionAs(actor, personId, warning, { committeeId: a3, termId: previous });
+    await recordSanctionAs(actor, personId, warning, {
+      by: "COMMITTEE",
+      committeeId: a3,
+      termId: previous,
+    });
     expect(await listSanctionsForPerson(personId)).toMatchObject([
       { kind: "WARNING", committeeName: "A3", termId: previous },
     ]);
@@ -398,7 +460,7 @@ describe("faltas y sanciones", () => {
     await seedMembership(director, termId);
     const personId = await member("propia@eafit.edu.co", termId, a3);
     const actor = { personId: director, ip: null };
-    const scope = { committeeId: a3, termId };
+    const scope = { by: "COMMITTEE", committeeId: a3, termId } as const;
 
     for (const kind of ["WARNING", "MINOR", "MAJOR"] as const) {
       // El término y el comité que traiga el formulario no mandan: manda el alcance autorizado.

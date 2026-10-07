@@ -215,14 +215,14 @@ export function requestCommitteeRemovalAs(
   return runCommand(actor, (ctx) => requestCommitteeRemoval(ctx, scope, who, input));
 }
 
-// Faltas y sanciones (ADR-060 regla 6). `scope` es el comité desde el que sanciona su dirección
-// (ADR-072 regla 1); sin él sanciona GH, sin restricción de tipo ni de comité.
+// Faltas y sanciones (ADR-060 regla 6). `scope` dice desde dónde se sanciona y es obligatorio, también
+// para ADMIN (ADR-072 regla 1; ADR-112): la dirección de un comité o ADMIN desde la Persona 360.
 
 export function recordSanctionAs(
   actor: Actor,
   personId: string,
   input: SanctionInput,
-  scope?: SanctionScope,
+  scope: SanctionScope,
 ): Promise<{ id: string }> {
   return runCommand(actor, (ctx) => recordSanction(ctx, personId, input, scope));
 }
