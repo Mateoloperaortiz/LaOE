@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { Cron } from "croner";
-import { asc, eq, isNull } from "drizzle-orm";
+import { asc, eq, isNull, sql } from "drizzle-orm";
 import sharp from "sharp";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
@@ -287,14 +287,34 @@ describe("lo que se entrega de un medio", () => {
     expect(metadata.orientation).toBeUndefined();
   });
 
-  it("una imagen más ancha de lo que admite un WebP queda lista, con la completa reducida hasta caber", async () => {
+  it("la variante completa no pasa de 2560 píxeles de lado: una foto más grande sale reducida a ese lado y sus variantes de ancho no cambian", async () => {
+    const member = await seedMember("foto.grande@eafit.edu.co");
+    // 3000 × 4000: una foto vertical de 12 megapíxeles, lo corriente en un teléfono. El lado que
+    // manda es el alto, no el ancho.
+    const big = await sharp({
+      create: { width: 3000, height: 4000, channels: 3, background: "#c85028" },
+    })
+      .jpeg()
+      .toBuffer();
+    const id = await upload(member, "photo", big, "image/jpeg");
+    const asset = await assetOf(id);
+
+    expect(asset).toMatchObject({ status: "READY", error: null, width: 3000, height: 4000 });
+    expect(Object.keys(asset.variants).sort()).toEqual(["full", "w1600", "w480", "w960"]);
+    expect(asset.variants.full).toMatchObject({ width: 1920, height: 2560 });
+    expect(asset.variants.w1600).toMatchObject({ width: 1600, height: 2133 });
+    const metadata = await sharp((await delivered(id, null)).body).metadata();
+    expect(metadata).toMatchObject({ format: "webp", width: 1920, height: 2560 });
+  });
+
+  it("una imagen más ancha de lo que admite un WebP queda lista, con la completa reducida al mismo lado", async () => {
     const admin = await seedMember("panoramica@eafit.edu.co");
     const id = await upload(admin, "media", await noisePng(17_000, 40), "image/png");
     const asset = await assetOf(id);
 
     expect(asset).toMatchObject({ status: "READY", error: null, width: 17_000, height: 40 });
     expect(Object.keys(asset.variants).sort()).toEqual(["full", "w1600", "w480", "w960"]);
-    expect(asset.variants.full?.width).toBe(16_383);
+    expect(asset.variants.full).toMatchObject({ width: 2560, height: 6 });
     expect(await signed(id, null)).toContain(`variants/${id}/full.webp`);
   });
 });
@@ -346,6 +366,27 @@ describe("el relleno de los medios procesados antes", () => {
     }
     // El original sigue en el bucket: deja de entregarse, no se borra.
     expect(await headObject(objectKey)).not.toBeNull();
+  });
+
+  it("un medio de antes con la variante completa anotada en nulo cuenta como sin ella: el relleno se la escribe y su original deja de entregarse", async () => {
+    const member = await seedMember("foto.con.nulo@eafit.edu.co");
+    const id = await upload(member, "photo", await phonePhoto(600, 400), "image/jpeg");
+    await asProcessedBefore(id);
+    // Ningún comando escribe ese nulo: es un estado del JSON guardado, no del tipo.
+    await getDb()
+      .update(mediaAsset)
+      .set({ variants: sql`${mediaAsset.variants} || '{"full": null}'::jsonb` })
+      .where(eq(mediaAsset.id, id));
+    const { objectKey } = await assetOf(id);
+    expect((await delivered(id, null)).url).toContain(objectKey);
+
+    await startBackfill();
+    await drainOutbox();
+
+    expect((await assetOf(id)).variants.full).toMatchObject({ width: 600, height: 400 });
+    const after = await delivered(id, null);
+    expect(after.url).toContain(`variants/${id}/full.webp`);
+    expect(await metadataOf(after.body)).toEqual(NONE);
   });
 
   it("repetir el relleno no vuelve a trabajar sobre un medio que ya tiene su variante", async () => {

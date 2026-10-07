@@ -86,6 +86,16 @@ describe("medios (reglas puras)", () => {
     }
   });
 
+  it("una variante completa anotada en nulo no cuenta: el medio sigue sin ella para quien procesa y para quien entrega", () => {
+    const ladder = {
+      w480: { key: "v/w480.webp", width: 480, height: 1, byteSize: 1, contentType: "image/webp" },
+    };
+    // El tipo no admite el nulo; el JSON guardado sí, y las dos lecturas tienen que decir lo mismo.
+    const withNull = { ...ladder, full: null as never };
+    expect(hasFullVariant(withNull)).toBe(false);
+    expect(pickVariant(withNull, null)).toBeNull();
+  });
+
   it("el srcset de una imagen lleva las variantes de ancho y no la completa", () => {
     const asset = { id: "abc", width: 1200, height: 800 };
     const ladder = { w480: { width: 480 }, w960: { width: 960 } };

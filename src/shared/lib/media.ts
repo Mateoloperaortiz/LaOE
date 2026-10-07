@@ -14,7 +14,8 @@ export function mediaSrcSet(assetId: string, widths: number[]): string {
 
 /**
  * Nombre en `variants` de la variante completa (ADR-114 regla 8): el original recodificado a WebP, sin
- * metadatos y sin reducir. Es lo que se entrega en lugar del original; no es una de las de ancho.
+ * metadatos y entero hasta 2560 px de lado. Es lo que se entrega en lugar del original; no es una de las
+ * de ancho.
  */
 export const FULL_VARIANT = "full";
 

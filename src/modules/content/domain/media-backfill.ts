@@ -33,7 +33,8 @@ export async function queueFullVariantBackfill(
       .where(
         and(
           eq(mediaAsset.status, "READY"),
-          sql`(${mediaAsset.variants} -> ${FULL_VARIANT}) is null`,
+          // `->>` y no `->`: un `full` guardado como nulo de JSON también es no tenerla.
+          sql`(${mediaAsset.variants} ->> ${FULL_VARIANT}) is null`,
           ...(input.cursor ? [gt(mediaAsset.id, input.cursor)] : []),
         ),
       )

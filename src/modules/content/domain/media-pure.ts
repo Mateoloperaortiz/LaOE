@@ -122,13 +122,25 @@ export function variantWidthsFor(originalWidth: number): number[] {
   return VARIANT_WIDTHS.filter((width) => width <= originalWidth);
 }
 
+/**
+ * Lado más largo de la variante completa, en píxeles (ADR-114 regla 8). Es el de una evidencia de reto,
+ * a propósito: codificar la completa no pide más memoria que la que ya pedía una evidencia. Codificar
+ * entera una imagen de las que el decodificador admite pide varias veces ese techo (DT-106). La imagen
+ * que no pasa de este lado sale entera, porque nunca se agranda.
+ */
+export const FULL_VARIANT_MAX_SIDE = 2560;
+
 /** Clave determinista de la variante completa, como las de ancho: procesar de nuevo la sobrescribe. */
 export function fullVariantKey(assetId: string): string {
   return `variants/${assetId}/${FULL_VARIANT}.webp`;
 }
 
+/**
+ * Lo mismo que mira `pickVariant` para entregar y la consulta del relleno para elegir: una variante
+ * completa anotada en nulo no es una variante, y ese medio se sigue sirviendo desde su original.
+ */
 export function hasFullVariant(variants: MediaVariants): boolean {
-  return Object.hasOwn(variants, FULL_VARIANT);
+  return (variants[FULL_VARIANT] ?? null) !== null;
 }
 
 /**

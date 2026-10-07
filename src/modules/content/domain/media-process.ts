@@ -1,15 +1,12 @@
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { getObject, headObject, putObject } from "@/shared/adapters/storage";
-import {
-  decodeImage,
-  IMAGE_MAX_ENCODED_SIDE,
-  ImageRejectedError,
-} from "@/shared/lib/image-decoder";
+import { decodeImage, ImageRejectedError } from "@/shared/lib/image-decoder";
 import { FULL_VARIANT } from "@/shared/lib/media";
 import { logger } from "@/shared/log";
 import { type MediaVariant, type MediaVariants, mediaAsset } from "../schema";
 import {
+  FULL_VARIANT_MAX_SIDE,
   fullVariantKey,
   hasFullVariant,
   MEDIA_TYPES,
@@ -44,11 +41,14 @@ async function storeVariant(
   };
 }
 
-/** La imagen entera, derecha y sin metadatos; solo se reduce si no cabe en un WebP. */
+/**
+ * La imagen derecha y sin metadatos, entera si no pasa de `FULL_VARIANT_MAX_SIDE` y reducida a ese lado
+ * si lo pasa: el decodificador solo codifica reduciendo (ADR-113 regla 4).
+ */
 async function storeFullVariant(assetId: string, original: Decoded): Promise<MediaVariant> {
   return storeVariant(
     fullVariantKey(assetId),
-    await original.toWebp({ side: IMAGE_MAX_ENCODED_SIDE }),
+    await original.toWebp({ side: FULL_VARIANT_MAX_SIDE }),
   );
 }
 
