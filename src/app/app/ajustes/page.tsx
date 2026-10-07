@@ -435,7 +435,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
           <BarraTitulo color="sky" className="self-start">
             <span id="privacidad-titulo">{secciones[5]}</span>
           </BarraTitulo>
-          <a href="/api/mis-datos" download className="boton-secundario self-start">
+          <a href="/api/mis-datos" className="boton-secundario self-start">
             {t("T-135")}
           </a>
           {downloadPending ? (

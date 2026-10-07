@@ -338,6 +338,16 @@ describe("una descarga pedida sin sesión desde su pantalla vuelve a esa pantall
     expect(showsNotice(await painted(screens.ajustes(back.search)))).toBe(true);
   });
 
+  it("el enlace de Mis datos navega: no le pide al navegador guardar lo que la ruta responda", async () => {
+    const link = (await painted(screens.ajustes({}))).find(
+      (element) => element.props.href === "/api/mis-datos",
+    );
+    expect(link?.type).toBe("a");
+    // Con `download`, el navegador guarda como archivo la página de ingreso a la que redirige la ruta
+    // y la persona no llega al aviso. El nombre del archivo lo pone la ruta, que responde adjunto.
+    expect(link?.props).not.toHaveProperty("download");
+  });
+
   it.each([
     ["de Mi OE", screens.lectorDeMiOe, `/app/normativa/${documentId}`],
     ["del admin", screens.lectorDelAdmin, `/admin/documentos/${documentId}`],
