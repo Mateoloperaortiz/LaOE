@@ -1,4 +1,4 @@
-import { isValidElement, type ReactElement, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import DocumentPreviewPage from "@/app/admin/documentos/[id]/page";
@@ -14,6 +14,7 @@ import { SettingsSections } from "@/app/app/ajustes/SettingsSections";
 import DocumentoPage from "@/app/app/normativa/[id]/page";
 import { DocumentReader } from "@/modules/content/components/DocumentReader";
 import { t, tList } from "@/shared/copy";
+import { type AnyElement, elements } from "../helpers/react-tree";
 
 // Las pantallas que originan una descarga (ADR-113, regla 10), con sus módulos simulados y sin
 // sesión en las rutas: qué enlace arman, a dónde vuelve ese enlace y si avisan al volver.
@@ -237,8 +238,6 @@ const challengeId = "retosintetico";
 const fileId = "archivosintetico";
 
 type Search = Record<string, string>;
-type AnyElement = ReactElement<Record<string, unknown>>;
-
 function props<P>(params: P, search: Search) {
   return { params: Promise.resolve(params), searchParams: Promise.resolve(search) };
 }
@@ -252,17 +251,6 @@ const screens = {
   bandeja: (search: Search) => RevisionPage(props({}, search)),
   reto: (search: Search) => RetoPage(props({ id: challengeId }, search)),
 };
-
-/** Los elementos del árbol que devuelve un componente, sin ejecutar los que monta. */
-function elements(node: ReactNode): AnyElement[] {
-  if (Array.isArray(node)) {
-    return node.flatMap(elements);
-  }
-  if (!isValidElement<Record<string, unknown>>(node)) {
-    return [];
-  }
-  return [node, ...elements(node.props.children as ReactNode)];
-}
 
 /** Lo que pinta la pantalla, con el aviso del admin y el lector de normativa ya resueltos. */
 async function painted(render: Promise<ReactNode>): Promise<AnyElement[]> {

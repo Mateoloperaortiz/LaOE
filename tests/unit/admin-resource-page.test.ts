@@ -1,4 +1,4 @@
-import { isValidElement, type ReactElement, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
@@ -6,6 +6,7 @@ import { ResourcePage } from "@/app/admin/_kit/ResourcePage";
 import { ResourceToolbar } from "@/shared/admin-kit";
 import type { AnyResource } from "@/shared/admin-kit/types";
 import { t } from "@/shared/copy";
+import { type AnyElement, elements } from "../helpers/react-tree";
 
 const state = vi.hoisted(() => ({
   actor: vi.fn(),
@@ -57,19 +58,6 @@ function resource(overrides: Partial<AnyResource> = {}): AnyResource {
     exportRow: () => ({}),
     ...overrides,
   };
-}
-
-type AnyElement = ReactElement<Record<string, unknown>>;
-
-/** Los elementos del árbol que devuelve la página, sin ejecutar sus componentes. */
-function elements(node: ReactNode): AnyElement[] {
-  if (Array.isArray(node)) {
-    return node.flatMap(elements);
-  }
-  if (!isValidElement<Record<string, unknown>>(node)) {
-    return [];
-  }
-  return [node, ...elements(node.props.children as ReactNode)];
 }
 
 /** Lo que pinta el aviso de descarga de la página, o `null` si no pinta nada. */
