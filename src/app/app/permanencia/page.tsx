@@ -9,7 +9,7 @@ import { Desglose } from "@/modules/permanence/components/Desglose";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { Cartel, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
-import { formatDate, formatDateTime } from "@/shared/lib/dates";
+import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
 import { noticeText } from "../_ui/avisos";
 import { Vacio } from "../_ui/Vacio";
 
@@ -60,11 +60,11 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
     listSanctionsForPerson(actor.personId),
   ]);
   const liveSanctions = sanctions.filter((item) => item.state === "LIVE");
+  // «Hoy» es el día civil de Colombia (ADR-020): el mismo con el que el dominio suspende los beneficios.
+  const today = todayKey();
   const suspendedUntil = liveSanctions
     .map((item) => item.suspendedUntil)
-    .filter(
-      (value): value is string => value !== null && value >= new Date().toISOString().slice(0, 10),
-    )
+    .filter((value): value is string => value !== null && value >= today)
     .sort()
     .at(-1);
   const dateOf = (key: string) => formatDate(new Date(`${key}T12:00:00Z`));

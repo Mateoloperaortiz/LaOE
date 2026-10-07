@@ -183,6 +183,33 @@ describe("faltas y sanciones", () => {
     ).rejects.toBeInstanceOf(DomainError);
   });
 
+  it("la suspensión y la vigencia de una falta corren hasta la medianoche de Colombia de su último día", async () => {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const gh = await seedPerson("gh@eafit.edu.co");
+    await seedMembership(gh, termId);
+    const personId = await member("ultimo-dia@eafit.edu.co", termId, a3);
+    // Llamado de atención del 25 de agosto: suspende siete días (hasta el 1 de septiembre) y vence al año.
+    await recordSanctionAs({ personId: gh, ip: null }, personId, {
+      termId,
+      kind: "WARNING",
+      cause: "Faltó a la reunión sin excusa; en descargos reconoció la falta",
+      occurredOn: "2026-08-25",
+      committeeId: a3,
+    });
+
+    // 1 de septiembre a las 9 p. m. de Colombia: en UTC ya es 2 de septiembre (ADR-020).
+    const lastEvening = await sanctionStateFor(personId, new Date("2026-09-02T02:00:00Z"));
+    expect(lastEvening.suspendedUntil).toBe("2026-09-01");
+    const nextMidnight = await sanctionStateFor(personId, new Date("2026-09-02T05:00:00Z"));
+    expect(nextMidnight.suspendedUntil).toBeNull();
+
+    // Lo mismo con la vigencia: el 25 de agosto del año siguiente a las 9 p. m. sigue viva.
+    const stateAt = async (now: Date) => (await listSanctionsForPerson(personId, now))[0]?.state;
+    expect(await stateAt(new Date("2027-08-26T02:00:00Z"))).toBe("LIVE");
+    expect(await stateAt(new Date("2027-08-26T05:00:00Z"))).toBe("EXPIRED");
+  });
+
   it("una falta grave más otra sanción viva hace que el cierre proponga y aplique la expulsión", async () => {
     const termId = await seedTerm("2024-2");
     const previous = await seedTerm("2024-1");
