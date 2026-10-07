@@ -10368,6 +10368,18 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3208": {
+    where: "Notificaciones: el endpoint del dispositivo ya es de otra persona (ADR-113)",
+    text: "Este dispositivo ya recibe notificaciones a nombre de otra persona.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3209": {
+    where: "Notificaciones: tope de dispositivos por persona (ADR-113)",
+    text: "Ya tenés 10 dispositivos con notificaciones. Quitá uno en Ajustes para activar este.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-321": {
     where: "La OE, título del bloque de contacto",
     text: "Contacto",

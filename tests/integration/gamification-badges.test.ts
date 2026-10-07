@@ -547,7 +547,7 @@ describe("flujo en vivo por el outbox", () => {
     await saveSubscriptionAs(
       { personId },
       {
-        endpoint: "https://push.test/flujo1",
+        endpoint: "https://fcm.googleapis.com/fcm/send/flujo1",
         keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) },
       },
       null,
@@ -632,12 +632,12 @@ describe("flujo en vivo por el outbox", () => {
     const keys = () => ({ p256dh: "p".repeat(32), auth: "a".repeat(16) });
     await saveSubscriptionAs(
       { personId: nuevo },
-      { endpoint: "https://push.test/nuevo", keys: keys() },
+      { endpoint: "https://fcm.googleapis.com/fcm/send/nuevo", keys: keys() },
       null,
     );
     await saveSubscriptionAs(
       { personId: veterano },
-      { endpoint: "https://push.test/viejo", keys: keys() },
+      { endpoint: "https://fcm.googleapis.com/fcm/send/viejo", keys: keys() },
       null,
     );
     await enableGamification(nuevo);
@@ -697,7 +697,7 @@ describe("flujo en vivo por el outbox", () => {
     await saveSubscriptionAs(
       { personId },
       {
-        endpoint: "https://push.test/flujo4",
+        endpoint: "https://fcm.googleapis.com/fcm/send/flujo4",
         keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) },
       },
       null,

@@ -81,7 +81,7 @@ describe("recordatorios de participación", () => {
       [fuera, "fuera"],
       [veterano, "veterano"],
     ] as const) {
-      await subscribe(person, `https://push.example/${endpoint}`);
+      await subscribe(person, `https://fcm.googleapis.com/fcm/send/${endpoint}`);
     }
     const tick = todayBogota(7);
     const deComite = await seedOccasion(termId, {

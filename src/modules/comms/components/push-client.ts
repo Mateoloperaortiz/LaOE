@@ -48,15 +48,49 @@ export function vapidKeyToBytes(base64url: string): Uint8Array {
   return bytes;
 }
 
-/** Envía la suscripción al servidor (upsert por endpoint). */
-export async function saveSubscription(subscription: PushSubscription): Promise<boolean> {
+async function postSubscription(
+  subscription: PushSubscription,
+): Promise<"saved" | "taken" | "failed"> {
   const json = subscription.toJSON();
   const response = await fetch("/api/push/subscribe", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
   });
-  return response.ok;
+  if (response.ok) {
+    return "saved";
+  }
+  return response.status === 409 ? "taken" : "failed";
+}
+
+/**
+ * Registra la suscripción de este navegador para quien tiene la sesión. Si el servidor responde que el
+ * endpoint ya es de otra persona (otra cuenta activó las notificaciones acá), la casa no lo reasigna
+ * (ADR-113 regla 6): el navegador suelta esa suscripción, pide una nueva, que trae su propio endpoint,
+ * y registra esa. La anterior deja de existir en el servicio de push y se borra sola en el próximo envío.
+ */
+export async function saveSubscription(
+  registration: ServiceWorkerRegistration,
+  subscription: PushSubscription,
+): Promise<boolean> {
+  const first = await postSubscription(subscription);
+  if (first !== "taken") {
+    return first === "saved";
+  }
+  try {
+    const applicationServerKey = subscription.options.applicationServerKey;
+    await subscription.unsubscribe();
+    if (!applicationServerKey) {
+      return false;
+    }
+    const renewed = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    });
+    return (await postSubscription(renewed)) === "saved";
+  } catch {
+    return false;
+  }
 }
 
 export async function forgetSubscription(endpoint: string): Promise<void> {

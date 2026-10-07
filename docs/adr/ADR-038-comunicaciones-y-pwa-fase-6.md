@@ -1,6 +1,6 @@
 # ADR-038: Comunicaciones y PWA (fase 6)
 
-- Estado: Aceptada (enmendada por ADR-039 y ADR-074)
+- Estado: Aceptada (enmendada por ADR-039, ADR-074 y ADR-113)
 - Fecha: 2026-09-05
 - Relacionadas: ADR-001, ADR-010, ADR-011, ADR-012, ADR-014, ADR-015, ADR-017, ADR-021, ADR-023, ADR-030, ADR-031, ADR-033, ADR-034, ADR-035, ADR-036, ADR-037
 - Enmienda: ADR-012 (programados `campaigns` y `notices`; el bus de notificaciones), ADR-015 (reglas concretas de preferencias, roster por defecto y consentimiento para no miembros; campañas por SES), ADR-023 (cabeceras de baja y `sendCampaignEmail`), ADR-031 (la encuesta tras la ocasión no usa `form_submission`), ADR-033 (push desde la cartelera; `/app/cartelera/[id]`), ADR-034 (dependencias de `comms`; pestaña Comunicaciones de la 360; mis datos), ADR-035 (`surveyFormId`, `participation → forms`, recordatorios), ADR-036 (regla 11: avisos por push desde `permanence.notices`; `recognition.granted`; T-202 al aplicar el cierre), ADR-037 (tipo de campo `RATING`; `call.opened`), 03-modelo (tablas de `comms`, `Message.kind`, encuesta en `participation`, `calendar_token`), 05-acceso (tokens de baja y calendario, dueño de la invitación, step-up de campañas), 06-mapa (rutas nuevas) y 14-copy (T-133 con seis secciones, T-924 con la calificación, T-194, T-195, T-209 a T-211, T-1063 en adelante)
@@ -53,3 +53,7 @@ Durante el arranque solo Resend envía correo transaccional y campañas; SES que
 ## Enmienda (2026-09-17, ADR-074)
 
 El bus de la regla 2 admite un tipo más, `WORDLE`, y `shouldDeliver` lo gobierna con `pushWordle`, la quinta preferencia de la regla 5, encendida por defecto y presente en Ajustes, en «mis datos» y en la Persona 360. El programado `wordle` (`0 9 * * *`) avisa la partida del día. Ver [ADR-074](ADR-074-aviso-diario-del-wordle.md).
+
+## Enmienda (2026-10-07, ADR-113)
+
+La regla 5 guardaba la suscripción con un upsert por `endpoint` que reasignaba la persona si el mismo navegador cambiaba de sesión, y aceptaba cualquier URL. Ahora el endpoint tiene que ser `https` de un servicio de push conocido, una persona tiene hasta 10 dispositivos y un endpoint que ya es de otra persona no se reasigna: `POST /api/push/subscribe` responde 409 y el navegador renueva su suscripción para registrar una propia. Registrar el propio lo sigue actualizando, y `DELETE`, las preferencias y el resto de la regla no cambian. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 6.

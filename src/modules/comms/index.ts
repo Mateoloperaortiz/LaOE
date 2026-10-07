@@ -66,6 +66,7 @@ export {
   listSubscriptionsFor,
   removeSubscriptionAs,
   type SubscriptionInput,
+  SubscriptionTakenError,
   type SubscriptionView,
   saveSubscriptionAs,
   subscriptionInputSchema,

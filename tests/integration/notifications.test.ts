@@ -15,6 +15,7 @@ import {
 import { pushChallengePublished } from "@/modules/comms/domain/events";
 import { message, notificationPreference, pushSubscription } from "@/modules/comms/schema";
 import { endMembership } from "@/modules/people";
+import { t } from "@/shared/copy";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
@@ -54,9 +55,9 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
   it("entrega una vez por persona aunque el evento se procese dos veces y registra un message por persona", async () => {
     const ana = await seedMember("ana.push@eafit.edu.co");
     const bruno = await seedMember("bruno.push@eafit.edu.co");
-    await subscribe(ana, "https://push.example/ana-1");
-    await subscribe(ana, "https://push.example/ana-2");
-    await subscribe(bruno, "https://push.example/bruno");
+    await subscribe(ana, "https://fcm.googleapis.com/fcm/send/ana-1");
+    await subscribe(ana, "https://fcm.googleapis.com/fcm/send/ana-2");
+    await subscribe(bruno, "https://fcm.googleapis.com/fcm/send/bruno");
     const sent: string[] = [];
     setPushSenderForTests(async (subscription) => {
       sent.push(subscription.endpoint);
@@ -78,7 +79,7 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
   it("respeta la preferencia del tipo, no registra a quien no tiene dispositivo y lo transaccional llega siempre", async () => {
     const ana = await seedMember("ana.pref@eafit.edu.co");
     const sinDispositivo = await seedMember("sin.dispositivo@eafit.edu.co");
-    await subscribe(ana, "https://push.example/ana");
+    await subscribe(ana, "https://fcm.googleapis.com/fcm/send/ana");
     await updatePreferencesAs(
       { personId: ana },
       {
@@ -102,8 +103,8 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
 
   it("borra la suscripción que responde 410 y marca FAILED cuando ningún dispositivo aceptó", async () => {
     const ana = await seedMember("ana.gone@eafit.edu.co");
-    await subscribe(ana, "https://push.example/vieja");
-    await subscribe(ana, "https://push.example/viva");
+    await subscribe(ana, "https://fcm.googleapis.com/fcm/send/vieja");
+    await subscribe(ana, "https://fcm.googleapis.com/fcm/send/viva");
     setPushSenderForTests(async (subscription) =>
       subscription.endpoint.endsWith("vieja")
         ? { ok: false, gone: true, error: "410 Gone" }
@@ -112,7 +113,7 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
     const stats = await deliverNotification(request([ana]));
     expect(stats).toMatchObject({ sent: 1, removedDevices: 1 });
     const left = await listSubscriptionsFor(ana);
-    expect(left.map((item) => item.endpoint)).toEqual(["https://push.example/viva"]);
+    expect(left.map((item) => item.endpoint)).toEqual(["https://fcm.googleapis.com/fcm/send/viva"]);
 
     setPushSenderForTests(async () => ({ ok: false, gone: false, error: "500" }));
     const failed = await deliverNotification(request([ana], { dedupeKey: "announcement:y" }));
@@ -123,7 +124,7 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
 
   it("sin VAPID el proveedor es console y el mensaje queda SENT; el handler del outbox lo entrega", async () => {
     const ana = await seedMember("ana.console@eafit.edu.co");
-    await subscribe(ana, "https://push.example/consola");
+    await subscribe(ana, "https://fcm.googleapis.com/fcm/send/consola");
     await enqueueEvent(db(), eventOf(notificationRequested, request([ana])));
     expect(await drainOutbox()).toEqual({ processed: 1, failed: 0 });
     const [row] = await db().select().from(message);
@@ -132,7 +133,7 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
 
   it("un reto con una audiencia que comms no conoce no le llega a nadie; con ALL llega a los miembros", async () => {
     const ana = await seedMember("ana.audiencia@eafit.edu.co");
-    await subscribe(ana, "https://push.example/audiencia");
+    await subscribe(ana, "https://fcm.googleapis.com/fcm/send/audiencia");
     const reto = {
       challengeId: "reto-1",
       termId: "termino-1",
@@ -150,14 +151,19 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
     expect(todos.sent).toBe(1);
   });
 
-  it("el upsert por endpoint reasigna la persona y salir de la OE borra suscripciones y preferencias", async () => {
+  it("el endpoint de otra persona no se reasigna y salir de la OE borra suscripciones y preferencias", async () => {
     const ana = await seedMember("ana.upsert@eafit.edu.co");
     const bruno = await seedMember("bruno.upsert@eafit.edu.co");
-    const first = await subscribe(ana, "https://push.example/compartido");
+    const first = await subscribe(ana, "https://fcm.googleapis.com/fcm/send/compartido");
     expect(first.created).toBe(true);
-    const second = await subscribe(bruno, "https://push.example/compartido");
-    expect(second).toEqual({ id: first.id, created: false });
-    expect(await listSubscriptionsFor(ana)).toHaveLength(0);
+    // ADR-113 regla 6: el mismo endpoint desde otra persona se rechaza y sigue siendo de quien era.
+    await expect(
+      subscribe(bruno, "https://fcm.googleapis.com/fcm/send/compartido"),
+    ).rejects.toMatchObject({ message: t("T-3208") });
+    expect(await listSubscriptionsFor(ana)).toHaveLength(1);
+    expect(await listSubscriptionsFor(bruno)).toHaveLength(0);
+    const own = await subscribe(bruno, "https://fcm.googleapis.com/fcm/send/de-bruno");
+    expect(own.created).toBe(true);
     expect(await listSubscriptionsFor(bruno)).toHaveLength(1);
     await updatePreferencesAs(
       { personId: bruno },

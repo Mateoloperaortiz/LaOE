@@ -9,7 +9,8 @@ type Props = {
 };
 
 // Registra el service worker en Mi OE (ADR-038 regla 4) y, si este navegador ya tiene una suscripción
-// que el servidor no conoce (otra persona entró antes, o se limpió), la registra para el actor.
+// que el servidor no conoce (otra persona entró antes, o se limpió), la registra para el actor; si era
+// de otra persona, `saveSubscription` la renueva en vez de pedir que se reasigne (ADR-113 regla 6).
 export function PwaRegistrar({ endpointsKey }: Props) {
   useEffect(() => {
     if (!isPushSupported()) {
@@ -27,7 +28,7 @@ export function PwaRegistrar({ endpointsKey }: Props) {
       }
       const known = endpointsKey.split("\n").includes(subscription.endpoint);
       if (!known) {
-        await saveSubscription(subscription);
+        await saveSubscription(registration, subscription);
       }
     })();
     return () => {

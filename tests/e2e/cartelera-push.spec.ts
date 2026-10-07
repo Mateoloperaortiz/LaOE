@@ -8,7 +8,7 @@ import { drenarOutbox } from "./outbox";
 // avisa por push, la prueba drena el outbox (en CI el poller está apagado), el registro de mensajes
 // muestra el envío por consola y el anuncio interno abre en Mi OE.
 
-const ENDPOINT = "https://push.example.invalid/e2e-cartelera";
+const ENDPOINT = "https://fcm.googleapis.com/fcm/send/e2e-cartelera";
 const TITULO = `e2e-anuncio-con-push-${Date.now().toString(36)}`;
 
 test("registrar dispositivo, publicar con push y leer el anuncio", async ({ browser, baseURL }) => {

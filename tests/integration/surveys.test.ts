@@ -71,7 +71,7 @@ describe("encuesta tras la ocasión", () => {
     await saveSubscriptionAs(
       { personId: ana },
       {
-        endpoint: "https://push.example/ana",
+        endpoint: "https://fcm.googleapis.com/fcm/send/ana",
         keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) },
       },
       null,

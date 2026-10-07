@@ -487,6 +487,8 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-1108 | Notificaciones: activadas ahora | ¡De una! Este dispositivo ya recibe notificaciones. | MATEO | Propuesta |
 | T-1109 | Notificaciones: falló activar | No pudimos activar las notificaciones. Intentá otra vez en un ratico. | MATEO | Propuesta |
 | T-1110 | Dispositivos: quitado | Listo, ese dispositivo ya no recibe notificaciones. | MATEO | Propuesta |
+| T-3208 | Notificaciones: el endpoint del dispositivo ya es de otra persona (ADR-113) | Este dispositivo ya recibe notificaciones a nombre de otra persona. | MATEO | Propuesta |
+| T-3209 | Notificaciones: tope de dispositivos por persona (ADR-113) | Ya tenés 10 dispositivos con notificaciones. Quitá uno en Ajustes para activar este. | MATEO | Propuesta |
 
 ## 5. Administración
 

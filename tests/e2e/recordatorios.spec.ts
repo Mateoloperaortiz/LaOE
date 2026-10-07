@@ -9,7 +9,7 @@ import { drenarOutbox } from "./outbox";
 // Recordatorios (ADR-038 regla 9): el miembro tiene un dispositivo, ADMIN abre una actividad e2e- de
 // hoy, la prueba encola el tick de las 07:00 de Bogotá y el registro de mensajes muestra la fila.
 
-const ENDPOINT = "https://push.example.invalid/e2e-recordatorio";
+const ENDPOINT = "https://fcm.googleapis.com/fcm/send/e2e-recordatorio";
 const TITULO = `e2e-recordatorio-${Date.now().toString(36)}`;
 
 /** Hoy en Bogotá (UTC-5) a la hora dada, en el formato de un `datetime-local`. */

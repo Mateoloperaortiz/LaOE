@@ -62,8 +62,8 @@ describe("push por evento", () => {
     const dentro = await seedMember("dentro@eafit.edu.co");
     const fuera = await seedMember("fuera@eafit.edu.co");
     await seedCommitteeMembership(dentro, committeeId, termId);
-    await subscribe(dentro, "https://push.example/dentro");
-    await subscribe(fuera, "https://push.example/fuera");
+    await subscribe(dentro, "https://fcm.googleapis.com/fcm/send/dentro");
+    await subscribe(fuera, "https://fcm.googleapis.com/fcm/send/fuera");
 
     const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
       createAnnouncement(ctx, {
@@ -81,7 +81,7 @@ describe("push por evento", () => {
     expect(row?.pushSentAt).toBeNull();
 
     await drainOutbox();
-    expect(delivered).toEqual(["https://push.example/dentro"]);
+    expect(delivered).toEqual(["https://fcm.googleapis.com/fcm/send/dentro"]);
     row = await getAnnouncement(id);
     expect(row?.pushSentAt).toBeInstanceOf(Date);
     expect(row?.pushCount).toBe(1);
@@ -118,7 +118,7 @@ describe("push por evento", () => {
       [honorario, "honorario"],
       [licencia, "licencia"],
     ] as const) {
-      await subscribe(person, `https://push.example/${endpoint}`);
+      await subscribe(person, `https://fcm.googleapis.com/fcm/send/${endpoint}`);
     }
     const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
       createAnnouncement(ctx, {
@@ -131,8 +131,8 @@ describe("push por evento", () => {
     await runCommand(SYSTEM_ACTOR, (ctx) => publishAndPushAnnouncement(ctx, id));
     await drainOutbox();
     expect(delivered.sort()).toEqual([
-      "https://push.example/activo",
-      "https://push.example/honorario",
+      "https://fcm.googleapis.com/fcm/send/activo",
+      "https://fcm.googleapis.com/fcm/send/honorario",
     ]);
     void termId;
   });
@@ -140,7 +140,7 @@ describe("push por evento", () => {
   it("los puntos acreditados mandan T-181 con el saldo, y una ocasión sin puntos no manda nada", async () => {
     const termId = await seedTerm();
     const ana = await seedMember("ana.puntos@eafit.edu.co");
-    await subscribe(ana, "https://push.example/ana");
+    await subscribe(ana, "https://fcm.googleapis.com/fcm/send/ana");
     const conPuntos = await seedOccasion(termId, { title: "Integración", points: 10 });
     const sinPuntos = await seedOccasion(termId, { title: "Reunión", points: 0 });
     expect((await checkInSelfAs({ personId: ana }, { publicId: conPuntos.publicId })).ok).toBe(
@@ -162,8 +162,8 @@ describe("push por evento", () => {
     const miembro = await seedMember("a3@eafit.edu.co");
     const otro = await seedMember("otro@eafit.edu.co");
     await seedCommitteeMembership(miembro, committeeId, termId);
-    await subscribe(miembro, "https://push.example/a3");
-    await subscribe(otro, "https://push.example/otro");
+    await subscribe(miembro, "https://fcm.googleapis.com/fcm/send/a3");
+    await subscribe(otro, "https://fcm.googleapis.com/fcm/send/otro");
     const groupId = await seedWorkGroup(termId, "e2e-gt");
     const closesAt = new Date(Date.now() + 7 * 24 * 60 * 60_000);
     const { id: callId } = await runCommand(SYSTEM_ACTOR, (ctx) =>

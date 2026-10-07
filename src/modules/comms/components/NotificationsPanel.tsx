@@ -122,7 +122,7 @@ export function NotificationsPanel({ vapidPublicKey, labels }: Props) {
         userVisibleOnly: true,
         applicationServerKey: vapidKeyToBytes(vapidPublicKey) as BufferSource,
       });
-      const saved = await saveSubscription(subscription);
+      const saved = await saveSubscription(registration, subscription);
       setStatus(saved ? "just-enabled" : "failed");
       router.refresh();
     } catch {

@@ -55,7 +55,7 @@ describe("aviso diario del Wordle", () => {
       [yaJugo, "yajugo"],
       [sinGanas, "singanas"],
     ] as const) {
-      await subscribe(personId, `https://push.example/${endpoint}`);
+      await subscribe(personId, `https://fcm.googleapis.com/fcm/send/${endpoint}`);
     }
     // El interruptor propio apaga solo esto (regla 4).
     await updatePreferencesAs(
@@ -76,7 +76,7 @@ describe("aviso diario del Wordle", () => {
       dedupeKey: `wordle:${day}`,
       subject: tList("T-2620")[0],
     });
-    expect(delivered).toEqual(["https://push.example/juega"]);
+    expect(delivered).toEqual(["https://fcm.googleapis.com/fcm/send/juega"]);
     // El aviso lleva al tablero, que desde ADR-075 vive en la biblioteca de juegos.
     const encolados = await db().select().from(outbox);
     const aviso = encolados.find((row) => row.eventType === "notification.requested");
@@ -94,7 +94,7 @@ describe("aviso diario del Wordle", () => {
 
     const termId = await seedTerm();
     const persona = await seedMember("cerrado@eafit.edu.co");
-    await subscribe(persona, "https://push.example/cerrado");
+    await subscribe(persona, "https://fcm.googleapis.com/fcm/send/cerrado");
     await db().update(term).set({ pointsClosedAt: new Date() }).where(eq(term.id, termId));
 
     expect(await runWordleReminder()).toEqual({ day: wordleDay(), audience: 0, enqueued: 0 });

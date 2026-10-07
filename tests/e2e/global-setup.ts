@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, like, notLike } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, like, notLike, or } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import {
   campaign,
@@ -317,10 +317,16 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_MEMBER_EMAIL));
   await setE2ePassword(member.id, E2E_MEMBER_EMAIL);
   await db.delete(editionRegistration).where(eq(editionRegistration.personId, member.id));
-  // Fase 6: dispositivos ficticios y preferencias que deja la suite de la PWA.
+  // Fase 6: dispositivos ficticios y preferencias que deja la suite de la PWA. El host es uno admitido
+  // (ADR-113 regla 6) y el E2E corre sin VAPID: nunca se envía. El patrón viejo limpia bases de antes.
   await db
     .delete(pushSubscription)
-    .where(like(pushSubscription.endpoint, "https://push.example.invalid/%"));
+    .where(
+      or(
+        like(pushSubscription.endpoint, "https://fcm.googleapis.com/fcm/send/e2e-%"),
+        like(pushSubscription.endpoint, "https://push.example.invalid/%"),
+      ),
+    );
   await db.delete(notificationPreference).where(eq(notificationPreference.personId, member.id));
   // Reconocimientos que el miembro (como líder de pruebas) nombró y sus anuncios de comité.
   await db.delete(recognition).where(eq(recognition.grantedById, member.id));
