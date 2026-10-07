@@ -1,6 +1,6 @@
 # ADR-010: Identidad por correo del roster con OTP
 
-- Estado: Aceptada (enmendada por ADR-034, ADR-039, ADR-050, ADR-051)
+- Estado: Aceptada (enmendada por ADR-034, ADR-039, ADR-050, ADR-051, ADR-113)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-002, ADR-011, ADR-015
 
@@ -33,3 +33,7 @@ El asunto del correo del código deja de incluirlo: guardarlo en `message.subjec
 ## Enmienda (2026-09-10, ADR-051)
 
 **El buzón deja de ser la credencial y pasa a ser un identificador.** Check Point retiene los códigos en la cuarentena del tenant de EAFIT, así que la apuesta por un canal único no se sostiene: la credencial pasa a ser una contraseña propia, guardada como hash `scrypt`, y el consecuente "no se guardan contraseñas" deja de valer. El OTP no desaparece —queda como método alterno, con sus mismas reglas y límites— y la primera credencial la entrega la junta con un enlace de un solo uso, fuera del correo. Ver [ADR-051](ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md).
+
+## Enmienda (2026-10-07, ADR-113)
+
+**Pedir un código deja siempre un reto.** «La respuesta nunca enumera el roster» se cumplía al pedir el código y no al verificarlo: sin reto, un correo de afuera respondía «vencido» donde uno del roster respondía «no es, te quedan 4 intentos». Ahora un correo de afuera deja un reto señuelo, con un hash al azar que ningún código cumple y sin envío, que cuenta intentos y gasta límites como uno real. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 2.

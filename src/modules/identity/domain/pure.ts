@@ -43,6 +43,14 @@ export function codeMatches(
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
+/**
+ * Hash de un reto señuelo (ADR-113, regla 2): tiene la forma de un SHA-256 y no sale de ningún
+ * código, así que ninguno lo cumple.
+ */
+export function decoyCodeHash(): string {
+  return randomBytes(32).toString("hex");
+}
+
 // Contraseña propia (ADR-051, reglas 1 y 12). `N = 2^15` es un punto medio deliberado entre la
 // guía de OWASP y un contenedor de Railway que además atiende requests: `2^17` reserva más de
 // 128 MiB por hash y convierte el ingreso en un vector de agotamiento de memoria.

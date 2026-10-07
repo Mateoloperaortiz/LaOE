@@ -3,7 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { setMailTransportsForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
-import { requestOtp, verifyOtp } from "@/modules/identity/domain/otp";
+import { requestOtp, type VerifyOtpResult, verifyOtp } from "@/modules/identity/domain/otp";
 import { hashCode, OTP_MAX_PER_EMAIL, OTP_MAX_PER_IP } from "@/modules/identity/domain/pure";
 import {
   destroySessionsFor,
@@ -49,6 +49,26 @@ async function challengesFor(email: string) {
   return row?.n ?? 0;
 }
 
+function captureMail() {
+  sent.length = 0;
+  setMailTransportsForTests({
+    primary: {
+      name: "console",
+      async send(message) {
+        sent.push(message);
+        return { id: null };
+      },
+    },
+    overflow: null,
+  });
+}
+
+const WRONG = "000000";
+
+function attempt(email: string, code: string, now = new Date()): Promise<VerifyOtpResult> {
+  return verifyOtp({ email, code, ip: null, userAgent: null, remember: false, now });
+}
+
 describe("requestOtp", () => {
   beforeEach(async () => {
     await truncateAll();
@@ -69,9 +89,9 @@ describe("requestOtp", () => {
     await closeDb();
   });
 
-  it("no crea reto ni envía correo si el correo no está en el roster", async () => {
+  it("deja un reto señuelo y no envía correo si el correo no está en el roster", async () => {
     await requestOtp({ email: "nadie@eafit.edu.co", ip: "1.1.1.1" });
-    expect(await challengesFor("nadie@eafit.edu.co")).toBe(0);
+    expect(await challengesFor("nadie@eafit.edu.co")).toBe(1);
     expect(sent).toHaveLength(0);
   });
 
@@ -82,7 +102,8 @@ describe("requestOtp", () => {
     await requestOtp({ email: "retirada@eafit.edu.co", ip: "1.1.1.1" });
     expect(sent).toHaveLength(1);
     expect(sent[0]?.to).toBe("licencia@eafit.edu.co");
-    expect(await challengesFor("retirada@eafit.edu.co")).toBe(0);
+    expect(await attempt("retirada@eafit.edu.co", CODE)).toMatchObject({ ok: false });
+    expect(await attempt("licencia@eafit.edu.co", CODE)).toMatchObject({ ok: true });
   });
 
   it("crea el reto y manda el código a un miembro activo, normalizando el correo", async () => {
@@ -277,5 +298,73 @@ describe("verifyOtp y sesiones", () => {
     const [remaining] = await db().select({ n: count() }).from(session);
     expect(remaining?.n).toBe(1);
     expect(await destroySessionsFor(db(), personId)).toBe(1);
+  });
+});
+
+// ADR-113, regla 2: pedir y probar un código responde igual para un correo del roster y para uno
+// de afuera. El de afuera deja un reto señuelo, que nadie puede cumplir y no envía nada.
+describe("reto señuelo del ingreso por código (ADR-113)", () => {
+  beforeEach(async () => {
+    await truncateAll();
+    captureMail();
+  });
+
+  it("probar un código equivocado responde igual para un correo del roster y para uno de afuera, y afuera no llega nada", async () => {
+    await seedMember("adentro@eafit.edu.co");
+    const recorridos: VerifyOtpResult[][] = [];
+    for (const email of ["adentro@eafit.edu.co", "afuera@eafit.edu.co"]) {
+      await requestOtp({ email, ip: "3.3.3.3" });
+      const respuestas: VerifyOtpResult[] = [];
+      for (let i = 0; i < 6; i += 1) {
+        respuestas.push(await attempt(email, WRONG));
+      }
+      recorridos.push(respuestas);
+    }
+    const [adentro, afuera] = recorridos;
+
+    expect(adentro?.[0]).toEqual({ ok: false, reason: "INVALID", attemptsLeft: 4 });
+    expect(adentro?.[5]).toEqual({ ok: false, reason: "LOCKED", attemptsLeft: 0 });
+    expect(afuera).toEqual(adentro);
+    expect(sent.map((mail) => mail.to)).toEqual(["adentro@eafit.edu.co"]);
+  });
+
+  it("el reto señuelo no abre sesión ni con el código fijo del entorno, tampoco para quien ya se retiró", async () => {
+    await seedMember("retirada@eafit.edu.co", "INACTIVE");
+    for (const email of ["afuera@eafit.edu.co", "retirada@eafit.edu.co"]) {
+      await requestOtp({ email, ip: null });
+      expect(await attempt(email, CODE)).toEqual({
+        ok: false,
+        reason: "INVALID",
+        attemptsLeft: 4,
+      });
+    }
+    expect(sent).toHaveLength(0);
+    const [sesiones] = await db().select({ n: count() }).from(session);
+    expect(sesiones?.n).toBe(0);
+  });
+
+  it("un correo de afuera gasta el mismo límite de solicitudes por correo", async () => {
+    for (let i = 0; i < OTP_MAX_PER_EMAIL + 2; i += 1) {
+      await requestOtp({ email: "afuera@eafit.edu.co", ip: "4.4.4.4" });
+    }
+    expect(await challengesFor("afuera@eafit.edu.co")).toBe(OTP_MAX_PER_EMAIL);
+    expect(sent).toHaveLength(0);
+  });
+
+  it("las solicitudes de correos de afuera gastan el límite por IP igual que las de un miembro", async () => {
+    await seedMember("vecina@eafit.edu.co");
+    for (let i = 0; i < OTP_MAX_PER_IP; i += 1) {
+      await requestOtp({ email: `afuera-${i}@eafit.edu.co`, ip: "5.5.5.5" });
+    }
+    await requestOtp({ email: "vecina@eafit.edu.co", ip: "5.5.5.5" });
+    expect(sent).toHaveLength(0);
+  });
+
+  it("un miembro que se equivoca dos veces y acierta a la tercera entra", async () => {
+    const personId = await seedMember("tercera@eafit.edu.co");
+    await requestOtp({ email: "tercera@eafit.edu.co", ip: null });
+    expect(await attempt("tercera@eafit.edu.co", WRONG)).toMatchObject({ attemptsLeft: 4 });
+    expect(await attempt("tercera@eafit.edu.co", WRONG)).toMatchObject({ attemptsLeft: 3 });
+    expect(await attempt("tercera@eafit.edu.co", CODE)).toMatchObject({ ok: true, personId });
   });
 });

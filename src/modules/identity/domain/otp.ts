@@ -10,6 +10,7 @@ import { logger } from "@/shared/log";
 import { otpChallenge } from "../schema";
 import {
   codeMatches,
+  decoyCodeHash,
   generateCode,
   hashCode,
   normalizeEmail,
@@ -22,7 +23,8 @@ import {
 import { createSession, markStepUp } from "./session";
 
 // Identidad por correo del roster con OTP (ADR-010, 05-acceso.md). La respuesta a "pedir código"
-// es siempre la misma: nunca se enumera el roster.
+// es siempre la misma y verificarlo responde igual para un correo de afuera: nunca se enumera el
+// roster (ADR-113, regla 2).
 
 export type OtpPurpose = "LOGIN" | "STEP_UP";
 
@@ -42,7 +44,10 @@ async function countRecent(column: "email" | "ip", value: string, since: Date): 
   return row?.n ?? 0;
 }
 
-/** Crea y envía un código si el correo está en el roster y no se superó el límite. Nunca revela nada. */
+/**
+ * Deja un reto si no se superó ningún límite y envía el código solo si el correo está en el roster:
+ * el reto de un correo de afuera es un señuelo. Nunca revela nada.
+ */
 export async function requestOtp(input: RequestOtpInput): Promise<void> {
   const env = getEnv();
   const now = input.now ?? new Date();
@@ -59,8 +64,21 @@ export async function requestOtp(input: RequestOtpInput): Promise<void> {
     return;
   }
 
+  const challenge = {
+    email,
+    purpose,
+    expiresAt: new Date(now.getTime() + OTP_TTL_MS),
+    maxAttempts: OTP_MAX_ATTEMPTS,
+    ip: input.ip,
+  };
+
   const member = await findEligibleMemberByEmail(email);
   if (!member) {
+    // Reto señuelo (ADR-113, regla 2): gasta los mismos límites y cuenta los mismos intentos que
+    // uno real, así que verificar no distingue. Ningún código lo cumple y no se envía nada.
+    await getDb()
+      .insert(otpChallenge)
+      .values({ ...challenge, codeHash: decoyCodeHash() });
     logger.info({ email }, "otp: correo fuera del roster");
     return;
   }
@@ -68,14 +86,7 @@ export async function requestOtp(input: RequestOtpInput): Promise<void> {
   const code = generateCode(env.OTP_FIXED_CODE);
   await getDb()
     .insert(otpChallenge)
-    .values({
-      email,
-      purpose,
-      codeHash: hashCode(env.SESSION_SECRET, email, code),
-      expiresAt: new Date(now.getTime() + OTP_TTL_MS),
-      maxAttempts: OTP_MAX_ATTEMPTS,
-      ip: input.ip,
-    });
+    .values({ ...challenge, codeHash: hashCode(env.SESSION_SECRET, email, code) });
 
   const nombre = member.preferredName ?? member.firstName;
   const cuerpo = t("T-054", { nombre, código: code });

@@ -4,6 +4,7 @@ import {
   burnPasswordTime,
   checkPassword,
   codeMatches,
+  decoyCodeHash,
   describeUserAgent,
   generateAccessToken,
   generateCode,
@@ -61,6 +62,12 @@ describe("códigos y hashes", () => {
     expect(a).not.toBe(hashCode("s", "b@eafit.edu.co", "111111"));
     expect(codeMatches(a, "s", "a@eafit.edu.co", "111111")).toBe(true);
     expect(codeMatches(a, "s", "a@eafit.edu.co", "111112")).toBe(false);
+  });
+  it("el hash señuelo tiene la forma de un SHA-256, cambia cada vez y ningún código lo cumple", () => {
+    const decoy = decoyCodeHash();
+    expect(decoy).toMatch(/^[0-9a-f]{64}$/);
+    expect(decoyCodeHash()).not.toBe(decoy);
+    expect(codeMatches(decoy, "s", "a@eafit.edu.co", "123456")).toBe(false);
   });
   it("el hash del token coincide con SHA-256 y cambia con el token", () => {
     expect(hashToken("abc")).toBe(
