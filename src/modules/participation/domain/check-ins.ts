@@ -647,22 +647,23 @@ export async function excuseCheckIn(
   await ctx.emit(
     eventOf(checkinExcused, { ...approvedPayload(row, input.personId, "ADMIN"), reason }),
   );
-  // ADR-067 regla 3: la excusa cierra la asistencia sin aprobarla, así que con el premio hace lo
-  // mismo que un rechazo: libera la reserva del booster y después la del reto presencial. El motivo
-  // del premio es el estado, no el texto de la persona (una causal médica no se copia a otra tabla).
+  // ADR-067 regla 3 y ADR-111: la excusa cierra la asistencia sin aprobarla, así que con el premio
+  // hace lo mismo que un rechazo: libera la reserva del booster y después la del reto presencial. El
+  // motivo del premio es el estado y el de la entrega dice que la asistencia quedó excusada; ninguno
+  // es el texto de la persona (una causal médica no se copia a otra tabla).
   if (current) {
     const excused: CheckInRow = { ...current, status: "EXCUSED" };
-    const released = statusLabel("EXCUSED");
-    await applyCheckInBoost(
-      ctx,
-      { checkIn: excused, occasion: row, outcome: "REJECTED", reason: released, now },
-      context,
-    );
-    await applyPresentialCheckIn(
-      ctx,
-      { checkIn: excused, occasion: row, outcome: "REJECTED", reason: released, now },
-      context,
-    );
+    const releaseReason = statusLabel("EXCUSED");
+    const closing = {
+      checkIn: excused,
+      occasion: row,
+      outcome: "REJECTED",
+      reason: releaseReason,
+      rejectionReason: t("T-3205", { actividad: row.title }),
+      now,
+    } as const;
+    await applyCheckInBoost(ctx, closing, context);
+    await applyPresentialCheckIn(ctx, closing, context);
   }
 }
 

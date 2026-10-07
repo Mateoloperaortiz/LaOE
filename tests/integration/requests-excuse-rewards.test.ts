@@ -1,6 +1,7 @@
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { challengeRejected } from "@/domain-events/participation";
 import { createRequestAs, decideRequestAs, listInteractions } from "@/modules/crm";
 import {
   checkInSelfAs,
@@ -15,7 +16,7 @@ import {
   setBoosterTargetAs,
 } from "@/modules/participation";
 import { setConfigAs } from "@/modules/system";
-import { auditLog } from "@/modules/system/schema";
+import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { drainOutbox } from "../helpers/outbox";
@@ -186,11 +187,18 @@ describe("excusa sobre una asistencia pendiente con premio reservado", () => {
 
     await approveExcuse(f, occasion.id);
 
+    // El motivo dice que la asistencia quedó excusada, no que «no fue aprobada» (T-2579), y es el
+    // que viaja en el evento del que sale el aviso a la persona (ADR-111 regla 3).
+    const excused = t("T-3205", { actividad: OCCASION });
     expect(await listParticipationsForPerson(f.personId)).toEqual([
-      expect.objectContaining({
-        status: "REJECTED",
-        reason: t("T-2579", { actividad: OCCASION }),
-      }),
+      expect.objectContaining({ status: "REJECTED", reason: excused }),
+    ]);
+    const rejections = await getDb()
+      .select({ payload: outbox.payload })
+      .from(outbox)
+      .where(eq(outbox.eventType, challengeRejected.type));
+    expect(rejections).toEqual([
+      { payload: expect.objectContaining({ personId: f.personId, reason: excused }) },
     ]);
     expect(await closingSummary(f.termId)).toMatchObject({
       pendingParticipations: 0,

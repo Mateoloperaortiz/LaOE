@@ -10349,6 +10349,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3205": {
+    where: "Reto presencial: asistencia excusada (motivo automático, ADR-111)",
+    text: "Tu asistencia en {actividad} quedó excusada.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-321": {
     where: "La OE, título del bloque de contacto",
     text: "Contacto",

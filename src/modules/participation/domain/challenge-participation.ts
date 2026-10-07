@@ -538,6 +538,11 @@ export async function applyPresentialCheckIn(
     occasion: OccasionRow;
     outcome: "APPROVED" | "PENDING" | "REJECTED" | "CANCELLED";
     reason?: string | null;
+    /**
+     * Motivo con el que se cierra la entrega pendiente en un rechazo. Sin él vale el automático de
+     * una asistencia no aprobada (T-2579); la excusa trae el suyo (T-3205, ADR-111 regla 3).
+     */
+    rejectionReason?: string | undefined;
     now?: Date | undefined;
   },
   context: { settings: GamificationSettings },
@@ -688,7 +693,7 @@ export async function applyPresentialCheckIn(
       if (existing?.status !== "PENDING") {
         continue;
       }
-      const reason = t("T-2579", { actividad: input.occasion.title });
+      const reason = input.rejectionReason ?? t("T-2579", { actividad: input.occasion.title });
       if (existing.rewardId) {
         await releaseReward(ctx, existing.rewardId, reason);
       }

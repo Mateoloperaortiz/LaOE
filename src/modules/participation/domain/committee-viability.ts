@@ -10,6 +10,7 @@ import { getTerm } from "@/modules/terms";
 import { todayKey } from "@/shared/lib/dates";
 import { committeeAssemblyAttendance, occasion } from "../schema";
 import {
+  termMidpointKey,
   type ViabilityAlert,
   type ViabilityInput,
   viabilityAlerts,
@@ -60,14 +61,9 @@ export async function listCommitteeViability(
       .where(eq(committeeAssemblyAttendance.termId, termId)),
   ]);
   const requiredCodes = roles.filter((role) => role.required).map((role) => role.code);
-  // «Hoy» es el día civil de Colombia (ADR-020), no el de UTC.
+  // «Hoy» es el día civil de Colombia (ADR-020), no el de UTC, y la mitad del término es un día.
   const today = todayKey(now);
-  const midpoint = new Date(
-    (new Date(`${term.startsOn}T00:00:00Z`).getTime() +
-      new Date(`${term.endsOn}T00:00:00Z`).getTime()) /
-      2,
-  );
-  const pastMidterm = now >= midpoint;
+  const pastMidterm = today >= termMidpointKey(term.startsOn, term.endsOn);
   return committees
     .filter((committee) => committee.status !== "INACTIVE")
     .map((committee) => {

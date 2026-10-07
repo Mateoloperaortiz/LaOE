@@ -3,13 +3,18 @@ import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { getOnboarding, listInteractions } from "@/modules/crm";
 import { requireActor } from "@/modules/identity";
-import { getPeopleByIds, listCommitteesByIds, listSanctionsForPerson } from "@/modules/people";
+import {
+  getPeopleByIds,
+  listCommitteesByIds,
+  listSanctionsForPerson,
+  sanctionStateFor,
+} from "@/modules/people";
 import { getPersonPermanence } from "@/modules/permanence";
 import { Desglose } from "@/modules/permanence/components/Desglose";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { Cartel, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
-import { formatDate, formatDateTime, todayKey } from "@/shared/lib/dates";
+import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { noticeText } from "../_ui/avisos";
 import { Vacio } from "../_ui/Vacio";
 
@@ -50,23 +55,20 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
       for (const id of detail.group.evaluatorIds) evaluatorIds.add(id);
     }
   }
-  const [committees, people, onboarding, history, sanctions] = await Promise.all([
-    listCommitteesByIds(committeeIds),
-    getPeopleByIds([...evaluatorIds]),
-    result?.isNew && term.id === current?.id
-      ? getOnboarding(actor.personId, term.id)
-      : Promise.resolve(null),
-    listInteractions(actor.personId, "PERMANENCE", 30),
-    listSanctionsForPerson(actor.personId),
-  ]);
+  // La suspensión de derechos se lee de people, que es quien la decide (ADR-060 regla 6): la página
+  // no la recalcula a partir de la lista de sanciones.
+  const [committees, people, onboarding, history, sanctions, { suspendedUntil }] =
+    await Promise.all([
+      listCommitteesByIds(committeeIds),
+      getPeopleByIds([...evaluatorIds]),
+      result?.isNew && term.id === current?.id
+        ? getOnboarding(actor.personId, term.id)
+        : Promise.resolve(null),
+      listInteractions(actor.personId, "PERMANENCE", 30),
+      listSanctionsForPerson(actor.personId),
+      sanctionStateFor(actor.personId),
+    ]);
   const liveSanctions = sanctions.filter((item) => item.state === "LIVE");
-  // «Hoy» es el día civil de Colombia (ADR-020): el mismo con el que el dominio suspende los beneficios.
-  const today = todayKey();
-  const suspendedUntil = liveSanctions
-    .map((item) => item.suspendedUntil)
-    .filter((value): value is string => value !== null && value >= today)
-    .sort()
-    .at(-1);
   const dateOf = (key: string) => formatDate(new Date(`${key}T12:00:00Z`));
   const committeeNames = new Map(committees.map((item) => [item.id, item.name]));
   const personNames = new Map([...people.values()].map((item) => [item.id, item.fullName]));

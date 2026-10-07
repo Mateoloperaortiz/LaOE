@@ -56,6 +56,16 @@ function daysBetween(fromKey: string, toKey: string): number {
   );
 }
 
+/**
+ * Día de la mitad del término (AAAA-MM-DD): aritmética de calendario sobre sus fechas clave, sin
+ * zona, igual que la mitad de los avisos de permanencia. Se compara con el día civil de Colombia.
+ */
+export function termMidpointKey(startsOn: string, endsOn: string): string {
+  const midpoint = new Date(`${startsOn}T00:00:00Z`);
+  midpoint.setUTCDate(midpoint.getUTCDate() + Math.floor(daysBetween(startsOn, endsOn) / 2));
+  return midpoint.toISOString().slice(0, 10);
+}
+
 export function viabilityAlerts(input: ViabilityInput): ViabilityAlert[] {
   if (input.status === "INACTIVE") {
     return [];
