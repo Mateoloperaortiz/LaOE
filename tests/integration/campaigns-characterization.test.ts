@@ -711,6 +711,85 @@ describe("los defectos que la caracterización le encontró al lote", () => {
 /** Lo que dura el reclamo de un lote sobre sus destinatarios, en minutos (ADR-115 regla 1). */
 const CLAIM_MINUTES = 15;
 
+/** Una compuerta del transporte: `hold` avisa que un correo llegó y lo retiene hasta `release`. */
+interface MailGate {
+  reached: Promise<void>;
+  hold: () => Promise<void>;
+  release: () => void;
+}
+
+function mailGate(): MailGate {
+  let reach = (): void => {};
+  let release = (): void => {};
+  const reached = new Promise<void>((resolve) => {
+    reach = resolve;
+  });
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return {
+    reached,
+    hold: () => {
+      reach();
+      return released;
+    },
+    release: () => release(),
+  };
+}
+
+/** Espera a que el lote deje un correo retenido en la compuerta; si termina antes, no hay escenario. */
+function untilHeld(gate: MailGate, tick: Promise<unknown>): Promise<void> {
+  return Promise.race([
+    gate.reached,
+    tick.then(() => {
+      throw new Error("El lote terminó sin dejar un correo en vuelo");
+    }),
+  ]);
+}
+
+/**
+ * Un lote que se cae entre registrar su primer correo y marcar a su destinatario. `accept` va de
+ * transporte: mientras ese correo viaja toma la fila de la campaña, sin estorbar el registro del
+ * mensaje, y después hace con cada correo lo que diga `provider`. `run` corre el lote del minuto 0,
+ * cancela la sentencia con la que el lote espera esa fila para marcar y devuelve el motivo de la caída,
+ * o `null` si el lote no se cayó.
+ */
+function interruptionBeforeMarking(
+  id: string,
+  provider: (call: number) => string,
+): { accept: Accept; run: () => Promise<string | null> } {
+  let letGo = (): void => {};
+  const untilLetGo = new Promise<void>((resolve) => {
+    letGo = resolve;
+  });
+  let hold: Promise<void> = Promise.resolve();
+  return {
+    accept: async (_mail, call) => {
+      if (call === 1) {
+        await new Promise<void>((taken) => {
+          hold = db().transaction(async (tx) => {
+            await tx.execute(sql`select id from campaign where id = ${id} for no key update`);
+            taken();
+            await untilLetGo;
+          });
+        });
+      }
+      return provider(call);
+    },
+    run: async () => {
+      const tick = settle(runCampaignTick(minute(0)));
+      await untilLockWaiters(1, tick);
+      for (const waiter of await lockWaiters()) {
+        await db().execute(sql`select pg_cancel_backend(${waiter.pid})`);
+      }
+      const interruption = await tick;
+      letGo();
+      await hold;
+      return interruption;
+    },
+  };
+}
+
 describe("el lote reclama, envía sin transacción abierta y marca a cada destinatario (ADR-115)", () => {
   it("mientras un correo viaja, el lote no tiene ninguna transacción abierta", async () => {
     await seedRoster(2);
@@ -771,37 +850,10 @@ describe("el lote reclama, envía sin transacción abierta y marca a cada destin
   it("un destinatario reclamado cuyo correo ya quedó registrado se recupera como enviado, sin reenviárselo", async () => {
     const roster = await seedRoster(3);
     const id = await scheduleCampaign(3);
-    // El lote se cae entre registrar el primer correo y marcar a su destinatario: mientras el correo
-    // viaja la prueba toma la fila de la campaña, sin estorbar el registro del mensaje, y después
-    // cancela la sentencia con la que el lote la espera para marcar.
-    let letGo = (): void => {};
-    const untilLetGo = new Promise<void>((resolve) => {
-      letGo = resolve;
-    });
-    let hold: Promise<void> = Promise.resolve();
-    useTransports({
-      overflow: async (_mail, call) => {
-        if (call === 1) {
-          await new Promise<void>((taken) => {
-            hold = db().transaction(async (tx) => {
-              await tx.execute(sql`select id from campaign where id = ${id} for no key update`);
-              taken();
-              await untilLetGo;
-            });
-          });
-        }
-        return `ses_${call}`;
-      },
-    });
+    const interrupted = interruptionBeforeMarking(id, (call) => `ses_${call}`);
+    useTransports({ overflow: interrupted.accept });
 
-    const tick = settle(runCampaignTick(minute(0)));
-    await untilLockWaiters(1, tick);
-    for (const waiter of await lockWaiters()) {
-      await db().execute(sql`select pg_cancel_backend(${waiter.pid})`);
-    }
-    const interruption = await tick;
-    letGo();
-    await hold;
+    const interruption = await interrupted.run();
 
     expect(interruption).toEqual(expect.any(String));
     expect(await recipientStatuses(id)).toEqual({ PENDING: 3 });
@@ -819,6 +871,104 @@ describe("el lote reclama, envía sin transacción abierta y marca a cada destin
     const recovered = (await listRecipients(id)).rows.find((row) => row.personId === first?.id);
     expect(recovered).toMatchObject({ status: "SENT", messageId: record?.id, sentAt: minute(0) });
     expect(await db().select().from(message).where(eq(message.campaignId, id))).toHaveLength(3);
+  });
+
+  it("un destinatario reclamado cuyo correo quedó registrado como rechazado se recupera como fallido, sin volver a intentarlo", async () => {
+    const roster = await seedRoster(3);
+    const id = await scheduleCampaign(3);
+    // El proveedor rechaza el primer correo y aceptaría cualquier otro, también un reintento de ese.
+    const interrupted = interruptionBeforeMarking(id, (call) => {
+      if (call === 1) {
+        throw new Error("550 buzón inexistente");
+      }
+      return `ses_${call}`;
+    });
+    useTransports({ overflow: interrupted.accept });
+
+    const interruption = await interrupted.run();
+
+    expect(interruption).toEqual(expect.any(String));
+    expect(await recipientStatuses(id)).toEqual({ PENDING: 3 });
+    expect(delivered.overflow).toEqual([]);
+    const [record] = await db().select().from(message).where(eq(message.campaignId, id));
+    expect(record).toMatchObject({
+      status: "FAILED",
+      error: "550 buzón inexistente",
+      sentAt: null,
+    });
+
+    expect(await runCampaignTick(minute(CLAIM_MINUTES))).toEqual({ started: 0, sent: 2 });
+
+    const rejected = roster.find((member) => member.id === record?.personId);
+    expect(addresses(delivered.overflow)).toEqual(
+      emails(roster.filter((member) => member !== rejected)),
+    );
+    expect(await getCampaign(id)).toMatchObject({ status: "SENT", sentCount: 2, failedCount: 1 });
+    const recovered = (await listRecipients(id)).rows.find((row) => row.personId === rejected?.id);
+    expect(recovered).toMatchObject({ status: "FAILED", messageId: record?.id, sentAt: null });
+    expect(await db().select().from(message).where(eq(message.campaignId, id))).toHaveLength(3);
+  });
+
+  it("un lote que sigue vivo al vencer su reclamo no manda nada de lo que otro lote ya reclamó: solo se repite el correo que tenía en vuelo", async () => {
+    const roster = await seedRoster(3);
+    const id = await scheduleCampaign(3);
+    // El poller deja de esperar a un lote lento, pero no lo detiene (ADR-079). Acá el lote viejo queda
+    // con su primer correo en vuelo y el nuevo, que al vencer el reclamo los reclama a los tres, con su
+    // segundo: los dos reciben a sus destinatarios en el mismo orden.
+    const oldLot = mailGate();
+    const newLot = mailGate();
+    useTransports({
+      overflow: async (_mail, call) => {
+        if (call === 1) {
+          await oldLot.hold();
+        }
+        if (call === 3) {
+          await newLot.hold();
+        }
+        return `ses_${call}`;
+      },
+    });
+
+    const oldTick = runCampaignTick(minute(0));
+    await untilHeld(oldLot, oldTick);
+    const newTick = runCampaignTick(minute(CLAIM_MINUTES));
+    await untilHeld(newLot, newTick);
+    // El lote nuevo ya le mandó y le marcó a uno; a los otros dos los tiene reclamados y pendientes.
+    expect(delivered.overflow).toHaveLength(1);
+    expect(await recipientStatuses(id)).toEqual({ SENT: 1, PENDING: 2 });
+
+    oldLot.release();
+    expect(await oldTick).toEqual({ started: 1, sent: 0 });
+    // Del lote viejo solo llegó el correo que ya iba en vuelo, para quien el nuevo ya había atendido.
+    expect(delivered.overflow).toHaveLength(2);
+    const repeatedTo = delivered.overflow[0]?.to;
+    expect(delivered.overflow[1]?.to).toBe(repeatedTo);
+
+    newLot.release();
+    expect(await newTick).toEqual({ started: 0, sent: 3 });
+
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENT",
+      finishedAt: minute(CLAIM_MINUTES),
+      sentCount: 3,
+      failedCount: 0,
+      skippedCount: 0,
+    });
+    const copies = roster.map(
+      (member) => delivered.overflow.filter((mail) => mail.to === member.email).length,
+    );
+    expect(copies.sort()).toEqual([1, 1, 2]);
+    // Del correo repetido queda un solo registro, el del lote que lo anotó primero, y con ese quedó
+    // marcado su destinatario.
+    const records = await db().select().from(message).where(eq(message.campaignId, id));
+    expect(records).toHaveLength(3);
+    const repeated = (await listRecipients(id)).rows.find((row) => row.email === repeatedTo);
+    const record = records.find((row) => row.personId === repeated?.personId);
+    expect(repeated).toMatchObject({
+      status: "SENT",
+      messageId: record?.id,
+      sentAt: minute(CLAIM_MINUTES),
+    });
   });
 });
 

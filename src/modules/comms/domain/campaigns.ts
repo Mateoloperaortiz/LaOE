@@ -414,8 +414,10 @@ interface BatchItem {
 
 /**
  * Cuánto dura el reclamo de un lote sobre sus destinatarios (ADR-115 regla 1). Es más de lo que el
- * poller espera a un handler (`JOBS_HANDLER_TIMEOUT_MS`, 10 minutos por omisión): nadie retoma lo de un
- * lote que sigue vivo, y lo que dejó reclamado uno que se cayó vuelve a salir cuando vence.
+ * poller espera a un handler (`JOBS_HANDLER_TIMEOUT_MS`, 10 minutos por omisión), y lo que dejó
+ * reclamado un lote que se cayó vuelve a salir cuando vence. El reclamo no detiene a un lote que sigue
+ * vivo, porque el poller solo deja de esperarlo: si pasa de este plazo, otro lote reclama lo que le
+ * faltaba, `holdsClaim` impide que el viejo lo mande y el correo que tenía en vuelo puede repetirse.
  */
 const CLAIM_LEASE_MS = 15 * 60_000;
 
