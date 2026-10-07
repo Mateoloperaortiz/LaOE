@@ -10386,6 +10386,12 @@ export const textos = {
     owner: "COM",
     status: "Propuesta",
   },
+  "T-3210": {
+    where: "Importación: aplicar o descartar una que ya se aplicó o se descartó (ADR-113)",
+    text: "Esta importación ya no está en revisión. Para repetirla, subí el archivo de nuevo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-322": {
     where: "Calendario público (ICS), nombre del calendario",
     text: "Eventos de la Organización Estudiantil EAFIT",

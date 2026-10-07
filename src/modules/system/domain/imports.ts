@@ -1,6 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
+import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { importJob } from "../schema";
 
 // Importaciones (03-modelo-de-datos.md): el archivo del roster con su vista previa, estado y resumen.
@@ -50,6 +52,25 @@ export async function getImportJob(id: string): Promise<ImportJobRow | null> {
 
 export async function listImportJobs(limit = 50): Promise<ImportJobRow[]> {
   return getDb().select().from(importJob).orderBy(desc(importJob.createdAt)).limit(limit);
+}
+
+/**
+ * Toma un trabajo que sigue en vista previa (ADR-113 regla 7): bloquea su fila hasta el commit y exige
+ * `PREVIEW`. Quien lo saca de la vista previa empieza por acá, así que una segunda llamada espera a
+ * la primera, lee el estado que dejó y se rechaza antes de escribir nada.
+ */
+export async function takeImportJobInPreview(ctx: CommandContext, id: string): Promise<void> {
+  const [row] = await ctx.tx
+    .select({ status: importJob.status })
+    .from(importJob)
+    .where(eq(importJob.id, id))
+    .for("update");
+  if (!row) {
+    throw new DomainError(t("T-032"));
+  }
+  if (row.status !== "PREVIEW") {
+    throw new DomainError(t("T-3210"));
+  }
 }
 
 export interface ImportJobPatch {

@@ -11,6 +11,7 @@ import {
   getImportJob,
   type ImportJobRow,
   requirePrivacyPolicyVersion,
+  takeImportJobInPreview,
   updateImportJob,
 } from "@/modules/system";
 import { conventionalTermDates, createTerm, getTerm, listAllTerms } from "@/modules/terms";
@@ -739,10 +740,13 @@ async function applyRow(
   return outcome;
 }
 
-/** Paso 3: relee el archivo, vuelve a validar contra la base de hoy y aplica todo en una transacción. */
+/**
+ * Paso 3: relee el archivo, vuelve a validar contra la base de hoy y aplica todo en una transacción.
+ * Que el trabajo siga en vista previa lo decide la transacción, que lo toma antes de escribir.
+ */
 export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<ApplySummary> {
   const job = await getImportJob(jobId);
-  if (!job || job.status !== "PREVIEW" || !job.fileKey || !job.termId) {
+  if (!job?.fileKey || !job.termId) {
     throw new DomainError(t("T-032"));
   }
   const current = previewPayloadSchema.safeParse(job.payload);
@@ -756,6 +760,7 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
   const built = await buildPreview(cells, current.data.mapping, job.termId);
   const termId = job.termId;
   return runCommand(actor, async (ctx) => {
+    await takeImportJobInPreview(ctx, jobId);
     await requirePrivacyPolicyVersion(ctx, "admin");
     const termsByCode = await ensureTerms(ctx, built.validation.missingTerms);
     for (const term of terms) {
@@ -790,11 +795,10 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
 }
 
 export async function discardRosterImportAs(actor: Actor, jobId: string): Promise<void> {
-  const job = await getImportJob(jobId);
-  if (!job || job.status !== "PREVIEW") {
-    throw new DomainError(t("T-032"));
-  }
-  await runCommand(actor, (ctx) => updateImportJob(ctx, jobId, { status: "DISCARDED" }));
+  await runCommand(actor, async (ctx) => {
+    await takeImportJobInPreview(ctx, jobId);
+    await updateImportJob(ctx, jobId, { status: "DISCARDED" });
+  });
 }
 
 /** Los permisos de líder se otorgan después del commit, uno por uno; el resultado queda en el resumen. */
