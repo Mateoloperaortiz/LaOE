@@ -34,7 +34,7 @@ export default async function CarnetPage({ searchParams }: PageProps<"/app/carne
   const params = await searchParams;
   const saved = params.guardado === "carnet";
   const error = typeof params.error === "string" ? params.error : "";
-  const descargaPendiente = isDownloadPending(params);
+  const downloadPending = isDownloadPending(params);
   const [mine, who, credential, passes] = await Promise.all([
     getMyMembership(actor.personId),
     getPersonRecord(actor.personId),
@@ -106,7 +106,7 @@ export default async function CarnetPage({ searchParams }: PageProps<"/app/carne
           {saved ? (
             <output className="block text-sm font-semibold text-titulo">{t("T-1195")}</output>
           ) : null}
-          {descargaPendiente ? (
+          {downloadPending ? (
             <output className="block text-sm font-semibold text-titulo">{t("T-3211")}</output>
           ) : null}
           {error === "google" || error === "apple" ? (

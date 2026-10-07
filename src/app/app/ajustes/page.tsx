@@ -61,7 +61,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
   const guardado = typeof params.guardado === "string" ? params.guardado : "";
   const error = typeof params.error === "string" ? params.error : "";
   const confirmar = params.confirmar === "1";
-  const descargaPendiente = isDownloadPending(params);
+  const downloadPending = isDownloadPending(params);
   const [who, consents, sessions, deletionDays, policy, devices, preferences, tieneClave] =
     await Promise.all([
       getPersonRecord(actor.personId),
@@ -111,7 +111,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
         label={t("T-418")}
         sections={availableSections}
         initialSection={
-          confirmar || descargaPendiente
+          confirmar || downloadPending
             ? "privacidad"
             : error === "policy-pending"
               ? "consentimientos"
@@ -438,7 +438,7 @@ export default async function AjustesPage({ searchParams }: PageProps<"/app/ajus
           <a href="/api/mis-datos" download className="boton-secundario self-start">
             {t("T-135")}
           </a>
-          {descargaPendiente ? (
+          {downloadPending ? (
             <output className="block text-sm font-semibold text-titulo">{t("T-3211")}</output>
           ) : null}
           {who?.deletionRequestedAt ? (
