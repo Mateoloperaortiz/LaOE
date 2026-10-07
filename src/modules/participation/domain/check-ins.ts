@@ -601,7 +601,12 @@ export interface ExcuseInput {
   now?: Date | undefined;
 }
 
-export async function excuseCheckIn(ctx: CommandContext, input: ExcuseInput): Promise<void> {
+/** La configuración es obligatoria: sin ella la reserva de una asistencia pendiente quedaría viva. */
+export async function excuseCheckIn(
+  ctx: CommandContext,
+  input: ExcuseInput,
+  context: { settings: GamificationSettings },
+): Promise<void> {
   const row = await readOccasion(ctx, input.occasionId);
   if (!row || row.status === "CANCELLED") {
     throw new DomainError(t("T-2227"));
@@ -642,6 +647,23 @@ export async function excuseCheckIn(ctx: CommandContext, input: ExcuseInput): Pr
   await ctx.emit(
     eventOf(checkinExcused, { ...approvedPayload(row, input.personId, "ADMIN"), reason }),
   );
+  // ADR-067 regla 3: la excusa cierra la asistencia sin aprobarla, así que con el premio hace lo
+  // mismo que un rechazo: libera la reserva del booster y después la del reto presencial. El motivo
+  // del premio es el estado, no el texto de la persona (una causal médica no se copia a otra tabla).
+  if (current) {
+    const excused: CheckInRow = { ...current, status: "EXCUSED" };
+    const released = statusLabel("EXCUSED");
+    await applyCheckInBoost(
+      ctx,
+      { checkIn: excused, occasion: row, outcome: "REJECTED", reason: released, now },
+      context,
+    );
+    await applyPresentialCheckIn(
+      ctx,
+      { checkIn: excused, occasion: row, outcome: "REJECTED", reason: released, now },
+      context,
+    );
+  }
 }
 
 // Lecturas.

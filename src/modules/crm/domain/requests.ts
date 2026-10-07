@@ -7,8 +7,10 @@ import { eventOf } from "@/domain-events/define";
 import {
   excuseCheckIn,
   findCheckIn,
+  type GamificationSettings,
   getOccasionsByIds,
   listOccasionsForTerm,
+  loadGamificationSettings,
 } from "@/modules/participation";
 import {
   changeMembershipStatus,
@@ -413,12 +415,16 @@ export async function decideRequestAs(
       throw new DomainError(t("T-2337"), "reason");
     }
   }
-  // Lecturas cruzadas antes de la transacción (people y terms por getDb()).
-  const [who, mine, term, limits] = await Promise.all([
+  // Lecturas cruzadas antes de la transacción (people, terms y participation por getDb()).
+  const [who, mine, term, limits, gamification] = await Promise.all([
     getPersonRecord(current.personId),
     current.kind === "TRANSFER" ? getMyMembership(current.personId) : Promise.resolve(null),
     getCurrentTerm(),
     committeeLimits(),
+    // La excusa libera el premio reservado de una asistencia pendiente (ADR-067 regla 3).
+    input.decision === "APPROVED" && current.kind === "EXCUSE"
+      ? loadGamificationSettings()
+      : Promise.resolve(null),
   ]);
   if (!who) {
     throw new DomainError(t("T-032"));
@@ -434,7 +440,7 @@ export async function decideRequestAs(
     }
     let appliedTerm: TermRow | null = null;
     if (input.decision === "APPROVED") {
-      appliedTerm = await apply(ctx, row, { mine, term, limits });
+      appliedTerm = await apply(ctx, row, { mine, term, limits, gamification });
     }
     await ctx.tx
       .update(request)
@@ -482,6 +488,7 @@ async function apply(
     mine: Awaited<ReturnType<typeof getMyMembership>> | null;
     term: TermRow | null;
     limits: { min: number; max: number };
+    gamification: GamificationSettings | null;
   },
 ): Promise<TermRow | null> {
   if (row.kind === "EXCUSE") {
@@ -489,11 +496,18 @@ async function apply(
     if (!row.occasionId) {
       throw new DomainError(t("T-2227"));
     }
-    await excuseCheckIn(ctx, {
-      occasionId: row.occasionId,
-      personId: row.personId,
-      reason: `${excuseCauseLabel(payload.cause)}: ${payload.reason}`,
-    });
+    if (!context.gamification) {
+      throw new Error("Falta la configuración de gamificación para aplicar la excusa");
+    }
+    await excuseCheckIn(
+      ctx,
+      {
+        occasionId: row.occasionId,
+        personId: row.personId,
+        reason: `${excuseCauseLabel(payload.cause)}: ${payload.reason}`,
+      },
+      { settings: context.gamification },
+    );
     return null;
   }
   if (row.kind === "LEAVE") {
