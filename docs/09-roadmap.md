@@ -4,6 +4,17 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## Refactor progresivo (ADR-109) · `en curso`
+
+Ciclos cortos sobre el [ledger de deuda](20-deuda-tecnica.md). Cada ciclo sale de una spec y sus tickets en GitHub, va en una rama de integración con un commit por ticket y termina con `npm run check`, las E2E de lo tocado, revisión de código y un PR que Mateo mezcla y promueve.
+
+- [x] Documentar la decisión ([ADR-109](adr/ADR-109-refactor-progresivo-con-ledger-de-deuda.md)) y abrir el ledger con 52 hallazgos clasificados.
+- [ ] Ciclo 1 · Red de pruebas y defectos baratos de corrección y seguridad: drenado del outbox en pruebas (DT-004), alcance de la sanción del comité (DT-002), excusa sobre una asistencia pendiente con premio reservado (DT-001), «hoy» en día civil de Colombia (DT-003) y grafo de módulos de dominio sin ciclos (DT-005).
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-07 | Decisión y ledger | [ADR-109](adr/ADR-109-refactor-progresivo-con-ledger-de-deuda.md): refactor por ciclos, sin reescritura total, con el ledger en `docs/20-deuda-tecnica.md` y cuatro estados finales (`RESOLVED`, `ACCEPTED`, `DEFERRED`, `NOT_APPLICABLE`). Sale de la revisión de arquitectura del 2026-10-06: 37 oportunidades, 18 pasadas por un verificador y cinco fuertes; más la medición del grafo (siete módulos de dominio en una componente circular), de las interfaces (`participation` exporta 384 símbolos y 203 no se usan afuera) y de las pruebas (82 archivos insertan filas a mano). La serie R de la auditoría del 2026-09-19 queda absorbida: sus pendientes son filas del ledger con su código de origen. Tres preguntas pasan a decisiones abiertas (6, 7 y 8): fin del término, capacidades de un director en licencia y si `competition` entra. Línea base sobre `01d022d` en un worktree propio: `npm run check` en verde, 603 pruebas de integración. |
+
 ## Skills de ingeniería para agentes (ADR-108) · `en curso`
 
 - [x] Documentar la decisión ([ADR-108](adr/ADR-108-los-issues-de-github-son-la-cola-de-trabajo.md)).
