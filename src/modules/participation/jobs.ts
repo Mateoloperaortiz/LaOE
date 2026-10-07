@@ -24,6 +24,7 @@ import {
   clearFeaturedBadges,
   recomputeBadgesFor,
 } from "./domain/badges";
+import { clearExcuseReasonsFor } from "./domain/check-ins";
 import { scrubStandingName } from "./domain/closing";
 import { recomputeCommitteeAssembly } from "./domain/committee-assembly";
 import { deleteEvidenceFor, processEvidenceFile } from "./domain/evidence";
@@ -180,13 +181,19 @@ onEvents([checkinApproved, checkinCancelled, checkinExcused], async ({ occasionI
 });
 
 // Al anonimizar, el nombre congelado en los standings pasa a T-223 (ADR-030): people no toca
-// tablas de participation. Las invitaciones de encuesta tampoco son historia.
+// tablas de participation. Las invitaciones de encuesta tampoco son historia, y el motivo de una
+// asistencia excusada es texto de la persona y puede decir de su salud (ADR-114 regla 4): se vacía
+// antes de las evidencias, que dependen del bucket y pueden dejar el handler a medias.
 onEvent(personAnonymized, async ({ personId }, ctx) => {
   const changed = await scrubStandingName(personId);
   const invites = await deleteSurveyInvitesFor(personId);
   const featured = await clearFeaturedBadges(personId);
+  const excuses = await clearExcuseReasonsFor(personId);
   const evidence = await deleteEvidenceFor(personId);
-  ctx.log.info({ personId, changed, invites, featured, evidence }, "standings anonimizados");
+  ctx.log.info(
+    { personId, changed, invites, featured, excuses, evidence },
+    "standings anonimizados",
+  );
 });
 
 onEvent(membershipChanged, async ({ personId, to }, ctx) => {

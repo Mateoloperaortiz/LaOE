@@ -667,6 +667,20 @@ export async function excuseCheckIn(
   }
 }
 
+/**
+ * Retiro de datos personales (ADR-114 regla 4): vacía el motivo de las asistencias excusadas de la
+ * persona, que es su causal y su texto. La asistencia sigue excusada, con quién y cuándo la decidió;
+ * el motivo de un rechazo o de una anulación lo escribió GH y no se toca. Devuelve cuántas tocó.
+ */
+export async function clearExcuseReasonsFor(personId: string): Promise<number> {
+  const rows = await getDb()
+    .update(checkIn)
+    .set({ reason: null })
+    .where(and(eq(checkIn.personId, personId), eq(checkIn.status, "EXCUSED")))
+    .returning({ id: checkIn.id });
+  return rows.length;
+}
+
 // Lecturas.
 
 export async function findCheckIn(
