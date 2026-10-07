@@ -34,8 +34,8 @@ import { seedMember } from "./factories";
 
 // Caracterización del lote de una campaña (ADR-038 regla 8) antes de tocarlo (ADR-109, DT-077): lo que
 // hoy funciona queda fijado en verde, por el tick que exporta `comms` y con el transporte de pruebas; los
-// tres defectos leídos quedan al final como pruebas que hoy fallan a propósito, cada una con su fila
-// del ledger y el ticket que la corrige.
+// defectos quedan al final como pruebas que hoy fallan a propósito, cada una con su fila del ledger y
+// el ticket que la corrige.
 
 const db = () => getDb();
 
@@ -427,6 +427,7 @@ describe("el lote de una campaña, tal como es hoy", () => {
     expect((await getCampaign(id))?.totalCount).toBe(6);
     expect(await recipientStatuses(id)).toEqual({ SENT: 6 });
     expect(addresses(delivered.overflow)).toEqual(emails(roster));
+    // Los contadores y el cierre no se afirman acá: con dos lotes a la vez quedan a medias (DT-112).
   });
 });
 
@@ -445,7 +446,7 @@ const settle = (work: Promise<unknown>): Promise<string | null> => work.then(() 
 const SCENARIO_DEADLINE_MS = 15_000;
 
 /**
- * Un defecto leído en el código, escrito como la conducta correcta que hoy no se cumple (`it.fails`):
+ * Un defecto conocido del lote, escrito como la conducta correcta que hoy no se cumple (`it.fails`):
  * `observe` arma el escenario y devuelve lo que pasó; `expectFixed` afirma lo que debería pasar. Si el
  * escenario no se arma o no termina, la prueba no lanza y vitest la da por rota: un escenario caído no
  * cuenta como defecto reproducido. Cuando entre el ticket que lo corrige, vitest avisa que la prueba ya
@@ -486,14 +487,15 @@ async function lockWaiters(): Promise<LockWaiter[]> {
   }));
 }
 
-/** Espera a que una sesión de la base quede esperando un candado, o a que `work` termine antes. */
-async function untilBlockedOrSettled(work: Promise<unknown>): Promise<void> {
+/** Espera a que `count` sesiones de la base estén esperando un candado, o a que `work` termine antes. */
+async function untilLockWaiters(count: number, work: Promise<unknown>): Promise<void> {
   let settled = false;
-  void work.then(() => {
+  const done = (): void => {
     settled = true;
-  });
+  };
+  void work.then(done, done);
   for (let attempt = 0; attempt < 200 && !settled; attempt += 1) {
-    if ((await lockWaiters()).length > 0) {
+    if ((await lockWaiters()).length >= count) {
       return;
     }
     await sleep(25);
@@ -520,7 +522,7 @@ async function deadlockTimeoutMs(): Promise<number> {
   return result.rows[0]?.ms ?? 1000;
 }
 
-describe("defectos leídos del lote, pendientes de su ticket", () => {
+describe("defectos del lote que hoy fallan a propósito", () => {
   // DT-067, lo corrige #145: el lote marca los enviados en la misma transacción en la que envía.
   knownDefect(
     "un lote que se cae después de enviar no les repite el correo a quienes ya lo recibieron",
@@ -545,7 +547,7 @@ describe("defectos leídos del lote, pendientes de su ticket", () => {
     },
   );
 
-  // DT-068, lo corrige #145: cancelar bloquea la campaña y espera a los destinatarios que tiene el lote; el lote espera a la campaña.
+  // DT-068, lo corrige #145: cancelar toma la campaña y espera al lote, que la necesita para registrar su mensaje.
   knownDefect(
     "cancelar con un lote en curso no los deja esperándose: la campaña queda cancelada y los contadores dicen lo que salió",
     async () => {
@@ -578,7 +580,7 @@ describe("defectos leídos del lote, pendientes de su ticket", () => {
         }),
       ]);
       const cancel = settle(cancelCampaignAs(SYSTEM_ACTOR, id));
-      await untilBlockedOrSettled(cancel);
+      await untilLockWaiters(1, cancel);
       release();
 
       // Con el doble de lo que Postgres tarda en ver un interbloqueo suyo, lo que siga esperando ya
@@ -651,6 +653,40 @@ describe("defectos leídos del lote, pendientes de su ticket", () => {
       expect(seen.exhausted.campaign).toMatchObject({ status: "SENDING", failedCount: 0 });
       expect(seen.received).toEqual(emails(seen.roster));
       expect(seen.campaign).toMatchObject({ status: "SENT", sentCount: 3, failedCount: 0 });
+    },
+  );
+
+  // DT-112, sin ticket todavía (es el mismo lote que toca #145): cada lote recuenta sin ver al otro.
+  knownDefect(
+    "dos lotes a la vez dejan la campaña cerrada y con los contadores de lo que salió",
+    async () => {
+      await seedRoster(6);
+      const id = await scheduleCampaign(2);
+      await runCampaignTick(minute(0));
+
+      // Suelta, la carrera es de milisegundos y se da unas veces sí y otras no. Acá la prueba sostiene
+      // la fila de la campaña, sin estorbar el registro de los mensajes, hasta que los dos lotes ya
+      // recontaron y esperan para escribir; cuando la suelta, cada uno escribe lo que contó.
+      let ticks: Promise<unknown> = Promise.resolve();
+      await db().transaction(async (tx) => {
+        await tx.execute(sql`select id from campaign where id = ${id} for no key update`);
+        ticks = Promise.all([runCampaignTick(minute(1)), runCampaignTick(minute(1))]);
+        await untilLockWaiters(2, ticks);
+      });
+      await ticks;
+      // Un tick posterior no lo arregla: sin pendientes, el lote sale antes de recontar.
+      await runCampaignTick(minute(2));
+
+      const campaign = await getCampaign(id);
+      return {
+        status: campaign?.status,
+        sentCount: campaign?.sentCount,
+        recipients: await recipientStatuses(id),
+        accepted: delivered.overflow.length,
+      };
+    },
+    (seen) => {
+      expect(seen).toEqual({ status: "SENT", sentCount: 6, recipients: { SENT: 6 }, accepted: 6 });
     },
   );
 });
