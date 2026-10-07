@@ -192,7 +192,7 @@ onEvent(personAnonymized, async ({ personId }, ctx) => {
   const evidence = await deleteEvidenceFor(personId);
   ctx.log.info(
     { personId, changed, invites, featured, excuses, evidence },
-    "standings anonimizados",
+    "participación anonimizada",
   );
 });
 

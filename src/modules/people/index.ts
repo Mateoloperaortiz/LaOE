@@ -192,6 +192,7 @@ export {
   formPersonSchema,
   getPersonRecord,
   listPeople,
+  lockPersonAnonymization,
   type PersonInput,
   type PersonRecord,
   type PersonRow,

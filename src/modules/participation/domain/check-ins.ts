@@ -10,6 +10,7 @@ import {
   checkinPending,
   scoreRecompute,
 } from "@/domain-events/participation";
+import { lockPersonAnonymization } from "@/modules/people";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -612,7 +613,14 @@ export async function excuseCheckIn(
     throw new DomainError(t("T-2227"));
   }
   const now = input.now ?? new Date();
-  const reason = input.reason.trim() || null;
+  // ADR-114 regla 4: el motivo es texto de la persona y no se escribe si ya fue anonimizada, ni en
+  // la asistencia, ni en la auditoría, ni en el evento. Se mira con candado dentro de la transacción:
+  // una anonimización que llegue ahora espera, y su aviso borra lo que aquí quede escrito.
+  const who = await lockPersonAnonymization(ctx.tx, input.personId);
+  if (!who) {
+    throw new DomainError(t("T-032"));
+  }
+  const reason = who.anonymized ? null : input.reason.trim() || null;
   const current = await readCheckIn(ctx, row.id, input.personId);
   if (current?.status === "EXCUSED") {
     return;
