@@ -12,19 +12,22 @@ import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { type MediaVariants, mediaAsset } from "../schema";
 import {
+  confirmablePurpose,
   DELIVERY,
   isAllowedSize,
   isAllowedType,
   MEDIA_MAX_BYTES,
   MEDIA_MIN_BYTES,
-  PHOTO_KEY_PREFIX,
   PHOTO_MAX_BYTES,
   photoKey,
   pickVariant,
   UPLOAD_EXPIRY_SECONDS,
   UPLOAD_KEY_PATTERN,
+  type UploadScope,
   uploadKey,
 } from "./media-pure";
+
+export type { UploadScope };
 
 // Medios (ADR-022, ADR-033): subida directa prefirmada, confirmación, y entrega por redirección.
 
@@ -94,19 +97,30 @@ export const confirmUploadSchema = z.object({
   purpose: purposeSchema,
 });
 
-export type ConfirmUploadInput = Omit<z.infer<typeof confirmUploadSchema>, "purpose"> & {
-  purpose?: "media" | "photo";
-};
+// El esquema de la ruta deja "media" cuando el propósito no llega (el subidor del admin no lo manda):
+// es el que pide ADMIN. El comando lo exige siempre.
+export type ConfirmUploadInput = z.infer<typeof confirmUploadSchema>;
 
-/** Comprueba el objeto con HEAD, registra el medio en PENDING y encola media.process. */
+/**
+ * Comprueba el objeto con HEAD, registra el medio en PENDING y encola media.process. Antes decide si
+ * esa clave se puede confirmar con el alcance declarado (ADR-113 regla 5): si no, responde como a una
+ * subida que no existe, sin tocar el objeto.
+ */
 export async function confirmUpload(
   ctx: CommandContext,
   input: ConfirmUploadInput,
+  scope: UploadScope,
 ): Promise<{ id: string }> {
-  const photo = input.key.startsWith(PHOTO_KEY_PREFIX);
-  if (photo && !input.key.startsWith(`${PHOTO_KEY_PREFIX}${ctx.actor.personId}/`)) {
+  const purpose = confirmablePurpose({
+    key: input.key,
+    purpose: input.purpose,
+    scope,
+    personId: ctx.actor.personId,
+  });
+  if (purpose === null) {
     throw new DomainError(t("T-363"), "file");
   }
+  const photo = purpose === "photo";
   const visibility = photo ? "PRIVATE" : input.visibility;
   const info = await headObject(input.key);
   if (!info || info.byteSize === null) {
@@ -160,9 +174,16 @@ export async function confirmUpload(
   }
 }
 
-/** Para la ruta de confirmación (src/app no abre transacciones). */
-export function confirmUploadAs(actor: Actor, input: ConfirmUploadInput): Promise<{ id: string }> {
-  return runCommand(actor, (ctx) => confirmUpload(ctx, input));
+/**
+ * Para la ruta de confirmación (src/app no abre transacciones). El alcance es obligatorio: lo arma
+ * quien autorizó con la sesión, y sin él no se confirma nada (ADR-113 regla 5).
+ */
+export function confirmUploadAs(
+  actor: Actor,
+  input: ConfirmUploadInput,
+  scope: UploadScope,
+): Promise<{ id: string }> {
+  return runCommand(actor, (ctx) => confirmUpload(ctx, input, scope));
 }
 
 export interface MediaListParams {

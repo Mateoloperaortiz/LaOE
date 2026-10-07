@@ -288,11 +288,12 @@ async function resolveAsset(actor: Actor, asset: LocalAsset): Promise<string> {
       visibility: "PRIVATE",
     });
     await putObject(prepared.key, asset.bytes, asset.contentType);
-    const confirmed = await confirmUploadAs(actor, {
-      key: prepared.key,
-      filename: asset.filename,
-      visibility: "PRIVATE",
-    });
+    // `requireExistingAdmin` ya comprobó al actor: el alcance se declara como tal (ADR-113 regla 5).
+    const confirmed = await confirmUploadAs(
+      actor,
+      { key: prepared.key, filename: asset.filename, visibility: "PRIVATE", purpose: "media" },
+      { by: "ADMIN" },
+    );
     id = confirmed.id;
   }
   await processMedia(id);

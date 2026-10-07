@@ -80,7 +80,11 @@ describe("medios", () => {
     const key = await uploadDirect(png, "image/png", "portada.png", png.byteLength);
 
     const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
-      confirmUpload(ctx, { key, filename: "portada.png", visibility: "PUBLIC" }),
+      confirmUpload(
+        ctx,
+        { key, filename: "portada.png", visibility: "PUBLIC", purpose: "media" },
+        { by: "ADMIN" },
+      ),
     );
     let [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
     expect(asset).toMatchObject({
@@ -98,7 +102,11 @@ describe("medios", () => {
     // Confirmar dos veces la misma clave falla con el texto del inventario.
     await expect(
       runCommand(SYSTEM_ACTOR, (ctx) =>
-        confirmUpload(ctx, { key, filename: "portada.png", visibility: "PUBLIC" }),
+        confirmUpload(
+          ctx,
+          { key, filename: "portada.png", visibility: "PUBLIC", purpose: "media" },
+          { by: "ADMIN" },
+        ),
       ),
     ).rejects.toBeInstanceOf(DomainError);
 
@@ -138,7 +146,11 @@ describe("medios", () => {
     const text = "esto no es una imagen ".repeat(400); // > 5 KB
     const key = await uploadDirect(text, "image/png", "falso.png", Buffer.byteLength(text));
     const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
-      confirmUpload(ctx, { key, filename: "falso.png", visibility: "PRIVATE" }),
+      confirmUpload(
+        ctx,
+        { key, filename: "falso.png", visibility: "PRIVATE", purpose: "media" },
+        { by: "ADMIN" },
+      ),
     );
     expect(await processMedia(id)).toBe("failed");
     const [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
@@ -149,7 +161,11 @@ describe("medios", () => {
     const png = await noisePng(300, 200);
     const privateKey = await uploadDirect(png, "image/png", "privada.png", png.byteLength);
     const created = await runCommand(SYSTEM_ACTOR, (ctx) =>
-      confirmUpload(ctx, { key: privateKey, filename: "privada.png", visibility: "PRIVATE" }),
+      confirmUpload(
+        ctx,
+        { key: privateKey, filename: "privada.png", visibility: "PRIVATE", purpose: "media" },
+        { by: "ADMIN" },
+      ),
     );
     expect(await processMedia(created.id)).toBe("ready");
     expect(await resolveMediaRedirect(created.id, null, { authenticated: false })).toEqual({
@@ -173,7 +189,11 @@ describe("medios", () => {
       .toBuffer();
     const key = await uploadDirect(png, "image/png", "enorme.png", png.byteLength);
     const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
-      confirmUpload(ctx, { key, filename: "enorme.png", visibility: "PUBLIC" }),
+      confirmUpload(
+        ctx,
+        { key, filename: "enorme.png", visibility: "PUBLIC", purpose: "media" },
+        { by: "ADMIN" },
+      ),
     );
 
     // El job corre por el outbox y termina: un fallo del handler rompería el drenado.

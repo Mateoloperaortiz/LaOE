@@ -1,6 +1,6 @@
 # ADR-034: Personas, CRM mínimo y Mi OE (fase 2)
 
-- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066)
+- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-022, ADR-029, ADR-030, ADR-031, ADR-032, ADR-033
 - Enmienda: ADR-010 (destrucción de sesiones), ADR-018 y 08-migracion (mapeo del líder de comité), ADR-022 (el archivo del roster sí pasa por la app)
@@ -84,3 +84,7 @@ Regla 5: el editor de comités de la Persona 360 admite varios cargos por comit�
 ## Enmienda (2026-09-14, ADR-066)
 
 La presentación de los cargos separa vigentes, próximos e historial por semestre y ámbito. GH se presenta dentro de Junta Directiva; los tipos y autorizaciones no cambian. Ver [ADR-066](ADR-066-cargos-vigentes-e-historial.md).
+
+## Enmienda (2026-10-07, ADR-113)
+
+La regla 8 dejaba que `confirm` aceptara a un miembro sin ADMIN «solo con `purpose = "photo"`», y eso lo miraba la ruta sobre lo que declaraba el cliente. Ahora lo decide el comando con la clave: una foto solo la confirma su dueña, cualquier otra clave pide el alcance de ADMIN que declara quien autorizó, y el propósito declarado tiene que coincidir con el prefijo. La firma (`presign`), la clave `photos/<personId>/…`, la visibilidad `PRIVATE`, el tope de 5 MB y `setOwnPhoto` no cambian. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 5.
