@@ -12,7 +12,7 @@ import { startOfTodayIn } from "@/shared/lib/dates";
 import { logger } from "@/shared/log";
 import { message } from "../schema";
 import { listAlreadyNotified, recordMessage } from "./messages";
-import { chooseRoute } from "./pure";
+import { chooseRoute, withoutAddresses } from "./pure";
 
 // Correo transaccional (OTP, puntos, recordatorios): Resend con desbordamiento automático a SES,
 // y cada envío queda registrado en `message` con el proveedor por el que salió (ADR-023).
@@ -95,7 +95,10 @@ export async function sendTransactionalEmail(
     receipt = await attempt(route === "overflow" && overflow ? overflow : primary, email);
   } catch (error) {
     if (error instanceof QuotaExceededError && overflow && route === "primary") {
-      logger.warn({ err: error }, "correo: cuota de Resend agotada, sale por SES");
+      logger.warn(
+        { error: providerErrorText(error) },
+        "correo: cuota de Resend agotada, sale por SES",
+      );
       try {
         receipt = await attempt(overflow, email);
       } catch (overflowError) {
@@ -130,13 +133,17 @@ export async function sendTransactionalEmail(
   return receipt;
 }
 
+/**
+ * El texto del error de un proveedor, sin las direcciones que nombre (ADR-114 regla 5): es lo único
+ * del error que llega al registro y a `message.error`. El error entero no se registra, porque su
+ * mensaje y su traza traen ese mismo texto sin filtrar.
+ */
+function providerErrorText(error: unknown): string {
+  return withoutAddresses(error instanceof Error ? error.message : String(error));
+}
+
 function failed(provider: string, error: unknown): SendReceipt {
-  return {
-    status: "FAILED",
-    provider,
-    providerId: null,
-    error: error instanceof Error ? error.message : String(error),
-  };
+  return { status: "FAILED", provider, providerId: null, error: providerErrorText(error) };
 }
 
 // Campañas (ADR-023, ADR-038 regla 8): siempre por el transporte de desbordamiento (SES) cuando existe;

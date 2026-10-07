@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  ADDRESS_MARK,
   DEFAULT_PREFERENCES,
   NOTIFICATION_MAX_RECIPIENTS,
   notificationRequestedSchema,
   shouldDeliver,
   splitPush,
+  withoutAddresses,
 } from "@/modules/comms/domain/pure";
 import {
   campaignEligibility,
@@ -12,6 +14,37 @@ import {
   markdownToPlain,
   renderTemplate,
 } from "@/modules/comms/domain/templates-pure";
+
+describe("withoutAddresses (ADR-114 regla 5)", () => {
+  it("quita toda dirección de correo de un texto ajeno y deja lo demás", () => {
+    expect(
+      withoutAddresses("Resend: validation_error: no se entrega a ana.r7k2@eafit.edu.co"),
+    ).toBe(`Resend: validation_error: no se entrega a ${ADDRESS_MARK}`);
+    expect(withoutAddresses("proveedor caído")).toBe("proveedor caído");
+    expect(withoutAddresses("")).toBe("");
+  });
+
+  it.each([
+    "Ana.R7K2@Eafit.Edu.Co",
+    "<ana.r7k2@eafit.edu.co>",
+    '"ana.r7k2@eafit.edu.co",',
+    "to=ana.r7k2%40eafit.edu.co",
+    "(ana.r7k2+oe@eafit.edu.co);otra.p4m9@correo.example",
+    "ana.r7k2@",
+    "@eafit.edu.co",
+  ])("no deja ni media dirección cuando viene escrita como %s", (written) => {
+    const clean = withoutAddresses(`Rechazada: ${written} no está verificada`);
+    expect(clean).toBe(`Rechazada: ${ADDRESS_MARK} no está verificada`);
+    expect(clean.toLowerCase()).not.toContain("ana.r7k2");
+    expect(clean).not.toContain("eafit");
+  });
+
+  it("quita cada dirección de un texto que trae varias", () => {
+    expect(withoutAddresses("a.b1c2@uno.example y d.e3f4@dos.example fallaron")).toBe(
+      `${ADDRESS_MARK} y ${ADDRESS_MARK} fallaron`,
+    );
+  });
+});
 
 describe("shouldDeliver (ADR-038 regla 2)", () => {
   it("cada tipo de push obedece a su preferencia y lo transaccional llega siempre", () => {

@@ -688,6 +688,50 @@ describe("registros del ingreso por código", () => {
     ]);
   });
 
+  // El texto del error es del proveedor, y un proveedor puede nombrar en él al destinatario (una
+  // identidad sin verificar, una dirección rechazada): ese texto va al registro y a `message.error`.
+  it.each<[string, (named: string) => MailTransports, string]>([
+    [
+      "el proveedor falla",
+      (named) => ({
+        primary: failing("resend", new Error(`Resend: rechazada: no se entrega a ${named}`)),
+        overflow: null,
+      }),
+      "resend",
+    ],
+    [
+      "la cuota se agotó y el respaldo también falla",
+      (named) => ({
+        primary: failing("resend", new QuotaExceededError(`cuota agotada al enviar a ${named}`)),
+        overflow: failing("ses", new Error(`SES: rechazada: no se entrega a ${named}`)),
+      }),
+      "ses",
+    ],
+  ])("si %s y su error nombra la dirección, ni el registro ni el mensaje guardado la traen", async (_caso, transports, provider) => {
+    const email = "nombrada.k2v8@eafit.edu.co";
+    const personId = await seedMember(email);
+    setMailTransportsForTests(transports(`Nombrada.K2V8@Eafit.Edu.Co <${email}>`));
+
+    const { lines } = await captureLogs(() => requestOtp({ email, ip: null }));
+
+    expectNoEmail(lines, email);
+    // Lo demás del texto se conserva: sigue diciendo por qué no salió.
+    expect(recordsOf(lines, "correo no enviado")).toEqual([
+      expect.objectContaining({
+        personId,
+        provider,
+        error: expect.stringContaining("rechazada: no se entrega a"),
+      }),
+    ]);
+    const [stored] = await db()
+      .select({ error: message.error })
+      .from(message)
+      .where(eq(message.personId, personId));
+    expect(stored?.error).toContain("rechazada: no se entrega a");
+    expect(stored?.error?.toLowerCase()).not.toContain("nombrada.k2v8");
+    expect(stored?.error).not.toContain("@");
+  });
+
   it("el ingreso por código y el de contraseña resumen igual un mismo correo", async () => {
     const email = "afuera.z9w4@correo.example";
 

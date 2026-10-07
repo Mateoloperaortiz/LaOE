@@ -17,6 +17,19 @@ export function chooseRoute(
   return sentTodayViaPrimary >= dailyLimit ? "overflow" : "primary";
 }
 
+/** Lo que queda donde un texto traía una dirección de correo. */
+export const ADDRESS_MARK = "[correo]";
+
+/**
+ * Un texto ajeno sin las direcciones de correo que traiga (ADR-114 regla 5). Es para el error de un
+ * proveedor, que puede nombrar al destinatario: lo que se registra y lo que se guarda en
+ * `message.error` pasa primero por acá. Se va entero todo tramo sin espacios que tenga una arroba,
+ * escrita o codificada (`%40`): quita de más antes que dejar media dirección.
+ */
+export function withoutAddresses(text: string): string {
+  return text.replace(/\S*(?:@|%40)\S*/gi, ADDRESS_MARK);
+}
+
 // Bus de notificaciones (ADR-038 regla 2): un evento, destinatarios, textos y clave de deduplicación.
 
 // El contrato del pedido vive en la capa neutral de eventos (ADR-084): lo emiten otros módulos.
