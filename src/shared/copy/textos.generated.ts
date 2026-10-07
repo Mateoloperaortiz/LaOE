@@ -10387,7 +10387,8 @@ export const textos = {
     status: "Propuesta",
   },
   "T-3210": {
-    where: "Importación: aplicar o descartar una que ya se aplicó o se descartó (ADR-113)",
+    where:
+      "Importación: aplicar, descartar o cambiar las columnas de una que ya se aplicó o se descartó (ADR-113)",
     text: "Esta importación ya no está en revisión. Para repetirla, subí el archivo de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
