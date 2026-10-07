@@ -1,3 +1,4 @@
+import { FULL_VARIANT, widthVariants } from "@/shared/lib/media";
 import type { MediaVariant, MediaVariants } from "../schema";
 
 // Reglas puras de medios (ADR-022, ADR-033): tipos y tamaños, claves del bucket, variantes.
@@ -121,20 +122,32 @@ export function variantWidthsFor(originalWidth: number): number[] {
   return VARIANT_WIDTHS.filter((width) => width <= originalWidth);
 }
 
+/** Clave determinista de la variante completa, como las de ancho: procesar de nuevo la sobrescribe. */
+export function fullVariantKey(assetId: string): string {
+  return `variants/${assetId}/${FULL_VARIANT}.webp`;
+}
+
+export function hasFullVariant(variants: MediaVariants): boolean {
+  return Object.hasOwn(variants, FULL_VARIANT);
+}
+
 /**
- * La variante más grande que no supere el ancho pedido; si todas lo superan, la más chica;
- * sin ancho pedido o sin variantes, null (se sirve el original).
+ * Qué variante se entrega (ADR-114 regla 8). De las de ancho, la más grande que no supere el ancho
+ * pedido y, si todas lo superan, la más chica. Sin ancho pedido o sin variantes de ancho, la completa.
+ * Devuelve null solo para un medio que todavía no tiene la completa: es el único que se sirve desde su
+ * original, mientras el relleno no lo alcance.
  */
 export function pickVariant(
   variants: MediaVariants,
   requestedWidth: number | null,
 ): MediaVariant | null {
-  const available = Object.values(variants).sort((a, b) => a.width - b.width);
-  if (requestedWidth === null || available.length === 0) {
-    return null;
+  const full = variants[FULL_VARIANT] ?? null;
+  const ladder = widthVariants(variants);
+  if (requestedWidth === null || ladder.length === 0) {
+    return full;
   }
-  const fitting = available.filter((variant) => variant.width <= requestedWidth);
-  return fitting.at(-1) ?? available[0] ?? null;
+  const fitting = ladder.filter((variant) => variant.width <= requestedWidth);
+  return fitting.at(-1) ?? ladder[0] ?? full;
 }
 
 /** Vigencia de la firma y caché del 302, siempre menor que la firma (ADR-033). */

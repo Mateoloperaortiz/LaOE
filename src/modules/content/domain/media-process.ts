@@ -1,17 +1,99 @@
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { getObject, putObject } from "@/shared/adapters/storage";
-import { decodeImage, ImageRejectedError } from "@/shared/lib/image-decoder";
+import { getObject, headObject, putObject } from "@/shared/adapters/storage";
+import {
+  decodeImage,
+  IMAGE_MAX_ENCODED_SIDE,
+  ImageRejectedError,
+} from "@/shared/lib/image-decoder";
+import { FULL_VARIANT } from "@/shared/lib/media";
 import { logger } from "@/shared/log";
-import { type MediaVariants, mediaAsset } from "../schema";
-import { MEDIA_TYPES, variantKey, variantName, variantWidthsFor } from "./media-pure";
+import { type MediaVariant, type MediaVariants, mediaAsset } from "../schema";
+import {
+  fullVariantKey,
+  hasFullVariant,
+  MEDIA_TYPES,
+  variantKey,
+  variantName,
+  variantWidthsFor,
+} from "./media-pure";
 
 // Handler de media.process (ADR-033): descarga el original, lo abre por el decodificador compartido
-// (ADR-113 regla 4), escribe las variantes WebP con claves deterministas y marca READY. Un original
-// que el decodificador rechaza queda FAILED con su motivo y sin reintento; un fallo del bucket
-// relanza para que el outbox reintente con backoff.
+// (ADR-113 regla 4), escribe las variantes WebP con claves deterministas y marca READY. Además de las
+// de ancho escribe siempre la completa, que es lo que se entrega en lugar del original (ADR-114 regla 8).
+// Un original que el decodificador rechaza queda FAILED con su motivo y sin reintento; un fallo del
+// bucket relanza para que el outbox reintente con backoff.
 
-export type ProcessOutcome = "ready" | "failed" | "skipped";
+/** `kept`: un medio ya publicado al que no se le pudo escribir la variante completa y sigue como estaba. */
+export type ProcessOutcome = "ready" | "failed" | "skipped" | "kept";
+
+type MediaAssetRow = typeof mediaAsset.$inferSelect;
+type Decoded = Awaited<ReturnType<typeof decodeImage>>;
+
+async function storeVariant(
+  key: string,
+  rendered: Awaited<ReturnType<Decoded["toWebp"]>>,
+): Promise<MediaVariant> {
+  await putObject(key, rendered.data, "image/webp"); // transitorio: relanza
+  return {
+    key,
+    width: rendered.width,
+    height: rendered.height,
+    byteSize: rendered.data.byteLength,
+    contentType: "image/webp",
+  };
+}
+
+/** La imagen entera, derecha y sin metadatos; solo se reduce si no cabe en un WebP. */
+async function storeFullVariant(assetId: string, original: Decoded): Promise<MediaVariant> {
+  return storeVariant(
+    fullVariantKey(assetId),
+    await original.toWebp({ side: IMAGE_MAX_ENCODED_SIDE }),
+  );
+}
+
+/** Abre el original de un medio, o lanza `ImageRejectedError` si no es una imagen que se procese. */
+async function openOriginal(asset: MediaAssetRow): Promise<Decoded> {
+  if (!(asset.contentType in MEDIA_TYPES)) {
+    // El tipo guardado ahorra la descarga; el motivo es el del formato, como si lo dijera el contenido.
+    throw new ImageRejectedError("format", asset.contentType);
+  }
+  const bytes = await getObject(asset.objectKey); // un fallo aquí es transitorio: relanza
+  return decodeImage(bytes);
+}
+
+/**
+ * Un medio que quedó READY antes de ADR-114 regla 8: le falta solo la variante completa. Se suma a las
+ * que tiene con una sola escritura, sin releer el mapa, y no se le toca el estado. Si el original ya no
+ * está en el bucket o el decodificador de hoy no lo abre, el medio sigue publicado como estaba, servido
+ * desde su original: qué hacer con él lo decide quien quite ese respaldo (DT-105).
+ */
+async function addFullVariant(asset: MediaAssetRow, now: Date): Promise<ProcessOutcome> {
+  if (!(await headObject(asset.objectKey))) {
+    logger.warn({ assetId: asset.id }, "media.process: el original de un medio listo ya no está");
+    return "kept";
+  }
+  try {
+    const full = await storeFullVariant(asset.id, await openOriginal(asset));
+    await getDb()
+      .update(mediaAsset)
+      .set({
+        variants: sql`${mediaAsset.variants} || ${JSON.stringify({ [FULL_VARIANT]: full })}::jsonb`,
+        updatedAt: now,
+      })
+      .where(and(eq(mediaAsset.id, asset.id), eq(mediaAsset.status, "READY")));
+    return "ready";
+  } catch (error) {
+    if (error instanceof ImageRejectedError) {
+      logger.warn(
+        { assetId: asset.id, err: error },
+        "media.process: un medio listo no se puede recodificar y se sigue sirviendo su original",
+      );
+      return "kept";
+    }
+    throw error;
+  }
+}
 
 export async function processMedia(assetId: string, now = new Date()): Promise<ProcessOutcome> {
   const db = getDb();
@@ -21,28 +103,18 @@ export async function processMedia(assetId: string, now = new Date()): Promise<P
     return "skipped";
   }
   if (asset.status === "READY") {
-    return "skipped";
+    return hasFullVariant(asset.variants) ? "skipped" : addFullVariant(asset, now);
   }
   try {
-    if (!(asset.contentType in MEDIA_TYPES)) {
-      // El tipo guardado ahorra la descarga; el motivo es el del formato, como si lo dijera el contenido.
-      throw new ImageRejectedError("format", asset.contentType);
-    }
-    const bytes = await getObject(asset.objectKey); // un fallo aquí es transitorio: relanza
-    const original = await decodeImage(bytes);
+    const original = await openOriginal(asset);
     const variants: MediaVariants = {};
     for (const width of variantWidthsFor(original.width)) {
-      const rendered = await original.toWebp({ width });
-      const key = variantKey(asset.id, width);
-      await putObject(key, rendered.data, "image/webp"); // transitorio: relanza
-      variants[variantName(width)] = {
-        key,
-        width: rendered.width,
-        height: rendered.height,
-        byteSize: rendered.data.byteLength,
-        contentType: "image/webp",
-      };
+      variants[variantName(width)] = await storeVariant(
+        variantKey(asset.id, width),
+        await original.toWebp({ width }),
+      );
     }
+    variants[FULL_VARIANT] = await storeFullVariant(asset.id, original);
     await db
       .update(mediaAsset)
       .set({

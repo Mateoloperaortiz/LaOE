@@ -281,7 +281,11 @@ export type MediaRedirect =
   | { status: 403 }
   | { status: 302; url: string; cacheControl: string };
 
-/** Decide el 302 de GET /api/media/[id]: variante por ancho, visibilidad y estado (ADR-022). */
+/**
+ * Decide el 302 de GET /api/media/[id]: variante por ancho, visibilidad y estado (ADR-022). Lo que se
+ * firma es siempre una variante recodificada (ADR-114 regla 8). El original solo se firma para un medio
+ * que todavía no tiene la completa: los procesados antes de esa regla, hasta que el relleno los alcanza.
+ */
 export async function resolveMediaRedirect(
   id: string,
   requestedWidth: number | null,

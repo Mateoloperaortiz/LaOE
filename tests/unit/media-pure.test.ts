@@ -1,7 +1,12 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { Imagen } from "@/modules/content/components/Imagen";
 import {
   confirmablePurpose,
   DELIVERY,
+  fullVariantKey,
+  hasFullVariant,
   isAllowedSize,
   isAllowedType,
   keyPurpose,
@@ -12,7 +17,7 @@ import {
   variantKey,
   variantWidthsFor,
 } from "@/modules/content/domain/media-pure";
-import { mediaSrcSet, mediaUrl } from "@/shared/lib/media";
+import { mediaSrcSet, mediaUrl, widthVariants } from "@/shared/lib/media";
 
 describe("medios (reglas puras)", () => {
   it("acepta solo JPG, PNG y WebP entre 5 KB y 20 MB", () => {
@@ -52,6 +57,59 @@ describe("medios (reglas puras)", () => {
     expect(pickVariant(variants, 4000)?.width).toBe(960);
     expect(pickVariant(variants, null)).toBeNull();
     expect(pickVariant({}, 960)).toBeNull();
+  });
+
+  it("con variante completa nunca se queda sin variante: es la que va sin ancho pedido o sin otra", () => {
+    const webp = { height: 1, byteSize: 1, contentType: "image/webp" };
+    const full = { key: "v/full.webp", width: 1200, ...webp };
+    const ladder = {
+      w480: { key: "v/w480.webp", width: 480, ...webp },
+      w960: { key: "v/w960.webp", width: 960, ...webp },
+    };
+    expect(fullVariantKey("abc")).toBe("variants/abc/full.webp");
+    expect(hasFullVariant({ ...ladder, full })).toBe(true);
+    expect(hasFullVariant(ladder)).toBe(false);
+    // Sin ancho, la completa; con ancho, la escalera de siempre: la completa no es un peldaño.
+    expect(pickVariant({ ...ladder, full }, null)).toBe(full);
+    expect(pickVariant({ ...ladder, full }, 960)?.key).toBe("v/w960.webp");
+    expect(pickVariant({ ...ladder, full }, 1200)?.key).toBe("v/w960.webp");
+    expect(pickVariant({ ...ladder, full }, 4000)?.key).toBe("v/w960.webp");
+    expect(pickVariant({ ...ladder, full }, 100)?.key).toBe("v/w480.webp");
+    // Un original de menos de 480 px no tiene escalera: va la completa con cualquier ancho.
+    expect(pickVariant({ full }, 480)).toBe(full);
+    expect(widthVariants({ full, ...ladder }).map((variant) => variant.width)).toEqual([480, 960]);
+    expect(widthVariants({ full })).toEqual([]);
+    // Ningún ancho, tampoco uno que no es un ancho, deja sin variante a un medio que tiene la completa.
+    for (const width of [null, 0, -1, 0.5, 1, 479, 1e9, Number.NaN, Infinity, -Infinity]) {
+      expect(pickVariant({ ...ladder, full }, width)).not.toBeNull();
+      expect(pickVariant({ full }, width)).toBe(full);
+    }
+  });
+
+  it("el srcset de una imagen lleva las variantes de ancho y no la completa", () => {
+    const asset = { id: "abc", width: 1200, height: 800 };
+    const ladder = { w480: { width: 480 }, w960: { width: 960 } };
+    const before = renderToStaticMarkup(
+      createElement(Imagen, { asset: { ...asset, variants: ladder }, alt: "Portada" }),
+    );
+    const after = renderToStaticMarkup(
+      createElement(Imagen, {
+        asset: { ...asset, variants: { full: { width: 1200 }, ...ladder } },
+        alt: "Portada",
+      }),
+    );
+    expect(after).toBe(before);
+    expect(after).toContain('src="/api/media/abc?w=960"');
+    expect(after).toContain('srcSet="/api/media/abc?w=480 480w, /api/media/abc?w=960 960w"');
+    // Una imagen chica, que solo tiene la completa, se pide sin ancho y sin srcset, como antes.
+    const small = renderToStaticMarkup(
+      createElement(Imagen, {
+        asset: { id: "abc", width: 300, height: 200, variants: { full: { width: 300 } } },
+        alt: "Chica",
+      }),
+    );
+    expect(small).toContain('src="/api/media/abc"');
+    expect(small).not.toContain("srcSet");
   });
 
   it("la caché del 302 dura menos que la firma", () => {

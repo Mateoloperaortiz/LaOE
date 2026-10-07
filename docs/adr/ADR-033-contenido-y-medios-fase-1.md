@@ -1,6 +1,6 @@
 # ADR-033: Contenido editable y medios del portal público (fase 1)
 
-- Estado: Aceptada (enmendada por ADR-036, ADR-037 y ADR-038, ADR-039, ADR-113)
+- Estado: Aceptada (enmendada por ADR-036, ADR-037 y ADR-038, ADR-039, ADR-113, ADR-114)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-014, ADR-017, ADR-020, ADR-022, ADR-023, ADR-032
 
@@ -58,3 +58,7 @@ El arranque de producción mantiene páginas y catálogos base de las migracione
 ## Enmienda (2026-10-07, ADR-113)
 
 La regla 5 dejaba en el handler de `media.process` la lectura de dimensiones y la lista de formatos. Las dos pasan al decodificador compartido con las evidencias de retos, que además rechaza la imagen de más de 40 megapíxeles: antes valía el tope de `sharp`, 268. Las variantes, sus anchos y sus claves no cambian. El motivo de un medio `FAILED` sale de T-3207 y ya no lleva el mensaje de libvips, que va al log. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 4.
+
+## Enmienda (2026-10-07, ADR-114)
+
+La regla 6 dice que `GET /api/media/[id]` entrega la variante más grande que no supere `w` «o el original», y la regla 5 que el handler escribe las variantes de 480, 960 y 1600 px. El original es el archivo tal como se subió, con sus metadatos, y salía cuando no se pedía ancho o cuando la imagen medía menos de 480 px. [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 8 lo cambia: el handler escribe además una variante completa (`variants/<id>/full.webp`, registrada en `variants` como `full`), recodificada y sin metadatos, y es ella la que se entrega donde iba el original. Las variantes de ancho, sus claves, el `srcset`, la caché del 302 y la vigencia de la firma no cambian. Los medios procesados antes reciben su variante completa por un relleno programado y, mientras no la tengan, se sirven como antes. `media.process` sigue siendo idempotente: sobre un medio listo solo escribe la variante completa si le falta.

@@ -59,7 +59,8 @@ test("un ADMIN sube una portada de 5 MB directo al bucket y se sirve con 302 al 
   const [asset] = await buscar();
   await closeDb();
   expect(asset?.status).toBe("READY");
-  expect(Object.keys(asset?.variants ?? {}).sort()).toEqual(["w480", "w960"]);
+  // `full` es la variante completa, la que se entrega en lugar del original (ADR-114 regla 8).
+  expect(Object.keys(asset?.variants ?? {}).sort()).toEqual(["full", "w480", "w960"]);
 
   await page.reload();
   const fila = page.getByRole("row", { name: new RegExp(nombre) });

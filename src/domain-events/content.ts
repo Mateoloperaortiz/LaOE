@@ -20,5 +20,15 @@ export const announcementPushRequested = defineEvent(
   }),
 );
 
-/** Trabajo interno: genera las variantes de una imagen recién subida (ADR-022). */
+/**
+ * Trabajo interno: genera las variantes de una imagen recién subida (ADR-022) o le escribe la completa
+ * a una que quedó lista antes de ADR-114 regla 8.
+ */
 export const mediaProcess = defineEvent("media.process", z.object({ assetId: id }));
+
+/**
+ * Trabajo interno: un lote del relleno de la variante completa (ADR-114 regla 8), encadenado con cursor.
+ * También es el programado de cada hora, que llega sin cursor: el payload del scheduler (`scheduled`,
+ * `at`) no está en el contrato y se descarta al validar.
+ */
+export const mediaBackfill = defineEvent("media.backfill", z.object({ cursor: id.optional() }));

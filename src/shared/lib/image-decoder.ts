@@ -23,6 +23,11 @@ export const IMAGE_MAX_DECODED_BYTES = IMAGE_MAX_PIXELS * 3;
 /** Bytes por muestra de las profundidades que traen JPEG, PNG y WebP. Otra no se reconoce. */
 const SAMPLE_BYTES: Record<string, number> = { uchar: 1, ushort: 2 };
 const WEBP_QUALITY = 82;
+/**
+ * El lado más largo que admite el formato WebP. Pedir este lado es codificar la imagen entera: la que
+ * no llega no se toca, porque nunca se agranda, y la que lo pasa se reduce hasta caber en vez de fallar.
+ */
+export const IMAGE_MAX_ENCODED_SIDE = 16_383;
 
 /** Por qué no se procesa una imagen. El orden es el de la lista T-3207. */
 const MOTIVES = { unreadable: 0, format: 1, pixels: 2, encode: 3, memory: 4 } as const;

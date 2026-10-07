@@ -132,7 +132,8 @@ describe("medios", () => {
     expect(await processMedia(id)).toBe("ready");
     [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
     expect(asset).toMatchObject({ status: "READY", width: 1200, height: 800, error: null });
-    expect(Object.keys(asset?.variants ?? {}).sort()).toEqual(["w480", "w960"]); // 1600 agrandaría
+    // 1600 agrandaría; `full` es la completa, que se entrega en lugar del original (ADR-114 regla 8).
+    expect(Object.keys(asset?.variants ?? {}).sort()).toEqual(["full", "w480", "w960"]);
     for (const variant of Object.values(asset?.variants ?? {})) {
       keys.push(variant.key);
       expect(await headObject(variant.key)).toMatchObject({ contentType: "image/webp" });
@@ -151,8 +152,9 @@ describe("medios", () => {
     }
     const between = await resolveMediaRedirect(id, 700, { authenticated: false });
     expect(between.status === 302 && between.url).toContain("w480.webp");
-    const original = await resolveMediaRedirect(id, null, { authenticated: false });
-    expect(original.status === 302 && original.url).toContain(key);
+    const whole = await resolveMediaRedirect(id, null, { authenticated: false });
+    expect(whole.status === 302 && whole.url).toContain(`variants/${id}/full.webp`);
+    expect(whole.status === 302 && whole.url).not.toContain(key);
 
     expect(await getPublicMediaRef(id)).toMatchObject({ id, width: 1200, height: 800 });
     expect(await listReadyPublicMedia()).toEqual([{ id, label: "portada.png · 1200×800" }]);
@@ -192,7 +194,7 @@ describe("medios", () => {
     if (allowed.status === 302) {
       expect(allowed.cacheControl).toBe("private, max-age=300");
     }
-    // Sin variantes (300 px de ancho no admite ninguna) se sirve el original y no es pública.
+    // Sin variantes de ancho (300 px no admite ninguna) se sirve la completa, y no es pública.
     expect(await getPublicMediaRef(created.id)).toBeNull();
   });
 

@@ -2,6 +2,7 @@
 // trabajo. Horas en America/Bogota. `reminders` cierra ocasiones vencidas y avisa si falta el término
 // siguiente (fase 3); `campaigns` arranca las campañas vencidas y manda un lote por minuto (fase 6).
 
+import { mediaBackfill } from "@/domain-events/content";
 import { walletReconcile } from "@/domain-events/wallet";
 
 export interface ScheduleEntry {
@@ -29,4 +30,7 @@ export const SCHEDULE: ScheduleEntry[] = [
   { name: "membership", cron: "0 7 * * *", events: ["membership.leave-check"] },
   { name: "prune", cron: "0 3 * * *", events: ["identity.prune", "system.prune"] },
   { name: "backup-check", cron: "30 3 * * *", events: ["system.backup-check"] },
+  // Relleno de la variante completa de los medios de antes (ADR-114 regla 8): cada hora arranca una
+  // pasada, que sigue sola por lotes. Sin medios por rellenar es una consulta.
+  { name: "media-backfill", cron: "20 * * * *", events: [mediaBackfill.type] },
 ];
