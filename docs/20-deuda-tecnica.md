@@ -101,6 +101,9 @@ Orígenes: **A19** es la [auditoría del 2026-09-19](auditoria-codigo-2026-09-19
 | DT-084 | El comando de sanción sin alcance queda abierto por defecto y revocar una sanción no comprueba que sea de la persona de la página; el formulario de faltas del comité y las sanciones de la Persona 360 no tienen E2E | C1, leído | seguridad | OPEN | Resuelta la primera parte en el cierre del ciclo 1: el alcance es obligatorio en `recordSanctionAs` y ADMIN lo declara como tal ([ADR-112](adr/ADR-112-toda-sancion-declara-su-alcance.md)); olvidarlo no compila y un llamador sin tipos falla antes de escribir, con `tests/integration/sanctions.test.ts`. Sigue abierto: `revokeSanctionAs` recibe solo el id de la sanción y no comprueba que sea de la persona de la página (su única action exige ADMIN), y ni el formulario de faltas del comité ni las sanciones de la Persona 360 tienen E2E |
 | DT-085 | La página de permanencia de Mi OE recalcula la suspensión en vez de leerla de `people`, y la viabilidad compara el punto medio del término como instante en UTC | C1, leído | corrección | RESOLVED | Ciclo 1, cierre. La página lee `sanctionStateFor(…).suspendedUntil` y ya no filtra la lista de sanciones: su regla era más floja que la del dominio (no miraba que la suspensión hubiera empezado ni que la falta ya hubiera ocurrido). Para una suspensión vigente el aviso T-2237 sale igual; la página sigue sin prueba propia y la lectura la sostiene `tests/integration/sanctions.test.ts`. En la viabilidad, la mitad del término es un día (`termMidpointKey`, la misma aritmética de los avisos de permanencia) que se compara con el día civil de Colombia: se reprodujo que de 7 p. m. a medianoche de Colombia de la víspera ya daba la alerta `NO_EVENT`. Lo sostienen `tests/integration/committee-viability.test.ts` y `tests/unit/participation-pure.test.ts` |
 | DT-086 | Ninguna E2E hace clic en «Reintentar» de la pantalla de jobs; el detector de ciclos de módulos no tiene prueba automática (se comprobó en rojo a mano, como ADR-080) | C1 | testabilidad | OPEN | |
+| DT-087 | La E2E del 2048 juega una partida al azar y da por hecho que siempre alcanza para premio: falla cuando el puntaje no llega | C1, ejecutado | testabilidad | OPEN | Falló una vez en la E2E completa del ciclo 1 (`juegos.spec.ts`, premio 0). Misma familia que las pruebas de integración que se fijaron con semilla |
+| DT-088 | La semana ISO de la clave de deduplicación del aviso de evaluaciones se calcula en UTC | C1, leído | corrección | ACCEPTED | Latente: el programado corre a las 9:00 de Colombia, cuando los dos días coinciden. Cambiarla altera una clave de deduplicación ya usada en producción |
+| DT-089 | La Persona 360 también pinta «suspendido hasta» y no se revisó de dónde saca la fecha | C1 | corrección | OPEN | La página de Mi OE ya la lee de `people` (DT-085) |
 
 ## Métricas
 
@@ -123,5 +126,25 @@ Las mide `npm run audit:metrics`. Al cerrar cada ciclo se agrega su tabla debajo
 | `getDb()` en `src/modules` | 458 |
 | Eventos de dominio: en el catálogo · todavía emitidos como cadena suelta | 66 · 0 |
 | Elementos crudos en `src` (input · select · table · button) | 558 · 123 · 51 · 134 |
+
+### Tras el ciclo 1 · 2026-10-07 · `refactor/ciclo-1`
+
+| Métrica | Valor |
+| --- | --- |
+| Archivos y líneas en `src` (sin el catálogo de textos) | 740 · 116644 |
+| Líneas en `src/app` · `src/modules` | 39088 · 71643 |
+| Funciones de más de 100 · 200 · 300 líneas (`src` y `scripts`) | 179 · 59 · 23 |
+| Funciones con complejidad mayor a 30 | 64 |
+| Archivos de más de 500 · 1000 líneas | 46 · 6 |
+| Exports de `participation` · `people` · `crm` (`index.ts`) | 384 · 237 · 150 |
+| Nombres de función de nivel superior declarados en 2 o más archivos de `src` | 99 |
+| `as unknown as` en `src` | 4 |
+| `tList(` · accesos posicionales `[n] ?? ""` en `src` | 828 · 374 |
+| `throw new Error(` en `src` | 158 |
+| `getDb()` en `src/modules` | 458 |
+| Eventos de dominio: en el catálogo · todavía emitidos como cadena suelta | 66 · 0 |
+| Elementos crudos en `src` (input · select · table · button) | 558 · 123 · 51 · 134 |
+
+Lo que movió el ciclo 1: módulos de dominio en una componente circular, de 7 a 0, y `npm run deps:check` rechaza un ciclo nuevo; maneras de drenar el outbox en las pruebas, de 8 bucles locales a una operación; pruebas de integración, de 603 a 634, y unitarias, de 855 a 864. El ciclo fue de corrección y de red de pruebas, así que las métricas de tamaño casi no se mueven: `src` crece 210 líneas (el drenado vive ahora junto al poller y suma cuatro `throw new Error`), baja una función de más de 200 líneas y `people` exporta dos símbolos más (el alcance de la sanción).
 
 Medidas que el script no trae y que salen de la revisión del 2026-10-06: módulos de dominio en una componente circular, 7; archivos de prueba que insertan filas a mano, 82; transacciones fuera de `runCommand`, 28 en 18 archivos.
