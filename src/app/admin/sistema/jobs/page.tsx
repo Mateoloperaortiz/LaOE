@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { requireAdminActor } from "@/modules/identity";
 import { listOutbox, type OutboxRow } from "@/modules/system";
-import { retryOutboxAction } from "@/modules/system/actions";
 import { AdminFormBody } from "@/shared/admin-kit/AdminFormBody";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo, Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { retryOutboxAction } from "./actions";
 
 export const metadata: Metadata = { title: t("T-241") };
 

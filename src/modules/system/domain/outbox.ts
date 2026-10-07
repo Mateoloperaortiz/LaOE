@@ -1,6 +1,6 @@
 import { and, count, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import type { CommandContext } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { outbox } from "../schema";
 
 export type OutboxState = "pending" | "dead" | "done";
@@ -53,4 +53,12 @@ export async function retryDeadLetter(
     after: { attempts: 0 },
   });
   return true;
+}
+
+/**
+ * El reintento de la pantalla de jobs. Quién puede hacerlo lo resuelve la action (solo ADMIN): `system`
+ * no importa `identity` (ADR-110), solo reencola y audita.
+ */
+export async function retryDeadLetterAs(actor: Actor, id: string): Promise<boolean> {
+  return runCommand(actor, (ctx) => retryDeadLetter(ctx, id));
 }

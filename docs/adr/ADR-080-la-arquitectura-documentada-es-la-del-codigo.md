@@ -1,6 +1,6 @@
 # ADR-080: La arquitectura documentada es la del código
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-110)
 - Fecha: 2026-09-19
 - Relacionadas: ADR-001, ADR-017, ADR-034, ADR-035, ADR-037, ADR-079
 - Enmienda: ADR-001 (estructura de un módulo), ADR-017 (`defineResource`)
@@ -39,3 +39,7 @@ La auditoría proponía además tres mudanzas «mecánicas» entre módulos. Rev
 - La regla se comprobó en rojo: un import de `terms` desde `content` produce `dependencias-de-content`.
 - `TeamParticipations` pasa a `src/modules/permanence/components/`. `src/shared/brand` queda sin piezas de negocio.
 - No cambia comportamiento, esquema, textos ni pantallas.
+
+## Enmienda (2026-10-07, ADR-110)
+
+Regla 2: `system` ya no tiene `actions.ts`. Su única action, el reintento del outbox, vive junto a su ruta en `src/app/admin/sistema/jobs/actions.ts`; solo `identity` conserva `actions.ts` propio. Reglas 5 y 6: `MODULE_DEPS` no admite ciclos entre módulos y `npm run deps:check` falla si la tabla cierra uno. Los dos ciclos que quedaron anotados para R5 se cortaron quitando `system → identity` y `events → people`. Ver [ADR-110](ADR-110-el-grafo-de-modulos-de-dominio-no-tiene-ciclos.md).

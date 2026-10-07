@@ -63,13 +63,23 @@ const carteleraResource = {
   }),
 };
 
-// Las ediciones ganan la columna de inscritos (ADR-037): `events` no importa `forms`, así que el conteo
-// se compone aquí sobre el listado.
+// Las ediciones ganan la columna de inscritos (ADR-037) y las opciones de sus comités organizadores
+// (ADR-110): `events` no importa `forms` ni `people`, así que el conteo y el selector se componen aquí.
 type EditionRowWithRegistrations = Parameters<typeof editionsResource.exportRow>[0] & {
   registrations: number;
 };
 export const edicionesResource = {
   ...editionsResource,
+  fields: async () => {
+    const [fields, committees] = await Promise.all([
+      typeof editionsResource.fields === "function"
+        ? editionsResource.fields()
+        : editionsResource.fields,
+      listCommitteesForSelection(),
+    ]);
+    const options = committees.map((item) => ({ value: item.id, label: item.name }));
+    return fields.map((field) => (field.name === "committeeIds" ? { ...field, options } : field));
+  },
   columns: [
     ...editionsResource.columns,
     {

@@ -32,7 +32,7 @@ export {
   listOutbox,
   type OutboxRow,
   type OutboxState,
-  retryDeadLetter,
+  retryDeadLetterAs,
 } from "./domain/outbox";
 export {
   getPrivacyPolicyState,

@@ -1,22 +1,22 @@
 const { readdirSync } = require("node:fs");
 
-// Grafo permitido entre módulos (ADR-080): de qué otros módulos importa cada uno por su index.ts. Es la
-// única fuente: 01-arquitectura remite aquí. Una dependencia nueva se decide agregándola a esta tabla;
-// sin eso, `npm run deps:check` falla. Las claves foráneas entre schema.ts quedan fuera (regla
-// schema-solo-importa-schema).
+// Grafo permitido entre módulos (ADR-080), sin ciclos (ADR-110): de qué otros módulos importa cada uno
+// por su index.ts. Es la única fuente: 01-arquitectura remite aquí. Una dependencia nueva se decide
+// agregándola a esta tabla; sin eso, `npm run deps:check` falla. Las claves foráneas entre schema.ts
+// quedan fuera (regla schema-solo-importa-schema).
 const MODULE_DEPS = {
   comms: ["content", "participation", "people", "system", "terms"],
   competition: ["events", "forms", "people"],
   content: [],
   crm: ["content", "events", "forms", "identity", "participation", "people", "system", "terms"],
-  events: ["content", "people"],
+  events: ["content"],
   finance: ["people", "terms"],
   forms: ["events", "people", "system"],
   identity: ["comms", "people"],
   participation: ["events", "forms", "people", "system", "terms"],
   people: ["content", "events", "system", "terms"],
   permanence: ["events", "participation", "people", "system", "terms"],
-  system: ["identity"],
+  system: [],
   terms: [],
   wallet: ["identity", "people", "terms"],
 };
@@ -29,6 +29,41 @@ const orphaned = Object.keys(MODULE_DEPS).filter((name) => !moduleDirs.includes(
 if (undeclared.length > 0 || orphaned.length > 0) {
   throw new Error(
     `MODULE_DEPS no coincide con src/modules. Sin declarar: ${undeclared.join(", ") || "ninguno"}. Sobran: ${orphaned.join(", ") || "ninguno"}.`,
+  );
+}
+
+// La tabla no admite ciclos entre módulos de dominio (ADR-110). `sin-ciclos` solo ve ciclos de archivos:
+// dos módulos pueden importarse por sus index.ts sin que ningún archivo cierre el círculo.
+function findModuleCycle(deps) {
+  const done = new Set();
+  const visit = (name, path) => {
+    if (path.includes(name)) {
+      return [...path.slice(path.indexOf(name)), name];
+    }
+    if (done.has(name)) {
+      return null;
+    }
+    for (const next of deps[name] ?? []) {
+      const cycle = visit(next, [...path, name]);
+      if (cycle) {
+        return cycle;
+      }
+    }
+    done.add(name);
+    return null;
+  };
+  for (const name of Object.keys(deps)) {
+    const cycle = visit(name, []);
+    if (cycle) {
+      return cycle;
+    }
+  }
+  return null;
+}
+const moduleCycle = findModuleCycle(MODULE_DEPS);
+if (moduleCycle) {
+  throw new Error(
+    `MODULE_DEPS tiene un ciclo entre módulos de dominio: ${moduleCycle.join(" → ")}. Una dependencia que cierra un ciclo no se declara: la composición sube a src/app o el aviso va por un evento de dominio (ADR-110).`,
   );
 }
 
