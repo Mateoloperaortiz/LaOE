@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { count, eq, sum } from "drizzle-orm";
+import { count, desc, eq, sum } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { setMailTransportsForTests } from "@/modules/comms";
@@ -11,7 +11,12 @@ import {
   verifyOtp,
   verifyStepUp,
 } from "@/modules/identity/domain/otp";
-import { hashCode, OTP_MAX_PER_EMAIL, OTP_MAX_PER_IP } from "@/modules/identity/domain/pure";
+import {
+  hashCode,
+  OTP_MAX_PER_EMAIL,
+  OTP_MAX_PER_IP,
+  otpAttemptBudget,
+} from "@/modules/identity/domain/pure";
 import {
   destroySessionsFor,
   listSessionsFor,
@@ -521,5 +526,54 @@ describe("tope acumulado del ingreso por código (ADR-113)", () => {
 
     await requestOtp({ email: "tranquila@eafit.edu.co", ip: null });
     expect(await attempt("tranquila@eafit.edu.co", CODE)).toMatchObject({ ok: true });
+  });
+
+  it("una solicitud que entra a la vez que los códigos equivocados no deja pasar del tope, ni en el roster ni afuera", async () => {
+    await seedMember("carrera@eafit.edu.co");
+    for (const email of ["carrera@eafit.edu.co", "carrera-afuera@eafit.edu.co"]) {
+      await failRounds(email, 2, 5);
+      await requestOtp({ email, ip: null });
+      // Con diez fallos, el código vivo guarda los cinco intentos que le quedan al correo: se gastan
+      // mientras entra otra solicitud.
+      await Promise.all([
+        requestOtp({ email, ip: null }),
+        ...Array.from({ length: 5 }, () => attempt(email, WRONG)),
+      ]);
+
+      const [last, ...previous] = await db()
+        .select({ attempts: otpChallenge.attempts, maxAttempts: otpChallenge.maxAttempts })
+        .from(otpChallenge)
+        .where(eq(otpChallenge.email, email))
+        .orderBy(desc(otpChallenge.createdAt));
+
+      // Lo que haya quedado vivo se prueba hasta agotarlo: el correo no pasa de quince.
+      for (let i = 0; i < 6; i += 1) {
+        await attempt(email, WRONG);
+      }
+      expect(await failedAttemptsFor(email)).toBe(15);
+      // Y el código más reciente salió con lo que le quedaba al correo al guardarse, no al contarse.
+      const failedBefore = previous.reduce((total, challenge) => total + challenge.attempts, 0);
+      expect(last?.maxAttempts).toBe(otpAttemptBudget(failedBefore));
+    }
+  });
+
+  it("usar un código no revive los intentos de uno anterior: llegado el tope, ni el código correcto entra", async () => {
+    const email = "revivida@eafit.edu.co";
+    await seedMember(email);
+    await failRounds(email, 2, 5);
+    // Dos códigos pedidos con diez fallos traen cinco intentos cada uno, y verificar mira el último.
+    await requestOtp({ email, ip: null });
+    await requestOtp({ email, ip: null });
+    for (let i = 0; i < 4; i += 1) {
+      await attempt(email, WRONG);
+    }
+    expect(await attempt(email, CODE)).toMatchObject({ ok: true });
+
+    // El código anterior vuelve a ser el vivo, con cinco intentos sin gastar; al correo le queda uno.
+    const locked = { ok: false, reason: "LOCKED", attemptsLeft: 0 };
+    expect(await attempt(email, WRONG)).toEqual(locked);
+    expect(await attempt(email, WRONG)).toEqual(locked);
+    expect(await attempt(email, CODE)).toEqual(locked);
+    expect(await failedAttemptsFor(email)).toBe(15);
   });
 });
