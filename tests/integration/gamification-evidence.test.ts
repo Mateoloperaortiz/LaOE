@@ -214,6 +214,18 @@ describe("evidencias de retos", () => {
     expect(file?.error).toBeTruthy();
   });
 
+  it("una evidencia cuyo tipo guardado no es de los admitidos queda fallida con el motivo del catálogo", async () => {
+    const personId = await seedMember("evidencia.tipo@eafit.edu.co");
+    const key = evidenceKey(personId, "image/jpeg", "archivo5prueba");
+    const fileId = await seedEvidenceFile(personId, key, "image/gif");
+    expect(await processEvidenceFile(fileId)).toBe("failed");
+    const [file] = await db()
+      .select()
+      .from(challengeEvidenceFile)
+      .where(eq(challengeEvidenceFile.id, fileId));
+    expect(file).toMatchObject({ status: "FAILED", error: tList("T-3207")[1] });
+  });
+
   it("una evidencia que declara ser PNG y es otra cosa queda fallida con su motivo", async () => {
     const { personId, file, participation, rewards, jobs } = await submitAndProcess(
       {

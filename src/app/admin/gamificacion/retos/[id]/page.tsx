@@ -306,7 +306,9 @@ export default async function RetoPage({
                                 </Link>
                               ) : (
                                 <span className="text-tinta-suave">
-                                  {file.status === "PENDING" ? imageStates[0] : imageStates[1]}
+                                  {file.status === "PENDING"
+                                    ? imageStates[0]
+                                    : `${imageStates[1]}${file.error ? `: ${file.error}` : ""}`}
                                 </span>
                               )}
                             </li>

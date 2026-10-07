@@ -13,13 +13,6 @@ import { MEDIA_TYPES, variantKey, variantName, variantWidthsFor } from "./media-
 
 export type ProcessOutcome = "ready" | "failed" | "skipped";
 
-class PermanentMediaError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "PermanentMediaError";
-  }
-}
-
 export async function processMedia(assetId: string, now = new Date()): Promise<ProcessOutcome> {
   const db = getDb();
   const [asset] = await db.select().from(mediaAsset).where(eq(mediaAsset.id, assetId)).limit(1);
@@ -32,7 +25,8 @@ export async function processMedia(assetId: string, now = new Date()): Promise<P
   }
   try {
     if (!(asset.contentType in MEDIA_TYPES)) {
-      throw new PermanentMediaError(`Tipo no permitido: ${asset.contentType}`);
+      // El tipo guardado ahorra la descarga; el motivo es el del formato, como si lo dijera el contenido.
+      throw new ImageRejectedError("format", asset.contentType);
     }
     const bytes = await getObject(asset.objectKey); // un fallo aquí es transitorio: relanza
     const original = await decodeImage(bytes);
@@ -62,7 +56,7 @@ export async function processMedia(assetId: string, now = new Date()): Promise<P
       .where(eq(mediaAsset.id, asset.id));
     return "ready";
   } catch (error) {
-    if (error instanceof PermanentMediaError || error instanceof ImageRejectedError) {
+    if (error instanceof ImageRejectedError) {
       await db
         .update(mediaAsset)
         .set({ status: "FAILED", error: error.message.slice(0, 500), updatedAt: now })

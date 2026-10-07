@@ -56,6 +56,22 @@ describe("medios", () => {
     await closeDb();
   });
 
+  it("un medio cuyo tipo guardado no es de los admitidos queda fallido con el motivo del catálogo", async () => {
+    const [row] = await getDb()
+      .insert(mediaAsset)
+      .values({
+        objectKey: "uploads/tipo-de-antes.gif",
+        originalFilename: "tipo-de-antes.gif",
+        contentType: "image/gif",
+        byteSize: 10_000,
+      })
+      .returning({ id: mediaAsset.id });
+    const id = row?.id ?? "";
+    expect(await processMedia(id)).toBe("failed");
+    const [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
+    expect(asset).toMatchObject({ status: "FAILED", error: tList("T-3207")[1] });
+  });
+
   it("rechaza tipos y tamaños fuera de regla antes de firmar", async () => {
     await expect(
       prepareUpload({

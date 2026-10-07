@@ -111,13 +111,6 @@ export async function verifyEvidenceObjects(
   return verified;
 }
 
-class PermanentEvidenceError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "PermanentEvidenceError";
-  }
-}
-
 export type EvidenceProcessOutcome = "ready" | "failed" | "skipped";
 
 /**
@@ -146,7 +139,8 @@ export async function processEvidenceFile(
       }
       try {
         if (!(file.contentType in EVIDENCE_TYPES)) {
-          throw new PermanentEvidenceError(`Tipo no permitido: ${file.contentType}`);
+          // El tipo guardado ahorra la descarga; el motivo es el del formato, como si lo dijera el contenido.
+          throw new ImageRejectedError("format", file.contentType);
         }
         const bytes = await getObject(file.objectKey); // transitorio: relanza
         const image = await decodeImage(bytes);
@@ -165,7 +159,7 @@ export async function processEvidenceFile(
           .where(eq(challengeEvidenceFile.id, file.id));
         return { outcome: "ready", original: file.objectKey };
       } catch (error) {
-        if (error instanceof PermanentEvidenceError || error instanceof ImageRejectedError) {
+        if (error instanceof ImageRejectedError) {
           await tx
             .update(challengeEvidenceFile)
             .set({ status: "FAILED", error: error.message.slice(0, 500), updatedAt: now })

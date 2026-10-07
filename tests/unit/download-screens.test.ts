@@ -13,7 +13,7 @@ import AjustesPage from "@/app/app/ajustes/page";
 import { SettingsSections } from "@/app/app/ajustes/SettingsSections";
 import DocumentoPage from "@/app/app/normativa/[id]/page";
 import { DocumentReader } from "@/modules/content/components/DocumentReader";
-import { t } from "@/shared/copy";
+import { t, tList } from "@/shared/copy";
 
 // Las pantallas que originan una descarga (ADR-113, regla 10), con sus módulos simulados y sin
 // sesión en las rutas: qué enlace arman, a dónde vuelve ese enlace y si avisan al volver.
@@ -120,6 +120,12 @@ vi.mock("@/modules/participation", () => {
         id: "archivosintetico",
         status: "READY",
         objectKey: "evidence/persona-sintetica/archivo.webp",
+      },
+      {
+        id: "archivofallido",
+        status: "FAILED",
+        objectKey: "evidence/persona-sintetica/fallido.png",
+        error: "Motivo sintético.",
       },
     ],
   };
@@ -368,5 +374,17 @@ describe("una descarga pedida sin sesión desde su pantalla vuelve a esa pantall
       search: { descarga: "1" },
     });
     expect(showsNotice(await painted(screens.reto(back.search)))).toBe(true);
+  });
+});
+
+// Las mismas dos pantallas dicen por qué falló una evidencia (#124, historia 8): el motivo que el
+// job dejó en la fila va junto al estado de la imagen, como en `/admin/medios`.
+describe("la revisión de evidencias dice por qué no se procesó una imagen", () => {
+  it.each([
+    ["la bandeja de revisión", screens.bandeja],
+    ["el detalle de un reto", screens.reto],
+  ])("%s muestra el motivo guardado junto al estado", async (_name, screen) => {
+    const texts = (await painted(screen({}))).map((element) => element.props.children);
+    expect(texts).toContain(`${tList("T-2527")[1]}: Motivo sintético.`);
   });
 });
