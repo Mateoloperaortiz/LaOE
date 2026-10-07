@@ -64,14 +64,14 @@ async function takeImportJob(
   ctx: CommandContext,
   id: string,
   status: ImportJobStatus,
-  otherwise: string,
+  rejection: string,
 ): Promise<ImportJobRow> {
   const [row] = await ctx.tx.select().from(importJob).where(eq(importJob.id, id)).for("update");
   if (!row) {
     throw new DomainError(t("T-032"));
   }
   if (row.status !== status) {
-    throw new DomainError(otherwise);
+    throw new DomainError(rejection);
   }
   return row;
 }
@@ -93,7 +93,7 @@ export async function takeImportJobInPreview(
  * importación aplicada empieza por acá: lee el resumen de la fila tomada, que es el que la aplicación
  * dejó.
  */
-export async function takeAppliedImportJob(ctx: CommandContext, id: string): Promise<ImportJobRow> {
+export async function takeImportJobApplied(ctx: CommandContext, id: string): Promise<ImportJobRow> {
   return takeImportJob(ctx, id, "APPLIED", t("T-3212"));
 }
 

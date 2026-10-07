@@ -24,7 +24,7 @@ export {
   type ImportJobRow,
   type ImportJobStatus,
   listImportJobs,
-  takeAppliedImportJob,
+  takeImportJobApplied,
   takeImportJobInPreview,
   updateImportJob,
 } from "./domain/imports";

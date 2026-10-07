@@ -11,7 +11,7 @@ import {
   getImportJob,
   type ImportJobRow,
   requirePrivacyPolicyVersion,
-  takeAppliedImportJob,
+  takeImportJobApplied,
   takeImportJobInPreview,
   updateImportJob,
 } from "@/modules/system";
@@ -825,7 +825,7 @@ export async function recordLeaderGrantsAs(
   result: { granted: string[]; failed: string[] },
 ): Promise<void> {
   await runCommand(actor, async (ctx) => {
-    const job = await takeAppliedImportJob(ctx, jobId);
+    const job = await takeImportJobApplied(ctx, jobId);
     await updateImportJob(ctx, jobId, { summary: { ...job.summary, leaders: result } });
   });
 }
