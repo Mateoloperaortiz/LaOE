@@ -8,7 +8,7 @@ Estados de fase: `pendiente` · `en curso` · `lista`.
 
 Ciclos cortos sobre el [ledger de deuda](20-deuda-tecnica.md). Cada ciclo sale de una spec y sus tickets en GitHub, va en una rama de integración con un commit por ticket y termina con `npm run check`, las E2E de lo tocado, revisión de código y un PR que Mateo mezcla y promueve.
 
-- [x] Documentar la decisión ([ADR-109](adr/ADR-109-refactor-progresivo-con-ledger-de-deuda.md)) y abrir el ledger con 52 hallazgos clasificados.
+- [x] Documentar la decisión ([ADR-109](adr/ADR-109-refactor-progresivo-con-ledger-de-deuda.md)) y abrir el ledger, que el descubrimiento del 2026-10-07 llevó a 86 hallazgos clasificados.
 - [ ] Ciclo 1 · Red de pruebas y defectos baratos de corrección y seguridad: drenado del outbox en pruebas (DT-004), alcance de la sanción del comité (DT-002), excusa sobre una asistencia pendiente con premio reservado (DT-001), «hoy» en día civil de Colombia (DT-003) y grafo de módulos de dominio sin ciclos (DT-005).
 
 | Fecha | Tramo | Qué cambió |
