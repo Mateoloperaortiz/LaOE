@@ -1,7 +1,9 @@
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import { getHandlers, registerHandler } from "@/jobs/registry";
+import { outbox } from "@/modules/system/schema";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
@@ -13,6 +15,8 @@ const PARENT = "prueba.padre";
 const CHILD = "prueba.hijo";
 const GRANDCHILD = "prueba.nieto";
 const FRAGILE = "prueba.fragil";
+const SWEEPER = "prueba.barre";
+const ENDLESS = "prueba.eterno";
 
 let seen: string[] = [];
 let fragileFails = false;
@@ -37,6 +41,15 @@ describe("drenado del outbox para pruebas", () => {
         throw new Error("no hoy");
       }
       seen.push(FRAGILE);
+    });
+    // Se lleva la fila del frágil, como una limpieza que corre después del fallo. El outbox no tiene
+    // un borrado público: se va a su tabla.
+    registerHandler(SWEEPER, async () => {
+      await getDb().delete(outbox).where(eq(outbox.eventType, FRAGILE));
+    });
+    registerHandler(ENDLESS, async () => {
+      seen.push(ENDLESS);
+      await enqueue(ENDLESS);
     });
   });
   beforeEach(async () => {
@@ -65,6 +78,19 @@ describe("drenado del outbox para pruebas", () => {
     await enqueue(PARENT);
     await expect(drainOutbox()).rejects.toThrow(/prueba\.fragil/);
     expect(seen).toEqual([PARENT, CHILD, GRANDCHILD]);
+  });
+
+  it("un fallo de la llamada la rompe aunque su fila ya no esté al terminar", async () => {
+    fragileFails = true;
+    await enqueue(FRAGILE);
+    await enqueue(SWEEPER);
+    await expect(drainOutbox()).rejects.toThrow(/Falló el outbox \(1 en esta llamada\)/);
+  });
+
+  it("un handler que se reencola sin fin no cuelga el drenado: la llamada falla y dice que no hubo reposo", async () => {
+    await enqueue(ENDLESS);
+    await expect(drainOutbox()).rejects.toThrow(/no llegó al reposo/);
+    expect(seen.length).toBeGreaterThan(0);
   });
 
   it("un fallo que la prueba declara no rompe la llamada", async () => {

@@ -217,7 +217,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
       .set({ deletionRequestedAt: new Date() })
       .where(eq(person.id, personId));
     await runCommand(SYSTEM_ACTOR, (ctx) => anonymizePerson(ctx, personId));
-    await drainOutbox({ expectFailures: ["wallet.sync"] });
+    expect((await drainOutbox({ expectFailures: ["wallet.sync"] })).failed).toBe(1);
     expect(await getCarnetCredential(personId)).toBeNull();
     expect(await listPassesFor(personId)).toEqual([
       expect.objectContaining({ id: google?.id, externalId: google?.externalId }),
@@ -249,12 +249,12 @@ describe("wallet por outbox y reconciliación diaria", () => {
       .set({ deletionRequestedAt: new Date() })
       .where(eq(person.id, personId));
     await runCommand(SYSTEM_ACTOR, (ctx) => anonymizePerson(ctx, personId));
-    await drainOutbox({ expectFailures: ["wallet.sync"] });
+    expect((await drainOutbox({ expectFailures: ["wallet.sync"] })).failed).toBe(1);
     expect(await listPassesFor(personId)).toHaveLength(1);
     Object.assign(getEnv(), original);
     await enqueueEvent(getDb(), eventOf(walletReconcile, {}));
-    // La diaria encola su propio wallet.sync; el que falló sigue esperando su reintento.
-    await drainOutbox({ expectFailures: ["wallet.sync"] });
+    // La diaria encola su propio wallet.sync, que no falla; el que falló sigue esperando su reintento.
+    expect((await drainOutbox({ expectFailures: ["wallet.sync"] })).failed).toBe(0);
     expect(await listPassesFor(personId)).toEqual([]);
   });
 

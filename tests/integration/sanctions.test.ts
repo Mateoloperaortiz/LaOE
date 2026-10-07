@@ -360,6 +360,35 @@ describe("faltas y sanciones", () => {
     expect(await listSanctionsForPerson(outsider)).toHaveLength(1);
   });
 
+  it("desde el alcance de un comité no se sanciona a quien fue de ese comité en otro término y no lo es en el del alcance", async () => {
+    const termId = await seedTerm();
+    const previous = await seedTerm("2024-1");
+    const a3 = await seedCommittee("a3", "A3");
+    const director = await seedPerson("direccion@eafit.edu.co");
+    await seedMembership(director, termId);
+    // Sigue en la OE, pero su pertenencia a A3 es del término anterior: en este no está en el comité.
+    const personId = await member("termino-anterior@eafit.edu.co", previous, a3);
+    const actor = { personId: director, ip: null };
+    const warning = {
+      termId,
+      kind: "WARNING",
+      cause: "Faltó a la reunión del 3 de septiembre sin excusa; en descargos reconoció la falta",
+      occurredOn: todayKey(),
+      committeeId: a3,
+    } as const;
+
+    await expect(
+      recordSanctionAs(actor, personId, warning, { committeeId: a3, termId }),
+    ).rejects.toMatchObject({ name: "DomainError", message: t("T-032") });
+    expect(await listSanctionsForPerson(personId)).toEqual([]);
+
+    // Desde el alcance del término en que sí fue del comité, la misma falta se registra.
+    await recordSanctionAs(actor, personId, warning, { committeeId: a3, termId: previous });
+    expect(await listSanctionsForPerson(personId)).toMatchObject([
+      { kind: "WARNING", committeeName: "A3", termId: previous },
+    ]);
+  });
+
   it("desde el alcance de un comité, la falta de un miembro suyo queda a nombre de ese comité y de su término", async () => {
     const termId = await seedTerm();
     const previous = await seedTerm("2024-1");

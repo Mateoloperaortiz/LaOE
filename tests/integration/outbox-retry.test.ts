@@ -2,7 +2,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
-import { processOne } from "@/jobs/poller";
 import { registerHandler } from "@/jobs/registry";
 import { listOutbox, retryDeadLetterAs } from "@/modules/system";
 import { auditLog } from "@/modules/system/schema";
@@ -20,12 +19,13 @@ const MAX_ATTEMPTS = 5;
 let fails = true;
 let handled = 0;
 
-/** Un evento que agotó sus intentos: cada pasada del poller lo encuentra vencido y vuelve a fallar. */
+/** Un evento que agotó sus intentos: cada drenado lo encuentra vencido y vuelve a fallar. */
 async function seedDeadLetter(): Promise<string> {
   await enqueueEvent(getDb(), { type: FLAKY, payload: {} });
   const start = Date.now();
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    expect(await processOne(new Date(start + attempt * DAY))).toBe("failed");
+    const now = new Date(start + attempt * DAY);
+    expect((await drainOutbox({ now, expectFailures: [FLAKY] })).failed).toBe(1);
   }
   const [dead] = await listOutbox("dead");
   if (!dead) throw new Error("el evento no llegó a dead letter");
