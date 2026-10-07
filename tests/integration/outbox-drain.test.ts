@@ -1,7 +1,9 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { z } from "zod";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
+import { defineEvent } from "@/domain-events/define";
 import { getHandlers, registerHandler } from "@/jobs/registry";
 import { outbox } from "@/modules/system/schema";
 import { drainOutbox } from "../helpers/outbox";
@@ -98,6 +100,17 @@ describe("drenado del outbox para pruebas", () => {
     await enqueue(FRAGILE);
     await enqueue(PARENT);
     expect(await drainOutbox({ expectFailures: [FRAGILE] })).toEqual({ processed: 3, failed: 1 });
+  });
+
+  it("un fallo se declara igual con el contrato del evento que con su tipo", async () => {
+    // Un evento del catálogo se declara con su contrato (ADR-084); acá hace de contrato uno de prueba.
+    const fragile = defineEvent(FRAGILE, z.object({}));
+    fragileFails = true;
+    await enqueue(FRAGILE);
+    expect(await drainOutbox({ expectFailures: [fragile] })).toEqual({ processed: 0, failed: 1 });
+    await expect(
+      drainOutbox({ expectFailures: [defineEvent(PARENT, z.object({}))] }),
+    ).rejects.toThrow(/prueba\.fragil.*no hoy/);
   });
 
   it("declarar un fallo no tapa el de otro evento", async () => {
