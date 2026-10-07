@@ -1,6 +1,6 @@
 # ADR-060: Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026
 
-- Estado: Aceptada (2026-09-13), enmendada por ADR-061 y ADR-073; implementación por tramos N26-T0 a N26-T11 en el [roadmap](../09-roadmap.md#normativa-2026-adr-060)
+- Estado: Aceptada (2026-09-13), enmendada por ADR-061, ADR-073 y ADR-111; implementación por tramos N26-T0 a N26-T11 en el [roadmap](../09-roadmap.md#normativa-2026-adr-060)
 - Fecha: 2026-09-13
 - Enmienda: ADR-024 (punto 2: la elección de junta obligatoria se deriva de que exista la ocasión, no del semestre), ADR-027 (banda de prueba por condición), ADR-028 (punto 1: consecuencias por condición y expulsión como causal propia), ADR-029 y ADR-058 (catálogo de cargos 2026, cargos retirados y `ROSTER` para Logística), ADR-030 (reactivar: el expulsado no vuelve), ADR-031 y ADR-037 (solicitud de excusa; tarea por vencimiento de licencia), ADR-036 (regla 9: la prueba se fija por comité), ADR-046 (licencia con vencimiento y capacidades de un cargo de mesa en licencia), ADR-056 (condición del semestre con comité opcional), ADR-057 (etiqueta "Comunicaciones y Mercadeo"), ADR-059 (presupuesto ordinario y extraordinario, aprobación, presolicitud y aval de evento), 02-crm, 03-modelo, 05-acceso, 12-permanencia, 13-importacion, glosario y 14-copy (bloque T-2206 en adelante)
 - Relacionadas: ADR-002, ADR-003, ADR-012, ADR-014, ADR-025, ADR-026, ADR-042, ADR-047
@@ -61,3 +61,7 @@ Cada regla cita el artículo que la sustenta ("Est." Estatutos, "Regl." Reglamen
 ## Enmienda · 2026-09-14 · ADR-061
 
 [ADR-061](ADR-061-verificacion-y-correcciones-de-normativa-2026.md) completa las guardas, la conservación de condición al volver de licencia y la verificación de entrega. La [matriz](../19-verificacion-normativa-2026.md) documenta la cobertura de C1–C8 y V1–V15 y los límites humanos aceptados.
+
+## Enmienda (2026-10-07, ADR-111)
+
+La regla 5 decía que aprobar una excusa escribe un check-in `EXCUSED`, sin puntos, en la misma transacción. [ADR-111](ADR-111-una-excusa-aceptada-libera-el-premio-reservado.md) la completa: si la asistencia excusada estaba pendiente, esa misma transacción libera su premio reservado y cierra como rechazada la entrega pendiente de un reto presencial vinculado a la ocasión. Los demás efectos de la regla 5 no cambian.

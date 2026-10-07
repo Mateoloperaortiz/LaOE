@@ -1,6 +1,6 @@
 # ADR-067: Retos relámpago, boosters y colección de insignias
 
-- Estado: Aceptada (enmendada por ADR-068, ADR-075, ADR-078 y ADR-087)
+- Estado: Aceptada (enmendada por ADR-068, ADR-075, ADR-078, ADR-087 y ADR-111)
 - Fecha: 2026-09-14
 - Relacionadas: ADR-004, ADR-007, ADR-008, ADR-011, ADR-012, ADR-014, ADR-020, ADR-022, ADR-030, ADR-032, ADR-035, ADR-038, ADR-041, ADR-062
 - Enmienda: ADR-007 (tipos `CHALLENGE` y `BOOST` del ledger), ADR-022 (evidencias con almacenamiento y autorización propios, fuera de `/api/media`), ADR-035 (participación en retos, boosters sobre asistencias, cierre de puntos que exige resolver pendientes), ADR-041 (el Wordle alimenta insignias y no admite boosters)
@@ -73,3 +73,7 @@ La regla 4 se amplía otra vez: el Sudoku también queda fuera de los topes diar
 ## Enmienda (2026-09-22, ADR-087)
 
 Las reglas 4 y 5 distinguen la base del reto de la asistencia: solo `CHALLENGE` conserva el máximo de 20; `CHECKIN` toma la base de la ocasión. El ledger permite `BOOST` de hasta 1000, siempre calculado contra el cupo diario y semanal vigente. Ver [ADR-087](ADR-087-boosters-sobre-puntos-de-asistencia.md).
+
+## Enmienda (2026-10-07, ADR-111)
+
+La regla 3 decía qué hace el reto presencial cuando el check-in de la ocasión se aprueba, queda pendiente, se rechaza o se anula, y callaba la excusa. Una excusa aceptada sobre una asistencia pendiente hace lo mismo que un rechazo: libera el premio reservado del booster de la ocasión y cierra como rechazada la participación presencial pendiente, con el motivo automático T-2579 y su reserva liberada. El motivo del premio liberado es el estado «Excusado», no el texto de la excusa. Ver [ADR-111](ADR-111-una-excusa-aceptada-libera-el-premio-reservado.md).

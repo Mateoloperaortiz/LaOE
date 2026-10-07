@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-111](ADR-111-una-excusa-aceptada-libera-el-premio-reservado.md) | Una excusa aceptada libera el premio reservado y cierra el reto presencial pendiente | Aceptada |
 | [ADR-110](ADR-110-el-grafo-de-modulos-de-dominio-no-tiene-ciclos.md) | El grafo de módulos de dominio no tiene ciclos | Aceptada |
 | [ADR-109](ADR-109-refactor-progresivo-con-ledger-de-deuda.md) | Refactor progresivo con ledger de deuda técnica | Aceptada |
 | [ADR-108](ADR-108-los-issues-de-github-son-la-cola-de-trabajo.md) | Los issues de GitHub son la cola de trabajo de las skills de ingeniería | Aceptada |
@@ -56,14 +57,14 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-070](ADR-070-podio-de-comites-en-gh-points.md) | Podio de comités en GH Points | Aceptada |
 | [ADR-069](ADR-069-directorio-de-comites-de-mi-oe.md) | Directorio de comités de Mi OE | Implementada en local; publicación pendiente |
 | [ADR-068](ADR-068-correcciones-de-gamificacion.md) | Correcciones de gamificación antes de producción | Aceptada |
-| [ADR-067](ADR-067-retos-boosters-y-coleccion.md) | Retos relámpago, boosters y colección de insignias | Aceptada; enmendada por ADR-068, ADR-075 y ADR-078 |
+| [ADR-067](ADR-067-retos-boosters-y-coleccion.md) | Retos relámpago, boosters y colección de insignias | Aceptada; enmendada por ADR-068, ADR-075, ADR-078, ADR-087 y ADR-111 |
 | [ADR-061](ADR-061-verificacion-y-correcciones-de-normativa-2026.md) | Verificación y correcciones de normativa 2026 | Aceptada |
 | [ADR-062](ADR-062-importacion-de-asistencias-y-evidencias-gh.md) | Importación histórica de asistencias y evidencias de GH | En producción; enmendada por ADR-063 |
 | [ADR-063](ADR-063-importacion-de-asambleas.md) | Importación de asistencias a asambleas | Implementada en local; altas pendientes |
 | [ADR-064](ADR-064-gestion-de-macroeventos.md) | Gestión de macroeventos, cargos y GT por semestre | Implementación y verificación (enmendada por ADR-089) |
 | [ADR-066](ADR-066-cargos-vigentes-e-historial.md) | Cargos vigentes e historial por semestre y ámbito | Aceptada; verificada en producción |
 | [ADR-065](ADR-065-areas-y-participacion-gt-gap.md) | Áreas y participación en GT y GAP | Aceptada; enmendada por ADR-071 |
-| [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) | Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026 | Aceptada; en curso por tramos |
+| [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) | Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026 | Aceptada; enmendada por ADR-061, ADR-073 y ADR-111; en curso por tramos |
 | [ADR-059](ADR-059-presupuesto-del-comite.md) | Presupuesto del comité por rubros, gastos y traslados | Propuesta; enmendada por ADR-060 |
 | [ADR-058](ADR-058-direccion-del-comite-por-areas.md) | La dirección del comité por áreas: capacidades por cargo, cargos múltiples y codirección | Aceptada; promovida a producción, verificación con la dirección real pendiente |
 | [ADR-057](ADR-057-vicepresidencia-de-comunicaciones-y-publicidad.md) | Vicepresidencia de Comunicaciones y Publicidad como cargo de junta | Aceptada; en producción |
