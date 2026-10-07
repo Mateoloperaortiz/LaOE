@@ -1,16 +1,27 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { tList } from "@/shared/copy";
-import { decodeImage, IMAGE_MAX_PIXELS, ImageRejectedError } from "@/shared/lib/image-decoder";
+import {
+  decodeImage,
+  IMAGE_MAX_DECODED_BYTES,
+  IMAGE_MAX_PIXELS,
+  ImageRejectedError,
+} from "@/shared/lib/image-decoder";
 
 // El decodificador compartido de medios y evidencias (ADR-113 regla 4). Las imágenes se generan acá:
 // un solo color pesa poco y ocupa todos sus píxeles al decodificarse.
 
 const motives = tList("T-3207");
 
-function flat(width: number, height: number) {
+function flat(width: number, height: number, channels: 3 | 4 = 3) {
+  const color = { r: 10, g: 120, b: 200 };
   return sharp({
-    create: { width, height, channels: 3, background: { r: 10, g: 120, b: 200 } },
+    create: {
+      width,
+      height,
+      channels,
+      background: channels === 4 ? { ...color, alpha: 0.5 } : color,
+    },
     // El tope de sharp también frena al que genera: acá se apaga para poder fabricar la enorme.
     limitInputPixels: false,
   });
@@ -25,6 +36,22 @@ async function rejectionOf(work: Promise<unknown>): Promise<ImageRejectedError> 
   if (outcome instanceof ImageRejectedError) return outcome;
   throw new Error(`Se esperaba un rechazo del decodificador y llegó: ${String(outcome)}`);
 }
+
+type Maker = (width: number, height: number) => ReturnType<typeof flat>;
+
+/** Imágenes que piden más memoria que sus píxeles, con los bytes por píxel que les cuenta el presupuesto. */
+const COSTLY: Array<[string, number, Maker]> = [
+  [
+    "un PNG entrelazado de 16 bits",
+    12,
+    (w, h) => flat(w, h).toColourspace("rgb16").png({ progressive: true }),
+  ],
+  ["un PNG de 16 bits", 6, (w, h) => flat(w, h).toColourspace("rgb16").png()],
+  ["un PNG entrelazado", 6, (w, h) => flat(w, h).png({ progressive: true })],
+  ["un PNG con transparencia", 4, (w, h) => flat(w, h, 4).png()],
+  ["un JPEG progresivo", 6, (w, h) => flat(w, h).jpeg({ progressive: true })],
+  ["un WebP", 6, (w, h) => flat(w, h).webp()],
+];
 
 describe("decodificador de imágenes", () => {
   it("abre JPEG, PNG y WebP y dice su formato real y sus dimensiones", async () => {
@@ -82,6 +109,42 @@ describe("decodificador de imágenes", () => {
     expect(atLimit.width * atLimit.height).toBe(IMAGE_MAX_PIXELS);
     expect(await atLimit.toWebp({ side: 1000 })).toMatchObject({ width: 1000, height: 625 });
   });
+
+  it("rechaza por memoria una imagen que pasa el tope de píxeles y decodificada no cabe en el presupuesto", async () => {
+    // 40 megapíxeles justos, entrelazada y de 16 bits: un archivo de 1 MB que hay que sostener entero.
+    const heavy = await flat(8000, 5000)
+      .toColourspace("rgb16")
+      .png({ progressive: true })
+      .toBuffer();
+    expect(heavy.byteLength).toBeLessThan(5 * 1024 * 1024);
+    expect(await rejectionOf(decodeImage(heavy))).toMatchObject({
+      reason: "memory",
+      detail: "8000x5000, 480000000 bytes",
+      message: motives[4],
+    });
+  }, 30_000);
+
+  it.each(COSTLY)(
+    "%s cuenta %i bytes por píxel: cabe justo en el presupuesto y un renglón más ya no",
+    async (_name, perPixel, make) => {
+      const width = 4000;
+      const height = IMAGE_MAX_DECODED_BYTES / (perPixel * width);
+      expect(await decodeImage(await make(width, height).toBuffer())).toMatchObject({
+        width,
+        height,
+      });
+      const over = await rejectionOf(decodeImage(await make(width, height + 1).toBuffer()));
+      expect(over).toMatchObject({ reason: "memory", message: motives[4] });
+    },
+    30_000,
+  );
+
+  it("un JPEG y un PNG corrientes de 8 bits siguen pasando hasta el tope de píxeles", async () => {
+    for (const format of ["jpeg", "png"] as const) {
+      const image = await decodeImage(await flat(8000, 5000)[format]().toBuffer());
+      expect(image.width * image.height).toBe(IMAGE_MAX_PIXELS);
+    }
+  }, 30_000);
 
   it("reduce al lado máximo conservando la proporción y nunca agranda", async () => {
     const landscape = await decodeImage(await flat(3000, 2000).jpeg().toBuffer());

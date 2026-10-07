@@ -10363,8 +10363,8 @@ export const textos = {
   },
   "T-3207": {
     where:
-      "Medios y evidencias: motivo de una imagen que no se procesó (no se pudo leer · no es un formato admitido · pasa del tope de píxeles · no se pudo codificar; ADR-113)",
-    text: "No se pudo decodificar la imagen. · El archivo no es una imagen JPG, PNG o WebP. · La imagen tiene más de 40 megapíxeles. · No se pudo codificar la imagen.",
+      "Medios y evidencias: motivo de una imagen que no se procesó (no se pudo leer · no es un formato admitido · pasa del tope de píxeles · no se pudo codificar · decodificada no cabe en el presupuesto de memoria; ADR-113)",
+    text: "No se pudo decodificar la imagen. · El archivo no es una imagen JPG, PNG o WebP. · La imagen tiene más de 40 megapíxeles. · No se pudo codificar la imagen. · La imagen pide demasiada memoria para abrirla. Reducila y subila de nuevo.",
     owner: "MATEO",
     status: "Propuesta",
   },

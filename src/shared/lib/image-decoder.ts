@@ -3,8 +3,9 @@ import { tList } from "@/shared/copy";
 
 // El único decodificador de las imágenes que llegan de afuera (ADR-113 regla 4): medios del admin y
 // evidencias de retos. Lee la cabecera antes de tocar un píxel, admite solo JPEG, PNG y WebP por el
-// contenido (el tipo declarado lo escribe quien sube), rechaza lo que pase del tope de píxeles y
-// solo codifica reduciendo. El dominio no abre con sharp una imagen ajena por su cuenta.
+// contenido (el tipo declarado lo escribe quien sube), rechaza lo que pase del tope de píxeles o del
+// presupuesto de memoria y solo codifica reduciendo. El dominio no abre con sharp una imagen ajena
+// por su cuenta.
 
 sharp.concurrency(1);
 
@@ -13,10 +14,18 @@ type ImageFormat = (typeof FORMATS)[number];
 
 /** Tope de píxeles de la imagen de entrada. Por encima no se decodifica. */
 export const IMAGE_MAX_PIXELS = 40_000_000;
+/**
+ * Presupuesto de memoria de la imagen decodificada, en bytes: lo que ocupa la más grande que el tope
+ * de píxeles admite en RGB de 8 bits. El tope de píxeles no ve los canales, la profundidad ni si la
+ * imagen se puede leer por franjas, y de eso depende cuánta memoria pide abrirla.
+ */
+export const IMAGE_MAX_DECODED_BYTES = IMAGE_MAX_PIXELS * 3;
+/** Bytes por muestra de las profundidades que traen JPEG, PNG y WebP. Otra no se reconoce. */
+const SAMPLE_BYTES: Record<string, number> = { uchar: 1, ushort: 2 };
 const WEBP_QUALITY = 82;
 
 /** Por qué no se procesa una imagen. El orden es el de la lista T-3207. */
-const MOTIVES = { unreadable: 0, format: 1, pixels: 2, encode: 3 } as const;
+const MOTIVES = { unreadable: 0, format: 1, pixels: 2, encode: 3, memory: 4 } as const;
 type ImageRejection = keyof typeof MOTIVES;
 
 /**
@@ -79,6 +88,8 @@ async function encodeWebp(bytes: Uint8Array, bound: ImageBound): Promise<Encoded
   }
 }
 
+type ImageHeader = Awaited<ReturnType<typeof readHeader>>;
+
 /** Solo la cabecera: no decodifica píxeles. */
 async function readHeader(bytes: Uint8Array) {
   try {
@@ -91,9 +102,25 @@ async function readHeader(bytes: Uint8Array) {
 }
 
 /**
+ * Bytes que ocupa la imagen decodificada: ancho × alto × canales × bytes por muestra. Cuenta doble la
+ * que libvips no puede leer por franjas y sostiene entera: PNG entrelazado, JPEG progresivo y todo
+ * WebP. `null` si la cabecera no dice los canales o trae una profundidad que no se reconoce.
+ */
+function decodedBytes(metadata: ImageHeader, format: ImageFormat): number | null {
+  const { width, height, channels } = metadata;
+  const sample = SAMPLE_BYTES[metadata.depth ?? ""];
+  if (!width || !height || !channels || !sample) {
+    return null;
+  }
+  // Solo un `false` explícito la deja contar una vez.
+  const whole = format === "webp" || metadata.isProgressive !== false;
+  return width * height * channels * sample * (whole ? 2 : 1);
+}
+
+/**
  * Abre una imagen ajena. Devuelve su formato real y sus dimensiones, y la única puerta para
- * codificarla; lanza `ImageRejectedError` si no es JPEG, PNG o WebP, si no se puede leer o si pasa
- * de `IMAGE_MAX_PIXELS`.
+ * codificarla; lanza `ImageRejectedError` si no es JPEG, PNG o WebP, si no se puede leer, si pasa de
+ * `IMAGE_MAX_PIXELS` o si decodificada no cabe en `IMAGE_MAX_DECODED_BYTES`.
  */
 export async function decodeImage(bytes: Uint8Array): Promise<DecodedImage> {
   const metadata = await readHeader(bytes);
@@ -107,6 +134,16 @@ export async function decodeImage(bytes: Uint8Array): Promise<DecodedImage> {
   }
   if (width * height > IMAGE_MAX_PIXELS) {
     throw new ImageRejectedError("pixels", `${width}x${height}`);
+  }
+  const decoded = decodedBytes(metadata, format);
+  if (decoded === null) {
+    throw new ImageRejectedError(
+      "unreadable",
+      `canales ${String(metadata.channels)}, profundidad ${String(metadata.depth)}`,
+    );
+  }
+  if (decoded > IMAGE_MAX_DECODED_BYTES) {
+    throw new ImageRejectedError("memory", `${width}x${height}, ${decoded} bytes`);
   }
   return { format, width, height, toWebp: (bound) => encodeWebp(bytes, bound) };
 }
