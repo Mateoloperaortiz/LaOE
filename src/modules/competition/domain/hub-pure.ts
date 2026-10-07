@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
+import { DomainError } from "@/shared/lib/errors";
 import type { MarketStatus } from "./betting-pure";
 import { POWER_EFFECTS, POWER_TYPES } from "./powers-pure";
 import { type RouteStop, routeStopSchema } from "./route-pure";
@@ -63,6 +64,24 @@ export function readHubSession(
   if (!Number.isSafeInteger(codeIssuedAt) || !Number.isSafeInteger(expiresAt)) return null;
   if (expiresAt <= now.getTime()) return null;
   return { competitionId, teamId, codeIssuedAt, expiresAt };
+}
+
+/** Por qué el dominio le rechaza una apuesta al hub cuando no es por una regla de la apuesta
+ *  (ADR-114 regla 6). Quien responde por HTTP elige el código de estado por esta razón y nunca por el
+ *  texto del error. `SESSION`: la sesión del equipo ya no vale y el hub vuelve a pedir el código. */
+export type HubBetRejection = "SESSION";
+
+/** El rechazo de una apuesta del hub que lleva su razón. Sigue siendo un `DomainError`, con el texto
+ *  para el capitán; una regla de la apuesta (saldo, opción, apuesta cerrada) es un `DomainError` sin
+ *  razón. */
+export class HubBetError extends DomainError {
+  constructor(
+    readonly reason: HubBetRejection,
+    message: string,
+  ) {
+    super(message);
+    this.name = "HubBetError";
+  }
 }
 
 /** Los fallos recientes de una IP, sin los que ya salieron de la ventana. */

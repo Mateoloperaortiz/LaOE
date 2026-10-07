@@ -17,7 +17,7 @@ import {
 import type { CompetitionActor } from "./access";
 import { marketState, settleParimutuel } from "./betting-pure";
 import { lockAfterFailure, teamCodeMatches } from "./codes-pure";
-import { HUB_TERMS_VERSION, type HubSession } from "./hub-pure";
+import { HUB_TERMS_VERSION, HubBetError, type HubSession } from "./hub-pure";
 import { openCompetition, writableCompetition } from "./setup";
 
 // Apuestas de The Games (ADR-091): puntos virtuales en un libro propio, cuyo saldo suma a la tabla
@@ -349,7 +349,8 @@ export type HubBetInput = z.input<typeof hubBetInputSchema>;
 
 /** La apuesta que registra el capitán desde el hub (ADR-096). La sesión ya probó el código, pero
  *  todo se vuelve a leer aquí dentro de la transacción: el equipo sigue activo, su código no cambió,
- *  la competencia sigue en vivo con apuestas y la apuesta sigue abierta. */
+ *  la competencia sigue en vivo con apuestas y la apuesta sigue abierta. Si la sesión ya no vale, el
+ *  rechazo lleva la razón `SESSION` (ADR-114 regla 6): la ruta responde 401 por ella. */
 export async function placeHubBet(
   ctx: CommandContext,
   session: HubSession,
@@ -357,7 +358,7 @@ export async function placeHubBet(
   now = new Date(),
 ): Promise<{ betId: string; balance: number }> {
   const row = await writableCompetition(ctx, session.competitionId);
-  if (row.status !== "LIVE") throw new DomainError(t("T-3038"));
+  if (row.status !== "LIVE") throw new HubBetError("SESSION", t("T-3038"));
   if (!row.bettingEnabled) throw new DomainError(t("T-2786"));
   const input = hubBetInputSchema.parse(raw);
   const market = await lockedMarket(ctx, session.competitionId, input.marketId);
@@ -385,7 +386,7 @@ export async function placeHubBet(
     team.codeIssuedAt?.getTime() !== session.codeIssuedAt ||
     (team.hubTermsVersion ?? 0) < HUB_TERMS_VERSION
   ) {
-    throw new DomainError(t("T-3038"));
+    throw new HubBetError("SESSION", t("T-3038"));
   }
   const [pick] = await ctx.tx
     .select({ id: competitionTeam.id })

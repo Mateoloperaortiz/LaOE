@@ -70,6 +70,7 @@ import { addMacroeventDirector } from "@/modules/people/domain/appointments";
 import { membership } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 import { seedForm, seedMember, seedSubmission, seedTerm, seedVeteran } from "./factories";
 
@@ -900,6 +901,41 @@ describe("The Games", () => {
           placeHubBetAs(hub(), entered.session, { marketId, pick: 2, stake: 10 }),
         ).rejects.toThrow(t("T-3038"));
         expect(await getHubState(entered.session)).toBeNull();
+      });
+
+      it("una sesión que ya no vale rechaza la apuesta con la razón SESSION; una apuesta mal hecha no la lleva (ADR-114)", async () => {
+        const { id, actor, teamIds, code, marketId } = await seedBetting();
+        const [e1 = ""] = teamIds;
+        await setCompetitionStatusAs(actor, id, "LIVE");
+        const entered = await enterHubAs(hub(), code(e1), HUB_TERMS_VERSION);
+        if (!entered.ok) throw new Error(entered.message);
+        const bet = (pick: number) =>
+          placeHubBetAs(hub(), entered.session, { marketId, pick, stake: 50 });
+        const sessionGone = { reason: "SESSION", message: t("T-3038") };
+        const setTeam = (values: { status?: "ACTIVE" | "WITHDRAWN"; hubTermsVersion?: number }) =>
+          getDb().update(competitionTeam).set(values).where(eq(competitionTeam.id, e1));
+
+        // Apostar por el propio equipo es una regla de la apuesta: error de dominio, sin razón.
+        const selfBet = await bet(1).catch((error: unknown) => error);
+        expect(selfBet).toBeInstanceOf(DomainError);
+        expect(selfBet).toMatchObject({ message: t("T-2785") });
+        expect(selfBet).not.toHaveProperty("reason");
+
+        // Cada motivo por el que la sesión deja de valer lleva la razón, además del texto.
+        await setCompetitionStatusAs(actor, id, "DRAFT");
+        await expect(bet(2)).rejects.toMatchObject(sessionGone);
+        await setCompetitionStatusAs(actor, id, "LIVE");
+        await setTeam({ hubTermsVersion: HUB_TERMS_VERSION - 1 });
+        await expect(bet(2)).rejects.toMatchObject(sessionGone);
+        await setTeam({ hubTermsVersion: HUB_TERMS_VERSION, status: "WITHDRAWN" });
+        await expect(bet(2)).rejects.toMatchObject(sessionGone);
+        await setTeam({ status: "ACTIVE" });
+        // Con todo de vuelta en su sitio la misma sesión apuesta: lo que fallaba era cada motivo.
+        expect(await bet(2)).toMatchObject({ balance: 950 });
+        await issueTeamCodesAs(actor, id, false);
+        const reissued = await bet(2).catch((error: unknown) => error);
+        expect(reissued).toBeInstanceOf(DomainError);
+        expect(reissued).toMatchObject(sessionGone);
       });
     });
   });
