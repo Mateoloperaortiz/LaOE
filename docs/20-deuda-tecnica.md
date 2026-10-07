@@ -112,6 +112,8 @@ Orígenes: **A19** es la [auditoría del 2026-09-19](auditoria-codigo-2026-09-19
 | DT-095 | La E2E del 2048 juega una partida al azar y da por hecho que siempre alcanza para premio: falla cuando el puntaje no llega | C1, ejecutado | testabilidad | OPEN | Falló una vez en la E2E completa del ciclo 1 (`juegos.spec.ts`, premio 0). Misma familia que las pruebas de integración que se fijaron con semilla |
 | DT-096 | La semana ISO de la clave de deduplicación del aviso de evaluaciones se calcula en UTC | C1, leído | corrección | ACCEPTED | Latente: el programado corre a las 9:00 de Colombia, cuando los dos días coinciden. Cambiarla altera una clave de deduplicación ya usada en producción |
 | DT-097 | La Persona 360 también pinta «suspendido hasta» y no se revisó de dónde saca la fecha | C1 | corrección | OPEN | La página de Mi OE ya la lee de `people` (DT-085) |
+| DT-098 | Olores que la revisión del ciclo 2 dejó sin arreglar: la regla «en licencia no opera ningún permiso» está escrita dos veces en `identity`, el exporte de un segmento arma a mano el parámetro de la pantalla de vuelta, el aviso de descarga pendiente de Mi OE está escrito tres veces, y las secciones de enmienda de ADR-033, ADR-034, ADR-038 y ADR-067 no recogen lo que cambió la corrección de la revisión | C2 | mantenibilidad | OPEN | Ninguno cambia conducta; ADR-113 sí dice la regla vigente |
+| DT-099 | ADR-113 junta diez reglas sin relación entre sí y enmienda siete ADR; el ciclo 1 escribió una ADR por decisión | C2 | mantenibilidad | ACCEPTED | Un ciclo de arreglos chicos de seguridad cierra con una sola ADR de reglas numeradas: partirla en diez daría diez archivos de un párrafo. Cada regla nombra la ADR que enmienda |
 
 ## Métricas
 
@@ -154,5 +156,25 @@ Las mide `npm run audit:metrics`. Al cerrar cada ciclo se agrega su tabla debajo
 | Elementos crudos en `src` (input · select · table · button) | 558 · 123 · 51 · 134 |
 
 Lo que movió el ciclo 1: módulos de dominio en una componente circular, de 7 a 0, y `npm run deps:check` rechaza un ciclo nuevo; maneras de drenar el outbox en las pruebas, de 8 bucles locales a una operación; pruebas de integración, de 603 a 634, y unitarias, de 855 a 864. El ciclo fue de corrección y de red de pruebas, así que las métricas de tamaño casi no se mueven: `src` crece 210 líneas (el drenado vive ahora junto al poller y suma cuatro `throw new Error`), baja una función de más de 200 líneas y `people` exporta dos símbolos más (el alcance de la sanción).
+
+### Tras el ciclo 2 · 2026-10-07 · `refactor/ciclo-2`
+
+| Métrica | Valor |
+| --- | --- |
+| Archivos y líneas en `src` (sin el catálogo de textos) | 744 · 117344 |
+| Líneas en `src/app` · `src/modules` | 39230 · 72051 |
+| Funciones de más de 100 · 200 · 300 líneas (`src` y `scripts`) | 179 · 60 · 23 |
+| Funciones con complejidad mayor a 30 | 64 |
+| Archivos de más de 500 · 1000 líneas | 46 · 6 |
+| Exports de `participation` · `people` · `crm` (`index.ts`) | 384 · 237 · 150 |
+| Nombres de función de nivel superior declarados en 2 o más archivos de `src` | 99 |
+| `as unknown as` en `src` | 4 |
+| `tList(` · accesos posicionales `[n] ?? ""` en `src` | 829 · 374 |
+| `throw new Error(` en `src` | 158 |
+| `getDb()` en `src/modules` | 458 |
+| Eventos de dominio: en el catálogo · todavía emitidos como cadena suelta | 66 · 0 |
+| Elementos crudos en `src` (input · select · table · button) | 558 · 123 · 51 · 134 |
+
+Lo que movió el ciclo 2: fue de seguridad e integridad, así que crece el código de guarda y no baja el tamaño. `src` suma 700 líneas (el decodificador de imágenes con sus límites, el tope y el señuelo del código de ingreso, el ayudante de descargas, las guardas del roster y del push) y cuatro archivos; ninguna migración. Las métricas de forma (funciones largas, complejidad, exports, elementos crudos) no se mueven: son el trabajo de los ciclos de estructura que siguen (DT-008, DT-009, DT-012, DT-015).
 
 Medidas que el script no trae y que salen de la revisión del 2026-10-06: módulos de dominio en una componente circular, 7; archivos de prueba que insertan filas a mano, 82; transacciones fuera de `runCommand`, 28 en 18 archivos.
