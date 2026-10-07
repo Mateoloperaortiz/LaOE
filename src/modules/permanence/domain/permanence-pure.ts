@@ -1,3 +1,4 @@
+import { APP_TIME_ZONE, dateKeyIn } from "@/shared/lib/dates-pure";
 import type { AppliesTo, Computation, OccasionFilter, Rule, WorkGroupKind } from "./params";
 
 // Cálculo de permanencia sin I/O (ADR-025 a ADR-028, ADR-036 regla 4): recibe reglas y hechos y
@@ -235,15 +236,19 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-/** Fecha en clave YYYY-MM-DD a partir de un instante, en UTC (las fechas del término ya son de calendario). */
-function dayKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
+/**
+ * Día civil de Colombia (AAAA-MM-DD) de un instante: el «hoy» de ADR-020. Recortar el instante en UTC
+ * adelanta el día cinco horas, de 19:00 a 24:00 de Colombia.
+ */
+function dayKey(at: Date): string {
+  return dateKeyIn(APP_TIME_ZONE, at);
 }
 
+/** Suma días a una fecha clave AAAA-MM-DD: aritmética de calendario, sin zona. */
 function addDays(dayKeyValue: string, days: number): string {
   const base = new Date(`${dayKeyValue}T00:00:00Z`);
   base.setUTCDate(base.getUTCDate() + days);
-  return dayKey(base);
+  return base.toISOString().slice(0, 10);
 }
 
 /** Condición de la persona en un comité (ADR-027): nuevo, en prueba, transferencia o activo. */

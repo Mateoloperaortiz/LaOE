@@ -1464,6 +1464,78 @@ describe("ventana, avisos y distribución", () => {
     ).toContain("EVALUATION_WINDOW_OPENED");
   });
 
+  // ADR-020: «hoy» es el día civil de Colombia. De 19:00 a 24:00 de Colombia el día de UTC ya es el
+  // siguiente, así que cada caso fija las 7:30 p. m. de la víspera (00:30 UTC) y la medianoche (05:00 UTC).
+  it("la ventana abre a la medianoche de Colombia, no la víspera por la noche", () => {
+    const eveNight = new Date("2026-11-21T00:30:00Z");
+    expect(evaluationWindow(TERM, CONFIG, eveNight)).toEqual({
+      opensOn: "2026-11-21",
+      open: false,
+    });
+    expect(evaluationWindow(TERM, CONFIG, new Date("2026-11-21T04:59:59Z")).open).toBe(false);
+    expect(evaluationWindow(TERM, CONFIG, new Date("2026-11-21T05:00:00Z")).open).toBe(true);
+    // El cálculo usa la misma ventana: la víspera por la noche un grupo todavía vale el peso completo.
+    const gap = rule({
+      key: "gap",
+      label: "GAP",
+      weight: 5,
+      computation: "GROUP_EVALUATED",
+      params: { groupKind: "GAP", mode: "FIXED" },
+    });
+    const termFacts = facts({ rules: [gap], groups: [group("GAP", "gap-1")] });
+    expect(computePerson(termFacts, person(), eveNight).general[0]?.remaining).toBe(5);
+    expect(
+      computePerson(termFacts, person(), new Date("2026-11-21T05:00:00Z")).general[0]?.remaining,
+    ).toBe(0);
+  });
+
+  it("los avisos cambian con el día de Colombia, no con el de UTC", () => {
+    const eventos = rule(
+      { key: "eventos", label: "Eventos", weight: 60, computation: "MANUAL", params: {} },
+      "COMMITTEE",
+      "a3",
+    );
+    const termFacts = facts({ rules: [eventos] });
+    const below = person({
+      committees: [committee("a3")],
+      credits: [{ ruleId: eventos.id, value: 30, reason: "" }],
+    });
+    const kindsAt = (
+      iso: string,
+      context?: { pendingEvaluations: number; isEvaluator: boolean },
+    ) => {
+      const at = new Date(iso);
+      return noticesFor(TERM, computePerson(termFacts, below, at), CONFIG, at, context).map(
+        (item) => item.kind,
+      );
+    };
+    // La mitad del semestre es el 23 de septiembre.
+    expect(kindsAt("2026-09-23T00:30:00Z")).toEqual([]);
+    expect(kindsAt("2026-09-23T05:00:00Z")).toEqual(["MID_TERM"]);
+    // Tres semanas antes del cierre es el 14 de noviembre.
+    expect(kindsAt("2026-11-14T00:30:00Z")).toEqual(["MID_TERM"]);
+    expect(kindsAt("2026-11-14T05:00:00Z")).toEqual(["CLOSING_WARNING"]);
+    // La ventana abre el 21 de noviembre: la víspera por la noche el evaluador aún ve que no ha abierto.
+    const evaluator = { pendingEvaluations: 2, isEvaluator: true };
+    expect(kindsAt("2026-11-21T00:30:00Z", evaluator)).toEqual([
+      "CLOSING_WARNING",
+      "EVALUATION_WINDOW_CLOSED",
+    ]);
+    expect(kindsAt("2026-11-21T05:00:00Z", evaluator)).toEqual([
+      "CLOSING_WARNING",
+      "EVALUATION_WINDOW_OPENED",
+    ]);
+    // «Se abrió» dura hasta el 24 de noviembre entero; «pendientes» empieza el 25.
+    expect(kindsAt("2026-11-25T00:30:00Z", evaluator)).toEqual([
+      "CLOSING_WARNING",
+      "EVALUATION_WINDOW_OPENED",
+    ]);
+    expect(kindsAt("2026-11-25T05:00:00Z", evaluator)).toEqual([
+      "CLOSING_WARNING",
+      "EVALUATIONS_PENDING",
+    ]);
+  });
+
   it("tras aplicar el cierre avisa el resultado durante un mes y nada más", () => {
     const closedAt = new Date("2026-12-10T15:00:00Z");
     const closedTerm = { ...TERM, pointsClosedAt: closedAt, permanenceClosedAt: closedAt };
