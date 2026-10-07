@@ -122,6 +122,34 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
     expect(row).toMatchObject({ status: "FAILED", error: "500" });
   });
 
+  it("a un dispositivo guardado con una dirección que no es de un servicio de push conocido no se le envía", async () => {
+    const ana = await seedMember("ana.vieja@eafit.edu.co");
+    const bruno = await seedMember("bruno.viejo@eafit.edu.co");
+    // Filas de antes de ADR-113 regla 6: hoy `saveSubscriptionAs` no las guardaría.
+    await db()
+      .insert(pushSubscription)
+      .values([
+        { personId: ana, endpoint: "http://169.254.169.254/latest/meta-data/", ...keys() },
+        { personId: bruno, endpoint: "https://push.example/de-antes", ...keys() },
+      ]);
+    await subscribe(ana, "https://fcm.googleapis.com/fcm/send/ana-de-hoy");
+    const sent: string[] = [];
+    setPushSenderForTests(async (subscription) => {
+      sent.push(subscription.endpoint);
+      return { ok: true, statusCode: 201 };
+    });
+
+    const stats = await deliverNotification(request([ana, bruno]));
+
+    expect(sent).toEqual(["https://fcm.googleapis.com/fcm/send/ana-de-hoy"]);
+    // Bruno no tiene a dónde: cuenta como quien no tiene dispositivo y no deja mensaje.
+    expect(stats).toMatchObject({ sent: 1, failed: 0, withoutDevice: 1, removedDevices: 0 });
+    expect((await db().select().from(message)).map((row) => row.personId)).toEqual([ana]);
+    // Las filas se quedan: no enviar se deshace sumando el servicio a la lista; borrar, no.
+    const [left] = await db().select({ n: count() }).from(pushSubscription);
+    expect(left?.n).toBe(3);
+  });
+
   it("sin VAPID el proveedor es console y el mensaje queda SENT; el handler del outbox lo entrega", async () => {
     const ana = await seedMember("ana.console@eafit.edu.co");
     await subscribe(ana, "https://fcm.googleapis.com/fcm/send/consola");

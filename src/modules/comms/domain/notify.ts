@@ -9,6 +9,7 @@ import { logger } from "@/shared/log";
 import { listAlreadyNotified, recordMessage } from "./messages";
 import { listPreferencesFor } from "./preferences";
 import { type NotificationRequested, notificationRequestedSchema, shouldDeliver } from "./pure";
+import { isKnownPushEndpoint } from "./push-endpoint-pure";
 import {
   deleteSubscriptionsByIds,
   listSubscriptionsForPeople,
@@ -16,8 +17,9 @@ import {
 } from "./subscriptions";
 
 // Entrega del bus de notificaciones (ADR-038 regla 2): descarta a quienes ya recibieron esa clave,
-// aplica la preferencia del tipo, empuja a cada dispositivo, borra los que ya no existen y registra un
-// `message` por persona. Sin VAPID el proveedor es `console`, como el mailer de consola.
+// aplica la preferencia del tipo, empuja a cada dispositivo de un servicio de push conocido (ADR-113
+// regla 6), borra los que ya no existen y registra un `message` por persona. Sin VAPID el proveedor es
+// `console`, como el mailer de consola.
 
 export type PushSender = (
   subscription: SubscriptionRecord,
@@ -63,6 +65,11 @@ function resolveProvider(): PushProvider {
       return { ok: true, statusCode: 200 };
     },
   };
+}
+
+/** Solo el host: el endpoint completo es la credencial del dispositivo. */
+function hostOf(endpoint: string): string {
+  return URL.canParse(endpoint) ? new URL(endpoint).host : "ilegible";
 }
 
 export interface DeliveryStats {
@@ -111,7 +118,17 @@ export async function deliverNotification(raw: unknown, now = new Date()): Promi
       stats.skippedByPreference += 1;
       continue;
     }
-    const devices = subscriptions.get(personId) ?? [];
+    const stored = subscriptions.get(personId) ?? [];
+    // La casa solo le escribe a un servicio de push conocido, también al enviar: una fila guardada
+    // antes de esa regla puede traer cualquier dirección. No se le envía ni cuenta como dispositivo;
+    // se queda, porque no enviar se deshace sumando el servicio a la lista y borrar no.
+    const devices = stored.filter((device) => isKnownPushEndpoint(device.endpoint));
+    if (devices.length < stored.length) {
+      const hosts = stored
+        .filter((device) => !devices.includes(device))
+        .map((device) => hostOf(device.endpoint));
+      logger.warn({ personId, hosts }, "push: dispositivo fuera de PUSH_SERVICES, no se le envía");
+    }
     if (devices.length === 0) {
       stats.withoutDevice += 1;
       continue;
