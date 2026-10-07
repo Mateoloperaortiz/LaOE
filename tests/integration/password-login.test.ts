@@ -1,8 +1,10 @@
 import { count, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { getEnv } from "@/env";
 import { findPasswordHash, signInWithPassword } from "@/modules/identity/domain/password";
 import {
+  emailLogDigest,
   hashPassword,
   LOGIN_MAX_PER_EMAIL,
   LOGIN_MAX_PER_IP,
@@ -11,6 +13,7 @@ import { resolveActor } from "@/modules/identity/domain/session";
 import { credential, loginAttempt } from "@/modules/identity/schema";
 import { membership, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
 import { truncateAll } from "./db";
 
 // Ingreso con la contraseña propia (ADR-051): la respuesta no distingue quién está en el roster.
@@ -137,5 +140,66 @@ describe("signInWithPassword", () => {
     const personId = await seedMember("nueva@eafit.edu.co");
 
     expect(await findPasswordHash(personId)).toBeNull();
+  });
+});
+
+// Lo que alguien teclea sin sesión no queda en los registros (ADR-114, regla 5): se miran las líneas
+// tal como salen del proceso.
+describe("registros del ingreso por contraseña", () => {
+  beforeEach(truncateAll);
+  afterAll(closeDb);
+
+  const resumen = (email: string) => emailLogDigest(getEnv().SESSION_SECRET, email);
+
+  it("un ingreso fallido deja el resumen del correo y nunca el correo, exista o no la persona", async () => {
+    await withPassword("clave.k7q2@eafit.edu.co");
+    await seedMember("sinclave.m3x8@eafit.edu.co");
+
+    for (const [email, hadCredential] of [
+      ["clave.k7q2@eafit.edu.co", true],
+      ["sinclave.m3x8@eafit.edu.co", false],
+      ["afuera.z9w4@correo.example", false],
+    ] as const) {
+      const { result, lines } = await captureLogs(() => entrar(email, "otra cosa larga"));
+
+      expect(result).toEqual({ ok: false, reason: "INVALID" });
+      expectNoEmail(lines, email);
+      expect(recordsOf(lines, "ingreso: credenciales incorrectas")).toEqual([
+        expect.objectContaining({ emailDigest: resumen(email), hadCredential }),
+      ]);
+    }
+  });
+
+  it("el mismo correo deja el mismo resumen aunque se escriba distinto, y otro correo deja otro", async () => {
+    const primero = await captureLogs(() => entrar("afuera.z9w4@correo.example", "una clave mala"));
+    const segundo = await captureLogs(() =>
+      entrar("  Afuera.Z9W4@Correo.Example ", "otra clave mala"),
+    );
+    const otro = await captureLogs(() => entrar("vecina.p5r1@correo.example", "una clave mala"));
+
+    const [a, b, c] = [primero, segundo, otro].map(
+      ({ lines }) => recordsOf(lines, "ingreso: credenciales incorrectas")[0]?.emailDigest,
+    );
+    expect(a).toBe(resumen("afuera.z9w4@correo.example"));
+    expect(b).toBe(a);
+    expect(c).toBe(resumen("vecina.p5r1@correo.example"));
+    expect(c).not.toBe(a);
+    expectNoEmail(segundo.lines, "afuera.z9w4@correo.example");
+  });
+
+  it("saltar el límite por correo deja el resumen y nunca el correo", async () => {
+    const email = "bloqueada.t6h3@eafit.edu.co";
+    await withPassword(email);
+    for (let i = 0; i < LOGIN_MAX_PER_EMAIL; i += 1) {
+      await entrar(email, "una clave larga mala");
+    }
+
+    const { result, lines } = await captureLogs(() => entrar(email, CLAVE));
+
+    expect(result).toEqual({ ok: false, reason: "LOCKED" });
+    expectNoEmail(lines, email);
+    expect(recordsOf(lines, "ingreso: límite por correo")).toEqual([
+      expect.objectContaining({ emailDigest: resumen(email) }),
+    ]);
   });
 });

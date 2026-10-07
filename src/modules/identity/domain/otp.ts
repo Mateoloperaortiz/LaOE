@@ -11,6 +11,7 @@ import { otpChallenge } from "../schema";
 import {
   codeMatches,
   decoyCodeHash,
+  emailLogDigest,
   generateCode,
   hashCode,
   normalizeEmail,
@@ -93,11 +94,13 @@ export async function requestOtp(input: RequestOtpInput): Promise<void> {
   const env = getEnv();
   const now = input.now ?? new Date();
   const email = normalizeEmail(input.email);
+  // A los registros va el resumen del correo, nunca el correo que alguien tecleó (ADR-114, regla 5).
+  const emailDigest = emailLogDigest(env.SESSION_SECRET, email);
   const purpose = input.purpose ?? "LOGIN";
   const since = new Date(now.getTime() - OTP_WINDOW_MS);
 
   if ((await countRecent("email", email, since)) >= OTP_MAX_PER_EMAIL) {
-    logger.warn({ email }, "otp: límite por correo");
+    logger.warn({ emailDigest }, "otp: límite por correo");
     return;
   }
   if (input.ip && (await countRecent("ip", input.ip, since)) >= OTP_MAX_PER_IP) {
@@ -133,11 +136,11 @@ export async function requestOtp(input: RequestOtpInput): Promise<void> {
     return true;
   });
   if (!issued) {
-    logger.warn({ email }, "otp: tope acumulado de códigos equivocados");
+    logger.warn({ emailDigest }, "otp: tope acumulado de códigos equivocados");
     return;
   }
   if (!member || code === null) {
-    logger.info({ email }, "otp: correo fuera del roster");
+    logger.info({ emailDigest }, "otp: correo fuera del roster");
     return;
   }
 

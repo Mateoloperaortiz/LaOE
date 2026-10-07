@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { count, desc, eq, sum } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { getEnv } from "@/env";
 import { setMailTransportsForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import { pruneIdentity } from "@/modules/identity/domain/maintenance";
@@ -11,8 +12,12 @@ import {
   verifyOtp,
   verifyStepUp,
 } from "@/modules/identity/domain/otp";
+import { signInWithPassword } from "@/modules/identity/domain/password";
 import {
+  emailLogDigest,
   hashCode,
+  OTP_MAX_ATTEMPTS,
+  OTP_MAX_FAILED_PER_EMAIL,
   OTP_MAX_PER_EMAIL,
   OTP_MAX_PER_IP,
   otpAttemptBudget,
@@ -27,6 +32,7 @@ import { membership, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import type { MailMessage } from "@/shared/adapters/mail";
 import { tList } from "@/shared/copy";
+import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
@@ -575,5 +581,82 @@ describe("tope acumulado del ingreso por código (ADR-113)", () => {
     expect(await attempt(email, WRONG)).toEqual(locked);
     expect(await attempt(email, CODE)).toEqual(locked);
     expect(await failedAttemptsFor(email)).toBe(15);
+  });
+});
+
+// Lo que alguien teclea sin sesión no queda en los registros (ADR-114, regla 5): se miran las líneas
+// tal como salen del proceso.
+describe("registros del ingreso por código", () => {
+  beforeEach(async () => {
+    await truncateAll();
+    captureMail();
+  });
+
+  const resumen = (email: string) => emailLogDigest(getEnv().SESSION_SECRET, email);
+
+  it("pedir un código con un correo de afuera deja su resumen y nunca el correo", async () => {
+    const { lines } = await captureLogs(() =>
+      requestOtp({ email: " Afuera.Z9W4@Correo.Example", ip: "10.0.0.7" }),
+    );
+
+    expectNoEmail(lines, "afuera.z9w4@correo.example");
+    expect(recordsOf(lines, "otp: correo fuera del roster")).toEqual([
+      expect.objectContaining({ emailDigest: resumen("afuera.z9w4@correo.example") }),
+    ]);
+  });
+
+  it("saltar el límite de solicitudes por correo deja el resumen y nunca el correo", async () => {
+    const email = "insistente.k7q2@eafit.edu.co";
+    await seedMember(email);
+    for (let i = 0; i < OTP_MAX_PER_EMAIL; i += 1) {
+      await requestOtp({ email, ip: null });
+    }
+
+    const { lines } = await captureLogs(() => requestOtp({ email, ip: null }));
+
+    expectNoEmail(lines, email);
+    expect(recordsOf(lines, "otp: límite por correo")).toEqual([
+      expect.objectContaining({ emailDigest: resumen(email) }),
+    ]);
+    expect(await challengesFor(email)).toBe(OTP_MAX_PER_EMAIL);
+  });
+
+  it("llegar al tope de códigos equivocados deja el resumen y nunca el correo", async () => {
+    const email = "topada.m3x8@correo.example";
+    for (let round = 0; round < OTP_MAX_FAILED_PER_EMAIL / OTP_MAX_ATTEMPTS; round += 1) {
+      await requestOtp({ email, ip: null });
+      for (let i = 0; i < OTP_MAX_ATTEMPTS; i += 1) {
+        await attempt(email, WRONG);
+      }
+    }
+    expect(await failedAttemptsFor(email)).toBe(OTP_MAX_FAILED_PER_EMAIL);
+
+    const { lines } = await captureLogs(() => requestOtp({ email, ip: null }));
+
+    expectNoEmail(lines, email);
+    expect(recordsOf(lines, "otp: tope acumulado de códigos equivocados")).toEqual([
+      expect.objectContaining({ emailDigest: resumen(email) }),
+    ]);
+  });
+
+  it("el ingreso por código y el de contraseña resumen igual un mismo correo", async () => {
+    const email = "afuera.z9w4@correo.example";
+
+    const codigo = await captureLogs(() => requestOtp({ email, ip: null }));
+    const clave = await captureLogs(() =>
+      signInWithPassword({
+        email: email.toUpperCase(),
+        password: "una clave larga mala",
+        ip: null,
+        userAgent: null,
+        remember: false,
+      }),
+    );
+
+    const delCodigo = recordsOf(codigo.lines, "otp: correo fuera del roster")[0]?.emailDigest;
+    expect(delCodigo).toBe(resumen(email));
+    expect(recordsOf(clave.lines, "ingreso: credenciales incorrectas")[0]?.emailDigest).toBe(
+      delCodigo,
+    );
   });
 });

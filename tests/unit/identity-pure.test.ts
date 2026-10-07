@@ -1,4 +1,4 @@
-import { scrypt, scryptSync } from "node:crypto";
+import { createHash, createHmac, scrypt, scryptSync } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   burnPasswordTime,
@@ -6,6 +6,7 @@ import {
   codeMatches,
   decoyCodeHash,
   describeUserAgent,
+  emailLogDigest,
   generateAccessToken,
   generateCode,
   hashCode,
@@ -230,5 +231,72 @@ describe("personAttemptKey", () => {
     for (const escrito of [key, ` ${key} `, key.toUpperCase(), key.toLowerCase()]) {
       expect(normalizeEmail(escrito)).not.toBe(key);
     }
+  });
+});
+
+describe("emailLogDigest (ADR-114, regla 5)", () => {
+  const CLAVE = "clave-sintetica-de-prueba-0123456789abcdef";
+  const CORREO = "ana.prueba@eafit.edu.co";
+
+  it("da el mismo resumen para el mismo correo, se escriba como se escriba", () => {
+    const resumen = emailLogDigest(CLAVE, CORREO);
+
+    for (const escrito of [
+      CORREO,
+      "Ana.Prueba@EAFIT.edu.co",
+      `  ${CORREO}\n`,
+      CORREO.toUpperCase(),
+    ]) {
+      expect(emailLogDigest(CLAVE, escrito)).toBe(resumen);
+    }
+  });
+
+  it("es corto, en hexadecimal, y no deja ver ninguna parte del correo", () => {
+    const resumen = emailLogDigest(CLAVE, CORREO);
+
+    expect(resumen).toMatch(/^[0-9a-f]{16}$/);
+    for (const parte of ["ana", "prueba", "eafit", "@"]) {
+      expect(resumen).not.toContain(parte);
+    }
+  });
+
+  it("distingue correos: dos distintos no comparten resumen", () => {
+    const resumenes = new Set(
+      [CORREO, "ana.prueba@eafit.edu.com", "ana.pruebas@eafit.edu.co", "ana@eafit.edu.co", ""].map(
+        (correo) => emailLogDigest(CLAVE, correo),
+      ),
+    );
+
+    expect(resumenes.size).toBe(5);
+  });
+
+  it("depende de la clave del servidor: sin ella una lista de correos no lo reproduce", () => {
+    const resumen = emailLogDigest(CLAVE, CORREO);
+    const largo = resumen.length;
+
+    expect(emailLogDigest(`${CLAVE}x`, CORREO)).not.toBe(resumen);
+    // Lo que alguien con el roster a mano podría calcular por su cuenta: hashes sin clave.
+    for (const algoritmo of ["sha256", "sha1", "md5"]) {
+      expect(createHash(algoritmo).update(CORREO).digest("hex").slice(0, largo)).not.toBe(resumen);
+    }
+  });
+
+  it("lleva un separador propio: no es la firma que la misma clave da en otro uso", () => {
+    const resumen = emailLogDigest(CLAVE, CORREO);
+    const largo = resumen.length;
+
+    // La clave sola firma el carnet; con ella sobre el correo saldría un valor de otro dominio.
+    expect(createHmac("sha256", CLAVE).update(CORREO).digest("hex").slice(0, largo)).not.toBe(
+      resumen,
+    );
+    expect(hashCode(CLAVE, CORREO, "").slice(0, largo)).not.toBe(resumen);
+  });
+
+  it("no cambia de una versión a otra: los registros viejos se siguen correlacionando", () => {
+    expect(emailLogDigest(CLAVE, CORREO)).toBe("97ea576e28f9905a");
+  });
+
+  it("sin clave no hay resumen: se niega antes que dar un hash que se pueda invertir", () => {
+    expect(() => emailLogDigest("", CORREO)).toThrow("falta la clave del servidor");
   });
 });

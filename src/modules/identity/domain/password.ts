@@ -1,11 +1,13 @@
 import { and, count, eq, gt, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import { getEnv } from "@/env";
 import { findEligibleMemberByEmail } from "@/modules/people";
 import { logger } from "@/shared/log";
 import { credential, loginAttempt } from "../schema";
 import {
   burnPasswordTime,
   checkPassword,
+  emailLogDigest,
   hashPassword,
   LOGIN_MAX_PER_EMAIL,
   LOGIN_MAX_PER_IP,
@@ -80,12 +82,14 @@ export interface SignInInput {
 export async function signInWithPassword(input: SignInInput): Promise<SignInResult> {
   const now = input.now ?? new Date();
   const email = normalizeEmail(input.email);
+  // A los registros va el resumen del correo, nunca el correo que alguien tecleó (ADR-114, regla 5).
+  const emailDigest = emailLogDigest(getEnv().SESSION_SECRET, email);
   const since = new Date(now.getTime() - OTP_WINDOW_MS);
 
   // Un intento bloqueado no se registra: si lo hiciera, insistir mantendría el bloqueo abierto
   // para siempre y cualquiera podría dejar afuera a una persona a voluntad.
   if ((await countFailures("email", email, since)) >= LOGIN_MAX_PER_EMAIL) {
-    logger.warn({ email }, "ingreso: límite por correo");
+    logger.warn({ emailDigest }, "ingreso: límite por correo");
     return { ok: false, reason: "LOCKED" };
   }
   if (input.ip && (await countFailures("ip", input.ip, since)) >= LOGIN_MAX_PER_IP) {
@@ -102,7 +106,10 @@ export async function signInWithPassword(input: SignInInput): Promise<SignInResu
 
   if (!member || !stored || !matches) {
     await recordAttempt(email, input.ip, false);
-    logger.info({ email, hadCredential: Boolean(stored) }, "ingreso: credenciales incorrectas");
+    logger.info(
+      { emailDigest, hadCredential: Boolean(stored) },
+      "ingreso: credenciales incorrectas",
+    );
     return { ok: false, reason: "INVALID" };
   }
 

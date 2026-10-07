@@ -1,4 +1,11 @@
-import { createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from "node:crypto";
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  randomInt,
+  scrypt,
+  timingSafeEqual,
+} from "node:crypto";
 import { promisify } from "node:util";
 import { APP_SCREEN, internalPath } from "@/shared/lib/internal-path";
 import { COMMON_PASSWORDS } from "../data/common-passwords";
@@ -37,6 +44,24 @@ export function normalizeEmail(raw: string): string {
  */
 export function personAttemptKey(personId: string): string {
   return `PERSON:${personId}`;
+}
+
+const EMAIL_LOG_DIGEST_LENGTH = 16;
+
+/**
+ * Resumen del correo para los registros (ADR-114, regla 5): lo que se escribe en lugar del correo que
+ * alguien tecleó sin sesión. Es el mismo para el mismo correo, así que los intentos se siguen
+ * correlacionando, y es un HMAC con la clave del servidor y un separador propio: sin la clave no se
+ * recalcula, ni probando uno por uno los correos del roster. Sin clave no hay resumen.
+ */
+export function emailLogDigest(secret: string, email: string): string {
+  if (!secret) {
+    throw new Error("emailLogDigest: falta la clave del servidor");
+  }
+  return createHmac("sha256", `identity-log-email:${secret}`)
+    .update(normalizeEmail(email))
+    .digest("hex")
+    .slice(0, EMAIL_LOG_DIGEST_LENGTH);
 }
 
 /** Seis dígitos aleatorios; fuera de producción puede fijarse con OTP_FIXED_CODE. */
