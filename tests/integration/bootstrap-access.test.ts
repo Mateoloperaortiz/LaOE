@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { SYSTEM_ACTOR } from "@/db/tx";
+import { grantPermissionAs } from "@/modules/identity";
 import { consumeAccessGrant } from "@/modules/identity/domain/access-grant";
 import { findPasswordHash } from "@/modules/identity/domain/password";
 import { hashPassword, verifyPassword } from "@/modules/identity/domain/pure";
@@ -55,6 +57,17 @@ describe("bootstrapAccess", () => {
     });
     expect(usado.ok).toBe(true);
     expect(await findPasswordHash(personId)).not.toBeNull();
+  });
+
+  it("emite también para un ADMIN: es su camino de vuelta", async () => {
+    const personId = await seedMember("arranque@eafit.edu.co");
+    await grantPermissionAs(SYSTEM_ACTOR, { email: "arranque@eafit.edu.co", code: "ADMIN" });
+
+    const result = await bootstrapAccess({ email: "arranque@eafit.edu.co", kind: "RECOVERY" });
+
+    expect(result.personId).toBe(personId);
+    const [fila] = await db().select().from(accessGrant);
+    expect(fila).toMatchObject({ personId, issuedById: null, kind: "RECOVERY" });
   });
 
   it("queda auditado como emisión del sistema, sin emisor", async () => {

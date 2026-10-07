@@ -1,6 +1,6 @@
 # ADR-051: Acceso con contraseña propia y enlace de un solo uso de la junta
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-113)
 - Fecha: 2026-09-10
 - Enmienda: ADR-010, ADR-011, ADR-014 (seguridad), ADR-050
 - Relacionadas: ADR-012, ADR-023, ADR-034, ADR-038, ADR-047, ADR-048
@@ -65,3 +65,7 @@ La verificación de identidad previa a emitir la hace la junta por fuera del sis
 ## Frente a GHPOINTS
 
 GHPOINTS llegó a tener tres canales de login (Clerk, OTP, Entra) y ADR-010 nació para evitar esa dispersión. Acá quedan dos —contraseña y OTP— y no es una recaída: el segundo existe porque el primero no cubre el caso de quien pierde el acceso a su dispositivo, y ninguno de los dos es un proveedor de identidad externo. La sesión sigue siendo una sola, opaca y en servidor.
+
+## Enmienda (2026-10-07, ADR-113)
+
+La regla 4 decía quién emite un enlace, no para quién. [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md) regla 1 lo acota: si el destinatario tiene algún permiso técnico que quien emite no tiene, solo ADMIN emite. La junta sigue emitiendo para los miembros sin permisos y para quien tiene los mismos que ella. La comprobación vive en `issueAccessGrant`, que relee los permisos en la transacción y responde T-3206. La amenaza aceptada queda como estaba escrita: quien emite puede entrar como esa persona, pero ya no con más permisos que los suyos. El arranque de la regla 16 no cambia.

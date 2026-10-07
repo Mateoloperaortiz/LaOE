@@ -1680,6 +1680,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2134 | Activación, bienvenida (solo cuando es la primera contraseña) | ¡Bienvenido a la OE! Elegí tu contraseña y entrás a Mi OE: ahí están tus comités, tus GH Points y tu permanencia. | MATEO | Propuesta |
 | T-2133 | Ingresar por código, enlace de vuelta | Entrar con tu contraseña | MATEO | Propuesta |
 | T-2132 | Push: enlace de acceso emitido (título · cuerpo) | Emitieron tu enlace de acceso · Si no lo pediste, avisale a la junta ya mismo. | MATEO | Propuesta |
+| T-3206 | Emisión, persona con permisos que quien emite no tiene (ADR-113) | Esta persona tiene permisos que vos no tenés. Su enlace de acceso solo lo emite un ADMIN: pedíselo a uno. | MATEO | Propuesta |
 
 ## Alta y condición del semestre desde la Persona 360 (ADR-056)
 

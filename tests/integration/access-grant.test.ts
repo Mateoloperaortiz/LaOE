@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { SYSTEM_ACTOR } from "@/db/tx";
+import { grantPermissionAs } from "@/modules/identity";
 import {
   consumeAccessGrant,
   issueAccessGrantAs,
@@ -10,9 +12,11 @@ import { findPasswordHash, signInWithPassword } from "@/modules/identity/domain/
 import { hashPassword, hashToken, verifyPassword } from "@/modules/identity/domain/pure";
 import { createSession, resolveActor } from "@/modules/identity/domain/session";
 import { accessGrant, credential, session } from "@/modules/identity/schema";
-import { membership, person } from "@/modules/people/schema";
-import { auditLog } from "@/modules/system/schema";
+import { committee, membership, person } from "@/modules/people/schema";
+import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
+import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { truncateAll } from "./db";
 
 // Enlace de un solo uso que emite la junta (ADR-051).
@@ -38,6 +42,56 @@ async function seedMember(
   if (!who || !current) throw new Error("seed");
   await db().insert(membership).values({ personId: who.id, status, firstTermId: current.id });
   return who.id;
+}
+
+async function seedCommittee(slug: string): Promise<string> {
+  const [row] = await db()
+    .insert(committee)
+    .values({ slug, name: `Comité ${slug}` })
+    .returning({ id: committee.id });
+  if (!row) throw new Error("seed");
+  return row.id;
+}
+
+/** Miembro activo con sus permisos técnicos, concedidos por el comando de permisos. */
+async function seedMemberWith(
+  email: string,
+  ...grants: Array<"ADMIN" | "BOARD" | { leaderOf: string }>
+): Promise<string> {
+  const personId = await seedMember(email);
+  for (const grant of grants) {
+    await grantPermissionAs(
+      SYSTEM_ACTOR,
+      typeof grant === "string"
+        ? { email, code: grant }
+        : { email, code: "COMMITTEE_LEADER", committeeId: grant.leaderOf },
+    );
+  }
+  return personId;
+}
+
+async function putOnLeave(personId: string): Promise<void> {
+  await db()
+    .update(membership)
+    .set({ status: "ON_LEAVE" })
+    .where(eq(membership.personId, personId));
+}
+
+/** El comando rechazó por la regla de privilegio y no dejó enlace, auditoría ni evento. */
+async function expectNoPrivilegeGain(issuerId: string, recipientId: string): Promise<void> {
+  const intento = issueAccessGrantAs(
+    { personId: issuerId },
+    { personId: recipientId, kind: "RECOVERY" },
+  );
+  await expect(intento).rejects.toBeInstanceOf(DomainError);
+  await expect(intento).rejects.toThrow(t("T-3206"));
+  expect(await db().select().from(accessGrant)).toHaveLength(0);
+  expect(
+    await db().select().from(auditLog).where(eq(auditLog.action, "access-grant.issued")),
+  ).toHaveLength(0);
+  expect(
+    await db().select().from(outbox).where(eq(outbox.eventType, "access-grant.issued")),
+  ).toHaveLength(0);
 }
 
 describe("enlace de acceso", () => {
@@ -239,5 +293,80 @@ describe("enlace de acceso", () => {
     expect(await verifyPassword(guardado, CLAVE)).toBe(true);
     expect(await verifyPassword(guardado, "la vieja larga")).toBe(false);
     expect(await db().select().from(credential)).toHaveLength(1);
+  });
+
+  // Quien emite ve el enlace y puede entrar como su destinatario (amenaza aceptada de ADR-051): por
+  // eso el enlace no le puede dar permisos que no tiene (ADR-113 regla 1).
+  describe("emitirlo no deja subir de privilegio", () => {
+    it("la junta sin ADMIN no emite un enlace para una persona con ADMIN", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const admin = await seedMemberWith("admin@eafit.edu.co", "ADMIN");
+
+      await expectNoPrivilegeGain(junta, admin);
+    });
+
+    it("la junta no emite para quien lidera un comité que ella no lidera", async () => {
+      const gemis = await seedCommittee("gemis");
+      const nexos = await seedCommittee("nexos");
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD", { leaderOf: gemis });
+      const lider = await seedMemberWith("lider@eafit.edu.co", { leaderOf: nexos });
+
+      await expectNoPrivilegeGain(junta, lider);
+    });
+
+    it("quien no tiene permisos no emite para una persona de la junta", async () => {
+      const miembro = await seedMember("miembro@eafit.edu.co");
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+
+      await expectNoPrivilegeGain(miembro, junta);
+    });
+
+    it("la junta sigue emitiendo para un miembro sin permisos y para quien tiene los mismos que ella", async () => {
+      const gemis = await seedCommittee("gemis");
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD", { leaderOf: gemis });
+      const miembro = await seedMember("miembro@eafit.edu.co");
+      const colega = await seedMemberWith("colega@eafit.edu.co", "BOARD");
+      const lider = await seedMemberWith("lider@eafit.edu.co", { leaderOf: gemis });
+
+      for (const destino of [miembro, colega, lider]) {
+        const { token } = await issueAccessGrantAs(
+          { personId: junta },
+          { personId: destino, kind: "RECOVERY" },
+        );
+        expect(await resolveAccessGrant(token)).toMatchObject({ personId: destino });
+      }
+    });
+
+    it("ADMIN emite para cualquiera, también para otro ADMIN, y nunca para sí mismo", async () => {
+      const gemis = await seedCommittee("gemis");
+      const admin = await seedMemberWith("admin@eafit.edu.co", "ADMIN");
+      const otro = await seedMemberWith("otro@eafit.edu.co", "ADMIN", "BOARD", { leaderOf: gemis });
+
+      const { token } = await issueAccessGrantAs(
+        { personId: admin },
+        { personId: otro, kind: "RECOVERY" },
+      );
+
+      expect(await resolveAccessGrant(token)).toMatchObject({ personId: otro });
+      await expect(
+        issueAccessGrantAs({ personId: admin }, { personId: admin, kind: "RECOVERY" }),
+      ).rejects.toThrow(t("T-2126"));
+    });
+
+    it("los permisos de quien emite no cuentan mientras está en licencia", async () => {
+      const enLicencia = await seedMemberWith("licencia@eafit.edu.co", "ADMIN");
+      const admin = await seedMemberWith("admin@eafit.edu.co", "ADMIN");
+      await putOnLeave(enLicencia);
+
+      await expectNoPrivilegeGain(enLicencia, admin);
+    });
+
+    it("los permisos del destinatario cuentan aunque esté en licencia", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const adminEnLicencia = await seedMemberWith("admin@eafit.edu.co", "ADMIN");
+      await putOnLeave(adminEnLicencia);
+
+      await expectNoPrivilegeGain(junta, adminEnLicencia);
+    });
   });
 });

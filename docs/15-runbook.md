@@ -527,7 +527,7 @@ Desde [ADR-051](adr/ADR-051-acceso-con-contrasena-y-enlace-de-la-junta.md) la cr
 
 ### Antes de emitir: verificar quién pide
 
-El sistema comprueba que quien emite sea ADMIN o BOARD y que tenga step-up reciente. **No puede comprobar que quien recibe el enlace sea la persona correcta**: eso lo hace quien emite, y es la parte que se puede engañar.
+El sistema comprueba que quien emite sea ADMIN o BOARD y que tenga step-up reciente, y que el enlace no le dé permisos que no tiene: para una persona con ADMIN, o que lidera un comité que quien emite no lidera, solo emite un ADMIN ([ADR-113](adr/ADR-113-reglas-de-seguridad-e-integridad.md)). **No puede comprobar que quien recibe el enlace sea la persona correcta**: eso lo hace quien emite, y es la parte que se puede engañar.
 
 - Emitir **en persona**, o por un canal que ya se conozca de esa persona (su chat de siempre, no un número nuevo).
 - **Nunca emitir porque llegó un mensaje pidiéndolo.** Un mensaje que pide un enlace de acceso es la forma exacta que toma la ingeniería social; devolver la llamada o buscar a la persona en la reunión cuesta un minuto.

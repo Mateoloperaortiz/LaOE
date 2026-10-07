@@ -10355,6 +10355,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3206": {
+    where: "Emisión, persona con permisos que quien emite no tiene (ADR-113)",
+    text: "Esta persona tiene permisos que vos no tenés. Su enlace de acceso solo lo emite un ADMIN: pedíselo a uno.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-321": {
     where: "La OE, título del bloque de contacto",
     text: "Contacto",

@@ -1,13 +1,13 @@
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { accessGrantIssued } from "@/domain-events/identity";
-import { getMemberSummary } from "@/modules/people";
+import { canParticipate, getMemberSummary } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
-import { accessGrant, credential } from "../schema";
+import { accessGrant, credential, permission } from "../schema";
 import {
   ACCESS_GRANT_TTL_MS,
   checkPassword,
@@ -49,6 +49,10 @@ export async function issueAccessGrant(
   const member = await getMemberSummary(input.personId);
   if (!member?.canSignIn) {
     throw new DomainError(t("T-2127"));
+  }
+  // Sin emisor es el arranque del sistema (ADR-051 regla 16): el camino de vuelta de un ADMIN.
+  if (ctx.actor.personId !== null) {
+    await assertNoPrivilegeGain(ctx, ctx.actor.personId, input.personId);
   }
   await ctx.tx
     .update(accessGrant)
@@ -96,6 +100,45 @@ export function issueAccessGrantAs(
   input: IssueAccessGrantInput,
 ): Promise<IssuedAccessGrant> {
   return runCommand(actor, (ctx) => issueAccessGrant(ctx, input));
+}
+
+/**
+ * Quien emite ve el enlace y puede entrar como su destinatario (amenaza aceptada de ADR-051), así
+ * que el enlace no le puede dar permisos que no tiene: si el destinatario tiene alguno de más, solo
+ * ADMIN emite (ADR-113 regla 1). Los permisos se leen acá, en la transacción, y no de la sesión de
+ * quien llama. De quien emite cuentan los que hoy operan (en licencia, ninguno, como en
+ * `resolveActor`); del destinatario, todos los guardados, porque vuelven a operar con él.
+ */
+async function assertNoPrivilegeGain(
+  ctx: CommandContext,
+  issuerId: string,
+  recipientId: string,
+): Promise<void> {
+  const rows = await ctx.tx
+    .select({
+      personId: permission.personId,
+      code: permission.code,
+      committeeId: permission.committeeId,
+    })
+    .from(permission)
+    .where(inArray(permission.personId, [issuerId, recipientId]));
+  const wanted = rows.filter((row) => row.personId === recipientId);
+  if (wanted.length === 0) {
+    return;
+  }
+  const issuer = await getMemberSummary(issuerId);
+  const held = canParticipate(issuer?.membershipStatus)
+    ? rows.filter((row) => row.personId === issuerId)
+    : [];
+  if (held.some((row) => row.code === "ADMIN")) {
+    return;
+  }
+  const covered = wanted.every((want) =>
+    held.some((have) => have.code === want.code && have.committeeId === want.committeeId),
+  );
+  if (!covered) {
+    throw new DomainError(t("T-3206"));
+  }
 }
 
 /** Borra los enlaces de una persona: los llaman el retiro y la anonimización, como a la credencial. */
