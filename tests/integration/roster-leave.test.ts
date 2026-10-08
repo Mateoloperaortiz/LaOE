@@ -1,11 +1,14 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent } from "@/db/tx";
 import { task } from "@/modules/crm/schema";
-import { leaveWindow } from "@/modules/people/domain/leave-pure";
-import { listExpiredLeaves } from "@/modules/people/domain/membership";
-import { applyRosterImportAs, createRosterPreviewAs } from "@/modules/people/domain/roster";
+import {
+  applyRosterImportAs,
+  createRosterPreviewAs,
+  leaveWindow,
+  listExpiredLeaves,
+} from "@/modules/people";
 import { membership, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { todayKey } from "@/shared/lib/dates";
@@ -25,6 +28,38 @@ const EXISTING_EMAIL = "sin.membresia@eafit.edu.co";
 
 function csv(lines: string[]): Uint8Array {
   return new TextEncoder().encode(`﻿${[HEADER, ...lines].join("\r\n")}\r\n`);
+}
+
+/** La fecha de dentro de `days` días (o de hace, si es negativo). */
+function dayIn(days: number): string {
+  return new Date(Date.now() + days * DAY).toISOString().slice(0, 10);
+}
+
+/** El término del roster, con el fin que le pone la prueba y no el de la convención del semestre. */
+async function seedTermEnding(endsOn: string): Promise<string> {
+  const termId = await seedTerm();
+  await db()
+    .update(term)
+    .set({ startsOn: dayIn(-90), endsOn })
+    .where(eq(term.id, termId));
+  return termId;
+}
+
+/** Aplica un roster con dos personas en licencia: una nueva y una que existía sin membresía. */
+async function applyRosterWithLeaves(termId: string): Promise<void> {
+  const code = currentTermCode();
+  await seedCommittee("a3");
+  const adminId = await seedMember("admin.roster@eafit.edu.co");
+  await seedPerson(EXISTING_EMAIL, { firstName: "Sara", lastName: "Sola" });
+  const bytes = csv([
+    `Nora;Nueva;${NEW_EMAIL};;Derecho;A3;${code};Licencia;`,
+    `Sara;Sola;${EXISTING_EMAIL};;Derecho;A3;${code};Licencia;`,
+  ]);
+  const { jobId } = await createRosterPreviewAs(
+    { personId: adminId },
+    { filename: "roster.csv", contentType: "text/csv", bytes, termId },
+  );
+  await applyRosterImportAs({ personId: adminId }, jobId);
 }
 
 function leaves() {
@@ -56,52 +91,48 @@ describe("licencias que nacen del roster", () => {
   });
   afterAll(() => closeDb());
 
-  it("la persona nueva y la que no tenía membresía quedan en licencia con fecha de regreso, que vence y abre su tarea", async () => {
-    const termId = await seedTerm();
-    const code = currentTermCode();
-    await seedCommittee("a3");
-    const adminId = await seedMember("admin.roster@eafit.edu.co");
-    const existingId = await seedPerson(EXISTING_EMAIL, { firstName: "Sara", lastName: "Sola" });
-    const bytes = csv([
-      `Nora;Nueva;${NEW_EMAIL};;Derecho;A3;${code};Licencia;`,
-      `Sara;Sola;${EXISTING_EMAIL};;Derecho;A3;${code};Licencia;`,
-    ]);
-    const { jobId } = await createRosterPreviewAs(
-      { personId: adminId },
-      { filename: "roster.csv", contentType: "text/csv", bytes, termId },
-    );
+  it("la persona nueva y la que no tenía membresía quedan en licencia hasta el fin del término del roster, y pasada esa fecha vencen y abren su tarea", async () => {
+    const until = dayIn(30);
 
-    await applyRosterImportAs({ personId: adminId }, jobId);
+    await applyRosterWithLeaves(await seedTermEnding(until));
 
-    // El fin del término del roster, o mañana si el término termina hoy: el mínimo de la ventana.
-    const [rosterTerm] = await db()
-      .select({ endsOn: term.endsOn })
-      .from(term)
-      .where(eq(term.id, termId));
-    const { min } = leaveWindow(todayKey());
-    const until = rosterTerm && rosterTerm.endsOn > min ? rosterTerm.endsOn : min;
     expect(await leaves()).toEqual([
       { email: NEW_EMAIL, status: "ON_LEAVE", leaveUntil: until },
       { email: EXISTING_EMAIL, status: "ON_LEAVE", leaveUntil: until },
     ]);
-    const [created] = await db()
+    const people = await db()
       .select({ id: person.id })
       .from(person)
-      .where(eq(person.email, NEW_EMAIL));
-    const onLeave = [created?.id ?? "", existingId].sort();
+      .where(inArray(person.email, [NEW_EMAIL, EXISTING_EMAIL]));
+    const onLeave = people.map((row) => row.id).sort();
 
     // Hoy siguen vigentes: el programado no abre nada.
     await leaveCheck();
     expect(await listExpiredLeaves()).toEqual([]);
     expect(await openLeaveTasks()).toEqual([]);
 
-    // Pasada la fecha salen en las vencidas y el programado le abre a GH una tarea por persona.
+    // Pasada la fecha salen en las vencidas y el programado le abre a GH una tarea por persona. El
+    // programado lee el día del reloj (`todayKey()`), no del poller: la opción `now` de `drainOutbox`
+    // no lo mueve, así que acá se adelanta `Date`.
     const later = new Date(Date.parse(`${until}T17:00:00Z`) + 2 * DAY);
     const expired = await listExpiredLeaves(later.toISOString().slice(0, 10));
     expect(expired.map((row) => row.personId).sort()).toEqual(onLeave);
     vi.useFakeTimers({ toFake: ["Date"], now: later });
     await leaveCheck();
     expect(await openLeaveTasks()).toEqual(onLeave);
+  });
+
+  it.each([
+    ["ya terminó", "mañana, el primer regreso válido", -1, "min"],
+    ["termina a más de un año", "al año, que es el tope", 730, "max"],
+  ] as const)("si el término del roster %s, la licencia no sale de la ventana: vence %s", async (_case, _until, days, bound) => {
+    await applyRosterWithLeaves(await seedTermEnding(dayIn(days)));
+
+    const until = leaveWindow(todayKey())[bound];
+    expect(await leaves()).toEqual([
+      { email: NEW_EMAIL, status: "ON_LEAVE", leaveUntil: until },
+      { email: EXISTING_EMAIL, status: "ON_LEAVE", leaveUntil: until },
+    ]);
   });
 
   it("una licencia que ya estaba sin fecha se queda como está al volver a aplicar el roster (decisión abierta 24)", async () => {
