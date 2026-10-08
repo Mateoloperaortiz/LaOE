@@ -73,3 +73,5 @@ La regla 12 dice que el token del calendario se guarda en claro y que regenerarl
 ## Enmienda (2026-10-08, ADR-118)
 
 La regla 13 dice que el handler de `occasion.closed` crea la invitación de cada aprobado y emite el aviso con su URL propia, y no dice qué pasa si queda a medias. Como del enlace solo se guarda la huella, una invitación confirmada cuyo aviso no llegó a encolarse no tenía arreglo: el reintento la saltaba. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 4 lo precisa: las invitaciones y el aviso que lleva sus enlaces se confirman en la misma transacción, por tandas de hasta `NOTIFICATION_MAX_RECIPIENTS`; el aviso de encuesta deja de llevar clave en el outbox, porque la invitación única por ocasión y persona ya impide repetirlo; y a quién se invita no cambia.
+
+Las reglas 5 y 13 dicen que salir de la OE borra las suscripciones, las preferencias y las invitaciones de encuesta de la persona. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 5 lo precisa: se borran si la baja sigue vigente cuando corre su evento; un evento atrasado no se lleva las de quien ya volvió.

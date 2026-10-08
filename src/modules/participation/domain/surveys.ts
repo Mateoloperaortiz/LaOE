@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { and, asc, count, eq, inArray, isNotNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { NOTIFICATION_MAX_RECIPIENTS, notificationRequested } from "@/domain-events/comms";
 import { eventOf } from "@/domain-events/define";
 import { type FormField, getForm, parseFields, validateAnswers } from "@/modules/forms";
@@ -359,8 +359,8 @@ export async function surveySummaryForCommittee(
 }
 
 /** Al salir de la OE o anonimizarse: las invitaciones no son historia; las respuestas no la nombran. */
-export async function deleteSurveyInvitesFor(personId: string): Promise<number> {
-  const rows = await getDb()
+export async function deleteSurveyInvitesFor(exec: Executor, personId: string): Promise<number> {
+  const rows = await exec
     .delete(occasionSurveyInvite)
     .where(eq(occasionSurveyInvite.personId, personId))
     .returning({ id: occasionSurveyInvite.id });

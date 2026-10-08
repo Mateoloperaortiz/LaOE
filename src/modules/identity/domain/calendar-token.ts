@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { type Actor, runCommand, SYSTEM_ACTOR, type Tx } from "@/db/tx";
+import { type Actor, type Executor, runCommand, SYSTEM_ACTOR, type Tx } from "@/db/tx";
 import { canParticipate, getMembershipRef, lockWalletMember } from "@/modules/people";
 import { calendarToken } from "../schema";
 import { ForbiddenError } from "./errors";
@@ -107,8 +107,8 @@ export async function resolveCalendarToken(
  * Retira el token de quien sale o se anonimiza (ADR-116 regla 15): el enlace viejo no queda dormido
  * ni revive si la persona vuelve. Devuelve cuántos borró.
  */
-export async function deleteCalendarTokenFor(personId: string): Promise<number> {
-  const rows = await getDb()
+export async function deleteCalendarTokenFor(exec: Executor, personId: string): Promise<number> {
+  const rows = await exec
     .delete(calendarToken)
     .where(eq(calendarToken.personId, personId))
     .returning({ id: calendarToken.id });

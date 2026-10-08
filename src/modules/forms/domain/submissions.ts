@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gt, ilike, inArray, or } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { registrationCreated, submissionReceived } from "@/domain-events/forms";
 import { getEdition } from "@/modules/events";
@@ -409,8 +409,8 @@ export async function listSubmissionsByPerson(personId: string): Promise<Submiss
 }
 
 /** Al salir de la OE o anonimizar se borran las respuestas (ADR-030); devuelve cuántas. */
-export async function deleteSubmissionsFor(personId: string): Promise<number> {
-  const rows = await getDb()
+export async function deleteSubmissionsFor(exec: Executor, personId: string): Promise<number> {
+  const rows = await exec
     .delete(formSubmission)
     .where(eq(formSubmission.personId, personId))
     .returning({ id: formSubmission.id });

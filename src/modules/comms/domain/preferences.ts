@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
 import { notificationPreference } from "../schema";
 import { DEFAULT_PREFERENCES, type PreferenceFlags } from "./pure";
 
@@ -213,8 +213,8 @@ export async function unsubscribeByToken(token: string): Promise<boolean> {
 }
 
 /** Al salir de la OE o anonimizarse (ADR-030): las preferencias no son historia. */
-export async function deletePreferencesFor(personId: string): Promise<number> {
-  const rows = await getDb()
+export async function deletePreferencesFor(exec: Executor, personId: string): Promise<number> {
+  const rows = await exec
     .delete(notificationPreference)
     .where(eq(notificationPreference.personId, personId))
     .returning({ id: notificationPreference.id });

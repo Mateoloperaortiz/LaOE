@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, ilike, inArray, isNull, lt, type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import type { CommandContext } from "@/db/tx";
+import type { CommandContext, Executor } from "@/db/tx";
 import { getPeopleByIds } from "@/modules/people";
 import { requireConfigIn } from "@/modules/system";
 import { t } from "@/shared/copy";
@@ -432,8 +432,8 @@ export async function countOpenTasksFor(personId: string): Promise<number> {
 }
 
 /** Salida o anonimización (ADR-030): las tareas sobre la persona no son historia y se borran. */
-export async function deleteTasksFor(personId: string): Promise<number> {
-  const deleted = await getDb()
+export async function deleteTasksFor(exec: Executor, personId: string): Promise<number> {
+  const deleted = await exec
     .delete(task)
     .where(eq(task.personId, personId))
     .returning({ id: task.id });

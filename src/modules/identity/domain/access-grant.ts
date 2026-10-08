@@ -1,6 +1,6 @@
 import { and, eq, gt, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { accessGrantIssued } from "@/domain-events/identity";
 import { canParticipate, getMemberSummary } from "@/modules/people";
@@ -142,8 +142,8 @@ async function assertNoPrivilegeGain(
 }
 
 /** Borra los enlaces de una persona: los llaman el retiro y la anonimización, como a la credencial. */
-export async function deleteAccessGrantsFor(personId: string): Promise<number> {
-  const rows = await getDb()
+export async function deleteAccessGrantsFor(exec: Executor, personId: string): Promise<number> {
+  const rows = await exec
     .delete(accessGrant)
     .where(eq(accessGrant.personId, personId))
     .returning({ id: accessGrant.id });

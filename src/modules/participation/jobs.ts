@@ -1,3 +1,4 @@
+import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import {
@@ -15,7 +16,11 @@ import {
 } from "@/domain-events/participation";
 import { membershipChanged, personAnonymized } from "@/domain-events/people";
 import { type JobContext, onEvent, onEvents, registerHandler } from "@/jobs/registry";
-import { listLiveCommitteeIds, listTermCommitteeMembers } from "@/modules/people";
+import {
+  listLiveCommitteeIds,
+  listTermCommitteeMembers,
+  purgeIfMembershipEnded,
+} from "@/modules/people";
 import { requireConfig } from "@/modules/system";
 import { findTermByCode, getCurrentTerm, nextTermCode } from "@/modules/terms";
 import {
@@ -186,7 +191,7 @@ onEvents([checkinApproved, checkinCancelled, checkinExcused], async ({ occasionI
 // antes de las evidencias, que dependen del bucket y pueden dejar el handler a medias.
 onEvent(personAnonymized, async ({ personId }, ctx) => {
   const changed = await scrubStandingName(personId);
-  const invites = await deleteSurveyInvitesFor(personId);
+  const invites = await deleteSurveyInvitesFor(getDb(), personId);
   const featured = await clearFeaturedBadges(personId);
   const excuses = await clearExcuseReasonsFor(personId);
   const evidence = await deleteEvidenceFor(personId);
@@ -196,11 +201,19 @@ onEvent(personAnonymized, async ({ personId }, ctx) => {
   );
 });
 
+// Solo si la baja sigue vigente cuando corre el evento (ADR-118 regla 5): uno atrasado no se lleva
+// las invitaciones de quien ya volvió.
 onEvent(membershipChanged, async ({ personId, to }, ctx) => {
   if (to !== "INACTIVE") {
     return;
   }
-  const invites = await deleteSurveyInvitesFor(personId);
+  const invites = await purgeIfMembershipEnded(personId, (command) =>
+    deleteSurveyInvitesFor(command.tx, personId),
+  );
+  if (invites === null) {
+    ctx.log.info({ personId }, "baja atrasada: la persona ya volvió y conserva sus invitaciones");
+    return;
+  }
   ctx.log.info({ personId, invites }, "invitaciones de encuesta borradas al salir");
 });
 

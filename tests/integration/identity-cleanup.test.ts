@@ -9,6 +9,7 @@ import { findPasswordHash } from "@/modules/identity/domain/password";
 import { hashPassword } from "@/modules/identity/domain/pure";
 import { createSession, resolveActor } from "@/modules/identity/domain/session";
 import { accessGrant, credential } from "@/modules/identity/schema";
+import { endMembershipAs } from "@/modules/people";
 import { membership, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { drainOutbox } from "../helpers/outbox";
@@ -57,16 +58,13 @@ describe("retiro y anonimización retiran la credencial", () => {
       ip: null,
     });
 
-    await enqueueEvent(
-      db(),
-      eventOf(membershipChanged, {
-        actorId: null,
-        personId,
-        from: "ACTIVE",
-        to: "INACTIVE",
-        reason: null,
-      }),
-    );
+    // Una baja de verdad: el handler vuelve a leer la membresía y un evento suelto, con la persona
+    // todavía activa, ya no borra nada (ADR-118 regla 5).
+    await endMembershipAs({ personId: emisor }, personId, {
+      endReason: "RESIGNATION",
+      memorialConsent: false,
+      contactConsent: false,
+    });
     await drainOutbox();
 
     expect(await findPasswordHash(personId)).toBeNull();

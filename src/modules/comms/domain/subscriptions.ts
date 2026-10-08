@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, inArray, max, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, runCommand } from "@/db/tx";
+import { type Actor, type Executor, runCommand } from "@/db/tx";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { pushSubscription } from "../schema";
@@ -227,8 +227,8 @@ export async function deleteSubscriptionsByIds(ids: string[]): Promise<number> {
 }
 
 /** Al salir de la OE o anonimizarse (ADR-030). */
-export async function deleteSubscriptionsFor(personId: string): Promise<number> {
-  const rows = await getDb()
+export async function deleteSubscriptionsFor(exec: Executor, personId: string): Promise<number> {
+  const rows = await exec
     .delete(pushSubscription)
     .where(eq(pushSubscription.personId, personId))
     .returning({ id: pushSubscription.id });

@@ -1,3 +1,4 @@
+import { getDb } from "@/db/client";
 import { campaignStart, notificationRequested } from "@/domain-events/comms";
 import { announcementPushRequested } from "@/domain-events/content";
 import { callOpened, recognitionGranted, requestDecided } from "@/domain-events/crm";
@@ -13,6 +14,7 @@ import { membershipChanged, personAdmitted, personAnonymized } from "@/domain-ev
 import { permanenceDecided } from "@/domain-events/permanence";
 import { getEnv } from "@/env";
 import { type JobContext, onEvent, registerHandler } from "@/jobs/registry";
+import { purgeIfMembershipEnded } from "@/modules/people";
 import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
 import { runCampaignTick } from "./domain/campaigns";
@@ -122,20 +124,27 @@ async function campaignTick(ctx: JobContext): Promise<void> {
 registerHandler("comms.campaign-tick", (_payload, ctx) => campaignTick(ctx));
 onEvent(campaignStart, (_payload, ctx) => campaignTick(ctx));
 
-// Al salir de la OE se borran suscripciones y preferencias (ADR-030, ADR-038 regla 5).
+// Al salir de la OE se borran suscripciones y preferencias (ADR-030, ADR-038 regla 5), si la baja
+// sigue vigente cuando corre el evento (ADR-118 regla 5): uno atrasado no se lleva las de quien volvió.
 onEvent(membershipChanged, async ({ personId, to }, ctx) => {
   if (to !== "INACTIVE") {
     return;
   }
-  const subscriptions = await deleteSubscriptionsFor(personId);
-  const preferences = await deletePreferencesFor(personId);
-  ctx.log.info({ personId, subscriptions, preferences }, "comunicaciones depuradas al salir");
+  const purged = await purgeIfMembershipEnded(personId, async (command) => ({
+    subscriptions: await deleteSubscriptionsFor(command.tx, personId),
+    preferences: await deletePreferencesFor(command.tx, personId),
+  }));
+  if (!purged) {
+    ctx.log.info({ personId }, "baja atrasada: la persona ya volvió y conserva sus avisos");
+    return;
+  }
+  ctx.log.info({ personId, ...purged }, "comunicaciones depuradas al salir");
 });
 
 // Anonimizar borra además los mensajes: no son historia institucional (ADR-030).
 onEvent(personAnonymized, async ({ personId }, ctx) => {
-  const subscriptions = await deleteSubscriptionsFor(personId);
-  const preferences = await deletePreferencesFor(personId);
+  const subscriptions = await deleteSubscriptionsFor(getDb(), personId);
+  const preferences = await deletePreferencesFor(getDb(), personId);
   const messages = await deleteMessagesFor(personId);
   ctx.log.info({ personId, subscriptions, preferences, messages }, "comunicaciones anonimizadas");
 });

@@ -1,6 +1,6 @@
 # ADR-051: Acceso con contraseña propia y enlace de un solo uso de la junta
 
-- Estado: Aceptada (enmendada por ADR-113, ADR-114, ADR-116)
+- Estado: Aceptada (enmendada por ADR-113, ADR-114, ADR-116, ADR-118)
 - Fecha: 2026-09-10
 - Enmienda: ADR-010, ADR-011, ADR-014 (seguridad), ADR-050
 - Relacionadas: ADR-012, ADR-023, ADR-034, ADR-038, ADR-047, ADR-048
@@ -77,3 +77,7 @@ La regla 9 puso un solo par de contadores, por correo y por IP, y el paso de seg
 ## Enmienda (2026-10-08, ADR-116)
 
 La regla 15 dice que la baja y la anonimización borran la contraseña y los enlaces de acceso, junto al carnet, las sesiones y los permisos. El token del calendario personal no estaba en esa lista y sobrevivía a la salida. [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 15 lo suma: también se borra, y quien vuelve genera un enlace nuevo. La licencia sigue sin tocar nada de esto.
+
+## Enmienda (2026-10-08, ADR-118)
+
+La regla 15 dice que la baja borra la contraseña y los enlaces de la persona, junto al carnet, las sesiones y los permisos. El handler decidía con el estado que traía el evento, y un evento de baja reintentado después de un alta le quitaba a la persona la contraseña, el enlace y los permisos que acababa de recibir. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 5 lo precisa: la contraseña, los enlaces, el enlace del calendario y los permisos se retiran, en una sola transacción, si la baja sigue vigente cuando corre el evento. El carnet no cambia, porque lleva época, y las sesiones se siguen cerrando con el estado del evento. Quien vuelve antes de que el evento termine conserva la contraseña, los enlaces vigentes y los permisos que tenía (decisión abierta 44).

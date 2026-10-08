@@ -1,3 +1,4 @@
+import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { submissionReceived } from "@/domain-events/forms";
 import { checkinApproved, termSuccessorMissing } from "@/domain-events/participation";
@@ -17,6 +18,7 @@ import {
   listAllCommittees,
   listCommitteeRoles,
   listExpiredLeaves,
+  purgeIfMembershipEnded,
   SANCTION_KINDS,
 } from "@/modules/people";
 import { listAllTerms } from "@/modules/terms";
@@ -108,15 +110,24 @@ for (const rule of TIMELINE_RULES) {
   });
 }
 
+// Solo si la baja sigue vigente cuando corre el evento (ADR-118 regla 5): uno atrasado no se lleva
+// las tareas de quien ya volvió.
 onEvent(membershipChanged, async ({ personId, to }, ctx) => {
-  if (to === "INACTIVE") {
-    const tasks = await deleteTasksFor(personId);
-    ctx.log.info({ personId, tasks }, "tareas borradas al salir");
+  if (to !== "INACTIVE") {
+    return;
   }
+  const tasks = await purgeIfMembershipEnded(personId, (command) =>
+    deleteTasksFor(command.tx, personId),
+  );
+  if (tasks === null) {
+    ctx.log.info({ personId }, "baja atrasada: la persona ya volvió y conserva sus tareas");
+    return;
+  }
+  ctx.log.info({ personId, tasks }, "tareas borradas al salir");
 });
 
 onEvent(personAnonymized, async ({ personId }, ctx) => {
-  const tasks = await deleteTasksFor(personId);
+  const tasks = await deleteTasksFor(getDb(), personId);
   const notes = await deleteNotesFor(personId);
   ctx.log.info({ personId, tasks, notes }, "tareas y notas borradas por anonimización");
 });
