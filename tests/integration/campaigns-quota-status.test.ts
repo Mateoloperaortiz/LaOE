@@ -336,6 +336,8 @@ describe("cambiar el margen para lo transaccional (ADR-116 regla 20)", () => {
     const [ana] = await seedPeople(1);
     if (!ana) throw new Error("seed people");
     await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, 40);
+    // Leerlo antes deja el 40 en la caché del proceso: quitarlo tiene que soltarla también.
+    expect(await getConfig(RESERVE_KEY)).toBe(40);
 
     expect(
       await resetTransactionalReserveAs({ personId: ana, ip: "203.0.113.7" }, { by: "ADMIN" }),

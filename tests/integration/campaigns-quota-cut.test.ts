@@ -319,6 +319,41 @@ describe("el corte por cuota dura según su causa (ADR-116 regla 19)", () => {
       until: APRIL.toISOString(),
     });
   });
+
+  it("tampoco se acorta el que dejó una versión anterior: la ráfaga de un lote en vuelo no lo pisa", async () => {
+    const { id } = await seedCampaign(2);
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let arrived: () => void = () => {};
+    const inFlight = new Promise<void>((resolve) => {
+      arrived = resolve;
+    });
+    stubResend(async () => {
+      arrived();
+      await held;
+      throw new QuotaExceededError("rate_limit_exceeded: demasiadas solicitudes", "BURST");
+    });
+
+    // El lote queda esperando al proveedor; mientras tanto una versión anterior, que corre a la vez
+    // durante un despliegue, deja en su clave el corte por el cupo del día. Recién ahí al lote le llega
+    // su rechazo por ráfaga, que duraría quince minutos.
+    const batch = runCampaignTick(after(1));
+    await inFlight;
+    await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, LEGACY_KEY, NIGHT.toISOString()));
+    release();
+    await batch;
+
+    stubResend();
+    expect(await getConfig(KEY)).toBeNull();
+    expect(await runCampaignTick(after(17))).toEqual({ started: 0, sent: 0 });
+    expect(await runCampaignTick(BEFORE_MIDNIGHT)).toEqual({ started: 0, sent: 0 });
+    expect(delivered).toEqual([]);
+
+    expect(await runCampaignTick(MIDNIGHT)).toEqual({ started: 0, sent: 2 });
+    expect(await getCampaign(id)).toMatchObject({ status: "SENT", sentCount: 2 });
+  });
 });
 
 describe("a quién detiene el corte por cuota (ADR-116 regla 19)", () => {

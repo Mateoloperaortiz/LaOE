@@ -417,9 +417,6 @@ describe("cierre de permanencia", () => {
     ).toEqual([cumple, prueba, noCumple, noCumple].sort());
   });
 
-  // Decisión abierta 22: los términos que cerraron antes de ADR-116 regla 6 tienen sus snapshots
-  // congelados con el estado abierto. Qué se hace con ellos no está decidido: ni el cierre ni los
-  // lectores los tocan, y esta prueba fija que se leen tal como quedaron guardados.
   it("un recálculo que llega con el cierre en vuelo lo espera y encuentra los snapshots congelados", async () => {
     const { termId } = await setup();
     await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
@@ -516,6 +513,9 @@ describe("cierre de permanencia", () => {
     }
   });
 
+  // Decisión abierta 22: los términos que cerraron antes de ADR-116 regla 6 tienen sus snapshots
+  // congelados con el estado abierto. Qué se hace con ellos no está decidido: ni el cierre ni los
+  // lectores los tocan, y esta prueba fija que se leen tal como quedaron guardados.
   it("un snapshot congelado con el estado abierto se lee como quedó guardado (decisión abierta 22)", async () => {
     const { termId, people } = await setup();
     await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
