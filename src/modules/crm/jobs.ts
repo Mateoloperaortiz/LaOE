@@ -21,7 +21,7 @@ import {
 } from "@/modules/people";
 import { listAllTerms } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
-import { bogotaInputToUtc, formatDate, todayKey } from "@/shared/lib/dates";
+import { atHourIn, bogotaHourToUtc, formatDate, todayKey } from "@/shared/lib/dates";
 import { createCardFromSubmission } from "./domain/cards";
 import { openTaskForReasonAs } from "./domain/commands";
 import { deleteNotesFor, recordAutomaticInteraction } from "./domain/interactions";
@@ -190,7 +190,7 @@ onEvent(termSuccessorMissing, async ({ next, endsOn }, ctx) => {
     reason: { type: "TERM_SUCCESSOR_MISSING", termCode: next },
     title: t("T-666", { codigo: next, fecha: endsOn }),
     assigneeId: null,
-    due: { at: new Date(`${endsOn}T12:00:00Z`) },
+    due: { at: atHourIn("UTC", endsOn, 12) },
     requestedById: null,
   });
   ctx.log.info({ next, ...opened }, "tarea del término siguiente");
@@ -228,10 +228,10 @@ registerHandler("membership.leave-check", async (_payload, ctx) => {
       reason: { type: "LEAVE_EXPIRED", personId: item.personId },
       title: t("T-2277", {
         nombre: item.fullName,
-        fecha: formatDate(new Date(`${item.leaveUntil}T12:00:00Z`)),
+        fecha: formatDate(atHourIn("UTC", item.leaveUntil, 12)),
       }),
       assigneeId: null,
-      due: { at: bogotaInputToUtc(`${today}T09:00`) },
+      due: { at: bogotaHourToUtc(today, 9) },
       requestedById: null,
     });
     opened += result.created ? 1 : 0;

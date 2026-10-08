@@ -76,6 +76,16 @@ export function zonedInputToUtc(value: string, timeZone: string): Date {
   return new Date(naive.getTime() - offsetMinutes * 60_000);
 }
 
+const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** El instante en que dan las `hour` en punto de ese día ("AAAA-MM-DD") en la zona dada. */
+export function atHourIn(timeZone: string, dayKey: string, hour: number): Date {
+  if (!DAY_KEY.test(dayKey) || !Number.isInteger(hour) || hour < 0 || hour > 23) {
+    throw new Error(`Día u hora inválidos: ${dayKey} ${hour}`);
+  }
+  return zonedInputToUtc(`${dayKey}T${String(hour).padStart(2, "0")}:00`, timeZone);
+}
+
 /** Instante UTC → "AAAA-MM-DDTHH:mm" en la zona dada, para rellenar un `datetime-local`. */
 export function utcToZonedInput(date: Date, timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
