@@ -2,7 +2,7 @@
 
 Enmienda posterior: [ADR-062](ADR-062-importacion-de-asistencias-y-evidencias-gh.md) define la importación administrativa de asistencias históricas, con GH Points para miembros en licencia cuando GH lo confirma en el manifiesto.
 
-- Estado: Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070 y ADR-115)
+- Estado: Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115 y ADR-116)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-020, ADR-024, ADR-028, ADR-030, ADR-031, ADR-032, ADR-034
 - Enmienda: ADR-006 (transiciones del check-in), ADR-009 (filas del score solo con elegibles, congelado y transacción propia), ADR-024 (una sola ordinaria obligatoria, aclaración de redacción), ADR-034 (punto 1: el término pasa a un módulo `terms`), 03-modelo (`rotatingSecret`, columnas nuevas de la ocasión, `assembly_requirement` solo para ajustes) y 05-acceso (step-up para cancelar con créditos y para cerrar puntos; líderes en el admin)
@@ -74,3 +74,7 @@ Regla 10, presentación de comités en Mi OE: podio por puesto de competición, 
 ## Enmienda (2026-10-07, ADR-115)
 
 Regla 14: `crm` creaba la tarea «si no hay una abierta igual», e «igual» era el título de T-666: con el texto cambiado, o con otra fecha de fin, abría otra. Ahora la identifica el código del término que falta (`TERM_SUCCESSOR_MISSING:term:<código>`): hay una sola abierta por término, auditada a nombre del sistema. Sigue siendo `GENERAL`, sin asignar y con vencimiento el día en que termina el término actual. Ver [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) regla 9.
+
+## Enmienda (2026-10-08, ADR-116)
+
+Reglas 5 y 6: el candado compartido del término coordinaba cada escritura con el cierre de puntos, pero no a dos decisiones sobre la misma asistencia: cada una validaba la transición contra una lectura sin candado y la segunda pisaba a la primera. Ahora toda transición de una asistencia que ya existe (decidir, el lote, el registro del organizador, cancelar la ocasión y excusar) toma su fila con `for update` después del término y valida contra lo que acaba de leer; la segunda decisión recibe el error de transición. Crear sigue decidiéndose por el índice único. `REJECTED → APPROVED` sigue valiendo para la decisión individual; el lote («Aprobar todos») exige que cada asistencia siga pendiente y ya no reaprueba un rechazo. Ver [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) reglas 1, 2 y 4.

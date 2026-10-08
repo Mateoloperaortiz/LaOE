@@ -9,6 +9,7 @@ import { type AdjustRequirementInput, adjustRequirement } from "./assemblies";
 import type { CheckInDecision } from "./check-in-pure";
 import {
   AlreadyCheckedIn,
+  type BatchDecision,
   cancelOccasionCheckIns,
   checkInSelf,
   decideCheckIn,
@@ -168,7 +169,7 @@ export async function decideCheckInAs(
 export async function decideManyAs(
   actor: Actor & { personId: string },
   checkInIds: string[],
-  decision: CheckInDecision,
+  decision: BatchDecision,
   reason?: string | null,
 ): Promise<number> {
   const settings = await loadGamificationSettings();

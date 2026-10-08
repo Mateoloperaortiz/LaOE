@@ -1,0 +1,43 @@
+# ADR-116: Reglas de corrección, privacidad y permisos del quinto ciclo del refactor
+
+- Estado: Aceptada
+- Fecha: 2026-10-08
+- Relacionadas: ADR-006, ADR-007, ADR-035, ADR-060, ADR-067, ADR-109, ADR-111, ADR-114
+- Enmienda: ADR-035 (reglas 5 y 6: toda transición de una asistencia que ya existe toma su fila, y el lote no reaprueba un rechazo)
+
+## Contexto
+
+El quinto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-con-ledger-de-deuda.md)) es de corrección, privacidad y permisos. Sus defectos salen de la auditoría de huecos del 2026-10-07 (origen `H07` en el [ledger](../20-deuda-tecnica.md)): leídos en el código y confirmados por un segundo lector, pero sin ejecutar, así que cada uno se reprodujo con una prueba en rojo antes de corregirlo. Esta ADR reúne las reglas que cambian en el ciclo: cada ticket suma la suya.
+
+**Dos decisiones sobre la misma asistencia (DT-082).** Según [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) reglas 5 y 6, un candado compartido del término coordina a quien escribe con el cierre de puntos, el índice único `(ocasión, persona)` decide los duplicados al crear y una tabla dice qué transiciones valen. Nada coordinaba a dos decisiones entre sí. Aprobar, rechazar, anular, excusar, el registro del organizador sobre una asistencia que ya existe y la cancelación de la ocasión leían la asistencia sin candado, validaban la transición contra esa lectura y después la escribían filtrando solo por `id`. En `READ COMMITTED` la segunda escritura espera a la primera y la pisa sin volver a validar. Reproducido con pruebas:
+
+- Aprobar mientras se acepta la excusa: la asistencia quedaba excusada y enseguida aprobada, con sus puntos, su premio y su reto. `EXCUSED` es terminal.
+- Excusar o rechazar la que otro está aprobando: quedaba excusada o rechazada con sus puntos vivos.
+- Aprobar dos veces desde dos personas: el índice único parcial del crédito (`point_entry_checkin_unique`) ya impedía dos créditos, pero las dos aprobaciones terminaban bien, con dos auditorías y dos `checkin.approved`, que es de donde salen el aviso, la línea de tiempo y el onboarding.
+- «Aprobar todos»: la consola lista los pendientes antes de abrir la transacción y el lote no exigía que cada uno siguiera pendiente. Como reaprobar un rechazo es una transición válida, el lote reaprobaba y acreditaba en silencio la que otra persona acababa de rechazar.
+- El registro del organizador reaprobaba un rechazo que se estaba excusando, y cancelar la ocasión mientras se aprobaba una asistencia la dejaba anulada con su crédito sin revertir.
+
+La fila decía además que la excusa no toma el candado de puntos del término y se puede aceptar con los puntos ya cerrados. Eso no es un defecto: es la regla 3, con su rastro.
+
+## Decisión
+
+1. **Toda transición de una asistencia que ya existe toma su fila y valida contra lo que acaba de leer.** `lockCheckIns` (`src/modules/participation/domain/check-ins.ts`) lee con `for update` y en orden de `id`, y es la única lectura de la que sale el estado que se valida. La usan los cinco caminos: decidir una asistencia, el lote, el registro del organizador cuando la persona ya tiene asistencia, la cancelación de la ocasión y la excusa. La segunda decisión espera a la primera y recibe el error de siempre: T-676 al decidir, T-601 en el registro del organizador y T-2223 en la excusa (o nada, si ya estaba excusada). Decidir por `id` hace antes una lectura sin candado que solo dice de qué ocasión es la asistencia, que no cambia. La cancelación toma todas las asistencias de la ocasión y filtra pendientes y aprobadas con la fila retenida: un rechazo que alguien está reaprobando no era ni lo uno ni lo otro al mirar. Crear una asistencia sigue como estaba: no hay fila que tomar y el índice único decide entre el registro propio y el del organizador.
+2. **Un solo orden de candados.** Término (compartido; el cierre de puntos lo toma exclusivo) → persona (compartido, solo la excusa: [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 4) → asistencias, por `id` → premio (el consultivo `reward:<persona>`, la fila del premio, el booster) → reto presencial y su entrega. Quien toma varias asistencias las toma en el orden de `id` de la base: la cancelación y el lote, que ordena con una consulta y no en memoria. Por qué no se cruzan la excusa y la anonimización:
+   - La excusa ya tomaba a la persona y después la fila de la asistencia, al escribirla. Ahora la toma en el mismo lugar del orden, al leerla: no hay espera nueva en otro sentido.
+   - `anonymizePerson` toma a la persona con `for update` y no toca asistencias. El handler de `person.anonymized` (`clearExcuseReasonsFor`) corre después, cuando la anonimización ya confirmó, en una sentencia suelta que toma asistencias y nada más. Ninguno de los dos espera a la persona teniendo una asistencia.
+   - Una decisión toma la asistencia y llega a la persona solo por las claves foráneas de lo que escribe (`for key share`). Esa referencia no choca con el compartido de la excusa ni hace cola detrás de una anonimización que espera a la excusa, que era el único ciclo posible entre las tres.
+3. **La excusa no toma el candado de puntos del término.** Rastro:
+   - Qué escribe la excusa: la asistencia, que pasa a `EXCUSED` desde pendiente, rechazada o anulada, o nace excusada, y nunca sale de aprobada; su auditoría y `checkin.excused`; y, si la asistencia existía, libera su premio reservado con su booster y cierra como rechazada la entrega pendiente del reto presencial ([ADR-111](ADR-111-una-excusa-aceptada-libera-el-premio-reservado.md)). No escribe en `point_entry`.
+   - Qué lee y congela el cierre de puntos (`closeTermPointsAs`, `buildStanding`): las sumas de `point_entry`, el puntaje de los comités, las ocasiones no canceladas, las asistencias aprobadas y las entregas completadas. Además exige que no queden ocasiones abiertas, entregas pendientes ni premios reservados (T-646, T-2562).
+   - El cruce: la excusa no toca una asistencia aprobada ni una entrega completada, así que no mueve nada de lo que el cierre cuenta. Lo que sí toca, reservas y entregas pendientes, el cierre lo exige en cero: con los puntos cerrados esas ramas no encuentran nada. Si llega mientras el cierre corre, el cierre ve la reserva y falla con T-2562, o ya no la ve y cierra: lo congelado es lo mismo.
+   - GH acepta excusas tarde ([ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) regla 5: hasta tres días hábiles después de la ocasión, o más con motivo). Con el candado, la falta a la última asamblea del semestre no se podría excusar después de cerrar los puntos.
+4. **El lote decide pendientes.** `decideMany` exige que cada asistencia siga pendiente cuando toma su fila. Si una ya no lo está, la decidió otra persona: el lote entero se deshace con T-676 y quien lo lanzó vuelve a mirar la lista. Anular deja de ser una decisión de lote (`BatchDecision`): solo se anula una aprobada. Una asistencia de la lista que no existe es T-032, y una repetida se decide una vez.
+
+## Consecuencias
+
+- La segunda persona que decide una asistencia espera lo que tarde la primera, y después ve un error en vez de un cambio que no pasó. Antes las dos veían «listo».
+- Reaprobar un rechazo desde la fila sigue valiendo (ADR-035 regla 6), también si el rechazo entró un instante antes de la aprobación: la decisión individual no dice qué estado vio quien la pidió. Es DT-160.
+- Cancelar una ocasión retiene todas sus asistencias hasta confirmar, no solo las pendientes y aprobadas.
+- Una excusa se acepta con los puntos del término cerrados y no cambia el cierre. Con la permanencia cerrada también se acepta: el cierre de permanencia no toma candado y esa carrera queda anotada en DT-075.
+- Siguen abiertas, leídas y sin ejecutar: una asistencia puede nacer o reaprobarse en una ocasión cancelada (DT-161), la excusa que crea la asistencia no maneja el choque con un registro simultáneo (DT-162) y el registro propio con booster puede interbloquearse con el del organizador (DT-163).
+- Las pruebas están en `tests/integration/participation-checkin-decision-concurrency.test.ts`: retienen el término como lo retiene el cierre para que dos decisiones lean lo mismo, o dejan la primera decisión sin confirmar para fijar el orden, y afirman en cada caso que hay puntos vivos si y solo si la asistencia está aprobada.

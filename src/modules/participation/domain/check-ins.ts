@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, type SQL, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
@@ -37,6 +37,10 @@ import { verifyRotatingCode } from "./rotating-code-pure";
 // Check-ins (ADR-006, ADR-035 reglas 5 y 6): un lock compartido del término coordina el cierre; el
 // unique (ocasión, persona) decide los duplicados; el crédito nace en la misma transacción; los efectos
 // (score, línea de tiempo, onboarding) viajan por outbox con payloads autosuficientes.
+//
+// Orden de candados (ADR-116 regla 2), el mismo en todos los caminos: término (compartido) → persona
+// (compartido, solo la excusa) → asistencias (fila, por id) → premio (`reward:<persona>`, su fila, el
+// booster) → reto presencial y su entrega. La excusa no toma el del término (regla 3).
 
 export type CheckInRow = typeof checkIn.$inferSelect;
 
@@ -78,6 +82,19 @@ async function readCheckIn(
     .where(and(eq(checkIn.occasionId, occasionId), eq(checkIn.personId, personId)))
     .limit(1);
   return row ?? null;
+}
+
+/**
+ * Asistencias que ya existen, tomadas para cambiarlas (ADR-116 regla 1): con candado de fila y en
+ * orden de id. Toda transición valida contra lo que devuelve esto y nunca contra una lectura
+ * anterior: otra decisión sobre la misma asistencia espera aquí y encuentra lo que dejó la primera.
+ */
+async function lockCheckIns(ctx: CommandContext, where: SQL | undefined): Promise<CheckInRow[]> {
+  return ctx.tx.select().from(checkIn).where(where).orderBy(asc(checkIn.id)).for("update");
+}
+
+function ofPerson(occasionId: string, personId: string): SQL | undefined {
+  return and(eq(checkIn.occasionId, occasionId), eq(checkIn.personId, personId));
 }
 
 function approvedPayload(row: OccasionRow, personId: string, source: string) {
@@ -334,7 +351,7 @@ export async function hostCheckIn(
     throw new DomainError(t("T-674", { nombre: input.personName }));
   }
   await lockOpenTermPoints(ctx.tx, row.termId);
-  const existing = await readCheckIn(ctx, row.id, input.personId);
+  const [existing] = await lockCheckIns(ctx, ofPerson(row.id, input.personId));
   if (existing) {
     if (!canTransitionCheckIn(existing.status, "APPROVED")) {
       throw new DomainError(t("T-601", { nombre: input.personName }));
@@ -401,6 +418,7 @@ export async function hostCheckIn(
 
 // Decisiones sobre un check-in (aprobar, rechazar, anular).
 
+/** `current` llega de `lockCheckIns`, con el término ya tomado: se valida contra la fila retenida. */
 async function decide(
   ctx: CommandContext,
   current: CheckInRow,
@@ -410,7 +428,6 @@ async function decide(
   now: Date,
   settings?: GamificationSettings,
 ): Promise<void> {
-  await lockOpenTermPoints(ctx.tx, row.termId);
   const target = statusForDecision(decision);
   if (!canTransitionCheckIn(current.status, target)) {
     throw new DomainError(t("T-676", { estado: statusLabel(current.status).toLowerCase() }));
@@ -493,18 +510,35 @@ export interface DecideInput {
   now?: Date | undefined;
 }
 
-export async function decideCheckIn(
+/**
+ * Decide una asistencia por su id. La primera lectura va sin candado y solo dice de qué ocasión es,
+ * que no cambia; el estado se lee con la fila tomada, después del término. `onlyPending` es la regla
+ * del lote: lo que ya no está pendiente lo decidió otro y recibe el error de transición.
+ */
+async function decideById(
   ctx: CommandContext,
   input: DecideInput,
-  context?: { settings?: GamificationSettings | undefined },
+  settings: GamificationSettings | undefined,
+  onlyPending: boolean,
 ): Promise<void> {
-  const [current] = await ctx.tx.select().from(checkIn).where(eq(checkIn.id, input.checkInId));
+  const [found] = await ctx.tx
+    .select({ occasionId: checkIn.occasionId })
+    .from(checkIn)
+    .where(eq(checkIn.id, input.checkInId));
+  if (!found) {
+    throw new DomainError(t("T-032"));
+  }
+  const row = await readOccasion(ctx, found.occasionId);
+  if (!row) {
+    throw new DomainError(t("T-032"));
+  }
+  await lockOpenTermPoints(ctx.tx, row.termId);
+  const [current] = await lockCheckIns(ctx, eq(checkIn.id, input.checkInId));
   if (!current) {
     throw new DomainError(t("T-032"));
   }
-  const row = await readOccasion(ctx, current.occasionId);
-  if (!row) {
-    throw new DomainError(t("T-032"));
+  if (onlyPending && current.status !== "PENDING") {
+    throw new DomainError(t("T-676", { estado: statusLabel(current.status).toLowerCase() }));
   }
   await decide(
     ctx,
@@ -513,22 +547,51 @@ export async function decideCheckIn(
     input.decision,
     input.reason ?? null,
     input.now ?? new Date(),
-    context?.settings,
+    settings,
   );
 }
 
+export async function decideCheckIn(
+  ctx: CommandContext,
+  input: DecideInput,
+  context?: { settings?: GamificationSettings | undefined },
+): Promise<void> {
+  await decideById(ctx, input, context?.settings, false);
+}
+
+/** Anular no es una decisión de lote: solo se anula una asistencia aprobada, y el lote decide pendientes. */
+export type BatchDecision = Exclude<CheckInDecision, "CANCEL">;
+
+/**
+ * Lote de la consola («Aprobar todos»). La lista llega leída antes de la transacción, así que cada
+ * asistencia debe seguir pendiente cuando se toma su fila (ADR-116 regla 4): un rechazo que entró
+ * en el medio no se reaprueba en silencio, y el lote entero se deshace con el error de transición.
+ * Las recorre en orden de id, el mismo de `lockCheckIns`. Devuelve cuántas decidió.
+ */
 export async function decideMany(
   ctx: CommandContext,
   checkInIds: string[],
-  decision: CheckInDecision,
+  decision: BatchDecision,
   reason?: string | null,
   context?: { settings?: GamificationSettings | undefined },
 ): Promise<number> {
-  const now = new Date();
-  for (const checkInId of checkInIds) {
-    await decideCheckIn(ctx, { checkInId, decision, reason, now }, context);
+  if (checkInIds.length === 0) {
+    return 0;
   }
-  return checkInIds.length;
+  const now = new Date();
+  // El orden lo da la base y no `sort()`: tiene que ser el de `order by id` de quien toma varias.
+  const ordered = await ctx.tx
+    .select({ id: checkIn.id })
+    .from(checkIn)
+    .where(inArray(checkIn.id, checkInIds))
+    .orderBy(asc(checkIn.id));
+  if (ordered.length !== new Set(checkInIds).size) {
+    throw new DomainError(t("T-032"));
+  }
+  for (const { id } of ordered) {
+    await decideById(ctx, { checkInId: id, decision, reason, now }, context?.settings, true);
+  }
+  return ordered.length;
 }
 
 /** Al cancelar la ocasión: anula pendientes y aprobados, revierte los créditos vivos y avisa a cada persona. */
@@ -540,10 +603,11 @@ export async function cancelOccasionCheckIns(
   settings?: GamificationSettings,
 ): Promise<number> {
   await lockOpenTermPoints(ctx.tx, row.termId);
-  const rows = await ctx.tx
-    .select()
-    .from(checkIn)
-    .where(and(eq(checkIn.occasionId, row.id), inArray(checkIn.status, ["PENDING", "APPROVED"])));
+  // Se toman todas las de la ocasión y se filtra con la fila retenida: un rechazo que alguien está
+  // reaprobando no estaba pendiente ni aprobado al mirar, y sin esperarlo quedaría vivo.
+  const rows = (await lockCheckIns(ctx, eq(checkIn.occasionId, row.id))).filter(
+    (item) => item.status === "PENDING" || item.status === "APPROVED",
+  );
   for (const current of rows) {
     await ctx.tx
       .update(checkIn)
@@ -621,7 +685,10 @@ export async function excuseCheckIn(
     throw new DomainError(t("T-032"));
   }
   const reason = who.anonymized ? null : input.reason.trim() || null;
-  const current = await readCheckIn(ctx, row.id, input.personId);
+  // ADR-116 reglas 2 y 3: la persona va antes que la asistencia, como ya iba (la fila se tomaba al
+  // escribirla), y sin el candado de puntos del término: la excusa no escribe en el ledger ni en
+  // nada que el cierre de puntos congele.
+  const [current] = await lockCheckIns(ctx, ofPerson(row.id, input.personId));
   if (current?.status === "EXCUSED") {
     return;
   }
