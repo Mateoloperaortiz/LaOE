@@ -129,11 +129,13 @@ export async function createSubmission(
       }
     }
   }
+  // Sin el correo: la entrada es de la entidad `form` y la anonimización no la limpia, así que el id de
+  // la persona junto a su correo la volvería a identificar. El id de la respuesta ya nombra el hecho.
   await ctx.audit({
     action: "submission.received",
     entityType: "form",
     entityId: input.form.id,
-    after: { submissionId: row.id, personId: input.personId, email: input.email },
+    after: { submissionId: row.id, personId: input.personId },
   });
   await ctx.emit(
     eventOf(submissionReceived, {
