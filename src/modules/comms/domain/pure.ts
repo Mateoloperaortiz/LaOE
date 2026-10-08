@@ -48,7 +48,10 @@ export interface QuotaCut {
   until: Date;
 }
 
-/** Como se guarda en `campaigns.quotaExhaustedAt`: con su causa, o la fecha sola de antes de la regla. */
+/**
+ * Como se guarda: con su causa en `campaigns.quotaCut`, o la fecha sola que las versiones anteriores a la
+ * regla dejaban en `campaigns.quotaExhaustedAt`.
+ */
 export type StoredQuotaCut =
   | string
   | { provider: string; reason: QuotaReason; at: string; until: string };
@@ -172,6 +175,18 @@ export function quotaCutReplaces(stored: QuotaCut | null, next: QuotaCut): boole
     stored.provider !== next.provider ||
     stored.until.getTime() < next.until.getTime()
   );
+}
+
+/**
+ * El corte guardado que rige entre el de la clave de hoy y el que dejó una versión anterior en la suya.
+ * El de antes solo cuenta si es más reciente: lo escribió una versión anterior después del último de
+ * hoy. Con la misma hora rige el de hoy, que es como queda levantado un corte de antes.
+ */
+export function latestQuotaCut(stored: QuotaCut | null, legacy: QuotaCut | null): QuotaCut | null {
+  if (legacy !== null && (stored === null || stored.at.getTime() < legacy.at.getTime())) {
+    return legacy;
+  }
+  return stored;
 }
 
 /** Lo que queda donde un texto traía una dirección de correo. */

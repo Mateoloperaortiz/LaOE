@@ -10,6 +10,7 @@ import { campaign, campaignRecipient } from "../schema";
 import {
   campaignCeiling,
   campaignRoom,
+  latestQuotaCut,
   type QuotaCut,
   quotaCutInEffect,
   readQuotaCut,
@@ -17,7 +18,14 @@ import {
   storeQuotaCut,
   transactionalReserve,
 } from "./pure";
-import { campaignDailyLimit, campaignProvider, QUOTA_CUT_KEY, sentTodayVia } from "./send";
+import {
+  campaignDailyLimit,
+  campaignProvider,
+  LEGACY_QUOTA_CUT_KEY,
+  QUOTA_CUT_KEY,
+  sentTodayVia,
+  storedQuotaCut,
+} from "./send";
 
 // El cupo de correo de las campañas visto desde quien lo opera (ADR-116 reglas 19 y 20): lo que
 // muestran la pantalla del cupo y la de una campaña en curso, y los dos comandos de un ADMIN.
@@ -101,9 +109,9 @@ export async function getCampaignQuotaStatus(now = new Date()): Promise<Campaign
   const limit = campaignDailyLimit();
   const [reserveSetting, storedCut] = await Promise.all([
     readConfigNow(RESERVE_KEY),
-    readConfigNow(QUOTA_CUT_KEY),
+    storedQuotaCut({ fresh: true }),
   ]);
-  const cut = quotaCutInEffect(readQuotaCut(storedCut, timeZone), provider, now);
+  const cut = quotaCutInEffect(storedCut, provider, now);
   if (limit === null) {
     return { provider, reserveSetting, daily: null, cut };
   }
@@ -196,6 +204,7 @@ export async function setTransactionalReserveAs(
 /**
  * Levanta el corte por cuota que detiene las campañas, y responde si había uno vigente. Levantarlo es
  * adelantarle el final a este momento: el corte queda guardado con su causa y ya no detiene a nadie.
+ * Vale también para el que dejó una versión anterior en su clave, que no se toca.
  * Lo mira y lo levanta bajo el candado de la clave, en el mismo comando: si mientras tanto un lote
  * escribe otro rechazo, uno de los dos decide después del otro. Queda en la auditoría como toda la
  * configuración, con el final que tenía. No promete que el proveedor acepte: si vuelve a rechazar, el
@@ -210,8 +219,15 @@ export async function liftCampaignQuotaCutAs(
   const timeZone = getEnv().APP_TIMEZONE;
   const provider = campaignProvider();
   let lifted = false;
+  // El de antes se lee fuera del candado: esta versión no lo escribe. Si es el que rige, lo levanta el
+  // corte que queda en la clave de hoy, con su misma hora y el final en este momento.
+  const legacy = readQuotaCut(await readConfigNow(LEGACY_QUOTA_CUT_KEY), timeZone);
   await reviseConfig(actor, QUOTA_CUT_KEY, (current) => {
-    const cut = quotaCutInEffect(readQuotaCut(current, timeZone), provider, now);
+    const cut = quotaCutInEffect(
+      latestQuotaCut(readQuotaCut(current, timeZone), legacy),
+      provider,
+      now,
+    );
     if (cut === null) {
       return undefined;
     }

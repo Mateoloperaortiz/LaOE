@@ -24,7 +24,9 @@ import { seedMember } from "./factories";
 // rechazo y dura según cuál. Todo por el tick que exporta `comms`, con el reloj de cada tick inyectado
 // y un Resend de pruebas, sin desbordamiento: es por donde salen hoy las campañas.
 
-const KEY = "campaigns.quotaExhaustedAt";
+const KEY = "campaigns.quotaCut";
+/** Donde lo dejaban las versiones anteriores a ADR-116, como una fecha sola. Ya no se escribe. */
+const LEGACY_KEY = "campaigns.quotaExhaustedAt";
 
 // Las 22:00 del 9 de marzo de 2031 en Colombia: en UTC ya es 10.
 const NIGHT = new Date("2031-03-10T03:00:00.000Z");
@@ -268,7 +270,7 @@ describe("el corte por cuota dura según su causa (ADR-116 regla 19)", () => {
 
   it("el valor viejo del corte, una fecha sola, se sigue leyendo como el del cupo del día", async () => {
     const { id } = await seedCampaign(2);
-    await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, KEY, NIGHT.toISOString()));
+    await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, LEGACY_KEY, NIGHT.toISOString()));
 
     expect(await runCampaignTick(after(1))).toEqual({ started: 1, sent: 0 });
     expect(await runCampaignTick(BEFORE_MIDNIGHT)).toEqual({ started: 0, sent: 0 });
@@ -372,6 +374,43 @@ describe("a quién detiene el corte por cuota (ADR-116 regla 19)", () => {
 describe("levantar el corte por cuota (ADR-116 regla 19)", () => {
   const daily = () =>
     new QuotaExceededError("daily_quota_exceeded: se acabó el cupo de hoy", "DAILY");
+
+  it("el corte con causa queda en su propia clave y la de las versiones anteriores no se toca: volver a una de ellas no pide borrar nada", async () => {
+    await seedCampaign(3);
+    rejectSecondWith(daily());
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
+
+    expect(await getConfig(KEY)).toMatchObject({ provider: "resend", reason: "DAILY" });
+    // La versión anterior valida esta clave como una fecha sola: con otra forma, su tick fallaría entero.
+    expect(await getConfig(LEGACY_KEY)).toBeNull();
+  });
+
+  it("levanta también el corte que dejó la versión anterior, sin tocar su fecha", async () => {
+    const { id, people } = await seedCampaign(2);
+    const [admin] = people;
+    if (!admin) throw new Error("seed people");
+    await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, LEGACY_KEY, NIGHT.toISOString()));
+    expect(await runCampaignTick(after(1))).toEqual({ started: 1, sent: 0 });
+
+    expect(
+      await liftCampaignQuotaCutAs({ personId: admin, ip: null }, { by: "ADMIN" }, after(5)),
+    ).toBe(true);
+
+    // Lo levanta el corte de la clave nueva, que nace con la hora del de antes y termina ahora.
+    expect(await getConfig(LEGACY_KEY)).toBe(NIGHT.toISOString());
+    expect(await getConfig(KEY)).toEqual({
+      provider: "resend",
+      reason: "DAILY",
+      at: NIGHT.toISOString(),
+      until: after(5).toISOString(),
+    });
+    expect(await runCampaignTick(after(6))).toEqual({ started: 0, sent: 2 });
+    expect(await getCampaign(id)).toMatchObject({ status: "SENT", sentCount: 2 });
+    // Y levantarlo otra vez ya no encuentra nada vigente.
+    expect(
+      await liftCampaignQuotaCutAs({ personId: admin, ip: null }, { by: "ADMIN" }, after(7)),
+    ).toBe(false);
+  });
 
   it("lo levanta quien declara el alcance de ADMIN: queda en la auditoría y el lote siguiente sale el mismo día", async () => {
     const { id, people } = await seedCampaign(3);

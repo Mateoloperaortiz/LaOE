@@ -7,6 +7,14 @@ import { appConfig } from "../schema";
 // Configuración del sistema (03-modelo-de-datos.md, AppConfig): claves conocidas con su esquema,
 // leídas con una caché corta y escritas por comando auditado.
 
+/** El corte por cuota de las campañas con su causa (ADR-116 regla 19). */
+const quotaCutSchema = z.object({
+  provider: z.string().min(1),
+  reason: z.enum(["BURST", "DAILY", "MONTHLY"]),
+  at: z.string().datetime({ offset: true }),
+  until: z.string().datetime({ offset: true }),
+});
+
 export const CONFIG = {
   "committees.min": z.number().int().min(1),
   "committees.max": z.number().int().min(1),
@@ -52,18 +60,13 @@ export const CONFIG = {
   // ADR-115 reglas 5 y 6: correos del cupo diario del proveedor que una campaña no toca, y el corte que
   // deja un rechazo por cuota. Ninguna se siembra: sin fila, el margen es un tercio del cupo y no hay
   // corte. El corte guarda el proveedor, la causa, la hora del lote que lo recibió y hasta cuándo dura
-  // (ADR-116 regla 19); una fecha sola es el valor de antes de esa regla, que se lee como un corte de
-  // Resend por el cupo del día.
+  // (ADR-116 regla 19), en `campaigns.quotaCut`. `campaigns.quotaExhaustedAt` es donde lo dejaban las
+  // versiones anteriores, como una fecha sola: ya no se escribe y se lee como un corte de Resend por el
+  // cupo del día. Admite también la forma con causa porque el ciclo 5 la escribió ahí antes de
+  // publicarse, en bases de desarrollo.
   "campaigns.transactionalReserve": z.number().int().min(0),
-  "campaigns.quotaExhaustedAt": z.union([
-    z.string().datetime({ offset: true }),
-    z.object({
-      provider: z.string().min(1),
-      reason: z.enum(["BURST", "DAILY", "MONTHLY"]),
-      at: z.string().datetime({ offset: true }),
-      until: z.string().datetime({ offset: true }),
-    }),
-  ]),
+  "campaigns.quotaCut": quotaCutSchema,
+  "campaigns.quotaExhaustedAt": z.union([z.string().datetime({ offset: true }), quotaCutSchema]),
   "reminders.hours": z.object({
     today: z.number().int().min(0).max(23),
     eve: z.number().int().min(0).max(23),

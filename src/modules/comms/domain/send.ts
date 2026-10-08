@@ -3,7 +3,7 @@ import { and, count, eq, gte } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Executor, SYSTEM_ACTOR } from "@/db/tx";
 import { getEnv } from "@/env";
-import { getConfig, reviseConfig } from "@/modules/system";
+import { getConfig, readConfigNow, reviseConfig } from "@/modules/system";
 import {
   createMailTransports,
   type MailMessage,
@@ -19,6 +19,7 @@ import { findRecordedMessage, type RecordedMessage, recordMessage } from "./mess
 import {
   campaignCeiling,
   chooseRoute,
+  latestQuotaCut,
   type QuotaCut,
   quotaCutFor,
   quotaCutInEffect,
@@ -246,28 +247,54 @@ export async function campaignQuota(): Promise<CampaignQuota | null> {
   };
 }
 
-/** La clave de `AppConfig` donde queda el corte por cuota. */
-export const QUOTA_CUT_KEY = "campaigns.quotaExhaustedAt";
+/** La clave de `AppConfig` donde queda el corte por cuota, con su causa (ADR-116 regla 19). */
+export const QUOTA_CUT_KEY = "campaigns.quotaCut";
+
+/**
+ * Donde lo dejaban las versiones anteriores a ADR-116, como una fecha sola. Ya no se escribe: se lee,
+ * para que el corte que dejó la versión anterior siga rigiendo después de desplegar. Y como esa versión
+ * no lee la clave de hoy, volver a ella no pide tocar la base.
+ */
+export const LEGACY_QUOTA_CUT_KEY = "campaigns.quotaExhaustedAt";
+
+/**
+ * El corte guardado que rige, esté vigente o no. `fresh` lee la base y no la caché: es para quien lo
+ * muestra o lo va a reemplazar.
+ */
+export async function storedQuotaCut(options: { fresh: boolean }): Promise<QuotaCut | null> {
+  const timeZone = getEnv().APP_TIMEZONE;
+  const [stored, legacy] = options.fresh
+    ? await Promise.all([readConfigNow(QUOTA_CUT_KEY), readConfigNow(LEGACY_QUOTA_CUT_KEY)])
+    : await Promise.all([getConfig(QUOTA_CUT_KEY), getConfig(LEGACY_QUOTA_CUT_KEY)]);
+  return latestQuotaCut(readQuotaCut(stored, timeZone), readQuotaCut(legacy, timeZone));
+}
 
 /**
  * El corte que a esa hora detiene los lotes (ADR-116 regla 19), o `null` si no hay. Es del proveedor
  * que rechazó: no depende de que ese proveedor tenga un cupo diario que contar acá.
  */
 export async function campaignQuotaCut(now: Date): Promise<QuotaCut | null> {
-  const stored = readQuotaCut(await getConfig(QUOTA_CUT_KEY), getEnv().APP_TIMEZONE);
-  return quotaCutInEffect(stored, campaignProvider(), now);
+  return quotaCutInEffect(await storedQuotaCut({ fresh: false }), campaignProvider(), now);
 }
 
 /**
  * Deja escrito el corte de un rechazo por cuota (ADR-116 regla 19): el proveedor, la causa, la hora del
  * lote que lo recibió y hasta cuándo dura según esa causa. Se decide bajo el candado de la clave, y un
- * corte no se acorta: solo lo reemplaza uno que termina después.
+ * corte no se acorta: solo lo reemplaza uno que termina después, también si el que rige lo dejó una
+ * versión anterior en su clave.
  */
-export function markCampaignQuotaExhausted(deferral: CampaignDeferral, at: Date): Promise<void> {
+export async function markCampaignQuotaExhausted(
+  deferral: CampaignDeferral,
+  at: Date,
+): Promise<void> {
   const timeZone = getEnv().APP_TIMEZONE;
   const cut = quotaCutFor(deferral, at, timeZone);
-  return reviseConfig(SYSTEM_ACTOR, QUOTA_CUT_KEY, (current) =>
-    quotaCutReplaces(readQuotaCut(current, timeZone), cut) ? storeQuotaCut(cut) : undefined,
+  // El de antes se lee fuera del candado: esta versión no lo escribe.
+  const legacy = readQuotaCut(await readConfigNow(LEGACY_QUOTA_CUT_KEY), timeZone);
+  await reviseConfig(SYSTEM_ACTOR, QUOTA_CUT_KEY, (current) =>
+    quotaCutReplaces(latestQuotaCut(readQuotaCut(current, timeZone), legacy), cut)
+      ? storeQuotaCut(cut)
+      : undefined,
   );
 }
 

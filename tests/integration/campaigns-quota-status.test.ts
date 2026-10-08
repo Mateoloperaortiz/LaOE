@@ -27,7 +27,7 @@ import { seedMember } from "./factories";
 // inyectado y un transporte de pruebas.
 
 const RESERVE_KEY = "campaigns.transactionalReserve";
-const CUT_KEY = "campaigns.quotaExhaustedAt";
+const CUT_KEY = "campaigns.quotaCut";
 
 const DAILY_LIMIT = Number(process.env.RESEND_DAILY_LIMIT ?? 95);
 const DEFAULT_RESERVE = Math.ceil(DAILY_LIMIT / 3);

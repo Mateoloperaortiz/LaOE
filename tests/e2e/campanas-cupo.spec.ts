@@ -23,7 +23,7 @@ import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
 test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
 const NOMBRE = `e2e-cupo-${Date.now().toString(36)}`;
-const CUT_KEY = "campaigns.quotaExhaustedAt";
+const CUT_KEY = "campaigns.quotaCut";
 const RESERVE_KEY = "campaigns.transactionalReserve";
 
 interface Sembrado {

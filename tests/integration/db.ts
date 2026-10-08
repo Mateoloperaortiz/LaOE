@@ -15,7 +15,11 @@ const GAMIFICATION_SEED: Record<string, unknown> = {
 
 // Claves que ninguna migración siembra y que una prueba puede dejar escritas (ADR-115 reglas 5 y 6):
 // no se restauran, o el margen o el corte por cuota de una prueba le quedarían a la siguiente.
-const UNSEEDED = new Set(["campaigns.transactionalReserve", "campaigns.quotaExhaustedAt"]);
+const UNSEEDED = new Set([
+  "campaigns.transactionalReserve",
+  "campaigns.quotaCut",
+  "campaigns.quotaExhaustedAt",
+]);
 
 export async function truncateAll(): Promise<void> {
   const db = getDb();

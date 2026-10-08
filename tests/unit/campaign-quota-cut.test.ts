@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { quotaCutFor, quotaCutUntil, readQuotaCut } from "@/modules/comms/domain/pure";
+import {
+  latestQuotaCut,
+  quotaCutFor,
+  quotaCutUntil,
+  readQuotaCut,
+} from "@/modules/comms/domain/pure";
 
 // DT-117 (ADR-116 regla 19): cuánto dura el corte de las campañas según la causa del rechazo, y cómo
 // se lee lo que quedó guardado en `campaigns.quotaExhaustedAt`.
@@ -115,5 +120,34 @@ describe("lo que quedó guardado del corte", () => {
       at: NIGHT,
       until: new Date("2031-04-01T05:00:00.000Z"),
     });
+  });
+});
+
+describe("el corte que rige entre la clave de hoy y la que escribían las versiones anteriores", () => {
+  const cut = (at: Date, until: Date) => ({
+    provider: "resend",
+    reason: "DAILY" as const,
+    at,
+    until,
+  });
+  const hour = (n: number) => new Date(Date.UTC(2026, 9, 8, n));
+
+  it("sin nada en la clave de hoy rige el de antes, y sin ninguno no hay corte", () => {
+    const legacy = cut(hour(1), hour(5));
+    expect(latestQuotaCut(null, legacy)).toBe(legacy);
+    expect(latestQuotaCut(null, null)).toBeNull();
+  });
+
+  it("el de la clave de hoy rige sobre uno de antes de la misma hora o más viejo: así se levanta", () => {
+    const legacy = cut(hour(1), hour(5));
+    const lifted = cut(hour(1), hour(2));
+    expect(latestQuotaCut(lifted, legacy)).toBe(lifted);
+    expect(latestQuotaCut(cut(hour(3), hour(4)), legacy)).toMatchObject({ at: hour(3) });
+  });
+
+  it("el de antes rige si es más reciente: lo escribió una versión anterior después de volver a ella", () => {
+    const stored = cut(hour(1), hour(2));
+    const legacy = cut(hour(3), hour(5));
+    expect(latestQuotaCut(stored, legacy)).toBe(legacy);
   });
 });
