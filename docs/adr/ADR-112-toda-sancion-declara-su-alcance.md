@@ -1,6 +1,6 @@
 # ADR-112: Toda sanción se registra con su alcance declarado
 
-- Estado: Aceptada (enmendada por ADR-114)
+- Estado: Aceptada (enmendada por ADR-114 y ADR-116)
 - Fecha: 2026-10-07
 - Relacionadas: ADR-011, ADR-058, ADR-109
 - Enmienda: ADR-060 (regla 6), ADR-072 (regla 1)
@@ -33,3 +33,7 @@ El ciclo 1 llevó la comprobación al comando con un alcance opcional: con él s
 ## Enmienda (2026-10-07, ADR-114)
 
 Las consecuencias dejaban abierto (DT-084) que revocar una sanción recibía solo su id. [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 3 lo cierra: `revokeSanctionAs` recibe la persona de la ficha desde la que se revoca y comprueba en la transacción que la sanción sea suya; una ajena responde T-032, como una que no existe, y no escribe nada. Sigue abierto de DT-084 que ni el formulario de faltas del comité ni las sanciones de la Persona 360 tienen E2E.
+
+## Enmienda (2026-10-08, ADR-116)
+
+La regla 4 hizo obligatorio el alcance al registrar y la regla 5 dejó la revocación como estaba: `revokeSanctionAs` no lo recibía, y que solo revocara ADMIN lo decidía la action (DT-101). [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 11 lo cierra: revocar declara el mismo `SanctionScope`, obligatorio, y el comando deja pasar solo `{ by: "ADMIN" }`. El alcance de un comité responde T-032, también sobre una sanción que ese comité registró: ninguna regla le da permiso para revocar. Lo demás queda igual.

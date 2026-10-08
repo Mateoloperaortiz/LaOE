@@ -196,14 +196,22 @@ export async function recordSanction(
 /**
  * Revoca una sanción de una persona (descargos o revisión de la junta, Regl. art. 56 par. 1);
  * idempotente. La persona es obligatoria (ADR-114 regla 3): es la de la ficha desde la que se revoca,
- * y una sanción que no es suya se trata como inexistente, también si ya estaba revocada.
+ * y una sanción que no es suya se trata como inexistente, también si ya estaba revocada. El alcance
+ * también es obligatorio (ADR-116 regla 11): revoca solo el de ADMIN, desde la Persona 360.
  */
 export async function revokeSanction(
   ctx: CommandContext,
   personId: string,
   sanctionId: string,
   reason: string,
+  scope: SanctionScope,
 ): Promise<void> {
+  // Solo se deja pasar el alcance que revoca. El de un comité, que hoy no tiene ese permiso, y uno
+  // que no se reconoce responden igual, antes de leer nada: para ellos la sanción no existe.
+  const by: unknown = (scope as { by?: unknown } | undefined)?.by;
+  if (by !== "ADMIN") {
+    throw new DomainError(t("T-032"));
+  }
   // Sin una persona que se reconozca no se busca: nunca cae en «la sanción de cualquiera».
   if (typeof personId !== "string" || personId.length === 0) {
     throw new DomainError(t("T-032"));

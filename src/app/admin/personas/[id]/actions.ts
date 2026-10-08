@@ -467,7 +467,8 @@ export async function revokeCarnetAction(formData: FormData): Promise<void> {
 }
 
 // Faltas y sanciones (ADR-060 regla 6): ADMIN registra sobre una membresía viva y revoca con motivo.
-// Declara su alcance como cualquier llamador del comando (ADR-072 regla 1; ADR-112).
+// Declara su alcance como cualquier llamador del comando (ADR-072 regla 1; ADR-112), al registrar y
+// al revocar (ADR-116 regla 11).
 export async function recordSanctionAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const actor = await requireAdminActor(await personUrl(id, "membresia"));
@@ -494,7 +495,9 @@ export async function revokeSanctionAction(formData: FormData): Promise<void> {
   const sanctionId = idSchema.parse(formData.get("sanctionId"));
   const actor = await requireAdminActor(await personUrl(id, "membresia"));
   await run(id, "membresia", "revocar-sancion", async () =>
-    revokeSanctionAs(await actorContext(actor), id, sanctionId, formText(formData, "reason")),
+    revokeSanctionAs(await actorContext(actor), id, sanctionId, formText(formData, "reason"), {
+      by: "ADMIN",
+    }),
   );
 }
 
