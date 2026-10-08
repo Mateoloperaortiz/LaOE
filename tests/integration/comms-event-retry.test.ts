@@ -5,7 +5,7 @@ import { requestDecided } from "@/domain-events/crm";
 import { accessGrantIssued } from "@/domain-events/identity";
 import { personAdmitted } from "@/domain-events/people";
 import { getEnv } from "@/env";
-import { registerHandler } from "@/jobs/registry";
+import { getHandlers, registerHandler } from "@/jobs/registry";
 import {
   listMessagesFor,
   saveSubscriptionAs,
@@ -20,6 +20,7 @@ import { issueAccessGrantAs } from "@/modules/identity";
 import { admitPersonAs } from "@/modules/people";
 import type { MailMessage } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
+import { logger } from "@/shared/log";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
@@ -223,6 +224,68 @@ describe("correos de un evento que el poller reintenta", () => {
     expect(second.failed).toBe(0);
     expect(pushes).toEqual([DEVICE, DEVICE]);
     expect(await sentTo(personId, "PUSH")).toHaveLength(2);
+  });
+
+  // El id del evento es la mitad de la clave. Sin él quedaría `access-grant:<persona>:`, igual para
+  // todos los enlaces de esa persona: el primer aviso taparía los siguientes. El poller siempre lo
+  // trae; lo que se fija es que el aviso no confía en eso.
+  it("un evento del enlace de acceso que llegue sin id no avisa y falla, en vez de dejar una clave que taparía los avisos siguientes", async () => {
+    const { personId } = await activeMember("sin.id@eafit.edu.co");
+    await saveSubscriptionAs(
+      { personId },
+      { endpoint: DEVICE, keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
+      null,
+    );
+    const payload = { personId, kind: "ACTIVATION", issuedById: null };
+    // El primero de la cadena es el de comms: el vecino se registró después.
+    const [notify] = getHandlers(accessGrantIssued.type);
+
+    for (const id of ["", "   "]) {
+      await expect(notify?.(payload, { id, attempt: 1, log: logger })).rejects.toThrow(
+        /sin el id de su evento/,
+      );
+    }
+
+    expect(pushes).toEqual([]);
+    expect(await sentTo(personId, "PUSH")).toEqual([]);
+  });
+
+  // Lo que el bus hace con todo push (ADR-038 regla 2): salta a quien ya tiene un registro con esa
+  // clave, sea de un envío o de un rechazo. Con la clave del evento (ADR-116 regla 17) eso vale también
+  // para este aviso; antes el reintento traía otra clave y lo volvía a intentar. Es la pregunta de la
+  // decisión abierta 15, que está escrita para el correo: esta prueba cambia con lo que se decida.
+  it("un aviso del enlace que el servicio de push rechazó queda fallido y el reintento del evento no lo vuelve a intentar", async () => {
+    const { personId } = await activeMember("rechazo@eafit.edu.co");
+    await saveSubscriptionAs(
+      { personId },
+      { endpoint: DEVICE, keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
+      null,
+    );
+    let serviceDown = true;
+    let rejected = 0;
+    setPushSenderForTests(async (subscription) => {
+      if (serviceDown) {
+        rejected += 1;
+        return { ok: false, gone: false, error: "servicio caído" };
+      }
+      pushes.push(subscription.endpoint);
+      return { ok: true, statusCode: 201 };
+    });
+    const junta = await seedMember("junta@eafit.edu.co");
+    await issueAccessGrantAs({ personId: junta }, { personId, kind: "ACTIVATION" });
+
+    neighbourFailures = 1;
+    await drainOutbox({ expectFailures: [accessGrantIssued] });
+    expect(rejected).toBe(1);
+
+    serviceDown = false;
+    const retry = await drainOutbox({ now: afterBackoff() });
+    expect(retry.failed).toBe(0);
+    expect(neighbourRuns).toBe(2);
+    expect(pushes).toEqual([]);
+    const records = await sentTo(personId, "PUSH");
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({ status: "FAILED", kind: "TRANSACTIONAL" });
   });
 
   // Lo que el código hace mientras la decisión abierta 15 no diga otra cosa: el registro de un rechazo
