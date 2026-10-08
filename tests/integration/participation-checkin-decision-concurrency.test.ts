@@ -1,7 +1,7 @@
-import { eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { type CommandContext, runCommand } from "@/db/tx";
+import { type CommandContext, runCommand, type Tx } from "@/db/tx";
 import { checkinApproved } from "@/domain-events/participation";
 import { createRequestAs, decideRequestAs } from "@/modules/crm";
 import {
@@ -13,6 +13,7 @@ import {
   closingSummary,
   decideCheckInAs,
   decideManyAs,
+  excuseCheckIn,
   findCheckIn,
   getTermStanding,
   grantBoosterAs,
@@ -23,14 +24,15 @@ import {
   loadGamificationSettings,
   setBoosterTargetAs,
 } from "@/modules/participation";
-import { decideCheckIn, excuseCheckIn } from "@/modules/participation/domain/check-ins";
-import { checkIn } from "@/modules/participation/schema";
+import { decideCheckIn } from "@/modules/participation/domain/check-ins";
+import { challenge, checkIn } from "@/modules/participation/schema";
 import { anonymizePersonAs, requestDeletionAs } from "@/modules/people";
 import { person } from "@/modules/people/schema";
 import { setConfigAs } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
 
@@ -58,18 +60,36 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-/** Retiene la fila del término como la retiene el cierre de puntos (`for update`), en otra conexión. */
-async function holdTerm(termId: string) {
+/** Retiene en otra conexión las filas que `take` tome, hasta soltarlas. */
+async function holdRows(take: (tx: Tx) => Promise<unknown>) {
   const ready = deferred<number>();
   const release = deferred<void>();
   const done = getDb().transaction(async (tx) => {
-    await tx.select({ id: term.id }).from(term).where(eq(term.id, termId)).for("update");
+    await take(tx);
     const result = await tx.execute<{ pid: number }>(sql`select pg_backend_pid() as pid`);
     ready.resolve(result.rows[0]?.pid ?? 0);
     await release.promise;
   });
   void done.catch(ready.reject);
   return { pid: await ready.promise, release: () => release.resolve(), done };
+}
+
+/** Retiene la fila del término como la retiene el cierre de puntos (`for update`). */
+function holdTerm(termId: string) {
+  return holdRows((tx) =>
+    tx.select({ id: term.id }).from(term).where(eq(term.id, termId)).for("update"),
+  );
+}
+
+/** Retiene el reto presencial de la ocasión: quien decide una asistencia se detiene al llegar a él. */
+function holdPresentialChallenge(occasionId: string) {
+  return holdRows((tx) =>
+    tx
+      .select({ id: challenge.id })
+      .from(challenge)
+      .where(eq(challenge.occasionId, occasionId))
+      .for("update"),
+  );
 }
 
 /** Deja una decisión escrita y sin confirmar hasta soltarla: fija cuál de las dos entra primero. */
@@ -145,6 +165,15 @@ async function approvedEvents(): Promise<number> {
     .select({ id: outbox.id })
     .from(outbox)
     .where(eq(outbox.eventType, checkinApproved.type));
+  return rows.length;
+}
+
+/** Recálculos del puntaje de la ocasión que siguen pendientes en el outbox (`score:<ocasión>`). */
+async function pendingScoreRecomputes(occasionId: string): Promise<number> {
+  const rows = await getDb()
+    .select({ id: outbox.id })
+    .from(outbox)
+    .where(and(eq(outbox.dedupeKey, `score:${occasionId}`), isNull(outbox.processedAt)));
   return rows.length;
 }
 
@@ -351,6 +380,51 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     expect(await approvedEvents()).toBe(0);
   });
 
+  it("«Aprobar todos» toma todas sus asistencias antes de decidir ninguna: quien aprueba una del lote desde su fila espera y recibe el error de transición", async () => {
+    // Al aprobar la primera, el lote encola el recálculo del puntaje de la ocasión, que admite un
+    // solo pendiente (`score:<ocasión>`). Si tomara la fila de la segunda después, quien la aprueba
+    // desde su fila tendría la fila y esperaría esa clave, el lote tendría la clave y esperaría la
+    // fila, y PostgreSQL cortaría a uno con un error sin traducir (ADR-116 regla 2).
+    const f = await setup();
+    const occasion = await manualOccasion(f);
+    await seedChallenge(f.termId, {
+      kind: "PRESENTIAL",
+      occasionId: occasion.id,
+      passPercent: null,
+    });
+    const one = await pendingAttendance(occasion, "miembro.lote5.decision@eafit.edu.co");
+    const two = await pendingAttendance(occasion, "miembro.lote6.decision@eafit.edu.co");
+    // El lote las decide en el orden de `id` de la base, llegue la lista como llegue.
+    const ordered = await getDb()
+      .select({ id: checkIn.id })
+      .from(checkIn)
+      .where(eq(checkIn.occasionId, occasion.id))
+      .orderBy(asc(checkIn.id));
+    const last = ordered[1]?.id ?? "";
+    // Con el reto retenido, el lote se detiene después de aprobar la primera y encolar el recálculo.
+    const held = await holdPresentialChallenge(occasion.id);
+    const batch = decideManyAs(f.admin, [two.checkInId, one.checkInId], "APPROVE");
+    void batch.catch(() => undefined);
+    let single: Promise<void> = Promise.resolve();
+    try {
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+      single = decideCheckInAs(f.other, { checkInId: last, decision: "APPROVE" });
+      void single.catch(() => undefined);
+      await expect.poll(waitingForLock).toBe(2);
+      held.release();
+      await held.done;
+      expect(await batch).toBe(2);
+      await expect(single).rejects.toThrow(notApplicable("APPROVED"));
+    } finally {
+      held.release();
+      await Promise.allSettled([held.done, batch, single]);
+    }
+    expect(await listCheckIns(occasion.id, ["APPROVED"])).toHaveLength(2);
+    expect(await balanceFor(one.personId, f.termId)).toBe(POINTS);
+    expect(await balanceFor(two.personId, f.termId)).toBe(POINTS);
+    expect(await approvedEvents()).toBe(2);
+  });
+
   it("el registro del organizador no reaprueba un rechazo que se está excusando", async () => {
     const f = await setup();
     const a = await pendingAttendance(
@@ -439,6 +513,30 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     expect(await balanceFor(a.personId, f.termId)).toBe(0);
   });
 
+  it("cancelar la ocasión encola el recálculo de su puntaje junto con las anulaciones", async () => {
+    // La cancelación lo encola apenas toma sus asistencias, en el lugar del orden de candados de
+    // ADR-116 regla 2, y no al final.
+    const f = await setup();
+    const occasion = await seedOccasion(f.termId, { points: POINTS, approval: "AUTO" });
+    const personId = await seedMember("miembro.recalculo.decision@eafit.edu.co");
+    await hostCheckInAs(f.admin, {
+      occasionId: occasion.id,
+      personId,
+      personName: "Persona sintética",
+      source: "ADMIN",
+    });
+    // El recálculo que encoló la aprobación ya corrió: el de la cancelación es otro.
+    await drainOutbox();
+    expect(await pendingScoreRecomputes(occasion.id)).toBe(0);
+
+    expect(await cancelOccasionAs(f.other, occasion.id, "Cancelación sintética")).toEqual({
+      cancelledCheckIns: 1,
+    });
+
+    expect(await pendingScoreRecomputes(occasion.id)).toBe(1);
+    expect(await balanceFor(personId, f.termId)).toBe(0);
+  });
+
   it("con la excusa esperando la asistencia y una anonimización en cola, quien decide todavía referencia a la persona", async () => {
     // Orden de candados (ADR-116 regla 2): la excusa toma a la persona y después la asistencia; una
     // decisión toma la asistencia y llega a la persona solo por las claves foráneas de lo que
@@ -457,7 +555,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
         .select({ id: checkIn.id })
         .from(checkIn)
         .where(eq(checkIn.id, a.checkInId))
-        .for("update");
+        .for("no key update");
       excusing = decideRequestAs(f.other, requestId, { decision: "APPROVED" });
       await expect.poll(waitingForLock).toBe(1);
       anonymizing = anonymizePersonAs(f.admin, a.personId);
