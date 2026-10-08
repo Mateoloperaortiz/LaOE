@@ -13,12 +13,7 @@ import {
 import { dateKeyIn, startOfTodayIn } from "@/shared/lib/dates";
 import { logger } from "@/shared/log";
 import { message } from "../schema";
-import {
-  findRecordedMessage,
-  listAlreadyNotified,
-  type RecordedMessage,
-  recordMessage,
-} from "./messages";
+import { findRecordedMessage, type RecordedMessage, recordMessage } from "./messages";
 import { campaignCeiling, chooseRoute, withoutAddresses } from "./pure";
 
 // Correo transaccional (OTP, puntos, recordatorios): Resend con desbordamiento automático a SES,
@@ -80,7 +75,10 @@ async function attempt(transport: MailTransport, email: TransactionalEmail): Pro
 }
 
 export interface TransactionalOptions {
-  /** Con clave, un segundo intento para la misma persona no vuelve a mandar (handlers reintentados). */
+  /**
+   * Con clave, un segundo intento para la misma persona no vuelve a mandar (handlers reintentados) y
+   * responde con lo que dejó registrado el primero, sea un envío o un rechazo.
+   */
   dedupeKey?: string;
 }
 
@@ -90,9 +88,14 @@ export async function sendTransactionalEmail(
   options: TransactionalOptions = {},
 ): Promise<SendReceipt> {
   if (options.dedupeKey) {
-    const already = await listAlreadyNotified([email.personId], options.dedupeKey);
-    if (already.has(email.personId)) {
-      return { status: "SENT", provider: "skipped", providerId: null, error: null };
+    const recorded = await findRecordedMessage(email.personId, options.dedupeKey);
+    if (recorded) {
+      return {
+        status: recorded.status,
+        provider: recorded.provider,
+        providerId: recorded.providerId,
+        error: recorded.error,
+      };
     }
   }
   const { primary, overflow } = getTransports();

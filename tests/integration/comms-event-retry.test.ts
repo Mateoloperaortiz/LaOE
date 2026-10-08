@@ -6,6 +6,7 @@ import { registerHandler } from "@/jobs/registry";
 import {
   listMessagesFor,
   saveSubscriptionAs,
+  sendTransactionalEmail,
   setMailTransportsForTests,
   setPushSenderForTests,
 } from "@/modules/comms";
@@ -180,6 +181,33 @@ describe("correos de un evento que el poller reintenta", () => {
 
   // Lo que el código hace mientras la decisión abierta 15 no diga otra cosa: el registro de un rechazo
   // también cuenta, como en el resultado de permanencia.
+  it("el intento que no envía responde con lo que quedó registrado: enviado si el correo salió, fallido si el proveedor lo rechazó", async () => {
+    const { personId } = await activeMember("recibo@eafit.edu.co");
+    const mail = {
+      personId,
+      to: "recibo@eafit.edu.co",
+      subject: "Asunto",
+      text: "Texto",
+      html: "<p>Texto</p>",
+    };
+    const send = (dedupeKey: string) => sendTransactionalEmail(mail, new Date(), { dedupeKey });
+
+    providerDown = true;
+    const rejected = await send("prueba:rechazado");
+    providerDown = false;
+    const afterRejection = await send("prueba:rechazado");
+    const accepted = await send("prueba:aceptado");
+    const afterAcceptance = await send("prueba:aceptado");
+
+    expect(rejected).toMatchObject({ status: "FAILED", provider: "resend" });
+    expect(afterRejection).toEqual(rejected);
+    expect(accepted).toMatchObject({ status: "SENT", provider: "resend" });
+    expect(afterAcceptance).toEqual(accepted);
+    // Ninguno de los dos intentos repetidos volvió a enviar.
+    expect(mailsTo("recibo@eafit.edu.co")).toHaveLength(1);
+    expect(await sentTo(personId, "EMAIL")).toHaveLength(2);
+  });
+
   it("mientras la decisión 15 siga abierta, una bienvenida que el proveedor rechazó queda fallida y el reintento del evento no la vuelve a intentar", async () => {
     const termId = await seedTerm();
     const committeeId = await seedCommittee("a3", "A3");
