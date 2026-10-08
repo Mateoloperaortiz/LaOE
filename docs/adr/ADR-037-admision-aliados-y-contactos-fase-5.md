@@ -1,6 +1,6 @@
 # ADR-037: Admisión, aliados y contactos (fase 5)
 
-- Estado: Aceptada (enmendada por ADR-038, ADR-039, ADR-046, ADR-050 y ADR-056)
+- Estado: Aceptada (enmendada por ADR-038, ADR-039, ADR-046, ADR-050, ADR-056, ADR-060 y ADR-115)
 - Fecha: 2026-09-05
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, ADR-015, ADR-017, ADR-023, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035, ADR-036
 - Enmienda: ADR-013 (números del rate limit, honeypot, una respuesta por correo, consentimiento `DATA_PROCESSING`), ADR-031 (tipos de solicitud y transferencia al semestre siguiente; correos T-200 y T-205 en esta fase), ADR-033 (sin `registrationFormId`: la acción del formulario es la única fuente), ADR-034 (`crm → forms`; `interaction.personId` puede ser nulo; `stage APPLICANT` por tarjeta), ADR-036 (handler de `call-entry.changed` en `permanence`), 02-crm (un postulante no admitido sigue postulante; tres tipos de solicitud; tablero del inicio), 03-modelo (tablas definitivas de `forms` y `crm`), 05-acceso (formularios públicos, líder de grupo en convocatorias) y 14-copy (T-061, T-139, T-160, T-205, T-290, T-461)
@@ -64,3 +64,7 @@ Regla 8: el panel de "dar de alta" de la Persona 360 se abre también desde la c
 ## Enmienda (2026-09-13, ADR-060)
 
 Regla 9: las solicitudes son cuatro. Se suma la excusa válida (`EXCUSE`) sobre una ocasión del término, con la causal del Anexo 1 del Reglamento y un plazo de tres días hábiles después de la ocasión; una pendiente por persona y ocasión; la decide GH o quien tiene `PERMANENCE` en el comité dueño de la ocasión, y aprobarla escribe en la misma transacción un check-in `EXCUSED` de `participation`. Ver [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) regla 5.
+
+## Enmienda (2026-10-07, ADR-115)
+
+Regla 12: `comms/jobs.ts` enviaba la bienvenida (T-200) y la respuesta a una solicitud (T-205) sin clave, y el reintento de `person.admitted` o de `request.decided` por el fallo de otro handler los mandaba otra vez. Ahora cada uno se registra en `message` con una clave por evento y persona (`event:<id de la fila del outbox>:<código del texto>`) y, si ese registro ya existe, no se envía. Ver [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) regla 8.

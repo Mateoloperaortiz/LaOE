@@ -151,7 +151,13 @@ function splitMail(
   return { subject, body: rest.join(" · ") };
 }
 
+/**
+ * El correo de un evento sale una sola vez (ADR-115 regla 8). Su clave es el id de la fila del outbox,
+ * que es el mismo en cada reintento del evento, más el código del texto: con el registro de `message`
+ * por persona y clave, el reintento que provoca otro handler encuentra el registro y no reenvía.
+ */
 async function send(
+  ctx: JobContext,
   personId: string,
   to: string,
   code: "T-200" | "T-205",
@@ -159,17 +165,21 @@ async function send(
 ) {
   const { subject, body } = splitMail(code, values);
   const pie = t("T-208").replace("{enlace de baja si aplica}", "").trim();
-  return sendTransactionalEmail({
-    personId,
-    to,
-    subject,
-    text: `${renderPlain(body)}\n\n${pie}`,
-    html: `<p>${renderHtml(body)}</p><p style="color:#666;font-size:12px">${renderHtml(pie)}</p>`,
-  });
+  return sendTransactionalEmail(
+    {
+      personId,
+      to,
+      subject,
+      text: `${renderPlain(body)}\n\n${pie}`,
+      html: `<p>${renderHtml(body)}</p><p style="color:#666;font-size:12px">${renderHtml(pie)}</p>`,
+    },
+    new Date(),
+    { dedupeKey: `event:${ctx.id}:${code}` },
+  );
 }
 
 onEvent(personAdmitted, async ({ personId, email, firstName, committees }, ctx) => {
-  const receipt = await send(personId, email, "T-200", {
+  const receipt = await send(ctx, personId, email, "T-200", {
     nombre: firstName || t("T-1056"),
     url: `${getEnv().APP_URL}/ingresar`,
     comités: committees.join(", "),
@@ -189,7 +199,7 @@ onEvent(requestDecided, async (payload, ctx) => {
     return;
   }
   const [aprobó, noAprobó] = tList("T-1061");
-  const receipt = await send(personId, email, "T-205", {
+  const receipt = await send(ctx, personId, email, "T-205", {
     nombre: firstName || t("T-1056"),
     tipo: kindLabel,
     decisión: status === "APPROVED" ? aprobó : noAprobó,
@@ -199,7 +209,8 @@ onEvent(requestDecided, async (payload, ctx) => {
     { personId, status: receipt.status, provider: receipt.provider },
     "respuesta a la solicitud enviada",
   );
-  // Y el push T-189 (ADR-038 regla 7): transaccional, no depende de la preferencia.
+  // Y el push T-189 (ADR-038 regla 7): transaccional, no depende de la preferencia. Tampoco se repite
+  // en un reintento: el bus lo registra con la clave de la solicitud.
   const stats = await pushRequestDecided(payload);
   ctx.log.info(stats, "push de la solicitud entregado");
 });

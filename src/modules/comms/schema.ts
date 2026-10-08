@@ -110,8 +110,9 @@ export const message = pgTable(
     provider: text().notNull(), // console, resend, ses, webpush
     providerId: text(),
     error: text(),
-    // Clave de la notificación: una fila por persona y clave hace idempotente al bus (ADR-038 regla 2)
-    // y al lote de una campaña, que registra cada correo con `campaign:<id>` (ADR-115 regla 2).
+    // Clave de la notificación: una fila por persona y clave hace idempotente al bus (ADR-038 regla 2),
+    // al lote de una campaña, que registra cada correo con `campaign:<id>` (ADR-115 regla 2), y al
+    // correo de un evento, con `event:<id del outbox>:<código del texto>` (ADR-115 regla 8).
     dedupeKey: text(),
     sentAt: timestampTz(),
     createdAt: createdAt(),

@@ -2,8 +2,8 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-07
-- Relacionadas: ADR-012, ADR-023, ADR-038, ADR-039, ADR-079, ADR-109
-- Enmienda: ADR-038 (regla 8: el lote de una campaña, su cancelación, su cupo y la elegibilidad al enviar) y ADR-023 (regla 3: las campañas que salen por Resend)
+- Relacionadas: ADR-012, ADR-023, ADR-037, ADR-038, ADR-039, ADR-079, ADR-109
+- Enmienda: ADR-038 (regla 8: el lote de una campaña, su cancelación, su cupo y la elegibilidad al enviar), ADR-023 (regla 3: las campañas que salen por Resend) y ADR-037 (regla 12: la bienvenida y la respuesta a una solicitud llevan una clave por evento)
 
 ## Contexto
 
@@ -29,6 +29,12 @@ El cuarto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
 - Con el cupo de la regla 5 una campaña puede durar días, así que esa ventana dejó de ser de minutos.
 
 Se reprodujo con las dos personas: el lote les enviaba.
+
+**La bienvenida y la respuesta a una solicitud (DT-017).** [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md) regla 12 dejó en `comms/jobs.ts` los dos correos que salen por un evento: la bienvenida al dar de alta (T-200, `person.admitted`) y la respuesta a una solicitud (T-205, `request.decided`), que además manda el push T-189 (ADR-038 regla 7). El poller corre en serie todos los handlers de un evento y, si uno falla, reintenta el evento entero (ADR-012), así que cada handler tiene que ser idempotente por su cuenta. Estos dos correos no lo eran: salían sin clave.
+
+- `comms` es el primer módulo que se registra (`src/jobs/handlers.ts`), así que cualquier otro handler del evento corre cuando el correo ya salió. La línea de tiempo de `crm` escucha los dos eventos.
+- Se reprodujo con el poller real: con un handler más en el evento que falla una vez, el reintento volvió a mandar la bienvenida y la respuesta. Sale un correo por intento, y el poller hace hasta cinco.
+- El push de la respuesta no se repetía: pasa por el bus, que lo registra con la clave `request:<id>` (ADR-038 regla 2).
 
 ## Decisión
 
@@ -73,6 +79,12 @@ Se reprodujo con las dos personas: el lote les enviaba.
    - Se lee por destinatario y no una vez por lote, porque un lote puede durar minutos. Queda fuera lo mismo que en la regla 1: el correo que ya iba en vuelo.
    - Una omisión solo se escribe si el destinatario sigue pendiente, así que no pisa una cancelación. Y si el correo de esa persona ya había salido y quedó registrado (regla 2), manda el registro: queda `SENT`.
    - A quien le faltan sus datos o su plantilla le sigue pasando lo de la regla 4.
+8. **El correo de un evento lleva una clave por evento y persona, y el reintento del evento no lo reenvía.** La bienvenida (T-200) y la respuesta a una solicitud (T-205) salen por `sendTransactionalEmail` con `dedupeKey` `event:<id>:<código del texto>`. El id es el de la fila del evento en el outbox: el poller se lo pasa a cada handler y es el mismo en cada intento.
+   - Antes de enviar se busca el `message` de esa persona con esa clave, sobre el índice único de la regla 2. Si existe no se envía, sea de un envío o de un rechazo del proveedor.
+   - La clave es del evento y no del sujeto: otra solicitud respondida a la misma persona, u otra alta, es otro evento y manda su correo. Reintentar a mano un evento en dead letter conserva su fila, así que tampoco reenvía.
+   - En `comms/jobs.ts` la clave no es opcional: la arma el mismo ayudante que envía, con el contexto del handler.
+   - El push de la respuesta (T-189) sigue como estaba: el bus lo registra con `request:<id>` y el reintento no lo repite. Ahora lo fija una prueba.
+   - El poller no cambia: sigue corriendo los handlers en serie y reintentando el evento entero (DT-016).
 
 ## Consecuencias
 
@@ -100,3 +112,9 @@ Se reprodujo con las dos personas: el lote les enviaba.
 - Revocar el consentimiento a mitad de una campaña sí saca a la persona de lo que falta, a diferencia de la baja de campañas: lo primero es de la ley de datos, lo segundo es una preferencia.
 - `skippedCount` ya puede subir después del arranque sin que nadie cancele, y una campaña puede cerrar con menos enviados de los que estimó.
 - Las pruebas de la regla 7 están en el mismo archivo: la persona que se anonimizó entre dos lotes, la que salió sin consentimiento, la que se anonimiza mientras el lote le escribe a otra, la que ya tenía su correo registrado y la cancelación que llega mientras el lote decide omitir a alguien. La de quien salió dejando consentimiento fija lo que el código hace mientras la decisión 14 siga abierta, y lo dice en su título. La regla pura está en `tests/unit/comms-pure.test.ts`.
+- La regla 8 no trae migración: la clave va en `message.dedupeKey`, sobre el índice único que ya existía, y `sendTransactionalEmail` ya sabía respetar una clave (la usaba el resultado de permanencia, T-202). Los `message` viejos de T-200 y T-205 no tienen clave: un evento anterior al despliegue que se reintente después puede repetir su correo una vez.
+- La bienvenida y la respuesta quedan «al menos una vez», con la misma ventana de un correo que las campañas, porque se envía y después se registra (DT-121). Se repite el que el proveedor aceptó y cuyo registro no llegó a guardarse. Y el que seguía en vuelo si el poller dejó de esperar a la cadena (`JOBS_HANDLER_TIMEOUT_MS`) y el reintento llegó antes de que terminara: dos intentos del mismo evento no corren a la vez por ningún otro camino, porque el poller sostiene la fila del outbox mientras corren sus handlers. Estos correos salen por Resend, que admite una clave de idempotencia: es la opción (c) de la decisión abierta 13.
+- Un rechazo del proveedor deja su registro con la clave y el reintento del evento no lo vuelve a intentar. Antes de la regla 8 ese reintento, que solo llegaba si fallaba otro handler, sí lo mandaba otra vez: era la única segunda oportunidad de un correo rechazado, y era un accidente. A un correo transaccional rechazado no lo reintenta nadie, con vecinos o sin ellos, porque el handler termina bien y el evento se da por procesado. Si debe reintentarse es la decisión abierta 15 de [decisiones-abiertas.md](../decisiones-abiertas.md) (DT-120).
+- Al intento que no envía, `sendTransactionalEmail` le responde `SENT` con proveedor `skipped`, también cuando el registro era de un rechazo, y así lo deja escrito el aviso del handler (DT-120).
+- El aviso del enlace de acceso (T-2132) queda fuera de la regla 8: su clave lleva el instante del intento y un reintento lo repite (DT-119).
+- Las pruebas de la regla 8 están en `tests/integration/comms-event-retry.test.ts`, con el poller real y un handler más en cada evento, que falla una vez después de comms: la bienvenida y la respuesta, por correo y por push, una sola vez tras el reintento; dos solicitudes respondidas a la misma persona, cada una con su correo; y la bienvenida rechazada que el reintento no vuelve a intentar, que fija lo que el código hace mientras la decisión 15 siga abierta y lo dice en su título.
