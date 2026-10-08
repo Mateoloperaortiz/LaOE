@@ -49,11 +49,21 @@ export const CONFIG = {
   "occasions.autoCloseHours": z.number().int().min(1),
   // Fase 6 (ADR-038): lotes de campañas, horas de los recordatorios y encuesta tras la ocasión.
   "campaigns.perMinute": z.number().int().min(1).max(200),
-  // ADR-115 reglas 5 y 6: correos del cupo diario del proveedor que una campaña no toca, y cuándo ese
-  // proveedor rechazó un correo por cuota. Ninguna se siembra: sin fila, el margen es un tercio del
-  // cupo y no hay rechazo.
+  // ADR-115 reglas 5 y 6: correos del cupo diario del proveedor que una campaña no toca, y el corte que
+  // deja un rechazo por cuota. Ninguna se siembra: sin fila, el margen es un tercio del cupo y no hay
+  // corte. El corte guarda el proveedor, la causa, la hora del lote que lo recibió y hasta cuándo dura
+  // (ADR-116 regla 19); una fecha sola es el valor de antes de esa regla, que se lee como un corte de
+  // Resend por el cupo del día.
   "campaigns.transactionalReserve": z.number().int().min(0),
-  "campaigns.quotaExhaustedAt": z.string().datetime({ offset: true }),
+  "campaigns.quotaExhaustedAt": z.union([
+    z.string().datetime({ offset: true }),
+    z.object({
+      provider: z.string().min(1),
+      reason: z.enum(["BURST", "DAILY", "MONTHLY"]),
+      at: z.string().datetime({ offset: true }),
+      until: z.string().datetime({ offset: true }),
+    }),
+  ]),
   "reminders.hours": z.object({
     today: z.number().int().min(0).max(23),
     eve: z.number().int().min(0).max(23),

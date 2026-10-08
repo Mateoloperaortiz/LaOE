@@ -10,12 +10,23 @@ import {
   type MailTransport,
   type MailTransports,
   QuotaExceededError,
+  type QuotaReason,
 } from "@/shared/adapters/mail";
-import { dateKeyIn, startOfTodayIn } from "@/shared/lib/dates";
+import { startOfTodayIn } from "@/shared/lib/dates";
 import { logger } from "@/shared/log";
 import { message } from "../schema";
 import { findRecordedMessage, type RecordedMessage, recordMessage } from "./messages";
-import { campaignCeiling, chooseRoute, withoutAddresses } from "./pure";
+import {
+  campaignCeiling,
+  chooseRoute,
+  type QuotaCut,
+  quotaCutFor,
+  quotaCutInEffect,
+  quotaCutReplaces,
+  readQuotaCut,
+  storeQuotaCut,
+  withoutAddresses,
+} from "./pure";
 
 // Correo transaccional (OTP, puntos, recordatorios): Resend con desbordamiento automático a SES,
 // y cada envío queda registrado en `message` con el proveedor por el que salió (ADR-023).
@@ -203,46 +214,58 @@ function hasDailyQuota(transport: MailTransport): boolean {
   return transport.name === "resend";
 }
 
+/** El nombre del proveedor por el que sale una campaña: el del cupo y el del corte. */
+export function campaignProvider(): string {
+  return campaignTransport().name;
+}
+
 export interface CampaignQuota {
   /** El proveedor por el que salen las campañas, que es el del cupo. */
   provider: string;
   /** Con cuántos correos salidos hoy por ese proveedor una campaña ya no manda otro. */
   ceiling: number;
-  /** Ese proveedor ya rechazó hoy un correo por cuota: hasta mañana no se le pide otro. */
-  exhausted: boolean;
 }
 
 /**
- * El cupo que rige hoy para las campañas (ADR-115 reglas 5 y 6), o `null` si salen por un transporte sin
+ * El cupo que rige hoy para las campañas (ADR-115 regla 5), o `null` si salen por un transporte sin
  * cupo diario. El tope es `RESEND_DAILY_LIMIT` menos el margen de `campaigns.transactionalReserve`.
  */
-export async function campaignQuota(now: Date): Promise<CampaignQuota | null> {
+export async function campaignQuota(): Promise<CampaignQuota | null> {
   const transport = campaignTransport();
   if (!hasDailyQuota(transport)) {
     return null;
   }
-  const env = getEnv();
-  const [reserve, exhaustedAt] = await Promise.all([
-    getConfig("campaigns.transactionalReserve"),
-    getConfig("campaigns.quotaExhaustedAt"),
-  ]);
   return {
     provider: transport.name,
-    ceiling: campaignCeiling(env.RESEND_DAILY_LIMIT, reserve),
-    exhausted:
-      exhaustedAt !== null &&
-      dateKeyIn(env.APP_TIMEZONE, new Date(exhaustedAt)) === dateKeyIn(env.APP_TIMEZONE, now),
+    ceiling: campaignCeiling(
+      getEnv().RESEND_DAILY_LIMIT,
+      await getConfig("campaigns.transactionalReserve"),
+    ),
   };
 }
 
+/** La clave de `AppConfig` donde queda el corte por cuota. */
+export const QUOTA_CUT_KEY = "campaigns.quotaExhaustedAt";
+
 /**
- * Deja escrito que el proveedor rechazó un correo de campaña por cuota (ADR-115 regla 6). La hora es la
- * del lote que recibió el rechazo, y el corte nunca retrocede: una hora anterior a la guardada no la
- * pisa, así que un lote de ayer que recibe tarde su rechazo no levanta el corte que otro dejó hoy.
+ * El corte que a esa hora detiene los lotes (ADR-116 regla 19), o `null` si no hay. Es del proveedor
+ * que rechazó: no depende de que ese proveedor tenga un cupo diario que contar acá.
  */
-export function markCampaignQuotaExhausted(at: Date): Promise<void> {
-  return reviseConfig(SYSTEM_ACTOR, "campaigns.quotaExhaustedAt", (current) =>
-    current !== null && Date.parse(current) >= at.getTime() ? undefined : at.toISOString(),
+export async function campaignQuotaCut(now: Date): Promise<QuotaCut | null> {
+  const stored = readQuotaCut(await getConfig(QUOTA_CUT_KEY), getEnv().APP_TIMEZONE);
+  return quotaCutInEffect(stored, campaignProvider(), now);
+}
+
+/**
+ * Deja escrito el corte de un rechazo por cuota (ADR-116 regla 19): el proveedor, la causa, la hora del
+ * lote que lo recibió y hasta cuándo dura según esa causa. Se decide bajo el candado de la clave, y un
+ * corte no se acorta: solo lo reemplaza uno que termina después.
+ */
+export function markCampaignQuotaExhausted(deferral: CampaignDeferral, at: Date): Promise<void> {
+  const timeZone = getEnv().APP_TIMEZONE;
+  const cut = quotaCutFor(deferral, at, timeZone);
+  return reviseConfig(SYSTEM_ACTOR, QUOTA_CUT_KEY, (current) =>
+    quotaCutReplaces(readQuotaCut(current, timeZone), cut) ? storeQuotaCut(cut) : undefined,
   );
 }
 
@@ -267,6 +290,10 @@ export interface CampaignDeferral {
   status: "DEFERRED";
   provider: string;
   error: string;
+  /** La causa del rechazo, que decide cuánto dura el corte (ADR-116 regla 19). */
+  reason: QuotaReason;
+  /** Lo que el proveedor pidió esperar, si fue una ráfaga y lo dijo. */
+  retryAfterMs: number | null;
 }
 
 const campaignDedupeKey = (campaignId: string): string => `campaign:${campaignId}`;
@@ -317,7 +344,13 @@ export async function sendCampaignEmail(
     });
   } catch (error) {
     if (error instanceof QuotaExceededError) {
-      return { status: "DEFERRED", provider: transport.name, error: providerErrorText(error) };
+      return {
+        status: "DEFERRED",
+        provider: transport.name,
+        error: providerErrorText(error),
+        reason: error.reason,
+        retryAfterMs: error.retryAfterMs,
+      };
     }
     receipt = failed(transport.name, error);
   }

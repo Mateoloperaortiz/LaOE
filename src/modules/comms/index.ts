@@ -55,6 +55,7 @@ export {
   shouldDeliver,
   splitPush,
 } from "./domain/pure";
+export { liftCampaignQuotaCutAs, type QuotaScope } from "./domain/quota";
 export {
   type SendReceipt,
   sendTransactionalEmail,

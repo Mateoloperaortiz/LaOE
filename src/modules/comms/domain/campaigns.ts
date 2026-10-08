@@ -35,9 +35,11 @@ import { campaign, campaignRecipient, emailTemplate } from "../schema";
 import { ensurePreferencesFor, listPreferencesFor } from "./preferences";
 import { campaignRoom } from "./pure";
 import {
+  type CampaignDeferral,
   type CampaignQuota,
   type CampaignReceipt,
   campaignQuota,
+  campaignQuotaCut,
   markCampaignQuotaExhausted,
   recordedCampaignEmail,
   sendCampaignEmail,
@@ -652,12 +654,17 @@ async function settleRecipient(item: BatchItem, outcome: Settlement, now: Date):
 }
 
 /**
- * El proveedor rechazó un correo por cuota (ADR-115 regla 6): deja escrito que hoy no acepta más y
- * suelta lo que el lote tenía reclamado y sin enviar, empezando por ese correo. Siguen pendientes y
- * libres para el primer lote de mañana. Cada campaña en su transacción y con su fila tomada primero.
+ * El proveedor rechazó un correo por cuota (ADR-115 regla 6): deja escrito el corte, que dura según la
+ * causa del rechazo (ADR-116 regla 19), y suelta lo que el lote tenía reclamado y sin enviar,
+ * empezando por ese correo. Siguen pendientes y libres para el primer lote que salga cuando el corte
+ * termine. Cada campaña en su transacción y con su fila tomada primero.
  */
-async function cutBatchForToday(rest: BatchItem[], claimedAt: Date): Promise<void> {
-  await markCampaignQuotaExhausted(claimedAt);
+async function cutBatch(
+  rest: BatchItem[],
+  claimedAt: Date,
+  deferral: CampaignDeferral,
+): Promise<void> {
+  await markCampaignQuotaExhausted(deferral, claimedAt);
   const byCampaign = new Map<string, string[]>();
   for (const item of rest) {
     byCampaign.set(item.campaignId, [...(byCampaign.get(item.campaignId) ?? []), item.recipientId]);
@@ -685,15 +692,16 @@ async function cutBatchForToday(rest: BatchItem[], claimedAt: Date): Promise<voi
  * transacción abierta y deja el resultado de cada uno en la suya: un lote que se cae no deshace lo que
  * ya marcó, y mientras un correo viaja no retiene una conexión del pool ni un candado que otro espere.
  * Con cupo diario no reclama más de lo que cabe hoy, y si el proveedor rechaza por cuota se corta: lo
- * que falta sigue pendiente y ningún lote sale hasta el otro día.
+ * que falta sigue pendiente y ningún lote sale mientras dure el corte, que depende de la causa del
+ * rechazo (ADR-116 regla 19).
  *
- * Visita todas las campañas en curso, también cuando el lote ya está lleno o el cupo de hoy está
- * cortado: a esas no les reclama a nadie, pero la que se quedó sin pendientes se cierra en este tick
- * (ADR-116 regla 16).
+ * Visita todas las campañas en curso, también cuando el lote ya está lleno o hay un corte vigente: a
+ * esas no les reclama a nadie, pero la que se quedó sin pendientes se cierra en este tick (ADR-116
+ * regla 16).
  */
 export async function processCampaignBatch(limit: number, now = new Date()): Promise<number> {
-  const quota = await campaignQuota(now);
-  const room = quota?.exhausted ? 0 : limit;
+  const [quota, cut] = await Promise.all([campaignQuota(), campaignQuotaCut(now)]);
+  const room = cut ? 0 : limit;
   const sending = await getDb()
     .select({ id: campaign.id })
     .from(campaign)
@@ -780,10 +788,15 @@ export async function processCampaignBatch(limit: number, now = new Date()): Pro
     if (receipt.status === "DEFERRED") {
       const rest = batch.slice(position);
       logger.warn(
-        { provider: receipt.provider, error: receipt.error, released: rest.length },
-        "campañas: el proveedor rechazó por cuota, lo pendiente sigue mañana",
+        {
+          provider: receipt.provider,
+          error: receipt.error,
+          reason: receipt.reason,
+          released: rest.length,
+        },
+        "campañas: el proveedor rechazó por cuota, lo pendiente espera a que termine el corte",
       );
-      await cutBatchForToday(rest, now);
+      await cutBatch(rest, now, receipt);
       break;
     }
     await settleRecipient(item, receipt, now);
