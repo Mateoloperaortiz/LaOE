@@ -1,6 +1,6 @@
 # ADR-038: Comunicaciones y PWA (fase 6)
 
-- Estado: Aceptada (enmendada por ADR-039, ADR-074, ADR-113 y ADR-115)
+- Estado: Aceptada (enmendada por ADR-039, ADR-074, ADR-113, ADR-115 y ADR-116)
 - Fecha: 2026-09-05
 - Relacionadas: ADR-001, ADR-010, ADR-011, ADR-012, ADR-014, ADR-015, ADR-017, ADR-021, ADR-023, ADR-030, ADR-031, ADR-033, ADR-034, ADR-035, ADR-036, ADR-037
 - Enmienda: ADR-012 (programados `campaigns` y `notices`; el bus de notificaciones), ADR-015 (reglas concretas de preferencias, roster por defecto y consentimiento para no miembros; campañas por SES), ADR-023 (cabeceras de baja y `sendCampaignEmail`), ADR-031 (la encuesta tras la ocasión no usa `form_submission`), ADR-033 (push desde la cartelera; `/app/cartelera/[id]`), ADR-034 (dependencias de `comms`; pestaña Comunicaciones de la 360; mis datos), ADR-035 (`surveyFormId`, `participation → forms`, recordatorios), ADR-036 (regla 11: avisos por push desde `permanence.notices`; `recognition.granted`; T-202 al aplicar el cierre), ADR-037 (tipo de campo `RATING`; `call.opened`), 03-modelo (tablas de `comms`, `Message.kind`, encuesta en `participation`, `calendar_token`), 05-acceso (tokens de baja y calendario, dueño de la invitación, step-up de campañas), 06-mapa (rutas nuevas) y 14-copy (T-133 con seis secciones, T-924 con la calificación, T-194, T-195, T-209 a T-211, T-1063 en adelante)
@@ -65,3 +65,7 @@ La regla 8 decía que el handler tomaba hasta `campaigns.perMinute` pendientes c
 La regla 8 tampoco le ponía tope al lote. Ahora, cuando la campaña sale por el proveedor de lo transaccional, el lote no reclama más de lo que cabe hoy en su cupo, que deja libre un margen para lo transaccional, y un rechazo por cuota deja al destinatario `PENDING` en vez de `FAILED`: en los dos casos la campaña sigue `SENDING` y continúa al otro día. Ver ADR-115, reglas 5 y 6.
 
 La regla 8 fijaba la elegibilidad al arrancar y el lote no la volvía a mirar. Ahora, antes de cada correo, el lote lee a la persona como está: a quien se anonimizó lo deja `SKIPPED · ANONYMIZED`, un motivo nuevo, y a quien ya no puede recibir por su estado o su consentimiento, `SKIPPED` con el motivo que da la misma regla. La preferencia `emailCampaigns` sigue congelada con la audiencia: la baja a mitad de una campaña rige en la siguiente. Ver ADR-115, regla 7.
+
+## Enmienda (2026-10-08, ADR-116)
+
+La regla 12 dice que el token del calendario se guarda en claro y que regenerarlo invalida el anterior, y no dice cuándo deja de existir. Sobrevivía a la baja y a la anonimización: quedaba dormido, porque la ruta exige una membresía activa u honoraria, y revivía con el reingreso. [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 15 lo precisa: la baja y la anonimización borran el token, quien vuelve genera un enlace nuevo desde Ajustes, y crear o regenerar el token toma el candado del ciclo de membresía y mira la membresía con él tomado. La licencia no lo toca. El ICS que arma la ruta sale además sin caracteres de control ([ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 14).

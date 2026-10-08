@@ -4,6 +4,7 @@ import { membershipChanged, personAnonymized, personEmailChanged } from "@/domai
 import { onEvent, registerHandler } from "@/jobs/registry";
 import { SIGN_IN_STATUSES } from "@/modules/people";
 import { deleteAccessGrantsFor } from "./domain/access-grant";
+import { deleteCalendarTokenFor } from "./domain/calendar-token";
 import { deleteCarnetTokenFor } from "./domain/carnet-token";
 import { pruneIdentity } from "./domain/maintenance";
 import { deleteCredentialFor } from "./domain/password";
@@ -26,11 +27,14 @@ onEvent(membershipChanged, async ({ personId, to }, ctx) => {
   }
   if (to === "INACTIVE") {
     await deleteCarnetTokenFor(personId);
+    // El enlace del calendario es una capacidad en claro: no queda dormida esperando un reingreso
+    // (ADR-116 regla 15).
+    const calendarTokens = await deleteCalendarTokenFor(personId);
     // Quien sale no vuelve a entrar: su contraseña y sus enlaces dejan de tener para qué existir
     // y no son historia institucional (ADR-030, ADR-051).
     const credentials = await deleteCredentialFor(personId);
     const grants = await deleteAccessGrantsFor(personId);
-    ctx.log.info({ personId, credentials, grants }, "credencial retirada por baja");
+    ctx.log.info({ personId, credentials, grants, calendarTokens }, "credencial retirada por baja");
     const result = await runCommand(SYSTEM_ACTOR, (command) =>
       revokeAllPermissionsFor(command, personId),
     );
@@ -47,6 +51,7 @@ onEvent(personEmailChanged, async ({ personId }, ctx) => {
 
 onEvent(personAnonymized, async ({ personId }, ctx) => {
   await deleteCarnetTokenFor(personId);
+  await deleteCalendarTokenFor(personId);
   await deleteCredentialFor(personId);
   await deleteAccessGrantsFor(personId);
   await destroySessionsFor(getDb(), personId);

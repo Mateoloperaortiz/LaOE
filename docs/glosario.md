@@ -123,7 +123,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Bus de notificaciones | `notification.requested` | Evento único con destinatarios, textos, URL y clave de deduplicación que `comms` entrega por push respetando la preferencia |
 | Invitación de encuesta | `OccasionSurveyInvite` | Token propio de un asistente para responder la encuesta de una ocasión cerrada; marca que respondió, no qué |
 | Respuesta de encuesta | `OccasionSurveyResponse` | Respuesta anónima (sin persona) agregada por ocasión y comité |
-| Token del calendario | `CalendarToken` | Capacidad de solo lectura sobre la agenda propia para suscribir el calendario del celular; se regenera desde Ajustes |
+| Token del calendario | `CalendarToken` | Capacidad de solo lectura sobre la agenda propia para suscribir el calendario del celular; se regenera desde Ajustes. Se borra con la baja y con la anonimización |
 | Consentimiento | `Consent` | Aceptación versionada de la política de datos para un propósito |
 | Outbox | `Outbox` | Cola de eventos de dominio escrita en la misma transacción que la mutación |
 | Alias legado | `LegacyAlias` | Ruta antigua de GHPOINTS (`/asamblea/…` y los `publicId` retirados) que sigue resolviendo a la ocasión nueva |
