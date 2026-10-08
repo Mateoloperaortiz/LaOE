@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
 import { appConfig } from "../schema";
 
 // Configuración del sistema (03-modelo-de-datos.md, AppConfig): claves conocidas con su esquema,
@@ -89,16 +89,24 @@ export type ConfigValue<K extends ConfigKey> = z.infer<(typeof CONFIG)[K]>;
 const TTL_MS = 30_000;
 const cache = new Map<string, { value: unknown; until: number }>();
 
+/** El valor de una clave, validado, por la conexión que se le pase y sin caché; `null` si no tiene fila. */
+async function readConfig<K extends ConfigKey>(
+  db: Executor,
+  key: K,
+): Promise<ConfigValue<K> | null> {
+  const [row] = await db
+    .select({ value: appConfig.value })
+    .from(appConfig)
+    .where(eq(appConfig.key, key));
+  return row === undefined ? null : (CONFIG[key].parse(row.value) as ConfigValue<K>);
+}
+
 export async function getConfig<K extends ConfigKey>(key: K): Promise<ConfigValue<K> | null> {
   const cached = cache.get(key);
   if (cached && cached.until > Date.now()) {
     return cached.value as ConfigValue<K> | null;
   }
-  const [row] = await getDb()
-    .select({ value: appConfig.value })
-    .from(appConfig)
-    .where(eq(appConfig.key, key));
-  const value = row === undefined ? null : (CONFIG[key].parse(row.value) as ConfigValue<K>);
+  const value = await readConfig(getDb(), key);
   cache.set(key, { value, until: Date.now() + TTL_MS });
   return value;
 }
@@ -122,11 +130,7 @@ export async function requireConfigIn<K extends ConfigKey>(
   ctx: CommandContext,
   key: K,
 ): Promise<ConfigValue<K>> {
-  const [row] = await ctx.tx
-    .select({ value: appConfig.value })
-    .from(appConfig)
-    .where(eq(appConfig.key, key));
-  const value = row === undefined ? null : (CONFIG[key].parse(row.value) as ConfigValue<K>);
+  const value = await readConfig(ctx.tx, key);
   if (value === null) {
     throw new Error(`Falta la configuración ${key}`);
   }
@@ -174,6 +178,32 @@ export async function writeConfig<K extends ConfigKey>(
 ): Promise<void> {
   try {
     await runCommand(actor, (ctx) => setConfig(ctx, key, value));
+  } finally {
+    cache.delete(key);
+  }
+}
+
+/**
+ * Cambia una clave según el valor que tiene, en su propio comando (ADR-115 regla 6). Lo lee por la
+ * conexión del comando y bajo un candado por clave, que dura lo que la transacción: dos cambios a la vez
+ * deciden uno después del otro, también cuando la clave todavía no tiene fila. `next` devuelve el valor
+ * nuevo, o `undefined` para dejarla como está. Suelta la caché igual que `writeConfig`.
+ */
+export async function reviseConfig<K extends ConfigKey>(
+  actor: Actor,
+  key: K,
+  next: (current: ConfigValue<K> | null) => ConfigValue<K> | undefined,
+): Promise<void> {
+  try {
+    await runCommand(actor, async (ctx) => {
+      await ctx.tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${`config:${key}`}, 0))`,
+      );
+      const value = next(await readConfig(ctx.tx, key));
+      if (value !== undefined) {
+        await setConfig(ctx, key, value);
+      }
+    });
   } finally {
     cache.delete(key);
   }

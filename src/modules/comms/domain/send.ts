@@ -2,7 +2,7 @@ import { and, count, eq, gte } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Executor, SYSTEM_ACTOR } from "@/db/tx";
 import { getEnv } from "@/env";
-import { getConfig, writeConfig } from "@/modules/system";
+import { getConfig, reviseConfig } from "@/modules/system";
 import {
   createMailTransports,
   type MailMessage,
@@ -205,9 +205,15 @@ export async function campaignQuota(now: Date): Promise<CampaignQuota | null> {
   };
 }
 
-/** Deja escrito que el proveedor rechazó un correo de campaña por cuota a esa hora (ADR-115 regla 6). */
+/**
+ * Deja escrito que el proveedor rechazó un correo de campaña por cuota (ADR-115 regla 6). La hora es la
+ * del lote que recibió el rechazo, y el corte nunca retrocede: una hora anterior a la guardada no la
+ * pisa, así que un lote de ayer que recibe tarde su rechazo no levanta el corte que otro dejó hoy.
+ */
 export function markCampaignQuotaExhausted(at: Date): Promise<void> {
-  return writeConfig(SYSTEM_ACTOR, "campaigns.quotaExhaustedAt", at.toISOString());
+  return reviseConfig(SYSTEM_ACTOR, "campaigns.quotaExhaustedAt", (current) =>
+    current !== null && Date.parse(current) >= at.getTime() ? undefined : at.toISOString(),
+  );
 }
 
 export interface CampaignEmail extends MailMessage {

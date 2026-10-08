@@ -1,5 +1,5 @@
 import { setTimeout as sleep } from "node:timers/promises";
-import { eq, type SQL, sql } from "drizzle-orm";
+import { and, eq, type SQL, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -1220,6 +1220,112 @@ describe("el lote reclama, envía sin transacción abierta y marca a cada destin
       messageId: record?.id,
       sentAt: minute(CLAIM_MINUTES),
     });
+  });
+});
+
+describe("el cupo cuando un lote se cae, sigue vivo o cruza la medianoche (ADR-115 reglas 5 y 6)", () => {
+  it("un lote que se cae conserva su reserva: los siguientes solo mandan lo que cabe descontándola, y al vencer su reclamo salen sus destinatarios", async () => {
+    const roster = await seedRoster(5);
+    const id = await scheduleForNight(2);
+    await setReserve(DAILY_LIMIT - 3);
+    // El proveedor acepta el primer correo y su registro falla, como en DT-067: el lote se cae con sus
+    // dos destinatarios reclamados y sin ningún correo anotado.
+    useTransports({
+      overflow: null,
+      primary: (_mail, call) => (call === 1 ? "resend_\u0000" : `resend_${call}`),
+    });
+    expect(await settle(runCampaignTick(NIGHT))).toEqual(expect.any(String));
+    expect(await recipientStatuses(id)).toEqual({ PENDING: 5 });
+
+    // Caben tres en el día y dos están reservados: sale uno, y después nada hasta que vence el reclamo.
+    const sent: number[] = [];
+    for (const at of [1, 2, CLAIM_MINUTES - 1, CLAIM_MINUTES, CLAIM_MINUTES + 1]) {
+      sent.push((await runCampaignTick(night(at))).sent);
+    }
+    expect(sent).toEqual([1, 0, 0, 2, 0]);
+    expect(await recipientStatuses(id)).toEqual({ SENT: 3, PENDING: 2 });
+
+    // Al otro día salen los dos que no cabían.
+    expect(await runCampaignTick(night(TO_MIDNIGHT))).toEqual({ started: 0, sent: 2 });
+    expect(await getCampaign(id)).toMatchObject({ status: "SENT", sentCount: 5, failedCount: 0 });
+    expect([...new Set(addresses(delivered.primary))]).toEqual(emails(roster));
+  });
+
+  it("un lote que sigue vivo con el reclamo vencido conserva su reserva: el relevo retoma primero a sus destinatarios y entre los dos no pasan del tope", async () => {
+    await seedRoster(4);
+    const parts = await seedParts();
+    await setPerMinute(4);
+    await setReserve(DAILY_LIMIT - 4);
+    const gate = mailGate();
+    useTransports({
+      overflow: null,
+      primary: async (_mail, call) => {
+        if (call === 1) {
+          await gate.hold();
+        }
+        return `resend_${call}`;
+      },
+    });
+    // El lote viejo reclama a los cuatro de la segunda, que son todo el cupo del día, y queda con el
+    // primer correo en vuelo.
+    const second = await scheduleNew(parts, "Segunda", night(5));
+    const old = runCampaignTick(night(5));
+    await untilHeld(gate, old);
+    // Otra campaña queda antes en la fila, porque arranca con un reloj anterior. Mientras el reclamo
+    // del lote viejo siga vigente no le cabe nada.
+    const first = await scheduleNew(parts, "Primera", NIGHT);
+    expect(await runCampaignTick(night(1))).toEqual({ started: 1, sent: 0 });
+
+    // A los 15 minutos el reclamo venció y el lote viejo sigue ahí, con lo suyo sin enviar.
+    const relief = await runCampaignTick(night(5 + CLAIM_MINUTES));
+    gate.release();
+    const late = await old;
+
+    const accepted = await db()
+      .select({ id: message.id })
+      .from(message)
+      .where(and(eq(message.provider, "resend"), eq(message.status, "SENT")));
+    expect(accepted).toHaveLength(4);
+    // El relevo no le dio ese cupo a la primera: retomó a los de la segunda. Al lote viejo ya no le
+    // quedaba nada suyo, y lo único que se repite es el correo que tenía en vuelo (DT-113).
+    expect([relief, late]).toEqual([
+      { started: 0, sent: 4 },
+      { started: 1, sent: 0 },
+    ]);
+    expect(await recipientStatuses(second)).toEqual({ SENT: 4 });
+    expect(await recipientStatuses(first)).toEqual({ PENDING: 4 });
+    expect(delivered.primary).toHaveLength(5);
+  });
+
+  it("un lote de ayer que recibe tarde su rechazo por cuota no devuelve el corte al día anterior", async () => {
+    await seedRoster(6);
+    const id = await scheduleForNight(2);
+    const gate = mailGate();
+    let calls = 0;
+    useTransports({
+      overflow: null,
+      primary: async (_mail, call) => {
+        calls = Math.max(calls, call);
+        if (call === 1) {
+          await gate.hold();
+        }
+        throw new QuotaExceededError("daily_quota_exceeded: se acabó el cupo de hoy");
+      },
+    });
+    // Las 23:59 de Colombia: el lote queda con su primer correo en vuelo.
+    const yesterday = runCampaignTick(night(TO_MIDNIGHT - 1));
+    await untilHeld(gate, yesterday);
+    // Las 00:01: otro lote recibe el rechazo y deja el corte de hoy; el de las 00:02 ya no pregunta.
+    expect(await runCampaignTick(night(TO_MIDNIGHT + 1))).toEqual({ started: 0, sent: 0 });
+    expect(await runCampaignTick(night(TO_MIDNIGHT + 2))).toEqual({ started: 0, sent: 0 });
+    expect(calls).toBe(2);
+
+    // Al lote de las 23:59 le llega su rechazo. Su hora es de ayer y no pisa el corte de hoy.
+    gate.release();
+    expect(await yesterday).toEqual({ started: 1, sent: 0 });
+    expect(await runCampaignTick(night(TO_MIDNIGHT + 3))).toEqual({ started: 0, sent: 0 });
+    expect(calls).toBe(2);
+    expect(await recipientStatuses(id)).toEqual({ PENDING: 6 });
   });
 });
 

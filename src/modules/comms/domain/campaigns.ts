@@ -1,7 +1,20 @@
-import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  ilike,
+  inArray,
+  isNull,
+  lte,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand, type Tx } from "@/db/tx";
 import { campaignStart } from "@/domain-events/comms";
 import { eventOf } from "@/domain-events/define";
 import { getEnv } from "@/env";
@@ -181,8 +194,6 @@ export async function createCampaign(
   });
   return row;
 }
-
-type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 
 /**
  * La fila de la campaña con `FOR UPDATE`: el candado que toman primero, y en ese orden, los comandos
@@ -443,38 +454,59 @@ interface BatchItem {
  */
 const CLAIM_LEASE_MS = 15 * 60_000;
 
+/** El instante que separa los reclamos vigentes de los vencidos: vigente es el posterior. */
+const claimCutoff = (now: Date): Date => new Date(now.getTime() - CLAIM_LEASE_MS);
+/** Reclamado por un lote que todavía está en su plazo. */
+const claimIsLive = (now: Date): SQL => gt(campaignRecipient.claimedAt, claimCutoff(now));
+/** Reclamado por un lote al que ya se le venció el plazo: otro lo puede retomar. */
+const claimHasLapsed = (now: Date): SQL => lte(campaignRecipient.claimedAt, claimCutoff(now));
+
 /** El candado bajo el que se cuenta el cupo del día y se reclama contra él (ADR-115 regla 5). */
 const QUOTA_LOCK = "campaigns:quota";
+
+/** Lo que un lote puede reclamar hoy contra el cupo (ADR-115 regla 5). */
+interface QuotaRoom {
+  /** Reclamos vencidos que puede retomar: ya tenían su reserva y no gastan cupo aparte. */
+  retake: number;
+  /** Destinatarios sin reclamo que puede tomar: lo que queda después de todas las reservas. */
+  fresh: number;
+}
 
 /**
  * Cuántos correos de campaña caben todavía hoy en el cupo (ADR-115 regla 5). Toma el candado del cupo,
  * que dura lo que la transacción del reclamo: así se cuenta y se reclama de a un lote, y lo que este
  * reclame ya lo cuenta el siguiente. Gastado es lo que el proveedor aceptó hoy, transaccional o de
- * campaña, más lo que algún lote tiene reclamado y sin resultado.
+ * campaña, más lo que algún lote tiene reclamado y sin resultado. Un reclamo vencido sigue reservado
+ * hasta que otro lote lo retoma, porque el lote que lo dejó puede seguir vivo y mandarlo.
  */
-async function quotaRoom(tx: Tx, quota: CampaignQuota, now: Date): Promise<number> {
+async function quotaRoom(tx: Tx, quota: CampaignQuota, now: Date): Promise<QuotaRoom> {
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${QUOTA_LOCK}))`);
   const sent = await sentTodayVia(quota.provider, now, tx);
-  const [claimed] = await tx
-    .select({ n: count() })
-    .from(campaignRecipient)
-    .where(
-      and(
-        eq(campaignRecipient.status, "PENDING"),
-        gt(campaignRecipient.claimedAt, new Date(now.getTime() - CLAIM_LEASE_MS)),
-        inArray(
-          campaignRecipient.campaignId,
-          tx.select({ id: campaign.id }).from(campaign).where(eq(campaign.status, "SENDING")),
+  const claimed = async (which: SQL): Promise<number> => {
+    const [row] = await tx
+      .select({ n: count() })
+      .from(campaignRecipient)
+      .where(
+        and(
+          eq(campaignRecipient.status, "PENDING"),
+          which,
+          inArray(
+            campaignRecipient.campaignId,
+            tx.select({ id: campaign.id }).from(campaign).where(eq(campaign.status, "SENDING")),
+          ),
         ),
-      ),
-    );
-  return campaignRoom(quota.ceiling, sent, claimed?.n ?? 0);
+      );
+    return row?.n ?? 0;
+  };
+  const retake = campaignRoom(quota.ceiling, sent, await claimed(claimIsLive(now)));
+  return { retake, fresh: Math.max(0, retake - (await claimed(claimHasLapsed(now)))) };
 }
 
 /**
- * Reclama hasta `limit` destinatarios libres de una campaña en curso, en una transacción corta. Libre
- * es pendiente y sin reclamo vigente; el reclamo es la hora del lote, que también lo identifica. Con
- * cupo, no reclama más de lo que cabe hoy: el reclamo es también la reserva de ese cupo.
+ * Reclama hasta `limit` destinatarios de una campaña en curso, en una transacción corta. El reclamo es
+ * la hora del lote, que también lo identifica. Primero retoma lo que otro lote dejó reclamado y ya
+ * venció, y después toma a quienes nadie reclamó. Con cupo, el reclamo es también la reserva: lo
+ * vencido ya la tenía, y lo nuevo no pasa de lo que cabe hoy descontando todas las reservas.
  */
 async function claimRecipients(
   campaignId: string,
@@ -482,37 +514,44 @@ async function claimRecipients(
   now: Date,
   quota: CampaignQuota | null,
 ): Promise<BatchItem[]> {
-  const expired = new Date(now.getTime() - CLAIM_LEASE_MS);
   return getDb().transaction(async (tx) => {
     const row = await lockCampaignRow(tx, campaignId);
     if (row?.status !== "SENDING") {
       return [];
     }
-    const room = quota ? Math.min(limit, await quotaRoom(tx, quota, now)) : limit;
-    if (room <= 0) {
-      return [];
-    }
-    const free = tx
-      .select({ id: campaignRecipient.id })
-      .from(campaignRecipient)
-      .where(
-        and(
-          eq(campaignRecipient.campaignId, campaignId),
-          eq(campaignRecipient.status, "PENDING"),
-          or(isNull(campaignRecipient.claimedAt), lte(campaignRecipient.claimedAt, expired)),
-        ),
-      )
-      .orderBy(asc(campaignRecipient.createdAt))
-      .limit(room);
-    return tx
-      .update(campaignRecipient)
-      .set({ claimedAt: now })
-      .where(inArray(campaignRecipient.id, free))
-      .returning({
-        recipientId: campaignRecipient.id,
-        campaignId: campaignRecipient.campaignId,
-        personId: campaignRecipient.personId,
-      });
+    const room = quota ? await quotaRoom(tx, quota, now) : { retake: limit, fresh: limit };
+    const claim = async (which: SQL, max: number): Promise<BatchItem[]> => {
+      if (max <= 0) {
+        return [];
+      }
+      const picked = tx
+        .select({ id: campaignRecipient.id })
+        .from(campaignRecipient)
+        .where(
+          and(
+            eq(campaignRecipient.campaignId, campaignId),
+            eq(campaignRecipient.status, "PENDING"),
+            which,
+          ),
+        )
+        .orderBy(asc(campaignRecipient.createdAt))
+        .limit(max);
+      return tx
+        .update(campaignRecipient)
+        .set({ claimedAt: now })
+        .where(inArray(campaignRecipient.id, picked))
+        .returning({
+          recipientId: campaignRecipient.id,
+          campaignId: campaignRecipient.campaignId,
+          personId: campaignRecipient.personId,
+        });
+    };
+    const retaken = await claim(claimHasLapsed(now), Math.min(limit, room.retake));
+    const fresh = await claim(
+      isNull(campaignRecipient.claimedAt),
+      Math.min(limit - retaken.length, room.fresh),
+    );
+    return [...retaken, ...fresh];
   });
 }
 

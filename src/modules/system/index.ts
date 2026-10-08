@@ -14,6 +14,7 @@ export {
   getConfig,
   requireConfig,
   requireConfigIn,
+  reviseConfig,
   setConfig,
   setConfigAs,
   writeConfig,
