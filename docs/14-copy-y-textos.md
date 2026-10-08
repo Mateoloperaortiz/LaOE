@@ -1277,7 +1277,7 @@ Los badges conservan sus textos oficiales; el resto de la interfaz usa voseo. Re
 | T-186 | Permanencia, "no alcanza" | Hablá con GH · Con lo que queda del semestre no llegás al mínimo en {comité}. | GH | Propuesta; texto sensible |
 | T-187 | Cierre de semestre | Cerró {término} · Entrá a ver tu resultado en cada comité. | GH | Propuesta |
 | T-188 | Evaluación pendiente (a evaluadores) | Tenés {n} evaluaciones pendientes · La ventana cierra el {fecha}. | GH | Propuesta |
-| T-189 | Solicitud respondida | Tu solicitud de {tipo} fue {decisión} · Entrá a ver la respuesta. | GH | Propuesta |
+| T-189 | Solicitud respondida | Tu solicitud fue {decisión} · Pediste {tipo}. Entrá a ver la respuesta. | GH | Propuesta; el tipo va en el cuerpo para que la decisión quepa entera en los 40 caracteres del título con cualquier tipo de T-894 |
 | T-190 | Convocatoria abierta | Se abrió {convocatoria} · {cupo} cupos, cierra el {fecha}. ¡Pilas! | GH | Propuesta |
 | T-191 | Encuesta tras la actividad | ¿Cómo estuvo {actividad}? · Contanos en un ratico. | COM | Propuesta |
 | T-192 | Reconocimiento | ¡Destacado del mes! · {nombre} es el destacado de {comité}. ¡Qué berraco! | COM | Propuesta |

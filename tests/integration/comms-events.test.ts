@@ -256,17 +256,39 @@ describe("push por evento", () => {
       return { personId, actor, requestId: created.id };
     }
 
+    /** Un cambio de comité: el tipo de solicitud con el nombre más largo de T-894. */
+    async function memberWithTransferRequest() {
+      const termId = await seedTerm();
+      const leaves = await seedCommittee("a3", "A3");
+      const stays = await seedCommittee("pixel", "PIXEL");
+      const joins = await seedCommittee("cigma", "CIGMA");
+      const personId = await seedMember("cambio@eafit.edu.co", { firstName: "Nora" });
+      await seedCommitteeMembership(personId, leaves, termId);
+      await seedCommitteeMembership(personId, stays, termId, "GENERAL");
+      await subscribe(personId, DEVICE);
+      const created = await createRequestAs({ personId, ip: null }, "TRANSFER", {
+        reason: "Quiero cambiar de aire",
+        leaveCommitteeIds: [leaves],
+        joinCommitteeIds: [joins],
+      });
+      return { personId, requestId: created.id };
+    }
+
     async function pushesOf(personId: string) {
       return (await listMessagesFor(personId)).filter((row) => row.channel === "PUSH");
     }
 
-    /** El dispositivo recibió un solo aviso: T-189 con el tipo y la decisión en su lugar. */
-    async function expectAnswer(personId: string, decisión: string) {
+    /**
+     * El dispositivo recibió un solo aviso: T-189 sin recortar, con la decisión entera en el título y el
+     * tipo de solicitud a la vista.
+     */
+    async function expectAnswer(personId: string, decisión: string, tipo = tipoLicencia) {
       expect(pushed).toHaveLength(1);
       const received = `${pushed[0]?.title} · ${pushed[0]?.body}`;
       expect(received).not.toMatch(/[{}]/);
       expect(pushed[0]?.title).toContain(decisión);
-      const expected = splitPush(t("T-189", { tipo: tipoLicencia, decisión }));
+      expect(received).toContain(tipo);
+      const expected = splitPush(t("T-189", { tipo, decisión }));
       expect(pushed).toEqual([{ endpoint: DEVICE, ...expected }]);
       const records = await pushesOf(personId);
       expect(records).toHaveLength(1);
@@ -296,6 +318,29 @@ describe("push por evento", () => {
       await drainOutbox();
 
       await expectAnswer(personId, tList("T-195")[1]);
+    });
+
+    // El título tiene 40 caracteres (`buildPushPayload`): con el tipo adentro, el de un cambio de comité
+    // llegaba como «Tu solicitud de cambio de comité fue ap…» y «… fue re…», sin la decisión (DT-122).
+    it("un cambio de comité aprobado avisa con la decisión entera en el título, sin recortar", async () => {
+      const { personId, requestId } = await memberWithTransferRequest();
+      const gh = await seedMember("gh@eafit.edu.co");
+      await decideRequestAs({ personId: gh, ip: null }, requestId, { decision: "APPROVED" });
+      await drainOutbox();
+
+      await expectAnswer(personId, tList("T-195")[0], tList("T-894")[2]);
+    });
+
+    it("un cambio de comité rechazado avisa con la decisión entera en el título, sin recortar", async () => {
+      const { personId, requestId } = await memberWithTransferRequest();
+      const gh = await seedMember("gh@eafit.edu.co");
+      await decideRequestAs({ personId: gh, ip: null }, requestId, {
+        decision: "REJECTED",
+        reason: "Todavía no",
+      });
+      await drainOutbox();
+
+      await expectAnswer(personId, tList("T-195")[1], tList("T-894")[2]);
     });
 
     it("una solicitud que la persona cancela no le manda aviso ni correo: nadie la respondió", async () => {

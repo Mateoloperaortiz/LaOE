@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { BACKOFF_MS, backoffFor, isDeadAfter, MAX_ATTEMPTS } from "@/jobs/backoff";
-import { campaignCeiling, campaignRoom, chooseRoute } from "@/modules/comms/domain/pure";
+import { campaignCeiling, campaignRoom, chooseRoute, splitPush } from "@/modules/comms/domain/pure";
 import { buildPushPayload, PUSH_BODY_MAX, PUSH_TITLE_MAX } from "@/shared/adapters/pusher";
+import { t, tList } from "@/shared/copy";
 import { startOfTodayIn } from "@/shared/lib/dates";
 
 describe("backoff del outbox", () => {
@@ -59,6 +60,33 @@ describe("push", () => {
       title: "Hoy",
       body: "Corto",
     });
+  });
+
+  // DT-122: con el marcador ya rellenado, el título de T-189 llevaba además el tipo de solicitud, y con
+  // «cambio de comité» pasaba de los 40 caracteres: al dispositivo le llegaba «Tu solicitud de cambio de
+  // comité fue ap…». Lo que se afirma es lo que sale del recorte, con cada tipo de T-894 y cada decisión
+  // de T-195: quien alargue uno de esos textos se entera acá.
+  it("el aviso de una solicitud respondida llega sin recortar con cualquier tipo de solicitud: el título dice la decisión entera y el aviso nombra el tipo", () => {
+    const cut: string[] = [];
+    for (const tipo of tList("T-894")) {
+      for (const decisión of tList("T-195")) {
+        const whole = splitPush(t("T-189", { tipo, decisión }));
+        const received = buildPushPayload({ ...whole, url: "/app/solicitudes" });
+        const text = `${received.title} · ${received.body}`;
+        if (
+          received.title !== whole.title ||
+          received.body !== whole.body ||
+          !received.title.includes(decisión) ||
+          !text.includes(tipo) ||
+          /[{}]/.test(text)
+        ) {
+          cut.push(text);
+        }
+      }
+    }
+    expect(tList("T-894")).toHaveLength(4);
+    expect(tList("T-195")).toHaveLength(2);
+    expect(cut).toEqual([]);
   });
 });
 

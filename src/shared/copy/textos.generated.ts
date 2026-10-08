@@ -3371,9 +3371,10 @@ export const textos = {
   },
   "T-189": {
     where: "Solicitud respondida",
-    text: "Tu solicitud de {tipo} fue {decisión} · Entrá a ver la respuesta.",
+    text: "Tu solicitud fue {decisión} · Pediste {tipo}. Entrá a ver la respuesta.",
     owner: "GH",
-    status: "Propuesta",
+    status:
+      "Propuesta; el tipo va en el cuerpo para que la decisión quepa entera en los 40 caracteres del título con cualquier tipo de T-894",
   },
   "T-190": {
     where: "Convocatoria abierta",
