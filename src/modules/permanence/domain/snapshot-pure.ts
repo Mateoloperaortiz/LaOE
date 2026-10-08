@@ -140,6 +140,20 @@ export function parseResults(raw: unknown): CommitteeResult[] {
   return z.array(committeeResultSchema).catch([]).parse(raw);
 }
 
+/**
+ * Lo guardado en un snapshot para quien va a escribir encima (congelar): si no valida, lanza. Leer
+ * degrada a vacío con `parseGeneral` y `parseResults`; guardar ese vacío borraría el resultado.
+ */
+export function parseStoredResults(raw: { general: unknown; results: unknown }): {
+  general: CriterionResult[];
+  results: CommitteeResult[];
+} {
+  return {
+    general: z.array(criterionSchema).parse(raw.general),
+    results: z.array(committeeResultSchema).parse(raw.results),
+  };
+}
+
 export function parseMandatory(raw: unknown): MandatoryView {
   return mandatorySchema.catch(EMPTY_MANDATORY).parse(raw);
 }

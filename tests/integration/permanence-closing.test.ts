@@ -10,6 +10,7 @@ import {
   closeTermPermanenceAs,
   confirmAllProposedAs,
   confirmDecisionsAs,
+  freezeSnapshots,
   listClosingRows,
   listCompliance,
   listPersonDecisions,
@@ -436,5 +437,45 @@ describe("cierre de permanencia", () => {
       remaining: 18,
     });
     expect(snapshot?.frozenAt).toEqual(stored?.frozenAt);
+  });
+
+  // Leer degrada a vacío un JSON que no valida, para no romper la pantalla. Congelar escribe encima:
+  // si guardara ese vacío, el término quedaría cerrado con el resultado de la persona borrado.
+  it("congelar no escribe vacío sobre un snapshot que no entiende: falla y no congela ninguno", async () => {
+    const { termId, people } = await setup();
+    await recomputeSnapshots(termId);
+    const db = getDb();
+    const mine = and(
+      eq(permanenceSnapshot.termId, termId),
+      eq(permanenceSnapshot.personId, people.cumple),
+    );
+    const ofTerm = () =>
+      db.select().from(permanenceSnapshot).where(eq(permanenceSnapshot.termId, termId));
+    const freeze = () => runCommand(SYSTEM_ACTOR, (ctx) => freezeSnapshots(ctx, termId));
+    const [intact] = await db.select().from(permanenceSnapshot).where(mine);
+    if (!intact) throw new Error("falta el snapshot");
+    const sound = { general: intact.general, results: intact.results };
+
+    for (const column of ["general", "results"] as const) {
+      const broken = [{ roto: `sin lo que pide ${column}` }];
+      await db
+        .update(permanenceSnapshot)
+        .set({ ...sound, [column]: broken })
+        .where(mine);
+
+      await expect(freeze()).rejects.toThrow(/no valida/);
+
+      // La transacción se devuelve entera: ni el dañado ni los sanos quedan congelados.
+      const rows = await ofTerm();
+      expect(rows.length).toBeGreaterThan(1);
+      expect(rows.filter((row) => row.frozenAt !== null)).toEqual([]);
+      const [stored] = await db.select().from(permanenceSnapshot).where(mine);
+      expect(stored?.[column]).toEqual(broken);
+    }
+
+    // Con lo guardado sano, congela todos.
+    await db.update(permanenceSnapshot).set(sound).where(mine);
+    await freeze();
+    expect((await ofTerm()).filter((row) => row.frozenAt === null)).toEqual([]);
   });
 });
