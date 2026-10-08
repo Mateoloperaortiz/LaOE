@@ -1,0 +1,43 @@
+# ADR-117: `db:release` comprueba que el diario de migraciones quedó aplicado
+
+- Estado: Aceptada
+- Fecha: 2026-10-08
+- Relacionadas: ADR-021, ADR-032, ADR-079
+- Enmienda: ADR-079, regla 7: después de migrar, `db:release` exige además que cada entrada del diario tenga su registro en la tabla de migraciones.
+
+## Contexto
+
+Esta ADR lleva el número 117 y no el 109. Sale de `main`, donde la última es la ADR-108, pero los números 109 a 116 ya están tomados por una pila de PR sin mezclar. Se numera después de esa pila para poder mezclarse antes sin chocar con ella. El pedido es el issue [#174](https://github.com/Mateoloperaortiz/LaOE/issues/174), que salió de la auditoría de huecos del 2026-10-07.
+
+**El migrador puede saltarse una migración sin avisar.** El de drizzle-orm 0.45.2 (`migrate` en `pg-core/dialect.js`) lee una sola fila de `drizzle.__drizzle_migrations`, la de mayor `created_at`, y aplica cada entrada del diario (`drizzle/meta/_journal.json`) solo si su marca de tiempo, `when`, es posterior a ese valor. No compara cantidad ni contenido. Una entrada con una marca menor o igual a la de la última aplicada no corre ni queda registrada, y no hay error.
+
+**Cómo llega una entrada así a `main`.** Una rama genera su migración. Antes de que se mezcle, `main` recibe otra, generada después, y se despliega. Cuando la rama por fin se mezcla, su archivo se renumera para resolver el conflicto del diario, pero conserva su marca vieja.
+
+**Nada lo notaba.** `applyMigrationsAndVerify` migraba y después verificaba índices únicos, índices GIN y extensiones (ADR-079, regla 7). Una migración que agrega columnas, una tabla sin únicos o datos podía quedar sin aplicar y `db:release` terminaba bien. El CI tampoco lo veía: sus bases, `db:reset` y la suite de integración migran desde cero, y sin una última fila el migrador aplica todo. El primer lugar donde se habría notado es un entorno desplegado, con el pre-deploy en verde y un código que consulta columnas que no existen.
+
+**Se comprobó ejecutándolo.** `tests/integration/release-skipped-migration.test.ts` aplica una carpeta de migraciones de mentira con marcas 100 y 300, le agrega al diario una entrada con marca 200 y vuelve a migrar. Drizzle no crea la tabla de esa entrada ni la registra, y `db:release` terminaba bien.
+
+**El diario de hoy está sano:** 47 entradas numeradas de corrido, con marcas estrictamente crecientes y un archivo por entrada. El riesgo es lo que viene. Según el issue, la pila sin mezclar trae tres migraciones generadas el 2026-10-07, y cualquier otra que entre antes a `main` las deja atrás.
+
+## Decisión
+
+1. **Después de migrar, `db:release` compara el diario con la tabla de migraciones.** Cada entrada de `drizzle/meta/_journal.json` tiene que tener su registro en `drizzle.__drizzle_migrations`. Si a alguna le falta, `db:release` falla con un error que nombra esas migraciones y dice qué hacer: volver a generarlas para que su marca de tiempo sea posterior a la última aplicada. Corre antes de la verificación de índices, porque su mensaje es el más preciso de los dos.
+2. **Una entrada se empareja con su registro por la marca de tiempo**, el `when` del diario contra el `created_at` de la fila, y no por el hash. La marca es lo que el migrador escribe y lo único que mira para decidir, y no cambia si alguien edita el archivo. Con el hash, un archivo retocado después de aplicarse (un comentario, un fin de línea) contaría como una migración sin aplicar y tumbaría el despliegue.
+3. **Cada fila sirve para una sola entrada.** Una entrada con la misma marca que otra ya aplicada también falta: el migrador se la salta igual, porque exige una marca estrictamente posterior. Entre dos entradas con la misma marca, el hash dice cuál es la que tiene registro.
+4. **Las filas que sobran no cuentan.** Una migración registrada dos veces, o una fila cuya entrada ya no está en el diario, no tumba un despliegue sano.
+5. **Una migración ya aplicada cuyo archivo cambió después se avisa y no se rechaza.** Si una entrada tiene una fila con su marca pero con otro hash, `db:release` deja un `logger.warn` con sus nombres y sigue. No se sabe si en producción hay alguna así, y un falso positivo bloquearía el siguiente despliegue. La base conserva lo que corrió en su momento.
+6. **La comparación es una función pura.** `compareJournalWithApplied` (`scripts/lib/migration-journal.ts`) recibe las entradas del diario y las filas aplicadas y devuelve las que faltan y las que cambiaron. La consulta a la base queda en `scripts/lib/release.ts`. El hash de cada archivo sale del mismo lector que usa el migrador (`readMigrationFiles`).
+7. **`applyMigrationsAndVerify` admite otra carpeta, otro esquema y otra tabla de migraciones.** Sin argumentos usa los de siempre: `drizzle`, `drizzle` y `__drizzle_migrations`. Solo la prueba de integración pasa otros, para ejecutar el salto sin tocar la tabla real.
+8. **El diario se vigila en CI con una prueba unitaria.** `tests/unit/migration-journal.test.ts` exige en el diario del repo `idx` de corrido desde 0, `when` estrictamente creciente, un `.sql` por entrada y una entrada por `.sql`. Es la que falla en el PR, antes de cualquier despliegue, cuando una mezcla deja el diario desordenado.
+
+## Consecuencias
+
+- Un despliegue con una migración sin aplicar ya no sale. El pre-deploy termina con error, Railway conserva el contenedor anterior y la base queda como estaba. Antes salía en verde.
+- La guarda corre por primera vez contra las tablas reales de staging y de producción en el primer despliegue que la lleve. Para este cambio no se consultó ninguna de las dos. Si alguna tuviera ya una entrada sin registro, ese despliegue falla nombrándola. Conviene contar las filas de `drizzle.__drizzle_migrations` de cada entorno contra las entradas del diario antes de promover.
+- La guarda comprueba registros, no efectos. Una fila dice que el migrador corrió ese archivo, no que el esquema sea hoy el que el archivo describe. Los índices únicos y GIN los sigue cubriendo la regla 7 de ADR-079.
+- Queda un punto ciego aceptado en la regla 4: una entrada nueva con la misma marca que una migración registrada dos veces usaría la fila que sobra. La prueba de la regla 8 no deja llegar a `main` dos entradas con la misma marca.
+- El aviso de la regla 5 no distingue un retoque de formato de un cambio de fondo. Quien lo vea en el log compara el archivo con lo que la base tiene.
+- La línea «migraciones aplicadas y esquema verificado» suma el campo `migrations`, la cantidad de entradas del diario que se comprobaron. `db:release` lee la carpeta dos veces y hace una consulta más; con 47 archivos no se nota.
+- Regenerar la última migración del diario se ensayó en local: sale el mismo SQL y solo cambian el `when` del diario y el `id` del snapshot. El procedimiento está en el [runbook](../15-runbook.md).
+- Pruebas: unitarias de la comparación (siete casos) y del diario del repo (tres), e integración con una carpeta y un esquema de mentira (cuatro: el salto de Drizzle, el error, la fila de más y el aviso).
+- No cambia ninguna migración, ningún texto ni ninguna pantalla. `scripts/db-release.ts`, `scripts/db-reset.ts` y `.railway/railway.ts` quedan igual.

@@ -88,6 +88,32 @@ ON CONFLICT DO NOTHING;
 - **Despliegue fallido:** si el despliegue falla después del pre-deploy, Railway mantiene el contenedor anterior y ese código toma el job al vencer el plazo. La migración ya no vuelve a correr, así que al corregir y desplegar hay que reencolar el job a mano o con la acción de la app que lo dispara. Para `permanence.recompute` alcanza con guardar un criterio de la tabla en Reglas.
 - `0032` y `0033` son anteriores a esta regla y encolan sin diferir.
 
+## Migraciones que `db:release` no aplicó (ADR-117)
+
+El pre-deploy puede terminar con «Migraciones del diario que no quedaron aplicadas: `<nombres>`».
+
+**Qué significa.** El diario (`drizzle/meta/_journal.json`) tiene una entrada que la base no registra en `drizzle.__drizzle_migrations`. El migrador de Drizzle solo aplica las entradas con una marca de tiempo (`when`) posterior a la de la última aplicada: esa migración se generó antes que otra que ya corrió en ese entorno y llegó a `main` después, así que se la saltó. Railway deja atendiendo al contenedor anterior y la base no cambió. No hay nada que deshacer; falta aplicar esa migración.
+
+**Cómo se sale.** Regenerar la migración en una rama desde `main`, para que su marca sea posterior a la última aplicada:
+
+1. Borrar su `.sql`, su `drizzle/meta/<NNNN>_snapshot.json` y su entrada del diario. Si el error nombra varias, las de todas.
+2. Correr `npm run db:generate -- --name <nombre>`. El esquema no cambió, así que sale el mismo SQL: comprobar con `git diff` que solo cambian el `when` del diario y el `id` del snapshot. Varias migraciones borradas vuelven como una sola.
+3. `npm run check`, PR y despliegue. `db:release` la aplica y la registra.
+
+Ensayado en local el 2026-10-08 con la última migración del diario (`0046`). Una migración escrita a mano (datos, `pg_trgm`) no sale de `db:generate`: guardar su SQL antes de borrarla y recrearla con `npx drizzle-kit generate --custom --name <nombre>`. Una base local que ya había aplicado la versión vieja se rehace con `npm run db:reset`.
+
+No editar `drizzle.__drizzle_migrations` a mano para callar el error, ni cambiarle el `when` a una migración que ya corrió en algún entorno.
+
+**Antes de mezclar un PR con migraciones**, comprobar que `main` no recibió otra después de que se generó la del PR:
+
+```bash
+git fetch origin main && git log --oneline HEAD..origin/main -- drizzle/
+```
+
+Si lista algún commit, traer `main` a la rama y regenerar ahí las migraciones del PR, con los mismos tres pasos. Con la rama al día, `tests/unit/migration-journal.test.ts` (corre en `npm test` y en CI) falla si una entrada del diario no tiene una marca posterior a la anterior.
+
+**El aviso «migraciones ya aplicadas cuyo archivo cambió después»** no detiene el despliegue: una entrada tiene su registro, pero el archivo ya no es el que corrió. La base conserva lo que corrió entonces; si el cambio fue de fondo, va en una migración nueva.
+
 ## T2 y T3: staging y claves
 
 1. Confirmar acceso de Railway al repo privado, presupuesto y proyecto/entorno de destino. En un entorno nuevo, aprovisionar primero Postgres con su región/límites, habilitar PITR y comprobar el bucket que crea Railway. Asignarle el nombre correspondiente al entorno (`Postgres-PITR` en staging, `Postgres-PITR-production` en producción) conservando ID/contenido; comprobar referencias WAL y sonda PITR tras cualquier rename. Solo después aplicar el IaC completo que adopta ese bucket por nombre, y generar el dominio web de Railway; completar `APP_URL`.

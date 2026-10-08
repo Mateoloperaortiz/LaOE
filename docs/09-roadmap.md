@@ -4,6 +4,15 @@ Este es el archivo de tracking. Cada casilla es un entregable; se marca cuando c
 
 Estados de fase: `pendiente` · `en curso` · `lista`.
 
+## `db:release` comprueba el diario de migraciones (ADR-117) · `en curso`
+
+- [x] Reproducir el salto con una prueba y hacer que `db:release` falle nombrando la migración que quedó sin aplicar ([ADR-117](adr/ADR-117-db-release-comprueba-que-el-diario-quedo-aplicado.md), issue [#174](https://github.com/Mateoloperaortiz/LaOE/issues/174)).
+- [ ] Mezclar el PR, ver en el pre-deploy de staging la línea con `migrations` y promover a producción.
+
+| Fecha | Tramo | Qué cambió |
+| --- | --- | --- |
+| 2026-10-08 | Guarda del diario, entrega local | El migrador de Drizzle lee solo la última fila de `drizzle.__drizzle_migrations` y aplica las entradas del diario con un `when` posterior: una migración generada antes que la última aplicada, que llega a `main` después, no corre ni queda registrada, y `db:release` terminaba bien porque solo verificaba índices y extensiones. Reproducido con una carpeta de mentira (marcas 100 y 300 aplicadas, después una con 200). **Guarda:** después de migrar, `db:release` compara cada entrada del diario con la tabla, emparejando por la marca de tiempo, y falla nombrando las que faltan; las filas de más no cuentan y un archivo que cambió después de aplicarse solo se avisa con `logger.warn`. **CI:** una prueba unitaria exige en el diario del repo `idx` de corrido, `when` estrictamente creciente y un `.sql` por entrada; hoy lo cumplen las 47. **Verificación:** `npm run db:release` sobre una base vacía aplicó las 47 y terminó bien; quitándole el registro a `0045`, salió con código 1 y la nombró. Runbook: qué significa el error y cómo regenerar una migración, ensayado con `0046`. Sin migración. No se consultaron staging ni producción: falta contar sus filas contra el diario antes de promover. |
+
 ## Skills de ingeniería para agentes (ADR-108) · `en curso`
 
 - [x] Documentar la decisión ([ADR-108](adr/ADR-108-los-issues-de-github-son-la-cola-de-trabajo.md)).
