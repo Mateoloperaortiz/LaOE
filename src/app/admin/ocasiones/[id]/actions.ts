@@ -9,6 +9,7 @@ import { actorContext } from "@/app/_lib/actor";
 import { formText } from "@/app/_lib/form";
 import { hasRecentStepUp, readCarnet } from "@/modules/identity";
 import {
+  CHECK_IN_STATUSES,
   cancelOccasionAs,
   canOpenOccasion,
   closeOccasionAs,
@@ -106,11 +107,14 @@ export async function cancelAction(formData: FormData): Promise<void> {
 }
 
 const decisionSchema = z.enum(["APPROVE", "REJECT", "CANCEL"]);
+// El estado que mostraba la fila: el comando rechaza la decisión si ya no es ese (ADR-116 regla 1).
+const seenStatusSchema = z.enum(CHECK_IN_STATUSES);
 
 export async function decideAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("occasionId"));
   const checkInId = idSchema.parse(formData.get("checkInId"));
   const decision = decisionSchema.parse(formData.get("decision"));
+  const seenStatus = seenStatusSchema.parse(formData.get("seen"));
   const { actor } = await operator(id, "consola");
   if (!actor.isAdmin) {
     redirect("/app");
@@ -120,7 +124,12 @@ export async function decideAction(formData: FormData): Promise<void> {
     id,
     "consola",
     async () => {
-      await decideCheckInAs(await actorContext(actor), { checkInId, decision, reason });
+      await decideCheckInAs(await actorContext(actor), {
+        checkInId,
+        decision,
+        reason,
+        seenStatus,
+      });
       return undefined;
     },
     decision === "CANCEL" ? { accion: "anular", checkIn: checkInId } : {},

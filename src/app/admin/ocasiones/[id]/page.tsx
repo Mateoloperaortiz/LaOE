@@ -260,6 +260,7 @@ export default async function ConsolaPage({
                       <input type="hidden" name="occasionId" value={id} />
                       <input type="hidden" name="checkInId" value={item.id} />
                       <input type="hidden" name="decision" value="APPROVE" />
+                      <input type="hidden" name="seen" value={item.status} />
                       <AdminSubmitButton
                         type="submit"
                         className="boton-primario min-h-9 px-4 py-1 text-sm"
@@ -273,6 +274,7 @@ export default async function ConsolaPage({
                       <input type="hidden" name="occasionId" value={id} />
                       <input type="hidden" name="checkInId" value={item.id} />
                       <input type="hidden" name="decision" value="REJECT" />
+                      <input type="hidden" name="seen" value={item.status} />
                       <AdminSubmitButton
                         type="submit"
                         className="boton-secundario min-h-9 px-4 py-1 text-sm"
@@ -449,6 +451,7 @@ export default async function ConsolaPage({
                                   <input type="hidden" name="occasionId" value={id} />
                                   <input type="hidden" name="checkInId" value={item.id} />
                                   <input type="hidden" name="decision" value="APPROVE" />
+                                  <input type="hidden" name="seen" value={item.status} />
                                   <AdminSubmitButton
                                     type="submit"
                                     className="boton-secundario min-h-8 px-3 py-1 text-xs"
@@ -464,6 +467,7 @@ export default async function ConsolaPage({
                                   <input type="hidden" name="occasionId" value={id} />
                                   <input type="hidden" name="checkInId" value={item.id} />
                                   <input type="hidden" name="decision" value="REJECT" />
+                                  <input type="hidden" name="seen" value={item.status} />
                                   <AdminSubmitButton
                                     type="submit"
                                     className="boton-secundario min-h-8 px-3 py-1 text-xs"
@@ -523,6 +527,7 @@ export default async function ConsolaPage({
               <input type="hidden" name="occasionId" value={id} />
               <input type="hidden" name="checkInId" value={toCancel.id} />
               <input type="hidden" name="decision" value="CANCEL" />
+              <input type="hidden" name="seen" value={toCancel.status} />
               <p className="font-semibold">{people.get(toCancel.personId)?.fullName?.trim()}</p>
               <label className="flex flex-col gap-1">
                 <span className="eyebrow text-xs">{t("T-434")}</span>

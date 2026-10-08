@@ -6,12 +6,12 @@ import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { type AdjustRequirementInput, adjustRequirement } from "./assemblies";
-import type { CheckInDecision } from "./check-in-pure";
 import {
   AlreadyCheckedIn,
   type BatchDecision,
   cancelOccasionCheckIns,
   checkInSelf,
+  type DecideInput,
   decideCheckIn,
   decideMany,
   findCheckIn,
@@ -160,7 +160,7 @@ export async function hostCheckInAs(
 
 export async function decideCheckInAs(
   actor: Actor & { personId: string },
-  input: { checkInId: string; decision: CheckInDecision; reason?: string | null },
+  input: Pick<DecideInput, "checkInId" | "decision" | "reason" | "seenStatus">,
 ): Promise<void> {
   const settings = await loadGamificationSettings();
   return runCommand(actor, (ctx) => decideCheckIn(ctx, input, { settings }));

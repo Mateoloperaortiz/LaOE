@@ -266,14 +266,24 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     expect(await balanceFor(a.personId, f.termId)).toBe(POINTS);
   });
 
-  it("aprobar y rechazar a la vez, veinte veces: nunca quedan puntos vivos en una asistencia que no está aprobada", async () => {
+  it("aprobar y rechazar a la vez desde la fila, veinte veces: gana la primera, la otra recibe el error de transición y nunca quedan puntos vivos sin aprobación", async () => {
     const f = await setup();
     const occasion = await manualOccasion(f);
     for (let round = 0; round < 20; round += 1) {
       const a = await pendingAttendance(occasion, `miembro.ronda${round}.decision@eafit.edu.co`);
+      // Las dos personas deciden desde la fila que veían pendiente, como lo manda la consola.
       const approve = () =>
-        decideCheckInAs(f.admin, { checkInId: a.checkInId, decision: "APPROVE" });
-      const reject = () => decideCheckInAs(f.other, { checkInId: a.checkInId, decision: "REJECT" });
+        decideCheckInAs(f.admin, {
+          checkInId: a.checkInId,
+          decision: "APPROVE",
+          seenStatus: "PENDING",
+        });
+      const reject = () =>
+        decideCheckInAs(f.other, {
+          checkInId: a.checkInId,
+          decision: "REJECT",
+          seenStatus: "PENDING",
+        });
       const held = await holdTerm(f.termId);
       // Se alterna quién llega primero a la cola del candado: el orden de salida no se puede forzar.
       const pair = round % 2 === 0 ? [approve(), reject()] : [reject(), approve()];
@@ -290,12 +300,57 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
       const points = await balanceFor(a.personId, f.termId);
       const seen = { round, status, points };
       expect({ ...seen, live: points > 0 }).toEqual({ ...seen, live: status === "APPROVED" });
-      // Reaprobar un rechazo es válido (ADR-035 regla 6): la aprobación siempre entra y, si llegó
-      // después del rechazo, lo reaprueba. El rechazo que llega después de la aprobación no aplica.
-      expect({ round, result: approved && outcome(approved) }).toEqual({ round, result: "ok" });
-      expect(["ok", notApplicable("APPROVED")]).toContain(rejected && outcome(rejected));
-      expect(seen).toEqual({ round, status: "APPROVED", points: POINTS });
+      // Reaprobar un rechazo es válido (ADR-035 regla 6), pero no para quien lo veía pendiente: la que
+      // llega segunda no aplica sobre lo que dejó la primera, sea la aprobación o el rechazo.
+      const approval = approved ? outcome(approved) : "";
+      const rejection = rejected ? outcome(rejected) : "";
+      const winner = approval === "ok" ? "APPROVED" : "REJECTED";
+      expect({ round, approval, rejection }).toEqual(
+        winner === "APPROVED"
+          ? { round, approval: "ok", rejection: notApplicable("APPROVED") }
+          : { round, approval: notApplicable("REJECTED"), rejection: "ok" },
+      );
+      expect(seen).toEqual({ round, status: winner, points: winner === "APPROVED" ? POINTS : 0 });
     }
+  });
+
+  it("aprobar desde su fila una pendiente que otro está rechazando espera y recibe el error de transición: no la reaprueba", async () => {
+    const f = await setup();
+    const a = await pendingAttendance(
+      await manualOccasion(f),
+      "miembro.rechazo.decision@eafit.edu.co",
+    );
+    const settings = await loadGamificationSettings();
+    const held = await holdCommand(f.other.personId, (ctx) =>
+      decideCheckIn(ctx, { checkInId: a.checkInId, decision: "REJECT" }, { settings }),
+    );
+    const approving = decideCheckInAs(f.admin, {
+      checkInId: a.checkInId,
+      decision: "APPROVE",
+      seenStatus: "PENDING",
+    });
+    void approving.catch(() => undefined);
+    try {
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+      held.release();
+      await held.done;
+      await expect(approving).rejects.toThrow(notApplicable("REJECTED"));
+    } finally {
+      held.release();
+      await Promise.allSettled([held.done, approving]);
+    }
+    expect((await findCheckIn(a.occasion.id, a.personId))?.status).toBe("REJECTED");
+    expect(await balanceFor(a.personId, f.termId)).toBe(0);
+    expect(await approvedEvents()).toBe(0);
+
+    // Quien ve el rechazo en su fila sí lo puede corregir (ADR-035 regla 6).
+    await decideCheckInAs(f.admin, {
+      checkInId: a.checkInId,
+      decision: "APPROVE",
+      seenStatus: "REJECTED",
+    });
+    expect((await findCheckIn(a.occasion.id, a.personId))?.status).toBe("APPROVED");
+    expect(await balanceFor(a.personId, f.termId)).toBe(POINTS);
   });
 
   it("rechazar una asistencia que otro está aprobando espera y recibe el error de transición", async () => {
@@ -359,7 +414,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     expect(await approvedEvents()).toBe(2);
   });
 
-  it("«Aprobar todos» no reaprueba la asistencia que otro rechazó después de listarla", async () => {
+  it("«Aprobar todos» decide lo que sigue pendiente: no reaprueba la asistencia que otro rechazó después de listarla y aprueba las demás", async () => {
     const f = await setup();
     const occasion = await manualOccasion(f);
     const one = await pendingAttendance(occasion, "miembro.lote3.decision@eafit.edu.co");
@@ -368,15 +423,68 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     const listed = (await listCheckIns(occasion.id, ["PENDING"])).map((item) => item.id);
     await decideCheckInAs(f.other, { checkInId: two.checkInId, decision: "REJECT" });
 
-    await expect(decideManyAs(f.admin, listed, "APPROVE")).rejects.toThrow(
-      notApplicable("REJECTED"),
-    );
+    // Con las filas tomadas decide cuáles siguen pendientes (ADR-116 regla 4) y dice cuántas decidió.
+    expect(await decideManyAs(f.admin, listed, "APPROVE")).toBe(1);
 
-    // El lote es una sola transacción: no aprueba a nadie y quien lo lanzó vuelve a mirar la lista.
     expect((await findCheckIn(occasion.id, two.personId))?.status).toBe("REJECTED");
+    expect((await findCheckIn(occasion.id, one.personId))?.status).toBe("APPROVED");
+    expect(await balanceFor(one.personId, f.termId)).toBe(POINTS);
+    expect(await balanceFor(two.personId, f.termId)).toBe(0);
+    expect(await approvedEvents()).toBe(1);
+  });
+
+  it("«Aprobar todos» espera a quien está aprobando una de su lista desde la fila y aprueba las demás", async () => {
+    const f = await setup();
+    const occasion = await manualOccasion(f);
+    const one = await pendingAttendance(occasion, "miembro.lote7.decision@eafit.edu.co");
+    const two = await pendingAttendance(occasion, "miembro.lote8.decision@eafit.edu.co");
+    const settings = await loadGamificationSettings();
+    const held = await holdCommand(f.other.personId, (ctx) =>
+      decideCheckIn(ctx, { checkInId: one.checkInId, decision: "APPROVE" }, { settings }),
+    );
+    const batch = decideManyAs(f.admin, [one.checkInId, two.checkInId], "APPROVE");
+    void batch.catch(() => undefined);
+    try {
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+      held.release();
+      await held.done;
+      // La aprobación individual no tumba el lote: esa ya no está pendiente y decide la otra.
+      expect(await batch).toBe(1);
+    } finally {
+      held.release();
+      await Promise.allSettled([held.done, batch]);
+    }
+    expect(await listCheckIns(occasion.id, ["APPROVED"])).toHaveLength(2);
+    expect(await balanceFor(one.personId, f.termId)).toBe(POINTS);
+    expect(await balanceFor(two.personId, f.termId)).toBe(POINTS);
+    expect(await approvedEvents()).toBe(2);
+  });
+
+  it("«Aprobar todos» decide una sola vez la asistencia que llega repetida en la lista", async () => {
+    const f = await setup();
+    const occasion = await manualOccasion(f);
+    const one = await pendingAttendance(occasion, "miembro.lote9.decision@eafit.edu.co");
+
+    expect(
+      await decideManyAs(f.admin, [one.checkInId, one.checkInId, one.checkInId], "APPROVE"),
+    ).toBe(1);
+
+    expect((await findCheckIn(occasion.id, one.personId))?.status).toBe("APPROVED");
+    expect(await balanceFor(one.personId, f.termId)).toBe(POINTS);
+    expect(await approvedEvents()).toBe(1);
+  });
+
+  it("«Aprobar todos» con una asistencia que no existe responde que no existe y no aprueba ninguna", async () => {
+    const f = await setup();
+    const occasion = await manualOccasion(f);
+    const one = await pendingAttendance(occasion, "miembro.lote10.decision@eafit.edu.co");
+
+    await expect(
+      decideManyAs(f.admin, [one.checkInId, "asistencia-que-no-existe"], "APPROVE"),
+    ).rejects.toThrow(t("T-032"));
+
     expect((await findCheckIn(occasion.id, one.personId))?.status).toBe("PENDING");
     expect(await balanceFor(one.personId, f.termId)).toBe(0);
-    expect(await balanceFor(two.personId, f.termId)).toBe(0);
     expect(await approvedEvents()).toBe(0);
   });
 

@@ -513,6 +513,12 @@ export interface DecideInput {
   checkInId: string;
   decision: CheckInDecision;
   reason?: string | null | undefined;
+  /**
+   * El estado que mostraba la fila a quien decide. Cuando viene, la fila tomada debe seguir en él
+   * (ADR-116 regla 1): quien aprueba una pendiente que otro acaba de rechazar recibe el error de
+   * transición en vez de reaprobarla sin enterarse. La consola lo manda siempre.
+   */
+  seenStatus?: CheckInStatus | undefined;
   now?: Date | undefined;
 }
 
@@ -541,6 +547,9 @@ export async function decideCheckIn(
   if (!current) {
     throw new DomainError(t("T-032"));
   }
+  if (input.seenStatus !== undefined && current.status !== input.seenStatus) {
+    throw new DomainError(t("T-676", { estado: statusLabel(current.status).toLowerCase() }));
+  }
   await decide(
     ctx,
     current,
@@ -556,9 +565,9 @@ export async function decideCheckIn(
 export type BatchDecision = Exclude<CheckInDecision, "CANCEL">;
 
 /**
- * Lote de la consola («Aprobar todos»). La lista llega leída antes de la transacción, así que cada
- * asistencia debe seguir pendiente con su fila tomada (ADR-116 regla 4): un rechazo que entró en el
- * medio no se reaprueba en silencio, y el lote entero se deshace con el error de transición.
+ * Lote de la consola («Aprobar todos»). La lista llega leída antes de la transacción, así que el lote
+ * decide con las filas tomadas cuáles siguen pendientes (ADR-116 regla 4): la que otra persona decidió
+ * en el medio se deja como quedó, sin reaprobarla en silencio y sin tumbar a las demás.
  * Toma todas las filas de una vez, en el orden de id de `lockCheckIns`, antes de decidir ninguna
  * (regla 2): aprobar la primera encola el recálculo del puntaje de la ocasión, y quien decide otra
  * del lote desde su fila la tendría tomada y esperaría ese recálculo. Devuelve cuántas decidió.
@@ -598,18 +607,15 @@ export async function decideMany(
   if (rows.length !== ids.length) {
     throw new DomainError(t("T-032"));
   }
-  const decided = rows.find((item) => item.status !== "PENDING");
-  if (decided) {
-    throw new DomainError(t("T-676", { estado: statusLabel(decided.status).toLowerCase() }));
-  }
-  for (const current of rows) {
+  const pending = rows.filter((item) => item.status === "PENDING");
+  for (const current of pending) {
     const row = occasions.get(current.occasionId);
     if (!row) {
       throw new DomainError(t("T-032"));
     }
     await decide(ctx, current, row, decision, reason ?? null, now, context?.settings);
   }
-  return rows.length;
+  return pending.length;
 }
 
 /** Al cancelar la ocasión: anula pendientes y aprobados, revierte los créditos vivos y avisa a cada persona. */
