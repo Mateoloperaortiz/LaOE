@@ -10,8 +10,10 @@ import {
   isAllowedSize,
   isAllowedType,
   keyPurpose,
+  mediaObjectKeys,
   mediaProcessDedupeKey,
   photoKey,
+  photoPrefix,
   pickVariant,
   UPLOAD_KEY_PATTERN,
   uploadKey,
@@ -200,5 +202,44 @@ describe("qué clave se puede confirmar (ADR-113 regla 5)", () => {
       expect(confirmablePurpose({ key: media, purpose: "media", personId: ana, scope })).toBeNull();
       expect(confirmablePurpose({ key: photo, purpose: "photo", personId: ana, scope })).toBeNull();
     }
+  });
+});
+
+describe("lo que un medio tiene en el bucket (ADR-116 regla 8)", () => {
+  const variant = (key: string) => ({
+    key,
+    width: 480,
+    height: 320,
+    byteSize: 1_000,
+    contentType: "image/webp",
+  });
+
+  it("las fotos de una persona están bajo su prefijo, y no las de otra cuyo id empieza igual", () => {
+    expect(photoKey("ana", "image/png", "f1").startsWith(photoPrefix("ana"))).toBe(true);
+    expect(photoKey("anabel", "image/png", "f1").startsWith(photoPrefix("ana"))).toBe(false);
+    expect(uploadKey("image/png", "f1").startsWith(photoPrefix("ana"))).toBe(false);
+  });
+
+  it("son el original, lo que la fila registra y cada variante de clave determinista, sin repetir", () => {
+    const keys = mediaObjectKeys({
+      id: "m1",
+      objectKey: "photos/ana/f1.png",
+      variants: { w480: variant(variantKey("m1", 480)), vieja: variant("variants/m1/vieja.webp") },
+    });
+    expect(keys).toEqual([
+      "photos/ana/f1.png",
+      "variants/m1/w480.webp",
+      "variants/m1/vieja.webp",
+      "variants/m1/w960.webp",
+      "variants/m1/w1600.webp",
+      "variants/m1/full.webp",
+    ]);
+  });
+
+  it("un medio sin procesar igual nombra las variantes que el proceso pudo alcanzar a escribir", () => {
+    const keys = mediaObjectKeys({ id: "m2", objectKey: "photos/ana/f2.png", variants: {} });
+    expect(keys).toContain(variantKey("m2", 480));
+    expect(keys).toContain(fullVariantKey("m2"));
+    expect(keys).toHaveLength(5);
   });
 });

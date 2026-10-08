@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { getObject, headObject, putObject } from "@/shared/adapters/storage";
+import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
 import { decodeImage, ImageRejectedError } from "@/shared/lib/image-decoder";
 import { logger } from "@/shared/log";
 import { FULL_VARIANT } from "../media-variants";
@@ -52,6 +52,27 @@ async function storeFullVariant(assetId: string, original: Decoded): Promise<Med
   );
 }
 
+/**
+ * Para cuando el proceso no encontró fila donde anotar lo que escribió: si el medio se borró mientras se
+ * procesaba (las fotos de una persona que se anonimiza, ADR-116 regla 8), esas variantes ya no tienen
+ * fila que las nombre y se borran aquí. Si la fila sigue, no se toca nada. Dice si lo descartó.
+ */
+async function discardIfRemoved(assetId: string, written: MediaVariant[]): Promise<boolean> {
+  const [row] = await getDb()
+    .select({ id: mediaAsset.id })
+    .from(mediaAsset)
+    .where(eq(mediaAsset.id, assetId))
+    .limit(1);
+  if (row) {
+    return false;
+  }
+  for (const variant of written) {
+    await deleteObject(variant.key); // transitorio: relanza, y el reintento ya no encuentra el medio
+  }
+  logger.warn({ assetId }, "media.process: el medio se borró mientras se procesaba");
+  return true;
+}
+
 /** Abre el original de un medio, o lanza `ImageRejectedError` si no es una imagen que se procese. */
 async function openOriginal(asset: MediaAssetRow): Promise<Decoded> {
   if (!(asset.contentType in MEDIA_TYPES)) {
@@ -75,13 +96,17 @@ async function addFullVariant(asset: MediaAssetRow, now: Date): Promise<ProcessO
   }
   try {
     const full = await storeFullVariant(asset.id, await openOriginal(asset));
-    await getDb()
+    const recorded = await getDb()
       .update(mediaAsset)
       .set({
         variants: sql`${mediaAsset.variants} || ${JSON.stringify({ [FULL_VARIANT]: full })}::jsonb`,
         updatedAt: now,
       })
-      .where(and(eq(mediaAsset.id, asset.id), eq(mediaAsset.status, "READY")));
+      .where(and(eq(mediaAsset.id, asset.id), eq(mediaAsset.status, "READY")))
+      .returning({ id: mediaAsset.id });
+    if (recorded.length === 0 && (await discardIfRemoved(asset.id, [full]))) {
+      return "skipped";
+    }
     return "ready";
   } catch (error) {
     if (error instanceof ImageRejectedError) {
@@ -115,7 +140,7 @@ export async function processMedia(assetId: string, now = new Date()): Promise<P
       );
     }
     variants[FULL_VARIANT] = await storeFullVariant(asset.id, original);
-    await db
+    const recorded = await db
       .update(mediaAsset)
       .set({
         width: original.width,
@@ -125,7 +150,11 @@ export async function processMedia(assetId: string, now = new Date()): Promise<P
         error: null,
         updatedAt: now,
       })
-      .where(eq(mediaAsset.id, asset.id));
+      .where(eq(mediaAsset.id, asset.id))
+      .returning({ id: mediaAsset.id });
+    if (recorded.length === 0 && (await discardIfRemoved(asset.id, Object.values(variants)))) {
+      return "skipped";
+    }
     return "ready";
   } catch (error) {
     if (error instanceof ImageRejectedError) {

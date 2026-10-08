@@ -73,8 +73,7 @@ export function confirmablePurpose(input: {
     return null;
   }
   if (purpose === "photo") {
-    const own =
-      input.personId !== null && input.key.startsWith(`${PHOTO_KEY_PREFIX}${input.personId}/`);
+    const own = input.personId !== null && input.key.startsWith(photoPrefix(input.personId));
     return own ? purpose : null;
   }
   return by === "ADMIN" ? purpose : null;
@@ -106,6 +105,11 @@ export function photoKey(personId: string, contentType: string, id: string): str
     throw new Error(`Tipo no permitido: ${contentType}`);
   }
   return `${PHOTO_KEY_PREFIX}${personId}/${id}.${ext}`;
+}
+
+/** `photos/<personId>/`: bajo este prefijo está toda foto propia de la persona, y nada más. */
+export function photoPrefix(personId: string): string {
+  return `${PHOTO_KEY_PREFIX}${personId}/`;
 }
 
 /** Clave determinista: un reintento sobrescribe la variante en vez de dejar huérfanos. */
@@ -141,6 +145,27 @@ export const FULL_VARIANT_MAX_SIDE = 2560;
 /** Clave determinista de la variante completa, como las de ancho: procesar de nuevo la sobrescribe. */
 export function fullVariantKey(assetId: string): string {
   return `variants/${assetId}/${FULL_VARIANT}.webp`;
+}
+
+/**
+ * Todo lo que un medio puede tener en el bucket, sin repetir: el original, las variantes que su fila
+ * registra y las de clave determinista (cada ancho de la escalera y la completa). Estas últimas pueden
+ * existir sin estar en la fila, si el proceso se cayó después de escribirlas; quien borra un medio las
+ * borra todas (ADR-116 regla 8).
+ */
+export function mediaObjectKeys(asset: {
+  id: string;
+  objectKey: string;
+  variants: MediaVariants;
+}): string[] {
+  return [
+    ...new Set([
+      asset.objectKey,
+      ...Object.values(asset.variants).map((variant) => variant.key),
+      ...VARIANT_WIDTHS.map((width) => variantKey(asset.id, width)),
+      fullVariantKey(asset.id),
+    ]),
+  ];
 }
 
 /**

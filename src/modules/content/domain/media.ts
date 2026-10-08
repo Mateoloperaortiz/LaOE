@@ -1,5 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
-import { and, asc, count, desc, eq, ilike } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -18,9 +18,11 @@ import {
   isAllowedType,
   MEDIA_MAX_BYTES,
   MEDIA_MIN_BYTES,
+  mediaObjectKeys,
   mediaProcessDedupeKey,
   PHOTO_MAX_BYTES,
   photoKey,
+  photoPrefix,
   pickVariant,
   UPLOAD_EXPIRY_SECONDS,
   UPLOAD_KEY_PATTERN,
@@ -275,6 +277,45 @@ export async function listReadyPublicMedia(): Promise<Array<{ id: string; label:
         ? `${row.originalFilename} · ${row.width}×${row.height}`
         : row.originalFilename,
   }));
+}
+
+/**
+ * Retiro de datos personales (ADR-030 regla 4, ADR-116 regla 8): borra del bucket y de la base las fotos
+ * propias de una persona, la vigente y las que había reemplazado. Se reconocen por su clave
+ * `photos/<personId>/`, que es lo que hace de un medio una foto propia (ADR-034 regla 8): un medio que
+ * esa persona subió como ADMIN no es suyo y se queda. Primero los objetos y al final las filas, en una
+ * transacción que las retiene: si el bucket falla nada se confirma, cada fila sigue diciendo qué claves
+ * tiene y el reintento empieza de nuevo. Borrar una clave que ya no está no es un error. Devuelve
+ * cuántas fotos borró.
+ */
+export async function deletePhotosFor(personId: string): Promise<number> {
+  return getDb().transaction(async (db) => {
+    const photos = await db
+      .select({
+        id: mediaAsset.id,
+        objectKey: mediaAsset.objectKey,
+        variants: mediaAsset.variants,
+      })
+      .from(mediaAsset)
+      .where(sql`starts_with(${mediaAsset.objectKey}, ${photoPrefix(personId)})`)
+      .orderBy(asc(mediaAsset.id))
+      .for("update");
+    if (photos.length === 0) {
+      return 0;
+    }
+    for (const photo of photos) {
+      for (const key of mediaObjectKeys(photo)) {
+        await deleteObject(key);
+      }
+    }
+    await db.delete(mediaAsset).where(
+      inArray(
+        mediaAsset.id,
+        photos.map((photo) => photo.id),
+      ),
+    );
+    return photos.length;
+  });
 }
 
 export type MediaRedirect =
