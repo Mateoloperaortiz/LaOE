@@ -90,11 +90,18 @@ ON CONFLICT DO NOTHING;
 
 ## Migraciones que `db:release` no aplicó (ADR-117)
 
-El pre-deploy puede terminar con «Migraciones del diario que no quedaron aplicadas: `<nombres>`».
+El pre-deploy puede terminar con «Entradas del diario sin registro y con una marca (`when`) que no supera la de la última aplicada (`<marca>`): `<nombres>`». En local sale lo mismo con `npm run db:migrate`, que es el mismo guion.
 
-**Qué significa.** El diario (`drizzle/meta/_journal.json`) tiene una entrada que la base no registra en `drizzle.__drizzle_migrations`. El migrador de Drizzle solo aplica las entradas con una marca de tiempo (`when`) posterior a la de la última aplicada: esa migración se generó antes que otra que ya corrió en ese entorno y llegó a `main` después, así que se la saltó. Railway deja atendiendo al contenedor anterior y la base no cambió. No hay nada que deshacer; falta aplicar esa migración.
+**Qué significa.** El diario (`drizzle/meta/_journal.json`) tiene entradas que la base no registra en `drizzle.__drizzle_migrations`, y su marca de tiempo (`when`) es menor o igual a la mayor de la tabla, la que el error trae entre paréntesis. El migrador de Drizzle solo aplica las entradas con una marca posterior a esa: se las saltaría sin avisar. `db:release` lo comprueba antes de migrar y falla sin tocar la base: no corre ninguna migración, tampoco las que sí se podían aplicar. Railway deja atendiendo al contenedor anterior. No hay nada que deshacer.
 
-**Cómo se sale.** Regenerar la migración en una rama desde `main`, para que su marca sea posterior a la última aplicada:
+El error no dice por qué la marca quedó atrás, porque la guarda no lo puede saber. Son dos casos:
+
+- **En un entorno desplegado:** la migración se generó antes que otra que ya corrió ahí y llegó a `main` después. Se sale regenerándola, con los pasos de abajo.
+- **En local, después de cambiar de rama:** la base ya aplicó una migración de la otra rama, con una marca posterior. Se sale con `npm run db:reset`, que borra los esquemas y migra desde cero. No se regenera nada.
+
+«Entradas del diario que siguen sin registro después de migrar» viene de la segunda comprobación, la que corre cuando el migrador ya terminó. Ahí la base sí pudo cambiar: lo que el migrador aplicó quedó confirmado. Solo se ha visto en la prueba que la fuerza con un migrador que vuelve sin aplicar nada.
+
+**Cómo se sale en un entorno desplegado.** Regenerar la migración en una rama desde `main`, para que su marca sea posterior a la última aplicada:
 
 1. Borrar su `.sql`, su `drizzle/meta/<NNNN>_snapshot.json` y su entrada del diario. Si el error nombra varias, las de todas.
 2. Correr `npm run db:generate -- --name <nombre>`. El esquema no cambió, así que sale el mismo SQL: comprobar con `git diff` que solo cambian el `when` del diario y el `id` del snapshot. Varias migraciones borradas vuelven como una sola.

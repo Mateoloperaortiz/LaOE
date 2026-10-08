@@ -4,6 +4,7 @@
   "entries": [
     { "idx": 0, "version": "7", "when": 100, "tag": "0000_primera", "breakpoints": true },
     { "idx": 1, "version": "7", "when": 300, "tag": "0001_tercera", "breakpoints": true },
-    { "idx": 2, "version": "7", "when": 200, "tag": "0002_tardia", "breakpoints": true }
+    { "idx": 2, "version": "7", "when": 200, "tag": "0002_tardia", "breakpoints": true },
+    { "idx": 3, "version": "7", "when": 400, "tag": "0003_nueva", "breakpoints": true }
   ]
 }

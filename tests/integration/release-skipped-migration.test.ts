@@ -9,12 +9,19 @@ import { closeDb, getDb } from "@/db/client";
 import { logger } from "@/shared/log";
 import { applyMigrationsAndVerify } from "../../scripts/lib/release";
 
+// El migrador de verdad, envuelto: una prueba puede hacer que vuelva sin aplicar nada.
+vi.mock("drizzle-orm/node-postgres/migrator", async (importOriginal) => {
+  const original = await importOriginal<typeof import("drizzle-orm/node-postgres/migrator")>();
+  return { ...original, migrate: vi.fn(original.migrate) };
+});
+
 // Una carpeta de migraciones de mentira, como queda después de mezclar tarde una rama: `0000` (when 100),
-// `0001` (when 300) y `0002` (when 200), que se generó antes que la `0001` y llegó después. Sus tablas y
-// su tabla de migraciones viven en un esquema propio: `drizzle.__drizzle_migrations` no se toca.
+// `0001` (when 300), `0002` (when 200), que se generó antes que la `0001` y llegó después, y `0003`
+// (when 400), una pendiente de las de siempre. Sus tablas y su tabla de migraciones viven en un esquema
+// propio: `drizzle.__drizzle_migrations` no se toca.
 const FIXTURE = fileURLToPath(new URL("../fixtures/skipped-migration/", import.meta.url));
 const SCHEMA = "release_guard_test";
-const journal: { entries: unknown[] } = JSON.parse(
+const journal: { entries: { tag: string }[] } = JSON.parse(
   readFileSync(join(FIXTURE, "meta/_journal.json"), "utf8"),
 );
 
@@ -24,12 +31,10 @@ describe("db:release y la migración que el migrador se salta (ADR-117)", () => 
   const dropSchema = () =>
     getDb().execute(sql`drop schema if exists ${sql.identifier(SCHEMA)} cascade`);
 
-  /** Deja en el diario las primeras `count` entradas de la carpeta de mentira. */
-  function writeJournal(count: number): void {
-    writeFileSync(
-      join(folder, "meta/_journal.json"),
-      JSON.stringify({ ...journal, entries: journal.entries.slice(0, count) }),
-    );
+  /** Deja en el diario las primeras `count` entradas de la carpeta de mentira, menos la de `without`. */
+  function writeJournal(count: number, without?: string): void {
+    const entries = journal.entries.slice(0, count).filter((entry) => entry.tag !== without);
+    writeFileSync(join(folder, "meta/_journal.json"), JSON.stringify({ ...journal, entries }));
   }
 
   async function tables(): Promise<string[]> {
@@ -72,7 +77,7 @@ describe("db:release y la migración que el migrador se salta (ADR-117)", () => 
     expect(await registered()).toEqual([100, 300]);
   });
 
-  it("falla nombrando la migración que quedó sin aplicar y dice cómo se arregla", async () => {
+  it("falla nombrando la entrada sin registro, con la marca de la última aplicada y los dos remedios", async () => {
     writeJournal(2);
     await applyMigrationsAndVerify(target());
 
@@ -86,7 +91,41 @@ describe("db:release y la migración que el migrador se salta (ADR-117)", () => 
     expect(outcome).toContain("0002_tardia");
     expect(outcome).not.toContain("0000_primera");
     expect(outcome).not.toContain("0001_tercera");
-    expect(outcome).toContain("Volvé a generarlas");
+    expect(outcome).toContain("la última aplicada (300)");
+    expect(outcome).toContain("En un entorno desplegado, volvé a generarlas");
+    expect(outcome).toContain("en local, después de cambiar de rama, corré npm run db:reset");
+  });
+
+  it("con una entrada saltada y otra aplicable en el mismo diario, falla sin aplicar ninguna", async () => {
+    writeJournal(2);
+    await applyMigrationsAndVerify(target());
+
+    writeJournal(4);
+    const outcome = await applyMigrationsAndVerify(target()).then(
+      () => "db:release terminó bien",
+      (error: unknown) => String(error),
+    );
+
+    expect(outcome).toContain("0002_tardia");
+    expect(outcome).not.toContain("0003_nueva");
+    expect(await tables()).toEqual(["__drizzle_migrations", "primera", "tercera"]);
+    expect(await registered()).toEqual([100, 300]);
+  });
+
+  it("si el migrador vuelve sin registrar una pendiente, falla después de migrar y la nombra", async () => {
+    writeJournal(2);
+    await applyMigrationsAndVerify(target());
+
+    // Solo una pendiente más nueva que la última aplicada: la primera comprobación no tiene nada que decir.
+    writeJournal(4, "0002_tardia");
+    vi.mocked(migrate).mockResolvedValueOnce(undefined);
+    const outcome = await applyMigrationsAndVerify(target()).then(
+      () => "db:release terminó bien",
+      (error: unknown) => String(error),
+    );
+
+    expect(outcome).toContain("siguen sin registro después de migrar: 0003_nueva.");
+    expect(outcome).toContain("última aplicada: 300.");
   });
 
   it("termina bien con todo el diario aplicado, aunque una migración tenga dos registros", async () => {

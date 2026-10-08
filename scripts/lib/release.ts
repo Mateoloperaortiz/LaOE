@@ -4,7 +4,13 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
 import { type Db, getDb } from "@/db/client";
 import { logger } from "@/shared/log";
-import { compareJournalWithApplied, readJournalMigrations } from "./migration-journal";
+import {
+  type AppliedMigration,
+  compareJournalWithApplied,
+  findSkippedByMigrator,
+  lastAppliedMark,
+  readJournalMigrations,
+} from "./migration-journal";
 
 // Índices que db:release exige (ADR-032, ADR-079). Salen del esquema los únicos, porque el dominio
 // traduce sus violaciones por nombre (src/db/errors.ts), y los GIN, porque la búsqueda depende de ellos:
@@ -63,24 +69,58 @@ const DEFAULT_TARGET: MigrationTarget = {
   migrationsTable: "__drizzle_migrations",
 };
 
-/**
- * Falla si alguna entrada del diario quedó sin su registro (ADR-117). El migrador lee solo la última
- * fila de su tabla y aplica las entradas con un `when` posterior: una más vieja que llega después, por
- * una rama que tardó en mezclarse, no corre ni queda registrada, y no hay error. Devuelve cuántas comprobó.
- */
-async function verifyJournalApplied(db: Db, target: MigrationTarget): Promise<number> {
+/** Las filas de la tabla de migraciones. En una base vacía la tabla todavía no existe: no hay ninguna, y no la crea. */
+async function readAppliedMigrations(db: Db, target: MigrationTarget): Promise<AppliedMigration[]> {
+  const exists = await db.execute(
+    sql`select 1 from pg_tables where schemaname = ${target.migrationsSchema} and tablename = ${target.migrationsTable}`,
+  );
+  if (exists.rows.length === 0) {
+    return [];
+  }
   const table = sql`${sql.identifier(target.migrationsSchema)}.${sql.identifier(target.migrationsTable)}`;
   const applied = await db.execute<{ hash: string; created_at: string | null }>(
     sql`select hash, created_at from ${table}`,
   );
+  return applied.rows.map((row) => ({ hash: row.hash, createdAt: Number(row.created_at) }));
+}
+
+// La guarda sabe qué entradas no tienen registro y cuál es la última marca aplicada, no por qué: una rama
+// que se mezcló tarde o una base local que viene de otra rama dan lo mismo. Por eso van los dos remedios.
+const UNAPPLIED_REMEDIES =
+  "En un entorno desplegado, volvé a generarlas para que su marca sea posterior; en local, después de cambiar de rama, corré npm run db:reset (docs/15-runbook.md, «Migraciones que db:release no aplicó»).";
+
+/**
+ * Aplica las migraciones pendientes y verifica el diario, los índices y las extensiones. Nunca hace seed.
+ * Sin argumentos usa la carpeta `drizzle` y la tabla de Drizzle; una prueba puede pasar las suyas.
+ *
+ * El diario se compara con la tabla de migraciones dos veces (ADR-117). El migrador lee solo la fila de
+ * mayor `created_at` y aplica las entradas con un `when` posterior: una sin registro y con una marca
+ * menor o igual no corre ni queda registrada, y no hay error. Antes de migrar, si hay alguna así, falla
+ * sin tocar la base: las que sí se podían aplicar tampoco corren. Después, cada entrada tiene que tener
+ * su registro.
+ */
+export async function applyMigrationsAndVerify(
+  overrides: Partial<MigrationTarget> = {},
+): Promise<void> {
+  const target = { ...DEFAULT_TARGET, ...overrides };
+  const db = getDb();
   const journal = readJournalMigrations(target.migrationsFolder);
-  const { missing, changed } = compareJournalWithApplied(
-    journal,
-    applied.rows.map((row) => ({ hash: row.hash, createdAt: Number(row.created_at) })),
-  );
+
+  const before = await readAppliedMigrations(db, target);
+  const skipped = findSkippedByMigrator(journal, before);
+  if (skipped.length > 0) {
+    throw new Error(
+      `Entradas del diario sin registro y con una marca (\`when\`) que no supera la de la última aplicada (${lastAppliedMark(before)}): ${skipped.join(", ")}. El migrador solo aplica las de marca posterior, así que db:release no migró nada. ${UNAPPLIED_REMEDIES}`,
+    );
+  }
+
+  await migrate(db, target);
+
+  const after = await readAppliedMigrations(db, target);
+  const { missing, changed } = compareJournalWithApplied(journal, after);
   if (missing.length > 0) {
     throw new Error(
-      `Migraciones del diario que no quedaron aplicadas: ${missing.join(", ")}. El migrador solo aplica las que tienen una marca de tiempo (\`when\`) posterior a la última aplicada, y estas no la tienen. Volvé a generarlas para que su marca de tiempo sea posterior a la última aplicada (docs/15-runbook.md, «Migraciones que db:release no aplicó»).`,
+      `Entradas del diario que siguen sin registro después de migrar: ${missing.join(", ")}. Marca (\`when\`) de la última aplicada: ${lastAppliedMark(after) ?? "ninguna"}. ${UNAPPLIED_REMEDIES}`,
     );
   }
   if (changed.length > 0) {
@@ -90,20 +130,6 @@ async function verifyJournalApplied(db: Db, target: MigrationTarget): Promise<nu
       "migraciones ya aplicadas cuyo archivo cambió después: la base tiene lo que corrió entonces",
     );
   }
-  return journal.length;
-}
-
-/**
- * Aplica las migraciones pendientes y verifica el diario, los índices y las extensiones. Nunca hace seed.
- * Sin argumentos usa la carpeta `drizzle` y la tabla de Drizzle; una prueba puede pasar las suyas.
- */
-export async function applyMigrationsAndVerify(
-  overrides: Partial<MigrationTarget> = {},
-): Promise<void> {
-  const target = { ...DEFAULT_TARGET, ...overrides };
-  const db = getDb();
-  await migrate(db, target);
-  const migrations = await verifyJournalApplied(db, target);
 
   const indexes = await db.execute<{ indexname: string }>(
     sql`select indexname from pg_indexes where schemaname = 'public'`,
@@ -122,7 +148,7 @@ export async function applyMigrationsAndVerify(
     );
   }
   logger.info(
-    { migrations, indexes: required.length, extensions: REQUIRED_EXTENSIONS },
+    { migrations: journal.length, indexes: required.length, extensions: REQUIRED_EXTENSIONS },
     "migraciones aplicadas y esquema verificado",
   );
 }

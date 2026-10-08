@@ -1,6 +1,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { compareJournalWithApplied } from "../../scripts/lib/migration-journal";
+import {
+  compareJournalWithApplied,
+  findSkippedByMigrator,
+  lastAppliedMark,
+} from "../../scripts/lib/migration-journal";
+
+const row = (createdAt: number, hash: string) => ({ createdAt, hash });
 
 describe("diario contra registro de migraciones (ADR-117)", () => {
   const journal = [
@@ -8,7 +14,6 @@ describe("diario contra registro de migraciones (ADR-117)", () => {
     { tag: "0001_tercera", when: 300, hash: "h-tercera" },
     { tag: "0002_tardia", when: 200, hash: "h-tardia" },
   ];
-  const row = (createdAt: number, hash: string) => ({ createdAt, hash });
   const allApplied = [row(100, "h-primera"), row(300, "h-tercera"), row(200, "h-tardia")];
 
   it("no encuentra nada cuando cada entrada tiene su registro", () => {
@@ -68,6 +73,47 @@ describe("diario contra registro de migraciones (ADR-117)", () => {
       missing: ["0003_gemela"],
       changed: ["0001_tercera"],
     });
+  });
+});
+
+// Lo que `db:release` mira antes de migrar: de las entradas sin registro, el migrador aplica las de una
+// marca posterior a la de la última aplicada y se salta las demás sin avisar.
+describe("entradas que el migrador no va a aplicar (ADR-117)", () => {
+  const journal = [
+    { tag: "0000_primera", when: 100, hash: "h-primera" },
+    { tag: "0001_tercera", when: 300, hash: "h-tercera" },
+    { tag: "0002_tardia", when: 200, hash: "h-tardia" },
+    { tag: "0003_nueva", when: 400, hash: "h-nueva" },
+  ];
+  const applied = [row(100, "h-primera"), row(300, "h-tercera")];
+
+  it("en una base sin registros no hay ninguna: el migrador aplica el diario entero", () => {
+    expect(findSkippedByMigrator(journal, [])).toEqual([]);
+    expect(lastAppliedMark([])).toBeNull();
+  });
+
+  it("nombra la entrada sin registro más vieja que la última aplicada, y no la pendiente más nueva", () => {
+    expect(findSkippedByMigrator(journal, applied)).toEqual(["0002_tardia"]);
+    expect(lastAppliedMark(applied)).toBe(300);
+  });
+
+  it("una entrada sin registro con la misma marca que la última aplicada también se salta", () => {
+    const twin = { tag: "0004_gemela", when: 300, hash: "h-gemela" };
+    expect(findSkippedByMigrator([...journal, twin], applied)).toEqual([
+      "0002_tardia",
+      "0004_gemela",
+    ]);
+  });
+
+  it("no hay ninguna cuando las entradas sin registro son todas más nuevas que la última aplicada", () => {
+    expect(findSkippedByMigrator(journal, [...applied, row(200, "h-tardia")])).toEqual([]);
+  });
+
+  it("la última aplicada es la fila de mayor marca, no la que se insertó de última", () => {
+    const outOfOrder = [...applied, row(200, "h-tardia")];
+    const between = { tag: "0004_intermedia", when: 250, hash: "h-intermedia" };
+    expect(lastAppliedMark(outOfOrder)).toBe(300);
+    expect(findSkippedByMigrator([...journal, between], outOfOrder)).toEqual(["0004_intermedia"]);
   });
 });
 
