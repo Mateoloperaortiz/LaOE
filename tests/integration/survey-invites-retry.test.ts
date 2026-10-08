@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
-import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { SYSTEM_ACTOR } from "@/db/tx";
 import {
@@ -18,7 +18,9 @@ import {
 import { checkIn, occasion, occasionSurveyInvite } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { outbox } from "@/modules/system/schema";
+import { holdTransaction, waitingOn } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedCheckIn, seedForm, seedMember, seedOccasion, seedTerm } from "./factories";
 
@@ -198,5 +200,44 @@ describe("las invitaciones a la encuesta toleran el reintento", () => {
     expect(
       notices.map((notice) => `${notice.personId}:${hashOf(tokenOf(notice.url))}`).sort(),
     ).toEqual(invites.map((invite) => `${invite.personId}:${invite.tokenHash}`).sort());
+  });
+
+  it("si otra corrida del mismo cierre ya ganó la invitación de alguien, esta no le manda un enlace que no abre", async () => {
+    const termId = await seedTerm();
+    const occasionId = await closedOccasionWithSurvey(termId);
+    const ana = await seedMember("ana.doble@eafit.edu.co");
+    const bruno = await seedMember("bruno.doble@eafit.edu.co");
+    await seedCheckIn(occasionId, ana, "APPROVED");
+    await seedCheckIn(occasionId, bruno, "APPROVED");
+    await db().update(occasion).set({ status: "CLOSED" }).where(eq(occasion.id, occasionId));
+    await warmPool();
+
+    // Otra corrida va adelante: ya insertó la invitación de Ana y todavía no confirma.
+    const other = await holdTransaction((tx) =>
+      tx.insert(occasionSurveyInvite).values({
+        occasionId,
+        personId: ana,
+        tokenHash: hashOf("enlace-de-la-otra-corrida-000001"),
+        sentAt: new Date(),
+      }),
+    );
+    const running = createSurveyInvites(occasionId);
+    try {
+      // Esta corrida no vio esa invitación y hace cola detrás de ella en el índice único.
+      await vi.waitFor(async () => expect(await waitingOn(other.pid)).toBe(1), { timeout: 5_000 });
+    } finally {
+      other.release();
+      await other.done;
+    }
+    const { created } = await running;
+
+    // A Ana le va el aviso de la corrida que se quedó con su invitación; esta solo lleva a Bruno.
+    expect(created.map((item) => item.personId)).toEqual([bruno]);
+    const notices = await surveyNotices(occasionId);
+    expect(notices.map((notice) => notice.personId)).toEqual([bruno]);
+    expect(await getSurveyInviteForActor(bruno, tokenOf(notices[0]?.url ?? ""))).toMatchObject({
+      state: "OPEN",
+      occasionId,
+    });
   });
 });
