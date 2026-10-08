@@ -89,7 +89,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
       { committeeId, roleCode: "MIEMBRO", transferredIn: false },
     ]);
     expect(server.calls).toEqual([]);
-    expect(await processOne(new Date(Date.now() + 1000))).toBe("processed");
+    expect(await processOne(() => new Date(Date.now() + 1000))).toBe("processed");
     expect(server.calls).toEqual([]);
     const queued = await getDb().select().from(outbox).where(eq(outbox.eventType, "wallet.sync"));
     expect(queued).toHaveLength(1);
@@ -151,7 +151,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
       kind: "STUDENT",
     });
     expect(server.calls).toEqual([]);
-    expect(await processOne(new Date(Date.now() + 1000))).toBe("processed");
+    expect(await processOne(() => new Date(Date.now() + 1000))).toBe("processed");
     expect(server.calls).toEqual([]);
     await drainOutbox();
     const [pass] = await listPassesFor(personId);

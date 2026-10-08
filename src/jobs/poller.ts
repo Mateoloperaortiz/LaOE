@@ -17,6 +17,13 @@ import { getHandlers } from "./registry";
 //
 // Dos pollers nunca procesan la misma fila: mientras corre la protege el bloqueo, como antes, y entre la
 // toma y el bloqueo ya no está vencida.
+//
+// El reloj entra como función (ADR-118 regla 2): cada instante que se escribe (la toma, el fallo, el
+// cierre) se lee cuando pasa, no al arrancar el lote.
+
+type Clock = () => Date;
+
+const systemClock: Clock = () => new Date();
 
 export type ProcessOutcome = "idle" | "processed" | "failed";
 
@@ -38,7 +45,7 @@ interface Taken {
  * regla 1). Una fila que llega acá con todos sus intentos gastados no terminó ninguno, porque un fallo
  * anotado la habría dejado en dead letter: va a dead letter sin volver a correr.
  */
-async function take(now: Date): Promise<Taken | null> {
+async function take(dueBy: Date, clock: Clock): Promise<Taken | null> {
   return getDb().transaction(async (tx) => {
     const [row] = await tx
       .select()
@@ -47,7 +54,7 @@ async function take(now: Date): Promise<Taken | null> {
         and(
           isNull(outbox.processedAt),
           isNull(outbox.deadLetterAt),
-          lte(outbox.nextAttemptAt, now),
+          lte(outbox.nextAttemptAt, dueBy),
         ),
       )
       .orderBy(asc(outbox.nextAttemptAt), asc(outbox.createdAt))
@@ -56,20 +63,24 @@ async function take(now: Date): Promise<Taken | null> {
     if (!row) {
       return null;
     }
+    const takenAt = clock();
     if (isDeadAfter(row.attempts)) {
       const lastError = row.lastError
         ? `${UNFINISHED}. Último error: ${row.lastError}`
         : UNFINISHED;
       await tx
         .update(outbox)
-        .set({ deadLetterAt: now, lastError: lastError.slice(0, 2_000) })
+        .set({ deadLetterAt: takenAt, lastError: lastError.slice(0, 2_000) })
         .where(eq(outbox.id, row.id));
       return { row, attempt: row.attempts, exhausted: true };
     }
     const attempt = row.attempts + 1;
     await tx
       .update(outbox)
-      .set({ attempts: attempt, nextAttemptAt: new Date(now.getTime() + backoffFor(attempt)) })
+      .set({
+        attempts: attempt,
+        nextAttemptAt: new Date(takenAt.getTime() + backoffFor(attempt)),
+      })
       .where(eq(outbox.id, row.id));
     return { row, attempt, exhausted: false };
   });
@@ -79,9 +90,17 @@ async function take(now: Date): Promise<Taken | null> {
  * `handlerTimeoutMs` es el último recurso de ADR-079 y cubre todos los handlers del evento: pasado ese
  * tiempo el intento se registra como fallido y la cola sigue. El handler abandonado termina solo,
  * acotado por los límites de red y de base.
+ *
+ * `dueBy` es hasta qué instante una fila cuenta como vencida: un lote pasa el de su arranque, para que
+ * lo que encolen sus handlers espere al lote siguiente. La espera de un fallo no sale de ahí: se cuenta
+ * desde el reloj del fallo (ADR-118 regla 2).
  */
-export async function processOne(now = new Date(), handlerTimeoutMs = 0): Promise<ProcessOutcome> {
-  const taken = await take(now);
+export async function processOne(
+  clock: Clock = systemClock,
+  handlerTimeoutMs = 0,
+  dueBy: Date = clock(),
+): Promise<ProcessOutcome> {
+  const taken = await take(dueBy, clock);
   if (!taken) {
     return "idle";
   }
@@ -130,7 +149,7 @@ export async function processOne(now = new Date(), handlerTimeoutMs = 0): Promis
       await withTimeout(runHandlers(), handlerTimeoutMs, `El evento ${row.eventType}`);
       await tx
         .update(outbox)
-        .set({ processedAt: now, lastError: null })
+        .set({ processedAt: clock(), lastError: null })
         .where(eq(outbox.id, row.id));
       log.debug("procesado");
       return "processed";
@@ -138,12 +157,14 @@ export async function processOne(now = new Date(), handlerTimeoutMs = 0): Promis
       abandoned = true;
       const message = error instanceof Error ? error.message : String(error);
       const dead = isDeadAfter(attempt);
+      // El handler pudo tardar hasta su límite: la espera corre desde ahora, no desde la toma.
+      const failedAt = clock();
       await tx
         .update(outbox)
         .set({
           lastError: message.slice(0, 2_000),
-          nextAttemptAt: new Date(now.getTime() + backoffFor(attempt)),
-          ...(dead ? { deadLetterAt: now } : {}),
+          nextAttemptAt: new Date(failedAt.getTime() + backoffFor(attempt)),
+          ...(dead ? { deadLetterAt: failedAt } : {}),
         })
         .where(eq(outbox.id, row.id));
       log.warn({ err: error, deadLetter: dead }, "falló");
@@ -157,15 +178,16 @@ export interface DrainResult {
   failed: number;
 }
 
-/** Procesa hasta `batchSize` filas listas. */
+/** Procesa hasta `batchSize` filas que ya estaban vencidas cuando arrancó el lote. */
 export async function drain(
   batchSize: number,
-  now = new Date(),
+  clock: Clock = systemClock,
   handlerTimeoutMs = 0,
 ): Promise<DrainResult> {
   const result: DrainResult = { processed: 0, failed: 0 };
+  const dueBy = clock();
   for (let i = 0; i < batchSize; i += 1) {
-    const outcome = await processOne(now, handlerTimeoutMs);
+    const outcome = await processOne(clock, handlerTimeoutMs, dueBy);
     if (outcome === "idle") {
       break;
     }
@@ -194,7 +216,7 @@ export function startPoller(options: PollerOptions): Poller {
       return;
     }
     try {
-      const result = await drain(options.batchSize, new Date(), options.handlerTimeoutMs);
+      const result = await drain(options.batchSize, systemClock, options.handlerTimeoutMs);
       if (result.processed + result.failed > 0) {
         logger.info(result, "outbox drenado");
       }

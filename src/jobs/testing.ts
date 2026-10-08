@@ -37,9 +37,11 @@ export async function drainOutbox(options: DrainOutboxOptions = {}): Promise<Dra
   const total: DrainResult = { processed: 0, failed: 0 };
   let resting = false;
   for (let round = 0; round < MAX_ROUNDS && !resting; round += 1) {
-    // Reloj fresco en cada ronda: lo que encola un handler nace después del reloj de la ronda que lo
-    // produjo, así que esa ronda no lo ve. Un fallo queda con backoff y tampoco se repite.
-    const result = await drain(BATCH_SIZE, options.now ?? new Date());
+    // Reloj fresco en cada ronda y quieto mientras dura: lo que encola un handler nace después del
+    // reloj de la ronda que lo produjo, así que esa ronda no lo ve. Un fallo queda con backoff y tampoco
+    // se repite.
+    const now = options.now ?? new Date();
+    const result = await drain(BATCH_SIZE, () => now);
     total.processed += result.processed;
     total.failed += result.failed;
     resting = result.processed + result.failed === 0;

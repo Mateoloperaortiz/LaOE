@@ -13,6 +13,9 @@ import { truncateAll } from "./db";
 
 const db = () => getDb();
 
+/** Un reloj quieto en el instante dado: el poller recibe su reloj como función (ADR-118 regla 2). */
+const at = (instant: Date) => () => instant;
+
 describe("poller del outbox", () => {
   beforeEach(async () => {
     await truncateAll();
@@ -55,7 +58,7 @@ describe("poller del outbox", () => {
     });
     await enqueueEvent(db(), { type: "test.hang", payload: {} });
     const now = new Date();
-    expect(await processOne(now, 50)).toBe("failed");
+    expect(await processOne(at(now), 50)).toBe("failed");
     const [row] = await db().select().from(outbox);
     expect(row?.attempts).toBe(1);
     expect(row?.lastError).toBe("El evento test.hang superó 50 ms");
@@ -73,17 +76,17 @@ describe("poller del outbox", () => {
     });
     await enqueueEvent(db(), { type: "test.fail", payload: {} });
     const now = new Date();
-    expect(await processOne(now)).toBe("failed");
+    expect(await processOne(at(now))).toBe("failed");
     let [row] = await db().select().from(outbox);
     expect(row?.attempts).toBe(1);
     expect(row?.lastError).toBe("no hoy");
     expect(row?.deadLetterAt).toBeNull();
     expect((row?.nextAttemptAt.getTime() ?? 0) - now.getTime()).toBe(60_000);
-    expect(await processOne(now)).toBe("idle"); // todavía no toca
+    expect(await processOne(at(now))).toBe("idle"); // todavía no toca
 
     for (let i = 0; i < 4; i += 1) {
       const later = new Date(now.getTime() + 24 * 60 * 60_000 * (i + 1));
-      expect(await processOne(later)).toBe("failed");
+      expect(await processOne(at(later))).toBe("failed");
     }
     [row] = await db().select().from(outbox);
     expect(row?.attempts).toBe(5);
@@ -100,6 +103,58 @@ describe("poller del outbox", () => {
       .from(auditLog)
       .where(eq(auditLog.action, "outbox.retried"));
     expect(audits?.n).toBe(1);
+  });
+
+  describe("la espera del reintento", () => {
+    const START = new Date("2026-10-08T15:00:00Z");
+    const TEN_MINUTES = 600_000;
+    const event = (type: string, msBefore = 0) =>
+      enqueueEvent(db(), { type, payload: {} }, new Date(START.getTime() - msBefore));
+
+    it("se cuenta desde el fallo, no desde que se tomó el evento", async () => {
+      // El reloj avanza mientras corre el handler: lo que tarda en vencer su límite (ADR-079).
+      let current = START;
+      registerHandler("test.fail", async () => {
+        current = new Date(START.getTime() + TEN_MINUTES);
+        throw new Error("no hoy");
+      });
+      await event("test.fail");
+      expect(await processOne(() => current)).toBe("failed");
+      const [row] = await db().select().from(outbox);
+      expect((row?.nextAttemptAt.getTime() ?? 0) - START.getTime()).toBe(TEN_MINUTES + 60_000);
+      // El tick que sigue al fallo todavía no lo encuentra.
+      expect(await processOne(() => current)).toBe("idle");
+    });
+
+    it("en un lote, el que falla detrás de uno lento espera su minuto, y lo que encola un handler espera al lote siguiente", async () => {
+      let current = START;
+      let chained = 0;
+      registerHandler("test.slow", async () => {
+        current = new Date(START.getTime() + TEN_MINUTES);
+        await enqueueEvent(db(), { type: "test.chained", payload: {} }, current);
+      });
+      registerHandler("test.fail", async () => {
+        throw new Error("no hoy");
+      });
+      registerHandler("test.chained", async () => {
+        chained += 1;
+      });
+      await event("test.slow", 2);
+      await event("test.fail", 1);
+
+      expect(await drain(50, () => current)).toEqual({ processed: 1, failed: 1 });
+      const rows = await db().select().from(outbox);
+      const byType = new Map(rows.map((row) => [row.eventType, row]));
+      expect(byType.get("test.slow")?.processedAt?.getTime()).toBe(START.getTime() + TEN_MINUTES);
+      expect((byType.get("test.fail")?.nextAttemptAt.getTime() ?? 0) - START.getTime()).toBe(
+        TEN_MINUTES + 60_000,
+      );
+      expect(chained).toBe(0);
+
+      // El lote siguiente arranca donde terminó este: corre lo encadenado y no reintenta el fallo.
+      expect(await drain(50, () => current)).toEqual({ processed: 1, failed: 0 });
+      expect(chained).toBe(1);
+    });
   });
 
   // Conducta de hoy, fijada sin elegir: la decisión abierta 40 pregunta si esto debe ser un fallo.
@@ -161,14 +216,14 @@ describe("poller del outbox", () => {
       });
       await emit();
       const now = new Date();
-      expect(await processOne(now)).toBe("failed");
+      expect(await processOne(at(now))).toBe("failed");
       await emit();
       const rows = await db().select().from(outbox);
       expect(rows).toHaveLength(1);
       expect(rows[0]?.dedupeKey).toBe(KEY);
 
       fail = false;
-      expect(await processOne(new Date(now.getTime() + 60_000))).toBe("processed");
+      expect(await processOne(at(new Date(now.getTime() + 60_000)))).toBe("processed");
       expect(runs).toBe(2);
     });
   });
@@ -191,10 +246,10 @@ describe("poller del outbox", () => {
     it("no lo toma otro poller, tampoco con el reloj adelantado", async () => {
       const held = await holdInHandler("test.held");
       const tomorrow = new Date(Date.now() + 24 * 60 * 60_000);
-      expect(await processOne(tomorrow)).toBe("idle");
+      expect(await processOne(at(tomorrow))).toBe("idle");
       held.release();
       expect(await held.running).toBe("processed");
-      expect(await processOne(tomorrow)).toBe("idle");
+      expect(await processOne(at(tomorrow))).toBe("idle");
     });
 
     it("tiene el intento contado desde que se toma y queda fuera del alcance de un poller de la versión anterior", async () => {
@@ -260,25 +315,25 @@ describe("poller del outbox", () => {
       });
       await enqueueEvent(db(), { type: "test.crash", payload: {} });
       const start = new Date();
-      await expect(processOne(start)).rejects.toThrow();
+      await expect(processOne(at(start))).rejects.toThrow();
       let [row] = await db().select().from(outbox);
       expect(row?.attempts).toBe(1);
       expect(row?.processedAt).toBeNull();
       expect(row?.deadLetterAt).toBeNull();
       // Espera lo mismo que un intento fallido: el arranque siguiente no lo encuentra de primero.
       expect((row?.nextAttemptAt.getTime() ?? 0) - start.getTime()).toBe(60_000);
-      expect(await processOne(start)).toBe("idle");
+      expect(await processOne(at(start))).toBe("idle");
       expect(runs).toBe(1);
 
       for (let i = 1; i < 5; i += 1) {
-        await expect(processOne(new Date(start.getTime() + DAY * i))).rejects.toThrow();
+        await expect(processOne(at(new Date(start.getTime() + DAY * i)))).rejects.toThrow();
       }
       [row] = await db().select().from(outbox);
       expect(row?.attempts).toBe(5);
       expect(row?.deadLetterAt).toBeNull();
       expect(runs).toBe(5);
 
-      expect(await processOne(new Date(start.getTime() + DAY * 5))).toBe("failed");
+      expect(await processOne(at(new Date(start.getTime() + DAY * 5)))).toBe("failed");
       [row] = await db().select().from(outbox);
       expect(row?.deadLetterAt).toBeInstanceOf(Date);
       expect(row?.attempts).toBe(5);
