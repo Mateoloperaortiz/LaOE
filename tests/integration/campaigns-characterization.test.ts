@@ -1997,6 +1997,52 @@ describe("una campaña en curso que se quedó sin pendientes (ADR-116 regla 16)"
       sentCount: 1,
     });
   });
+
+  // El cierre del reclamo corre con la fila de la campaña tomada (ADR-115 regla 3): varios ticks a la vez
+  // la visitan uno después del otro. Lo dejó la revisión de #170 como sonda; acá queda fijo.
+  it("seis ticks a la vez sobre la que se quedó sin pendientes la cierran sin mandar nada, y un tick posterior no la vuelve a cerrar", async () => {
+    await seedRoster(2);
+    const id = await scheduleCampaign(1);
+    expect(await runCampaignTick(minute(0))).toEqual({ started: 1, sent: 1 });
+    expect(await dropPending(id)).toHaveLength(1);
+
+    const ticks = await Promise.all(Array.from({ length: 6 }, () => runCampaignTick(minute(1))));
+
+    expect(ticks).toEqual(Array.from({ length: 6 }, () => ({ started: 0, sent: 0 })));
+    const closed = {
+      status: "SENT",
+      finishedAt: minute(1),
+      sentCount: 1,
+      failedCount: 0,
+      skippedCount: 0,
+    };
+    expect(await getCampaign(id)).toMatchObject(closed);
+    expect(await runCampaignTick(minute(9))).toEqual({ started: 0, sent: 0 });
+    expect(await getCampaign(id)).toMatchObject(closed);
+    expect(await recipientStatuses(id)).toEqual({ SENT: 1 });
+    expect(delivered.overflow).toHaveLength(1);
+  });
+
+  it("dos ticks a la vez con un pendiente: uno le manda, el otro no manda nada y la campaña queda cerrada con los dos enviados", async () => {
+    const roster = await seedRoster(2);
+    const id = await scheduleCampaign(1);
+    expect(await runCampaignTick(minute(0))).toEqual({ started: 1, sent: 1 });
+
+    const ticks = await Promise.all([runCampaignTick(minute(1)), runCampaignTick(minute(1))]);
+
+    expect(ticks.map((tick) => tick.started)).toEqual([0, 0]);
+    expect(ticks.map((tick) => tick.sent).sort()).toEqual([0, 1]);
+    // Cada destinatario recibió su correo una sola vez.
+    expect(addresses(delivered.overflow)).toEqual(emails(roster));
+    expect(await recipientStatuses(id)).toEqual({ SENT: 2 });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENT",
+      finishedAt: minute(1),
+      sentCount: 2,
+      failedCount: 0,
+      skippedCount: 0,
+    });
+  });
 });
 
 // La clave de idempotencia del proveedor (ADR-116 regla 18). El lote sigue entregando «al menos una
