@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { quotaCutUntil, readQuotaCut } from "@/modules/comms/domain/pure";
+import { quotaCutFor, quotaCutUntil, readQuotaCut } from "@/modules/comms/domain/pure";
 
 // DT-117 (ADR-116 regla 19): cuánto dura el corte de las campañas según la causa del rechazo, y cómo
 // se lee lo que quedó guardado en `campaigns.quotaExhaustedAt`.
@@ -20,8 +20,19 @@ describe("cuánto dura el corte por cuota", () => {
     ["cero es un minuto", 0, 1],
     ["una hora justa es una hora", 3_600_000, 60],
     ["tres horas se quedan en una", 3 * 3_600_000, 60],
+    ["una espera sin fin se queda en una", Number.POSITIVE_INFINITY, 60],
   ])("una ráfaga dura lo que pidió el proveedor, en minutos enteros y entre uno y sesenta: %s", (_case, retryAfterMs, minutes) => {
     expect(quotaCutUntil("BURST", NIGHT, ZONE, retryAfterMs)).toEqual(minutesAfter(NIGHT, minutes));
+  });
+
+  it.each([
+    ["no es un número", Number.NaN],
+    ["no llegó", undefined],
+    ["llegó como texto", "pronto"],
+  ])("una ráfaga con una espera que no se entiende corta quince minutos, como si el proveedor no la hubiera dicho: %s", (_case, retryAfterMs) => {
+    expect(quotaCutUntil("BURST", NIGHT, ZONE, retryAfterMs as never)).toEqual(
+      minutesAfter(NIGHT, 15),
+    );
   });
 
   it.each([
@@ -52,6 +63,24 @@ describe("cuánto dura el corte por cuota", () => {
     expect(quotaCutUntil("OTRA" as never, NIGHT, ZONE, null)).toEqual(
       new Date("2031-03-10T05:00:00.000Z"),
     );
+  });
+});
+
+describe("el corte que deja un rechazo", () => {
+  it("una causa que no se reconoce deja un corte por el cupo del día, hasta la medianoche siguiente de Colombia", () => {
+    // Con la espera de una ráfaga, que tampoco se sigue: lo que queda es un corte que se puede guardar.
+    expect(
+      quotaCutFor(
+        { provider: "resend", reason: "OTRA" as never, retryAfterMs: 90_000 },
+        NIGHT,
+        ZONE,
+      ),
+    ).toEqual({
+      provider: "resend",
+      reason: "DAILY",
+      at: NIGHT,
+      until: new Date("2031-03-10T05:00:00.000Z"),
+    });
   });
 });
 

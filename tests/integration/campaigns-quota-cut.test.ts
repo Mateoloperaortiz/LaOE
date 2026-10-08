@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -11,6 +11,7 @@ import {
   scheduleCampaignAs,
   setMailTransportsForTests,
 } from "@/modules/comms";
+import { campaignRecipient } from "@/modules/comms/schema";
 import { segment } from "@/modules/people/schema";
 import { getConfig, requireConfig, setConfig } from "@/modules/system";
 import { auditLog } from "@/modules/system/schema";
@@ -104,6 +105,21 @@ async function seedCampaign(size: number): Promise<{ id: string; people: string[
   });
   await scheduleCampaignAs(SYSTEM_ACTOR, id, NIGHT);
   return { id, people };
+}
+
+/** Destinatarios de la campaña que siguen pendientes y que ningún lote tiene reclamados. */
+async function unclaimedPending(campaignId: string): Promise<number> {
+  const rows = await getDb()
+    .select({ id: campaignRecipient.id })
+    .from(campaignRecipient)
+    .where(
+      and(
+        eq(campaignRecipient.campaignId, campaignId),
+        eq(campaignRecipient.status, "PENDING"),
+        isNull(campaignRecipient.claimedAt),
+      ),
+    );
+  return rows.length;
 }
 
 function configAudits() {
@@ -225,6 +241,31 @@ describe("el corte por cuota dura según su causa (ADR-116 regla 19)", () => {
     });
   });
 
+  it("una causa que no se reconoce queda guardada como la del cupo del día, y el lote suelta lo que tenía reclamado", async () => {
+    const { id } = await seedCampaign(4);
+    const provider = rejectSecondWith(
+      new QuotaExceededError("quota_exceeded: una cuota que nadie conoce", "OTRA" as never, 90_000),
+    );
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
+
+    // Lo que no se reconoce no llega a la configuración: queda un corte que se puede guardar y leer.
+    expect(await getConfig(KEY)).toEqual({
+      provider: "resend",
+      reason: "DAILY",
+      at: NIGHT.toISOString(),
+      until: MIDNIGHT.toISOString(),
+    });
+    expect(await unclaimedPending(id)).toBe(3);
+
+    expect(await runCampaignTick(after(15))).toEqual({ started: 0, sent: 0 });
+    expect(await runCampaignTick(BEFORE_MIDNIGHT)).toEqual({ started: 0, sent: 0 });
+    expect(provider.calls()).toBe(2);
+
+    expect(await runCampaignTick(MIDNIGHT)).toEqual({ started: 0, sent: 3 });
+    expect(await getCampaign(id)).toMatchObject({ status: "SENT", sentCount: 4, failedCount: 0 });
+  });
+
   it("el valor viejo del corte, una fecha sola, se sigue leyendo como el del cupo del día", async () => {
     const { id } = await seedCampaign(2);
     await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, KEY, NIGHT.toISOString()));
@@ -275,6 +316,56 @@ describe("el corte por cuota dura según su causa (ADR-116 regla 19)", () => {
       at: after(1).toISOString(),
       until: APRIL.toISOString(),
     });
+  });
+});
+
+describe("a quién detiene el corte por cuota (ADR-116 regla 19)", () => {
+  it("es del proveedor que rechazó: si las campañas pasan a otro transporte, el lote sale antes de que termine", async () => {
+    const { id } = await seedCampaign(4);
+    const resend = rejectSecondWith(
+      new QuotaExceededError("monthly_quota_exceeded: se acabó el cupo del mes", "MONTHLY"),
+    );
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
+    const cut = await getConfig(KEY);
+
+    // Mientras salgan por Resend, su corte las detiene.
+    expect(await runCampaignTick(after(1))).toEqual({ started: 0, sent: 0 });
+
+    // Aparece el desbordamiento, que es por donde sale una campaña cuando existe. Resend sigue de
+    // primario y aceptaría: si el lote le pregunta, la prueba lo ve.
+    const viaResend: MailMessage[] = [];
+    const viaSes: MailMessage[] = [];
+    setMailTransportsForTests({
+      primary: {
+        name: "resend",
+        async send(mail) {
+          viaResend.push(mail);
+          return { id: `resend_tarde_${viaResend.length}` };
+        },
+      },
+      overflow: {
+        name: "ses",
+        async send(mail) {
+          viaSes.push(mail);
+          return { id: `ses_${viaSes.length}` };
+        },
+      },
+    });
+
+    expect(await runCampaignTick(after(2))).toEqual({ started: 0, sent: 3 });
+
+    expect(viaSes).toHaveLength(3);
+    expect(viaResend).toEqual([]);
+    expect(resend.calls()).toBe(2);
+    expect(await getCampaign(id)).toMatchObject({ status: "SENT", sentCount: 4, failedCount: 0 });
+    // El corte de Resend sigue guardado como quedó, hasta abril: no era de quien envió.
+    expect(cut).toEqual({
+      provider: "resend",
+      reason: "MONTHLY",
+      at: NIGHT.toISOString(),
+      until: APRIL.toISOString(),
+    });
+    expect(await getConfig(KEY)).toEqual(cut);
   });
 });
 

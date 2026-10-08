@@ -246,6 +246,45 @@ describe("el cupo de correo que ve un ADMIN (ADR-116 regla 20)", () => {
     expect((await getCampaignQuotaStatus(after(6))).cut).toBeNull();
   });
 
+  it("no muestra el corte de otro proveedor, ni lo levanta: si las campañas pasan a otro transporte, el de Resend no es el suyo", async () => {
+    const [ana] = await seedPeople(2);
+    if (!ana) throw new Error("seed people");
+    await seedCampaign();
+    stubMail(
+      "resend",
+      rejecting(new QuotaExceededError("daily_quota_exceeded: se acabó el cupo de hoy", "DAILY")),
+    );
+    await runCampaignTick(NIGHT);
+    const stored = {
+      provider: "resend",
+      reason: "DAILY",
+      at: NIGHT.toISOString(),
+      until: MIDNIGHT.toISOString(),
+    };
+    expect((await getCampaignQuotaStatus(after(1))).cut).toMatchObject({ provider: "resend" });
+
+    stubMail("ses");
+
+    expect(await getCampaignQuotaStatus(after(1))).toEqual({
+      provider: "ses",
+      reserveSetting: null,
+      daily: null,
+      cut: null,
+    });
+    // Tampoco hay nada que levantar: el corte de Resend queda guardado como estaba.
+    expect(await liftCampaignQuotaCutAs({ personId: ana }, { by: "ADMIN" }, after(1))).toBe(false);
+    expect(await getConfig(CUT_KEY)).toEqual(stored);
+
+    // Y si vuelven a Resend antes de su final, las detiene otra vez.
+    stubMail("resend");
+    expect((await getCampaignQuotaStatus(after(2))).cut).toEqual({
+      provider: "resend",
+      reason: "DAILY",
+      at: NIGHT,
+      until: MIDNIGHT,
+    });
+  });
+
   it("lee la base y no la caché: ve lo que otro proceso acaba de escribir", async () => {
     await seedPeople(1);
     // Este proceso ya leyó las dos claves y las tiene en caché sin valor.
@@ -390,6 +429,24 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
 
     await seedSent(ana, "TRANSACTIONAL", DEFAULT_CEILING, MORNING);
     expect(await getCampaignBacklog(id, after(2))).toEqual({ pending: 3, hold: cut });
+  });
+
+  it("el corte de otro proveedor no detiene lo pendiente", async () => {
+    await seedPeople(3);
+    const id = await seedCampaign();
+    stubMail(
+      "resend",
+      rejecting(new QuotaExceededError("monthly_quota_exceeded: se acabó el mes", "MONTHLY")),
+    );
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 0 });
+    expect(await getCampaignBacklog(id, after(1))).toMatchObject({
+      pending: 3,
+      hold: { by: "CUT", provider: "resend" },
+    });
+
+    stubMail("ses");
+
+    expect(await getCampaignBacklog(id, after(1))).toEqual({ pending: 3, hold: null });
   });
 
   it("con un margen que cubre todo el cupo, espera a que lo bajen", async () => {

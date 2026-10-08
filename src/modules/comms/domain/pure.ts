@@ -77,7 +77,8 @@ function startOfNextMonthIn(timeZone: string, at: Date): Date {
  * Hasta cuándo ningún lote le pide nada al proveedor después de un rechazo por cuota. Una ráfaga corta
  * lo que el proveedor pidió esperar, en minutos enteros y entre uno y sesenta, o quince si no lo dijo;
  * el cupo del mes, hasta el primer día del mes siguiente; el del día, hasta la medianoche siguiente.
- * Una causa que no se reconoce corta como el cupo del día, que era lo que hacía todo rechazo.
+ * Una causa que no se reconoce corta como el cupo del día, que era lo que hacía todo rechazo. Una
+ * espera que no es un número vale como no dicha: de ella no sale una fecha, y sin fecha no hay corte.
  */
 export function quotaCutUntil(
   reason: QuotaReason,
@@ -86,10 +87,12 @@ export function quotaCutUntil(
   retryAfterMs: number | null,
 ): Date {
   if (reason === "BURST") {
+    const requested =
+      typeof retryAfterMs === "number" && !Number.isNaN(retryAfterMs) ? retryAfterMs : null;
     const minutes =
-      retryAfterMs === null
+      requested === null
         ? BURST_CUT_DEFAULT_MINUTES
-        : Math.min(BURST_CUT_MAX_MINUTES, Math.max(1, Math.ceil(retryAfterMs / 60_000)));
+        : Math.min(BURST_CUT_MAX_MINUTES, Math.max(1, Math.ceil(requested / 60_000)));
     return new Date(at.getTime() + minutes * 60_000);
   }
   return reason === "MONTHLY" ? startOfNextMonthIn(timeZone, at) : startOfNextDayIn(timeZone, at);
