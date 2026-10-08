@@ -10591,6 +10591,18 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3242": {
+    where: "Cupo de correo: volver al margen por defecto (botón)",
+    text: "Volver al margen por defecto",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3243": {
+    where: "Cupo de correo: el margen volvió al de por defecto",
+    text: "Listo, el margen vuelve a ser el de por defecto: un tercio del cupo del día.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

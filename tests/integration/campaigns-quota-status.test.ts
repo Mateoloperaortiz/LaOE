@@ -8,6 +8,7 @@ import {
   getCampaignBacklog,
   getCampaignQuotaStatus,
   liftCampaignQuotaCutAs,
+  resetTransactionalReserveAs,
   runCampaignTick,
   scheduleCampaignAs,
   setMailTransportsForTests,
@@ -329,6 +330,51 @@ describe("cambiar el margen para lo transaccional (ADR-116 regla 20)", () => {
     expect(await reserveAudits()).toEqual([
       { actorId: ana, ip: "203.0.113.7", before: null, after: 40 },
     ]);
+  });
+
+  it("volver al margen por defecto quita el fijado: rige otra vez un tercio del cupo y queda en la auditoría", async () => {
+    const [ana] = await seedPeople(1);
+    if (!ana) throw new Error("seed people");
+    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, 40);
+
+    expect(
+      await resetTransactionalReserveAs({ personId: ana, ip: "203.0.113.7" }, { by: "ADMIN" }),
+    ).toBe(true);
+
+    expect(await getConfig(RESERVE_KEY)).toBeNull();
+    const reserve = Math.ceil(DAILY_LIMIT / 3);
+    expect(await getCampaignQuotaStatus(NIGHT)).toMatchObject({
+      reserveSetting: null,
+      daily: { reserve, ceiling: DAILY_LIMIT - reserve },
+    });
+    expect(await reserveAudits()).toHaveLength(2);
+    expect(await reserveAudits()).toContainEqual({
+      actorId: ana,
+      ip: "203.0.113.7",
+      before: 40,
+      after: null,
+    });
+
+    // Sin margen fijado no hay nada que quitar, y no deja otra fila en la auditoría.
+    expect(await resetTransactionalReserveAs({ personId: ana }, { by: "ADMIN" })).toBe(false);
+    expect(await reserveAudits()).toHaveLength(2);
+  });
+
+  it.each([
+    ["sin alcance", undefined],
+    ["con el alcance de un comité", { by: "COMMITTEE" }],
+    ["con un alcance que no se reconoce", { by: "admin" }],
+  ])("%s no vuelve al margen por defecto", async (_case, scope) => {
+    const [ana] = await seedPeople(1);
+    if (!ana) throw new Error("seed people");
+    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, 40);
+
+    await expect(resetTransactionalReserveAs({ personId: ana }, scope as never)).rejects.toThrow(
+      t("T-032"),
+    );
+
+    expect(await getConfig(RESERVE_KEY)).toBe(40);
+    expect(await reserveAudits()).toHaveLength(1);
   });
 
   it("el lote siguiente ya cuenta con el margen nuevo", async () => {

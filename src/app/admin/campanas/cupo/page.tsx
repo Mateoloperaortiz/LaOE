@@ -10,11 +10,11 @@ import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { BarraTitulo } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
-import { liftCutAction, saveReserveAction } from "./actions";
+import { liftCutAction, resetReserveAction, saveReserveAction } from "./actions";
 
 // El cupo de correo de las campañas (ADR-115 regla 5, ADR-116 reglas 19 y 20), solo ADMIN: por dónde
 // salen, el cupo del día, lo enviado hoy, el margen para lo transaccional y el corte vigente con su
-// causa. Dos acciones con auditoría: cambiar el margen y levantar el corte.
+// causa. Tres acciones con auditoría: cambiar el margen, volver al de por defecto y levantar el corte.
 
 const BASE = "/admin/campanas/cupo";
 
@@ -36,11 +36,13 @@ export default async function Page({ searchParams }: PageProps<"/admin/campanas/
   const aviso =
     guardado === "margen" && status.reserveSetting !== null
       ? t("T-3234", { n: status.reserveSetting })
-      : guardado === "corte"
-        ? t("T-3240")
-        : guardado === "sin-corte"
-          ? t("T-3241")
-          : "";
+      : guardado === "margen-defecto"
+        ? t("T-3243")
+        : guardado === "corte"
+          ? t("T-3240")
+          : guardado === "sin-corte"
+            ? t("T-3241")
+            : "";
   const datos: [string | undefined, string | number][] = daily
     ? [
         [dtProveedor, proveedor],
@@ -121,6 +123,15 @@ export default async function Page({ searchParams }: PageProps<"/admin/campanas/
             </AdminSubmitButton>
           </AdminFormBody>
         </form>
+        {status.reserveSetting !== null ? (
+          <form action={resetReserveAction} className="self-start">
+            <AdminFormBody>
+              <AdminSubmitButton type="submit" className="boton-secundario">
+                {t("T-3242")}
+              </AdminSubmitButton>
+            </AdminFormBody>
+          </form>
+        ) : null}
       </section>
 
       <section aria-labelledby="cupo-corte" className={cardClass}>

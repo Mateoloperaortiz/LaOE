@@ -2,7 +2,7 @@ import { and, count, eq, inArray, isNotNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { Actor } from "@/db/tx";
 import { getEnv } from "@/env";
-import { readConfigNow, reviseConfig, writeConfig } from "@/modules/system";
+import { readConfigNow, resetConfig, reviseConfig, writeConfig } from "@/modules/system";
 import type { QuotaReason } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -199,6 +199,19 @@ export async function setTransactionalReserveAs(
     throw new DomainError(t("T-3235"), "reserve");
   }
   await writeConfig(actor, RESERVE_KEY, value);
+}
+
+/**
+ * Quita el margen fijado y responde si había uno: vuelve a regir el de por defecto, un tercio del cupo
+ * del día, que sigue al cupo si cambia (ADR-116 regla 20). Con el mismo alcance y la misma auditoría que
+ * fijarlo: es la única manera de volver al valor por defecto sin escribir en la base a mano.
+ */
+export async function resetTransactionalReserveAs(
+  actor: Actor & { personId: string },
+  scope: QuotaScope,
+): Promise<boolean> {
+  assertQuotaScope(actor, scope);
+  return resetConfig(actor, RESERVE_KEY);
 }
 
 /**

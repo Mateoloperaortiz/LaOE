@@ -63,6 +63,7 @@ export {
   getCampaignQuotaStatus,
   liftCampaignQuotaCutAs,
   type QuotaScope,
+  resetTransactionalReserveAs,
   setTransactionalReserveAs,
 } from "./domain/quota";
 export {

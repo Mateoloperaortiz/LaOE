@@ -205,6 +205,38 @@ export async function writeConfig<K extends ConfigKey>(
   }
 }
 
+/** Las claves que no se siembran y cuyo valor por defecto lo pone el código cuando no hay fila. */
+export type ResettableConfigKey = "campaigns.transactionalReserve";
+
+/**
+ * Quita la fila de una clave que no se siembra, en su propio comando: vuelve a regir su valor por
+ * defecto (ADR-116 regla 20). Queda en la auditoría como un cambio más, con el valor que tenía y nada
+ * después. Sin fila no escribe y responde `false`. Suelta la caché igual que `writeConfig`.
+ */
+export async function resetConfig(actor: Actor, key: ResettableConfigKey): Promise<boolean> {
+  try {
+    return await runCommand(actor, async (ctx) => {
+      const [before] = await ctx.tx
+        .delete(appConfig)
+        .where(eq(appConfig.key, key))
+        .returning({ value: appConfig.value });
+      if (!before) {
+        return false;
+      }
+      await ctx.audit({
+        action: "config.updated",
+        entityType: "app_config",
+        entityId: key,
+        before: before.value,
+        after: null,
+      });
+      return true;
+    });
+  } finally {
+    cache.delete(key);
+  }
+}
+
 /**
  * Cambia una clave según el valor que tiene, en su propio comando (ADR-115 regla 6). Lo lee por la
  * conexión del comando y bajo un candado por clave, que dura lo que la transacción: dos cambios a la vez

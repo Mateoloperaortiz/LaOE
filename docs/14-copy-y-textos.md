@@ -1245,6 +1245,8 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-3239 | Cupo de correo: ayuda de levantar el corte | Levantalo solo si sabés que el proveedor ya está recibiendo: si vuelve a rechazar, el corte se escribe otra vez. | MATEO | Propuesta |
 | T-3240 | Cupo de correo: corte levantado | Corte levantado. El próximo lote vuelve a intentar. | MATEO | Propuesta |
 | T-3241 | Cupo de correo: no había corte que levantar | No había un corte vigente para levantar. | MATEO | Propuesta |
+| T-3242 | Cupo de correo: volver al margen por defecto (botón) | Volver al margen por defecto | MATEO | Propuesta |
+| T-3243 | Cupo de correo: el margen volvió al de por defecto | Listo, el margen vuelve a ser el de por defecto: un tercio del cupo del día. | MATEO | Propuesta |
 
 ### Mi OE · fase 8 (carnet en billeteras)
 

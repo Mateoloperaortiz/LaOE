@@ -15,6 +15,7 @@ export {
   readConfigNow,
   requireConfig,
   requireConfigIn,
+  resetConfig,
   reviseConfig,
   setConfig,
   setConfigAs,

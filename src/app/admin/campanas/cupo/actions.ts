@@ -6,11 +6,16 @@ import { redirect } from "next/navigation";
 import { actorContext } from "@/app/_lib/actor";
 import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
-import { liftCampaignQuotaCutAs, setTransactionalReserveAs } from "@/modules/comms";
+import {
+  liftCampaignQuotaCutAs,
+  resetTransactionalReserveAs,
+  setTransactionalReserveAs,
+} from "@/modules/comms";
 import { requireAdminActor } from "@/modules/identity";
 import { DomainError } from "@/shared/lib/errors";
 
-// El cupo de correo (ADR-116 reglas 19 y 20): cambiar el margen y levantar el corte, solo ADMIN. El
+// El cupo de correo (ADR-116 reglas 19 y 20): cambiar el margen, volver al de por defecto y levantar el
+// corte, solo ADMIN. El
 // guard de la action no es el único: cada comando exige además el alcance de ADMIN declarado.
 
 const BASE = "/admin/campanas/cupo";
@@ -34,6 +39,13 @@ export async function saveReserveAction(formData: FormData): Promise<void> {
   }
   revalidatePath(BASE);
   redirect(withQuery(BASE, { guardado: "margen" }));
+}
+
+export async function resetReserveAction(): Promise<void> {
+  const actor = await requireAdminActor(BASE);
+  await resetTransactionalReserveAs(await actorContext(actor), { by: "ADMIN" });
+  revalidatePath(BASE);
+  redirect(withQuery(BASE, { guardado: "margen-defecto" }));
 }
 
 export async function liftCutAction(): Promise<void> {
