@@ -115,6 +115,12 @@ describe("entradas que el migrador no va a aplicar (ADR-117)", () => {
     expect(lastAppliedMark(outOfOrder)).toBe(300);
     expect(findSkippedByMigrator([...journal, between], outOfOrder)).toEqual(["0004_intermedia"]);
   });
+
+  it("una fila que no es de ninguna entrada también fija la última marca: la base viene de otra rama", () => {
+    const fromOtherBranch = [...applied, row(200, "h-tardia"), row(500, "h-de-otra-rama")];
+    expect(lastAppliedMark(fromOtherBranch)).toBe(500);
+    expect(findSkippedByMigrator(journal, fromOtherBranch)).toEqual(["0003_nueva"]);
+  });
 });
 
 // La que falla en CI cuando una mezcla deja el diario desordenado: una entrada con una marca que no

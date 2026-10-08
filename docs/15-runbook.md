@@ -114,7 +114,7 @@ El error no dice por qué la marca quedó atrás, porque la guarda no lo puede s
 - **Una migración escrita a mano** (datos, `pg_trgm`), que no sale del esquema. Lo esperable es guardar su SQL antes de borrarla y recrearla con `npx drizzle-kit generate --custom --name <nombre>`.
 - **El paso 3 en staging o en producción.** Con este procedimiento no se desplegó todavía ninguna migración regenerada.
 - **Una base local que ya había aplicado la versión vieja** de una migración regenerada. Lo esperable es rehacerla con `npm run db:reset`.
-- **El caso local con un cambio de rama de verdad.** Lo ensayado fue quitarle el registro a `0045` en la base local: `npm run db:migrate` salió con código 1 antes de migrar, nombrándola, y con el registro repuesto volvió a terminar bien. `npm run db:reset` no se corrió en ese ensayo.
+- **El caso local con un cambio de rama de verdad.** La decisión la cubre una prueba unitaria: una fila que no es de ninguna entrada del diario, con la mayor marca. En la base local lo ensayado fue quitarle el registro a `0045`: `npm run db:migrate` salió con código 1 antes de migrar, nombrándola, y con el registro repuesto volvió a terminar bien. `npm run db:reset` no se corrió en ese ensayo.
 
 No editar `drizzle.__drizzle_migrations` a mano para callar el error, ni cambiarle el `when` a una migración que ya corrió en algún entorno.
 
