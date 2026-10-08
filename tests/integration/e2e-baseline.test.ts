@@ -6,8 +6,9 @@ import { truncateAll } from "./db";
 
 // La restauración que aísla cada escenario E2E (ADR-052 reglas 3 y 4, ADR-116 regla 21, DT-111). Se
 // prueba acá, contra un esquema propio con lo que una tabla puede traer (serial, identidad, columna
-// calculada, TOAST, referencias circulares y en cascada), porque la base desechable de la E2E no
-// tiene ninguna secuencia y crear otra base forzaría un checkpoint en medio de la suite.
+// calculada, TOAST, referencias circulares y en cascada) y con secuencias que no son de ninguna
+// columna, porque la base desechable de la E2E no tiene ninguna secuencia y crear otra base forzaría
+// un checkpoint en medio de la suite.
 
 const PROBE: SnapshotSchemas = { source: "e2e_probe", baseline: "e2e_probe_baseline" };
 const HOUSE: SnapshotSchemas = { source: "public", baseline: "e2e_probe_public" };
@@ -37,19 +38,18 @@ async function contents(schema: string): Promise<Record<string, string[]>> {
   return result;
 }
 
-/** El valor que entregaría cada secuencia del esquema en su próximo `nextval`. */
-async function nextValues(schema: string): Promise<Record<string, string>> {
-  const { rows } = await client.query<{ name: string; increment: string }>(
-    "SELECT sequencename AS name, increment_by::text AS increment FROM pg_sequences WHERE schemaname = $1 ORDER BY 1",
+/** Dónde va cada secuencia del esquema: su último valor y si ya lo entregó. */
+async function sequenceStates(schema: string): Promise<Record<string, string>> {
+  const { rows } = await client.query<{ name: string }>(
+    "SELECT sequencename AS name FROM pg_sequences WHERE schemaname = $1 ORDER BY 1",
     [schema],
   );
   const result: Record<string, string> = {};
-  for (const { name, increment } of rows) {
-    const state = await client.query<{ next: string }>(
-      `SELECT (CASE WHEN is_called THEN last_value + $1::bigint ELSE last_value END)::text AS next FROM "${schema}"."${name}"`,
-      [increment],
+  for (const { name } of rows) {
+    const state = await client.query<{ state: string }>(
+      `SELECT last_value || CASE WHEN is_called THEN ' entregado' ELSE ' por entregar' END AS state FROM "${schema}"."${name}"`,
     );
-    result[name] = state.rows[0]?.next ?? "";
+    result[name] = state.rows[0]?.state ?? "";
   }
   return result;
 }
@@ -70,46 +70,22 @@ async function fileNodes(schema: string): Promise<Record<string, string>> {
   return Object.fromEntries(rows.map(({ relation, filenode }) => [relation, filenode]));
 }
 
-/** La restauración de antes de DT-111, tal cual: el patrón contra el que se comparan las secuencias. */
-async function restoreByTruncating({ source, baseline }: SnapshotSchemas): Promise<void> {
-  const { rows } = await client.query<{ tablename: string }>(
-    "SELECT tablename FROM pg_tables WHERE schemaname = $1 ORDER BY tablename",
-    [baseline],
-  );
-  await client.query("BEGIN");
-  await client.query("SET LOCAL session_replication_role = replica");
-  await client.query(
-    `TRUNCATE ${rows.map(({ tablename }) => `"${source}"."${tablename}"`).join(", ")} RESTART IDENTITY CASCADE`,
-  );
-  for (const { tablename } of rows) {
-    const columns = await client.query<{ column_name: string }>(
-      "SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND is_generated = 'NEVER' ORDER BY ordinal_position",
-      [source, tablename],
-    );
-    const fields = columns.rows.map(({ column_name }) => `"${column_name}"`).join(", ");
-    await client.query(
-      `INSERT INTO "${source}"."${tablename}" (${fields}) OVERRIDING SYSTEM VALUE SELECT ${fields} FROM "${baseline}"."${tablename}"`,
-    );
-  }
-  await client.query("COMMIT");
-}
-
 /** Lo que una prueba le hace a la base: altas, cambios, bajas en cascada y secuencias que avanzan. */
 async function dirty(): Promise<void> {
   await client.query(`
     INSERT INTO e2e_probe.author (name) VALUES ('Tercera');
     INSERT INTO e2e_probe.shelf (label) VALUES ('nueva'), ('otra');
-    UPDATE e2e_probe.book SET title = title || ' (2.ª ed.)' WHERE author_id = 12;
-    UPDATE e2e_probe.author SET notes = repeat('y', 9000) WHERE id = 12;
-    UPDATE e2e_probe.author SET favorite_book = NULL WHERE id = 11;
-    DELETE FROM e2e_probe.author WHERE id = 11;
-    INSERT INTO e2e_probe.book (author_id, title) VALUES (12, 'Recién llegado');
-    SELECT nextval('e2e_probe.loose');
+    UPDATE e2e_probe.book SET title = title || ' (2.ª ed.)' WHERE author_id = 2;
+    UPDATE e2e_probe.author SET notes = repeat('y', 9000) WHERE id = 2;
+    UPDATE e2e_probe.author SET favorite_book = NULL WHERE id = 1;
+    DELETE FROM e2e_probe.author WHERE id = 1;
+    INSERT INTO e2e_probe.book (author_id, title) VALUES (2, 'Recién llegado');
+    SELECT nextval('e2e_probe.loose'), nextval('e2e_probe.countdown');
   `);
   // Un alta que falla también gasta un valor de la identidad.
   await expect(
-    client.query("INSERT INTO e2e_probe.book (author_id, title) VALUES (12, 'Recién llegado')"),
-  ).rejects.toThrow();
+    client.query("INSERT INTO e2e_probe.book (author_id, title) VALUES (2, 'Recién llegado')"),
+  ).rejects.toThrow("book_title_key");
 }
 
 beforeAll(async () => {
@@ -128,6 +104,7 @@ afterAll(async () => {
 
 describe("la restauración de la foto que aísla cada escenario E2E", () => {
   let seeded: Record<string, string[]>;
+  let photographed: Record<string, string>;
 
   beforeEach(async () => {
     await client.query(`
@@ -158,17 +135,18 @@ describe("la restauración de la foto que aísla cada escenario E2E", () => {
         label text
       );
       CREATE SEQUENCE e2e_probe.loose START WITH 7;
-      INSERT INTO e2e_probe.author (id, name, notes)
-        VALUES (11, 'Primera', repeat('x', 9000)), (12, 'Segundo', NULL);
-      INSERT INTO e2e_probe.book (id, author_id, title) OVERRIDING SYSTEM VALUE
-        VALUES (1000, 11, 'Uno'), (1001, 11, 'Dos'), (1002, 12, 'Tres');
-      UPDATE e2e_probe.author SET favorite_book = 1000 WHERE id = 11;
-      INSERT INTO e2e_probe."Préstamo Raro" VALUES ('a', 1000, NULL), ('b', 1002, 'a');
-      SELECT nextval('e2e_probe.author_id_seq'), nextval('e2e_probe.author_id_seq'),
-             nextval('e2e_probe.book_id_seq'), nextval('e2e_probe.loose');
+      CREATE SEQUENCE e2e_probe.countdown INCREMENT BY -1 MINVALUE -100 MAXVALUE -1;
+      -- Las llaves salen de su secuencia, como las de una fila sembrada: 1 y 2, y 100, 105 y 110.
+      INSERT INTO e2e_probe.author (name, notes)
+        VALUES ('Primera', repeat('x', 9000)), ('Segundo', NULL);
+      INSERT INTO e2e_probe.book (author_id, title) VALUES (1, 'Uno'), (1, 'Dos'), (2, 'Tres');
+      UPDATE e2e_probe.author SET favorite_book = 100 WHERE id = 1;
+      INSERT INTO e2e_probe."Préstamo Raro" VALUES ('a', 100, NULL), ('b', 110, 'a');
+      SELECT nextval('e2e_probe.loose'), setval('e2e_probe.countdown', -40, false);
     `);
     await saveSnapshot(client, PROBE);
     seeded = await contents(PROBE.source);
+    photographed = await sequenceStates(PROBE.source);
   });
 
   it("deja en cada tabla exactamente las filas de la foto", async () => {
@@ -186,24 +164,41 @@ describe("la restauración de la foto que aísla cada escenario E2E", () => {
     expect(restored.shelf).toEqual([]);
   });
 
-  it("deja cada secuencia con el siguiente valor que dejaba truncar con RESTART IDENTITY", async () => {
+  it("deja cada secuencia donde la tenía la foto, sea de una columna o no, y el alta siguiente no choca", async () => {
+    expect(photographed).toEqual({
+      author_id_seq: "2 entregado",
+      book_id_seq: "110 entregado",
+      countdown: "-40 por entregar",
+      loose: "7 entregado",
+      shelf_id_seq: "1 por entregar",
+    });
     await dirty();
-    await restoreByTruncating(PROBE);
-    const before = await nextValues(PROBE.source);
-    // La de una columna vuelve a su inicio, no al valor que tenía al tomar la foto (2 y 100); la que
-    // no es de ninguna columna sigue donde iba.
-    expect(before).toEqual({
-      author_id_seq: "1",
-      book_id_seq: "100",
-      loose: "9",
-      shelf_id_seq: "1",
+    expect(await sequenceStates(PROBE.source)).toEqual({
+      author_id_seq: "3 entregado",
+      book_id_seq: "120 entregado",
+      countdown: "-40 entregado",
+      loose: "8 entregado",
+      shelf_id_seq: "2 entregado",
     });
 
-    await dirty();
     await restoreSnapshot(client, PROBE);
 
-    expect(await nextValues(PROBE.source)).toEqual({ ...before, loose: "10" });
-    expect(await contents(PROBE.source)).toEqual(seeded);
+    expect(await sequenceStates(PROBE.source)).toEqual(photographed);
+    // Cada alta sigue de donde iba la foto: no pide una llave que ya tiene una fila restaurada.
+    const author = await client.query<{ id: number }>(
+      "INSERT INTO e2e_probe.author (name) VALUES ('Siguiente') RETURNING id",
+    );
+    const book = await client.query<{ id: number }>(
+      "INSERT INTO e2e_probe.book (author_id, title) VALUES (2, 'Siguiente') RETURNING id",
+    );
+    const shelf = await client.query<{ id: string }>(
+      "INSERT INTO e2e_probe.shelf (label) VALUES ('siguiente') RETURNING id",
+    );
+    const loose = await client.query<{ loose: string; countdown: string }>(
+      "SELECT nextval('e2e_probe.loose') AS loose, nextval('e2e_probe.countdown') AS countdown",
+    );
+    expect([author.rows[0]?.id, book.rows[0]?.id, shelf.rows[0]?.id]).toEqual([3, 115, "1"]);
+    expect(loose.rows[0]).toEqual({ loose: "8", countdown: "-40" });
   });
 
   it("no le crea un archivo nuevo a ninguna tabla, índice, TOAST ni secuencia", async () => {
@@ -223,10 +218,7 @@ describe("la restauración de la foto que aísla cada escenario E2E", () => {
     }
 
     expect(await contents(PROBE.source)).toEqual(seeded);
-    expect(await nextValues(PROBE.source)).toMatchObject({
-      author_id_seq: "1",
-      book_id_seq: "100",
-    });
+    expect(await sequenceStates(PROBE.source)).toEqual(photographed);
   });
 
   it("espera a la transacción que todavía escribe y no deja su fila", async () => {
@@ -236,15 +228,29 @@ describe("la restauración de la foto que aísla cada escenario E2E", () => {
       ?.pid;
 
     const restoring = restoreSnapshot(client, PROBE);
-    // Sin reloj: se pregunta hasta que la restauración esté esperando el candado de la tabla.
-    for (;;) {
-      const waiting = await other.query(
-        "SELECT 1 FROM pg_locks WHERE pid = $1 AND NOT granted AND locktype = 'relation'",
-        [pid],
-      );
-      if (waiting.rowCount === 1) break;
+    const ended = restoring.then(
+      () => "ended" as const,
+      () => "ended" as const,
+    );
+    // Sin reloj: se pregunta hasta que la restauración esté esperando el candado de la tabla. Si
+    // termina antes, no lo esperó; el tope de preguntas no deja un bucle huérfano si se traba en otra
+    // parte, y la transacción que escribe se cierra pase lo que pase.
+    let state: "running" | "waiting" | "ended" = "running";
+    try {
+      for (let asked = 0; state === "running" && asked < 5_000; asked += 1) {
+        const waiting = other
+          .query(
+            "SELECT 1 FROM pg_locks WHERE pid = $1 AND NOT granted AND locktype = 'relation'",
+            [pid],
+          )
+          .then(({ rowCount }) => (rowCount === 1 ? ("waiting" as const) : ("running" as const)));
+        state = await Promise.race([ended, waiting]);
+        await waiting;
+      }
+      expect(state).toBe("waiting");
+    } finally {
+      await other.query("COMMIT");
     }
-    await other.query("COMMIT");
     await restoring;
 
     expect(await contents(PROBE.source)).toEqual(seeded);
@@ -259,6 +265,46 @@ describe("la restauración de la foto que aísla cada escenario E2E", () => {
       "Falta la preparación autenticada E2E",
     );
     expect(await contents(PROBE.source)).toEqual(changed);
+  });
+
+  it("no restaura nada si la foto guarda una tabla que ya no existe", async () => {
+    await dirty();
+    await client.query('DROP TABLE e2e_probe."Préstamo Raro"');
+    const changed = await contents(PROBE.source);
+    const moved = await sequenceStates(PROBE.source);
+
+    await expect(restoreSnapshot(client, PROBE)).rejects.toThrow(
+      "La foto E2E guarda una tabla que ya no existe: Préstamo Raro",
+    );
+    expect(await contents(PROBE.source)).toEqual(changed);
+    expect(await sequenceStates(PROBE.source)).toEqual(moved);
+  });
+
+  it("no restaura nada si la foto guarda una secuencia que ya no existe", async () => {
+    await dirty();
+    await client.query("DROP SEQUENCE e2e_probe.loose");
+    const changed = await contents(PROBE.source);
+    const moved = await sequenceStates(PROBE.source);
+
+    await expect(restoreSnapshot(client, PROBE)).rejects.toThrow(
+      "La foto E2E guarda una secuencia que ya no existe: loose",
+    );
+    expect(await contents(PROBE.source)).toEqual(changed);
+    expect(await sequenceStates(PROBE.source)).toEqual(moved);
+  });
+
+  it("no mueve ninguna fila ni ninguna secuencia si falla a la mitad", async () => {
+    await dirty();
+    // Una foto dañada: la llave repetida tumba el llenado de la segunda tabla.
+    await client.query(
+      "INSERT INTO e2e_probe_baseline.book SELECT * FROM e2e_probe_baseline.book WHERE id = 100",
+    );
+    const changed = await contents(PROBE.source);
+    const moved = await sequenceStates(PROBE.source);
+
+    await expect(restoreSnapshot(client, PROBE)).rejects.toThrow("book_pkey");
+    expect(await contents(PROBE.source)).toEqual(changed);
+    expect(await sequenceStates(PROBE.source)).toEqual(moved);
   });
 
   it("restaura las tablas de la casa con lo que traen las migraciones", async () => {

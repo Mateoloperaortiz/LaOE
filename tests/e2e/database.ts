@@ -21,7 +21,12 @@ function identifier(value: string): string {
   return `"${value.replaceAll('"', '""')}"`;
 }
 
-/** Copia cada tabla de `source` a `baseline`, que se crea de nuevo. */
+/**
+ * Copia cada tabla de `source` a `baseline`, que se crea de nuevo, y el estado de cada secuencia.
+ *
+ * Una secuencia queda en la foto como otra secuencia del mismo nombre, con su `last_value` y su
+ * `is_called`: en un esquema una secuencia y una tabla no comparten nombre, así que no se cruzan.
+ */
 export async function saveSnapshot(
   client: Client,
   { source, baseline }: SnapshotSchemas,
@@ -38,6 +43,21 @@ export async function saveSnapshot(
       `CREATE TABLE ${identifier(baseline)}.${name} AS TABLE ${identifier(source)}.${name}`,
     );
   }
+  const sequences = await client.query<{ relname: string }>(
+    "SELECT relname FROM pg_class WHERE relnamespace = to_regnamespace($1) AND relkind = 'S' ORDER BY relname",
+    [source],
+  );
+  for (const { relname } of sequences.rows) {
+    const copy = `${identifier(baseline)}.${identifier(relname)}`;
+    // Con todo el rango de `bigint`: cabe el valor de cualquier secuencia, también una que baja.
+    await client.query(
+      `CREATE SEQUENCE ${copy} MINVALUE -9223372036854775808 MAXVALUE 9223372036854775807`,
+    );
+    await client.query(
+      `SELECT setval($1::regclass, last_value, is_called) FROM ${identifier(source)}.${identifier(relname)}`,
+      [copy],
+    );
+  }
 }
 
 /**
@@ -47,6 +67,9 @@ export async function saveSnapshot(
  * archivo nuevo a cada tabla, a su TOAST y a cada índice: 759 por restauración y unos 168.000 por
  * corrida. Cuando Postgres cierra el checkpoint que los recoge, la restauración siguiente no avanza
  * y el escenario agota su tiempo en la preparación. `DELETE` no crea ninguno.
+ *
+ * Cada secuencia vuelve a donde iba al tomar la foto, sea de una columna o no: `RESTART IDENTITY` la
+ * devolvía a su inicio, y la primera alta chocaba con una fila sembrada por esa secuencia.
  */
 export async function restoreSnapshot(
   client: Client,
@@ -71,6 +94,20 @@ export async function restoreSnapshot(
     const copy = `${identifier(baseline)}.${identifier(tablename)}`;
     return `DELETE FROM ${tables[index]}; INSERT INTO ${tables[index]} (${fields}) OVERRIDING SYSTEM VALUE SELECT ${fields} FROM ${copy};`;
   });
+  const sequences = await client.query<{ relname: string; target: number | null }>(
+    `SELECT b.relname, s.oid AS target
+       FROM pg_class b
+       LEFT JOIN pg_class s ON s.relnamespace = to_regnamespace($1) AND s.relname = b.relname
+                           AND s.relkind = 'S'
+      WHERE b.relnamespace = to_regnamespace($2) AND b.relkind = 'S'
+      ORDER BY b.relname`,
+    [source, baseline],
+  );
+  const rewind = sequences.rows.map(({ relname, target }) => {
+    if (target === null)
+      throw new Error(`La foto E2E guarda una secuencia que ya no existe: ${relname}`);
+    return `SELECT setval(${target}::regclass, last_value, is_called) FROM ${identifier(baseline)}.${identifier(relname)};`;
+  });
   await client.query("BEGIN");
   try {
     // El PostgreSQL local de pruebas usa un superusuario; nunca se cambia la sesión de la app.
@@ -78,18 +115,9 @@ export async function restoreSnapshot(
     // El candado que tomaba `TRUNCATE`: espera a quien todavía escribe, y su fila no sobrevive.
     await client.query(`LOCK TABLE ${tables.join(", ")} IN ACCESS EXCLUSIVE MODE`);
     await client.query(refill.join("\n"));
-    // Lo que hacía `RESTART IDENTITY`, sin el archivo nuevo de `ALTER SEQUENCE`: cada secuencia que
-    // es de una columna vuelve a su inicio. `setval` no se deshace con la transacción: va de último.
-    await client.query(
-      `SELECT setval(s.seqrelid::regclass, s.seqstart, false)
-         FROM pg_sequence s
-         JOIN pg_depend d ON d.classid = 'pg_class'::regclass AND d.objid = s.seqrelid
-                         AND d.refclassid = 'pg_class'::regclass AND d.refobjsubid > 0
-                         AND d.deptype IN ('a', 'i')
-         JOIN pg_class t ON t.oid = d.refobjid
-        WHERE t.relnamespace = to_regnamespace($1) AND t.relname = ANY($2::name[])`,
-      [source, rows.map(({ tablename }) => tablename)],
-    );
+    // `setval` no crea un archivo nuevo, como sí `ALTER SEQUENCE`, y no se deshace con la
+    // transacción: va de último, para que una restauración que falla no mueva ninguna secuencia.
+    if (rewind.length > 0) await client.query(rewind.join("\n"));
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
