@@ -427,7 +427,8 @@ export async function confirmAllProposedAs(actor: Actor, termId: string): Promis
 
 /**
  * Aplicar el cierre (ADMIN, step-up en la acción): recalcula afuera, y en una transacción toma el
- * candado de los recálculos del término, lo estampa, congela los snapshots con su estado final (ADR-116 regla 6), asegura el término siguiente
+ * candado de los recálculos del término, lo estampa, congela los snapshots con su estado final
+ * (ADR-116 regla 6), asegura el término siguiente
  * y encola el job de decisiones.
  */
 export async function closeTermPermanenceAs(
