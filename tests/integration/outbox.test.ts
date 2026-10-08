@@ -5,8 +5,9 @@ import { enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { drain, processOne } from "@/jobs/poller";
 import { getHandlers, registerHandler, resetHandlersForTests } from "@/jobs/registry";
 import { enqueueScheduled } from "@/jobs/scheduler";
-import { retryDeadLetter } from "@/modules/system/domain/outbox";
+import { listOutbox, retryDeadLetter } from "@/modules/system/domain/outbox";
 import { auditLog, outbox } from "@/modules/system/schema";
+import { deferred } from "../helpers/locks";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
@@ -100,12 +101,16 @@ describe("poller del outbox", () => {
     expect(audits?.n).toBe(1);
   });
 
-  it("un evento de dominio sin suscriptores se da por procesado (ADR-034)", async () => {
+  // Conducta de hoy, fijada sin elegir: la decisión abierta 40 pregunta si esto debe ser un fallo.
+  it("un evento de dominio sin suscriptores se da por procesado, sin error ni dead letter (ADR-034, decisión abierta 40)", async () => {
     await enqueueEvent(db(), { type: "nadie.lo.atiende", payload: {} });
     expect(await processOne()).toBe("processed");
     const [row] = await db().select().from(outbox);
     expect(row?.processedAt).toBeInstanceOf(Date);
     expect(row?.lastError).toBeNull();
+    expect(row?.deadLetterAt).toBeNull();
+    expect(row?.attempts).toBe(1);
+    expect(await processOne()).toBe("idle");
   });
 
   it("varios handlers del mismo evento corren en orden antes de marcarlo procesado", async () => {
@@ -119,6 +124,87 @@ describe("poller del outbox", () => {
     await enqueueEvent(db(), { type: "dos.oyen", payload: {} });
     expect(await processOne()).toBe("processed");
     expect(order).toEqual(["primero", "segundo"]);
+  });
+
+  describe("clave de deduplicación", () => {
+    const KEY = "prueba:clave";
+    const emit = () => enqueueEvent(db(), { type: "test.key", payload: {}, dedupeKey: KEY });
+
+    it("dos emits con la misma clave todavía sin tomar dejan un solo evento; procesado, la clave admite otro", async () => {
+      let runs = 0;
+      registerHandler("test.key", async () => {
+        runs += 1;
+      });
+      await emit();
+      await emit();
+      expect(await db().select().from(outbox)).toHaveLength(1);
+      expect(await processOne()).toBe("processed");
+      expect(await processOne()).toBe("idle");
+      expect(runs).toBe(1);
+
+      await emit();
+      const rows = await db().select().from(outbox);
+      expect(rows).toHaveLength(2);
+      // La fila procesada conserva su clave: es lo que muestra /admin/sistema/jobs.
+      expect(rows.map((row) => row.dedupeKey)).toEqual([KEY, KEY]);
+    });
+
+    it("un evento que espera su reintento descarta el emit nuevo con su clave: el reintento corre después y lee fresco", async () => {
+      let fail = true;
+      let runs = 0;
+      registerHandler("test.key", async () => {
+        runs += 1;
+        if (fail) {
+          throw new Error("todavía no");
+        }
+      });
+      await emit();
+      const now = new Date();
+      expect(await processOne(now)).toBe("failed");
+      await emit();
+      const rows = await db().select().from(outbox);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.dedupeKey).toBe(KEY);
+
+      fail = false;
+      expect(await processOne(new Date(now.getTime() + 60_000))).toBe("processed");
+      expect(runs).toBe(2);
+    });
+  });
+
+  describe("un evento en curso", () => {
+    /** Deja `processOne` detenido adentro del handler hasta soltarlo. */
+    async function holdInHandler(type: string) {
+      const started = deferred<void>();
+      const gate = deferred<void>();
+      registerHandler(type, async () => {
+        started.resolve();
+        await gate.promise;
+      });
+      await enqueueEvent(db(), { type, payload: {} });
+      const running = processOne();
+      await started.promise;
+      return { running, release: () => gate.resolve() };
+    }
+
+    it("no lo toma otro poller, tampoco con el reloj adelantado", async () => {
+      const held = await holdInHandler("test.held");
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60_000);
+      expect(await processOne(tomorrow)).toBe("idle");
+      held.release();
+      expect(await held.running).toBe("processed");
+      expect(await processOne(tomorrow)).toBe("idle");
+    });
+
+    it("sigue en la lista de pendientes de /admin/sistema/jobs", async () => {
+      const held = await holdInHandler("test.held");
+      const pending = await listOutbox("pending");
+      expect(pending.map((row) => row.eventType)).toEqual(["test.held"]);
+      held.release();
+      expect(await held.running).toBe("processed");
+      expect(await listOutbox("pending")).toEqual([]);
+      expect((await listOutbox("done")).map((row) => row.eventType)).toEqual(["test.held"]);
+    });
   });
 
   it("el scheduler encola una sola vez por minuto aunque se dispare dos veces", async () => {
