@@ -13,6 +13,7 @@ import { Insignia } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";
 import { formatDate, formatDateTime } from "@/shared/lib/dates";
 import { addMemberAction, importAction, removeMemberAction, setEvaluatorsAction } from "./actions";
+import { altaNotice } from "./alta";
 
 // Detalle de un grupo de trabajo (ADR-036 regla 6): miembros por nombre o por CSV, evaluadores
 // (solo ADMIN) y el estado de cada evaluación. El líder del grupo lo opera sin ver correos.
@@ -54,9 +55,7 @@ export default async function GrupoPage({
   const error = single(search.error);
   const guardado = single(search.guardado) === "1";
   // Qué pasó con el alta a mano: entró, volvió después de haber salido o ya estaba.
-  const altaCodes = { entro: "T-3214", volvio: "T-3215", "ya-estaba": "T-3216" } as const;
-  const altaKey = single(search.alta);
-  const alta = altaKey in altaCodes ? t(altaCodes[altaKey as keyof typeof altaCodes]) : "";
+  const alta = altaNotice(single(search.alta));
   const candidates = q ? await searchMembersByName(q) : [];
   const [miembros, evaluadores, importar] = tList("T-747");
   const [agregar, quitar, guardarEvaluadores, cargar, confirmar] = tList("T-748");

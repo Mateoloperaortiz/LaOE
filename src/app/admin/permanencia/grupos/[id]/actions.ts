@@ -18,6 +18,7 @@ import {
 import type { ImportState } from "@/modules/permanence/components/ImportadorGrupo";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import type { AltaOutcome } from "./alta";
 
 // Operar un grupo (ADR-036 regla 6): el líder del grupo o ADMIN agrega y quita miembros e importa
 // desde CSV; los evaluadores los fija ADMIN.
@@ -41,7 +42,7 @@ export async function addMemberAction(formData: FormData): Promise<void> {
   const personId = idSchema.parse(formData.get("personId"));
   const { actor } = await requireGroupOperator(groupId, back(groupId));
   // La pantalla dice qué pasó con la persona: entró, volvió o ya estaba (ADR-116 regla 5).
-  let outcome: "entro" | "volvio" | "ya-estaba";
+  let outcome: AltaOutcome;
   try {
     const result = await addMembersAs(actor, groupId, [personId]);
     outcome = result.added === 0 ? "ya-estaba" : result.returned.length > 0 ? "volvio" : "entro";
