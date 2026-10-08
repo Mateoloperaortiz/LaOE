@@ -54,6 +54,9 @@ async function openTasks() {
 }
 
 const twoCommittees = t("T-2284", { nombre: "Tere Tres" });
+// Errores de quien programa, no copy: la comprobación falta o respondió algo que no se reconoce.
+const MISSING_CHECK = /exige la comprobación del grupo/;
+const NOT_A_REASON = /respondió algo que no es un motivo/;
 
 describe("una inscripción aceptada entra al grupo o quien acepta recibe el motivo", () => {
   beforeEach(truncateAll);
@@ -173,18 +176,45 @@ describe("una inscripción aceptada entra al grupo o quien acepta recibe el moti
   });
 
   it("sin la comprobación del grupo no se acepta a nadie", async () => {
-    const { termId, cml, personId } = await setup();
+    const { termId, cgh, cml, personId } = await setup();
     const callId = await seedCall(termId, cml, { selection: "MANUAL" });
     const entryId = await seedCallEntry(callId, personId, "APPLIED");
+    // Otra convocatoria, con cupo y sin inscripción suya: lo único que la frena es que falta la
+    // comprobación, no que ya esté inscrita.
+    const openCallId = await seedCall(termId, cgh, { selection: "FIRST_COME", capacity: 5 });
     const missing = {} as unknown as typeof admission;
 
     await expect(
       decideEntryAs(admin, callId, entryId, "ACCEPTED", undefined, missing),
-    ).rejects.toThrow();
+    ).rejects.toThrow(MISSING_CHECK);
     await expect(
-      applyToCallAs({ personId, ip: null }, callId, {}, { inGroup: false, ...missing }),
-    ).rejects.toThrow();
+      applyToCallAs({ personId, ip: null }, openCallId, {}, { inGroup: false, ...missing }),
+    ).rejects.toThrow(MISSING_CHECK);
 
     expect(await statusesOf(callId)).toEqual(["APPLIED"]);
+    expect(await statusesOf(openCallId)).toEqual([]);
+  });
+
+  it("una respuesta del grupo que no es un motivo ni «la admite» tampoco deja pasar", async () => {
+    const { termId, cgh, cml, personId } = await setup();
+    const callId = await seedCall(termId, cml, { selection: "MANUAL" });
+    const entryId = await seedCallEntry(callId, personId, "APPLIED");
+    const openCallId = await seedCall(termId, cgh, { selection: "FIRST_COME", capacity: 5 });
+
+    for (const answer of [undefined, "", "   ", true, false, 0, {}]) {
+      const broken = { joinBlocker: async () => answer } as unknown as typeof admission;
+
+      await expect(
+        decideEntryAs(admin, callId, entryId, "ACCEPTED", undefined, broken),
+      ).rejects.toThrow(NOT_A_REASON);
+      await expect(
+        applyToCallAs({ personId, ip: null }, openCallId, {}, { inGroup: false, ...broken }),
+      ).rejects.toThrow(NOT_A_REASON);
+    }
+
+    expect(await statusesOf(callId)).toEqual(["APPLIED"]);
+    expect(await statusesOf(openCallId)).toEqual([]);
+    await drainOutbox();
+    expect(await listGroupIdsOf(personId)).toEqual([]);
   });
 });
