@@ -55,6 +55,7 @@ export {
   getGroup,
   getGroupDetail,
   groupInputSchema,
+  groupJoinBlocker,
   listGroupIdsOf,
   listGroupOptions,
   listGroupRefs,

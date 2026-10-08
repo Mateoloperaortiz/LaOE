@@ -7,7 +7,7 @@ import {
   personAnonymized,
   personDeletionRequested,
 } from "@/domain-events/people";
-import { evaluationRecorded } from "@/domain-events/permanence";
+import { evaluationRecorded, groupAdmissionFailed } from "@/domain-events/permanence";
 import { onEvent, registerHandler } from "@/jobs/registry";
 import {
   APPOINTMENT_KINDS,
@@ -162,6 +162,28 @@ onEvent(committeeRemovalRequested, async (event, ctx) => {
     requestedById: event.actorId,
   });
   ctx.log.info({ personId: event.personId, ...opened }, "tarea de retiro de comité");
+});
+
+// Una inscripción aceptada que no pudo entrar a su grupo (ADR-116 regla 7): una tarea sin responsable
+// para GH con el vencimiento de las solicitudes, una por persona y convocatoria, con el motivo que dio
+// permanence. La inscripción no se toca: GH decide qué hacer con ella.
+onEvent(groupAdmissionFailed, async (event, ctx) => {
+  const people = await getPeopleByIds([event.personId]);
+  const opened = await openTaskForReasonAs(SYSTEM_ACTOR, {
+    reason: { type: "GROUP_ADMISSION_FAILED", personId: event.personId, callId: event.callId },
+    title: t("T-3217", {
+      nombre: people.get(event.personId)?.fullName?.trim() ?? "",
+      convocatoria: event.callTitle,
+      motivo: event.reason,
+    }),
+    assigneeId: null,
+    due: { businessDays: "requests.taskDays" },
+    requestedById: event.actorId,
+  });
+  ctx.log.info(
+    { personId: event.personId, callId: event.callId, ...opened },
+    "tarea de inscripción que no entró al grupo",
+  );
 });
 
 // La primera integración marca sola el paso del onboarding (ADR-031, ADR-034 regla 15).

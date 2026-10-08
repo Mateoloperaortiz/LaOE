@@ -177,7 +177,8 @@ export type TaskReason =
   | { type: "TERM_SUCCESSOR_MISSING"; termCode: string }
   | { type: "LEAVE_EXPIRED"; personId: string }
   | { type: "REQUEST"; requestId: string; personId: string }
-  | { type: "SPONSORSHIP_WON"; cardId: string; organizationId: string };
+  | { type: "SPONSORSHIP_WON"; cardId: string; organizationId: string }
+  | { type: "GROUP_ADMISSION_FAILED"; personId: string; callId: string };
 
 /** Las claves de la configuración que traen un plazo en días hábiles: un conjunto cerrado. */
 const DUE_CONFIG_KEYS = ["privacy.deletionDays", "requests.taskDays"] as const;
@@ -297,6 +298,16 @@ function reasonSpec(reason: TaskReason, title: string): ReasonSpec {
         organizationId: requireId(reason.type, reason.organizationId),
         cardId: reason.cardId,
       };
+    // Una inscripción aceptada que no entró a su grupo (ADR-116 regla 7): una por persona y convocatoria.
+    case "GROUP_ADMISSION_FAILED": {
+      const personId = requireId(reason.type, reason.personId);
+      return {
+        ...none,
+        key: `${reason.type}:person:${personId}:call:${requireId(reason.type, reason.callId)}`,
+        kind: "GENERAL",
+        personId,
+      };
+    }
     default:
       // Falla cerrado: un motivo que no está en el conjunto no abre nada.
       throw new ReasonTaskInputError(

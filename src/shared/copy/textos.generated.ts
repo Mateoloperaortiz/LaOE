@@ -10432,6 +10432,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3217": {
+    where: "Tarea de GH: inscripción aceptada que no entró al grupo, título (ADR-116)",
+    text: "La inscripción de {nombre} a «{convocatoria}» quedó aceptada, pero no entró al grupo: {motivo}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-322": {
     where: "Calendario público (ICS), nombre del calendario",
     text: "Eventos de la Organización Estudiantil EAFIT",

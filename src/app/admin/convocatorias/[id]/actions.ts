@@ -8,6 +8,7 @@ import { requireGroupOperator } from "@/app/_authz/group";
 import { formText } from "@/app/_lib/form";
 import { withQuery } from "@/app/_lib/search";
 import { decideEntryAs, getCall, setCallStatusAs } from "@/modules/crm";
+import { groupJoinBlocker } from "@/modules/permanence";
 import { DomainError } from "@/shared/lib/errors";
 
 // Detalle de una convocatoria (ADR-037 regla 10): el líder del grupo o ADMIN acepta, rechaza o promueve
@@ -35,7 +36,10 @@ export async function decideEntryAction(formData: FormData): Promise<void> {
   const status = formText(formData, "status") === "ACCEPTED" ? "ACCEPTED" : "REJECTED";
   const { actor } = await operator(callId);
   try {
-    await decideEntryAs(actor, callId, entryId, status, formText(formData, "note") || undefined);
+    // crm pregunta y permanence responde si el grupo admite a la persona (ADR-116 regla 7).
+    await decideEntryAs(actor, callId, entryId, status, formText(formData, "note") || undefined, {
+      joinBlocker: groupJoinBlocker,
+    });
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(back(callId, { error: error.message }));

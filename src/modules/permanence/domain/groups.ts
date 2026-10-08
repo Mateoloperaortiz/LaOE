@@ -2,7 +2,7 @@ import { and, asc, count, eq, ilike, inArray, isNull, ne, sql } from "drizzle-or
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { permanenceRecompute, workGroupMembershipChanged } from "@/domain-events/permanence";
 import {
@@ -249,6 +249,61 @@ export interface AddMembersContext {
   statuses: Map<string, { name: string; status: string }>;
 }
 
+/**
+ * Por qué una persona no puede entrar al grupo, o `null` si puede: solo activos (T-752) y, en un comité
+ * de trabajo, el tope por persona y término (T-2284). Es la misma comprobación para quien agrega y para
+ * quien pregunta antes de aceptar una inscripción (ADR-116 regla 7).
+ */
+async function joinBlocker(
+  exec: Executor,
+  group: WorkGroupRow,
+  personId: string,
+  person: { name: string; status: string } | undefined,
+): Promise<string | null> {
+  if (!person || person.status !== "ACTIVE") {
+    return t("T-752", { nombre: person?.name ?? personId });
+  }
+  // Nadie pertenece a más de dos comités de trabajo en un término (Est. art. 4 par. 3; ADR-060 regla 11).
+  if (group.kind === "WORK_COMMITTEE") {
+    const [others] = await exec
+      .select({ n: count() })
+      .from(workGroupMembership)
+      .innerJoin(workGroup, eq(workGroup.id, workGroupMembership.groupId))
+      .where(
+        and(
+          eq(workGroupMembership.personId, personId),
+          isNull(workGroupMembership.leftAt),
+          eq(workGroup.termId, group.termId),
+          eq(workGroup.kind, "WORK_COMMITTEE"),
+          ne(workGroup.id, group.id),
+        ),
+      );
+    if ((others?.n ?? 0) >= MAX_WORK_COMMITTEES) {
+      return t("T-2284", { nombre: person.name });
+    }
+  }
+  return null;
+}
+
+/**
+ * Lo que responde permanence cuando crm pregunta, antes de aceptar una inscripción, si el grupo de la
+ * convocatoria admite a la persona (ADR-037 regla 10; ADR-116 regla 7): el motivo, o `null` si entra.
+ * Es una lectura: quien de verdad decide es `addMembers`, cuando corre el trabajo que la agrega.
+ */
+export async function groupJoinBlocker(groupId: string, personId: string): Promise<string | null> {
+  const group = await getGroup(groupId);
+  if (!group) {
+    return t("T-032");
+  }
+  const ref = (await listMembershipStatuses([personId])).get(personId);
+  return joinBlocker(
+    getDb(),
+    group,
+    personId,
+    ref ? { name: ref.fullName, status: ref.status } : undefined,
+  );
+}
+
 export interface AddMembersResult {
   /** Cuántas personas entraron: las nuevas y las que volvieron. */
   added: number;
@@ -291,32 +346,15 @@ export async function addMembers(
   };
   // En orden de id: dos altas con las mismas personas toman sus candados en el mismo orden.
   for (const personId of [...new Set(personIds)].sort()) {
-    const person = context.statuses.get(personId);
-    if (!person || person.status !== "ACTIVE") {
-      throw new DomainError(t("T-752", { nombre: person?.name ?? personId }));
-    }
-    // Nadie pertenece a más de dos comités de trabajo en un término (Est. art. 4 par. 3; ADR-060 regla 11).
+    // Contar y escribir bajo el mismo candado: dos altas a la vez de la misma persona se esperan.
     if (group.kind === "WORK_COMMITTEE") {
-      // Contar y escribir bajo el mismo candado: dos altas a la vez de la misma persona se esperan.
       await ctx.tx.execute(
         sql`select pg_advisory_xact_lock(hashtextextended(${`work-committees:${group.termId}:${personId}`}, 0))`,
       );
-      const [others] = await ctx.tx
-        .select({ n: count() })
-        .from(workGroupMembership)
-        .innerJoin(workGroup, eq(workGroup.id, workGroupMembership.groupId))
-        .where(
-          and(
-            eq(workGroupMembership.personId, personId),
-            isNull(workGroupMembership.leftAt),
-            eq(workGroup.termId, group.termId),
-            eq(workGroup.kind, "WORK_COMMITTEE"),
-            ne(workGroup.id, groupId),
-          ),
-        );
-      if ((others?.n ?? 0) >= MAX_WORK_COMMITTEES) {
-        throw new DomainError(t("T-2284", { nombre: person.name }));
-      }
+    }
+    const blocker = await joinBlocker(ctx.tx, group, personId, context.statuses.get(personId));
+    if (blocker) {
+      throw new DomainError(blocker);
     }
     const [row] = await ctx.tx
       .insert(workGroupMembership)

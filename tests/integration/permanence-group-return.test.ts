@@ -8,6 +8,7 @@ import {
   createGroupAs,
   evaluateAs,
   getGroupDetail,
+  groupJoinBlocker,
   listEvaluationTray,
   listGroupIdsOf,
   listGroups,
@@ -138,7 +139,9 @@ describe("volver a un grupo de trabajo", () => {
     const callId = await seedCall(termId, id, { selection: "MANUAL" });
     const entryId = await seedCallEntry(callId, persona, "APPLIED");
 
-    await decideEntryAs(admin, callId, entryId, "ACCEPTED");
+    await decideEntryAs(admin, callId, entryId, "ACCEPTED", undefined, {
+      joinBlocker: groupJoinBlocker,
+    });
     await drainOutbox();
 
     expect(await memberOf(id, persona)).toMatchObject({ leftAt: null });

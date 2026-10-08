@@ -1150,6 +1150,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1060 | Kanban: sin responsable | Sin responsable | MATEO | Propuesta |
 | T-1061 | Correo de solicitud: la decisión dentro de T-205 (aprobada · rechazada) | aprobó · no aprobó | GH | Propuesta |
 | T-1062 | Correo de solicitud: el motivo dentro de T-205 (solo al rechazar) | Motivo: {motivo}. | GH | Propuesta |
+| T-3217 | Tarea de GH: inscripción aceptada que no entró al grupo, título (ADR-116) | La inscripción de {nombre} a «{convocatoria}» quedó aceptada, pero no entró al grupo: {motivo} | MATEO | Propuesta |
 
 ### Admin de Comunicaciones (fase 6: push en la cartelera, plantillas, campañas, mensajes, encuesta en ocasiones, PWA)
 

@@ -311,9 +311,45 @@ export async function setCallStatus(
   }
 }
 
+/**
+ * Por qué el grupo de la convocatoria no admite a una persona, o `null` si la admite (solo activos, el
+ * tope de comités de trabajo). Lo sabe permanence y crm no lo importa, así que la capa de la app pasa su
+ * `groupJoinBlocker`, igual que compone `inGroup` (ADR-037 regla 10; ADR-116 regla 7).
+ */
+export type JoinBlocker = (groupId: string, personId: string) => Promise<string | null>;
+
 export interface ApplyContext {
   /** La persona ya está viva en el grupo (lo sabe permanence; lo compone la capa de la app). */
   inGroup: boolean;
+  /** Se le pregunta al grupo antes de dejar aceptada una inscripción por orden de llegada. */
+  joinBlocker: JoinBlocker;
+}
+
+export interface DecideEntryContext {
+  /** Se le pregunta al grupo antes de aceptar: si no admite a la persona, quien acepta recibe el motivo. */
+  joinBlocker: JoinBlocker;
+}
+
+/**
+ * Pregunta al grupo y falla cerrado: sin la comprobación no se acepta a nadie, y una respuesta que no
+ * es un motivo ni `null` tampoco deja pasar.
+ */
+async function askGroup(
+  context: { joinBlocker: JoinBlocker },
+  groupId: string,
+  personId: string,
+): Promise<string | null> {
+  if (typeof context?.joinBlocker !== "function") {
+    throw new Error("Aceptar una inscripción exige la comprobación del grupo (joinBlocker)");
+  }
+  const blocker = await context.joinBlocker(groupId, personId);
+  if (blocker === null) {
+    return null;
+  }
+  if (typeof blocker !== "string" || blocker.trim() === "") {
+    throw new Error("La comprobación del grupo respondió algo que no es un motivo");
+  }
+  return blocker;
 }
 
 export type ApplyResult = { status: CallEntryStatus; entryId: string };
@@ -362,6 +398,10 @@ export async function applyToCallAs(
   if (!who) {
     throw new DomainError(t("T-032"));
   }
+  // Se pregunta antes de abrir la transacción, como el resto de lo que valida la inscripción, y solo
+  // frena a quien quedaría aceptado de una vez: la lista de espera y la selección manual se comprueban
+  // al aceptar (ADR-116 regla 7).
+  const blocker = await askGroup(context, call.groupId, actor.personId);
   return runCommand(actor, async (ctx) => {
     const [locked] = await ctx.tx
       .select()
@@ -376,6 +416,9 @@ export async function applyToCallAs(
       .from(internalCallEntry)
       .where(and(eq(internalCallEntry.callId, callId), eq(internalCallEntry.status, "ACCEPTED")));
     const status = initialEntryStatus(locked.selection, locked.capacity, acceptedNow?.n ?? 0);
+    if (status === "ACCEPTED" && blocker) {
+      throw new DomainError(blocker);
+    }
     let submissionId: string | null = null;
     if (form) {
       const created = await createSubmission(ctx, {
@@ -430,7 +473,8 @@ export async function applyToCallAs(
 }
 
 /**
- * El líder del grupo o ADMIN acepta, rechaza o promueve desde la lista de espera; aceptar exige cupo.
+ * El líder del grupo o ADMIN acepta, rechaza o promueve desde la lista de espera; aceptar exige cupo y
+ * que el grupo admita a la persona: si no, quien acepta recibe el motivo (ADR-116 regla 7).
  * `callId` es la convocatoria que autorizó la página: una inscripción de otra responde T-032 (ADR-072).
  */
 export async function decideEntryAs(
@@ -438,8 +482,21 @@ export async function decideEntryAs(
   callId: string,
   entryId: string,
   status: "ACCEPTED" | "REJECTED",
-  note?: string,
+  note: string | undefined,
+  context: DecideEntryContext,
 ): Promise<void> {
+  // Se pregunta antes de abrir la transacción. La pertenencia la escribe después el trabajo de
+  // permanence, que vuelve a comprobar; acá se le responde a quien acepta. Una inscripción que no es de
+  // esta convocatoria no tiene a quién preguntar: el comando la rechaza con T-032.
+  const [target] = await getDb()
+    .select({ personId: internalCallEntry.personId, groupId: internalCall.groupId })
+    .from(internalCallEntry)
+    .innerJoin(internalCall, eq(internalCall.id, internalCallEntry.callId))
+    .where(and(eq(internalCallEntry.id, entryId), eq(internalCallEntry.callId, callId)));
+  const blocker =
+    status === "ACCEPTED" && target
+      ? await askGroup(context, target.groupId, target.personId)
+      : null;
   return runCommand(actor, async (ctx) => {
     const [entry] = await ctx.tx
       .select()
@@ -460,6 +517,9 @@ export async function decideEntryAs(
       return;
     }
     if (status === "ACCEPTED") {
+      if (blocker) {
+        throw new DomainError(blocker);
+      }
       const [acceptedNow] = await ctx.tx
         .select({ n: count() })
         .from(internalCallEntry)
