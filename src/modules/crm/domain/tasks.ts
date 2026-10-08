@@ -225,8 +225,8 @@ interface ReasonSpec {
   legacy: SQL | undefined;
 }
 
-/** Un sujeto vacío no identifica nada: falla cerrado, antes de tocar la base. */
-function subject(type: TaskReason["type"], value: string): string {
+/** Un id vacío no identifica nada: falla cerrado, antes de tocar la base. */
+function requireId(type: TaskReason["type"], value: string): string {
   if (typeof value !== "string" || value.trim() === "") {
     throw new ReasonTaskInputError(`Al motivo ${type} le falta su sujeto`);
   }
@@ -240,7 +240,7 @@ function reasonSpec(reason: TaskReason, title: string): ReasonSpec {
   const none = { personId: null, organizationId: null, cardId: null, legacy: undefined };
   switch (reason.type) {
     case "DELETION_REQUEST": {
-      const personId = subject(reason.type, reason.personId);
+      const personId = requireId(reason.type, reason.personId);
       return {
         ...none,
         key: `${reason.type}:person:${personId}`,
@@ -250,8 +250,8 @@ function reasonSpec(reason: TaskReason, title: string): ReasonSpec {
       };
     }
     case "COMMITTEE_REMOVAL": {
-      const personId = subject(reason.type, reason.personId);
-      const committeeId = subject(reason.type, reason.committeeId);
+      const personId = requireId(reason.type, reason.personId);
+      const committeeId = requireId(reason.type, reason.committeeId);
       return {
         ...none,
         key: `${reason.type}:person:${personId}:committee:${committeeId}`,
@@ -267,12 +267,12 @@ function reasonSpec(reason: TaskReason, title: string): ReasonSpec {
     case "TERM_SUCCESSOR_MISSING":
       return {
         ...none,
-        key: `${reason.type}:term:${subject(reason.type, reason.termCode)}`,
+        key: `${reason.type}:term:${requireId(reason.type, reason.termCode)}`,
         kind: "GENERAL",
         legacy: eq(task.title, title),
       };
     case "LEAVE_EXPIRED": {
-      const personId = subject(reason.type, reason.personId);
+      const personId = requireId(reason.type, reason.personId);
       return {
         ...none,
         key: `${reason.type}:person:${personId}`,
@@ -285,16 +285,16 @@ function reasonSpec(reason: TaskReason, title: string): ReasonSpec {
     case "REQUEST":
       return {
         ...none,
-        key: `${reason.type}:request:${subject(reason.type, reason.requestId)}`,
+        key: `${reason.type}:request:${requireId(reason.type, reason.requestId)}`,
         kind: "REQUEST",
-        personId: subject(reason.type, reason.personId),
+        personId: requireId(reason.type, reason.personId),
       };
     case "SPONSORSHIP_WON":
       return {
         ...none,
-        key: `${reason.type}:card:${subject(reason.type, reason.cardId)}`,
+        key: `${reason.type}:card:${requireId(reason.type, reason.cardId)}`,
         kind: "GENERAL",
-        organizationId: subject(reason.type, reason.organizationId),
+        organizationId: requireId(reason.type, reason.organizationId),
         cardId: reason.cardId,
       };
     default:
@@ -353,16 +353,18 @@ export async function openTaskForReason(
   await ctx.tx.execute(
     sql`select pg_advisory_xact_lock(hashtextextended(${`task:${spec.key}`}, 0))`,
   );
-  const open = (where: SQL | undefined) =>
+  const findOpen = (where: SQL | undefined) =>
     ctx.tx
       .select({ id: task.id })
       .from(task)
       .where(and(eq(task.status, "OPEN"), where))
       .orderBy(asc(task.createdAt), asc(task.id))
       .limit(1);
-  const [byReason] = await open(eq(task.reasonKey, spec.key));
-  const [existing] =
-    byReason || !spec.legacy ? [byReason] : await open(and(isNull(task.reasonKey), spec.legacy));
+  let [existing] = await findOpen(eq(task.reasonKey, spec.key));
+  if (!existing && spec.legacy) {
+    // Las tareas anteriores a la clave se reconocen con la regla vieja de su motivo (DT-123).
+    [existing] = await findOpen(and(isNull(task.reasonKey), spec.legacy));
+  }
   if (existing) {
     return { id: existing.id, created: false };
   }

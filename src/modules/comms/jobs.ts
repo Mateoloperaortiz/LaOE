@@ -156,7 +156,7 @@ function splitMail(
  * que es el mismo en cada reintento del evento, más el código del texto: con el registro de `message`
  * por persona y clave, el reintento que provoca otro handler encuentra el registro y no reenvía.
  */
-async function send(
+async function sendEventEmail(
   ctx: JobContext,
   personId: string,
   to: string,
@@ -179,7 +179,7 @@ async function send(
 }
 
 onEvent(personAdmitted, async ({ personId, email, firstName, committees }, ctx) => {
-  const receipt = await send(ctx, personId, email, "T-200", {
+  const receipt = await sendEventEmail(ctx, personId, email, "T-200", {
     nombre: firstName || t("T-1056"),
     url: `${getEnv().APP_URL}/ingresar`,
     comités: committees.join(", "),
@@ -199,7 +199,7 @@ onEvent(requestDecided, async (payload, ctx) => {
     return;
   }
   const [aprobó, noAprobó] = tList("T-1061");
-  const receipt = await send(ctx, personId, email, "T-205", {
+  const receipt = await sendEventEmail(ctx, personId, email, "T-205", {
     nombre: firstName || t("T-1056"),
     tipo: kindLabel,
     decisión: status === "APPROVED" ? aprobó : noAprobó,
