@@ -2,8 +2,8 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-08
-- Relacionadas: ADR-006, ADR-007, ADR-022, ADR-030, ADR-034, ADR-035, ADR-036, ADR-037, ADR-060, ADR-065, ADR-067, ADR-109, ADR-110, ADR-111, ADR-114, ADR-115
-- Enmienda: ADR-035 (reglas 5 y 6: toda transición de una asistencia que ya existe toma su fila, y el lote no reaprueba un rechazo), ADR-036 (regla 6: quien fue retirado de un grupo de trabajo puede volver, a quien salió no se le evalúa y la entrada por convocatoria se comprueba al aceptar; regla 9: el cierre congela el estado final) , ADR-037 (regla 10: aceptar una inscripción le pregunta antes al grupo, y el trabajo que agrega no deja morir el evento) y ADR-030 (regla 4: anonimizar borra las fotos propias de la persona con todos sus objetos)
+- Relacionadas: ADR-006, ADR-007, ADR-022, ADR-030, ADR-034, ADR-035, ADR-036, ADR-037, ADR-060, ADR-065, ADR-067, ADR-084, ADR-109, ADR-110, ADR-111, ADR-114, ADR-115
+- Enmienda: ADR-035 (reglas 5 y 6: toda transición de una asistencia que ya existe toma su fila, y el lote no reaprueba un rechazo), ADR-036 (regla 6: quien fue retirado de un grupo de trabajo puede volver, a quien salió no se le evalúa y la entrada por convocatoria se comprueba al aceptar; regla 9: el cierre congela el estado final) , ADR-037 (regla 10: aceptar una inscripción le pregunta antes al grupo, y el trabajo que agrega no deja morir el evento), ADR-030 (regla 4: anonimizar borra las fotos propias de la persona con todos sus objetos) y ADR-115 (regla 8: lo que un evento le avisa a una persona no sale si ya fue anonimizada)
 
 ## Contexto
 
@@ -34,6 +34,12 @@ La fila decía además que la excusa no toma el candado de puntos del término y
 **Una inscripción aceptada que no entraba al grupo (DT-154).** Según [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md) regla 10, cada cambio de una inscripción emite `call-entry.changed` y `permanence` agrega al grupo a quien quedó aceptado. Ese trabajo llama `addMembersAs`, que rechaza a quien no está activo (T-752) y a quien ya está en dos comités de trabajo (T-2284). Nadie lo comprobaba al aceptar: la inscripción validaba que la persona estuviera activa y que no estuviera ya en el grupo, y la decisión del líder, solo el cupo. Reproducido con pruebas: el líder aceptaba a alguien con dos comités de trabajo, o una convocatoria por orden de llegada lo dejaba aceptado de una vez; la inscripción quedaba `ACCEPTED` y el trabajo fallaba en cada intento (1 min, 5 min, 30 min, 2 h, 12 h) hasta que el evento moría en dead letter. La persona se veía aceptada, nunca entraba al grupo y el único rastro estaba en `/admin/sistema/jobs`.
 
 **La foto que sobrevivía a la eliminación (DT-134).** [ADR-030](ADR-030-perfil-de-egresado.md) regla 4 dice que quien pide la eliminación de sus datos queda «sin foto ni contacto», y [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) regla 7 que `anonymizePerson` deja a la persona sin foto. Lo único que pasaba era que `person.photoAssetId` quedaba en nulo. La fila de `media_asset` seguía `READY`, con el id de la persona en `uploadedById` y en su clave `photos/<personId>/…` y con el nombre del archivo; en el bucket seguían el original, con los metadatos del teléfono, y las variantes; y `/api/media/<id>` la entregaba a cualquier sesión que conservara el id. En todo `src` solo borraban objetos las evidencias de retos, los rechazos de una subida y la normativa. Reproducido con una prueba: después de anonimizar y drenar el outbox el medio seguía listo, sus tres objetos seguían en el bucket y la ruta respondía 302 a otro miembro.
+
+**El correo que salía después de anonimizar (DT-139).** `request.decided` y `person.admitted` llevan el correo y el nombre de la persona en su payload, y el handler de `comms` los usaba sin volver a leerla. Según [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) regla 8, el correo de un evento sale una sola vez porque deja un `message` por persona y clave; pero anonimizar borra los `message` de la persona, ese también. Reproducido con pruebas:
+
+- Con el evento en espera por el fallo de otro handler, anonimizar y adelantarle el reloj al poller mandaba la respuesta a la solicitud y la bienvenida por segunda vez, al correo real, y dejaba un `message` nuevo a nombre de una persona anonimizada, que nadie volvía a borrar.
+- Un evento que el poller todavía no había tomado cuando la persona se anonimizó mandaba el correo y el push por primera vez.
+- Con dos workers, la limpieza de la anonimización corría mientras el correo salía, y el registro que se escribía después se quedaba para siempre.
 
 ## Decisión
 
@@ -74,6 +80,11 @@ La fila decía además que la excusa no toma el candado de puntos del término y
    - En qué orden. Los handlers de un evento corren en el orden en que se registran (`src/jobs/handlers.ts`), y `content` se registra de último: si el bucket falla, lo que los demás módulos limpian al anonimizar (mensajes, respuestas de formularios, sesiones, motivos de excusa) ya quedó hecho y solo las fotos esperan.
    - Con `media.process` a la vez. Si la foto se está procesando mientras se borra, el proceso no encuentra fila donde anotar lo que escribió: comprueba que el medio ya no existe y borra sus variantes (`discardIfRemoved`, en `media-process.ts`). Un proceso que quedó en espera y se reintenta después no encuentra el medio y no hace nada.
    - Lo que no cambia. A la baja la foto se queda: ADR-030 regla 2 la conserva en el perfil de egresado si hay consentimiento, y qué pasa con la de quien sale sin él es la misma pregunta que revocar el consentimiento. Reemplazar, quitar y revocar tampoco borran nada. Todo eso es la decisión abierta 20; una prueba fija la conducta de hoy a la baja.
+9. **Lo que un evento le avisa a una persona no sale si ya fue anonimizada.**
+   - Qué cubre. La bienvenida (T-200), la respuesta a una solicitud (T-205) y el push que la acompaña (T-189): los avisos que el handler de `comms` arma con el correo y el nombre que viajan en `person.admitted` y `request.decided`. El payload no cambia: es contrato del catálogo ([ADR-084](ADR-084-catalogo-tipado-de-eventos-de-dominio.md)).
+   - Cómo. Antes de avisar, el handler vuelve a leer a la persona (`unlessAnonymized`, en `src/modules/comms/domain/events.ts`). Si ya fue anonimizada, o no existe, no envía ni registra nada y el evento termina bien. Vale igual para el primer intento de un evento que el poller no había tomado y para un reintento.
+   - Bajo candado. La lectura es `lockPersonAnonymization` ([ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 4): candado compartido de la fila de la persona, retenido mientras salen el correo y el push y se escriben sus registros. `anonymizePerson` toma esa fila `for update`, así que una anonimización que llegue con el aviso saliendo espera, y su `person.anonymized` encuentra el registro ya escrito y se lo lleva. En el orden de la regla 2 entra como el candado de la excusa: persona (compartido) y después lo que se escribe, que a la persona solo la referencia por clave foránea y no hace cola detrás de la anonimización que espera.
+   - Lo que no cambia. La dirección sigue siendo la del payload, y la clave por evento es la de ADR-115 regla 8.
 
 ## Consecuencias
 
@@ -98,3 +109,8 @@ La fila decía además que la excusa no toma el candado de puntos del término y
 - Sigue en el bucket lo que la persona subió con una firma y nunca confirmó: no tiene fila y el adaptador no lista por prefijo. Es DT-170.
 - Las fotos de quienes se anonimizaron antes de esta regla siguen donde estaban: borrarlas pide un trabajo de una sola vez que recorra a las personas con `anonymizedAt`. Es DT-171.
 - Las pruebas de la foto están en `tests/integration/media-photo-anonymization.test.ts` (lo que se borra y lo que no, el fallo del bucket con su reintento, el proceso en espera, el proceso a la vez y la baja) y en `tests/unit/media-pure.test.ts` (las claves de un medio).
+- Un aviso por evento retiene la fila de la persona mientras responde el proveedor de correo: quien la edite o la anonimice en ese instante espera lo que tarde el envío. Pasa solo con la bienvenida y con la respuesta a una solicitud.
+- Quien se anonimiza con una solicitud ya decidida y sin avisar no recibe la respuesta: es el «sin contacto» de ADR-030 regla 4.
+- El outbox sigue guardando el correo en el payload del evento hasta 30 días (DT-100, decisión abierta 10): esta regla impide que se use, no que esté.
+- El resultado de permanencia (T-202) ya cortaba al leer a la persona, pero sin el candado: con dos workers puede dejar el mismo registro. Es DT-172.
+- Las pruebas del aviso están en `tests/integration/comms-event-anonymized.test.ts`: el reintento de la respuesta y de la bienvenida, el evento sin tomar y la anonimización que llega con el correo saliendo, con dos drenados a la vez.

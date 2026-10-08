@@ -28,6 +28,7 @@ import {
   pushPointsCredited,
   pushRecognition,
   pushRequestDecided,
+  unlessAnonymized,
 } from "./domain/events";
 import { deleteMessagesFor } from "./domain/messages";
 import { deliverNotification } from "./domain/notify";
@@ -154,7 +155,8 @@ function splitMail(
 /**
  * El correo de un evento sale una sola vez (ADR-115 regla 8). Su clave es el id de la fila del outbox,
  * que es el mismo en cada reintento del evento, más el código del texto: con el registro de `message`
- * por persona y clave, el reintento que provoca otro handler encuentra el registro y no reenvía.
+ * por persona y clave, el reintento que provoca otro handler encuentra el registro y no reenvía. Quien
+ * lo llama lo envuelve en `unlessAnonymized`: ese registro se borra al anonimizar (ADR-116 regla 9).
  */
 async function sendEventEmail(
   ctx: JobContext,
@@ -179,11 +181,17 @@ async function sendEventEmail(
 }
 
 onEvent(personAdmitted, async ({ personId, email, firstName, committees }, ctx) => {
-  const receipt = await sendEventEmail(ctx, personId, email, "T-200", {
-    nombre: firstName || t("T-1056"),
-    url: `${getEnv().APP_URL}/ingresar`,
-    comités: committees.join(", "),
-  });
+  const receipt = await unlessAnonymized(personId, () =>
+    sendEventEmail(ctx, personId, email, "T-200", {
+      nombre: firstName || t("T-1056"),
+      url: `${getEnv().APP_URL}/ingresar`,
+      comités: committees.join(", "),
+    }),
+  );
+  if (!receipt) {
+    ctx.log.info({ personId }, "bienvenida sin enviar: la persona ya fue anonimizada");
+    return;
+  }
   ctx.log.info(
     { personId, status: receipt.status, provider: receipt.provider },
     "bienvenida enviada",
@@ -199,18 +207,28 @@ onEvent(requestDecided, async (payload, ctx) => {
     return;
   }
   const [aprobó, noAprobó] = tList("T-1061");
-  const receipt = await sendEventEmail(ctx, personId, email, "T-205", {
-    nombre: firstName || t("T-1056"),
-    tipo: kindLabel,
-    decisión: status === "APPROVED" ? aprobó : noAprobó,
-    motivo: reason ? ` ${t("T-1062", { motivo: reason })}` : "",
+  // El correo y el push T-189 (ADR-038 regla 7): transaccional, no depende de la preferencia. Ninguno
+  // se repite en un reintento (el bus registra el push con la clave de la solicitud), y ninguno sale
+  // si la persona ya fue anonimizada.
+  const delivered = await unlessAnonymized(personId, async () => {
+    const receipt = await sendEventEmail(ctx, personId, email, "T-205", {
+      nombre: firstName || t("T-1056"),
+      tipo: kindLabel,
+      decisión: status === "APPROVED" ? aprobó : noAprobó,
+      motivo: reason ? ` ${t("T-1062", { motivo: reason })}` : "",
+    });
+    return { receipt, stats: await pushRequestDecided(payload) };
   });
+  if (!delivered) {
+    ctx.log.info(
+      { personId },
+      "respuesta a la solicitud sin enviar: la persona ya fue anonimizada",
+    );
+    return;
+  }
   ctx.log.info(
-    { personId, status: receipt.status, provider: receipt.provider },
+    { personId, status: delivered.receipt.status, provider: delivered.receipt.provider },
     "respuesta a la solicitud enviada",
   );
-  // Y el push T-189 (ADR-038 regla 7): transaccional, no depende de la preferencia. Tampoco se repite
-  // en un reintento: el bus lo registra con la clave de la solicitud.
-  const stats = await pushRequestDecided(payload);
-  ctx.log.info(stats, "push de la solicitud entregado");
+  ctx.log.info(delivered.stats, "push de la solicitud entregado");
 });

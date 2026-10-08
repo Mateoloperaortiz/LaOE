@@ -1,3 +1,4 @@
+import { getDb } from "@/db/client";
 import type { announcementPushRequested } from "@/domain-events/content";
 import type { callOpened, recognitionGranted, requestDecided } from "@/domain-events/crm";
 import type { EventPayload } from "@/domain-events/define";
@@ -13,7 +14,12 @@ import type { permanenceDecided } from "@/domain-events/permanence";
 import { getEnv } from "@/env";
 import { markAnnouncementPushSent } from "@/modules/content";
 import { balanceFor } from "@/modules/participation";
-import { listActiveMemberRefs, listMailingRefs, listTermCommitteeMembers } from "@/modules/people";
+import {
+  listActiveMemberRefs,
+  listMailingRefs,
+  listTermCommitteeMembers,
+  lockPersonAnonymization,
+} from "@/modules/people";
 import { getTerm } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
@@ -155,6 +161,27 @@ export async function pushRecognition(
     payload.committeeSlug ? `/app/comites/${payload.committeeSlug}` : "/app/comites",
     `recognition:${payload.recognitionId}`,
   );
+}
+
+/**
+ * Lo que un evento le avisa a una persona sale solo si todavía no fue anonimizada (ADR-116 regla 9). El
+ * evento trae el correo que la persona tenía cuando ocurrió, y el poller lo puede procesar o reintentar
+ * después de anonimizarla, cuando el registro que evitaba el reenvío ya se borró. Aquí se la vuelve a
+ * leer y se la retiene con candado compartido mientras sale el aviso: una anonimización que llegue en
+ * ese momento espera, y su limpieza encuentra el registro ya escrito y se lo lleva. Si la persona ya
+ * fue anonimizada, o no existe, no corre `deliver` y responde `null`.
+ */
+export async function unlessAnonymized<Delivered>(
+  personId: string,
+  deliver: () => Promise<Delivered>,
+): Promise<Delivered | null> {
+  return getDb().transaction(async (tx) => {
+    const who = await lockPersonAnonymization(tx, personId);
+    if (!who || who.anonymized) {
+      return null;
+    }
+    return deliver();
+  });
 }
 
 /**
