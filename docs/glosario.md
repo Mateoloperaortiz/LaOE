@@ -115,6 +115,9 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Segmento | `Segment` | Filtro guardado que alimenta campañas, exportes y listas |
 | Anuncio | `Announcement` | Publicación de la cartelera, pública o de miembros, con push opcional |
 | Campaña | `Campaign` | Envío de una plantilla de correo a un segmento, en lotes por minuto, con la audiencia congelada al arrancar |
+| Cupo de correo | `CampaignQuotaStatus` | Cuántos correos de campaña caben hoy: el cupo diario del proveedor menos el margen para lo transaccional, lo enviado hoy y lo que un lote tiene reclamado. Se ve y se opera en `/admin/campanas/cupo` |
+| Margen para lo transaccional | `campaigns.transactionalReserve` (`reserve`) | Correos del cupo diario que una campaña no toca, para que el acceso y los avisos sigan saliendo; sin fijar es un tercio del cupo |
+| Corte por cuota | `QuotaCut` | Pausa de todas las campañas que deja un rechazo del proveedor por cuota, con su causa (ráfaga, día o mes) y hasta cuándo dura; lo levanta un ADMIN. Se guarda en la clave `campaigns.quotaExhaustedAt`, que conserva su nombre de antes ([ADR-116](adr/ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 19) |
 | Destinatario de campaña | `CampaignRecipient` | Cada persona de una campaña con su estado: pendiente, enviado, fallido u omitido (sin correo, baja, sin consentimiento, cancelada) |
 | Plantilla de correo | `EmailTemplate` | Asunto y cuerpo Markdown con variables por persona que alimenta las campañas |
 | Mensaje | `Message` | Registro de cada correo o push enviado a una persona, con su tipo (transaccional, anuncio, puntos, recordatorio, encuesta, campaña) |
