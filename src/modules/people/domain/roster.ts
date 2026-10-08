@@ -581,6 +581,32 @@ async function rosterLeaveUntil(
   };
 }
 
+/**
+ * La membresía que crea el roster, para una persona nueva o para una que existía sin ella. Si nace en
+ * licencia lleva su fecha de regreso, igual que la que pasa a licencia (ADR-060 regla 10): sin ella
+ * nunca vence ni abre la tarea de licencia vencida.
+ */
+async function insertRosterMembership(
+  ctx: CommandContext,
+  input: {
+    personId: string;
+    status: Parameters<typeof rosterLeaveUntil>[1];
+    entryTermId: string;
+    termId: string;
+  },
+): Promise<void> {
+  const { personId, status, entryTermId, termId } = input;
+  await ctx.tx.insert(membership).values({
+    personId,
+    status,
+    firstTermId: entryTermId,
+    ...(await rosterLeaveUntil(ctx, status, termId)),
+    ...(status === "INACTIVE"
+      ? { endedAt: new Date(), endReason: "OTHER" as const, lastTermId: termId }
+      : {}),
+  });
+}
+
 async function applyRow(
   ctx: CommandContext,
   row: PreviewRow,
@@ -629,17 +655,7 @@ async function applyRow(
       throw new Error("No se pudo crear la persona");
     }
     personId = created.id;
-    // Una membresía que nace en licencia lleva su fecha de regreso, igual que la que pasa a licencia
-    // (ADR-060 regla 10): sin ella nunca vence ni abre la tarea de licencia vencida.
-    await ctx.tx.insert(membership).values({
-      personId,
-      status,
-      firstTermId: entryTermId,
-      ...(await rosterLeaveUntil(ctx, status, termId)),
-      ...(status === "INACTIVE"
-        ? { endedAt: new Date(), endReason: "OTHER" as const, lastTermId: termId }
-        : {}),
-    });
+    await insertRosterMembership(ctx, { personId, status, entryTermId, termId });
     outcome = "created";
   } else {
     personId = existing.id;
@@ -661,15 +677,7 @@ async function applyRow(
       .where(eq(membership.personId, personId));
     if (!current) {
       const entryTermId = (row.entryTerm ? termsByCode.get(row.entryTerm) : undefined) ?? termId;
-      await ctx.tx.insert(membership).values({
-        personId,
-        status,
-        firstTermId: entryTermId,
-        ...(await rosterLeaveUntil(ctx, status, termId)),
-        ...(status === "INACTIVE"
-          ? { endedAt: new Date(), endReason: "OTHER" as const, lastTermId: termId }
-          : {}),
-      });
+      await insertRosterMembership(ctx, { personId, status, entryTermId, termId });
       await ctx.tx
         .update(person)
         .set({ stage: status === "INACTIVE" ? "ALUMNI" : "MEMBER" })

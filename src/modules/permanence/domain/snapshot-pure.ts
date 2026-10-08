@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { COMPUTATIONS, WORK_GROUP_KINDS } from "./params";
-import type { CommitteeResult, CriterionResult, MandatoryView } from "./permanence-pure";
+import type {
+  CommitteeResult,
+  CriterionResult,
+  MandatoryView,
+  SnapshotResults,
+} from "./permanence-pure";
 
 // Esquemas de los JSON del snapshot (03-modelo): se validan al leer con `.catch` para que una fila
 // vieja o dañada degrade a vacío en vez de romper la pantalla.
@@ -144,10 +149,7 @@ export function parseResults(raw: unknown): CommitteeResult[] {
  * Lo guardado en un snapshot para quien va a escribir encima (congelar): si no valida, lanza. Leer
  * degrada a vacío con `parseGeneral` y `parseResults`; guardar ese vacío borraría el resultado.
  */
-export function parseStoredResults(raw: { general: unknown; results: unknown }): {
-  general: CriterionResult[];
-  results: CommitteeResult[];
-} {
+export function parseStoredResults(raw: { general: unknown; results: unknown }): SnapshotResults {
   return {
     general: z.array(criterionSchema).parse(raw.general),
     results: z.array(committeeResultSchema).parse(raw.results),
