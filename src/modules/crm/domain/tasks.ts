@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { getPeopleByIds } from "@/modules/people";
-import { requireConfig } from "@/modules/system";
+import { requireConfigIn } from "@/modules/system";
 import { t } from "@/shared/copy";
 import { addBusinessDays, bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
@@ -12,7 +12,8 @@ import { organization, task } from "../schema";
 // Tareas (02-crm.md): pendiente con responsable y vencimiento sobre una persona; sin responsable la ven
 // todos los ADMIN. Hay dos entradas (ADR-115 regla 9): `createTask`, la que una persona crea a mano
 // desde una ficha, y `openTaskForReason`, la que abre el sistema por un motivo, una sola por motivo y
-// sujeto mientras siga abierta. Nadie más inserta en `task`.
+// sujeto mientras siga abierta. Fuera de esas dos, la aplicación no inserta en `task`; el seed de
+// demostración (`scripts/lib/seed-fase5.ts`) sí escribe las suyas, directo y sin clave.
 
 export const TASK_KINDS = [
   "GENERAL",
@@ -178,8 +179,26 @@ export type TaskReason =
   | { type: "REQUEST"; requestId: string; personId: string }
   | { type: "SPONSORSHIP_WON"; cardId: string; organizationId: string };
 
+/** Las claves de la configuración que traen un plazo en días hábiles: un conjunto cerrado. */
+const DUE_CONFIG_KEYS = ["privacy.deletionDays", "requests.taskDays"] as const;
+
 /** Un instante, o los días hábiles de una clave de la configuración contados desde ahora. */
-export type TaskDue = { at: Date } | { businessDays: "privacy.deletionDays" | "requests.taskDays" };
+export type TaskDue = { at: Date } | { businessDays: (typeof DUE_CONFIG_KEYS)[number] };
+
+/**
+ * Lo que la entrada no reconoce (un motivo fuera del conjunto o sin sujeto, un título vacío, un
+ * vencimiento que no es un instante ni una clave de plazo) lo rechaza con este error, antes de escribir.
+ */
+export class ReasonTaskInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ReasonTaskInputError";
+  }
+}
+
+function isInstant(value: unknown): value is Date {
+  return value instanceof Date && !Number.isNaN(value.getTime());
+}
 
 export interface ReasonTaskInput {
   reason: TaskReason;
@@ -209,12 +228,15 @@ interface ReasonSpec {
 /** Un sujeto vacío no identifica nada: falla cerrado, antes de tocar la base. */
 function subject(type: TaskReason["type"], value: string): string {
   if (typeof value !== "string" || value.trim() === "") {
-    throw new Error(`Al motivo ${type} le falta su sujeto`);
+    throw new ReasonTaskInputError(`Al motivo ${type} le falta su sujeto`);
   }
   return value;
 }
 
 function reasonSpec(reason: TaskReason, title: string): ReasonSpec {
+  if (typeof reason !== "object" || reason === null) {
+    throw new ReasonTaskInputError("A la tarea le falta su motivo");
+  }
   const none = { personId: null, organizationId: null, cardId: null, legacy: undefined };
   switch (reason.type) {
     case "DELETION_REQUEST": {
@@ -277,21 +299,40 @@ function reasonSpec(reason: TaskReason, title: string): ReasonSpec {
       };
     default:
       // Falla cerrado: un motivo que no está en el conjunto no abre nada.
-      throw new Error(
+      throw new ReasonTaskInputError(
         `Motivo de tarea desconocido: ${String((reason as { type?: unknown }).type)}`,
       );
   }
 }
 
-async function dueInstant(due: TaskDue | null, now: Date): Promise<Date | null> {
+/**
+ * El vencimiento como instante. El plazo en días hábiles se lee por la conexión del comando, no del
+ * pool: con la transacción abierta, una lectura por otra conexión deja a una ráfaga esperándose a sí misma.
+ */
+async function dueInstant(
+  ctx: CommandContext,
+  due: TaskDue | null,
+  now: Date,
+): Promise<Date | null> {
   if (due === null) {
     return null;
   }
-  const at = "at" in due ? due.at : addBusinessDays(now, await requireConfig(due.businessDays));
-  if (!(at instanceof Date) || Number.isNaN(at.getTime())) {
-    throw new Error("El vencimiento de la tarea no es un instante");
+  if (typeof due !== "object") {
+    throw new ReasonTaskInputError("El vencimiento de la tarea no se reconoce");
   }
-  return at;
+  if ("at" in due) {
+    if (!isInstant(due.at)) {
+      throw new ReasonTaskInputError("El vencimiento de la tarea no es un instante");
+    }
+    return due.at;
+  }
+  if (!DUE_CONFIG_KEYS.includes(due.businessDays)) {
+    throw new ReasonTaskInputError("El vencimiento de la tarea no se reconoce");
+  }
+  if (!isInstant(now)) {
+    throw new ReasonTaskInputError("El instante desde el que se cuenta el plazo no es un instante");
+  }
+  return addBusinessDays(now, await requireConfigIn(ctx, due.businessDays));
 }
 
 /**
@@ -304,8 +345,10 @@ export async function openTaskForReason(
   input: ReasonTaskInput,
 ): Promise<{ id: string; created: boolean }> {
   const spec = reasonSpec(input.reason, input.title);
-  // La configuración se lee por otra conexión: antes del candado, para no esperarla con él tomado.
-  const dueAt = await dueInstant(input.due, input.now ?? new Date());
+  if (typeof input.title !== "string" || input.title.trim() === "") {
+    throw new ReasonTaskInputError("A la tarea le falta su título");
+  }
+  const dueAt = await dueInstant(ctx, input.due, input.now ?? new Date());
   await ctx.tx.execute(
     sql`select pg_advisory_xact_lock(hashtextextended(${`task:${spec.key}`}, 0))`,
   );

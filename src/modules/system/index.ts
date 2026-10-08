@@ -13,6 +13,7 @@ export {
   type ConfigValue,
   getConfig,
   requireConfig,
+  requireConfigIn,
   setConfig,
   setConfigAs,
   writeConfig,

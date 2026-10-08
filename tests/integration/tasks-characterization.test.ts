@@ -13,10 +13,12 @@ import {
 } from "@/modules/crm";
 import { tasksResource } from "@/modules/crm/admin";
 import { openTaskForReasonAs } from "@/modules/crm/domain/commands";
+import { ReasonTaskInputError } from "@/modules/crm/domain/tasks";
 import { request, task } from "@/modules/crm/schema";
 import { requestCommitteeRemovalAs, requestDeletionAs } from "@/modules/people";
 import { membership } from "@/modules/people/schema";
 import { requireConfig } from "@/modules/system";
+import { clearConfigCache } from "@/modules/system/domain/config";
 import { auditLog } from "@/modules/system/schema";
 import { nextTermCode } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
@@ -44,6 +46,8 @@ import {
 const db = () => getDb();
 const director = { isAdmin: false, allCapabilities: false };
 const MINUTE = 60_000;
+/** Más comandos a la vez que conexiones tiene el pool, que son 10 (`src/db/client.ts`). */
+const BURST = 24;
 
 /** El vencimiento se calcula con el reloj del handler: se compara con un minuto de margen. */
 function near(actual: Date | null | undefined, expected: Date): boolean {
@@ -580,6 +584,48 @@ describe("abrir una tarea por motivo", () => {
     expect(await auditsOf(tasks[0]?.id ?? "")).toEqual([{ action: "task.created", actorId: null }]);
   });
 
+  it("más aperturas a la vez que conexiones tiene el pool, con la configuración sin leer, abren todas su tarea", async () => {
+    const people: string[] = [];
+    for (let index = 0; index < BURST; index += 1) {
+      people.push(await seedMember(`rafaga-${index}@eafit.edu.co`));
+    }
+    clearConfigCache();
+    const results = await Promise.allSettled(
+      people.map((personId) =>
+        openTaskForReasonAs(SYSTEM_ACTOR, {
+          ...leaveOf(personId),
+          due: { businessDays: "requests.taskDays" },
+        }),
+      ),
+    );
+
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(0);
+    expect(await openTasks()).toHaveLength(BURST);
+  });
+
+  it("más solicitudes a la vez que conexiones tiene el pool, con la configuración sin leer, quedan todas con su tarea", async () => {
+    const termId = await seedTerm();
+    const committeeId = await seedCommittee("a3", "A3");
+    const until = new Date(Date.now() + 60 * 24 * 60 * MINUTE).toISOString().slice(0, 10);
+    const actors: Array<{ personId: string; ip: null }> = [];
+    for (let index = 0; index < BURST; index += 1) {
+      const personId = await seedMember(`pide-${index}@eafit.edu.co`);
+      await seedCommitteeMembership(personId, committeeId, termId);
+      actors.push({ personId, ip: null });
+    }
+    clearConfigCache();
+    const results = await Promise.allSettled(
+      actors.map((actor) => createRequestAs(actor, "LEAVE", { reason: "Intercambio", until })),
+    );
+
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(0);
+    const requests = await db().select({ taskId: request.taskId }).from(request);
+    const tasks = await tasksOf(eq(task.kind, "REQUEST"));
+    expect(requests).toHaveLength(BURST);
+    expect(new Set(requests.map((row) => row.taskId))).toEqual(new Set(tasks.map((row) => row.id)));
+    expect(tasks.every((row) => row.dueAt !== null)).toBe(true);
+  });
+
   it("la misma persona con dos motivos tiene dos tareas, y dos personas con el mismo motivo también", async () => {
     const one = await seedMember("una@eafit.edu.co");
     const other = await seedMember("otra@eafit.edu.co");
@@ -615,15 +661,29 @@ describe("abrir una tarea por motivo", () => {
     expect(row?.dueAt).toEqual(addBusinessDays(now, days));
   });
 
-  it("un motivo que no está en el conjunto, uno sin sujeto y un vencimiento que no es un instante no abren nada", async () => {
+  it("lo que la entrada no reconoce (el motivo, su sujeto, un título vacío, el vencimiento) lo rechaza con su propio error y no abre nada", async () => {
     const personId = await seedMember("cerrado@eafit.edu.co");
     const open = (override: object) =>
       openTaskForReasonAs(SYSTEM_ACTOR, { ...leaveOf(personId), ...override } as never);
+    const days = { businessDays: "requests.taskDays" };
+    const malformed: Array<[string, object]> = [
+      ["un motivo fuera del conjunto", { reason: { type: "OTRO_MOTIVO", personId } }],
+      ["un motivo con el sujeto vacío", { reason: { type: "LEAVE_EXPIRED", personId: "" } }],
+      ["un motivo sin sujeto", { reason: { type: "LEAVE_EXPIRED" } }],
+      ["sin motivo", { reason: null }],
+      ["un título vacío", { title: "" }],
+      ["un título de espacios", { title: "   " }],
+      ["una fecha inválida", { due: { at: new Date("no es una fecha") } }],
+      ["una fecha como texto", { due: { at: "2026-03-06T15:00:00Z" } }],
+      ["una clave que no es de plazo", { due: { businessDays: "campaigns.perMinute" } }],
+      ["un vencimiento sin forma", { due: {} }],
+      ["sin vencimiento", { due: undefined }],
+      ["un plazo contado desde una fecha inválida", { due: days, now: new Date("tampoco") }],
+    ];
 
-    await expect(open({ reason: { type: "OTRO_MOTIVO", personId } })).rejects.toThrow();
-    await expect(open({ reason: { type: "LEAVE_EXPIRED", personId: "" } })).rejects.toThrow();
-    await expect(open({ reason: { type: "LEAVE_EXPIRED" } })).rejects.toThrow();
-    await expect(open({ due: { at: new Date("no es una fecha") } })).rejects.toThrow();
+    for (const [label, override] of malformed) {
+      await expect(open(override), label).rejects.toThrow(ReasonTaskInputError);
+    }
     expect(await openTasks()).toHaveLength(0);
     expect(await db().select().from(auditLog)).toHaveLength(0);
   });

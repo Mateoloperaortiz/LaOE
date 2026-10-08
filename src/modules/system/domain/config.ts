@@ -112,6 +112,27 @@ export async function requireConfig<K extends ConfigKey>(key: K): Promise<Config
   return value;
 }
 
+/**
+ * La lectura obligatoria desde un comando, por la conexión de su transacción (ADR-115 regla 9). Con la
+ * transacción abierta no se le pide otra conexión al pool: una ráfaga con más comandos que conexiones
+ * las tiene todas tomadas, cada comando espera una más y ninguno la suelta. No pasa por la caché, ni
+ * para leer ni para guardar: lo que ve una transacción puede no estar confirmado (ADR-113 regla 9).
+ */
+export async function requireConfigIn<K extends ConfigKey>(
+  ctx: CommandContext,
+  key: K,
+): Promise<ConfigValue<K>> {
+  const [row] = await ctx.tx
+    .select({ value: appConfig.value })
+    .from(appConfig)
+    .where(eq(appConfig.key, key));
+  const value = row === undefined ? null : (CONFIG[key].parse(row.value) as ConfigValue<K>);
+  if (value === null) {
+    throw new Error(`Falta la configuración ${key}`);
+  }
+  return value;
+}
+
 export async function setConfig<K extends ConfigKey>(
   ctx: CommandContext,
   key: K,
