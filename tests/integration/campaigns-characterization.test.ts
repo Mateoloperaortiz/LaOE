@@ -17,7 +17,12 @@ import {
   setMailTransportsForTests,
   updatePreferencesAs,
 } from "@/modules/comms";
-import { message, notificationPreference } from "@/modules/comms/schema";
+import {
+  campaign,
+  campaignRecipient,
+  message,
+  notificationPreference,
+} from "@/modules/comms/schema";
 import {
   anonymizePersonAs,
   endMembershipAs,
@@ -1854,6 +1859,141 @@ describe("antes de cada envío el lote vuelve a mirar a la persona (ADR-115 regl
       sentCount: 1,
       failedCount: 0,
       skippedCount: 1,
+    });
+  });
+});
+
+// DT-114: una campaña `SENDING` sin ningún `PENDING` no la cerraba ningún tick, porque solo recuenta
+// quien marca a un destinatario. No hay comando que la deje así, y por eso las pruebas escriben el
+// estado a mano: es lo que dejaba la carrera de DT-112 antes de ADR-115 regla 3, y lo que deja un
+// destinatario que desaparece con su persona (`campaign_recipient.person_id` es `ON DELETE CASCADE`).
+describe("una campaña en curso que se quedó sin pendientes (ADR-116 regla 16)", () => {
+  /** El pendiente desaparece sin que ningún lote lo marque, como si se borrara su persona. */
+  function dropPending(campaignId: string) {
+    return db()
+      .delete(campaignRecipient)
+      .where(
+        and(eq(campaignRecipient.campaignId, campaignId), eq(campaignRecipient.status, "PENDING")),
+      )
+      .returning({ id: campaignRecipient.id });
+  }
+
+  it("si el último pendiente desaparece sin pasar por un lote, el siguiente tick la cierra con sus contadores al día", async () => {
+    await seedRoster(2);
+    const id = await scheduleCampaign(1);
+    expect(await runCampaignTick(minute(0))).toEqual({ started: 1, sent: 1 });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENDING",
+      sentCount: 1,
+      finishedAt: null,
+    });
+    expect(await dropPending(id)).toHaveLength(1);
+
+    expect(await runCampaignTick(minute(1))).toEqual({ started: 0, sent: 0 });
+
+    expect(await recipientStatuses(id)).toEqual({ SENT: 1 });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENT",
+      finishedAt: minute(1),
+      sentCount: 1,
+      failedCount: 0,
+      skippedCount: 0,
+    });
+    expect(delivered.overflow).toHaveLength(1);
+  });
+
+  it("la que ya estaba trabada, con todos marcados y los contadores a medias, se cierra en el siguiente tick sin reenviarle a nadie", async () => {
+    const roster = await seedRoster(3);
+    const id = await scheduleCampaign(10);
+    expect(await runCampaignTick(minute(0))).toEqual({ started: 1, sent: 3 });
+    // Como la dejaba DT-112: los tres marcados, la campaña en curso y el recuento del lote que perdió.
+    await db()
+      .update(campaign)
+      .set({ status: "SENDING", finishedAt: null, sentCount: 1 })
+      .where(eq(campaign.id, id));
+
+    expect(await runCampaignTick(minute(40))).toEqual({ started: 0, sent: 0 });
+
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENT",
+      finishedAt: minute(40),
+      sentCount: 3,
+      failedCount: 0,
+      skippedCount: 0,
+    });
+    expect(addresses(delivered.overflow)).toEqual(emails(roster));
+  });
+
+  it("se cierra en ese tick aunque una campaña más antigua le llene el lote", async () => {
+    await seedRoster(3);
+    await setPerMinute(1);
+    const parts = await seedParts();
+    const older = await scheduleNew(parts, "Primera");
+    const stuck = await scheduleNew(parts, "Segunda", minute(1));
+    expect(await runCampaignTick(minute(0))).toEqual({ started: 1, sent: 1 });
+    expect(await runCampaignTick(minute(1))).toEqual({ started: 1, sent: 1 });
+    expect(await recipientStatuses(stuck)).toEqual({ PENDING: 3 });
+    expect(await dropPending(stuck)).toHaveLength(3);
+
+    // El único lugar del lote se lo lleva el último pendiente de la más antigua.
+    expect(await runCampaignTick(minute(2))).toEqual({ started: 0, sent: 1 });
+
+    expect(await getCampaign(older)).toMatchObject({ status: "SENT", sentCount: 3 });
+    expect(await getCampaign(stuck)).toMatchObject({
+      status: "SENT",
+      finishedAt: minute(2),
+      sentCount: 0,
+      failedCount: 0,
+      skippedCount: 0,
+    });
+    expect(delivered.overflow).toHaveLength(3);
+  });
+
+  it("se cierra también el día en que el proveedor ya cortó por cuota, sin pedirle otro correo", async () => {
+    await seedRoster(3);
+    const id = await scheduleForNight(10);
+    let calls = 0;
+    useTransports({
+      overflow: null,
+      primary: (_mail, call) => {
+        calls = call;
+        if (call > 1) {
+          throw new QuotaExceededError("daily_quota_exceeded: se acabó el cupo de hoy");
+        }
+        return `resend_${call}`;
+      },
+    });
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
+    expect(await recipientStatuses(id)).toEqual({ SENT: 1, PENDING: 2 });
+    expect(await dropPending(id)).toHaveLength(2);
+
+    expect(await runCampaignTick(night(1))).toEqual({ started: 0, sent: 0 });
+
+    expect(calls).toBe(2);
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENT",
+      finishedAt: night(1),
+      sentCount: 1,
+      failedCount: 0,
+    });
+  });
+
+  it("mientras le quede un pendiente no se cierra, aunque el tick no pueda reclamarlo", async () => {
+    await seedRoster(2);
+    const id = await scheduleCampaign(1);
+    expect(await runCampaignTick(minute(0))).toEqual({ started: 1, sent: 1 });
+    // El pendiente que queda lo tiene reclamado un lote que todavía está en su plazo.
+    await db()
+      .update(campaignRecipient)
+      .set({ claimedAt: minute(0) })
+      .where(and(eq(campaignRecipient.campaignId, id), eq(campaignRecipient.status, "PENDING")));
+
+    expect(await runCampaignTick(minute(1))).toEqual({ started: 0, sent: 0 });
+
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENDING",
+      finishedAt: null,
+      sentCount: 1,
     });
   });
 });

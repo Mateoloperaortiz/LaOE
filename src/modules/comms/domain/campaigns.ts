@@ -507,6 +507,10 @@ async function quotaRoom(tx: Tx, quota: CampaignQuota, now: Date): Promise<Quota
  * la hora del lote, que también lo identifica. Primero retoma lo que otro lote dejó reclamado y ya
  * venció, y después toma a quienes nadie reclamó. Con cupo, el reclamo es también la reserva: lo
  * vencido ya la tenía, y lo nuevo no pasa de lo que cabe hoy descontando todas las reservas.
+ *
+ * Con `limit` en cero no reclama ni cuenta el cupo: solo visita la campaña. Y si no reclamó a nadie,
+ * con la fila de la campaña todavía tomada, cierra la que ya no tiene ningún pendiente (ADR-116
+ * regla 16).
  */
 async function claimRecipients(
   campaignId: string,
@@ -517,6 +521,10 @@ async function claimRecipients(
   return getDb().transaction(async (tx) => {
     const row = await lockCampaignRow(tx, campaignId);
     if (row?.status !== "SENDING") {
+      return [];
+    }
+    if (limit <= 0) {
+      await closeIfDrained(tx, row, now);
       return [];
     }
     const room = quota ? await quotaRoom(tx, quota, now) : { retake: limit, fresh: limit };
@@ -551,8 +559,27 @@ async function claimRecipients(
       isNull(campaignRecipient.claimedAt),
       Math.min(limit - retaken.length, room.fresh),
     );
+    if (retaken.length + fresh.length === 0) {
+      await closeIfDrained(tx, row, now);
+    }
     return [...retaken, ...fresh];
   });
+}
+
+/**
+ * Una campaña en curso sin ningún destinatario pendiente ya terminó, la haya dejado así quien la haya
+ * dejado (ADR-116 regla 16): se recuenta y se cierra. Mientras le quede un pendiente no se toca, lo
+ * tenga reclamado otro lote o no quepa hoy en el cupo. Pide la fila de la campaña ya tomada.
+ */
+async function closeIfDrained(tx: Tx, row: CampaignRow, now: Date): Promise<void> {
+  const [pending] = await tx
+    .select({ id: campaignRecipient.id })
+    .from(campaignRecipient)
+    .where(and(eq(campaignRecipient.campaignId, row.id), eq(campaignRecipient.status, "PENDING")))
+    .limit(1);
+  if (!pending) {
+    await refreshCounters(tx, row, now);
+  }
 }
 
 /**
@@ -659,12 +686,14 @@ async function cutBatchForToday(rest: BatchItem[], claimedAt: Date): Promise<voi
  * ya marcó, y mientras un correo viaja no retiene una conexión del pool ni un candado que otro espere.
  * Con cupo diario no reclama más de lo que cabe hoy, y si el proveedor rechaza por cuota se corta: lo
  * que falta sigue pendiente y ningún lote sale hasta el otro día.
+ *
+ * Visita todas las campañas en curso, también cuando el lote ya está lleno o el cupo de hoy está
+ * cortado: a esas no les reclama a nadie, pero la que se quedó sin pendientes se cierra en este tick
+ * (ADR-116 regla 16).
  */
 export async function processCampaignBatch(limit: number, now = new Date()): Promise<number> {
   const quota = await campaignQuota(now);
-  if (quota?.exhausted) {
-    return 0;
-  }
+  const room = quota?.exhausted ? 0 : limit;
   const sending = await getDb()
     .select({ id: campaign.id })
     .from(campaign)
@@ -672,10 +701,7 @@ export async function processCampaignBatch(limit: number, now = new Date()): Pro
     .orderBy(asc(campaign.startedAt), asc(campaign.id));
   const batch: BatchItem[] = [];
   for (const row of sending) {
-    if (batch.length >= limit) {
-      break;
-    }
-    batch.push(...(await claimRecipients(row.id, limit - batch.length, now, quota)));
+    batch.push(...(await claimRecipients(row.id, room - batch.length, now, quota)));
   }
   if (batch.length === 0) {
     return 0;
