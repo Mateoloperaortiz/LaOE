@@ -39,5 +39,5 @@ Esta ADR lleva el número 117 y no el 109. Sale de `main`, donde la última es l
 - El aviso de la regla 5 no distingue un retoque de formato de un cambio de fondo. Quien lo vea en el log compara el archivo con lo que la base tiene.
 - La línea «migraciones aplicadas y esquema verificado» suma el campo `migrations`, la cantidad de entradas del diario que se comprobaron. `db:release` lee la carpeta dos veces y hace una consulta más; con 47 archivos no se nota.
 - Regenerar la última migración del diario se ensayó en local: sale el mismo SQL y solo cambian el `when` del diario y el `id` del snapshot. El procedimiento está en el [runbook](../15-runbook.md).
-- Pruebas: unitarias de la comparación (siete casos) y del diario del repo (tres), e integración con una carpeta y un esquema de mentira (cuatro: el salto de Drizzle, el error, la fila de más y el aviso).
+- Pruebas: unitarias de la comparación (ocho casos) y del diario del repo (tres), e integración con una carpeta y un esquema de mentira (cuatro: el salto de Drizzle, el error, la fila de más y el aviso).
 - No cambia ninguna migración, ningún texto ni ninguna pantalla. `scripts/db-release.ts`, `scripts/db-reset.ts` y `.railway/railway.ts` quedan igual.

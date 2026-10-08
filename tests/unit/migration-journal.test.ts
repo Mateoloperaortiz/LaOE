@@ -60,6 +60,15 @@ describe("diario contra registro de migraciones (ADR-117)", () => {
       changed: ["0000_primera"],
     });
   });
+
+  it("una fila con otro hash sirve para una sola de dos entradas con su marca: la otra falta", () => {
+    const twin = { tag: "0003_gemela", when: 300, hash: "h-gemela" };
+    const applied = [row(100, "h-primera"), row(300, "h-de-antes"), row(200, "h-tardia")];
+    expect(compareJournalWithApplied([...journal, twin], applied)).toEqual({
+      missing: ["0003_gemela"],
+      changed: ["0001_tercera"],
+    });
+  });
 });
 
 // La que falla en CI cuando una mezcla deja el diario desordenado: una entrada con una marca que no
