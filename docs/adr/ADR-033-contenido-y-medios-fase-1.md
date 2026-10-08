@@ -1,6 +1,6 @@
 # ADR-033: Contenido editable y medios del portal público (fase 1)
 
-- Estado: Aceptada (enmendada por ADR-036, ADR-037 y ADR-038, ADR-039, ADR-113, ADR-114)
+- Estado: Aceptada (enmendada por ADR-036, ADR-037 y ADR-038, ADR-039, ADR-113, ADR-114, ADR-116)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-001, ADR-011, ADR-012, ADR-014, ADR-017, ADR-020, ADR-022, ADR-023, ADR-032
 
@@ -62,3 +62,7 @@ La regla 5 dejaba en el handler de `media.process` la lectura de dimensiones y l
 ## Enmienda (2026-10-07, ADR-114)
 
 La regla 6 dice que `GET /api/media/[id]` entrega la variante más grande que no supere `w` «o el original», y la regla 5 que el handler escribe las variantes de 480, 960 y 1600 px. El original es el archivo tal como se subió, con sus metadatos, y salía cuando no se pedía ancho o cuando la imagen medía menos de 480 px. [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 8 lo cambia: el handler escribe además una variante completa (`variants/<id>/full.webp`, registrada en `variants` como `full`), recodificada y sin metadatos, y es ella la que se entrega donde iba el original. Las variantes de ancho, sus claves, el `srcset`, la caché del 302 y la vigencia de la firma no cambian. Los medios procesados antes reciben su variante completa por un relleno programado y, mientras no la tengan, se sirven como antes. `media.process` sigue siendo idempotente: sobre un medio listo solo escribe la variante completa si le falta.
+
+## Enmienda (2026-10-08, ADR-116)
+
+La regla 11 dice que el ICS se genera a mano con el «escape de RFC 5545». El escape cubría la barra invertida, el punto y coma, la coma y el salto de línea, y dejaba pasar un retorno de carro suelto y los demás caracteres de control: el título de una ocasión podía abrir líneas nuevas en el calendario. [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 14 lo precisa: en un valor de texto todo salto sale como `\n` escapado y los demás caracteres de control se quitan, salvo el tabulador, y `UID`, `URL` y `PRODID` salen sin ninguno. El plegado a 75 octetos, el `UID` por edición y las rutas no cambian.

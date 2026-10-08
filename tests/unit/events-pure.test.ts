@@ -2,6 +2,31 @@ import { describe, expect, it } from "vitest";
 import { buildIcs, foldLine, icsDate, icsText } from "@/modules/events/domain/ics-pure";
 import { utcToZonedInput, zonedInputToUtc } from "@/shared/lib/dates";
 
+// DT-129 (#164): RFC 5545 sección 3.3.11 no admite caracteres de control en un valor de texto, y un
+// cliente tolerante parte las líneas también por un retorno de carro o un salto sueltos.
+
+/** Las líneas de contenido como las lee un cliente: desplegadas y partidas por cualquier salto. */
+function contentLines(ics: string): string[] {
+  return ics
+    .replace(/\r\n[ \t]/g, "")
+    .split(/\r\n|\r|\n/)
+    .filter((line) => line !== "");
+}
+
+/** El nombre de la propiedad de cada línea, en orden. */
+function propertyNames(ics: string): string[] {
+  return contentLines(ics).map((line) => line.slice(0, line.indexOf(":")));
+}
+
+/** Los caracteres de control que quedan en la salida, sin contar el CRLF que termina cada línea. */
+function controlCodes(ics: string): number[] {
+  return [...ics.replace(/\r\n/g, "")]
+    .map((char) => char.codePointAt(0) ?? 0)
+    .filter((code) => (code <= 0x1f && code !== 0x09) || code === 0x7f);
+}
+
+const CALENDAR = ["BEGIN", "VERSION", "PRODID", "CALSCALE", "METHOD", "X-WR-CALNAME"];
+
 describe("ICS", () => {
   it("escribe fechas en UTC y escapa el texto", () => {
     expect(icsDate(new Date("2026-09-03T23:00:00.000Z"))).toBe("20260903T230000Z");
@@ -50,6 +75,92 @@ describe("ICS", () => {
     expect(ics).toContain("DTEND:20261101T180000Z\r\n");
     expect(ics.split("DTEND:")).toHaveLength(2); // solo la edición con fin lleva DTEND
     expect(ics.endsWith("END:VCALENDAR\r\n")).toBe(true);
+  });
+
+  it("un salto suelto en el título, el lugar o la descripción no abre una línea en el calendario", () => {
+    const ics = buildIcs({
+      name: "Mi agenda OE",
+      prodId: "-//OE//Casa digital//ES",
+      events: [
+        {
+          uid: "ocasion-o1@oeeafit.com",
+          summary: "Reunión\rATTACH:https://ejemplo.invalid/archivo\rX-INYECTADA:1",
+          description: "Primera\r\nsegunda\rtercera\ncuarta\u000BEND:VEVENT",
+          location: "Bloque 38\u0000\nGEO:0;0",
+          url: "https://oeeafit.com/a/abc123def4",
+          start: new Date("2026-10-01T23:00:00Z"),
+          end: null,
+          stamp: new Date("2026-09-03T12:00:00Z"),
+        },
+      ],
+    });
+    expect(propertyNames(ics)).toEqual([
+      ...CALENDAR,
+      "BEGIN",
+      "UID",
+      "DTSTAMP",
+      "DTSTART",
+      "SUMMARY",
+      "DESCRIPTION",
+      "LOCATION",
+      "URL",
+      "END",
+      "END",
+    ]);
+    expect(controlCodes(ics)).toEqual([]);
+    const lines = contentLines(ics);
+    expect(lines).toContain(
+      "SUMMARY:Reunión\\nATTACH:https://ejemplo.invalid/archivo\\nX-INYECTADA:1",
+    );
+    expect(lines).toContain("DESCRIPTION:Primera\\nsegunda\\ntercera\\ncuartaEND:VEVENT");
+    expect(lines).toContain("LOCATION:Bloque 38\\nGEO:0\\;0");
+  });
+
+  it("todo salto de un texto sale escapado, los demás caracteres de control se quitan y el tabulador se conserva", () => {
+    expect(icsText("Uno\r\ndos\ntres\rcuatro")).toBe("Uno\\ndos\\ntres\\ncuatro");
+    expect(icsText("columna\tcolumna")).toBe("columna\tcolumna");
+    const controls = [...Array.from({ length: 0x20 }, (_, code) => code), 0x7f].filter(
+      (code) => code !== 0x09 && code !== 0x0a && code !== 0x0d,
+    );
+    expect(controls).toHaveLength(30);
+    for (const code of controls) {
+      expect(icsText(`a${String.fromCodePoint(code)}b`), `U+${code.toString(16)}`).toBe("ab");
+    }
+  });
+
+  it("el identificador, el enlace y el nombre del calendario salen sin saltos ni caracteres de control", () => {
+    const ics = buildIcs({
+      name: "Eventos de la OE\rX-NOMBRE:1",
+      prodId: "-//OE//Casa digital//ES\nX-PRODUCTO:1",
+      events: [
+        {
+          uid: "a\r\nATTACH:https://ejemplo.invalid/archivo\u0000@oeeafit.com",
+          summary: "Inventiva · 2026-2",
+          url: "https://oeeafit.com/eventos/inventiva/2026\rX-INYECTADA:1\u007F\tfin\n",
+          start: new Date("2026-11-01T13:00:00Z"),
+          end: new Date("2026-11-01T18:00:00Z"),
+          stamp: new Date("2026-09-03T12:00:00Z"),
+        },
+      ],
+    });
+    expect(propertyNames(ics)).toEqual([
+      ...CALENDAR,
+      "BEGIN",
+      "UID",
+      "DTSTAMP",
+      "DTSTART",
+      "DTEND",
+      "SUMMARY",
+      "URL",
+      "END",
+      "END",
+    ]);
+    expect(controlCodes(ics)).toEqual([]);
+    const lines = contentLines(ics);
+    expect(lines).toContain("UID:aATTACH:https://ejemplo.invalid/archivo@oeeafit.com");
+    expect(lines).toContain("URL:https://oeeafit.com/eventos/inventiva/2026X-INYECTADA:1fin");
+    expect(lines).toContain("PRODID:-//OE//Casa digital//ESX-PRODUCTO:1");
+    expect(lines).toContain("X-WR-CALNAME:Eventos de la OE\\nX-NOMBRE:1");
   });
 });
 

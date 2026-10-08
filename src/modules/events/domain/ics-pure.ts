@@ -26,13 +26,29 @@ export function icsDate(date: Date): string {
     .replace(/\.\d{3}Z$/, "Z");
 }
 
-/** Escapa lo que RFC 5545 exige en valores de texto. */
+/** U+0000 a U+001F y U+007F: RFC 5545 (sección 3.1) no los admite en una línea de contenido. */
+function isControl(char: string): boolean {
+  const code = char.codePointAt(0) ?? 0;
+  return code <= 0x1f || code === 0x7f;
+}
+
+/**
+ * Escapa lo que RFC 5545 (sección 3.3.11) exige en un valor de texto. Todo salto (`\r\n`, `\r` o
+ * `\n`) sale como `\n` escapado y los demás caracteres de control se quitan, salvo el tabulador,
+ * que el RFC sí admite: un valor nunca abre una línea nueva (ADR-116 regla 14).
+ */
 export function icsText(value: string): string {
-  return value
+  const escaped = value
     .replace(/\\/g, "\\\\")
     .replace(/;/g, "\\;")
     .replace(/,/g, "\\,")
-    .replace(/\r?\n/g, "\\n");
+    .replace(/\r\n|\r|\n/g, "\\n");
+  return [...escaped].filter((char) => char === "\t" || !isControl(char)).join("");
+}
+
+/** Valor que no es texto (UID, URL, PRODID): sale tal cual, sin saltos ni caracteres de control. */
+function icsPlain(value: string): string {
+  return [...value].filter((char) => !isControl(char)).join("");
 }
 
 /** Pliega una línea a 75 octetos (UTF-8), continuando con un espacio, sin partir un carácter. */
@@ -63,14 +79,14 @@ export function buildIcs(calendar: IcsCalendar): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    `PRODID:${calendar.prodId}`,
+    `PRODID:${icsPlain(calendar.prodId)}`,
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${icsText(calendar.name)}`,
   ];
   for (const item of calendar.events) {
     lines.push("BEGIN:VEVENT");
-    lines.push(`UID:${item.uid}`);
+    lines.push(`UID:${icsPlain(item.uid)}`);
     lines.push(`DTSTAMP:${icsDate(item.stamp)}`);
     lines.push(`DTSTART:${icsDate(item.start)}`);
     if (item.end) {
@@ -84,7 +100,7 @@ export function buildIcs(calendar: IcsCalendar): string {
       lines.push(`LOCATION:${icsText(item.location)}`);
     }
     if (item.url) {
-      lines.push(`URL:${item.url}`);
+      lines.push(`URL:${icsPlain(item.url)}`);
     }
     lines.push("END:VEVENT");
   }
