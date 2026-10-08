@@ -1,8 +1,10 @@
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { closeDb } from "@/db/client";
+import { closeDb, getDb } from "@/db/client";
 import { requestDecided } from "@/domain-events/crm";
 import { accessGrantIssued } from "@/domain-events/identity";
 import { personAdmitted } from "@/domain-events/people";
+import { getEnv } from "@/env";
 import { registerHandler } from "@/jobs/registry";
 import {
   listMessagesFor,
@@ -12,6 +14,7 @@ import {
   setPushSenderForTests,
   splitPush,
 } from "@/modules/comms";
+import { message } from "@/modules/comms/schema";
 import { createRequestAs, decideRequestAs } from "@/modules/crm";
 import { issueAccessGrantAs } from "@/modules/identity";
 import { admitPersonAs } from "@/modules/people";
@@ -181,6 +184,10 @@ describe("correos de un evento que el poller reintenta", () => {
       await drainOutbox();
     }
     expect(mailsTo("dos.veces@eafit.edu.co")).toHaveLength(2);
+    // Y cada correo le lleva al proveedor su propia clave de idempotencia (ADR-116 regla 18).
+    const keys = mailsTo("dos.veces@eafit.edu.co").map((mail) => mail.idempotencyKey);
+    expect(keys.every((key) => key?.endsWith(`/${personId}`))).toBe(true);
+    expect(new Set(keys).size).toBe(2);
     expect(await sentTo(personId, "EMAIL")).toHaveLength(2);
   });
 
@@ -265,5 +272,62 @@ describe("correos de un evento que el poller reintenta", () => {
     const emails = await sentTo(personId, "EMAIL");
     expect(emails).toHaveLength(1);
     expect(emails[0]).toMatchObject({ status: "FAILED", provider: "resend" });
+  });
+
+  // La clave de idempotencia del proveedor (ADR-116 regla 18). De este lado el envío sigue siendo «al
+  // menos una vez» (decisiones abiertas 13 y 15): lo que cambia es que el reenvío lleva la misma clave.
+  describe("la clave con la que el correo llega al proveedor", () => {
+    const host = () => new URL(getEnv().APP_URL).host;
+
+    it("el correo que el proveedor aceptó y cuyo registro no se guardó vuelve a salir con la misma clave: el entorno, el evento con su texto y la persona", async () => {
+      const termId = await seedTerm();
+      const committeeId = await seedCommittee("a3", "A3");
+      const personId = await seedPerson("sin.registro@eafit.edu.co", {
+        stage: "APPLICANT",
+        firstName: "Nora",
+      });
+      await admitPersonAs(admin, personId, { termId, committeeIds: [committeeId] });
+
+      // El proveedor acepta el correo y el evento queda para reintento. El registro se borra a mano: es
+      // el estado que deja un proceso que muere entre la respuesta del proveedor y el `message`.
+      neighbourFailures = 1;
+      await drainOutbox({ expectFailures: [personAdmitted] });
+      expect(mailsTo("sin.registro@eafit.edu.co")).toHaveLength(1);
+      await getDb().delete(message).where(eq(message.personId, personId));
+      expect(await sentTo(personId, "EMAIL")).toHaveLength(0);
+
+      const retry = await drainOutbox({ now: afterBackoff() });
+      expect(retry.failed).toBe(0);
+      // Nadie supo que el primero había salido: el reintento lo manda otra vez.
+      const attempts = mailsTo("sin.registro@eafit.edu.co");
+      expect(attempts).toHaveLength(2);
+      expect(await sentTo(personId, "EMAIL")).toHaveLength(1);
+
+      const [environment, recordKey, who, ...rest] = attempts[0]?.idempotencyKey?.split("/") ?? [];
+      expect(rest).toEqual([]);
+      expect(environment).toBe(host());
+      expect(recordKey).toMatch(/^event:[^:]+:T-200$/);
+      expect(who).toBe(personId);
+      // Con la misma clave y el mismo contenido, el proveedor no lo entrega dos veces.
+      expect(attempts[1]).toEqual(attempts[0]);
+    });
+
+    it("un correo sin clave de registro sale sin clave de idempotencia, y la que no cabe en lo que admite el proveedor viaja como su huella", async () => {
+      const { personId } = await activeMember("claves@eafit.edu.co");
+      const mail = { personId, to: "claves@eafit.edu.co", subject: "Asunto", text: "Texto" };
+      const long = `prueba:${"x".repeat(300)}`;
+
+      await sendTransactionalEmail(mail);
+      await sendTransactionalEmail(mail, new Date(), { dedupeKey: "prueba:corta" });
+      await sendTransactionalEmail(mail, new Date(), { dedupeKey: long });
+      const again = await sendTransactionalEmail(mail, new Date(), { dedupeKey: long });
+
+      const keys = mailsTo("claves@eafit.edu.co").map((sent) => sent.idempotencyKey);
+      expect(keys).toHaveLength(3);
+      expect(keys[0]).toBeUndefined();
+      expect(keys[1]).toBe(`${host()}/prueba:corta/${personId}`);
+      expect(keys[2]).toMatch(/^[0-9a-f]{64}$/);
+      expect(again).toMatchObject({ status: "SENT", provider: "resend" });
+    });
   });
 });

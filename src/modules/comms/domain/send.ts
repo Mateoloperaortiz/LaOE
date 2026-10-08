@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { and, count, eq, gte } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Executor, SYSTEM_ACTOR } from "@/db/tx";
@@ -19,7 +20,10 @@ import { campaignCeiling, chooseRoute, withoutAddresses } from "./pure";
 // Correo transaccional (OTP, puntos, recordatorios): Resend con desbordamiento automático a SES,
 // y cada envío queda registrado en `message` con el proveedor por el que salió (ADR-023).
 
-export interface TransactionalEmail extends MailMessage {
+/** Lo que arma quien llama. La clave del proveedor no es suya: sale de la clave del registro. */
+type OutgoingMail = Omit<MailMessage, "idempotencyKey">;
+
+export interface TransactionalEmail extends OutgoingMail {
   personId: string;
 }
 
@@ -69,15 +73,32 @@ export async function sentTodayVia(
   return row?.n ?? 0;
 }
 
-async function attempt(transport: MailTransport, email: TransactionalEmail): Promise<SendReceipt> {
-  const { id } = await transport.send(email);
+async function attempt(transport: MailTransport, mail: MailMessage): Promise<SendReceipt> {
+  const { id } = await transport.send(mail);
   return { status: "SENT", provider: transport.name, providerId: id, error: null };
+}
+
+/** Lo más largo que Resend admite como clave de idempotencia. */
+const PROVIDER_KEY_MAX = 256;
+
+/**
+ * La clave de idempotencia con la que un correo llega al proveedor (ADR-116 regla 18): el entorno, la
+ * clave con la que queda registrado y la persona, que es lo que hace único a su `message`. Es la misma
+ * en cada intento, así que el proveedor que la entiende descarta el reenvío del correo que ya aceptó y
+ * cuyo registro no se alcanzó a guardar. El entorno es el host de `APP_URL`: dos entornos que compartan
+ * la cuenta del proveedor, o una base restaurada de otro, no comparten claves. Si no cabe en lo que el
+ * proveedor admite va su huella, que es igual de estable.
+ */
+function providerKey(personId: string, dedupeKey: string): string {
+  const key = `${new URL(getEnv().APP_URL).host}/${dedupeKey}/${personId}`;
+  return key.length <= PROVIDER_KEY_MAX ? key : createHash("sha256").update(key).digest("hex");
 }
 
 export interface TransactionalOptions {
   /**
    * Con clave, un segundo intento para la misma persona no vuelve a mandar (handlers reintentados) y
-   * responde con lo que dejó registrado el primero, sea un envío o un rechazo.
+   * responde con lo que dejó registrado el primero, sea un envío o un rechazo. Con ella el correo lleva
+   * además su clave de idempotencia al proveedor; sin ella no lleva ninguna.
    */
   dedupeKey?: string;
 }
@@ -98,6 +119,9 @@ export async function sendTransactionalEmail(
       };
     }
   }
+  const mail: MailMessage = options.dedupeKey
+    ? { ...email, idempotencyKey: providerKey(email.personId, options.dedupeKey) }
+    : email;
   const { primary, overflow } = getTransports();
   const route = chooseRoute(
     overflow ? await sentTodayVia(primary.name, now) : 0,
@@ -106,7 +130,7 @@ export async function sendTransactionalEmail(
   );
   let receipt: SendReceipt;
   try {
-    receipt = await attempt(route === "overflow" && overflow ? overflow : primary, email);
+    receipt = await attempt(route === "overflow" && overflow ? overflow : primary, mail);
   } catch (error) {
     if (error instanceof QuotaExceededError && overflow && route === "primary") {
       logger.warn(
@@ -114,7 +138,7 @@ export async function sendTransactionalEmail(
         "correo: cuota de Resend agotada, sale por SES",
       );
       try {
-        receipt = await attempt(overflow, email);
+        receipt = await attempt(overflow, mail);
       } catch (overflowError) {
         receipt = failed(overflow.name, overflowError);
       }
@@ -219,7 +243,7 @@ export function markCampaignQuotaExhausted(at: Date): Promise<void> {
   );
 }
 
-export interface CampaignEmail extends MailMessage {
+export interface CampaignEmail extends OutgoingMail {
   personId: string;
   campaignId: string;
 }
@@ -269,7 +293,8 @@ export async function recordedCampaignEmail(
  * Envía el correo de una campaña a una persona y lo registra. Si ya hay un registro de esa campaña
  * para esa persona no envía nada y responde con él, sea de un envío o de un rechazo. Si el proveedor lo
  * rechaza por cuota no registra nada y responde que queda para después. No corre dentro de una
- * transacción: mientras el proveedor responde no hay conexión ocupada.
+ * transacción: mientras el proveedor responde no hay conexión ocupada. El correo lleva al proveedor su
+ * clave de idempotencia, por campaña y persona (ADR-116 regla 18).
  */
 export async function sendCampaignEmail(
   email: CampaignEmail,
@@ -283,7 +308,10 @@ export async function sendCampaignEmail(
   const transport = campaignTransport();
   let receipt: SendReceipt;
   try {
-    receipt = await attempt(transport, email);
+    receipt = await attempt(transport, {
+      ...email,
+      idempotencyKey: providerKey(email.personId, dedupeKey),
+    });
   } catch (error) {
     if (error instanceof QuotaExceededError) {
       return { status: "DEFERRED", provider: transport.name, error: providerErrorText(error) };

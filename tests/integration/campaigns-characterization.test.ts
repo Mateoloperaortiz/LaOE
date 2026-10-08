@@ -3,6 +3,7 @@ import { and, eq, inArray, type SQL, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { getEnv } from "@/env";
 import { SCHEDULE } from "@/jobs/schedule";
 import { enqueueScheduled } from "@/jobs/scheduler";
 import {
@@ -1995,5 +1996,35 @@ describe("una campaña en curso que se quedó sin pendientes (ADR-116 regla 16)"
       finishedAt: null,
       sentCount: 1,
     });
+  });
+});
+
+// La clave de idempotencia del proveedor (ADR-116 regla 18). El lote sigue entregando «al menos una
+// vez» (decisión abierta 13): lo que cambia es que el correo repetido lleva la misma clave.
+describe("la clave con la que un correo de campaña llega al proveedor (ADR-116 regla 18)", () => {
+  it("es por campaña y persona, y el correo que salió sin poderse registrar vuelve a salir con la misma", async () => {
+    const roster = await seedRoster(3);
+    const id = await scheduleCampaign(5);
+    // Sale por Resend, y el proveedor acepta el segundo correo con un id que la base no puede guardar.
+    useTransports({
+      overflow: null,
+      primary: (_mail, call) => (call === 2 ? "resend_\u0000" : `resend_${call}`),
+    });
+
+    expect(await settle(runCampaignTick(minute(0)))).toEqual(expect.any(String));
+    expect(await runCampaignTick(minute(CLAIM_MINUTES))).toEqual({ started: 0, sent: 2 });
+
+    const host = new URL(getEnv().APP_URL).host;
+    const keysTo = (member: Member) =>
+      delivered.primary
+        .filter((mail) => mail.to === member.email)
+        .map((mail) => mail.idempotencyKey);
+    for (const member of roster) {
+      const expected = `${host}/campaign:${id}/${member.id}`;
+      expect(new Set(keysTo(member))).toEqual(new Set([expected]));
+    }
+    // Tres destinatarios, cuatro correos: el repetido salió las dos veces con su clave.
+    expect(roster.map((member) => keysTo(member).length).sort()).toEqual([1, 1, 2]);
+    expect(new Set(delivered.primary.map((mail) => mail.idempotencyKey)).size).toBe(3);
   });
 });

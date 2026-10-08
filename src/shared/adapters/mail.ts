@@ -1,6 +1,11 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
-import { type CreateEmailOptions, type CreateEmailResponse, Resend } from "resend";
+import {
+  type CreateEmailOptions,
+  type CreateEmailRequestOptions,
+  type CreateEmailResponse,
+  Resend,
+} from "resend";
 import { withTimeout } from "@/shared/lib/timeout";
 import { logger } from "@/shared/log";
 
@@ -16,6 +21,12 @@ export interface MailMessage {
   html?: string;
   /** Cabeceras extra (ADR-038 regla 8): `List-Unsubscribe` y `List-Unsubscribe-Post` en las campañas. */
   headers?: Record<string, string>;
+  /**
+   * Clave de idempotencia del proveedor (ADR-116 regla 18), de hasta 256 caracteres. Resend la recibe en
+   * el encabezado `Idempotency-Key` y durante 24 horas no entrega dos veces un correo con la misma clave
+   * y el mismo contenido. SES no tiene nada parecido: ese transporte y el de consola la ignoran.
+   */
+  idempotencyKey?: string;
 }
 
 export type MailProvider = "console" | "resend" | "ses";
@@ -55,19 +66,26 @@ export class ConsoleTransport implements MailTransport {
 
 export class ResendTransport implements MailTransport {
   readonly name = "resend" as const;
-  private readonly sendEmail: (message: CreateEmailOptions) => Promise<CreateEmailResponse>;
+  private readonly sendEmail: (
+    message: CreateEmailOptions,
+    options?: CreateEmailRequestOptions,
+  ) => Promise<CreateEmailResponse>;
   private readonly wait: (milliseconds: number) => Promise<void>;
 
   constructor(
     apiKey: string,
     private readonly from: string,
     dependencies: {
-      send?: (message: CreateEmailOptions) => Promise<CreateEmailResponse>;
+      send?: (
+        message: CreateEmailOptions,
+        options?: CreateEmailRequestOptions,
+      ) => Promise<CreateEmailResponse>;
       wait?: (milliseconds: number) => Promise<void>;
     } = {},
   ) {
     const client = new Resend(apiKey);
-    this.sendEmail = dependencies.send ?? ((message) => client.emails.send(message));
+    this.sendEmail =
+      dependencies.send ?? ((message, options) => client.emails.send(message, options));
     this.wait = dependencies.wait ?? sleep;
   }
 
@@ -80,10 +98,15 @@ export class ResendTransport implements MailTransport {
       ...(message.html ? { html: message.html } : {}),
       ...(message.headers ? { headers: message.headers } : {}),
     };
+    // La clave no va en el cuerpo: el SDK la manda en el encabezado `Idempotency-Key`. Es la misma en
+    // cada llamada de este envío, también en los reintentos de ráfaga.
+    const options: CreateEmailRequestOptions | undefined = message.idempotencyKey
+      ? { idempotencyKey: message.idempotencyKey }
+      : undefined;
     // ADR-039: cuatro llamadas como máximo; respetar Retry-After sin repetir entregas ambiguas.
     for (let attempt = 0; ; attempt++) {
       const { data, error, headers } = await withTimeout(
-        this.sendEmail(payload),
+        this.sendEmail(payload, options),
         MAIL_REQUEST_TIMEOUT_MS,
         "Resend",
       );
