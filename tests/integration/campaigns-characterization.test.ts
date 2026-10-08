@@ -1,5 +1,5 @@
 import { setTimeout as sleep } from "node:timers/promises";
-import { eq, sql } from "drizzle-orm";
+import { eq, type SQL, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -514,6 +514,32 @@ async function deadlockTimeoutMs(): Promise<number> {
   return result.rows[0]?.ms ?? 1000;
 }
 
+/**
+ * Una transacción de la prueba que toma un candado con `lock` y lo retiene hasta `release`: quien lo
+ * necesite se queda quieto justo donde lo pide, y la prueba decide qué pasa mientras tanto.
+ */
+async function holdLock(lock: SQL): Promise<{ release: () => Promise<void> }> {
+  let letGo = (): void => {};
+  const untilLetGo = new Promise<void>((resolve) => {
+    letGo = resolve;
+  });
+  let held: Promise<void> = Promise.resolve();
+  await new Promise<void>((taken, failed) => {
+    held = db().transaction(async (tx) => {
+      await tx.execute(lock);
+      taken();
+      await untilLetGo;
+    });
+    held.catch(failed);
+  });
+  return {
+    release: async () => {
+      letGo();
+      await held;
+    },
+  };
+}
+
 describe("los defectos que la caracterización le encontró al lote", () => {
   // DT-067, corregido en #145 (ADR-115 reglas 1 y 2): el lote marcaba a los enviados en la misma
   // transacción en la que enviaba, y al caerse la transacción los correos ya habían salido.
@@ -895,6 +921,41 @@ describe("el cupo del día y el margen para los correos transaccionales (ADR-115
       sentCount: 2,
       failedCount: 0,
     });
+  });
+
+  it("dos lotes que reclaman a la vez en campañas distintas cuentan el cupo uno después del otro", async () => {
+    await seedRoster(4);
+    const parts = await seedParts();
+    await setPerMinute(2);
+    useTransports({ overflow: null });
+    // La segunda campaña arranca sin enviar: con todo el cupo reservado no cabe ningún correo.
+    const second = await scheduleNew(parts, "Segunda", NIGHT);
+    await setReserve(DAILY_LIMIT);
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 0 });
+    // Desde acá caben dos correos de campaña en el día.
+    await setReserve(DAILY_LIMIT - 2);
+
+    // Un lote ya contó el cupo y va a reclamar a dos de la segunda: queda quieto ahí, con su
+    // transacción abierta, porque la prueba retiene a esos destinatarios.
+    const recipients = await holdLock(
+      sql`select id from campaign_recipient where campaign_id = ${second} for update`,
+    );
+    const late = runCampaignTick(night(1));
+    await untilLockWaiters(1, late);
+
+    // Otro lote llega a una campaña distinta, y la fila de la segunda no lo detiene: lo único que los
+    // pone en fila es el candado del cupo. Para que visite primero a la suya, esa campaña tiene que
+    // haber arrancado antes: por eso este tick trae un reloj anterior.
+    const first = await scheduleNew(parts, "Primera", night(-2));
+    const early = runCampaignTick(night(-1));
+    await untilLockWaiters(2, early);
+    await recipients.release();
+    const results = await Promise.all([late, early]);
+
+    expect(results.reduce((sum, tick) => sum + tick.sent, 0)).toBe(2);
+    expect(delivered.primary).toHaveLength(2);
+    expect(await recipientStatuses(second)).toEqual({ SENT: 2, PENDING: 2 });
+    expect(await recipientStatuses(first)).toEqual({ PENDING: 4 });
   });
 });
 
@@ -1322,18 +1383,46 @@ describe("antes de cada envío el lote vuelve a mirar a la persona (ADR-115 regl
     );
   });
 
-  it("a quien salió sin dejar consentimiento lo omite por eso, y a quien salió pidiendo seguir en contacto le escribe a su correo personal", async () => {
-    const roster = await seedRoster(4);
+  it("a quien salió sin dejar consentimiento lo omite por eso y no le escribe", async () => {
+    const roster = await seedRoster(3);
     const id = await scheduleCampaign(2);
     await runCampaignTick(minute(0));
-    const [left, keeps] = await waitingMembers(id, roster);
-    if (!left || !keeps) throw new Error("Tras el primer lote tenían que quedar dos pendientes");
+    const [left] = await waitingMembers(id, roster);
+    if (!left) throw new Error("Tras el primer lote tenía que quedar alguien pendiente");
 
     await endMembershipAs(SYSTEM_ACTOR, left.id, {
       endReason: "RESIGNATION",
       memorialConsent: false,
       contactConsent: false,
     });
+
+    expect(await runCampaignTick(minute(1))).toEqual({ started: 0, sent: 0 });
+    expect(await recipientOf(id, left.id)).toMatchObject({
+      status: "SKIPPED",
+      skipReason: "NO_CONSENT",
+      messageId: null,
+      sentAt: null,
+    });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENT",
+      sentCount: 2,
+      failedCount: 0,
+      skippedCount: 1,
+    });
+    expect(delivered.overflow.map((mail) => mail.to)).not.toContain(left.email);
+  });
+
+  // Esta conducta NO está decidida (decisión abierta 14, DT-116): #146 y la historia 9 de su spec dicen
+  // que quien salió no recibe la campaña en curso, sin excepción. La prueba fija lo que el lote hace
+  // mientras tanto, que para esta persona es lo mismo que hacía antes de ADR-115.
+  // Si se decide que no reciba, esta es la prueba que se reescribe.
+  it("mientras no se decida otra cosa, a quien salió pidiendo seguir en contacto le sigue llegando la campaña en curso, a su correo personal", async () => {
+    const roster = await seedRoster(3);
+    const id = await scheduleCampaign(2);
+    await runCampaignTick(minute(0));
+    const [keeps] = await waitingMembers(id, roster);
+    if (!keeps) throw new Error("Tras el primer lote tenía que quedar alguien pendiente");
+
     await endMembershipAs(SYSTEM_ACTOR, keeps.id, {
       endReason: "GRADUATION",
       memorialConsent: false,
@@ -1342,23 +1431,16 @@ describe("antes de cada envío el lote vuelve a mirar a la persona (ADR-115 regl
     });
 
     expect(await runCampaignTick(minute(1))).toEqual({ started: 0, sent: 1 });
-    expect(await recipientOf(id, left.id)).toMatchObject({
-      status: "SKIPPED",
-      skipReason: "NO_CONSENT",
-      messageId: null,
-      sentAt: null,
-    });
     expect(await recipientOf(id, keeps.id)).toMatchObject({ status: "SENT", skipReason: null });
     expect(await getCampaign(id)).toMatchObject({
       status: "SENT",
       sentCount: 3,
       failedCount: 0,
-      skippedCount: 1,
+      skippedCount: 0,
     });
     const received = delivered.overflow.map((mail) => mail.to);
     expect(received).toContain("egresada@example.com");
     expect(received).not.toContain(keeps.email);
-    expect(received).not.toContain(left.email);
   });
 
   it("a quien se anonimiza mientras el lote le escribe a otro tampoco le llega: el lote lo mira justo antes de su correo", async () => {
@@ -1418,5 +1500,38 @@ describe("antes de cada envío el lote vuelve a mirar a la persona (ADR-115 regl
       skippedCount: 0,
     });
     expect(delivered.overflow).toHaveLength(3);
+  });
+
+  it("si cancelan la campaña mientras el lote decide omitir a alguien, queda omitido por la cancelación y no por el motivo del lote", async () => {
+    const roster = await seedRoster(2);
+    const id = await scheduleCampaign(1);
+    await runCampaignTick(minute(0));
+    const [left] = await waitingMembers(id, roster);
+    if (!left) throw new Error("Tras el primer lote tenía que quedar alguien pendiente");
+    await endMembershipAs(SYSTEM_ACTOR, left.id, {
+      endReason: "RESIGNATION",
+      memorialConsent: false,
+      contactConsent: false,
+    });
+
+    // El lote ya comprobó su reclamo y está leyendo el consentimiento de la persona: queda quieto ahí,
+    // porque la prueba retiene esa tabla, y mientras tanto llega la cancelación.
+    const consents = await holdLock(sql`lock table consent in access exclusive mode`);
+    const tick = runCampaignTick(minute(1));
+    await untilLockWaiters(1, tick);
+    await cancelCampaignAs(SYSTEM_ACTOR, id);
+    await consents.release();
+
+    expect(await tick).toEqual({ started: 0, sent: 0 });
+    expect(await recipientOf(id, left.id)).toMatchObject({
+      status: "SKIPPED",
+      skipReason: "CANCELLED",
+    });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "CANCELLED",
+      sentCount: 1,
+      failedCount: 0,
+      skippedCount: 1,
+    });
   });
 });

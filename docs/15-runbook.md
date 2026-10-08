@@ -891,3 +891,16 @@ Poderes (ADR-098):
 
 Después del evento: archivar `the-games-2026` (a más tardar el 2026-10-16) y `ensayo-2026` desde Resumen. Archivar borra los capitanes y apaga su vitrina (ADR-095).
 
+
+## Cupo diario de las campañas (ADR-115)
+
+Desde [ADR-115](adr/ADR-115-reglas-de-campanas-y-tareas-de-gh.md) reglas 5 y 6, una campaña que sale por Resend (hoy todas, porque sin `AWS_REGION` no hay SES) no pasa del cupo del día menos un margen para lo transaccional. Todavía no tiene pantalla (DT-115 y DT-117 del [ledger](20-deuda-tecnica.md)): lo que sigue es lo que hay mientras tanto.
+
+- **Cuánto cabe.** `RESEND_DAILY_LIMIT` (95) menos el margen `campaigns.transactionalReserve` de `app_config`. Sin fila, el margen es un tercio del cupo hacia arriba: 32, y caben 63 correos de campaña al día, menos los transaccionales que hayan salido ese día. El día es el de Colombia. Una campaña a 300 personas tarda cinco días o más.
+- **Cómo se ve.** La campaña sigue `Enviando` y sus destinatarios en `Pendiente`, sin fallidos: la pantalla no dice que esperan cupo, y su intro (T-1124) solo habla del lote por minuto. No es una campaña trabada: el primer lote después de la medianoche de Colombia sigue donde quedó.
+- **El corte por cuota.** Si Resend rechaza un correo de campaña por cuota, el web registra el aviso `campañas: el proveedor rechazó por cuota, lo pendiente sigue mañana`, con `provider`, `error` y `released`, y escribe la hora en `campaigns.quotaExhaustedAt`. Hasta la medianoche de Colombia ningún lote le pide nada al proveedor. El `error` del aviso dice cuál fue: `daily_quota_exceeded`, `monthly_quota_exceeded` o `rate_limit_exceeded` (una ráfaga que no cedió con los cuatro intentos del adaptador). El corte dura lo mismo en los tres casos.
+- **Consultarlo**, en una sesión de solo lectura: `select key, value from app_config where key like 'campaigns.%';`. Si no aparecen `campaigns.transactionalReserve` ni `campaigns.quotaExhaustedAt`, rige el margen por omisión y no hay corte.
+- **Levantar el corte antes de la medianoche.** Solo tiene sentido si el rechazo fue `rate_limit_exceeded`: con el cupo diario o el mensual agotados el proveedor vuelve a rechazar y el corte se escribe otra vez. Es borrar la fila: `delete from app_config where key = 'campaigns.quotaExhaustedAt';`. Rige a los 30 segundos, lo que dura la caché de configuración.
+- **Cambiar el margen.** Es escribir un entero JSON, de cero en adelante, en el `value` de la fila `campaigns.transactionalReserve`; también rige a los 30 segundos. Un margen igual o mayor que el cupo no deja salir ninguna campaña, y un valor que no sea un entero hace fallar el tick de campañas completo hasta que se corrija.
+
+Las dos últimas son escrituras a mano en producción: van con la autorización explícita de Mateo y se anotan acá, porque no pasan por `setConfig` y no dejan auditoría.
