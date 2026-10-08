@@ -133,10 +133,25 @@ describe("poller del outbox", () => {
     expect(afterRows?.n).toBe(4);
   });
 
+  it("la depuración diaria encola la de identidad, la de personas y la del sistema", async () => {
+    const { SCHEDULE } = await import("@/jobs/schedule");
+    expect(SCHEDULE.find((entry) => entry.name === "prune")?.events).toEqual([
+      "identity.prune",
+      "people.prune",
+      "system.prune",
+    ]);
+  });
+
   it("los handlers de los módulos quedan registrados al cargar handlers.ts", async () => {
     resetHandlersForTests();
     await import("@/jobs/handlers");
-    for (const type of ["identity.prune", "system.prune", "system.backup-check", "media.process"]) {
+    for (const type of [
+      "identity.prune",
+      "people.prune",
+      "system.prune",
+      "system.backup-check",
+      "media.process",
+    ]) {
       expect(getHandlers(type).length, type).toBeGreaterThan(0);
     }
   });

@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { enqueueEvent } from "@/db/tx";
 import { mediaProcess } from "@/domain-events/content";
 import { personAnonymized } from "@/domain-events/people";
 import { confirmUploadAs, getMedia, prepareUpload } from "@/modules/content";
@@ -19,6 +20,7 @@ import {
   setOwnPhotoAs,
 } from "@/modules/people";
 import { anonymizePerson } from "@/modules/people/domain/membership";
+import { person } from "@/modules/people/schema";
 import { deleteObject, headObject, putObject } from "@/shared/adapters/storage";
 import { t } from "@/shared/copy";
 import { holdCommand, waitingOn } from "../helpers/locks";
@@ -280,6 +282,29 @@ describe("la foto propia al anonimizar", () => {
     await drainOutbox();
     expect(await registered(input.key)).toBe(0);
     expect(await stillStored([input.key])).toEqual([]);
+  });
+
+  it("la depuración diaria borra las fotos de quien fue anonimizado antes de esta regla, y no las de quien sigue", async () => {
+    const gone = await seedMember("antes.foto@eafit.edu.co");
+    const stays = await seedMember("sigue.foto@eafit.edu.co");
+    const old = await upload(gone, "photo");
+    const kept = await upload(stays, "photo");
+    // Anonimizada antes de ADR-116 regla 8: su aviso se procesó cuando nadie borraba la foto.
+    await getDb()
+      .update(person)
+      .set({ anonymizedAt: new Date("2026-09-01T12:00:00Z") })
+      .where(eq(person.id, gone));
+    expect(await statusFor(stays, old.id)).toBe(302);
+
+    // Lo que encola el programado `prune` de las 3:00.
+    await enqueueEvent(getDb(), { type: "people.prune", payload: {} });
+    await drainOutbox();
+
+    expect(await getMedia(old.id)).toBeNull();
+    expect(await stillStored(old.objects)).toEqual([]);
+    expect(await statusFor(stays, old.id)).toBe(404);
+    expect(await getMedia(kept.id)).not.toBeNull();
+    expect(await stillStored(kept.objects)).toHaveLength(3);
   });
 
   it("se van también las fotos que la persona había reemplazado, y no la de otro miembro ni un medio que ella subió como admin", async () => {

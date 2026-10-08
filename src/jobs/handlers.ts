@@ -4,6 +4,7 @@ import "@/modules/crm/jobs";
 import "@/modules/forms/jobs";
 import "@/modules/identity/jobs";
 import "@/modules/participation/jobs";
+import "@/modules/people/jobs";
 import "@/modules/permanence/jobs";
 import "@/modules/system/jobs";
 import "@/modules/wallet/jobs";

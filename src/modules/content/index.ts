@@ -60,9 +60,11 @@ export { excerpt } from "./domain/markdown-pure";
 export {
   confirmUploadAs,
   confirmUploadSchema,
+  deletePhotosFor,
   getMedia,
   getPublicMediaRef,
   listMedia,
+  listPhotoOwners,
   listReadyPublicMedia,
   type MediaRedirect,
   type MediaRef,

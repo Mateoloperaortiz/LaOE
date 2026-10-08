@@ -20,6 +20,7 @@ import {
   MEDIA_MIN_BYTES,
   mediaObjectKeys,
   mediaProcessDedupeKey,
+  PHOTO_KEY_PREFIX,
   PHOTO_MAX_BYTES,
   photoKey,
   photoPrefix,
@@ -360,6 +361,18 @@ export async function deletePhotosFor(personId: string): Promise<number> {
     );
     return photos.length;
   });
+}
+
+/**
+ * Quiénes tienen todavía alguna foto propia registrada: el `<personId>` de cada clave
+ * `photos/<personId>/…`. `content` no sabe quién fue anonimizado; lo cruza quien sí lo sabe.
+ */
+export async function listPhotoOwners(): Promise<string[]> {
+  const rows = await getDb()
+    .selectDistinct({ personId: sql<string>`split_part(${mediaAsset.objectKey}, '/', 2)` })
+    .from(mediaAsset)
+    .where(sql`starts_with(${mediaAsset.objectKey}, ${PHOTO_KEY_PREFIX})`);
+  return rows.map((row) => row.personId);
 }
 
 export type MediaRedirect =

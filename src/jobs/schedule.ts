@@ -28,7 +28,7 @@ export const SCHEDULE: ScheduleEntry[] = [
   { name: "notices", cron: "0 9 * * *", events: ["permanence.notices"] },
   // Licencias vencidas sin regreso (Est. art. 11.3; ADR-060 regla 10): abre una tarea a GH.
   { name: "membership", cron: "0 7 * * *", events: ["membership.leave-check"] },
-  { name: "prune", cron: "0 3 * * *", events: ["identity.prune", "system.prune"] },
+  { name: "prune", cron: "0 3 * * *", events: ["identity.prune", "people.prune", "system.prune"] },
   { name: "backup-check", cron: "30 3 * * *", events: ["system.backup-check"] },
   // Relleno de la variante completa de los medios de antes (ADR-114 regla 8): cada hora arranca una
   // pasada, que sigue sola por lotes. Sin medios por rellenar es una consulta.
