@@ -46,3 +46,5 @@ La decisión dejaba los dead letters «con opción de reintentar» y un solo pen
 ## Enmienda (2026-10-08, ADR-118)
 
 La decisión mandaba a dead letter «tras cinco fallos», y un fallo solo se contaba cuando el poller alcanzaba a anotarlo: un evento que tumbaba el proceso no sumaba nunca (DT-212). Según [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 1, el intento se cuenta al tomar la fila, en una transacción que confirma antes de correr los handlers, y el dead letter llega tras cinco intentos, hayan fallado o no hayan terminado.
+
+La decisión decía además que «`dedupeKey` con unique parcial evita duplicar trabajos pendientes». Pendiente era también el evento que el poller ya estaba entregando: un cambio que llegaba con su recálculo en curso emitía la misma clave, no encolaba nada y no se recalculaba (DT-211). Según ADR-118 regla 3, la clave cubre lo que está en cola: la toma se la quita a la fila, el emit que llega mientras corre entra como evento nuevo y se entrega después, y la fila recupera su clave al terminar, salvo que falle y otro pendiente ya la ocupe.

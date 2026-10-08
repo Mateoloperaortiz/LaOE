@@ -49,6 +49,9 @@ export const appConfig = pgTable("app_config", {
   updatedAt: updatedAt(),
 });
 
+/** El índice que deja un solo pendiente por clave de deduplicación: lo nombra quien traduce su rechazo. */
+export const OUTBOX_PENDING_KEY_INDEX = "outbox_dedupe_key_pending_unique";
+
 export const outbox = pgTable(
   "outbox",
   {
@@ -64,8 +67,9 @@ export const outbox = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
-    // Un solo pendiente por clave: una ráfaga de check-ins colapsa en un recompute.
-    uniqueIndex("outbox_dedupe_key_pending_unique")
+    // Un solo pendiente por clave: una ráfaga de check-ins colapsa en un recompute. El poller le quita
+    // la clave a la fila mientras la tiene tomada (ADR-118 regla 3), así que «pendiente» es «sin tomar».
+    uniqueIndex(OUTBOX_PENDING_KEY_INDEX)
       .on(t.dedupeKey)
       .where(sql`${t.processedAt} is null and ${t.deadLetterAt} is null`),
     index("outbox_pending_idx")

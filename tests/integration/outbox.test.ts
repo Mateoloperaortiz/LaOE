@@ -1,14 +1,14 @@
-import { count, eq, sql } from "drizzle-orm";
+import { asc, count, eq, sql } from "drizzle-orm";
 import type { PoolClient } from "pg";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { type CommandContext, enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { drain, processOne } from "@/jobs/poller";
 import { getHandlers, registerHandler, resetHandlersForTests } from "@/jobs/registry";
 import { enqueueScheduled } from "@/jobs/scheduler";
 import { listOutbox, retryDeadLetter } from "@/modules/system/domain/outbox";
 import { auditLog, outbox } from "@/modules/system/schema";
-import { deferred } from "../helpers/locks";
+import { deferred, holdCommand, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
@@ -225,6 +225,113 @@ describe("poller del outbox", () => {
       fail = false;
       expect(await processOne(at(new Date(now.getTime() + 60_000)))).toBe("processed");
       expect(runs).toBe(2);
+    });
+  });
+
+  describe("un emit con su clave mientras el evento está en curso", () => {
+    const KEY = "prueba:recalculo";
+    const TYPE = "test.recompute";
+    const DAY = 24 * 60 * 60_000;
+
+    /** El estado que lee el handler: cuántos cambios hay confirmados. */
+    async function changes(): Promise<number> {
+      const [row] = await db()
+        .select({ n: count() })
+        .from(auditLog)
+        .where(eq(auditLog.action, "test.changed"));
+      return row?.n ?? 0;
+    }
+
+    /** Un comando como los de la casa: cambia el estado y emite el recálculo con su clave. */
+    const change = (ctx: CommandContext) =>
+      ctx
+        .audit({ action: "test.changed", entityType: "test", entityId: "1" })
+        .then(() => ctx.emit({ type: TYPE, payload: {}, dedupeKey: KEY }));
+
+    /** Deja al poller detenido en el handler, que ya leyó el estado; `fail` lo hace fallar al soltarlo. */
+    async function holdAfterReading(options: { fail?: boolean } = {}) {
+      const seen: number[] = [];
+      const started = deferred<void>();
+      const gate = deferred<void>();
+      registerHandler(TYPE, async () => {
+        seen.push(await changes());
+        if (seen.length === 1) {
+          started.resolve();
+          await gate.promise;
+          if (options.fail) {
+            throw new Error("no hoy");
+          }
+        }
+      });
+      await runCommand(SYSTEM_ACTOR, change);
+      const running = processOne();
+      await started.promise;
+      return { seen, running, release: () => gate.resolve() };
+    }
+
+    const rowsByAge = () => db().select().from(outbox).orderBy(asc(outbox.createdAt));
+
+    it("no se pierde: entra como evento nuevo y se procesa después del que estaba en curso", async () => {
+      const held = await holdAfterReading();
+      // El segundo cambio llega cuando el handler ya leyó el primero.
+      await runCommand(SYSTEM_ACTOR, change);
+      await runCommand(SYSTEM_ACTOR, change);
+      held.release();
+      expect(await held.running).toBe("processed");
+      // Los dos emits que llegaron en curso dejaron un solo evento nuevo: sin tomar, la clave deduplica.
+      expect(await drain(50)).toEqual({ processed: 1, failed: 0 });
+      expect(held.seen).toEqual([1, 3]);
+      expect((await rowsByAge()).map((row) => row.dedupeKey)).toEqual([KEY, KEY]);
+    });
+
+    it("si el que estaba en curso falla, reintenta por su cuenta y sin la clave, que ya es del nuevo", async () => {
+      const held = await holdAfterReading({ fail: true });
+      await runCommand(SYSTEM_ACTOR, change);
+      held.release();
+      expect(await held.running).toBe("failed");
+      let [first, second] = await rowsByAge();
+      expect(first?.lastError).toBe("no hoy");
+      expect(first?.dedupeKey).toBeNull();
+      expect(second?.dedupeKey).toBe(KEY);
+
+      expect(await drain(50)).toEqual({ processed: 1, failed: 0 });
+      expect(await processOne(at(new Date(Date.now() + DAY)))).toBe("processed");
+      expect(held.seen).toEqual([1, 2, 2]);
+      [first, second] = await rowsByAge();
+      expect(first?.processedAt).toBeInstanceOf(Date);
+      expect(second?.processedAt).toBeInstanceOf(Date);
+    });
+
+    it("si falla mientras otro comando todavía no confirma su emit, la clave la decide el índice", async () => {
+      const held = await holdAfterReading({ fail: true });
+      const command = await holdCommand(SYSTEM_ACTOR, change);
+      held.release();
+      try {
+        // El fallo quiere devolverle la clave a su fila y hace cola detrás del emit sin confirmar.
+        await expect.poll(() => waitingOn(command.pid)).toBe(1);
+      } finally {
+        command.release();
+        await command.done;
+      }
+      expect(await held.running).toBe("failed");
+      const [first, second] = await rowsByAge();
+      expect(first?.lastError).toBe("no hoy");
+      expect(first?.dedupeKey).toBeNull();
+      expect(second?.dedupeKey).toBe(KEY);
+    });
+
+    it("un evento con clave que agota sus intentos queda en dead letter con su clave", async () => {
+      registerHandler(TYPE, async () => {
+        throw new Error("no hoy");
+      });
+      await runCommand(SYSTEM_ACTOR, change);
+      const start = new Date();
+      for (let i = 0; i < 5; i += 1) {
+        expect(await processOne(at(new Date(start.getTime() + DAY * i)))).toBe("failed");
+      }
+      const [row] = await db().select().from(outbox);
+      expect(row?.deadLetterAt).toBeInstanceOf(Date);
+      expect(row?.dedupeKey).toBe(KEY);
     });
   });
 

@@ -2,7 +2,7 @@ import { and, count, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import { type Actor, type CommandContext, runCommand, type Tx } from "@/db/tx";
-import { outbox } from "../schema";
+import { OUTBOX_PENDING_KEY_INDEX, outbox } from "../schema";
 
 export type OutboxState = "pending" | "dead" | "done";
 
@@ -31,9 +31,6 @@ export async function countDeadLetters(): Promise<number> {
     .where(isNotNull(outbox.deadLetterAt));
   return row?.n ?? 0;
 }
-
-/** El índice que deja un solo pendiente por clave de deduplicación (`schema.ts`). */
-const PENDING_KEY_INDEX = "outbox_dedupe_key_pending_unique";
 
 /**
  * Vuelve a poner en cola una fila en dead letter; auditado. Si su clave de deduplicación ya la ocupa otro
@@ -86,7 +83,7 @@ async function requeue(tx: Tx, id: string, now: Date): Promise<boolean> {
     );
     return true;
   } catch (error) {
-    if (isUniqueViolation(error, PENDING_KEY_INDEX)) {
+    if (isUniqueViolation(error, OUTBOX_PENDING_KEY_INDEX)) {
       return false;
     }
     throw error;

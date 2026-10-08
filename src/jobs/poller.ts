@@ -1,6 +1,8 @@
 import { and, asc, eq, isNull, lte } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { outbox } from "@/modules/system/schema";
+import { isUniqueViolation } from "@/db/errors";
+import type { Tx } from "@/db/tx";
+import { OUTBOX_PENDING_KEY_INDEX, outbox } from "@/modules/system/schema";
 import { withTimeout } from "@/shared/lib/timeout";
 import { logger } from "@/shared/log";
 import { backoffFor, isDeadAfter } from "./backoff";
@@ -9,8 +11,9 @@ import { getHandlers } from "./registry";
 // Poller del outbox (ADR-012, ADR-021, ADR-118). Un evento se entrega en dos pasos:
 //
 // 1. La toma: una transacción corta elige la fila vencida con FOR UPDATE SKIP LOCKED, le cuenta el
-//    intento, corre su `nextAttemptAt` lo que esperaría un fallo de ese intento y CONFIRMA. Si el proceso
-//    muere después, el intento ya está contado y la fila no vuelve de primera.
+//    intento, corre su `nextAttemptAt` lo que esperaría un fallo de ese intento, le quita la clave de
+//    deduplicación y CONFIRMA. Si el proceso muere después, el intento ya está contado y la fila no
+//    vuelve de primera. Sin la clave, un emit que llegue mientras corre entra como evento nuevo.
 // 2. La entrega: otra transacción vuelve a bloquear la fila y la sostiene mientras corren los handlers,
 //    que trabajan con sus propias conexiones (getDb, runCommand), no dentro de ella. Al final anota el
 //    resultado.
@@ -80,6 +83,9 @@ async function take(dueBy: Date, clock: Clock): Promise<Taken | null> {
       .set({
         attempts: attempt,
         nextAttemptAt: new Date(takenAt.getTime() + backoffFor(attempt)),
+        // La clave deduplica lo que está en cola, y esta fila ya no lo está: el handler puede haber leído
+        // antes del cambio que trae el emit siguiente (ADR-118 regla 3). `row` la conserva para devolverla.
+        dedupeKey: null,
       })
       .where(eq(outbox.id, row.id));
     return { row, attempt, exhausted: false };
@@ -149,7 +155,7 @@ export async function processOne(
       await withTimeout(runHandlers(), handlerTimeoutMs, `El evento ${row.eventType}`);
       await tx
         .update(outbox)
-        .set({ processedAt: clock(), lastError: null })
+        .set({ processedAt: clock(), lastError: null, dedupeKey: row.dedupeKey })
         .where(eq(outbox.id, row.id));
       log.debug("procesado");
       return "processed";
@@ -159,18 +165,44 @@ export async function processOne(
       const dead = isDeadAfter(attempt);
       // El handler pudo tardar hasta su límite: la espera corre desde ahora, no desde la toma.
       const failedAt = clock();
-      await tx
-        .update(outbox)
-        .set({
-          lastError: message.slice(0, 2_000),
-          nextAttemptAt: new Date(failedAt.getTime() + backoffFor(attempt)),
-          ...(dead ? { deadLetterAt: failedAt } : {}),
-        })
-        .where(eq(outbox.id, row.id));
-      log.warn({ err: error, deadLetter: dead }, "falló");
+      const keyBack = await recordFailure(tx, row, {
+        lastError: message.slice(0, 2_000),
+        nextAttemptAt: new Date(failedAt.getTime() + backoffFor(attempt)),
+        ...(dead ? { deadLetterAt: failedAt } : {}),
+      });
+      log.warn({ err: error, deadLetter: dead, keyBack }, "falló");
       return "failed";
     }
   });
+}
+
+/**
+ * Anota el fallo y le devuelve a la fila su clave de deduplicación: mientras espera el reintento vuelve
+ * a ser el único pendiente de su clave. Si otro pendiente la ocupó mientras corría, la fila queda sin
+ * clave y reintenta por su cuenta; devuelve si la recuperó. Lo decide el índice único y no una lectura
+ * previa, porque el emit puede estar confirmándose en este instante, y va en un savepoint para que su
+ * rechazo no aborte la transacción de la entrega. Una fila que va a dead letter nunca choca.
+ */
+async function recordFailure(
+  tx: Tx,
+  row: OutboxRow,
+  failure: Pick<OutboxRow, "lastError" | "nextAttemptAt"> & { deadLetterAt?: Date },
+): Promise<boolean> {
+  try {
+    await tx.transaction((savepoint) =>
+      savepoint
+        .update(outbox)
+        .set({ ...failure, dedupeKey: row.dedupeKey })
+        .where(eq(outbox.id, row.id)),
+    );
+    return true;
+  } catch (error) {
+    if (!isUniqueViolation(error, OUTBOX_PENDING_KEY_INDEX)) {
+      throw error;
+    }
+    await tx.update(outbox).set(failure).where(eq(outbox.id, row.id));
+    return false;
+  }
 }
 
 export interface DrainResult {
