@@ -8,11 +8,13 @@ import {
   createGroupAs,
   evaluateAs,
   getGroupDetail,
+  getSnapshot,
   groupJoinBlocker,
   listEvaluationTray,
   listGroupIdsOf,
   listGroups,
   previewMemberImport,
+  recomputeSnapshots,
   removeMemberAs,
   seedWorkCommitteesAs,
 } from "@/modules/permanence";
@@ -21,7 +23,15 @@ import { t } from "@/shared/copy";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
-import { seedCall, seedCallEntry, seedMember, seedTerm } from "./factories";
+import {
+  seedCall,
+  seedCallEntry,
+  seedCommittee,
+  seedCommitteeMembership,
+  seedMember,
+  seedRule,
+  seedTerm,
+} from "./factories";
 
 // Volver a un grupo de trabajo (ADR-116 regla 5): quien fue retirado vuelve a su misma pertenencia por
 // los tres caminos (a mano, por archivo y por una convocatoria aceptada), queda pendiente de una
@@ -116,6 +126,54 @@ describe("volver a un grupo de trabajo", () => {
     });
     const [audit] = await returnAudits();
     expect(audit?.before).toMatchObject({ evaluation: "GOOD" });
+  });
+
+  // Decisión abierta 32: quien vuelve queda pendiente (ADR-116 regla 5), y el cómputo le sigue contando
+  // la evaluación a quien salió ya evaluada. Así que retirar y volver a agregar a alguien con «Bien» le
+  // quita esos puntos hasta que la evalúen otra vez. Si al volver debe conservar su evaluación no está
+  // decidido: esta prueba fija la conducta de hoy con el criterio calculado.
+  it("quien vuelve ya evaluada deja de sumar en su criterio hasta que la evalúan otra vez (decisión abierta 32)", async () => {
+    const termId = await seedTerm();
+    const persona = await seedMember("criterio@eafit.edu.co");
+    // La tabla de permanencia se arma sobre el roster del término: un comité y el criterio GAP OE.
+    await seedCommitteeMembership(persona, await seedCommittee("a3"), termId);
+    await seedRule(termId, "gap-oe", {
+      label: "GAP OE",
+      weight: 5,
+      computation: "GROUP_EVALUATED",
+      params: { groupKind: "GAP_OE", mode: "FIXED" },
+    });
+    const criterion = async () => {
+      await recomputeSnapshots(termId);
+      return (await getSnapshot(persona, termId))?.general.find((item) => item.key === "gap-oe");
+    };
+    const { id } = await createGroupAs(admin, { termId, kind: "GAP_OE", name: "GAP OE VTG" });
+    const good = { groupId: id, personId: persona, evaluation: "GOOD" as const, note: "" };
+    const counted = {
+      achieved: 5,
+      detail: { type: "GROUP_EVALUATED", goodCount: 1, pendingCount: 0 },
+    };
+    await addMembersAs(admin, id, [persona]);
+    await evaluateAs(admin, good, asAdmin);
+    expect(await criterion()).toMatchObject(counted);
+    // A quien salió ya evaluada el cómputo le sigue contando su evaluación.
+    await removeMemberAs(admin, id, persona);
+    expect(await criterion()).toMatchObject(counted);
+
+    await addMembersAs(admin, id, [persona]);
+
+    // Volvió pendiente: la evaluación de antes ya no suma.
+    expect(await criterion()).toMatchObject({
+      achieved: 0,
+      detail: { goodCount: 0, pendingCount: 1, groups: [{ groupId: id, evaluation: "PENDING" }] },
+    });
+    // Y la nueva sí cuenta.
+    await evaluateAs(admin, good, asAdmin);
+    expect(await criterion()).toMatchObject({
+      ...counted,
+      remaining: 0,
+      detail: { ...counted.detail, groups: [{ groupId: id, evaluation: "GOOD" }] },
+    });
   });
 
   it("por archivo: la vista previa la ofrece para agregar y al aplicar entra", async () => {
