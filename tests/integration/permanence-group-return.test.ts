@@ -19,6 +19,7 @@ import {
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedCall, seedCallEntry, seedMember, seedTerm } from "./factories";
 
@@ -28,6 +29,8 @@ import { seedCall, seedCallEntry, seedMember, seedTerm } from "./factories";
 
 const admin = { personId: null, ip: null };
 const asAdmin = { isAdmin: true };
+/** Cuántas veces se repite una carrera: una sola ronda puede caer en el orden que no la muestra. */
+const RACE_ROUNDS = 5;
 
 async function memberOf(groupId: string, personId: string) {
   return (await getGroupDetail(groupId))?.members.find((member) => member.personId === personId);
@@ -170,39 +173,54 @@ describe("volver a un grupo de trabajo", () => {
     const persona = await seedMember("doble@eafit.edu.co");
     const { id } = await createGroupAs(admin, { termId, kind: "GAP_OE", name: "GAP OE" });
     await addMembersAs(admin, id, [persona]);
-    await removeMemberAs(admin, id, persona);
+    // Las dos altas arrancan con su conexión ya abierta: si no, la primera confirma antes de que la
+    // otra lea y la prueba pasa aunque nadie espere la fila.
+    await warmPool();
 
-    const results = await Promise.all([
-      addMembersAs(admin, id, [persona]),
-      addMembersAs(admin, id, [persona]),
-    ]);
+    for (let round = 1; round <= RACE_ROUNDS; round += 1) {
+      await removeMemberAs(admin, id, persona);
 
-    expect(results.map((result) => result.added).sort()).toEqual([0, 1]);
-    expect(await returnAudits()).toHaveLength(1);
-    expect(await memberOf(id, persona)).toMatchObject({ leftAt: null });
+      const results = await Promise.all([
+        addMembersAs(admin, id, [persona]),
+        addMembersAs(admin, id, [persona]),
+      ]);
+
+      // Una la devuelve y la otra espera la fila y la encuentra viva: no vuelve dos veces.
+      expect(results.map((result) => result.added).sort()).toEqual([0, 1]);
+      expect(results.flatMap((result) => result.returned)).toEqual([persona]);
+      expect(results.flatMap((result) => result.already)).toEqual([persona]);
+      expect(await returnAudits()).toHaveLength(round);
+      expect(await memberOf(id, persona)).toMatchObject({ leftAt: null });
+    }
   });
 
   it("dos altas simultáneas a dos comités de trabajo no pasan el tope", async () => {
     const termId = await seedTerm();
-    const persona = await seedMember("carrera@eafit.edu.co", {
-      firstName: "Caro",
-      lastName: "Carrera",
-    });
     const [cap, cgh, cml] = await workCommittees(termId);
     if (!cap || !cgh || !cml) throw new Error("faltan comités de trabajo");
-    await addMembersAs(admin, cap, [persona]);
+    // A solas o después de otra prueba, las dos altas arrancan con su conexión ya abierta.
+    await warmPool();
 
-    const settled = await Promise.allSettled([
-      addMembersAs(admin, cgh, [persona]),
-      addMembersAs(admin, cml, [persona]),
-    ]);
+    for (let round = 1; round <= RACE_ROUNDS; round += 1) {
+      const persona = await seedMember(`carrera-${round}@eafit.edu.co`, {
+        firstName: "Caro",
+        lastName: "Carrera",
+      });
+      await addMembersAs(admin, cap, [persona]);
 
-    expect(await listGroupIdsOf(persona)).toHaveLength(2);
-    const rejected = settled.filter((item) => item.status === "rejected");
-    expect(rejected).toHaveLength(1);
-    expect(String((rejected[0] as PromiseRejectedResult).reason)).toContain(
-      t("T-2284", { nombre: "Caro Carrera" }),
-    );
+      const settled = await Promise.allSettled([
+        addMembersAs(admin, cgh, [persona]),
+        addMembersAs(admin, cml, [persona]),
+      ]);
+
+      // Cuentan y escriben bajo el mismo candado: la segunda ya ve dos comités y recibe el motivo.
+      expect(await listGroupIdsOf(persona)).toHaveLength(2);
+      const rejected = settled.filter((item) => item.status === "rejected");
+      expect(rejected).toHaveLength(1);
+      expect(String((rejected[0] as PromiseRejectedResult).reason)).toContain(
+        t("T-2284", { nombre: "Caro Carrera" }),
+      );
+    }
   });
 
   it("no se puede evaluar a quien ya salió del grupo", async () => {
