@@ -1,6 +1,6 @@
 # ADR-079: Ninguna espera es indefinida, y lo que se verifica sale de su fuente
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-118)
 - Fecha: 2026-09-19
 - Relacionadas: ADR-012, ADR-021, ADR-032, ADR-039
 - Enmienda: ADR-012 (ejecución del poller), ADR-032 (`db:release`)
@@ -53,3 +53,7 @@ Tres hallazgos menores del mismo corte entran aquí porque no cambian comportami
 
 - **La IP del cliente** (`clientIp()` toma el primer valor de `X-Forwarded-For`) espera a comprobar en el despliegue real qué cabeceras entregan Cloudflare y Railway (tramo V1).
 - **El prefijo `__Host-` de la cookie de sesión** cierra las sesiones vivas y va con la ADR de sesión y subdominios (tramo R8).
+
+## Enmienda (2026-10-08, ADR-118)
+
+La regla 6 decía que, si la base cortaba la conexión del poller mientras corrían los handlers, «la fila quedaría libre sin contar el intento y se reintentaría de inmediato y sin backoff», y lo evitaba exigiendo que la base esperara más que el poller. Eso cerraba una causa; la muerte del proceso con el evento tomado dejaba la fila igual (DT-212). [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 1 lo cierra para todas: el poller cuenta el intento y corre `nextAttemptAt` en una toma que confirma antes de correr los handlers. La invariante de `src/env.ts` sigue igual; lo que protege ahora es que un intento sano no se pierda por un corte de la base, no que la fila se reintente sin espera.

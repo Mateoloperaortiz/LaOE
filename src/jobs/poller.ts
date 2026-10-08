@@ -6,19 +6,39 @@ import { logger } from "@/shared/log";
 import { backoffFor, isDeadAfter } from "./backoff";
 import { getHandlers } from "./registry";
 
-// Poller del outbox (ADR-012, ADR-021): toma una fila pendiente con FOR UPDATE SKIP LOCKED, corre sus
-// handlers y la marca. La transacción del poller solo sostiene el bloqueo de la fila: los handlers
-// trabajan con sus propias conexiones (getDb, runCommand), no dentro de ella. Dos pollers nunca
-// procesan la misma fila.
+// Poller del outbox (ADR-012, ADR-021, ADR-118). Un evento se entrega en dos pasos:
+//
+// 1. La toma: una transacción corta elige la fila vencida con FOR UPDATE SKIP LOCKED, le cuenta el
+//    intento, corre su `nextAttemptAt` lo que esperaría un fallo de ese intento y CONFIRMA. Si el proceso
+//    muere después, el intento ya está contado y la fila no vuelve de primera.
+// 2. La entrega: otra transacción vuelve a bloquear la fila y la sostiene mientras corren los handlers,
+//    que trabajan con sus propias conexiones (getDb, runCommand), no dentro de ella. Al final anota el
+//    resultado.
+//
+// Dos pollers nunca procesan la misma fila: mientras corre la protege el bloqueo, como antes, y entre la
+// toma y el bloqueo ya no está vencida.
 
 export type ProcessOutcome = "idle" | "processed" | "failed";
 
+type OutboxRow = typeof outbox.$inferSelect;
+
+/** Lo que queda escrito en una fila que gastó sus intentos sin que ninguno terminara. */
+const UNFINISHED =
+  "Gastó sus intentos sin terminar el último: el proceso se detuvo con el evento tomado";
+
+interface Taken {
+  row: OutboxRow;
+  attempt: number;
+  /** Ya había gastado sus intentos: la toma la dejó en dead letter y sus handlers no corren. */
+  exhausted: boolean;
+}
+
 /**
- * `handlerTimeoutMs` es el último recurso de ADR-079 y cubre todos los handlers del evento: pasado ese
- * tiempo el intento se registra como fallido y la cola sigue. El handler abandonado termina solo,
- * acotado por los límites de red y de base.
+ * Toma la fila vencida más vieja y confirma: el intento queda contado antes de correr nada (ADR-118
+ * regla 1). Una fila que llega acá con todos sus intentos gastados no terminó ninguno, porque un fallo
+ * anotado la habría dejado en dead letter: va a dead letter sin volver a correr.
  */
-export async function processOne(now = new Date(), handlerTimeoutMs = 0): Promise<ProcessOutcome> {
+async function take(now: Date): Promise<Taken | null> {
   return getDb().transaction(async (tx) => {
     const [row] = await tx
       .select()
@@ -34,10 +54,63 @@ export async function processOne(now = new Date(), handlerTimeoutMs = 0): Promis
       .limit(1)
       .for("update", { skipLocked: true });
     if (!row) {
-      return "idle";
+      return null;
+    }
+    if (isDeadAfter(row.attempts)) {
+      const lastError = row.lastError
+        ? `${UNFINISHED}. Último error: ${row.lastError}`
+        : UNFINISHED;
+      await tx
+        .update(outbox)
+        .set({ deadLetterAt: now, lastError: lastError.slice(0, 2_000) })
+        .where(eq(outbox.id, row.id));
+      return { row, attempt: row.attempts, exhausted: true };
     }
     const attempt = row.attempts + 1;
-    const log = logger.child({ job: row.eventType, outboxId: row.id, attempt });
+    await tx
+      .update(outbox)
+      .set({ attempts: attempt, nextAttemptAt: new Date(now.getTime() + backoffFor(attempt)) })
+      .where(eq(outbox.id, row.id));
+    return { row, attempt, exhausted: false };
+  });
+}
+
+/**
+ * `handlerTimeoutMs` es el último recurso de ADR-079 y cubre todos los handlers del evento: pasado ese
+ * tiempo el intento se registra como fallido y la cola sigue. El handler abandonado termina solo,
+ * acotado por los límites de red y de base.
+ */
+export async function processOne(now = new Date(), handlerTimeoutMs = 0): Promise<ProcessOutcome> {
+  const taken = await take(now);
+  if (!taken) {
+    return "idle";
+  }
+  const { row, attempt } = taken;
+  const log = logger.child({ job: row.eventType, outboxId: row.id, attempt });
+  if (taken.exhausted) {
+    log.warn({ deadLetter: true }, "gastó sus intentos sin terminar: no corre más");
+    return "failed";
+  }
+  return getDb().transaction(async (tx) => {
+    // El bloqueo de la fila cubre los handlers, como antes de la toma confirmada: otro poller la salta
+    // aunque su espera venza mientras corre.
+    const [held] = await tx
+      .select({ id: outbox.id })
+      .from(outbox)
+      .where(
+        and(
+          eq(outbox.id, row.id),
+          eq(outbox.attempts, attempt),
+          isNull(outbox.processedAt),
+          isNull(outbox.deadLetterAt),
+        ),
+      )
+      .for("update");
+    if (!held) {
+      // Alguien la cerró o la volvió a tomar entre la toma y el bloqueo: este intento ya no es de nadie.
+      log.warn("la fila tomada cambió antes de correr: se deja");
+      return "idle";
+    }
     const handlers = getHandlers(row.eventType);
     // Tras un límite vencido, la cadena abandonada no arranca los handlers que le faltaban.
     let abandoned = false;
@@ -57,7 +130,7 @@ export async function processOne(now = new Date(), handlerTimeoutMs = 0): Promis
       await withTimeout(runHandlers(), handlerTimeoutMs, `El evento ${row.eventType}`);
       await tx
         .update(outbox)
-        .set({ processedAt: now, attempts: attempt, lastError: null })
+        .set({ processedAt: now, lastError: null })
         .where(eq(outbox.id, row.id));
       log.debug("procesado");
       return "processed";
@@ -68,7 +141,6 @@ export async function processOne(now = new Date(), handlerTimeoutMs = 0): Promis
       await tx
         .update(outbox)
         .set({
-          attempts: attempt,
           lastError: message.slice(0, 2_000),
           nextAttemptAt: new Date(now.getTime() + backoffFor(attempt)),
           ...(dead ? { deadLetterAt: now } : {}),

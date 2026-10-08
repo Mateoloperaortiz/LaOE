@@ -1,6 +1,6 @@
 # ADR-012: Outbox transaccional; efectos fuera del commit
 
-- Estado: Aceptada (enmendada por ADR-021, ADR-038, ADR-040, ADR-079, ADR-084 y ADR-113)
+- Estado: Aceptada (enmendada por ADR-021, ADR-038, ADR-040, ADR-079, ADR-084, ADR-113 y ADR-118)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-001, ADR-009, ADR-021
 
@@ -42,3 +42,7 @@ Un evento de dominio tiene contrato: nombre y esquema del payload en `src/domain
 ## Enmienda (2026-10-07, ADR-113)
 
 La decisión dejaba los dead letters «con opción de reintentar» y un solo pendiente por `dedupeKey`, sin decir qué pasa cuando las dos cosas se cruzan: un dead letter deja libre su clave, el mismo trabajo se vuelve a encolar, y reintentar el dead letter chocaba con el índice único y respondía con el error de la base. Ahora ese reintento da el dead letter por atendido: lo marca procesado sin correrlo, deja el pendiente como está y lo nombra en la auditoría del reintento. Lo decide el índice dentro de la transacción del comando, así que vale también si el mismo trabajo se encola mientras corre el reintento. El reintento de un dead letter sin clave, o cuya clave no tiene pendiente, no cambia. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 8.
+
+## Enmienda (2026-10-08, ADR-118)
+
+La decisión mandaba a dead letter «tras cinco fallos», y un fallo solo se contaba cuando el poller alcanzaba a anotarlo: un evento que tumbaba el proceso no sumaba nunca (DT-212). Según [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 1, el intento se cuenta al tomar la fila, en una transacción que confirma antes de correr los handlers, y el dead letter llega tras cinco intentos, hayan fallado o no hayan terminado.

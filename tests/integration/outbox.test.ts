@@ -1,4 +1,5 @@
-import { count, eq } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
+import type { PoolClient } from "pg";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -196,6 +197,21 @@ describe("poller del outbox", () => {
       expect(await processOne(tomorrow)).toBe("idle");
     });
 
+    it("tiene el intento contado desde que se toma y queda fuera del alcance de un poller de la versión anterior", async () => {
+      const before = Date.now();
+      const held = await holdInHandler("test.held");
+      const [taken] = await db().select().from(outbox);
+      held.release();
+      expect(await held.running).toBe("processed");
+      expect(taken?.attempts).toBe(1);
+      // El poller anterior al ciclo 6 solo mira filas vencidas (`nextAttemptAt <= ahora`): la toma
+      // confirmada la deja sin vencer lo que esperaría un fallo de ese intento.
+      expect(taken?.nextAttemptAt.getTime()).toBeGreaterThanOrEqual(before + 60_000);
+      const [done] = await db().select().from(outbox);
+      expect(done?.attempts).toBe(1);
+      expect(done?.processedAt).toBeInstanceOf(Date);
+    });
+
     it("sigue en la lista de pendientes de /admin/sistema/jobs", async () => {
       const held = await holdInHandler("test.held");
       const pending = await listOutbox("pending");
@@ -204,6 +220,71 @@ describe("poller del outbox", () => {
       expect(await held.running).toBe("processed");
       expect(await listOutbox("pending")).toEqual([]);
       expect((await listOutbox("done")).map((row) => row.eventType)).toEqual(["test.held"]);
+    });
+  });
+
+  describe("el proceso muere con el evento tomado", () => {
+    const DAY = 24 * 60 * 60_000;
+
+    // Una conexión prestada del pool no tiene quién oiga su `error` (el listener de `db/client.ts` es
+    // de las inactivas, DT-238): sin este, la conexión que la prueba cierra tumba la corrida.
+    const listening = new WeakSet<object>();
+    const listen = (client: PoolClient) => {
+      if (!listening.has(client)) {
+        listening.add(client);
+        client.on("error", () => {});
+      }
+    };
+    beforeEach(() => void db().$client.on("acquire", listen));
+    afterEach(() => void db().$client.off("acquire", listen));
+
+    /**
+     * Lo que le pasa a la fila cuando el proceso muere a mitad de un handler: PostgreSQL cierra la
+     * conexión del poller y deshace la transacción que tenía abierta.
+     */
+    async function killPollerConnection(): Promise<void> {
+      const found = await db().execute<{ pid: number }>(sql`
+        select pid from pg_stat_activity
+        where datname = current_database() and pid <> pg_backend_pid()
+          and state = 'idle in transaction' and query ilike '%outbox%for update%'
+      `);
+      expect(found.rows).toHaveLength(1);
+      await db().execute(sql`select pg_terminate_backend(${found.rows[0]?.pid ?? 0}, 5000)`);
+    }
+
+    it("el intento queda contado, no vuelve de primera y, gastados los cinco, va a dead letter sin correr otra vez", async () => {
+      let runs = 0;
+      registerHandler("test.crash", async () => {
+        runs += 1;
+        await killPollerConnection();
+      });
+      await enqueueEvent(db(), { type: "test.crash", payload: {} });
+      const start = new Date();
+      await expect(processOne(start)).rejects.toThrow();
+      let [row] = await db().select().from(outbox);
+      expect(row?.attempts).toBe(1);
+      expect(row?.processedAt).toBeNull();
+      expect(row?.deadLetterAt).toBeNull();
+      // Espera lo mismo que un intento fallido: el arranque siguiente no lo encuentra de primero.
+      expect((row?.nextAttemptAt.getTime() ?? 0) - start.getTime()).toBe(60_000);
+      expect(await processOne(start)).toBe("idle");
+      expect(runs).toBe(1);
+
+      for (let i = 1; i < 5; i += 1) {
+        await expect(processOne(new Date(start.getTime() + DAY * i))).rejects.toThrow();
+      }
+      [row] = await db().select().from(outbox);
+      expect(row?.attempts).toBe(5);
+      expect(row?.deadLetterAt).toBeNull();
+      expect(runs).toBe(5);
+
+      expect(await processOne(new Date(start.getTime() + DAY * 5))).toBe("failed");
+      [row] = await db().select().from(outbox);
+      expect(row?.deadLetterAt).toBeInstanceOf(Date);
+      expect(row?.attempts).toBe(5);
+      expect(row?.lastError).toContain("sin terminar");
+      expect(runs).toBe(5);
+      expect((await listOutbox("dead")).map((dead) => dead.id)).toEqual([row?.id]);
     });
   });
 
