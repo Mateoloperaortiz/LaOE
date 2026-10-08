@@ -119,9 +119,12 @@ export async function sendTransactionalEmail(
       };
     }
   }
+  // La clave del proveedor sale solo de la clave del registro. El tipo no deja que quien llama la pase;
+  // si aun así viene en el objeto, no viaja.
+  const { idempotencyKey: _slipped, ...outgoing } = email as MailMessage;
   const mail: MailMessage = options.dedupeKey
-    ? { ...email, idempotencyKey: providerKey(email.personId, options.dedupeKey) }
-    : email;
+    ? { ...outgoing, idempotencyKey: providerKey(email.personId, options.dedupeKey) }
+    : outgoing;
   const { primary, overflow } = getTransports();
   const route = chooseRoute(
     overflow ? await sentTodayVia(primary.name, now) : 0,

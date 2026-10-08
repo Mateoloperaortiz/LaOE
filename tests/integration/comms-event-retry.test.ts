@@ -392,5 +392,26 @@ describe("correos de un evento que el poller reintenta", () => {
       expect(keys[2]).toMatch(/^[0-9a-f]{64}$/);
       expect(again).toMatchObject({ status: "SENT", provider: "resend" });
     });
+
+    // El tipo no deja que quien llama pase la clave, pero un objeto armado en otra parte puede traer el
+    // campo en ejecución. Al proveedor solo le llega la que sale de la clave del registro.
+    it("una clave de idempotencia colada en el correo no llega al proveedor: sin clave de registro sale sin ninguna, y con ella sale la del registro", async () => {
+      const { personId } = await activeMember("colada@eafit.edu.co");
+      const mail = {
+        personId,
+        to: "colada@eafit.edu.co",
+        subject: "Asunto",
+        text: "Texto",
+        idempotencyKey: "colada",
+      };
+
+      await sendTransactionalEmail(mail);
+      await sendTransactionalEmail(mail, new Date(), { dedupeKey: "prueba:colada" });
+
+      const sent = mailsTo("colada@eafit.edu.co");
+      expect(sent).toHaveLength(2);
+      expect(sent[0]).not.toHaveProperty("idempotencyKey");
+      expect(sent[1]?.idempotencyKey).toBe(`${host()}/prueba:colada/${personId}`);
+    });
   });
 });
