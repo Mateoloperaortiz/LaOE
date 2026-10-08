@@ -2,7 +2,7 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-08
-- Relacionadas: ADR-006, ADR-007, ADR-017, ADR-022, ADR-030, ADR-034, ADR-035, ADR-036, ADR-037, ADR-060, ADR-065, ADR-067, ADR-072, ADR-084, ADR-109, ADR-110, ADR-111, ADR-112, ADR-113, ADR-114, ADR-115
+- Relacionadas: ADR-006, ADR-007, ADR-017, ADR-022, ADR-030, ADR-034, ADR-035, ADR-036, ADR-037, ADR-060, ADR-062, ADR-065, ADR-067, ADR-072, ADR-084, ADR-109, ADR-110, ADR-111, ADR-112, ADR-113, ADR-114, ADR-115
 - Enmienda: ADR-035 (reglas 5 y 6: toda transición de una asistencia que ya existe toma su fila, y el lote no reaprueba un rechazo), ADR-036 (regla 6: quien fue retirado de un grupo de trabajo puede volver, a quien salió no se le evalúa y la entrada por convocatoria se comprueba al aceptar; regla 9: el cierre congela el estado final) , ADR-037 (regla 10: aceptar una inscripción le pregunta antes al grupo, y el trabajo que agrega no deja morir el evento), ADR-030 (regla 4: anonimizar borra las fotos propias de la persona con todos sus objetos), ADR-115 (regla 8: lo que un evento le avisa a una persona no sale si ya fue anonimizada), ADR-082 (regla 2: el kit del admin arma el actor de cada escritura con `actorContext` y el recurso lo entrega entero), ADR-112 (regla 4: revocar una sanción también declara su alcance, y solo revoca el de ADMIN), ADR-113 (regla 7: la toma de una importación en vista previa dice además su tipo) y ADR-114 (regla 3: revocar recibe además ese alcance; regla 7: la toma de una importación aplicada dice además su tipo)
 
 ## Contexto
