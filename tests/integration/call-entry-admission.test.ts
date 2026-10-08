@@ -1,5 +1,7 @@
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb } from "@/db/client";
+import { callEntryChanged } from "@/domain-events/crm";
+import { registerHandler } from "@/jobs/registry";
 import { applyToCallAs, decideEntryAs, listCallEntries, listTasks } from "@/modules/crm";
 import {
   addMembersAs,
@@ -58,8 +60,24 @@ const twoCommittees = t("T-2284", { nombre: "Tere Tres" });
 const MISSING_CHECK = /exige la comprobación del grupo/;
 const NOT_A_REASON = /respondió algo que no es un motivo/;
 
+/** Cuántas veces falla el vecino de `call-entry.changed` antes de dejar pasar el evento. */
+let neighbourFailures = 0;
+
 describe("una inscripción aceptada entra al grupo o quien acepta recibe el motivo", () => {
-  beforeEach(truncateAll);
+  beforeAll(() => {
+    // Un vecino al final de la cadena del evento: falla después de que permanence ya avisó que la
+    // persona no entró, y con eso el poller reintenta el evento entero.
+    registerHandler(callEntryChanged.type, async () => {
+      if (neighbourFailures > 0) {
+        neighbourFailures -= 1;
+        throw new Error("vecino caído");
+      }
+    });
+  });
+  beforeEach(async () => {
+    neighbourFailures = 0;
+    await truncateAll();
+  });
   afterAll(() => closeDb());
 
   it("aceptar a quien ya está en dos comités de trabajo responde el motivo y no acepta", async () => {
@@ -160,6 +178,28 @@ describe("una inscripción aceptada entra al grupo o quien acepta recibe el moti
       assigneeId: null,
     });
     expect(tasks[0]?.dueAt).toBeInstanceOf(Date);
+  });
+
+  it("si el evento de la inscripción se reintenta, el aviso se repite y sigue una sola tarea abierta", async () => {
+    const { termId, cap, cgh, cml, personId } = await setup();
+    await addMembersAs(admin, cap, [personId]);
+    const callId = await seedCall(termId, cml, { selection: "MANUAL", title: "Logística 2026" });
+    const entryId = await seedCallEntry(callId, personId, "APPLIED");
+    await decideEntryAs(admin, callId, entryId, "ACCEPTED", undefined, admission);
+    await addMembersAs(admin, cgh, [personId]);
+
+    // El trabajo de permanence avisa por fuera de la transacción del evento, así que el aviso queda
+    // aunque un vecino falle después y el evento vuelva a la cola.
+    neighbourFailures = 1;
+    await drainOutbox({ expectFailures: [callEntryChanged] });
+    expect(await openTasks()).toHaveLength(1);
+
+    // El reintento avisa otra vez: la tarea es una por persona y convocatoria (ADR-116 regla 7).
+    await drainOutbox({ now: new Date(Date.now() + 60 * 60_000) });
+
+    expect(await openTasks()).toHaveLength(1);
+    expect(await statusesOf(callId)).toEqual(["ACCEPTED"]);
+    expect(await listGroupIdsOf(personId)).not.toContain(cml);
   });
 
   it("una inscripción aceptada que el grupo admite entra al grupo y no abre ninguna tarea", async () => {

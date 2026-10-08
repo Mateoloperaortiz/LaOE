@@ -18,8 +18,10 @@ import {
   removeMemberAs,
   seedWorkCommitteesAs,
 } from "@/modules/permanence";
+import { addMembers, removeMember } from "@/modules/permanence/domain/groups";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { holdCommand, waitingOn } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
@@ -191,6 +193,35 @@ describe("volver a un grupo de trabajo", () => {
     expect(result).toMatchObject({ added: 1, add: 1, already: 0 });
   });
 
+  it("por archivo: quien entra por otro lado entre la vista previa y el clic sale como que ya estaba", async () => {
+    const termId = await seedTerm();
+    const persona = await seedMember("cruce@eafit.edu.co");
+    const { id } = await createGroupAs(admin, { termId, kind: "GAP", name: "GAP Días EAFIT" });
+    await addMembersAs(admin, id, [persona]);
+    await removeMemberAs(admin, id, persona);
+    const csv = "CORREO\ncruce@eafit.edu.co\n";
+    // El alta a mano queda escrita y sin confirmar: la vista previa del archivo todavía la ofrece.
+    const statuses = new Map([[persona, { name: "", status: "ACTIVE" }]]);
+    const held = await holdCommand(admin, (ctx) => addMembers(ctx, id, [persona], { statuses }));
+    const applying = applyMemberImportAs(admin, id, csv);
+    void applying.catch(() => undefined);
+    try {
+      // El archivo hace cola por la fila de la pertenencia y la encuentra viva.
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+      held.release();
+      await held.done;
+      const result = await applying;
+      // Lo que la pantalla dice: nadie entró por el archivo y la fila pasó de «agregar» a «ya estaba».
+      expect(result).toMatchObject({ added: 0, add: 0, already: 1 });
+      expect(result.rows.map((row) => row.outcome)).toEqual(["ALREADY"]);
+    } finally {
+      held.release();
+      await Promise.allSettled([held.done, applying]);
+    }
+    expect(await returnAudits()).toHaveLength(1);
+    expect(await memberOf(id, persona)).toMatchObject({ leftAt: null });
+  });
+
   it("por convocatoria aceptada: el trabajo que agrega la devuelve al grupo", async () => {
     const termId = await seedTerm();
     const persona = await seedMember("convocada@eafit.edu.co");
@@ -293,5 +324,32 @@ describe("volver a un grupo de trabajo", () => {
     ).rejects.toThrow(t("T-3213"));
 
     expect(await memberOf(id, persona)).toMatchObject({ evaluation: "PENDING" });
+  });
+
+  it("evaluar a quien otro está retirando espera el retiro y recibe que ya salió", async () => {
+    const termId = await seedTerm();
+    const persona = await seedMember("saliendo@eafit.edu.co");
+    const { id } = await createGroupAs(admin, { termId, kind: "GAP_OE", name: "GAP OE" });
+    await addMembersAs(admin, id, [persona]);
+    // El retiro queda escrito y sin confirmar: quien evalúa todavía lee a la persona en el grupo.
+    const held = await holdCommand(admin, (ctx) => removeMember(ctx, id, persona));
+    const evaluating = evaluateAs(
+      admin,
+      { groupId: id, personId: persona, evaluation: "GOOD", note: "" },
+      asAdmin,
+    );
+    void evaluating.catch(() => undefined);
+    try {
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+      held.release();
+      await held.done;
+      await expect(evaluating).rejects.toThrow(t("T-3213"));
+    } finally {
+      held.release();
+      await Promise.allSettled([held.done, evaluating]);
+    }
+    const member = await memberOf(id, persona);
+    expect(member).toMatchObject({ evaluation: "PENDING" });
+    expect(member?.leftAt).toBeInstanceOf(Date);
   });
 });
