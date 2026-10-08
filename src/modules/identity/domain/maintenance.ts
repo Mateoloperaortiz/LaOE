@@ -1,17 +1,20 @@
 import { and, isNotNull, lt, or } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { accessGrant, loginAttempt, otpChallenge, session } from "../schema";
+import { pruneCalendarTokens } from "./calendar-token";
 import { OTP_FAILED_WINDOW_MS } from "./pure";
 
 // Depuración diaria (ADR-012, prune): sesiones vencidas, retos de OTP viejos y, desde ADR-051,
 // intentos de ingreso y enlaces de acceso que ya no pueden servir. Lo que hay que conservar de un
-// enlace —quién lo emitió, para quién y si se usó— vive en la auditoría, no en esta tabla.
+// enlace —quién lo emitió, para quién y si se usó— vive en la auditoría, no en esta tabla. Desde
+// ADR-116 regla 15, también los tokens del calendario de quien ya salió o fue anonimizado.
 
 export interface PruneIdentityResult {
   sessions: number;
   challenges: number;
   attempts: number;
   grants: number;
+  calendarTokens: number;
 }
 
 export async function pruneIdentity(now = new Date()): Promise<PruneIdentityResult> {
@@ -42,10 +45,12 @@ export async function pruneIdentity(now = new Date()): Promise<PruneIdentityResu
       ),
     )
     .returning({ id: accessGrant.id });
+  const calendarTokens = await pruneCalendarTokens();
   return {
     sessions: sessions.length,
     challenges: challenges.length,
     attempts: attempts.length,
     grants: grants.length,
+    calendarTokens,
   };
 }

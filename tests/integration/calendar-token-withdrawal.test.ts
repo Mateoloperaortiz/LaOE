@@ -7,6 +7,7 @@ import {
   resolveCalendarToken,
   rotateCalendarTokenAs,
 } from "@/modules/identity";
+import { pruneIdentity } from "@/modules/identity/domain/maintenance";
 import { calendarToken } from "@/modules/identity/schema";
 import {
   anonymizePersonAs,
@@ -26,6 +27,8 @@ import { leaveUntilSoon, seedMember } from "./factories";
 // Antes quedaba dormido, porque la ruta exige una membresía activa, y revivía si la persona volvía.
 
 const db = () => getDb();
+/** Un token que quedó en la base de quien salió antes de ADR-116 regla 15. */
+const LEFTOVER = "anterior-a-la-regla-salida-0001";
 const SALIDA = { endReason: "RESIGNATION" as const, memorialConsent: false, contactConsent: false };
 
 function tokensOf(personId: string) {
@@ -68,6 +71,31 @@ async function queuedForLock(count: number, settled: Promise<unknown>): Promise<
     throw new Error(`Ninguna espera llegó a ${count} sesiones en cola por un candado`);
   }
   return false;
+}
+
+/**
+ * Retiene la fila de la membresía sin cambiarla hasta `release`: quien la quiera escribir espera, y
+ * quien lee sin candado sigue viendo el estado de antes.
+ */
+async function holdMembership(personId: string): Promise<{ release: () => Promise<void> }> {
+  const held = barrier();
+  const done = barrier();
+  const holding = db().transaction(async (tx) => {
+    await tx
+      .select({ personId: membership.personId })
+      .from(membership)
+      .where(eq(membership.personId, personId))
+      .for("update");
+    held.release();
+    await done.promise;
+  });
+  await Promise.race([held.promise, holding]);
+  return {
+    release: async () => {
+      done.release();
+      await holding;
+    },
+  };
 }
 
 /** Con lo que la prueba deshace la transacción que retiene el índice. */
@@ -201,18 +229,7 @@ describe("el token del calendario se retira con la persona", () => {
 
     // Otra transacción retiene la fila de la membresía sin cambiarla: la baja toma el candado del
     // ciclo y queda esperando esa fila, y quien lee sin candado sigue viendo una membresía activa.
-    const held = barrier();
-    const release = barrier();
-    const holding = db().transaction(async (tx) => {
-      await tx
-        .select({ personId: membership.personId })
-        .from(membership)
-        .where(eq(membership.personId, personId))
-        .for("update");
-      held.release();
-      await release.promise;
-    });
-    await Promise.race([held.promise, holding]);
+    const row = await holdMembership(personId);
 
     let leaving: Promise<unknown> = Promise.resolve();
     let writing: Promise<unknown> = Promise.resolve();
@@ -226,9 +243,8 @@ describe("el token del calendario se retira con la persona", () => {
       // estaría armando el orden que dice.
       expect(await queuedForLock(2, writing)).toBe(true);
     } finally {
-      release.release();
+      await row.release();
     }
-    await holding;
     await leaving;
 
     await expect(writing).rejects.toBeInstanceOf(ForbiddenError);
@@ -236,5 +252,83 @@ describe("el token del calendario se retira con la persona", () => {
     expect(await tokensOf(personId)).toEqual([]);
     await drainOutbox();
     expect(await tokensOf(personId)).toEqual([]);
+  });
+
+  // DT-180: el token de quien salió antes de la regla nunca pasó por el handler de la baja. Lo retira
+  // la depuración diaria, que decide cada borrado con el candado del ciclo de membresía tomado.
+  it("la depuración diaria retira el token de quien había salido o sido anonimizado antes de la regla", async () => {
+    const board = await seedMember("junta-calendario@eafit.edu.co");
+    const gone = await seedMember("salio-antes-de-la-regla@eafit.edu.co");
+    const erased = await seedMember("anonimizada-antes-de-la-regla@eafit.edu.co");
+    const away = await seedMember("en-licencia-con-calendario@eafit.edu.co");
+    const kept = await getOrCreateCalendarToken(board);
+    const onLeave = await getOrCreateCalendarToken(away);
+    await endMembershipAs({ personId: board }, gone, SALIDA);
+    await requestDeletionAs({ personId: erased });
+    await anonymizePersonAs({ personId: board }, erased);
+    await changeMembershipStatusAs({ personId: board }, away, {
+      to: "ON_LEAVE",
+      reason: "Intercambio",
+      leaveUntil: leaveUntilSoon(),
+    });
+    await drainOutbox();
+    // Como quedaron quienes salieron antes de la regla: afuera y con su token en la base.
+    await db()
+      .insert(calendarToken)
+      .values([
+        { personId: gone, token: LEFTOVER },
+        { personId: erased, token: "anterior-a-la-regla-borrado-0001" },
+      ]);
+
+    const result = await pruneIdentity();
+
+    expect(await tokensOf(gone)).toEqual([]);
+    expect(await tokensOf(erased)).toEqual([]);
+    expect(result.calendarTokens).toBe(2);
+    expect(await resolveCalendarToken(LEFTOVER)).toBeNull();
+    // Quien sigue adentro y quien está en licencia conservan el suyo.
+    expect(await resolveCalendarToken(kept)).toBe(board);
+    expect(await tokensOf(away)).toEqual([{ token: onLeave }]);
+
+    // Quien vuelve después ya no encuentra el enlace viejo: Ajustes le crea otro.
+    await reactivateMembershipAs({ personId: board }, gone, { reason: "Pidió volver" });
+    await drainOutbox();
+    const fresh = await getOrCreateCalendarToken(gone);
+    expect(fresh).not.toBe(LEFTOVER);
+    expect(await resolveCalendarToken(LEFTOVER)).toBeNull();
+    // Otra pasada no encuentra nada que retirar.
+    expect((await pruneIdentity()).calendarTokens).toBe(0);
+    expect(await resolveCalendarToken(fresh)).toBe(gone);
+  });
+
+  // El token no lleva época: la depuración no distingue un enlace viejo de uno recién creado, así que
+  // a quien ya volvió no le borra nada. Lo decide con el candado tomado, no con lo que leyó antes.
+  it("la depuración no se lleva el enlace de quien vuelve mientras ella corre", async () => {
+    const board = await seedMember("junta-calendario@eafit.edu.co");
+    const personId = await seedMember("vuelve-durante-la-depuracion@eafit.edu.co");
+    await endMembershipAs({ personId: board }, personId, SALIDA);
+    await drainOutbox();
+    await db().insert(calendarToken).values({ personId, token: LEFTOVER });
+    await warmPool();
+
+    // La reactivación toma el candado del ciclo y queda esperando la fila de la membresía: la
+    // depuración todavía lee a la persona como inactiva y hace cola por el candado para borrar.
+    const row = await holdMembership(personId);
+    let returning: Promise<unknown> = Promise.resolve();
+    let pruning: Promise<{ calendarTokens: number }> = Promise.resolve({ calendarTokens: -1 });
+    try {
+      returning = reactivateMembershipAs({ personId: board }, personId, { reason: "Pidió volver" });
+      void returning.catch(() => {});
+      expect(await queuedForLock(1, returning)).toBe(true);
+      pruning = pruneIdentity();
+      void pruning.catch(() => {});
+      expect(await queuedForLock(2, pruning)).toBe(true);
+    } finally {
+      await row.release();
+    }
+    await returning;
+
+    expect((await pruning).calendarTokens).toBe(0);
+    expect(await tokensOf(personId)).toEqual([{ token: LEFTOVER }]);
   });
 });

@@ -114,3 +114,29 @@ export async function deleteCalendarTokenFor(personId: string): Promise<number> 
     .returning({ id: calendarToken.id });
   return rows.length;
 }
+
+/**
+ * Retira los tokens que ya no deberían existir (ADR-116 regla 15): los de quien salió o fue
+ * anonimizado antes de que la baja los borrara, y los que un handler no haya alcanzado. Pasa por
+ * quienes tienen token, que son a lo sumo los miembros de hoy, y decide cada borrado con el candado
+ * del ciclo de membresía tomado y el estado vigente: no se lleva el enlace de quien acaba de volver.
+ * Devuelve cuántos borró.
+ */
+export async function pruneCalendarTokens(): Promise<number> {
+  const holders = await getDb().select({ personId: calendarToken.personId }).from(calendarToken);
+  let deleted = 0;
+  for (const { personId } of holders) {
+    deleted += await runCommand(SYSTEM_ACTOR, async (ctx) => {
+      const state = await lockWalletMember(ctx.tx, personId);
+      if (state && !state.anonymizedAt && state.status !== "INACTIVE") {
+        return 0;
+      }
+      const rows = await ctx.tx
+        .delete(calendarToken)
+        .where(eq(calendarToken.personId, personId))
+        .returning({ id: calendarToken.id });
+      return rows.length;
+    });
+  }
+  return deleted;
+}
