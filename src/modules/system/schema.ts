@@ -93,7 +93,7 @@ export const importJob = pgTable(
   "import_job",
   {
     id: id(),
-    type: text().notNull(), // ROSTER, GHPOINTS
+    type: text().notNull(), // ROSTER, GHPOINTS_ATTENDANCE (`ImportJobType`)
     status: importJobStatus().notNull().default("PREVIEW"),
     filename: text().notNull(),
     fileKey: text(), // imports/AAAA/MM/<id>.<ext> en el bucket privado

@@ -141,3 +141,5 @@ El tercer ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
 ## Enmienda (2026-10-08, ADR-116)
 
 La regla 3 fijó la firma `revokeSanctionAs(actor, personId, sanctionId, reason)`, y su consecuencia decía que quién puede revocar lo seguía decidiendo la action, sin un alcance como el de registrar (DT-101). [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 11 agrega el alcance como quinto argumento, obligatorio, y el comando deja pasar solo el de ADMIN. La comprobación de la persona de la regla 3 no cambia.
+
+La regla 7 decía que `takeImportJobApplied` bloquea la fila de `import_job` y exige `APPLIED`. No miraba de qué tipo era el trabajo, así que los permisos de líder se registraban sobre una importación aplicada que no era del roster (DT-104). ADR-116 regla 12 lo cierra: la toma recibe el tipo que espera quien llama, obligatorio, y un trabajo de otro tipo responde T-032, como uno que no existe. Lo demás de la regla queda igual.

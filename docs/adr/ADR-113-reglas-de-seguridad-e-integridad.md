@@ -1,6 +1,6 @@
 # ADR-113: Reglas de seguridad e integridad del segundo ciclo del refactor
 
-- Estado: Aceptada (enmendada por ADR-114)
+- Estado: Aceptada (enmendada por ADR-114 y ADR-116)
 - Fecha: 2026-10-07
 - Relacionadas: ADR-011, ADR-015, ADR-022, ADR-072, ADR-082, ADR-109, ADR-110, ADR-112
 - Enmienda: ADR-010, ADR-012, ADR-033 (regla 5), ADR-034 (reglas 4 y 8), ADR-038 (regla 5), ADR-051 (regla 4), ADR-067 (regla 12)
@@ -99,3 +99,7 @@ La regla 10 dejó abierto en sus consecuencias que `safeNextPath` y `safeBack` d
 La regla 7 dejó abierto en sus consecuencias que `recordLeaderGrantsAs` leía el resumen de un trabajo aplicado fuera de la transacción y lo reescribía (DT-092). [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 7 lo cierra: registrar los permisos de líder toma el trabajo con `takeImportJobApplied`, que bloquea la fila y exige `APPLIED`, y completa el resumen de la fila tomada; otro estado responde T-3212. Las dos tomas son una sola operación de `system` con el estado obligatorio. `takeImportJobInPreview`, T-3210 y lo que hacen aplicar, descartar y cambiar las columnas no cambian. `updateImportJob` sigue sin condición de estado: la guarda es de quien toma.
 
 La regla 4 dice que el decodificador solo codifica reduciendo y nombra dos límites: los anchos de las variantes de un medio y el lado máximo de una evidencia. [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 8 suma un tercero, la variante completa de un medio, con el lado de una evidencia: 2560 px (`FULL_VARIANT_MAX_SIDE`). Lo demás de la regla no cambia. Al medirla salieron dos cosas que las consecuencias de la regla 4 no decían. El techo de unos 165 MB por imagen es de imágenes de un color: con contenido ruidoso, la misma reducción a 2560 px pide hasta +197 MB (DT-089). Y «codificar reduciendo» no acota una variante por ancho de una imagen alta y angosta, que sale casi entera: un PNG con transparencia de 1600 × 16.000 pide +363 MB en su variante de 1600 px (DT-107). Las dos siguen abiertas.
+
+## Enmienda (2026-10-08, ADR-116)
+
+La regla 7 decía que `takeImportJobInPreview` bloquea la fila de `import_job` y exige `PREVIEW`. No miraba de qué tipo era el trabajo, así que descartar, aplicar o cambiar las columnas aceptaban uno que no fuera del roster (DT-104). [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 12 lo cierra: la toma recibe el tipo que espera quien llama, obligatorio, y un trabajo de otro tipo responde T-032, como uno que no existe. Lo demás de la regla queda igual.

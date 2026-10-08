@@ -26,6 +26,7 @@ export {
   getImportJob,
   type ImportJobRow,
   type ImportJobStatus,
+  type ImportJobType,
   listImportJobs,
   takeImportJobApplied,
   takeImportJobInPreview,

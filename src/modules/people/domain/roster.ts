@@ -10,6 +10,7 @@ import {
   createImportJob,
   getImportJob,
   type ImportJobRow,
+  type ImportJobType,
   requirePrivacyPolicyVersion,
   takeImportJobApplied,
   takeImportJobInPreview,
@@ -55,6 +56,12 @@ import {
 
 // El asistente del roster (13-importacion-del-roster.md, ADR-034): el archivo se guarda en el bucket, la
 // vista previa vive en un ImportJob y confirmar aplica todo en una transacción, idempotente por correo.
+
+/**
+ * El tipo de los trabajos del roster: con él se crean y con él se toman. Un trabajo de otro tipo no
+ * existe para el roster, esté en el estado que esté (ADR-116 regla 12).
+ */
+const ROSTER_JOB: ImportJobType = "ROSTER";
 
 const columnSchema = z.enum(ROSTER_COLUMNS).nullable();
 const mappingSchema = z.array(columnSchema);
@@ -427,7 +434,7 @@ export async function createRosterPreviewAs(
   );
   const job = await runCommand(actor, (ctx) =>
     createImportJob(ctx, {
-      type: "ROSTER",
+      type: ROSTER_JOB,
       filename: input.filename,
       fileKey,
       termId: term.id,
@@ -441,7 +448,7 @@ export async function createRosterPreviewAs(
 
 export async function getRosterPreview(jobId: string): Promise<RosterPreview | null> {
   const job = await getImportJob(jobId);
-  if (!job || job.type !== "ROSTER" || !job.termId) {
+  if (!job || job.type !== ROSTER_JOB || !job.termId) {
     return null;
   }
   const parsed = previewPayloadSchema.safeParse(job.payload);
@@ -482,7 +489,7 @@ export async function remapRosterPreviewAs(
   const cells = await readRosterCells(bytes, current.data.format);
   const built = await buildPreview(cells, mapping, job.termId);
   await runCommand(actor, async (ctx) => {
-    await takeImportJobInPreview(ctx, jobId);
+    await takeImportJobInPreview(ctx, jobId, ROSTER_JOB);
     await updateImportJob(ctx, jobId, {
       mapping: { columns: built.mapping },
       payload: payloadOf(built, current.data.format),
@@ -772,7 +779,7 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
     // Las columnas son las del trabajo ya tomado y no las de la lectura de arriba: un cambio de
     // columnas que confirmó entre las dos es el que vale.
     const taken = previewPayloadSchema.safeParse(
-      (await takeImportJobInPreview(ctx, jobId)).payload,
+      (await takeImportJobInPreview(ctx, jobId, ROSTER_JOB)).payload,
     );
     if (!taken.success) {
       throw new DomainError(t("T-032"));
@@ -813,7 +820,7 @@ export async function applyRosterImportAs(actor: Actor, jobId: string): Promise<
 
 export async function discardRosterImportAs(actor: Actor, jobId: string): Promise<void> {
   await runCommand(actor, async (ctx) => {
-    await takeImportJobInPreview(ctx, jobId);
+    await takeImportJobInPreview(ctx, jobId, ROSTER_JOB);
     await updateImportJob(ctx, jobId, { status: "DISCARDED" });
   });
 }
@@ -829,7 +836,7 @@ export async function recordLeaderGrantsAs(
   result: { granted: string[]; failed: string[] },
 ): Promise<void> {
   await runCommand(actor, async (ctx) => {
-    const job = await takeImportJobApplied(ctx, jobId);
+    const job = await takeImportJobApplied(ctx, jobId, ROSTER_JOB);
     await updateImportJob(ctx, jobId, { summary: { ...job.summary, leaders: result } });
   });
 }

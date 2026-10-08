@@ -1,6 +1,7 @@
 import { and, count, eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { runCommand } from "@/db/tx";
 import { personImported } from "@/domain-events/people";
 import {
   applyRosterImportAs,
@@ -12,6 +13,13 @@ import {
   remapRosterPreviewAs,
 } from "@/modules/people";
 import { person } from "@/modules/people/schema";
+import {
+  createImportJob,
+  getImportJob,
+  takeImportJobApplied,
+  takeImportJobInPreview,
+  updateImportJob,
+} from "@/modules/system";
 import { auditLog, importJob, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
@@ -521,5 +529,145 @@ describe("los permisos de líder se registran sobre la importación ya aplicada"
     expect(each.map((result) => ({ ...applied, leaders: result }))).toContainEqual(after?.summary);
     // La aplicación y los ocho registros: cada escritura con su auditoría.
     expect(await rewritesOf(jobId)).toBe(9);
+  });
+});
+
+// Una importación se toma por su tipo (ADR-116 regla 12, enmienda a ADR-113 y ADR-114 regla 7): para
+// el roster, un trabajo que no es del roster no existe, esté en el estado que esté.
+
+describe("una importación que no es del roster no existe para el roster", () => {
+  beforeEach(truncateAll);
+
+  const missing = { name: "DomainError", message: t("T-032") };
+
+  /** Un trabajo como el que deja la importación de asistencias de GH Points (`scripts/lib/ghpoints-db.ts`). */
+  async function attendanceJob(status: "PREVIEW" | "APPLIED") {
+    const termId = await seedTerm();
+    const admin = { personId: await seedMember("admin.importa@eafit.edu.co") };
+    const { id: jobId } = await runCommand(admin, async (ctx) => {
+      const job = await createImportJob(ctx, {
+        type: "GHPOINTS_ATTENDANCE",
+        filename: "lote-sintetico.json",
+        fileKey: "imports/ghpoints/lote-sintetico.json",
+        termId,
+        mapping: { batchId: "lote-sintetico" },
+        payload: { manifest: { batchId: "lote-sintetico" }, plan: { termId } },
+        summary: { rowsToAdd: 3, rowsUnchanged: 1 },
+      });
+      if (status === "APPLIED") {
+        await updateImportJob(ctx, job.id, { status: "APPLIED", appliedAt: new Date() });
+      }
+      return job;
+    });
+    return { admin, jobId, before: await getImportJob(jobId), rewrites: await rewritesOf(jobId) };
+  }
+
+  it("los permisos de líder no se registran sobre una importación aplicada de otro tipo: su resumen no cambia", async () => {
+    const { admin, jobId, before, rewrites } = await attendanceJob("APPLIED");
+
+    const recorded = await Promise.allSettled([recordLeaderGrantsAs(admin, jobId, GRANTS)]);
+
+    expect(rejections(recorded)).toEqual([t("T-032")]);
+    expect(before).toMatchObject({ type: "GHPOINTS_ATTENDANCE", status: "APPLIED" });
+    expect(await getImportJob(jobId)).toEqual(before);
+    expect(await rewritesOf(jobId)).toBe(rewrites);
+
+    // Ocho a la vez responden lo mismo y ninguno escribe.
+    const together = await Promise.allSettled(
+      Array.from({ length: 8 }, () => recordLeaderGrantsAs(admin, jobId, GRANTS)),
+    );
+    expect(rejections(together)).toEqual(Array.from({ length: 8 }, () => t("T-032")));
+    expect(await getImportJob(jobId)).toEqual(before);
+    expect(await rewritesOf(jobId)).toBe(rewrites);
+  });
+
+  it("una importación en revisión de otro tipo no se descarta: sigue en revisión", async () => {
+    const { admin, jobId, before, rewrites } = await attendanceJob("PREVIEW");
+
+    const discarded = await Promise.allSettled([discardRosterImportAs(admin, jobId)]);
+
+    expect(rejections(discarded)).toEqual([t("T-032")]);
+    expect(before).toMatchObject({ type: "GHPOINTS_ATTENDANCE", status: "PREVIEW" });
+    expect(await getImportJob(jobId)).toEqual(before);
+    expect(await rewritesOf(jobId)).toBe(rewrites);
+  });
+
+  it("una vista previa con forma de roster y otro tipo ni se aplica ni cambia de columnas", async () => {
+    const { admin, jobId } = await previewOf([row("Ana", ANA)]);
+    // Ningún comando cambia el tipo de un trabajo: se pone a mano para que sea la única diferencia
+    // con una vista previa del roster que sí se aplicaría.
+    await db()
+      .update(importJob)
+      .set({ type: "GHPOINTS_ATTENDANCE" })
+      .where(eq(importJob.id, jobId));
+    const before = await getImportJob(jobId);
+
+    const applied = await Promise.allSettled([applyRosterImportAs(admin, jobId)]);
+    const remapped = await Promise.allSettled([remapRosterPreviewAs(admin, jobId, SWAPPED)]);
+
+    expect(rejections([...applied, ...remapped])).toEqual([t("T-032"), t("T-032")]);
+    expect(await getImportJob(jobId)).toEqual(before);
+    expect(await importedBy(jobId)).toEqual({ audits: 0, events: 0 });
+    expect(await rewritesOf(jobId)).toBe(0);
+    expect(await db().select({ id: person.id }).from(person).where(eq(person.email, ANA))).toEqual(
+      [],
+    );
+  });
+
+  it("tomar una importación sin decir su tipo no compila, y con un tipo que no es el suyo no se toma", async () => {
+    const applied = await attendanceJob("APPLIED");
+    const admin = applied.admin;
+    const { id: previewId } = await runCommand(admin, (ctx) =>
+      createImportJob(ctx, {
+        type: "GHPOINTS_ATTENDANCE",
+        filename: "lote-en-revision.json",
+        fileKey: null,
+        termId: null,
+        mapping: {},
+        payload: {},
+        summary: {},
+      }),
+    );
+    const takeApplied = (type: unknown) =>
+      runCommand(admin, (ctx) => takeImportJobApplied(ctx, applied.jobId, type as "ROSTER"));
+    const takePreview = (type: unknown) =>
+      runCommand(admin, (ctx) => takeImportJobInPreview(ctx, previewId, type as "ROSTER"));
+
+    const forgottenApplied = runCommand(admin, (ctx) =>
+      // @ts-expect-error El tipo es obligatorio (ADR-116 regla 12): la firma anterior no compila.
+      takeImportJobApplied(ctx, applied.jobId),
+    );
+    await expect(forgottenApplied).rejects.toMatchObject(missing);
+    const forgottenPreview = runCommand(admin, (ctx) =>
+      // @ts-expect-error El tipo es obligatorio (ADR-116 regla 12): la firma anterior no compila.
+      takeImportJobInPreview(ctx, previewId),
+    );
+    await expect(forgottenPreview).rejects.toMatchObject(missing);
+
+    // El tipo del roster, uno que no existe y lo que no es un tipo: ninguno toma el trabajo.
+    const notItsType = [
+      "ROSTER",
+      "GHPOINTS",
+      "ghpoints_attendance",
+      "",
+      null,
+      { type: "GHPOINTS_ATTENDANCE" },
+    ];
+    for (const type of notItsType) {
+      await expect(takeApplied(type)).rejects.toMatchObject(missing);
+      await expect(takePreview(type)).rejects.toMatchObject(missing);
+    }
+
+    // Con su tipo sí se toma, cada uno en su estado.
+    await expect(takeApplied("GHPOINTS_ATTENDANCE")).resolves.toMatchObject({
+      id: applied.jobId,
+      type: "GHPOINTS_ATTENDANCE",
+      status: "APPLIED",
+    });
+    await expect(takePreview("GHPOINTS_ATTENDANCE")).resolves.toMatchObject({
+      id: previewId,
+      type: "GHPOINTS_ATTENDANCE",
+      status: "PREVIEW",
+    });
   });
 });
