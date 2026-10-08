@@ -10438,6 +10438,13 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3218": {
+    where:
+      "Persona 360, Membresía: hasta cuándo fue la suspensión de una sanción, vigente o no (ADR-116)",
+    text: "Suspensión de derechos y beneficios hasta el {fecha}",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-322": {
     where: "Calendario público (ICS), nombre del calendario",
     text: "Eventos de la Organización Estudiantil EAFIT",

@@ -1961,6 +1961,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2391 | GT/GAP: Área sin especificar | Área por completar | GH | Confirmado |
 | T-2392 | GT/GAP: Sin equipos | Todavía no hay equipos o apoyos registrados en este semestre. | GH | Confirmado |
 | T-2393 | GT/GAP: Ayuda de pertenencia | La participación se muestra en el perfil al registrarla. El porcentaje de permanencia requiere desempeño acreditado por GH. | GH | Confirmado |
+| T-3218 | Persona 360, Membresía: hasta cuándo fue la suspensión de una sanción, vigente o no (ADR-116) | Suspensión de derechos y beneficios hasta el {fecha} | MATEO | Propuesta |
 
 ### Cargos vigentes e historial (14/09/2026)
 

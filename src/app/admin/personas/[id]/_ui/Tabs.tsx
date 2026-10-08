@@ -27,6 +27,7 @@ import { IssueGrantPanel } from "../../IssueGrantPanel";
 import { completeTaskAction, consentAction, revokeCarnetAction } from "../actions";
 import { Cargos } from "./Cargos";
 import { CONSENT_TEXTS, TIMELINE_FILTERS, type TimelineFilterKey } from "./etiquetas";
+import { Sanciones } from "./Sanciones";
 
 // Contenido de cada pestaña de la Persona 360. Las de fases siguientes muestran T-240.
 
@@ -164,8 +165,6 @@ export function TabMembresia({
   const [, , , , otorgarPremio] = tList("T-2321");
   const kindLabelOf = (kind: RecognitionView["kind"]) =>
     kind === "MEMBER_OF_MONTH" ? destacado : kind === "OE_AWARD" ? premio : otro;
-  const [sancionesTitulo, sinSanciones] = tList("T-2239");
-  const [registrarSancion, revocarSancion] = tList("T-2232");
   const base = `/admin/personas/${data.person.id}`;
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -320,59 +319,11 @@ export function TabMembresia({
           </ul>
         )}
       </Bloque>
-      <Bloque titulo={sancionesTitulo}>
-        {data.membership && data.membership.status !== "INACTIVE" ? (
-          <Link
-            href={`${base}?pestana=membresia&accion=sancion`}
-            className="boton-secundario min-h-9 self-start px-4 py-1 text-sm"
-          >
-            {registrarSancion}
-          </Link>
-        ) : null}
-        {data.sanctions.length === 0 ? (
-          <p className="text-sm text-tinta-suave">{sinSanciones}</p>
-        ) : (
-          <ul className="flex list-none flex-col gap-2 p-0 text-sm">
-            {data.sanctions.map((item) => (
-              <li key={item.id} className="flex flex-wrap items-baseline gap-2">
-                <Insignia fondo={item.state === "LIVE" ? "naranja" : "paper"}>
-                  {item.stateLabel}
-                </Insignia>
-                <span className="font-semibold">{item.kindLabel}</span>
-                <span className="text-tinta-suave">
-                  {formatDate(new Date(`${item.occurredOn}T12:00:00Z`))}
-                </span>
-                <span>· {item.cause}</span>
-                {item.reference ? (
-                  <span className="text-tinta-suave">· {item.reference}</span>
-                ) : null}
-                {item.committeeName ? (
-                  <span className="text-tinta-suave">· {item.committeeName}</span>
-                ) : null}
-                {item.suspendedUntil ? (
-                  <span className="text-tinta-suave">
-                    ·{" "}
-                    {t("T-2237", {
-                      fecha: formatDate(new Date(`${item.suspendedUntil}T12:00:00Z`)),
-                    })}
-                  </span>
-                ) : null}
-                {item.revokeReason ? (
-                  <span className="text-tinta-suave">· {item.revokeReason}</span>
-                ) : null}
-                {item.state === "LIVE" ? (
-                  <Link
-                    href={`${base}?pestana=membresia&accion=revocar-sancion&sancion=${item.id}`}
-                    className="underline"
-                  >
-                    {revocarSancion}
-                  </Link>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Bloque>
+      <Sanciones
+        personId={data.person.id}
+        canRecord={Boolean(data.membership && data.membership.status !== "INACTIVE")}
+        sanctions={data.sanctions}
+      />
     </div>
   );
 }
