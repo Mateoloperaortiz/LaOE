@@ -1103,6 +1103,46 @@ describe("el lote reclama, envía sin transacción abierta y marca a cada destin
     );
   });
 
+  it("cuando no caben todos, el relevo de un lote caído retoma primero a los que ese lote dejó reclamados y solo con el lugar que le sobra toma a quien nadie había reclamado", async () => {
+    const roster = await seedRoster(5);
+    const id = await scheduleCampaign(3);
+    // Como en DT-067: el proveedor acepta el segundo correo y su registro falla, así que el lote se cae
+    // con un enviado y dos reclamados sin marcar. A los otros dos no los alcanzó a reclamar nadie.
+    useTransports({ overflow: (_mail, call) => (call === 2 ? "ses_\u0000" : `ses_${call}`) });
+    expect(await settle(runCampaignTick(minute(0)))).toEqual(expect.any(String));
+    const left = (await listRecipients(id)).rows.filter((row) => row.status === "PENDING");
+    const membersOf = (rows: typeof left): Member[] =>
+      roster.filter((member) => rows.some((row) => row.personId === member.id));
+    const lapsed = membersOf(left.filter((row) => row.claimedAt !== null));
+    const unclaimed = membersOf(left.filter((row) => row.claimedAt === null));
+    expect([lapsed.length, unclaimed.length]).toEqual([2, 2]);
+    const before = delivered.overflow.length;
+
+    // Al vencer el reclamo hay cuatro libres y en el lote caben tres.
+    expect(await runCampaignTick(minute(CLAIM_MINUTES))).toEqual({ started: 0, sent: 3 });
+
+    // Les llegó a los dos que el lote caído había dejado reclamados y a uno solo de los otros.
+    const reached = delivered.overflow.slice(before).map((mail) => mail.to);
+    const reachedOf = (members: Member[]): string[] =>
+      emails(members.filter((member) => reached.includes(member.email)));
+    expect(reachedOf(lapsed)).toEqual(emails(lapsed));
+    expect(reachedOf(unclaimed)).toHaveLength(1);
+    const after = (await listRecipients(id)).rows;
+    const stateOf = (members: Member[]) =>
+      members
+        .map((member) => after.find((row) => row.personId === member.id))
+        .map((row) => [row?.status, row?.sentAt ?? null]);
+    expect(stateOf(lapsed)).toEqual(lapsed.map(() => ["SENT", minute(CLAIM_MINUTES)]));
+    expect(stateOf(unclaimed).sort()).toEqual([
+      ["PENDING", null],
+      ["SENT", minute(CLAIM_MINUTES)],
+    ]);
+    // El que no cupo sigue libre para el lote siguiente: pendiente y sin reclamo.
+    const waiting = after.filter((row) => row.status === "PENDING");
+    expect(waiting.map((row) => row.claimedAt)).toEqual([null]);
+    expect(await getCampaign(id)).toMatchObject({ status: "SENDING", sentCount: 4 });
+  });
+
   it("un destinatario reclamado cuyo correo ya quedó registrado se recupera como enviado, sin reenviárselo", async () => {
     const roster = await seedRoster(3);
     const id = await scheduleCampaign(3);
