@@ -1,4 +1,4 @@
-import { and, asc, eq, type SQL } from "drizzle-orm";
+import { and, asc, eq, type SQL, sql } from "drizzle-orm";
 import pino from "pino";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
@@ -15,7 +15,7 @@ import { tasksResource } from "@/modules/crm/admin";
 import { openTaskForReasonAs } from "@/modules/crm/domain/commands";
 import { ReasonTaskInputError } from "@/modules/crm/domain/tasks";
 import { request, task } from "@/modules/crm/schema";
-import { requestCommitteeRemovalAs, requestDeletionAs } from "@/modules/people";
+import { anonymizePersonAs, requestCommitteeRemovalAs, requestDeletionAs } from "@/modules/people";
 import { membership } from "@/modules/people/schema";
 import { requireConfig } from "@/modules/system";
 import { clearConfigCache } from "@/modules/system/domain/config";
@@ -445,6 +445,38 @@ describe("toda tarea que abre el sistema queda auditada", () => {
 
     const [opened] = await tasksOf(eq(task.personId, me));
     expect(await auditsOf(opened?.id ?? "")).toEqual([{ action: "task.created", actorId: null }]);
+  });
+
+  it("la auditoría de una tarea del sistema guarda su motivo y no su título, que nombra a la persona: al anonimizarla, ninguna fila de auditoría conserva su nombre", async () => {
+    const me = await seedMember("pide@eafit.edu.co", { firstName: "Bea", lastName: "Borrar" });
+    await requestDeletionAs({ personId: me });
+    await drainOutbox();
+    const [opened] = await tasksOf(eq(task.personId, me));
+    expect(opened?.title).toContain("Bea Borrar");
+
+    const [audit] = await db()
+      .select({ after: auditLog.after })
+      .from(auditLog)
+      .where(and(eq(auditLog.entityType, "task"), eq(auditLog.entityId, opened?.id ?? "")));
+    expect(audit?.after).toMatchObject({
+      kind: "DELETION_REQUEST",
+      reasonKey: `DELETION_REQUEST:person:${me}`,
+      personId: me,
+      createdById: me,
+    });
+    expect(audit?.after).not.toHaveProperty("title");
+
+    // La tarea se borra con la persona (ADR-030); su auditoría se queda, y no la nombra.
+    await anonymizePersonAs(SYSTEM_ACTOR, me);
+    await drainOutbox();
+    expect(await tasksOf(eq(task.personId, me))).toEqual([]);
+    const named = await db()
+      .select({ action: auditLog.action })
+      .from(auditLog)
+      .where(
+        sql`${auditLog.after}::text ilike ${"%Bea Borrar%"} or ${auditLog.before}::text ilike ${"%Bea Borrar%"}`,
+      );
+    expect(named).toEqual([]);
   });
 
   it("la del pedido de retiro de un comité, a nombre del sistema", async () => {

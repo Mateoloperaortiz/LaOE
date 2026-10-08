@@ -338,7 +338,8 @@ async function dueInstant(
 /**
  * Abre la tarea de un motivo, o devuelve la que ya está abierta por ese motivo y ese sujeto (ADR-115
  * regla 9). Busca y escribe bajo un candado consultivo por clave, que dura lo que la transacción: dos
- * aperturas a la vez de la misma tarea dejan una. Siempre audita la que crea.
+ * aperturas a la vez de la misma tarea dejan una. Siempre audita la que crea, con lo que la identifica
+ * y sin su título.
  */
 export async function openTaskForReason(
   ctx: CommandContext,
@@ -365,8 +366,9 @@ export async function openTaskForReason(
   if (existing) {
     return { id: existing.id, created: false };
   }
-  const values = {
-    title: input.title,
+  // Lo que identifica a la tarea. El título no va a la auditoría: nombra a la persona, y la auditoría
+  // de una tarea se queda cuando la anonimización borra la fila (ADR-030).
+  const facts = {
     kind: spec.kind,
     assigneeId: input.assigneeId,
     dueAt,
@@ -376,11 +378,14 @@ export async function openTaskForReason(
     reasonKey: spec.key,
     createdById: input.requestedById,
   };
-  const [row] = await ctx.tx.insert(task).values(values).returning({ id: task.id });
+  const [row] = await ctx.tx
+    .insert(task)
+    .values({ title: input.title, ...facts })
+    .returning({ id: task.id });
   if (!row) {
     throw new Error("No se pudo crear la tarea");
   }
-  await ctx.audit({ action: "task.created", entityType: "task", entityId: row.id, after: values });
+  await ctx.audit({ action: "task.created", entityType: "task", entityId: row.id, after: facts });
   return { id: row.id, created: true };
 }
 
