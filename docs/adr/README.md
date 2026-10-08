@@ -20,7 +20,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-112](ADR-112-toda-sancion-declara-su-alcance.md) | Toda sanción se registra con su alcance declarado | Aceptada (enmendada por ADR-114 y ADR-116) |
 | [ADR-111](ADR-111-una-excusa-aceptada-libera-el-premio-reservado.md) | Una excusa aceptada libera el premio reservado y cierra el reto presencial pendiente | Aceptada |
 | [ADR-110](ADR-110-el-grafo-de-modulos-de-dominio-no-tiene-ciclos.md) | El grafo de módulos de dominio no tiene ciclos | Aceptada |
-| [ADR-109](ADR-109-refactor-progresivo-con-ledger-de-deuda.md) | Refactor progresivo con ledger de deuda técnica | Aceptada |
+| [ADR-109](ADR-109-refactor-progresivo-con-ledger-de-deuda.md) | Refactor progresivo con ledger de deuda técnica | Aceptada (enmendada por ADR-116) |
 | [ADR-108](ADR-108-los-issues-de-github-son-la-cola-de-trabajo.md) | Los issues de GitHub son la cola de trabajo de las skills de ingeniería | Aceptada |
 | [ADR-107](ADR-107-la-tabla-se-puede-ocultar-mientras-se-juega.md) | La tabla de posiciones se puede ocultar mientras se juega | Aceptada |
 | [ADR-106](ADR-106-la-base-empieza-con-la-rotacion.md) | La base empieza con la rotación y el líder confirma poderes y resultado | Aceptada |

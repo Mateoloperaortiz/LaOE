@@ -1,6 +1,6 @@
 # ADR-109: Refactor progresivo con ledger de deuda técnica
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-116)
 - Fecha: 2026-10-07
 - Relacionadas: ADR-079, ADR-080, ADR-081, ADR-082, ADR-083, ADR-084, ADR-085, ADR-108
 
@@ -38,3 +38,7 @@ Ese mismo día Mateo fijó el objetivo: llevar el repo a un estado sólido, mant
 - Las decisiones de dominio que el código no puede tomar solo (qué instante es el fin del término, si un director en licencia conserva sus capacidades, si `competition` entra al refactor) van a [decisiones-abiertas.md](../decisiones-abiertas.md) y dejan su fila del ledger en `BLOCKED` o `DEFERRED`; el resto del ciclo sigue.
 - Entre un ciclo y el siguiente puede haber PR abiertos sin mezclar. Un ciclo que dependa de otro sin mezclar se apila sobre su rama y lo dice en su PR.
 - El trabajo de este plan convive con funciones nuevas. No se abre un ticket que mueva puntos, premios o el poller mientras haya una función en vuelo sobre el mismo módulo.
+
+## Enmienda (2026-10-08, ADR-116)
+
+Regla 6: pedía un commit por ticket. Desde el ciclo 4 un ticket junta varias filas del ledger y cada fila entra en su propio commit, con su prueba en rojo primero y en verde al final (regla 5): 8 commits para #143 en el ciclo 4 y 48 para los 10 tickets del ciclo 5. Ahora la regla dice lo que se hace: los commits de un ciclo son atómicos, cada uno deja las pruebas en verde y nombra su ticket con `Refs`, y no se aplastan por ticket. El ciclo sigue en una rama de integración y sale por un solo PR que nombra sus tickets. Ver [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 22.
