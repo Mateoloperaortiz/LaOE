@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb } from "@/db/client";
 import { requestDecided } from "@/domain-events/crm";
+import { accessGrantIssued } from "@/domain-events/identity";
 import { personAdmitted } from "@/domain-events/people";
 import { registerHandler } from "@/jobs/registry";
 import {
@@ -9,8 +10,10 @@ import {
   sendTransactionalEmail,
   setMailTransportsForTests,
   setPushSenderForTests,
+  splitPush,
 } from "@/modules/comms";
 import { createRequestAs, decideRequestAs } from "@/modules/crm";
+import { issueAccessGrantAs } from "@/modules/identity";
 import { admitPersonAs } from "@/modules/people";
 import type { MailMessage } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
@@ -26,7 +29,8 @@ import {
 
 // La bienvenida (T-200) y la respuesta a una solicitud (T-205 y el push T-189) cuando el poller
 // reintenta el evento entero (ADR-115 regla 8). El poller es el real: corre en serie los handlers de
-// un evento y, si uno falla, lo reintenta completo, con comms incluido.
+// un evento y, si uno falla, lo reintenta completo, con comms incluido. Y el aviso del enlace de acceso
+// (T-2132), que lleva la misma clave del evento (ADR-116 regla 17).
 
 const MINUTE = 60_000;
 const admin = { personId: null, ip: null };
@@ -74,6 +78,7 @@ describe("correos de un evento que el poller reintenta", () => {
     };
     registerHandler(personAdmitted.type, neighbour);
     registerHandler(requestDecided.type, neighbour);
+    registerHandler(accessGrantIssued.type, neighbour);
   });
   beforeEach(async () => {
     await truncateAll();
@@ -177,6 +182,40 @@ describe("correos de un evento que el poller reintenta", () => {
     }
     expect(mailsTo("dos.veces@eafit.edu.co")).toHaveLength(2);
     expect(await sentTo(personId, "EMAIL")).toHaveLength(2);
+  });
+
+  it("el aviso del enlace de acceso llega una sola vez aunque el evento se reintente, y un enlace nuevo avisa otra vez", async () => {
+    const { personId } = await activeMember("enlace@eafit.edu.co");
+    await saveSubscriptionAs(
+      { personId },
+      { endpoint: DEVICE, keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
+      null,
+    );
+    const junta = await seedMember("junta@eafit.edu.co");
+    await issueAccessGrantAs({ personId: junta }, { personId, kind: "ACTIVATION" });
+
+    neighbourFailures = 1;
+    await drainOutbox({ expectFailures: [accessGrantIssued] });
+    expect(pushes).toEqual([DEVICE]);
+
+    const retry = await drainOutbox({ now: afterBackoff() });
+    expect(retry.failed).toBe(0);
+    expect(neighbourRuns).toBe(2);
+    expect(pushes).toEqual([DEVICE]);
+    const afterRetry = await sentTo(personId, "PUSH");
+    expect(afterRetry).toHaveLength(1);
+    expect(afterRetry[0]).toMatchObject({
+      status: "SENT",
+      kind: "TRANSACTIONAL",
+      subject: splitPush(t("T-2132")).title,
+    });
+
+    // Otro enlace para la misma persona es otro evento: avisa otra vez.
+    await issueAccessGrantAs({ personId: junta }, { personId, kind: "RECOVERY" });
+    const second = await drainOutbox({ now: afterBackoff() });
+    expect(second.failed).toBe(0);
+    expect(pushes).toEqual([DEVICE, DEVICE]);
+    expect(await sentTo(personId, "PUSH")).toHaveLength(2);
   });
 
   // Lo que el código hace mientras la decisión abierta 15 no diga otra cosa: el registro de un rechazo

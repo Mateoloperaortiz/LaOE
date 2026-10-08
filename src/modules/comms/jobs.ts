@@ -67,7 +67,7 @@ onEvent(callOpened, async (payload, ctx) => {
 // La titular se entera de que se emitió un enlace para su cuenta aunque el enlace se lo hayan
 // entregado a otra persona (ADR-051, amenaza aceptada).
 onEvent(accessGrantIssued, async (payload, ctx) => {
-  const stats = await pushAccessGrantIssued(payload);
+  const stats = await pushAccessGrantIssued(payload, ctx.id);
   ctx.log.info(stats, "push del enlace de acceso entregado");
 });
 

@@ -118,17 +118,19 @@ export async function pushRequestDecided(
 /**
  * Se emitió un enlace de acceso para esta persona (T-2132, ADR-051). Transaccional: llega aunque
  * la persona haya apagado las notificaciones, porque es la única forma de que se entere si el
- * enlace lo pidió alguien más. La clave incluye el instante: cada emisión avisa.
+ * enlace lo pidió alguien más. La clave es la de su evento (ADR-116 regla 17): cada emisión es un evento
+ * y avisa, y un reintento de ese evento, que trae el mismo id, no avisa otra vez.
  */
 export async function pushAccessGrantIssued(
   payload: EventPayload<typeof accessGrantIssued>,
+  eventId: string,
 ): Promise<DeliveryStats> {
   return notify(
     "TRANSACTIONAL",
     [payload.personId],
     t("T-2132"),
     "/app/ajustes",
-    `access-grant:${payload.personId}:${Date.now()}`,
+    `access-grant:${payload.personId}:${eventId}`,
   );
 }
 
