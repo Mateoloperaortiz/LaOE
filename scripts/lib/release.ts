@@ -2,8 +2,9 @@ import { existsSync, readdirSync } from "node:fs";
 import { is, sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { getTableConfig, PgTable } from "drizzle-orm/pg-core";
-import { getDb } from "@/db/client";
+import { type Db, getDb } from "@/db/client";
 import { logger } from "@/shared/log";
+import { compareJournalWithApplied, readJournalMigrations } from "./migration-journal";
 
 // Índices que db:release exige (ADR-032, ADR-079). Salen del esquema los únicos, porque el dominio
 // traduce sus violaciones por nombre (src/db/errors.ts), y los GIN, porque la búsqueda depende de ellos:
@@ -48,10 +49,61 @@ export async function schemaRequiredIndexes(): Promise<string[]> {
 
 const REQUIRED_EXTENSIONS = ["pg_trgm"];
 
-/** Aplica las migraciones pendientes y verifica índices y extensiones. Nunca hace seed. */
-export async function applyMigrationsAndVerify(): Promise<void> {
+/** De dónde salen las migraciones y dónde las registra el migrador. */
+type MigrationTarget = {
+  migrationsFolder: string;
+  migrationsSchema: string;
+  migrationsTable: string;
+};
+
+// El esquema y la tabla son los que Drizzle usa si no se le dice nada.
+const DEFAULT_TARGET: MigrationTarget = {
+  migrationsFolder: "drizzle",
+  migrationsSchema: "drizzle",
+  migrationsTable: "__drizzle_migrations",
+};
+
+/**
+ * Falla si alguna entrada del diario quedó sin su registro (ADR-117). El migrador lee solo la última
+ * fila de su tabla y aplica las entradas con un `when` posterior: una más vieja que llega después, por
+ * una rama que tardó en mezclarse, no corre ni queda registrada, y no hay error. Devuelve cuántas comprobó.
+ */
+async function verifyJournalApplied(db: Db, target: MigrationTarget): Promise<number> {
+  const table = sql`${sql.identifier(target.migrationsSchema)}.${sql.identifier(target.migrationsTable)}`;
+  const applied = await db.execute<{ hash: string; created_at: string | null }>(
+    sql`select hash, created_at from ${table}`,
+  );
+  const journal = readJournalMigrations(target.migrationsFolder);
+  const { missing, changed } = compareJournalWithApplied(
+    journal,
+    applied.rows.map((row) => ({ hash: row.hash, createdAt: Number(row.created_at) })),
+  );
+  if (missing.length > 0) {
+    throw new Error(
+      `Migraciones del diario que no quedaron aplicadas: ${missing.join(", ")}. El migrador solo aplica las que tienen una marca de tiempo (\`when\`) posterior a la última aplicada, y estas no la tienen. Volvé a generarlas para que su marca de tiempo sea posterior a la última aplicada (docs/15-runbook.md, «Migraciones que db:release no aplicó»).`,
+    );
+  }
+  if (changed.length > 0) {
+    // No tumba el despliegue: la base conserva lo que corrió, y el archivo pudo cambiar solo de formato.
+    logger.warn(
+      { migrations: changed },
+      "migraciones ya aplicadas cuyo archivo cambió después: la base tiene lo que corrió entonces",
+    );
+  }
+  return journal.length;
+}
+
+/**
+ * Aplica las migraciones pendientes y verifica el diario, los índices y las extensiones. Nunca hace seed.
+ * Sin argumentos usa la carpeta `drizzle` y la tabla de Drizzle; una prueba puede pasar las suyas.
+ */
+export async function applyMigrationsAndVerify(
+  overrides: Partial<MigrationTarget> = {},
+): Promise<void> {
+  const target = { ...DEFAULT_TARGET, ...overrides };
   const db = getDb();
-  await migrate(db, { migrationsFolder: "drizzle" });
+  await migrate(db, target);
+  const migrations = await verifyJournalApplied(db, target);
 
   const indexes = await db.execute<{ indexname: string }>(
     sql`select indexname from pg_indexes where schemaname = 'public'`,
@@ -70,7 +122,7 @@ export async function applyMigrationsAndVerify(): Promise<void> {
     );
   }
   logger.info(
-    { indexes: required.length, extensions: REQUIRED_EXTENSIONS },
+    { migrations, indexes: required.length, extensions: REQUIRED_EXTENSIONS },
     "migraciones aplicadas y esquema verificado",
   );
 }
