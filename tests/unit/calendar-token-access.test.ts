@@ -33,8 +33,15 @@ beforeEach(() => {
   state.select.mockReturnValue({
     from: () => ({ where: () => ({ limit: async () => [{ token: "enlace-existente" }] }) }),
   });
-  state.insert.mockReturnValue({ values: () => ({ onConflictDoUpdate: async () => {} }) });
+  state.insert.mockReturnValue({
+    values: () => ({ onConflictDoUpdate: async () => {}, onConflictDoNothing: async () => {} }),
+  });
 });
+
+/** La persona todavía no tiene enlace: la lectura sin candado no encuentra ninguno. */
+function withoutToken(): void {
+  state.select.mockReturnValue({ from: () => ({ where: () => ({ limit: async () => [] }) }) });
+}
 
 describe("elegibilidad del token del calendario", () => {
   it.each([
@@ -79,5 +86,41 @@ describe("elegibilidad del token del calendario", () => {
     );
     expect(state.insert).not.toHaveBeenCalled();
     expect(state.audit).not.toHaveBeenCalled();
+  });
+
+  // La segunda mitad de ADR-116 regla 15: un token «o se escribe antes de que la baja confirme, o se
+  // rechaza». La comprobación previa lee sin candado; la que decide es la que se hace con él tomado.
+  it.each([
+    ["ya salió", { status: "INACTIVE", anonymizedAt: null }],
+    ["entró en licencia", { status: "ON_LEAVE", anonymizedAt: null }],
+    ["fue anonimizada", { status: "ACTIVE", anonymizedAt: new Date(0) }],
+    ["ya no tiene membresía", null],
+  ])("crear el enlace se rechaza si con el candado tomado la persona %s, aunque antes se leyera activa", async (_case, locked) => {
+    state.membership.mockResolvedValue({ status: "ACTIVE" });
+    withoutToken();
+    state.lock.mockResolvedValue(locked);
+
+    await expect(getOrCreateCalendarToken("persona-sintetica")).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+
+    // Pasó la comprobación previa, no encontró enlace y llegó al candado: ahí se decidió.
+    expect(state.select).toHaveBeenCalledOnce();
+    expect(state.lock).toHaveBeenCalledExactlyOnceWith(state.db, "persona-sintetica");
+    expect(state.insert).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "ACTIVE",
+    "HONORARY",
+  ])("crear el enlace lo escribe si con el candado tomado la persona sigue %s", async (status) => {
+    state.membership.mockResolvedValue({ status });
+    withoutToken();
+    state.lock.mockResolvedValue({ status, anonymizedAt: null });
+
+    expect(await getOrCreateCalendarToken("persona-sintetica")).toMatch(/^[A-Za-z0-9_-]{32}$/);
+
+    expect(state.lock).toHaveBeenCalledExactlyOnceWith(state.db, "persona-sintetica");
+    expect(state.insert).toHaveBeenCalledOnce();
   });
 });

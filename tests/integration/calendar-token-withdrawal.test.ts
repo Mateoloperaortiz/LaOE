@@ -15,6 +15,7 @@ import {
   reactivateMembershipAs,
   requestDeletionAs,
 } from "@/modules/people";
+import { membership } from "@/modules/people/schema";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
@@ -42,7 +43,11 @@ function barrier() {
   return { promise, release };
 }
 
-/** Espera a que `count` conexiones hagan cola por un candado; `false` si `settled` termina antes. */
+/**
+ * Espera a que `count` conexiones hagan cola por un candado; `false` si `settled` termina antes.
+ * Cuenta toda sesión de la base que esté esperando, no solo las de esta prueba: vale porque la
+ * integración corre en serie, nunca dos corridas a la vez sobre la misma base.
+ */
 async function queuedForLock(count: number, settled: Promise<unknown>): Promise<boolean> {
   let over = false;
   const finish = () => {
@@ -180,6 +185,56 @@ describe("el token del calendario se retira con la persona", () => {
     await writing;
     await leaving;
 
+    expect(await tokensOf(personId)).toEqual([]);
+  });
+
+  // El orden contrario, la escritura detrás de la baja: el candado solo no alcanza, hay que volver a
+  // mirar la membresía con él tomado. Sin esa segunda mirada la escritura ya pasó la comprobación
+  // previa, entra cuando la baja confirma y deja un token que ningún handler va a borrar.
+  it.each([
+    ["crear", (personId: string) => getOrCreateCalendarToken(personId)],
+    ["regenerar", (personId: string) => rotateCalendarTokenAs({ personId })],
+  ] as const)("%s el enlace detrás de una baja que ya tomó el candado se rechaza y no escribe nada", async (_case, write) => {
+    const board = await seedMember("junta-calendario@eafit.edu.co");
+    const personId = await seedMember("sale-primero@eafit.edu.co");
+    await warmPool();
+
+    // Otra transacción retiene la fila de la membresía sin cambiarla: la baja toma el candado del
+    // ciclo y queda esperando esa fila, y quien lee sin candado sigue viendo una membresía activa.
+    const held = barrier();
+    const release = barrier();
+    const holding = db().transaction(async (tx) => {
+      await tx
+        .select({ personId: membership.personId })
+        .from(membership)
+        .where(eq(membership.personId, personId))
+        .for("update");
+      held.release();
+      await release.promise;
+    });
+    await Promise.race([held.promise, holding]);
+
+    let leaving: Promise<unknown> = Promise.resolve();
+    let writing: Promise<unknown> = Promise.resolve();
+    try {
+      leaving = endMembershipAs({ personId: board }, personId, SALIDA);
+      void leaving.catch(() => {});
+      expect(await queuedForLock(1, leaving)).toBe(true);
+      writing = write(personId);
+      void writing.catch(() => {});
+      // La escritura hace cola por el candado, detrás de la baja: si no la hiciera, la prueba no
+      // estaría armando el orden que dice.
+      expect(await queuedForLock(2, writing)).toBe(true);
+    } finally {
+      release.release();
+    }
+    await holding;
+    await leaving;
+
+    await expect(writing).rejects.toBeInstanceOf(ForbiddenError);
+    // Antes de que corra el handler de la baja: no hay nada que él tenga que limpiar.
+    expect(await tokensOf(personId)).toEqual([]);
+    await drainOutbox();
     expect(await tokensOf(personId)).toEqual([]);
   });
 });
