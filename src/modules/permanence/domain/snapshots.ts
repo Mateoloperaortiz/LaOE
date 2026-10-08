@@ -1,6 +1,6 @@
 import { and, asc, eq, isNull, notInArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { permanenceRecompute } from "@/domain-events/permanence";
 import { permanenceSnapshot } from "../schema";
@@ -88,6 +88,14 @@ export async function listSnapshots(termId: string): Promise<SnapshotView[]> {
 }
 
 /**
+ * El candado del término que serializa a quien escribe sus snapshots: cada recálculo y el cierre
+ * (ADR-036 regla 5, ADR-116 regla 6). Dura hasta que termina la transacción que lo toma.
+ */
+export async function lockTermSnapshots(tx: Tx, termId: string): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`permanence:${termId}`}))`);
+}
+
+/**
  * Recalcula los snapshots del término (o solo de una persona) bajo el lock del término. Devuelve
  * cuántas filas escribió; 0 si el término no existe o ya cerró su permanencia.
  */
@@ -97,7 +105,7 @@ export async function recomputeSnapshots(
   now = new Date(),
 ): Promise<number> {
   return getDb().transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`permanence:${termId}`}))`);
+    await lockTermSnapshots(tx, termId);
     const facts = await loadTermFacts(termId);
     if (!facts || facts.term.permanenceClosedAt) {
       return 0;
@@ -160,9 +168,9 @@ export async function recomputeSnapshots(
 /**
  * Congela los snapshots del término al aplicar el cierre (ADR-036 regla 9). Cada uno queda con su
  * estado final y sin puntos posibles (ADR-116 regla 6): sale de lo que ya está guardado, que es lo que
- * GH vio y confirmó, y no de un cálculo nuevo. Las filas se toman antes de escribirlas, así que un
- * recálculo que llegue a la vez espera y después las encuentra congeladas. Las que ya estaban
- * congeladas no se tocan. Si lo guardado de una fila no valida, el cierre falla y se devuelve entero:
+ * GH vio y confirmó, y no de un cálculo nuevo. Quien la llama ya tiene el candado del término
+ * (`lockTermSnapshots`): un recálculo que llegue a la vez espera ahí y después las encuentra
+ * congeladas. Las filas se toman igual antes de escribirlas. Las que ya estaban congeladas no se tocan. Si lo guardado de una fila no valida, el cierre falla y se devuelve entero:
  * congelar escribe encima, y guardar el vacío al que degrada la lectura borraría ese resultado.
  */
 export async function freezeSnapshots(ctx: CommandContext, termId: string, at = new Date()) {

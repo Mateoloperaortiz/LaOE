@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { runCommand, SYSTEM_ACTOR, type Tx } from "@/db/tx";
 import { interaction } from "@/modules/crm/schema";
 import { reactivateMembershipAs } from "@/modules/people";
 import { committeeMembership, membership, membershipTerm } from "@/modules/people/schema";
@@ -21,8 +21,17 @@ import {
 import { complianceResource } from "@/modules/permanence/admin";
 import { manualCredit, permanenceSnapshot } from "@/modules/permanence/schema";
 import { closeTermPoints, findTermByCode, getTerm } from "@/modules/terms";
+import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { copyPattern, itemPattern } from "../helpers/copy";
+import {
+  backendPid,
+  deferred,
+  holdTransaction,
+  outcome,
+  waitingForLock,
+  waitingOn,
+} from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
@@ -112,6 +121,13 @@ async function setup() {
   await seedCheckIn(assembly.id, people.sale);
   await recomputeSnapshots(termId);
   return { termId, a3, pixel, gh, people };
+}
+
+/** Retiene la fila del término: el cierre se detiene al estamparlo, con su transacción ya abierta. */
+function holdTerm(termId: string) {
+  return holdTransaction((tx) =>
+    tx.select({ id: term.id }).from(term).where(eq(term.id, termId)).for("update"),
+  );
 }
 
 describe("cierre de permanencia", () => {
@@ -404,6 +420,102 @@ describe("cierre de permanencia", () => {
   // Decisión abierta 22: los términos que cerraron antes de ADR-116 regla 6 tienen sus snapshots
   // congelados con el estado abierto. Qué se hace con ellos no está decidido: ni el cierre ni los
   // lectores los tocan, y esta prueba fija que se leen tal como quedaron guardados.
+  it("un recálculo que llega con el cierre en vuelo lo espera y encuentra los snapshots congelados", async () => {
+    const { termId } = await setup();
+    await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
+    await confirmAllProposedAs(GH, termId);
+    const held = await holdTerm(termId);
+    const closing = closeTermPermanenceAs(GH, termId);
+    void closing.catch(() => undefined);
+    let recompute: Promise<number> = Promise.resolve(0);
+    try {
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+      recompute = recomputeSnapshots(termId);
+      void recompute.catch(() => undefined);
+      // Hace cola por el candado del término, que el cierre tomó antes de tocar nada (ADR-116 regla 6).
+      await expect.poll(waitingForLock).toBe(2);
+      held.release();
+      await held.done;
+      await closing;
+      // Cuando le toca, el término ya cerró: no escribe ninguna fila.
+      expect(await recompute).toBe(0);
+    } finally {
+      held.release();
+      await Promise.allSettled([held.done, closing, recompute]);
+    }
+    const frozen = await listSnapshots(termId);
+    expect(frozen).toHaveLength(3);
+    for (const snapshot of frozen) expect(snapshot.frozenAt).toBeInstanceOf(Date);
+  });
+
+  it("el cierre y un recálculo que escribe los snapshots en otro orden no se interbloquean", async () => {
+    const { termId } = await setup();
+    await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
+    await confirmAllProposedAs(GH, termId);
+    const ids = (
+      await getDb()
+        .select({ id: permanenceSnapshot.id })
+        .from(permanenceSnapshot)
+        .where(eq(permanenceSnapshot.termId, termId))
+        .orderBy(asc(permanenceSnapshot.id))
+    ).map((row) => row.id);
+    const first = ids[0] ?? "";
+    const last = ids.at(-1) ?? "";
+    const held = await holdTerm(termId);
+    const state = { closed: false, writer: null as number | null };
+    const closing = closeTermPermanenceAs(GH, termId).finally(() => {
+      state.closed = true;
+    });
+    void closing.catch(() => undefined);
+    // Lo que hace `recomputeSnapshots`: toma el candado del término y escribe los snapshots sin congelar
+    // en el orden de las personas, que no es el de `id`. Acá, la última fila primero y, cuando la prueba
+    // la suelta, la primera: el cierre las toma en orden de `id`.
+    const next = deferred<void>();
+    const touch = (tx: Tx, id: string) =>
+      tx
+        .update(permanenceSnapshot)
+        .set({ computedAt: new Date() })
+        .where(and(eq(permanenceSnapshot.id, id), isNull(permanenceSnapshot.frozenAt)));
+    let recompute: Promise<unknown> = Promise.resolve();
+    try {
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+      recompute = getDb().transaction(async (tx) => {
+        await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`permanence:${termId}`}))`);
+        await touch(tx, last);
+        state.writer = await backendPid(tx);
+        await next.promise;
+        await touch(tx, first);
+      });
+      void recompute.catch(() => undefined);
+      // O hace cola por el candado del término, o no esperó al cierre y ya tiene escrita su fila.
+      await expect
+        .poll(async () => state.writer !== null || (await waitingForLock()) === 2)
+        .toBe(true);
+      held.release();
+      await held.done;
+      // El cierre sigue: termina, o se detiene en la fila que el recálculo tiene escrita.
+      await expect
+        .poll(
+          async () =>
+            state.closed || (state.writer !== null && (await waitingOn(state.writer)) === 1),
+        )
+        .toBe(true);
+      next.resolve();
+      const [closed, recomputed] = await Promise.allSettled([closing, recompute]);
+      expect({ cierre: outcome(closed), recalculo: outcome(recomputed) }).toEqual({
+        cierre: "ok",
+        recalculo: "ok",
+      });
+    } finally {
+      held.release();
+      next.resolve();
+      await Promise.allSettled([held.done, closing, recompute]);
+    }
+    for (const snapshot of await listSnapshots(termId)) {
+      expect(snapshot.frozenAt).toBeInstanceOf(Date);
+    }
+  });
+
   it("un snapshot congelado con el estado abierto se lee como quedó guardado (decisión abierta 22)", async () => {
     const { termId, people } = await setup();
     await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));

@@ -28,6 +28,7 @@ import {
   freezeSnapshots,
   getSnapshot,
   listSnapshots,
+  lockTermSnapshots,
   recomputeSnapshots,
   snapshotToResult,
 } from "./snapshots";
@@ -425,8 +426,8 @@ export async function confirmAllProposedAs(actor: Actor, termId: string): Promis
 }
 
 /**
- * Aplicar el cierre (ADMIN, step-up en la acción): recalcula afuera, y en una transacción estampa
- * el término, congela los snapshots con su estado final (ADR-116 regla 6), asegura el término siguiente
+ * Aplicar el cierre (ADMIN, step-up en la acción): recalcula afuera, y en una transacción toma el
+ * candado de los recálculos del término, lo estampa, congela los snapshots con su estado final (ADR-116 regla 6), asegura el término siguiente
  * y encola el job de decisiones.
  */
 export async function closeTermPermanenceAs(
@@ -443,6 +444,10 @@ export async function closeTermPermanenceAs(
     throw new DomainError(t("T-807", { n: summary.undecided }));
   }
   return runCommand(actor, async (ctx) => {
+    // El mismo candado de los recálculos, antes de tocar nada (ADR-116 regla 6): uno en vuelo termina
+    // primero y uno que llega espera y encuentra los snapshots congelados. Sin él, el recálculo escribe
+    // en el orden de las personas, el cierre toma las filas en el de `id` y PostgreSQL corta a uno.
+    await lockTermSnapshots(ctx.tx, termId);
     const nextTermId = (await ensureNextTerm(ctx, term)).id;
     await closeTermPermanence(ctx, termId);
     await freezeSnapshots(ctx, termId);
