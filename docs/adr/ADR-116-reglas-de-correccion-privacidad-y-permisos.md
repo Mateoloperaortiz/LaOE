@@ -3,7 +3,7 @@
 - Estado: Aceptada
 - Fecha: 2026-10-08
 - Relacionadas: ADR-006, ADR-007, ADR-035, ADR-036, ADR-060, ADR-065, ADR-067, ADR-109, ADR-111, ADR-114
-- Enmienda: ADR-035 (reglas 5 y 6: toda transición de una asistencia que ya existe toma su fila, y el lote no reaprueba un rechazo) y ADR-036 (regla 6: quien fue retirado de un grupo de trabajo puede volver, y a quien salió no se le evalúa)
+- Enmienda: ADR-035 (reglas 5 y 6: toda transición de una asistencia que ya existe toma su fila, y el lote no reaprueba un rechazo) y ADR-036 (regla 6: quien fue retirado de un grupo de trabajo puede volver, y a quien salió no se le evalúa; regla 9: el cierre congela el estado final)
 
 ## Contexto
 
@@ -29,6 +29,8 @@ La fila decía además que la excusa no toma el candado de puntos del término y
 - `evaluate` no miraba `leftAt`: con una solicitud armada se evaluaba a quien ya había salido.
 - El tope de dos comités de trabajo contaba y después escribía, sin candado: dos altas a la vez dejaban a la misma persona en tres.
 
+**El cierre congelaba el estado abierto (DT-150).** `closeTermPermanenceAs` recalcula con el término todavía abierto y `freezeSnapshots` solo estampaba `frozenAt`. El snapshot quedaba congelado con la proyección («En camino», «En riesgo», «No alcanza») y con puntos «posibles», aunque su `finalState` dijera otra cosa: un puntaje del líder o un crédito manual siempre dejan `peso − logrado` como posible mientras el término está abierto, así que pasaba en todo cierre. Reproducido con una prueba: después de cerrar, quien cumplió quedaba guardado «En camino» en vez de «Cumple». Así lo leían Cumplimiento y su exporte, el filtro «prueba» (que nunca encontraba un `PRUEBA`), el panel de la junta, la vista del líder y la insignia de Mi OE.
+
 ## Decisión
 
 1. **Toda transición de una asistencia que ya existe toma su fila y valida contra lo que acaba de leer.** `lockCheckIns` (`src/modules/participation/domain/check-ins.ts`) lee con `for no key update` y en orden de `id`, y es la única lectura de la que sale el estado que se valida. Es el candado que toma el `update` que sigue: excluye a los otros caminos igual que `for update` y no frena a quien solo referencia la asistencia por clave foránea. Su condición es obligatoria: sin ella tomaría la tabla entera. La usan los cinco caminos: decidir una asistencia, el lote, el registro del organizador cuando la persona ya tiene asistencia, la cancelación de la ocasión y la excusa. La segunda decisión espera a la primera y recibe el error de siempre: T-676 al decidir, T-601 en el registro del organizador y T-2223 en la excusa (o nada, si ya estaba excusada). Decidir por `id` hace antes una lectura sin candado que solo dice de qué ocasión es la asistencia, que no cambia. La cancelación toma todas las asistencias de la ocasión y filtra pendientes y aprobadas con la fila retenida: un rechazo que alguien está reaprobando no era ni lo uno ni lo otro al mirar. Crear una asistencia sigue como estaba: no hay fila que tomar y el índice único decide entre el registro propio y el del organizador.
@@ -48,6 +50,11 @@ La fila decía además que la excusa no toma el candado de puntos del término y
    - Volver emite `work-group-membership.changed` con `JOINED` y encola el recálculo, como entrar. Dos altas a la vez de quien vuelve dejan una sola: la segunda espera la fila y la encuentra viva.
    - `addMembers` devuelve cuántas personas entraron, quiénes volvieron y quiénes ya estaban. La pantalla del grupo lo dice en vez de «Guardado» (T-3214, T-3215, T-3216), y la importación muestra como «ya estaba» a quien entró por otro lado entre la vista previa y el clic.
    - `evaluate` toma la fila de la pertenencia y rechaza con T-3213 a quien tiene `leftAt`. Para evaluarla de nuevo, primero vuelve al grupo.
+6. **El cierre de permanencia congela el estado final.** `freezeSnapshots` (`src/modules/permanence/domain/snapshots.ts`) toma las filas sin congelar del término y a cada una le guarda lo que da `closedResults` (pura, en `permanence-pure.ts`): el estado de cada comité es su `finalState`, lo posible queda en 0 en el comité y en cada criterio, y el margen es `total − umbral`. Dónde se hace y por qué:
+   - Se deriva de lo guardado, dentro de la transacción del cierre, y no de un cálculo nuevo. [ADR-036](ADR-036-permanencia-fase-4.md) regla 9 recalcula afuera de la transacción, y sobre ese snapshot se validan las decisiones: las propuestas salen de `finalState` y de las obligatorias. Recalcular «como cerrado» adentro leería los hechos en otro instante: una reunión que pasa a contar como celebrada o una obligatoria que pasa a perdida cambiarían lo congelado después de que GH lo confirmó, y la transacción del cierre cargaría con la lectura de todos los hechos del término.
+   - No hace falta recalcular. `finalState` ya viaja en el snapshot abierto: sale de lo logrado, el umbral y el margen de prueba, que no dependen de que el término esté abierto. Cerrar solo quita la proyección.
+   - Las filas se toman con `for update`, en orden de `id`, antes de escribirlas: un recálculo que llega a la vez espera, y después su `on conflict … where frozen_at is null` ya no las toca.
+   - Solo se congela lo que no estaba congelado. Los snapshots de los términos que cerraron antes de esta regla siguen con el estado abierto y los lectores los entregan como están: qué se hace con ellos es la primera pregunta de la decisión abierta 22, y una prueba fija que se leen como quedaron guardados.
 
 ## Consecuencias
 
@@ -59,5 +66,7 @@ La fila decía además que la excusa no toma el candado de puntos del término y
 - Siguen abiertas, leídas y sin ejecutar: una asistencia puede nacer o reaprobarse en una ocasión cancelada (DT-161), la excusa que crea la asistencia no maneja el choque con un registro simultáneo (DT-162) y el registro propio con booster puede interbloquearse con el del organizador (DT-163).
 - Quien vuelve a un grupo con una evaluación ya puesta la pierde hasta que lo evalúen otra vez. Mientras estuvo afuera esa evaluación seguía contando (una salida solo descarta la pendiente), así que retirar por error y volver a agregar a alguien ya evaluado le pide al evaluador calificarlo de nuevo. Lo anterior queda en la auditoría.
 - La reincorporación por áreas de ADR-065 (`team-members.ts`) sigue reiniciando `joinedAt` por su cuenta: la misma persona queda con fechas distintas según la pantalla por la que volvió. No cambia ningún cómputo. Es DT-164.
+- Un término que cierre desde ahora muestra Cumple, Prueba o No cumple en Cumplimiento, su exporte, el panel de la junta y Mi OE, y el filtro «prueba» encuentra a quien quedó en la banda. Los que ya cerraron siguen como estaban hasta que se cierre la decisión abierta 22.
+- Congelar escribe una fila por persona en vez de una sola sentencia: unas centenas de `update` dentro de la transacción del cierre. Las pruebas están en `tests/integration/permanence-closing.test.ts`.
 - Las pruebas de volver a un grupo están en `tests/integration/permanence-group-return.test.ts`.
 - Las pruebas de las decisiones sobre una asistencia están en `tests/integration/participation-checkin-decision-concurrency.test.ts`: retienen el término como lo retiene el cierre para que dos decisiones lean lo mismo, dejan la primera decisión sin confirmar para fijar el orden, o detienen al lote después de su primera aprobación reteniendo el reto presencial, y afirman en cada caso que hay puntos vivos si y solo si la asistencia está aprobada.

@@ -11,11 +11,14 @@ import {
   confirmAllProposedAs,
   confirmDecisionsAs,
   listClosingRows,
+  listCompliance,
   listPersonDecisions,
   listSnapshots,
+  parseResults,
   recomputeSnapshots,
 } from "@/modules/permanence";
-import { manualCredit } from "@/modules/permanence/schema";
+import { complianceResource } from "@/modules/permanence/admin";
+import { manualCredit, permanenceSnapshot } from "@/modules/permanence/schema";
 import { closeTermPoints, findTermByCode, getTerm } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { copyPattern, itemPattern } from "../helpers/copy";
@@ -331,5 +334,107 @@ describe("cierre de permanencia", () => {
     await expect(
       reactivateMembershipAs(GH, people.prueba, { reason: "Pidió volver" }),
     ).rejects.toThrow(t("T-2206"));
+  });
+
+  it("al aplicar el cierre cada snapshot queda con su estado final y sin puntos posibles, y así lo entregan Cumplimiento y su exporte", async () => {
+    const { termId, people } = await setup();
+    await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
+    await confirmAllProposedAs(GH, termId);
+    // Con el término abierto el estado es una proyección y todavía quedan puntos posibles.
+    const open = (await listSnapshots(termId)).flatMap((snapshot) =>
+      snapshot.results.map((result) => ({ personId: snapshot.personId, ...result })),
+    );
+    expect(open).toHaveLength(4);
+    for (const result of open) {
+      expect(["EN_CAMINO", "EN_RIESGO", "NO_ALCANZA"]).toContain(result.state);
+      expect(result.remaining).toBeGreaterThan(0);
+    }
+    const finalOf = new Map(
+      open.map((result) => [`${result.personId}:${result.committeeId}`, result.finalState]),
+    );
+
+    await closeTermPermanenceAs(GH, termId);
+
+    const frozen = await listSnapshots(termId);
+    expect(frozen).toHaveLength(3);
+    for (const snapshot of frozen) {
+      expect(snapshot.frozenAt).toBeInstanceOf(Date);
+      for (const criterion of snapshot.general) expect(criterion.remaining).toBe(0);
+      for (const result of snapshot.results) {
+        // El estado que queda guardado es el final que GH vio y confirmó.
+        expect(result.state).toBe(finalOf.get(`${snapshot.personId}:${result.committeeId}`));
+        expect(result.state).toBe(result.finalState);
+        expect(result.remaining).toBe(0);
+        expect(result.margin).toBe(Math.round((result.total - result.threshold) * 100) / 100);
+        for (const criterion of result.criteria) expect(criterion.remaining).toBe(0);
+      }
+    }
+    // Cumplimiento: cada fila dice Cumple, Prueba o No cumple, y sus filtros encuentran a cada quien.
+    const stateOf = async (filter?: "no-alcanza" | "prueba") =>
+      (await listCompliance(termId, filter)).map((row) => [row.personId, row.state]);
+    expect((await stateOf()).sort()).toEqual(
+      [
+        [people.cumple, "CUMPLE"],
+        [people.prueba, "PRUEBA"],
+        [people.sale, "NO_CUMPLE"],
+        [people.sale, "NO_CUMPLE"],
+      ].sort(),
+    );
+    expect((await listCompliance(termId)).every((row) => row.remaining === 0)).toBe(true);
+    expect(await stateOf("no-alcanza")).toEqual([
+      [people.sale, "NO_CUMPLE"],
+      [people.sale, "NO_CUMPLE"],
+    ]);
+    expect(await stateOf("prueba")).toEqual([[people.prueba, "PRUEBA"]]);
+    // Y el exporte lleva la etiqueta del estado final (T-791: Cumple, Prueba, No cumple).
+    const [, , , cumple, prueba, noCumple] = tList("T-791");
+    const stateHeader = tList("T-836")[9] ?? "";
+    const exported = await complianceResource.list({
+      q: "",
+      filters: { termId },
+      page: 1,
+      pageSize: 50,
+    });
+    expect(
+      exported.rows.map((row) => complianceResource.exportRow?.(row)[stateHeader]).sort(),
+    ).toEqual([cumple, prueba, noCumple, noCumple].sort());
+  });
+
+  // Decisión abierta 22: los términos que cerraron antes de ADR-116 regla 6 tienen sus snapshots
+  // congelados con el estado abierto. Qué se hace con ellos no está decidido: ni el cierre ni los
+  // lectores los tocan, y esta prueba fija que se leen tal como quedaron guardados.
+  it("un snapshot congelado con el estado abierto se lee como quedó guardado (decisión abierta 22)", async () => {
+    const { termId, people } = await setup();
+    await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
+    await confirmAllProposedAs(GH, termId);
+    await closeTermPermanenceAs(GH, termId);
+    const db = getDb();
+    const mine = and(
+      eq(permanenceSnapshot.termId, termId),
+      eq(permanenceSnapshot.personId, people.cumple),
+    );
+    const [stored] = await db.select().from(permanenceSnapshot).where(mine);
+    // Así quedaba congelado un snapshot antes de la regla: «En camino» y con puntos posibles.
+    const legacy = parseResults(stored?.results).map((result) => ({
+      ...result,
+      state: "EN_CAMINO" as const,
+      remaining: 18,
+      margin: 18,
+    }));
+    await db.update(permanenceSnapshot).set({ results: legacy }).where(mine);
+
+    expect(await recomputeSnapshots(termId)).toBe(0);
+
+    const [row] = (await listCompliance(termId)).filter((item) => item.personId === people.cumple);
+    expect(row).toMatchObject({ state: "EN_CAMINO", remaining: 18 });
+    const [snapshot] = (await listSnapshots(termId)).filter(
+      (item) => item.personId === people.cumple,
+    );
+    expect(snapshot?.results[0]).toMatchObject({
+      state: "EN_CAMINO",
+      finalState: "CUMPLE",
+      remaining: 18,
+    });
+    expect(snapshot?.frozenAt).toEqual(stored?.frozenAt);
   });
 });

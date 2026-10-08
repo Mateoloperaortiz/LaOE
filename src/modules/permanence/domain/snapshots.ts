@@ -1,4 +1,4 @@
-import { and, eq, isNull, notInArray, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, notInArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
@@ -8,6 +8,7 @@ import { loadPeopleFacts, loadTermFacts } from "./facts";
 import {
   type CommitteeResult,
   type CriterionResult,
+  closedResults,
   computePerson,
   type MandatoryView,
   type PersonPermanence,
@@ -156,12 +157,30 @@ export async function recomputeSnapshots(
   });
 }
 
-/** Congela los snapshots del término al aplicar el cierre (ADR-036 regla 9). */
+/**
+ * Congela los snapshots del término al aplicar el cierre (ADR-036 regla 9). Cada uno queda con su
+ * estado final y sin puntos posibles (ADR-116 regla 6): sale de lo que ya está guardado, que es lo que
+ * GH vio y confirmó, y no de un cálculo nuevo. Las filas se toman antes de escribirlas, así que un
+ * recálculo que llegue a la vez espera y después las encuentra congeladas. Las que ya estaban
+ * congeladas no se tocan.
+ */
 export async function freezeSnapshots(ctx: CommandContext, termId: string, at = new Date()) {
-  await ctx.tx
-    .update(permanenceSnapshot)
-    .set({ frozenAt: at })
-    .where(and(eq(permanenceSnapshot.termId, termId), isNull(permanenceSnapshot.frozenAt)));
+  const rows = await ctx.tx
+    .select()
+    .from(permanenceSnapshot)
+    .where(and(eq(permanenceSnapshot.termId, termId), isNull(permanenceSnapshot.frozenAt)))
+    .orderBy(asc(permanenceSnapshot.id))
+    .for("update");
+  for (const row of rows) {
+    const closed = closedResults({
+      general: parseGeneral(row.general),
+      results: parseResults(row.results),
+    });
+    await ctx.tx
+      .update(permanenceSnapshot)
+      .set({ general: closed.general, results: closed.results, frozenAt: at })
+      .where(eq(permanenceSnapshot.id, row.id));
+  }
 }
 
 /** Recalcular ahora desde el admin: encola el recompute del término con su clave (ADR-036 regla 5). */

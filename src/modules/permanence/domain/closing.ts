@@ -426,7 +426,8 @@ export async function confirmAllProposedAs(actor: Actor, termId: string): Promis
 
 /**
  * Aplicar el cierre (ADMIN, step-up en la acción): recalcula afuera, y en una transacción estampa
- * el término, congela los snapshots, asegura el término siguiente y encola el job de decisiones.
+ * el término, congela los snapshots con su estado final (ADR-116 regla 6), asegura el término siguiente
+ * y encola el job de decisiones.
  */
 export async function closeTermPermanenceAs(
   actor: Actor,

@@ -740,6 +740,28 @@ export function finalStateFor(
   return total >= threshold - probationMargin ? "PRUEBA" : "NO_CUMPLE";
 }
 
+/**
+ * El resultado tal como queda al cerrar la permanencia (ADR-116 regla 6): el estado de cada comité es
+ * el final y ya no queda nada posible. Es lo que da `computePerson` con el término cerrado en el mismo
+ * instante, sin volver a leer los hechos: lo logrado, el umbral y el detalle de cada criterio no cambian.
+ */
+export function closedResults(open: { general: CriterionResult[]; results: CommitteeResult[] }): {
+  general: CriterionResult[];
+  results: CommitteeResult[];
+} {
+  const settle = (criterion: CriterionResult): CriterionResult => ({ ...criterion, remaining: 0 });
+  return {
+    general: open.general.map(settle),
+    results: open.results.map((result) => ({
+      ...result,
+      remaining: 0,
+      margin: round2(result.total - result.threshold),
+      state: result.finalState,
+      criteria: result.criteria.map(settle),
+    })),
+  };
+}
+
 function sum(values: number[]): number {
   return round2(values.reduce((acc, value) => acc + value, 0));
 }
