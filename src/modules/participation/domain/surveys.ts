@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { and, asc, count, eq, inArray, isNotNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, enqueueEvent, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { NOTIFICATION_MAX_RECIPIENTS, notificationRequested } from "@/domain-events/comms";
 import { eventOf } from "@/domain-events/define";
 import { type FormField, getForm, parseFields, validateAnswers } from "@/modules/forms";
@@ -28,6 +28,11 @@ export interface CreatedInvite {
 /**
  * Crea las invitaciones que falten para los check-ins aprobados de una ocasión cerrada con encuesta y
  * manda el push T-191 con la URL propia de cada persona. Idempotente por (ocasión, persona).
+ *
+ * El enlace de una invitación solo existe acá, en memoria: la base guarda su huella. Por eso cada
+ * tanda confirma sus invitaciones y el aviso que las lleva en una sola transacción (ADR-118 regla 4):
+ * si algo falla no queda ninguna de las dos cosas y repetir la función las vuelve a hacer; si quedó
+ * hecha, sus personas ya no faltan y la repetición no las toca.
  */
 export async function createSurveyInvites(
   occasionId: string,
@@ -54,43 +59,55 @@ export async function createSurveyInvites(
         .where(eq(occasionSurveyInvite.occasionId, occasionId))
     ).map((item) => item.personId),
   );
-  const created: CreatedInvite[] = [];
-  for (const item of approved) {
-    if (existing.has(item.personId)) {
-      continue;
-    }
-    const token = randomBytes(24).toString("base64url");
-    const inserted = await db
-      .insert(occasionSurveyInvite)
-      .values({ occasionId, personId: item.personId, tokenHash: hashToken(token), sentAt: now })
-      .onConflictDoNothing()
-      .returning({ id: occasionSurveyInvite.id });
-    if (inserted.length > 0) {
-      created.push({ personId: item.personId, token });
-    }
-  }
+  // En orden fijo: dos corridas a la vez insertan en el mismo orden y una espera a la otra.
+  const missing = [...new Set(approved.map((item) => item.personId))]
+    .filter((personId) => !existing.has(personId))
+    .sort();
   const { title, body } = splitTitleBody(t("T-191", { actividad: row.title }));
-  for (let start = 0; start < created.length; start += NOTIFICATION_MAX_RECIPIENTS) {
-    const chunk = created.slice(start, start + NOTIFICATION_MAX_RECIPIENTS);
-    await enqueueEvent(
-      db,
-      eventOf(
-        notificationRequested,
-        {
-          kind: "SURVEY",
-          recipients: chunk.map((item) => ({
+  const created: CreatedInvite[] = [];
+  for (let start = 0; start < missing.length; start += NOTIFICATION_MAX_RECIPIENTS) {
+    const batch = missing
+      .slice(start, start + NOTIFICATION_MAX_RECIPIENTS)
+      .map((personId) => ({ personId, token: randomBytes(24).toString("base64url") }));
+    const fresh = await runCommand(SYSTEM_ACTOR, async (ctx) => {
+      const inserted = await ctx.tx
+        .insert(occasionSurveyInvite)
+        .values(
+          batch.map((item) => ({
+            occasionId,
             personId: item.personId,
-            url: `/app/encuesta/${item.token}`,
+            tokenHash: hashToken(item.token),
+            sentAt: now,
           })),
-          title,
-          body,
-          url: "/app",
-          tag: `survey-${occasionId}`,
-          dedupeKey: `survey:${occasionId}`,
-        },
-        { dedupeKey: `survey:${occasionId}:${start / NOTIFICATION_MAX_RECIPIENTS}` },
-      ),
-    );
+        )
+        .onConflictDoNothing()
+        .returning({ personId: occasionSurveyInvite.personId });
+      // Solo quien quedó con la invitación de esta corrida lleva su enlace: a quien otra corrida le
+      // ganó la suya ya le va el aviso de esa.
+      const won = new Set(inserted.map((item) => item.personId));
+      const invited = batch.filter((item) => won.has(item.personId));
+      if (invited.length > 0) {
+        // Sin clave en el outbox: la invitación recién insertada ya es la que impide repetir el
+        // aviso. Una clave por número de tanda chocaría con el aviso todavía en cola de una corrida
+        // anterior, cuyas tandas eran otras personas, y el outbox descartaría este en silencio.
+        await ctx.emit(
+          eventOf(notificationRequested, {
+            kind: "SURVEY",
+            recipients: invited.map((item) => ({
+              personId: item.personId,
+              url: `/app/encuesta/${item.token}`,
+            })),
+            title,
+            body,
+            url: "/app",
+            tag: `survey-${occasionId}`,
+            dedupeKey: `survey:${occasionId}`,
+          }),
+        );
+      }
+      return invited;
+    });
+    created.push(...fresh);
   }
   return { created, invited: approved.length };
 }
