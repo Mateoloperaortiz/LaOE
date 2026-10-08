@@ -139,6 +139,7 @@ Los nombres de la interfaz van en español; los identificadores del código, en 
 | Revisión del carnet | `CarnetToken.revision` | Número que aumenta al rotar el QR y permite saber si el pase publicado representa el token actual |
 | Importación | `ImportJob` | Un archivo del roster (o un ensayo de migración) con su vista previa, su estado y su resumen |
 | Solicitud de eliminación | `Person.deletionRequestedAt` + `Task.kind = DELETION_REQUEST` | Pedido del miembro para borrar sus datos; GH lo atiende anonimizando el perfil |
+| Motivo de una tarea | `Task.reasonKey` | Por qué abrió el sistema una tarea y sobre quién o qué (pedido de borrado, pedido de retiro de un comité, término siguiente sin crear, licencia vencida, solicitud, patrocinio ganado); hay una sola abierta por motivo y sujeto |
 | Segmento guardado | `Segment.filter` | Etapa, estado, ingreso, comités, cargos, etiquetas, consentimiento y programa; alimenta exportes y, después, campañas |
 | Medio | `MediaAsset` | Referencia a un archivo en el bucket (portada, foto, PDF) |
 | Presupuesto del comité | `CommitteeBudget` | Ordinario anual o extraordinario de una actividad no prevista; se abre con las aprobaciones de Desarrollo Estudiantil y de la Vicepresidencia Financiera (Regl. art. 50) y puede llevar la sanción del 10 % por presentación tardía (art. 66) |

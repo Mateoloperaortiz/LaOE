@@ -68,3 +68,5 @@ Regla 9: las solicitudes son cuatro. Se suma la excusa válida (`EXCUSE`) sobre 
 ## Enmienda (2026-10-07, ADR-115)
 
 Regla 12: `comms/jobs.ts` enviaba la bienvenida (T-200) y la respuesta a una solicitud (T-205) sin clave, y el reintento de `person.admitted` o de `request.decided` por el fallo de otro handler los mandaba otra vez. Ahora cada uno se registra en `message` con una clave por evento y persona (`event:<id de la fila del outbox>:<código del texto>`) y, si ese registro ya existe, no se envía. Ver [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) regla 8.
+
+Reglas 7 y 9: la tarea de seguimiento de un patrocinio ganado y la tarea `REQUEST` de una solicitud se insertaban a mano dentro de su comando, sin auditoría propia. Ahora las abre `openTaskForReason` en esa misma transacción, auditadas (`task.created`) a nombre de quien movió la tarjeta o de quien pidió. La de la solicitud lleva la clave de su solicitud. La del patrocinio lleva la de su tarjeta: volver a ganar una tarjeta con el seguimiento todavía abierto ya no abre otra. Ver [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) regla 9.

@@ -1,6 +1,6 @@
 # ADR-034: Personas, CRM mínimo y Mi OE (fase 2)
 
-- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113)
+- Estado: Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113, ADR-115)
 - Fecha: 2026-09-03
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-014, ADR-017, ADR-018, ADR-022, ADR-029, ADR-030, ADR-031, ADR-032, ADR-033
 - Enmienda: ADR-010 (destrucción de sesiones), ADR-018 y 08-migracion (mapeo del líder de comité), ADR-022 (el archivo del roster sí pasa por la app)
@@ -90,3 +90,7 @@ La presentación de los cargos separa vigentes, próximos e historial por semest
 La regla 8 dejaba que `confirm` aceptara a un miembro sin ADMIN «solo con `purpose = "photo"`», y eso lo miraba la ruta sobre lo que declaraba el cliente. Ahora lo decide el comando con la clave: una foto solo la confirma su dueña, cualquier otra clave pide el alcance de ADMIN que declara quien autorizó, y el propósito declarado tiene que coincidir con el prefijo. La firma (`presign`), la clave `photos/<personId>/…`, la visibilidad `PRIVATE`, el tope de 5 MB y `setOwnPhoto` no cambian. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 5.
 
 La regla 4 decía que confirmar aplica el lote en una transacción y pasa el job a `APPLIED`, sin decir cuántas veces: el estado se leía antes de abrir la transacción y dos llamadas simultáneas pasaban las dos. Ahora aplicar y descartar toman el trabajo dentro de la transacción, con su fila bloqueada, y exigen que siga en `PREVIEW`; la segunda llamada recibe T-3210 sin escribir nada. El formato, las validaciones, el step-up y lo que el roster aplica no cambian. Ver [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md), regla 7.
+
+## Enmienda (2026-10-07, ADR-115)
+
+Regla 12: la tarea `DELETION_REQUEST` la abría un handler que insertaba la fila fuera de un comando, sin auditoría y sin candado. Ahora la abre `openTaskForReason`: hay una sola abierta por persona, identificada por su clave (`DELETION_REQUEST:person:<id>`), y queda auditada a nombre del sistema. No cambian el tipo, el título, el vencimiento a `privacy.deletionDays` días hábiles ni que quede sin asignar. Ver [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) regla 9.

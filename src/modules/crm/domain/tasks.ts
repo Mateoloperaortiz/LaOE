@@ -1,15 +1,18 @@
-import { and, asc, count, desc, eq, ilike, inArray, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, lt, type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { getPeopleByIds } from "@/modules/people";
+import { requireConfig } from "@/modules/system";
 import { t } from "@/shared/copy";
-import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
+import { addBusinessDays, bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { organization, task } from "../schema";
 
 // Tareas (02-crm.md): pendiente con responsable y vencimiento sobre una persona; sin responsable la ven
-// todos los ADMIN.
+// todos los ADMIN. Hay dos entradas (ADR-115 regla 9): `createTask`, la que una persona crea a mano
+// desde una ficha, y `openTaskForReason`, la que abre el sistema por un motivo, una sola por motivo y
+// sujeto mientras siga abierta. Nadie más inserta en `task`.
 
 export const TASK_KINDS = [
   "GENERAL",
@@ -161,6 +164,181 @@ export async function createTask(ctx: CommandContext, input: TaskInput): Promise
   }
   await ctx.audit({ action: "task.created", entityType: "task", entityId: row.id, after: values });
   return row;
+}
+
+/**
+ * Por qué abre el sistema una tarea, y sobre quién o qué: un conjunto cerrado (ADR-115 regla 9). El
+ * motivo y su sujeto son la identidad de la tarea mientras siga abierta; el título es solo lo que se lee.
+ */
+export type TaskReason =
+  | { type: "DELETION_REQUEST"; personId: string }
+  | { type: "COMMITTEE_REMOVAL"; personId: string; committeeId: string }
+  | { type: "TERM_SUCCESSOR_MISSING"; termCode: string }
+  | { type: "LEAVE_EXPIRED"; personId: string }
+  | { type: "REQUEST"; requestId: string; personId: string }
+  | { type: "SPONSORSHIP_WON"; cardId: string; organizationId: string };
+
+/** Un instante, o los días hábiles de una clave de la configuración contados desde ahora. */
+export type TaskDue = { at: Date } | { businessDays: "privacy.deletionDays" | "requests.taskDays" };
+
+export interface ReasonTaskInput {
+  reason: TaskReason;
+  title: string;
+  assigneeId: string | null;
+  due: TaskDue | null;
+  /** La persona que la pidió, si hubo una: queda como `createdById`. La auditoría lleva al actor. */
+  requestedById: string | null;
+  /** El instante desde el que se cuentan los días hábiles; por omisión, ahora. */
+  now?: Date;
+}
+
+interface ReasonSpec {
+  /** La clave que se guarda en `task.reasonKey`: el motivo y su sujeto. */
+  key: string;
+  kind: (typeof TASK_KINDS)[number];
+  personId: string | null;
+  organizationId: string | null;
+  cardId: string | null;
+  /**
+   * Cómo reconocía ese sitio su tarea abierta antes de que existiera la clave. Solo se aplica a las
+   * tareas sin clave, que son las anteriores a la regla, para no duplicarles la suya (DT-123).
+   */
+  legacy: SQL | undefined;
+}
+
+/** Un sujeto vacío no identifica nada: falla cerrado, antes de tocar la base. */
+function subject(type: TaskReason["type"], value: string): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`Al motivo ${type} le falta su sujeto`);
+  }
+  return value;
+}
+
+function reasonSpec(reason: TaskReason, title: string): ReasonSpec {
+  const none = { personId: null, organizationId: null, cardId: null, legacy: undefined };
+  switch (reason.type) {
+    case "DELETION_REQUEST": {
+      const personId = subject(reason.type, reason.personId);
+      return {
+        ...none,
+        key: `${reason.type}:person:${personId}`,
+        kind: "DELETION_REQUEST",
+        personId,
+        legacy: and(eq(task.personId, personId), eq(task.kind, "DELETION_REQUEST")),
+      };
+    }
+    case "COMMITTEE_REMOVAL": {
+      const personId = subject(reason.type, reason.personId);
+      const committeeId = subject(reason.type, reason.committeeId);
+      return {
+        ...none,
+        key: `${reason.type}:person:${personId}:committee:${committeeId}`,
+        kind: "COMMITTEE_REMOVAL",
+        personId,
+        legacy: and(
+          eq(task.personId, personId),
+          eq(task.kind, "COMMITTEE_REMOVAL"),
+          eq(task.title, title),
+        ),
+      };
+    }
+    case "TERM_SUCCESSOR_MISSING":
+      return {
+        ...none,
+        key: `${reason.type}:term:${subject(reason.type, reason.termCode)}`,
+        kind: "GENERAL",
+        legacy: eq(task.title, title),
+      };
+    case "LEAVE_EXPIRED": {
+      const personId = subject(reason.type, reason.personId);
+      return {
+        ...none,
+        key: `${reason.type}:person:${personId}`,
+        kind: "LEAVE_EXPIRED",
+        personId,
+        legacy: and(eq(task.personId, personId), eq(task.kind, "LEAVE_EXPIRED")),
+      };
+    }
+    // La solicitud y la tarjeta no buscaban una tarea abierta: no tienen regla vieja.
+    case "REQUEST":
+      return {
+        ...none,
+        key: `${reason.type}:request:${subject(reason.type, reason.requestId)}`,
+        kind: "REQUEST",
+        personId: subject(reason.type, reason.personId),
+      };
+    case "SPONSORSHIP_WON":
+      return {
+        ...none,
+        key: `${reason.type}:card:${subject(reason.type, reason.cardId)}`,
+        kind: "GENERAL",
+        organizationId: subject(reason.type, reason.organizationId),
+        cardId: reason.cardId,
+      };
+    default:
+      // Falla cerrado: un motivo que no está en el conjunto no abre nada.
+      throw new Error(
+        `Motivo de tarea desconocido: ${String((reason as { type?: unknown }).type)}`,
+      );
+  }
+}
+
+async function dueInstant(due: TaskDue | null, now: Date): Promise<Date | null> {
+  if (due === null) {
+    return null;
+  }
+  const at = "at" in due ? due.at : addBusinessDays(now, await requireConfig(due.businessDays));
+  if (!(at instanceof Date) || Number.isNaN(at.getTime())) {
+    throw new Error("El vencimiento de la tarea no es un instante");
+  }
+  return at;
+}
+
+/**
+ * Abre la tarea de un motivo, o devuelve la que ya está abierta por ese motivo y ese sujeto (ADR-115
+ * regla 9). Busca y escribe bajo un candado consultivo por clave, que dura lo que la transacción: dos
+ * aperturas a la vez de la misma tarea dejan una. Siempre audita la que crea.
+ */
+export async function openTaskForReason(
+  ctx: CommandContext,
+  input: ReasonTaskInput,
+): Promise<{ id: string; created: boolean }> {
+  const spec = reasonSpec(input.reason, input.title);
+  // La configuración se lee por otra conexión: antes del candado, para no esperarla con él tomado.
+  const dueAt = await dueInstant(input.due, input.now ?? new Date());
+  await ctx.tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`task:${spec.key}`}, 0))`,
+  );
+  const open = (where: SQL | undefined) =>
+    ctx.tx
+      .select({ id: task.id })
+      .from(task)
+      .where(and(eq(task.status, "OPEN"), where))
+      .orderBy(asc(task.createdAt), asc(task.id))
+      .limit(1);
+  const [byReason] = await open(eq(task.reasonKey, spec.key));
+  const [existing] =
+    byReason || !spec.legacy ? [byReason] : await open(and(isNull(task.reasonKey), spec.legacy));
+  if (existing) {
+    return { id: existing.id, created: false };
+  }
+  const values = {
+    title: input.title,
+    kind: spec.kind,
+    assigneeId: input.assigneeId,
+    dueAt,
+    personId: spec.personId,
+    organizationId: spec.organizationId,
+    cardId: spec.cardId,
+    reasonKey: spec.key,
+    createdById: input.requestedById,
+  };
+  const [row] = await ctx.tx.insert(task).values(values).returning({ id: task.id });
+  if (!row) {
+    throw new Error("No se pudo crear la tarea");
+  }
+  await ctx.audit({ action: "task.created", entityType: "task", entityId: row.id, after: values });
+  return { id: row.id, created: true };
 }
 
 export async function completeTask(ctx: CommandContext, id: string): Promise<void> {

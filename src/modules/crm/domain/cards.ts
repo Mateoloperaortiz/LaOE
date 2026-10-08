@@ -16,8 +16,9 @@ import {
 import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { card, organization, pipeline, pipelineStage, task } from "../schema";
+import { card, organization, pipeline, pipelineStage } from "../schema";
 import { closedAtAfterMove } from "./pipelines-pure";
+import { openTaskForReason } from "./tasks";
 
 // Tarjetas (02-crm.md, ADR-037 reglas 7 y 8): una persona o una organización avanzando por un pipeline.
 // Mover es un comando con interacción en el sujeto; llegar a una etapa ganada o perdida cierra la
@@ -410,13 +411,12 @@ export async function moveCard(
       .select({ name: organization.name })
       .from(organization)
       .where(eq(organization.id, row.organizationId));
-    await ctx.tx.insert(task).values({
+    await openTaskForReason(ctx, {
+      reason: { type: "SPONSORSHIP_WON", cardId, organizationId: row.organizationId },
       title: t("T-994", { organización: org?.name ?? row.title }),
-      kind: "GENERAL",
       assigneeId: row.ownerId,
-      organizationId: row.organizationId,
-      cardId,
-      createdById: ctx.actor.personId,
+      due: null,
+      requestedById: ctx.actor.personId,
     });
   }
   await ctx.audit({

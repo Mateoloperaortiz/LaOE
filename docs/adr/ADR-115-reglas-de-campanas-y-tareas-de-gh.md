@@ -2,8 +2,8 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-07
-- Relacionadas: ADR-012, ADR-023, ADR-037, ADR-038, ADR-039, ADR-079, ADR-109
-- Enmienda: ADR-038 (regla 8: el lote de una campaña, su cancelación, su cupo y la elegibilidad al enviar), ADR-023 (regla 3: las campañas que salen por Resend) y ADR-037 (regla 12: la bienvenida y la respuesta a una solicitud llevan una clave por evento)
+- Relacionadas: ADR-012, ADR-023, ADR-034, ADR-035, ADR-037, ADR-038, ADR-039, ADR-058, ADR-060, ADR-079, ADR-109
+- Enmienda: ADR-038 (regla 8: el lote de una campaña, su cancelación, su cupo y la elegibilidad al enviar), ADR-023 (regla 3: las campañas que salen por Resend), ADR-037 (regla 12: la bienvenida y la respuesta a una solicitud llevan una clave por evento; reglas 7 y 9: la tarea del patrocinio ganado y la de la solicitud), ADR-034 (regla 12: la tarea del pedido de borrado), ADR-035 (regla 14: la tarea del término siguiente) y ADR-058 (regla 4: la tarea del pedido de retiro de un comité)
 
 ## Contexto
 
@@ -35,6 +35,14 @@ Se reprodujo con las dos personas: el lote les enviaba.
 - `comms` es el primer módulo que se registra (`src/jobs/handlers.ts`), así que cualquier otro handler del evento corre cuando el correo ya salió. La línea de tiempo de `crm` escucha los dos eventos.
 - Se reprodujo con el poller real: con un handler más en el evento que falla una vez, el reintento volvió a mandar la bienvenida y la respuesta. Sale un correo por intento, y el poller hace hasta cinco.
 - El push de la respuesta no se repetía: pasa por el bus, que lo registra con la clave `request:<id>` (ADR-038 regla 2).
+
+**Las tareas que abre el sistema (DT-007).** Ocho sitios abrían una tarea de GH. Dos son la creación a mano, desde las fichas y desde el recurso del kit, y ya pasaban por `createTask`. Las otras seis las abre el sistema por un motivo: el pedido de borrado ([ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) regla 12), el pedido de retiro de un comité ([ADR-058](ADR-058-direccion-del-comite-por-areas.md) regla 4), el término siguiente sin crear ([ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) regla 14), la licencia vencida ([ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) regla 10), la solicitud de un miembro y el patrocinio ganado (ADR-037 reglas 9 y 7). Cinco de esas seis insertaban la fila a mano, y «una sola abierta» estaba escrita cuatro veces, cada una a su modo.
+
+- El pedido de retiro y el término siguiente reconocían su tarea por el título, que sale del copy (T-2170 y T-666). Se reprodujo: con el título de la tarea abierta cambiado, el evento siguiente abrió otra. Con T-2170 pasaba además sin tocar el copy, porque el título lleva el motivo que escribe la dirección: otro motivo para la misma persona y el mismo comité era otra tarea.
+- Ninguna de las cuatro búsquedas tomaba un candado: buscaban y, por otra conexión, escribían. Se reprodujo: cuatro handlers a la vez de la licencia vencida abrieron cuatro tareas, y cuatro del término siguiente, otras cuatro.
+- El patrocinio no buscaba nada: una tarjeta que volvía a la etapa ganada con su seguimiento todavía abierto abría otro.
+- Tres handlers escribían con `getDb()` fuera de un comando y no dejaban auditoría. La solicitud y el patrocinio auditaban su comando (`request.created`, `card.moved`), pero no la tarea.
+- `createTask` pide el vencimiento como texto de `datetime-local`, que es lo que manda un formulario. Por eso los handlers lo esquivaban, y el de la licencia fabricaba ese texto a partir del día.
 
 ## Decisión
 
@@ -86,6 +94,16 @@ Se reprodujo con las dos personas: el lote les enviaba.
    - El push de la respuesta (T-189) sigue como estaba: el bus lo registra con `request:<id>` y el reintento no lo repite. Ahora lo fija una prueba.
    - El poller no cambia: sigue corriendo los handlers en serie y reintentando el evento entero (DT-016).
 
+9. **Toda tarea que abre el sistema pasa por una sola entrada, y hay una abierta por motivo y sujeto.** `openTaskForReason` (`src/modules/crm/domain/tasks.ts`) es la única que inserta una tarea del sistema. La creación a mano sigue por `createTask` y no cambia. Nadie más inserta en `task`.
+   - El motivo es un conjunto cerrado y cada uno dice su sujeto: pedido de borrado (la persona), pedido de retiro de un comité (la persona y el comité), término siguiente sin crear (el código del término que falta), licencia vencida (la persona), solicitud (la solicitud) y patrocinio ganado (la tarjeta). Un motivo que no está en el conjunto, o uno sin su sujeto, se rechaza sin escribir nada.
+   - El motivo y el sujeto forman una clave de texto, por ejemplo `LEAVE_EXPIRED:person:<id>`, que se guarda en `task.reason_key`, una columna nueva y anulable. Esa clave es la identidad de la tarea mientras siga abierta. El título es solo lo que se lee: puede cambiar con el copy sin que se abra otra.
+   - Buscar y escribir van bajo un mismo candado: `pg_advisory_xact_lock` sobre `task:<clave>`, dentro de la transacción del comando. Si ya hay una abierta con esa clave, la entrada la devuelve y no escribe. Dos aperturas a la vez de la misma tarea dejan una.
+   - «Abierta» es `OPEN`. Una tarea hecha ya no cuenta: si el motivo sigue vivo, el siguiente evento abre otra, como antes.
+   - La entrada siempre audita la tarea que crea (`task.created`), con el actor del comando. Los tres handlers que escribían fuera de un comando ahora abren el suyo a nombre del sistema. La tarea de una solicitud queda auditada a nombre de quien la pidió, y la del patrocinio, de quien movió la tarjeta. `createdById` conserva su sentido: la persona que originó el pedido, si hubo una.
+   - El vencimiento llega como un instante o como una clave de la configuración con días hábiles (`privacy.deletionDays`, `requests.taskDays`), que la entrada cuenta desde el instante que recibe. Ningún handler arma un texto de fecha.
+   - Las tareas anteriores a esta regla no tienen clave y no se tocan. Para no abrirles un duplicado, cuando no hay ninguna abierta con la clave la entrada busca además entre las que no tienen clave, con la regla vieja de ese motivo: persona y tipo (borrado y licencia), persona, tipo y título (retiro) o título (término siguiente). La solicitud y el patrocinio no buscaban y no tienen regla vieja.
+   - Lo que cambia para GH son dos casos. Mientras siga abierta la tarea de un pedido de retiro, otro pedido sobre la misma persona y el mismo comité no abre otra aunque traiga otro motivo escrito; ese motivo queda en la línea de tiempo (T-2171). Y volver a ganar un patrocinio con el seguimiento todavía abierto tampoco abre otro. Los tipos (`kind`), títulos, responsables y vencimientos de las tareas son los de antes.
+
 ## Consecuencias
 
 - La entrega sigue siendo «al menos una vez», con la ventana reducida a un correo. Antes se repetía el lote entero; ahora puede repetirse un correo, una vez, por dos caminos (DT-113):
@@ -118,3 +136,11 @@ Se reprodujo con las dos personas: el lote les enviaba.
 - Al intento que no envía, `sendTransactionalEmail` le responde `SENT` con proveedor `skipped`, también cuando el registro era de un rechazo, y así lo deja escrito el aviso del handler (DT-120).
 - El aviso del enlace de acceso (T-2132) queda fuera de la regla 8: su clave lleva el instante del intento y un reintento lo repite (DT-119).
 - Las pruebas de la regla 8 están en `tests/integration/comms-event-retry.test.ts`, con el poller real y un handler más en cada evento, que falla una vez después de comms: la bienvenida y la respuesta, por correo y por push, una sola vez tras el reintento; dos solicitudes respondidas a la misma persona, cada una con su correo; y la bienvenida rechazada que el reintento no vuelve a intentar, que fija lo que el código hace mientras la decisión 15 siga abierta y lo dice en su título.
+
+- La base todavía no respalda la regla 9: `task.reason_key` no tiene índice único. La sostienen el candado y que nadie más inserte en `task`. El índice único parcial sobre las tareas abiertas espera el conteo de duplicados en producción (issue #122) y queda como DT-123, junto con el retiro de las cuatro reglas viejas.
+- Migración aditiva `0049_tarea_clave_de_motivo`: una columna anulable, sin backfill y sin índice. La búsqueda por clave filtra las tareas abiertas y entra por `task_status_due_idx`.
+- La tarea que ya está abierta conserva su título, su responsable y su vencimiento. No la actualizan un segundo pedido de retiro con otro motivo, un término al que le cambió la fecha de fin, ni una tarjeta que cambió de responsable antes de volver a ganarse.
+- Hay más filas de auditoría: una `task.created` por cada tarea del borrado, del retiro, del término siguiente, de una solicitud y de un patrocinio ganado. Las dos últimas se suman a la de su comando (`request.created`, `card.moved`).
+- El candado es por clave: dos motivos, o dos sujetos, no se esperan entre sí. En la solicitud y en el patrocinio se toma dentro del comando, después de la fila que ese comando ya tiene (la solicitud recién creada, la tarjeta con `FOR UPDATE`), siempre en ese orden.
+- La entrada lee el plazo de la configuración antes de tomar el candado, porque esa lectura puede ir por otra conexión cuando vence la caché de `AppConfig`.
+- Las pruebas de la regla 9 están en `tests/integration/tasks-characterization.test.ts`: qué tarea abre cada uno de los ocho sitios, con su clave; los defectos reproducidos, ya como pruebas corrientes (el título cambiado, otro motivo escrito, el patrocinio ganado dos veces, cuatro handlers a la vez y la auditoría de los cinco sitios); las tareas sin clave, que se reconocen con la regla vieja de su motivo; seis aperturas a la vez de la misma tarea; los días hábiles contados desde un instante dado, y el motivo desconocido o sin sujeto, que no abre nada.

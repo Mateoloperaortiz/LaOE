@@ -1,5 +1,3 @@
-import { and, eq } from "drizzle-orm";
-import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { submissionReceived } from "@/domain-events/forms";
 import { checkinApproved, termSuccessorMissing } from "@/domain-events/participation";
@@ -21,21 +19,20 @@ import {
   listExpiredLeaves,
   SANCTION_KINDS,
 } from "@/modules/people";
-import { requireConfig } from "@/modules/system";
 import { listAllTerms } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
-import { addBusinessDays, formatDate, todayKey } from "@/shared/lib/dates";
+import { bogotaInputToUtc, formatDate, todayKey } from "@/shared/lib/dates";
 import { createCardFromSubmission } from "./domain/cards";
+import { openTaskForReasonAs } from "./domain/commands";
 import { deleteNotesFor, recordAutomaticInteraction } from "./domain/interactions";
 import { recordOnboardingEvidence } from "./domain/onboarding";
-import { createTask, deleteTasksFor } from "./domain/tasks";
+import { deleteTasksFor } from "./domain/tasks";
 import {
   entryFor,
   TIMELINE_RULES,
   type TimelineLabels,
   type TimelineRule,
 } from "./domain/timeline-pure";
-import { task } from "./schema";
 
 // La línea de tiempo se alimenta sola (01-arquitectura.md): cada evento de dominio produce una
 // interacción, idempotente por la fila del outbox. Salir o anonimizarse borra tareas y notas (ADR-030).
@@ -124,84 +121,47 @@ onEvent(personAnonymized, async ({ personId }, ctx) => {
   ctx.log.info({ personId, tasks, notes }, "tareas y notas borradas por anonimización");
 });
 
-// La solicitud de eliminación (ADR-030, ADR-034 regla 12) abre una tarea sin asignar que ven todos
-// los ADMIN, con vencimiento a `privacy.deletionDays` días hábiles; no se duplica mientras siga abierta.
+// Las tareas que abre el sistema pasan por `openTaskForReason` (ADR-115 regla 9): una sola abierta por
+// motivo y sujeto, auditada a nombre del sistema. El handler solo dice el motivo, el título y el plazo.
+
+// La solicitud de eliminación (ADR-030, ADR-034 regla 12): una tarea sin asignar que ven todos los
+// ADMIN, con vencimiento a `privacy.deletionDays` días hábiles.
 onEvent(personDeletionRequested, async ({ personId }, ctx) => {
-  const [open] = await getDb()
-    .select({ id: task.id })
-    .from(task)
-    .where(
-      and(eq(task.personId, personId), eq(task.kind, "DELETION_REQUEST"), eq(task.status, "OPEN")),
-    )
-    .limit(1);
-  if (open) {
-    ctx.log.debug({ personId, taskId: open.id }, "la solicitud de eliminación ya tiene tarea");
-    return;
-  }
-  const [people, days] = await Promise.all([
-    getPeopleByIds([personId]),
-    requireConfig("privacy.deletionDays"),
-  ]);
-  const [created] = await getDb()
-    .insert(task)
-    .values({
-      title: t("T-464", { nombre: people.get(personId)?.fullName?.trim() ?? "" }),
-      kind: "DELETION_REQUEST",
-      personId,
-      createdById: personId,
-      dueAt: addBusinessDays(new Date(), days),
-    })
-    .returning({ id: task.id });
-  ctx.log.info({ personId, taskId: created?.id }, "tarea de eliminación creada");
+  const people = await getPeopleByIds([personId]);
+  const opened = await openTaskForReasonAs(SYSTEM_ACTOR, {
+    reason: { type: "DELETION_REQUEST", personId },
+    title: t("T-464", { nombre: people.get(personId)?.fullName?.trim() ?? "" }),
+    assigneeId: null,
+    due: { businessDays: "privacy.deletionDays" },
+    requestedById: personId,
+  });
+  ctx.log.info({ personId, ...opened }, "tarea de eliminación");
 });
 
 // Pedido de retiro de un comité por su dirección (ADR-058): una tarea sin responsable para GH con el
-// vencimiento de las solicitudes; idempotente por la tarea abierta con el mismo título. La pertenencia
-// no se toca: GH decide desde la Persona 360.
+// vencimiento de las solicitudes, una por persona y comité. La pertenencia no se toca: GH decide desde
+// la Persona 360.
 onEvent(committeeRemovalRequested, async (event, ctx) => {
-  const [people, committees, days] = await Promise.all([
+  const [people, committees] = await Promise.all([
     getPeopleByIds([event.personId]),
     listAllCommittees(),
-    requireConfig("requests.taskDays"),
   ]);
-  const title = t("T-2170", {
-    nombre: people.get(event.personId)?.fullName?.trim() ?? "",
-    comité: committees.find((item) => item.id === event.committeeId)?.name ?? "",
-    motivo: event.reason || "—",
-  });
-  const [open] = await getDb()
-    .select({ id: task.id })
-    .from(task)
-    .where(
-      and(
-        eq(task.personId, event.personId),
-        eq(task.kind, "COMMITTEE_REMOVAL"),
-        eq(task.status, "OPEN"),
-        eq(task.title, title),
-      ),
-    )
-    .limit(1);
-  if (open) {
-    ctx.log.debug(
-      { personId: event.personId, taskId: open.id },
-      "el pedido de retiro ya tiene tarea",
-    );
-    return;
-  }
-  const [created] = await getDb()
-    .insert(task)
-    .values({
-      title,
-      kind: "COMMITTEE_REMOVAL",
+  const opened = await openTaskForReasonAs(SYSTEM_ACTOR, {
+    reason: {
+      type: "COMMITTEE_REMOVAL",
       personId: event.personId,
-      createdById: event.actorId ?? null,
-      dueAt: addBusinessDays(new Date(), days),
-    })
-    .returning({ id: task.id });
-  ctx.log.info(
-    { personId: event.personId, taskId: created?.id },
-    "tarea de retiro de comité creada",
-  );
+      committeeId: event.committeeId,
+    },
+    title: t("T-2170", {
+      nombre: people.get(event.personId)?.fullName?.trim() ?? "",
+      comité: committees.find((item) => item.id === event.committeeId)?.name ?? "",
+      motivo: event.reason || "—",
+    }),
+    assigneeId: null,
+    due: { businessDays: "requests.taskDays" },
+    requestedById: event.actorId,
+  });
+  ctx.log.info({ personId: event.personId, ...opened }, "tarea de retiro de comité");
 });
 
 // La primera integración marca sola el paso del onboarding (ADR-031, ADR-034 regla 15).
@@ -224,23 +184,16 @@ onEvent(checkinApproved, async ({ personId, category }, ctx) => {
 });
 
 // Falta crear el término siguiente (ADR-004, ADR-035 regla 14): una tarea sin asignar que ven todos los
-// ADMIN; no se duplica mientras siga abierta una con el mismo título.
+// ADMIN, una por término que falta, que vence el día en que termina el actual.
 onEvent(termSuccessorMissing, async ({ next, endsOn }, ctx) => {
-  const title = t("T-666", { codigo: next, fecha: endsOn });
-  const [open] = await getDb()
-    .select({ id: task.id })
-    .from(task)
-    .where(and(eq(task.title, title), eq(task.status, "OPEN")))
-    .limit(1);
-  if (open) {
-    ctx.log.debug({ next, taskId: open.id }, "la tarea del término siguiente ya existe");
-    return;
-  }
-  const [created] = await getDb()
-    .insert(task)
-    .values({ title, kind: "GENERAL", dueAt: new Date(`${endsOn}T12:00:00Z`) })
-    .returning({ id: task.id });
-  ctx.log.info({ next, taskId: created?.id }, "tarea del término siguiente creada");
+  const opened = await openTaskForReasonAs(SYSTEM_ACTOR, {
+    reason: { type: "TERM_SUCCESSOR_MISSING", termCode: next },
+    title: t("T-666", { codigo: next, fecha: endsOn }),
+    assigneeId: null,
+    due: { at: new Date(`${endsOn}T12:00:00Z`) },
+    requestedById: null,
+  });
+  ctx.log.info({ next, ...opened }, "tarea del término siguiente");
 });
 
 // Una respuesta con la acción "entrar al pipeline" crea su tarjeta (ADR-037 regla 7); idempotente por
@@ -271,32 +224,17 @@ registerHandler("membership.leave-check", async (_payload, ctx) => {
   const expired = await listExpiredLeaves(today);
   let opened = 0;
   for (const item of expired) {
-    const [existing] = await getDb()
-      .select({ id: task.id })
-      .from(task)
-      .where(
-        and(
-          eq(task.personId, item.personId),
-          eq(task.kind, "LEAVE_EXPIRED"),
-          eq(task.status, "OPEN"),
-        ),
-      )
-      .limit(1);
-    if (existing) {
-      continue;
-    }
-    await runCommand(SYSTEM_ACTOR, (tx) =>
-      createTask(tx, {
-        title: t("T-2277", {
-          nombre: item.fullName,
-          fecha: formatDate(new Date(`${item.leaveUntil}T12:00:00Z`)),
-        }),
-        kind: "LEAVE_EXPIRED",
-        personId: item.personId,
-        dueAt: `${today}T09:00`,
+    const result = await openTaskForReasonAs(SYSTEM_ACTOR, {
+      reason: { type: "LEAVE_EXPIRED", personId: item.personId },
+      title: t("T-2277", {
+        nombre: item.fullName,
+        fecha: formatDate(new Date(`${item.leaveUntil}T12:00:00Z`)),
       }),
-    );
-    opened += 1;
+      assigneeId: null,
+      due: { at: bogotaInputToUtc(`${today}T09:00`) },
+      requestedById: null,
+    });
+    opened += result.created ? 1 : 0;
   }
   ctx.log.info({ expired: expired.length, opened }, "licencias vencidas revisadas");
 });

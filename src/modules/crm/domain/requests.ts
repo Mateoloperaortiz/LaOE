@@ -29,7 +29,7 @@ import { ensureNextTerm, getCurrentTerm, type TermRow } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { addBusinessDays, formatDate, todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
-import { request, task } from "../schema";
+import { request } from "../schema";
 import {
   EXCUSE_BUSINESS_DAYS,
   EXCUSE_CAUSES,
@@ -43,7 +43,7 @@ import {
   resultingCommittees,
   type TransferPayload,
 } from "./requests-pure";
-import { completeTask } from "./tasks";
+import { completeTask, openTaskForReason } from "./tasks";
 
 // Solicitudes del miembro (ADR-031, ADR-037 regla 9): nada cambia hasta que GH aprueba; aprobar
 // ejecuta en la misma transacción el comando de `people` que haría a mano; rechazar exige motivo;
@@ -257,11 +257,7 @@ export async function createRequestAs(
       }
     }
   }
-  const [term, days, who] = await Promise.all([
-    getCurrentTerm(),
-    requireConfig("requests.taskDays"),
-    getPersonRecord(actor.personId),
-  ]);
+  const [term, who] = await Promise.all([getCurrentTerm(), getPersonRecord(actor.personId)]);
   if (!term || !who) {
     throw new DomainError(t("T-989"));
   }
@@ -307,20 +303,14 @@ export async function createRequestAs(
     if (!created) {
       throw new Error("No se pudo crear la solicitud");
     }
-    const [opened] = await ctx.tx
-      .insert(task)
-      .values({
-        title: t("T-1009", { nombre: `${who.firstName} ${who.lastName}`.trim(), tipo: kindLabel }),
-        kind: "REQUEST",
-        personId: actor.personId,
-        createdById: actor.personId,
-        dueAt: addBusinessDays(new Date(), days),
-      })
-      .returning({ id: task.id });
-    await ctx.tx
-      .update(request)
-      .set({ taskId: opened?.id ?? null })
-      .where(eq(request.id, created.id));
+    const opened = await openTaskForReason(ctx, {
+      reason: { type: "REQUEST", requestId: created.id, personId: actor.personId },
+      title: t("T-1009", { nombre: `${who.firstName} ${who.lastName}`.trim(), tipo: kindLabel }),
+      assigneeId: null,
+      due: { businessDays: "requests.taskDays" },
+      requestedById: actor.personId,
+    });
+    await ctx.tx.update(request).set({ taskId: opened.id }).where(eq(request.id, created.id));
     await ctx.audit({
       action: "request.created",
       entityType: "request",

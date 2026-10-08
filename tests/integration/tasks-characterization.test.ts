@@ -2,7 +2,7 @@ import { and, asc, eq, type SQL } from "drizzle-orm";
 import pino from "pino";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { enqueueEvent } from "@/db/tx";
+import { enqueueEvent, SYSTEM_ACTOR } from "@/db/tx";
 import { getHandlers } from "@/jobs/registry";
 import {
   completeTaskAs,
@@ -12,6 +12,7 @@ import {
   moveCardAs,
 } from "@/modules/crm";
 import { tasksResource } from "@/modules/crm/admin";
+import { openTaskForReasonAs } from "@/modules/crm/domain/commands";
 import { request, task } from "@/modules/crm/schema";
 import { requestCommitteeRemovalAs, requestDeletionAs } from "@/modules/people";
 import { membership } from "@/modules/people/schema";
@@ -37,12 +38,10 @@ import {
 // Las tareas de GH (DT-007, ADR-115 regla 9). Ocho sitios abren una: cuatro handlers de `crm/jobs.ts`
 // (pedido de borrado, pedido de retiro de un comité, término siguiente sin crear, licencia vencida),
 // la solicitud del miembro, el patrocinio ganado y las dos entradas de la creación a mano (las fichas y
-// el recurso del kit). Acá queda qué tarea abre cada uno y qué quiere decir «una sola por motivo».
+// el recurso del kit). Acá queda qué tarea abre cada uno y qué quiere decir «una sola por motivo»: los
+// seis primeros pasan por `openTaskForReason`, que la identifica por su motivo y su sujeto.
 
 const db = () => getDb();
-// Lo que hoy falla a propósito (`it.fails`): cada defecto de DT-007, escrito como la conducta que se
-// espera. El arreglo de #148 las pasa a pruebas corrientes.
-const defecto = it.fails;
 const director = { isAdmin: false, allCapabilities: false };
 const MINUTE = 60_000;
 
@@ -173,6 +172,7 @@ describe("qué tarea abre cada sitio", () => {
     expect(tasks[0]).toMatchObject({
       title: t("T-464", { nombre: "Bea Borrar" }),
       kind: "DELETION_REQUEST",
+      reasonKey: `DELETION_REQUEST:person:${me}`,
       status: "OPEN",
       assigneeId: null,
       createdById: me,
@@ -198,6 +198,7 @@ describe("qué tarea abre cada sitio", () => {
         motivo: "No volvió a las reuniones",
       }),
       kind: "COMMITTEE_REMOVAL",
+      reasonKey: `COMMITTEE_REMOVAL:person:${f.member}:committee:${f.a3}`,
       status: "OPEN",
       assigneeId: null,
       createdById: f.gh,
@@ -217,6 +218,7 @@ describe("qué tarea abre cada sitio", () => {
     expect(tasks[0]).toMatchObject({
       title: t("T-666", { codigo: next, fecha: endsOn }),
       kind: "GENERAL",
+      reasonKey: `TERM_SUCCESSOR_MISSING:term:${next}`,
       assigneeId: null,
       personId: null,
       createdById: null,
@@ -235,6 +237,7 @@ describe("qué tarea abre cada sitio", () => {
     expect(tasks[0]).toMatchObject({
       title: t("T-2277", { nombre: "Vera Vencida", fecha: "31 de enero de 2026" }),
       kind: "LEAVE_EXPIRED",
+      reasonKey: `LEAVE_EXPIRED:person:${personId}`,
       status: "OPEN",
       assigneeId: null,
       createdById: null,
@@ -255,6 +258,7 @@ describe("qué tarea abre cada sitio", () => {
     expect(tasks[0]).toMatchObject({
       title: t("T-1009", { nombre: "Rita Solicita", tipo: tList("T-894")[0] }),
       kind: "REQUEST",
+      reasonKey: `REQUEST:request:${created.id}`,
       status: "OPEN",
       assigneeId: null,
       createdById: personId,
@@ -279,6 +283,7 @@ describe("qué tarea abre cada sitio", () => {
     expect(tasks[0]).toMatchObject({
       title: t("T-994", { organización: "Postobón" }),
       kind: "GENERAL",
+      reasonKey: `SPONSORSHIP_WON:card:${f.cardId}`,
       status: "OPEN",
       assigneeId: f.owner,
       organizationId: f.organizationId,
@@ -306,6 +311,7 @@ describe("qué tarea abre cada sitio", () => {
     expect(row).toMatchObject({
       title: "Llamar a la mamá",
       kind: "GENERAL",
+      reasonKey: null,
       status: "OPEN",
       assigneeId: admin,
       personId,
@@ -366,62 +372,47 @@ describe("una sola tarea abierta por motivo", () => {
     expect(tasks.map((row) => row.personId).sort()).toEqual([one, other].sort());
   });
 
-  defecto(
-    "un pedido de retiro no abre otra tarea porque el texto de su título haya cambiado",
-    async () => {
-      const f = await committeeFixture();
-      await f.ask(f.a3, "No volvió a las reuniones");
-      await drainOutbox();
-      // Como si T-2170 se hubiera reescrito entre un pedido y el siguiente.
-      await db()
-        .update(task)
-        .set({ title: "El texto de antes" })
-        .where(eq(task.personId, f.member));
-      await f.ask(f.a3, "No volvió a las reuniones");
-      await drainOutbox();
+  it("un pedido de retiro no abre otra tarea porque el texto de su título haya cambiado", async () => {
+    const f = await committeeFixture();
+    await f.ask(f.a3, "No volvió a las reuniones");
+    await drainOutbox();
+    // Como si T-2170 se hubiera reescrito entre un pedido y el siguiente.
+    await db().update(task).set({ title: "El texto de antes" }).where(eq(task.personId, f.member));
+    await f.ask(f.a3, "No volvió a las reuniones");
+    await drainOutbox();
 
-      expect(await tasksOf(eq(task.personId, f.member))).toHaveLength(1);
-    },
-  );
+    expect(await tasksOf(eq(task.personId, f.member))).toHaveLength(1);
+  });
 
-  defecto(
-    "otro pedido de retiro del mismo comité con otro motivo escrito no abre otra tarea mientras la primera siga abierta",
-    async () => {
-      const f = await committeeFixture();
-      await f.ask(f.a3, "No volvió a las reuniones");
-      await drainOutbox();
-      await f.ask(f.a3, "Tampoco responde los mensajes");
-      await drainOutbox();
+  it("otro pedido de retiro del mismo comité con otro motivo escrito no abre otra tarea mientras la primera siga abierta", async () => {
+    const f = await committeeFixture();
+    await f.ask(f.a3, "No volvió a las reuniones");
+    await drainOutbox();
+    await f.ask(f.a3, "Tampoco responde los mensajes");
+    await drainOutbox();
 
-      expect(await tasksOf(eq(task.personId, f.member))).toHaveLength(1);
-    },
-  );
+    expect(await tasksOf(eq(task.personId, f.member))).toHaveLength(1);
+  });
 
-  defecto(
-    "el aviso del término siguiente no abre otra tarea porque el texto de su título haya cambiado",
-    async () => {
-      await endingTerm();
-      await termCheck();
-      await db().update(task).set({ title: "El texto de antes" });
-      await termCheck();
+  it("el aviso del término siguiente no abre otra tarea porque el texto de su título haya cambiado", async () => {
+    await endingTerm();
+    await termCheck();
+    await db().update(task).set({ title: "El texto de antes" });
+    await termCheck();
 
-      expect(await openTasks()).toHaveLength(1);
-    },
-  );
+    expect(await openTasks()).toHaveLength(1);
+  });
 
-  defecto(
-    "volver a ganar un patrocinio con el seguimiento todavía abierto no abre otra tarea",
-    async () => {
-      const f = await sponsorshipCard();
-      await moveCardAs(f.actor, f.cardId, f.won);
-      await moveCardAs(f.actor, f.cardId, f.first);
-      await moveCardAs(f.actor, f.cardId, f.won);
+  it("volver a ganar un patrocinio con el seguimiento todavía abierto no abre otra tarea", async () => {
+    const f = await sponsorshipCard();
+    await moveCardAs(f.actor, f.cardId, f.won);
+    await moveCardAs(f.actor, f.cardId, f.first);
+    await moveCardAs(f.actor, f.cardId, f.won);
 
-      expect(await tasksOf(eq(task.cardId, f.cardId))).toHaveLength(1);
-    },
-  );
+    expect(await tasksOf(eq(task.cardId, f.cardId))).toHaveLength(1);
+  });
 
-  defecto("cuatro revisiones de licencias a la vez abren una sola tarea por persona", async () => {
+  it("cuatro revisiones de licencias a la vez abren una sola tarea por persona", async () => {
     const personId = await expiredLeave();
     await Promise.all(
       [1, 2, 3, 4].map((n) => handle("membership.leave-check", {}, `revision-${n}`)),
@@ -430,7 +421,7 @@ describe("una sola tarea abierta por motivo", () => {
     expect(await tasksOf(eq(task.personId, personId))).toHaveLength(1);
   });
 
-  defecto("cuatro avisos del término siguiente a la vez abren una sola tarea", async () => {
+  it("cuatro avisos del término siguiente a la vez abren una sola tarea", async () => {
     const { termId, code, next, endsOn } = await endingTerm();
     await Promise.all(
       [1, 2, 3, 4].map((n) =>
@@ -443,7 +434,7 @@ describe("una sola tarea abierta por motivo", () => {
 });
 
 describe("toda tarea que abre el sistema queda auditada", () => {
-  defecto("la del pedido de borrado, a nombre del sistema", async () => {
+  it("la del pedido de borrado, a nombre del sistema", async () => {
     const me = await seedMember("borrar@eafit.edu.co");
     await requestDeletionAs({ personId: me });
     await drainOutbox();
@@ -452,7 +443,7 @@ describe("toda tarea que abre el sistema queda auditada", () => {
     expect(await auditsOf(opened?.id ?? "")).toEqual([{ action: "task.created", actorId: null }]);
   });
 
-  defecto("la del pedido de retiro de un comité, a nombre del sistema", async () => {
+  it("la del pedido de retiro de un comité, a nombre del sistema", async () => {
     const f = await committeeFixture();
     await f.ask(f.a3, "No volvió a las reuniones");
     await drainOutbox();
@@ -461,7 +452,7 @@ describe("toda tarea que abre el sistema queda auditada", () => {
     expect(await auditsOf(opened?.id ?? "")).toEqual([{ action: "task.created", actorId: null }]);
   });
 
-  defecto("la del término siguiente sin crear, a nombre del sistema", async () => {
+  it("la del término siguiente sin crear, a nombre del sistema", async () => {
     await endingTerm();
     await termCheck();
 
@@ -469,7 +460,7 @@ describe("toda tarea que abre el sistema queda auditada", () => {
     expect(await auditsOf(opened?.id ?? "")).toEqual([{ action: "task.created", actorId: null }]);
   });
 
-  defecto("la de una solicitud, a nombre de quien la pidió", async () => {
+  it("la de una solicitud, a nombre de quien la pidió", async () => {
     const { personId, actor, until } = await activeMember();
     await createRequestAs(actor, "LEAVE", { reason: "Intercambio", until });
 
@@ -479,7 +470,7 @@ describe("toda tarea que abre el sistema queda auditada", () => {
     ]);
   });
 
-  defecto("la del patrocinio ganado, a nombre de quien movió la tarjeta", async () => {
+  it("la del patrocinio ganado, a nombre de quien movió la tarjeta", async () => {
     const f = await sponsorshipCard();
     await moveCardAs(f.actor, f.cardId, f.won);
 
@@ -487,5 +478,153 @@ describe("toda tarea que abre el sistema queda auditada", () => {
     expect(await auditsOf(opened?.id ?? "")).toEqual([
       { action: "task.created", actorId: f.admin },
     ]);
+  });
+});
+
+describe("las tareas abiertas antes de que existiera la clave", () => {
+  /** Una tarea de antes del despliegue: sin clave, como la dejaba el sitio que la abría. */
+  async function oldTask(values: { title: string; kind: string; personId?: string }) {
+    const [row] = await db().insert(task).values(values).returning({ id: task.id });
+    return row?.id ?? "";
+  }
+
+  it("la de un pedido de borrado se reconoce por persona y tipo: no se abre otra y la vieja no cambia", async () => {
+    const me = await seedMember("borrar@eafit.edu.co", { firstName: "Bea", lastName: "Borrar" });
+    const old = await oldTask({ title: "Un título viejo", kind: "DELETION_REQUEST", personId: me });
+    await requestDeletionAs({ personId: me });
+    await drainOutbox();
+
+    const tasks = await tasksOf(eq(task.personId, me));
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({ id: old, title: "Un título viejo", reasonKey: null });
+    expect(await auditsOf(old)).toEqual([]);
+  });
+
+  it("la de un pedido de retiro se reconoce por su título, como antes, y la de otro comité no la tapa", async () => {
+    const f = await committeeFixture();
+    const title = (comité: string) =>
+      t("T-2170", { nombre: "Mila Miembro", comité, motivo: "No volvió a las reuniones" });
+    await oldTask({ title: title("PIXEL"), kind: "COMMITTEE_REMOVAL", personId: f.member });
+    await f.ask(f.pixel, "No volvió a las reuniones");
+    await drainOutbox();
+    expect(await tasksOf(eq(task.personId, f.member))).toHaveLength(1);
+
+    await f.ask(f.a3, "No volvió a las reuniones");
+    await drainOutbox();
+    const tasks = await tasksOf(eq(task.personId, f.member));
+    expect(tasks.map((row) => row.reasonKey)).toEqual([
+      null,
+      `COMMITTEE_REMOVAL:person:${f.member}:committee:${f.a3}`,
+    ]);
+  });
+
+  it("la del término siguiente se reconoce por su título", async () => {
+    const { next, endsOn } = await endingTerm();
+    await oldTask({ title: t("T-666", { codigo: next, fecha: endsOn }), kind: "GENERAL" });
+    await termCheck();
+
+    const tasks = await openTasks();
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]?.reasonKey).toBeNull();
+  });
+
+  it("la de una licencia vencida se reconoce por persona y tipo", async () => {
+    const personId = await expiredLeave();
+    await oldTask({ title: "Un título viejo", kind: "LEAVE_EXPIRED", personId });
+    await leaveCheck();
+
+    const tasks = await tasksOf(eq(task.personId, personId));
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]?.reasonKey).toBeNull();
+  });
+
+  it("una vieja ya hecha, o de otro tipo sobre la misma persona, no cuenta: se abre la del motivo", async () => {
+    const personId = await expiredLeave();
+    const done = await oldTask({ title: "Hecha", kind: "LEAVE_EXPIRED", personId });
+    await completeTaskAs({ personId: null }, done);
+    await oldTask({ title: "A mano", kind: "GENERAL", personId });
+    await leaveCheck();
+
+    const open = await tasksOf(and(eq(task.personId, personId), eq(task.status, "OPEN")) as SQL);
+    expect(open.map((row) => row.reasonKey).sort()).toEqual([
+      `LEAVE_EXPIRED:person:${personId}`,
+      null,
+    ]);
+  });
+});
+
+describe("abrir una tarea por motivo", () => {
+  const leaveOf = (personId: string) => ({
+    reason: { type: "LEAVE_EXPIRED" as const, personId },
+    title: "Licencia vencida",
+    assigneeId: null,
+    due: null,
+    requestedById: null,
+  });
+
+  it("seis aperturas a la vez de la misma tarea dejan una sola, auditada una vez, y solo una dice que la creó", async () => {
+    const personId = await seedMember("a-la-vez@eafit.edu.co");
+    const results = await Promise.all(
+      Array.from({ length: 6 }, () =>
+        openTaskForReasonAs(SYSTEM_ACTOR, {
+          ...leaveOf(personId),
+          due: { businessDays: "requests.taskDays" },
+        }),
+      ),
+    );
+
+    const tasks = await tasksOf(eq(task.personId, personId));
+    expect(tasks).toHaveLength(1);
+    expect(results.filter((result) => result.created)).toHaveLength(1);
+    expect(new Set(results.map((result) => result.id))).toEqual(new Set([tasks[0]?.id]));
+    expect(await auditsOf(tasks[0]?.id ?? "")).toEqual([{ action: "task.created", actorId: null }]);
+  });
+
+  it("la misma persona con dos motivos tiene dos tareas, y dos personas con el mismo motivo también", async () => {
+    const one = await seedMember("una@eafit.edu.co");
+    const other = await seedMember("otra@eafit.edu.co");
+    await openTaskForReasonAs(SYSTEM_ACTOR, leaveOf(one));
+    await openTaskForReasonAs(SYSTEM_ACTOR, leaveOf(other));
+    await openTaskForReasonAs(SYSTEM_ACTOR, {
+      ...leaveOf(one),
+      reason: { type: "DELETION_REQUEST", personId: one },
+    });
+    const again = await openTaskForReasonAs(SYSTEM_ACTOR, leaveOf(one));
+
+    expect(again.created).toBe(false);
+    expect((await openTasks()).map((row) => row.reasonKey).sort()).toEqual(
+      [
+        `DELETION_REQUEST:person:${one}`,
+        `LEAVE_EXPIRED:person:${one}`,
+        `LEAVE_EXPIRED:person:${other}`,
+      ].sort(),
+    );
+  });
+
+  it("los días hábiles salen de la configuración y se cuentan desde el instante que se le pasa", async () => {
+    const personId = await seedMember("plazo@eafit.edu.co");
+    const now = new Date("2026-03-06T15:00:00Z");
+    const opened = await openTaskForReasonAs(SYSTEM_ACTOR, {
+      ...leaveOf(personId),
+      due: { businessDays: "privacy.deletionDays" },
+      now,
+    });
+
+    const [row] = await tasksOf(eq(task.id, opened.id));
+    const days = await requireConfig("privacy.deletionDays");
+    expect(row?.dueAt).toEqual(addBusinessDays(now, days));
+  });
+
+  it("un motivo que no está en el conjunto, uno sin sujeto y un vencimiento que no es un instante no abren nada", async () => {
+    const personId = await seedMember("cerrado@eafit.edu.co");
+    const open = (override: object) =>
+      openTaskForReasonAs(SYSTEM_ACTOR, { ...leaveOf(personId), ...override } as never);
+
+    await expect(open({ reason: { type: "OTRO_MOTIVO", personId } })).rejects.toThrow();
+    await expect(open({ reason: { type: "LEAVE_EXPIRED", personId: "" } })).rejects.toThrow();
+    await expect(open({ reason: { type: "LEAVE_EXPIRED" } })).rejects.toThrow();
+    await expect(open({ due: { at: new Date("no es una fecha") } })).rejects.toThrow();
+    expect(await openTasks()).toHaveLength(0);
+    expect(await db().select().from(auditLog)).toHaveLength(0);
   });
 });
