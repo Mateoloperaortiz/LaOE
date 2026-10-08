@@ -186,7 +186,7 @@ describe("vista de líder, exportes y alias", () => {
     expect(listed.rows[0]?.occasionTitle).toBe("Asamblea vieja");
     await expect(
       aliasesResource.create?.(
-        { personId: SYSTEM_ACTOR.personId ?? "", isAdmin: true },
+        { personId: SYSTEM_ACTOR.personId ?? "", ip: null },
         { path: "/a/zzzzzzzzz1", targetId: "no-existe" },
       ),
     ).rejects.toBeDefined();

@@ -2,8 +2,8 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-08
-- Relacionadas: ADR-006, ADR-007, ADR-022, ADR-030, ADR-034, ADR-035, ADR-036, ADR-037, ADR-060, ADR-065, ADR-067, ADR-084, ADR-109, ADR-110, ADR-111, ADR-114, ADR-115
-- Enmienda: ADR-035 (reglas 5 y 6: toda transición de una asistencia que ya existe toma su fila, y el lote no reaprueba un rechazo), ADR-036 (regla 6: quien fue retirado de un grupo de trabajo puede volver, a quien salió no se le evalúa y la entrada por convocatoria se comprueba al aceptar; regla 9: el cierre congela el estado final) , ADR-037 (regla 10: aceptar una inscripción le pregunta antes al grupo, y el trabajo que agrega no deja morir el evento), ADR-030 (regla 4: anonimizar borra las fotos propias de la persona con todos sus objetos) y ADR-115 (regla 8: lo que un evento le avisa a una persona no sale si ya fue anonimizada)
+- Relacionadas: ADR-006, ADR-007, ADR-017, ADR-022, ADR-030, ADR-034, ADR-035, ADR-036, ADR-037, ADR-060, ADR-065, ADR-067, ADR-084, ADR-109, ADR-110, ADR-111, ADR-114, ADR-115
+- Enmienda: ADR-035 (reglas 5 y 6: toda transición de una asistencia que ya existe toma su fila, y el lote no reaprueba un rechazo), ADR-036 (regla 6: quien fue retirado de un grupo de trabajo puede volver, a quien salió no se le evalúa y la entrada por convocatoria se comprueba al aceptar; regla 9: el cierre congela el estado final) , ADR-037 (regla 10: aceptar una inscripción le pregunta antes al grupo, y el trabajo que agrega no deja morir el evento), ADR-030 (regla 4: anonimizar borra las fotos propias de la persona con todos sus objetos), ADR-115 (regla 8: lo que un evento le avisa a una persona no sale si ya fue anonimizada) y ADR-082 (regla 2: el kit del admin arma el actor de cada escritura con `actorContext` y el recurso lo entrega entero)
 
 ## Contexto
 
@@ -40,6 +40,8 @@ La fila decía además que la excusa no toma el candado de puntos del término y
 - Con el evento en espera por el fallo de otro handler, anonimizar y adelantarle el reloj al poller mandaba la respuesta a la solicitud y la bienvenida por segunda vez, al correo real, y dejaba un `message` nuevo a nombre de una persona anonimizada, que nadie volvía a borrar.
 - Un evento que el poller todavía no había tomado cuando la persona se anonimizó mandaba el correo y el push por primera vez.
 - Con dos workers, la limpieza de la anonimización corría mientras el correo salía, y el registro que se escribía después se quedaba para siempre.
+
+**La auditoría del admin kit sin IP (DT-145).** [ADR-082](ADR-082-un-kit-para-las-server-actions-y-auditoria-con-ip.md) regla 2 dice que el actor de un comando se arma con `actorContext`, que es lo que lleva la IP a la auditoría, y que armarlo a mano «deja de ser una forma válida en una action». Lo que se escribe por el admin kit ([ADR-017](ADR-017-admin-kit.md)) no pasa por una action propia: la action genérica le entregaba a cada recurso `{ personId, isAdmin }` y el recurso, en su `admin.ts`, volvía a armar `{ personId }` para `runCommand`. Eran 51 llamadas en 22 recursos de 11 módulos, fuera de la letra de la regla y de su medición, que contaba las llamadas `…As(actor, …)` hechas desde las actions. La prueba en rojo concedió y revocó un permiso por el kit: `permission.granted` y `permission.revoked` quedaban con `ip` nula.
 
 ## Decisión
 
@@ -85,6 +87,11 @@ La fila decía además que la excusa no toma el candado de puntos del término y
    - Cómo. Antes de avisar, el handler vuelve a leer a la persona (`unlessAnonymized`, en `src/modules/comms/domain/events.ts`). Si ya fue anonimizada, o no existe, no envía ni registra nada y el evento termina bien. Vale igual para el primer intento de un evento que el poller no había tomado y para un reintento.
    - Bajo candado. La lectura es `lockPersonAnonymization` ([ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 4): candado compartido de la fila de la persona, retenido mientras salen el correo y el push y se escriben sus registros. `anonymizePerson` toma esa fila `for update`, así que una anonimización que llegue con el aviso saliendo espera, y su `person.anonymized` encuentra el registro ya escrito y se lo lleva. En el orden de la regla 2 entra como el candado de la excusa: persona (compartido) y después lo que se escribe, que a la persona solo la referencia por clave foránea y no hace cola detrás de la anonimización que espera.
    - Lo que no cambia. La dirección sigue siendo la del payload, y la clave por evento es la de ADR-115 regla 8.
+10. **El kit del admin arma el actor de cada escritura, y el recurso lo entrega entero.**
+   - Qué cubre. Crear, editar y las acciones por fila de todo recurso del admin kit.
+   - Cómo. `saveResourceAction` y `rowActionAction` (`src/app/admin/_kit/actions.ts`) arman el actor con `actorContext` y se lo pasan al recurso. `KitActor` (`src/shared/admin-kit/types.ts`) es ese actor: quién escribe y desde qué IP, y nada más de la sesión. `ip` es obligatoria; `null` dice que el request no la trajo. El recurso lo pasa tal cual a `runCommand` o a su comando «As».
+   - Lo que deja de valer. Que un recurso arme el actor a mano, como `{ personId: actor.personId }`: la regla 2 de ADR-082 vale también para los recursos del kit, que no son actions.
+   - Lo que no cambia. Quién puede escribir lo sigue decidiendo la action con el actor de sesión: ADMIN, y paso de seguridad reciente si el recurso lo pide. Listar y exportar reciben `KitViewer` (`personId` e `isAdmin`), sin IP: no escriben.
 
 ## Consecuencias
 
@@ -116,3 +123,7 @@ La fila decía además que la excusa no toma el candado de puntos del término y
 - El outbox sigue guardando el correo en el payload del evento hasta 30 días (DT-100, decisión abierta 10): esta regla impide que se use, no que esté.
 - El resultado de permanencia (T-202) ya cortaba al leer a la persona, pero sin el candado: con dos workers puede dejar el mismo registro. Los demás push por evento (anuncio, puntos, convocatoria, enlace de acceso, reconocimiento, retos, insignia y el bus `notification.requested`) no pasan por esta regla: leen las suscripciones, envían y registran después, también sin candado. Sin esa carrera no dejan nada, porque anonimizar borra las suscripciones y sin dispositivo no se envía ni se registra. Es DT-172.
 - Las pruebas del aviso están en `tests/integration/comms-event-anonymized.test.ts`: el reintento de la respuesta y de la bienvenida, el evento sin tomar y la anonimización que llega con el correo saliendo, con dos drenados a la vez.
+- Lo que se crea, se edita o se acciona por fila en el admin kit queda en `audit_log` con la IP, empezando por conceder y revocar permisos. Las filas anteriores quedan sin ella: no hay de dónde reconstruirla.
+- La consecuencia de ADR-082 «de 64 llamadas sin IP queda una» no contaba las 51 que pasaban por los recursos del kit.
+- El registro de un exporte (`export.csv`) sigue sin IP: `recordExport` arma su actor con el id de la persona. Es DT-176.
+- Las pruebas del actor del kit están en `tests/integration/admin-kit-audit-ip.test.ts` (conceder y revocar un permiso por las actions del kit, contra `audit_log`), en `tests/unit/admin-resource-actions.test.ts` (lo que el kit le entrega al recurso al crear, editar y accionar) y en `tests/unit/admin-kit-command-actor.test.ts`, que lee el código de los `admin.ts` y del registro y falla si un comando recibe un literal como actor o si alguien copia `actor.personId`. Esa última es una búsqueda de texto: no ve un actor armado en otro archivo ni con otro nombre de parámetro.

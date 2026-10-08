@@ -1,6 +1,6 @@
 # ADR-082: Un kit para las server actions, y la auditoría siempre con IP
 
-- Estado: Aceptada (enmendada por ADR-114)
+- Estado: Aceptada (enmendada por ADR-114 y ADR-116)
 - Fecha: 2026-09-19
 - Relacionadas: ADR-011, ADR-012, ADR-072, ADR-080
 - Enmienda: ADR-011 (el guard de ADMIN aplica la regla de licencia)
@@ -46,3 +46,7 @@ Este es el tramo R3-A. Siguen en R3-B, porque tocan otros archivos y otro riesgo
 ## Enmienda (2026-10-07, ADR-114)
 
 La regla 4 decía que `safeBack` acepta una ruta propia, de caracteres seguros, sin `//` y dentro del área. «Dentro del área» se comprobaba sobre el texto, y una ruta que empieza por el área y sube con `..` o con `%2e%2e` pasaba: `/admin/../api/mis-datos` salía del filtro y `withQuery` la dejaba en `/api/mis-datos`. [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) regla 1 lo cierra: la ruta la decide `internalPath`, la regla que `safeBack` comparte con el destino del ingreso y con la pantalla que nombra una descarga, y que rechaza los segmentos `.` y `..`, también codificados, sobre la ruta que el navegador va a pedir. Los caracteres seguros y el `//` quedan como estaban, y ni la firma ni los llamadores cambian.
+
+## Enmienda (2026-10-08, ADR-116)
+
+La regla 2 decía que armar el actor a mano «deja de ser una forma válida en una action», y la primera consecuencia que «de 64 llamadas sin IP queda una». Las dos miraban las actions. Lo que se escribe por el admin kit pasa por los cierres de cada recurso (`create`, `update` y `runRowAction`, en el `admin.ts` de su módulo), que recibían `{ personId, isAdmin }` y volvían a armar `{ personId }` para `runCommand`: 51 llamadas en 22 recursos, entre ellas conceder y revocar permisos, con la auditoría sin IP. [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 10 lo cierra: el kit arma el actor con `actorContext` y el recurso lo entrega entero. Lo demás de la regla queda igual.

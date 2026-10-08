@@ -265,17 +265,17 @@ export const occasionsResource: ResourceDefinition<OccasionListRow, OccasionInpu
     editionId: row.editionId ?? "",
     surveyFormId: row.surveyFormId ?? "",
   }),
-  create: (actor, input) => createOccasionAs({ personId: actor.personId }, input),
-  update: (actor, id, input) => updateOccasionAs({ personId: actor.personId }, id, input),
+  create: (actor, input) => createOccasionAs(actor, input),
+  update: (actor, id, input) => updateOccasionAs(actor, id, input),
   rowActions: [
     { key: "open", label: abrir, applies: (row) => row.status === "DRAFT" },
     { key: "close", label: cerrar, applies: (row) => row.status === "OPEN" },
   ],
   runRowAction: async (actor, actionKey, id) => {
     if (actionKey === "open") {
-      await openOccasionAs({ personId: actor.personId }, id);
+      await openOccasionAs(actor, id);
     } else if (actionKey === "close") {
-      await closeOccasionAs({ personId: actor.personId }, id);
+      await closeOccasionAs(actor, id);
     }
   },
   exportRow: (row) => ({
@@ -674,8 +674,7 @@ export const aliasesResource: ResourceDefinition<AliasRow, AliasInput> = {
     return row ? ((await aliasRows([row]))[0] ?? null) : null;
   },
   toFormValues: (row) => ({ path: row.path, targetId: row.targetId }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createAlias(ctx, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createAlias(ctx, input)),
   exportRow: (row) => ({
     ruta: row.path,
     ocasion: row.occasionTitle,

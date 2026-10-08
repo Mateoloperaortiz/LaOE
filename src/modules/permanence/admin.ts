@@ -260,12 +260,11 @@ export const workGroupsResource: ResourceDefinition<GroupListRow, GroupForm> = {
     editionId: row.editionId ?? "",
     leaderEmail: "",
   }),
-  create: async (actor, input) =>
-    createGroupAs({ personId: actor.personId }, await toGroupInput(input)),
+  create: async (actor, input) => createGroupAs(actor, await toGroupInput(input)),
   update: async (actor, id, input) => {
     const parsed = await toGroupInput(input);
     const current = await getGroup(id);
-    await updateGroupAs({ personId: actor.personId }, id, {
+    await updateGroupAs(actor, id, {
       ...parsed,
       leaderPersonId: parsed.leaderPersonId ?? current?.leaderPersonId ?? undefined,
     });

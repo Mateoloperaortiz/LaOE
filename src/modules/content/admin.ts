@@ -116,10 +116,8 @@ export const pagesResource: ResourceDefinition<PageRow, PageInput> = {
     status: row.status,
     audience: row.audience,
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createPage(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updatePage(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createPage(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updatePage(ctx, id, input)),
   exportRow: (row) => ({
     identificador: row.slug,
     titulo: row.title,
@@ -206,10 +204,8 @@ export const announcementsResource: ResourceDefinition<AnnouncementRow, Announce
     audience: row.audience,
     pinned: String(row.pinned),
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createAnnouncement(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateAnnouncement(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createAnnouncement(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateAnnouncement(ctx, id, input)),
   rowActions: [
     { key: "publish", label: t("T-342"), applies: (row) => row.publishedAt === null },
     { key: "publish-push", label: t("T-1111"), applies: (row) => row.publishedAt === null },
@@ -222,13 +218,13 @@ export const announcementsResource: ResourceDefinition<AnnouncementRow, Announce
   ],
   runRowAction: async (actor, actionKey, id) => {
     if (actionKey === "publish") {
-      await runCommand({ personId: actor.personId }, (ctx) => publishAnnouncement(ctx, id));
+      await runCommand(actor, (ctx) => publishAnnouncement(ctx, id));
     } else if (actionKey === "publish-push") {
-      await runCommand({ personId: actor.personId }, (ctx) => publishAndPushAnnouncement(ctx, id));
+      await runCommand(actor, (ctx) => publishAndPushAnnouncement(ctx, id));
     } else if (actionKey === "push") {
-      await runCommand({ personId: actor.personId }, (ctx) => requestAnnouncementPush(ctx, id));
+      await runCommand(actor, (ctx) => requestAnnouncementPush(ctx, id));
     } else if (actionKey === "unpublish") {
-      await runCommand({ personId: actor.personId }, (ctx) => unpublishAnnouncement(ctx, id));
+      await runCommand(actor, (ctx) => unpublishAnnouncement(ctx, id));
     }
   },
   exportRow: (row) => ({

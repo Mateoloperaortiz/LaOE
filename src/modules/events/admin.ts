@@ -141,10 +141,8 @@ export const eventsResource: ResourceDefinition<EventListRow, EventInput> = {
     publicationStatus: row.publicationStatus,
     sortOrder: String(row.sortOrder),
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createEvent(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateEvent(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createEvent(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateEvent(ctx, id, input)),
   exportRow: (row) => ({
     identificador: row.slug,
     nombre: row.name,
@@ -253,10 +251,8 @@ export const editionsResource: ResourceDefinition<EditionListRow, EditionInput> 
     registrationUrl: row.registrationUrl ?? "",
     publicationStatus: row.publicationStatus,
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createEdition(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateEdition(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createEdition(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateEdition(ctx, id, input)),
   exportRow: (row) => ({
     evento: row.eventName,
     nombre: row.name,

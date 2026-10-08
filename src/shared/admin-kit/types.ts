@@ -9,7 +9,7 @@ export interface ListParams {
   pageSize: number;
   filters: Record<string, string>;
   /** Quién lista: para filtros como "mis tareas". */
-  actor?: KitActor;
+  actor?: KitViewer;
 }
 
 export interface ListResult<Row> {
@@ -83,10 +83,21 @@ export interface FieldDefinition {
   textVariant?: "prose" | "code";
 }
 
-/** Quién ejecuta: el kit solo necesita saber su id y si es ADMIN; los comandos reciben el actor completo. */
-export interface KitActor {
+/** Quién lista o exporta: el kit solo necesita saber su id y si es ADMIN. */
+export interface KitViewer {
   personId: string;
   isAdmin: boolean;
+}
+
+/**
+ * Quién escribe por el kit: el actor del comando tal como lo arma `actorContext` (ADR-082 regla 2;
+ * ADR-116 regla 10), con la IP del request y nada más de la sesión. El recurso lo entrega entero a
+ * `runCommand` o a su comando «As»: es lo que lleva la IP a la auditoría. `ip` no es opcional; `null`
+ * dice que el request no la trajo.
+ */
+export interface KitActor {
+  personId: string;
+  ip: string | null;
 }
 
 export interface RowAction<Row> {

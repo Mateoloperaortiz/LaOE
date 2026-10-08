@@ -91,12 +91,11 @@ export const permissionsResource: ResourceDefinition<PermissionRow, PermissionIn
     code: row.code,
     committeeId: row.committeeId ?? "",
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => grantPermission(ctx, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => grantPermission(ctx, input)),
   rowActions: [{ key: "revoke", label: t("T-265") }],
   runRowAction: async (actor, actionKey, id) => {
     if (actionKey === "revoke") {
-      await runCommand({ personId: actor.personId }, (ctx) => revokePermission(ctx, id));
+      await runCommand(actor, (ctx) => revokePermission(ctx, id));
     }
   },
   stepUp: true,

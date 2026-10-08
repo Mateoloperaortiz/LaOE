@@ -52,10 +52,7 @@ async function pipelineWithTemplate(kind: "ADMISSION" | "SPONSORSHIP" | "CUSTOM"
   const adminId = await seedMember(
     `admin-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}@eafit.edu.co`,
   );
-  const created = await pipelinesResource.create?.(
-    { personId: adminId, isAdmin: true },
-    { name, kind },
-  );
+  const created = await pipelinesResource.create?.({ personId: adminId, ip: null }, { name, kind });
   if (!created) throw new Error("pipeline");
   return { id: created.id, stages: await listStages(created.id) };
 }

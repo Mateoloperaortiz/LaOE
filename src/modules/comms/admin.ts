@@ -210,10 +210,8 @@ export const templatesResource: ResourceDefinition<TemplateRow, TemplateInput> =
     subject: row.subject,
     body: row.body,
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createTemplate(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateTemplate(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createTemplate(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateTemplate(ctx, id, input)),
   exportRow: (row) => ({
     identificador: row.slug,
     nombre: row.name,
@@ -316,10 +314,8 @@ export const campaignsResource: ResourceDefinition<CampaignListRow, CampaignInpu
     }),
   get: getCampaign,
   toFormValues: (row) => ({ name: row.name, templateId: row.templateId, segmentId: row.segmentId }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createCampaign(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateCampaign(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createCampaign(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateCampaign(ctx, id, input)),
   exportRow: (row) => ({
     nombre: row.name,
     plantilla: row.templateName,

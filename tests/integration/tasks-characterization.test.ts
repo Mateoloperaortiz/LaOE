@@ -332,7 +332,7 @@ describe("qué tarea abre cada sitio", () => {
     const input = { title: "Llamar a la mamá", kind: "GENERAL" as const, personId };
     await createTaskAs(actor, input);
     await createTaskAs(actor, input);
-    const fromKit = await tasksResource.create?.({ personId: admin, isAdmin: true }, input);
+    const fromKit = await tasksResource.create?.({ personId: admin, ip: null }, input);
 
     const tasks = await tasksOf(eq(task.personId, personId));
     expect(tasks).toHaveLength(3);

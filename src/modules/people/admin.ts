@@ -204,10 +204,8 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
     contactUrl: row.contactUrl ?? "",
     publicationStatus: row.publicationStatus,
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createCommittee(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateCommittee(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createCommittee(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateCommittee(ctx, id, input)),
   exportRow: (row) => ({
     sigla: row.slug,
     nombre: row.name,
@@ -352,8 +350,7 @@ export const peopleResource: ResourceDefinition<PersonRow, PersonInput> = {
   get: async (id) =>
     (await listPeople({ q: "", personIds: [id], page: 1, pageSize: 1 })).rows[0] ?? null,
   toFormValues: () => ({}),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createPerson(ctx, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createPerson(ctx, input)),
   personalData: true,
   exportRow: (row) => ({
     Nombre: row.firstName,
@@ -451,10 +448,8 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
     retired: row.retired ? "true" : "",
     replacedByCode: row.replacedByCode ?? "",
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createCommitteeRole(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateCommitteeRole(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createCommitteeRole(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateCommitteeRole(ctx, id, input)),
   exportRow: (row) => ({
     codigo: row.code,
     nombre: row.label,
@@ -488,10 +483,8 @@ export const tagsResource: ResourceDefinition<TagRow, TagInput> = {
   list: (params) => listTags({ q: params.q, page: params.page, pageSize: params.pageSize }),
   get: getTag,
   toFormValues: (row) => ({ name: row.name, color: row.color ?? "" }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createTag(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateTag(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createTag(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateTag(ctx, id, input)),
   exportRow: (row) => ({ nombre: row.name, color: row.color }),
 };
 
@@ -602,10 +595,8 @@ export const segmentsResource: ResourceDefinition<SegmentRow, SegmentInput> = {
     consent: row.filter.consent,
     program: row.filter.program,
   }),
-  create: (actor, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => createSegment(ctx, input)),
-  update: (actor, id, input) =>
-    runCommand({ personId: actor.personId }, (ctx) => updateSegment(ctx, id, input)),
+  create: (actor, input) => runCommand(actor, (ctx) => createSegment(ctx, input)),
+  update: (actor, id, input) => runCommand(actor, (ctx) => updateSegment(ctx, id, input)),
   exportRow: (row) => ({
     nombre: row.name,
     personas: row.count,
