@@ -108,7 +108,7 @@ export async function pushRequestDecided(
     [payload.personId],
     t("T-189", {
       tipo: payload.kindLabel,
-      "aprobada/rechazada": payload.status === "APPROVED" ? aprobada : rechazada,
+      decisión: payload.status === "APPROVED" ? aprobada : rechazada,
     }),
     "/app/solicitudes",
     `request:${payload.requestId}`,

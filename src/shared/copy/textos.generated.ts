@@ -3371,7 +3371,7 @@ export const textos = {
   },
   "T-189": {
     where: "Solicitud respondida",
-    text: "Tu solicitud de {tipo} fue {aprobada/rechazada} · Entrá a ver la respuesta.",
+    text: "Tu solicitud de {tipo} fue {decisión} · Entrá a ver la respuesta.",
     owner: "GH",
     status: "Propuesta",
   },
