@@ -622,10 +622,13 @@ async function applyRow(
       throw new Error("No se pudo crear la persona");
     }
     personId = created.id;
+    // Una membresía que nace en licencia lleva su fecha de regreso, igual que la que pasa a licencia
+    // (ADR-060 regla 10): sin ella nunca vence ni abre la tarea de licencia vencida.
     await ctx.tx.insert(membership).values({
       personId,
       status,
       firstTermId: entryTermId,
+      ...(await rosterLeaveUntil(ctx, status, termId)),
       ...(status === "INACTIVE"
         ? { endedAt: new Date(), endReason: "OTHER" as const, lastTermId: termId }
         : {}),
@@ -655,6 +658,7 @@ async function applyRow(
         personId,
         status,
         firstTermId: entryTermId,
+        ...(await rosterLeaveUntil(ctx, status, termId)),
         ...(status === "INACTIVE"
           ? { endedAt: new Date(), endReason: "OTHER" as const, lastTermId: termId }
           : {}),
