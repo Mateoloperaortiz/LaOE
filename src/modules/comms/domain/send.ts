@@ -219,6 +219,11 @@ export function campaignProvider(): string {
   return campaignTransport().name;
 }
 
+/** El cupo del día del proveedor por el que salen las campañas, o `null` si acá no lleva uno. */
+export function campaignDailyLimit(): number | null {
+  return hasDailyQuota(campaignTransport()) ? getEnv().RESEND_DAILY_LIMIT : null;
+}
+
 export interface CampaignQuota {
   /** El proveedor por el que salen las campañas, que es el del cupo. */
   provider: string;
@@ -231,16 +236,13 @@ export interface CampaignQuota {
  * cupo diario. El tope es `RESEND_DAILY_LIMIT` menos el margen de `campaigns.transactionalReserve`.
  */
 export async function campaignQuota(): Promise<CampaignQuota | null> {
-  const transport = campaignTransport();
-  if (!hasDailyQuota(transport)) {
+  const limit = campaignDailyLimit();
+  if (limit === null) {
     return null;
   }
   return {
-    provider: transport.name,
-    ceiling: campaignCeiling(
-      getEnv().RESEND_DAILY_LIMIT,
-      await getConfig("campaigns.transactionalReserve"),
-    ),
+    provider: campaignProvider(),
+    ceiling: campaignCeiling(limit, await getConfig("campaigns.transactionalReserve")),
   };
 }
 

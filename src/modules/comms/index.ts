@@ -55,7 +55,16 @@ export {
   shouldDeliver,
   splitPush,
 } from "./domain/pure";
-export { liftCampaignQuotaCutAs, type QuotaScope } from "./domain/quota";
+export {
+  type CampaignBacklog,
+  type CampaignHold,
+  type CampaignQuotaStatus,
+  getCampaignBacklog,
+  getCampaignQuotaStatus,
+  liftCampaignQuotaCutAs,
+  type QuotaScope,
+  setTransactionalReserveAs,
+} from "./domain/quota";
 export {
   type SendReceipt,
   sendTransactionalEmail,

@@ -1,0 +1,431 @@
+import { and, desc, eq } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { closeDb, getDb } from "@/db/client";
+import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import {
+  createCampaignAs,
+  createTemplate,
+  getCampaignBacklog,
+  getCampaignQuotaStatus,
+  liftCampaignQuotaCutAs,
+  runCampaignTick,
+  scheduleCampaignAs,
+  setMailTransportsForTests,
+  setTransactionalReserveAs,
+} from "@/modules/comms";
+import { message } from "@/modules/comms/schema";
+import { segment } from "@/modules/people/schema";
+import { getConfig, requireConfig, setConfig } from "@/modules/system";
+import { appConfig, auditLog } from "@/modules/system/schema";
+import { type MailProvider, QuotaExceededError } from "@/shared/adapters/mail";
+import { t } from "@/shared/copy";
+import { truncateAll } from "./db";
+import { seedMember } from "./factories";
+
+// DT-115 (ADR-116 regla 20): lo que la pantalla de una campaña y la del cupo de correo le muestran a un
+// ADMIN, y el comando con el que cambia el margen. Todo por lo que exporta `comms`, con el reloj
+// inyectado y un transporte de pruebas.
+
+const RESERVE_KEY = "campaigns.transactionalReserve";
+const CUT_KEY = "campaigns.quotaExhaustedAt";
+
+const DAILY_LIMIT = Number(process.env.RESEND_DAILY_LIMIT ?? 95);
+const DEFAULT_RESERVE = Math.ceil(DAILY_LIMIT / 3);
+const DEFAULT_CEILING = DAILY_LIMIT - DEFAULT_RESERVE;
+
+// Las 22:00 del 9 de marzo de 2031 en Colombia: en UTC ya es 10.
+const NIGHT = new Date("2031-03-10T03:00:00.000Z");
+const after = (minutes: number): Date => new Date(NIGHT.getTime() + minutes * 60_000);
+const MORNING = new Date("2031-03-09T12:00:00.000Z");
+/** La medianoche de Colombia que le sigue a `NIGHT`. */
+const MIDNIGHT = new Date("2031-03-10T05:00:00.000Z");
+const APRIL = new Date("2031-04-01T05:00:00.000Z");
+
+/** Qué hace el proveedor con un correo: lo acepta, espera o lo rechaza. */
+type Accept = () => void | Promise<void>;
+
+function stubMail(name: MailProvider, accept: Accept = () => {}): void {
+  setMailTransportsForTests({
+    primary: {
+      name,
+      async send() {
+        await accept();
+        return { id: null };
+      },
+    },
+    overflow: null,
+  });
+}
+
+const rejecting = (error: QuotaExceededError): Accept => {
+  return () => {
+    throw error;
+  };
+};
+
+function setPerMinute(value: number): Promise<void> {
+  return runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "campaigns.perMinute", value));
+}
+
+const NAMES = ["Ana", "Beto", "Caro"];
+
+async function seedPeople(size: number): Promise<string[]> {
+  const people: string[] = [];
+  for (const firstName of NAMES.slice(0, size)) {
+    people.push(await seedMember(`${firstName.toLowerCase()}@eafit.edu.co`, { firstName }));
+  }
+  return people;
+}
+
+/** Una campaña a todas las personas de la prueba, programada para `NIGHT`. */
+async function seedCampaign(): Promise<string> {
+  const [row] = await getDb()
+    .insert(segment)
+    .values({ name: "Todos", filter: {} })
+    .returning({ id: segment.id });
+  if (!row) throw new Error("seed segment");
+  const { id: templateId } = await runCommand(SYSTEM_ACTOR, (ctx) =>
+    createTemplate(ctx, {
+      slug: "novedades",
+      name: "Novedades",
+      subject: "Novedades para {nombre}",
+      body: "Hola **{nombre}**.",
+    }),
+  );
+  const { id } = await createCampaignAs(SYSTEM_ACTOR, {
+    name: "Novedades",
+    templateId,
+    segmentId: row.id,
+  });
+  await scheduleCampaignAs(SYSTEM_ACTOR, id, NIGHT);
+  return id;
+}
+
+/** Correos que ya salieron a esa hora, sin pasar por el transporte: lo que cuenta el cupo. */
+async function seedSent(
+  personId: string,
+  kind: "TRANSACTIONAL" | "CAMPAIGN",
+  amount: number,
+  sentAt: Date,
+  provider: MailProvider = "resend",
+): Promise<void> {
+  if (amount === 0) return;
+  await getDb()
+    .insert(message)
+    .values(
+      Array.from({ length: amount }, (_, index) => ({
+        personId,
+        channel: "EMAIL" as const,
+        kind,
+        subject: `Previo ${index}`,
+        status: "SENT" as const,
+        provider,
+        sentAt,
+      })),
+    );
+}
+
+function reserveAudits() {
+  return getDb()
+    .select({
+      actorId: auditLog.actorId,
+      ip: auditLog.ip,
+      before: auditLog.before,
+      after: auditLog.after,
+    })
+    .from(auditLog)
+    .where(and(eq(auditLog.action, "config.updated"), eq(auditLog.entityId, RESERVE_KEY)))
+    .orderBy(desc(auditLog.at));
+}
+
+let seededPerMinute = 0;
+
+beforeAll(async () => {
+  seededPerMinute = await requireConfig("campaigns.perMinute");
+});
+beforeEach(async () => {
+  await truncateAll();
+  await setPerMinute(10);
+  stubMail("resend");
+});
+afterAll(async () => {
+  await setPerMinute(seededPerMinute);
+  setMailTransportsForTests(undefined);
+  await closeDb();
+});
+
+describe("el cupo de correo que ve un ADMIN (ADR-116 regla 20)", () => {
+  it("sin margen fijado muestra el cupo del día, el margen por defecto, lo enviado hoy en Colombia y lo que cabe", async () => {
+    const [ana] = await seedPeople(1);
+    if (!ana) throw new Error("seed people");
+    await seedSent(ana, "TRANSACTIONAL", 10, MORNING);
+    // La medianoche en punto ya es de hoy; un segundo antes es de ayer, y lo de otro proveedor no cuenta.
+    await seedSent(ana, "CAMPAIGN", 5, new Date("2031-03-09T05:00:00.000Z"));
+    await seedSent(ana, "TRANSACTIONAL", 7, new Date("2031-03-09T04:59:59.000Z"));
+    await seedSent(ana, "TRANSACTIONAL", 9, MORNING, "ses");
+
+    expect(await getCampaignQuotaStatus(NIGHT)).toEqual({
+      provider: "resend",
+      reserveSetting: null,
+      daily: {
+        limit: DAILY_LIMIT,
+        reserve: DEFAULT_RESERVE,
+        ceiling: DEFAULT_CEILING,
+        sentToday: 15,
+        claimed: 0,
+        room: DEFAULT_CEILING - 15,
+        resetsAt: MIDNIGHT,
+      },
+      cut: null,
+    });
+  });
+
+  it("lo que un lote tiene reclamado y sin resultado ya no cabe", async () => {
+    await seedPeople(3);
+    await seedCampaign();
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let arrived: () => void = () => {};
+    const inFlight = new Promise<void>((resolve) => {
+      arrived = resolve;
+    });
+    stubMail("resend", async () => {
+      arrived();
+      await held;
+    });
+
+    const tick = runCampaignTick(NIGHT);
+    await inFlight;
+    const during = await getCampaignQuotaStatus(after(1));
+    release();
+    await tick;
+
+    expect(during.daily).toMatchObject({ sentToday: 0, claimed: 3, room: DEFAULT_CEILING - 3 });
+    expect((await getCampaignQuotaStatus(after(2))).daily).toMatchObject({
+      sentToday: 3,
+      claimed: 0,
+      room: DEFAULT_CEILING - 3,
+    });
+  });
+
+  it("por un transporte sin cupo del día no hay cuenta, y el margen fijado se sigue viendo", async () => {
+    const [ana] = await seedPeople(1);
+    if (!ana) throw new Error("seed people");
+    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, 20);
+    stubMail("console");
+
+    expect(await getCampaignQuotaStatus(NIGHT)).toEqual({
+      provider: "console",
+      reserveSetting: 20,
+      daily: null,
+      cut: null,
+    });
+  });
+
+  it("muestra el corte vigente con su causa, y deja de mostrarlo cuando termina o cuando lo levantan", async () => {
+    const [ana] = await seedPeople(2);
+    if (!ana) throw new Error("seed people");
+    await seedCampaign();
+    stubMail(
+      "resend",
+      rejecting(new QuotaExceededError("daily_quota_exceeded: se acabó el cupo de hoy", "DAILY")),
+    );
+    await runCampaignTick(NIGHT);
+
+    expect((await getCampaignQuotaStatus(after(1))).cut).toEqual({
+      provider: "resend",
+      reason: "DAILY",
+      at: NIGHT,
+      until: MIDNIGHT,
+    });
+    expect((await getCampaignQuotaStatus(MIDNIGHT)).cut).toBeNull();
+
+    await liftCampaignQuotaCutAs({ personId: ana }, { by: "ADMIN" }, after(5));
+    expect((await getCampaignQuotaStatus(after(6))).cut).toBeNull();
+  });
+
+  it("lee la base y no la caché: ve lo que otro proceso acaba de escribir", async () => {
+    await seedPeople(1);
+    // Este proceso ya leyó las dos claves y las tiene en caché sin valor.
+    expect(await getConfig(CUT_KEY)).toBeNull();
+    expect(await getConfig(RESERVE_KEY)).toBeNull();
+    // Otro proceso las escribe: acá, directo en la base, sin pasar por la caché de este.
+    await getDb()
+      .insert(appConfig)
+      .values([
+        { key: RESERVE_KEY, value: 50 },
+        {
+          key: CUT_KEY,
+          value: {
+            provider: "resend",
+            reason: "MONTHLY",
+            at: NIGHT.toISOString(),
+            until: APRIL.toISOString(),
+          },
+        },
+      ]);
+
+    expect(await getCampaignQuotaStatus(after(1))).toMatchObject({
+      reserveSetting: 50,
+      daily: { reserve: 50, ceiling: DAILY_LIMIT - 50 },
+      cut: { reason: "MONTHLY", until: APRIL },
+    });
+  });
+});
+
+describe("cambiar el margen para lo transaccional (ADR-116 regla 20)", () => {
+  it("lo cambia quien declara el alcance de ADMIN: rige enseguida y queda en la auditoría", async () => {
+    const [ana] = await seedPeople(1);
+    if (!ana) throw new Error("seed people");
+
+    await setTransactionalReserveAs({ personId: ana, ip: "203.0.113.7" }, { by: "ADMIN" }, 40);
+
+    expect(await getCampaignQuotaStatus(NIGHT)).toMatchObject({
+      reserveSetting: 40,
+      daily: { reserve: 40, ceiling: DAILY_LIMIT - 40, room: DAILY_LIMIT - 40 },
+    });
+    expect(await getConfig(RESERVE_KEY)).toBe(40);
+    expect(await reserveAudits()).toEqual([
+      { actorId: ana, ip: "203.0.113.7", before: null, after: 40 },
+    ]);
+  });
+
+  it("el lote siguiente ya cuenta con el margen nuevo", async () => {
+    const people = await seedPeople(3);
+    const [ana] = people;
+    if (!ana) throw new Error("seed people");
+    const id = await seedCampaign();
+    // Con el margen nuevo caben dos correos de campaña, y hoy ya salió uno transaccional.
+    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT - 2);
+    await seedSent(ana, "TRANSACTIONAL", 1, MORNING);
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
+    expect(await getCampaignBacklog(id, after(1))).toEqual({
+      pending: 2,
+      hold: { by: "ROOM", until: MIDNIGHT },
+    });
+  });
+
+  it.each([
+    ["sin alcance", undefined],
+    ["con el alcance de un comité", { by: "COMMITTEE" }],
+    ["con un alcance que no se reconoce", { by: "admin" }],
+  ])("%s no cambia nada", async (_case, scope) => {
+    const [ana] = await seedPeople(1);
+    if (!ana) throw new Error("seed people");
+
+    await expect(setTransactionalReserveAs({ personId: ana }, scope as never, 40)).rejects.toThrow(
+      t("T-032"),
+    );
+
+    expect(await getConfig(RESERVE_KEY)).toBeNull();
+    expect(await reserveAudits()).toEqual([]);
+  });
+
+  it("sin una persona que responda por el cambio no cambia nada", async () => {
+    await expect(
+      setTransactionalReserveAs(SYSTEM_ACTOR as never, { by: "ADMIN" }, 40),
+    ).rejects.toThrow(t("T-032"));
+    expect(await getConfig(RESERVE_KEY)).toBeNull();
+  });
+
+  it.each([
+    ["negativo", -1],
+    ["con decimales", 1.5],
+    ["que no es un número", Number.NaN],
+    ["infinito", Number.POSITIVE_INFINITY],
+    ["escrito como texto", "40"],
+  ])("un margen %s se rechaza con su texto y no cambia nada", async (_case, value) => {
+    const [ana] = await seedPeople(1);
+    if (!ana) throw new Error("seed people");
+
+    await expect(
+      setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, value as never),
+    ).rejects.toThrow(t("T-3235"));
+
+    expect(await getConfig(RESERVE_KEY)).toBeNull();
+    expect(await reserveAudits()).toEqual([]);
+  });
+});
+
+describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
+  it("con lugar en el cupo y sin corte, nada lo detiene", async () => {
+    await seedPeople(3);
+    const id = await seedCampaign();
+    await setPerMinute(1);
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
+
+    expect(await getCampaignBacklog(id, after(1))).toEqual({ pending: 2, hold: null });
+  });
+
+  it("sin lugar en el cupo de hoy, espera hasta la medianoche de Colombia", async () => {
+    const [ana] = await seedPeople(3);
+    if (!ana) throw new Error("seed people");
+    const id = await seedCampaign();
+    await seedSent(ana, "TRANSACTIONAL", DEFAULT_CEILING, MORNING);
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 0 });
+
+    expect(await getCampaignBacklog(id, after(1))).toEqual({
+      pending: 3,
+      hold: { by: "ROOM", until: MIDNIGHT },
+    });
+  });
+
+  it("con un corte vigente, espera hasta su final y dice la causa, también si además no hay lugar", async () => {
+    const [ana] = await seedPeople(3);
+    if (!ana) throw new Error("seed people");
+    const id = await seedCampaign();
+    stubMail(
+      "resend",
+      rejecting(new QuotaExceededError("monthly_quota_exceeded: se acabó el mes", "MONTHLY")),
+    );
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 0 });
+    const cut = { by: "CUT", provider: "resend", reason: "MONTHLY", until: APRIL };
+
+    expect(await getCampaignBacklog(id, after(1))).toEqual({ pending: 3, hold: cut });
+
+    await seedSent(ana, "TRANSACTIONAL", DEFAULT_CEILING, MORNING);
+    expect(await getCampaignBacklog(id, after(2))).toEqual({ pending: 3, hold: cut });
+  });
+
+  it("con un margen que cubre todo el cupo, espera a que lo bajen", async () => {
+    const [ana] = await seedPeople(3);
+    if (!ana) throw new Error("seed people");
+    const id = await seedCampaign();
+    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT);
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 0 });
+
+    expect((await getCampaignQuotaStatus(after(1))).daily).toMatchObject({ ceiling: 0, room: 0 });
+    expect(await getCampaignBacklog(id, after(1))).toEqual({
+      pending: 3,
+      hold: { by: "RESERVE" },
+    });
+  });
+
+  it("por un transporte sin cupo del día, lo pendiente no espera el cupo", async () => {
+    const [ana] = await seedPeople(3);
+    if (!ana) throw new Error("seed people");
+    const id = await seedCampaign();
+    await seedSent(ana, "TRANSACTIONAL", DAILY_LIMIT, MORNING);
+    stubMail("console");
+    await setPerMinute(1);
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
+
+    expect(await getCampaignBacklog(id, after(1))).toEqual({ pending: 2, hold: null });
+  });
+
+  it("una campaña sin pendientes no espera nada", async () => {
+    await seedPeople(2);
+    const id = await seedCampaign();
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 2 });
+
+    expect(await getCampaignBacklog(id, after(1))).toEqual({ pending: 0, hold: null });
+  });
+});

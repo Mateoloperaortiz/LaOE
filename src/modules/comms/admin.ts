@@ -234,6 +234,26 @@ export function campaignStatusLabel(status: string): string {
   );
 }
 
+const QUOTA_PROVIDERS = ["console", "resend", "ses"] as const;
+const quotaProviderLabels = tList("T-3226");
+const QUOTA_REASONS = ["BURST", "DAILY", "MONTHLY"] as const;
+const quotaReasonLabels = tList("T-3225");
+
+/** Cómo nombra el cupo de correo a un proveedor; uno que no conoce sale como vino. */
+export function quotaProviderLabel(provider: string): string {
+  return (
+    quotaProviderLabels[QUOTA_PROVIDERS.indexOf(provider as (typeof QUOTA_PROVIDERS)[number])] ??
+    provider
+  );
+}
+
+/** La causa de un corte por cuota, lista para completar «rechazó un correo por …». */
+export function quotaReasonLabel(reason: string): string {
+  return (
+    quotaReasonLabels[QUOTA_REASONS.indexOf(reason as (typeof QUOTA_REASONS)[number])] ?? reason
+  );
+}
+
 function campaignBadge(status: string): "sky" | "amarillo" | "naranja" | "azul" | "paper" {
   switch (status) {
     case "SCHEDULED":

@@ -3,13 +3,15 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { single } from "@/app/_lib/search";
 import {
+  type CampaignHold,
   estimateAudience,
   getCampaign,
+  getCampaignBacklog,
   listRecipients,
   RECIPIENT_STATUSES,
   SKIP_REASONS,
 } from "@/modules/comms";
-import { campaignStatusLabel } from "@/modules/comms/admin";
+import { campaignStatusLabel, quotaProviderLabel, quotaReasonLabel } from "@/modules/comms/admin";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import { requireConfig } from "@/modules/system";
 import { inputClass } from "@/shared/admin-kit/AdminFields";
@@ -21,9 +23,26 @@ import { formatDateTime, utcToBogotaInput } from "@/shared/lib/dates";
 import { cancelAction, scheduleAction, sendNowAction, sendTestFromCampaignAction } from "./actions";
 
 // Detalle de una campaña (ADR-038 regla 8): destinatarios estimados y excluidos por motivo, programar
-// o enviar ahora con step-up, cancelar, progreso y la tabla de destinatarios.
+// o enviar ahora con step-up, cancelar, progreso y la tabla de destinatarios. En curso dice cuántos
+// faltan y, si los detiene el cupo del día o un corte del proveedor, por qué y hasta cuándo (ADR-116
+// regla 20).
 
 const ID = /^[a-z0-9]{10,40}$/;
+
+/** Qué pasa con lo pendiente de una campaña en curso: qué lo detiene, o que sale en los próximos lotes. */
+function holdText(hold: CampaignHold | null): string {
+  if (!hold) {
+    return t("T-3223");
+  }
+  if (hold.by === "CUT") {
+    return t("T-3220", {
+      proveedor: quotaProviderLabel(hold.provider),
+      causa: quotaReasonLabel(hold.reason),
+      fecha: formatDateTime(hold.until),
+    });
+  }
+  return hold.by === "ROOM" ? t("T-3221", { fecha: formatDateTime(hold.until) }) : t("T-3222");
+}
 
 type Search = Record<string, string | string[] | undefined>;
 
@@ -52,12 +71,13 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
   if (accion === "enviar" && editable && !hasRecentStepUp(actor)) {
     redirect(`/ingresar/paso?next=${encodeURIComponent(`${base}?accion=enviar`)}`);
   }
-  const [estimate, recipients, perMinute] = await Promise.all([
+  const [estimate, recipients, perMinute, backlog] = await Promise.all([
     editable ? estimateAudience(campaign.segmentId) : Promise.resolve(null),
     campaign.status === "DRAFT" || campaign.status === "SCHEDULED"
       ? Promise.resolve(null)
       : listRecipients(id),
     requireConfig("campaigns.perMinute"),
+    campaign.status === "SENDING" ? getCampaignBacklog(id, new Date()) : Promise.resolve(null),
   ]);
   const [campoProgramar, botonProgramar] = tList("T-1129");
   const [, colPlantilla, colSegmento, , colProgramada, colEnviados] = tList("T-1125");
@@ -95,7 +115,12 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
             {campaignStatusLabel(campaign.status)}
           </Insignia>
         </div>
-        <p className="max-w-prose text-sm text-tinta-suave">{t("T-1124", { n: perMinute })}</p>
+        <p className="max-w-prose text-sm text-tinta-suave">
+          {t("T-1124", { n: perMinute })}{" "}
+          <Link href="/admin/campanas/cupo" className="underline">
+            {t("T-3224")}
+          </Link>
+        </p>
         <dl className="grid gap-4 rounded-xl border border-borde bg-fondo p-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1">
             <dt className="eyebrow text-xs">{colPlantilla}</dt>
@@ -127,6 +152,12 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
             </div>
           ) : null}
         </dl>
+        {backlog && backlog.pending > 0 ? (
+          <div className="flex max-w-prose flex-col gap-1 rounded-xl border border-borde bg-fondo-suave p-4 text-sm">
+            <p className="font-semibold text-titulo">{t("T-3219", { n: backlog.pending })}</p>
+            <p>{holdText(backlog.hold)}</p>
+          </div>
+        ) : null}
         {aviso ? <output className="block font-semibold text-titulo">{aviso}</output> : null}
         {prueba ? (
           <output className="block text-sm font-semibold text-titulo">

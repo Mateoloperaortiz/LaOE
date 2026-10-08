@@ -25,7 +25,12 @@ export function chooseRoute(
  * es un tercio del cupo, hacia arriba; un margen mayor que el cupo no deja salir ninguna.
  */
 export function campaignCeiling(dailyLimit: number, reserve: number | null): number {
-  return Math.max(0, dailyLimit - (reserve ?? Math.ceil(dailyLimit / 3)));
+  return Math.max(0, dailyLimit - transactionalReserve(dailyLimit, reserve));
+}
+
+/** El margen que rige: el fijado o, si no hay ninguno, un tercio del cupo hacia arriba. */
+export function transactionalReserve(dailyLimit: number, reserve: number | null): number {
+  return reserve ?? Math.ceil(dailyLimit / 3);
 }
 
 /** Cuántos correos de campaña caben todavía hoy: lo que un lote reclamó y no ha enviado ya cuenta. */
@@ -54,7 +59,7 @@ const BURST_CUT_DEFAULT_MINUTES = 15;
 const BURST_CUT_MAX_MINUTES = 60;
 
 /** La medianoche que le sigue a ese instante en la zona dada. */
-function startOfNextDayIn(timeZone: string, at: Date): Date {
+export function startOfNextDayIn(timeZone: string, at: Date): Date {
   // Desde la medianoche de hoy, 36 horas caen en el mediodía de mañana: de ahí, su medianoche.
   const noonTomorrow = new Date(startOfTodayIn(timeZone, at).getTime() + 36 * 3_600_000);
   return startOfTodayIn(timeZone, noonTomorrow);

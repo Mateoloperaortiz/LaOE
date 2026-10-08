@@ -12,6 +12,7 @@ export {
   type ConfigKey,
   type ConfigValue,
   getConfig,
+  readConfigNow,
   requireConfig,
   requireConfigIn,
   reviseConfig,

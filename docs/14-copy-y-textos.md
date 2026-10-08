@@ -1169,7 +1169,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1121 | Plantillas: prueba enviada | De una: te mandamos la prueba a {correo}. | MATEO | Propuesta |
 | T-1122 | Plantillas: identificador repetido | Ya existe una plantilla con ese identificador. | MATEO | Propuesta |
 | T-1123 | Campañas: título | Campañas | MATEO | Propuesta |
-| T-1124 | Campañas: intro | Una campaña manda una plantilla a un segmento, en lotes de {n} correos por minuto y siempre con enlace de baja. | MATEO | Propuesta |
+| T-1124 | Campañas: intro | Una campaña manda una plantilla a un segmento, en lotes de hasta {n} correos por minuto mientras quepan en el cupo del día, y siempre con enlace de baja. | MATEO | Propuesta |
 | T-1125 | Campañas: columnas | Nombre · Plantilla · Segmento · Estado · Programada · Enviados | MATEO | Propuesta |
 | T-1126 | Campañas: campos | Nombre · Plantilla · Segmento | MATEO | Propuesta |
 | T-1127 | Campañas: estados (borrador, programada, enviando, enviada, cancelada) | Borrador · Programada · Enviando · Enviada · Cancelada | MATEO | Propuesta |
@@ -1222,6 +1222,29 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-1174 | PWA: nombre completo (manifest) | Mi OE · Organización Estudiantil EAFIT | COM | Propuesta |
 | T-1175 | Campaña: sección de destinatarios (título) | Destinatarios | MATEO | Propuesta |
 | T-1176 | Campaña: título de la sección con la estimación, la fecha y los botones de envío | Envío | MATEO | Propuesta |
+| T-3219 | Campaña en curso: cuántos destinatarios faltan (ADR-116) | Pendientes por enviar: {n}. | MATEO | Propuesta |
+| T-3220 | Campaña en curso: lo pendiente espera por un corte del proveedor | Están en espera: {proveedor} rechazó un correo por {causa} y ningún lote sale hasta el {fecha}. | MATEO | Propuesta |
+| T-3221 | Campaña en curso: lo pendiente espera el cupo del otro día | Están en espera: hoy ya no caben más correos de campaña en el cupo del día. Siguen el {fecha}. | MATEO | Propuesta |
+| T-3222 | Campaña en curso: el margen cubre todo el cupo del día | Están en espera: el margen para lo transaccional cubre todo el cupo del día y así no sale ninguna campaña. Bajalo en el cupo de correo. | MATEO | Propuesta |
+| T-3223 | Campaña en curso: nada detiene lo pendiente | Salen en los próximos lotes. | MATEO | Propuesta |
+| T-3224 | Cupo de correo: título de la pantalla y enlace desde Campañas (ADR-116) | Cupo de correo | MATEO | Propuesta |
+| T-3225 | Cupo de correo: causas de un corte, para completar una frase (ráfaga, cupo del día, cupo del mes) | demasiados envíos seguidos · el cupo del día · el cupo del mes | MATEO | Propuesta |
+| T-3226 | Cupo de correo: proveedores (consola, Resend, SES) | La consola · Resend · SES | MATEO | Propuesta |
+| T-3227 | Cupo de correo: intro | Las campañas comparten el cupo del día con los correos transaccionales y les dejan un margen. Acá ves cuánto cabe hoy y, si el proveedor cortó los envíos, hasta cuándo. | MATEO | Propuesta |
+| T-3228 | Cupo de correo: secciones (hoy, margen, corte) | Hoy · Margen · Corte por cuota | MATEO | Propuesta |
+| T-3229 | Cupo de correo: datos de hoy (proveedor, cupo, enviados, margen, lo que cabe) | Salen por · Cupo del día · Enviados hoy · Margen para lo transaccional · Caben hoy en campañas | MATEO | Propuesta |
+| T-3230 | Cupo de correo: el proveedor no lleva cupo del día | {proveedor} no lleva cupo del día acá: el margen no frena las campañas mientras salgan por ahí. | MATEO | Propuesta |
+| T-3231 | Cupo de correo: margen por defecto | {n} (por defecto: un tercio del cupo) | MATEO | Propuesta |
+| T-3232 | Cupo de correo: formulario del margen (campo, botón) | Margen para lo transaccional · Guardar margen | MATEO | Propuesta |
+| T-3233 | Cupo de correo: ayuda del margen | Son los correos del cupo del día que una campaña no toca. Con un margen igual o mayor que el cupo no sale ninguna campaña. | MATEO | Propuesta |
+| T-3234 | Cupo de correo: margen guardado | Listo, el margen quedó en {n}. | MATEO | Propuesta |
+| T-3235 | Cupo de correo: margen inválido | El margen es un número entero, de cero en adelante. | MATEO | Propuesta |
+| T-3236 | Cupo de correo: sin corte vigente | No hay corte vigente. | MATEO | Propuesta |
+| T-3237 | Cupo de correo: corte vigente | {proveedor} rechazó un correo de campaña por {causa} el {desde}. Ningún lote sale hasta el {hasta}. | MATEO | Propuesta |
+| T-3238 | Cupo de correo: levantar el corte (botón) | Levantar el corte | MATEO | Propuesta |
+| T-3239 | Cupo de correo: ayuda de levantar el corte | Levantalo solo si sabés que el proveedor ya está recibiendo: si vuelve a rechazar, el corte se escribe otra vez. | MATEO | Propuesta |
+| T-3240 | Cupo de correo: corte levantado | Corte levantado. El próximo lote vuelve a intentar. | MATEO | Propuesta |
+| T-3241 | Cupo de correo: no había corte que levantar | No había un corte vigente para levantar. | MATEO | Propuesta |
 
 ### Mi OE · fase 8 (carnet en billeteras)
 

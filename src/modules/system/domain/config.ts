@@ -121,6 +121,15 @@ export async function getConfig<K extends ConfigKey>(key: K): Promise<ConfigValu
   return value;
 }
 
+/**
+ * El valor como está en la base en este momento, sin la caché (ADR-116 regla 20): para la pantalla
+ * que opera una clave, que tiene que mostrar lo que otro proceso acaba de escribir. No guarda lo que
+ * lee: quien decide con la clave sigue leyendo con `getConfig`.
+ */
+export function readConfigNow<K extends ConfigKey>(key: K): Promise<ConfigValue<K> | null> {
+  return readConfig(getDb(), key);
+}
+
 /** Lectura obligatoria: falla si la clave no está sembrada. */
 export async function requireConfig<K extends ConfigKey>(key: K): Promise<ConfigValue<K>> {
   const value = await getConfig(key);
