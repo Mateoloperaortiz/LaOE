@@ -9,6 +9,8 @@ import {
   anonymizePersonAs,
   endMembershipAs,
   getPersonRecord,
+  listAlumniByYear,
+  recordConsentAs,
   requestDeletionAs,
   setOwnPhotoAs,
 } from "@/modules/people";
@@ -269,10 +271,33 @@ describe("la foto propia al anonimizar", () => {
     expect(await stillStored([...photo.objects, ...written])).toEqual([]);
   });
 
+  // Esto sí está decidido: ADR-030 regla 2 conserva la foto en el perfil de egresado si hay consentimiento
+  // (el de galería para aparecer y el de directorio para la foto). Anonimizar la borra; la baja no.
+  it("a la baja con consentimiento el perfil de egresado conserva la foto: la galería la muestra y la ruta la entrega", async () => {
+    const leaving = await seedMember("egresa.foto@eafit.edu.co");
+    const other = await seedMember("mira.galeria@eafit.edu.co");
+    const photo = await upload(leaving, "photo");
+    await setOwnPhotoAs({ personId: leaving }, photo.id);
+    await recordConsentAs(admin, leaving, "DIRECTORY_PHOTO", "SELF");
+
+    await endMembershipAs(admin, leaving, {
+      endReason: "GRADUATION",
+      memorialConsent: true,
+      contactConsent: false,
+    });
+    await drainOutbox();
+
+    const gallery = (await listAlumniByYear()).flatMap((year) => year.entries);
+    expect(gallery).toMatchObject([{ personId: leaving, photoAssetId: photo.id }]);
+    expect(await getMedia(photo.id)).toMatchObject({ status: "READY" });
+    expect(await stillStored(photo.objects)).toEqual(photo.objects);
+    expect(await statusFor(other, photo.id)).toBe(302);
+  });
+
   // Lo que el código hace mientras la decisión abierta 20 no diga otra cosa. ADR-030 regla 2 conserva la
   // foto del egresado si hay consentimiento; qué pasa con ella cuando no lo hay es la misma pregunta que
   // revocar el consentimiento, y esa no se elige aquí.
-  it("mientras la decisión 20 siga abierta, a la baja la foto se queda como estaba: su fila, sus objetos y la entrega con sesión", async () => {
+  it("mientras la decisión 20 siga abierta, a la baja sin consentimiento la foto se queda como estaba: su fila, sus objetos y la entrega con sesión", async () => {
     const leaving = await seedMember("baja.foto@eafit.edu.co");
     const other = await seedMember("mira.foto@eafit.edu.co");
     const photo = await upload(leaving, "photo");
