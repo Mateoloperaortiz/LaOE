@@ -27,7 +27,7 @@ import {
   replaceArticlesAs,
 } from "@/modules/content";
 import { listPermissionsFor } from "@/modules/identity";
-import { canParticipate, getMemberSummary } from "@/modules/people";
+import { canParticipate, getMemberSummary, lockPersonAnonymization } from "@/modules/people";
 import { getObject, putObject } from "@/shared/adapters/storage";
 import {
   matchNormativaDocument,
@@ -293,6 +293,7 @@ async function resolveAsset(actor: Actor, asset: LocalAsset): Promise<string> {
       actor,
       { key: prepared.key, filename: asset.filename, visibility: "PRIVATE", purpose: "media" },
       { by: "ADMIN" },
+      { lockOwner: lockPersonAnonymization },
     );
     id = confirmed.id;
   }

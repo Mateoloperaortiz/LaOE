@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb } from "@/db/client";
 import { confirmUploadAs, getMedia, prepareUpload } from "@/modules/content";
 import { DELIVERY } from "@/modules/content/domain/media-pure";
+import { lockPersonAnonymization } from "@/modules/people";
 import { deleteObject } from "@/shared/adapters/storage";
 import { noisePng, uploadAsBrowser } from "../helpers/media";
 import { drainOutbox } from "../helpers/outbox";
@@ -12,6 +13,9 @@ import { seedMember } from "./factories";
 // Garage en local. Solo se simula quién tiene sesión, que la ruta lee de las cookies de la solicitud.
 
 const keys: string[] = [];
+
+/** Lo que compone la capa de la app: content pregunta y people responde con la persona tomada. */
+const ownerCheck = { lockOwner: lockPersonAnonymization };
 let signedInAs: string | null = null;
 
 vi.mock("@/modules/identity", async (importOriginal) => {
@@ -57,6 +61,7 @@ async function upload(
     { personId },
     { key: prepared.key, filename: "imagen", visibility, purpose },
     purpose === "photo" ? { by: "SELF" } : { by: "ADMIN" },
+    ownerCheck,
   );
   await drainOutbox();
   keys.push(...Object.values((await getMedia(id))?.variants ?? {}).map((variant) => variant.key));

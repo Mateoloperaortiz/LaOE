@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb } from "@/db/client";
 import { confirmUploadAs, getMedia, listMedia, prepareUpload } from "@/modules/content";
+import { lockPersonAnonymization } from "@/modules/people";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
 import { t } from "@/shared/copy";
 import { noisePng, uploadAsBrowser } from "../helpers/media";
@@ -16,6 +17,11 @@ const keys: string[] = [];
 type Scope = Parameters<typeof confirmUploadAs>[2];
 const ADMIN: Scope = { by: "ADMIN" };
 const SELF: Scope = { by: "SELF" };
+/** Lo que compone la capa de la app: content pregunta y people responde con la persona tomada. */
+const ownerCheck = { lockOwner: lockPersonAnonymization };
+// Errores de quien programa, no copy: la comprobación falta o respondió algo que no se reconoce.
+const MISSING_OWNER_CHECK = /exige la comprobación del dueño/;
+const NOT_AN_ANSWER = /respondió algo que no se reconoce/;
 
 /** Sube el objeto al bucket como hace el navegador y devuelve su clave, sin confirmarla. */
 async function store(purpose: "media" | "photo", ownerId: string): Promise<string> {
@@ -46,6 +52,49 @@ const rejected = { name: "DomainError", message: t("T-363") };
 
 describe("confirmar un medio", () => {
   beforeEach(truncateAll);
+
+  it("sin la comprobación del dueño no se confirma nada: ni un medio ni una foto propia", async () => {
+    const member = await seedMember("sin.comprobacion@eafit.edu.co");
+    const mediaKey = await store("media", member);
+    const photoKey = await store("photo", member);
+    for (const check of [undefined, null, {}, { lockOwner: "sí" }]) {
+      await expect(
+        confirmUploadAs(
+          { personId: member },
+          { key: mediaKey, filename: "medio.png", visibility: "PUBLIC", purpose: "media" },
+          ADMIN,
+          check as never,
+        ),
+      ).rejects.toThrow(MISSING_OWNER_CHECK);
+      await expect(
+        confirmUploadAs(
+          { personId: member },
+          { key: photoKey, filename: "yo.png", visibility: "PRIVATE", purpose: "photo" },
+          SELF,
+          check as never,
+        ),
+      ).rejects.toThrow(MISSING_OWNER_CHECK);
+    }
+    await expectNothingConfirmed(mediaKey);
+    expect(await headObject(photoKey)).not.toBeNull();
+  });
+
+  it("una respuesta de la comprobación que no se reconoce tampoco deja confirmar la foto", async () => {
+    const member = await seedMember("respuesta.rara@eafit.edu.co");
+    const photoKey = await store("photo", member);
+    for (const answer of [undefined, {}, { anonymized: "no" }, "viva"]) {
+      await expect(
+        confirmUploadAs(
+          { personId: member },
+          { key: photoKey, filename: "yo.png", visibility: "PRIVATE", purpose: "photo" },
+          SELF,
+          { lockOwner: () => Promise.resolve(answer as never) },
+        ),
+      ).rejects.toThrow(NOT_AN_ANSWER);
+    }
+    // Es un error de quien programa: no se registra nada y el objeto queda para quien sí puede confirmarlo.
+    await expectNothingConfirmed(photoKey);
+  });
   afterAll(async () => {
     await Promise.all(keys.map((key) => deleteObject(key).catch(() => undefined)));
     await closeDb();
@@ -61,6 +110,7 @@ describe("confirmar un medio", () => {
         { personId: member },
         { key, filename: "colada.png", visibility: "PUBLIC", purpose: "photo" },
         SELF,
+        ownerCheck,
       ),
     ).rejects.toMatchObject(rejected);
     await expectNothingConfirmed(key);
@@ -76,6 +126,7 @@ describe("confirmar un medio", () => {
         { personId: member },
         { key, filename: "directa.png", visibility: "PUBLIC", purpose: "media" },
         SELF,
+        ownerCheck,
       ),
     ).rejects.toMatchObject(rejected);
     await expectNothingConfirmed(key);
@@ -91,6 +142,7 @@ describe("confirmar un medio", () => {
         { personId: admin },
         { key: mediaKey, filename: "medio.png", visibility: "PUBLIC", purpose: "photo" },
         ADMIN,
+        ownerCheck,
       ),
     ).rejects.toMatchObject(rejected);
     await expect(
@@ -98,6 +150,7 @@ describe("confirmar un medio", () => {
         { personId: admin },
         { key: photoKey, filename: "foto.png", visibility: "PUBLIC", purpose: "media" },
         ADMIN,
+        ownerCheck,
       ),
     ).rejects.toMatchObject(rejected);
     await expectNothingConfirmed(mediaKey);
@@ -121,10 +174,10 @@ describe("confirmar un medio", () => {
       "ADMIN",
     ]) {
       await expect(
-        confirmUploadAs({ personId: admin }, media as never, scope as never),
+        confirmUploadAs({ personId: admin }, media as never, scope as never, ownerCheck),
       ).rejects.toMatchObject(rejected);
       await expect(
-        confirmUploadAs({ personId: admin }, photo as never, scope as never),
+        confirmUploadAs({ personId: admin }, photo as never, scope as never, ownerCheck),
       ).rejects.toMatchObject(rejected);
     }
     await expectNothingConfirmed(mediaKey);
@@ -141,6 +194,7 @@ describe("confirmar un medio", () => {
           { personId: admin },
           { key, filename: "medio.png", visibility: "PUBLIC", purpose } as never,
           ADMIN,
+          ownerCheck,
         ),
       ).rejects.toMatchObject(rejected);
     }
@@ -158,6 +212,7 @@ describe("confirmar un medio", () => {
           { personId: other },
           { key, filename: "ajena.png", visibility: "PRIVATE", purpose: "photo" },
           scope,
+          ownerCheck,
         ),
       ).rejects.toMatchObject(rejected);
     }
@@ -172,6 +227,7 @@ describe("confirmar un medio", () => {
       { personId: member },
       { key, filename: "yo.png", visibility: "PUBLIC", purpose: "photo" },
       SELF,
+      ownerCheck,
     );
 
     expect(await getMedia(id)).toMatchObject({
@@ -191,11 +247,13 @@ describe("confirmar un medio", () => {
       { personId: admin },
       { key: mediaKey, filename: "portada.png", visibility: "PUBLIC", purpose: "media" },
       ADMIN,
+      ownerCheck,
     );
     const photo = await confirmUploadAs(
       { personId: admin },
       { key: photoKey, filename: "yo.png", visibility: "PUBLIC", purpose: "photo" },
       ADMIN,
+      ownerCheck,
     );
 
     expect(await getMedia(media.id)).toMatchObject({

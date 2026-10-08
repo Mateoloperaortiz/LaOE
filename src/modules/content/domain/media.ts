@@ -4,7 +4,7 @@ import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, runCommand, type Tx } from "@/db/tx";
 import { mediaProcess } from "@/domain-events/content";
 import { eventOf } from "@/domain-events/define";
 import { deleteObject, headObject, presignRead, presignUpload } from "@/shared/adapters/storage";
@@ -105,15 +105,54 @@ export const confirmUploadSchema = z.object({
 export type ConfirmUploadInput = z.infer<typeof confirmUploadSchema>;
 
 /**
+ * Lo que la capa de la app compone con `people`, que `content` no importa (`MODULE_DEPS`): toma a la
+ * persona hasta el fin de la transacción y dice si ya fue anonimizada, o `null` si no existe. En la
+ * app es `lockPersonAnonymization`.
+ */
+interface UploadOwnerCheck {
+  lockOwner: (tx: Tx, personId: string) => Promise<{ anonymized: boolean } | null>;
+}
+
+/**
+ * La foto propia de una persona anonimizada no se confirma (ADR-116 regla 8): `deletePhotosFor` ya
+ * pasó o está por pasar, y una fila que nazca después quedaría viva y entregable. La persona queda
+ * tomada hasta el fin de la transacción, así que una anonimización que llegue ahora espera y después
+ * se lleva esta foto. El objeto se borra: es de esa persona y nadie más lo puede confirmar.
+ */
+async function requireLivingOwner(
+  ctx: CommandContext,
+  key: string,
+  owner: UploadOwnerCheck,
+): Promise<void> {
+  const personId = ctx.actor.personId;
+  const who: unknown = personId ? await owner.lockOwner(ctx.tx, personId) : null;
+  if (
+    who !== null &&
+    typeof (who as { anonymized?: unknown } | undefined)?.anonymized !== "boolean"
+  ) {
+    throw new Error("La comprobación del dueño de la foto respondió algo que no se reconoce");
+  }
+  if (who === null || (who as { anonymized: boolean }).anonymized) {
+    await deleteObject(key);
+    throw new DomainError(t("T-363"), "file");
+  }
+}
+
+/**
  * Comprueba el objeto con HEAD, registra el medio en PENDING y encola media.process. Antes decide si
  * esa clave se puede confirmar con el alcance declarado (ADR-113 regla 5): si no, responde como a una
- * subida que no existe, sin tocar el objeto.
+ * subida que no existe, sin tocar el objeto. Una foto propia exige además que su dueño siga sin
+ * anonimizar, leído con la persona tomada (ADR-116 regla 8); sin esa comprobación no se confirma nada.
  */
 export async function confirmUpload(
   ctx: CommandContext,
   input: ConfirmUploadInput,
   scope: UploadScope,
+  owner: UploadOwnerCheck,
 ): Promise<{ id: string }> {
+  if (typeof (owner as { lockOwner?: unknown } | null | undefined)?.lockOwner !== "function") {
+    throw new Error("Confirmar una subida exige la comprobación del dueño de la foto");
+  }
   const purpose = confirmablePurpose({
     key: input.key,
     purpose: input.purpose,
@@ -137,6 +176,9 @@ export async function confirmUpload(
   if (!isAllowedSize(info.byteSize, photo ? PHOTO_MAX_BYTES : MEDIA_MAX_BYTES)) {
     await deleteObject(input.key);
     throw new DomainError(t(photo ? "T-419" : "T-362"), "file");
+  }
+  if (photo) {
+    await requireLivingOwner(ctx, input.key, owner);
   }
   try {
     const [row] = await ctx.tx
@@ -179,14 +221,16 @@ export async function confirmUpload(
 
 /**
  * Para la ruta de confirmación (src/app no abre transacciones). El alcance es obligatorio: lo arma
- * quien autorizó con la sesión, y sin él no se confirma nada (ADR-113 regla 5).
+ * quien autorizó con la sesión, y sin él no se confirma nada (ADR-113 regla 5). La comprobación del
+ * dueño también: la compone quien llama con `people` (ADR-116 regla 8).
  */
 export function confirmUploadAs(
   actor: Actor,
   input: ConfirmUploadInput,
   scope: UploadScope,
+  owner: UploadOwnerCheck,
 ): Promise<{ id: string }> {
-  return runCommand(actor, (ctx) => confirmUpload(ctx, input, scope));
+  return runCommand(actor, (ctx) => confirmUpload(ctx, input, scope, owner));
 }
 
 export interface MediaListParams {

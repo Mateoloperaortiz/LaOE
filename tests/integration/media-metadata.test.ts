@@ -16,6 +16,7 @@ import {
 } from "@/modules/content/domain/media-backfill";
 import { processMedia } from "@/modules/content/domain/media-process";
 import { mediaAsset } from "@/modules/content/schema";
+import { lockPersonAnonymization } from "@/modules/people";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject, putObject } from "@/shared/adapters/storage";
 import { noisePng, uploadAsBrowser } from "../helpers/media";
@@ -27,6 +28,9 @@ import { seedMember } from "./factories";
 // en local: se sube como sube el navegador, se procesa por el outbox y se descarga lo que firma el 302.
 
 const keys: string[] = [];
+
+/** Lo que compone la capa de la app: content pregunta y people responde con la persona tomada. */
+const ownerCheck = { lockOwner: lockPersonAnonymization };
 
 /** El modelo del teléfono que viaja en el EXIF de las fotos de prueba. */
 const PHONE = "Telefono-de-prueba-XZ";
@@ -65,6 +69,7 @@ async function upload(
     { personId },
     { key: prepared.key, filename: "imagen", visibility, purpose },
     purpose === "photo" ? { by: "SELF" } : { by: "ADMIN" },
+    ownerCheck,
   );
   await drainOutbox();
   keys.push(...Object.values((await getMedia(id))?.variants ?? {}).map((variant) => variant.key));

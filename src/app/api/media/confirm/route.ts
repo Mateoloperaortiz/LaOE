@@ -1,11 +1,14 @@
 import { actorContext } from "@/app/_lib/actor";
 import { confirmUploadAs, confirmUploadSchema, type UploadScope } from "@/modules/content";
 import { getActor } from "@/modules/identity";
+import { lockPersonAnonymization } from "@/modules/people";
 import { DomainError } from "@/shared/lib/errors";
 
 // Paso 2 de la subida directa (ADR-022): comprueba el objeto, registra el medio y encola las variantes.
 // La ruta declara el alcance con la sesión; qué clave se confirma con él lo decide el comando
-// (ADR-113 regla 5), no el propósito que mande el cliente.
+// (ADR-113 regla 5), no el propósito que mande el cliente. La ruta le pasa además la lectura de la
+// persona bajo candado, que `content` no puede pedirle a `people`: la foto propia de una persona
+// anonimizada no se confirma (ADR-116 regla 8).
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +27,9 @@ export async function POST(request: Request) {
   }
   const scope: UploadScope = actor.isAdmin ? { by: "ADMIN" } : { by: "SELF" };
   try {
-    const result = await confirmUploadAs(await actorContext(actor), parsed.data, scope);
+    const result = await confirmUploadAs(await actorContext(actor), parsed.data, scope, {
+      lockOwner: lockPersonAnonymization,
+    });
     return Response.json(result, { status: 201, headers: { "cache-control": "no-store" } });
   } catch (error) {
     if (error instanceof DomainError) {

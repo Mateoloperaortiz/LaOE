@@ -1,20 +1,27 @@
+import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { closeDb } from "@/db/client";
+import { closeDb, getDb } from "@/db/client";
 import { mediaProcess } from "@/domain-events/content";
 import { personAnonymized } from "@/domain-events/people";
 import { confirmUploadAs, getMedia, prepareUpload } from "@/modules/content";
+import { confirmUpload } from "@/modules/content/domain/media";
 import { fullVariantKey, variantKey } from "@/modules/content/domain/media-pure";
+import { mediaAsset } from "@/modules/content/schema";
 import { listSubmissionsByPerson } from "@/modules/forms";
 import {
   anonymizePersonAs,
   endMembershipAs,
   getPersonRecord,
   listAlumniByYear,
+  lockPersonAnonymization,
   recordConsentAs,
   requestDeletionAs,
   setOwnPhotoAs,
 } from "@/modules/people";
+import { anonymizePerson } from "@/modules/people/domain/membership";
 import { deleteObject, headObject, putObject } from "@/shared/adapters/storage";
+import { t } from "@/shared/copy";
+import { holdCommand, waitingOn } from "../helpers/locks";
 import { noisePng, uploadAsBrowser } from "../helpers/media";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
@@ -25,6 +32,8 @@ import { seedForm, seedMember, seedSubmission } from "./factories";
 // bucket solo se simula que falle: rechaza el borrado de una clave o la lectura mientras la prueba lo pida.
 
 const admin = { personId: null, ip: null };
+/** Lo que compone la capa de la app: content pregunta y people responde con la persona tomada. */
+const ownerCheck = { lockOwner: lockPersonAnonymization };
 const keys: string[] = [];
 let signedInAs: string | null = null;
 
@@ -109,6 +118,7 @@ async function upload(
     { personId },
     { key: prepared.key, filename: "retrato", visibility, purpose },
     purpose === "photo" ? { by: "SELF" } : { by: "ADMIN" },
+    ownerCheck,
   );
   if (!options.process) {
     return { id, objects: [prepared.key] };
@@ -119,6 +129,39 @@ async function upload(
   );
   keys.push(...variants);
   return { id, objects: [prepared.key, ...variants] };
+}
+
+/** Sube la foto como hace el navegador y no la confirma: devuelve lo que recibiría la confirmación. */
+async function uploadUnconfirmed(personId: string) {
+  const bytes = await noisePng(520, 400);
+  const contentType = "image/png";
+  const prepared = await prepareUpload(
+    {
+      filename: "retrato",
+      contentType,
+      byteSize: bytes.byteLength,
+      visibility: "PRIVATE",
+      purpose: "photo",
+    },
+    { personId },
+  );
+  keys.push(prepared.key);
+  await uploadAsBrowser(prepared, { bytes, contentType, filename: "retrato" });
+  return {
+    key: prepared.key,
+    filename: "retrato",
+    visibility: "PRIVATE" as const,
+    purpose: "photo" as const,
+  };
+}
+
+/** Cuántos medios hay registrados con esa clave. */
+async function registered(key: string): Promise<number> {
+  const rows = await getDb()
+    .select({ id: mediaAsset.id })
+    .from(mediaAsset)
+    .where(eq(mediaAsset.objectKey, key));
+  return rows.length;
 }
 
 /** Cuáles de esas claves siguen en el bucket. */
@@ -175,6 +218,68 @@ describe("la foto propia al anonimizar", () => {
     expect(await stillStored(photo.objects)).toEqual([]);
     expect(await statusFor(other, photo.id)).toBe(404);
     expect((await getPersonRecord(leaving))?.photoAssetId).toBeNull();
+  });
+
+  it("una foto que se confirma después de anonimizar no se registra, y su objeto se borra", async () => {
+    const leaving = await seedMember("tarde.foto@eafit.edu.co");
+    const input = await uploadUnconfirmed(leaving);
+    await anonymize(leaving);
+    await drainOutbox();
+
+    await expect(
+      confirmUploadAs({ personId: leaving }, input, { by: "SELF" }, ownerCheck),
+    ).rejects.toThrow(t("T-363"));
+
+    expect(await registered(input.key)).toBe(0);
+    expect(await stillStored([input.key])).toEqual([]);
+    expect(await drainOutbox()).toEqual({ processed: 0, failed: 0 });
+  });
+
+  it("confirmar una foto mientras la persona se anonimiza espera la anonimización y no la registra", async () => {
+    const leaving = await seedMember("carrera.foto@eafit.edu.co");
+    const input = await uploadUnconfirmed(leaving);
+    await requestDeletionAs({ personId: leaving });
+    // La anonimización queda escrita y sin confirmar: quien confirma todavía lee a la persona viva.
+    const held = await holdCommand(admin, (ctx) => anonymizePerson(ctx, leaving));
+    const confirming = confirmUploadAs({ personId: leaving }, input, { by: "SELF" }, ownerCheck);
+    void confirming.catch(() => undefined);
+    try {
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+      held.release();
+      await held.done;
+      await expect(confirming).rejects.toThrow(t("T-363"));
+    } finally {
+      held.release();
+      await Promise.allSettled([held.done, confirming]);
+    }
+    await drainOutbox();
+    expect(await registered(input.key)).toBe(0);
+    expect(await stillStored([input.key])).toEqual([]);
+  });
+
+  it("anonimizar mientras se confirma una foto espera la confirmación y después se la lleva", async () => {
+    const leaving = await seedMember("llevada.foto@eafit.edu.co");
+    const input = await uploadUnconfirmed(leaving);
+    await requestDeletionAs({ personId: leaving });
+    // La confirmación queda escrita y sin confirmar, con la persona tomada.
+    const held = await holdCommand({ personId: leaving }, (ctx) =>
+      confirmUpload(ctx, input, { by: "SELF" }, ownerCheck),
+    );
+    const anonymizing = anonymizePersonAs(admin, leaving);
+    void anonymizing.catch(() => undefined);
+    try {
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+      held.release();
+      await held.done;
+      await anonymizing;
+    } finally {
+      held.release();
+      await Promise.allSettled([held.done, anonymizing]);
+    }
+    expect(await registered(input.key)).toBe(1);
+    await drainOutbox();
+    expect(await registered(input.key)).toBe(0);
+    expect(await stillStored([input.key])).toEqual([]);
   });
 
   it("se van también las fotos que la persona había reemplazado, y no la de otro miembro ni un medio que ella subió como admin", async () => {

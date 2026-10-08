@@ -12,6 +12,7 @@ import {
 } from "@/modules/content/domain/media";
 import { processMedia } from "@/modules/content/domain/media-process";
 import { mediaAsset } from "@/modules/content/schema";
+import { lockPersonAnonymization } from "@/modules/people";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
 import { tList } from "@/shared/copy";
@@ -35,6 +36,9 @@ async function uploadDirect(
   await uploadAsBrowser(prepared, { bytes, contentType, filename });
   return prepared.key;
 }
+
+/** Lo que compone la capa de la app: content pregunta y people responde con la persona tomada. */
+const ownerCheck = { lockOwner: lockPersonAnonymization };
 
 describe("medios", () => {
   beforeEach(truncateAll);
@@ -87,6 +91,7 @@ describe("medios", () => {
         ctx,
         { key, filename: "portada.png", visibility: "PUBLIC", purpose: "media" },
         { by: "ADMIN" },
+        ownerCheck,
       ),
     );
     let [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
@@ -109,6 +114,7 @@ describe("medios", () => {
           ctx,
           { key, filename: "portada.png", visibility: "PUBLIC", purpose: "media" },
           { by: "ADMIN" },
+          ownerCheck,
         ),
       ),
     ).rejects.toBeInstanceOf(DomainError);
@@ -155,6 +161,7 @@ describe("medios", () => {
         ctx,
         { key, filename: "falso.png", visibility: "PRIVATE", purpose: "media" },
         { by: "ADMIN" },
+        ownerCheck,
       ),
     );
     expect(await processMedia(id)).toBe("failed");
@@ -170,6 +177,7 @@ describe("medios", () => {
         ctx,
         { key: privateKey, filename: "privada.png", visibility: "PRIVATE", purpose: "media" },
         { by: "ADMIN" },
+        ownerCheck,
       ),
     );
     expect(await processMedia(created.id)).toBe("ready");
@@ -198,6 +206,7 @@ describe("medios", () => {
         ctx,
         { key, filename: "enorme.png", visibility: "PUBLIC", purpose: "media" },
         { by: "ADMIN" },
+        ownerCheck,
       ),
     );
 
