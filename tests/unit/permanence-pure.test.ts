@@ -8,6 +8,7 @@ import {
 } from "@/modules/permanence/domain/params";
 import {
   type CommitteeFact,
+  closedResults,
   computePerson,
   conditionFor,
   deviatesFromNominal,
@@ -1565,5 +1566,304 @@ describe("ventana, avisos y distribución", () => {
       noAlcanza: 0,
       average: 0,
     });
+  });
+});
+
+describe("segunda vuelta de la elección de junta (ADR-028, ADR-060 regla 3)", () => {
+  const eventos = rule(
+    { key: "eventos", label: "Eventos", weight: 60, computation: "MANUAL", params: {} },
+    "COMMITTEE",
+    "a3",
+  );
+  const ordinary = occ({
+    id: "ord-sv",
+    kind: "ASSEMBLY",
+    assemblyKind: "ORDINARY",
+    startsAt: past(40),
+  });
+  const election = occ({
+    id: "elec-sv",
+    kind: "ASSEMBLY",
+    assemblyKind: "BOARD_ELECTION",
+    startsAt: past(20),
+  });
+  const runoff = occ({ id: "sv", kind: "ASSEMBLY", assemblyKind: "RUNOFF", startsAt: past(5) });
+  /** Quien debe la segunda vuelta y ya fue a la ordinaria y a la elección. */
+  const voter = (overrides: Partial<PersonFacts> = {}) =>
+    person({
+      committees: [committee("a3")],
+      attended: new Set(["ord-sv", "elec-sv"]),
+      credits: [{ ruleId: eventos.id, value: 60, reason: "" }],
+      assemblyRequirement: {
+        requiredOrdinary: 1,
+        requiresBoardElection: true,
+        requiresRunoff: true,
+      },
+      ...overrides,
+    });
+  const mandatoryOf = (occasions: OccasionFact[], who: PersonFacts) =>
+    computePerson(facts({ rules: [eventos], occasions }), who, NOW);
+
+  it("quien la debía y no fue la pierde: el cierre propone la salida de la OE", () => {
+    const result = mandatoryOf([ordinary, election, runoff], voter());
+    expect(result.mandatory).toMatchObject({
+      required: { ordinary: 1, boardElection: true, runoff: true },
+      attended: { ordinary: 1, boardElection: true, runoff: false },
+      met: false,
+      missing: ["RUNOFF"],
+      lost: ["RUNOFF"],
+      excused: [],
+    });
+    expect(proposeDecisions(result).person).toEqual({ proposed: "EXIT_OE", reason: 4 });
+  });
+
+  it("quien fue la cumple", () => {
+    const result = mandatoryOf(
+      [ordinary, election, runoff],
+      voter({ attended: new Set(["ord-sv", "elec-sv", "sv"]) }),
+    );
+    expect(result.mandatory).toMatchObject({
+      attended: { runoff: true },
+      met: true,
+      missing: [],
+      lost: [],
+    });
+    expect(proposeDecisions(result).person).toEqual({ proposed: "CONTINUES", reason: 0 });
+  });
+
+  it("con excusa aceptada no falta ni se pierde (ADR-060 regla 5)", () => {
+    const result = mandatoryOf([ordinary, election, runoff], voter({ excused: new Set(["sv"]) }));
+    expect(result.mandatory).toMatchObject({
+      attended: { runoff: false },
+      met: true,
+      missing: [],
+      lost: [],
+      excused: ["RUNOFF"],
+    });
+    expect(proposeDecisions(result).person.proposed).toBe("CONTINUES");
+  });
+
+  it("con otra segunda vuelta programada falta, pero todavía no se pierde", () => {
+    const replacement = occ({
+      id: "sv-2",
+      kind: "ASSEMBLY",
+      assemblyKind: "RUNOFF",
+      startsAt: future(7),
+    });
+    const result = mandatoryOf([ordinary, election, runoff, replacement], voter());
+    expect(result.mandatory).toMatchObject({ met: false, missing: ["RUNOFF"], lost: [] });
+    expect(result.mandatory.upcoming.map((item) => item.occasionId)).toEqual(["sv-2"]);
+    expect(proposeDecisions(result).person.proposed).toBe("CONTINUES");
+  });
+
+  it("una segunda vuelta que nunca se cargó falta, pero no expulsa a nadie", () => {
+    const result = mandatoryOf([ordinary, election], voter());
+    expect(result.mandatory).toMatchObject({ met: false, missing: ["RUNOFF"], lost: [] });
+  });
+
+  it("una segunda vuelta cancelada no cuenta como celebrada", () => {
+    const cancelled = { ...runoff, status: "CANCELLED" as const };
+    const result = mandatoryOf([ordinary, election, cancelled], voter());
+    expect(result.mandatory).toMatchObject({ missing: ["RUNOFF"], lost: [] });
+  });
+
+  it("a quien no se le exige no le falta aunque no haya ido", () => {
+    const result = mandatoryOf(
+      [ordinary, election, runoff],
+      voter({
+        assemblyRequirement: {
+          requiredOrdinary: 1,
+          requiresBoardElection: true,
+          requiresRunoff: false,
+        },
+      }),
+    );
+    expect(result.mandatory).toMatchObject({
+      required: { runoff: false },
+      met: true,
+      missing: [],
+      lost: [],
+    });
+  });
+
+  // Decisión abierta 23, primera pregunta: ¿una ocasión en borrador con fecha pasada cuenta como
+  // celebrada? Hoy sí (ADR-036 regla 4 dice «no canceladas con fecha pasada»). Esta prueba fija la
+  // conducta de hoy, no la decide: una segunda vuelta en borrador propone la salida de quien la debía.
+  it("una segunda vuelta en borrador con fecha pasada cuenta como celebrada (decisión abierta 23)", () => {
+    const draft = { ...runoff, status: "DRAFT" as const };
+    const result = mandatoryOf([ordinary, election, draft], voter());
+    expect(result.mandatory).toMatchObject({ missing: ["RUNOFF"], lost: ["RUNOFF"] });
+    expect(proposeDecisions(result).person).toEqual({ proposed: "EXIT_OE", reason: 4 });
+  });
+});
+
+describe("tasa de reuniones: borradores y ninguna exigible (decisión abierta 23)", () => {
+  const reuniones = rule(
+    {
+      key: "reuniones",
+      label: "Reuniones",
+      weight: 15,
+      computation: "CHECKIN_RATE",
+      params: { category: "COMMITTEE_MEETING" },
+    },
+    "COMMITTEE",
+    "a3",
+  );
+  const meeting = (id: string, overrides: Partial<OccasionFact> = {}) =>
+    occ({ id, category: "COMMITTEE_MEETING", committeeId: "a3", startsAt: past(7), ...overrides });
+  const rateOf = (occasions: OccasionFact[], who: PersonFacts, term: TermFacts["term"] = TERM) =>
+    computePerson(facts({ rules: [reuniones], occasions, term }), who, NOW).results[0]?.criteria[0];
+
+  // Decisión abierta 23, primera pregunta: ¿una ocasión en borrador con fecha pasada cuenta como
+  // celebrada? Hoy sí: entra al denominador y le baja la tasa a todo el comité. Esta prueba fija la
+  // conducta de hoy, no la decide.
+  it("una reunión en borrador con fecha pasada cuenta como celebrada y baja la tasa (decisión abierta 23)", () => {
+    const criterion = rateOf(
+      [meeting("r1"), meeting("r2", { status: "DRAFT", startsAt: past(3) })],
+      person({ committees: [committee("a3")], attended: new Set(["r1"]) }),
+    );
+    expect(criterion).toMatchObject({
+      achieved: 7.5,
+      detail: { type: "CHECKIN_RATE", attended: 1, held: 2, rate: 0.5 },
+    });
+  });
+
+  // Decisión abierta 23, segunda pregunta: ¿cuánto vale la tasa cuando la persona no tiene ninguna
+  // reunión exigible? Hoy vale cero, igual que faltar a todas. Esta prueba fija la conducta de hoy, no
+  // la decide: con el término abierto el peso sigue siendo posible, y al cerrar queda en cero.
+  it("sin ninguna reunión exigible la tasa vale 0 (decisión abierta 23)", () => {
+    const excusedOnly = person({ committees: [committee("a3")], excused: new Set(["r1"]) });
+    expect(rateOf([meeting("r1")], excusedOnly)).toMatchObject({
+      achieved: 0,
+      remaining: 15,
+      detail: { type: "CHECKIN_RATE", attended: 0, held: 0, future: 0, rate: 0 },
+    });
+    // Quien entró al comité después de la última reunión tampoco tiene ninguna exigible.
+    const joinedLate = person({ committees: [committee("a3", { joinedAt: past(1) })] });
+    expect(rateOf([meeting("r1")], joinedLate)).toMatchObject({
+      achieved: 0,
+      detail: { type: "CHECKIN_RATE", held: 0, rate: 0 },
+    });
+    const closedTerm = { ...TERM, permanenceClosedAt: NOW };
+    expect(rateOf([meeting("r1")], excusedOnly, closedTerm)).toMatchObject({
+      achieved: 0,
+      remaining: 0,
+      detail: { type: "CHECKIN_RATE", held: 0, rate: 0 },
+    });
+  });
+});
+
+describe("tasa de reuniones en la tabla general", () => {
+  // Caracterización (DT-156): la tasa se mide contra la pertenencia al comité de la regla. Una regla de
+  // la tabla general no tiene comité, así que no encuentra pertenencia ni reuniones exigibles: hoy vale
+  // 0 para todos y, con el término abierto, deja su peso entero como posible.
+  it("no encuentra pertenencia contra la que medirse y vale 0", () => {
+    const general = rule({
+      key: "reuniones-general",
+      label: "Reuniones",
+      weight: 10,
+      computation: "CHECKIN_RATE",
+      params: { category: "COMMITTEE_MEETING" },
+    });
+    const occasions = [
+      occ({ id: "g1", category: "COMMITTEE_MEETING", committeeId: "a3", startsAt: past(7) }),
+      occ({ id: "g2", category: "COMMITTEE_MEETING", startsAt: past(3) }),
+    ];
+    const result = computePerson(
+      facts({ rules: [general], occasions }),
+      person({ committees: [committee("a3")], attended: new Set(["g1", "g2"]) }),
+      NOW,
+    );
+    expect(result.general[0]).toMatchObject({
+      achieved: 0,
+      remaining: 10,
+      detail: { type: "CHECKIN_RATE", attended: 0, held: 0, future: 0, rate: 0 },
+    });
+  });
+});
+
+describe("lo que queda al congelar (ADR-116 regla 6)", () => {
+  const eventos = rule(
+    { key: "eventos", label: "Eventos", weight: 60, computation: "MANUAL", params: {} },
+    "COMMITTEE",
+    "a3",
+  );
+
+  it("el estado pasa a ser el final, no queda nada posible y el margen se mide sobre lo logrado", () => {
+    const open = computePerson(
+      facts({ rules: [eventos], occasions: [] }),
+      person({
+        committees: [committee("a3")],
+        credits: [{ ruleId: eventos.id, value: 45, reason: "" }],
+      }),
+      NOW,
+    );
+    // Abierto: 45 logrados y 15 posibles en el comité, más el nominal de la tabla general sin cargar.
+    expect(open.results[0]).toMatchObject({
+      total: 45,
+      remaining: 65,
+      state: "EN_CAMINO",
+      finalState: "PRUEBA",
+    });
+
+    const frozen = closedResults(open);
+
+    expect(frozen.results[0]).toMatchObject({
+      total: 45,
+      threshold: 60,
+      remaining: 0,
+      margin: -15,
+      state: "PRUEBA",
+      finalState: "PRUEBA",
+    });
+    expect(frozen.results[0]?.criteria[0]).toMatchObject({ achieved: 45, remaining: 0 });
+    // Lo abierto no se toca: congelar devuelve un resultado nuevo.
+    expect(open.results[0]).toMatchObject({ remaining: 65, state: "EN_CAMINO" });
+    expect(open.results[0]?.criteria[0]?.remaining).toBe(15);
+  });
+
+  it("da lo mismo que calcular con el término cerrado en el mismo instante, con las tablas de referencia", () => {
+    const rules = [...generalRules(), ...committeeRules("pixel")];
+    const occasions = [
+      occ({ id: "f-ord", kind: "ASSEMBLY", assemblyKind: "ORDINARY", startsAt: past(30) }),
+      occ({ id: "f-r1", category: "COMMITTEE_MEETING", committeeId: "pixel", startsAt: past(21) }),
+      occ({ id: "f-r2", category: "COMMITTEE_MEETING", committeeId: "pixel", startsAt: past(7) }),
+      occ({ id: "f-r3", category: "COMMITTEE_MEETING", committeeId: "pixel", startsAt: future(7) }),
+      occ({ id: "f-int", category: "INTEGRATION", startsAt: past(10) }),
+      occ({ id: "f-int-2", category: "INTEGRATION", startsAt: future(10) }),
+    ];
+    const groups = [group("GT_MACROEVENT", "gt-dias"), group("GAP_OE", "gap-oe")];
+    const who = person({
+      attended: new Set(["f-ord", "f-r1", "f-int"]),
+      groupMemberships: [
+        {
+          groupId: "gt-dias",
+          evaluation: "GOOD",
+          leftAt: null,
+          evaluatedById: "gh-director",
+          evaluatedAt: NOW,
+          note: null,
+        },
+        {
+          groupId: "gap-oe",
+          evaluation: "PENDING",
+          leftAt: null,
+          evaluatedById: null,
+          evaluatedAt: null,
+          note: null,
+        },
+      ],
+    });
+    const open = computePerson(facts({ rules, occasions, groups }), who, NOW);
+    const closed = computePerson(
+      facts({ rules, occasions, groups, term: { ...TERM, permanenceClosedAt: NOW } }),
+      who,
+      NOW,
+    );
+    // El caso tiene de qué: abierto queda algo posible en la tabla general y en la del comité.
+    expect(open.general.some((criterion) => criterion.remaining > 0)).toBe(true);
+    expect(open.results[0]?.criteria.some((criterion) => criterion.remaining > 0)).toBe(true);
+
+    expect(closedResults(open)).toEqual({ general: closed.general, results: closed.results });
   });
 });
