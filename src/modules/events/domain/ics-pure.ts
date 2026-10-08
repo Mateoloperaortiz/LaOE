@@ -26,23 +26,31 @@ export function icsDate(date: Date): string {
     .replace(/\.\d{3}Z$/, "Z");
 }
 
-/** U+0000 a U+001F y U+007F: RFC 5545 (sección 3.1) no los admite en una línea de contenido. */
+/**
+ * Lo que no llega a una línea de contenido. U+0000 a U+001F y U+007F, que RFC 5545 (sección 3.1) no
+ * admite, y además los controles C1 (U+0080 a U+009F) y los separadores de línea y de párrafo de
+ * Unicode (U+2028 y U+2029): el RFC los deja pasar, pero un cliente que parta las líneas por ellos
+ * leería lo que sigue como una propiedad nueva (ADR-116 regla 14).
+ */
 function isControl(char: string): boolean {
   const code = char.codePointAt(0) ?? 0;
-  return code <= 0x1f || code === 0x7f;
+  return code <= 0x1f || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029;
 }
 
+/** Todo salto: los de ASCII y los de Unicode (U+0085, U+2028 y U+2029). */
+const LINE_BREAK = /\r\n|[\r\n\u0085\u2028\u2029]/g;
+
 /**
- * Escapa lo que RFC 5545 (sección 3.3.11) exige en un valor de texto. Todo salto (`\r\n`, `\r` o
- * `\n`) sale como `\n` escapado y los demás caracteres de control se quitan, salvo el tabulador,
- * que el RFC sí admite: un valor nunca abre una línea nueva (ADR-116 regla 14).
+ * Escapa lo que RFC 5545 (sección 3.3.11) exige en un valor de texto. Todo salto sale como `\n`
+ * escapado y los demás caracteres de control se quitan, salvo el tabulador, que el RFC sí admite:
+ * un valor nunca abre una línea nueva (ADR-116 regla 14).
  */
 export function icsText(value: string): string {
   const escaped = value
     .replace(/\\/g, "\\\\")
     .replace(/;/g, "\\;")
     .replace(/,/g, "\\,")
-    .replace(/\r\n|\r|\n/g, "\\n");
+    .replace(LINE_BREAK, "\\n");
   return [...escaped].filter((char) => char === "\t" || !isControl(char)).join("");
 }
 
