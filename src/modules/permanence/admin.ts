@@ -270,6 +270,8 @@ export const workGroupsResource: ResourceDefinition<GroupListRow, GroupForm> = {
       leaderPersonId: parsed.leaderPersonId ?? current?.leaderPersonId ?? undefined,
     });
   },
+  // El CSV lleva el nombre de quien lidera el grupo.
+  personalData: true,
   exportRow: (row) => ({
     nombre: row.name,
     tipo: groupKindLabels[GROUP_KINDS.indexOf(row.kind)] ?? row.kind,

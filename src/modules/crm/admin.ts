@@ -179,6 +179,8 @@ export const tasksResource: ResourceDefinition<TaskRow, TaskInput> = {
       await runCommand({ personId: actor.personId }, (ctx) => completeTask(ctx, id));
     }
   },
+  // El CSV lleva el nombre de la persona y el del responsable, y el título puede traer el motivo.
+  personalData: true,
   exportRow: (row) => ({
     titulo: row.title,
     responsable: row.assigneeName,

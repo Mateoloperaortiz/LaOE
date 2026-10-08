@@ -210,3 +210,8 @@ const resources = indexResources(registered);
 export function getResource(key: string): AnyResource | null {
   return resources.get(key) ?? null;
 }
+
+/** Todos los recursos registrados: para lo que se comprueba sobre el registro entero. */
+export function listResources(): readonly AnyResource[] {
+  return registered;
+}
