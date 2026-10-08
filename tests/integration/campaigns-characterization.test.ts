@@ -1,5 +1,5 @@
 import { setTimeout as sleep } from "node:timers/promises";
-import { and, eq, type SQL, sql } from "drizzle-orm";
+import { and, eq, inArray, type SQL, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -17,8 +17,13 @@ import {
   setMailTransportsForTests,
   updatePreferencesAs,
 } from "@/modules/comms";
-import { message } from "@/modules/comms/schema";
-import { anonymizePersonAs, endMembershipAs, requestDeletionAs } from "@/modules/people";
+import { message, notificationPreference } from "@/modules/comms/schema";
+import {
+  anonymizePersonAs,
+  endMembershipAs,
+  requestDeletionAs,
+  revokeConsentAs,
+} from "@/modules/people";
 import { segment } from "@/modules/people/schema";
 import { requireConfig, setConfig } from "@/modules/system";
 import {
@@ -1385,6 +1390,49 @@ describe("cancelar con un lote en curso (ADR-115 regla 4)", () => {
     expect(rows.filter((row) => row.skipReason === "CANCELLED")).toHaveLength(3);
   });
 
+  it("cancelar con un correo en vuelo que el proveedor rechaza: su destinatario queda fallido con su mensaje y la cancelación no cambia", async () => {
+    await seedRoster(3);
+    const id = await scheduleCampaign(3);
+    const gate = mailGate();
+    useTransports({
+      overflow: async (_mail, call) => {
+        if (call === 1) {
+          await gate.hold();
+          throw new Error("550 el buzón no existe");
+        }
+        return `ses_${call}`;
+      },
+    });
+
+    const tick = runCampaignTick(minute(0));
+    await untilHeld(gate, tick);
+    await cancelCampaignAs(SYSTEM_ACTOR, id);
+    expect(await recipientStatuses(id)).toEqual({ SKIPPED: 3 });
+    const cancelledAt = (await getCampaign(id))?.finishedAt;
+    gate.release();
+
+    expect(await tick).toEqual({ started: 1, sent: 0 });
+    expect(delivered.overflow).toHaveLength(0);
+    expect(await getCampaign(id)).toMatchObject({
+      status: "CANCELLED",
+      finishedAt: cancelledAt,
+      totalCount: 3,
+      sentCount: 0,
+      failedCount: 1,
+      skippedCount: 2,
+    });
+    const { rows } = await listRecipients(id);
+    const [record] = await db().select().from(message).where(eq(message.campaignId, id));
+    expect(record).toMatchObject({ status: "FAILED", error: "550 el buzón no existe" });
+    expect(rows.find((row) => row.status === "FAILED")).toMatchObject({
+      personId: record?.personId,
+      skipReason: null,
+      messageId: record?.id,
+      sentAt: null,
+    });
+    expect(rows.filter((row) => row.skipReason === "CANCELLED")).toHaveLength(2);
+  });
+
   it("cancelar y correr el lote a la vez, una y otra vez, no falla y deja los contadores en lo que recibió el transporte", async () => {
     await seedRoster(6);
     await setPerMinute(2);
@@ -1549,6 +1597,97 @@ describe("antes de cada envío el lote vuelve a mirar a la persona (ADR-115 regl
     expect(received).not.toContain(keeps.email);
   });
 
+  it("a quien omite no le vuelve a crear las preferencias ni el enlace de baja que se le borraron al anonimizarse o al salir", async () => {
+    const roster = await seedRoster(4);
+    const id = await scheduleCampaign(2);
+    await runCampaignTick(minute(0));
+    const [gone, left] = await waitingMembers(id, roster);
+    if (!gone || !left) throw new Error("Tras el primer lote tenían que quedar dos pendientes");
+    await anonymize(gone.id);
+    await endMembershipAs(SYSTEM_ACTOR, left.id, {
+      endReason: "RESIGNATION",
+      memorialConsent: false,
+      contactConsent: false,
+    });
+    // Los handlers de comms ya corrieron y les borraron las preferencias (ADR-030, ADR-038 regla 5).
+    await drainOutbox();
+
+    expect(await runCampaignTick(minute(1))).toEqual({ started: 0, sent: 0 });
+
+    expect(await recipientStatuses(id)).toEqual({ SENT: 2, SKIPPED: 2 });
+    const kept = await db()
+      .select({ personId: notificationPreference.personId })
+      .from(notificationPreference)
+      .where(inArray(notificationPreference.personId, [gone.id, left.id]));
+    expect(kept).toEqual([]);
+  });
+
+  // Esta conducta NO está decidida (decisión abierta 17, DT-126): la historia 8 de la spec #143 habla
+  // de quien «pidió el borrado», y el criterio de #146 y la regla 7, de quien ya fue anonimizado. Entre
+  // el pedido y la anonimización, que hace GH en días hábiles, la persona sigue siendo miembro.
+  // Si se decide que no reciba, esta es la prueba que se reescribe.
+  it("mientras no se decida otra cosa, a quien pidió el borrado de sus datos y todavía no fue anonimizado le sigue llegando la campaña en curso", async () => {
+    const roster = await seedRoster(3);
+    const id = await scheduleCampaign(2);
+    await runCampaignTick(minute(0));
+    const [asked] = await waitingMembers(id, roster);
+    if (!asked) throw new Error("Tras el primer lote tenía que quedar alguien pendiente");
+
+    await requestDeletionAs({ personId: asked.id });
+
+    expect(await runCampaignTick(minute(1))).toEqual({ started: 0, sent: 1 });
+    expect(await recipientOf(id, asked.id)).toMatchObject({ status: "SENT", skipReason: null });
+    expect(delivered.overflow.map((mail) => mail.to)).toContain(asked.email);
+  });
+
+  it("a quien salió dejando consentimiento y lo revoca mientras el lote le escribe a otro no le llega: el consentimiento se lee justo antes de su correo", async () => {
+    const roster = await seedRoster(3);
+    const id = await scheduleCampaign(1);
+    await runCampaignTick(minute(0));
+    const alumni = await waitingMembers(id, roster);
+    const personal = (member: Member): string =>
+      member.email.replace("@eafit.edu.co", "@example.com");
+    for (const member of alumni) {
+      await endMembershipAs(SYSTEM_ACTOR, member.id, {
+        endReason: "GRADUATION",
+        memorialConsent: false,
+        contactConsent: true,
+        personalEmail: personal(member),
+      });
+    }
+    await setPerMinute(2);
+    const gate = mailGate();
+    let firstTo = "";
+    useTransports({
+      overflow: async (mail, call) => {
+        if (call === 1) {
+          firstTo = mail.to;
+          await gate.hold();
+        }
+        return `ses_${call}`;
+      },
+    });
+
+    const tick = runCampaignTick(minute(1));
+    await untilHeld(gate, tick);
+    expect(alumni.map(personal)).toContain(firstTo);
+    const revokes = alumni.find((member) => personal(member) !== firstTo);
+    if (!revokes) throw new Error("Tras el primer lote tenían que quedar dos pendientes");
+    await revokeConsentAs(SYSTEM_ACTOR, revokes.id, "COMMUNICATIONS");
+    gate.release();
+
+    expect(await tick).toEqual({ started: 0, sent: 1 });
+    expect(await recipientOf(id, revokes.id)).toMatchObject({
+      status: "SKIPPED",
+      skipReason: "NO_CONSENT",
+      messageId: null,
+    });
+    expect(await getCampaign(id)).toMatchObject({ status: "SENT", sentCount: 2, skippedCount: 1 });
+    const received = delivered.overflow.map((mail) => mail.to);
+    expect(received).not.toContain(personal(revokes));
+    expect(received).not.toContain(revokes.email);
+  });
+
   it("a quien se anonimiza mientras el lote le escribe a otro tampoco le llega: el lote lo mira justo antes de su correo", async () => {
     const roster = await seedRoster(3);
     const id = await scheduleCampaign(3);
@@ -1582,7 +1721,7 @@ describe("antes de cada envío el lote vuelve a mirar a la persona (ADR-115 regl
     );
   });
 
-  it("si su correo ya había salido y quedado registrado, cuenta como enviado aunque después se haya anonimizado", async () => {
+  it("si su correo ya había salido y quedado registrado, cuenta como enviado aunque después haya salido sin dejar consentimiento", async () => {
     await seedRoster(3);
     const id = await scheduleCampaign(3);
     const interrupted = interruptionBeforeMarking(id, (call) => `ses_${call}`);
@@ -1591,7 +1730,12 @@ describe("antes de cada envío el lote vuelve a mirar a la persona (ADR-115 regl
     const [record] = await db().select().from(message).where(eq(message.campaignId, id));
     if (!record) throw new Error("El primer correo tenía que quedar registrado");
 
-    await anonymize(record.personId);
+    await endMembershipAs(SYSTEM_ACTOR, record.personId, {
+      endReason: "RESIGNATION",
+      memorialConsent: false,
+      contactConsent: false,
+    });
+    await drainOutbox();
 
     expect(await runCampaignTick(minute(CLAIM_MINUTES))).toEqual({ started: 0, sent: 2 });
     expect(await recipientOf(id, record.personId)).toMatchObject({
@@ -1604,6 +1748,38 @@ describe("antes de cada envío el lote vuelve a mirar a la persona (ADR-115 regl
       sentCount: 3,
       failedCount: 0,
       skippedCount: 0,
+    });
+    expect(delivered.overflow).toHaveLength(3);
+  });
+
+  it("a quien se anonimizó con su correo registrado y sin marcar ya no le queda registro: queda omitido y la campaña cuenta un enviado menos de los que aceptó el proveedor", async () => {
+    await seedRoster(3);
+    const id = await scheduleCampaign(3);
+    const interrupted = interruptionBeforeMarking(id, (call) => `ses_${call}`);
+    useTransports({ overflow: interrupted.accept });
+    expect(await interrupted.run()).toEqual(expect.any(String));
+    const [record] = await db().select().from(message).where(eq(message.campaignId, id));
+    if (!record) throw new Error("El primer correo tenía que quedar registrado");
+
+    // Como pasa de verdad: comms le borra los mensajes al anonimizarla (ADR-030), y eso llega mucho
+    // antes de que venza el reclamo del lote que se cayó.
+    await anonymize(record.personId);
+    await drainOutbox();
+    expect(await db().select().from(message).where(eq(message.personId, record.personId))).toEqual(
+      [],
+    );
+
+    expect(await runCampaignTick(minute(CLAIM_MINUTES))).toEqual({ started: 0, sent: 2 });
+    expect(await recipientOf(id, record.personId)).toMatchObject({
+      status: "SKIPPED",
+      skipReason: "ANONYMIZED",
+      messageId: null,
+    });
+    expect(await getCampaign(id)).toMatchObject({
+      status: "SENT",
+      sentCount: 2,
+      failedCount: 0,
+      skippedCount: 1,
     });
     expect(delivered.overflow).toHaveLength(3);
   });

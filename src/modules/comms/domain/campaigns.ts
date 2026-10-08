@@ -682,8 +682,7 @@ export async function processCampaignBatch(limit: number, now = new Date()): Pro
   }
   const personIds = [...new Set(batch.map((item) => item.personId))];
   const campaignIds = [...new Set(batch.map((item) => item.campaignId))];
-  const [tokens, committees, term, campaigns] = await Promise.all([
-    ensurePreferencesFor(personIds),
+  const [committees, term, campaigns] = await Promise.all([
     loadCommitteeIndex(personIds),
     getCurrentTerm(),
     getDb().select().from(campaign).where(inArray(campaign.id, campaignIds)),
@@ -723,7 +722,9 @@ export async function processCampaignBatch(limit: number, now = new Date()): Pro
       continue;
     }
     const address = eligibility.address;
-    const token = tokens.get(item.personId);
+    // El enlace de baja se pide recién acá: a quien se omite no se le vuelve a crear la fila de
+    // preferencias que comms le borró al salir o al anonimizarse (ADR-030, ADR-038 regla 5).
+    const token = (await ensurePreferencesFor([item.personId])).get(item.personId);
     const unsubscribeUrl = token ? `${base}/baja/${token}` : null;
     const rendered = renderEmail(
       template,
