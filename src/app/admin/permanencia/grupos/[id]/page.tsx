@@ -53,6 +53,10 @@ export default async function GrupoPage({
   const q = single(search.q).trim();
   const error = single(search.error);
   const guardado = single(search.guardado) === "1";
+  // Qué pasó con el alta a mano: entró, volvió después de haber salido o ya estaba.
+  const altaCodes = { entro: "T-3214", volvio: "T-3215", "ya-estaba": "T-3216" } as const;
+  const altaKey = single(search.alta);
+  const alta = altaKey in altaCodes ? t(altaCodes[altaKey as keyof typeof altaCodes]) : "";
   const candidates = q ? await searchMembersByName(q) : [];
   const [miembros, evaluadores, importar] = tList("T-747");
   const [agregar, quitar, guardarEvaluadores, cargar, confirmar] = tList("T-748");
@@ -76,9 +80,9 @@ export default async function GrupoPage({
         <p className="text-tinta-suave">
           {tList("T-744")[3]}: {detail.leaderName || t("T-757")}
         </p>
-        {guardado ? (
+        {guardado || alta ? (
           <output className="block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-2 text-sm font-semibold text-oe-navy">
-            {t("T-259")}
+            {alta || t("T-259")}
           </output>
         ) : null}
         {error ? (

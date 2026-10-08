@@ -40,13 +40,16 @@ export async function addMemberAction(formData: FormData): Promise<void> {
   const groupId = idSchema.parse(formData.get("groupId"));
   const personId = idSchema.parse(formData.get("personId"));
   const { actor } = await requireGroupOperator(groupId, back(groupId));
+  // La pantalla dice qué pasó con la persona: entró, volvió o ya estaba (ADR-116 regla 5).
+  let outcome: "entro" | "volvio" | "ya-estaba";
   try {
-    await addMembersAs(actor, groupId, [personId]);
+    const result = await addMembersAs(actor, groupId, [personId]);
+    outcome = result.added === 0 ? "ya-estaba" : result.returned.length > 0 ? "volvio" : "entro";
   } catch (error) {
     failed(groupId, error);
   }
   revalidatePath(`/admin/permanencia/grupos/${groupId}`);
-  redirect(back(groupId, { guardado: "1" }));
+  redirect(back(groupId, { alta: outcome }));
 }
 
 export async function removeMemberAction(formData: FormData): Promise<void> {

@@ -249,25 +249,58 @@ export interface AddMembersContext {
   statuses: Map<string, { name: string; status: string }>;
 }
 
-/** Agrega personas al grupo (idempotente: quien ya está, se queda); devuelve cuántas entraron. */
+export interface AddMembersResult {
+  /** Cuántas personas entraron: las nuevas y las que volvieron. */
+  added: number;
+  /** Quienes volvieron después de haber salido: su evaluación quedó pendiente otra vez (ADR-116 regla 5). */
+  returned: string[];
+  /** Quienes ya estaban en el grupo: no cambió nada. */
+  already: string[];
+}
+
+/**
+ * Agrega personas al grupo (idempotente: quien ya está, se queda). Quien había salido vuelve a su misma
+ * pertenencia, con la fecha de ingreso que tenía y pendiente de una evaluación nueva; la anterior queda
+ * en la auditoría (ADR-116 regla 5). Dice cuántas entraron, quiénes volvieron y quiénes ya estaban.
+ */
 export async function addMembers(
   ctx: CommandContext,
   groupId: string,
   personIds: string[],
   context: AddMembersContext,
-): Promise<number> {
+): Promise<AddMembersResult> {
   const [group] = await ctx.tx.select().from(workGroup).where(eq(workGroup.id, groupId));
   if (!group) {
     throw new DomainError(t("T-032"));
   }
-  let added = 0;
-  for (const personId of [...new Set(personIds)]) {
+  const result: AddMembersResult = { added: 0, returned: [], already: [] };
+  const joined = async (personId: string) => {
+    result.added += 1;
+    await ctx.emit(
+      eventOf(workGroupMembershipChanged, {
+        actorId: ctx.actor.personId,
+        personId,
+        termId: group.termId,
+        groupId,
+        groupName: group.name,
+        kind: group.kind,
+        change: "JOINED",
+      }),
+    );
+    await recompute(ctx, group.termId, personId);
+  };
+  // En orden de id: dos altas con las mismas personas toman sus candados en el mismo orden.
+  for (const personId of [...new Set(personIds)].sort()) {
     const person = context.statuses.get(personId);
     if (!person || person.status !== "ACTIVE") {
       throw new DomainError(t("T-752", { nombre: person?.name ?? personId }));
     }
     // Nadie pertenece a más de dos comités de trabajo en un término (Est. art. 4 par. 3; ADR-060 regla 11).
     if (group.kind === "WORK_COMMITTEE") {
+      // Contar y escribir bajo el mismo candado: dos altas a la vez de la misma persona se esperan.
+      await ctx.tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${`work-committees:${group.termId}:${personId}`}, 0))`,
+      );
       const [others] = await ctx.tx
         .select({ n: count() })
         .from(workGroupMembership)
@@ -290,30 +323,56 @@ export async function addMembers(
       .values({ groupId, personId })
       .onConflictDoNothing()
       .returning({ id: workGroupMembership.id });
-    if (!row) {
+    if (row) {
+      await ctx.audit({
+        action: "work-group.member-added",
+        entityType: "work_group_membership",
+        entityId: row.id,
+        after: { groupId, personId },
+      });
+      await joined(personId);
       continue;
     }
-    added += 1;
+    // Ya tiene fila en el grupo (el índice único es por grupo y persona): se toma, y si había salido
+    // vuelve a esa misma pertenencia. Una segunda alta a la vez espera acá y la encuentra viva.
+    const [existing] = await ctx.tx
+      .select()
+      .from(workGroupMembership)
+      .where(
+        and(eq(workGroupMembership.groupId, groupId), eq(workGroupMembership.personId, personId)),
+      )
+      .for("update");
+    if (!existing || existing.leftAt === null) {
+      result.already.push(personId);
+      continue;
+    }
+    await ctx.tx
+      .update(workGroupMembership)
+      .set({
+        leftAt: null,
+        evaluation: "PENDING",
+        evaluatedAt: null,
+        evaluatedById: null,
+        note: null,
+      })
+      .where(eq(workGroupMembership.id, existing.id));
+    result.returned.push(personId);
     await ctx.audit({
-      action: "work-group.member-added",
+      action: "work-group.member-returned",
       entityType: "work_group_membership",
-      entityId: row.id,
-      after: { groupId, personId },
+      entityId: existing.id,
+      before: {
+        leftAt: existing.leftAt,
+        evaluation: existing.evaluation,
+        evaluatedById: existing.evaluatedById,
+        evaluatedAt: existing.evaluatedAt,
+        note: existing.note,
+      },
+      after: { groupId, personId, evaluation: "PENDING" },
     });
-    await ctx.emit(
-      eventOf(workGroupMembershipChanged, {
-        actorId: ctx.actor.personId,
-        personId,
-        termId: group.termId,
-        groupId,
-        groupName: group.name,
-        kind: group.kind,
-        change: "JOINED",
-      }),
-    );
-    await recompute(ctx, group.termId, personId);
+    await joined(personId);
   }
-  return added;
+  return result;
 }
 
 export async function removeMember(
@@ -622,15 +681,31 @@ export function removeMemberAs(actor: Actor, groupId: string, personId: string) 
   return runCommand(actor, (ctx) => removeMember(ctx, groupId, personId));
 }
 
-/** Aplica la vista previa: solo las filas ADD. */
+/** Aplica la vista previa: solo las filas ADD. Devuelve la vista con lo que de verdad entró. */
 export async function applyMemberImportAs(actor: Actor, groupId: string, csvText: string) {
   const preview = await previewMemberImport(groupId, csvText);
   const ids = preview.rows
     .filter((row) => row.outcome === "ADD")
     .map((row) => row.personId)
     .filter((id): id is string => id !== null);
-  const added = ids.length === 0 ? 0 : await addMembersAs(actor, groupId, ids);
-  return { ...preview, added };
+  if (ids.length === 0) {
+    return { ...preview, added: 0 };
+  }
+  const result = await addMembersAs(actor, groupId, ids);
+  // Quien entró por otro lado entre la vista previa y el clic ya estaba: la pantalla lo dice así.
+  const already = new Set(result.already);
+  const rows = preview.rows.map((row) =>
+    row.personId !== null && already.has(row.personId)
+      ? { ...row, outcome: "ALREADY" as const }
+      : row,
+  );
+  return {
+    ...preview,
+    rows,
+    add: rows.filter((row) => row.outcome === "ADD").length,
+    already: rows.filter((row) => row.outcome === "ALREADY").length,
+    added: result.added,
+  };
 }
 
 export async function seedWorkCommitteesAs(actor: Actor, termId: string): Promise<number> {

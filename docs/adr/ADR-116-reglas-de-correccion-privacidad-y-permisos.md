@@ -2,8 +2,8 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-08
-- Relacionadas: ADR-006, ADR-007, ADR-035, ADR-060, ADR-067, ADR-109, ADR-111, ADR-114
-- Enmienda: ADR-035 (reglas 5 y 6: toda transición de una asistencia que ya existe toma su fila, y el lote no reaprueba un rechazo)
+- Relacionadas: ADR-006, ADR-007, ADR-035, ADR-036, ADR-060, ADR-065, ADR-067, ADR-109, ADR-111, ADR-114
+- Enmienda: ADR-035 (reglas 5 y 6: toda transición de una asistencia que ya existe toma su fila, y el lote no reaprueba un rechazo) y ADR-036 (regla 6: quien fue retirado de un grupo de trabajo puede volver, y a quien salió no se le evalúa)
 
 ## Contexto
 
@@ -20,6 +20,15 @@ El quinto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
 
 La fila decía además que la excusa no toma el candado de puntos del término y se puede aceptar con los puntos ya cerrados. Eso no es un defecto: es la regla 3, con su rastro.
 
+**Volver a un grupo de trabajo (DT-151).** La pertenencia a un grupo es una sola fila por grupo y persona: el índice `work_group_membership_unique` no es parcial y retirar a alguien solo le estampa `leftAt`. `addMembers` insertaba con `on conflict do nothing` y seguía de largo cuando la fila ya existía, así que a quien había sido retirado no lo devolvía por ninguno de los tres caminos de [ADR-036](ADR-036-permanencia-fase-4.md) regla 6. Reproducido con pruebas:
+
+- A mano, la acción respondía «Guardado» y la fila seguía con `leftAt`.
+- Por archivo, la vista previa ofrecía a la persona «para agregar» y al aplicar entraban cero.
+- Por convocatoria aceptada, el trabajo registraba `added: 0` y terminaba bien.
+- En los tres la persona no volvía a la bandeja del evaluador y su evaluación pendiente no contaba: perdía el criterio sin que nadie lo viera.
+- `evaluate` no miraba `leftAt`: con una solicitud armada se evaluaba a quien ya había salido.
+- El tope de dos comités de trabajo contaba y después escribía, sin candado: dos altas a la vez dejaban a la misma persona en tres.
+
 ## Decisión
 
 1. **Toda transición de una asistencia que ya existe toma su fila y valida contra lo que acaba de leer.** `lockCheckIns` (`src/modules/participation/domain/check-ins.ts`) lee con `for no key update` y en orden de `id`, y es la única lectura de la que sale el estado que se valida. Es el candado que toma el `update` que sigue: excluye a los otros caminos igual que `for update` y no frena a quien solo referencia la asistencia por clave foránea. Su condición es obligatoria: sin ella tomaría la tabla entera. La usan los cinco caminos: decidir una asistencia, el lote, el registro del organizador cuando la persona ya tiene asistencia, la cancelación de la ocasión y la excusa. La segunda decisión espera a la primera y recibe el error de siempre: T-676 al decidir, T-601 en el registro del organizador y T-2223 en la excusa (o nada, si ya estaba excusada). Decidir por `id` hace antes una lectura sin candado que solo dice de qué ocasión es la asistencia, que no cambia. La cancelación toma todas las asistencias de la ocasión y filtra pendientes y aprobadas con la fila retenida: un rechazo que alguien está reaprobando no era ni lo uno ni lo otro al mirar. Crear una asistencia sigue como estaba: no hay fila que tomar y el índice único decide entre el registro propio y el del organizador.
@@ -33,6 +42,12 @@ La fila decía además que la excusa no toma el candado de puntos del término y
    - El cruce: la excusa no toca una asistencia aprobada ni una entrega completada, así que no mueve nada de lo que el cierre cuenta. Lo que sí toca, reservas y entregas pendientes, el cierre lo exige en cero: con los puntos cerrados esas ramas no encuentran nada. Si llega mientras el cierre corre, el cierre ve la reserva y falla con T-2562, o ya no la ve y cierra: lo congelado es lo mismo.
    - GH acepta excusas tarde ([ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) regla 5: hasta tres días hábiles después de la ocasión, o más con motivo). Con el candado, la falta a la última asamblea del semestre no se podría excusar después de cerrar los puntos.
 4. **El lote decide pendientes.** `decideMany` toma todas las filas de su lista de una vez, después del término, y exige que cada una siga pendiente antes de decidir ninguna. Si una ya no lo está, la decidió otra persona: el lote entero se deshace con T-676 y quien lo lanzó vuelve a mirar la lista. Anular deja de ser una decisión de lote (`BatchDecision`): solo se anula una aprobada. Una asistencia de la lista que no existe es T-032, y una repetida se decide una vez.
+5. **Quien fue retirado de un grupo de trabajo puede volver, y a quien salió no se le evalúa.** `addMembers` (`src/modules/permanence/domain/groups.ts`) reabre la pertenencia de quien había salido, en la misma fila: `leftAt` vuelve a nulo y la evaluación vuelve a `PENDING`, sin evaluador, fecha ni nota. Lo que tenía queda en la auditoría `work-group.member-returned`. Es la regla que [ADR-065](ADR-065-areas-y-participacion-gt-gap.md) ya fijó para GT y GAP por áreas («reincorporar a alguien retirado vuelve a pendiente y conserva la evidencia anterior en auditoría»), ahora para todo grupo y por los tres caminos de ADR-036 regla 6: a mano, por archivo y por convocatoria aceptada.
+   - `joinedAt` se conserva: es la fecha en que la persona entró al grupo por primera vez. Rastro de quién la lee: el detalle del grupo la muestra y ordena por ella, y la bandeja del evaluador ordena por ella. Ningún cómputo la usa: la tasa de reuniones filtra por el `joinedAt` de la pertenencia al comité (`committee_membership`), que es otra tabla. Ninguna ADR decía reiniciarla.
+   - Valen las validaciones de siempre: solo activos (T-752) y el tope de dos comités de trabajo (T-2284). El tope cuenta y escribe bajo un candado consultivo por término y persona (`work-committees:<término>:<persona>`), y las personas de un lote se recorren en orden de `id` para que dos lotes tomen sus candados en el mismo orden.
+   - Volver emite `work-group-membership.changed` con `JOINED` y encola el recálculo, como entrar. Dos altas a la vez de quien vuelve dejan una sola: la segunda espera la fila y la encuentra viva.
+   - `addMembers` devuelve cuántas personas entraron, quiénes volvieron y quiénes ya estaban. La pantalla del grupo lo dice en vez de «Guardado» (T-3214, T-3215, T-3216), y la importación muestra como «ya estaba» a quien entró por otro lado entre la vista previa y el clic.
+   - `evaluate` toma la fila de la pertenencia y rechaza con T-3213 a quien tiene `leftAt`. Para evaluarla de nuevo, primero vuelve al grupo.
 
 ## Consecuencias
 
@@ -42,4 +57,7 @@ La fila decía además que la excusa no toma el candado de puntos del término y
 - «Aprobar todos» retiene todas las asistencias de su lista hasta confirmar. Quien decide una de ellas desde su fila espera y recibe T-676; si entró antes, es el lote el que se deshace con T-676.
 - Una excusa se acepta con los puntos del término cerrados y no cambia el cierre. Con la permanencia cerrada también se acepta: el cierre de permanencia no toma candado y esa carrera queda anotada en DT-075.
 - Siguen abiertas, leídas y sin ejecutar: una asistencia puede nacer o reaprobarse en una ocasión cancelada (DT-161), la excusa que crea la asistencia no maneja el choque con un registro simultáneo (DT-162) y el registro propio con booster puede interbloquearse con el del organizador (DT-163).
-- Las pruebas están en `tests/integration/participation-checkin-decision-concurrency.test.ts`: retienen el término como lo retiene el cierre para que dos decisiones lean lo mismo, dejan la primera decisión sin confirmar para fijar el orden, o detienen al lote después de su primera aprobación reteniendo el reto presencial, y afirman en cada caso que hay puntos vivos si y solo si la asistencia está aprobada.
+- Quien vuelve a un grupo con una evaluación ya puesta la pierde hasta que lo evalúen otra vez. Mientras estuvo afuera esa evaluación seguía contando (una salida solo descarta la pendiente), así que retirar por error y volver a agregar a alguien ya evaluado le pide al evaluador calificarlo de nuevo. Lo anterior queda en la auditoría.
+- La reincorporación por áreas de ADR-065 (`team-members.ts`) sigue reiniciando `joinedAt` por su cuenta: la misma persona queda con fechas distintas según la pantalla por la que volvió. No cambia ningún cómputo. Es DT-164.
+- Las pruebas de volver a un grupo están en `tests/integration/permanence-group-return.test.ts`.
+- Las pruebas de las decisiones sobre una asistencia están en `tests/integration/participation-checkin-decision-concurrency.test.ts`: retienen el término como lo retiene el cierre para que dos decisiones lean lo mismo, dejan la primera decisión sin confirmar para fijar el orden, o detienen al lote después de su primera aprobación reteniendo el reto presencial, y afirman en cada caso que hay puntos vivos si y solo si la asistencia está aprobada.

@@ -10408,6 +10408,30 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3213": {
+    where: "Evaluaciones: la persona ya salió del grupo (ADR-116)",
+    text: "Esta persona ya salió del grupo: no se puede evaluar. Si fue un error, agregala otra vez al grupo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3214": {
+    where: "Grupo: alta a mano, la persona entró (ADR-116)",
+    text: "Listo: la persona entró al grupo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3215": {
+    where: "Grupo: alta a mano, la persona volvió después de haber salido (ADR-116)",
+    text: "Listo: la persona volvió al grupo. Su evaluación quedó pendiente otra vez.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3216": {
+    where: "Grupo: alta a mano, la persona ya estaba (ADR-116)",
+    text: "Esa persona ya estaba en el grupo: no cambió nada.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-322": {
     where: "Calendario público (ICS), nombre del calendario",
     text: "Eventos de la Organización Estudiantil EAFIT",

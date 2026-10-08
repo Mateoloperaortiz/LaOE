@@ -986,6 +986,10 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-848 | Junta: ocasiones celebradas (unidad) | celebradas | MATEO | Propuesta |
 | T-849 | Junta: check-ins aprobados (unidad) | check-ins | MATEO | Propuesta |
 | T-850 | Junta: promedio por ocasión (unidad) | por ocasión | MATEO | Propuesta |
+| T-3213 | Evaluaciones: la persona ya salió del grupo (ADR-116) | Esta persona ya salió del grupo: no se puede evaluar. Si fue un error, agregala otra vez al grupo. | MATEO | Propuesta |
+| T-3214 | Grupo: alta a mano, la persona entró (ADR-116) | Listo: la persona entró al grupo. | MATEO | Propuesta |
+| T-3215 | Grupo: alta a mano, la persona volvió después de haber salido (ADR-116) | Listo: la persona volvió al grupo. Su evaluación quedó pendiente otra vez. | MATEO | Propuesta |
+| T-3216 | Grupo: alta a mano, la persona ya estaba (ADR-116) | Esa persona ya estaba en el grupo: no cambió nada. | MATEO | Propuesta |
 
 ### Admin de admisión, aliados y contactos (fase 5: formularios, organizaciones, pipelines, solicitudes, convocatorias, tablero)
 

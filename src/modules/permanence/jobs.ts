@@ -114,6 +114,6 @@ onEvent(callEntryChanged, async ({ groupId, personId, status, actorId }, ctx) =>
   if (status !== "ACCEPTED") {
     return;
   }
-  const added = await addMembersAs({ personId: actorId }, groupId, [personId]);
+  const { added } = await addMembersAs({ personId: actorId }, groupId, [personId]);
   ctx.log.info({ groupId, personId, added }, "inscripción aceptada al grupo");
 });

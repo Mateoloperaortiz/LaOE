@@ -2,7 +2,7 @@
 
 Enmienda posterior: [ADR-062](ADR-062-importacion-de-asistencias-y-evidencias-gh.md) permite importar evidencia previamente validada por GH como `GOOD`, conservando fuente, fila, autor y auditoría. Los cálculos y la exención de licencia se conservan.
 
-- Estado: Aceptada (enmendada por ADR-037, ADR-038, ADR-056 y ADR-058)
+- Estado: Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058 y ADR-116)
 - Fecha: 2026-09-04
 - Relacionadas: ADR-003, ADR-004, ADR-005, ADR-011, ADR-012, ADR-014, ADR-017, ADR-025, ADR-026, ADR-027, ADR-028, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035
 - Enmienda: ADR-025 (recompute, estados, decisiones y vista en vivo), ADR-026 (bloqueo y comentario por tabla), ADR-028 (ventana por configuración y pendientes al cierre), ADR-031 (avisos en la app hasta la fase 6; anuncios de comité), ADR-033 (`announcement.committeeId`), ADR-035 (layout del admin con más roles; handlers de `term.points-closed` y `occasion.closed`), 03-modelo (tablas definitivas de `permanence`, `permanence_table`, `ruleId`, columnas del snapshot, `term.permanenceClosedAt`) y 05-acceso (roles derivados de los grupos, `BOARD`, step-up del cierre)
@@ -60,3 +60,7 @@ Regla 9: `people.setProbationAs` deja de ser exclusivo del handler `permanence.a
 ## Enmienda (2026-09-12, ADR-058)
 
 Regla 10: `acceso.ts` compone además los comités donde el actor tiene capacidades por cargo (`people.listMyCommitteeCapabilities`); la navegación enlaza cada comité y `/admin` redirige al primero. `/admin/comites/[slug]/permanencia`, los puntajes del líder y el destacado del mes se operan con la capacidad `PERMANENCE` en lugar de `assertLeader`. Ver [ADR-058](ADR-058-direccion-del-comite-por-areas.md).
+
+## Enmienda (2026-10-08, ADR-116)
+
+Regla 6: la pertenencia a un grupo es una fila por grupo y persona, y agregar de nuevo a quien había sido retirado no hacía nada, por ninguno de los tres caminos (a mano, por archivo, por convocatoria aceptada). Ahora vuelve a su misma pertenencia: `leftAt` en nulo, evaluación pendiente otra vez con la anterior en la auditoría, y la fecha de ingreso que tenía. El tope de dos comités de trabajo cuenta y escribe bajo un candado por término y persona. Evaluar rechaza a quien ya salió del grupo (T-3213). Ver [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 5.
