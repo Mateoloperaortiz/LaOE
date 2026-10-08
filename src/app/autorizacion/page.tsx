@@ -44,9 +44,7 @@ export default async function AutorizacionPage() {
             <Markdown source={pagina.body} />
           </section>
           <div className="flex flex-col gap-4 rounded-[var(--radius-cartel)] border border-borde bg-fondo p-5">
-            <p className="max-w-prose text-sm">
-              {t("T-150", { v: policy.version ?? "—", versión: policy.version ?? "—" })}
-            </p>
+            <p className="max-w-prose text-sm">{t("T-150", { v: policy.version ?? "—" })}</p>
             <form action={autorizarAction}>
               <button type="submit" className="boton-primario">
                 {t("T-2087")}
