@@ -1,32 +1,27 @@
 "use client";
 
 import jsQR from "jsqr";
-import { useRouter } from "next/navigation";
+import { unstable_rethrow, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { type ScanResult, type ScanState, sendScan, startScanLoop } from "./scan-loop";
 
 // Lector del QR del carnet en modo anfitrión (ADR-035 regla 8): BarcodeDetector nativo si existe,
-// jsQR sobre un canvas si no; foto como respaldo. El token solo lo valida el servidor.
+// jsQR sobre un canvas si no; foto como respaldo. El token solo lo valida el servidor. El sondeo y el
+// envío viven en `scan-loop.ts` (ADR-118 regla 19): una lectura a la vez y un rechazo con su mensaje.
 
 type Labels = {
   scan: string;
   stop: string;
   upload: string;
   cameraError: string;
+  /** La acción no respondió: se cayó la red o el servidor falló. */
+  scanError: string;
 };
-
-type ScanResult = { ok: boolean; message: string };
 
 type Props = {
   labels: Labels;
   onScan: (token: string) => Promise<ScanResult>;
 };
-
-type State =
-  | { kind: "idle" }
-  | { kind: "scanning" }
-  | { kind: "busy" }
-  | { kind: "result"; ok: boolean; message: string }
-  | { kind: "error"; message: string };
 
 interface DetectedBarcode {
   rawValue: string;
@@ -56,14 +51,12 @@ export function LectorCarnet({ labels, onScan }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const stream = useRef<MediaStream | null>(null);
-  const timer = useRef<number | null>(null);
-  const [state, setState] = useState<State>({ kind: "idle" });
+  const loop = useRef<(() => void) | null>(null);
+  const [state, setState] = useState<ScanState>({ kind: "idle" });
 
   function stop() {
-    if (timer.current !== null) {
-      window.clearInterval(timer.current);
-      timer.current = null;
-    }
+    loop.current?.();
+    loop.current = null;
     for (const track of stream.current?.getTracks() ?? []) {
       track.stop();
     }
@@ -72,9 +65,7 @@ export function LectorCarnet({ labels, onScan }: Props) {
 
   useEffect(
     () => () => {
-      if (timer.current !== null) {
-        window.clearInterval(timer.current);
-      }
+      loop.current?.();
       for (const track of stream.current?.getTracks() ?? []) {
         track.stop();
       }
@@ -85,9 +76,11 @@ export function LectorCarnet({ labels, onScan }: Props) {
   async function handleToken(token: string) {
     stop();
     setState({ kind: "busy" });
-    const result = await onScan(token);
-    setState({ kind: "result", ok: result.ok, message: result.message });
-    router.refresh();
+    const next = await sendScan(onScan, token, labels.scanError, unstable_rethrow);
+    setState(next);
+    if (next.kind === "result") {
+      router.refresh();
+    }
   }
 
   async function start() {
@@ -114,26 +107,25 @@ export function LectorCarnet({ labels, onScan }: Props) {
     const detector = window.BarcodeDetector
       ? new window.BarcodeDetector({ formats: ["qr_code"] })
       : null;
-    timer.current = window.setInterval(async () => {
-      const source = video.current;
-      const target = canvas.current;
-      if (!source || !target || source.readyState < 2) {
-        return;
-      }
-      let token: string | null = null;
-      if (detector) {
-        const codes = await detector.detect(source).catch(() => []);
-        token = codes[0]?.rawValue ?? null;
-      } else {
+    loop.current = startScanLoop({
+      intervalMs: 200,
+      read: async () => {
+        const source = video.current;
+        const target = canvas.current;
+        if (!source || !target || source.readyState < 2) {
+          return null;
+        }
+        if (detector) {
+          const codes = await detector.detect(source);
+          return codes[0]?.rawValue ?? null;
+        }
         target.width = source.videoWidth;
         target.height = source.videoHeight;
         target.getContext("2d")?.drawImage(source, 0, 0);
-        token = decodeCanvas(target);
-      }
-      if (token) {
-        await handleToken(token);
-      }
-    }, 200);
+        return decodeCanvas(target);
+      },
+      onToken: (token) => void handleToken(token),
+    });
   }
 
   async function fromFile(file: File) {

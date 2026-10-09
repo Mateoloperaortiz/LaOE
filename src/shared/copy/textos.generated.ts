@@ -10646,6 +10646,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3251": {
+    where: "Anfitrión: la lectura del carnet no llegó a la casa (ADR-118)",
+    text: "No pudimos registrar la lectura. Revisá la conexión y volvé a escanear el carnet.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

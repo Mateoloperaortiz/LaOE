@@ -840,6 +840,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-675 | Ocasiones: la fecha de inicio no cae en ningún semestre | No hay un semestre que contenga esa fecha. Crealo primero en Términos. | MATEO | Propuesta |
 | T-676 | Consola: decisión que no aplica al estado del registro | Esa decisión no aplica: el registro está {estado}. | MATEO | Propuesta |
 | T-677 | Migración: motivo del requisito de asambleas heredado de un semestre ya cerrado | Requisito heredado de GHPOINTS (regla anterior). | MATEO | Propuesta |
+| T-3251 | Anfitrión: la lectura del carnet no llegó a la casa (ADR-118) | No pudimos registrar la lectura. Revisá la conexión y volvé a escanear el carnet. | MATEO | Propuesta |
 
 ### Admin de Permanencia (fase 4: reglas, grupos, evaluaciones, puntajes, créditos, cumplimiento, cierre, vista de líder, junta)
 
