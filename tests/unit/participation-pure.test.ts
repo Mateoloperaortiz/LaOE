@@ -5,6 +5,7 @@ import {
   requiredTotal,
 } from "@/modules/participation/domain/assembly-pure";
 import {
+  canCancelWithOccasion,
   canTransitionCheckIn,
   initialStatus,
   outcomeFor,
@@ -168,6 +169,14 @@ describe("check-in", () => {
     expect(outcomeFor("APPROVED", 10)).toBe("APPROVED_WITH_POINTS");
     expect(outcomeFor("APPROVED", 0)).toBe("APPROVED");
     expect(outcomeFor("PENDING", 10)).toBe("PENDING");
+  });
+
+  it("cancelar la ocasión anula pendientes y aprobadas, y nada más", () => {
+    expect(canCancelWithOccasion("PENDING")).toBe(true);
+    expect(canCancelWithOccasion("APPROVED")).toBe(true);
+    expect(canCancelWithOccasion("REJECTED")).toBe(false);
+    expect(canCancelWithOccasion("CANCELLED")).toBe(false);
+    expect(canCancelWithOccasion("EXCUSED")).toBe(false);
   });
 });
 

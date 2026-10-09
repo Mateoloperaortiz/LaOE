@@ -10,6 +10,7 @@ import {
   type CheckInDecision,
   type CheckInOutcome,
   type CheckInStatus,
+  canCancelWithOccasion,
   canTransitionCheckIn,
   initialStatus,
   outcomeFor,
@@ -477,8 +478,8 @@ export async function cancelOccasionCheckIns(
   await lockOpenTermPoints(ctx.tx, row.termId);
   // Se toman todas las de la ocasión y se filtra con la fila retenida: un rechazo que alguien está
   // reaprobando no estaba pendiente ni aprobado al mirar, y sin esperarlo quedaría vivo.
-  const rows = (await lockCheckIns(ctx, eq(checkIn.occasionId, row.id))).filter(
-    (item) => item.status === "PENDING" || item.status === "APPROVED",
+  const rows = (await lockCheckIns(ctx, eq(checkIn.occasionId, row.id))).filter((item) =>
+    canCancelWithOccasion(item.status),
   );
   // Con todas tomadas, la primera que se anula encola el recálculo de la ocasión y las demás
   // encuentran su clave en cola: sale uno solo, después de las asistencias y antes del premio y del
@@ -492,6 +493,8 @@ export async function cancelOccasionCheckIns(
         current,
         to: "CANCELLED",
         reason,
+        // Anular una pendiente es solo de este camino: la transición no lo admite sin la marca.
+        occasionCancelled: true,
         now,
       },
       context,

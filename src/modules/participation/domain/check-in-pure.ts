@@ -27,6 +27,14 @@ export function canTransitionCheckIn(from: CheckInStatus, to: CheckInStatus): bo
   return TRANSITIONS[from].includes(to);
 }
 
+// Cancelar la ocasión anula sus asistencias vivas, también las pendientes. `PENDING → CANCELLED` vale
+// solo por ese camino (ADR-119 regla 4): a una decisión, la tabla de arriba se lo niega.
+const CANCELLED_WITH_OCCASION: readonly CheckInStatus[] = ["PENDING", "APPROVED"];
+
+export function canCancelWithOccasion(from: CheckInStatus): boolean {
+  return CANCELLED_WITH_OCCASION.includes(from);
+}
+
 export function statusForDecision(decision: CheckInDecision): CheckInStatus {
   return decision === "APPROVE" ? "APPROVED" : decision === "REJECT" ? "REJECTED" : "CANCELLED";
 }

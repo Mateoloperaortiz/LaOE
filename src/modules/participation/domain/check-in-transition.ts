@@ -14,7 +14,13 @@ import { DomainError } from "@/shared/lib/errors";
 import { checkIn } from "../schema";
 import { type BoosterRow, setBoosterTarget } from "./boosters";
 import { applyPresentialCheckIn } from "./challenge-participation";
-import { CHECK_IN_STATUSES, type CheckInSource, type CheckInStatus } from "./check-in-pure";
+import {
+  CHECK_IN_STATUSES,
+  type CheckInSource,
+  type CheckInStatus,
+  canCancelWithOccasion,
+  canTransitionCheckIn,
+} from "./check-in-pure";
 import { applyCheckInBoost, type CheckInBoostOutcome } from "./checkin-boost";
 import { creditCheckIn, reverseCheckInCredit } from "./ledger";
 import type { GamificationSettings, MemberContext } from "./member-context";
@@ -22,8 +28,8 @@ import type { OccasionRow } from "./occasions";
 
 // Una asistencia cambia de estado por aquí y solo por aquí (ADR-119 regla 4). Los cinco caminos de
 // check-ins.ts (registro propio, organizador, decidir, cancelar la ocasión y excusa) validan sus
-// condiciones de entrada, toman sus candados y llaman a `transitionCheckIn`, que aplica todo lo
-// demás en un orden fijo: la fila, el libro de puntos, la auditoría, los eventos, el booster elegido
+// condiciones de entrada, toman sus candados y llaman a `transitionCheckIn`, que vuelve a validar el
+// cambio contra la tabla de estados y aplica todo lo demás en un orden fijo: la fila, el libro de puntos, la auditoría, los eventos, el booster elegido
 // y los dos ganchos del premio. Qué efecto tiene cada estado de destino lo dice una sola tabla.
 //
 // Es un módulo interno con una sola implementación (ADR-109 regla 11), no una costura: quien llama
@@ -165,12 +171,27 @@ export interface CheckInChange {
   reason?: string | null | undefined;
   /** Booster que la persona elige en su propio registro (ADR-067 regla 8). */
   booster?: { id: string; member: MemberContext | null } | undefined;
+  /**
+   * Solo lo manda la cancelación de la ocasión, que es la única que anula una pendiente
+   * (`PENDING → CANCELLED`): a una decisión, la tabla de ADR-035 regla 6 no se lo admite. Con la
+   * marca el único destino es `CANCELLED`; sin ella vale la tabla, que es lo estricto.
+   */
+  occasionCancelled?: true | undefined;
   now: Date;
 }
 
+/** Si la tabla de estados admite el cambio de una asistencia que ya existe. */
+function admits(from: CheckInStatus, change: CheckInChange): boolean {
+  return change.occasionCancelled
+    ? change.to === "CANCELLED" && canCancelWithOccasion(from)
+    : canTransitionCheckIn(from, change.to);
+}
+
 /**
- * Lleva una asistencia a su estado de destino con todos sus efectos. No valida la transición ni toma
- * la asistencia: eso es de cada camino. La configuración es obligatoria: sin ella los ganchos no
+ * Lleva una asistencia a su estado de destino con todos sus efectos. No toma la asistencia: eso es de
+ * cada camino, que además responde su propio error si el cambio no vale. Aquí el cambio se valida otra
+ * vez contra la tabla, antes de escribir, y lo que no admite rompe: un camino que olvide validar no
+ * deja una excusada aprobada y con puntos. La configuración es obligatoria: sin ella los ganchos no
  * sabrían si liberar o confirmar lo reservado. Devuelve la asistencia como quedó.
  *
  * El orden es el de los candados (ADR-116 regla 2, ADR-119 regla 3): la fila, el recálculo encolado
@@ -182,6 +203,9 @@ export async function transitionCheckIn(
   context: { settings: GamificationSettings },
 ): Promise<CheckInRow> {
   const { occasion, personId, current, to, now } = change;
+  if (current && !admits(current.status, change)) {
+    throw new Error(`Una asistencia ${current.status} no pasa a ${to}`);
+  }
   const effects = EFFECTS[to];
   const reason = change.reason ?? null;
   const source = change.source ?? current?.source;

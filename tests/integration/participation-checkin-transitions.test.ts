@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { runCommand } from "@/db/tx";
 import {
   checkinApproved,
   checkinCancelled,
@@ -19,9 +20,12 @@ import {
   grantBoosterAs,
   hostCheckInAs,
   listParticipationsForPerson,
+  loadGamificationSettings,
   setBoosterTargetAs,
 } from "@/modules/participation";
-import { pointEntry, reward } from "@/modules/participation/schema";
+import type { CheckInStatus } from "@/modules/participation/domain/check-in-pure";
+import { transitionCheckIn } from "@/modules/participation/domain/check-in-transition";
+import { occasion, pointEntry, reward } from "@/modules/participation/schema";
 import { setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
@@ -904,6 +908,95 @@ describe("una asistencia cambia de estado: qué deja cada camino", () => {
           payload: { occasionId: f.occasion.id },
         },
       ].sort(byEvent),
+    });
+  });
+
+  // ADR-119 regla 4: la transición valida el cambio ella misma, antes de escribir. Los cinco caminos
+  // validan antes con su propio error (T-676, T-601, T-2223), así que por los comandos públicos este
+  // rechazo no se alcanza: se prueba por el módulo interno, que es donde un llamador nuevo que olvide
+  // validar dejaría una excusada aprobada y con puntos.
+  describe("la transición rechaza el cambio que la tabla no admite", () => {
+    interface Refused {
+      name: string;
+      approval: "AUTO" | "MANUAL";
+      arrange: (f: Fixture) => Promise<void>;
+      to: CheckInStatus;
+      occasionCancelled?: true;
+    }
+
+    const REFUSED: Refused[] = [
+      {
+        name: "una excusada no vuelve a quedar aprobada",
+        approval: "MANUAL",
+        arrange: (f) => excuse(f),
+        to: "APPROVED",
+      },
+      {
+        name: "una anulada no vuelve a quedar aprobada",
+        approval: "AUTO",
+        arrange: async (f) => {
+          await registerSelf(f);
+          await decide(f, "CANCEL", CANCEL_REASON);
+        },
+        to: "APPROVED",
+      },
+      {
+        name: "una pendiente no se anula con una decisión: eso es solo de cancelar la ocasión",
+        approval: "MANUAL",
+        arrange: (f) => registerSelf(f),
+        to: "CANCELLED",
+      },
+      {
+        name: "la marca de cancelar la ocasión no anula una rechazada",
+        approval: "MANUAL",
+        arrange: async (f) => {
+          await registerSelf(f);
+          await decide(f, "REJECT", REJECT_REASON);
+        },
+        to: "CANCELLED",
+        occasionCancelled: true,
+      },
+      {
+        name: "la marca de cancelar la ocasión solo anula: no aprueba una pendiente",
+        approval: "MANUAL",
+        arrange: (f) => registerSelf(f),
+        to: "APPROVED",
+        occasionCancelled: true,
+      },
+    ];
+
+    it.each(REFUSED)("$name", async (refused) => {
+      const f = await setup(refused.approval);
+      await refused.arrange(f);
+      await drainOutbox();
+      const seen = await mark();
+      const before = await personState(f, f.personId, seen);
+      const current = await findCheckIn(f.occasion.id, f.personId);
+      const [row] = await getDb().select().from(occasion).where(eq(occasion.id, f.occasion.id));
+      if (!current || !row) throw new Error("falta la asistencia o la ocasión de la celda");
+      const settings = await loadGamificationSettings();
+
+      await expect(
+        runCommand(f.admin, (ctx) =>
+          transitionCheckIn(
+            ctx,
+            {
+              occasion: row,
+              personId: f.personId,
+              current,
+              to: refused.to,
+              reason: CANCEL_REASON,
+              occasionCancelled: refused.occasionCancelled,
+              now: new Date(),
+            },
+            { settings },
+          ),
+        ),
+      ).rejects.toThrow(`Una asistencia ${current.status} no pasa a ${refused.to}`);
+
+      // Nada quedó escrito: ni la fila, ni el ledger, ni la auditoría, ni un evento, ni el premio.
+      expect(await personState(f, f.personId, seen)).toEqual(before);
+      expect(await effects(seen)).toEqual({ audit: [], events: [] });
     });
   });
 });
