@@ -9,7 +9,7 @@ Registro persistente de la deuda técnica de la casa digital ([ADR-109](adr/ADR-
 
 Mientras se trabaja, una fila puede estar `OPEN`, `IN_PROGRESS` o `BLOCKED` (espera una decisión de [decisiones-abiertas.md](decisiones-abiertas.md)).
 
-Orígenes: **A19** es la [auditoría del 2026-09-19](auditoria-codigo-2026-09-19.md), con su código de hallazgo o de tramo; **R06** es la revisión de arquitectura del 2026-10-06 (37 oportunidades; «verificado» quiere decir que un segundo lector intentó tumbarla y sobrevivió, «medido» que sale de un conteo reproducible). **D07** es el descubrimiento del 2026-10-07 (seguridad, módulos chicos e importadores, `npm audit` y escaneo de guards; «leído» quiere decir camino completo leído y no ejecutado) y **C1** es lo que apareció al implementar el ciclo 1 y **C2** lo que apareció al implementar y revisar el ciclo 2; **C3**, **C4**, **C5** y **C6** son lo mismo de los ciclos 3, 4, 5 y 6. **H07** es la auditoría de huecos del 2026-10-07: seis zonas que las revisiones anteriores no habían leído a fondo (esquema y base, datos personales, autorización, pruebas, permanencia y operación), cada una con un lector y un segundo lector que intentó tumbar los hallazgos de severidad alta y media. De sus 53 hallazgos, 24 de severidad alta o media quedaron confirmados y dos tumbados; los de severidad baja no pasaron por el segundo lector y van agrupados por zona. **H08** es la segunda ola, del 2026-10-08, con el mismo método: gamificación, crm, membresía y jobs dejaron 36 hallazgos, 20 de severidad media confirmados (el segundo lector bajó varios a baja) y ninguno tumbado; The Games, el rendimiento, los errores y la observabilidad, y el cliente dejaron 33, con 16 confirmados y uno tumbado. Con esa ola queda leído todo el repositorio. Prioridad, de mayor a menor: corrección, seguridad, integridad, simplicidad, mantenibilidad, testabilidad, observabilidad, rendimiento.
+Orígenes: **A19** es la [auditoría del 2026-09-19](auditoria-codigo-2026-09-19.md), con su código de hallazgo o de tramo; **R06** es la revisión de arquitectura del 2026-10-06 (37 oportunidades; «verificado» quiere decir que un segundo lector intentó tumbarla y sobrevivió, «medido» que sale de un conteo reproducible). **D07** es el descubrimiento del 2026-10-07 (seguridad, módulos chicos e importadores, `npm audit` y escaneo de guards; «leído» quiere decir camino completo leído y no ejecutado) y **C1** es lo que apareció al implementar el ciclo 1 y **C2** lo que apareció al implementar y revisar el ciclo 2; **C3**, **C4**, **C5**, **C6** y **C7** son lo mismo de los ciclos 3, 4, 5, 6 y 7. **H07** es la auditoría de huecos del 2026-10-07: seis zonas que las revisiones anteriores no habían leído a fondo (esquema y base, datos personales, autorización, pruebas, permanencia y operación), cada una con un lector y un segundo lector que intentó tumbar los hallazgos de severidad alta y media. De sus 53 hallazgos, 24 de severidad alta o media quedaron confirmados y dos tumbados; los de severidad baja no pasaron por el segundo lector y van agrupados por zona. **H08** es la segunda ola, del 2026-10-08, con el mismo método: gamificación, crm, membresía y jobs dejaron 36 hallazgos, 20 de severidad media confirmados (el segundo lector bajó varios a baja) y ninguno tumbado; The Games, el rendimiento, los errores y la observabilidad, y el cliente dejaron 33, con 16 confirmados y uno tumbado. Con esa ola queda leído todo el repositorio. Prioridad, de mayor a menor: corrección, seguridad, integridad, simplicidad, mantenibilidad, testabilidad, observabilidad, rendimiento.
 
 ## Hallazgos
 
@@ -438,5 +438,25 @@ Lo que movió el ciclo 5: fue de corrección, privacidad y permisos, con los def
 | Elementos crudos en `src` (input · select · table · button) | 564 · 125 · 51 · 134 |
 
 Lo que movió el ciclo 6: otra vez corrección, con lo que la segunda ola de la auditoría dejó sin pedir decisión. Crece el código de entrega (el poller toma en dos pasos y guarda la clave tomada), el de membresía (un solo cierre de pertenencia, la guarda de comités) y el del navegador (un ayudante para el estado de una acción que atrapa el rechazo, el lector del carnet con su bucle aparte), y crecen más las pruebas. Una migración aditiva (`0050_outbox_clave_tomada`). En `src` cambian 113 archivos, con 1.971 líneas agregadas y 480 quitadas. Las métricas de forma siguen quietas: les toca al ciclo 7.
+
+### Tras el ciclo 7 · 2026-10-09 · `refactor/ciclo-7`
+
+| Métrica | Valor |
+| --- | --- |
+| Archivos y líneas en `src` (sin el catálogo de textos) | 766 · 122482 |
+| Líneas en `src/app` · `src/modules` | 39736 · 75842 |
+| Funciones de más de 100 · 200 · 300 líneas (`src` y `scripts`) | 183 · 59 · 23 |
+| Funciones con complejidad mayor a 30 | 65 |
+| Archivos de más de 500 · 1000 líneas | 47 · 5 |
+| Exports de `participation` · `people` · `crm` (`index.ts`) | 384 · 240 · 150 |
+| Nombres de función de nivel superior declarados en 2 o más archivos de `src` | 96 |
+| `as unknown as` en `src` | 4 |
+| `tList(` · accesos posicionales `[n] ?? ""` en `src` | 834 · 374 |
+| `throw new Error(` en `src` | 160 |
+| `getDb()` en `src/modules` | 474 |
+| Eventos de dominio: en el catálogo · todavía emitidos como cadena suelta | 68 · 0 |
+| Elementos crudos en `src` (input · select · table · button) | 564 · 125 · 51 · 134 |
+
+Lo que movió el ciclo 7: el primero de estructura. Una asistencia cambia de estado por un solo camino (`transitionCheckIn`, con una tabla de destino a efectos), los cuatro juegos comparten el cálculo del día, la guardia de la partida diaria y la acreditación por el ledger, y cinco restos de seguridad y robustez quedaron cerrados. Ninguna migración. En `src` cambian 35 archivos, con 1.272 líneas agregadas y 752 quitadas. Las métricas de tamaño casi no se mueven, porque lo que se quitó de las copias volvió como tabla, guardia y pruebas; lo que cambia es dónde vive cada regla: un solo sitio escribe una asistencia y un solo sitio inserta en el ledger.
 
 Medidas que el script no trae y que salen de la revisión del 2026-10-06: módulos de dominio en una componente circular, 7; archivos de prueba que insertan filas a mano, 82; transacciones fuera de `runCommand`, 28 en 18 archivos.
