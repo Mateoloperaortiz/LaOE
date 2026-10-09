@@ -3,7 +3,7 @@ import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { lockPersonAnonymization } from "@/modules/people";
 import { lockOpenTermPoints } from "@/modules/terms";
-import { t, tList } from "@/shared/copy";
+import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { checkIn, occasion } from "../schema";
 import {
@@ -18,8 +18,8 @@ import {
 } from "./check-in-pure";
 import { AlreadyCheckedIn, statusLabel, transitionCheckIn } from "./check-in-transition";
 import type { GamificationSettings, MemberContext } from "./member-context";
-import { OCCASION_STATUSES, type OccasionStatus, windowState } from "./occasion-pure";
-import type { OccasionRow } from "./occasions";
+import { windowState } from "./occasion-pure";
+import { type OccasionRow, occasionStateError } from "./occasions";
 import { verifyRotatingCode } from "./rotating-code-pure";
 
 // Check-ins (ADR-006, ADR-035 reglas 5 y 6): un lock compartido del término coordina el cierre; el
@@ -53,10 +53,6 @@ async function readOccasion(ctx: CommandContext, id: string): Promise<OccasionRo
   return row ?? null;
 }
 
-function occasionStatusLabel(status: OccasionStatus): string {
-  return tList("T-568")[OCCASION_STATUSES.indexOf(status)] ?? status;
-}
-
 /**
  * La ocasión, tomada para leer su estado (ADR-119 regla 1). Quien crea o decide una asistencia la toma
  * después del término y valida contra lo que devuelve esto, nunca contra la lectura anterior. Abrir,
@@ -83,7 +79,7 @@ async function lockOccasion(ctx: CommandContext, observed: OccasionRow): Promise
 /** El organizador registra con la ocasión abierta; la consola, también con la ocasión cerrada. */
 function assertOpenForOrganizer(row: OccasionRow, source: "HOST" | "ADMIN"): void {
   if (row.status !== "OPEN" && !(source === "ADMIN" && row.status === "CLOSED")) {
-    throw new DomainError(source === "HOST" ? t("T-620") : t("T-578", { estado: row.status }));
+    throw source === "HOST" ? new DomainError(t("T-620")) : occasionStateError(row.status);
   }
 }
 
@@ -330,7 +326,7 @@ async function decide(
   // ADR-119 regla 1: en una ocasión cancelada ninguna asistencia vuelve a quedar aprobada. Rechazar
   // y anular siguen valiendo: solo cierran.
   if (target === "APPROVED" && row.status === "CANCELLED") {
-    throw new DomainError(t("T-578", { estado: occasionStatusLabel(row.status).toLowerCase() }));
+    throw occasionStateError(row.status);
   }
   await transitionCheckIn(
     ctx,

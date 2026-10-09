@@ -135,6 +135,23 @@ describe("una asistencia en una ocasión cancelada", () => {
     expect(await balanceFor(personId, f.termId)).toBe(0);
   });
 
+  // DT-269: la consola respondía T-578 con el valor del enum («la ocasión está CANCELLED»).
+  it("la consola que registra en una ocasión cancelada recibe su estado como lo nombra la interfaz", async () => {
+    const f = await setup("AUTO");
+    const personId = await seedMember("miembro.consola.cancelada@eafit.edu.co");
+    await cancelOccasionAs(f.other, f.occasion.id, "Cancelación sintética");
+
+    await expect(
+      hostCheckInAs(f.admin, {
+        occasionId: f.occasion.id,
+        personId,
+        personName: NAME,
+        source: "ADMIN",
+      }),
+    ).rejects.toThrow(cancelled);
+    expect(await findCheckIn(f.occasion.id, personId)).toBeNull();
+  });
+
   it("un rechazo de una ocasión ya cancelada no se reaprueba ni acredita", async () => {
     const f = await setup("MANUAL");
     const a = await rejectedAttendance(f, "miembro.rechazo.cancelada@eafit.edu.co");

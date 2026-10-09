@@ -95,8 +95,14 @@ export interface OccasionContext {
   window: WindowConfig;
 }
 
-function statusLabel(status: OccasionStatus): string {
-  return tList("T-568")[OCCASION_STATUSES.indexOf(status)] ?? status;
+/**
+ * El error de «esa acción no aplica» (T-578), con el estado de la ocasión como lo nombra la interfaz
+ * (T-568) y en minúscula: «la ocasión está cancelada». Lo responden abrir, cerrar y cancelar, y
+ * registrar o decidir una asistencia (check-ins.ts): es el único sitio que arma ese texto.
+ */
+export function occasionStateError(status: OccasionStatus): DomainError {
+  const label = tList("T-568")[OCCASION_STATUSES.indexOf(status)] ?? status;
+  return new DomainError(t("T-578", { estado: label.toLowerCase() }));
 }
 
 function toValues(input: OccasionInput, context: OccasionContext) {
@@ -288,7 +294,7 @@ async function transition(
     throw new DomainError(t("T-260"));
   }
   if (!canTransitionOccasion(before.status, to)) {
-    throw new DomainError(t("T-578", { estado: statusLabel(before.status).toLowerCase() }));
+    throw occasionStateError(before.status);
   }
   return before;
 }
