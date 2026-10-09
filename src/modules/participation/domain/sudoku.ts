@@ -8,7 +8,6 @@ import { sudokuCompleted } from "@/domain-events/participation";
 import { getMembershipRef } from "@/modules/people";
 import { findTermContaining, getTerm, lockOpenTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
-import { startOfTodayIn } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
 import { pointEntry, sudokuRun } from "../schema";
@@ -22,7 +21,7 @@ import type {
   SudokuStatus,
   TodaySudoku,
 } from "../sudoku-types";
-import { dayKeyFor, GAMIFICATION_TIMEZONE } from "./gamification-pure";
+import { dayKeyFor, nextDayAt } from "./gamification-pure";
 import { generateSudoku } from "./sudoku-generator";
 
 // Sudoku (ADR-078). Aquí no hay replay: un Sudoku lo resuelve cualquier programa, así que una lista
@@ -48,10 +47,6 @@ const finishSchema = z.object({
   requestId,
 });
 const abandonSchema = z.object({ runId });
-
-function nextDayAt(now: Date): string {
-  return new Date(startOfTodayIn(GAMIFICATION_TIMEZONE, now).getTime() + 86_400_000).toISOString();
-}
 
 async function eligible(personId: string, exec: Executor): Promise<boolean> {
   const membership = await getMembershipRef(personId, exec);
@@ -142,7 +137,7 @@ export async function getTodaySudoku(personId: string): Promise<TodaySudoku> {
       }
       return {
         day,
-        nextAvailableAt: nextDayAt(now),
+        nextAvailableAt: nextDayAt(day),
         termId: current?.id ?? null,
         availability: !allowed
           ? "NOT_ELIGIBLE"

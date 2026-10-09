@@ -8,7 +8,6 @@ import { game2048Completed } from "@/domain-events/participation";
 import { getMembershipRef } from "@/modules/people";
 import { findTermContaining, getTerm, lockOpenTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
-import { startOfTodayIn } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import {
   GAME2048_MAX_MOVES,
@@ -26,7 +25,7 @@ import type {
   TodayGame2048,
 } from "../game2048-types";
 import { game2048Run, pointEntry } from "../schema";
-import { dayKeyFor, GAMIFICATION_TIMEZONE } from "./gamification-pure";
+import { dayKeyFor, nextDayAt } from "./gamification-pure";
 
 // 2048 diario (ADR-075). El servidor nunca lee un puntaje del cliente: reparte la semilla, recibe la
 // lista de movimientos y rejuega la partida entera con el motor puro. Se puede jugar sin límite; el
@@ -45,10 +44,6 @@ const finishSchema = z.object({
     .regex(/^[UDLR]*$/),
   requestId,
 });
-
-function nextDayAt(now: Date): string {
-  return new Date(startOfTodayIn(GAMIFICATION_TIMEZONE, now).getTime() + 86_400_000).toISOString();
-}
 
 async function eligible(personId: string, exec: Executor): Promise<boolean> {
   const membership = await getMembershipRef(personId, exec);
@@ -115,7 +110,7 @@ export async function getTodayGame2048(personId: string): Promise<TodayGame2048>
         .reduce((top, row) => (row.score > top ? row.score : top), 0);
       return {
         day,
-        nextAvailableAt: nextDayAt(now),
+        nextAvailableAt: nextDayAt(day),
         termId: current?.id ?? null,
         availability: !allowed
           ? "NOT_ELIGIBLE"

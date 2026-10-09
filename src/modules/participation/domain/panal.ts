@@ -20,13 +20,13 @@ import {
 } from "../panal-engine";
 import type { PanalCheckpointId, PanalGameView, PanalResult, TodayPanal } from "../panal-types";
 import { panalGame, panalWord, pointEntry } from "../schema";
+import { dayKeyFor, nextDayAt } from "./gamification-pure";
 import {
   getPanalPuzzle,
   panalDictionaryVersion,
   panalPuzzleForDay,
   panalPuzzleView,
 } from "./panal-dictionary";
-import { nextWordleAt, wordleDay } from "./wordle-pure";
 
 type Row = typeof panalGame.$inferSelect;
 type MemberActor = Actor & { personId: string };
@@ -69,7 +69,7 @@ async function gameView(row: Row, db: Executor): Promise<PanalGameView> {
 }
 
 export async function getTodayPanal(personId: string): Promise<TodayPanal> {
-  const day = wordleDay();
+  const day = dayKeyFor(new Date());
   return getDb().transaction(
     async (db) => {
       const current = await findTermContaining(day, db);
@@ -93,7 +93,7 @@ export async function getTodayPanal(personId: string): Promise<TodayPanal> {
               : "AVAILABLE";
       return {
         day,
-        nextAvailableAt: nextWordleAt(day),
+        nextAvailableAt: nextDayAt(day),
         checkpointsEnabled: hasPanalCheckpoints(day),
         availability,
         puzzle: puzzle ? panalPuzzleView(puzzle) : null,
@@ -212,11 +212,11 @@ async function grantRewards(
 export async function startPanalAs(actor: MemberActor, expectedDay: string): Promise<PanalResult> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(expectedDay)) return { ok: false, reason: "INVALID_INPUT" };
   return runCommand(actor, async (ctx): Promise<PanalResult> => {
-    const current = await findTermContaining(wordleDay(), ctx.tx);
+    const current = await findTermContaining(dayKeyFor(new Date()), ctx.tx);
     if (!current) return { ok: false, reason: "NO_TERM" };
     const open = await lockTerm(ctx, current.id);
     await lockPerson(ctx, actor.personId);
-    const day = wordleDay();
+    const day = dayKeyFor(new Date());
     if (day !== expectedDay) return { ok: false, reason: "EXPIRED" };
     if (!(await eligible(actor.personId, ctx.tx))) return { ok: false, reason: "NOT_ELIGIBLE" };
     if (!open) return { ok: false, reason: "TERM_CLOSED" };
@@ -283,7 +283,7 @@ export async function submitPanalWordAs(actor: MemberActor, raw: unknown): Promi
     // La palabra es la clave idempotente: también reconoce una respuesta de red perdida.
     if (game.words.includes(word)) return { ok: true, game, added: false };
     const now = new Date();
-    if (row.day !== wordleDay(now)) return { ok: false, reason: "EXPIRED", game };
+    if (row.day !== dayKeyFor(now)) return { ok: false, reason: "EXPIRED", game };
     if (!open || (await findTermContaining(row.day, ctx.tx))?.id !== row.termId)
       return { ok: false, reason: "TERM_CLOSED", game };
     if (!(await eligible(actor.personId, ctx.tx)))

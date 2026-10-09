@@ -1,20 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { dayKeyFor, GAMIFICATION_TIMEZONE } from "@/modules/participation/domain/gamification-pure";
-import { nextWordleAt, wordleDay } from "@/modules/participation/domain/wordle-pure";
-import { startOfTodayIn } from "@/shared/lib/dates-pure";
+import { dayKeyFor, nextDayAt } from "@/modules/participation/domain/gamification-pure";
 
 // DT-010: los juegos traían dos cálculos del día civil y dos de «cuándo empieza el siguiente». Esta
-// propiedad los compara sobre un año de instantes y en cada medianoche de Colombia: es la que permite
+// propiedad los compara sobre un año de instantes y en cada medianoche de Colombia: es la que permitió
 // dejar uno solo, y la que avisa si la zona de la app deja de ser UTC−5 todo el año.
+//
+// Desde el ciclo 7 (ADR-119 regla 6) el código solo tiene el cálculo por zona. La resta fija que traían
+// Wordle y Panal quedó acá, copiada tal cual de `wordleDay` y `nextWordleAt`, como referencia.
 
-/** El día por la resta fija de cinco horas (Wordle y Panal) y el día por la zona (2048 y Sudoku). */
-const dayByFixedOffset = (at: Date): string => wordleDay(at);
+/** El día por la resta fija de cinco horas (la referencia) y el día por la zona (el del código). */
+const dayByFixedOffset = (at: Date): string =>
+  new Date(at.getTime() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
 const dayByZone = (at: Date): string => dayKeyFor(at);
 
-/** «Empieza el siguiente»: el día más uno a las 05:00Z, y la medianoche de hoy en la zona más 24 horas. */
-const nextByFixedOffset = (at: Date): string => nextWordleAt(wordleDay(at));
-const nextByZone = (at: Date): string =>
-  new Date(startOfTodayIn(GAMIFICATION_TIMEZONE, at).getTime() + 86_400_000).toISOString();
+/** «Empieza el siguiente»: el día más uno a las 05:00Z (la referencia) y el del código. */
+const nextByFixedOffset = (at: Date): string =>
+  new Date(new Date(`${dayByFixedOffset(at)}T05:00:00.000Z`).getTime() + 86_400_000).toISOString();
+const nextByZone = (at: Date): string => nextDayAt(dayKeyFor(at));
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;

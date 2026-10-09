@@ -4,6 +4,7 @@ import { closeDb, getDb } from "@/db/client";
 import { interaction } from "@/modules/crm/schema";
 import { getTermStanding } from "@/modules/participation/domain/closing";
 import { closeTermPointsAs } from "@/modules/participation/domain/commands";
+import { dayKeyFor } from "@/modules/participation/domain/gamification-pure";
 import {
   getTodayPanal,
   listPanalGamesFor,
@@ -14,7 +15,6 @@ import {
   panalPuzzleForDay,
   panalPuzzleView,
 } from "@/modules/participation/domain/panal-dictionary";
-import { wordleDay } from "@/modules/participation/domain/wordle-pure";
 import { panalWordScore } from "@/modules/participation/panal-engine";
 import { panalGame, panalWord, pointEntry } from "@/modules/participation/schema";
 import { membership } from "@/modules/people/schema";
@@ -28,7 +28,7 @@ const db = () => getDb();
 const submit = (personId: string, gameId: string, word: string) =>
   submitPanalWordAs({ personId }, { gameId, word });
 async function start(personId: string) {
-  const result = await startPanalAs({ personId }, wordleDay());
+  const result = await startPanalAs({ personId }, dayKeyFor(new Date()));
   if (!result.ok) throw new Error(result.reason);
   return result.game;
 }
@@ -197,7 +197,7 @@ describe("Panal diario persistido", () => {
   it("exige elegibilidad en inicio y envío y falla cerrado con versiones desconocidas", async () => {
     const stranger = await seedPerson("panal.sinmembresia@eafit.edu.co");
     const id = await seedMember("panal.elegibilidad@eafit.edu.co");
-    expect(await startPanalAs({ personId: stranger }, wordleDay())).toMatchObject({
+    expect(await startPanalAs({ personId: stranger }, dayKeyFor(new Date()))).toMatchObject({
       reason: "NOT_ELIGIBLE",
     });
     const game = await start(id);

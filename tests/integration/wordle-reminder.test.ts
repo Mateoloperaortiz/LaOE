@@ -9,7 +9,7 @@ import {
 } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
 import { runWordleReminder, startWordleAs } from "@/modules/participation";
-import { wordleDay } from "@/modules/participation/domain/wordle-pure";
+import { dayKeyFor } from "@/modules/participation/domain/gamification-pure";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
@@ -64,7 +64,7 @@ describe("aviso diario del Wordle", () => {
     );
     expect((await startWordleAs({ personId: yaJugo })).ok).toBe(true);
 
-    const day = wordleDay();
+    const day = dayKeyFor(new Date());
     expect(await runWordleReminder()).toEqual({ day, audience: 2, enqueued: 1 });
     await drainOutbox();
     const rows = await db().select().from(message);
@@ -90,14 +90,22 @@ describe("aviso diario del Wordle", () => {
   });
 
   it("no encola nada sin término vigente ni con los puntos del término ya cerrados", async () => {
-    expect(await runWordleReminder()).toEqual({ day: wordleDay(), audience: 0, enqueued: 0 });
+    expect(await runWordleReminder()).toEqual({
+      day: dayKeyFor(new Date()),
+      audience: 0,
+      enqueued: 0,
+    });
 
     const termId = await seedTerm();
     const persona = await seedMember("cerrado@eafit.edu.co");
     await subscribe(persona, "https://fcm.googleapis.com/fcm/send/cerrado");
     await db().update(term).set({ pointsClosedAt: new Date() }).where(eq(term.id, termId));
 
-    expect(await runWordleReminder()).toEqual({ day: wordleDay(), audience: 0, enqueued: 0 });
+    expect(await runWordleReminder()).toEqual({
+      day: dayKeyFor(new Date()),
+      audience: 0,
+      enqueued: 0,
+    });
     await drainOutbox();
     expect(await db().select().from(message)).toHaveLength(0);
     expect(delivered).toHaveLength(0);

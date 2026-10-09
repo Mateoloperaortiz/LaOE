@@ -7,6 +7,7 @@ import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
 import { getTermStanding } from "@/modules/participation/domain/closing";
 import { closeTermPointsAs } from "@/modules/participation/domain/commands";
+import { dayKeyFor, nextDayAt } from "@/modules/participation/domain/gamification-pure";
 import { balanceFor } from "@/modules/participation/domain/ledger";
 import {
   getTodayWordle,
@@ -18,11 +19,7 @@ import {
   WORDLE_ANSWERS,
   WORDLE_DICTIONARY_VERSION,
 } from "@/modules/participation/domain/wordle-dictionary";
-import {
-  nextWordleAt,
-  WORDLE_RULES_VERSION,
-  wordleDay,
-} from "@/modules/participation/domain/wordle-pure";
+import { WORDLE_RULES_VERSION } from "@/modules/participation/domain/wordle-pure";
 import { pointEntry, wordleAttempt, wordleGame } from "@/modules/participation/schema";
 import type { WordleGameView } from "@/modules/participation/wordle-types";
 import { membership, person } from "@/modules/people/schema";
@@ -76,7 +73,7 @@ describe("Wordle diario persistido", () => {
     const game = await started(personId);
     expect(game.answer).toBeNull();
     expect(game.status).toBe("IN_PROGRESS");
-    expect(game.nextAvailableAt).toBe(nextWordleAt(wordleDay()));
+    expect(game.nextAvailableAt).toBe(nextDayAt(dayKeyFor(new Date())));
     expect((await getTodayWordle(personId)).game).toEqual(game);
     expect(await listWordleGamesFor(personId)).toEqual([game]);
     const audit = await db().select().from(auditLog);
@@ -412,7 +409,7 @@ describe("Wordle diario persistido", () => {
       .values(
         WORDLE_ANSWERS.map((answer, i) => ({
           personId: people[i]?.id ?? personId,
-          day: wordleDay(),
+          day: dayKeyFor(new Date()),
           termId,
           answer,
           dictionaryVersion: WORDLE_DICTIONARY_VERSION,
@@ -423,7 +420,7 @@ describe("Wordle diario persistido", () => {
     const [rows] = await db()
       .select({ n: count() })
       .from(wordleGame)
-      .where(and(eq(wordleGame.day, wordleDay()), eq(wordleGame.personId, personId)));
+      .where(and(eq(wordleGame.day, dayKeyFor(new Date())), eq(wordleGame.personId, personId)));
     expect(rows?.n).toBe(0);
   });
 });

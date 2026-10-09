@@ -12,6 +12,7 @@ import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
 import { pointEntry, wordleAttempt, wordleGame } from "../schema";
 import type { SubmitWordleInput, TodayWordle, WordleGameView, WordleResult } from "../wordle-types";
+import { dayKeyFor, nextDayAt } from "./gamification-pure";
 import {
   hasWordleDictionary,
   isWordleGuess,
@@ -20,12 +21,10 @@ import {
 } from "./wordle-dictionary";
 import {
   isWordleWord,
-  nextWordleAt,
   normalizeWordleGuess,
   scoreWordleGuess,
   WORDLE_MAX_ATTEMPTS,
   WORDLE_RULES_VERSION,
-  wordleDay,
   wordleReward,
 } from "./wordle-pure";
 
@@ -56,7 +55,7 @@ async function attemptsFor(gameId: string, exec: Executor): Promise<AttemptRow[]
 /** Proyección explícita: nunca devolver una fila de juego privada con spread. */
 function gameView(row: GameRow, attempts: AttemptRow[], now: Date, ended = false): WordleGameView {
   const status =
-    row.status === "IN_PROGRESS" && (ended || row.day !== wordleDay(now)) ? "EXPIRED" : row.status;
+    row.status === "IN_PROGRESS" && (ended || row.day !== dayKeyFor(now)) ? "EXPIRED" : row.status;
   return {
     id: row.id,
     day: row.day,
@@ -65,14 +64,14 @@ function gameView(row: GameRow, attempts: AttemptRow[], now: Date, ended = false
     attempts: attempts.map(({ ordinal, guess, feedback }) => ({ ordinal, guess, feedback })),
     points: status === "WON" ? wordleReward(attempts.length) : 0,
     answer: status === "IN_PROGRESS" ? null : row.answer,
-    nextAvailableAt: nextWordleAt(row.day),
+    nextAvailableAt: nextDayAt(row.day),
   };
 }
 
 /** Lectura sin crear partidas; el personId siempre lo resuelve el servidor desde la sesión. */
 export async function getTodayWordle(personId: string): Promise<TodayWordle> {
   const now = new Date();
-  const day = wordleDay(now);
+  const day = dayKeyFor(now);
   // Estado e intentos pertenecen al mismo snapshot aunque otro dispositivo termine al leer.
   return getDb().transaction(
     async (db): Promise<TodayWordle> => {
@@ -92,7 +91,7 @@ export async function getTodayWordle(personId: string): Promise<TodayWordle> {
             : "AVAILABLE";
       return {
         day,
-        nextAvailableAt: nextWordleAt(day),
+        nextAvailableAt: nextDayAt(day),
         termId: current?.id ?? null,
         availability,
         game: row
@@ -123,7 +122,7 @@ async function lockTerm(ctx: CommandContext, termId: string): Promise<boolean> {
 
 export async function startWordleAs(actor: MemberActor): Promise<WordleResult> {
   return runCommand(actor, async (ctx) => {
-    const initialDay = wordleDay();
+    const initialDay = dayKeyFor(new Date());
     const current = await findTermContaining(initialDay, ctx.tx);
     if (!current) return { ok: false, reason: "NO_TERM" };
     const open = await lockTerm(ctx, current.id);
@@ -132,7 +131,7 @@ export async function startWordleAs(actor: MemberActor): Promise<WordleResult> {
       sql`select pg_advisory_xact_lock(hashtextextended(${`wordle-day:${initialDay}`}, 0))`,
     );
     const now = new Date();
-    if (wordleDay(now) !== initialDay) return { ok: false, reason: "EXPIRED" };
+    if (dayKeyFor(now) !== initialDay) return { ok: false, reason: "EXPIRED" };
     if (!(await eligible(actor.personId, ctx.tx))) return { ok: false, reason: "NOT_ELIGIBLE" };
     const [existing] = await ctx.tx
       .select()
@@ -239,8 +238,8 @@ export async function submitWordleGuessAs(
         reason: row.status === "EXPIRED" ? "EXPIRED" : "FINISHED",
         game: gameView(row, attempts, now),
       };
-    const current = await findTermContaining(wordleDay(now), ctx.tx);
-    if (row.day !== wordleDay(now) || current?.id !== row.termId || !open) {
+    const current = await findTermContaining(dayKeyFor(now), ctx.tx);
+    if (row.day !== dayKeyFor(now) || current?.id !== row.termId || !open) {
       const expired = await expireGame(ctx, row, now);
       return {
         ok: false,

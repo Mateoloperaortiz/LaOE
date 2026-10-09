@@ -11,6 +11,7 @@ import {
   gradeTrivia,
   isVoluntaryOccasion,
   memberChallengeStatus,
+  nextDayAt,
   unlockedLevel,
   weekKeyFor,
 } from "@/modules/participation/domain/gamification-pure";
@@ -173,6 +174,13 @@ describe("economía de la gamificación (ADR-067)", () => {
     expect(weekKeyFor(new Date("2026-09-14T05:10:00Z"))).toBe("2026-09-14");
     expect(dayKeyFor(new Date("2026-09-15T04:59:00Z"))).toBe("2026-09-14");
     expect(dayKeyFor(new Date("2026-09-15T05:00:00Z"))).toBe("2026-09-15");
+  });
+
+  it("cambia el reto a medianoche de Bogotá incluso al cambiar año y semestre", () => {
+    expect(dayKeyFor(new Date("2027-01-01T04:59:59.999Z"))).toBe("2026-12-31");
+    expect(dayKeyFor(new Date("2027-01-01T05:00:00.000Z"))).toBe("2027-01-01");
+    expect(nextDayAt("2026-06-30")).toBe("2026-07-01T05:00:00.000Z");
+    expect(nextDayAt("2028-02-28")).toBe("2028-02-29T05:00:00.000Z");
   });
 
   it("deriva el estado del reto desde la fila persistida y la ventana", () => {

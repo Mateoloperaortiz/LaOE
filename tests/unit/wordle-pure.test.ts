@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   isWordleWord,
-  nextWordleAt,
   normalizeWordleGuess,
   scoreWordleGuess,
-  wordleDay,
   wordleReward,
 } from "@/modules/participation/domain/wordle-pure";
 
@@ -49,12 +47,5 @@ describe("reglas de Wordle", () => {
   it("premia 6 a 1 puntos y no admite ordinales fuera de las seis oportunidades", () => {
     expect([1, 2, 3, 4, 5, 6].map(wordleReward)).toEqual([6, 5, 4, 3, 2, 1]);
     expect([0, 7, 1.5, -1, Number.NaN].map(wordleReward)).toEqual([0, 0, 0, 0, 0]);
-  });
-
-  it("cambia el reto a medianoche de Bogotá incluso al cambiar año y semestre", () => {
-    expect(wordleDay(new Date("2027-01-01T04:59:59.999Z"))).toBe("2026-12-31");
-    expect(wordleDay(new Date("2027-01-01T05:00:00.000Z"))).toBe("2027-01-01");
-    expect(nextWordleAt("2026-06-30")).toBe("2026-07-01T05:00:00.000Z");
-    expect(nextWordleAt("2028-02-28")).toBe("2028-02-29T05:00:00.000Z");
   });
 });
