@@ -1,17 +1,22 @@
 import { randomInt } from "node:crypto";
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { wordleCompleted } from "@/domain-events/participation";
-import { getMembershipRef } from "@/modules/people";
-import { findTermContaining, getTerm, lockOpenTermPoints } from "@/modules/terms";
+import { findTermContaining } from "@/modules/terms";
 import { t } from "@/shared/copy";
-import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
 import { pointEntry, wordleAttempt, wordleGame } from "../schema";
 import type { SubmitWordleInput, TodayWordle, WordleGameView, WordleResult } from "../wordle-types";
+import {
+  type DailyGameRules,
+  isEligibleToPlay,
+  lockDailyGame,
+  refusalToContinue,
+  startDailyGame,
+} from "./daily-game-guard";
 import { dayKeyFor, nextDayAt } from "./gamification-pure";
 import {
   hasWordleDictionary,
@@ -39,10 +44,14 @@ const submitSchema = z.object({
   expectedAttempt: z.number().int().min(1).max(WORDLE_MAX_ATTEMPTS),
 });
 
-async function eligible(personId: string, exec: Executor): Promise<boolean> {
-  const membership = await getMembershipRef(personId, exec);
-  return membership?.status === "ACTIVE" || membership?.status === "HONORARY";
-}
+/** Lo que el Wordle le declara a la guardia de la partida diaria (ADR-119 regla 7). */
+const GUARD = {
+  // Serializa solamente la asignación: respuestas únicas por día para toda la comunidad.
+  lock: { key: "wordle-day", per: "DAY" },
+  startWhenClosed: "SAVED_FIRST",
+  expiredAndClosed: "TERM_CLOSED",
+  movedTerm: "EXPIRED",
+} as const satisfies DailyGameRules;
 
 async function attemptsFor(gameId: string, exec: Executor): Promise<AttemptRow[]> {
   return exec
@@ -76,7 +85,7 @@ export async function getTodayWordle(personId: string): Promise<TodayWordle> {
   return getDb().transaction(
     async (db): Promise<TodayWordle> => {
       const current = await findTermContaining(day, db);
-      const allowed = await eligible(personId, db);
+      const allowed = await isEligibleToPlay(personId, db);
       const [row] = await db
         .select()
         .from(wordleGame)
@@ -108,31 +117,15 @@ export async function getTodayWordle(personId: string): Promise<TodayWordle> {
   );
 }
 
-/** Mantiene el FOR SHARE aun cuando el semestre ya cerró, para poder reconocer reintentos. */
-async function lockTerm(ctx: CommandContext, termId: string): Promise<boolean> {
-  try {
-    await lockOpenTermPoints(ctx.tx, termId);
-    return true;
-  } catch (error) {
-    if (error instanceof DomainError && (await getTerm(termId, ctx.tx))?.pointsClosedAt)
-      return false;
-    throw error;
-  }
-}
-
 export async function startWordleAs(actor: MemberActor): Promise<WordleResult> {
   return runCommand(actor, async (ctx) => {
-    const initialDay = dayKeyFor(new Date());
-    const current = await findTermContaining(initialDay, ctx.tx);
-    if (!current) return { ok: false, reason: "NO_TERM" };
-    const open = await lockTerm(ctx, current.id);
-    // Serializa solamente la asignación: respuestas únicas por día para toda la comunidad.
-    await ctx.tx.execute(
-      sql`select pg_advisory_xact_lock(hashtextextended(${`wordle-day:${initialDay}`}, 0))`,
-    );
-    const now = new Date();
-    if (dayKeyFor(now) !== initialDay) return { ok: false, reason: "EXPIRED" };
-    if (!(await eligible(actor.personId, ctx.tx))) return { ok: false, reason: "NOT_ELIGIBLE" };
+    const guard = await startDailyGame(ctx, GUARD, {
+      personId: actor.personId,
+      now: () => new Date(),
+      expectedDay: null,
+    });
+    if (!guard.ok) return { ok: false, reason: guard.reason };
+    const { day: initialDay, term: current, open, now } = guard;
     const [existing] = await ctx.tx
       .select()
       .from(wordleGame)
@@ -217,7 +210,10 @@ export async function submitWordleGuessAs(
     .limit(1);
   if (!ref) return { ok: false, reason: "NOT_FOUND" };
   return runCommand(actor, async (ctx) => {
-    const open = await lockTerm(ctx, ref.termId);
+    const open = await lockDailyGame(ctx, GUARD, {
+      personId: actor.personId,
+      termId: ref.termId,
+    });
     const [row] = await ctx.tx
       .select()
       .from(wordleGame)
@@ -238,17 +234,19 @@ export async function submitWordleGuessAs(
         reason: row.status === "EXPIRED" ? "EXPIRED" : "FINISHED",
         game: gameView(row, attempts, now),
       };
-    const current = await findTermContaining(dayKeyFor(now), ctx.tx);
-    if (row.day !== dayKeyFor(now) || current?.id !== row.termId || !open) {
+    const refusal = await refusalToContinue(ctx, GUARD, {
+      personId: actor.personId,
+      game: row,
+      open,
+      now,
+    });
+    // Sin elegibilidad la partida sigue abierta; vencida o con el semestre cerrado, termina.
+    if (refusal === "NOT_ELIGIBLE")
+      return { ok: false, reason: refusal, game: gameView(row, attempts, now) };
+    if (refusal) {
       const expired = await expireGame(ctx, row, now);
-      return {
-        ok: false,
-        reason: !open ? "TERM_CLOSED" : "EXPIRED",
-        game: gameView(expired, attempts, now),
-      };
+      return { ok: false, reason: refusal, game: gameView(expired, attempts, now) };
     }
-    if (!(await eligible(actor.personId, ctx.tx)))
-      return { ok: false, reason: "NOT_ELIGIBLE", game: gameView(row, attempts, now) };
     if (attempts.length + 1 !== input.expectedAttempt)
       return { ok: false, reason: "STALE_ATTEMPT", game: gameView(row, attempts, now) };
     if (row.rulesVersion !== WORDLE_RULES_VERSION || !hasWordleDictionary(row.dictionaryVersion))

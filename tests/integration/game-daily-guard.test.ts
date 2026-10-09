@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { runCommand, type Tx } from "@/db/tx";
 import {
   abandonSudokuAs,
   finishGame2048As,
@@ -13,6 +14,10 @@ import {
   submitPanalWordAs,
   submitWordleGuessAs,
 } from "@/modules/participation";
+import {
+  type DailyGameRules,
+  startDailyGame,
+} from "@/modules/participation/domain/daily-game-guard";
 import { dayKeyFor } from "@/modules/participation/domain/gamification-pure";
 import { panalPuzzleForDay } from "@/modules/participation/domain/panal-dictionary";
 import { WORDLE_ANSWERS } from "@/modules/participation/domain/wordle-dictionary";
@@ -468,5 +473,153 @@ describe("lo propio de un juego en la guardia", () => {
       await acrossMidnight(async () => answer(await startPanalAs({ personId }, tomorrow))),
     ).toEqual(refused("EXPIRED"));
     expect(await panal.saved()).toEqual([]);
+  });
+});
+
+/** Retiene lo que `take` tome, lanza el comando y, cuando ya hace cola, mira `during` antes de soltar. */
+async function whileHeld(
+  take: (tx: Tx) => Promise<unknown>,
+  command: () => Promise<Answer>,
+  during: () => Promise<boolean>,
+): Promise<{ seen: boolean; result: Answer }> {
+  const held = await holdTransaction(take);
+  const pending = command();
+  void pending.catch(() => undefined);
+  try {
+    for (let tries = 0; (await waitingOn(held.pid)) < 1; tries += 1) {
+      if (tries > 1000) throw new Error("El comando nunca llegó a hacer cola");
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    const seen = await during();
+    held.release();
+    return { seen, result: await pending };
+  } finally {
+    held.release();
+    await held.done;
+  }
+}
+
+const termRow = (tx: Tx) => tx.select().from(term).for("update");
+const advisory = (key: string) => sql`hashtextextended(${key}, 0)`;
+
+/** ¿Alguien tiene tomado el término? Un `for update nowait` falla si otro lo comparte. */
+const termIsTaken = () =>
+  getDb()
+    .transaction((tx) => tx.select({ id: term.id }).from(term).for("update", { noWait: true }))
+    .then(
+      () => false,
+      () => true,
+    );
+
+/** ¿Está libre el candado propio? Lo toma y lo suelta en su propia transacción. */
+const ownLockIsFree = (key: string) =>
+  getDb().transaction(async (tx) => {
+    const result = await tx.execute<{ free: boolean }>(
+      sql`select pg_try_advisory_xact_lock(${advisory(key)}) as free`,
+    );
+    return result.rows[0]?.free === true;
+  });
+
+describe.each([
+  { name: wordle.name, game: wordle, key: () => `wordle-day:${dayKeyFor(TODAY)}`, onMove: false },
+  { name: game2048.name, game: game2048, key: (id: string) => `game2048:${id}`, onMove: true },
+  { name: sudoku.name, game: sudoku, key: (id: string) => `sudoku:${id}`, onMove: true },
+  { name: panal.name, game: panal, key: (id: string) => `panal:${id}`, onMove: true },
+])("el orden de candados de $name", ({ game, key, onMove }) => {
+  const ownLock = (personId: string) => (tx: Tx) =>
+    tx.execute(sql`select pg_advisory_xact_lock(${advisory(key(personId))})`);
+
+  it("al empezar toma el término y después su candado propio", async () => {
+    const personId = await seedMember("guardia.orden@eafit.edu.co");
+    // Mientras espera el término todavía no tiene el propio…
+    expect(
+      await whileHeld(
+        termRow,
+        () => game.start(personId),
+        () => ownLockIsFree(key(personId)),
+      ),
+    ).toMatchObject({ seen: true, result: { ok: true } });
+    // …y mientras espera el propio ya tiene el término.
+    expect(
+      await whileHeld(ownLock(personId), () => game.start(personId), termIsTaken),
+    ).toMatchObject({ seen: true, result: { ok: true } });
+  });
+
+  it.runIf(onMove)("al seguir toma el término y después su candado propio", async () => {
+    const first = await seedMember("guardia.orden-sigue@eafit.edu.co");
+    const firstId = await started(game, first);
+    expect(
+      await whileHeld(
+        termRow,
+        () => game.move(first, firstId),
+        () => ownLockIsFree(key(first)),
+      ),
+    ).toMatchObject({ seen: true, result: { ok: true } });
+    const second = await seedMember("guardia.orden-sigue-2@eafit.edu.co");
+    const secondId = await started(game, second);
+    expect(
+      await whileHeld(ownLock(second), () => game.move(second, secondId), termIsTaken),
+    ).toMatchObject({ seen: true, result: { ok: true } });
+  });
+
+  it.runIf(!onMove)(
+    "al seguir toma el término y ningún candado propio: el del día solo reparte respuestas",
+    async () => {
+      const personId = await seedMember("guardia.orden-wordle@eafit.edu.co");
+      const id = await started(game, personId);
+      // Con el candado del día retenido por otro, la jugada no hace cola: si lo tomara, no volvería.
+      const day = await holdTransaction(ownLock(personId));
+      try {
+        expect(await game.move(personId, id)).toMatchObject({ ok: true, id });
+      } finally {
+        day.release();
+        await day.done;
+      }
+    },
+  );
+});
+
+describe("la guardia con el reloj inyectado", () => {
+  const RULES: DailyGameRules = {
+    lock: { key: "panal", per: "PERSON" },
+    startWhenClosed: "SAVED_FIRST",
+    expiredAndClosed: "EXPIRED",
+    movedTerm: "EXPIRED",
+  };
+
+  it("responde EXPIRED cuando el reloj cambia de día entre sus dos lecturas, sin retener ningún candado", async () => {
+    const personId = await seedMember("guardia.reloj@eafit.edu.co");
+    const ticks = [TODAY, TOMORROW];
+    const result = await runCommand({ personId }, (ctx) =>
+      startDailyGame(ctx, RULES, {
+        personId,
+        now: () => ticks.shift() ?? TOMORROW,
+        expectedDay: null,
+      }),
+    );
+    expect(result).toEqual({ ok: false, reason: "EXPIRED" });
+  });
+
+  it("con el semestre cerrado sigue con los puntos cerrados o responde TERM_CLOSED, según lo que el juego declare", async () => {
+    const personId = await seedMember("guardia.reloj-cerrado@eafit.edu.co");
+    await closePoints();
+    const later = new Date(TODAY.getTime() + 1000);
+    const ticks = [TODAY];
+    const start = (startWhenClosed: DailyGameRules["startWhenClosed"]) =>
+      runCommand({ personId }, (ctx) =>
+        startDailyGame(
+          ctx,
+          { ...RULES, startWhenClosed },
+          { personId, now: () => ticks.shift() ?? later, expectedDay: null },
+        ),
+      );
+    // El instante que entrega es el que leyó con los candados tomados.
+    expect(await start("SAVED_FIRST")).toMatchObject({
+      ok: true,
+      day: dayKeyFor(TODAY),
+      open: false,
+      now: later,
+    });
+    expect(await start("REFUSE")).toEqual({ ok: false, reason: "TERM_CLOSED" });
   });
 });
