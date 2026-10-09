@@ -3,12 +3,19 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { getResource } from "@/app/admin/_kit/registry";
 import { GET as exportCsv } from "@/app/api/export/[tipo]/route";
 import { closeDb, getDb } from "@/db/client";
-import { checkIn } from "@/modules/participation/schema";
+import { achievement, badgeDefinition, checkIn } from "@/modules/participation/schema";
 import { auditLog } from "@/modules/system/schema";
 import { EXPORT_ROW_LIMIT } from "@/shared/admin-kit/types";
 import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
-import { seedCheckIn, seedMember, seedOccasion, seedTerm } from "./factories";
+import {
+  seedChallenge,
+  seedCheckIn,
+  seedMember,
+  seedOccasion,
+  seedParticipation,
+  seedTerm,
+} from "./factories";
 
 // Un exporte tiene un tope de filas (ADR-118 regla 13; DT-222). Lo que pasa del tope no viaja, y el
 // archivo y la auditoría lo dicen: la última fila avisa cuántas van de cuántas, y `export.csv` guarda
@@ -138,5 +145,47 @@ describe("exporte de un recurso del admin con más filas que el tope", () => {
       ids: [old],
       total: 1,
     });
+  });
+
+  it("las entregas de retos y las insignias también cuentan el total del listado entero, no las filas de la página", async () => {
+    const adminId = await seedMember("admin.recorte@eafit.edu.co");
+    const termId = await seedTerm();
+    const challengeId = await seedChallenge(termId, { kind: "EVIDENCE", passPercent: null });
+    const [badge] = await getDb()
+      .select({ id: badgeDefinition.id })
+      .from(badgeDefinition)
+      .where(eq(badgeDefinition.code, "EN_PARCHE_1"));
+    for (const who of ["uno", "dos", "tres"]) {
+      const personId = await seedMember(`${who}@eafit.edu.co`);
+      await seedParticipation(challengeId, personId, { status: "COMPLETED" });
+      await getDb()
+        .insert(achievement)
+        .values({
+          personId,
+          badgeId: badge?.id ?? "",
+          termId,
+          sourceKind: "CHECKIN",
+          sourceRef: `recorte-${who}`,
+          historical: true,
+          unlockedAt: new Date("2023-03-10T15:00:00Z"),
+        });
+    }
+    const params = {
+      q: "",
+      page: 1,
+      pageSize: 2,
+      filters: {},
+      actor: { personId: adminId, isAdmin: true },
+    };
+
+    // Tres filas y una página de dos: con el total de la página, la ruta exportaría recortado sin avisar.
+    for (const key of ["retos", "insignias"]) {
+      const listed = await getResource(key)?.list(params);
+      expect({ key, rows: listed?.rows.length, total: listed?.total }).toEqual({
+        key,
+        rows: 2,
+        total: 3,
+      });
+    }
   });
 });
