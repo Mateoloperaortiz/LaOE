@@ -14,6 +14,7 @@ import {
   cancelOccasionAs,
   checkInSelfAs,
   decideCheckInAs,
+  decideManyAs,
   findCheckIn,
   grantBoosterAs,
   hostCheckInAs,
@@ -32,8 +33,10 @@ import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
 // (registro propio, organizador, decidir, cancelar la ocasión y excusa) en cada cambio de estado.
 // Las dos celdas que ADR-119 regla 5 cambió están dichas donde van: cancelar la ocasión audita cada
 // asistencia que anula, y la excusa audita con el id de la asistencia.
-// Cada celda mira lo mismo: la fila, el libro de puntos, la auditoría de la asistencia, sus eventos
-// con nombre, clave y payload, el premio reservado y el reto presencial. Toda ocasión de la matriz
+// Cada celda mira lo mismo: la fila (con quién la decidió y si quedó con fecha de decisión), el
+// ledger, la auditoría de la asistencia, sus eventos con nombre, clave y payload, el premio reservado
+// y el reto presencial. El lote de la consola tiene sus dos celdas: decide con el mismo `decide` que
+// la decisión suelta, y lo que le pasa (el motivo) llega por otro camino. Toda ocasión de la matriz
 // lleva un booster de la persona apuntado y un reto presencial, para que los dos ganchos del premio
 // (ADR-067 reglas 8 y 12) tengan algo que decidir en cada transición.
 //
@@ -123,6 +126,17 @@ async function decide(
   await decideCheckInAs(f.admin, { checkInId: row.id, decision, reason });
 }
 
+/** El lote de la consola (`decideManyAs`), con la asistencia de la persona como único elemento. */
+async function decideBatch(
+  f: Fixture,
+  decision: "APPROVE" | "REJECT",
+  reason?: string,
+): Promise<void> {
+  const row = await findCheckIn(f.occasion.id, f.personId);
+  if (!row) throw new Error("no hay asistencia que decidir");
+  expect(await decideManyAs(f.admin, [row.id], decision, reason)).toBe(1);
+}
+
 async function excuse(f: Fixture): Promise<void> {
   const created = await createRequestAs(f.member, "EXCUSE", {
     occasionId: f.occasion.id,
@@ -135,7 +149,14 @@ async function excuse(f: Fixture): Promise<void> {
 // Lo que se mira en cada celda.
 
 interface PersonState {
-  row: { status: string; source: string; decidedBy: string; reason: string | null } | null;
+  row: {
+    status: string;
+    source: string;
+    decidedBy: string;
+    /** Si la fila quedó con fecha de decisión: la pendiente que nace no la tiene; toda otra, sí. */
+    decidedAt: "nulo" | "escrito";
+    reason: string | null;
+  } | null;
   /** Entradas del libro que dejó el paso, y el saldo con el que quedó la persona. */
   ledger: [string, number][];
   balance: number;
@@ -183,6 +204,7 @@ async function personState(f: Fixture, personId: string, seen: Set<string>): Pro
       source: row.source,
       decidedBy:
         row.decidedById === null ? "nadie" : row.decidedById === f.admin.personId ? "gh" : "otro",
+      decidedAt: row.decidedAt === null ? "nulo" : "escrito",
       reason: row.reason,
     },
     ledger: entries
@@ -304,7 +326,13 @@ const CASES: Case[] = [
     act: (f) => registerSelf(f),
     expected: (c) => ({
       person: {
-        row: { status: "APPROVED", source: "SELF_QR", decidedBy: "nadie", reason: null },
+        row: {
+          status: "APPROVED",
+          source: "SELF_QR",
+          decidedBy: "nadie",
+          decidedAt: "escrito",
+          reason: null,
+        },
         ledger: WON,
         balance: WON_BALANCE,
         rewards: [prize("CHALLENGE", "GRANTED"), prize("CHECKIN", "GRANTED")],
@@ -327,7 +355,13 @@ const CASES: Case[] = [
     },
     expected: (c) => ({
       person: {
-        row: { status: "APPROVED", source: "SELF_QR", decidedBy: "nadie", reason: null },
+        row: {
+          status: "APPROVED",
+          source: "SELF_QR",
+          decidedBy: "nadie",
+          decidedAt: "escrito",
+          reason: null,
+        },
         ledger: WON,
         balance: WON_BALANCE,
         rewards: [prize("CHALLENGE", "GRANTED"), prize("CHECKIN", "GRANTED")],
@@ -343,7 +377,13 @@ const CASES: Case[] = [
     act: (f) => registerSelf(f),
     expected: (c) => ({
       person: {
-        row: { status: "PENDING", source: "SELF_QR", decidedBy: "nadie", reason: null },
+        row: {
+          status: "PENDING",
+          source: "SELF_QR",
+          decidedBy: "nadie",
+          decidedAt: "nulo",
+          reason: null,
+        },
         ledger: [],
         balance: 0,
         rewards: [prize("CHALLENGE", "RESERVED"), prize("CHECKIN", "RESERVED")],
@@ -365,7 +405,13 @@ const CASES: Case[] = [
     act: (f) => registerByHost(f),
     expected: (c) => ({
       person: {
-        row: { status: "APPROVED", source: "HOST", decidedBy: "gh", reason: null },
+        row: {
+          status: "APPROVED",
+          source: "HOST",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: null,
+        },
         ledger: WON,
         balance: WON_BALANCE,
         rewards: [prize("CHALLENGE", "GRANTED"), prize("CHECKIN", "GRANTED")],
@@ -385,7 +431,13 @@ const CASES: Case[] = [
     act: (f) => registerByHost(f),
     expected: (c) => ({
       person: {
-        row: { status: "APPROVED", source: "SELF_QR", decidedBy: "gh", reason: null },
+        row: {
+          status: "APPROVED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: null,
+        },
         // El rechazo devolvió el booster sin objetivo: la reaprobación no tiene extra que revivir.
         ledger: [
           ["CHALLENGE", CHALLENGE_POINTS],
@@ -406,7 +458,13 @@ const CASES: Case[] = [
     act: (f) => registerByHost(f),
     expected: (c) => ({
       person: {
-        row: { status: "APPROVED", source: "SELF_QR", decidedBy: "gh", reason: null },
+        row: {
+          status: "APPROVED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: null,
+        },
         ledger: WON,
         balance: WON_BALANCE,
         rewards: [prize("CHALLENGE", "GRANTED"), prize("CHECKIN", "GRANTED")],
@@ -423,7 +481,13 @@ const CASES: Case[] = [
     act: (f) => decide(f, "APPROVE"),
     expected: (c) => ({
       person: {
-        row: { status: "APPROVED", source: "SELF_QR", decidedBy: "gh", reason: null },
+        row: {
+          status: "APPROVED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: null,
+        },
         ledger: WON,
         balance: WON_BALANCE,
         rewards: [prize("CHALLENGE", "GRANTED"), prize("CHECKIN", "GRANTED")],
@@ -440,7 +504,62 @@ const CASES: Case[] = [
     act: (f) => decide(f, "REJECT", REJECT_REASON),
     expected: (c) => ({
       person: {
-        row: { status: "REJECTED", source: "SELF_QR", decidedBy: "gh", reason: REJECT_REASON },
+        row: {
+          status: "REJECTED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: REJECT_REASON,
+        },
+        ledger: [],
+        balance: 0,
+        rewards: [
+          prize("CHALLENGE", "RELEASED", notApproved),
+          prize("CHECKIN", "RELEASED", REJECT_REASON),
+        ],
+        challenge: [{ status: "REJECTED", reason: notApproved }],
+      },
+      audit: [decided(c, "checkin.reject", "PENDING", "REJECTED", REJECT_REASON, 0)],
+      events: [],
+    }),
+  },
+  {
+    name: "el lote aprueba una pendiente: deja lo mismo que la aprobación suelta",
+    approval: "MANUAL",
+    arrange: (f) => registerSelf(f),
+    act: (f) => decideBatch(f, "APPROVE"),
+    expected: (c) => ({
+      person: {
+        row: {
+          status: "APPROVED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: null,
+        },
+        ledger: WON,
+        balance: WON_BALANCE,
+        rewards: [prize("CHALLENGE", "GRANTED"), prize("CHECKIN", "GRANTED")],
+        challenge: [{ status: "COMPLETED", reason: null }],
+      },
+      audit: [decided(c, "checkin.approve", "PENDING", "APPROVED", null, 0)],
+      events: approved(c, "SELF_QR"),
+    }),
+  },
+  {
+    name: "el lote rechaza una pendiente con su motivo: lo deja en la fila y en la auditoría, no avisa y libera los dos premios",
+    approval: "MANUAL",
+    arrange: (f) => registerSelf(f),
+    act: (f) => decideBatch(f, "REJECT", REJECT_REASON),
+    expected: (c) => ({
+      person: {
+        row: {
+          status: "REJECTED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: REJECT_REASON,
+        },
         ledger: [],
         balance: 0,
         rewards: [
@@ -463,7 +582,13 @@ const CASES: Case[] = [
     act: (f) => decide(f, "APPROVE"),
     expected: (c) => ({
       person: {
-        row: { status: "APPROVED", source: "SELF_QR", decidedBy: "gh", reason: null },
+        row: {
+          status: "APPROVED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: null,
+        },
         ledger: [
           ["CHALLENGE", CHALLENGE_POINTS],
           ["CHECKIN", POINTS],
@@ -483,7 +608,13 @@ const CASES: Case[] = [
     act: (f) => decide(f, "CANCEL", CANCEL_REASON),
     expected: (c) => ({
       person: {
-        row: { status: "CANCELLED", source: "SELF_QR", decidedBy: "gh", reason: CANCEL_REASON },
+        row: {
+          status: "CANCELLED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: CANCEL_REASON,
+        },
         ledger: [
           ["REVERSAL", -POINTS],
           ["REVERSAL", -BOOST],
@@ -517,7 +648,13 @@ const CASES: Case[] = [
     act: (f) => excuse(f),
     expected: (c) => ({
       person: {
-        row: { status: "EXCUSED", source: "ADMIN", decidedBy: "gh", reason: c.reason },
+        row: {
+          status: "EXCUSED",
+          source: "ADMIN",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: c.reason,
+        },
         ledger: [],
         balance: 0,
         rewards: [],
@@ -547,7 +684,13 @@ const CASES: Case[] = [
     act: (f) => excuse(f),
     expected: (c) => ({
       person: {
-        row: { status: "EXCUSED", source: "SELF_QR", decidedBy: "gh", reason: c.reason },
+        row: {
+          status: "EXCUSED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: c.reason,
+        },
         ledger: [],
         balance: 0,
         rewards: [
@@ -583,7 +726,13 @@ const CASES: Case[] = [
     act: (f) => excuse(f),
     expected: (c) => ({
       person: {
-        row: { status: "EXCUSED", source: "SELF_QR", decidedBy: "gh", reason: c.reason },
+        row: {
+          status: "EXCUSED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: c.reason,
+        },
         ledger: [],
         balance: 0,
         rewards: [
@@ -619,7 +768,13 @@ const CASES: Case[] = [
     act: (f) => excuse(f),
     expected: (c) => ({
       person: {
-        row: { status: "EXCUSED", source: "SELF_QR", decidedBy: "gh", reason: c.reason },
+        row: {
+          status: "EXCUSED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: c.reason,
+        },
         ledger: [],
         balance: 0,
         rewards: [
@@ -692,6 +847,7 @@ describe("una asistencia cambia de estado: qué deja cada camino", () => {
         status: "CANCELLED",
         source: "SELF_QR",
         decidedBy: "gh",
+        decidedAt: "escrito",
         reason: OCCASION_CANCEL_REASON,
       },
       ledger: [],
@@ -703,7 +859,13 @@ describe("una asistencia cambia de estado: qué deja cada camino", () => {
       challenge: [{ status: "REJECTED", reason }],
     });
     expect(await personState(f, otherId, seen)).toEqual({
-      row: { status: "CANCELLED", source: "HOST", decidedBy: "gh", reason: OCCASION_CANCEL_REASON },
+      row: {
+        status: "CANCELLED",
+        source: "HOST",
+        decidedBy: "gh",
+        decidedAt: "escrito",
+        reason: OCCASION_CANCEL_REASON,
+      },
       ledger: [
         ["REVERSAL", -POINTS],
         ["REVERSAL", -CHALLENGE_POINTS],
