@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -16,8 +16,19 @@ import {
   withdrawRequestAs,
 } from "@/modules/crm";
 import { interaction, task } from "@/modules/crm/schema";
-import { getMembershipRef, getMyMembership, hasLiveConsent, listConsents } from "@/modules/people";
-import { committeeMembership, membership, person } from "@/modules/people/schema";
+import {
+  getMembershipRef,
+  getMyMembership,
+  hasLiveConsent,
+  listConsents,
+  setCommitteeMembershipsAs,
+} from "@/modules/people";
+import {
+  committeeMembership,
+  committeeRoleAssignment,
+  membership,
+  person,
+} from "@/modules/people/schema";
 import { findTermByCode, nextTermCode } from "@/modules/terms";
 import type { MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
@@ -32,6 +43,7 @@ import {
   seedMember,
   seedPerson,
   seedTerm,
+  seedVeteran,
 } from "./factories";
 
 // Solicitudes (ADR-031, ADR-037 regla 9): una pendiente por tipo, retirar, rechazar con motivo,
@@ -270,5 +282,106 @@ describe("solicitudes", () => {
     expect(
       (await getMyMembership(personId)).committees.map((row) => row.committeeSlug).sort(),
     ).toEqual(["a3", "pixel"]);
+  });
+
+  /** Cargos vivos del término siguiente: [persona, comité, cargo, codirección]. */
+  async function nextTermRoles() {
+    const next = await findTermByCode(nextTermCode(currentTermCode()));
+    const rows = await getDb()
+      .select()
+      .from(committeeRoleAssignment)
+      .where(
+        and(
+          eq(committeeRoleAssignment.termId, next?.id ?? ""),
+          isNull(committeeRoleAssignment.endedAt),
+        ),
+      );
+    return rows.map((row) => [row.personId, row.committeeId, row.roleCode, row.coDirector]).sort();
+  }
+
+  async function approveLeaving(gh: string, personId: string, committeeId: string) {
+    const created = await createRequestAs({ personId, ip: null }, "TRANSFER", {
+      reason: "Dejo un comité",
+      leaveCommitteeIds: [committeeId],
+      joinCommitteeIds: [],
+    });
+    await decideRequestAs({ personId: gh, ip: null }, created.id, { decision: "APPROVED" });
+  }
+
+  // ADR-118 regla 7 (DT-205): al término siguiente llegan los cargos reales, no el principal derivado.
+  it("aprobar un cambio de comité conserva la codirección y deja aprobar también a la titular", async () => {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    const gh = await seedMember("gh@eafit.edu.co");
+    const titular = await seedVeteran("general@eafit.edu.co");
+    const codirectora = await seedVeteran("codireccion@eafit.edu.co");
+    await seedCommitteeMembership(titular, a3, termId, "GENERAL");
+    await seedCommitteeMembership(titular, pixel, termId);
+    await seedCommitteeMembership(codirectora, a3, termId, "GENERAL", { coDirector: true });
+    await seedCommitteeMembership(codirectora, pixel, termId);
+
+    await approveLeaving(gh, titular, pixel);
+    await approveLeaving(gh, codirectora, pixel);
+
+    expect(await nextTermRoles()).toEqual(
+      [
+        [titular, a3, "GENERAL", false],
+        [codirectora, a3, "GENERAL", true],
+      ].sort(),
+    );
+  });
+
+  it("aprobar un cambio de comité lleva al término siguiente todos los cargos del comité que sigue", async () => {
+    const termId = await seedTerm();
+    const cigma = await seedCommittee("cigma", "CIGMA");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    const gh = await seedMember("gh@eafit.edu.co");
+    const personId = await seedVeteran("dos.cargos@eafit.edu.co");
+    await setCommitteeMembershipsAs({ personId: gh, ip: null }, personId, termId, [
+      {
+        committeeId: cigma,
+        roles: [
+          { roleCode: "GENERAL", coDirector: false },
+          { roleCode: "LOGISTICA", coDirector: true },
+        ],
+      },
+      { committeeId: pixel },
+    ]);
+
+    await approveLeaving(gh, personId, pixel);
+
+    expect(await nextTermRoles()).toEqual(
+      [
+        [personId, cigma, "GENERAL", false],
+        [personId, cigma, "LOGISTICA", true],
+      ].sort(),
+    );
+  });
+
+  // Conducta de hoy, sin elegir: de qué término parte un segundo cambio es la decisión abierta 33.
+  it("un segundo cambio aprobado en el mismo semestre parte del término vigente y deshace el primero (decisión abierta 33)", async () => {
+    const { termId, personId, a3 } = await activeMember("dos.cambios@eafit.edu.co");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    const cigma = await seedCommittee("cigma", "CIGMA");
+    await seedCommitteeMembership(personId, pixel, termId);
+    const gh = await seedMember("gh@eafit.edu.co");
+    const primero = await createRequestAs({ personId, ip: null }, "TRANSFER", {
+      reason: "Entro a CIGMA",
+      leaveCommitteeIds: [a3],
+      joinCommitteeIds: [cigma],
+    });
+    await decideRequestAs({ personId: gh, ip: null }, primero.id, { decision: "APPROVED" });
+
+    await approveLeaving(gh, personId, pixel);
+
+    const next = await findTermByCode(nextTermCode(currentTermCode()));
+    const vivos = await getDb()
+      .select({ committeeId: committeeMembership.committeeId })
+      .from(committeeMembership)
+      .where(
+        and(eq(committeeMembership.termId, next?.id ?? ""), isNull(committeeMembership.leftAt)),
+      );
+    expect(vivos.map((row) => row.committeeId)).toEqual([a3]);
   });
 });

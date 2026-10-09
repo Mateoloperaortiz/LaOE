@@ -1,6 +1,6 @@
 # ADR-037: Admisión, aliados y contactos (fase 5)
 
-- Estado: Aceptada (enmendada por ADR-038, ADR-039, ADR-046, ADR-050, ADR-056, ADR-060, ADR-115 y ADR-116)
+- Estado: Aceptada (enmendada por ADR-038, ADR-039, ADR-046, ADR-050, ADR-056, ADR-060, ADR-115, ADR-116 y ADR-118)
 - Fecha: 2026-09-05
 - Relacionadas: ADR-002, ADR-003, ADR-010, ADR-011, ADR-012, ADR-013, ADR-014, ADR-015, ADR-017, ADR-023, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035, ADR-036
 - Enmienda: ADR-013 (números del rate limit, honeypot, una respuesta por correo, consentimiento `DATA_PROCESSING`), ADR-031 (tipos de solicitud y transferencia al semestre siguiente; correos T-200 y T-205 en esta fase), ADR-033 (sin `registrationFormId`: la acción del formulario es la única fuente), ADR-034 (`crm → forms`; `interaction.personId` puede ser nulo; `stage APPLICANT` por tarjeta), ADR-036 (handler de `call-entry.changed` en `permanence`), 02-crm (un postulante no admitido sigue postulante; tres tipos de solicitud; tablero del inicio), 03-modelo (tablas definitivas de `forms` y `crm`), 05-acceso (formularios públicos, líder de grupo en convocatorias) y 14-copy (T-061, T-139, T-160, T-205, T-290, T-461)
@@ -74,3 +74,7 @@ Reglas 7 y 9: la tarea de seguimiento de un patrocinio ganado y la tarea `REQUES
 ## Enmienda (2026-10-08, ADR-116)
 
 Regla 10: la inscripción validaba que la persona estuviera activa y fuera del grupo, y la decisión del líder solo el cupo; lo demás que exige el grupo (el tope de dos comités de trabajo, seguir activo) lo descubría el trabajo de `permanence`, que fallaba en cada intento hasta que `call-entry.changed` moría en dead letter. Ahora `decideEntryAs` y `applyToCallAs` reciben `joinBlocker`, obligatorio, que la capa de la app compone con `permanence.groupJoinBlocker`: al aceptar, o al quedar aceptada por orden de llegada, se le pregunta al grupo y quien acepta recibe el motivo. Si la condición cambia después, el trabajo emite `work-group-admission.failed` y `crm` abre una tarea para GH (`GROUP_ADMISSION_FAILED`, T-3217); la inscripción sigue aceptada. Ver [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 7.
+
+## Enmienda (2026-10-08, ADR-118)
+
+Regla 9: el cambio de comité aprobado conservaba «los cargos de los comités que siguen» copiando el cargo principal de cada pertenencia como titular, que era todo lo que había antes de ADR-058. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 7 la completa: al término siguiente llegan todos los cargos vivos de cada comité que sigue, cada uno con su condición de titular o codirección. De qué término parte un segundo cambio en el mismo semestre sigue en la decisión abierta 33.

@@ -76,8 +76,14 @@ describe("solicitudes", () => {
 
   it("calcula los comités del semestre siguiente conservando cargos y marcando transferencias", () => {
     const current = [
-      { committeeId: "a3", roleCode: "GENERAL" },
-      { committeeId: "pixel", roleCode: "MIEMBRO" },
+      {
+        committeeId: "a3",
+        roles: [
+          { roleCode: "GENERAL", coDirector: true },
+          { roleCode: "LOGISTICA", coDirector: false },
+        ],
+      },
+      { committeeId: "pixel", roles: [] },
     ];
     const limits = { min: 1, max: 3 };
     expect(
@@ -88,8 +94,15 @@ describe("solicitudes", () => {
       ),
     ).toEqual({
       rows: [
-        { committeeId: "a3", roleCode: "GENERAL", transferredIn: false },
-        { committeeId: "cigma", roleCode: "MIEMBRO", transferredIn: true },
+        {
+          committeeId: "a3",
+          roles: [
+            { roleCode: "GENERAL", coDirector: true },
+            { roleCode: "LOGISTICA", coDirector: false },
+          ],
+          transferredIn: false,
+        },
+        { committeeId: "cigma", roles: [], transferredIn: true },
       ],
       error: null,
     });

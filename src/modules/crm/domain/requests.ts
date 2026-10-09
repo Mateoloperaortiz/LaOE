@@ -240,7 +240,7 @@ export async function createRequestAs(
   if (kind === "TRANSFER") {
     const mine = await getMyMembership(actor.personId);
     const change = resultingCommittees(
-      mine.committees.map((row) => ({ committeeId: row.committeeId, roleCode: row.roleCode })),
+      mine.committees,
       payload as TransferPayload,
       await committeeLimits(),
     );
@@ -525,14 +525,8 @@ async function apply(
   if (!context.term) {
     throw new DomainError(t("T-989"));
   }
-  const change = resultingCommittees(
-    (context.mine?.committees ?? []).map((item) => ({
-      committeeId: item.committeeId,
-      roleCode: item.roleCode,
-    })),
-    payload,
-    context.limits,
-  );
+  // Los cargos vivos de cada comité que sigue, no el principal derivado (ADR-118 regla 7).
+  const change = resultingCommittees(context.mine?.committees ?? [], payload, context.limits);
   if (change.error) {
     throw new DomainError(t(change.error, context.limits));
   }
