@@ -73,3 +73,5 @@ La regla 6 decía que las sanciones las registra ADMIN o quien tenga `PERMANENCE
 ## Enmienda (2026-10-08, ADR-118)
 
 La regla 7 pedía que el titular y el suplente fueran miembros activos del comité, y solo se comprobaba al nombrar. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 6 la completa: cerrar la pertenencia de una persona a un comité, por cualquier camino, retira su representación de ese comité en ese término y lo deja en la auditoría. Las asambleas ya cerradas no se recalculan por eso (decisión abierta 39), y la licencia y el honorario, que no cierran la pertenencia, siguen sin retirarla (decisión abierta 45).
+
+La regla 9 no decía en qué término queda la mesa de una edición. ADR-118 regla 9 lo fija: en el que contiene la fecha de la edición. Si ese término todavía no existe la mesa no se nombra y la pantalla lo dice; ya no cae al término vigente.

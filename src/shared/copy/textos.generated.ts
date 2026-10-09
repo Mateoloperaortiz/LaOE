@@ -10603,6 +10603,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3244": {
+    where: "Mesa directiva: el semestre de la edición todavía no existe (ADR-118)",
+    text: "El semestre de esta edición todavía no existe. Crealo antes de nombrar su mesa.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

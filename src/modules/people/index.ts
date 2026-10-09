@@ -21,6 +21,7 @@ export {
   listMacroeventBoard,
   listMacroeventRoles,
   MACROEVENT_ROLE_CODES,
+  requireEditionTerm,
 } from "./domain/appointments";
 export { assertBenefitsAvailable } from "./domain/benefits";
 export {

@@ -5,8 +5,9 @@ import type { CommandContext, Executor } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { appointmentChanged } from "@/domain-events/people";
 import { getMacroeventEdition, listEditionRefs, macroeventRoleCodes } from "@/modules/events";
-import { listAllTerms } from "@/modules/terms";
+import { findTermContaining, listAllTerms, type TermRow } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
+import { APP_TIME_ZONE, dateKeyIn } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { appointment, committee, macroeventRole, membership, person } from "../schema";
 import { assertNoInhabilities, BOARD_KINDS, type Override } from "./inhabilities";
@@ -321,6 +322,19 @@ export async function listDirectedEditionIds(
     .from(appointment)
     .where(and(eq(appointment.personId, personId), eq(appointment.roleCode, roleCode)));
   return rows.flatMap((row) => (row.editionId ? [row.editionId] : []));
+}
+
+/**
+ * El término de la mesa de una edición: el que contiene su fecha en Bogotá. Si todavía no existe no
+ * hay mesa que nombrar: no se cae al vigente, donde las inhabilidades y el directorio del término de
+ * la edición no la verían (ADR-118 regla 9).
+ */
+export async function requireEditionTerm(startsAt: Date): Promise<TermRow> {
+  const term = await findTermContaining(dateKeyIn(APP_TIME_ZONE, startsAt));
+  if (!term) {
+    throw new DomainError(t("T-3244"));
+  }
+  return term;
 }
 
 /**
