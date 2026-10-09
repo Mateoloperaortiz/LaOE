@@ -100,34 +100,3 @@ export async function forgetSubscription(endpoint: string): Promise<void> {
     body: JSON.stringify({ endpoint }),
   });
 }
-
-/** Cuánto espera la salida a que el navegador suelte su suscripción. */
-const RELEASE_WAIT_MS = 2000;
-
-/**
- * Al cerrar sesión (ADR-118 regla 17): suelta la suscripción push de este navegador y devuelve su
- * endpoint, para que la casa retire ese dispositivo de quien sale. Nunca frena la salida: si el
- * navegador falla o no responde a tiempo, devuelve lo que alcanzó a saber.
- */
-export async function releaseBrowserSubscription(waitMs = RELEASE_WAIT_MS): Promise<string | null> {
-  if (!isPushSupported()) {
-    return null;
-  }
-  const found: { endpoint: string | null } = { endpoint: null };
-  const release = (async () => {
-    const registration = await navigator.serviceWorker.getRegistration();
-    const subscription = await registration?.pushManager.getSubscription();
-    if (!subscription) {
-      return;
-    }
-    found.endpoint = subscription.endpoint;
-    await subscription.unsubscribe();
-  })().catch(() => undefined);
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<void>((resolve) => {
-    timer = setTimeout(resolve, waitMs);
-  });
-  await Promise.race([release, timeout]);
-  clearTimeout(timer);
-  return found.endpoint;
-}

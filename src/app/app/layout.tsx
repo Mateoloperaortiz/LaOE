@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { adminAreaRoles } from "@/app/_authz/admin-area";
-import { SignOutForm } from "@/app/_lib/SignOutForm";
 import { listSubscriptionsFor } from "@/modules/comms";
 import { PwaRegistrar } from "@/modules/comms/components/PwaRegistrar";
 import { requireActor } from "@/modules/identity";
+import { SignOutForm } from "@/modules/identity/components/SignOutForm";
 import { hasLiveConsent } from "@/modules/people";
 import { ThemeToggle } from "@/shared/brand";
 import { t, tList } from "@/shared/copy";

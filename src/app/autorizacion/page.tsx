@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { SignOutForm } from "@/app/_lib/SignOutForm";
 import { findPublicPage } from "@/modules/content";
 import { getActor } from "@/modules/identity";
+import { SignOutForm } from "@/modules/identity/components/SignOutForm";
 import { hasLiveConsent } from "@/modules/people";
 import { getPrivacyPolicyState } from "@/modules/system";
 import { LogoOE } from "@/shared/brand";
