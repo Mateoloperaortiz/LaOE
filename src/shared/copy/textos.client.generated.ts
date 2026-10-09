@@ -325,6 +325,8 @@ export const textosCliente = {
   "T-309": "Comités",
   "T-310": "Este comité todavía no publicó su presentación.",
   "T-3252": "No pudimos confirmar el envío. Revisá la conexión e intentá de nuevo.",
+  "T-3253":
+    "No recibimos la confirmación. Reintentá el envío tal como está: si ya se guardó, no contará dos veces.",
   "T-375": "Tus comités",
   "T-376": "Todavía no tenés comité este semestre. GH te ubica en uno.",
   "T-382": "Los demás comités",

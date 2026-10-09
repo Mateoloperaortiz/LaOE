@@ -49,6 +49,8 @@ El sexto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-co
 
 **Los formularios que caían a la pantalla de error (DT-235).** 17 de los 19 archivos con `useActionState` le pasaban la acción directa. Una acción de servidor rechaza cuando el pedido no llega o cuando el servidor lanza algo que no atrapó, y React relanza ese rechazo al renderizar hacia el límite de error más cercano, que es el único `error.tsx` de la casa: la pantalla entera se reemplaza por «Algo se nos dañó de este lado» y «Intentar de nuevo» monta el formulario vacío. Solo `RequestForm` y `SettingsForms` atrapaban el rechazo. Reproducido en rojo en la E2E del formulario público (`tests/e2e/formularios.spec.ts`): sin conexión, enviar dejaba el encabezado del error raíz donde estaba el formulario; y la guarda nueva listaba los 17 archivos.
 
+**El envío sin respuesta que pedía responder las preguntas (DT-236 d).** En `Trivia` y en `EvidenceUploader` el `catch` del envío pintaba T-2426, «Respondé todas las preguntas antes de enviar»: quien mandaba su evidencia sin señal leía que le faltaba algo, en un formulario que no tiene preguntas. Los juegos ya tenían un texto propio para ese caso (T-1254, T-2662, T-2751). Leído por un solo lector; confirmado en rojo sobre el código de los dos componentes.
+
 ## Decisión
 
 1. **El intento se cuenta al tomar la fila, y la toma se confirma antes de correr nada.** El poller entrega un evento en dos pasos:
@@ -165,6 +167,7 @@ El sexto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-co
    - **Lo escrito vuelve a los campos.** React reinicia los campos no controlados cuando la acción termina, así que cada formulario devuelve lo enviado por el camino que ya usaba para un error de validación: el formulario público y la encuesta, con `answersFromFormData` (que salió a `forms/form-data.ts` para poder correr en el navegador); los importadores de The Games, con la hoja pegada; el ingreso, con el correo. El kit del admin no pierde nada porque sus campos son controlados. Las contraseñas, los archivos y la casilla de autorización no vuelven: los dos primeros no se pueden reponer y la tercera se vuelve a marcar a propósito.
    - **La guarda.** `tests/unit/guarded-action.test.ts` recorre `src` y falla si un archivo llama `useActionState` sin atrapar el rechazo. `RequestForm` y `SettingsForms`, que ya lo atrapaban a mano, quedan como están.
    - **Lo que no cambia.** La pantalla de error raíz y su texto son la decisión abierta 42. T-3252 no distingue la red caída de un fallo del servidor: el navegador no lo sabe.
+21. **El envío de un reto que no tuvo respuesta lo dice.** El `catch` del envío de `Trivia` y de `EvidenceUploader` pinta T-3253, que pide reintentar el envío tal como está: el reintento con el mismo contenido es idempotente (ADR-067 regla 6, regla 18 de esta ADR). Lo escrito y los archivos ya subidos siguen en pantalla, como antes. T-2426 queda para lo que dice: faltan respuestas.
 
 ## Consecuencias
 
@@ -231,3 +234,4 @@ El sexto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-co
 - Los 17 formularios envuelven su acción en una función del navegador, como ya hacían `RequestForm` y `SettingsForms`: dejaron de enviarse sin JavaScript, el ingreso y el formulario público incluidos. Un envío antes de hidratar lo repite React al terminar de cargar. Queda anotado en el ledger (DT-255).
 - Un fallo del servidor que la action no atrapa ya no llega a la pantalla de error: la persona ve T-3252 y el formulario. Sigue saliendo en los registros del servidor; en el navegador no queda rastro.
 - Pruebas de la regla 20 en `tests/unit/guarded-action.test.ts` (el rechazo vuelve como estado con lo enviado, la respuesta pasa tal cual, la redirección no se convierte en aviso, y la guarda que recorre `src`) y en `tests/e2e/formularios.spec.ts` (el formulario público sin conexión conserva el nombre y la respuesta y muestra T-3252). Los demás formularios no se ejecutaron sin conexión (DT-255).
+- Prueba de la regla 21 en `tests/unit/challenge-submit-copy.test.ts`: lee qué código de copy pone el `catch` del envío en los dos componentes, porque las unitarias no montan componentes. La evidencia sigue pintando T-2426 cuando el texto no tiene el largo pedido y cuando el servidor responde `INVALID_INPUT`, que no son preguntas sin responder: queda en DT-236 (d).

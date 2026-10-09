@@ -169,7 +169,8 @@ export function EvidenceUploader({
           setMessage(t(ERROR_COPY[result.reason]));
         }
       } catch {
-        setMessage(t("T-2426"));
+        // La acción no respondió (ADR-118 regla 21): no es que falten respuestas.
+        setMessage(t("T-3253"));
       }
     });
   }

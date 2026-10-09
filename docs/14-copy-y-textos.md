@@ -2210,6 +2210,7 @@ Textos de los retos relámpago, los boosters, las campañas de puntos y la colec
 | T-2593 | Admin panel: error de la corrida | Error: {mensaje} | MATEO | Propuesta |
 | T-2594 | Admin cierre: estadísticas de gamificación del standing | Retos completados · Puntos de boosters | MATEO | Propuesta |
 | T-3205 | Reto presencial: asistencia excusada (motivo automático, ADR-111) | Tu asistencia en {actividad} quedó excusada. | MATEO | Propuesta |
+| T-3253 | Reto: el envío de la trivia o de la evidencia no tuvo respuesta (ADR-118) | No recibimos la confirmación. Reintentá el envío tal como está: si ya se guardó, no contará dos veces. | MATEO | Propuesta |
 
 ## Directorio de comités de Mi OE
 

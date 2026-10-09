@@ -10659,6 +10659,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3253": {
+    where: "Reto: el envío de la trivia o de la evidencia no tuvo respuesta (ADR-118)",
+    text: "No recibimos la confirmación. Reintentá el envío tal como está: si ya se guardó, no contará dos veces.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",
