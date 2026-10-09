@@ -30,7 +30,7 @@ import {
 import { applyCheckInBoost } from "./checkin-boost";
 import { creditCheckIn, reverseCheckInCredit } from "./ledger";
 import type { GamificationSettings, MemberContext } from "./member-context";
-import { windowState } from "./occasion-pure";
+import { OCCASION_STATUSES, type OccasionStatus, windowState } from "./occasion-pure";
 import type { OccasionRow } from "./occasions";
 import { verifyRotatingCode } from "./rotating-code-pure";
 
@@ -38,7 +38,8 @@ import { verifyRotatingCode } from "./rotating-code-pure";
 // unique (ocasión, persona) decide los duplicados; el crédito nace en la misma transacción; los efectos
 // (score, línea de tiempo, onboarding) viajan por outbox con payloads autosuficientes.
 //
-// Orden de candados (ADR-116 regla 2), el mismo en todos los caminos: término (compartido) → persona
+// Orden de candados (ADR-116 regla 2 y ADR-119 regla 1), el mismo en todos los caminos: término
+// (compartido) → ocasión (compartido; abrir, cerrar y cancelar la toman exclusiva) → persona
 // (compartido, solo la excusa) → asistencias (fila, por id) → recálculo del puntaje (`score:<ocasión>`
 // en el outbox: un solo pendiente, el segundo que lo encola espera al primero) → premio
 // (`reward:<persona>`, su fila, el booster) → reto presencial y su entrega. Quien toma varias
@@ -72,6 +73,40 @@ export class AlreadyCheckedIn extends Error {
 async function readOccasion(ctx: CommandContext, id: string): Promise<OccasionRow | null> {
   const [row] = await ctx.tx.select().from(occasion).where(eq(occasion.id, id)).limit(1);
   return row ?? null;
+}
+
+function occasionStatusLabel(status: OccasionStatus): string {
+  return tList("T-568")[OCCASION_STATUSES.indexOf(status)] ?? status;
+}
+
+/**
+ * La ocasión, tomada para leer su estado (ADR-119 regla 1). Quien crea o decide una asistencia la toma
+ * después del término y valida contra lo que devuelve esto, nunca contra la lectura anterior. Abrir,
+ * cerrar y cancelar la toman `for update` (`transition`, en occasions.ts): la cancelación que va en
+ * curso se espera aquí y se encuentra hecha, y la que llega después espera a que la asistencia
+ * confirme y la anula. `observed` es la lectura sin candado, que solo dijo de qué término era.
+ */
+async function lockOccasion(ctx: CommandContext, observed: OccasionRow): Promise<OccasionRow> {
+  const [row] = await ctx.tx
+    .select()
+    .from(occasion)
+    .where(eq(occasion.id, observed.id))
+    .for("share");
+  if (!row) {
+    throw new DomainError(t("T-032"));
+  }
+  // Solo un borrador cambia de término: si pasó entre las dos lecturas, el candado tomado no es el suyo.
+  if (row.termId !== observed.termId) {
+    throw new DomainError(t("T-260"));
+  }
+  return row;
+}
+
+/** El organizador registra con la ocasión abierta; la consola, también con la ocasión cerrada. */
+function assertOpenForOrganizer(row: OccasionRow, source: "HOST" | "ADMIN"): void {
+  if (row.status !== "OPEN" && !(source === "ADMIN" && row.status === "CLOSED")) {
+    throw new DomainError(source === "HOST" ? t("T-620") : t("T-578", { estado: row.status }));
+  }
 }
 
 async function readCheckIn(
@@ -174,6 +209,12 @@ export type SelfCheckInResult =
   | { ok: false; reason: SelfCheckInDenial; opensAt?: Date; message?: string }
   | { ok: false; reason: "ALREADY"; existing: CheckInRow };
 
+function isClosedToSelf(
+  row: OccasionRow,
+): row is OccasionRow & { status: "DRAFT" | "CANCELLED" | "CLOSED" } {
+  return row.status === "DRAFT" || row.status === "CANCELLED" || row.status === "CLOSED";
+}
+
 /** Valida en orden: ocasión → estado → término → ventana → membresía → solo nuevos → código. */
 export async function checkInSelf(
   ctx: CommandContext,
@@ -181,24 +222,30 @@ export async function checkInSelf(
   context: SelfCheckInContext,
 ): Promise<SelfCheckInResult> {
   const now = input.now ?? new Date();
-  const row = await readOccasion(ctx, input.occasionId);
-  if (!row) {
+  const observed = await readOccasion(ctx, input.occasionId);
+  if (!observed) {
     return { ok: false, reason: "NOT_FOUND" };
   }
-  const existing = await readCheckIn(ctx, row.id, input.personId);
+  const existing = await readCheckIn(ctx, observed.id, input.personId);
   if (existing) {
     return { ok: false, reason: "ALREADY", existing };
   }
-  if (row.status === "DRAFT" || row.status === "CANCELLED" || row.status === "CLOSED") {
-    return { ok: false, reason: row.status };
+  if (isClosedToSelf(observed)) {
+    return { ok: false, reason: observed.status };
   }
   try {
-    await lockOpenTermPoints(ctx.tx, row.termId);
+    await lockOpenTermPoints(ctx.tx, observed.termId);
   } catch (error) {
     if (error instanceof DomainError && error.message === t("T-629")) {
       return { ok: false, reason: "TERM_CLOSED" };
     }
     throw error;
+  }
+  // ADR-119 regla 1: el estado se vuelve a leer con la ocasión tomada. La que se canceló o se cerró
+  // entre la primera lectura y el candado responde lo mismo que si ya lo estuviera al llegar.
+  const row = await lockOccasion(ctx, observed);
+  if (isClosedToSelf(row)) {
+    return { ok: false, reason: row.status };
   }
   const window = windowState(row, now);
   if (window === "NOT_OPEN") {
@@ -341,22 +388,21 @@ export async function hostCheckIn(
   context: { membership: MembershipRef | null; settings?: GamificationSettings | undefined },
 ): Promise<{ checkInId: string; points: number }> {
   const now = input.now ?? new Date();
-  const row = await readOccasion(ctx, input.occasionId);
-  if (!row) {
+  const observed = await readOccasion(ctx, input.occasionId);
+  if (!observed) {
     throw new DomainError(t("T-032"));
   }
-  if (row.status !== "OPEN" && !(input.source === "ADMIN" && row.status === "CLOSED")) {
-    throw new DomainError(
-      input.source === "HOST" ? t("T-620") : t("T-578", { estado: row.status }),
-    );
-  }
+  assertOpenForOrganizer(observed, input.source);
   if (!context.membership || !ELIGIBLE_STATUSES.includes(context.membership.status)) {
     throw new DomainError(t("T-673", { nombre: input.personName }));
   }
-  if (row.newMembersOnly && context.membership.firstTermId !== row.termId) {
+  if (observed.newMembersOnly && context.membership.firstTermId !== observed.termId) {
     throw new DomainError(t("T-674", { nombre: input.personName }));
   }
-  await lockOpenTermPoints(ctx.tx, row.termId);
+  await lockOpenTermPoints(ctx.tx, observed.termId);
+  // ADR-119 regla 1: el estado que vale es el de la ocasión tomada.
+  const row = await lockOccasion(ctx, observed);
+  assertOpenForOrganizer(row, input.source);
   const [existing] = await lockCheckIns(ctx, ofPerson(row.id, input.personId));
   if (existing) {
     if (!canTransitionCheckIn(existing.status, "APPROVED")) {
@@ -424,7 +470,10 @@ export async function hostCheckIn(
 
 // Decisiones sobre un check-in (aprobar, rechazar, anular).
 
-/** `current` llega de `lockCheckIns`, con el término ya tomado: se valida contra la fila retenida. */
+/**
+ * `current` llega de `lockCheckIns` y `row` de `lockOccasion`, con el término ya tomado: se valida
+ * contra las dos filas retenidas.
+ */
 async function decide(
   ctx: CommandContext,
   current: CheckInRow,
@@ -441,6 +490,11 @@ async function decide(
   const cleanReason = reason?.trim() || null;
   if (decision === "CANCEL" && !cleanReason) {
     throw new DomainError(t("T-609"), "reason");
+  }
+  // ADR-119 regla 1: en una ocasión cancelada ninguna asistencia vuelve a quedar aprobada. Rechazar
+  // y anular siguen valiendo: solo cierran.
+  if (target === "APPROVED" && row.status === "CANCELLED") {
+    throw new DomainError(t("T-578", { estado: occasionStatusLabel(row.status).toLowerCase() }));
   }
   await ctx.tx
     .update(checkIn)
@@ -524,7 +578,8 @@ export interface DecideInput {
 
 /**
  * Decide una asistencia por su id. La primera lectura va sin candado y solo dice de qué ocasión es,
- * que no cambia; el estado se lee con la fila tomada, después del término.
+ * que no cambia; el estado de la ocasión y el de la asistencia se leen con sus filas tomadas, después
+ * del término.
  */
 export async function decideCheckIn(
   ctx: CommandContext,
@@ -538,11 +593,12 @@ export async function decideCheckIn(
   if (!found) {
     throw new DomainError(t("T-032"));
   }
-  const row = await readOccasion(ctx, found.occasionId);
-  if (!row) {
+  const observed = await readOccasion(ctx, found.occasionId);
+  if (!observed) {
     throw new DomainError(t("T-032"));
   }
-  await lockOpenTermPoints(ctx.tx, row.termId);
+  await lockOpenTermPoints(ctx.tx, observed.termId);
+  const row = await lockOccasion(ctx, observed);
   const [current] = await lockCheckIns(ctx, eq(checkIn.id, input.checkInId));
   if (!current) {
     throw new DomainError(t("T-032"));
@@ -602,6 +658,13 @@ export async function decideMany(
   }
   for (const termId of [...new Set([...occasions.values()].map((row) => row.termId))].sort()) {
     await lockOpenTermPoints(ctx.tx, termId);
+  }
+  // Las ocasiones, en orden de id y antes que sus asistencias (ADR-119 regla 1).
+  for (const occasionId of [...occasions.keys()].sort()) {
+    const observed = occasions.get(occasionId);
+    if (observed) {
+      occasions.set(occasionId, await lockOccasion(ctx, observed));
+    }
   }
   const rows = await lockCheckIns(ctx, inArray(checkIn.id, ids));
   if (rows.length !== ids.length) {
