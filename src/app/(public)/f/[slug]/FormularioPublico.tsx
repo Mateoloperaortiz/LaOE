@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useId } from "react";
 import type { FormField } from "@/modules/forms";
+import { answersFromFormData } from "@/modules/forms/components/answers";
 import { FormFields } from "@/modules/forms/components/FormFields";
+import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { submitAction } from "./actions";
 import { initialSubmitState, type SubmitState } from "./state";
 
@@ -35,9 +37,19 @@ const inputClass =
   "w-full rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-base text-tinta focus:border-titulo focus:outline-none";
 
 export function FormularioPublico(props: FormularioPublicoProps) {
-  const [state, action, pending] = useActionState<SubmitState, FormData>(
+  const [state, action, pending] = useGuardedActionState<SubmitState, FormData>(
     submitAction,
     initialSubmitState,
+    ({ payload, message }) => ({
+      errors: {},
+      message,
+      values: {
+        firstName: submittedText(payload, "firstName"),
+        lastName: submittedText(payload, "lastName"),
+        email: submittedText(payload, "email"),
+        ...answersFromFormData(payload, props.fields),
+      },
+    }),
   );
   const baseId = useId();
   const value = (key: string) => {

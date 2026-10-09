@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { changePasswordAction, type PasswordState } from "./actions";
 
 export interface PasswordLabels {
@@ -24,7 +24,11 @@ const campo =
   "rounded-xl border-2 border-borde bg-fondo px-4 py-3 text-tinta focus:border-titulo focus:outline-none";
 
 export function PasswordForm({ hasPassword, labels }: Props) {
-  const [state, action, pending] = useActionState(changePasswordAction, inicial);
+  const [state, action, pending] = useGuardedActionState(
+    changePasswordAction,
+    inicial,
+    ({ message }) => ({ status: "error" as const, message }),
+  );
 
   return (
     <form action={action} className="flex max-w-md flex-col gap-4" noValidate>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { type StepUpState, stepUpAction } from "../actions";
 
 type Props = {
@@ -24,7 +24,11 @@ const errorClase = "rounded-lg bg-oe-orange px-3 py-2 text-sm font-semibold text
 // Step-up (ADR-051): la contraseña del actor antes de una acción sensible; el código al correo
 // queda como alternativa para cuando vuelva a llegar.
 export function StepUpForm({ initialState, labels }: Props) {
-  const [state, action, pending] = useActionState(stepUpAction, initialState);
+  const [state, action, pending] = useGuardedActionState(
+    stepUpAction,
+    initialState,
+    ({ previous, message }) => ({ ...previous, error: message }),
+  );
 
   if (state.mode === "password") {
     return (

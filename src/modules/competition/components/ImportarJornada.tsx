@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { inputClass } from "@/shared/admin-kit/AdminFields";
+import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 
 // Importar una jornada pegando la hoja de rotaciones de la OE (ADR-094). Si la casa encuentra
 // errores o advertencias, la hoja pegada se conserva para corregirla o confirmarla sin volver a
@@ -59,7 +59,18 @@ export function Issues({ items, more }: { items: string[]; more: string }) {
 }
 
 export function ImportarJornada({ competitionId, day, action, labels }: Props) {
-  const [state, submit, pending] = useActionState(action, IMPORT_DAY_IDLE);
+  const [state, submit, pending] = useGuardedActionState(
+    action,
+    IMPORT_DAY_IDLE,
+    ({ previous, payload, message }) => ({
+      ...previous,
+      attempt: previous.attempt + 1,
+      errors: [message],
+      warnings: [],
+      text: submittedText(payload, "text"),
+      minutes: submittedText(payload, "plannedMinutes"),
+    }),
+  );
   const id = `importar-${day}`;
   return (
     <details className="rounded-xl border border-borde p-4" open={state.attempt > 0}>

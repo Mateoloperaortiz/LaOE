@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { inputClass } from "@/shared/admin-kit/AdminFields";
+import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { Issues } from "./ImportarJornada";
 
 // Cargar el reparto de poderes pegando tres columnas: Equipo, Poder y Jornada (ADR-098). Si la casa
@@ -33,7 +33,16 @@ type Props = {
 };
 
 export function ImportarPoderes({ competitionId, action, labels, open = false }: Props) {
-  const [state, submit, pending] = useActionState(action, IMPORT_POWERS_IDLE);
+  const [state, submit, pending] = useGuardedActionState(
+    action,
+    IMPORT_POWERS_IDLE,
+    ({ previous, payload, message }) => ({
+      ...previous,
+      attempt: previous.attempt + 1,
+      errors: [message],
+      text: submittedText(payload, "text"),
+    }),
+  );
   return (
     <details className="rounded-xl border border-borde p-4" open={open || state.attempt > 0}>
       <summary className="cursor-pointer font-semibold">{labels.title}</summary>

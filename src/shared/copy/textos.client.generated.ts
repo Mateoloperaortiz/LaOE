@@ -324,6 +324,7 @@ export const textosCliente = {
   "T-3013": "Ya alcanzaste una meta. Guardá su premio para sumarlo a tus GH Points.",
   "T-309": "Comités",
   "T-310": "Este comité todavía no publicó su presentación.",
+  "T-3252": "No pudimos confirmar el envío. Revisá la conexión e intentá de nuevo.",
   "T-375": "Tus comités",
   "T-376": "Todavía no tenés comité este semestre. GH te ubica en uno.",
   "T-382": "Los demás comités",

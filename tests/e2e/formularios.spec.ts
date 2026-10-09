@@ -79,6 +79,16 @@ test("crear formulario público, responderlo y revisar la respuesta", async ({
       await page.goto(`/f/${SLUG}`);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("e2e Postulación");
       await sinViolaciones(page);
+      // Sin conexión (ADR-118 regla 20): el envío falla y el formulario sigue ahí con lo escrito.
+      await page.getByLabel(tList("T-851")[0]).fill("Lu");
+      await page.getByLabel("¿Por qué querés entrar?").fill("Se cayó la red.");
+      await context.setOffline(true);
+      await page.getByRole("button", { name: t("T-852") }).click();
+      await expect(page.getByRole("alert").filter({ hasText: t("T-3252") })).toBeVisible();
+      await expect(page.getByLabel(tList("T-851")[0])).toHaveValue("Lu");
+      await expect(page.getByLabel("¿Por qué querés entrar?")).toHaveValue("Se cayó la red.");
+      await context.setOffline(false);
+      await page.getByLabel("¿Por qué querés entrar?").fill("");
       // Sin consentimiento ni motivo: errores por campo.
       await page.getByLabel(tList("T-851")[0]).fill("Lu");
       await page.getByLabel(tList("T-851")[1]).fill("Prueba");

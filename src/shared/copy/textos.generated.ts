@@ -10652,6 +10652,13 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3252": {
+    where:
+      "Formularios: la acción no respondió, por la red o por un fallo que la casa no atrapó (ADR-118)",
+    text: "No pudimos confirmar el envío. Revisá la conexión e intentá de nuevo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

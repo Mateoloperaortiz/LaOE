@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { APP_TIME_ZONE } from "@/shared/lib/dates-pure";
+import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { issueGrantAction } from "./acceso-actions";
 import { type IssueGrantState, initialIssueGrantState } from "./acceso-state";
 
@@ -65,7 +66,11 @@ function Emitido({ state, labels }: { state: IssueGrantState; labels: IssueGrant
 
 // Emisión del enlace de acceso (ADR-051): el enlace vive solo en el estado de este formulario.
 export function IssueGrantPanel({ personId, returnTo, labels, onIssued }: Props) {
-  const [state, action, pending] = useActionState(issueGrantAction, initialIssueGrantState);
+  const [state, action, pending] = useGuardedActionState(
+    issueGrantAction,
+    initialIssueGrantState,
+    ({ previous, message }) => ({ ...previous, error: message }),
+  );
 
   return (
     <div className="flex flex-col gap-4">

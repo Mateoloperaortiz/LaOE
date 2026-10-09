@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { inputClass } from "@/shared/admin-kit/AdminFields";
+import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { Issues } from "./ImportarJornada";
 
 // Cargar las notas de un jurado de The Challenge pegando su tabla (ADR-103). Si la casa encuentra
@@ -34,7 +34,17 @@ type Props = {
 };
 
 export function ImportarJurado({ competitionId, extraId, action, labels }: Props) {
-  const [state, submit, pending] = useActionState(action, IMPORT_JURY_IDLE);
+  const [state, submit, pending] = useGuardedActionState(
+    action,
+    IMPORT_JURY_IDLE,
+    ({ previous, payload, message }) => ({
+      ...previous,
+      attempt: previous.attempt + 1,
+      errors: [message],
+      judge: submittedText(payload, "judge"),
+      text: submittedText(payload, "text"),
+    }),
+  );
   const id = `jurado-${extraId}`;
   return (
     <form key={state.attempt} action={submit} className="flex flex-col gap-3">

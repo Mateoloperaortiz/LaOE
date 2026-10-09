@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import { inputClass } from "@/shared/admin-kit/AdminFields";
+import { submittedText, useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { Issues } from "./ImportarJornada";
 
 // Cargar los capitanes pegando tres columnas de la hoja de la OE (ADR-095). Si la casa encuentra
@@ -32,7 +32,16 @@ type Props = {
 };
 
 export function ImportarCapitanes({ competitionId, action, labels }: Props) {
-  const [state, submit, pending] = useActionState(action, IMPORT_CAPTAINS_IDLE);
+  const [state, submit, pending] = useGuardedActionState(
+    action,
+    IMPORT_CAPTAINS_IDLE,
+    ({ previous, payload, message }) => ({
+      ...previous,
+      attempt: previous.attempt + 1,
+      errors: [message],
+      text: submittedText(payload, "text"),
+    }),
+  );
   return (
     <details className="rounded-xl border border-borde p-4" open={state.attempt > 0}>
       <summary className="cursor-pointer font-semibold">{labels.title}</summary>
