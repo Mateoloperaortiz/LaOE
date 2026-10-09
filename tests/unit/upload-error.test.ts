@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { t } from "@/shared/copy";
 import { UploadError, uploadErrorMessage } from "@/shared/ui/upload-error";
 
 // Qué texto ve la persona cuando una subida falla (ADR-118 regla 22).
 
-const FALLBACK = "No pudimos subir el archivo. Intentá de nuevo.";
+// El texto que le pasan el cargador de fotos y el de medios.
+const FALLBACK = t("T-363");
 const UPLOADERS = [
   "src/modules/people/components/PhotoUploader.tsx",
   "src/modules/content/components/MediaUploader.tsx",

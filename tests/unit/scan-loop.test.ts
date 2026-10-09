@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sendScan, startScanLoop } from "@/modules/participation/components/scan-loop";
+import { t } from "@/shared/copy";
 
 // El lector del carnet (ADR-118 regla 19): el sondeo con temporizadores falsos y el envío de una lectura.
 
-const FAILED = "No pudimos registrar la lectura.";
+const FAILED = t("T-3251");
 
 /** Un detector que tarda `ms` en responder y siempre ve el mismo carnet. */
 function slowDetector(ms: number, token: string | null = "carnet-de-ana") {
