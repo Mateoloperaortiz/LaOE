@@ -1,6 +1,6 @@
 # ADR-079: Ninguna espera es indefinida, y lo que se verifica sale de su fuente
 
-- Estado: Aceptada (enmendada por ADR-118)
+- Estado: Aceptada (enmendada por ADR-118 y ADR-119)
 - Fecha: 2026-09-19
 - Relacionadas: ADR-012, ADR-021, ADR-032, ADR-039
 - Enmienda: ADR-012 (ejecución del poller), ADR-032 (`db:release`)
@@ -59,3 +59,7 @@ Tres hallazgos menores del mismo corte entran aquí porque no cambian comportami
 La regla 6 decía que, si la base cortaba la conexión del poller mientras corrían los handlers, «la fila quedaría libre sin contar el intento y se reintentaría de inmediato y sin backoff», y lo evitaba exigiendo que la base esperara más que el poller. Eso cerraba una causa; la muerte del proceso con el evento tomado dejaba la fila igual (DT-212). [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 1 lo cierra para todas: el poller cuenta el intento y corre `nextAttemptAt` en una toma que confirma antes de correr los handlers. La invariante de `src/env.ts` sigue igual; lo que protege ahora es que un intento sano no se pierda por un corte de la base, no que la fila se reintente sin espera.
 
 Las consecuencias aceptaban que un handler abandonado por la regla 5 coincidiera con su propio reintento porque «el backoff mínimo es de un minuto». En ese caso no lo era: la espera se contaba desde el arranque del lote y, vencido un límite de 10 minutos, el reintento quedaba 9 minutos en el pasado y salía al tick siguiente (DT-213). ADR-118 regla 2 la cuenta desde el fallo: la regla 5 queda como estaba escrita, y ahora el minuto es real.
+
+## Enmienda (2026-10-09, ADR-119)
+
+Regla 2: el `error` del pool solo cubre a las conexiones inactivas, porque `pg-pool` le quita su oyente a la conexión al prestarla. Una prestada que PostgreSQL cerraba con la transacción abierta y sin consulta en curso, que es justo lo que hace el límite de la regla 1, dejaba una excepción sin atrapar (DT-238). Ahora cada conexión tiene además su propio oyente desde que se conecta, que registra el cierre sin datos de la consulta; la operación que la usaba sigue fallando con su error. Ver [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) regla 13.

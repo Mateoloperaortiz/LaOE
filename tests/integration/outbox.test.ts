@@ -1,5 +1,4 @@
 import { asc, count, eq, sql } from "drizzle-orm";
-import type { PoolClient } from "pg";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { type CommandContext, enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -440,17 +439,8 @@ describe("poller del outbox", () => {
   describe("el proceso muere con el evento tomado", () => {
     const DAY = 24 * 60 * 60_000;
 
-    // Una conexión prestada del pool no tiene quién oiga su `error` (el listener de `db/client.ts` es
-    // de las inactivas, DT-238): sin este, la conexión que la prueba cierra tumba la corrida.
-    const listening = new WeakSet<object>();
-    const listen = (client: PoolClient) => {
-      if (!listening.has(client)) {
-        listening.add(client);
-        client.on("error", () => {});
-      }
-    };
-    beforeEach(() => void db().$client.on("acquire", listen));
-    afterEach(() => void db().$client.off("acquire", listen));
+    // La conexión que estas pruebas cierran está prestada: su `error` lo oye el oyente por conexión de
+    // `db/client.ts` (ADR-119 regla 13). Sin él, cada una dejaba una excepción sin atrapar (DT-238).
 
     /**
      * Lo que le pasa a la fila cuando el proceso muere a mitad de un handler: PostgreSQL cierra la
