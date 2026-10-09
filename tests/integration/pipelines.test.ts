@@ -1,5 +1,5 @@
 import { and, eq, isNull } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { setMailTransportsForTests } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
@@ -16,22 +16,27 @@ import {
   saveStageAs,
 } from "@/modules/crm";
 import { pipelinesResource } from "@/modules/crm/admin";
+import { moveCard } from "@/modules/crm/domain/cards";
+import { saveStage } from "@/modules/crm/domain/pipelines";
 import { card, interaction, task } from "@/modules/crm/schema";
 import { getPublicForm, submitFormAs } from "@/modules/forms";
 import { getMembershipRef, getMyMembership } from "@/modules/people";
 import { person } from "@/modules/people/schema";
-import { outbox } from "@/modules/system/schema";
+import { auditLog, outbox } from "@/modules/system/schema";
 import type { MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
 import { copyPattern, itemPattern } from "../helpers/copy";
+import { holdCommand, waitingOn } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
+  seedCard,
   seedCommittee,
   seedForm,
   seedMember,
   seedOrganization,
   seedPerson,
+  seedPipeline,
   seedTerm,
 } from "./factories";
 
@@ -95,6 +100,159 @@ describe("pipelines y tarjetas", () => {
     await deleteStageAs(admin, added.id);
     expect((await listStages(id)).map((stage) => stage.name)).toEqual(tList("T-965"));
     await expect(deleteStageAs(admin, custom.stages[0]?.id ?? "")).rejects.toThrow(t("T-980"));
+  });
+
+  // Las tarjetas que ya están en una etapa siguen su marca (ADR-118 regla 16): hasta entonces
+  // `closedAt` solo se escribía al mover la tarjeta.
+  const closedAtOf = async (cardId: string) =>
+    (await getDb().select({ closedAt: card.closedAt }).from(card).where(eq(card.id, cardId)))[0]
+      ?.closedAt ?? null;
+  const stageOf = (pipe: { stages: Array<{ id: string }> }, index: number) =>
+    pipe.stages[index]?.id ?? "";
+  const openCardsOf = async (adminId: string, pipelineId: string) => {
+    const listed = await pipelinesResource.list({
+      q: "",
+      page: 1,
+      pageSize: 20,
+      filters: {},
+      actor: { personId: adminId, isAdmin: true },
+    });
+    return listed.rows.find((row) => row.id === pipelineId)?.openCards;
+  };
+
+  it("marcar como ganada o perdida una etapa cierra las tarjetas que ya están en ella, y desmarcarla las reabre", async () => {
+    const pipe = await seedPipeline("Alianzas", "CUSTOM", [
+      { name: "Contacto" },
+      { name: "Propuesta" },
+    ]);
+    const adminId = await seedMember("admin-etapas@eafit.edu.co");
+    const proposal = stageOf(pipe, 1);
+    const inStage = await seedCard(pipe.id, proposal, {
+      personId: await seedPerson("contacto@example.com"),
+    });
+    const elsewhere = await seedCard(pipe.id, stageOf(pipe, 0), {
+      personId: await seedPerson("otro.contacto@example.com"),
+    });
+    expect(await openCardsOf(adminId, pipe.id)).toBe(2);
+
+    await saveStageAs(admin, pipe.id, proposal, { name: "Propuesta", isWon: true, isLost: false });
+    const closedAt = await closedAtOf(inStage);
+    expect(closedAt).toBeInstanceOf(Date);
+    expect(await closedAtOf(elsewhere)).toBeNull();
+    expect(await openCardsOf(adminId, pipe.id)).toBe(1);
+
+    // De ganada a perdida la tarjeta sigue cerrada, con la fecha que ya tenía.
+    await saveStageAs(admin, pipe.id, proposal, { name: "Propuesta", isWon: false, isLost: true });
+    expect(await closedAtOf(inStage)).toEqual(closedAt);
+
+    await saveStageAs(admin, pipe.id, proposal, { name: "Propuesta", isWon: false, isLost: false });
+    expect(await closedAtOf(inStage)).toBeNull();
+    expect(await openCardsOf(adminId, pipe.id)).toBe(2);
+  });
+
+  it("guardar una etapa ganada cierra la tarjeta que había quedado abierta en ella y deja la cuenta en la auditoría", async () => {
+    const pipe = await seedPipeline("Alianzas", "CUSTOM", [
+      { name: "Contacto" },
+      { name: "Firmada", isWon: true },
+    ]);
+    const signed = stageOf(pipe, 1);
+    // Como quedaban antes de la regla: abierta, en una etapa que ya era ganada.
+    const stray = await seedCard(pipe.id, signed, {
+      personId: await seedPerson("descuadrada@example.com"),
+    });
+    expect(await closedAtOf(stray)).toBeNull();
+
+    await saveStageAs(admin, pipe.id, signed, {
+      name: "Firmada y pagada",
+      isWon: true,
+      isLost: false,
+    });
+
+    expect(await closedAtOf(stray)).toBeInstanceOf(Date);
+    const audits = await getDb()
+      .select({ after: auditLog.after })
+      .from(auditLog)
+      .where(and(eq(auditLog.action, "pipeline.stage-updated"), eq(auditLog.entityId, pipe.id)));
+    expect(audits).toEqual([
+      { after: { name: "Firmada y pagada", isWon: true, isLost: false, closedCards: 1 } },
+    ]);
+  });
+
+  it("marcar como ganada una etapa con tarjetas las cierra sin los efectos de moverlas: ni tarea de patrocinio ni membresía exigida (decisión abierta 46)", async () => {
+    const sponsorship = await seedPipeline("Patrocinios", "SPONSORSHIP", [
+      { name: "Contacto" },
+      { name: "Negociación" },
+    ]);
+    const sponsored = await seedCard(sponsorship.id, stageOf(sponsorship, 1), {
+      organizationId: await seedOrganization("Aliado sintético"),
+    });
+    await saveStageAs(admin, sponsorship.id, stageOf(sponsorship, 1), {
+      name: "Negociación",
+      isWon: true,
+      isLost: false,
+    });
+    expect(await closedAtOf(sponsored)).toBeInstanceOf(Date);
+    // Mover la tarjeta a una etapa ganada abre la tarea de seguimiento (T-994); marcar la etapa, no.
+    expect(await getDb().select().from(task)).toEqual([]);
+
+    const admission = await seedPipeline("Admisión", "ADMISSION", [
+      { name: "Recibida" },
+      { name: "Entrevista" },
+    ]);
+    const applicant = await seedPerson("postulante@example.com");
+    const applying = await seedCard(admission.id, stageOf(admission, 1), { personId: applicant });
+    // Mover a una etapa ganada de admisión exige la membresía (T-991); marcar la etapa, no.
+    await saveStageAs(admin, admission.id, stageOf(admission, 1), {
+      name: "Entrevista",
+      isWon: true,
+      isLost: false,
+    });
+    expect(await closedAtOf(applying)).toBeInstanceOf(Date);
+    expect(await getMembershipRef(applicant)).toBeNull();
+  });
+
+  it("una tarjeta que entra a la etapa mientras se guarda su marca queda con la marca nueva, llegue quien llegue primero", async () => {
+    const pipe = await seedPipeline("Alianzas", "CUSTOM", [
+      { name: "Contacto" },
+      { name: "Propuesta" },
+    ]);
+    const proposal = stageOf(pipe, 1);
+    const won = { name: "Propuesta", isWon: true, isLost: false };
+    const arriving = await seedCard(pipe.id, stageOf(pipe, 0), {
+      personId: await seedPerson("llega@example.com"),
+    });
+
+    // La marca entra primero y no ha confirmado: mover espera y lee la marca nueva.
+    const marking = await holdCommand(admin, (ctx) => saveStage(ctx, pipe.id, proposal, won));
+    const moving = moveCardAs(admin, arriving, proposal);
+    try {
+      await vi.waitFor(async () => expect(await waitingOn(marking.pid)).toBeGreaterThan(0), {
+        timeout: 5_000,
+      });
+    } finally {
+      marking.release();
+      await marking.done;
+      await moving;
+    }
+    expect(await closedAtOf(arriving)).toBeInstanceOf(Date);
+
+    // Al revés: mover entra primero y no ha confirmado. Desmarcar espera y reabre también a la recién llegada.
+    const other = await seedCard(pipe.id, stageOf(pipe, 0), {
+      personId: await seedPerson("otra.llega@example.com"),
+    });
+    const held = await holdCommand(admin, (ctx) => moveCard(ctx, other, proposal));
+    const unmarking = saveStageAs(admin, pipe.id, proposal, { ...won, isWon: false });
+    try {
+      await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBeGreaterThan(0), {
+        timeout: 5_000,
+      });
+    } finally {
+      held.release();
+      await held.done;
+      await unmarking;
+    }
+    expect(await closedAtOf(other)).toBeNull();
+    expect(await closedAtOf(arriving)).toBeNull();
   });
 
   it("una tarjeta tiene un sujeto, entra a la primera etapa abierta y mover cierra y reabre", async () => {

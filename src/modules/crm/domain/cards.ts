@@ -387,7 +387,13 @@ export async function moveCard(
 ): Promise<void> {
   const row = await requireCard(ctx, cardId);
   const [own] = await ctx.tx.select().from(pipeline).where(eq(pipeline.id, row.pipelineId));
-  const [target] = await ctx.tx.select().from(pipelineStage).where(eq(pipelineStage.id, stageId));
+  // La etapa de destino se lee con candado compartido: guardar su marca de ganada o perdida espera a
+  // este movimiento, y este espera a una marca sin confirmar (ADR-118 regla 16).
+  const [target] = await ctx.tx
+    .select()
+    .from(pipelineStage)
+    .where(eq(pipelineStage.id, stageId))
+    .for("share");
   const [from] = await ctx.tx.select().from(pipelineStage).where(eq(pipelineStage.id, row.stageId));
   if (!own || !target || target.pipelineId !== row.pipelineId) {
     throw new DomainError(t("T-032"), "stageId");

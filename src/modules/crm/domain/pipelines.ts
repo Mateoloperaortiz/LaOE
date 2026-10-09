@@ -1,11 +1,16 @@
-import { and, asc, count, desc, eq, ilike, inArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { card, pipeline, pipelineStage } from "../schema";
-import { PIPELINE_KINDS, type PipelineKind, templateStages } from "./pipelines-pure";
+import {
+  closedAtAfterMove,
+  PIPELINE_KINDS,
+  type PipelineKind,
+  templateStages,
+} from "./pipelines-pure";
 
 // Pipelines (02-crm.md, ADR-037 regla 7): crearlo siembra la plantilla de su tipo; las etapas se
 // renombran, reordenan y marcan como ganada o perdida desde el kanban.
@@ -206,7 +211,12 @@ async function requireStage(ctx: CommandContext, stageId: string): Promise<Stage
   return stage;
 }
 
-/** Crea una etapa al final o renombra y marca una existente; nunca ganada y perdida a la vez (T-979). */
+/**
+ * Crea una etapa al final o renombra y marca una existente; nunca ganada y perdida a la vez (T-979).
+ * Las tarjetas que ya están en la etapa siguen su marca (ADR-118 regla 16): si la etapa queda ganada
+ * o perdida, las que estaban abiertas se cierran con la fecha de ahora; si queda abierta, las cerradas
+ * se reabren. Una tarjeta que ya estaba cerrada conserva su fecha, también de ganada a perdida.
+ */
 export async function saveStage(
   ctx: CommandContext,
   pipelineId: string,
@@ -217,20 +227,40 @@ export async function saveStage(
     throw new DomainError(t("T-979"), "isLost");
   }
   if (stageId) {
-    const stage = await requireStage(ctx, stageId);
-    if (stage.pipelineId !== pipelineId) {
+    // La etapa se lee bajo candado: mover una tarjeta hacia ella la lee con candado compartido, así
+    // que espera a que la marca quede guardada, y la marca espera a un movimiento sin confirmar.
+    const [stage] = await ctx.tx
+      .select()
+      .from(pipelineStage)
+      .where(eq(pipelineStage.id, stageId))
+      .for("no key update");
+    if (!stage || stage.pipelineId !== pipelineId) {
       throw new DomainError(t("T-032"));
     }
     await ctx.tx
       .update(pipelineStage)
       .set({ name: input.name, isWon: input.isWon, isLost: input.isLost })
       .where(eq(pipelineStage.id, stageId));
+    const closes = input.isWon || input.isLost;
+    const touched = await ctx.tx
+      .update(card)
+      .set({ closedAt: closedAtAfterMove(input) })
+      .where(
+        and(eq(card.stageId, stageId), closes ? isNull(card.closedAt) : isNotNull(card.closedAt)),
+      )
+      .returning({ id: card.id });
+    const cards =
+      touched.length === 0
+        ? null
+        : closes
+          ? { closedCards: touched.length }
+          : { reopenedCards: touched.length };
     await ctx.audit({
       action: "pipeline.stage-updated",
       entityType: "pipeline",
       entityId: pipelineId,
       before: { name: stage.name, isWon: stage.isWon, isLost: stage.isLost },
-      after: input,
+      after: { ...input, ...cards },
     });
     return { id: stageId };
   }
