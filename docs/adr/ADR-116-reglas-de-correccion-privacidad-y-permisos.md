@@ -294,3 +294,5 @@ La regla 15 dice que el handler de la baja borra el token del calendario y que q
 ## Enmienda (2026-10-09, ADR-119)
 
 La regla 2 fija el orden de candados de los caminos de una asistencia y no nombra la ocasión: el registro propio y el del organizador la leían sin candado y decidir no miraba su estado, así que una asistencia podía nacer o reaprobarse en una ocasión cancelada (DT-161). [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) regla 1 le suma un lugar al orden: término → ocasión (compartido; abrir, cerrar y cancelar la toman exclusiva) → persona → asistencias → recálculo → premio → reto presencial. Crear y decidir validan el estado de la ocasión contra esa fila tomada. La excusa sigue sin tomarla.
+
+La regla 2 se escribió para las asistencias que ya existen. El registro propio que elige un booster tomaba el premio de la persona antes de insertar la suya y se interbloqueaba con el del organizador, que inserta primero (DT-163). ADR-119 regla 3: la asistencia que nace se inserta en el lugar de las asistencias, antes del recálculo y del premio, y el booster elegido en el registro se apunta después.

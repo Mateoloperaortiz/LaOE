@@ -205,6 +205,11 @@ export async function setBoosterTarget(
     now?: Date | undefined;
     /** El check-in válido continúa si otra entrega ya reservó o consumió el booster propio. */
     allowUnavailable?: boolean;
+    /**
+     * La asistencia que se está registrando con este booster (ADR-119 regla 3): ya está insertada
+     * cuando se apunta y no cuenta como participación previa en su ocasión.
+     */
+    forCheckInId?: string | undefined;
   },
   context: { member: MemberContext | null; settings: GamificationSettings },
 ): Promise<BoosterRow> {
@@ -311,6 +316,7 @@ export async function setBoosterTarget(
           eq(checkIn.occasionId, occasionId),
           eq(checkIn.personId, input.personId),
           inArray(checkIn.status, ["PENDING", "APPROVED"]),
+          input.forCheckInId ? ne(checkIn.id, input.forCheckInId) : undefined,
         ),
       )
       .limit(1);

@@ -3,7 +3,7 @@
 - Estado: Aceptada
 - Fecha: 2026-10-09
 - Relacionadas: ADR-006, ADR-012, ADR-035, ADR-060, ADR-067, ADR-109, ADR-111, ADR-114, ADR-116
-- Enmienda: ADR-035 (regla 6: en una ocasión cancelada ninguna asistencia nace ni vuelve a quedar aprobada), ADR-116 (regla 2: el orden de candados gana la ocasión, entre el término y la persona)
+- Enmienda: ADR-035 (regla 6: en una ocasión cancelada ninguna asistencia nace ni vuelve a quedar aprobada), ADR-116 (regla 2: el orden de candados gana la ocasión, entre el término y la persona, y la asistencia que nace se inserta en el lugar de las asistencias, antes del premio)
 
 ## Contexto
 
@@ -15,6 +15,7 @@ El séptimo ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo
 - Un rechazo de una ocasión ya cancelada se reaprobaba y acreditaba: `REJECTED → APPROVED` vale según [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) regla 6, la cancelación no toca los rechazos y decidir no preguntaba por la ocasión. Sin concurrencia, desde la consola.
 - Reaprobar un rechazo mientras la ocasión se cancela esperaba la fila de la asistencia, que la cancelación tiene tomada, y la aprobaba apenas la soltaba.
 **La excusa que respondía con el error de la base (DT-162).** Si la persona no tenía asistencia, `excuseCheckIn` la inserta ya excusada. El registro propio y el del organizador convierten la violación del índice único `check_in_occasion_person_unique` en su respuesta de siempre; la excusa no la capturaba. Reproducido con una prueba (`tests/integration/participation-checkin-excuse-collision.test.ts`): con el registro del organizador escrito y sin confirmar, aceptar la excusa esperaba en el índice y, al confirmar el registro, la aprobación de la solicitud fallaba con el `Failed query: insert into "check_in"…` de la base.
+**El registro propio con booster y el del organizador se interbloqueaban (DT-163).** El orden de ADR-116 regla 2 pone el premio (`reward:<persona>`, su fila, el booster) después de las asistencias, y lo escribió para las asistencias que ya existen. El registro propio que elige un booster iba al revés: tomaba `reward:<persona>` y la fila del booster para validarlo y recién después insertaba la asistencia. El del organizador inserta primero y va por el premio después, si hay un booster apuntado o una campaña. Reproducido con una prueba (`tests/integration/participation-checkin-lock-order.test.ts`): con el booster apuntado a la ocasión, el propio esperaba en el índice único la fila que el organizador ya había escrito, con `reward:<persona>` tomado, y el organizador esperaba `reward:<persona>`. PostgreSQL cortaba a uno al segundo y esa persona veía `deadlock detected` sin traducir.
 
 ## Decisión
 
@@ -28,6 +29,7 @@ El séptimo ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo
 
    La excusa no toma la ocasión. Su asistencia no queda viva: no tiene crédito ni premio y la cancelación no toca las excusadas, así que excusar a la vez que se cancela deja lo mismo que excusar justo antes.
 2. **La excusa que choca con un registro simultáneo responde lo de siempre.** `excuseCheckIn` convierte la violación de `check_in_occasion_person_unique` en T-2223 («esa ocasión ya tiene tu asistencia registrada»), el error que ya daba al encontrar la asistencia aprobada, y la aprobación de la solicitud no escribe nada. No reintenta: la transacción quedó abortada. Quien revisa la solicitud la decide otra vez con la asistencia a la vista: sobre una pendiente la excusa vale, sobre una aprobada no ([ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 1).
+3. **Crear una asistencia ocupa el lugar de «asistencias» en el orden de candados.** El orden de ADR-116 regla 2 vale también para la asistencia que todavía no existe: se inserta donde las demás se toman, después del término, de la ocasión y de la persona, y antes de encolar el recálculo y de ir por el premio. Queda un solo orden para los cinco caminos: término → ocasión → persona (solo la excusa) → asistencias (tomadas por `id` o insertadas) → recálculo → premio (`reward:<persona>`, su fila, el booster) → reto presencial y su entrega. El registro propio que elige un booster inserta, acredita, audita y encola, y recién entonces toma `reward:<persona>`, apunta el booster y corre los dos ganchos. `setBoosterTarget` recibe la asistencia que se está registrando (`forCheckInId`) para que no cuente como participación previa en su ocasión. Si el booster no vale, la asistencia ya está escrita: `checkInSelf` lanza `BoosterDenied`, la transacción se deshace entera y `checkInSelfAs` responde lo de siempre (`BOOSTER` con su mensaje). Dentro del premio se conserva el orden de `reserveReward`: persona antes que booster.
 
 ## Consecuencias
 
@@ -35,3 +37,5 @@ El séptimo ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo
 - El registro que llega mientras la ocasión se cierra responde `CLOSED` en vez de nacer en una ocasión cerrada: es la misma lectura.
 - La regla no limpia lo que ya exista. Si en producción quedó alguna asistencia viva en una ocasión cancelada, se anula desde la consola, que lo sigue admitiendo; no se buscó si las hay (DT-268).
 - La excusa que pierde contra un registro responde T-2223 aunque el registro haya quedado pendiente, que la excusa sí admite: el segundo intento la acepta. Tomar la asistencia que todavía no existe para evitar ese rebote pediría un candado por ocasión y persona que hoy nadie toma.
+- Un registro propio con un booster que no vale escribe su asistencia y la deshace, en vez de no escribir nada. Por fuera responde igual. En una carrera con otro registro de la misma persona responde `ALREADY` antes de mirar el booster.
+- En la auditoría del registro propio con booster, `booster.targeted` queda escrito después de `checkin.created`, dentro de la misma transacción y con el mismo instante. Ninguna prueba dependía de ese orden.

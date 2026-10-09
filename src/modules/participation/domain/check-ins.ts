@@ -40,7 +40,8 @@ import { verifyRotatingCode } from "./rotating-code-pure";
 //
 // Orden de candados (ADR-116 regla 2 y ADR-119 regla 1), el mismo en todos los caminos: término
 // (compartido) → ocasión (compartido; abrir, cerrar y cancelar la toman exclusiva) → persona
-// (compartido, solo la excusa) → asistencias (fila, por id) → recálculo del puntaje (`score:<ocasión>`
+// (compartido, solo la excusa) → asistencias (fila, por id; la que nace se inserta en este lugar,
+// ADR-119 regla 3) → recálculo del puntaje (`score:<ocasión>`
 // en el outbox: un solo pendiente, el segundo que lo encola espera al primero) → premio
 // (`reward:<persona>`, su fila, el booster) → reto presencial y su entrega. Quien toma varias
 // asistencias las toma todas antes de encolar nada: nadie espera una fila con el recálculo encolado.
@@ -67,6 +68,17 @@ export class AlreadyCheckedIn extends Error {
   ) {
     super("check-in repetido");
     this.name = "AlreadyCheckedIn";
+  }
+}
+
+/**
+ * Señal para el wrapper: el booster elegido en el registro no vale. La asistencia ya estaba escrita
+ * (ADR-119 regla 3), así que la transacción se deshace entera y el wrapper responde `BOOSTER`.
+ */
+export class BoosterDenied extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BoosterDenied";
   }
 }
 
@@ -269,31 +281,6 @@ export async function checkInSelf(
       return { ok: false, reason: "BAD_CODE" };
     }
   }
-  let selectedBooster: BoosterRow | undefined;
-  if (input.boosterId && context.settings) {
-    // Mismo orden que reserveReward: persona antes que booster, también en carreras con trivia.
-    await ctx.tx.execute(
-      sql`select pg_advisory_xact_lock(hashtextextended(${`reward:${input.personId}`}, 0))`,
-    );
-    try {
-      selectedBooster = await setBoosterTarget(
-        ctx,
-        {
-          personId: input.personId,
-          boosterId: input.boosterId,
-          target: { occasionId: row.id },
-          now,
-          allowUnavailable: true,
-        },
-        { member: context.member ?? null, settings: context.settings },
-      );
-    } catch (error) {
-      if (error instanceof DomainError) {
-        return { ok: false, reason: "BOOSTER", message: error.message };
-      }
-      throw error;
-    }
-  }
   const status = initialStatus("SELF_QR", row.approval);
   let created: CheckInRow | undefined;
   try {
@@ -337,6 +324,35 @@ export async function checkInSelf(
     await emitApproved(ctx, row, input.personId, "SELF_QR");
   } else {
     await ctx.emit(eventOf(checkinPending, approvedPayload(row, input.personId, "SELF_QR")));
+  }
+  // ADR-119 regla 3: el premio de la persona y el booster que eligió se toman aquí, con la asistencia
+  // ya insertada y el recálculo encolado, que es su lugar en el orden de candados. Si el booster no
+  // vale, la asistencia ya está escrita: la señal deshace la transacción y el wrapper responde.
+  let selectedBooster: BoosterRow | undefined;
+  if (input.boosterId && context.settings) {
+    // Mismo orden que reserveReward: persona antes que booster, también en carreras con trivia.
+    await ctx.tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${`reward:${input.personId}`}, 0))`,
+    );
+    try {
+      selectedBooster = await setBoosterTarget(
+        ctx,
+        {
+          personId: input.personId,
+          boosterId: input.boosterId,
+          target: { occasionId: row.id },
+          now,
+          allowUnavailable: true,
+          forCheckInId: created.id,
+        },
+        { member: context.member ?? null, settings: context.settings },
+      );
+    } catch (error) {
+      if (error instanceof DomainError) {
+        throw new BoosterDenied(error.message);
+      }
+      throw error;
+    }
   }
   // ADR-067 reglas 8 y 12: el booster de la ocasión se resuelve antes que el reto presencial.
   if (context.settings) {

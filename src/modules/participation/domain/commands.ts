@@ -9,6 +9,7 @@ import { type AdjustRequirementInput, adjustRequirement } from "./assemblies";
 import {
   AlreadyCheckedIn,
   type BatchDecision,
+  BoosterDenied,
   cancelOccasionCheckIns,
   checkInSelf,
   type DecideInput,
@@ -136,6 +137,9 @@ export async function checkInSelfAs(
       if (existing) {
         return { ok: false, reason: "ALREADY", existing };
       }
+    }
+    if (error instanceof BoosterDenied) {
+      return { ok: false, reason: "BOOSTER", message: error.message };
     }
     throw error;
   }
