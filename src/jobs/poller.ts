@@ -332,15 +332,17 @@ async function giveKeyBack(tx: Tx, id: string, key: string): Promise<boolean> {
 }
 
 /**
- * La clave de una fila sin dueño ya la ocupa otro pendiente. Dos eventos de una clave son
- * intercambiables (el outbox descarta el segundo cuando el primero está en cola), así que el pendiente
- * hace también el trabajo de la fila: hereda sus intentos y su espera, el mayor de los dos intentos y
- * la más tardía de las dos esperas, y la fila se da por atendida con su clave, como el dead letter que
- * se reintenta con la clave ocupada (ADR-113 regla 8). Con la cuenta heredada, un evento con clave que
- * tumba el proceso gasta sus cinco intentos aunque en cada corrida llegue un emit (ADR-118 regla 1).
+ * La clave de una fila sin dueño ya la ocupa otro pendiente. Dos eventos de un mismo tipo y una misma
+ * clave valen el uno por el otro (el outbox descarta el segundo cuando el primero está en cola, y acá
+ * el más nuevo cubre al más viejo), así que el pendiente hace también el trabajo de la fila: hereda
+ * sus intentos y su espera, el mayor de los dos intentos y la más tardía de las dos esperas, y la fila
+ * se da por atendida con su clave, como el dead letter que se reintenta con la clave ocupada (ADR-113
+ * regla 8). Con la cuenta heredada, un evento con clave que tumba el proceso gasta sus cinco intentos
+ * aunque en cada corrida llegue un emit (ADR-118 regla 1).
  *
- * Bloquea al pendiente antes de escribirle y devuelve su id. Responde `null` si ya no está en cola:
- * otro poller lo tomó, y con eso la clave quedó libre.
+ * Bloquea al pendiente antes de escribirle y devuelve su id. Responde `null` si ya no está en cola
+ * (otro poller lo tomó, y con eso la clave quedó libre) o si es de otro tipo de evento: ahí la fila
+ * sigue sin clave y reintenta por su cuenta, como la que falla con su clave ocupada.
  */
 async function supersede(
   tx: Tx,
@@ -351,7 +353,15 @@ async function supersede(
   const [heir] = await tx
     .select({ id: outbox.id })
     .from(outbox)
-    .where(and(eq(outbox.dedupeKey, key), isNull(outbox.processedAt), isNull(outbox.deadLetterAt)))
+    .where(
+      and(
+        eq(outbox.dedupeKey, key),
+        // Solo vale por la fila un evento de su mismo tipo: los handlers de otro no hacen su trabajo.
+        eq(outbox.eventType, orphan.eventType),
+        isNull(outbox.processedAt),
+        isNull(outbox.deadLetterAt),
+      ),
+    )
     .for("update");
   if (!heir) {
     return null;

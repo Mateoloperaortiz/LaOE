@@ -710,6 +710,37 @@ describe("poller del outbox", () => {
         expect(await rowsByAge()).toHaveLength(2);
       });
 
+      it("si el pendiente que ocupa la clave es de otro tipo de evento, no hereda: el que murió sigue por su cuenta y corren los dos", async () => {
+        const ran: string[] = [];
+        registerHandler("test.crash", async () => void ran.push("el que murió"));
+        registerHandler("test.other", async () => void ran.push("el otro"));
+        // La fila que quedó tomada cuando el proceso murió, y un pendiente de otro tipo con su clave.
+        await db()
+          .insert(outbox)
+          .values({
+            eventType: "test.crash",
+            payload: {},
+            attempts: 1,
+            takenDedupeKey: KEY,
+            nextAttemptAt: after(60_000),
+            createdAt: START,
+          });
+        await enqueueEvent(db(), { type: "test.other", payload: {}, dedupeKey: KEY }, after(1_000));
+
+        expect(await restoreTakenKeys(at(after(2_000)))).toEqual({ restored: 0, superseded: 0 });
+        const [orphan, other] = await rowsByAge();
+        expect([
+          orphan?.dedupeKey,
+          orphan?.takenDedupeKey,
+          orphan?.attempts,
+          orphan?.processedAt,
+        ]).toEqual([null, KEY, 1, null]);
+        expect([other?.dedupeKey, other?.attempts]).toEqual([KEY, 0]);
+
+        await drain(10, at(after(DAY)));
+        expect(ran.sort()).toEqual(["el otro", "el que murió"]);
+      });
+
       it("si otro poller toma al que ocupa la clave justo cuando iba a heredar, el que murió recupera su clave y nadie queda atendido sin correr", async () => {
         let runs = 0;
         registerHandler("test.crash", async () => {
