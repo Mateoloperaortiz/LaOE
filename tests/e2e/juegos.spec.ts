@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { applyGame2048Move, game2048Reward } from "@/modules/participation/game2048-engine";
 import type { Game2048Move } from "@/modules/participation/game2048-types";
@@ -29,8 +29,20 @@ async function tablero(page: Page): Promise<number[]> {
     );
 }
 
+/** Parejas de fichas iguales pegadas: mientras quede una, queda una jugada que junta. */
+function parejas(board: readonly number[]): number {
+  let total = 0;
+  for (const [i, cell] of board.entries()) {
+    if (cell === 0) continue;
+    if (i % 4 < 3 && cell === board[i + 1]) total += 1;
+    if (cell === board[i + 4]) total += 1;
+  }
+  return total;
+}
+
 /**
- * Elige dirección con el motor: `bien` deja más casillas libres, y su contrario llena el tablero.
+ * Elige dirección con el motor: `bien` deja más casillas libres, y su contrario busca el tablero
+ * sin jugadas, que es uno sin parejas que juntar y lleno.
  * La partida del test juega bien hasta cruzar el primer umbral y después se apura a terminar.
  */
 function elegir(board: number[], bien: boolean): Game2048Move | null {
@@ -42,7 +54,9 @@ function elegir(board: number[], bien: boolean): Game2048Move | null {
     );
     if (!next) continue;
     const libres = next.board.filter((cell) => cell === 0).length;
-    const value = (bien ? libres * 100 + next.score : -libres * 100) as number;
+    const value: number = bien
+      ? libres * 100 + next.score
+      : -(parejas(next.board) * 100 + libres * 10);
     if (!best || value > best.value) best = { move, value };
   }
   return best?.move ?? null;
@@ -54,8 +68,13 @@ async function puntajeVisible(page: Page): Promise<number> {
 }
 
 /**
- * Juega bien hasta cruzar el primer umbral —así el premio no depende de la suerte— y después se
- * apura a llenar el tablero. Cuando ya no hay jugada, el tablero se cierra solo y se guarda.
+ * Juega bien hasta pasar `umbral` y después se apura a dejar el tablero sin jugadas; con `umbral`
+ * 0 lo busca desde el principio. Cuando ya no hay jugada, el tablero se cierra solo y se guarda.
+ *
+ * Ninguna de las dos maneras asegura el resultado, porque la semilla la reparte el servidor: en
+ * 100.000 semillas (2026-10-09) jugar bien se quedó bajo el primer umbral de premio en el 2,4 %, y
+ * jugar a cerrar no lo pasó en ninguna (844 puntos la más alta), que tampoco es una garantía. Lo
+ * que salió se le pregunta a `cierreSegunPuntaje`.
  */
 async function jugarHastaElFinal(page: Page, umbral = 1_500, limite = 1_500): Promise<void> {
   const juego = page.locator("#game2048");
@@ -91,6 +110,56 @@ async function creditos() {
   return getDb().select().from(pointEntry).where(eq(pointEntry.kind, "GAME2048"));
 }
 
+/** La partida que la página acaba de cerrar. */
+async function ultimaPartida() {
+  const [ultima] = await getDb()
+    .select()
+    .from(game2048Run)
+    .orderBy(desc(game2048Run.createdAt))
+    .limit(1);
+  if (!ultima) throw new Error("No hay ninguna partida de 2048 guardada");
+  return ultima;
+}
+
+/**
+ * Comprueba el cierre de una partida sin suponer su premio (DT-095): lee el puntaje que quedó en
+ * pantalla y exige lo que le toca a ese puntaje, en la página y en la base. `yaAcreditado` son los
+ * GH Points que el 2048 ya sumó hoy; devuelve los que sumó esta partida. Deja anotado qué caso vio
+ * la corrida, porque no es el mismo cada vez.
+ */
+async function cierreSegunPuntaje(page: Page, yaAcreditado: number): Promise<number> {
+  const puntaje = await puntajeVisible(page);
+  const premio = game2048Reward(puntaje);
+  // Con el crédito del día tomado, ningún puntaje vuelve a sumar.
+  const suma = yaAcreditado > 0 ? 0 : premio;
+  const caso =
+    suma > 0
+      ? `${puntaje} puntos: suma ${suma}`
+      : yaAcreditado > 0
+        ? `${puntaje} puntos, que pagarían ${premio}: hoy ya sumó ${yaAcreditado} y no suma otra vez`
+        : `${puntaje} puntos: no llega al primer umbral y el crédito del día sigue libre`;
+  test.info().annotations.push({ type: "2048", description: caso });
+
+  const ultima = await ultimaPartida();
+  expect(ultima.status, caso).toBe("FINISHED");
+  expect(ultima.moveCount, caso).toBe(ultima.moves?.length);
+  // El puntaje que muestra la página es el que el servidor calculó al rejugar, y el que guardó.
+  expect(ultima.score, caso).toBe(puntaje);
+  expect(ultima.creditedPoints, caso).toBe(suma > 0 ? suma : null);
+  const total = yaAcreditado + suma;
+  expect(
+    (await creditos()).map((credito) => credito.points),
+    caso,
+  ).toEqual(total > 0 ? [total] : []);
+  await expect(
+    page
+      .locator("#game2048")
+      .getByText(suma > 0 ? t("T-2651", { n: suma }) : t(yaAcreditado > 0 ? "T-2653" : "T-2652")),
+    caso,
+  ).toBeVisible();
+  return suma;
+}
+
 test("la biblioteca muestra los juegos y se llega desde GH Points", async ({ page }) => {
   await page.goto("/app/gh-points");
   await page.getByRole("link", { name: t("T-2625") }).click();
@@ -107,34 +176,25 @@ test("la biblioteca muestra los juegos y se llega desde GH Points", async ({ pag
   await expect(page.getByRole("heading", { name: t("T-2628"), level: 1 })).toBeVisible();
 });
 
-test("una partida real acredita una sola vez y la segunda del día ya no suma", async ({ page }) => {
+test("cada partida real muestra el premio de su puntaje y el día acredita una sola vez", async ({
+  page,
+}) => {
   await page.goto("/app/juegos/2048");
-  const juego = page.locator("#game2048");
   // Leer no reparte semillas: la partida nace al pulsar.
   expect(await partidas()).toHaveLength(0);
-  await juego.getByRole("button", { name: t("T-2633") }).click();
-  await expect(juego.getByRole("button", { name: tList("T-2639")[0] })).toBeVisible();
-  expect(await partidas()).toHaveLength(1);
 
-  await jugarHastaElFinal(page);
-  const [primera] = await partidas();
-  expect(primera?.status).toBe("FINISHED");
-  expect(primera?.moveCount).toBe(primera?.moves?.length);
-  // El puntaje que guarda la base es el que el servidor calculó al rejugar, y la página lo muestra.
-  await expect(juego.getByText(t("T-2640", { puntaje: String(primera?.score) }))).toBeVisible();
-  const premio = game2048Reward(primera?.score ?? 0);
-  expect(premio).toBeGreaterThan(0);
-  expect(primera?.creditedPoints).toBe(premio);
-  expect(await creditos()).toHaveLength(1);
-  await expect(juego.getByText(t("T-2651", { n: premio }))).toBeVisible();
-
-  // La segunda partida del día se juega igual y se guarda, pero no acredita otra vez.
-  await page.reload();
-  await juego.getByRole("button", { name: t("T-2633") }).click();
-  await jugarHastaElFinal(page);
-  expect(await partidas()).toHaveLength(2);
-  expect(await creditos()).toHaveLength(1);
-  await expect(juego.getByText(t("T-2653"))).toBeVisible();
+  // Un día de tres partidas. La primera se juega a cerrar el tablero cuanto antes, que se queda sin
+  // premio y deja libre el crédito; las otras dos se juegan bien, y la que cierre con el crédito del
+  // día ya tomado se guarda igual y no suma. Qué le toca a cada una lo dice su puntaje.
+  let acreditado = 0;
+  for (const [indice, umbral] of [0, 1_500, 1_500].entries()) {
+    // Con la página recargada, que hoy ya sumó sale de lo que guardó el servidor.
+    if (indice > 0) await page.reload();
+    await empezarPartida(page);
+    expect(await partidas()).toHaveLength(indice + 1);
+    await jugarHastaElFinal(page, umbral);
+    acreditado += await cierreSegunPuntaje(page, acreditado);
+  }
 });
 
 test("recargar a mitad de partida la retoma donde iba", async ({ page }) => {
