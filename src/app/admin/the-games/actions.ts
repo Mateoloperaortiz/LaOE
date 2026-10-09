@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { ZodError } from "zod";
 import { formText } from "@/app/_lib/form";
 import { createCompetitionAs } from "@/modules/competition";
 import { requireAdminActor } from "@/modules/identity";
@@ -24,6 +25,11 @@ export async function createCompetitionAction(form: FormData): Promise<void> {
     );
     target = `/admin/the-games/${id}`;
   } catch (error) {
+    // Solo lo que rechazan el dominio o la validación vuelve como aviso. Un fallo interno no es un
+    // error de validación: sigue su camino, como en las demás actions (ADR-118 regla 24).
+    if (!(error instanceof DomainError) && !(error instanceof ZodError)) {
+      throw error;
+    }
     const message = error instanceof DomainError ? error.message : t("T-260");
     target = `/admin/the-games?${new URLSearchParams({ error: message })}`;
   }

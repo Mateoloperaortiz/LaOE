@@ -1,6 +1,7 @@
 import { getEnv } from "@/env";
 import { getShowcase } from "@/modules/competition";
 import { corsHeaders } from "@/shared/lib/cors";
+import { logUnavailable } from "../unavailable";
 
 // La vitrina de The Games para DÍAS (ADR-090): lectura pública, sin sesión ni datos personales, con
 // caché corta y CORS de origen fijo. Una competencia en DRAFT, o que no existe, responde 404.
@@ -35,7 +36,8 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/th
     return Response.json(showcase, {
       headers: headers(request, "public, max-age=5, s-maxage=5, stale-while-revalidate=30"),
     });
-  } catch {
+  } catch (error) {
+    logUnavailable("GET /api/v1/the-games/[slug]", error);
     return Response.json(
       { error: "no disponible" },
       { status: 503, headers: headers(request, "no-store") },

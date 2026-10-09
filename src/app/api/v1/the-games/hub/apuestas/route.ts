@@ -8,6 +8,7 @@ import {
 } from "@/modules/competition";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { logUnavailable } from "../../unavailable";
 import { hubJson, hubPreflight, requestIp, sessionOf, writeAllowed } from "../shared";
 
 // La apuesta del capitán desde DÍAS (ADR-096): `pick` es el número del equipo elegido. Usa el mismo
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return hubJson(request, METHODS, { error: error.message }, status);
     }
     if (error instanceof z.ZodError) return hubJson(request, METHODS, { error: t("T-260") }, 400);
+    logUnavailable("POST /api/v1/the-games/hub/apuestas", error);
     return hubJson(request, METHODS, { error: "no disponible" }, 503);
   }
 }

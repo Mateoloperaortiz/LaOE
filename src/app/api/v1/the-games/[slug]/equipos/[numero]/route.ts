@@ -1,6 +1,7 @@
 import { getEnv } from "@/env";
 import { getTeamRoute } from "@/modules/competition";
 import { corsHeaders } from "@/shared/lib/cors";
+import { logUnavailable } from "../../../unavailable";
 
 // El recorrido público de un equipo para DÍAS (ADR-097): sus paradas en las dos jornadas, con base,
 // rival y resultado. Sin sesión ni datos personales, con la caché y el CORS de la vitrina (ADR-090).
@@ -34,7 +35,8 @@ export async function GET(
     return Response.json(route, {
       headers: headers(request, "public, max-age=5, s-maxage=5, stale-while-revalidate=30"),
     });
-  } catch {
+  } catch (error) {
+    logUnavailable("GET /api/v1/the-games/[slug]/equipos/[numero]", error);
     return Response.json(
       { error: "no disponible" },
       { status: 503, headers: headers(request, "no-store") },
