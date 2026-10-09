@@ -8,7 +8,7 @@ import { sudokuCompleted } from "@/domain-events/participation";
 import { findTermContaining } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { logger } from "@/shared/log";
-import { pointEntry, sudokuRun } from "../schema";
+import { sudokuRun } from "../schema";
 import { SUDOKU_DIFFICULTIES, SUDOKU_RULES_VERSION, sudokuReward } from "../sudoku-engine";
 import type {
   SudokuDifficulty,
@@ -28,6 +28,7 @@ import {
   startDailyGame,
 } from "./daily-game-guard";
 import { dayKeyFor, nextDayAt } from "./gamification-pure";
+import { creditGame } from "./ledger";
 import { generateSudoku } from "./sudoku-generator";
 
 // Sudoku (ADR-078). Aquí no hay replay: un Sudoku lo resuelve cualquier programa, así que una lista
@@ -374,14 +375,13 @@ export async function finishSudokuAs(actor: MemberActor, input: unknown): Promis
       throw new Error("No se pudo guardar la partida de Sudoku");
     }
     if (points > 0) {
-      await ctx.tx.insert(pointEntry).values({
+      await creditGame(ctx, {
+        game: "SUDOKU",
+        runId: row.id,
         personId: actor.personId,
         termId: row.termId,
-        sudokuRunId: row.id,
-        kind: "SUDOKU",
         points,
         reason: creditReason(row),
-        createdById: actor.personId,
       });
       await ctx.emit(
         eventOf(sudokuCompleted, {

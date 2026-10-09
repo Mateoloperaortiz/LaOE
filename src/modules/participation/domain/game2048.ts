@@ -22,7 +22,7 @@ import type {
   Game2048Status,
   TodayGame2048,
 } from "../game2048-types";
-import { game2048Run, pointEntry } from "../schema";
+import { game2048Run } from "../schema";
 import {
   type DailyGameRules,
   isEligibleToPlay,
@@ -31,6 +31,7 @@ import {
   startDailyGame,
 } from "./daily-game-guard";
 import { dayKeyFor, nextDayAt } from "./gamification-pure";
+import { creditGame } from "./ledger";
 
 // 2048 diario (ADR-075). El servidor nunca lee un puntaje del cliente: reparte la semilla, recibe la
 // lista de movimientos y rejuega la partida entera con el motor puro. Se puede jugar sin límite; el
@@ -299,14 +300,13 @@ export async function finishGame2048As(
       throw new Error("No se pudo guardar la partida de 2048");
     }
     if (points > 0) {
-      await ctx.tx.insert(pointEntry).values({
+      await creditGame(ctx, {
+        game: "GAME2048",
+        runId: row.id,
         personId: actor.personId,
         termId: row.termId,
-        game2048RunId: row.id,
-        kind: "GAME2048",
         points,
         reason: t("T-2654", { fecha: row.day, puntaje: replay.score }),
-        createdById: actor.personId,
       });
       await ctx.emit(
         eventOf(game2048Completed, {

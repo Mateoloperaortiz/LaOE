@@ -26,6 +26,7 @@ import {
   startDailyGame,
 } from "./daily-game-guard";
 import { dayKeyFor, nextDayAt } from "./gamification-pure";
+import { creditGame } from "./ledger";
 import {
   getPanalPuzzle,
   panalDictionaryVersion,
@@ -133,12 +134,12 @@ async function grantRewards(
   const delta = checkpoints.reduce((sum, checkpoint) => sum + checkpoint.points, 0);
   if (game.points + delta > PANAL_REWARD) throw new Error("Premio de Panal inconsistente");
   for (const checkpoint of checkpoints) {
-    await ctx.tx.insert(pointEntry).values({
+    await creditGame(ctx, {
+      game: "PANAL",
+      runId: row.id,
+      checkpoint: checkpoint.id,
       personId: row.personId,
       termId: row.termId,
-      panalGameId: row.id,
-      panalCheckpoint: checkpoint.id,
-      kind: "PANAL",
       points: checkpoint.points,
       reason:
         checkpoint.id === null
@@ -150,7 +151,6 @@ async function grantRewards(
                   ? t("T-3003")
                   : t("T-3002", { n: checkpoint.id === 1 ? 5 : 10 }),
             }),
-      createdById: row.personId,
     });
     const payload = {
       personId: row.personId,

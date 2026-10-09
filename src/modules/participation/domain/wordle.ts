@@ -8,7 +8,7 @@ import { wordleCompleted } from "@/domain-events/participation";
 import { findTermContaining } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { logger } from "@/shared/log";
-import { pointEntry, wordleAttempt, wordleGame } from "../schema";
+import { wordleAttempt, wordleGame } from "../schema";
 import type { SubmitWordleInput, TodayWordle, WordleGameView, WordleResult } from "../wordle-types";
 import {
   type DailyGameRules,
@@ -18,6 +18,7 @@ import {
   startDailyGame,
 } from "./daily-game-guard";
 import { dayKeyFor, nextDayAt } from "./gamification-pure";
+import { creditGame } from "./ledger";
 import {
   hasWordleDictionary,
   isWordleGuess,
@@ -268,14 +269,13 @@ export async function submitWordleGuessAs(
       .where(eq(wordleGame.id, row.id));
     const points = won ? wordleReward(ordinal) : 0;
     if (won) {
-      await ctx.tx.insert(pointEntry).values({
+      await creditGame(ctx, {
+        game: "WORDLE",
+        runId: row.id,
         personId: actor.personId,
         termId: row.termId,
-        wordleGameId: row.id,
-        kind: "WORDLE",
         points,
         reason: t("T-1261", { fecha: row.day, intento: ordinal }),
-        createdById: actor.personId,
       });
       await ctx.emit(
         eventOf(wordleCompleted, {

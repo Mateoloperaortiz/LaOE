@@ -2,7 +2,7 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-09
-- Relacionadas: ADR-006, ADR-012, ADR-020, ADR-035, ADR-041, ADR-060, ADR-067, ADR-075, ADR-078, ADR-084, ADR-088, ADR-109, ADR-111, ADR-114, ADR-116
+- Relacionadas: ADR-006, ADR-007, ADR-012, ADR-020, ADR-035, ADR-041, ADR-060, ADR-067, ADR-075, ADR-078, ADR-084, ADR-088, ADR-109, ADR-111, ADR-114, ADR-116
 - Enmienda: ADR-035 (regla 6: en una ocasión cancelada ninguna asistencia nace ni vuelve a quedar aprobada), ADR-116 (regla 2: el orden de candados gana la ocasión, entre el término y la persona, y la asistencia que nace se inserta en el lugar de las asistencias, antes del premio)
 
 ## Contexto
@@ -27,6 +27,7 @@ El séptimo ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo
 - Lo que queda escrito tras un rechazo: el Wordle vence la partida salvo cuando el rechazo es por elegibilidad; el 2048 y el Sudoku la vencen siempre; el Panal no guarda estado.
 
 Y un defecto, reproducido con una prueba en rojo: el Panal buscaba el término con el día de antes de los candados y validaba el de después solo contra el que mandaba la pantalla. Si el día cambiaba mientras esperaba el término y la pantalla ya pedía el día nuevo, la partida nacía con el día nuevo y el término del anterior: fuera de su término, si ese terminaba ese día.
+**Cuatro inserts al libro de puntos (DT-026).** El libro ([ADR-007](ADR-007-ledger-append-only.md)) tiene su módulo, `ledger.ts`, que acredita una asistencia y un premio, ajusta y revierte. Los cuatro juegos no pasaban por él: cada uno insertaba su fila en `point_entry` a mano, con su columna (`wordleGameId`, `game2048RunId`, `sudokuRunId`, y `panalGameId` con `panalCheckpoint`). Las cuatro copias escribían lo mismo: la persona, el término, el tipo, la columna de la partida, los puntos, el motivo y a quien juega como autor. Ninguna tomaba el término, que ya trae la guardia, ni buscaba una entrada previa. Las pruebas de cada juego afirmaban el tipo, la partida y los puntos, pero no el motivo completo ni el autor. Antes de tocar nada, `tests/integration/game-ledger-credit.test.ts` fijó por los comandos públicos la fila entera que deja cada juego, con cada columna ajena en nulo (cinco casos: uno por juego y el Panal dos veces, con metas y de premio único), y quedó en verde sobre el código de antes. Mutar las cuatro copias, el motivo en una y el autor en tres, tumbó los cinco.
 
 ## Decisión
 
@@ -95,6 +96,12 @@ Y un defecto, reproducido con una prueba en rojo: el Panal buscaba el término c
    Una sola conducta cambia, y es el defecto: **el Panal responde `EXPIRED` cuando el día cambia mientras espera sus candados**, como los otros tres, aunque la pantalla ya pidiera el día nuevo. Antes abría la partida del día nuevo con el término del anterior. ADR-088 regla 7 pide que el semestre del Panal sea el de los demás juegos, y con esto lo es. La pantalla manda el día que el servidor le dio, así que el caso pedía un reloj adelantado o una solicitud armada a mano.
 
    Es un módulo interno con una sola implementación (ADR-109 regla 11), no una costura: no sale por `index.ts` y solo lo llaman los cuatro juegos. La lectura del día de cada juego usa su `isEligibleToPlay`; la proyección de disponibilidad sigue en cada uno (DT-273).
+8. **Los juegos acreditan por el libro de puntos.** `creditGame` (`src/modules/participation/domain/ledger.ts`) es la única función que escribe el premio de una partida, y `ledger.ts` el único archivo de `src` que inserta en `point_entry`: una prueba que lee el código lo sostiene (`tests/unit/point-entry-writers.test.ts`, en rojo antes del cambio con los cuatro juegos en la lista). Recibe el juego, la partida, la persona, el término, los puntos y el motivo, y en el Panal la meta, que no es opcional: 1 a 3, o nula en el premio único de antes de las metas. Qué columna liga la entrada con su partida lo dice un mapa (`GAME_RUN_COLUMN`) exhaustivo sobre el enum de la tabla: los tipos que no son de un juego se nombran (`NonGameKind`) y cualquier otro tiene que decir su columna. Un tipo nuevo no compila hasta que alguien decide cuál de las dos cosas es. El juego sigue decidiendo si acredita, cuánto y con qué motivo, y sigue emitiendo su evento y su auditoría: nada de eso se movió. No cambia conducta, y tres cosas que las cuatro copias hacían igual se conservan a propósito, aunque el resto del libro haga otra cosa:
+   - No toma el término ni mira su cierre. El juego llega con el término tomado y abierto por la guardia (regla 7), en la misma transacción. Los demás escritores del libro sí lo toman ellos mismos (DT-274).
+   - No busca una entrada previa ni descarta un premio sin puntos, como hacen `creditCheckIn` y `creditReward`. Cada juego ya resolvió si acredita, y los índices únicos por partida (por partida y meta en el Panal) y los `check` de la tabla siguen siendo la última palabra.
+   - Firma la entrada quien corre el comando (`createdById`), como en el resto del libro. En los juegos es siempre quien juega: tres copias escribían el actor y el Panal la persona de la partida, que el comando lee filtrada por el actor.
+
+   Es parte del libro y no una costura: la llaman solo los cuatro juegos y no sale por `index.ts`.
 
 ## Consecuencias
 
@@ -118,3 +125,6 @@ Y un defecto, reproducido con una prueba en rojo: el Panal buscaba el término c
 - El reloj de la guardia es un parámetro. Los comandos le pasan el del sistema, así que las pruebas que ya existían lo siguen moviendo como antes.
 - Un juego nuevo declara su candado y sus tres valores y hereda el orden: no escribe candados. Los cuatro juegos quedan en 1.479 líneas, de 1.512, y la guardia en 163.
 - Queda anotado sin tocar: la disponibilidad que muestra la lectura del día sigue copiada en los cuatro juegos y mira la elegibilidad antes que el término, al revés que los comandos (DT-273).
+- Las filas que los juegos dejan en el libro son las de antes, columna por columna: la prueba de la fila exacta siguió en verde sin tocarla, y con ella las 166 que ya corrían sobre los juegos, su guardia y su día. Los eventos y la auditoría de cada juego no cambiaron.
+- Un juego nuevo agrega su tipo al enum y su columna a la tabla, con su `check` y su índice único en la migración, y llama a `creditGame`: sin su entrada en el mapa no compila. No escribe en `point_entry`.
+- Queda anotado sin tocar: `creditGame` confía en que el juego llegó por la guardia y no vuelve a tomar el término (DT-274). Los seeds de `scripts/` siguen insertando asistencias acreditadas a mano, con su fecha: no pasan por comandos.

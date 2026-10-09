@@ -6,6 +6,7 @@ import { pointsAdjusted, pointsReversed } from "@/domain-events/participation";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import type { PanalCheckpointId } from "../panal-types";
 import { pointEntry } from "../schema";
 import { POINT_ENTRY_KINDS, type PointEntryKind } from "./ledger-pure";
 
@@ -182,6 +183,59 @@ export async function reverseRewardCredits(
     reversed += entry.points;
   }
   return reversed;
+}
+
+// Premios de los juegos (ADR-119 regla 8): el libro es el único que sabe qué columna liga una
+// entrada con su partida. Si acredita, cuánto, con qué motivo y qué evento sale lo decide el juego.
+
+/** Los tipos de entrada que no son el premio de un juego. Cualquier otro del enum lo es. */
+type NonGameKind = "CHECKIN" | "ADJUSTMENT" | "REVERSAL" | "LEGACY" | "CHALLENGE" | "BOOST";
+type GameKind = Exclude<PointEntryRow["kind"], NonGameKind>;
+
+/**
+ * La columna de `point_entry` que guarda la partida de cada juego. Es exhaustivo sobre el enum de
+ * la tabla: un tipo nuevo no compila hasta que dice aquí cuál es la suya, o hasta que entra a
+ * `NonGameKind` si no es un juego.
+ */
+const GAME_RUN_COLUMN = {
+  WORDLE: "wordleGameId",
+  GAME2048: "game2048RunId",
+  SUDOKU: "sudokuRunId",
+  PANAL: "panalGameId",
+} as const satisfies Record<GameKind, keyof typeof pointEntry.$inferInsert>;
+
+type GameRun =
+  | { game: Exclude<GameKind, "PANAL">; runId: string }
+  // La meta del Panal no es opcional: 1 a 3, o `null` en el premio único de antes de las metas.
+  | { game: "PANAL"; runId: string; checkpoint: PanalCheckpointId | null };
+
+type CreditGameInput = GameRun & {
+  personId: string;
+  termId: string;
+  points: number;
+  reason: string;
+};
+
+/**
+ * Escribe el premio de una partida. El juego llega con el término tomado y abierto por la guardia
+ * de la partida diaria (ADR-119 regla 7): aquí no se vuelve a tomar. Tampoco se busca una entrada
+ * previa ni se descarta un premio sin puntos: los índices únicos por partida (y por meta en el
+ * Panal) y los `check` de la tabla rechazan lo que el juego no debió mandar. La firma quien corre
+ * el comando, como en el resto del libro; en los juegos es siempre quien juega.
+ */
+export async function creditGame(ctx: CommandContext, input: CreditGameInput): Promise<void> {
+  const run: Partial<Record<(typeof GAME_RUN_COLUMN)[GameKind], string>> = {};
+  run[GAME_RUN_COLUMN[input.game]] = input.runId;
+  await ctx.tx.insert(pointEntry).values({
+    personId: input.personId,
+    termId: input.termId,
+    ...run,
+    ...(input.game === "PANAL" ? { panalCheckpoint: input.checkpoint } : {}),
+    kind: input.game,
+    points: input.points,
+    reason: input.reason,
+    createdById: ctx.actor.personId,
+  });
 }
 
 /** Saldo del término: `SUM(points)`, nunca persistido. */
