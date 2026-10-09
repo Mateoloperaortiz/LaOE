@@ -21,6 +21,7 @@ import {
 } from "@/modules/people";
 import { anonymizePerson } from "@/modules/people/domain/membership";
 import { person } from "@/modules/people/schema";
+import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject, putObject } from "@/shared/adapters/storage";
 import { t } from "@/shared/copy";
 import { holdCommand, waitingOn } from "../helpers/locks";
@@ -46,7 +47,27 @@ const bucket = vi.hoisted(() => ({
   unreadable: false,
   /** Lo que pasa justo después de la próxima escritura en el bucket, una sola vez. */
   afterNextPut: null as (() => Promise<unknown>) | null,
+  /** La clave cuya escritura rechaza el bucket. */
+  rejectsPutOf: null as string | null,
 }));
+
+/** Si la prueba lo pone, el decodificador rechaza la codificación a un lado (la variante completa). */
+const decoder = vi.hoisted(() => ({ rejectsFullVariant: false }));
+
+vi.mock("@/shared/lib/image-decoder", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("@/shared/lib/image-decoder")>();
+  return {
+    ...mod,
+    decodeImage: async (bytes: Uint8Array) => {
+      const image = await mod.decodeImage(bytes);
+      const toWebp: typeof image.toWebp = (bound) =>
+        decoder.rejectsFullVariant && "side" in bound
+          ? Promise.reject(new mod.ImageRejectedError("encode", "rechazo sintético"))
+          : image.toWebp(bound);
+      return { ...image, toWebp };
+    },
+  };
+});
 
 vi.mock("@/shared/adapters/storage", async (importOriginal) => {
   const mod = await importOriginal<typeof import("@/shared/adapters/storage")>();
@@ -59,6 +80,9 @@ vi.mock("@/shared/adapters/storage", async (importOriginal) => {
     getObject: (key: string) =>
       bucket.unreadable ? Promise.reject(new Error("bucket caído")) : mod.getObject(key),
     putObject: async (...args: Parameters<typeof mod.putObject>) => {
+      if (args[0] === bucket.rejectsPutOf) {
+        throw new Error("bucket caído al escribir");
+      }
       await mod.putObject(...args);
       const then = bucket.afterNextPut;
       bucket.afterNextPut = null;
@@ -105,9 +129,9 @@ interface Uploaded {
 async function upload(
   personId: string,
   purpose: "media" | "photo",
-  options: { process: boolean } = { process: true },
+  options: { process: boolean; width?: number } = { process: true },
 ): Promise<Uploaded> {
-  const bytes = await noisePng(520, 400);
+  const bytes = await noisePng(options.width ?? 520, 400);
   const visibility = purpose === "photo" ? "PRIVATE" : "PUBLIC";
   const contentType = "image/png";
   const prepared = await prepareUpload(
@@ -195,6 +219,8 @@ describe("la foto propia al anonimizar", () => {
     bucket.rejectsDeleteOf = null;
     bucket.unreadable = false;
     bucket.afterNextPut = null;
+    bucket.rejectsPutOf = null;
+    decoder.rejectsFullVariant = false;
   });
   afterAll(async () => {
     bucket.rejectsDeleteOf = null;
@@ -399,6 +425,96 @@ describe("la foto propia al anonimizar", () => {
     expect(cleanedBy).toBeGreaterThan(0);
     expect(await getMedia(photo.id)).toBeNull();
     expect(await stillStored([...photo.objects, ...written])).toEqual([]);
+  });
+
+  // DT-173 (ADR-119 regla 12). El proceso descartaba lo escrito solo si llegaba al final y no
+  // encontraba fila. Si la foto se borraba entre dos escrituras y después algo fallaba, lo que
+  // alcanzó a escribir tras el borrado quedaba sin fila, y el reintento, que ya no encuentra el
+  // medio, no hacía nada. La foto de 1000 de ancho da tres escrituras: 480, 960 y la completa.
+
+  /** Una foto en proceso que se borra, por la anonimización de otro worker, justo después de su primera escritura. */
+  async function photoRemovedAfterFirstWrite(email: string, then?: (photoId: string) => void) {
+    const leaving = await seedMember(email);
+    const photo = await upload(leaving, "photo", { process: false, width: 1000 });
+    await setOwnPhotoAs({ personId: leaving }, photo.id);
+    await anonymize(leaving);
+    const variants = [
+      variantKey(photo.id, 480),
+      variantKey(photo.id, 960),
+      fullVariantKey(photo.id),
+    ];
+    keys.push(...variants);
+    const cleaned = { by: 0 };
+    bucket.afterNextPut = async () => {
+      cleaned.by = (await drainOutbox()).processed;
+      then?.(photo.id);
+    };
+    return { photo, variants, cleaned };
+  }
+
+  async function processError(): Promise<string | null> {
+    const [row] = await getDb()
+      .select({ lastError: outbox.lastError })
+      .from(outbox)
+      .where(eq(outbox.eventType, mediaProcess.type));
+    return row?.lastError ?? null;
+  }
+
+  it("si la foto se borra entre dos escrituras y la siguiente falla, lo que el proceso escribió no queda huérfano, tampoco tras el reintento, y el fallo es el del bucket", async () => {
+    const { photo, variants, cleaned } = await photoRemovedAfterFirstWrite(
+      "sale.falla.proceso@eafit.edu.co",
+    );
+    bucket.rejectsPutOf = fullVariantKey(photo.id);
+
+    await drainOutbox({ expectFailures: [mediaProcess] });
+
+    expect(cleaned.by).toBeGreaterThan(0);
+    expect(await getMedia(photo.id)).toBeNull();
+    // La de 960 se escribió después del borrado y antes del fallo.
+    expect(await stillStored([...photo.objects, ...variants])).toEqual([]);
+    expect(await processError()).toContain("bucket caído al escribir");
+
+    bucket.rejectsPutOf = null;
+    const retry = await drainOutbox({ now: afterBackoff() });
+    expect(retry.failed).toBe(0);
+    expect(await stillStored([...photo.objects, ...variants])).toEqual([]);
+  });
+
+  it("si además falla el descarte, el fallo que queda es el de la escritura y el reintento se lleva lo que quedó", async () => {
+    // El bucket caído no deja escribir la completa ni borrar la de 960: es lo esperable, se cae entero.
+    const { photo, variants } = await photoRemovedAfterFirstWrite(
+      "sale.falla.descarte@eafit.edu.co",
+      (photoId) => {
+        bucket.rejectsDeleteOf = variantKey(photoId, 960);
+      },
+    );
+    bucket.rejectsPutOf = fullVariantKey(photo.id);
+
+    await drainOutbox({ expectFailures: [mediaProcess] });
+
+    expect(await getMedia(photo.id)).toBeNull();
+    expect(await processError()).toContain("bucket caído al escribir");
+    expect(await stillStored(variants)).toEqual([variantKey(photo.id, 960)]);
+
+    bucket.rejectsPutOf = null;
+    bucket.rejectsDeleteOf = null;
+    const retry = await drainOutbox({ now: afterBackoff() });
+    expect(retry.failed).toBe(0);
+    expect(await stillStored([...photo.objects, ...variants])).toEqual([]);
+  });
+
+  it("si la foto se borra entre dos escrituras y la siguiente codificación se rechaza, lo escrito tampoco queda huérfano", async () => {
+    // Un rechazo del decodificador no se reintenta: lo escrito se descarta en el mismo intento.
+    const { photo, variants } = await photoRemovedAfterFirstWrite(
+      "sale.rechazo.proceso@eafit.edu.co",
+    );
+    decoder.rejectsFullVariant = true;
+
+    const drained = await drainOutbox();
+
+    expect(drained.failed).toBe(0);
+    expect(await getMedia(photo.id)).toBeNull();
+    expect(await stillStored([...photo.objects, ...variants])).toEqual([]);
   });
 
   // Esto sí está decidido: ADR-030 regla 2 conserva la foto en el perfil de egresado si hay consentimiento

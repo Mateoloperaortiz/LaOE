@@ -148,6 +148,14 @@ export function fullVariantKey(assetId: string): string {
 }
 
 /**
+ * Las claves de variante que el proceso de un medio puede haber escrito: son deterministas, así que se
+ * conocen sin su fila (cada ancho de la escalera y la completa).
+ */
+export function variantKeysFor(assetId: string): string[] {
+  return [...VARIANT_WIDTHS.map((width) => variantKey(assetId, width)), fullVariantKey(assetId)];
+}
+
+/**
  * Todo lo que un medio puede tener en el bucket, sin repetir: el original, las variantes que su fila
  * registra y las de clave determinista (cada ancho de la escalera y la completa). Estas últimas pueden
  * existir sin estar en la fila, si el proceso se cayó después de escribirlas; quien borra un medio las
@@ -162,8 +170,7 @@ export function mediaObjectKeys(asset: {
     ...new Set([
       asset.objectKey,
       ...Object.values(asset.variants).map((variant) => variant.key),
-      ...VARIANT_WIDTHS.map((width) => variantKey(asset.id, width)),
-      fullVariantKey(asset.id),
+      ...variantKeysFor(asset.id),
     ]),
   ];
 }

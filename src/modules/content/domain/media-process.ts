@@ -11,6 +11,7 @@ import {
   hasFullVariant,
   MEDIA_TYPES,
   variantKey,
+  variantKeysFor,
   variantName,
   variantWidthsFor,
 } from "./media-pure";
@@ -53,11 +54,21 @@ async function storeFullVariant(assetId: string, original: Decoded): Promise<Med
 }
 
 /**
- * Para cuando el proceso no encontró fila donde anotar lo que escribió: si el medio se borró mientras se
+ * Borra del bucket toda variante de un medio que ya no tiene fila. Van todas las claves posibles y no
+ * solo las que el proceso anotó: una escritura que falló pudo haber quedado hecha.
+ */
+async function discardVariants(assetId: string): Promise<void> {
+  for (const key of variantKeysFor(assetId)) {
+    await deleteObject(key); // transitorio: relanza, y el reintento, que ya no encuentra el medio, repite
+  }
+}
+
+/**
+ * Para cuando el proceso no tiene fila donde anotar lo que escribió: si el medio se borró mientras se
  * procesaba (las fotos de una persona que se anonimiza, ADR-116 regla 8), esas variantes ya no tienen
  * fila que las nombre y se borran aquí. Si la fila sigue, no se toca nada. Dice si lo descartó.
  */
-async function discardIfRemoved(assetId: string, written: MediaVariant[]): Promise<boolean> {
+async function discardIfRemoved(assetId: string): Promise<boolean> {
   const [row] = await getDb()
     .select({ id: mediaAsset.id })
     .from(mediaAsset)
@@ -66,11 +77,26 @@ async function discardIfRemoved(assetId: string, written: MediaVariant[]): Promi
   if (row) {
     return false;
   }
-  for (const variant of written) {
-    await deleteObject(variant.key); // transitorio: relanza, y el reintento ya no encuentra el medio
-  }
+  await discardVariants(assetId);
   logger.warn({ assetId }, "media.process: el medio se borró mientras se procesaba");
   return true;
+}
+
+/**
+ * El proceso falló con algo que el outbox va a reintentar. Si mientras tanto el medio se borró, lo
+ * escrito se descarta ya (ADR-119 regla 12). Nunca tapa el fallo del proceso: si descartar también
+ * falla, que es lo esperable con el bucket caído, queda en el log y lo repite el reintento, que al no
+ * encontrar el medio vuelve a descartar.
+ */
+async function discardAfterFailure(assetId: string): Promise<void> {
+  try {
+    await discardIfRemoved(assetId);
+  } catch (error) {
+    logger.warn(
+      { assetId, err: error },
+      "media.process: no se pudo descartar lo escrito de un medio borrado; lo repite el reintento",
+    );
+  }
 }
 
 /** Abre el original de un medio, o lanza `ImageRejectedError` si no es una imagen que se procese. */
@@ -104,7 +130,7 @@ async function addFullVariant(asset: MediaAssetRow, now: Date): Promise<ProcessO
       })
       .where(and(eq(mediaAsset.id, asset.id), eq(mediaAsset.status, "READY")))
       .returning({ id: mediaAsset.id });
-    if (recorded.length === 0 && (await discardIfRemoved(asset.id, [full]))) {
+    if (recorded.length === 0 && (await discardIfRemoved(asset.id))) {
       return "skipped";
     }
     return "ready";
@@ -116,6 +142,7 @@ async function addFullVariant(asset: MediaAssetRow, now: Date): Promise<ProcessO
       );
       return "kept";
     }
+    await discardAfterFailure(asset.id);
     throw error;
   }
 }
@@ -124,6 +151,8 @@ export async function processMedia(assetId: string, now = new Date()): Promise<P
   const db = getDb();
   const [asset] = await db.select().from(mediaAsset).where(eq(mediaAsset.id, assetId)).limit(1);
   if (!asset) {
+    // Sin fila no hay variante legítima: lo que un intento anterior haya dejado se borra aquí.
+    await discardVariants(assetId);
     logger.warn({ assetId }, "media.process: el medio no existe");
     return "skipped";
   }
@@ -152,19 +181,25 @@ export async function processMedia(assetId: string, now = new Date()): Promise<P
       })
       .where(eq(mediaAsset.id, asset.id))
       .returning({ id: mediaAsset.id });
-    if (recorded.length === 0 && (await discardIfRemoved(asset.id, Object.values(variants)))) {
+    if (recorded.length === 0 && (await discardIfRemoved(asset.id))) {
       return "skipped";
     }
     return "ready";
   } catch (error) {
     if (error instanceof ImageRejectedError) {
-      await db
+      const failed = await db
         .update(mediaAsset)
         .set({ status: "FAILED", error: error.message.slice(0, 500), updatedAt: now })
-        .where(eq(mediaAsset.id, asset.id));
+        .where(eq(mediaAsset.id, asset.id))
+        .returning({ id: mediaAsset.id });
       logger.warn({ assetId, err: error }, "media.process: el objeto no es una imagen válida");
+      // Un rechazo no se reintenta: si el medio ya no está, lo escrito se descarta en este intento.
+      if (failed.length === 0 && (await discardIfRemoved(asset.id))) {
+        return "skipped";
+      }
       return "failed";
     }
+    await discardAfterFailure(asset.id);
     throw error;
   }
 }
