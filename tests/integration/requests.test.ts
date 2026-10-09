@@ -18,6 +18,7 @@ import {
 import { interaction, task } from "@/modules/crm/schema";
 import {
   changeMembershipStatusAs,
+  endMembershipAs,
   getMembershipRef,
   getMyMembership,
   hasLiveConsent,
@@ -308,6 +309,35 @@ describe("solicitudes", () => {
       .from(membership)
       .where(eq(membership.personId, personId));
     expect(fila?.leaveUntil).toBe(leaveUntilSoon(30));
+  });
+
+  // ADR-118 regla 11 roza DT-196: la solicitud pendiente sigue sobreviviendo a la baja (qué pasa con
+  // ella es la primera pregunta de la decisión abierta 33), pero aprobarla ya no abre pertenencias.
+  it("aprobar el cambio de comité de quien ya salió responde el error y la solicitud sigue pendiente (decisión abierta 33)", async () => {
+    const { personId, actor } = await activeMember("ya.salio@eafit.edu.co");
+    const cigma = await seedCommittee("cigma", "CIGMA");
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const created = await createRequestAs(actor, "TRANSFER", {
+      reason: "Entro a CIGMA",
+      leaveCommitteeIds: [],
+      joinCommitteeIds: [cigma],
+    });
+    await endMembershipAs(gh, personId, {
+      endReason: "RESIGNATION",
+      memorialConsent: false,
+      contactConsent: false,
+    });
+
+    await expect(decideRequestAs(gh, created.id, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-3246"),
+    );
+
+    expect((await getRequest(created.id))?.status).toBe("PENDING");
+    const vivas = await getDb()
+      .select({ id: committeeMembership.id })
+      .from(committeeMembership)
+      .where(and(eq(committeeMembership.personId, personId), isNull(committeeMembership.leftAt)));
+    expect(vivas).toEqual([]);
   });
 
   /** Cargos vivos del término siguiente: [persona, comité, cargo, codirección]. */
