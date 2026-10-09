@@ -233,8 +233,9 @@ export async function changeMembershipStatus(
   if (current.status === "INACTIVE") {
     throw new Error("Una membresía terminada se reactiva, no se cambia de estado");
   }
+  // Un cambio que no cambia nada se dice (ADR-118 regla 10): antes respondía «guardado» sin escribir.
   if (current.status === input.to) {
-    return;
+    throw new DomainError(t("T-3245"), "to");
   }
   const today = todayKey(now);
   if (input.to === "HONORARY") {

@@ -10609,6 +10609,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3245": {
+    where: "Membresía: se pide un estado que la persona ya tiene (ADR-118)",
+    text: "Esa persona ya está en ese estado: no se cambió nada.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

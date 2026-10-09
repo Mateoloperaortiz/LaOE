@@ -1988,6 +1988,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-2393 | GT/GAP: Ayuda de pertenencia | La participación se muestra en el perfil al registrarla. El porcentaje de permanencia requiere desempeño acreditado por GH. | GH | Confirmado |
 | T-3218 | Persona 360, Membresía: hasta cuándo fue la suspensión de una sanción, vigente o no (ADR-116) | Suspensión de derechos y beneficios hasta el {fecha} | MATEO | Propuesta |
 | T-3244 | Mesa directiva: el semestre de la edición todavía no existe (ADR-118) | El semestre de esta edición todavía no existe. Crealo antes de nombrar su mesa. | MATEO | Propuesta |
+| T-3245 | Membresía: se pide un estado que la persona ya tiene (ADR-118) | Esa persona ya está en ese estado: no se cambió nada. | MATEO | Propuesta |
 
 ### Cargos vigentes e historial (14/09/2026)
 

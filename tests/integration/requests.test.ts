@@ -17,6 +17,7 @@ import {
 } from "@/modules/crm";
 import { interaction, task } from "@/modules/crm/schema";
 import {
+  changeMembershipStatusAs,
   getMembershipRef,
   getMyMembership,
   hasLiveConsent,
@@ -38,6 +39,7 @@ import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
+  leaveUntilSoon,
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
@@ -282,6 +284,30 @@ describe("solicitudes", () => {
     expect(
       (await getMyMembership(personId)).committees.map((row) => row.committeeSlug).sort(),
     ).toEqual(["a3", "pixel"]);
+  });
+
+  // ADR-118 regla 10 (DT-204): antes la aprobación terminaba bien sin escribir nada y la solicitud
+  // quedaba «aprobada» con la fecha vieja. La prórroga sigue sin existir (decisión abierta 35).
+  it("aprobar la licencia de quien ya quedó en licencia responde el error y la solicitud sigue pendiente", async () => {
+    const { personId, actor } = await activeMember("ya.en.licencia@eafit.edu.co");
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const created = await createRequestAs(actor, "LEAVE", { reason: "Intercambio", until });
+    await changeMembershipStatusAs(gh, personId, {
+      to: "ON_LEAVE",
+      reason: "GH la registró a mano",
+      leaveUntil: leaveUntilSoon(30),
+    });
+
+    await expect(decideRequestAs(gh, created.id, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-3245"),
+    );
+
+    expect((await getRequest(created.id))?.status).toBe("PENDING");
+    const [fila] = await getDb()
+      .select({ leaveUntil: membership.leaveUntil })
+      .from(membership)
+      .where(eq(membership.personId, personId));
+    expect(fila?.leaveUntil).toBe(leaveUntilSoon(30));
   });
 
   /** Cargos vivos del término siguiente: [persona, comité, cargo, codirección]. */

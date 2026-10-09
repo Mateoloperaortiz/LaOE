@@ -27,6 +27,8 @@ El sexto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-co
 
 **La mesa que quedaba en otro semestre (DT-207).** La mesa directiva de un macroevento (ADR-060 regla 9) se nombra desde dos pantallas. La de la edición buscaba el término que contiene la fecha de la edición y, si no existía, usaba el vigente; la del macroevento rechazaba ese caso. Una edición del semestre siguiente cuyo término todavía no existe es el caso normal de una mesa elegida con anticipación: ese término lo crean el cierre, un cambio de comité aprobado o ADMIN a mano. El cargo quedaba en el término vigente, y las inhabilidades (`leadershipContext`), el directorio y `listMacroeventDirectorsForTerm` del término de la edición no lo veían: los topes entre comités y macroeventos no saltaban. Reproducido en rojo con la action entera: respondía «guardado» y el cargo quedaba con el término vigente.
 
+**El comando que respondía «guardado» sin hacer nada (DT-204).** `changeMembershipStatus` retornaba en silencio cuando el estado pedido era el que la persona ya tenía, antes de validar o escribir nada. La Persona 360 no ofrece el estado vigente, pero el envío llega igual desde una pestaña vieja; y `decideRequestAs` no mira el estado de la persona al aprobar. Reproducido en rojo: pedir licencia a quien ya estaba en licencia terminaba bien con la fecha de regreso intacta, y aprobar la solicitud de licencia de alguien que GH ya había puesto en licencia dejaba la solicitud «aprobada» con la fecha vieja.
+
 ## Decisión
 
 1. **El intento se cuenta al tomar la fila, y la toma se confirma antes de correr nada.** El poller entrega un evento en dos pasos:
@@ -78,6 +80,11 @@ El sexto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-co
    - **Qué cambia.** Las dos pantallas que nombran la mesa de un macroevento (`/admin/eventos/[id]/ediciones/[edicionId]/mesa` y `/admin/macroeventos/[slug]`) le piden el término a `people.requireEditionTerm`: el que contiene la fecha de la edición en Bogotá. Si no existe responde el error de dominio T-3244 y no se guarda nada. La pantalla de la edición caía al término vigente; la del macroevento ya lo rechazaba, pero con el texto del cierre (T-650), que no venía al caso.
    - **Lo que no cambia.** `addMacroeventDirector` sigue recibiendo el `termId` de quien lo llama: derivarlo dentro del comando queda anotado (DT-248). Un cargo que ya quedó en otro término no se mueve solo: se quita y se vuelve a nombrar cuando el término exista.
 
+10. **Pedir un estado que la persona ya tiene es un error, no un «guardado».**
+   - **Qué cambia.** `changeMembershipStatus` responde el error de dominio T-3245 cuando el estado pedido es el vigente. No escribe ni emite nada, como antes; lo que cambia es que lo dice.
+   - **Quién lo recibe.** La Persona 360 muestra el error en vez de «guardado». Aprobar una solicitud de licencia de quien ya está en licencia falla y la solicitud sigue pendiente: GH la rechaza con su motivo. El roster no llega a pedirlo, porque salta la fila cuyo estado no cambia.
+   - **Lo que no cambia.** La prórroga de una licencia no existe: ningún comando mueve `leaveUntil`, y la tarea de licencia vencida se vuelve a abrir cada día después de completarla. Las dos cosas son la decisión abierta 35 (DT-204).
+
 ## Consecuencias
 
 - Un evento que tumba el proceso lo tumba como mucho cinco veces, espaciadas por el backoff, y después queda en dead letter a la vista. Antes lo tumbaba en cada arranque. El quinto intento que no termina espera sus 12 horas como pendiente antes de pasar a dead letter, porque la toma solo mira filas vencidas.
@@ -110,3 +117,5 @@ El sexto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-co
 - Pruebas de la regla 8 en `tests/integration/people-membership.test.ts`: la licencia en prueba que pasa por honorario y vuelve, y el regreso en un día sin término vigente (decisión abierta 27).
 - Para nombrar la mesa de una edición del semestre siguiente hay que crear antes ese término. Los cargos que ya hubieran quedado en un término distinto al de su edición no se corrigen solos: nadie consultó si producción tiene alguno (DT-248).
 - Pruebas de la regla 9 en `tests/integration/macroevent-board-action.test.ts`: la action de la edición con el término de la edición sin crear y con el término creado.
+- El segundo envío de un mismo cambio de estado (dos pestañas, dos clics) muestra el error en vez de «guardado»; el primero ya quedó hecho.
+- Pruebas de la regla 10 en `tests/integration/leave-expiry.test.ts` (licencia sobre licencia, con la fecha de regreso y el historial intactos, y activo sobre activo) y en `tests/integration/requests.test.ts` (la aprobación de una licencia de quien ya quedó en licencia).
