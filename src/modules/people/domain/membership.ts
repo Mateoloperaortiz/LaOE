@@ -161,6 +161,42 @@ async function conditionAtDeparture(
   return conditions;
 }
 
+/** La condición guardada al salir a licencia; las licencias anteriores a la migración se reconstruyen. */
+async function savedCondition(
+  ctx: CommandContext,
+  current: MembershipRecord,
+): Promise<LeaveCondition[]> {
+  if (current.leaveCondition !== null) return current.leaveCondition;
+  // Licencias anteriores a la migración: reconstruir desde el término de la salida registrada.
+  const [departure] = await ctx.tx
+    .select({ at: membershipEvent.at })
+    .from(membershipEvent)
+    .where(
+      and(eq(membershipEvent.membershipId, current.id), eq(membershipEvent.toStatus, "ON_LEAVE")),
+    )
+    .orderBy(desc(membershipEvent.at))
+    .limit(1);
+  return departure ? conditionAtDeparture(ctx, current, departure.at) : [];
+}
+
+/**
+ * La condición que queda guardada tras el cambio (ADR-118 regla 8): se toma al salir a licencia, el
+ * paso por honorario la conserva y solo el regreso a activo la gasta.
+ */
+async function conditionToKeep(
+  ctx: CommandContext,
+  current: MembershipRecord,
+  to: ChangeStatusInput["to"],
+  now: Date,
+): Promise<LeaveCondition[] | null> {
+  if (to === "ACTIVE") return null;
+  if (current.status === "ON_LEAVE") return savedCondition(ctx, current);
+  if (current.status === "HONORARY" && current.leaveCondition !== null) {
+    return current.leaveCondition;
+  }
+  return to === "ON_LEAVE" ? conditionAtDeparture(ctx, current, now) : null;
+}
+
 /** Retoma la condición guardada, respetando una decisión explícita ya tomada para el regreso. */
 async function carryOverCondition(
   ctx: CommandContext,
@@ -169,19 +205,7 @@ async function carryOverCondition(
 ): Promise<void> {
   const term = await getCurrentTerm(now);
   if (!term) return;
-  let snapshot = current.leaveCondition;
-  if (snapshot === null) {
-    // Licencias anteriores a la migración: reconstruir desde el término de la salida registrada.
-    const [departure] = await ctx.tx
-      .select({ at: membershipEvent.at })
-      .from(membershipEvent)
-      .where(
-        and(eq(membershipEvent.membershipId, current.id), eq(membershipEvent.toStatus, "ON_LEAVE")),
-      )
-      .orderBy(desc(membershipEvent.at))
-      .limit(1);
-    snapshot = departure ? await conditionAtDeparture(ctx, current, departure.at) : [];
-  }
+  const snapshot = await savedCondition(ctx, current);
   const decided = await ctx.tx
     .select({ committeeId: membershipTerm.committeeId })
     .from(membershipTerm)
@@ -233,8 +257,7 @@ export async function changeMembershipStatus(
     .set({
       status: input.to,
       leaveUntil,
-      leaveCondition:
-        input.to === "ON_LEAVE" ? await conditionAtDeparture(ctx, current, now) : null,
+      leaveCondition: await conditionToKeep(ctx, current, input.to, now),
     })
     .where(eq(membership.id, current.id));
   await ctx.tx.insert(membershipEvent).values({
@@ -248,7 +271,8 @@ export async function changeMembershipStatus(
   if (!SIGN_IN_STATUSES.includes(input.to)) {
     await revokeAccess(ctx, personId);
   }
-  if (current.status === "ON_LEAVE" && input.to === "ACTIVE") {
+  // Vuelve de licencia, directo o pasando por honorario con la condición todavía guardada.
+  if (input.to === "ACTIVE" && (current.status === "ON_LEAVE" || current.leaveCondition !== null)) {
     await carryOverCondition(ctx, current, now);
   }
   await ctx.audit({

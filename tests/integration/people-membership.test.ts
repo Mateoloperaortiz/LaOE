@@ -166,6 +166,77 @@ describe("salida, reactivación y anonimización", () => {
     expect(actual).toMatchObject({ probation: true, reason: t("T-2276") });
   });
 
+  /** Sale a licencia en 2026-1, en prueba, con el regreso previsto dentro de la ventana. */
+  async function onLeaveWithProbation(email: string) {
+    const previo = await seedTerm("2026-1");
+    const personId = await seedMember(email, { entryTermCode: "2026-1" });
+    await seedMembershipTerm(personId, previo, true);
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(
+        ctx,
+        personId,
+        { to: "ON_LEAVE", reason: "Intercambio", leaveUntil: "2027-06-01" },
+        new Date("2026-06-01T15:00:00Z"),
+      ),
+    );
+    const saved = async () =>
+      (
+        await db()
+          .select({ leaveCondition: membership.leaveCondition })
+          .from(membership)
+          .where(eq(membership.personId, personId))
+      )[0]?.leaveCondition;
+    const conditions = () =>
+      db()
+        .select({ termId: membershipTerm.termId, probation: membershipTerm.probation })
+        .from(membershipTerm)
+        .where(eq(membershipTerm.personId, personId));
+    return { previo, personId, saved, conditions };
+  }
+
+  it("quien vuelve de licencia pasando por honorario retoma la condición que tenía (ADR-118 regla 8)", async () => {
+    const actual = await seedTerm();
+    const { previo, personId, saved, conditions } =
+      await onLeaveWithProbation("honoraria@eafit.edu.co");
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(ctx, personId, { to: "HONORARY", reason: "Pasa a honoraria" }),
+    );
+    // La condición guardada sigue pendiente mientras no vuelva a activa.
+    expect(await saved()).toEqual([
+      expect.objectContaining({ committeeId: null, probation: true }),
+    ]);
+
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(ctx, personId, { to: "ACTIVE", reason: "Vuelve" }),
+    );
+
+    expect(await saved()).toBeNull();
+    expect((await conditions()).sort((a, b) => a.termId.localeCompare(b.termId))).toEqual(
+      [
+        { termId: previo, probation: true },
+        { termId: actual, probation: true },
+      ].sort((a, b) => a.termId.localeCompare(b.termId)),
+    );
+  });
+
+  // Conducta de hoy, sin elegir: depende de que haya huecos entre términos (decisión abierta 27).
+  it("volver de licencia un día sin semestre vigente pierde la condición guardada (decisión abierta 27)", async () => {
+    const { previo, personId, saved, conditions } =
+      await onLeaveWithProbation("hueco@eafit.edu.co");
+
+    await runCommand(SYSTEM_ACTOR, (ctx) =>
+      changeMembershipStatus(
+        ctx,
+        personId,
+        { to: "ACTIVE", reason: "Vuelve" },
+        new Date("2030-03-01T15:00:00Z"),
+      ),
+    );
+
+    expect(await saved()).toBeNull();
+    expect(await conditions()).toEqual([{ termId: previo, probation: true }]);
+  });
+
   it("dar de baja depura lo que no es historia y registra los consentimientos; reactivar recupera el perfil", async () => {
     const termId = await seedTerm();
     const personId = await seedMember("egresa@eafit.edu.co", { phone: "+573001234567" });

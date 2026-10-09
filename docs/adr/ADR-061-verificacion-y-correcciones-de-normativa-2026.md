@@ -1,6 +1,6 @@
 # ADR-061: Verificación y correcciones de normativa 2026
 
-- Estado: Aceptada (2026-09-14)
+- Estado: Aceptada (2026-09-14), enmendada por ADR-118
 - Fecha: 2026-09-14
 - Enmienda: ADR-060 (reglas 5, 6, 8, 10–13; implementación y evidencia)
 - Relacionadas: ADR-052, ADR-054, ADR-059
@@ -22,3 +22,7 @@ La revisión de la PR #23 encontró tres pruebas E2E desactualizadas y guardas i
 ## Consecuencias
 
 La [matriz de verificación](../19-verificacion-normativa-2026.md) relaciona los conflictos y vacíos con sus pruebas. Se mantienen las decisiones humanas de ADR-060: cierre y expulsión confirmados, desactivación, elección de cargos y concesión del honorario. La verificación técnica no acredita datos académicos ni decisiones de la OE que todavía no estén registrados.
+
+## Enmienda (2026-10-08, ADR-118)
+
+La regla 4 restauraba la condición guardada «al regresar», y el código solo la retomaba en el paso directo de licencia a activo: el paso por honorario la borraba. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 8 la completa: la condición guardada se conserva mientras la persona esté en licencia o en honorario y se retoma cuando vuelve a activo, por cualquiera de los dos caminos. El regreso en un día sin término vigente no cambia (decisión abierta 27).
