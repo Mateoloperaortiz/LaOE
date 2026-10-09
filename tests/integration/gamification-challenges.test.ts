@@ -406,6 +406,67 @@ describe("retos: trivia", () => {
     expect(await balanceFor(personId, termId)).toBe(5);
   });
 
+  it("dos personas entregan el mismo reto con el mismo requestId y cada una repite lo suyo (ADR-118 regla 18)", async () => {
+    const termId = await seedTerm();
+    const ana = await seedMember("retos.pestana.ana@eafit.edu.co");
+    const bruno = await seedMember("retos.pestana.bruno@eafit.edu.co");
+    await enableGamification(ana);
+    const trivia = await seedTrivia(termId);
+    const evidence = await seedChallenge(termId, { kind: "EVIDENCE", passPercent: null });
+    // La misma pestaña: Bruno hereda el requestId que la entrega de Ana dejó en sessionStorage.
+    const requestId = "5f0c1f0e-6f0a-4d53-9d5f-2f3c8f0f7a11";
+    const answers = { challengeId: trivia, requestId, answers: [0] };
+
+    const deAna = await submitTriviaAs({ personId: ana }, answers);
+    const deBruno = await submitTriviaAs({ personId: bruno }, answers);
+    expect(deAna.ok && deAna.participation.status).toBe("COMPLETED");
+    expect(deBruno.ok && deBruno.participation.status).toBe("COMPLETED");
+    expect(await balanceFor(bruno, termId)).toBe(5);
+
+    const repetida = await submitTriviaAs({ personId: bruno }, answers);
+    expect(repetida.ok && repetida.participation.id).toBe(deBruno.ok && deBruno.participation.id);
+    expect(await balanceFor(bruno, termId)).toBe(5);
+    expect(await submitTriviaAs({ personId: bruno }, { ...answers, requestId: "otra" })).toEqual({
+      ok: false,
+      reason: "ALREADY",
+    });
+
+    const proof = {
+      challengeId: evidence,
+      requestId,
+      text: "Fuimos a la actividad del comité y dejamos el registro completo.",
+      keys: [],
+    };
+    const pruebaDeAna = await submitEvidenceAs({ personId: ana }, proof);
+    const pruebaDeBruno = await submitEvidenceAs({ personId: bruno }, proof);
+    expect(pruebaDeAna.ok && pruebaDeAna.participation.status).toBe("PENDING");
+    expect(pruebaDeBruno.ok && pruebaDeBruno.participation.status).toBe("PENDING");
+    const pruebaRepetida = await submitEvidenceAs({ personId: bruno }, proof);
+    expect(pruebaRepetida.ok && pruebaRepetida.participation.id).toBe(
+      pruebaDeBruno.ok && pruebaDeBruno.participation.id,
+    );
+  });
+
+  it("una entrega guardada antes de la regla 18 se sigue repitiendo con su requestId", async () => {
+    const termId = await seedTerm();
+    const personId = await seedMember("retos.vieja@eafit.edu.co");
+    await enableGamification(personId);
+    const challengeId = await seedTrivia(termId);
+    const requestId = "0c2b1d7e-0d0f-4c57-8a55-6b0f3a0e9d21";
+    const input = { challengeId, requestId, answers: [0] };
+    const first = await submitTriviaAs({ personId }, input);
+    // Así quedó guardada una entrega anterior a la regla: el requestId tal como llegó.
+    await db()
+      .update(challengeParticipation)
+      .set({ requestId })
+      .where(eq(challengeParticipation.challengeId, challengeId));
+
+    const replay = await submitTriviaAs({ personId }, input);
+
+    expect(replay.ok && replay.participation.id).toBe(first.ok && first.participation.id);
+    expect(await balanceFor(personId, termId)).toBe(5);
+  });
+
   it("dos entregas simultáneas con requestIds distintos: solo una gana", async () => {
     const termId = await seedTerm();
     const personId = await seedMember("retos.carrera@eafit.edu.co");

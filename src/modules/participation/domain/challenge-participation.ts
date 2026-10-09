@@ -77,7 +77,10 @@ export interface SubmitContext {
   campaign: { id: string; percent: CampaignPercent } | null;
 }
 
-/** Señal para el wrapper: el unique (reto, persona) o (reto, requestId) decidió el duplicado. */
+/**
+ * Señal para el wrapper: el unique (reto, persona) decidió el duplicado. El de (reto, requestId) ya no
+ * cruza personas, porque el `requestId` se guarda con la suya (ADR-118 regla 18).
+ */
 export class ChallengeAlreadySubmitted extends Error {
   constructor() {
     super("participación repetida");
@@ -268,6 +271,15 @@ async function replayResult(
   };
 }
 
+/**
+ * El identificador de una entrega lleva a la persona (ADR-118 regla 18). El `requestId` lo elige el
+ * navegador y lo guarda por pestaña, no por sesión, y el índice único es (reto, requestId): guardado
+ * tal como llega, el de una persona le cerraba el reto a la siguiente en la misma pestaña.
+ */
+function submissionRequestId(personId: string, requestId: string): string {
+  return `${personId}:${requestId}`;
+}
+
 /** El replay compara el contenido guardado, incluso tras cerrar el reto o procesar sus imágenes. */
 export async function replaySubmission(
   ctx: CommandContext,
@@ -282,7 +294,11 @@ export async function replaySubmission(
 ): Promise<SubmitResult | null> {
   const existing = await existingParticipation(ctx, input.challengeId, input.personId);
   if (!existing) return null;
-  if (existing.requestId !== input.requestId) return { ok: false, reason: "ALREADY" };
+  // Las entregas anteriores a la regla 18 guardaron el `requestId` tal como llegó.
+  const sameRequest =
+    existing.requestId === submissionRequestId(input.personId, input.requestId) ||
+    existing.requestId === input.requestId;
+  if (!sameRequest) return { ok: false, reason: "ALREADY" };
   let matches = false;
   if (input.answers) {
     matches = JSON.stringify(existing.answers) === JSON.stringify(input.answers);
@@ -361,7 +377,7 @@ export async function submitTrivia(
       .values({
         challengeId: row.id,
         personId: input.personId,
-        requestId: input.requestId,
+        requestId: submissionRequestId(input.personId, input.requestId),
         status: passed ? "COMPLETED" : "REJECTED",
         submittedAt: now,
         answers: input.answers,
@@ -464,7 +480,7 @@ export async function submitEvidence(
       .values({
         challengeId: row.id,
         personId: input.personId,
-        requestId: input.requestId,
+        requestId: submissionRequestId(input.personId, input.requestId),
         status: "PENDING",
         submittedAt: now,
         evidenceText: text,
