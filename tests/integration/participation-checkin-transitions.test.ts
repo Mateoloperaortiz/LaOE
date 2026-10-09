@@ -30,6 +30,8 @@ import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
 
 // Matriz de caracterización de DT-008 (ADR-109 regla 3): qué deja cada camino de una asistencia
 // (registro propio, organizador, decidir, cancelar la ocasión y excusa) en cada cambio de estado.
+// Las dos celdas que ADR-119 regla 5 cambió están dichas donde van: cancelar la ocasión audita cada
+// asistencia que anula, y la excusa audita con el id de la asistencia.
 // Cada celda mira lo mismo: la fila, el libro de puntos, la auditoría de la asistencia, sus eventos
 // con nombre, clave y payload, el premio reservado y el reto presencial. Toda ocasión de la matriz
 // lleva un booster de la persona apuntado y un reto presencial, para que los dos ganchos del premio
@@ -524,7 +526,7 @@ const CASES: Case[] = [
       audit: [
         {
           action: "checkin.excused",
-          entityId: `${c.f.occasion.id}:${c.f.personId}`,
+          entityId: c.checkInId,
           before: null,
           after: { status: "EXCUSED", reason: c.reason },
         },
@@ -557,7 +559,7 @@ const CASES: Case[] = [
       audit: [
         {
           action: "checkin.excused",
-          entityId: `${c.f.occasion.id}:${c.f.personId}`,
+          entityId: c.checkInId,
           before: { status: "PENDING" },
           after: { status: "EXCUSED", reason: c.reason },
         },
@@ -593,7 +595,7 @@ const CASES: Case[] = [
       audit: [
         {
           action: "checkin.excused",
-          entityId: `${c.f.occasion.id}:${c.f.personId}`,
+          entityId: c.checkInId,
           before: { status: "REJECTED" },
           after: { status: "EXCUSED", reason: c.reason },
         },
@@ -629,7 +631,7 @@ const CASES: Case[] = [
       audit: [
         {
           action: "checkin.excused",
-          entityId: `${c.f.occasion.id}:${c.f.personId}`,
+          entityId: c.checkInId,
           before: { status: "CANCELLED" },
           after: { status: "EXCUSED", reason: c.reason },
         },
@@ -716,8 +718,21 @@ describe("una asistencia cambia de estado: qué deja cada camino", () => {
       payload: { ...facts(f, personId, source), reason: OCCASION_CANCEL_REASON },
     });
     expect(await effects(seen)).toEqual({
-      // Diferencia de hoy: cancelar la ocasión no audita cada asistencia que anula.
-      audit: [],
+      // ADR-119 regla 5: cada asistencia anulada queda auditada con su id, como una anulación suelta.
+      audit: [
+        {
+          action: "checkin.cancel",
+          entityId: (await findCheckIn(f.occasion.id, f.personId))?.id,
+          before: { status: "PENDING" },
+          after: { status: "CANCELLED", reason: OCCASION_CANCEL_REASON, reversed: 0 },
+        },
+        {
+          action: "checkin.cancel",
+          entityId: (await findCheckIn(f.occasion.id, otherId))?.id,
+          before: { status: "APPROVED" },
+          after: { status: "CANCELLED", reason: OCCASION_CANCEL_REASON, reversed: POINTS },
+        },
+      ].sort(byText),
       events: [
         cancelled(f.personId, "SELF_QR"),
         cancelled(otherId, "HOST"),

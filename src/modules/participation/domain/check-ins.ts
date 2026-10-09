@@ -492,7 +492,6 @@ export async function cancelOccasionCheckIns(
         current,
         to: "CANCELLED",
         reason,
-        audit: "NONE",
         now,
       },
       context,
@@ -551,7 +550,6 @@ export async function excuseCheckIn(
         // Quien excusa es GH: es el origen de la asistencia si nace y el que dice el evento.
         source: "ADMIN",
         reason,
-        audit: "OCCASION_PERSON",
         now,
       },
       context,

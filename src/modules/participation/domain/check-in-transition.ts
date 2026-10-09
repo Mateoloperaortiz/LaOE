@@ -165,11 +165,6 @@ export interface CheckInChange {
   reason?: string | null | undefined;
   /** Booster que la persona elige en su propio registro (ADR-067 regla 8). */
   booster?: { id: string; member: MemberContext | null } | undefined;
-  /**
-   * Diferencias de hoy que la matriz de caracterización fija: cancelar la ocasión no audita cada
-   * asistencia y la excusa audita con «ocasión:persona».
-   */
-  audit?: "CHECK_IN" | "OCCASION_PERSON" | "NONE" | undefined;
   now: Date;
 }
 
@@ -210,10 +205,10 @@ export async function transitionCheckIn(
     reversed = await reverseCheckInCredit(ctx, row.id, reason ?? "");
   }
 
-  // La que nace viva (aprobada o pendiente) se audita como creada, con de dónde vino. Todo lo demás
-  // es una decisión sobre la asistencia, también la excusa que la crea ya excusada.
+  // Toda transición se audita con el id de la asistencia (ADR-119 regla 5). La que nace viva
+  // (aprobada o pendiente) se audita como creada, con de dónde vino; todo lo demás es una decisión
+  // sobre la asistencia, también la excusa que la crea ya excusada.
   const born = !current && to !== "EXCUSED";
-  const audit = change.audit ?? "CHECK_IN";
   if (born) {
     await ctx.audit({
       action: "checkin.created",
@@ -221,14 +216,14 @@ export async function transitionCheckIn(
       entityId: row.id,
       after: { occasionId: occasion.id, personId, status: to, source },
     });
-  } else if (audit !== "NONE") {
+  } else {
     if (!effects.action) {
       throw new Error(`Una asistencia que ya existe no pasa a ${to}`);
     }
     await ctx.audit({
       action: effects.action,
       entityType: "check_in",
-      entityId: audit === "OCCASION_PERSON" ? `${occasion.id}:${personId}` : row.id,
+      entityId: row.id,
       before: current ? { status: current.status } : null,
       after: effects.auditsReversal ? { status: to, reason, reversed } : { status: to, reason },
     });

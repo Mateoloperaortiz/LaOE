@@ -52,6 +52,12 @@ El séptimo ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo
    - La asistencia que nace excusada no pasa por los ganchos: no tenía nada reservado.
    - El registro propio no tiene quién lo decida (`decidedById` nulo), aunque nazca aprobado; el del organizador y la excusa, sí.
 
+5. **La auditoría de una asistencia lleva siempre el id de la asistencia.** Dos caminos se salían, y cambian:
+   - **Cancelar una ocasión audita cada asistencia que anula.** Quedaba `occasion.cancelled` y, de cada asistencia, solo su evento. Ahora cada una deja su `checkin.cancel` con la forma de una anulación suelta: el estado anterior (`PENDING` o `APPROVED`), el motivo de la cancelación y los puntos revertidos. Nadie cuenta ni lee filas de auditoría de `check_in` en `src` ni en `scripts`: el único lector de `audit_log` es `redactAuditEntries` (`system`), que la anonimización llama con la entidad `person`.
+   - **La excusa audita con el id de la asistencia**, también cuando la crea. Usaba «ocasión:persona». Rastro de quién leía ese id: nadie en `src` ni en `scripts`. La línea de tiempo de crm sale del evento `checkin.excused` y no de la auditoría, y ni Mis datos ni el retiro de datos leen `audit_log` por la entidad `check_in`. Lo leía una prueba: el ayudante `excuseTraces` de `tests/integration/participation-anonymization.test.ts` buscaba la auditoría de la excusa por ese id. Es la única prueba que existía y cambia, y cambia solo esa búsqueda.
+
+   En la matriz cambian cinco celdas, cada una vista en rojo antes: las cuatro de la excusa (sin asistencia, sobre pendiente, sobre rechazada y sobre anulada) y la de cancelar la ocasión. Las filas de auditoría anteriores no se reescriben: las excusas ya aceptadas conservan «ocasión:persona» y las cancelaciones anteriores siguen sin fila por asistencia.
+
 ## Consecuencias
 
 - Cada registro y cada decisión toman una fila más, compartida. No se frenan entre sí: los 500 registros simultáneos de `participation-checkin.test.ts` siguen pasando. Sí esperan a quien edita la ocasión abierta (el título, el lugar o el código rotativo), y al revés, lo que dura una transacción.
@@ -60,5 +66,8 @@ El séptimo ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo
 - La excusa que pierde contra un registro responde T-2223 aunque el registro haya quedado pendiente, que la excusa sí admite: el segundo intento la acepta. Tomar la asistencia que todavía no existe para evitar ese rebote pediría un candado por ocasión y persona que hoy nadie toma.
 - Un registro propio con un booster que no vale escribe su asistencia y la deshace, en vez de no escribir nada. Por fuera responde igual. En una carrera con otro registro de la misma persona responde `ALREADY` antes de mirar el booster.
 - En la auditoría del registro propio con booster, `booster.targeted` queda escrito después de `checkin.created`, dentro de la misma transacción y con el mismo instante. Ninguna prueba dependía de ese orden.
-- `check-ins.ts` baja de 877 a 675 líneas y cada camino queda en sus condiciones de entrada y una llamada. Un efecto nuevo de una transición (otro gancho, otro evento) se agrega en un sitio, y la matriz dice qué celdas toca.
+- `check-ins.ts` baja de 877 a 673 líneas y cada camino queda en sus condiciones de entrada y una llamada. Un efecto nuevo de una transición (otro gancho, otro evento) se agrega en un sitio, y la matriz dice qué celdas toca.
 - Ninguna prueba que existía cambió con el camino único. Los eventos conservan nombre y payload.
+- Cancelar una ocasión con n asistencias vivas escribe n filas de auditoría más, en la misma transacción.
+- La regla 5 no decide qué pasa con el motivo de una excusa que queda en `audit_log.after` después de anonimizar a la persona: eso sigue en la [decisión abierta 10](../decisiones-abiertas.md) (DT-100) y se conserva como estaba. Quien lo limpie tendrá que buscar las dos formas del id: las nuevas se alcanzan por `check_in`, las viejas por «ocasión:persona».
+- Queda anotado sin tocar: el registro del organizador desde la consola responde T-578 con el estado crudo del enum (DT-269).

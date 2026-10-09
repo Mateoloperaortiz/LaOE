@@ -42,14 +42,13 @@ function yesterday(termId: string, title: string) {
 
 /** El motivo que una excusa aceptada deja escrito fuera de la asistencia: en su auditoría y en su evento. */
 async function excuseTraces(occasionId: string, personId: string) {
+  // La auditoría de la excusa lleva el id de la asistencia (ADR-119 regla 5).
+  const attendance = await findCheckIn(occasionId, personId);
   const audits = await getDb()
     .select({ after: auditLog.after })
     .from(auditLog)
     .where(
-      and(
-        eq(auditLog.action, "checkin.excused"),
-        eq(auditLog.entityId, `${occasionId}:${personId}`),
-      ),
+      and(eq(auditLog.action, "checkin.excused"), eq(auditLog.entityId, attendance?.id ?? "")),
     );
   const events = (
     await getDb()
