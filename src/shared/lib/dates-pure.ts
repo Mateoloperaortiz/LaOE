@@ -7,18 +7,28 @@
  */
 export const APP_TIME_ZONE = "America/Bogota";
 
-/** Suma días hábiles (lunes a viernes, sin festivos) a partir de un instante: el plazo de la eliminación. */
-export function addBusinessDays(from: Date, days: number): Date {
+/**
+ * Suma días hábiles a partir de un instante y conserva la hora: el plazo de una excusa, el de la
+ * eliminación y el vencimiento de las tareas de GH. Hábil es de lunes a viernes en el día civil de la
+ * zona dada, sin festivos (ADR-118 regla 12; los festivos y la hora de corte son la decisión abierta 33).
+ * Avanza de a 24 horas, que es un día civil en una zona sin horario de verano como la de Colombia.
+ */
+export function addBusinessDaysIn(timeZone: string, from: Date, days: number): Date {
   const result = new Date(from.getTime());
   let remaining = days;
   while (remaining > 0) {
     result.setUTCDate(result.getUTCDate() + 1);
-    const weekday = result.getUTCDay();
-    if (weekday !== 0 && weekday !== 6) {
+    if (!isWeekendIn(timeZone, result)) {
       remaining -= 1;
     }
   }
   return result;
+}
+
+/** Si ese instante cae en sábado o domingo en la zona dada. */
+function isWeekendIn(timeZone: string, at: Date): boolean {
+  const weekday = new Date(`${dateKeyIn(timeZone, at)}T00:00:00Z`).getUTCDay();
+  return weekday === 0 || weekday === 6;
 }
 
 /** "AAAA-MM-DD" de un instante en la zona dada. */

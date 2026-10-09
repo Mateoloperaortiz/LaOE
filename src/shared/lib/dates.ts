@@ -1,9 +1,14 @@
 import { getEnv } from "@/env";
-import { atHourIn, dateKeyIn, utcToZonedInput, zonedInputToUtc } from "./dates-pure";
+import {
+  addBusinessDaysIn,
+  atHourIn,
+  dateKeyIn,
+  utcToZonedInput,
+  zonedInputToUtc,
+} from "./dates-pure";
 
 export {
   APP_TIME_ZONE,
-  addBusinessDays,
   atHourIn,
   dateKeyIn,
   hourIn,
@@ -54,6 +59,11 @@ export function formatDateRange(start: Date, end: Date | null): string {
 /** "AAAA-MM-DD" de hoy en la zona de la app: la fecha con la que se deriva el término actual (ADR-004). */
 export function todayKey(now = new Date()): string {
   return dateKeyIn(getEnv().APP_TIMEZONE, now);
+}
+
+/** Suma días hábiles a partir de un instante, contados sobre el día civil de la zona de la app. */
+export function addBusinessDays(from: Date, days: number): Date {
+  return addBusinessDaysIn(getEnv().APP_TIMEZONE, from, days);
 }
 
 export function bogotaInputToUtc(value: string): Date {

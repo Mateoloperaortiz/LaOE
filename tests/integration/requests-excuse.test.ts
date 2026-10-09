@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import {
@@ -116,6 +116,44 @@ describe("excusas válidas", () => {
     expect(
       (await db().select().from(checkIn).where(eq(checkIn.occasionId, f.old.id)))[0]?.status,
     ).toBe("EXCUSED");
+  });
+
+  it("la excusa de una ocasión del viernes a las 7 p. m. se recibe todavía el miércoles en la mañana", async () => {
+    // El plazo cuenta días hábiles sobre el día civil de Colombia (ADR-118 regla 12). Miércoles 14 de
+    // octubre de 2026 a las 10:00 de Colombia: contado en UTC el plazo había vencido el martes a las 19:00.
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-14T15:00:00Z") });
+    try {
+      const termId = await seedTerm();
+      const personId = await seedMember("viernes@eafit.edu.co");
+      const startsAt = new Date("2026-10-10T00:00:00Z"); // viernes 9 a las 19:00 de Colombia
+      const friday = await seedOccasion(termId, {
+        category: "INTEGRATION",
+        status: "CLOSED",
+        startsAt,
+        checkInOpensAt: new Date(startsAt.getTime() - HOUR),
+        checkInClosesAt: new Date(startsAt.getTime() + HOUR),
+      });
+      const created = await createRequestAs({ personId, ip: null }, "EXCUSE", {
+        occasionId: friday.id,
+        cause: "WORK",
+        reason: "Turno en el trabajo",
+      });
+      const [stored] = await db().select().from(request).where(eq(request.id, created.id));
+      expect(stored).toMatchObject({ status: "PENDING", occasionId: friday.id });
+      // Pasada esa misma hora del miércoles ya no entra sin marcarla tardía: la hora de corte es la de
+      // la ocasión (decisión abierta 33, tercera pregunta).
+      vi.setSystemTime(new Date("2026-10-15T00:00:01Z"));
+      const other = await seedMember("tarde@eafit.edu.co");
+      await expect(
+        createRequestAs({ personId: other, ip: null }, "EXCUSE", {
+          occasionId: friday.id,
+          cause: "WORK",
+          reason: "Turno en el trabajo",
+        }),
+      ).rejects.toThrow(t("T-2219"));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("se presenta dentro del plazo, una pendiente por ocasión, y abre una tarea para GH", async () => {
