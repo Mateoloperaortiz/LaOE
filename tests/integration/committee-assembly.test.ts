@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { and, eq, isNull } from "drizzle-orm";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { type CommandContext, runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import {
   listAssemblyRepresentation,
   listCommitteeRepresentation,
@@ -18,8 +18,15 @@ import {
   setCommitteeMembershipsAs,
   setRepresentativeAs,
 } from "@/modules/people";
+import { setCommitteeMemberships } from "@/modules/people/domain/committee-memberships";
+import { endMembership } from "@/modules/people/domain/membership";
+import { setRepresentative } from "@/modules/people/domain/representatives";
+import { leaveCommittee } from "@/modules/people/domain/term-outcomes";
+import { committeeMembership } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
+import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { holdCommand, waitingOn } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
@@ -269,5 +276,114 @@ describe("representación en la asamblea", () => {
     expect(rastro.map((row) => (row.after as { personId: string | null }).personId)).toEqual(
       expect.arrayContaining([titular, null]),
     );
+  });
+
+  // ADR-118 regla 6 con dos solicitudes a la vez: el nombramiento lee su elegibilidad bajo candado.
+  // Llegue primero el cierre o el nombramiento, no queda nombrada quien ya no es del comité.
+  const BAJA = { endReason: "RESIGNATION", memorialConsent: false, contactConsent: false } as const;
+  const cierres: Array<
+    [
+      string,
+      (ctx: CommandContext, salida: Salida) => Promise<unknown>,
+      (salida: Salida) => Promise<unknown>,
+    ]
+  > = [
+    [
+      "la baja",
+      (ctx, { titular }) => endMembership(ctx, titular, BAJA),
+      ({ gh, titular }) => endMembershipAs(gh, titular, BAJA),
+    ],
+    [
+      "la salida por el cierre de permanencia",
+      (ctx, { titular, a3, termId }) => leaveCommittee(ctx, titular, a3, termId, "Cierre"),
+      ({ gh, titular, a3, termId }) => leaveCommitteeAs(gh, titular, a3, termId, "Cierre"),
+    ],
+    [
+      "el cambio de comités",
+      (ctx, { titular, pixel, termId }) =>
+        setCommitteeMemberships(ctx, titular, termId, [{ committeeId: pixel }]),
+      ({ gh, titular, pixel, termId }) =>
+        setCommitteeMembershipsAs(gh, titular, termId, [{ committeeId: pixel }]),
+    ],
+  ];
+
+  async function porNombrar(): Promise<Salida> {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const titular = await seedMember("titular@eafit.edu.co");
+    await seedCommitteeMembership(titular, a3, termId);
+    return { gh, titular, a3, pixel, termId };
+  }
+
+  async function sigueEnElComite({ titular, a3, termId }: Salida): Promise<boolean> {
+    const vivas = await db()
+      .select({ id: committeeMembership.id })
+      .from(committeeMembership)
+      .where(
+        and(
+          eq(committeeMembership.personId, titular),
+          eq(committeeMembership.committeeId, a3),
+          eq(committeeMembership.termId, termId),
+          isNull(committeeMembership.leftAt),
+        ),
+      );
+    return vivas.length > 0;
+  }
+
+  it.each(
+    cierres,
+  )("si %s entra primero, el nombramiento que hacía cola responde que la persona no es elegible", async (_caso, cerrar) => {
+    const salida = await porNombrar();
+    const held = await holdCommand(salida.gh, (ctx) => cerrar(ctx, salida));
+    const nombramiento = setRepresentativeAs(salida.gh, {
+      committeeId: salida.a3,
+      termId: salida.termId,
+      role: "TITULAR",
+      personId: salida.titular,
+    }).then(
+      () => "nombrada",
+      (error: unknown) => error,
+    );
+    try {
+      await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBeGreaterThan(0), {
+        timeout: 5_000,
+      });
+    } finally {
+      held.release();
+      await held.done;
+    }
+
+    expect(await nombramiento).toEqual(new DomainError(t("T-2255"), "personId"));
+    expect(await sigueEnElComite(salida)).toBe(false);
+    expect(await listRepresentatives(salida.termId, salida.a3)).toEqual([]);
+  });
+
+  it.each(
+    cierres,
+  )("si el nombramiento entra primero, %s que hacía cola retira también a la recién nombrada", async (_caso, _cerrar, cerrarAs) => {
+    const salida = await porNombrar();
+    const held = await holdCommand(salida.gh, (ctx) =>
+      setRepresentative(ctx, {
+        committeeId: salida.a3,
+        termId: salida.termId,
+        role: "TITULAR",
+        personId: salida.titular,
+      }),
+    );
+    const cierre = cerrarAs(salida);
+    try {
+      await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBeGreaterThan(0), {
+        timeout: 5_000,
+      });
+    } finally {
+      held.release();
+      await held.done;
+    }
+    await cierre;
+
+    expect(await sigueEnElComite(salida)).toBe(false);
+    expect(await listRepresentatives(salida.termId, salida.a3)).toEqual([]);
   });
 });

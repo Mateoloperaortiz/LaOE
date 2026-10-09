@@ -68,20 +68,28 @@ export async function setRepresentative(
     return;
   }
   if (input.personId) {
-    const [eligible] = await ctx.tx
+    // La elegibilidad se lee bajo candado y se escribe en la misma transacción (ADR-118 regla 6):
+    // primero la membresía, que la baja y el cambio de comités toman antes de cerrar nada, y después
+    // la pertenencia, que todo cierre actualiza. Es el orden de ellos. Quien llega segundo espera: el
+    // nombramiento ve la salida confirmada y responde T-2255, o el cierre ve el nombramiento y lo retira.
+    const [member] = await ctx.tx
+      .select({ status: membership.status })
+      .from(membership)
+      .where(eq(membership.personId, input.personId))
+      .for("share");
+    const [seat] = await ctx.tx
       .select({ id: committeeMembership.id })
       .from(committeeMembership)
-      .innerJoin(membership, eq(membership.personId, committeeMembership.personId))
       .where(
         and(
           eq(committeeMembership.committeeId, input.committeeId),
           eq(committeeMembership.termId, input.termId),
           eq(committeeMembership.personId, input.personId),
           isNull(committeeMembership.leftAt),
-          eq(membership.status, "ACTIVE"),
         ),
-      );
-    if (!eligible) {
+      )
+      .for("share");
+    if (member?.status !== "ACTIVE" || !seat) {
       throw new DomainError(t("T-2255"), "personId");
     }
     // Una persona ocupa un solo rol: si era el otro, lo deja.
