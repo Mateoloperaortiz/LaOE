@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { addDirectorAction } from "@/app/admin/eventos/[id]/ediciones/[edicionId]/mesa/actions";
+import { macroeventAction } from "@/app/admin/macroeventos/[slug]/actions";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { createEdition } from "@/modules/events/domain/editions";
@@ -10,7 +11,8 @@ import { truncateAll } from "./db";
 import { seedTerm, seedVeteran } from "./factories";
 
 // La mesa de una edición queda en el término que contiene su fecha (ADR-060 regla 9; ADR-118 regla
-// 9). Acá va la action de `/admin/eventos/[id]/ediciones/[edicionId]/mesa` entera, contra la base.
+// 9). Acá van enteras, contra la base, las actions de las dos pantallas que la nombran:
+// `/admin/eventos/[id]/ediciones/[edicionId]/mesa` y `/admin/macroeventos/[slug]`.
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 vi.mock("next/navigation", () => ({
@@ -20,6 +22,11 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/app/_lib/actor", () => ({
   requireAdminContext: async () => ({ personId: null, ip: null }),
+  actorContext: async () => ({ personId: null, ip: null }),
+}));
+vi.mock("@/modules/identity", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/identity")>()),
+  requireAdminActor: async () => ({ personId: "admin", membershipStatus: "ACTIVE", isAdmin: true }),
 }));
 
 // Una edición del primer semestre de 2031: ningún término la contiene hasta que alguien lo cree.
@@ -101,5 +108,28 @@ describe("mesa directiva desde la edición", () => {
     expect(await getDb().select().from(appointment)).toEqual([
       expect.objectContaining({ personId, editionId: ids.editionId, termId: deLaEdicion }),
     ]);
+  });
+});
+
+describe("mesa directiva desde el macroevento", () => {
+  beforeEach(truncateAll);
+  afterAll(closeDb);
+
+  it("responde que el semestre de la edición no existe, no el texto del cierre, y no nombra a nadie", async () => {
+    const vigente = await seedTerm();
+    const ids = await seedEdition();
+    const personId = await seedVeteran("general.mesa@example.com");
+    const form = boardForm(ids, personId);
+    form.set("slug", "inventiva");
+    form.set("termId", vigente);
+    form.set("area", "mesa");
+    form.set("operation", "add-director");
+
+    const destino = await redirectOf(macroeventAction(form));
+
+    expect(destino).toBe(
+      `redirect:/admin/macroeventos/inventiva?termId=${vigente}&area=mesa&editionId=${ids.editionId}&error=${encodeURIComponent(t("T-3244"))}`,
+    );
+    expect(await getDb().select().from(appointment)).toEqual([]);
   });
 });
