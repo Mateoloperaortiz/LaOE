@@ -48,6 +48,7 @@ async function notify(
       skippedByPreference: 0,
       withoutDevice: 0,
       removedDevices: 0,
+      deviceFailures: {},
     };
   }
   const { title, body } = splitPush(text);

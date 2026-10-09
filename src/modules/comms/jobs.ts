@@ -33,7 +33,7 @@ import {
   unlessAnonymized,
 } from "./domain/events";
 import { deleteMessagesFor } from "./domain/messages";
-import { deliverNotification } from "./domain/notify";
+import { type DeliveryStats, deliverNotification } from "./domain/notify";
 import { deletePreferencesFor } from "./domain/preferences";
 import { sendTransactionalEmail } from "./domain/send";
 import { deleteSubscriptionsFor } from "./domain/subscriptions";
@@ -41,63 +41,76 @@ import { deleteSubscriptionsFor } from "./domain/subscriptions";
 // Handlers de comms (ADR-037 regla 12, ADR-038): los correos transaccionales de la fase 5 (bienvenida
 // T-200 y respuesta a una solicitud T-205), el bus de notificaciones y la limpieza al salir de la OE.
 
+/**
+ * Lo que un envío por push deja en el registro (ADR-118 regla 25). Si a alguien con dispositivo no le
+ * llegó a ninguno, es una advertencia y no dice «entregado». Las cuentas llevan el código con que
+ * respondió el servicio de push (`deviceFailures`), nunca el endpoint ni las claves del dispositivo.
+ */
+function logDelivery(ctx: JobContext, stats: DeliveryStats, delivered: string): void {
+  if (stats.failed > 0) {
+    ctx.log.warn(stats, "push sin entregar");
+    return;
+  }
+  ctx.log.info(stats, delivered);
+}
+
 // Bus de notificaciones (ADR-038 regla 2): cualquier módulo emite `notification.requested` con
 // destinatarios, textos, URL y clave; aquí se entrega por push respetando la preferencia de cada quien.
 onEvent(notificationRequested, async (payload, ctx) => {
   const stats = await deliverNotification(payload);
-  ctx.log.info(stats, "notificación entregada");
+  logDelivery(ctx, stats, "notificación entregada");
 });
 
 // Push por evento (ADR-038 reglas 6 y 7).
 onEvent(announcementPushRequested, async (payload, ctx) => {
   const stats = await pushAnnouncement(payload);
-  ctx.log.info(stats, "push del anuncio entregado");
+  logDelivery(ctx, stats, "push del anuncio entregado");
 });
 
 onEvent(checkinApproved, async (payload, ctx) => {
   const stats = await pushPointsCredited(payload);
   if (stats) {
-    ctx.log.info(stats, "push de puntos entregado");
+    logDelivery(ctx, stats, "push de puntos entregado");
   }
 });
 
 onEvent(callOpened, async (payload, ctx) => {
   const stats = await pushCallOpened(payload);
-  ctx.log.info(stats, "push de convocatoria entregado");
+  logDelivery(ctx, stats, "push de convocatoria entregado");
 });
 
 // La titular se entera de que se emitió un enlace para su cuenta aunque el enlace se lo hayan
 // entregado a otra persona (ADR-051, amenaza aceptada).
 onEvent(accessGrantIssued, async (payload, ctx) => {
   const stats = await pushAccessGrantIssued(payload, ctx.id);
-  ctx.log.info(stats, "push del enlace de acceso entregado");
+  logDelivery(ctx, stats, "push del enlace de acceso entregado");
 });
 
 onEvent(recognitionGranted, async (payload, ctx) => {
   const stats = await pushRecognition(payload);
-  ctx.log.info(stats, "push de reconocimiento entregado");
+  logDelivery(ctx, stats, "push de reconocimiento entregado");
 });
 
 // Gamificación (ADR-067): reto publicado a su audiencia, decisión de la entrega e insignia nueva.
 onEvent(challengePublished, async (payload, ctx) => {
   const stats = await pushChallengePublished(payload);
-  ctx.log.info(stats, "push de reto publicado entregado");
+  logDelivery(ctx, stats, "push de reto publicado entregado");
 });
 
 onEvent(challengeCompleted, async (payload, ctx) => {
   const stats = await pushChallengeCompleted(payload);
-  ctx.log.info(stats, "push de reto completado entregado");
+  logDelivery(ctx, stats, "push de reto completado entregado");
 });
 
 onEvent(challengeRejected, async (payload, ctx) => {
   const stats = await pushChallengeRejected(payload);
-  ctx.log.info(stats, "push de reto rechazado entregado");
+  logDelivery(ctx, stats, "push de reto rechazado entregado");
 });
 
 onEvent(badgeUnlocked, async (payload, ctx) => {
   const stats = await pushBadgeUnlocked(payload);
   if (stats) {
-    ctx.log.info(stats, "push de insignia entregado");
+    logDelivery(ctx, stats, "push de insignia entregado");
   }
 });
 
@@ -239,5 +252,5 @@ onEvent(requestDecided, async (payload, ctx) => {
     { personId, status: delivered.receipt.status, provider: delivered.receipt.provider },
     "respuesta a la solicitud enviada",
   );
-  ctx.log.info(delivered.stats, "push de la solicitud entregado");
+  logDelivery(ctx, delivered.stats, "push de la solicitud entregado");
 });

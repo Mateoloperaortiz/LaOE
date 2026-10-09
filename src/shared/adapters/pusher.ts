@@ -51,7 +51,17 @@ function ensureConfigured(): void {
 
 export type PushOutcome =
   | { ok: true; statusCode: number }
-  | { ok: false; gone: boolean; error: string };
+  | {
+      ok: false;
+      gone: boolean;
+      /**
+       * El código con que respondió el servicio de push, o `null` si no respondió (red caída, límite
+       * de espera). La librería rechaza toda respuesta que no sea 2xx con el mismo mensaje: el código
+       * es lo único que distingue una clave VAPID mala de un servicio caído (ADR-118 regla 25).
+       */
+      statusCode: number | null;
+      error: string;
+    };
 
 /** @public Envía una notificación; `gone` indica que la suscripción ya no existe y debe borrarse. */
 export async function sendPush(
@@ -71,10 +81,14 @@ export async function sendPush(
     );
     return { ok: true, statusCode: result.statusCode };
   } catch (error) {
-    const statusCode = (error as { statusCode?: number }).statusCode;
+    // Del error de la librería solo salen el código y el mensaje: también trae el endpoint, que es la
+    // credencial del dispositivo, y el cuerpo de la respuesta.
+    const raw = (error as { statusCode?: unknown }).statusCode;
+    const statusCode = typeof raw === "number" ? raw : null;
     return {
       ok: false,
       gone: statusCode === 404 || statusCode === 410,
+      statusCode,
       error: error instanceof Error ? error.message : String(error),
     };
   }

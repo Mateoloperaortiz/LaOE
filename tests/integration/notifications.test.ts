@@ -107,7 +107,7 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
     await subscribe(ana, "https://fcm.googleapis.com/fcm/send/viva");
     setPushSenderForTests(async (subscription) =>
       subscription.endpoint.endsWith("vieja")
-        ? { ok: false, gone: true, error: "410 Gone" }
+        ? { ok: false, gone: true, statusCode: 410, error: "Received unexpected response code" }
         : { ok: true, statusCode: 201 },
     );
     const stats = await deliverNotification(request([ana]));
@@ -115,11 +115,19 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
     const left = await listSubscriptionsFor(ana);
     expect(left.map((item) => item.endpoint)).toEqual(["https://fcm.googleapis.com/fcm/send/viva"]);
 
-    setPushSenderForTests(async () => ({ ok: false, gone: false, error: "500" }));
+    setPushSenderForTests(async () => ({
+      ok: false,
+      gone: false,
+      statusCode: 500,
+      error: "Received unexpected response code",
+    }));
     const failed = await deliverNotification(request([ana], { dedupeKey: "announcement:y" }));
     expect(failed).toMatchObject({ sent: 0, failed: 1 });
     const [row] = await db().select().from(message).where(eq(message.dedupeKey, "announcement:y"));
-    expect(row).toMatchObject({ status: "FAILED", error: "500" });
+    expect(row).toMatchObject({
+      status: "FAILED",
+      error: "HTTP 500: Received unexpected response code",
+    });
   });
 
   it("a un dispositivo guardado con una dirección que no es de un servicio de push conocido no se le envía", async () => {

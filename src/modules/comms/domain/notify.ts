@@ -72,6 +72,9 @@ function hostOf(endpoint: string): string {
   return URL.canParse(endpoint) ? new URL(endpoint).host : "ilegible";
 }
 
+/** La clave de `deviceFailures` para un servicio de push que no respondió. */
+const NO_RESPONSE = "sin respuesta";
+
 export interface DeliveryStats {
   sent: number;
   failed: number;
@@ -79,6 +82,18 @@ export interface DeliveryStats {
   skippedByPreference: number;
   withoutDevice: number;
   removedDevices: number;
+  /**
+   * Dispositivos que no recibieron el aviso, contados por el código con que respondió el servicio de
+   * push (`sin respuesta` si no contestó). Es lo que va al registro: nunca el endpoint ni las claves.
+   */
+  deviceFailures: Record<string, number>;
+}
+
+/** El motivo que queda en `message.error`: el código del servicio adelante, si respondió. */
+function failureText(outcome: Extract<PushOutcome, { ok: false }>): string {
+  return outcome.statusCode === null
+    ? outcome.error
+    : `HTTP ${outcome.statusCode}: ${outcome.error}`;
 }
 
 export async function deliverNotification(raw: unknown, now = new Date()): Promise<DeliveryStats> {
@@ -90,6 +105,7 @@ export async function deliverNotification(raw: unknown, now = new Date()): Promi
     skippedByPreference: 0,
     withoutDevice: 0,
     removedDevices: 0,
+    deviceFailures: {},
   };
   const personIds = [...new Set(request.recipients.map((item) => item.personId))];
   const [already, preferences, subscriptions] = await Promise.all([
@@ -143,7 +159,9 @@ export async function deliverNotification(raw: unknown, now = new Date()): Promi
       if (outcome.ok) {
         delivered += 1;
       } else {
-        lastError = outcome.error;
+        lastError = failureText(outcome);
+        const key = outcome.statusCode === null ? NO_RESPONSE : String(outcome.statusCode);
+        stats.deviceFailures[key] = (stats.deviceFailures[key] ?? 0) + 1;
         if (outcome.gone) {
           gone.push(device.id);
         }

@@ -21,6 +21,7 @@ import { admitPersonAs } from "@/modules/people";
 import type { MailMessage } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
 import { logger } from "@/shared/log";
+import { captureLogs, recordsOf } from "../helpers/logs";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
@@ -266,7 +267,7 @@ describe("correos de un evento que el poller reintenta", () => {
     setPushSenderForTests(async (subscription) => {
       if (serviceDown) {
         rejected += 1;
-        return { ok: false, gone: false, error: "servicio caído" };
+        return { ok: false, gone: false, statusCode: 503, error: "servicio caído" };
       }
       pushes.push(subscription.endpoint);
       return { ok: true, statusCode: 201 };
@@ -275,8 +276,21 @@ describe("correos de un evento que el poller reintenta", () => {
     await issueAccessGrantAs({ personId: junta }, { personId, kind: "ACTIVATION" });
 
     neighbourFailures = 1;
-    await drainOutbox({ expectFailures: [accessGrantIssued] });
+    const { lines } = await captureLogs(() => drainOutbox({ expectFailures: [accessGrantIssued] }));
     expect(rejected).toBe(1);
+    // El rechazo es una advertencia con el código del servicio, no una línea que dice «entregado»
+    // (ADR-118 regla 25): este aviso es como la titular se entera de un enlace que pidió otra persona.
+    expect(recordsOf(lines, "push del enlace de acceso entregado")).toEqual([]);
+    expect(recordsOf(lines, "push sin entregar")).toEqual([
+      expect.objectContaining({
+        level: 40,
+        job: accessGrantIssued.type,
+        sent: 0,
+        failed: 1,
+        deviceFailures: { "503": 1 },
+      }),
+    ]);
+    expect(lines.every(({ line }) => !line.includes(DEVICE))).toBe(true);
 
     serviceDown = false;
     const retry = await drainOutbox({ now: afterBackoff() });
