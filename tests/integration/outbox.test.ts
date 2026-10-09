@@ -292,7 +292,8 @@ describe("poller del outbox", () => {
       expect(await held.running).toBe("failed");
       let [first, second] = await rowsByAge();
       expect(first?.lastError).toBe("no hoy");
-      expect(first?.dedupeKey).toBeNull();
+      // Sin clave en la cola, y con la suya guardada para el intento siguiente.
+      expect([first?.dedupeKey, first?.takenDedupeKey]).toEqual([null, KEY]);
       expect(second?.dedupeKey).toBe(KEY);
 
       expect(await drain(50)).toEqual({ processed: 1, failed: 0 });
@@ -301,6 +302,10 @@ describe("poller del outbox", () => {
       [first, second] = await rowsByAge();
       expect(first?.processedAt).toBeInstanceOf(Date);
       expect(second?.processedAt).toBeInstanceOf(Date);
+      // El reintento la tomó sin clave y al terminar la recuperó de la guardada: las dos quedan con la
+      // suya, que es lo que muestra /admin/sistema/jobs, y sin nada guardado.
+      expect([first?.dedupeKey, first?.takenDedupeKey]).toEqual([KEY, null]);
+      expect([second?.dedupeKey, second?.takenDedupeKey]).toEqual([KEY, null]);
     });
 
     it("si falla mientras otro comando todavía no confirma su emit, la clave la decide el índice", async () => {
