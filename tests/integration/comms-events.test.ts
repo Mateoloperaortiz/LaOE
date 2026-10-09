@@ -23,10 +23,12 @@ import {
   setCallStatusAs,
   withdrawRequestAs,
 } from "@/modules/crm";
+import { callsResource } from "@/modules/crm/admin";
 import { createCall } from "@/modules/crm/domain/calls";
 import { checkInSelfAs } from "@/modules/participation";
 import { recordConsentAs } from "@/modules/people";
 import { membership } from "@/modules/people/schema";
+import { outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
@@ -166,6 +168,56 @@ describe("push por evento", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.subject).toBe(t("T-181", { n: 10 }).split(" · ")[0]);
     expect(rows[0]?.dedupeKey).toBe(`points:${conPuntos.id}:${ana}`);
+  });
+
+  it("abrir una convocatoria desde el formulario de edición manda el mismo aviso que el botón, una sola vez", async () => {
+    // ADR-037, enmienda a la regla 10, y ADR-118 regla 15: crear abierta, abrir con el botón o abrir
+    // cambiando el Estado en el formulario emiten `call.opened`.
+    const termId = await seedTerm();
+    const gh = await seedMember("gh.convocatorias@eafit.edu.co");
+    const miembro = await seedMember("a3@eafit.edu.co");
+    await subscribe(miembro, "https://fcm.googleapis.com/fcm/send/a3");
+    const groupId = await seedWorkGroup(termId, "e2e-gt");
+    const actor = { personId: gh, ip: null };
+    const draft = {
+      termId,
+      groupId,
+      title: "GT de pruebas",
+      description: "",
+      opensAt: new Date(Date.now() - 60_000),
+      closesAt: new Date(Date.now() + 7 * 24 * 60 * 60_000),
+      capacity: 3,
+      selection: "FIRST_COME" as const,
+      status: "DRAFT" as const,
+    };
+    const callId = (await callsResource.create?.(actor, draft))?.id ?? "";
+    const openedEvents = () =>
+      db()
+        .select({ dedupeKey: outbox.dedupeKey })
+        .from(outbox)
+        .where(eq(outbox.eventType, "call.opened"));
+    const pushes = async () =>
+      (await messagesOf(miembro)).filter((row) => row.dedupeKey === `call:${callId}`);
+    expect(await openedEvents()).toEqual([]);
+
+    // GH la abre cambiando el Estado en el formulario de edición.
+    await callsResource.update?.(actor, callId, { ...draft, status: "OPEN" });
+    expect(await openedEvents()).toEqual([{ dedupeKey: `call-opened:${callId}` }]);
+    await drainOutbox();
+    expect(await pushes()).toHaveLength(1);
+    expect((await pushes())[0]?.subject).toBe(
+      t("T-190", { convocatoria: "GT de pruebas" }).split(" · ")[0],
+    );
+
+    // Guardar otra vez con la convocatoria ya abierta no vuelve a avisar.
+    await callsResource.update?.(actor, callId, {
+      ...draft,
+      title: "GT de pruebas, segunda fecha",
+      status: "OPEN",
+    });
+    await drainOutbox();
+    expect(await openedEvents()).toHaveLength(1);
+    expect(await pushes()).toHaveLength(1);
   });
 
   it("abrir una convocatoria manda T-190 a los activos y nombrar un destacado manda T-192 al comité", async () => {

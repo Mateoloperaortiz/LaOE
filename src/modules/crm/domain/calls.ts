@@ -272,6 +272,11 @@ export async function updateCall(ctx: CommandContext, id: string, input: CallInp
     before,
     after: values,
   });
+  // Abrir desde el formulario de edición es abrir (ADR-118 regla 15): sale el mismo evento que con el
+  // botón «Abrir». Guardar una convocatoria que ya estaba abierta no lo repite.
+  if (before.status !== "OPEN" && input.status === "OPEN") {
+    await emitCallOpened(ctx, id, input);
+  }
 }
 
 export async function setCallStatus(

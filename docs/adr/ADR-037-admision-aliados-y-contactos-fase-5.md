@@ -78,3 +78,5 @@ Regla 10: la inscripción validaba que la persona estuviera activa y fuera del g
 ## Enmienda (2026-10-08, ADR-118)
 
 Regla 9: el cambio de comité aprobado conservaba «los cargos de los comités que siguen» copiando el cargo principal de cada pertenencia como titular, que era todo lo que había antes de ADR-058. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 7 la completa: al término siguiente llegan todos los cargos vivos de cada comité que sigue, cada uno con su condición de titular o codirección. De qué término parte un segundo cambio en el mismo semestre sigue en la decisión abierta 33.
+
+La enmienda a la regla 10 dice que crear o abrir una convocatoria emite `call.opened`, y el guardado del formulario de edición, que también puede abrirla, no lo emitía. ADR-118 regla 15 lo completa: pasar una convocatoria a abierta desde su formulario emite el mismo evento que el botón «Abrir»; guardarla cuando ya estaba abierta no lo repite.
