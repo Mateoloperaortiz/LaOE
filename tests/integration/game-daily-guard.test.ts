@@ -545,26 +545,26 @@ describe.each([
     ).toMatchObject({ seen: true, result: { ok: true } });
   });
 
-  it.runIf(onMove)("al seguir toma el término y después su candado propio", async () => {
-    const first = await seedMember("guardia.orden-sigue@eafit.edu.co");
-    const firstId = await started(game, first);
-    expect(
-      await whileHeld(
-        termRow,
-        () => game.move(first, firstId),
-        () => ownLockIsFree(key(first)),
-      ),
-    ).toMatchObject({ seen: true, result: { ok: true } });
-    const second = await seedMember("guardia.orden-sigue-2@eafit.edu.co");
-    const secondId = await started(game, second);
-    expect(
-      await whileHeld(ownLock(second), () => game.move(second, secondId), termIsTaken),
-    ).toMatchObject({ seen: true, result: { ok: true } });
-  });
-
-  it.runIf(!onMove)(
-    "al seguir toma el término y ningún candado propio: el del día solo reparte respuestas",
-    async () => {
+  // La variante que no le toca a un juego no se registra: la compuerta del CI no admite casos saltados.
+  if (onMove) {
+    it("al seguir toma el término y después su candado propio", async () => {
+      const first = await seedMember("guardia.orden-sigue@eafit.edu.co");
+      const firstId = await started(game, first);
+      expect(
+        await whileHeld(
+          termRow,
+          () => game.move(first, firstId),
+          () => ownLockIsFree(key(first)),
+        ),
+      ).toMatchObject({ seen: true, result: { ok: true } });
+      const second = await seedMember("guardia.orden-sigue-2@eafit.edu.co");
+      const secondId = await started(game, second);
+      expect(
+        await whileHeld(ownLock(second), () => game.move(second, secondId), termIsTaken),
+      ).toMatchObject({ seen: true, result: { ok: true } });
+    });
+  } else {
+    it("al seguir toma el término y ningún candado propio: el del día solo reparte respuestas", async () => {
       const personId = await seedMember("guardia.orden-wordle@eafit.edu.co");
       const id = await started(game, personId);
       // Con el candado del día retenido por otro, la jugada no hace cola: si lo tomara, no volvería.
@@ -575,8 +575,8 @@ describe.each([
         day.release();
         await day.done;
       }
-    },
-  );
+    });
+  }
 });
 
 describe("la guardia con el reloj inyectado", () => {
