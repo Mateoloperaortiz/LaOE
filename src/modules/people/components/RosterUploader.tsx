@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
+import { UploadError, uploadErrorMessage } from "@/shared/ui/upload-error";
 
 // Paso 1 del asistente del roster (ADR-034): el archivo va al servidor, que lo guarda en el bucket y
 // deja la vista previa en un ImportJob; después se navega a la revisión.
@@ -56,11 +57,11 @@ export function RosterUploader({ endpoint, terms, defaultTermId, labels }: Props
       const response = await fetch(endpoint, { method: "POST", body: data });
       const body = (await response.json().catch(() => ({}))) as { jobId?: string; error?: string };
       if (!response.ok || !body.jobId) {
-        throw new Error(body.error ?? labels.error);
+        throw new UploadError(body.error ?? labels.error);
       }
       router.push(`/admin/personas/importar?job=${body.jobId}&paso=columnas`);
     } catch (error) {
-      setState({ kind: "error", message: error instanceof Error ? error.message : labels.error });
+      setState({ kind: "error", message: uploadErrorMessage(error, labels.error) });
     } finally {
       uploading.current = false;
     }

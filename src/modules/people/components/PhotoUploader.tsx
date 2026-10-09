@@ -3,6 +3,7 @@
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { mediaUrl } from "@/shared/lib/media";
+import { UploadError, uploadErrorMessage } from "@/shared/ui/upload-error";
 
 // Foto propia (ADR-034 regla 8): selección local → confirmación explícita → presign, bucket y confirm.
 // Los bytes no pasan por la app (ADR-022); el servidor vuelve a comprobar su propiedad.
@@ -116,13 +117,13 @@ export function PhotoUploader({
           purpose: "photo",
         }),
       });
-      if (!presign.ok) throw new Error(await readError(presign, labels.errorUpload));
+      if (!presign.ok) throw new UploadError(await readError(presign, labels.errorUpload));
       const prepared = (await presign.json()) as PreparedUpload;
       const form = new FormData();
       for (const [name, value] of Object.entries(prepared.fields)) form.append(name, value);
       form.append("file", file, file.name);
       const stored = await fetch(prepared.url, { method: "POST", body: form });
-      if (!stored.ok) throw new Error(labels.errorUpload);
+      if (!stored.ok) throw new UploadError(labels.errorUpload);
       const confirm = await fetch("/api/media/confirm", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -133,10 +134,10 @@ export function PhotoUploader({
           purpose: "photo",
         }),
       });
-      if (!confirm.ok) throw new Error(await readError(confirm, labels.errorUpload));
+      if (!confirm.ok) throw new UploadError(await readError(confirm, labels.errorUpload));
       const { id } = (await confirm.json()) as { id: string };
       const result = await onChange(id);
-      if (!result.ok) throw new Error(result.error ?? labels.errorUpload);
+      if (!result.ok) throw new UploadError(result.error ?? labels.errorUpload);
       clearSelection();
       setState({ kind: "done" });
       router.refresh();
@@ -144,7 +145,7 @@ export function PhotoUploader({
       unstable_rethrow(error);
       setState({
         kind: "error",
-        message: error instanceof Error ? error.message : labels.errorUpload,
+        message: uploadErrorMessage(error, labels.errorUpload),
       });
     } finally {
       inFlight.current = false;
@@ -157,14 +158,14 @@ export function PhotoUploader({
     setState({ kind: "removing" });
     try {
       const result = await onChange(null);
-      if (!result.ok) throw new Error(result.error ?? labels.errorUpload);
+      if (!result.ok) throw new UploadError(result.error ?? labels.errorUpload);
       setState({ kind: "removed" });
       router.refresh();
     } catch (error) {
       unstable_rethrow(error);
       setState({
         kind: "error",
-        message: error instanceof Error ? error.message : labels.errorUpload,
+        message: uploadErrorMessage(error, labels.errorUpload),
       });
     } finally {
       inFlight.current = false;

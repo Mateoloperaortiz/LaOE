@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
+import { UploadError, uploadErrorMessage } from "@/shared/ui/upload-error";
 
 // Subida directa al bucket (ADR-022): presign → POST al bucket → confirm. Los bytes no pasan por la app.
 
@@ -85,7 +86,7 @@ export function MediaUploader({ allowedTypes, minBytes, maxBytes, labels, succes
         }),
       });
       if (!presign.ok) {
-        throw new Error(await readError(presign, labels.errorUpload));
+        throw new UploadError(await readError(presign, labels.errorUpload));
       }
       const prepared = (await presign.json()) as PreparedUpload;
       const form = new FormData();
@@ -95,7 +96,7 @@ export function MediaUploader({ allowedTypes, minBytes, maxBytes, labels, succes
       form.append("file", file, file.name);
       const stored = await fetch(prepared.url, { method: "POST", body: form });
       if (!stored.ok) {
-        throw new Error(labels.errorUpload);
+        throw new UploadError(labels.errorUpload);
       }
       const confirm = await fetch("/api/media/confirm", {
         method: "POST",
@@ -103,7 +104,7 @@ export function MediaUploader({ allowedTypes, minBytes, maxBytes, labels, succes
         body: JSON.stringify({ key: prepared.key, filename: file.name, visibility }),
       });
       if (!confirm.ok) {
-        throw new Error(await readError(confirm, labels.errorUpload));
+        throw new UploadError(await readError(confirm, labels.errorUpload));
       }
       setState({ kind: "done" });
       if (input.current) input.current.value = "";
@@ -115,7 +116,7 @@ export function MediaUploader({ allowedTypes, minBytes, maxBytes, labels, succes
     } catch (error) {
       setState({
         kind: "error",
-        message: error instanceof Error ? error.message : labels.errorUpload,
+        message: uploadErrorMessage(error, labels.errorUpload),
       });
     } finally {
       uploading.current = false;

@@ -51,6 +51,8 @@ El sexto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-co
 
 **El envío sin respuesta que pedía responder las preguntas (DT-236 d).** En `Trivia` y en `EvidenceUploader` el `catch` del envío pintaba T-2426, «Respondé todas las preguntas antes de enviar»: quien mandaba su evidencia sin señal leía que le faltaba algo, en un formulario que no tiene preguntas. Los juegos ya tenían un texto propio para ese caso (T-1254, T-2662, T-2751). Leído por un solo lector; confirmado en rojo sobre el código de los dos componentes.
 
+**El texto del navegador en la pantalla de quien sube un archivo (DT-231 a).** Los cuatro cargadores (`PhotoUploader`, `MediaUploader`, `DocumentUploader`, `RosterUploader`) pintaban `error instanceof Error ? error.message : labels.errorUpload`. Un `fetch` que rechaza lanza un `TypeError`, que es `Error`: el respaldo del inventario solo valía para lo que no era `Error`, y la persona leía «Failed to fetch», «Load failed» o, si fallaba la action, el párrafo en inglés de Next. `EvidenceUploader` ya lo hacía bien. Leído por un solo lector; confirmado en rojo con la expresión sacada tal cual a `uploadErrorMessage`.
+
 ## Decisión
 
 1. **El intento se cuenta al tomar la fila, y la toma se confirma antes de correr nada.** El poller entrega un evento en dos pasos:
@@ -168,6 +170,7 @@ El sexto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-co
    - **La guarda.** `tests/unit/guarded-action.test.ts` recorre `src` y falla si un archivo llama `useActionState` sin atrapar el rechazo. `RequestForm` y `SettingsForms`, que ya lo atrapaban a mano, quedan como están.
    - **Lo que no cambia.** La pantalla de error raíz y su texto son la decisión abierta 42. T-3252 no distingue la red caída de un fallo del servidor: el navegador no lo sabe.
 21. **El envío de un reto que no tuvo respuesta lo dice.** El `catch` del envío de `Trivia` y de `EvidenceUploader` pinta T-3253, que pide reintentar el envío tal como está: el reintento con el mismo contenido es idempotente (ADR-067 regla 6, regla 18 de esta ADR). Lo escrito y los archivos ya subidos siguen en pantalla, como antes. T-2426 queda para lo que dice: faltan respuestas.
+22. **El texto de una subida que falló sale del inventario o de la casa, nunca del navegador.** Los cuatro cargadores lanzan `UploadError` (`src/shared/ui/upload-error.ts`) cuando el fallo es suyo y trae un motivo legible (lo que respondió la ruta de la casa, o un texto del inventario), y pintan `uploadErrorMessage`: el motivo si el fallo es un `UploadError`; para cualquier otro (la red, el bucket, una action que no respondió), el texto del inventario que ya recibían por props. No hay texto nuevo.
 
 ## Consecuencias
 
@@ -235,3 +238,5 @@ El sexto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-co
 - Un fallo del servidor que la action no atrapa ya no llega a la pantalla de error: la persona ve T-3252 y el formulario. Sigue saliendo en los registros del servidor; en el navegador no queda rastro.
 - Pruebas de la regla 20 en `tests/unit/guarded-action.test.ts` (el rechazo vuelve como estado con lo enviado, la respuesta pasa tal cual, la redirección no se convierte en aviso, y la guarda que recorre `src`) y en `tests/e2e/formularios.spec.ts` (el formulario público sin conexión conserva el nombre y la respuesta y muestra T-3252). Los demás formularios no se ejecutaron sin conexión (DT-255).
 - Prueba de la regla 21 en `tests/unit/challenge-submit-copy.test.ts`: lee qué código de copy pone el `catch` del envío en los dos componentes, porque las unitarias no montan componentes. La evidencia sigue pintando T-2426 cuando el texto no tiene el largo pedido y cuando el servidor responde `INVALID_INPUT`, que no son preguntas sin responder: queda en DT-236 (d).
+- Quien suba un archivo con mala señal ve «no pudimos subir» y no el motivo técnico; el motivo sigue en la consola del navegador. Un fallo que la casa quiera explicar tiene que lanzarse como `UploadError`.
+- Pruebas de la regla 22 en `tests/unit/upload-error.test.ts`: los tres textos de red de los navegadores y el de Next dan el del inventario, el motivo de la casa pasa, y los cuatro cargadores ya no leen `error.message`. No se ejecutó en el navegador con la red cortada.

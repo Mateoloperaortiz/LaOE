@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
+import { UploadError, uploadErrorMessage } from "@/shared/ui/upload-error";
 
 // Subida de un PDF de normativa (ADR-034 regla 9): título, tipo, versión y audiencia, luego
 // presign → POST al bucket → confirm. Los bytes no pasan por la app (ADR-022).
@@ -93,7 +94,7 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
         body: JSON.stringify({ filename: file.name, byteSize: file.size }),
       });
       if (!presign.ok) {
-        throw new Error(await readError(presign, labels.errorUpload));
+        throw new UploadError(await readError(presign, labels.errorUpload));
       }
       const prepared = (await presign.json()) as PreparedUpload;
       const form = new FormData();
@@ -103,7 +104,7 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
       form.append("file", file, file.name);
       const stored = await fetch(prepared.url, { method: "POST", body: form });
       if (!stored.ok) {
-        throw new Error(labels.errorUpload);
+        throw new UploadError(labels.errorUpload);
       }
       const confirm = await fetch("/api/documentos/confirm", {
         method: "POST",
@@ -118,7 +119,7 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
         }),
       });
       if (!confirm.ok) {
-        throw new Error(await readError(confirm, labels.errorUpload));
+        throw new UploadError(await readError(confirm, labels.errorUpload));
       }
       const result = (await confirm.json()) as { id: string };
       setState({ kind: "done" });
@@ -126,7 +127,7 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
     } catch (error) {
       setState({
         kind: "error",
-        message: error instanceof Error ? error.message : labels.errorUpload,
+        message: uploadErrorMessage(error, labels.errorUpload),
       });
     } finally {
       uploading.current = false;
