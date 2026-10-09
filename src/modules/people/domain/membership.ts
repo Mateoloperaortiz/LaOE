@@ -20,6 +20,7 @@ import {
   person,
 } from "../schema";
 import { assertBenefitsAvailable } from "./benefits";
+import { closeCommitteeMembership } from "./committee-membership-closing";
 import { endRolesForPerson } from "./committee-role-assignments";
 import { revokeAllConsents, syncConsent } from "./consents";
 import { leaveUntilError, leaveWindow } from "./leave-pure";
@@ -91,10 +92,18 @@ async function closeOpenCommitteeMemberships(
   personId: string,
   now: Date,
 ): Promise<void> {
-  await ctx.tx
-    .update(committeeMembership)
-    .set({ leftAt: now })
+  const live = await ctx.tx
+    .select({
+      id: committeeMembership.id,
+      personId: committeeMembership.personId,
+      committeeId: committeeMembership.committeeId,
+      termId: committeeMembership.termId,
+    })
+    .from(committeeMembership)
     .where(and(eq(committeeMembership.personId, personId), isNull(committeeMembership.leftAt)));
+  for (const row of live) {
+    await closeCommitteeMembership(ctx, row, now);
+  }
   await endRolesForPerson(ctx.tx, personId, now);
 }
 

@@ -7,8 +7,8 @@ import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { committeeMembership, membershipTerm } from "../schema";
+import { closeCommitteeMembership } from "./committee-membership-closing";
 import { liveCommitteesPayload } from "./committee-memberships";
-import { endRoles } from "./committee-role-assignments";
 
 // Resultados del cierre de permanencia sobre la persona (ADR-036 regla 9): la condición de prueba
 // para el término siguiente y la salida de un comité. Los ejecuta el job `permanence.apply-decisions`
@@ -145,11 +145,7 @@ export async function leaveCommittee(
   if (row.leftAt !== null) {
     return;
   }
-  await ctx.tx
-    .update(committeeMembership)
-    .set({ leftAt: now })
-    .where(eq(committeeMembership.id, row.id));
-  await endRoles(ctx.tx, row.id, now);
+  await closeCommitteeMembership(ctx, row, now);
   const live = await liveCommitteesPayload(ctx.tx, personId, termId);
   await ctx.audit({
     action: "committee-membership.left",

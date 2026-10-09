@@ -1,6 +1,6 @@
 # ADR-060: Alineación de la casa digital con los Estatutos y el Reglamento Interno 2026
 
-- Estado: Aceptada (2026-09-13), enmendada por ADR-061, ADR-073, ADR-111 y ADR-112; implementación por tramos N26-T0 a N26-T11 en el [roadmap](../09-roadmap.md#normativa-2026-adr-060)
+- Estado: Aceptada (2026-09-13), enmendada por ADR-061, ADR-073, ADR-111, ADR-112 y ADR-118; implementación por tramos N26-T0 a N26-T11 en el [roadmap](../09-roadmap.md#normativa-2026-adr-060)
 - Fecha: 2026-09-13
 - Enmienda: ADR-024 (punto 2: la elección de junta obligatoria se deriva de que exista la ocasión, no del semestre), ADR-027 (banda de prueba por condición), ADR-028 (punto 1: consecuencias por condición y expulsión como causal propia), ADR-029 y ADR-058 (catálogo de cargos 2026, cargos retirados y `ROSTER` para Logística), ADR-030 (reactivar: el expulsado no vuelve), ADR-031 y ADR-037 (solicitud de excusa; tarea por vencimiento de licencia), ADR-036 (regla 9: la prueba se fija por comité), ADR-046 (licencia con vencimiento y capacidades de un cargo de mesa en licencia), ADR-056 (condición del semestre con comité opcional), ADR-057 (etiqueta "Comunicaciones y Mercadeo"), ADR-059 (presupuesto ordinario y extraordinario, aprobación, presolicitud y aval de evento), 02-crm, 03-modelo, 05-acceso, 12-permanencia, 13-importacion, glosario y 14-copy (bloque T-2206 en adelante)
 - Relacionadas: ADR-002, ADR-003, ADR-012, ADR-014, ADR-025, ADR-026, ADR-042, ADR-047
@@ -69,3 +69,7 @@ La regla 5 decía que aprobar una excusa escribe un check-in `EXCUSED`, sin punt
 ## Enmienda (2026-10-07, ADR-112)
 
 La regla 6 decía que las sanciones las registra ADMIN o quien tenga `PERMANENCE` en el comité, sin decir cuáles ni a quién. [ADR-112](ADR-112-toda-sancion-declara-su-alcance.md) la completa: la dirección de un comité registra solo llamados de atención, faltas leves y faltas graves (`WARNING`, `MINOR` y `MAJOR`), solo a un miembro vivo de su comité en el término, y la sanción queda a nombre de ese comité y de ese término. La suspensión explícita y la inhabilidad para cargos las registra ADMIN. Los demás efectos de la regla 6 no cambian.
+
+## Enmienda (2026-10-08, ADR-118)
+
+La regla 7 pedía que el titular y el suplente fueran miembros activos del comité, y solo se comprobaba al nombrar. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 6 la completa: cerrar la pertenencia de una persona a un comité, por cualquier camino, retira su representación de ese comité en ese término y lo deja en la auditoría. Las asambleas ya cerradas no se recalculan por eso (decisión abierta 39), y la licencia y el honorario, que no cierran la pertenencia, siguen sin retirarla (decisión abierta 45).

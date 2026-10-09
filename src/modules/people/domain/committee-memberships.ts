@@ -10,8 +10,8 @@ import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { committee, committeeMembership, committeeRole, membership } from "../schema";
 import type { RoleView } from "./committee-direction-pure";
+import { closeCommitteeMembership } from "./committee-membership-closing";
 import {
-  endRoles,
   type LiveRole,
   listLiveRolesByMembership,
   type RoleAssignmentInput,
@@ -276,11 +276,7 @@ export async function setCommitteeMemberships(
   // choca con el anterior dentro de la misma transacción.
   for (const row of existing) {
     if (!wanted.has(row.committeeId) && row.leftAt === null) {
-      await ctx.tx
-        .update(committeeMembership)
-        .set({ leftAt: now })
-        .where(eq(committeeMembership.id, row.id));
-      await endRoles(ctx.tx, row.id, now);
+      await closeCommitteeMembership(ctx, row, now);
     }
   }
   for (const row of existing) {
