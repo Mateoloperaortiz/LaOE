@@ -87,6 +87,9 @@ test.describe("operador", () => {
     page,
     request,
   }) => {
+    // Recorre toda la operación de una jornada y tarda de 17 a 20 s: con el límite de 30 s se quedaba
+    // sin tiempo cuando la máquina estaba cargada.
+    test.setTimeout(90_000);
     const { id } = await seedCompetition("the-games-e2e");
     await page.goto("/admin/the-games");
     await page.getByRole("link", { name: "The Games de prueba" }).click();
