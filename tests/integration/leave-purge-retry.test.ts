@@ -23,13 +23,18 @@ import { hashPassword } from "@/modules/identity/domain/pure";
 import { accessGrant, calendarToken, credential, permission } from "@/modules/identity/schema";
 import { createSurveyInvites } from "@/modules/participation";
 import { occasion, occasionSurveyInvite } from "@/modules/participation/schema";
-import { endMembershipAs, reactivateMembershipAs } from "@/modules/people";
+import {
+  changeMembershipStatusAs,
+  endMembershipAs,
+  reactivateMembershipAs,
+} from "@/modules/people";
 import { reactivateMembership } from "@/modules/people/domain/membership";
 import { holdCommand, waitingOn } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import {
+  leaveUntilSoon,
   seedCheckIn,
   seedCommittee,
   seedForm,
@@ -220,6 +225,36 @@ describe("los borrados de la baja toleran el reintento", () => {
     // El evento de la baja volvió a correr entero, y encontró a la persona adentro.
     expect(neighbourRuns).toBe(runsBeforeRetry + 1);
     expect(await holdings(who.personId)).toEqual(EVERYTHING);
+  });
+
+  it.each([
+    ["sale a licencia", { to: "ON_LEAVE" as const, leaveUntil: leaveUntilSoon() }],
+    ["pasa a honoraria", { to: "HONORARY" as const }],
+  ])("quien volvió y después %s sigue adentro: el reintento de su baja tampoco le borra nada", async (_caso, cambio) => {
+    const who = await scene();
+    await equip(who);
+    await endMembershipAs({ personId: who.board }, who.personId, SALIDA);
+    neighbourFailures = 1;
+    await drainOutbox({ expectFailures: [membershipChanged] });
+    expect(await holdings(who.personId)).toEqual(NOTHING);
+
+    // Vuelve, recibe todo otra vez y cambia de estado antes de que el poller reintente la baja. La
+    // regla protege a quien no está de baja, no solo a quien está activa (ADR-118 regla 5).
+    await reactivateMembershipAs({ personId: who.board }, who.personId, { reason: "Fue un error" });
+    await equip(who);
+    await changeMembershipStatusAs({ personId: who.board }, who.personId, {
+      ...cambio,
+      reason: "Cambio posterior al alta",
+    });
+    await drainOutbox({ expectFailures: [membershipChanged] });
+    const before = await holdings(who.personId);
+    expect(before).toEqual(EVERYTHING);
+    const runsBeforeRetry = neighbourRuns;
+
+    await drainOutbox({ now: afterBackoff() });
+
+    expect(neighbourRuns).toBe(runsBeforeRetry + 1);
+    expect(await holdings(who.personId)).toEqual(before);
   });
 
   it("mientras la baja siga vigente su reintento sigue borrando, también lo que apareció entre los dos intentos", async () => {
