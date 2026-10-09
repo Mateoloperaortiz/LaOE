@@ -13,7 +13,7 @@ import { t } from "@/shared/copy/client";
 
 type Action<State, Payload> = (previous: State, payload: Payload) => State | Promise<State>;
 
-type ActionFailure<State, Payload> = {
+export type ActionFailure<State, Payload> = {
   /** El estado que tenía el formulario al enviar. */
   previous: State;
   /** Lo que se envió: de acá sale lo escrito, para devolverlo a los campos que React reinicia. */

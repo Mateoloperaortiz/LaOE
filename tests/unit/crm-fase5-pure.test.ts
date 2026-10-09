@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hasRoom, initialEntryStatus, isCallOpen } from "@/modules/crm/domain/calls-pure";
-import {
-  closedAtAfterMove,
-  daysInStage,
-  templateStages,
-} from "@/modules/crm/domain/pipelines-pure";
+import { closedAtForStage, daysInStage, templateStages } from "@/modules/crm/domain/pipelines-pure";
 import {
   EXCUSE_BUSINESS_DAYS,
   EXCUSE_CAUSES,
@@ -43,9 +39,9 @@ describe("plantillas de pipeline", () => {
 
   it("cierra la tarjeta al llegar a ganada o perdida y la reabre al volver", () => {
     const now = new Date("2026-09-05T12:00:00Z");
-    expect(closedAtAfterMove({ isWon: true, isLost: false }, now)).toBe(now);
-    expect(closedAtAfterMove({ isWon: false, isLost: true }, now)).toBe(now);
-    expect(closedAtAfterMove({ isWon: false, isLost: false }, now)).toBeNull();
+    expect(closedAtForStage({ isWon: true, isLost: false }, now)).toBe(now);
+    expect(closedAtForStage({ isWon: false, isLost: true }, now)).toBe(now);
+    expect(closedAtForStage({ isWon: false, isLost: false }, now)).toBeNull();
     expect(daysInStage(new Date("2026-09-01T00:00:00Z"), now)).toBe(4);
   });
 });

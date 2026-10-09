@@ -114,7 +114,7 @@ export {
   stageInputSchema,
 } from "./domain/pipelines";
 export {
-  closedAtAfterMove,
+  closedAtForStage,
   daysInStage,
   PIPELINE_KINDS,
   type PipelineKind,

@@ -27,8 +27,12 @@ export function templateStages(kind: PipelineKind, names: string[]): StageTempla
   }));
 }
 
-/** `closedAt` tras mover: la fecha al llegar a una etapa ganada o perdida; nulo al volver a una abierta. */
-export function closedAtAfterMove(
+/**
+ * `closedAt` de una tarjeta según su etapa: la fecha si la etapa es ganada o perdida; nulo si es abierta.
+ * Vale al mover la tarjeta y al reconciliar las que ya estaban en una etapa que cambió de marca (ADR-118
+ * regla 16).
+ */
+export function closedAtForStage(
   stage: { isWon: boolean; isLost: boolean },
   now = new Date(),
 ): Date | null {

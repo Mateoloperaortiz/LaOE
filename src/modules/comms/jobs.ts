@@ -46,12 +46,12 @@ import { deleteSubscriptionsFor } from "./domain/subscriptions";
  * llegó a ninguno, es una advertencia y no dice «entregado». Las cuentas llevan el código con que
  * respondió el servicio de push (`deviceFailures`), nunca el endpoint ni las claves del dispositivo.
  */
-function logDelivery(ctx: JobContext, stats: DeliveryStats, delivered: string): void {
+function logDelivery(ctx: JobContext, stats: DeliveryStats, deliveredMessage: string): void {
   if (stats.failed > 0) {
     ctx.log.warn(stats, "push sin entregar");
     return;
   }
-  ctx.log.info(stats, delivered);
+  ctx.log.info(stats, deliveredMessage);
 }
 
 // Bus de notificaciones (ADR-038 regla 2): cualquier módulo emite `notification.requested` con

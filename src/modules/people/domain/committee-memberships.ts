@@ -21,6 +21,7 @@ import {
 } from "./committee-role-assignments";
 import { assertNoInhabilities, leadershipRolesOf, type Override } from "./inhabilities";
 import type { HeldRole } from "./inhabilities-pure";
+import type { MembershipStatus } from "./reads";
 
 // Pertenencia a comité por término (ADR-005): de 1 a 3 para activos. Los cargos viven en
 // `committee_role_assignment` (ADR-058), con un titular y una codirección por cargo, comité y término;
@@ -203,11 +204,12 @@ export async function liveCommitteesPayload(
 }
 
 // Estados de membresía con los que se cambia de comités (ADR-118 regla 11). Es la lista de los que
-// sí: un estado nuevo queda afuera hasta que alguien lo ponga acá.
-const COMMITTEE_STATUSES: readonly string[] = ["ACTIVE", "ON_LEAVE", "HONORARY"];
+// sí: un estado nuevo queda afuera hasta que alguien lo ponga acá. Hoy coincide con `SIGN_IN_STATUSES`
+// y es otra regla: quién entra y quién cambia de comités pueden separarse sin tocarse.
+const COMMITTEE_STATUSES: readonly MembershipStatus[] = ["ACTIVE", "ON_LEAVE", "HONORARY"];
 
 /** Si una membresía en ese estado puede cambiar de comités; sin membresía, no. */
-export function canHoldCommittees(status: string | undefined): boolean {
+export function canHoldCommittees(status: MembershipStatus | undefined): boolean {
   return status !== undefined && COMMITTEE_STATUSES.includes(status);
 }
 

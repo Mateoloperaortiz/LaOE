@@ -1,4 +1,5 @@
 import type { AccessGrantKind } from "@/modules/identity";
+import type { ActionFailure } from "@/shared/ui/use-guarded-action-state";
 
 // Un archivo "use server" solo exporta funciones, así que el estado del formulario vive acá.
 // El enlace emitido viaja en este estado y en ningún otro lado: no se guarda ni se vuelve a mostrar.
@@ -31,11 +32,7 @@ export function issueGrantRejected({
   previous,
   payload,
   message,
-}: {
-  previous: IssueGrantState;
-  payload: FormData;
-  message: string;
-}): IssueGrantState {
+}: ActionFailure<IssueGrantState, FormData>): IssueGrantState {
   return {
     ...previous,
     error: message,

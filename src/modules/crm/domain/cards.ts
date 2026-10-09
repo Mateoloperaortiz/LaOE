@@ -17,7 +17,7 @@ import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { card, organization, pipeline, pipelineStage } from "../schema";
-import { closedAtAfterMove } from "./pipelines-pure";
+import { closedAtForStage } from "./pipelines-pure";
 import { openTaskForReason } from "./tasks";
 
 // Tarjetas (02-crm.md, ADR-037 reglas 7 y 8): una persona o una organización avanzando por un pipeline.
@@ -283,7 +283,7 @@ async function insertCard(
     ownerId: input.ownerId ?? null,
     title: title || own.name,
     dueAt: input.dueAt ?? null,
-    closedAt: closedAtAfterMove(stage),
+    closedAt: closedAtForStage(stage),
     createdById: ctx.actor.personId,
   };
   const [row] = options.submissionId
@@ -410,7 +410,7 @@ export async function moveCard(
   const now = new Date();
   await ctx.tx
     .update(card)
-    .set({ stageId: target.id, enteredStageAt: now, closedAt: closedAtAfterMove(target, now) })
+    .set({ stageId: target.id, enteredStageAt: now, closedAt: closedAtForStage(target, now) })
     .where(eq(card.id, cardId));
   if (own.kind === "SPONSORSHIP" && target.isWon && row.organizationId) {
     const [org] = await ctx.tx
@@ -430,7 +430,7 @@ export async function moveCard(
     entityType: "card",
     entityId: cardId,
     before: { stageId: row.stageId },
-    after: { stageId: target.id, closedAt: closedAtAfterMove(target, now) },
+    after: { stageId: target.id, closedAt: closedAtForStage(target, now) },
   });
   await ctx.emit(
     eventOf(cardMoved, {

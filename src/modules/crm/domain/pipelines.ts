@@ -6,7 +6,7 @@ import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { card, pipeline, pipelineStage } from "../schema";
 import {
-  closedAtAfterMove,
+  closedAtForStage,
   PIPELINE_KINDS,
   type PipelineKind,
   templateStages,
@@ -244,7 +244,7 @@ export async function saveStage(
     const closes = input.isWon || input.isLost;
     const touched = await ctx.tx
       .update(card)
-      .set({ closedAt: closedAtAfterMove(input) })
+      .set({ closedAt: closedAtForStage(input) })
       .where(
         and(eq(card.stageId, stageId), closes ? isNull(card.closedAt) : isNotNull(card.closedAt)),
       )
