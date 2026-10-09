@@ -30,6 +30,7 @@ import { holdCommand, waitingOn } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
+  currentTermCode,
   seedCheckIn,
   seedCommittee,
   seedCommitteeMembership,
@@ -385,5 +386,72 @@ describe("representación en la asamblea", () => {
 
     expect(await sigueEnElComite(salida)).toBe(false);
     expect(await listRepresentatives(salida.termId, salida.a3)).toEqual([]);
+  });
+
+  // ADR-118 regla 6, el alcance del retiro: «de esa persona en ese comité y término». Quien representa
+  // dos comités, o el mismo comité en dos términos, conserva la representación que no se cerró.
+  const salidasDeUnComite: Array<[string, (salida: Salida) => Promise<unknown>]> = [
+    [
+      "el cambio de comités",
+      ({ gh, titular, pixel, termId }) =>
+        setCommitteeMembershipsAs(gh, titular, termId, [{ committeeId: pixel }]),
+    ],
+    [
+      "la salida por el cierre de permanencia",
+      ({ gh, titular, a3, termId }) => leaveCommitteeAs(gh, titular, a3, termId, "Cierre"),
+    ],
+  ];
+
+  const representantes = async (termId: string, committeeId: string) =>
+    (await listRepresentatives(termId, committeeId)).map((row) => [row.role, row.personId]);
+
+  /** Los retiros por cierre de pertenencia que anotó la auditoría: comité y rol. */
+  async function retirosPorCierre(): Promise<Array<[string | null, string]>> {
+    const rastro = await db()
+      .select({ committeeId: auditLog.entityId, before: auditLog.before, after: auditLog.after })
+      .from(auditLog)
+      .where(eq(auditLog.action, "committee-representative.set"));
+    return rastro
+      .filter((row) => (row.after as { cause?: string }).cause === "membership-closed")
+      .map((row) => [row.committeeId, (row.before as { role: string }).role]);
+  }
+
+  it.each(
+    salidasDeUnComite,
+  )("quien representa dos comités y sale de uno por %s conserva la representación del otro", async (_caso, salir) => {
+    const salida = await porNombrar();
+    await seedCommitteeMembership(salida.titular, salida.pixel, salida.termId);
+    const base = { termId: salida.termId, personId: salida.titular };
+    await setRepresentativeAs(salida.gh, { ...base, committeeId: salida.a3, role: "TITULAR" });
+    await setRepresentativeAs(salida.gh, { ...base, committeeId: salida.pixel, role: "SUPLENTE" });
+
+    await salir(salida);
+
+    expect(await sigueEnElComite(salida)).toBe(false);
+    expect(await representantes(salida.termId, salida.a3)).toEqual([]);
+    expect(await representantes(salida.termId, salida.pixel)).toEqual([
+      ["SUPLENTE", salida.titular],
+    ]);
+    // La auditoría retira solo la del comité que se cerró.
+    expect(await retirosPorCierre()).toEqual([[salida.a3, "TITULAR"]]);
+  });
+
+  it("cerrar la pertenencia de un término no toca la representación del mismo comité en el otro", async () => {
+    const salida = await porNombrar();
+    const [year = 0, semester] = currentTermCode().split("-").map(Number);
+    const siguiente = await seedTerm(semester === 1 ? `${year}-2` : `${year + 1}-1`);
+    await seedCommitteeMembership(salida.titular, salida.a3, siguiente);
+    const base = { committeeId: salida.a3, role: "TITULAR" as const, personId: salida.titular };
+    await setRepresentativeAs(salida.gh, { ...base, termId: salida.termId });
+    await setRepresentativeAs(salida.gh, { ...base, termId: siguiente });
+
+    // Un cambio de comité aprobado escribe las pertenencias del término siguiente por este comando.
+    await setCommitteeMembershipsAs(salida.gh, salida.titular, siguiente, [
+      { committeeId: salida.pixel },
+    ]);
+
+    expect(await representantes(siguiente, salida.a3)).toEqual([]);
+    expect(await sigueEnElComite(salida)).toBe(true);
+    expect(await representantes(salida.termId, salida.a3)).toEqual([["TITULAR", salida.titular]]);
   });
 });
