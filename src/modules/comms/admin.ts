@@ -212,6 +212,7 @@ export const templatesResource: ResourceDefinition<TemplateRow, TemplateInput> =
   }),
   create: (actor, input) => runCommand(actor, (ctx) => createTemplate(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateTemplate(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     identificador: row.slug,
     nombre: row.name,
@@ -336,6 +337,7 @@ export const campaignsResource: ResourceDefinition<CampaignListRow, CampaignInpu
   toFormValues: (row) => ({ name: row.name, templateId: row.templateId, segmentId: row.segmentId }),
   create: (actor, input) => runCommand(actor, (ctx) => createCampaign(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateCampaign(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     nombre: row.name,
     plantilla: row.templateName,

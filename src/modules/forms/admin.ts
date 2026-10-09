@@ -175,6 +175,7 @@ export const formsResource: ResourceDefinition<FormListRow, FormInput> = {
       );
     }
   },
+  personalData: false,
   exportRow: (row) => ({
     identificador: row.slug,
     titulo: row.title,

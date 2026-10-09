@@ -118,6 +118,7 @@ export const pagesResource: ResourceDefinition<PageRow, PageInput> = {
   }),
   create: (actor, input) => runCommand(actor, (ctx) => createPage(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updatePage(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     identificador: row.slug,
     titulo: row.title,
@@ -227,6 +228,7 @@ export const announcementsResource: ResourceDefinition<AnnouncementRow, Announce
       await runCommand(actor, (ctx) => unpublishAnnouncement(ctx, id));
     }
   },
+  personalData: false,
   exportRow: (row) => ({
     titulo: row.title,
     audiencia: row.audience,

@@ -121,6 +121,7 @@ export const budgetsResource: ResourceDefinition<BudgetListRow, BudgetInput> = {
   }),
   create: (actor, input) => createBudgetAs(actor, input),
   update: (actor, id, input) => updateBudgetAs(actor, id, input),
+  personalData: false,
   exportRow: (row) => ({
     comité: row.committeeName,
     año: row.year,

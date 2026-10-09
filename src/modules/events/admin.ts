@@ -143,6 +143,7 @@ export const eventsResource: ResourceDefinition<EventListRow, EventInput> = {
   }),
   create: (actor, input) => runCommand(actor, (ctx) => createEvent(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateEvent(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     identificador: row.slug,
     nombre: row.name,
@@ -253,6 +254,7 @@ export const editionsResource: ResourceDefinition<EditionListRow, EditionInput> 
   }),
   create: (actor, input) => runCommand(actor, (ctx) => createEdition(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateEdition(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     evento: row.eventName,
     nombre: row.name,

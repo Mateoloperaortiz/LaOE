@@ -278,6 +278,7 @@ export const occasionsResource: ResourceDefinition<OccasionListRow, OccasionInpu
       await closeOccasionAs(actor, id);
     }
   },
+  personalData: false,
   exportRow: (row) => ({
     titulo: row.title,
     tipo: occasionKindLabel(row),
@@ -675,6 +676,7 @@ export const aliasesResource: ResourceDefinition<AliasRow, AliasInput> = {
   },
   toFormValues: (row) => ({ path: row.path, targetId: row.targetId }),
   create: (actor, input) => runCommand(actor, (ctx) => createAlias(ctx, input)),
+  personalData: false,
   exportRow: (row) => ({
     ruta: row.path,
     ocasion: row.occasionTitle,

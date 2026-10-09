@@ -52,6 +52,7 @@ export const termsResource: ResourceDefinition<TermRow, TermInput> = {
   }),
   create: (actor, input) => runCommand(actor, (ctx) => createTerm(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateTerm(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     codigo: row.code,
     semestre: row.semester,

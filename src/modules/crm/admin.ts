@@ -256,6 +256,7 @@ export const organizationsResource: ResourceDefinition<OrganizationListRow, Orga
   }),
   create: (actor, input) => runCommand(actor, (ctx) => createOrganization(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateOrganization(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     nombre: row.name,
     tipo: row.kind,
@@ -351,6 +352,7 @@ export const pipelinesResource: ResourceDefinition<PipelineListRow, PipelineInpu
       await runCommand(actor, (ctx) => setPipelineArchived(ctx, id, actionKey === "archive"));
     }
   },
+  personalData: false,
   exportRow: (row) => ({
     nombre: row.name,
     tipo: row.kind,
@@ -518,6 +520,7 @@ export const callsResource: ResourceDefinition<CallListRow, CallInput> = {
       );
     }
   },
+  personalData: false,
   exportRow: (row) => ({
     titulo: row.title,
     grupo: row.groupId,

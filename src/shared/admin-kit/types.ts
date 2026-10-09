@@ -134,8 +134,11 @@ export interface ResourceDefinition<Row extends { id: string }, Input> {
   runRowAction?(actor: KitActor, actionKey: string, id: string): Promise<void>;
   /** Las escrituras exigen un OTP reciente (ADR-010, step-up). */
   stepUp?: boolean;
-  /** El export tiene datos personales: step-up y auditoría. */
-  personalData?: boolean;
+  /**
+   * El export tiene datos personales: paso de seguridad reciente y fila de auditoría `export.csv`.
+   * Obligatoria: un recurso que no la declara no compila (ADR-119 regla 9).
+   */
+  personalData: boolean;
   /** Quién puede listar y exportar: solo ADMIN (por defecto) o también la junta (ADR-036 regla 12). */
   access?: "ADMIN" | "ADMIN_OR_BOARD";
   exportRow(row: Row): Record<string, string | number | null>;

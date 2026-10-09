@@ -55,6 +55,7 @@ function resource(overrides: Partial<AnyResource> = {}): AnyResource {
     toFormValues: () => ({ name: "Ejemplo sintético" }),
     create: async () => ({ id: "nuevo-sintetico" }),
     update: async () => {},
+    personalData: false,
     exportRow: () => ({}),
     ...overrides,
   };

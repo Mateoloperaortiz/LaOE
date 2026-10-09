@@ -2,7 +2,7 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-09
-- Relacionadas: ADR-006, ADR-007, ADR-012, ADR-020, ADR-035, ADR-041, ADR-060, ADR-067, ADR-075, ADR-078, ADR-084, ADR-088, ADR-109, ADR-111, ADR-114, ADR-116
+- Relacionadas: ADR-006, ADR-007, ADR-012, ADR-014, ADR-017, ADR-020, ADR-035, ADR-041, ADR-060, ADR-067, ADR-075, ADR-078, ADR-084, ADR-088, ADR-109, ADR-111, ADR-114, ADR-116
 - Enmienda: ADR-035 (regla 6: en una ocasión cancelada ninguna asistencia nace ni vuelve a quedar aprobada), ADR-116 (regla 2: el orden de candados gana la ocasión, entre el término y la persona, y la asistencia que nace se inserta en el lugar de las asistencias, antes del premio)
 
 ## Contexto
@@ -28,6 +28,7 @@ El séptimo ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo
 
 Y un defecto, reproducido con una prueba en rojo: el Panal buscaba el término con el día de antes de los candados y validaba el de después solo contra el que mandaba la pantalla. Si el día cambiaba mientras esperaba el término y la pantalla ya pedía el día nuevo, la partida nacía con el día nuevo y el término del anterior: fuera de su término, si ese terminaba ese día.
 **Cuatro inserts al libro de puntos (DT-026).** El libro ([ADR-007](ADR-007-ledger-append-only.md)) tiene su módulo, `ledger.ts`, que acredita una asistencia y un premio, ajusta y revierte. Los cuatro juegos no pasaban por él: cada uno insertaba su fila en `point_entry` a mano, con su columna (`wordleGameId`, `game2048RunId`, `sudokuRunId`, y `panalGameId` con `panalCheckpoint`). Las cuatro copias escribían lo mismo: la persona, el término, el tipo, la columna de la partida, los puntos, el motivo y a quien juega como autor. Ninguna tomaba el término, que ya trae la guardia, ni buscaba una entrada previa. Las pruebas de cada juego afirmaban el tipo, la partida y los puntos, pero no el motivo completo ni el autor. Antes de tocar nada, `tests/integration/game-ledger-credit.test.ts` fijó por los comandos públicos la fila entera que deja cada juego, con cada columna ajena en nulo (cinco casos: uno por juego y el Panal dos veces, con metas y de premio único), y quedó en verde sobre el código de antes. Mutar las cuatro copias, el motivo en una y el autor en tres, tumbó los cinco.
+**La marca de datos personales de un recurso era opcional (DT-175).** `GET /api/export/<clave>` pide un paso de seguridad reciente y deja su fila `export.csv` solo si el recurso del admin kit ([ADR-017](ADR-017-admin-kit.md)) dice `personalData: true` ([ADR-014](ADR-014-privacidad-por-diseno.md)). El campo era opcional y fallaba abierto: de los 34 recursos del registro, 15 decían que sí, la junta decía que no y 18 no decían nada. Uno nuevo que la olvidara exportaba sin paso de seguridad y sin registro, y solo lo atajaba la prueba del registro (`tests/integration/admin-export-personal-data.test.ts`), que reconoce nombres y correos por cómo se llama el campo y nada más.
 
 ## Decisión
 
@@ -102,6 +103,7 @@ Y un defecto, reproducido con una prueba en rojo: el Panal buscaba el término c
    - Firma la entrada quien corre el comando (`createdById`), como en el resto del libro. En los juegos es siempre quien juega: tres copias escribían el actor y el Panal la persona de la partida, que el comando lee filtrada por el actor.
 
    Es parte del libro y no una costura: la llaman solo los cuatro juegos y no sale por `index.ts`.
+9. **Un recurso del admin dice si su exporte lleva datos personales.** `personalData` es obligatorio en `ResourceDefinition` (`src/shared/admin-kit/types.ts`): el recurso que no lo declara no compila. No cambia qué exporte pide paso de seguridad: los 15 marcados siguen marcados, la junta sigue en `false` y los 18 que no decían nada pasan a `false` escrito (plantillas, campañas, páginas, cartelera, organizaciones, pipelines, convocatorias, eventos, ediciones, presupuestos, formularios, ocasiones, alias, comités, cargos, etiquetas, segmentos y semestres). Se leyó el `exportRow` de cada uno: ninguno entrega nombre, correo, documento, celular ni fecha de nacimiento de una persona. El contacto de un comité es el enlace que ya publica su página pública y el filtro de un segmento guarda etapas, estados, comités, cargos, etiquetas y programa, no personas. La prueba del registro sigue siendo la que ataja el `false` mal puesto, y suma dos comprobaciones: que cada recurso del registro armado traiga la marca como `true` o `false`, y un `@ts-expect-error` que deja de compilar si la marca vuelve a ser opcional.
 
 ## Consecuencias
 
@@ -128,3 +130,4 @@ Y un defecto, reproducido con una prueba en rojo: el Panal buscaba el término c
 - Las filas que los juegos dejan en el libro son las de antes, columna por columna: la prueba de la fila exacta siguió en verde sin tocarla, y con ella las 166 que ya corrían sobre los juegos, su guardia y su día. Los eventos y la auditoría de cada juego no cambiaron.
 - Un juego nuevo agrega su tipo al enum y su columna a la tabla, con su `check` y su índice único en la migración, y llama a `creditGame`: sin su entrada en el mapa no compila. No escribe en `point_entry`.
 - Queda anotado sin tocar: `creditGame` confía en que el juego llegó por la guardia y no vuelve a tomar el término (DT-274). Los seeds de `scripts/` siguen insertando asistencias acreditadas a mano, con su fecha: no pasan por comandos.
+- Un recurso nuevo del admin no compila hasta que alguien decide si su exporte lleva datos personales. La decisión sigue siendo de quien lo escribe: el tipo obliga a tomarla, no la toma. Un `false` sobre un dato personal que no sea nombre ni correo (documento, celular, fecha de nacimiento, o un nombre bajo `title` o `label`) sigue sin tener quién lo ataje (DT-275).

@@ -210,16 +210,33 @@ interface ProbedRow {
   committeeName: string;
 }
 
-/** Un recurso de mentira, sin marca: solo su clave y lo que su exporte lee de la fila. */
+/**
+ * Un recurso de mentira que se declara sin datos personales: su clave y lo que su exporte lee de la
+ * fila. La marca es obligatoria (ADR-119 regla 9), así que «sin marca» ya solo puede ser un `false`.
+ */
 function unmarked(key: string, exportRow: (row: ProbedRow) => Record<string, string>): Exportable {
-  return { key, exportRow: exportRow as unknown as Exportable["exportRow"] };
+  return { key, personalData: false, exportRow: exportRow as unknown as Exportable["exportRow"] };
 }
+
+// El recurso que no dice si lleva datos personales no compila. `npm run typecheck` sostiene esta
+// línea: si la marca volviera a ser opcional, el `@ts-expect-error` quedaría sin error que esperar.
+// @ts-expect-error -- falta `personalData` (ADR-119 regla 9)
+const undeclared: Exportable = { key: "sin-declarar", exportRow: () => ({}) };
 
 describe("marca de datos personales en el registro del admin", () => {
   afterAll(() => closeDb());
 
   it("ningún recurso exportable entrega nombre o correo de una persona sin la marca", () => {
     expect(unmarkedPersonColumns(listResources())).toEqual([]);
+  });
+
+  it("cada recurso del registro declara si lleva datos personales, con sí o con no", () => {
+    // El compilador ya lo exige; esto mira el registro armado, que borra el tipo de cada fila con un
+    // cast y compone recursos con `...` (cartelera, ediciones, convocatorias).
+    const undecided = [...listResources(), undeclared]
+      .filter((resource) => typeof resource.personalData !== "boolean")
+      .map((resource) => resource.key);
+    expect(undecided).toEqual(["sin-declarar"]);
   });
 
   it("los recursos marcados con datos personales son exactamente los que se revisaron", () => {

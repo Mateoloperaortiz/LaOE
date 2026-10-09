@@ -206,6 +206,7 @@ export const committeesResource: ResourceDefinition<CommitteeRow, CommitteeInput
   }),
   create: (actor, input) => runCommand(actor, (ctx) => createCommittee(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateCommittee(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     sigla: row.slug,
     nombre: row.name,
@@ -450,6 +451,7 @@ export const rolesResource: ResourceDefinition<CommitteeRoleRow, CommitteeRoleIn
   }),
   create: (actor, input) => runCommand(actor, (ctx) => createCommitteeRole(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateCommitteeRole(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     codigo: row.code,
     nombre: row.label,
@@ -485,6 +487,7 @@ export const tagsResource: ResourceDefinition<TagRow, TagInput> = {
   toFormValues: (row) => ({ name: row.name, color: row.color ?? "" }),
   create: (actor, input) => runCommand(actor, (ctx) => createTag(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateTag(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({ nombre: row.name, color: row.color }),
 };
 
@@ -597,6 +600,7 @@ export const segmentsResource: ResourceDefinition<SegmentRow, SegmentInput> = {
   }),
   create: (actor, input) => runCommand(actor, (ctx) => createSegment(ctx, input)),
   update: (actor, id, input) => runCommand(actor, (ctx) => updateSegment(ctx, id, input)),
+  personalData: false,
   exportRow: (row) => ({
     nombre: row.name,
     personas: row.count,
