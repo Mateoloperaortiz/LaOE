@@ -8,7 +8,7 @@ import { issueAccessGrantAs } from "@/modules/identity/domain/access-grant";
 import { findPasswordHash } from "@/modules/identity/domain/password";
 import { hashPassword } from "@/modules/identity/domain/pure";
 import { createSession, resolveActor } from "@/modules/identity/domain/session";
-import { accessGrant, credential } from "@/modules/identity/schema";
+import { accessGrant, credential, session } from "@/modules/identity/schema";
 import { endMembershipAs } from "@/modules/people";
 import { membership, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
@@ -20,6 +20,8 @@ import { truncateAll } from "./db";
 
 const db = () => getDb();
 const CLAVE = "trapecio verde 41";
+const sessionRowsOf = (personId: string) =>
+  db().select({ id: session.id }).from(session).where(eq(session.personId, personId));
 
 async function seedMember(email: string): Promise<string> {
   let [current] = await db().select({ id: term.id }).from(term).where(eq(term.code, "2026-2"));
@@ -65,13 +67,18 @@ describe("retiro y anonimización retiran la credencial", () => {
       memorialConsent: false,
       contactConsent: false,
     });
+    // La baja corta el acceso en su propia transacción (ADR-034): la sesión deja de valer antes de
+    // que el evento se entregue, pero su fila sigue en la tabla. Borrarla es del handler, y por eso
+    // se afirma sobre la tabla: `resolveActor` da `null` aunque el handler no borre nada.
+    expect(await resolveActor(abierta.token)).toBeNull();
+    expect(await sessionRowsOf(personId)).toHaveLength(1);
     await drainOutbox();
 
     expect(await findPasswordHash(personId)).toBeNull();
     expect(await db().select().from(accessGrant).where(eq(accessGrant.personId, personId))).toEqual(
       [],
     );
-    expect(await resolveActor(abierta.token)).toBeNull();
+    expect(await sessionRowsOf(personId)).toEqual([]);
     // La credencial de quien sigue adentro no se toca.
     expect(await findPasswordHash(emisor)).not.toBeNull();
   });
