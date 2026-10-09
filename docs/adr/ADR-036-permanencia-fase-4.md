@@ -2,7 +2,7 @@
 
 Enmienda posterior: [ADR-062](ADR-062-importacion-de-asistencias-y-evidencias-gh.md) permite importar evidencia previamente validada por GH como `GOOD`, conservando fuente, fila, autor y auditoría. Los cálculos y la exención de licencia se conservan.
 
-- Estado: Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058 y ADR-116)
+- Estado: Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058, ADR-116 y ADR-118)
 - Fecha: 2026-09-04
 - Relacionadas: ADR-003, ADR-004, ADR-005, ADR-011, ADR-012, ADR-014, ADR-017, ADR-025, ADR-026, ADR-027, ADR-028, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035
 - Enmienda: ADR-025 (recompute, estados, decisiones y vista en vivo), ADR-026 (bloqueo y comentario por tabla), ADR-028 (ventana por configuración y pendientes al cierre), ADR-031 (avisos en la app hasta la fase 6; anuncios de comité), ADR-033 (`announcement.committeeId`), ADR-035 (layout del admin con más roles; handlers de `term.points-closed` y `occasion.closed`), 03-modelo (tablas definitivas de `permanence`, `permanence_table`, `ruleId`, columnas del snapshot, `term.permanenceClosedAt`) y 05-acceso (roles derivados de los grupos, `BOARD`, step-up del cierre)
@@ -68,3 +68,7 @@ Regla 6: la pertenencia a un grupo es una fila por grupo y persona, y agregar de
 Regla 9: el cierre recalculaba con el término todavía abierto y congelar solo estampaba `frozenAt`, así que el snapshot quedaba con el estado abierto y con puntos posibles. Ahora congelar guarda en cada snapshot su estado final (`finalState`), sin puntos posibles, derivado de lo que ya estaba guardado y GH confirmó; el recálculo sigue afuera de la transacción, y la transacción del cierre toma antes de estampar y congelar el candado del término que serializa los recálculos. Los snapshots de los términos ya cerrados no se tocan (decisión abierta 22). Ver [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 6.
 
 Regla 6, entrada por convocatoria: aceptar una inscripción pregunta antes si el grupo admite a la persona (solo activos, tope de dos comités de trabajo) y responde el motivo a quien acepta. Si la condición cambia entre aceptar y el trabajo que agrega, el trabajo no falla: emite `work-group-admission.failed` y `crm` abre una tarea para GH. Ver [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 7.
+
+## Enmienda (2026-10-08, ADR-118)
+
+Regla 9: estampar el cierre leía el término sin bloquearlo, así que dos cierres a la vez sobre esa función pasaban los dos, con dos auditorías y la fecha pisada. Ahora toma la fila del término antes de leerla, como el cierre de puntos, y el segundo recibe T-808. El orden de candados del cierre queda escrito: el de los recálculos del término, el del calendario si hay que crear el término siguiente, la fila del término y las filas de los snapshots por `id`. Ver [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 27.

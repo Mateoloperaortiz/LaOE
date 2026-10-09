@@ -265,13 +265,17 @@ export async function closeTermPoints(
   return { ...before, pointsClosedAt: at };
 }
 
-/** Estampa el cierre de permanencia (ADR-036 regla 9): exige los puntos cerrados; sin reapertura. */
+/**
+ * Estampa el cierre de permanencia (ADR-036 regla 9): exige los puntos cerrados; sin reapertura. Toma
+ * la fila del término antes de leerla, como el cierre de puntos: un segundo cierre espera y recibe
+ * T-808 (ADR-118 regla 27).
+ */
 export async function closeTermPermanence(
   ctx: CommandContext,
   id: string,
   at = new Date(),
 ): Promise<TermRow> {
-  const [before] = await ctx.tx.select().from(term).where(eq(term.id, id));
+  const [before] = await ctx.tx.select().from(term).where(eq(term.id, id)).for("update");
   if (!before) {
     throw new DomainError(t("T-032"));
   }

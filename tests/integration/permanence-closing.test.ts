@@ -2,6 +2,7 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR, type Tx } from "@/db/tx";
+import { permanenceClosed } from "@/domain-events/permanence";
 import { interaction } from "@/modules/crm/schema";
 import { reactivateMembershipAs } from "@/modules/people";
 import { committeeMembership, membership, membershipTerm } from "@/modules/people/schema";
@@ -20,13 +21,15 @@ import {
 } from "@/modules/permanence";
 import { complianceResource } from "@/modules/permanence/admin";
 import { manualCredit, permanenceSnapshot } from "@/modules/permanence/schema";
-import { closeTermPoints, findTermByCode, getTerm } from "@/modules/terms";
+import { auditLog, outbox } from "@/modules/system/schema";
+import { closeTermPermanence, closeTermPoints, findTermByCode, getTerm } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { copyPattern, itemPattern } from "../helpers/copy";
 import {
   backendPid,
   deferred,
+  holdCommand,
   holdTransaction,
   outcome,
   waitingForLock,
@@ -589,5 +592,77 @@ describe("cierre de permanencia", () => {
     await db.update(permanenceSnapshot).set(sound).where(mine);
     await freeze();
     expect((await ofTerm()).filter((row) => row.frozenAt === null)).toEqual([]);
+  });
+
+  /** Cuántas auditorías del cierre tiene el término. */
+  async function closingAudits(termId: string): Promise<number> {
+    const rows = await getDb()
+      .select({ id: auditLog.id })
+      .from(auditLog)
+      .where(and(eq(auditLog.action, "term.permanence-closed"), eq(auditLog.entityId, termId)));
+    return rows.length;
+  }
+
+  // ADR-118 regla 27: el cierre toma la fila del término antes de leerla, como el cierre de puntos.
+  it("dos cierres de permanencia a la vez sobre el término: el segundo espera la fila y recibe que ya cerró", async () => {
+    const { termId } = await setup();
+    await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
+    const first = new Date("2025-01-10T15:00:00Z");
+    const later = new Date("2025-01-10T15:00:05Z");
+    const held = await holdCommand(GH, (ctx) => closeTermPermanence(ctx, termId, first));
+    const second = runCommand(GH, (ctx) => closeTermPermanence(ctx, termId, later));
+    void second.catch(() => undefined);
+    let settled: PromiseSettledResult<unknown>[] = [];
+    try {
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+      held.release();
+      await held.done;
+    } finally {
+      held.release();
+      settled = await Promise.allSettled([second, held.done]);
+    }
+    const [result] = settled;
+    if (!result) throw new Error("sin resultado");
+    expect({
+      second: outcome(result),
+      closedAt: (await getTerm(termId))?.permanenceClosedAt?.toISOString(),
+      audits: await closingAudits(termId),
+    }).toEqual({
+      second: expect.stringMatching(copyPattern("T-808")),
+      closedAt: first.toISOString(),
+      audits: 1,
+    });
+  });
+
+  it("dos «Aplicar el cierre» a la vez: el segundo espera y recibe que ya cerró, con un solo evento de aplicación", async () => {
+    const { termId } = await setup();
+    await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
+    await confirmAllProposedAs(GH, termId);
+    const held = await holdTerm(termId);
+    const first = closeTermPermanenceAs(GH, termId);
+    void first.catch(() => undefined);
+    let second: Promise<unknown> = Promise.resolve();
+    try {
+      // El primero ya tiene el candado de los recálculos y espera la fila del término.
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+      second = closeTermPermanenceAs(GH, termId);
+      void second.catch(() => undefined);
+      // El segundo hace cola detrás del primero, no detrás de la prueba.
+      await expect.poll(waitingForLock).toBe(2);
+      expect(await waitingOn(held.pid)).toBe(1);
+      held.release();
+      await held.done;
+      await expect(first).resolves.toMatchObject({ nextTermId: expect.any(String) });
+      await expect(second).rejects.toThrow(copyPattern("T-808"));
+    } finally {
+      held.release();
+      await Promise.allSettled([held.done, first, second]);
+    }
+    expect(await closingAudits(termId)).toBe(1);
+    const events = await getDb()
+      .select({ id: outbox.id })
+      .from(outbox)
+      .where(eq(outbox.eventType, permanenceClosed.type));
+    expect(events).toHaveLength(1);
   });
 });
