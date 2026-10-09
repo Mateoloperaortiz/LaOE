@@ -2,7 +2,7 @@ import { getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { membershipChanged, personAnonymized, personEmailChanged } from "@/domain-events/people";
 import { onEvent, registerHandler } from "@/jobs/registry";
-import { purgeIfMembershipEnded, SIGN_IN_STATUSES } from "@/modules/people";
+import { lockWalletMember, purgeIfMembershipEnded, SIGN_IN_STATUSES } from "@/modules/people";
 import { deleteAccessGrantsFor } from "./domain/access-grant";
 import { deleteCalendarTokenFor } from "./domain/calendar-token";
 import { deleteCarnetTokenFor } from "./domain/carnet-token";
@@ -19,11 +19,35 @@ registerHandler("identity.prune", async (_payload, ctx) => {
   ctx.log.info(result, "identity depurado");
 });
 
+/**
+ * Cierra las sesiones de la persona salvo que hoy esté en un estado con ingreso (ADR-118 regla 5). El
+ * evento dice cómo quedó cuando se emitió, y el poller lo puede entregar o reintentar después de que
+ * volvió y entró de nuevo: se decide con el estado de ahora, leído bajo el candado del ciclo de
+ * membresía, y se borra en esa misma transacción. Sin membresía se cierran: ante la duda, falla
+ * cerrado. Devuelve `null` si las conservó.
+ */
+function closeSessionsUnlessSignedIn(personId: string): Promise<number | null> {
+  return runCommand(SYSTEM_ACTOR, async ({ tx }) => {
+    const state = await lockWalletMember(tx, personId);
+    if (state && SIGN_IN_STATUSES.includes(state.status)) {
+      return null;
+    }
+    return destroySessionsFor(tx, personId);
+  });
+}
+
 onEvent(membershipChanged, async ({ personId, to }, ctx) => {
   // Un estado que este código no conozca tampoco conserva la sesión: ante la duda, se cierra.
   if (!(SIGN_IN_STATUSES as readonly string[]).includes(to)) {
-    const sessions = await destroySessionsFor(getDb(), personId);
-    ctx.log.info({ personId, sessions }, "sesiones cerradas por cambio de estado");
+    const sessions = await closeSessionsUnlessSignedIn(personId);
+    if (sessions === null) {
+      ctx.log.info(
+        { personId },
+        "cambio de estado atrasado: la persona tiene ingreso y conserva su sesión",
+      );
+    } else {
+      ctx.log.info({ personId, sessions }, "sesiones cerradas por cambio de estado");
+    }
   }
   if (to === "INACTIVE") {
     // El carnet lleva época: solo se borran los de una anterior a la vigente, así que un evento

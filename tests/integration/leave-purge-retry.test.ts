@@ -20,7 +20,14 @@ import {
   listPermissionsFor,
 } from "@/modules/identity";
 import { hashPassword } from "@/modules/identity/domain/pure";
-import { accessGrant, calendarToken, credential, permission } from "@/modules/identity/schema";
+import { createSession } from "@/modules/identity/domain/session";
+import {
+  accessGrant,
+  calendarToken,
+  credential,
+  permission,
+  session,
+} from "@/modules/identity/schema";
 import { createSurveyInvites } from "@/modules/participation";
 import { occasion, occasionSurveyInvite } from "@/modules/participation/schema";
 import {
@@ -294,6 +301,44 @@ describe("los borrados de la baja toleran el reintento", () => {
     await drainOutbox({ now: afterBackoff() });
 
     expect(await holdings(who.personId)).toEqual(NOTHING);
+  });
+
+  // El cierre de sesiones del mismo handler (DT-243): también decide con el estado de ahora.
+  const openSession = (personId: string) =>
+    createSession(db(), { personId, remember: true, userAgent: null, ip: null });
+  const sessionIdsOf = async (personId: string) =>
+    (await db().select({ id: session.id }).from(session).where(eq(session.personId, personId))).map(
+      (row) => row.id,
+    );
+
+  it("una baja que se reintenta después del alta no le cierra la sesión a quien ya volvió a entrar", async () => {
+    const who = await scene();
+    await openSession(who.personId);
+    await endMembershipAs({ personId: who.board }, who.personId, SALIDA);
+    neighbourFailures = 1;
+    await drainOutbox({ expectFailures: [membershipChanged] });
+    // Con la baja vigente, el primer intento cerró la sesión de antes.
+    expect(await sessionIdsOf(who.personId)).toEqual([]);
+
+    await reactivateMembershipAs({ personId: who.board }, who.personId, { reason: "Fue un error" });
+    await drainOutbox({ expectFailures: [membershipChanged] });
+    const back = await openSession(who.personId);
+
+    await drainOutbox({ now: afterBackoff() });
+
+    expect(await sessionIdsOf(who.personId)).toEqual([back.sessionId]);
+  });
+
+  it("mientras la baja siga vigente su reintento sigue cerrando sesiones, también la que apareció entre los dos intentos", async () => {
+    const who = await scene();
+    await endMembershipAs({ personId: who.board }, who.personId, SALIDA);
+    neighbourFailures = 1;
+    await drainOutbox({ expectFailures: [membershipChanged] });
+    await openSession(who.personId);
+
+    await drainOutbox({ now: afterBackoff() });
+
+    expect(await sessionIdsOf(who.personId)).toEqual([]);
   });
 
   it("el evento de la baja espera a un alta que se está confirmando y después no borra: quien vuelve antes de que su baja se procese conserva lo que tenía (decisión abierta 44)", async () => {
