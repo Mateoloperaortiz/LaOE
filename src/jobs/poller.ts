@@ -1,4 +1,4 @@
-import { and, asc, eq, isNotNull, isNull, lte } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { Tx } from "@/db/tx";
@@ -15,7 +15,9 @@ import { getHandlers } from "./registry";
 //    deduplicación y CONFIRMA. Si el proceso muere después, el intento ya está contado y la fila no
 //    vuelve de primera. Sin la clave, un emit que llegue mientras corre entra como evento nuevo. La
 //    clave queda guardada en `takenDedupeKey`: si el proceso muere con la fila tomada, el arranque
-//    siguiente se la devuelve (`restoreTakenKeys`) y el emit que venga se descarta contra ella.
+//    siguiente se la devuelve (`restoreTakenKeys`) y el emit que venga se descarta contra ella. Si el
+//    emit llegó antes y ya ocupa la clave, ese pendiente hereda los intentos y la espera de la fila que
+//    murió, que queda atendida: de una clave nunca quedan dos cuentas de intentos.
 // 2. La entrega: otra transacción vuelve a bloquear la fila y la sostiene mientras corren los handlers,
 //    que trabajan con sus propias conexiones (getDb, runCommand), no dentro de ella. Al final anota el
 //    resultado.
@@ -34,9 +36,16 @@ export type ProcessOutcome = "idle" | "processed" | "failed";
 
 type OutboxRow = typeof outbox.$inferSelect;
 
-/** Lo que queda escrito en una fila que gastó sus intentos sin que ninguno terminara. */
+/**
+ * Lo que queda escrito en una fila que llega a la toma con sus intentos gastados. Pueden no ser suyos:
+ * un pendiente hereda los de otra fila de su clave que murió tomada (`restoreTakenKeys`), y puede ir a
+ * dead letter sin haber corrido nunca.
+ */
 const UNFINISHED =
-  "Gastó sus intentos sin terminar el último: el proceso se detuvo con el evento tomado";
+  "Gastó sus intentos, propios o heredados de otro evento de su clave, sin terminar el último: el proceso se detuvo con ese intento en curso";
+
+/** Cuántas veces vuelve a intentar un arranque con una clave cuyo ocupante cambia en ese instante. */
+const RESTORE_ROUNDS = 3;
 
 interface Taken {
   row: OutboxRow;
@@ -218,61 +227,148 @@ async function recordFailure(
     if (!isUniqueViolation(error, OUTBOX_PENDING_KEY_INDEX)) {
       throw error;
     }
-    // Sigue sin clave y la conserva guardada: la recupera en otro intento o en un arranque.
+    // Sigue sin clave y la conserva guardada: la recupera en otro intento. En un arranque la recupera
+    // o, si sigue ocupada, queda atendida por el pendiente que la ocupa (`restoreTakenKeys`).
     await tx.update(outbox).set(failure).where(eq(outbox.id, id));
     return false;
   }
 }
 
 /**
- * Devuelve su clave a las filas que quedaron tomadas sin nadie que las corra (ADR-118 regla 3): el
- * proceso murió con el evento tomado y la fila espera su reintento sin clave. Sin esto el emit
- * siguiente de esa clave entra como evento nuevo, vencido de inmediato y con sus cinco intentos, y un
- * evento que tumba el proceso lo vuelve a tumbar con cada emit. Corre al arrancar el poller.
+ * Atiende las filas que quedaron tomadas sin nadie que las corra (ADR-118 regla 3): el proceso murió con
+ * el evento tomado, o el evento falló con su clave ocupada, y la fila espera su reintento sin clave.
+ * Corre al arrancar el poller.
  *
- * La fila que otro poller está corriendo tiene su bloqueo y se salta. Si otro pendiente ya ocupa la
- * clave, la fila sigue sin ella y la conserva guardada, igual que tras un fallo. Devuelve cuántas
- * recuperaron la suya.
+ * - Si la clave está libre, se la devuelve. Sin esto el emit siguiente de esa clave entra como evento
+ *   nuevo, vencido de inmediato y con sus cinco intentos, y un evento que tumba el proceso lo vuelve a
+ *   tumbar con cada emit.
+ * - Si otro pendiente ya la ocupa, ese pendiente hereda sus intentos y su espera y la fila se da por
+ *   atendida (`supersede`). Es el emit que llegó con el evento en curso: sin esto es justo ese evento
+ *   nuevo y vencido, y el proceso cae otra vez en cada arranque mientras haya actividad.
+ *
+ * La fila que otro poller está corriendo tiene su bloqueo y se salta. Van en orden fijo, de la más
+ * vieja a la más nueva: de dos con la misma clave y ningún pendiente, la más vieja la recupera y
+ * hereda de la otra. Devuelve cuántas recuperaron su clave y cuántas quedaron atendidas por otra.
  */
-export async function restoreTakenKeys(): Promise<number> {
+export async function restoreTakenKeys(
+  clock: Clock = systemClock,
+): Promise<{ restored: number; superseded: number }> {
   const orphaned = and(
     isNotNull(outbox.takenDedupeKey),
     isNull(outbox.dedupeKey),
     isNull(outbox.processedAt),
     isNull(outbox.deadLetterAt),
   );
-  const candidates = await getDb().select({ id: outbox.id }).from(outbox).where(orphaned);
-  let restored = 0;
+  const candidates = await getDb()
+    .select({ id: outbox.id })
+    .from(outbox)
+    .where(orphaned)
+    .orderBy(asc(outbox.createdAt), asc(outbox.id));
+  const result = { restored: 0, superseded: 0 };
   for (const { id } of candidates) {
-    const back = await getDb().transaction(async (tx) => {
+    const outcome = await getDb().transaction(async (tx) => {
       const [row] = await tx
-        .select({ key: outbox.takenDedupeKey })
+        .select()
         .from(outbox)
         .where(and(eq(outbox.id, id), orphaned))
         .for("update", { skipLocked: true });
-      if (!row) {
-        return false;
+      const key = row?.takenDedupeKey;
+      if (!row || !key) {
+        return null;
       }
-      try {
-        await tx.transaction((savepoint) =>
-          savepoint
-            .update(outbox)
-            .set({ dedupeKey: row.key, takenDedupeKey: null })
-            .where(eq(outbox.id, id)),
-        );
-        return true;
-      } catch (error) {
-        if (!isUniqueViolation(error, OUTBOX_PENDING_KEY_INDEX)) {
-          throw error;
+      // Que la clave está ocupada lo decide el índice, y quién la ocupa puede cambiar entre su rechazo
+      // y el bloqueo del ocupante: si otro poller lo tomó en ese instante, la clave quedó libre y se
+      // vuelve a intentar devolverla. Acotado: lo que no se resuelva espera al arranque siguiente.
+      for (let round = 0; round < RESTORE_ROUNDS; round += 1) {
+        if (await giveKeyBack(tx, id, key)) {
+          return { restored: true as const };
         }
-        return false;
+        const heirId = await supersede(tx, row, key, clock());
+        if (heirId) {
+          return { restored: false as const, heirId, job: row.eventType, attempts: row.attempts };
+        }
       }
+      return null;
     });
-    if (back) {
-      restored += 1;
+    if (outcome?.restored) {
+      result.restored += 1;
+    } else if (outcome) {
+      result.superseded += 1;
+      // Con los dos ids alcanza para seguirle el rastro en /admin/sistema/jobs; nada del payload.
+      logger.warn(
+        {
+          job: outcome.job,
+          outboxId: id,
+          supersededBy: outcome.heirId,
+          attempts: outcome.attempts,
+        },
+        "evento tomado sin dueño dado por atendido: el pendiente de su clave hereda sus intentos y su espera",
+      );
     }
   }
-  return restored;
+  return result;
+}
+
+/**
+ * Le devuelve su clave a una fila tomada, o responde `false` si otro pendiente ya la ocupa. Lo decide
+ * el índice único y no una lectura previa, dentro de un savepoint para que su rechazo no aborte la
+ * transacción.
+ */
+async function giveKeyBack(tx: Tx, id: string, key: string): Promise<boolean> {
+  try {
+    await tx.transaction((savepoint) =>
+      savepoint
+        .update(outbox)
+        .set({ dedupeKey: key, takenDedupeKey: null })
+        .where(eq(outbox.id, id)),
+    );
+    return true;
+  } catch (error) {
+    if (!isUniqueViolation(error, OUTBOX_PENDING_KEY_INDEX)) {
+      throw error;
+    }
+    return false;
+  }
+}
+
+/**
+ * La clave de una fila sin dueño ya la ocupa otro pendiente. Dos eventos de una clave son
+ * intercambiables (el outbox descarta el segundo cuando el primero está en cola), así que el pendiente
+ * hace también el trabajo de la fila: hereda sus intentos y su espera, el mayor de los dos intentos y
+ * la más tardía de las dos esperas, y la fila se da por atendida con su clave, como el dead letter que
+ * se reintenta con la clave ocupada (ADR-113 regla 8). Con la cuenta heredada, un evento con clave que
+ * tumba el proceso gasta sus cinco intentos aunque en cada corrida llegue un emit (ADR-118 regla 1).
+ *
+ * Bloquea al pendiente antes de escribirle y devuelve su id. Responde `null` si ya no está en cola:
+ * otro poller lo tomó, y con eso la clave quedó libre.
+ */
+async function supersede(
+  tx: Tx,
+  orphan: OutboxRow,
+  key: string,
+  now: Date,
+): Promise<string | null> {
+  const [heir] = await tx
+    .select({ id: outbox.id })
+    .from(outbox)
+    .where(and(eq(outbox.dedupeKey, key), isNull(outbox.processedAt), isNull(outbox.deadLetterAt)))
+    .for("update");
+  if (!heir) {
+    return null;
+  }
+  await tx
+    .update(outbox)
+    .set({
+      attempts: sql`greatest(${outbox.attempts}, ${orphan.attempts})`,
+      nextAttemptAt: sql`greatest(${outbox.nextAttemptAt}, ${orphan.nextAttemptAt.toISOString()}::timestamptz)`,
+    })
+    .where(eq(outbox.id, heir.id));
+  // Sale de la cola sin correr: conserva sus intentos y, como todo lo procesado, queda sin error.
+  await tx
+    .update(outbox)
+    .set({ processedAt: now, lastError: null, dedupeKey: key, takenDedupeKey: null })
+    .where(eq(outbox.id, orphan.id));
+  return heir.id;
 }
 
 export interface DrainResult {
@@ -335,12 +431,15 @@ export function startPoller(options: PollerOptions): Poller {
 
   const start = async () => {
     try {
-      const restored = await restoreTakenKeys();
-      if (restored > 0) {
-        logger.warn({ restored }, "claves devueltas a eventos que quedaron tomados");
+      const { restored, superseded } = await restoreTakenKeys();
+      if (restored + superseded > 0) {
+        logger.warn(
+          { restored, superseded },
+          "eventos que quedaron tomados: claves devueltas o trabajo heredado por otro pendiente",
+        );
       }
     } catch (error) {
-      logger.error({ err: error }, "no se pudieron devolver las claves tomadas");
+      logger.error({ err: error }, "no se pudieron atender los eventos que quedaron tomados");
     }
     await tick();
   };

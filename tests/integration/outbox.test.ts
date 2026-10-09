@@ -3,12 +3,13 @@ import type { PoolClient } from "pg";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { type CommandContext, enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
+import { BACKOFF_MS } from "@/jobs/backoff";
 import { drain, processOne, restoreTakenKeys, startPoller } from "@/jobs/poller";
 import { getHandlers, registerHandler, resetHandlersForTests } from "@/jobs/registry";
 import { enqueueScheduled } from "@/jobs/scheduler";
 import { listOutbox, retryDeadLetter } from "@/modules/system/domain/outbox";
 import { auditLog, outbox } from "@/modules/system/schema";
-import { deferred, holdCommand, waitingOn } from "../helpers/locks";
+import { backendPid, deferred, holdCommand, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
@@ -333,6 +334,52 @@ describe("poller del outbox", () => {
       expect(row?.deadLetterAt).toBeInstanceOf(Date);
       expect(row?.dedupeKey).toBe(KEY);
     });
+
+    it("al arrancar, el que falló con su clave ocupada queda atendido por el pendiente que la ocupa, que se queda con el mayor de los dos intentos y la espera más tardía", async () => {
+      const start = new Date("2026-10-08T15:00:00Z");
+      const minutes = (n: number) => new Date(start.getTime() + n * 60_000);
+      const emit = () => enqueueEvent(db(), { type: TYPE, payload: {}, dedupeKey: KEY }, start);
+      let current = start;
+      let runs = 0;
+      registerHandler(TYPE, async () => {
+        runs += 1;
+        if (runs === 1) {
+          // Con el primero en curso llega un emit de su clave; el primero tarda diez minutos y falla.
+          await emit();
+          current = minutes(10);
+        }
+        throw new Error("no hoy");
+      });
+      await emit();
+      expect(await processOne(() => current)).toBe("failed");
+      // El nuevo falla dos veces por su cuenta, y cada vez recupera la clave.
+      expect(await processOne(at(start))).toBe("failed");
+      expect(await processOne(at(minutes(1)))).toBe("failed");
+      let [first, second] = await rowsByAge();
+      expect([first?.dedupeKey, first?.takenDedupeKey, first?.attempts]).toEqual([null, KEY, 1]);
+      expect([second?.dedupeKey, second?.takenDedupeKey, second?.attempts]).toEqual([KEY, null, 2]);
+
+      // El proceso arranca (un despliegue): quedan en uno solo, que hace el trabajo de los dos.
+      const booted = await restoreTakenKeys(at(minutes(2)));
+      [first, second] = await rowsByAge();
+      expect([first?.dedupeKey, first?.takenDedupeKey, first?.attempts, first?.lastError]).toEqual([
+        KEY,
+        null,
+        1,
+        null,
+      ]);
+      expect(first?.processedAt).toEqual(minutes(2));
+      // Dos intentos son los suyos; la espera es la del primero, que falló más tarde (minuto 10 más 1).
+      expect([second?.dedupeKey, second?.attempts, second?.nextAttemptAt]).toEqual([
+        KEY,
+        2,
+        minutes(11),
+      ]);
+      expect(second?.processedAt).toBeNull();
+      expect(booted).toEqual({ restored: 0, superseded: 1 });
+      expect(await processOne(at(minutes(10)))).toBe("idle");
+      expect(runs).toBe(3);
+    });
   });
 
   describe("un evento en curso", () => {
@@ -449,23 +496,37 @@ describe("poller del outbox", () => {
       expect((await listOutbox("dead")).map((dead) => dead.id)).toEqual([row?.id]);
     });
 
-    it("al arrancar no le devuelve la clave a un evento que otro poller está corriendo", async () => {
+    it("al arrancar no toca un evento que otro poller está corriendo: ni le devuelve la clave ni lo da por atendido", async () => {
       const KEY = "score:ocasion-en-curso";
+      const emit = () => enqueueEvent(db(), { type: "test.held", payload: {}, dedupeKey: KEY });
       const started = deferred<void>();
       const gate = deferred<void>();
       registerHandler("test.held", async () => {
         started.resolve();
         await gate.promise;
       });
-      await enqueueEvent(db(), { type: "test.held", payload: {}, dedupeKey: KEY });
+      await emit();
       const running = processOne();
       await started.promise;
 
-      expect(await restoreTakenKeys()).toBe(0);
-      // Sigue tomada: sin clave en la cola, con la suya guardada, y así la muestra /admin/sistema/jobs.
-      const [taken] = await listOutbox("pending");
-      expect([taken?.dedupeKey, taken?.takenDedupeKey]).toEqual([null, KEY]);
-      gate.resolve();
+      try {
+        expect(await restoreTakenKeys()).toEqual({ restored: 0, superseded: 0 });
+        // Sigue tomada: sin clave en la cola, con la suya guardada, y así la muestra
+        // /admin/sistema/jobs.
+        const [taken] = await listOutbox("pending");
+        expect([taken?.dedupeKey, taken?.takenDedupeKey]).toEqual([null, KEY]);
+
+        // Tampoco cuando otro pendiente ocupa su clave: la que corre tiene dueño y nadie hereda de
+        // ella.
+        await emit();
+        expect(await restoreTakenKeys()).toEqual({ restored: 0, superseded: 0 });
+        const [queued, stillTaken] = await listOutbox("pending");
+        expect([queued?.dedupeKey, queued?.attempts]).toEqual([KEY, 0]);
+        expect([stillTaken?.dedupeKey, stillTaken?.takenDedupeKey]).toEqual([null, KEY]);
+      } finally {
+        // Si algo de arriba falla, el handler detenido no deja colgadas las pruebas que siguen.
+        gate.resolve();
+      }
       expect(await running).toBe("processed");
       const [done] = await listOutbox("done");
       expect([done?.dedupeKey, done?.takenDedupeKey]).toEqual([KEY, null]);
@@ -505,6 +566,198 @@ describe("poller del outbox", () => {
         [5, KEY, true],
       ]);
       expect(runs).toBe(5);
+    });
+
+    describe("y otro pendiente ya ocupa su clave", () => {
+      const KEY = "score:ocasion-con-actividad";
+      const START = new Date("2026-10-08T15:00:00Z");
+      const after = (ms: number) => new Date(START.getTime() + ms);
+      const emit = (now: Date) =>
+        enqueueEvent(db(), { type: "test.crash", payload: {}, dedupeKey: KEY }, now);
+      const rowsByAge = () => db().select().from(outbox).orderBy(asc(outbox.createdAt));
+
+      it("con un emit de su clave en cada corrida, el evento que tumba el proceso corre cinco veces en total, con su espera, y deja un solo dead letter", async () => {
+        let now = START;
+        let runs = 0;
+        registerHandler("test.crash", async () => {
+          runs += 1;
+          // Actividad en curso: el emit entra, porque la fila que corre ya no lleva la clave.
+          await emit(now);
+          await killPollerConnection();
+        });
+        await emit(now);
+        /** Un arranque del proceso: devuelve las claves tomadas y entrega lo que esté vencido. */
+        const boot = async () => {
+          await restoreTakenKeys(() => now);
+          return processOne(() => now).catch(() => "crashed" as const);
+        };
+
+        for (const [index, wait] of BACKOFF_MS.entries()) {
+          expect(await boot()).toBe("crashed");
+          // Arranca otra vez en el mismo instante. El emit que llegó en curso no es un evento nuevo,
+          // vencido y con cinco intentos propios: sigue la cuenta y la espera del que murió.
+          expect(await boot()).toBe("idle");
+          const pending = await listOutbox("pending");
+          expect(
+            pending.map((row) => [
+              row.dedupeKey,
+              row.takenDedupeKey,
+              row.attempts,
+              row.nextAttemptAt.getTime() - now.getTime(),
+            ]),
+          ).toEqual([[KEY, null, index + 1, wait]]);
+          now = new Date(now.getTime() + wait);
+        }
+        expect(runs).toBe(5);
+
+        // La toma siguiente lo encuentra con los cinco intentos gastados: dead letter sin correr.
+        expect(await boot()).toBe("failed");
+        expect(runs).toBe(5);
+        expect(await listOutbox("pending")).toEqual([]);
+        const dead = await listOutbox("dead");
+        expect(dead.map((row) => [row.dedupeKey, row.takenDedupeKey, row.attempts])).toEqual([
+          [KEY, null, 5],
+        ]);
+        // Nunca corrió: los intentos son los que heredó, y su `lastError` lo dice.
+        expect(dead[0]?.lastError).toContain("sin terminar");
+        expect(dead[0]?.lastError).toContain("heredados de otro evento de su clave");
+        // Los cinco que murieron quedaron atendidos por el que los heredó, con su clave y sin error.
+        const done = await listOutbox("done");
+        expect(done.map((row) => [row.dedupeKey, row.takenDedupeKey, row.lastError])).toEqual(
+          BACKOFF_MS.map(() => [KEY, null, null]),
+        );
+        expect(await boot()).toBe("idle");
+      });
+
+      it("si muere una sola vez, el pendiente corre una vez, tras la espera del que murió, y lee lo que trajo su emit", async () => {
+        let state = 1;
+        const seen: number[] = [];
+        registerHandler("test.crash", async () => {
+          seen.push(state);
+          if (seen.length === 1) {
+            // Un cambio llega con el evento en curso y emite su clave; después el proceso muere.
+            state = 2;
+            await emit(START);
+            await killPollerConnection();
+          }
+        });
+        await emit(START);
+        await expect(processOne(at(START))).rejects.toThrow();
+
+        const booted = await restoreTakenKeys(at(START));
+        expect(await processOne(at(START))).toBe("idle");
+        expect(await processOne(at(after(59_999)))).toBe("idle");
+        expect(booted).toEqual({ restored: 0, superseded: 1 });
+        expect(await processOne(at(after(60_000)))).toBe("processed");
+        expect(seen).toEqual([1, 2]);
+
+        // El que murió no vuelve a correr: su trabajo lo hizo el que heredó, que leyó después.
+        expect(await processOne(at(after(DAY)))).toBe("idle");
+        expect(
+          (await rowsByAge()).map((row) => [
+            row.attempts,
+            row.dedupeKey,
+            row.takenDedupeKey,
+            row.processedAt,
+          ]),
+        ).toEqual([
+          [1, KEY, null, START],
+          [2, KEY, null, after(60_000)],
+        ]);
+      });
+
+      it("dos que murieron tomados con la misma clave quedan en uno: el más viejo la recupera y hereda del otro", async () => {
+        let runs = 0;
+        registerHandler("test.crash", async () => {
+          runs += 1;
+          if (runs === 1) {
+            await emit(START);
+          }
+          await killPollerConnection();
+        });
+        await emit(START);
+        // Mueren los dos antes de que ningún arranque alcance a devolver una clave.
+        await expect(processOne(at(START))).rejects.toThrow();
+        await expect(processOne(at(after(10_000)))).rejects.toThrow();
+        expect((await rowsByAge()).map((row) => [row.dedupeKey, row.takenDedupeKey])).toEqual([
+          [null, KEY],
+          [null, KEY],
+        ]);
+
+        const booted = await restoreTakenKeys(at(after(20_000)));
+        const [older, newer] = await rowsByAge();
+        // La espera es la del segundo, que se tomó diez segundos después.
+        expect([
+          older?.dedupeKey,
+          older?.takenDedupeKey,
+          older?.attempts,
+          older?.nextAttemptAt,
+          older?.processedAt,
+        ]).toEqual([KEY, null, 1, after(70_000), null]);
+        expect([newer?.dedupeKey, newer?.takenDedupeKey, newer?.processedAt]).toEqual([
+          KEY,
+          null,
+          after(20_000),
+        ]);
+        expect(booted).toEqual({ restored: 1, superseded: 1 });
+        // Vuelve a haber un solo pendiente de la clave: el emit siguiente se descarta contra él.
+        await emit(after(20_000));
+        expect(await rowsByAge()).toHaveLength(2);
+      });
+
+      it("si otro poller toma al que ocupa la clave justo cuando iba a heredar, el que murió recupera su clave y nadie queda atendido sin correr", async () => {
+        let runs = 0;
+        registerHandler("test.crash", async () => {
+          runs += 1;
+          if (runs === 1) {
+            await emit(START);
+            await killPollerConnection();
+          }
+        });
+        await emit(START);
+        await expect(processOne(at(START))).rejects.toThrow();
+        const [, occupant] = await rowsByAge();
+        const occupantId = occupant?.id ?? "";
+
+        // La toma de otro poller, escrita a mano para detenerla entre su lectura y su escritura: la de
+        // verdad (`take`) confirma sin pausa y no se deja detener desde afuera.
+        const locked = deferred<number>();
+        const queued = deferred<void>();
+        const taking = db().transaction(async (tx) => {
+          await tx.select().from(outbox).where(eq(outbox.id, occupantId)).for("update");
+          locked.resolve(await backendPid(tx));
+          await queued.promise;
+          await tx
+            .update(outbox)
+            .set({ attempts: 1, dedupeKey: null, takenDedupeKey: KEY })
+            .where(eq(outbox.id, occupantId));
+        });
+        void taking.catch(locked.reject);
+        const pid = await locked.promise;
+        const booting = restoreTakenKeys(at(START));
+        try {
+          // El índice rechazó la devolución y el arranque fue por el que ocupa la clave: hace cola
+          // detrás de la toma.
+          await expect.poll(() => waitingOn(pid)).toBe(1);
+        } finally {
+          queued.resolve();
+          await taking;
+        }
+
+        // Cuando la toma confirma, el que ocupaba la clave ya no está en cola: no hay de quién heredar.
+        expect(await booting).toEqual({ restored: 1, superseded: 0 });
+        expect(
+          (await rowsByAge()).map((row) => [
+            row.dedupeKey,
+            row.takenDedupeKey,
+            row.attempts,
+            row.processedAt,
+          ]),
+        ).toEqual([
+          [KEY, null, 1, null],
+          [null, KEY, 1, null],
+        ]);
+      });
     });
   });
 
