@@ -562,6 +562,8 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-297 | Términos: columna semestre | Semestre | MATEO | Propuesta |
 | T-298 | Términos: fechas invertidas | El fin debe ser posterior al inicio. | MATEO | Propuesta |
 | T-299 | Paleta ⌘K: botón que la abre | Buscar (⌘K) | MATEO | Propuesta |
+| T-3248 | Exporte CSV: última fila de un archivo recortado (ADR-118) | Archivo recortado: van {n} filas de {total}. Filtrá el listado y volvé a exportar para sacar el resto. | MATEO | Propuesta |
+| T-3249 | Listados: aviso de que el CSV va a salir recortado (ADR-118) | El CSV sale recortado: trae {n} filas y este listado tiene {total}. Filtrá antes de exportar para que salga completo. | MATEO | Propuesta |
 
 ### Admin de Contenido (páginas, cartelera, eventos, ediciones y medios)
 

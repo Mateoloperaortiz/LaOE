@@ -2,18 +2,21 @@ import { runCommand } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { personDataExported } from "@/domain-events/system";
 
-// Auditoría de exportes con datos personales (05-acceso.md: step-up y registro).
+/**
+ * Auditoría de exportes con datos personales (05-acceso.md: step-up y registro). Guarda las filas que
+ * viajaron y el total real del listado: si difieren, el archivo salió recortado (ADR-118 regla 13).
+ */
 export async function recordExport(
   actorPersonId: string,
   resourceKey: string,
-  rows: number,
+  counts: { rows: number; total: number },
 ): Promise<void> {
   await runCommand({ personId: actorPersonId }, (ctx) =>
     ctx.audit({
       action: "export.csv",
       entityType: "export",
       entityId: resourceKey,
-      after: { rows },
+      after: { rows: counts.rows, total: counts.total },
     }),
   );
 }

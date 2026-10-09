@@ -10628,6 +10628,18 @@ export const textos = {
     owner: "GH",
     status: "Propuesta",
   },
+  "T-3248": {
+    where: "Exporte CSV: última fila de un archivo recortado (ADR-118)",
+    text: "Archivo recortado: van {n} filas de {total}. Filtrá el listado y volvé a exportar para sacar el resto.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
+  "T-3249": {
+    where: "Listados: aviso de que el CSV va a salir recortado (ADR-118)",
+    text: "El CSV sale recortado: trae {n} filas y este listado tiene {total}. Filtrá antes de exportar para que salga completo.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

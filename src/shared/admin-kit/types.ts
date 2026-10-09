@@ -168,6 +168,12 @@ export interface FormState {
 }
 
 /** Separador de los valores de un multiselect dentro de `FormState.values`. */
+/**
+ * Tope de filas de un exporte CSV (ADR-118 regla 13). Lo que pasa de ahí no viaja: el archivo, la
+ * pantalla y la auditoría lo dicen.
+ */
+export const EXPORT_ROW_LIMIT = 10_000;
+
 export const MULTI_SEPARATOR = "";
 
 /** Convierte un FormData en un objeto plano según los campos: vacíos a undefined, checkbox a booleano, multiselect a lista. */

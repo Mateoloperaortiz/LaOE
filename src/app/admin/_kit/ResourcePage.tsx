@@ -5,6 +5,7 @@ import { single } from "@/app/_lib/search";
 import { hasRecentStepUp, requireAdminActor } from "@/modules/identity";
 import {
   type AnyResource,
+  EXPORT_ROW_LIMIT,
   Pagination,
   ResourceForm,
   ResourcePanel,
@@ -145,6 +146,11 @@ export async function ResourcePage({
         </output>
       ) : null}
       <DownloadNotice searchParams={searchParams} />
+      {total > EXPORT_ROW_LIMIT ? (
+        <output className="admin-feedback block rounded-xl border border-borde bg-oe-yellow-soft px-4 py-3 text-sm font-semibold text-oe-navy">
+          {t("T-3249", { n: EXPORT_ROW_LIMIT, total })}
+        </output>
+      ) : null}
       {rowError ? (
         <p
           role="alert"

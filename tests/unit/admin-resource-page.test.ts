@@ -4,7 +4,7 @@ import { z } from "zod";
 import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import { ResourcePage } from "@/app/admin/_kit/ResourcePage";
 import { ResourceToolbar } from "@/shared/admin-kit";
-import type { AnyResource } from "@/shared/admin-kit/types";
+import { type AnyResource, EXPORT_ROW_LIMIT } from "@/shared/admin-kit/types";
 import { t } from "@/shared/copy";
 import { type AnyElement, elements } from "../helpers/react-tree";
 
@@ -174,5 +174,28 @@ describe("navegación y capacidades de un recurso administrativo", () => {
     for (const searchParams of [{}, { descarga: "" }, { descarga: "0" }, { descarga: "si" }]) {
       expect(downloadNotice(await ResourcePage({ resource: resource(), searchParams }))).toBeNull();
     }
+  });
+});
+
+describe("aviso de exporte recortado en el listado", () => {
+  /** Los textos sueltos que pinta la página. */
+  function texts(page: ReactNode): unknown[] {
+    return elements(page).map((element) => element.props.children);
+  }
+
+  it("un listado con más registros que el tope del exporte avisa que el CSV sale recortado", async () => {
+    state.list.mockResolvedValue({ rows: [], total: EXPORT_ROW_LIMIT + 1 });
+    const page = await ResourcePage({ resource: resource(), searchParams: {} });
+    expect(texts(page)).toContain(
+      t("T-3249", { n: EXPORT_ROW_LIMIT, total: EXPORT_ROW_LIMIT + 1 }),
+    );
+  });
+
+  it("uno que cabe entero en el exporte no avisa nada", async () => {
+    state.list.mockResolvedValue({ rows: [], total: EXPORT_ROW_LIMIT });
+    const page = await ResourcePage({ resource: resource(), searchParams: {} });
+    expect(texts(page)).not.toContain(
+      t("T-3249", { n: EXPORT_ROW_LIMIT, total: EXPORT_ROW_LIMIT }),
+    );
   });
 });

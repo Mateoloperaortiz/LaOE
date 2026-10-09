@@ -83,7 +83,7 @@ describe("exportes del admin con nombres de personas", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("text/csv; charset=utf-8");
-    expect(await exportAudits(key)).toEqual([{ actorId: adminId, after: { rows: 0 } }]);
+    expect(await exportAudits(key)).toEqual([{ actorId: adminId, after: { rows: 0, total: 0 } }]);
   });
 });
 
