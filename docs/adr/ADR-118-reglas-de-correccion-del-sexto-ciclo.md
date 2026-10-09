@@ -29,6 +29,8 @@ El sexto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-co
 
 **El comando que respondía «guardado» sin hacer nada (DT-204).** `changeMembershipStatus` retornaba en silencio cuando el estado pedido era el que la persona ya tenía, antes de validar o escribir nada. La Persona 360 no ofrece el estado vigente, pero el envío llega igual desde una pestaña vieja; y `decideRequestAs` no mira el estado de la persona al aprobar. Reproducido en rojo: pedir licencia a quien ya estaba en licencia terminaba bien con la fecha de regreso intacta, y aprobar la solicitud de licencia de alguien que GH ya había puesto en licencia dejaba la solicitud «aprobada» con la fecha vieja.
 
+**Los comités de quien ya no estaba (DT-209 b).** `setCommitteeMemberships` leía la membresía solo para aplicar el rango de comités a los activos: a quien estaba de baja, o no tenía membresía, le abría pertenencias y cargos igual. El caso real es un editor de comités de la Persona 360 que queda abierto mientras el cierre de permanencia u otro ADMIN da de baja a la persona. Reproducido en rojo de cinco maneras: después de la baja, sin membresía, con la baja sin confirmar (el cambio que hacía cola reabría la pertenencia que la baja acababa de cerrar), con el cambio sin confirmar (la baja que hacía cola no veía el comité recién abierto y dejaba a la persona `INACTIVE` con una pertenencia viva) y con un término inexistente, que terminaba en la clave foránea.
+
 ## Decisión
 
 1. **El intento se cuenta al tomar la fila, y la toma se confirma antes de correr nada.** El poller entrega un evento en dos pasos:
@@ -85,6 +87,12 @@ El sexto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-co
    - **Quién lo recibe.** La Persona 360 muestra el error en vez de «guardado». Aprobar una solicitud de licencia de quien ya está en licencia falla y la solicitud sigue pendiente: GH la rechaza con su motivo. El roster no llega a pedirlo, porque salta la fila cuyo estado no cambia.
    - **Lo que no cambia.** La prórroga de una licencia no existe: ningún comando mueve `leaveUntil`, y la tarea de licencia vencida se vuelve a abrir cada día después de completarla. Las dos cosas son la decisión abierta 35 (DT-204).
 
+11. **Cambiar los comités de una persona exige una membresía vigente.**
+   - **Qué cambia.** `setCommitteeMemberships` responde el error de dominio T-3246 si la persona no tiene membresía o está `INACTIVE`, y T-032 si el término no existe. Quien está en licencia o es honorario sigue pudiendo cambiar de comités, sin el rango de los activos, como antes.
+   - **Bajo el candado de la baja.** El comando lee la fila de `membership` con `FOR UPDATE`, la misma que la baja, la licencia y la reactivación toman antes de escribir. Si la baja entra primero, el cambio de comités espera y responde el error. Si el cambio entra primero, la baja espera y cierra también lo recién abierto.
+   - **Vale para todos los que lo llaman:** la Persona 360, el roster, la admisión (que crea la membresía en la misma transacción) y el cambio de comité aprobado.
+   - **Lo que no cambia.** Los cargos de GH y «Otro» frente a una inhabilidad o a una membresía terminada siguen en la decisión abierta 37, y un cambio de comité aprobado sobre quien ya salió, en la 33: ahora esa aprobación responde el error en vez de abrirle pertenencias en el término siguiente.
+
 ## Consecuencias
 
 - Un evento que tumba el proceso lo tumba como mucho cinco veces, espaciadas por el backoff, y después queda en dead letter a la vista. Antes lo tumbaba en cada arranque. El quinto intento que no termina espera sus 12 horas como pendiente antes de pasar a dead letter, porque la toma solo mira filas vencidas.
@@ -119,3 +127,5 @@ El sexto ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-co
 - Pruebas de la regla 9 en `tests/integration/macroevent-board-action.test.ts`: la action de la edición con el término de la edición sin crear y con el término creado.
 - El segundo envío de un mismo cambio de estado (dos pestañas, dos clics) muestra el error en vez de «guardado»; el primero ya quedó hecho.
 - Pruebas de la regla 10 en `tests/integration/leave-expiry.test.ts` (licencia sobre licencia, con la fecha de regreso y el historial intactos, y activo sobre activo) y en `tests/integration/requests.test.ts` (la aprobación de una licencia de quien ya quedó en licencia).
+- Un editor de comités que quedó abierto ya no revive pertenencias ni ocupa el titular de un cargo a nombre de quien salió. El cambio de comités toma un candado más, el de la fila de la membresía, y espera a una baja, una licencia o una reactivación en curso de la misma persona.
+- Pruebas de la regla 11 en `tests/integration/committee-memberships-guard.test.ts`: la baja, la persona sin membresía, el término inexistente y las dos órdenes de llegada entre la baja y el cambio de comités, con el candado retenido.

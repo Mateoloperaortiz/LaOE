@@ -10615,6 +10615,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3246": {
+    where: "Comités de la persona: está de baja o no tiene membresía (ADR-118)",
+    text: "No se pueden cambiar los comités de quien está de baja o no tiene membresía.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

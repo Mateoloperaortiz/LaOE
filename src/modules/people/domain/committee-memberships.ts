@@ -5,7 +5,7 @@ import type { CommandContext, Executor } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { committeeMembershipChanged } from "@/domain-events/people";
 import { requireConfig } from "@/modules/system";
-import { getCurrentTerm, listAllTerms, type TermRow } from "@/modules/terms";
+import { getCurrentTerm, getTerm, listAllTerms, type TermRow } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { committee, committeeMembership, committeeRole, membership } from "../schema";
@@ -204,8 +204,8 @@ export async function liveCommitteesPayload(
 
 /**
  * Deja las pertenencias de la persona en un término como dice la lista: cierra las que ya no figuran
- * (con sus cargos), actualiza transferencia y cargos en las que siguen y crea las nuevas. Los activos
- * necesitan entre `committees.min` y `committees.max` comités. Los cargos se validan y escriben en
+ * (con sus cargos), actualiza transferencia y cargos en las que siguen y crea las nuevas. Exige una
+ * membresía que no esté de baja; los activos necesitan entre `committees.min` y `committees.max` comités. Los cargos se validan y escriben en
  * `replaceRoles`, que traduce a T-452 el choque con un titular o una codirección que ya existe.
  */
 export async function setCommitteeMemberships(
@@ -223,11 +223,21 @@ export async function setCommitteeMemberships(
       roles: rolesFromInput(row.roleCode, row.roles),
     });
   }
+  // Solo quien tiene una membresía vigente cambia de comités (ADR-118 regla 11). La fila se lee con
+  // el candado que la baja toma antes de cerrar pertenencias: quien llega segundo ve lo que el otro
+  // confirmó, y ninguno de los dos deja a alguien de baja con una pertenencia viva.
   const [current] = await ctx.tx
     .select({ status: membership.status })
     .from(membership)
-    .where(eq(membership.personId, personId));
-  if (current?.status === "ACTIVE") {
+    .where(eq(membership.personId, personId))
+    .for("update");
+  if (!current || current.status === "INACTIVE") {
+    throw new DomainError(t("T-3246"), "committeeId");
+  }
+  if (!(await getTerm(termId, ctx.tx))) {
+    throw new DomainError(t("T-032"), "termId");
+  }
+  if (current.status === "ACTIVE") {
     const [min, max] = await Promise.all([
       requireConfig("committees.min"),
       requireConfig("committees.max"),
