@@ -32,6 +32,7 @@ import {
 } from "../schema";
 import {
   type CommitteeRoleRow,
+  canHoldCommittees,
   listCommitteeRoles,
   setCommitteeMemberships,
 } from "./committee-memberships";
@@ -607,6 +608,14 @@ async function insertRosterMembership(
   });
 }
 
+async function membershipHoldsCommittees(ctx: CommandContext, personId: string): Promise<boolean> {
+  const [row] = await ctx.tx
+    .select({ status: membership.status })
+    .from(membership)
+    .where(eq(membership.personId, personId));
+  return canHoldCommittees(row?.status);
+}
+
 async function applyRow(
   ctx: CommandContext,
   row: PreviewRow,
@@ -728,7 +737,11 @@ async function applyRow(
         set: { probation: row.probation, reason },
       });
   }
-  if (row.committees !== undefined && status !== "INACTIVE") {
+  // Los comités se cambian solo a quien queda con membresía vigente (ADR-118 regla 11), y eso se
+  // decide con el estado que quedó en la base, no con el que pide la fila: quien sigue de baja (el
+  // archivo no trae ESTADO, o fue expulsado y el roster no lo reactiva) conserva su fila tal cual. La
+  // vista previa ya lo avisó (T-2208, T-3247).
+  if (row.committees !== undefined && (await membershipHoldsCommittees(ctx, personId))) {
     await setCommitteeMemberships(
       ctx,
       personId,

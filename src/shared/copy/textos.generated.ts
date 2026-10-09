@@ -10621,6 +10621,13 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3247": {
+    where:
+      "Importación del roster: aviso por persona de baja con comités en un archivo sin ESTADO (ADR-118)",
+    text: "{nombre} está de baja y este archivo no trae la columna ESTADO: el roster no la reactiva ni le cambia los comités.",
+    owner: "GH",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

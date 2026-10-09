@@ -1,23 +1,27 @@
-import { and, desc, eq } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { and, desc, eq, isNull } from "drizzle-orm";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { adminAreaRoles } from "@/app/_authz/admin-area";
 import { closeDb, getDb } from "@/db/client";
 import { interaction, task } from "@/modules/crm/schema";
 import type { Actor } from "@/modules/identity";
 import {
   addCommitteeMemberAs,
+  endMembershipAs,
   listCommitteesMissingRequiredRoles,
   listMyCommitteeCapabilities,
   requestCommitteeRemovalAs,
   searchEligibleMembers,
   setMemberRolesAs,
 } from "@/modules/people";
+import { addCommitteeMember } from "@/modules/people/domain/committee-direction";
 import { getMyMembership } from "@/modules/people/domain/committee-memberships";
+import { endMembership } from "@/modules/people/domain/membership";
 import { committeeMembership, committeeRoleAssignment } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { copyPattern } from "../helpers/copy";
+import { holdCommand, waitingOn } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
@@ -199,6 +203,87 @@ describe("agregar, cargos y pedido de retiro", () => {
       .from(outbox)
       .where(eq(outbox.eventType, "committee-membership.changed"));
     expect(events.length).toBeGreaterThanOrEqual(2);
+  });
+
+  // ADR-118 regla 11 por «Agregar»: el estado y el cupo se leen con la fila de la membresía tomada,
+  // la misma que toman la baja y el cambio de comités.
+  const BAJA = { endReason: "RESIGNATION", memorialConsent: false, contactConsent: false } as const;
+
+  async function vivasDe(personId: string): Promise<string[]> {
+    const rows = await db()
+      .select({ committeeId: committeeMembership.committeeId })
+      .from(committeeMembership)
+      .where(and(eq(committeeMembership.personId, personId), isNull(committeeMembership.leftAt)));
+    return rows.map((row) => row.committeeId).sort();
+  }
+
+  async function enCola(held: { pid: number; release: () => void; done: Promise<unknown> }) {
+    try {
+      await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBeGreaterThan(0), {
+        timeout: 5_000,
+      });
+    } finally {
+      held.release();
+      await held.done;
+    }
+  }
+
+  it("si la baja entra primero, el «Agregar» que hacía cola responde que la persona no está activa", async () => {
+    const f = await fixture();
+    const scope = { committeeId: f.a3, termId: f.termId };
+    const held = await holdCommand(actor(f.gh), (ctx) => endMembership(ctx, f.newbie, BAJA));
+    const agregar = addCommitteeMemberAs(actor(f.gh), scope, director, {
+      personId: f.newbie,
+      roles: [],
+    }).then(
+      () => "agregada",
+      (error: unknown) => error,
+    );
+    await enCola(held);
+
+    expect(await agregar).toEqual(new DomainError(t("T-2164"), "personId"));
+    expect(await vivasDe(f.newbie)).toEqual([]);
+  });
+
+  it("si el «Agregar» entra primero, la baja que hacía cola cierra también esa pertenencia", async () => {
+    const f = await fixture();
+    const scope = { committeeId: f.a3, termId: f.termId };
+    const held = await holdCommand(actor(f.gh), (ctx) =>
+      addCommitteeMember(ctx, scope, director, { personId: f.newbie, roles: [] }),
+    );
+    const baja = endMembershipAs(actor(f.gh), f.newbie, BAJA);
+    await enCola(held);
+    await baja;
+
+    expect(await vivasDe(f.newbie)).toEqual([]);
+  });
+
+  it("dos «Agregar» a la vez de la misma persona no la dejan con un comité de más (DT-209 c)", async () => {
+    const f = await fixture();
+    const cigma = await seedCommittee("cigma", "CIGMA");
+    const eco = await seedCommittee("eco", "ECO");
+    // Mila ya está en A3 y PIXEL: le queda un cupo de los tres.
+    const held = await holdCommand(actor(f.gh), (ctx) =>
+      addCommitteeMember(ctx, { committeeId: cigma, termId: f.termId }, admin, {
+        personId: f.member,
+        roles: [],
+      }),
+    );
+    const segundo = addCommitteeMemberAs(
+      actor(f.gh),
+      { committeeId: eco, termId: f.termId },
+      admin,
+      { personId: f.member, roles: [] },
+    ).then(
+      () => "agregada",
+      (error: unknown) => error,
+    );
+    await enCola(held);
+
+    expect(await segundo).toMatchObject({
+      message: expect.stringMatching(copyPattern("T-2166", { max: 3 })),
+    });
+    expect(await vivasDe(f.member)).toEqual([f.a3, f.pixel, cigma].sort());
   });
 
   it("cambia cargos con sus guardas: propia fila, dirección, obligatorios y titular repetido", async () => {

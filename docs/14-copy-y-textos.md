@@ -1990,6 +1990,7 @@ Cuando un texto quede aprobado, se cambia su estado aquí y se anota la fecha en
 | T-3244 | Mesa directiva: el semestre de la edición todavía no existe (ADR-118) | El semestre de esta edición todavía no existe. Crealo antes de nombrar su mesa. | MATEO | Propuesta |
 | T-3245 | Membresía: se pide un estado que la persona ya tiene (ADR-118) | Esa persona ya está en ese estado: no se cambió nada. | MATEO | Propuesta |
 | T-3246 | Comités de la persona: está de baja o no tiene membresía (ADR-118) | No se pueden cambiar los comités de quien está de baja o no tiene membresía. | MATEO | Propuesta |
+| T-3247 | Importación del roster: aviso por persona de baja con comités en un archivo sin ESTADO (ADR-118) | {nombre} está de baja y este archivo no trae la columna ESTADO: el roster no la reactiva ni le cambia los comités. | GH | Propuesta |
 
 ### Cargos vigentes e historial (14/09/2026)
 

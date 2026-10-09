@@ -202,6 +202,15 @@ export async function liveCommitteesPayload(
   }));
 }
 
+// Estados de membresía con los que se cambia de comités (ADR-118 regla 11). Es la lista de los que
+// sí: un estado nuevo queda afuera hasta que alguien lo ponga acá.
+const COMMITTEE_STATUSES: readonly string[] = ["ACTIVE", "ON_LEAVE", "HONORARY"];
+
+/** Si una membresía en ese estado puede cambiar de comités; sin membresía, no. */
+export function canHoldCommittees(status: string | undefined): boolean {
+  return status !== undefined && COMMITTEE_STATUSES.includes(status);
+}
+
 /**
  * Deja las pertenencias de la persona en un término como dice la lista: cierra las que ya no figuran
  * (con sus cargos), actualiza transferencia y cargos en las que siguen y crea las nuevas. Exige una
@@ -231,7 +240,7 @@ export async function setCommitteeMemberships(
     .from(membership)
     .where(eq(membership.personId, personId))
     .for("update");
-  if (!current || current.status === "INACTIVE") {
+  if (!current || !canHoldCommittees(current.status)) {
     throw new DomainError(t("T-3246"), "committeeId");
   }
   if (!(await getTerm(termId, ctx.tx))) {

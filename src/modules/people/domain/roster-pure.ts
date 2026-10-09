@@ -525,6 +525,16 @@ export function validateRoster(
         if (parsed.length === 0 && result.status !== "INACTIVE" && !updateMode) {
           errors.push(text(9));
         }
+        // Sin columna ESTADO el roster no reactiva a nadie, y a quien está de baja no se le cambian
+        // los comités (ADR-118 regla 11). Con la columna, el caso que no vuelve es el de T-2208.
+        if (parsed.length > 0 && !present.has("status") && staysInactive(current, undefined)) {
+          warnings.push(
+            t("T-3247", {
+              nombre:
+                `${result.firstName || current?.firstName || ""} ${result.lastName || current?.lastName || ""}`.trim(),
+            }),
+          );
+        }
       } else {
         for (const item of current?.committees ?? []) {
           const target = findCommittee(item.slug, catalog.committees);
@@ -681,6 +691,21 @@ export function existingRoles(item: {
   return item.roleCode !== "MIEMBRO" ? [{ roleCode: item.roleCode, coDirector: false }] : [];
 }
 
+/**
+ * Quien está de baja y sigue de baja después de esta fila: sin columna ESTADO el roster no toca el
+ * estado, y a quien fue expulsado no lo reactiva ni con ella (ADR-060 regla 3). A esa persona el
+ * roster no le cambia los comités (ADR-118 regla 11).
+ */
+export function staysInactive(
+  current: Pick<ExistingPerson, "status" | "endReason"> | undefined,
+  wanted: RosterStatus | undefined,
+): boolean {
+  if (current?.status !== "INACTIVE") {
+    return false;
+  }
+  return wanted === undefined || wanted === "INACTIVE" || current.endReason === "EXPULSION";
+}
+
 export type DiffGroup = "NEW" | "CHANGED" | "UNCHANGED" | "ERROR";
 
 export interface DiffRow {
@@ -714,7 +739,11 @@ export function diffRoster(rows: ValidatedRow[], existing: Map<string, ExistingP
     }
     if (row.status !== undefined && row.status !== current.status) changes.push("status");
     if (row.probation !== undefined && row.probation !== current.probation) changes.push("status");
-    if (row.committees !== undefined && row.status !== "INACTIVE") {
+    if (
+      row.committees !== undefined &&
+      row.status !== "INACTIVE" &&
+      !staysInactive(current, row.status)
+    ) {
       const rolesKey = (roles: Array<{ roleCode: string; coDirector: boolean }>) =>
         roles
           .map((role) => `${role.roleCode}${role.coDirector ? "*" : ""}`)

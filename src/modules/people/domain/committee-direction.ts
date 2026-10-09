@@ -421,6 +421,14 @@ export async function addCommitteeMember(
   now = new Date(),
 ): Promise<{ membershipId: string; revived: boolean }> {
   const { direction } = await requireDirection(ctx, scope, actor, "ROSTER");
+  // La fila de la membresía, con el candado de `setCommitteeMemberships` y de la baja (ADR-118 regla
+  // 11): el estado y el cupo se leen después de tomarla. Una baja que llega a la vez no deja una
+  // pertenencia viva, y dos «Agregar» de la misma persona cuentan su cupo uno después del otro.
+  await ctx.tx
+    .select({ personId: membership.personId })
+    .from(membership)
+    .where(eq(membership.personId, input.personId))
+    .for("update");
   const who = await targetPerson(ctx.tx, input.personId);
   if (who.status !== "ACTIVE") {
     throw new DomainError(t("T-2164"), "personId");

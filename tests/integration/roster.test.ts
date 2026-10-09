@@ -1,6 +1,7 @@
-import { count, eq } from "drizzle-orm";
+import { and, count, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { endMembershipAs } from "@/modules/people";
 import { getPerson360 } from "@/modules/people/domain/person-360";
 import { listPeople } from "@/modules/people/domain/persons";
 import {
@@ -10,14 +11,21 @@ import {
   getRosterPreview,
   remapRosterPreviewAs,
 } from "@/modules/people/domain/roster";
-import { committeeRole, consent, person } from "@/modules/people/schema";
+import {
+  committee,
+  committeeMembership,
+  committeeRole,
+  consent,
+  membership,
+  person,
+} from "@/modules/people/schema";
 import { PrivacyPolicyPendingError } from "@/modules/system";
 import { appConfig, auditLog, importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
-import { itemPattern } from "../helpers/copy";
+import { copyPattern, itemPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
 import { currentTermCode, seedCommittee, seedMember, seedTerm } from "./factories";
 
@@ -268,6 +276,107 @@ describe("importación del roster", () => {
     expect(data?.person.stage).toBe("ALUMNI");
     expect(data?.membership?.status).toBe("INACTIVE");
     expect(data?.committeesByTerm[0]?.items[0]?.leftAt).toBeInstanceOf(Date);
+  });
+
+  // ADR-118 regla 11 por el roster: los comités se cambian solo a quien queda con membresía vigente.
+  // La fila de alguien de baja conserva su estado y el resto del archivo se aplica.
+  async function rosterConBaja(endReason: "EXPULSION" | "RESIGNATION") {
+    const termId = await seedTerm();
+    const code = currentTermCode();
+    await Promise.all(["a3", "pixel"].map((slug) => seedCommittee(slug)));
+    const adminId = await seedMember("admin@eafit.edu.co");
+    const base = await preview(
+      adminId,
+      termId,
+      csv([
+        `Ana;Pérez;prueba.ana@eafit.edu.co;;Derecho;A3;${code};Activo;`,
+        `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Activo;`,
+      ]),
+    );
+    await applyRosterImportAs({ personId: adminId }, base.jobId);
+    const idOf = async (email: string) => {
+      const [row] = await db()
+        .select({ id: person.id })
+        .from(person)
+        .where(eq(person.email, email));
+      return row?.id ?? "";
+    };
+    const ana = await idOf("prueba.ana@eafit.edu.co");
+    const juan = await idOf("prueba.juan@eafit.edu.co");
+    await endMembershipAs({ personId: adminId }, juan, {
+      endReason,
+      memorialConsent: false,
+      contactConsent: false,
+    });
+    return { termId, code, adminId, ana, juan };
+  }
+
+  async function estadoYComites(personId: string) {
+    const [fila] = await db()
+      .select({ status: membership.status, endReason: membership.endReason })
+      .from(membership)
+      .where(eq(membership.personId, personId));
+    const vivas = await db()
+      .select({ slug: committee.slug })
+      .from(committeeMembership)
+      .innerJoin(committee, eq(committee.id, committeeMembership.committeeId))
+      .where(and(eq(committeeMembership.personId, personId), isNull(committeeMembership.leftAt)));
+    return { ...fila, comites: vivas.map((row) => row.slug).sort() };
+  }
+
+  it("a quien fue expulsado y figura como activo no le cambia los comités, y el resto del archivo se aplica", async () => {
+    const { termId, code, adminId, ana, juan } = await rosterConBaja("EXPULSION");
+
+    const otra = await preview(
+      adminId,
+      termId,
+      csv([
+        `Ana;Pérez;prueba.ana@eafit.edu.co;;Derecho;A3, PIXEL;${code};Activo;`,
+        `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Activo;`,
+      ]),
+    );
+    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+
+    expect(applied).toMatchObject({ updated: 2, skipped: 0 });
+    expect(await estadoYComites(juan)).toEqual({
+      status: "INACTIVE",
+      endReason: "EXPULSION",
+      comites: [],
+    });
+    expect((await estadoYComites(ana)).comites).toEqual(["a3", "pixel"]);
+    // La vista previa ya lo había dicho: el estado figura como cambio pedido, con su aviso; los
+    // comités no figuran, porque no se van a cambiar.
+    const fila = otra.rows.find((row) => row.email === "prueba.juan@eafit.edu.co");
+    expect(fila?.warnings).toEqual([
+      expect.stringMatching(copyPattern("T-2208", { nombre: "Juan Gómez" })),
+    ]);
+    expect(fila).toMatchObject({ group: "CHANGED", changes: ["status"] });
+  });
+
+  it("un archivo sin ESTADO avisa de quien está de baja y no le cambia los comités ni lo reactiva", async () => {
+    const { termId, adminId, ana, juan } = await rosterConBaja("RESIGNATION");
+
+    const comites = await preview(
+      adminId,
+      termId,
+      csv(["prueba.ana@eafit.edu.co;A3, PIXEL", "prueba.juan@eafit.edu.co;A3"], "CORREO;COMITES"),
+      "comites.csv",
+    );
+    const applied = await applyRosterImportAs({ personId: adminId }, comites.jobId);
+
+    expect(applied).toMatchObject({ updated: 1, skipped: 0 });
+    expect(await estadoYComites(juan)).toEqual({
+      status: "INACTIVE",
+      endReason: "RESIGNATION",
+      comites: [],
+    });
+    expect((await estadoYComites(ana)).comites).toEqual(["a3", "pixel"]);
+    // Y la vista previa lo avisa: la fila no trae ningún cambio que se vaya a aplicar.
+    const fila = comites.rows.find((row) => row.email === "prueba.juan@eafit.edu.co");
+    expect(fila?.warnings).toEqual([
+      expect.stringMatching(copyPattern("T-3247", { nombre: "Juan Gómez" })),
+    ]);
+    expect(fila).toMatchObject({ group: "UNCHANGED", changes: [] });
   });
 
   it("bloquea siglas inexistentes y dos Generales, permite corregir el mapeo y descartar", async () => {
