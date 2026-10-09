@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { t } from "@/shared/copy/client";
 import { useGuardedActionState } from "@/shared/ui/use-guarded-action-state";
 import { ResourceMultiSelect } from "./AdminMultiSelect";
@@ -160,6 +160,13 @@ export function ResourceForm({
     { ok: false, message: null, errors: {}, values: initialValues },
     ({ previous, message }) => ({ ...previous, ok: false, message, errors: {} }),
   );
+  // React reinicia el formulario cuando su acción termina, y un `<select>` controlado queda mostrando su
+  // primera opción aunque `values` conserve la elegida: el reintento mandaría la lista vacía. Volver a
+  // fijar los valores repinta los campos antes de que se vea (ADR-118 regla 20).
+  useLayoutEffect(() => {
+    if (!state.message) return;
+    setValues((current) => ({ ...current }));
+  }, [state]);
   useEffect(() => {
     if (!state.message) return;
     const invalid = form.current?.querySelector<HTMLElement>('[aria-invalid="true"]');

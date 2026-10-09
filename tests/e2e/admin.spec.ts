@@ -9,6 +9,31 @@ import { pasarStepUp } from "./stepup";
 // Sesión de ADMIN guardada por auth.setup.ts: una sola entrada para toda la suite del admin.
 test.use({ storageState: "tests/e2e/.auth/admin.json" });
 
+// Sin conexión (ADR-118 regla 20): el formulario del kit sigue ahí con lo escrito y con lo elegido en sus
+// listas, que React reinicia cuando la acción termina. No guarda nada.
+test("el formulario del kit sin conexión conserva lo escrito y lo elegido en sus listas", async ({
+  page,
+}) => {
+  await page.goto("/admin/comites");
+  await page.getByRole("link", { name: t("T-251") }).click();
+  const panel = page.getByRole("dialog");
+  await panel.getByLabel(t("T-272")).fill("e2e-sin-red");
+  await panel.getByLabel(t("T-273")).fill("Comité sin red");
+  await panel.getByLabel(t("T-274")).selectOption("ACTIVE");
+  await panel.getByLabel(t("T-279")).selectOption("DRAFT");
+  await page.context().setOffline(true);
+  try {
+    await panel.getByRole("button", { name: t("T-253") }).click();
+    await expect(panel.getByRole("alert").filter({ hasText: t("T-3252") })).toBeVisible();
+    await expect(panel.getByLabel(t("T-272"))).toHaveValue("e2e-sin-red");
+    await expect(panel.getByLabel(t("T-273"))).toHaveValue("Comité sin red");
+    await expect(panel.getByLabel(t("T-274"))).toHaveValue("ACTIVE");
+    await expect(panel.getByLabel(t("T-279"))).toHaveValue("DRAFT");
+  } finally {
+    await page.context().setOffline(false);
+  }
+});
+
 test("un ADMIN crea y edita un comité desde el panel y lo exporta", async ({ page }) => {
   await page.goto("/admin/comites");
   const slug = `e2e-${Date.now().toString(36)}`;
