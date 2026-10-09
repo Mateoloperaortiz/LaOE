@@ -1,6 +1,6 @@
 # ADR-004: El término académico es el reloj universal
 
-- Estado: Aceptada
+- Estado: Aceptada (enmendada por ADR-118)
 - Fecha: 2026-09-02
 - Relacionadas: ADR-005, ADR-007, ADR-008
 
@@ -17,3 +17,7 @@ La OE opera por semestres: cambian comités, cargos, cohortes y rankings. GHPOIN
 - No se puede "olvidar abrir la temporada"; sí hay que crear los términos con antelación: el job programado `reminders` avisa 30 días antes de que termine el vigente si no existe el siguiente.
 - Un check-in fuera de todo término se rechaza con un mensaje claro.
 - Los rankings del término cerrado quedan congelados en `TermStanding`.
+
+## Enmienda (2026-10-08, ADR-118)
+
+Decisión: «el término actual se deriva de la fecha» supone que una fecha cae en un solo término, y nada lo garantizaba: se podían crear y editar términos con fechas solapadas, y la búsqueda del término de una fecha tomaba el primero. Ahora crear y editar un término rechazan las fechas que comparten algún día con otro (T-3254), y lo comprueban bajo un candado del calendario para que dos altas a la vez no pasen las dos. Los huecos entre términos se siguen admitiendo (decisión abierta 27). Ver [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 26.

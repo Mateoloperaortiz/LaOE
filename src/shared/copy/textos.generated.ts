@@ -10665,6 +10665,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3254": {
+    where: "Términos: fechas que se cruzan con las de otro término (ADR-118)",
+    text: "Esas fechas se cruzan con las de {término}: dos términos no pueden compartir un día. Ajustá el inicio o el fin.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

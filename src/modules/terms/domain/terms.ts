@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, ilike, lte } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
@@ -112,7 +112,42 @@ function toValues(input: TermInput) {
   };
 }
 
+/**
+ * El candado del calendario de términos (ADR-118 regla 26): crear y editar comprueban el solape y
+ * escriben con él tomado, así que dos altas a la vez no dejan un mismo día en dos términos. Va antes
+ * que la fila de cualquier término y dura hasta que termina la transacción.
+ */
+async function lockTermCalendar(tx: Tx): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended('term-calendar', 0))`);
+}
+
+/**
+ * Rechaza las fechas que comparten algún día con otro término; los dos extremos cuentan. Se llama con
+ * el candado del calendario tomado. El término con el mismo código no entra: ese choque lo dice el
+ * índice único con su propio texto (T-293).
+ */
+async function assertNoOverlap(tx: Tx, input: TermInput, ownId: string | null): Promise<void> {
+  const [other] = await tx
+    .select({ code: term.code })
+    .from(term)
+    .where(
+      and(
+        lte(term.startsOn, input.endsOn),
+        gte(term.endsOn, input.startsOn),
+        ne(term.code, input.code),
+        ownId ? ne(term.id, ownId) : undefined,
+      ),
+    )
+    .orderBy(asc(term.startsOn))
+    .limit(1);
+  if (other) {
+    throw new DomainError(t("T-3254", { término: other.code }), "startsOn");
+  }
+}
+
 export async function createTerm(ctx: CommandContext, input: TermInput): Promise<{ id: string }> {
+  await lockTermCalendar(ctx.tx);
+  await assertNoOverlap(ctx.tx, input, null);
   try {
     const [row] = await ctx.tx.insert(term).values(toValues(input)).returning({ id: term.id });
     if (!row) {
@@ -134,10 +169,12 @@ export async function createTerm(ctx: CommandContext, input: TermInput): Promise
 }
 
 export async function updateTerm(ctx: CommandContext, id: string, input: TermInput): Promise<void> {
+  await lockTermCalendar(ctx.tx);
   const [before] = await ctx.tx.select().from(term).where(eq(term.id, id));
   if (!before) {
     throw new DomainError(t("T-032"));
   }
+  await assertNoOverlap(ctx.tx, input, id);
   const values = toValues(input);
   try {
     await ctx.tx.update(term).set(values).where(eq(term.id, id));

@@ -565,6 +565,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-299 | Paleta ⌘K: botón que la abre | Buscar (⌘K) | MATEO | Propuesta |
 | T-3248 | Exporte CSV: última fila de un archivo recortado (ADR-118) | Archivo recortado: van {n} filas de {total}. Filtrá el listado y volvé a exportar para sacar el resto. | MATEO | Propuesta |
 | T-3249 | Listados: aviso de que el CSV va a salir recortado (ADR-118) | El CSV sale recortado: trae {n} filas y este listado tiene {total}. Filtrá antes de exportar para que salga completo. | MATEO | Propuesta |
+| T-3254 | Términos: fechas que se cruzan con las de otro término (ADR-118) | Esas fechas se cruzan con las de {término}: dos términos no pueden compartir un día. Ajustá el inicio o el fin. | MATEO | Propuesta |
 
 ### Admin de Contenido (páginas, cartelera, eventos, ediciones y medios)
 
