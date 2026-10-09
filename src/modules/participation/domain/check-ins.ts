@@ -1,24 +1,12 @@
 import { and, asc, desc, eq, inArray, type SQL, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { isUniqueViolation } from "@/db/errors";
 import type { CommandContext } from "@/db/tx";
-import { eventOf } from "@/domain-events/define";
-import {
-  checkinApproved,
-  checkinCancelled,
-  checkinExcused,
-  checkinPending,
-  scoreRecompute,
-} from "@/domain-events/participation";
 import { lockPersonAnonymization } from "@/modules/people";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { checkIn, occasion } from "../schema";
-import { type BoosterRow, setBoosterTarget } from "./boosters";
-import { applyPresentialCheckIn } from "./challenge-participation";
 import {
-  CHECK_IN_STATUSES,
   type CheckInDecision,
   type CheckInOutcome,
   type CheckInStatus,
@@ -27,8 +15,7 @@ import {
   outcomeFor,
   statusForDecision,
 } from "./check-in-pure";
-import { applyCheckInBoost } from "./checkin-boost";
-import { creditCheckIn, reverseCheckInCredit } from "./ledger";
+import { AlreadyCheckedIn, statusLabel, transitionCheckIn } from "./check-in-transition";
 import type { GamificationSettings, MemberContext } from "./member-context";
 import { OCCASION_STATUSES, type OccasionStatus, windowState } from "./occasion-pure";
 import type { OccasionRow } from "./occasions";
@@ -37,6 +24,10 @@ import { verifyRotatingCode } from "./rotating-code-pure";
 // Check-ins (ADR-006, ADR-035 reglas 5 y 6): un lock compartido del término coordina el cierre; el
 // unique (ocasión, persona) decide los duplicados; el crédito nace en la misma transacción; los efectos
 // (score, línea de tiempo, onboarding) viajan por outbox con payloads autosuficientes.
+//
+// Cada camino de este archivo valida sus condiciones de entrada, toma sus candados y hace una sola
+// llamada a `transitionCheckIn` (check-in-transition.ts, ADR-119 regla 4), que escribe la fila, el
+// crédito, la auditoría y los eventos y corre los ganchos del premio. Ninguno lo hace por su cuenta.
 //
 // Orden de candados (ADR-116 regla 2 y ADR-119 regla 1), el mismo en todos los caminos: término
 // (compartido) → ocasión (compartido; abrir, cerrar y cancelar la toman exclusiva) → persona
@@ -55,32 +46,6 @@ export interface MembershipRef {
 }
 
 const ELIGIBLE_STATUSES: readonly MembershipRef["status"][] = ["ACTIVE", "HONORARY"];
-
-function statusLabel(status: CheckInStatus): string {
-  return tList("T-597")[CHECK_IN_STATUSES.indexOf(status)] ?? status;
-}
-
-/** Señal para el wrapper: la fila ya existía (violación del unique dentro de la transacción). */
-export class AlreadyCheckedIn extends Error {
-  constructor(
-    readonly occasionId: string,
-    readonly personId: string,
-  ) {
-    super("check-in repetido");
-    this.name = "AlreadyCheckedIn";
-  }
-}
-
-/**
- * Señal para el wrapper: el booster elegido en el registro no vale. La asistencia ya estaba escrita
- * (ADR-119 regla 3), así que la transacción se deshace entera y el wrapper responde `BOOSTER`.
- */
-export class BoosterDenied extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "BoosterDenied";
-  }
-}
 
 async function readOccasion(ctx: CommandContext, id: string): Promise<OccasionRow | null> {
   const [row] = await ctx.tx.select().from(occasion).where(eq(occasion.id, id)).limit(1);
@@ -150,33 +115,6 @@ function ofPerson(occasionId: string, personId: string): SQL {
   return sql`${eq(checkIn.occasionId, occasionId)} and ${eq(checkIn.personId, personId)}`;
 }
 
-function approvedPayload(row: OccasionRow, personId: string, source: string) {
-  return {
-    occasionId: row.id,
-    occasionTitle: row.title,
-    personId,
-    termId: row.termId,
-    category: row.category,
-    kind: row.kind,
-    points: row.points,
-    source,
-  };
-}
-
-async function emitApproved(
-  ctx: CommandContext,
-  row: OccasionRow,
-  personId: string,
-  source: string,
-) {
-  await ctx.emit(eventOf(checkinApproved, approvedPayload(row, personId, source)));
-  if (row.points > 0) {
-    await ctx.emit(
-      eventOf(scoreRecompute, { occasionId: row.id }, { dedupeKey: `score:${row.id}` }),
-    );
-  }
-}
-
 // Check-in propio desde /a/[publicId].
 
 export interface SelfCheckInInput {
@@ -190,8 +128,8 @@ export interface SelfCheckInInput {
 
 export interface SelfCheckInContext {
   membership: MembershipRef | null;
-  /** Sin settings no hay gancho de retos ni de boosters (llamadas antiguas). */
-  settings?: GamificationSettings | undefined;
+  /** Obligatoria (ADR-119 regla 4): los ganchos del premio corren en toda transición. */
+  settings: GamificationSettings;
   /** Contexto del miembro para validar el objetivo del booster. */
   member?: MemberContext | null | undefined;
 }
@@ -227,7 +165,11 @@ function isClosedToSelf(
   return row.status === "DRAFT" || row.status === "CANCELLED" || row.status === "CLOSED";
 }
 
-/** Valida en orden: ocasión → estado → término → ventana → membresía → solo nuevos → código. */
+/**
+ * Valida en orden: ocasión → estado → término → ventana → membresía → solo nuevos → código. Si otro
+ * registro ganó el índice único lanza `AlreadyCheckedIn`, y si el booster elegido no vale,
+ * `BoosterDenied`: las dos señales deshacen la transacción y el wrapper las responde afuera.
+ */
 export async function checkInSelf(
   ctx: CommandContext,
   input: SelfCheckInInput,
@@ -282,102 +224,21 @@ export async function checkInSelf(
     }
   }
   const status = initialStatus("SELF_QR", row.approval);
-  let created: CheckInRow | undefined;
-  try {
-    [created] = await ctx.tx
-      .insert(checkIn)
-      .values({
-        occasionId: row.id,
-        personId: input.personId,
-        status,
-        source: "SELF_QR",
-        at: now,
-        decidedAt: status === "APPROVED" ? now : null,
-      })
-      .returning();
-  } catch (error) {
-    if (isUniqueViolation(error, "check_in_occasion_person_unique")) {
-      // La transacción quedó abortada: el wrapper lee la fila existente afuera.
-      throw new AlreadyCheckedIn(row.id, input.personId);
-    }
-    throw error;
-  }
-  if (!created) {
-    throw new Error("No se pudo registrar el check-in");
-  }
-  if (status === "APPROVED") {
-    await creditCheckIn(ctx, {
-      checkInId: created.id,
+  const created = await transitionCheckIn(
+    ctx,
+    {
+      occasion: row,
       personId: input.personId,
-      termId: row.termId,
-      points: row.points,
-      reason: row.title,
-    });
-  }
-  await ctx.audit({
-    action: "checkin.created",
-    entityType: "check_in",
-    entityId: created.id,
-    after: { occasionId: row.id, personId: input.personId, status, source: "SELF_QR" },
-  });
-  if (status === "APPROVED") {
-    await emitApproved(ctx, row, input.personId, "SELF_QR");
-  } else {
-    await ctx.emit(eventOf(checkinPending, approvedPayload(row, input.personId, "SELF_QR")));
-  }
-  // ADR-119 regla 3: el premio de la persona y el booster que eligió se toman aquí, con la asistencia
-  // ya insertada y el recálculo encolado, que es su lugar en el orden de candados. Si el booster no
-  // vale, la asistencia ya está escrita: la señal deshace la transacción y el wrapper responde.
-  let selectedBooster: BoosterRow | undefined;
-  if (input.boosterId && context.settings) {
-    // Mismo orden que reserveReward: persona antes que booster, también en carreras con trivia.
-    await ctx.tx.execute(
-      sql`select pg_advisory_xact_lock(hashtextextended(${`reward:${input.personId}`}, 0))`,
-    );
-    try {
-      selectedBooster = await setBoosterTarget(
-        ctx,
-        {
-          personId: input.personId,
-          boosterId: input.boosterId,
-          target: { occasionId: row.id },
-          now,
-          allowUnavailable: true,
-          forCheckInId: created.id,
-        },
-        { member: context.member ?? null, settings: context.settings },
-      );
-    } catch (error) {
-      if (error instanceof DomainError) {
-        throw new BoosterDenied(error.message);
-      }
-      throw error;
-    }
-  }
-  // ADR-067 reglas 8 y 12: el booster de la ocasión se resuelve antes que el reto presencial.
-  if (context.settings) {
-    await applyCheckInBoost(
-      ctx,
-      {
-        checkIn: created,
-        occasion: row,
-        outcome: status === "APPROVED" ? "APPROVED" : "PENDING",
-        selectedBooster,
-        now,
-      },
-      { settings: context.settings },
-    );
-    await applyPresentialCheckIn(
-      ctx,
-      {
-        checkIn: created,
-        occasion: row,
-        outcome: status === "APPROVED" ? "APPROVED" : "PENDING",
-        now,
-      },
-      { settings: context.settings },
-    );
-  }
+      current: null,
+      to: status,
+      source: "SELF_QR",
+      booster: input.boosterId
+        ? { id: input.boosterId, member: context.member ?? null }
+        : undefined,
+      now,
+    },
+    context,
+  );
   return {
     ok: true,
     outcome: outcomeFor(status, row.points),
@@ -401,7 +262,7 @@ export interface HostCheckInInput {
 export async function hostCheckIn(
   ctx: CommandContext,
   input: HostCheckInInput,
-  context: { membership: MembershipRef | null; settings?: GamificationSettings | undefined },
+  context: { membership: MembershipRef | null; settings: GamificationSettings },
 ): Promise<{ checkInId: string; points: number }> {
   const now = input.now ?? new Date();
   const observed = await readOccasion(ctx, input.occasionId);
@@ -427,60 +288,18 @@ export async function hostCheckIn(
     await decide(ctx, existing, row, "APPROVE", null, now, context.settings);
     return { checkInId: existing.id, points: row.points };
   }
-  let created: CheckInRow | undefined;
-  try {
-    [created] = await ctx.tx
-      .insert(checkIn)
-      .values({
-        occasionId: row.id,
-        personId: input.personId,
-        status: "APPROVED",
-        source: input.source,
-        at: now,
-        decidedById: ctx.actor.personId,
-        decidedAt: now,
-      })
-      .returning();
-  } catch (error) {
-    if (isUniqueViolation(error, "check_in_occasion_person_unique")) {
-      throw new AlreadyCheckedIn(row.id, input.personId);
-    }
-    throw error;
-  }
-  if (!created) {
-    throw new Error("No se pudo registrar el check-in");
-  }
-  await creditCheckIn(ctx, {
-    checkInId: created.id,
-    personId: input.personId,
-    termId: row.termId,
-    points: row.points,
-    reason: row.title,
-  });
-  await ctx.audit({
-    action: "checkin.created",
-    entityType: "check_in",
-    entityId: created.id,
-    after: {
-      occasionId: row.id,
+  const created = await transitionCheckIn(
+    ctx,
+    {
+      occasion: row,
       personId: input.personId,
-      status: "APPROVED",
+      current: null,
+      to: "APPROVED",
       source: input.source,
+      now,
     },
-  });
-  await emitApproved(ctx, row, input.personId, input.source);
-  if (context.settings) {
-    await applyCheckInBoost(
-      ctx,
-      { checkIn: created, occasion: row, outcome: "APPROVED", now },
-      { settings: context.settings },
-    );
-    await applyPresentialCheckIn(
-      ctx,
-      { checkIn: created, occasion: row, outcome: "APPROVED", now },
-      { settings: context.settings },
-    );
-  }
+    context,
+  );
   return { checkInId: created.id, points: row.points };
 }
 
@@ -497,7 +316,7 @@ async function decide(
   decision: CheckInDecision,
   reason: string | null,
   now: Date,
-  settings?: GamificationSettings,
+  settings: GamificationSettings,
 ): Promise<void> {
   const target = statusForDecision(decision);
   if (!canTransitionCheckIn(current.status, target)) {
@@ -512,71 +331,18 @@ async function decide(
   if (target === "APPROVED" && row.status === "CANCELLED") {
     throw new DomainError(t("T-578", { estado: occasionStatusLabel(row.status).toLowerCase() }));
   }
-  await ctx.tx
-    .update(checkIn)
-    .set({ status: target, decidedById: ctx.actor.personId, decidedAt: now, reason: cleanReason })
-    .where(eq(checkIn.id, current.id));
-  let reversed = 0;
-  if (decision === "APPROVE") {
-    await creditCheckIn(ctx, {
-      checkInId: current.id,
+  await transitionCheckIn(
+    ctx,
+    {
+      occasion: row,
       personId: current.personId,
-      termId: row.termId,
-      points: row.points,
-      reason: row.title,
-    });
-  } else if (decision === "CANCEL") {
-    reversed = await reverseCheckInCredit(ctx, current.id, cleanReason ?? "");
-  }
-  await ctx.audit({
-    action: `checkin.${decision.toLowerCase()}`,
-    entityType: "check_in",
-    entityId: current.id,
-    before: { status: current.status },
-    after: { status: target, reason: cleanReason, reversed },
-  });
-  if (decision === "APPROVE") {
-    await emitApproved(ctx, row, current.personId, current.source);
-  } else if (decision === "CANCEL") {
-    await ctx.emit(
-      eventOf(checkinCancelled, {
-        ...approvedPayload(row, current.personId, current.source),
-        reason: cleanReason,
-      }),
-    );
-    if (row.points > 0) {
-      await ctx.emit(
-        eventOf(scoreRecompute, { occasionId: row.id }, { dedupeKey: `score:${row.id}` }),
-      );
-    }
-  }
-  // ADR-067 regla 12: aprobar completa el reto presencial, rechazar lo libera y anular lo revierte.
-  if (settings) {
-    const outcome =
-      decision === "APPROVE" ? "APPROVED" : decision === "REJECT" ? "REJECTED" : "CANCELLED";
-    await applyCheckInBoost(
-      ctx,
-      {
-        checkIn: { ...current, status: target },
-        occasion: row,
-        outcome,
-        reason: cleanReason,
-        now,
-      },
-      { settings },
-    );
-    await applyPresentialCheckIn(
-      ctx,
-      {
-        checkIn: { ...current, status: target },
-        occasion: row,
-        outcome,
-        reason: cleanReason,
-        now,
-      },
-      { settings },
-    );
-  }
+      current,
+      to: target,
+      reason: cleanReason,
+      now,
+    },
+    { settings },
+  );
 }
 
 export interface DecideInput {
@@ -600,7 +366,7 @@ export interface DecideInput {
 export async function decideCheckIn(
   ctx: CommandContext,
   input: DecideInput,
-  context?: { settings?: GamificationSettings | undefined },
+  context: { settings: GamificationSettings },
 ): Promise<void> {
   const [found] = await ctx.tx
     .select({ occasionId: checkIn.occasionId })
@@ -629,7 +395,7 @@ export async function decideCheckIn(
     input.decision,
     input.reason ?? null,
     input.now ?? new Date(),
-    context?.settings,
+    context.settings,
   );
 }
 
@@ -648,8 +414,8 @@ export async function decideMany(
   ctx: CommandContext,
   checkInIds: string[],
   decision: BatchDecision,
-  reason?: string | null,
-  context?: { settings?: GamificationSettings | undefined },
+  reason: string | null | undefined,
+  context: { settings: GamificationSettings },
 ): Promise<number> {
   const ids = [...new Set(checkInIds)];
   if (ids.length === 0) {
@@ -692,71 +458,45 @@ export async function decideMany(
     if (!row) {
       throw new DomainError(t("T-032"));
     }
-    await decide(ctx, current, row, decision, reason ?? null, now, context?.settings);
+    await decide(ctx, current, row, decision, reason ?? null, now, context.settings);
   }
   return pending.length;
 }
 
-/** Al cancelar la ocasión: anula pendientes y aprobados, revierte los créditos vivos y avisa a cada persona. */
+/**
+ * Al cancelar la ocasión: anula pendientes y aprobados, revierte los créditos vivos y avisa a cada
+ * persona. `row` es la ocasión como estaba antes de cancelarla, con su fila tomada por `cancelOccasion`.
+ */
 export async function cancelOccasionCheckIns(
   ctx: CommandContext,
   row: OccasionRow,
   reason: string,
-  now = new Date(),
-  settings?: GamificationSettings,
+  context: { settings: GamificationSettings; now?: Date | undefined },
 ): Promise<number> {
+  const now = context.now ?? new Date();
   await lockOpenTermPoints(ctx.tx, row.termId);
   // Se toman todas las de la ocasión y se filtra con la fila retenida: un rechazo que alguien está
   // reaprobando no estaba pendiente ni aprobado al mirar, y sin esperarlo quedaría vivo.
   const rows = (await lockCheckIns(ctx, eq(checkIn.occasionId, row.id))).filter(
     (item) => item.status === "PENDING" || item.status === "APPROVED",
   );
-  // El recálculo va aquí y no al final: después de las asistencias y antes del premio y del reto,
-  // en el mismo lugar del orden de candados que en `decide`.
-  if (rows.length > 0 && row.points > 0) {
-    await ctx.emit(
-      eventOf(scoreRecompute, { occasionId: row.id }, { dedupeKey: `score:${row.id}` }),
-    );
-  }
+  // Con todas tomadas, la primera que se anula encola el recálculo de la ocasión y las demás
+  // encuentran su clave en cola: sale uno solo, después de las asistencias y antes del premio y del
+  // reto, en el mismo lugar del orden de candados que en `decide`.
   for (const current of rows) {
-    await ctx.tx
-      .update(checkIn)
-      .set({ status: "CANCELLED", decidedById: ctx.actor.personId, decidedAt: now, reason })
-      .where(eq(checkIn.id, current.id));
-    if (current.status === "APPROVED") {
-      await reverseCheckInCredit(ctx, current.id, reason);
-    }
-    await ctx.emit(
-      eventOf(checkinCancelled, {
-        ...approvedPayload(row, current.personId, current.source),
+    await transitionCheckIn(
+      ctx,
+      {
+        occasion: row,
+        personId: current.personId,
+        current,
+        to: "CANCELLED",
         reason,
-      }),
+        audit: "NONE",
+        now,
+      },
+      context,
     );
-    // ADR-067 regla 12: cancelar la ocasión anula la participación del reto presencial.
-    if (settings) {
-      await applyCheckInBoost(
-        ctx,
-        {
-          checkIn: { ...current, status: "CANCELLED" },
-          occasion: row,
-          outcome: "CANCELLED",
-          reason,
-          now,
-        },
-        { settings },
-      );
-      await applyPresentialCheckIn(
-        ctx,
-        {
-          checkIn: { ...current, status: "CANCELLED" },
-          occasion: row,
-          outcome: "CANCELLED",
-          reason,
-          now,
-        },
-        { settings },
-      );
-    }
   }
   return rows.length;
 }
@@ -800,59 +540,29 @@ export async function excuseCheckIn(
   if (current && !canTransitionCheckIn(current.status, "EXCUSED")) {
     throw new DomainError(t("T-2223"));
   }
-  if (current) {
-    await ctx.tx
-      .update(checkIn)
-      .set({ status: "EXCUSED", decidedById: ctx.actor.personId, decidedAt: now, reason })
-      .where(eq(checkIn.id, current.id));
-  } else {
-    try {
-      await ctx.tx.insert(checkIn).values({
-        occasionId: row.id,
+  try {
+    await transitionCheckIn(
+      ctx,
+      {
+        occasion: row,
         personId: input.personId,
-        status: "EXCUSED",
+        current: current ?? null,
+        to: "EXCUSED",
+        // Quien excusa es GH: es el origen de la asistencia si nace y el que dice el evento.
         source: "ADMIN",
-        at: now,
-        decidedById: ctx.actor.personId,
-        decidedAt: now,
         reason,
-      });
-    } catch (error) {
-      // ADR-119 regla 2: un registro confirmó mientras la excusa creaba la asistencia. Responde lo
-      // mismo que si la hubiera encontrado; la transacción quedó abortada y no se reintenta aquí.
-      if (isUniqueViolation(error, "check_in_occasion_person_unique")) {
-        throw new DomainError(t("T-2223"));
-      }
-      throw error;
+        audit: "OCCASION_PERSON",
+        now,
+      },
+      context,
+    );
+  } catch (error) {
+    // ADR-119 regla 2: un registro confirmó mientras la excusa creaba la asistencia. Responde lo
+    // mismo que si la hubiera encontrado; la transacción quedó abortada y no se reintenta aquí.
+    if (error instanceof AlreadyCheckedIn) {
+      throw new DomainError(t("T-2223"));
     }
-  }
-  await ctx.audit({
-    action: "checkin.excused",
-    entityType: "check_in",
-    entityId: `${row.id}:${input.personId}`,
-    before: current ? { status: current.status } : null,
-    after: { status: "EXCUSED", reason },
-  });
-  await ctx.emit(
-    eventOf(checkinExcused, { ...approvedPayload(row, input.personId, "ADMIN"), reason }),
-  );
-  // ADR-067 regla 3 y ADR-111: la excusa cierra la asistencia sin aprobarla, así que con el premio
-  // hace lo mismo que un rechazo: libera la reserva del booster y después la del reto presencial. El
-  // motivo del premio es el estado y el de la entrega dice que la asistencia quedó excusada; ninguno
-  // es el texto de la persona (una causal médica no se copia a otra tabla).
-  if (current) {
-    const excused: CheckInRow = { ...current, status: "EXCUSED" };
-    const releaseReason = statusLabel("EXCUSED");
-    const closing = {
-      checkIn: excused,
-      occasion: row,
-      outcome: "REJECTED",
-      reason: releaseReason,
-      rejectionReason: t("T-3205", { actividad: row.title }),
-      now,
-    } as const;
-    await applyCheckInBoost(ctx, closing, context);
-    await applyPresentialCheckIn(ctx, closing, context);
+    throw error;
   }
 }
 

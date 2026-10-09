@@ -6,10 +6,9 @@ import { t } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { type AdjustRequirementInput, adjustRequirement } from "./assemblies";
+import { AlreadyCheckedIn, BoosterDenied } from "./check-in-transition";
 import {
-  AlreadyCheckedIn,
   type BatchDecision,
-  BoosterDenied,
   cancelOccasionCheckIns,
   checkInSelf,
   type DecideInput,
@@ -92,13 +91,9 @@ export async function cancelOccasionAs(
   const settings = await loadGamificationSettings();
   return runCommand(actor, async (ctx) => {
     const before = await cancelOccasion(ctx, id, reason);
-    const cancelledCheckIns = await cancelOccasionCheckIns(
-      ctx,
-      before,
-      reason.trim(),
-      new Date(),
+    const cancelledCheckIns = await cancelOccasionCheckIns(ctx, before, reason.trim(), {
       settings,
-    );
+    });
     return { cancelledCheckIns };
   });
 }
