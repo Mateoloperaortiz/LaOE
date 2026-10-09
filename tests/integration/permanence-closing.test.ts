@@ -2,7 +2,8 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR, type Tx } from "@/db/tx";
-import { permanenceClosed } from "@/domain-events/permanence";
+import { permanenceClosed, permanenceDecided } from "@/domain-events/permanence";
+import { message } from "@/modules/comms/schema";
 import { interaction } from "@/modules/crm/schema";
 import { reactivateMembershipAs } from "@/modules/people";
 import { committeeMembership, membership, membershipTerm } from "@/modules/people/schema";
@@ -20,7 +21,7 @@ import {
   recomputeSnapshots,
 } from "@/modules/permanence";
 import { complianceResource } from "@/modules/permanence/admin";
-import { manualCredit, permanenceSnapshot } from "@/modules/permanence/schema";
+import { manualCredit, permanenceDecision, permanenceSnapshot } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { closeTermPermanence, closeTermPoints, findTermByCode, getTerm } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
@@ -664,5 +665,153 @@ describe("cierre de permanencia", () => {
       .from(outbox)
       .where(eq(outbox.eventType, permanenceClosed.type));
     expect(events).toHaveLength(1);
+  });
+
+  // DT-025: `applyDecisions` aplica cada consecuencia en su transacción y marca la decisión en otra.
+  // Dice ser reanudable porque los comandos de `people` toleran repetirse; acá se mata entre las dos.
+
+  /** Cuántas filas de cada tipo dejó el cierre aplicado, sin identificadores. */
+  async function footprint() {
+    const tally = (keys: string[]) => {
+      const out: Record<string, number> = {};
+      for (const key of [...keys].sort()) out[key] = (out[key] ?? 0) + 1;
+      return out;
+    };
+    const db = getDb();
+    const [audits, events, messages, interactions] = await Promise.all([
+      db.select({ key: auditLog.action }).from(auditLog),
+      db.select({ key: outbox.eventType }).from(outbox),
+      db
+        .select({ channel: message.channel, status: message.status, subject: message.subject })
+        .from(message),
+      db.select({ key: interaction.kind }).from(interaction),
+    ]);
+    return {
+      audits: tally(audits.map((row) => row.key)),
+      events: tally(events.map((row) => row.key)),
+      messages: tally(messages.map((row) => `${row.channel}:${row.status}:${row.subject}`)),
+      interactions: tally(interactions.map((row) => row.key)),
+    };
+  }
+
+  /**
+   * El cierre con las tres consecuencias (una baja, una prueba, y una salida de comité con prueba en
+   * el otro), aplicado de corrido o con la aplicación muerta al marcar las decisiones de `victim`:
+   * su consecuencia ya quedó confirmada y su marca no. Devuelve lo que quedó después de reanudar.
+   */
+  async function applyClosing(victim: "cumple" | "prueba" | "sale" | null) {
+    const { termId, people, a3, pixel } = await setup();
+    await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
+    await confirmDecisionsAs(GH, termId, {
+      personId: people.prueba,
+      person: "CONTINUES",
+      committees: [{ committeeId: a3, decision: "PROBATION" }],
+      reason: "Justificó la falta",
+    });
+    await confirmDecisionsAs(GH, termId, {
+      personId: people.sale,
+      person: "CONTINUES",
+      committees: [
+        { committeeId: a3, decision: "EXIT_COMMITTEE" },
+        { committeeId: pixel, decision: "PROBATION" },
+      ],
+      reason: "Se queda solo en Pixel",
+    });
+    await confirmDecisionsAs(GH, termId, {
+      personId: people.cumple,
+      person: "EXIT_OE",
+      committees: [{ committeeId: a3, decision: "CONTINUES" }],
+      reason: "Se retira por decisión propia",
+    });
+    const { nextTermId } = await closeTermPermanenceAs(GH, termId);
+    const db = getDb();
+    if (victim) {
+      const personId = people[victim];
+      const held = await holdTransaction((tx) =>
+        tx
+          .select({ id: permanenceDecision.id })
+          .from(permanenceDecision)
+          .where(
+            and(eq(permanenceDecision.termId, termId), eq(permanenceDecision.personId, personId)),
+          )
+          .for("update"),
+      );
+      const interrupted = applyDecisions(termId, nextTermId);
+      void interrupted.catch(() => undefined);
+      try {
+        // La consecuencia ya confirmó en su transacción; la que marca espera las filas retenidas.
+        await expect.poll(() => waitingOn(held.pid)).toBe(1);
+        await db.execute(sql`
+          select pg_cancel_backend(pid) from pg_stat_activity
+          where datname = current_database() and ${held.pid} = any(pg_blocking_pids(pid))
+        `);
+        await expect(interrupted).rejects.toThrow();
+      } finally {
+        held.release();
+        await Promise.allSettled([held.done, interrupted]);
+      }
+      // Murió donde se quería: la consecuencia está y ninguna decisión suya quedó marcada.
+      const [member] = await db.select().from(membership).where(eq(membership.personId, personId));
+      const conditions = await db
+        .select({ committeeId: membershipTerm.committeeId })
+        .from(membershipTerm)
+        .where(
+          and(
+            eq(membershipTerm.personId, personId),
+            eq(membershipTerm.termId, nextTermId),
+            eq(membershipTerm.probation, true),
+          ),
+        );
+      const left = await db
+        .select({ committeeId: committeeMembership.committeeId })
+        .from(committeeMembership)
+        .where(
+          and(
+            eq(committeeMembership.personId, personId),
+            eq(committeeMembership.termId, termId),
+            sql`${committeeMembership.leftAt} is not null`,
+          ),
+        );
+      expect({
+        status: member?.status,
+        probation: conditions.map((row) => row.committeeId),
+        left: left.map((row) => row.committeeId),
+      }).toEqual(
+        {
+          cumple: { status: "INACTIVE", probation: [], left: [a3] },
+          prueba: { status: "ACTIVE", probation: [a3], left: [] },
+          sale: { status: "ACTIVE", probation: [pixel], left: [a3] },
+        }[victim],
+      );
+      const unmarked = await listPersonDecisions(personId, termId);
+      expect(unmarked.length).toBeGreaterThan(0);
+      expect(unmarked.every((row) => row.appliedAt === null)).toBe(true);
+      // Se reanuda: lo que el poller hace al reintentar `permanence.closed`.
+      expect(await applyDecisions(termId, nextTermId)).toBeGreaterThanOrEqual(unmarked.length);
+    } else {
+      expect(await applyDecisions(termId, nextTermId)).toBe(7);
+    }
+    expect(await applyDecisions(termId, nextTermId)).toBe(0);
+    expect((await listClosingRows(termId)).summary).toMatchObject({ applied: 7, toApply: 7 });
+    // Corren los handlers de todo lo emitido: correos, línea de tiempo y el `permanence.closed`.
+    await drainOutbox();
+    return footprint();
+  }
+
+  it.each([
+    "cumple",
+    "prueba",
+    "sale",
+  ] as const)("morir entre aplicar la consecuencia de «%s» y marcarla, y reanudar, deja lo mismo que aplicar de corrido", async (victim) => {
+    const straight = await applyClosing(null);
+    // La huella mira lo que importa: una auditoría de aplicación por persona y un evento por decisión.
+    expect(straight.audits["permanence-decision.applied"]).toBe(3);
+    expect(straight.audits["membership.ended"]).toBe(1);
+    expect(straight.audits["committee-membership.left"]).toBe(1);
+    expect(straight.audits["membership-term.set"]).toBe(2);
+    expect(straight.events[permanenceDecided.type]).toBe(7);
+    expect(Object.keys(straight.messages).length).toBeGreaterThan(0);
+    await truncateAll();
+    expect(await applyClosing(victim)).toEqual(straight);
   });
 });
