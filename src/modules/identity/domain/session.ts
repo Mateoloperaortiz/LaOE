@@ -1,6 +1,7 @@
 import { and, desc, eq, gt, ne } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import type { Executor } from "@/db/tx";
+import { type Executor, runCommand } from "@/db/tx";
+import { releaseSubscriptionOnSignOut } from "@/modules/comms";
 import { canParticipate, getMemberSummary } from "@/modules/people";
 import { permission, session } from "../schema";
 import type { Actor, ActorPermission } from "./actor";
@@ -91,10 +92,33 @@ export async function markStepUp(sessionId: string, at = new Date()): Promise<vo
   await getDb().update(session).set({ otpVerifiedAt: at }).where(eq(session.id, sessionId));
 }
 
-export async function destroySessionByToken(token: string): Promise<void> {
-  await getDb()
-    .delete(session)
-    .where(eq(session.tokenHash, hashToken(token)));
+/**
+ * Cierra la sesión de este navegador y, en la misma transacción, retira el dispositivo push que el
+ * navegador dijo tener (ADR-118 regla 17). La persona sale de la sesión que se cierra, no del pedido:
+ * un token que no abre ninguna sesión no retira nada, y el endpoint de otra persona tampoco.
+ */
+export async function signOut(
+  token: string,
+  device: { pushEndpoint: string | null; ip: string | null },
+): Promise<void> {
+  const tokenHash = hashToken(token);
+  const [open] = await getDb()
+    .select({ personId: session.personId })
+    .from(session)
+    .where(eq(session.tokenHash, tokenHash))
+    .limit(1);
+  if (!open) {
+    return;
+  }
+  await runCommand({ personId: open.personId, ip: device.ip }, async (ctx) => {
+    const [closed] = await ctx.tx
+      .delete(session)
+      .where(eq(session.tokenHash, tokenHash))
+      .returning({ personId: session.personId });
+    if (closed && device.pushEndpoint) {
+      await releaseSubscriptionOnSignOut(ctx, closed.personId, device.pushEndpoint);
+    }
+  });
 }
 
 /** Destruye todas las sesiones de una persona (cambio de estado o de correo), salvo la indicada. */

@@ -1,11 +1,15 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { closeDb } from "@/db/client";
+import { closeDb, getDb } from "@/db/client";
 import {
   countSubscriptionsFor,
+  deliverNotification,
   listSubscriptionsFor,
   removeSubscriptionAs,
   saveSubscriptionAs,
+  setPushSenderForTests,
 } from "@/modules/comms";
+import { resolveActor, signOut } from "@/modules/identity";
+import { createSession } from "@/modules/identity/domain/session";
 import { t } from "@/shared/copy";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
@@ -162,5 +166,80 @@ describe("suscripciones de push", () => {
     expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
     expect(rejectedMessages(results)).toEqual([t("T-3208")]);
     expect((await countSubscriptionsFor(ana)) + (await countSubscriptionsFor(bruno))).toBe(1);
+  });
+
+  // Cerrar sesión retira el dispositivo (ADR-118 regla 17).
+
+  async function openSession(personId: string): Promise<string> {
+    const { token } = await createSession(getDb(), {
+      personId,
+      remember: false,
+      userAgent: "Chrome/140 Android",
+      ip: null,
+    });
+    return token;
+  }
+
+  /** A qué endpoints le escribe la casa un aviso para esa persona. */
+  async function notified(personId: string): Promise<string[]> {
+    const sent: string[] = [];
+    setPushSenderForTests(async (subscription) => {
+      sent.push(subscription.endpoint);
+      return { ok: true, statusCode: 201 };
+    });
+    try {
+      await deliverNotification({
+        kind: "ANNOUNCEMENT",
+        recipients: [{ personId }],
+        title: "Anuncio nuevo",
+        body: "Primera línea",
+        url: "/cartelera/x",
+        dedupeKey: `announcement:${personId}`,
+      });
+    } finally {
+      setPushSenderForTests(undefined);
+    }
+    return sent.sort();
+  }
+
+  it("cerrar sesión retira el dispositivo de ese navegador y sus avisos dejan de llegarle", async () => {
+    const ana = await seedMember("ana.salida@eafit.edu.co");
+    await save(ana, `${FCM}equipo-compartido`);
+    await save(ana, `${FCM}celular-de-ana`);
+    const token = await openSession(ana);
+
+    await signOut(token, { pushEndpoint: `${FCM}equipo-compartido`, ip: null });
+
+    expect(await resolveActor(token)).toBeNull();
+    expect((await listSubscriptionsFor(ana)).map((device) => device.endpoint)).toEqual([
+      `${FCM}celular-de-ana`,
+    ]);
+    expect(await notified(ana)).toEqual([`${FCM}celular-de-ana`]);
+  });
+
+  it("cerrar sesión no retira el dispositivo de otra persona", async () => {
+    const ana = await seedMember("ana.ajena@eafit.edu.co");
+    const bruno = await seedMember("bruno.ajeno@eafit.edu.co");
+    await save(bruno, `${FCM}celular-de-bruno`);
+    const token = await openSession(ana);
+
+    await signOut(token, { pushEndpoint: `${FCM}celular-de-bruno`, ip: null });
+
+    expect(await resolveActor(token)).toBeNull();
+    expect(await notified(bruno)).toEqual([`${FCM}celular-de-bruno`]);
+  });
+
+  it("un token que no abre ninguna sesión no retira nada, y salir sin dispositivo solo cierra la sesión", async () => {
+    const ana = await seedMember("ana.token@eafit.edu.co");
+    await save(ana, `${FCM}celular-de-ana`);
+    const token = await openSession(ana);
+
+    await signOut("un-token-que-no-existe", { pushEndpoint: `${FCM}celular-de-ana`, ip: null });
+    expect(await resolveActor(token)).not.toBeNull();
+    expect(await countSubscriptionsFor(ana)).toBe(1);
+
+    await signOut(token, { pushEndpoint: null, ip: null });
+    expect(await resolveActor(token)).toBeNull();
+    expect(await countSubscriptionsFor(ana)).toBe(1);
   });
 });

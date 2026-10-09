@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { SignOutForm } from "@/app/_lib/SignOutForm";
 import { findPublicPage } from "@/modules/content";
 import { getActor } from "@/modules/identity";
-import { signOutAction } from "@/modules/identity/actions";
 import { hasLiveConsent } from "@/modules/people";
 import { getPrivacyPolicyState } from "@/modules/system";
 import { LogoOE } from "@/shared/brand";
@@ -56,11 +56,11 @@ export default async function AutorizacionPage() {
       <div className="flex flex-wrap items-center gap-4 text-sm">
         <Link href="/privacidad">{t("T-865")}</Link>
         <a href="/api/mis-datos">{t("T-135")}</a>
-        <form action={signOutAction}>
+        <SignOutForm>
           <button type="submit" className="boton-secundario text-sm">
             {t("T-231")}
           </button>
-        </form>
+        </SignOutForm>
       </div>
     </main>
   );

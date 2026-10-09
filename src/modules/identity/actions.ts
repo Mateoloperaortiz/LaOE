@@ -14,7 +14,7 @@ import { getActor } from "./current";
 import { requestOtp, verifyOtp, verifyStepUp } from "./domain/otp";
 import { signInWithPassword, verifyStepUpPassword } from "./domain/password";
 import { normalizeEmail, safeNextPath } from "./domain/pure";
-import { destroySessionByToken, destroySessionsFor } from "./domain/session";
+import { destroySessionsFor, signOut } from "./domain/session";
 
 export interface LoginState {
   email: string;
@@ -155,11 +155,22 @@ export async function codeLoginAction(
   return base;
 }
 
-export async function signOutAction(): Promise<void> {
+const signOutEndpointSchema = z.url().max(2000);
+
+/**
+ * Cierra la sesión de este navegador. `pushEndpoint` es la suscripción que el navegador dijo tener, o
+ * `null` si no tenía: la casa retira ese dispositivo solo si es de quien sale (ADR-118 regla 17). Un
+ * valor que no es una URL no retira nada y la salida sigue.
+ */
+export async function signOutAction(pushEndpoint: string | null): Promise<void> {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (token) {
-    await destroySessionByToken(token);
+    const endpoint = signOutEndpointSchema.safeParse(pushEndpoint);
+    await signOut(token, {
+      pushEndpoint: endpoint.success ? endpoint.data : null,
+      ip: await clientIp(),
+    });
   }
   store.delete(SESSION_COOKIE);
   redirect("/");

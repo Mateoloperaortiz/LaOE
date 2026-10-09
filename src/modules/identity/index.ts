@@ -66,4 +66,5 @@ export {
   listPermissionsFor,
   listSessionsFor,
   resolveActor,
+  signOut,
 } from "./domain/session";

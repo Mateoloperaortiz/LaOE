@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, inArray, max, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, type Executor, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { pushSubscription } from "../schema";
@@ -9,7 +9,8 @@ import { isKnownPushEndpoint, MAX_DEVICES_PER_PERSON } from "./push-endpoint-pur
 
 // Suscripciones push (ADR-038 regla 5, ADR-113 regla 6): un dispositivo por endpoint, solo de un
 // servicio de push conocido y hasta diez por persona. Registrar el propio lo actualiza; el de otra
-// persona no se reasigna. Se borra al quitar, al responder 404/410 o al salir.
+// persona no se reasigna. Se borra al quitar, al cerrar sesión en ese navegador (ADR-118 regla 17), al
+// responder 404/410 o al salir de la OE.
 
 export const subscriptionInputSchema = z.object({
   endpoint: z.url().max(2000).refine(isKnownPushEndpoint),
@@ -153,6 +154,30 @@ export async function removeSubscriptionAs(
     }
     return rows.length > 0;
   });
+}
+
+/**
+ * Cerrar sesión retira el dispositivo de ese navegador (ADR-118 regla 17). Corre dentro del comando que
+ * cierra la sesión, con la persona de la sesión cerrada: el endpoint de otra persona no se toca.
+ */
+export async function releaseSubscriptionOnSignOut(
+  ctx: CommandContext,
+  personId: string,
+  endpoint: string,
+): Promise<boolean> {
+  const rows = await ctx.tx
+    .delete(pushSubscription)
+    .where(and(eq(pushSubscription.endpoint, endpoint), eq(pushSubscription.personId, personId)))
+    .returning({ id: pushSubscription.id });
+  for (const row of rows) {
+    await ctx.audit({
+      action: "push-subscription.removed",
+      entityType: "push_subscription",
+      entityId: row.id,
+      after: { reason: "sign-out" },
+    });
+  }
+  return rows.length > 0;
 }
 
 export async function listSubscriptionsFor(personId: string): Promise<SubscriptionView[]> {

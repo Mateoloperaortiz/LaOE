@@ -77,3 +77,5 @@ La regla 13 dice que el handler de `occasion.closed` crea la invitación de cada
 Las reglas 5 y 13 dicen que salir de la OE borra las suscripciones, las preferencias y las invitaciones de encuesta de la persona. [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 5 lo precisa: se borran si la baja sigue vigente cuando corre su evento; un evento atrasado no se lleva las de quien ya volvió.
 
 La regla 8 manda la prueba de una plantilla al correo de quien la pide y no decía qué responde si el proveedor la rechaza: respondía como enviada y lo auditaba. ADR-118 regla 14 lo fija: la prueba responde con lo que contestó el proveedor, solo la aceptada queda auditada como enviada, y las pantallas de la plantilla y de la campaña muestran el rechazo.
+
+La regla 5 dice cuándo se borra una suscripción: al quitarla, al responder el servicio 404 o 410 y al salir de la OE. ADR-118 regla 17 suma la salida de la sesión: cerrar sesión retira el dispositivo de ese navegador, en la casa (la fila, si es de quien sale) y en el navegador (suelta la suscripción). Que entrar lo suscriba sin gesto no cambia y es la decisión abierta 43.

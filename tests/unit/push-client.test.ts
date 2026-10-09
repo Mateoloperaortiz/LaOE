@@ -1,5 +1,10 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { saveSubscription } from "@/modules/comms/components/push-client";
+import {
+  releaseBrowserSubscription,
+  saveSubscription,
+} from "@/modules/comms/components/push-client";
 
 // El navegador se simula con lo mínimo de PushSubscription y ServiceWorkerRegistration: lo que se
 // prueba es qué hace el cliente con cada respuesta de la casa (ADR-113 regla 6).
@@ -103,5 +108,93 @@ describe("registrar la suscripción del navegador", () => {
     expect(keyless.unsubscribe).toHaveBeenCalledTimes(1);
     expect(unused.pushManager.subscribe).not.toHaveBeenCalled();
     expect(once).toHaveLength(1);
+  });
+});
+
+// Cerrar sesión retira el dispositivo (ADR-118 regla 17): lo que hace el navegador antes de salir.
+
+const NEVER = new Promise<never>(() => {});
+
+/** Un navegador con push cuyo service worker responde con esa suscripción. */
+function browser(current: unknown) {
+  vi.stubGlobal("window", { PushManager: {}, Notification: {} });
+  vi.stubGlobal("navigator", {
+    serviceWorker: {
+      getRegistration: async () => ({ pushManager: { getSubscription: () => current } }),
+    },
+  });
+}
+
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      return sourceFiles(path);
+    }
+    return /\.tsx?$/.test(entry.name) ? [path] : [];
+  });
+}
+
+describe("cerrar sesión en este navegador", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("suelta la suscripción del navegador y devuelve su endpoint para que la casa retire el dispositivo", async () => {
+    const current = subscription("https://fcm.googleapis.com/fcm/send/de-quien-sale");
+    browser(current);
+
+    expect(await releaseBrowserSubscription()).toBe(current.endpoint);
+    expect(current.unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it("sin suscripción, o en un navegador sin push, no hay dispositivo que retirar", async () => {
+    browser(null);
+    expect(await releaseBrowserSubscription()).toBeNull();
+
+    vi.unstubAllGlobals();
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("navigator", {});
+    expect(await releaseBrowserSubscription()).toBeNull();
+  });
+
+  it("si el navegador no logra soltarla, igual devuelve el endpoint: la casa retira la fila", async () => {
+    const current = subscription("https://fcm.googleapis.com/fcm/send/de-quien-sale");
+    current.unsubscribe.mockRejectedValue(new Error("AbortError"));
+    browser(current);
+
+    expect(await releaseBrowserSubscription()).toBe(current.endpoint);
+  });
+
+  it("un navegador que no responde no frena la salida más que el plazo", async () => {
+    vi.useFakeTimers();
+    browser(NEVER);
+    const silent = releaseBrowserSubscription(2000);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(await silent).toBeNull();
+
+    const current = subscription("https://fcm.googleapis.com/fcm/send/de-quien-sale");
+    current.unsubscribe.mockReturnValue(NEVER);
+    browser(current);
+    const stuck = releaseBrowserSubscription(2000);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(await stuck).toBe(current.endpoint);
+  });
+
+  it("los «Cerrar sesión» de la casa salen todos por el formulario que retira el dispositivo", () => {
+    const callers = sourceFiles("src")
+      .filter((path) => readFileSync(path, "utf8").includes("signOutAction"))
+      .sort();
+
+    expect(callers).toEqual(["src/app/_lib/SignOutForm.tsx", "src/modules/identity/actions.ts"]);
+    const forms = sourceFiles("src/app").filter((path) =>
+      readFileSync(path, "utf8").includes("<SignOutForm>"),
+    );
+    expect(forms.sort()).toEqual([
+      "src/app/admin/layout.tsx",
+      "src/app/app/layout.tsx",
+      "src/app/autorizacion/page.tsx",
+    ]);
   });
 });
