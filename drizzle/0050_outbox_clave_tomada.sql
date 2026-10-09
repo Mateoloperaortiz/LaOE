@@ -1,0 +1,1 @@
+ALTER TABLE "outbox" ADD COLUMN "taken_dedupe_key" text;

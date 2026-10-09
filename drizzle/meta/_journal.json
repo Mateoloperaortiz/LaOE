@@ -351,6 +351,13 @@
       "when": 1791423524966,
       "tag": "0049_tarea_clave_de_motivo",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791561177995,
+      "tag": "0050_outbox_clave_tomada",
+      "breakpoints": true
     }
   ]
 }

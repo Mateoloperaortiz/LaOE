@@ -44,8 +44,10 @@ function Tabla({ rows, retry }: { rows: OutboxRow[]; retry: boolean }) {
             <tr key={row.id} className="border-t border-borde align-top">
               <td data-label={evento} className="px-3 py-2">
                 <code className="font-semibold">{row.eventType}</code>
-                {row.dedupeKey ? (
-                  <div className="text-xs text-tinta-suave">{row.dedupeKey}</div>
+                {(row.dedupeKey ?? row.takenDedupeKey) ? (
+                  <div className="text-xs text-tinta-suave">
+                    {row.dedupeKey ?? row.takenDedupeKey}
+                  </div>
                 ) : null}
               </td>
               <td data-label={intentos} className="px-3 py-2">

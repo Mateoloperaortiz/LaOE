@@ -3,7 +3,7 @@ import type { PoolClient } from "pg";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { type CommandContext, enqueueEvent, runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { drain, processOne } from "@/jobs/poller";
+import { drain, processOne, restoreTakenKeys, startPoller } from "@/jobs/poller";
 import { getHandlers, registerHandler, resetHandlersForTests } from "@/jobs/registry";
 import { enqueueScheduled } from "@/jobs/scheduler";
 import { listOutbox, retryDeadLetter } from "@/modules/system/domain/outbox";
@@ -447,6 +447,64 @@ describe("poller del outbox", () => {
       expect(row?.lastError).toContain("sin terminar");
       expect(runs).toBe(5);
       expect((await listOutbox("dead")).map((dead) => dead.id)).toEqual([row?.id]);
+    });
+
+    it("al arrancar no le devuelve la clave a un evento que otro poller está corriendo", async () => {
+      const KEY = "score:ocasion-en-curso";
+      const started = deferred<void>();
+      const gate = deferred<void>();
+      registerHandler("test.held", async () => {
+        started.resolve();
+        await gate.promise;
+      });
+      await enqueueEvent(db(), { type: "test.held", payload: {}, dedupeKey: KEY });
+      const running = processOne();
+      await started.promise;
+
+      expect(await restoreTakenKeys()).toBe(0);
+      // Sigue tomada: sin clave en la cola, con la suya guardada, y así la muestra /admin/sistema/jobs.
+      const [taken] = await listOutbox("pending");
+      expect([taken?.dedupeKey, taken?.takenDedupeKey]).toEqual([null, KEY]);
+      gate.resolve();
+      expect(await running).toBe("processed");
+      const [done] = await listOutbox("done");
+      expect([done?.dedupeKey, done?.takenDedupeKey]).toEqual([KEY, null]);
+    });
+
+    it("un evento con clave la recupera al arrancar: el emit siguiente se descarta y el proceso no vuelve a caer por él", async () => {
+      const KEY = "score:ocasion-sintetica";
+      let runs = 0;
+      registerHandler("test.crash", async () => {
+        runs += 1;
+        await killPollerConnection();
+      });
+      const emit = () => enqueueEvent(db(), { type: "test.crash", payload: {}, dedupeKey: KEY });
+      await emit();
+      const start = new Date();
+      await expect(processOne(at(start))).rejects.toThrow();
+
+      // El proceso vuelve a arrancar y, con actividad en curso, llega otro emit de la misma clave.
+      await startPoller({ intervalMs: 3_600_000, batchSize: 1, handlerTimeoutMs: 0 }).stop();
+      await emit();
+
+      // No entró como evento nuevo, vencido y con cinco intentos propios: la fila que espera su
+      // reintento volvió a ser el pendiente de su clave.
+      let rows = await db().select().from(outbox);
+      expect(rows.map((row) => [row.attempts, row.dedupeKey])).toEqual([[1, KEY]]);
+      expect(await processOne(at(start))).toBe("idle");
+      expect(runs).toBe(1);
+
+      // Sigue su cuenta y, gastados los cinco, va a dead letter con su clave, que es lo que mira quien
+      // la reintenta (ADR-113 regla 8).
+      for (let i = 1; i < 5; i += 1) {
+        await expect(processOne(at(new Date(start.getTime() + DAY * i)))).rejects.toThrow();
+      }
+      expect(await processOne(at(new Date(start.getTime() + DAY * 5)))).toBe("failed");
+      rows = await db().select().from(outbox);
+      expect(rows.map((row) => [row.attempts, row.dedupeKey, row.deadLetterAt !== null])).toEqual([
+        [5, KEY, true],
+      ]);
+      expect(runs).toBe(5);
     });
   });
 

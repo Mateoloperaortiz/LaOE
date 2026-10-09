@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, lte } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, lte } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
 import type { Tx } from "@/db/tx";
@@ -13,7 +13,9 @@ import { getHandlers } from "./registry";
 // 1. La toma: una transacción corta elige la fila vencida con FOR UPDATE SKIP LOCKED, le cuenta el
 //    intento, corre su `nextAttemptAt` lo que esperaría un fallo de ese intento, le quita la clave de
 //    deduplicación y CONFIRMA. Si el proceso muere después, el intento ya está contado y la fila no
-//    vuelve de primera. Sin la clave, un emit que llegue mientras corre entra como evento nuevo.
+//    vuelve de primera. Sin la clave, un emit que llegue mientras corre entra como evento nuevo. La
+//    clave queda guardada en `takenDedupeKey`: si el proceso muere con la fila tomada, el arranque
+//    siguiente se la devuelve (`restoreTakenKeys`) y el emit que venga se descarta contra ella.
 // 2. La entrega: otra transacción vuelve a bloquear la fila y la sostiene mientras corren los handlers,
 //    que trabajan con sus propias conexiones (getDb, runCommand), no dentro de ella. Al final anota el
 //    resultado.
@@ -38,6 +40,8 @@ const UNFINISHED =
 
 interface Taken {
   row: OutboxRow;
+  /** La clave de deduplicación de la fila: la que traía o la que quedó guardada de una toma anterior. */
+  key: string | null;
   attempt: number;
   /** Ya había gastado sus intentos: la toma la dejó en dead letter y sus handlers no corren. */
   exhausted: boolean;
@@ -67,15 +71,23 @@ async function take(dueBy: Date, clock: Clock): Promise<Taken | null> {
       return null;
     }
     const takenAt = clock();
+    // Si un intento anterior no alcanzó a devolverla, la clave es la que quedó guardada.
+    const key = row.dedupeKey ?? row.takenDedupeKey;
     if (isDeadAfter(row.attempts)) {
       const lastError = row.lastError
         ? `${UNFINISHED}. Último error: ${row.lastError}`
         : UNFINISHED;
       await tx
         .update(outbox)
-        .set({ deadLetterAt: takenAt, lastError: lastError.slice(0, 2_000) })
+        .set({
+          deadLetterAt: takenAt,
+          lastError: lastError.slice(0, 2_000),
+          // En dead letter no choca con ningún pendiente, y es lo que mira quien la reintenta.
+          dedupeKey: key,
+          takenDedupeKey: null,
+        })
         .where(eq(outbox.id, row.id));
-      return { row, attempt: row.attempts, exhausted: true };
+      return { row, key, attempt: row.attempts, exhausted: true };
     }
     const attempt = row.attempts + 1;
     await tx
@@ -84,11 +96,13 @@ async function take(dueBy: Date, clock: Clock): Promise<Taken | null> {
         attempts: attempt,
         nextAttemptAt: new Date(takenAt.getTime() + backoffFor(attempt)),
         // La clave deduplica lo que está en cola, y esta fila ya no lo está: el handler puede haber leído
-        // antes del cambio que trae el emit siguiente (ADR-118 regla 3). `row` la conserva para devolverla.
+        // antes del cambio que trae el emit siguiente (ADR-118 regla 3). Queda guardada en la fila para
+        // devolverla al terminar, al fallar o, si el proceso muere antes, al arrancar.
         dedupeKey: null,
+        takenDedupeKey: key,
       })
       .where(eq(outbox.id, row.id));
-    return { row, attempt, exhausted: false };
+    return { row, key, attempt, exhausted: false };
   });
 }
 
@@ -110,7 +124,7 @@ export async function processOne(
   if (!taken) {
     return "idle";
   }
-  const { row, attempt } = taken;
+  const { row, key, attempt } = taken;
   const log = logger.child({ job: row.eventType, outboxId: row.id, attempt });
   if (taken.exhausted) {
     log.warn({ deadLetter: true }, "gastó sus intentos sin terminar: no corre más");
@@ -128,11 +142,14 @@ export async function processOne(
           eq(outbox.attempts, attempt),
           isNull(outbox.processedAt),
           isNull(outbox.deadLetterAt),
+          // Tomada va sin clave. Si la tiene, un proceso que arrancaba se la devolvió en este instante.
+          isNull(outbox.dedupeKey),
         ),
       )
       .for("update");
     if (!held) {
-      // Alguien la cerró o la volvió a tomar entre la toma y el bloqueo: este intento ya no es de nadie.
+      // Alguien la cerró, la volvió a tomar o le devolvió su clave entre la toma y el bloqueo: este
+      // intento ya no es de nadie, y la fila espera su reintento.
       log.warn("la fila tomada cambió antes de correr: se deja");
       return "idle";
     }
@@ -155,7 +172,7 @@ export async function processOne(
       await withTimeout(runHandlers(), handlerTimeoutMs, `El evento ${row.eventType}`);
       await tx
         .update(outbox)
-        .set({ processedAt: clock(), lastError: null, dedupeKey: row.dedupeKey })
+        .set({ processedAt: clock(), lastError: null, dedupeKey: key, takenDedupeKey: null })
         .where(eq(outbox.id, row.id));
       log.debug("procesado");
       return "processed";
@@ -165,7 +182,7 @@ export async function processOne(
       const dead = isDeadAfter(attempt);
       // El handler pudo tardar hasta su límite: la espera corre desde ahora, no desde la toma.
       const failedAt = clock();
-      const keyBack = await recordFailure(tx, row, {
+      const keyBack = await recordFailure(tx, row.id, key, {
         lastError: message.slice(0, 2_000),
         nextAttemptAt: new Date(failedAt.getTime() + backoffFor(attempt)),
         ...(dead ? { deadLetterAt: failedAt } : {}),
@@ -185,24 +202,77 @@ export async function processOne(
  */
 async function recordFailure(
   tx: Tx,
-  row: OutboxRow,
+  id: string,
+  key: string | null,
   failure: Pick<OutboxRow, "lastError" | "nextAttemptAt"> & { deadLetterAt?: Date },
 ): Promise<boolean> {
   try {
     await tx.transaction((savepoint) =>
       savepoint
         .update(outbox)
-        .set({ ...failure, dedupeKey: row.dedupeKey })
-        .where(eq(outbox.id, row.id)),
+        .set({ ...failure, dedupeKey: key, takenDedupeKey: null })
+        .where(eq(outbox.id, id)),
     );
     return true;
   } catch (error) {
     if (!isUniqueViolation(error, OUTBOX_PENDING_KEY_INDEX)) {
       throw error;
     }
-    await tx.update(outbox).set(failure).where(eq(outbox.id, row.id));
+    // Sigue sin clave y la conserva guardada: la recupera en otro intento o en un arranque.
+    await tx.update(outbox).set(failure).where(eq(outbox.id, id));
     return false;
   }
+}
+
+/**
+ * Devuelve su clave a las filas que quedaron tomadas sin nadie que las corra (ADR-118 regla 3): el
+ * proceso murió con el evento tomado y la fila espera su reintento sin clave. Sin esto el emit
+ * siguiente de esa clave entra como evento nuevo, vencido de inmediato y con sus cinco intentos, y un
+ * evento que tumba el proceso lo vuelve a tumbar con cada emit. Corre al arrancar el poller.
+ *
+ * La fila que otro poller está corriendo tiene su bloqueo y se salta. Si otro pendiente ya ocupa la
+ * clave, la fila sigue sin ella y la conserva guardada, igual que tras un fallo. Devuelve cuántas
+ * recuperaron la suya.
+ */
+export async function restoreTakenKeys(): Promise<number> {
+  const orphaned = and(
+    isNotNull(outbox.takenDedupeKey),
+    isNull(outbox.dedupeKey),
+    isNull(outbox.processedAt),
+    isNull(outbox.deadLetterAt),
+  );
+  const candidates = await getDb().select({ id: outbox.id }).from(outbox).where(orphaned);
+  let restored = 0;
+  for (const { id } of candidates) {
+    const back = await getDb().transaction(async (tx) => {
+      const [row] = await tx
+        .select({ key: outbox.takenDedupeKey })
+        .from(outbox)
+        .where(and(eq(outbox.id, id), orphaned))
+        .for("update", { skipLocked: true });
+      if (!row) {
+        return false;
+      }
+      try {
+        await tx.transaction((savepoint) =>
+          savepoint
+            .update(outbox)
+            .set({ dedupeKey: row.key, takenDedupeKey: null })
+            .where(eq(outbox.id, id)),
+        );
+        return true;
+      } catch (error) {
+        if (!isUniqueViolation(error, OUTBOX_PENDING_KEY_INDEX)) {
+          throw error;
+        }
+        return false;
+      }
+    });
+    if (back) {
+      restored += 1;
+    }
+  }
+  return restored;
 }
 
 export interface DrainResult {
@@ -263,7 +333,19 @@ export function startPoller(options: PollerOptions): Poller {
     }
   };
 
-  running = tick();
+  const start = async () => {
+    try {
+      const restored = await restoreTakenKeys();
+      if (restored > 0) {
+        logger.warn({ restored }, "claves devueltas a eventos que quedaron tomados");
+      }
+    } catch (error) {
+      logger.error({ err: error }, "no se pudieron devolver las claves tomadas");
+    }
+    await tick();
+  };
+
+  running = start();
   logger.info(
     { intervalMs: options.intervalMs, batchSize: options.batchSize },
     "poller del outbox arrancado",

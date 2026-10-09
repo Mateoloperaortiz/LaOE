@@ -59,6 +59,9 @@ export const outbox = pgTable(
     eventType: text().notNull(),
     payload: jsonb().$type<Record<string, unknown>>().notNull(),
     dedupeKey: text(),
+    // La clave que la fila tenía cuando el poller la tomó (ADR-118 regla 3). Mientras corre no la lleva
+    // en `dedupeKey`; acá queda para devolvérsela, también si el proceso muere con ella tomada.
+    takenDedupeKey: text(),
     attempts: integer().notNull().default(0),
     nextAttemptAt: timestampTz().notNull().defaultNow(),
     processedAt: timestampTz(),
