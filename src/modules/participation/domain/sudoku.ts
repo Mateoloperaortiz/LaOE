@@ -56,7 +56,7 @@ const finishSchema = z.object({
 const abandonSchema = z.object({ runId });
 
 /** Lo que el Sudoku le declara a la guardia de la partida diaria (ADR-119 regla 7). */
-const GUARD = {
+const DAILY_RULES = {
   // Serializa por persona: el crédito del día y la partida abierta se deciden de a uno.
   lock: { key: "sudoku", per: "PERSON" },
   startWhenClosed: "SAVED_FIRST",
@@ -189,15 +189,15 @@ export async function startSudokuAs(
   const generated = pending?.day === dayKeyFor(new Date()) ? null : newBoard(difficulty);
 
   return runCommand(actor, async (ctx) => {
-    const guard = await startDailyGame(ctx, GUARD, {
+    const start = await startDailyGame(ctx, DAILY_RULES, {
       personId: actor.personId,
       now: () => new Date(),
       expectedDay: null,
     });
-    if (!guard.ok) {
-      return { ok: false, reason: guard.reason };
+    if (!start.ok) {
+      return { ok: false, reason: start.reason };
     }
-    const { day, term: current, open, now } = guard;
+    const { day, term: current, open, now } = start;
     const [existing] = await ctx.tx
       .select()
       .from(sudokuRun)
@@ -304,7 +304,7 @@ export async function finishSudokuAs(actor: MemberActor, input: unknown): Promis
     // El reloj se lee al llegar, antes de los candados (decisión abierta 50).
     const now = new Date();
     const day = dayKeyFor(now);
-    const open = await lockDailyGame(ctx, GUARD, {
+    const open = await lockDailyGame(ctx, DAILY_RULES, {
       personId: actor.personId,
       termId: stored.termId,
     });
@@ -338,7 +338,7 @@ export async function finishSudokuAs(actor: MemberActor, input: unknown): Promis
     if (reused) {
       return { ok: false, reason: "REQUEST_CONFLICT", run: runView(row, now) };
     }
-    const refusal = await refusalToContinue(ctx, GUARD, {
+    const refusal = await refusalToContinue(ctx, DAILY_RULES, {
       personId: actor.personId,
       game: row,
       open,
@@ -425,7 +425,7 @@ export async function abandonSudokuAs(actor: MemberActor, input: unknown): Promi
   }
   return runCommand(actor, async (ctx) => {
     // Abandonar no escribe puntos: toma solo el candado propio, sin el término.
-    await lockDailyGamePerson(ctx, GUARD, actor.personId);
+    await lockDailyGamePerson(ctx, DAILY_RULES, actor.personId);
     const now = new Date();
     const [row] = await ctx.tx
       .select()

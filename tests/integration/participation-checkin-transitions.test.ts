@@ -42,7 +42,7 @@ import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
 // y el reto presencial. El lote de la consola tiene sus dos celdas: decide con el mismo `decide` que
 // la decisión suelta, y lo que le pasa (el motivo) llega por otro camino. Toda ocasión de la matriz
 // lleva un booster de la persona apuntado y un reto presencial, para que los dos ganchos del premio
-// (ADR-067 reglas 8 y 12) tengan algo que decidir en cada transición.
+// (ADR-067 reglas 3 y 4) tengan algo que decidir en cada transición.
 //
 // Lo que ya estaba cubierto y esta matriz no repite:
 // - participation-checkin.test.ts: el orden de las validaciones del registro propio, los errores de
@@ -299,7 +299,7 @@ const prize = (source: "CHALLENGE" | "CHECKIN", status: string, reason: string |
   reason,
 });
 
-/** Motivos automáticos con que el reto presencial cierra su entrega (ADR-067 regla 12, ADR-111). */
+/** Motivos automáticos con que el reto presencial cierra su entrega (ADR-067 regla 3, ADR-111). */
 const notApproved = t("T-2579", { actividad: TITLE });
 const annulled = (motivo: string) => t("T-2580", { actividad: TITLE, motivo });
 const excusedDelivery = t("T-3205", { actividad: TITLE });

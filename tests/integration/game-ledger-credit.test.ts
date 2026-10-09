@@ -33,7 +33,7 @@ import { t, tList } from "@/shared/copy";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
 
-// El libro de puntos de los juegos (DT-026): la fila exacta que cada juego deja al acreditar, entera,
+// El ledger de los juegos (DT-026): la fila exacta que cada juego deja al acreditar, entera,
 // por sus comandos públicos. Lo demás de un crédito ya tiene su prueba en el archivo de cada juego
 // (`wordle.test.ts`, `game2048.test.ts`, `sudoku.test.ts`, `panal.test.ts`): el evento, la
 // auditoría, el saldo y que no se acredite dos veces.
@@ -116,7 +116,7 @@ beforeEach(async () => {
 afterEach(() => vi.useRealTimers());
 afterAll(closeDb);
 
-describe("lo que cada juego deja en el libro de puntos", () => {
+describe("lo que cada juego deja en el ledger", () => {
   it("el Wordle acertado al segundo intento deja una fila WORDLE ligada a su partida, con el premio de ese intento y el motivo T-1261", async () => {
     const personId = await seedMember("libro.wordle@eafit.edu.co");
     const started = await startWordleAs({ personId });

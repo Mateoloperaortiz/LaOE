@@ -16,7 +16,7 @@ import {
   outcomeFor,
   statusForDecision,
 } from "./check-in-pure";
-import { AlreadyCheckedIn, statusLabel, transitionCheckIn } from "./check-in-transition";
+import { AlreadyCheckedIn, checkInStatusLabel, transitionCheckIn } from "./check-in-transition";
 import type { GamificationSettings, MemberContext } from "./member-context";
 import { windowState } from "./occasion-pure";
 import { type OccasionRow, occasionStateError } from "./occasions";
@@ -317,7 +317,7 @@ async function decide(
 ): Promise<void> {
   const target = statusForDecision(decision);
   if (!canTransitionCheckIn(current.status, target)) {
-    throw new DomainError(t("T-676", { estado: statusLabel(current.status).toLowerCase() }));
+    throw new DomainError(t("T-676", { estado: checkInStatusLabel(current.status).toLowerCase() }));
   }
   const cleanReason = reason?.trim() || null;
   if (decision === "CANCEL" && !cleanReason) {
@@ -383,7 +383,7 @@ export async function decideCheckIn(
     throw new DomainError(t("T-032"));
   }
   if (input.seenStatus !== undefined && current.status !== input.seenStatus) {
-    throw new DomainError(t("T-676", { estado: statusLabel(current.status).toLowerCase() }));
+    throw new DomainError(t("T-676", { estado: checkInStatusLabel(current.status).toLowerCase() }));
   }
   await decide(
     ctx,

@@ -52,7 +52,7 @@ const finishSchema = z.object({
 });
 
 /** Lo que el 2048 le declara a la guardia de la partida diaria (ADR-119 regla 7). */
-const GUARD = {
+const DAILY_RULES = {
   // Serializa por persona: el crédito del día y la partida abierta se deciden de a uno.
   lock: { key: "game2048", per: "PERSON" },
   startWhenClosed: "SAVED_FIRST",
@@ -145,15 +145,15 @@ export async function startGame2048As(
     return { ok: false, reason: "INVALID_INPUT" };
   }
   return runCommand(actor, async (ctx) => {
-    const guard = await startDailyGame(ctx, GUARD, {
+    const start = await startDailyGame(ctx, DAILY_RULES, {
       personId: actor.personId,
       now: () => new Date(),
       expectedDay: null,
     });
-    if (!guard.ok) {
-      return { ok: false, reason: guard.reason };
+    if (!start.ok) {
+      return { ok: false, reason: start.reason };
     }
-    const { day, term: current, open, now } = guard;
+    const { day, term: current, open, now } = start;
     const [existing] = await ctx.tx
       .select()
       .from(game2048Run)
@@ -237,7 +237,7 @@ export async function finishGame2048As(
     // El reloj se lee al llegar, antes de los candados (decisión abierta 50).
     const now = new Date();
     const day = dayKeyFor(now);
-    const open = await lockDailyGame(ctx, GUARD, {
+    const open = await lockDailyGame(ctx, DAILY_RULES, {
       personId: actor.personId,
       termId: stored.termId,
     });
@@ -258,7 +258,7 @@ export async function finishGame2048As(
     if (row.status !== "IN_PROGRESS") {
       return { ok: false, reason: "FINISHED", run: runView(row, now) };
     }
-    const refusal = await refusalToContinue(ctx, GUARD, {
+    const refusal = await refusalToContinue(ctx, DAILY_RULES, {
       personId: actor.personId,
       game: row,
       open,

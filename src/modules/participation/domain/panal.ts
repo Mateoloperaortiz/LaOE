@@ -42,7 +42,7 @@ const submitSchema = z.object({
 });
 
 /** Lo que el Panal le declara a la guardia de la partida diaria (ADR-119 regla 7). */
-const GUARD = {
+const DAILY_RULES = {
   lock: { key: "panal", per: "PERSON" },
   // Con el semestre cerrado responde antes de mirar la partida guardada (decisión abierta 49).
   startWhenClosed: "REFUSE",
@@ -204,13 +204,13 @@ async function grantRewards(
 export async function startPanalAs(actor: MemberActor, expectedDay: string): Promise<PanalResult> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(expectedDay)) return { ok: false, reason: "INVALID_INPUT" };
   return runCommand(actor, async (ctx): Promise<PanalResult> => {
-    const guard = await startDailyGame(ctx, GUARD, {
+    const start = await startDailyGame(ctx, DAILY_RULES, {
       personId: actor.personId,
       now: () => new Date(),
       expectedDay,
     });
-    if (!guard.ok) return { ok: false, reason: guard.reason };
-    const { day, term: current } = guard;
+    if (!start.ok) return { ok: false, reason: start.reason };
+    const { day, term: current } = start;
     const [existing] = await ctx.tx
       .select()
       .from(panalGame)
@@ -262,7 +262,7 @@ export async function submitPanalWordAs(actor: MemberActor, raw: unknown): Promi
     .limit(1);
   if (!ref) return { ok: false, reason: "NOT_FOUND" };
   return runCommand(actor, async (ctx): Promise<PanalResult> => {
-    const open = await lockDailyGame(ctx, GUARD, {
+    const open = await lockDailyGame(ctx, DAILY_RULES, {
       personId: actor.personId,
       termId: ref.termId,
     });
@@ -276,7 +276,7 @@ export async function submitPanalWordAs(actor: MemberActor, raw: unknown): Promi
     // La palabra es la clave idempotente: también reconoce una respuesta de red perdida.
     if (game.words.includes(word)) return { ok: true, game, added: false };
     const now = new Date();
-    const refusal = await refusalToContinue(ctx, GUARD, {
+    const refusal = await refusalToContinue(ctx, DAILY_RULES, {
       personId: actor.personId,
       game: row,
       open,

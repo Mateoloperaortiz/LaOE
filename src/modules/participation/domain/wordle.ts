@@ -46,7 +46,7 @@ const submitSchema = z.object({
 });
 
 /** Lo que el Wordle le declara a la guardia de la partida diaria (ADR-119 regla 7). */
-const GUARD = {
+const DAILY_RULES = {
   // Serializa solamente la asignación: respuestas únicas por día para toda la comunidad.
   lock: { key: "wordle-day", per: "DAY" },
   startWhenClosed: "SAVED_FIRST",
@@ -120,13 +120,13 @@ export async function getTodayWordle(personId: string): Promise<TodayWordle> {
 
 export async function startWordleAs(actor: MemberActor): Promise<WordleResult> {
   return runCommand(actor, async (ctx) => {
-    const guard = await startDailyGame(ctx, GUARD, {
+    const start = await startDailyGame(ctx, DAILY_RULES, {
       personId: actor.personId,
       now: () => new Date(),
       expectedDay: null,
     });
-    if (!guard.ok) return { ok: false, reason: guard.reason };
-    const { day: initialDay, term: current, open, now } = guard;
+    if (!start.ok) return { ok: false, reason: start.reason };
+    const { day: initialDay, term: current, open, now } = start;
     const [existing] = await ctx.tx
       .select()
       .from(wordleGame)
@@ -211,7 +211,7 @@ export async function submitWordleGuessAs(
     .limit(1);
   if (!ref) return { ok: false, reason: "NOT_FOUND" };
   return runCommand(actor, async (ctx) => {
-    const open = await lockDailyGame(ctx, GUARD, {
+    const open = await lockDailyGame(ctx, DAILY_RULES, {
       personId: actor.personId,
       termId: ref.termId,
     });
@@ -235,7 +235,7 @@ export async function submitWordleGuessAs(
         reason: row.status === "EXPIRED" ? "EXPIRED" : "FINISHED",
         game: gameView(row, attempts, now),
       };
-    const refusal = await refusalToContinue(ctx, GUARD, {
+    const refusal = await refusalToContinue(ctx, DAILY_RULES, {
       personId: actor.personId,
       game: row,
       open,

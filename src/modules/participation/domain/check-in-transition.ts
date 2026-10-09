@@ -61,11 +61,11 @@ export class BoosterDenied extends Error {
   }
 }
 
-export function statusLabel(status: CheckInStatus): string {
+export function checkInStatusLabel(status: CheckInStatus): string {
   return tList("T-597")[CHECK_IN_STATUSES.indexOf(status)] ?? status;
 }
 
-function facts(row: OccasionRow, personId: string, source: string) {
+function checkInEventPayload(row: OccasionRow, personId: string, source: string) {
   return {
     occasionId: row.id,
     occasionTitle: row.title,
@@ -78,17 +78,18 @@ function facts(row: OccasionRow, personId: string, source: string) {
   };
 }
 
-type Facts = ReturnType<typeof facts>;
+/** Lo que llevan todos los eventos de una asistencia; la anulación y la excusa suman su motivo. */
+type CheckInEventPayload = ReturnType<typeof checkInEventPayload>;
 
 /** Lo que le pasa a todo lo demás cuando una asistencia llega a un estado. */
 interface Effects {
   /** El libro de puntos: acredita los puntos de la ocasión, revierte el crédito vivo o no lo toca. */
   ledger: "CREDIT" | "REVERSE" | "NONE";
   /** El aviso que sale por el outbox. El rechazo no avisa. */
-  event: ((facts: Facts, reason: string | null) => Emitted) | null;
+  event: ((payload: CheckInEventPayload, reason: string | null) => Emitted) | null;
   /** Si pide el recálculo del puntaje de la ocasión. Solo sale cuando la ocasión da puntos. */
   recompute: boolean;
-  /** El desenlace que reciben los dos ganchos del premio (ADR-067 reglas 8 y 12). */
+  /** El desenlace que reciben los dos ganchos del premio (ADR-067 reglas 3 y 4). */
   hook: CheckInBoostOutcome;
   /**
    * Motivos propios con que los ganchos cierran el premio y la entrega del reto. Sin ellos reciben el
@@ -148,7 +149,7 @@ const EFFECTS: Record<CheckInStatus, Effects> = {
     recompute: false,
     hook: "REJECTED",
     hookReasons: (occasion) => ({
-      reason: statusLabel("EXCUSED"),
+      reason: checkInStatusLabel("EXCUSED"),
       rejectionReason: t("T-3205", { actividad: occasion.title }),
     }),
     action: "checkin.excused",
@@ -169,7 +170,7 @@ export interface CheckInChange {
   source?: CheckInSource | undefined;
   /** El motivo ya limpio, como queda en la fila, la auditoría y el evento. */
   reason?: string | null | undefined;
-  /** Booster que la persona elige en su propio registro (ADR-067 regla 8). */
+  /** Booster que la persona elige en su propio registro (ADR-067 regla 7). */
   booster?: { id: string; member: MemberContext | null } | undefined;
   /**
    * Solo lo manda la cancelación de la ocasión, que es la única que anula una pendiente
@@ -254,7 +255,7 @@ export async function transitionCheckIn(
   }
 
   if (effects.event) {
-    await ctx.emit(effects.event(facts(occasion, personId, source), reason));
+    await ctx.emit(effects.event(checkInEventPayload(occasion, personId, source), reason));
   }
   if (effects.recompute && occasion.points > 0) {
     await ctx.emit(
@@ -291,7 +292,7 @@ export async function transitionCheckIn(
     }
   }
 
-  // ADR-067 reglas 8 y 12: el booster de la ocasión se resuelve antes que el reto presencial. La que
+  // ADR-119 regla 4: el booster de la ocasión se resuelve antes que el reto presencial. La que
   // nace excusada no tenía nada reservado y no pasa por los ganchos.
   if (current || to !== "EXCUSED") {
     const own = effects.hookReasons?.(occasion);
