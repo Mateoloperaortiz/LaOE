@@ -114,4 +114,30 @@ describe("retiro y anonimización retiran la credencial", () => {
 
     expect(await findPasswordHash(personId)).not.toBeNull();
   });
+
+  it("un cambio a un estado sin ingreso le cierra la sesión a quien no tiene membresía: sin estado que releer, se cierra", async () => {
+    // Alguien con sesión y sin fila de membresía: el handler no tiene con qué comprobar que hoy puede
+    // entrar, y ante la duda no conserva la sesión (ADR-118 regla 5).
+    const [who] = await db()
+      .insert(person)
+      .values({ email: "sin-membresia@eafit.edu.co", firstName: "Sesión", lastName: "Sintética" })
+      .returning({ id: person.id });
+    const personId = who?.id ?? "";
+    await createSession(db(), { personId, remember: true, userAgent: null, ip: null });
+    expect(await sessionRowsOf(personId)).toHaveLength(1);
+
+    await enqueueEvent(
+      db(),
+      eventOf(membershipChanged, {
+        actorId: null,
+        personId,
+        from: "ACTIVE",
+        to: "INACTIVE",
+        reason: null,
+      }),
+    );
+    await drainOutbox();
+
+    expect(await sessionRowsOf(personId)).toEqual([]);
+  });
 });
