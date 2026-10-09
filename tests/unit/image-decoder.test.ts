@@ -1,11 +1,14 @@
-import sharp from "sharp";
+import sharp, { type ResizeOptions } from "sharp";
 import { describe, expect, it } from "vitest";
+import { FULL_VARIANT_MAX_SIDE, VARIANT_WIDTHS } from "@/modules/content/domain/media-pure";
 import { tList } from "@/shared/copy";
 import {
   decodeImage,
   IMAGE_MAX_DECODED_BYTES,
+  IMAGE_MAX_OUTPUT_PIXELS,
   IMAGE_MAX_PIXELS,
   ImageRejectedError,
+  outputBox,
 } from "@/shared/lib/image-decoder";
 
 // El decodificador compartido de medios y evidencias (ADR-113 regla 4). Las imágenes se generan acá:
@@ -206,5 +209,153 @@ describe("decodificador de imágenes", () => {
       expect(outcome).toBeInstanceOf(Error);
       expect(outcome).not.toBeInstanceOf(ImageRejectedError);
     }
+  });
+});
+
+// El tope de píxeles de salida (ADR-119 regla 10). Reducir a un ancho no acota el alto: una imagen
+// alta y angosta salía casi entera (DT-107). Se prueba por dimensiones, no por memoria medida.
+describe("tope de píxeles de salida", () => {
+  /** Toda codificación que la casa pide: la escalera de anchos, y el lado de la completa y de una evidencia. */
+  const BOUNDS = [
+    ...VARIANT_WIDTHS.map((width) => ({ width })),
+    { side: FULL_VARIANT_MAX_SIDE },
+  ] as const;
+
+  const pixels = (image: { width: number; height: number }) => image.width * image.height;
+
+  it("una imagen de 1600 × 16.000 no sale con más píxeles que el tope en ninguna codificación", async () => {
+    // 25,6 megapíxeles en medio mega: pasa el tope de entrada y el presupuesto de memoria.
+    const tall = await decodeImage(await flat(1600, 16_000, 4).png().toBuffer());
+    const encoded = [];
+    for (const bound of BOUNDS) {
+      encoded.push({ bound, ...(await tall.toWebp(bound)) });
+    }
+
+    expect(encoded.map((image) => [image.bound, pixels(image) <= IMAGE_MAX_OUTPUT_PIXELS])).toEqual(
+      BOUNDS.map((bound) => [bound, true]),
+    );
+    // Lo que ya cabía sale como salía: el ancho de 480 y la completa, que acota el lado.
+    expect(encoded[0]).toMatchObject({ width: 480, height: 4800 });
+    expect(encoded[3]).toMatchObject({ width: 256, height: 2560 });
+    // Las de 960 y 1600 salen enteras, con su proporción de 1 a 10 y los píxeles del tope.
+    for (const reduced of encoded.slice(1, 3)) {
+      expect(reduced).toMatchObject({ width: 809, height: 8090 });
+    }
+  }, 60_000);
+
+  it("una imagen acostada por su orientación EXIF se mide derecha", async () => {
+    // 16.000 × 1600 con orientación 6: derecha es de 1600 × 16.000, la misma de arriba.
+    const turned = await decodeImage(
+      await flat(16_000, 1600).withMetadata({ orientation: 6 }).jpeg().toBuffer(),
+    );
+    expect(turned).toMatchObject({ width: 16_000, height: 1600 });
+
+    expect(await turned.toWebp({ width: 1600 })).toMatchObject({ width: 809, height: 8090 });
+    expect(await turned.toWebp({ width: 480 })).toMatchObject({ width: 480, height: 4800 });
+  }, 60_000);
+
+  it("la caja de salida nunca mide más píxeles que el tope, sea cual sea la imagen", () => {
+    const sides = [1, 2, 37, 480, 809, 1600, 2560, 4096, 6324, 16_383, 40_000_000];
+    const bounds = [...BOUNDS, { width: 1 }, { width: 2561 }, { width: 40_000_000 }, { side: 1 }];
+    const over: string[] = [];
+    for (const width of sides) {
+      for (const height of sides) {
+        for (const bound of bounds) {
+          const box = outputBox({ width, height }, bound);
+          const whole = Number.isInteger(box.width) && Number.isInteger(box.height);
+          if (!whole || box.width < 1 || box.height < 1 || pixels(box) > IMAGE_MAX_OUTPUT_PIXELS) {
+            over.push(`${width}x${height} a ${JSON.stringify(bound)}: ${box.width}x${box.height}`);
+          }
+        }
+      }
+    }
+    expect(over).toEqual([]);
+  });
+
+  it("la caja no aprieta a una imagen común: a cada ancho de la escalera le sobra alto", () => {
+    // Hasta 1 de ancho por 2,56 de alto en el ancho mayor: una foto vertical de 9 por 16 y la
+    // captura de un celular de 9 por 21 caben.
+    expect(outputBox({ width: 3000, height: 4000 }, { width: 1600 })).toEqual({
+      width: 1600,
+      height: 4096,
+    });
+    expect(outputBox({ width: 1080, height: 2520 }, { width: 960 })).toEqual({
+      width: 960,
+      height: 6826,
+    });
+    // Más angosta que el ancho pedido: no se agranda, y la caja es la de su propio ancho.
+    expect(outputBox({ width: 300, height: 200 }, { width: 480 })).toEqual({
+      width: 300,
+      height: 21_845,
+    });
+    // Alta y angosta: no cabe a ese ancho y se reduce entera.
+    expect(outputBox({ width: 1600, height: 16_000 }, { width: 1600 })).toEqual({
+      width: 809,
+      height: 8095,
+    });
+    expect(outputBox({ width: 500, height: 16_000 }, { width: 1600 })).toEqual({
+      width: 452,
+      height: 14_481,
+    });
+  });
+
+  it("una imagen que cabe sale byte a byte como salía antes del tope", async () => {
+    // La referencia es la codificación de antes de ADR-119 regla 10, escrita acá tal cual.
+    const before = (bytes: Buffer, resize: ResizeOptions) =>
+      sharp(bytes)
+        .rotate()
+        .resize({ ...resize, withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer();
+    const noise = (width: number, height: number) =>
+      sharp({
+        create: {
+          width,
+          height,
+          channels: 3,
+          background: { r: 0, g: 0, b: 0 },
+          noise: { type: "gaussian", mean: 128, sigma: 40 },
+        },
+      });
+    // Entre todas cruzan cada escalón: la primera pasa del lado de la completa y del ancho mayor.
+    const commons: Array<[string, Buffer]> = [
+      ["JPEG apaisado de 2700 × 1800", await noise(2700, 1800).jpeg().toBuffer()],
+      ["JPEG vertical de 1201 × 1601", await noise(1201, 1601).jpeg().toBuffer()],
+      ["PNG de captura de 540 × 1170", await noise(540, 1170).png().toBuffer()],
+      ["WebP de 1000 × 563", await noise(1000, 563).webp().toBuffer()],
+      ["PNG pequeño de 300 × 200", await noise(300, 200).png().toBuffer()],
+      [
+        "JPEG girado por EXIF de 1000 × 750",
+        await noise(1000, 750).withMetadata({ orientation: 8 }).jpeg().toBuffer(),
+      ],
+    ];
+
+    const different: string[] = [];
+    for (const [name, bytes] of commons) {
+      const image = await decodeImage(bytes);
+      for (const bound of BOUNDS) {
+        const expected = await before(
+          bytes,
+          "side" in bound
+            ? { width: bound.side, height: bound.side, fit: "inside" }
+            : { width: bound.width },
+        );
+        const encoded = await image.toWebp(bound);
+        if (!encoded.data.equals(expected)) {
+          different.push(`${name} a ${JSON.stringify(bound)}`);
+        }
+      }
+    }
+    expect(different).toEqual([]);
+  }, 60_000);
+
+  it("un lado cuyo cuadrado pasa del tope rompe en vez de dejar fallida la imagen", async () => {
+    const image = await decodeImage(await flat(300, 200).png().toBuffer());
+    const outcome = await image.toWebp({ side: 2561 }).then(
+      () => null,
+      (error: unknown) => error,
+    );
+    expect(outcome).toBeInstanceOf(Error);
+    expect(outcome).not.toBeInstanceOf(ImageRejectedError);
   });
 });

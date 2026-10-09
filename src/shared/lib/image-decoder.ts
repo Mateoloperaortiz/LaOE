@@ -4,8 +4,8 @@ import { tList } from "@/shared/copy";
 // El único decodificador de las imágenes que llegan de afuera (ADR-113 regla 4): medios del admin y
 // evidencias de retos. Lee la cabecera antes de tocar un píxel, admite solo JPEG, PNG y WebP por el
 // contenido (el tipo declarado lo escribe quien sube), rechaza lo que pase del tope de píxeles o del
-// presupuesto de memoria y solo codifica reduciendo. El dominio no abre con sharp una imagen ajena
-// por su cuenta.
+// presupuesto de memoria, solo codifica reduciendo y nunca entrega más píxeles que el tope de salida
+// (ADR-119 regla 10). El dominio no abre con sharp una imagen ajena por su cuenta.
 
 sharp.concurrency(1);
 
@@ -20,6 +20,11 @@ export const IMAGE_MAX_PIXELS = 40_000_000;
  * imagen se puede leer por franjas, y de eso depende cuánta memoria pide abrirla.
  */
 export const IMAGE_MAX_DECODED_BYTES = IMAGE_MAX_PIXELS * 3;
+/**
+ * Tope de píxeles de una imagen codificada (ADR-119 regla 10): los de un cuadrado de 2560 de lado, que
+ * es lo más que pedían una evidencia y la variante completa. Ninguna codificación sale con más.
+ */
+export const IMAGE_MAX_OUTPUT_PIXELS = 2560 * 2560;
 /** Bytes por muestra de las profundidades que traen JPEG, PNG y WebP. Otra no se reconoce. */
 const SAMPLE_BYTES: Record<string, number> = { uchar: 1, ushort: 2 };
 const WEBP_QUALITY = 82;
@@ -48,6 +53,11 @@ export class ImageRejectedError extends Error {
 /** Cómo se reduce antes de codificar: a un ancho o a un lado máximo. Nunca agranda. */
 type ImageBound = { width: number } | { side: number };
 
+interface ImageSize {
+  width: number;
+  height: number;
+}
+
 interface EncodedImage {
   data: Buffer;
   width: number;
@@ -67,19 +77,59 @@ function detailOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-async function encodeWebp(bytes: Uint8Array, bound: ImageBound): Promise<EncodedImage> {
+/** La imagen entera con su proporción, reducida a los píxeles del tope de salida. */
+function fitToOutputPixels(source: ImageSize): ImageSize {
+  const scale = Math.sqrt(IMAGE_MAX_OUTPUT_PIXELS / (source.width * source.height));
+  const height = Math.min(Math.max(1, Math.floor(source.height * scale)), IMAGE_MAX_OUTPUT_PIXELS);
+  const width = Math.min(
+    Math.max(1, Math.floor(source.width * scale)),
+    Math.floor(IMAGE_MAX_OUTPUT_PIXELS / height),
+  );
+  return { width, height };
+}
+
+/**
+ * La caja en la que se codifica una imagen de tamaño `source` (ya derecha) reducida a `bound`. La
+ * imagen se encaja adentro sin agrandarse, así que el ancho por el alto de la caja es lo más que mide
+ * el resultado: nunca pasa de `IMAGE_MAX_OUTPUT_PIXELS` (ADR-119 regla 10).
+ *  - A un lado: el cuadrado de ese lado.
+ *  - A un ancho: ese ancho, o el de la imagen si es más angosta, y lo más alto que el tope deja a ese
+ *    ancho. La imagen que cabe sale como salía sin tope.
+ *  - A un ancho en el que no cabe (alta y angosta): la imagen entera, con su proporción, reducida a
+ *    los píxeles del tope.
+ * Un límite que no es un entero positivo, o un lado cuyo cuadrado pasa del tope, es un error de quien
+ * llama, no de la imagen: no la deja fallida, rompe.
+ */
+export function outputBox(source: ImageSize, bound: ImageBound): ImageSize {
   const limit = "side" in bound ? bound.side : bound.width;
   if (!Number.isInteger(limit) || limit < 1) {
-    // Un error de quien llama, no de la imagen: no la deja fallida, rompe.
     throw new Error(`Límite de reducción inválido: ${String(limit)}`);
   }
-  const box =
-    "side" in bound ? { width: limit, height: limit, fit: "inside" as const } : { width: limit };
+  if ("side" in bound) {
+    if (limit * limit > IMAGE_MAX_OUTPUT_PIXELS) {
+      throw new Error(`Lado de reducción ${limit}: su cuadrado pasa del tope de píxeles de salida`);
+    }
+    return { width: limit, height: limit };
+  }
+  const width = Math.min(limit, source.width);
+  const height = Math.floor(IMAGE_MAX_OUTPUT_PIXELS / width);
+  // Cabe a ese ancho si su alto proporcional no pasa del de la caja.
+  return source.height * width <= height * source.width
+    ? { width, height }
+    : fitToOutputPixels(source);
+}
+
+async function encodeWebp(
+  bytes: Uint8Array,
+  upright: ImageSize,
+  bound: ImageBound,
+): Promise<EncodedImage> {
+  const box = outputBox(upright, bound);
   try {
     // El mismo tope, exigido también por libvips al decodificar: es la segunda línea.
     const { data, info } = await sharp(bytes, { limitInputPixels: IMAGE_MAX_PIXELS })
       .rotate() // respeta la orientación EXIF; sin `withMetadata`, el resultado no la lleva
-      .resize({ ...box, withoutEnlargement: true })
+      .resize({ ...box, fit: "inside", withoutEnlargement: true })
       .webp({ quality: WEBP_QUALITY })
       .toBuffer({ resolveWithObject: true });
     return { data, width: info.width, height: info.height };
@@ -145,5 +195,8 @@ export async function decodeImage(bytes: Uint8Array): Promise<DecodedImage> {
   if (decoded > IMAGE_MAX_DECODED_BYTES) {
     throw new ImageRejectedError("memory", `${width}x${height}, ${decoded} bytes`);
   }
-  return { format, width, height, toWebp: (bound) => encodeWebp(bytes, bound) };
+  // Las orientaciones EXIF 5 a 8 giran la imagen un cuarto de vuelta: derecha, mide al revés.
+  const upright =
+    (metadata.orientation ?? 1) >= 5 ? { width: height, height: width } : { width, height };
+  return { format, width, height, toWebp: (bound) => encodeWebp(bytes, upright, bound) };
 }

@@ -17,6 +17,7 @@ import { outbox } from "@/modules/system/schema";
 import { deleteObject, headObject } from "@/shared/adapters/storage";
 import { tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { IMAGE_MAX_OUTPUT_PIXELS } from "@/shared/lib/image-decoder";
 import { noisePng, uploadAsBrowser } from "../helpers/media";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
@@ -219,5 +220,51 @@ describe("medios", () => {
     expect(await headObject(`variants/${id}/w480.webp`)).toBeNull();
     expect(await resolveMediaRedirect(id, 480, { authenticated: false })).toEqual({ status: 404 });
     expect(await drainOutbox()).toEqual({ processed: 0, failed: 0 });
+  });
+
+  it("un medio alto y angosto queda listo con cada variante dentro del tope de píxeles de salida", async () => {
+    // 1600 × 16.000 con transparencia: 25,6 megapíxeles que pasan el tope de entrada y el presupuesto
+    // de memoria. Reducir a un ancho no le acotaba el alto (DT-107, ADR-119 regla 10).
+    const png = await sharp({
+      create: {
+        width: 1600,
+        height: 16_000,
+        channels: 4,
+        background: { r: 10, g: 120, b: 200, alpha: 0.5 },
+      },
+    })
+      .png()
+      .toBuffer();
+    const key = await uploadDirect(png, "image/png", "alta.png", png.byteLength);
+    const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
+      confirmUpload(
+        ctx,
+        { key, filename: "alta.png", visibility: "PUBLIC", purpose: "media" },
+        { by: "ADMIN" },
+        ownerCheck,
+      ),
+    );
+
+    await drainOutbox();
+
+    const [asset] = await getDb().select().from(mediaAsset).where(eq(mediaAsset.id, id));
+    expect(asset).toMatchObject({ status: "READY", width: 1600, height: 16_000 });
+    const sizes = Object.fromEntries(
+      Object.entries(asset?.variants ?? {}).map(([name, variant]) => [
+        name,
+        `${variant.width}x${variant.height}`,
+      ]),
+    );
+    // La de 480 y la completa ya cabían; las de 960 y 1600 salen enteras, reducidas al tope.
+    expect(sizes).toEqual({
+      w480: "480x4800",
+      w960: "809x8090",
+      w1600: "809x8090",
+      full: "256x2560",
+    });
+    for (const variant of Object.values(asset?.variants ?? {})) {
+      expect(variant.width * variant.height).toBeLessThanOrEqual(IMAGE_MAX_OUTPUT_PIXELS);
+      keys.push(variant.key);
+    }
   });
 });

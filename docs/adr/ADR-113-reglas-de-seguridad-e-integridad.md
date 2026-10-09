@@ -1,6 +1,6 @@
 # ADR-113: Reglas de seguridad e integridad del segundo ciclo del refactor
 
-- Estado: Aceptada (enmendada por ADR-114 y ADR-116)
+- Estado: Aceptada (enmendada por ADR-114, ADR-116 y ADR-119)
 - Fecha: 2026-10-07
 - Relacionadas: ADR-011, ADR-015, ADR-022, ADR-072, ADR-082, ADR-109, ADR-110, ADR-112
 - Enmienda: ADR-010, ADR-012, ADR-033 (regla 5), ADR-034 (reglas 4 y 8), ADR-038 (regla 5), ADR-051 (regla 4), ADR-067 (regla 12)
@@ -103,3 +103,7 @@ La regla 4 dice que el decodificador solo codifica reduciendo y nombra dos lími
 ## Enmienda (2026-10-08, ADR-116)
 
 La regla 7 decía que `takeImportJobInPreview` bloquea la fila de `import_job` y exige `PREVIEW`. No miraba de qué tipo era el trabajo, así que descartar, aplicar o cambiar las columnas aceptaban uno que no fuera del roster (DT-104). [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 12 lo cierra: la toma recibe el tipo que espera quien llama, obligatorio, y un trabajo de otro tipo responde T-032, como uno que no existe. Lo demás de la regla queda igual.
+
+## Enmienda (2026-10-09, ADR-119)
+
+Regla 4: decía que el decodificador «solo codifica reduciendo», y eso acotaba el ancho de una variante pero no su alto: una imagen de 1600 × 16.000 salía entera en la variante de 1600 px (DT-107). Ahora toda codificación tiene además un tope de píxeles de salida, `IMAGE_MAX_OUTPUT_PIXELS` (2560 × 2560): la imagen que cabe sale como salía y la que no, entera y reducida a ese tope. El tope de entrada y el presupuesto de memoria no cambian. Ver [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) regla 10.
