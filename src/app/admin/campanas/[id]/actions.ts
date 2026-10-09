@@ -81,5 +81,9 @@ export async function sendTestFromCampaignAction(formData: FormData): Promise<vo
   const templateId = idSchema.parse(formData.get("templateId"));
   const actor = await requireAdminActor(back(id));
   const result = await sendTemplateTestAs(await actorContext(actor), templateId);
-  redirect(result ? back(id, { prueba: result.to }) : back(id));
+  if (!result) {
+    redirect(back(id));
+  }
+  // La pantalla dice lo que contestó el proveedor (ADR-118 regla 14).
+  redirect(back(id, result.sent ? { prueba: result.to } : { pruebaRechazada: result.to }));
 }

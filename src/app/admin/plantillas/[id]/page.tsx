@@ -32,6 +32,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
   }
   const search = await searchParams;
   const prueba = typeof search.prueba === "string" ? search.prueba : "";
+  const pruebaRechazada = typeof search.pruebaRechazada === "string" ? search.pruebaRechazada : "";
   const preview = await previewTemplateFor(id, actor.personId);
   const [colIdentificador, , colAsunto] = tList("T-1116");
   return (
@@ -66,6 +67,11 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/p
             <output className="text-sm font-semibold text-titulo">
               {t("T-1121", { correo: prueba })}
             </output>
+          ) : null}
+          {pruebaRechazada ? (
+            <p role="alert" className="text-sm font-semibold text-titulo">
+              {t("T-3250", { correo: pruebaRechazada })}
+            </p>
           ) : null}
         </div>
       </header>

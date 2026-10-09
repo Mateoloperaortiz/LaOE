@@ -10640,6 +10640,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3250": {
+    where: "Plantillas y campañas: la prueba que el proveedor rechazó (ADR-118)",
+    text: "No pudimos mandar la prueba a {correo}: el proveedor de correo la rechazó. Revisá el motivo en Mensajes antes de programar un envío.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

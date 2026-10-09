@@ -67,6 +67,7 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
   const error = single(search.error);
   const guardado = single(search.guardado);
   const prueba = single(search.prueba);
+  const pruebaRechazada = single(search.pruebaRechazada);
   const editable = campaign.status === "DRAFT" || campaign.status === "SCHEDULED";
   if (accion === "enviar" && editable && !hasRecentStepUp(actor)) {
     redirect(`/ingresar/paso?next=${encodeURIComponent(`${base}?accion=enviar`)}`);
@@ -163,6 +164,11 @@ export default async function Page({ params, searchParams }: PageProps<"/admin/c
           <output className="block text-sm font-semibold text-titulo">
             {t("T-1121", { correo: prueba })}
           </output>
+        ) : null}
+        {pruebaRechazada ? (
+          <p role="alert" className="text-sm font-semibold text-titulo">
+            {t("T-3250", { correo: pruebaRechazada })}
+          </p>
         ) : null}
         {error ? (
           <p

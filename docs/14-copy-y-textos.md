@@ -1249,6 +1249,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-3241 | Cupo de correo: no había corte que levantar | No había un corte vigente para levantar. | MATEO | Propuesta |
 | T-3242 | Cupo de correo: volver al margen por defecto (botón) | Volver al margen por defecto | MATEO | Propuesta |
 | T-3243 | Cupo de correo: el margen volvió al de por defecto | Listo, el margen vuelve a ser el de por defecto: un tercio del cupo del día. | MATEO | Propuesta |
+| T-3250 | Plantillas y campañas: la prueba que el proveedor rechazó (ADR-118) | No pudimos mandar la prueba a {correo}: el proveedor de correo la rechazó. Revisá el motivo en Mensajes antes de programar un envío. | MATEO | Propuesta |
 
 ### Mi OE · fase 8 (carnet en billeteras)
 
