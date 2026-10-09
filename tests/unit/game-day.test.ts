@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dayKeyFor, nextDayAt } from "@/modules/participation/domain/gamification-pure";
+import { APP_TIME_ZONE, atHourIn } from "@/shared/lib/dates-pure";
 
 // DT-010: los juegos traían dos cálculos del día civil y dos de «cuándo empieza el siguiente». Esta
 // propiedad los compara sobre un año de instantes y en cada medianoche de Colombia: es la que permitió
@@ -94,6 +95,31 @@ describe("el día civil de los juegos", () => {
     }
     expect(midnights).toHaveLength(YEAR_DAYS);
     expect(midnights.map(({ day }) => day)).toContain("2028-02-29");
+    expect(wrong).toEqual([]);
+  });
+
+  // DT-270: las pantallas del Wordle y del Panal anclaban el día de la partida al mediodía con el
+  // desfase escrito a mano (`T12:00:00-05:00`) para mostrarlo como fecha. El mediodía de la zona es el
+  // mismo instante, y con él la fecha que se muestra es la del día de la partida.
+  it("el mediodía con que las pantallas muestran el día es el mismo por el desfase fijo y por la zona", () => {
+    const shown = new Intl.DateTimeFormat("es-CO", {
+      timeZone: APP_TIME_ZONE,
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+    });
+    const wrong = colombianMidnights()
+      .map(({ day }) => {
+        const byFixedOffset = new Date(`${day}T12:00:00-05:00`);
+        const byZone = atHourIn(APP_TIME_ZONE, day, 12);
+        const [year, month, date] = day.split("-").map(Number);
+        return {
+          day,
+          same: byFixedOffset.getTime() === byZone.getTime(),
+          shown: shown.format(byZone) === `${date}/${month}/${year}`,
+        };
+      })
+      .filter((item) => !item.same || !item.shown);
     expect(wrong).toEqual([]);
   });
 });

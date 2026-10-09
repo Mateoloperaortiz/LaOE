@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
-import { APP_TIME_ZONE } from "@/shared/lib/dates-pure";
+import { APP_TIME_ZONE, atHourIn } from "@/shared/lib/dates-pure";
 import { ArrowsHorizontalIcon } from "@/shared/ui/icons/ArrowsHorizontalIcon";
 import { CheckIcon } from "@/shared/ui/icons/CheckIcon";
 import { XIcon } from "@/shared/ui/icons/XIcon";
@@ -58,12 +58,12 @@ function keyboardWord(value: string): string {
     .slice(0, 5);
 }
 
-function displayDay(instant: string): string {
+function displayDay(instant: Date): string {
   return new Intl.DateTimeFormat("es-CO", {
     timeZone: APP_TIME_ZONE,
     day: "numeric",
     month: "long",
-  }).format(new Date(instant));
+  }).format(instant);
 }
 
 type Props = {
@@ -174,7 +174,7 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
           dateTime={initial.day}
           className="eyebrow rounded-full bg-oe-yellow px-3 py-2 text-oe-navy"
         >
-          {displayDay(`${initial.day}T12:00:00-05:00`)}
+          {displayDay(atHourIn(APP_TIME_ZONE, initial.day, 12))}
         </time>
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(15rem,0.65fr)] lg:gap-10">
@@ -400,7 +400,7 @@ export function Wordle({ initial, onStart, onGuess }: Props) {
           </div>
           {initial.availability === "AVAILABLE" && !blocked ? (
             <p className="text-sm text-tinta-suave">
-              {t("T-1248", { fecha: displayDay(initial.nextAvailableAt) })}
+              {t("T-1248", { fecha: displayDay(new Date(initial.nextAvailableAt)) })}
             </p>
           ) : null}
         </aside>

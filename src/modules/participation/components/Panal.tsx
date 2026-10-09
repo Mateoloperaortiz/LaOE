@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
+import { APP_TIME_ZONE, atHourIn } from "@/shared/lib/dates-pure";
 import {
   isPanalPangram,
   normalizePanalWord,
@@ -181,10 +182,10 @@ export function Panal({ initial, onStart, onWord }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-borde pb-4">
         <time dateTime={initial.day} className="text-sm text-tinta-suave">
           {new Intl.DateTimeFormat("es-CO", {
-            timeZone: "America/Bogota",
+            timeZone: APP_TIME_ZONE,
             day: "numeric",
             month: "long",
-          }).format(new Date(`${initial.day}T12:00:00-05:00`))}
+          }).format(atHourIn(APP_TIME_ZONE, initial.day, 12))}
         </time>
         <span className="font-semibold">{t("T-2762", { rango: rank })}</span>
       </div>
