@@ -790,16 +790,25 @@ export async function excuseCheckIn(
       .set({ status: "EXCUSED", decidedById: ctx.actor.personId, decidedAt: now, reason })
       .where(eq(checkIn.id, current.id));
   } else {
-    await ctx.tx.insert(checkIn).values({
-      occasionId: row.id,
-      personId: input.personId,
-      status: "EXCUSED",
-      source: "ADMIN",
-      at: now,
-      decidedById: ctx.actor.personId,
-      decidedAt: now,
-      reason,
-    });
+    try {
+      await ctx.tx.insert(checkIn).values({
+        occasionId: row.id,
+        personId: input.personId,
+        status: "EXCUSED",
+        source: "ADMIN",
+        at: now,
+        decidedById: ctx.actor.personId,
+        decidedAt: now,
+        reason,
+      });
+    } catch (error) {
+      // ADR-119 regla 2: un registro confirmó mientras la excusa creaba la asistencia. Responde lo
+      // mismo que si la hubiera encontrado; la transacción quedó abortada y no se reintenta aquí.
+      if (isUniqueViolation(error, "check_in_occasion_person_unique")) {
+        throw new DomainError(t("T-2223"));
+      }
+      throw error;
+    }
   }
   await ctx.audit({
     action: "checkin.excused",
