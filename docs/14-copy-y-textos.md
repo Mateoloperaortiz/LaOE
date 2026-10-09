@@ -2607,6 +2607,7 @@ Textos del Sudoku de la biblioteca de juegos ([ADR-078](adr/ADR-078-sudoku-con-s
 | T-2923 | The Games: Hoja muy larga | La hoja pegada es demasiado larga. Pegá solo las cuatro columnas de una jornada. | MATEO | Propuesta |
 | T-2924 | The Games: Importación bloqueada | No se importó nada. Corregí la hoja y volvé a importarla. | MATEO | Propuesta |
 | T-2925 | The Games: Importación con advertencias | La hoja no tiene errores, pero sí advertencias. Revisalas y, si están bien, confirmá para importarla. | MATEO | Propuesta |
+| T-3255 | The Games: Apuesta ya resuelta con otro ganador (ADR-118) | Esta apuesta ya está resuelta con otro ganador. No se cambió nada: el ganador y los pagos siguen como estaban. | MATEO | Propuesta |
 
 ## Capitanes de The Games (ADR-095)
 

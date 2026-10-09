@@ -10671,6 +10671,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3255": {
+    where: "The Games: Apuesta ya resuelta con otro ganador (ADR-118)",
+    text: "Esta apuesta ya está resuelta con otro ganador. No se cambió nada: el ganador y los pagos siguen como estaban.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

@@ -61,6 +61,7 @@ import {
   competitionBase,
   competitionBet,
   competitionCreditEntry,
+  competitionMarket,
   competitionRotation,
   competitionTeam,
 } from "@/modules/competition/schema";
@@ -71,6 +72,7 @@ import { membership } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { outcome } from "../helpers/locks";
 import { truncateAll } from "./db";
 import { seedForm, seedMember, seedSubmission, seedTerm, seedVeteran } from "./factories";
 
@@ -674,6 +676,92 @@ describe("The Games", () => {
       expect(balances.get(t2)).toBe(900 + 150);
       expect(balances.get(t1)).toBe(800);
       const total = [...balances.values()].reduce((sum, value) => sum + value, 0);
+      expect(total).toBe(3000);
+    });
+
+    // ADR-118 regla 29. Cómo se corrige una apuesta mal resuelta es la decisión abierta 41: hoy no hay
+    // comando. Esta prueba fija lo que no cambia: nada se mueve y cancelar una resuelta se rechaza.
+    it("resolver otra vez con otro ganador responde que ya está resuelta; con el mismo no hace nada (decisión abierta 41)", async () => {
+      const { id, actor, teamIds, code, marketId } = await seedBetting();
+      const [t1 = "", t2 = "", t3 = ""] = teamIds;
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t3,
+        pickTeamId: t1,
+        stake: 300,
+        code: code(t3),
+      });
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t1,
+        pickTeamId: t2,
+        stake: 200,
+        code: code(t1),
+      });
+      expect(await resolveMarketAs(actor, id, marketId, t1)).toEqual({ paid: 500 });
+      const state = async () => {
+        const db = getDb();
+        const [market] = await db
+          .select()
+          .from(competitionMarket)
+          .where(eq(competitionMarket.id, marketId));
+        const entries = await db
+          .select({ id: competitionCreditEntry.id })
+          .from(competitionCreditEntry)
+          .where(eq(competitionCreditEntry.competitionId, id));
+        const audits = await db
+          .select({ id: auditLog.id })
+          .from(auditLog)
+          .where(eq(auditLog.action, "competition.market.resolve"));
+        return {
+          status: market?.status,
+          winnerTeamId: market?.winnerTeamId,
+          resolvedAt: market?.resolvedAt,
+          balances: [...(await creditBalances(id)).entries()].sort(),
+          entries: entries.length,
+          audits: audits.length,
+        };
+      };
+      const resolved = await state();
+      expect(resolved).toMatchObject({ status: "RESOLVED", winnerTeamId: t1, audits: 1 });
+
+      const again = await Promise.allSettled([resolveMarketAs(actor, id, marketId, t2)]);
+      expect(again.map(outcome)).toEqual([t("T-3255")]);
+      // Con el mismo ganador sigue siendo idempotente (ADR-091 regla 4).
+      expect(await resolveMarketAs(actor, id, marketId, t1)).toEqual({ paid: 0 });
+      await expect(cancelMarketAs(actor, id, marketId)).rejects.toThrow(t("T-2792"));
+      expect(await state()).toEqual(resolved);
+    });
+
+    it("dos operadores resuelven a la vez con ganadores distintos: uno queda y el otro recibe que ya está resuelta", async () => {
+      const { id, actor, teamIds, code, marketId } = await seedBetting();
+      const [t1 = "", t2 = "", t3 = ""] = teamIds;
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t3,
+        pickTeamId: t1,
+        stake: 300,
+        code: code(t3),
+      });
+      await placeBetAs(actor, id, {
+        marketId,
+        teamId: t1,
+        pickTeamId: t2,
+        stake: 200,
+        code: code(t1),
+      });
+      const results = await Promise.allSettled([
+        resolveMarketAs(actor, id, marketId, t1),
+        resolveMarketAs(actor, id, marketId, t2),
+      ]);
+      expect(results.map(outcome).sort()).toEqual(["ok", t("T-3255")].sort());
+      const [market] = await getDb()
+        .select()
+        .from(competitionMarket)
+        .where(eq(competitionMarket.id, marketId));
+      expect(market?.winnerTeamId).toBe(results[0]?.status === "fulfilled" ? t1 : t2);
+      // Se pagó una sola vez: los puntos de las tres cuentas siguen sumando lo repartido.
+      const total = [...(await creditBalances(id)).values()].reduce((sum, value) => sum + value, 0);
       expect(total).toBe(3000);
     });
 

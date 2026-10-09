@@ -441,8 +441,9 @@ async function settle(
   return settlement;
 }
 
-/** Declara el ganador y paga. Resolver otra vez no hace nada, y el índice único (apuesta, tipo) lo
- *  garantiza también en la base (ADR-091 regla 4). */
+/** Declara el ganador y paga. Resolver otra vez con el mismo ganador no hace nada, y el índice único
+ *  (apuesta, tipo) lo garantiza también en la base (ADR-091 regla 4). Con otro ganador responde que
+ *  ya está resuelta y no cambia nada (ADR-118 regla 29): corregirla no tiene comando todavía. */
 export async function resolveMarket(
   ctx: CommandContext,
   actor: CompetitionActor,
@@ -453,7 +454,10 @@ export async function resolveMarket(
 ): Promise<{ paid: number }> {
   await openCompetition(ctx, actor, competitionId);
   const market = await lockedMarket(ctx, competitionId, marketId);
-  if (market.status === "RESOLVED") return { paid: 0 };
+  if (market.status === "RESOLVED") {
+    if (market.winnerTeamId !== winnerTeamId) throw new DomainError(t("T-3255"), "winnerTeamId");
+    return { paid: 0 };
+  }
   if (market.status !== "OPEN" && market.status !== "CLOSED") {
     throw new DomainError(t("T-2792"));
   }
