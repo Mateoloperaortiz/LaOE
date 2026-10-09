@@ -1,4 +1,3 @@
-import { getDb } from "@/db/client";
 import type { announcementPushRequested } from "@/domain-events/content";
 import type { callOpened, recognitionGranted, requestDecided } from "@/domain-events/crm";
 import type { EventPayload } from "@/domain-events/define";
@@ -14,12 +13,7 @@ import type { permanenceDecided } from "@/domain-events/permanence";
 import { getEnv } from "@/env";
 import { markAnnouncementPushSent } from "@/modules/content";
 import { balanceFor } from "@/modules/participation";
-import {
-  listActiveMemberRefs,
-  listMailingRefs,
-  listTermCommitteeMembers,
-  lockPersonAnonymization,
-} from "@/modules/people";
+import { listActiveMemberRefs, listMailingRefs, listTermCommitteeMembers } from "@/modules/people";
 import { getTerm } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { renderHtml, renderPlain } from "@/shared/copy/render";
@@ -28,6 +22,7 @@ import { committeeAudience, membersAudience } from "./audiences";
 import { type DeliveryStats, deliverNotification } from "./notify";
 import { type NotificationKind, splitPush } from "./pure";
 import { type SendReceipt, sendTransactionalEmail } from "./send";
+import { unlessAnonymized } from "./unless-anonymized";
 
 // Push por evento (ADR-038 reglas 6 y 7): cada evento de dominio se traduce a una notificación del bus
 // con su texto del inventario (14-copy §6), su URL, su tipo y su clave de deduplicación.
@@ -171,29 +166,9 @@ export async function pushRecognition(
 }
 
 /**
- * Lo que un evento le avisa a una persona sale solo si todavía no fue anonimizada (ADR-116 regla 9). El
- * evento trae el correo que la persona tenía cuando ocurrió, y el poller lo puede procesar o reintentar
- * después de anonimizarla, cuando el registro que evitaba el reenvío ya se borró. Aquí se la vuelve a
- * leer y se la retiene con candado compartido mientras sale el aviso: una anonimización que llegue en
- * ese momento espera, y su limpieza encuentra el registro ya escrito y se lo lleva. Si la persona ya
- * fue anonimizada, o no existe, no corre `deliver` y responde `null`.
- */
-export async function unlessAnonymized<Delivered>(
-  personId: string,
-  deliver: () => Promise<Delivered>,
-): Promise<Delivered | null> {
-  return getDb().transaction(async (tx) => {
-    const who = await lockPersonAnonymization(tx, personId);
-    if (!who || who.anonymized) {
-      return null;
-    }
-    return deliver();
-  });
-}
-
-/**
  * Resultado de permanencia por correo (ADR-038 regla 10): solo la fila por persona y solo cuando
- * cumple (T-202). Prueba (T-203) y salida (T-204) esperan el texto de GH. Idempotente por clave.
+ * cumple (T-202). Prueba (T-203) y salida (T-204) esperan el texto de GH. Idempotente por clave. La
+ * persona se lee retenida y así sigue mientras sale el correo y queda su registro (ADR-119 regla 11).
  */
 export async function emailPermanenceOutcome(
   payload: EventPayload<typeof permanenceDecided>,
@@ -201,27 +176,30 @@ export async function emailPermanenceOutcome(
   if (payload.committeeId || payload.decision !== "CONTINUES") {
     return null;
   }
-  const [ref, term] = await Promise.all([
-    listMailingRefs([payload.personId]).then((refs) => refs.get(payload.personId)),
-    getTerm(payload.termId),
-  ]);
-  if (!ref || !term || ref.anonymized) {
+  const term = await getTerm(payload.termId);
+  if (!term) {
     return null;
   }
-  const { title, body } = splitPush(t("T-202", { término: term.code }));
-  const link = `${getEnv().APP_URL}/app/permanencia`;
-  const pie = t("T-208").replace("{enlace de baja si aplica}", "").trim();
-  return sendTransactionalEmail(
-    {
-      personId: payload.personId,
-      to: ref.email,
-      subject: title,
-      text: `${renderPlain(body)}\n\n${t("T-699")}: ${link}\n\n${pie}`,
-      html: `<p>${renderHtml(body)}</p><p><a href="${link}">${t("T-699")}</a></p><p style="color:#666;font-size:12px">${renderHtml(pie)}</p>`,
-    },
-    new Date(),
-    { dedupeKey: `permanence-outcome:${payload.termId}` },
-  );
+  return unlessAnonymized(payload.personId, async () => {
+    const ref = (await listMailingRefs([payload.personId])).get(payload.personId);
+    if (!ref || ref.anonymized) {
+      return null;
+    }
+    const { title, body } = splitPush(t("T-202", { término: term.code }));
+    const link = `${getEnv().APP_URL}/app/permanencia`;
+    const pie = t("T-208").replace("{enlace de baja si aplica}", "").trim();
+    return sendTransactionalEmail(
+      {
+        personId: payload.personId,
+        to: ref.email,
+        subject: title,
+        text: `${renderPlain(body)}\n\n${t("T-699")}: ${link}\n\n${pie}`,
+        html: `<p>${renderHtml(body)}</p><p><a href="${link}">${t("T-699")}</a></p><p style="color:#666;font-size:12px">${renderHtml(pie)}</p>`,
+      },
+      new Date(),
+      { dedupeKey: `permanence-outcome:${payload.termId}` },
+    );
+  });
 }
 
 /** Recorta un valor interpolado para que el push quepa en sus límites (título 40, cuerpo 120). */

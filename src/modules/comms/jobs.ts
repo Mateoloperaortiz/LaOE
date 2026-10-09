@@ -30,13 +30,13 @@ import {
   pushPointsCredited,
   pushRecognition,
   pushRequestDecided,
-  unlessAnonymized,
 } from "./domain/events";
 import { deleteMessagesFor } from "./domain/messages";
 import { type DeliveryStats, deliverNotification } from "./domain/notify";
 import { deletePreferencesFor } from "./domain/preferences";
 import { sendTransactionalEmail } from "./domain/send";
 import { deleteSubscriptionsFor } from "./domain/subscriptions";
+import { unlessAnonymized } from "./domain/unless-anonymized";
 
 // Handlers de comms (ADR-037 regla 12, ADR-038): los correos transaccionales de la fase 5 (bienvenida
 // T-200 y respuesta a una solicitud T-205), el bus de notificaciones y la limpieza al salir de la OE.
