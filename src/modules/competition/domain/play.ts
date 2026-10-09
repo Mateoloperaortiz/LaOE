@@ -20,6 +20,7 @@ import {
   type Day,
   dayOneRounds,
   dayTwoRounds,
+  nextPendingRotation,
   type ScheduleIssue,
   type ScheduleReport,
   type ScheduleRotation,
@@ -456,7 +457,8 @@ export async function closeRotation(
   });
 }
 
-/** Cierra la rotación en curso, si hay, e inicia la siguiente pendiente en orden de jornada y número. */
+/** Cierra la rotación en curso, si hay, e inicia la que sigue: la primera pendiente de la jornada en
+ *  curso o de una posterior (ADR-118 regla 28). Sin ninguna, solo cierra. */
 export async function advanceRotation(
   ctx: CommandContext,
   actor: CompetitionActor,
@@ -466,17 +468,17 @@ export async function advanceRotation(
   await openCompetition(ctx, actor, competitionId);
   const active = await activeRotation(ctx, competitionId);
   if (active) await closeRotation(ctx, actor, competitionId, active.id, now);
-  const [next] = await ctx.tx
-    .select({ id: competitionRotation.id })
-    .from(competitionRotation)
-    .where(
-      and(
-        eq(competitionRotation.competitionId, competitionId),
-        eq(competitionRotation.status, "PENDING"),
-      ),
-    )
-    .orderBy(asc(competitionRotation.day), asc(competitionRotation.number))
-    .limit(1);
+  const next = nextPendingRotation(
+    await ctx.tx
+      .select({
+        id: competitionRotation.id,
+        day: competitionRotation.day,
+        number: competitionRotation.number,
+        status: competitionRotation.status,
+      })
+      .from(competitionRotation)
+      .where(eq(competitionRotation.competitionId, competitionId)),
+  );
   if (!next) return { rotationId: null };
   await startRotation(ctx, actor, competitionId, next.id, now);
   return { rotationId: next.id };

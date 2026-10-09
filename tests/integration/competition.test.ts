@@ -342,6 +342,61 @@ describe("The Games", () => {
       expect(after.current).toBeNull();
     });
 
+    // ADR-118 regla 28: «siguiente» es la primera pendiente de la jornada en curso o de una posterior.
+    it("con una rotación de la jornada 1 sin jugar, «Avanzar» y la siguiente de la vitrina siguen con la jornada 2", async () => {
+      const { id, adminId } = await seedCompetition();
+      await seedField(id, adminId);
+      const actor = admin(adminId);
+      await generateDayScheduleAs(actor, id, { day: 1, rotations: 2, plannedMinutes: 20 });
+      await generateDayScheduleAs(actor, id, { day: 2, rotations: 2, plannedMinutes: 20 });
+      await setCompetitionStatusAs(actor, id, "LIVE");
+      const rotations = await getDb()
+        .select()
+        .from(competitionRotation)
+        .where(eq(competitionRotation.competitionId, id));
+      const idOf = (day: number, number: number) =>
+        rotations.find((rotation) => rotation.day === day && rotation.number === number)?.id ?? "";
+      const place = (rotation: { day: number; number: number } | null | undefined) =>
+        rotation ? `J${rotation.day}-R${rotation.number}` : null;
+      const publicNext = async () => {
+        clearShowcaseMemo();
+        return place((await getShowcase("the-games-2026", new Date()))?.nextRotation);
+      };
+
+      // La jornada 1 se queda sin tiempo: se juega la primera rotación y la segunda queda pendiente.
+      await startRotationAs(actor, id, idOf(1, 1));
+      await closeRotationAs(actor, id, idOf(1, 1));
+      // Mientras nadie arranque la jornada 2, la que sigue es la que quedó.
+      expect(place((await getLiveRotations(id)).next)).toBe("J1-R2");
+
+      // Al otro día el operador inicia a mano la primera de la jornada 2.
+      await startRotationAs(actor, id, idOf(2, 1));
+      const operatorNext = place((await getLiveRotations(id)).next);
+      const showcaseNext = await publicNext();
+      const advanced = await advanceRotationAs(actor, id);
+      expect({
+        operatorNext,
+        showcaseNext,
+        advancedTo: place((await getLiveRotations(id)).current),
+        advanced,
+      }).toEqual({
+        operatorNext: "J2-R2",
+        showcaseNext: "J2-R2",
+        advancedTo: "J2-R2",
+        advanced: { rotationId: idOf(2, 2) },
+      });
+
+      // A la jornada 2 no le queda ninguna: no hay siguiente, y «Avanzar» cierra sin iniciar la que sobró.
+      expect(place((await getLiveRotations(id)).next)).toBeNull();
+      expect(await publicNext()).toBeNull();
+      expect(await advanceRotationAs(actor, id)).toEqual({ rotationId: null });
+      expect((await getLiveRotations(id)).current).toBeNull();
+
+      // La que quedó pendiente no se pierde: sigue ahí y se puede iniciar a mano.
+      await startRotationAs(actor, id, idOf(1, 2));
+      expect(place((await getLiveRotations(id)).current)).toBe("J1-R2");
+    });
+
     it("editar una rotación: los errores bloquean, también repetir base en la jornada", async () => {
       const { id, adminId } = await seedCompetition();
       const { teams, bases } = await seedField(id, adminId);

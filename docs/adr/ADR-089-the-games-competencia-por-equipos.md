@@ -1,6 +1,6 @@
 # ADR-089: The Games: competencia por equipos de Días EAFIT
 
-- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098, ADR-100, ADR-101, ADR-104 y ADR-106); implementación en curso
+- Estado: Aceptada (enmendada por ADR-093, ADR-094, ADR-095, ADR-096, ADR-098, ADR-100, ADR-101, ADR-104, ADR-106 y ADR-118); implementación en curso
 - Fecha: 2026-09-23
 - Relacionadas: ADR-002, ADR-007, ADR-011, ADR-012, ADR-013, ADR-014, ADR-020, ADR-036, ADR-047, ADR-058, ADR-064, ADR-072, ADR-075, ADR-082, ADR-085, ADR-090, ADR-091
 - Enmienda: ADR-011 (el cargo de Dirección de The Games habilita, por datos, la operación de la competencia de su edición), ADR-064 (esa entrega no ampliaba permisos por cargo: este lo hace, con alcance cerrado)
@@ -117,3 +117,7 @@ El ganador ya no sale solo de los enfrentamientos y de las competencias extra: l
 ## Enmienda (2026-10-02, ADR-106)
 
 Regla 10: el juez registra el resultado de su base una sola vez, después de confirmarlo en un aviso. Si repite el mismo resultado no cambia nada, y otro se rechaza: cambiarlo es de la operación, que lo corrige o lo anula en la mesa de control. Ver [ADR-106](ADR-106-la-base-empieza-con-la-rotacion.md).
+
+## Enmienda (2026-10-08, ADR-118)
+
+Regla 9: no decía cuál es la rotación siguiente entre jornadas, y el código tomaba la primera pendiente de toda la competencia: una rotación de la jornada 1 que no se jugó se anunciaba como siguiente durante la jornada 2 y «Avanzar» la iniciaba. Ahora la siguiente es la primera pendiente de la jornada en curso o de una posterior, y la jornada en curso es la más alta que ya tiene una rotación iniciada. La que quedó pendiente de una jornada anterior se inicia a mano. Ver [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 28.

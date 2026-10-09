@@ -29,7 +29,7 @@ import type { PowerDetail } from "./powers-pure";
 import { type JudgeMatchupPowers, judgePowers } from "./powers-reads";
 import { type RouteStop, toRouteStops } from "./route-pure";
 import { type RubricLevel, rubricLevel, rubricTotal, THE_CHALLENGE_RUBRIC } from "./rubric-pure";
-import type { Day, ScheduleRotation } from "./schedule-pure";
+import { type Day, nextPendingRotation, type ScheduleRotation } from "./schedule-pure";
 import type { BaseKind, Outcome } from "./scoring-pure";
 import { computeStandings, type StandingRow } from "./standings-pure";
 import { listJudgeDebts } from "./tracking";
@@ -471,32 +471,16 @@ export async function getRotation(
   return { ...rotation, matchups: await matchupsOf([rotation.id]) };
 }
 
-/** La rotación en curso y la siguiente pendiente, con sus enfrentamientos. */
+/** La rotación en curso y la que sigue (ADR-118 regla 28), con sus enfrentamientos. */
 export async function getLiveRotations(
   competitionId: string,
 ): Promise<{ current: RotationView | null; next: RotationView | null }> {
-  const db = getDb();
-  const [current] = await db
+  const rotations = await getDb()
     .select()
     .from(competitionRotation)
-    .where(
-      and(
-        eq(competitionRotation.competitionId, competitionId),
-        eq(competitionRotation.status, "ACTIVE"),
-      ),
-    )
-    .limit(1);
-  const [next] = await db
-    .select()
-    .from(competitionRotation)
-    .where(
-      and(
-        eq(competitionRotation.competitionId, competitionId),
-        eq(competitionRotation.status, "PENDING"),
-      ),
-    )
-    .orderBy(asc(competitionRotation.day), asc(competitionRotation.number))
-    .limit(1);
+    .where(eq(competitionRotation.competitionId, competitionId));
+  const current = rotations.find((rotation) => rotation.status === "ACTIVE");
+  const next = nextPendingRotation(rotations) ?? undefined;
   const ids = [current?.id, next?.id].filter((id): id is string => Boolean(id));
   const matchups = await matchupsOf(ids);
   const view = (rotation: RotationRow | undefined) =>
