@@ -456,4 +456,17 @@ describe("lo propio de un juego en la guardia", () => {
     expect(answer(await startPanalAs({ personId }, YESTERDAY_KEY))).toEqual(refused("EXPIRED"));
     expect(await panal.saved()).toEqual([]);
   });
+
+  it("el Panal no crea una partida de mañana con el término de hoy cuando el día cambia mientras espera (ADR-119 regla 7)", async () => {
+    const personId = await seedMember("guardia.panal-termino@eafit.edu.co");
+    // El término termina hoy: mañana ya no lo contiene.
+    await db()
+      .update(term)
+      .set({ endsOn: dayKeyFor(TODAY) });
+    const tomorrow = dayKeyFor(TOMORROW);
+    expect(
+      await acrossMidnight(async () => answer(await startPanalAs({ personId }, tomorrow))),
+    ).toEqual(refused("EXPIRED"));
+    expect(await panal.saved()).toEqual([]);
+  });
 });

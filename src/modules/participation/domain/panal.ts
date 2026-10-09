@@ -212,12 +212,14 @@ async function grantRewards(
 export async function startPanalAs(actor: MemberActor, expectedDay: string): Promise<PanalResult> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(expectedDay)) return { ok: false, reason: "INVALID_INPUT" };
   return runCommand(actor, async (ctx): Promise<PanalResult> => {
-    const current = await findTermContaining(dayKeyFor(new Date()), ctx.tx);
+    const initialDay = dayKeyFor(new Date());
+    const current = await findTermContaining(initialDay, ctx.tx);
     if (!current) return { ok: false, reason: "NO_TERM" };
     const open = await lockTerm(ctx, current.id);
     await lockPerson(ctx, actor.personId);
     const day = dayKeyFor(new Date());
-    if (day !== expectedDay) return { ok: false, reason: "EXPIRED" };
+    // El término se buscó con el día de antes de los candados: si cambió, ya no es el de `day`.
+    if (day !== initialDay || day !== expectedDay) return { ok: false, reason: "EXPIRED" };
     if (!(await eligible(actor.personId, ctx.tx))) return { ok: false, reason: "NOT_ELIGIBLE" };
     if (!open) return { ok: false, reason: "TERM_CLOSED" };
     const [existing] = await ctx.tx
