@@ -1,6 +1,6 @@
 # ADR-041: Wordle diario y cierre transaccional de puntos
 
-- Estado: Aceptada (enmendada por ADR-074 y ADR-075)
+- Estado: Aceptada (enmendada por ADR-074, ADR-075 y ADR-119)
 - Fecha: 2026-09-07
 - Relacionadas: ADR-007, ADR-008, ADR-011, ADR-012, ADR-020, ADR-030, ADR-032, ADR-035
 - Enmienda: ADR-035 (palabra del día, ledger y coordinación de escrituras con el cierre); ADR-007 (tipo WORDLE).
@@ -36,3 +36,7 @@ La regla 6 sigue igual para la jugada: `wordle.completed` no emite push. Lo que 
 ## Enmienda (2026-09-17, ADR-075)
 
 La regla 1 cambia en un punto y solo en uno: **sí hay ruta de juego**. El tablero se muda de `/app/gh-points` a `/app/juegos/wordle`, dentro de una biblioteca que reúne los juegos de la casa, y el resumen conserva el enlace; el ancla `#wordle` deja de existir. Todo lo demás de ADR-041 sigue vigente sin tocar: el día civil, las seis oportunidades, los premios de 6 a 1, los diccionarios, la palabra distinta por persona y la privacidad de la respuesta. La regla 6 suma un tipo hermano al ledger, `GAME2048`, que no altera el del Wordle. Ver [ADR-075](ADR-075-biblioteca-de-juegos-y-2048.md).
+
+## Enmienda (2026-10-09, ADR-119)
+
+Regla 2: el día de la partida sigue siendo el día civil de Colombia, pero ya no sale de restarle cinco horas fijas al instante («UTC−05:00»). Lo da la zona de la app ([ADR-020](ADR-020-zona-horaria.md)) con el mismo cálculo de los otros juegos y de los topes diarios (`dayKeyFor`), y «cuándo empieza el siguiente» sale de ese día más uno a la medianoche de la zona. Hoy las dos fórmulas dan lo mismo en todo instante: las comparó una propiedad sobre un año. Si la zona dejara de ser UTC−5 todo el año, el día cambiaría en la medianoche civil y no a las 05:00Z. Cuándo termina la partida («al cambiar de día, cerrar puntos o dejar de pertenecer al término vigente») no cambia: lo que el Wordle responde en cada caso queda declarado en la guardia única de la partida diaria, y lo que no coincide con los otros juegos espera las decisiones abiertas 49 y 50. Ver [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) reglas 6 y 7.
