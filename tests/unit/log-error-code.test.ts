@@ -100,4 +100,32 @@ describe("el código de un error en el registro", () => {
     });
     expect(lines[0]?.line).not.toContain("sintetic");
   });
+
+  it("los valores de una consulta que falló no salen: queda el SQL con sus marcadores", async () => {
+    // Drizzle trae los parámetros en `params` y los repite en su mensaje, que pino copia en `message`
+    // y en `stack`. Pueden ser un correo o la IP que va a la auditoría (DT-260).
+    const cause = withCode("terminating connection due to administrator command", "57P01");
+    const query = 'select "id" from "person" where "email" = $1 and "ip" = $2';
+    const values = ["valor.privado@eafit.edu.co", "203.0.113.7"];
+    const { lines } = await captureLogs(async () => {
+      logger.error(
+        { err: new DrizzleQueryError(query, values, cause) },
+        "the-games: no disponible",
+      );
+      // También cuando el error de la consulta llega como causa de otro.
+      logger.warn(
+        {
+          err: new Error("no se pudo guardar", {
+            cause: new DrizzleQueryError(query, values, cause),
+          }),
+        },
+        "falló",
+      );
+    });
+    expect(errOf(lines[0])).toMatchObject({ type: "DrizzleQueryError", code: "57P01", query });
+    expect(errOf(lines[0])).not.toHaveProperty("params");
+    expect(String(errOf(lines[1]).message)).toContain(query);
+    const written = lines.map((entry) => entry.line).join("\n");
+    for (const value of values) expect(written).not.toContain(value);
+  });
 });

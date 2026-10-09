@@ -27,18 +27,51 @@ function causeCode(error: Error): string | number | undefined {
   return undefined;
 }
 
+type QueryError = Error & { query: string; params: unknown[] };
+
+/** Un error de consulta de Drizzle: trae el SQL y, aparte, los valores con que se llamó. */
+function isQueryError(error: unknown): error is QueryError {
+  const candidate = error as Partial<QueryError> | null;
+  return (
+    error instanceof Error &&
+    typeof candidate?.query === "string" &&
+    Array.isArray(candidate.params)
+  );
+}
+
 /**
  * El serializador de pino dobla la causa dentro del mensaje y de la traza, y pierde su código. Drizzle
  * envuelve cada error de Postgres en un `DrizzleQueryError`, así que sin esto el `57P01` de una
  * consulta que falló no sale en ninguna parte.
+ *
+ * Los valores de esa consulta no salen (ADR-118 regla 23): pueden ser un correo o una IP. Drizzle los
+ * trae en `params` y los repite en su mensaje («Failed query: … params: …»), que pino copia en
+ * `message` y en `stack`, también cuando el error llega como causa de otro. El SQL, con sus `$1`, se
+ * queda: es lo que sirve para depurar.
  */
 function serializeError(error: unknown): unknown {
   const serialized = pino.stdSerializers.err(error as Error);
-  if (error instanceof Error && serialized.code === undefined) {
+  if (!(error instanceof Error)) {
+    return serialized;
+  }
+  if (serialized.code === undefined) {
     const code = causeCode(error);
     if (code !== undefined) {
       serialized.code = code;
     }
+  }
+  let current: unknown = error;
+  for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
+    if (isQueryError(current)) {
+      // Lo mismo que escribe Drizzle: `params: ${params}`.
+      const written = `\nparams: ${current.params.join(",")}`;
+      serialized.message = serialized.message.split(written).join("");
+      serialized.stack = serialized.stack.split(written).join("");
+    }
+    current = current.cause;
+  }
+  if (isQueryError(error)) {
+    delete serialized.params;
   }
   return serialized;
 }
