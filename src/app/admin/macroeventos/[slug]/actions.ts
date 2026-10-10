@@ -85,7 +85,7 @@ export async function macroeventAction(form: FormData): Promise<void> {
         const appointmentId = id.parse(text(form, "appointmentId"));
         const board = await listMacroeventBoard(edition.id);
         if (!board.some((row) => row.id === appointmentId)) throw new DomainError(t("T-2353"));
-        await removeAppointmentAs(actor, appointmentId);
+        await removeAppointmentAs(actor, appointmentId, { editionId: edition.id });
       }
       revalidatePath(`/admin/eventos/${event.id}/ediciones/${edition.id}/mesa`);
     } else {

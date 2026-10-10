@@ -325,7 +325,7 @@ export async function removeAppointmentAction(formData: FormData): Promise<void>
   const appointmentId = idSchema.parse(formData.get("appointmentId"));
   const actor = await requireAdminActor(await personUrl(id, "membresia"));
   await run(id, "membresia", "cargo", async () =>
-    removeAppointmentAs(await actorContext(actor), appointmentId),
+    removeAppointmentAs(await actorContext(actor), appointmentId, { personId: id }),
   );
 }
 

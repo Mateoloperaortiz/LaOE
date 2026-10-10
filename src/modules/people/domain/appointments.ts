@@ -217,9 +217,40 @@ export async function addAppointment(
   return row;
 }
 
-export async function removeAppointment(ctx: CommandContext, id: string): Promise<void> {
+/**
+ * De quién es el cargo que se quita: la persona de la ficha o la edición de la mesa del macroevento
+ * (ADR-122 regla 1). Es uno de los dos, nunca los dos ni ninguno.
+ */
+export type AppointmentOwner = { personId: string } | { editionId: string };
+
+/** Falla cerrado: un dueño que no se reconoce no es dueño de ningún cargo. */
+function ownsAppointment(
+  row: { personId: string; editionId: string | null },
+  owner: AppointmentOwner,
+): boolean {
+  const declared = owner as { personId?: unknown; editionId?: unknown } | null | undefined;
+  const personId = declared?.personId;
+  const editionId = declared?.editionId;
+  if (typeof personId === "string" && personId !== "" && editionId === undefined) {
+    return row.personId === personId;
+  }
+  if (typeof editionId === "string" && editionId !== "" && personId === undefined) {
+    return row.editionId === editionId;
+  }
+  return false;
+}
+
+/**
+ * Quita un cargo desde la página de su dueño, que es obligatorio (ADR-122 regla 1): el cargo de otra
+ * persona, o el que no es de esa mesa, responde como uno que no existe.
+ */
+export async function removeAppointment(
+  ctx: CommandContext,
+  id: string,
+  owner: AppointmentOwner,
+): Promise<void> {
   const [row] = await ctx.tx.select().from(appointment).where(eq(appointment.id, id));
-  if (!row) {
+  if (!row || !ownsAppointment(row, owner)) {
     throw new DomainError(t("T-032"));
   }
   await ctx.tx.delete(appointment).where(eq(appointment.id, id));

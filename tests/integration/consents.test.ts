@@ -70,7 +70,7 @@ describe("cargos de junta y de GH", () => {
     );
     const listed = await listAppointments(personId);
     expect(listed.map((item) => item.title ?? item.kind).sort()).toEqual(["Tesorería", "VP_GH"]);
-    await runCommand(SYSTEM_ACTOR, (ctx) => removeAppointment(ctx, added.id));
+    await runCommand(SYSTEM_ACTOR, (ctx) => removeAppointment(ctx, added.id, { personId }));
     expect((await listAppointments(personId)).map((item) => item.kind)).toEqual(["OTHER"]);
   });
 });

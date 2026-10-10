@@ -2,6 +2,7 @@ import { type Actor, runCommand } from "@/db/tx";
 import { type AdmitInput, admitPerson } from "./admission";
 import {
   type AppointmentInput,
+  type AppointmentOwner,
   addAppointment,
   addMacroeventDirector,
   type MacroeventDirectorInput,
@@ -105,8 +106,13 @@ export function addAppointmentAs(
   return runCommand(actor, (ctx) => addAppointment(ctx, personId, input, override));
 }
 
-export function removeAppointmentAs(actor: Actor, id: string): Promise<void> {
-  return runCommand(actor, (ctx) => removeAppointment(ctx, id));
+/** `owner` es la ficha o la mesa desde la que se quita el cargo (ADR-122 regla 1). */
+export function removeAppointmentAs(
+  actor: Actor,
+  id: string,
+  owner: AppointmentOwner,
+): Promise<void> {
+  return runCommand(actor, (ctx) => removeAppointment(ctx, id, owner));
 }
 
 export function addMacroeventDirectorAs(

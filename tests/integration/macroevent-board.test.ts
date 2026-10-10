@@ -194,7 +194,7 @@ describe("mesa directiva de macroevento", () => {
     const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
       addMacroeventDirector(ctx, { editionId, termId, personId: general, roleCode: "GENERAL" }),
     );
-    await runCommand(SYSTEM_ACTOR, (ctx) => removeAppointment(ctx, id));
+    await runCommand(SYSTEM_ACTOR, (ctx) => removeAppointment(ctx, id, { editionId }));
     expect(await listMacroeventBoard(editionId)).toEqual([]);
 
     await expect(

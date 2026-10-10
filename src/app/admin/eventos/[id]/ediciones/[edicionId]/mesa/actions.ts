@@ -97,7 +97,9 @@ export async function removeDirectorAction(formData: FormData): Promise<void> {
     redirect(`${back}?error=${encodeURIComponent("T-260")}`);
   }
   try {
-    await removeAppointmentAs(actor, parsed.data.appointmentId);
+    await removeAppointmentAs(actor, parsed.data.appointmentId, {
+      editionId: parsed.data.editionId,
+    });
   } catch (error) {
     if (error instanceof DomainError) {
       redirect(`${back}?error=${encodeURIComponent(error.message)}`);
