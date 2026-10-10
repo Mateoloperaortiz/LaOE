@@ -10689,6 +10689,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3258": {
+    where: "Membresía: se pide cambiar el estado de quien ya está de baja (ADR-120)",
+    text: "Esa persona ya está de baja: no se cambió nada. Para que vuelva, reactivala.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

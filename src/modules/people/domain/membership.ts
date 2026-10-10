@@ -250,7 +250,9 @@ export async function changeMembershipStatus(
   await lockWalletMember(ctx.tx, personId);
   const current = await lockMembership(ctx, personId);
   if (current.status === "INACTIVE") {
-    throw new Error("Una membresía terminada se reactiva, no se cambia de estado");
+    // Llega acá quien pidió el cambio mientras otro la daba de baja, como una importación del roster
+    // (ADR-120 regla 3): es una respuesta del dominio, no un error sin traducir.
+    throw new DomainError(t("T-3258"), "to");
   }
   // Un cambio que no cambia nada se dice (ADR-118 regla 10): antes respondía «guardado» sin escribir.
   if (current.status === input.to) {
