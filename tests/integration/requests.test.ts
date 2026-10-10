@@ -31,7 +31,8 @@ import {
   membership,
   person,
 } from "@/modules/people/schema";
-import { findTermByCode, nextTermCode } from "@/modules/terms";
+import { conventionalTermDates, findTermByCode, nextTermCode } from "@/modules/terms";
+import { term } from "@/modules/terms/schema";
 import type { MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
@@ -285,6 +286,76 @@ describe("solicitudes", () => {
     expect(
       (await getMyMembership(personId)).committees.map((row) => row.committeeSlug).sort(),
     ).toEqual(["a3", "pixel"]);
+  });
+
+  // ADR-121 regla 15: la aprobación valida el conjunto con los comités que la persona tiene al decidir,
+  // no con los que tenía al pedir. Un rechazo deshace también el término siguiente que alcanzó a crear.
+  it("aprobar un cambio de comité que ya no cambia nada responde su error y la solicitud sigue pendiente", async () => {
+    const { termId, personId, actor, a3 } = await activeMember("ya.cambio@eafit.edu.co");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    const cigma = await seedCommittee("cigma", "CIGMA");
+    await seedCommitteeMembership(personId, pixel, termId);
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const created = await createRequestAs(actor, "TRANSFER", {
+      reason: "Quiero cambiar de aire",
+      leaveCommitteeIds: [a3],
+      joinCommitteeIds: [cigma],
+    });
+    // GH hace a mano el mismo cambio antes de decidir la solicitud.
+    await setCommitteeMembershipsAs(gh, personId, termId, [
+      { committeeId: pixel, roles: [] },
+      { committeeId: cigma, roles: [] },
+    ]);
+    await expect(decideRequestAs(gh, created.id, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-887"),
+    );
+    expect((await getRequest(created.id))?.status).toBe("PENDING");
+    expect(await findTermByCode(nextTermCode(currentTermCode()))).toBeNull();
+  });
+
+  it("aprobar un cambio de comité que dejaría a la persona sin comités responde el rango y no escribe nada", async () => {
+    const { termId, personId, actor, a3 } = await activeMember("sin.comites@eafit.edu.co");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    await seedCommitteeMembership(personId, pixel, termId);
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const created = await createRequestAs(actor, "TRANSFER", {
+      reason: "Me quedo con uno",
+      leaveCommitteeIds: [a3],
+      joinCommitteeIds: [],
+    });
+    // Al pedir quedaba en PIXEL; antes de decidir, GH la saca de PIXEL y le queda solo A3.
+    await setCommitteeMembershipsAs(gh, personId, termId, [{ committeeId: a3, roles: [] }]);
+    await expect(decideRequestAs(gh, created.id, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-886", { min: 1, max: 3 }),
+    );
+    expect((await getRequest(created.id))?.status).toBe("PENDING");
+    expect(await findTermByCode(nextTermCode(currentTermCode()))).toBeNull();
+    expect((await getMyMembership(personId)).committees.map((row) => row.committeeSlug)).toEqual([
+      "a3",
+    ]);
+  });
+
+  // El término siguiente se asegura antes de validar el conjunto, para tomar el candado del calendario
+  // antes que la fila de la membresía (ADR-121 regla 15): si fallan las dos cosas, gana la del término.
+  it("si el término siguiente se cruza con el vigente, aprobar un cambio de comité responde ese error antes que el del conjunto", async () => {
+    const { termId, personId, actor, a3 } = await activeMember("termino.cruzado@eafit.edu.co");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    await seedCommitteeMembership(personId, pixel, termId);
+    const gh = { personId: await seedMember("gh@eafit.edu.co"), ip: null };
+    const created = await createRequestAs(actor, "TRANSFER", {
+      reason: "Me quedo con uno",
+      leaveCommitteeIds: [a3],
+      joinCommitteeIds: [],
+    });
+    await setCommitteeMembershipsAs(gh, personId, termId, [{ committeeId: a3, roles: [] }]);
+    // El vigente termina el mismo día en que empezaría el siguiente.
+    const nextStart = conventionalTermDates(nextTermCode(currentTermCode())).startsOn;
+    await getDb().update(term).set({ endsOn: nextStart }).where(eq(term.id, termId));
+    await expect(decideRequestAs(gh, created.id, { decision: "APPROVED" })).rejects.toThrow(
+      t("T-3254", { término: currentTermCode() }),
+    );
+    expect((await getRequest(created.id))?.status).toBe("PENDING");
+    expect(await findTermByCode(nextTermCode(currentTermCode()))).toBeNull();
   });
 
   // ADR-118 regla 10 (DT-204): antes la aprobación terminaba bien sin escribir nada y la solicitud
