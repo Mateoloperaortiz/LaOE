@@ -7,8 +7,11 @@ import {
 import {
   canCancelWithOccasion,
   canTransitionCheckIn,
+  closedToSelf,
   initialStatus,
   outcomeFor,
+  type SelfCheckInFacts,
+  selfCheckInDenial,
   statusForDecision,
 } from "@/modules/participation/domain/check-in-pure";
 import {
@@ -177,6 +180,136 @@ describe("check-in", () => {
     expect(canCancelWithOccasion("REJECTED")).toBe(false);
     expect(canCancelWithOccasion("CANCELLED")).toBe(false);
     expect(canCancelWithOccasion("EXCUSED")).toBe(false);
+  });
+});
+
+describe("registro propio: por qué no procede (ADR-120 regla 17)", () => {
+  const TERM = "termino-de-la-ocasion";
+  const opensAt = new Date("2026-03-10T15:00:00Z");
+  const closesAt = new Date("2026-03-10T17:00:00Z");
+  const before = new Date("2026-03-10T14:59:59Z");
+  const during = new Date("2026-03-10T16:00:00Z");
+  const after = new Date("2026-03-10T17:00:01Z");
+
+  const nueva = { status: "ACTIVE", firstTermId: TERM } as const;
+  const veterana = { status: "ACTIVE", firstTermId: "termino-anterior" } as const;
+  const honoraria = { status: "HONORARY", firstTermId: "termino-anterior" } as const;
+  const enLicencia = { status: "ON_LEAVE", firstTermId: TERM } as const;
+  const deBaja = { status: "INACTIVE", firstTermId: TERM } as const;
+  const deBajaVeterana = { status: "INACTIVE", firstTermId: "termino-anterior" } as const;
+
+  type Over = Partial<Omit<SelfCheckInFacts, "occasion">> & {
+    occasion?: Partial<SelfCheckInFacts["occasion"]>;
+  };
+
+  /** Una persona activa y nueva frente a una ocasión abierta, en su ventana y con el término abierto. */
+  function facts(over: Over = {}): SelfCheckInFacts {
+    return {
+      termClosed: false,
+      membership: nueva,
+      now: during,
+      ...over,
+      occasion: {
+        status: "OPEN",
+        termId: TERM,
+        newMembersOnly: false,
+        checkInOpensAt: opensAt,
+        checkInClosesAt: closesAt,
+        ...over.occasion,
+      },
+    };
+  }
+
+  it.each<[string, Over, ReturnType<typeof selfCheckInDenial>]>([
+    ["una activa se registra", {}, null],
+    ["una honoraria se registra", { membership: honoraria }, null],
+    [
+      "una veterana se registra si la ocasión no es solo para nuevos",
+      { membership: veterana },
+      null,
+    ],
+    [
+      "una nueva se registra en una ocasión solo para nuevos",
+      { occasion: { newMembersOnly: true } },
+      null,
+    ],
+    ["la ventana abre en su hora exacta", { now: opensAt }, null],
+    ["una ocasión en borrador", { occasion: { status: "DRAFT" } }, "DRAFT"],
+    ["una ocasión cancelada", { occasion: { status: "CANCELLED" } }, "CANCELLED"],
+    ["una ocasión cerrada", { occasion: { status: "CLOSED" } }, "CLOSED"],
+    ["el término con los puntos cerrados", { termClosed: true }, "TERM_CLOSED"],
+    ["antes de la ventana", { now: before }, "NOT_OPEN_YET"],
+    ["después de la ventana", { now: after }, "WINDOW_CLOSED"],
+    ["la ventana cierra en su hora exacta", { now: closesAt }, "WINDOW_CLOSED"],
+    ["una persona en licencia", { membership: enLicencia }, "NOT_ELIGIBLE"],
+    ["una persona de baja", { membership: deBaja }, "NOT_ELIGIBLE"],
+    ["quien no tiene membresía", { membership: null }, "NOT_ELIGIBLE"],
+    [
+      "una veterana en una ocasión solo para nuevos",
+      { membership: veterana, occasion: { newMembersOnly: true } },
+      "NEW_MEMBERS_ONLY",
+    ],
+  ])("un motivo por caso: %s", (_title, over, expected) => {
+    expect(selfCheckInDenial(facts(over))).toBe(expected);
+  });
+
+  it.each<[string, Over, ReturnType<typeof selfCheckInDenial>]>([
+    [
+      "el estado antes que el término",
+      { occasion: { status: "CANCELLED" }, termClosed: true },
+      "CANCELLED",
+    ],
+    ["el término antes que la ventana", { termClosed: true, now: after }, "TERM_CLOSED"],
+    ["la ventana antes que la membresía", { now: before, membership: deBaja }, "NOT_OPEN_YET"],
+    [
+      "la membresía antes que solo nuevos",
+      { membership: deBajaVeterana, occasion: { newMembersOnly: true } },
+      "NOT_ELIGIBLE",
+    ],
+    [
+      "sin membresía tampoco se responde solo nuevos",
+      { membership: null, occasion: { newMembersOnly: true } },
+      "NOT_ELIGIBLE",
+    ],
+    [
+      "con todos a la vez manda el estado",
+      {
+        occasion: { status: "DRAFT", newMembersOnly: true },
+        termClosed: true,
+        now: after,
+        membership: deBajaVeterana,
+      },
+      "DRAFT",
+    ],
+  ])("cuando aplican varios responde el primero: %s", (_title, over, expected) => {
+    expect(selfCheckInDenial(facts(over))).toBe(expected);
+  });
+
+  it("con el término cerrado siempre hay motivo: el comando no escribe sin tomarlo", () => {
+    for (const status of ["OPEN", "DRAFT", "CLOSED", "CANCELLED"] as const) {
+      for (const now of [before, during, after]) {
+        for (const membership of [nueva, veterana, honoraria, enLicencia, deBaja, null]) {
+          for (const newMembersOnly of [true, false]) {
+            const denial = selfCheckInDenial(
+              facts({ termClosed: true, now, membership, occasion: { status, newMembersOnly } }),
+            );
+            expect(denial, `${status} ${now.toISOString()}`).not.toBeNull();
+          }
+        }
+      }
+    }
+  });
+
+  it("falla cerrado ante un valor que no reconoce", () => {
+    // Un estado de ocasión o de membresía que el tipo todavía no conoce no abre el registro.
+    expect(closedToSelf("OPEN")).toBeNull();
+    expect(closedToSelf("ARCHIVED" as never)).toBe("ARCHIVED");
+    expect(selfCheckInDenial(facts({ occasion: { status: "ARCHIVED" as never } }))).toBe(
+      "ARCHIVED",
+    );
+    expect(
+      selfCheckInDenial(facts({ membership: { status: "SUSPENDED" as never, firstTermId: TERM } })),
+    ).toBe("NOT_ELIGIBLE");
   });
 });
 

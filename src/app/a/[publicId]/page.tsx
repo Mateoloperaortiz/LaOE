@@ -16,9 +16,11 @@ import {
   listBoostersFor,
   loadGamificationSettings,
   type OccasionRow,
-  windowState,
+  type SelfCheckInEligibilityDenial,
+  type SelfCheckInFacts,
+  selfCheckInDenial,
 } from "@/modules/participation";
-import { canParticipate, getMembershipRef } from "@/modules/people";
+import { getMembershipRef } from "@/modules/people";
 import { resolveAlias } from "@/modules/system";
 import { getTerm } from "@/modules/terms";
 import { Cartel, Elemento, LogoOE, SelloOE } from "@/shared/brand";
@@ -103,32 +105,43 @@ const SUCCESS_CODES: readonly CheckInResultCode[] = ["puntos", "registrado", "pe
 /** Lo que el comando responde a una membresía que no admite el registro (`NOT_ELIGIBLE`). */
 const notEligibleText = () => t("T-673", { nombre: "" }).trim();
 
+/** El texto de cada motivo por el que el registro propio no procede (ADR-120 regla 17). */
+function denialText(denial: SelfCheckInEligibilityDenial, row: OccasionRow): string {
+  switch (denial) {
+    case "DRAFT":
+      return t("T-526");
+    case "CANCELLED":
+      return t("T-524");
+    case "CLOSED":
+    case "WINDOW_CLOSED":
+      return t("T-096");
+    case "TERM_CLOSED":
+      return t("T-525");
+    case "NOT_OPEN_YET":
+      return t("T-097", {
+        fecha: formatDate(row.checkInOpensAt),
+        hora: formatTime(row.checkInOpensAt),
+      });
+    case "NOT_ELIGIBLE":
+      return notEligibleText();
+    case "NEW_MEMBERS_ONLY":
+      return t("T-523");
+  }
+}
+
+/**
+ * El motivo lo decide el dominio con el mismo orden que el comando; acá solo se elige su texto. Sin
+ * motivo, la pantalla ofrece el registro: el código rotativo y el booster los responde el comando.
+ */
 function occasionView(
   row: OccasionRow,
   termClosed: boolean,
-  eligible: boolean,
-  isNew: boolean,
+  membership: SelfCheckInFacts["membership"],
   now: Date,
   result: CheckInResultCode | null,
 ): View {
-  if (row.status === "DRAFT") return { kind: "message", text: t("T-526") };
-  if (row.status === "CANCELLED") return { kind: "message", text: t("T-524") };
-  if (row.status === "CLOSED") return { kind: "message", text: t("T-096") };
-  if (termClosed) return { kind: "message", text: t("T-525") };
-  const window = windowState(row, now);
-  if (window === "NOT_OPEN") {
-    return {
-      kind: "message",
-      text: t("T-097", {
-        fecha: formatDate(row.checkInOpensAt),
-        hora: formatTime(row.checkInOpensAt),
-      }),
-    };
-  }
-  if (window === "CLOSED") return { kind: "message", text: t("T-096") };
-  // La membresía va antes que solo nuevos, como en el comando (ADR-120 regla 17).
-  if (!eligible) return { kind: "message", text: notEligibleText() };
-  if (row.newMembersOnly && !isNew) return { kind: "message", text: t("T-523") };
+  const denial = selfCheckInDenial({ occasion: row, termClosed, membership, now });
+  if (denial) return { kind: "message", text: denialText(denial, row) };
   if (result === "inactivo") return { kind: "message", text: notEligibleText() };
   return {
     kind: "form",
@@ -186,8 +199,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
       : occasionView(
           row,
           term?.pointsClosedAt !== null && term?.pointsClosedAt !== undefined,
-          canParticipate(membership?.status),
-          membership?.firstTermId === row.termId,
+          membership,
           now,
           result,
         ));

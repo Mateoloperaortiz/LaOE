@@ -13,13 +13,17 @@ import {
   type CheckInStatus,
   canCancelWithOccasion,
   canTransitionCheckIn,
+  closedToSelf,
+  ELIGIBLE_STATUSES,
   initialStatus,
+  type MembershipRef,
   outcomeFor,
+  type SelfCheckInEligibilityDenial,
+  selfCheckInDenial,
   statusForDecision,
 } from "./check-in-pure";
 import { AlreadyCheckedIn, checkInStatusLabel, transitionCheckIn } from "./check-in-transition";
 import type { GamificationSettings, MemberContext } from "./member-context";
-import { windowState } from "./occasion-pure";
 import { type OccasionRow, occasionStateError } from "./occasions";
 import { verifyRotatingCode } from "./rotating-code-pure";
 
@@ -41,13 +45,6 @@ import { verifyRotatingCode } from "./rotating-code-pure";
 // La excusa no toma el del término (regla 3).
 
 export type CheckInRow = typeof checkIn.$inferSelect;
-
-export interface MembershipRef {
-  status: "ACTIVE" | "ON_LEAVE" | "HONORARY" | "INACTIVE";
-  firstTermId: string;
-}
-
-const ELIGIBLE_STATUSES: readonly MembershipRef["status"][] = ["ACTIVE", "HONORARY"];
 
 async function readOccasion(ctx: CommandContext, id: string): Promise<OccasionRow | null> {
   const [row] = await ctx.tx.select().from(occasion).where(eq(occasion.id, id)).limit(1);
@@ -134,14 +131,7 @@ export interface SelfCheckInContext {
 
 export type SelfCheckInDenial =
   | "NOT_FOUND"
-  | "DRAFT"
-  | "CANCELLED"
-  | "CLOSED"
-  | "TERM_CLOSED"
-  | "NOT_OPEN_YET"
-  | "WINDOW_CLOSED"
-  | "NOT_ELIGIBLE"
-  | "NEW_MEMBERS_ONLY"
+  | SelfCheckInEligibilityDenial
   | "CODE_REQUIRED"
   | "BAD_CODE"
   | "BOOSTER";
@@ -157,16 +147,12 @@ export type SelfCheckInResult =
   | { ok: false; reason: SelfCheckInDenial; opensAt?: Date; message?: string }
   | { ok: false; reason: "ALREADY"; existing: CheckInRow };
 
-function isClosedToSelf(
-  row: OccasionRow,
-): row is OccasionRow & { status: "DRAFT" | "CANCELLED" | "CLOSED" } {
-  return row.status === "DRAFT" || row.status === "CANCELLED" || row.status === "CLOSED";
-}
-
 /**
- * Valida en orden: ocasión → estado → término → ventana → membresía → solo nuevos → código. Si otro
- * registro ganó el índice único lanza `AlreadyCheckedIn`, y si el booster elegido no vale,
- * `BoosterDenied`: las dos señales deshacen la transacción y el wrapper las responde afuera.
+ * Valida en orden: ocasión → estado → término → ventana → membresía → solo nuevos → código. De
+ * estado a solo nuevos el motivo lo decide `selfCheckInDenial` (ADR-120 regla 17), con el término y
+ * la ocasión ya tomados. Si otro registro ganó el índice único lanza `AlreadyCheckedIn`, y si el
+ * booster elegido no vale, `BoosterDenied`: las dos señales deshacen la transacción y el wrapper las
+ * responde afuera.
  */
 export async function checkInSelf(
   ctx: CommandContext,
@@ -182,35 +168,41 @@ export async function checkInSelf(
   if (existing) {
     return { ok: false, reason: "ALREADY", existing };
   }
-  if (isClosedToSelf(observed)) {
-    return { ok: false, reason: observed.status };
+  // Sobre la lectura sin candado solo se adelanta el primer peldaño, que no depende de nada más: una
+  // ocasión que no recibe registros responde sin tomar el término ni su fila.
+  const closed = closedToSelf(observed.status);
+  if (closed) {
+    return { ok: false, reason: closed };
   }
+  // Que el término haya cerrado sus puntos es un dato del motivo, no un error.
+  let termClosed = false;
   try {
     await lockOpenTermPoints(ctx.tx, observed.termId);
   } catch (error) {
-    if (error instanceof DomainError && error.message === t("T-629")) {
-      return { ok: false, reason: "TERM_CLOSED" };
+    if (!(error instanceof DomainError && error.message === t("T-629"))) {
+      throw error;
     }
-    throw error;
+    termClosed = true;
   }
   // ADR-119 regla 1: el estado se vuelve a leer con la ocasión tomada. La que se canceló o se cerró
-  // entre la primera lectura y el candado responde lo mismo que si ya lo estuviera al llegar.
-  const row = await lockOccasion(ctx, observed);
-  if (isClosedToSelf(row)) {
-    return { ok: false, reason: row.status };
+  // entre la primera lectura y el candado responde lo mismo que si ya lo estuviera al llegar. Con el
+  // término cerrado no se toma: nada se va a escribir.
+  const row = termClosed ? observed : await lockOccasion(ctx, observed);
+  const denial = selfCheckInDenial({
+    occasion: row,
+    termClosed,
+    membership: context.membership,
+    now,
+  });
+  if (denial) {
+    return denial === "NOT_OPEN_YET"
+      ? { ok: false, reason: denial, opensAt: row.checkInOpensAt }
+      : { ok: false, reason: denial };
   }
-  const window = windowState(row, now);
-  if (window === "NOT_OPEN") {
-    return { ok: false, reason: "NOT_OPEN_YET", opensAt: row.checkInOpensAt };
-  }
-  if (window === "CLOSED") {
-    return { ok: false, reason: "WINDOW_CLOSED" };
-  }
-  if (!context.membership || !ELIGIBLE_STATUSES.includes(context.membership.status)) {
-    return { ok: false, reason: "NOT_ELIGIBLE" };
-  }
-  if (row.newMembersOnly && context.membership.firstTermId !== row.termId) {
-    return { ok: false, reason: "NEW_MEMBERS_ONLY" };
+  // Sin el término tomado no se escribe: con los puntos cerrados siempre hay motivo, y si un día la
+  // función dejara de darlo, esto falla cerrado.
+  if (termClosed) {
+    throw new DomainError(t("T-629"));
   }
   if (row.requireRotatingCode) {
     const code = input.code?.trim() ?? "";

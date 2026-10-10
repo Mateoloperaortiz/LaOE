@@ -106,6 +106,9 @@ export {
   type CheckInOutcome,
   type CheckInSource,
   type CheckInStatus,
+  type SelfCheckInEligibilityDenial,
+  type SelfCheckInFacts,
+  selfCheckInDenial,
 } from "./domain/check-in-pure";
 export {
   type ApprovedCheckIn,
