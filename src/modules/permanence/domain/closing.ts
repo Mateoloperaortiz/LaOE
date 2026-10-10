@@ -425,11 +425,22 @@ export async function confirmAllProposedAs(actor: Actor, termId: string): Promis
   return pending.length;
 }
 
+/** Lo que el cierre exige de las filas a cerrar: que haya a quién cerrar y que nadie esté sin decidir. */
+async function requireAllDecided(term: { id: string; code: string }): Promise<void> {
+  const { rows, summary } = await listClosingRows(term.id);
+  if (rows.length === 0) {
+    throw new DomainError(t("T-814", { término: term.code }));
+  }
+  if (summary.undecided > 0) {
+    throw new DomainError(t("T-807", { n: summary.undecided }));
+  }
+}
+
 /**
  * Aplicar el cierre (ADMIN, step-up en la acción): recalcula afuera, y en una transacción toma el
- * candado de los recálculos del término, lo estampa, congela los snapshots con su estado final
- * (ADR-116 regla 6), asegura el término siguiente
- * y encola el job de decisiones.
+ * candado de los recálculos del término, comprueba bajo ese candado que nadie quedó sin decidir
+ * (ADR-121 regla 2), lo estampa, congela los snapshots con su estado final (ADR-116 regla 6), asegura
+ * el término siguiente y encola el job de decisiones.
  */
 export async function closeTermPermanenceAs(
   actor: Actor,
@@ -437,18 +448,15 @@ export async function closeTermPermanenceAs(
 ): Promise<{ nextTermId: string }> {
   const term = await requireClosable(termId);
   await recomputeSnapshots(termId);
-  const { rows, summary } = await listClosingRows(termId);
-  if (rows.length === 0) {
-    throw new DomainError(t("T-814", { término: term.code }));
-  }
-  if (summary.undecided > 0) {
-    throw new DomainError(t("T-807", { n: summary.undecided }));
-  }
   return runCommand(actor, async (ctx) => {
     // El mismo candado de los recálculos, antes de tocar nada (ADR-116 regla 6): uno en vuelo termina
     // primero y uno que llega espera y encuentra los snapshots congelados. Sin él, el recálculo escribe
     // en el orden de las personas, el cierre toma las filas en el de `id` y PostgreSQL corta a uno.
     await lockTermSnapshots(ctx.tx, termId);
+    // Recién con el candado se leen las filas a cerrar: validarlas antes dejaba entrar un recálculo
+    // con hechos distintos entre la validación y el candado, y el término cerraba con alguien sin
+    // decisión. Acá nadie más escribe un snapshot del término, y la transacción aún no escribió nada.
+    await requireAllDecided(term);
     const nextTermId = (await ensureNextTerm(ctx, term)).id;
     await closeTermPermanence(ctx, termId);
     await freezeSnapshots(ctx, termId);

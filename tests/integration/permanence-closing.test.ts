@@ -517,6 +517,65 @@ describe("cierre de permanencia", () => {
     }
   });
 
+  it("un recálculo que deja a alguien sin decisión entre la validación y el candado detiene el cierre, que no aplica nada", async () => {
+    const { termId, pixel, people } = await setup();
+    await runCommand(SYSTEM_ACTOR, (ctx) => closeTermPoints(ctx, termId));
+    await confirmAllProposedAs(GH, termId);
+    const termsBefore = (await getDb().select({ id: term.id }).from(term)).length;
+    const lockTerm = (tx: Tx) =>
+      tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`permanence:${termId}`}))`);
+    // La cola del candado de los recálculos del término, en el orden en que PostgreSQL lo entrega:
+    // el recálculo del propio cierre, una transacción que solo lo retiene y un recálculo ajeno.
+    const first = await holdTransaction(lockTerm);
+    const closing = closeTermPermanenceAs(GH, termId);
+    void closing.catch(() => undefined);
+    let second: ReturnType<typeof holdTransaction> | null = null;
+    let recompute: Promise<number> = Promise.resolve(0);
+    try {
+      await expect.poll(() => waitingOn(first.pid)).toBe(1);
+      second = holdTransaction(lockTerm);
+      void second.catch(() => undefined);
+      await expect.poll(() => waitingOn(first.pid)).toBe(2);
+      recompute = recomputeSnapshots(termId);
+      void recompute.catch(() => undefined);
+      await expect.poll(() => waitingOn(first.pid)).toBe(3);
+      first.release();
+      await first.done;
+      // El cierre ya recalculó y validó «nadie sin decidir»; ahora hace cola, detrás del recálculo
+      // ajeno, por el candado con el que abre su transacción.
+      const gap = await second;
+      await expect.poll(() => waitingOn(gap.pid)).toBe(2);
+      // En ese hueco cambian los hechos: quien cumplía entra a un segundo comité, y el recálculo que
+      // esperaba le suma un resultado que nadie decidió.
+      await seedCommitteeMembership(people.cumple, pixel, termId, "MIEMBRO", {
+        joinedAt: new Date("2024-07-20T12:00:00Z"),
+      });
+      gap.release();
+      await gap.done;
+      expect(await recompute).toBe(3);
+      // El mismo error que cuando falta una decisión antes de empezar (T-807).
+      await expect(closing).rejects.toThrow(t("T-807", { n: 1 }));
+    } finally {
+      first.release();
+      const gap = await second?.catch(() => null);
+      gap?.release();
+      await Promise.allSettled([first.done, gap?.done, closing, recompute]);
+    }
+    // Nada se aplicó: el término sigue abierto, no nació el siguiente, ningún snapshot quedó congelado
+    // y no hay evento de cierre que el job pueda tomar.
+    expect((await getTerm(termId))?.permanenceClosedAt).toBeNull();
+    expect(await getDb().select({ id: term.id }).from(term)).toHaveLength(termsBefore);
+    for (const snapshot of await listSnapshots(termId)) expect(snapshot.frozenAt).toBeNull();
+    expect(
+      await getDb()
+        .select({ id: outbox.id })
+        .from(outbox)
+        .where(eq(outbox.eventType, permanenceClosed.type)),
+    ).toHaveLength(0);
+    const { summary } = await listClosingRows(termId);
+    expect(summary).toMatchObject({ undecided: 1, applied: 0 });
+  });
+
   // Decisión abierta 22: los términos que cerraron antes de ADR-116 regla 6 tienen sus snapshots
   // congelados con el estado abierto. Qué se hace con ellos no está decidido: ni el cierre ni los
   // lectores los tocan, y esta prueba fija que se leen tal como quedaron guardados.
