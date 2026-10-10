@@ -103,6 +103,33 @@ describe("la redacción del registro a cualquier profundidad", () => {
     expectNoSecret(lines);
   });
 
+  it("el código de un error se deja leer solo si es un texto o un número: otra cosa bajo esa clave sale oculta", async () => {
+    const { lines } = await captureLogs(async () => {
+      logger.error(
+        {
+          err: Object.assign(new Error("falló"), {
+            code: { token: SECRETS.token, detalle: { secret: SECRETS.secret } },
+          }),
+        },
+        "falló",
+      );
+      logger.error(
+        {
+          err: new AggregateError(
+            [Object.assign(new Error("intento"), { code: [SECRETS.password] })],
+            "todos fallaron",
+          ),
+        },
+        "falló",
+      );
+      logger.error({ err: Object.assign(new Error("falló"), { code: 42 }) }, "falló");
+    });
+    expect(errOf(lines[0]).code).toBe("[oculto]");
+    expect(errOf(lines[1]).aggregateErrors).toMatchObject([{ code: "[oculto]" }]);
+    expect(errOf(lines[2]).code).toBe(42);
+    expectNoSecret(lines);
+  });
+
   it("lo que no es una de las cuatro claves sale igual a cualquier profundidad", async () => {
     const payload = nested(5, {
       cuando: new Date("2026-10-10T15:00:00.000Z"),

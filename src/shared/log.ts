@@ -6,12 +6,21 @@ const pretty = !isProduction && !process.env.CI && process.stdout.isTTY;
 const REDACTED = "[oculto]";
 
 /**
+ * El código de un error es un texto o un número (`57P01`, `ECONNRESET`, `-61`). Otra cosa bajo esa
+ * clave no es un código, y lo que cuelgue de ella no se deja leer (ADR-120 regla 9).
+ */
+function isErrorCode(value: unknown): value is string | number {
+  return typeof value === "string" || typeof value === "number";
+}
+
+/**
  * Lo único que las rutas de abajo dejan leer: el código de un error registrado como `err` (`57P01`,
  * `ECONNRESET`), que es por lo que se busca en un incidente (ADR-118 regla 23). Cualquier otro `code`
  * sigue oculto, y si pino deja de decir de qué clave viene, este también.
  */
 function censor(value: unknown, path: string[]): unknown {
-  return path.length === 2 && path[0] === "err" && path[1] === "code" ? value : REDACTED;
+  const isCodeOfError = path.length === 2 && path[0] === "err" && path[1] === "code";
+  return isCodeOfError && isErrorCode(value) ? value : REDACTED;
 }
 
 /** Las cuatro claves que el registro no escribe, estén donde estén. */
@@ -52,10 +61,13 @@ function hideKeysInError(value: unknown): void {
   }
   const record = value as Record<string, unknown>;
   for (const key of Object.keys(record)) {
+    const inner = record[key];
     if (key === "code") {
+      if (!isErrorCode(inner)) {
+        record[key] = REDACTED;
+      }
       continue;
     }
-    const inner = record[key];
     if (key === "aggregateErrors" && Array.isArray(inner)) {
       for (const grouped of inner) {
         hideKeysInError(grouped);
