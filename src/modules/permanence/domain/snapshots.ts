@@ -1,6 +1,6 @@
 import { and, asc, eq, isNull, notInArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand, type Tx } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { permanenceRecompute } from "@/domain-events/permanence";
 import { permanenceSnapshot } from "../schema";
@@ -79,8 +79,11 @@ export async function getSnapshot(personId: string, termId: string): Promise<Sna
   return row ? toView(row) : null;
 }
 
-export async function listSnapshots(termId: string): Promise<SnapshotView[]> {
-  const rows = await getDb()
+export async function listSnapshots(
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<SnapshotView[]> {
+  const rows = await exec
     .select()
     .from(permanenceSnapshot)
     .where(eq(permanenceSnapshot.termId, termId));

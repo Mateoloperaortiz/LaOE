@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { permanenceClosed, permanenceDecided } from "@/domain-events/permanence";
 import {
@@ -110,8 +110,11 @@ function pendingOf(result: PersonPermanence): number {
   return pending;
 }
 
-export async function listDecisions(termId: string): Promise<DecisionRow[]> {
-  return getDb()
+export async function listDecisions(
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<DecisionRow[]> {
+  return exec
     .select()
     .from(permanenceDecision)
     .where(eq(permanenceDecision.termId, termId))
@@ -179,10 +182,17 @@ export function filterClosingRows(
   }
 }
 
-/** Las filas del cierre: snapshot (vivo o congelado), propuesta derivada y decisión confirmada si existe. */
-export async function listClosingRows(termId: string): Promise<ClosingView> {
-  const snapshots = await listSnapshots(termId);
-  const decisions = await listDecisions(termId);
+/**
+ * Las filas del cierre: snapshot (vivo o congelado), propuesta derivada y decisión confirmada si existe.
+ * Los snapshots y las decisiones se leen por `exec`: el cierre pasa su transacción (ADR-121 regla 2).
+ * Los nombres de personas y comités, que no deciden nada, van siempre por el pool.
+ */
+export async function listClosingRows(
+  termId: string,
+  exec: Executor = getDb(),
+): Promise<ClosingView> {
+  const snapshots = await listSnapshots(termId, exec);
+  const decisions = await listDecisions(termId, exec);
   const evaluated = snapshots.filter((item) => item.status === "ACTIVE" && item.results.length > 0);
   const people = await getPeopleByIds([
     ...new Set([
@@ -425,9 +435,12 @@ export async function confirmAllProposedAs(actor: Actor, termId: string): Promis
   return pending.length;
 }
 
-/** Lo que el cierre exige de las filas a cerrar: que haya a quién cerrar y que nadie esté sin decidir. */
-async function requireAllDecided(term: { id: string; code: string }): Promise<void> {
-  const { rows, summary } = await listClosingRows(term.id);
+/**
+ * Lo que el cierre exige de las filas a cerrar: que haya a quién cerrar y que nadie esté sin decidir.
+ * Lee por la transacción del cierre, que ya tiene el candado del término.
+ */
+async function requireAllDecided(tx: Tx, term: { id: string; code: string }): Promise<void> {
+  const { rows, summary } = await listClosingRows(term.id, tx);
   if (rows.length === 0) {
     throw new DomainError(t("T-814", { término: term.code }));
   }
@@ -455,8 +468,8 @@ export async function closeTermPermanenceAs(
     await lockTermSnapshots(ctx.tx, termId);
     // Recién con el candado se leen las filas a cerrar: validarlas antes dejaba entrar un recálculo
     // con hechos distintos entre la validación y el candado, y el término cerraba con alguien sin
-    // decisión. Acá nadie más escribe un snapshot del término, y la transacción aún no escribió nada.
-    await requireAllDecided(term);
+    // decisión. Acá nadie más escribe un snapshot del término, y se leen por esta misma transacción.
+    await requireAllDecided(ctx.tx, term);
     const nextTermId = (await ensureNextTerm(ctx, term)).id;
     await closeTermPermanence(ctx, termId);
     await freezeSnapshots(ctx, termId);
