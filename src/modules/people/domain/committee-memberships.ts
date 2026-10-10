@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db/client";
-import type { CommandContext, Executor } from "@/db/tx";
+import type { CommandContext, Executor, Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { committeeMembershipChanged } from "@/domain-events/people";
 import { requireConfig } from "@/modules/system";
@@ -156,6 +156,26 @@ export async function getMyMembership(
     committees: rows.map((row) => ({ ...row, roles: rolesOf(roles, row.id) })),
     isNew: own?.firstTermId === current.id,
   };
+}
+
+/**
+ * Los mismos comités vivos, para quien va a armar un cambio sobre ellos dentro de su comando. Toma antes
+ * la fila de la membresía, el candado de todo el que cambia los comités de la persona
+ * (`setCommitteeMemberships`, el roster de la dirección y la baja; ADR-118 regla 11): uno que va en
+ * vuelo termina primero, y lo que esto devuelve no cambia hasta que la transacción confirme (ADR-121
+ * regla 15).
+ */
+export async function getMyMembershipForUpdate(
+  tx: Tx,
+  personId: string,
+  now = new Date(),
+): Promise<MyMembership> {
+  await tx
+    .select({ personId: membership.personId })
+    .from(membership)
+    .where(eq(membership.personId, personId))
+    .for("update");
+  return getMyMembership(personId, tx, now);
 }
 
 export interface LiveCommitteePayload {

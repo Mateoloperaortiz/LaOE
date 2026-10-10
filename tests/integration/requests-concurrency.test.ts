@@ -1,17 +1,30 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { requestDecided, requestWithdrawn } from "@/domain-events/crm";
 import { createRequestAs, decideRequestAs, getRequest, withdrawRequestAs } from "@/modules/crm";
 import { request, task } from "@/modules/crm/schema";
-import { getMembershipRef } from "@/modules/people";
-import { membership, membershipEvent } from "@/modules/people/schema";
+import { getMembershipRef, setCommitteeMemberships } from "@/modules/people";
+import { committeeMembership, membership, membershipEvent } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
+import { findTermByCode, nextTermCode } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { firstThenSecond, holdTransaction, outcome } from "../helpers/locks";
+import {
+  firstThenSecond,
+  holdCommand,
+  holdTransaction,
+  outcome,
+  waitingOn,
+} from "../helpers/locks";
 import { truncateAll } from "./db";
-import { seedCommittee, seedCommitteeMembership, seedMember, seedTerm } from "./factories";
+import {
+  currentTermCode,
+  seedCommittee,
+  seedCommitteeMembership,
+  seedMember,
+  seedTerm,
+} from "./factories";
 
 // DT-148: decidir y retirar una solicitud toman su fila con candado y recién después miran si sigue
 // pendiente. Estas pruebas los llaman a la vez: aprobar un retiro da de baja, así que una segunda
@@ -141,5 +154,69 @@ describe("decidir y retirar la misma solicitud a la vez", () => {
     expect(await getMembershipRef(personId)).toMatchObject({ status: "INACTIVE" });
     expect(await audits("request.withdrawn", requestId)).toHaveLength(0);
     expect(await events(requestWithdrawn.type)).toHaveLength(0);
+  });
+});
+
+// DT-316: aprobar un cambio de comité arma el término siguiente desde los comités vivos de la persona.
+// Los leía antes de abrir su transacción, así que un cambio de sus comités que confirmara entre esa
+// lectura y la escritura quedaba fuera del término siguiente. El candado de la solicitud no lo evita:
+// serializa dos decisiones de la misma solicitud, no la aprobación con quien cambia los comités.
+describe("aprobar un cambio de comité mientras otro comando cambia los comités de la persona", () => {
+  beforeEach(truncateAll);
+  afterAll(closeDb);
+
+  it("espera al cambio que va en vuelo y arma el término siguiente desde los comités ya cambiados", async () => {
+    const termId = await seedTerm();
+    const personId = await seedMember("cambio.en.vuelo@eafit.edu.co");
+    const a3 = await seedCommittee("a3", "A3");
+    const cigma = await seedCommittee("cigma", "CIGMA");
+    const pixel = await seedCommittee("pixel", "PIXEL");
+    await seedCommitteeMembership(personId, a3, termId);
+    const { id: requestId } = await createRequestAs({ personId, ip: null }, "TRANSFER", {
+      reason: "Quiero sumar un comité",
+      leaveCommitteeIds: [],
+      joinCommitteeIds: [cigma],
+    });
+    const gh = await reviewer("gh.cambio@eafit.edu.co");
+    // GH le cambia A3 por PIXEL en el término vigente: queda escrito y sin confirmar.
+    const held = await holdCommand(gh, (ctx) =>
+      setCommitteeMemberships(ctx, personId, termId, [{ committeeId: pixel }]),
+    );
+
+    const approving = decideRequestAs(gh, requestId, { decision: "APPROVED" });
+    void approving.catch(() => undefined);
+    try {
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+    } finally {
+      held.release();
+      await held.done;
+    }
+    const [approved] = await Promise.allSettled([approving]);
+
+    expect(approved && outcome(approved)).toBe("ok");
+    const next = await findTermByCode(nextTermCode(currentTermCode()));
+    const rows = await db()
+      .select({
+        committeeId: committeeMembership.committeeId,
+        transferredIn: committeeMembership.transferredIn,
+      })
+      .from(committeeMembership)
+      .where(
+        and(
+          eq(committeeMembership.personId, personId),
+          eq(committeeMembership.termId, next?.id ?? ""),
+          isNull(committeeMembership.leftAt),
+        ),
+      );
+    const names = new Map([
+      [a3, "A3"],
+      [cigma, "CIGMA"],
+      [pixel, "PIXEL"],
+    ]);
+    // PIXEL, que es donde quedó, y CIGMA, que es lo que pidió. A3 ya no es suyo.
+    expect(rows.map((row) => [names.get(row.committeeId), row.transferredIn]).sort()).toEqual([
+      ["CIGMA", true],
+      ["PIXEL", false],
+    ]);
   });
 });

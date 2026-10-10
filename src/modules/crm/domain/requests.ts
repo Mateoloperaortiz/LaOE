@@ -17,6 +17,7 @@ import {
   endMembership,
   getMembershipRef,
   getMyMembership,
+  getMyMembershipForUpdate,
   getPeopleByIds,
   getPersonRecord,
   leaveUntilError,
@@ -405,10 +406,10 @@ export async function decideRequestAs(
       throw new DomainError(t("T-2337"), "reason");
     }
   }
-  // Lecturas cruzadas antes de la transacción (people, terms y participation por getDb()).
-  const [who, mine, term, limits, gamification] = await Promise.all([
+  // Lecturas cruzadas antes de la transacción (people, terms y participation por getDb()). Los comités
+  // de quien pide un cambio de comité no van acá: se leen adentro, bajo candado (ADR-121 regla 15).
+  const [who, term, limits, gamification] = await Promise.all([
     getPersonRecord(current.personId),
-    current.kind === "TRANSFER" ? getMyMembership(current.personId) : Promise.resolve(null),
     getCurrentTerm(),
     committeeLimits(),
     // La excusa libera el premio reservado de una asistencia pendiente (ADR-067 regla 3).
@@ -430,7 +431,7 @@ export async function decideRequestAs(
     }
     let appliedTerm: TermRow | null = null;
     if (input.decision === "APPROVED") {
-      appliedTerm = await apply(ctx, row, { mine, term, limits, gamification });
+      appliedTerm = await apply(ctx, row, { term, limits, gamification });
     }
     await ctx.tx
       .update(request)
@@ -475,7 +476,6 @@ async function apply(
   ctx: CommandContext,
   row: RequestRecord,
   context: {
-    mine: Awaited<ReturnType<typeof getMyMembership>> | null;
     term: TermRow | null;
     limits: { min: number; max: number };
     gamification: GamificationSettings | null;
@@ -525,12 +525,17 @@ async function apply(
   if (!context.term) {
     throw new DomainError(t("T-989"));
   }
+  // El término siguiente va primero: si hay que crearlo toma el candado del calendario, y ese se toma
+  // antes que la fila de una membresía, como hace el roster (ADR-121 regla 15).
+  const next = await ensureNextTerm(ctx, context.term);
+  // Los comités se leen con la fila de la membresía tomada. Leídos antes de la transacción, un cambio
+  // de comités que confirmara en el medio quedaba fuera del término siguiente (DT-316).
+  const mine = await getMyMembershipForUpdate(ctx.tx, row.personId);
   // Los cargos vivos de cada comité que sigue, no el principal derivado (ADR-118 regla 7).
-  const change = resultingCommittees(context.mine?.committees ?? [], payload, context.limits);
+  const change = resultingCommittees(mine.committees, payload, context.limits);
   if (change.error) {
     throw new DomainError(t(change.error, context.limits));
   }
-  const next = await ensureNextTerm(ctx, context.term);
   await setCommitteeMemberships(ctx, row.personId, next.id, change.rows);
   return { ...context.term, id: next.id, code: next.code };
 }

@@ -81,6 +81,7 @@ export {
   type CommitteeRoleRow,
   committeeMembershipInputSchema,
   getMyMembership,
+  getMyMembershipForUpdate,
   listCommitteeRoles,
   type MyMembership as MyMembershipView,
   setCommitteeMemberships,
