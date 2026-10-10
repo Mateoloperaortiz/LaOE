@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
+import { changeMembershipStatusAs, setProbationAs } from "@/modules/people";
 import { computePerson, loadPeopleFacts, loadTermFacts } from "@/modules/permanence";
 import {
   leaderScore,
@@ -21,6 +22,7 @@ import {
   seedRule,
   seedTable,
   seedTerm,
+  seedVeteran,
   seedWorkGroup,
   seedWorkGroupMembership,
 } from "./factories";
@@ -236,5 +238,125 @@ describe("cargador de hechos", () => {
     const single = await loadPeopleFacts(facts, [probationId]);
     expect(single).toHaveLength(1);
     expect(single[0]?.personId).toBe(probationId);
+  });
+});
+
+// Caracterización (DT-022): lo que el cargador decide de cada persona antes de que el cálculo la vea.
+// Nuevo es quien ingresó en este término o retomó como nuevo, salvo que se reporte como activo
+// (Est. art. 5 par. 1); el estado y la prueba son de la persona, no del comité.
+describe("cargador de hechos: quién llega como nuevo, y con qué estado y prueba", () => {
+  beforeEach(truncateAll);
+  afterAll(() => closeDb());
+
+  async function arrange() {
+    const termId = await seedTerm();
+    const committeeId = await seedCommittee("a3");
+    const actor = { personId: await seedVeteran("gh@eafit.edu.co"), ip: null };
+    return { termId, committeeId, actor };
+  }
+
+  async function standing(termId: string, personId: string) {
+    const facts = await loadTermFacts(termId);
+    if (!facts) throw new Error("sin hechos");
+    const [person] = await loadPeopleFacts(facts, [personId]);
+    if (!person) throw new Error("la persona no está en el roster");
+    return { status: person.status, isNew: person.isNew, probation: person.probation };
+  }
+
+  it("quien ingresó en este término llega como nuevo, activo y sin prueba", async () => {
+    const { termId, committeeId } = await arrange();
+    const personId = await seedMember("nueva@eafit.edu.co");
+    await seedCommitteeMembership(personId, committeeId, termId);
+    expect(await standing(termId, personId)).toEqual({
+      status: "ACTIVE",
+      isNew: true,
+      probation: false,
+    });
+  });
+
+  it("quien ingresó en un término anterior no llega como nuevo", async () => {
+    const { termId, committeeId } = await arrange();
+    const personId = await seedVeteran("veterana@eafit.edu.co");
+    await seedCommitteeMembership(personId, committeeId, termId);
+    expect(await standing(termId, personId)).toEqual({
+      status: "ACTIVE",
+      isNew: false,
+      probation: false,
+    });
+  });
+
+  it("quien retoma como nuevo llega como nuevo aunque haya ingresado en un término anterior", async () => {
+    const { termId, committeeId, actor } = await arrange();
+    const personId = await seedVeteran("retoma@eafit.edu.co");
+    await seedCommitteeMembership(personId, committeeId, termId);
+    await setProbationAs(actor, personId, termId, {
+      probation: false,
+      reason: "Retoma el semestre que dejó a medias",
+      resumedNew: true,
+    });
+    expect(await standing(termId, personId)).toMatchObject({ isNew: true, probation: false });
+  });
+
+  it("quien se reporta como activo no llega como nuevo, ni por ingresar en este término ni por retomar como nuevo", async () => {
+    const { termId, committeeId, actor } = await arrange();
+    const entered = await seedMember("mesa-nueva@eafit.edu.co");
+    const resumed = await seedVeteran("mesa-retoma@eafit.edu.co");
+    for (const personId of [entered, resumed]) {
+      await seedCommitteeMembership(personId, committeeId, termId);
+    }
+    await setProbationAs(actor, entered, termId, {
+      probation: false,
+      reason: "Mesa del comité reactivado",
+      reportAsVeteran: true,
+    });
+    await setProbationAs(actor, resumed, termId, {
+      probation: false,
+      reason: "Mesa del comité reactivado",
+      reportAsVeteran: true,
+      resumedNew: true,
+    });
+    expect(await standing(termId, entered)).toMatchObject({ isNew: false });
+    expect(await standing(termId, resumed)).toMatchObject({ isNew: false });
+  });
+
+  it("la prueba de la persona es la de todos sus comités: la de un solo comité no la marca", async () => {
+    const { termId, committeeId, actor } = await arrange();
+    const other = await seedCommittee("b4");
+    const general = await seedVeteran("prueba-general@eafit.edu.co");
+    const scoped = await seedVeteran("prueba-comite@eafit.edu.co");
+    for (const personId of [general, scoped]) {
+      await seedCommitteeMembership(personId, committeeId, termId);
+      await seedCommitteeMembership(personId, other, termId);
+    }
+    await setProbationAs(actor, general, termId, { probation: true, reason: "Cerró por debajo" });
+    await setProbationAs(actor, scoped, termId, {
+      probation: true,
+      reason: "Cerró por debajo en un comité",
+      committeeId: other,
+    });
+    expect(await standing(termId, general)).toMatchObject({ isNew: false, probation: true });
+    expect(await standing(termId, scoped)).toMatchObject({ isNew: false, probation: false });
+    const facts = await loadTermFacts(termId);
+    if (!facts) throw new Error("sin hechos");
+    const [person] = await loadPeopleFacts(facts, [scoped]);
+    expect(person?.committees.map((item) => [item.committeeId, item.probation]).sort()).toEqual(
+      [
+        [committeeId, false],
+        [other, true],
+      ].sort(),
+    );
+  });
+
+  it("el estado es el de la membresía: quien sale a licencia llega en licencia", async () => {
+    const { termId, committeeId, actor } = await arrange();
+    const personId = await seedVeteran("licencia@eafit.edu.co");
+    await seedCommitteeMembership(personId, committeeId, termId);
+    const leaveUntil = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+    await changeMembershipStatusAs(actor, personId, {
+      to: "ON_LEAVE",
+      reason: "Licencia sintética",
+      leaveUntil,
+    });
+    expect(await standing(termId, personId)).toMatchObject({ status: "ON_LEAVE", isNew: false });
   });
 });
