@@ -12,24 +12,24 @@ interface PreparedUpload {
   fields: Record<string, string>;
 }
 
-/** Una llamada a la casa: la ruta y el cuerpo JSON que cada subidor arma con lo suyo. */
-interface HouseCall {
+/** Un POST con cuerpo JSON a una ruta de la casa: la ruta y el cuerpo que cada subidor arma con lo suyo. */
+interface JsonPost {
   url: string;
   body: Record<string, unknown>;
 }
 
 interface UploadPlan {
-  presign: HouseCall;
+  presign: JsonPost;
   /** Lo que se dice cuando el paso que falla no trae un mensaje propio. */
   fallback: string;
 }
 
 interface ConfirmedUploadPlan extends UploadPlan {
   /** A este cuerpo se le antepone la `key` que firmó la casa. */
-  confirm: HouseCall;
+  confirm: JsonPost;
 }
 
-function postJson(call: HouseCall): Promise<Response> {
+function postJson(call: JsonPost): Promise<Response> {
   return fetch(call.url, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -72,7 +72,7 @@ export async function uploadToBucket(
 export async function uploadToBucket(file: File, plan: UploadPlan): Promise<{ key: string }>;
 export async function uploadToBucket(
   file: File,
-  plan: UploadPlan & { confirm?: HouseCall },
+  plan: UploadPlan & { confirm?: JsonPost },
 ): Promise<{ key: string; confirmation?: Response }> {
   const presign = await postJson(plan.presign);
   if (!presign.ok) {
