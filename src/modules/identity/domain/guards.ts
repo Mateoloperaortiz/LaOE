@@ -2,7 +2,10 @@ import type { Actor, ActorPermission } from "./actor";
 import { ForbiddenError, StepUpRequiredError } from "./errors";
 import { STEP_UP_WINDOW_MS } from "./pure";
 
-// Guards puros: cada comando sensible empieza por uno de estos (ADR-011).
+// Guards puros (ADR-011, enmendada por ADR-119 regla 22). La capacidad del actor la comprueba quien
+// recibe el request: la action o la ruta, con `requireAdminActor` o con un guard de `src/app/_authz`,
+// que se arman con estos. El comando de dominio comprueba el alcance y no vuelve a llamar un guard;
+// el único que llama a uno es `rotateCarnetTokenAs`, con `assertAdmin` para el carnet ajeno.
 
 /** Los permisos guardados no habilitan operaciones mientras la persona está en licencia. */
 export function canOperate(actor: Actor): boolean {

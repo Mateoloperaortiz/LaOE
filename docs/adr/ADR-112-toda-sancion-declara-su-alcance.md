@@ -3,7 +3,7 @@
 - Estado: Aceptada (enmendada por ADR-114 y ADR-116)
 - Fecha: 2026-10-07
 - Relacionadas: ADR-011, ADR-058, ADR-109
-- Enmienda: ADR-060 (regla 6), ADR-072 (regla 1)
+- Enmienda: ADR-060 (regla 6), ADR-072 (regla 1), ADR-011 (dónde se comprueba el permiso, por la regla 6)
 
 ## Contexto
 
