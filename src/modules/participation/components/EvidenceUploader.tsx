@@ -3,11 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { type ClientCopyCode, t, tList } from "@/shared/copy/client";
+import { uploadToBucket } from "@/shared/ui/bucket-upload";
 import { XIcon } from "@/shared/ui/icons/XIcon";
 import type { ChallengeSubmitReply, SubmitDenial } from "../gamification-types";
 
 // Evidencia de una misión (ADR-067 reglas 5 y 6): texto acotado y hasta tres imágenes que suben
-// directo al bucket con presign; el requestId de sessionStorage hace el envío idempotente.
+// directo al bucket con presign y sin confirmación (`uploadToBucket`, ADR-121 regla 14); el
+// requestId de sessionStorage hace el envío idempotente.
 
 const ERROR_COPY: Record<SubmitDenial, ClientCopyCode> = {
   DISABLED: "T-2442",
@@ -21,12 +23,6 @@ const ERROR_COPY: Record<SubmitDenial, ClientCopyCode> = {
   INCOMPLETE: "T-2426",
 };
 
-interface PreparedUpload {
-  key: string;
-  url: string;
-  fields: Record<string, string>;
-}
-
 interface UploadedFile {
   key: string;
   preview: string;
@@ -38,28 +34,6 @@ function Preview({ src, name }: { src: string; name: string }) {
     // biome-ignore lint/performance/noImgElement: la miniatura es un blob local, no un recurso servido
     <img src={src} alt={name} className="size-24 rounded-lg border border-borde object-cover" />
   );
-}
-
-async function uploadFile(file: File): Promise<string> {
-  const presign = await fetch("/api/retos/evidencia/presign", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ contentType: file.type, byteSize: file.size }),
-  });
-  if (!presign.ok) {
-    throw new Error("presign");
-  }
-  const prepared = (await presign.json()) as PreparedUpload;
-  const form = new FormData();
-  for (const [name, value] of Object.entries(prepared.fields)) {
-    form.append(name, value);
-  }
-  form.append("file", file, file.name);
-  const stored = await fetch(prepared.url, { method: "POST", body: form });
-  if (!stored.ok) {
-    throw new Error("bucket");
-  }
-  return prepared.key;
 }
 
 export function EvidenceUploader({
@@ -132,12 +106,19 @@ export function EvidenceUploader({
     }
     setUploading(true);
     try {
-      const key = await uploadFile(file);
+      const { key } = await uploadToBucket(file, {
+        presign: {
+          url: "/api/retos/evidencia/presign",
+          body: { contentType: file.type, byteSize: file.size },
+        },
+        fallback: errors[3] ?? "",
+      });
       setFiles((current) => [
         ...current,
         { key, preview: URL.createObjectURL(file), name: file.name },
       ]);
     } catch {
+      // Cualquier fallo lleva el texto de la evidencia: lo que diga la casa no se repite acá.
       setMessage(errors[3] ?? "");
     } finally {
       setUploading(false);
