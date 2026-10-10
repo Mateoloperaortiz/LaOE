@@ -1,11 +1,14 @@
+import { scheduledJobs } from "croner";
 import { sql } from "drizzle-orm";
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { getEnv } from "@/env";
+import { startPoller } from "@/jobs/poller";
+import { startScheduler } from "@/jobs/scheduler";
 import { logger, withoutQueryValues } from "@/shared/log";
-import { captureLogs } from "../helpers/logs";
+import { captureLogs, type LoggedLine, recordsOf } from "../helpers/logs";
 
 // Un fallo al conectar con la base, como lo registran el poller y el programador (DT-295 inciso k,
 // ADR-120 regla 10). Los errores son los de verdad: un pool contra un puerto cerrado y contra el
@@ -108,5 +111,81 @@ describe("un fallo al conectar con la base en el registro", () => {
         expect(stored).not.toContain(written);
       }
     });
+  });
+});
+
+// Las pruebas de arriba escriben las dos líneas con la forma que tienen en el código. Estas corren
+// el poller y el programador de verdad con la casa apuntando a una base que no abre: si una de esas
+// líneas deja de registrar el error por `err`, acá se nota.
+describe("las líneas del poller y del programador con la base sin abrir", () => {
+  /** Corre `run` con el pool de la casa contra un puerto cerrado, y le devuelve el suyo al terminar. */
+  async function withUnreachableDatabase<T>(run: () => Promise<T>): Promise<T> {
+    const house = globalThis as typeof globalThis & { __casaDigitalDb?: unknown };
+    const original = house.__casaDigitalDb;
+    const pool = new Pool({
+      connectionString: `postgres://${USER}:clave-sintetica@127.0.0.1:1/${DATABASE}`,
+      connectionTimeoutMillis: 5_000,
+    });
+    house.__casaDigitalDb = drizzle({ client: pool, casing: "snake_case" });
+    try {
+      return await run();
+    } finally {
+      house.__casaDigitalDb = original;
+      await pool.end();
+    }
+  }
+
+  function expectNoTarget(failures: LoggedLine[]): void {
+    for (const { line, record } of failures) {
+      for (const written of [USER, DATABASE, "127.0.0.1"]) {
+        expect(line).not.toContain(written);
+      }
+      const err = record.err as Record<string, unknown>;
+      expect(err.code).toBe("ECONNREFUSED");
+      expect(String(err.message)).toContain("connect ECONNREFUSED [oculto]");
+      for (const field of ["address", "port", "hostname"]) {
+        expect(err).not.toHaveProperty(field);
+      }
+    }
+  }
+
+  it("el poller arranca y hace su ronda: sus dos líneas de error salen sin usuario, base, host ni puerto", async () => {
+    const { lines } = await captureLogs((written) =>
+      withUnreachableDatabase(async () => {
+        const poller = startPoller({ intervalMs: 3_600_000, batchSize: 1, handlerTimeoutMs: 0 });
+        try {
+          await vi.waitFor(() => expect(recordsOf(written, "el poller falló")).toHaveLength(1), {
+            timeout: 10_000,
+          });
+        } finally {
+          await poller.stop();
+        }
+      }),
+    );
+    const failures = lines.filter((entry) => entry.record.level === 50);
+    expect(failures.map((entry) => entry.record.msg)).toEqual([
+      "no se pudieron atender los eventos que quedaron tomados",
+      "el poller falló",
+    ]);
+    expectNoTarget(failures);
+  });
+
+  it("el programador dispara una entrada: su línea de error sale igual", async () => {
+    const entry = { name: "programado-sintetico-c8", cron: "0 0 1 1 *", events: ["test.c8"] };
+    const { lines } = await captureLogs(() =>
+      withUnreachableDatabase(async () => {
+        const scheduler = startScheduler([entry], "America/Bogota");
+        try {
+          await scheduledJobs.find((job) => job.name === entry.name)?.trigger();
+        } finally {
+          scheduler.stop();
+        }
+      }),
+    );
+    const failures = lines.filter((line) => line.record.level === 50);
+    expect(failures.map((line) => line.record)).toMatchObject([
+      { msg: "no se pudo encolar el programado", schedule: entry.name },
+    ]);
+    expectNoTarget(failures);
   });
 });

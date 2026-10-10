@@ -17,9 +17,10 @@ interface LogDestination {
  * serializadas y redactadas, que es lo que llega a los registros del despliegue. Le cambia el destino
  * al logger real por uno en memoria y se lo devuelve al terminar, sin tocar `src/shared/log.ts`.
  * Mientras captura deja pasar todos los niveles, para no depender del `LOG_LEVEL` del `.env`.
+ * `run` recibe las líneas que van saliendo, por si tiene que esperar a que salga alguna.
  */
 export async function captureLogs<T>(
-  run: () => Promise<T>,
+  run: (written: LoggedLine[]) => Promise<T>,
 ): Promise<{ result: T; lines: LoggedLine[] }> {
   const target = logger as unknown as Record<symbol, LogDestination | undefined>;
   const original = target[pino.symbols.streamSym];
@@ -35,7 +36,7 @@ export async function captureLogs<T>(
   };
   logger.level = "debug";
   try {
-    const result = await run();
+    const result = await run(lines);
     return { result, lines };
   } finally {
     logger.level = level;

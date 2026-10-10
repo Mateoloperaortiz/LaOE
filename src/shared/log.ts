@@ -130,10 +130,13 @@ function isQueryError(error: unknown): error is QueryError {
 
 /**
  * SQLSTATE cuyo mensaje cita un valor entre comillas. La clase 22, «data exception», cita el valor
- * que rechazó. La clase 28, «invalid authorization», y el 3D000, «invalid catalog name», responden a
- * una conexión que no abrió y citan con quién y a dónde iba: el usuario, la base, el host.
+ * que rechazó. La clase 28, «invalid authorization», el 3D000, «invalid catalog name», y el 53300,
+ * «too many connections», responden a una conexión que no abrió y citan con quién y a dónde iba: el
+ * usuario, la base, el host. Solo entran códigos que no citan otra cosa: el 42501 y el 55000 también
+ * responden a una conexión que no abrió, pero citan además una tabla o una secuencia, que es lo que
+ * sirve para depurar. De esos dos se quita lo de la conexión configurada (`configuredNames`).
  */
-const QUOTES_A_VALUE = /^(?:22|28)[0-9A-Z]{3}$|^3D000$/;
+const QUOTES_A_VALUE = /^(?:22|28)[0-9A-Z]{3}$|^3D000$|^53300$/;
 
 /**
  * El mensaje de un error de Postgres sin el valor que cita: el de una conversión («invalid input
@@ -150,41 +153,104 @@ function withoutQuotedValue(error: Error): string {
     : error.message;
 }
 
+/** El código con que Node rechaza un certificado que no nombra al host al que iba la conexión. */
+const CERTIFICATE_MISMATCH = "ERR_TLS_CERT_ALTNAME_INVALID";
+
+interface ConnectionTarget {
+  /** Lo que el error escribió en su mensaje, lo más largo primero. */
+  written: string[];
+  /** Los campos donde Node lo repite, que pino copiaría tal cual a `err`. */
+  fields: string[];
+}
+
+const NO_TARGET: ConnectionTarget = { written: [], fields: [] };
+
 /**
- * A dónde iba una conexión que no abrió, como lo escribe Node en un error de sistema (trae
+ * A dónde iba una conexión que no abrió, como lo escribe Node. En un error de sistema (trae
  * `syscall`): `address` y `port` en un `connect ECONNREFUSED 10.0.0.5:5432`, `hostname` en un
- * `getaddrinfo ENOTFOUND …`. Los repite en el mensaje, y de ahí se quitan por coincidencia exacta.
+ * `getaddrinfo ENOTFOUND …`. En un certificado que no nombra al host: `host`, y `reason`, que es la
+ * frase con el host y con los nombres que el certificado sí trae; `cert` es el certificado entero.
+ * Todo eso lo repite en el mensaje, y de ahí se quita por coincidencia exacta.
  */
-function connectionTargets(error: Error): string[] {
-  const { syscall, address, port, hostname } = error as {
+function connectionTarget(error: Error): ConnectionTarget {
+  const { code, syscall, address, port, hostname, host, reason } = error as {
+    code?: unknown;
     syscall?: unknown;
     address?: unknown;
     port?: unknown;
     hostname?: unknown;
+    host?: unknown;
+    reason?: unknown;
   };
-  const targets: string[] = [];
+  const written: string[] = [];
+  if (code === CERTIFICATE_MISMATCH) {
+    for (const text of [reason, host]) {
+      if (typeof text === "string" && text !== "") {
+        written.push(text);
+      }
+    }
+    return { written, fields: ["host", "reason", "cert"] };
+  }
   if (typeof syscall !== "string") {
-    return targets;
+    return NO_TARGET;
   }
   if (typeof address === "string" && address !== "") {
     if (typeof port === "number") {
-      targets.push(`${address}:${port}`);
+      written.push(`${address}:${port}`);
     }
-    targets.push(address);
+    written.push(address);
   }
   if (typeof hostname === "string" && hostname !== "") {
-    targets.push(hostname);
+    written.push(hostname);
   }
-  return targets;
+  return written.length > 0 ? { written, fields: ["address", "port", "hostname"] } : NO_TARGET;
+}
+
+/** El usuario y la base de `connectionString`, entre comillas: así los cita PostgreSQL. */
+function quotedNamesOf(connectionString: string | undefined): string[] {
+  if (!connectionString) {
+    return [];
+  }
+  try {
+    const url = new URL(connectionString);
+    return [url.username, url.pathname.slice(1)]
+      .map((name) => decodeURIComponent(name))
+      .filter((name) => name !== "")
+      .map((name) => `"${name}"`);
+  } catch {
+    return [];
+  }
+}
+
+let namesReadFrom: string | undefined;
+let namesRead: string[] = [];
+
+/**
+ * Con quién y a qué base va la conexión configurada (`DATABASE_URL`), como PostgreSQL los cita. Se
+ * quitan de todo mensaje, sin mirar su código: un fallo al conectar que los nombre no depende de que
+ * el recorte reconozca el error (ADR-120 regla 10). Van con sus comillas para no tocar esa misma
+ * palabra donde no es un nombre citado, como la ruta de un archivo en la traza. Lee la variable y no
+ * `getEnv()`: el registro no puede fallar porque falte otra, y sin conexión configurada no hay nada
+ * que quitar.
+ */
+function configuredNames(): string[] {
+  const connectionString = process.env.DATABASE_URL;
+  if (connectionString !== namesReadFrom) {
+    namesReadFrom = connectionString;
+    namesRead = quotedNamesOf(connectionString);
+  }
+  return namesRead;
 }
 
 /**
  * `text` es el mensaje o la traza de `error`, con sus causas dobladas adentro. Lo devuelve sin los
  * valores de la consulta que falló y sin los datos de una conexión que no abrió, mirando el error y
  * sus causas hasta cinco niveles: el tramo `params: …` que escribe Drizzle, el valor que cita un
- * error de Postgres (el de una conversión, o el usuario y la base de una conexión rechazada) y el
- * destino que Node escribe en un error de red (ADR-120 regla 10). Todo se quita por coincidencia
- * exacta con lo que cada error escribió, no con una expresión que adivine dónde termina.
+ * error de Postgres (el de una conversión, o el usuario y la base de una conexión rechazada), el
+ * destino que Node escribe en un error de red o en un certificado que no nombra al host, y el usuario
+ * y la base de la conexión configurada donde PostgreSQL los cite (ADR-120 regla 10). Todo se quita
+ * por coincidencia exacta con lo que cada error escribió, no con una expresión que adivine dónde
+ * termina.
  *
  * Es el recorte del serializador de `err`, y lo usa también quien guarda el texto de un error fuera
  * del registro: el poller, en `outbox.last_error` (ADR-119 regla 16).
@@ -201,10 +267,13 @@ export function withoutQueryValues(error: Error, text: string): string {
     if (hidden !== current.message) {
       clean = clean.split(current.message).join(hidden);
     }
-    for (const target of connectionTargets(current)) {
+    for (const target of connectionTarget(current).written) {
       clean = clean.split(target).join(REDACTED);
     }
     current = current.cause;
+  }
+  for (const quoted of configuredNames()) {
+    clean = clean.split(quoted).join(`"${REDACTED}"`);
   }
   return clean;
 }
@@ -219,8 +288,9 @@ export function withoutQueryValues(error: Error, text: string): string {
  * `message` y en `stack`, también cuando el error llega como causa de otro. El SQL, con sus `$1`, se
  * queda: es lo que sirve para depurar. Tampoco sale el valor que Postgres cita en el mensaje de un
  * error de conversión (ADR-119 regla 15), ni a dónde iba ni con quién una conexión que no abrió
- * (ADR-120 regla 10): pino copia `address`, `port` y `hostname` del error como campos, y lista aparte
- * cada intento de una conexión que probó varias direcciones.
+ * (ADR-120 regla 10): pino copia `address`, `port` y `hostname` del error como campos, o `host`,
+ * `reason` y `cert` si el certificado no nombra al host, y lista aparte cada intento de una conexión
+ * que probó varias direcciones.
  */
 function serializeError(error: unknown): unknown {
   const serialized = pino.stdSerializers.err(error as Error);
@@ -238,10 +308,8 @@ function serializeError(error: unknown): unknown {
   if (isQueryError(error)) {
     delete serialized.params;
   }
-  if (connectionTargets(error).length > 0) {
-    delete serialized.address;
-    delete serialized.port;
-    delete serialized.hostname;
+  for (const field of connectionTarget(error).fields) {
+    delete serialized[field];
   }
   const grouped = (error as { errors?: unknown }).errors;
   if (Array.isArray(grouped) && Array.isArray(serialized.aggregateErrors)) {
