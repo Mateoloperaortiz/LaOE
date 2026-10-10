@@ -66,9 +66,19 @@ function existingView(existing: CheckInRow): View {
   }
 }
 
-function resultView(result: CheckInResultCode, points: number): View | null {
+/**
+ * El `r` de la dirección elige el texto de una asistencia que existe y que dice lo mismo (ADR-120
+ * regla 6). La action redirige con él recién escrita la fila, pero cualquiera con sesión lo puede
+ * escribir a mano: sin asistencia, o con una en otro estado, no pinta nada y decide la fila.
+ */
+function resultView(
+  result: CheckInResultCode,
+  existing: CheckInRow | null,
+  points: number,
+): View | null {
   switch (result) {
     case "puntos":
+      if (existing?.status !== "APPROVED") return null;
       // El sello de marca ya dice "¡OE OE OE!": el texto no lo repite.
       return {
         kind: "message",
@@ -77,13 +87,18 @@ function resultView(result: CheckInResultCode, points: number): View | null {
         points,
       };
     case "registrado":
+      if (existing?.status !== "APPROVED") return null;
       return { kind: "message", text: t("T-093"), success: true };
     case "pendiente":
+      if (existing?.status !== "PENDING") return null;
       return { kind: "message", text: t("T-094"), success: true };
     default:
       return null;
   }
 }
+
+/** Los resultados que anuncian un registro: valen solo con la fila que los respalda. */
+const SUCCESS_CODES: readonly CheckInResultCode[] = ["puntos", "registrado", "pendiente"];
 
 function occasionView(
   row: OccasionRow,
@@ -122,7 +137,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
   const search = await searchParams;
   const code = single(search.c);
   const resultParam = single(search.r);
-  const result = RESULT_CODES.includes(resultParam as CheckInResultCode)
+  const claimed = RESULT_CODES.includes(resultParam as CheckInResultCode)
     ? (resultParam as CheckInResultCode)
     : null;
   const actor = await requireActor(`/a/${publicId}${code ? `?c=${encodeURIComponent(code)}` : ""}`);
@@ -155,7 +170,9 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
     getTerm(row.termId),
   ]);
   const now = new Date();
-  const fresh = result ? resultView(result, row.points) : null;
+  const fresh = claimed ? resultView(claimed, existing, row.points) : null;
+  // Un resultado de éxito que la fila no respalda no cuenta para nada de lo que sigue.
+  const result = claimed && SUCCESS_CODES.includes(claimed) && !fresh ? null : claimed;
   const view: View =
     fresh ??
     (existing
