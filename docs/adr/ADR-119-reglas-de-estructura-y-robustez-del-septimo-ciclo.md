@@ -240,3 +240,5 @@ Y un defecto, reproducido con una prueba en rojo: el Panal buscaba el término c
 ## Enmienda (2026-10-10, ADR-120)
 
 Regla 19: decía que la prueba del término no entraba en la regla, porque `applyRow` sí le escribía `membership_term.probation` a quien sigue de baja y esa fila se seguía contando como cambio (DT-286). El roster ya no le escribe la fila del término a quien sigue de baja: conserva la prueba y el motivo que tuviera, y `diffRoster` tampoco anota esa línea, así que la fila sale «sin cambios» también cuando el archivo dice «Periodo de prueba». Ver [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) regla 1.
+
+Regla 19, otra vez: decía que la fila que sale «sin cambios» deja su auditoría `person.imported` con `outcome: "unchanged"` y `changes: []`, y la consecuencia de la regla, que su evento sale igual. Una fila del roster que no cambia nada ya no audita ni emite (DT-288): cuenta en `unchanged` y sigue en la vista previa del trabajo, sin dejar rastro en la persona. Ver ADR-120 regla 2.

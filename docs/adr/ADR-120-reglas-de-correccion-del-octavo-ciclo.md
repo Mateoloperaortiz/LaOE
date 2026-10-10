@@ -2,8 +2,8 @@
 
 - Estado: Aceptada
 - Fecha: 2026-10-10
-- Relacionadas: ADR-034, ADR-060, ADR-109, ADR-118, ADR-119
-- Enmienda: ADR-119 (regla 19: a quien sigue de baja el roster tampoco le escribe la prueba del término, así que esa línea deja de contarse como cambio)
+- Relacionadas: ADR-034, ADR-060, ADR-084, ADR-109, ADR-118, ADR-119
+- Enmienda: ADR-119 (regla 19: a quien sigue de baja el roster tampoco le escribe la prueba del término, así que esa línea deja de contarse como cambio; y la fila que queda «sin cambios» ya no deja auditoría ni evento `person.imported`)
 
 ## Contexto
 
@@ -11,13 +11,20 @@ El octavo ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresivo-c
 
 **El roster le escribía la prueba del término a quien sigue de baja (DT-286).** `applyRow` (`src/modules/people/domain/roster.ts`) hacía el upsert de la fila general de `membership_term` del término del roster con la prueba que decía la columna ESTADO, sin mirar si la persona quedaba adentro. A alguien expulsado que figura «Periodo de prueba» le quedaba `probation: true` en un término en el que no participa, y a quien se fue y sigue figurando «Retirado» se le borraba la prueba con la que salió y se le reescribía el motivo. [ADR-060](ADR-060-alineacion-con-la-normativa-2026.md) regla 3 dice que la fila de quien no vuelve conserva sus datos y su estado; [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) regla 19 dejó esa escritura anotada y por eso seguía contando la fila como «actualizada». Quién lee `membership_term` de alguien sin membresía vigente: la ficha de la persona (`person-360.ts`), que lista la condición por término de cualquiera; `blockedBenefits` e `inhabilities.ts`, que solo se consultan para quien pide un beneficio o un cargo; la vista previa del propio roster; y permanencia, que la trae con las pertenencias del término, también las de quien salió (`people-reads.ts`), pero solo evalúa a quien está activo (`evaluated`, en `permanence-pure.ts`): la prueba de más llegaba a su snapshot como dato y no movía ningún umbral. El cierre (`term-outcomes.ts`) lee la fila solo para su propio upsert y su auditoría.
 
+**El roster auditaba y emitía también las filas que no cambian (DT-288).** `applyRow` cerraba cada fila con su auditoría `person.imported` y su evento, también cuando quedaba en `unchanged`. El evento tiene dos lectores: la línea de tiempo de `crm`, que anota «importado en el roster» en la persona, y `permanence`, que encola el recálculo del término del archivo. Reimportar el mismo archivo le dejaba a cada persona una auditoría y una entrada en su historial que no decían nada, y ADR-119 regla 19 lo dejó escrito tal cual («su auditoría lleva `outcome: "unchanged"` y `changes: []`»).
+
 ## Decisión
 
 1. **A quien sigue de baja el roster no le escribe la fila del término.** `applyRow` hace el upsert de la fila general de `membership_term` solo si la persona no sigue de baja. La pregunta es `staysInactive`, la misma que ya decide el estado (ADR-119 regla 19) y los comités ([ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) regla 11), y se responde con la membresía que la transacción lee al aplicar, no con la de la vista previa. Quien fue expulsado y figura «Periodo de prueba», y quien se fue y sigue figurando «Retirado», conservan la prueba y el motivo que tuvieran en ese término. `diffRoster` deja de anotar esa línea: la fila sale «sin cambios», con su aviso T-2208 si lo tenía, y cuenta en `unchanged`.
    - **El límite.** «Sigue de baja» no es «queda de baja»: a quien esa misma fila da de baja, a quien nace de baja y a quien el roster reactiva se les escribe la fila del término como antes. Qué se le escribe a quien vuelve no se toca (decisiones abiertas 28 y 29).
+2. **Una fila del roster que no cambia nada no audita ni emite.** `applyRow` deja la auditoría `person.imported` y el evento solo cuando la fila creó a la persona o le cambió algo (`created` o `updated`). La que queda en `unchanged` cuenta en el resumen y sigue en la vista previa del trabajo, con sus avisos; no deja rastro en la persona. Lo decide el mismo `outcome` que ya contaba la fila, que sale del diff calculado al aplicar.
+   - **Lo que no cambia.** Las filas que crean o cambian auditan y emiten como antes, con el mismo payload. El evento conserva `outcome` como texto libre: los dos lectores no lo miran.
 
 ## Consecuencias
 
 - La fila del roster de alguien expulsado deja de contarse como «actualizada» en todos los casos: ni el estado, ni los comités, ni la prueba se le escriben. Las filas de `membership_term` que la conducta anterior ya dejó en producción no se limpian: son una condición de más en la ficha de alguien de baja y no se buscó cuántas hay.
 - A quien sí tiene membresía el roster le sigue reescribiendo el motivo de la fila del término en cada importación que traiga ESTADO, aunque la prueba no cambie: el motivo que GH escribió al decidirla se pierde de la fila y queda solo en la auditoría (`membership-term.set`). Corregirlo cambia también lo que le queda escrito a quien el roster reactiva, que este ciclo no toca; queda anotado (DT-297).
-- La regla 1 no trae textos nuevos ni migraciones.
+- Reimportar un archivo ya aplicado no le suma nada al historial de nadie, y un archivo en el que nada cambia no encola el recálculo de permanencia: no había qué recalcular. La pantalla ya no ofrecía aplicar un archivo entero «sin cambios» (T-1482).
+- El evento de una fila sin cambios era también el único lugar adonde viajaba su columna OBSERVACIONES (`notes`). Ningún lector la usa: [13-importacion-del-roster.md](../13-importacion-del-roster.md) promete que queda como nota en la línea de tiempo y la regla de `crm` solo lee el término. Queda anotado (DT-298); mientras tanto la observación de una fila que no cambia no se guarda en ningún lado, y la de una que cambia sigue yendo solo en el payload del evento.
+- La regla 2 se apoya en el diff: si entre calcularlo y escribir la fila alguien cambia a la persona, la fila puede escribir un cambio y quedar contada como «sin cambios». Es la misma ventana de la vista previa vieja (decisión abierta 28) y los comandos que escriben ese cambio dejan su propia auditoría (`membership.status-changed`).
+- Las reglas 1 y 2 no traen textos nuevos ni migraciones.

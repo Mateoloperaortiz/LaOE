@@ -70,7 +70,7 @@ Advertencias (se importa, pero se marca):
 3. **Comités por término:** crea las pertenencias del término del archivo; a quien ya existía y no aparece en un comité, le cierra esa pertenencia (`leftAt`) en el término. Quien no aparece en el archivo no se toca: darlo de baja es un comando aparte.
 4. **Cargos:** guarda cada cargo como un cargo asignado de la pertenencia (titular o codirección). Para cada `General`, titular o codirección, la vista previa propone otorgar el permiso técnico de líder de ese comité, marcado por defecto; ADMIN confirma.
 5. **Nuevos y veteranos:** `ENTRADA A LA OE` fija el primer término; nuevo es quien entra en el término del archivo ([ADR-008](adr/ADR-008-tableros-derivados.md)).
-6. **Auditoría e historia:** una transacción por lote, `AuditLog` por entidad, interacción "importado desde el roster 2026-2" en cada persona, `ImportJob` con el resumen y el archivo original en el bucket privado.
+6. **Auditoría e historia:** una transacción por lote, `AuditLog` por entidad, interacción "importado desde el roster 2026-2" en cada persona que la importación creó o cambió (una fila sin cambios no deja auditoría ni interacción: [ADR-120](adr/ADR-120-reglas-de-correccion-del-octavo-ciclo.md) regla 2), `ImportJob` con el resumen y el archivo original en el bucket privado.
 7. **Idempotente:** volver a subir el mismo archivo no duplica nada; la clave es el correo.
 
 Cada semestre se sube el archivo nuevo con el mismo formato: así se actualizan comités, cargos y estados del término sin tocar el pasado.

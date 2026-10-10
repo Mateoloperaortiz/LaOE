@@ -1,6 +1,7 @@
-import { and, count, eq, isNull } from "drizzle-orm";
+import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
+import { personImported } from "@/domain-events/people";
 import { endMembershipAs, setProbationAs } from "@/modules/people";
 import { getPerson360 } from "@/modules/people/domain/person-360";
 import { listPeople } from "@/modules/people/domain/persons";
@@ -21,7 +22,7 @@ import {
   person,
 } from "@/modules/people/schema";
 import { PrivacyPolicyPendingError } from "@/modules/system";
-import { appConfig, auditLog, importJob } from "@/modules/system/schema";
+import { appConfig, auditLog, importJob, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
@@ -312,6 +313,31 @@ describe("importación del roster", () => {
     return { termId, code, adminId, ana, juan };
   }
 
+  /** Lo que una importación le dejó a una persona: su auditoría y su evento `person.imported`. */
+  async function importacionesDe(personId: string, jobId: string) {
+    const audits = await db()
+      .select({ after: auditLog.after })
+      .from(auditLog)
+      .where(
+        and(
+          eq(auditLog.action, "person.imported"),
+          eq(auditLog.entityId, personId),
+          sql`${auditLog.after}->>'jobId' = ${jobId}`,
+        ),
+      );
+    const events = await db()
+      .select({ payload: outbox.payload })
+      .from(outbox)
+      .where(
+        and(
+          eq(outbox.eventType, personImported.type),
+          sql`${outbox.payload}->>'personId' = ${personId}`,
+          sql`${outbox.payload}->>'jobId' = ${jobId}`,
+        ),
+      );
+    return { audits: audits.map((row) => row.after), events: events.map((row) => row.payload) };
+  }
+
   async function estadoYComites(personId: string) {
     const [fila] = await db()
       .select({ status: membership.status, endReason: membership.endReason })
@@ -353,17 +379,48 @@ describe("importación del roster", () => {
       expect.stringMatching(copyPattern("T-2208", { nombre: "Juan Gómez" })),
     ]);
     expect(fila).toMatchObject({ group: "UNCHANGED", changes: [] });
-    // Y la auditoría de esa fila tampoco dice que cambió el estado.
-    const auditorias = await db()
-      .select({ after: auditLog.after })
-      .from(auditLog)
-      .where(and(eq(auditLog.action, "person.imported"), eq(auditLog.entityId, juan)));
-    expect(auditorias.map((row) => row.after)).toContainEqual(
-      expect.objectContaining({ jobId: otra.jobId, outcome: "unchanged", changes: [] }),
-    );
-    expect(auditorias.map((row) => row.after)).not.toContainEqual(
-      expect.objectContaining({ jobId: otra.jobId, changes: ["status"] }),
-    );
+    // Y como no le cambió nada, esa importación no le deja auditoría ni evento (ADR-120 regla 2).
+    expect(await importacionesDe(juan, otra.jobId)).toEqual({ audits: [], events: [] });
+    expect((await importacionesDe(ana, otra.jobId)).audits).toEqual([
+      expect.objectContaining({ outcome: "updated", changes: ["committees"] }),
+    ]);
+  });
+
+  // ADR-120 regla 2: la auditoría y el evento `person.imported` dicen que la importación le cambió
+  // algo a la persona. Una fila que queda igual no los deja (DT-288).
+  it("una fila que no cambia nada no audita ni emite la importación, y la que sí cambia las sigue dejando", async () => {
+    const termId = await seedTerm();
+    const code = currentTermCode();
+    await seedCommittee("a3");
+    const adminId = await seedMember("admin@eafit.edu.co");
+    const filas = (programaDeAna: string) =>
+      csv([
+        `Ana;Pérez;prueba.ana@eafit.edu.co;;${programaDeAna};A3;${code};Activo;`,
+        `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;A3;${code};Activo;`,
+      ]);
+    const base = await preview(adminId, termId, filas("Derecho"));
+    await applyRosterImportAs({ personId: adminId }, base.jobId);
+    const idOf = async (email: string) =>
+      (await db().select({ id: person.id }).from(person).where(eq(person.email, email)))[0]?.id ??
+      "";
+    const ana = await idOf("prueba.ana@eafit.edu.co");
+    const juan = await idOf("prueba.juan@eafit.edu.co");
+    // Quien nace con la importación sí la lleva en su historial.
+    expect(await importacionesDe(juan, base.jobId)).toEqual({
+      audits: [expect.objectContaining({ outcome: "created" })],
+      events: [expect.objectContaining({ outcome: "created" })],
+    });
+
+    const otra = await preview(adminId, termId, filas("Ingeniería"));
+    expect(otra.counts).toEqual({ NEW: 0, CHANGED: 1, UNCHANGED: 1, ERROR: 0 });
+    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+
+    expect(applied).toMatchObject({ created: 0, updated: 1, unchanged: 1 });
+    expect(await importacionesDe(juan, otra.jobId)).toEqual({ audits: [], events: [] });
+    expect(await importacionesDe(ana, otra.jobId)).toEqual({
+      audits: [expect.objectContaining({ outcome: "updated", changes: ["program"] })],
+      events: [expect.objectContaining({ outcome: "updated", changes: ["program"] })],
+    });
   });
 
   async function filaDelTermino(personId: string, termId: string) {

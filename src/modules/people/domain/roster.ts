@@ -764,6 +764,11 @@ async function applyRow(
       { reason },
     );
   }
+  // La auditoría y el evento dicen que la importación le cambió algo a la persona: una fila que
+  // quedó igual no los deja (ADR-120 regla 2). El trabajo conserva la fila en su vista previa.
+  if (outcome === "unchanged") {
+    return outcome;
+  }
   await ctx.audit({
     action: "person.imported",
     entityType: "person",
