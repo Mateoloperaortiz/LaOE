@@ -1,7 +1,7 @@
 import type { NotificationKind } from "@/domain-events/comms";
 import type { QuotaReason } from "@/shared/adapters/mail";
 import { splitTitleBody } from "@/shared/copy/render";
-import { atHourIn, dateKeyIn, startOfTodayIn } from "@/shared/lib/dates-pure";
+import { atHourIn, dateKeyIn, startOfNextDayIn, startOfTodayIn } from "@/shared/lib/dates-pure";
 
 // Reglas de comunicaciones sin I/O (ADR-023, ADR-038).
 
@@ -63,13 +63,6 @@ export type StoredQuotaCut =
 const BURST_CUT_DEFAULT_MINUTES = 15;
 /** Una espera más larga que esta no es de una ráfaga: el corte no la sigue más allá. */
 const BURST_CUT_MAX_MINUTES = 60;
-
-/** La medianoche que le sigue a ese instante en la zona dada. */
-function startOfNextDayIn(timeZone: string, at: Date): Date {
-  // Desde la medianoche de hoy, 36 horas caen en el mediodía de mañana: de ahí, su medianoche.
-  const noonTomorrow = new Date(startOfTodayIn(timeZone, at).getTime() + 36 * 3_600_000);
-  return startOfTodayIn(timeZone, noonTomorrow);
-}
 
 // El día del proveedor (ADR-121 regla 5, que enmienda ADR-115 regla 5 y ADR-116 regla 19).
 

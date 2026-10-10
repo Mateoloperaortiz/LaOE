@@ -1,4 +1,10 @@
-import { APP_TIME_ZONE, atHourIn, dateKeyIn, zonedInputToUtc } from "@/shared/lib/dates-pure";
+import {
+  APP_TIME_ZONE,
+  addDays,
+  atHourIn,
+  dateKeyIn,
+  zonedInputToUtc,
+} from "@/shared/lib/dates-pure";
 import type {
   BoosterKind,
   BoosterState,
@@ -80,17 +86,14 @@ export function dayKeyFor(at: Date, timeZone = GAMIFICATION_TIMEZONE): string {
  * hay horas fijas de desfase ni días de 24 horas sumados a mano.
  */
 export function nextDayAt(day: string, timeZone = GAMIFICATION_TIMEZONE): string {
-  const next = new Date(`${day}T00:00:00Z`);
-  next.setUTCDate(next.getUTCDate() + 1);
-  return atHourIn(timeZone, next.toISOString().slice(0, 10), 0).toISOString();
+  return atHourIn(timeZone, addDays(day, 1), 0).toISOString();
 }
 
 /** Lunes de la semana local que contiene `at`, como "AAAA-MM-DD". */
 export function weekKeyFor(at: Date, timeZone = GAMIFICATION_TIMEZONE): string {
-  const day = new Date(`${dateKeyIn(timeZone, at)}T00:00:00Z`);
-  const back = (day.getUTCDay() + 6) % 7;
-  day.setUTCDate(day.getUTCDate() - back);
-  return day.toISOString().slice(0, 10);
+  const day = dateKeyIn(timeZone, at);
+  const back = (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7;
+  return addDays(day, -back);
 }
 
 /** Estado visible del reto: `SCHEDULED` antes de abrir, `CLOSED` desde `closesAt`. */

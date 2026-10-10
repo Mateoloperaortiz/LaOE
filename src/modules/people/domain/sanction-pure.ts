@@ -1,3 +1,5 @@
+import { addDays } from "@/shared/lib/dates-pure";
+
 // Faltas y sanciones sin I/O (Regl. cap. 9 y Anexo 1; ADR-060 regla 6): duraciones, vigencia,
 // suspensión de derechos y la advertencia de expulsión que el cierre convierte en propuesta.
 
@@ -52,11 +54,9 @@ export function dayKeyOf(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function addDays(key: string, days: number): string {
-  const date = fromKey(key);
-  date.setUTCDate(date.getUTCDate() + days);
-  return dayKeyOf(date);
-}
+// La suma de días es la de toda la casa (ADR-121 regla 6). Sigue saliendo por acá para quien ya la
+// tomaba de este archivo: las licencias y el `addDaysToKey` de `people`.
+export { addDays };
 
 export function addMonths(key: string, months: number): string {
   const date = fromKey(key);

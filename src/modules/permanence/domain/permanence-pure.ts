@@ -1,4 +1,4 @@
-import { APP_TIME_ZONE, dateKeyIn } from "@/shared/lib/dates-pure";
+import { APP_TIME_ZONE, addDays, dateKeyIn } from "@/shared/lib/dates-pure";
 import type { AppliesTo, Computation, OccasionFilter, Rule, WorkGroupKind } from "./params";
 
 // Cálculo de permanencia sin I/O (ADR-025 a ADR-028, ADR-036 regla 4): recibe reglas y hechos y
@@ -242,13 +242,6 @@ function clamp(value: number, min: number, max: number): number {
  */
 function dayKey(at: Date): string {
   return dateKeyIn(APP_TIME_ZONE, at);
-}
-
-/** Suma días a una fecha clave AAAA-MM-DD: aritmética de calendario, sin zona. */
-function addDays(dayKeyValue: string, days: number): string {
-  const base = new Date(`${dayKeyValue}T00:00:00Z`);
-  base.setUTCDate(base.getUTCDate() + days);
-  return base.toISOString().slice(0, 10);
 }
 
 /** Condición de la persona en un comité (ADR-027): nuevo, en prueba, transferencia o activo. */
