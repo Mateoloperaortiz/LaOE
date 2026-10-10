@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
-  assemblyOverview,
+  assemblyRequirementsFor,
   defaultRequirement,
   listApprovedCheckInsForPersonInTerm,
   listApprovedCheckInsForTerm,
@@ -244,15 +244,15 @@ export async function loadPeopleFacts(
     ),
     hasRunoff,
   });
-  const requirements = new Map<string, AssemblyRequirementFact>();
-  for (const row of await assemblyOverview(facts.term)) {
-    requirements.set(row.personId, row.requirement);
-  }
+  // Solo de las personas pedidas: antes se leía el cumplimiento de todos los activos de la OE para
+  // quedarse con el requisito de cada una (ADR-121 regla 3).
+  const requirements = await assemblyRequirementsFor(facts.term, ids);
   return ids.map((personId) => {
     const rows = roster.get(personId) ?? [];
+    const standing = personStanding(rows, termId);
     return {
       personId,
-      ...personStanding(rows, termId),
+      ...standing,
       committees: rows.map((row) => ({
         committeeId: row.committeeId,
         roleCode: row.roleCode,
@@ -274,7 +274,11 @@ export async function loadPeopleFacts(
       credits: credits
         .filter((item) => item.personId === personId)
         .map(({ personId: _p, ...rest }) => rest),
-      assemblyRequirement: requirements.get(personId) ?? fallback,
+      // El requisito propio (el ajuste, o el del término) es del miembro activo. Quien no lo está llega
+      // con el del término aunque tenga un ajuste: así lo entregaba la lectura de toda la OE, que solo
+      // traía activos.
+      assemblyRequirement:
+        (standing.status === "ACTIVE" ? requirements.get(personId) : undefined) ?? fallback,
     };
   });
 }

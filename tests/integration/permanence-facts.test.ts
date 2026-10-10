@@ -4,13 +4,20 @@ import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
 import { adjustRequirementAs } from "@/modules/participation";
 import { changeMembershipStatusAs, setProbationAs } from "@/modules/people";
-import { computePerson, loadPeopleFacts, loadTermFacts } from "@/modules/permanence";
+import {
+  computePerson,
+  getPersonPermanence,
+  loadPeopleFacts,
+  loadTermFacts,
+  recomputeSnapshots,
+} from "@/modules/permanence";
 import {
   leaderScore,
   permanenceDecision,
   permanenceRule,
   workGroupMembership,
 } from "@/modules/permanence/schema";
+import { type CountedQuery, countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
 import {
   seedAppointment,
@@ -466,5 +473,71 @@ describe("cargador de hechos: el requisito de asambleas de cada persona", () => 
         (await requirementOf(termId, personId)).requirement,
       );
     }
+  });
+});
+
+// DT-223: la permanencia de una persona se arma con sus filas. Antes leía a todos los miembros
+// activos, todos los ajustes del término y todas las asistencias a sus asambleas para quedarse con un
+// requisito.
+describe("la permanencia de una persona no carga a toda la OE", () => {
+  beforeEach(truncateAll);
+  afterAll(() => closeDb());
+
+  const tally = (queries: CountedQuery[]) => ({
+    queries: queries.length,
+    rows: queries.reduce((total, query) => total + query.rows, 0),
+  });
+
+  it("pedirla y recalcularla manda las mismas consultas y lee las mismas filas con 5 miembros que con 200", async () => {
+    const termId = await seedTerm();
+    const committeeId = await seedCommittee("a3");
+    const actor = { personId: await seedVeteran("gh@eafit.edu.co"), ip: null };
+    const assembly = await seedOccasion(termId, {
+      kind: "ASSEMBLY",
+      assemblyKind: "ORDINARY",
+      points: 0,
+      status: "CLOSED",
+    });
+    // Cada miembro suma una fila a cada lectura que crecía con la OE: su membresía activa, su
+    // asistencia a la asamblea del término y su ajuste del requisito.
+    const grow = async (from: number, to: number) => {
+      const ids: string[] = [];
+      for (let n = from; n < to; n += 1) {
+        const personId = await seedVeteran(`miembro-${n}@eafit.edu.co`);
+        await seedCommitteeMembership(personId, committeeId, termId);
+        await seedCheckIn(assembly.id, personId);
+        await adjustRequirementAs(actor, {
+          termId,
+          personId,
+          requiredOrdinary: 2,
+          requiresBoardElection: false,
+          requiresRunoff: false,
+          reason: "Ajuste sintético",
+        });
+        ids.push(personId);
+      }
+      return ids;
+    };
+    const [target = ""] = await grow(0, 5);
+    const now = new Date();
+    const measure = async () => {
+      const recalc = await countQueries(() => recomputeSnapshots(termId, target, now));
+      const read = await countQueries(() => getPersonPermanence(target, termId, now));
+      return {
+        recalc: { written: recalc.result, ...tally(recalc.queries) },
+        read: tally(read.queries),
+        result: read.result?.result,
+      };
+    };
+    // La primera corrida deja escrito el snapshot y lo que el proceso guarde en memoria: no se mide.
+    await measure();
+    const small = await measure();
+    await grow(5, 200);
+    const large = await measure();
+
+    expect(small.result?.mandatory).toBeDefined();
+    expect(large.result).toEqual(small.result);
+    expect(large.read).toEqual(small.read);
+    expect(large.recalc).toEqual(small.recalc);
   });
 });

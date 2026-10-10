@@ -11,6 +11,7 @@ export {
   type AdjustRequirementInput,
   type AssemblyOverviewRow,
   assemblyOverview,
+  assemblyRequirementsFor,
   assemblyStatusFor,
   listTermAssemblies,
   type PersonAssemblyStatus,
