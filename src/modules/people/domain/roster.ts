@@ -55,6 +55,7 @@ import {
   staysInactive,
   validateRoster,
 } from "./roster-pure";
+import { lockWalletMemberByEmail } from "./wallet-member";
 
 // El asistente del roster (13-importacion-del-roster.md, ADR-034): el archivo se guarda en el bucket, la
 // vista previa vive en un ImportJob y confirmar aplica todo en una transacción, idempotente por correo.
@@ -617,6 +618,32 @@ async function membershipHoldsCommittees(ctx: CommandContext, personId: string):
   return canHoldCommittees(row?.status);
 }
 
+/**
+ * La persona de un correo, tomada en el orden del ciclo de membresía (ADR-120 regla 3): primero el
+ * candado consultivo `wallet-member:<persona>` y después su fila. Dar de baja, cambiar el estado,
+ * reactivar y anonimizar toman ese consultivo antes que cualquier fila; con la fila tomada primero,
+ * el roster y cualquiera de ellos se quedaban esperándose.
+ *
+ * La fila se lee con el consultivo ya tomado y por `id` y correo: si mientras se esperaba el correo
+ * dejó de ser de esa persona (la anonimizaron o GH se lo corrigió), se vuelve a buscar. El consultivo
+ * que quedó tomado de más se suelta con la transacción.
+ */
+async function lockPersonByEmail(
+  ctx: CommandContext,
+  email: string,
+): Promise<{ id: string } | undefined> {
+  const personId = await lockWalletMemberByEmail(ctx.tx, email);
+  if (personId === null) {
+    return undefined;
+  }
+  const [locked] = await ctx.tx
+    .select({ id: person.id })
+    .from(person)
+    .where(and(eq(person.id, personId), eq(person.email, email)))
+    .for("update");
+  return locked ?? lockPersonByEmail(ctx, email);
+}
+
 async function applyRow(
   ctx: CommandContext,
   row: PreviewRow,
@@ -630,11 +657,7 @@ async function applyRow(
     return "unchanged";
   }
   const reason = `roster ${termCode}`;
-  const [existing] = await ctx.tx
-    .select({ id: person.id, stage: person.stage })
-    .from(person)
-    .where(eq(person.email, email))
-    .for("update");
+  const existing = await lockPersonByEmail(ctx, email);
   let personId: string;
   let outcome: "created" | "updated" | "unchanged" =
     row.group === "UNCHANGED" ? "unchanged" : "updated";

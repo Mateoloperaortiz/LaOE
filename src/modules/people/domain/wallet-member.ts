@@ -29,6 +29,9 @@ export async function getWalletMemberState(
   return row ?? null;
 }
 
+/** El prefijo de la clave del candado consultivo del ciclo de membresía: `wallet-member:<persona>`. */
+const LOCK_PREFIX = "wallet-member:";
+
 /**
  * Serializa el ciclo de membresía con la emisión y rotación de credenciales. Se adquiere antes de
  * cualquier lock de filas y solo dentro de transacciones cortas: nunca cubre llamadas a Google.
@@ -37,8 +40,25 @@ export async function lockWalletMember(
   tx: Tx,
   personId: string,
 ): Promise<WalletMemberState | null> {
-  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`wallet-member:${personId}`}))`);
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`${LOCK_PREFIX}${personId}`}))`);
   return getWalletMemberState(tx, personId);
+}
+
+/**
+ * El mismo candado para quien llega con el correo y no con el `id` (el roster; ADR-120 regla 3):
+ * resuelve a la persona y toma su consultivo en una sola sentencia, sin tocar todavía su fila.
+ * Responde el `id` cuyo candado quedó tomado, o `null` si nadie tiene ese correo. El correo pudo
+ * cambiar de dueño mientras se esperaba: quien llama vuelve a leer la fila con el candado tomado.
+ */
+export async function lockWalletMemberByEmail(tx: Tx, email: string): Promise<string | null> {
+  const [row] = await tx
+    .select({
+      id: person.id,
+      locked: sql`pg_advisory_xact_lock(hashtext(${LOCK_PREFIX}::text || ${person.id}))`,
+    })
+    .from(person)
+    .where(eq(person.email, email));
+  return row?.id ?? null;
 }
 
 /**
