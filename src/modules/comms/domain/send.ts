@@ -28,6 +28,7 @@ import {
   storeQuotaCut,
   withoutAddresses,
 } from "./pure";
+import { unlessAnonymized } from "./unless-anonymized";
 
 // Correo transaccional (OTP, puntos, recordatorios): Resend con desbordamiento automático a SES,
 // y cada envío queda registrado en `message` con el proveedor por el que salió (ADR-023).
@@ -161,20 +162,27 @@ export async function sendTransactionalEmail(
       receipt = failed(route === "overflow" && overflow ? overflow.name : primary.name, error);
     }
   }
-  await getDb()
-    .insert(message)
-    .values({
-      personId: email.personId,
-      channel: "EMAIL",
-      subject: email.subject,
-      status: receipt.status,
-      provider: receipt.provider,
-      providerId: receipt.providerId,
-      error: receipt.error,
-      dedupeKey: options.dedupeKey ?? null,
-      sentAt: receipt.status === "SENT" ? now : null,
-    })
-    .onConflictDoNothing();
+  // El registro se escribe con la persona retenida y no se escribe si ya fue anonimizada (ADR-120
+  // regla 8): la limpieza de `person.anonymized` corre una sola vez, y lo que se registre después
+  // queda para siempre a nombre de alguien anonimizado. Va por la transacción del candado, después de
+  // que el proveedor respondió: quien envía desde un request, como el código de ingreso, no retiene
+  // una conexión mientras el correo viaja ni pide dos para registrar.
+  await unlessAnonymized(email.personId, (tx) =>
+    tx
+      .insert(message)
+      .values({
+        personId: email.personId,
+        channel: "EMAIL",
+        subject: email.subject,
+        status: receipt.status,
+        provider: receipt.provider,
+        providerId: receipt.providerId,
+        error: receipt.error,
+        dedupeKey: options.dedupeKey ?? null,
+        sentAt: receipt.status === "SENT" ? now : null,
+      })
+      .onConflictDoNothing(),
+  );
   if (receipt.status === "FAILED") {
     // A la persona se la nombra por su id, no por su dirección: este aviso también lo dispara quien
     // pide un código sin sesión con el correo de un miembro (ADR-114, regla 5).
@@ -353,7 +361,8 @@ export async function recordedCampaignEmail(
  * para esa persona no envía nada y responde con él, sea de un envío o de un rechazo. Si el proveedor lo
  * rechaza por cuota no registra nada y responde que queda para después. No corre dentro de una
  * transacción: mientras el proveedor responde no hay conexión ocupada. El correo lleva al proveedor su
- * clave de idempotencia, por campaña y persona (ADR-116 regla 18).
+ * clave de idempotencia, por campaña y persona (ADR-116 regla 18). El registro se escribe con la
+ * persona retenida; si se anonimizó con el correo en vuelo responde sin mensaje (ADR-120 regla 8).
  */
 export async function sendCampaignEmail(
   email: CampaignEmail,
@@ -384,19 +393,27 @@ export async function sendCampaignEmail(
     receipt = failed(transport.name, error);
   }
   const sentAt = receipt.status === "SENT" ? now : null;
-  const messageId = await recordMessage({
-    personId: email.personId,
-    channel: "EMAIL",
-    kind: "CAMPAIGN",
-    campaignId: email.campaignId,
-    subject: email.subject,
-    status: receipt.status,
-    provider: receipt.provider,
-    providerId: receipt.providerId,
-    error: receipt.error,
-    dedupeKey,
-    sentAt,
-  });
+  // Con la persona retenida, como el transaccional (ADR-120 regla 8): de quien se anonimizó con el
+  // correo en vuelo no se escribe nada, y su destinatario queda con lo que respondió el proveedor y sin
+  // mensaje. El candado se toma recién ahora, con el proveedor ya de vuelta (ADR-115 regla 1).
+  const messageId = await unlessAnonymized(email.personId, (tx) =>
+    recordMessage(
+      {
+        personId: email.personId,
+        channel: "EMAIL",
+        kind: "CAMPAIGN",
+        campaignId: email.campaignId,
+        subject: email.subject,
+        status: receipt.status,
+        provider: receipt.provider,
+        providerId: receipt.providerId,
+        error: receipt.error,
+        dedupeKey,
+        sentAt,
+      },
+      tx,
+    ),
+  );
   if (receipt.status === "FAILED") {
     // Como el transaccional: a la persona se la nombra por su id, no por su dirección (ADR-114, regla 5).
     logger.error(
@@ -406,6 +423,7 @@ export async function sendCampaignEmail(
   }
   if (messageId === null) {
     // Otro lote lo registró mientras este enviaba: el registro es uno solo y de él sale el resultado.
+    // Si no hay ninguno es que la persona se anonimizó: sigue con lo que respondió el proveedor.
     const winner = await findRecordedMessage(email.personId, dedupeKey);
     if (winner) {
       return receiptOf(winner);

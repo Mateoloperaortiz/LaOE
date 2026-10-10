@@ -1,6 +1,6 @@
 # ADR-115: Reglas de campañas de correo y tareas de GH del cuarto ciclo del refactor
 
-- Estado: Aceptada (enmendada por ADR-116)
+- Estado: Aceptada (enmendada por ADR-116 y ADR-120)
 - Fecha: 2026-10-07
 - Relacionadas: ADR-012, ADR-023, ADR-034, ADR-035, ADR-037, ADR-038, ADR-039, ADR-058, ADR-060, ADR-079, ADR-109
 - Enmienda: ADR-038 (regla 8: el lote de una campaña, su cancelación, su cupo y la elegibilidad al enviar), ADR-023 (regla 3: las campañas que salen por Resend), ADR-037 (regla 12: la bienvenida y la respuesta a una solicitud llevan una clave por evento; reglas 7 y 9: la tarea del patrocinio ganado y la de la solicitud), ADR-034 (regla 12: la tarea del pedido de borrado), ADR-035 (regla 14: la tarea del término siguiente) y ADR-058 (regla 4: la tarea del pedido de retiro de un comité)
@@ -160,3 +160,7 @@ Las reglas 2 y 8 registran cada correo con una clave por persona, y ese registro
 La regla 6 cortaba todos los lotes hasta el otro día de Colombia con cualquier rechazo por cuota: una ráfaga le costaba a la campaña el resto del día, el cupo del mes se volvía a probar cada medianoche y el corte solo se levantaba borrando su fila (DT-117). [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 19 la enmienda: el error lleva su causa, el corte la guarda y dura según cuál (minutos para la ráfaga, hasta el otro día para el cupo del día y hasta el primer día del mes siguiente para el del mes), no se acorta, es del proveedor que rechazó y un ADMIN lo levanta con un comando auditado. Donde esta ADR dice que ningún lote sale hasta el otro día, eso vale ya solo para el cupo del día.
 
 La regla 5 dejó el margen sin pantalla y la de una campaña sin decir que sus pendientes esperan cupo, como anotan las consecuencias (DT-115). [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 20 lo completa: la pantalla de una campaña en curso dice cuántos faltan y qué los detiene (un corte del proveedor, el margen o el cupo de hoy) y hasta cuándo, y un ADMIN ve la cuenta del día, cambia el margen y levanta el corte en `/admin/campanas/cupo`, con comandos auditados. Lo que cuenta la regla 5 no cambia.
+
+## Enmienda (2026-10-10, ADR-120)
+
+Las reglas 1 y 2 dicen que el lote envía sin transacción abierta y que `sendCampaignEmail` guarda el `message` con su clave por campaña y persona. Ese registro se escribía sin retener a la persona: si se anonimizaba y `comms` limpiaba con el correo en vuelo, el `message` quedaba a su nombre para siempre (DT-276). [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) regla 8: el registro se escribe con la fila de la persona tomada `for share`, en una transacción corta y con el proveedor ya de vuelta, y no se escribe si ya fue anonimizada; su destinatario queda entonces `SENT` y sin mensaje. Lo demás de la regla 1 no cambia: mientras un correo viaja el lote sigue sin transacción abierta ni conexión retenida, y su prueba de caracterización pasa sin tocarla.

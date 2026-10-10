@@ -1,5 +1,6 @@
 import { and, count, desc, eq, ilike, inArray, isNotNull, or } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import type { Executor } from "@/db/tx";
 import { getPeopleByIds, searchPeople } from "@/modules/people";
 import { campaign, message } from "../schema";
 
@@ -55,9 +56,15 @@ export interface MessageInsert {
   sentAt?: Date | null;
 }
 
-/** Registra un envío; con `dedupeKey` no duplica la fila de esa persona (devuelve null si ya existía). */
-export async function recordMessage(input: MessageInsert): Promise<string | null> {
-  const rows = await getDb()
+/**
+ * Registra un envío; con `dedupeKey` no duplica la fila de esa persona (devuelve null si ya existía).
+ * `exec` es la transacción de quien retiene a la persona mientras registra (ADR-120 regla 8).
+ */
+export async function recordMessage(
+  input: MessageInsert,
+  exec: Executor = getDb(),
+): Promise<string | null> {
+  const rows = await exec
     .insert(message)
     .values({
       personId: input.personId,
