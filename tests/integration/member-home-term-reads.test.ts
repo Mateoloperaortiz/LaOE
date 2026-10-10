@@ -10,12 +10,14 @@ import { type CountedQuery, countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
 
-// Cuántas veces se lee el término para pintar el inicio de Mi OE (DT-226 incisos b y e, ADR-121
-// regla 11). El layout y la página se montan contra Postgres y se cuenta lo que mandan; solo se
-// reemplaza quién tiene la sesión. Acá no hay render de servidor: lo que React comparte dentro de un
-// request (`cache`) no se ve en estas cuentas, y por eso las pruebas de abajo fijan lo que sí se puede
-// contar: lo que la página se ahorra pasando el término que ya leyó, y que fuera de un render y
-// dentro de una transacción nada queda guardado.
+// Cuántas veces leen el término el inicio de Mi OE y Mi permanencia (DT-226 incisos b y e, ADR-121
+// regla 11). El layout y cada página se llaman como funciones contra Postgres y se cuenta lo que
+// mandan; solo se reemplaza quién tiene la sesión. Es la cuenta de esas funciones, no la de un request
+// entero: los componentes async que devuelven no corren acá. Tampoco hay render de servidor, así que
+// lo que React comparte dentro de un request (`cache`) no se ve en estas cuentas: eso lo cuenta
+// `render-shared-reads.test.ts`, en un proceso con el servidor de componentes. Acá queda lo que la
+// página se ahorra pasando el término que ya leyó, y que fuera de un render y dentro de una
+// transacción nada queda guardado.
 
 const session = vi.hoisted(() => ({ actor: null as unknown }));
 
@@ -37,6 +39,7 @@ vi.mock("@/modules/identity", async (importOriginal) => {
 
 const { default: AppLayout } = await import("@/app/app/layout");
 const { default: AppHome } = await import("@/app/app/page");
+const { default: PermanenciaPage } = await import("@/app/app/permanencia/page");
 
 function memberActor(personId: string): Actor {
   const now = new Date();
@@ -55,11 +58,16 @@ function memberActor(personId: string): Actor {
   };
 }
 
-/** Las lecturas de `term` de una cuenta, en orden: la del día de hoy o la de un término por su id. */
+/** Las lecturas de `term` de una cuenta, en orden: la del día de hoy, la de un término por su id o la lista. */
 function termReads(queries: CountedQuery[]): string[] {
   return queries
     .filter((query) => /from "term"/.test(query.text))
-    .map((query) => (query.text.includes('"starts_on" <=') ? "por fecha" : "por id"));
+    .map((query) => {
+      if (query.text.includes('"starts_on" <=')) {
+        return "por fecha";
+      }
+      return query.text.includes('"term"."id" =') ? "por id" : "todos";
+    });
 }
 
 let personId = "";
@@ -84,6 +92,13 @@ describe("las lecturas del término en el inicio de Mi OE", () => {
       AppLayout({ children: null, params: Promise.resolve({}) }),
     );
     expect(termReads(queries)).toEqual(["por fecha"]);
+  });
+
+  it("Mi permanencia trae la lista y el de hoy, y la permanencia no lo vuelve a leer por su id", async () => {
+    const { queries } = await countQueries(() =>
+      PermanenciaPage({ params: Promise.resolve({}), searchParams: Promise.resolve({}) }),
+    );
+    expect(termReads(queries)).toEqual(["todos", "por fecha"]);
   });
 });
 
