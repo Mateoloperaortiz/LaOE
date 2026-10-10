@@ -381,7 +381,7 @@ export async function editNoteAction(formData: FormData): Promise<void> {
     return;
   }
   await run(id, "linea", "nota", async () =>
-    editNoteAs(await actorContext(actor), noteId, parsed.data),
+    editNoteAs(await actorContext(actor), noteId, parsed.data, { personId: id }),
   );
 }
 
@@ -408,7 +408,9 @@ export async function completeTaskAction(formData: FormData): Promise<void> {
   const id = idSchema.parse(formData.get("personId"));
   const taskId = idSchema.parse(formData.get("taskId"));
   const actor = await requireAdminActor(await personUrl(id, "tareas"));
-  await run(id, "tareas", "", async () => completeTaskAs(await actorContext(actor), taskId));
+  await run(id, "tareas", "", async () =>
+    completeTaskAs(await actorContext(actor), taskId, { personId: id }),
+  );
 }
 
 export async function setTagsAction(formData: FormData): Promise<void> {

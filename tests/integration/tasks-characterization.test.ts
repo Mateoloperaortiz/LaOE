@@ -358,7 +358,7 @@ describe("una sola tarea abierta por motivo", () => {
     const personId = await expiredLeave();
     await leaveCheck();
     const [first] = await tasksOf(eq(task.personId, personId));
-    await completeTaskAs({ personId: null, ip: null }, first?.id ?? "");
+    await completeTaskAs({ personId: null, ip: null }, first?.id ?? "", { personId });
     await leaveCheck();
     await leaveCheck();
 
@@ -577,7 +577,7 @@ describe("las tareas abiertas antes de que existiera la clave", () => {
   it("una vieja ya hecha, o de otro tipo sobre la misma persona, no cuenta: se abre la del motivo", async () => {
     const personId = await expiredLeave();
     const done = await oldTask({ title: "Hecha", kind: "LEAVE_EXPIRED", personId });
-    await completeTaskAs({ personId: null, ip: null }, done);
+    await completeTaskAs({ personId: null, ip: null }, done, { personId });
     await oldTask({ title: "A mano", kind: "GENERAL", personId });
     await leaveCheck();
 

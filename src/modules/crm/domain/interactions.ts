@@ -5,6 +5,7 @@ import { getPeopleByIds } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { type InteractionKind, interaction } from "../schema";
+import { type PersonScope, scopedPersonId } from "./person-scope";
 import type { TimelineEntry } from "./timeline-pure";
 
 // Línea de tiempo de la persona (02-crm.md): automáticas inmutables (por outbox) y notas editables por su autor.
@@ -148,10 +149,20 @@ async function insertNote(
   return row;
 }
 
-/** Solo su autor edita una nota; queda `editedAt` (02-crm.md, regla 3). */
-export async function editNote(ctx: CommandContext, id: string, body: string): Promise<void> {
+/**
+ * Solo su autor edita una nota; queda `editedAt` (02-crm.md, regla 3). Se edita desde la ficha de su
+ * persona, que es obligatoria (ADR-122 regla 1): la nota de otra persona responde como una que no
+ * existe.
+ */
+export async function editNote(
+  ctx: CommandContext,
+  id: string,
+  body: string,
+  scope: PersonScope,
+): Promise<void> {
+  const personId = scopedPersonId(scope);
   const [row] = await ctx.tx.select().from(interaction).where(eq(interaction.id, id));
-  if (!row || row.kind !== "NOTE") {
+  if (!row || row.kind !== "NOTE" || personId === null || row.personId !== personId) {
     throw new DomainError(t("T-032"));
   }
   if (row.actorId !== ctx.actor.personId) {

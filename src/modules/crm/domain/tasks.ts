@@ -8,6 +8,7 @@ import { t } from "@/shared/copy";
 import { addBusinessDays, bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { organization, task } from "../schema";
+import { type PersonScope, scopedPersonId } from "./person-scope";
 
 // Tareas (02-crm.md): pendiente con responsable y vencimiento sobre una persona; sin responsable la ven
 // todos los ADMIN. Hay dos entradas (ADR-115 regla 9): `createTask`, la que una persona crea a mano
@@ -421,6 +422,24 @@ export async function completeTask(ctx: CommandContext, id: string): Promise<voi
     before: { status: row.status },
     after: { status: "DONE" },
   });
+}
+
+/**
+ * Completa una tarea desde la ficha de su persona, que es obligatoria (ADR-122 regla 1): la tarea
+ * sobre otra persona responde como una que no existe. `completeTask` queda para quien trae el id de
+ * su propia fila (la solicitud que cierra su tarea) y para la bandeja de tareas, que no tiene ficha.
+ */
+export async function completePersonTask(
+  ctx: CommandContext,
+  id: string,
+  scope: PersonScope,
+): Promise<void> {
+  const personId = scopedPersonId(scope);
+  const [row] = await ctx.tx.select({ personId: task.personId }).from(task).where(eq(task.id, id));
+  if (!row || personId === null || row.personId !== personId) {
+    throw new DomainError(t("T-032"));
+  }
+  await completeTask(ctx, id);
 }
 
 export async function countOpenTasksFor(personId: string): Promise<number> {

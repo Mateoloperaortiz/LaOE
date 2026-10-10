@@ -83,9 +83,13 @@ describe("línea de tiempo por outbox", () => {
       addNote(ctx, personId, "Primera línea\n\nDetalle"),
     );
     await expect(
-      runCommand({ personId: benId, ip: null }, (ctx) => editNote(ctx, note.id, "Otra")),
+      runCommand({ personId: benId, ip: null }, (ctx) =>
+        editNote(ctx, note.id, "Otra", { personId }),
+      ),
     ).rejects.toBeInstanceOf(DomainError);
-    await runCommand({ personId: adaId, ip: null }, (ctx) => editNote(ctx, note.id, "Corregida"));
+    await runCommand({ personId: adaId, ip: null }, (ctx) =>
+      editNote(ctx, note.id, "Corregida", { personId }),
+    );
     const notes = await listInteractions(personId, "NOTE");
     expect(notes[0]).toMatchObject({ summary: "Corregida", body: "Corregida" });
     expect(notes[0]?.editedAt).toBeInstanceOf(Date);
