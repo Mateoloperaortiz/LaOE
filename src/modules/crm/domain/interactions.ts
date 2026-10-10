@@ -1,4 +1,4 @@
-import { and, desc, eq, max, type SQL } from "drizzle-orm";
+import { and, desc, eq, max, notInArray, type SQL } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import type { CommandContext } from "@/db/tx";
 import { getPeopleByIds } from "@/modules/people";
@@ -21,18 +21,30 @@ export interface InteractionView {
   metadata: Record<string, unknown>;
 }
 
-export type TimelineFilter = "ALL" | InteractionKind;
+/** Qué interacciones se piden: todas, las de un tipo, o las de cualquier tipo salvo los nombrados. */
+export type TimelineFilter = "ALL" | InteractionKind | { except: readonly InteractionKind[] };
+
+/**
+ * La condición de tipo de un filtro. Va en la consulta, antes del tope: descartar en memoria lo que
+ * ya se cortó deja vacía una lista que sí tenía filas más atrás (ADR-121 regla 10).
+ */
+function kindMatches(filter: TimelineFilter): SQL | undefined {
+  if (filter === "ALL") {
+    return undefined;
+  }
+  if (typeof filter === "string") {
+    return eq(interaction.kind, filter);
+  }
+  // Sin tipos que descartar no hay condición que escribir.
+  return filter.except.length > 0 ? notInArray(interaction.kind, [...filter.except]) : undefined;
+}
 
 export async function listInteractions(
   personId: string,
-  kind: TimelineFilter = "ALL",
+  filter: TimelineFilter = "ALL",
   limit = 200,
 ): Promise<InteractionView[]> {
-  const where =
-    kind === "ALL"
-      ? eq(interaction.personId, personId)
-      : and(eq(interaction.personId, personId), eq(interaction.kind, kind));
-  return listWhere(where, limit);
+  return listWhere(and(eq(interaction.personId, personId), kindMatches(filter)), limit);
 }
 
 /** Línea de tiempo de una organización (ADR-037): notas y movimientos de sus tarjetas. */

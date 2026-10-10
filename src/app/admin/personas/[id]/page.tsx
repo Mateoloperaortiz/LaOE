@@ -4,6 +4,7 @@ import { single } from "@/app/_lib/search";
 import { getPreferences, listMessagesFor, subscriptionSummaryFor } from "@/modules/comms";
 import {
   countOpenTasksFor,
+  type InteractionKind,
   latestContact,
   listCardsByPerson,
   listInteractions,
@@ -66,7 +67,8 @@ import {
 
 type Search = Record<string, string | string[] | undefined>;
 
-const MAIN_KINDS = [
+/** Los tipos con filtro propio en la línea de tiempo; «Otros» es todo lo demás. */
+const MAIN_KINDS: InteractionKind[] = [
   "NOTE",
   "MEMBERSHIP",
   "COMMITTEES",
@@ -151,9 +153,7 @@ export default async function PersonaPage({
   ]);
   const interactions =
     tab === "linea"
-      ? (await listInteractions(id, filter === "OTHER" ? "ALL" : filter)).filter(
-          (item) => filter !== "OTHER" || !MAIN_KINDS.includes(item.kind),
-        )
+      ? await listInteractions(id, filter === "OTHER" ? { except: MAIN_KINDS } : filter)
       : [];
   const tasks =
     tab === "tareas" ? (await listTasks({ q: "", personId: id, page: 1, pageSize: 100 })).rows : [];
