@@ -123,7 +123,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-033](ADR-033-contenido-y-medios-fase-1.md) | Contenido editable y medios del portal público (fase 1) | Aceptada (enmendada por ADR-036, ADR-037 y ADR-038, ADR-039, ADR-113, ADR-114, ADR-116) |
 | [ADR-034](ADR-034-personas-y-mi-oe-fase-2.md) | Personas, CRM mínimo y Mi OE (fase 2) | Aceptada (enmendada por ADR-035, ADR-037 y ADR-038, ADR-039, ADR-040, ADR-057, ADR-058, ADR-066, ADR-113, ADR-115) |
 | [ADR-035](ADR-035-participacion-y-gh-points-fase-3.md) | Participación y GH Points (fase 3) | Aceptada (enmendada por ADR-036, ADR-038, ADR-041, ADR-058, ADR-070, ADR-115, ADR-116 y ADR-119) |
-| [ADR-036](ADR-036-permanencia-fase-4.md) | Permanencia (fase 4) | Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058, ADR-116 y ADR-118) |
+| [ADR-036](ADR-036-permanencia-fase-4.md) | Permanencia (fase 4) | Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058, ADR-116, ADR-118 y ADR-121) |
 | [ADR-037](ADR-037-admision-aliados-y-contactos-fase-5.md) | Admisión, aliados y contactos (fase 5) | Aceptada (enmendada por ADR-038, ADR-039, ADR-046, ADR-050, ADR-056, ADR-060, ADR-115, ADR-116 y ADR-118) |
 | [ADR-038](ADR-038-comunicaciones-y-pwa-fase-6.md) | Comunicaciones y PWA (fase 6) | Aceptada (enmendada por ADR-039, ADR-074, ADR-113, ADR-115, ADR-116 y ADR-118) |
 | [ADR-039](ADR-039-arranque-limpio-fase-7.md) | Arranque limpio en Railway y retiro de GHPOINTS (fase 7) | Aceptada; operación pendiente |
