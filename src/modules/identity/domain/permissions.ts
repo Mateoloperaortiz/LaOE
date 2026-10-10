@@ -14,6 +14,7 @@ import {
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { permission } from "../schema";
+import { deleteAccessGrantsFor, lockAccessGrantsOf } from "./access-grant";
 import { normalizeEmail } from "./pure";
 
 // Permisos técnicos (ADR-011): ADMIN, líder de comité y junta. Se conceden con step-up y quedan auditados.
@@ -139,6 +140,8 @@ export async function grantPermission(
   if (!member) {
     throw new DomainError(t("T-267"), "email");
   }
+  // De a uno con la emisión de un enlace para esta persona (ADR-119 regla 17).
+  await lockAccessGrantsOf(ctx.tx, member.id);
   try {
     const [row] = await ctx.tx
       .insert(permission)
@@ -152,6 +155,9 @@ export async function grantPermission(
     if (!row) {
       throw new Error("No se pudo otorgar el permiso");
     }
+    // Un enlace emitido antes pasó la regla de privilegio sin este permiso (ADR-113 regla 1): deja
+    // de servir en la misma transacción que lo concede.
+    await deleteAccessGrantsFor(ctx.tx, member.id);
     await ctx.audit({
       action: "permission.granted",
       entityType: "permission",

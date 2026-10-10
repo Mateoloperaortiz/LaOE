@@ -1,6 +1,6 @@
-import { and, eq, gt, inArray, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { type Actor, type CommandContext, type Executor, runCommand } from "@/db/tx";
+import { type Actor, type CommandContext, type Executor, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { accessGrantIssued } from "@/domain-events/identity";
 import { canParticipate, getMemberSummary } from "@/modules/people";
@@ -50,6 +50,9 @@ export async function issueAccessGrant(
   if (!member?.canSignIn) {
     throw new DomainError(t("T-2127"));
   }
+  // La concesión de un permiso toma el mismo candado: la comparación de abajo no lee los permisos
+  // de antes de una concesión que ya está escribiendo (ADR-119 regla 17).
+  await lockAccessGrantsOf(ctx.tx, input.personId);
   // Sin emisor es el arranque del sistema (ADR-051 regla 16): el camino de vuelta de un ADMIN.
   if (ctx.actor.personId !== null) {
     await assertNoPrivilegeGain(ctx, ctx.actor.personId, input.personId);
@@ -141,7 +144,20 @@ async function assertNoPrivilegeGain(
   }
 }
 
-/** Borra los enlaces de una persona: los llaman el retiro y la anonimización, como a la credencial. */
+/**
+ * Candado de los enlaces de una persona: emitirle uno y concederle un permiso van de a uno, así que
+ * ningún enlace nace con los permisos de antes de una concesión simultánea (ADR-119 regla 17).
+ */
+export async function lockAccessGrantsOf(tx: Tx, personId: string): Promise<void> {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`access-grant:${personId}`}, 0))`,
+  );
+}
+
+/**
+ * Borra los enlaces de una persona: los llaman el retiro y la anonimización, como a la credencial, y
+ * la concesión de un permiso (ADR-119 regla 17).
+ */
 export async function deleteAccessGrantsFor(exec: Executor, personId: string): Promise<number> {
   const rows = await exec
     .delete(accessGrant)

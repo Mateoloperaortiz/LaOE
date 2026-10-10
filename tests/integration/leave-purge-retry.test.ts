@@ -91,11 +91,12 @@ async function equip({ board, personId, termId, committeeId }: Scene): Promise<v
   await db()
     .insert(credential)
     .values({ personId, passwordHash: await hashPassword("trapecio verde 41") });
-  await issueAccessGrantAs({ personId: board }, { personId, kind: "ACTIVATION" });
   await grantPermissionAs(
     { personId: board },
     { email: EMAIL, code: "COMMITTEE_LEADER", committeeId },
   );
+  // Después del permiso: concederlo borra los enlaces vivos de quien lo recibe (ADR-119 regla 17).
+  await issueAccessGrantAs({ personId: board }, { personId, kind: "ACTIVATION" });
   await getOrCreateCalendarToken(personId);
   await createTaskAs({ personId: board }, { title: "Llamar a Nora", kind: "GENERAL", personId });
   const formId = await seedForm(`inscripcion-${sequence}`);

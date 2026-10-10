@@ -1,10 +1,11 @@
 import { eq } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { SYSTEM_ACTOR } from "@/db/tx";
-import { grantPermissionAs } from "@/modules/identity";
+import { grantPermission, grantPermissionAs } from "@/modules/identity";
 import {
   consumeAccessGrant,
+  issueAccessGrant,
   issueAccessGrantAs,
   resolveAccessGrant,
 } from "@/modules/identity/domain/access-grant";
@@ -17,6 +18,7 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { holdCommand, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
 
 // Enlace de un solo uso que emite la junta (ADR-051).
@@ -389,6 +391,118 @@ describe("enlace de acceso", () => {
       await putOnLeave(adminEnLicencia);
 
       await expectNoPrivilegeGain(junta, adminEnLicencia);
+    });
+  });
+
+  // ADR-119 regla 17: la regla de privilegio mira los permisos al emitir, así que el enlace emitido
+  // antes de una concesión no puede seguir vivo después de ella.
+  describe("conceder un permiso deja sin enlace a quien lo recibe", () => {
+    const DESTINO = "destino@eafit.edu.co";
+
+    async function linksOf(personId: string): Promise<number> {
+      const rows = await db().select().from(accessGrant).where(eq(accessGrant.personId, personId));
+      return rows.length;
+    }
+
+    it("el enlace que la junta emitió antes de la concesión ya no abre ni fija contraseña", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const destino = await seedMember(DESTINO);
+      const { token } = await issueAccessGrantAs(
+        { personId: junta },
+        { personId: destino, kind: "RECOVERY" },
+      );
+      expect(await resolveAccessGrant(token)).toMatchObject({ personId: destino });
+
+      await grantPermissionAs(SYSTEM_ACTOR, { email: DESTINO, code: "ADMIN" });
+
+      expect(await resolveAccessGrant(token)).toBeNull();
+      expect(
+        await consumeAccessGrant({ token, password: CLAVE, ip: null, userAgent: null }),
+      ).toEqual({ ok: false, reason: "INVALID" });
+      expect(await findPasswordHash(destino)).toBeNull();
+      expect(await linksOf(destino)).toBe(0);
+    });
+
+    it("el enlace de otra persona sigue vivo", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const destino = await seedMember(DESTINO);
+      const otra = await seedMember("otra@eafit.edu.co");
+      const ajeno = await issueAccessGrantAs(
+        { personId: junta },
+        { personId: otra, kind: "ACTIVATION" },
+      );
+
+      await grantPermissionAs(SYSTEM_ACTOR, { email: DESTINO, code: "BOARD" });
+
+      expect(await resolveAccessGrant(ajeno.token)).toMatchObject({ personId: otra });
+      expect(await linksOf(destino)).toBe(0);
+    });
+
+    it("una concesión que no entra, porque ya tenía ese permiso, deja el enlace como estaba", async () => {
+      const admin = await seedMemberWith("admin@eafit.edu.co", "ADMIN");
+      const destino = await seedMemberWith(DESTINO, "BOARD");
+      const { token } = await issueAccessGrantAs(
+        { personId: admin },
+        { personId: destino, kind: "RECOVERY" },
+      );
+
+      await expect(
+        grantPermissionAs(SYSTEM_ACTOR, { email: DESTINO, code: "BOARD" }),
+      ).rejects.toThrow(t("T-268"));
+
+      expect(await resolveAccessGrant(token)).toMatchObject({ personId: destino });
+    });
+
+    // Las dos solicitudes a la vez: sin un candado común la emisión leería los permisos de antes de
+    // una concesión que todavía no confirma, y el enlace nacería después de que ella borró.
+    it("la emisión que llega mientras se concede espera, y se rechaza con el permiso ya puesto", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const destino = await seedMember(DESTINO);
+
+      const held = await holdCommand(SYSTEM_ACTOR, (ctx) =>
+        grantPermission(ctx, { email: DESTINO, code: "ADMIN" }),
+      );
+      const emision = issueAccessGrantAs(
+        { personId: junta },
+        { personId: destino, kind: "RECOVERY" },
+      );
+      void emision.catch(() => undefined);
+      try {
+        await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBe(1), {
+          timeout: 5_000,
+        });
+      } finally {
+        held.release();
+        await held.done;
+      }
+
+      await expect(emision).rejects.toThrow(t("T-3206"));
+      expect(await linksOf(destino)).toBe(0);
+    });
+
+    it("la concesión que llega mientras se emite espera, y borra el enlace recién emitido", async () => {
+      const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+      const destino = await seedMember(DESTINO);
+
+      let token = "";
+      const held = await holdCommand({ personId: junta }, async (ctx) => {
+        token = (await issueAccessGrant(ctx, { personId: destino, kind: "RECOVERY" })).token;
+      });
+      const concesion = grantPermissionAs(SYSTEM_ACTOR, { email: DESTINO, code: "ADMIN" });
+      void concesion.catch(() => undefined);
+      try {
+        await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBe(1), {
+          timeout: 5_000,
+        });
+      } finally {
+        held.release();
+        await held.done;
+      }
+      await concesion;
+
+      expect(token).not.toBe("");
+      expect(await resolveAccessGrant(token)).toBeNull();
+      expect(await linksOf(destino)).toBe(0);
     });
   });
 });
