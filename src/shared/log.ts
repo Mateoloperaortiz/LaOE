@@ -361,7 +361,9 @@ export function printableError(error: Error): Error {
 
 // JSON en producción, CI y archivos; el formateador con worker queda para la terminal local.
 export const logger = pino({
-  level: process.env.LOG_LEVEL ?? (isProduction ? "info" : "debug"),
+  // `||` y no `??`: una variable vacía vale como ausente, igual que en `env.ts` (ADR-121 regla 8).
+  // Con la cadena vacía pino lanza al crear el logger y el proceso no arranca.
+  level: process.env.LOG_LEVEL || (isProduction ? "info" : "debug"),
   base: null,
   serializers: { err: serializeError },
   // Lo que las rutas de abajo no alcanzan, más abajo del segundo nivel (ADR-120 regla 9).
