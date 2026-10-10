@@ -16,6 +16,7 @@ import {
   sampleNormativaV2Pdf,
 } from "../helpers/pdf";
 import { sinViolaciones } from "./axe";
+import { failConfirmations, rejectBucketUploads } from "./bucket-helper";
 import { test } from "./fixtures";
 import { E2E_EMAIL } from "./global-setup";
 import { prepareReaderDocument } from "./normativa-fixture";
@@ -94,6 +95,101 @@ test.describe("como admin", () => {
     await sinViolaciones(page);
     await panel.getByRole("button", { name: t("T-291"), exact: true }).click();
     await expect(page).toHaveURL(/\/admin\/documentos\?q=conservar$/);
+  });
+
+  test("sin archivo, con uno que no es PDF, con uno que no pesa lo debido o sin versión, la subida no llega a pedirse", async ({
+    page,
+  }) => {
+    let presigns = 0;
+    page.on("request", (request) => {
+      if (request.url().includes("/api/documentos/presign")) presigns += 1;
+    });
+    await page.goto("/admin/documentos");
+    await page.getByRole("link", { name: t("T-1460"), exact: true }).click();
+    const panel = page.getByRole("dialog");
+    const file = panel.getByLabel(tList("T-494")[4]);
+    const submit = panel.getByRole("button", { name: t("T-1460"), exact: true });
+    await panel.getByLabel(tList("T-494")[0]).fill("e2e-Documento rechazado");
+    await panel.getByLabel(tList("T-494")[2]).fill("2026-09-08");
+    await submit.click();
+    await expect(panel.getByRole("alert")).toHaveText(t("T-1466"));
+    await file.setInputFiles({
+      name: "e2e-notas.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("No es un PDF"),
+    });
+    await expect(panel.getByRole("alert")).toHaveCount(0);
+    await submit.click();
+    await expect(panel.getByRole("alert")).toHaveText(t("T-501"));
+    await file.setInputFiles({
+      name: "e2e-diminuto.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4"),
+    });
+    await submit.click();
+    await expect(panel.getByRole("alert")).toHaveText(t("T-519"));
+    // La versión en blanco se revisa antes que el archivo.
+    await panel.getByLabel(tList("T-494")[2]).fill("   ");
+    await submit.click();
+    await expect(panel.getByRole("alert")).toHaveText(t("T-1464"));
+    expect(presigns).toBe(0);
+  });
+
+  test("si el bucket rechaza el PDF se avisa con el texto de siempre, no se confirma y nada se pierde", async ({
+    page,
+  }) => {
+    let confirmations = 0;
+    page.on("request", (request) => {
+      if (request.url().includes("/api/documentos/confirm")) confirmations += 1;
+    });
+    const bucket = await rejectBucketUploads(page, "/api/documentos/presign");
+    await page.goto("/admin/documentos");
+    await page.getByRole("link", { name: t("T-1460"), exact: true }).click();
+    const panel = page.getByRole("dialog");
+    await panel.getByLabel(tList("T-494")[0]).fill("e2e-Documento rechazado");
+    await panel.getByLabel(tList("T-494")[2]).fill("2026-09-08");
+    await panel.getByLabel(tList("T-494")[4]).setInputFiles({
+      name: "e2e-rechazado.pdf",
+      mimeType: "application/pdf",
+      buffer: sampleNormativaPdf(),
+    });
+    await panel.getByRole("button", { name: t("T-1460"), exact: true }).click();
+    await expect(panel.getByRole("alert")).toHaveText(t("T-518"));
+    expect(bucket.uploads).toBe(1);
+    expect(confirmations).toBe(0);
+    await expect(panel.getByLabel(tList("T-494")[0])).toHaveValue("e2e-Documento rechazado");
+    expect(
+      await panel
+        .getByLabel(tList("T-494")[4])
+        .evaluate((input: HTMLInputElement) => input.files?.[0]?.name),
+    ).toBe("e2e-rechazado.pdf");
+  });
+
+  test("si la confirmación del PDF falla se muestra lo que dijo el servidor y, si no dijo nada, el texto de siempre", async ({
+    page,
+  }) => {
+    const confirm = await failConfirmations(
+      page,
+      "/api/documentos/confirm",
+      "Confirmación de prueba rechazada.",
+    );
+    await page.goto("/admin/documentos");
+    await page.getByRole("link", { name: t("T-1460"), exact: true }).click();
+    const panel = page.getByRole("dialog");
+    await panel.getByLabel(tList("T-494")[0]).fill("e2e-Documento sin confirmar");
+    await panel.getByLabel(tList("T-494")[2]).fill("2026-09-08");
+    await panel.getByLabel(tList("T-494")[4]).setInputFiles({
+      name: "e2e-sin-confirmar.pdf",
+      mimeType: "application/pdf",
+      buffer: sampleNormativaPdf(),
+    });
+    const submit = panel.getByRole("button", { name: t("T-1460"), exact: true });
+    await submit.click();
+    await expect(panel.getByRole("alert")).toHaveText("Confirmación de prueba rechazada.");
+    await submit.click();
+    await expect(panel.getByRole("alert")).toHaveText(t("T-518"));
+    expect(confirm.confirmations).toBe(2);
+    await expect(page).toHaveURL(/\/admin\/documentos(\?|$)/);
   });
 
   test("sube un PDF, carga los artículos desde el JSON y lo publica", async ({ page }) => {

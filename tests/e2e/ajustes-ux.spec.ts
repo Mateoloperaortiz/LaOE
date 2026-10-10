@@ -2,6 +2,7 @@ import { expect } from "@playwright/test";
 import sharp from "sharp";
 import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
+import { failConfirmations, rejectBucketUploads } from "./bucket-helper";
 import { test } from "./fixtures";
 
 test.use({ storageState: "tests/e2e/.auth/member.json" });
@@ -106,6 +107,51 @@ test("una foto de menos de 5 KB se valida antes de transferir", async ({ page })
   await expect(photo.getByRole("alert")).toHaveText(t("T-419"));
   await expect(photo.getByRole("button", { name: t("T-1620"), exact: true })).toBeDisabled();
   expect(uploads).toBe(0);
+});
+
+test("si el bucket rechaza la foto se avisa con el texto de siempre, no se confirma y el archivo queda para reintentar", async ({
+  page,
+}) => {
+  let confirmations = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/api/media/confirm")) confirmations += 1;
+  });
+  const bucket = await rejectBucketUploads(page, "/api/media/presign");
+  await page.goto("/app/ajustes");
+  const photo = page.locator("form").filter({ has: page.locator('input[type="file"]') });
+  const picker = photo.locator('input[type="file"]');
+  await picker.setInputFiles(await sample("e2e-foto-rechazada.png"));
+  await photo.getByRole("button", { name: t("T-1620"), exact: true }).click();
+  await expect(photo.getByRole("alert")).toHaveText(t("T-363"));
+  expect(bucket.uploads).toBe(1);
+  expect(confirmations).toBe(0);
+  expect(await picker.evaluate((input) => (input as HTMLInputElement).files?.[0]?.name)).toBe(
+    "e2e-foto-rechazada.png",
+  );
+  await expect(photo.getByRole("button", { name: t("T-1620"), exact: true })).toBeEnabled();
+});
+
+test("si la confirmación de la foto falla se muestra lo que dijo el servidor y, si no dijo nada, el texto de siempre", async ({
+  page,
+}) => {
+  const confirm = await failConfirmations(
+    page,
+    "/api/media/confirm",
+    "Confirmación de prueba rechazada.",
+  );
+  await page.goto("/app/ajustes");
+  const photo = page.locator("form").filter({ has: page.locator('input[type="file"]') });
+  const picker = photo.locator('input[type="file"]');
+  await picker.setInputFiles(await sample("e2e-foto-sin-confirmar.png"));
+  await photo.getByRole("button", { name: t("T-1620"), exact: true }).click();
+  await expect(photo.getByRole("alert")).toHaveText("Confirmación de prueba rechazada.");
+  expect(await picker.evaluate((input) => (input as HTMLInputElement).files?.[0]?.name)).toBe(
+    "e2e-foto-sin-confirmar.png",
+  );
+  await photo.getByRole("button", { name: t("T-1620"), exact: true }).click();
+  await expect(photo.getByRole("alert")).toHaveText(t("T-363"));
+  expect(confirm.confirmations).toBe(2);
+  await expect(photo.getByText(t("T-360"))).toHaveCount(0);
 });
 
 test("un error de contacto conserva los dos campos, enfoca el inválido y permite corregirlo", async ({

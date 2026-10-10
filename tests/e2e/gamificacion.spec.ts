@@ -24,6 +24,7 @@ import { t, tList } from "@/shared/copy";
 import { utcToBogotaInput } from "@/shared/lib/dates";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
+import { rejectBucketUploads } from "./bucket-helper";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
 import { E2E_EMAIL, E2E_MEMBER_EMAIL } from "./global-setup";
@@ -283,6 +284,64 @@ test("evidencia: el miembro entrega texto e imagen y el admin la aprueba", async
   await page.goto(`/app/gh-points/retos/${id}`);
   await expect(page.getByText(t("T-2434", { n: 10 }))).toBeVisible();
   await sinViolaciones(page);
+});
+
+test("evidencia: un archivo rechazado o una subida fallida se avisan con su texto, no dejan imagen y el selector queda vacío", async ({
+  page,
+}) => {
+  const id = await crearReto({
+    kind: "EVIDENCE",
+    title: "e2e-Misión con subidas fallidas",
+    description: "Contá qué hiciste.",
+    ...ventana(),
+    basePoints: 10,
+  });
+  let presigns = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/api/retos/evidencia/presign")) presigns += 1;
+  });
+  await page.goto(`/app/gh-points/retos/${id}`);
+  const form = page.locator("form").filter({ has: page.locator('input[type="file"]') });
+  const picker = form.locator('input[type="file"]');
+  await picker.setInputFiles({
+    name: "e2e-notas.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("No es una imagen"),
+  });
+  await expect(form.getByRole("alert")).toHaveText(tList("T-2430")[0]);
+  const tiny = await sharp({
+    create: { width: 80, height: 80, channels: 3, background: "#001f3e" },
+  })
+    .png()
+    .toBuffer();
+  expect(tiny.byteLength).toBeLessThan(5 * 1024);
+  await picker.setInputFiles({ name: "e2e-diminuta.png", mimeType: "image/png", buffer: tiny });
+  await expect(form.getByRole("alert")).toHaveText(tList("T-2430")[1]);
+  expect(presigns).toBe(0);
+
+  const png = await sharp(randomBytes(320 * 180 * 3), {
+    raw: { width: 320, height: 180, channels: 3 },
+  })
+    .png({ compressionLevel: 0 })
+    .toBuffer();
+  const evidence = { name: "e2e-evidencia-fallida.png", mimeType: "image/png", buffer: png };
+  // La evidencia no repite lo que diga el servidor: cualquier fallo lleva su propio texto.
+  await page.route("**/api/retos/evidencia/presign", (route) =>
+    route.fulfill({ status: 403, json: { error: "Mensaje de prueba del servidor." } }),
+  );
+  await picker.setInputFiles(evidence);
+  await expect(form.getByRole("alert")).toHaveText(tList("T-2430")[3]);
+  expect(presigns).toBe(1);
+  expect(await picker.evaluate((input: HTMLInputElement) => input.files?.length)).toBe(0);
+  await page.unroute("**/api/retos/evidencia/presign");
+
+  const bucket = await rejectBucketUploads(page, "/api/retos/evidencia/presign");
+  await picker.setInputFiles(evidence);
+  await expect.poll(() => bucket.uploads).toBe(1);
+  await expect(form.getByRole("alert")).toHaveText(tList("T-2430")[3]);
+  expect(await picker.evaluate((input: HTMLInputElement) => input.files?.length)).toBe(0);
+  await expect(page.getByRole("img", { name: evidence.name })).toHaveCount(0);
+  await expect(picker).toBeEnabled();
 });
 
 test("presencial: el check-in de la actividad completa el reto solo", async ({ page }) => {
