@@ -43,6 +43,7 @@ export async function prepareTheGamesRehearsal(input: {
     )
     .limit(1);
   if (!admin) throw new RehearsalError("El --admin tiene que ser un ADMIN con membresía activa");
+  // Un script no tiene request: el ADMIN que corre el ensayo va sin IP.
   const actor = { personId: admin.id, isAdmin: true, ip: null };
 
   const existing = await getCompetitionBySlug(input.slug);

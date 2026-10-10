@@ -103,7 +103,8 @@ export async function recordOnboardingEvidence(
     return 0;
   }
   let changed = 0;
-  // La marca el sistema a nombre de la persona, desde un trabajo o después de responder: sin IP.
+  // La marca el sistema a nombre de la persona, desde un trabajo o después de responder: sin IP. Las
+  // dos puertas que la agendan tienen request y no le pasan la IP (DT-314).
   await runCommand({ personId, ip: null }, async (ctx) => {
     for (const step of matching) {
       if (await markOnboardingStep(ctx, personId, term.id, step.key, "AUTO")) {

@@ -36,10 +36,14 @@ vi.mock("next/navigation", () => ({
     throw new Error(`redirect:${path}`);
   },
 }));
-// `after` solo existe dentro de un request de Next; lo que agenda no es de esta prueba.
+// `after` solo existe dentro de un request de Next: acá guarda lo que la puerta agenda, y lo corre a
+// mano la prueba que lo mira.
+const scheduled = vi.hoisted(() => ({ tasks: [] as Array<() => unknown> }));
 vi.mock("next/server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("next/server")>()),
-  after: () => {},
+  after: (task: () => unknown) => {
+    scheduled.tasks.push(task);
+  },
 }));
 vi.mock("@/modules/identity", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/identity")>()),
@@ -83,6 +87,7 @@ async function seedSession(email: string): Promise<string> {
 describe("la IP del actor de un comando llega a la auditoría según la puerta", () => {
   beforeEach(async () => {
     session.getActor.mockReset();
+    scheduled.tasks.length = 0;
     await truncateAll();
   });
   afterAll(() => closeDb());
@@ -114,6 +119,27 @@ describe("la IP del actor de un comando llega a la auditoría según la puerta",
 
     expect(response.status).toBe(200);
     expect(await audits("push-subscription.created")).toEqual([{ actorId: personId, ip: IP }]);
+  });
+
+  it("la evidencia automática que agenda esa ruta audita a nombre de la persona y sin IP (DT-314)", async () => {
+    const personId = await seedSession("push.evidencia@eafit.edu.co");
+
+    const response = await subscribeToPush(
+      new Request("http://localhost/api/push/subscribe", {
+        method: "POST",
+        body: JSON.stringify({
+          endpoint: "https://fcm.googleapis.com/fcm/send/dispositivo-evidencia",
+          keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) },
+        }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(scheduled.tasks).toHaveLength(1);
+    await Promise.all(scheduled.tasks.map((task) => task()));
+
+    // El mismo request deja dos filas: la del dispositivo con su IP y la del paso del onboarding sin ella.
+    expect(await audits("push-subscription.created")).toEqual([{ actorId: personId, ip: IP }]);
+    expect(await audits("onboarding.step-done")).toEqual([{ actorId: personId, ip: null }]);
   });
 
   it("la baja de campañas por el token del correo audita a nombre del dueño del token y sin IP (DT-313)", async () => {
