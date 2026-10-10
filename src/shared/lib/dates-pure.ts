@@ -96,6 +96,24 @@ export function atHourIn(timeZone: string, dayKey: string, hour: number): Date {
   return zonedInputToUtc(`${dayKey}T${String(hour).padStart(2, "0")}:00`, timeZone);
 }
 
+/**
+ * Un día ("AAAA-MM-DD") más `days` días, o menos si es negativo: aritmética de calendario, sin zona ni
+ * horas. Es la única suma de días de la casa (ADR-121 regla 6).
+ */
+export function addDays(dayKey: string, days: number): string {
+  const date = new Date(`${dayKey}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * La medianoche que le sigue a ese instante en la zona dada: cuando empieza su día siguiente. Va por
+ * el día y no por horas sumadas: el día de ese instante, más uno, a las cero de la zona.
+ */
+export function startOfNextDayIn(timeZone: string, at: Date): Date {
+  return atHourIn(timeZone, addDays(dateKeyIn(timeZone, at), 1), 0);
+}
+
 /** Instante UTC → "AAAA-MM-DDTHH:mm" en la zona dada, para rellenar un `datetime-local`. */
 export function utcToZonedInput(date: Date, timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
