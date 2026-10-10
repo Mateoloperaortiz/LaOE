@@ -52,6 +52,7 @@ import {
   type RosterColumn,
   type RosterStatus,
   rowsFromCells,
+  staysInactive,
   validateRoster,
 } from "./roster-pure";
 
@@ -638,6 +639,9 @@ async function applyRow(
   let outcome: "created" | "updated" | "unchanged" =
     row.group === "UNCHANGED" ? "unchanged" : "updated";
   const status: RosterStatus = row.status ?? "ACTIVE";
+  // Quien ya estaba de baja y esta fila no lo saca de ahí: se decide con la membresía leída acá, no
+  // con la de la vista previa.
+  let keepsOut = false;
   if (!existing) {
     const entryTermId = row.entryTerm ? termsByCode.get(row.entryTerm) : undefined;
     if (!entryTermId) {
@@ -684,6 +688,7 @@ async function applyRow(
       .select({ status: membership.status, endReason: membership.endReason })
       .from(membership)
       .where(eq(membership.personId, personId));
+    keepsOut = staysInactive(current, row.status);
     if (!current) {
       const entryTermId = (row.entryTerm ? termsByCode.get(row.entryTerm) : undefined) ?? termId;
       await insertRosterMembership(ctx, { personId, status, entryTermId, termId });
@@ -721,7 +726,9 @@ async function applyRow(
       }
     }
   }
-  if (row.probation !== undefined) {
+  // La fila del término se le escribe a quien queda adentro o a quien esta fila da de baja; a quien
+  // sigue de baja no (ADR-120 regla 1): conserva la prueba y el motivo que tuviera.
+  if (row.probation !== undefined && !keepsOut) {
     await ctx.tx
       .insert(membershipTerm)
       .values({

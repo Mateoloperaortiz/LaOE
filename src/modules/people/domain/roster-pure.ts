@@ -694,7 +694,7 @@ export function existingRoles(item: {
 /**
  * Quien está de baja y sigue de baja después de esta fila: sin columna ESTADO el roster no toca el
  * estado, y a quien fue expulsado no lo reactiva ni con ella (ADR-060 regla 3). A esa persona el
- * roster no le cambia los comités (ADR-118 regla 11).
+ * roster no le cambia los comités (ADR-118 regla 11) ni la fila del término (ADR-120 regla 1).
  */
 export function staysInactive(
   current: Pick<ExistingPerson, "status" | "endReason"> | undefined,
@@ -737,21 +737,17 @@ export function diffRoster(rows: ValidatedRow[], existing: Map<string, ExistingP
     for (const field of ["documentType", "documentNumber", "epikId", "birthDate"] as const) {
       if (row[field] !== undefined && row[field] !== (current[field] ?? "")) changes.push(field);
     }
-    // El estado que el roster no va a cambiar no es un cambio: quien fue expulsado sigue de baja
-    // (ADR-060 regla 3) y su fila conserva el aviso T-2208. La prueba del término sí se le escribe.
-    if (
-      row.status !== undefined &&
-      row.status !== current.status &&
-      !staysInactive(current, row.status)
-    ) {
+    // Lo que el roster no va a escribir no es un cambio: quien sigue de baja conserva su estado
+    // (ADR-060 regla 3, con el aviso T-2208 si fue expulsado) y su fila del término, con la prueba
+    // que tuviera (ADR-120 regla 1).
+    const keepsOut = staysInactive(current, row.status);
+    if (row.status !== undefined && row.status !== current.status && !keepsOut) {
       changes.push("status");
     }
-    if (row.probation !== undefined && row.probation !== current.probation) changes.push("status");
-    if (
-      row.committees !== undefined &&
-      row.status !== "INACTIVE" &&
-      !staysInactive(current, row.status)
-    ) {
+    if (row.probation !== undefined && row.probation !== current.probation && !keepsOut) {
+      changes.push("status");
+    }
+    if (row.committees !== undefined && row.status !== "INACTIVE" && !keepsOut) {
       const rolesKey = (roles: Array<{ roleCode: string; coDirector: boolean }>) =>
         roles
           .map((role) => `${role.roleCode}${role.coDirector ? "*" : ""}`)

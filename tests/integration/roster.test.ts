@@ -1,7 +1,7 @@
 import { and, count, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { endMembershipAs } from "@/modules/people";
+import { endMembershipAs, setProbationAs } from "@/modules/people";
 import { getPerson360 } from "@/modules/people/domain/person-360";
 import { listPeople } from "@/modules/people/domain/persons";
 import {
@@ -366,10 +366,25 @@ describe("importación del roster", () => {
     );
   });
 
-  // Lo que sí se le escribe a quien sigue de baja es la prueba del término (`membership_term`), así
-  // que ese cambio se cuenta: silenciarlo dejaría una escritura de verdad bajo «sin cambios» (DT-286).
-  it("a quien fue expulsado y figura en periodo de prueba sí lo cuenta: le escribe la prueba del término y no lo reactiva", async () => {
+  async function filaDelTermino(personId: string, termId: string) {
+    return db()
+      .select({ probation: membershipTerm.probation, reason: membershipTerm.reason })
+      .from(membershipTerm)
+      .where(
+        and(
+          eq(membershipTerm.personId, personId),
+          eq(membershipTerm.termId, termId),
+          isNull(membershipTerm.committeeId),
+        ),
+      );
+  }
+
+  // ADR-120 regla 1: a quien sigue de baja el roster no le toca la fila del término, igual que no le
+  // toca el estado ni los comités (DT-286). Antes le escribía la prueba que decía el archivo.
+  it("a quien fue expulsado y figura en periodo de prueba no le escribe la prueba del término ni lo cuenta como actualizado", async () => {
     const { termId, code, adminId, juan } = await rosterConBaja("EXPULSION");
+    const antes = await filaDelTermino(juan, termId);
+    expect(antes).toEqual([{ probation: false, reason: `roster ${code}` }]);
 
     const otra = await preview(
       adminId,
@@ -378,24 +393,69 @@ describe("importación del roster", () => {
     );
     const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
 
-    expect(otra.rows[0]).toMatchObject({ group: "CHANGED", changes: ["status"] });
-    expect(applied).toMatchObject({ updated: 1, unchanged: 0, skipped: 0 });
+    expect(await filaDelTermino(juan, termId)).toEqual(antes);
     expect(await estadoYComites(juan)).toEqual({
       status: "INACTIVE",
       endReason: "EXPULSION",
       comites: [],
     });
-    const prueba = await db()
-      .select({ probation: membershipTerm.probation })
-      .from(membershipTerm)
-      .where(
-        and(
-          eq(membershipTerm.personId, juan),
-          eq(membershipTerm.termId, termId),
-          isNull(membershipTerm.committeeId),
-        ),
-      );
-    expect(prueba).toEqual([{ probation: true }]);
+    // La vista previa tampoco anuncia un cambio que no se va a escribir, y la fila conserva su aviso.
+    expect(otra.rows[0]).toMatchObject({ group: "UNCHANGED", changes: [] });
+    expect(otra.rows[0]?.warnings).toEqual([
+      expect.stringMatching(copyPattern("T-2208", { nombre: "Juan Gómez" })),
+    ]);
+    expect(applied).toMatchObject({ updated: 0, unchanged: 1, skipped: 0 });
+  });
+
+  it("a quien renunció y sigue figurando como retirado no le reescribe la prueba ni el motivo que tenía en el término", async () => {
+    const { termId, code, adminId, juan } = await rosterConBaja("RESIGNATION");
+    await setProbationAs({ personId: adminId }, juan, termId, {
+      probation: true,
+      reason: "Quedó en prueba antes de irse",
+    });
+    const antes = await filaDelTermino(juan, termId);
+    expect(antes).toEqual([{ probation: true, reason: "Quedó en prueba antes de irse" }]);
+
+    const otra = await preview(
+      adminId,
+      termId,
+      csv([`Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Retirado;`]),
+    );
+    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+
+    expect(await filaDelTermino(juan, termId)).toEqual(antes);
+    expect(otra.rows[0]).toMatchObject({ group: "UNCHANGED", changes: [] });
+    expect(applied).toMatchObject({ updated: 0, unchanged: 1, skipped: 0 });
+  });
+
+  // El límite de la regla: «sigue de baja» no es «queda de baja». A quien el roster da de baja en
+  // esta misma fila se le sigue escribiendo la fila del término, como antes de ADR-120.
+  it("a quien el roster da de baja en esa fila sí le escribe la fila del término: deja de figurar en prueba", async () => {
+    const termId = await seedTerm();
+    const code = currentTermCode();
+    await seedCommittee("pixel");
+    const adminId = await seedMember("admin@eafit.edu.co");
+    const fila = (estado: string) =>
+      csv([`Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};${estado};`]);
+    const base = await preview(adminId, termId, fila("Periodo de prueba"));
+    await applyRosterImportAs({ personId: adminId }, base.jobId);
+    const [juan] = await db()
+      .select({ id: person.id })
+      .from(person)
+      .where(eq(person.email, "prueba.juan@eafit.edu.co"));
+    expect(await filaDelTermino(juan?.id ?? "", termId)).toEqual([
+      { probation: true, reason: `roster ${code}` },
+    ]);
+
+    const retiro = await preview(adminId, termId, fila("Retirado"));
+    const applied = await applyRosterImportAs({ personId: adminId }, retiro.jobId);
+
+    expect(retiro.rows[0]).toMatchObject({ group: "CHANGED", changes: ["status"] });
+    expect(applied).toMatchObject({ updated: 1, unchanged: 0 });
+    expect((await estadoYComites(juan?.id ?? "")).status).toBe("INACTIVE");
+    expect(await filaDelTermino(juan?.id ?? "", termId)).toEqual([
+      { probation: false, reason: `roster ${code}` },
+    ]);
   });
 
   it("quien renunció y figura como activo sí vuelve, y su fila cuenta el estado como cambio", async () => {
