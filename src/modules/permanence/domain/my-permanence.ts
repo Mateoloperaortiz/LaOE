@@ -1,3 +1,4 @@
+import type { TermRow } from "@/modules/terms";
 import { countPendingFor } from "./evaluations";
 import { loadPeopleFacts, loadTermFacts } from "./facts";
 import { listMyGroupRoles } from "./groups";
@@ -54,10 +55,11 @@ function emptyResult(personId: string): PersonPermanence {
 
 export async function getPersonPermanence(
   personId: string,
-  termId: string,
+  termOrId: string | TermRow,
   now = new Date(),
 ): Promise<PersonPermanenceView | null> {
-  const facts = await loadTermFacts(termId);
+  const termId = typeof termOrId === "string" ? termOrId : termOrId.id;
+  const facts = await loadTermFacts(termOrId);
   if (!facts) {
     return null;
   }

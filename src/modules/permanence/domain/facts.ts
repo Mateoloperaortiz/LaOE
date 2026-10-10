@@ -11,7 +11,7 @@ import {
 } from "@/modules/participation";
 import { listExpulsionWarnings, listTermRoster, type TermRosterRow } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
-import { getTerm } from "@/modules/terms";
+import { getTerm, type TermRow } from "@/modules/terms";
 import {
   leaderScore,
   manualCredit,
@@ -95,12 +95,16 @@ export async function loadRules(termId: string) {
   return rows.map((row) => toRule(row));
 }
 
-/** Los hechos del término: reglas, ocasiones, grupos y configuración; null si el término no existe. */
-export async function loadTermFacts(termId: string): Promise<TermFacts | null> {
-  const term = await getTerm(termId);
+/**
+ * Los hechos del término: reglas, ocasiones, grupos y configuración; null si el término no existe.
+ * Quien ya leyó el término lo pasa entero y no se vuelve a leer (ADR-121 regla 11).
+ */
+export async function loadTermFacts(termOrId: string | TermRow): Promise<TermFacts | null> {
+  const term = typeof termOrId === "string" ? await getTerm(termOrId) : termOrId;
   if (!term) {
     return null;
   }
+  const termId = term.id;
   const config = await loadPermanenceConfig();
   const rules = await loadRules(termId);
   const occasions: OccasionFact[] = (await listOccasionsForTerm(termId)).map((row) => ({

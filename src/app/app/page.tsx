@@ -45,7 +45,7 @@ export default async function AppHome() {
     onboardingTermId ? getOnboarding(actor.personId, onboardingTermId) : Promise.resolve([]),
     mine.term ? balanceFor(actor.personId, mine.term.id) : Promise.resolve(0),
     mine.term ? listMemberAgenda(mine.term.id) : Promise.resolve([]),
-    mine.term ? getPersonPermanence(actor.personId, mine.term.id) : Promise.resolve(null),
+    mine.term ? getPersonPermanence(actor.personId, mine.term) : Promise.resolve(null),
   ]);
   const committeeNames = new Map(
     mine.committees.map((item) => [item.committeeId, item.committeeName]),

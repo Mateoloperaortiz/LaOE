@@ -39,7 +39,7 @@ export default async function PermanenciaPage({ searchParams }: PageProps<"/app/
       </div>
     );
   }
-  const view = await getPersonPermanence(actor.personId, term.id);
+  const view = await getPersonPermanence(actor.personId, term);
   const notices = actor.membershipStatus === "ON_LEAVE" ? [] : (view?.notices ?? []);
   const result = view?.result;
   const committeeIds = result?.results.map((item) => item.committeeId) ?? [];

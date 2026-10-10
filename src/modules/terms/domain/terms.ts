@@ -1,4 +1,5 @@
 import { and, asc, count, desc, eq, gte, ilike, lte, ne, sql } from "drizzle-orm";
+import { cache } from "react";
 import { z } from "zod";
 import { getDb } from "@/db/client";
 import { isUniqueViolation } from "@/db/errors";
@@ -74,12 +75,22 @@ export async function findTermContaining(
   return row ?? null;
 }
 
+/**
+ * El término que contiene un día, leído por el pool y compartido dentro de un render de servidor
+ * (ADR-121 regla 11): el layout, la página y el título de un mismo request preguntan por el término
+ * de hoy cada uno por su lado. La clave es el día, un texto, así que dos llamadas del mismo render
+ * coinciden aunque cada una arme su propia fecha. Fuera de un render (un trabajo, un script, una
+ * action antes de volver a pintar, una prueba) `cache` no guarda nada y cada llamada consulta.
+ */
+const termContainingForRender = cache((date: string) => findTermContaining(date));
+
 /** El término de hoy en Bogotá (ADR-004), o null si ninguno lo contiene. */
-export async function getCurrentTerm(
-  now = new Date(),
-  exec: Executor = getDb(),
-): Promise<TermRow | null> {
-  return findTermContaining(todayKey(now), exec);
+export async function getCurrentTerm(now = new Date(), exec?: Executor): Promise<TermRow | null> {
+  const date = todayKey(now);
+  // Una transacción lee por su conexión y ve lo que ella misma escribió: eso no se comparte.
+  return exec === undefined || exec === getDb()
+    ? termContainingForRender(date)
+    : findTermContaining(date, exec);
 }
 
 export async function findTermByCode(code: string): Promise<TermRow | null> {
