@@ -870,23 +870,9 @@ export async function collectionFor(
 
   const liveRows = allAchievements.filter((row) => row.revokedAt === null);
   const badgeById = new Map(definitions.map((row) => [row.id, row]));
-  const boosters = liveRows.length
-    ? await db
-        .select({ sourceAchievementId: boosterItem.sourceAchievementId, kind: boosterItem.kind })
-        .from(boosterItem)
-        .where(
-          inArray(
-            boosterItem.sourceAchievementId,
-            liveRows.map((row) => row.id),
-          ),
-        )
-    : [];
-  const boosterByAchievement = new Map(
-    boosters
-      .filter(
-        (row): row is typeof row & { sourceAchievementId: string } => !!row.sourceAchievementId,
-      )
-      .map((row) => [row.sourceAchievementId, row.kind]),
+  const boosterByAchievement = await boosterKindsOf(
+    db,
+    liveRows.map((row) => row.id),
   );
 
   const featured = liveRows
@@ -914,6 +900,60 @@ export async function collectionFor(
   ];
 
   return { families, specials, featured, unseen, terms };
+}
+
+/** El tipo de booster que dejó cada logro, por id del logro. */
+async function boosterKindsOf(
+  exec: Executor,
+  achievementIds: string[],
+): Promise<Map<string, BoosterKind>> {
+  if (achievementIds.length === 0) {
+    return new Map();
+  }
+  const rows = await exec
+    .select({ sourceAchievementId: boosterItem.sourceAchievementId, kind: boosterItem.kind })
+    .from(boosterItem)
+    .where(inArray(boosterItem.sourceAchievementId, achievementIds));
+  return new Map(
+    rows
+      .filter(
+        (row): row is typeof row & { sourceAchievementId: string } => !!row.sourceAchievementId,
+      )
+      .map((row) => [row.sourceAchievementId, row.kind]),
+  );
+}
+
+/**
+ * Los logros que la persona todavía no ha visto, para el diálogo de desbloqueo: lo mismo que
+ * `collectionFor(personId).unseen`, sin armar la colección ni leer la historia que la sostiene. Como
+ * allá, cuenta el logro vivo, no histórico, sin ver y de una insignia activa, del más viejo al más
+ * nuevo y con el tipo de booster que dejó.
+ */
+export async function unseenBadgesFor(personId: string): Promise<BadgeCollection["unseen"]> {
+  const db = getDb();
+  const rows = await db
+    .select({ achievement, badge: badgeDefinition })
+    .from(achievement)
+    .innerJoin(badgeDefinition, eq(badgeDefinition.id, achievement.badgeId))
+    .where(
+      and(
+        eq(achievement.personId, personId),
+        isNull(achievement.revokedAt),
+        eq(achievement.historical, false),
+        isNull(achievement.seenAt),
+        eq(badgeDefinition.active, true),
+      ),
+    )
+    .orderBy(asc(achievement.unlockedAt));
+  const boosterByAchievement = await boosterKindsOf(
+    db,
+    rows.map((row) => row.achievement.id),
+  );
+  return rows.map((row) => ({
+    achievement: row.achievement,
+    badge: row.badge,
+    boosterKind: boosterByAchievement.get(row.achievement.id) ?? null,
+  }));
 }
 
 /** Las insignias destacadas de cada persona del directorio, en el orden de `featuredPosition`. */

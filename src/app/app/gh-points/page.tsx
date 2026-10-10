@@ -6,16 +6,15 @@ import {
   ASSEMBLY_KINDS,
   assemblyStatusFor,
   balanceFor,
-  collectionFor,
   levelFor,
   listEntriesFor,
   loadGamificationSettings,
-  myPosition,
   nextChallengeForMember,
   POINT_ENTRY_KINDS,
+  peopleBoards,
   rankCommittees,
-  rankPeople,
   resolveMemberContext,
+  unseenBadgesFor,
 } from "@/modules/participation";
 import { BadgeUnlock } from "@/modules/participation/components/BadgeUnlock";
 import { ChallengeCard } from "@/modules/participation/components/ChallengeCard";
@@ -72,12 +71,12 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
     );
   }
 
+  // El puesto propio y el top 10 salen de los mismos tableros: se arman una vez por vista.
+  const boards = peopleBoards(term.id);
   const [total, entries, position, assemblies] = await Promise.all([
     balanceFor(actor.personId, term.id),
     listEntriesFor(actor.personId, term.id),
-    membership
-      ? myPosition(actor.personId, term.id, membership.firstTermId)
-      : Promise.resolve(null),
+    membership ? boards.position(actor.personId, membership.firstTermId) : Promise.resolve(null),
     assemblyStatusFor(actor.personId, term),
   ]);
   const assemblyKindLabels = tList("T-546");
@@ -98,7 +97,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
   const nextChallenge = member
     ? await nextChallengeForMember(actor.personId, term.id, member)
     : null;
-  const unseen = gamification.enabled ? (await collectionFor(actor.personId)).unseen : [];
+  const unseen = gamification.enabled ? await unseenBadgesFor(actor.personId) : [];
   let board: Array<{ rank: number; name: string; total: string; mine: boolean }> = [];
   let committeeBoard: CommitteePodiumEntry[] = [];
   if (tablero === "comites") {
@@ -129,7 +128,7 @@ export default async function GhPointsPage({ searchParams }: PageProps<"/app/gh-
       };
     });
   } else {
-    const ranked = await rankPeople(term.id, tablero === "nuevos" ? "NEW" : "VETERAN");
+    const ranked = await boards.rank(tablero === "nuevos" ? "NEW" : "VETERAN");
     board = ranked
       .filter((item) => item.total > 0)
       .slice(0, 10)

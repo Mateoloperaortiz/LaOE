@@ -39,7 +39,7 @@ function onBoard(member: ActiveMemberRef, termId: string, board: Board): boolean
 
 /** Tablero completo de un término: quienes suman puntos primero; sin puntos quedan al final con 0. */
 export async function rankPeople(termId: string, board: Board): Promise<Ranked<RankedPerson>[]> {
-  return rankPeopleFromMembers(getDb(), termId, board, await listActiveMemberRefs());
+  return peopleBoards(termId).rank(board);
 }
 
 /** Ranking con referencias precargadas y una única conexión, también durante el cierre. */
@@ -81,14 +81,46 @@ export async function myPosition(
   termId: string,
   firstTermId: string,
 ): Promise<MyPosition> {
-  const board: Board = firstTermId === termId ? "NEW" : "VETERAN";
-  const ranking = await rankPeople(termId, board);
-  const mine = ranking.find((item) => item.row.personId === personId);
+  return peopleBoards(termId).position(personId, firstTermId);
+}
+
+export interface PeopleBoards {
+  /** El tablero completo, como `rankPeople`. */
+  rank(board: Board): Promise<Ranked<RankedPerson>[]>;
+  /** El puesto de la persona en el tablero que le toca por su primer término, como `myPosition`. */
+  position(personId: string, firstTermId: string): Promise<MyPosition>;
+}
+
+/**
+ * Los tableros de personas de un término para una sola vista: lee a los activos una vez y arma cada
+ * tablero a lo sumo una vez, se lo pidan para el puesto propio, para el top 10 o para los dos. No
+ * guarda nada entre vistas: quien lo crea de nuevo lee de nuevo.
+ */
+export function peopleBoards(termId: string): PeopleBoards {
+  let members: Promise<ActiveMemberRef[]> | undefined;
+  const rankings = new Map<Board, Promise<Ranked<RankedPerson>[]>>();
+  const rank = (board: Board): Promise<Ranked<RankedPerson>[]> => {
+    let ranking = rankings.get(board);
+    if (!ranking) {
+      members ??= listActiveMemberRefs();
+      ranking = members.then((all) => rankPeopleFromMembers(getDb(), termId, board, all));
+      rankings.set(board, ranking);
+    }
+    return ranking;
+  };
   return {
-    board,
-    rank: mine && mine.total > 0 ? mine.rank : null,
-    total: mine?.total ?? 0,
-    of: ranking.filter((item) => item.total > 0).length,
+    rank,
+    async position(personId, firstTermId) {
+      const board: Board = firstTermId === termId ? "NEW" : "VETERAN";
+      const ranking = await rank(board);
+      const mine = ranking.find((item) => item.row.personId === personId);
+      return {
+        board,
+        rank: mine && mine.total > 0 ? mine.rank : null,
+        total: mine?.total ?? 0,
+        of: ranking.filter((item) => item.total > 0).length,
+      };
+    },
   };
 }
 

@@ -44,6 +44,7 @@ export {
   recomputeBadgesFor,
   type SpecialBadgeInput,
   setFeatured,
+  unseenBadgesFor,
 } from "./domain/badges";
 export {
   type BoostCampaignRow,
@@ -297,6 +298,7 @@ export {
   type CommitteeScore,
   type MyPosition,
   myPosition,
+  peopleBoards,
   type RankedPerson,
   rankCommittees,
   rankPeople,
