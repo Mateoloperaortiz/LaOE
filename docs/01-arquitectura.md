@@ -140,7 +140,7 @@ casa-digital/
   drizzle.config.ts             recoge src/modules/*/schema.ts; migraciones SQL en drizzle/
   drizzle/                      migraciones generadas y custom (pg_trgm)
   biome.json                    lint y formato; .dependency-cruiser.cjs vigila las fronteras entre módulos
-  instrumentation.ts            arranca poller y scheduler cuando JOBS_ENABLED=true
+  instrumentation.ts            arranca poller y scheduler cuando JOBS_ENABLED=true; registra el error de consulta sin capturar (ADR-120 regla 12)
   src/env.ts                    variables de entorno validadas con Zod al arrancar
   src/app/
     (public)/                   /  /la-oe  /cartelera  /eventos/[slug]/[edicion]  /comites/[slug]  /unirse  /f/[slug]  /privacidad

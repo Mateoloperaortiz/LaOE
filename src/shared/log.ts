@@ -140,6 +140,18 @@ function isQueryError(error: unknown): error is QueryError {
   );
 }
 
+/** Si el error, o alguna de sus causas hasta cinco niveles, es un error de consulta. */
+export function carriesQueryError(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
+    if (isQueryError(current)) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return false;
+}
+
 /**
  * SQLSTATE cuyo mensaje cita un valor entre comillas. La clase 22, «data exception», cita el valor
  * que rechazó. La clase 28, «invalid authorization», el 3D000, «invalid catalog name», y el 53300,

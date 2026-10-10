@@ -139,3 +139,23 @@ describe.each([
     }
   });
 });
+
+// Decisión abierta 42: qué se hace con un error sin manejar (registrarlo, avisarle a alguien, darle
+// una referencia a la persona) no está decidido. El gancho registra lo que pidió #251, el error de
+// consulta, y lo demás queda como antes: lo imprime Next y la casa no escribe nada.
+describe("un error sin capturar que no es de consulta (decisión abierta 42)", () => {
+  it("no deja línea en el registro de la casa: lo imprime Next, como antes", async () => {
+    const error = new TypeError("no se pudo leer el formulario");
+    const { result: printed, lines } = await captureLogs(() => asNextReportsIt(error, "/ingresar"));
+    expect(printed).toContain("no se pudo leer el formulario");
+    expect(recordsOf(lines, "error sin capturar en una ruta")).toEqual([]);
+  });
+
+  it("el error de consulta que llega como causa de otro sí queda en el registro, sin sus valores", async () => {
+    const cause = await uncaughtFrom(() => requestOtp({ email: EMAIL, ip: IP }));
+    const error = new Error("no se pudo pedir el código", { cause });
+    const { lines } = await captureLogs(() => asNextReportsIt(error, "/ingresar/codigo"));
+    expect(recordsOf(lines, "error sin capturar en una ruta")).toHaveLength(1);
+    expectNoEmail(lines, EMAIL);
+  });
+});
