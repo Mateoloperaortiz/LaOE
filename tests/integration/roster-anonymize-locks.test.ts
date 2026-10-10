@@ -108,7 +108,9 @@ describe("importar el roster y anonimizar a la misma persona", () => {
     }
 
     expect(results.map(outcome)).toEqual(["ok", "ok"]);
-    expect(results[0]).toMatchObject({ value: { updated: 1, unchanged: 1 } });
+    // A quien sigue activa el roster le escribe por primera vez la fila del término: esa fila también
+    // se cuenta por lo que escribió (ADR-120 regla 2).
+    expect(results[0]).toMatchObject({ value: { updated: 2, unchanged: 0 } });
     expect(await comoQuedo(sale)).toEqual({ anonimizada: true, estado: "INACTIVE" });
     expect(await comoQuedo(sigue)).toEqual({ anonimizada: false, estado: "ACTIVE" });
   });
@@ -217,8 +219,9 @@ describe("importar el roster mientras actúa alguien que figura antes en el arch
     const results = await cruzadas(sale, () => anonymizePersonAs(actua, sale), jobId, importa);
 
     expect(results.map(outcome)).toEqual(["ok", "ok"]);
-    // Entró primero la anonimización: el roster ya no encuentra a nadie con ese correo.
-    expect(results[1]).toMatchObject({ value: { created: 0, updated: 0, unchanged: 3 } });
+    // Entró primero la anonimización: el roster ya no encuentra a nadie con ese correo. A las otras
+    // dos, que figuran activas, les escribe por primera vez la fila del término (ADR-120 regla 2).
+    expect(results[1]).toMatchObject({ value: { created: 0, updated: 2, unchanged: 1 } });
     expect(await comoQuedo(sale)).toEqual({ anonimizada: true, estado: "INACTIVE" });
     expect(await conEseCorreo()).toEqual([]);
   });

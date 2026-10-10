@@ -34,7 +34,7 @@ import {
   type CommitteeRoleRow,
   canHoldCommittees,
   listCommitteeRoles,
-  setCommitteeMemberships,
+  setCommitteeMembershipsIfChanged,
 } from "./committee-memberships";
 import { listAllCommittees } from "./committees";
 import { leadershipContext } from "./inhabilities";
@@ -638,17 +638,61 @@ async function membershipHoldsCommittees(ctx: CommandContext, personId: string):
 async function lockPersonByEmail(
   ctx: CommandContext,
   email: string,
-): Promise<{ id: string } | undefined> {
+): Promise<LockedPerson | undefined> {
   const personId = await lockWalletMemberByEmail(ctx.tx, email);
   if (personId === null) {
     return undefined;
   }
   const [locked] = await ctx.tx
-    .select({ id: person.id })
+    .select(LOCKED_COLUMNS)
     .from(person)
     .where(and(eq(person.id, personId), eq(person.email, email)))
     .for("no key update");
   return locked ?? lockPersonByEmail(ctx, email);
+}
+
+/** Lo que una fila del roster le puede escribir a una persona que ya existe. */
+const PATCH_FIELDS = [
+  "firstName",
+  "lastName",
+  "phone",
+  "program",
+  "personalEmail",
+  "documentType",
+  "documentNumber",
+  "epikId",
+  "birthDate",
+] as const;
+
+type PersonPatch = Partial<Pick<typeof person.$inferInsert, (typeof PATCH_FIELDS)[number]>>;
+type LockedPerson = Pick<typeof person.$inferSelect, "id" | (typeof PATCH_FIELDS)[number]>;
+
+const LOCKED_COLUMNS = {
+  id: person.id,
+  firstName: person.firstName,
+  lastName: person.lastName,
+  phone: person.phone,
+  program: person.program,
+  personalEmail: person.personalEmail,
+  documentType: person.documentType,
+  documentNumber: person.documentNumber,
+  epikId: person.epikId,
+  birthDate: person.birthDate,
+};
+
+/**
+ * De lo que trae la fila, lo que de verdad le cambia a la persona, comparado con su fila ya tomada:
+ * el diff se calculó antes de los candados y alguien pudo editarla en ese rato (ADR-120 regla 2).
+ */
+function onlyChanges(current: LockedPerson, patch: PersonPatch): PersonPatch {
+  const changes: PersonPatch = {};
+  for (const field of PATCH_FIELDS) {
+    const value = patch[field];
+    if (value !== undefined && value !== current[field]) {
+      Object.assign(changes, { [field]: value });
+    }
+  }
+  return changes;
 }
 
 async function applyRow(
@@ -702,7 +746,7 @@ async function applyRow(
     outcome = "created";
   } else {
     personId = existing.id;
-    const patch: Partial<typeof person.$inferInsert> = {};
+    const patch: PersonPatch = {};
     if (row.firstName !== undefined && row.firstName) patch.firstName = row.firstName;
     if (row.lastName !== undefined && row.lastName) patch.lastName = row.lastName;
     if (row.phone !== undefined) patch.phone = row.phone || null;
@@ -711,8 +755,12 @@ async function applyRow(
     for (const field of ["documentType", "documentNumber", "epikId", "birthDate"] as const) {
       if (row[field]) patch[field] = row[field];
     }
-    if (Object.keys(patch).length > 0) {
-      await ctx.tx.update(person).set(patch).where(eq(person.id, personId));
+    // Se escribe lo que cambia, y la fila se cuenta por eso y no por el diff (ADR-120 regla 2): esta
+    // escritura no deja otra auditoría que la de la importación.
+    const changes = onlyChanges(existing, patch);
+    if (Object.keys(changes).length > 0) {
+      await ctx.tx.update(person).set(changes).where(eq(person.id, personId));
+      if (outcome === "unchanged") outcome = "updated";
     }
     const [current] = await ctx.tx
       .select({ status: membership.status, endReason: membership.endReason })
@@ -762,27 +810,44 @@ async function applyRow(
   // La fila del término se le escribe a quien queda adentro o a quien esta fila da de baja; a quien
   // sigue de baja no (ADR-120 regla 1): conserva la prueba y el motivo que tuviera.
   if (row.probation !== undefined && !keepsOut) {
-    await ctx.tx
-      .insert(membershipTerm)
-      .values({
-        personId,
-        termId,
-        probation: row.probation,
-        reason,
-        decidedById: ctx.actor.personId,
-      })
-      .onConflictDoUpdate({
-        target: [membershipTerm.personId, membershipTerm.termId],
-        targetWhere: isNull(membershipTerm.committeeId),
-        set: { probation: row.probation, reason },
-      });
+    const [held] = await ctx.tx
+      .select({ probation: membershipTerm.probation, reason: membershipTerm.reason })
+      .from(membershipTerm)
+      .where(
+        and(
+          eq(membershipTerm.personId, personId),
+          eq(membershipTerm.termId, termId),
+          isNull(membershipTerm.committeeId),
+        ),
+      );
+    // Se escribe lo de siempre: la prueba y el motivo del roster, aunque la prueba no cambie (DT-297).
+    // Pero solo si algo de eso es distinto, y la fila que lo escribe se cuenta: «sin cambios» es no
+    // haber escrito nada (ADR-120 regla 2).
+    if (!held || held.probation !== row.probation || held.reason !== reason) {
+      await ctx.tx
+        .insert(membershipTerm)
+        .values({
+          personId,
+          termId,
+          probation: row.probation,
+          reason,
+          decidedById: ctx.actor.personId,
+        })
+        .onConflictDoUpdate({
+          target: [membershipTerm.personId, membershipTerm.termId],
+          targetWhere: isNull(membershipTerm.committeeId),
+          set: { probation: row.probation, reason },
+        });
+      if (outcome === "unchanged") outcome = "updated";
+    }
   }
   // Los comités se cambian solo a quien queda con membresía vigente (ADR-118 regla 11), y eso se
   // decide con el estado que quedó en la base, no con el que pide la fila: quien sigue de baja (el
   // archivo no trae ESTADO, o fue expulsado y el roster no lo reactiva) conserva su fila tal cual. La
-  // vista previa ya lo avisó (T-2208, T-3247).
+  // vista previa ya lo avisó (T-2208, T-3247). A quien ya tiene esas mismas pertenencias no se le
+  // escribe nada: se valida igual, y no queda auditoría ni evento de sus comités (ADR-120 regla 2).
   if (row.committees !== undefined && (await membershipHoldsCommittees(ctx, personId))) {
-    await setCommitteeMemberships(
+    await setCommitteeMembershipsIfChanged(
       ctx,
       personId,
       termId,

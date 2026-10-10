@@ -1,8 +1,8 @@
 import { and, count, eq, isNull, sql } from "drizzle-orm";
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { personImported } from "@/domain-events/people";
-import { endMembershipAs, setProbationAs } from "@/modules/people";
+import { endMembershipAs, lockWalletMember, setProbationAs } from "@/modules/people";
 import { getPerson360 } from "@/modules/people/domain/person-360";
 import { listPeople } from "@/modules/people/domain/persons";
 import {
@@ -28,6 +28,7 @@ import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
 import { copyPattern, itemPattern } from "../helpers/copy";
+import { holdTransaction, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
 import { currentTermCode, seedCommittee, seedMember, seedPerson, seedTerm } from "./factories";
 
@@ -456,6 +457,137 @@ describe("importación del roster", () => {
     });
     // Quien importa también figura en el archivo, y su fila no cambia nada: no deja rastro.
     expect(await importacionesDe(adminId, sinEstado.jobId)).toEqual({ audits: [], events: [] });
+  });
+
+  async function personaDe(email: string): Promise<string> {
+    const [row] = await db().select({ id: person.id }).from(person).where(eq(person.email, email));
+    return row?.id ?? "";
+  }
+
+  /** Cuánto hay escrito a nombre de una persona: su auditoría, con cualquier acción, y sus eventos. */
+  async function rastroDe(personId: string) {
+    const [audits] = await db()
+      .select({ n: count() })
+      .from(auditLog)
+      .where(eq(auditLog.entityId, personId));
+    const [events] = await db()
+      .select({ n: count() })
+      .from(outbox)
+      .where(sql`${outbox.payload}->>'personId' = ${personId}`);
+    return { audits: audits?.n ?? 0, events: events?.n ?? 0 };
+  }
+
+  // ADR-120 regla 2: «sin cambios» es no haber escrito nada, y vale también para los comités. La fila
+  // que repite las pertenencias que la persona ya tiene no deja `committee-membership.set` ni
+  // `committee-membership.changed`, que es lo que alimenta su línea de tiempo y el recálculo.
+  it("reimportar un archivo ya aplicado no le deja a nadie auditoría ni evento, tampoco los de sus comités", async () => {
+    const termId = await seedTerm();
+    const code = currentTermCode();
+    await seedCommittee("a3");
+    await seedCommittee("pixel");
+    const adminId = await seedMember("admin@eafit.edu.co");
+    const filas = csv([
+      `Ana;Pérez;prueba.ana@eafit.edu.co;;Derecho;A3, PIXEL;${code};Activo;`,
+      `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;A3;${code};Periodo de prueba;`,
+    ]);
+    const base = await preview(adminId, termId, filas);
+    await applyRosterImportAs({ personId: adminId }, base.jobId);
+    const ana = await personaDe("prueba.ana@eafit.edu.co");
+    const juan = await personaDe("prueba.juan@eafit.edu.co");
+    const antes = { ana: await rastroDe(ana), juan: await rastroDe(juan) };
+    expect(antes.ana.audits).toBeGreaterThan(0);
+    expect(antes.ana.events).toBeGreaterThan(0);
+
+    const otra = await preview(adminId, termId, filas);
+    expect(otra.counts).toEqual({ NEW: 0, CHANGED: 0, UNCHANGED: 2, ERROR: 0 });
+    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+
+    expect(applied).toMatchObject({ created: 0, updated: 0, unchanged: 2 });
+    expect({ ana: await rastroDe(ana), juan: await rastroDe(juan) }).toEqual(antes);
+    expect((await estadoYComites(ana)).comites).toEqual(["a3", "pixel"]);
+  });
+
+  // DT-297 sigue abierta: a quien tiene membresía el roster le reescribe el motivo de la fila del
+  // término aunque la prueba no cambie (qué se le escribe a quien vuelve es la decisión abierta 29).
+  // Lo que ADR-120 regla 2 cierra es el rastro: la fila que escribe se cuenta, audita y emite.
+  it("la fila que le reescribe a alguien el motivo de su prueba cuenta como actualizada, audita y emite", async () => {
+    const termId = await seedTerm();
+    const code = currentTermCode();
+    await seedCommittee("a3");
+    const adminId = await seedMember("admin@eafit.edu.co");
+    const fila = (estado: string) =>
+      csv([`Ana;Pérez;prueba.ana@eafit.edu.co;;Derecho;A3;${code};${estado};`]);
+    const base = await preview(adminId, termId, fila("Activo"));
+    await applyRosterImportAs({ personId: adminId }, base.jobId);
+    const ana = await personaDe("prueba.ana@eafit.edu.co");
+    await setProbationAs({ personId: adminId }, ana, termId, {
+      probation: true,
+      reason: "La decidió GH con su motivo",
+    });
+    expect(await filaDelTermino(ana, termId)).toEqual([
+      { probation: true, reason: "La decidió GH con su motivo" },
+    ]);
+
+    const otra = await preview(adminId, termId, fila("Periodo de prueba"));
+    expect(otra.rows[0]).toMatchObject({ group: "UNCHANGED", changes: [] });
+    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+
+    expect(await filaDelTermino(ana, termId)).toEqual([
+      { probation: true, reason: `roster ${code}` },
+    ]);
+    expect(applied).toMatchObject({ created: 0, updated: 1, unchanged: 0 });
+    expect(await importacionesDe(ana, otra.jobId)).toEqual({
+      audits: [expect.objectContaining({ outcome: "updated", changes: [] })],
+      events: [expect.objectContaining({ outcome: "updated", changes: [] })],
+    });
+
+    // Repetido, ya no hay nada que escribir: ni la prueba ni el motivo cambian.
+    const tercera = await preview(adminId, termId, fila("Periodo de prueba"));
+    const again = await applyRosterImportAs({ personId: adminId }, tercera.jobId);
+    expect(again).toMatchObject({ created: 0, updated: 0, unchanged: 1 });
+    expect(await importacionesDe(ana, tercera.jobId)).toEqual({ audits: [], events: [] });
+  });
+
+  // ADR-120 regla 2, por lo escrito: el diff se calcula antes de tomar a cada persona. Si alguien la
+  // edita en ese rato, el roster le escribe lo que dice el archivo, como siempre, y esa escritura no
+  // tiene otra auditoría que la de la importación.
+  it("si alguien edita a la persona entre el diff y su fila, el roster escribe lo del archivo y la cuenta como actualizada", async () => {
+    const termId = await seedTerm();
+    const adminId = await seedMember("admin@eafit.edu.co");
+    const ana = await seedMember("prueba.ana@eafit.edu.co", { program: "Derecho" });
+    const draft = await preview(
+      adminId,
+      termId,
+      csv(["prueba.ana@eafit.edu.co;Derecho"], "CORREO;PREGRADO"),
+    );
+    expect(draft.counts).toEqual({ NEW: 0, CHANGED: 0, UNCHANGED: 1, ERROR: 0 });
+    // Otra transacción tiene el candado del ciclo de Ana y le cambió el programa, sin confirmar: el
+    // roster calcula su diff con el programa viejo y hace cola por ese candado.
+    const held = await holdTransaction(async (tx) => {
+      await lockWalletMember(tx, ana);
+      await tx.update(person).set({ program: "Economía" }).where(eq(person.id, ana));
+    });
+    let applied: Awaited<ReturnType<typeof applyRosterImportAs>>;
+    try {
+      const importing = applyRosterImportAs({ personId: adminId }, draft.jobId);
+      await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBe(1), { timeout: 5_000 });
+      held.release();
+      applied = await importing;
+    } finally {
+      held.release();
+      await held.done;
+    }
+
+    expect(applied).toMatchObject({ created: 0, updated: 1, unchanged: 0 });
+    const [quedo] = await db()
+      .select({ program: person.program })
+      .from(person)
+      .where(eq(person.id, ana));
+    expect(quedo?.program).toBe("Derecho");
+    expect(await importacionesDe(ana, draft.jobId)).toEqual({
+      audits: [expect.objectContaining({ outcome: "updated" })],
+      events: [expect.objectContaining({ outcome: "updated" })],
+    });
   });
 
   async function filaDelTermino(personId: string, termId: string) {

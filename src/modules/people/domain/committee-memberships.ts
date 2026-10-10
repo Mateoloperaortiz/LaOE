@@ -227,7 +227,56 @@ export async function setCommitteeMemberships(
   now = new Date(),
   override?: Override,
 ): Promise<void> {
-  const wanted = new Map<string, { transferredIn: boolean; roles: RoleAssignmentInput[] }>();
+  await writeCommitteeMemberships(ctx, personId, termId, rows, now, override, "ALWAYS");
+}
+
+/**
+ * Lo mismo para quien repite una lista que puede no traer cambios, como el roster: valida igual y, si
+ * las pertenencias vivas ya son las de la lista, no escribe, no audita ni emite (ADR-120 regla 2).
+ */
+export async function setCommitteeMembershipsIfChanged(
+  ctx: CommandContext,
+  personId: string,
+  termId: string,
+  rows: CommitteeMembershipInput[],
+  now = new Date(),
+  override?: Override,
+): Promise<void> {
+  await writeCommitteeMemberships(ctx, personId, termId, rows, now, override, "IF_CHANGED");
+}
+
+type WantedCommittees = Map<string, { transferredIn: boolean; roles: RoleAssignmentInput[] }>;
+
+/** Si las pertenencias vivas son exactamente las pedidas: comités, transferencia y cargos. */
+function alreadyHolds(live: LiveCommitteePayload[], wanted: WantedCommittees): boolean {
+  const key = (roles: RoleAssignmentInput[]) =>
+    roles
+      .map((role) => `${role.roleCode}${role.coDirector ? "*" : ""}`)
+      .sort()
+      .join("+");
+  return (
+    live.length === wanted.size &&
+    live.every((row) => {
+      const target = wanted.get(row.committeeId);
+      return (
+        target !== undefined &&
+        target.transferredIn === row.transferredIn &&
+        key(target.roles) === key(row.roles)
+      );
+    })
+  );
+}
+
+async function writeCommitteeMemberships(
+  ctx: CommandContext,
+  personId: string,
+  termId: string,
+  rows: CommitteeMembershipInput[],
+  now: Date,
+  override: Override | undefined,
+  mode: "ALWAYS" | "IF_CHANGED",
+): Promise<void> {
+  const wanted: WantedCommittees = new Map();
   for (const row of rows) {
     wanted.set(row.committeeId, {
       transferredIn: row.transferredIn ?? false,
@@ -293,6 +342,11 @@ export async function setCommitteeMemberships(
     }
   }
   const before = await liveCommitteesPayload(ctx.tx, personId, termId);
+  // Con todo validado y la membresía tomada: quien pidió escribir solo si cambia, y ya las tiene, se
+  // va sin tocar nada.
+  if (mode === "IF_CHANGED" && alreadyHolds(before, wanted)) {
+    return;
+  }
   // Primero se cierran las que sobran, con sus cargos: así un cargo que pasa a otra pertenencia no
   // choca con el anterior dentro de la misma transacción.
   for (const row of existing) {
