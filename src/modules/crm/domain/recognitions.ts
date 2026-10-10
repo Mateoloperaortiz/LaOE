@@ -10,6 +10,7 @@ import {
   assertBenefitsAvailable,
   getPeopleByIds,
   hasLiveConsent,
+  isInInternalRoster,
   listCommitteesByIds,
 } from "@/modules/people";
 import { t, tList } from "@/shared/copy";
@@ -100,6 +101,17 @@ export async function grantRecognition(
   context: RecognitionContext,
 ): Promise<RecognitionResult> {
   await assertBenefitsAvailable(ctx.tx, input.personId, input.termId);
+  // ADR-122 regla 2: un reconocimiento que llega con comité es de alguien que está en el roster de
+  // ese comité en ese término. Lo lee el comando; quien no está responde como uno que no existe.
+  if (
+    input.committeeId &&
+    !(await isInInternalRoster(ctx.tx, input.personId, {
+      committeeId: input.committeeId,
+      termId: input.termId,
+    }))
+  ) {
+    throw new DomainError(t("T-032"));
+  }
   const mes = monthName(input.month ?? null);
   const title =
     input.title ||
