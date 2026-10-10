@@ -6693,7 +6693,7 @@ export const textos = {
     status: "Propuesta",
   },
   "T-2579": {
-    where: "Reto presencial: asistencia rechazada (motivo automático)",
+    where: "Reto presencial y premio de la asistencia: asistencia rechazada (motivo automático)",
     text: "Tu asistencia en {actividad} no fue aprobada.",
     owner: "MATEO",
     status: "Propuesta",

@@ -577,6 +577,60 @@ const CASES: Case[] = [
     }),
   },
   {
+    name: "rechazar una pendiente sin motivo: libera el premio de la asistencia con el texto de la asistencia no aprobada, no con el de una evidencia",
+    approval: "MANUAL",
+    arrange: (f) => registerSelf(f),
+    act: (f) => decide(f, "REJECT"),
+    expected: (c) => ({
+      person: {
+        row: {
+          status: "REJECTED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: null,
+        },
+        ledger: [],
+        balance: 0,
+        // Sin motivo de GH, los dos premios se liberan con el de la asistencia no aprobada.
+        rewards: [
+          prize("CHALLENGE", "RELEASED", notApproved),
+          prize("CHECKIN", "RELEASED", notApproved),
+        ],
+        challenge: [{ status: "REJECTED", reason: notApproved }],
+      },
+      audit: [decided(c, "checkin.reject", "PENDING", "REJECTED", null, 0)],
+      events: [],
+    }),
+  },
+  {
+    name: "el lote rechaza una pendiente sin motivo: deja lo mismo que el rechazo suelto sin motivo",
+    approval: "MANUAL",
+    arrange: (f) => registerSelf(f),
+    act: (f) => decideBatch(f, "REJECT"),
+    expected: (c) => ({
+      person: {
+        row: {
+          status: "REJECTED",
+          source: "SELF_QR",
+          decidedBy: "gh",
+          decidedAt: "escrito",
+          reason: null,
+        },
+        ledger: [],
+        balance: 0,
+        // Sin motivo de GH, los dos premios se liberan con el de la asistencia no aprobada.
+        rewards: [
+          prize("CHALLENGE", "RELEASED", notApproved),
+          prize("CHECKIN", "RELEASED", notApproved),
+        ],
+        challenge: [{ status: "REJECTED", reason: notApproved }],
+      },
+      audit: [decided(c, "checkin.reject", "PENDING", "REJECTED", null, 0)],
+      events: [],
+    }),
+  },
+  {
     name: "reaprobar una rechazada: acredita y revive el premio del reto",
     approval: "MANUAL",
     arrange: async (f) => {
