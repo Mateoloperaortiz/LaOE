@@ -150,7 +150,6 @@ export async function scoreAction(formData: FormData): Promise<void> {
   }
   try {
     await scoreCriterionAs(actor, ref, parsed.data, {
-      inCommittee: member !== undefined && ref.committeeId !== null,
       personName: member?.fullName ?? personId,
       committeeName: roster?.committee.name ?? slug,
     });

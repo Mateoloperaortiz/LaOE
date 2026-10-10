@@ -1,5 +1,6 @@
 import { and, asc, count, eq, exists, ilike, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import type { Executor } from "@/db/tx";
 import { getCurrentTerm, type TermRow } from "@/modules/terms";
 import {
   appointment,
@@ -293,15 +294,7 @@ export async function listInternalRoster(slug: string): Promise<InternalRoster |
     .innerJoin(person, eq(person.id, committeeMembership.personId))
     .innerJoin(membership, eq(membership.personId, person.id))
     .innerJoin(committeeRole, eq(committeeRole.code, committeeMembership.roleCode))
-    .where(
-      and(
-        eq(committeeMembership.committeeId, found.id),
-        eq(committeeMembership.termId, term.id),
-        isNull(committeeMembership.leftAt),
-        isNull(person.anonymizedAt),
-        inArray(membership.status, DIRECTORY_STATUSES),
-      ),
-    )
+    .where(inRosterOf(found.id, term.id))
     .orderBy(asc(person.fullName));
   const roles = await listLiveRolesByMembership(
     db,
@@ -321,4 +314,40 @@ export async function listInternalRoster(slug: string): Promise<InternalRoster |
     }))
     .sort((a, b) => Number(b.isLeadership) - Number(a.isLeadership));
   return { committee: { ...found, memberCount: members.length }, term, members };
+}
+
+/**
+ * Quién cuenta como miembro del roster interno de un comité en un término: pertenencia viva, persona
+ * sin anonimizar y membresía en un estado del directorio. Pide las tablas `person` y `membership`.
+ */
+function inRosterOf(committeeId: string, termId: string) {
+  return and(
+    eq(committeeMembership.committeeId, committeeId),
+    eq(committeeMembership.termId, termId),
+    isNull(committeeMembership.leftAt),
+    isNull(person.anonymizedAt),
+    inArray(membership.status, DIRECTORY_STATUSES),
+  );
+}
+
+/**
+ * Si la persona está en el roster interno de ese comité en ese término, con la misma regla de
+ * `listInternalRoster`. Es la pregunta de alcance de los comandos que operan sobre alguien desde su
+ * comité (ADR-122 regla 2): se hace con el ejecutor del comando, dentro de su transacción, y no con
+ * lo que declare quien llama.
+ */
+export async function isInInternalRoster(
+  exec: Executor,
+  personId: string,
+  scope: { committeeId: string; termId: string },
+): Promise<boolean> {
+  const [own] = await exec
+    .select({ id: committeeMembership.id })
+    .from(committeeMembership)
+    .innerJoin(person, eq(person.id, committeeMembership.personId))
+    .innerJoin(membership, eq(membership.personId, person.id))
+    .where(
+      and(eq(committeeMembership.personId, personId), inRosterOf(scope.committeeId, scope.termId)),
+    );
+  return own !== undefined;
 }

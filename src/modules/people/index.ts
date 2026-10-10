@@ -119,6 +119,7 @@ export {
   type DirectoryPage,
   type InternalCommittee,
   type InternalRoster,
+  isInInternalRoster,
   listDirectory,
   listInternalCommittees,
   listInternalRoster,
