@@ -264,37 +264,37 @@ const CASES: Record<string, Case> = {
     persona: deBaja,
     ocasion: {},
     comando: "NOT_ELIGIBLE",
-    pantalla: formulario,
+    pantalla: noEstaActiva,
   },
   "de baja la membresía se responde antes que solo nuevos": {
     persona: deBajaVeterana,
     ocasion: { soloNuevos: true },
     comando: "NOT_ELIGIBLE",
-    pantalla: texto(t("T-523")),
+    pantalla: noEstaActiva,
   },
   "de baja y nueva en una ocasión solo para nuevos tampoco se registra": {
     persona: deBaja,
     ocasion: { soloNuevos: true },
     comando: "NOT_ELIGIBLE",
-    pantalla: formulario,
+    pantalla: noEstaActiva,
   },
   "de baja la membresía se responde antes de pedir el código": {
     persona: deBaja,
     ocasion: { pideCodigo: true },
     comando: "NOT_ELIGIBLE",
-    pantalla: formulario,
+    pantalla: noEstaActiva,
   },
   "sin membresía el comando no la admite": {
     persona: sinMembresia,
     ocasion: {},
     comando: "NOT_ELIGIBLE",
-    pantalla: formulario,
+    pantalla: noEstaActiva,
   },
   "sin membresía la falta de membresía se responde antes que solo nuevos": {
     persona: sinMembresia,
     ocasion: { soloNuevos: true },
     comando: "NOT_ELIGIBLE",
-    pantalla: texto(t("T-523")),
+    pantalla: noEstaActiva,
   },
 };
 

@@ -18,7 +18,7 @@ import {
   type OccasionRow,
   windowState,
 } from "@/modules/participation";
-import { getMembershipRef } from "@/modules/people";
+import { canParticipate, getMembershipRef } from "@/modules/people";
 import { resolveAlias } from "@/modules/system";
 import { getTerm } from "@/modules/terms";
 import { Cartel, Elemento, LogoOE, SelloOE } from "@/shared/brand";
@@ -100,9 +100,13 @@ function resultView(
 /** Los resultados que anuncian un registro: valen solo con la fila que los respalda. */
 const SUCCESS_CODES: readonly CheckInResultCode[] = ["puntos", "registrado", "pendiente"];
 
+/** Lo que el comando responde a una membresía que no admite el registro (`NOT_ELIGIBLE`). */
+const notEligibleText = () => t("T-673", { nombre: "" }).trim();
+
 function occasionView(
   row: OccasionRow,
   termClosed: boolean,
+  eligible: boolean,
   isNew: boolean,
   now: Date,
   result: CheckInResultCode | null,
@@ -122,8 +126,10 @@ function occasionView(
     };
   }
   if (window === "CLOSED") return { kind: "message", text: t("T-096") };
+  // La membresía va antes que solo nuevos, como en el comando (ADR-120 regla 17).
+  if (!eligible) return { kind: "message", text: notEligibleText() };
   if (row.newMembersOnly && !isNew) return { kind: "message", text: t("T-523") };
-  if (result === "inactivo") return { kind: "message", text: t("T-673", { nombre: "" }).trim() };
+  if (result === "inactivo") return { kind: "message", text: notEligibleText() };
   return {
     kind: "form",
     needsCode: row.requireRotatingCode,
@@ -180,6 +186,7 @@ export default async function CheckInPage({ params, searchParams }: PageProps<"/
       : occasionView(
           row,
           term?.pointsClosedAt !== null && term?.pointsClosedAt !== undefined,
+          canParticipate(membership?.status),
           membership?.firstTermId === row.termId,
           now,
           result,
