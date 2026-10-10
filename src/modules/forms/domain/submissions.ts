@@ -157,7 +157,8 @@ export interface SubmitInput {
   answers: Record<string, unknown>;
   consent: boolean;
   honeypot?: string | null;
-  ip?: string | null;
+  /** La IP del request, o `null` si no la trajo: va al tope por IP y al actor del comando. */
+  ip: string | null;
   userAgent?: string | null;
 }
 
@@ -191,7 +192,7 @@ async function countRecentByIp(ip: string, now: Date): Promise<number> {
  * ventana comprobados con el formulario bloqueado. Todo lo demás en una transacción.
  */
 export async function submitFormAs(
-  actor: (Actor & { personId: string; email: string; firstName: string }) | null,
+  actor: { personId: string; email: string; firstName: string } | null,
   target: PublicForm,
   input: SubmitInput,
   now = new Date(),
@@ -242,9 +243,7 @@ export async function submitFormAs(
       return { ok: false, code: "RATE_LIMITED", errors: {} };
     }
   }
-  const commandActor = actor
-    ? { personId: actor.personId, ip: input.ip ?? null }
-    : { personId: null, ip: input.ip ?? null };
+  const commandActor: Actor = { personId: actor?.personId ?? null, ip: input.ip };
   return runCommand(commandActor, async (ctx): Promise<SubmitResult> => {
     const [locked] = await ctx.tx.select().from(form).where(eq(form.id, target.id)).for("update");
     if (!locked) {

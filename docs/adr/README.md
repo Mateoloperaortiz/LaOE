@@ -13,10 +13,11 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) | Reglas de estructura y pruebas del noveno ciclo del refactor | Aceptada |
 | [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) | Reglas de corrección del octavo ciclo del refactor | Aceptada |
 | [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) | Reglas de estructura y robustez del séptimo ciclo del refactor | Aceptada (enmendada por ADR-120) |
 | [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) | Reglas de corrección del sexto ciclo del refactor | Aceptada (enmendada por ADR-119 y ADR-120) |
-| [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) | Reglas de corrección, privacidad y permisos del quinto ciclo del refactor | Aceptada (enmendada por ADR-118, ADR-119 y ADR-120) |
+| [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) | Reglas de corrección, privacidad y permisos del quinto ciclo del refactor | Aceptada (enmendada por ADR-118, ADR-119, ADR-120 y ADR-121) |
 | [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) | Reglas de campañas de correo y tareas de GH del cuarto ciclo del refactor | Aceptada (enmendada por ADR-116 y ADR-120) |
 | [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) | Reglas de seguridad, privacidad e integridad del tercer ciclo del refactor | Aceptada (enmendada por ADR-116) |
 | [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md) | Reglas de seguridad e integridad del segundo ciclo del refactor | Aceptada (enmendada por ADR-114, ADR-116, ADR-119 y ADR-120) |
@@ -50,7 +51,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-085](ADR-085-plataforma-oe-digital-un-backend-y-frontends-delgados.md) | Plataforma OE Digital: un backend y frontends delgados | Aceptada (enmendada por ADR-090) |
 | [ADR-084](ADR-084-catalogo-tipado-de-eventos-de-dominio.md) | Catálogo tipado de eventos de dominio | Aceptada |
 | [ADR-083](ADR-083-lo-compartido-no-vive-en-la-carpeta-de-una-pantalla.md) | Lo compartido no vive en la carpeta de una pantalla | Aceptada |
-| [ADR-082](ADR-082-un-kit-para-las-server-actions-y-auditoria-con-ip.md) | Un kit para las server actions, y la auditoría siempre con IP | Aceptada (enmendada por ADR-114 y ADR-116) |
+| [ADR-082](ADR-082-un-kit-para-las-server-actions-y-auditoria-con-ip.md) | Un kit para las server actions, y la auditoría siempre con IP | Aceptada (enmendada por ADR-114, ADR-116 y ADR-121) |
 | [ADR-081](ADR-081-el-catalogo-de-textos-no-viaja-entero-al-navegador.md) | El catálogo de textos no viaja entero al navegador | Aceptada |
 | [ADR-080](ADR-080-la-arquitectura-documentada-es-la-del-codigo.md) | La arquitectura documentada es la del código | Aceptada (enmendada por ADR-110) |
 | [ADR-079](ADR-079-limites-de-espera-y-esquema-verificado-desde-el-esquema.md) | Ninguna espera es indefinida, y lo que se verifica sale de su fuente | Aceptada (enmendada por ADR-118 y ADR-119) |

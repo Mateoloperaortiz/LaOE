@@ -480,7 +480,11 @@ export async function applyDecisions(termId: string, nextTermId: string): Promis
       continue;
     }
     const personRow = rows.find((row) => row.committeeId === null) ?? null;
-    const actor: Actor = { personId: personRow?.decidedById ?? rows[0]?.decidedById ?? null };
+    // Lo corre un trabajo, a nombre de quien confirmó la decisión: no hay request ni IP.
+    const actor: Actor = {
+      personId: personRow?.decidedById ?? rows[0]?.decidedById ?? null,
+      ip: null,
+    };
     const reason = personRow?.reason ?? "";
     if (personRow?.decision === "EXIT_OE") {
       // Faltar a una obligatoria expulsa (ADR-060 regla 3); quedarse sin comité es permanencia.

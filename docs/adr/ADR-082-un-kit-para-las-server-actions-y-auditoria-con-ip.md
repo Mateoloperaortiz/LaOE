@@ -1,6 +1,6 @@
 # ADR-082: Un kit para las server actions, y la auditoría siempre con IP
 
-- Estado: Aceptada (enmendada por ADR-114 y ADR-116)
+- Estado: Aceptada (enmendada por ADR-114, ADR-116 y ADR-121)
 - Fecha: 2026-09-19
 - Relacionadas: ADR-011, ADR-012, ADR-072, ADR-080
 - Enmienda: ADR-011 (el guard de ADMIN aplica la regla de licencia)
@@ -50,3 +50,7 @@ La regla 4 decía que `safeBack` acepta una ruta propia, de caracteres seguros, 
 ## Enmienda (2026-10-08, ADR-116)
 
 La regla 2 decía que armar el actor a mano «deja de ser una forma válida en una action», y la primera consecuencia que «de 64 llamadas sin IP queda una». Las dos miraban las actions. Lo que se escribe por el admin kit pasa por los cierres de cada recurso (`create`, `update` y `runRowAction`, en el `admin.ts` de su módulo), que recibían `{ personId, isAdmin }` y volvían a armar `{ personId }` para `runCommand`: 51 llamadas en 22 recursos, entre ellas conceder y revocar permisos, con la auditoría sin IP. [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) regla 10 lo cierra: el kit arma el actor con `actorContext` y el recurso lo entrega entero. Lo demás de la regla queda igual.
+
+## Enmienda (2026-10-10, ADR-121)
+
+La regla 2 decía que armar el actor a mano como `{ personId }` «deja de ser una forma válida en una action». Era una convención de las actions: `Actor.ip` seguía siendo opcional, así que `{ personId }` compilaba en cualquier otro sitio (un comando del dominio, un trabajo, un script) y su auditoría salía sin IP sin que nada lo señalara (DT-177). [ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) regla 1 lo pasa al tipo: `Actor.ip` es `string | null`, nunca ausente, y un actor sin IP no compila en ningún lado. La regla 3 queda igual, y `rotateCarnetTokenAs` declara ahora que recibe la sesión con su IP. De los tres actores sin IP de la regla 7, la encuesta escribe su `ip: null` a la vista, con esa regla citada al lado; en las dos rutas de presign `{ personId }` sigue sin ser el actor de un comando.

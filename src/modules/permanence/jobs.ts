@@ -126,7 +126,8 @@ onEvent(
       return;
     }
     try {
-      const { added } = await addMembersAs({ personId: actorId }, groupId, [personId]);
+      // Un trabajo no tiene request: actúa a nombre de quien aceptó, sin IP.
+      const { added } = await addMembersAs({ personId: actorId, ip: null }, groupId, [personId]);
       ctx.log.info({ groupId, personId, added }, "inscripción aceptada al grupo");
     } catch (error) {
       if (!(error instanceof DomainError)) {

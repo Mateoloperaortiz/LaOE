@@ -274,7 +274,8 @@ async function requireExistingAdmin(id: string): Promise<Actor> {
   ) {
     throw new NormativaImportError("El actor debe ser un ADMIN existente y habilitado");
   }
-  return { personId: id };
+  // Un script no tiene request: el ADMIN que lo corre va sin IP.
+  return { personId: id, ip: null };
 }
 
 async function resolveAsset(actor: Actor, asset: LocalAsset): Promise<string> {

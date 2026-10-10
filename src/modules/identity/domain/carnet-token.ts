@@ -123,9 +123,12 @@ export async function getOrCreateCarnetToken(personId: string): Promise<string> 
   return credential.token;
 }
 
-/** Rota el QR propio o, solo para ADMIN, el de otra persona; no cambia los tokens oe1 de la app. */
+/**
+ * Rota el QR propio o, solo para ADMIN, el de otra persona; no cambia los tokens oe1 de la app.
+ * Recibe la sesión con la IP del request (`sessionActorContext`, ADR-082 regla 3).
+ */
 export async function rotateCarnetTokenAs(
-  actor: Actor,
+  actor: Actor & { ip: string | null },
   personId = actor.personId,
 ): Promise<string> {
   if (personId !== actor.personId) {

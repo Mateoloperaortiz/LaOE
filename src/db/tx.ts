@@ -10,13 +10,17 @@ export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 /** Base o transacción: lo que reciben los comandos del dominio. */
 export type Executor = Db | Tx;
 
-/** Quién ejecuta el comando. `personId` nulo es el sistema (jobs, scripts). */
+/**
+ * Quién ejecuta el comando y desde qué IP. `personId` nulo es el sistema (jobs, scripts). La IP es
+ * obligatoria (ADR-121 regla 1): quien arma un actor dice de dónde la saca, o escribe `null` porque no
+ * hay request (un trabajo, un script) o porque esa auditoría va sin IP a propósito.
+ */
 export interface Actor {
   personId: string | null;
-  ip?: string | null;
+  ip: string | null;
 }
 
-export const SYSTEM_ACTOR: Actor = { personId: null };
+export const SYSTEM_ACTOR: Actor = { personId: null, ip: null };
 
 export interface AuditEntry {
   action: string;
@@ -77,7 +81,7 @@ export async function runCommand<T>(
       async audit(entry) {
         await tx.insert(auditLog).values({
           actorId: actor.personId,
-          ip: actor.ip ?? null,
+          ip: actor.ip,
           action: entry.action,
           entityType: entry.entityType,
           entityId: entry.entityId,

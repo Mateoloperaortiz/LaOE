@@ -46,7 +46,9 @@ async function templateBySlug(
     .where(eq(emailTemplate.slug, input.slug))
     .limit(1);
   if (existing) return existing.id;
-  const { id } = await runCommand({ personId: admin }, (ctx) => createTemplate(ctx, input));
+  const { id } = await runCommand({ personId: admin, ip: null }, (ctx) =>
+    createTemplate(ctx, input),
+  );
   return id;
 }
 
@@ -198,7 +200,7 @@ async function seedPreferencesAndPushes(members: Member[], db: Db): Promise<void
   for (const [fragment, change] of variations) {
     const who = byEmail(fragment);
     if (!who) continue;
-    await updatePreferencesAs({ personId: who.id }, { ...base, ...change });
+    await updatePreferencesAs({ personId: who.id, ip: null }, { ...base, ...change });
   }
   // Unos push ya registrados, para que Mensajes y la Persona 360 muestren los tres tipos.
   const pushes: Array<[string, "ANNOUNCEMENT" | "POINTS" | "REMINDER", string]> = [
@@ -335,7 +337,7 @@ async function seedSurvey(db: Db, admin: string, termId: string, members: Member
   for (const [index, invite] of created.slice(0, answers.length).entries()) {
     const raw = answers[index];
     if (!raw) break;
-    const result = await answerSurveyAs({ personId: invite.personId }, invite.token, raw);
+    const result = await answerSurveyAs({ personId: invite.personId, ip: null }, invite.token, raw);
     if (!result.ok) {
       logger.warn({ result }, "respuesta de encuesta sintética rechazada");
     }

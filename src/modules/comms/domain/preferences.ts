@@ -197,7 +197,8 @@ export async function unsubscribeByToken(token: string): Promise<boolean> {
   if (!row) {
     return false;
   }
-  await runCommand({ personId: row.personId }, async (ctx) => {
+  // Sin sesión: actúa el dueño del token. La baja no recibe la IP del request (DT-313).
+  await runCommand({ personId: row.personId, ip: null }, async (ctx) => {
     await ctx.tx
       .update(notificationPreference)
       .set({ emailCampaigns: false })

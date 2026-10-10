@@ -30,7 +30,8 @@ export async function answerSurveyAction(
     return { done: false, state: invite.state, errors: {}, values: {} };
   }
   const raw = answersFromFormData(formData, invite.fields);
-  const result = await answerSurveyAs({ personId: actor.personId }, token, raw);
+  // Sin IP a propósito: la respuesta a la encuesta es anónima por diseño (ADR-082 regla 7).
+  const result = await answerSurveyAs({ personId: actor.personId, ip: null }, token, raw);
   if (result.ok) {
     return { done: true, state: "OPEN", errors: {}, values: {} };
   }

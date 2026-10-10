@@ -236,7 +236,8 @@ onEvent(submissionReceived, async ({ submissionId, personId, actorId, actions },
     return;
   }
   const who = await getPersonRecord(personId);
-  const result = await runCommand(actorId ? { personId: actorId } : SYSTEM_ACTOR, (tx) =>
+  // Un trabajo no tiene request: actúa a nombre de quien envió la respuesta, sin IP.
+  const result = await runCommand(actorId ? { personId: actorId, ip: null } : SYSTEM_ACTOR, (tx) =>
     createCardFromSubmission(tx, {
       pipelineId: actions.pipelineId ?? "",
       submissionId,
