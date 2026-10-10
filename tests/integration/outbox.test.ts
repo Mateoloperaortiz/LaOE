@@ -9,6 +9,7 @@ import { enqueueScheduled } from "@/jobs/scheduler";
 import { listOutbox, retryDeadLetter } from "@/modules/system/domain/outbox";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { backendPid, deferred, holdCommand, waitingOn } from "../helpers/locks";
+import { captureLogs, recordsOf } from "../helpers/logs";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
@@ -103,6 +104,35 @@ describe("poller del outbox", () => {
       .from(auditLog)
       .where(eq(auditLog.action, "outbox.retried"));
     expect(audits?.n).toBe(1);
+  });
+
+  // Drizzle repite los parámetros en el mensaje de su error («Failed query: … params: …»), y ese
+  // mensaje es el que se guarda en `last_error`: queda en la base, entra a los respaldos y se ve en
+  // /admin/sistema/jobs (ADR-119 regla 16).
+  it("el último error de un evento no guarda los valores de la consulta que falló: queda el SQL con sus marcadores, y el código sigue en el registro", async () => {
+    const email = "valor.privado@eafit.edu.co";
+    registerHandler("test.query", async () => {
+      // Una consulta de verdad que Postgres rechaza, con el correo entre sus parámetros.
+      await db().execute(sql`select 1 / (length(${email}::text) - length(${email}::text)) as n`);
+    });
+    await enqueueEvent(db(), { type: "test.query", payload: {} });
+
+    const { result, lines } = await captureLogs(() => processOne(at(new Date())));
+
+    expect(result).toBe("failed");
+    const [row] = await db().select().from(outbox);
+    expect(row?.lastError).toBe(
+      "Failed query: select 1 / (length($1::text) - length($2::text)) as n",
+    );
+    expect(row?.lastError).not.toContain("valor.privado");
+    // Lo que se necesita para diagnosticar no se pierde: el SQL quedó arriba y el código de Postgres
+    // sale en la línea del fallo, que nombra al evento por su id.
+    expect(recordsOf(lines, "falló")).toEqual([
+      expect.objectContaining({
+        outboxId: row?.id,
+        err: expect.objectContaining({ type: "DrizzleQueryError", code: "22012" }),
+      }),
+    ]);
   });
 
   describe("la espera del reintento", () => {

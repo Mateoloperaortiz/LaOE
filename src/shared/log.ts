@@ -61,8 +61,11 @@ function withoutQuotedValue(error: Error): string {
  * `params: …` que escribe Drizzle y el valor que cita un error de conversión de Postgres. Los dos se
  * quitan por coincidencia exacta con lo que cada error escribió, no con una expresión que adivine
  * dónde termina.
+ *
+ * Es el recorte del serializador de `err`, y lo usa también quien guarda el texto de un error fuera
+ * del registro: el poller, en `outbox.last_error` (ADR-119 regla 16).
  */
-function withoutQueryValues(error: Error, text: string): string {
+export function withoutQueryValues(error: Error, text: string): string {
   let clean = text;
   let current: unknown = error;
   for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {

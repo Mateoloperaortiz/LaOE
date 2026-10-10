@@ -4,7 +4,7 @@ import { isUniqueViolation } from "@/db/errors";
 import type { Tx } from "@/db/tx";
 import { OUTBOX_PENDING_KEY_INDEX, outbox } from "@/modules/system/schema";
 import { withTimeout } from "@/shared/lib/timeout";
-import { logger } from "@/shared/log";
+import { logger, withoutQueryValues } from "@/shared/log";
 import { backoffFor, isDeadAfter } from "./backoff";
 import { getHandlers } from "./registry";
 
@@ -187,7 +187,10 @@ export async function processOne(
       return "processed";
     } catch (error) {
       abandoned = true;
-      const message = error instanceof Error ? error.message : String(error);
+      // Lo que se guarda pasa por el recorte del registro: sin los valores de la consulta que falló,
+      // que quedarían en la base y a la vista en /admin/sistema/jobs (ADR-119 regla 16).
+      const message =
+        error instanceof Error ? withoutQueryValues(error, error.message) : String(error);
       const dead = isDeadAfter(attempt);
       // El handler pudo tardar hasta su límite: la espera corre desde ahora, no desde la toma.
       const failedAt = clock();
