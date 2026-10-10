@@ -159,4 +159,71 @@ describe("el código de un error en el registro", () => {
     const written = lines.map((entry) => entry.line).join("\n");
     for (const value of values) expect(written).not.toContain(value);
   });
+
+  // Un error de conversión de Postgres (SQLSTATE de la clase 22) cita en su mensaje el valor que
+  // rechazó, y pino dobla ese mensaje dentro de `message` y de `stack` (DT-265, ADR-119 regla 15).
+  it.each<[string, string, string]>([
+    [
+      "22P02",
+      'invalid input syntax for type uuid: "VALOR"',
+      "invalid input syntax for type uuid: ",
+    ],
+    [
+      "22007",
+      'invalid input syntax for type date: "VALOR"',
+      "invalid input syntax for type date: ",
+    ],
+    [
+      "22008",
+      'date/time field value out of range: "VALOR"',
+      "date/time field value out of range: ",
+    ],
+    [
+      "22003",
+      'value "VALOR" is out of range for type integer',
+      " is out of range for type integer",
+    ],
+    // El valor puede traer comillas: se oculta desde la primera hasta la última.
+    ["22P02", 'invalid input syntax for type integer: "a" VALOR "b"', "type integer: "],
+  ])("el valor que cita un error de conversión de Postgres (%s) no sale: quedan el resto del mensaje, el SQL y el código", async (code, template, rest) => {
+    const value = "valor.privado@eafit.edu.co";
+    const query = 'select "id" from "person" where "birth_date" = $1';
+    const cause = () => withCode(template.replace("VALOR", value), code);
+    const { lines } = await captureLogs(async () => {
+      // Como llega de una consulta: envuelto por Drizzle, con el valor también entre sus parámetros.
+      logger.error({ err: new DrizzleQueryError(query, [value], cause()) }, "falló");
+      // Como causa más honda de otro error, y suelto, sin Drizzle.
+      logger.warn(
+        {
+          err: new Error("no se pudo guardar", {
+            cause: new DrizzleQueryError(query, [value], cause()),
+          }),
+        },
+        "falló",
+      );
+      logger.error({ err: cause() }, "falló");
+    });
+    expect(lines).toHaveLength(3);
+    for (const entry of lines) {
+      expect(errOf(entry).code).toBe(code);
+      expect(String(errOf(entry).message)).toContain(rest);
+      expect(String(errOf(entry).message)).toContain('"[oculto]"');
+      expect(String(errOf(entry).stack)).toContain(rest);
+      expect(entry.line).not.toContain("privado");
+    }
+    expect(String(errOf(lines[0]).message)).toContain(query);
+  });
+
+  it("el mensaje de un error que no es de conversión sale entero: la restricción que nombra es lo que sirve para depurar", async () => {
+    const message = 'duplicate key value violates unique constraint "person_email_unique"';
+    const { lines } = await captureLogs(async () => {
+      logger.error(
+        { err: new DrizzleQueryError("insert into person", [], withCode(message, "23505")) },
+        "falló",
+      );
+    });
+    expect(errOf(lines[0])).toMatchObject({ code: "23505" });
+    expect(String(errOf(lines[0]).message)).toContain(message);
+    expect(String(errOf(lines[0]).stack)).toContain(message);
+  });
 });

@@ -325,3 +325,5 @@ La revisión de código del ciclo (2026-10-09) devolvió cuatro correcciones a r
 ## Enmienda (2026-10-09, ADR-119)
 
 Regla 23: las rutas `*.password`, `*.token`, `*.code` y `*.secret` piden una clave encima, así que la misma clave suelta en el primer nivel de una línea, o en lo que fija un logger hijo, salía sin ocultar (DT-259). La lista de rutas gana las cuatro claves de primer nivel; `censor` sigue dejando leer solo `err.code`. Ver [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) regla 14.
+
+Regla 23, otra vez: los valores de una consulta salían también por el mensaje de Postgres, que en un error de conversión (SQLSTATE de la clase 22) cita el valor que rechazó y que pino dobla dentro de `message` y de `stack` (DT-265). El serializador lo oculta por coincidencia exacta con el mensaje de ese error; el resto del mensaje, el SQL y el código se quedan. Ver ADR-119 regla 15.

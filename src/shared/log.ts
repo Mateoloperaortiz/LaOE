@@ -39,6 +39,46 @@ function isQueryError(error: unknown): error is QueryError {
   );
 }
 
+/** SQLSTATE de la clase 22, «data exception»: el mensaje de Postgres cita el valor que rechazó. */
+const DATA_EXCEPTION = /^22[0-9A-Z]{3}$/;
+
+/**
+ * El mensaje de un error de conversión de Postgres sin el valor que cita («invalid input syntax for
+ * type date: "…"»). Se oculta desde la primera comilla hasta la última: el valor puede traer comillas
+ * y Postgres no las escapa. Cualquier otro mensaje vuelve igual, porque ahí lo que va entre comillas
+ * es el nombre de una restricción o de una columna, que es lo que sirve para depurar.
+ */
+function withoutQuotedValue(error: Error): string {
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "string" && DATA_EXCEPTION.test(code)
+    ? error.message.replace(/"[\s\S]*"/, `"${REDACTED}"`)
+    : error.message;
+}
+
+/**
+ * `text` es el mensaje o la traza de `error`, con sus causas dobladas adentro. Lo devuelve sin los
+ * valores de la consulta que falló, mirando el error y sus causas hasta cinco niveles: el tramo
+ * `params: …` que escribe Drizzle y el valor que cita un error de conversión de Postgres. Los dos se
+ * quitan por coincidencia exacta con lo que cada error escribió, no con una expresión que adivine
+ * dónde termina.
+ */
+function withoutQueryValues(error: Error, text: string): string {
+  let clean = text;
+  let current: unknown = error;
+  for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
+    if (isQueryError(current)) {
+      // Lo mismo que escribe Drizzle: `params: ${params}`.
+      clean = clean.split(`\nparams: ${current.params.join(",")}`).join("");
+    }
+    const hidden = withoutQuotedValue(current);
+    if (hidden !== current.message) {
+      clean = clean.split(current.message).join(hidden);
+    }
+    current = current.cause;
+  }
+  return clean;
+}
+
 /**
  * El serializador de pino dobla la causa dentro del mensaje y de la traza, y pierde su código. Drizzle
  * envuelve cada error de Postgres en un `DrizzleQueryError`, así que sin esto el `57P01` de una
@@ -47,7 +87,8 @@ function isQueryError(error: unknown): error is QueryError {
  * Los valores de esa consulta no salen (ADR-118 regla 23): pueden ser un correo o una IP. Drizzle los
  * trae en `params` y los repite en su mensaje («Failed query: … params: …»), que pino copia en
  * `message` y en `stack`, también cuando el error llega como causa de otro. El SQL, con sus `$1`, se
- * queda: es lo que sirve para depurar.
+ * queda: es lo que sirve para depurar. Tampoco sale el valor que Postgres cita en el mensaje de un
+ * error de conversión (ADR-119 regla 15).
  */
 function serializeError(error: unknown): unknown {
   const serialized = pino.stdSerializers.err(error as Error);
@@ -60,16 +101,8 @@ function serializeError(error: unknown): unknown {
       serialized.code = code;
     }
   }
-  let current: unknown = error;
-  for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
-    if (isQueryError(current)) {
-      // Lo mismo que escribe Drizzle: `params: ${params}`.
-      const written = `\nparams: ${current.params.join(",")}`;
-      serialized.message = serialized.message.split(written).join("");
-      serialized.stack = serialized.stack.split(written).join("");
-    }
-    current = current.cause;
-  }
+  serialized.message = withoutQueryValues(error, serialized.message);
+  serialized.stack = withoutQueryValues(error, serialized.stack);
   if (isQueryError(error)) {
     delete serialized.params;
   }
