@@ -3,7 +3,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
 import { adjustRequirementAs } from "@/modules/participation";
-import { changeMembershipStatusAs, setProbationAs } from "@/modules/people";
+import { changeMembershipStatusAs, endMembershipAs, setProbationAs } from "@/modules/people";
 import {
   computePerson,
   getPersonPermanence,
@@ -392,8 +392,9 @@ describe("cargador de hechos: el requisito de asambleas de cada persona", () => 
   };
 
   /**
-   * Un término con elección de junta y una segunda vuelta cancelada, y tres personas del mismo comité:
-   * una activa con ajuste, una activa sin ajuste y una en licencia con el mismo ajuste.
+   * Un término con elección de junta y una segunda vuelta cancelada, y cinco personas del mismo comité:
+   * una activa con ajuste, una activa sin ajuste y, con el mismo ajuste, una en licencia, una honoraria
+   * y una de baja, que sigue en el roster del término con su pertenencia cerrada.
    */
   async function arrange() {
     const termId = await seedTerm();
@@ -403,6 +404,8 @@ describe("cargador de hechos: el requisito de asambleas de cada persona", () => 
       adjusted: await seedVeteran("ajustada@eafit.edu.co"),
       plain: await seedVeteran("sin-ajuste@eafit.edu.co"),
       onLeave: await seedVeteran("licencia@eafit.edu.co"),
+      honorary: await seedVeteran("honoraria@eafit.edu.co"),
+      departed: await seedVeteran("baja@eafit.edu.co"),
     };
     for (const personId of Object.values(people)) {
       await seedCommitteeMembership(personId, committeeId, termId);
@@ -416,10 +419,21 @@ describe("cargador de hechos: el requisito de asambleas de cada persona", () => 
     });
     await adjustRequirementAs(actor, { ...ADJUSTMENT, termId, personId: people.adjusted });
     await adjustRequirementAs(actor, { ...ADJUSTMENT, termId, personId: people.onLeave });
+    await adjustRequirementAs(actor, { ...ADJUSTMENT, termId, personId: people.honorary });
+    await adjustRequirementAs(actor, { ...ADJUSTMENT, termId, personId: people.departed });
     await changeMembershipStatusAs(actor, people.onLeave, {
       to: "ON_LEAVE",
       reason: "Licencia sintética",
       leaveUntil: new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10),
+    });
+    await changeMembershipStatusAs(actor, people.honorary, {
+      to: "HONORARY",
+      reason: "Honoraria sintética",
+    });
+    await endMembershipAs(actor, people.departed, {
+      endReason: "RESIGNATION",
+      memorialConsent: false,
+      contactConsent: false,
     });
     return { termId, people };
   }
@@ -455,10 +469,17 @@ describe("cargador de hechos: el requisito de asambleas de cada persona", () => 
     });
   });
 
-  it("quien no está activo llega con el requisito del término aunque tenga un ajuste", async () => {
+  // Los tres estados que no son activo, no solo la licencia: una guarda que excluyera a uno solo
+  // dejaba pasar el ajuste de los otros dos sin que nada fallara. Si el ajuste debería valerles es la
+  // decisión abierta 65 (DT-318); acá se fija lo de hoy.
+  it.each([
+    ["en licencia", "onLeave", "ON_LEAVE"],
+    ["honoraria", "honorary", "HONORARY"],
+    ["de baja", "departed", "INACTIVE"],
+  ] as const)("quien está %s llega con el requisito del término aunque tenga un ajuste (decisión abierta 65)", async (_estado, who, status) => {
     const { termId, people } = await arrange();
-    expect(await requirementOf(termId, people.onLeave)).toEqual({
-      status: "ON_LEAVE",
+    expect(await requirementOf(termId, people[who])).toEqual({
+      status,
       requirement: TERM_REQUIREMENT,
     });
   });
