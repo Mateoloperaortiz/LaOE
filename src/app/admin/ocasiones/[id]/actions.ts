@@ -125,6 +125,7 @@ export async function decideAction(formData: FormData): Promise<void> {
     "consola",
     async () => {
       await decideCheckInAs(await actorContext(actor), {
+        occasionId: id,
         checkInId,
         decision,
         reason,

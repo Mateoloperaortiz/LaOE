@@ -14,7 +14,6 @@ import {
   balanceFor,
   cancelOccasionAs,
   checkInSelfAs,
-  decideCheckInAs,
   decideManyAs,
   findCheckIn,
   grantBoosterAs,
@@ -29,6 +28,7 @@ import { occasion, pointEntry, reward } from "@/modules/participation/schema";
 import { setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
+import { decideInOwnOccasion } from "../helpers/check-ins";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
@@ -127,7 +127,7 @@ async function decide(
 ): Promise<void> {
   const row = await findCheckIn(f.occasion.id, f.personId);
   if (!row) throw new Error("no hay asistencia que decidir");
-  await decideCheckInAs(f.admin, { checkInId: row.id, decision, reason });
+  await decideInOwnOccasion(f.admin, { checkInId: row.id, decision, reason });
 }
 
 /** El lote de la consola (`decideManyAs`), con la asistencia de la persona como único elemento. */

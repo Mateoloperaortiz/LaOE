@@ -11,7 +11,6 @@ import {
   closeOccasionAs,
   closeTermPointsAs,
   closingSummary,
-  decideCheckInAs,
   decideManyAs,
   excuseCheckIn,
   findCheckIn,
@@ -32,6 +31,7 @@ import { setConfigAs } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { decideInOwnOccasion } from "../helpers/check-ins";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
@@ -210,7 +210,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     const requestId = await requestExcuse({ personId, ip: null }, occasion.id);
 
     const held = await holdTerm(f.termId);
-    const approving = decideCheckInAs(f.admin, {
+    const approving = decideInOwnOccasion(f.admin, {
       checkInId: attendance.checkInId,
       decision: "APPROVE",
     });
@@ -252,7 +252,11 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     const requestId = await requestExcuse(a.member, a.occasion.id);
     const settings = await loadGamificationSettings();
     const held = await holdCommand(f.admin.personId, (ctx) =>
-      decideCheckIn(ctx, { checkInId: a.checkInId, decision: "APPROVE" }, { settings }),
+      decideCheckIn(
+        ctx,
+        { occasionId: a.occasion.id, checkInId: a.checkInId, decision: "APPROVE" },
+        { settings },
+      ),
     );
     const excusing = decideRequestAs(f.other, requestId, { decision: "APPROVED" });
     void excusing.catch(() => undefined);
@@ -276,13 +280,13 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
       const a = await pendingAttendance(occasion, `miembro.ronda${round}.decision@eafit.edu.co`);
       // Las dos personas deciden desde la fila que veían pendiente, como lo manda la consola.
       const approve = () =>
-        decideCheckInAs(f.admin, {
+        decideInOwnOccasion(f.admin, {
           checkInId: a.checkInId,
           decision: "APPROVE",
           seenStatus: "PENDING",
         });
       const reject = () =>
-        decideCheckInAs(f.other, {
+        decideInOwnOccasion(f.other, {
           checkInId: a.checkInId,
           decision: "REJECT",
           seenStatus: "PENDING",
@@ -325,9 +329,13 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     );
     const settings = await loadGamificationSettings();
     const held = await holdCommand(f.other.personId, (ctx) =>
-      decideCheckIn(ctx, { checkInId: a.checkInId, decision: "REJECT" }, { settings }),
+      decideCheckIn(
+        ctx,
+        { occasionId: a.occasion.id, checkInId: a.checkInId, decision: "REJECT" },
+        { settings },
+      ),
     );
-    const approving = decideCheckInAs(f.admin, {
+    const approving = decideInOwnOccasion(f.admin, {
       checkInId: a.checkInId,
       decision: "APPROVE",
       seenStatus: "PENDING",
@@ -347,7 +355,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     expect(await approvedEvents()).toBe(0);
 
     // Quien ve el rechazo en su fila sí lo puede corregir (ADR-035 regla 6).
-    await decideCheckInAs(f.admin, {
+    await decideInOwnOccasion(f.admin, {
       checkInId: a.checkInId,
       decision: "APPROVE",
       seenStatus: "REJECTED",
@@ -364,9 +372,13 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     );
     const settings = await loadGamificationSettings();
     const held = await holdCommand(f.admin.personId, (ctx) =>
-      decideCheckIn(ctx, { checkInId: a.checkInId, decision: "APPROVE" }, { settings }),
+      decideCheckIn(
+        ctx,
+        { occasionId: a.occasion.id, checkInId: a.checkInId, decision: "APPROVE" },
+        { settings },
+      ),
     );
-    const rejecting = decideCheckInAs(f.other, { checkInId: a.checkInId, decision: "REJECT" });
+    const rejecting = decideInOwnOccasion(f.other, { checkInId: a.checkInId, decision: "REJECT" });
     void rejecting.catch(() => undefined);
     try {
       await expect.poll(() => waitingOn(held.pid)).toBe(1);
@@ -389,8 +401,8 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     );
     const held = await holdTerm(f.termId);
     const settled = Promise.allSettled([
-      decideCheckInAs(f.admin, { checkInId: a.checkInId, decision: "APPROVE" }),
-      decideCheckInAs(f.other, { checkInId: a.checkInId, decision: "APPROVE" }),
+      decideInOwnOccasion(f.admin, { checkInId: a.checkInId, decision: "APPROVE" }),
+      decideInOwnOccasion(f.other, { checkInId: a.checkInId, decision: "APPROVE" }),
     ]);
     try {
       await expect.poll(() => waitingOn(held.pid)).toBe(2);
@@ -424,7 +436,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     const two = await pendingAttendance(occasion, "miembro.lote4.decision@eafit.edu.co");
     // La consola lista los pendientes antes de abrir la transacción del lote.
     const listed = (await listCheckIns(occasion.id, ["PENDING"])).map((item) => item.id);
-    await decideCheckInAs(f.other, { checkInId: two.checkInId, decision: "REJECT" });
+    await decideInOwnOccasion(f.other, { checkInId: two.checkInId, decision: "REJECT" });
 
     // Con las filas tomadas decide cuáles siguen pendientes (ADR-116 regla 4) y dice cuántas decidió.
     expect(await decideManyAs(f.admin, listed, "APPROVE")).toBe(1);
@@ -443,7 +455,11 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     const two = await pendingAttendance(occasion, "miembro.lote8.decision@eafit.edu.co");
     const settings = await loadGamificationSettings();
     const held = await holdCommand(f.other.personId, (ctx) =>
-      decideCheckIn(ctx, { checkInId: one.checkInId, decision: "APPROVE" }, { settings }),
+      decideCheckIn(
+        ctx,
+        { occasionId: occasion.id, checkInId: one.checkInId, decision: "APPROVE" },
+        { settings },
+      ),
     );
     const batch = decideManyAs(f.admin, [one.checkInId, two.checkInId], "APPROVE");
     void batch.catch(() => undefined);
@@ -519,7 +535,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     let single: Promise<void> = Promise.resolve();
     try {
       await expect.poll(() => waitingOn(held.pid)).toBe(1);
-      single = decideCheckInAs(f.other, { checkInId: last, decision: "APPROVE" });
+      single = decideInOwnOccasion(f.other, { checkInId: last, decision: "APPROVE" });
       void single.catch(() => undefined);
       await expect.poll(waitingForLock).toBe(2);
       held.release();
@@ -542,7 +558,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
       await manualOccasion(f),
       "miembro.puerta.decision@eafit.edu.co",
     );
-    await decideCheckInAs(f.admin, { checkInId: a.checkInId, decision: "REJECT" });
+    await decideInOwnOccasion(f.admin, { checkInId: a.checkInId, decision: "REJECT" });
     const settings = await loadGamificationSettings();
     const held = await holdCommand(f.other.personId, (ctx) =>
       excuseCheckIn(
@@ -579,7 +595,11 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     );
     const settings = await loadGamificationSettings();
     const held = await holdCommand(f.admin.personId, (ctx) =>
-      decideCheckIn(ctx, { checkInId: a.checkInId, decision: "APPROVE" }, { settings }),
+      decideCheckIn(
+        ctx,
+        { occasionId: a.occasion.id, checkInId: a.checkInId, decision: "APPROVE" },
+        { settings },
+      ),
     );
     const cancelling = cancelOccasionAs(f.other, a.occasion.id, "Cancelación sintética");
     void cancelling.catch(() => undefined);
@@ -604,10 +624,14 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
       await manualOccasion(f),
       "miembro.vuelve.decision@eafit.edu.co",
     );
-    await decideCheckInAs(f.admin, { checkInId: a.checkInId, decision: "REJECT" });
+    await decideInOwnOccasion(f.admin, { checkInId: a.checkInId, decision: "REJECT" });
     const settings = await loadGamificationSettings();
     const held = await holdCommand(f.admin.personId, (ctx) =>
-      decideCheckIn(ctx, { checkInId: a.checkInId, decision: "APPROVE" }, { settings }),
+      decideCheckIn(
+        ctx,
+        { occasionId: a.occasion.id, checkInId: a.checkInId, decision: "APPROVE" },
+        { settings },
+      ),
     );
     const cancelling = cancelOccasionAs(f.other, a.occasion.id, "Cancelación sintética");
     void cancelling.catch(() => undefined);
@@ -744,7 +768,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     expect(await balanceFor(a.personId, f.termId)).toBe(0);
     // Aprobar sí escribe en el ledger, así que sigue cerrado para la asistencia ya excusada.
     await expect(
-      decideCheckInAs(f.admin, { checkInId: a.checkInId, decision: "APPROVE" }),
+      decideInOwnOccasion(f.admin, { checkInId: a.checkInId, decision: "APPROVE" }),
     ).rejects.toThrow(t("T-629"));
   });
 });

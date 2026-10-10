@@ -5,7 +5,7 @@ import sharp from "sharp";
 import { afterAll, beforeEach, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { recomputeBadgesFor } from "@/modules/participation/domain/badges";
-import { checkInSelfAs, decideCheckInAs } from "@/modules/participation/domain/commands";
+import { checkInSelfAs } from "@/modules/participation/domain/commands";
 import {
   prepareEvidenceUpload,
   processEvidenceFile,
@@ -32,6 +32,7 @@ import { membership } from "@/modules/people/schema";
 import { setConfigAs } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
+import { decideInOwnOccasion } from "../helpers/check-ins";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import {
@@ -63,11 +64,11 @@ async function presential(approval: "MANUAL" | "AUTO" = "AUTO") {
 
 it("revisión: reaprueba una asistencia rechazada con reto presencial", async () => {
   const { personId, checkInId, termId } = await presential("MANUAL");
-  await decideCheckInAs(
+  await decideInOwnOccasion(
     { personId, ip: null },
     { checkInId, decision: "REJECT", reason: "Corrección sintética" },
   );
-  await decideCheckInAs({ personId, ip: null }, { checkInId, decision: "APPROVE" });
+  await decideInOwnOccasion({ personId, ip: null }, { checkInId, decision: "APPROVE" });
   expect(await balanceFor(personId, termId)).toBe(15);
   expect(await getDb().select().from(challengeParticipation)).toHaveLength(1);
   expect(await getDb().select().from(reward)).toHaveLength(1);
@@ -83,7 +84,7 @@ it.each([
     .update(membership)
     .set({ status: "INACTIVE" })
     .where(eq(membership.personId, personId));
-  await decideCheckInAs({ personId, ip: null }, { checkInId, decision, reason: "Corrección" });
+  await decideInOwnOccasion({ personId, ip: null }, { checkInId, decision, reason: "Corrección" });
   const [entry] = await getDb().select().from(reward);
   expect(entry?.status).toBe(decision === "APPROVE" ? "GRANTED" : "RELEASED");
   expect(await balanceFor(personId, termId)).toBe(decision === "APPROVE" ? 15 : 0);
@@ -92,7 +93,7 @@ it.each([
 it("no revive el premio de un reto cancelado al reaprobar su asistencia", async () => {
   const { personId, checkInId, termId, challengeId } = await presential("MANUAL");
   await cancelChallengeAs({ personId, ip: null }, challengeId, "Cancelado por GH");
-  await decideCheckInAs({ personId, ip: null }, { checkInId, decision: "APPROVE" });
+  await decideInOwnOccasion({ personId, ip: null }, { checkInId, decision: "APPROVE" });
   expect(await balanceFor(personId, termId)).toBe(10);
   const [entry] = await getDb().select().from(reward);
   expect(entry?.status).toBe("RELEASED");
@@ -223,7 +224,7 @@ it("0032 libera posiciones revocadas y reencola evidencias anteriores sin servir
 it("revisión: anular la asistencia revierte el premio aunque el reto esté cancelado", async () => {
   const { personId, checkInId, termId, challengeId } = await presential();
   await cancelChallengeAs({ personId, ip: null }, challengeId, "Cancelación sintética");
-  await decideCheckInAs(
+  await decideInOwnOccasion(
     { personId, ip: null },
     { checkInId, decision: "CANCEL", reason: "No asistió" },
   );
@@ -240,7 +241,7 @@ it("revisión: apagar la bandera no impide revertir un BOOST ya entregado", asyn
   if (!result.ok) throw new Error("check-in inicial falló");
   expect(await balanceFor(personId, termId)).toBe(15);
   await setConfigAs({ personId, ip: null }, "gamification.enabled", false);
-  await decideCheckInAs(
+  await decideInOwnOccasion(
     { personId, ip: null },
     { checkInId: result.checkInId, decision: "CANCEL", reason: "Corrección" },
   );
@@ -305,7 +306,7 @@ it("revisión: revocar una insignia destacada libera la posición para un nuevo 
   const old = original.unlocked.find((item) => item.family === "EN_PARCHE");
   if (!old) throw new Error("sin insignia inicial");
   await setFeaturedAs({ personId, ip: null }, { achievementId: old.achievementId, featured: true });
-  await decideCheckInAs(
+  await decideInOwnOccasion(
     { personId, ip: null },
     { checkInId, decision: "CANCEL", reason: "Corrección" },
   );

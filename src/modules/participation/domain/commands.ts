@@ -159,7 +159,7 @@ export async function hostCheckInAs(
 
 export async function decideCheckInAs(
   actor: Actor & { personId: string },
-  input: Pick<DecideInput, "checkInId" | "decision" | "reason" | "seenStatus">,
+  input: Pick<DecideInput, "checkInId" | "occasionId" | "decision" | "reason" | "seenStatus">,
 ): Promise<void> {
   const settings = await loadGamificationSettings();
   return runCommand(actor, (ctx) => decideCheckIn(ctx, input, { settings }));

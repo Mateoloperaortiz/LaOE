@@ -6,13 +6,13 @@ import {
   cancelOccasionAs,
   checkInSelfAs,
   closeOccasionAs,
-  decideCheckInAs,
   findCheckIn,
   hostCheckInAs,
 } from "@/modules/participation";
 import { OCCASION_STATUSES } from "@/modules/participation/domain/occasion-pure";
 import { challenge } from "@/modules/participation/schema";
 import { t, tList } from "@/shared/copy";
+import { decideInOwnOccasion } from "../helpers/check-ins";
 import { holdTransaction, waitingForLock, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
 import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
@@ -86,7 +86,7 @@ async function rejectedAttendance(f: Fixture, email: string) {
   const personId = await seedMember(email);
   const attendance = await checkInSelfAs({ personId, ip: null }, { publicId: f.occasion.publicId });
   if (!attendance.ok) throw new Error("la asistencia no se registró");
-  await decideCheckInAs(f.admin, { checkInId: attendance.checkInId, decision: "REJECT" });
+  await decideInOwnOccasion(f.admin, { checkInId: attendance.checkInId, decision: "REJECT" });
   return { personId, checkInId: attendance.checkInId };
 }
 
@@ -158,7 +158,7 @@ describe("una asistencia en una ocasión cancelada", () => {
     await cancelOccasionAs(f.other, f.occasion.id, "Cancelación sintética");
 
     await expect(
-      decideCheckInAs(f.admin, {
+      decideInOwnOccasion(f.admin, {
         checkInId: a.checkInId,
         decision: "APPROVE",
         seenStatus: "REJECTED",
@@ -173,7 +173,7 @@ describe("una asistencia en una ocasión cancelada", () => {
     const f = await setup("MANUAL");
     const a = await rejectedAttendance(f, "miembro.vuelve.cancelada@eafit.edu.co");
     const { held, cancellation } = await cancellationInProgress(f);
-    const approving = decideCheckInAs(f.admin, {
+    const approving = decideInOwnOccasion(f.admin, {
       checkInId: a.checkInId,
       decision: "APPROVE",
       seenStatus: "REJECTED",
@@ -201,7 +201,7 @@ describe("una asistencia en una ocasión cancelada", () => {
     if (!attendance.ok) throw new Error("la asistencia no se registró");
     await closeOccasionAs(f.admin, f.occasion.id);
 
-    await decideCheckInAs(f.admin, { checkInId: attendance.checkInId, decision: "APPROVE" });
+    await decideInOwnOccasion(f.admin, { checkInId: attendance.checkInId, decision: "APPROVE" });
 
     expect((await findCheckIn(f.occasion.id, personId))?.status).toBe("APPROVED");
     expect(await balanceFor(personId, f.termId)).toBe(POINTS);

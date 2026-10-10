@@ -5,17 +5,13 @@ import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { personAnonymized } from "@/domain-events/people";
 import { createRequestAs, decideRequestAs } from "@/modules/crm";
-import {
-  decideCheckInAs,
-  findCheckIn,
-  listCheckInsForExport,
-  listCheckInsForPerson,
-} from "@/modules/participation";
+import { findCheckIn, listCheckInsForExport, listCheckInsForPerson } from "@/modules/participation";
 import { checkIn } from "@/modules/participation/schema";
 import { anonymizePersonAs, requestDeletionAs } from "@/modules/people";
 import { person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { tList } from "@/shared/copy";
+import { decideInOwnOccasion } from "../helpers/check-ins";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedCheckIn, seedMember, seedOccasion, seedTerm } from "./factories";
@@ -117,13 +113,13 @@ describe("anonimización en participación", () => {
     }
     // Además GH le rechaza una asistencia y le anula otra: esos motivos los escribe GH.
     const rejected = await seedCheckIn(workshop.id, leaving, "PENDING");
-    await decideCheckInAs(asGh, {
+    await decideInOwnOccasion(asGh, {
       checkInId: rejected,
       decision: "REJECT",
       reason: "No estuvo en el taller",
     });
     const cancelled = await seedCheckIn(fair.id, leaving, "APPROVED");
-    await decideCheckInAs(asGh, {
+    await decideInOwnOccasion(asGh, {
       checkInId: cancelled,
       decision: "CANCEL",
       reason: "Registro duplicado por error del anfitrión",

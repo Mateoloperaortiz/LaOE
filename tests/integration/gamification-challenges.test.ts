@@ -10,11 +10,7 @@ import {
   hasGrantedRewards,
   listChallengesForMember,
 } from "@/modules/participation/domain/challenges";
-import {
-  cancelOccasionAs,
-  checkInSelfAs,
-  decideCheckInAs,
-} from "@/modules/participation/domain/commands";
+import { cancelOccasionAs, checkInSelfAs } from "@/modules/participation/domain/commands";
 import {
   annulParticipationAs,
   cancelChallengeAs,
@@ -41,6 +37,7 @@ import {
 import { setConfigAs } from "@/modules/system";
 import { outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
+import { decideInOwnOccasion } from "../helpers/check-ins";
 import { truncateAll } from "./db";
 import {
   seedChallenge,
@@ -707,7 +704,7 @@ describe("retos: presencial con check-in", () => {
     expect(reserved?.status).toBe("RESERVED");
     expect(await balanceFor(personId, termId)).toBe(0);
 
-    await decideCheckInAs(
+    await decideInOwnOccasion(
       { personId: adminId, ip: null },
       { checkInId: checkInResult.checkInId, decision: "APPROVE" },
     );
@@ -732,7 +729,7 @@ describe("retos: presencial con check-in", () => {
       { publicId: occasion2.publicId },
     );
     if (!checkIn2.ok) throw new Error("check-in manual falló");
-    await decideCheckInAs(
+    await decideInOwnOccasion(
       { personId: adminId, ip: null },
       { checkInId: checkIn2.checkInId, decision: "REJECT", reason: "No asistió" },
     );
@@ -764,13 +761,13 @@ describe("retos: presencial con check-in", () => {
       { publicId: occasion.publicId },
     );
     if (!checkInResult.ok) throw new Error("check-in manual falló");
-    await decideCheckInAs(
+    await decideInOwnOccasion(
       { personId: adminId, ip: null },
       { checkInId: checkInResult.checkInId, decision: "APPROVE" },
     );
     expect(await balanceFor(personId, termId)).toBe(15);
 
-    await decideCheckInAs(
+    await decideInOwnOccasion(
       { personId: adminId, ip: null },
       { checkInId: checkInResult.checkInId, decision: "CANCEL", reason: "Error de registro" },
     );

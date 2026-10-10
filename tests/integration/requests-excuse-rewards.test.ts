@@ -8,7 +8,6 @@ import {
   closeOccasionAs,
   closeTermPointsAs,
   closingSummary,
-  decideCheckInAs,
   findCheckIn,
   grantBoosterAs,
   listBoostersFor,
@@ -19,6 +18,7 @@ import { setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
+import { decideInOwnOccasion } from "../helpers/check-ins";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedChallenge, seedMember, seedOccasion, seedTerm } from "./factories";
@@ -147,7 +147,7 @@ describe("excusa sobre una asistencia pendiente con premio reservado", () => {
 
   it("no vuelve a tocar el premio de una asistencia que ya estaba rechazada", async () => {
     const f = await pendingAttendanceWithBooster();
-    await decideCheckInAs(f.admin, {
+    await decideInOwnOccasion(f.admin, {
       checkInId: f.checkInId,
       decision: "REJECT",
       reason: "No asistió",

@@ -337,6 +337,11 @@ async function decide(
 
 export interface DecideInput {
   checkInId: string;
+  /**
+   * La ocasión desde cuya consola se decide (ADR-122 regla 1). Es obligatoria y el comando la
+   * compara con la de la asistencia: la de otra ocasión responde igual que una que no existe.
+   */
+  occasionId: string;
   decision: CheckInDecision;
   reason?: string | null | undefined;
   /**
@@ -349,9 +354,11 @@ export interface DecideInput {
 }
 
 /**
- * Decide una asistencia por su id. La primera lectura va sin candado y solo dice de qué ocasión es,
- * que no cambia; el estado de la ocasión y el de la asistencia se leen con sus filas tomadas, después
- * del término.
+ * Decide una asistencia por su id, desde la consola de su ocasión (ADR-122 regla 1). La primera
+ * lectura va sin candado y solo dice de qué ocasión es, que no cambia: si no es la de la consola, la
+ * decisión termina ahí, sin tomar nada de la otra ocasión. El estado de la ocasión y el de la
+ * asistencia se leen con sus filas tomadas, después del término, y la ocasión se compara otra vez
+ * con la fila tomada.
  */
 export async function decideCheckIn(
   ctx: CommandContext,
@@ -362,7 +369,9 @@ export async function decideCheckIn(
     .select({ occasionId: checkIn.occasionId })
     .from(checkIn)
     .where(eq(checkIn.id, input.checkInId));
-  if (!found) {
+  // Falla cerrado: sin ocasión, o con una que no es la de la asistencia, no hay nada que decidir.
+  const page: unknown = input.occasionId;
+  if (!found || typeof page !== "string" || page === "" || found.occasionId !== page) {
     throw new DomainError(t("T-032"));
   }
   const observed = await readOccasion(ctx, found.occasionId);
@@ -372,7 +381,7 @@ export async function decideCheckIn(
   await lockOpenTermPoints(ctx.tx, observed.termId);
   const row = await lockOccasion(ctx, observed);
   const [current] = await lockCheckIns(ctx, eq(checkIn.id, input.checkInId));
-  if (!current) {
+  if (!current || current.occasionId !== page) {
     throw new DomainError(t("T-032"));
   }
   if (input.seenStatus !== undefined && current.status !== input.seenStatus) {

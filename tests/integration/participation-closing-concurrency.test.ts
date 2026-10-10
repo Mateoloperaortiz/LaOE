@@ -9,7 +9,6 @@ import {
   cancelOccasionAs,
   closeTermPointsAs,
   createOccasionSeriesAs,
-  decideCheckInAs,
   hostCheckInAs,
   openOccasionAs,
 } from "@/modules/participation/domain/commands";
@@ -27,6 +26,7 @@ import {
 import { auditLog, outbox } from "@/modules/system/schema";
 import { closeTermPoints, getTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
+import { decideInOwnOccasion } from "../helpers/check-ins";
 import { truncateAll } from "./db";
 import {
   seedChallenge,
@@ -188,7 +188,8 @@ describe("cierre transaccional de participación", () => {
     await closeTermPointsAs({ personId, ip: null }, termId);
     await expect(openOccasionAs({ personId, ip: null }, draft.id)).rejects.toThrow(t("T-579"));
     for (const operation of [
-      () => decideCheckInAs({ personId, ip: null }, { checkInId: pendingId, decision: "APPROVE" }),
+      () =>
+        decideInOwnOccasion({ personId, ip: null }, { checkInId: pendingId, decision: "APPROVE" }),
       () =>
         hostCheckInAs(
           { personId, ip: null },

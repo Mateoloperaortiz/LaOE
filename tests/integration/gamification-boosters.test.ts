@@ -8,11 +8,7 @@ import {
   grantBoosterForAchievement,
   listCampaignsAdmin,
 } from "@/modules/participation/domain/boosters";
-import {
-  checkInSelfAs,
-  decideCheckInAs,
-  hostCheckInAs,
-} from "@/modules/participation/domain/commands";
+import { checkInSelfAs, hostCheckInAs } from "@/modules/participation/domain/commands";
 import {
   cancelCampaignAs,
   createCampaignsAs,
@@ -38,6 +34,7 @@ import { setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { decideInOwnOccasion } from "../helpers/check-ins";
 import { truncateAll } from "./db";
 import {
   seedBooster,
@@ -517,7 +514,7 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     expect(reserved?.status).toBe("RESERVED");
     expect((await boosterOf(boosterId))?.status).toBe("RESERVED");
 
-    await decideCheckInAs(
+    await decideInOwnOccasion(
       { personId: adminId, ip: null },
       { checkInId: pending.checkInId, decision: "APPROVE" },
     );
@@ -539,7 +536,7 @@ describe("boosters: asistencia impulsada (check-in)", () => {
       { publicId: occasion2.publicId },
     );
     if (!rejected.ok) throw new Error("check-in manual 2 falló");
-    await decideCheckInAs(
+    await decideInOwnOccasion(
       { personId: adminId, ip: null },
       { checkInId: rejected.checkInId, decision: "REJECT", reason: "No asistió" },
     );
@@ -564,7 +561,7 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     if (!done.ok) throw new Error("check-in falló");
     expect(await balanceFor(personId, termId)).toBe(15);
 
-    await decideCheckInAs(
+    await decideInOwnOccasion(
       { personId: adminId, ip: null },
       { checkInId: done.checkInId, decision: "CANCEL", reason: "Error de registro" },
     );
@@ -589,7 +586,7 @@ describe("boosters: asistencia impulsada (check-in)", () => {
     );
     const pending = await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
     if (!pending.ok) throw new Error("check-in manual falló");
-    await decideCheckInAs(
+    await decideInOwnOccasion(
       { personId: adminId, ip: null },
       { checkInId: pending.checkInId, decision: "REJECT", reason: "Dudoso" },
     );
@@ -601,7 +598,7 @@ describe("boosters: asistencia impulsada (check-in)", () => {
       { personId, ip: null },
       { boosterId, target: { occasionId: occasion.id } },
     );
-    await decideCheckInAs(
+    await decideInOwnOccasion(
       { personId: adminId, ip: null },
       { checkInId: pending.checkInId, decision: "APPROVE" },
     );

@@ -7,7 +7,6 @@ import { findCheckIn } from "@/modules/participation/domain/check-ins";
 import {
   cancelOccasionAs,
   checkInSelfAs,
-  decideCheckInAs,
   hostCheckInAs,
 } from "@/modules/participation/domain/commands";
 import { balanceFor, listEntriesFor } from "@/modules/participation/domain/ledger";
@@ -22,6 +21,7 @@ import { outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { decideInOwnOccasion } from "../helpers/check-ins";
 import { itemPattern } from "../helpers/copy";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
@@ -236,26 +236,32 @@ describe("check-in propio", () => {
     if (!pending) throw new Error("sin check-in");
 
     await expect(
-      decideCheckInAs(
+      decideInOwnOccasion(
         { personId, ip: null },
         { checkInId: pending.id, decision: "CANCEL", reason: "x" },
       ),
     ).rejects.toBeInstanceOf(DomainError);
-    await decideCheckInAs({ personId, ip: null }, { checkInId: pending.id, decision: "REJECT" });
+    await decideInOwnOccasion(
+      { personId, ip: null },
+      { checkInId: pending.id, decision: "REJECT" },
+    );
     expect((await findCheckIn(id, personId))?.status).toBe("REJECTED");
-    await decideCheckInAs({ personId, ip: null }, { checkInId: pending.id, decision: "APPROVE" });
+    await decideInOwnOccasion(
+      { personId, ip: null },
+      { checkInId: pending.id, decision: "APPROVE" },
+    );
     expect(await balanceFor(personId, termId)).toBe(30);
     await expect(
-      decideCheckInAs({ personId, ip: null }, { checkInId: pending.id, decision: "APPROVE" }),
+      decideInOwnOccasion({ personId, ip: null }, { checkInId: pending.id, decision: "APPROVE" }),
     ).rejects.toThrow(t("T-676", { estado: "aprobado" }));
 
     await expect(
-      decideCheckInAs(
+      decideInOwnOccasion(
         { personId, ip: null },
         { checkInId: pending.id, decision: "CANCEL", reason: " " },
       ),
     ).rejects.toThrow(t("T-609"));
-    await decideCheckInAs(
+    await decideInOwnOccasion(
       { personId, ip: null },
       { checkInId: pending.id, decision: "CANCEL", reason: "no estuvo" },
     );
@@ -267,7 +273,7 @@ describe("check-in propio", () => {
     expect(entries[0]?.reversalOfId).toBe(entries[1]?.id);
     expect(await balanceFor(personId, termId)).toBe(0);
     await expect(
-      decideCheckInAs({ personId, ip: null }, { checkInId: pending.id, decision: "APPROVE" }),
+      decideInOwnOccasion({ personId, ip: null }, { checkInId: pending.id, decision: "APPROVE" }),
     ).rejects.toBeInstanceOf(DomainError);
     expect((await findCheckIn(id, personId))?.status).toBe("CANCELLED");
   });

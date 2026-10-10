@@ -17,7 +17,7 @@ import {
   recomputeBadgesFor,
   setFeatured,
 } from "@/modules/participation/domain/badges";
-import { checkInSelfAs, decideCheckInAs } from "@/modules/participation/domain/commands";
+import { checkInSelfAs } from "@/modules/participation/domain/commands";
 import {
   createSpecialBadgeAs,
   publishChallengeAs,
@@ -39,6 +39,7 @@ import { setConfig, setConfigAs } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
+import { decideInOwnOccasion } from "../helpers/check-ins";
 import { itemPattern } from "../helpers/copy";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
@@ -317,7 +318,7 @@ describe("insignias: desbloqueo y revocación", () => {
     const checkInId = await seedCheckIn(occ.id, personId);
     await recomputeBadgesFor(personId, { historical: false });
 
-    await decideCheckInAs(
+    await decideInOwnOccasion(
       { personId: adminId, ip: null },
       { checkInId, decision: "CANCEL", reason: "error de registro" },
     );
@@ -348,7 +349,7 @@ describe("insignias: desbloqueo y revocación", () => {
       .set({ status: "CONSUMED" })
       .where(eq(boosterItem.id, booster?.id ?? ""));
 
-    await decideCheckInAs(
+    await decideInOwnOccasion(
       { personId: adminId, ip: null },
       { checkInId, decision: "CANCEL", reason: "error de registro" },
     );
