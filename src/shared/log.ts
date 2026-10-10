@@ -14,6 +14,89 @@ function censor(value: unknown, path: string[]): unknown {
   return path.length === 2 && path[0] === "err" && path[1] === "code" ? value : REDACTED;
 }
 
+/** Las cuatro claves que el registro no escribe, estén donde estén. */
+const HIDDEN_KEYS = ["password", "token", "code", "secret"];
+
+/** Una línea trae alguna de esas claves solo si trae su nombre escrito así: JSON no escapa letras. */
+const NAMES_A_HIDDEN_KEY = new RegExp(`"(?:${HIDDEN_KEYS.join("|")})":`);
+
+/** Oculta las cuatro claves en `value` y en todo lo que cuelga de él, sin tope de profundidad. */
+function hideKeys(value: unknown): void {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      hideKeys(item);
+    }
+    return;
+  }
+  if (typeof value !== "object" || value === null) {
+    return;
+  }
+  const record = value as Record<string, unknown>;
+  for (const key of Object.keys(record)) {
+    if (HIDDEN_KEYS.includes(key)) {
+      record[key] = REDACTED;
+    } else {
+      hideKeys(record[key]);
+    }
+  }
+}
+
+/**
+ * Lo mismo dentro de un error registrado como `err`, que deja leer su código (ADR-118 regla 23) y el
+ * de cada error que agrupa: pino los lista en `aggregateErrors`, y son códigos de error igual.
+ */
+function hideKeysInError(value: unknown): void {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    hideKeys(value);
+    return;
+  }
+  const record = value as Record<string, unknown>;
+  for (const key of Object.keys(record)) {
+    if (key === "code") {
+      continue;
+    }
+    const inner = record[key];
+    if (key === "aggregateErrors" && Array.isArray(inner)) {
+      for (const grouped of inner) {
+        hideKeysInError(grouped);
+      }
+    } else if (HIDDEN_KEYS.includes(key)) {
+      record[key] = REDACTED;
+    } else {
+      hideKeys(inner);
+    }
+  }
+}
+
+/**
+ * La línea como va a salir, con las cuatro claves ocultas a cualquier profundidad (ADR-120 regla 9).
+ * Las rutas de pino cubren los dos primeros niveles y no pasan de ahí: no admiten «a cualquier
+ * profundidad», y con un comodín por nivel su copia de un `Buffer` anidado lanza y tumba a quien
+ * registra. Este paso mira lo que pino ya escribió, así que cubre también lo que fija un logger hijo
+ * y lo que un objeto escribe con su `toJSON`. Solo vuelve a leer la línea que nombra alguna de las
+ * cuatro claves; las demás salen como llegaron. Una línea que no se puede revisar no se escribe.
+ */
+function withoutHiddenKeys(line: string): string {
+  if (!NAMES_A_HIDDEN_KEY.test(line)) {
+    return line;
+  }
+  try {
+    const record = JSON.parse(line) as Record<string, unknown>;
+    for (const key of Object.keys(record)) {
+      if (key === "err") {
+        hideKeysInError(record[key]);
+      } else if (HIDDEN_KEYS.includes(key)) {
+        record[key] = REDACTED;
+      } else {
+        hideKeys(record[key]);
+      }
+    }
+    return `${JSON.stringify(record)}\n`;
+  } catch {
+    return `${JSON.stringify({ level: 50, time: Date.now(), msg: "registro: una línea no se pudo revisar y no se escribió" })}\n`;
+  }
+}
+
 /** El código de la causa más cercana que traiga uno. */
 function causeCode(error: Error): string | number | undefined {
   let current: unknown = error.cause;
@@ -117,18 +200,14 @@ export const logger = pino({
   level: process.env.LOG_LEVEL ?? (isProduction ? "info" : "debug"),
   base: null,
   serializers: { err: serializeError },
+  // Lo que las rutas de abajo no alcanzan, más abajo del segundo nivel (ADR-120 regla 9).
+  hooks: { streamWrite: withoutHiddenKeys },
   redact: {
     paths: [
       // Sueltas en la línea o en lo que fija un logger hijo, y con una clave encima: las rutas con
       // `*` no cubren el primer nivel (ADR-119 regla 14).
-      "password",
-      "token",
-      "code",
-      "secret",
-      "*.password",
-      "*.token",
-      "*.code",
-      "*.secret",
+      ...HIDDEN_KEYS,
+      ...HIDDEN_KEYS.map((key) => `*.${key}`),
       // No oculta nada: pino solo le pasa a `censor` el nombre de la clave de primer nivel cuando esa
       // clave tiene una ruta propia, y `censor` lo necesita para dejar pasar el código de un error.
       "err.code",
