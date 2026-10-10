@@ -37,9 +37,10 @@ const DEFAULT_CEILING = DAILY_LIMIT - DEFAULT_RESERVE;
 // Las 22:00 del 9 de marzo de 2031 en Colombia: en UTC ya es 10.
 const NIGHT = new Date("2031-03-10T03:00:00.000Z");
 const after = (minutes: number): Date => new Date(NIGHT.getTime() + minutes * 60_000);
-const MORNING = new Date("2031-03-09T12:00:00.000Z");
-/** La medianoche de Colombia que le sigue a `NIGHT`. */
-const MIDNIGHT = new Date("2031-03-10T05:00:00.000Z");
+/** Más temprano en ese mismo día del proveedor, que va en UTC (ADR-121 regla 5): las 19:30 del 9 en Colombia. */
+const EARLIER = new Date("2031-03-10T00:30:00.000Z");
+/** La medianoche del proveedor que le sigue a `NIGHT`: las 19:00 del 10 en Colombia. */
+const MIDNIGHT = new Date("2031-03-11T00:00:00.000Z");
 const APRIL = new Date("2031-04-01T05:00:00.000Z");
 
 /** Qué hace el proveedor con un correo: lo acepta, espera o lo rechaza. */
@@ -156,14 +157,15 @@ afterAll(async () => {
 });
 
 describe("el cupo de correo que ve un ADMIN (ADR-116 regla 20)", () => {
-  it("sin margen fijado muestra el cupo del día, el margen por defecto, lo enviado hoy en Colombia y lo que cabe", async () => {
+  it("sin margen fijado muestra el cupo del día, el margen por defecto, lo enviado en el día del proveedor y lo que cabe", async () => {
     const [ana] = await seedPeople(1);
     if (!ana) throw new Error("seed people");
-    await seedSent(ana, "TRANSACTIONAL", 10, MORNING);
-    // La medianoche en punto ya es de hoy; un segundo antes es de ayer, y lo de otro proveedor no cuenta.
-    await seedSent(ana, "CAMPAIGN", 5, new Date("2031-03-09T05:00:00.000Z"));
-    await seedSent(ana, "TRANSACTIONAL", 7, new Date("2031-03-09T04:59:59.000Z"));
-    await seedSent(ana, "TRANSACTIONAL", 9, MORNING, "ses");
+    await seedSent(ana, "TRANSACTIONAL", 10, EARLIER);
+    // La medianoche del proveedor en punto ya es de hoy; un segundo antes es de ayer, aunque en
+    // Colombia sea la misma tarde, y lo de otro proveedor no cuenta.
+    await seedSent(ana, "CAMPAIGN", 5, new Date("2031-03-10T00:00:00.000Z"));
+    await seedSent(ana, "TRANSACTIONAL", 7, new Date("2031-03-09T23:59:59.000Z"));
+    await seedSent(ana, "TRANSACTIONAL", 9, EARLIER, "ses");
 
     expect(await getCampaignQuotaStatus(NIGHT)).toEqual({
       provider: "resend",
@@ -390,7 +392,7 @@ describe("cambiar el margen para lo transaccional (ADR-116 regla 20)", () => {
     const id = await seedCampaign();
     // Con el margen nuevo caben dos correos de campaña, y hoy ya salió uno transaccional.
     await setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, DAILY_LIMIT - 2);
-    await seedSent(ana, "TRANSACTIONAL", 1, MORNING);
+    await seedSent(ana, "TRANSACTIONAL", 1, EARLIER);
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
     expect(await getCampaignBacklog(id, after(1))).toEqual({
@@ -452,11 +454,11 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
     expect(await getCampaignBacklog(id, after(1))).toEqual({ pending: 2, hold: null });
   });
 
-  it("sin lugar en el cupo de hoy, espera hasta la medianoche de Colombia", async () => {
+  it("sin lugar en el cupo de hoy, espera hasta la medianoche del proveedor", async () => {
     const [ana] = await seedPeople(3);
     if (!ana) throw new Error("seed people");
     const id = await seedCampaign();
-    await seedSent(ana, "TRANSACTIONAL", DEFAULT_CEILING, MORNING);
+    await seedSent(ana, "TRANSACTIONAL", DEFAULT_CEILING, EARLIER);
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 0 });
 
@@ -479,7 +481,7 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
 
     expect(await getCampaignBacklog(id, after(1))).toEqual({ pending: 3, hold: cut });
 
-    await seedSent(ana, "TRANSACTIONAL", DEFAULT_CEILING, MORNING);
+    await seedSent(ana, "TRANSACTIONAL", DEFAULT_CEILING, EARLIER);
     expect(await getCampaignBacklog(id, after(2))).toEqual({ pending: 3, hold: cut });
   });
 
@@ -516,7 +518,7 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
     });
   });
 
-  it("con lugar para una parte, dice cuántos salen hoy y cuántos siguen a la medianoche de Colombia", async () => {
+  it("con lugar para una parte, dice cuántos salen hoy y cuántos siguen a la medianoche del proveedor", async () => {
     const [ana] = await seedPeople(3);
     if (!ana) throw new Error("seed people");
     const id = await seedCampaign();
@@ -636,7 +638,7 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
     const [ana] = await seedPeople(3);
     if (!ana) throw new Error("seed people");
     const id = await seedCampaign();
-    await seedSent(ana, "TRANSACTIONAL", DAILY_LIMIT, MORNING);
+    await seedSent(ana, "TRANSACTIONAL", DAILY_LIMIT, EARLIER);
     stubMail("console");
     await setPerMinute(1);
 

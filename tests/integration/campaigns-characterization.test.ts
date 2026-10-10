@@ -754,12 +754,18 @@ describe("los defectos que la caracterización le encontró al lote", () => {
 const DAILY_LIMIT = Number(process.env.RESEND_DAILY_LIMIT ?? 95);
 const CAMPAIGN_CEILING = DAILY_LIMIT - Math.ceil(DAILY_LIMIT / 3);
 
-// Un día fijo y lejano para contar el cupo: son las 22:00 del 9 de marzo en Colombia y ya es 10 en UTC.
+// Un día fijo y lejano para contar el cupo: son las 22:00 del 9 de marzo en Colombia y ya es 10 en UTC,
+// que es el día por el que cuenta el proveedor (ADR-121 regla 5).
 const NIGHT = new Date("2031-03-10T03:00:00.000Z");
+/** La mañana del 9 en Colombia: para el proveedor es su día anterior. */
 const MORNING = new Date("2031-03-09T12:00:00.000Z");
+/** Más temprano en ese mismo día del proveedor: las 19:30 del 9 en Colombia. */
+const EARLIER = new Date("2031-03-10T00:30:00.000Z");
 const night = (minutes: number): Date => new Date(NIGHT.getTime() + minutes * 60_000);
-/** Los minutos que le faltan a `NIGHT` para la medianoche de Colombia. */
-const TO_MIDNIGHT = 120;
+/** Los minutos que le faltan a `NIGHT` para la medianoche del proveedor: las 19:00 del 10 en Colombia. */
+const TO_MIDNIGHT = 21 * 60;
+/** Los que le faltan para la medianoche de Colombia, que al cupo ya no le dice nada. */
+const TO_LOCAL_MIDNIGHT = 120;
 
 /** Correos que ya salieron a esa hora, sin pasar por el transporte: lo que cuenta el cupo. */
 async function seedSent(
@@ -796,18 +802,20 @@ async function scheduleForNight(perMinute: number): Promise<string> {
 }
 
 describe("el cupo del día y el margen para los correos transaccionales (ADR-115 reglas 5 y 6)", () => {
-  it("con el cupo de campañas casi lleno, el lote manda lo que cabe contando lo transaccional y lo de campañas que salió hoy en Colombia, y lo demás sigue al otro día", async () => {
+  it("con el cupo de campañas casi lleno, el lote manda lo que cabe contando lo transaccional y lo de campañas que salió en el día del proveedor, y lo demás sigue en su otro día", async () => {
     const roster = await seedRoster(5);
     const [ana] = roster;
     if (!ana) throw new Error("seed roster");
     const id = await scheduleForNight(10);
-    // Hoy en Colombia ya salieron todos los que caben menos dos, entre transaccionales y de campaña:
-    // los de la mañana son de ayer para UTC, y el de la medianoche en punto ya es de hoy.
-    await seedSent(ana.id, "TRANSACTIONAL", CAMPAIGN_CEILING - 5, MORNING);
-    await seedSent(ana.id, "CAMPAIGN", 3, new Date("2031-03-09T05:00:00.000Z"));
-    // No cuentan: lo de ayer en Colombia, por un segundo, ni lo que salió por otro proveedor.
-    await seedSent(ana.id, "TRANSACTIONAL", 40, new Date("2031-03-09T04:59:59.000Z"));
-    await seedSent(ana.id, "TRANSACTIONAL", 40, MORNING, "ses");
+    // En el día del proveedor ya salieron todos los que caben menos dos, entre transaccionales y de
+    // campaña: su medianoche en punto, que son las 19:00 de Colombia, ya es de hoy.
+    await seedSent(ana.id, "TRANSACTIONAL", CAMPAIGN_CEILING - 5, EARLIER);
+    await seedSent(ana.id, "CAMPAIGN", 3, new Date("2031-03-10T00:00:00.000Z"));
+    // No cuentan: lo de su día anterior, por un segundo o desde la mañana, aunque en Colombia sea el
+    // mismo día; ni lo que salió por otro proveedor.
+    await seedSent(ana.id, "TRANSACTIONAL", 40, new Date("2031-03-09T23:59:59.000Z"));
+    await seedSent(ana.id, "TRANSACTIONAL", 40, MORNING);
+    await seedSent(ana.id, "TRANSACTIONAL", 40, EARLIER, "ses");
     useTransports({ overflow: null });
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 2 });
@@ -824,12 +832,13 @@ describe("el cupo del día y el margen para los correos transaccionales (ADR-115
       waiting.map(() => [null, null]),
     );
 
-    // Lo que queda del día no sale nada más.
+    // Lo que queda del día no sale nada más, tampoco al pasar la medianoche de Colombia.
     expect(await runCampaignTick(night(1))).toEqual({ started: 0, sent: 0 });
+    expect(await runCampaignTick(night(TO_LOCAL_MIDNIGHT + 5))).toEqual({ started: 0, sent: 0 });
     expect(await runCampaignTick(night(TO_MIDNIGHT - 1))).toEqual({ started: 0, sent: 0 });
     expect(delivered.primary).toHaveLength(2);
 
-    // A la medianoche de Colombia el cupo es otro: la campaña sigue donde quedó y termina.
+    // A la medianoche del proveedor el cupo es otro: la campaña sigue donde quedó y termina.
     expect(await runCampaignTick(night(TO_MIDNIGHT))).toEqual({ started: 0, sent: 3 });
     expect(await getCampaign(id)).toMatchObject({
       status: "SENT",
@@ -864,7 +873,7 @@ describe("el cupo del día y el margen para los correos transaccionales (ADR-115
     const [ana] = roster;
     if (!ana) throw new Error("seed roster");
     const id = await scheduleForNight(10);
-    await seedSent(ana.id, "TRANSACTIONAL", DAILY_LIMIT, MORNING);
+    await seedSent(ana.id, "TRANSACTIONAL", DAILY_LIMIT, EARLIER);
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 3 });
 
@@ -921,7 +930,7 @@ describe("el cupo del día y el margen para los correos transaccionales (ADR-115
     const [ana] = roster;
     if (!ana) throw new Error("seed roster");
     const id = await scheduleForNight(3);
-    await seedSent(ana.id, "TRANSACTIONAL", CAMPAIGN_CEILING - 2, MORNING);
+    await seedSent(ana.id, "TRANSACTIONAL", CAMPAIGN_CEILING - 2, EARLIER);
     // El proveedor no responde hasta que los dos lotes reclamaron lo suyo: ninguno ve todavía un
     // correo enviado por el otro, solo lo que el otro reclamó.
     let waiting = 0;
@@ -1389,7 +1398,7 @@ describe("el cupo cuando un lote se cae, sigue vivo o cruza la medianoche (ADR-1
         throw new QuotaExceededError("daily_quota_exceeded: se acabó el cupo de hoy");
       },
     });
-    // Las 23:59 de Colombia: el lote queda con su primer correo en vuelo.
+    // Las 23:59 del proveedor: el lote queda con su primer correo en vuelo.
     const yesterday = runCampaignTick(night(TO_MIDNIGHT - 1));
     await untilHeld(gate, yesterday);
     // Las 00:01: otro lote recibe el rechazo y deja el corte de hoy; el de las 00:02 ya no pregunta.

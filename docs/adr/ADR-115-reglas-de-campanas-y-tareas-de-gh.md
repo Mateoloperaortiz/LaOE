@@ -1,6 +1,6 @@
 # ADR-115: Reglas de campañas de correo y tareas de GH del cuarto ciclo del refactor
 
-- Estado: Aceptada (enmendada por ADR-116 y ADR-120)
+- Estado: Aceptada (enmendada por ADR-116, ADR-120 y ADR-121)
 - Fecha: 2026-10-07
 - Relacionadas: ADR-012, ADR-023, ADR-034, ADR-035, ADR-037, ADR-038, ADR-039, ADR-058, ADR-060, ADR-079, ADR-109
 - Enmienda: ADR-038 (regla 8: el lote de una campaña, su cancelación, su cupo y la elegibilidad al enviar), ADR-023 (regla 3: las campañas que salen por Resend), ADR-037 (regla 12: la bienvenida y la respuesta a una solicitud llevan una clave por evento; reglas 7 y 9: la tarea del patrocinio ganado y la de la solicitud), ADR-034 (regla 12: la tarea del pedido de borrado), ADR-035 (regla 14: la tarea del término siguiente) y ADR-058 (regla 4: la tarea del pedido de retiro de un comité)
@@ -164,3 +164,7 @@ La regla 5 dejó el margen sin pantalla y la de una campaña sin decir que sus p
 ## Enmienda (2026-10-10, ADR-120)
 
 Las reglas 1 y 2 dicen que el lote envía sin transacción abierta y que `sendCampaignEmail` guarda el `message` con su clave por campaña y persona. Ese registro se escribía sin retener a la persona: si se anonimizaba y `comms` limpiaba con el correo en vuelo, el `message` quedaba a su nombre para siempre (DT-276). [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) regla 8: el registro se escribe con la fila de la persona tomada `for share`, en una transacción corta y con el proveedor ya de vuelta, y no se escribe si ya fue anonimizada; su destinatario queda entonces `SENT` y sin mensaje. Lo demás de la regla 1 no cambia: mientras un correo viaja el lote sigue sin transacción abierta ni conexión retenida, y su prueba de caracterización pasa sin tocarla.
+
+## Enmienda (2026-10-10, ADR-121)
+
+La regla 5 dice que «hoy» es el día civil de Colombia (`APP_TIMEZONE`), no el de UTC, y que el primer lote del otro día sigue donde quedó; la regla 6, que ningún lote sale hasta el otro día. Contra qué ventana cuenta Resend su cupo diario no estaba confirmado (DT-125). Su documentación, consultada el 2026-10-10, dice: «The daily quota is a UTC calendar day (00:00–24:00 UTC) and resets at midnight UTC. It is not a rolling 24-hour window from your first send or from when you hit the limit.» ([cuotas y límites](https://resend.com/docs/knowledge-base/account-quotas-and-limits)). [ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) regla 5: «hoy» es el día del proveedor, que va en UTC y en Colombia empieza a las 7:00 p. m. `sentTodayVia` cuenta desde ahí, igual para el lote, para la elección de transporte de lo transaccional y para la pantalla del cupo, y «el otro día» de las dos reglas es el del proveedor. Lo demás de la regla 5 no cambia: el cupo, el margen, el candado, la reserva y que un correo es del día de su `sentAt`. De la regla 6 cambia solo cuándo termina el corte por el cupo del día, que ya vivía en ADR-116 regla 19.

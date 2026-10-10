@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   latestQuotaCut,
+  providerDayEnd,
+  providerDayStart,
   quotaCutFor,
   quotaCutUntil,
   readQuotaCut,
@@ -12,6 +14,10 @@ import {
 const ZONE = "America/Bogota";
 // Las 22:00 del 9 de marzo de 2031 en Colombia: en UTC ya es 10.
 const NIGHT = new Date("2031-03-10T03:00:00.000Z");
+// El día del proveedor va en UTC (ADR-121 regla 5): el que contiene a `NIGHT` empieza a las 19:00 del 9
+// en Colombia y termina a las 19:00 del 10.
+const PROVIDER_DAY = new Date("2031-03-10T00:00:00.000Z");
+const NEXT_PROVIDER_DAY = new Date("2031-03-11T00:00:00.000Z");
 const minutesAfter = (at: Date, minutes: number): Date => new Date(at.getTime() + minutes * 60_000);
 
 describe("cuánto dura el corte por cuota", () => {
@@ -41,17 +47,20 @@ describe("cuánto dura el corte por cuota", () => {
   });
 
   it.each([
-    ["a las 22:00", NIGHT],
-    ["un segundo antes de la medianoche", new Date("2031-03-10T04:59:59.000Z")],
-    ["a la medianoche en punto del día anterior", new Date("2031-03-09T05:00:00.000Z")],
-  ])("el cupo del día corta hasta la medianoche siguiente de Colombia: %s", (_case, at) => {
-    expect(quotaCutUntil("DAILY", at, ZONE, null)).toEqual(new Date("2031-03-10T05:00:00.000Z"));
+    ["a las 22:00 de Colombia", NIGHT],
+    ["a la medianoche de Colombia, que no lo termina", new Date("2031-03-10T05:00:00.000Z")],
+    ["un segundo antes de la medianoche UTC", new Date("2031-03-10T23:59:59.000Z")],
+    ["a la medianoche UTC en punto con que empezó ese día", PROVIDER_DAY],
+  ])("el cupo del día corta hasta la medianoche UTC siguiente, que es cuando el proveedor empieza su día: %s", (_case, at) => {
+    expect(quotaCutUntil("DAILY", at, ZONE, null)).toEqual(NEXT_PROVIDER_DAY);
   });
 
   it("el cupo del día no mira la espera del proveedor", () => {
-    expect(quotaCutUntil("DAILY", NIGHT, ZONE, 1_000)).toEqual(
-      new Date("2031-03-10T05:00:00.000Z"),
-    );
+    expect(quotaCutUntil("DAILY", NIGHT, ZONE, 1_000)).toEqual(NEXT_PROVIDER_DAY);
+  });
+
+  it("el cupo del día no mira la zona de la app: el día es del proveedor", () => {
+    expect(quotaCutUntil("DAILY", NIGHT, "Asia/Tokyo", null)).toEqual(NEXT_PROVIDER_DAY);
   });
 
   it.each([
@@ -65,14 +74,30 @@ describe("cuánto dura el corte por cuota", () => {
   });
 
   it("una causa que no se reconoce corta como el cupo del día, que era lo que hacía todo rechazo", () => {
-    expect(quotaCutUntil("OTRA" as never, NIGHT, ZONE, null)).toEqual(
-      new Date("2031-03-10T05:00:00.000Z"),
-    );
+    expect(quotaCutUntil("OTRA" as never, NIGHT, ZONE, null)).toEqual(NEXT_PROVIDER_DAY);
+  });
+});
+
+describe("el día por el que el proveedor cuenta su cupo", () => {
+  it.each([
+    ["a las 19:00 de Colombia en punto, que es su medianoche", PROVIDER_DAY],
+    ["a las 22:00 de Colombia", NIGHT],
+    ["pasada la medianoche de Colombia", new Date("2031-03-10T05:05:00.000Z")],
+    ["en su último milisegundo", new Date("2031-03-10T23:59:59.999Z")],
+  ])("empieza y termina en la medianoche UTC: %s", (_case, at) => {
+    expect(providerDayStart(at)).toEqual(PROVIDER_DAY);
+    expect(providerDayEnd(at)).toEqual(NEXT_PROVIDER_DAY);
+  });
+
+  it("el milisegundo anterior a su medianoche es de su día anterior", () => {
+    const before = new Date(PROVIDER_DAY.getTime() - 1);
+    expect(providerDayStart(before)).toEqual(new Date("2031-03-09T00:00:00.000Z"));
+    expect(providerDayEnd(before)).toEqual(PROVIDER_DAY);
   });
 });
 
 describe("el corte que deja un rechazo", () => {
-  it("una causa que no se reconoce deja un corte por el cupo del día, hasta la medianoche siguiente de Colombia", () => {
+  it("una causa que no se reconoce deja un corte por el cupo del día, hasta la medianoche UTC siguiente", () => {
     // Con la espera de una ráfaga, que tampoco se sigue: lo que queda es un corte que se puede guardar.
     expect(
       quotaCutFor(
@@ -84,7 +109,7 @@ describe("el corte que deja un rechazo", () => {
       provider: "resend",
       reason: "DAILY",
       at: NIGHT,
-      until: new Date("2031-03-10T05:00:00.000Z"),
+      until: NEXT_PROVIDER_DAY,
     });
   });
 });
@@ -99,7 +124,7 @@ describe("lo que quedó guardado del corte", () => {
       provider: "resend",
       reason: "DAILY",
       at: NIGHT,
-      until: new Date("2031-03-10T05:00:00.000Z"),
+      until: NEXT_PROVIDER_DAY,
     });
   });
 

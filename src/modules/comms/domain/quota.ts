@@ -11,10 +11,10 @@ import {
   campaignCeiling,
   campaignRoom,
   latestQuotaCut,
+  providerDayEnd,
   type QuotaCut,
   quotaCutInEffect,
   readQuotaCut,
-  startOfNextDayIn,
   storeQuotaCut,
   transactionalReserve,
 } from "./pure";
@@ -64,7 +64,7 @@ export interface DailyQuotaStatus {
   claimed: number;
   /** Cuántos correos de campaña caben todavía hoy. */
   room: number;
-  /** Cuándo vuelve a empezar la cuenta: la medianoche siguiente de la zona de la app. */
+  /** Cuándo vuelve a empezar la cuenta: cuando el proveedor empieza su día siguiente (ADR-121 regla 5). */
   resetsAt: Date;
 }
 
@@ -104,7 +104,6 @@ async function claimedRecipients(): Promise<number> {
  * candado del cupo, así que un lote que reclama en ese instante puede no estar contado todavía.
  */
 export async function getCampaignQuotaStatus(now = new Date()): Promise<CampaignQuotaStatus> {
-  const timeZone = getEnv().APP_TIMEZONE;
   const provider = campaignProvider();
   const limit = campaignDailyLimit();
   const [reserveSetting, storedCut] = await Promise.all([
@@ -130,7 +129,7 @@ export async function getCampaignQuotaStatus(now = new Date()): Promise<Campaign
       sentToday,
       claimed,
       room: campaignRoom(ceiling, sentToday, claimed),
-      resetsAt: startOfNextDayIn(timeZone, now),
+      resetsAt: providerDayEnd(now),
     },
     cut,
   };
@@ -139,8 +138,8 @@ export async function getCampaignQuotaStatus(now = new Date()): Promise<Campaign
 /**
  * Lo que detiene a los pendientes de una campaña en curso: un corte del proveedor, con su causa y su
  * final; el margen, cuando cubre todo el cupo del día; el cupo de hoy, que ya no tiene lugar y vuelve
- * a contar a la medianoche; o el cupo de hoy cuando solo le queda lugar para una parte (ADR-120 regla
- * 16): `fits` salen hoy y `waiting` siguen cuando vuelva a contar.
+ * a contar cuando el proveedor empieza su día siguiente; o el cupo de hoy cuando solo le queda lugar
+ * para una parte (ADR-120 regla 16): `fits` salen hoy y `waiting` siguen cuando vuelva a contar.
  */
 export type CampaignHold =
   | { by: "CUT"; provider: string; reason: QuotaReason; until: Date }

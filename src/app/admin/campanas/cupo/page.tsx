@@ -14,7 +14,9 @@ import { liftCutAction, resetReserveAction, saveReserveAction } from "./actions"
 
 // El cupo de correo de las campañas (ADR-115 regla 5, ADR-116 reglas 19 y 20), solo ADMIN: por dónde
 // salen, el cupo del día, lo enviado hoy, el margen para lo transaccional y el corte vigente con su
-// causa. Tres acciones con auditoría: cambiar el margen, volver al de por defecto y levantar el corte.
+// causa. «Hoy» es el día del proveedor, que no es el de Colombia, y la pantalla dice a qué hora vuelve
+// a empezar (ADR-121 regla 5). Tres acciones con auditoría: cambiar el margen, volver al de por
+// defecto y levantar el corte.
 
 const BASE = "/admin/campanas/cupo";
 
@@ -89,9 +91,11 @@ export default async function Page({ searchParams }: PageProps<"/admin/campanas/
             </div>
           ))}
         </dl>
-        {daily ? null : (
-          <p className="max-w-prose text-sm text-tinta-suave">{t("T-3230", { proveedor })}</p>
-        )}
+        <p className="max-w-prose text-sm text-tinta-suave">
+          {daily
+            ? t("T-3259", { proveedor, fecha: formatDateTime(daily.resetsAt) })
+            : t("T-3230", { proveedor })}
+        </p>
       </section>
 
       <section aria-labelledby="cupo-margen" className={cardClass}>

@@ -33,7 +33,10 @@ export function transactionalReserve(dailyLimit: number, reserve: number | null)
   return reserve ?? Math.ceil(dailyLimit / 3);
 }
 
-/** Cuántos correos de campaña caben todavía hoy: lo que un lote reclamó y no ha enviado ya cuenta. */
+/**
+ * Cuántos correos de campaña caben todavía hoy, que es el día del proveedor: lo que un lote reclamó y
+ * no ha enviado ya cuenta.
+ */
 export function campaignRoom(ceiling: number, sentToday: number, claimed: number): number {
   return Math.max(0, ceiling - sentToday - claimed);
 }
@@ -62,10 +65,31 @@ const BURST_CUT_DEFAULT_MINUTES = 15;
 const BURST_CUT_MAX_MINUTES = 60;
 
 /** La medianoche que le sigue a ese instante en la zona dada. */
-export function startOfNextDayIn(timeZone: string, at: Date): Date {
+function startOfNextDayIn(timeZone: string, at: Date): Date {
   // Desde la medianoche de hoy, 36 horas caen en el mediodía de mañana: de ahí, su medianoche.
   const noonTomorrow = new Date(startOfTodayIn(timeZone, at).getTime() + 36 * 3_600_000);
   return startOfTodayIn(timeZone, noonTomorrow);
+}
+
+// El día del proveedor (ADR-121 regla 5, que enmienda ADR-115 regla 5 y ADR-116 regla 19).
+
+/**
+ * La zona por la que el proveedor cuenta su cupo del día. Resend lo cuenta por día calendario UTC, de
+ * 00:00 a 24:00, y lo reinicia a la medianoche UTC: no es una ventana móvil de 24 horas (su
+ * documentación de cuotas y límites, consultada el 2026-10-10). En Colombia ese día empieza a las
+ * 7:00 p. m. Es el único sitio que la nombra: la cuenta de lo enviado hoy, el final del corte por el
+ * cupo del día y la hora que muestran las pantallas salen de las dos funciones que siguen.
+ */
+const PROVIDER_DAY_ZONE = "UTC";
+
+/** Cuándo empezó el día del proveedor en que cae ese instante: desde ahí cuenta su cupo del día. */
+export function providerDayStart(at: Date): Date {
+  return startOfTodayIn(PROVIDER_DAY_ZONE, at);
+}
+
+/** Cuándo empieza el día siguiente del proveedor: ahí su cupo del día vuelve a empezar. */
+export function providerDayEnd(at: Date): Date {
+  return startOfNextDayIn(PROVIDER_DAY_ZONE, at);
 }
 
 /** La medianoche del primer día del mes que le sigue a ese instante en la zona dada. */
@@ -79,9 +103,10 @@ function startOfNextMonthIn(timeZone: string, at: Date): Date {
 /**
  * Hasta cuándo ningún lote le pide nada al proveedor después de un rechazo por cuota. Una ráfaga corta
  * lo que el proveedor pidió esperar, en minutos enteros y entre uno y sesenta, o quince si no lo dijo;
- * el cupo del mes, hasta el primer día del mes siguiente; el del día, hasta la medianoche siguiente.
- * Una causa que no se reconoce corta como el cupo del día, que era lo que hacía todo rechazo. Una
- * espera que no es un número vale como no dicha: de ella no sale una fecha, y sin fecha no hay corte.
+ * el cupo del mes, hasta el primer día del mes siguiente de la zona dada; el del día, hasta que el
+ * proveedor empieza su día siguiente, que no es el de esa zona (ADR-121 regla 5). Una causa que no se
+ * reconoce corta como el cupo del día, que era lo que hacía todo rechazo. Una espera que no es un
+ * número vale como no dicha: de ella no sale una fecha, y sin fecha no hay corte.
  */
 export function quotaCutUntil(
   reason: QuotaReason,
@@ -98,7 +123,7 @@ export function quotaCutUntil(
         : Math.min(BURST_CUT_MAX_MINUTES, Math.max(1, Math.ceil(requested / 60_000)));
     return new Date(at.getTime() + minutes * 60_000);
   }
-  return reason === "MONTHLY" ? startOfNextMonthIn(timeZone, at) : startOfNextDayIn(timeZone, at);
+  return reason === "MONTHLY" ? startOfNextMonthIn(timeZone, at) : providerDayEnd(at);
 }
 
 /** El corte que deja el rechazo que recibió el lote de las `at`. */

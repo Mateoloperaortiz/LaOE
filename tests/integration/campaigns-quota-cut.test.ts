@@ -31,9 +31,12 @@ const LEGACY_KEY = "campaigns.quotaExhaustedAt";
 // Las 22:00 del 9 de marzo de 2031 en Colombia: en UTC ya es 10.
 const NIGHT = new Date("2031-03-10T03:00:00.000Z");
 const after = (minutes: number): Date => new Date(NIGHT.getTime() + minutes * 60_000);
-/** La medianoche de Colombia que le sigue a `NIGHT`, y el minuto anterior. */
-const MIDNIGHT = new Date("2031-03-10T05:00:00.000Z");
-const BEFORE_MIDNIGHT = new Date("2031-03-10T04:59:00.000Z");
+/**
+ * La medianoche del proveedor que le sigue a `NIGHT`, y el minuto anterior. Su día va en UTC (ADR-121
+ * regla 5): termina a las 19:00 del 10 en Colombia, no a la medianoche de Colombia.
+ */
+const MIDNIGHT = new Date("2031-03-11T00:00:00.000Z");
+const BEFORE_MIDNIGHT = new Date("2031-03-10T23:59:00.000Z");
 /** El primer instante de abril en Colombia, y el minuto anterior. */
 const APRIL = new Date("2031-04-01T05:00:00.000Z");
 const BEFORE_APRIL = new Date("2031-04-01T04:59:00.000Z");
@@ -195,7 +198,7 @@ describe("el corte por cuota dura según su causa (ADR-116 regla 19)", () => {
     expect(cut).toMatchObject({ reason: "BURST", until: after(2).toISOString() });
   });
 
-  it("el cupo del día agotado corta hasta el otro día de Colombia", async () => {
+  it("el cupo del día agotado corta hasta el otro día del proveedor, que empieza a las 19:00 de Colombia", async () => {
     const { id } = await seedCampaign(4);
     const provider = rejectSecondWith(
       new QuotaExceededError("daily_quota_exceeded: se acabó el cupo de hoy", "DAILY"),

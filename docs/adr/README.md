@@ -18,7 +18,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 | [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) | Reglas de estructura y robustez del séptimo ciclo del refactor | Aceptada (enmendada por ADR-120) |
 | [ADR-118](ADR-118-reglas-de-correccion-del-sexto-ciclo.md) | Reglas de corrección del sexto ciclo del refactor | Aceptada (enmendada por ADR-119 y ADR-120) |
 | [ADR-116](ADR-116-reglas-de-correccion-privacidad-y-permisos.md) | Reglas de corrección, privacidad y permisos del quinto ciclo del refactor | Aceptada (enmendada por ADR-118, ADR-119, ADR-120 y ADR-121) |
-| [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) | Reglas de campañas de correo y tareas de GH del cuarto ciclo del refactor | Aceptada (enmendada por ADR-116 y ADR-120) |
+| [ADR-115](ADR-115-reglas-de-campanas-y-tareas-de-gh.md) | Reglas de campañas de correo y tareas de GH del cuarto ciclo del refactor | Aceptada (enmendada por ADR-116, ADR-120 y ADR-121) |
 | [ADR-114](ADR-114-reglas-de-seguridad-privacidad-e-integridad.md) | Reglas de seguridad, privacidad e integridad del tercer ciclo del refactor | Aceptada (enmendada por ADR-116) |
 | [ADR-113](ADR-113-reglas-de-seguridad-e-integridad.md) | Reglas de seguridad e integridad del segundo ciclo del refactor | Aceptada (enmendada por ADR-114, ADR-116, ADR-119 y ADR-120) |
 | [ADR-112](ADR-112-toda-sancion-declara-su-alcance.md) | Toda sanción se registra con su alcance declarado | Aceptada (enmendada por ADR-114 y ADR-116) |

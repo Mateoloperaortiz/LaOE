@@ -12,7 +12,6 @@ import {
   QuotaExceededError,
   type QuotaReason,
 } from "@/shared/adapters/mail";
-import { startOfTodayIn } from "@/shared/lib/dates";
 import { logger } from "@/shared/log";
 import { message } from "../schema";
 import { findRecordedMessage, type RecordedMessage, recordMessage } from "./messages";
@@ -20,6 +19,7 @@ import {
   campaignCeiling,
   chooseRoute,
   latestQuotaCut,
+  providerDayStart,
   type QuotaCut,
   quotaCutFor,
   quotaCutInEffect,
@@ -68,15 +68,17 @@ export function setMailTransportsForTests(replacement: MailTransports | undefine
 }
 
 /**
- * Correos que ese proveedor aceptó hoy, transaccionales y de campaña por igual. «Hoy» es el día civil de
- * la zona de la app, y un correo es del día en que salió: `sentAt`, la hora que le dio quien lo envió.
+ * Correos que ese proveedor aceptó hoy, transaccionales y de campaña por igual. «Hoy» es el día del
+ * proveedor, que no es el de la zona de la app (ADR-121 regla 5), y un correo es del día en que salió:
+ * `sentAt`, la hora que le dio quien lo envió. Es la única cuenta: la usan el lote de una campaña, la
+ * elección de transporte de lo transaccional y la pantalla del cupo.
  */
 export async function sentTodayVia(
   provider: string,
   now: Date,
   db: Executor = getDb(),
 ): Promise<number> {
-  const since = startOfTodayIn(getEnv().APP_TIMEZONE, now);
+  const since = providerDayStart(now);
   const [row] = await db
     .select({ n: count() })
     .from(message)

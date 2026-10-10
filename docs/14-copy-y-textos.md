@@ -1255,6 +1255,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-3243 | Cupo de correo: el margen volvió al de por defecto | Listo, el margen vuelve a ser el de por defecto: un tercio del cupo del día. | MATEO | Propuesta |
 | T-3250 | Plantillas y campañas: la prueba que el proveedor rechazó (ADR-118) | No pudimos mandar la prueba a {correo}: el proveedor de correo la rechazó. Revisá el motivo en Mensajes antes de programar un envío. | MATEO | Propuesta |
 | T-3257 | Campaña en curso: hoy solo cabe una parte de lo pendiente (ADR-120) | Hoy no caben todos en el cupo del día. Salen hoy: hasta {hoy}. Quedan en espera: {resto} o más. Siguen el {fecha}. | MATEO | Propuesta |
+| T-3259 | Cupo de correo: el día es el del proveedor y cuándo vuelve a empezar la cuenta (ADR-121) | Ojo: {proveedor} no cuenta el día como acá. El suyo va en hora UTC y en Colombia empieza a las 7:00 p. m. La cuenta de hoy vuelve a empezar el {fecha}. | MATEO | Propuesta |
 
 ### Mi OE · fase 8 (carnet en billeteras)
 

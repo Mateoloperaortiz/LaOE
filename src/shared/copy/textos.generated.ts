@@ -10695,6 +10695,13 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3259": {
+    where:
+      "Cupo de correo: el día es el del proveedor y cuándo vuelve a empezar la cuenta (ADR-121)",
+    text: "Ojo: {proveedor} no cuenta el día como acá. El suyo va en hora UTC y en Colombia empieza a las 7:00 p. m. La cuenta de hoy vuelve a empezar el {fecha}.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",
