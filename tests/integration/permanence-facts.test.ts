@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { isCheckViolation, isUniqueViolation } from "@/db/errors";
+import { adjustRequirementAs } from "@/modules/participation";
 import { changeMembershipStatusAs, setProbationAs } from "@/modules/people";
 import { computePerson, loadPeopleFacts, loadTermFacts } from "@/modules/permanence";
 import {
@@ -358,5 +359,112 @@ describe("cargador de hechos: quién llega como nuevo, y con qué estado y prueb
       leaveUntil,
     });
     expect(await standing(termId, personId)).toMatchObject({ status: "ON_LEAVE", isNew: false });
+  });
+});
+
+// Caracterización (DT-223): con qué requisito de asambleas llega cada persona al cálculo. El de un
+// miembro activo es su ajuste o, si no tiene, el del término; quien no está activo llega con el del
+// término aunque tenga un ajuste, que sale de las ocasiones ya cargadas y no de la lectura de asambleas.
+describe("cargador de hechos: el requisito de asambleas de cada persona", () => {
+  beforeEach(truncateAll);
+  afterAll(() => closeDb());
+
+  const ADJUSTMENT = {
+    requiredOrdinary: 0,
+    requiresBoardElection: false,
+    requiresRunoff: true,
+    reason: "Intercambio sintético",
+  };
+  /** El del término: una ordinaria, la elección de junta que existe y no la segunda vuelta cancelada. */
+  const TERM_REQUIREMENT = {
+    requiredOrdinary: 1,
+    requiresBoardElection: true,
+    requiresRunoff: false,
+    adjusted: false,
+    reason: null,
+  };
+
+  /**
+   * Un término con elección de junta y una segunda vuelta cancelada, y tres personas del mismo comité:
+   * una activa con ajuste, una activa sin ajuste y una en licencia con el mismo ajuste.
+   */
+  async function arrange() {
+    const termId = await seedTerm();
+    const committeeId = await seedCommittee("a3");
+    const actor = { personId: await seedVeteran("gh@eafit.edu.co"), ip: null };
+    const people = {
+      adjusted: await seedVeteran("ajustada@eafit.edu.co"),
+      plain: await seedVeteran("sin-ajuste@eafit.edu.co"),
+      onLeave: await seedVeteran("licencia@eafit.edu.co"),
+    };
+    for (const personId of Object.values(people)) {
+      await seedCommitteeMembership(personId, committeeId, termId);
+    }
+    await seedOccasion(termId, { kind: "ASSEMBLY", assemblyKind: "BOARD_ELECTION", points: 0 });
+    await seedOccasion(termId, {
+      kind: "ASSEMBLY",
+      assemblyKind: "RUNOFF",
+      points: 0,
+      status: "CANCELLED",
+    });
+    await adjustRequirementAs(actor, { ...ADJUSTMENT, termId, personId: people.adjusted });
+    await adjustRequirementAs(actor, { ...ADJUSTMENT, termId, personId: people.onLeave });
+    await changeMembershipStatusAs(actor, people.onLeave, {
+      to: "ON_LEAVE",
+      reason: "Licencia sintética",
+      leaveUntil: new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10),
+    });
+    return { termId, people };
+  }
+
+  /** Lo que llega al cálculo pidiendo solo a esa persona, como Mi OE y el recálculo por persona. */
+  async function requirementOf(termId: string, personId: string) {
+    const facts = await loadTermFacts(termId);
+    if (!facts) throw new Error("sin hechos");
+    const [person] = await loadPeopleFacts(facts, [personId]);
+    if (!person) throw new Error("la persona no está en el roster");
+    return { status: person.status, requirement: person.assemblyRequirement };
+  }
+
+  it("un activo con ajuste llega con su ajuste y no con el requisito del término", async () => {
+    const { termId, people } = await arrange();
+    expect(await requirementOf(termId, people.adjusted)).toEqual({
+      status: "ACTIVE",
+      requirement: {
+        requiredOrdinary: ADJUSTMENT.requiredOrdinary,
+        requiresBoardElection: ADJUSTMENT.requiresBoardElection,
+        requiresRunoff: ADJUSTMENT.requiresRunoff,
+        adjusted: true,
+        reason: ADJUSTMENT.reason,
+      },
+    });
+  });
+
+  it("un activo sin ajuste llega con el requisito del término", async () => {
+    const { termId, people } = await arrange();
+    expect(await requirementOf(termId, people.plain)).toEqual({
+      status: "ACTIVE",
+      requirement: TERM_REQUIREMENT,
+    });
+  });
+
+  it("quien no está activo llega con el requisito del término aunque tenga un ajuste", async () => {
+    const { termId, people } = await arrange();
+    expect(await requirementOf(termId, people.onLeave)).toEqual({
+      status: "ON_LEAVE",
+      requirement: TERM_REQUIREMENT,
+    });
+  });
+
+  it("pedir el término entero le da a cada persona el mismo requisito que pedirla sola", async () => {
+    const { termId, people } = await arrange();
+    const facts = await loadTermFacts(termId);
+    if (!facts) throw new Error("sin hechos");
+    const everyone = await loadPeopleFacts(facts);
+    for (const personId of Object.values(people)) {
+      expect(everyone.find((item) => item.personId === personId)?.assemblyRequirement).toEqual(
+        (await requirementOf(termId, personId)).requirement,
+      );
+    }
   });
 });
