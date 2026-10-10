@@ -150,7 +150,7 @@ describe("presupuesto del comité", () => {
       title: "Evento sintético",
       eventOn: "2026-11-20",
     });
-    await decideEventApprovalAs(admin, approvedId, { decision: "APPROVED" });
+    await decideEventApprovalAs(admin, approvedId, { decision: "APPROVED" }, { budgetId: id });
     await recordTransferAs(actor, {
       budgetId: id,
       fromLineId: logistica,
@@ -258,18 +258,34 @@ describe("presupuesto del comité", () => {
         approvalId: aval,
       }),
     ).rejects.toThrow(t("T-2294"));
-    await expect(decideEventApprovalAs(admin, pasado, { decision: "APPROVED" })).rejects.toThrow(
-      t("T-2330"),
-    );
+    await expect(
+      decideEventApprovalAs(admin, pasado, { decision: "APPROVED" }, { budgetId: id }),
+    ).rejects.toThrow(t("T-2330"));
     // Un aval histórico se aprobó antes de su evento; hoy ya no permite traslados.
     await runCommand(admin, (ctx) =>
-      decideEventApproval(ctx, pasado, { decision: "APPROVED" }, new Date("2026-01-10T12:00:00Z")),
+      decideEventApproval(
+        ctx,
+        pasado,
+        { decision: "APPROVED" },
+        { budgetId: id },
+        new Date("2026-01-10T12:00:00Z"),
+      ),
     );
-    for (const approvalId of [aval, ajeno]) {
-      await decideEventApprovalAs(admin, approvalId, { decision: "APPROVED", note: "Adelante" });
+    // Cada aval se decide desde un presupuesto de su comité (ADR-122 regla 1).
+    const { id: pixelBudget } = await createBudgetAs(admin, { committeeId: pixel, year: 2026 });
+    for (const [approvalId, budgetId] of [
+      [aval, id],
+      [ajeno, pixelBudget],
+    ] as const) {
+      await decideEventApprovalAs(
+        admin,
+        approvalId,
+        { decision: "APPROVED", note: "Adelante" },
+        { budgetId },
+      );
     }
     await expect(
-      decideEventApprovalAs(admin, aval, { decision: "REJECTED", note: "Tarde" }),
+      decideEventApprovalAs(admin, aval, { decision: "REJECTED", note: "Tarde" }, { budgetId: id }),
     ).rejects.toThrow(t("T-2296"));
     await expect(
       recordExpenseAs(actor, {
@@ -324,9 +340,12 @@ describe("presupuesto del comité", () => {
     expect(
       (await listEventApprovals({ committeeId: a3, status: "APPROVED" })).map((r) => r.title),
     ).toEqual(["Ya pasó", "Noche de talentos"]);
-    const error = await decideEventApprovalAs(admin, "no-existe-000", {
-      decision: "APPROVED",
-    }).catch((e: unknown) => e);
+    const error = await decideEventApprovalAs(
+      admin,
+      "no-existe-000",
+      { decision: "APPROVED" },
+      { budgetId: id },
+    ).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(DomainError);
   });
 
@@ -380,7 +399,12 @@ describe("presupuesto del comité", () => {
       title: "Noche de talentos",
       eventOn: "2026-11-20",
     });
-    await decideEventApprovalAs(admin, aval, { decision: "APPROVED", note: "Adelante" });
+    await decideEventApprovalAs(
+      admin,
+      aval,
+      { decision: "APPROVED", note: "Adelante" },
+      { budgetId: id },
+    );
     const move = (reason: string) =>
       recordTransferAs(actor, {
         budgetId: id,
@@ -422,10 +446,13 @@ describe("presupuesto del comité", () => {
       { personId: financiero, ip: null },
       { committeeId: a3, title: "Noche de talentos", eventOn: "2026-11-20" },
     );
+    const { id: budgetId } = await createBudgetAs(admin, { committeeId: a3, year: 2026 });
     const decisions = ["APPROVED", "REJECTED"] as const;
 
     const outcomes = await Promise.allSettled(
-      decisions.map((decision) => decideEventApprovalAs(admin, aval, { decision, note: decision })),
+      decisions.map((decision) =>
+        decideEventApprovalAs(admin, aval, { decision, note: decision }, { budgetId }),
+      ),
     );
 
     expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);

@@ -2,6 +2,7 @@ import { type Actor, runCommand } from "@/db/tx";
 import {
   type ApprovalDecisionInput,
   type ApprovalRequestInput,
+  type ApprovalScope,
   decideEventApproval,
   requestEventApproval,
 } from "./approvals";
@@ -85,10 +86,12 @@ export function requestEventApprovalAs(
   return runCommand(actor, (ctx) => requestEventApproval(ctx, input));
 }
 
+/** `scope` es el presupuesto de la página desde la que se decide (ADR-122 regla 1). */
 export function decideEventApprovalAs(
   actor: Actor,
   id: string,
   input: ApprovalDecisionInput,
+  scope: ApprovalScope,
 ): Promise<void> {
-  return runCommand(actor, (ctx) => decideEventApproval(ctx, id, input));
+  return runCommand(actor, (ctx) => decideEventApproval(ctx, id, input, scope));
 }
