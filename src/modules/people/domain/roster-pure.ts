@@ -744,6 +744,11 @@ export function diffRoster(rows: ValidatedRow[], existing: Map<string, ExistingP
     if (row.status !== undefined && row.status !== current.status && !keepsOut) {
       changes.push("status");
     }
+    // A quien ya existe sin membresía el roster se la crea, traiga o no ESTADO el archivo: pasa a
+    // tener estado, y eso es un cambio aunque ninguna columna lo diga (ADR-120 regla 2).
+    if (current.status === null) {
+      changes.push("status");
+    }
     if (row.probation !== undefined && row.probation !== current.probation && !keepsOut) {
       changes.push("status");
     }

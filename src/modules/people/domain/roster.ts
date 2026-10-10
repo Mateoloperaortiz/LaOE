@@ -627,6 +627,13 @@ async function membershipHoldsCommittees(ctx: CommandContext, personId: string):
  * La fila se lee con el consultivo ya tomado y por `id` y correo: si mientras se esperaba el correo
  * dejó de ser de esa persona (la anonimizaron o GH se lo corrigió), se vuelve a buscar. El consultivo
  * que quedó tomado de más se suelta con la transacción.
+ *
+ * La fila se toma con `for no key update`, que es el candado del `update` que le sigue: frena a quien
+ * la actualice, la anonimice o la tome compartida, y no a quien solo la referencia por clave foránea.
+ * La importación retiene hasta el final a todas las personas del archivo, y entre ellas está quien
+ * actúa: el comando de GH sobre otra persona escribe su `id` como actor (`membership_event`,
+ * `audit_log`) con el consultivo de esa persona tomado. Con `for update` esa escritura esperaba a la
+ * importación mientras la importación esperaba ese consultivo.
  */
 async function lockPersonByEmail(
   ctx: CommandContext,
@@ -640,7 +647,7 @@ async function lockPersonByEmail(
     .select({ id: person.id })
     .from(person)
     .where(and(eq(person.id, personId), eq(person.email, email)))
-    .for("update");
+    .for("no key update");
   return locked ?? lockPersonByEmail(ctx, email);
 }
 
@@ -719,6 +726,9 @@ async function applyRow(
         .update(person)
         .set({ stage: status === "INACTIVE" ? "ALUMNI" : "MEMBER" })
         .where(eq(person.id, personId));
+      // Le nació la membresía: la fila cambió a la persona, y eso se cuenta por lo que se escribió
+      // acá y no por lo que haya anotado el diff (ADR-120 regla 2).
+      outcome = "updated";
     } else if (row.status !== undefined && current.status !== status) {
       if (status === "INACTIVE") {
         await endMembership(ctx, personId, {

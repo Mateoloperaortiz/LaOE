@@ -5,6 +5,7 @@ import {
   anonymizePersonAs,
   applyRosterImportAs,
   createRosterPreviewAs,
+  endMembershipAs,
   lockWalletMember,
   requestDeletionAs,
 } from "@/modules/people";
@@ -128,6 +129,96 @@ describe("importar el roster y anonimizar a la misma persona", () => {
 
     expect(outcome(result)).toBe("ok");
     expect(result).toMatchObject({ value: { created: 0, updated: 0, unchanged: 1 } });
+    expect(await comoQuedo(sale)).toEqual({ anonimizada: true, estado: "INACTIVE" });
+    expect(await conEseCorreo()).toEqual([]);
+  });
+});
+
+// ADR-120 regla 3, la fila de quien actúa: GH figura en el roster. Quien da de baja o anonimiza a
+// alguien deja su `id` como actor en lo que escribe (`membership_event`, `audit_log`), y esa clave
+// foránea pide la fila de quien actúa. Si esa persona figura antes en el archivo, el roster ya la
+// tiene tomada y espera el consultivo de la siguiente: con la fila en `for update` los dos se
+// quedaban esperándose, bastaba con que la persona figurara en el archivo.
+describe("importar el roster mientras actúa alguien que figura antes en el archivo", () => {
+  beforeEach(truncateAll);
+  afterAll(() => closeDb());
+
+  const IMPORTA = "prueba.importa@eafit.edu.co";
+  const ACTUA = "prueba.actua@eafit.edu.co";
+
+  /** Quien importa, quien actúa y la persona sobre la que actúa, en ese orden en el archivo. */
+  async function conQuienActuaAdentro(header: string, cell: (email: string) => string) {
+    const termId = await seedTerm();
+    const importa = { personId: await seedMember(IMPORTA) };
+    const actua = { personId: await seedMember(ACTUA) };
+    const sale = await seedMember(EMAIL);
+    await requestDeletionAs({ personId: sale });
+    const lines = [IMPORTA, ACTUA, EMAIL].map((email) => `${email};${cell(email)}`);
+    const bytes = new TextEncoder().encode(`${[header, ...lines].join("\r\n")}\r\n`);
+    const { jobId } = await createRosterPreviewAs(importa, {
+      filename: "todos.csv",
+      contentType: "text/csv",
+      bytes,
+      termId,
+    });
+    return { importa, actua, sale, jobId };
+  }
+
+  /**
+   * Alguien retiene el consultivo de la persona: detrás hace cola primero el comando de quien actúa
+   * y después el roster, que ya pasó por la fila de quien actúa. Al soltarlo entra el comando.
+   */
+  async function cruzadas(
+    sale: string,
+    command: () => Promise<unknown>,
+    jobId: string,
+    importa: { personId: string },
+  ) {
+    const held = await holdTransaction((tx) => lockWalletMember(tx, sale));
+    try {
+      const acting = command();
+      await hacenCola(held.pid, 1);
+      const importing = applyRosterImportAs(importa, jobId);
+      await hacenCola(held.pid, 2);
+      held.release();
+      return await Promise.allSettled([acting, importing]);
+    } finally {
+      held.release();
+      await held.done;
+    }
+  }
+
+  it("dar de baja a la persona siguiente no se cruza con la importación: terminan las dos", async () => {
+    // Sin ESTADO el roster no le toca el estado a nadie: la baja queda como la dejó el comando.
+    const { importa, actua, sale, jobId } = await conQuienActuaAdentro("CORREO;PREGRADO", () => "");
+
+    const results = await cruzadas(
+      sale,
+      () =>
+        endMembershipAs(actua, sale, {
+          endReason: "RESIGNATION",
+          memorialConsent: false,
+          contactConsent: false,
+        }),
+      jobId,
+      importa,
+    );
+
+    expect(results.map(outcome)).toEqual(["ok", "ok"]);
+    expect(results[1]).toMatchObject({ value: { created: 0, updated: 0, unchanged: 3 } });
+    expect(await comoQuedo(sale)).toEqual({ anonimizada: false, estado: "INACTIVE" });
+  });
+
+  it("anonimizar a la persona siguiente no se cruza con la importación: terminan las dos", async () => {
+    const { importa, actua, sale, jobId } = await conQuienActuaAdentro("CORREO;ESTADO", (email) =>
+      email === EMAIL ? "Retirado" : "Activo",
+    );
+
+    const results = await cruzadas(sale, () => anonymizePersonAs(actua, sale), jobId, importa);
+
+    expect(results.map(outcome)).toEqual(["ok", "ok"]);
+    // Entró primero la anonimización: el roster ya no encuentra a nadie con ese correo.
+    expect(results[1]).toMatchObject({ value: { created: 0, updated: 0, unchanged: 3 } });
     expect(await comoQuedo(sale)).toEqual({ anonimizada: true, estado: "INACTIVE" });
     expect(await conEseCorreo()).toEqual([]);
   });

@@ -29,7 +29,7 @@ import { fillCopy } from "@/shared/copy/format";
 import { DomainError } from "@/shared/lib/errors";
 import { copyPattern, itemPattern } from "../helpers/copy";
 import { truncateAll } from "./db";
-import { currentTermCode, seedCommittee, seedMember, seedTerm } from "./factories";
+import { currentTermCode, seedCommittee, seedMember, seedPerson, seedTerm } from "./factories";
 
 const db = () => getDb();
 
@@ -421,6 +421,41 @@ describe("importación del roster", () => {
       audits: [expect.objectContaining({ outcome: "updated", changes: ["program"] })],
       events: [expect.objectContaining({ outcome: "updated", changes: ["program"] })],
     });
+  });
+
+  // ADR-120 regla 2, la precisión: «sin cambios» es no haber escrito nada. A quien ya existe sin
+  // membresía el roster se la crea aunque el archivo no traiga ESTADO: esa fila cambia a la persona,
+  // así que la vista previa la cuenta y la importación la audita y la emite.
+  it("a quien existe sin membresía una fila sin ESTADO le crea la membresía, y eso cuenta como cambio, audita y emite", async () => {
+    const termId = await seedTerm();
+    const adminId = await seedMember("admin@eafit.edu.co", { program: "Derecho" });
+    const entra = await seedPerson("prueba.entra@eafit.edu.co", {
+      stage: "APPLICANT",
+      program: "Economía",
+    });
+    const sinEstado = await preview(
+      adminId,
+      termId,
+      csv(["admin@eafit.edu.co;Derecho", "prueba.entra@eafit.edu.co;Economía"], "CORREO;PREGRADO"),
+    );
+    expect(sinEstado.counts).toEqual({ NEW: 0, CHANGED: 1, UNCHANGED: 1, ERROR: 0 });
+
+    const applied = await applyRosterImportAs({ personId: adminId }, sinEstado.jobId);
+
+    expect(applied).toMatchObject({ created: 0, updated: 1, unchanged: 1 });
+    expect(
+      await db()
+        .select({ status: membership.status, stage: person.stage })
+        .from(membership)
+        .innerJoin(person, eq(person.id, membership.personId))
+        .where(eq(membership.personId, entra)),
+    ).toEqual([{ status: "ACTIVE", stage: "MEMBER" }]);
+    expect(await importacionesDe(entra, sinEstado.jobId)).toEqual({
+      audits: [expect.objectContaining({ outcome: "updated", changes: ["status"] })],
+      events: [expect.objectContaining({ outcome: "updated", changes: ["status"] })],
+    });
+    // Quien importa también figura en el archivo, y su fila no cambia nada: no deja rastro.
+    expect(await importacionesDe(adminId, sinEstado.jobId)).toEqual({ audits: [], events: [] });
   });
 
   async function filaDelTermino(personId: string, termId: string) {
