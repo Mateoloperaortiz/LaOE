@@ -829,30 +829,44 @@ export async function collectionFor(
     };
   });
 
-  const specials: BadgeCollection["specials"] = [];
-  for (const badge of definitions.filter((row) => row.family === "SPECIAL")) {
-    const row = byBadge.get(badge.id);
-    if (!row || row.revokedAt !== null || !inTerm(row)) {
-      continue;
-    }
-    let origin = "";
-    if (badge.specialOccasionId) {
-      const [linked] = await db
-        .select({ title: occasion.title })
-        .from(occasion)
-        .where(eq(occasion.id, badge.specialOccasionId))
-        .limit(1);
-      origin = linked?.title ?? "";
-    } else if (badge.specialChallengeId) {
-      const [linked] = await db
-        .select({ title: challenge.title })
-        .from(challenge)
-        .where(eq(challenge.id, badge.specialChallengeId))
-        .limit(1);
-      origin = linked?.title ?? "";
-    }
-    specials.push({ badge, achievement: row, origin });
-  }
+  const heldSpecials = definitions
+    .filter((row) => row.family === "SPECIAL")
+    .flatMap((badge) => {
+      const row = byBadge.get(badge.id);
+      return row && row.revokedAt === null && inTerm(row) ? [{ badge, achievement: row }] : [];
+    });
+  // Los títulos se piden en un viaje por tabla, no en uno por insignia. La ocasión manda sobre el
+  // reto: una especial que nombrara los dos saldría con el título de la ocasión.
+  const occasionIds = heldSpecials.flatMap(({ badge }) => badge.specialOccasionId ?? []);
+  const challengeIds = heldSpecials.flatMap(({ badge }) =>
+    badge.specialOccasionId ? [] : (badge.specialChallengeId ?? []),
+  );
+  const [occasionRows, challengeRows] = await Promise.all([
+    occasionIds.length
+      ? db
+          .select({ id: occasion.id, title: occasion.title })
+          .from(occasion)
+          .where(inArray(occasion.id, occasionIds))
+      : [],
+    challengeIds.length
+      ? db
+          .select({ id: challenge.id, title: challenge.title })
+          .from(challenge)
+          .where(inArray(challenge.id, challengeIds))
+      : [],
+  ]);
+  const occasionTitles = new Map(occasionRows.map((row) => [row.id, row.title]));
+  const challengeTitles = new Map(challengeRows.map((row) => [row.id, row.title]));
+  const specials: BadgeCollection["specials"] = heldSpecials.map(({ badge, achievement: row }) => ({
+    badge,
+    achievement: row,
+    origin:
+      (badge.specialOccasionId
+        ? occasionTitles.get(badge.specialOccasionId)
+        : badge.specialChallengeId
+          ? challengeTitles.get(badge.specialChallengeId)
+          : undefined) ?? "",
+  }));
 
   const liveRows = allAchievements.filter((row) => row.revokedAt === null);
   const badgeById = new Map(definitions.map((row) => [row.id, row]));
