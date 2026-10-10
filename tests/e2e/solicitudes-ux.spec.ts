@@ -3,6 +3,7 @@ import { type BrowserContext, expect } from "@playwright/test";
 import { and, eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { request, task } from "@/modules/crm/schema";
+import { occasion } from "@/modules/participation/schema";
 import {
   committee,
   committeeMembership,
@@ -23,6 +24,7 @@ test.use({ storageState: { cookies: [], origins: [] } });
 let cookies: Awaited<ReturnType<BrowserContext["cookies"]>>;
 let personId: string;
 let committeeIds: string[];
+let occasionId: string | null = null;
 const prefix = `e2e-solicitud-ux-${randomBytes(4).toString("hex")}`;
 
 test.beforeEach(async ({ browser }) => {
@@ -101,6 +103,8 @@ test.afterEach(async () => {
     await db.delete(person).where(eq(person.id, personId));
   }
   if (committeeIds?.length) await db.delete(committee).where(inArray(committee.id, committeeIds));
+  if (occasionId) await db.delete(occasion).where(eq(occasion.id, occasionId));
+  occasionId = null;
   await closeDb();
 });
 
@@ -186,6 +190,71 @@ test("un fallo de red conserva los datos y permite reintentar", async ({ page })
   await expect(form.getByRole("alert")).toHaveText(t("T-1584"));
   await expect(form.getByLabel(t("T-880"), { exact: true })).toBeFocused();
   await expect(form.getByLabel(t("T-881"))).toHaveValue(E2E_TERM.endsOn);
+});
+
+// Las dos listas de la excusa (DT-258): son controladas y React reinicia el formulario cuando su acción
+// termina. Con los dos rechazos, el envío que no responde y el que responde un error, lo elegido sigue a
+// la vista, y el reintento lo manda: la solicitud queda con esa ocasión y esa causal.
+test("la excusa conserva la ocasión y la causal cuando el envío falla o se rechaza, y el reintento las manda", async ({
+  page,
+}) => {
+  const db = getDb();
+  const [current] = await db.select().from(term).where(eq(term.code, E2E_TERM.code));
+  if (!current) throw new Error("Falta el semestre sintético");
+  const startsAt = Date.now() + 12 * 3_600_000;
+  const [activity] = await db
+    .insert(occasion)
+    .values({
+      termId: current.id,
+      publicId: `e2ex${randomBytes(3).toString("hex")}`,
+      title: `${prefix} actividad`,
+      category: "OTHER",
+      location: "Bloque 38",
+      points: 0,
+      status: "OPEN",
+      startsAt: new Date(startsAt),
+      checkInOpensAt: new Date(startsAt - 3_600_000),
+      checkInClosesAt: new Date(startsAt + 3_600_000),
+    })
+    .returning();
+  if (!activity) throw new Error("No se creó la ocasión sintética");
+  occasionId = activity.id;
+
+  await page.goto("/app/solicitudes?tipo=excusa");
+  const form = page.getByRole("form", { name: t("T-1593") });
+  const occasionList = form.getByLabel(tList("T-2218")[0] ?? "", { exact: true });
+  const causeList = form.getByLabel(tList("T-2218")[1] ?? "", { exact: true });
+  const reason = form.getByLabel(t("T-880"), { exact: true });
+  const send = form.getByRole("button", { name: t("T-893"), exact: true });
+  await occasionList.selectOption(activity.id);
+  const cause = await causeList.locator("option").nth(1).getAttribute("value");
+  if (!cause) throw new Error("El formulario no ofrece causales");
+  await causeList.selectOption(cause);
+  await reason.fill("x");
+
+  await page.route("**/app/solicitudes**", async (route) => {
+    if (route.request().method() === "POST") await route.abort("failed");
+    else await route.continue();
+  });
+  await send.click();
+  await expect(form.getByRole("alert")).toHaveText(t("T-1588"));
+  await expect(occasionList).toHaveValue(activity.id);
+  await expect(causeList).toHaveValue(cause);
+  await page.unroute("**/app/solicitudes**");
+
+  await send.click();
+  await expect(form.getByRole("alert")).toHaveText(t("T-1584"));
+  await expect(occasionList).toHaveValue(activity.id);
+  await expect(causeList).toHaveValue(cause);
+
+  await reason.fill(`${prefix} motivo de la excusa`);
+  await send.click();
+  await expect(page).toHaveURL(/enviada=1/);
+  const [saved] = await db
+    .select({ occasionId: request.occasionId, payload: request.payload })
+    .from(request)
+    .where(and(eq(request.personId, personId), eq(request.kind, "EXCUSE")));
+  expect(saved).toMatchObject({ occasionId: activity.id, payload: { cause } });
 });
 
 test("el envío bloquea cambios y dobles envíos y permite retirar la solicitud", async ({

@@ -79,14 +79,17 @@ test("crear formulario público, responderlo y revisar la respuesta", async ({
       await page.goto(`/f/${SLUG}`);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("e2e Postulación");
       await sinViolaciones(page);
-      // Sin conexión (ADR-118 regla 20): el envío falla y el formulario sigue ahí con lo escrito.
+      // Sin conexión (ADR-118 regla 20): el envío falla y el formulario sigue ahí con lo escrito y
+      // con lo elegido en su lista (DT-258), que se elige una sola vez, antes del corte.
       await page.getByLabel(tList("T-851")[0]).fill("Lu");
       await page.getByLabel("¿Por qué querés entrar?").fill("Se cayó la red.");
+      await page.getByLabel("Comité que te interesa").selectOption("A3");
       await context.setOffline(true);
       await page.getByRole("button", { name: t("T-852") }).click();
       await expect(page.getByRole("alert").filter({ hasText: t("T-3252") })).toBeVisible();
       await expect(page.getByLabel(tList("T-851")[0])).toHaveValue("Lu");
       await expect(page.getByLabel("¿Por qué querés entrar?")).toHaveValue("Se cayó la red.");
+      await expect(page.getByLabel("Comité que te interesa")).toHaveValue("A3");
       await context.setOffline(false);
       await page.getByLabel("¿Por qué querés entrar?").fill("");
       // Sin consentimiento ni motivo: errores por campo.
@@ -95,10 +98,13 @@ test("crear formulario público, responderlo y revisar la respuesta", async ({
       await page.getByLabel(tList("T-851")[2]).fill(EMAIL);
       await page.getByRole("button", { name: t("T-852") }).click();
       await expect(page.getByText(t("T-853")).first()).toBeVisible();
+      // La acción respondió un error: la lista sigue en lo elegido y el reintento la manda así (la
+      // bandeja del ADMIN muestra «A3» más abajo).
+      await expect(page.getByLabel("Comité que te interesa")).toHaveValue("A3");
       await page.getByLabel("¿Por qué querés entrar?").fill("Quiero aportar en logística.");
-      await page.getByLabel("Comité que te interesa").selectOption("A3");
       await page.getByRole("button", { name: t("T-852") }).click();
       await expect(page.getByText(t("T-858"))).toBeVisible();
+      await expect(page.getByLabel("Comité que te interesa")).toHaveValue("A3");
       await page.getByLabel(copyPattern("T-154")).check();
       await page.getByRole("button", { name: t("T-852") }).click();
       await expect(page.getByText(t("T-859"))).toBeVisible();
