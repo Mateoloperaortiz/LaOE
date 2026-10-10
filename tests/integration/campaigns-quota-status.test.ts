@@ -512,6 +512,91 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
     });
   });
 
+  it("con lugar para una parte, dice cuántos salen hoy y cuántos siguen a la medianoche de Colombia", async () => {
+    const [ana] = await seedPeople(3);
+    if (!ana) throw new Error("seed people");
+    const id = await seedCampaign();
+    // Caben dos correos de campaña y el lote manda uno por minuto: sale uno y queda lugar para otro.
+    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT - 2);
+    await setPerMinute(1);
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
+
+    expect((await getCampaignQuotaStatus(after(1))).daily).toMatchObject({ ceiling: 2, room: 1 });
+    expect(await getCampaignBacklog(id, after(1))).toEqual({
+      pending: 2,
+      hold: { by: "PARTIAL", fits: 1, waiting: 1, until: MIDNIGHT },
+    });
+  });
+
+  it("con lugar justo para todos los pendientes, nada lo detiene", async () => {
+    const [ana] = await seedPeople(3);
+    if (!ana) throw new Error("seed people");
+    const id = await seedCampaign();
+    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT - 3);
+    await setPerMinute(1);
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
+
+    expect((await getCampaignQuotaStatus(after(1))).daily).toMatchObject({ ceiling: 3, room: 2 });
+    expect(await getCampaignBacklog(id, after(1))).toEqual({ pending: 2, hold: null });
+  });
+
+  it("lo que un lote tiene en vuelo cuenta entre lo que sale hoy, no entre lo que espera", async () => {
+    const [ana] = await seedPeople(3);
+    if (!ana) throw new Error("seed people");
+    const id = await seedCampaign();
+    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT - 2);
+    await setPerMinute(1);
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let arrived: () => void = () => {};
+    const inFlight = new Promise<void>((resolve) => {
+      arrived = resolve;
+    });
+    stubMail("resend", async () => {
+      arrived();
+      await held;
+    });
+
+    const tick = runCampaignTick(NIGHT);
+    await inFlight;
+    // El reclamado ya tiene su lugar; de los otros dos cabe uno.
+    const during = await getCampaignBacklog(id, after(1));
+    release();
+    await tick;
+
+    expect(during).toEqual({
+      pending: 3,
+      hold: { by: "PARTIAL", fits: 2, waiting: 1, until: MIDNIGHT },
+    });
+    expect(await getCampaignBacklog(id, after(2))).toEqual({
+      pending: 2,
+      hold: { by: "PARTIAL", fits: 1, waiting: 1, until: MIDNIGHT },
+    });
+  });
+
+  it("con un corte vigente manda el corte, aunque hoy quepa una parte", async () => {
+    const [ana] = await seedPeople(3);
+    if (!ana) throw new Error("seed people");
+    const id = await seedCampaign();
+    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT - 2);
+    stubMail(
+      "resend",
+      rejecting(new QuotaExceededError("monthly_quota_exceeded: se acabó el mes", "MONTHLY")),
+    );
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 0 });
+
+    expect((await getCampaignQuotaStatus(after(1))).daily).toMatchObject({ ceiling: 2, room: 2 });
+    expect(await getCampaignBacklog(id, after(1))).toEqual({
+      pending: 3,
+      hold: { by: "CUT", provider: "resend", reason: "MONTHLY", until: APRIL },
+    });
+  });
+
   it("por un transporte sin cupo del día, lo pendiente no espera el cupo", async () => {
     const [ana] = await seedPeople(3);
     if (!ana) throw new Error("seed people");

@@ -138,31 +138,47 @@ export async function getCampaignQuotaStatus(now = new Date()): Promise<Campaign
 
 /**
  * Lo que detiene a los pendientes de una campaña en curso: un corte del proveedor, con su causa y su
- * final; el margen, cuando cubre todo el cupo del día; o el cupo de hoy, que ya no tiene lugar y vuelve
- * a contar a la medianoche.
+ * final; el margen, cuando cubre todo el cupo del día; el cupo de hoy, que ya no tiene lugar y vuelve
+ * a contar a la medianoche; o el cupo de hoy cuando solo le queda lugar para una parte (ADR-120 regla
+ * 16): `fits` salen hoy y `waiting` siguen cuando vuelva a contar.
  */
 export type CampaignHold =
   | { by: "CUT"; provider: string; reason: QuotaReason; until: Date }
   | { by: "RESERVE" }
-  | { by: "ROOM"; until: Date };
+  | { by: "ROOM"; until: Date }
+  | { by: "PARTIAL"; fits: number; waiting: number; until: Date };
 
-function holdOf(status: CampaignQuotaStatus): CampaignHold | null {
+/**
+ * `inFlight` son los pendientes que un lote ya tiene reclamados: su lugar está descontado de `room`,
+ * así que salen hoy y no compiten por lo que queda. El lugar es de todas las campañas en curso: con
+ * más de una, lo que le toca a esta puede ser menos de lo que dice.
+ */
+function holdOf(
+  status: CampaignQuotaStatus,
+  pending: number,
+  inFlight: number,
+): CampaignHold | null {
   if (status.cut) {
     const { provider, reason, until } = status.cut;
     return { by: "CUT", provider, reason, until };
   }
-  if (status.daily === null || status.daily.room > 0) {
+  if (status.daily === null) {
     return null;
   }
-  return status.daily.ceiling === 0
-    ? { by: "RESERVE" }
-    : { by: "ROOM", until: status.daily.resetsAt };
+  const { room, ceiling, resetsAt } = status.daily;
+  if (room > 0) {
+    const waiting = pending - inFlight - room;
+    return waiting > 0
+      ? { by: "PARTIAL", fits: pending - waiting, waiting, until: resetsAt }
+      : null;
+  }
+  return ceiling === 0 ? { by: "RESERVE" } : { by: "ROOM", until: resetsAt };
 }
 
 export interface CampaignBacklog {
   /** Destinatarios de la campaña que siguen pendientes. */
   pending: number;
-  /** Qué los detiene, o `null` si salen en los próximos lotes o no queda ninguno. */
+  /** Qué los detiene, a todos o a una parte, o `null` si salen en los próximos lotes o no queda ninguno. */
   hold: CampaignHold | null;
 }
 
@@ -172,7 +188,7 @@ export async function getCampaignBacklog(
   now = new Date(),
 ): Promise<CampaignBacklog> {
   const [row] = await getDb()
-    .select({ n: count() })
+    .select({ n: count(), claimed: count(campaignRecipient.claimedAt) })
     .from(campaignRecipient)
     .where(
       and(eq(campaignRecipient.campaignId, campaignId), eq(campaignRecipient.status, "PENDING")),
@@ -181,7 +197,7 @@ export async function getCampaignBacklog(
   if (pending === 0) {
     return { pending, hold: null };
   }
-  return { pending, hold: holdOf(await getCampaignQuotaStatus(now)) };
+  return { pending, hold: holdOf(await getCampaignQuotaStatus(now), pending, row?.claimed ?? 0) };
 }
 
 /**

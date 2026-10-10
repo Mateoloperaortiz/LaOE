@@ -10683,6 +10683,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3257": {
+    where: "Campaña en curso: hoy solo cabe una parte de lo pendiente (ADR-120)",
+    text: "Hoy no caben todos en el cupo del día. Salen hoy: {hoy}. Quedan en espera: {resto}. Siguen el {fecha}.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

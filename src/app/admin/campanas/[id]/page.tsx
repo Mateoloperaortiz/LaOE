@@ -25,11 +25,14 @@ import { cancelAction, scheduleAction, sendNowAction, sendTestFromCampaignAction
 // Detalle de una campaña (ADR-038 regla 8): destinatarios estimados y excluidos por motivo, programar
 // o enviar ahora con step-up, cancelar, progreso y la tabla de destinatarios. En curso dice cuántos
 // faltan y, si los detiene el cupo del día o un corte del proveedor, por qué y hasta cuándo (ADR-116
-// regla 20).
+// regla 20); si hoy solo cabe una parte, cuántos salen hoy y cuántos siguen (ADR-120 regla 16).
 
 const ID = /^[a-z0-9]{10,40}$/;
 
-/** Qué pasa con lo pendiente de una campaña en curso: qué lo detiene, o que sale en los próximos lotes. */
+/**
+ * Qué pasa con lo pendiente de una campaña en curso: qué lo detiene, cuánto sale hoy si solo cabe una
+ * parte (ADR-120 regla 16), o que sale en los próximos lotes.
+ */
 function holdText(hold: CampaignHold | null): string {
   if (!hold) {
     return t("T-3223");
@@ -38,6 +41,13 @@ function holdText(hold: CampaignHold | null): string {
     return t("T-3220", {
       proveedor: quotaProviderLabel(hold.provider),
       causa: quotaReasonLabel(hold.reason),
+      fecha: formatDateTime(hold.until),
+    });
+  }
+  if (hold.by === "PARTIAL") {
+    return t("T-3257", {
+      hoy: hold.fits,
+      resto: hold.waiting,
       fecha: formatDateTime(hold.until),
     });
   }
