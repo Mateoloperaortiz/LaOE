@@ -17,6 +17,7 @@ import {
   committeeRole,
   consent,
   membership,
+  membershipTerm,
   person,
 } from "@/modules/people/schema";
 import { PrivacyPolicyPendingError } from "@/modules/system";
@@ -324,7 +325,7 @@ describe("importación del roster", () => {
     return { ...fila, comites: vivas.map((row) => row.slug).sort() };
   }
 
-  it("a quien fue expulsado y figura como activo no le cambia los comités, y el resto del archivo se aplica", async () => {
+  it("a quien fue expulsado y figura como activo no le cambia los comités ni lo cuenta como actualizado, y el resto del archivo se aplica", async () => {
     const { termId, code, adminId, ana, juan } = await rosterConBaja("EXPULSION");
 
     const otra = await preview(
@@ -337,20 +338,79 @@ describe("importación del roster", () => {
     );
     const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
 
-    expect(applied).toMatchObject({ updated: 2, skipped: 0 });
+    // Solo cambió una persona: la fila de quien sigue de baja no cuenta como actualizada (DT-249).
+    expect(applied).toMatchObject({ updated: 1, unchanged: 1, skipped: 0 });
     expect(await estadoYComites(juan)).toEqual({
       status: "INACTIVE",
       endReason: "EXPULSION",
       comites: [],
     });
     expect((await estadoYComites(ana)).comites).toEqual(["a3", "pixel"]);
-    // La vista previa ya lo había dicho: el estado figura como cambio pedido, con su aviso; los
-    // comités no figuran, porque no se van a cambiar.
+    // La vista previa ya lo había dicho con su aviso, y no anuncia cambios: ni el estado ni los
+    // comités se van a cambiar.
     const fila = otra.rows.find((row) => row.email === "prueba.juan@eafit.edu.co");
     expect(fila?.warnings).toEqual([
       expect.stringMatching(copyPattern("T-2208", { nombre: "Juan Gómez" })),
     ]);
-    expect(fila).toMatchObject({ group: "CHANGED", changes: ["status"] });
+    expect(fila).toMatchObject({ group: "UNCHANGED", changes: [] });
+    // Y la auditoría de esa fila tampoco dice que cambió el estado.
+    const auditorias = await db()
+      .select({ after: auditLog.after })
+      .from(auditLog)
+      .where(and(eq(auditLog.action, "person.imported"), eq(auditLog.entityId, juan)));
+    expect(auditorias.map((row) => row.after)).toContainEqual(
+      expect.objectContaining({ jobId: otra.jobId, outcome: "unchanged", changes: [] }),
+    );
+    expect(auditorias.map((row) => row.after)).not.toContainEqual(
+      expect.objectContaining({ jobId: otra.jobId, changes: ["status"] }),
+    );
+  });
+
+  // Lo que sí se le escribe a quien sigue de baja es la prueba del término (`membership_term`), así
+  // que ese cambio se cuenta: silenciarlo dejaría una escritura de verdad bajo «sin cambios» (DT-286).
+  it("a quien fue expulsado y figura en periodo de prueba sí lo cuenta: le escribe la prueba del término y no lo reactiva", async () => {
+    const { termId, code, adminId, juan } = await rosterConBaja("EXPULSION");
+
+    const otra = await preview(
+      adminId,
+      termId,
+      csv([`Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Periodo de prueba;`]),
+    );
+    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+
+    expect(otra.rows[0]).toMatchObject({ group: "CHANGED", changes: ["status"] });
+    expect(applied).toMatchObject({ updated: 1, unchanged: 0, skipped: 0 });
+    expect(await estadoYComites(juan)).toEqual({
+      status: "INACTIVE",
+      endReason: "EXPULSION",
+      comites: [],
+    });
+    const prueba = await db()
+      .select({ probation: membershipTerm.probation })
+      .from(membershipTerm)
+      .where(
+        and(
+          eq(membershipTerm.personId, juan),
+          eq(membershipTerm.termId, termId),
+          isNull(membershipTerm.committeeId),
+        ),
+      );
+    expect(prueba).toEqual([{ probation: true }]);
+  });
+
+  it("quien renunció y figura como activo sí vuelve, y su fila cuenta el estado como cambio", async () => {
+    const { termId, code, adminId, juan } = await rosterConBaja("RESIGNATION");
+
+    const otra = await preview(
+      adminId,
+      termId,
+      csv([`Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Activo;`]),
+    );
+    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+
+    expect(otra.rows[0]?.changes).toContain("status");
+    expect(applied).toMatchObject({ updated: 1, unchanged: 0 });
+    expect((await estadoYComites(juan)).status).toBe("ACTIVE");
   });
 
   it("un archivo sin ESTADO avisa de quien está de baja y no le cambia los comités ni lo reactiva", async () => {

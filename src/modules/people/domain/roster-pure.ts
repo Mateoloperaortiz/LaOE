@@ -737,7 +737,15 @@ export function diffRoster(rows: ValidatedRow[], existing: Map<string, ExistingP
     for (const field of ["documentType", "documentNumber", "epikId", "birthDate"] as const) {
       if (row[field] !== undefined && row[field] !== (current[field] ?? "")) changes.push(field);
     }
-    if (row.status !== undefined && row.status !== current.status) changes.push("status");
+    // El estado que el roster no va a cambiar no es un cambio: quien fue expulsado sigue de baja
+    // (ADR-060 regla 3) y su fila conserva el aviso T-2208. La prueba del término sí se le escribe.
+    if (
+      row.status !== undefined &&
+      row.status !== current.status &&
+      !staysInactive(current, row.status)
+    ) {
+      changes.push("status");
+    }
     if (row.probation !== undefined && row.probation !== current.probation) changes.push("status");
     if (
       row.committees !== undefined &&
