@@ -59,8 +59,9 @@ function resolveProvider(): PushProvider {
   return {
     name: "console",
     send: async (subscription, payload) => {
+      // El servicio, no el endpoint: completo es la credencial del dispositivo (ADR-118 regla 25).
       logger.info(
-        { push: { endpoint: subscription.endpoint, ...buildPushPayload(payload) } },
+        { push: { host: hostOf(subscription.endpoint), ...buildPushPayload(payload) } },
         "push (consola)",
       );
       return { ok: true, statusCode: 200 };

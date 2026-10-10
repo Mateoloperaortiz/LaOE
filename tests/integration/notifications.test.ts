@@ -16,6 +16,7 @@ import { pushChallengePublished } from "@/modules/comms/domain/events";
 import { message, notificationPreference, pushSubscription } from "@/modules/comms/schema";
 import { endMembership } from "@/modules/people";
 import { t } from "@/shared/copy";
+import { captureLogs, recordsOf } from "../helpers/logs";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
@@ -165,6 +166,25 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
     expect(await drainOutbox()).toEqual({ processed: 1, failed: 0 });
     const [row] = await db().select().from(message);
     expect(row).toMatchObject({ personId: ana, provider: "console", status: "SENT" });
+  });
+
+  // El endpoint completo es la credencial del dispositivo: el registro lleva solo el servicio, como
+  // la línea de `PUSH_SERVICES` (ADR-118 regla 25, DT-262).
+  it("sin VAPID el push de consola registra el servicio, no el endpoint ni las claves del dispositivo", async () => {
+    const ana = await seedMember("ana.registro@eafit.edu.co");
+    const endpoint = "https://fcm.googleapis.com/fcm/send/credencial-del-dispositivo";
+    await subscribe(ana, endpoint);
+
+    const { result, lines } = await captureLogs(() => deliverNotification(request([ana])));
+
+    expect(result).toMatchObject({ sent: 1, failed: 0 });
+    const [line] = recordsOf(lines, "push (consola)");
+    expect(line?.push).toMatchObject({ host: "fcm.googleapis.com", title: "Anuncio nuevo" });
+    expect(line?.push).not.toHaveProperty("endpoint");
+    const written = lines.map((entry) => entry.line).join("\n");
+    for (const secret of [endpoint, "credencial-del-dispositivo", keys().p256dh, keys().auth]) {
+      expect(written).not.toContain(secret);
+    }
   });
 
   it("un reto con una audiencia que comms no conoce no le llega a nadie; con ALL llega a los miembros", async () => {
