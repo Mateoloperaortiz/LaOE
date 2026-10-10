@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { type BrowserContext, expect } from "@playwright/test";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { request, task } from "@/modules/crm/schema";
 import {
@@ -10,6 +10,7 @@ import {
   membership,
   person,
 } from "@/modules/people/schema";
+import { auditLog } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { sinViolaciones } from "./axe";
@@ -300,4 +301,53 @@ test("Ajustes con sesión vencida vuelve al ingreso sin cambiar datos", async ({
       .where(eq(person.id, personId));
     expect(after).toEqual(before);
   }
+});
+
+// El enlace de Mis datos navega (no lleva `download`): con la sesión vencida, el navegador sigue la
+// redirección de la ruta hasta el ingreso en vez de guardar esa página como archivo, y el destino que
+// el ingreso recibe es la sección de Ajustes que origina la descarga, con su aviso (ADR-113 regla 10).
+// La vuelta se abre con la sesión repuesta, sin pasar otra vez por el formulario de ingreso.
+test("Mis datos con sesión vencida lleva al ingreso sin descargar nada, y de vuelta en Ajustes sí descarga", async ({
+  page,
+  context,
+}) => {
+  const downloads: string[] = [];
+  page.on("download", (download) => downloads.push(download.suggestedFilename()));
+  const link = page.getByRole("link", { name: t("T-135"), exact: true });
+  const selfExports = () =>
+    getDb()
+      .select({ id: auditLog.id })
+      .from(auditLog)
+      .where(and(eq(auditLog.action, "export.self"), eq(auditLog.entityId, personId)));
+  for (const missingCookie of [true, false]) {
+    await context.addCookies(cookies);
+    await page.goto("/app/ajustes#privacidad");
+    await expect(link).toBeVisible();
+    await context.clearCookies();
+    if (!missingCookie) {
+      const session = cookies.find((cookie) => cookie.name === "oe_sesion");
+      if (!session) throw new Error("No se creó la sesión sintética");
+      await context.addCookies([{ ...session, value: "sesion-sintetica-vencida" }]);
+    }
+    await link.click();
+    await expect(page).toHaveURL(
+      (url) =>
+        url.pathname === "/ingresar" && url.searchParams.get("next") === "/app/ajustes?descarga=1",
+    );
+    await expect(page.getByLabel(t("T-042"))).toBeVisible();
+  }
+  expect(downloads).toEqual([]);
+  expect(await selfExports()).toEqual([]);
+
+  const next = new URL(page.url()).searchParams.get("next");
+  if (!next) throw new Error("El ingreso no recibió a dónde volver");
+  await context.addCookies(cookies);
+  await page.goto(next);
+  await expect(page.getByText(t("T-3211"), { exact: true })).toBeVisible();
+  // Volver no descarga solo: la persona hace clic otra vez.
+  expect(await selfExports()).toEqual([]);
+  const download = page.waitForEvent("download");
+  await link.click();
+  expect((await download).suggestedFilename()).toMatch(/^mis-datos-.+\.json$/);
+  await expect.poll(selfExports).toHaveLength(1);
 });
