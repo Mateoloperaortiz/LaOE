@@ -75,6 +75,66 @@ export async function waitingForLock(): Promise<number> {
   return result.rows[0]?.n ?? 0;
 }
 
+async function until(check: () => Promise<boolean>, otherwise: string): Promise<void> {
+  // Cuenta intentos y no milisegundos: hay pruebas que congelan `Date`.
+  for (let attempt = 0; attempt < 300; attempt += 1) {
+    if (await check()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(otherwise);
+}
+
+/**
+ * Fija el orden de dos comandos completos. Lanza el primero y espera a que se detenga en lo que
+ * `held` retiene; lanza el segundo y espera a que haga cola; recién entonces suelta y devuelve cómo
+ * terminó cada uno. Si el segundo termina sin esperar a nadie, falla: nada lo serializa con el primero.
+ */
+export async function firstThenSecond<A, B>(
+  held: Held,
+  first: () => Promise<A>,
+  second: () => Promise<B>,
+): Promise<[PromiseSettledResult<A>, PromiseSettledResult<B>]> {
+  const running: Promise<unknown>[] = [];
+  const launch = <T>(command: () => Promise<T>): Promise<T> => {
+    const promise = command();
+    void promise.catch(() => undefined);
+    running.push(promise);
+    return promise;
+  };
+  try {
+    const a = launch(first);
+    await until(
+      async () => (await waitingOn(held.pid)) === 1,
+      "El primer comando no llegó a esperar lo retenido",
+    );
+    const b = launch(second);
+    const early: { outcome: string | null } = { outcome: null };
+    void b.then(
+      () => {
+        early.outcome = "ok";
+      },
+      (error: unknown) => {
+        early.outcome = error instanceof Error ? error.message : String(error);
+      },
+    );
+    await until(
+      async () => early.outcome !== null || (await waitingForLock()) === 2,
+      "El segundo comando no quedó esperando un candado",
+    );
+    if (early.outcome !== null) {
+      throw new Error(`El segundo comando no esperó al primero: terminó con «${early.outcome}»`);
+    }
+    held.release();
+    await held.done;
+    return await Promise.allSettled([a, b]);
+  } finally {
+    held.release();
+    await Promise.allSettled([held.done, ...running]);
+  }
+}
+
 /** «ok» o el mensaje del error, con su causa: el del driver trae ahí lo que dijo PostgreSQL. */
 export function outcome(result: PromiseSettledResult<unknown>): string {
   if (result.status === "fulfilled") {
