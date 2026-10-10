@@ -398,8 +398,9 @@ export async function sendCampaignEmail(
     sentAt,
   });
   if (receipt.status === "FAILED") {
+    // Como el transaccional: a la persona se la nombra por su id, no por su dirección (ADR-114, regla 5).
     logger.error(
-      { to: email.to, provider: receipt.provider, error: receipt.error },
+      { personId: email.personId, provider: receipt.provider, error: receipt.error },
       "correo de campaña no enviado",
     );
   }

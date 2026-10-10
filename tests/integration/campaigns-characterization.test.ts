@@ -40,6 +40,7 @@ import {
 } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
 import { withTimeout } from "@/shared/lib/timeout";
+import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedMember } from "./factories";
@@ -426,6 +427,31 @@ describe("el lote de una campaña, tal como es hoy", () => {
     rejecting = false;
     expect(await runCampaignTick(minute(1))).toEqual({ started: 0, sent: 0 });
     expect(delivered.primary).toHaveLength(2);
+  });
+
+  // El aviso de un correo que no salió nombra a la persona por su id, como el transaccional: los
+  // registros no llevan correos (ADR-114 regla 5, DT-102).
+  it("el rechazo de un correo de campaña deja en el registro a la persona por su id y nunca su dirección", async () => {
+    const email = "rechazada.q7m3@eafit.edu.co";
+    const personId = await seedMember(email, { firstName: "Quimera" });
+    const id = await scheduleCampaign(10);
+    useTransports({
+      overflow: null,
+      primary: () => {
+        throw new Error("550 buzón inexistente");
+      },
+    });
+
+    const { result, lines } = await captureLogs(() => runCampaignTick(minute(0)));
+
+    expect(result).toEqual({ started: 1, sent: 0 });
+    expect(await getCampaign(id)).toMatchObject({ totalCount: 1, failedCount: 1 });
+    expectNoEmail(lines, email);
+    const avisos = recordsOf(lines, "correo de campaña no enviado");
+    expect(avisos).toEqual([
+      expect.objectContaining({ personId, provider: "resend", error: "550 buzón inexistente" }),
+    ]);
+    expect(avisos[0]).not.toHaveProperty("to");
   });
 
   it("dos ticks a la vez arrancan la campaña una sola vez y no le mandan dos veces a nadie", async () => {
