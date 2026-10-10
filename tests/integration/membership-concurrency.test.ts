@@ -6,12 +6,15 @@ import { committeeMembership, membership, membershipEvent } from "@/modules/peop
 import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { holdTransaction, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
 import { seedCommittee, seedMember, seedPerson, seedTerm } from "./factories";
 
 // DT-148: dar de alta toma la fila de la persona con candado antes de mirar si ya tiene membresía, y
 // dar de baja toma el candado de la persona y la fila de su membresía antes de mirar su estado.
-// Estas pruebas llaman a cada comando dos veces a la vez sobre la misma persona.
+// Estas pruebas llaman a cada comando dos veces a la vez sobre la misma persona. Entre dos bajas, el
+// consultivo de la persona y la fila de la membresía se cubren uno al otro: la tercera prueba deja a
+// la fila sola, contra un escritor que no toma el consultivo.
 
 const admin = { personId: null, ip: null };
 const db = () => getDb();
@@ -93,5 +96,40 @@ describe("dar de alta y dar de baja a la misma persona a la vez", () => {
     expect(after).toMatchObject({ status: "INACTIVE", walletEpoch: before.walletEpoch + 1 });
     expect(await eventsOf(before.id, "INACTIVE")).toHaveLength(1);
     expect(await audits("membership.ended", before.id)).toHaveLength(1);
+  });
+
+  it("una baja que encuentra la fila de la membresía tomada por otro escritor la espera y la vuelve a leer: responde que no hizo nada y no registra otra baja", async () => {
+    const personId = await seedMember("baja.espera@eafit.edu.co");
+    const [before] = await membershipsOf(personId);
+    if (!before) throw new Error("sin membresía");
+    // El otro escritor es sintético: cambia el estado sin tomar el consultivo de la persona, que hoy
+    // toman todos los comandos que escriben esta fila (ADR-120 regla 3). Así lo único que hace
+    // esperar a la baja es el `for update` de `lockMembership`.
+    const held = await holdTransaction((tx) =>
+      tx.update(membership).set({ status: "INACTIVE" }).where(eq(membership.id, before.id)),
+    );
+    const ending = endMembershipAs(admin, personId, {
+      endReason: "OTHER",
+      memorialConsent: false,
+      contactConsent: false,
+    });
+    void ending.catch(() => undefined);
+    try {
+      await expect.poll(() => waitingOn(held.pid)).toBe(1);
+    } finally {
+      held.release();
+      await Promise.allSettled([held.done, ending]);
+    }
+
+    // Sin la fila bajo candado la baja lee «activa», espera en su `update` y da de baja encima.
+    expect(await ending).toBe(false);
+    const [after] = await membershipsOf(personId);
+    expect(after).toMatchObject({
+      status: "INACTIVE",
+      walletEpoch: before.walletEpoch,
+      endReason: null,
+    });
+    expect(await eventsOf(before.id, "INACTIVE")).toHaveLength(0);
+    expect(await audits("membership.ended", before.id)).toHaveLength(0);
   });
 });

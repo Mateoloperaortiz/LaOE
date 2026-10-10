@@ -8,7 +8,9 @@ import { seedForm, seedSubmission } from "./factories";
 
 // DT-148: un envío toma la fila del formulario con candado antes de contar las respuestas y de mirar
 // si ese correo ya respondió. Ningún índice único cubre el tope ni «una por correo»: el candado es la
-// única defensa. Estas pruebas mandan varios envíos a la vez.
+// única defensa. Estas pruebas mandan varios envíos a la vez. La de «una por correo» va con los dos
+// formularios: el que no crea persona, donde sin el candado entran las dos respuestas, y el que la
+// crea, donde lo que falla sin el candado es el `insert` repetido de la persona, sin traducir.
 
 const fields = [{ key: "motivo", label: "¿Por qué?", type: "TEXTAREA", required: true }];
 
@@ -55,8 +57,11 @@ describe("envíos a la vez al mismo formulario", () => {
     expect(await submissionsOf(id)).toHaveLength(2);
   });
 
-  it("dos envíos a la vez con el mismo correo a un formulario de una respuesta por persona: entra uno y el otro recibe que ya respondió", async () => {
-    const { id, view } = await openForm("una-por-correo");
+  it.each<[string, Record<string, unknown>]>([
+    ["que no crea persona", {}],
+    ["que crea a la persona", { createPerson: true }],
+  ])("dos envíos a la vez con el mismo correo a un formulario de una respuesta por persona %s: entra uno y el otro recibe que ya respondió", async (_kind, actions) => {
+    const { id, view } = await openForm("una-por-correo", { actions });
 
     const results = await Promise.all([
       send(view, "repetida@eafit.edu.co"),
