@@ -15,6 +15,7 @@ import {
   inhabilities,
   inhabilityLabels,
 } from "./inhabilities-pure";
+import { isNewMemberInTerm } from "./new-member-pure";
 import { sanctionStateFor } from "./sanctions";
 
 // Inhabilidades y topes al nombrar cargos (ADR-060 regla 11): las guardas releen los datos en la
@@ -121,9 +122,14 @@ export async function leadershipContext(
     hasBoardAppointment: appointments.some((row) =>
       (BOARD_KINDS as readonly string[]).includes(row.kind),
     ),
-    isNew:
-      (member?.firstTermId === termId || (veteran[0]?.resumedNew ?? false)) &&
-      !(veteran[0]?.reportAsVeteran ?? false),
+    isNew: isNewMemberInTerm(
+      {
+        firstTermId: member?.firstTermId ?? null,
+        resumedNew: veteran[0]?.resumedNew ?? false,
+        reportAsVeteran: veteran[0]?.reportAsVeteran ?? false,
+      },
+      termId,
+    ),
     officeBan: sanctions.officeBan,
   };
 }

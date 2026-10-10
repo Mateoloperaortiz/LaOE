@@ -33,8 +33,8 @@ import {
 
 // Cargadores de hechos (ADR-036 regla 5): todo lo que el cálculo necesita, leído en serie (pool de
 // diez) desde los módulos por su API pública y desde las tablas propias. Acá se lee y se arma; lo
-// que se decide con lo leído vive en `permanence-pure.ts`: quién es nuevo y con qué estado y prueba
-// llega la persona lo dice `personStanding`.
+// que se decide con lo leído vive en `permanence-pure.ts`: con qué estado, condición de nuevo y prueba
+// llega la persona lo dice `personStanding`. Quién es nuevo ya viene decidido en el roster de `people`.
 
 export async function loadPermanenceConfig(): Promise<PermanenceConfig> {
   return {
@@ -249,7 +249,7 @@ export async function loadPeopleFacts(
   const requirements = await assemblyRequirementsFor(facts.term, ids);
   return ids.map((personId) => {
     const rows = roster.get(personId) ?? [];
-    const standing = personStanding(rows, termId);
+    const standing = personStanding(rows);
     return {
       personId,
       ...standing,
