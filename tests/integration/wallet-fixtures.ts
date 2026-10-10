@@ -54,9 +54,11 @@ export class FakeGoogleWallet {
   }
 }
 
-export function walletActor(personId: string): Actor {
+/** La sesión como la entrega `sessionActorContext`: con la IP del request, que acá no hay. */
+export function walletActor(personId: string): Actor & { ip: string | null } {
   return {
     personId,
+    ip: null,
     sessionId: "sesion-sintetica",
     email: "wallet-sintetica@eafit.edu.co",
     name: "Persona",

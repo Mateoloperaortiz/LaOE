@@ -26,9 +26,9 @@ import { seedMember, seedPerson } from "./factories";
 
 const db = () => getDb();
 const submit = (personId: string, gameId: string, word: string) =>
-  submitPanalWordAs({ personId }, { gameId, word });
+  submitPanalWordAs({ personId, ip: null }, { gameId, word });
 async function start(personId: string) {
-  const result = await startPanalAs({ personId }, dayKeyFor(new Date()));
+  const result = await startPanalAs({ personId, ip: null }, dayKeyFor(new Date()));
   if (!result.ok) throw new Error(result.reason);
   return result.game;
 }
@@ -102,9 +102,9 @@ describe("Panal diario persistido", () => {
     expect(await submit(id, game.id, puzzle.center.repeat(20))).toMatchObject({
       reason: "UNKNOWN_WORD",
     });
-    expect(await submitPanalWordAs({ personId: id }, { gameId: game.id, word: 123 })).toMatchObject(
-      { reason: "INVALID_INPUT" },
-    );
+    expect(
+      await submitPanalWordAs({ personId: id, ip: null }, { gameId: game.id, word: 123 }),
+    ).toMatchObject({ reason: "INVALID_INPUT" });
     expect(await db().select().from(panalWord)).toHaveLength(0);
   });
 
@@ -185,7 +185,9 @@ describe("Panal diario persistido", () => {
     vi.setSystemTime(new Date("2026-09-24T05:00:01Z"));
     expect(await submit(id, game.id, words[1] ?? "")).toMatchObject({ reason: "EXPIRED" });
     expect(await submit(id, game.id, words[0] ?? "")).toMatchObject({ ok: true, added: false });
-    expect(await startPanalAs({ personId: id }, game.day)).toMatchObject({ reason: "EXPIRED" });
+    expect(await startPanalAs({ personId: id, ip: null }, game.day)).toMatchObject({
+      reason: "EXPIRED",
+    });
     const tomorrow = await getTodayPanal(id);
     expect(tomorrow.game).toBeNull();
     expect(tomorrow.checkpointsEnabled).toBe(true);
@@ -197,7 +199,9 @@ describe("Panal diario persistido", () => {
   it("exige elegibilidad en inicio y envío y falla cerrado con versiones desconocidas", async () => {
     const stranger = await seedPerson("panal.sinmembresia@eafit.edu.co");
     const id = await seedMember("panal.elegibilidad@eafit.edu.co");
-    expect(await startPanalAs({ personId: stranger }, dayKeyFor(new Date()))).toMatchObject({
+    expect(
+      await startPanalAs({ personId: stranger, ip: null }, dayKeyFor(new Date())),
+    ).toMatchObject({
       reason: "NOT_ELIGIBLE",
     });
     const game = await start(id);
@@ -228,7 +232,7 @@ describe("Panal diario persistido", () => {
     if (!row) throw new Error("Falta partida");
     const [result] = await Promise.all([
       submit(id, game.id, puzzle.words[i] ?? ""),
-      closeTermPointsAs({ personId: id }, row.termId),
+      closeTermPointsAs({ personId: id, ip: null }, row.termId),
     ]);
     const standing = await getTermStanding(row.termId);
     expect(standing?.stats.pointsAwarded).toBe(result.ok ? 6 : 3);

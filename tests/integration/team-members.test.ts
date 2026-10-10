@@ -39,7 +39,7 @@ async function setup() {
   return {
     termId,
     personId,
-    actor: { personId: evaluatorId },
+    actor: { personId: evaluatorId, ip: null },
     gt: gt.id,
     gap: gap.id,
     eventId: macro.id,

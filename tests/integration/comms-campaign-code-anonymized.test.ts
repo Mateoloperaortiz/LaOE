@@ -90,7 +90,7 @@ async function scheduleCampaign(): Promise<string> {
  * de si a quien pidió el borrado le sigue saliendo el correo (decisión abierta 17).
  */
 async function anonymizeAndClean(personId: string): Promise<void> {
-  await requestDeletionAs({ personId });
+  await requestDeletionAs({ personId, ip: null });
   await anonymizePersonAs(admin, personId);
   await drainOutbox();
 }
@@ -177,7 +177,7 @@ describe("el correo de una campaña y el del código de ingreso mientras la pers
     let anonymizing: Held | null = null;
     try {
       await expect.poll(() => held.length).toBe(1);
-      await requestDeletionAs({ personId: nora.id });
+      await requestDeletionAs({ personId: nora.id, ip: null });
       // La anonimización queda escrita y sin confirmar: tiene tomada la fila de la persona.
       const pending = await holdCommand(admin, (ctx) => anonymizePerson(ctx, nora.id));
       anonymizing = pending;

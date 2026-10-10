@@ -58,7 +58,7 @@ import {
 const db = () => getDb();
 
 async function enableGamification(personId: string): Promise<void> {
-  await setConfigAs({ personId }, "gamification.enabled", true);
+  await setConfigAs({ personId, ip: null }, "gamification.enabled", true);
 }
 
 async function participationOf(challengeId: string, personId: string) {
@@ -114,24 +114,27 @@ describe("retos: ciclo de vida", () => {
       occasionId: null,
       questions: [{ prompt: "¿Una?", options: ["A", "B"], correctIndex: 0 }],
     };
-    const { id } = await createChallengeAs({ personId: adminId }, challengeInputSchema.parse(base));
+    const { id } = await createChallengeAs(
+      { personId: adminId, ip: null },
+      challengeInputSchema.parse(base),
+    );
     const created = await findChallenge(id);
     expect(created).toMatchObject({ status: "DRAFT", termId, basePoints: 5, passPercent: 80 });
 
     await updateChallengeAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       id,
       challengeInputSchema.parse({ ...base, title: "Trivia renombrada", basePoints: 10 }),
     );
     expect((await findChallenge(id))?.title).toBe("Trivia renombrada");
     expect((await findChallenge(id))?.basePoints).toBe(10);
 
-    await publishChallengeAs({ personId: adminId }, id);
+    await publishChallengeAs({ personId: adminId, ip: null }, id);
     expect((await findChallenge(id))?.status).toBe("PUBLISHED");
 
     // Publicada, solo título y descripción cambian; el premio queda congelado.
     await updateChallengeAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       id,
       challengeInputSchema.parse({ ...base, title: "Título final", basePoints: 20 }),
     );
@@ -160,7 +163,7 @@ describe("retos: ciclo de vida", () => {
     const evidence = challengeInputSchema.safeParse({ ...base, kind: "EVIDENCE" });
     if (!evidence.success) throw evidence.error;
     expect(evidence.data.questions).toEqual([]);
-    const { id } = await createChallengeAs({ personId: adminId }, evidence.data);
+    const { id } = await createChallengeAs({ personId: adminId, ip: null }, evidence.data);
     expect(
       await db().select().from(challengeQuestion).where(eq(challengeQuestion.challengeId, id)),
     ).toEqual([]);
@@ -177,7 +180,7 @@ describe("retos: ciclo de vida", () => {
     const termId = await seedTerm();
     const adminId = await seedMember("retos.publicar@eafit.edu.co");
     const { id: expired } = await createChallengeAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       challengeInputSchema.parse({
         kind: "TRIVIA",
         title: "Vencida",
@@ -191,12 +194,12 @@ describe("retos: ciclo de vida", () => {
         questions: [{ prompt: "¿Una?", options: ["A", "B"], correctIndex: 0 }],
       }),
     );
-    await expect(publishChallengeAs({ personId: adminId }, expired)).rejects.toThrow(
+    await expect(publishChallengeAs({ personId: adminId, ip: null }, expired)).rejects.toThrow(
       tList("T-2520")[0] ?? "",
     );
 
     const { id: noQuestions } = await createChallengeAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       challengeInputSchema.parse({
         kind: "EVIDENCE",
         title: "Sin preguntas",
@@ -214,7 +217,7 @@ describe("retos: ciclo de vida", () => {
       .update(challenge)
       .set({ kind: "TRIVIA", passPercent: 80 })
       .where(eq(challenge.id, noQuestions));
-    await expect(publishChallengeAs({ personId: adminId }, noQuestions)).rejects.toThrow(
+    await expect(publishChallengeAs({ personId: adminId, ip: null }, noQuestions)).rejects.toThrow(
       tList("T-2520")[2] ?? "",
     );
     void termId;
@@ -227,7 +230,7 @@ describe("retos: ciclo de vida", () => {
     const challengeId = await seedChallenge(termId, { kind: "EVIDENCE", passPercent: null });
     await enableGamification(adminId);
     const submitted = await submitEvidenceAs(
-      { personId },
+      { personId, ip: null },
       {
         challengeId,
         requestId: "req-cancel-1",
@@ -237,7 +240,11 @@ describe("retos: ciclo de vida", () => {
     );
     expect(submitted.ok).toBe(true);
 
-    const result = await cancelChallengeAs({ personId: adminId }, challengeId, "Motivo de prueba");
+    const result = await cancelChallengeAs(
+      { personId: adminId, ip: null },
+      challengeId,
+      "Motivo de prueba",
+    );
     expect(result).toMatchObject({ released: 1, granted: 0 });
     const row = await findChallenge(challengeId);
     expect(row?.status).toBe("CANCELLED");
@@ -256,7 +263,7 @@ describe("retos: ciclo de vida", () => {
     const termId = await seedTerm();
     const adminId = await seedMember("retos.dup@eafit.edu.co");
     const challengeId = await seedTrivia(termId);
-    const { id } = await duplicateChallengeAs({ personId: adminId }, challengeId);
+    const { id } = await duplicateChallengeAs({ personId: adminId, ip: null }, challengeId);
     const copy = await findChallenge(id);
     expect(copy).toMatchObject({
       status: "DRAFT",
@@ -343,7 +350,7 @@ describe("retos: trivia", () => {
     const challengeId = await seedTrivia(termId);
 
     const result = await submitTriviaAs(
-      { personId },
+      { personId, ip: null },
       { challengeId, requestId: "req-ok-1", answers: [0] },
     );
     expect(result.ok).toBe(true);
@@ -366,7 +373,7 @@ describe("retos: trivia", () => {
     const challengeId = await seedTrivia(termId);
 
     const result = await submitTriviaAs(
-      { personId },
+      { personId, ip: null },
       { challengeId, requestId: "req-fail-1", answers: [1] },
     );
     expect(result.ok).toBe(true);
@@ -387,11 +394,11 @@ describe("retos: trivia", () => {
     const challengeId = await seedTrivia(termId);
 
     const first = await submitTriviaAs(
-      { personId },
+      { personId, ip: null },
       { challengeId, requestId: "req-idem-1", answers: [0] },
     );
     const replay = await submitTriviaAs(
-      { personId },
+      { personId, ip: null },
       { challengeId, requestId: "req-idem-1", answers: [0] },
     );
     expect(replay.ok).toBe(true);
@@ -399,7 +406,7 @@ describe("retos: trivia", () => {
       expect(replay.participation.id).toBe(first.participation.id);
     }
     const second = await submitTriviaAs(
-      { personId },
+      { personId, ip: null },
       { challengeId, requestId: "req-idem-2", answers: [0] },
     );
     expect(second).toEqual({ ok: false, reason: "ALREADY" });
@@ -417,16 +424,18 @@ describe("retos: trivia", () => {
     const requestId = "5f0c1f0e-6f0a-4d53-9d5f-2f3c8f0f7a11";
     const answers = { challengeId: trivia, requestId, answers: [0] };
 
-    const deAna = await submitTriviaAs({ personId: ana }, answers);
-    const deBruno = await submitTriviaAs({ personId: bruno }, answers);
+    const deAna = await submitTriviaAs({ personId: ana, ip: null }, answers);
+    const deBruno = await submitTriviaAs({ personId: bruno, ip: null }, answers);
     expect(deAna.ok && deAna.participation.status).toBe("COMPLETED");
     expect(deBruno.ok && deBruno.participation.status).toBe("COMPLETED");
     expect(await balanceFor(bruno, termId)).toBe(5);
 
-    const repetida = await submitTriviaAs({ personId: bruno }, answers);
+    const repetida = await submitTriviaAs({ personId: bruno, ip: null }, answers);
     expect(repetida.ok && repetida.participation.id).toBe(deBruno.ok && deBruno.participation.id);
     expect(await balanceFor(bruno, termId)).toBe(5);
-    expect(await submitTriviaAs({ personId: bruno }, { ...answers, requestId: "otra" })).toEqual({
+    expect(
+      await submitTriviaAs({ personId: bruno, ip: null }, { ...answers, requestId: "otra" }),
+    ).toEqual({
       ok: false,
       reason: "ALREADY",
     });
@@ -437,11 +446,11 @@ describe("retos: trivia", () => {
       text: "Fuimos a la actividad del comité y dejamos el registro completo.",
       keys: [],
     };
-    const pruebaDeAna = await submitEvidenceAs({ personId: ana }, proof);
-    const pruebaDeBruno = await submitEvidenceAs({ personId: bruno }, proof);
+    const pruebaDeAna = await submitEvidenceAs({ personId: ana, ip: null }, proof);
+    const pruebaDeBruno = await submitEvidenceAs({ personId: bruno, ip: null }, proof);
     expect(pruebaDeAna.ok && pruebaDeAna.participation.status).toBe("PENDING");
     expect(pruebaDeBruno.ok && pruebaDeBruno.participation.status).toBe("PENDING");
-    const pruebaRepetida = await submitEvidenceAs({ personId: bruno }, proof);
+    const pruebaRepetida = await submitEvidenceAs({ personId: bruno, ip: null }, proof);
     expect(pruebaRepetida.ok && pruebaRepetida.participation.id).toBe(
       pruebaDeBruno.ok && pruebaDeBruno.participation.id,
     );
@@ -454,14 +463,14 @@ describe("retos: trivia", () => {
     const challengeId = await seedTrivia(termId);
     const requestId = "0c2b1d7e-0d0f-4c57-8a55-6b0f3a0e9d21";
     const input = { challengeId, requestId, answers: [0] };
-    const first = await submitTriviaAs({ personId }, input);
+    const first = await submitTriviaAs({ personId, ip: null }, input);
     // Así quedó guardada una entrega anterior a la regla: el requestId tal como llegó.
     await db()
       .update(challengeParticipation)
       .set({ requestId })
       .where(eq(challengeParticipation.challengeId, challengeId));
 
-    const replay = await submitTriviaAs({ personId }, input);
+    const replay = await submitTriviaAs({ personId, ip: null }, input);
 
     expect(replay.ok && replay.participation.id).toBe(first.ok && first.participation.id);
     expect(await balanceFor(personId, termId)).toBe(5);
@@ -476,14 +485,14 @@ describe("retos: trivia", () => {
     const member = await resolveMemberContext(personId, termId);
     const settings = await loadGamificationSettings();
     const results = await Promise.allSettled([
-      runCommand({ personId }, (ctx) =>
+      runCommand({ personId, ip: null }, (ctx) =>
         submitTrivia(
           ctx,
           { challengeId, personId, requestId: "req-c-1", answers: [0] },
           { member, settings, booster: null, campaign: null },
         ),
       ),
-      runCommand({ personId }, (ctx) =>
+      runCommand({ personId, ip: null }, (ctx) =>
         submitTrivia(
           ctx,
           { challengeId, personId, requestId: "req-c-2", answers: [0] },
@@ -506,7 +515,7 @@ describe("retos: trivia", () => {
 
     // Sin enableGamification: la semilla trae gamification.enabled en falso.
     expect(
-      await submitTriviaAs({ personId }, { challengeId, requestId: "r-1", answers: [0] }),
+      await submitTriviaAs({ personId, ip: null }, { challengeId, requestId: "r-1", answers: [0] }),
     ).toEqual({ ok: false, reason: "DISABLED" });
 
     await enableGamification(personId);
@@ -515,7 +524,7 @@ describe("retos: trivia", () => {
     const soloNuevos = await seedTrivia(termId, { audience: "NEW" });
     expect(
       await submitTriviaAs(
-        { personId: veterano },
+        { personId: veterano, ip: null },
         { challengeId: soloNuevos, requestId: "r-2", answers: [0] },
       ),
     ).toEqual({ ok: false, reason: "NOT_ELIGIBLE" });
@@ -527,7 +536,7 @@ describe("retos: trivia", () => {
     });
     expect(
       await submitTriviaAs(
-        { personId },
+        { personId, ip: null },
         { challengeId: scheduled, requestId: "r-3", answers: [0] },
       ),
     ).toEqual({ ok: false, reason: "NOT_OPEN" });
@@ -545,7 +554,7 @@ describe("retos: evidencia y revisión", () => {
     const challengeId = await seedChallenge(termId, { kind: "EVIDENCE", passPercent: null });
 
     const result = await submitEvidenceAs(
-      { personId },
+      { personId, ip: null },
       {
         challengeId,
         requestId: "req-ev-1",
@@ -572,7 +581,7 @@ describe("retos: evidencia y revisión", () => {
         passPercent: null,
       });
       const result = await submitEvidenceAs(
-        { personId },
+        { personId, ip: null },
         {
           challengeId,
           requestId,
@@ -587,7 +596,7 @@ describe("retos: evidencia y revisión", () => {
     // APPROVE → GRANTED + COMPLETED.
     const approved = await submit("req-ap-1");
     await reviewParticipationAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       { participationId: approved.participationId, decision: "APPROVE" },
     );
     const approvedRow = await participationOf(approved.challengeId, personId);
@@ -603,12 +612,12 @@ describe("retos: evidencia y revisión", () => {
     const rejected = await submit("req-re-1");
     await expect(
       reviewParticipationAs(
-        { personId: adminId },
+        { personId: adminId, ip: null },
         { participationId: rejected.participationId, decision: "REJECT", reason: "  " },
       ),
     ).rejects.toThrow(t("T-2564"));
     await reviewParticipationAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       {
         participationId: rejected.participationId,
         decision: "REJECT",
@@ -625,7 +634,7 @@ describe("retos: evidencia y revisión", () => {
 
     // Anular la aprobada → REVERSED + ANNULLED y saldo neto cero.
     await annulParticipationAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       approved.participationId,
       "Anulación de prueba",
     );
@@ -656,7 +665,7 @@ describe("retos: presencial con check-in", () => {
       basePoints: 5,
     });
 
-    const result = await checkInSelfAs({ personId }, { publicId: occasion.publicId });
+    const result = await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
     expect(result.ok).toBe(true);
     const participation = await participationOf(challengeId, personId);
     expect(participation?.status).toBe("COMPLETED");
@@ -683,7 +692,10 @@ describe("retos: presencial con check-in", () => {
       basePoints: 5,
     });
 
-    const checkInResult = await checkInSelfAs({ personId }, { publicId: occasion.publicId });
+    const checkInResult = await checkInSelfAs(
+      { personId, ip: null },
+      { publicId: occasion.publicId },
+    );
     expect(checkInResult.ok).toBe(true);
     if (!checkInResult.ok) return;
     const participation = await participationOf(challengeId, personId);
@@ -696,7 +708,7 @@ describe("retos: presencial con check-in", () => {
     expect(await balanceFor(personId, termId)).toBe(0);
 
     await decideCheckInAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       { checkInId: checkInResult.checkInId, decision: "APPROVE" },
     );
     const approved = await participationOf(challengeId, personId);
@@ -715,10 +727,13 @@ describe("retos: presencial con check-in", () => {
       occasionId: occasion2.id,
       passPercent: null,
     });
-    const checkIn2 = await checkInSelfAs({ personId: person2 }, { publicId: occasion2.publicId });
+    const checkIn2 = await checkInSelfAs(
+      { personId: person2, ip: null },
+      { publicId: occasion2.publicId },
+    );
     if (!checkIn2.ok) throw new Error("check-in manual falló");
     await decideCheckInAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       { checkInId: checkIn2.checkInId, decision: "REJECT", reason: "No asistió" },
     );
     const rejected = await participationOf(challenge2, person2);
@@ -744,16 +759,19 @@ describe("retos: presencial con check-in", () => {
       passPercent: null,
       basePoints: 5,
     });
-    const checkInResult = await checkInSelfAs({ personId }, { publicId: occasion.publicId });
+    const checkInResult = await checkInSelfAs(
+      { personId, ip: null },
+      { publicId: occasion.publicId },
+    );
     if (!checkInResult.ok) throw new Error("check-in manual falló");
     await decideCheckInAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       { checkInId: checkInResult.checkInId, decision: "APPROVE" },
     );
     expect(await balanceFor(personId, termId)).toBe(15);
 
     await decideCheckInAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       { checkInId: checkInResult.checkInId, decision: "CANCEL", reason: "Error de registro" },
     );
     const participation = await participationOf(challengeId, personId);
@@ -779,7 +797,7 @@ describe("retos: presencial con check-in", () => {
       opensAt: new Date(Date.now() - 172_800_000),
       closesAt: new Date(Date.now() - 86_400_000),
     });
-    const result = await checkInSelfAs({ personId }, { publicId: occasion.publicId });
+    const result = await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
     expect(result.ok).toBe(true);
     expect(await participationOf(challengeId, personId)).toBeNull();
     expect(await balanceFor(personId, termId)).toBe(10);
@@ -797,10 +815,10 @@ describe("retos: presencial con check-in", () => {
       passPercent: null,
       basePoints: 5,
     });
-    await checkInSelfAs({ personId }, { publicId: occasion.publicId });
+    await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
     expect((await participationOf(challengeId, personId))?.status).toBe("COMPLETED");
 
-    await cancelOccasionAs({ personId: adminId }, occasion.id, "Suspensión de prueba");
+    await cancelOccasionAs({ personId: adminId, ip: null }, occasion.id, "Suspensión de prueba");
     const participation = await participationOf(challengeId, personId);
     expect(participation?.status).toBe("ANNULLED");
     expect(await balanceFor(personId, termId)).toBe(0);

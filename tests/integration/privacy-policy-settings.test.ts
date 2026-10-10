@@ -66,7 +66,7 @@ describe("guardado auditado de la versión de política", () => {
 
   it("una versión inválida no altera configuración ni crea auditoría", async () => {
     const before = await getPrivacyPolicyState();
-    await expect(setPrivacyPolicyVersionAs({ personId: null }, " \n ")).rejects.toThrow();
+    await expect(setPrivacyPolicyVersionAs({ personId: null, ip: null }, " \n ")).rejects.toThrow();
     expect(await getPrivacyPolicyState()).toEqual(before);
     expect(await getDb().select().from(auditLog)).toHaveLength(0);
   });

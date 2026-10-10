@@ -141,7 +141,7 @@ async function upload(
   keys.push(prepared.key);
   await uploadAsBrowser(prepared, { bytes, contentType, filename: "retrato" });
   const { id } = await confirmUploadAs(
-    { personId },
+    { personId, ip: null },
     { key: prepared.key, filename: "retrato", visibility, purpose },
     purpose === "photo" ? { by: "SELF" } : { by: "ADMIN" },
     ownerCheck,
@@ -208,7 +208,7 @@ async function statusFor(viewerId: string, id: string): Promise<number> {
 }
 
 async function anonymize(personId: string): Promise<void> {
-  await requestDeletionAs({ personId });
+  await requestDeletionAs({ personId, ip: null });
   await anonymizePersonAs(admin, personId);
 }
 
@@ -232,7 +232,7 @@ describe("la foto propia al anonimizar", () => {
     const leaving = await seedMember("sale.foto@eafit.edu.co");
     const other = await seedMember("otra.foto@eafit.edu.co");
     const photo = await upload(leaving, "photo");
-    await setOwnPhotoAs({ personId: leaving }, photo.id);
+    await setOwnPhotoAs({ personId: leaving, ip: null }, photo.id);
     // Antes: el original, la de 480 y la completa están en el bucket, y otro miembro la recibe.
     expect(photo.objects).toContain(fullVariantKey(photo.id));
     expect(photo.objects).toContain(variantKey(photo.id, 480));
@@ -255,7 +255,7 @@ describe("la foto propia al anonimizar", () => {
     await drainOutbox();
 
     await expect(
-      confirmUploadAs({ personId: leaving }, input, { by: "SELF" }, ownerCheck),
+      confirmUploadAs({ personId: leaving, ip: null }, input, { by: "SELF" }, ownerCheck),
     ).rejects.toThrow(t("T-363"));
 
     expect(await registered(input.key)).toBe(0);
@@ -266,10 +266,15 @@ describe("la foto propia al anonimizar", () => {
   it("confirmar una foto mientras la persona se anonimiza espera la anonimización y no la registra", async () => {
     const leaving = await seedMember("carrera.foto@eafit.edu.co");
     const input = await uploadUnconfirmed(leaving);
-    await requestDeletionAs({ personId: leaving });
+    await requestDeletionAs({ personId: leaving, ip: null });
     // La anonimización queda escrita y sin confirmar: quien confirma todavía lee a la persona viva.
     const held = await holdCommand(admin, (ctx) => anonymizePerson(ctx, leaving));
-    const confirming = confirmUploadAs({ personId: leaving }, input, { by: "SELF" }, ownerCheck);
+    const confirming = confirmUploadAs(
+      { personId: leaving, ip: null },
+      input,
+      { by: "SELF" },
+      ownerCheck,
+    );
     void confirming.catch(() => undefined);
     try {
       await expect.poll(() => waitingOn(held.pid)).toBe(1);
@@ -288,9 +293,9 @@ describe("la foto propia al anonimizar", () => {
   it("anonimizar mientras se confirma una foto espera la confirmación y después se la lleva", async () => {
     const leaving = await seedMember("llevada.foto@eafit.edu.co");
     const input = await uploadUnconfirmed(leaving);
-    await requestDeletionAs({ personId: leaving });
+    await requestDeletionAs({ personId: leaving, ip: null });
     // La confirmación queda escrita y sin confirmar, con la persona tomada.
-    const held = await holdCommand({ personId: leaving }, (ctx) =>
+    const held = await holdCommand({ personId: leaving, ip: null }, (ctx) =>
       confirmUpload(ctx, input, { by: "SELF" }, ownerCheck),
     );
     const anonymizing = anonymizePersonAs(admin, leaving);
@@ -338,11 +343,11 @@ describe("la foto propia al anonimizar", () => {
     const other = await seedMember("se.queda@eafit.edu.co");
     const replaced = await upload(leaving, "photo");
     const current = await upload(leaving, "photo");
-    await setOwnPhotoAs({ personId: leaving }, replaced.id);
-    await setOwnPhotoAs({ personId: leaving }, current.id);
+    await setOwnPhotoAs({ personId: leaving, ip: null }, replaced.id);
+    await setOwnPhotoAs({ personId: leaving, ip: null }, current.id);
     const cover = await upload(leaving, "media");
     const neighbour = await upload(other, "photo");
-    await setOwnPhotoAs({ personId: other }, neighbour.id);
+    await setOwnPhotoAs({ personId: other, ip: null }, neighbour.id);
 
     await anonymize(leaving);
     await drainOutbox();
@@ -361,7 +366,7 @@ describe("la foto propia al anonimizar", () => {
   it("si el bucket falla a mitad del borrado la fila queda como rastro, y el reintento termina aunque parte ya no esté", async () => {
     const leaving = await seedMember("sale.falla@eafit.edu.co");
     const photo = await upload(leaving, "photo");
-    await setOwnPhotoAs({ personId: leaving }, photo.id);
+    await setOwnPhotoAs({ personId: leaving, ip: null }, photo.id);
     const formId = await seedForm("encuesta-foto");
     await seedSubmission(formId, "sale.falla@eafit.edu.co", { personId: leaving });
     await anonymize(leaving);
@@ -391,7 +396,7 @@ describe("la foto propia al anonimizar", () => {
     const written = variantKey(photo.id, 480);
     keys.push(written, fullVariantKey(photo.id));
     await putObject(written, await noisePng(48, 48), "image/webp");
-    await setOwnPhotoAs({ personId: leaving }, photo.id);
+    await setOwnPhotoAs({ personId: leaving, ip: null }, photo.id);
     expect(await getMedia(photo.id)).toMatchObject({ status: "PENDING", variants: {} });
 
     await anonymize(leaving);
@@ -411,7 +416,7 @@ describe("la foto propia al anonimizar", () => {
     // `person.anonymized` y borra el medio. Lo que el primero escriba después ya no tiene fila.
     const leaving = await seedMember("sale.procesando@eafit.edu.co");
     const photo = await upload(leaving, "photo", { process: false });
-    await setOwnPhotoAs({ personId: leaving }, photo.id);
+    await setOwnPhotoAs({ personId: leaving, ip: null }, photo.id);
     await anonymize(leaving);
     const written = [variantKey(photo.id, 480), fullVariantKey(photo.id)];
     keys.push(...written);
@@ -436,7 +441,7 @@ describe("la foto propia al anonimizar", () => {
   async function photoRemovedAfterFirstWrite(email: string, then?: (photoId: string) => void) {
     const leaving = await seedMember(email);
     const photo = await upload(leaving, "photo", { process: false, width: 1000 });
-    await setOwnPhotoAs({ personId: leaving }, photo.id);
+    await setOwnPhotoAs({ personId: leaving, ip: null }, photo.id);
     await anonymize(leaving);
     const variants = [
       variantKey(photo.id, 480),
@@ -523,7 +528,7 @@ describe("la foto propia al anonimizar", () => {
     const leaving = await seedMember("egresa.foto@eafit.edu.co");
     const other = await seedMember("mira.galeria@eafit.edu.co");
     const photo = await upload(leaving, "photo");
-    await setOwnPhotoAs({ personId: leaving }, photo.id);
+    await setOwnPhotoAs({ personId: leaving, ip: null }, photo.id);
     await recordConsentAs(admin, leaving, "DIRECTORY_PHOTO", "SELF");
 
     await endMembershipAs(admin, leaving, {
@@ -547,7 +552,7 @@ describe("la foto propia al anonimizar", () => {
     const leaving = await seedMember("baja.foto@eafit.edu.co");
     const other = await seedMember("mira.foto@eafit.edu.co");
     const photo = await upload(leaving, "photo");
-    await setOwnPhotoAs({ personId: leaving }, photo.id);
+    await setOwnPhotoAs({ personId: leaving, ip: null }, photo.id);
 
     await endMembershipAs(admin, leaving, {
       endReason: "RESIGNATION",

@@ -380,10 +380,10 @@ describe("salida, reactivación y anonimización", () => {
     const a3 = await seedCommittee("a3");
     await seedCommitteeMembership(personId, a3, termId, "GENERAL");
     const adminId = await seedMember("admin@eafit.edu.co");
-    await runCommand({ personId: adminId }, (ctx) =>
+    await runCommand({ personId: adminId, ip: null }, (ctx) =>
       grantPermission(ctx, { email: "admin@eafit.edu.co", code: "ADMIN" }),
     );
-    await runCommand({ personId: adminId }, (ctx) =>
+    await runCommand({ personId: adminId, ip: null }, (ctx) =>
       grantPermission(ctx, {
         email: "egresa@eafit.edu.co",
         code: "COMMITTEE_LEADER",
@@ -391,7 +391,7 @@ describe("salida, reactivación y anonimización", () => {
       }),
     );
 
-    const ended = await runCommand({ personId: adminId }, (ctx) =>
+    const ended = await runCommand({ personId: adminId, ip: null }, (ctx) =>
       endMembership(ctx, personId, {
         endReason: "GRADUATION",
         memorialConsent: true,
@@ -422,7 +422,7 @@ describe("salida, reactivación y anonimización", () => {
     expect(consents.find((item) => item.purpose === "COMMUNICATIONS")?.live).toBeNull();
     // Segunda baja: no hace nada.
     expect(
-      await runCommand({ personId: adminId }, (ctx) =>
+      await runCommand({ personId: adminId, ip: null }, (ctx) =>
         endMembership(ctx, personId, {
           endReason: "OTHER",
           memorialConsent: false,
@@ -436,7 +436,7 @@ describe("salida, reactivación y anonimización", () => {
     const remaining = await db().select().from(permission);
     expect(remaining.map((row) => row.code)).toEqual(["ADMIN"]);
 
-    await runCommand({ personId: adminId }, (ctx) =>
+    await runCommand({ personId: adminId, ip: null }, (ctx) =>
       reactivateMembership(ctx, personId, { email: "egresa2@eafit.edu.co", reason: "Posgrado" }),
     );
     const back = await getPerson360(personId);
@@ -455,7 +455,7 @@ describe("salida, reactivación y anonimización", () => {
     await seedTerm();
     const personId = await seedMember("expulsada@eafit.edu.co");
     const adminId = await seedMember("admin2@eafit.edu.co");
-    await runCommand({ personId: adminId }, (ctx) =>
+    await runCommand({ personId: adminId, ip: null }, (ctx) =>
       endMembership(ctx, personId, {
         endReason: "EXPULSION",
         note: "Falta grave con otra sanción viva",
@@ -464,7 +464,7 @@ describe("salida, reactivación y anonimización", () => {
       }),
     );
     await expect(
-      runCommand({ personId: adminId }, (ctx) =>
+      runCommand({ personId: adminId, ip: null }, (ctx) =>
         reactivateMembership(ctx, personId, { reason: "Pidió volver" }),
       ),
     ).rejects.toBeInstanceOf(DomainError);

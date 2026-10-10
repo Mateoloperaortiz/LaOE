@@ -105,7 +105,7 @@ describe("check-in propio", () => {
       });
 
       const first = await Promise.all(
-        people.map((personId) => checkInSelfAs({ personId }, { publicId })),
+        people.map((personId) => checkInSelfAs({ personId, ip: null }, { publicId })),
       );
       expect(first.every((result) => result.ok && result.outcome === "APPROVED_WITH_POINTS")).toBe(
         true,
@@ -131,7 +131,7 @@ describe("check-in propio", () => {
 
       // La misma ráfaga otra vez: los 500 ya estaban registrados y nada cambia.
       const again = await Promise.all(
-        people.map((personId) => checkInSelfAs({ personId }, { publicId })),
+        people.map((personId) => checkInSelfAs({ personId, ip: null }, { publicId })),
       );
       expect(again.every((result) => !result.ok && result.reason === "ALREADY")).toBe(true);
       const [checkInsAgain] = await db().select({ n: count() }).from(checkIn);
@@ -166,7 +166,7 @@ describe("check-in propio", () => {
       .where(eq(membership.personId, veteranId));
 
     const draft = await seedOccasion(termId, { status: "DRAFT" });
-    expect(await checkInSelfAs({ personId }, { publicId: draft.publicId })).toEqual({
+    expect(await checkInSelfAs({ personId, ip: null }, { publicId: draft.publicId })).toEqual({
       ok: false,
       reason: "DRAFT",
     });
@@ -175,7 +175,7 @@ describe("check-in propio", () => {
       checkInOpensAt: new Date(Date.now() + 3_600_000),
       checkInClosesAt: new Date(Date.now() + 7_200_000),
     });
-    const notOpen = await checkInSelfAs({ personId }, { publicId: future.publicId });
+    const notOpen = await checkInSelfAs({ personId, ip: null }, { publicId: future.publicId });
     expect(notOpen.ok).toBe(false);
     if (!notOpen.ok) expect(notOpen.reason).toBe("NOT_OPEN_YET");
 
@@ -183,41 +183,43 @@ describe("check-in propio", () => {
       checkInOpensAt: new Date(Date.now() - 7_200_000),
       checkInClosesAt: new Date(Date.now() - 3_600_000),
     });
-    expect(await checkInSelfAs({ personId }, { publicId: past.publicId })).toEqual({
+    expect(await checkInSelfAs({ personId, ip: null }, { publicId: past.publicId })).toEqual({
       ok: false,
       reason: "WINDOW_CLOSED",
     });
 
     const onlyNew = await seedOccasion(termId, { newMembersOnly: true });
-    expect(await checkInSelfAs({ personId: veteranId }, { publicId: onlyNew.publicId })).toEqual({
+    expect(
+      await checkInSelfAs({ personId: veteranId, ip: null }, { publicId: onlyNew.publicId }),
+    ).toEqual({
       ok: false,
       reason: "NEW_MEMBERS_ONLY",
     });
-    const asNew = await checkInSelfAs({ personId }, { publicId: onlyNew.publicId });
+    const asNew = await checkInSelfAs({ personId, ip: null }, { publicId: onlyNew.publicId });
     expect(asNew.ok).toBe(true);
 
     const secret = "secreto";
     const coded = await seedOccasion(termId, { requireRotatingCode: true, rotatingSecret: secret });
-    expect(await checkInSelfAs({ personId }, { publicId: coded.publicId })).toEqual({
+    expect(await checkInSelfAs({ personId, ip: null }, { publicId: coded.publicId })).toEqual({
       ok: false,
       reason: "CODE_REQUIRED",
     });
-    expect(await checkInSelfAs({ personId }, { publicId: coded.publicId, code: "000000" })).toEqual(
-      { ok: false, reason: "BAD_CODE" },
-    );
+    expect(
+      await checkInSelfAs({ personId, ip: null }, { publicId: coded.publicId, code: "000000" }),
+    ).toEqual({ ok: false, reason: "BAD_CODE" });
     const good = await checkInSelfAs(
-      { personId },
+      { personId, ip: null },
       { publicId: coded.publicId, code: rotatingCodeAt(secret, coded.id, new Date()) },
     );
     expect(good.ok).toBe(true);
 
     await db().update(term).set({ pointsClosedAt: new Date() }).where(eq(term.id, termId));
     const closedTerm = await seedOccasion(termId);
-    expect(await checkInSelfAs({ personId }, { publicId: closedTerm.publicId })).toEqual({
+    expect(await checkInSelfAs({ personId, ip: null }, { publicId: closedTerm.publicId })).toEqual({
       ok: false,
       reason: "TERM_CLOSED",
     });
-    expect(await checkInSelfAs({ personId }, { publicId: "zzzzzzzzzz" })).toEqual({
+    expect(await checkInSelfAs({ personId, ip: null }, { publicId: "zzzzzzzzzz" })).toEqual({
       ok: false,
       reason: "NOT_FOUND",
     });
@@ -227,28 +229,34 @@ describe("check-in propio", () => {
     const termId = await seedTerm(currentTermCode());
     const personId = await seedMember("manual@eafit.edu.co");
     const { id, publicId } = await seedOccasion(termId, { approval: "MANUAL", points: 30 });
-    const result = await checkInSelfAs({ personId }, { publicId });
+    const result = await checkInSelfAs({ personId, ip: null }, { publicId });
     expect(result.ok && result.outcome).toBe("PENDING");
     expect(await balanceFor(personId, termId)).toBe(0);
     const pending = await findCheckIn(id, personId);
     if (!pending) throw new Error("sin check-in");
 
     await expect(
-      decideCheckInAs({ personId }, { checkInId: pending.id, decision: "CANCEL", reason: "x" }),
+      decideCheckInAs(
+        { personId, ip: null },
+        { checkInId: pending.id, decision: "CANCEL", reason: "x" },
+      ),
     ).rejects.toBeInstanceOf(DomainError);
-    await decideCheckInAs({ personId }, { checkInId: pending.id, decision: "REJECT" });
+    await decideCheckInAs({ personId, ip: null }, { checkInId: pending.id, decision: "REJECT" });
     expect((await findCheckIn(id, personId))?.status).toBe("REJECTED");
-    await decideCheckInAs({ personId }, { checkInId: pending.id, decision: "APPROVE" });
+    await decideCheckInAs({ personId, ip: null }, { checkInId: pending.id, decision: "APPROVE" });
     expect(await balanceFor(personId, termId)).toBe(30);
     await expect(
-      decideCheckInAs({ personId }, { checkInId: pending.id, decision: "APPROVE" }),
+      decideCheckInAs({ personId, ip: null }, { checkInId: pending.id, decision: "APPROVE" }),
     ).rejects.toThrow(t("T-676", { estado: "aprobado" }));
 
     await expect(
-      decideCheckInAs({ personId }, { checkInId: pending.id, decision: "CANCEL", reason: " " }),
+      decideCheckInAs(
+        { personId, ip: null },
+        { checkInId: pending.id, decision: "CANCEL", reason: " " },
+      ),
     ).rejects.toThrow(t("T-609"));
     await decideCheckInAs(
-      { personId },
+      { personId, ip: null },
       { checkInId: pending.id, decision: "CANCEL", reason: "no estuvo" },
     );
     const entries = await listEntriesFor(personId, termId);
@@ -259,7 +267,7 @@ describe("check-in propio", () => {
     expect(entries[0]?.reversalOfId).toBe(entries[1]?.id);
     expect(await balanceFor(personId, termId)).toBe(0);
     await expect(
-      decideCheckInAs({ personId }, { checkInId: pending.id, decision: "APPROVE" }),
+      decideCheckInAs({ personId, ip: null }, { checkInId: pending.id, decision: "APPROVE" }),
     ).rejects.toBeInstanceOf(DomainError);
     expect((await findCheckIn(id, personId))?.status).toBe("CANCELLED");
   });
@@ -275,7 +283,7 @@ describe("check-in propio", () => {
       .where(eq(membership.personId, retired));
     const { id, publicId } = await seedOccasion(termId, { approval: "MANUAL", points: 10 });
     const result = await hostCheckInAs(
-      { personId: host },
+      { personId: host, ip: null },
       { occasionId: id, personId: guest, personName: "Invitada", source: "HOST" },
     );
     expect(result.points).toBe(10);
@@ -283,22 +291,22 @@ describe("check-in propio", () => {
     expect(await balanceFor(guest, termId)).toBe(10);
     await expect(
       hostCheckInAs(
-        { personId: host },
+        { personId: host, ip: null },
         { occasionId: id, personId: guest, personName: "Invitada", source: "HOST" },
       ),
     ).rejects.toThrow(t("T-601", { nombre: "Invitada" }));
     await expect(
       hostCheckInAs(
-        { personId: host },
+        { personId: host, ip: null },
         { occasionId: id, personId: retired, personName: "Retirado", source: "HOST" },
       ),
     ).rejects.toThrow(t("T-673", { nombre: "Retirado" }));
     // Quien se registró y quedó pendiente puede ser aprobado por el anfitrión.
     const other = await seedMember("otra@eafit.edu.co");
-    await checkInSelfAs({ personId: other }, { publicId });
+    await checkInSelfAs({ personId: other, ip: null }, { publicId });
     expect((await findCheckIn(id, other))?.status).toBe("PENDING");
     await hostCheckInAs(
-      { personId: host },
+      { personId: host, ip: null },
       { occasionId: id, personId: other, personName: "Otra", source: "HOST" },
     );
     expect((await findCheckIn(id, other))?.status).toBe("APPROVED");
@@ -309,8 +317,8 @@ describe("check-in propio", () => {
     const a = await seedMember("a@eafit.edu.co");
     const b = await seedMember("b@eafit.edu.co");
     const { id, publicId } = await seedOccasion(termId, { points: 15 });
-    await checkInSelfAs({ personId: a }, { publicId });
-    await checkInSelfAs({ personId: b }, { publicId });
+    await checkInSelfAs({ personId: a, ip: null }, { publicId });
+    await checkInSelfAs({ personId: b, ip: null }, { publicId });
     expect(await balanceFor(a, termId)).toBe(15);
     const { cancelledCheckIns } = await cancelOccasionAs(SYSTEM_ACTOR, id, "se canceló el evento");
     expect(cancelledCheckIns).toBe(2);
@@ -325,7 +333,7 @@ describe("check-in propio", () => {
     expect(reversals?.n).toBe(2);
     // Nadie puede registrarse en una cancelada.
     const c = await seedMember("c@eafit.edu.co");
-    expect(await checkInSelfAs({ personId: c }, { publicId })).toEqual({
+    expect(await checkInSelfAs({ personId: c, ip: null }, { publicId })).toEqual({
       ok: false,
       reason: "CANCELLED",
     });
@@ -349,8 +357,8 @@ describe("check-in propio", () => {
       category: "INTEGRATION",
       title: "Integración de nuevos",
     });
-    await checkInSelfAs({ personId: newbie }, { publicId });
-    await checkInSelfAs({ personId: veteran }, { publicId });
+    await checkInSelfAs({ personId: newbie, ip: null }, { publicId });
+    await checkInSelfAs({ personId: veteran, ip: null }, { publicId });
     await drainOutbox();
     const entries = await db()
       .select()

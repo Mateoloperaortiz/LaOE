@@ -117,8 +117,8 @@ describe("comité desactivado", () => {
     // Quedó activo en el comité desactivado, como pasó en producción antes del arreglo.
     await seedCommitteeMembership(tres, sos, termId);
     const ocasion = await seedOccasion(termId, { points: 10 });
-    await checkInSelfAs({ personId: uno }, { publicId: ocasion.publicId });
-    await closeOccasionAs({ personId: uno }, ocasion.id);
+    await checkInSelfAs({ personId: uno, ip: null }, { publicId: ocasion.publicId });
+    await closeOccasionAs({ personId: uno, ip: null }, ocasion.id);
     await drainOutbox();
 
     const filas = await db()
@@ -152,7 +152,7 @@ describe("comité desactivado", () => {
       checkInOpensAt: new Date(startsAt.getTime() - 3_600_000),
       checkInClosesAt: new Date(startsAt.getTime() + 3_600_000),
     });
-    await closeOccasionAs({ personId: uno }, asamblea.id);
+    await closeOccasionAs({ personId: uno, ip: null }, asamblea.id);
     await recomputeCommitteeAssembly(asamblea.id);
 
     const filas = await db()
@@ -172,7 +172,7 @@ describe("comité desactivado", () => {
     await seedCommitteeMembership(personId, a3, termId);
 
     await expect(
-      createRequestAs({ personId }, "TRANSFER", {
+      createRequestAs({ personId, ip: null }, "TRANSFER", {
         leaveCommitteeIds: [a3],
         joinCommitteeIds: [sos],
         reason: "Me interesa más ese comité",

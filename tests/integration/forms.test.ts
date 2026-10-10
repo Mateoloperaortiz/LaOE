@@ -94,6 +94,7 @@ describe("envío de un formulario público", () => {
       identity: { firstName: "Otro", lastName: "Nombre", email: "MIEMBRO@eafit.edu.co" },
       answers: { motivo: "Avisame" },
       consent: true,
+      ip: null,
     });
     expect(result.ok).toBe(true);
     const [who] = await getDb().select().from(person).where(eq(person.id, memberId));
@@ -158,12 +159,14 @@ describe("envío de un formulario público", () => {
       identity,
       answers: { motivo: "Quiero" },
       consent: false,
+      ip: null,
     });
     expect(noConsent).toMatchObject({ ok: false, code: "CONSENT", errors: { consent: "T-858" } });
     const invalid = await submitFormAs(null, view, {
       identity: { ...identity, email: "no-es-correo" },
       answers: { motivo: "", comite: "OTRO" },
       consent: true,
+      ip: null,
     });
     expect(invalid).toMatchObject({ ok: false, code: "INVALID" });
     if (!invalid.ok) {
@@ -173,6 +176,7 @@ describe("envío de un formulario público", () => {
       identity,
       answers: { motivo: "", comite: "OTRO" },
       consent: true,
+      ip: null,
     });
     expect(badAnswers).toMatchObject({
       ok: false,
@@ -183,11 +187,17 @@ describe("envío de un formulario público", () => {
       identity,
       answers: { motivo: "Tarde" },
       consent: true,
+      ip: null,
     });
     expect(full).toMatchObject({ ok: false, code: "FULL" });
     const { view: closed } = await publicForm("cerrado", { status: "CLOSED" });
     expect(
-      await submitFormAs(null, closed, { identity, answers: { motivo: "x" }, consent: true }),
+      await submitFormAs(null, closed, {
+        identity,
+        answers: { motivo: "x" },
+        consent: true,
+        ip: null,
+      }),
     ).toMatchObject({
       ok: false,
       code: "CLOSED",
@@ -229,13 +239,21 @@ describe("envío de un formulario público", () => {
     });
     expect((await findOpenRegistrationForm(edition.id))?.id).toBe(view.id);
     const actor = { personId: memberId, email: "inscrita@eafit.edu.co", firstName: "Ana" };
-    const result = await submitFormAs(actor as never, view, { answers: {}, consent: false });
+    const result = await submitFormAs(actor as never, view, {
+      answers: {},
+      consent: false,
+      ip: null,
+    });
     expect(result).toMatchObject({ ok: true, registered: true });
     const registrations = await getDb().select().from(editionRegistration);
     expect(registrations).toHaveLength(1);
     expect(registrations[0]).toMatchObject({ editionId: edition.id, personId: memberId });
     expect((await listRegistrationsByPerson(memberId))[0]?.editionName).toBe("Días EAFIT · 2026-2");
-    const again = await submitFormAs(actor as never, view, { answers: {}, consent: false });
+    const again = await submitFormAs(actor as never, view, {
+      answers: {},
+      consent: false,
+      ip: null,
+    });
     expect(again).toMatchObject({ ok: false, code: "DUPLICATE" });
     void termId;
   });

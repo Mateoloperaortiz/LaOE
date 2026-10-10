@@ -1,8 +1,10 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { POST as unsubscribeInOneClick } from "@/app/api/baja/[token]/route";
 import { POST as subscribeToPush } from "@/app/api/push/subscribe/route";
 import { revokeCarnetAction } from "@/app/app/carnet/actions";
 import { closeDb, getDb } from "@/db/client";
+import { DEFAULT_PREFERENCES, getPreferences, updatePreferencesAs } from "@/modules/comms";
 import { decideEntryAs } from "@/modules/crm";
 import { getOrCreateCarnetToken } from "@/modules/identity";
 import {
@@ -112,6 +114,24 @@ describe("la IP del actor de un comando llega a la auditoría según la puerta",
 
     expect(response.status).toBe(200);
     expect(await audits("push-subscription.created")).toEqual([{ actorId: personId, ip: IP }]);
+  });
+
+  it("la baja de campañas por el token del correo audita a nombre del dueño del token y sin IP (DT-313)", async () => {
+    const personId = await seedMember("baja.ip@eafit.edu.co");
+    // Guardar las preferencias le da a la persona el token del pie de sus correos.
+    await updatePreferencesAs({ personId, ip: null }, { ...DEFAULT_PREFERENCES });
+    const token = (await getPreferences(personId)).unsubscribeToken ?? "";
+
+    const response = await unsubscribeInOneClick(
+      new Request(`http://localhost/api/baja/${token}`, { method: "POST" }),
+      { params: Promise.resolve({ token }) },
+    );
+
+    expect(response.status).toBe(200);
+    // El request trae IP y la baja no la recibe: es la conducta de hoy, que DT-313 deja anotada.
+    expect(await audits("notification-preference.unsubscribed")).toEqual([
+      { actorId: personId, ip: null },
+    ]);
   });
 
   it("un trabajo audita a nombre de quien originó el evento y sin IP: la inscripción aceptada entra al grupo", async () => {

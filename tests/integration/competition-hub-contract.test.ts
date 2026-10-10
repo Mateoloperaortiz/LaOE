@@ -109,6 +109,7 @@ async function seedHub() {
   const actor: CompetitionActor = {
     personId: await seedMember("admin-hub@example.com"),
     isAdmin: true,
+    ip: null,
   };
   const { id } = await createCompetitionAs(actor, {
     editionId: edicion.id,

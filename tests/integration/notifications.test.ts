@@ -28,7 +28,11 @@ function keys() {
 }
 
 async function subscribe(personId: string, endpoint: string) {
-  return saveSubscriptionAs({ personId }, { endpoint, keys: keys() }, "Chrome/140 Android");
+  return saveSubscriptionAs(
+    { personId, ip: null },
+    { endpoint, keys: keys() },
+    "Chrome/140 Android",
+  );
 }
 
 function request(personIds: string[], overrides: Partial<NotificationRequested> = {}) {
@@ -82,7 +86,7 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
     const sinDispositivo = await seedMember("sin.dispositivo@eafit.edu.co");
     await subscribe(ana, "https://fcm.googleapis.com/fcm/send/ana");
     await updatePreferencesAs(
-      { personId: ana },
+      { personId: ana, ip: null },
       {
         emailCampaigns: true,
         pushAnnouncements: false,
@@ -222,7 +226,7 @@ describe("bus de notificaciones (ADR-038 regla 2)", () => {
     expect(own.created).toBe(true);
     expect(await listSubscriptionsFor(bruno)).toHaveLength(1);
     await updatePreferencesAs(
-      { personId: bruno },
+      { personId: bruno, ip: null },
       {
         emailCampaigns: false,
         pushAnnouncements: true,

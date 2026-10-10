@@ -96,7 +96,7 @@ function holdPresentialChallenge(occasionId: string) {
 async function holdCommand(personId: string, command: (ctx: CommandContext) => Promise<unknown>) {
   const ready = deferred<number>();
   const release = deferred<void>();
-  const done = runCommand({ personId }, async (ctx) => {
+  const done = runCommand({ personId, ip: null }, async (ctx) => {
     await command(ctx);
     const result = await ctx.tx.execute<{ pid: number }>(sql`select pg_backend_pid() as pid`);
     ready.resolve(result.rows[0]?.pid ?? 0);
@@ -132,7 +132,7 @@ async function setup() {
   const termId = await seedTerm();
   const first = await seedMember("gh.uno.decision@eafit.edu.co");
   const second = await seedMember("gh.dos.decision@eafit.edu.co");
-  return { termId, admin: { personId: first }, other: { personId: second } };
+  return { termId, admin: { personId: first, ip: null }, other: { personId: second, ip: null } };
 }
 
 type Fixture = Awaited<ReturnType<typeof setup>>;
@@ -144,14 +144,17 @@ async function manualOccasion(f: Fixture) {
 /** Asistencia pendiente de un miembro nuevo en la ocasión, registrada por él mismo. */
 async function pendingAttendance(occasion: { id: string; publicId: string }, email: string) {
   const personId = await seedMember(email);
-  const attendance = await checkInSelfAs({ personId }, { publicId: occasion.publicId });
+  const attendance = await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
   if (!attendance.ok || attendance.status !== "PENDING") {
     throw new Error("la asistencia no quedó pendiente");
   }
-  return { personId, member: { personId }, checkInId: attendance.checkInId, occasion };
+  return { personId, member: { personId, ip: null }, checkInId: attendance.checkInId, occasion };
 }
 
-async function requestExcuse(member: { personId: string }, occasionId: string): Promise<string> {
+async function requestExcuse(
+  member: { personId: string; ip: null },
+  occasionId: string,
+): Promise<string> {
   const created = await createRequestAs(member, "EXCUSE", {
     occasionId,
     cause: "WORK",
@@ -198,13 +201,13 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
       reason: "Premio de prueba",
     });
     await setBoosterTargetAs(
-      { personId },
+      { personId, ip: null },
       { boosterId: booster.id, target: { occasionId: occasion.id } },
     );
-    const attendance = await checkInSelfAs({ personId }, { publicId: occasion.publicId });
+    const attendance = await checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId });
     if (!attendance.ok) throw new Error("la asistencia no se registró");
     expect((await closingSummary(f.termId)).reservedRewards).toBeGreaterThan(0);
-    const requestId = await requestExcuse({ personId }, occasion.id);
+    const requestId = await requestExcuse({ personId, ip: null }, occasion.id);
 
     const held = await holdTerm(f.termId);
     const approving = decideCheckInAs(f.admin, {
@@ -685,7 +688,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     const personId = await seedMember("miembro.puerta2.decision@eafit.edu.co");
     const held = await holdTerm(f.termId);
     const settled = Promise.allSettled([
-      checkInSelfAs({ personId }, { publicId: occasion.publicId }),
+      checkInSelfAs({ personId, ip: null }, { publicId: occasion.publicId }),
       hostCheckInAs(f.admin, {
         occasionId: occasion.id,
         personId,

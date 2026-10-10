@@ -36,7 +36,7 @@ describe("modo anfitrión y consola en vivo", () => {
     if (!read.ok) throw new Error("No se pudo leer el carnet de billetera");
     expect(read.source).toBe("WALLET");
     await hostCheckInAs(
-      { personId: hostId },
+      { personId: hostId, ip: null },
       { occasionId: id, personId: read.personId, personName: "Persona Sintética", source: "HOST" },
     );
     const snapshot = await buildLiveSnapshot(id);
@@ -63,9 +63,12 @@ describe("modo anfitrión y consola en vivo", () => {
       rotatingSecret: secret,
     });
     const now = new Date();
-    await checkInSelfAs({ personId: a }, { publicId, code: rotatingCodeAt(secret, id, now) });
+    await checkInSelfAs(
+      { personId: a, ip: null },
+      { publicId, code: rotatingCodeAt(secret, id, now) },
+    );
     await hostCheckInAs(
-      { personId: host },
+      { personId: host, ip: null },
       { occasionId: id, personId: b, personName: "Beto Dos", source: "HOST" },
     );
     const snapshot = await buildLiveSnapshot(id, now);

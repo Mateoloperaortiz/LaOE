@@ -90,7 +90,7 @@ describe("campañas", () => {
     }
     await recordConsentAs(SYSTEM_ACTOR, egresadoCon, "COMMUNICATIONS", "SELF");
     await updatePreferencesAs(
-      { personId: baja },
+      { personId: baja, ip: null },
       {
         emailCampaigns: false,
         pushAnnouncements: true,

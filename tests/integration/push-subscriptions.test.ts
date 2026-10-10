@@ -21,7 +21,7 @@ const MAX_DEVICES = 10;
 
 function save(personId: string, endpoint: string, userAgent = "Chrome/140 Android", now?: Date) {
   return saveSubscriptionAs(
-    { personId },
+    { personId, ip: null },
     { endpoint, keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
     userAgent,
     now,
@@ -100,7 +100,7 @@ describe("suscripciones de push", () => {
       { endpoint, userAgent: "Firefox/130", lastSeenAt: before },
     ]);
     // Cuando su dueña lo quita, queda libre para quien lo registre.
-    expect(await removeSubscriptionAs({ personId: ana }, { endpoint })).toBe(true);
+    expect(await removeSubscriptionAs({ personId: ana, ip: null }, { endpoint })).toBe(true);
     expect(await save(bruno, endpoint)).toMatchObject({ created: true });
   });
 
@@ -131,9 +131,9 @@ describe("suscripciones de push", () => {
     expect(await save(bruno, `${FCM}de-bruno`)).toMatchObject({ created: true });
     expect(await save(ana, endpoints[0] ?? "")).toMatchObject({ created: false });
     // Quitar uno deja entrar otro.
-    expect(await removeSubscriptionAs({ personId: ana }, { endpoint: endpoints[1] ?? "" })).toBe(
-      true,
-    );
+    expect(
+      await removeSubscriptionAs({ personId: ana, ip: null }, { endpoint: endpoints[1] ?? "" }),
+    ).toBe(true);
     expect(await save(ana, `${FCM}el-once`)).toMatchObject({ created: true });
     expect(await countSubscriptionsFor(ana)).toBe(MAX_DEVICES);
   });

@@ -57,7 +57,7 @@ describe("el día de los cuatro juegos", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-12-31T23:00:00Z"));
     const personId = await seedMember("juegos.vencida@eafit.edu.co");
-    const started = await startWordleAs({ personId });
+    const started = await startWordleAs({ personId, ip: null });
     if (!started.ok) throw new Error(started.reason);
     expect(started.game).toMatchObject({
       day: "2026-12-31",
@@ -68,7 +68,7 @@ describe("el día de los cuatro juegos", () => {
     vi.setSystemTime(new Date("2027-01-02T15:00:00Z"));
     await seedTerm();
     const late = await submitWordleGuessAs(
-      { personId },
+      { personId, ip: null },
       { gameId: started.game.id, guess: "CASAS", expectedAttempt: 1, requestId: randomUUID() },
     );
     expect(late).toMatchObject({

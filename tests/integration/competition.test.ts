@@ -113,8 +113,8 @@ async function seedDiasEdition(slug = "2026"): Promise<string> {
   return edicion.id;
 }
 
-const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true });
-const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false });
+const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true, ip: null });
+const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false, ip: null });
 
 async function seedCompetition() {
   const termId = await seedTerm();

@@ -52,7 +52,7 @@ function deferred<T>() {
 async function holdCommand(personId: string, command: (ctx: CommandContext) => Promise<unknown>) {
   const ready = deferred<number>();
   const release = deferred<void>();
-  const done = runCommand({ personId }, async (ctx) => {
+  const done = runCommand({ personId, ip: null }, async (ctx) => {
     await command(ctx);
     const result = await ctx.tx.execute<{ pid: number }>(sql`select pg_backend_pid() as pid`);
     ready.resolve(result.rows[0]?.pid ?? 0);
@@ -81,7 +81,7 @@ describe("cierre transaccional de participación", () => {
     const held = await holdCommand(personId, (ctx) =>
       adjustPoints(ctx, { personId, termId, points: 6, reason: "Crédito sintético en curso" }),
     );
-    const closing = closeTermPointsAs({ personId }, termId);
+    const closing = closeTermPointsAs({ personId, ip: null }, termId);
     void closing.catch(() => undefined);
     try {
       await expect.poll(async () => (await blockedBy(held.pid)).length).toBeGreaterThan(0);
@@ -102,7 +102,7 @@ describe("cierre transaccional de participación", () => {
     const personId = await seedMember("cierre-tarde@eafit.edu.co");
     const held = await holdCommand(personId, (ctx) => closeTermPoints(ctx, termId));
     const late = adjustPointsAs(
-      { personId },
+      { personId, ip: null },
       { personId, termId, points: 5, reason: "Crédito sintético tardío" },
     );
     const result = late.then(
@@ -135,7 +135,7 @@ describe("cierre transaccional de participación", () => {
       adjustPoints(ctx, { personId, termId, points: 6, reason: "Primer crédito sintético" }),
     );
     try {
-      await runCommand({ personId }, async (ctx) => {
+      await runCommand({ personId, ip: null }, async (ctx) => {
         await ctx.tx.execute(sql`set local lock_timeout = '2s'`);
         await adjustPoints(ctx, {
           personId,
@@ -157,7 +157,7 @@ describe("cierre transaccional de participación", () => {
     const personId = await seedMember("cierre-apertura@eafit.edu.co");
     const draft = await seedOccasion(termId, { status: "DRAFT", points: 0 });
     const held = await holdCommand(personId, (ctx) => openOccasion(ctx, draft.id));
-    const closing = closeTermPointsAs({ personId }, termId);
+    const closing = closeTermPointsAs({ personId, ip: null }, termId);
     const rejection = expect(closing).rejects.toThrow(t("T-646", { n: 1 }));
     try {
       await expect.poll(async () => (await blockedBy(held.pid)).length).toBeGreaterThan(0);
@@ -185,13 +185,13 @@ describe("cierre transaccional de participación", () => {
     const closed = await seedOccasion(termId, { status: "CLOSED", points: 0 });
     const draft = await seedOccasion(termId, { status: "DRAFT", points: 0 });
     const pendingId = await seedCheckIn(closed.id, personId, "PENDING");
-    await closeTermPointsAs({ personId }, termId);
-    await expect(openOccasionAs({ personId }, draft.id)).rejects.toThrow(t("T-579"));
+    await closeTermPointsAs({ personId, ip: null }, termId);
+    await expect(openOccasionAs({ personId, ip: null }, draft.id)).rejects.toThrow(t("T-579"));
     for (const operation of [
-      () => decideCheckInAs({ personId }, { checkInId: pendingId, decision: "APPROVE" }),
+      () => decideCheckInAs({ personId, ip: null }, { checkInId: pendingId, decision: "APPROVE" }),
       () =>
         hostCheckInAs(
-          { personId },
+          { personId, ip: null },
           {
             occasionId: closed.id,
             personId: otherId,
@@ -199,13 +199,13 @@ describe("cierre transaccional de participación", () => {
             source: "ADMIN",
           },
         ),
-      () => cancelOccasionAs({ personId }, closed.id, "Cancelación sintética"),
+      () => cancelOccasionAs({ personId, ip: null }, closed.id, "Cancelación sintética"),
     ]) {
       await expect(operation()).rejects.toThrow(t("T-629"));
     }
     await expect(
       createOccasionSeriesAs(
-        { personId },
+        { personId, ip: null },
         {
           committeeId,
           title: "Serie sintética",
@@ -266,7 +266,7 @@ describe("cierre transaccional de participación", () => {
     const held = await holdCommand(reviewer, (ctx) =>
       reviewParticipation(ctx, { participationId, decision: "APPROVE" }, { settings }),
     );
-    const closing = closeTermPointsAs({ personId: reviewer }, termId);
+    const closing = closeTermPointsAs({ personId: reviewer, ip: null }, termId);
     void closing.catch(() => undefined);
     try {
       await expect.poll(async () => (await blockedBy(held.pid)).length).toBeGreaterThan(0);

@@ -110,7 +110,7 @@ describe("caché de configuración ante un cambio", () => {
     expect(await getConfig("gamification.enabled")).toBe(false);
 
     const seen = await readBeforeCommit("gamification.enabled", () =>
-      setConfigAs({ personId: admin }, "gamification.enabled", true),
+      setConfigAs({ personId: admin, ip: null }, "gamification.enabled", true),
     );
 
     // Sin confirmar, el cambio todavía no existe para nadie más.
@@ -120,11 +120,11 @@ describe("caché de configuración ante un cambio", () => {
 
   it("la versión de la política de datos se lee apenas confirma, con una lectura antes del commit", async () => {
     const admin = await seedPerson("config.admin@eafit.edu.co");
-    await setPrivacyPolicyVersionAs({ personId: admin }, "prueba-v2");
+    await setPrivacyPolicyVersionAs({ personId: admin, ip: null }, "prueba-v2");
     expect(await getConfig("privacy.policyVersion")).toBe("prueba-v2");
 
     const seen = await readBeforeCommit("privacy.policyVersion", () =>
-      setPrivacyPolicyVersionAs({ personId: admin }, "prueba-v3"),
+      setPrivacyPolicyVersionAs({ personId: admin, ip: null }, "prueba-v3"),
     );
 
     expect(seen).toBe("prueba-v2");

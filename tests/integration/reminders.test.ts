@@ -38,7 +38,7 @@ const db = () => getDb();
 const keys = () => ({ p256dh: "p".repeat(32), auth: "a".repeat(16) });
 
 async function subscribe(personId: string, endpoint: string) {
-  await saveSubscriptionAs({ personId }, { endpoint, keys: keys() }, null);
+  await saveSubscriptionAs({ personId, ip: null }, { endpoint, keys: keys() }, null);
 }
 
 /** Hoy a la hora dada en Bogotá (UTC-5), como instante. */

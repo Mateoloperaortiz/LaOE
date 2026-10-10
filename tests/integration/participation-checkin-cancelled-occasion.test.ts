@@ -31,8 +31,8 @@ const cancelled = t("T-578", {
 
 async function setup(approval: "AUTO" | "MANUAL") {
   const termId = await seedTerm();
-  const admin = { personId: await seedMember("gh.uno.cancelada@eafit.edu.co") };
-  const other = { personId: await seedMember("gh.dos.cancelada@eafit.edu.co") };
+  const admin = { personId: await seedMember("gh.uno.cancelada@eafit.edu.co"), ip: null };
+  const other = { personId: await seedMember("gh.dos.cancelada@eafit.edu.co"), ip: null };
   const occasion = await seedOccasion(termId, { points: POINTS, approval });
   await seedChallenge(termId, { kind: "PRESENTIAL", occasionId: occasion.id, passPercent: null });
   return { termId, admin, other, occasion };
@@ -84,7 +84,7 @@ async function queuedOrDone(request: Promise<unknown>): Promise<void> {
 
 async function rejectedAttendance(f: Fixture, email: string) {
   const personId = await seedMember(email);
-  const attendance = await checkInSelfAs({ personId }, { publicId: f.occasion.publicId });
+  const attendance = await checkInSelfAs({ personId, ip: null }, { publicId: f.occasion.publicId });
   if (!attendance.ok) throw new Error("la asistencia no se registró");
   await decideCheckInAs(f.admin, { checkInId: attendance.checkInId, decision: "REJECT" });
   return { personId, checkInId: attendance.checkInId };
@@ -98,7 +98,7 @@ describe("una asistencia en una ocasión cancelada", () => {
     const f = await setup("AUTO");
     const personId = await seedMember("miembro.llega.cancelada@eafit.edu.co");
     const { held, cancellation } = await cancellationInProgress(f);
-    const registering = checkInSelfAs({ personId }, { publicId: f.occasion.publicId });
+    const registering = checkInSelfAs({ personId, ip: null }, { publicId: f.occasion.publicId });
     void registering.catch(() => undefined);
     try {
       await queuedOrDone(registering);
@@ -194,7 +194,10 @@ describe("una asistencia en una ocasión cancelada", () => {
   it("una pendiente de una ocasión cerrada se sigue aprobando: la regla es de la cancelada", async () => {
     const f = await setup("MANUAL");
     const personId = await seedMember("miembro.cerrada.cancelada@eafit.edu.co");
-    const attendance = await checkInSelfAs({ personId }, { publicId: f.occasion.publicId });
+    const attendance = await checkInSelfAs(
+      { personId, ip: null },
+      { publicId: f.occasion.publicId },
+    );
     if (!attendance.ok) throw new Error("la asistencia no se registró");
     await closeOccasionAs(f.admin, f.occasion.id);
 

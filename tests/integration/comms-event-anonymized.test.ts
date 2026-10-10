@@ -61,7 +61,7 @@ async function memberWithDevice(email: string) {
   const committeeId = await seedCommittee("a3", "A3");
   await seedCommitteeMembership(personId, committeeId, termId);
   await saveSubscriptionAs(
-    { personId },
+    { personId, ip: null },
     { endpoint: DEVICE, keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
     null,
   );
@@ -79,7 +79,7 @@ async function decideLeave(actor: { personId: string; ip: null }) {
 }
 
 async function anonymize(personId: string): Promise<void> {
-  await requestDeletionAs({ personId });
+  await requestDeletionAs({ personId, ip: null });
   await anonymizePersonAs(admin, personId);
 }
 
@@ -187,7 +187,7 @@ describe("correos de un evento cuando la persona ya fue anonimizada", () => {
     // `person.anonymized`. Sin el candado de la persona el segundo limpia antes de que el primero
     // registre el envío, y ese registro queda para siempre a nombre de alguien anonimizado.
     const { personId, actor } = await memberWithDevice("en.vuelo@eafit.edu.co");
-    await requestDeletionAs({ personId });
+    await requestDeletionAs({ personId, ip: null });
     await decideLeave(actor);
     await warmPool(6);
     let release: () => void = () => undefined;

@@ -111,7 +111,7 @@ describe("el token del calendario se retira con la persona", () => {
     const old = await getOrCreateCalendarToken(personId);
     const untouched = await getOrCreateCalendarToken(board);
 
-    await endMembershipAs({ personId: board }, personId, SALIDA);
+    await endMembershipAs({ personId: board, ip: null }, personId, SALIDA);
     await drainOutbox();
 
     expect(await tokensOf(personId)).toEqual([]);
@@ -119,7 +119,9 @@ describe("el token del calendario se retira con la persona", () => {
     // El enlace de quien sigue adentro no se toca.
     expect(await resolveCalendarToken(untouched)).toBe(board);
 
-    await reactivateMembershipAs({ personId: board }, personId, { reason: "Pidió volver" });
+    await reactivateMembershipAs({ personId: board, ip: null }, personId, {
+      reason: "Pidió volver",
+    });
     await drainOutbox();
 
     // Volver no revive el enlace viejo: Ajustes crea otro al abrirse.
@@ -135,14 +137,16 @@ describe("el token del calendario se retira con la persona", () => {
     const personId = await seedMember("se-borra-con-calendario@eafit.edu.co");
     const old = await getOrCreateCalendarToken(personId);
 
-    await requestDeletionAs({ personId });
-    await anonymizePersonAs({ personId: board }, personId);
+    await requestDeletionAs({ personId, ip: null });
+    await anonymizePersonAs({ personId: board, ip: null }, personId);
     await drainOutbox();
 
     expect(await tokensOf(personId)).toEqual([]);
     expect(await resolveCalendarToken(old)).toBeNull();
     await expect(getOrCreateCalendarToken(personId)).rejects.toBeInstanceOf(ForbiddenError);
-    await expect(rotateCalendarTokenAs({ personId })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(rotateCalendarTokenAs({ personId, ip: null })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
     expect(await tokensOf(personId)).toEqual([]);
   });
 
@@ -151,7 +155,7 @@ describe("el token del calendario se retira con la persona", () => {
     const personId = await seedMember("en-licencia-con-calendario@eafit.edu.co");
     const old = await getOrCreateCalendarToken(personId);
 
-    await changeMembershipStatusAs({ personId: board }, personId, {
+    await changeMembershipStatusAs({ personId: board, ip: null }, personId, {
       to: "ON_LEAVE",
       reason: "Intercambio",
       leaveUntil: leaveUntilSoon(),
@@ -159,7 +163,7 @@ describe("el token del calendario se retira con la persona", () => {
     await drainOutbox();
     expect(await tokensOf(personId)).toEqual([{ token: old }]);
 
-    await changeMembershipStatusAs({ personId: board }, personId, {
+    await changeMembershipStatusAs({ personId: board, ip: null }, personId, {
       to: "ACTIVE",
       reason: "Regresó",
     });
@@ -169,7 +173,7 @@ describe("el token del calendario se retira con la persona", () => {
 
   it.each([
     ["crear", (personId: string) => getOrCreateCalendarToken(personId)],
-    ["regenerar", (personId: string) => rotateCalendarTokenAs({ personId })],
+    ["regenerar", (personId: string) => rotateCalendarTokenAs({ personId, ip: null })],
   ] as const)("%s el enlace mientras la persona sale no deja un token después de la baja", async (_case, write) => {
     const board = await seedMember("junta-calendario@eafit.edu.co");
     const personId = await seedMember("sale-a-la-vez@eafit.edu.co");
@@ -203,7 +207,9 @@ describe("el token del calendario se retira con la persona", () => {
       expect(await queuedForLock(1, writing)).toBe(true);
       // La baja y su handler. Sin el candado terminan de una y no encuentran nada que borrar; con
       // él, la baja hace cola detrás de la escritura y su handler borra lo que esta dejó.
-      leaving = endMembershipAs({ personId: board }, personId, SALIDA).then(() => drainOutbox());
+      leaving = endMembershipAs({ personId: board, ip: null }, personId, SALIDA).then(() =>
+        drainOutbox(),
+      );
       void leaving.catch(() => {});
       await queuedForLock(2, leaving);
     } finally {
@@ -221,7 +227,7 @@ describe("el token del calendario se retira con la persona", () => {
   // previa, entra cuando la baja confirma y deja un token que ningún handler va a borrar.
   it.each([
     ["crear", (personId: string) => getOrCreateCalendarToken(personId)],
-    ["regenerar", (personId: string) => rotateCalendarTokenAs({ personId })],
+    ["regenerar", (personId: string) => rotateCalendarTokenAs({ personId, ip: null })],
   ] as const)("%s el enlace detrás de una baja que ya tomó el candado se rechaza y no escribe nada", async (_case, write) => {
     const board = await seedMember("junta-calendario@eafit.edu.co");
     const personId = await seedMember("sale-primero@eafit.edu.co");
@@ -234,7 +240,7 @@ describe("el token del calendario se retira con la persona", () => {
     let leaving: Promise<unknown> = Promise.resolve();
     let writing: Promise<unknown> = Promise.resolve();
     try {
-      leaving = endMembershipAs({ personId: board }, personId, SALIDA);
+      leaving = endMembershipAs({ personId: board, ip: null }, personId, SALIDA);
       void leaving.catch(() => {});
       expect(await queuedForLock(1, leaving)).toBe(true);
       writing = write(personId);
@@ -263,10 +269,10 @@ describe("el token del calendario se retira con la persona", () => {
     const away = await seedMember("en-licencia-con-calendario@eafit.edu.co");
     const kept = await getOrCreateCalendarToken(board);
     const onLeave = await getOrCreateCalendarToken(away);
-    await endMembershipAs({ personId: board }, gone, SALIDA);
-    await requestDeletionAs({ personId: erased });
-    await anonymizePersonAs({ personId: board }, erased);
-    await changeMembershipStatusAs({ personId: board }, away, {
+    await endMembershipAs({ personId: board, ip: null }, gone, SALIDA);
+    await requestDeletionAs({ personId: erased, ip: null });
+    await anonymizePersonAs({ personId: board, ip: null }, erased);
+    await changeMembershipStatusAs({ personId: board, ip: null }, away, {
       to: "ON_LEAVE",
       reason: "Intercambio",
       leaveUntil: leaveUntilSoon(),
@@ -291,7 +297,7 @@ describe("el token del calendario se retira con la persona", () => {
     expect(await tokensOf(away)).toEqual([{ token: onLeave }]);
 
     // Quien vuelve después ya no encuentra el enlace viejo: Ajustes le crea otro.
-    await reactivateMembershipAs({ personId: board }, gone, { reason: "Pidió volver" });
+    await reactivateMembershipAs({ personId: board, ip: null }, gone, { reason: "Pidió volver" });
     await drainOutbox();
     const fresh = await getOrCreateCalendarToken(gone);
     expect(fresh).not.toBe(LEFTOVER);
@@ -306,7 +312,7 @@ describe("el token del calendario se retira con la persona", () => {
   it("la depuración no se lleva el enlace de quien vuelve mientras ella corre", async () => {
     const board = await seedMember("junta-calendario@eafit.edu.co");
     const personId = await seedMember("vuelve-durante-la-depuracion@eafit.edu.co");
-    await endMembershipAs({ personId: board }, personId, SALIDA);
+    await endMembershipAs({ personId: board, ip: null }, personId, SALIDA);
     await drainOutbox();
     await db().insert(calendarToken).values({ personId, token: LEFTOVER });
     await warmPool();
@@ -317,7 +323,9 @@ describe("el token del calendario se retira con la persona", () => {
     let returning: Promise<unknown> = Promise.resolve();
     let pruning: Promise<{ calendarTokens: number }> = Promise.resolve({ calendarTokens: -1 });
     try {
-      returning = reactivateMembershipAs({ personId: board }, personId, { reason: "Pidió volver" });
+      returning = reactivateMembershipAs({ personId: board, ip: null }, personId, {
+        reason: "Pidió volver",
+      });
       void returning.catch(() => {});
       expect(await queuedForLock(1, returning)).toBe(true);
       pruning = pruneIdentity();

@@ -24,7 +24,7 @@ const db = () => getDb();
 
 async function subscribe(personId: string, endpoint: string) {
   await saveSubscriptionAs(
-    { personId },
+    { personId, ip: null },
     { endpoint, keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
     null,
   );
@@ -59,10 +59,10 @@ describe("aviso diario del Wordle", () => {
     }
     // El interruptor propio apaga solo esto (regla 4).
     await updatePreferencesAs(
-      { personId: sinGanas },
+      { personId: sinGanas, ip: null },
       { ...DEFAULT_PREFERENCES, pushWordle: false },
     );
-    expect((await startWordleAs({ personId: yaJugo })).ok).toBe(true);
+    expect((await startWordleAs({ personId: yaJugo, ip: null })).ok).toBe(true);
 
     const day = dayKeyFor(new Date());
     expect(await runWordleReminder()).toEqual({ day, audience: 2, enqueued: 1 });

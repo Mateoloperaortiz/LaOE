@@ -161,7 +161,7 @@ async function recipientStatuses(campaignId: string): Promise<Record<string, num
 
 function optOutOfCampaigns(personId: string): Promise<void> {
   return updatePreferencesAs(
-    { personId },
+    { personId, ip: null },
     {
       emailCampaigns: false,
       pushAnnouncements: true,
@@ -1562,7 +1562,7 @@ describe("cancelar con un lote en curso (ADR-115 regla 4)", () => {
 
 /** Anonimiza a pedido, como lo hace GH: primero la solicitud de la persona y después el comando. */
 async function anonymize(personId: string): Promise<void> {
-  await requestDeletionAs({ personId });
+  await requestDeletionAs({ personId, ip: null });
   await anonymizePersonAs(SYSTEM_ACTOR, personId);
 }
 
@@ -1705,7 +1705,7 @@ describe("antes de cada envío el lote vuelve a mirar a la persona (ADR-115 regl
     const [asked] = await waitingMembers(id, roster);
     if (!asked) throw new Error("Tras el primer lote tenía que quedar alguien pendiente");
 
-    await requestDeletionAs({ personId: asked.id });
+    await requestDeletionAs({ personId: asked.id, ip: null });
 
     expect(await runCampaignTick(minute(1))).toEqual({ started: 0, sent: 1 });
     expect(await recipientOf(id, asked.id)).toMatchObject({ status: "SENT", skipReason: null });

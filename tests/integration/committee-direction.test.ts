@@ -77,7 +77,7 @@ async function fixture(): Promise<Fixture> {
   return { termId, a3, pixel, general, gh, logistica, member, newbie };
 }
 
-const actor = (personId: string) => ({ personId });
+const actor = (personId: string) => ({ personId, ip: null });
 const director = { isAdmin: false, allCapabilities: false };
 const admin = { isAdmin: true, allCapabilities: true };
 

@@ -39,8 +39,8 @@ import { seedMember, seedTerm, seedVeteran } from "./factories";
 // jornada, la huella de la revisión, los permisos y, sobre todo, que el apoyo de una base no dé
 // ningún acceso. Todos los nombres son inventados.
 
-const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true });
-const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false });
+const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true, ip: null });
+const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false, ip: null });
 
 async function seedDiasEdition(): Promise<string> {
   const evento = await runCommand(SYSTEM_ACTOR, (ctx) =>

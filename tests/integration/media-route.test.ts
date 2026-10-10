@@ -58,7 +58,7 @@ async function upload(
   keys.push(prepared.key);
   await uploadAsBrowser(prepared, { bytes, contentType, filename: "imagen" });
   const { id } = await confirmUploadAs(
-    { personId },
+    { personId, ip: null },
     { key: prepared.key, filename: "imagen", visibility, purpose },
     purpose === "photo" ? { by: "SELF" } : { by: "ADMIN" },
     ownerCheck,

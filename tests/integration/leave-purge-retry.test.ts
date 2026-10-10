@@ -92,17 +92,20 @@ async function equip({ board, personId, termId, committeeId }: Scene): Promise<v
     .insert(credential)
     .values({ personId, passwordHash: await hashPassword("trapecio verde 41") });
   await grantPermissionAs(
-    { personId: board },
+    { personId: board, ip: null },
     { email: EMAIL, code: "COMMITTEE_LEADER", committeeId },
   );
   // Después del permiso: concederlo borra los enlaces vivos de quien lo recibe (ADR-119 regla 17).
-  await issueAccessGrantAs({ personId: board }, { personId, kind: "ACTIVATION" });
+  await issueAccessGrantAs({ personId: board, ip: null }, { personId, kind: "ACTIVATION" });
   await getOrCreateCalendarToken(personId);
-  await createTaskAs({ personId: board }, { title: "Llamar a Nora", kind: "GENERAL", personId });
+  await createTaskAs(
+    { personId: board, ip: null },
+    { title: "Llamar a Nora", kind: "GENERAL", personId },
+  );
   const formId = await seedForm(`inscripcion-${sequence}`);
   await seedSubmission(formId, EMAIL, { personId });
   await saveSubscriptionAs(
-    { personId },
+    { personId, ip: null },
     {
       endpoint: `https://fcm.googleapis.com/fcm/send/nora-${sequence}`,
       keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) },
@@ -110,7 +113,7 @@ async function equip({ board, personId, termId, committeeId }: Scene): Promise<v
     null,
   );
   await updatePreferencesAs(
-    { personId },
+    { personId, ip: null },
     {
       emailCampaigns: true,
       pushAnnouncements: true,
@@ -214,7 +217,7 @@ describe("los borrados de la baja toleran el reintento", () => {
   it("una baja que se reintenta después del alta no se lleva lo que la persona recibió al volver", async () => {
     const who = await scene();
     await equip(who);
-    await endMembershipAs({ personId: who.board }, who.personId, SALIDA);
+    await endMembershipAs({ personId: who.board, ip: null }, who.personId, SALIDA);
     neighbourFailures = 1;
     await drainOutbox({ expectFailures: [membershipChanged] });
     // La baja corrió en los cinco módulos antes de que fallara el vecino: el evento queda en reintento.
@@ -222,7 +225,9 @@ describe("los borrados de la baja toleran el reintento", () => {
 
     // GH corrige la baja: la da de alta, le devuelve su acceso y su permiso, y la persona vuelve a
     // entrar, activa sus avisos y responde un formulario.
-    await reactivateMembershipAs({ personId: who.board }, who.personId, { reason: "Fue un error" });
+    await reactivateMembershipAs({ personId: who.board, ip: null }, who.personId, {
+      reason: "Fue un error",
+    });
     await equip(who);
     await drainOutbox({ expectFailures: [membershipChanged] });
     expect(await holdings(who.personId)).toEqual(EVERYTHING);
@@ -241,16 +246,18 @@ describe("los borrados de la baja toleran el reintento", () => {
   ])("quien volvió y después %s sigue adentro: el reintento de su baja tampoco le borra nada", async (_caso, cambio) => {
     const who = await scene();
     await equip(who);
-    await endMembershipAs({ personId: who.board }, who.personId, SALIDA);
+    await endMembershipAs({ personId: who.board, ip: null }, who.personId, SALIDA);
     neighbourFailures = 1;
     await drainOutbox({ expectFailures: [membershipChanged] });
     expect(await holdings(who.personId)).toEqual(NOTHING);
 
     // Vuelve, recibe todo otra vez y cambia de estado antes de que el poller reintente la baja. La
     // regla protege a quien no está de baja, no solo a quien está activa (ADR-118 regla 5).
-    await reactivateMembershipAs({ personId: who.board }, who.personId, { reason: "Fue un error" });
+    await reactivateMembershipAs({ personId: who.board, ip: null }, who.personId, {
+      reason: "Fue un error",
+    });
     await equip(who);
-    await changeMembershipStatusAs({ personId: who.board }, who.personId, {
+    await changeMembershipStatusAs({ personId: who.board, ip: null }, who.personId, {
       ...cambio,
       reason: "Cambio posterior al alta",
     });
@@ -268,14 +275,14 @@ describe("los borrados de la baja toleran el reintento", () => {
   it("mientras la baja siga vigente su reintento sigue borrando, también lo que apareció entre los dos intentos", async () => {
     const who = await scene();
     await equip(who);
-    await endMembershipAs({ personId: who.board }, who.personId, SALIDA);
+    await endMembershipAs({ personId: who.board, ip: null }, who.personId, SALIDA);
     neighbourFailures = 1;
     await drainOutbox({ expectFailures: [membershipChanged] });
     expect(await holdings(who.personId)).toEqual(NOTHING);
 
     // Con la persona afuera, GH le anota una tarea y queda una respuesta suya de un formulario público.
     await createTaskAs(
-      { personId: who.board },
+      { personId: who.board, ip: null },
       { title: "Devolver el carné", kind: "GENERAL", personId: who.personId },
     );
     await seedSubmission(await seedForm("salida"), EMAIL, { personId: who.personId });
@@ -287,10 +294,12 @@ describe("los borrados de la baja toleran el reintento", () => {
 
   it("una baja nueva después del alta trae su propio evento: lo que el evento atrasado no borró se lo lleva ese", async () => {
     const who = await scene();
-    await endMembershipAs({ personId: who.board }, who.personId, SALIDA);
+    await endMembershipAs({ personId: who.board, ip: null }, who.personId, SALIDA);
     neighbourFailures = 1;
     await drainOutbox({ expectFailures: [membershipChanged] });
-    await reactivateMembershipAs({ personId: who.board }, who.personId, { reason: "Fue un error" });
+    await reactivateMembershipAs({ personId: who.board, ip: null }, who.personId, {
+      reason: "Fue un error",
+    });
     await equip(who);
     await drainOutbox({ expectFailures: [membershipChanged] });
     expect(await holdings(who.personId)).toEqual(EVERYTHING);
@@ -298,7 +307,7 @@ describe("los borrados de la baja toleran el reintento", () => {
     // Sale otra vez antes de que el poller reintente la primera baja. Esta salida emite su evento: por
     // eso el evento viejo puede no borrar nada cuando encuentra a la persona adentro sin que se pierda
     // ningún borrado. Acá corren los dos, con la persona afuera.
-    await endMembershipAs({ personId: who.board }, who.personId, SALIDA);
+    await endMembershipAs({ personId: who.board, ip: null }, who.personId, SALIDA);
     await drainOutbox({ now: afterBackoff() });
 
     expect(await holdings(who.personId)).toEqual(NOTHING);
@@ -315,13 +324,15 @@ describe("los borrados de la baja toleran el reintento", () => {
   it("una baja que se reintenta después del alta no le cierra la sesión a quien ya volvió a entrar", async () => {
     const who = await scene();
     await openSession(who.personId);
-    await endMembershipAs({ personId: who.board }, who.personId, SALIDA);
+    await endMembershipAs({ personId: who.board, ip: null }, who.personId, SALIDA);
     neighbourFailures = 1;
     await drainOutbox({ expectFailures: [membershipChanged] });
     // Con la baja vigente, el primer intento cerró la sesión de antes.
     expect(await sessionIdsOf(who.personId)).toEqual([]);
 
-    await reactivateMembershipAs({ personId: who.board }, who.personId, { reason: "Fue un error" });
+    await reactivateMembershipAs({ personId: who.board, ip: null }, who.personId, {
+      reason: "Fue un error",
+    });
     await drainOutbox({ expectFailures: [membershipChanged] });
     const back = await openSession(who.personId);
 
@@ -332,7 +343,7 @@ describe("los borrados de la baja toleran el reintento", () => {
 
   it("mientras la baja siga vigente su reintento sigue cerrando sesiones, también la que apareció entre los dos intentos", async () => {
     const who = await scene();
-    await endMembershipAs({ personId: who.board }, who.personId, SALIDA);
+    await endMembershipAs({ personId: who.board, ip: null }, who.personId, SALIDA);
     neighbourFailures = 1;
     await drainOutbox({ expectFailures: [membershipChanged] });
     await openSession(who.personId);
@@ -345,11 +356,11 @@ describe("los borrados de la baja toleran el reintento", () => {
   it("el evento de la baja espera a un alta que se está confirmando y después no borra: quien vuelve antes de que su baja se procese conserva lo que tenía (decisión abierta 44)", async () => {
     const who = await scene();
     await equip(who);
-    await endMembershipAs({ personId: who.board }, who.personId, SALIDA);
+    await endMembershipAs({ personId: who.board, ip: null }, who.personId, SALIDA);
     await warmPool();
 
     // El alta ya escribió y todavía no confirma: tiene el candado del ciclo de membresía.
-    const held = await holdCommand({ personId: who.board }, (ctx) =>
+    const held = await holdCommand({ personId: who.board, ip: null }, (ctx) =>
       reactivateMembership(ctx, who.personId, { reason: "Fue un error" }),
     );
     const draining = drainOutbox();

@@ -69,7 +69,7 @@ describe("encuesta tras la ocasión", () => {
     const pendiente = await seedMember("pendiente.enc@eafit.edu.co");
     await seedCommitteeMembership(ana, committeeId, termId);
     await saveSubscriptionAs(
-      { personId: ana },
+      { personId: ana, ip: null },
       {
         endpoint: "https://fcm.googleapis.com/fcm/send/ana",
         keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) },
@@ -137,15 +137,15 @@ describe("encuesta tras la ocasión", () => {
     expect((await getSurveyInviteForActor(otra, token)).state).toBe("NOT_FOUND");
     const open = await getSurveyInviteForActor(ana, token);
     expect(open.state).toBe("OPEN");
-    const invalid = await answerSurveyAs({ personId: ana }, token, { calif: "9" });
+    const invalid = await answerSurveyAs({ personId: ana, ip: null }, token, { calif: "9" });
     expect(invalid).toEqual({ ok: false, errors: { calif: "T-1171" } });
-    const ok = await answerSurveyAs({ personId: ana }, token, {
+    const ok = await answerSurveyAs({ personId: ana, ip: null }, token, {
       calif: "5",
       comentario: "Muy bien",
     });
     expect(ok).toEqual({ ok: true });
     expect((await getSurveyInviteForActor(ana, token)).state).toBe("ANSWERED");
-    expect(await answerSurveyAs({ personId: ana }, token, { calif: "1" })).toEqual({
+    expect(await answerSurveyAs({ personId: ana, ip: null }, token, { calif: "1" })).toEqual({
       ok: false,
       state: "ANSWERED",
     });

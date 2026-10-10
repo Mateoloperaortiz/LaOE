@@ -85,7 +85,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
     const termId = await seedTerm(currentTermCode());
     const committeeId = await seedCommittee("nuevo-wallet", "Comité nuevo");
     server.calls.length = 0;
-    await setCommitteeMembershipsAs({ personId }, personId, termId, [
+    await setCommitteeMembershipsAs({ personId, ip: null }, personId, termId, [
       { committeeId, roleCode: "MIEMBRO", transferredIn: false },
     ]);
     expect(server.calls).toEqual([]);
@@ -144,7 +144,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
     const personId = await seedMember("wallet-nombre@eafit.edu.co");
     await issueGoogleSaveUrl(personId);
     server.calls.length = 0;
-    await updatePersonAs({ personId }, personId, {
+    await updatePersonAs({ personId, ip: null }, personId, {
       firstName: "Nombre",
       lastName: "Actualizado",
       email: "wallet-nombre@eafit.edu.co",
@@ -268,7 +268,7 @@ describe("wallet por outbox y reconciliación diaria", () => {
     const futureCommittee = await seedCommittee("wallet-futuro", "Comité futuro");
     await seedCommitteeMembership(personId, oldCommittee, firstTerm);
     await issueGoogleSaveUrl(personId);
-    await setCommitteeMembershipsAs({ personId }, personId, nextTerm, [
+    await setCommitteeMembershipsAs({ personId, ip: null }, personId, nextTerm, [
       { committeeId: futureCommittee, roleCode: "MIEMBRO", transferredIn: false },
     ]);
     await drainOutbox();

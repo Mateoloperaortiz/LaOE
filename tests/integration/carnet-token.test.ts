@@ -29,9 +29,11 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { truncateAll } from "./db";
 import { leaveUntilSoon, seedMember, seedPerson } from "./factories";
 
-function actorFor(personId: string, isAdmin = false): Actor {
+/** La sesión como la entrega `sessionActorContext`: con la IP del request, que acá no hay. */
+function actorFor(personId: string, isAdmin = false): Actor & { ip: string | null } {
   return {
     personId,
+    ip: null,
     sessionId: "sesion-sintetica",
     email: "sintetica@eafit.edu.co",
     name: "Persona",

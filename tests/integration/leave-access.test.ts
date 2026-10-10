@@ -81,7 +81,7 @@ describe("consulta de Mi OE en licencia", () => {
       evaluatedGroups: [],
     });
     expect(await db().select().from(permission)).toHaveLength(3);
-    await runCommand(actor, (ctx) =>
+    await runCommand({ personId: actor.personId, ip: null }, (ctx) =>
       updateOwnContact(ctx, personId, { phone: "3001234567", personalEmail: "propia@example.com" }),
     );
     expect(await getPersonRecord(personId)).toMatchObject({
@@ -106,20 +106,25 @@ describe("consulta de Mi OE en licencia", () => {
     const termId = await seedTerm();
     const target = await seedOccasion(termId);
     await onLeave(personId);
-    expect(await checkInSelfAs({ personId }, { publicId: target.publicId })).toMatchObject({
+    expect(
+      await checkInSelfAs({ personId, ip: null }, { publicId: target.publicId }),
+    ).toMatchObject({
       ok: false,
       reason: "NOT_ELIGIBLE",
     });
     await expect(
       hostCheckInAs(
-        { personId: host },
+        { personId: host, ip: null },
         { occasionId: target.id, personId, personName: "Persona", source: "HOST" },
       ),
     ).rejects.toBeInstanceOf(DomainError);
-    expect(await startWordleAs({ personId })).toMatchObject({ ok: false, reason: "NOT_ELIGIBLE" });
+    expect(await startWordleAs({ personId, ip: null })).toMatchObject({
+      ok: false,
+      reason: "NOT_ELIGIBLE",
+    });
     const [step] = await requireConfig("onboarding.steps");
     if (!step) throw new Error("Sin pasos de onboarding");
-    expect(await markOnboardingStepAs({ personId }, termId, step.key)).toBe(false);
+    expect(await markOnboardingStepAs({ personId, ip: null }, termId, step.key)).toBe(false);
     expect(await db().select().from(onboardingProgress)).toHaveLength(0);
     expect(await db().select().from(pointEntry)).toHaveLength(0);
   });
@@ -147,7 +152,9 @@ describe("consulta de Mi OE en licencia", () => {
     for (const slug of ["solo-miembros", "publico-licencia"]) {
       const view = await getPublicForm(slug);
       if (!view) throw new Error("Sin formulario");
-      expect(await submitFormAs(actor, view, { answers: {}, consent: false })).toMatchObject({
+      expect(
+        await submitFormAs(actor, view, { answers: {}, consent: false, ip: null }),
+      ).toMatchObject({
         ok: false,
         code: "INVALID",
       });
@@ -157,11 +164,12 @@ describe("consulta de Mi OE en licencia", () => {
             identity: { firstName: "Persona", lastName: "Sintética", email: actor.email },
             answers: {},
             consent: false,
+            ip: null,
           }),
         ).toMatchObject({ ok: false, code: "INVALID" });
       }
     }
-    expect(await answerSurveyAs({ personId }, token, {})).toMatchObject({
+    expect(await answerSurveyAs({ personId, ip: null }, token, {})).toMatchObject({
       ok: false,
       state: "NOT_FOUND",
     });

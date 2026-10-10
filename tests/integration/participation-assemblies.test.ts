@@ -72,8 +72,8 @@ describe("asambleas", () => {
     expect(before.compliance.compliant).toBe(false);
     expect(before.assemblies.map((item) => item.status)).toEqual([null, null]);
 
-    await checkInSelfAs({ personId }, { publicId: ordinary.publicId });
-    await checkInSelfAs({ personId }, { publicId: election.publicId });
+    await checkInSelfAs({ personId, ip: null }, { publicId: ordinary.publicId });
+    await checkInSelfAs({ personId, ip: null }, { publicId: election.publicId });
     const after = await assemblyStatusFor(personId, current);
     expect(after.compliance.ordinaryAttended).toBe(1);
     expect(after.compliance.boardElectionAttended).toBe(true);
@@ -83,7 +83,7 @@ describe("asambleas", () => {
     // Ajuste: exige dos ordinarias; deja de cumplir. Vuelve a ajustar sin duplicar filas.
     await expect(
       adjustRequirementAs(
-        { personId },
+        { personId, ip: null },
         {
           termId,
           personId,
@@ -95,7 +95,7 @@ describe("asambleas", () => {
       ),
     ).rejects.toThrow(t("T-628"));
     await adjustRequirementAs(
-      { personId },
+      { personId, ip: null },
       {
         termId,
         personId,
@@ -148,16 +148,16 @@ describe("asambleas", () => {
     const committeeId = await seedCommittee("c1");
     await seedCommitteeMembership(nueva, committeeId, termId);
     const open = await seedOccasion(termId, { points: 10, title: "Abierta" });
-    await checkInSelfAs({ personId: nueva }, { publicId: open.publicId });
+    await checkInSelfAs({ personId: nueva, ip: null }, { publicId: open.publicId });
     await adjustPointsAs(
-      { personId: admin },
+      { personId: admin, ip: null },
       { personId: veterano, termId, points: 25, reason: "bono" },
     );
 
-    await expect(closeTermPointsAs({ personId: admin }, termId)).rejects.toThrow(
+    await expect(closeTermPointsAs({ personId: admin, ip: null }, termId)).rejects.toThrow(
       t("T-646", { n: 1 }),
     );
-    await closeOccasionAs({ personId: admin }, open.id);
+    await closeOccasionAs({ personId: admin, ip: null }, open.id);
     await drainOutbox();
     const summary = await closingSummary(termId);
     expect(summary).toEqual({
@@ -169,7 +169,7 @@ describe("asambleas", () => {
       pointsAwarded: 35,
     });
 
-    await closeTermPointsAs({ personId: admin }, termId);
+    await closeTermPointsAs({ personId: admin, ip: null }, termId);
     expect((await termRow(termId)).pointsClosedAt).toBeInstanceOf(Date);
     const standing = await getTermStanding(termId);
     if (!standing) throw new Error("sin standing");
@@ -193,9 +193,14 @@ describe("asambleas", () => {
       .where(eq(outbox.eventType, "term.points-closed"));
     expect(events).toHaveLength(1);
 
-    await expect(closeTermPointsAs({ personId: admin }, termId)).rejects.toThrow(t("T-629"));
+    await expect(closeTermPointsAs({ personId: admin, ip: null }, termId)).rejects.toThrow(
+      t("T-629"),
+    );
     await expect(
-      adjustPointsAs({ personId: admin }, { personId: nueva, termId, points: 5, reason: "tarde" }),
+      adjustPointsAs(
+        { personId: admin, ip: null },
+        { personId: nueva, termId, points: 5, reason: "tarde" },
+      ),
     ).rejects.toThrow(t("T-629"));
     const closedOccasion = await getOccasion(open.id);
     expect(closedOccasion?.status).toBe("CLOSED");

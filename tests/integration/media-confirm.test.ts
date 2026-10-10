@@ -60,7 +60,7 @@ describe("confirmar un medio", () => {
     for (const check of [undefined, null, {}, { lockOwner: "sí" }]) {
       await expect(
         confirmUploadAs(
-          { personId: member },
+          { personId: member, ip: null },
           { key: mediaKey, filename: "medio.png", visibility: "PUBLIC", purpose: "media" },
           ADMIN,
           check as never,
@@ -68,7 +68,7 @@ describe("confirmar un medio", () => {
       ).rejects.toThrow(MISSING_OWNER_CHECK);
       await expect(
         confirmUploadAs(
-          { personId: member },
+          { personId: member, ip: null },
           { key: photoKey, filename: "yo.png", visibility: "PRIVATE", purpose: "photo" },
           SELF,
           check as never,
@@ -85,7 +85,7 @@ describe("confirmar un medio", () => {
     for (const answer of [undefined, {}, { anonymized: "no" }, "viva"]) {
       await expect(
         confirmUploadAs(
-          { personId: member },
+          { personId: member, ip: null },
           { key: photoKey, filename: "yo.png", visibility: "PRIVATE", purpose: "photo" },
           SELF,
           { lockOwner: () => Promise.resolve(answer as never) },
@@ -107,7 +107,7 @@ describe("confirmar un medio", () => {
 
     await expect(
       confirmUploadAs(
-        { personId: member },
+        { personId: member, ip: null },
         { key, filename: "colada.png", visibility: "PUBLIC", purpose: "photo" },
         SELF,
         ownerCheck,
@@ -123,7 +123,7 @@ describe("confirmar un medio", () => {
 
     await expect(
       confirmUploadAs(
-        { personId: member },
+        { personId: member, ip: null },
         { key, filename: "directa.png", visibility: "PUBLIC", purpose: "media" },
         SELF,
         ownerCheck,
@@ -139,7 +139,7 @@ describe("confirmar un medio", () => {
 
     await expect(
       confirmUploadAs(
-        { personId: admin },
+        { personId: admin, ip: null },
         { key: mediaKey, filename: "medio.png", visibility: "PUBLIC", purpose: "photo" },
         ADMIN,
         ownerCheck,
@@ -147,7 +147,7 @@ describe("confirmar un medio", () => {
     ).rejects.toMatchObject(rejected);
     await expect(
       confirmUploadAs(
-        { personId: admin },
+        { personId: admin, ip: null },
         { key: photoKey, filename: "foto.png", visibility: "PUBLIC", purpose: "media" },
         ADMIN,
         ownerCheck,
@@ -174,10 +174,10 @@ describe("confirmar un medio", () => {
       "ADMIN",
     ]) {
       await expect(
-        confirmUploadAs({ personId: admin }, media as never, scope as never, ownerCheck),
+        confirmUploadAs({ personId: admin, ip: null }, media as never, scope as never, ownerCheck),
       ).rejects.toMatchObject(rejected);
       await expect(
-        confirmUploadAs({ personId: admin }, photo as never, scope as never, ownerCheck),
+        confirmUploadAs({ personId: admin, ip: null }, photo as never, scope as never, ownerCheck),
       ).rejects.toMatchObject(rejected);
     }
     await expectNothingConfirmed(mediaKey);
@@ -191,7 +191,7 @@ describe("confirmar un medio", () => {
     for (const purpose of [undefined, "", "MEDIA", "uploads"]) {
       await expect(
         confirmUploadAs(
-          { personId: admin },
+          { personId: admin, ip: null },
           { key, filename: "medio.png", visibility: "PUBLIC", purpose } as never,
           ADMIN,
           ownerCheck,
@@ -209,7 +209,7 @@ describe("confirmar un medio", () => {
     for (const scope of [SELF, ADMIN]) {
       await expect(
         confirmUploadAs(
-          { personId: other },
+          { personId: other, ip: null },
           { key, filename: "ajena.png", visibility: "PRIVATE", purpose: "photo" },
           scope,
           ownerCheck,
@@ -224,7 +224,7 @@ describe("confirmar un medio", () => {
     const key = await store("photo", member);
 
     const { id } = await confirmUploadAs(
-      { personId: member },
+      { personId: member, ip: null },
       { key, filename: "yo.png", visibility: "PUBLIC", purpose: "photo" },
       SELF,
       ownerCheck,
@@ -244,13 +244,13 @@ describe("confirmar un medio", () => {
     const photoKey = await store("photo", admin);
 
     const media = await confirmUploadAs(
-      { personId: admin },
+      { personId: admin, ip: null },
       { key: mediaKey, filename: "portada.png", visibility: "PUBLIC", purpose: "media" },
       ADMIN,
       ownerCheck,
     );
     const photo = await confirmUploadAs(
-      { personId: admin },
+      { personId: admin, ip: null },
       { key: photoKey, filename: "yo.png", visibility: "PUBLIC", purpose: "photo" },
       ADMIN,
       ownerCheck,

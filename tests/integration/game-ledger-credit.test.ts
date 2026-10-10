@@ -97,10 +97,13 @@ function playOut(seed: string): { state: Game2048State; moves: string } {
 
 /** Empieza el Panal de hoy, encuentra todas sus palabras y devuelve la partida guardada. */
 async function completePanal(personId: string) {
-  const started = await startPanalAs({ personId }, dayKeyFor(new Date()));
+  const started = await startPanalAs({ personId, ip: null }, dayKeyFor(new Date()));
   if (!started.ok) throw new Error(started.reason);
   for (const word of panalPuzzleForDay(started.game.day).words) {
-    const result = await submitPanalWordAs({ personId }, { gameId: started.game.id, word });
+    const result = await submitPanalWordAs(
+      { personId, ip: null },
+      { gameId: started.game.id, word },
+    );
     expect(result).toMatchObject({ ok: true, added: true });
   }
   const [row] = await db().select().from(panalGame).where(eq(panalGame.id, started.game.id));
@@ -119,14 +122,14 @@ afterAll(closeDb);
 describe("lo que cada juego deja en el ledger", () => {
   it("el Wordle acertado al segundo intento deja una fila WORDLE ligada a su partida, con el premio de ese intento y el motivo T-1261", async () => {
     const personId = await seedMember("libro.wordle@eafit.edu.co");
-    const started = await startWordleAs({ personId });
+    const started = await startWordleAs({ personId, ip: null });
     if (!started.ok) throw new Error(started.reason);
     const [game] = await db().select().from(wordleGame).where(eq(wordleGame.id, started.game.id));
     if (!game) throw new Error("Partida de prueba ausente");
     const wrong = WORDLE_ANSWERS.find((word) => word !== game.answer) ?? "";
     const submit = (guess: string, expectedAttempt: number) =>
       submitWordleGuessAs(
-        { personId },
+        { personId, ip: null },
         { gameId: game.id, guess, expectedAttempt, requestId: randomUUID() },
       );
     expect(await submit(wrong, 1)).toMatchObject({ ok: true, game: { status: "IN_PROGRESS" } });
@@ -150,7 +153,7 @@ describe("lo que cada juego deja en el ledger", () => {
 
   it("el 2048 que pasa el umbral deja una fila GAME2048 ligada a su partida, con el premio del puntaje rejugado y el motivo T-2654", async () => {
     const personId = await seedMember("libro.g2048@eafit.edu.co");
-    const started = await startGame2048As({ personId }, { requestId: randomUUID() });
+    const started = await startGame2048As({ personId, ip: null }, { requestId: randomUUID() });
     if (!started.ok) throw new Error(started.reason);
     // El cierre rejuega con la semilla guardada: se le pone la fija para que acredite siempre.
     const [run] = await db()
@@ -163,7 +166,10 @@ describe("lo que cada juego deja en el ledger", () => {
     const points = game2048Reward(state.score);
     expect(points).toBeGreaterThan(0);
     expect(
-      await finishGame2048As({ personId }, { runId: run.id, moves, requestId: randomUUID() }),
+      await finishGame2048As(
+        { personId, ip: null },
+        { runId: run.id, moves, requestId: randomUUID() },
+      ),
     ).toMatchObject({ ok: true, run: { status: "FINISHED", score: state.score, points } });
 
     expect(await entries()).toEqual([
@@ -181,7 +187,7 @@ describe("lo que cada juego deja en el ledger", () => {
   it("el Sudoku difícil resuelto con ayudas deja una fila SUDOKU ligada a su partida, con la mitad del premio y la segunda mitad del motivo T-2712", async () => {
     const personId = await seedMember("libro.sudoku@eafit.edu.co");
     const started = await startSudokuAs(
-      { personId },
+      { personId, ip: null },
       { requestId: randomUUID(), difficulty: "HARD", assisted: true },
     );
     if (!started.ok) throw new Error(started.reason);
@@ -189,7 +195,7 @@ describe("lo que cada juego deja en el ledger", () => {
     if (!run) throw new Error("Partida de prueba ausente");
     expect(
       await finishSudokuAs(
-        { personId },
+        { personId, ip: null },
         { runId: run.id, grid: run.solution, requestId: randomUUID() },
       ),
     ).toMatchObject({ ok: true, run: { status: "SOLVED", points: 3 } });

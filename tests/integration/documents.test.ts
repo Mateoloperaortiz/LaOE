@@ -139,7 +139,7 @@ describe("normativa", () => {
     const adminId = await seedMember("admin@eafit.edu.co");
     const pdf = sampleNormativaPdf();
     const key = await uploadPdf(pdf);
-    const { id } = await runCommand({ personId: adminId }, (ctx) =>
+    const { id } = await runCommand({ personId: adminId, ip: null }, (ctx) =>
       confirmDocument(ctx, {
         key,
         filename: "estatutos-prueba.pdf",
@@ -158,13 +158,13 @@ describe("normativa", () => {
     });
     expect(listed.rows[0]?.sha256).toMatch(/^[a-f0-9]{64}$/);
 
-    const loaded = await runCommand({ personId: adminId }, (ctx) =>
+    const loaded = await runCommand({ personId: adminId, ip: null }, (ctx) =>
       replaceArticles(ctx, id, articles()),
     );
     expect(loaded).toBe(3);
     // Atómico: si algo falla después de reemplazar, los tres artículos anteriores siguen ahí.
     await expect(
-      runCommand({ personId: adminId }, async (ctx) => {
+      runCommand({ personId: adminId, ip: null }, async (ctx) => {
         await replaceArticles(ctx, id, {
           ...articles(),
           articles: articles().articles.slice(0, 1),
@@ -189,7 +189,7 @@ describe("normativa", () => {
       302,
     );
 
-    await runCommand({ personId: adminId }, (ctx) => publishDocument(ctx, id));
+    await runCommand({ personId: adminId, ip: null }, (ctx) => publishDocument(ctx, id));
     const published = await listPublishedDocuments();
     expect(published.map((row) => [row.id, row.articleCount])).toEqual([[id, 3]]);
     const detail = await getPublishedDocumentWithArticles(id);
@@ -210,7 +210,7 @@ describe("normativa", () => {
       expect(redirect.url).toContain(key);
     }
 
-    await runCommand({ personId: adminId }, (ctx) => unpublishDocument(ctx, id));
+    await runCommand({ personId: adminId, ip: null }, (ctx) => unpublishDocument(ctx, id));
     expect(await listPublishedDocuments()).toEqual([]);
   });
 

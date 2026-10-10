@@ -62,10 +62,12 @@ function row(firstName: string, email: string): string {
 }
 
 /** Un admin, el comité del archivo y una vista previa con esas filas. */
-async function previewOf(lines: string[]): Promise<{ admin: { personId: string }; jobId: string }> {
+async function previewOf(
+  lines: string[],
+): Promise<{ admin: { personId: string; ip: null }; jobId: string }> {
   const termId = await seedTerm();
   await seedCommittee("a3");
-  const admin = { personId: await seedMember("admin.importa@eafit.edu.co") };
+  const admin = { personId: await seedMember("admin.importa@eafit.edu.co"), ip: null };
   const bytes = new TextEncoder().encode(`${[HEADER, ...lines].join("\r\n")}\r\n`);
   const { jobId } = await createRosterPreviewAs(admin, {
     filename: "roster.csv",
@@ -543,7 +545,7 @@ describe("una importación que no es del roster no existe para el roster", () =>
   /** Un trabajo como el que deja la importación de asistencias de GH Points (`scripts/lib/ghpoints-db.ts`). */
   async function attendanceJob(status: "PREVIEW" | "APPLIED") {
     const termId = await seedTerm();
-    const admin = { personId: await seedMember("admin.importa@eafit.edu.co") };
+    const admin = { personId: await seedMember("admin.importa@eafit.edu.co"), ip: null };
     const { id: jobId } = await runCommand(admin, async (ctx) => {
       const job = await createImportJob(ctx, {
         type: "GHPOINTS_ATTENDANCE",

@@ -308,7 +308,7 @@ describe("registro propio: lo que responde el comando y lo que muestra la pantal
     // La pantalla primero: todavía no hay asistencia y no escribe nada.
     expect(await shown(row.publicId), "pantalla").toBe(item.pantalla(row.checkInOpensAt));
 
-    const result = await checkInSelfAs({ personId }, { publicId: row.publicId });
+    const result = await checkInSelfAs({ personId, ip: null }, { publicId: row.publicId });
     expect(result.ok ? "ok" : result.reason, "comando").toBe(item.comando);
     if (!result.ok && result.reason === "NOT_OPEN_YET") {
       expect(result.opensAt).toEqual(row.checkInOpensAt);
@@ -322,7 +322,7 @@ describe("registro propio: lo que responde el comando y lo que muestra la pantal
     session = { personId, status: "ACTIVE" };
 
     expect(await shown("zzzzzzzzzz")).toBe(t("T-527"));
-    expect(await checkInSelfAs({ personId }, { publicId: "zzzzzzzzzz" })).toEqual({
+    expect(await checkInSelfAs({ personId, ip: null }, { publicId: "zzzzzzzzzz" })).toEqual({
       ok: false,
       reason: "NOT_FOUND",
     });
@@ -335,11 +335,11 @@ describe("registro propio: lo que responde el comando y lo que muestra la pantal
       comando: "ok",
       pantalla: formulario,
     });
-    expect((await checkInSelfAs({ personId }, { publicId: row.publicId })).ok).toBe(true);
+    expect((await checkInSelfAs({ personId, ip: null }, { publicId: row.publicId })).ok).toBe(true);
     await db().update(occasion).set({ status: "CLOSED" }).where(eq(occasion.id, row.id));
 
     expect(await shown(row.publicId)).toBe(t("T-095"));
-    const again = await checkInSelfAs({ personId }, { publicId: row.publicId });
+    const again = await checkInSelfAs({ personId, ip: null }, { publicId: row.publicId });
     expect(again.ok ? "ok" : again.reason).toBe("ALREADY");
   });
 

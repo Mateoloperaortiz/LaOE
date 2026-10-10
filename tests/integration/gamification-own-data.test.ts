@@ -149,19 +149,19 @@ describe("mis datos: gamificación", () => {
     currentPerson = personId;
     // Una resuelta con ayudas y otra abierta: ni la abierta lleva su tablero a la exportación.
     const resuelta = await startSudokuAs(
-      { personId },
+      { personId, ip: null },
       { requestId: randomUUID(), difficulty: "EASY", assisted: true },
     );
     if (!resuelta.ok) throw new Error(resuelta.reason);
     const [fila] = await db().select().from(sudokuRun).where(eq(sudokuRun.id, resuelta.run.id));
     if (!fila) throw new Error("Partida de prueba ausente");
     const cierre = await finishSudokuAs(
-      { personId },
+      { personId, ip: null },
       { runId: fila.id, grid: fila.solution, requestId: randomUUID() },
     );
     expect(cierre.ok).toBe(true);
     const abierta = await startSudokuAs(
-      { personId },
+      { personId, ip: null },
       { requestId: randomUUID(), difficulty: "HARD", assisted: true },
     );
     if (!abierta.ok) throw new Error(abierta.reason);

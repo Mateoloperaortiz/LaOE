@@ -21,8 +21,8 @@ import { seedMember, seedTerm } from "./factories";
 // Los jurados de The Challenge (ADR-103): cada jurado por aparte, el orden con el promedio y, sobre
 // todo, que las notas no toquen el libro.
 
-const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true });
-const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false });
+const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true, ip: null });
+const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false, ip: null });
 
 async function seedChallenge(slug = "the-games-2026") {
   await seedTerm();

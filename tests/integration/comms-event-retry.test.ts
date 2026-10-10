@@ -145,7 +145,7 @@ describe("correos de un evento que el poller reintenta", () => {
   it("la respuesta a una solicitud llega una sola vez, por correo y por push, aunque el evento se reintente", async () => {
     const { personId, actor } = await activeMember("licencia@eafit.edu.co");
     await saveSubscriptionAs(
-      { personId },
+      { personId, ip: null },
       { endpoint: DEVICE, keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
       null,
     );
@@ -196,12 +196,12 @@ describe("correos de un evento que el poller reintenta", () => {
   it("el aviso del enlace de acceso llega una sola vez aunque el evento se reintente, y un enlace nuevo avisa otra vez", async () => {
     const { personId } = await activeMember("enlace@eafit.edu.co");
     await saveSubscriptionAs(
-      { personId },
+      { personId, ip: null },
       { endpoint: DEVICE, keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
       null,
     );
     const junta = await seedMember("junta@eafit.edu.co");
-    await issueAccessGrantAs({ personId: junta }, { personId, kind: "ACTIVATION" });
+    await issueAccessGrantAs({ personId: junta, ip: null }, { personId, kind: "ACTIVATION" });
 
     neighbourFailures = 1;
     await drainOutbox({ expectFailures: [accessGrantIssued] });
@@ -220,7 +220,7 @@ describe("correos de un evento que el poller reintenta", () => {
     });
 
     // Otro enlace para la misma persona es otro evento: avisa otra vez.
-    await issueAccessGrantAs({ personId: junta }, { personId, kind: "RECOVERY" });
+    await issueAccessGrantAs({ personId: junta, ip: null }, { personId, kind: "RECOVERY" });
     const second = await drainOutbox({ now: afterBackoff() });
     expect(second.failed).toBe(0);
     expect(pushes).toEqual([DEVICE, DEVICE]);
@@ -233,7 +233,7 @@ describe("correos de un evento que el poller reintenta", () => {
   it("un evento del enlace de acceso que llegue sin id no avisa y falla, en vez de dejar una clave que taparía los avisos siguientes", async () => {
     const { personId } = await activeMember("sin.id@eafit.edu.co");
     await saveSubscriptionAs(
-      { personId },
+      { personId, ip: null },
       { endpoint: DEVICE, keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
       null,
     );
@@ -258,7 +258,7 @@ describe("correos de un evento que el poller reintenta", () => {
   it("un aviso del enlace que el servicio de push rechazó queda fallido y el reintento del evento no lo vuelve a intentar", async () => {
     const { personId } = await activeMember("rechazo@eafit.edu.co");
     await saveSubscriptionAs(
-      { personId },
+      { personId, ip: null },
       { endpoint: DEVICE, keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
       null,
     );
@@ -273,7 +273,7 @@ describe("correos de un evento que el poller reintenta", () => {
       return { ok: true, statusCode: 201 };
     });
     const junta = await seedMember("junta@eafit.edu.co");
-    await issueAccessGrantAs({ personId: junta }, { personId, kind: "ACTIVATION" });
+    await issueAccessGrantAs({ personId: junta, ip: null }, { personId, kind: "ACTIVATION" });
 
     neighbourFailures = 1;
     const { lines } = await captureLogs(() => drainOutbox({ expectFailures: [accessGrantIssued] }));

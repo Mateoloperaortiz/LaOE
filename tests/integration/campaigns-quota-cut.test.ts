@@ -494,7 +494,7 @@ describe("levantar el corte por cuota (ADR-116 regla 19)", () => {
     const audits = (await configAudits()).length;
 
     await expect(
-      liftCampaignQuotaCutAs({ personId: someone }, scope as never, after(5)),
+      liftCampaignQuotaCutAs({ personId: someone, ip: null }, scope as never, after(5)),
     ).rejects.toThrow(t("T-032"));
 
     expect(await getConfig(KEY)).toMatchObject({ reason: "DAILY" });
@@ -519,15 +519,17 @@ describe("levantar el corte por cuota (ADR-116 regla 19)", () => {
     const [admin] = people;
     if (!admin) throw new Error("seed people");
 
-    expect(await liftCampaignQuotaCutAs({ personId: admin }, { by: "ADMIN" }, NIGHT)).toBe(false);
+    expect(
+      await liftCampaignQuotaCutAs({ personId: admin, ip: null }, { by: "ADMIN" }, NIGHT),
+    ).toBe(false);
 
     // Tampoco con uno que ya venció: el de ayer ya no detiene a nadie.
     rejectSecondWith(daily());
     await runCampaignTick(NIGHT);
     const audits = (await configAudits()).length;
-    expect(await liftCampaignQuotaCutAs({ personId: admin }, { by: "ADMIN" }, MIDNIGHT)).toBe(
-      false,
-    );
+    expect(
+      await liftCampaignQuotaCutAs({ personId: admin, ip: null }, { by: "ADMIN" }, MIDNIGHT),
+    ).toBe(false);
     expect(await getConfig(KEY)).toMatchObject({ reason: "DAILY" });
     expect(await configAudits()).toHaveLength(audits);
   });
@@ -545,7 +547,7 @@ describe("levantar el corte por cuota (ADR-116 regla 19)", () => {
       return `resend_${call}`;
     });
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
-    await liftCampaignQuotaCutAs({ personId: admin }, { by: "ADMIN" }, after(5));
+    await liftCampaignQuotaCutAs({ personId: admin, ip: null }, { by: "ADMIN" }, after(5));
 
     expect(await runCampaignTick(after(6))).toEqual({ started: 0, sent: 0 });
 

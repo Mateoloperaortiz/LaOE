@@ -30,7 +30,11 @@ const NOT_DELIVERED = "push sin entregar";
 const db = () => getDb();
 const device = (name: string) => `https://fcm.googleapis.com/fcm/send/credencial-${name}`;
 const subscribe = (personId: string, name: string) =>
-  saveSubscriptionAs({ personId }, { endpoint: device(name), keys: KEYS }, "Chrome/140 Android");
+  saveSubscriptionAs(
+    { personId, ip: null },
+    { endpoint: device(name), keys: KEYS },
+    "Chrome/140 Android",
+  );
 
 function request(personIds: string[], dedupeKey = "announcement:rechazo"): NotificationRequested {
   return {

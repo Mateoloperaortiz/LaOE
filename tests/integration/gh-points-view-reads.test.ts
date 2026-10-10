@@ -93,7 +93,10 @@ async function seedBoards(): Promise<Cast> {
   const termId = await seedTerm();
   const admin = await seedVeteran("admin@test.dev", { firstName: "Admin", lastName: "Veterano" });
   const give = (personId: string, points: number) =>
-    adjustPointsAs({ personId: admin }, { personId, termId, points, reason: "bono de prueba" });
+    adjustPointsAs(
+      { personId: admin, ip: null },
+      { personId, termId, points, reason: "bono de prueba" },
+    );
   const nuevos: string[] = [];
   for (const [index, points] of [90, 90, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25].entries()) {
     const personId = await seedMember(`nuevo${index}@test.dev`, {
@@ -343,7 +346,7 @@ describe("GH Points: cuánto lee la vista (DT-224)", () => {
     expect(shown(await render(personId)).puesto).toBe(3);
 
     await adjustPointsAs(
-      { personId: cast.veteranas[0] ?? "" },
+      { personId: cast.veteranas[0] ?? "", ip: null },
       { personId, termId: cast.termId, points: 100, reason: "bono de prueba" },
     );
 

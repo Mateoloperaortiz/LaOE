@@ -61,7 +61,7 @@ const db = () => getDb();
 /** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 
 async function enableGamification(personId: string): Promise<void> {
-  await setConfigAs({ personId }, "gamification.enabled", true);
+  await setConfigAs({ personId, ip: null }, "gamification.enabled", true);
 }
 
 async function achievementsOf(personId: string) {
@@ -318,7 +318,7 @@ describe("insignias: desbloqueo y revocación", () => {
     await recomputeBadgesFor(personId, { historical: false });
 
     await decideCheckInAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       { checkInId, decision: "CANCEL", reason: "error de registro" },
     );
     const delta = await recomputeBadgesFor(personId, { historical: false });
@@ -349,7 +349,7 @@ describe("insignias: desbloqueo y revocación", () => {
       .where(eq(boosterItem.id, booster?.id ?? ""));
 
     await decideCheckInAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       { checkInId, decision: "CANCEL", reason: "error de registro" },
     );
     const delta = await recomputeBadgesFor(personId, { historical: false });
@@ -401,7 +401,7 @@ describe("insignias: destacadas, vistas y colección", () => {
     expect(logros).toHaveLength(4);
 
     for (const logro of logros.slice(0, 3)) {
-      await runCommand({ personId }, (ctx) =>
+      await runCommand({ personId, ip: null }, (ctx) =>
         setFeatured(ctx, { personId, achievementId: logro.id, featured: true }),
       );
     }
@@ -414,16 +414,16 @@ describe("insignias: destacadas, vistas y colección", () => {
     expect(posiciones).toEqual([1, 2, 3]);
 
     await expect(
-      runCommand({ personId }, (ctx) =>
+      runCommand({ personId, ip: null }, (ctx) =>
         setFeatured(ctx, { personId, achievementId: logros[3]?.id ?? "", featured: true }),
       ),
     ).rejects.toMatchObject({ message: expect.stringContaining(t("T-2493")) });
 
     // Quitar una libera su posición y la cuarta la puede ocupar.
-    await runCommand({ personId }, (ctx) =>
+    await runCommand({ personId, ip: null }, (ctx) =>
       setFeatured(ctx, { personId, achievementId: logros[0]?.id ?? "", featured: false }),
     );
-    await runCommand({ personId }, (ctx) =>
+    await runCommand({ personId, ip: null }, (ctx) =>
       setFeatured(ctx, { personId, achievementId: logros[3]?.id ?? "", featured: true }),
     );
     expect((await listFeaturedBadgesFor([personId])).get(personId)).toHaveLength(3);
@@ -444,7 +444,7 @@ describe("insignias: destacadas, vistas y colección", () => {
     expect(enParche?.levels[0]?.achievement?.id).toBe(logro?.id);
     expect(enParche?.levels[0]?.origin).not.toBe("");
 
-    await runCommand({ personId }, (ctx) => markSeen(ctx, personId, [logro?.id ?? ""]));
+    await runCommand({ personId, ip: null }, (ctx) => markSeen(ctx, personId, [logro?.id ?? ""]));
     collection = await collectionFor(personId);
     expect(collection.unseen).toHaveLength(0);
     const [after] = await achievementsOf(personId);
@@ -469,7 +469,7 @@ describe("ediciones especiales", () => {
     await seedCheckIn(occ.id, ausente, "REJECTED");
 
     const { id } = await createSpecialBadgeAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       {
         name: "Edición relámpago",
         description: "La primera edición de prueba",
@@ -505,7 +505,7 @@ describe("ediciones especiales", () => {
     });
     await seedCheckIn(occ.id, asistente);
     await createSpecialBadgeAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       {
         name: "Especial de cierre",
         description: "",
@@ -545,7 +545,7 @@ describe("flujo en vivo por el outbox", () => {
     const personId = await seedMember("flujo1@test.dev");
     await enableGamification(personId);
     await saveSubscriptionAs(
-      { personId },
+      { personId, ip: null },
       {
         endpoint: "https://fcm.googleapis.com/fcm/send/flujo1",
         keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) },
@@ -554,7 +554,7 @@ describe("flujo en vivo por el outbox", () => {
     );
     const occ = await seedOccasion(termId, { points: 10, title: "Actividad del parche" });
 
-    const result = await checkInSelfAs({ personId }, { publicId: occ.publicId });
+    const result = await checkInSelfAs({ personId, ip: null }, { publicId: occ.publicId });
     expect(result.ok).toBe(true);
     await drainOutbox();
 
@@ -631,12 +631,12 @@ describe("flujo en vivo por el outbox", () => {
       .where(eq(membership.personId, veterano));
     const keys = () => ({ p256dh: "p".repeat(32), auth: "a".repeat(16) });
     await saveSubscriptionAs(
-      { personId: nuevo },
+      { personId: nuevo, ip: null },
       { endpoint: "https://fcm.googleapis.com/fcm/send/nuevo", keys: keys() },
       null,
     );
     await saveSubscriptionAs(
-      { personId: veterano },
+      { personId: veterano, ip: null },
       { endpoint: "https://fcm.googleapis.com/fcm/send/viejo", keys: keys() },
       null,
     );
@@ -647,7 +647,7 @@ describe("flujo en vivo por el outbox", () => {
       .update(challengeTable)
       .set({ status: "DRAFT", publishedAt: null, audience: "NEW" })
       .where(eq(challengeTable.id, challengeId));
-    await publishChallengeAs({ personId: adminId }, challengeId);
+    await publishChallengeAs({ personId: adminId, ip: null }, challengeId);
     await drainOutbox();
 
     const pushNuevo = (await messagesOf(nuevo)).find(
@@ -661,7 +661,7 @@ describe("flujo en vivo por el outbox", () => {
 
     // Completar la trivia: push T-2567 + interacción PARTICIPATION + insignia Relámpago 1.
     const result = await submitTriviaAs(
-      { personId: nuevo },
+      { personId: nuevo, ip: null },
       { challengeId, requestId: randomUUID(), answers: [0] },
     );
     expect(result.ok).toBe(true);
@@ -695,7 +695,7 @@ describe("flujo en vivo por el outbox", () => {
     const adminId = await seedMember("flujo4-admin@test.dev");
     const personId = await seedMember("flujo4@test.dev");
     await saveSubscriptionAs(
-      { personId },
+      { personId, ip: null },
       {
         endpoint: "https://fcm.googleapis.com/fcm/send/flujo4",
         keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) },
@@ -715,7 +715,7 @@ describe("flujo en vivo por el outbox", () => {
       );
 
     await reviewParticipationAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       {
         participationId: pending?.id ?? "",
         decision: "REJECT",

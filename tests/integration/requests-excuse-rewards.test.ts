@@ -34,8 +34,8 @@ async function setup() {
   const termId = await seedTerm();
   const gh = await seedMember("gh.excusa.premio@eafit.edu.co");
   const personId = await seedMember("miembro.excusa.premio@eafit.edu.co");
-  await setConfigAs({ personId: gh }, "gamification.enabled", true);
-  return { termId, personId, admin: { personId: gh }, member: { personId } };
+  await setConfigAs({ personId: gh, ip: null }, "gamification.enabled", true);
+  return { termId, personId, admin: { personId: gh, ip: null }, member: { personId, ip: null } };
 }
 
 type Fixture = Awaited<ReturnType<typeof setup>>;

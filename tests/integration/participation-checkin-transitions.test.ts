@@ -77,8 +77,8 @@ async function setup(approval: "AUTO" | "MANUAL", targeted = true) {
   const termId = await seedTerm();
   const adminId = await seedMember("gh.matriz@eafit.edu.co");
   const personId = await seedMember("miembro.matriz@eafit.edu.co");
-  const admin = { personId: adminId };
-  const member = { personId };
+  const admin = { personId: adminId, ip: null };
+  const member = { personId, ip: null };
   await setConfigAs(admin, "gamification.enabled", true);
   const occasion = await seedOccasion(termId, { title: TITLE, points: POINTS, approval });
   await seedChallenge(termId, {

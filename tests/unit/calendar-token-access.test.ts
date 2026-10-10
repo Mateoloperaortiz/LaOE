@@ -54,9 +54,9 @@ describe("elegibilidad del token del calendario", () => {
     await expect(getOrCreateCalendarToken("persona-sintetica")).rejects.toBeInstanceOf(
       ForbiddenError,
     );
-    await expect(rotateCalendarTokenAs({ personId: "persona-sintetica" })).rejects.toBeInstanceOf(
-      ForbiddenError,
-    );
+    await expect(
+      rotateCalendarTokenAs({ personId: "persona-sintetica", ip: null }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
     expect(state.membership).toHaveBeenLastCalledWith("persona-sintetica");
     // Regenerar decide con la membresía que lee bajo el candado, dentro de su transacción.
     expect(state.lock).toHaveBeenLastCalledWith(state.db, "persona-sintetica");
@@ -69,7 +69,7 @@ describe("elegibilidad del token del calendario", () => {
     state.membership.mockResolvedValue({ status });
     state.lock.mockResolvedValue({ status, anonymizedAt: null });
     expect(await getOrCreateCalendarToken("persona-sintetica")).toBe("enlace-existente");
-    const rotated = await rotateCalendarTokenAs({ personId: "persona-sintetica" });
+    const rotated = await rotateCalendarTokenAs({ personId: "persona-sintetica", ip: null });
     expect(rotated).toMatch(/^[A-Za-z0-9_-]{32}$/);
     expect(state.insert).toHaveBeenCalledOnce();
     expect(state.audit).toHaveBeenCalledWith({
@@ -81,9 +81,9 @@ describe("elegibilidad del token del calendario", () => {
 
   it("una persona anonimizada no regenera su enlace aunque su membresía se lea activa", async () => {
     state.lock.mockResolvedValue({ status: "ACTIVE", anonymizedAt: new Date(0) });
-    await expect(rotateCalendarTokenAs({ personId: "persona-sintetica" })).rejects.toBeInstanceOf(
-      ForbiddenError,
-    );
+    await expect(
+      rotateCalendarTokenAs({ personId: "persona-sintetica", ip: null }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
     expect(state.insert).not.toHaveBeenCalled();
     expect(state.audit).not.toHaveBeenCalled();
   });

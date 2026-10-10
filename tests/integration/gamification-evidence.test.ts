@@ -82,13 +82,13 @@ async function submitAndProcess(
 ) {
   const termId = await seedTerm();
   const personId = await seedMember(input.email);
-  await setConfigAs({ personId }, "gamification.enabled", true);
+  await setConfigAs({ personId, ip: null }, "gamification.enabled", true);
   const challengeId = await seedChallenge(termId, { kind: "EVIDENCE" });
   const key = evidenceKey(personId, input.declaredType, input.fileName);
   keys.push(key);
   await putObject(key, input.bytes, input.declaredType);
   const sent = await submitEvidenceAs(
-    { personId },
+    { personId, ip: null },
     { challengeId, requestId: randomUUID(), text: "Relato sintético de la misión.", keys: [key] },
   );
   expect(sent.ok).toBe(true);

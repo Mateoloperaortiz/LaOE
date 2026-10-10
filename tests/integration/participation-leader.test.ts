@@ -48,7 +48,7 @@ describe("vista de líder, exportes y alias", () => {
     const expected = weeklyDates(first, term.endsOn);
     expect(expected.length).toBeGreaterThan(0);
     const result = await createOccasionSeriesAs(
-      { personId: leader },
+      { personId: leader, ip: null },
       {
         committeeId,
         title: "Reunión semanal",
@@ -72,7 +72,7 @@ describe("vista de líder, exportes y alias", () => {
       ),
     ).toBe(true);
     const again = await createOccasionSeriesAs(
-      { personId: leader },
+      { personId: leader, ip: null },
       {
         committeeId,
         title: "Reunión semanal",
@@ -87,7 +87,7 @@ describe("vista de líder, exportes y alias", () => {
     expect(total?.n).toBe(expected.length);
     await expect(
       createOccasionSeriesAs(
-        { personId: leader },
+        { personId: leader, ip: null },
         {
           committeeId,
           title: "Fuera",
@@ -107,8 +107,8 @@ describe("vista de líder, exportes y alias", () => {
     await seedCommitteeMembership(a, committeeId, termId);
     await seedCommitteeMembership(b, committeeId, termId);
     const { id, publicId } = await seedOccasion(termId, { points: 10, title: "Integración" });
-    await checkInSelfAs({ personId: a }, { publicId });
-    await closeOccasionAs({ personId: a }, id);
+    await checkInSelfAs({ personId: a, ip: null }, { publicId });
+    await closeOccasionAs({ personId: a, ip: null }, id);
     await drainOutbox();
     const scores = await listCommitteeScores(committeeId, termId);
     expect(
@@ -125,9 +125,9 @@ describe("vista de líder, exportes y alias", () => {
       lastName: "Activa",
     });
     const { id, publicId } = await seedOccasion(termId, { points: 10, title: "Charla" });
-    await checkInSelfAs({ personId: socia }, { publicId });
+    await checkInSelfAs({ personId: socia, ip: null }, { publicId });
     await adjustPointsAs(
-      { personId: admin },
+      { personId: admin, ip: null },
       { personId: socia, termId, points: 5, reason: "bono" },
     );
     const params = { q: "", page: 1, pageSize: 100, filters: { termId } };

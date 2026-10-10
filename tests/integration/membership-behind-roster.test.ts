@@ -32,10 +32,10 @@ async function estadoDe(personId: string) {
 
 /** El roster ya dio de baja a la persona y espera la fila siguiente; el comando llega detrás. */
 async function detrasDeLaImportacion(
-  command: (admin: { personId: string }, personId: string) => Promise<unknown>,
+  command: (admin: { personId: string; ip: null }, personId: string) => Promise<unknown>,
 ) {
   const termId = await seedTerm();
-  const admin = { personId: await seedMember("admin.roster@eafit.edu.co") };
+  const admin = { personId: await seedMember("admin.roster@eafit.edu.co"), ip: null };
   const sale = await seedMember(SALE);
   const sigue = await seedMember(SIGUE);
   const bytes = new TextEncoder().encode(

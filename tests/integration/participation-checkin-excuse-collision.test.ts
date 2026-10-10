@@ -24,11 +24,11 @@ describe("la excusa que crea la asistencia a la vez que un registro", () => {
 
   it("aceptar la excusa de quien el organizador está registrando espera y responde que ya tiene asistencia", async () => {
     const termId = await seedTerm();
-    const admin = { personId: await seedMember("gh.uno.choque@eafit.edu.co") };
-    const other = { personId: await seedMember("gh.dos.choque@eafit.edu.co") };
+    const admin = { personId: await seedMember("gh.uno.choque@eafit.edu.co"), ip: null };
+    const other = { personId: await seedMember("gh.dos.choque@eafit.edu.co"), ip: null };
     const personId = await seedMember("miembro.choque@eafit.edu.co");
     const occasion = await seedOccasion(termId, { points: POINTS, approval: "MANUAL" });
-    const request = await createRequestAs({ personId }, "EXCUSE", {
+    const request = await createRequestAs({ personId, ip: null }, "EXCUSE", {
       occasionId: occasion.id,
       cause: "WORK",
       reason: "Turno que no se puede mover",

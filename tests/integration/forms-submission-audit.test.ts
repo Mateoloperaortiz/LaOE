@@ -41,12 +41,13 @@ describe("auditoría de una respuesta a un formulario", () => {
     const result = await submitFormAs({ personId, email, firstName: "Ana" }, view, {
       answers: {},
       consent: false,
+      ip: null,
     });
     if (!result.ok || !result.submissionId) throw new Error("submission");
 
     expect(await receivedAudits()).toEqual([{ submissionId: result.submissionId, personId }]);
 
-    await requestDeletionAs({ personId });
+    await requestDeletionAs({ personId, ip: null });
     await anonymizePersonAs(admin, personId);
     await drainOutbox();
     // El par que volvía a identificar a la persona era su id junto a su correo: ya no se escribe.

@@ -140,7 +140,7 @@ describe("permisos", () => {
       firstName: "Otra",
       lastName: "Persona",
     });
-    const actor = { personId: adminId };
+    const actor = { personId: adminId, ip: null };
     const first = await runCommand(actor, (ctx) =>
       grantPermission(ctx, { email: "Admin@eafit.edu.co", code: "ADMIN" }),
     );

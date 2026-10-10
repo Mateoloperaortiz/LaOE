@@ -103,7 +103,7 @@ async function committeeFixture() {
   await seedCommitteeMembership(member, a3, termId);
   await seedCommitteeMembership(member, pixel, termId);
   const ask = (committeeId: string, reason: string) =>
-    requestCommitteeRemovalAs({ personId: gh }, { committeeId, termId }, director, {
+    requestCommitteeRemovalAs({ personId: gh, ip: null }, { committeeId, termId }, director, {
       personId: member,
       reason,
     });
@@ -168,7 +168,7 @@ afterAll(() => closeDb());
 describe("qué tarea abre cada sitio", () => {
   it("el pedido de borrado abre una tarea de eliminación sin responsable, a nombre de quien la pidió y a los días hábiles de la configuración", async () => {
     const me = await seedMember("borrar@eafit.edu.co", { firstName: "Bea", lastName: "Borrar" });
-    const asked = await requestDeletionAs({ personId: me });
+    const asked = await requestDeletionAs({ personId: me, ip: null });
     await drainOutbox();
 
     const tasks = await tasksOf(eq(task.personId, me));
@@ -358,7 +358,7 @@ describe("una sola tarea abierta por motivo", () => {
     const personId = await expiredLeave();
     await leaveCheck();
     const [first] = await tasksOf(eq(task.personId, personId));
-    await completeTaskAs({ personId: null }, first?.id ?? "");
+    await completeTaskAs({ personId: null, ip: null }, first?.id ?? "");
     await leaveCheck();
     await leaveCheck();
 
@@ -440,7 +440,7 @@ describe("una sola tarea abierta por motivo", () => {
 describe("toda tarea que abre el sistema queda auditada", () => {
   it("la del pedido de borrado, a nombre del sistema", async () => {
     const me = await seedMember("borrar@eafit.edu.co");
-    await requestDeletionAs({ personId: me });
+    await requestDeletionAs({ personId: me, ip: null });
     await drainOutbox();
 
     const [opened] = await tasksOf(eq(task.personId, me));
@@ -449,7 +449,7 @@ describe("toda tarea que abre el sistema queda auditada", () => {
 
   it("la auditoría de una tarea del sistema guarda su motivo y no su título, que nombra a la persona: al anonimizarla, ninguna fila de auditoría conserva su nombre", async () => {
     const me = await seedMember("pide@eafit.edu.co", { firstName: "Bea", lastName: "Borrar" });
-    await requestDeletionAs({ personId: me });
+    await requestDeletionAs({ personId: me, ip: null });
     await drainOutbox();
     const [opened] = await tasksOf(eq(task.personId, me));
     expect(opened?.title).toContain("Bea Borrar");
@@ -527,7 +527,7 @@ describe("las tareas abiertas antes de que existiera la clave", () => {
   it("la de un pedido de borrado se reconoce por persona y tipo: no se abre otra y la vieja no cambia", async () => {
     const me = await seedMember("borrar@eafit.edu.co", { firstName: "Bea", lastName: "Borrar" });
     const old = await oldTask({ title: "Un título viejo", kind: "DELETION_REQUEST", personId: me });
-    await requestDeletionAs({ personId: me });
+    await requestDeletionAs({ personId: me, ip: null });
     await drainOutbox();
 
     const tasks = await tasksOf(eq(task.personId, me));
@@ -577,7 +577,7 @@ describe("las tareas abiertas antes de que existiera la clave", () => {
   it("una vieja ya hecha, o de otro tipo sobre la misma persona, no cuenta: se abre la del motivo", async () => {
     const personId = await expiredLeave();
     const done = await oldTask({ title: "Hecha", kind: "LEAVE_EXPIRED", personId });
-    await completeTaskAs({ personId: null }, done);
+    await completeTaskAs({ personId: null, ip: null }, done);
     await oldTask({ title: "A mano", kind: "GENERAL", personId });
     await leaveCheck();
 

@@ -58,7 +58,7 @@ async function seedCompetition(slug: string) {
     })
     .returning({ id: eventEdition.id });
   if (!edition) throw new Error("No se creó la edición");
-  const admin: CompetitionActor = { personId: await personId(E2E_EMAIL), isAdmin: true };
+  const admin: CompetitionActor = { personId: await personId(E2E_EMAIL), isAdmin: true, ip: null };
   const { id } = await createCompetitionAs(admin, {
     editionId: edition.id,
     slug,

@@ -27,10 +27,10 @@ const OTRA = "prueba.sigue@eafit.edu.co";
 
 async function escenario(lines: string[]) {
   const termId = await seedTerm();
-  const admin = { personId: await seedMember("admin.roster@eafit.edu.co") };
+  const admin = { personId: await seedMember("admin.roster@eafit.edu.co"), ip: null };
   const sale = await seedMember(EMAIL);
   const sigue = await seedMember(OTRA);
-  await requestDeletionAs({ personId: sale });
+  await requestDeletionAs({ personId: sale, ip: null });
   const bytes = new TextEncoder().encode(`${["CORREO;ESTADO", ...lines].join("\r\n")}\r\n`);
   const { jobId } = await createRosterPreviewAs(admin, {
     filename: "estados.csv",
@@ -151,10 +151,10 @@ describe("importar el roster mientras actúa alguien que figura antes en el arch
   /** Quien importa, quien actúa y la persona sobre la que actúa, en ese orden en el archivo. */
   async function conQuienActuaAdentro(header: string, cell: (email: string) => string) {
     const termId = await seedTerm();
-    const importa = { personId: await seedMember(IMPORTA) };
-    const actua = { personId: await seedMember(ACTUA) };
+    const importa = { personId: await seedMember(IMPORTA), ip: null };
+    const actua = { personId: await seedMember(ACTUA), ip: null };
     const sale = await seedMember(EMAIL);
-    await requestDeletionAs({ personId: sale });
+    await requestDeletionAs({ personId: sale, ip: null });
     const lines = [IMPORTA, ACTUA, EMAIL].map((email) => `${email};${cell(email)}`);
     const bytes = new TextEncoder().encode(`${[header, ...lines].join("\r\n")}\r\n`);
     const { jobId } = await createRosterPreviewAs(importa, {
@@ -174,7 +174,7 @@ describe("importar el roster mientras actúa alguien que figura antes en el arch
     sale: string,
     command: () => Promise<unknown>,
     jobId: string,
-    importa: { personId: string },
+    importa: { personId: string; ip: null },
   ) {
     const held = await holdTransaction((tx) => lockWalletMember(tx, sale));
     try {

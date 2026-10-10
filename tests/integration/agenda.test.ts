@@ -35,7 +35,7 @@ describe("token del calendario", () => {
     expect(await resolveCalendarToken(token)).toBe(ana);
     expect(await resolveCalendarToken("no-existe-este-token-000000")).toBeNull();
     expect(await resolveCalendarToken("corto")).toBeNull();
-    const rotated = await rotateCalendarTokenAs({ personId: ana });
+    const rotated = await rotateCalendarTokenAs({ personId: ana, ip: null });
     expect(rotated).not.toBe(token);
     expect(await resolveCalendarToken(token)).toBeNull();
     expect(await resolveCalendarToken(rotated)).toBe(ana);
@@ -50,7 +50,9 @@ describe("token del calendario", () => {
 
     for (const personId of [withToken, withoutToken]) {
       await expect(getOrCreateCalendarToken(personId)).rejects.toBeInstanceOf(ForbiddenError);
-      await expect(rotateCalendarTokenAs({ personId })).rejects.toBeInstanceOf(ForbiddenError);
+      await expect(rotateCalendarTokenAs({ personId, ip: null })).rejects.toBeInstanceOf(
+        ForbiddenError,
+      );
     }
 
     expect(await db().select().from(calendarToken)).toEqual(before);

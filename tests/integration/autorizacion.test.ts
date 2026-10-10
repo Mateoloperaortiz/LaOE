@@ -27,7 +27,7 @@ describe("autorización en el primer ingreso (ADR-048)", () => {
     await setPolicy('"2026-09-08"');
     expect(await hasLiveConsent(personId, "MEMBERSHIP")).toBe(false);
 
-    const first = await recordConsentAs({ personId }, personId, "MEMBERSHIP", "SELF");
+    const first = await recordConsentAs({ personId, ip: null }, personId, "MEMBERSHIP", "SELF");
     expect(first.created).toBe(true);
     expect(await hasLiveConsent(personId, "MEMBERSHIP")).toBe(true);
 
@@ -47,8 +47,8 @@ describe("autorización en el primer ingreso (ADR-048)", () => {
   it("aceptar dos veces no duplica la autorización", async () => {
     const personId = await seedMember("autorizacion.repetida@eafit.edu.co");
     await setPolicy('"2026-09-08"');
-    await recordConsentAs({ personId }, personId, "MEMBERSHIP", "SELF");
-    const again = await recordConsentAs({ personId }, personId, "MEMBERSHIP", "SELF");
+    await recordConsentAs({ personId, ip: null }, personId, "MEMBERSHIP", "SELF");
+    const again = await recordConsentAs({ personId, ip: null }, personId, "MEMBERSHIP", "SELF");
     expect(again.created).toBe(false);
     expect(await db().select().from(consent).where(eq(consent.personId, personId))).toHaveLength(1);
   });

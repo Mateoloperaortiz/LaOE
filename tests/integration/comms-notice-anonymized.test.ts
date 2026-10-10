@@ -48,7 +48,7 @@ async function throughProvider(endpoint: string | null): Promise<void> {
 async function memberWithDevice(name: string): Promise<string> {
   const personId = await seedMember(`${name}@eafit.edu.co`, { firstName: "Nora" });
   await saveSubscriptionAs(
-    { personId },
+    { personId, ip: null },
     { endpoint: endpointOf(name), keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
     null,
   );
@@ -128,7 +128,7 @@ describe("avisos mientras la persona se anonimiza", () => {
   it("una anonimización que llega con el correo del resultado de permanencia saliendo lo espera, y su limpieza se lleva el registro", async () => {
     const termId = await seedTerm();
     const personId = await seedMember("cumple.en.vuelo@eafit.edu.co", { firstName: "Nora" });
-    await requestDeletionAs({ personId });
+    await requestDeletionAs({ personId, ip: null });
     await enqueueEvent(
       getDb(),
       eventOf(permanenceDecided, {
@@ -152,7 +152,7 @@ describe("avisos mientras la persona se anonimiza", () => {
   it("una anonimización que llega con un push de puntos saliendo lo espera, y su limpieza se lleva el registro", async () => {
     const termId = await seedTerm();
     const personId = await memberWithDevice("puntos.en.vuelo");
-    await requestDeletionAs({ personId });
+    await requestDeletionAs({ personId, ip: null });
     await enqueueEvent(getDb(), pointsApproved(personId, termId));
     await warmPool(6);
 
@@ -167,7 +167,7 @@ describe("avisos mientras la persona se anonimiza", () => {
     // primero, con la persona ya anonimizada y su dispositivo todavía sin borrar.
     const termId = await seedTerm();
     const personId = await memberWithDevice("puntos.tarde");
-    await requestDeletionAs({ personId });
+    await requestDeletionAs({ personId, ip: null });
     await enqueueEvent(getDb(), pointsApproved(personId, termId));
     await anonymizePersonAs(admin, personId);
 

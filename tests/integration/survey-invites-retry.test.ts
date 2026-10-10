@@ -114,7 +114,7 @@ describe("las invitaciones a la encuesta toleran el reintento", () => {
       const personId = await seedMember(`${name}.reintento@eafit.edu.co`);
       people.set(endpointOf(name), personId);
       await saveSubscriptionAs(
-        { personId },
+        { personId, ip: null },
         { endpoint: endpointOf(name), keys: { p256dh: "p".repeat(32), auth: "a".repeat(16) } },
         null,
       );

@@ -24,8 +24,8 @@ import { seedMember, seedTerm } from "./factories";
 // El seguimiento del registro (ADR-105): la lista de la rotación en curso con el líder y el
 // calificador, las deudas de las rotaciones cerradas, quién se demora más y el aviso al líder.
 
-const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true });
-const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false });
+const admin = (personId: string): CompetitionActor => ({ personId, isAdmin: true, ip: null });
+const member = (personId: string): CompetitionActor => ({ personId, isAdmin: false, ip: null });
 
 /** Seis equipos y tres bases el jueves: la base A con líder y calificador, la B con líder y la C sin
  *  nadie. */

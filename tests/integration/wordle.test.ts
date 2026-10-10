@@ -37,7 +37,7 @@ const db = () => getDb();
 /** Un ítem de una lista del catálogo como patrón: sus variables aceptan cualquier cosa. */
 
 async function started(personId: string): Promise<WordleGameView> {
-  const result = await startWordleAs({ personId });
+  const result = await startWordleAs({ personId, ip: null });
   if (!result.ok) throw new Error(result.reason);
   return result.game;
 }
@@ -58,7 +58,7 @@ function submit(
   expectedAttempt = 1,
   requestId = randomUUID(),
 ) {
-  return submitWordleGuessAs({ personId }, { gameId, guess, expectedAttempt, requestId });
+  return submitWordleGuessAs({ personId, ip: null }, { gameId, guess, expectedAttempt, requestId });
 }
 
 describe("Wordle diario persistido", () => {
@@ -236,7 +236,7 @@ describe("Wordle diario persistido", () => {
     for (const status of ["ON_LEAVE", "INACTIVE", "HONORARY"] as const) {
       const personId = await seedPerson(`wordle.${status.toLowerCase()}@eafit.edu.co`);
       await seedMembership(personId, termId, status);
-      const result = await startWordleAs({ personId });
+      const result = await startWordleAs({ personId, ip: null });
       expect(result.ok).toBe(status === "HONORARY");
     }
     const personId = await seedMember("wordle.estado@eafit.edu.co");
@@ -245,7 +245,10 @@ describe("Wordle diario persistido", () => {
       .update(membership)
       .set({ status: "ON_LEAVE" })
       .where(eq(membership.personId, personId));
-    expect(await startWordleAs({ personId })).toEqual({ ok: false, reason: "NOT_ELIGIBLE" });
+    expect(await startWordleAs({ personId, ip: null })).toEqual({
+      ok: false,
+      reason: "NOT_ELIGIBLE",
+    });
     expect(await submit(personId, game.id, await answerFor(game.id))).toMatchObject({
       ok: false,
       reason: "NOT_ELIGIBLE",
@@ -323,7 +326,7 @@ describe("Wordle diario persistido", () => {
     });
     const newcomer = await seedPerson("wordle.cerrado@eafit.edu.co");
     await seedMembership(newcomer, game.termId);
-    expect(await startWordleAs({ personId: newcomer })).toMatchObject({
+    expect(await startWordleAs({ personId: newcomer, ip: null })).toMatchObject({
       ok: false,
       reason: "TERM_CLOSED",
     });
@@ -332,7 +335,7 @@ describe("Wordle diario persistido", () => {
 
   it("sin semestre actual no comienza el reto y un diccionario desconocido no consume intentos", async () => {
     const personId = await seedPerson("wordle.sinsemestre@eafit.edu.co");
-    expect(await startWordleAs({ personId })).toEqual({ ok: false, reason: "NO_TERM" });
+    expect(await startWordleAs({ personId, ip: null })).toEqual({ ok: false, reason: "NO_TERM" });
     const termId = await seedTerm();
     await seedMembership(personId, termId);
     const game = await started(personId);
@@ -353,7 +356,7 @@ describe("Wordle diario persistido", () => {
     const answer = await answerFor(game.id);
     const requestId = randomUUID();
     await submit(personId, game.id, answer, 1, requestId);
-    await closeTermPointsAs({ personId }, game.termId);
+    await closeTermPointsAs({ personId, ip: null }, game.termId);
     const standing = await getTermStanding(game.termId);
     expect(standing?.stats.pointsAwarded).toBe(6);
     expect(standing?.topNew).toMatchObject([{ personId, total: 6 }]);
@@ -371,7 +374,7 @@ describe("Wordle diario persistido", () => {
     const answer = await answerFor(game.id);
     const [result] = await Promise.all([
       submit(personId, game.id, answer),
-      closeTermPointsAs({ personId }, game.termId),
+      closeTermPointsAs({ personId, ip: null }, game.termId),
     ]);
     const standing = await getTermStanding(game.termId);
     const [stored] = await db().select().from(wordleGame).where(eq(wordleGame.id, game.id));
@@ -416,7 +419,7 @@ describe("Wordle diario persistido", () => {
           rulesVersion: WORDLE_RULES_VERSION,
         })),
       );
-    expect(await startWordleAs({ personId })).toEqual({ ok: false, reason: "EXHAUSTED" });
+    expect(await startWordleAs({ personId, ip: null })).toEqual({ ok: false, reason: "EXHAUSTED" });
     const [rows] = await db()
       .select({ n: count() })
       .from(wordleGame)

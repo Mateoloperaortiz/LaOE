@@ -139,7 +139,7 @@ describe("regresiones de la revisión normativa", () => {
     await expect(grantRecognitionAs(SYSTEM_ACTOR, award)).rejects.toThrow(t("T-2331"));
     await expect(
       requestEventApprovalAs(
-        { personId },
+        { personId, ip: null },
         { committeeId, title: "Evento sintético", eventOn: "2099-11-20" },
       ),
     ).rejects.toThrow(t("T-2331"));

@@ -43,7 +43,7 @@ async function reserve(
   input: Partial<Parameters<typeof reserveReward>[1]> = {},
 ) {
   const participationId = input.participationId ?? (await rewardTarget(personId, termId));
-  return runCommand({ personId }, (ctx) =>
+  return runCommand({ personId, ip: null }, (ctx) =>
     reserveReward(
       ctx,
       {
@@ -104,7 +104,7 @@ describe("premios de la gamificación", () => {
     const personId = await seedMember("gamificacion.ciclo@eafit.edu.co");
     const boosterId = await seedBooster(personId, termId, "PLUS_50");
     const participationId = await rewardTarget(personId, termId);
-    const { reward: granted, breakdown } = await runCommand({ personId }, (ctx) =>
+    const { reward: granted, breakdown } = await runCommand({ personId, ip: null }, (ctx) =>
       reserveAndGrantReward(
         ctx,
         {
@@ -155,7 +155,7 @@ describe("premios de la gamificación", () => {
     });
     expect(held.breakdown.personalConsumed).toBe(true);
     expect((await boosterStatus(boosterId))?.status).toBe("RESERVED");
-    await runCommand({ personId }, (ctx) => grantReward(ctx, held.reward.id, REASONS));
+    await runCommand({ personId, ip: null }, (ctx) => grantReward(ctx, held.reward.id, REASONS));
     const consumed = await boosterStatus(boosterId);
     expect(consumed?.status).toBe("CONSUMED");
     expect(consumed?.consumedRewardId).toBe(held.reward.id);
@@ -186,15 +186,15 @@ describe("premios de la gamificación", () => {
     expect(third.breakdown).toMatchObject({ baseGranted: 0, extraGranted: 0, capped: true });
 
     // Liberar la primera reserva reabre su cupo: la cuarta entra completa.
-    await runCommand({ personId }, (ctx) =>
+    await runCommand({ personId, ip: null }, (ctx) =>
       releaseReward(ctx, first.reward.id, "Liberación sintética"),
     );
     const fourth = await reserve(personId, termId);
     expect(fourth.breakdown.baseGranted).toBe(10);
 
     // Una entrega revertida sigue contando en el día: no queda cupo para una quinta.
-    await runCommand({ personId }, (ctx) => grantReward(ctx, second.reward.id, REASONS));
-    await runCommand({ personId }, (ctx) =>
+    await runCommand({ personId, ip: null }, (ctx) => grantReward(ctx, second.reward.id, REASONS));
+    await runCommand({ personId, ip: null }, (ctx) =>
       reverseReward(ctx, second.reward.id, "Anulación sintética"),
     );
     const fifth = await reserve(personId, termId);
@@ -213,7 +213,7 @@ describe("premios de la gamificación", () => {
       personalPercent: 50,
       boosterItemId: boosterId,
     });
-    const released = await runCommand({ personId }, (ctx) =>
+    const released = await runCommand({ personId, ip: null }, (ctx) =>
       releaseReward(ctx, held.reward.id, "Liberación sintética"),
     );
     expect(released.status).toBe("RELEASED");
@@ -231,9 +231,9 @@ describe("premios de la gamificación", () => {
       personalPercent: 50,
       boosterItemId: validId,
     });
-    await runCommand({ personId }, (ctx) => grantReward(ctx, kept.reward.id, REASONS));
+    await runCommand({ personId, ip: null }, (ctx) => grantReward(ctx, kept.reward.id, REASONS));
     expect(await balanceFor(personId, termId)).toBe(15);
-    const { reversed } = await runCommand({ personId }, (ctx) =>
+    const { reversed } = await runCommand({ personId, ip: null }, (ctx) =>
       reverseReward(ctx, kept.reward.id, "Anulación sintética"),
     );
     expect(reversed).toBe(15);
@@ -253,12 +253,14 @@ describe("premios de la gamificación", () => {
       personalPercent: 50,
       boosterItemId: expiredId,
     });
-    await runCommand({ personId: otherId }, (ctx) => grantReward(ctx, doomed.reward.id, REASONS));
+    await runCommand({ personId: otherId, ip: null }, (ctx) =>
+      grantReward(ctx, doomed.reward.id, REASONS),
+    );
     await db()
       .update(boosterItem)
       .set({ expiresAt: new Date(Date.now() - 3_600_000) })
       .where(eq(boosterItem.id, expiredId));
-    await runCommand({ personId: otherId }, (ctx) =>
+    await runCommand({ personId: otherId, ip: null }, (ctx) =>
       reverseReward(ctx, doomed.reward.id, "Anulación sintética"),
     );
     expect((await boosterStatus(expiredId))?.status).toBe("CONSUMED");
@@ -269,20 +271,20 @@ describe("premios de la gamificación", () => {
     const termId = await seedTerm();
     const personId = await seedMember("gamificacion.idempotente@eafit.edu.co");
     const held = await reserve(personId, termId, { base: 10, personalPercent: 0 });
-    const first = await runCommand({ personId }, (ctx) =>
+    const first = await runCommand({ personId, ip: null }, (ctx) =>
       grantReward(ctx, held.reward.id, REASONS),
     );
-    const again = await runCommand({ personId }, (ctx) =>
+    const again = await runCommand({ personId, ip: null }, (ctx) =>
       grantReward(ctx, held.reward.id, REASONS),
     );
     expect(again.status).toBe("GRANTED");
     expect(again.decidedAt).toEqual(first.decidedAt);
     expect(await db().select().from(pointEntry)).toHaveLength(1);
 
-    await runCommand({ personId }, (ctx) =>
+    await runCommand({ personId, ip: null }, (ctx) =>
       reverseReward(ctx, held.reward.id, "Anulación sintética"),
     );
-    const second = await runCommand({ personId }, (ctx) =>
+    const second = await runCommand({ personId, ip: null }, (ctx) =>
       reverseReward(ctx, held.reward.id, "Anulación sintética"),
     );
     expect(second).toEqual({ reversed: 0 });
@@ -296,18 +298,18 @@ describe("premios de la gamificación", () => {
     const personId = await seedMember("gamificacion.cierre@eafit.edu.co");
     const challengeId = await seedChallenge(termId);
     const participationId = await seedParticipation(challengeId, personId);
-    await expect(closeTermPointsAs({ personId }, termId)).rejects.toThrow(
+    await expect(closeTermPointsAs({ personId, ip: null }, termId)).rejects.toThrow(
       t("T-2562", { n: 1, m: 0 }),
     );
 
     const held = await reserve(personId, termId, { participationId });
-    await expect(closeTermPointsAs({ personId }, termId)).rejects.toThrow(
+    await expect(closeTermPointsAs({ personId, ip: null }, termId)).rejects.toThrow(
       t("T-2562", { n: 1, m: 1 }),
     );
-    await runCommand({ personId }, (ctx) =>
+    await runCommand({ personId, ip: null }, (ctx) =>
       releaseReward(ctx, held.reward.id, "Liberación sintética"),
     );
-    await expect(closeTermPointsAs({ personId }, termId)).rejects.toThrow(
+    await expect(closeTermPointsAs({ personId, ip: null }, termId)).rejects.toThrow(
       t("T-2562", { n: 1, m: 0 }),
     );
 
@@ -315,7 +317,7 @@ describe("premios de la gamificación", () => {
       .update(challengeParticipation)
       .set({ status: "COMPLETED", decidedAt: new Date() })
       .where(eq(challengeParticipation.id, participationId));
-    await closeTermPointsAs({ personId }, termId);
+    await closeTermPointsAs({ personId, ip: null }, termId);
     expect((await getTerm(termId))?.pointsClosedAt).toBeInstanceOf(Date);
   });
 
@@ -340,16 +342,16 @@ describe("premios de la gamificación", () => {
     const termId = await seedTerm();
     const personId = await seedMember("gamificacion.manual@eafit.edu.co");
     const held = await reserve(personId, termId);
-    await runCommand({ personId }, (ctx) => grantReward(ctx, held.reward.id, REASONS));
+    await runCommand({ personId, ip: null }, (ctx) => grantReward(ctx, held.reward.id, REASONS));
     const [entry] = await db()
       .select()
       .from(pointEntry)
       .where(eq(pointEntry.rewardId, held.reward.id));
     if (!entry) throw new Error("Entrada de prueba ausente");
     expect(entry.kind).toBe("CHALLENGE");
-    await expect(reverseEntryAs({ personId }, entry.id, "Corrección sintética")).rejects.toThrow(
-      t("T-632"),
-    );
+    await expect(
+      reverseEntryAs({ personId, ip: null }, entry.id, "Corrección sintética"),
+    ).rejects.toThrow(t("T-632"));
     expect(await balanceFor(personId, termId)).toBe(10);
   });
 

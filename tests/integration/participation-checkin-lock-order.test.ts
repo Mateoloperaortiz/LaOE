@@ -31,7 +31,7 @@ describe("el registro propio con booster y el del organizador a la vez", () => {
 
   it("no se interbloquean: entra uno y el otro recibe que ya estaba registrado", async () => {
     const termId = await seedTerm();
-    const admin = { personId: await seedMember("gh.orden.candados@eafit.edu.co") };
+    const admin = { personId: await seedMember("gh.orden.candados@eafit.edu.co"), ip: null };
     const personId = await seedMember("miembro.orden.candados@eafit.edu.co");
     await setConfigAs(admin, "gamification.enabled", true);
     const occasion = await seedOccasion(termId, { points: POINTS, approval: "AUTO" });
@@ -43,7 +43,7 @@ describe("el registro propio con booster y el del organizador a la vez", () => {
     });
     // El booster ya apunta a la ocasión: el registro del organizador también va por el premio.
     await setBoosterTargetAs(
-      { personId },
+      { personId, ip: null },
       { boosterId: booster.id, target: { occasionId: occasion.id } },
     );
     // Con el booster retenido, el registro propio se detiene justo al ir por él: la prueba decide
@@ -55,7 +55,10 @@ describe("el registro propio con booster y el del organizador a la vez", () => {
         .where(eq(boosterItem.id, booster.id))
         .for("update"),
     );
-    const own = checkInSelfAs({ personId }, { publicId: occasion.publicId, boosterId: booster.id });
+    const own = checkInSelfAs(
+      { personId, ip: null },
+      { publicId: occasion.publicId, boosterId: booster.id },
+    );
     void own.catch(() => undefined);
     let host: Promise<unknown> = Promise.resolve();
     try {

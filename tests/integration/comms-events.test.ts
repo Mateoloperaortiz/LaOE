@@ -48,7 +48,7 @@ const db = () => getDb();
 const keys = () => ({ p256dh: "p".repeat(32), auth: "a".repeat(16) });
 
 async function subscribe(personId: string, endpoint: string) {
-  await saveSubscriptionAs({ personId }, { endpoint, keys: keys() }, null);
+  await saveSubscriptionAs({ personId, ip: null }, { endpoint, keys: keys() }, null);
 }
 
 async function messagesOf(personId: string) {
@@ -157,12 +157,12 @@ describe("push por evento", () => {
     await subscribe(ana, "https://fcm.googleapis.com/fcm/send/ana");
     const conPuntos = await seedOccasion(termId, { title: "Integración", points: 10 });
     const sinPuntos = await seedOccasion(termId, { title: "Reunión", points: 0 });
-    expect((await checkInSelfAs({ personId: ana }, { publicId: conPuntos.publicId })).ok).toBe(
-      true,
-    );
-    expect((await checkInSelfAs({ personId: ana }, { publicId: sinPuntos.publicId })).ok).toBe(
-      true,
-    );
+    expect(
+      (await checkInSelfAs({ personId: ana, ip: null }, { publicId: conPuntos.publicId })).ok,
+    ).toBe(true);
+    expect(
+      (await checkInSelfAs({ personId: ana, ip: null }, { publicId: sinPuntos.publicId })).ok,
+    ).toBe(true);
     await drainOutbox();
     const rows = (await messagesOf(ana)).filter((row) => row.kind === "POINTS");
     expect(rows).toHaveLength(1);

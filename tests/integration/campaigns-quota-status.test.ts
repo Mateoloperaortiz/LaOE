@@ -214,7 +214,7 @@ describe("el cupo de correo que ve un ADMIN (ADR-116 regla 20)", () => {
   it("por un transporte sin cupo del día no hay cuenta, y el margen fijado se sigue viendo", async () => {
     const [ana] = await seedPeople(1);
     if (!ana) throw new Error("seed people");
-    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, 20);
+    await setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, 20);
     stubMail("console");
 
     expect(await getCampaignQuotaStatus(NIGHT)).toEqual({
@@ -243,7 +243,7 @@ describe("el cupo de correo que ve un ADMIN (ADR-116 regla 20)", () => {
     });
     expect((await getCampaignQuotaStatus(MIDNIGHT)).cut).toBeNull();
 
-    await liftCampaignQuotaCutAs({ personId: ana }, { by: "ADMIN" }, after(5));
+    await liftCampaignQuotaCutAs({ personId: ana, ip: null }, { by: "ADMIN" }, after(5));
     expect((await getCampaignQuotaStatus(after(6))).cut).toBeNull();
   });
 
@@ -273,7 +273,9 @@ describe("el cupo de correo que ve un ADMIN (ADR-116 regla 20)", () => {
       cut: null,
     });
     // Tampoco hay nada que levantar: el corte de Resend queda guardado como estaba.
-    expect(await liftCampaignQuotaCutAs({ personId: ana }, { by: "ADMIN" }, after(1))).toBe(false);
+    expect(
+      await liftCampaignQuotaCutAs({ personId: ana, ip: null }, { by: "ADMIN" }, after(1)),
+    ).toBe(false);
     expect(await getConfig(CUT_KEY)).toEqual(stored);
 
     // Y si vuelven a Resend antes de su final, las detiene otra vez.
@@ -335,7 +337,7 @@ describe("cambiar el margen para lo transaccional (ADR-116 regla 20)", () => {
   it("volver al margen por defecto quita el fijado: rige otra vez un tercio del cupo y queda en la auditoría", async () => {
     const [ana] = await seedPeople(1);
     if (!ana) throw new Error("seed people");
-    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, 40);
+    await setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, 40);
     // Leerlo antes deja el 40 en la caché del proceso: quitarlo tiene que soltarla también.
     expect(await getConfig(RESERVE_KEY)).toBe(40);
 
@@ -358,7 +360,9 @@ describe("cambiar el margen para lo transaccional (ADR-116 regla 20)", () => {
     });
 
     // Sin margen fijado no hay nada que quitar, y no deja otra fila en la auditoría.
-    expect(await resetTransactionalReserveAs({ personId: ana }, { by: "ADMIN" })).toBe(false);
+    expect(await resetTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" })).toBe(
+      false,
+    );
     expect(await reserveAudits()).toHaveLength(2);
   });
 
@@ -369,11 +373,11 @@ describe("cambiar el margen para lo transaccional (ADR-116 regla 20)", () => {
   ])("%s no vuelve al margen por defecto", async (_case, scope) => {
     const [ana] = await seedPeople(1);
     if (!ana) throw new Error("seed people");
-    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, 40);
+    await setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, 40);
 
-    await expect(resetTransactionalReserveAs({ personId: ana }, scope as never)).rejects.toThrow(
-      t("T-032"),
-    );
+    await expect(
+      resetTransactionalReserveAs({ personId: ana, ip: null }, scope as never),
+    ).rejects.toThrow(t("T-032"));
 
     expect(await getConfig(RESERVE_KEY)).toBe(40);
     expect(await reserveAudits()).toHaveLength(1);
@@ -385,7 +389,7 @@ describe("cambiar el margen para lo transaccional (ADR-116 regla 20)", () => {
     if (!ana) throw new Error("seed people");
     const id = await seedCampaign();
     // Con el margen nuevo caben dos correos de campaña, y hoy ya salió uno transaccional.
-    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT - 2);
+    await setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, DAILY_LIMIT - 2);
     await seedSent(ana, "TRANSACTIONAL", 1, MORNING);
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
@@ -403,9 +407,9 @@ describe("cambiar el margen para lo transaccional (ADR-116 regla 20)", () => {
     const [ana] = await seedPeople(1);
     if (!ana) throw new Error("seed people");
 
-    await expect(setTransactionalReserveAs({ personId: ana }, scope as never, 40)).rejects.toThrow(
-      t("T-032"),
-    );
+    await expect(
+      setTransactionalReserveAs({ personId: ana, ip: null }, scope as never, 40),
+    ).rejects.toThrow(t("T-032"));
 
     expect(await getConfig(RESERVE_KEY)).toBeNull();
     expect(await reserveAudits()).toEqual([]);
@@ -429,7 +433,7 @@ describe("cambiar el margen para lo transaccional (ADR-116 regla 20)", () => {
     if (!ana) throw new Error("seed people");
 
     await expect(
-      setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, value as never),
+      setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, value as never),
     ).rejects.toThrow(t("T-3235"));
 
     expect(await getConfig(RESERVE_KEY)).toBeNull();
@@ -501,7 +505,7 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
     const [ana] = await seedPeople(3);
     if (!ana) throw new Error("seed people");
     const id = await seedCampaign();
-    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT);
+    await setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, DAILY_LIMIT);
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 0 });
 
@@ -517,7 +521,7 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
     if (!ana) throw new Error("seed people");
     const id = await seedCampaign();
     // Caben dos correos de campaña y el lote manda uno por minuto: sale uno y queda lugar para otro.
-    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT - 2);
+    await setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, DAILY_LIMIT - 2);
     await setPerMinute(1);
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
@@ -533,7 +537,7 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
     const [ana] = await seedPeople(3);
     if (!ana) throw new Error("seed people");
     const id = await seedCampaign();
-    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT - 3);
+    await setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, DAILY_LIMIT - 3);
     await setPerMinute(1);
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 1, sent: 1 });
@@ -551,7 +555,7 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
     const first = await seedCampaign();
     const second = await seedCampaign("-dos");
     // Caben dos correos de campaña entre las dos y el lote manda uno por minuto.
-    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT - 2);
+    await setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, DAILY_LIMIT - 2);
     await setPerMinute(1);
 
     expect(await runCampaignTick(NIGHT)).toEqual({ started: 2, sent: 1 });
@@ -577,7 +581,7 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
     const [ana] = await seedPeople(3);
     if (!ana) throw new Error("seed people");
     const id = await seedCampaign();
-    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT - 2);
+    await setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, DAILY_LIMIT - 2);
     await setPerMinute(1);
     let release: () => void = () => {};
     const held = new Promise<void>((resolve) => {
@@ -613,7 +617,7 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
     const [ana] = await seedPeople(3);
     if (!ana) throw new Error("seed people");
     const id = await seedCampaign();
-    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT - 2);
+    await setTransactionalReserveAs({ personId: ana, ip: null }, { by: "ADMIN" }, DAILY_LIMIT - 2);
     stubMail(
       "resend",
       rejecting(new QuotaExceededError("monthly_quota_exceeded: se acabó el mes", "MONTHLY")),

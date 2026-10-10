@@ -60,19 +60,19 @@ describe("tableros y ledger manual", () => {
       .where(eq(membership.personId, licencia));
     const admin = await seedMember("admin@eafit.edu.co");
     await adjustPointsAs(
-      { personId: admin },
+      { personId: admin, ip: null },
       { personId: nueva, termId, points: 30, reason: "bono" },
     );
     await adjustPointsAs(
-      { personId: admin },
+      { personId: admin, ip: null },
       { personId: nuevo2, termId, points: 30, reason: "bono" },
     );
     await adjustPointsAs(
-      { personId: admin },
+      { personId: admin, ip: null },
       { personId: veterana, termId, points: 50, reason: "bono" },
     );
     await adjustPointsAs(
-      { personId: admin },
+      { personId: admin, ip: null },
       { personId: licencia, termId, points: 99, reason: "bono" },
     );
 
@@ -96,29 +96,29 @@ describe("tableros y ledger manual", () => {
     const admin = await seedMember("admin@eafit.edu.co");
     const personId = await seedMember("socia@eafit.edu.co");
     await expect(
-      adjustPointsAs({ personId: admin }, { personId, termId, points: 0, reason: "x" }),
+      adjustPointsAs({ personId: admin, ip: null }, { personId, termId, points: 0, reason: "x" }),
     ).rejects.toThrow(t("T-627"));
     await expect(
-      adjustPointsAs({ personId: admin }, { personId, termId, points: 5, reason: "  " }),
+      adjustPointsAs({ personId: admin, ip: null }, { personId, termId, points: 5, reason: "  " }),
     ).rejects.toThrow(t("T-628"));
     const adjustment = await adjustPointsAs(
-      { personId: admin },
+      { personId: admin, ip: null },
       { personId, termId, points: -5, reason: "penalización" },
     );
     expect(await balanceFor(personId, termId)).toBe(-5);
     const { publicId } = await seedOccasion(termId, { points: 10 });
-    await checkInSelfAs({ personId }, { publicId });
+    await checkInSelfAs({ personId, ip: null }, { publicId });
     const entries = await listEntriesForPerson(personId);
     const checkInEntry = entries.find((entry) => entry.kind === "CHECKIN");
     if (!checkInEntry) throw new Error("sin crédito");
-    await expect(reverseEntryAs({ personId: admin }, checkInEntry.id, "no")).rejects.toThrow(
-      t("T-632"),
-    );
-    await reverseEntryAs({ personId: admin }, adjustment.id, "fue un error");
+    await expect(
+      reverseEntryAs({ personId: admin, ip: null }, checkInEntry.id, "no"),
+    ).rejects.toThrow(t("T-632"));
+    await reverseEntryAs({ personId: admin, ip: null }, adjustment.id, "fue un error");
     expect(await balanceFor(personId, termId)).toBe(10);
-    await expect(reverseEntryAs({ personId: admin }, adjustment.id, "otra vez")).rejects.toThrow(
-      t("T-633"),
-    );
+    await expect(
+      reverseEntryAs({ personId: admin, ip: null }, adjustment.id, "otra vez"),
+    ).rejects.toThrow(t("T-633"));
     const ledger = await listLedger({ personId, page: 1, pageSize: 10 });
     expect(ledger.total).toBe(3);
     expect(ledger.rows.find((row) => row.id === adjustment.id)?.reversedById).toBeTruthy();
@@ -132,10 +132,13 @@ describe("tableros y ledger manual", () => {
     expect(summaries).toContain(fillCopy(tList("T-667")[5], { n: -5, motivo: "fue un error" }));
     await db().update(term).set({ pointsClosedAt: new Date() }).where(eq(term.id, termId));
     await expect(
-      adjustPointsAs({ personId: admin }, { personId, termId, points: 5, reason: "tarde" }),
+      adjustPointsAs(
+        { personId: admin, ip: null },
+        { personId, termId, points: 5, reason: "tarde" },
+      ),
     ).rejects.toThrow(t("T-629"));
     await expect(
-      reverseEntryAs({ personId: admin }, adjustment.id, "tarde"),
+      reverseEntryAs({ personId: admin, ip: null }, adjustment.id, "tarde"),
     ).rejects.toBeInstanceOf(DomainError);
   });
 
@@ -151,10 +154,10 @@ describe("tableros y ledger manual", () => {
     await seedCommitteeMembership(c, c2, termId);
     const closed = await seedOccasion(termId, { points: 10 });
     const open = await seedOccasion(termId, { points: 10 });
-    await checkInSelfAs({ personId: a }, { publicId: closed.publicId });
-    await checkInSelfAs({ personId: c }, { publicId: closed.publicId });
-    await checkInSelfAs({ personId: c }, { publicId: open.publicId });
-    await closeOccasionAs({ personId: a }, closed.id);
+    await checkInSelfAs({ personId: a, ip: null }, { publicId: closed.publicId });
+    await checkInSelfAs({ personId: c, ip: null }, { publicId: closed.publicId });
+    await checkInSelfAs({ personId: c, ip: null }, { publicId: open.publicId });
+    await closeOccasionAs({ personId: a, ip: null }, closed.id);
     await drainOutbox();
     const ranking = await rankCommittees(termId);
     expect(ranking.map((item) => [item.rank, item.row.committeeId, item.row.occasions])).toEqual([

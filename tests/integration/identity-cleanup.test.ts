@@ -52,7 +52,7 @@ describe("retiro y anonimización retiran la credencial", () => {
   it("la baja borra la contraseña, los enlaces vivos y las sesiones", async () => {
     const emisor = await seedMember("junta-limpieza@eafit.edu.co");
     const personId = await seedMember("se-va@eafit.edu.co");
-    await issueAccessGrantAs({ personId: emisor }, { personId, kind: "RECOVERY" });
+    await issueAccessGrantAs({ personId: emisor, ip: null }, { personId, kind: "RECOVERY" });
     const abierta = await createSession(db(), {
       personId,
       remember: true,
@@ -62,7 +62,7 @@ describe("retiro y anonimización retiran la credencial", () => {
 
     // Una baja de verdad: el handler vuelve a leer la membresía y un evento suelto, con la persona
     // todavía activa, ya no borra nada (ADR-118 regla 5).
-    await endMembershipAs({ personId: emisor }, personId, {
+    await endMembershipAs({ personId: emisor, ip: null }, personId, {
       endReason: "RESIGNATION",
       memorialConsent: false,
       contactConsent: false,
@@ -86,7 +86,7 @@ describe("retiro y anonimización retiran la credencial", () => {
   it("la anonimización no deja el hash de la contraseña atrás", async () => {
     const emisor = await seedMember("junta-limpieza@eafit.edu.co");
     const personId = await seedMember("se-borra@eafit.edu.co");
-    await issueAccessGrantAs({ personId: emisor }, { personId, kind: "ACTIVATION" });
+    await issueAccessGrantAs({ personId: emisor, ip: null }, { personId, kind: "ACTIVATION" });
 
     await enqueueEvent(db(), eventOf(personAnonymized, { actorId: null, personId }));
     await drainOutbox();

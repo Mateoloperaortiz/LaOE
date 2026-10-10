@@ -48,7 +48,7 @@ async function preview(
   filename = "roster.csv",
 ) {
   const { jobId } = await createRosterPreviewAs(
-    { personId: actorId },
+    { personId: actorId, ip: null },
     { filename, contentType: "text/csv", bytes, termId },
   );
   const result = await getRosterPreview(jobId);
@@ -81,7 +81,7 @@ describe("importación del roster", () => {
       birthDate: "2004-02-29",
       probation: true,
     });
-    await applyRosterImportAs({ personId: adminId }, draft.jobId);
+    await applyRosterImportAs({ personId: adminId, ip: null }, draft.jobId);
     const [created] = await db()
       .select()
       .from(person)
@@ -102,7 +102,7 @@ describe("importación del roster", () => {
     );
     expect(update.rows[0]).toMatchObject({ group: "CHANGED" });
     expect(update.rows[0]?.changes).toContain("documentType");
-    await applyRosterImportAs({ personId: adminId }, update.jobId);
+    await applyRosterImportAs({ personId: adminId, ip: null }, update.jobId);
     const [updated] = await db()
       .select()
       .from(person)
@@ -119,7 +119,9 @@ describe("importación del roster", () => {
       csv(["roster.campos@eafit.edu.co;2018-1"], "CORREO;ENTRADA A LA OE"),
     );
     expect(conflicting.counts.ERROR).toBe(1);
-    expect((await applyRosterImportAs({ personId: adminId }, conflicting.jobId)).skipped).toBe(1);
+    expect(
+      (await applyRosterImportAs({ personId: adminId, ip: null }, conflicting.jobId)).skipped,
+    ).toBe(1);
     expect(await db().select().from(term).where(eq(term.code, "2018-1"))).toHaveLength(0);
     expect((await getPerson360(created?.id ?? ""))?.membership?.firstTermCode).toBe(code);
     const repeat = await preview(
@@ -131,7 +133,7 @@ describe("importación del roster", () => {
       ),
     );
     expect(repeat.counts.UNCHANGED).toBe(1);
-    await applyRosterImportAs({ personId: adminId }, repeat.jobId);
+    await applyRosterImportAs({ personId: adminId, ip: null }, repeat.jobId);
     expect(
       await db().select().from(person).where(eq(person.email, "roster.campos@eafit.edu.co")),
     ).toHaveLength(1);
@@ -150,9 +152,9 @@ describe("importación del roster", () => {
       .update(appConfig)
       .set({ value: "pendiente" })
       .where(eq(appConfig.key, "privacy.policyVersion"));
-    await expect(applyRosterImportAs({ personId: adminId }, draft.jobId)).rejects.toBeInstanceOf(
-      PrivacyPolicyPendingError,
-    );
+    await expect(
+      applyRosterImportAs({ personId: adminId, ip: null }, draft.jobId),
+    ).rejects.toBeInstanceOf(PrivacyPolicyPendingError);
     expect(await db().select().from(person)).toHaveLength(1);
     expect(await db().select().from(consent)).toHaveLength(0);
     expect(await db().select().from(term).where(eq(term.code, "2024-2"))).toHaveLength(0);
@@ -188,7 +190,7 @@ describe("importación del roster", () => {
       }),
     ]);
 
-    const summary = await applyRosterImportAs({ personId: adminId }, first.jobId);
+    const summary = await applyRosterImportAs({ personId: adminId, ip: null }, first.jobId);
     expect(summary).toMatchObject({ created: 5, updated: 0, unchanged: 0, skipped: 0 });
     expect(summary.termsCreated).toEqual(["2021-2", "2023-1", "2024-2"]);
     const [created] = await db().select().from(term).where(eq(term.code, "2024-2"));
@@ -223,7 +225,7 @@ describe("importación del roster", () => {
 
     const second = await preview(adminId, termId, bytes);
     expect(second.counts).toEqual({ NEW: 0, CHANGED: 0, UNCHANGED: 5, ERROR: 0 });
-    const again = await applyRosterImportAs({ personId: adminId }, second.jobId);
+    const again = await applyRosterImportAs({ personId: adminId, ip: null }, second.jobId);
     expect(again).toMatchObject({ created: 0, updated: 0, unchanged: 5 });
     const [people] = await db().select({ n: count() }).from(person);
     expect(people?.n).toBe(6);
@@ -242,7 +244,7 @@ describe("importación del roster", () => {
         `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Activo;`,
       ]),
     );
-    await applyRosterImportAs({ personId: adminId }, base.jobId);
+    await applyRosterImportAs({ personId: adminId, ip: null }, base.jobId);
 
     const update = await preview(
       adminId,
@@ -256,7 +258,7 @@ describe("importación del roster", () => {
     expect(update.updateMode).toBe(true);
     expect(update.counts).toEqual({ NEW: 0, CHANGED: 1, UNCHANGED: 0, ERROR: 1 });
     expect(update.unknownRoles).toEqual(["Tesorería"]);
-    const applied = await applyRosterImportAs({ personId: adminId }, update.jobId);
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, update.jobId);
     expect(applied).toMatchObject({ updated: 1, skipped: 1, rolesCreated: ["Tesorería"] });
     const [role] = await db()
       .select()
@@ -273,7 +275,7 @@ describe("importación del roster", () => {
       csv([`Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Retirado;`]),
     );
     expect(retiro.rows[0]).toMatchObject({ group: "CHANGED", changes: ["status"] });
-    await applyRosterImportAs({ personId: adminId }, retiro.jobId);
+    await applyRosterImportAs({ personId: adminId, ip: null }, retiro.jobId);
     const juan = (await listPeople({ q: "prueba.juan", page: 1, pageSize: 5 })).rows[0];
     const data = await getPerson360(juan?.id ?? "");
     expect(data?.person.stage).toBe("ALUMNI");
@@ -296,7 +298,7 @@ describe("importación del roster", () => {
         `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Activo;`,
       ]),
     );
-    await applyRosterImportAs({ personId: adminId }, base.jobId);
+    await applyRosterImportAs({ personId: adminId, ip: null }, base.jobId);
     const idOf = async (email: string) => {
       const [row] = await db()
         .select({ id: person.id })
@@ -306,7 +308,7 @@ describe("importación del roster", () => {
     };
     const ana = await idOf("prueba.ana@eafit.edu.co");
     const juan = await idOf("prueba.juan@eafit.edu.co");
-    await endMembershipAs({ personId: adminId }, juan, {
+    await endMembershipAs({ personId: adminId, ip: null }, juan, {
       endReason,
       memorialConsent: false,
       contactConsent: false,
@@ -363,7 +365,7 @@ describe("importación del roster", () => {
         `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Activo;`,
       ]),
     );
-    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, otra.jobId);
 
     // Solo cambió una persona: la fila de quien sigue de baja no cuenta como actualizada (DT-249).
     expect(applied).toMatchObject({ updated: 1, unchanged: 1, skipped: 0 });
@@ -400,7 +402,7 @@ describe("importación del roster", () => {
         `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;A3;${code};Activo;`,
       ]);
     const base = await preview(adminId, termId, filas("Derecho"));
-    await applyRosterImportAs({ personId: adminId }, base.jobId);
+    await applyRosterImportAs({ personId: adminId, ip: null }, base.jobId);
     const idOf = async (email: string) =>
       (await db().select({ id: person.id }).from(person).where(eq(person.email, email)))[0]?.id ??
       "";
@@ -414,7 +416,7 @@ describe("importación del roster", () => {
 
     const otra = await preview(adminId, termId, filas("Ingeniería"));
     expect(otra.counts).toEqual({ NEW: 0, CHANGED: 1, UNCHANGED: 1, ERROR: 0 });
-    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, otra.jobId);
 
     expect(applied).toMatchObject({ created: 0, updated: 1, unchanged: 1 });
     expect(await importacionesDe(juan, otra.jobId)).toEqual({ audits: [], events: [] });
@@ -441,7 +443,7 @@ describe("importación del roster", () => {
     );
     expect(sinEstado.counts).toEqual({ NEW: 0, CHANGED: 1, UNCHANGED: 1, ERROR: 0 });
 
-    const applied = await applyRosterImportAs({ personId: adminId }, sinEstado.jobId);
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, sinEstado.jobId);
 
     expect(applied).toMatchObject({ created: 0, updated: 1, unchanged: 1 });
     expect(
@@ -491,7 +493,7 @@ describe("importación del roster", () => {
       `Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;A3;${code};Periodo de prueba;`,
     ]);
     const base = await preview(adminId, termId, filas);
-    await applyRosterImportAs({ personId: adminId }, base.jobId);
+    await applyRosterImportAs({ personId: adminId, ip: null }, base.jobId);
     const ana = await personaDe("prueba.ana@eafit.edu.co");
     const juan = await personaDe("prueba.juan@eafit.edu.co");
     const antes = { ana: await rastroDe(ana), juan: await rastroDe(juan) };
@@ -500,7 +502,7 @@ describe("importación del roster", () => {
 
     const otra = await preview(adminId, termId, filas);
     expect(otra.counts).toEqual({ NEW: 0, CHANGED: 0, UNCHANGED: 2, ERROR: 0 });
-    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, otra.jobId);
 
     expect(applied).toMatchObject({ created: 0, updated: 0, unchanged: 2 });
     expect({ ana: await rastroDe(ana), juan: await rastroDe(juan) }).toEqual(antes);
@@ -518,9 +520,9 @@ describe("importación del roster", () => {
     const fila = (estado: string) =>
       csv([`Ana;Pérez;prueba.ana@eafit.edu.co;;Derecho;A3;${code};${estado};`]);
     const base = await preview(adminId, termId, fila("Activo"));
-    await applyRosterImportAs({ personId: adminId }, base.jobId);
+    await applyRosterImportAs({ personId: adminId, ip: null }, base.jobId);
     const ana = await personaDe("prueba.ana@eafit.edu.co");
-    await setProbationAs({ personId: adminId }, ana, termId, {
+    await setProbationAs({ personId: adminId, ip: null }, ana, termId, {
       probation: true,
       reason: "La decidió GH con su motivo",
     });
@@ -530,7 +532,7 @@ describe("importación del roster", () => {
 
     const otra = await preview(adminId, termId, fila("Periodo de prueba"));
     expect(otra.rows[0]).toMatchObject({ group: "UNCHANGED", changes: [] });
-    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, otra.jobId);
 
     expect(await filaDelTermino(ana, termId)).toEqual([
       { probation: true, reason: `roster ${code}` },
@@ -543,7 +545,7 @@ describe("importación del roster", () => {
 
     // Repetido, ya no hay nada que escribir: ni la prueba ni el motivo cambian.
     const tercera = await preview(adminId, termId, fila("Periodo de prueba"));
-    const again = await applyRosterImportAs({ personId: adminId }, tercera.jobId);
+    const again = await applyRosterImportAs({ personId: adminId, ip: null }, tercera.jobId);
     expect(again).toMatchObject({ created: 0, updated: 0, unchanged: 1 });
     expect(await importacionesDe(ana, tercera.jobId)).toEqual({ audits: [], events: [] });
   });
@@ -569,7 +571,7 @@ describe("importación del roster", () => {
     });
     let applied: Awaited<ReturnType<typeof applyRosterImportAs>>;
     try {
-      const importing = applyRosterImportAs({ personId: adminId }, draft.jobId);
+      const importing = applyRosterImportAs({ personId: adminId, ip: null }, draft.jobId);
       await vi.waitFor(async () => expect(await waitingOn(held.pid)).toBe(1), { timeout: 5_000 });
       held.release();
       applied = await importing;
@@ -615,7 +617,7 @@ describe("importación del roster", () => {
       termId,
       csv([`Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Periodo de prueba;`]),
     );
-    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, otra.jobId);
 
     expect(await filaDelTermino(juan, termId)).toEqual(antes);
     expect(await estadoYComites(juan)).toEqual({
@@ -633,7 +635,7 @@ describe("importación del roster", () => {
 
   it("a quien renunció y sigue figurando como retirado no le reescribe la prueba ni el motivo que tenía en el término", async () => {
     const { termId, code, adminId, juan } = await rosterConBaja("RESIGNATION");
-    await setProbationAs({ personId: adminId }, juan, termId, {
+    await setProbationAs({ personId: adminId, ip: null }, juan, termId, {
       probation: true,
       reason: "Quedó en prueba antes de irse",
     });
@@ -645,7 +647,7 @@ describe("importación del roster", () => {
       termId,
       csv([`Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Retirado;`]),
     );
-    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, otra.jobId);
 
     expect(await filaDelTermino(juan, termId)).toEqual(antes);
     expect(otra.rows[0]).toMatchObject({ group: "UNCHANGED", changes: [] });
@@ -662,7 +664,7 @@ describe("importación del roster", () => {
     const fila = (estado: string) =>
       csv([`Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};${estado};`]);
     const base = await preview(adminId, termId, fila("Periodo de prueba"));
-    await applyRosterImportAs({ personId: adminId }, base.jobId);
+    await applyRosterImportAs({ personId: adminId, ip: null }, base.jobId);
     const [juan] = await db()
       .select({ id: person.id })
       .from(person)
@@ -672,7 +674,7 @@ describe("importación del roster", () => {
     ]);
 
     const retiro = await preview(adminId, termId, fila("Retirado"));
-    const applied = await applyRosterImportAs({ personId: adminId }, retiro.jobId);
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, retiro.jobId);
 
     expect(retiro.rows[0]).toMatchObject({ group: "CHANGED", changes: ["status"] });
     expect(applied).toMatchObject({ updated: 1, unchanged: 0 });
@@ -690,7 +692,7 @@ describe("importación del roster", () => {
       termId,
       csv([`Juan;Gómez;prueba.juan@eafit.edu.co;;Economía;PIXEL;${code};Activo;`]),
     );
-    const applied = await applyRosterImportAs({ personId: adminId }, otra.jobId);
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, otra.jobId);
 
     expect(otra.rows[0]?.changes).toContain("status");
     expect(applied).toMatchObject({ updated: 1, unchanged: 0 });
@@ -706,7 +708,7 @@ describe("importación del roster", () => {
       csv(["prueba.ana@eafit.edu.co;A3, PIXEL", "prueba.juan@eafit.edu.co;A3"], "CORREO;COMITES"),
       "comites.csv",
     );
-    const applied = await applyRosterImportAs({ personId: adminId }, comites.jobId);
+    const applied = await applyRosterImportAs({ personId: adminId, ip: null }, comites.jobId);
 
     expect(applied).toMatchObject({ updated: 1, skipped: 0 });
     expect(await estadoYComites(juan)).toEqual({
@@ -750,7 +752,7 @@ describe("importación del roster", () => {
       csv([`Cuatro;Cuatro;prueba.cuatro@eafit.edu.co;A3;${code};Activo`], "N;A;MAIL;C;E;S"),
     );
     expect(odd.mapping).toEqual([null, null, null, null, null, null]);
-    await remapRosterPreviewAs({ personId: adminId }, odd.jobId, [
+    await remapRosterPreviewAs({ personId: adminId, ip: null }, odd.jobId, [
       "firstName",
       "lastName",
       "email",
@@ -761,15 +763,15 @@ describe("importación del roster", () => {
     const remapped = await getRosterPreview(odd.jobId);
     expect(remapped?.counts).toEqual({ NEW: 1, CHANGED: 0, UNCHANGED: 0, ERROR: 0 });
 
-    await discardRosterImportAs({ personId: adminId }, odd.jobId);
+    await discardRosterImportAs({ personId: adminId, ip: null }, odd.jobId);
     const [job] = await db().select().from(importJob).where(eq(importJob.id, odd.jobId));
     expect(job?.status).toBe("DISCARDED");
-    await expect(applyRosterImportAs({ personId: adminId }, odd.jobId)).rejects.toBeInstanceOf(
-      DomainError,
-    );
+    await expect(
+      applyRosterImportAs({ personId: adminId, ip: null }, odd.jobId),
+    ).rejects.toBeInstanceOf(DomainError);
     await expect(
       createRosterPreviewAs(
-        { personId: adminId },
+        { personId: adminId, ip: null },
         {
           filename: "foto.png",
           contentType: "image/png",

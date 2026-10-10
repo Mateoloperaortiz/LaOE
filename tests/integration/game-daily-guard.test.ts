@@ -121,7 +121,7 @@ function movesFor(seed: string): string {
 
 const wordle: Game = {
   name: "el Wordle",
-  start: async (personId) => answer(await startWordleAs({ personId })),
+  start: async (personId) => answer(await startWordleAs({ personId, ip: null })),
   move: async (personId, id) => {
     const [row] = await db()
       .select({ answer: wordleGame.answer })
@@ -130,7 +130,7 @@ const wordle: Game = {
     const guess = WORDLE_ANSWERS.find((word) => word !== row?.answer) ?? "";
     return answer(
       await submitWordleGuessAs(
-        { personId },
+        { personId, ip: null },
         { gameId: id, guess, expectedAttempt: 1, requestId: randomUUID() },
       ),
     );
@@ -159,7 +159,7 @@ const wordle: Game = {
 const game2048: Game = {
   name: "el 2048",
   start: async (personId) =>
-    answer(await startGame2048As({ personId }, { requestId: randomUUID() })),
+    answer(await startGame2048As({ personId, ip: null }, { requestId: randomUUID() })),
   move: async (personId, id) => {
     const [row] = await db()
       .select({ seed: game2048Run.seed })
@@ -167,7 +167,7 @@ const game2048: Game = {
       .where(eq(game2048Run.id, id));
     return answer(
       await finishGame2048As(
-        { personId },
+        { personId, ip: null },
         { runId: id, moves: movesFor(row?.seed ?? ""), requestId: randomUUID() },
       ),
     );
@@ -198,7 +198,7 @@ const sudoku: Game = {
   start: async (personId) =>
     answer(
       await startSudokuAs(
-        { personId },
+        { personId, ip: null },
         { requestId: randomUUID(), difficulty: "EASY", assisted: false },
       ),
     ),
@@ -209,7 +209,7 @@ const sudoku: Game = {
       .where(eq(sudokuRun.id, id));
     return answer(
       await finishSudokuAs(
-        { personId },
+        { personId, ip: null },
         { runId: id, grid: row?.solution ?? "", requestId: randomUUID() },
       ),
     );
@@ -237,14 +237,15 @@ const sudoku: Game = {
 
 const panal: Game = {
   name: "el Panal",
-  start: async (personId) => answer(await startPanalAs({ personId }, dayKeyFor(new Date()))),
+  start: async (personId) =>
+    answer(await startPanalAs({ personId, ip: null }, dayKeyFor(new Date()))),
   move: async (personId, id) => {
     const [row] = await db()
       .select({ day: panalGame.day })
       .from(panalGame)
       .where(eq(panalGame.id, id));
     const word = panalPuzzleForDay(row?.day ?? "").words[0] ?? "";
-    return answer(await submitPanalWordAs({ personId }, { gameId: id, word }));
+    return answer(await submitPanalWordAs({ personId, ip: null }, { gameId: id, word }));
   },
   saved: async () =>
     (
@@ -443,7 +444,7 @@ describe("lo propio de un juego en la guardia", () => {
     const id = await started(sudoku, personId);
     await closePoints();
     await db().update(membership).set({ status: "ON_LEAVE" });
-    expect(answer(await abandonSudokuAs({ personId }, { runId: id }))).toEqual({
+    expect(answer(await abandonSudokuAs({ personId, ip: null }, { runId: id }))).toEqual({
       ok: true,
       reason: null,
       id,
@@ -453,12 +454,14 @@ describe("lo propio de un juego en la guardia", () => {
 
   it("el Panal responde EXPIRED al día que la pantalla manda y no es hoy, después de NO_TERM y antes de la elegibilidad y el cierre", async () => {
     const stranger = await seedPerson("guardia.panal-sintermino@eafit.edu.co");
-    expect(answer(await startPanalAs({ personId: stranger }, YESTERDAY_KEY))).toEqual(
+    expect(answer(await startPanalAs({ personId: stranger, ip: null }, YESTERDAY_KEY))).toEqual(
       refused("NO_TERM"),
     );
     const personId = await onLeave("guardia.panal-ayer@eafit.edu.co");
     await closePoints();
-    expect(answer(await startPanalAs({ personId }, YESTERDAY_KEY))).toEqual(refused("EXPIRED"));
+    expect(answer(await startPanalAs({ personId, ip: null }, YESTERDAY_KEY))).toEqual(
+      refused("EXPIRED"),
+    );
     expect(await panal.saved()).toEqual([]);
   });
 
@@ -470,7 +473,9 @@ describe("lo propio de un juego en la guardia", () => {
       .set({ endsOn: dayKeyFor(TODAY) });
     const tomorrow = dayKeyFor(TOMORROW);
     expect(
-      await acrossMidnight(async () => answer(await startPanalAs({ personId }, tomorrow))),
+      await acrossMidnight(async () =>
+        answer(await startPanalAs({ personId, ip: null }, tomorrow)),
+      ),
     ).toEqual(refused("EXPIRED"));
     expect(await panal.saved()).toEqual([]);
   });
@@ -590,7 +595,7 @@ describe("la guardia con el reloj inyectado", () => {
   it("responde EXPIRED cuando el reloj cambia de día entre sus dos lecturas, sin retener ningún candado", async () => {
     const personId = await seedMember("guardia.reloj@eafit.edu.co");
     const ticks = [TODAY, TOMORROW];
-    const result = await runCommand({ personId }, (ctx) =>
+    const result = await runCommand({ personId, ip: null }, (ctx) =>
       startDailyGame(ctx, RULES, {
         personId,
         now: () => ticks.shift() ?? TOMORROW,
@@ -606,7 +611,7 @@ describe("la guardia con el reloj inyectado", () => {
     const later = new Date(TODAY.getTime() + 1000);
     const ticks = [TODAY];
     const start = (startWhenClosed: DailyGameRules["startWhenClosed"]) =>
-      runCommand({ personId }, (ctx) =>
+      runCommand({ personId, ip: null }, (ctx) =>
         startDailyGame(
           ctx,
           { ...RULES, startWhenClosed },

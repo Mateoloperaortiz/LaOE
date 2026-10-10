@@ -56,10 +56,10 @@ async function applyRosterWithLeaves(termId: string): Promise<void> {
     `Sara;Sola;${EXISTING_EMAIL};;Derecho;A3;${code};Licencia;`,
   ]);
   const { jobId } = await createRosterPreviewAs(
-    { personId: adminId },
+    { personId: adminId, ip: null },
     { filename: "roster.csv", contentType: "text/csv", bytes, termId },
   );
-  await applyRosterImportAs({ personId: adminId }, jobId);
+  await applyRosterImportAs({ personId: adminId, ip: null }, jobId);
 }
 
 function leaves() {
@@ -147,7 +147,7 @@ describe("licencias que nacen del roster", () => {
       .set({ status: "ON_LEAVE", leaveUntil: null })
       .where(eq(membership.personId, oldId));
     const { jobId } = await createRosterPreviewAs(
-      { personId: adminId },
+      { personId: adminId, ip: null },
       {
         filename: "roster.csv",
         contentType: "text/csv",
@@ -156,7 +156,7 @@ describe("licencias que nacen del roster", () => {
       },
     );
 
-    await applyRosterImportAs({ personId: adminId }, jobId);
+    await applyRosterImportAs({ personId: adminId, ip: null }, jobId);
 
     // Qué fecha se les pone a las licencias que ya existen sin ella es la decisión abierta 24: el
     // roster no la elige. Mientras tanto no vencen, ni pasado el tope de un año.

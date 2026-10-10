@@ -91,7 +91,7 @@ describe("excusas válidas", () => {
       reason: "No pude presentar el soporte antes",
       lateSubmission: true,
     });
-    const actor = { personId: f.gh };
+    const actor = { personId: f.gh, ip: null };
     await expect(
       decideExcuseForCommitteeAs(actor, submitted.id, f.a3, {
         decision: "APPROVED",

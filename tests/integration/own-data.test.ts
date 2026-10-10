@@ -41,7 +41,7 @@ describe("datos propios desde Ajustes", () => {
 
   it("edita el celular y el correo personal, audita y deja huella en la línea de tiempo", async () => {
     const me = await seedMember("yo@eafit.edu.co", { firstName: "Yo", lastName: "Misma" });
-    await runCommand({ personId: me }, (ctx) =>
+    await runCommand({ personId: me, ip: null }, (ctx) =>
       updateOwnContact(ctx, me, { phone: "300 123 4567", personalEmail: "Yo@Gmail.com" }),
     );
     const [row] = await db().select().from(person).where(eq(person.id, me));
@@ -52,7 +52,7 @@ describe("datos propios desde Ajustes", () => {
     const timeline = await listInteractions(me);
     expect(timeline.length).toBeGreaterThanOrEqual(1);
     await expect(
-      runCommand({ personId: me }, (ctx) =>
+      runCommand({ personId: me, ip: null }, (ctx) =>
         updateOwnContact(ctx, me, { phone: "12", personalEmail: "" }),
       ),
     ).rejects.toThrow(DomainError);
@@ -86,15 +86,15 @@ describe("datos propios desde Ajustes", () => {
       })
       .returning({ id: mediaAsset.id });
     await expect(
-      runCommand({ personId: me }, (ctx) => setOwnPhoto(ctx, me, foreign?.id ?? "")),
+      runCommand({ personId: me, ip: null }, (ctx) => setOwnPhoto(ctx, me, foreign?.id ?? "")),
     ).rejects.toThrow(DomainError);
-    await runCommand({ personId: me }, (ctx) => setOwnPhoto(ctx, me, own?.id ?? ""));
+    await runCommand({ personId: me, ip: null }, (ctx) => setOwnPhoto(ctx, me, own?.id ?? ""));
     const [row] = await db()
       .select({ photo: person.photoAssetId })
       .from(person)
       .where(eq(person.id, me));
     expect(row?.photo).toBe(own?.id);
-    await runCommand({ personId: me }, (ctx) => setOwnPhoto(ctx, me, null));
+    await runCommand({ personId: me, ip: null }, (ctx) => setOwnPhoto(ctx, me, null));
     const [cleared] = await db()
       .select({ photo: person.photoAssetId })
       .from(person)
@@ -104,9 +104,9 @@ describe("datos propios desde Ajustes", () => {
 
   it("la solicitud de eliminación abre una sola tarea para GH con vencimiento a 15 días hábiles", async () => {
     const me = await seedMember("borrar@eafit.edu.co", { firstName: "Bea", lastName: "Borrar" });
-    const first = await runCommand({ personId: me }, (ctx) => requestDeletion(ctx, me));
+    const first = await runCommand({ personId: me, ip: null }, (ctx) => requestDeletion(ctx, me));
     expect(first.created).toBe(true);
-    const second = await runCommand({ personId: me }, (ctx) => requestDeletion(ctx, me));
+    const second = await runCommand({ personId: me, ip: null }, (ctx) => requestDeletion(ctx, me));
     expect(second.created).toBe(false);
     expect(second.requestedAt.getTime()).toBe(first.requestedAt.getTime());
     await drainOutbox();
@@ -146,7 +146,7 @@ describe("directorio y comités internos", () => {
     await seedCommitteeMembership(bruno, pixel, termId);
     await db().update(person).set({ photoAssetId: "foto-ana" }).where(eq(person.id, ana));
     await db().update(person).set({ photoAssetId: "foto-bruno" }).where(eq(person.id, bruno));
-    await runCommand({ personId: ana }, (ctx) =>
+    await runCommand({ personId: ana, ip: null }, (ctx) =>
       recordConsent(ctx, ana, { purpose: "DIRECTORY_PHOTO", source: "SELF" }),
     );
 

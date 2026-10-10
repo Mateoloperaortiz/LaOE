@@ -83,7 +83,7 @@ async function putOnLeave(personId: string): Promise<void> {
 /** El comando rechazó por la regla de privilegio y no dejó enlace, auditoría ni evento. */
 async function expectNoPrivilegeGain(issuerId: string, recipientId: string): Promise<void> {
   const intento = issueAccessGrantAs(
-    { personId: issuerId },
+    { personId: issuerId, ip: null },
     { personId: recipientId, kind: "RECOVERY" },
   );
   await expect(intento).rejects.toBeInstanceOf(DomainError);
@@ -106,11 +106,11 @@ describe("enlace de acceso", () => {
     const destino = await seedMember("destino@eafit.edu.co");
 
     const primero = await issueAccessGrantAs(
-      { personId: emisor },
+      { personId: emisor, ip: null },
       { personId: destino, kind: "ACTIVATION" },
     );
     const segundo = await issueAccessGrantAs(
-      { personId: emisor },
+      { personId: emisor, ip: null },
       { personId: destino, kind: "RECOVERY" },
     );
 
@@ -132,7 +132,7 @@ describe("enlace de acceso", () => {
     const destino = await seedMember("destino@eafit.edu.co");
 
     const { token } = await issueAccessGrantAs(
-      { personId: emisor },
+      { personId: emisor, ip: null },
       { personId: destino, kind: "ACTIVATION" },
     );
 
@@ -147,10 +147,13 @@ describe("enlace de acceso", () => {
     const retirada = await seedMember("retirada@eafit.edu.co", "INACTIVE");
 
     await expect(
-      issueAccessGrantAs({ personId: emisor }, { personId: emisor, kind: "RECOVERY" }),
+      issueAccessGrantAs({ personId: emisor, ip: null }, { personId: emisor, kind: "RECOVERY" }),
     ).rejects.toThrow();
     await expect(
-      issueAccessGrantAs({ personId: emisor }, { personId: retirada, kind: "ACTIVATION" }),
+      issueAccessGrantAs(
+        { personId: emisor, ip: null },
+        { personId: retirada, kind: "ACTIVATION" },
+      ),
     ).rejects.toThrow();
     expect(await db().select().from(accessGrant)).toHaveLength(0);
   });
@@ -166,7 +169,7 @@ describe("enlace de acceso", () => {
       ip: null,
     });
     const { token } = await issueAccessGrantAs(
-      { personId: emisor },
+      { personId: emisor, ip: null },
       { personId: destino, kind: "RECOVERY" },
     );
 
@@ -200,7 +203,7 @@ describe("enlace de acceso", () => {
       .from(person)
       .where(eq(person.email, "destino@eafit.edu.co"));
     const { token } = await issueAccessGrantAs(
-      { personId: emisor },
+      { personId: emisor, ip: null },
       { personId: destino?.id ?? "", kind: "ACTIVATION" },
     );
     await consumeAccessGrant({ token, password: CLAVE, ip: null, userAgent: null });
@@ -220,7 +223,7 @@ describe("enlace de acceso", () => {
     const emisor = await seedMember("junta@eafit.edu.co");
     const destino = await seedMember("destino@eafit.edu.co");
     const { token } = await issueAccessGrantAs(
-      { personId: emisor },
+      { personId: emisor, ip: null },
       { personId: destino, kind: "ACTIVATION" },
     );
     await consumeAccessGrant({ token, password: CLAVE, ip: null, userAgent: null });
@@ -241,7 +244,7 @@ describe("enlace de acceso", () => {
     const emisor = await seedMember("junta@eafit.edu.co");
     const destino = await seedMember("destino@eafit.edu.co");
     const { token } = await issueAccessGrantAs(
-      { personId: emisor },
+      { personId: emisor, ip: null },
       { personId: destino, kind: "ACTIVATION" },
     );
 
@@ -264,7 +267,7 @@ describe("enlace de acceso", () => {
     const emisor = await seedMember("junta@eafit.edu.co");
     const destino = await seedMember("destino@eafit.edu.co");
     const { token } = await issueAccessGrantAs(
-      { personId: emisor },
+      { personId: emisor, ip: null },
       { personId: destino, kind: "ACTIVATION" },
     );
 
@@ -286,7 +289,7 @@ describe("enlace de acceso", () => {
       .insert(credential)
       .values({ personId: destino, passwordHash: await hashPassword("la vieja larga") });
     const { token } = await issueAccessGrantAs(
-      { personId: emisor },
+      { personId: emisor, ip: null },
       { personId: destino, kind: "RECOVERY" },
     );
 
@@ -355,7 +358,7 @@ describe("enlace de acceso", () => {
 
       for (const destino of [miembro, colega, lider]) {
         const { token } = await issueAccessGrantAs(
-          { personId: junta },
+          { personId: junta, ip: null },
           { personId: destino, kind: "RECOVERY" },
         );
         expect(await resolveAccessGrant(token)).toMatchObject({ personId: destino });
@@ -368,13 +371,13 @@ describe("enlace de acceso", () => {
       const otro = await seedMemberWith("otro@eafit.edu.co", "ADMIN", "BOARD", { leaderOf: gemis });
 
       const { token } = await issueAccessGrantAs(
-        { personId: admin },
+        { personId: admin, ip: null },
         { personId: otro, kind: "RECOVERY" },
       );
 
       expect(await resolveAccessGrant(token)).toMatchObject({ personId: otro });
       await expect(
-        issueAccessGrantAs({ personId: admin }, { personId: admin, kind: "RECOVERY" }),
+        issueAccessGrantAs({ personId: admin, ip: null }, { personId: admin, kind: "RECOVERY" }),
       ).rejects.toThrow(t("T-2126"));
     });
 
@@ -418,7 +421,7 @@ describe("enlace de acceso", () => {
 
         const held = await leavingOnHold(junta);
         const emision = issueAccessGrantAs(
-          { personId: junta },
+          { personId: junta, ip: null },
           { personId: colega, kind: "RECOVERY" },
         );
         const sinEsperar = emision.then(
@@ -463,7 +466,7 @@ describe("enlace de acceso", () => {
         void licencia.catch(ready.reject);
         const pid = await ready.promise;
         const emision = issueAccessGrantAs(
-          { personId: junta },
+          { personId: junta, ip: null },
           { personId: colega, kind: "RECOVERY" },
         );
         void emision.catch(() => undefined);
@@ -484,7 +487,10 @@ describe("enlace de acceso", () => {
 
         const held = await leavingOnHold(junta);
         try {
-          await issueAccessGrantAs({ personId: junta }, { personId: miembro, kind: "RECOVERY" });
+          await issueAccessGrantAs(
+            { personId: junta, ip: null },
+            { personId: miembro, kind: "RECOVERY" },
+          );
         } finally {
           held.release();
           await held.done;
@@ -509,7 +515,7 @@ describe("enlace de acceso", () => {
       const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
       const destino = await seedMember(DESTINO);
       const { token } = await issueAccessGrantAs(
-        { personId: junta },
+        { personId: junta, ip: null },
         { personId: destino, kind: "RECOVERY" },
       );
       expect(await resolveAccessGrant(token)).toMatchObject({ personId: destino });
@@ -529,7 +535,7 @@ describe("enlace de acceso", () => {
       const destino = await seedMember(DESTINO);
       const otra = await seedMember("otra@eafit.edu.co");
       const ajeno = await issueAccessGrantAs(
-        { personId: junta },
+        { personId: junta, ip: null },
         { personId: otra, kind: "ACTIVATION" },
       );
 
@@ -543,7 +549,7 @@ describe("enlace de acceso", () => {
       const admin = await seedMemberWith("admin@eafit.edu.co", "ADMIN");
       const destino = await seedMemberWith(DESTINO, "BOARD");
       const { token } = await issueAccessGrantAs(
-        { personId: admin },
+        { personId: admin, ip: null },
         { personId: destino, kind: "RECOVERY" },
       );
 
@@ -564,7 +570,7 @@ describe("enlace de acceso", () => {
         grantPermission(ctx, { email: DESTINO, code: "ADMIN" }),
       );
       const emision = issueAccessGrantAs(
-        { personId: junta },
+        { personId: junta, ip: null },
         { personId: destino, kind: "RECOVERY" },
       );
       void emision.catch(() => undefined);
@@ -586,7 +592,7 @@ describe("enlace de acceso", () => {
       const destino = await seedMember(DESTINO);
 
       let token = "";
-      const held = await holdCommand({ personId: junta }, async (ctx) => {
+      const held = await holdCommand({ personId: junta, ip: null }, async (ctx) => {
         token = (await issueAccessGrant(ctx, { personId: destino, kind: "RECOVERY" })).token;
       });
       const concesion = grantPermissionAs(SYSTEM_ACTOR, { email: DESTINO, code: "ADMIN" });
