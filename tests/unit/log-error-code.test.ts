@@ -82,6 +82,37 @@ describe("el código de un error en el registro", () => {
     for (const code of ["481516", "234200", "108642"]) expect(written).not.toContain(code);
   });
 
+  it("un código, una clave, un token o un secreto de primer nivel también salen ocultos, y el código de un error sigue legible", async () => {
+    // Las rutas `*.code` y sus vecinas piden una clave encima: la misma clave suelta, en la línea o
+    // en lo que fija un logger hijo, salía tal cual (DT-259).
+    const { lines } = await captureLogs(async () => {
+      logger.info(
+        {
+          code: "481516",
+          password: "clave-sintetica",
+          token: "token-sintetico",
+          secret: "secreto-sintetico",
+        },
+        "ingreso",
+      );
+      logger.child({ code: "234200", token: "token-de-hijo" }).info("ingreso");
+      logger.error({ code: "108642", err: withCode("la base no respondió", "57P01") }, "ingreso");
+    });
+    expect(lines[0]?.record).toMatchObject({
+      code: "[oculto]",
+      password: "[oculto]",
+      token: "[oculto]",
+      secret: "[oculto]",
+    });
+    expect(lines[1]?.record).toMatchObject({ code: "[oculto]", token: "[oculto]" });
+    expect(lines[2]?.record).toMatchObject({ code: "[oculto]" });
+    expect(errOf(lines[2]).code).toBe("57P01");
+    const written = lines.map((entry) => entry.line).join("\n");
+    for (const value of ["481516", "234200", "108642", "sintetic", "token-de-hijo"]) {
+      expect(written).not.toContain(value);
+    }
+  });
+
   it("lo demás que el registro oculta sigue oculto dentro de un error", async () => {
     const err = Object.assign(new Error("el proveedor rechazó la credencial"), {
       code: "EAUTH",

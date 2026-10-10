@@ -83,6 +83,12 @@ export const logger = pino({
   serializers: { err: serializeError },
   redact: {
     paths: [
+      // Sueltas en la línea o en lo que fija un logger hijo, y con una clave encima: las rutas con
+      // `*` no cubren el primer nivel (ADR-119 regla 14).
+      "password",
+      "token",
+      "code",
+      "secret",
       "*.password",
       "*.token",
       "*.code",
