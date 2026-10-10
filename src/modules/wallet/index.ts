@@ -1,5 +1,6 @@
 export { buildApplePass } from "./domain/apple";
 export { loadCarnetData } from "./domain/carnet-data";
+export { walletFailure } from "./domain/failure";
 export {
   issueGoogleSaveUrl,
   refreshGooglePass,

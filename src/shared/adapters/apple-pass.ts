@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { PKPass } from "passkit-generator";
 import { getEnv } from "@/env";
+import { WalletError } from "./wallet-error";
 
 export interface ApplePassCertificates {
   wwdr: string | Buffer;
@@ -37,7 +38,7 @@ export async function signPass(
   if (!certificates) {
     const env = getEnv();
     if (!isApplePassConfigured() || !env.APPLE_PASS_CERT_BASE64 || !env.APPLE_PASS_KEY_BASE64) {
-      throw new Error("Apple Wallet sin configurar");
+      throw new WalletError("NOT_CONFIGURED", "Apple Wallet sin configurar");
     }
     wwdr ??= readFile(join(process.cwd(), "src/shared/adapters/certs/AppleWWDRCAG4.crt"));
     certificates = {
@@ -60,6 +61,6 @@ export async function signPass(
     return pass.getAsBuffer();
   } catch {
     // Los errores del proveedor podrían contener valores del pase o de las credenciales.
-    throw new Error("No se pudo firmar el pase de Apple Wallet");
+    throw new WalletError("SIGNING_FAILED", "No se pudo firmar el pase de Apple Wallet");
   }
 }

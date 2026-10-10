@@ -12,6 +12,7 @@ import {
   setGoogleWalletTransportForTests as setTransport,
   signSaveJwt,
 } from "@/shared/adapters/google-wallet";
+import { WalletError } from "@/shared/adapters/wallet-error";
 import { walletPass } from "../schema";
 import { loadCarnetData } from "./carnet-data";
 import {
@@ -29,7 +30,7 @@ let classMemo: { id: string; ready: Promise<void> } | undefined;
 function googleConfig() {
   const env = getEnv();
   if (!env.GOOGLE_WALLET_ISSUER_ID || !env.GOOGLE_WALLET_SA_EMAIL || !isGoogleWalletConfigured()) {
-    throw new Error("Google Wallet no está configurado");
+    throw new WalletError("NOT_CONFIGURED", "Google Wallet no está configurado");
   }
   return {
     issuerId: env.GOOGLE_WALLET_ISSUER_ID,
@@ -42,7 +43,7 @@ function googleConfig() {
 function accepted(status: number): void {
   if (status < 200 || status >= 300) {
     // Nunca incluir el cuerpo remoto: puede repetir nombre, QR o claves.
-    throw new Error(`Google Wallet respondió HTTP ${status}`);
+    throw new WalletError("PROVIDER_HTTP", `Google Wallet respondió HTTP ${status}`, status);
   }
 }
 
@@ -130,7 +131,10 @@ export async function issueGoogleSaveUrl(personId: string): Promise<string> {
       .where(and(eq(walletPass.personId, personId), eq(walletPass.platform, "GOOGLE")));
     if (!pass || pass.externalId !== ids.id) {
       // Cambiar emisor/sufijo con pases existentes requiere conservar y migrar los IDs anteriores.
-      throw new Error("La configuración de Google Wallet no coincide con el pase registrado");
+      throw new WalletError(
+        "PASS_MISMATCH",
+        "La configuración de Google Wallet no coincide con el pase registrado",
+      );
     }
     await ensureGoogleClass(ids.classId);
     const path = `/genericObject/${encodeURIComponent(ids.id)}`;
@@ -150,10 +154,18 @@ export async function issueGoogleSaveUrl(personId: string): Promise<string> {
     const jwt = signSaveJwt(buildSaveClaims({ ...ids, ...config }));
     const saveUrl = `https://pay.google.com/gp/v/save/${jwt}`;
     if (saveUrl.length > 1800)
-      throw new Error("El enlace de Google Wallet supera el tamaño admitido");
+      throw new WalletError(
+        "LINK_TOO_LONG",
+        "El enlace de Google Wallet supera el tamaño admitido",
+      );
     return saveUrl;
   });
-  if (!url) throw new Error("El carnet cambió durante la emisión; volvé a intentarlo");
+  if (!url) {
+    throw new WalletError(
+      "CHANGED_DURING_ISSUE",
+      "El carnet cambió durante la emisión; volvé a intentarlo",
+    );
+  }
   return url;
 }
 
@@ -172,7 +184,10 @@ export async function refreshGooglePass(personId: string): Promise<void> {
       !member || member.status === "INACTIVE" || pass.walletEpoch !== member.walletEpoch;
     if (!anonymous && pass.revokedAt) return;
     if (!isGoogleWalletConfigured())
-      throw new Error("Sin credenciales para sincronizar un pase Google existente");
+      throw new WalletError(
+        "NOT_CONFIGURED",
+        "Sin credenciales para sincronizar un pase Google existente",
+      );
     const path = `/genericObject/${encodeURIComponent(pass.externalId)}`;
     const classId = pass.externalId.slice(0, pass.externalId.lastIndexOf("."));
     if (anonymous) {

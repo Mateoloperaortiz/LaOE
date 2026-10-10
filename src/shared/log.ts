@@ -110,6 +110,12 @@ function causeCode(error: Error): string | number | undefined {
   return undefined;
 }
 
+/** El código de un error, o el de su causa más cercana que traiga uno. */
+export function errorCode(error: Error): string | number | undefined {
+  const own = (error as { code?: unknown }).code;
+  return typeof own === "string" || typeof own === "number" ? own : causeCode(error);
+}
+
 type QueryError = Error & { query: string; params: unknown[] };
 
 /** Un error de consulta de Drizzle: trae el SQL y, aparte, los valores con que se llamó. */

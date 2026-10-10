@@ -1,26 +1,42 @@
+import { DrizzleQueryError } from "drizzle-orm/errors";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/wallet/google/route";
+import { ForbiddenError } from "@/modules/identity/domain/errors";
 import { safeNextPath } from "@/modules/identity/domain/pure";
+import { WalletError } from "@/shared/adapters/wallet-error";
+import { DomainError } from "@/shared/lib/errors";
+import { captureLogs, type LoggedLine } from "../helpers/logs";
 
 const state = vi.hoisted(() => ({
   available: vi.fn(),
   actor: vi.fn(),
   issue: vi.fn(),
-  warn: vi.fn(),
 }));
 vi.mock("@/env", () => ({ getEnv: () => ({ APP_URL: "https://oe-sintetica.example" }) }));
-vi.mock("@/modules/identity", () => ({ getActor: state.actor }));
-vi.mock("@/modules/wallet", () => ({
+vi.mock("@/modules/identity", async () => ({
+  getActor: state.actor,
+  ForbiddenError: (await import("@/modules/identity/domain/errors")).ForbiddenError,
+}));
+// El registro es el de verdad: lo que se afirma es la línea que sale, ya serializada. Y lo que es
+// seguro escribir lo decide el módulo, no la prueba (DT-228, ADR-120 regla 13).
+vi.mock("@/modules/wallet", async () => ({
   walletAvailability: state.available,
   issueGoogleSaveUrl: state.issue,
+  walletFailure: (await import("@/modules/wallet/domain/failure")).walletFailure,
 }));
-vi.mock("@/shared/log", () => ({ logger: { warn: state.warn } }));
 
 beforeEach(() => {
   vi.resetAllMocks();
   state.available.mockReturnValue({ apple: true, google: true });
   state.actor.mockResolvedValue({ personId: "persona-sintetica" });
 });
+
+/** La emisión falla con `error`: la respuesta de la ruta y lo que dejó en el registro. */
+async function failing(error: unknown): Promise<{ response: Response; lines: LoggedLine[] }> {
+  state.issue.mockRejectedValue(error);
+  const { result: response, lines } = await captureLogs(() => GET());
+  return { response, lines };
+}
 
 describe("ruta Wallet google", () => {
   it("apagada devuelve 404 sin consultar sesión y sin caché", async () => {
@@ -53,11 +69,87 @@ describe("ruta Wallet google", () => {
     expect(state.issue).toHaveBeenCalledWith("persona-sintetica");
   });
   it("el fallo vuelve al carnet sin filtrar el error ni sus secretos al log", async () => {
-    state.issue.mockRejectedValue(new Error("oe2.secreto-de-prueba"));
-    const response = await GET();
+    const { response, lines } = await failing(new Error("oe2.secreto-de-prueba"));
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/app/carnet?error=google");
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(JSON.stringify(state.warn.mock.calls)).not.toContain("secreto");
+    expect(lines).toHaveLength(1);
+    expect(lines[0]?.record).toMatchObject({
+      level: 50,
+      msg: "no se pudo emitir el carnet",
+      platform: "GOOGLE",
+      reason: "UNEXPECTED",
+      errorType: "Error",
+    });
+    expect(lines[0]?.line).not.toContain("secreto");
+    expect(lines[0]?.line).not.toContain("oe2.");
+  });
+  it("el registro dice por qué no se pudo emitir: el motivo y el estado que respondió el proveedor", async () => {
+    const http = await failing(
+      new WalletError("PROVIDER_HTTP", "respondió HTTP 503 oe2.secreto-de-prueba", 503),
+    );
+    const config = await failing(new WalletError("NOT_CONFIGURED", "no está configurado"));
+    expect(http.lines[0]?.record).toMatchObject({
+      level: 50,
+      platform: "GOOGLE",
+      reason: "PROVIDER_HTTP",
+      status: 503,
+    });
+    expect(config.lines[0]?.record).toMatchObject({ level: 50, reason: "NOT_CONFIGURED" });
+    expect(config.lines[0]?.record).not.toHaveProperty("status");
+    for (const { line } of [...http.lines, ...config.lines]) {
+      for (const written of ["secreto", "respondió", "no está configurado"]) {
+        expect(line).not.toContain(written);
+      }
+    }
+  });
+  it("si lo que se cae es la base, la línea trae la clase del error y su código, sin la consulta ni sus valores", async () => {
+    const down = Object.assign(new Error("terminating connection due to administrator command"), {
+      code: "57P01",
+    });
+    const { lines } = await failing(
+      new DrizzleQueryError("select 1 where $1", ["valor.privado@eafit.edu.co"], down),
+    );
+    expect(lines[0]?.record).toMatchObject({
+      level: 50,
+      reason: "UNEXPECTED",
+      errorType: "DrizzleQueryError",
+      errorCode: "57P01",
+    });
+    expect(lines[0]?.line).not.toContain("valor.privado");
+    expect(lines[0]?.line).not.toContain("select");
+  });
+  it("un carnet que cambió mientras se emitía avisa sin nivel de fallo: la persona vuelve a intentar", async () => {
+    const { response, lines } = await failing(
+      new WalletError("CHANGED_DURING_ISSUE", "cambió durante la emisión"),
+    );
+    expect(response.headers.get("location")).toBe("/app/carnet?error=google");
+    expect(lines).toHaveLength(1);
+    expect(lines[0]?.record).toMatchObject({ level: 40, reason: "CHANGED_DURING_ISSUE" });
+  });
+  it("el registro distingue a Google caído de una credencial que no sirve", async () => {
+    const down = await failing(new WalletError("PROVIDER_UNREACHABLE", "no respondió"));
+    const denied = await failing(new WalletError("PROVIDER_AUTH", "autorización HTTP 400", 400));
+    const unsigned = await failing(new WalletError("SIGNING_FAILED", "no se pudo firmar"));
+    expect(down.lines[0]?.record).toMatchObject({ level: 50, reason: "PROVIDER_UNREACHABLE" });
+    expect(denied.lines[0]?.record).toMatchObject({
+      level: 50,
+      reason: "PROVIDER_AUTH",
+      status: 400,
+    });
+    expect(unsigned.lines[0]?.record).toMatchObject({ level: 50, reason: "SIGNING_FAILED" });
+  });
+  it.each([
+    ["no tiene carnet vigente", new DomainError("mensaje de dominio sintético")],
+    ["no participa", new ForbiddenError()],
+  ])("quien %s vuelve al carnet y no deja una línea de fallo", async (_name, rejection) => {
+    const { response, lines } = await failing(rejection);
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/app/carnet?error=google");
+    expect(lines).toHaveLength(1);
+    expect(lines[0]?.record).toMatchObject({ level: 30, platform: "GOOGLE" });
+    expect(lines[0]?.record.msg).not.toBe("no se pudo emitir el carnet");
+    expect(lines[0]?.record).not.toHaveProperty("reason");
+    expect(lines[0]?.line).not.toContain("sintético");
   });
 });

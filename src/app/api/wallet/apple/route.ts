@@ -1,7 +1,7 @@
 import { redirectFromDownload } from "@/app/_lib/download";
 import { getActor } from "@/modules/identity";
 import { buildApplePass, walletAvailability } from "@/modules/wallet";
-import { logger } from "@/shared/log";
+import { logCarnetNotIssued } from "../not-issued";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,8 +21,8 @@ export async function GET() {
         "content-disposition": 'attachment; filename="carnet-oe.pkpass"',
       },
     });
-  } catch {
-    logger.warn({ platform: "APPLE" }, "no se pudo emitir el carnet");
+  } catch (error) {
+    logCarnetNotIssued("APPLE", error);
     return new Response(null, {
       status: 302,
       headers: { ...noStore, location: "/app/carnet?error=apple" },

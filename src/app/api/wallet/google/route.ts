@@ -1,7 +1,7 @@
 import { redirectFromDownload } from "@/app/_lib/download";
 import { getActor } from "@/modules/identity";
 import { issueGoogleSaveUrl, walletAvailability } from "@/modules/wallet";
-import { logger } from "@/shared/log";
+import { logCarnetNotIssued } from "../not-issued";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,8 +15,8 @@ export async function GET() {
   try {
     const url = await issueGoogleSaveUrl(actor.personId);
     return new Response(null, { status: 302, headers: { ...noStore, location: url } });
-  } catch {
-    logger.warn({ platform: "GOOGLE" }, "no se pudo emitir el carnet");
+  } catch (error) {
+    logCarnetNotIssued("GOOGLE", error);
     return new Response(null, {
       status: 302,
       headers: { ...noStore, location: "/app/carnet?error=google" },
