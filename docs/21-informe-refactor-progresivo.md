@@ -7,7 +7,7 @@ Cierre del objetivo que Mateo fijó el 2026-10-06 ([ADR-109](adr/ADR-109-refacto
 - **Siete ciclos y un remate**, del 2026-10-06 al 2026-10-09: seis ciclos de corrección, seguridad e integridad, uno de estructura, y al final los arreglos rápidos que salieron de clasificar lo que quedaba. Más un arreglo de dependencias vulnerables y una guarda de migraciones, los dos contra `main`.
 - **Nada está mezclado.** Todo vive en diez PR abiertos, ocho de ellos apilados. Mezclar y promover piden la decisión de Mateo, y cada ciclo trae su lista de comprobaciones previas (sección «Cómo seguir»).
 - **El repositorio se leyó entero.** Una revisión de arquitectura, un descubrimiento de seguridad y dos olas de una auditoría de huecos, cada hallazgo de severidad media o alta con un segundo lector que intentó tumbarlo.
-- **Ledger:** 295 hallazgos, todos en un estado final. 110 resueltos, 172 diferidos con lo que los destraba y el riesgo de dejarlos, 8 aceptados y 5 que no eran deuda. De los diferidos, 93 esperan una de las 60 decisiones abiertas.
+- **Ledger:** 296 hallazgos, todos en un estado final. 110 resueltos, 173 diferidos con lo que los destraba y el riesgo de dejarlos, 8 aceptados y 5 que no eran deuda. De los diferidos, 94 esperan una de las 61 decisiones abiertas.
 - **Pruebas:** de 855 unitarias y 603 de integración a 1.170 y 1.271. La E2E pasa entera cuando corre sola; pegada a `npm run check`, dos pruebas largas todavía tardan de más por lo que la suite de integración le deja a Postgres, y tienen el límite ampliado mientras se corrige la causa (DT-188).
 - **Lo más urgente no es código:** mezclar y promover el #116, porque producción sigue con un aviso crítico, y mezclar el #192 antes que la pila, porque sin él una migración se puede saltar en silencio.
 
@@ -125,10 +125,10 @@ Lo que **no** se verificó, y conviene saberlo:
 - **La pila es larga y nada está mezclado.** Ocho PR apilados sobre `main`, que no se movió desde el 2026-10-06. Si `main` recibe cambios, cada eslabón pide ponerse al día. Mezclar el #192 primero hace chocar la pila en los documentos que los dos editan (el índice de decisiones, el roadmap y el índice de ADR): son conflictos de texto, no de código.
 - **Cuatro migraciones esperan en la pila** (0047 a 0050), todas aditivas. Si `main` recibe otra migración antes, hay que volver a generarlas: Drizzle saltaría las más viejas sin avisar (DT-128). La guarda del #192 lo detecta y tiene que mezclarse primero.
 - **Producción sigue con el aviso crítico de `next/og`** hasta que se mezcle y promueva el #116. Dependabot abrió por su cuenta el #172 con la misma subida de `next`: sobra uno de los dos.
-- **Un dato sensible sobrevive a la anonimización** hasta que se cierre la decisión 10: el motivo de una excusa, una licencia o una renuncia, que puede ser médico, queda en la solicitud y en la auditoría. Lo ven GH y ADMIN (DT-100).
+- **Un dato sensible sobrevive a la anonimización** hasta que se cierre la decisión 10: el motivo de una excusa, una licencia o una renuncia, que puede ser médico, queda en la solicitud y en la auditoría. Lo ven GH y ADMIN (DT-100). Y una persona anonimizada todavía se puede editar abriendo el panel por su dirección, porque el comando no mira la anonimización (DT-296, decisión 61); salió al redactar las specs y está leído, no ejecutado.
 - **Durante un despliegue conviven dos versiones del poller.** La anterior da por procesado un evento cuyo tipo no conoce (decisión 40), y la pila agrega dos tipos nuevos, uno de ellos programado al minuto 20 de cada hora: conviene promover lejos de ese minuto.
 - **Hay cambios de conducta a la vista de las personas.** Cada PR los lista. Los que más se notan: una campaña grande dura días por el cupo diario; quien vuelve a un grupo de trabajo queda con la evaluación pendiente; los formularios con estado ya no se envían sin JavaScript; crear solo el término siguiente falla si se cruza con el vigente; y conceder un permiso mata el enlace de activación que esa persona tuviera sin usar.
-- **60 decisiones de dominio siguen abiertas.** El código conserva en cada una la conducta anterior, pero varias tapan defectos reales que no se pueden corregir sin elegir.
+- **61 decisiones de dominio siguen abiertas.** El código conserva en cada una la conducta anterior, pero varias tapan defectos reales que no se pueden corregir sin elegir.
 - **Dos condiciones para promover piden tocar servicios reales:** probar qué hace Resend con una clave de idempotencia que recibió un error (DT-182) y confirmar su cupo diario (DT-125).
 
 ## Deuda que queda
@@ -139,7 +139,7 @@ Todo hallazgo del ledger terminó en uno de los cuatro estados de ADR-109. La cl
 | --- | --- | --- | --- | --- |
 | Corrección | 45 | 62 | 1 | 0 |
 | Seguridad | 27 | 24 | 3 | 0 |
-| Privacidad | 5 | 0 | 0 | 0 |
+| Privacidad | 5 | 1 | 0 | 0 |
 | Integridad | 8 | 24 | 2 | 2 |
 | Simplicidad | 1 | 12 | 0 | 0 |
 | Mantenibilidad | 10 | 28 | 2 | 0 |
@@ -147,18 +147,18 @@ Todo hallazgo del ledger terminó en uno de los cuatro estados de ADR-109. La cl
 | Observabilidad | 4 | 7 | 0 | 0 |
 | Rendimiento | 0 | 7 | 0 | 0 |
 | Sin prioridad | 0 | 0 | 0 | 3 |
-| **Total** | **110** | **172** | **8** | **5** |
+| **Total** | **110** | **173** | **8** | **5** |
 
 Lo diferido, por lo que lo destraba:
 
-- **93 esperan una decisión de dominio.** Están en [decisiones-abiertas.md](decisiones-abiertas.md), cada una con sus opciones, una recomendación y su ticket. Las que más filas destraban: la 18 (4), la 38 (4), la 42 (4), la 8 (3), la 14 (3), la 15 (3).
+- **94 esperan una decisión de dominio.** Están en [decisiones-abiertas.md](decisiones-abiertas.md), cada una con sus opciones, una recomendación y su ticket. Las que más filas destraban: la 18 (4), la 38 (4), la 42 (4), la 8 (3), la 14 (3), la 15 (3).
 - **35 piden mirar staging o producción** antes de poder cerrarse: un conteo de solo lectura, una medición o una prueba contra un proveedor real. Varias caben en una sola sesión del túnel de solo lectura.
-- **La estructura que el plan cierra sin hacer**, cada pieza con su fila y pendiente de su spec: la interfaz pública de los módulos, que exporta mucho más de lo que se usa (DT-012); las piezas base de interfaz y las páginas largas, que van juntas (DT-015, DT-047 y DT-027); la biblioteca de juegos, después de las decisiones 49 y 50 (DT-032); las etiquetas por valor en vez de por posición (DT-011); el cargo principal derivado (DT-039); la siembra de pruebas por comandos (DT-013, DT-030 y DT-188); y el poller en serie (DT-016).
+- **La estructura que el plan cierra sin hacer**, cada pieza con sus filas y su spec, escrita contra el código del cierre y comprobada por un segundo lector, sin implementar: la interfaz pública de los módulos, que exporta mucho más de lo que se usa (DT-012, [#238](https://github.com/Mateoloperaortiz/LaOE/issues/238)); el resultado de una acción, que hoy tiene cinco convenciones (DT-014, [#239](https://github.com/Mateoloperaortiz/LaOE/issues/239)); las piezas base de interfaz y las páginas largas, que van juntas (DT-015, DT-047 y DT-027, [#240](https://github.com/Mateoloperaortiz/LaOE/issues/240)); la biblioteca de juegos (DT-032, [#241](https://github.com/Mateoloperaortiz/LaOE/issues/241)); las etiquetas por valor en vez de por posición (DT-011, [#242](https://github.com/Mateoloperaortiz/LaOE/issues/242)); el cargo principal derivado (DT-039, [#243](https://github.com/Mateoloperaortiz/LaOE/issues/243)); la base de las pruebas de integración, su siembra y su vaciado (DT-013, DT-030 y DT-188, [#244](https://github.com/Mateoloperaortiz/LaOE/issues/244)); y el poller por handler (DT-016, [#245](https://github.com/Mateoloperaortiz/LaOE/issues/245)).
 - **Rendimiento**, siete filas. Ninguna está medida como problema a la escala de hoy, unas 470 personas; comparten un requisito, un ayudante que cuente consultas para poder fijar el arreglo con una prueba.
 - **Dependencias:** tres saltos mayores pendientes, TypeScript, Vitest y los tipos de Node (DT-237). Se suben después de mezclar, uno por vez.
 - **El resto son tickets chicos**: cada fila dice cuál en su nota de cierre.
 
-Por riesgo, de las 121 filas diferidas que la clasificación leyó una por una: 3 de riesgo alto, 38 de riesgo medio y 80 de riesgo bajo. Las demás esperan una decisión ya numerada y no se volvieron a leer. Las de riesgo alto son DT-053 y DT-128, que se cierran mezclando el #116 y el #192, y DT-100, la del dato sensible que sobrevive a la anonimización.
+Por riesgo, de las 122 filas diferidas que tienen su riesgo escrito: 3 de riesgo alto, 39 de riesgo medio y 80 de riesgo bajo. Las demás esperan una decisión ya numerada y no se volvieron a leer. Las de riesgo alto son DT-053 y DT-128, que se cierran mezclando el #116 y el #192, y DT-100, la del dato sensible que sobrevive a la anonimización.
 
 ## Cómo seguir
 
