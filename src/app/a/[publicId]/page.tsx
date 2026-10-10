@@ -18,7 +18,7 @@ import {
   type OccasionRow,
   type SelfCheckInEligibilityDenial,
   type SelfCheckInFacts,
-  selfCheckInDenial,
+  selfCheckInEligibilityDenial,
 } from "@/modules/participation";
 import { getMembershipRef } from "@/modules/people";
 import { resolveAlias } from "@/modules/system";
@@ -140,7 +140,7 @@ function occasionView(
   now: Date,
   result: CheckInResultCode | null,
 ): View {
-  const denial = selfCheckInDenial({ occasion: row, termClosed, membership, now });
+  const denial = selfCheckInEligibilityDenial({ occasion: row, termClosed, membership, now });
   if (denial) return { kind: "message", text: denialText(denial, row) };
   if (result === "inactivo") return { kind: "message", text: notEligibleText() };
   return {

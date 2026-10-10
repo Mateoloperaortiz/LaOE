@@ -108,7 +108,7 @@ export {
   type CheckInStatus,
   type SelfCheckInEligibilityDenial,
   type SelfCheckInFacts,
-  selfCheckInDenial,
+  selfCheckInEligibilityDenial,
 } from "./domain/check-in-pure";
 export {
   type ApprovedCheckIn,
@@ -300,7 +300,6 @@ export {
   type Board,
   type CommitteeScore,
   type MyPosition,
-  myPosition,
   peopleBoards,
   type RankedPerson,
   rankCommittees,

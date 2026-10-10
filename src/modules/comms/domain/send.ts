@@ -168,11 +168,11 @@ export async function sendTransactionalEmail(
   // que el proveedor respondió: quien envía desde un request, como el código de ingreso, no retiene
   // una conexión mientras el correo viaja ni pide dos para registrar.
   await unlessAnonymized(email.personId, (tx) =>
-    tx
-      .insert(message)
-      .values({
+    recordMessage(
+      {
         personId: email.personId,
         channel: "EMAIL",
+        kind: "TRANSACTIONAL",
         subject: email.subject,
         status: receipt.status,
         provider: receipt.provider,
@@ -180,8 +180,9 @@ export async function sendTransactionalEmail(
         error: receipt.error,
         dedupeKey: options.dedupeKey ?? null,
         sentAt: receipt.status === "SENT" ? now : null,
-      })
-      .onConflictDoNothing(),
+      },
+      tx,
+    ),
   );
   if (receipt.status === "FAILED") {
     // A la persona se la nombra por su id, no por su dirección: este aviso también lo dispara quien

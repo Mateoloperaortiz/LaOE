@@ -114,7 +114,7 @@ function causeCode(error: Error): string | number | undefined {
   let current: unknown = error.cause;
   for (let depth = 0; depth < 5 && current instanceof Error; depth += 1) {
     const code = (current as { code?: unknown }).code;
-    if (typeof code === "string" || typeof code === "number") {
+    if (isErrorCode(code)) {
       return code;
     }
     current = current.cause;
@@ -125,7 +125,7 @@ function causeCode(error: Error): string | number | undefined {
 /** El código de un error, o el de su causa más cercana que traiga uno. */
 export function errorCode(error: Error): string | number | undefined {
   const own = (error as { code?: unknown }).code;
-  return typeof own === "string" || typeof own === "number" ? own : causeCode(error);
+  return isErrorCode(own) ? own : causeCode(error);
 }
 
 type QueryError = Error & { query: string; params: unknown[] };

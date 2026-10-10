@@ -76,18 +76,10 @@ export interface MyPosition {
   of: number;
 }
 
-export async function myPosition(
-  personId: string,
-  termId: string,
-  firstTermId: string,
-): Promise<MyPosition> {
-  return peopleBoards(termId).position(personId, firstTermId);
-}
-
 export interface PeopleBoards {
   /** El tablero completo, como `rankPeople`. */
   rank(board: Board): Promise<Ranked<RankedPerson>[]>;
-  /** El puesto de la persona en el tablero que le toca por su primer término, como `myPosition`. */
+  /** El puesto de la persona en el tablero que le toca por su primer término. */
   position(personId: string, firstTermId: string): Promise<MyPosition>;
 }
 

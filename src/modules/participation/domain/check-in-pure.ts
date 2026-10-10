@@ -111,7 +111,9 @@ export function closedToSelf(status: OccasionStatus): "DRAFT" | "CANCELLED" | "C
  * la OE en el término de la ocasión (decisión abierta 56). Falla cerrado: una ventana que no sea la
  * abierta y una membresía que no sea de las que registran son motivo.
  */
-export function selfCheckInDenial(facts: SelfCheckInFacts): SelfCheckInEligibilityDenial | null {
+export function selfCheckInEligibilityDenial(
+  facts: SelfCheckInFacts,
+): SelfCheckInEligibilityDenial | null {
   const { occasion, membership } = facts;
   const closed = closedToSelf(occasion.status);
   if (closed) {

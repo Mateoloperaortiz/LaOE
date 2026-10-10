@@ -11,7 +11,7 @@ import {
   initialStatus,
   outcomeFor,
   type SelfCheckInFacts,
-  selfCheckInDenial,
+  selfCheckInEligibilityDenial,
   statusForDecision,
 } from "@/modules/participation/domain/check-in-pure";
 import {
@@ -220,7 +220,7 @@ describe("registro propio: por qué no procede (ADR-120 regla 17)", () => {
     };
   }
 
-  it.each<[string, Over, ReturnType<typeof selfCheckInDenial>]>([
+  it.each<[string, Over, ReturnType<typeof selfCheckInEligibilityDenial>]>([
     ["una activa se registra", {}, null],
     ["una honoraria se registra", { membership: honoraria }, null],
     [
@@ -250,10 +250,10 @@ describe("registro propio: por qué no procede (ADR-120 regla 17)", () => {
       "NEW_MEMBERS_ONLY",
     ],
   ])("un motivo por caso: %s", (_title, over, expected) => {
-    expect(selfCheckInDenial(facts(over))).toBe(expected);
+    expect(selfCheckInEligibilityDenial(facts(over))).toBe(expected);
   });
 
-  it.each<[string, Over, ReturnType<typeof selfCheckInDenial>]>([
+  it.each<[string, Over, ReturnType<typeof selfCheckInEligibilityDenial>]>([
     [
       "el estado antes que el término",
       { occasion: { status: "CANCELLED" }, termClosed: true },
@@ -282,7 +282,7 @@ describe("registro propio: por qué no procede (ADR-120 regla 17)", () => {
       "DRAFT",
     ],
   ])("cuando aplican varios responde el primero: %s", (_title, over, expected) => {
-    expect(selfCheckInDenial(facts(over))).toBe(expected);
+    expect(selfCheckInEligibilityDenial(facts(over))).toBe(expected);
   });
 
   it("con el término cerrado siempre hay motivo: el comando no escribe sin tomarlo", () => {
@@ -290,7 +290,7 @@ describe("registro propio: por qué no procede (ADR-120 regla 17)", () => {
       for (const now of [before, during, after]) {
         for (const membership of [nueva, veterana, honoraria, enLicencia, deBaja, null]) {
           for (const newMembersOnly of [true, false]) {
-            const denial = selfCheckInDenial(
+            const denial = selfCheckInEligibilityDenial(
               facts({ termClosed: true, now, membership, occasion: { status, newMembersOnly } }),
             );
             expect(denial, `${status} ${now.toISOString()}`).not.toBeNull();
@@ -304,11 +304,13 @@ describe("registro propio: por qué no procede (ADR-120 regla 17)", () => {
     // Un estado de ocasión o de membresía que el tipo todavía no conoce no abre el registro.
     expect(closedToSelf("OPEN")).toBeNull();
     expect(closedToSelf("ARCHIVED" as never)).toBe("ARCHIVED");
-    expect(selfCheckInDenial(facts({ occasion: { status: "ARCHIVED" as never } }))).toBe(
+    expect(selfCheckInEligibilityDenial(facts({ occasion: { status: "ARCHIVED" as never } }))).toBe(
       "ARCHIVED",
     );
     expect(
-      selfCheckInDenial(facts({ membership: { status: "SUSPENDED" as never, firstTermId: TERM } })),
+      selfCheckInEligibilityDenial(
+        facts({ membership: { status: "SUSPENDED" as never, firstTermId: TERM } }),
+      ),
     ).toBe("NOT_ELIGIBLE");
   });
 });

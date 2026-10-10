@@ -13,7 +13,7 @@ import {
   listEntriesForPerson,
   listLedger,
 } from "@/modules/participation/domain/ledger";
-import { myPosition, rankCommittees, rankPeople } from "@/modules/participation/domain/rankings";
+import { peopleBoards, rankCommittees, rankPeople } from "@/modules/participation/domain/rankings";
 import { membership } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
@@ -85,9 +85,9 @@ describe("tableros y ledger manual", () => {
     ]);
     const veteranos = await rankPeople(termId, "VETERAN");
     expect(veteranos.map((item) => item.row.name)).toEqual(["Vete Rana"]);
-    const mine = await myPosition(sinPuntos, termId, termId);
+    const mine = await peopleBoards(termId).position(sinPuntos, termId);
     expect(mine).toEqual({ board: "NEW", rank: null, total: 0, of: 2 });
-    const hers = await myPosition(nueva, termId, termId);
+    const hers = await peopleBoards(termId).position(nueva, termId);
     expect(hers.rank).toBe(1);
   });
 

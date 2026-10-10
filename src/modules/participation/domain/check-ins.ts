@@ -19,7 +19,7 @@ import {
   type MembershipRef,
   outcomeFor,
   type SelfCheckInEligibilityDenial,
-  selfCheckInDenial,
+  selfCheckInEligibilityDenial,
   statusForDecision,
 } from "./check-in-pure";
 import { AlreadyCheckedIn, checkInStatusLabel, transitionCheckIn } from "./check-in-transition";
@@ -149,7 +149,7 @@ export type SelfCheckInResult =
 
 /**
  * Valida en orden: ocasión → estado → término → ventana → membresía → solo nuevos → código. De
- * estado a solo nuevos el motivo lo decide `selfCheckInDenial` (ADR-120 regla 17), con el término y
+ * estado a solo nuevos el motivo lo decide `selfCheckInEligibilityDenial` (ADR-120 regla 17), con el término y
  * la ocasión ya tomados. Si otro registro ganó el índice único lanza `AlreadyCheckedIn`, y si el
  * booster elegido no vale, `BoosterDenied`: las dos señales deshacen la transacción y el wrapper las
  * responde afuera.
@@ -188,7 +188,7 @@ export async function checkInSelf(
   // entre la primera lectura y el candado responde lo mismo que si ya lo estuviera al llegar. Con el
   // término cerrado no se toma: nada se va a escribir.
   const row = termClosed ? observed : await lockOccasion(ctx, observed);
-  const denial = selfCheckInDenial({
+  const denial = selfCheckInEligibilityDenial({
     occasion: row,
     termClosed,
     membership: context.membership,

@@ -190,12 +190,10 @@ async function leftOnProbation(exec: Executor, current: MembershipRecord): Promi
 }
 
 /** La misma pregunta para una lectura: la elegibilidad a honorario que muestra la ficha. */
-export async function isOnLeaveOnProbation(
-  personId: string,
-  exec: Executor = getDb(),
-): Promise<boolean> {
-  const [current] = await exec.select().from(membership).where(eq(membership.personId, personId));
-  return current ? leftOnProbation(exec, current) : false;
+export async function leftOnProbationOf(personId: string): Promise<boolean> {
+  const db = getDb();
+  const [current] = await db.select().from(membership).where(eq(membership.personId, personId));
+  return current ? leftOnProbation(db, current) : false;
 }
 
 /**

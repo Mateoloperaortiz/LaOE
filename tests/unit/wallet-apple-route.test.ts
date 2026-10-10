@@ -131,7 +131,7 @@ describe("ruta Wallet apple", () => {
     expect(lines).toHaveLength(1);
     expect(lines[0]?.record).toMatchObject({ level: 40, reason: "CHANGED_DURING_ISSUE" });
   });
-  it("el registro distingue a Google caído de una credencial que no sirve", async () => {
+  it("el registro distingue por el motivo un proveedor que no responde, una autorización rechazada y una firma que falla", async () => {
     const down = await failing(new WalletError("PROVIDER_UNREACHABLE", "no respondió"));
     const denied = await failing(new WalletError("PROVIDER_AUTH", "autorización HTTP 400", 400));
     const unsigned = await failing(new WalletError("SIGNING_FAILED", "no se pudo firmar"));

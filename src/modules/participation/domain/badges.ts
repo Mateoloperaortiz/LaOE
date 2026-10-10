@@ -881,6 +881,8 @@ export async function collectionFor(
     .map((row) => ({ achievement: row, badge: badgeById.get(row.badgeId) }))
     .filter((row): row is { achievement: AchievementRow; badge: BadgeRow } => !!row.badge);
 
+  // La misma regla está escrita como consulta en `unseenBadgesFor`, que no arma la colección: si
+  // cambia acá, cambia allá. Que las dos respondan lo mismo lo fija `gh-points-view-reads.test.ts`.
   const unseen = liveRows
     .filter((row) => !row.historical && row.seenAt === null)
     .map((row) => ({
