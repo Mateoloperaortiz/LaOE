@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand } from "@/db/tx";
@@ -366,5 +366,85 @@ describe("presupuesto del comité", () => {
       spent: 600,
       available: 400,
     });
+  });
+
+  it("dos traslados a la vez que juntos superan el disponible del rubro de origen: entra uno y el otro recibe el error de dominio", async () => {
+    const a3 = await seedCommittee("a3", "A3");
+    const financiero = await seedMember("fin@eafit.edu.co");
+    const actor = { personId: financiero, ip: null };
+    const id = await openBudgetFor(a3);
+    const { logistica, alimentacion } = await lineIds(id);
+    const { id: aval } = await requestEventApprovalAs(actor, {
+      committeeId: a3,
+      budgetId: id,
+      title: "Noche de talentos",
+      eventOn: "2026-11-20",
+    });
+    await decideEventApprovalAs(admin, aval, { decision: "APPROVED", note: "Adelante" });
+    const move = (reason: string) =>
+      recordTransferAs(actor, {
+        budgetId: id,
+        fromLineId: logistica,
+        toLineId: alimentacion,
+        amount: 600,
+        reason,
+        approvalId: aval,
+      });
+
+    // Logística tiene 1000: cada traslado de 600 cabe solo, los dos juntos no.
+    const outcomes = await Promise.allSettled([move("Refrigerios"), move("Almuerzos")]);
+
+    expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
+    const rejections = outcomes.filter(
+      (outcome): outcome is PromiseRejectedResult => outcome.status === "rejected",
+    );
+    expect(rejections).toHaveLength(1);
+    // El que esperó el candado del presupuesto ya vio el traslado del otro: el error dice lo que queda.
+    expect(rejections[0]?.reason).toBeInstanceOf(DomainError);
+    expect(rejections[0]?.reason).toMatchObject({
+      message: t("T-2196", { rubro: "Logística", monto: formatMoney(400) }),
+      field: "amount",
+    });
+    const summary = await getBudgetSummary(id);
+    expect(summary?.transfers).toHaveLength(1);
+    expect(summary?.lines.find((line) => line.name === "Logística")).toMatchObject({
+      available: 400,
+    });
+    expect(summary?.lines.find((line) => line.name === "Alimentación")).toMatchObject({
+      available: 1100,
+    });
+  });
+
+  it("una aprobación y una negación a la vez del mismo aval: vale una sola, la otra recibe que ya fue decidido y queda lo que dijo la que valió", async () => {
+    const a3 = await seedCommittee("a3", "A3");
+    const financiero = await seedMember("fin@eafit.edu.co");
+    const { id: aval } = await requestEventApprovalAs(
+      { personId: financiero, ip: null },
+      { committeeId: a3, title: "Noche de talentos", eventOn: "2026-11-20" },
+    );
+    const decisions = ["APPROVED", "REJECTED"] as const;
+
+    const outcomes = await Promise.allSettled(
+      decisions.map((decision) => decideEventApprovalAs(admin, aval, { decision, note: decision })),
+    );
+
+    expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
+    const rejections = outcomes.filter(
+      (outcome): outcome is PromiseRejectedResult => outcome.status === "rejected",
+    );
+    expect(rejections).toHaveLength(1);
+    // La que esperó el candado del aval ya lo encontró decidido.
+    expect(rejections[0]?.reason).toBeInstanceOf(DomainError);
+    expect(rejections[0]?.reason).toMatchObject({ message: t("T-2296") });
+    // Cuál de las dos entra primero no está fijado: el estado, la nota y la auditoría son de esa.
+    const winner = decisions[outcomes.findIndex((outcome) => outcome.status === "fulfilled")];
+    const [row] = await listEventApprovals({ committeeId: a3 });
+    expect(row).toMatchObject({ status: winner, decisionNote: winner });
+    const decided = await getDb()
+      .select()
+      .from(auditLog)
+      .where(and(eq(auditLog.action, "event-approval.decided"), eq(auditLog.entityId, aval)));
+    expect(decided).toHaveLength(1);
+    expect(decided[0]?.after).toMatchObject({ status: winner, note: winner });
   });
 });
