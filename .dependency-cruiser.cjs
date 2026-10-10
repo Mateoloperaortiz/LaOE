@@ -1,4 +1,5 @@
 const { readdirSync } = require("node:fs");
+const { findModuleCycle } = require("./scripts/ci/module-cycle.mjs");
 
 // Grafo permitido entre módulos (ADR-080), sin ciclos (ADR-110): de qué otros módulos importa cada uno
 // por su index.ts. Es la única fuente: 01-arquitectura remite aquí. Una dependencia nueva se decide
@@ -33,33 +34,8 @@ if (undeclared.length > 0 || orphaned.length > 0) {
 }
 
 // La tabla no admite ciclos entre módulos de dominio (ADR-110). `sin-ciclos` solo ve ciclos de archivos:
-// dos módulos pueden importarse por sus index.ts sin que ningún archivo cierre el círculo.
-function findModuleCycle(deps) {
-  const done = new Set();
-  const visit = (name, path) => {
-    if (path.includes(name)) {
-      return [...path.slice(path.indexOf(name)), name];
-    }
-    if (done.has(name)) {
-      return null;
-    }
-    for (const next of deps[name] ?? []) {
-      const cycle = visit(next, [...path, name]);
-      if (cycle) {
-        return cycle;
-      }
-    }
-    done.add(name);
-    return null;
-  };
-  for (const name of Object.keys(deps)) {
-    const cycle = visit(name, []);
-    if (cycle) {
-      return cycle;
-    }
-  }
-  return null;
-}
+// dos módulos pueden importarse por sus index.ts sin que ningún archivo cierre el círculo. El detector
+// vive en su módulo para tener prueba (`tests/unit/module-cycle.test.ts`, ADR-121 regla 13).
 const moduleCycle = findModuleCycle(MODULE_DEPS);
 if (moduleCycle) {
   throw new Error(
