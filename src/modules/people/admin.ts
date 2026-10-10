@@ -2,6 +2,7 @@ import { readdirSync } from "node:fs";
 import { z } from "zod";
 import { runCommand } from "@/db/tx";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
+import { exportLimitWarning } from "@/shared/admin-kit/export-limit";
 import type { Badge, FieldDefinition, ResourceDefinition } from "@/shared/admin-kit/types";
 import { MULTI_SEPARATOR } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
@@ -572,10 +573,15 @@ export const segmentsResource: ResourceDefinition<SegmentRow, SegmentInput> = {
       label: t("T-472"),
       // El exporte nombra en `pantalla` la lista que lo origina, para volver a ella si pide el
       // paso de seguridad (ADR-113, regla 10).
-      render: (row) => ({
-        text: t("T-472"),
-        href: `/api/export/personas?segmento=${row.id}&pantalla=%2Fadmin%2Fsegmentos`,
-      }),
+      // Con más personas que el tope del exporte, el aviso va al lado del enlace (ADR-121 regla 12).
+      render: (row) => {
+        const note = exportLimitWarning(row.count);
+        return {
+          text: t("T-472"),
+          href: `/api/export/personas?segmento=${row.id}&pantalla=%2Fadmin%2Fsegmentos`,
+          ...(note ? { note } : {}),
+        };
+      },
     },
     {
       key: "createdAt",

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { single } from "@/app/_lib/search";
 import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
+import { exportLimitNotice } from "@/app/admin/_kit/export-limit-notice";
 import { requireAdminActor } from "@/modules/identity";
 import {
   COMPLIANCE_FILTERS,
@@ -118,6 +119,7 @@ export default async function CumplimientoPage({
       </header>
 
       <DownloadNotice searchParams={search} />
+      {exportLimitNotice(rows.length)}
       <nav aria-label={filterLabels[0] ?? ""} className="flex flex-wrap gap-2">
         {COMPLIANCE_FILTERS.map((key, index) => (
           <Link

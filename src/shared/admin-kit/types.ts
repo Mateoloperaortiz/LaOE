@@ -32,7 +32,8 @@ export type CellValue =
   | number
   | null
   | { text: string; badge: Badge }
-  | { text: string; href: string };
+  // `note` va debajo del enlace: lo que hay que saber antes de seguirlo (ADR-121 regla 12).
+  | { text: string; href: string; note?: string };
 
 export interface Column<Row> {
   key: string;

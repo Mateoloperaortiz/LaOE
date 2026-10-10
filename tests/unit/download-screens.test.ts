@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
 import DocumentPreviewPage from "@/app/admin/documentos/[id]/page";
 import RetoPage from "@/app/admin/gamificacion/retos/[id]/page";
@@ -13,6 +13,7 @@ import AjustesPage from "@/app/app/ajustes/page";
 import { SettingsSections } from "@/app/app/ajustes/SettingsSections";
 import DocumentoPage from "@/app/app/normativa/[id]/page";
 import { DocumentReader } from "@/modules/content/components/DocumentReader";
+import { EXPORT_ROW_LIMIT } from "@/shared/admin-kit/types";
 import { t, tList } from "@/shared/copy";
 import { type AnyElement, elements } from "../helpers/react-tree";
 
@@ -22,6 +23,9 @@ import { type AnyElement, elements } from "../helpers/react-tree";
 const fake = vi.hoisted(() => ({
   /** Componentes y actions que la pantalla monta pero estas pruebas no ejecutan. */
   stubs: (...names: string[]) => Object.fromEntries(names.map((name) => [name, () => null])),
+  /** Las filas de Cumplimiento y las del exporte de la junta; vacías salvo en la prueba que las pone. */
+  complianceRows: [] as unknown[],
+  boardExportRows: [] as unknown[],
 }));
 
 vi.mock("@/env", () => ({
@@ -66,7 +70,8 @@ vi.mock("@/modules/terms", () => {
 vi.mock("@/modules/permanence", () => ({
   COMPLIANCE_FILTERS: ["todos"],
   complianceSummary: async () => ({ computedAt: null }),
-  listCompliance: async () => [],
+  listCompliance: async () => fake.complianceRows,
+  boardExportRows: () => fake.boardExportRows,
   boardIndicators: async () => ({
     computedAt: null,
     cards: {
@@ -384,5 +389,60 @@ describe("la revisión de evidencias dice por qué no se procesó una imagen", (
   ])("%s muestra el motivo guardado junto al estado", async (_name, screen) => {
     const texts = (await painted(screen({}))).map((element) => element.props.children);
     expect(texts).toContain(`${tList("T-2527")[1]}: Motivo sintético.`);
+  });
+});
+
+// DT-250 inciso b (ADR-121 regla 12): estas dos pantallas arman su enlace de exporte por fuera del
+// kit, y avisan igual que el listado del kit cuando el CSV va a salir recortado.
+describe("aviso de exporte recortado en las pantallas que arman su enlace", () => {
+  const over = EXPORT_ROW_LIMIT + 1;
+  const pageProps = { params: Promise.resolve({}), searchParams: Promise.resolve({}) };
+
+  function complianceRow(index: number) {
+    return {
+      id: `fila-${index}`,
+      personId: `persona-${index}`,
+      personName: `Persona ${index}`,
+      status: "ACTIVE",
+      condition: null,
+      committeeName: "",
+      generalTotal: 0,
+      committeeTotal: 0,
+      total: 0,
+      threshold: 0,
+      state: null,
+      mandatoryAttended: 0,
+      mandatoryTotal: 0,
+    };
+  }
+
+  /** Lo que dicen los avisos que la pantalla pinta. */
+  function notices(page: ReactNode): unknown[] {
+    return elements(page)
+      .filter((element) => element.type === "output")
+      .map((element) => element.props.children);
+  }
+
+  afterEach(() => {
+    fake.complianceRows = [];
+    fake.boardExportRows = [];
+  });
+
+  it("Cumplimiento avisa cuando su lista pasa del tope, y no cuando cabe entera", async () => {
+    fake.complianceRows = Array.from({ length: over }, (_, index) => complianceRow(index));
+    expect(notices(await CumplimientoPage(pageProps))).toContain(
+      t("T-3249", { n: EXPORT_ROW_LIMIT, total: over }),
+    );
+    fake.complianceRows = fake.complianceRows.slice(1);
+    expect(notices(await CumplimientoPage(pageProps))).toEqual([]);
+  });
+
+  it("la junta avisa cuando las filas de su exporte pasan del tope, y no cuando caben", async () => {
+    fake.boardExportRows = Array.from({ length: over }, () => ({}));
+    expect(notices(await JuntaPage(pageProps))).toContain(
+      t("T-3249", { n: EXPORT_ROW_LIMIT, total: over }),
+    );
+    fake.boardExportRows = fake.boardExportRows.slice(1);
+    expect(notices(await JuntaPage(pageProps))).toEqual([]);
   });
 });

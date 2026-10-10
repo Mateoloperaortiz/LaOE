@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { single } from "@/app/_lib/search";
 import { DownloadNotice } from "@/app/admin/_kit/DownloadNotice";
+import { exportLimitNotice } from "@/app/admin/_kit/export-limit-notice";
 import { requireBoardActor } from "@/modules/identity";
-import { boardIndicators } from "@/modules/permanence";
+import { boardExportRows, boardIndicators } from "@/modules/permanence";
 import { getCurrentTerm, listAllTerms } from "@/modules/terms";
 import { AdminSubmitButton } from "@/shared/admin-kit/AdminSubmitButton";
 import { AdminTableRegion } from "@/shared/admin-kit/AdminTableRegion";
@@ -98,6 +99,14 @@ export default async function JuntaPage({ searchParams }: PageProps<"/admin/junt
       </header>
 
       <DownloadNotice searchParams={search} />
+      {exportLimitNotice(
+        // Las mismas filas que arma `/api/export/junta`, con sus mismas etiquetas.
+        boardExportRows(data, {
+          cards: cardLabels,
+          retention: retentionColumns,
+          committees: committeeColumns,
+        }).length,
+      )}
       {empty ? <p className="text-tinta-suave">{t("T-827")}</p> : null}
 
       <dl className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
