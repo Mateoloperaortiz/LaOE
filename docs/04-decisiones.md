@@ -98,7 +98,7 @@ Las reglas del sistema viven en [adr/](adr/README.md), una por archivo. Esta tab
 | [017](adr/ADR-017-admin-kit.md) | Admin kit | Recursos declarativos para lo simple; UI a medida solo donde hay flujo | Aceptada |
 | [018](adr/ADR-018-migracion-desde-ghpoints.md) | Migración desde GHPOINTS | Referencia histórica de scripts y pruebas locales; ADR-039 retira toda migración de datos/QR del lanzamiento | Enmendada por 034, 039 |
 | [019](adr/ADR-019-infraestructura-vercel-neon-r2.md) | Infraestructura (Vercel) | Vercel Pro + Neon + R2 + Resend | Reemplazada por 021 |
-| [020](adr/ADR-020-zona-horaria.md) | Zona horaria | UTC en base, America/Bogota en presentación | Aceptada |
+| [020](adr/ADR-020-zona-horaria.md) | Zona horaria | UTC en base, America/Bogota en presentación | Aceptada (enmendada por ADR-121) |
 | [021](adr/ADR-021-infraestructura-railway.md) | Infraestructura (Railway) | Proyecto nuevo en el workspace Pro ya pagado: web con worker en proceso, Postgres con respaldos y PITR, bucket privado; US$0 extra | Enmendada por 022, 023 y 032, 039, 040 |
 | [022](adr/ADR-022-medios-prefirmados.md) | Medios prefirmados | Subida directa del navegador al bucket con `POST` prefirmado y CORS; entrega por redirección a URL prefirmada; la copia mensual incluye el bucket | Enmendada por 034, 039 |
 | [023](adr/ADR-023-operacion-entornos-respaldo-correo.md) | Operación | Staging sintético y production limpia; copia cifrada mensual a R2 con 12 completas totales; correo solo Resend y SES aplazado; Cloudflare conserva su proxy (ADR-039) | Enmendada por 038, 039, 115, 116 |
