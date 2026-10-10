@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { SYSTEM_ACTOR } from "@/db/tx";
+import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { grantPermission, grantPermissionAs } from "@/modules/identity";
 import {
   consumeAccessGrant,
@@ -13,12 +13,13 @@ import { findPasswordHash, signInWithPassword } from "@/modules/identity/domain/
 import { hashPassword, hashToken, verifyPassword } from "@/modules/identity/domain/pure";
 import { createSession, resolveActor } from "@/modules/identity/domain/session";
 import { accessGrant, credential, session } from "@/modules/identity/schema";
+import { changeMembershipStatus } from "@/modules/people";
 import { committee, membership, person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { holdCommand, waitingOn } from "../helpers/locks";
+import { backendPid, deferred, holdCommand, waitingOn } from "../helpers/locks";
 import { truncateAll } from "./db";
 
 // Enlace de un solo uso que emite la junta (ADR-051).
@@ -391,6 +392,106 @@ describe("enlace de acceso", () => {
       await putOnLeave(adminEnLicencia);
 
       await expectNoPrivilegeGain(junta, adminEnLicencia);
+    });
+
+    // DT-292, ADR-120 regla 5: el estado de quien emite se lee con el candado de su ciclo de
+    // membresía tomado. Leído por otra conexión, la licencia que todavía no confirma no se ve y el
+    // enlace nace con los permisos de alguien que ya no los opera.
+    describe("mientras cambia el estado de quien emite", () => {
+      const HOY = new Date("2026-08-03T15:00:00Z");
+
+      /** Deja a la persona saliendo a licencia, escrito y sin confirmar. */
+      function leavingOnHold(personId: string) {
+        return holdCommand(SYSTEM_ACTOR, (ctx) =>
+          changeMembershipStatus(
+            ctx,
+            personId,
+            { to: "ON_LEAVE", reason: "Intercambio", leaveUntil: "2026-09-01" },
+            HOY,
+          ),
+        );
+      }
+
+      it("la emisión que llega mientras quien emite sale a licencia espera, y se rechaza con la licencia ya puesta", async () => {
+        const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+        const colega = await seedMemberWith("colega@eafit.edu.co", "BOARD");
+
+        const held = await leavingOnHold(junta);
+        const emision = issueAccessGrantAs(
+          { personId: junta },
+          { personId: colega, kind: "RECOVERY" },
+        );
+        const sinEsperar = emision.then(
+          () => "emitió sin esperar",
+          () => "rechazó sin esperar",
+        );
+        const enCola = vi
+          .waitFor(async () => expect(await waitingOn(held.pid)).toBe(1), { timeout: 5_000 })
+          .then(
+            () => "espera",
+            () => "nunca hizo cola",
+          );
+        try {
+          expect(await Promise.race([sinEsperar, enCola])).toBe("espera");
+        } finally {
+          held.release();
+          await held.done;
+        }
+
+        await expect(emision).rejects.toBeInstanceOf(DomainError);
+        await expect(emision).rejects.toThrow(t("T-3206"));
+        expect(await db().select().from(accessGrant)).toHaveLength(0);
+      });
+
+      it("si la licencia no llega a confirmar, la emisión que esperaba sale con el estado que quedó", async () => {
+        const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+        const colega = await seedMemberWith("colega@eafit.edu.co", "BOARD");
+
+        const ready = deferred<number>();
+        const release = deferred<void>();
+        const licencia = runCommand(SYSTEM_ACTOR, async (ctx) => {
+          await changeMembershipStatus(
+            ctx,
+            junta,
+            { to: "ON_LEAVE", reason: "Intercambio", leaveUntil: "2026-09-01" },
+            HOY,
+          );
+          ready.resolve(await backendPid(ctx.tx));
+          await release.promise;
+          throw new Error("la licencia no confirma");
+        });
+        void licencia.catch(ready.reject);
+        const pid = await ready.promise;
+        const emision = issueAccessGrantAs(
+          { personId: junta },
+          { personId: colega, kind: "RECOVERY" },
+        );
+        void emision.catch(() => undefined);
+        try {
+          await vi.waitFor(async () => expect(await waitingOn(pid)).toBe(1), { timeout: 5_000 });
+        } finally {
+          release.resolve();
+          await licencia.catch(() => undefined);
+        }
+
+        await emision;
+        expect(await db().select().from(accessGrant)).toHaveLength(1);
+      });
+
+      it("para un destinatario sin permisos la emisión no espera el ciclo de quien emite", async () => {
+        const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD");
+        const miembro = await seedMember("miembro@eafit.edu.co");
+
+        const held = await leavingOnHold(junta);
+        try {
+          await issueAccessGrantAs({ personId: junta }, { personId: miembro, kind: "RECOVERY" });
+        } finally {
+          held.release();
+          await held.done;
+        }
+
+        expect(await db().select().from(accessGrant)).toHaveLength(1);
+      });
     });
   });
 

@@ -1,6 +1,6 @@
 # ADR-113: Reglas de seguridad e integridad del segundo ciclo del refactor
 
-- Estado: Aceptada (enmendada por ADR-114, ADR-116 y ADR-119)
+- Estado: Aceptada (enmendada por ADR-114, ADR-116, ADR-119 y ADR-120)
 - Fecha: 2026-10-07
 - Relacionadas: ADR-011, ADR-015, ADR-022, ADR-072, ADR-082, ADR-109, ADR-110, ADR-112
 - Enmienda: ADR-010, ADR-012, ADR-033 (regla 5), ADR-034 (reglas 4 y 8), ADR-038 (regla 5), ADR-051 (regla 4), ADR-067 (regla 12)
@@ -109,3 +109,7 @@ La regla 7 decía que `takeImportJobInPreview` bloquea la fila de `import_job` y
 Regla 4: decía que el decodificador «solo codifica reduciendo», y eso acotaba el ancho de una variante pero no su alto: una imagen de 1600 × 16.000 salía entera en la variante de 1600 px (DT-107). Ahora toda codificación tiene además un tope de píxeles de salida, `IMAGE_MAX_OUTPUT_PIXELS` (2560 × 2560): la imagen que cabe sale como salía y la que no, entera y reducida a ese tope. El tope de entrada y el presupuesto de memoria no cambian. Ver [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) regla 10.
 
 Regla 1: dejó abierto que conceder un permiso no consumía los enlaces vivos de quien lo recibe y que la lectura de los permisos no bloqueaba sus filas, así que un enlace emitido antes de la concesión, o durante ella, seguía sirviendo hasta vencer (DT-094 inciso 1, DT-285). Ahora la concesión borra los enlaces de esa persona en su misma transacción, y emitir un enlace y conceder un permiso al mismo destinatario toman el mismo candado antes de leer. Lo demás de la regla no cambia; sigue abierto que el arranque se reconoce por el actor sin persona. Ver [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md) regla 17.
+
+## Enmienda (2026-10-10, ADR-120)
+
+Regla 1: decía que `issueAccessGrant` relee los permisos de los dos en la transacción. Los permisos sí; el estado de la membresía de quien emite, que decide si esos permisos cuentan, se leía por otra conexión y sin tomar nada, así que la emisión no veía una licencia o una baja de quien emite que confirmara en ese instante (DT-292). Ahora ese estado se lee en la transacción y con el candado del ciclo de membresía de quien emite tomado, después del candado del destinatario: la emisión que llega durante el cambio espera y decide con el estado confirmado. Lo demás de la regla queda igual. Ver [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) regla 5.

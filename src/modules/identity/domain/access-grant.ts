@@ -3,7 +3,7 @@ import { getDb } from "@/db/client";
 import { type Actor, type CommandContext, type Executor, runCommand, type Tx } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { accessGrantIssued } from "@/domain-events/identity";
-import { canParticipate, getMemberSummary } from "@/modules/people";
+import { canParticipate, getMemberSummary, lockWalletMember } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { logger } from "@/shared/log";
@@ -111,6 +111,11 @@ export function issueAccessGrantAs(
  * ADMIN emite (ADR-113 regla 1). Los permisos se leen acá, en la transacción, y no de la sesión de
  * quien llama. De quien emite cuentan los que hoy operan (en licencia, ninguno, como en
  * `resolveActor`); del destinatario, todos los guardados, porque vuelven a operar con él.
+ *
+ * El estado de quien emite se lee también acá, con el candado de su ciclo de membresía tomado
+ * (ADR-120 regla 5): la emisión que llega mientras sale a licencia o lo dan de baja espera y decide
+ * con lo que quedó confirmado. Va después del candado del destinatario (`lockAccessGrantsOf`), y
+ * ningún camino toma los dos en el otro orden.
  */
 async function assertNoPrivilegeGain(
   ctx: CommandContext,
@@ -129,8 +134,8 @@ async function assertNoPrivilegeGain(
   if (wanted.length === 0) {
     return;
   }
-  const issuer = await getMemberSummary(issuerId);
-  const held = canParticipate(issuer?.membershipStatus)
+  const issuer = await lockWalletMember(ctx.tx, issuerId);
+  const held = canParticipate(issuer?.status)
     ? rows.filter((row) => row.personId === issuerId)
     : [];
   if (held.some((row) => row.code === "ADMIN")) {
