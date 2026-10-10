@@ -22,6 +22,9 @@ test("cada página lleva canonical, og:image que responde PNG y noindex mientras
   page,
   request,
 }) => {
+  // Con el build recién hecho cada imagen se genera por primera vez (unos 2,6 s cada una): la prueba
+  // tarda cerca de 29 s, contra 4 s con las imágenes ya generadas, y con el límite de 30 s fallaba a veces.
+  test.setTimeout(120_000);
   for (const ruta of RUTAS) {
     await page.goto(ruta);
     // metadataBase compone "/" sin barra final (documentación de Next, "URL composition").

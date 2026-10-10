@@ -1,4 +1,4 @@
-import { eq, like } from "drizzle-orm";
+import { asc, eq, like } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -1482,10 +1482,13 @@ describe("The Games", () => {
       clearShowcaseMemo();
       expect((await getShowcase("the-games-2026"))?.standingsHidden).toBe(false);
 
+      // En el orden en que se auditaron: sin `order by` la base las devuelve en el orden físico de la
+      // tabla, que no es una garantía.
       const rows = await getDb()
         .select({ after: auditLog.after })
         .from(auditLog)
-        .where(eq(auditLog.action, "competition.standings.visibility"));
+        .where(eq(auditLog.action, "competition.standings.visibility"))
+        .orderBy(asc(auditLog.at));
       expect(rows.map((row) => row.after)).toEqual([
         { showStandings: false },
         { showStandings: true },
