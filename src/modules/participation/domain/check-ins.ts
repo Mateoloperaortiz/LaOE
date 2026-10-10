@@ -7,6 +7,7 @@ import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { checkIn, occasion } from "../schema";
 import {
+  CHECK_IN_STATUSES,
   type CheckInDecision,
   type CheckInOutcome,
   type CheckInStatus,
@@ -600,6 +601,49 @@ export async function listCheckIns(
     ? and(eq(checkIn.occasionId, occasionId), inArray(checkIn.status, [...statuses]))
     : eq(checkIn.occasionId, occasionId);
   return getDb().select().from(checkIn).where(where).orderBy(desc(checkIn.at));
+}
+
+/** Cuántos check-ins tiene una ocasión en cada estado; el estado que no tiene ninguno queda en 0. */
+export async function countCheckInsByStatus(
+  occasionId: string,
+): Promise<Record<CheckInStatus, number>> {
+  const rows = await getDb()
+    .select({ status: checkIn.status, total: sql<number>`count(*)::int` })
+    .from(checkIn)
+    .where(eq(checkIn.occasionId, occasionId))
+    .groupBy(checkIn.status);
+  const counts = Object.fromEntries(CHECK_IN_STATUSES.map((status) => [status, 0])) as Record<
+    CheckInStatus,
+    number
+  >;
+  for (const row of rows) {
+    counts[row.status] = row.total;
+  }
+  return counts;
+}
+
+export type RecentCheckIn = Pick<CheckInRow, "id" | "personId" | "at" | "source" | "status">;
+
+/**
+ * Los últimos check-ins de una ocasión, del más reciente al más viejo, con lo que la consola en vivo
+ * muestra de cada uno: sin el motivo ni quién lo decidió.
+ */
+export async function listRecentCheckIns(
+  occasionId: string,
+  limit: number,
+): Promise<RecentCheckIn[]> {
+  return getDb()
+    .select({
+      id: checkIn.id,
+      personId: checkIn.personId,
+      at: checkIn.at,
+      source: checkIn.source,
+      status: checkIn.status,
+    })
+    .from(checkIn)
+    .where(eq(checkIn.occasionId, occasionId))
+    .orderBy(desc(checkIn.at))
+    .limit(limit);
 }
 
 /** Check-ins de una persona (todas las ocasiones), del más reciente al más viejo. */
