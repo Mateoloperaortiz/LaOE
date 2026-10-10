@@ -10677,6 +10677,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3256": {
+    where: "Anfitrión: la foto del carnet no abre (ADR-120)",
+    text: "No pudimos abrir esa foto. Tomá otra, escaneá el carnet con la cámara o buscá a la persona por nombre.",
+    owner: "MATEO",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

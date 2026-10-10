@@ -3,17 +3,27 @@
 import jsQR from "jsqr";
 import { unstable_rethrow, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { type ScanResult, type ScanState, sendScan, startScanLoop } from "./scan-loop";
+import {
+  createStartGate,
+  readPhoto,
+  type ScanResult,
+  type ScanState,
+  sendScan,
+  startScanLoop,
+} from "./scan-loop";
 
 // Lector del QR del carnet en modo anfitrión (ADR-035 regla 8): BarcodeDetector nativo si existe,
 // jsQR sobre un canvas si no; foto como respaldo. El token solo lo valida el servidor. El sondeo y el
 // envío viven en `scan-loop.ts` (ADR-118 regla 19): una lectura a la vez y un rechazo con su mensaje.
+// También lo que decide con una foto y con un segundo toque a «Escanear» (ADR-120 regla 15).
 
 type Labels = {
   scan: string;
   stop: string;
   upload: string;
   cameraError: string;
+  /** El navegador no pudo abrir la foto: un formato que no lee o un archivo dañado. */
+  photoError: string;
   /** La acción no respondió: se cayó la red o el servidor falló. */
   scanError: string;
 };
@@ -52,6 +62,7 @@ export function LectorCarnet({ labels, onScan }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const loop = useRef<(() => void) | null>(null);
+  const [startOnce] = useState(createStartGate);
   const [state, setState] = useState<ScanState>({ kind: "idle" });
 
   function stop() {
@@ -133,15 +144,20 @@ export function LectorCarnet({ labels, onScan }: Props) {
     if (!target) {
       return;
     }
-    const bitmap = await createImageBitmap(file);
-    target.width = bitmap.width;
-    target.height = bitmap.height;
-    target.getContext("2d")?.drawImage(bitmap, 0, 0);
-    const token = decodeCanvas(target);
-    if (token) {
-      await handleToken(token);
+    const photo = await readPhoto(
+      async () => {
+        const bitmap = await createImageBitmap(file);
+        target.width = bitmap.width;
+        target.height = bitmap.height;
+        target.getContext("2d")?.drawImage(bitmap, 0, 0);
+        return decodeCanvas(target);
+      },
+      { unreadable: labels.photoError, noCode: labels.cameraError },
+    );
+    if (photo.kind === "token") {
+      await handleToken(photo.token);
     } else {
-      setState({ kind: "error", message: labels.cameraError });
+      setState(photo);
     }
   }
 
@@ -163,7 +179,7 @@ export function LectorCarnet({ labels, onScan }: Props) {
           <button
             type="button"
             className="boton-calido"
-            onClick={start}
+            onClick={() => void startOnce(start)}
             disabled={state.kind === "busy"}
           >
             {labels.scan}

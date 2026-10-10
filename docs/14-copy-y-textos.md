@@ -843,6 +843,7 @@ Los textos del admin son funcionales y los escribe Mateo; GH solo revisa las con
 | T-676 | Consola: decisión que no aplica al estado del registro | Esa decisión no aplica: el registro está {estado}. | MATEO | Propuesta |
 | T-677 | Migración: motivo del requisito de asambleas heredado de un semestre ya cerrado | Requisito heredado de GHPOINTS (regla anterior). | MATEO | Propuesta |
 | T-3251 | Anfitrión: la lectura del carnet no llegó a la casa (ADR-118) | No pudimos registrar la lectura. Revisá la conexión y volvé a escanear el carnet. | MATEO | Propuesta |
+| T-3256 | Anfitrión: la foto del carnet no abre (ADR-120) | No pudimos abrir esa foto. Tomá otra, escaneá el carnet con la cámara o buscá a la persona por nombre. | MATEO | Propuesta |
 
 ### Admin de Permanencia (fase 4: reglas, grupos, evaluaciones, puntajes, créditos, cumplimiento, cierre, vista de líder, junta)
 
