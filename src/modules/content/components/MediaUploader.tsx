@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
-import { UploadError, uploadErrorMessage } from "@/shared/ui/upload-error";
+import { uploadToBucket } from "@/shared/ui/bucket-upload";
+import { uploadErrorMessage } from "@/shared/ui/upload-error";
 
-// Subida directa al bucket (ADR-022): presign → POST al bucket → confirm. Los bytes no pasan por la app.
+// Subida directa al bucket (ADR-022) por `uploadToBucket` (ADR-121 regla 14): presign → POST al
+// bucket → confirm. Los bytes no pasan por la app.
 
 type Labels = {
   button: string;
@@ -37,21 +39,6 @@ type State =
   | { kind: "done" }
   | { kind: "error"; message: string };
 
-interface PreparedUpload {
-  key: string;
-  url: string;
-  fields: Record<string, string>;
-}
-
-async function readError(response: Response, fallback: string): Promise<string> {
-  try {
-    const body = (await response.json()) as { error?: string };
-    return body.error ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
 export function MediaUploader({ allowedTypes, minBytes, maxBytes, labels, successHref }: Props) {
   const router = useRouter();
   const inputId = useId();
@@ -75,37 +62,19 @@ export function MediaUploader({ allowedTypes, minBytes, maxBytes, labels, succes
     uploading.current = true;
     setState({ kind: "uploading", name: file.name });
     try {
-      const presign = await fetch("/api/media/presign", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type,
-          byteSize: file.size,
-          visibility,
-        }),
+      await uploadToBucket(file, {
+        presign: {
+          url: "/api/media/presign",
+          body: {
+            filename: file.name,
+            contentType: file.type,
+            byteSize: file.size,
+            visibility,
+          },
+        },
+        confirm: { url: "/api/media/confirm", body: { filename: file.name, visibility } },
+        fallback: labels.errorUpload,
       });
-      if (!presign.ok) {
-        throw new UploadError(await readError(presign, labels.errorUpload));
-      }
-      const prepared = (await presign.json()) as PreparedUpload;
-      const form = new FormData();
-      for (const [name, value] of Object.entries(prepared.fields)) {
-        form.append(name, value);
-      }
-      form.append("file", file, file.name);
-      const stored = await fetch(prepared.url, { method: "POST", body: form });
-      if (!stored.ok) {
-        throw new UploadError(labels.errorUpload);
-      }
-      const confirm = await fetch("/api/media/confirm", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ key: prepared.key, filename: file.name, visibility }),
-      });
-      if (!confirm.ok) {
-        throw new UploadError(await readError(confirm, labels.errorUpload));
-      }
       setState({ kind: "done" });
       if (input.current) input.current.value = "";
       setFile(null);
