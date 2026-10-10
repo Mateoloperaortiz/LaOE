@@ -144,14 +144,14 @@ describe("ruta Wallet apple", () => {
     expect(unsigned.lines[0]?.record).toMatchObject({ level: 50, reason: "SIGNING_FAILED" });
   });
   it.each([
-    ["no tiene carnet vigente", new DomainError("mensaje de dominio sintético")],
-    ["no participa", new ForbiddenError()],
-  ])("quien %s vuelve al carnet y no deja una línea de fallo", async (_name, rejection) => {
+    ["no tiene carnet vigente", new DomainError("mensaje de dominio sintético"), "DomainError"],
+    ["no participa", new ForbiddenError(), "ForbiddenError"],
+  ])("quien %s vuelve al carnet y no deja una línea de fallo: la línea dice con qué clase lo dijo el dominio", async (_name, rejection, errorType) => {
     const { response, lines } = await failing(rejection);
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/app/carnet?error=apple");
     expect(lines).toHaveLength(1);
-    expect(lines[0]?.record).toMatchObject({ level: 30, platform: "APPLE" });
+    expect(lines[0]?.record).toMatchObject({ level: 30, platform: "APPLE", errorType });
     expect(lines[0]?.record.msg).not.toBe("no se pudo emitir el carnet");
     expect(lines[0]?.record).not.toHaveProperty("reason");
     expect(lines[0]?.line).not.toContain("sintético");

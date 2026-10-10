@@ -273,7 +273,7 @@ describe("emisión y reconciliación Google Wallet", () => {
     await seedMembership(personId, await seedTerm(), "ON_LEAVE");
     const rejection: unknown = await issueGoogleSaveUrl(personId).catch((e) => e);
     expect(rejection).toBeInstanceOf(ForbiddenError);
-    expect(walletFailure(rejection)).toBeNull();
+    expect(walletFailure(rejection)).toEqual({ reason: "REFUSED", errorType: "ForbiddenError" });
     expect(await listPassesFor(personId)).toEqual([]);
     expect(server.calls).toEqual([]);
   });

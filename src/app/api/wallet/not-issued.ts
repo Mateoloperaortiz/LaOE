@@ -8,13 +8,17 @@ import { logger } from "@/shared/log";
  *
  * Lleva la plataforma y lo que `walletFailure` dice que es seguro escribir: el motivo y, según el
  * caso, el estado que respondió el proveedor o la clase y el código del error. Nunca el mensaje.
- * Quien no tiene carnet no es un fallo y sale aparte, en `info`; un carnet que cambió mientras se
- * emitía avisa en `warn`, porque la persona vuelve a intentar y no hay nada que arreglar.
+ * Quien no tiene carnet no es un fallo y sale aparte, en `info`, con la clase con que el dominio lo
+ * dijo; un carnet que cambió mientras se emitía avisa en `warn`, porque la persona vuelve a intentar
+ * y no hay nada que arreglar.
  */
 export function logCarnetNotIssued(platform: WalletPlatform, error: unknown): void {
   const failure = walletFailure(error);
-  if (!failure) {
-    logger.info({ platform }, "carnet no emitido: la persona no tiene carnet vigente");
+  if (failure.reason === "REFUSED") {
+    logger.info(
+      { platform, errorType: failure.errorType },
+      "carnet no emitido: la persona no tiene carnet vigente",
+    );
     return;
   }
   const level = failure.reason === "CHANGED_DURING_ISSUE" ? "warn" : "error";

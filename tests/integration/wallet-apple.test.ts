@@ -111,7 +111,7 @@ describe("emisión Apple Wallet", () => {
     await seedMembership(personId, await seedTerm(), "ON_LEAVE");
     const rejection: unknown = await buildApplePass(personId).catch((e) => e);
     expect(rejection).toBeInstanceOf(ForbiddenError);
-    expect(walletFailure(rejection)).toBeNull();
+    expect(walletFailure(rejection)).toEqual({ reason: "REFUSED", errorType: "ForbiddenError" });
     expect(await listPassesFor(personId)).toEqual([]);
   });
 

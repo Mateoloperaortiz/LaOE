@@ -32,9 +32,15 @@ describe("lo que se registra de un carnet que no se pudo emitir", () => {
     });
   });
 
-  it("a quien el dominio no le emite carnet no es un fallo, lo diga con un error de dominio o negando el permiso", () => {
-    expect(walletFailure(new DomainError("mensaje de dominio sintético"))).toBeNull();
-    expect(walletFailure(new ForbiddenError())).toBeNull();
+  it("a quien el dominio no le emite carnet no es un fallo, y sale con qué clase lo dijo: un error de dominio o negando el permiso", () => {
+    expect(walletFailure(new DomainError("mensaje de dominio sintético"))).toEqual({
+      reason: "REFUSED",
+      errorType: "DomainError",
+    });
+    expect(walletFailure(new ForbiddenError())).toEqual({
+      reason: "REFUSED",
+      errorType: "ForbiddenError",
+    });
   });
 
   it("de cualquier otro error salen su clase y su código o el de su causa, nunca su mensaje", () => {
