@@ -122,28 +122,63 @@ function isQueryError(error: unknown): error is QueryError {
   );
 }
 
-/** SQLSTATE de la clase 22, «data exception»: el mensaje de Postgres cita el valor que rechazó. */
-const DATA_EXCEPTION = /^22[0-9A-Z]{3}$/;
+/**
+ * SQLSTATE cuyo mensaje cita un valor entre comillas. La clase 22, «data exception», cita el valor
+ * que rechazó. La clase 28, «invalid authorization», y el 3D000, «invalid catalog name», responden a
+ * una conexión que no abrió y citan con quién y a dónde iba: el usuario, la base, el host.
+ */
+const QUOTES_A_VALUE = /^(?:22|28)[0-9A-Z]{3}$|^3D000$/;
 
 /**
- * El mensaje de un error de conversión de Postgres sin el valor que cita («invalid input syntax for
- * type date: "…"»). Se oculta desde la primera comilla hasta la última: el valor puede traer comillas
- * y Postgres no las escapa. Cualquier otro mensaje vuelve igual, porque ahí lo que va entre comillas
- * es el nombre de una restricción o de una columna, que es lo que sirve para depurar.
+ * El mensaje de un error de Postgres sin el valor que cita: el de una conversión («invalid input
+ * syntax for type date: "…"») o el de una conexión que no abrió («password authentication failed for
+ * user "…"», «database "…" does not exist»). Se oculta desde la primera comilla hasta la última: el
+ * valor puede traer comillas y Postgres no las escapa. Cualquier otro mensaje vuelve igual, porque
+ * ahí lo que va entre comillas es el nombre de una restricción o de una columna, que es lo que sirve
+ * para depurar.
  */
 function withoutQuotedValue(error: Error): string {
   const code = (error as { code?: unknown }).code;
-  return typeof code === "string" && DATA_EXCEPTION.test(code)
+  return typeof code === "string" && QUOTES_A_VALUE.test(code)
     ? error.message.replace(/"[\s\S]*"/, `"${REDACTED}"`)
     : error.message;
 }
 
 /**
+ * A dónde iba una conexión que no abrió, como lo escribe Node en un error de sistema (trae
+ * `syscall`): `address` y `port` en un `connect ECONNREFUSED 10.0.0.5:5432`, `hostname` en un
+ * `getaddrinfo ENOTFOUND …`. Los repite en el mensaje, y de ahí se quitan por coincidencia exacta.
+ */
+function connectionTargets(error: Error): string[] {
+  const { syscall, address, port, hostname } = error as {
+    syscall?: unknown;
+    address?: unknown;
+    port?: unknown;
+    hostname?: unknown;
+  };
+  const targets: string[] = [];
+  if (typeof syscall !== "string") {
+    return targets;
+  }
+  if (typeof address === "string" && address !== "") {
+    if (typeof port === "number") {
+      targets.push(`${address}:${port}`);
+    }
+    targets.push(address);
+  }
+  if (typeof hostname === "string" && hostname !== "") {
+    targets.push(hostname);
+  }
+  return targets;
+}
+
+/**
  * `text` es el mensaje o la traza de `error`, con sus causas dobladas adentro. Lo devuelve sin los
- * valores de la consulta que falló, mirando el error y sus causas hasta cinco niveles: el tramo
- * `params: …` que escribe Drizzle y el valor que cita un error de conversión de Postgres. Los dos se
- * quitan por coincidencia exacta con lo que cada error escribió, no con una expresión que adivine
- * dónde termina.
+ * valores de la consulta que falló y sin los datos de una conexión que no abrió, mirando el error y
+ * sus causas hasta cinco niveles: el tramo `params: …` que escribe Drizzle, el valor que cita un
+ * error de Postgres (el de una conversión, o el usuario y la base de una conexión rechazada) y el
+ * destino que Node escribe en un error de red (ADR-120 regla 10). Todo se quita por coincidencia
+ * exacta con lo que cada error escribió, no con una expresión que adivine dónde termina.
  *
  * Es el recorte del serializador de `err`, y lo usa también quien guarda el texto de un error fuera
  * del registro: el poller, en `outbox.last_error` (ADR-119 regla 16).
@@ -160,6 +195,9 @@ export function withoutQueryValues(error: Error, text: string): string {
     if (hidden !== current.message) {
       clean = clean.split(current.message).join(hidden);
     }
+    for (const target of connectionTargets(current)) {
+      clean = clean.split(target).join(REDACTED);
+    }
     current = current.cause;
   }
   return clean;
@@ -174,7 +212,9 @@ export function withoutQueryValues(error: Error, text: string): string {
  * trae en `params` y los repite en su mensaje («Failed query: … params: …»), que pino copia en
  * `message` y en `stack`, también cuando el error llega como causa de otro. El SQL, con sus `$1`, se
  * queda: es lo que sirve para depurar. Tampoco sale el valor que Postgres cita en el mensaje de un
- * error de conversión (ADR-119 regla 15).
+ * error de conversión (ADR-119 regla 15), ni a dónde iba ni con quién una conexión que no abrió
+ * (ADR-120 regla 10): pino copia `address`, `port` y `hostname` del error como campos, y lista aparte
+ * cada intento de una conexión que probó varias direcciones.
  */
 function serializeError(error: unknown): unknown {
   const serialized = pino.stdSerializers.err(error as Error);
@@ -191,6 +231,15 @@ function serializeError(error: unknown): unknown {
   serialized.stack = withoutQueryValues(error, serialized.stack);
   if (isQueryError(error)) {
     delete serialized.params;
+  }
+  if (connectionTargets(error).length > 0) {
+    delete serialized.address;
+    delete serialized.port;
+    delete serialized.hostname;
+  }
+  const grouped = (error as { errors?: unknown }).errors;
+  if (Array.isArray(grouped) && Array.isArray(serialized.aggregateErrors)) {
+    serialized.aggregateErrors = grouped.map(serializeError);
   }
   return serialized;
 }
