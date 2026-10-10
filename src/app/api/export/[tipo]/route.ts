@@ -1,3 +1,4 @@
+import { actorContext } from "@/app/_lib/actor";
 import { DOWNLOAD_SCREEN_PARAM, namedScreen, redirectFromDownload } from "@/app/_lib/download";
 import { getActor, hasPermission, hasRecentStepUp } from "@/modules/identity";
 import { recordExport } from "@/modules/system";
@@ -63,7 +64,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/expor
   // El listado dice cuántas filas hay; el exporte lleva como mucho las del tope (ADR-118 regla 13).
   const total = Math.max(listed, rows.length);
   if (resource.personalData) {
-    await recordExport(actor.personId, resource.key, { rows: rows.length, total });
+    await recordExport(await actorContext(actor), resource.key, { rows: rows.length, total });
   }
   // Recortado: la última fila lo dice, en la primera columna.
   const [firstColumn] = headers;

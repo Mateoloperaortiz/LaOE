@@ -1,3 +1,4 @@
+import { actorContext } from "@/app/_lib/actor";
 import { redirectFromDownload } from "@/app/_lib/download";
 import { getPreferences, listMessagesFor, listSubscriptionsFor } from "@/modules/comms";
 import { listStaffFor } from "@/modules/competition";
@@ -79,7 +80,7 @@ export async function GET() {
     listRewardsForPerson(actor.personId),
     listStaffFor(actor.personId),
   ]);
-  await recordSelfExport(actor.personId);
+  await recordSelfExport(await actorContext(actor));
   const body = {
     exportedAt: new Date().toISOString(),
     ...data,

@@ -23,6 +23,9 @@ import {
 
 const session = vi.hoisted(() => ({ getActor: vi.fn() }));
 
+// La ruta arma el actor del comando con la IP del request (ADR-082 regla 2): fuera de Next, las
+// cabeceras son estas.
+vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 // El barrel del admin kit trae componentes con `next/font`, que no carga fuera de Next: de él la ruta
 // y los recursos solo usan los contratos y el CSV.
 vi.mock("@/shared/admin-kit", async () => ({

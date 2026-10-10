@@ -20,6 +20,9 @@ import { seedBooster, seedChallenge, seedMember, seedParticipation, seedTerm } f
 const db = () => getDb();
 let currentPerson = "";
 
+// La ruta arma el actor del comando con la IP del request (ADR-082 regla 2): fuera de Next, las
+// cabeceras son estas.
+vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 vi.mock("@/modules/identity", async (importOriginal) => {
   const mod = await importOriginal<typeof import("@/modules/identity")>();
   return {

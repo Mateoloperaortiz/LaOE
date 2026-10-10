@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { listResources } from "@/app/admin/_kit/registry";
 import { GET as exportCsv } from "@/app/api/export/[tipo]/route";
+import { GET as exportOwnData } from "@/app/api/mis-datos/route";
 import { closeDb, getDb } from "@/db/client";
 import { auditLog } from "@/modules/system/schema";
 import type { AnyResource } from "@/shared/admin-kit/types";
@@ -13,7 +14,12 @@ import { seedMember } from "./factories";
 // con el registro de verdad y se recorre el registro para que ningún recurso se quede sin la marca.
 
 const session = vi.hoisted(() => ({ getActor: vi.fn() }));
+const IP = "203.0.113.7";
 
+// La ruta arma el actor del comando con la IP del request, que sale de las cabeceras del proxy.
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }),
+}));
 // El barrel del admin kit trae componentes con `next/font`, que no carga fuera de Next: de él la ruta
 // y los recursos solo usan los contratos y el CSV.
 vi.mock("@/shared/admin-kit", async () => ({
@@ -84,6 +90,45 @@ describe("exportes del admin con nombres de personas", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("text/csv; charset=utf-8");
     expect(await exportAudits(key)).toEqual([{ actorId: adminId, after: { rows: 0, total: 0 } }]);
+  });
+});
+
+// La fila que dice quién se llevó datos personales dice también desde dónde (ADR-082 regla 2): el
+// CSV de un recurso del admin y el paquete de «Mis datos».
+describe("la auditoría de un exporte lleva la IP de quien lo pidió", () => {
+  beforeEach(truncateAll);
+  afterAll(() => closeDb());
+
+  function auditsOf(action: string) {
+    return getDb()
+      .select({ actorId: auditLog.actorId, entityId: auditLog.entityId, ip: auditLog.ip })
+      .from(auditLog)
+      .where(eq(auditLog.action, action));
+  }
+
+  it("el CSV de un recurso con datos personales queda auditado con la IP del request", async () => {
+    const adminId = await seedMember("admin.exportes@eafit.edu.co");
+    session.getActor.mockResolvedValue(adminSession(adminId, 1));
+
+    const response = await requestExport("tareas");
+
+    expect(response.status).toBe(200);
+    expect(await auditsOf("export.csv")).toEqual([
+      { actorId: adminId, entityId: "tareas", ip: IP },
+    ]);
+  });
+
+  it("«Mis datos» queda auditado a nombre de la propia persona y con la IP del request", async () => {
+    const personId = await seedMember("miembro.exportes@eafit.edu.co");
+    session.getActor.mockResolvedValue({ ...adminSession(personId, 1), isAdmin: false });
+
+    const response = await exportOwnData();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/json; charset=utf-8");
+    expect(await auditsOf("export.self")).toEqual([
+      { actorId: personId, entityId: personId, ip: IP },
+    ]);
   });
 });
 
