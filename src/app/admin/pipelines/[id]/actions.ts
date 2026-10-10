@@ -123,7 +123,7 @@ export async function updateCardAction(formData: FormData): Promise<void> {
     redirect(back(pipelineId, { tarjeta: cardId, error: parsed.error.issues[0]?.message ?? "" }));
   }
   try {
-    await updateCardAs(actor, cardId, parsed.data);
+    await updateCardAs(actor, cardId, parsed.data, { pipelineId });
   } catch (error) {
     failed(pipelineId, error, { tarjeta: cardId });
   }
@@ -186,7 +186,7 @@ export async function admitFromCardAction(formData: FormData): Promise<void> {
     );
   }
   try {
-    await admitFromCardAs(actor, cardId, parsed.data);
+    await admitFromCardAs(actor, cardId, parsed.data, { pipelineId });
   } catch (error) {
     failed(pipelineId, error, { tarjeta: cardId, alta: "1" });
   }
@@ -223,7 +223,11 @@ export async function moveStageAction(formData: FormData): Promise<void> {
   const stageId = idSchema.parse(formData.get("stageId"));
   const direction = formText(formData, "direction") === "up" ? "up" : "down";
   const actor = await actorFor(pipelineId);
-  await moveStageAs(actor, stageId, direction);
+  try {
+    await moveStageAs(actor, stageId, direction, { pipelineId });
+  } catch (error) {
+    failed(pipelineId, error, { etapas: "1" });
+  }
   done(pipelineId, { etapas: "1" });
 }
 
@@ -232,7 +236,7 @@ export async function deleteStageAction(formData: FormData): Promise<void> {
   const stageId = idSchema.parse(formData.get("stageId"));
   const actor = await actorFor(pipelineId);
   try {
-    await deleteStageAs(actor, stageId);
+    await deleteStageAs(actor, stageId, { pipelineId });
   } catch (error) {
     failed(pipelineId, error, { etapas: "1" });
   }

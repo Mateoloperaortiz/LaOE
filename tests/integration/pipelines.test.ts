@@ -89,17 +89,19 @@ describe("pipelines y tarjetas", () => {
       isWon: false,
       isLost: false,
     });
-    await moveStageAs(admin, added.id, "up");
-    await moveStageAs(admin, added.id, "up");
+    await moveStageAs(admin, added.id, "up", { pipelineId: id });
+    await moveStageAs(admin, added.id, "up", { pipelineId: id });
     const reordered = await listStages(id);
     expect(reordered.map((stage) => stage.name)).toEqual([
       ...tList("T-965").slice(0, 3),
       "Prueba técnica",
       ...tList("T-965").slice(3),
     ]);
-    await deleteStageAs(admin, added.id);
+    await deleteStageAs(admin, added.id, { pipelineId: id });
     expect((await listStages(id)).map((stage) => stage.name)).toEqual(tList("T-965"));
-    await expect(deleteStageAs(admin, custom.stages[0]?.id ?? "")).rejects.toThrow(t("T-980"));
+    await expect(
+      deleteStageAs(admin, custom.stages[0]?.id ?? "", { pipelineId: custom.id }),
+    ).rejects.toThrow(t("T-980"));
   });
 
   // Las tarjetas que ya están en una etapa siguen su marca (ADR-118 regla 16): hasta entonces
@@ -354,7 +356,12 @@ describe("pipelines y tarjetas", () => {
     await expect(moveCardAs(admin, created.id, won.id)).rejects.toThrow(
       t("T-991", { etapa: tList("T-965")[3] }),
     );
-    const result = await admitFromCardAs(admin, created.id, { termId, committeeIds: [a3] });
+    const result = await admitFromCardAs(
+      admin,
+      created.id,
+      { termId, committeeIds: [a3] },
+      { pipelineId: id },
+    );
     expect(result.membershipId).toBeTruthy();
     expect(await getMembershipRef(personId)).toMatchObject({
       status: "ACTIVE",
@@ -368,12 +375,12 @@ describe("pipelines y tarjetas", () => {
     ]);
     // Una segunda alta se rechaza (ya tiene membresía) y un externo o un correo ajeno también.
     await expect(
-      admitFromCardAs(admin, created.id, { termId, committeeIds: [a3] }),
+      admitFromCardAs(admin, created.id, { termId, committeeIds: [a3] }, { pipelineId: id }),
     ).rejects.toThrow(copyPattern("T-986"));
     const external = await seedPerson("contacto@empresa.com", { kind: "EXTERNAL" });
     const externalCard = await createCardAs(admin, id, { personId: external });
     await expect(
-      admitFromCardAs(admin, externalCard.id, { termId, committeeIds: [a3] }),
+      admitFromCardAs(admin, externalCard.id, { termId, committeeIds: [a3] }, { pipelineId: id }),
     ).rejects.toThrow(t("T-988"));
     // Al drenar: la bienvenida sale por el mailer y queda en `message`; la línea de tiempo anota el alta.
     await drainOutbox();

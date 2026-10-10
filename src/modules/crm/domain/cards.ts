@@ -17,6 +17,7 @@ import { t } from "@/shared/copy";
 import { bogotaInputToUtc, LOCAL_INPUT } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { card, organization, pipeline, pipelineStage } from "../schema";
+import { assertInPipeline, type PipelineScope } from "./pipeline-scope";
 import { closedAtForStage } from "./pipelines-pure";
 import { openTaskForReason } from "./tasks";
 
@@ -448,12 +449,15 @@ export async function moveCard(
   );
 }
 
+/** Se edita desde la página de su pipeline, que es obligatorio (ADR-122 regla 1). */
 export async function updateCard(
   ctx: CommandContext,
   cardId: string,
   input: CardUpdateInput,
+  scope: PipelineScope,
 ): Promise<void> {
   const row = await requireCard(ctx, cardId);
+  assertInPipeline(row, scope);
   const fields = {
     ...row.fields,
     ...(input.counterpart !== undefined ? { counterpart: input.counterpart } : {}),
@@ -491,8 +495,11 @@ export async function admitFromCard(
   ctx: CommandContext,
   cardId: string,
   input: AdmitInput,
+  scope: PipelineScope,
 ): Promise<{ membershipId: string }> {
   const row = await requireCard(ctx, cardId);
+  // ADR-122 regla 1: la tarjeta de otro pipeline responde como una que no existe, antes de admitir.
+  assertInPipeline(row, scope);
   const [own] = await ctx.tx.select().from(pipeline).where(eq(pipeline.id, row.pipelineId));
   if (!own || own.kind !== "ADMISSION" || !row.personId) {
     throw new DomainError(t("T-032"));
@@ -524,14 +531,22 @@ export function moveCardAs(actor: Actor, cardId: string, stageId: string): Promi
   return runCommand(actor, (ctx) => moveCard(ctx, cardId, stageId));
 }
 
-export function updateCardAs(actor: Actor, cardId: string, input: CardUpdateInput): Promise<void> {
-  return runCommand(actor, (ctx) => updateCard(ctx, cardId, input));
+/** `scope` es el pipeline de la página desde la que se edita la tarjeta (ADR-122 regla 1). */
+export function updateCardAs(
+  actor: Actor,
+  cardId: string,
+  input: CardUpdateInput,
+  scope: PipelineScope,
+): Promise<void> {
+  return runCommand(actor, (ctx) => updateCard(ctx, cardId, input, scope));
 }
 
+/** `scope` es el pipeline de la página desde la que se da de alta (ADR-122 regla 1). */
 export function admitFromCardAs(
   actor: Actor,
   cardId: string,
   input: AdmitInput,
+  scope: PipelineScope,
 ): Promise<{ membershipId: string }> {
-  return runCommand(actor, (ctx) => admitFromCard(ctx, cardId, input));
+  return runCommand(actor, (ctx) => admitFromCard(ctx, cardId, input, scope));
 }

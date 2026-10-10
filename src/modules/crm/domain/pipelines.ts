@@ -5,6 +5,7 @@ import { type Actor, type CommandContext, runCommand } from "@/db/tx";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { card, pipeline, pipelineStage } from "../schema";
+import { assertInPipeline, type PipelineScope } from "./pipeline-scope";
 import {
   closedAtForStage,
   PIPELINE_KINDS,
@@ -295,8 +296,11 @@ export async function moveStage(
   ctx: CommandContext,
   stageId: string,
   direction: "up" | "down",
+  scope: PipelineScope,
 ): Promise<void> {
   const stage = await requireStage(ctx, stageId);
+  // ADR-122 regla 1: la etapa de otro pipeline responde como una que no existe.
+  assertInPipeline(stage, scope);
   const stages = await ctx.tx
     .select()
     .from(pipelineStage)
@@ -327,8 +331,14 @@ export async function moveStage(
 }
 
 /** Borra una etapa sin tarjetas (T-980); la última etapa del pipeline no se borra. */
-export async function deleteStage(ctx: CommandContext, stageId: string): Promise<void> {
+export async function deleteStage(
+  ctx: CommandContext,
+  stageId: string,
+  scope: PipelineScope,
+): Promise<void> {
   const stage = await requireStage(ctx, stageId);
+  // ADR-122 regla 1: la etapa de otro pipeline responde como una que no existe.
+  assertInPipeline(stage, scope);
   const [cards] = await ctx.tx.select({ n: count() }).from(card).where(eq(card.stageId, stageId));
   if ((cards?.n ?? 0) > 0) {
     throw new DomainError(t("T-980"));
@@ -360,14 +370,17 @@ export function saveStageAs(
   return runCommand(actor, (ctx) => saveStage(ctx, pipelineId, stageId, input));
 }
 
+/** `scope` es el pipeline de la página desde la que se mueve la etapa (ADR-122 regla 1). */
 export function moveStageAs(
   actor: Actor,
   stageId: string,
   direction: "up" | "down",
+  scope: PipelineScope,
 ): Promise<void> {
-  return runCommand(actor, (ctx) => moveStage(ctx, stageId, direction));
+  return runCommand(actor, (ctx) => moveStage(ctx, stageId, direction, scope));
 }
 
-export function deleteStageAs(actor: Actor, stageId: string): Promise<void> {
-  return runCommand(actor, (ctx) => deleteStage(ctx, stageId));
+/** `scope` es el pipeline de la página desde la que se borra la etapa (ADR-122 regla 1). */
+export function deleteStageAs(actor: Actor, stageId: string, scope: PipelineScope): Promise<void> {
+  return runCommand(actor, (ctx) => deleteStage(ctx, stageId, scope));
 }
