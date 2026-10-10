@@ -2,10 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
-import { UploadError, uploadErrorMessage } from "@/shared/ui/upload-error";
+import { uploadToBucket } from "@/shared/ui/bucket-upload";
+import { uploadErrorMessage } from "@/shared/ui/upload-error";
 
-// Subida de un PDF de normativa (ADR-034 regla 9): título, tipo, versión y audiencia, luego
-// presign → POST al bucket → confirm. Los bytes no pasan por la app (ADR-022).
+// Subida de un PDF de normativa (ADR-034 regla 9): título, tipo, versión y audiencia, luego la
+// subida directa al bucket por `uploadToBucket` (ADR-121 regla 14): presign → POST al bucket →
+// confirm. Los bytes no pasan por la app (ADR-022).
 
 type Labels = {
   /** Título · Tipo · Versión · Audiencia · Archivo PDF (T-494). */
@@ -40,21 +42,6 @@ type State =
   | { kind: "done" }
   | { kind: "error"; message: string };
 
-interface PreparedUpload {
-  key: string;
-  url: string;
-  fields: Record<string, string>;
-}
-
-async function readError(response: Response, fallback: string): Promise<string> {
-  try {
-    const body = (await response.json()) as { error?: string };
-    return body.error ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
 const inputClass =
   "rounded-xl border-2 border-borde bg-fondo px-3 py-2 text-tinta focus:border-titulo focus:outline-none";
 
@@ -88,40 +75,24 @@ export function DocumentUploader({ kindCodes, minBytes, maxBytes, labels }: Prop
     uploading.current = true;
     setState({ kind: "uploading", name: file.name });
     try {
-      const presign = await fetch("/api/documentos/presign", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ filename: file.name, byteSize: file.size }),
+      const { confirmation } = await uploadToBucket(file, {
+        presign: {
+          url: "/api/documentos/presign",
+          body: { filename: file.name, byteSize: file.size },
+        },
+        confirm: {
+          url: "/api/documentos/confirm",
+          body: {
+            filename: file.name,
+            title: title.trim(),
+            kind,
+            version: version.trim(),
+            audience,
+          },
+        },
+        fallback: labels.errorUpload,
       });
-      if (!presign.ok) {
-        throw new UploadError(await readError(presign, labels.errorUpload));
-      }
-      const prepared = (await presign.json()) as PreparedUpload;
-      const form = new FormData();
-      for (const [name, value] of Object.entries(prepared.fields)) {
-        form.append(name, value);
-      }
-      form.append("file", file, file.name);
-      const stored = await fetch(prepared.url, { method: "POST", body: form });
-      if (!stored.ok) {
-        throw new UploadError(labels.errorUpload);
-      }
-      const confirm = await fetch("/api/documentos/confirm", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          key: prepared.key,
-          filename: file.name,
-          title: title.trim(),
-          kind,
-          version: version.trim(),
-          audience,
-        }),
-      });
-      if (!confirm.ok) {
-        throw new UploadError(await readError(confirm, labels.errorUpload));
-      }
-      const result = (await confirm.json()) as { id: string };
+      const result = (await confirmation.json()) as { id: string };
       setState({ kind: "done" });
       router.push(`/admin/documentos/${result.id}?subido=1`);
     } catch (error) {
