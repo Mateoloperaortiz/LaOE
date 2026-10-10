@@ -1,6 +1,7 @@
 import { listApprovedCheckInsForTerm, listOccasionsForTerm } from "@/modules/participation";
 import { listCommitteesByIds, listTermRoster, type TermRosterRow } from "@/modules/people";
 import { getTerm, listAllTerms } from "@/modules/terms";
+import { tList } from "@/shared/copy";
 import { type Distribution, distribution, round2 } from "./permanence-pure";
 import { listSnapshots } from "./snapshots";
 
@@ -206,11 +207,13 @@ export interface BoardExportRow {
   value: number | string;
 }
 
-/** Formato largo para el CSV de la junta (T-837): un indicador por fila, sin personas. */
-export function boardExportRows(
-  data: BoardIndicators,
-  labels: { cards: string[]; retention: string[]; committees: string[] },
-): BoardExportRow[] {
+/**
+ * Formato largo para el CSV de la junta (T-837): un indicador por fila, sin personas. Las etiquetas son
+ * las de la pantalla (T-823, T-825 y T-828) y se toman acá: el exporte y el aviso del tope de la
+ * pantalla cuentan las mismas filas porque las arma la misma llamada (ADR-121 regla 12).
+ */
+export function boardExportRows(data: BoardIndicators): BoardExportRow[] {
+  const labels = { cards: tList("T-823"), retention: tList("T-825"), committees: tList("T-828") };
   const rows: BoardExportRow[] = [];
   const push = (indicator: string, committee: string, term: string, value: number | null) => {
     rows.push({

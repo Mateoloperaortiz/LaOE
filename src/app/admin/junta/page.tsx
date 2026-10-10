@@ -99,14 +99,8 @@ export default async function JuntaPage({ searchParams }: PageProps<"/admin/junt
       </header>
 
       <DownloadNotice searchParams={search} />
-      {exportLimitNotice(
-        // Las mismas filas que arma `/api/export/junta`, con sus mismas etiquetas.
-        boardExportRows(data, {
-          cards: cardLabels,
-          retention: retentionColumns,
-          committees: committeeColumns,
-        }).length,
-      )}
+      {/* Las filas de `/api/export/junta`: las arma y las cuenta la misma función. */}
+      {exportLimitNotice(boardExportRows(data).length)}
       {empty ? <p className="text-tinta-suave">{t("T-827")}</p> : null}
 
       <dl className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">

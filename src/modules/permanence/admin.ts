@@ -308,14 +308,11 @@ export const boardResource: ResourceDefinition<BoardExportRow, Empty> = {
   list: async (params) => {
     const termId = params.filters.termId ?? (await listAllTerms())[0]?.id;
     const data = termId ? await boardIndicators(termId) : null;
-    const rows = data
-      ? boardExportRows(data, {
-          cards: tList("T-823"),
-          retention: tList("T-825"),
-          committees: tList("T-828"),
-        })
-      : [];
-    return { rows, total: rows.length };
+    const all = data ? boardExportRows(data) : [];
+    // La ruta del exporte pide una página del tamaño del tope: la lista la respeta y dice cuántas
+    // filas hay, para que el archivo avise del recorte igual que la pantalla (ADR-121 regla 12).
+    const from = (params.page - 1) * params.pageSize;
+    return { rows: all.slice(from, from + params.pageSize), total: all.length };
   },
   get: () => Promise.resolve(null),
   toFormValues: () => ({}),
