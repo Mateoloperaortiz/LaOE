@@ -7,8 +7,9 @@ Cierre del objetivo que Mateo fijó el 2026-10-06 ([ADR-109](adr/ADR-109-refacto
 - **Siete ciclos y un remate**, del 2026-10-06 al 2026-10-09: seis ciclos de corrección, seguridad e integridad, uno de estructura, y al final los arreglos rápidos que salieron de clasificar lo que quedaba. Más un arreglo de dependencias vulnerables y una guarda de migraciones, los dos contra `main`.
 - **Nada está mezclado.** Todo vive en diez PR abiertos, ocho de ellos apilados. Mezclar y promover piden la decisión de Mateo, y cada ciclo trae su lista de comprobaciones previas (sección «Cómo seguir»).
 - **El repositorio se leyó entero.** Una revisión de arquitectura, un descubrimiento de seguridad y dos olas de una auditoría de huecos, cada hallazgo de severidad media o alta con un segundo lector que intentó tumbarlo.
-- **Ledger:** 296 hallazgos, todos en un estado final. 110 resueltos, 173 diferidos con lo que los destraba y el riesgo de dejarlos, 8 aceptados y 5 que no eran deuda. De los diferidos, 94 esperan una de las 61 decisiones abiertas.
-- **Pruebas:** de 855 unitarias y 603 de integración a 1.170 y 1.271. La E2E pasa entera cuando corre sola; pegada a `npm run check`, dos pruebas largas todavía tardan de más por lo que la suite de integración le deja a Postgres, y tienen el límite ampliado mientras se corrige la causa (DT-188).
+- **Ledger:** 296 hallazgos, todos en un estado final. 111 resueltos, 172 diferidos con lo que los destraba y el riesgo de dejarlos, 8 aceptados y 5 que no eran deuda. De los diferidos, 94 esperan una de las 61 decisiones abiertas.
+- **Pruebas:** de 855 unitarias y 603 de integración a 1.170 y 1.271. La E2E pasa entera, también pegada a `npm run check`: lo que la hacía tardar de más era lo que la suite de integración le dejaba a Postgres, y quedó corregido en el cierre (DT-188).
+- **Sigue un octavo ciclo** (spec [#247](https://github.com/Mateoloperaortiz/LaOE/issues/247)) con las filas diferidas que nada frena: ni una decisión, ni una mirada a producción, ni una spec de estructura.
 - **Lo más urgente no es código:** mezclar y promover el #116, porque producción sigue con un aviso crítico, y mezclar el #192 antes que la pila, porque sin él una migración se puede saltar en silencio.
 
 ## Punto de partida
@@ -104,13 +105,13 @@ Cada ciclo cerró con `npm run check` completo (lint, tipos, reglas de dependenc
 | 5 | 1.064 | 1.014 | 222 de 222 a la primera |
 | 6 | 1.145 | 1.124 | 223 de 223 a la primera |
 | 7 | 1.158 | 1.250 | 222 de 223 a la primera, 223 de 223 al repetirla entera |
-| Remate | 1.170 | 1.271 | 223 de 224 a la primera, 224 de 224 al repetirla entera |
+| Remate | 1.170 | 1.271 | 223 de 224 a la primera, por la prueba de SEO; 224 de 224 pegada al check, con la causa corregida (DT-188) |
 
 Las E2E que fallaron a la primera tenían tres causas. Dos quedaron arregladas y una tiene un parche:
 
 - **Ciclos 3 y 4:** la restauración de la base entre pruebas truncaba todas las tablas y se trababa en un checkpoint de Postgres. El ciclo 5 lo diagnosticó y cambió la restauración para que borre en vez de truncar.
 - **Ciclo 1:** una partida de 2048 al azar que no alcanzó premio. El ciclo 7 dejó de suponerlo, y la prueba pasó veinte corridas seguidas.
-- **Ciclos 1 y 7 y el remate:** dos pruebas largas, la de la operación de The Games y la de SEO, pasaron su límite de 30 segundos. La causa se encontró en el cierre: la suite de integración sigue truncando más de cien tablas antes de cada prueba y le deja a Postgres cerca de un millón de archivos; mientras la base los limpia, las pruebas de la E2E que caen en esos minutos tardan varias veces más (la de SEO, 4 segundos sola y 29 a 31 pegada a un check). Las dos tienen ahora el límite de las pruebas largas, que es un parche. El arreglo se ensayó, la suite bajó de 300 a 187 segundos, y no entró: destapa pruebas que dependen del orden físico de las filas y pide su propia validación (DT-188).
+- **Ciclos 1 y 7 y el remate:** dos pruebas largas, la de la operación de The Games y la de SEO, pasaron su límite de 30 segundos. La causa se encontró en el cierre: la suite de integración truncaba más de cien tablas antes de cada prueba y le dejaba a Postgres cerca de un millón de archivos; mientras la base los limpiaba, las pruebas de la E2E que caían en esos minutos tardaban varias veces más (la de SEO, 4 segundos sola y 29 a 31 pegada a un check). Ahora la suite borra y pasa `VACUUM`, que conserva el orden de inserción de las filas: tarda cerca de un tercio menos y sus checkpoints bajan de 944.935 archivos a menos de 7.000 (DT-188, ADR-119 regla 23). El primer ensayo, que solo borraba, destapó una prueba que dependía del orden físico; por eso el arreglo tardó una vuelta más.
 
 El CI rechazó la primera subida del ciclo 7 con todos sus trabajos en verde: su compuerta no admite casos saltados y `npm run check` sí. Se corrigió, y la diferencia quedó anotada (DT-282).
 
@@ -143,22 +144,50 @@ Todo hallazgo del ledger terminó en uno de los cuatro estados de ADR-109. La cl
 | Integridad | 8 | 24 | 2 | 2 |
 | Simplicidad | 1 | 12 | 0 | 0 |
 | Mantenibilidad | 10 | 28 | 2 | 0 |
-| Testabilidad | 10 | 8 | 0 | 0 |
+| Testabilidad | 11 | 7 | 0 | 0 |
 | Observabilidad | 4 | 7 | 0 | 0 |
 | Rendimiento | 0 | 7 | 0 | 0 |
 | Sin prioridad | 0 | 0 | 0 | 3 |
-| **Total** | **110** | **173** | **8** | **5** |
+| **Total** | **111** | **172** | **8** | **5** |
 
 Lo diferido, por lo que lo destraba:
 
 - **94 esperan una decisión de dominio.** Están en [decisiones-abiertas.md](decisiones-abiertas.md), cada una con sus opciones, una recomendación y su ticket. Las que más filas destraban: la 18 (4), la 38 (4), la 42 (4), la 8 (3), la 14 (3), la 15 (3).
 - **35 piden mirar staging o producción** antes de poder cerrarse: un conteo de solo lectura, una medición o una prueba contra un proveedor real. Varias caben en una sola sesión del túnel de solo lectura.
-- **La estructura que el plan cierra sin hacer**, cada pieza con sus filas y su spec, escrita contra el código del cierre y comprobada por un segundo lector, sin implementar: la interfaz pública de los módulos, que exporta mucho más de lo que se usa (DT-012, [#238](https://github.com/Mateoloperaortiz/LaOE/issues/238)); el resultado de una acción, que hoy tiene cinco convenciones (DT-014, [#239](https://github.com/Mateoloperaortiz/LaOE/issues/239)); las piezas base de interfaz y las páginas largas, que van juntas (DT-015, DT-047 y DT-027, [#240](https://github.com/Mateoloperaortiz/LaOE/issues/240)); la biblioteca de juegos (DT-032, [#241](https://github.com/Mateoloperaortiz/LaOE/issues/241)); las etiquetas por valor en vez de por posición (DT-011, [#242](https://github.com/Mateoloperaortiz/LaOE/issues/242)); el cargo principal derivado (DT-039, [#243](https://github.com/Mateoloperaortiz/LaOE/issues/243)); la base de las pruebas de integración, su siembra y su vaciado (DT-013, DT-030 y DT-188, [#244](https://github.com/Mateoloperaortiz/LaOE/issues/244)); y el poller por handler (DT-016, [#245](https://github.com/Mateoloperaortiz/LaOE/issues/245)).
+- **La estructura que el plan cierra sin hacer**, cada pieza con sus filas y su spec, escrita contra el código del cierre y comprobada por un segundo lector, sin implementar: la interfaz pública de los módulos, que exporta mucho más de lo que se usa (DT-012, [#238](https://github.com/Mateoloperaortiz/LaOE/issues/238)); el resultado de una acción, que hoy tiene cinco convenciones (DT-014, [#239](https://github.com/Mateoloperaortiz/LaOE/issues/239)); las piezas base de interfaz y las páginas largas, que van juntas (DT-015, DT-047 y DT-027, [#240](https://github.com/Mateoloperaortiz/LaOE/issues/240)); la biblioteca de juegos (DT-032, [#241](https://github.com/Mateoloperaortiz/LaOE/issues/241)); las etiquetas por valor en vez de por posición (DT-011, [#242](https://github.com/Mateoloperaortiz/LaOE/issues/242)); el cargo principal derivado (DT-039, [#243](https://github.com/Mateoloperaortiz/LaOE/issues/243)); la base de las pruebas de integración, su siembra y sus listas a mano (DT-013 y DT-030; el vaciado, DT-188, ya quedó corregido en el cierre, [#244](https://github.com/Mateoloperaortiz/LaOE/issues/244)); y el poller por handler (DT-016, [#245](https://github.com/Mateoloperaortiz/LaOE/issues/245)).
 - **Rendimiento**, siete filas. Ninguna está medida como problema a la escala de hoy, unas 470 personas; comparten un requisito, un ayudante que cuente consultas para poder fijar el arreglo con una prueba.
 - **Dependencias:** tres saltos mayores pendientes, TypeScript, Vitest y los tipos de Node (DT-237). Se suben después de mezclar, uno por vez.
 - **El resto son tickets chicos**: cada fila dice cuál en su nota de cierre.
 
-Por riesgo, de las 122 filas diferidas que tienen su riesgo escrito: 3 de riesgo alto, 39 de riesgo medio y 80 de riesgo bajo. Las demás esperan una decisión ya numerada y no se volvieron a leer. Las de riesgo alto son DT-053 y DT-128, que se cierran mezclando el #116 y el #192, y DT-100, la del dato sensible que sobrevive a la anonimización.
+Por riesgo, de las 121 filas diferidas que tienen su riesgo escrito: 3 de riesgo alto, 39 de riesgo medio y 79 de riesgo bajo. Las demás esperan una decisión ya numerada y no se volvieron a leer. Las de riesgo alto son DT-053 y DT-128, que se cierran mezclando el #116 y el #192, y DT-100, la del dato sensible que sobrevive a la anonimización.
+
+## Bloqueos
+
+Tres cosas no dependen de más código. Van en el formato que pide el objetivo.
+
+### Nada se puede mezclar ni promover sin Mateo
+
+- **Problema.** Todo el refactor vive en ramas. Producción sigue en el `main` del 2026-10-06, con el aviso crítico de `next/og`, y las verificaciones están en verde en local y en el CI de cada PR, no sobre `main`.
+- **Evidencia.** `gh pr list` muestra los PR abiertos, limpios y con sus once chequeos en verde: #116, #192 y la pila #133, #142, #154, #173, #215, #222, #226 y #237. `origin/main` sigue en `01d022d`. `npm audit` sobre `main` da 13 avisos, uno crítico.
+- **Intentos.** Ninguno de mezclar, a propósito: mezclar a `main`, promover a `production` y abrir el túnel de solo lectura piden una frase explícita de Mateo en el mensaje del momento. Se hizo lo que no cruza esa línea: cada PR con su CI, la pila al día, y la lista de lo que hay que comprobar antes de promover cada ciclo.
+- **Opciones.** (a) Mateo mezcla en el orden de «Cómo seguir». (b) Mateo lo autoriza con su frase y el agente mezcla, eslabón por eslabón, esperando el CI de cada uno. (c) Mezclar ya solo el #116, que es independiente de la pila, y dejar lo demás para después.
+- **Recomendación.** (c) hoy, porque quita el aviso crítico de producción sin esperar nada; después (b), con el #192 primero.
+
+### 94 filas esperan una decisión de dominio
+
+- **Problema.** El código no puede elegir qué es el fin del término, qué conserva quien vuelve antes de que se procese su baja o si un formulario público liga a una persona por su correo. Cada una de esas preguntas tapa defectos que no se pueden corregir sin elegir.
+- **Evidencia.** [decisiones-abiertas.md](decisiones-abiertas.md) tiene 61 abiertas, cada una con sus opciones, una recomendación y su ticket bajo el mapa [#117](https://github.com/Mateoloperaortiz/LaOE/issues/117). 94 filas diferidas del ledger nombran la suya.
+- **Intentos.** En cada caso el código conservó la conducta de hoy, fijada con una prueba que nombra la decisión, y se corrigió todo lo vecino que no la pedía.
+- **Opciones.** (a) Responderlas por tandas, empezando por las que más filas destraban y por las dos de privacidad (10 y 61). (b) Aceptar por escrito la recomendación de las que no tengan discusión, y dejar solo las demás para conversar con GH.
+- **Recomendación.** (b): la mayoría trae una recomendación que casi no admite otra respuesta, y con eso se puede abrir un ciclo que las aplique.
+
+### 35 filas piden mirar staging o producción
+
+- **Problema.** Hay arreglos que no se pueden cerrar sin un dato de afuera: cuántas filas hay de cierto tipo en producción, qué hace Resend con una clave de idempotencia que recibió un error, cuánta memoria usa el decodificador en el contenedor real.
+- **Evidencia.** Las filas lo dicen en su nota de cierre. Las que condicionan una promoción están en la tabla de «Cómo seguir».
+- **Intentos.** Todo se probó con proveedores de mentira, el bucket local y el Postgres local. No se abrió el túnel ni se tocó staging.
+- **Opciones.** (a) Una sola sesión del túnel de solo lectura, autorizada por Mateo, que saque todos los conteos de una vez. (b) Ir sacándolos a medida que se promueve cada ciclo.
+- **Recomendación.** (a), antes de promover el ciclo 2: son consultas de totales, sin datos de personas, y varias deciden si una migración de datos hace falta.
 
 ## Cómo seguir
 
