@@ -1,4 +1,5 @@
 import { and, eq, isNull } from "drizzle-orm";
+import { DrizzleQueryError } from "drizzle-orm/errors";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
@@ -12,7 +13,7 @@ import {
   startReconciliation,
 } from "@/modules/participation/domain/reconciliation";
 import { achievement, boosterItem, checkIn, wordleGame } from "@/modules/participation/schema";
-import { outbox } from "@/modules/system/schema";
+import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { drainOutbox } from "../helpers/outbox";
@@ -181,6 +182,39 @@ describe("conciliación histórica", () => {
       (run?.report as { batches?: number } | null)?.batches,
       "dos lotes: el manual de 2 y el que drenó el resto",
     ).toBe(2);
+  });
+
+  it("el error de una corrida FAILED se guarda sin los valores de la consulta que falló, en la corrida y en su auditoría", async () => {
+    // Lo que tumba un lote suele ser una consulta, y Drizzle escribe sus valores en el mensaje del
+    // error: quedaban en `badge_reconciliation_run.error`, a la vista en el admin, y en la auditoría
+    // (DT-295 inciso i, ADR-120 regla 11).
+    await seedUniverse();
+    const runId = await startRun("APPLY");
+    const query = 'select "id" from "achievement" where "person_id" = $1 and "detail" = $2';
+    const values = ["valor.privado@eafit.edu.co", "203.0.113.7"];
+    const cause = Object.assign(new Error("terminating connection due to administrator command"), {
+      code: "57P01",
+    });
+    const spy = vi
+      .spyOn(badges, "recomputeBadgesFor")
+      .mockRejectedValueOnce(new DrizzleQueryError(query, values, cause));
+    await drainOutbox();
+    spy.mockRestore();
+
+    const run = await getReconciliationRun(runId);
+    expect(run?.status).toBe("FAILED");
+    // El SQL se queda, con sus marcadores: es lo que sirve para saber qué falló.
+    expect(run?.error).toContain(query);
+    const [audited] = await db()
+      .select()
+      .from(auditLog)
+      .where(and(eq(auditLog.action, "reconciliation.failed"), eq(auditLog.entityId, runId)));
+    const auditedError = JSON.stringify(audited?.after);
+    expect(auditedError).toContain("Failed query");
+    for (const value of values) {
+      expect(run?.error).not.toContain(value);
+      expect(auditedError).not.toContain(value);
+    }
   });
 
   it("un error deja la corrida FAILED y reanudarla la termina", async () => {

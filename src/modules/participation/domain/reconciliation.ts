@@ -6,6 +6,7 @@ import { gamificationReconcile } from "@/domain-events/participation";
 import { listMembershipPersonIds } from "@/modules/people";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { withoutQueryValues } from "@/shared/log";
 import { badgeReconciliationRun } from "../schema";
 import { recomputeBadgesFor } from "./badges";
 
@@ -150,7 +151,12 @@ export async function processReconciliationBatch(
       }
     }
   } catch (error) {
-    const message = (error instanceof Error ? error.message : String(error)).slice(0, 500);
+    // Lo que se guarda pasa por el recorte del registro: sin los valores de la consulta que falló ni
+    // los datos de una conexión que no abrió, que quedarían en la corrida, a la vista en el admin, y
+    // en su auditoría (ADR-120 regla 11).
+    const message = (
+      error instanceof Error ? withoutQueryValues(error, error.message) : String(error)
+    ).slice(0, 500);
     await runCommand(SYSTEM_ACTOR, async (ctx) => {
       await ctx.tx
         .update(badgeReconciliationRun)
