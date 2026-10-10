@@ -21,17 +21,20 @@ import {
   workGroupMembership,
 } from "../schema";
 import { toRule } from "./params";
-import type {
-  AssemblyRequirementFact,
-  GroupFact,
-  OccasionFact,
-  PermanenceConfig,
-  PersonFacts,
-  TermFacts,
+import {
+  type AssemblyRequirementFact,
+  type GroupFact,
+  type OccasionFact,
+  type PermanenceConfig,
+  type PersonFacts,
+  personStanding,
+  type TermFacts,
 } from "./permanence-pure";
 
 // Cargadores de hechos (ADR-036 regla 5): todo lo que el cálculo necesita, leído en serie (pool de
-// diez) desde los módulos por su API pública y desde las tablas propias. Sin lógica de negocio.
+// diez) desde los módulos por su API pública y desde las tablas propias. Acá se lee y se arma; lo
+// que se decide con lo leído vive en `permanence-pure.ts`: quién es nuevo y con qué estado y prueba
+// llega la persona lo dice `personStanding`.
 
 export async function loadPermanenceConfig(): Promise<PermanenceConfig> {
   return {
@@ -247,15 +250,9 @@ export async function loadPeopleFacts(
   }
   return ids.map((personId) => {
     const rows = roster.get(personId) ?? [];
-    const first = rows[0];
     return {
       personId,
-      status: first?.status ?? "INACTIVE",
-      // La mesa de un comité nuevo se reporta como activa aunque sea nueva (Est. art. 5 par. 1).
-      isNew:
-        (first?.firstTermId === termId || (first?.resumedNew ?? false)) &&
-        !(first?.reportAsVeteran ?? false),
-      probation: first?.probation ?? false,
+      ...personStanding(rows, termId),
       committees: rows.map((row) => ({
         committeeId: row.committeeId,
         roleCode: row.roleCode,

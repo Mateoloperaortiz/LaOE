@@ -269,6 +269,37 @@ export function conditionFor(person: {
   return "ACTIVE";
 }
 
+/** Lo que el roster del término dice de la persona; viene igual en la fila de cada comité suyo. */
+export interface RosterStandingRow {
+  status: MembershipStatus;
+  firstTermId: string;
+  /** Prueba en todos los comités; la de un solo comité va en su `CommitteeFact`. */
+  probation: boolean;
+  reportAsVeteran: boolean;
+  resumedNew: boolean;
+}
+
+/**
+ * Estado, condición de nuevo y prueba de la persona en el término, a partir de sus filas del roster.
+ * Nuevo es quien ingresó en este término o retoma como nuevo, salvo la mesa de un comité nuevo, que
+ * se reporta como activa aunque lo sea (Est. art. 5 par. 1). Los tres datos son de la persona y no
+ * del comité, así que alcanza con la primera fila; sin filas no hay membresía que contar.
+ */
+export function personStanding(
+  rows: readonly RosterStandingRow[],
+  termId: string,
+): Pick<PersonFacts, "status" | "isNew" | "probation"> {
+  const first = rows[0];
+  if (!first) {
+    return { status: "INACTIVE", isNew: false, probation: false };
+  }
+  return {
+    status: first.status,
+    isNew: (first.firstTermId === termId || first.resumedNew) && !first.reportAsVeteran,
+    probation: first.probation,
+  };
+}
+
 /** Banda de riesgo de los estados abiertos (ADR-036 regla 4): aviso, no consecuencia. */
 export const RISK_BAND = 10;
 

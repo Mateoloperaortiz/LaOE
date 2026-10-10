@@ -21,6 +21,7 @@ import {
   type OccasionFact,
   type PermanenceConfig,
   type PersonFacts,
+  personStanding,
   proposeDecisions,
   round2,
   ruleApplies,
@@ -1865,5 +1866,63 @@ describe("lo que queda al congelar (ADR-116 regla 6)", () => {
     expect(open.results[0]?.criteria.some((criterion) => criterion.remaining > 0)).toBe(true);
 
     expect(closedResults(open)).toEqual({ general: closed.general, results: closed.results });
+  });
+});
+
+describe("estado, nuevo y prueba de la persona según su roster (ADR-036 regla 5)", () => {
+  const TERM_ID = "termino-actual";
+  const row = (overrides: Partial<Parameters<typeof personStanding>[0][number]> = {}) => ({
+    status: "ACTIVE" as const,
+    firstTermId: "termino-anterior",
+    probation: false,
+    reportAsVeteran: false,
+    resumedNew: false,
+    ...overrides,
+  });
+
+  it("quien ingresó en este término es nuevo; quien ingresó antes, no", () => {
+    expect(personStanding([row({ firstTermId: TERM_ID })], TERM_ID)).toEqual({
+      status: "ACTIVE",
+      isNew: true,
+      probation: false,
+    });
+    expect(personStanding([row()], TERM_ID)).toEqual({
+      status: "ACTIVE",
+      isNew: false,
+      probation: false,
+    });
+  });
+
+  it("quien retoma como nuevo es nuevo aunque haya ingresado en un término anterior", () => {
+    expect(personStanding([row({ resumedNew: true })], TERM_ID).isNew).toBe(true);
+  });
+
+  it("quien se reporta como activo no es nuevo, ni por ingresar en este término ni por retomar como nuevo (Est. art. 5 par. 1)", () => {
+    expect(
+      personStanding([row({ firstTermId: TERM_ID, reportAsVeteran: true })], TERM_ID).isNew,
+    ).toBe(false);
+    expect(personStanding([row({ resumedNew: true, reportAsVeteran: true })], TERM_ID).isNew).toBe(
+      false,
+    );
+  });
+
+  it("sin filas en el roster no es miembro vigente: inactiva, ni nueva ni en prueba", () => {
+    expect(personStanding([], TERM_ID)).toEqual({
+      status: "INACTIVE",
+      isNew: false,
+      probation: false,
+    });
+  });
+
+  it("el estado y la prueba son los de la persona y salen de su primera fila", () => {
+    expect(
+      personStanding(
+        [
+          row({ status: "ON_LEAVE", probation: true }),
+          row({ status: "ON_LEAVE", probation: true }),
+        ],
+        TERM_ID,
+      ),
+    ).toEqual({ status: "ON_LEAVE", isNew: false, probation: true });
   });
 });
