@@ -15,7 +15,8 @@ import {
 // Lector del QR del carnet en modo anfitrión (ADR-035 regla 8): BarcodeDetector nativo si existe,
 // jsQR sobre un canvas si no; foto como respaldo. El token solo lo valida el servidor. El sondeo y el
 // envío viven en `scan-loop.ts` (ADR-118 regla 19): una lectura a la vez y un rechazo con su mensaje.
-// También lo que decide con una foto y con un segundo toque a «Escanear» (ADR-120 regla 15).
+// También lo que decide con una foto y con un segundo toque a «Escanear» (ADR-120 regla 15): los dos
+// reciben `stop`, porque una foto apaga la cámara antes de responder y un arranque, antes de abrir otra.
 
 type Labels = {
   scan: string;
@@ -153,6 +154,7 @@ export function LectorCarnet({ labels, onScan }: Props) {
         return decodeCanvas(target);
       },
       { unreadable: labels.photoError, noCode: labels.cameraError },
+      stop,
     );
     if (photo.kind === "token") {
       await handleToken(photo.token);
@@ -179,7 +181,7 @@ export function LectorCarnet({ labels, onScan }: Props) {
           <button
             type="button"
             className="boton-calido"
-            onClick={() => void startOnce(start)}
+            onClick={() => void startOnce(start, stop)}
             disabled={state.kind === "busy"}
           >
             {labels.scan}

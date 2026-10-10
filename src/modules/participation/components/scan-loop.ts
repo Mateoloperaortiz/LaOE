@@ -80,18 +80,25 @@ export type PhotoScan = { kind: "token"; token: string } | { kind: "error"; mess
  * o `null` si la foto no trae ninguno. Si el navegador no puede abrirla (un HEIC en Chrome, un archivo
  * dañado), `decode` rechaza y el lector responde un error con su texto en vez de quedarse callado. Nunca
  * rechaza: quien llama siempre tiene un estado que pintar.
+ *
+ * Antes de responder apaga la cámara (`stopCamera`), traiga lo que traiga la foto, como una lectura la
+ * apaga antes de mandarse. Un error pinta el botón de «Escanear» en vez del de «Detener»: con la cámara
+ * encendida debajo, nadie la detiene y el sondeo sigue mandando lecturas.
  */
 export async function readPhoto(
   decode: () => Promise<string | null>,
   messages: { unreadable: string; noCode: string },
+  stopCamera: () => void,
 ): Promise<PhotoScan> {
-  let token: string | null;
+  let photo: PhotoScan;
   try {
-    token = await decode();
+    const token = await decode();
+    photo = token ? { kind: "token", token } : { kind: "error", message: messages.noCode };
   } catch {
-    return { kind: "error", message: messages.unreadable };
+    photo = { kind: "error", message: messages.unreadable };
   }
-  return token ? { kind: "token", token } : { kind: "error", message: messages.noCode };
+  stopCamera();
+  return photo;
 }
 
 /**
@@ -99,15 +106,23 @@ export async function readPhoto(
  * sigue pidiendo el permiso, otro toque no arranca nada y responde `false`: no se pide un segundo flujo
  * de video, que pisaría la referencia del primero y lo dejaría encendido. Al terminar, también si falló,
  * vuelve a dejar pasar.
+ *
+ * El toque que pasa apaga primero lo que hubiera encendido (`stopCamera`): la guardia se abre apenas el
+ * arranque termina, antes de que el botón cambie a «Detener», y un toque en ese instante abriría otra
+ * cámara encima de la primera. El que no pasa no apaga nada: la cámara del primero está arrancando.
  */
-export function createStartGate(): (task: () => Promise<void>) => Promise<boolean> {
+export function createStartGate(): (
+  task: () => Promise<void>,
+  stopCamera: () => void,
+) => Promise<boolean> {
   let starting = false;
-  return async (task) => {
+  return async (task, stopCamera) => {
     if (starting) {
       return false;
     }
     starting = true;
     try {
+      stopCamera();
       await task();
       return true;
     } finally {
