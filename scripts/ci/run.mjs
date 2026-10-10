@@ -1,15 +1,17 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   appendFileSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import durations from "./e2e-durations.json" with { type: "json" };
 import {
   durationsFromResult,
@@ -29,7 +31,9 @@ import { classifyPaths, comparisonBase, verifyJobs } from "./policy.mjs";
 import { findPromotionEvidence, promotionHead, REPOSITORY, verifyEvidence } from "./promotion.mjs";
 import { verifyE2eReports, verifyIntegrationReports, verifyVitestReport } from "./reports.mjs";
 import { readSmokeDeployment } from "./smoke-context.mjs";
+import { runVitestGated } from "./vitest-gate.mjs";
 
+const VITEST = fileURLToPath(new URL("../../node_modules/vitest/vitest.mjs", import.meta.url));
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trimEnd();
 const output = (name, value) => {
@@ -258,9 +262,35 @@ try {
         ? `Evento histórico omitido: el deployment ${config.supersededBy} es posterior y ya fue aprobado. No se certifica el SHA ${config.sha}.`
         : `Smoke del SHA \`${config.sha}\` en ${config.base}.`,
     );
+  } else if (process.argv[2] === "vitest") {
+    // Lo que corren `npm test` y `npm run test:integration`: Vitest y, si aprobó, la misma
+    // comprobación del informe que hace `gate` (ADR-120 regla 14).
+    const project = process.argv[3];
+    const directory = mkdtempSync(join(tmpdir(), "ci-vitest-"));
+    try {
+      const result = runVitestGated(
+        project,
+        process.argv.slice(4),
+        join(directory, "report.json"),
+        (args) => {
+          const run = spawnSync(process.execPath, [VITEST, ...args], { stdio: "inherit" });
+          if (run.error) throw run.error;
+          return run.status ?? 1;
+        },
+      );
+      if (result.status === 0) {
+        process.stdout.write(
+          `Informe de Vitest (${project}): ${result.cases} casos en ${result.files} archivos, todos aprobados.\n`,
+        );
+      } else {
+        process.exitCode = result.status;
+      }
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
   } else {
     throw new Error(
-      "Uso: node scripts/ci/run.mjs classify|gate|e2e-shard k/n|integration-shard k/n|e2e-durations <ci-result.json>|integration-durations <integration.json> [run] [sha]|smoke-context",
+      "Uso: node scripts/ci/run.mjs classify|gate|vitest <unit|integration> [opciones de Vitest]|e2e-shard k/n|integration-shard k/n|e2e-durations <ci-result.json>|integration-durations <integration.json> [run] [sha]|smoke-context",
     );
   }
 } catch (error) {
