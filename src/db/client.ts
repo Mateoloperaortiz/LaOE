@@ -1,7 +1,26 @@
+import { DrizzleQueryError } from "drizzle-orm/errors";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { getEnv } from "@/env";
-import { logger } from "@/shared/log";
+import { logger, printableError } from "@/shared/log";
+
+// Next imprime con `console.error` el error que una action o una ruta dejan escapar, y lo hace
+// antes de avisarle a `onRequestError` (ADR-120 regla 12). Un error de consulta impreso así trae sus
+// valores tres veces: en el mensaje, en `params` y en el `detail` de su causa. Con esto, quien lo
+// imprima, Next o cualquier `console.error`, escribe en su lugar la copia que se puede escribir. El
+// error no cambia: el serializador del registro sigue leyendo sus `params` para recortarlos.
+Object.defineProperty(DrizzleQueryError.prototype, Symbol.for("nodejs.util.inspect.custom"), {
+  configurable: true,
+  writable: true,
+  value(
+    this: Error,
+    _depth: number,
+    options: object,
+    inspect: (value: unknown, options: object) => string,
+  ) {
+    return inspect(printableError(this), options);
+  },
+});
 
 /**
  * Lo que va al registro de una conexión que falló: qué pasó y el código de PostgreSQL, si lo trae.

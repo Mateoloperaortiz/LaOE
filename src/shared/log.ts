@@ -244,6 +244,23 @@ function serializeError(error: unknown): unknown {
   return serialized;
 }
 
+/**
+ * Una copia de `error` que se puede imprimir fuera del registro: su nombre, y su mensaje y su traza
+ * como los deja el serializador, con las causas dobladas adentro y sin valores, más su código o el
+ * de su causa. No lleva nada de lo que el error trae colgado: ni `params`, ni la causa con su
+ * `detail` (ADR-120 regla 12).
+ */
+export function printableError(error: Error): Error {
+  const serialized = serializeError(error) as { message: string; stack: string; code?: unknown };
+  const copy = new Error(serialized.message);
+  copy.name = error.name;
+  copy.stack = serialized.stack;
+  if (serialized.code !== undefined) {
+    Object.assign(copy, { code: serialized.code });
+  }
+  return copy;
+}
+
 // JSON en producción, CI y archivos; el formateador con worker queda para la terminal local.
 export const logger = pino({
   level: process.env.LOG_LEVEL ?? (isProduction ? "info" : "debug"),
