@@ -78,23 +78,23 @@ async function seedPeople(size: number): Promise<string[]> {
   return people;
 }
 
-/** Una campaña a todas las personas de la prueba, programada para `NIGHT`. */
-async function seedCampaign(): Promise<string> {
+/** Una campaña a todas las personas de la prueba, programada para `NIGHT`; `suffix` distingue una segunda. */
+async function seedCampaign(suffix = ""): Promise<string> {
   const [row] = await getDb()
     .insert(segment)
-    .values({ name: "Todos", filter: {} })
+    .values({ name: `Todos${suffix}`, filter: {} })
     .returning({ id: segment.id });
   if (!row) throw new Error("seed segment");
   const { id: templateId } = await runCommand(SYSTEM_ACTOR, (ctx) =>
     createTemplate(ctx, {
-      slug: "novedades",
-      name: "Novedades",
+      slug: `novedades${suffix}`,
+      name: `Novedades${suffix}`,
       subject: "Novedades para {nombre}",
       body: "Hola **{nombre}**.",
     }),
   );
   const { id } = await createCampaignAs(SYSTEM_ACTOR, {
-    name: "Novedades",
+    name: `Novedades${suffix}`,
     templateId,
     segmentId: row.id,
   });
@@ -540,6 +540,37 @@ describe("lo pendiente de una campaña en curso (ADR-116 regla 20)", () => {
 
     expect((await getCampaignQuotaStatus(after(1))).daily).toMatchObject({ ceiling: 3, room: 2 });
     expect(await getCampaignBacklog(id, after(1))).toEqual({ pending: 2, hold: null });
+  });
+
+  // DT-187 (5): el lugar es de todas las campañas en curso y los lotes atienden primero a la que
+  // empezó antes. La cuenta de una pantalla no resta lo que las demás tienen pendiente: entre las dos
+  // anuncian más de lo que cabe, y por eso T-3257 dice «hasta» y no una cifra exacta.
+  it("con dos campañas en curso, cada una cuenta contra todo el lugar que queda, sin restar lo pendiente de la otra", async () => {
+    const [ana] = await seedPeople(3);
+    if (!ana) throw new Error("seed people");
+    const first = await seedCampaign();
+    const second = await seedCampaign("-dos");
+    // Caben dos correos de campaña entre las dos y el lote manda uno por minuto.
+    await setTransactionalReserveAs({ personId: ana }, { by: "ADMIN" }, DAILY_LIMIT - 2);
+    await setPerMinute(1);
+
+    expect(await runCampaignTick(NIGHT)).toEqual({ started: 2, sent: 1 });
+
+    expect((await getCampaignQuotaStatus(after(1))).daily).toMatchObject({ ceiling: 2, room: 1 });
+    const backlogs = [
+      await getCampaignBacklog(first, after(1)),
+      await getCampaignBacklog(second, after(1)),
+    ];
+    expect(backlogs.map((backlog) => backlog.pending).sort()).toEqual([2, 3]);
+    // Queda lugar para uno, y las dos pantallas lo cuentan como suyo.
+    for (const backlog of backlogs) {
+      expect(backlog.hold).toEqual({
+        by: "PARTIAL",
+        fits: 1,
+        waiting: backlog.pending - 1,
+        until: MIDNIGHT,
+      });
+    }
   });
 
   it("lo que un lote tiene en vuelo cuenta entre lo que sale hoy, no entre lo que espera", async () => {
