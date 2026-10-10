@@ -4,8 +4,9 @@ import { type Actor, SYSTEM_ACTOR } from "@/db/tx";
 import type { KitActor } from "@/shared/admin-kit/types";
 
 // La IP del actor de un comando es obligatoria en el tipo (ADR-121 regla 1): un actor armado a mano
-// como `{ personId }` no compila, lo escriba quien lo escriba y con el nombre que sea. Reemplaza a la
-// guarda de texto que leía los recursos del admin kit. Las afirmaciones de tipos las juzga el
+// como `{ personId }` no compila, lo escriba quien lo escriba y con el nombre que sea. No reemplaza a
+// la guarda de texto de los recursos del admin kit (`admin-kit-command-actor.test.ts`), que se queda
+// para lo que el tipo no ve: el actor rearmado con `ip: null`. Las afirmaciones de tipos las juzga el
 // compilador (`npm run typecheck`), no la corrida: si alguien vuelve opcional el campo, este archivo
 // deja de compilar.
 
