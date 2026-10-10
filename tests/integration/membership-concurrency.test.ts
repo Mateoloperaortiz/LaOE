@@ -1,0 +1,97 @@
+import { and, eq } from "drizzle-orm";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { closeDb, getDb } from "@/db/client";
+import { admitPersonAs, endMembershipAs } from "@/modules/people";
+import { committeeMembership, membership, membershipEvent } from "@/modules/people/schema";
+import { auditLog } from "@/modules/system/schema";
+import { t } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
+import { truncateAll } from "./db";
+import { seedCommittee, seedMember, seedPerson, seedTerm } from "./factories";
+
+// DT-148: dar de alta toma la fila de la persona con candado antes de mirar si ya tiene membresía, y
+// dar de baja toma el candado de la persona y la fila de su membresía antes de mirar su estado.
+// Estas pruebas llaman a cada comando dos veces a la vez sobre la misma persona.
+
+const admin = { personId: null, ip: null };
+const db = () => getDb();
+
+function membershipsOf(personId: string) {
+  return db().select().from(membership).where(eq(membership.personId, personId));
+}
+
+function eventsOf(membershipId: string, toStatus: "ACTIVE" | "INACTIVE") {
+  return db()
+    .select()
+    .from(membershipEvent)
+    .where(
+      and(eq(membershipEvent.membershipId, membershipId), eq(membershipEvent.toStatus, toStatus)),
+    );
+}
+
+function audits(action: string, entityId: string) {
+  return db()
+    .select()
+    .from(auditLog)
+    .where(and(eq(auditLog.action, action), eq(auditLog.entityId, entityId)));
+}
+
+describe("dar de alta y dar de baja a la misma persona a la vez", () => {
+  beforeEach(truncateAll);
+  afterAll(closeDb);
+
+  it("dos altas a la vez de la misma persona: vale una y la otra recibe que ya tiene membresía", async () => {
+    const termId = await seedTerm();
+    const a3 = await seedCommittee("a3", "A3");
+    const personId = await seedPerson("alta.doble@eafit.edu.co", {
+      firstName: "Ana",
+      lastName: "Doble",
+      stage: "APPLICANT",
+    });
+    const admit = () => admitPersonAs(admin, personId, { termId, committeeIds: [a3] });
+
+    const outcomes = await Promise.allSettled([admit(), admit()]);
+
+    expect(outcomes.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    const rejections = outcomes.filter(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    expect(rejections).toHaveLength(1);
+    // La que esperó la fila de la persona ya vio la membresía: responde el dominio, no el índice único.
+    expect(rejections[0]?.reason).toBeInstanceOf(DomainError);
+    expect(rejections[0]?.reason).toMatchObject({ message: t("T-986", { nombre: "Ana Doble" }) });
+    const memberships = await membershipsOf(personId);
+    expect(memberships).toHaveLength(1);
+    const membershipId = memberships[0]?.id ?? "";
+    expect(await eventsOf(membershipId, "ACTIVE")).toHaveLength(1);
+    expect(await audits("membership.created", membershipId)).toHaveLength(1);
+    expect(
+      await db()
+        .select()
+        .from(committeeMembership)
+        .where(eq(committeeMembership.personId, personId)),
+    ).toHaveLength(1);
+  });
+
+  it("dos bajas a la vez de la misma persona: la da de baja una sola y la otra responde que no hizo nada", async () => {
+    const personId = await seedMember("baja.doble@eafit.edu.co");
+    const [before] = await membershipsOf(personId);
+    if (!before) throw new Error("sin membresía");
+    const end = () =>
+      endMembershipAs(admin, personId, {
+        endReason: "OTHER",
+        memorialConsent: false,
+        contactConsent: false,
+      });
+
+    const results = await Promise.all([end(), end()]);
+
+    // `true` es «la di de baja»; `false`, «ya lo estaba»: ninguna de las dos falla.
+    expect(results.filter((ended) => ended)).toHaveLength(1);
+    expect(results.filter((ended) => !ended)).toHaveLength(1);
+    const [after] = await membershipsOf(personId);
+    expect(after).toMatchObject({ status: "INACTIVE", walletEpoch: before.walletEpoch + 1 });
+    expect(await eventsOf(before.id, "INACTIVE")).toHaveLength(1);
+    expect(await audits("membership.ended", before.id)).toHaveLength(1);
+  });
+});
