@@ -62,7 +62,7 @@ describe("una conexión prestada que PostgreSQL cierra", () => {
     expect(again).toBe(1);
   });
 
-  it("inactiva, se registra una sola vez, por el oyente del pool", async () => {
+  it("inactiva, se registra una sola vez, por el oyente del pool, y con lo mismo que la prestada: nombre, código y mensaje", async () => {
     // El oyente por conexión sigue puesto mientras la conexión descansa, junto al de pg-pool.
     const logged = vi.spyOn(logger, "error");
     const pool = getDb().$client;
@@ -81,5 +81,11 @@ describe("una conexión prestada que PostgreSQL cierra", () => {
     expect(logged.mock.calls.map(([, message]) => message)).toEqual([
       "un cliente inactivo del pool falló",
     ]);
+    // pg-pool le cuelga la conexión al error (`err.client`), con el host, el puerto, el usuario y la
+    // base: al registro no va el error entero (DT-277).
+    const [facts] = logged.mock.calls[0] ?? [];
+    const err = (facts as { err: Record<string, unknown> }).err;
+    expect(Object.keys(err).sort()).toEqual(["code", "message", "name"]);
+    expect(err.code).toBe("57P01");
   });
 });

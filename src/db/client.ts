@@ -26,8 +26,10 @@ function createDb() {
     idle_in_transaction_session_timeout: env.DB_IDLE_IN_TRANSACTION_TIMEOUT_MS,
   });
   // Sin este listener, el error de un cliente inactivo (reinicio de Postgres, red) tumba el proceso.
+  // pg-pool le cuelga la conexión al error (`err.client`), con su host, su puerto, su usuario y su
+  // base: al registro va lo mismo que con la prestada, no el error entero.
   pool.on("error", (error) => {
-    logger.error({ err: error }, "un cliente inactivo del pool falló");
+    logger.error({ err: connectionFailure(error) }, "un cliente inactivo del pool falló");
   });
   // El de arriba solo cubre a las inactivas: pg-pool le pone su oyente a la conexión que guarda y se
   // lo quita al prestarla. Si PostgreSQL cierra una prestada con la transacción abierta y sin consulta
