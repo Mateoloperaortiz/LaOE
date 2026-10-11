@@ -11,7 +11,8 @@ import { referenceGeneralRules } from "@/modules/permanence/domain/templates";
 import { permanenceRule, workGroupMembership } from "@/modules/permanence/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { applyGhImport, previewGhImport } from "../../scripts/lib/ghpoints-db";
-import { type GhManifest, ghManifestSchema } from "../../scripts/lib/ghpoints-plan";
+import { GhImportError, type GhManifest, ghManifestSchema } from "../../scripts/lib/ghpoints-plan";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import {
   seedCommittee,
@@ -226,11 +227,15 @@ describe("importación administrativa de GH Points", () => {
   });
   it("dos cargas concurrentes del mismo plan no duplican puntos", async () => {
     const preview = await previewGhImport(m, "test");
+    await warmPool();
     const results = await Promise.allSettled([
       applyGhImport(m, opts(preview.planHash)),
       applyGhImport(m, opts(preview.planHash)),
     ]);
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    // La que esperó el candado de las tablas ya ve la carga de la otra: la rechaza el plan, no un índice.
+    const rejected = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+    expect(rejected[0]?.reason).toBeInstanceOf(GhImportError);
     expect(await getDb().select().from(pointEntry)).toHaveLength(1);
   });
   it("revierte todo el lote si falla un crédito después de otra asistencia", async () => {

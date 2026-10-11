@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb } from "@/db/client";
 import { SYSTEM_ACTOR } from "@/db/tx";
 import { type ConfigValue, getConfig, reviseConfig } from "@/modules/system";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
 // Cambiar una clave según el valor que tiene (`reviseConfig`): es lo que sostiene que el corte por
@@ -24,6 +25,7 @@ describe("cambiar una clave de configuración según el valor que tiene", () => 
   it("doce cambios a la vez sobre una clave sin fila deciden uno después del otro: queda la hora más tardía", async () => {
     const minutes = [7, 3, 11, 1, 9, 5, 12, 2, 10, 4, 8, 6];
 
+    await warmPool(10);
     await Promise.all(minutes.map((minute) => reviseConfig(SYSTEM_ACTOR, KEY, latest(at(minute)))));
 
     expect(await getConfig(KEY)).toBe(at(12));
