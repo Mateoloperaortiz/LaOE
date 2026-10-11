@@ -1,6 +1,7 @@
 import { readdirSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 import { assertOwnedDatabase } from "./tests/e2e/environment";
+import { decidedE2eServer } from "./tests/e2e/server-mode";
 
 const prepared = process.env.E2E_RUN === "1";
 if (prepared) assertOwnedDatabase(process.env.DATABASE_URL ?? "");
@@ -60,10 +61,9 @@ export default defineConfig({
   // Knip puede leer la configuración. Una ejecución directa falla en globalSetup sin arrancar app.
   webServer: prepared
     ? {
-        // CI prueba rutas ya compiladas; solo el proceso de pruebas admite el OTP fijo.
-        command: process.env.CI
-          ? `npm run start -- --port ${port}`
-          : `npm run dev -- --port ${port}`,
+        // El lanzador ya eligió: rutas compiladas, como el CI, o dev para una corrida parcial
+        // (ADR-123 regla 1). Solo el proceso de pruebas admite el OTP fijo.
+        command: `npm run ${decidedE2eServer(process.env) === "build" ? "start" : "dev"} -- --port ${port}`,
         // Hereda el entorno ya preparado por el launcher, sin copiarlo al reporte de Playwright.
         url: `${baseURL}/api/health`,
         reuseExistingServer: false,

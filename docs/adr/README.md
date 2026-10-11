@@ -13,6 +13,7 @@ Cada archivo es una decisión: qué se decidió, por qué y qué consecuencias a
 
 | ADR | Título | Estado |
 | --- | --- | --- |
+| [ADR-123](ADR-123-reglas-de-verificacion-y-correccion-del-undecimo-ciclo.md) | Reglas de verificación y corrección del undécimo ciclo del refactor | Aceptada |
 | [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) | Reglas de alcance y corrección del décimo ciclo del refactor | Aceptada |
 | [ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) | Reglas de estructura y pruebas del noveno ciclo del refactor | Aceptada (enmendada por ADR-122) |
 | [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) | Reglas de corrección del octavo ciclo del refactor | Aceptada (enmendada por ADR-121 y ADR-122) |
