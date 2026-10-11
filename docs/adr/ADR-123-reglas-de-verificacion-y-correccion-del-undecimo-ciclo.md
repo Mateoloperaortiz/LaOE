@@ -108,7 +108,7 @@ Ejecutado, los tres: alguien que salió a licencia en prueba en el semestre ante
 
    **Lo que no cambia.** El comando sigue decidiendo, con sus candados: la vista previa avisa y no reemplaza a T-2331. Si la prueba o la suspensión se confirma entre esa validación y la fila, la importación falla entera como antes, sin escribir nada, y al reintentarla la fila ya sale marcada (DT-339). Tampoco cambia qué se le escribe a quien el roster reactiva (decisiones abiertas 28 y 29): a esa persona la fila en error no la reactiva.
 
-6. **El «Agregar» de la dirección, el cambio de comités desde la Persona 360, la aprobación de un cambio de comité y el nombramiento de un representante toman el consultivo del ciclo de membresía antes que la fila de la membresía.** Es el remedio de ADR-122 regla 4 para los tres que dejó anotados y para un cuarto que encontró su revisión (DT-341), y cada uno lo toma en su puerta, con `lockWalletMember`:
+6. **El «Agregar» de la dirección, el cambio de comités desde la Persona 360, la aprobación de un cambio de comité y el nombramiento de un representante toman el consultivo del ciclo de membresía antes que la fila de la membresía.** Es el remedio de ADR-122 regla 4 para los tres que dejó anotados y para un cuarto que encontró su revisión (DT-341), y cada uno lo toma en su puerta, con `lockMembershipCycle`:
    - **El «Agregar»**, `addCommitteeMember` (`src/modules/people/domain/committee-direction.ts`), después de comprobar la capacidad de quien actúa, que solo lee, y antes de `lockMembership`.
    - **El cambio de comités desde la Persona 360**, `setCommitteeMembershipsAs` (`src/modules/people/domain/commands.ts`), al empezar su comando y antes de `setCommitteeMemberships`.
    - **La aprobación de un cambio de comité**, en `getMyMembershipForUpdate` (`src/modules/people/domain/committee-memberships.ts`), que es lo que llama `decideRequestAs` para leer los comités bajo candado ([ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) regla 15). Llega ahí con la fila de la solicitud tomada y, si tuvo que crear el término siguiente, con el candado del calendario; ninguna fila de la persona.
@@ -121,7 +121,7 @@ Ejecutado, los tres: alguien que salió a licencia en prueba en el semestre ante
    **El orden completo del ciclo de membresía**, que junta el de ADR-120 regla 3 con lo que le sumaron ADR-121 regla 15 y ADR-122 reglas 4 y 5. Nadie toma uno de estos con uno de más abajo en la mano:
    1. La fila de lo que se decide o se importa: la solicitud (`decideRequestAs`) o el trabajo de importación (el roster).
    2. El candado del calendario de términos, `term-calendar`, solo si hay que crear un término: lo piden la aprobación y el roster, los dos antes que cualquier consultivo de una persona.
-   3. `wallet-member:<persona>`. Quien retiene más de uno los toma de menor a mayor `id` (`lockWalletMembers`, ADR-122 regla 5).
+   3. `wallet-member:<persona>`. Quien retiene más de uno los toma de menor a mayor `id` (`lockMembershipCycles`, ADR-122 regla 5).
    4. La fila de `person`: `for update` quien anonimiza, `for no key update` el roster.
    5. La fila de `membership`, `for update`; el nombramiento de un representante la toma con `for share`.
    6. El consultivo `leadership:<persona>` de las inhabilidades.
@@ -236,7 +236,7 @@ Ejecutado, los tres: alguien que salió a licencia en prueba en el semestre ante
 
     **Lo que se conserva.** La clave, `wallet-member:<persona>`: con otra, la versión vieja y la nueva de la casa tomarían candados distintos para la misma persona mientras conviven en un despliegue, que es no tener candado. También `getWalletMemberState` y `WalletMemberState`, que sí son lo que la billetera y el ingreso leen para decidir, y el nombre del archivo. El orden de candados no cambia.
 
-    **Las ADR que nombran la función** (ADR-116, ADR-118, ADR-120 y ADR-122) quedan enmendadas y su texto no se edita: donde dicen el nombre viejo se lee el nuevo.
+    **Las ADR que nombran la función** (ADR-116, ADR-118, ADR-120 y ADR-122) quedan enmendadas y su texto no se edita: donde dicen el nombre viejo se lee el nuevo. Esta ADR lo escribe con el nuevo en todas sus reglas, también en la 6, que es anterior al renombre.
 
 24. **Los motivos de un fallo de billetera que solo conoce la emisión viven en el módulo `wallet`.** El adaptador compartido (`src/shared/adapters/wallet-error.ts`) declara los seis que lanza un adaptador, `WalletAdapterFailureReason`: `NOT_CONFIGURED`, `SIGNING_FAILED`, `PROVIDER_UNREACHABLE`, `PROVIDER_AUTH`, `PROVIDER_HTTP` y `PROVIDER_RESPONSE`. `WalletFailureReason` (`src/modules/wallet/domain/failure.ts`) amplía esa unión con los tres de la emisión: `PASS_MISMATCH`, `LINK_TOO_LONG` y `CHANGED_DURING_ISSUE`. `WalletError` sigue siendo una sola clase y lleva el tipo de su motivo: sin más, uno del adaptador. Uno de la emisión sale por `issueError(reason, message)` (`failure.ts`), que recibe solo esos tres y es el único sitio de `src` que le nombra a la clase la unión del módulo; lo llaman los cinco sitios de `google.ts` y `apple.ts`. El motivo no se infiere de lo que se escriba: sin nombrar una unión solo compila uno del adaptador, y por la fábrica solo uno de la emisión.
 
