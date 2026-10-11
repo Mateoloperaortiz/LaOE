@@ -849,6 +849,50 @@ describe("retos: presencial con check-in", () => {
       balance: 15,
       checkIn: "APPROVED",
     });
+
+    // Ya decidida, la revisión responde por el estado antes que por el formato (ADR-122 regla 7).
+    for (const decision of ["APPROVE", "REJECT"] as const) {
+      await expect(
+        reviewParticipationAs(
+          { personId: adminId, ip: null },
+          { participationId: pending.id, decision, reason: "Ya está decidida" },
+        ),
+      ).rejects.toThrow(t("T-676", { estado: "COMPLETED" }));
+    }
+  });
+
+  it("revisar una trivia ya completada responde que no está pendiente, antes que por su formato (ADR-122 regla 7)", async () => {
+    const termId = await seedTerm();
+    const adminId = await seedMember("retos.revisa.trivia@eafit.edu.co");
+    const personId = await seedMember("retos.trivia.completa@eafit.edu.co");
+    await enableGamification(adminId);
+    const challengeId = await seedTrivia(termId);
+    const result = await submitTriviaAs(
+      { personId, ip: null },
+      { challengeId, requestId: "req-orden-1", answers: [0] },
+    );
+    if (!result.ok) throw new Error("la trivia no entró");
+
+    for (const decision of ["APPROVE", "REJECT"] as const) {
+      await expect(
+        reviewParticipationAs(
+          { personId: adminId, ip: null },
+          { participationId: result.participation.id, decision, reason: "No es una evidencia" },
+        ),
+      ).rejects.toThrow(t("T-676", { estado: "COMPLETED" }));
+    }
+
+    const reviewed = await db()
+      .select({ id: auditLog.id })
+      .from(auditLog)
+      .where(
+        and(
+          eq(auditLog.action, "challenge.reviewed"),
+          eq(auditLog.entityId, result.participation.id),
+        ),
+      );
+    expect(reviewed).toHaveLength(0);
+    expect(await balanceFor(personId, termId)).toBe(5);
   });
 
   it("anular un check-in aprobado revierte el premio del reto", async () => {
