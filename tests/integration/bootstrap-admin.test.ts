@@ -9,7 +9,11 @@ import { membership, person } from "@/modules/people/schema";
 import { setConfig } from "@/modules/system";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
-import { type BootstrapAdminInput, bootstrapAdmin } from "../../scripts/lib/bootstrap-admin";
+import {
+  BootstrapAdminError,
+  type BootstrapAdminInput,
+  bootstrapAdmin,
+} from "../../scripts/lib/bootstrap-admin";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedPerson } from "./factories";
@@ -127,7 +131,7 @@ describe("bootstrap del primer ADMIN (ADR-039)", () => {
     );
     expect(rejected).toHaveLength(1);
     // El que esperó el candado ya encontró al ADMIN del otro: lo rechaza el bootstrap, no un índice.
-    expect(String(rejected[0]?.reason)).toContain("Ya existe un ADMIN");
+    expect(rejected[0]?.reason).toBeInstanceOf(BootstrapAdminError);
     expect(await getDb().select().from(person)).toHaveLength(1);
     expect(await getDb().select().from(permission)).toHaveLength(1);
   });
