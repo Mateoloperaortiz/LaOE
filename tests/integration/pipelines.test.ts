@@ -17,7 +17,7 @@ import {
 } from "@/modules/crm";
 import { pipelinesResource } from "@/modules/crm/admin";
 import { createCard, moveCard } from "@/modules/crm/domain/cards";
-import { saveStage } from "@/modules/crm/domain/pipelines";
+import { deleteStage, saveStage } from "@/modules/crm/domain/pipelines";
 import { card, interaction, task } from "@/modules/crm/schema";
 import { getPublicForm, submitFormAs } from "@/modules/forms";
 import { getMembershipRef, getMyMembership } from "@/modules/people";
@@ -25,6 +25,7 @@ import { person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import type { MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
+import { DomainError } from "@/shared/lib/errors";
 import { copyPattern, itemPattern } from "../helpers/copy";
 import { holdCommand, waitingOn, whileHeld } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
@@ -301,6 +302,46 @@ describe("pipelines y tarjetas", () => {
       { stageId: stageOf(pipe, 0), closedAt: expect.any(Date) },
     ]);
     expect(how).toBe("hizo cola");
+  });
+
+  // La rama «se borró» de ADR-122 regla 3: la etapa elegida ya no está cuando la creación la toma.
+  it("una tarjeta nueva espera al borrado sin confirmar de su primera etapa y entra a la siguiente abierta", async () => {
+    const pipe = await seedPipeline("Depurado", "CUSTOM", [
+      { name: "Contacto" },
+      { name: "Propuesta" },
+    ]);
+    const personId = await seedPerson("tarjeta.borrado@example.com");
+    const deleting = await holdCommand(admin, (ctx) =>
+      deleteStage(ctx, stageOf(pipe, 0), { pipelineId: pipe.id }),
+    );
+
+    const how = await whileHeld(deleting, () => createCardAs(admin, pipe.id, { personId }));
+
+    expect(await cardsIn(pipe.id)).toEqual([{ stageId: stageOf(pipe, 1), closedAt: null }]);
+    expect(how).toBe("hizo cola");
+  });
+
+  // El otro orden de llegada: el borrado contaba las tarjetas antes de esperar, no veía la que iba en
+  // vuelo y terminaba con el error de la llave foránea, sin traducir.
+  it("borrar una etapa espera a la tarjeta que se está creando en ella y responde que tiene tarjetas", async () => {
+    const pipe = await seedPipeline("Vigente", "CUSTOM", [
+      { name: "Contacto" },
+      { name: "Propuesta" },
+    ]);
+    const personId = await seedPerson("creando.borrado@example.com");
+    const creating = await holdCommand(admin, (ctx) => createCard(ctx, pipe.id, { personId }));
+    const answer: { error: unknown } = { error: null };
+
+    const how = await whileHeld(creating, () =>
+      deleteStageAs(admin, stageOf(pipe, 0), { pipelineId: pipe.id }).catch((error: unknown) => {
+        answer.error = error;
+      }),
+    );
+
+    expect(how).toBe("hizo cola");
+    expect(answer.error).toEqual(new DomainError(t("T-980")));
+    expect(await listStages(pipe.id)).toHaveLength(2);
+    expect(await cardsIn(pipe.id)).toEqual([{ stageId: stageOf(pipe, 0), closedAt: null }]);
   });
 
   it("la tarjeta de una respuesta también espera a la marca sin confirmar de su primera etapa", async () => {

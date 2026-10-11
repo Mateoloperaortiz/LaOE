@@ -339,6 +339,17 @@ export async function deleteStage(
   const stage = await requireStage(ctx, stageId);
   // ADR-122 regla 1: la etapa de otro pipeline responde como una que no existe.
   assertInPipeline(stage, scope);
+  // La etapa se toma antes de contar sus tarjetas (ADR-122 regla 3): crear una tarjeta y moverla
+  // hacia acá la toman compartida, así que el borrado espera a la que va en vuelo y la cuenta. Sin
+  // esto no la veía y terminaba en el error de la llave foránea, sin traducir.
+  const [taken] = await ctx.tx
+    .select({ id: pipelineStage.id })
+    .from(pipelineStage)
+    .where(eq(pipelineStage.id, stageId))
+    .for("update");
+  if (!taken) {
+    throw new DomainError(t("T-032"));
+  }
   const [cards] = await ctx.tx.select({ n: count() }).from(card).where(eq(card.stageId, stageId));
   if ((cards?.n ?? 0) > 0) {
     throw new DomainError(t("T-980"));
