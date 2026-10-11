@@ -12,6 +12,7 @@ import {
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedMember, seedTerm } from "./factories";
 
@@ -31,6 +32,7 @@ describe("equipo del macroevento por semestre", () => {
 
   it("preparar dos veces, incluso en paralelo, conserva un solo equipo", async () => {
     const { eventId, termId } = await setup();
+    await warmPool();
     const groups = await Promise.all(
       [1, 2].map(() =>
         runCommand(SYSTEM_ACTOR, (ctx) => prepareMacroeventGroup(ctx, eventId, termId)),
