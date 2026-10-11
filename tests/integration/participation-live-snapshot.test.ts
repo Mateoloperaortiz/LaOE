@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import type { CheckInSource, CheckInStatus } from "@/modules/participation";
-import { buildLiveSnapshot } from "@/modules/participation";
+import { buildLiveSnapshot, getOccasion } from "@/modules/participation";
 import { checkIn } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { countQueries } from "../helpers/queries";
@@ -63,6 +63,13 @@ async function seedCheckIns(
   return seeded;
 }
 
+/** La ocasión como la traen la ruta del sondeo y la consola, que la leen antes de pedir el snapshot. */
+async function readOccasion(id: string) {
+  const row = await getOccasion(id);
+  if (!row) throw new Error("la ocasión no existe");
+  return row;
+}
+
 const MIXED: readonly CheckInStatus[] = [
   "APPROVED",
   "APPROVED",
@@ -91,17 +98,17 @@ describe("consola en vivo: lo que devuelve el snapshot", () => {
     const seeded = await seedCheckIns(id, MIXED, "Ana");
     await seedCheckIns(other.id, ["APPROVED", "PENDING", "EXCUSED"], "Otra");
 
-    const snapshot = await buildLiveSnapshot(id);
+    const snapshot = await buildLiveSnapshot(await readOccasion(id));
 
-    expect(snapshot?.counts).toEqual({
+    expect(snapshot.counts).toEqual({
       PENDING: 3,
       APPROVED: 6,
       REJECTED: 2,
       CANCELLED: 1,
       EXCUSED: 2,
     });
-    expect(snapshot?.recent).toEqual(seeded.slice(-10).reverse());
-    expect(Object.keys(snapshot?.recent[0] ?? {}).sort()).toEqual([
+    expect(snapshot.recent).toEqual(seeded.slice(-10).reverse());
+    expect(Object.keys(snapshot.recent[0] ?? {}).sort()).toEqual([
       "at",
       "id",
       "name",
@@ -116,16 +123,16 @@ describe("consola en vivo: lo que devuelve el snapshot", () => {
     const other = await seedOccasion(termId);
     await seedCheckIns(other.id, ["APPROVED"], "Otra");
 
-    const snapshot = await buildLiveSnapshot(id);
+    const snapshot = await buildLiveSnapshot(await readOccasion(id));
 
-    expect(snapshot?.counts).toEqual({
+    expect(snapshot.counts).toEqual({
       PENDING: 0,
       APPROVED: 0,
       REJECTED: 0,
       CANCELLED: 0,
       EXCUSED: 0,
     });
-    expect(snapshot?.recent).toEqual([]);
+    expect(snapshot.recent).toEqual([]);
   });
 
   it("el nombre sale sin espacios a los lados", async () => {
@@ -141,9 +148,9 @@ describe("consola en vivo: lo que devuelve el snapshot", () => {
       .set({ firstName: "  Beto", lastName: "Dos  " })
       .where(eq(person.id, row?.personId ?? ""));
 
-    const snapshot = await buildLiveSnapshot(id);
+    const snapshot = await buildLiveSnapshot(await readOccasion(id));
 
-    expect(snapshot?.recent).toEqual([{ ...second, name: "Beto Dos" }, first]);
+    expect(snapshot.recent).toEqual([{ ...second, name: "Beto Dos" }, first]);
   });
 });
 
@@ -160,15 +167,16 @@ describe("consola en vivo: cuánto lee para armar el snapshot (DT-225)", () => {
       "Caro",
     );
 
-    const { result, queries } = await countQueries(() => buildLiveSnapshot(id));
+    const occasion = await readOccasion(id);
 
-    expect(result?.recent).toHaveLength(10);
-    expect(Object.values(result?.counts ?? {}).reduce((sum, n) => sum + n, 0)).toBe(seeded.length);
+    const { result, queries } = await countQueries(() => buildLiveSnapshot(occasion));
+
+    expect(result.recent).toHaveLength(10);
+    expect(Object.values(result.counts).reduce((sum, n) => sum + n, 0)).toBe(seeded.length);
     expect(Math.max(...queries.map((query) => query.rows))).toBeLessThanOrEqual(10);
-    // La ocasión, un conteo por cada uno de los cinco estados, diez registros y sus diez personas.
-    expect(queries.reduce((sum, query) => sum + query.rows, 0)).toBeLessThanOrEqual(
-      1 + 5 + 10 + 10,
-    );
-    expect(queries.length).toBeLessThanOrEqual(4);
+    // Un conteo por cada uno de los cinco estados, diez registros y sus diez personas. La ocasión
+    // llega leída (DT-308): ya no es una consulta de las del snapshot.
+    expect(queries.reduce((sum, query) => sum + query.rows, 0)).toBeLessThanOrEqual(5 + 10 + 10);
+    expect(queries.length).toBeLessThanOrEqual(3);
   });
 });

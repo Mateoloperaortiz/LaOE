@@ -88,16 +88,13 @@ export default async function ConsolaPage({
     ? [estado as CheckInStatus]
     : undefined;
   const [snapshot, checkIns, roster, committees, scores, results] = await Promise.all([
-    buildLiveSnapshot(id),
+    buildLiveSnapshot(occasion),
     listCheckIns(id, statusFilter),
     listTermCommitteeMembers(occasion.termId),
     listAllCommittees(),
     listOccasionScores(id),
     q ? searchMembersByName(q) : Promise.resolve([]),
   ]);
-  if (!snapshot) {
-    notFound();
-  }
   const people = await getPeopleByIds(checkIns.map((item) => item.personId));
   const committeeName = new Map(committees.map((item) => [item.id, item.name]));
   const committeesOf = new Map<string, string[]>();

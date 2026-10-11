@@ -4,10 +4,18 @@ import { issueCarnet, readCarnet } from "@/modules/identity/domain/carnet";
 import { getOrCreateCarnetToken } from "@/modules/identity/domain/carnet-token";
 import { checkInSelfAs, hostCheckInAs } from "@/modules/participation/domain/commands";
 import { buildLiveSnapshot, checkInLink } from "@/modules/participation/domain/live";
+import { getOccasion } from "@/modules/participation/domain/occasions";
 import { rotatingCodeAt } from "@/modules/participation/domain/rotating-code-pure";
 import { searchMembersByName } from "@/modules/people/domain/people-reads";
 import { truncateAll } from "./db";
 import { currentTermCode, seedMember, seedOccasion, seedTerm } from "./factories";
+
+/** El snapshot de una ocasión leída por su id, como la leen la ruta del sondeo y la consola. */
+async function liveSnapshotOf(id: string, now?: Date) {
+  const row = await getOccasion(id);
+  if (!row) throw new Error("la ocasión no existe");
+  return buildLiveSnapshot(row, now);
+}
 
 describe("modo anfitrión y consola en vivo", () => {
   beforeEach(truncateAll);
@@ -39,9 +47,9 @@ describe("modo anfitrión y consola en vivo", () => {
       { personId: hostId, ip: null },
       { occasionId: id, personId: read.personId, personName: "Persona Sintética", source: "HOST" },
     );
-    const snapshot = await buildLiveSnapshot(id);
-    expect(snapshot?.counts.APPROVED).toBe(1);
-    expect(snapshot?.recent[0]?.source).toBe("HOST");
+    const snapshot = await liveSnapshotOf(id);
+    expect(snapshot.counts.APPROVED).toBe(1);
+    expect(snapshot.recent[0]?.source).toBe("HOST");
   });
 
   it("la búsqueda por nombre del anfitrión nunca devuelve correos", async () => {
@@ -71,8 +79,7 @@ describe("modo anfitrión y consola en vivo", () => {
       { personId: host, ip: null },
       { occasionId: id, personId: b, personName: "Beto Dos", source: "HOST" },
     );
-    const snapshot = await buildLiveSnapshot(id, now);
-    if (!snapshot) throw new Error("sin snapshot");
+    const snapshot = await liveSnapshotOf(id, now);
     expect(snapshot.counts).toEqual({
       PENDING: 1,
       APPROVED: 1,
@@ -88,6 +95,5 @@ describe("modo anfitrión y consola en vivo", () => {
     expect(snapshot.link).toBe(checkInLink(publicId, snapshot.code?.value ?? null));
     expect(snapshot.link).toContain(`/a/${publicId}?c=`);
     expect(snapshot.qrSvg.startsWith("<svg")).toBe(true);
-    expect(await buildLiveSnapshot("no-existe")).toBeNull();
   });
 });

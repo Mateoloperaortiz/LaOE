@@ -6,6 +6,7 @@ import {
   rotatingCodeAt,
   secondsUntilRotation,
 } from "@/modules/participation";
+import { countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
 import { currentTermCode, seedCheckIn, seedMember, seedOccasion, seedTerm } from "./factories";
 
@@ -156,5 +157,29 @@ describe("sondeo de la consola en vivo: lo que responde la ruta", () => {
     expect(body.code).toBeNull();
     expect(body.link).toBe(checkInLink(publicId, null));
     expect(body.recent).toEqual([]);
+  });
+});
+
+describe("sondeo de la consola en vivo: cuánto lee la ruta (DT-308)", () => {
+  beforeEach(async () => {
+    signedIn = null;
+    await truncateAll();
+  });
+  afterAll(closeDb);
+
+  it("lee la ocasión una sola vez: la que leyó para decidir el permiso es la que arma el snapshot", async () => {
+    const termId = await seedTerm(currentTermCode());
+    const { id } = await seedOccasion(termId);
+    await seedCheckIn(id, await seedMember("ana@test.dev", { firstName: "Ana", lastName: "Uno" }));
+    signedIn = { personId: await seedMember("admin@test.dev"), isAdmin: true };
+
+    const { result, queries } = await countQueries(() => poll(id));
+
+    expect(result.status).toBe(200);
+    expect(
+      queries.map((query) => query.text).filter((text) => text.includes('from "occasion"')),
+    ).toHaveLength(1);
+    // La ocasión, los conteos por estado, los últimos registros y sus personas. Eran 5.
+    expect(queries.length).toBeLessThanOrEqual(4);
   });
 });
