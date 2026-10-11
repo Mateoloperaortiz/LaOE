@@ -16,7 +16,6 @@ const config: KnipConfig = {
     "src/modules/content/index.ts",
     "src/modules/crm/index.ts",
     "src/modules/events/index.ts",
-    "src/modules/finance/index.ts",
     "src/modules/forms/index.ts",
     "src/modules/identity/index.ts",
     "src/modules/participation/index.ts",

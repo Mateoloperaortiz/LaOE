@@ -270,18 +270,6 @@ const EXCEPTIONS: Exceptions = {
       updateEvent
     `,
   },
-  finance: {
-    nadie: `
-      APPROVAL_STATUSES
-      ApprovalRequestInput
-      BUDGET_KINDS
-      BUDGET_STATUSES
-      BudgetListRow
-      LineSummary
-      approvalDecisionSchema
-      budgetInputSchema
-    `,
-  },
   forms: {
     nadie: `
       AnswerValue
