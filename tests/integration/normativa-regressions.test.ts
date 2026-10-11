@@ -161,13 +161,13 @@ describe("regresiones de la revisión normativa", () => {
   // 4), también para los otros tres beneficios de ADR-061 regla 2 (DT-299).
   describe("los beneficios de quien está en licencia", () => {
     /**
-     * Sale a licencia en 2026-1, el semestre en que entró, con o sin prueba, y preside la junta del
-     * semestre vigente, en el que no tiene fila. El reloj se le pasa al comando.
+     * Sale a licencia en 2026-1, el semestre en que entró si no se dice otro, con o sin prueba, y
+     * preside la junta del semestre vigente, en el que no tiene fila. El reloj se le pasa al comando.
      */
-    async function onLeave(email: string, probation: boolean) {
+    async function onLeave(email: string, probation: boolean, entryTermCode = "2026-1") {
       const previo = await seedTerm("2026-1");
       const termId = await seedTerm();
-      const personId = await seedMember(email, { entryTermCode: "2026-1" });
+      const personId = await seedMember(email, { entryTermCode });
       const committeeId = await seedCommittee("sintetico");
       await seedAppointment(personId, termId, "PRESIDENT");
       await seedMembershipTerm(personId, previo, probation);
@@ -223,6 +223,34 @@ describe("regresiones de la revisión normativa", () => {
       expect((await listPreferentialSchedule(termId)).map((row) => row.personId)).toEqual([
         personId,
       ]);
+    });
+
+    // Conducta de hoy, sin elegir (ADR-123 regla 7): la prueba guardada es la condición de la persona
+    // mientras no vuelva a activo y cuenta para cualquier semestre por el que se pregunte, como la
+    // suspensión. La prueba de un activo es la fila de un semestre y cuenta solo para ese. Si las dos
+    // deben medirse igual es la decisión abierta 72.
+    it("con la prueba guardada tampoco recibe el reconocimiento de un semestre anterior a su prueba, que a un activo en prueba sí se le registra (decisión abierta 72)", async () => {
+      const { termId, personId, award } = await onLeave(
+        "premio-previo@eafit.edu.co",
+        true,
+        "2025-2",
+      );
+      const anterior = await seedTerm("2025-2");
+      const activo = await seedMember("activo-en-prueba@eafit.edu.co", { entryTermCode: "2025-2" });
+      await seedMembershipTerm(activo, termId, true);
+
+      // En licencia con la prueba guardada: ni el del semestre vigente ni el de uno anterior a su prueba.
+      await expect(
+        grantRecognitionAs(SYSTEM_ACTOR, { ...award, termId: anterior }),
+      ).rejects.toThrow(t("T-2331"));
+      // Activo y en prueba en el semestre vigente: el del vigente no, el del anterior sí.
+      await expect(
+        grantRecognitionAs(SYSTEM_ACTOR, { ...award, personId: activo }),
+      ).rejects.toThrow(t("T-2331"));
+      await grantRecognitionAs(SYSTEM_ACTOR, { ...award, personId: activo, termId: anterior });
+
+      expect(await listRecognitionsFor(personId)).toEqual([]);
+      expect((await listRecognitionsFor(activo)).map((row) => row.termId)).toEqual([anterior]);
     });
   });
 });
