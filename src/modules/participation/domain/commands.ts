@@ -165,14 +165,18 @@ export async function decideCheckInAs(
   return runCommand(actor, (ctx) => decideCheckIn(ctx, input, { settings }));
 }
 
+/** `occasionId` es la ocasión desde cuya consola se decide el lote (ADR-122 regla 1). */
 export async function decideManyAs(
   actor: Actor & { personId: string },
+  occasionId: string,
   checkInIds: string[],
   decision: BatchDecision,
   reason?: string | null,
 ): Promise<number> {
   const settings = await loadGamificationSettings();
-  return runCommand(actor, (ctx) => decideMany(ctx, checkInIds, decision, reason, { settings }));
+  return runCommand(actor, (ctx) =>
+    decideMany(ctx, occasionId, checkInIds, decision, reason, { settings }),
+  );
 }
 
 export function setRotatingCodeAs(actor: Actor, id: string, enabled: boolean): Promise<void> {

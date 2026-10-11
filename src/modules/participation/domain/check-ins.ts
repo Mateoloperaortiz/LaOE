@@ -402,61 +402,55 @@ export async function decideCheckIn(
 export type BatchDecision = Exclude<CheckInDecision, "CANCEL">;
 
 /**
- * Lote de la consola («Aprobar todos»). La lista llega leída antes de la transacción, así que el lote
- * decide con las filas tomadas cuáles siguen pendientes (ADR-116 regla 4): la que otra persona decidió
- * en el medio se deja como quedó, sin reaprobarla en silencio y sin tumbar a las demás.
+ * Lote de la consola («Aprobar todos») de una ocasión, que es obligatoria (ADR-122 regla 1): la
+ * primera lectura va sin candado y solo dice de qué ocasión es cada asistencia, que no cambia. Si
+ * alguna no es de la ocasión de la consola, el lote entero responde como si no existiera y termina
+ * ahí, sin tomar nada de la otra ocasión; se compara otra vez con las filas tomadas.
+ * La lista llega leída antes de la transacción, así que el lote decide con las filas tomadas cuáles
+ * siguen pendientes (ADR-116 regla 4): la que otra persona decidió en el medio se deja como quedó,
+ * sin reaprobarla en silencio y sin tumbar a las demás.
  * Toma todas las filas de una vez, en el orden de id de `lockCheckIns`, antes de decidir ninguna
  * (regla 2): aprobar la primera encola el recálculo del puntaje de la ocasión, y quien decide otra
  * del lote desde su fila la tendría tomada y esperaría ese recálculo. Devuelve cuántas decidió.
  */
 export async function decideMany(
   ctx: CommandContext,
+  occasionId: string,
   checkInIds: string[],
   decision: BatchDecision,
   reason: string | null | undefined,
   context: { settings: GamificationSettings },
 ): Promise<number> {
+  // Falla cerrado: sin la ocasión de la consola no hay lote, ni siquiera uno vacío.
+  const page: unknown = occasionId;
+  if (typeof page !== "string" || page === "") {
+    throw new DomainError(t("T-032"));
+  }
   const ids = [...new Set(checkInIds)];
   if (ids.length === 0) {
     return 0;
   }
   const now = new Date();
-  // Lectura sin candado: solo dice de qué ocasión es cada asistencia, que no cambia.
   const found = await ctx.tx
     .select({ occasionId: checkIn.occasionId })
     .from(checkIn)
     .where(inArray(checkIn.id, ids));
-  if (found.length !== ids.length) {
+  if (found.length !== ids.length || found.some((item) => item.occasionId !== page)) {
     throw new DomainError(t("T-032"));
   }
-  const occasions = new Map<string, OccasionRow>();
-  for (const occasionId of new Set(found.map((item) => item.occasionId))) {
-    const row = await readOccasion(ctx, occasionId);
-    if (!row) {
-      throw new DomainError(t("T-032"));
-    }
-    occasions.set(occasionId, row);
+  const observed = await readOccasion(ctx, page);
+  if (!observed) {
+    throw new DomainError(t("T-032"));
   }
-  for (const termId of [...new Set([...occasions.values()].map((row) => row.termId))].sort()) {
-    await lockOpenTermPoints(ctx.tx, termId);
-  }
-  // Las ocasiones, en orden de id y antes que sus asistencias (ADR-119 regla 1).
-  for (const occasionId of [...occasions.keys()].sort()) {
-    const observed = occasions.get(occasionId);
-    if (observed) {
-      occasions.set(occasionId, await lockOccasion(ctx, observed));
-    }
-  }
+  await lockOpenTermPoints(ctx.tx, observed.termId);
+  // La ocasión antes que sus asistencias (ADR-119 regla 1).
+  const row = await lockOccasion(ctx, observed);
   const rows = await lockCheckIns(ctx, inArray(checkIn.id, ids));
-  if (rows.length !== ids.length) {
+  if (rows.length !== ids.length || rows.some((item) => item.occasionId !== page)) {
     throw new DomainError(t("T-032"));
   }
   const pending = rows.filter((item) => item.status === "PENDING");
   for (const current of pending) {
-    const row = occasions.get(current.occasionId);
-    if (!row) {
-      throw new DomainError(t("T-032"));
-    }
     await decide(ctx, current, row, decision, reason ?? null, now, context.settings);
   }
   return pending.length;

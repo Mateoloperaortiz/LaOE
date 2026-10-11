@@ -135,6 +135,35 @@ export async function firstThenSecond<A, B>(
   }
 }
 
+/**
+ * Cómo termina `command` mientras `held` sigue retenido: «ok» o el mensaje de su error si no
+ * necesitó nada de lo retenido, y «hizo cola» si PostgreSQL lo ve esperándolo. No espera tiempo: cada
+ * vuelta es una consulta, y sale cuando el comando termina o cuando hace cola. Quien llama suelta
+ * `held` después.
+ */
+export async function whileHeld(held: Held, command: () => Promise<unknown>): Promise<string> {
+  const settled: { outcome: string | null } = { outcome: null };
+  const running = command().then(
+    () => {
+      settled.outcome = "ok";
+    },
+    (error: unknown) => {
+      settled.outcome = error instanceof Error ? error.message : String(error);
+    },
+  );
+  try {
+    while (settled.outcome === null) {
+      if ((await waitingOn(held.pid)) > 0) {
+        return "hizo cola";
+      }
+    }
+    return settled.outcome;
+  } finally {
+    held.release();
+    await Promise.allSettled([held.done, running]);
+  }
+}
+
 /** «ok» o el mensaje del error, con su causa: el del driver trae ahí lo que dijo PostgreSQL. */
 export function outcome(result: PromiseSettledResult<unknown>): string {
   if (result.status === "fulfilled") {

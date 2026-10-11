@@ -138,7 +138,7 @@ async function decideBatch(
 ): Promise<void> {
   const row = await findCheckIn(f.occasion.id, f.personId);
   if (!row) throw new Error("no hay asistencia que decidir");
-  expect(await decideManyAs(f.admin, [row.id], decision, reason)).toBe(1);
+  expect(await decideManyAs(f.admin, f.occasion.id, [row.id], decision, reason)).toBe(1);
 }
 
 async function excuse(f: Fixture): Promise<void> {

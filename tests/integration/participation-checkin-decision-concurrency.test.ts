@@ -422,7 +422,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     const one = await pendingAttendance(occasion, "miembro.lote1.decision@eafit.edu.co");
     const two = await pendingAttendance(occasion, "miembro.lote2.decision@eafit.edu.co");
     const listed = (await listCheckIns(occasion.id, ["PENDING"])).map((item) => item.id);
-    expect(await decideManyAs(f.admin, listed, "APPROVE")).toBe(2);
+    expect(await decideManyAs(f.admin, occasion.id, listed, "APPROVE")).toBe(2);
     expect(await listCheckIns(occasion.id, ["APPROVED"])).toHaveLength(2);
     expect(await balanceFor(one.personId, f.termId)).toBe(POINTS);
     expect(await balanceFor(two.personId, f.termId)).toBe(POINTS);
@@ -439,7 +439,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     await decideInOwnOccasion(f.other, { checkInId: two.checkInId, decision: "REJECT" });
 
     // Con las filas tomadas decide cuáles siguen pendientes (ADR-116 regla 4) y dice cuántas decidió.
-    expect(await decideManyAs(f.admin, listed, "APPROVE")).toBe(1);
+    expect(await decideManyAs(f.admin, occasion.id, listed, "APPROVE")).toBe(1);
 
     expect((await findCheckIn(occasion.id, two.personId))?.status).toBe("REJECTED");
     expect((await findCheckIn(occasion.id, one.personId))?.status).toBe("APPROVED");
@@ -461,7 +461,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
         { settings },
       ),
     );
-    const batch = decideManyAs(f.admin, [one.checkInId, two.checkInId], "APPROVE");
+    const batch = decideManyAs(f.admin, occasion.id, [one.checkInId, two.checkInId], "APPROVE");
     void batch.catch(() => undefined);
     try {
       await expect.poll(() => waitingOn(held.pid)).toBe(1);
@@ -485,7 +485,12 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     const one = await pendingAttendance(occasion, "miembro.lote9.decision@eafit.edu.co");
 
     expect(
-      await decideManyAs(f.admin, [one.checkInId, one.checkInId, one.checkInId], "APPROVE"),
+      await decideManyAs(
+        f.admin,
+        occasion.id,
+        [one.checkInId, one.checkInId, one.checkInId],
+        "APPROVE",
+      ),
     ).toBe(1);
 
     expect((await findCheckIn(occasion.id, one.personId))?.status).toBe("APPROVED");
@@ -499,7 +504,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     const one = await pendingAttendance(occasion, "miembro.lote10.decision@eafit.edu.co");
 
     await expect(
-      decideManyAs(f.admin, [one.checkInId, "asistencia-que-no-existe"], "APPROVE"),
+      decideManyAs(f.admin, occasion.id, [one.checkInId, "asistencia-que-no-existe"], "APPROVE"),
     ).rejects.toThrow(t("T-032"));
 
     expect((await findCheckIn(occasion.id, one.personId))?.status).toBe("PENDING");
@@ -530,7 +535,7 @@ describe("dos decisiones a la vez sobre la misma asistencia", () => {
     const last = ordered[1]?.id ?? "";
     // Con el reto retenido, el lote se detiene después de aprobar la primera y encolar el recálculo.
     const held = await holdPresentialChallenge(occasion.id);
-    const batch = decideManyAs(f.admin, [two.checkInId, one.checkInId], "APPROVE");
+    const batch = decideManyAs(f.admin, occasion.id, [two.checkInId, one.checkInId], "APPROVE");
     void batch.catch(() => undefined);
     let single: Promise<void> = Promise.resolve();
     try {

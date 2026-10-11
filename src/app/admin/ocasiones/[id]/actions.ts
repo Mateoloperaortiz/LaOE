@@ -147,6 +147,7 @@ export async function approveAllAction(formData: FormData): Promise<void> {
     const pending = await listCheckIns(id, ["PENDING"]);
     await decideManyAs(
       await actorContext(actor),
+      id,
       pending.map((item) => item.id),
       "APPROVE",
     );
