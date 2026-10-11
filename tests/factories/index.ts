@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import { message } from "@/modules/comms/schema";
 import {
   card,
   internalCall,
@@ -342,6 +343,30 @@ export async function seedSegment(
   const [row] = await db().insert(segment).values({ name, filter }).returning({ id: segment.id });
   if (!row) throw new Error("seed segment");
   return row.id;
+}
+
+/**
+ * Correos que el proveedor ya había enviado antes de la prueba, que es lo que cuenta contra el cupo:
+ * ningún comando deja un envío hecho sin pasar por el proveedor.
+ */
+export async function seedSentEmails(
+  personId: string,
+  amount: number,
+  sent: { provider: string; sentAt: Date; kind?: (typeof message.$inferInsert)["kind"] },
+): Promise<void> {
+  await db()
+    .insert(message)
+    .values(
+      Array.from({ length: amount }, (_, index) => ({
+        personId,
+        channel: "EMAIL" as const,
+        kind: sent.kind ?? "TRANSACTIONAL",
+        subject: `Previo ${index}`,
+        status: "SENT" as const,
+        provider: sent.provider,
+        sentAt: sent.sentAt,
+      })),
+    );
 }
 
 type OccasionOverrides = Partial<{

@@ -16,7 +16,7 @@ import { message } from "@/modules/comms/schema";
 import { getConfig, setConfig } from "@/modules/system";
 import { type MailProvider, type MailTransport, QuotaExceededError } from "@/shared/adapters/mail";
 import { formatDateTime } from "@/shared/lib/dates";
-import { seedMember, seedSegment } from "../factories";
+import { seedMember, seedSegment, seedSentEmails } from "../factories";
 import { truncateAll } from "./db";
 
 // DT-125 (ADR-121 regla 5): el cupo del día del correo se cuenta por el día del proveedor. Resend lo
@@ -113,19 +113,7 @@ async function seedSent(
   sentAt: Date,
   provider: MailProvider = "resend",
 ): Promise<void> {
-  await getDb()
-    .insert(message)
-    .values(
-      Array.from({ length: amount }, (_, index) => ({
-        personId,
-        channel: "EMAIL" as const,
-        kind: "TRANSACTIONAL" as const,
-        subject: `Previo ${index}`,
-        status: "SENT" as const,
-        provider,
-        sentAt,
-      })),
-    );
+  await seedSentEmails(personId, amount, { provider, sentAt });
 }
 
 /** Cuántos correos aceptó Resend en ese día suyo, según lo que quedó registrado. */

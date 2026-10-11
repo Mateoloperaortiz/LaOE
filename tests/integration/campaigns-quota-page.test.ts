@@ -1,13 +1,12 @@
 import type { ReactNode } from "react";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { closeDb, getDb } from "@/db/client";
+import { closeDb } from "@/db/client";
 import { setMailTransportsForTests } from "@/modules/comms";
 import { quotaProviderLabel } from "@/modules/comms/admin";
-import { message } from "@/modules/comms/schema";
 import type { MailProvider, MailTransport } from "@/shared/adapters/mail";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
-import { seedMember } from "../factories";
+import { seedMember, seedSentEmails } from "../factories";
 import { elements } from "../helpers/react-tree";
 import { truncateAll } from "./db";
 
@@ -59,19 +58,7 @@ function useProvider(name: MailProvider): void {
 
 /** Correos que ya salieron a esa hora por Resend, sin pasar por el transporte: lo que cuenta el cupo. */
 async function seedSent(personId: string, amount: number, sentAt: Date): Promise<void> {
-  await getDb()
-    .insert(message)
-    .values(
-      Array.from({ length: amount }, (_, index) => ({
-        personId,
-        channel: "EMAIL" as const,
-        kind: "TRANSACTIONAL" as const,
-        subject: `Previo ${index}`,
-        status: "SENT" as const,
-        provider: "resend" as const,
-        sentAt,
-      })),
-    );
+  await seedSentEmails(personId, amount, { provider: "resend", sentAt });
 }
 
 interface Shown {

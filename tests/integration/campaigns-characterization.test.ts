@@ -39,7 +39,7 @@ import {
 } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
 import { withTimeout } from "@/shared/lib/timeout";
-import { seedMember, seedSegment } from "../factories";
+import { seedMember, seedSegment, seedSentEmails } from "../factories";
 import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
@@ -793,19 +793,7 @@ async function seedSent(
   provider: MailProvider = "resend",
 ): Promise<void> {
   if (amount === 0) return;
-  await db()
-    .insert(message)
-    .values(
-      Array.from({ length: amount }, (_, index) => ({
-        personId,
-        channel: "EMAIL" as const,
-        kind,
-        subject: `Previo ${index}`,
-        status: "SENT" as const,
-        provider,
-        sentAt,
-      })),
-    );
+  await seedSentEmails(personId, amount, { kind, provider, sentAt });
 }
 
 function setReserve(value: number): Promise<void> {

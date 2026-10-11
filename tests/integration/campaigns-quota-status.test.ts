@@ -14,12 +14,11 @@ import {
   setMailTransportsForTests,
   setTransactionalReserveAs,
 } from "@/modules/comms";
-import { message } from "@/modules/comms/schema";
 import { getConfig, setConfig } from "@/modules/system";
 import { appConfig, auditLog } from "@/modules/system/schema";
 import { type MailProvider, QuotaExceededError } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
-import { seedMember, seedSegment } from "../factories";
+import { seedMember, seedSegment, seedSentEmails } from "../factories";
 import { truncateAll } from "./db";
 
 // DT-115 (ADR-116 regla 20): lo que la pantalla de una campaña y la del cupo de correo le muestran a un
@@ -107,19 +106,7 @@ async function seedSent(
   provider: MailProvider = "resend",
 ): Promise<void> {
   if (amount === 0) return;
-  await getDb()
-    .insert(message)
-    .values(
-      Array.from({ length: amount }, (_, index) => ({
-        personId,
-        channel: "EMAIL" as const,
-        kind,
-        subject: `Previo ${index}`,
-        status: "SENT" as const,
-        provider,
-        sentAt,
-      })),
-    );
+  await seedSentEmails(personId, amount, { kind, provider, sentAt });
 }
 
 function reserveAudits() {
