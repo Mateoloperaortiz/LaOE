@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import type { Tx } from "@/db/tx";
 import { clearConfigCache } from "@/modules/system/domain/config";
 import { TEST_POLICY_VERSION } from "../factories/policy-version";
 
@@ -44,6 +45,14 @@ export async function saveCatalogBaseline(): Promise<void> {
   });
 }
 
+const CATALOG_TABLES = CATALOGS.map((table) => `public.${table}`);
+
+// Lo que haya en los catálogos sale antes de llenarlos. Tras el vaciado no queda nada; solo trae filas
+// si algo escribió entre el borrado y el llenado, o si otro vaciado ya los llenó.
+const EMPTY_CATALOGS_SQL = `with ${CATALOG_TABLES.map(
+  (table, index) => `d${index} as (delete from ${table})`,
+).join(", ")} select 1`;
+
 // Una sola sentencia vuelve a llenar los cuatro catálogos con las filas de la foto, en el orden en que
 // la foto las guarda. Las claves foráneas se revisan al terminar la sentencia, así que el cargo que
 // nombra a otro como su reemplazo no depende del orden.
@@ -51,6 +60,19 @@ const REFILL_SQL = `with ${CATALOGS.map(
   (table, index) =>
     `c${index} as (insert into public.${table} select * from ${BASELINE_SCHEMA}.${table})`,
 ).join(", ")} select 1`;
+
+/**
+ * Corre `work` en una transacción que tiene `tables` bajo `ACCESS EXCLUSIVE`, el candado que tomaba
+ * `TRUNCATE`, y sin los disparadores de las claves foráneas (el PostgreSQL de pruebas usa un
+ * superusuario, como la E2E). El candado espera a quien todavía escribe en ellas.
+ */
+function underLock<T>(tables: string[], work: (tx: Tx) => Promise<T>): Promise<T> {
+  return getDb().transaction(async (tx) => {
+    await tx.execute(sql`select set_config('session_replication_role', 'replica', true)`);
+    await tx.execute(sql.raw(`lock table ${tables.join(", ")} in access exclusive mode`));
+    return work(tx);
+  });
+}
 
 /**
  * Las tablas que se vacían: todas las de `public` (ADR-124 reglas 1 y 3). La lista sale de PostgreSQL
@@ -70,17 +92,12 @@ async function tablesToEmpty(): Promise<string[]> {
 }
 
 export async function truncateAll(): Promise<void> {
-  const db = getDb();
   const tables = await tablesToEmpty();
   // Borrar y no truncar: `TRUNCATE` le crea a PostgreSQL un archivo nuevo por tabla, por TOAST y por
   // índice en cada prueba, y la suite le dejaba al checkpoint siguiente cerca de un millón (DT-188).
-  // Todo en una transacción. Sin los disparadores de las claves foráneas el orden entre tablas no
-  // importa (el PostgreSQL de pruebas usa un superusuario, como la E2E), y el candado es el que tomaba
-  // `TRUNCATE`, así que sigue esperando a lo que una prueba anterior dejó escribiendo. Una sola
-  // sentencia borra todas y devuelve cuáles tenían filas.
-  const used = await db.transaction(async (tx) => {
-    await tx.execute(sql`select set_config('session_replication_role', 'replica', true)`);
-    await tx.execute(sql.raw(`lock table ${tables.join(", ")} in access exclusive mode`));
+  // Todo en una transacción y bajo candado: sin los disparadores de las claves foráneas el orden entre
+  // tablas no importa. Una sola sentencia borra todas y devuelve cuáles tenían filas.
+  const used = await underLock(tables, async (tx) => {
     const { rows } = await tx.execute<{ name: string }>(
       sql.raw(`with ${tables.map((table, index) => `d${index} as (delete from ${table} returning 1)`).join(", ")}
         ${tables.map((table, index) => `select '${table}' as name where exists (select 1 from d${index})`).join(" union all ")}`),
@@ -92,11 +109,16 @@ export async function truncateAll(): Promise<void> {
   // Sin esto el orden físico deja de coincidir con el de inserción y una prueba que lee sin `order by`
   // se vuelve inestable.
   if (used.length > 0) {
-    await db.execute(sql.raw(`vacuum ${used.join(", ")}`));
+    await getDb().execute(sql.raw(`vacuum ${used.join(", ")}`));
   }
   // Los catálogos se borraron con las demás tablas y vuelven de la foto, no de lo que dejó la prueba
   // anterior (ADR-124 regla 3). Van después del `VACUUM`, sobre páginas en blanco: así quedan en el
-  // orden de la foto. Si un vaciado falla antes de llegar acá, el siguiente los repone igual.
-  await db.execute(sql.raw(REFILL_SQL));
+  // orden de la foto, tenga el tamaño que tenga cada uno. Y van bajo su candado, borrando antes lo que
+  // encuentren: lo que algo haya escrito desde el borrado, u otro vaciado que ya los llenó, no choca
+  // con las filas de la foto. Si un vaciado falla antes de llegar acá, el siguiente los repone igual.
+  await underLock(CATALOG_TABLES, async (tx) => {
+    await tx.execute(sql.raw(EMPTY_CATALOGS_SQL));
+    await tx.execute(sql.raw(REFILL_SQL));
+  });
   clearConfigCache();
 }

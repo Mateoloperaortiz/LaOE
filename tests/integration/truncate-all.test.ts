@@ -4,6 +4,7 @@ import { closeDb, getDb } from "@/db/client";
 import type { Executor } from "@/db/tx";
 import { getConfig } from "@/modules/system";
 import { heldThenSettled, holdTransaction } from "../helpers/locks";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
 // Lo que el vaciado de la base de pruebas deja entre una prueba y la siguiente (spec #244, ADR-124):
@@ -433,6 +434,43 @@ describe("el vaciado de la base entre pruebas", () => {
     expect(emptying.after.status).toBe("fulfilled");
     expect(await tablesWithRows()).toEqual(CATALOGS);
     expect(await catalogsOf("public")).toEqual(photographed);
+  });
+
+  it("dos vaciados a la vez terminan los dos y dejan los catálogos como en la foto (DT-349)", async () => {
+    await warmPool();
+
+    for (let round = 0; round < 8; round += 1) {
+      const both = await Promise.allSettled([truncateAll(), truncateAll()]);
+
+      expect(both.map((one) => (one.status === "rejected" ? String(one.reason) : "ok"))).toEqual([
+        "ok",
+        "ok",
+      ]);
+      expect(await catalogsOf("public")).toEqual(photographed);
+    }
+  });
+
+  it("deja cada catálogo en el orden de la foto vaciado tras vaciado, también después de que una prueba hizo crecer la configuración varias páginas (DT-349)", async () => {
+    // Filas más anchas que las de la foto: al llenarse dejan en cada página un resto donde cabe una
+    // fila de la foto y no una de estas. Cada tanda deja la última página en otro punto de llenado.
+    const wide = "x".repeat(600);
+    for (const keys of [0, 120, 123, 0, 126, 129, 0]) {
+      for (let index = 0; index < keys; index += 1) {
+        await writeKey(`prueba.ancha.${index}`, wide);
+      }
+      const [size] = await query<{ pages: number }>(
+        `select (pg_relation_size('public.app_config') / current_setting('block_size')::int)::int as pages`,
+      );
+      expect(size?.pages ?? 0, `${keys} claves`).toBeGreaterThan(keys / 20);
+
+      await truncateAll();
+
+      for (const table of CATALOGS) {
+        expect(await asStored(table), `${table} tras ${keys} claves`).toEqual(
+          await asStored(table, BASELINE),
+        );
+      }
+    }
   });
 
   it("no le estrena archivo a ninguna tabla, índice ni TOAST, y deja sin páginas las tablas que tenían filas (ADR-119 regla 23)", async () => {
