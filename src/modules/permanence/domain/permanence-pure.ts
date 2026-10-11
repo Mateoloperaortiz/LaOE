@@ -1,4 +1,10 @@
-import { APP_TIME_ZONE, addDays, dateKeyIn, midpointDay } from "@/shared/lib/dates-pure";
+import {
+  APP_TIME_ZONE,
+  addDays,
+  dateKeyIn,
+  daysBetween,
+  midpointDay,
+} from "@/shared/lib/dates-pure";
 import type { AppliesTo, Computation, OccasionFilter, Rule, WorkGroupKind } from "./params";
 
 // Cálculo de permanencia sin I/O (ADR-025 a ADR-028, ADR-036 regla 4): recibe reglas y hechos y
@@ -1090,10 +1096,7 @@ export function noticesFor(
   }
   if (!closed) {
     const midpoint = midpointDay(term.startsOn, term.endsOn);
-    const daysLeft = Math.ceil(
-      (new Date(`${term.endsOn}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) /
-        86_400_000,
-    );
+    const daysLeft = daysBetween(today, term.endsOn);
     for (const item of result.results) {
       const values = {
         n: Math.round(item.total),

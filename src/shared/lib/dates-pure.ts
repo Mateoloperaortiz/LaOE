@@ -107,17 +107,25 @@ export function addDays(dayKey: string, days: number): string {
 }
 
 /**
+ * Los días de calendario que van de un día ("AAAA-MM-DD") a otro: positivo si el segundo es posterior
+ * y negativo si es anterior. Sin zona ni horas, como `addDays`, de la que es la inversa. Es la única
+ * resta de días de la casa (ADR-123 regla 20).
+ */
+export function daysBetween(fromKey: string, toKey: string): number {
+  return Math.round(
+    (new Date(`${toKey}T00:00:00Z`).getTime() - new Date(`${fromKey}T00:00:00Z`).getTime()) /
+      86_400_000,
+  );
+}
+
+/**
  * El día de la mitad entre dos días ("AAAA-MM-DD"): el primero más la mitad, hacia abajo, de los días
  * que los separan, así que el medio día que sobra no cuenta. Aritmética de calendario, sin zona: quien
  * la compara con «hoy» trae el día civil de Colombia. Es la única escritura de «la mitad del término»
  * (ADR-122 regla 12).
  */
 export function midpointDay(startKey: string, endKey: string): string {
-  const days = Math.round(
-    (new Date(`${endKey}T00:00:00Z`).getTime() - new Date(`${startKey}T00:00:00Z`).getTime()) /
-      86_400_000,
-  );
-  return addDays(startKey, Math.floor(days / 2));
+  return addDays(startKey, Math.floor(daysBetween(startKey, endKey) / 2));
 }
 
 /**
