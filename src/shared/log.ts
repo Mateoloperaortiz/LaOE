@@ -80,13 +80,27 @@ function hideKeysInError(value: unknown): void {
   }
 }
 
+/** Oculta las cuatro claves en lo que una línea trae: solo su `err` deja leer un código. */
+function hideKeysInLine(record: Record<string, unknown>): void {
+  for (const key of Object.keys(record)) {
+    if (key === "err") {
+      hideKeysInError(record[key]);
+    } else if (HIDDEN_KEYS.includes(key)) {
+      record[key] = REDACTED;
+    } else {
+      hideKeys(record[key]);
+    }
+  }
+}
+
 /**
  * La línea como va a salir, con las cuatro claves ocultas a cualquier profundidad (ADR-120 regla 9).
- * Las rutas de pino cubren los dos primeros niveles y no pasan de ahí: no admiten «a cualquier
- * profundidad», y con un comodín por nivel su copia de un `Buffer` anidado lanza y tumba a quien
- * registra. Este paso mira lo que pino ya escribió, así que cubre también lo que fija un logger hijo
- * y lo que un objeto escribe con su `toJSON`. Solo vuelve a leer la línea que nombra alguna de las
- * cuatro claves; las demás salen como llegaron. Una línea que no se puede revisar no se escribe.
+ * Las rutas de pino cubren solo el primer nivel (ADR-123 regla 15): no admiten «a cualquier
+ * profundidad», y con un comodín pino copia cada valor para aplicarlo, y la copia de un `Buffer` no
+ * se deja serializar. Este paso mira lo que pino ya escribió, así que cubre también lo que fija un
+ * logger hijo y lo que un objeto escribe con su `toJSON`. Solo vuelve a leer la línea que nombra
+ * alguna de las cuatro claves; las demás salen como llegaron. Una línea que no se puede revisar no
+ * se escribe.
  */
 function withoutHiddenKeys(line: string): string {
   if (!NAMES_A_HIDDEN_KEY.test(line)) {
@@ -94,18 +108,35 @@ function withoutHiddenKeys(line: string): string {
   }
   try {
     const record = JSON.parse(line) as Record<string, unknown>;
-    for (const key of Object.keys(record)) {
-      if (key === "err") {
-        hideKeysInError(record[key]);
-      } else if (HIDDEN_KEYS.includes(key)) {
-        record[key] = REDACTED;
-      } else {
-        hideKeys(record[key]);
-      }
-    }
+    hideKeysInLine(record);
     return `${JSON.stringify(record)}\n`;
   } catch {
     return `${JSON.stringify({ level: 50, time: Date.now(), msg: "registro: una línea no se pudo revisar y no se escribió" })}\n`;
+  }
+}
+
+/**
+ * Lo que se interpola en el mensaje (`%o`, `%O`, `%j`) no llega a la línea como objeto: pino lo
+ * escribe dentro de `msg`, y ahí `withoutHiddenKeys` ya no lo puede leer. Se revisa antes, con las
+ * reglas de una línea y sin tope de profundidad (ADR-123 regla 15): si nombra alguna de las cuatro
+ * claves, lo que se interpola es una copia con esas claves ocultas. Lo que no es un objeto, o no
+ * nombra ninguna, pasa como llegó. Un objeto que no se deja copiar (un ciclo, un `bigint`) no se puede
+ * revisar y no se escribe.
+ */
+function withoutHiddenKeysInMessage(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) {
+    return value;
+  }
+  try {
+    const written = JSON.stringify(value) as string | undefined;
+    if (written === undefined || !NAMES_A_HIDDEN_KEY.test(written)) {
+      return value;
+    }
+    const copy = JSON.parse(written) as Record<string, unknown>;
+    hideKeysInLine(copy);
+    return copy;
+  } catch {
+    return REDACTED;
   }
 }
 
@@ -366,14 +397,24 @@ export const logger = pino({
   level: process.env.LOG_LEVEL || (isProduction ? "info" : "debug"),
   base: null,
   serializers: { err: serializeError },
-  // Lo que las rutas de abajo no alcanzan, más abajo del segundo nivel (ADR-120 regla 9).
-  hooks: { streamWrite: withoutHiddenKeys },
+  hooks: {
+    // El primer argumento, si es un objeto, es el de la línea, y a esa la revisa `streamWrite`. Los
+    // demás son el mensaje y lo que se le interpola.
+    logMethod(args, method) {
+      const reviewed = args.map((arg, index) =>
+        index === 0 ? arg : withoutHiddenKeysInMessage(arg),
+      );
+      method.apply(this, reviewed as typeof args);
+    },
+    // Lo que las rutas de abajo no alcanzan: todo lo que no está suelto en la línea (ADR-120 regla 9).
+    streamWrite: withoutHiddenKeys,
+  },
   redact: {
     paths: [
-      // Sueltas en la línea o en lo que fija un logger hijo, y con una clave encima: las rutas con
-      // `*` no cubren el primer nivel (ADR-119 regla 14).
+      // Sueltas en la línea o en lo que fija un logger hijo (ADR-119 regla 14). Sin rutas con `*`:
+      // con una, pino copia el valor de cada clave de primer nivel, y la copia de un `Buffer` no se
+      // deja serializar (ADR-123 regla 15). Con una clave encima las oculta `withoutHiddenKeys`.
       ...HIDDEN_KEYS,
-      ...HIDDEN_KEYS.map((key) => `*.${key}`),
       // No oculta nada: pino solo le pasa a `censor` el nombre de la clave de primer nivel cuando esa
       // clave tiene una ruta propia, y `censor` lo necesita para dejar pasar el código de un error.
       "err.code",

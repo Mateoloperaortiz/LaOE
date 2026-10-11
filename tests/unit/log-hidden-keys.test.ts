@@ -185,3 +185,85 @@ describe("cada forma en que una clave oculta llega al registro", () => {
     });
   });
 });
+
+// DT-305, ADR-123 regla 15: pino ya no lleva rutas con comodín. Con ellas copiaba el valor de cada
+// clave de primer nivel, y la copia de un `Buffer` no se deja serializar.
+describe("un valor de primer nivel que no es una clave oculta sale como es", () => {
+  const AB = { type: "Buffer", data: [97, 98] };
+
+  it("un Buffer en el primer nivel de una línea sale con su contenido, igual que más abajo", async () => {
+    const lines = await written(() => {
+      logger.info({ adjunto: Buffer.from("ab"), sobre: { adjunto: Buffer.from("ab") } }, "archivo");
+    });
+
+    expect(lines[0]?.record).toMatchObject({ adjunto: AB, sobre: { adjunto: AB } });
+    expect(lines[0]?.line).not.toContain("unable to serialize");
+  });
+
+  it("también en lo que fija un logger hijo y al lado de una clave oculta, que sigue oculta", async () => {
+    const lines = await written(() => {
+      logger
+        .child({ adjunto: Buffer.from("ab") })
+        .info(
+          { token: SECRET, cuando: new Date("2026-10-11T15:00:00.000Z"), otro: Buffer.from("ab") },
+          "archivo",
+        );
+    });
+
+    expect(lines[0]?.record).toMatchObject({
+      adjunto: AB,
+      token: "[oculto]",
+      cuando: "2026-10-11T15:00:00.000Z",
+      otro: AB,
+    });
+    expect(lines[0]?.line).not.toContain(SECRET);
+  });
+});
+
+// Sin las rutas con comodín, lo que se interpola en el mensaje lo revisa el registro antes de que pino
+// lo escriba (ADR-123 regla 15): a cualquier profundidad, y ya no solo en los dos primeros niveles.
+describe("lo que se interpola en el mensaje, a cualquier profundidad", () => {
+  it.each([
+    "%o",
+    "%O",
+    "%j",
+  ])("con %s, las claves ocultas a tres niveles o más, en una lista y en lo que un objeto escribe con su `toJSON`", async (placeholder) => {
+    const lines = await written(() => {
+      info(`pedido ${placeholder}`, {
+        a: { b: { c: secrets() } },
+        lote: [{ entrega: [secrets()] }],
+        pase: { toJSON: () => ({ datos: { enlace: secrets() } }) },
+      });
+    });
+
+    expect(lines[0]?.line).not.toContain(SECRET);
+    expect(lines[0]?.line.split(ESCAPED_HIDDEN)).toHaveLength(3 * KEYS.length + 1);
+    expect(String(lines[0]?.record.msg)).toContain('"otro":"se-queda"');
+  });
+
+  it("un objeto interpolado que no se puede revisar no se escribe", async () => {
+    const loop: Record<string, unknown> = { a: { b: { token: SECRET } } };
+    loop.yo = loop;
+    const lines = await written(() => {
+      logger.info("pedido %o", loop);
+    });
+
+    expect(lines[0]?.line).not.toContain(SECRET);
+    expect(lines[0]?.record.msg).toBe("pedido '[oculto]'");
+  });
+
+  it("lo que no trae una clave oculta se interpola igual que antes", async () => {
+    const lines = await written(() => {
+      logger.info("pedido %o", {
+        a: { b: { c: 1 } },
+        cuando: new Date("2026-10-11T15:00:00.000Z"),
+      });
+      logger.info({ evento: "ev-1" }, "van %d de %s, %o", 3, "cinco", null);
+    });
+
+    expect(lines[0]?.record.msg).toBe(
+      'pedido {"a":{"b":{"c":1}},"cuando":"2026-10-11T15:00:00.000Z"}',
+    );
+    expect(lines[1]?.record).toMatchObject({ evento: "ev-1", msg: "van 3 de cinco, null" });
+  });
+});
