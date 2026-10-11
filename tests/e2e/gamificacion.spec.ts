@@ -9,6 +9,8 @@ import { wordleCompleted } from "@/domain-events/participation";
 import {
   challengeInputSchema,
   createChallengeAs,
+  EVIDENCE_TEXT_MAX,
+  EVIDENCE_TEXT_MIN,
   publishChallengeAs,
 } from "@/modules/participation";
 import {
@@ -385,6 +387,29 @@ test("evidencia: quitar de la lista una imagen ya subida la borra del bucket", a
   await expect(preview).toHaveCount(0);
   // La casa lo borra sin que la pantalla espere la respuesta (ADR-122 regla 20).
   await expect.poll(() => headObject(key)).toBeNull();
+});
+
+test("evidencia: un texto que queda corto sin los espacios de los bordes avisa con el largo pedido", async ({
+  page,
+}) => {
+  const id = await crearReto({
+    kind: "EVIDENCE",
+    title: "e2e-Misión con un texto corto",
+    description: "Contá qué hiciste.",
+    ...ventana(),
+    basePoints: 10,
+  });
+  await page.goto(`/app/gh-points/retos/${id}`);
+  // El navegador cuenta los espacios y deja enviar; el formulario no (ADR-122 regla 16).
+  await page.getByLabel(t("T-2428")).fill(`e2e-corto${" ".repeat(EVIDENCE_TEXT_MIN)}`);
+  await page.getByRole("button", { name: tList("T-2420")[2] }).click();
+  await expect(
+    page.getByText(t("T-3261", { min: EVIDENCE_TEXT_MIN, max: EVIDENCE_TEXT_MAX })),
+  ).toBeVisible();
+  await expect(page.getByText(t("T-2426"))).toHaveCount(0);
+  // No se entregó nada: al recargar el formulario sigue ahí.
+  await page.reload();
+  await expect(page.getByLabel(t("T-2428"))).toBeVisible();
 });
 
 test("presencial: el check-in de la actividad completa el reto solo", async ({ page }) => {
