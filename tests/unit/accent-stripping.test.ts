@@ -141,6 +141,16 @@ describe("quitar acentos, sitio por sitio", () => {
     expect(checkPassword(`mari${JOINER}a-clave-2026`, context)).toBe("PERSONAL");
   });
 
+  it("el nombre se lee igual que la contraseña: uno partido por una marca de fuera del bloque ya no cuenta como dos trozos, y la clave que lleva solo uno pasa", () => {
+    // El caso al revés de ADR-123 regla 18: con solo el bloque, la marca quedaba y partía el nombre
+    // en «rosa» y «linda»; sin ella es un solo trozo, «rosalinda». Ningún nombre real la trae.
+    const context = { email: "otra@eafit.edu.co", names: [`Rosa${ARROW}linda`] };
+    expect(checkPassword("una-rosa-azul-2026", context)).toBeNull();
+    expect(checkPassword("una-linda-clave-2026", context)).toBeNull();
+    expect(checkPassword("soy-rosalinda-2026", context)).toBe("PERSONAL");
+    expect(checkPassword(`soy-rosa${ARROW}linda-2026`, context)).toBe("PERSONAL");
+  });
+
   it("la cabecera del roster queda en mayúsculas, sin tildes ni signos y con un solo espacio", () => {
     const headers = [
       "  Entrada a la OÉ ",
