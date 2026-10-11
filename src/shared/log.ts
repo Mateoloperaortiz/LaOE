@@ -220,14 +220,66 @@ interface ConnectionTarget {
 
 const NO_TARGET: ConnectionTarget = { written: [], fields: [] };
 
+/** Un código de error de Node (`ECONNRESET`, `ERR_SOCKET_…`), no un SQLSTATE ni el de un proveedor. */
+const NODE_CODE = /^E[A-Z0-9_]+$/;
+
+/** El host, con su puerto y solo: lo más largo primero. */
+function hostTexts(host: unknown, port: unknown): string[] {
+  if (typeof host !== "string" || host === "") {
+    return [];
+  }
+  const hasPort = typeof port === "number" || (typeof port === "string" && port !== "");
+  return hasPort ? [`${host}:${port}`, host] : [host];
+}
+
+/** A dónde iba cada fallo al conectar que marcó quien abre las conexiones. */
+const failedConnections = new WeakMap<Error, string[]>();
+
+/**
+ * Marca `error` como un fallo al conectar con `connectionString` (ADR-123 regla 16). De un error
+ * marcado el registro quita ese host, con su puerto y solo, esté escrito como esté en el mensaje, y
+ * los campos donde un error de red repite su destino. La marca la pone quien abre la conexión
+ * (`src/db/client.ts`): solo ahí se sabe que el error es de una conexión y a dónde iba. Sin ella un
+ * host corto (`db`, `localhost`) no se puede quitar por texto: se borraría de mensajes que no son de
+ * una conexión. Una conexión que no se deja leer marca igual, sin texto que quitar.
+ */
+export function markConnectionFailure(error: unknown, connectionString: string): void {
+  if (!(error instanceof Error)) {
+    return;
+  }
+  try {
+    const url = new URL(connectionString);
+    failedConnections.set(error, hostTexts(decodeURIComponent(url.hostname), url.port));
+  } catch {
+    failedConnections.set(error, []);
+  }
+}
+
+/** Los campos donde un error de red repite a dónde iba, de cualquiera de las formas de abajo. */
+const TARGET_FIELDS = ["address", "port", "hostname", "host", "path", "localAddress"];
+
+/**
+ * A dónde iba una conexión que no abrió: lo que el error deja ver por su forma y, si quien abre la
+ * conexión lo marcó, el host configurado.
+ */
+function connectionTarget(error: Error): ConnectionTarget {
+  const shaped = targetByShape(error);
+  const configured = failedConnections.get(error);
+  return configured
+    ? { written: [...shaped.written, ...configured], fields: TARGET_FIELDS }
+    : shaped;
+}
+
 /**
  * A dónde iba una conexión que no abrió, como lo escribe Node. En un error de sistema (trae
  * `syscall`): `address` y `port` en un `connect ECONNREFUSED 10.0.0.5:5432`, `hostname` en un
  * `getaddrinfo ENOTFOUND …`. En un certificado que no nombra al host: `host`, y `reason`, que es la
  * frase con el host y con los nombres que el certificado sí trae; `cert` es el certificado entero.
- * Todo eso lo repite en el mensaje, y de ahí se quita por coincidencia exacta.
+ * Todo eso lo repite en el mensaje, y de ahí se quita por coincidencia exacta. En un error de socket
+ * sin `syscall`, como la conexión TLS que se cae antes del saludo: `host`, `port`, `path` y
+ * `localAddress`, que Node deja como campos y no escribe en el mensaje (ADR-123 regla 16).
  */
-function connectionTarget(error: Error): ConnectionTarget {
+function targetByShape(error: Error): ConnectionTarget {
   const { code, syscall, address, port, hostname, host, reason } = error as {
     code?: unknown;
     syscall?: unknown;
@@ -247,7 +299,11 @@ function connectionTarget(error: Error): ConnectionTarget {
     return { written, fields: ["host", "reason", "cert"] };
   }
   if (typeof syscall !== "string") {
-    return NO_TARGET;
+    const isSocketError =
+      typeof code === "string" && NODE_CODE.test(code) && typeof host === "string" && host !== "";
+    return isSocketError
+      ? { written: hostTexts(host, port), fields: ["host", "port", "path", "localAddress"] }
+      : NO_TARGET;
   }
   if (typeof address === "string" && address !== "") {
     if (typeof port === "number") {
@@ -297,6 +353,39 @@ function configuredNames(): string[] {
   return namesRead;
 }
 
+/** Un renglón `at …` de la traza: lo que trae es la ruta de un archivo, no un mensaje. */
+const STACK_FRAME = /^\s+at .*(?::\d+:\d+\)?|\(<anonymous>\)|\(native\))$/;
+
+/**
+ * `text` con `written` cambiado por `replacement` donde aparezca, salvo en los renglones `at …` de la
+ * traza (ADR-123 regla 16): un host corto (`db`, `unit`) es también el nombre de una carpeta, y de
+ * la ruta de un archivo no hay nada que ocultar.
+ */
+function replaceOutsideStackFrames(text: string, written: string, replacement: string): string {
+  if (!text.includes(written)) {
+    return text;
+  }
+  const lines = text.split("\n");
+  const out: string[] = [];
+  let message: string[] = [];
+  const flush = () => {
+    if (message.length > 0) {
+      out.push(message.join("\n").split(written).join(replacement));
+      message = [];
+    }
+  };
+  for (const line of lines) {
+    if (STACK_FRAME.test(line)) {
+      flush();
+      out.push(line);
+    } else {
+      message.push(line);
+    }
+  }
+  flush();
+  return out.join("\n");
+}
+
 /**
  * `text` es el mensaje o la traza de `error`, con sus causas dobladas adentro. Lo devuelve sin los
  * valores de la consulta que falló y sin los datos de una conexión que no abrió, mirando el error y
@@ -305,7 +394,8 @@ function configuredNames(): string[] {
  * destino que Node escribe en un error de red o en un certificado que no nombra al host, y el usuario
  * y la base de la conexión configurada donde PostgreSQL los cite (ADR-120 regla 10). Todo se quita
  * por coincidencia exacta con lo que cada error escribió, no con una expresión que adivine dónde
- * termina.
+ * termina. Un destino y un nombre citado se quitan del mensaje, no de los renglones `at …` de la
+ * traza (ADR-123 regla 16).
  *
  * Es el recorte del serializador de `err`, y lo usa también quien guarda el texto de un error fuera
  * del registro: el poller, en `outbox.last_error` (ADR-119 regla 16).
@@ -323,12 +413,12 @@ export function withoutQueryValues(error: Error, text: string): string {
       clean = clean.split(current.message).join(hidden);
     }
     for (const target of connectionTarget(current).written) {
-      clean = clean.split(target).join(REDACTED);
+      clean = replaceOutsideStackFrames(clean, target, REDACTED);
     }
     current = current.cause;
   }
   for (const quoted of configuredNames()) {
-    clean = clean.split(quoted).join(`"${REDACTED}"`);
+    clean = replaceOutsideStackFrames(clean, quoted, `"${REDACTED}"`);
   }
   return clean;
 }

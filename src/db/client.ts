@@ -1,8 +1,8 @@
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import { getEnv } from "@/env";
-import { logger, printableError } from "@/shared/log";
+import { logger, markConnectionFailure, printableError } from "@/shared/log";
 
 // Next imprime con `console.error` el error que una action o una ruta dejan escapar, y lo hace
 // antes de avisarle a `onRequestError` (ADR-120 regla 12). Un error de consulta impreso así trae sus
@@ -32,6 +32,35 @@ function connectionFailure(error: Error): { name: string; code: string | null; m
   return { name: error.name, code: typeof code === "string" ? code : null, message: error.message };
 }
 
+type Lend = (
+  error: Error | undefined,
+  client: PoolClient | undefined,
+  done: (release?: unknown) => void,
+) => void;
+
+/**
+ * Todo fallo al abrir o prestar una conexión sale del pool marcado con a dónde iba (ADR-123 regla
+ * 16): solo acá se sabe que el error es de una conexión y contra qué host, y con esa marca el
+ * registro le quita el host configurado, esté escrito como esté. `pool.query` y Drizzle piden la
+ * conexión por `connect`, con callback o con promesa, así que basta envolverlo. El error es el
+ * mismo: quien lo recibe lo sigue leyendo igual.
+ */
+function markConnectionFailuresOf(pool: Pool, connectionString: string): void {
+  const connect = pool.connect.bind(pool) as (callback?: Lend) => Promise<PoolClient> | undefined;
+  const marked = <T>(error: T): T => {
+    markConnectionFailure(error, connectionString);
+    return error;
+  };
+  pool.connect = ((callback?: Lend) => {
+    if (callback) {
+      return connect((error, client, done) => callback(marked(error), client, done));
+    }
+    return (connect() as Promise<PoolClient>).catch((error: unknown) => {
+      throw marked(error);
+    });
+  }) as Pool["connect"];
+}
+
 // Un solo pool por proceso. Se crea al primer uso (no al importar) para que `next build`
 // no necesite una base de datos.
 function createDb() {
@@ -44,6 +73,7 @@ function createDb() {
     statement_timeout: env.DB_STATEMENT_TIMEOUT_MS,
     idle_in_transaction_session_timeout: env.DB_IDLE_IN_TRANSACTION_TIMEOUT_MS,
   });
+  markConnectionFailuresOf(pool, env.DATABASE_URL);
   // Sin este listener, el error de un cliente inactivo (reinicio de Postgres, red) tumba el proceso.
   // pg-pool le cuelga la conexión al error (`err.client`), con su host, su puerto, su usuario y su
   // base: al registro va lo mismo que con la prestada, no el error entero.
