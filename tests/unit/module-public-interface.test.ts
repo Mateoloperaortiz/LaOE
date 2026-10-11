@@ -1,6 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { type ModuleInterface, moduleInterfaces } from "../../scripts/lib/module-interface-metrics";
+import {
+  type ModuleInterface,
+  type ModuleInterfaces,
+  moduleInterfaces,
+} from "../../scripts/lib/module-interface-metrics";
 
 // El `index.ts` de un módulo es su interfaz pública (ADR-080 regla 1) y exporta más de lo que se usa
 // afuera (DT-012, spec #238). knip no lo avisa: toma cada `index.ts` como entrada y no mira los
@@ -803,6 +807,21 @@ function mismatches(modules: ModuleInterface[], exceptions: Exceptions): string[
   return problems;
 }
 
+/** Los `vi.mock` de un `index.ts` que no se dejan leer o sobrescriben un nombre que no se exporta. */
+function staleMocks(found: ModuleInterfaces): string[] {
+  const exported = new Map(found.modules.map((each) => [each.module, new Set(each.exported)]));
+  return found.mocks.flatMap((mock) =>
+    mock.names === null
+      ? [`${mock.path}:${mock.line}: no se puede leer qué sobrescribe de @/modules/${mock.module}`]
+      : mock.names
+          .filter((name) => !exported.get(mock.module)?.has(name))
+          .map(
+            (name) =>
+              `${mock.path}:${mock.line}: sobrescribe \`${name}\`, que @/modules/${mock.module} no exporta`,
+          ),
+  );
+}
+
 const file = (path: string, text: string) => ({ path, text });
 const lines = (...text: string[]) => text.join("\n");
 
@@ -899,21 +918,22 @@ describe("la interfaz pública de los módulos, sobre el código de hoy", () => 
   });
 
   it("un vi.mock de un index.ts se deja leer y solo sobrescribe nombres que ese index.ts exporta: sobre un nombre podado no tendría efecto", () => {
-    const exported = new Map(today.modules.map((found) => [found.module, new Set(found.exported)]));
-    const stale = today.mocks.flatMap((mock) =>
-      mock.names === null
-        ? [
-            `${mock.path}:${mock.line}: no se puede leer qué sobrescribe de @/modules/${mock.module}`,
-          ]
-        : mock.names
-            .filter((name) => !exported.get(mock.module)?.has(name))
-            .map(
-              (name) =>
-                `${mock.path}:${mock.line}: sobrescribe \`${name}\`, que @/modules/${mock.module} no exporta`,
-            ),
-    );
-    expect(stale).toEqual([]);
+    expect(staleMocks(today)).toEqual([]);
     expect(today.mocks.length).toBeGreaterThan(0);
+  });
+
+  it("una clave sembrada en el objeto que un vi.mock de verdad esparce con `...`, sin tocar el archivo, sale como nombre que el index.ts no exporta", () => {
+    const path = "tests/unit/competition-hub-api.test.ts";
+    const hoisted = "const competitionModule = vi.hoisted(() => ({";
+    const seeded = tests.map((source) =>
+      source.path === path
+        ? file(path, source.text.replace(hoisted, `${hoisted}\n  seededKey: vi.fn(),`))
+        : source,
+    );
+    const stale = staleMocks(moduleInterfaces(production, seeded));
+    expect(stale).toHaveLength(1);
+    expect(stale[0]).toContain(`${path}:`);
+    expect(stale[0]).toContain("sobrescribe `seededKey`, que @/modules/competition no exporta");
   });
 
   it("un export sembrado en un index.ts de verdad, sin tocar el archivo, cae fuera de la lista", () => {
@@ -1084,6 +1104,120 @@ describe("la cuenta de la interfaz pública, sobre una casa de mentira", () => {
     ]);
     expect(opaque).toEqual([]);
     expect(modules.map((found) => found.testOnly)).toEqual([[]]);
+  });
+
+  it("sigue lo que entra a la fábrica de un vi.mock con `...`: suma las claves de una constante o de un vi.hoisted, deja pasar el index.ts de verdad y los archivos del propio módulo, y no da por leído lo demás", () => {
+    const { mocks } = moduleInterfaces(
+      [
+        file("src/modules/alpha/index.ts", 'export { other, used } from "./domain/things";'),
+        file("src/modules/alpha/domain/things.ts", "export const inner = 0, other = 1, used = 2;"),
+        file("src/modules/beta/index.ts", 'export { foreign } from "./domain/things";'),
+        file("src/shared/kit.ts", "export const kit = 1;"),
+      ],
+      [
+        file(
+          "tests/unit/spreads.test.ts",
+          lines(
+            "const hoisted = vi.hoisted(() => ({ used: vi.fn(), gone: vi.fn() }));",
+            "const plain = { other: 1 };",
+            'vi.mock("@/modules/alpha", async () => {',
+            '  const pure = await vi.importActual<typeof import("@/modules/alpha/domain/things")>(',
+            '    "@/modules/alpha/domain/things",',
+            "  );",
+            "  return { ...hoisted, other: pure.other };",
+            "});",
+            'vi.mock("@/modules/alpha", () => ({ ...plain, used: vi.fn() }));',
+            'vi.mock("@/modules/alpha", async () => ({',
+            '  ...(await import("@/modules/alpha/domain/things")),',
+            '  ...(await vi.importActual("../../src/modules/alpha/domain/things")),',
+            "  used: vi.fn(),",
+            "}));",
+            'vi.mock("@/modules/alpha", async () => ({',
+            '  ...(await vi.importActual<typeof import("@/modules/alpha")>("@/modules/alpha")),',
+            '  ...(await import("@/modules/alpha")),',
+            "  other: vi.fn(),",
+            "}));",
+            'vi.mock("@/modules/alpha", async () => ({ ...(await import("@/shared/kit")), used: 1 }));',
+            'vi.mock("@/modules/alpha", async () => ({ ...(await import("@/modules/alpha/domain/missing")), used: 1 }));',
+            'vi.mock("@/modules/alpha", async () => ({ ...(await import("@/modules/beta/domain/things")), used: 1 }));',
+            'vi.mock("@/modules/alpha", () => ({ ...build(), used: 1 }));',
+            'vi.mock("@/modules/alpha", async () => ({ ...(await importOriginal()), used: 1 }));',
+            'vi.mock("@/modules/alpha", () => ({ ...unknown, used: 1 }));',
+          ),
+        ),
+      ],
+    );
+    expect(mocks.map((mock) => [mock.line, mock.names])).toEqual([
+      [3, ["used", "gone", "other"]],
+      [9, ["other", "used"]],
+      [10, ["used"]],
+      [15, ["other"]],
+      [20, null],
+      [21, null],
+      [22, null],
+      [23, null],
+      [24, null],
+      [25, null],
+    ]);
+  });
+
+  it("dentro de la fábrica de un vi.mock solo deja de contar la carga del módulo que se simula; la de otro módulo cuenta, y vi.importActual y vi.importMock cargan un index.ts como un import()", () => {
+    const { modules, opaque } = moduleInterfaces(
+      [
+        file("src/modules/alpha/index.ts", 'export { mocked, viaActual } from "./domain/things";'),
+        file(
+          "src/modules/beta/index.ts",
+          'export { inFactory, untouched } from "./domain/things";',
+        ),
+      ],
+      [
+        file(
+          "tests/unit/loads.test.ts",
+          lines(
+            'vi.mock("@/modules/alpha", async () => {',
+            '  const { inFactory } = await import("@/modules/beta");',
+            "  return { mocked: inFactory };",
+            "});",
+            'const { viaActual } = await vi.importActual<typeof import("@/modules/alpha")>(',
+            '  "@/modules/alpha",',
+            ");",
+            'const whole = await vi.importMock("@/modules/beta");',
+          ),
+        ),
+      ],
+    );
+    expect(modules.map((found) => [found.module, found.testOnly])).toEqual([
+      ["alpha", ["viaActual"]],
+      ["beta", ["inFactory"]],
+    ]);
+    expect(opaque.map(({ path, line, how }) => `${path}:${line} ${how}`)).toEqual([
+      'tests/unit/loads.test.ts:8 vi.importMock("@/modules/beta")',
+    ]);
+  });
+
+  it("cuenta un export namespace y el export por defecto del propio index.ts, y falla ante un export que no sabe nombrar, en vez de contar de menos", () => {
+    const index = (...text: string[]) => [file("src/modules/alpha/index.ts", lines(...text))];
+    const { modules } = moduleInterfaces(
+      index(
+        "export namespace Grouped {",
+        "  export const inner = 1;",
+        "}",
+        "export default function whole() {}",
+      ),
+      [],
+    );
+    expect(modules.map((found) => found.exported)).toEqual([["Grouped", "default"]]);
+    expect(moduleInterfaces(index("export default 1;"), []).modules[0]?.exported).toEqual([
+      "default",
+    ]);
+
+    expect(() => moduleInterfaces(index("export const { a, b } = pair;"), [])).toThrow(
+      "desestructuración",
+    );
+    expect(() => moduleInterfaces(index('export module "quoted" {}'), [])).toThrow(
+      "no sabe nombrar",
+    );
+    expect(() => moduleInterfaces(index("export = whole;"), [])).toThrow("no sabe nombrar");
   });
 
   it("falla si no puede seguir un export *, en vez de contar de menos", () => {
