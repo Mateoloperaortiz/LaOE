@@ -363,6 +363,7 @@ Límites: título de push hasta 40 caracteres y cuerpo hasta 120; asunto de corr
 | T-558 | Check-in: título de la pestaña del navegador | Registro de asistencia | MATEO | Propuesta |
 | T-559 | GH Points: etiqueta del puesto propio | Tu puesto | GH | Propuesta |
 | T-560 | GH Points: columnas de los tableros de personas | Puesto · Nombre · GH Points | MATEO | Propuesta |
+| T-3269 | Check-in: quien abre el enlace no tiene una membresía que admita el registro (ADR-123) | No tenés una membresía activa este semestre: el registro no está disponible. | GH | Propuesta |
 
 ### Mi OE · fase 4 (permanencia, avisos, cartelera del comité, insignias)
 

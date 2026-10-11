@@ -10757,6 +10757,12 @@ export const textos = {
     owner: "MATEO",
     status: "Propuesta",
   },
+  "T-3269": {
+    where: "Check-in: quien abre el enlace no tiene una membresía que admita el registro (ADR-123)",
+    text: "No tenés una membresía activa este semestre: el registro no está disponible.",
+    owner: "GH",
+    status: "Propuesta",
+  },
   "T-330": {
     where: "Recurso páginas (plural · singular)",
     text: "Páginas · Página",

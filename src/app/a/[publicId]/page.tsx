@@ -102,8 +102,11 @@ function resultView(
 /** Los resultados que anuncian un registro: valen solo con la fila que los respalda. */
 const SUCCESS_CODES: readonly CheckInResultCode[] = ["puntos", "registrado", "pendiente"];
 
-/** Lo que el comando responde a una membresía que no admite el registro (`NOT_ELIGIBLE`). */
-const notEligibleText = () => t("T-673", { nombre: "" }).trim();
+/**
+ * Lo que la pantalla le dice a quien no entra por su membresía (`NOT_ELIGIBLE`): un texto propio,
+ * en segunda persona. T-673 es de la consola y va detrás de un nombre (ADR-123 regla 9).
+ */
+const notEligibleText = () => t("T-3269");
 
 /** El texto de cada motivo por el que el registro propio no procede (ADR-120 regla 17). */
 function denialText(denial: SelfCheckInEligibilityDenial, row: OccasionRow): string {

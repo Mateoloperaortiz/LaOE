@@ -103,7 +103,7 @@ const texto = (text: string) => () => text;
 const noAbre = (opensAt: Date) =>
   t("T-097", { fecha: formatDate(opensAt), hora: formatTime(opensAt) });
 const formulario = () => FORM;
-const noEstaActiva = () => t("T-673", { nombre: "" }).trim();
+const noEstaActiva = () => t("T-3269");
 
 async function seedCase(item: Case) {
   const termId = await seedTerm(currentTermCode());

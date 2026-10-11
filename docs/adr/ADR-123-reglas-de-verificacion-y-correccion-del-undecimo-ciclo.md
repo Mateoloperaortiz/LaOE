@@ -35,6 +35,8 @@ Ejecutado, los tres: alguien que salió a licencia en prueba en el semestre ante
 
 **El error «esa decisión no aplica» de las entregas, los premios y la conciliación nombraba el estado en inglés (DT-315).** Siete sitios llenaban T-676 («Esa decisión no aplica: el registro está {estado}.») con el valor del enum tal cual: revisar y anular una entrega de un reto, los cuatro pasos de un premio (entregar, liberar, anular y volver a reservar) y reanudar una conciliación histórica ([ADR-067](ADR-067-retos-boosters-y-coleccion.md)). Quien revisaba una entrega que otra persona acababa de aprobar leía «el registro está COMPLETED.». Las asistencias ya lo traducían con su lista (T-597, [ADR-119](ADR-119-reglas-de-estructura-y-robustez-del-septimo-ciclo.md)). El catálogo no tenía lista para los estados de una entrega ni de un premio; la de la conciliación existía (T-2559) y la usaba solo el panel. Ejecutado en los siete, con cada estado que hace responder a cada uno. Las pruebas de concurrencia del ciclo 9 lo habían fijado como estaba.
 
+**La pantalla del check-in le respondía a quien no entra por su membresía una frase sin sujeto (DT-310).** `/a/[publicId]` armaba el texto del motivo `NOT_ELIGIBLE` con T-673, «{nombre} no está activo este semestre.», y el nombre vacío: la persona leía «no está activo este semestre.», en minúscula. T-673 es de la consola y del anfitrión, donde va detrás de un nombre. Salía así con `r=inactivo` y, desde [ADR-120](ADR-120-reglas-de-correccion-del-octavo-ciclo.md) regla 17, también cuando la pantalla responde por la membresía. Ejecutado: lo fijaba la matriz de `tests/integration/participation-self-checkin-eligibility.test.ts`.
+
 ## Decisión
 
 1. **Sin filtro, la E2E local corre contra el build; con filtro, contra dev.** `planE2eServer(env, args)` (`tests/e2e/server-mode.ts`) es una función pura que decide el servidor de una corrida y si el lanzador compila antes:
@@ -124,6 +126,8 @@ Ejecutado, los tres: alguien que salió a licencia en prueba en el semestre ante
 
    **Lo que se conserva.** `rereserveReward` responde ese mismo error cuando el premio sí está liberado y lo que no coincide es la persona o el semestre: ahí el estado no es la causa. Sigue igual, con el estado traducido, porque ningún llamador llega así: los dos leen el premio de la misma entrega o asistencia que reservan. No cambia qué se rechaza, ni en qué orden, ni ningún dato.
 
+9. **La pantalla del check-in le habla a quien no entra por su membresía con un texto propio.** `/a/[publicId]` responde T-3269, «No tenés una membresía activa este semestre: el registro no está disponible.», en sus dos lugares: cuando la pantalla decide por la membresía (`NOT_ELIGIBLE`) y cuando vuelve del comando con `r=inactivo`. T-673 sigue siendo el de la consola y el anfitrión, con su nombre. No cambia qué motivo gana (`selfCheckInEligibilityDenial`) ni la regla de «solo nuevos» (decisión abierta 56).
+
 ## Consecuencias
 
 - `npm run test:e2e` sin más pasa entera en un worktree nuevo: con `.next` borrado entero, 249 de 249 en 5,3 minutos (335 s contando la base, el build y la suite), la prueba de SEO en 0,7 s y las cinco del Sudoku entre 0,4 y 3,2 s. La misma suite, forzada a dev con `E2E_SERVER=dev` y `.next/dev` borrado, dio 248 de 249 en 9,1 minutos (550 s), con la firma de DT-338: la de SEO en 27 s, la primera del Sudoku sin tiempo (6 s contra 5) y la segunda en 23,2 s contra 30.
@@ -161,3 +165,6 @@ Ejecutado, los tres: alguien que salió a licencia en prueba en el semestre ante
 - Tres pruebas fijaban el texto con el valor del enum y ahora lo esperan con la palabra de T-3266: las de concurrencia de la revisión (`tests/integration/gamification-review-concurrency.test.ts`) y dos de `tests/integration/gamification-challenges.test.ts`. Es su único cambio.
 - Prueba de la regla 8: `tests/integration/gamification-not-applicable-status.test.ts`. Ocho casos en rojo sobre el código anterior, que respondía «COMPLETED», «PENDING», «RELEASED», «GRANTED», «RESERVED» y «RUNNING»: uno por comando, con cada estado que lo hace responder, y el del premio liberado que llega a nombre de otra persona o en otro semestre. El noveno compara el orden de las tres listas con el de los enums del esquema.
 - Las tablas del admin que listan entregas siguen nombrando el estado con la lista del miembro (T-2410), que no tiene «anulado». Queda anotado como DT-344.
+- Quien abre el enlace de un check-in sin una membresía que lo admita lee una frase completa, en segunda persona. Hoy casi nadie llega ahí: de baja o sin membresía no se entra a la casa, y en licencia la pantalla dice T-2041.
+- Hay un texto nuevo, T-3269. La regla 9 no trae migración.
+- Prueba de la regla 9: `tests/integration/participation-self-checkin-eligibility.test.ts`. La celda de ese motivo pasa de T-673 a T-3269 y nada más: siete casos en rojo sobre el código anterior, los seis de la matriz que responden por la membresía y el de `r=inactivo`.
