@@ -2,10 +2,16 @@ import { randomBytes } from "node:crypto";
 import { expect } from "@playwright/test";
 import { eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
-import { committee, committeeMembership, consent, person } from "@/modules/people/schema";
+import { committee, person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
-import { seedMembership, seedPerson } from "../factories";
+import {
+  seedCommittee,
+  seedCommitteeMembership,
+  seedConsent,
+  seedMembership,
+  seedPerson,
+} from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -30,25 +36,17 @@ test.beforeEach(async () => {
   const db = getDb();
   const [current] = await db.select().from(term).where(eq(term.code, E2E_TERM.code));
   if (!current) throw new Error("Falta el semestre sintético");
-  const [comite] = await db
-    .insert(committee)
-    .values({ name: `${prefix} comité`, slug: prefix, status: "ACTIVE" })
-    .returning();
-  if (!comite) throw new Error("No se creó el comité sintético");
+  committeeId = await seedCommittee(prefix, `${prefix} comité`, { publicationStatus: "DRAFT" });
   personId = await seedPerson(`${prefix}@eafit.edu.co`, {
     firstName: "Acceso",
     lastName: "Sintético",
     source: "E2E",
   });
-  committeeId = comite.id;
+
   await seedMembership(personId, current.id);
   // ADR-048: sin autorización viva no se llega a Mi OE, y esta suite prueba el acceso.
-  await db
-    .insert(consent)
-    .values({ personId, purpose: "MEMBERSHIP", source: "SELF", policyVersion: "prueba-v1" });
-  await db
-    .insert(committeeMembership)
-    .values({ personId, committeeId, termId: current.id, roleCode: "MIEMBRO" });
+  await seedConsent(personId);
+  await seedCommitteeMembership(personId, committeeId, current.id, "MIEMBRO", { joinedAt: null });
 
   // Dos pertenencias del término que la lista del comité no muestra: quien se cambió de comité y
   // quien salió de la OE con la pertenencia abierta. Tampoco pueden contar en su chip.
@@ -70,16 +68,11 @@ test.beforeEach(async () => {
   fuera = [cambio.id, baja.id];
   await seedMembership(cambio.id, current.id);
   await seedMembership(baja.id, current.id, "INACTIVE", "RESIGNATION");
-  await db.insert(committeeMembership).values([
-    {
-      personId: cambio.id,
-      committeeId,
-      termId: current.id,
-      roleCode: "MIEMBRO",
-      leftAt: new Date(),
-    },
-    { personId: baja.id, committeeId, termId: current.id, roleCode: "MIEMBRO" },
-  ]);
+  await seedCommitteeMembership(cambio.id, committeeId, current.id, "MIEMBRO", {
+    joinedAt: null,
+    leftAt: new Date(),
+  });
+  await seedCommitteeMembership(baja.id, committeeId, current.id, "MIEMBRO", { joinedAt: null });
 });
 
 test.afterEach(async () => {

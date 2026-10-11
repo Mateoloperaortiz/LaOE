@@ -15,11 +15,11 @@ import {
 import { requestOtp } from "@/modules/identity";
 import { anonymizePersonAs, requestDeletionAs } from "@/modules/people";
 import { anonymizePerson } from "@/modules/people/domain/membership";
-import { person, segment } from "@/modules/people/schema";
+import { person } from "@/modules/people/schema";
 import { setConfig } from "@/modules/system";
 import type { MailMessage } from "@/shared/adapters/mail";
 import { withTimeout } from "@/shared/lib/timeout";
-import { seedMember } from "../factories";
+import { seedMember, seedSegment } from "../factories";
 import { deferred, type Held, holdCommand, waitingForLock, waitingOn } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
@@ -61,11 +61,7 @@ async function seedRosterMember(name: string): Promise<Member> {
 /** Una campaña a todas las personas de la prueba, programada para `DUE` y con lote para todas. */
 async function scheduleCampaign(): Promise<string> {
   await runCommand(SYSTEM_ACTOR, (ctx) => setConfig(ctx, "campaigns.perMinute", 60));
-  const [everyone] = await getDb()
-    .insert(segment)
-    .values({ name: "Todos", filter: {} })
-    .returning({ id: segment.id });
-  if (!everyone) throw new Error("seed segment");
+  const segmentId = await seedSegment();
   const { id: templateId } = await runCommand(SYSTEM_ACTOR, (ctx) =>
     createTemplate(ctx, {
       slug: "novedades",
@@ -77,7 +73,7 @@ async function scheduleCampaign(): Promise<string> {
   const { id } = await createCampaignAs(SYSTEM_ACTOR, {
     name: "Novedades",
     templateId,
-    segmentId: everyone.id,
+    segmentId,
   });
   await scheduleCampaignAs(SYSTEM_ACTOR, id, DUE);
   return id;

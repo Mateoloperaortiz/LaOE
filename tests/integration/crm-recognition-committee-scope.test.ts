@@ -5,10 +5,15 @@ import { listCommitteeAnnouncements } from "@/modules/content";
 import { grantRecognitionAs } from "@/modules/crm";
 import { recognition } from "@/modules/crm/schema";
 import { setProbation } from "@/modules/people/domain/term-outcomes";
-import { consent } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { seedCommittee, seedCommitteeMembership, seedMember, seedTerm } from "../factories";
+import {
+  seedCommittee,
+  seedCommitteeMembership,
+  seedConsent,
+  seedMember,
+  seedTerm,
+} from "../factories";
 import { truncateAll } from "./db";
 
 // DT-146 inciso (c), ADR-122 regla 2: un reconocimiento que llega con comité es de alguien que está
@@ -27,12 +32,7 @@ async function setup() {
 /** Con consentimiento de directorio el destacado se publica: es el caso que deja más cosas escritas. */
 async function memberWithConsent(email: string): Promise<string> {
   const personId = await seedMember(email);
-  await getDb().insert(consent).values({
-    personId,
-    purpose: "DIRECTORY_PHOTO",
-    source: "SELF",
-    policyVersion: "prueba-v1",
-  });
+  await seedConsent(personId, "DIRECTORY_PHOTO");
   return personId;
 }
 

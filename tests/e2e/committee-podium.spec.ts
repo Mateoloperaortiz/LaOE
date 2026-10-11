@@ -6,7 +6,7 @@ import { committeeParticipation, occasion } from "@/modules/participation/schema
 import { committee } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
-import { seedTerm } from "../factories";
+import { seedCommittee, seedTerm } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
@@ -37,12 +37,8 @@ async function seedRanking(scores: number[]) {
   for (const [i, score] of scores.entries()) {
     const name = names[i];
     if (!name) throw new Error("faltan nombres sintéticos para el ranking");
-    const [row] = await db
-      .insert(committee)
-      .values({ slug: `e2e-podium-${i}`, name, status: "ACTIVE" })
-      .returning();
-    if (!row) throw new Error("sin comité sintético");
-    committees.push({ ...row, score });
+    const id = await seedCommittee(`e2e-podium-${i}`, name, { publicationStatus: "DRAFT" });
+    committees.push({ id, name, score });
   }
   for (const index of [0, 1, 2]) {
     const startsAt = new Date(`${current.startsOn}T12:00:00-05:00`);

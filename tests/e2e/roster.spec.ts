@@ -3,8 +3,8 @@ import { expect } from "@playwright/test";
 import { eq, sql } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { page as contentPage } from "@/modules/content/schema";
-import { committee } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
+import { seedCommittee } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -124,7 +124,7 @@ test("la reautenticación conserva una propuesta de líder desmarcada", async ({
   test.setTimeout(90_000);
   const email = "e2e-roster-sin-lider@eafit.edu.co";
   const committeeName = "E2E Roster UI";
-  await getDb().insert(committee).values({ slug: "e2e-roster-ui", name: committeeName });
+  await seedCommittee("e2e-roster-ui", committeeName, { publicationStatus: "DRAFT" });
   const csv = `NOMBRE;APELLIDO;CORREO;COMITES;ENTRADA A LA OE;ESTADO;CARGO\nPrueba;Sin liderazgo;${email};${committeeName};${E2E_TERM.code};Activo;General de ${committeeName}\n`;
   await page.goto("/admin/personas/importar");
   await page.getByLabel(t("T-476")).setInputFiles({

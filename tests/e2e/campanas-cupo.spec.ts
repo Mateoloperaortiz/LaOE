@@ -6,6 +6,7 @@ import { person, segment } from "@/modules/people/schema";
 import { appConfig, auditLog } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { formatDateTime } from "@/shared/lib/dates";
+import { seedSegment } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
@@ -49,11 +50,8 @@ async function sembrar(): Promise<Sembrado> {
     .insert(emailTemplate)
     .values({ slug: NOMBRE, name: NOMBRE, subject: "Prueba del cupo", body: "Texto sintético." })
     .returning({ id: emailTemplate.id });
-  const [audience] = await db
-    .insert(segment)
-    .values({ name: NOMBRE })
-    .returning({ id: segment.id });
-  if (!template || !audience) throw new Error("No se sembró la plantilla o el segmento");
+  const audience = { id: await seedSegment(NOMBRE) };
+  if (!template) throw new Error("No se sembró la plantilla");
   const at = new Date(Date.now() - 10 * 60_000);
   at.setUTCSeconds(0, 0);
   const until = new Date(at.getTime() + 6 * 3_600_000);

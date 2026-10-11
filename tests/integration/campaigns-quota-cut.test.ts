@@ -12,12 +12,11 @@ import {
   setMailTransportsForTests,
 } from "@/modules/comms";
 import { campaignRecipient } from "@/modules/comms/schema";
-import { segment } from "@/modules/people/schema";
 import { getConfig, setConfig } from "@/modules/system";
 import { auditLog } from "@/modules/system/schema";
 import { type MailMessage, QuotaExceededError } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
-import { seedMember } from "../factories";
+import { seedMember, seedSegment } from "../factories";
 import { truncateAll } from "./db";
 
 // DT-117 (ADR-116 regla 19, que enmienda ADR-115 regla 6): el corte de las campañas guarda la causa del
@@ -90,11 +89,7 @@ async function seedCampaign(size: number): Promise<{ id: string; people: string[
   for (const firstName of NAMES.slice(0, size)) {
     people.push(await seedMember(`${firstName.toLowerCase()}@eafit.edu.co`, { firstName }));
   }
-  const [row] = await getDb()
-    .insert(segment)
-    .values({ name: "Todos", filter: {} })
-    .returning({ id: segment.id });
-  if (!row) throw new Error("seed segment");
+  const segmentId = await seedSegment();
   const { id: templateId } = await runCommand(SYSTEM_ACTOR, (ctx) =>
     createTemplate(ctx, {
       slug: "novedades",
@@ -106,7 +101,7 @@ async function seedCampaign(size: number): Promise<{ id: string; people: string[
   const { id } = await createCampaignAs(SYSTEM_ACTOR, {
     name: "Novedades",
     templateId,
-    segmentId: row.id,
+    segmentId,
   });
   await scheduleCampaignAs(SYSTEM_ACTOR, id, NIGHT);
   return { id, people };

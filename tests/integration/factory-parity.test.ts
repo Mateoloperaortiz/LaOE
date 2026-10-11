@@ -3,9 +3,11 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { grantPermissionAs } from "@/modules/identity";
 import { permission } from "@/modules/identity/schema";
+import { recordConsentAs } from "@/modules/people";
+import { consent } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
-import { seedCommittee, seedMember, seedPermission } from "../factories";
+import { seedCommittee, seedConsent, seedMember, seedPermission } from "../factories";
 import { truncateAll } from "./db";
 
 // La fábrica escribe filas y no llama comandos: «siempre por comandos» quedó descartado (DT-013).
@@ -25,9 +27,10 @@ async function permissionsOf(personId: string) {
   return rows.map((row) => ({ ...row, id: null, personId: null, grantedAt: null }));
 }
 
+afterAll(closeDb);
+
 describe("la fábrica y grantPermission", () => {
   beforeEach(truncateAll);
-  afterAll(closeDb);
 
   it.each([
     { code: "ADMIN", scoped: false },
@@ -85,5 +88,42 @@ describe("la fábrica y grantPermission", () => {
     expect(await seedPermission(personId, "COMMITTEE_LEADER", committeeId)).toBe(leader);
     expect(await seedPermission(personId, "COMMITTEE_LEADER", otherCommitteeId)).not.toBe(leader);
     expect(await permissionsOf(personId)).toHaveLength(3);
+  });
+});
+
+/** Las autorizaciones de una persona sin lo que es propio de cada fila: su id, de quién es y cuándo se dio. */
+async function consentsOf(personId: string) {
+  const rows = await db().select().from(consent).where(eq(consent.personId, personId));
+  return rows.map((row) => ({ ...row, id: null, personId: null, acceptedAt: null }));
+}
+
+describe("la fábrica y recordConsent", () => {
+  beforeEach(truncateAll);
+
+  it.each([
+    { purpose: "MEMBERSHIP", source: "SELF" },
+    { purpose: "DIRECTORY_PHOTO", source: "SELF" },
+    { purpose: "DATA_PROCESSING", source: "FORM" },
+  ] as const)("dejan la misma fila de una autorización $purpose", async ({ purpose, source }) => {
+    const byCommand = await seedMember(BY_COMMAND);
+    const byFactory = await seedMember(BY_FACTORY);
+
+    await recordConsentAs({ personId: byCommand, ip: null }, byCommand, purpose, source);
+    await seedConsent(byFactory, purpose, source);
+
+    const recorded = await consentsOf(byCommand);
+    expect(recorded).toHaveLength(1);
+    expect(await consentsOf(byFactory)).toEqual(recorded);
+  });
+
+  it("ante una autorización que la persona ya tiene viva, ni el comando ni la fábrica chocan: queda una sola fila", async () => {
+    const personId = await seedMember(BY_FACTORY);
+
+    await seedConsent(personId);
+    await seedConsent(personId);
+    const again = await recordConsentAs({ personId, ip: null }, personId, "MEMBERSHIP", "SELF");
+
+    expect(again.created).toBe(false);
+    expect(await consentsOf(personId)).toHaveLength(1);
   });
 });

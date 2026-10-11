@@ -4,11 +4,17 @@ import { and, eq, inArray } from "drizzle-orm";
 import { closeDb, getDb } from "@/db/client";
 import { request, task } from "@/modules/crm/schema";
 import { occasion } from "@/modules/participation/schema";
-import { committee, committeeMembership, consent, person } from "@/modules/people/schema";
+import { committee, person } from "@/modules/people/schema";
 import { auditLog } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
-import { seedMembership, seedPerson } from "../factories";
+import {
+  seedCommittee,
+  seedCommitteeMembership,
+  seedConsent,
+  seedMembership,
+  seedPerson,
+} from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -33,35 +39,21 @@ test.beforeEach(async ({ browser }) => {
   });
   await seedMembership(personId, current.id);
   // ADR-048: sin autorización viva no se entra a Mi OE; esta suite prueba solicitudes, no la pantalla.
-  await db
-    .insert(consent)
-    .values({ personId, purpose: "MEMBERSHIP", source: "SELF", policyVersion: "prueba-v1" });
-  const committees = await db
-    .insert(committee)
-    .values(
-      Array.from({ length: 13 }, (_, index) => ({
-        name: `${prefix} comité ${String(index).padStart(2, "0")}`,
-        slug: `${prefix}-${index}`,
-      })),
-    )
-    .returning();
+  await seedConsent(personId);
+  const active: string[] = [];
+  for (let index = 0; index < 13; index += 1) {
+    const name = `${prefix} comité ${String(index).padStart(2, "0")}`;
+    active.push(await seedCommittee(`${prefix}-${index}`, name, { publicationStatus: "DRAFT" }));
+  }
   // ADR-073: uno desactivado, que no se debe ofrecer para entrar.
-  const [desactivado] = await db
-    .insert(committee)
-    .values({
-      name: `${prefix} comité desactivado`,
-      slug: `${prefix}-off`,
-      status: "INACTIVE",
-      deactivatedOn: "2026-06-30",
-    })
-    .returning();
-  if (!desactivado) throw new Error("No se creó el comité desactivado");
-  committeeIds = [...committees.map((row) => row.id), desactivado.id];
-  await db.insert(committeeMembership).values({
-    personId,
-    committeeId: committeeIds[0] as string,
-    termId: current.id,
-    roleCode: "MIEMBRO",
+  const desactivado = await seedCommittee(`${prefix}-off`, `${prefix} comité desactivado`, {
+    status: "INACTIVE",
+    deactivatedOn: "2026-06-30",
+    publicationStatus: "DRAFT",
+  });
+  committeeIds = [...active, desactivado];
+  await seedCommitteeMembership(personId, committeeIds[0] as string, current.id, "MIEMBRO", {
+    joinedAt: null,
   });
   const context = await browser.newContext({
     baseURL: process.env.APP_URL ?? "http://localhost:3000",

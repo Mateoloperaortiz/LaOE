@@ -6,7 +6,6 @@ import { listCommitteeAnnouncements, listMemberAnnouncements } from "@/modules/c
 import { announcement } from "@/modules/content/schema";
 import { grantRecognitionAs, listInteractions, listRecognitionsByPeople } from "@/modules/crm";
 import { onboardingProgress } from "@/modules/crm/schema";
-import { consent } from "@/modules/people/schema";
 import {
   countPendingFor,
   evaluateAs,
@@ -26,6 +25,7 @@ import { fillCopy } from "@/shared/copy/format";
 import {
   seedCommittee,
   seedCommitteeMembership,
+  seedConsent,
   seedMember,
   seedRule,
   seedTerm,
@@ -271,12 +271,7 @@ describe("reconocimientos", () => {
     // El destacado de un comité es de alguien de su roster (ADR-122 regla 2).
     await seedCommitteeMembership(withConsent, committeeId, termId);
     await seedCommitteeMembership(without, committeeId, termId);
-    await getDb().insert(consent).values({
-      personId: withConsent,
-      purpose: "DIRECTORY_PHOTO",
-      source: "SELF",
-      policyVersion: "prueba-v1",
-    });
+    await seedConsent(withConsent, "DIRECTORY_PHOTO");
     const leader = { personId: null, ip: null };
     const published = await grantRecognitionAs(leader, {
       personId: withConsent,

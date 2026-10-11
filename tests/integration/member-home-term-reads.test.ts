@@ -2,11 +2,10 @@ import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getDb } from "@/db/client";
 import type { Actor } from "@/modules/identity";
-import { consent } from "@/modules/people/schema";
 import { getPersonPermanence } from "@/modules/permanence";
 import { getCurrentTerm } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
-import { seedMember } from "../factories";
+import { seedConsent, seedMember } from "../factories";
 import { type CountedQuery, countQueries } from "../helpers/queries";
 import { truncateAll } from "./db";
 
@@ -75,9 +74,7 @@ let personId = "";
 beforeEach(async () => {
   await truncateAll();
   personId = await seedMember("miembro.inicio@eafit.edu.co");
-  await getDb()
-    .insert(consent)
-    .values({ personId, purpose: "MEMBERSHIP", source: "SELF", policyVersion: "prueba-v1" });
+  await seedConsent(personId);
   session.actor = memberActor(personId);
 });
 

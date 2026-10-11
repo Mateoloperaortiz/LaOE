@@ -20,12 +20,12 @@ import {
   endMembershipAs,
 } from "@/modules/people";
 import { endMembership } from "@/modules/people/domain/membership";
-import { committee, membership, person } from "@/modules/people/schema";
+import { membership, person } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
-import { seedCredential, seedMembership, seedPerson, seedTerm } from "../factories";
+import { seedCommittee, seedCredential, seedMembership, seedPerson, seedTerm } from "../factories";
 import {
   backendPid,
   deferred,
@@ -55,13 +55,9 @@ async function seedMember(
   return personId;
 }
 
-async function seedCommittee(slug: string): Promise<string> {
-  const [row] = await db()
-    .insert(committee)
-    .values({ slug, name: `Comité ${slug}` })
-    .returning({ id: committee.id });
-  if (!row) throw new Error("seed");
-  return row.id;
+/** Un comité sin publicar, que es como nace una fila de `committee`. */
+function seedDraftCommittee(slug: string): Promise<string> {
+  return seedCommittee(slug, `Comité ${slug}`, { publicationStatus: "DRAFT" });
 }
 
 /** Miembro activo con sus permisos técnicos, concedidos por el comando de permisos. */
@@ -318,8 +314,8 @@ describe("enlace de acceso", () => {
     });
 
     it("la junta no emite para quien lidera un comité que ella no lidera", async () => {
-      const gemis = await seedCommittee("gemis");
-      const nexos = await seedCommittee("nexos");
+      const gemis = await seedDraftCommittee("gemis");
+      const nexos = await seedDraftCommittee("nexos");
       const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD", { leaderOf: gemis });
       const lider = await seedMemberWith("lider@eafit.edu.co", { leaderOf: nexos });
 
@@ -336,8 +332,8 @@ describe("enlace de acceso", () => {
     });
 
     it("la junta que lidera un comité no emite para quien lidera ese y otro más", async () => {
-      const gemis = await seedCommittee("gemis");
-      const nexos = await seedCommittee("nexos");
+      const gemis = await seedDraftCommittee("gemis");
+      const nexos = await seedDraftCommittee("nexos");
       const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD", { leaderOf: gemis });
       const lider = await seedMemberWith(
         "lider@eafit.edu.co",
@@ -356,7 +352,7 @@ describe("enlace de acceso", () => {
     });
 
     it("la junta sigue emitiendo para un miembro sin permisos y para quien tiene los mismos que ella", async () => {
-      const gemis = await seedCommittee("gemis");
+      const gemis = await seedDraftCommittee("gemis");
       const junta = await seedMemberWith("junta@eafit.edu.co", "BOARD", { leaderOf: gemis });
       const miembro = await seedMember("miembro@eafit.edu.co");
       const colega = await seedMemberWith("colega@eafit.edu.co", "BOARD");
@@ -372,7 +368,7 @@ describe("enlace de acceso", () => {
     });
 
     it("ADMIN emite para cualquiera, también para otro ADMIN, y nunca para sí mismo", async () => {
-      const gemis = await seedCommittee("gemis");
+      const gemis = await seedDraftCommittee("gemis");
       const admin = await seedMemberWith("admin@eafit.edu.co", "ADMIN");
       const otro = await seedMemberWith("otro@eafit.edu.co", "ADMIN", "BOARD", { leaderOf: gemis });
 

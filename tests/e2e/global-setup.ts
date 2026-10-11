@@ -40,7 +40,15 @@ import {
 import { appConfig, importJob } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { walletPass } from "@/modules/wallet/schema";
-import { seedCredential, seedMembership, seedPermission, seedPerson, seedTerm } from "../factories";
+import {
+  seedCommitteeMembership,
+  seedConsent,
+  seedCredential,
+  seedMembership,
+  seedPermission,
+  seedPerson,
+  seedTerm,
+} from "../factories";
 import { E2E_TERM } from "./calendar";
 import { alignSeedCalendar } from "./calendar-seed";
 import { assertOwnedDatabase } from "./environment";
@@ -140,15 +148,7 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(permission).where(eq(permission.personId, who.id));
   await seedPermission(who.id, "ADMIN");
   // La identidad ADMIN también entra a Mi OE en algunas suites (ADR-048).
-  await db
-    .insert(consent)
-    .values({
-      personId: who.id,
-      purpose: "MEMBERSHIP",
-      source: "SELF",
-      policyVersion: "prueba-v1",
-    })
-    .onConflictDoNothing();
+  await seedConsent(who.id);
   // Los límites de OTP por correo (5 cada 15 minutos) no deben depender de corridas anteriores.
   await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_EMAIL));
   await setE2ePassword(who.id, E2E_EMAIL);
@@ -254,15 +254,7 @@ export default async function globalSetup(): Promise<void> {
   await db.delete(permission).where(eq(permission.personId, member.id));
   await db.delete(consent).where(eq(consent.personId, member.id));
   // ADR-048: sin autorización viva no se entra a Mi OE. La versión es la que fija el seed.
-  await db
-    .insert(consent)
-    .values({
-      personId: member.id,
-      purpose: "MEMBERSHIP",
-      source: "SELF",
-      policyVersion: "prueba-v1",
-    })
-    .onConflictDoNothing();
+  await seedConsent(member.id);
   await db.delete(task).where(eq(task.personId, member.id));
   await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_MEMBER_EMAIL));
   await setE2ePassword(member.id, E2E_MEMBER_EMAIL);
@@ -299,11 +291,7 @@ export default async function globalSetup(): Promise<void> {
       }),
     };
     await seedMembership(disposable.id, permanenceTerm.id);
-    await db.insert(committeeMembership).values({
-      personId: disposable.id,
-      committeeId: home.id,
-      termId: permanenceTerm.id,
-      roleCode: "MIEMBRO",
+    await seedCommitteeMembership(disposable.id, home.id, permanenceTerm.id, "MIEMBRO", {
       joinedAt: new Date("2019-01-20T12:00:00Z"),
     });
   }
@@ -317,20 +305,9 @@ export default async function globalSetup(): Promise<void> {
       }),
     };
     await seedMembership(leaver.id, current.id);
-    await db.insert(committeeMembership).values({
-      personId: leaver.id,
-      committeeId: home.id,
-      termId: current.id,
-      roleCode: "MIEMBRO",
-      joinedAt: new Date(),
-    });
+    await seedCommitteeMembership(leaver.id, home.id, current.id);
     // ADR-048: ya autorizó en un ingreso anterior; su suite prueba licencias, no la autorización.
-    await db.insert(consent).values({
-      personId: leaver.id,
-      purpose: "MEMBERSHIP",
-      source: "SELF",
-      policyVersion: "prueba-v1",
-    });
+    await seedConsent(leaver.id);
     await db.delete(otpChallenge).where(eq(otpChallenge.email, E2E_LEAVE_EMAIL));
     const [existing] = await db
       .select({ id: committeeMembership.id })
@@ -348,13 +325,7 @@ export default async function globalSetup(): Promise<void> {
         .set({ leftAt: null })
         .where(eq(committeeMembership.id, existing.id));
     } else {
-      await db.insert(committeeMembership).values({
-        personId: member.id,
-        committeeId: home.id,
-        termId: current.id,
-        roleCode: "MIEMBRO",
-        joinedAt: new Date(),
-      });
+      await seedCommitteeMembership(member.id, home.id, current.id);
     }
   }
   await closeDb();

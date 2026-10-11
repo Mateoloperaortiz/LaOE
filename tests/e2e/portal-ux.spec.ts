@@ -6,6 +6,7 @@ import { pipeline } from "@/modules/crm/schema";
 import { form } from "@/modules/forms/schema";
 import { committee } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
+import { seedCommittee } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
@@ -57,11 +58,7 @@ test("comités: busca nombre sin tildes y sigla, limpia y conserva la búsqueda 
   const db = getDb();
   const slug = `e2e-explora-${randomBytes(4).toString("hex")}`;
   const name = `Comité de Exploración ${slug}`;
-  const [fixture] = await db
-    .insert(committee)
-    .values({ slug, name, status: "ACTIVE", publicationStatus: "PUBLISHED" })
-    .returning();
-  if (!fixture) throw new Error("No se creó el comité sintético");
+  const fixture = { id: await seedCommittee(slug, name) };
   try {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/comites");

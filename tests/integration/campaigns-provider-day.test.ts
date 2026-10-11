@@ -13,11 +13,10 @@ import {
   setMailTransportsForTests,
 } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
-import { segment } from "@/modules/people/schema";
 import { getConfig, setConfig } from "@/modules/system";
 import { type MailProvider, type MailTransport, QuotaExceededError } from "@/shared/adapters/mail";
 import { formatDateTime } from "@/shared/lib/dates";
-import { seedMember } from "../factories";
+import { seedMember, seedSegment } from "../factories";
 import { truncateAll } from "./db";
 
 // DT-125 (ADR-121 regla 5): el cupo del día del correo se cuenta por el día del proveedor. Resend lo
@@ -89,11 +88,7 @@ async function seedPeople(size: number): Promise<string[]> {
 
 /** Una campaña a todas las personas de la prueba, programada para esa hora. */
 async function seedCampaign(at: Date): Promise<string> {
-  const [row] = await getDb()
-    .insert(segment)
-    .values({ name: "Todos", filter: {} })
-    .returning({ id: segment.id });
-  if (!row) throw new Error("seed segment");
+  const segmentId = await seedSegment();
   const { id: templateId } = await runCommand(SYSTEM_ACTOR, (ctx) =>
     createTemplate(ctx, {
       slug: "novedades",
@@ -105,7 +100,7 @@ async function seedCampaign(at: Date): Promise<string> {
   const { id } = await createCampaignAs(SYSTEM_ACTOR, {
     name: "Novedades",
     templateId,
-    segmentId: row.id,
+    segmentId,
   });
   await scheduleCampaignAs(SYSTEM_ACTOR, id, at);
   return id;

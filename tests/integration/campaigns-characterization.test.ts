@@ -30,7 +30,6 @@ import {
   requestDeletionAs,
   revokeConsentAs,
 } from "@/modules/people";
-import { segment } from "@/modules/people/schema";
 import { setConfig } from "@/modules/system";
 import {
   type MailMessage,
@@ -40,7 +39,7 @@ import {
 } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
 import { withTimeout } from "@/shared/lib/timeout";
-import { seedMember } from "../factories";
+import { seedMember, seedSegment } from "../factories";
 import { captureLogs, expectNoEmail, recordsOf } from "../helpers/logs";
 import { drainOutbox } from "../helpers/outbox";
 import { warmPool } from "../helpers/pool";
@@ -124,11 +123,7 @@ interface CampaignParts {
 
 /** La plantilla y el segmento de una campaña a todas las personas de la prueba. */
 async function seedParts(): Promise<CampaignParts> {
-  const [row] = await db()
-    .insert(segment)
-    .values({ name: "Todos", filter: {} })
-    .returning({ id: segment.id });
-  if (!row) throw new Error("seed segment");
+  const segmentId = await seedSegment();
   const { id: templateId } = await runCommand(SYSTEM_ACTOR, (ctx) =>
     createTemplate(ctx, {
       slug: "novedades",
@@ -137,7 +132,7 @@ async function seedParts(): Promise<CampaignParts> {
       body: "Hola **{nombre}**.\n\n[Mi OE]({url}/app)",
     }),
   );
-  return { templateId, segmentId: row.id };
+  return { templateId, segmentId };
 }
 
 async function scheduleNew(parts: CampaignParts, name: string, at = DUE): Promise<string> {

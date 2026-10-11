@@ -5,6 +5,7 @@ import { page as contentPage } from "@/modules/content/schema";
 import { consent, person } from "@/modules/people/schema";
 import { appConfig } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
+import { seedConsent } from "../factories";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
 import { E2E_MEMBER_EMAIL } from "./global-setup";
@@ -71,15 +72,7 @@ test.afterEach(async () => {
       .where(eq(appConfig.key, "privacy.policyVersion"));
   }
   // La suite entera entra a Mi OE con este miembro: siempre queda con su autorización viva.
-  await getDb()
-    .insert(consent)
-    .values({
-      personId: memberId,
-      purpose: "MEMBERSHIP",
-      source: "SELF",
-      policyVersion: "prueba-v1",
-    })
-    .onConflictDoNothing();
+  await seedConsent(memberId);
   await closeDb();
 });
 

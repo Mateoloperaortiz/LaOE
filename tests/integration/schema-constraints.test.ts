@@ -7,7 +7,6 @@ import { eventOf } from "@/domain-events/define";
 import { scoreRecompute } from "@/domain-events/participation";
 import { permission } from "@/modules/identity/schema";
 import {
-  committee,
   committeeMembership,
   committeeRole,
   committeeRoleAssignment,
@@ -16,7 +15,7 @@ import {
   person,
 } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
-import { seedMembership, seedPermission, seedPerson, seedTerm } from "../factories";
+import { seedCommittee, seedMembership, seedPermission, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
 
 const db = () => getDb();
@@ -24,13 +23,9 @@ const db = () => getDb();
 const createPerson = (email: string) => seedPerson(email);
 const createTerm = () => seedTerm("2026-2", { startsOn: "2026-07-13", endsOn: "2026-12-05" });
 
-async function createCommittee(slug: string) {
-  const [row] = await db()
-    .insert(committee)
-    .values({ slug, name: slug.toUpperCase() })
-    .returning({ id: committee.id });
-  if (!row) throw new Error("sin comité");
-  return row.id;
+/** Un comité sin publicar, que es como nace una fila de `committee`. */
+function createCommittee(slug: string) {
+  return seedCommittee(slug, slug.toUpperCase(), { publicationStatus: "DRAFT" });
 }
 
 describe("restricciones que no negocia el esquema", () => {

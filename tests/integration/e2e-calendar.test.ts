@@ -5,7 +5,7 @@ import { committeeMembership } from "@/modules/people/schema";
 import { getCurrentTerm } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { alignSeedCalendar } from "../e2e/calendar-seed";
-import { seedCommittee, seedPerson, seedTerm } from "../factories";
+import { seedCommittee, seedCommitteeMembership, seedPerson, seedTerm } from "../factories";
 import { truncateAll } from "./db";
 
 beforeEach(truncateAll);
@@ -26,18 +26,13 @@ it.each([
   if (!original || !previous) throw new Error("Faltan los términos sintéticos de partida");
   const personId = await seedPerson("calendario@example.test");
   const committeeId = await seedCommittee("calendario");
-  await getDb()
-    .insert(committeeMembership)
-    .values([
-      { personId, committeeId, termId: original.id, joinedAt: new Date("2026-07-13T05:00:00Z") },
-      {
-        personId,
-        committeeId,
-        termId: previous.id,
-        joinedAt: new Date("2026-01-19T05:00:00Z"),
-        leftAt: new Date("2026-06-06T05:00:00Z"),
-      },
-    ]);
+  await seedCommitteeMembership(personId, committeeId, original.id, "MIEMBRO", {
+    joinedAt: new Date("2026-07-13T05:00:00Z"),
+  });
+  await seedCommitteeMembership(personId, committeeId, previous.id, "MIEMBRO", {
+    joinedAt: new Date("2026-01-19T05:00:00Z"),
+    leftAt: new Date("2026-06-06T05:00:00Z"),
+  });
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(at));
   await alignSeedCalendar(new Date());

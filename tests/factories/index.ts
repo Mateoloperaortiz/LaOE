@@ -25,9 +25,11 @@ import {
   committee,
   committeeMembership,
   committeeRoleAssignment,
+  consent,
   membership,
   membershipTerm,
   person,
+  segment,
 } from "@/modules/people/schema";
 import {
   permanenceRule,
@@ -231,11 +233,21 @@ export async function seedCredential(personId: string, password: string): Promis
     .onConflictDoUpdate({ target: credential.personId, set: { passwordHash } });
 }
 
+type CommitteeOverrides = Partial<{
+  status: "ACTIVE" | "INACTIVE" | "ON_TRIAL";
+  /** Un comité desactivado (ADR-073) necesita su fecha, como exige `committeeLifecycleError`. */
+  deactivatedOn: string;
+  /** La fábrica lo publica; una fila de `committee` nace en borrador. */
+  publicationStatus: "DRAFT" | "PUBLISHED";
+  logoKey: string | null;
+  presentation: string | null;
+}>;
+
+/** Un comité activo y publicado, sin logo ni presentación, salvo que se diga otra cosa. */
 export async function seedCommittee(
   slug: string,
   name = slug.toUpperCase(),
-  /** Un comité desactivado (ADR-073) necesita su fecha, como exige `committeeLifecycleError`. */
-  overrides: Partial<{ status: "ACTIVE" | "INACTIVE" | "ON_TRIAL"; deactivatedOn: string }> = {},
+  overrides: CommitteeOverrides = {},
 ): Promise<string> {
   const status = overrides.status ?? "ACTIVE";
   const [row] = await db()
@@ -244,7 +256,9 @@ export async function seedCommittee(
       slug,
       name,
       status,
-      publicationStatus: "PUBLISHED",
+      publicationStatus: overrides.publicationStatus ?? "PUBLISHED",
+      logoKey: overrides.logoKey ?? null,
+      presentation: overrides.presentation ?? null,
       deactivatedOn:
         overrides.deactivatedOn ?? (status === "INACTIVE" ? conventionalDeactivation() : null),
     })
@@ -270,7 +284,12 @@ export async function seedCommitteeMembership(
   committeeId: string,
   termId: string,
   roleCode = "MIEMBRO",
-  overrides: Partial<{ joinedAt: Date | null; transferredIn: boolean; coDirector: boolean }> = {},
+  overrides: Partial<{
+    joinedAt: Date | null;
+    leftAt: Date | null;
+    transferredIn: boolean;
+    coDirector: boolean;
+  }> = {},
 ): Promise<string> {
   const [row] = await db()
     .insert(committeeMembership)
@@ -280,6 +299,7 @@ export async function seedCommitteeMembership(
       termId,
       roleCode,
       joinedAt: overrides.joinedAt === undefined ? new Date() : overrides.joinedAt,
+      leftAt: overrides.leftAt ?? null,
       transferredIn: overrides.transferredIn ?? false,
     })
     .returning({ id: committeeMembership.id });
@@ -296,6 +316,31 @@ export async function seedCommitteeMembership(
         coDirector: overrides.coDirector ?? false,
       });
   }
+  return row.id;
+}
+
+/**
+ * Autorización viva de una persona para una finalidad, con la versión de la política que traen las
+ * bases de prueba. Si ya tiene una viva no choca: queda la que había, como con `recordConsent`.
+ */
+export async function seedConsent(
+  personId: string,
+  purpose: (typeof consent.$inferInsert)["purpose"] = "MEMBERSHIP",
+  source: (typeof consent.$inferInsert)["source"] = "SELF",
+): Promise<void> {
+  await db()
+    .insert(consent)
+    .values({ personId, purpose, source, policyVersion: "prueba-v1" })
+    .onConflictDoNothing();
+}
+
+/** Un segmento sin creador; sin filtro alcanza a todas las personas. */
+export async function seedSegment(
+  name = "Todos",
+  filter: Record<string, unknown> = {},
+): Promise<string> {
+  const [row] = await db().insert(segment).values({ name, filter }).returning({ id: segment.id });
+  if (!row) throw new Error("seed segment");
   return row.id;
 }
 

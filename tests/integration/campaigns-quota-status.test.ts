@@ -15,12 +15,11 @@ import {
   setTransactionalReserveAs,
 } from "@/modules/comms";
 import { message } from "@/modules/comms/schema";
-import { segment } from "@/modules/people/schema";
 import { getConfig, setConfig } from "@/modules/system";
 import { appConfig, auditLog } from "@/modules/system/schema";
 import { type MailProvider, QuotaExceededError } from "@/shared/adapters/mail";
 import { t } from "@/shared/copy";
-import { seedMember } from "../factories";
+import { seedMember, seedSegment } from "../factories";
 import { truncateAll } from "./db";
 
 // DT-115 (ADR-116 regla 20): lo que la pantalla de una campaña y la del cupo de correo le muestran a un
@@ -81,11 +80,7 @@ async function seedPeople(size: number): Promise<string[]> {
 
 /** Una campaña a todas las personas de la prueba, programada para `NIGHT`; `suffix` distingue una segunda. */
 async function seedCampaign(suffix = ""): Promise<string> {
-  const [row] = await getDb()
-    .insert(segment)
-    .values({ name: `Todos${suffix}`, filter: {} })
-    .returning({ id: segment.id });
-  if (!row) throw new Error("seed segment");
+  const segmentId = await seedSegment(`Todos${suffix}`);
   const { id: templateId } = await runCommand(SYSTEM_ACTOR, (ctx) =>
     createTemplate(ctx, {
       slug: `novedades${suffix}`,
@@ -97,7 +92,7 @@ async function seedCampaign(suffix = ""): Promise<string> {
   const { id } = await createCampaignAs(SYSTEM_ACTOR, {
     name: `Novedades${suffix}`,
     templateId,
-    segmentId: row.id,
+    segmentId,
   });
   await scheduleCampaignAs(SYSTEM_ACTOR, id, NIGHT);
   return id;

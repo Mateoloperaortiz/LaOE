@@ -12,6 +12,7 @@ import { committee, person, segment } from "@/modules/people/schema";
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
+import { seedSegment } from "../factories";
 import { sinViolaciones } from "./axe";
 import { E2E_TERM } from "./calendar";
 import { test } from "./fixtures";
@@ -48,7 +49,7 @@ test.beforeEach(async () => {
     })
     .returning()
     .then(first);
-  const audience = await db.insert(segment).values({ name: prefix }).returning().then(first);
+  const audience = { id: await seedSegment(prefix) };
   const mail = await db
     .insert(campaign)
     .values({ name: prefix, templateId: template.id, segmentId: audience.id })

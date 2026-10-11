@@ -20,9 +20,9 @@ import {
 } from "@/modules/comms";
 import { campaignRecipient, message } from "@/modules/comms/schema";
 import { recordConsentAs } from "@/modules/people";
-import { membership, person, segment } from "@/modules/people/schema";
+import { membership, person } from "@/modules/people/schema";
 import type { MailMessage, MailTransport } from "@/shared/adapters/mail";
-import { seedMember, seedTerm } from "../factories";
+import { seedMember, seedSegment, seedTerm } from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
@@ -39,12 +39,6 @@ function fakeTransport(name: MailTransport["name"], sent: MailMessage[]): MailTr
       return { id: `${name}_${sent.length}` };
     },
   };
-}
-
-async function seedSegment(name: string, filter: Record<string, unknown>): Promise<string> {
-  const [row] = await db().insert(segment).values({ name, filter }).returning({ id: segment.id });
-  if (!row) throw new Error("seed segment");
-  return row.id;
 }
 
 async function seedTemplate(slug = "prueba"): Promise<string> {
