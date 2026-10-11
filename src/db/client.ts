@@ -1,6 +1,6 @@
 import { DrizzleQueryError } from "drizzle-orm/errors";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool, type PoolClient } from "pg";
+import { Pool, type PoolClient, type PoolConfig } from "pg";
 import { getEnv } from "@/env";
 import { logger, markConnectionFailure, printableError } from "@/shared/log";
 
@@ -39,33 +39,43 @@ type Lend = (
 ) => void;
 
 /**
- * Todo fallo al abrir o prestar una conexión sale del pool marcado con a dónde iba (ADR-123 regla
- * 16): solo acá se sabe que el error es de una conexión y contra qué host, y con esa marca el
- * registro le quita el host configurado, vaya o no entre comillas. `pool.query` y Drizzle piden la
- * conexión por `connect`, con callback o con promesa, así que basta envolverlo. El error es el
- * mismo: quien lo recibe lo sigue leyendo igual.
+ * El pool de la casa. Todo fallo al abrir o prestar una conexión sale de él marcado con a dónde iba
+ * (ADR-123 regla 16): solo acá se sabe que el error es de una conexión y contra qué host, y con esa
+ * marca el registro le quita el host configurado, vaya o no entre comillas. `pool.query` y Drizzle
+ * piden la conexión por `connect`, con callback o con promesa, así que basta redefinirlo. El error
+ * es el mismo: quien lo recibe lo sigue leyendo igual.
  */
-function markConnectionFailuresOf(pool: Pool, connectionString: string): void {
-  const connect = pool.connect.bind(pool) as (callback?: Lend) => Promise<PoolClient> | undefined;
-  const marked = <T>(error: T): T => {
-    markConnectionFailure(error, connectionString);
-    return error;
-  };
-  pool.connect = ((callback?: Lend) => {
+class MarkingPool extends Pool {
+  private readonly connectionString: string;
+
+  constructor(config: PoolConfig & { connectionString: string }) {
+    super(config);
+    this.connectionString = config.connectionString;
+  }
+
+  override connect(): Promise<PoolClient>;
+  override connect(callback: Lend): void;
+  override connect(callback?: Lend): Promise<PoolClient> | undefined {
     if (callback) {
-      return connect((error, client, done) => callback(marked(error), client, done));
+      super.connect((error, client, done) => callback(this.marked(error), client, done));
+      return undefined;
     }
-    return (connect() as Promise<PoolClient>).catch((error: unknown) => {
-      throw marked(error);
+    return super.connect().catch((error: unknown) => {
+      throw this.marked(error);
     });
-  }) as Pool["connect"];
+  }
+
+  private marked<T>(error: T): T {
+    markConnectionFailure(error, this.connectionString);
+    return error;
+  }
 }
 
 // Un solo pool por proceso. Se crea al primer uso (no al importar) para que `next build`
 // no necesite una base de datos.
 function createDb() {
   const env = getEnv();
-  const pool = new Pool({
+  const pool = new MarkingPool({
     connectionString: env.DATABASE_URL,
     max: 10,
     // ADR-079: pedir una conexión, una sentencia y una transacción abierta tienen límite.
@@ -73,7 +83,6 @@ function createDb() {
     statement_timeout: env.DB_STATEMENT_TIMEOUT_MS,
     idle_in_transaction_session_timeout: env.DB_IDLE_IN_TRANSACTION_TIMEOUT_MS,
   });
-  markConnectionFailuresOf(pool, env.DATABASE_URL);
   // Sin este listener, el error de un cliente inactivo (reinicio de Postgres, red) tumba el proceso.
   // pg-pool le cuelga la conexión al error (`err.client`), con su host, su puerto, su usuario y su
   // base: al registro va lo mismo que con la prestada, no el error entero.
