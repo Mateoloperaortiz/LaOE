@@ -3,6 +3,7 @@ import {
   assemblyCompliance,
   defaultRequirement,
   requiredTotal,
+  termAssemblyRequirement,
 } from "@/modules/participation/domain/assembly-pure";
 import {
   canCancelWithOccasion,
@@ -577,5 +578,73 @@ describe("viabilidad del comité (ADR-060 regla 8)", () => {
         trialEndsOn: "2027-03-01",
       }),
     ).toEqual([]);
+  });
+});
+
+describe("requisito de asambleas del término", () => {
+  type Kind = "ORDINARY" | "BOARD_ELECTION" | "RUNOFF" | null;
+  type Status = "DRAFT" | "OPEN" | "CLOSED" | "CANCELLED";
+  const term = { requiredOrdinaryAssemblies: 1 };
+  const occasion = (assemblyKind: Kind, status: Status = "OPEN") => ({ assemblyKind, status });
+
+  it("sin asambleas especiales exige solo las ordinarias del término", () => {
+    expect(
+      termAssemblyRequirement({ requiredOrdinaryAssemblies: 2 }, [
+        occasion("ORDINARY"),
+        occasion(null),
+      ]),
+    ).toEqual({
+      requiredOrdinary: 2,
+      requiresBoardElection: false,
+      requiresRunoff: false,
+      adjusted: false,
+      reason: null,
+    });
+    expect(termAssemblyRequirement(term, [])).toMatchObject({
+      requiredOrdinary: 1,
+      requiresBoardElection: false,
+      requiresRunoff: false,
+    });
+  });
+
+  it("exige la elección de junta y la segunda vuelta que existen, en borrador, abiertas o cerradas", () => {
+    for (const status of ["DRAFT", "OPEN", "CLOSED"] as const) {
+      expect(
+        termAssemblyRequirement(term, [
+          occasion("BOARD_ELECTION", status),
+          occasion("RUNOFF", status),
+        ]),
+      ).toMatchObject({ requiresBoardElection: true, requiresRunoff: true });
+    }
+  });
+
+  it("una especial cancelada no exige nada, y otra del mismo tipo sin cancelar sí", () => {
+    expect(
+      termAssemblyRequirement(term, [occasion("BOARD_ELECTION"), occasion("RUNOFF", "CANCELLED")]),
+    ).toMatchObject({ requiresBoardElection: true, requiresRunoff: false });
+    expect(
+      termAssemblyRequirement(term, [
+        occasion("RUNOFF", "CANCELLED"),
+        occasion("RUNOFF", "CLOSED"),
+      ]),
+    ).toMatchObject({ requiresBoardElection: false, requiresRunoff: true });
+  });
+
+  it("responde lo mismo con todas las ocasiones del término que con solo sus asambleas sin cancelar", () => {
+    const all = [
+      occasion(null),
+      occasion("ORDINARY", "CLOSED"),
+      occasion("BOARD_ELECTION"),
+      occasion("RUNOFF", "CANCELLED"),
+      occasion(null, "CANCELLED"),
+    ];
+    const assemblies = all.filter(
+      (item) => item.assemblyKind !== null && item.status !== "CANCELLED",
+    );
+    expect(termAssemblyRequirement(term, all)).toEqual(termAssemblyRequirement(term, assemblies));
+    expect(termAssemblyRequirement(term, all)).toMatchObject({
+      requiresBoardElection: true,
+      requiresRunoff: false,
+    });
   });
 });

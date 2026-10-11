@@ -2,7 +2,7 @@
 
 Enmienda posterior: [ADR-062](ADR-062-importacion-de-asistencias-y-evidencias-gh.md) permite importar evidencia previamente validada por GH como `GOOD`, conservando fuente, fila, autor y auditoría. Los cálculos y la exención de licencia se conservan.
 
-- Estado: Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058, ADR-116, ADR-118 y ADR-121)
+- Estado: Aceptada (enmendada por ADR-037, ADR-038, ADR-056, ADR-058, ADR-116, ADR-118, ADR-121 y ADR-123)
 - Fecha: 2026-09-04
 - Relacionadas: ADR-003, ADR-004, ADR-005, ADR-011, ADR-012, ADR-014, ADR-017, ADR-025, ADR-026, ADR-027, ADR-028, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035
 - Enmienda: ADR-025 (recompute, estados, decisiones y vista en vivo), ADR-026 (bloqueo y comentario por tabla), ADR-028 (ventana por configuración y pendientes al cierre), ADR-031 (avisos en la app hasta la fase 6; anuncios de comité), ADR-033 (`announcement.committeeId`), ADR-035 (layout del admin con más roles; handlers de `term.points-closed` y `occasion.closed`), 03-modelo (tablas definitivas de `permanence`, `permanence_table`, `ruleId`, columnas del snapshot, `term.permanenceClosedAt`) y 05-acceso (roles derivados de los grupos, `BOARD`, step-up del cierre)
@@ -76,3 +76,7 @@ Regla 9: estampar el cierre leía el término sin bloquearlo, así que dos cierr
 ## Enmienda (2026-10-10, ADR-121)
 
 Regla 4: decía que `mandatory` sale de `participation.assemblyOverview`. Esa lectura trae el cumplimiento de todos los activos de la OE, y la permanencia la pedía entera para quedarse con el requisito de las personas que calculaba. Ahora el requisito sale de `participation.assemblyRequirementsFor`, que lee solo los ajustes de las personas pedidas; `assemblyOverview` sigue para la mesa de asambleas de GH y su exporte. Lo que la regla dice de `mandatory` (requeridas, firmadas, `met`, perdidas y próximas, respetando los ajustes de `assembly_requirement`) no cambia, ni a quién le vale el ajuste: solo a quien está activo, que es la decisión abierta 65. Ver [ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) regla 3.
+
+## Enmienda (2026-10-11, ADR-123)
+
+Regla 4: su enmienda de ADR-121 dice que el requisito sale de `participation.assemblyRequirementsFor`. Esa función pasó a ser `assemblyAdjustmentsFor`, que devuelve solo los ajustes de las personas pedidas; el requisito de quien no tiene ajuste lo arma la permanencia con `participation.termAssemblyRequirement` sobre las ocasiones del término que ya leyó, la misma función que usa la mesa de asambleas de GH. Lo que la regla dice de `mandatory` no cambia, ni a quién le vale el ajuste: solo a quien está activo, que es la decisión abierta 65. Ver [ADR-123](ADR-123-reglas-de-verificacion-y-correccion-del-undecimo-ciclo.md) regla 13.

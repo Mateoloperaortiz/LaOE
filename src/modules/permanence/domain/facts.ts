@@ -1,13 +1,13 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import {
-  assemblyRequirementsFor,
-  defaultRequirement,
+  assemblyAdjustmentsFor,
   listApprovedCheckInsForPersonInTerm,
   listApprovedCheckInsForTerm,
   listExcusedCheckInsForPersonInTerm,
   listExcusedCheckInsForTerm,
   listOccasionsForTerm,
+  termAssemblyRequirement,
 } from "@/modules/participation";
 import { listExpulsionWarnings, listTermRoster, type TermRosterRow } from "@/modules/people";
 import { requireConfig } from "@/modules/system";
@@ -239,18 +239,12 @@ export async function loadPeopleFacts(
     })
     .from(manualCredit)
     .where(and(eq(manualCredit.termId, termId), inArray(manualCredit.personId, ids)));
-  const hasRunoff = facts.occasions.some(
-    (item) => item.assemblyKind === "RUNOFF" && item.status !== "CANCELLED",
-  );
-  const fallback: AssemblyRequirementFact = defaultRequirement(facts.term, {
-    hasBoardElection: facts.occasions.some(
-      (item) => item.assemblyKind === "BOARD_ELECTION" && item.status !== "CANCELLED",
-    ),
-    hasRunoff,
-  });
-  // Solo de las personas pedidas: antes se leía el cumplimiento de todos los activos de la OE para
-  // quedarse con el requisito de cada una (ADR-121 regla 3).
-  const requirements = await assemblyRequirementsFor(facts.term, ids);
+  // El requisito «del término» sale de las ocasiones que ya se leyeron, con la misma función que usa
+  // `participation` para su mesa de asambleas (ADR-123 regla 13).
+  const fallback: AssemblyRequirementFact = termAssemblyRequirement(facts.term, facts.occasions);
+  // Solo los ajustes de las personas pedidas: antes se leía el cumplimiento de todos los activos de la
+  // OE para quedarse con el requisito de cada una (ADR-121 regla 3).
+  const adjustments = await assemblyAdjustmentsFor(termId, ids);
   return ids.map((personId) => {
     const rows = roster.get(personId) ?? [];
     const standing = personStanding(rows);
@@ -278,11 +272,10 @@ export async function loadPeopleFacts(
       credits: credits
         .filter((item) => item.personId === personId)
         .map(({ personId: _p, ...rest }) => rest),
-      // El requisito propio (el ajuste, o el del término) es del miembro activo. Quien no lo está llega
-      // con el del término aunque tenga un ajuste: así lo entregaba la lectura de toda la OE, que solo
-      // traía activos.
+      // El ajuste es del miembro activo. Quien no lo está llega con el requisito del término aunque
+      // tenga un ajuste: así lo entregaba la lectura de toda la OE, que solo traía activos.
       assemblyRequirement:
-        (standing.status === "ACTIVE" ? requirements.get(personId) : undefined) ?? fallback,
+        (standing.status === "ACTIVE" ? adjustments.get(personId) : undefined) ?? fallback,
     };
   });
 }

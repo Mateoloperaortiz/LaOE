@@ -562,3 +562,62 @@ describe("la permanencia de una persona no carga a toda la OE", () => {
     expect(large.recalc).toEqual(small.recalc);
   });
 });
+
+// DT-326 (a): el requisito «del término» sale de las ocasiones que la permanencia ya leyó. Antes
+// `participation` volvía a leer las asambleas del término para derivarlo por su lado.
+describe("la permanencia de una persona lee las ocasiones del término una sola vez", () => {
+  beforeEach(truncateAll);
+  afterAll(() => closeDb());
+
+  const occasionReads = (queries: CountedQuery[]) =>
+    queries.map((query) => query.text).filter((text) => text.includes('from "occasion"'));
+  const rowsOf = (queries: CountedQuery[]) =>
+    queries.reduce((total, query) => total + query.rows, 0);
+
+  it("pedirla y recalcularla no vuelven a leer las asambleas para el requisito: una consulta menos cada una", async () => {
+    const termId = await seedTerm();
+    const committeeId = await seedCommittee("a3");
+    const actor = { personId: await seedVeteran("gh@eafit.edu.co"), ip: null };
+    const assembly = await seedOccasion(termId, {
+      kind: "ASSEMBLY",
+      assemblyKind: "ORDINARY",
+      points: 0,
+      status: "CLOSED",
+    });
+    // La misma escena chica de la prueba de arriba: cinco miembros, cada uno con su asistencia a la
+    // asamblea del término y su ajuste del requisito.
+    const ids: string[] = [];
+    for (let n = 0; n < 5; n += 1) {
+      const personId = await seedVeteran(`miembro-${n}@eafit.edu.co`);
+      await seedCommitteeMembership(personId, committeeId, termId);
+      await seedCheckIn(assembly.id, personId);
+      await adjustRequirementAs(actor, {
+        termId,
+        personId,
+        requiredOrdinary: 2,
+        requiresBoardElection: false,
+        requiresRunoff: false,
+        reason: "Ajuste sintético",
+      });
+      ids.push(personId);
+    }
+    const [target = ""] = ids;
+    const now = new Date();
+    // La primera corrida deja escrito el snapshot y lo que el proceso guarde en memoria: no se mide.
+    await recomputeSnapshots(termId, target, now);
+    await getPersonPermanence(target, termId, now);
+
+    const recalc = await countQueries(() => recomputeSnapshots(termId, target, now));
+    const read = await countQueries(() => getPersonPermanence(target, termId, now));
+
+    expect(read.result?.result?.mandatory).toBeDefined();
+    expect(occasionReads(read.queries)).toHaveLength(1);
+    expect(occasionReads(recalc.queries)).toHaveLength(1);
+    // Eran 16 y 17 (ADR-121 regla 3): la lectura de las asambleas del término ya no sale.
+    expect(read.queries.length).toBeLessThanOrEqual(15);
+    expect(recalc.queries.length).toBeLessThanOrEqual(16);
+    // Y eran 7 filas: la de la asamblea, que esa lectura traía, tampoco.
+    expect(rowsOf(read.queries)).toBeLessThanOrEqual(6);
+    expect(rowsOf(recalc.queries)).toBeLessThanOrEqual(6);
+  });
+});

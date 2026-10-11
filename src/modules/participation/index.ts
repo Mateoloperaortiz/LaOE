@@ -10,8 +10,8 @@ export {
 export {
   type AdjustRequirementInput,
   type AssemblyOverviewRow,
+  assemblyAdjustmentsFor,
   assemblyOverview,
-  assemblyRequirementsFor,
   assemblyStatusFor,
   listTermAssemblies,
   type PersonAssemblyStatus,
@@ -20,8 +20,8 @@ export {
   type AssemblyCompliance,
   type AssemblyRequirementView,
   assemblyCompliance,
-  defaultRequirement,
   requiredTotal,
+  termAssemblyRequirement,
 } from "./domain/assembly-pure";
 export {
   type AchievementRow,

@@ -1,7 +1,7 @@
 // Requisito de asambleas por persona y término (ADR-024, ADR-028, ADR-035 regla 12): derivado del
 // término salvo ajuste individual; el cumplimiento se calcula, nunca se persiste.
 
-import type { AssemblyKind } from "./occasion-pure";
+import type { AssemblyKind, OccasionStatus } from "./occasion-pure";
 
 export interface AssemblyRequirementView {
   requiredOrdinary: number;
@@ -27,6 +27,24 @@ export function defaultRequirement(
     adjusted: false,
     reason: null,
   };
+}
+
+/**
+ * El requisito «del término», el de quien no tiene un ajuste: el único sitio que lo deriva de las
+ * ocasiones (ADR-123 regla 13). Recibe las ocasiones del término, todas o solo sus asambleas: una
+ * especial cancelada no exige nada, y solo una asamblea lleva `assemblyKind` (check
+ * `occasion_assembly_kind_consistent`), así que responde lo mismo con unas que con otras.
+ */
+export function termAssemblyRequirement(
+  term: { requiredOrdinaryAssemblies: number },
+  occasions: readonly { assemblyKind: AssemblyKind | null; status: OccasionStatus }[],
+): AssemblyRequirementView {
+  const exists = (kind: AssemblyKind) =>
+    occasions.some((item) => item.assemblyKind === kind && item.status !== "CANCELLED");
+  return defaultRequirement(term, {
+    hasBoardElection: exists("BOARD_ELECTION"),
+    hasRunoff: exists("RUNOFF"),
+  });
 }
 
 export interface AttendedAssembly {
