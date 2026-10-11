@@ -18,6 +18,7 @@ import {
   seedCard,
   seedDocument,
   seedEmailTemplate,
+  seedForm,
   seedOrganization,
   seedPipeline,
   seedSegment,
@@ -84,11 +85,11 @@ test.beforeEach(async () => {
       status: "DRAFT",
     }),
   };
-  const questionnaire = await db
-    .insert(form)
-    .values({
-      slug: prefix,
+  const questionnaire = {
+    id: await seedForm(prefix, {
       title: prefix,
+      status: "DRAFT",
+      actions: {},
       fields: [
         {
           key: "motivacion",
@@ -99,9 +100,8 @@ test.beforeEach(async () => {
         },
         { key: "comentario", type: "TEXTAREA", label: "Comentario adicional", required: false },
       ],
-    })
-    .returning()
-    .then(first);
+    }),
+  };
   const permanent = await db
     .insert(event)
     .values({ slug: prefix, name: prefix })

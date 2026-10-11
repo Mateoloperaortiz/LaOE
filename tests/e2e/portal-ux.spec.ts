@@ -6,7 +6,7 @@ import { pipeline } from "@/modules/crm/schema";
 import { form } from "@/modules/forms/schema";
 import { committee } from "@/modules/people/schema";
 import { t, tList } from "@/shared/copy";
-import { seedCommittee, seedPipeline } from "../factories";
+import { seedCommittee, seedForm, seedPipeline } from "../factories";
 import { copyPattern } from "../helpers/copy";
 import { sinViolaciones } from "./axe";
 import { test } from "./fixtures";
@@ -125,16 +125,15 @@ test("el hero y Unirse reflejan convocatoria cerrada, prospecto y admisión vige
       "href",
       "/eventos",
     );
-    const [prospect] = await db
-      .insert(form)
-      .values({
-        slug: `${prefix}-prospecto`,
+    const prospectSlug = `${prefix}-prospecto`;
+    const prospect = {
+      id: await seedForm(prospectSlug, {
         title: "Interés sintético en la OE",
         status: "OPEN",
         actions: { createPerson: true },
-      })
-      .returning();
-    if (!prospect) throw new Error("No se creó el formulario de prospecto");
+      }),
+      slug: prospectSlug,
+    };
     createdForms.push(prospect.id);
     await page.reload();
     await expect(page.getByRole("link", { name: t("T-868") })).toHaveAttribute(
@@ -142,16 +141,15 @@ test("el hero y Unirse reflejan convocatoria cerrada, prospecto y admisión vige
       `/f/${prospect.slug}`,
     );
     pipelineId = (await seedPipeline(prefix, "ADMISSION", [])).id;
-    const [admission] = await db
-      .insert(form)
-      .values({
-        slug: `${prefix}-admision`,
+    const admissionSlug = `${prefix}-admision`;
+    const admission = {
+      id: await seedForm(admissionSlug, {
         title: "Admisión sintética a la OE",
         status: "OPEN",
         actions: { createPerson: true, pipelineId },
-      })
-      .returning();
-    if (!admission) throw new Error("No se creó el formulario de admisión");
+      }),
+      slug: admissionSlug,
+    };
     createdForms.push(admission.id);
     await page.reload();
     await expect(page.getByRole("link", { name: t("T-027"), exact: true })).toHaveAttribute(
