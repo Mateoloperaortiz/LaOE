@@ -12,8 +12,12 @@ import { insertsInto, insertTargets, looseInserts } from "../../scripts/lib/test
 // - `EXCEPTIONS`: el estado que ningún comando produce y que la prueba arma a propósito, o la
 //   escritura que no es siembra. Cada una con su razón.
 // - `PENDING`: lo que todavía no pasó por la fábrica ni tiene su razón escrita. No es una excepción:
-//   es lo que queda de DT-013, y solo baja. Quien toque uno lo muda a la fábrica o, si arma a
-//   propósito un estado que ningún comando produce, lo pasa a `EXCEPTIONS` con su razón.
+//   es lo que queda de DT-013. Quien toque uno lo muda a la fábrica o, si arma a propósito un estado
+//   que ningún comando produce, lo pasa a `EXCEPTIONS` con su razón. Su total está escrito en
+//   `PENDING_CEILING` y la prueba lo exige: una línea nueva no entra sin subir ese número a la vista.
+//
+// Lee todo `tests/` menos la fábrica, que es la que escribe, y las unitarias, que no tocan la base y
+// traen insert de muestra en sus cadenas.
 //
 // Entre las dos suman la fila «Insert sueltos» de `npm run audit:metrics`. El destino es el nombre
 // que el archivo le pasa a `.insert(`, o `into` y lo que sigue a `insert into` en un SQL crudo: una
@@ -21,7 +25,7 @@ import { insertsInto, insertTargets, looseInserts } from "../../scripts/lib/test
 
 const FACTORY_TABLES = ["person", "permission", "membership", "term"];
 const SUITES = ["tests/integration", "tests/e2e"];
-const SEEDED = [...SUITES, "tests/helpers"];
+const NOT_SEEDED = ["tests/factories/", "tests/unit/"];
 
 interface Exception {
   path: string;
@@ -68,6 +72,13 @@ const EXCEPTIONS: Exception[] = [
     inserts: 3,
     reason:
       "Son tokens de calendario que quedaron de antes de la regla, en manos de quien ya salió o fue borrado, y el que la prueba retiene dentro de una transacción ajena: el comando no le deja un token a quien ya no está.",
+  },
+  {
+    path: "tests/integration/campaigns-quota-status.test.ts",
+    target: "appConfig",
+    inserts: 1,
+    reason:
+      "Son la reserva y el corte del cupo como los deja otro proceso: van directo a la base, sin pasar por `setConfig`, para que la caché de configuración de este proceso no se entere, que es lo que la prueba mira.",
   },
   {
     path: "tests/integration/crm.test.ts",
@@ -121,6 +132,13 @@ const EXCEPTIONS: Exception[] = [
     reason: PROBE_SCHEMA,
   },
   {
+    path: "tests/integration/game2048.test.ts",
+    target: "game2048Run",
+    inserts: 1,
+    reason:
+      "Es la segunda partida acreditada de una persona en un mismo día, que la prueba espera ver rechazada por `game2048_run_person_day_credited_unique`: ningún comando llega a escribirla.",
+  },
+  {
     path: "tests/integration/gamification-rewards.test.ts",
     target: "pointEntry",
     inserts: 3,
@@ -147,6 +165,13 @@ const EXCEPTIONS: Exception[] = [
     inserts: 1,
     reason:
       "Son sesiones ya vencidas, que es lo que la poda tiene que borrar: ningún comando escribe una sesión vieja.",
+  },
+  {
+    path: "tests/integration/macroevent-board.test.ts",
+    target: "appointment",
+    inserts: 3,
+    reason:
+      "Son el nombramiento histórico de Publicidad, un cargo que ya no está en el catálogo del macroevento, y los dos que la prueba espera ver rechazados por `appointment_macroevent_consistent`: ningún comando nombra con un cargo retirado ni llega a escribir los otros dos.",
   },
   {
     path: "tests/integration/media.test.ts",
@@ -178,10 +203,38 @@ const EXCEPTIONS: Exception[] = [
   },
   {
     path: "tests/integration/panal.test.ts",
+    target: "panalWord",
+    inserts: 2,
+    reason:
+      "Son la palabra que guarda un escritor sintético dentro de la transacción que la prueba retiene para forzar el cruce, y las de un panal entero guardadas sin sus puntos, como las deja un despliegue gradual: la primera tiene que ir por esa transacción, y por el comando cada palabra cuenta los suyos.",
+  },
+  {
+    path: "tests/integration/panal.test.ts",
     target: "pointEntry",
     inserts: 5,
     reason:
       "Son un premio histórico del Panal sin meta, de antes de las metas, y las entradas de importe incorrecto o de meta repetida que la prueba espera ver rechazadas por la base: el único escritor del libro no arma ninguna (ADR-119 regla 8).",
+  },
+  {
+    path: "tests/integration/permanence-facts.test.ts",
+    target: "leaderScore",
+    inserts: 2,
+    reason:
+      "Son el puntaje de un criterio y su repetido, que la prueba escribe uno por uno para ver chocar el segundo con `leader_score_unique` y que un criterio con puntajes no se deja borrar: es la prueba de las restricciones de la tabla.",
+  },
+  {
+    path: "tests/integration/permanence-facts.test.ts",
+    target: "permanenceDecision",
+    inserts: 6,
+    reason:
+      "Son las decisiones que la prueba escribe una por una para ver chocar la repetida de un comité y la de la persona con sus índices únicos, y las que espera ver rechazadas por `permanence_decision_reason_when_changed` y `permanence_decision_person_scope`: las dos que entran están para que las demás choquen.",
+  },
+  {
+    path: "tests/integration/permanence-facts.test.ts",
+    target: "workGroupMembership",
+    inserts: 1,
+    reason:
+      "Es una evaluación buena sin fecha ni evaluador, que la prueba espera ver rechazada por `work_group_membership_evaluated_consistent`: la fábrica siempre le pone la fecha.",
   },
   {
     path: "tests/integration/schema-constraints.test.ts",
@@ -226,11 +279,25 @@ const EXCEPTIONS: Exception[] = [
       "Es la mutación de un comando de prueba: tiene que ir por `ctx.tx` para afirmar que mutación, auditoría y evento se confirman y se deshacen en la misma transacción.",
   },
   {
+    path: "tests/integration/sudoku.test.ts",
+    target: "sudokuRun",
+    inserts: 1,
+    reason:
+      "Es la segunda partida acreditada de una persona en un mismo día, que la prueba espera ver rechazada por `sudoku_run_person_day_credited_unique`: ningún comando llega a escribirla.",
+  },
+  {
     path: "tests/integration/survey-invites-retry.test.ts",
     target: "occasionSurveyInvite",
     inserts: 1,
     reason:
       "Es la invitación que deja otra corrida, escrita dentro de una transacción que la prueba retiene para forzar el cruce: tiene que ir por esa transacción, y la fábrica escribe por `getDb()`.",
+  },
+  {
+    path: "tests/integration/tasks-characterization.test.ts",
+    target: "task",
+    inserts: 1,
+    reason:
+      "Es una tarea de antes del despliegue, sin clave, como la dejaba el sitio que la abría: `openTaskForReason` hoy le pone la suya, y la prueba necesita la vieja para ver que se reconoce sin abrir otra.",
   },
   {
     path: "tests/integration/truncate-all-tables.test.ts",
@@ -261,6 +328,11 @@ const EXCEPTIONS: Exception[] = [
       "Es la clave de configuración que la caracterización del vaciado escribe sin avisarle a la caché, con un autor que no existe y una fecha vieja, para afirmar que el vaciado devuelve el catálogo a la foto: ningún comando deja esa fila.",
   },
 ];
+
+// El total de `PENDING`. Se edita solo hacia abajo, en el mismo commit que muda o justifica un
+// pendiente. La prueba no sabe cuánto valía ayer: es una convención, y lo que la sostiene es que
+// subir este número se ve en el diff.
+const PENDING_CEILING = 105;
 
 // Lo que queda por mudar o por justificar (DT-013). Ordenada por archivo y destino.
 const PENDING: Pending[] = [
@@ -321,12 +393,10 @@ const PENDING: Pending[] = [
   ["tests/e2e/the-games.spec.ts", "eventEdition", 1],
   ["tests/integration/admin-export-truncated.test.ts", "achievement", 1],
   ["tests/integration/autorizacion.test.ts", "appConfig", 1],
-  ["tests/integration/campaigns-quota-status.test.ts", "appConfig", 1],
   ["tests/integration/competition-tracking.test.ts", "competitionSupport", 1],
   ["tests/integration/documents.test.ts", "mediaAsset", 1],
   ["tests/integration/forms.test.ts", "into event", 1],
   ["tests/integration/forms.test.ts", "into event_edition", 1],
-  ["tests/integration/game2048.test.ts", "game2048Run", 1],
   ["tests/integration/gamification-badges.test.ts", "wordleGame", 4],
   ["tests/integration/gamification-boosters.test.ts", "achievement", 1],
   ["tests/integration/gamification-collection-specials.test.ts", "achievement", 1],
@@ -341,35 +411,33 @@ const PENDING: Pending[] = [
   ["tests/integration/gamification-regressions.test.ts", "challengeEvidenceFile", 2],
   ["tests/integration/gh-points-view-reads.test.ts", "achievement", 1],
   ["tests/integration/gh-points-view-reads.test.ts", "badgeDefinition", 1],
-  ["tests/integration/macroevent-board.test.ts", "appointment", 3],
   ["tests/integration/macroevent-groups.test.ts", "event", 2],
   ["tests/integration/macroevent-groups.test.ts", "eventEdition", 2],
   ["tests/integration/media-metadata.test.ts", "mediaAsset", 1],
   ["tests/integration/own-data.test.ts", "mediaAsset", 2],
-  ["tests/integration/panal.test.ts", "panalWord", 2],
   ["tests/integration/participation-closing-concurrency.test.ts", "reward", 1],
   ["tests/integration/permanence-closing.test.ts", "manualCredit", 1],
-  ["tests/integration/permanence-facts.test.ts", "leaderScore", 2],
-  ["tests/integration/permanence-facts.test.ts", "permanenceDecision", 6],
-  ["tests/integration/permanence-facts.test.ts", "workGroupMembership", 1],
   ["tests/integration/permanence-rules.test.ts", "leaderScore", 2],
   ["tests/integration/person-360-timeline-others.test.ts", "interaction", 1],
   ["tests/integration/privacy-policy.test.ts", "appConfig", 1],
   ["tests/integration/sanctions.test.ts", "manualCredit", 1],
-  ["tests/integration/sudoku.test.ts", "sudokuRun", 1],
-  ["tests/integration/tasks-characterization.test.ts", "task", 1],
   ["tests/integration/team-members.test.ts", "event", 1],
   ["tests/integration/wallet-jobs.test.ts", "carnetToken", 1],
   ["tests/integration/wallet-jobs.test.ts", "walletPass", 1],
   ["tests/integration/wordle.test.ts", "wordleGame", 2],
 ];
 
-/** Los archivos TypeScript de una carpeta de pruebas: los casos, su preparación y sus ayudantes. */
+/** Los archivos de código de una carpeta de pruebas: los casos, su preparación y sus ayudantes. */
 function sources(dir: string) {
   return readdirSync(dir, { recursive: true, encoding: "utf8" })
-    .filter((file) => file.endsWith(".ts"))
+    .filter((file) => /\.[cm]?[jt]sx?$/.test(file))
     .sort()
     .map((file) => ({ path: `${dir}/${file}`, text: readFileSync(join(dir, file), "utf8") }));
+}
+
+/** Todo `tests/` menos la fábrica y las unitarias: donde un insert suelto es siembra a mano. */
+function seeded() {
+  return sources("tests").filter(({ path }) => !NOT_SEEDED.some((dir) => path.startsWith(dir)));
 }
 
 const named = (path: string, target: string) => `${path} › ${target}`;
@@ -383,7 +451,7 @@ const LISTED: Pending[] = [
 /** Cuántos insert sueltos de cada destino hay de verdad en cada archivo. */
 function loose(): Record<string, number> {
   const counts: Record<string, number> = {};
-  for (const { path, target } of insertTargets(SEEDED.flatMap(sources))) {
+  for (const { path, target } of insertTargets(seeded())) {
     counts[named(path, target)] = (counts[named(path, target)] ?? 0) + 1;
   }
   return counts;
@@ -416,6 +484,10 @@ describe("la siembra de las pruebas", () => {
     expect({ calls: listed(false), raw: listed(true) }).toEqual(looseInserts(sources(dir)));
   });
 
+  it("la lista de pendientes suma su techo escrito, que solo se edita hacia abajo", () => {
+    expect(PENDING.reduce((total, [, , inserts]) => total + inserts, 0)).toBe(PENDING_CEILING);
+  });
+
   it("las cuatro tablas de partida no tienen pendientes: lo suyo ya pasó por la fábrica", () => {
     expect(PENDING.filter(([, target]) => FACTORY_TABLES.includes(target))).toEqual([]);
   });
@@ -426,5 +498,18 @@ describe("la siembra de las pruebas", () => {
     );
 
     expect([...new Set(written)].sort()).toEqual([...FACTORY_TABLES].sort());
+  });
+
+  it("cada insert de la fábrica nombra una tabla que importa de un `schema.ts`: ninguna función recibe la tabla y escribe lo que le pasen", () => {
+    for (const file of sources("tests/factories")) {
+      const tables = new Set(
+        [...file.text.matchAll(/import\s*\{([^}]*)\}\s*from\s*"@\/modules\/[a-z0-9-]+\/schema"/g)]
+          .flatMap((match) => (match[1] ?? "").split(","))
+          .map((name) => name.trim())
+          .filter(Boolean),
+      );
+
+      expect(insertTargets([file]).filter(({ target }) => !tables.has(target))).toEqual([]);
+    }
   });
 });
