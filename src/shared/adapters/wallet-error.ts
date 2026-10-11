@@ -22,9 +22,10 @@ export type WalletAdapterFailureReason =
  * nada de lo que respondió el proveedor, y es para quien depura con el error en la mano; lo que una
  * ruta registra es `reason` y, si el proveedor respondió, `status` (ADR-120 regla 13).
  *
- * Sin más, el motivo es uno del adaptador. Quien lanza uno propio nombra su unión
- * (`new WalletError<WalletFailureReason>(…)`): el motivo no se infiere de lo que se escriba, así que
- * uno que no está en ninguna unión no compila.
+ * Sin más, el motivo es uno del adaptador, y no se infiere de lo que se escriba. El módulo `wallet`
+ * lanza los suyos por su fábrica (`issueError`), que es quien le nombra a la clase la unión del
+ * módulo. El tipo no impide nombrarle otra: `shared` no conoce la del módulo, así que no la puede
+ * acotar (ADR-123 regla 24).
  */
 export class WalletError<Reason extends string = WalletAdapterFailureReason> extends Error {
   readonly reason: Reason;

@@ -7,7 +7,7 @@ import { getWalletMemberState, lockMembershipCycle } from "@/modules/people";
 import { isApplePassConfigured, signPass } from "@/shared/adapters/apple-pass";
 import { WalletError } from "@/shared/adapters/wallet-error";
 import { loadCarnetData } from "./carnet-data";
-import type { WalletFailureReason } from "./failure";
+import { issueError } from "./failure";
 import { buildApplePassJson } from "./pass-pure";
 import { recordPassIssued } from "./passes";
 
@@ -65,16 +65,10 @@ export async function buildApplePass(personId: string): Promise<Buffer> {
       state.status === "ON_LEAVE" ||
       state.walletEpoch !== data.walletEpoch
     )
-      throw new WalletError<WalletFailureReason>(
-        "CHANGED_DURING_ISSUE",
-        "La membresía cambió durante la emisión",
-      );
+      throw issueError("CHANGED_DURING_ISSUE", "La membresía cambió durante la emisión");
     const current = await loadCarnetData(personId, tx);
     if (current.revision !== data.revision) {
-      throw new WalletError<WalletFailureReason>(
-        "CHANGED_DURING_ISSUE",
-        "El QR cambió durante la emisión",
-      );
+      throw issueError("CHANGED_DURING_ISSUE", "El QR cambió durante la emisión");
     }
     await recordPassIssued(tx, "APPLE", personId, data);
   });

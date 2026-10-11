@@ -3,18 +3,33 @@ import { type WalletAdapterFailureReason, WalletError } from "@/shared/adapters/
 import { DomainError } from "@/shared/lib/errors";
 import { errorCode } from "@/shared/log";
 
-/**
- * Por qué no se pudo emitir o sincronizar un pase: los motivos del adaptador y los que solo conoce la
- * emisión, que se declaran acá y no en el adaptador compartido (ADR-123 regla 24).
- */
-export type WalletFailureReason =
-  | WalletAdapterFailureReason
+/** Los motivos que solo conoce la emisión: se declaran acá y no en el adaptador compartido. */
+type WalletIssueFailureReason =
   /** El pase registrado no es del emisor o del sufijo configurados hoy. */
   | "PASS_MISMATCH"
   /** El enlace de guardado supera el tamaño admitido. */
   | "LINK_TOO_LONG"
   /** La membresía o el QR cambiaron mientras se emitía: la persona vuelve a intentar. */
   | "CHANGED_DURING_ISSUE";
+
+/**
+ * Por qué no se pudo emitir o sincronizar un pase: los motivos del adaptador y los de la emisión
+ * (ADR-123 regla 24).
+ */
+export type WalletFailureReason = WalletAdapterFailureReason | WalletIssueFailureReason;
+
+/**
+ * El error de un motivo de la emisión: la misma clase que lanza un adaptador. Es el único sitio que
+ * le nombra a `WalletError` el tipo de su motivo, así que por acá no pasa uno que no sea de los
+ * tres. El tipo de la clase no impide nombrarle otra unión: que nadie más lo haga lo fija
+ * `tests/unit/wallet-error-reasons.test.ts`.
+ */
+export function issueError(
+  reason: WalletIssueFailureReason,
+  message: string,
+): WalletError<WalletFailureReason> {
+  return new WalletError<WalletFailureReason>(reason, message);
+}
 
 type WalletFailure =
   | { reason: WalletFailureReason; status?: number }
@@ -56,7 +71,8 @@ export function walletFailure(error: unknown): WalletFailure | WalletRefusal {
     return { reason: "REFUSED", errorType: "DomainError" };
   }
   if (error instanceof WalletError) {
-    // Un `WalletError` lo lanza un adaptador o la emisión: su motivo es de la unión del módulo.
+    // Un `WalletError` lo lanza un adaptador o `issueError`: su motivo es de la unión del módulo.
+    // El `as` no lo comprueba; lo sostiene que nadie más le nombre un tipo a la clase.
     const { reason, status } = error as WalletError<WalletFailureReason>;
     return status === undefined ? { reason } : { reason, status };
   }

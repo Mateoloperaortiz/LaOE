@@ -15,7 +15,7 @@ import {
 import { WalletError } from "@/shared/adapters/wallet-error";
 import { walletPass } from "../schema";
 import { loadCarnetData } from "./carnet-data";
-import type { WalletFailureReason } from "./failure";
+import { issueError } from "./failure";
 import {
   buildGoogleClass,
   buildGoogleObject,
@@ -132,7 +132,7 @@ export async function issueGoogleSaveUrl(personId: string): Promise<string> {
       .where(and(eq(walletPass.personId, personId), eq(walletPass.platform, "GOOGLE")));
     if (!pass || pass.externalId !== ids.id) {
       // Cambiar emisor/sufijo con pases existentes requiere conservar y migrar los IDs anteriores.
-      throw new WalletError<WalletFailureReason>(
+      throw issueError(
         "PASS_MISMATCH",
         "La configuración de Google Wallet no coincide con el pase registrado",
       );
@@ -155,14 +155,11 @@ export async function issueGoogleSaveUrl(personId: string): Promise<string> {
     const jwt = signSaveJwt(buildSaveClaims({ ...ids, ...config }));
     const saveUrl = `https://pay.google.com/gp/v/save/${jwt}`;
     if (saveUrl.length > 1800)
-      throw new WalletError<WalletFailureReason>(
-        "LINK_TOO_LONG",
-        "El enlace de Google Wallet supera el tamaño admitido",
-      );
+      throw issueError("LINK_TOO_LONG", "El enlace de Google Wallet supera el tamaño admitido");
     return saveUrl;
   });
   if (!url) {
-    throw new WalletError<WalletFailureReason>(
+    throw issueError(
       "CHANGED_DURING_ISSUE",
       "El carnet cambió durante la emisión; volvé a intentarlo",
     );
