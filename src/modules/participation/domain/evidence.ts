@@ -54,13 +54,13 @@ export interface PreparedEvidenceUpload {
 
 /**
  * Por qué ese tamaño no entra, o `null` si entra. Cada borde dice el suyo (ADR-122 regla 18): la
- * imagen diminuta no «pesa más de 5 MB». `tooLarge` es el texto del borde de arriba, que sale de la
+ * imagen diminuta no «pesa más de 5 MB». `tooLargeText` es el texto del borde de arriba, que sale de la
  * lista de errores de la evidencia. Lo usan la firma de la subida y la comprobación del objeto ya
  * subido; el subidor del navegador decide con sus propios límites y textos (ADR-123 regla 22).
  */
-function sizeRejection(byteSize: number, tooLarge: string): string | null {
+function sizeRejection(byteSize: number, tooLargeText: string): string | null {
   if (byteSize < EVIDENCE_MIN_BYTES) return t("T-3264");
-  if (byteSize > EVIDENCE_MAX_BYTES) return tooLarge;
+  if (byteSize > EVIDENCE_MAX_BYTES) return tooLargeText;
   return null;
 }
 
@@ -73,9 +73,9 @@ export async function prepareEvidenceUpload(
   if (!(input.contentType in EVIDENCE_TYPES)) {
     throw new DomainError(errors[0] ?? "", "file");
   }
-  const size = sizeRejection(input.byteSize, errors[1] ?? "");
-  if (size !== null) {
-    throw new DomainError(size, "file");
+  const rejection = sizeRejection(input.byteSize, errors[1] ?? "");
+  if (rejection !== null) {
+    throw new DomainError(rejection, "file");
   }
   const key = evidenceKey(owner.personId, input.contentType, createId());
   const upload = await presignUpload({
@@ -116,10 +116,10 @@ export async function verifyEvidenceObjects(
       await deleteObject(key).catch(() => undefined);
       throw new DomainError(errors[0] ?? "", "files");
     }
-    const size = sizeRejection(info.byteSize, errors[1] ?? "");
-    if (size !== null) {
+    const rejection = sizeRejection(info.byteSize, errors[1] ?? "");
+    if (rejection !== null) {
       await deleteObject(key).catch(() => undefined);
-      throw new DomainError(size, "files");
+      throw new DomainError(rejection, "files");
     }
     verified.push({ key, contentType, byteSize: info.byteSize });
   }

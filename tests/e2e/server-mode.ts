@@ -6,7 +6,7 @@
  */
 type E2eServer = "build" | "dev";
 
-type Source = Readonly<Record<string, string | undefined>>;
+type Env = Readonly<Record<string, string | undefined>>;
 
 /**
  * Opciones de `playwright test` que se llevan el argumento siguiente: ese valor no es un archivo.
@@ -55,7 +55,7 @@ const VARIADIC_OPTIONS = new Set(["--project"]);
  * entera, que es lo que llega con `-g "$PATRON"` y la variable sin definir. `E2E_FILES` vacía sí
  * cuenta, porque la configuración de Playwright la rechaza y no corre nada.
  */
-function hasFilter(env: Source, args: readonly string[]): boolean {
+function hasFilter(env: Env, args: readonly string[]): boolean {
   if (env.E2E_FILES !== undefined) return true;
   let taken: "none" | "next" | "rest" = "none";
   for (const [index, arg] of args.entries()) {
@@ -83,7 +83,7 @@ function hasFilter(env: Source, args: readonly string[]): boolean {
 }
 
 /** `E2E_SERVER` fuerza un modo; vacía equivale a no escrita y un valor que no se reconoce se rechaza. */
-function forcedServer(env: Source): E2eServer | null {
+function forcedServer(env: Env): E2eServer | null {
   const value = env.E2E_SERVER;
   if (value === undefined || value === "") return null;
   if (value !== "build" && value !== "dev") {
@@ -98,7 +98,7 @@ function forcedServer(env: Source): E2eServer | null {
  * contra dev.
  */
 export function planE2eServer(
-  env: Source,
+  env: Env,
   args: readonly string[],
 ): { server: E2eServer; compile: boolean } {
   const ci = Boolean(env.CI);
@@ -110,7 +110,7 @@ export function planE2eServer(
  * Lo que el lanzador ya decidió y dejó escrito en `E2E_SERVER` para Playwright, que no vuelve a
  * mirar los argumentos: sin esa marca no hay servidor que elegir.
  */
-export function decidedE2eServer(env: Source): E2eServer {
+export function decidedE2eServer(env: Env): E2eServer {
   const server = forcedServer(env);
   if (!server) throw new Error("Falta E2E_SERVER: el servidor de la E2E lo decide su lanzador");
   return server;
@@ -123,7 +123,7 @@ export function decidedE2eServer(env: Source): E2eServer {
  * el proceso de pruebas, que corre con `NODE_ENV=test`.
  */
 export function e2eBuildEnvironment(
-  env: Source,
+  env: Env,
 ): Record<string, string | undefined> & { NODE_ENV: "production"; OTP_FIXED_CODE: "" } {
   return { ...env, NODE_ENV: "production", OTP_FIXED_CODE: "" };
 }

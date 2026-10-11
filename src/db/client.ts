@@ -32,7 +32,7 @@ function connectionFailure(error: Error): { name: string; code: string | null; m
   return { name: error.name, code: typeof code === "string" ? code : null, message: error.message };
 }
 
-type Lend = (
+type ConnectCallback = (
   error: Error | undefined,
   client: PoolClient | undefined,
   done: (release?: unknown) => void,
@@ -54,8 +54,8 @@ class MarkingPool extends Pool {
   }
 
   override connect(): Promise<PoolClient>;
-  override connect(callback: Lend): void;
-  override connect(callback?: Lend): Promise<PoolClient> | undefined {
+  override connect(callback: ConnectCallback): void;
+  override connect(callback?: ConnectCallback): Promise<PoolClient> | undefined {
     if (callback) {
       super.connect((error, client, done) => callback(this.marked(error), client, done));
       return undefined;
