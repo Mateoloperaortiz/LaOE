@@ -29,6 +29,7 @@ import { tList } from "@/shared/copy";
 import { fillCopy } from "@/shared/copy/format";
 import { itemPattern } from "../helpers/copy";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
@@ -320,6 +321,7 @@ describe("Sudoku con la solución en el servidor", () => {
 
   it("veinte inicios concurrentes dejan una sola partida", async () => {
     const personId = await seedMember("sudoku.concurrencia-inicio@eafit.edu.co");
+    await warmPool(10);
     const results = await Promise.all(
       Array.from({ length: 20 }, () =>
         startSudokuAs(
@@ -419,6 +421,7 @@ describe("Sudoku con la solución en el servidor", () => {
     const personId = await seedMember("sudoku.concurrencia-cierre@eafit.edu.co");
     const run = await openRun(personId, { difficulty: "MEDIUM" });
     const { solution } = await rowOf(run.id);
+    await warmPool(6);
     const results = await Promise.all(
       Array.from({ length: 6 }, () =>
         finishSudokuAs(

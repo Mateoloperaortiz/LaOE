@@ -24,6 +24,7 @@ import { DomainError } from "@/shared/lib/errors";
 import { decideInOwnOccasion } from "../helpers/check-ins";
 import { itemPattern } from "../helpers/copy";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import {
   currentTermCode,
@@ -104,6 +105,7 @@ describe("check-in propio", () => {
         title: "Integración masiva",
       });
 
+      await warmPool(10);
       const first = await Promise.all(
         people.map((personId) => checkInSelfAs({ personId, ip: null }, { publicId })),
       );

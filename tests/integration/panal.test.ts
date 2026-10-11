@@ -21,6 +21,7 @@ import { membership } from "@/modules/people/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedMember, seedPerson } from "./factories";
 
@@ -59,6 +60,7 @@ describe("Panal diario persistido", () => {
 
   it("inicios concurrentes crean una única partida y una sola auditoría", async () => {
     const id = await seedMember("panal.inicio@eafit.edu.co");
+    await warmPool(10);
     const games = await Promise.all(Array.from({ length: 12 }, () => start(id)));
     expect(new Set(games.map((game) => game.id)).size).toBe(1);
     expect(await db().select().from(panalGame)).toHaveLength(1);
@@ -71,6 +73,7 @@ describe("Panal diario persistido", () => {
     const id = await seedMember("panal.reintento@eafit.edu.co");
     const game = await start(id);
     const [first = "", second = ""] = panalPuzzleForDay(game.day).words;
+    await warmPool(8);
     const responses = await Promise.all(
       Array.from({ length: 8 }, () => submit(id, game.id, first.toLowerCase())),
     );
@@ -151,6 +154,7 @@ describe("Panal diario persistido", () => {
       await submit(id, game.id, word);
       score += panalWordScore(word);
     }
+    await warmPool();
     const result = await Promise.all(
       puzzle.words.slice(i).map((word) => submit(id, game.id, word)),
     );
@@ -230,6 +234,7 @@ describe("Panal diario persistido", () => {
     }
     const [row] = await db().select().from(panalGame).where(eq(panalGame.id, game.id));
     if (!row) throw new Error("Falta partida");
+    await warmPool();
     const [result] = await Promise.all([
       submit(id, game.id, puzzle.words[i] ?? ""),
       closeTermPointsAs({ personId: id, ip: null }, row.termId),
@@ -277,6 +282,7 @@ describe("Panal diario persistido", () => {
     const game = await start(id);
     const words = panalPuzzleForDay(game.day).words;
     for (const word of words.slice(0, limit - 1)) await submit(id, game.id, word);
+    await warmPool(8);
     const result = await Promise.all(
       Array.from({ length: 8 }, () => submit(id, game.id, words[limit - 1] ?? "")),
     );

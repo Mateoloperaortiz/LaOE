@@ -29,6 +29,7 @@ import { term } from "@/modules/terms/schema";
 import { tList } from "@/shared/copy";
 import { itemPattern } from "../helpers/copy";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
@@ -82,6 +83,7 @@ describe("Wordle diario persistido", () => {
 
   it("veinte inicios concurrentes del mismo miembro devuelven la misma partida", async () => {
     const personId = await seedMember("wordle.inicio@eafit.edu.co");
+    await warmPool(10);
     const games = await Promise.all(Array.from({ length: 20 }, () => started(personId)));
     expect(new Set(games.map((game) => game.id)).size).toBe(1);
     expect(await db().select().from(wordleGame)).toHaveLength(1);
@@ -96,8 +98,38 @@ describe("Wordle diario persistido", () => {
     );
     const termId = await seedTerm();
     await Promise.all(people.map((personId) => seedMembership(personId, termId)));
+    // Al catálogo le quedan justo tantas respuestas como miembros: si dos leyeran a la vez las
+    // disponibles, elegirían al azar entre las mismas y se repetirían casi siempre.
+    const spent = WORDLE_ANSWERS.slice(people.length);
+    const others = await db()
+      .insert(person)
+      .values(
+        spent.map((_, i) => ({
+          email: `wordle.gastada.${i}@eafit.edu.co`,
+          firstName: "Persona",
+          lastName: "Sintética",
+          source: "TEST",
+        })),
+      )
+      .returning({ id: person.id });
+    await db()
+      .insert(wordleGame)
+      .values(
+        spent.map((answer, i) => ({
+          personId: others[i]?.id ?? "",
+          day: dayKeyFor(new Date()),
+          termId,
+          answer,
+          dictionaryVersion: WORDLE_DICTIONARY_VERSION,
+          rulesVersion: WORDLE_RULES_VERSION,
+        })),
+      );
+    await warmPool(10);
     await Promise.all(people.map(started));
-    const games = await db().select().from(wordleGame);
+    const games = (await db().select().from(wordleGame)).filter((game) =>
+      people.includes(game.personId),
+    );
+    expect(games).toHaveLength(people.length);
     expect(new Set(games.map((game) => game.answer)).size).toBe(people.length);
   });
 
@@ -372,6 +404,7 @@ describe("Wordle diario persistido", () => {
     const personId = await seedMember("wordle.carrera@eafit.edu.co");
     const game = await started(personId);
     const answer = await answerFor(game.id);
+    await warmPool();
     const [result] = await Promise.all([
       submit(personId, game.id, answer),
       closeTermPointsAs({ personId, ip: null }, game.termId),

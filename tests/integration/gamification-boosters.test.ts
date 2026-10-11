@@ -35,6 +35,7 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
 import { decideInOwnOccasion } from "../helpers/check-ins";
+import { firstThenSecond, holdTransaction } from "../helpers/locks";
 import { truncateAll } from "./db";
 import {
   seedBooster,
@@ -353,25 +354,28 @@ describe("boosters: economía del impulso en retos", () => {
       { boosterId, target: { challengeId: challengeA } },
     );
 
-    // Carrera: enviar A mientras se re-apunta a B y se envía B. Gane quien gane,
-    // el booster solo puede terminar consumido por un premio.
-    // El re-apunte puede ganarle al envío de A o llegar tarde: ambas entregas deben
-    // completar (la que pierde el booster sigue sin él) y el booster se consume una vez.
-    const [submitA, submitB] = await Promise.all([
-      answerTrivia(personId, challengeA).catch(() => null),
-      (async () => {
-        try {
-          await setBoosterTargetAs(
-            { personId, ip: null },
-            { boosterId, target: { challengeId: challengeB } },
-          );
-        } catch {
-          // Si A ganó la carrera, el booster ya está reservado/consumido.
-        }
-        return answerTrivia(personId, challengeB).catch(() => null);
-      })(),
-    ]);
-    expect(submitA).toMatchObject({ ok: true });
+    // El envío de A llega primero a la fila del booster, que la prueba retiene, y el re-apunte a B hace
+    // cola detrás: al soltarla, A se lo lleva y el re-apunte llega tarde. Sin el candado de la reserva,
+    // A no espera a nadie y `firstThenSecond` falla.
+    const held = await holdTransaction((tx) =>
+      tx
+        .select({ id: boosterItem.id })
+        .from(boosterItem)
+        .where(eq(boosterItem.id, boosterId))
+        .for("update"),
+    );
+    const [submitA] = await firstThenSecond(
+      held,
+      () => answerTrivia(personId, challengeA),
+      () =>
+        setBoosterTargetAs(
+          { personId, ip: null },
+          { boosterId, target: { challengeId: challengeB } },
+        ),
+    );
+    // Gane quien gane el booster, las dos entregas completan: la que lo pierde sigue sin él.
+    const submitB = await answerTrivia(personId, challengeB);
+    expect(submitA).toMatchObject({ status: "fulfilled", value: { ok: true } });
     expect(submitB).toMatchObject({ ok: true });
 
     const consumed = await boosterOf(boosterId);

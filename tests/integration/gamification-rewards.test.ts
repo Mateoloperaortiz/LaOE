@@ -21,6 +21,7 @@ import {
 import { auditLog } from "@/modules/system/schema";
 import { getTerm } from "@/modules/terms";
 import { t } from "@/shared/copy";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedBooster, seedChallenge, seedMember, seedParticipation, seedTerm } from "./factories";
 
@@ -328,6 +329,7 @@ describe("premios de la gamificación", () => {
       rewardTarget(personId, termId),
       rewardTarget(personId, termId),
     ]);
+    await warmPool();
     const results = await Promise.all([
       reserve(personId, termId, { participationId: firstTarget, base: 15 }),
       reserve(personId, termId, { participationId: secondTarget, base: 15 }),

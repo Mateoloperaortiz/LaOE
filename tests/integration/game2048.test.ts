@@ -24,6 +24,7 @@ import { game2048Run, pointEntry } from "@/modules/participation/schema";
 import { auditLog, outbox } from "@/modules/system/schema";
 import { term } from "@/modules/terms/schema";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedMember, seedMembership, seedPerson, seedTerm } from "./factories";
 
@@ -156,6 +157,7 @@ describe("2048 con replay verificado", () => {
 
   it("veinte inicios concurrentes dejan una sola partida", async () => {
     const personId = await seedMember("g2048.concurrencia-inicio@eafit.edu.co");
+    await warmPool(10);
     const results = await Promise.all(
       Array.from({ length: 20 }, () =>
         startGame2048As({ personId, ip: null }, { requestId: randomUUID() }),

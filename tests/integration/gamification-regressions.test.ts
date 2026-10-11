@@ -34,6 +34,7 @@ import { outbox } from "@/modules/system/schema";
 import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
 import { decideInOwnOccasion } from "../helpers/check-ins";
 import { drainOutbox } from "../helpers/outbox";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import {
   seedBooster,
@@ -108,6 +109,7 @@ it("absorbe envíos simultáneos y conserva el replay después del cierre", asyn
     .insert(challengeQuestion)
     .values({ challengeId, ordinal: 1, prompt: "¿Una?", options: ["A", "B"], correctIndex: 0 });
   const input = { challengeId, requestId: randomUUID(), answers: [0] };
+  await warmPool();
   const results = await Promise.all([
     submitTriviaAs({ personId, ip: null }, input),
     submitTriviaAs({ personId, ip: null }, input),

@@ -40,6 +40,7 @@ import { auditLog, outbox } from "@/modules/system/schema";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { decideInOwnOccasion } from "../helpers/check-ins";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import {
   seedChallenge,
@@ -508,6 +509,7 @@ describe("retos: trivia", () => {
 
     const member = await resolveMemberContext(personId, termId);
     const settings = await loadGamificationSettings();
+    await warmPool();
     const results = await Promise.allSettled([
       runCommand({ personId, ip: null }, (ctx) =>
         submitTrivia(

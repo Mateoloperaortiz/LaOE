@@ -13,6 +13,7 @@ import { auditLog } from "@/modules/system/schema";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
 import { firstThenSecond, holdTransaction, outcome } from "../helpers/locks";
+import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 import { seedChallenge, seedMember, seedTerm } from "./factories";
 
@@ -119,6 +120,7 @@ describe("revisar y anular la misma entrega de un reto a la vez", () => {
   it("dos aprobaciones a la vez de la misma entrega: vale una, la otra recibe que ya no está pendiente y el premio se entrega una vez", async () => {
     const f = await pendingDelivery();
 
+    await warmPool();
     const outcomes = await Promise.allSettled([approve(f), approve(f, f.second)]);
 
     expect(loserOf(outcomes)).toBe(notApplicable("COMPLETED"));
@@ -170,6 +172,7 @@ describe("revisar y anular la misma entrega de un reto a la vez", () => {
     await approve(f);
     expect(await balanceFor(f.personId, f.termId)).toBe(POINTS);
 
+    await warmPool();
     const outcomes = await Promise.allSettled([annul(f), annul(f, f.second)]);
 
     expect(loserOf(outcomes)).toBe(notApplicable("ANNULLED"));
