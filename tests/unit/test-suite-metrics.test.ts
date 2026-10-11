@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  insertsInto,
   insertTargets,
   looseInserts,
   tableNamesWritten,
@@ -73,37 +72,6 @@ describe("los insert sueltos", () => {
     const files = [{ path: "a.test.ts", text: "list.insertAt(0); const insertInto = 1;" }];
 
     expect(looseInserts(files)).toEqual({ calls: 0, raw: 0 });
-  });
-});
-
-describe("los insert sueltos de una tabla", () => {
-  it("dice el archivo, la tabla y la línea de cada uno, por Drizzle o por SQL crudo", () => {
-    const files = [
-      {
-        path: "a.test.ts",
-        text: "await db.insert(person).values(a);\nawait tx\n  .insert(\n    term,\n  );",
-      },
-      {
-        path: "b.test.ts",
-        text: 'await client.query(`INSERT INTO "membership" (id) values ($1)`);',
-      },
-    ];
-
-    expect(insertsInto(files, ["person", "membership"])).toEqual([
-      { path: "a.test.ts", table: "person", line: 1 },
-      { path: "b.test.ts", table: "membership", line: 1 },
-    ]);
-  });
-
-  it("no confunde una tabla con otra que empieza igual", () => {
-    const files = [
-      {
-        path: "a.test.ts",
-        text: "await db.insert(membershipTerm).values(a);\nsql`insert into person_note (id) values (1)`;",
-      },
-    ];
-
-    expect(insertsInto(files, ["person", "membership"])).toEqual([]);
   });
 });
 
@@ -310,12 +278,5 @@ describe("insertTargets", () => {
       { path: "tests/integration/a.test.ts", target: "into public.<table>", line: 9 },
       { path: "tests/integration/a.test.ts", target: "into <table>", line: 10 },
     ]);
-  });
-
-  it("son las mismas escrituras que cuenta looseInserts, una por una", () => {
-    const targets = insertTargets(files);
-    const raw = targets.filter(({ target }) => target.startsWith("into ")).length;
-
-    expect({ calls: targets.length - raw, raw }).toEqual(looseInserts(files));
   });
 });

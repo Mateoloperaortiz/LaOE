@@ -25,6 +25,13 @@ function beyondTheCatalogs(text: string): string[] {
   );
 }
 
+/** Los `schema.ts` que el texto importa, con `from` o con un import dinámico. */
+function schemaImports(text: string): string[] {
+  return [...text.matchAll(/(?:from|import\()\s*["']([^"']*\/schema(?:\.ts)?)["']/g)].map(
+    (match) => match[1] ?? "",
+  );
+}
+
 describe("los nombres de tabla escritos en el vaciado de la base de pruebas", () => {
   it("el vaciado no trae escrita ninguna tabla fuera de los catálogos que llenan las migraciones", () => {
     expect(beyondTheCatalogs(readFileSync(EMPTYING, "utf8"))).toEqual([]);
@@ -42,5 +49,18 @@ describe("los nombres de tabla escritos en el vaciado de la base de pruebas", ()
         `${text}\nawait db.execute(sql\`delete from point_entry where id = \${id}\`);`,
       ),
     ).toEqual(["point_entry"]);
+  });
+
+  it("el vaciado no importa el esquema de ningún módulo: con una tabla de Drizzle en la mano nombraría una tabla sin escribirla", () => {
+    const text = readFileSync(EMPTYING, "utf8");
+    expect(schemaImports(text)).toEqual([]);
+
+    // La búsqueda por cadenas no ve una tabla que llega importada; esta sí ve el import.
+    const withTables = `import { person, tag } from "@/modules/people/schema";\n${text}\nawait db.delete(person);\nconst MORE = [person, tag].map(getTableName);`;
+    expect(beyondTheCatalogs(withTables)).toEqual([]);
+    expect(schemaImports(withTables)).toEqual(["@/modules/people/schema"]);
+    expect(
+      schemaImports(`${text}\nconst { term } = await import("../../src/modules/terms/schema");`),
+    ).toEqual(["../../src/modules/terms/schema"]);
   });
 });

@@ -99,7 +99,7 @@ function unlisted(dir: string): string[] {
 // Dice «a la vez», lanza sus dos llamadas juntas y no abre las conexiones ni retiene nada: con una
 // sola conexión abierta en el pool pasa aunque `creditAs` no tome ningún candado. `helperImport` y
 // `crossing` le suman el import de un ayudante y la línea que lo llama antes de lanzar.
-const seededTest = (helperImport = "", crossing = "") =>
+const plantedTest = (helperImport = "", crossing = "") =>
   [
     'import { expect, it } from "vitest";',
     'import { creditAs } from "@/modules/participation";',
@@ -141,29 +141,29 @@ describe("las pruebas de integración que nombran una simultaneidad", () => {
 
   it("un archivo sembrado que dice «a la vez» y lanza dos llamadas sin forzar el cruce cae, también si importa warmPool sin llamarlo, y deja de caer cuando llama a warmPool o a un ayudante de candados", () => {
     const dir = mkdtempSync(join(tmpdir(), "casa-simultaneidad-"));
-    const seeded = join(dir, "sembrado.test.ts");
+    const planted = join(dir, "sembrado.test.ts");
     const caught = [`${dir}/sembrado.test.ts › dos créditos a la vez dejan uno solo`];
     try {
-      writeFileSync(seeded, seededTest());
+      writeFileSync(planted, plantedTest());
       expect(unlisted(dir)).toEqual(caught);
 
       // Lo que no es un archivo de prueba no cuenta, como en la suite.
-      writeFileSync(join(dir, "fixtures.ts"), seededTest());
+      writeFileSync(join(dir, "fixtures.ts"), plantedTest());
       expect(unlisted(dir)).toEqual(caught);
 
       // Importar el ayudante no fuerza nada: hay que llamarlo.
-      writeFileSync(seeded, seededTest('import { warmPool } from "../helpers/pool";'));
+      writeFileSync(planted, plantedTest('import { warmPool } from "../helpers/pool";'));
       expect(unlisted(dir)).toEqual(caught);
 
       writeFileSync(
-        seeded,
-        seededTest('import { warmPool } from "../helpers/pool";', "await warmPool();"),
+        planted,
+        plantedTest('import { warmPool } from "../helpers/pool";', "await warmPool();"),
       );
       expect(unlisted(dir)).toEqual([]);
 
       writeFileSync(
-        seeded,
-        seededTest(
+        planted,
+        plantedTest(
           'import { holdCommand } from "../helpers/locks";',
           "const held = await holdCommand(actor, (ctx) => credit(ctx, input));",
         ),
@@ -171,7 +171,7 @@ describe("las pruebas de integración que nombran una simultaneidad", () => {
       expect(unlisted(dir)).toEqual([]);
 
       // Nombrar el ayudante sin importarlo tampoco alcanza.
-      writeFileSync(seeded, `// Falta warmPool, de ../helpers/pool\n${seededTest()}`);
+      writeFileSync(planted, `// Falta warmPool, de ../helpers/pool\n${plantedTest()}`);
       expect(unlisted(dir)).toEqual(caught);
     } finally {
       rmSync(dir, { recursive: true, force: true });

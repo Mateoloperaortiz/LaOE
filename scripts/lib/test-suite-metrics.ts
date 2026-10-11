@@ -63,11 +63,15 @@ export function tableNamesWritten(file: TextFile, tables: ReadonlySet<string>): 
   return [...written].sort();
 }
 
-/** Las escrituras de filas que hay en los archivos: llamadas a `.insert(` y `insert into` en SQL crudo. */
+/**
+ * Cuántas escrituras de filas hay en los archivos: llamadas a `.insert(` y `insert into` en SQL crudo.
+ * Cuenta lo que nombra `insertTargets`: la fila de las métricas y las listas del trinquete salen de
+ * una sola lectura.
+ */
 export function looseInserts(files: TextFile[]): { calls: number; raw: number } {
-  const count = (pattern: RegExp) =>
-    files.reduce((total, file) => total + (file.text.match(pattern)?.length ?? 0), 0);
-  return { calls: count(/\.insert\(/g), raw: count(/\binsert\s+into\b/gi) };
+  const targets = insertTargets(files);
+  const raw = targets.filter(({ target }) => target.startsWith("into ")).length;
+  return { calls: targets.length - raw, raw };
 }
 
 /**
@@ -93,32 +97,6 @@ export function insertTargets(files: TextFile[]): { path: string; target: string
           line: file.text.slice(0, match.index).split("\n").length,
         })),
       )
-      .sort((a, b) => a.line - b.line),
-  );
-}
-
-/**
- * Dónde escribe a mano un archivo una fila de una de `tables`: `.insert(tabla)` de Drizzle o `insert
- * into tabla` en SQL crudo, con su línea. Mira el nombre que el archivo le pasa a `insert`: no ve una
- * tabla importada con otro nombre ni un SQL que arma el nombre de la tabla.
- */
-export function insertsInto(
-  files: TextFile[],
-  tables: readonly string[],
-): { path: string; table: string; line: number }[] {
-  const names = tables.join("|");
-  const patterns = [
-    new RegExp(`\\.insert\\(\\s*(${names})\\s*\\)`, "g"),
-    new RegExp(`\\binsert\\s+into\\s+"?(${names})"?(?![A-Za-z0-9_])`, "gi"),
-  ];
-  return files.flatMap((file) =>
-    patterns
-      .flatMap((pattern) => [...file.text.matchAll(pattern)])
-      .map((match) => ({
-        path: file.path,
-        table: (match[1] ?? "").toLowerCase(),
-        line: file.text.slice(0, match.index).split("\n").length,
-      }))
       .sort((a, b) => a.line - b.line),
   );
 }

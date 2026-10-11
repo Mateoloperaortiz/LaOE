@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { insertsInto, insertTargets, looseInserts } from "../../scripts/lib/test-suite-metrics";
+import { insertTargets, looseInserts } from "../../scripts/lib/test-suite-metrics";
 
 // La siembra de las pruebas pasa por la fábrica de `tests/factories`, que comparten integración y
 // E2E (DT-013, ADR-124 reglas 5 y 6). Una fila escrita a mano en una prueba puede armar un estado que
@@ -25,7 +25,7 @@ import { insertsInto, insertTargets, looseInserts } from "../../scripts/lib/test
 
 const FACTORY_TABLES = ["person", "permission", "membership", "term"];
 const SUITES = ["tests/integration", "tests/e2e"];
-const NOT_SEEDED = ["tests/factories/", "tests/unit/"];
+const NOT_SEEDING_DIRS = ["tests/factories/", "tests/unit/"];
 
 interface Exception {
   path: string;
@@ -436,8 +436,10 @@ function sources(dir: string) {
 }
 
 /** Todo `tests/` menos la fábrica y las unitarias: donde un insert suelto es siembra a mano. */
-function seeded() {
-  return sources("tests").filter(({ path }) => !NOT_SEEDED.some((dir) => path.startsWith(dir)));
+function seedingSources() {
+  return sources("tests").filter(
+    ({ path }) => !NOT_SEEDING_DIRS.some((dir) => path.startsWith(dir)),
+  );
 }
 
 const named = (path: string, target: string) => `${path} › ${target}`;
@@ -449,9 +451,9 @@ const LISTED: Pending[] = [
 ];
 
 /** Cuántos insert sueltos de cada destino hay de verdad en cada archivo. */
-function loose(): Record<string, number> {
+function looseInsertCounts(): Record<string, number> {
   const counts: Record<string, number> = {};
-  for (const { path, target } of insertTargets(seeded())) {
+  for (const { path, target } of insertTargets(seedingSources())) {
     counts[named(path, target)] = (counts[named(path, target)] ?? 0) + 1;
   }
   return counts;
@@ -459,7 +461,7 @@ function loose(): Record<string, number> {
 
 describe("la siembra de las pruebas", () => {
   it("pasa por la fábrica: fuera de ella quedan solo los insert de las dos listas, ni uno más ni uno menos", () => {
-    expect(loose()).toEqual(
+    expect(looseInsertCounts()).toEqual(
       Object.fromEntries(LISTED.map(([path, target, inserts]) => [named(path, target), inserts])),
     );
   });
@@ -493,11 +495,21 @@ describe("la siembra de las pruebas", () => {
   });
 
   it("la fábrica es la que escribe las cuatro tablas", () => {
-    const written = insertsInto(sources("tests/factories"), FACTORY_TABLES).map(
-      (insert) => insert.table,
-    );
+    const written = insertTargets(sources("tests/factories"))
+      .map(({ target }) => target)
+      .filter((target) => FACTORY_TABLES.includes(target));
 
     expect([...new Set(written)].sort()).toEqual([...FACTORY_TABLES].sort());
+  });
+
+  it("la fábrica no escribe puntos ni nombra su tabla: `point_entry` tiene un solo escritor, el libro (ADR-119 regla 8)", () => {
+    const factory = sources("tests/factories");
+
+    expect(insertTargets(factory).filter(({ target }) => /point_?entry/i.test(target))).toEqual([]);
+    // Importada con otro nombre no se vería en el destino del insert: tampoco puede nombrarla.
+    for (const file of factory) {
+      expect(file.text, file.path).not.toMatch(/\bpointEntry\b|\bpoint_entry\b/);
+    }
   });
 
   it("cada insert de la fábrica nombra una tabla que importa de un `schema.ts`: ninguna función recibe la tabla y escribe lo que le pasen", () => {
