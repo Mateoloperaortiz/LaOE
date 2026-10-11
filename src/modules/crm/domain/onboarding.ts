@@ -87,11 +87,13 @@ export type OnboardingEvidence =
 
 /**
  * Evidencia automática (leer la normativa, la primera integración, activar push): marca como hechos
- * los pasos con ese `auto` para quien entró este término. Devuelve cuántos pasos cambiaron.
+ * los pasos con ese `auto` para quien entró este término. Devuelve cuántos pasos cambiaron. `ip` es la
+ * del request que la originó, o nula si la marca un trabajo, que no tiene request (ADR-123 regla 3).
  */
 export async function recordOnboardingEvidence(
   personId: string,
   auto: OnboardingEvidence,
+  ip: string | null,
 ): Promise<number> {
   const [term, mine, steps] = await Promise.all([
     getCurrentTerm(),
@@ -103,9 +105,9 @@ export async function recordOnboardingEvidence(
     return 0;
   }
   let changed = 0;
-  // La marca el sistema a nombre de la persona, desde un trabajo o después de responder: sin IP. Las
-  // dos puertas que la agendan tienen request y no le pasan la IP (DT-314).
-  await runCommand({ personId, ip: null }, async (ctx) => {
+  // La marca el sistema a nombre de la persona, desde un trabajo o después de responder. La IP la trae
+  // quien llama: la puerta que la agenda leyó la de su request, y un trabajo escribe nulo.
+  await runCommand({ personId, ip }, async (ctx) => {
     for (const step of matching) {
       if (await markOnboardingStep(ctx, personId, term.id, step.key, "AUTO")) {
         changed += 1;

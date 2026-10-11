@@ -18,6 +18,7 @@ import {
   scoreCriterionAs,
 } from "@/modules/permanence";
 import { leaderScore } from "@/modules/permanence/schema";
+import { auditLog } from "@/modules/system/schema";
 import { closeTermPermanence, closeTermPoints } from "@/modules/terms";
 import { term } from "@/modules/terms/schema";
 import { t, tList } from "@/shared/copy";
@@ -130,6 +131,14 @@ describe("evaluaciones", () => {
         ),
       );
     expect(row?.n).toBe(1);
+    // La marcó un trabajo del poller, que no tiene request: a nombre de la persona y sin IP (ADR-123
+    // regla 3).
+    expect(
+      await getDb()
+        .select({ actorId: auditLog.actorId, ip: auditLog.ip })
+        .from(auditLog)
+        .where(eq(auditLog.action, "onboarding.step-done")),
+    ).toEqual([{ actorId: newcomer, ip: null }]);
   });
 });
 

@@ -197,14 +197,16 @@ onEvent(groupAdmissionFailed, async (event, ctx) => {
   );
 });
 
-// La primera integración marca sola el paso del onboarding (ADR-031, ADR-034 regla 15).
+// La primera integración marca sola el paso del onboarding (ADR-031, ADR-034 regla 15). Las dos
+// evidencias de este archivo las marca un trabajo del poller, que no tiene request: van sin IP (ADR-123
+// regla 3).
 
 // Una tarea de nuevos con buen desempeño marca el paso de decoración del onboarding (ADR-036).
 onEvent(evaluationRecorded, async ({ personId, kind, evaluation }, ctx) => {
   if (kind !== "NEW_MEMBER_TASK" || evaluation !== "GOOD") {
     return;
   }
-  const changed = await recordOnboardingEvidence(personId, "NEW_MEMBER_TASK");
+  const changed = await recordOnboardingEvidence(personId, "NEW_MEMBER_TASK", null);
   ctx.log.debug({ personId, changed }, "evidencia de la tarea de nuevos");
 });
 
@@ -212,7 +214,7 @@ onEvent(checkinApproved, async ({ personId, category }, ctx) => {
   if (category !== "INTEGRATION") {
     return;
   }
-  const changed = await recordOnboardingEvidence(personId, "FIRST_INTEGRATION");
+  const changed = await recordOnboardingEvidence(personId, "FIRST_INTEGRATION", null);
   ctx.log.debug({ personId, changed }, "evidencia de la primera integración");
 });
 

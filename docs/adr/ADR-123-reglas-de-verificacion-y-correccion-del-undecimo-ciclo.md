@@ -3,7 +3,7 @@
 - Estado: Aceptada
 - Fecha: 2026-10-11
 - Relacionadas: ADR-038, ADR-053, ADR-054, ADR-077, ADR-082, ADR-109, ADR-119, ADR-121, ADR-122
-- Enmienda: ADR-121 (regla 1: la baja de campañas por el token del correo ya no audita sin IP; la recibe de sus dos puertas)
+- Enmienda: ADR-121 (regla 1: la baja de campañas por el token del correo ya no audita sin IP, la recibe de sus dos puertas; y la evidencia automática del onboarding que agenda una puerta con request tampoco, mientras la que marca un trabajo sigue sin ella)
 
 ## Contexto
 
@@ -14,6 +14,8 @@ El undécimo ciclo del refactor progresivo ([ADR-109](ADR-109-refactor-progresiv
 El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` elegía `npm run start` si había `CI` y `npm run dev` si no. Compilar quedaba a cargo de quien corría, que además tenía que acordarse de hacerlo con el origen del puerto de la corrida.
 
 **La baja de campañas por el token del correo se auditaba sin IP (DT-313).** [ADR-121](ADR-121-reglas-de-estructura-y-pruebas-del-noveno-ciclo.md) regla 1 hizo obligatoria la IP del actor en el tipo y dejó anotado un `null` que no era de ninguna de sus tres clases: `unsubscribeByToken` tiene request, por sus dos puertas, y armaba su actor con el dueño del token y la IP en nulo. La fila `notification-preference.unsubscribed` decía a quién se le apagaron las campañas y no desde dónde. El ciclo 9 no lo resolvió porque antes había que decir si esa IP sirve: el clic único de RFC 8058 lo hace el cliente de correo, no la persona.
+
+**La evidencia automática del onboarding que nace de un request se auditaba sin IP (DT-314).** La misma regla contó a `recordOnboardingEvidence` como «el sistema a nombre de la persona» y la dejó con la IP en nulo para sus cuatro llamadores. Dos son trabajos del poller, sin request. Los otros dos son puertas que la agendan con `after()`: `POST /api/push/subscribe` y la página `/app/normativa/[id]`. Ahí el mismo request dejaba la fila `push-subscription.created` con su IP y la fila `onboarding.step-done` sin ella.
 
 ## Decisión
 
@@ -41,6 +43,12 @@ El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` ele
 
    **Lo que no cambia.** La acción, la entidad, el actor y el `after` de la fila (`{ emailCampaigns: false, source: "TOKEN" }`), que no dice por cuál de las dos puertas llegó. Qué apaga la baja y qué responde cada puerta. De dónde se lee la IP del cliente (DT-033). Si el proxy no entrega la cabecera, la IP queda nula, como en cualquier comando. Las filas ya escritas conservan su `ip` nula.
 
+3. **La evidencia automática del onboarding se audita con la IP del request que la originó, y sin IP si la marca un trabajo.** `recordOnboardingEvidence(personId, auto, ip)` (`src/modules/crm/domain/onboarding.ts`) recibe la IP como parámetro obligatorio, texto o nulo, y la escribe en cada fila `onboarding.step-done` que deja; quien llame sin ella no compila. Sus cuatro llamadores la pasan:
+   - **Las dos puertas con request**, `POST /api/push/subscribe` (`PUSH_ENABLED`) y la página `/app/normativa/[id]` (`NORMATIVA_READ`), arman el actor con `actorContext` y entregan su IP. La leen antes de `after()`: lo agendado corre cuando el request ya respondió. En la ruta es el mismo actor con que guarda el dispositivo, así que las dos filas del request llevan la misma IP.
+   - **Los dos trabajos del poller** (`src/modules/crm/jobs.ts`: la tarea de nuevos bien evaluada y la primera integración aprobada) escriben `null`, con el motivo al lado: no tienen request. No heredan la IP de quien evaluó o aprobó, que no es el actor de la fila.
+
+   El actor no cambia: sigue siendo la persona, «el sistema a nombre de la persona» de ADR-121 regla 1. Lo que cambia es que esa clase ya no trae la IP en nulo por serlo: la lleva si hay request. Tampoco cambian la acción, la entidad ni el `after` de la fila, ni cuándo se marca un paso. De dónde se lee la IP del cliente no cambia (DT-033), y las filas ya escritas conservan su `ip` nula.
+
 ## Consecuencias
 
 - `npm run test:e2e` sin más pasa entera en un worktree nuevo: con `.next` borrado entero, 249 de 249 en 5,3 minutos (335 s contando la base, el build y la suite), la prueba de SEO en 0,7 s y las cinco del Sudoku entre 0,4 y 3,2 s. La misma suite, forzada a dev con `E2E_SERVER=dev` y `.next/dev` borrado, dio 248 de 249 en 9,1 minutos (550 s), con la firma de DT-338: la de SEO en 27 s, la primera del Sudoku sin tiempo (6 s contra 5) y la segunda en 23,2 s contra 30.
@@ -55,3 +63,5 @@ El lanzador (`scripts/test-e2e.ts`) no decidía nada: `playwright.config.ts` ele
 - La firma de `unsubscribeByToken` cambia: su segundo parámetro es la IP. Lo llaman sus dos puertas y una prueba (`tests/integration/campaigns.test.ts`), que escribe `null` porque llama al dominio sin request.
 - Una baja por clic único queda con la IP que le llegue a la casa, que en muchos casos será la de un proveedor de correo. La fila sigue sin decir por cuál puerta entró: quien la lea tiene la IP y nada más para distinguirlas.
 - Prueba de la regla 2: `tests/integration/command-actor-ip.test.ts`, por las dos puertas y contra `audit_log`, con la cabecera del proxy simulada. Las dos en rojo sobre el código anterior: la fila salía con `ip` nula.
+- La firma de `recordOnboardingEvidence` cambia: su tercer parámetro es la IP. La página del lector de normativa lee una cabecera más; ya era dinámica por la sesión.
+- Prueba de la regla 3: `tests/integration/command-actor-ip.test.ts`, por las dos puertas, con lo que cada una agenda corrido a mano; las dos en rojo sobre el código anterior. La del lector llama a la página con el documento puesto por la prueba. Que un trabajo la marque sin IP queda en `tests/integration/permanence-evaluations.test.ts`, que no cambia de conducta.

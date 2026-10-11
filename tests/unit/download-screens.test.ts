@@ -32,6 +32,8 @@ vi.mock("@/env", () => ({
   getEnv: () => ({ APP_URL: "https://oe-sintetica.example", APP_TIMEZONE: "America/Bogota" }),
 }));
 vi.mock("next/server", () => ({ after: () => {} }));
+// El lector de normativa lee la IP del request para la evidencia que agenda (ADR-123 regla 3).
+vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("not-found");

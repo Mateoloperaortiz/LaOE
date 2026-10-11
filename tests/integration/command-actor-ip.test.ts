@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as unsubscribeInOneClick } from "@/app/api/baja/[token]/route";
 import { POST as subscribeToPush } from "@/app/api/push/subscribe/route";
 import { revokeCarnetAction } from "@/app/app/carnet/actions";
+import NormativaDocumentPage from "@/app/app/normativa/[id]/page";
 import { unsubscribeAction } from "@/app/baja/[token]/actions";
 import { closeDb, getDb } from "@/db/client";
 import { DEFAULT_PREFERENCES, getPreferences, updatePreferencesAs } from "@/modules/comms";
@@ -23,8 +24,9 @@ import { seedCall, seedCallEntry, seedMember, seedTerm } from "./factories";
 // request y la entregan con el actor; un trabajo del poller no tiene request, así que su auditoría
 // conserva a quien originó el evento y va sin IP. Casi todo lo que acá se afirma es lo que ya quedaba
 // escrito en `audit_log` antes de que el tipo `Actor` exigiera la IP: el cambio de tipo no movió ninguna
-// fila. Lo que sí cambió después: la baja de campañas por el token del correo, que tiene request y
-// salía sin IP, ahora la recibe de sus dos puertas (ADR-123 regla 2).
+// fila. Lo que sí cambió después: la baja de campañas por el token del correo y la evidencia automática
+// del onboarding que agenda una puerta, que tienen request y salían sin IP, ahora la reciben de sus
+// puertas (ADR-123 reglas 2 y 3).
 
 const session = vi.hoisted(() => ({ getActor: vi.fn() }));
 const IP = "203.0.113.7";
@@ -51,7 +53,16 @@ vi.mock("next/server", async (importOriginal) => ({
 vi.mock("@/modules/identity", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/identity")>()),
   getActor: session.getActor,
+  requireActor: session.getActor,
 }));
+// Del lector de normativa acá solo importa lo que agenda al abrir un documento: el documento lo pone
+// la prueba, sin subir un PDF ni publicar nada.
+vi.mock("@/modules/content", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/content")>()),
+  getPublishedDocumentWithArticles: async (id: string) => ({ document: { id }, articles: [] }),
+}));
+// La página devuelve el lector sin pintarlo, y pintarlo pide las fuentes de `next/font`.
+vi.mock("@/modules/content/components/DocumentReader", () => ({ DocumentReader: () => null }));
 
 /** A dónde redirige la action; si no redirige, lo que devolvió o el error con que falló. */
 async function redirectOf(action: Promise<unknown>): Promise<unknown> {
@@ -133,7 +144,7 @@ describe("la IP del actor de un comando llega a la auditoría según la puerta",
     expect(await audits("push-subscription.created")).toEqual([{ actorId: personId, ip: IP }]);
   });
 
-  it("la evidencia automática que agenda esa ruta audita a nombre de la persona y sin IP (DT-314)", async () => {
+  it("la evidencia automática que agenda esa ruta audita a nombre de la persona y con la IP del request", async () => {
     const personId = await seedSession("push.evidencia@eafit.edu.co");
 
     const response = await subscribeToPush(
@@ -149,9 +160,24 @@ describe("la IP del actor de un comando llega a la auditoría según la puerta",
     expect(scheduled.tasks).toHaveLength(1);
     await Promise.all(scheduled.tasks.map((task) => task()));
 
-    // El mismo request deja dos filas: la del dispositivo con su IP y la del paso del onboarding sin ella.
+    // El mismo request deja dos filas, la del dispositivo y la del paso del onboarding, con la misma IP:
+    // la ruta la lee antes de responder y se la entrega a lo que agenda (ADR-123 regla 3).
     expect(await audits("push-subscription.created")).toEqual([{ actorId: personId, ip: IP }]);
-    expect(await audits("onboarding.step-done")).toEqual([{ actorId: personId, ip: null }]);
+    expect(await audits("onboarding.step-done")).toEqual([{ actorId: personId, ip: IP }]);
+  });
+
+  it("la evidencia automática que agenda abrir un documento de la normativa audita con la IP del request", async () => {
+    const personId = await seedSession("normativa.evidencia@eafit.edu.co");
+    const id = "documento0de0prueba";
+
+    await NormativaDocumentPage({
+      params: Promise.resolve({ id }),
+      searchParams: Promise.resolve({}),
+    });
+    expect(scheduled.tasks).toHaveLength(1);
+    await Promise.all(scheduled.tasks.map((task) => task()));
+
+    expect(await audits("onboarding.step-done")).toEqual([{ actorId: personId, ip: IP }]);
   });
 
   it("la baja de campañas por el clic único del correo audita a nombre del dueño del token y con la IP del request", async () => {

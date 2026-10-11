@@ -15,7 +15,9 @@ import { userAgent } from "@/shared/lib/request";
 // Suscripción push del actor (ADR-038 regla 5, ADR-113 regla 6): registra el dispositivo o actualiza
 // el propio, y lo borra al quitar. Un endpoint que ya es de otra persona responde 409: el navegador
 // suelta esa suscripción y pide una nueva. Registrar marca el paso "Activá las notificaciones" del
-// onboarding, compuesto aquí como la normativa hace con NORMATIVA_READ.
+// onboarding, compuesto aquí como la normativa hace con NORMATIVA_READ. Esa evidencia corre después de
+// responder y se audita con la misma IP que el dispositivo: la ruta la lee una vez, antes de `after()`
+// (ADR-123 regla 3).
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +30,10 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return Response.json({ error: "Suscripción inválida" }, { status: 400 });
   }
+  const who = await actorContext(actor);
   let result: { id: string; created: boolean };
   try {
-    result = await saveSubscriptionAs(await actorContext(actor), parsed.data, await userAgent());
+    result = await saveSubscriptionAs(who, parsed.data, await userAgent());
   } catch (error) {
     if (error instanceof DomainError) {
       const status = error instanceof SubscriptionTakenError ? 409 : 400;
@@ -38,8 +41,7 @@ export async function POST(request: Request) {
     }
     throw error;
   }
-  const personId = actor.personId;
-  after(() => recordOnboardingEvidence(personId, "PUSH_ENABLED"));
+  after(() => recordOnboardingEvidence(who.personId, "PUSH_ENABLED", who.ip));
   return Response.json(result, { headers: { "cache-control": "no-store" } });
 }
 
