@@ -5,6 +5,7 @@ import { t } from "@/shared/copy";
 import { formatDate, todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
 import { formatMoney } from "@/shared/lib/money";
+import { scopeId } from "@/shared/lib/scope-id";
 import {
   budgetExpense,
   budgetLine,
@@ -65,8 +66,8 @@ export interface MovementScope {
  */
 async function openBudgetOf(ctx: CommandContext, budgetId: string, scope: MovementScope) {
   // Falla cerrado: sin el comité de la página no hay presupuesto sobre el que registrar.
-  const committeeId: unknown = (scope as { committeeId?: unknown } | null | undefined)?.committeeId;
-  if (typeof committeeId !== "string" || committeeId === "") {
+  const committeeId = scopeId(scope, "committeeId");
+  if (committeeId === null) {
     throw new DomainError(t("T-032"));
   }
   const [budget] = await ctx.tx

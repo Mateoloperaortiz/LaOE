@@ -55,6 +55,8 @@ Ejecutado, los tres: alguien que salió a licencia en prueba en el semestre ante
 
 **Los ocho sitios que quitan acentos no quitaban las mismas marcas (DT-332).** [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 11 dejó una sola función, `stripAccents(value, marks)`, y a cada sitio con su conjunto: cuatro el bloque U+0300 a U+036F, tres toda marca y uno los diacríticos. En español los tres dan lo mismo y por eso no se había visto. Fuera de él no, y dos buscadores de la casa respondían distinto al mismo texto: con «´» en la caja, el selector múltiple del admin mostraba todas sus opciones y el directorio de comités, ninguna.
 
+**La revisión del ciclo 10 dejó cuatro duplicaciones chicas sin juntar (DT-337).** La lectura defensiva del id de un alcance ([ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) regla 1) estaba escrita siete veces en seis archivos; la resta de días entre dos claves, tres; el contenedor de la pantalla de error de un área, dos; y «cada borde del tamaño dice el suyo», tres. Ninguna cambiaba lo que sale: el costo era editar varios sitios para cambiar una sola cosa.
+
 ## Decisión
 
 1. **Sin filtro, la E2E local corre contra el build; con filtro, contra dev.** `planE2eServer(env, args)` (`tests/e2e/server-mode.ts`) es una función pura que decide el servidor de una corrida y si el lanzador compila antes:
@@ -208,6 +210,12 @@ Ejecutado, los tres: alguien que salió a licencia en prueba en el semestre ante
 
     **Qué texto no cambia.** El español en los ocho: á, ñ y ü salen a, n y u. El vietnamita, cuyas marcas son todas del bloque, con su Đ, que no se descompone. El griego con tono. Un emoji con modificador de tono de piel o compuesto con el unidor de ancho cero: ninguno de los dos es una marca. La importación de GH Points y los dos buscadores de comités, que ya quitaban toda marca. Y `competition`, que conserva su copia (decisión abierta 8).
 
+19. **El id de un alcance se lee en una sola función.** `scopeId(scope, key)` y `asScopeId(value)` (`src/shared/lib/scope-id.ts`, puras) devuelven el id con el que llega un alcance, o `null` si el alcance no llegó, no lo trae o no es un texto con algo. La primera lee el objeto de la página bajo su clave; la segunda, el valor suelto, que es como llega la ocasión de la consola. Las usan los siete sitios que tenían escrita esa lectura: `assertInPipeline` y `scopedPersonId` (`crm`), `decideEventApproval` y `openBudgetOf` (`finance`), `ownsAppointment` (`people`) y la decisión de una asistencia y su lote (`participation`).
+
+    **Lo que sigue en cada comando.** La comparación con la fila y lo que se responde: los seis que lanzan siguen lanzando T-032, `scopedPersonId` sigue devolviendo `null` y `ownsAppointment` conserva su regla de «uno de los dos, nunca los dos»: quien declara también la otra clave, con el valor que sea, no es dueño.
+
+    **Lo que no cambia.** Nada de lo que responde un comando: es un refactor, y la regla 1 de [ADR-122](ADR-122-reglas-de-alcance-y-correccion-del-decimo-ciclo.md) queda como está.
+
 ## Consecuencias
 
 - `npm run test:e2e` sin más pasa entera en un worktree nuevo: con `.next` borrado entero, 249 de 249 en 5,3 minutos (335 s contando la base, el build y la suite), la prueba de SEO en 0,7 s y las cinco del Sudoku entre 0,4 y 3,2 s. La misma suite, forzada a dev con `E2E_SERVER=dev` y `.next/dev` borrado, dio 248 de 249 en 9,1 minutos (550 s), con la firma de DT-338: la de SEO en 27 s, la primera del Sudoku sin tiempo (6 s contra 5) y la segunda en 23,2 s contra 30.
@@ -275,3 +283,5 @@ Ejecutado, los tres: alguien que salió a licencia en prueba en el semestre ante
 - Los buscadores de la casa responden igual al mismo texto: el selector múltiple del admin y los dos de comités comparten conjunto. Quien escriba con una tecla muerta en el selector ve la lista vacía hasta que llegue la vocal, como ya pasaba en el directorio de comités.
 - `stripAccents` no recibe conjunto: un noveno sitio no puede elegir otro. La regla 18 no trae migración ni texto nuevo.
 - Prueba de la regla 18: `tests/unit/accents.test.ts` dice, por la función, qué texto cambia (árabe, hebreo, el selector de variante, la flecha combinante, tailandés, devanagari, japonés y el unidor de grafemas) y cuál no (español, vietnamita, griego, los acentos sueltos, un emoji con modificador de tono o con unidor de ancho cero). `tests/unit/accent-stripping.test.ts`, la caracterización del ciclo 10, cambia solo en las celdas que cambian: dos de la contraseña, dos de la cabecera y dos del texto del roster, dos de la cabecera de un grupo y cuatro del selector múltiple. Con esas celdas y el código anterior fallaban los cinco sitios que cambian; la importación de GH Points y los dos buscadores pasan sin tocarlos.
+- Cambiar qué cuenta como id de un alcance es editar una función y no siete sitios. La regla 19 no trae migración ni texto nuevo.
+- Prueba de la regla 19: las seis pruebas de alcance del ciclo 10 (`crm-pipeline-scope`, `crm-person-scope`, `finance-approval-scope`, `finance-movement-scope`, `people-appointment-owner` y `participation-checkin-occasion-scope`, en `tests/integration/`) pasan sin tocarlas. Antes de juntar se comprobó que muerden: con la lectura de cada copia rota fallaron siete casos en los seis archivos, uno por copia salvo la de la decisión de una sola asistencia, donde la comparación que sigue ya rechaza todo lo que la lectura rechaza y ninguna prueba puede distinguirla. La función tiene además su unitaria, `tests/unit/scope-id.test.ts`.

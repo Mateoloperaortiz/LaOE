@@ -7,6 +7,7 @@ import { getCurrentTerm } from "@/modules/terms";
 import { t, tList } from "@/shared/copy";
 import { todayKey } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
+import { scopeId } from "@/shared/lib/scope-id";
 import { committeeBudget, eventApproval } from "../schema";
 import { APPROVAL_STATUSES } from "./budget-pure";
 
@@ -105,8 +106,8 @@ export async function decideEventApproval(
 ): Promise<void> {
   const input = approvalDecisionSchema.parse(raw);
   // Falla cerrado: un alcance que no trae presupuesto no decide nada.
-  const budgetId: unknown = (scope as { budgetId?: unknown } | null | undefined)?.budgetId;
-  if (typeof budgetId !== "string" || budgetId === "") {
+  const budgetId = scopeId(scope, "budgetId");
+  if (budgetId === null) {
     throw new DomainError(t("T-032"));
   }
   // Lectura sin candado: solo dice de qué comité es la página.

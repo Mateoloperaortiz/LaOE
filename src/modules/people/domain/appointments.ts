@@ -9,6 +9,7 @@ import { findTermContaining, listAllTerms, type TermRow } from "@/modules/terms"
 import { t, tList } from "@/shared/copy";
 import { APP_TIME_ZONE, dateKeyIn } from "@/shared/lib/dates";
 import { DomainError } from "@/shared/lib/errors";
+import { scopeId } from "@/shared/lib/scope-id";
 import { appointment, committee, macroeventRole, membership, person } from "../schema";
 import { assertNoInhabilities, BOARD_KINDS, type Override } from "./inhabilities";
 
@@ -228,13 +229,14 @@ function ownsAppointment(
   row: { personId: string; editionId: string | null },
   owner: AppointmentOwner,
 ): boolean {
+  const personId = scopeId(owner, "personId");
+  const editionId = scopeId(owner, "editionId");
+  // Es uno de los dos: quien declara también el otro, con el valor que sea, no es dueño.
   const declared = owner as { personId?: unknown; editionId?: unknown } | null | undefined;
-  const personId = declared?.personId;
-  const editionId = declared?.editionId;
-  if (typeof personId === "string" && personId !== "" && editionId === undefined) {
+  if (personId !== null && declared?.editionId === undefined) {
     return row.personId === personId;
   }
-  if (typeof editionId === "string" && editionId !== "" && personId === undefined) {
+  if (editionId !== null && declared?.personId === undefined) {
     return row.editionId === editionId;
   }
   return false;

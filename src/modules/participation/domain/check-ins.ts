@@ -5,6 +5,7 @@ import { lockPersonAnonymization } from "@/modules/people";
 import { lockOpenTermPoints } from "@/modules/terms";
 import { t } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { asScopeId } from "@/shared/lib/scope-id";
 import { checkIn, occasion } from "../schema";
 import {
   CHECK_IN_STATUSES,
@@ -370,13 +371,8 @@ export async function decideCheckIn(
     .from(checkIn)
     .where(eq(checkIn.id, input.checkInId));
   // Falla cerrado: sin ocasión, o con una que no es la de la asistencia, no hay nada que decidir.
-  const consoleOccasionId: unknown = input.occasionId;
-  if (
-    !found ||
-    typeof consoleOccasionId !== "string" ||
-    consoleOccasionId === "" ||
-    found.occasionId !== consoleOccasionId
-  ) {
+  const consoleOccasionId = asScopeId(input.occasionId);
+  if (!found || consoleOccasionId === null || found.occasionId !== consoleOccasionId) {
     throw new DomainError(t("T-032"));
   }
   const observed = await readOccasion(ctx, found.occasionId);
@@ -427,8 +423,8 @@ export async function decideMany(
   context: { settings: GamificationSettings },
 ): Promise<number> {
   // Falla cerrado: sin la ocasión de la consola no hay lote, ni siquiera uno vacío.
-  const consoleOccasionId: unknown = occasionId;
-  if (typeof consoleOccasionId !== "string" || consoleOccasionId === "") {
+  const consoleOccasionId = asScopeId(occasionId);
+  if (consoleOccasionId === null) {
     throw new DomainError(t("T-032"));
   }
   const ids = [...new Set(checkInIds)];
