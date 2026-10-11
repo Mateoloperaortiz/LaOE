@@ -11,6 +11,7 @@ import {
   pipelineStage,
   request,
 } from "@/modules/crm/schema";
+import { event, eventEdition } from "@/modules/events/schema";
 import { form, formSubmission } from "@/modules/forms/schema";
 import { hashPassword } from "@/modules/identity/domain/pure";
 import { credential, permission } from "@/modules/identity/schema";
@@ -1152,5 +1153,40 @@ export async function seedReward(
     })
     .returning({ id: reward.id });
   if (!row) throw new Error("seed reward");
+  return row.id;
+}
+
+type EventOverrides = Partial<Omit<typeof event.$inferInsert, "slug" | "name">>;
+
+/** Macroevento como lo deja la base si nadie dice más: en borrador, para todo público y sin texto. */
+export async function seedEvent(
+  slug: string,
+  name: string,
+  overrides: EventOverrides = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(event)
+    .values({ slug, name, ...overrides })
+    .returning({ id: event.id });
+  if (!row) throw new Error("seed event");
+  return row.id;
+}
+
+type EditionOverrides = Partial<
+  Omit<typeof eventEdition.$inferInsert, "eventId" | "slug" | "name">
+>;
+
+/** Edición de un macroevento: en borrador y que empieza ahora, salvo overrides. */
+export async function seedEdition(
+  eventId: string,
+  slug: string,
+  name: string,
+  overrides: EditionOverrides = {},
+): Promise<string> {
+  const [row] = await db()
+    .insert(eventEdition)
+    .values({ eventId, slug, name, startsAt: new Date(), ...overrides })
+    .returning({ id: eventEdition.id });
+  if (!row) throw new Error("seed edition");
   return row.id;
 }

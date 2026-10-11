@@ -3,7 +3,6 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { event } from "@/modules/events/schema";
 import { getSnapshot, recomputeSnapshots } from "@/modules/permanence";
 import { getGroupDetail, removeMember } from "@/modules/permanence/domain/groups";
 import { prepareMacroeventGroup } from "@/modules/permanence/domain/macroevents";
@@ -17,6 +16,7 @@ import { term } from "@/modules/terms/schema";
 import {
   seedCommittee,
   seedCommitteeMembership,
+  seedEvent,
   seedMember,
   seedRule,
   seedTerm,
@@ -27,11 +27,7 @@ async function setup() {
   const termId = await seedTerm();
   const personId = await seedMember("equipo@example.com");
   const evaluatorId = await seedMember("gh@example.com");
-  const [macro] = await getDb()
-    .insert(event)
-    .values({ name: "Inventiva", slug: "inventiva" })
-    .returning();
-  if (!macro) throw new Error("Falta evento sintético");
+  const macro = { id: await seedEvent("inventiva", "Inventiva") };
   const gt = await runCommand(SYSTEM_ACTOR, (ctx) => prepareMacroeventGroup(ctx, macro.id, termId));
   const gap = await runCommand(SYSTEM_ACTOR, (ctx) =>
     prepareMacroeventGroup(ctx, macro.id, termId, "GAP"),

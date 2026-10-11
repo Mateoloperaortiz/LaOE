@@ -346,7 +346,7 @@ const EXCEPTIONS: Exception[] = [
 // El total de `PENDING`. Se edita solo hacia abajo, en el mismo commit que muda o justifica un
 // pendiente. La prueba no sabe cuánto valía ayer: es una convención, y lo que la sostiene es que
 // subir este número se ve en el diff.
-const PENDING_CEILING = 82;
+const PENDING_CEILING = 75;
 
 // Lo que queda por mudar o por justificar (DT-013). Ordenada por archivo y destino.
 const PENDING: Pending[] = [
@@ -408,10 +408,6 @@ const PENDING: Pending[] = [
   ["tests/integration/autorizacion.test.ts", "appConfig", 1],
   ["tests/integration/competition-tracking.test.ts", "competitionSupport", 1],
   ["tests/integration/documents.test.ts", "mediaAsset", 1],
-  ["tests/integration/forms.test.ts", "into event", 1],
-  ["tests/integration/forms.test.ts", "into event_edition", 1],
-  ["tests/integration/macroevent-groups.test.ts", "event", 2],
-  ["tests/integration/macroevent-groups.test.ts", "eventEdition", 2],
   ["tests/integration/media-metadata.test.ts", "mediaAsset", 1],
   ["tests/integration/own-data.test.ts", "mediaAsset", 2],
   ["tests/integration/permanence-closing.test.ts", "manualCredit", 1],
@@ -419,7 +415,6 @@ const PENDING: Pending[] = [
   ["tests/integration/person-360-timeline-others.test.ts", "interaction", 1],
   ["tests/integration/privacy-policy.test.ts", "appConfig", 1],
   ["tests/integration/sanctions.test.ts", "manualCredit", 1],
-  ["tests/integration/team-members.test.ts", "event", 1],
   ["tests/integration/wallet-jobs.test.ts", "carnetToken", 1],
   ["tests/integration/wallet-jobs.test.ts", "walletPass", 1],
 ];

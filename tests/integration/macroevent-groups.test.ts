@@ -2,7 +2,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
-import { event, eventEdition } from "@/modules/events/schema";
 import { createGroup, getGroupDetail } from "@/modules/permanence/domain/groups";
 import {
   configureMacroeventGroupAs,
@@ -12,18 +11,13 @@ import {
 import { workGroup } from "@/modules/permanence/schema";
 import { term } from "@/modules/terms/schema";
 import { t } from "@/shared/copy";
-import { seedMember, seedTerm } from "../factories";
+import { seedEdition, seedEvent, seedMember, seedTerm } from "../factories";
 import { warmPool } from "../helpers/pool";
 import { truncateAll } from "./db";
 
 async function setup() {
   const termId = await seedTerm();
-  const [macro] = await getDb()
-    .insert(event)
-    .values({ name: "Inventiva", slug: "inventiva" })
-    .returning();
-  if (!macro) throw new Error("Falta evento sintético");
-  return { eventId: macro.id, termId };
+  return { eventId: await seedEvent("inventiva", "Inventiva"), termId };
 }
 
 describe("equipo del macroevento por semestre", () => {
@@ -54,11 +48,7 @@ describe("equipo del macroevento por semestre", () => {
 
   it("reutiliza el GT vinculado por edición y rechaza otro GT del mismo evento", async () => {
     const { eventId, termId } = await setup();
-    const [edition] = await getDb()
-      .insert(eventEdition)
-      .values({ eventId, name: "Edición de prueba", slug: "prueba", startsAt: new Date() })
-      .returning();
-    if (!edition) throw new Error("Falta edición sintética");
+    const edition = { id: await seedEdition(eventId, "prueba", "Edición de prueba") };
     const group = await runCommand(SYSTEM_ACTOR, (ctx) =>
       createGroup(ctx, {
         name: "GT existente",
@@ -90,16 +80,8 @@ describe("equipo del macroevento por semestre", () => {
       evaluatorIds: [evaluator],
       editionId: undefined,
     });
-    const [other] = await getDb()
-      .insert(event)
-      .values({ name: "Otro", slug: "enfemenino" })
-      .returning();
-    if (!other) throw new Error("Falta evento sintético");
-    const [edition] = await getDb()
-      .insert(eventEdition)
-      .values({ eventId: other.id, name: "Prueba", slug: "prueba", startsAt: new Date() })
-      .returning();
-    if (!edition) throw new Error("Falta edición sintética");
+    const other = { id: await seedEvent("enfemenino", "Otro") };
+    const edition = { id: await seedEdition(other.id, "prueba", "Prueba") };
     await expect(
       configureMacroeventGroupAs(SYSTEM_ACTOR, group.id, {
         leaderPersonId: undefined,

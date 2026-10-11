@@ -19,7 +19,15 @@ import { editionRegistration, formSubmission } from "@/modules/forms/schema";
 import { endMembershipAs, hasLiveConsent } from "@/modules/people";
 import { consent, person, personTag } from "@/modules/people/schema";
 import { t } from "@/shared/copy";
-import { seedForm, seedMember, seedSubmission, seedTag, seedTerm } from "../factories";
+import {
+  seedEdition,
+  seedEvent,
+  seedForm,
+  seedMember,
+  seedSubmission,
+  seedTag,
+  seedTerm,
+} from "../factories";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 
@@ -216,21 +224,18 @@ describe("envío de un formulario público", () => {
       .where(eq(person.id, memberId))
       .then((rows) => ({ rows }));
     expect(none).toHaveLength(1);
-    const [edition] = await getDb()
-      .execute<{ id: string }>(
-        `insert into event (id, slug, name, summary, description, audience, publication_status, sort_order)
-       values ('evt0000000000000000000001', 'dias-eafit', 'Días EAFIT', '', '', 'PUBLIC', 'PUBLISHED', 1)
-       returning id`,
-      )
-      .then(() =>
-        getDb().execute<{ id: string }>(
-          `insert into event_edition (id, event_id, slug, name, starts_at, publication_status)
-         values ('edi0000000000000000000001', 'evt0000000000000000000001', '2026-2', '2026-2', now() + interval '10 days', 'PUBLISHED')
-         returning id`,
-        ),
-      )
-      .then((result) => result.rows);
-    if (!edition) throw new Error("edition");
+    const eventId = await seedEvent("dias-eafit", "Días EAFIT", {
+      id: "evt0000000000000000000001",
+      publicationStatus: "PUBLISHED",
+      sortOrder: 1,
+    });
+    const edition = {
+      id: await seedEdition(eventId, "2026-2", "2026-2", {
+        id: "edi0000000000000000000001",
+        startsAt: new Date(Date.now() + 10 * 86_400_000),
+        publicationStatus: "PUBLISHED",
+      }),
+    };
     const { view } = await publicForm("inscripcion", {
       audience: "MEMBERS",
       fields: [],
