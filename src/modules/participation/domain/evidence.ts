@@ -1,6 +1,7 @@
 import { createId } from "@paralleldrive/cuid2";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import type { CommandContext, Tx } from "@/db/tx";
 import {
   deleteObject,
   getObject,
@@ -116,6 +117,46 @@ export async function verifyEvidenceObjects(
     verified.push({ key, contentType, byteSize: info.byteSize });
   }
   return verified;
+}
+
+/**
+ * Candado de lo que una persona subió y todavía no entregó (ADR-122 regla 20). Lo toman quitar una
+ * imagen y entregar la evidencia; la entrega, antes de mirar el bucket y hasta su commit. Sin él, una
+ * imagen quitada entre el HEAD y el commit dejaría una entrega apuntando a un objeto borrado.
+ */
+export async function lockEvidenceUploads(tx: Tx, personId: string): Promise<void> {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`evidence-uploads:${personId}`}, 0))`,
+  );
+}
+
+export type EvidenceDiscardOutcome = "DISCARDED" | "IN_USE";
+
+/**
+ * Borra del bucket la imagen que la persona subió y quitó de la lista antes de entregar. Solo una
+ * suya, y eso lo decide acá el prefijo `evidence/<personId>/`, no quien llama; lo demás se rechaza.
+ * Si una entrega ya la usa no se toca: es de la entrega, y la borran su procesamiento o el retiro de
+ * datos. No audita: no escribe ninguna fila, como tampoco la subida.
+ */
+export async function discardEvidenceUpload(
+  ctx: CommandContext,
+  input: { personId: string; key: string },
+): Promise<EvidenceDiscardOutcome> {
+  const prefix = `${EVIDENCE_KEY_PREFIX}${input.personId}/`;
+  if (!input.key.startsWith(prefix) || !EVIDENCE_KEY_PATTERN.test(input.key)) {
+    throw new DomainError(tList("T-2430")[0] ?? "", "key");
+  }
+  await lockEvidenceUploads(ctx.tx, input.personId);
+  const [used] = await ctx.tx
+    .select({ id: challengeEvidenceFile.id })
+    .from(challengeEvidenceFile)
+    .where(eq(challengeEvidenceFile.objectKey, input.key))
+    .limit(1);
+  if (used) {
+    return "IN_USE";
+  }
+  await deleteObject(input.key);
+  return "DISCARDED";
 }
 
 export type EvidenceProcessOutcome = "ready" | "failed" | "skipped";

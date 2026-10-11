@@ -202,6 +202,7 @@ export {
   createCampaignsAs,
   createChallengeAs,
   createSpecialBadgeAs,
+  discardEvidenceUploadAs,
   duplicateChallengeAs,
   type EvidenceSubmitInput,
   grantBoosterAs,

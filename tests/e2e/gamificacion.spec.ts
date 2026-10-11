@@ -20,6 +20,7 @@ import {
 } from "@/modules/participation/schema";
 import { person } from "@/modules/people/schema";
 import { term } from "@/modules/terms/schema";
+import { headObject } from "@/shared/adapters/storage";
 import { t, tList } from "@/shared/copy";
 import { utcToBogotaInput } from "@/shared/lib/dates";
 import { copyPattern } from "../helpers/copy";
@@ -353,6 +354,37 @@ test("evidencia: un archivo rechazado o una subida fallida se avisan con su text
   expect(await picker.evaluate((input: HTMLInputElement) => input.files?.length)).toBe(0);
   await expect(page.getByRole("img", { name: evidence.name })).toHaveCount(0);
   await expect(picker).toBeEnabled();
+});
+
+test("evidencia: quitar de la lista una imagen ya subida la borra del bucket", async ({ page }) => {
+  const id = await crearReto({
+    kind: "EVIDENCE",
+    title: "e2e-Misión con una imagen quitada",
+    description: "Contá qué hiciste.",
+    ...ventana(),
+    basePoints: 10,
+  });
+  await page.goto(`/app/gh-points/retos/${id}`);
+  const png = await sharp(randomBytes(640 * 360 * 3), {
+    raw: { width: 640, height: 360, channels: 3 },
+  })
+    .png({ compressionLevel: 0 })
+    .toBuffer();
+  const presigned = page.waitForResponse(
+    (response) => response.url().includes("/api/retos/evidencia/presign") && response.ok(),
+  );
+  await page
+    .getByLabel(t("T-2429"))
+    .setInputFiles({ name: "e2e-evidencia-quitada.png", mimeType: "image/png", buffer: png });
+  const { key } = (await (await presigned).json()) as { key: string };
+  const preview = page.getByRole("img", { name: "e2e-evidencia-quitada.png" });
+  await expect(preview).toBeVisible();
+  expect(await headObject(key)).not.toBeNull();
+
+  await page.getByRole("button", { name: t("T-1489"), exact: true }).click();
+  await expect(preview).toHaveCount(0);
+  // La casa lo borra sin que la pantalla espere la respuesta (ADR-122 regla 20).
+  await expect.poll(() => headObject(key)).toBeNull();
 });
 
 test("presencial: el check-in de la actividad completa el reto solo", async ({ page }) => {

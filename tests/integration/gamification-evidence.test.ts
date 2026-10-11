@@ -7,11 +7,12 @@ import { enqueueEvent } from "@/db/tx";
 import { eventOf } from "@/domain-events/define";
 import { evidenceProcess } from "@/domain-events/participation";
 import { personAnonymized } from "@/domain-events/people";
-import { submitEvidenceAs } from "@/modules/participation";
+import { discardEvidenceUploadAs, submitEvidenceAs } from "@/modules/participation";
 import {
   EVIDENCE_MAX_BYTES,
   EVIDENCE_MAX_SIDE,
   evidenceKey,
+  lockEvidenceUploads,
   prepareEvidenceUpload,
   processEvidenceFile,
   processedEvidenceKey,
@@ -28,6 +29,7 @@ import { outbox } from "@/modules/system/schema";
 import { deleteObject, getObject, headObject, putObject } from "@/shared/adapters/storage";
 import { t, tList } from "@/shared/copy";
 import { DomainError } from "@/shared/lib/errors";
+import { firstThenSecond, holdTransaction, outcome } from "../helpers/locks";
 import { drainOutbox } from "../helpers/outbox";
 import { truncateAll } from "./db";
 import { seedChallenge, seedMember, seedParticipation, seedTerm } from "./factories";
@@ -113,6 +115,25 @@ async function submitAndProcess(
   return { personId, file, participation, rewards, jobs };
 }
 
+/** Un miembro con los retos prendidos, una misión de evidencia abierta y una imagen ya subida. */
+async function uploadedForMission(email: string, fileName: string, keys: string[]) {
+  const termId = await seedTerm();
+  const personId = await seedMember(email);
+  await setConfigAs({ personId, ip: null }, "gamification.enabled", true);
+  const challengeId = await seedChallenge(termId, { kind: "EVIDENCE" });
+  const key = evidenceKey(personId, "image/jpeg", fileName);
+  keys.push(key);
+  await putObject(key, await syntheticImage(), "image/jpeg");
+  const submission = {
+    challengeId,
+    requestId: randomUUID(),
+    text: "Relato sintético de la misión.",
+    keys: [key],
+  };
+  // La IP es nula: la prueba llama al comando sin una solicitud de por medio.
+  return { actor: { personId, ip: null }, key, submission };
+}
+
 async function seedEvidenceFile(personId: string, key: string, contentType = "image/jpeg") {
   const termId = await seedTerm();
   const challengeId = await seedChallenge(termId, { kind: "EVIDENCE", passPercent: null });
@@ -180,6 +201,98 @@ describe("evidencias de retos", () => {
     await expect(
       verifyEvidenceObjects(personId, [key, "evidence/no-existe/x.jpg"]),
     ).rejects.toThrow(DomainError);
+  });
+
+  it("quitar de la lista una imagen subida la borra del bucket, y quitarla dos veces no falla", async () => {
+    const personId = await seedMember("evidencia.quitada@eafit.edu.co");
+    const key = evidenceKey(personId, "image/jpeg", "archivoquitadoprueba");
+    keys.push(key);
+    await putObject(key, await syntheticImage(), "image/jpeg");
+
+    expect(await discardEvidenceUploadAs({ personId, ip: null }, { key })).toBe("DISCARDED");
+    expect(await headObject(key)).toBeNull();
+    expect(await discardEvidenceUploadAs({ personId, ip: null }, { key })).toBe("DISCARDED");
+  });
+
+  it("nadie borra la imagen de otra persona, una ya procesada ni una clave que no es de evidencia", async () => {
+    const personId = await seedMember("evidencia.intrusa@eafit.edu.co");
+    const otherId = await seedMember("evidencia.duena@eafit.edu.co");
+    const foreign = evidenceKey(otherId, "image/jpeg", "archivoajenoprueba");
+    const processed = processedEvidenceKey("archivoprocesadoprueba");
+    keys.push(foreign, processed);
+    await putObject(foreign, await syntheticImage(), "image/jpeg");
+    await putObject(processed, await syntheticImage(), "image/webp");
+
+    const refused = [
+      foreign,
+      processed,
+      `evidence/${personId}/../${otherId}/archivoajenoprueba.jpg`,
+      `evidence/${personId}/`,
+      "media/original/archivoajenoprueba.jpg",
+      "",
+    ];
+    for (const key of refused) {
+      await expect(discardEvidenceUploadAs({ personId, ip: null }, { key })).rejects.toSatisfy(
+        (error) => error instanceof DomainError && error.message === errors[0],
+      );
+    }
+    expect(await headObject(foreign)).not.toBeNull();
+    expect(await headObject(processed)).not.toBeNull();
+  });
+
+  it("una imagen que una entrega ya usa no se borra al quitarla", async () => {
+    const { actor, key, submission } = await uploadedForMission(
+      "evidencia.usada@eafit.edu.co",
+      "archivousadoprueba",
+      keys,
+    );
+    expect((await submitEvidenceAs(actor, submission)).ok).toBe(true);
+
+    expect(await discardEvidenceUploadAs(actor, { key })).toBe("IN_USE");
+    expect(await headObject(key)).not.toBeNull();
+  });
+
+  it("quitar una imagen y entregarla a la vez hacen cola: quitada primero, la entrega se rechaza y no deja fila", async () => {
+    const { actor, key, submission } = await uploadedForMission(
+      "evidencia.carrera1@eafit.edu.co",
+      "archivocarrera1prueba",
+      keys,
+    );
+    const held = await holdTransaction((tx) => lockEvidenceUploads(tx, actor.personId));
+    const [discarded, sent] = await firstThenSecond(
+      held,
+      () => discardEvidenceUploadAs(actor, { key }),
+      () => submitEvidenceAs(actor, submission),
+    );
+
+    expect(discarded).toMatchObject({ status: "fulfilled", value: "DISCARDED" });
+    // La entrega vuelve a mirar el bucket ya con el candado: el objeto no está y no la acepta.
+    expect(outcome(sent)).toBe(errors[0]);
+    expect(await headObject(key)).toBeNull();
+    expect(await db().select().from(challengeParticipation)).toHaveLength(0);
+    expect(await db().select().from(challengeEvidenceFile)).toHaveLength(0);
+  });
+
+  it("quitar una imagen y entregarla a la vez hacen cola: entregada primero, la imagen ya es de la entrega y no se borra", async () => {
+    const { actor, key, submission } = await uploadedForMission(
+      "evidencia.carrera2@eafit.edu.co",
+      "archivocarrera2prueba",
+      keys,
+    );
+    const held = await holdTransaction((tx) => lockEvidenceUploads(tx, actor.personId));
+    const [sent, discarded] = await firstThenSecond(
+      held,
+      () => submitEvidenceAs(actor, submission),
+      () => discardEvidenceUploadAs(actor, { key }),
+    );
+
+    expect(sent).toMatchObject({ status: "fulfilled", value: { ok: true } });
+    expect(discarded).toMatchObject({ status: "fulfilled", value: "IN_USE" });
+    expect(await headObject(key)).not.toBeNull();
+    const files = await db()
+      .select({ key: challengeEvidenceFile.objectKey })
+      .from(challengeEvidenceFile);
+    expect(files).toEqual([{ key }]);
   });
 
   it("procesa la imagen a WebP sin metadatos y marca READY", async () => {

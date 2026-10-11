@@ -27,7 +27,7 @@ import { CircleDotIcon } from "@/shared/ui/icons/CircleDotIcon";
 import { Markdown } from "@/shared/ui/Markdown";
 import { Vacio } from "../../../_ui/Vacio";
 import { setBoosterTargetAction } from "../../boosters/actions";
-import { submitEvidenceAction, submitTriviaAction } from "./actions";
+import { discardEvidenceUploadAction, submitEvidenceAction, submitTriviaAction } from "./actions";
 
 // Detalle de un reto en Mi OE (ADR-067 reglas 3 a 6): la consigna en Markdown, la actividad
 // vinculada de los presenciales y el bloque de acción según formato y estado de la entrega.
@@ -204,6 +204,7 @@ function EvidenceBlock({ challenge }: { challenge: MemberChallengeDetail }) {
       maxBytes={EVIDENCE_MAX_BYTES}
       allowedTypes={Object.keys(EVIDENCE_TYPES)}
       onSubmit={submitEvidenceAction}
+      onDiscard={discardEvidenceUploadAction}
     />
   );
 }

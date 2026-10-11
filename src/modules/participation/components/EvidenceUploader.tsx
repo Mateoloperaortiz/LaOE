@@ -9,7 +9,8 @@ import type { ChallengeSubmitReply, SubmitDenial } from "../gamification-types";
 
 // Evidencia de una misión (ADR-067 reglas 5 y 6): texto acotado y hasta tres imágenes que suben
 // directo al bucket con presign y sin confirmación (`uploadToBucket`, ADR-121 regla 14); el
-// requestId de sessionStorage hace el envío idempotente.
+// requestId de sessionStorage hace el envío idempotente. La imagen que se quita de la lista se borra
+// del bucket (ADR-122 regla 20).
 
 const ERROR_COPY: Record<SubmitDenial, ClientCopyCode> = {
   DISABLED: "T-2442",
@@ -47,6 +48,7 @@ export function EvidenceUploader({
   maxBytes,
   allowedTypes,
   onSubmit,
+  onDiscard,
 }: {
   challengeId: string;
   textMin: number;
@@ -56,6 +58,7 @@ export function EvidenceUploader({
   maxBytes: number;
   allowedTypes: string[];
   onSubmit: (input: unknown) => Promise<ChallengeSubmitReply>;
+  onDiscard: (input: unknown) => Promise<void>;
 }) {
   const router = useRouter();
   const inputId = useId();
@@ -135,6 +138,13 @@ export function EvidenceUploader({
       setUploading(false);
       clearPicker();
     }
+  }
+
+  // La imagen sale de la lista sin esperar a la casa, que borra el objeto. Si la acción se rechaza,
+  // la pantalla sigue y el objeto queda en el bucket, como quedaba antes de la regla 20.
+  function removeFile(index: number, key: string) {
+    setFiles((current) => current.filter((_, i) => i !== index));
+    void onDiscard({ key }).catch(() => undefined);
   }
 
   function submit() {
@@ -231,7 +241,7 @@ export function EvidenceUploader({
                 <button
                   type="button"
                   className="inline-flex items-center gap-1 text-xs font-semibold underline"
-                  onClick={() => setFiles((current) => current.filter((_, i) => i !== index))}
+                  onClick={() => removeFile(index, file.key)}
                 >
                   <XIcon />
                   {t("T-1489")}
