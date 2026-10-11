@@ -4,6 +4,7 @@ import { isCheckViolation } from "@/db/errors";
 import { runCommand, SYSTEM_ACTOR } from "@/db/tx";
 import { createEdition } from "@/modules/events/domain/editions";
 import { createEvent } from "@/modules/events/domain/events";
+import { removeAppointmentAs } from "@/modules/people";
 import {
   addMacroeventDirector,
   appointmentLabel,
@@ -82,6 +83,28 @@ describe("mesa directiva de macroevento", () => {
     expect(await listMacroeventBoard(enFemenino)).toEqual([
       expect.objectContaining({ roleCode: "AGENDA_ACADEMICA" }),
     ]);
+  });
+
+  it("desde la mesa de una edición, el cargo de dirección de otra edición responde como si no existiera y sigue en su mesa; desde la suya se quita", async () => {
+    // ADR-122 regla 1: el dueño que manda la página es la edición de su mesa, y el cargo es de otra
+    // edición de verdad, no un cargo de junta sin edición (ese caso está en
+    // people-appointment-owner.test.ts).
+    const termId = await seedTerm();
+    const inventiva = await seedEdition();
+    const enFemenino = await seedEdition("enfemenino");
+    const personId = await seedMember("directora.otra.mesa@example.com");
+    const admin = { personId: null, ip: null };
+    const { id } = await runCommand(SYSTEM_ACTOR, (ctx) =>
+      addMacroeventDirector(ctx, { editionId: enFemenino, termId, personId, roleCode: "GENERAL" }),
+    );
+
+    await expect(removeAppointmentAs(admin, id, { editionId: inventiva })).rejects.toThrow(
+      t("T-032"),
+    );
+    expect(await listMacroeventBoard(enFemenino)).toHaveLength(1);
+
+    await removeAppointmentAs(admin, id, { editionId: enFemenino });
+    expect(await listMacroeventBoard(enFemenino)).toEqual([]);
   });
 
   it("conserva la etiqueta y los nombramientos históricos de Publicidad", async () => {
