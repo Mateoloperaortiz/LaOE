@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -23,6 +23,7 @@ import { blockedBenefits } from "./benefits";
 import { closeCommitteeMembership } from "./committee-membership-closing";
 import { endRolesForPerson } from "./committee-role-assignments";
 import { revokeAllConsents, syncConsent } from "./consents";
+import { conditionAtDeparture, leftOnProbation, savedCondition } from "./leave-condition";
 import { leaveUntilError, leaveWindow } from "./leave-pure";
 import { SIGN_IN_STATUSES } from "./reads";
 import { setProbation } from "./term-outcomes";
@@ -107,88 +108,6 @@ async function closeOpenCommitteeMemberships(
   await endRolesForPerson(ctx.tx, personId, now);
 }
 
-/** Congela la condición al salir; una edición posterior del término no la modifica. */
-async function conditionAtDeparture(
-  exec: Executor,
-  current: MembershipRecord,
-  when: Date,
-): Promise<LeaveCondition[]> {
-  const term = await getCurrentTerm(when);
-  if (!term) return [];
-  const rows = await exec
-    .select()
-    .from(membershipTerm)
-    .where(and(eq(membershipTerm.personId, current.personId), eq(membershipTerm.termId, term.id)));
-  const conditions: LeaveCondition[] = rows.map((row) => ({
-    committeeId: row.committeeId,
-    probation: row.probation,
-    reportAsVeteran: row.reportAsVeteran,
-    resumedNew: row.resumedNew,
-    resumedTransfer: row.resumedTransfer,
-  }));
-  const transfers = await exec
-    .select({ committeeId: committeeMembership.committeeId })
-    .from(committeeMembership)
-    .where(
-      and(
-        eq(committeeMembership.personId, current.personId),
-        eq(committeeMembership.termId, term.id),
-        eq(committeeMembership.transferredIn, true),
-        isNull(committeeMembership.leftAt),
-      ),
-    );
-  for (const transfer of transfers) {
-    const scope = conditions.find((row) => row.committeeId === transfer.committeeId);
-    if (scope) scope.resumedTransfer = true;
-    else
-      conditions.push({
-        committeeId: transfer.committeeId,
-        probation: false,
-        reportAsVeteran: false,
-        resumedNew: false,
-        resumedTransfer: true,
-      });
-  }
-  const general = conditions.find((row) => row.committeeId === null);
-  if (general) general.resumedNew ||= current.firstTermId === term.id;
-  else
-    conditions.push({
-      committeeId: null,
-      probation: false,
-      reportAsVeteran: false,
-      resumedNew: current.firstTermId === term.id,
-    });
-  return conditions;
-}
-
-/** La condición guardada al salir a licencia; las licencias anteriores a la migración se reconstruyen. */
-async function savedCondition(
-  exec: Executor,
-  current: MembershipRecord,
-): Promise<LeaveCondition[]> {
-  if (current.leaveCondition !== null) return current.leaveCondition;
-  // Licencias anteriores a la migración: reconstruir desde el término de la salida registrada.
-  const [departure] = await exec
-    .select({ at: membershipEvent.at })
-    .from(membershipEvent)
-    .where(
-      and(eq(membershipEvent.membershipId, current.id), eq(membershipEvent.toStatus, "ON_LEAVE")),
-    )
-    .orderBy(desc(membershipEvent.at))
-    .limit(1);
-  return departure ? conditionAtDeparture(exec, current, departure.at) : [];
-}
-
-/**
- * La prueba con la que alguien salió a licencia sigue siendo prueba mientras no vuelva a activo
- * (ADR-120 regla 4): vive en la condición guardada y no en las filas del término vigente, que son las
- * que mira `blockedBenefits`. Cuenta la general y la de cualquier comité, como allá.
- */
-async function leftOnProbation(exec: Executor, current: MembershipRecord): Promise<boolean> {
-  if (current.status !== "ON_LEAVE") return false;
-  return (await savedCondition(exec, current)).some((condition) => condition.probation);
-}
-
 /** La misma pregunta para una lectura: la elegibilidad a honorario que muestra la ficha. */
 export async function leftOnProbationOf(personId: string): Promise<boolean> {
   const db = getDb();
@@ -198,9 +117,10 @@ export async function leftOnProbationOf(personId: string): Promise<boolean> {
 
 /**
  * De estas membresías, las que no pueden pasar a honorario (ADR-061 regla 2): en prueba en el término
- * vigente o con los derechos suspendidos (`blockedBenefits`), o con la prueba guardada al salir a
- * licencia (ADR-120 regla 4). Es la regla de `changeMembershipStatus`, y la vista previa del roster
- * marca la fila con esta misma (ADR-123 regla 5): si acá cambia, cambia en los dos.
+ * vigente o con los derechos suspendidos, o con la prueba guardada al salir a licencia (ADR-120 regla
+ * 4). Es la regla de `changeMembershipStatus`, y la vista previa del roster marca la fila con esta
+ * misma (ADR-123 regla 5): si acá cambia, cambia en los dos. `blockedBenefits` ya cuenta la prueba
+ * guardada (ADR-123 regla 7); acá se vuelve a mirar porque sin término vigente no se le pregunta.
  */
 async function honoraryBlocked(
   exec: Executor,

@@ -18,6 +18,7 @@ import {
   seedCommittee,
   seedCommitteeMembership,
   seedMember,
+  seedMembershipTerm,
   seedTerm,
 } from "./factories";
 
@@ -154,5 +155,74 @@ describe("regresiones de la revisión normativa", () => {
     );
     await grantRecognitionAs(SYSTEM_ACTOR, award);
     expect(await listPreferentialSchedule(termId)).toHaveLength(1);
+  });
+  // ADR-123 regla 7: la prueba con la que alguien salió a licencia vive en la condición guardada y no
+  // en una fila del semestre vigente. Sigue siendo prueba mientras no vuelva a activo (ADR-120 regla
+  // 4), también para los otros tres beneficios de ADR-061 regla 2 (DT-299).
+  describe("los beneficios de quien está en licencia", () => {
+    /**
+     * Sale a licencia en 2026-1, el semestre en que entró, con o sin prueba, y preside la junta del
+     * semestre vigente, en el que no tiene fila. El reloj se le pasa al comando.
+     */
+    async function onLeave(email: string, probation: boolean) {
+      const previo = await seedTerm("2026-1");
+      const termId = await seedTerm();
+      const personId = await seedMember(email, { entryTermCode: "2026-1" });
+      const committeeId = await seedCommittee("sintetico");
+      await seedAppointment(personId, termId, "PRESIDENT");
+      await seedMembershipTerm(personId, previo, probation);
+      await runCommand(SYSTEM_ACTOR, (ctx) =>
+        changeMembershipStatus(
+          ctx,
+          personId,
+          { to: "ON_LEAVE", reason: "Intercambio", leaveUntil: "2027-06-01" },
+          new Date("2026-06-01T15:00:00Z"),
+        ),
+      );
+      const award = {
+        personId,
+        termId,
+        kind: "OE_AWARD" as const,
+        award: "BEST_NEW_MEMBER" as const,
+        title: "",
+      };
+      const aval = { committeeId, title: "Evento sintético", eventOn: "2099-11-20" };
+      return { termId, personId, award, aval };
+    }
+
+    it("con la prueba guardada no recibe un reconocimiento", async () => {
+      const { personId, award } = await onLeave("premio-guardada@eafit.edu.co", true);
+
+      await expect(grantRecognitionAs(SYSTEM_ACTOR, award)).rejects.toThrow(t("T-2331"));
+      expect(await listRecognitionsFor(personId)).toEqual([]);
+    });
+
+    it("con la prueba guardada no pide un aval", async () => {
+      const { personId, aval } = await onLeave("aval-guardada@eafit.edu.co", true);
+
+      await expect(requestEventApprovalAs({ personId, ip: null }, aval)).rejects.toThrow(
+        t("T-2331"),
+      );
+    });
+
+    it("con la prueba guardada no figura en el horario preferencial", async () => {
+      const { termId } = await onLeave("horario-guardada@eafit.edu.co", true);
+
+      expect(await listPreferentialSchedule(termId)).toEqual([]);
+    });
+
+    // Conducta de hoy, sin elegir: si la licencia por sí sola suspende estos beneficios es la decisión
+    // abierta 71. El reglamento (ADR-061 regla 2) habla de la prueba y de la suspensión, no de la licencia.
+    it("sin prueba guardada recibe el reconocimiento, pide el aval y figura en el horario preferencial (decisión abierta 71)", async () => {
+      const { termId, personId, award, aval } = await onLeave("licencia-sola@eafit.edu.co", false);
+
+      await grantRecognitionAs(SYSTEM_ACTOR, award);
+      await requestEventApprovalAs({ personId, ip: null }, aval);
+
+      expect(await listRecognitionsFor(personId)).toHaveLength(1);
+      expect((await listPreferentialSchedule(termId)).map((row) => row.personId)).toEqual([
+        personId,
+      ]);
+    });
   });
 });
