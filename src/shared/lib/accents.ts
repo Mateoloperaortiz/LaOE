@@ -6,7 +6,7 @@
  * Qué se saca después de descomponer. Los sitios no quitaban lo mismo, y cada uno conserva lo suyo
  * (`tests/unit/accent-stripping.test.ts`). En español los tres dan igual: á, ñ y ü salen a, n y u.
  */
-const MARKS = {
+const MARK_SETS = {
   /** El bloque de marcas combinantes, U+0300 a U+036F: nada más. */
   BLOCK: /[\u0300-\u036f]/g,
   /** Toda marca (`\p{M}`): el bloque y las de fuera, como el selector de variante de un emoji. */
@@ -19,6 +19,6 @@ const MARKS = {
 } as const;
 
 /** El texto descompuesto y sin las marcas del conjunto pedido, que quien llama nombra siempre. */
-export function stripAccents(value: string, marks: keyof typeof MARKS): string {
-  return value.normalize("NFD").replace(MARKS[marks], "");
+export function stripAccents(value: string, marks: keyof typeof MARK_SETS): string {
+  return value.normalize("NFD").replace(MARK_SETS[marks], "");
 }

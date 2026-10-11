@@ -370,8 +370,13 @@ export async function decideCheckIn(
     .from(checkIn)
     .where(eq(checkIn.id, input.checkInId));
   // Falla cerrado: sin ocasión, o con una que no es la de la asistencia, no hay nada que decidir.
-  const page: unknown = input.occasionId;
-  if (!found || typeof page !== "string" || page === "" || found.occasionId !== page) {
+  const consoleOccasionId: unknown = input.occasionId;
+  if (
+    !found ||
+    typeof consoleOccasionId !== "string" ||
+    consoleOccasionId === "" ||
+    found.occasionId !== consoleOccasionId
+  ) {
     throw new DomainError(t("T-032"));
   }
   const observed = await readOccasion(ctx, found.occasionId);
@@ -381,7 +386,7 @@ export async function decideCheckIn(
   await lockOpenTermPoints(ctx.tx, observed.termId);
   const row = await lockOccasion(ctx, observed);
   const [current] = await lockCheckIns(ctx, eq(checkIn.id, input.checkInId));
-  if (!current || current.occasionId !== page) {
+  if (!current || current.occasionId !== consoleOccasionId) {
     throw new DomainError(t("T-032"));
   }
   if (input.seenStatus !== undefined && current.status !== input.seenStatus) {
@@ -422,8 +427,8 @@ export async function decideMany(
   context: { settings: GamificationSettings },
 ): Promise<number> {
   // Falla cerrado: sin la ocasión de la consola no hay lote, ni siquiera uno vacío.
-  const page: unknown = occasionId;
-  if (typeof page !== "string" || page === "") {
+  const consoleOccasionId: unknown = occasionId;
+  if (typeof consoleOccasionId !== "string" || consoleOccasionId === "") {
     throw new DomainError(t("T-032"));
   }
   const ids = [...new Set(checkInIds)];
@@ -435,10 +440,10 @@ export async function decideMany(
     .select({ occasionId: checkIn.occasionId })
     .from(checkIn)
     .where(inArray(checkIn.id, ids));
-  if (found.length !== ids.length || found.some((item) => item.occasionId !== page)) {
+  if (found.length !== ids.length || found.some((item) => item.occasionId !== consoleOccasionId)) {
     throw new DomainError(t("T-032"));
   }
-  const observed = await readOccasion(ctx, page);
+  const observed = await readOccasion(ctx, consoleOccasionId);
   if (!observed) {
     throw new DomainError(t("T-032"));
   }
@@ -446,7 +451,7 @@ export async function decideMany(
   // La ocasión antes que sus asistencias (ADR-119 regla 1).
   const row = await lockOccasion(ctx, observed);
   const rows = await lockCheckIns(ctx, inArray(checkIn.id, ids));
-  if (rows.length !== ids.length || rows.some((item) => item.occasionId !== page)) {
+  if (rows.length !== ids.length || rows.some((item) => item.occasionId !== consoleOccasionId)) {
     throw new DomainError(t("T-032"));
   }
   const pending = rows.filter((item) => item.status === "PENDING");

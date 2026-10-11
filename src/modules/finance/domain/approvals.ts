@@ -110,7 +110,7 @@ export async function decideEventApproval(
     throw new DomainError(t("T-032"));
   }
   // Lectura sin candado: solo dice de qué comité es la página.
-  const [page] = await ctx.tx
+  const [pageBudget] = await ctx.tx
     .select({ committeeId: committeeBudget.committeeId })
     .from(committeeBudget)
     .where(eq(committeeBudget.id, budgetId));
@@ -119,7 +119,7 @@ export async function decideEventApproval(
     .from(eventApproval)
     .where(eq(eventApproval.id, id))
     .for("update");
-  if (!row || !page || row.committeeId !== page.committeeId) {
+  if (!row || !pageBudget || row.committeeId !== pageBudget.committeeId) {
     throw new DomainError(t("T-032"));
   }
   if (row.status !== "PENDING") {

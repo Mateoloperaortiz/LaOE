@@ -64,12 +64,12 @@ export async function issueAccessGrant(
   // ese candado nadie le concede nada al destinatario: si no tiene permisos, la regla de privilegio
   // no aplica y a quien emite no se lo espera, como antes.
   const issuerId = ctx.actor.personId;
-  const guarded = issuerId !== null && (await hasPermissions(ctx.tx, input.personId));
+  const privilegeRuleApplies = issuerId !== null && (await hasPermissions(ctx.tx, input.personId));
   // De menor a mayor `id` (`lockWalletMembers`): dos emisiones cruzadas, cada uno para el otro, y la
   // importación del roster los piden en el mismo orden y no se interbloquean.
   const states = await lockWalletMembers(
     ctx.tx,
-    guarded ? [input.personId, issuerId] : [input.personId],
+    privilegeRuleApplies ? [input.personId, issuerId] : [input.personId],
   );
   // El destinatario se lee con el candado de su ciclo de membresía: una baja que va en vuelo termina
   // primero y esto responde T-2127; una que llega después espera, y lo que depura borra este enlace.
@@ -77,7 +77,7 @@ export async function issueAccessGrant(
   if (!recipient || !SIGN_IN_STATUSES.includes(recipient.status)) {
     throw new DomainError(t("T-2127"));
   }
-  if (guarded) {
+  if (privilegeRuleApplies) {
     await assertNoPrivilegeGain(ctx, issuerId, states.get(issuerId) ?? null, input.personId);
   }
   await ctx.tx
