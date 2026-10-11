@@ -9,7 +9,7 @@ Registro persistente de la deuda técnica de la casa digital ([ADR-109](adr/ADR-
 
 Mientras se trabaja, una fila puede estar `OPEN`, `IN_PROGRESS` o `BLOCKED` (espera una decisión de [decisiones-abiertas.md](decisiones-abiertas.md)).
 
-Orígenes: **A19** es la [auditoría del 2026-09-19](auditoria-codigo-2026-09-19.md), con su código de hallazgo o de tramo; **R06** es la revisión de arquitectura del 2026-10-06 (37 oportunidades; «verificado» quiere decir que un segundo lector intentó tumbarla y sobrevivió, «medido» que sale de un conteo reproducible). **D07** es el descubrimiento del 2026-10-07 (seguridad, módulos chicos e importadores, `npm audit` y escaneo de guards; «leído» quiere decir camino completo leído y no ejecutado) y **C1** es lo que apareció al implementar el ciclo 1 y **C2** lo que apareció al implementar y revisar el ciclo 2; **C3**, **C4**, **C5**, **C6**, **C7**, **C8**, **C9** y **C10** son lo mismo de los ciclos 3, 4, 5, 6, 7, 8, 9 y 10. **CF** es la clasificación final del 2026-10-09: un lector por lote leyó cada fila que seguía abierta contra el código de ese día y un segundo lector intentó tumbar lo que no quedó diferido, lo de riesgo alto y lo marcado como arreglo rápido; las filas con ese origen son lo que vieron de paso y no estaba anotado. **H07** es la auditoría de huecos del 2026-10-07: seis zonas que las revisiones anteriores no habían leído a fondo (esquema y base, datos personales, autorización, pruebas, permanencia y operación), cada una con un lector y un segundo lector que intentó tumbar los hallazgos de severidad alta y media. De sus 53 hallazgos, 24 de severidad alta o media quedaron confirmados y dos tumbados; los de severidad baja no pasaron por el segundo lector y van agrupados por zona. **H08** es la segunda ola, del 2026-10-08, con el mismo método: gamificación, crm, membresía y jobs dejaron 36 hallazgos, 20 de severidad media confirmados (el segundo lector bajó varios a baja) y ninguno tumbado; The Games, el rendimiento, los errores y la observabilidad, y el cliente dejaron 33, con 16 confirmados y uno tumbado. Con esa ola queda leído todo el repositorio. Prioridad, de mayor a menor: corrección, seguridad, integridad, simplicidad, mantenibilidad, testabilidad, observabilidad, rendimiento.
+Orígenes: **A19** es la [auditoría del 2026-09-19](auditoria-codigo-2026-09-19.md), con su código de hallazgo o de tramo; **R06** es la revisión de arquitectura del 2026-10-06 (37 oportunidades; «verificado» quiere decir que un segundo lector intentó tumbarla y sobrevivió, «medido» que sale de un conteo reproducible). **D07** es el descubrimiento del 2026-10-07 (seguridad, módulos chicos e importadores, `npm audit` y escaneo de guards; «leído» quiere decir camino completo leído y no ejecutado) y **C1** es lo que apareció al implementar el ciclo 1 y **C2** lo que apareció al implementar y revisar el ciclo 2; **C3**, **C4**, **C5**, **C6**, **C7**, **C8**, **C9**, **C10** y **C11** son lo mismo de los ciclos 3, 4, 5, 6, 7, 8, 9, 10 y 11. **CF** es la clasificación final del 2026-10-09: un lector por lote leyó cada fila que seguía abierta contra el código de ese día y un segundo lector intentó tumbar lo que no quedó diferido, lo de riesgo alto y lo marcado como arreglo rápido; las filas con ese origen son lo que vieron de paso y no estaba anotado. **H07** es la auditoría de huecos del 2026-10-07: seis zonas que las revisiones anteriores no habían leído a fondo (esquema y base, datos personales, autorización, pruebas, permanencia y operación), cada una con un lector y un segundo lector que intentó tumbar los hallazgos de severidad alta y media. De sus 53 hallazgos, 24 de severidad alta o media quedaron confirmados y dos tumbados; los de severidad baja no pasaron por el segundo lector y van agrupados por zona. **H08** es la segunda ola, del 2026-10-08, con el mismo método: gamificación, crm, membresía y jobs dejaron 36 hallazgos, 20 de severidad media confirmados (el segundo lector bajó varios a baja) y ninguno tumbado; The Games, el rendimiento, los errores y la observabilidad, y el cliente dejaron 33, con 16 confirmados y uno tumbado. Con esa ola queda leído todo el repositorio. Prioridad, de mayor a menor: corrección, seguridad, integridad, simplicidad, mantenibilidad, testabilidad, observabilidad, rendimiento.
 
 ## Hallazgos
 
@@ -586,24 +586,44 @@ Lo que movió el ciclo 9: una segunda tanda de filas diferidas, y de partes de u
 
 Lo que movió el ciclo 10: una tercera tanda de filas diferidas, y de incisos de una fila, que no esperaban nada. Quince comandos comprueban en su transacción que el objeto que les manda la página es de esa página; crear una tarjeta, cambiar los cargos de un miembro, emitir un enlace y revocar un permiso toman el candado que les faltaba; lo que un miembro ve de un reto se resuelve con el término del reto; un aviso vencido no se entrega; lo que The Games guarda en memoria suelta lo vencido; varias pantallas dejan de trabarse o de mostrar como vigente lo que ya no vale; y las pruebas que decían «a la vez» ahora lo fuerzan. Ninguna migración. En `src` cambian 89 archivos, con 1.339 líneas agregadas y 389 quitadas.
 
+### Tras el ciclo 11 · 2026-10-11 · `refactor/ciclo-11`
+
+| Métrica | Valor |
+| --- | --- |
+| Archivos y líneas en `src` (sin el catálogo de textos) | 784 · 125300 |
+| Líneas en `src/app` · `src/modules` | 39914 · 77667 |
+| Funciones de más de 100 · 200 · 300 líneas (`src` y `scripts`) | 187 · 58 · 23 |
+| Funciones con complejidad mayor a 30 | 66 |
+| Archivos de más de 500 · 1000 líneas | 48 · 6 |
+| Exports de `participation` · `people` · `crm` (`index.ts`) | 387 · 242 · 153 |
+| Nombres de función de nivel superior declarados en 2 o más archivos de `src` | 95 |
+| `as unknown as` en `src` | 4 |
+| `tList(` · accesos posicionales `[n] ?? ""` en `src` | 838 · 375 |
+| `throw new Error(` en `src` | 139 |
+| `getDb()` en `src/modules` | 480 |
+| Eventos de dominio: en el catálogo · todavía emitidos como cadena suelta | 68 · 0 |
+| Elementos crudos en `src` (input · select · table · button) | 564 · 125 · 51 · 134 |
+
+Lo que movió el ciclo 11: la cola de filas chicas que no esperaban nada, casi todas nacidas en los tres ciclos anteriores, y una regresión de las herramientas. La E2E local completa corre contra el build, como el CI, y ya no se queda sin tiempo en frío; el roster marca la fila que no se puede aplicar; cuatro comandos más toman el candado del ciclo de membresía, que ahora se llama por lo que es; dos auditorías que nacen de un request llevan su IP; los errores de entregas y premios hablan en español; tres lecturas dejaron de repetir trabajo; y el registro ya no lleva rutas con comodín ni el host de la base. Ninguna migración. En `src` cambian 72 archivos, con 990 líneas agregadas y 486 quitadas.
+
 ### Cierre del refactor · 2026-10-09
 
-Todo hallazgo quedó en uno de los cuatro estados finales. Las cifras están al día tras el ciclo 10 (2026-10-11). Son 338.
+Todo hallazgo quedó en uno de los cuatro estados finales. Las cifras están al día tras el ciclo 11 (2026-10-11). Son 348.
 
 | Prioridad | Resueltos | Diferidos | Aceptados | No eran deuda |
 | --- | --- | --- | --- | --- |
-| Corrección | 56 | 69 | 1 | 0 |
-| Seguridad | 32 | 24 | 3 | 0 |
+| Corrección | 61 | 69 | 1 | 0 |
+| Seguridad | 33 | 24 | 3 | 0 |
 | Privacidad | 5 | 1 | 0 | 0 |
-| Integridad | 10 | 25 | 2 | 2 |
-| Simplicidad | 7 | 9 | 0 | 0 |
-| Mantenibilidad | 12 | 30 | 2 | 0 |
-| Testabilidad | 14 | 4 | 2 | 0 |
-| Observabilidad | 7 | 8 | 0 | 0 |
-| Rendimiento | 4 | 6 | 0 | 0 |
+| Integridad | 12 | 24 | 2 | 2 |
+| Simplicidad | 8 | 8 | 0 | 0 |
+| Mantenibilidad | 14 | 30 | 2 | 0 |
+| Testabilidad | 15 | 4 | 1 | 0 |
+| Observabilidad | 10 | 6 | 0 | 0 |
+| Rendimiento | 6 | 4 | 0 | 0 |
 | Sin prioridad | 0 | 0 | 0 | 3 |
-| **Total** | **147** | **176** | **10** | **5** |
+| **Total** | **164** | **170** | **9** | **5** |
 
-De los 176 diferidos, 108 nombran una decisión abierta que los destraba; los demás esperan una medición en staging o en producción, un ticket chico o un ciclo de estructura con su spec. Cada fila dice cuál en su nota de cierre, con el riesgo de dejarla así. «Resuelto» quiere decir corregido y verificado en su rama: ninguna está mezclada todavía.
+De los 170 diferidos, 110 nombran una decisión abierta que los destraba; los demás esperan una medición en staging o en producción, un ticket chico o un ciclo de estructura con su spec. Cada fila dice cuál en su nota de cierre, con el riesgo de dejarla así. «Resuelto» quiere decir corregido y verificado en su rama: ninguna está mezclada todavía.
 
 Medidas que el script no trae y que salen de la revisión del 2026-10-06: módulos de dominio en una componente circular, 7; archivos de prueba que insertan filas a mano, 82; transacciones fuera de `runCommand`, 28 en 18 archivos.
